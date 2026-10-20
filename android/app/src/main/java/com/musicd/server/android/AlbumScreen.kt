@@ -120,6 +120,7 @@ internal fun AlbumScreen(offset: Long, zoneId: String, lit: String, client: () -
     var later by remember(offset) { mutableStateOf(false) }
     var serviceFav by remember(offset) { mutableStateOf<Boolean?>(null) }   // a streamed album's favourite on its service, once known
     var editing by remember(offset) { mutableStateOf(false) }   // its editor open (item 74)
+    var sharing by remember(offset) { mutableStateOf(false) }   // its Share card open (item 75)
     var loads by remember(offset) { mutableIntStateOf(0) }   // read again once the editor changed it
     val room = followRoom(zone, client)
     BackHandler(onBack = onBack)
@@ -291,7 +292,7 @@ internal fun AlbumScreen(offset: Long, zoneId: String, lit: String, client: () -
                     }
                 })
                 else list?.let { NavDiscs(it, disc) { at -> onStepTo(it.items[at].offset, zone, it.copy(index = at)) } }
-                FilledIconButton(onClick = { onPage("album-share", offset.toString()) }, enabled = album != null, colors = disc,
+                FilledIconButton(onClick = { sharing = true }, enabled = album != null, colors = disc,
                     modifier = Modifier.parity("album.share", Contract.label("album.share")).size(40.dp)) {
                     Icon(painterResource(R.drawable.np_share), contentDescription = null, modifier = Modifier.size(20.dp))
                 }
@@ -301,6 +302,8 @@ internal fun AlbumScreen(offset: Long, zoneId: String, lit: String, client: () -
                 TouchNav(lit, offline = Store.offlineMode(context), onTap = onNav)
             }
             // Its editor (item 74), over the page; the page read again, and the walls told, once it changed the album.
+            // Its Share card (item 75), centred above the mini player and the row, as the page keeps room for them.
+            if (sharing) album?.let { ShareSheet(it.album.title, it.album.subtitle, it.album.imageKey, zone, 144.dp, client) { sharing = false } }
             if (editing) album?.let { AlbumEditSheet(offset, it.album.title, it.album.subtitle, client, onClose = { editing = false }, onChanged = { loads++; NativeShell.toPage("library-changed", null) }) }
         }
     }

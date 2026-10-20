@@ -166,8 +166,10 @@ class ShareBridge(private val activity: Activity) {
      * that, the storage permission the app already asks for.
      */
     @JavascriptInterface
-    fun saveImage(base64: String, fileName: String, mime: String): Boolean {
-        val bytes = decode(base64) ?: return false
+    fun saveImage(base64: String, fileName: String, mime: String): Boolean = decode(base64)?.let { save(it, fileName, mime) } ?: false
+
+    /** [bytes] saved to the phone's Pictures/Mandarin as [fileName] (the page's Download, and the native card's: item 75). */
+    fun save(bytes: ByteArray, fileName: String, mime: String): Boolean {
         val name = safeName(fileName)
         val type = mime.ifEmpty { "image/png" }
         return try {
@@ -198,8 +200,10 @@ class ShareBridge(private val activity: Activity) {
     }
 
     @JavascriptInterface
-    fun shareImage(base64: String, fileName: String, mime: String) {
-        val bytes = decode(base64) ?: return
+    fun shareImage(base64: String, fileName: String, mime: String) { decode(base64)?.let { share(it, fileName, mime) } }
+
+    /** [bytes] offered to the phone's share sheet as [fileName] (the page's Share, and the native card's: item 75). */
+    fun share(bytes: ByteArray, fileName: String, mime: String) {
         activity.runOnUiThread {
             try {
                 val uri = FileProvider.getUriForFile(
