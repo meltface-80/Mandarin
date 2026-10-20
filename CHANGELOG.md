@@ -1,6 +1,8 @@
 # Changelog
 
 ## Unreleased
+- `77-album-editor-heading-serif`: the native album editor's heading, Edit album, is in Young Serif as the page's is (it
+  was in Manrope); a test holds every title the page sets in the serif to be drawn in the serif by the app.
 - `76-native-settings-account`: Settings natively in the Android app (plan T1), from the side menu, as the page's: the
   list over the whole screen (✕ and Settings in the serif, a row a section with its brass icon, the server's version and
   View on GitHub at the foot); Setup's list (the app's Downloads in it); Account (who is signed in, the devices signed in
