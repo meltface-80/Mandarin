@@ -1602,42 +1602,42 @@
       <!-- Share Card — the links under the card, grouped in one place -->
       <div class="settings-view settings-pane hidden" data-view="pane" data-pane="sharecard" data-parent="setup">
         <div class="settings-pane-head">
-          <button class="settings-back" type="button" data-settings-back aria-label="Back to settings">
+          <button class="settings-back" type="button" data-settings-back aria-label="Back to settings" data-parity="settings-sharecard.back">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
           </button>
-          <h2>Share Card</h2>
+          <h2 data-parity="settings-sharecard.heading">Share Card</h2>
         </div>
-        <p class="settings-pane-desc">What the card shows, and the links under it</p>
+        <p class="settings-pane-desc" data-parity="settings-sharecard.desc">What the card shows, and the links under it</p>
 
         <div class="settings-block">
-          <h3 class="settings-block-title">On the card</h3>
+          <h3 class="settings-block-title" data-parity="settings-sharecard.title">On the card</h3>
           <div class="settings-row">
-            <span class="settings-label">Review</span>
-            <label class="switch">
+            <span class="settings-label" data-parity="settings-sharecard.name">Review</span>
+            <label class="switch" data-parity="settings-sharecard.review">
               <input type="checkbox" id="share-card-review" aria-label="Show the review on the share card" checked>
               <span class="switch-track"><span class="switch-thumb"></span></span>
             </label>
           </div>
-          <div class="settings-note" id="share-card-review-note">On. The card carries the write-up about the album under the cover.</div>
+          <div class="settings-note" id="share-card-review-note" data-parity="settings-sharecard.note">On. The card carries the write-up about the album under the cover.</div>
         </div>
 
         <div class="settings-block">
-          <h3 class="settings-block-title">Services</h3>
+          <h3 class="settings-block-title" data-parity="settings-sharecard.title">Services</h3>
           <!-- Filled from /api/settings/share-links: the list of what CAN be
                linked to lives in lib/share-links.js, so this screen and the
                chips can never disagree about which services exist. -->
           <div id="share-services-list" class="share-toggle-list"></div>
           <div class="settings-row settings-row-top">
-            <span class="settings-label">Default <button class="settings-info-btn" data-info="Where a suggestion goes when the record is not in your library. You can also set it by holding a service button under the share card. This is per device, so a phone and a tablet can differ." aria-label="Info">&#9432;</button></span>
+            <span class="settings-label" data-parity="settings-sharecard.name">Default <button data-parity="settings-sharecard.info" class="settings-info-btn" data-info="Where a suggestion goes when the record is not in your library. You can also set it by holding a service button under the share card. This is per device, so a phone and a tablet can differ." aria-label="Info">&#9432;</button></span>
             <div class="settings-select-wrap">
-              <select id="share-default-service" class="settings-select" aria-label="Default service"></select>
-              <svg class="settings-caret" width="16" height="16" viewBox="0 0 24 24" fill="none"
+              <select id="share-default-service" data-parity="settings-sharecard.default" class="settings-select" aria-label="Default service"></select>
+              <svg data-parity="settings-sharecard.caret" class="settings-caret" width="16" height="16" viewBox="0 0 24 24" fill="none"
                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <polyline points="6 9 12 15 18 9"/>
               </svg>
             </div>
           </div>
-          <p class="settings-note" id="share-services-note">
+          <p class="settings-note" id="share-services-note" data-parity="settings-sharecard.note">
             Each one opens a search for the album on that service. Nothing is
             looked up until you tap a link. A suggestion that IS in your library
             queues it instead.
@@ -1645,9 +1645,9 @@
         </div>
 
         <div class="settings-block">
-          <h3 class="settings-block-title">Reviews</h3>
+          <h3 class="settings-block-title" data-parity="settings-sharecard.title">Reviews</h3>
           <div id="share-reviews-list" class="share-toggle-list"></div>
-          <p class="settings-note">
+          <p class="settings-note" data-parity="settings-sharecard.note">
             Pitchfork and Wikipedia link to the actual page when it has already
             been found for the card, and to a search when it has not.
           </p>
@@ -1926,12 +1926,12 @@
 
       <div class="settings-view settings-pane hidden" data-view="pane" data-pane="away" data-parent="setup">
         <div class="settings-pane-head">
-          <button class="settings-back" type="button" data-settings-back aria-label="Back to settings">
+          <button class="settings-back" type="button" data-settings-back aria-label="Back to settings" data-parity="settings-away.back">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
           </button>
-          <h2>Away from home</h2>
+          <h2 data-parity="settings-away.heading">Away from home</h2>
         </div>
-        <p class="settings-pane-desc">Tailscale, built into the server</p>
+        <p class="settings-pane-desc" data-parity="settings-away.desc">Tailscale, built into the server</p>
         <!-- Filled by initAwayPane() in app.js from /api/tailscale. -->
         <div class="settings-block" id="away-pane-body"></div>
       </div>

@@ -501,6 +501,8 @@ const SCREENS = {
   "settings-ui": { open: OPEN_SETTINGS(["setup", "ui"]), root: '#settings-overlay .settings-view[data-pane="ui"]' },
   "settings-display": { open: OPEN_SETTINGS(["setup", "display"]), root: '#settings-overlay .settings-view[data-pane="display"]' },
   "settings-shelf": { open: OPEN_SETTINGS(["setup", "shelfset"]), root: '#settings-overlay .settings-view[data-pane="shelfset"]' },
+  "settings-sharecard": { open: OPEN_SETTINGS(["setup", "sharecard"], `document.querySelectorAll("#share-services-list .switch").length > 0 && document.querySelectorAll("#share-reviews-list .switch").length > 0`), root: '#settings-overlay .settings-view[data-pane="sharecard"]' },
+  "settings-away": { open: OPEN_SETTINGS(["setup", "away"], `!!document.querySelector("#away-pane-body .settings-note")`), root: '#settings-overlay .settings-view[data-pane="away"]' },
   "library": { open: OPEN_LIBRARY, root: "body", shared: ["mini-player", "nav"] },
   "wall": { open: OPEN_WALL, root: "body", shared: ["mini-player", "nav"] },
   "artist": { open: OPEN_ARTIST, root: "body", shared: ["mini-player", "nav"] },

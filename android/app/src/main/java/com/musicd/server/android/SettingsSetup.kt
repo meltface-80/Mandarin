@@ -73,7 +73,7 @@ import org.json.JSONObject
  */
 
 /** One of Setup's pages the app draws here ([pane], the page's name for it). */
-internal val SETUP_PANES = setOf("smartpicks", "labels", "ui", "display", "shelfset")
+internal val SETUP_PANES = setOf("smartpicks", "labels", "ui", "display", "shelfset", "sharecard", "away")
 
 @Composable
 internal fun SettingsSetupPane(pane: String, client: () -> ServerClient?, onBack: () -> Unit) {
@@ -87,9 +87,11 @@ internal fun SettingsSetupPane(pane: String, client: () -> ServerClient?, onBack
             "labels" -> LabelsPane(client, onBack, showInfo)
             "ui" -> UiPane(onBack, showInfo)
             "display" -> DisplayPane(client, onBack, showInfo)
+            "sharecard" -> ShareCardPane(client, onBack, showInfo)
+            "away" -> AwayPane(client, onBack, showInfo)
             else -> ShelfPane(client, onBack, showInfo)
         }
-        info?.let { InfoTip(it, Modifier.parity("settings-picks.info settings-labels.info settings-ui.info settings-display.info settings-shelf.info")) }
+        info?.let { InfoTip(it, Modifier.parity("settings-picks.info settings-labels.info settings-ui.info settings-display.info settings-shelf.info settings-sharecard.info settings-away.info")) }
     }
 }
 
@@ -307,13 +309,13 @@ private fun ShelfPane(client: () -> ServerClient?, onBack: () -> Unit, info: (St
 
 /** A block of rows (.settings-block): 4 over and under. */
 @Composable
-private fun Block(content: @Composable () -> Unit) {
+internal fun Block(content: @Composable () -> Unit) {
     Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) { content() }
 }
 
 /** A setting's row (.settings-row): its name in 16 (and its ⓘ, [info]: its key and tap) on the left, [control] on the right, 16 apart. */
 @Composable
-private fun SetupRow(name: String, nameMod: Modifier, info: Modifier?, control: @Composable () -> Unit) {
+internal fun SetupRow(name: String, nameMod: Modifier, info: Modifier?, control: @Composable () -> Unit) {
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
         Row(Modifier.weight(1f).heightIn(min = if (info != null) 32.dp else 22.dp), verticalAlignment = Alignment.CenterVertically) {
             Text(name, nameMod.weight(1f, fill = false), color = paletteColor(Palette.TEXT), fontSize = 16.sp, lineHeight = 22.sp)
@@ -327,13 +329,13 @@ private fun SetupRow(name: String, nameMod: Modifier, info: Modifier?, control: 
 
 /** A note under a setting (.settings-note): 12 faint in 1.45, 6 over it. */
 @Composable
-private fun SetupNote(text: String, modifier: Modifier) {
+internal fun SetupNote(text: String, modifier: Modifier) {
     Text(text, modifier.padding(top = 6.dp), color = paletteColor(Palette.TEXT_FAINT), fontSize = 12.sp, lineHeight = 17.4.sp)
 }
 
 /** A switch (.switch): 46 by 28, its 22 thumb dim on the raised ground, or white on the accent once on. */
 @Composable
-private fun Toggle(on: Boolean, modifier: Modifier) {
+internal fun Toggle(on: Boolean, modifier: Modifier) {
     Box(modifier.size(46.dp, 28.dp).clip(CircleShape).background(paletteColor(if (on) Palette.ACCENT else Palette.BG_ELEV_2))
         .border(1.dp, if (on) Color.Transparent else paletteColor(Palette.BORDER), CircleShape).padding(horizontal = 3.dp), contentAlignment = Alignment.CenterStart) {
         Box(Modifier.offset(x = if (on) 18.dp else 0.dp).size(22.dp).background(if (on) Color.White else paletteColor(Palette.TEXT_DIM), CircleShape))
@@ -345,7 +347,7 @@ private fun Toggle(on: Boolean, modifier: Modifier) {
  * caret is: [caret], its key, or none), as wide as its longest choice and 110 at least, or [width].
  */
 @Composable
-private fun SelectBox(words: String, choices: List<Choice>, caret: Modifier?, modifier: Modifier, width: Dp? = null) {
+internal fun SelectBox(words: String, choices: List<Choice>, caret: Modifier?, modifier: Modifier, width: Dp? = null) {
     val measurer = rememberTextMeasurer()
     val style = TextStyle(fontSize = 15.sp, lineHeight = 19.sp)
     val longest = choices.maxOfOrNull { measurer.measure(it.words, style).size.width } ?: 0
@@ -360,7 +362,7 @@ private fun SelectBox(words: String, choices: List<Choice>, caret: Modifier?, mo
 
 /** A button of a setting's (.settings-update-btn): 36 tall, 14 in, 8 round, 13 dim; dim while it works. */
 @Composable
-private fun SetupButton(words: String, busy: Boolean, modifier: Modifier) {
+internal fun SetupButton(words: String, busy: Boolean, modifier: Modifier) {
     val shape = RoundedCornerShape(8.dp)
     Box(modifier.heightIn(min = 36.dp).alpha(if (busy) 0.6f else 1f).clip(shape).background(paletteColor(Palette.BG_ELEV_2)).border(1.dp, paletteColor(Palette.BORDER), shape)
         .padding(horizontal = 14.dp), contentAlignment = Alignment.Center) {
@@ -383,7 +385,7 @@ private fun RangeTrack(frac: Float, modifier: Modifier) {
 
 /** The ⓘ's help (.settings-info-toast): along the foot, over the page, until it has been read. */
 @Composable
-private fun BoxScope.InfoTip(text: String, modifier: Modifier) {
+internal fun BoxScope.InfoTip(text: String, modifier: Modifier) {
     val box = RoundedCornerShape(12.dp)
     Box(modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(bottom = 88.dp).widthIn(max = minOf(400, (LocalConfiguration.current.screenWidthDp * 0.92f).toInt()).dp)
         .clip(box).background(paletteColor(Palette.BG_ELEV_2)).border(1.dp, paletteColor(Palette.BORDER), box).padding(horizontal = 18.dp, vertical = 12.dp)) {

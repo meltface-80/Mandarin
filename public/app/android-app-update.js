@@ -37,10 +37,10 @@
   if (typeof app.tailscaleTest === "function" && awayPane) {
     const blk = document.createElement("div");
     blk.className = "settings-block away-phone";
-    blk.innerHTML = '<div class="settings-divider"></div><div class="settings-subhead">This phone</div>' +
-      '<div class="settings-row"><span class="settings-label">Tailscale on this phone' + settingsInfo("The app has its own Tailscale — no Tailscale app needed. Sign it in once, with the same account as the server; away from home the app then reaches the server by itself.") + "</span>" +
-      '<button type="button" class="settings-update-btn away-phone-open">Tailscale</button></div>' +
-      '<div class="settings-note">Built into the app; sign in with the server’s account.</div>';
+    blk.innerHTML = '<div class="settings-divider"></div><div class="settings-subhead" data-parity="settings-away.phone-title">This phone</div>' +
+      '<div class="settings-row"><span class="settings-label" data-parity="settings-away.name">Tailscale on this phone' + settingsInfo("The app has its own Tailscale — no Tailscale app needed. Sign it in once, with the same account as the server; away from home the app then reaches the server by itself.", "settings-away.info") + "</span>" +
+      '<button type="button" class="settings-update-btn away-phone-open" data-parity="settings-away.phone-open">Tailscale</button></div>' +
+      '<div class="settings-note" data-parity="settings-away.note">Built into the app; sign in with the server’s account.</div>';
     // The Tailscale button itself: the first button in the row is the ⓘ (v0.6.15 — until
     // then the tap went to the ⓘ, and Tailscale did nothing).
     blk.querySelector(".away-phone-open").addEventListener("click", () => { try { app.tailscaleTest(); } catch (e) { /* an app without this call (older than the page): nothing to do */ } });

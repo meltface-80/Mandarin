@@ -244,6 +244,9 @@ class ServerClient(
     fun saveSetting(name: String, body: JSONObject): JSONObject = post("/api/settings/$name", body, 20_000)
     fun rebuildPicks(): JSONObject = post("/api/smart-picks/rebuild", JSONObject())
     fun rescanLabelsNow(): JSONObject = post("/api/labels/rescan-force", JSONObject())
+    /** The server's built-in Tailscale (item 80), and [what] done to it ("enable" with {on}, "login", "logout"): its state after. */
+    fun tailscale(): AwayState = AwayState.parse(getJson("/api/tailscale"))
+    fun tailscaleDo(what: String, body: JSONObject = JSONObject()): AwayState = AwayState.parse(post("/api/tailscale/$what", body, 30_000))
 
     /** One of your playlists deleted (item 65), for good. */
     fun deletePlaylist(id: String) { post("/api/user-playlists/delete", JSONObject().put("id", id)) }

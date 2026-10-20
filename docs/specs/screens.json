@@ -804,6 +804,45 @@
         "enabled": { "kind": "action", "label": "Shelf" }
       }
     },
+    "settings-sharecard": {
+      "page": "Settings' Share Card (in Setup): Back, its title and what it holds; the card's review on or off and what that means; the services to link to, each on or off, and the default one (with its ⓘ) chosen from a list; the review sites, each on or off; their notes",
+      "native": ["android/app/src/main/java/com/musicd/server/android/SettingsShareAway.kt", "android/app/src/main/java/com/musicd/server/android/SettingsSetup.kt"],
+      "preview": false,
+      "items": {
+        "back": { "kind": "action", "label": "Back to settings" },
+        "heading": { "kind": "shows" },
+        "desc": { "kind": "shows" },
+        "title": { "kind": "shows", "each": true },
+        "name": { "kind": "shows", "each": true },
+        "review": { "kind": "action", "label": "Show the review on the share card" },
+        "note": { "kind": "shows", "each": true },
+        "service": { "kind": "action", "label": "{service}", "each": true, "when": "the server's list of services read" },
+        "site": { "kind": "action", "label": "{site}", "each": true, "when": "the server's list of review sites read" },
+        "info": { "kind": "action", "label": "About {setting}" },
+        "caret": { "kind": "shows" },
+        "default": { "kind": "action", "label": "Default service" }
+      }
+    },
+    "settings-away": {
+      "page": "Settings' Away from home (in Setup): Back, its title and what it holds; the server's built-in Tailscale on or off, its status, name and address, Sign in or Sign out, and what the server says of it (or that it can't be built in here); in the app, This phone and its own Tailscale",
+      "native": ["android/app/src/main/java/com/musicd/server/android/SettingsShareAway.kt", "android/app/src/main/java/com/musicd/server/android/SettingsSetup.kt"],
+      "preview": false,
+      "items": {
+        "back": { "kind": "action", "label": "Back to settings" },
+        "heading": { "kind": "shows" },
+        "desc": { "kind": "shows" },
+        "note": { "kind": "shows", "each": true },
+        "name": { "kind": "shows", "each": true, "when": "Tailscale can be built in" },
+        "value": { "kind": "shows", "each": true, "when": "Tailscale can be built in" },
+        "enabled": { "kind": "action", "label": "Built-in Tailscale", "when": "Tailscale can be built in" },
+        "error": { "kind": "shows", "each": true, "when": "Tailscale warns, or an action failed" },
+        "signin": { "kind": "action", "label": "Sign in to Tailscale", "when": "on and not signed in" },
+        "signout": { "kind": "action", "label": "Sign out of Tailscale", "when": "connected" },
+        "info": { "kind": "action", "label": ["More information", "About {setting}"], "each": true, "when": "a note with its help" },
+        "phone-title": { "kind": "shows", "when": "in the app" },
+        "phone-open": { "kind": "action", "label": "Tailscale", "when": "in the app" }
+      }
+    },
     "album": {
       "page": "an album's page: the album view (#album-modal, not Now playing), opened from a row of albums, a phone held upright",
       "native": ["android/app/src/main/java/com/musicd/server/android/AlbumScreen.kt", "android/app/src/main/java/com/musicd/server/android/AlbumTracks.kt", "android/app/src/main/java/com/musicd/server/android/AlbumAbout.kt", "android/app/src/main/java/com/musicd/server/android/AlbumHead.kt", "android/app/src/main/java/com/musicd/server/android/AlbumSelect.kt", "android/app/src/main/java/com/musicd/server/android/AlbumWorks.kt"],
