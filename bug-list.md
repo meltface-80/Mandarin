@@ -8,6 +8,7 @@ Status: **Open** · **In progress** · **Ready to test** (green, waiting on the 
 
 | # | Item | Branch | Status |
 |---|------|--------|--------|
+| 99 | Away from home (mobile data, a VPN) the Library grid stayed on its grey skeletons: the kept wall's "page on its way" flag stayed up when its first request was called off (the Library left or drawn again before a slow answer), so it never asked again. Now let go however the request ends, and a failed first page asked again on reopening | `99-library-wall-away` | Ready to test |
 | 98 | The side menu's Offline mode row on two lines ("Offline mode", then "On · only the music on this phone" or "Off" under it): now one line, "Offline Mode - On" or "Offline Mode - Off", in the app's menu and the page's | `98-offline-mode-one-line` | Ready to test |
 | 1 | CI red on `v1.0.6-tests-csharp-5-suites` (PRs #255 → migration, #256 → main): `TagsFrontTests` compared files made by CI's ffmpeg against readings recorded from ffmpeg 6.1.1's files | `v1.0.6-tests-csharp-5-suites` | To be confirmed |
 | 2 | Android app occasionally becomes unresponsive (investigate): the page waited on the app re-reading every downloaded album's file after each track a download finished, and redrew Home's phone rows on every return to the app | `02-android-unresponsive` | To be confirmed |
