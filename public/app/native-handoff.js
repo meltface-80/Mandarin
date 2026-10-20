@@ -94,6 +94,25 @@ window.__musicdNative = function (what, arg) {
     openAddToPlaylistSheet(null, albums.map(a => ({ offset: a.offset, title: a.title || "", subtitle: a.subtitle || "", image_key: a.image_key || null })));
     return true;
   }
+  // Home's rows natively (item 57): the Playlists heading opens the page's Playlists; a playlist's tile the page's own
+  // page of it, by its id (yours, or a Dynamic one's).
+  if (what === "playlists") { showPlaylists(); return true; }
+  // An album of the phone's own music, by its key: the page's own album page of it (the server never sees these albums).
+  if (what === "phone-album") {
+    const a = localList().find(x => x.key === arg);
+    if (!a) return false;
+    openAlbum(a, { source: "home", filter: null });
+    return true;
+  }
+  if (what === "playlist" || what === "smart-playlist") {
+    if (!arg) return false;
+    fetch(what === "playlist" ? "/api/user-playlists" : "/api/smart-playlists", { cache: "no-store" }).then(r => r.json()).then(j => {
+      const p = ((j && j.playlists) || []).find(x => String(x.id) === String(arg));
+      if (!p) return;
+      if (what === "playlist") openUserPlaylist(p); else openSmartPlaylist(p);
+    }).catch(() => { /* the playlist gone: nothing to open */ });
+    return true;
+  }
   if (what === "zone") {
     if (!zoneSel || !arg || ![...zoneSel.options].some(o => o.value === arg)) return false;
     if (zoneSel.value !== arg) { zoneSel.value = arg; zoneSel.dispatchEvent(new Event("change")); }

@@ -65,6 +65,18 @@ class LibraryClient(private val get: (String) -> JSONObject) {
 
     fun albumOfTheDay(): AlbumOfTheDay = AlbumOfTheDay.parse(get("/api/home/album-of-the-day"))
 
+    /** Home's other rows (item 57): today's Smart Picks; the genres and their groups, as the Browse by genre cards; the label of the week; the playlists' tiles. */
+    fun smartPicks(): SmartPicks = SmartPicks.parse(get("/api/smart-picks"))
+    fun genres(): List<Genre> = Genre.list(get("/api/filters/genres"))
+    fun genreGroups(): GenreGroups = GenreGroups.parse(get("/api/home/genre-groups"))
+    fun genreCards(): List<GenreCard> = GenreCard.build(genres(), genreGroups())
+    fun labelOfTheWeek(): LabelOfTheWeek = LabelOfTheWeek.parse(get("/api/home/label-of-the-week"))
+    fun playlists(): List<PlaylistTile> = PlaylistTile.mine(get("/api/user-playlists")) + PlaylistTile.smart(get("/api/smart-playlists"))
+    /** Random Album's choice, to be offered (Play now, Play next, Queue). */
+    fun pickUnheard(): PickedAlbum = PickedAlbum.parse(get("/api/pick-unheard"))
+    /** Random albums narrowed by [filter] (a genre's wall from Browse by genre), [count] of them; [total] in the answer is the pool's. */
+    fun randomAlbums(count: Int, filter: WallFilter): AlbumRow = AlbumRow.parse(get("/api/random-albums?count=$count" + filter.query()))
+
     // A space as %20, as a browser's address has it ("+" means a space only in a form's body).
     private fun enc(s: String) = URLEncoder.encode(s, "UTF-8").replace("+", "%20")
 }

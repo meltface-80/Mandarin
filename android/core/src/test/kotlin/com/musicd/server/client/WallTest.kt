@@ -17,6 +17,13 @@ class WallTest {
         assertFalse(WallPrefs.parse("""{"layout":"3"}""").list)
     }
 
+    @Test fun `Home's greeting and Random Album, each on unless the page says off`() {
+        assertTrue(WallPrefs.parse("{}").greeting); assertTrue(WallPrefs.parse("{}").random)
+        val p = WallPrefs.parse("""{"greeting":"off","random":"on"}""")
+        assertFalse(p.greeting); assertTrue(p.random)
+        assertFalse(WallPrefs.parse("""{"random":"off"}""").random)
+    }
+
     @Test fun `the columns are the page's breakpoints divided by the tile size, or fixed`() {
         val auto = WallPrefs()
         assertEquals("a phone", 3, auto.cols(412, 915))

@@ -1,7 +1,8 @@
 {
   "about": "What each screen the Android app draws natively shows and does, held to the page's (docs/specs/native-parity.md). Keys are `<screen>.<item>`: the page carries them as data-parity, the app as Modifier.parity(). kind: action (it can be tapped or dragged) or shows (a readout). label: what it is called, aloud as well (one per state; {…} is the content). in: shown once that item is tapped. when: shown only then. each: one per row. only: page, with why: the page's alone, for that reason. native: the app's Compose files for it; preview: still behind its switch in Settings, and what it lacks yet is on tools/quality/parity-gaps.json, which only shrinks. shell: the app's Compose files that are no screen.",
   "shell": {
-    "android/app/src/main/java/com/musicd/server/android/NativeShell.kt": "the native screens' frame: their navigation and Mandarin's colours; it draws nothing of its own (the page's screens are the WebView's)",
+    "android/app/src/main/java/com/musicd/server/android/NativeShell.kt": "the native screens' frame: their navigation; it draws nothing of its own (the page's screens are the WebView's)",
+    "android/app/src/main/java/com/musicd/server/android/Theme.kt": "Mandarin's colours and type for the native screens, as Material's theme; it draws nothing of its own",
     "android/app/src/main/java/com/musicd/server/android/RoomFollow.kt": "a room followed, and a cover fetched, for the screens that show them; it draws nothing of its own",
     "android/app/src/main/java/com/musicd/server/android/Covers.kt": "the covers a wall's tiles show, kept once fetched; it draws nothing of its own"
   },
@@ -177,13 +178,13 @@
       }
     },
     "wall": {
-      "page": "a wall Home links to (its row's heading tapped): Listen later, Favourites, Recently played, Not played in 6 months, or Random albums with its reshuffle; the heading, the bar's Back over the albums, the tiles in #album-grid; the mini player and the row are their own screens",
+      "page": "a wall Home links to (its row's heading tapped): Listen later, Favourites, Recently played, Not played in 6 months, or Random albums with its reshuffle, or a genre's albums (a card of Browse by genre tapped, with the reshuffle too); in the Android app, Downloaded albums and Music on device (the latter with the Library wall's Focus and Sort); the heading, the bar's Back over the albums, the tiles in #album-grid; the mini player and the row are their own screens",
       "native": ["android/app/src/main/java/com/musicd/server/android/WallScreen.kt", "android/app/src/main/java/com/musicd/server/android/AlbumTile.kt", "android/app/src/main/java/com/musicd/server/android/WallGrid.kt", "android/app/src/main/java/com/musicd/server/android/WallSelect.kt"],
       "preview": true,
       "items": {
         "back": { "kind": "action", "label": "Back to Home" },
         "title": { "kind": "shows" },
-        "reshuffle": { "kind": "action", "label": "Shuffle new albums", "when": "the random wall" },
+        "reshuffle": { "kind": "action", "label": "Shuffle new albums", "when": "the random wall, or a genre's" },
         "banner": { "kind": "shows", "when": "the wall is empty, or the library can't be read yet" },
         "album": { "kind": "action", "label": ["{album} by {artist}", "{album}"], "each": true },
         "album-art": { "kind": "shows", "each": true },
@@ -235,6 +236,80 @@
         "select-playlist": { "kind": "action", "label": "Add to playlist…", "in": "select-menu" },
         "select-later": { "kind": "action", "label": "Listen later", "in": "select-menu" },
         "select-clear": { "kind": "action", "label": "Clear selection", "in": "select-menu" }
+      }
+    },
+    "home": {
+      "page": "Home (#home-view; the top bar is hidden in the touch layout, the row along the foot has its Menu and Search): the greeting, the strip under it (Random Album, Album of the day), then the rows in the owner's order, each a heading that opens its wall over its albums, Smart Picks' cards, the label of the week, the genre cards; in the Android app, Downloaded albums and Music on device too; the mini player and the row along the foot are their own screens; a phone held upright",
+      "native": ["android/app/src/main/java/com/musicd/server/android/HomeScreen.kt", "android/app/src/main/java/com/musicd/server/android/HomeRows.kt", "android/app/src/main/java/com/musicd/server/android/HomeTiles.kt", "android/app/src/main/java/com/musicd/server/android/AlbumTile.kt"],
+      "preview": true,
+      "items": {
+        "greeting-date": { "kind": "shows", "when": "the greeting is on (Settings → Home Screen)" },
+        "greeting": { "kind": "shows", "when": "the greeting is on" },
+        "random-album": { "kind": "action", "label": "Random Album", "when": "Random Album is on (Settings → Home Screen)" },
+        "aotd-badge": { "kind": "shows", "when": "today's album, not yet played today: its ★ Today, on its tile in the strip" },
+        "downloads-title": { "kind": "action", "label": "Downloaded albums", "when": "the Android app, with an album on the phone or on its way" },
+        "phone-title": { "kind": "action", "label": "Music on device", "when": "the Android app, with a folder of music on the phone" },
+        "unplayed-title": { "kind": "action", "label": "Not played in 6 months", "when": "the row has albums" },
+        "later-title": { "kind": "action", "label": "Listen later", "when": "the row has albums" },
+        "playlists-title": { "kind": "action", "label": "Playlists", "when": "there are playlists" },
+        "favourites-title": { "kind": "action", "label": "Favourites", "when": "the row has albums" },
+        "history-title": { "kind": "action", "label": "Recently played", "when": "the row has albums" },
+        "picks-title": { "kind": "action", "label": "Smart Picks", "when": "today's picks are made" },
+        "random-title": { "kind": "action", "label": "Random albums" },
+        "library-title": { "kind": "action", "label": "Library" },
+        "lotw-title": { "kind": "action", "label": "Label of the week: {label}", "when": "a label of the week" },
+        "lotw-name": { "kind": "shows", "when": "a label of the week: its name, large, under the heading" },
+        "genres-title": { "kind": "shows" },
+        "album": { "kind": "action", "label": ["{album} by {artist}", "{album}"], "each": true },
+        "album-art": { "kind": "shows", "each": true },
+        "album-quality": { "kind": "shows", "each": true, "when": "the server knows the files' rate" },
+        "album-source": { "kind": "shows", "each": true, "when": "a Qobuz or Tidal album" },
+        "album-discs": { "kind": "shows", "each": true, "when": "more than one disc" },
+        "album-title": { "kind": "shows", "each": true },
+        "album-artist": { "kind": "shows", "each": true, "when": "the album names an artist" },
+        "dl-badge": { "kind": "shows", "each": true, "when": "the Android app: an album on its way to the phone, or on a card that is out" },
+        "playlist": { "kind": "action", "label": ["{playlist} by {count}", "{playlist}"], "each": true, "when": "there are playlists" },
+        "playlist-art": { "kind": "shows", "each": true, "when": "there are playlists" },
+        "playlist-title": { "kind": "shows", "each": true, "when": "there are playlists" },
+        "playlist-subtitle": { "kind": "shows", "each": true, "when": "there are playlists" },
+        "pick": { "kind": "action", "label": "{artist} — {album}", "each": true, "when": "today's picks are made" },
+        "pick-art": { "kind": "shows", "each": true, "when": "today's picks are made" },
+        "pick-artist": { "kind": "shows", "each": true, "when": "today's picks are made" },
+        "pick-album": { "kind": "shows", "each": true, "when": "today's picks are made" },
+        "genre": { "kind": "action", "label": "{genre}", "each": true },
+        "row-empty": { "kind": "shows", "each": true, "when": "a row with nothing to show, or not loaded yet" }
+      }
+    },
+    "picks": {
+      "page": "Smart Picks (the row's heading tapped): the heading, the bar's Back, each pick as a card in #album-grid with its reason and what can be done with it; the mini player and the row are their own screens",
+      "native": ["android/app/src/main/java/com/musicd/server/android/PicksScreen.kt", "android/app/src/main/java/com/musicd/server/android/WallGrid.kt"],
+      "preview": true,
+      "items": {
+        "back": { "kind": "action", "label": "Back to Home" },
+        "title": { "kind": "shows" },
+        "banner": { "kind": "shows", "when": "no picks yet, or they couldn't be read" },
+        "pick-art": { "kind": "shows", "each": true },
+        "pick-artist": { "kind": "shows", "each": true },
+        "pick-album": { "kind": "shows", "each": true },
+        "pick-reason": { "kind": "shows", "each": true, "when": "the pick has a reason" },
+        "open": { "kind": "action", "label": "Open", "each": true, "when": "the library has the album" },
+        "added": { "kind": "action", "label": "✓ Added", "each": true, "when": "added to your streaming favourites, not in the library yet: nothing to tap" },
+        "add": { "kind": "action", "label": ["＋ Add", "…", "✓ Added"], "each": true, "when": "not in your streaming favourites" },
+        "block": { "kind": "action", "label": "Not for me", "each": true }
+      }
+    },
+    "random-pick": {
+      "page": "the album Random Album chose (#random-pick-overlay, over Home after the disc's turn): its cover, title and artist, and Play now, Play next or Queue",
+      "native": ["android/app/src/main/java/com/musicd/server/android/RandomPickDialog.kt"],
+      "preview": true,
+      "items": {
+        "close": { "kind": "action", "label": "Close" },
+        "art": { "kind": "shows" },
+        "title": { "kind": "shows" },
+        "artist": { "kind": "shows" },
+        "play-now": { "kind": "action", "label": "Play now" },
+        "play-next": { "kind": "action", "label": "Play next" },
+        "queue": { "kind": "action", "label": "Queue — add to the end" }
       }
     },
     "album": {

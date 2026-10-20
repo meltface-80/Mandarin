@@ -28,6 +28,16 @@ public sealed partial class AndroidApiTests
         ("home_history", "/api/home/history"),
         ("home_unplayed", "/api/home/unplayed"),
         ("home_album_of_the_day", "/api/home/album-of-the-day"),
+        // Home's other rows (bug list item 57).
+        ("smart_picks", "/api/smart-picks"),
+        ("genres", "/api/filters/genres"),
+        ("genre_groups", "/api/home/genre-groups"),
+        ("label_of_the_week", "/api/home/label-of-the-week"),
+        ("user_playlists", "/api/user-playlists"),
+        ("smart_playlists", "/api/smart-playlists"),
+        ("favourites", "/api/favourites"),
+        ("listen_later", "/api/listen-later"),
+        ("pick_unheard", "/api/pick-unheard"),
     ];
 
     [GeneratedRegex("^al-\\d+-[0-9a-f]+$")]
@@ -35,6 +45,9 @@ public sealed partial class AndroidApiTests
 
     [GeneratedRegex("^\\d{4}-\\d{2}-\\d{2}$")]
     private static partial Regex Day();
+
+    [GeneratedRegex("^/api/image/al-\\d+-[0-9a-f]+\\?size=\\d+$")]
+    private static partial Regex ImageUrl();
 
     // What differs from run to run, made the same.
     private static JsonNode? Steady(JsonNode? n, string? key = null)
@@ -50,6 +63,7 @@ public sealed partial class AndroidApiTests
             case JsonValue v when v.TryGetValue<string>(out var s):
                 if (key == "image_key" && ImageKey().IsMatch(s)) return "<image_key>";
                 if (key == "day" && Day().IsMatch(s)) return "<day>";
+                if (key == "image" && ImageUrl().IsMatch(s)) return "<image>";
                 return s;
             default:
                 return n?.DeepClone();
@@ -62,6 +76,8 @@ public sealed partial class AndroidApiTests
         Needs.Server(); Needs.Ffmpeg();
         await using var s = await LibraryServer.Start(Fixtures.MakeLibrary());
         var first = (await s.Albums()).First(a => a.Str("title") == "Album One")["offset"]!.ToJsonString();
+        // Smart Picks are made in the background after the scan: waited for, so the recording holds the day's set.
+        for (var i = 0; i < 150 && (await s.GetJ("/api/smart-picks"))!["picks"]!.AsArray().Count == 0; i++) await Task.Delay(200);
         var got = new JsonObject();
         foreach (var (name, asked) in Asked)
         {
@@ -73,6 +89,14 @@ public sealed partial class AndroidApiTests
         var day = got["home_album_of_the_day"]!["answer"]!.AsObject();
         Assert.True(list.Any(a => JsonNode.DeepEquals(a, day["album"])), "the album of the day is one of the library's, as the list has it");
         day["album"] = list[0]!.DeepClone();
+        // Random Album's choice likewise: any of the library's, kept as its first.
+        var picked = got["pick_unheard"]!["answer"]!.AsObject();
+        Assert.True(list.Any(a => JsonNode.DeepEquals(a, picked["album"])), "Random Album's choice is one of the library's, as the list has it");
+        picked["album"] = list[0]!.DeepClone();
+        // Smart Picks come in no fixed order (the least played, all alike here): kept by album name.
+        var picks = got["smart_picks"]!["answer"]!["picks"]!.AsArray();
+        var sorted = picks.OrderBy(p => p!["album"]!.GetValue<string>(), StringComparer.Ordinal).Select(p => p!.DeepClone()).ToArray();
+        got["smart_picks"]!["answer"]!["picks"] = new JsonArray(sorted);
         var text = got.ToJsonString(new JsonSerializerOptions { WriteIndented = true }) + "\n";
         if (Environment.GetEnvironmentVariable("MANDARIN_GOLDEN_WRITE") == "1")
         {

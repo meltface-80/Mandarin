@@ -82,7 +82,7 @@ function renderHomeLotw(label, albums) {
     // Late-Night Hi-Fi theme sets large on its own line under the heading.
     titleEl.textContent = "Label of the week";
     const name = document.createElement("span");
-    name.className = "home-lotw-name";
+    name.className = "home-lotw-name"; name.dataset.parity = "home.lotw-name";
     const sep = document.createElement("span");
     sep.className = "home-lotw-sep";
     sep.textContent = ": ";
@@ -101,7 +101,7 @@ function renderHomeLotw(label, albums) {
 
 async function loadHomeLabelOfWeek() {
   if (!homeLotw) return;
-  if (!rowHasContent(homeLotw)) homeLotw.innerHTML = '<div class="home-carousel-empty">Loading…</div>';
+  if (!rowHasContent(homeLotw)) homeLotw.innerHTML = emptyRow("Loading…");
   try {
     const r = await fetch("/api/home/label-of-the-week");
     const j = await r.json();

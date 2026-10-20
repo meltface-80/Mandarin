@@ -36,6 +36,10 @@ import com.musicd.server.client.ShellRoute
  *                                                focus), drawn to its UI Settings (JSON), its albums playing in that room
  *   MusicdApp.openWall(kind, prefs, zoneId)   a wall Home links to (item 52): later, favourites, history, unplayed or random
  *   MusicdApp.openArtist(name, prefs, zoneId)   an artist's page (item 52)
+ *   MusicdApp.nativeHome() / setNativeHome(on)   the native Home (item 57), a preview: the switch in UI Settings
+ *   MusicdApp.homeShown(front, prefs, zoneId)   the page is on Home with nothing of its own over it (front), or something
+ *                                               of its own has come over it (the menu, the search, a wall): the app's Home
+ *                                               in front, or the page (public/app/native-home.js); with the UI Settings and the room
  */
 class AppBridge(private val activity: Activity) {
     companion object {
@@ -111,8 +115,17 @@ class AppBridge(private val activity: Activity) {
     fun setNativeLibrary(on: Boolean) { Store.setNativeLibrary(activity, on); NativeShell.nativeLibrary = on }
 
     @JavascriptInterface
+    fun nativeHome(): Boolean = Store.nativeHome(activity).also { NativeShell.nativeHome = it }
+
+    @JavascriptInterface
+    fun setNativeHome(on: Boolean) { Store.setNativeHome(activity, on); NativeShell.nativeHome = on; if (!on) activity.runOnUiThread { NativeShell.leaveHome() } }
+
+    @JavascriptInterface
+    fun homeShown(front: Boolean, prefs: String, zoneId: String) { activity.runOnUiThread { NativeShell.homeShown(front, prefs, zoneId) } }
+
+    @JavascriptInterface
     fun openLibrary(view: String, prefs: String, zoneId: String) {
-        NativeShell.prefs = prefs; NativeShell.zone = zoneId
+        NativeShell.prefs = prefs; NativeShell.zone = zoneId; NativeShell.libraryView = view
         activity.runOnUiThread { NativeShell.open(ShellRoute.library(view, prefs, zoneId)) }
     }
 

@@ -163,6 +163,8 @@ function readHomeCache() {
 // never ordinary album tiles — so that class has to be named here or a
 // hydrated picks row reads as empty and gets blanked.
 const rowHasContent = (el) => !!(el && el.querySelector(".album, .home-genre-card, .pick-card"));
+// A row's one line where it has no tiles ("Loading…", "No albums."), keyed for the screens contract (docs/specs/screens.json).
+function emptyRow(text) { return '<div class="home-carousel-empty" data-parity="home.row-empty">' + text + "</div>"; }
 
 // Build a Home tile that always opens full-library (filter: null) so its
 // offset resolves even when a genre filter was last active.
@@ -177,7 +179,7 @@ function splitTrackLength(sub) {
 }
 
 function homeTile(a, extraClass) {
-  const tile = buildAlbumTile(a, () => openAlbum(a, { source: "home", filter: null }));
+  const tile = keyHomeTile(buildAlbumTile(a, () => openAlbum(a, { source: "home", filter: null })));   // the screens contract's `home`
   if (extraClass) tile.classList.add(extraClass);
   return tile;
 }
@@ -192,6 +194,7 @@ function buildUnheardTile() {
   btn.className = "album home-unheard-tile";
   btn.id = "home-unheard-tile";
   btn.setAttribute("aria-label", "Random Album");
+  btn.dataset.parity = "home.random-album";   // the screens contract's (docs/specs/screens.json)
 
   const art = document.createElement("div");
   art.className = "album-art-wrap unheard-art";
@@ -227,7 +230,7 @@ function buildAotdTile(aotd) {
   const wrap = tile.querySelector(".album-art-wrap");
   if (wrap) {
     const badge = document.createElement("span");
-    badge.className = "aotd-badge";
+    badge.className = "aotd-badge"; badge.dataset.parity = "home.aotd-badge";
     badge.textContent = "★ Today";
     wrap.appendChild(badge);
   }
@@ -326,7 +329,7 @@ function renderAlbumRow(rowEl, albums) {
   if (!rowEl) return;
   rowEl.innerHTML = "";
   if (!albums.length) {
-    rowEl.innerHTML = '<div class="home-carousel-empty">No albums.</div>';
+    rowEl.innerHTML = emptyRow("No albums.");
     return;
   }
   const frag = document.createDocumentFragment();
@@ -337,11 +340,11 @@ function renderHomeRandom(albums) { renderAlbumRow(homeRandom, albums); }
 
 async function loadHomeRandom() {
   if (!homeRandom) return;
-  if (!rowHasContent(homeRandom)) homeRandom.innerHTML = '<div class="home-carousel-empty">Loading…</div>';
+  if (!rowHasContent(homeRandom)) homeRandom.innerHTML = emptyRow("Loading…");
   try {
     const r = await fetch("/api/random-albums?count=30");
     if (r.status === 503) {
-      if (!rowHasContent(homeRandom)) homeRandom.innerHTML = '<div class="home-carousel-empty">Reading your music library…</div>';
+      if (!rowHasContent(homeRandom)) homeRandom.innerHTML = emptyRow("Reading your music library…");
       homeRowsLoadedAt = 0;   // retry on the next Home visit
       return;   // keep any cached tiles while the index builds
     }
@@ -350,7 +353,7 @@ async function loadHomeRandom() {
     renderHomeRandom(albums);
     if (albums.length) saveHomeCache({ random: albums, randomAt: Date.now() });
   } catch (e) {
-    if (!rowHasContent(homeRandom)) homeRandom.innerHTML = '<div class="home-carousel-empty">Couldn’t load.</div>';
+    if (!rowHasContent(homeRandom)) homeRandom.innerHTML = emptyRow("Couldn’t load.");
     homeRowsLoadedAt = 0;   // retry on the next Home visit
   }
 }

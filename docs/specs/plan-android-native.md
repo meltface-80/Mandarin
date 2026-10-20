@@ -105,11 +105,11 @@ Sizes are the page's lines for that surface, a proxy for the native work.
 
 | Item | What | Page |
 |---|---|---|
-| H1 | Home: the greeting, the Today strip (the Random Album tile, Album of the day), the rows in the user's order and visibility (`/api/settings/home-rows`), each heading a tap to its wall; drawn from a cache at once and refreshed behind; the scroll kept | `home`, `home-layout`, `home-render`, `home-rows` · ~1,400 |
-| H2 | Smart Picks: the row and the full screen with each pick's reason, favourite and block | `home-picks` · ~430 |
-| H3 | Browse by genre (the genre cards, `/api/home/genre-groups`) and Label of the week | `home-rows`, `device-power` (genre cache) · ~200 |
-| H4 | The Random Album pick: the spinning disc, Play now, Play next, Queue (`/api/pick-unheard`) | `play-unheard` · ~200 |
-| H5 | The app's own rows, from the store directly: Downloaded albums and Music on device, with the latter's Focus and Sort sheets | `home` (downloads), `home-layout` (local wall) · ~400 |
+| H1 | **Built (item 57), in preview** (`HomeScreen.kt`, `HomeRows.kt`, `HomeTiles.kt`). Home: the greeting, the Today strip (the Random Album tile, Album of the day), the rows in the user's order and visibility (`/api/settings/home-rows`), each heading a tap to its wall; drawn from a cache at once and refreshed behind; the scroll kept | `home`, `home-layout`, `home-render`, `home-rows` · ~1,400 |
+| H2 | **Built (item 57)** (`PicksScreen.kt`). Smart Picks: the row and the full screen with each pick's reason, favourite and block | `home-picks` · ~430 |
+| H3 | **Built (item 57)**. Browse by genre (the genre cards, `/api/home/genre-groups`) and Label of the week | `home-rows`, `device-power` (genre cache) · ~200 |
+| H4 | **Built (item 57)** (`RandomPickDialog.kt`). The Random Album pick: the spinning disc, Play now, Play next, Queue (`/api/pick-unheard`) | `play-unheard` · ~200 |
+| H5 | **Built (item 57)** (the walls in `WallScreen.kt`, the sheets in `LibrarySheets.kt`). The app's own rows, from the store directly: Downloaded albums and Music on device, with the latter's Focus and Sort sheets | `home` (downloads), `home-layout` (local wall) · ~400 |
 
 ### N6. Search
 

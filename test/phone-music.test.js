@@ -65,7 +65,7 @@ const DRIVER = `(async () => {
   out.focused = titles();
   out.focus_count = $("album-count").textContent;
   out.focus_badge = (bar.querySelector(".lib-ctl-badge") || {}).textContent || "";
-  [...document.querySelectorAll(".lib-sheet-foot .action-btn")].find(b => b.textContent === "Clear").click(); await until(() => titles().length === out.first.length);
+  [...document.querySelectorAll(".lib-sheet-foot .action-btn")].find(b => b.textContent === "Clear all").click(); await until(() => titles().length === out.first.length);
   out.cleared = titles().length;
   // Multi-select on the wall: two of the phone's albums queued go to the phone's player, not the server.
   window.__enterAlbumSelectMode();
