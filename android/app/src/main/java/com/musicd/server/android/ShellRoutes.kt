@@ -164,6 +164,6 @@ internal fun navTap(nav: NavHostController, what: String) {
  */
 private fun smartPage(nav: NavHostController, prefs: String?, zone: String, what: String, arg: String?) {
     if (what != "library-show" || arg == null) { handOver(nav, what, arg); return }
-    NativeShell.setLibraryView(arg)
+    NativeShell.keepLibraryView(arg)
     nav.navigate(ShellRoute.library(arg, prefs.orEmpty(), zone))
 }

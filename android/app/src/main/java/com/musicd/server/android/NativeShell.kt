@@ -76,7 +76,7 @@ internal object NativeShell {
     }
 
     /** The Library's view changed (its wall, a Dynamic Playlist's Show albums): Home's Library row follows, and the next start. */
-    fun setLibraryView(q: String) { if (q != libraryView) keep(ScreenPrefs.VIEW, q.ifEmpty { null }) }
+    fun keepLibraryView(q: String) { if (q != libraryView) keep(ScreenPrefs.VIEW, q.ifEmpty { null }) }
 
     /** The room the screens play in, chosen or grouped: kept for the next start. */
     fun keepZone(id: String?) {
@@ -188,7 +188,7 @@ private fun Shell(client: () -> ServerClient?) {
                 onBack = { nav.popBackStack() },
                 onAlbum = { offset, zone, list -> nav.navigate(ShellRoute.album(offset, zone, "library", AlbumLists.put(list), list.index)) },
                 // The view changed here: Home's Library row follows, and the next opening.
-                onView = NativeShell::setLibraryView,
+                onView = NativeShell::keepLibraryView,
                 onNowPlaying = { id -> nav.navigate(ShellRoute.nowPlaying(id)) { launchSingleTop = true } },
                 onRoom = NativeShell::roomChosen,
                 onNav = { what -> navTap(nav, what) },
