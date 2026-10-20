@@ -83,8 +83,11 @@ const OPEN_OFFLINE = `(async () => {
     if (String((u && u.url) || u).includes("/api/status")) return Promise.resolve(new Response(JSON.stringify({ offline: true, offline_mode: true }), { headers: { "Content-Type": "application/json" } }));
     return prev.apply(this, arguments);
   };
-  prev("/api/zones", { method: "CONNECT" }).catch(() => {});
-  for (let i = 0; i < 200 && btn().classList.contains("hidden"); i++) await sleep(50);
+  // Nudged again every half second: a look already under way (the page's first, slow on a busy machine) is joined, not repeated.
+  for (let i = 0; i < 400 && btn().classList.contains("hidden"); i++) {
+    if (i % 10 === 0) prev("/api/zones", { method: "CONNECT" }).catch(() => {});
+    await sleep(50);
+  }
   btn().click();
   await sleep(300);
   return document.getElementById("offline-overlay").classList.contains("hidden") ? "not open" : "open";
