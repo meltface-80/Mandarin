@@ -34,18 +34,15 @@ class TrackShareTest {
         assertTrue(empty.entries.isEmpty())
     }
 
-    @Test fun `the sheet's account, and the file's name`() {
-        val a = TrackShare.account(JSONObject("""{"track_count":1,"truncated":true,"skipped":2,"bytes":50000}"""), incomplete = true, albumsCapped = true)
-        assertEquals("1 track", a.sum)
+    @Test fun `a Dynamic Playlist's file told as a playlist's, with what reading found`() {
+        val f = ShareFile.parse(JSONObject("""{"blob":"x","track_count":1,"truncated":true,"skipped":2,"bytes":50000}"""))
+        assertEquals("1 track", f.sum)
         assertEquals(listOf(
             "Reading stopped early because the server returned an error — this file is INCOMPLETE. Try again before sharing it.",
             "Only the first 100 albums were read — that's the limit for one go.",
             "Stopped at the sharing limit of tracks.",
             "2 entries had no title and were left out.",
-            "This is 49 KB — too big to paste reliably. Use Download and send the file."), a.warnings)
-        assertEquals("3 tracks", TrackShare.account(JSONObject("""{"track_count":3,"skipped":1}""")).sum)
-        assertEquals(listOf("1 entry had no title and was left out."), TrackShare.account(JSONObject("""{"track_count":3,"skipped":1}""")).warnings)
-        assertEquals("Road_trip_80s_.musicd", TrackShare.fileName("Road trip (80s)"))
-        assertEquals("playlist.musicd", TrackShare.fileName(""))
+            "This is 49 KB — too big to paste reliably. Use Download and send the file."), f.warnings(ShareCaveats(incomplete = true, albumsCapped = true)))
+        assertEquals(TrackShare.ALBUM_MAX, PlaylistShare.ALBUM_MAX)
     }
 }

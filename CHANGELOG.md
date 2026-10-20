@@ -1,6 +1,12 @@
 # Changelog
 
 ## Unreleased
+- `104-one-prompt-one-share-sheet`: the Android app had grown three name boxes (`NamePrompt.kt`, one inside
+  `SmartSheets.kt`, `PromptDialog.kt`) and two playlist share sheets (`PlaylistShareSheet.kt`, `ShareTracksSheet.kt`),
+  each a copy of the page's one drawn a little differently. Now one of each: every name is asked in `NamePrompt.kt`, and
+  a Dynamic Playlist's Share opens the playlists' sheet, its file read into the same `ShareFile` with what reading found
+  as its `ShareCaveats`. The duplicate `share-tracks` screen leaves the screens contract (the page's sheet is keyed
+  `playlist-share` alone); `TrackShare` keeps only the reading of a Dynamic Playlist's tracks.
 - `101-settings-no-subtitles`: every Settings page with nothing under its heading, as the owner asked: the line saying
   what the page holds ("Qobuz and Tidal", "Where your library is read from", Setup's list of its pages), Account's
   "Signed in as …", Downloads' counts and a device's model are gone, on the page and in the Android app alike; the

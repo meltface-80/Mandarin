@@ -52,7 +52,8 @@ import com.musicd.server.client.Palette
  * as the page draws it (style.css .confirm-box, .prompt-input): the ConfirmDialog's box, [message] at 16px in the middle,
  * the name in a field 46 tall (its [initial] suggestion chosen, so typing replaces it; the brass edge while it is in
  * use), then Cancel and [word] (Save) as two 44s, the second in brass. Save, or the keyboard's Done, answers the name; Cancel
- * or a tap outside answers none.
+ * or a tap outside answers none. At most 200 letters, as the page's field takes. The one name box of the app: a new
+ * playlist's, a Dynamic Playlist's Save as… and an imported playlist's name.
  */
 @Composable
 internal fun NamePrompt(message: String, initial: String, word: String = "Save", onAnswer: (String?) -> Unit) {
@@ -70,7 +71,7 @@ internal fun NamePrompt(message: String, initial: String, word: String = "Save",
             .padding(start = 20.dp, top = 22.dp, end = 20.dp, bottom = 16.dp)) {
             Text(message, Modifier.parity("prompt.message").fillMaxWidth().padding(bottom = 18.dp), color = MaterialTheme.colorScheme.onSurface,
                 fontSize = 16.sp, lineHeight = 22.4.sp, textAlign = TextAlign.Center)
-            BasicTextField(name, { name = it }, Modifier.parity("prompt.field", Contract.label("prompt.field")).padding(bottom = 16.dp).fillMaxWidth().focusRequester(focus),
+            BasicTextField(name, { name = TextFieldValue(it.text.take(200), it.selection, it.composition) }, Modifier.parity("prompt.field", Contract.label("prompt.field")).padding(bottom = 16.dp).fillMaxWidth().focusRequester(focus),
                 singleLine = true, interactionSource = source, textStyle = TextStyle(color = paletteColor(Palette.TEXT), fontSize = 16.sp, lineHeight = 22.sp),
                 cursorBrush = SolidColor(paletteColor(Palette.ACCENT)),
                 keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences, imeAction = ImeAction.Done),

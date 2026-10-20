@@ -299,7 +299,7 @@ function openLibSheet(title, buildBody, footer, onClose, keys) {
   else if (/^Add \d+ (track|album)s? to…$/.test(title)) { h.dataset.parity = "add-to-playlist.title"; x.dataset.parity = "add-to-playlist.close"; }
   // A playlist imported and shared (playlist-import, playlist-share; item 94).
   else if (title === "Import a playlist") { h.dataset.parity = "playlist-import.title"; x.dataset.parity = "playlist-import.close"; }
-  else if (title.startsWith("Share ")) { h.dataset.parity = "playlist-share.title share-tracks.title"; x.dataset.parity = "playlist-share.close share-tracks.close"; }
+  else if (title.startsWith("Share ")) { h.dataset.parity = "playlist-share.title"; x.dataset.parity = "playlist-share.close"; }
   else if (keys) { h.dataset.parity = keys.title; x.dataset.parity = keys.close; }
   x.textContent = "✕";
   head.appendChild(h); head.appendChild(x);

@@ -388,21 +388,13 @@ const OPEN_MENU = `(async () => {
 })()`;
 
 /* Group zones and Device power: the page's sheets, opened as Play on opens them, in the room the mini player is in. */
-/* The Dynamic Playlist sheets (item 95): New, a playlist's name asked, and a playlist shared (the server builds its file). */
+/* The Dynamic Playlist sheets (item 95): New, and a playlist's name asked. Its Share is a playlist's (playlist-share). */
 const OPEN_SMART_NEW = `(async () => {
   const sleep = ms => new Promise(r => setTimeout(r, ms));
   for (let i = 0; i < 400 && typeof createSmartPlaylist !== "function"; i++) await sleep(50);
   createSmartPlaylist();
   await sleep(400);
   return document.querySelector('.lib-sheet-backdrop [data-parity~="smart-new.mode"]') ? "open" : "not open";
-})()`;
-const OPEN_SHARE_TRACKS = `(async () => {
-  const sleep = ms => new Promise(r => setTimeout(r, ms));
-  for (let i = 0; i < 400 && typeof shareTracks !== "function"; i++) await sleep(50);
-  shareTracks("Road trip", [{ title: "Song 1", artist: "Artist A", album: "Album One", track_no: 1 }, { title: "Song 2", artist: "Artist A", album: "Album One", track_no: 2 }], null, { incomplete: true });
-  for (let i = 0; i < 200 && !document.querySelector(".lib-sheet-backdrop .share-blob"); i++) await sleep(50);
-  await sleep(300);
-  return document.querySelector(".lib-sheet-backdrop .share-blob") ? "open" : "not open";
 })()`;
 
 /* Add to playlist (item 93): an album's, with one playlist made first so the sheet lists one. */
@@ -612,7 +604,6 @@ const SCREENS = {
   "smart-playlist": { open: OPEN_SMART_PLAYLIST, root: "body", shared: ["mini-player", "nav"] },
   "menu": { open: OPEN_MENU, root: "#menu-overlay" },
   "smart-new": { open: OPEN_SMART_NEW, root: ".lib-sheet-backdrop" },
-  "share-tracks": { open: OPEN_SHARE_TRACKS, root: ".lib-sheet-backdrop" },
   "add-to-playlist": { open: OPEN_ADD_TO_PLAYLIST, root: ".lib-sheet-backdrop" },
   "prompt": { open: OPEN_PROMPT, root: "#prompt-overlay" },
   "group": { open: OPEN_GROUP, root: ".lib-sheet-backdrop" },
