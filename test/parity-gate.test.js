@@ -99,7 +99,7 @@ test("the contract itself: kinds, labels, the page's alone with a reason, in a c
 });
 
 test("Contract.kt is the contract's labels; the gate refuses one written by hand, the gaps list one that grows", () => {
-  const k = contractKotlin(contract());
+  const k = Object.values(contractKotlin(contract())).join("\n");
   assert.match(k, /"play\.back" to listOf\("Back"\),\n {8}"play\.play" to listOf\("Play", "Pause"\),/);
   assert.ok(!/play\.title|play\.desk/.test(k), "no readouts, nothing the page's alone");
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "musicd-parity-"));
@@ -117,6 +117,11 @@ test("Contract.kt is the contract's labels; the gate refuses one written by hand
   put("android/core/src/main/kotlin/com/musicd/server/client/Contract.kt", "object Contract {}");
   assert.match(gate()[1].join("\n"), /Contract\.kt: not the contract's labels/);
   gate("write");
+  // A part left from a longer contract: the gate says so, and write takes it away.
+  put("android/core/src/main/kotlin/com/musicd/server/client/ContractLabels9.kt", "internal object ContractLabels9 {}");
+  assert.match(gate()[1].join("\n"), /ContractLabels9\.kt: a part of the contract's labels no longer written/);
+  gate("write");
+  assert.ok(!fs.existsSync(path.join(root, "android/core/src/main/kotlin/com/musicd/server/client/ContractLabels9.kt")));
   // Back taken out of the app: accept doesn't add it to the gaps, and the gate says so.
   put(F, SCREEN.replace(/FilledIconButton[^\n]*\n/, "\n").replace(/IconButton[^\n]*\n/, "\n"));
   const [code, out] = gate("accept");
@@ -124,6 +129,17 @@ test("Contract.kt is the contract's labels; the gate refuses one written by hand
   assert.match(out.join("\n"), /play\.back: on the page, not in the app \(PlayScreen\.kt\), nor on the gaps list/);
   assert.deepEqual(JSON.parse(fs.readFileSync(path.join(root, "tools/quality/parity-gaps.json"), "utf8")), { play: ["play"] });
   fs.rmSync(root, { recursive: true, force: true });
+});
+
+test("the labels in parts of 300 rows at most, a screen's together, Contract.kt joining them", () => {
+  const items = (n) => Object.fromEntries(Array.from({ length: n }, (_, i) => ["b" + i, { kind: "action", label: "B" + i }]));
+  const files = contractKotlin({ screens: { one: { page: "p", items: items(200) }, two: { page: "p", items: items(150) }, three: { page: "p", items: items(100) } } });
+  const parts = Object.keys(files).filter(f => /ContractLabels\d+\.kt$/.test(f)).sort();
+  assert.equal(parts.length, 2, "one alone, then two and three");
+  const rows = (f) => (files[f].match(/ to listOf\(/g) || []).length;
+  assert.deepEqual(parts.map(rows), [200, 250]);
+  assert.ok(Object.values(files).every(t => t.split("\n").length < 400), "no part near the length watch");
+  assert.match(files[Object.keys(files).find(f => f.endsWith("/Contract.kt"))], /val labels: Map<String, List<String>> = ContractLabels1\.labels \+ ContractLabels2\.labels\n/);
 });
 
 test("one element two screens': keys space-separated, each held by its own screen, a file both screens draw", () => {
