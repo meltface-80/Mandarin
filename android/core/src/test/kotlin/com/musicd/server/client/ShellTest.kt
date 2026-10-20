@@ -1,24 +1,11 @@
 package com.musicd.server.client
 
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
 
 class ShellTest {
-    @Test fun `the page's route carries its path there and back`() {
-        for (p in listOf("/", "/album/42", "/search?q=a b&c=1", "/settings#setup")) {
-            val route = ShellRoute.web(p)
-            assertTrue(route, route.startsWith("web/") && route.indexOf('/', 4) < 0)
-            assertEquals(p, ShellRoute.pagePath(route.removePrefix("web/")))
-        }
-        assertEquals("/", ShellRoute.pagePath(null))
-        assertEquals("/", ShellRoute.pagePath(""))
-        assertEquals("/album/1", ShellRoute.pagePath("album%2F1"))
-        assertEquals(ShellRoute.web("/"), ShellRoute.web(""))
-    }
-
     @Test fun `one screen gives way to the next at once, with no fade between them`() {
         // Navigation's default cross-fade (700 ms) showed the screen left as a ghost over the one coming (bug list item 72).
         val src = File("../app/src/main/java/com/musicd/server/android/NativeShell.kt").readText()
@@ -28,11 +15,11 @@ class ShellTest {
             assertTrue(t, host.contains(t))
     }
 
-    @Test fun `the page's route is the WebView's, any other the shell's`() {
-        assertTrue(ShellRoute.isWeb(ShellRoute.WEB))
-        assertTrue(ShellRoute.isWeb(ShellRoute.web("/album/1")))
-        assertTrue("nothing yet: the page", ShellRoute.isWeb(null))
-        assertFalse(ShellRoute.isWeb("nowplaying"))
+    @Test fun `no route is the page's any more`() {
+        // The shell starts on Home (item 111): the page's route, and the WebView under it, are gone.
+        assertTrue(ShellRoute::class.java.declaredFields.none { it.name == "WEB" || it.name == "PATH" })
+        val src = File("../app/src/main/java/com/musicd/server/android/NativeShell.kt").readText()
+        assertTrue(src.contains("startDestination = ShellRoute.HOME"))
     }
 
     @Test fun `an album's route carries its offset and its room`() {
@@ -40,14 +27,11 @@ class ShellTest {
         assertEquals("the page's button lit under it, and the list it came from", "album/42?zone=z&lit=home&nav=l1&at=2", ShellRoute.album(42, "z", "home", "l1", 2))
         assertEquals("album/{offset}?zone={zone}&lit={lit}&nav={nav}&at={at}", ShellRoute.ALBUM)
         assertEquals("booklet/42/b%201?name=Inlay%20%28scan%29&pages=3", ShellRoute.booklet(42, "b 1", "Inlay (scan)", 3))
-        assertFalse(ShellRoute.isWeb(ShellRoute.booklet(1, "x", "y", 1)))
-        assertFalse("the shell's, not the page's", ShellRoute.isWeb(ShellRoute.album(1, "")))
         // A wall's route carries its filter (a genre's wall, item 57), Home the page's settings and room, Smart Picks the room.
         assertEquals("wall/genre?zone=z&filter=%26filter_type%3Dgenre%26filter_value%3DRock", ShellRoute.wall("genre", "z", "&filter_type=genre&filter_value=Rock"))
         assertEquals("wall/random?zone=z&filter=", ShellRoute.wall("random", "z"))
         assertEquals("home?prefs=%7B%7D&zone=z%201", ShellRoute.home("{}", "z 1"))
         assertEquals("picks?zone=z", ShellRoute.picks("z"))
-        assertFalse(ShellRoute.isWeb(ShellRoute.home("", "")))
     }
 
     // The native screens are drawn in the page's own graphite and brass: each
@@ -66,7 +50,7 @@ class ShellTest {
         val routes = ShellRoute::class.java.declaredFields.filter { it.type == String::class.java && java.lang.reflect.Modifier.isStatic(it.modifiers) }
             .map { it.name to (it.also { f -> f.isAccessible = true }.get(null) as String) }
             .filter { (_, v) -> v.contains("{") }   // a route pattern names its arguments; the rest are argument names
-        assertTrue(routes.map { it.first }.containsAll(listOf("WEB", "NOW_PLAYING", "ALBUM", "LIBRARY", "WALL", "ARTIST", "BOOKLET")))
+        assertTrue(routes.map { it.first }.containsAll(listOf("HOME", "NOW_PLAYING", "ALBUM", "LIBRARY", "WALL", "ARTIST", "BOOKLET")))
         for ((name, _) in routes) assertTrue("ShellRoute.$name has no composable(ShellRoute.$name …) in NativeShell.kt or ShellRoutes.kt", Regex("composable\\(\\s*ShellRoute\\.$name\\b").containsMatchIn(src))
     }
 

@@ -1,51 +1,23 @@
 package com.musicd.server.android
 
 import android.Manifest
-import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
-import android.os.SystemClock
 import android.util.Log
-import android.view.Gravity
-import android.view.View
-import android.webkit.CookieManager
-import android.webkit.RenderProcessGoneDetail
-import android.webkit.WebResourceError
-import android.webkit.WebResourceRequest
-import android.webkit.WebResourceResponse
-import android.webkit.WebSettings
-import android.webkit.WebView
-import android.webkit.WebViewClient
-import android.widget.Button
 import android.widget.FrameLayout
-import android.widget.LinearLayout
-import android.widget.TextView
-import androidx.webkit.ProxyConfig
-import androidx.webkit.ProxyController
-import androidx.webkit.WebViewFeature
-import com.musicd.server.client.OfflineKind
-import com.musicd.server.client.PageWatch
+import java.lang.ref.WeakReference
 
 /**
- * The app: MusicD Server's own page, full screen.
+ * The app: Mandarin's own screens, the whole of it (NativeShell), drawn by the app since bug list item 111 (the server's
+ * page in a WebView before). What it adds beside them: the lock screen and notification controls, the widget, the Quick
+ * Settings tile, downloads and the phone's own music, the pickers Android asks with, and the volume keys on a USB DAC.
  *
- * The interface is the server's — the same page a browser or the iOS home
- * screen shortcut shows — so a new server version is a new interface with no
- * app update. What the app adds is what a page cannot do: the lock screen and
- * notification controls, the widget, the Quick Settings tile, and a share sheet
- * for the share card.
- *
- * Away from home the page comes from the server's Tailscale address instead
- * (see [Away]), and it is reloaded from the right one whenever that changes.
- *
- * With no server at all, it's still MusicD's own interface: the app answers
- * the page itself — the copy of it kept in [OfflineSite], and [OfflineApi]
- * for the albums on the phone and the phone's player — until the server is
- * back, when the page reloads from it.
+ * Away from home the server is reached at its Tailscale address instead ([Away]); with no server at all the screens are
+ * answered by the phone itself ([ServerReach], [OfflineNow]) until the server is back.
  */
 class MainActivity : androidx.activity.ComponentActivity() {
 
@@ -58,85 +30,22 @@ class MainActivity : androidx.activity.ComponentActivity() {
         private const val TAG = "MainActivity"
         const val ACTION_CHANGE_SERVER = "com.musicd.server.android.action.CHANGE_SERVER"
         private const val BACKGROUND = 0xFF0E1012.toInt()
-        /** How long the page waits for the WebView to say the relay is in place. */
-        private const val RELAY_WAIT_MS = 2_500L
-        /** How often the page is asked how it is while it's on screen (v0.8.42). */
-        private const val PAGE_CHECK_MS = 10_000L
-        /** Back after this long away: the relay's connections from before are dropped. */
-        private const val AWAY_DROP_MS = 30_000L
 
-        /**
-         * Offline only, added to the page the app serves: tells the page it's
-         * offline, and sends each request's body in a header the app can read.
-         */
-        private const val OFFLINE_SHIM = "<script>window.__musicdOffline=true;(function(){var f=window.fetch;" +
-            "window.fetch=function(u,o){try{if(o&&o.body&&typeof o.body==='string'){o=Object.assign({},o);" +
-            "var h=new Headers(o.headers||{});h.set('X-Offline-Body',encodeURIComponent(o.body));o.headers=h;}}catch(e){}" +
-            "return f.call(this,u,o);};})();</script>"
+        /** The activity on screen, for the server's gate shutting on this phone ([gateShut]). */
+        @Volatile private var shown = WeakReference<MainActivity>(null)
+
+        /** The server turned this phone away (core GateWatch, from any thread): signed in again, as its /login once had the page. */
+        fun gateShut() { shown.get()?.let { a -> a.runOnUiThread { if (!a.isFinishing) a.signedOut() } } }
     }
 
-    private lateinit var root: FrameLayout
-    private lateinit var web: WebView
-    private lateinit var errorPanel: LinearLayout
-    private lateinit var errorText: TextView
-    private var loadedBase: String? = null
-    private val onAway: (Boolean) -> Unit = { reloadIfMoved() }
-    /** The page's traffic goes through [PageRelay], for this home address (so the page never moves). */
-    private var relayedFor: String? = null
-    private var relayTriedFor: String? = null
-    /** The last load failed (set by the WebView client, cleared by each load). */
-    private var loadFailed = false
-    /** The app is answering the page itself (the server can't be reached). */
-    @Volatile private var offline = false
-    private val checks = java.util.concurrent.Executors.newSingleThreadExecutor()
-    /** The server watch's own thread: its repair of the way to the server can take a while, and the checks above mustn't wait for it. */
-    private val watching = java.util.concurrent.Executors.newSingleThreadExecutor()
-    /**
-     * Offline: look for the server now and then, and go back to it when it
-     * answers. Each look first has the way to the server checked and, if need
-     * be, repaired ([Away.check]: the Tailscale engine's tunnel can go stale
-     * while the phone sleeps, and only a check brings it back — before, only a
-     * change of network did, which is why airplane mode on and off "fixed" it).
-     */
-    private val serverWatch = object : Runnable {
-        override fun run() {
-            if (!offline || isFinishing) return
-            // Offline mode: the server isn't looked for (switching it off does that).
-            if (Store.offlineMode(this@MainActivity)) return
-            // No network yet: nothing to look for (looked at again in 10 s).
-            if (!hasNetwork()) { web.postDelayed(this, 10_000); return }
-            watching.execute {
-                runCatching { Away.check(this@MainActivity) }
-                val base = Store.active(this@MainActivity)?.baseUrl
-                val back = base != null && runCatching {
-                    val c = java.net.URL("$base/api/health").openConnection() as java.net.HttpURLConnection
-                    c.connectTimeout = 2500; c.readTimeout = 2500
-                    try { c.responseCode == 200 } finally { c.disconnect() }
-                }.getOrDefault(false)
-                runOnUiThread {
-                    if (!offline || isFinishing) return@runOnUiThread
-                    if (back) { offline = false; load() } else web.postDelayed(this, 10_000)
-                }
-            }
-        }
-    }
+    private lateinit var reach: ServerReach
+    private val onAway: (Boolean) -> Unit = { if (::reach.isInitialized) reach.moved() }
+
+    /** The USB port changed (a DAC in or out, permission answered): the phone's player follows. */
+    private val onUsb: () -> Unit = { runOnUiThread { PhonePlayerService.current?.usbChanged() } }
+
     /** Offline, the server looked for now (the Offline dialog's Try the server again, item 110), not at the next look. */
-    fun lookForServer() { if (offline && ::web.isInitialized) { web.removeCallbacks(serverWatch); web.post(serverWatch) } }
-    /** Downloads changed: tell the page (gathered, so a burst of progress is one call). */
-    private var downloadsPending = false
-    private val onDownloads: () -> Unit = {
-        runOnUiThread {
-            if (!downloadsPending) {
-                downloadsPending = true
-                web.postDelayed({ downloadsPending = false; tellPageDownloadsChanged() }, 400)
-            }
-        }
-    }
-
-    /** The phone's own music changed (a scan, a folder chosen or forgotten): the page catches up. */
-    private val onLocal: () -> Unit = {
-        runOnUiThread { if (::web.isInitialized) web.evaluateJavascript("window.__musicdLocalChanged && window.__musicdLocalChanged()", null) }
-    }
+    fun lookForServer() { if (::reach.isInitialized) reach.lookNow() }
 
     /** Settings → Music Folders → On this phone: Android's folder picker. */
     fun pickLocalFolder() {
@@ -164,7 +73,6 @@ class MainActivity : androidx.activity.ComponentActivity() {
         }
     }
 
-    @Deprecated("Deprecated in Java")
     // Backup & restore (v0.6.14): Android's own "save as" and "open" for the backup file.
     private var backupSave: ((Uri?) -> Unit)? = null
     private var backupOpen: ((Uri?) -> Unit)? = null
@@ -187,14 +95,15 @@ class MainActivity : androidx.activity.ComponentActivity() {
         }
     }
 
+    @Deprecated("Deprecated in Java")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
-        // The backup file's answer, chosen or not: the page is waiting for it either way.
+        // The backup file's answer, chosen or not: Backup & restore is waiting for it either way.
         if (requestCode == REQ_BACKUP_SAVE || requestCode == REQ_BACKUP_OPEN) {
             val then = if (requestCode == REQ_BACKUP_SAVE) backupSave else backupOpen
             backupSave = null; backupOpen = null
             val uri = if (resultCode == Activity.RESULT_OK) data?.data else null
-            // Kept readable after this: a saved backup is restored or deleted from the page's list (v0.6.18).
+            // Kept readable after this: a saved backup is restored or deleted from the list (v0.6.18).
             if (uri != null) runCatching { contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION) }
             then?.invoke(uri)
             return
@@ -209,12 +118,10 @@ class MainActivity : androidx.activity.ComponentActivity() {
             REQ_DOWNLOAD_FOLDER -> {
                 runCatching { contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION) }
                 DownloadStore.setDownloadFolder(this, uri)
-                tellPageDownloadsChanged()
             }
         }
     }
 
-    @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         if (intent?.action == ACTION_CHANGE_SERVER || Store.server(this) == null) {
@@ -228,157 +135,23 @@ class MainActivity : androidx.activity.ComponentActivity() {
             return
         }
 
-        root = FrameLayout(this).apply { setBackgroundColor(BACKGROUND) }
-        web = makeWeb()
-        root.addView(web)
-        root.addView(buildErrorPanel())
+        val root = FrameLayout(this).apply { setBackgroundColor(BACKGROUND) }
+        root.addView(NativeShell.attach(this), FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT))
         Insets.pad(root)
-        setContentView(NativeShell.attach(this, root) { js -> if (::web.isInitialized) web.evaluateJavascript(js, null) })
+        setContentView(root)
 
         registerBack()
         CrashLog.offer(this)
         askForNotificationPermission()
         AutoDownloads.schedule(this)
-        DownloadStore.listen(onDownloads)
         LocalMusic.load(this)
-        LocalMusic.listen(onLocal)
         LocalMusic.watch(this)
         Away.listen(onAway)
         Away.watch(this)
         UsbDac.listen(onUsb)
         UsbDac.start(this)
-        runCatching { getSystemService(android.net.ConnectivityManager::class.java).registerDefaultNetworkCallback(netWatch) }
-        load()
-    }
-
-    /** The page's WebView, set up (at the start, and whenever the page is put up afresh). */
-    @SuppressLint("SetJavaScriptEnabled")
-    private fun makeWeb(): WebView = WebView(this).apply {
-        PageFrame.frame(this, BACKGROUND)
-        settings.apply {
-            javaScriptEnabled = true
-            domStorageEnabled = true
-            mediaPlaybackRequiresUserGesture = false
-            cacheMode = WebSettings.LOAD_DEFAULT
-            // Draws a little beyond what's on screen, so moving around
-            // (carousels, walls, the album sheet) has its tiles ready.
-            offscreenPreRaster = true
-            builtInZoomControls = false
-            displayZoomControls = false
-            // Tells the page it's inside this app (see index.html: the app
-            // keeps it clear of the system bars, so the page mustn't too).
-            userAgentString = "$userAgentString MusicDAndroid/${BuildConfig.VERSION_NAME}"
-        }
-        webViewClient = Client()
-        addJavascriptInterface(ShareBridge(this@MainActivity), ShareBridge.NAME)
-        addJavascriptInterface(DownloadsBridge(this@MainActivity), DownloadsBridge.NAME)
-        addJavascriptInterface(AppBridge(this@MainActivity), AppBridge.NAME)
-        addJavascriptInterface(UsbBridge(this@MainActivity), UsbBridge.NAME)
-        addJavascriptInterface(BackupBridge(this@MainActivity), BackupBridge.NAME)
-        PageGuard.watchRenderer(this) {
-            if (pageWatch.stopped(SystemClock.elapsedRealtime()) == PageWatch.Action.REBUILD)
-                pageStopped("The page didn't handle a tap for over 10 s.")
-        }
-    }
-
-    /**
-     * The page has stopped (v0.8.42): its script doesn't answer the app, or
-     * it doesn't handle taps. Before, the screen stayed stale until the app
-     * was swiped away and opened again; now the app does what that did. The
-     * page's renderer is ended (onRenderProcessGone then puts the page up in
-     * a new WebView) or, where the WebView can't end it, the WebView is
-     * replaced now. Kept for the next start to offer, as a freeze is.
-     */
-    private fun pageStopped(why: String) {
-        if (isFinishing || isDestroyed) return
-        Log.w(TAG, "the page stopped: $why")
-        CrashLog.keepPageNote(this, "$why\n\n${whereNote()}")
-        if (!PageGuard.endRenderer(web)) rebuildPage()
-    }
-
-    /**
-     * The page in a new WebView, the old one gone: after its renderer has
-     * gone, or the page stopped. Loaded now on screen; behind other apps,
-     * when the app is back (a renderer Android ended for memory isn't
-     * started again in the background).
-     */
-    private fun rebuildPage() {
-        if (isFinishing || isDestroyed) return
-        val old = web
-        web = makeWeb()
-        root.addView(web, 0)
-        root.removeView(old)
-        runCatching { old.destroy() }
-        pageReady = false
-        pageWatch.reset()
-        if (onScreen) load() else loadWhenBack = true
-    }
-
-    /** Where the app was, for a note: the way to the server, and the page's. */
-    private fun whereNote(): String {
-        val away = Store.isAway(this)
-        return "Server: ${Store.active(this)?.baseUrl ?: "none"} (" +
-            (if (away) "away" + (if (Store.viaEngine(this)) ", over MusicD's own Tailscale" else "") else "home") +
-            "). The page through the relay: ${relayedFor != null}. The app's own copy of the page: $offline."
-    }
-
-    /** The page on screen, watched (v0.8.42): see [PageWatch]. */
-    private val pageWatch = PageWatch()
-    /** The page has finished loading and no other has started (only then is it asked). */
-    private var pageReady = false
-    /** Counts page loads, so an answer from a page since replaced is ignored. */
-    private var pageGen = 0
-    /** When the app last reached the server itself (the live watch); the clock counts sleep. */
-    private var serverOkAt = 0L
-    /** Between onResume and onPause. */
-    private var onScreen = false
-    /** Left the screen at (0: on it). */
-    private var leftAt = 0L
-    /** The page was put up afresh behind other apps: it's loaded on coming back. */
-    private var loadWhenBack = false
-
-    /**
-     * Every [PAGE_CHECK_MS] while on screen, the page is asked how it is
-     * (window.__musicdPageCheck): no answer twice and it has stopped;
-     * asking the server a long while with no answer, while the app reaches
-     * the server itself, and its connections are stuck — dropped, then the
-     * page loaded again. What's done when is [PageWatch]'s.
-     */
-    private val pageCheck = object : Runnable {
-        override fun run() {
-            if (isFinishing || !onScreen) return
-            web.postDelayed(this, PAGE_CHECK_MS)
-            if (!pageReady || web.visibility != View.VISIBLE) return
-            val gen = pageGen
-            val asked = web
-            PageGuard.ask(asked, PageWatch.CHECK_JS) { answer ->
-                if (isFinishing || !onScreen || gen != pageGen || asked !== web) return@ask
-                val now = SystemClock.elapsedRealtime()
-                val report = PageWatch.parse(answer)
-                val action = if (answer == null) pageWatch.noAnswer(now)
-                    else pageWatch.answered(report, !offline && serverOkAt != 0L && now - serverOkAt < 25_000, now)
-                when (action) {
-                    PageWatch.Action.DROP -> {
-                        Log.i(TAG, "the page has asked ${report?.asking} ms with no answer: its connections dropped")
-                        PageRelay.dropAll()
-                    }
-                    PageWatch.Action.RELOAD -> {
-                        Log.w(TAG, "the page still has no answer: loaded again")
-                        CrashLog.keepPageNote(this@MainActivity, "The page had asked the server for ${(report?.asking ?: 0) / 1000} s " +
-                            "with no answer while the app reached it; loaded again.\n\n${whereNote()}")
-                        load()
-                    }
-                    PageWatch.Action.REBUILD -> pageStopped("The page didn't answer the app twice in a row.")
-                    PageWatch.Action.NONE -> {}
-                }
-            }
-        }
-    }
-
-    /** The USB port changed (a DAC in or out, permission answered): the page's Audio Devices follow. */
-    private val onUsb: () -> Unit = {
-        runOnUiThread { PhonePlayerService.current?.usbChanged() }
-        tellPage("window.__musicdUsbChanged && window.__musicdUsbChanged()")
+        reach = ServerReach(this)
+        reach.start()
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -389,316 +162,37 @@ class MainActivity : androidx.activity.ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
-        if (!::web.isInitialized) return
-        onScreen = true
-        // Back after a while (v0.8.42): the relay's connections from before are
-        // dropped before the page asks afresh. Kept over a sleep they can hang
-        // rather than fail, and the page with them. (And the relay listening,
-        // should it have stopped.)
-        if (relayedFor != null) PageRelay.start(this)
-        if (leftAt != 0L && SystemClock.elapsedRealtime() - leftAt >= AWAY_DROP_MS) PageRelay.dropAll()
-        leftAt = 0L
-        // The server may have been changed from the connect screen — or it
-        // couldn't be reached last time (back from the offline screen): try again.
-        // Or the page was put up afresh while the app was behind others.
-        if (loadWhenBack) { loadWhenBack = false; load() }
-        else if (errorPanel.visibility == View.VISIBLE) load() else reloadIfMoved()
+        if (!::reach.isInitialized) return
+        shown = WeakReference(this)
+        UpdateNow.attach(this)
+        reach.resumed()
         Away.recheck(this)
-        // A page that offers the app's updates with the server's does it; an older
-        // one doesn't, and the app offers itself. (Given the page a moment to say.)
-        web.postDelayed({ if (!AppBridge.pageOffersUpdates && !isFinishing && !Store.offlineMode(this)) AppUpdate.check(this) }, 8000)
-        web.removeCallbacks(liveWatch)
-        web.postDelayed(liveWatch, 15_000)
-        pageWatch.reset()
-        web.removeCallbacks(pageCheck)
-        web.postDelayed(pageCheck, 3_000)
-        // Back from the Downloads screen (or anywhere): the page catches up.
-        tellPageDownloadsChanged()
-        // Files added to or taken from the phone's music folder meanwhile: the
-        // page shows the list as it stands now, the folder is read again
-        // (cheap when nothing changed) and every half minute while on screen.
-        onLocal()
+        // Files added to or taken from the phone's music folder meanwhile: the folder is read again (cheap when nothing
+        // changed), and every half minute while on screen.
         LocalMusic.foreground(this, true)
         NowPlayingService.start(this)
         PhonePlayerService.start(this)
     }
 
-    /**
-     * A network the server could be reached over: Wi-Fi, Ethernet or mobile
-     * data. A VPN alone doesn't count — another VPN app left on keeps a
-     * "network" up with nothing under it (airplane mode, no SIM), and the app
-     * used to take that for a way to the server.
-     */
-    private fun hasNetwork(): Boolean = Away.hasNetwork(this)
-
-    /**
-     * The phone's network, followed by the screen itself (v0.5.56). The last
-     * network gone: the app's own copy at once, and the relay's connections
-     * dropped — they'd only hang, and the page with them, while the checks
-     * below took up to three quarters of a minute to notice. A network back
-     * while offline: the server is looked for straight away.
-     */
-    private val netWatch = object : android.net.ConnectivityManager.NetworkCallback() {
-        override fun onLost(network: android.net.Network) {
-            web.postDelayed({
-                if (isFinishing || offline) return@postDelayed
-                if (hasNetwork()) {
-                    // Another network is still up (the Wi-Fi went, mobile data
-                    // stayed): the relay's connections over the one that went
-                    // would hang, not fail, and the page with them — dropped
-                    // (v0.7.2), the way to the server looked at now, and the
-                    // server asked for soon rather than at the next quarter minute.
-                    PageRelay.dropAll()
-                    Away.recheck(this@MainActivity, soon = true)
-                    web.removeCallbacks(liveWatch)
-                    web.postDelayed(liveWatch, 2_000)
-                    return@postDelayed
-                }
-                PageRelay.dropAll()
-                if (OfflineSite.has(this@MainActivity)) goOffline()
-            }, 300)
-        }
-        override fun onAvailable(network: android.net.Network) {
-            web.post {
-                if (isFinishing || !offline) return@post
-                web.removeCallbacks(serverWatch)
-                web.postDelayed(serverWatch, 1_500)
-            }
-        }
-    }
-
-    /**
-     * The server can't be reached, or Offline mode is on: the native screens answered by the phone (item 109), the page
-     * stopped and blank under them, never asked; the server looked for now and then.
-     */
-    private fun goOffline() {
-        offline = true
-        loadFailed = false
-        ++loadSeq                                 // a reachability check still running is moot
-        pageLoaded = false
-        errorPanel.visibility = View.GONE
-        web.stopLoading()
-        web.loadUrl("about:blank")
-        OfflineNow.goOffline(if (Store.offlineMode(this)) OfflineKind.MODE else OfflineKind.APP, Store.phoneZone(this))
-        web.removeCallbacks(serverWatch)
-        web.postDelayed(serverWatch, 10_000)
-    }
-
-    private fun reloadIfMoved() {
-        if (!::web.isInitialized) return
-        // Offline: the page stays as it is (an album open, a list scrolled) —
-        // before v0.5.57 every return to the app reloaded it to Home. The server
-        // is looked for now, and the page goes back to it only once it answers.
-        if (offline) {
-            if (relayedFor != null) PageRelay.retarget(this)
-            if (hasNetwork()) { web.removeCallbacks(serverWatch); web.postDelayed(serverWatch, 500) }
-            return
-        }
-        if (relayedFor != null && relayedFor == Store.server(this)?.baseUrl) {
-            // The page stays where it is; only the relay's way to the server changes.
-            PageRelay.retarget(this)
-            return
-        }
-        val base = Store.active(this)?.baseUrl
-        // A new address.
-        if (base != null && base != loadedBase) load()
-    }
-
-    /**
-     * The WebView sends the home address's traffic (and nothing else) through
-     * [PageRelay], so the page can stay on it at home and away. Then [then].
-     * Where the WebView can't do that (an old one), or the server is on https,
-     * the page moves between addresses as before.
-     */
-    private fun relayPage(then: () -> Unit) {
-        val home = Store.server(this)
-        if (home == null || home.secure || relayedFor == home.baseUrl || !PageRelay.start(this)) { then(); return }
-        if (WebViewFeature.isFeatureSupported(WebViewFeature.PROXY_OVERRIDE) &&
-            WebViewFeature.isFeatureSupported(WebViewFeature.PROXY_OVERRIDE_REVERSE_BYPASS)) {
-            val config = ProxyConfig.Builder()
-                .addProxyRule("127.0.0.1:${PageRelay.PORT}", ProxyConfig.MATCH_HTTP)
-                // Reversed: the only address that goes through the relay is the server's.
-                .addBypassRule("${home.urlHost}:${home.port}")
-                .setReverseBypassEnabled(true)
-                .build()
-            // Once, whichever comes first: the WebView saying the relay is in
-            // place, or a few seconds without an answer — the page is never
-            // left waiting on it (the start-up logo that stayed, v0.5.55).
-            var done = false
-            val go = { if (!done) { done = true; then() } }
-            web.postDelayed({ if (!done) Log.w(TAG, "no answer from the relay set-up; loading anyway"); go() }, RELAY_WAIT_MS)
-            try {
-                ProxyController.getInstance().setProxyOverride(config, { r -> runOnUiThread(r) }) {
-                    relayedFor = home.baseUrl
-                    go()
-                }
-            } catch (e: Exception) {
-                Log.w(TAG, "the page can't go through the relay: ${e.message}")
-                go()
-            }
-        } else {
-            then()
-        }
-    }
-
     override fun onPause() {
-        // Only while it's on screen.
-        onScreen = false
-        leftAt = SystemClock.elapsedRealtime()
-        if (::web.isInitialized) { web.removeCallbacks(liveWatch); web.removeCallbacks(pageCheck) }
+        if (::reach.isInitialized) reach.paused()
         LocalMusic.foreground(this, false)
         super.onPause()
     }
 
-    private fun load() {
-        AppBridge.pageOffersUpdates = false    // the page being loaded says so again if it does
-        val home = Store.server(this) ?: return openConnect()
-        // Offline mode: the phone's music only, the server not asked — reachable or not.
-        if (Store.offlineMode(this) && OfflineSite.has(this)) return loadOffline(home.baseUrl)
-        // No Wi-Fi, no mobile data: the app's own copy at once, on the home
-        // address, with nothing set up that needs a network first. The relay is
-        // set up when a network comes back (the server watch, or a change of
-        // network, loads again).
-        if (!hasNetwork() && OfflineSite.has(this)) return loadOffline(home.baseUrl)
-        if (relayTriedFor != home.baseUrl) {
-            // Once per home address (a changed server is set up again).
-            relayTriedFor = home.baseUrl
-            if (relayedFor != home.baseUrl) relayedFor = null
-            return relayPage { load() }
-        }
-        // Through the relay the page stays on the home address, wherever the server is reached.
-        val base = (if (relayedFor == home.baseUrl) home.baseUrl else Store.active(this)?.baseUrl) ?: return openConnect()
-        val token = Store.token(this) ?: return signedOut()
-        loadedBase = base
-        loadFailed = false
-        offline = false
-        OfflineNow.goOnline(Store.zone(this).orEmpty())
-        web.removeCallbacks(serverWatch)
-        // The page signs in with the same token the rest of the app uses.
-        runCatching {
-            CookieManager.getInstance().apply {
-                setAcceptCookie(true)
-                setCookie(base, "musicd_session=$token; Path=/")
-                flush()
-            }
-        }
-        errorPanel.visibility = View.GONE
-        web.visibility = View.VISIBLE
-        pageLoaded = false
-        web.loadUrl("$base/")
-        checkReachable(Store.active(this)?.baseUrl ?: base)
-    }
-
     /**
-     * Offline mode switched (the menu, or Settings → Downloads): the page goes
-     * onto the phone's music, or back to the server — or, if that can't be
-     * reached, stays on the phone's music. The services follow.
+     * Offline mode switched (the menu, or Settings → Downloads): the screens go onto the phone's music, or back to the
+     * server, or, if that can't be reached, stay on the phone's music. The services follow.
      */
     fun offlineModeChanged() {
-        if (!::web.isInitialized) return
-        val on = Store.offlineMode(this)
-        if (on) {
-            PageRelay.dropAll()
-            web.removeCallbacks(serverWatch)
-            runCatching { stopService(Intent(this, NowPlayingService::class.java)) }
-        } else {
-            NowPlayingService.start(this)
-            Away.recheck(this)
-        }
-        offline = false
-        load()
-    }
-
-    /** Offline from the start (Offline mode, or no network): the native screens on the phone's music ([goOffline]). */
-    private fun loadOffline(base: String) {
-        loadedBase = base
-        goOffline()
-    }
-
-    /**
-     * While the page is open from the server: is it still there? The page
-     * alone can't tell a lost server from a slow one — covers go blank and
-     * then it fails — so every 15 s the app asks, and if two checks in a row
-     * get no answer, the app's own copy of MusicD takes over.
-     */
-    private var liveFailures = 0
-    private val liveWatch = object : Runnable {
-        override fun run() {
-            if (isFinishing) return
-            // Asked of the server where it's reached now (the page's address may be the relayed home one).
-            val base = Store.active(this@MainActivity)?.baseUrl
-            val page = loadedBase
-            if (offline || !pageLoaded) { web.postDelayed(this, 15_000); return }
-            // No address to reach the server on at all (away, with no way
-            // there): that is offline, not a wait (v0.7.2; before, the watch
-            // idled and the page stayed up, dead).
-            if (base == null) {
-                if (OfflineSite.has(this@MainActivity)) { Away.recheck(this@MainActivity); goOffline() } else web.postDelayed(this, 15_000)
-                return
-            }
-            checks.execute {
-                val ok = runCatching {
-                    val c = java.net.URL("$base/api/health").openConnection() as java.net.HttpURLConnection
-                    c.connectTimeout = 4000; c.readTimeout = 4000; c.useCaches = false
-                    c.setRequestProperty("Connection", "close")
-                    try { c.responseCode == 200 } finally { c.disconnect() }
-                }.getOrDefault(false)
-                runOnUiThread {
-                    if (isFinishing) return@runOnUiThread
-                    liveFailures = if (ok) 0 else liveFailures + 1
-                    if (ok) serverOkAt = SystemClock.elapsedRealtime()
-                    if (liveFailures >= 2 && !offline && loadedBase == page) {
-                        liveFailures = 0
-                        Away.recheck(this@MainActivity)
-                        goOffline()
-                    }
-                    web.postDelayed(this, 15_000)
-                }
-            }
-        }
-    }
-
-    /** Which load a reachability check belongs to (a newer load makes older checks moot). */
-    private var loadSeq = 0
-    /** The current load finished from the server: a slow check mustn't undo it. */
-    private var pageLoaded = false
-
-    /**
-     * Alongside the page load: does the server answer at all? An address that
-     * can't be reached (away, with no route to the server) can leave the
-     * WebView waiting a long time on a black screen before it gives up. If the
-     * server hasn't answered after three tries over about ten seconds, the
-     * app's own copy of MusicD takes over — the server watch brings the page
-     * back when it answers. Three tries, not one: at a cold start away from
-     * home the app's own Tailscale engine is still coming up for the first
-     * few seconds, and one three-second look used to call that an outage.
-     */
-    private fun checkReachable(base: String) {
-        val seq = ++loadSeq
-        checks.execute {
-            var ok = false
-            for (attempt in 1..3) {
-                if (seq != loadSeq || pageLoaded || isFinishing) return@execute
-                ok = runCatching {
-                    val c = java.net.URL("$base/api/health").openConnection() as java.net.HttpURLConnection
-                    c.connectTimeout = 3000; c.readTimeout = 3000; c.useCaches = false
-                    c.setRequestProperty("Connection", "close")
-                    try { c.responseCode == 200 } finally { c.disconnect() }
-                }.getOrDefault(false)
-                if (ok || attempt == 3) break
-                try { Thread.sleep(1500) } catch (e: InterruptedException) { return@execute }
-            }
-            if (ok) return@execute
-            runOnUiThread {
-                if (seq != loadSeq || offline || pageLoaded || isFinishing) return@runOnUiThread
-                Away.recheck(this)
-                if (OfflineSite.has(this)) goOffline()
-            }
-        }
+        if (!::reach.isInitialized) return
+        if (Store.offlineMode(this)) runCatching { stopService(Intent(this, NowPlayingService::class.java)) }
+        else { NowPlayingService.start(this); Away.recheck(this) }
+        reach.modeChanged()
     }
 
     /** This phone was signed out (from Settings, or the account was reset): sign in again. */
-    private fun signedOut() {
+    internal fun signedOut() {
         Store.setToken(this, null)
         openSignIn()
         finish()
@@ -708,40 +202,8 @@ class MainActivity : androidx.activity.ComponentActivity() {
         startActivity(Intent(this, SignInActivity::class.java))
     }
 
-    private fun openConnect() {
+    internal fun openConnect() {
         startActivity(Intent(this, ConnectActivity::class.java))
-    }
-
-    private fun buildErrorPanel(): LinearLayout {
-        val dp = resources.displayMetrics.density
-        errorText = TextView(this).apply {
-            setTextColor(0xFFBFC7CE.toInt())
-            textSize = 16f
-            gravity = Gravity.CENTER
-        }
-        errorPanel = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            gravity = Gravity.CENTER
-            setPadding((24 * dp).toInt(), 0, (24 * dp).toInt(), 0)
-            setBackgroundColor(BACKGROUND)
-            visibility = View.GONE
-            addView(errorText)
-            addView(Button(this@MainActivity).apply {
-                text = "Try again"
-                setOnClickListener { load() }
-            })
-            addView(Button(this@MainActivity).apply {
-                text = "Change server"
-                setOnClickListener { openConnect() }
-            })
-        }
-        return errorPanel
-    }
-
-    private fun showError(message: String) {
-        NativeShell.toWeb(); errorText.text = message   // the error screen lies under the shell: whatever native screen is up goes
-        errorPanel.visibility = View.VISIBLE
-        web.visibility = View.GONE
     }
 
     private fun askForNotificationPermission() {
@@ -751,31 +213,12 @@ class MainActivity : androidx.activity.ComponentActivity() {
     }
 
     /**
-     * Back walks the page's own history (album → Home) before it leaves the
-     * app. From Android 16 the system no longer calls onBackPressed for apps
-     * that target it, so the callback is registered with the dispatcher there;
-     * the override covers the versions before.
+     * Back closes what is on top (the side menu, a screen); on Home the app goes to the back. From Android 16 the system
+     * no longer calls onBackPressed for apps that target it, so the callback is registered with the dispatcher there; the
+     * override covers the versions before.
      */
     private fun back() {
-        if (NativeShell.back()) return   // a native screen open over the page: it closes
-        if (!::web.isInitialized || web.visibility != View.VISIBLE) { moveTaskToBack(true); return }
-        // The page first: one step back its own way (Settings, a pop-up, the
-        // album, a wall → Home). "2": the page is on Home with nothing open —
-        // leave, never web.goBack(), which could land on an earlier page load
-        // (the sign-in page) and reload everything. "0": an older page with no
-        // Back of its own — as before.
-        // A page that doesn't answer (stuck waiting on the server) mustn't leave Back doing nothing.
-        var answered = false
-        web.postDelayed({ if (!answered) { answered = true; moveTaskToBack(true) } }, 800)
-        web.evaluateJavascript("(window.__musicdBack && window.__musicdBack()) ? 1 : (window.__pageBack ? 2 : 0)") { handled ->
-            if (answered) return@evaluateJavascript
-            answered = true
-            when (handled) {
-                "1" -> return@evaluateJavascript
-                "2" -> moveTaskToBack(true)
-                else -> if (web.canGoBack()) web.goBack() else moveTaskToBack(true)
-            }
-        }
+        if (!NativeShell.back()) moveTaskToBack(true)
     }
 
     private fun registerBack() {
@@ -799,143 +242,12 @@ class MainActivity : androidx.activity.ComponentActivity() {
         return super.onKeyDown(keyCode, event)
     }
 
-    /** Run [js] in the page (from any thread). */
-    fun tellPage(js: String) {
-        runOnUiThread {
-            if (::web.isInitialized && web.visibility == View.VISIBLE) web.evaluateJavascript(js, null)
-        }
-    }
-
-    private fun tellPageDownloadsChanged() {
-        if (!::web.isInitialized || web.visibility != View.VISIBLE) return
-        web.evaluateJavascript("window.__musicdDownloadsChanged && window.__musicdDownloadsChanged()", null)
-    }
-
     override fun onDestroy() {
+        if (shown.get() === this) shown = WeakReference(null)
         UsbDac.unlisten(onUsb)
         LocalMusic.unwatch(this)
-        runCatching { getSystemService(android.net.ConnectivityManager::class.java).unregisterNetworkCallback(netWatch) }
-        checks.shutdownNow()
-        watching.shutdownNow()
-        DownloadStore.unlisten(onDownloads)
         Away.unlisten(onAway)
-        if (::web.isInitialized) {
-            root.removeView(web)
-            web.destroy()
-        }
+        if (::reach.isInitialized) reach.stop()
         super.onDestroy()
-    }
-
-    private inner class Client : WebViewClient() {
-        override fun onPageStarted(view: WebView, url: String, favicon: android.graphics.Bitmap?) {
-            if (view === web) { pageGen++; pageReady = false }
-            // The server sends a signed-out page to /login; the app signs in natively instead.
-            val base = loadedBase
-            if (base != null && url.startsWith("$base/login")) {
-                view.stopLoading()
-                signedOut()
-            }
-        }
-
-        override fun onPageFinished(view: WebView, url: String) {
-            if (view === web) pageReady = true
-            if (!loadFailed && !offline) pageLoaded = true
-            // From the server: keep the app's copy of the page up to date.
-            if (!loadFailed && !offline) OfflineSite.sync(this@MainActivity)
-            ShareBridge.install(view)
-        }
-
-        override fun onReceivedError(view: WebView, request: WebResourceRequest, error: WebResourceError) {
-            if (!request.isForMainFrame) return
-            // Perhaps the phone has just left home (or come back): look again.
-            Away.recheck(this@MainActivity)
-            // MusicD itself, from the app, rather than an error. Already offline:
-            // this is the earlier load from the server failing late (the app's
-            // own copy is answered by shouldInterceptRequest and can't fail), so
-            // nothing to do — never the screen below, which is only for an app
-            // with no copy of the page at all.
-            if (OfflineSite.has(this@MainActivity)) { if (!offline) goOffline(); return }
-            val where = Store.active(this@MainActivity)?.toString() ?: "the server"
-            loadFailed = true
-            showError("Can't reach Mandarin at $where.\n\n${error.description}\n")
-        }
-
-        /**
-         * The page's renderer has gone (v0.8.42): it crashed, Android ended it
-         * for memory while the app was behind others, or the app ended it
-         * (the page had stopped). Unhandled, the WebView takes the whole app
-         * with it, the music playing on the phone too; now the page is put
-         * up again in a new WebView.
-         */
-        override fun onRenderProcessGone(view: WebView, detail: RenderProcessGoneDetail): Boolean {
-            if (view !== web) { runCatching { root.removeView(view); view.destroy() }; return true }
-            Log.w(TAG, "the page's renderer has gone (crashed: ${detail.didCrash()})")
-            if (detail.didCrash()) CrashLog.keepPageNote(this@MainActivity, "The page's renderer crashed.\n\n${whereNote()}")
-            rebuildPage()
-            return true
-        }
-
-        /** Offline, every request to the server is answered by the app; the
-         *  phone's own music (its albums, its covers) always is. */
-        override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): WebResourceResponse? {
-            val base = loadedBase ?: return null
-            val url = request.url
-            if (!url.toString().startsWith(base)) return null
-            val c = this@MainActivity
-            val path = url.path ?: "/"
-            if (!offline) {
-                val mine = path.startsWith("/api/image/phone-") || path.startsWith("/api/phone-music/") ||
-                    (path == "/api/album" && (url.getQueryParameter("offset") ?: "").startsWith("phone:"))
-                if (!mine) return null
-                val q = url.queryParameterNames.associateWith { url.getQueryParameter(it) ?: "" }
-                val r = OfflineApi.handle(c, request.method, path, q, null)
-                return respond(r.status, r.mime, r.body)
-            }
-            if (path.startsWith("/api/")) {
-                val q = url.queryParameterNames.associateWith { url.getQueryParameter(it) ?: "" }
-                // The page passes a request's body in a header when offline (the WebView doesn't hand it over).
-                val body = request.requestHeaders.entries.firstOrNull { it.key.equals("X-Offline-Body", true) }
-                    ?.value?.let { java.net.URLDecoder.decode(it, "UTF-8") }
-                val r = OfflineApi.handle(c, request.method, path, q, body)
-                return respond(r.status, r.mime, r.body)
-            }
-            val f = OfflineSite.file(c, path)
-                ?: if (!path.substringAfterLast('/').contains('.')) OfflineSite.file(c, "/") else null
-            if (f == null) return respond(404, "text/plain", ByteArray(0))
-            var bytes = f.first
-            if (f.second == "text/html") bytes = String(bytes).replaceFirst("<head>", "<head>$OFFLINE_SHIM").toByteArray()
-            return respond(200, f.second, bytes)
-        }
-
-        private fun respond(status: Int, mime: String, body: ByteArray) = WebResourceResponse(
-            mime, "utf-8", status, if (status == 200) "OK" else "Error",
-            mapOf("Cache-Control" to "no-store", "Access-Control-Allow-Origin" to "*"),
-            java.io.ByteArrayInputStream(body)
-        )
-
-        override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
-            val url = request.url ?: return false
-            val base = loadedBase
-            if (base != null && url.toString().startsWith(base)) return false
-            return openExternally(url)
-        }
-
-        private fun openExternally(url: Uri): Boolean {
-            // A Qobuz album link opens the Qobuz app when it is installed.
-            val s = url.toString()
-            if (s.startsWith("https://open.qobuz.com/album/")) {
-                val id = s.removePrefix("https://open.qobuz.com/album/").substringBefore('?').substringBefore('/')
-                if (id.isNotEmpty() && id.all { it.isLetterOrDigit() } && start(Uri.parse("qobuzapp://album/$id"))) return true
-            }
-            if (!start(url)) Log.w(TAG, "nothing could open $url")
-            return true
-        }
-
-        private fun start(url: Uri): Boolean = try {
-            startActivity(Intent(Intent.ACTION_VIEW, url).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-            true
-        } catch (e: Exception) {
-            false
-        }
     }
 }

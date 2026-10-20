@@ -293,7 +293,7 @@ internal class ShareState(private val title: String, private val artist: String,
     /** A chip held: its service the default from now on, here and on the page. */
     fun prefer(link: ShareLink) {
         service = link.id; ShareKept.service = link.id
-        NativeShell.toPage("share-service", link.id)
+        NativeShell.keep("shareService", link.id)
         Toast.makeText(context, "${link.name.ifEmpty { link.id }} is now the default", Toast.LENGTH_SHORT).show()
         scope.launch { client()?.let { upgradeQobuz(LibraryClient(it)) } }
     }

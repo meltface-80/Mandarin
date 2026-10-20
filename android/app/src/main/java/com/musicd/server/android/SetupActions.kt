@@ -5,7 +5,6 @@ import android.content.Context
 import android.widget.Toast
 import com.musicd.server.client.Choice
 import com.musicd.server.client.ServerClient
-import com.musicd.server.client.SetupSettings
 import com.musicd.server.client.WallPrefs
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -46,17 +45,14 @@ internal fun saveSetting(scope: CoroutineScope, context: Context, client: () -> 
     }
 }
 
-/** The page's prefs as the app has them (its last word, or what it kept). */
+/** This phone's screen settings as the app keeps them (core ScreenPrefs). */
 internal fun pagePrefs(context: Context): WallPrefs = WallPrefs.parse(NativeShell.prefs ?: Store.homePrefs(context))
 
-/** A setting the page keeps on this device ([name], as its prefs name it) changed here: handed to the page, kept by the app; the prefs now. */
+/** A screen setting ([name], as the page's prefs name it) changed here: kept by the app (item 111); the settings now. */
 internal fun setPagePref(context: Context, name: String, value: String): WallPrefs {
-    NativeShell.toPage("page-pref", JSONObject().put("name", name).put("value", value).toString())
-    val json = SetupSettings.prefsWith(NativeShell.prefs ?: Store.homePrefs(context), name, value)
-    NativeShell.prefs = json
-    Store.setHomePrefs(context, json)
-    NativeShell.homeArgs.value = json to NativeShell.homeArgs.value.second
-    return WallPrefs.parse(json)
+    if (NativeShell.prefs == null) NativeShell.prefs = Store.homePrefs(context)
+    NativeShell.keep(name, value)
+    return WallPrefs.parse(NativeShell.prefs)
 }
 
 

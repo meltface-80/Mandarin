@@ -43,9 +43,9 @@ import kotlin.coroutines.resume
  * (docs/specs/screens.json, settings-system; check-update.js, android-app-update.js; style.css .settings-update-btn,
  * .is-update-ready, .settings-release-notes): Check for updates looks for the server's update and this app's at once
  * (AppUpdate, as the page's __musicdAppUpd does), then offers to install what it found, in brass, with the server's
- * release notes under it; or says how things stand for a few seconds. Installing is the page's update banner's, which
- * owns the download, the unpacking and the restart: it is handed to the page and Settings closes onto Home, where the
- * banner is drawn (item 69). Under it, this app's version, updated with the server.
+ * release notes under it; or says how things stand for a few seconds. Installing is the update banner's (UpdateNow, item
+ * 111), which follows the download, the unpacking and the restart: Settings closes onto Home, where the banner is drawn.
+ * Under it, this app's version, updated with the server.
  */
 
 /** Settings' Updates ([client]: the server's, [onBack]: one step back). */
@@ -70,10 +70,10 @@ internal fun SettingsUpdates(client: () -> ServerClient?, onBack: () -> Unit) {
             }.onFailure { words = UpdateCheck.FAILED; delay(3_000); words = UpdateCheck.CHECK; busy = false }
         }
     }
-    // The second tap installs: the page's banner does it, over Home; Settings (its list under this page) closes onto it.
+    // The second tap installs: the banner does it, over Home; Settings (its list under this page) closes onto it.
     fun install(o: UpdateOutcome) {
         found = null; words = UpdateCheck.CHECK
-        NativeShell.toPage("apply-update", JSONObject().put("server", o.server).put("app", o.app).toString())
+        UpdateNow.apply(o.server, o.app)
         onBack(); onBack()
     }
     SettingsFrame {

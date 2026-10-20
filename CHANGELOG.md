@@ -1,6 +1,21 @@
 # Changelog
 
 ## Unreleased
+- `111-webview-gone`: the Android app has no web view (O2 in docs/specs/plan-android-native.md): it opens on its own
+  Home (`ShellRoute.HOME` the first route), and `MainActivity` holds the shell, the pickers and the volume keys, the
+  server's reachability moving to `ServerReach.kt` (the same looks and timings; the copy of the server's last answers
+  refreshed while it answers). What the screens handed to the page is the app's own (`ShellHand.kt`): the row's
+  buttons; the screen settings the page kept (core `ScreenPrefs`: the UI Settings, the Library's view, the share card's
+  service) and the room (`Store.zone`, written as it is chosen or grouped), with a backup's "page" part made from them
+  under the page's own `rra-*` names and restored to them; Now playing's album (core `NowAlbum`, the page's matcher:
+  the playing track's own album, else a search matched by credited name); the update offer (core `UpdateBanner`,
+  updater.js's words and steps; `UpdateNow.kt` looks for it while Home is up and installs the server's update, then
+  the app's; Settings → Updates hands its find to it; `AppUpdate`'s own dialog is gone); the server's gate shutting on
+  the phone (core `GateWatch`: a 401 saying "Sign in to Mandarin", not a wrong password) opens the sign-in screen; the
+  side menu's Shelf opens `/shelf` in the phone's browser. Deleted: `PageFrame`, `PageGuard`, `PageCurtain`,
+  `PageRelay`, core `PageWatch`, `AppBridge`, `BackupBridge`, `OfflineSite`'s page copy and the APK's `bundleSite`
+  step, the `androidx.webkit` library, `test/offline-bundle.test.js` and its C# twin. The page's Android glue stays on
+  the server until the next release, for older apps.
 - `112-server-notices-native`: the server's notice at the head of the app's Home is worked out by the app (O2-5 in
   docs/specs/plan-android-native.md): core `ServerNotices` reads /api/status as the page's server-notice.js does (the
   data not kept, no music folder, a first scan, no audio found, starting up, a music folder gone with Forget or Remove

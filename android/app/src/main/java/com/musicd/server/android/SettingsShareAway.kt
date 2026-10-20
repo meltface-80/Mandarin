@@ -99,7 +99,7 @@ internal fun ShareCardPane(client: () -> ServerClient?, onBack: () -> Unit, info
                 SetupRow("Default", Modifier.parity("settings-sharecard.name"), Modifier.parity("settings-sharecard.info", Contract.label("settings-sharecard.info", 0, "Default")).clickable { info(DEFAULT_INFO) }) {
                     SelectBox(choices.firstOrNull { it.value == chosen }?.words ?: "No services switched on", choices.ifEmpty { listOf(Choice("", "No services switched on")) },
                         Modifier.parity("settings-sharecard.caret"), Modifier.parity("settings-sharecard.default", Contract.label("settings-sharecard.default")).clickable(enabled = choices.isNotEmpty()) {
-                            pickChoice(context, choices, chosen) { v -> service = v; ShareKept.service = v; NativeShell.toPage("share-service", v) }
+                            pickChoice(context, choices, chosen) { v -> service = v; ShareKept.service = v; NativeShell.keep("shareService", v) }
                         })
                 }
             }

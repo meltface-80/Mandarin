@@ -148,8 +148,7 @@ class DownloadsBridge(private val activity: Activity) {
         when (key) {
             "offlineMode" -> {
                 Store.setOfflineMode(c, value == "true")
-                // The screen held as it is, if the page asked, while the page loads again (PageCurtain).
-                activity.runOnUiThread { PageCurtain.up(activity) { (activity as? MainActivity)?.offlineModeChanged() } }
+                activity.runOnUiThread { (activity as? MainActivity)?.offlineModeChanged() }
             }
             "quality" -> DownloadStore.setQuality(c, if (value == DownloadStore.QUALITY_OPUS) value else DownloadStore.QUALITY_ORIGINAL)
             "location" -> DownloadStore.setLocation(c, value)

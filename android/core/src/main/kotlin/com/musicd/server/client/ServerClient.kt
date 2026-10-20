@@ -26,6 +26,13 @@ class ServerClient(
     class ServerException(val status: Int, message: String) : IOException(message) {
         /** Signed out: the account was reset, or this phone was signed out in Settings. */
         val signedOut get() = status == 401
+        /** The server's gate shut on this phone (its sign-in gone, or no account yet), not a password asked again and wrong. */
+        val gateShut get() = status == 401 && message in GATE
+
+        companion object {
+            /** What the server's gate says when it turns a request away (Auth.cs). */
+            val GATE = setOf("Sign in to Mandarin", "Create the Mandarin account first")
+        }
     }
 
     fun health(): Health = Health.parse(getJson("/api/health"))

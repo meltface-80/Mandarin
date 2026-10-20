@@ -41,7 +41,6 @@ class WallTest {
     @Test fun `the wall's route and the client's query carry the page's view`() {
         assertEquals("library?view=sort%3Dalbum%26dir%3Dasc&prefs=%7B%22tile%22%3A%221%22%7D&zone=z%201", ShellRoute.library("sort=album&dir=asc", """{"tile":"1"}""", "z 1"))
         assertEquals("library?view={view}&prefs={prefs}&zone={zone}", ShellRoute.LIBRARY)
-        assertFalse(ShellRoute.isWeb(ShellRoute.library("", "", "")))
         val asked = ArrayList<String>()
         val client = LibraryClient { path -> asked += path; org.json.JSONObject("""{"albums":[],"offset":0,"total":0}""") }
         client.albums(view = "sort=year&dir=desc&genre=Rock")

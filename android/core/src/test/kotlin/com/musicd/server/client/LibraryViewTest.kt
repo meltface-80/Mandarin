@@ -71,7 +71,6 @@ class LibraryViewTest {
     @Test fun `the walls' and the artist's routes and the client's paths`() {
         assertEquals("wall/random?zone=z&filter=", ShellRoute.wall("random", "z"))
         assertEquals("artist?name=Artist%20A&zone=z%201", ShellRoute.artist("Artist A", "z 1"))
-        assertFalse(ShellRoute.isWeb(ShellRoute.wall("later", "")))
         val asked = ArrayList<String>()
         val client = LibraryClient { path -> asked += path; JSONObject("""{"albums":[],"facets":[],"bio":null}""") }
         client.facets(); client.favourites(); client.listenLater(); client.history(60); client.unplayed(6, 96); client.randomAlbums(24); client.artistBio("Artist A", "Album One")

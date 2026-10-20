@@ -230,10 +230,11 @@ object Store {
             transport = com.musicd.server.client.LocalTransport { m, p, q, b -> OfflineApi.answers(c).answer(m, p, q, b) })
     }
 
-    /** A client for the server, signed in — null until both are known. */
+    /** A client for the server, signed in — null until both are known. The server's gate shutting on this phone signs it in again (item 111). */
     fun client(context: Context): ServerClient? {
         val address = active(context) ?: return null
         val token = token(context) ?: return null
-        return ServerClient(address, token = token)
+        return ServerClient(address, token = token,
+            transport = com.musicd.server.client.GateWatch(com.musicd.server.client.HttpTransport(address.baseUrl, token)) { MainActivity.gateShut() })
     }
 }

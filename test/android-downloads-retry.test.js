@@ -25,7 +25,8 @@ test("the server out of reach, the Offline dialog looks for it now, on the page 
   assert.match(read("public/index.html"), /id="offline-retry" type="button" data-parity="offline\.retry">Try the server again</);
   assert.match(read("public/app/server-notice.js"), /offState\.kind === "app" && !!window\.MusicdApp && typeof window\.MusicdApp\.lookForServer === "function"/);
   assert.match(read(APP + "OfflineDialog.kt"), /if \(OfflineNote\.canRetry\(kind\)\) Box\(Modifier\.parity\("offline\.retry"/);
-  assert.match(read(APP + "MainActivity.kt"), /fun lookForServer\(\) \{ if \(offline && ::web\.isInitialized\) \{ web\.removeCallbacks\(serverWatch\); web\.post\(serverWatch\) \} \}/);
+  assert.match(read(APP + "MainActivity.kt"), /fun lookForServer\(\) \{ if \(::reach\.isInitialized\) reach\.lookNow\(\) \}/);
+  assert.match(read(APP + "ServerReach.kt"), /fun lookNow\(\) \{ if \(offline\) lookSoon\(0\) \}/);
 });
 
 test("the old Downloads screen is gone, and what opened it opens Settings → Downloads' albums", () => {

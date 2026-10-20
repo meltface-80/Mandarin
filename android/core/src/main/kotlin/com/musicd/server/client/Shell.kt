@@ -4,27 +4,12 @@ import java.net.URLDecoder
 import java.net.URLEncoder
 
 /*
- * The native app's frame (stage N0 of docs/specs/plan-android-native.md): the
- * screens it shows, by route, and the colours they are drawn in: the page in
- * its WebView at a path, and the native screens as they come (Now playing,
- * N2); whatever isn't native yet stays the page's.
+ * The native app's frame (docs/specs/plan-android-native.md): the screens it shows, by route, and the colours they are
+ * drawn in. Every screen is the app's own since bug list item 111: there is no page under them.
  */
 
-/** The shell's routes: `web/{path}`, the page at a path, until a screen of its own replaces it. */
+/** The shell's routes, Home ([HOME]) the first. */
 object ShellRoute {
-    const val PATH = "path"
-    /** The page's route, as the navigation graph declares it. */
-    const val WEB = "web/{$PATH}"
-
-    /** The route to the page at [path] ("/" is Home), its path one argument. */
-    fun web(path: String = "/"): String = "web/" + enc(path.ifEmpty { "/" })
-
-    /** The page path a `web` route's argument names: "/" when it names none. */
-    fun pagePath(arg: String?): String {
-        val p = if (arg.isNullOrEmpty()) "/" else URLDecoder.decode(arg, "UTF-8")
-        return if (p.startsWith("/")) p else "/$p"
-    }
-
     const val ZONE = "zone"
     /** The native Now playing (N2), of a room. */
     const val NOW_PLAYING = "nowplaying/{$ZONE}"
@@ -136,9 +121,6 @@ object ShellRoute {
 
     /** The room a `nowplaying` route's own text names (Navigation hands its argument over decoded already). */
     fun zoneOf(arg: String?): String = URLDecoder.decode(arg.orEmpty(), "UTF-8")
-
-    /** Whether a route (as the graph names it) is the page's, which the WebView shows rather than the shell. */
-    fun isWeb(route: String?): Boolean = route == null || route == WEB || route.startsWith("web/")
 
     // One argument, as an address writes it: a space as %20, which Navigation reads back as one ("+" it leaves).
     private fun enc(s: String) = URLEncoder.encode(s, "UTF-8").replace("+", "%20")

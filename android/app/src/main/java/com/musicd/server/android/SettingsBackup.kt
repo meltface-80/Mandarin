@@ -94,12 +94,12 @@ internal fun SettingsBackup(client: () -> ServerClient?, onBack: () -> Unit) {
     // A restore or a delete asked first (the page's yes-or-no sheet), [yes] once answered so.
     fun askFirst(question: String, yes: () -> Unit) { ask = question to yes }
 
-    // A restore's answer (the page's finishRestore): this screen's settings handed back to the page, the app's put back, then
+    // A restore's answer (the page's finishRestore): this phone's screen settings and the app's put back, then
     // the app starts again on them, once the server is back from its restart where it restarts.
     fun finish(j: JSONObject) {
         val said = BackupSettings.restoreSaid(j)
         if (!j.optBoolean("ok")) { busy = false; said?.let { setupToast(context, it) }; return }
-        j.optJSONObject("page")?.let { NativeShell.toPage("backup-page-restore", it.toString()) }
+        j.optJSONObject("page")?.let { BackupPage.restore(it) }
         j.optJSONObject("app")?.let { runCatching { AppBackup.import(context, it) } }
         scope.launch {
             if (j.optBoolean("restarting")) {
@@ -172,7 +172,7 @@ internal fun SettingsBackup(client: () -> ServerClient?, onBack: () -> Unit) {
                         scope.launch {
                             val body = JSONObject().put("include", JSONArray(BackupSettings.serverParts(w)))
                             if (pass.isNotEmpty()) body.put("passphrase", pass)
-                            if ("page" in w) BackupPage.ask()?.let { body.put("page", it) }
+                            if ("page" in w) body.put("page", BackupPage.ask())
                             if ("app" in w) body.put("app", AppBackup.export(context))
                             val r = withContext(Dispatchers.IO) { runCatching { c.post("/api/backup/save", body, 600_000) } }
                             busy = false

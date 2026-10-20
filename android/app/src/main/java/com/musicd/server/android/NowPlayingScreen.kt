@@ -53,6 +53,9 @@ import com.musicd.server.client.Palette
 import com.musicd.server.client.ServerClient
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import com.musicd.server.client.NowAlbum
+import androidx.compose.ui.platform.LocalContext
+import android.widget.Toast
 
 /**
  * Now playing, native (stage N2 of docs/specs/plan-android-native.md, a
@@ -73,6 +76,7 @@ internal fun NowPlayingScreen(zoneId: String, client: () -> ServerClient?, onBac
     var volumeOpen by remember { mutableStateOf(false) }
     var sharing by remember { mutableStateOf(false) }   // its Share card open (item 75)
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
     BackHandler(onBack = onBack)
     val cover = rememberCover(view?.imageKey, 1000, client)
 
@@ -141,7 +145,9 @@ internal fun NowPlayingScreen(zoneId: String, client: () -> ServerClient?, onBac
                         else Text(c.name, Modifier.parity("now-playing.artist"), fontSize = 18.sp, lineHeight = 24.sp, color = white, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
                 }
-                Text(v.album, Modifier.parity("now-playing.album", Contract.label("now-playing.album", 0, v.album)).padding(top = 3.dp).clickable { onPage("album", null) },
+                Text(v.album, Modifier.parity("now-playing.album", Contract.label("now-playing.album", 0, v.album)).padding(top = 3.dp).clickable {
+                    // Its album found as the page finds it (item 111): by the playing track, else the library searched by its name.
+                    scope.launch { findNowAlbum(client, zoneId, v.album, v.artist)?.let { onPage("album", it.toString()) } ?: Toast.makeText(context, NowAlbum.NOT_INDEXED, Toast.LENGTH_SHORT).show() } },
                     fontSize = 14.sp, lineHeight = 19.sp, color = dim, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 v.formatText?.let {
                     Text(it, Modifier.parity("now-playing.format").padding(top = 8.dp).border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(6.dp))

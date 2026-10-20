@@ -54,13 +54,12 @@ import kotlinx.coroutines.withContext
  * over the whole screen (docs/specs/screens.json, settings and settings-setup; style.css #settings-overlay): ✕ and
  * Settings at the head, a row a section (its brass icon, its name), the server's version and View on GitHub at the
  * foot; Setup's list under its Back. [pane]: "home", "setup", or a page the app draws ("account", "metadata", in
- * SettingsAccount.kt and SettingsKeys.kt); a page it doesn't draw yet opens on the page, over this ([onPage]).
+ * SettingsAccount.kt and SettingsKeys.kt); every page of it the app's own.
  */
 @Composable
-internal fun SettingsScreen(pane: String, client: () -> ServerClient?, onBack: () -> Unit, onOpen: (String) -> Unit, onPage: (String) -> Unit) {
+internal fun SettingsScreen(pane: String, client: () -> ServerClient?, onBack: () -> Unit, onOpen: (String) -> Unit) {
     BackHandler(onBack = onBack)
-    // The app's own pages, natively; Setup's list here; the rest the page's.
-    val open = { p: String -> if (p in NATIVE_PANES) onOpen(p) else onPage(p) }
+    val open = onOpen
     when (pane) {
         "account" -> SettingsAccount(client, onBack)
         "metadata" -> SettingsKeys(client, onBack)
@@ -84,8 +83,6 @@ internal fun SettingsScreen(pane: String, client: () -> ServerClient?, onBack: (
     }
 }
 
-/** The pages the app draws itself (Setup's small ones in SettingsSetup.kt, item 78; Services, item 87; Music Folders, item 88; Library Scanner, item 90); Setup is its list. */
-private val NATIVE_PANES = setOf("setup", "account", "metadata", "streaming", "folders", "identify", "downloads", "backup", "system", "playback") + SETUP_PANES
 /** The pages the app draws itself (Setup's small ones in SettingsSetup.kt, item 78; Services, item 87); Setup is its list. */
 
 @Composable

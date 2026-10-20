@@ -54,9 +54,9 @@ import kotlinx.coroutines.withContext
 import org.json.JSONObject
 
 /**
- * The notices at the head of the native Home: the server's, worked out by the app from /api/status ([watch]; core
- * ServerNotices, bug list item 112), and the update offer as the page last told it (public/app/native-notices.js,
- * [AppBridge.notices]; bug list item 69), drawn as the page draws them at the head of its own.
+ * The notices at the head of Home: the server's, worked out by the app from /api/status ([watch]; core ServerNotices,
+ * bug list item 112), and the update offer, the app's own (UpdateNow, core UpdateBanner; bug list item 111), drawn as
+ * the page draws them at the head of its own.
  */
 internal object Notices {
     val now = mutableStateOf(PageNotices())
@@ -89,13 +89,14 @@ internal object Notices {
 /**
  * Both notices, the server's over the update offer, as the page's (style.css: .status-banner, .update-toast), at the UI
  * Settings' menu size (their zoom). The notice's button (Forget a folder) asks its question as the page's yes-or-no sheet,
- * then forgets the folder itself (item 112); the update offer's are the page's own, tapped ([onPage]: "update").
+ * then forgets the folder itself (item 112); the update offer's Update and Later are UpdateNow's ([onPage]: "update").
  */
 @Composable
 internal fun NoticeBanners(zoom: Double, client: () -> ServerClient?, onPage: (String, String?) -> Unit) {
     val now by Notices.now
     val again by Notices.watchAgain
     LaunchedEffect(again) { Notices.watch(client) }
+    LaunchedEffect(Unit) { UpdateNow.watch() }
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var asking by remember { mutableStateOf<Pair<Int, String>?>(null) }

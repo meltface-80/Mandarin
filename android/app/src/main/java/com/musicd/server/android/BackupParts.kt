@@ -16,7 +16,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -33,32 +32,26 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.musicd.server.client.Contract
 import com.musicd.server.client.Palette
-import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.withTimeoutOrNull
+import com.musicd.server.client.ScreenPrefs
 import org.json.JSONObject
 
 /*
  * The pieces of Settings → Backup & restore (bug list item 92; SettingsBackup.kt draws the page with them), as the page
  * draws them (style.css .backup-part, .backup-pass, .backup-item, .backup-restore): a part's tick box with its name and
- * what it holds, the passphrase's field, a backup's card and its buttons. And this screen's own settings, which live in
- * the page (its localStorage): asked of it for a backup ([BackupPage]).
+ * what it holds, the passphrase's field, a backup's card and its buttons. And this phone's screen settings, the
+ * backup's "page" part under the page's own names ([BackupPage]; core ScreenPrefs, item 111).
  */
 
-/** This screen's settings, asked of the page for a backup (the page hands them back through MusicdApp.backupPageSettings). */
+/** This phone's screen settings for a backup, and put back from one, under the page's names so a browser's backup and the app's are one. */
 internal object BackupPage {
-    @Volatile private var waiting: CompletableDeferred<String>? = null
+    /** The screen settings and the room, as the page's backup part holds them. */
+    fun ask(): JSONObject = ScreenPrefs.backup(NativeShell.prefs, NativeShell.zone)
 
-    /** The page's answer (from its bridge, on any thread). */
-    fun answered(json: String) { waiting?.complete(json) }
-
-    /** This screen's settings, or none when the page doesn't answer within two seconds. Ask on the main thread. */
-    suspend fun ask(): JSONObject? {
-        val d = CompletableDeferred<String>()
-        waiting = d
-        NativeShell.toPage("backup-page", null)
-        val got = withTimeoutOrNull(2_000) { d.await() }
-        waiting = null
-        return got?.let { runCatching { JSONObject(it) }.getOrNull() }
+    /** A backup's page part put back: the screen settings, and the room it names. */
+    fun restore(page: JSONObject) {
+        val (json, zone) = ScreenPrefs.restore(page, NativeShell.prefs)
+        NativeShell.keepAll(json)
+        NativeShell.keepZone(zone)
     }
 }
 

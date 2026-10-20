@@ -80,10 +80,6 @@ internal fun HomeScreen(prefs: WallPrefs, zoneId: String, client: () -> ServerCl
         HomeKept.refresh(scope, context, client(), NativeShell.libraryView)
         while (true) { delay(60_000); client()?.let { HomeKept.refreshAotd(it) } }
     }
-    // One of the page's own screens over Home has closed (Settings → Home Screen, Playlists, a label): the rows asked for again, as the page's showHome does.
-    val pageFront by NativeShell.pageFront
-    var wasFront by remember { mutableStateOf(pageFront) }
-    LaunchedEffect(pageFront) { if (wasFront && !pageFront) HomeKept.refresh(scope, context, client(), NativeShell.libraryView); wasFront = pageFront }
     LaunchedEffect(HomeKept.toTop) { if (HomeKept.toTop) { HomeKept.list.scrollToItem(0); HomeKept.toTop = false } }
     // Random Album (the page's playUnheard): the disc turns fast for two seconds, then the album chosen is offered.
     fun randomAlbum() {
@@ -113,8 +109,8 @@ internal fun HomeScreen(prefs: WallPrefs, zoneId: String, client: () -> ServerCl
 
     Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         LazyColumn(Modifier.fillMaxSize(), state = HomeKept.list, contentPadding = PaddingValues(top = 14.dp, bottom = 164.dp)) {
-            // The page's notices (the server's, the update offer; item 69), at Home's head as on the page's.
-            item("notices") { NoticeBanners(prefs.menu, client) { what, arg -> NativeShell.toPage(what, arg) } }
+            // The notices (the server's, the update offer; items 112 and 111), at Home's head as on the page's.
+            item("notices") { NoticeBanners(prefs.menu, client) { what, arg -> handOn(what, arg) } }
             if (prefs.greeting) item("greeting") { Greeting() }
             // The strip under the greeting: Random Album, then today's album; gone with both.
             val aotd = HomeKept.aotd
