@@ -94,7 +94,7 @@ internal fun LibraryScreen(viewQuery: String, prefs: WallPrefs, zoneId: String, 
     // Back: a sheet, the field or the selection closes first; then the screen.
     BackHandler { when { focusOpen -> focusOpen = false; sortOpen -> sortOpen = false; filtering -> { filtering = false; typed = ""; change(view.copy(prefix = "")) }; selecting -> { selecting = false; picks = emptyList() }; else -> onBack() } }
     fun more() { val c = client() ?: return; scope.launch { wall.more(c) } }
-    LaunchedEffect(wall) { if (!wall.loaded) more() }
+    LaunchedEffect(wall) { if (wall.needsFirst) more() }
     LaunchedEffect(focusOpen) { if (focusOpen) { val c = client() ?: return@LaunchedEffect; facets = withContext(Dispatchers.IO) { runCatching { LibraryClient { c.getJson(it) }.facets() }.getOrNull() } ?: facets } }
     // The letters typed narrow the wall once they have settled (the page asks on each keystroke).
     LaunchedEffect(typed) { delay(250); if (filtering && typed.trim() != view.prefix) change(view.copy(prefix = typed.trim())) }

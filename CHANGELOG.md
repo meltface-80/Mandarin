@@ -1,6 +1,12 @@
 # Changelog
 
 ## Unreleased
+- `99-library-wall-away`: away from home (mobile data, a VPN) the Android app's Library stayed on its grey skeletons for
+  good. The Library's wall, kept while the app runs, set its "a page is on its way" when it asked for its first page and
+  cleared it only once the page came: the Library left or drawn again before then, the request was called off and the
+  flag stayed up, so every visit after asked for nothing. Seldom at home, where the first page comes at once. The flag
+  is now let go however the request ends; and a first page that failed ("Couldn't load") is asked for again when the
+  Library is opened again.
 - `90-native-settings-scanner`: Settings → Library Scanner natively in the Android app (plan T7), as the page's: the
   schedule (on or off, its start and end chosen on the phone's own clock, what runs now); Identify albums and Ask
   iTunes too; the MusicBrainz pack (what is downloaded and from when, Download, Update or Remove, the download's progress

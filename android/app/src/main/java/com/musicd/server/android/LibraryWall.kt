@@ -27,11 +27,19 @@ internal class WallState(val view: String) {
     var loading by mutableStateOf(false)
     /** What the banner says, and whether as an error (the page's setBanner); null: nothing. */
     var banner by mutableStateOf<Pair<String, Boolean>?>(null)
+    /** No page yet, and more to come: the first asked for (again, after a failure) when the Library opens. */
+    val needsFirst: Boolean get() = !done && albums.isEmpty()
 
     /** The next page, from [client]; nothing while one is in flight or the end came. */
     suspend fun more(client: ServerClient) {
         if (loading || done) return
         loading = true
+        // Let go however the request ends: called off on the way (the Library left before the page came, as on mobile
+        // data or a VPN), a flag still up kept the wall waiting for good, its skeletons up on every visit (item 99).
+        try { page(client) } finally { loading = false }
+    }
+
+    private suspend fun page(client: ServerClient) {
         val first = albums.isEmpty()
         val r = withContext(Dispatchers.IO) { runCatching { LibraryClient { client.getJson(it) }.albums(albums.size, PAGE, view) } }
         r.onSuccess { p ->
@@ -47,7 +55,6 @@ internal class WallState(val view: String) {
             else if (first) { banner = "Couldn’t load: " + (e.message ?: "no answer") to true; loaded = true }
             // Mid-scroll: what is loaded stays; the next nudge asks the same page again.
         }
-        loading = false
     }
 
     companion object { const val PAGE = 60 }
