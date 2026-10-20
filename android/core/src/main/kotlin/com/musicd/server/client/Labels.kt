@@ -69,7 +69,7 @@ data class LogoCandidate(val img: String, val title: String) {
 
 object Labels {
     /** A name as the find matches it: its accents off, in small letters, trimmed. */
-    fun fold(s: String): String = Normalizer.normalize(s, Normalizer.Form.NFD).replace(Regex("\\p{M}+"), "").lowercase().trim()
+    fun fold(s: String): String = Normalizer.normalize(s, Normalizer.Form.NFD).filter { Character.getType(it) != Character.NON_SPACING_MARK.toInt() }.lowercase().trim()
 
     /** The order button's word and what it is called aloud. */
     fun orderWord(reversed: Boolean): String = if (reversed) "Z–#" else "#–Z"
