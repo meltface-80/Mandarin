@@ -1,6 +1,15 @@
 # Changelog
 
 ## Unreleased
+- `76-native-settings-account`: Settings natively in the Android app (plan T1), from the side menu, as the page's: the
+  list over the whole screen (✕ and Settings in the serif, a row a section with its brass icon, the server's version and
+  View on GitHub at the foot); Setup's list (the app's Downloads in it); Account (who is signed in, the devices signed in
+  with when each was last seen, Sign out on each but this one, Sign out of this device, which takes the app to its
+  sign-in, and Change password, proved with the current one as the page does it); API Keys (Discogs, FanArt.tv and
+  Last.fm, each with its ⓘ, the box saying what the server has, its ✓ or ✕ once checked, Save). The pages not yet
+  native open on the page alone over the app's Settings, each as its row opens it, and their Back comes back to the
+  app's list. The page's Settings is keyed for the screens contract (`settings`, `settings-setup`, `settings-account`,
+  `settings-keys`).
 - `75-native-share-card`: the Share card natively in the Android app (plan B4), from an album's native page and from
   Now playing, as the page's: a panel over the screen (centred above the mini player and the row where they show), ✕
   in its corner, the card drawn by the app itself with the page's measurements (core's `CardLayout`, sharecard.js's

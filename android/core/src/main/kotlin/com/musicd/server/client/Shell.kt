@@ -100,6 +100,11 @@ object ShellRoute {
     fun serviceBrowser(service: String, zoneId: String, artistId: String = "", artistName: String = "", q: String = ""): String =
         "service/" + enc(service) + "?$ARTIST_ID=" + enc(artistId) + "&name=" + enc(artistName) + "&q=" + enc(q) + "&$ZONE=" + enc(zoneId)
 
+    const val PANE = "pane"
+    /** Settings (item 76): its list ("home"), Setup's ("setup"), or one of its pages the app draws ("account", "metadata"). */
+    const val SETTINGS = "settings/{$PANE}"
+    fun settings(pane: String = "home"): String = "settings/" + enc(pane)
+
     /** The record labels (item 71); a label's albums are a wall ([wall], kind "label", the label's name as its filter). */
     const val LABELS = "labels?$ZONE={$ZONE}"
     fun labels(zoneId: String): String = "labels?$ZONE=" + enc(zoneId)

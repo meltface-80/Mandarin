@@ -38,6 +38,8 @@ window.__musicdNative = function (what, arg) {
     else npAlbum.click();
     return true;
   }
+  // A page of Settings the app's own Settings doesn't draw (item 76): the page's, alone.
+  if (what === "settings-pane") return !!(arg && window.__openSettingsPane && window.__openSettingsPane(arg));
   // The native share card's default service, held on its chip (item 75): kept where the page's chips keep it.
   if (what === "share-service") {
     try { localStorage.setItem("musicd-share-service", String(arg || "")); } catch (e) { /* storage blocked: the app keeps it this visit */ }
@@ -232,7 +234,7 @@ window.__musicdNative = function (what, arg) {
 /*  two frames on), and the class comes off only once the app says the */
 /*  screen is in front again (the app takes it off itself).            */
 /* ------------------------------------------------------------------ */
-const OVER_SHEETS = "#share-overlay:not(.hidden), .lib-sheet-backdrop, #album-edit-overlay:not(.hidden), #prompt-overlay:not(.hidden), #confirm-overlay:not(.hidden)";
+const OVER_SHEETS = "#settings-overlay:not(.hidden), #share-overlay:not(.hidden), .lib-sheet-backdrop, #album-edit-overlay:not(.hidden), #prompt-overlay:not(.hidden), #confirm-overlay:not(.hidden)";
 window.__musicdNativeOver = function (what, arg) {
   const html = document.documentElement;
   const app = window.MusicdApp;

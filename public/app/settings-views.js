@@ -192,8 +192,11 @@ const atHome = () => {
 };
 // One level up: a pane that names its parent (data-parent) goes there —
 // Setup's pages back to Setup (v0.6.21) — anything else to the Settings list.
+// The page the Android app's own Settings asked for (item 76): its Back closes Settings, back to the app's list.
+let settingsAppPane = null;
 const stepBack = () => {
   const open = sheet && sheet.querySelector('.settings-view[data-view="pane"]:not(.hidden)');
+  if (open && settingsAppPane && open.getAttribute("data-pane") === settingsAppPane) { settingsAppPane = null; settingsOverlay.classList.add("hidden"); return; }
   const parent = open && open.getAttribute("data-parent");
   showView(parent || "home");
 };

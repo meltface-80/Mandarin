@@ -1133,11 +1133,11 @@
       <!-- Settings home: category list. Each row opens a pane below. -->
       <div class="settings-view" data-view="home">
         <div class="settings-head">
-          <h2>Settings</h2>
+          <h2 data-parity="settings.heading">Settings</h2>
         </div>
 
         <nav class="settings-nav settings-nav-list" aria-label="Settings categories">
-          <button class="settings-nav-item" type="button" data-pane="account">
+          <button data-parity="settings.item" class="settings-nav-item" type="button" data-pane="account">
             <span class="settings-nav-ico" aria-hidden="true">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>
             </span>
@@ -1145,7 +1145,7 @@
               <span class="settings-nav-title">Account</span>
             </span>
           </button>
-          <button class="settings-nav-item" type="button" data-pane="folders">
+          <button data-parity="settings.item" class="settings-nav-item" type="button" data-pane="folders">
             <span class="settings-nav-ico" aria-hidden="true">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
             </span>
@@ -1153,7 +1153,7 @@
               <span class="settings-nav-title">Music Folders</span>
             </span>
           </button>
-          <button class="settings-nav-item" type="button" data-pane="streaming">
+          <button data-parity="settings.item" class="settings-nav-item" type="button" data-pane="streaming">
             <span class="settings-nav-ico" aria-hidden="true">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
             </span>
@@ -1161,7 +1161,7 @@
               <span class="settings-nav-title">Services</span>
             </span>
           </button>
-          <button class="settings-nav-item" type="button" data-pane="playback">
+          <button data-parity="settings.item" class="settings-nav-item" type="button" data-pane="playback">
             <span class="settings-nav-ico" aria-hidden="true">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><circle cx="12" cy="14" r="4"/><circle cx="12" cy="6" r="1"/></svg>
             </span>
@@ -1169,7 +1169,7 @@
               <span class="settings-nav-title">Audio Devices</span>
             </span>
           </button>
-          <button class="settings-nav-item" type="button" data-pane="identify">
+          <button data-parity="settings.item" class="settings-nav-item" type="button" data-pane="identify">
             <span class="settings-nav-ico" aria-hidden="true">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2.5"/><path d="M12 3v3"/><path d="M12 18v3"/><path d="M3 12h3"/><path d="M18 12h3"/></svg>
             </span>
@@ -1177,7 +1177,7 @@
               <span class="settings-nav-title">Library Scanner</span>
             </span>
           </button>
-          <button class="settings-nav-item" type="button" data-pane="setup">
+          <button data-parity="settings.item" class="settings-nav-item" type="button" data-pane="setup">
             <span class="settings-nav-ico" aria-hidden="true">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
             </span>
@@ -1185,7 +1185,7 @@
               <span class="settings-nav-title">Setup</span>
             </span>
           </button>
-          <button class="settings-nav-item" type="button" data-pane="backup">
+          <button data-parity="settings.item" class="settings-nav-item" type="button" data-pane="backup">
             <span class="settings-nav-ico" aria-hidden="true">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
             </span>
@@ -1193,7 +1193,7 @@
               <span class="settings-nav-title">Backup &amp; restore</span>
             </span>
           </button>
-          <button class="settings-nav-item" type="button" data-pane="system">
+          <button data-parity="settings.item" class="settings-nav-item" type="button" data-pane="system">
             <span class="settings-nav-ico" aria-hidden="true">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><polyline points="21 3 21 9 15 9"/></svg>
             </span>
@@ -1202,7 +1202,7 @@
             </span>
           </button>
           
-          <button class="settings-nav-item hidden" type="button" data-pane="labels">
+          <button data-parity="settings.item" class="settings-nav-item hidden" type="button" data-pane="labels">
             <span class="settings-nav-ico" aria-hidden="true">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41 13.42 20.59a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
             </span>
@@ -1213,8 +1213,8 @@
         </nav>
 
         <div class="settings-foot">
-          <span class="settings-version" id="settings-version">Mandarin</span>
-          <a class="settings-repo" id="settings-repo"
+          <span class="settings-version" id="settings-version" data-parity="settings.version">Mandarin</span>
+          <a class="settings-repo" id="settings-repo" data-parity="settings.repo"
              href="https://github.com/meltface-80/Mandarin"
              target="_blank" rel="noopener noreferrer">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
@@ -1229,14 +1229,14 @@
       <!-- Setup (v0.6.21): the pages that set Mandarin up, on a list of their own. -->
       <div class="settings-view settings-pane hidden" data-view="pane" data-pane="setup">
         <div class="settings-pane-head">
-          <button class="settings-back" type="button" data-settings-back aria-label="Back to settings">
+          <button class="settings-back" type="button" data-settings-back aria-label="Back to settings" data-parity="settings-setup.back">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
           </button>
-          <h2>Setup</h2>
+          <h2 data-parity="settings-setup.heading">Setup</h2>
         </div>
-        <p class="settings-pane-desc">Smart Picks, record labels, the Home screen, the look, the wall display and Shelf, sharing, away from home, API keys</p>
+        <p class="settings-pane-desc" data-parity="settings-setup.desc">Smart Picks, record labels, the Home screen, the look, the wall display and Shelf, sharing, away from home, API keys</p>
         <nav class="settings-nav settings-nav-list" aria-label="Setup pages">
-          <button class="settings-nav-item" type="button" data-pane="smartpicks">
+          <button data-parity="settings-setup.item" class="settings-nav-item" type="button" data-pane="smartpicks">
             <span class="settings-nav-ico" aria-hidden="true">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4.5-4.5"/><path d="M11 8v6"/><path d="M8 11h6"/></svg>
             </span>
@@ -1244,7 +1244,7 @@
               <span class="settings-nav-title">Smart Picks</span>
             </span>
           </button>
-          <button class="settings-nav-item" type="button" data-pane="labels">
+          <button data-parity="settings-setup.item" class="settings-nav-item" type="button" data-pane="labels">
             <span class="settings-nav-ico" aria-hidden="true">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41 13.42 20.58a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
             </span>
@@ -1252,7 +1252,7 @@
               <span class="settings-nav-title">Record labels</span>
             </span>
           </button>
-          <button class="settings-nav-item" type="button" data-pane="homescreen">
+          <button data-parity="settings-setup.item" class="settings-nav-item" type="button" data-pane="homescreen">
             <span class="settings-nav-ico" aria-hidden="true">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="5" rx="1"/><rect x="3" y="12" width="18" height="5" rx="1"/><path d="M3 20h11"/></svg>
             </span>
@@ -1260,7 +1260,7 @@
               <span class="settings-nav-title">Home Screen</span>
             </span>
           </button>
-          <button class="settings-nav-item" type="button" data-pane="ui">
+          <button data-parity="settings-setup.item" class="settings-nav-item" type="button" data-pane="ui">
             <span class="settings-nav-ico" aria-hidden="true">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><path d="M14 15h7M14 19h5"/></svg>
             </span>
@@ -1268,7 +1268,7 @@
               <span class="settings-nav-title">UI Settings</span>
             </span>
           </button>
-          <button class="settings-nav-item" type="button" data-pane="display">
+          <button data-parity="settings-setup.item" class="settings-nav-item" type="button" data-pane="display">
             <span class="settings-nav-ico" aria-hidden="true">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
             </span>
@@ -1276,7 +1276,7 @@
               <span class="settings-nav-title">Wall Display</span>
             </span>
           </button>
-          <button class="settings-nav-item" type="button" data-pane="shelfset">
+          <button data-parity="settings-setup.item" class="settings-nav-item" type="button" data-pane="shelfset">
             <span class="settings-nav-ico" aria-hidden="true">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5v13M7.5 5v13M15 5v13M18.5 5v13"/><rect x="9.5" y="4" width="4" height="15" rx=".8"/><path d="M2 21h20"/></svg>
             </span>
@@ -1284,7 +1284,7 @@
               <span class="settings-nav-title">Shelf</span>
             </span>
           </button>
-          <button class="settings-nav-item" type="button" data-pane="sharecard">
+          <button data-parity="settings-setup.item" class="settings-nav-item" type="button" data-pane="sharecard">
             <span class="settings-nav-ico" aria-hidden="true">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
             </span>
@@ -1292,7 +1292,7 @@
               <span class="settings-nav-title">Share Card</span>
             </span>
           </button>
-          <button class="settings-nav-item" type="button" data-pane="away">
+          <button data-parity="settings-setup.item" class="settings-nav-item" type="button" data-pane="away">
             <span class="settings-nav-ico" aria-hidden="true">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a14 14 0 0 1 0 18a14 14 0 0 1 0-18z"/></svg>
             </span>
@@ -1300,7 +1300,7 @@
               <span class="settings-nav-title">Away from home</span>
             </span>
           </button>
-          <button class="settings-nav-item" type="button" data-pane="metadata">
+          <button data-parity="settings-setup.item" class="settings-nav-item" type="button" data-pane="metadata">
             <span class="settings-nav-ico" aria-hidden="true">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="4.5"/><path d="M10.7 12.3L21 2"/><path d="M16 7l3 3"/><path d="M19 4l2 2"/></svg>
             </span>
@@ -1456,78 +1456,78 @@
       <!-- Account: who is signed in, on which devices, and the password -->
       <div class="settings-view settings-pane hidden" data-view="pane" data-pane="account">
         <div class="settings-pane-head">
-          <button class="settings-back" type="button" data-settings-back aria-label="Back to settings">
+          <button class="settings-back" type="button" data-settings-back aria-label="Back to settings" data-parity="settings-account.back">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
           </button>
-          <h2>Account</h2>
+          <h2 data-parity="settings-account.heading">Account</h2>
         </div>
-        <p class="settings-pane-desc" id="acct-who">Signed in</p>
+        <p class="settings-pane-desc" id="acct-who" data-parity="settings-account.who">Signed in</p>
 
         <div class="settings-block">
-          <h3 class="settings-block-title">Signed-in devices</h3>
+          <h3 class="settings-block-title" data-parity="settings-account.title">Signed-in devices</h3>
           <div id="acct-devices" class="acct-devices"></div>
-          <p class="settings-note">Sign out a device you've lost or don't use. It will need the password to come back.</p>
-          <button id="acct-signout" class="settings-update-btn" type="button">Sign out of this device</button>
+          <p class="settings-note" data-parity="settings-account.note">Sign out a device you've lost or don't use. It will need the password to come back.</p>
+          <button id="acct-signout" class="settings-update-btn" type="button" data-parity="settings-account.signout">Sign out of this device</button>
         </div>
 
         <div class="settings-divider"></div>
 
         <div class="settings-block">
-          <h3 class="settings-block-title">Change password</h3>
-          <input id="acct-cur" type="password" class="settings-token-input acct-input" placeholder="Current password" autocomplete="current-password">
-          <input id="acct-new" type="password" class="settings-token-input acct-input" placeholder="New password (8 or more characters)" autocomplete="new-password">
-          <input id="acct-new2" type="password" class="settings-token-input acct-input" placeholder="New password again" autocomplete="new-password">
-          <button id="acct-pw" class="settings-update-btn" type="button">Change password</button>
-          <div id="acct-pw-status" class="settings-token-status"></div>
-          <p class="settings-note">Devices already signed in stay signed in. Forgot it? On the server run
+          <h3 class="settings-block-title" data-parity="settings-account.title">Change password</h3>
+          <input id="acct-cur" type="password" aria-label="Current password" data-parity="settings-account.current" class="settings-token-input acct-input" placeholder="Current password" autocomplete="current-password">
+          <input id="acct-new" type="password" aria-label="New password (8 or more characters)" data-parity="settings-account.new" class="settings-token-input acct-input" placeholder="New password (8 or more characters)" autocomplete="new-password">
+          <input id="acct-new2" type="password" aria-label="New password again" data-parity="settings-account.again" class="settings-token-input acct-input" placeholder="New password again" autocomplete="new-password">
+          <button id="acct-pw" class="settings-update-btn" type="button" data-parity="settings-account.change">Change password</button>
+          <div id="acct-pw-status" class="settings-token-status" data-parity="settings-account.status"></div>
+          <p class="settings-note" data-parity="settings-account.note">Devices already signed in stay signed in. Forgot it? On the server run
             <code>docker exec musicd-server /app/server/bin/mandarin-server reset-password</code> and create the account again.</p>
         </div>
       </div>
 
       <div class="settings-view settings-pane hidden" data-view="pane" data-pane="metadata" data-parent="setup">
         <div class="settings-pane-head">
-          <button class="settings-back" type="button" data-settings-back aria-label="Back to settings">
+          <button class="settings-back" type="button" data-settings-back aria-label="Back to settings" data-parity="settings-keys.back">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
           </button>
-          <h2>API Keys</h2>
+          <h2 data-parity="settings-keys.heading">API Keys</h2>
         </div>
-        <p class="settings-pane-desc">Discogs token — record label logos and label lookups; FanArt.tv key — artist photos on the wall display and label logos; Last.fm key — similar artists and albums in the album view. All optional.</p>
+        <p class="settings-pane-desc" data-parity="settings-keys.desc">Discogs token — record label logos and label lookups; FanArt.tv key — artist photos on the wall display and label logos; Last.fm key — similar artists and albums in the album view. All optional.</p>
 
         <div class="settings-block">
           <div class="settings-row">
-            <span class="settings-label">Discogs token <button class="settings-info-btn" data-info="A personal access token from discogs.com/settings/developers. Finds record label logos, and the label of albums whose files carry none. Not required, but recommended." aria-label="Info">ⓘ</button></span>
+            <span class="settings-label" data-parity="settings-keys.name">Discogs token <button data-parity="settings-keys.info" class="settings-info-btn" data-info="A personal access token from discogs.com/settings/developers. Finds record label logos, and the label of albums whose files carry none. Not required, but recommended." aria-label="Info">ⓘ</button></span>
           </div>
           <div class="settings-token-row">
-            <span class="token-field"><input id="discogs-token-input" type="text" class="settings-token-input" placeholder="Paste personal access token…" autocomplete="off" spellcheck="false"><span id="discogs-token-check" class="token-check hidden" role="img"></span></span>
-            <button id="discogs-token-save" class="settings-update-btn" type="button">Save</button>
+            <span class="token-field"><input id="discogs-token-input" type="text" aria-label="Discogs token" data-parity="settings-keys.field" class="settings-token-input" placeholder="Paste personal access token…" autocomplete="off" spellcheck="false"><span id="discogs-token-check" class="token-check hidden" role="img" data-parity="settings-keys.check"></span></span>
+            <button id="discogs-token-save" class="settings-update-btn" type="button" data-parity="settings-keys.save">Save</button>
           </div>
-          <div id="discogs-token-status" class="settings-token-status"></div>
-        </div>
-
-        <div class="settings-divider"></div>
-
-        <div class="settings-block">
-          <div class="settings-row">
-            <span class="settings-label">FanArt.tv key <button class="settings-info-btn" data-info="A free API key from fanart.tv. Artist photos on the wall display, and record label logos where Discogs has none. Get one at fanart.tv/get-an-api-key — free registration required." aria-label="Info">ⓘ</button></span>
-          </div>
-          <div class="settings-token-row">
-            <span class="token-field"><input id="fanart-key-input" type="text" class="settings-token-input" placeholder="Paste FanArt.tv API key…" autocomplete="off" spellcheck="false"><span id="fanart-key-check" class="token-check hidden" role="img"></span></span>
-            <button id="fanart-key-save" class="settings-update-btn" type="button">Save</button>
-          </div>
-          <div id="fanart-key-status" class="settings-token-status"></div>
+          <div id="discogs-token-status" class="settings-token-status" data-parity="settings-keys.status"></div>
         </div>
 
         <div class="settings-divider"></div>
 
         <div class="settings-block">
           <div class="settings-row">
-            <span class="settings-label">Last.fm key <button class="settings-info-btn" data-info="A free API key from last.fm/api/account/create (any application name will do). The album view then shows the artist&#39;s similar artists and similar albums from Last.fm, under the review: the ones in your library open here, the others on Last.fm. Read-only: nothing is ever sent to Last.fm but the artist&#39;s name, and nothing is scrobbled." aria-label="Info">ⓘ</button></span>
+            <span class="settings-label" data-parity="settings-keys.name">FanArt.tv key <button data-parity="settings-keys.info" class="settings-info-btn" data-info="A free API key from fanart.tv. Artist photos on the wall display, and record label logos where Discogs has none. Get one at fanart.tv/get-an-api-key — free registration required." aria-label="Info">ⓘ</button></span>
           </div>
           <div class="settings-token-row">
-            <span class="token-field"><input id="lastfm-key-input" type="text" class="settings-token-input" placeholder="Paste Last.fm API key…" autocomplete="off" spellcheck="false"><span id="lastfm-key-check" class="token-check hidden" role="img"></span></span>
-            <button id="lastfm-key-save" class="settings-update-btn" type="button">Save</button>
+            <span class="token-field"><input id="fanart-key-input" type="text" aria-label="FanArt.tv key" data-parity="settings-keys.field" class="settings-token-input" placeholder="Paste FanArt.tv API key…" autocomplete="off" spellcheck="false"><span id="fanart-key-check" class="token-check hidden" role="img" data-parity="settings-keys.check"></span></span>
+            <button id="fanart-key-save" class="settings-update-btn" type="button" data-parity="settings-keys.save">Save</button>
           </div>
-          <div id="lastfm-key-status" class="settings-token-status"></div>
+          <div id="fanart-key-status" class="settings-token-status" data-parity="settings-keys.status"></div>
+        </div>
+
+        <div class="settings-divider"></div>
+
+        <div class="settings-block">
+          <div class="settings-row">
+            <span class="settings-label" data-parity="settings-keys.name">Last.fm key <button data-parity="settings-keys.info" class="settings-info-btn" data-info="A free API key from last.fm/api/account/create (any application name will do). The album view then shows the artist&#39;s similar artists and similar albums from Last.fm, under the review: the ones in your library open here, the others on Last.fm. Read-only: nothing is ever sent to Last.fm but the artist&#39;s name, and nothing is scrobbled." aria-label="Info">ⓘ</button></span>
+          </div>
+          <div class="settings-token-row">
+            <span class="token-field"><input id="lastfm-key-input" type="text" aria-label="Last.fm key" data-parity="settings-keys.field" class="settings-token-input" placeholder="Paste Last.fm API key…" autocomplete="off" spellcheck="false"><span id="lastfm-key-check" class="token-check hidden" role="img" data-parity="settings-keys.check"></span></span>
+            <button id="lastfm-key-save" class="settings-update-btn" type="button" data-parity="settings-keys.save">Save</button>
+          </div>
+          <div id="lastfm-key-status" class="settings-token-status" data-parity="settings-keys.status"></div>
         </div>
       </div>
 

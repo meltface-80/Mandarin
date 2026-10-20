@@ -18,7 +18,7 @@
   // The tile, in Setup before Away from home (v1.0.4; once before Wall Display, in the Settings list).
   const tile = document.createElement("button");
   tile.type = "button";
-  tile.className = "settings-nav-item";
+  tile.className = "settings-nav-item"; tile.setAttribute("data-parity", "settings-setup.item");
   tile.innerHTML = '<span class="settings-nav-ico" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><polyline points="7 10 12 15 17 10"/><path d="M5 21h14"/></svg></span>' +
     '<span class="settings-nav-txt"><span class="settings-nav-title">Downloads</span></span>';
   nav.insertBefore(tile, nav.querySelector('.settings-nav-item[data-pane="away"]'));

@@ -148,7 +148,7 @@ Sizes are the page's lines for that surface, a proxy for the native work.
 
 | Item | What | Page |
 |---|---|---|
-| T1 | The frame: the list, a pane and the way back, the version in the foot; then Account (devices, revoke, sign out, change the password through `Srp`) and API Keys (each with its check) | `settings`, `settings-views`, `settings-home`, `settings-account`, `settings-info` · ~700 |
+| T1 | **Built (item 76)** (`SettingsScreen.kt`, `SettingsPanes.kt`; the panes not yet native open on the page alone, their Back coming back to the app's list). The frame: the list, a pane and the way back, the version in the foot; then Account (devices, revoke, sign out, change the password through `Srp`) and API Keys (each with its check) | `settings`, `settings-views`, `settings-home`, `settings-account`, `settings-info` · ~700 |
 | T2 | Setup's small panes: Smart Picks, Record labels, UI Settings (text, title, tile, layout), Wall Display, Shelf, Share Card, Away from home (the server's Tailscale; the phone's test) | `settings-views`, `settings-ui`, `ui-settings`, `settings-services` (display, depth), `settings-away`, `features.js` · ~500 |
 | T3 | Home Screen: the rows shown and hidden, dragged into order; the greeting and Random Album switches | `settings-home` · ~200 |
 | T4 | Services: Qobuz (sign in, quality, favourites and purchases, update now, sign out), Tidal (the device code, cancel, quality, favourites, update, sign out) | `settings-services` · ~300 |

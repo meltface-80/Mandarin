@@ -58,6 +58,24 @@ class Account(private val client: ServerClient) {
         runCatching { client.post("/api/auth/logout", JSONObject()) }
     }
 
+    /**
+     * The password changed (Settings → Account, item 76), as the page changes it: the current one proved again (the
+     * server proving itself too), then the new one's verifier sent; the devices signed in stay signed in.
+     */
+    fun changePassword(username: String, current: String, new: String) {
+        val ch = call("/api/auth/challenge", JSONObject().put("username", username))
+        val start = Srp.clientStart()
+        val proof = try {
+            Srp.clientProof(username, current, ch.getString("salt"), ch.getInt("iterations"), start, ch.getString("B"))
+        } catch (e: IllegalArgumentException) {
+            throw AuthException("The server couldn't prove it's yours.")
+        }
+        val j = call("/api/auth/verify", JSONObject().put("id", ch.getString("id")).put("A", start.A).put("M1", proof.M1).put("purpose", "reauth"))
+        if (j.optString("M2") != proof.expectM2) throw AuthException("The server couldn't prove it's yours.")
+        val v = Srp.makeVerifier(username, new, Srp.ITERATIONS)
+        call("/api/auth/password", JSONObject().put("salt", v.salt).put("verifier", v.verifier).put("iterations", Srp.ITERATIONS))
+    }
+
     private fun call(path: String, body: JSONObject): JSONObject = try {
         client.post(path, body, 20_000)
     } catch (e: ServerClient.ServerException) {

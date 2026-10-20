@@ -221,6 +221,20 @@ class ServerClient(
     fun matchRelease(offset: Long, query: String, how: String): JSONObject =
         post("/api/identify/match", JSONObject().put("offset", offset).put("query", query).put("how", how), 60000)
 
+    /**
+     * Settings (item 76): the server's version; the devices signed in to the account, and one signed out; an API key as
+     * the server has it ([route]: "discogs-token", "fanart-key", "lastfm-key"), and a new one saved (checked by its service).
+     */
+    fun updateStatus(): JSONObject = getJson("/api/update/status")
+    fun accountDevices(): AccountDevices = AccountDevices.parse(getJson("/api/auth/devices"))
+    fun revokeDevice(id: String) { post("/api/auth/devices/revoke", JSONObject().put("id", id)) }
+    fun apiKey(route: String): ApiKey = ApiKey.parse(getJson("/api/settings/$route"))
+    fun saveApiKey(route: String, field: String, value: String): ApiKey {
+        val j = post("/api/settings/$route", JSONObject().put(field, value), 20_000)
+        if (!j.optBoolean("ok")) throw IOException(j.optString("error").ifEmpty { "Failed to save" })
+        return ApiKey.parse(j)
+    }
+
     /** One of your playlists deleted (item 65), for good. */
     fun deletePlaylist(id: String) { post("/api/user-playlists/delete", JSONObject().put("id", id)) }
 
