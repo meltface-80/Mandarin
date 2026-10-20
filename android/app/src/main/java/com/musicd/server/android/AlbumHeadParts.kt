@@ -74,11 +74,11 @@ internal fun FactsLine(a: Album) {
  * Radio), a streamed album's favourite on its service ([serviceFavourite],
  * once known), Listen later, the page's own Add to playlist and Edit album,
  * and, for an album of your own files, Download to this phone ([download],
- * the item's words as the store has them). The phone's own album ([phone], item 108): its plays alone.
+ * the item's words as the store has them).
  */
 @Composable
 internal fun MoreMenu(a: Album, later: Boolean, onLater: () -> Unit, onPlay: (String, String) -> Unit, onPage: (String, String?) -> Unit,
-                     download: String?, onDownload: () -> Unit, serviceFavourite: Boolean?, onServiceFavourite: (Boolean) -> Unit, phone: Boolean = false) {
+                     download: String?, onDownload: () -> Unit, serviceFavourite: Boolean?, onServiceFavourite: (Boolean) -> Unit) {
     var open by remember { mutableStateOf(false) }
     val kinds = a.actions.map { it.kind }.toSet()
     val offset = a.album.offset.toString()
@@ -103,11 +103,11 @@ internal fun MoreMenu(a: Album, later: Boolean, onLater: () -> Unit, onPlay: (St
                 DropdownMenuItem(text = { Text(Contract.label("album.service-favourite", 0, words), fontSize = 15.sp, lineHeight = 21.sp) }, contentPadding = PaddingValues(10.dp), modifier = Modifier.parity("album.service-favourite", Contract.label("album.service-favourite", 0, words)),
                     onClick = { open = false; onServiceFavourite(!serviceFavourite) })
             }
-            if (!phone) DropdownMenuItem(text = { Text(Contract.label("album.later", if (later) 1 else 0), fontSize = 15.sp, lineHeight = 21.sp) }, contentPadding = PaddingValues(10.dp), modifier = Modifier.parity("album.later", Contract.label("album.later", if (later) 1 else 0)),
+            DropdownMenuItem(text = { Text(Contract.label("album.later", if (later) 1 else 0), fontSize = 15.sp, lineHeight = 21.sp) }, contentPadding = PaddingValues(10.dp), modifier = Modifier.parity("album.later", Contract.label("album.later", if (later) 1 else 0)),
                 onClick = { open = false; onLater() })
-            if (!phone) DropdownMenuItem(text = { Text(Contract.label("album.playlist"), fontSize = 15.sp, lineHeight = 21.sp) }, contentPadding = PaddingValues(10.dp), modifier = Modifier.parity("album.playlist", Contract.label("album.playlist")),
+            DropdownMenuItem(text = { Text(Contract.label("album.playlist"), fontSize = 15.sp, lineHeight = 21.sp) }, contentPadding = PaddingValues(10.dp), modifier = Modifier.parity("album.playlist", Contract.label("album.playlist")),
                 onClick = { open = false; PlaylistAddAsk.ask(PlaylistAdd.albums(listOf(a.album))) })
-            if (!phone && (a.album.source == null || a.album.source == "local")) DropdownMenuItem(text = { Text(Contract.label("album.edit"), fontSize = 15.sp, lineHeight = 21.sp) }, contentPadding = PaddingValues(10.dp),
+            if (a.album.source == null || a.album.source == "local") DropdownMenuItem(text = { Text(Contract.label("album.edit"), fontSize = 15.sp, lineHeight = 21.sp) }, contentPadding = PaddingValues(10.dp),
                 modifier = Modifier.parity("album.edit", Contract.label("album.edit")), onClick = { open = false; onPage("album-edit", offset) })
             if (download != null) DropdownMenuItem(text = { Text(download, fontSize = 15.sp, lineHeight = 21.sp) }, contentPadding = PaddingValues(10.dp), modifier = Modifier.parity("album.download", Contract.label("album.download", 0)),
                 onClick = { open = false; onDownload() })

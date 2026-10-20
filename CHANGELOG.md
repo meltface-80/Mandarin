@@ -3,8 +3,8 @@
 ## Unreleased
 - `108-phone-album-native`: one of the phone's own albums (Home's Music on device, its wall) opens the app's own album
   page (`ShellRoute.PHONE_ALBUM`), read from the phone (core `PhoneShelf.phoneView`) and played on it as the page's
-  `invokePhone` plays one, with its toasts; About this album comes from the server when it answers. The heart, Listen
-  later, Add to playlist, Edit album, Download and Share are left off it, and its tracks aren't picked. `AlbumScreen.kt`
+  `invokePhone` plays one, with its toasts (picked tracks too, as the page's playTracks); About this album comes from
+  the server when it answers. Its other buttons are the page's for now; Download isn't offered, as on the page. `AlbumScreen.kt`
   gives its head's lines and ⋯ menu to `AlbumHeadParts.kt`, and `NativeShell.kt` its hand-off helpers to `ShellRoutes.kt`.
 - `107-offline-phone-room`: step 3 of O1 (offline natively). The rest of the app's offline answers move into core:
   `PhoneRoom` (this phone as the one room: its zone and output, what it plays, its queue, the plays and transport sent to

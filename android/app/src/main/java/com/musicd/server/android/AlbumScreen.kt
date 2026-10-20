@@ -94,8 +94,8 @@ import org.json.JSONObject
  * own sheets (Share card, Add to playlist) and screens (an artist's, a
  * label's) it is asked for ([onPage]); Edit album is its own (item 74).
  * One of the phone's own albums ([phone], its key; item 108) is read from the phone and played on it as the page's
- * invokePhone plays one; the heart, Listen later, Add to playlist, Edit album, Download and Share, which mean nothing for
- * an album the server never has, are left off, and its tracks aren't picked.
+ * invokePhone plays one, picked tracks too; the rest of its buttons are the page's, as the page has them for one (Download
+ * not offered).
  */
 @Composable
 internal fun AlbumScreen(offset: Long, zoneId: String, lit: String, client: () -> ServerClient?, list: NavList?, onStepTo: (Long, String, NavList) -> Unit,
@@ -232,7 +232,7 @@ internal fun AlbumScreen(offset: Long, zoneId: String, lit: String, client: () -
                     // its 48 touch target and drew the ring 48 wide (bug list item 54).
                     Row(Modifier.fillMaxWidth().padding(top = 20.dp, bottom = 22.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         val stadium = RoundedCornerShape(999.dp)
-                        if (phone == null) OutlinedIconButton(onClick = { favourite = !favourite; val on = favourite; mark { it.favourite(offset, on) } }, shape = stadium, border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+                        OutlinedIconButton(onClick = { favourite = !favourite; val on = favourite; mark { it.favourite(offset, on) } }, shape = stadium, border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
                             colors = IconButtonDefaults.outlinedIconButtonColors(contentColor = if (favourite) paletteColor(Palette.HEART) else dim),
                             modifier = Modifier.parity("album.favourite", Contract.label("album.favourite", if (favourite) 1 else 0)).size(40.dp, 42.dp)) {
                             Icon(painterResource(if (favourite) R.drawable.np_heart_on else R.drawable.np_heart), contentDescription = null, modifier = Modifier.size(22.dp))
@@ -250,7 +250,7 @@ internal fun AlbumScreen(offset: Long, zoneId: String, lit: String, client: () -
                             else Contract.label("album.download", 0)
                         val bridge = (context as? Activity)?.let { DownloadsBridge(it) }
                         MoreMenu(a, later, onLater = { later = !later; val on = later; mark { it.listenLater(offset, on) } },
-                            onPlay = { kind, said -> if (phone != null) playPhone(-1, kind) else play(said) { it.playAlbum(offset, a.album.title, a.album.subtitle, zone, kind) } }, phone = phone != null, onPage = { what, arg -> if (what == "album-edit") editing = true else onPage(what, arg) },
+                            onPlay = { kind, said -> if (phone != null) playPhone(-1, kind) else play(said) { it.playAlbum(offset, a.album.title, a.album.subtitle, zone, kind) } }, onPage = { what, arg -> if (what == "album-edit") editing = true else onPage(what, arg) },
                             download = dlLabel?.takeIf { bridge != null },
                             onDownload = {
                                 val b = bridge ?: return@MoreMenu
@@ -274,7 +274,7 @@ internal fun AlbumScreen(offset: Long, zoneId: String, lit: String, client: () -
                     }
                 }
                 val playingId = room.view?.takeIf { it.album == a.album.title }?.trackId
-                val onPick = { i: Int -> val p = picks; if (phone == null) picks = if (p == null) listOf(i) else if (i in p) (p - i).ifEmpty { null } else p + i }
+                val onPick = { i: Int -> val p = picks; picks = if (p == null) listOf(i) else if (i in p) (p - i).ifEmpty { null } else p + i }
                 val onPlay = { i: Int, kind: String, said: String -> if (phone != null) playPhone(i, kind) else play("$said: ${a.tracks[i].title}") { it.playTrack(offset, i, a.tracks[i].title, a.album.title, a.album.subtitle, zone, kind) } }
                 // A classical album's works and movements (item 49), else the plain list; a work plays as a selection of its tracks would (Play next last to first).
                 if (a.classical) albumWorks(a, playingId, room.view?.playing == true, picks, onPick, onPlay, onPlayWork = { w, kind, said ->
@@ -301,7 +301,12 @@ internal fun AlbumScreen(offset: Long, zoneId: String, lit: String, client: () -
                         "clear" -> picks = null
                         "later" -> { later = true; mark { it.listenLater(offset, true) }; toast("Added to Listen later"); picks = null }
                         "playlist" -> { PlaylistAddAsk.ask(PlaylistAdd.tracks(a, p)); picks = null }
-                        else -> {
+                        // The phone's own: each to its player, in order (Play next last to first), as the page's playTracks.
+                        else -> if (phone != null) {
+                            val order = p.sorted().let { if (act == "play_next") it.reversed() else it }
+                            order.forEachIndexed { n, i -> playPhone(i, if (act == "play_next" || n == 0) act else "queue") }
+                            picks = null
+                        } else {
                             val c = client()
                             if (c == null || zone.isEmpty()) toast("Pick a zone first")
                             else scope.launch { toast(withContext(Dispatchers.IO) { playPicks(c, a, p, zone, act) }); picks = null }
@@ -309,7 +314,7 @@ internal fun AlbumScreen(offset: Long, zoneId: String, lit: String, client: () -
                     }
                 })
                 else list?.let { NavDiscs(it, disc) { at -> onStepTo(it.items[at].offset, zone, it.copy(index = at)) } }
-                if (phone == null) FilledIconButton(onClick = { sharing = true }, enabled = album != null, colors = disc,
+                FilledIconButton(onClick = { sharing = true }, enabled = album != null, colors = disc,
                     modifier = Modifier.parity("album.share", Contract.label("album.share")).size(40.dp)) {
                     Icon(painterResource(R.drawable.np_share), contentDescription = null, modifier = Modifier.size(20.dp))
                 }
