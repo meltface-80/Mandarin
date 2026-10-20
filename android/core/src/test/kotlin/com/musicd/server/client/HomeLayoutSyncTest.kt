@@ -44,10 +44,11 @@ class HomeLayoutSyncTest {
 
     @Test fun `saves made in the order asked, only the last one's answer shown`() {
         val server = Server()
-        server.let.countDown()
         val sync = HomeLayoutSync()
+        // The first held at the server until the second has been asked for, so the second is the later one asked.
         val first = sync.save(listOf(HomeRow("history", true, null), HomeRow("later", true, null)), server::post)
         val second = sync.save(listOf(HomeRow("later", false, null), HomeRow("history", true, null)), server::post)
+        server.let.countDown()
         assertNull(first.get(5, TimeUnit.SECONDS))
         assertEquals("later,history", ids(second.get(5, TimeUnit.SECONDS)))
         assertEquals(listOf("history,later", "later,history"), server.saved)

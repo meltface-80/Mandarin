@@ -1534,67 +1534,67 @@
       <!-- Streaming accounts -->
       <div class="settings-view settings-pane hidden" data-view="pane" data-pane="streaming">
         <div class="settings-pane-head">
-          <button class="settings-back" type="button" data-settings-back aria-label="Back to settings">
+          <button class="settings-back" type="button" data-settings-back aria-label="Back to settings" data-parity="settings-services.back">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
           </button>
-          <h2>Services</h2>
+          <h2 data-parity="settings-services.heading">Services</h2>
         </div>
-        <p class="settings-pane-desc">Qobuz and Tidal</p>
+        <p class="settings-pane-desc" data-parity="settings-services.desc">Qobuz and Tidal</p>
 
         <div class="settings-block">
-          <div class="settings-block-title">Qobuz <button class="settings-info-btn" data-info="Sign in with your Qobuz account (a subscription that streams). Mandarin keeps the sign-in token, never the password. Your Qobuz favourites and purchases become albums in the library, and the Qobuz browser (☰ → Qobuz) plays anything in the catalogue. Every track is streamed from Qobuz for the player as it is needed and every play is reported to Qobuz, as Qobuz's own apps do; nothing is downloaded. Mandarin uses Qobuz's API the way the Lyrion Music Server plugin does." aria-label="Info">&#9432;</button></div>
+          <div class="settings-block-title" data-parity="settings-services.title">Qobuz <button data-parity="settings-services.info" class="settings-info-btn" data-info="Sign in with your Qobuz account (a subscription that streams). Mandarin keeps the sign-in token, never the password. Your Qobuz favourites and purchases become albums in the library, and the Qobuz browser (☰ → Qobuz) plays anything in the catalogue. Every track is streamed from Qobuz for the player as it is needed and every play is reported to Qobuz, as Qobuz's own apps do; nothing is downloaded. Mandarin uses Qobuz's API the way the Lyrion Music Server plugin does." aria-label="Info">&#9432;</button></div>
           <div id="qobuz-signin-form">
-            <input id="qobuz-username" class="settings-token-input" type="email" placeholder="Qobuz email" autocomplete="username" autocapitalize="off" spellcheck="false">
-            <input id="qobuz-password" class="settings-token-input" type="password" placeholder="Password" autocomplete="current-password">
+            <input id="qobuz-username" data-parity="settings-services.email" aria-label="Qobuz email" class="settings-token-input" type="email" placeholder="Qobuz email" autocomplete="username" autocapitalize="off" spellcheck="false">
+            <input id="qobuz-password" data-parity="settings-services.password" aria-label="Qobuz password" class="settings-token-input" type="password" placeholder="Password" autocomplete="current-password">
             <div class="settings-token-row">
-              <button id="qobuz-signin" class="settings-update-btn" type="button">Sign in</button>
+              <button id="qobuz-signin" data-parity="settings-services.signin" class="settings-update-btn" type="button">Sign in</button>
             </div>
           </div>
-          <div id="qobuz-status" class="settings-token-status"></div>
+          <div id="qobuz-status" data-parity="settings-services.status" class="settings-token-status"></div>
           <div id="qobuz-signed" hidden>
-            <div class="settings-row"><span class="settings-label">Stream quality <button class="settings-info-btn" data-info="The most Mandarin asks Qobuz for. Each player still gets what it takes: a Sonos room 24/48 at most, a streamer or a USB DAC up to its own rates, the phone what its DAC takes. Your subscription sets the ceiling too." aria-label="Info">&#9432;</button></span>
-              <div class="settings-select-wrap"><select id="qobuz-quality" class="settings-select">
+            <div class="settings-row"><span class="settings-label" data-parity="settings-services.name">Stream quality <button data-parity="settings-services.info" class="settings-info-btn" data-info="The most Mandarin asks Qobuz for. Each player still gets what it takes: a Sonos room 24/48 at most, a streamer or a USB DAC up to its own rates, the phone what its DAC takes. Your subscription sets the ceiling too." aria-label="Info">&#9432;</button></span>
+              <div class="settings-select-wrap"><select id="qobuz-quality" data-parity="settings-services.quality" aria-label="Qobuz stream quality" class="settings-select">
                 <option value="cd">CD (16/44.1)</option>
                 <option value="hires96">Hi-Res up to 24/96</option>
                 <option value="hires192">Hi-Res up to 24/192</option>
               </select></div></div>
-            <div class="settings-row"><span class="settings-label">Favourites and purchases in the library <button class="settings-info-btn" data-info="Every album in your Qobuz favourites and purchases, however many, as an album here: on the walls, in search, in Smart Picks and Listen later. Brought up to date every six hours and whenever you add a favourite from the Qobuz browser. Off until you switch it on. Off: none of them, nor your Qobuz playlists, are in the library; switched on again, they are back at once." aria-label="Info">&#9432;</button></span>
-              <label class="switch"><input type="checkbox" id="qobuz-import" aria-label="Favourites and purchases in the library"><span class="switch-track"><span class="switch-thumb"></span></span></label></div>
+            <div class="settings-row"><span class="settings-label" data-parity="settings-services.name">Favourites and purchases in the library <button data-parity="settings-services.info" class="settings-info-btn" data-info="Every album in your Qobuz favourites and purchases, however many, as an album here: on the walls, in search, in Smart Picks and Listen later. Brought up to date every six hours and whenever you add a favourite from the Qobuz browser. Off until you switch it on. Off: none of them, nor your Qobuz playlists, are in the library; switched on again, they are back at once." aria-label="Info">&#9432;</button></span>
+              <label class="switch" data-parity="settings-services.import"><input type="checkbox" id="qobuz-import" aria-label="Favourites and purchases in the library"><span class="switch-track"><span class="switch-thumb"></span></span></label></div>
             <div class="settings-token-row">
-              <button id="qobuz-import-now" class="settings-update-btn" type="button">Update library now</button>
-              <button id="qobuz-disconnect" class="settings-update-btn" type="button">Sign out</button>
+              <button id="qobuz-import-now" data-parity="settings-services.update" class="settings-update-btn" type="button">Update library now</button>
+              <button id="qobuz-disconnect" data-parity="settings-services.signout" class="settings-update-btn" type="button">Sign out</button>
             </div>
-            <div id="qobuz-import-status" class="settings-token-status"></div>
+            <div id="qobuz-import-status" data-parity="settings-services.import-status" class="settings-token-status"></div>
           </div>
         </div>
 
         <div class="settings-block">
-          <div class="settings-block-title">Tidal <button class="settings-info-btn" data-info="Sign in with your Tidal account (a subscription that streams): Mandarin shows a link and a code, you sign in on tidal.com, and Mandarin keeps the sign-in token — never a password. Your Tidal favourite albums become albums in the library, your Tidal playlists and favourite tracks playlists here, and the Tidal browser (☰ → Tidal) plays anything in the catalogue. Every track is streamed from Tidal for the player as it is needed; nothing is downloaded. Mandarin uses Tidal's API the way the Lyrion Music Server plugin does." aria-label="Info">&#9432;</button></div>
+          <div class="settings-block-title" data-parity="settings-services.title">Tidal <button data-parity="settings-services.info" class="settings-info-btn" data-info="Sign in with your Tidal account (a subscription that streams): Mandarin shows a link and a code, you sign in on tidal.com, and Mandarin keeps the sign-in token — never a password. Your Tidal favourite albums become albums in the library, your Tidal playlists and favourite tracks playlists here, and the Tidal browser (☰ → Tidal) plays anything in the catalogue. Every track is streamed from Tidal for the player as it is needed; nothing is downloaded. Mandarin uses Tidal's API the way the Lyrion Music Server plugin does." aria-label="Info">&#9432;</button></div>
           <div id="tidal-signin-form">
             <div class="settings-token-row">
-              <button id="tidal-signin" class="settings-update-btn" type="button">Sign in on tidal.com</button>
+              <button id="tidal-signin" data-parity="settings-services.signin" class="settings-update-btn" type="button">Sign in on tidal.com</button>
             </div>
             <div id="tidal-pending" class="tidal-auth-pending" hidden>
-              <div class="settings-note">Open this link, sign in to Tidal there, and come back. Mandarin notices by itself.</div>
-              <a id="tidal-auth-link" class="tidal-auth-link" href="#" target="_blank" rel="noopener"></a>
-              <div id="tidal-auth-code" class="tidal-auth-code"></div>
-              <button id="tidal-signin-cancel" class="settings-update-btn" type="button">Cancel</button>
+              <div class="settings-note" data-parity="settings-services.tidal-note">Open this link, sign in to Tidal there, and come back. Mandarin notices by itself.</div>
+              <a id="tidal-auth-link" data-parity="settings-services.tidal-link" class="tidal-auth-link" href="#" target="_blank" rel="noopener"></a>
+              <div id="tidal-auth-code" data-parity="settings-services.tidal-code" class="tidal-auth-code"></div>
+              <button id="tidal-signin-cancel" data-parity="settings-services.tidal-cancel" class="settings-update-btn" type="button">Cancel</button>
             </div>
           </div>
-          <div id="tidal-status" class="settings-token-status"></div>
+          <div id="tidal-status" data-parity="settings-services.status" class="settings-token-status"></div>
           <div id="tidal-signed" hidden>
-            <div class="settings-row"><span class="settings-label">Stream quality <button class="settings-info-btn" data-info="The most Mandarin asks Tidal for. CD is FLAC 16/44.1. Hi-Res asks for Tidal's hi-res FLAC (up to 24/192) where an album has it and your subscription allows; where Tidal answers with something else, CD quality is asked for instead. Each player still gets what it takes: a Sonos room 24/48 at most, a streamer or a USB DAC up to its own rates, the phone what its DAC takes." aria-label="Info">&#9432;</button></span>
-              <div class="settings-select-wrap"><select id="tidal-quality" class="settings-select">
+            <div class="settings-row"><span class="settings-label" data-parity="settings-services.name">Stream quality <button data-parity="settings-services.info" class="settings-info-btn" data-info="The most Mandarin asks Tidal for. CD is FLAC 16/44.1. Hi-Res asks for Tidal's hi-res FLAC (up to 24/192) where an album has it and your subscription allows; where Tidal answers with something else, CD quality is asked for instead. Each player still gets what it takes: a Sonos room 24/48 at most, a streamer or a USB DAC up to its own rates, the phone what its DAC takes." aria-label="Info">&#9432;</button></span>
+              <div class="settings-select-wrap"><select id="tidal-quality" data-parity="settings-services.quality" aria-label="Tidal stream quality" class="settings-select">
                 <option value="cd">CD (16/44.1)</option>
                 <option value="hires">Hi-Res up to 24/192</option>
               </select></div></div>
-            <div class="settings-row"><span class="settings-label">Favourites in the library <button class="settings-info-btn" data-info="Every album in your Tidal favourites, however many, as an album here: on the walls, in search, in Smart Picks and Listen later. Brought up to date every six hours and whenever you add a favourite from the Tidal browser. Off until you switch it on. Off: none of them, nor your Tidal playlists, are in the library; switched on again, they are back at once." aria-label="Info">&#9432;</button></span>
-              <label class="switch"><input type="checkbox" id="tidal-import" aria-label="Favourites in the library"><span class="switch-track"><span class="switch-thumb"></span></span></label></div>
+            <div class="settings-row"><span class="settings-label" data-parity="settings-services.name">Favourites in the library <button data-parity="settings-services.info" class="settings-info-btn" data-info="Every album in your Tidal favourites, however many, as an album here: on the walls, in search, in Smart Picks and Listen later. Brought up to date every six hours and whenever you add a favourite from the Tidal browser. Off until you switch it on. Off: none of them, nor your Tidal playlists, are in the library; switched on again, they are back at once." aria-label="Info">&#9432;</button></span>
+              <label class="switch" data-parity="settings-services.import"><input type="checkbox" id="tidal-import" aria-label="Favourites in the library"><span class="switch-track"><span class="switch-thumb"></span></span></label></div>
             <div class="settings-token-row">
-              <button id="tidal-import-now" class="settings-update-btn" type="button">Update library now</button>
-              <button id="tidal-disconnect" class="settings-update-btn" type="button">Sign out</button>
+              <button id="tidal-import-now" data-parity="settings-services.update" class="settings-update-btn" type="button">Update library now</button>
+              <button id="tidal-disconnect" data-parity="settings-services.signout" class="settings-update-btn" type="button">Sign out</button>
             </div>
-            <div id="tidal-import-status" class="settings-token-status"></div>
+            <div id="tidal-import-status" data-parity="settings-services.import-status" class="settings-token-status"></div>
           </div>
         </div>
       </div>

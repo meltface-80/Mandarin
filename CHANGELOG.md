@@ -1,6 +1,15 @@
 # Changelog
 
 ## Unreleased
+- `87-native-settings-services`: Settings → Services natively in the Android app (plan T4), as the page's: Qobuz and
+  Tidal, each under its title with its ⓘ. Signed out, Qobuz's email and password and Sign in; Tidal's Sign in on
+  tidal.com, which opens tidal.com, then the link, the code to type there and Cancel, waited for until it lands. Signed
+  in, the stream quality, the favourites in the library on or off, Update library now, Sign out, and what the library
+  holds of the service, asked again while it is being brought in. The page's is keyed for the screens contract
+  (`settings-services`). On the page, the box of a Tidal sign-in under way (its note and Cancel, with no link or code)
+  no longer stands under Sign in on tidal.com when no sign-in is under way: its `display: flex` outranked the hidden
+  attribute. A test of item 83's that took the first of two saves to be still under way when the second was asked for,
+  which it need not be, now holds the first until the second is asked.
 - `85-home-rows-after-marks`: in the Android app, an album put on Listen later (from its page, or picked on a wall)
   showed in Home's Listen later row only once the app was started again, sometimes; a favourite likewise. The change was
   made beside Home's read of its rows, which could be answered first, and from the screen that asked, which dropped it
