@@ -139,7 +139,8 @@ function renderHomeRowsList() {
 
     const grip = document.createElement("span");
     grip.className = "home-row-grip";
-    grip.setAttribute("aria-hidden", "true");
+    grip.setAttribute("data-parity", "settings-homescreen.grip");
+    grip.setAttribute("aria-label", "Move " + (titles[row.id] || row.id));
     grip.textContent = "⠿";
 
     // A row whose FEATURE is off is not a layout choice. It reads as off and
@@ -153,16 +154,19 @@ function renderHomeRowsList() {
 
     const name = document.createElement("span");
     name.className = "home-row-name";
+    name.setAttribute("data-parity", "settings-homescreen.row-name");
     name.textContent = titles[row.id] || row.id;
     if (off || held) {
       const why = document.createElement("span");
       why.className = "home-row-why";
+      why.setAttribute("data-parity", "settings-homescreen.row-why");
       why.textContent = off || "On while albums are downloaded to this phone";
       name.appendChild(why);
     }
 
     const sw = document.createElement("label");
     sw.className = "switch";
+    sw.setAttribute("data-parity", "settings-homescreen.row-on");
     const cb = document.createElement("input");
     cb.type = "checkbox";
     cb.checked = held || (!off && row.on !== false);
