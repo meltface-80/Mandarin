@@ -48,6 +48,12 @@ internal object NativeShell {
     /** Your playlists (item 65), or one of them, opened by the page (its side menu, a tile of its own). */
     fun openPlaylists(zoneId: String) { nav?.navigate(ShellRoute.playlists(zoneId)) { launchSingleTop = true } }
     fun openPlaylist(id: String, zoneId: String) { nav?.navigate(ShellRoute.playlist(id, zoneId)) }
+    /** The Dynamic Playlists (item 66), or one of them (in place of the one open: one saved from its Edit comes back to itself). */
+    fun openSmartPlaylists(zoneId: String) { nav?.navigate(ShellRoute.smartPlaylists(zoneId)) { launchSingleTop = true } }
+    fun openSmartPlaylist(id: String, zoneId: String) {
+        val n = nav ?: return
+        n.navigate(ShellRoute.smartPlaylist(id, zoneId)) { if (n.currentDestination?.route == ShellRoute.SMART_PLAYLIST) popUpTo(ShellRoute.SMART_PLAYLIST) { inclusive = true } }
+    }
 
     /** The native search opened afresh with [q] (the page's glass, the row's Search, a search seeded elsewhere), its albums playing in [zoneId]. */
     fun openSearch(q: String, zoneId: String) {
@@ -76,7 +82,7 @@ internal object NativeShell {
      * The page's sheets that open over whatever screen is on (the Share card, Add to playlist, the album editor,
      * Group zones, Device power, a Dynamic Playlist's name): a native screen asks for one with [overPage], not [toPage].
      */
-    val OVERLAYS = setOf("share", "album-share", "album-playlist", "album-playlist-tracks", "albums-playlist", "album-edit", "group", "power", "smart-save", "playlist-import", "playlist-share")
+    val OVERLAYS = setOf("share", "album-share", "album-playlist", "album-playlist-tracks", "albums-playlist", "album-edit", "group", "power", "smart-save", "playlist-import", "playlist-share", "smart-new", "smart-edit", "smart-share")
     /** How many of the page's sheets have closed over the native screens: a screen whose list a sheet can change reads it again (Import). */
     val sheetsClosed = mutableStateOf(0)
 
@@ -265,6 +271,7 @@ private fun Shell(client: () -> ServerClient?, startHome: Boolean, onShown: (Boo
                     when {
                         what == "playlists" -> nav.navigate(ShellRoute.playlists(args.second))
                         what == "playlist" && arg != null -> nav.navigate(ShellRoute.playlist(arg, args.second))
+                        what == "smart-playlist" && arg != null -> nav.navigate(ShellRoute.smartPlaylist(arg, args.second))
                         what in NativeShell.OVERLAYS -> NativeShell.overPage(what, arg)
                         else -> NativeShell.toPage(what, arg)
                     }

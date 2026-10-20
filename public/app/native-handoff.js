@@ -123,6 +123,19 @@ window.__musicdNative = function (what, arg) {
     }).catch(() => { /* the playlist gone: nothing to share */ });
     return true;
   }
+  // The native Dynamic Playlists' (item 66): New (the page's sheet, then its Focus); Edit (its Focus with the playlist as the
+  // save target); Share (every album read first, as the page's own Share does, then its sheet with the file).
+  if (what === "smart-new") { createSmartPlaylist(); return true; }
+  if (what === "smart-edit" || what === "smart-share") {
+    if (!arg) return false;
+    fetchSmartPlaylists().then(list => {
+      const sp = (list || []).find(p => String(p.id) === String(arg));
+      if (!sp) return;
+      if (what === "smart-edit") { editSmartPlaylist(sp); return; }
+      shareSmartTracks(sp);
+    });
+    return true;
+  }
   // The native Search's (item 61): a service's artist, their albums in that service's browser; a Pitchfork review, its page in the magazine.
   if (what === "service-artist") {
     let ar;
@@ -190,3 +203,22 @@ window.__musicdNativeOver = function (what, arg) {
   giveUp = setTimeout(() => { if (!seen) done(); }, 6000);
   return true;
 };
+
+/* A Dynamic Playlist's tracks read album by album (to SHARE_ALBUM_MAX), then the page's share sheet with them: what its own
+   Share does from its page (smart-playlist.js), for the app's native one, whose page isn't this page's. */
+async function shareSmartTracks(sp) {
+  const loaded = [];
+  let offset = 0, done = false, failed = false;
+  while (!done && offset < SHARE_ALBUM_MAX) {
+    let j;
+    try { const r = await fetch("/api/smart-playlist?id=" + encodeURIComponent(sp.id) + "&offset=" + offset, { cache: "no-store" }); j = r.ok ? await r.json() : null; } catch (e) { j = null; }
+    if (!j) { failed = true; break; }
+    for (const t of (j.tracks || [])) loaded.push(t);
+    if (!(j.albums_expanded > 0)) break;
+    offset += j.albums_expanded;
+    done = !!j.done;
+  }
+  if (!loaded.length) { showToast("Nothing in this playlist to share", "error"); return; }
+  await shareTracks(sp.name || "Dynamic Playlist", loaded.map(t => ({ title: t.title, artist: t.subtitle, album: t.album_title, track_no: t.track_no })), null,
+    { incomplete: failed, albumsCapped: !done && offset >= SHARE_ALBUM_MAX });
+}

@@ -108,7 +108,7 @@ function buildNewSmartTile() {
   const btn = document.createElement("button");
   btn.type = "button";
   btn.className = "album home-unheard-tile";
-  btn.id = "new-smart-tile";
+  btn.id = "new-smart-tile"; btn.dataset.parity = "smart-playlists.new";
   btn.setAttribute("aria-label", "Create a Dynamic Playlist");
 
   const art = document.createElement("div");
@@ -225,6 +225,9 @@ async function showSmartPlaylists() {
       // snapshot at no cost.
       art_keys: p.art_keys || []
     }, () => openSmartPlaylist(p), { selectable: false });
+    // The screens contract's keys, each written whole; the tile called by its name.
+    tile.dataset.parity = "smart-playlists.playlist"; tile.setAttribute("aria-label", p.name);
+    for (const [sel, key] of [[".album-art-wrap", "smart-playlists.playlist-art"], [".album-title", "smart-playlists.playlist-title"], [".album-artist", "smart-playlists.playlist-subtitle"]]) { const el = tile.querySelector(sel); if (el) el.dataset.parity = key; }
     frag.appendChild(tile);
   }
   grid.appendChild(frag);

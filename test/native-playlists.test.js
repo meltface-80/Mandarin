@@ -30,6 +30,8 @@ const KIT = `
 const BRIDGE = `window.MusicdApp = { opened: [],
   openPlaylists(prefs, zone) { this.opened.push(["list", JSON.parse(prefs).layout, zone]); },
   openPlaylist(id, prefs, zone) { this.opened.push(["one", id, zone]); },
+  openSmartPlaylists(prefs, zone) { this.opened.push(["smart-list", JSON.parse(prefs).layout, zone]); },
+  openSmartPlaylist(id, prefs, zone) { this.opened.push(["smart-one", id, zone]); },
   nativeNowPlaying() { return false; }, setNativeNowPlaying() {}, openNowPlaying() {}, nativeAlbum() { return false; }, setNativeAlbum() {},
   nativeLibrary() { return false; }, setNativeLibrary() {} };`;
 
@@ -45,6 +47,27 @@ const OPENED = `(async () => { ${KIT}
   if (heading && shown(heading)) { heading.click(); await sleep(300); }
   openUserPlaylist({ id: r.id, name: "Mine" }); await sleep(300);
   return { opened: (window.MusicdApp || {}).opened || null, pageList, id: r.id, pageOne: !!$(".playlist-detail") };
+})()`;
+
+/* The Dynamic Playlists: one saved, then the side menu's Dynamic Playlists and the playlist itself; and the hand-backs, New, Edit and Share. */
+const SMART = `(async () => { ${KIT}
+  const r = await (await fetch("/api/smart-playlists", { method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name: "Rocks", view: { sort: "album", dir: "asc" }, mode: "tracks", order: "album" }) })).json();
+  const id = r.playlist.id;
+  $("#tnav-menu").click(); await until(() => shown($("#menu-overlay")));
+  $('#menu-overlay [data-action="smart-playlists"]').click(); await sleep(400);
+  const pageList = /Dynamic Playlists/.test($("#album-count").textContent) && $("#home-view").classList.contains("hidden");
+  if (shown($("#menu-overlay"))) { $("#menu-overlay [data-menu-close]").click(); await sleep(200); }
+  openSmartPlaylist(r.playlist); await sleep(300);
+  const out = { opened: (window.MusicdApp || {}).opened || null, pageList, id, pageOne: !!$(".playlist-detail") };
+  if (!window.MusicdApp) return out;
+  const sheet = (re) => until(() => [...document.querySelectorAll(".lib-sheet-head h3")].some(e => re.test(e.textContent)));
+  const closeSheets = async () => { document.querySelectorAll(".lib-sheet-backdrop").forEach(b => b.click()); await sleep(400); };
+  out.newSheet = window.__musicdNative("smart-new") && await sheet(/New Dynamic Playlist/); await closeSheets();
+  out.editSheet = window.__musicdNative("smart-edit", id) && await sheet(/Focus|Rocks/); await closeSheets();
+  out.shareSheet = window.__musicdNative("smart-share", id) && await sheet(/Share Rocks/, 15000);
+  out.none = window.__musicdNative("smart-edit");
+  return out;
 })()`;
 
 /* Handed back: Import's sheet, and a playlist's share sheet. */
@@ -87,6 +110,17 @@ test("the app's native Playlists: opened in place of the page's, and what they h
       assert.deepEqual(r.opened || [], [], init.slice(0, 30));
       assert.equal(r.pageOne, true, "the page's playlist opens");
     }
+  });
+
+  await t.test("the Dynamic Playlists: the menu's and a playlist open the app's; New, Edit and Share are the page's sheets over them", async () => {
+    const r = await run(SMART, BRIDGE);
+    assert.equal(r.pageList, false, "the page's Dynamic Playlists never come");
+    assert.equal(r.pageOne, false);
+    assert.deepEqual(r.opened, [["smart-list", "auto", ""], ["smart-one", r.id, ""]]);
+    assert.deepEqual([r.newSheet, r.editSheet, r.shareSheet, r.none], [true, true, true, false]);
+    const off = await run(SMART, "window.__musicdOffline = true;" + BRIDGE);
+    assert.deepEqual(off.opened, [], "offline: the page's own");
+    assert.equal(off.pageOne, true);
   });
 
   await t.test("handed back: Import's sheet, a playlist's share sheet", async () => {

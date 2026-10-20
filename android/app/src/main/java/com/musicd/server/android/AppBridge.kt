@@ -40,6 +40,7 @@ import com.musicd.server.client.ShellRoute
  *   MusicdApp.nativeSearch() / setNativeSearch(on)   → true / nothing: the native search, likewise (an older page's Settings has switches)
  *   MusicdApp.openSearch(q, prefs, zoneId)   the native search, with the words to start from ("" for none), the UI Settings and the room
  *   MusicdApp.openPlaylists(prefs, zoneId) / openPlaylist(id, prefs, zoneId)   your playlists, or one of them, natively (item 65)
+ *   MusicdApp.openSmartPlaylists(prefs, zoneId) / openSmartPlaylist(id, prefs, zoneId)   the Dynamic Playlists, or one, likewise (item 66)
  *   MusicdApp.homeShown(front, prefs, zoneId)   the page is on Home with nothing of its own over it (front), or something
  *                                               of its own has come over it (the menu, the search, a wall): the app's Home
  *                                               in front, or the page (public/app/native-home.js); with the UI Settings and the room
@@ -145,6 +146,18 @@ class AppBridge(private val activity: Activity) {
     fun openPlaylist(id: String, prefs: String, zoneId: String) {
         NativeShell.prefs = prefs; NativeShell.zone = zoneId
         activity.runOnUiThread { NativeShell.openPlaylist(id, zoneId) }
+    }
+
+    @JavascriptInterface
+    fun openSmartPlaylists(prefs: String, zoneId: String) {
+        NativeShell.prefs = prefs; NativeShell.zone = zoneId
+        activity.runOnUiThread { NativeShell.openSmartPlaylists(zoneId) }
+    }
+
+    @JavascriptInterface
+    fun openSmartPlaylist(id: String, prefs: String, zoneId: String) {
+        NativeShell.prefs = prefs; NativeShell.zone = zoneId
+        activity.runOnUiThread { NativeShell.openSmartPlaylist(id, zoneId) }
     }
 
     @JavascriptInterface
