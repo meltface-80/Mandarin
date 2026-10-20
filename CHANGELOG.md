@@ -1,6 +1,9 @@
 # Changelog
 
 ## Unreleased
+- `79-settings-freeze`: opening Settings from the Android app's side menu froze the app. The native Settings' icons
+  were the page's SVG paths as written, an arc's flags run into the number after them, a form none of the app's other
+  icons uses; every arc's numbers are now each set apart, and `test/android-vectors.test.js` holds every drawable to it.
 - `77-album-editor-heading-serif`: the native album editor's heading, Edit album, is in Young Serif as the page's is (it
   was in Manrope); a test holds every title the page sets in the serif to be drawn in the serif by the app.
 - `76-native-settings-account`: Settings natively in the Android app (plan T1), from the side menu, as the page's: the
