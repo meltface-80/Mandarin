@@ -104,7 +104,7 @@ internal fun MiniPlayer(zoneId: String, room: RoomState, client: () -> ServerCli
                 // Play on and the volume side by side with nothing between (the page's .mt-controls, gap 0): in the row's own 10
                 // they stood 10 apart, and took that 10 from the title (bug list item 56).
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    PlayOnMenu(zoneId, client, ::act, onRoom, onPage, size = 46.dp, iconSize = 28.dp)
+                    PlayOnMenu(zoneId, client, ::act, onRoom, size = 46.dp, iconSize = 28.dp)
                     VolumeMenu(room.volume, room.muted, volumeOpen, { volumeOpen = it }, size = 46.dp, iconSize = 28.dp, fixedNote = false)
                 }
             }

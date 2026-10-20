@@ -66,22 +66,16 @@ import com.musicd.server.client.Palette
  * the phone's own facets and sorts (LocalView).
  */
 
-/** The panel: [title] and the close at its head, [body] scrolling, [foot] along its bottom; a tap on the dimmed page closes it too (Material's sheet does the dimming and the drag). */
+/** The panel: [head] (its title and close) at the top, [body] scrolling, [foot] along its bottom; a tap on the dimmed page closes it too (Material's sheet does the dimming and the drag). */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun Sheet(title: String, onClose: () -> Unit, foot: (@Composable RowScope.() -> Unit)?, body: @Composable ColumnScope.() -> Unit) {
+internal fun SheetPanel(onClose: () -> Unit, head: @Composable RowScope.() -> Unit, foot: (@Composable RowScope.() -> Unit)?, body: @Composable ColumnScope.() -> Unit) {
     val hairline = Color(0x12FFFFFF)   // the page's --panel-hairline, white at .07
     val maxHeight = (LocalConfiguration.current.screenHeightDp * 0.82).dp
     ModalBottomSheet(onDismissRequest = onClose, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true), dragHandle = null,
         shape = RoundedCornerShape(16.dp, 16.dp, 0.dp, 0.dp), containerColor = MaterialTheme.colorScheme.surfaceVariant, scrimColor = Color(0x8C000000)) {
         Column(Modifier.fillMaxWidth().heightIn(max = maxHeight).border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(16.dp, 16.dp, 0.dp, 0.dp))) {
-            Row(Modifier.fillMaxWidth().padding(start = 14.dp, end = 14.dp, top = 14.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-                Text(title, Modifier.parity("library.focus-title library.sort-title"), color = MaterialTheme.colorScheme.onSurface, fontSize = 16.sp, lineHeight = 22.sp, fontWeight = FontWeight.W700)
-                Box(Modifier.parity("library.focus-close library.sort-close", Contract.label("library.focus-close")).size(40.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant)
-                    .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape).clickable(onClick = onClose), contentAlignment = Alignment.Center) {
-                    Text("✕", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 16.sp, lineHeight = 22.sp)
-                }
-            }
+            Row(Modifier.fillMaxWidth().padding(start = 14.dp, end = 14.dp, top = 14.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, content = head)
             HorizontalDivider(color = hairline)
             Column(Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()).padding(start = 14.dp, end = 14.dp, top = 8.dp, bottom = 14.dp), content = body)
             if (foot != null) {
@@ -92,9 +86,32 @@ private fun Sheet(title: String, onClose: () -> Unit, foot: (@Composable RowScop
     }
 }
 
+/** A sheet's title (16, bold), [modifier] carrying its key. */
+@Composable
+internal fun SheetTitle(title: String, modifier: Modifier) {
+    Text(title, modifier, color = MaterialTheme.colorScheme.onSurface, fontSize = 16.sp, lineHeight = 22.sp, fontWeight = FontWeight.W700)
+}
+
+/** A sheet's ✕ (the page's .icon-btn, 40 round), [modifier] carrying its key and its tap. */
+@Composable
+internal fun SheetClose(modifier: Modifier) {
+    Box(modifier.size(40.dp).background(MaterialTheme.colorScheme.surfaceVariant).border(1.dp, MaterialTheme.colorScheme.outline, CircleShape), contentAlignment = Alignment.Center) {
+        Text("✕", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 16.sp, lineHeight = 22.sp)
+    }
+}
+
+/** The Library's sheets: [title] and the close keyed as its contract has them. */
+@Composable
+private fun Sheet(title: String, onClose: () -> Unit, foot: (@Composable RowScope.() -> Unit)?, body: @Composable ColumnScope.() -> Unit) {
+    SheetPanel(onClose, head = {
+        SheetTitle(title, Modifier.parity("library.focus-title library.sort-title"))
+        SheetClose(Modifier.parity("library.focus-close library.sort-close", Contract.label("library.focus-close")).clip(CircleShape).clickable(onClick = onClose))
+    }, foot, body)
+}
+
 /** A sheet's buttons along the foot (.action-btn): their colours, [primary] in brass, and the plain ones' edge. */
 @Composable
-private fun footColors(primary: Boolean) = if (primary) ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary, contentColor = MaterialTheme.colorScheme.onPrimary)
+internal fun footColors(primary: Boolean) = if (primary) ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary, contentColor = MaterialTheme.colorScheme.onPrimary)
     else ButtonDefaults.buttonColors(containerColor = paletteColor(Palette.BG_ELEV_2), contentColor = MaterialTheme.colorScheme.onSurface)
 
 /** Why a facet's chips don't add up to the library (the page's COVERAGE_NOTE). */

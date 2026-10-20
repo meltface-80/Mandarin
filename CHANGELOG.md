@@ -1,6 +1,14 @@
 # Changelog
 
 ## Unreleased
+- `68-native-room-sheets`: Play on's Group zones and Device power natively in the Android app (plan R1), from Now playing
+  and the mini player: the sheets up from the foot as the page's, Group zones with a row for each speaker the room's first
+  may play with (ticked in brass, the first kept and said to keep playing, another room's said, the ones Sonos won't sync
+  left out and said), Cancel and Apply (split, then group, the first speaker's queue kept; the app and the page then follow
+  the new room Roon makes); Device power with each device's controls, Power and Select input, or what it says with none.
+  And the question when a room is chosen while the one left is playing, "Move what's playing in Kitchen to Study?", asked
+  by the app over its own screen: the page asked it unseen behind the native screen, and no longer does for a room the app
+  chose. Two contract screens (`group`, `device-power`), the page's sheets keyed and measured.
 - `67-native-menu`: the side menu natively in the Android app (plan R2), opened by the row's Menu on every native screen:
   the drawer from the left over the screen dimmed, sliding in as the page's, Mandarin's mark and name with the red power
   button (Restart, and Shut down where the server can, else how to in Docker), the Offline switch with its line, then

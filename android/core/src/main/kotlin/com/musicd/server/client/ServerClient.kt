@@ -185,6 +185,18 @@ class ServerClient(
     /** A Dynamic Playlist deleted (item 66), for good. */
     fun deleteSmartPlaylist(id: String) { post("/api/smart-playlists/delete", JSONObject().put("id", id)) }
 
+    /** Every output with its room, what it may join and its power controls (item 68: Group zones, Device power). */
+    fun outputs(): List<Speaker> = Speaker.list(getJson("/api/outputs"))
+    /** Outputs split off their groups, then a group made, the first output's queue kept (Roon's group_outputs). */
+    fun ungroupOutputs(ids: List<String>) { post("/api/ungroup-outputs", JSONObject().put("output_ids", org.json.JSONArray(ids))) }
+    fun groupOutputs(ids: List<String>) { post("/api/group-outputs", JSONObject().put("output_ids", org.json.JSONArray(ids))) }
+    /** A device's power: one control's standby toggled, or (no [key]) the whole device's; its input chosen. */
+    fun standby(outputId: String, key: String?, mode: String) { post("/api/output/standby", JSONObject().put("output_id", outputId).put("mode", mode).also { if (key != null) it.put("control_key", key) }) }
+    fun convenienceSwitch(outputId: String, key: String) { post("/api/output/convenience-switch", JSONObject().put("output_id", outputId).put("control_key", key)) }
+    /** Whether [zoneId] is playing an album (the room-move question's ask), and what's playing moved from one room to another. */
+    fun playingAlbum(zoneId: String): Boolean = RoomMove.playing(getJson("/api/album/now-playing?zone=" + enc(zoneId)))
+    fun transferZone(from: String, to: String) { post("/api/transfer-zone", JSONObject().put("from", from).put("to", to)) }
+
     /** One of your playlists deleted (item 65), for good. */
     fun deletePlaylist(id: String) { post("/api/user-playlists/delete", JSONObject().put("id", id)) }
 

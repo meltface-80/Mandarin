@@ -335,6 +335,8 @@ zoneSel.addEventListener("change", async () => {
   }
 
   if (!prevZoneId || !newZoneId || prevZoneId === newZoneId) return;
+  // A room the Android app's native screens chose (native-handoff.js "zone"): the app asks this itself, over its own screen.
+  if (window.__zoneFromApp) return;
 
   let playing = false;
   try {
