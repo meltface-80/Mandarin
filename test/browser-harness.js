@@ -125,9 +125,11 @@ class Browser {
   /*
    * A tab at url, sized like the window, with the given cookies. `init` is
    * script run in the page before any of its own (a stand-in for the Android
-   * app's bridges, say), on every load of the tab.
+   * app's bridges, say), on every load of the tab. `userAgent` is the browser's
+   * name to the server (the Android app's, for the page as the app has it:
+   * the server adds the app's own stylesheet, android.css, for it).
    */
-  async page(url, { cookies = [], init = null, touch = false } = {}) {
+  async page(url, { cookies = [], init = null, touch = false, userAgent = null } = {}) {
     const { targetId } = await this.send("Target.createTarget", { url: "about:blank" });
     const { sessionId } = await this.send("Target.attachToTarget", { targetId, flatten: true });
     const s = (m, p) => this.send(m, p, sessionId);
@@ -146,6 +148,7 @@ class Browser {
     if (touch) await s("Emulation.setTouchEmulationEnabled", { enabled: true, maxTouchPoints: 5 });
     for (const c of cookies) await s("Network.setCookie", c);
     if (init) await s("Page.addScriptToEvaluateOnNewDocument", { source: init });
+    if (userAgent) await s("Emulation.setUserAgentOverride", { userAgent });
     const loaded = new Promise((resolve) => this.listeners.push((msg) => {
       if (msg.sessionId === sessionId && msg.method === "Page.loadEventFired") resolve();
     }));

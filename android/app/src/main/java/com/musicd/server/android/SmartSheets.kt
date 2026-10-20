@@ -201,7 +201,7 @@ internal fun NamePrompt(message: String, initial: String, onAnswer: (String?) ->
             Text(message, Modifier.parity("prompt.message").fillMaxWidth().padding(bottom = 18.dp), color = MaterialTheme.colorScheme.onSurface,
                 fontSize = 16.sp, lineHeight = 22.4.sp, textAlign = TextAlign.Center)
             BasicTextField(name, { name = TextFieldValue(it.text.take(200), it.selection, it.composition) },
-                Modifier.parity("prompt.name", Contract.label("prompt.name")).fillMaxWidth().padding(bottom = 16.dp).focusRequester(focus).onFocusChanged { focused = it.isFocused },
+                Modifier.parity("prompt.field", Contract.label("prompt.field")).fillMaxWidth().padding(bottom = 16.dp).focusRequester(focus).onFocusChanged { focused = it.isFocused },
                 singleLine = true, textStyle = TextStyle(color = MaterialTheme.colorScheme.onSurface, fontSize = 16.sp, lineHeight = 22.sp),
                 cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
                 keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences, imeAction = ImeAction.Done),
@@ -215,9 +215,9 @@ internal fun NamePrompt(message: String, initial: String, onAnswer: (String?) ->
                     .border(1.dp, MaterialTheme.colorScheme.outline, corner).clickable { onAnswer(null) }, contentAlignment = Alignment.Center) {
                     Text(Contract.label("prompt.cancel"), color = MaterialTheme.colorScheme.onSurface, fontSize = 15.sp, lineHeight = 21.sp, fontWeight = FontWeight.W600)
                 }
-                Box(Modifier.parity("prompt.ok", Contract.label("prompt.ok")).weight(1f).height(44.dp).clip(corner).background(MaterialTheme.colorScheme.primary)
+                Box(Modifier.parity("prompt.save", Contract.label("prompt.save")).weight(1f).height(44.dp).clip(corner).background(MaterialTheme.colorScheme.primary)
                     .border(1.dp, Color.Transparent, corner).clickable { onAnswer(name.text) }, contentAlignment = Alignment.Center) {
-                    Text(Contract.label("prompt.ok"), color = MaterialTheme.colorScheme.onPrimary, fontSize = 15.sp, lineHeight = 21.sp, fontWeight = FontWeight.W600)
+                    Text(Contract.label("prompt.save"), color = MaterialTheme.colorScheme.onPrimary, fontSize = 15.sp, lineHeight = 21.sp, fontWeight = FontWeight.W600)
                 }
             }
         }

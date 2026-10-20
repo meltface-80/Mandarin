@@ -43,6 +43,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.musicd.server.client.AlbumSummary
+import com.musicd.server.client.PlaylistAdd
 import com.musicd.server.client.Contract
 import com.musicd.server.client.Facets
 import com.musicd.server.client.LibraryClient
@@ -114,7 +115,7 @@ internal fun LibraryScreen(viewQuery: String, prefs: WallPrefs, zoneId: String, 
         val chosen = picks
         when (what) {
             "clear" -> { selecting = false; picks = emptyList() }
-            "playlist" -> { selecting = false; picks = emptyList(); onPage("albums-playlist", picksJson(chosen)) }
+            "playlist" -> { selecting = false; picks = emptyList(); PlaylistAddAsk.ask(PlaylistAdd.albums(chosen)) }
             else -> {
                 val c = client() ?: return
                 if (what != "later" && zone.isEmpty()) { toast("Pick a zone first"); return }

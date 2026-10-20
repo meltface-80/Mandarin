@@ -295,6 +295,8 @@ function openLibSheet(title, buildBody, footer, onClose, keys) {
   // Group zones and Device power too (group, device-power; item 68).
   else if (title === "Group zones") { h.dataset.parity = "group.title"; x.dataset.parity = "group.close"; }
   else if (title === "Device power") { h.dataset.parity = "device-power.title"; x.dataset.parity = "device-power.close"; }
+  // Add to playlist (add-to-playlist; item 93).
+  else if (/^Add \d+ (track|album)s? to…$/.test(title)) { h.dataset.parity = "add-to-playlist.title"; x.dataset.parity = "add-to-playlist.close"; }
   else if (keys) { h.dataset.parity = keys.title; x.dataset.parity = keys.close; }
   x.textContent = "✕";
   head.appendChild(h); head.appendChild(x);

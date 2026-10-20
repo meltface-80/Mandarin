@@ -33,8 +33,6 @@ import com.musicd.server.client.Album
 import com.musicd.server.client.Contract
 import com.musicd.server.client.Palette
 import com.musicd.server.client.ServerClient
-import org.json.JSONArray
-import org.json.JSONObject
 
 /*
  * Tracks selected on the album page (docs/specs/screens.json, album;
@@ -97,7 +95,3 @@ internal fun playPicks(c: ServerClient, a: Album, picks: List<Int>, zoneId: Stri
     val verb = when (kind) { "queue" -> "Queued"; "play_next" -> "Playing next:"; else -> "Playing" }
     return "$verb $queued track" + (if (queued == 1) "" else "s") + (if (failed > 0) " ($failed failed: $firstError)" else "")
 }
-
-/** The picked tracks for the page's Add to playlist sheet: the album and their places, as JSON. */
-internal fun picksJson(a: Album, picks: List<Int>): String =
-    JSONObject().put("offset", a.album.offset).put("tracks", JSONArray(picks.sorted())).toString()

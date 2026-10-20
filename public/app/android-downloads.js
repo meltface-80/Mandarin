@@ -34,14 +34,15 @@
   sheet.appendChild(pane);
 
   const caret = '<svg class="settings-caret" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>';
-  const select = (key, options, value) =>
-    '<div class="settings-select-wrap"><select class="settings-select" data-dl-set="' + key + '">' +
+  // Each control named for its row and keyed for the screens contract (item 91: the app's own pane matches it).
+  const select = (key, options, value, name) =>
+    '<div class="settings-select-wrap"><select class="settings-select" data-parity="settings-downloads.choice" aria-label="' + esc(name) + '" data-dl-set="' + key + '">' +
     options.map(o => '<option value="' + esc(o[0]) + '"' + (String(o[0]) === String(value) ? " selected" : "") + ">" + esc(o[1]) + "</option>").join("") +
-    "</select>" + caret + "</div>";
-  const toggle = (key, on) =>
-    '<label class="switch"><input type="checkbox" data-dl-set="' + key + '"' + (on ? " checked" : "") + '>' +
+    "</select>" + caret.replace("<svg ", '<svg data-parity="settings-downloads.caret" ') + "</div>";
+  const toggle = (key, on, name) =>
+    '<label class="switch" data-parity="settings-downloads.toggle"><input type="checkbox" aria-label="' + esc(name) + '" data-dl-set="' + key + '"' + (on ? " checked" : "") + '>' +
     '<span class="switch-track"><span class="switch-thumb"></span></span></label>';
-  const row = (label, control) => '<div class="settings-row"><span class="settings-label">' + label + "</span>" + control + "</div>";
+  const row = (label, control) => '<div class="settings-row"><span class="settings-label" data-parity="settings-downloads.name">' + label + "</span>" + control + "</div>";
 
   const covers = new Map();   // album id → image key, from the server
   async function fetchCovers(ids) {
@@ -89,20 +90,20 @@
   function albumRows(list) {
     return list.map(d => {
       const al = covers.get(d.id);
-      const art = al && al.image_key ? '<img src="/api/image/' + encodeURIComponent(al.image_key) + '?size=160" alt="" loading="lazy">' : "";
+      const art = al && al.image_key ? '<img data-parity="settings-downloads-albums.art" src="/api/image/' + encodeURIComponent(al.image_key) + '?size=160" alt="" loading="lazy">' : "";
       const on = chosen.has(d.id);
       return '<div class="dl-row' + (selecting ? " is-selecting" : "") + (on ? " is-chosen" : "") + '" data-id="' + d.id + '">' +
         (selecting
-          ? '<button type="button" class="dl-check" data-dl-choose="' + d.id + '" role="checkbox" aria-checked="' + on + '" aria-label="Select ' + esc(d.title) + '"><span class="dl-checkbox">' +
+          ? '<button type="button" class="dl-check" data-parity="settings-downloads-albums.check" data-dl-choose="' + d.id + '" role="checkbox" aria-checked="' + on + '" aria-label="Select ' + esc(d.title) + '"><span class="dl-checkbox">' +
             (on ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="5 12 10 17 19 7"/></svg>' : "") + "</span></button>"
           : "") +
-        '<button type="button" class="dl-open" ' + (selecting ? 'data-dl-choose="' + d.id + '"' : 'data-dl-open="' + d.id + '"') + '><span class="dl-art">' + art + "</span>" +
-        '<span class="dl-text"><span class="dl-title">' + esc(d.title) + '</span><span class="dl-artist">' + esc(d.artist) + "</span>" +
-        '<span class="dl-state">' + esc(stateLine(d)) + "</span></span></button>" +
+        '<button type="button" class="dl-open" data-parity="settings-downloads-albums.open" aria-label="' + esc(d.title) + '" ' + (selecting ? 'data-dl-choose="' + d.id + '"' : 'data-dl-open="' + d.id + '"') + '><span class="dl-art">' + art + "</span>" +
+        '<span class="dl-text"><span class="dl-title" data-parity="settings-downloads-albums.title">' + esc(d.title) + '</span><span class="dl-artist" data-parity="settings-downloads-albums.artist">' + esc(d.artist) + "</span>" +
+        '<span class="dl-state" data-parity="settings-downloads-albums.state">' + esc(stateLine(d)) + "</span></span></button>" +
         (selecting || d.state === "away" ? "" :
-          (d.state === "done" ? '<button type="button" class="dl-btn" data-dl-play="' + d.id + '" aria-label="Play on this phone">' +
+          (d.state === "done" ? '<button type="button" class="dl-btn" data-parity="settings-downloads-albums.play" data-dl-play="' + d.id + '" aria-label="Play on this phone">' +
             '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="6 4 20 12 6 20 6 4"/></svg></button>' : "") +
-          '<button type="button" class="dl-btn" data-dl-remove="' + d.id + '" aria-label="Remove from this phone">' + binSvg + "</button>") +
+          '<button type="button" class="dl-btn" data-parity="settings-downloads-albums.remove" data-dl-remove="' + d.id + '" aria-label="Remove from this phone">' + binSvg + "</button>") +
         "</div>";
     }).join("");
   }
@@ -114,23 +115,23 @@
     const n = chosen.size;
     pane.innerHTML =
       '<div class="settings-pane-head">' +
-        '<button class="settings-back" type="button" data-dl-back aria-label="Back to Downloads">' + backSvg + "</button>" +
-        "<h2>Downloads</h2></div>" +
-      '<p class="settings-pane-desc">' + done + (done === 1 ? " album" : " albums") + " on this phone · " + size(s.used || 0) + "</p>" +
+        '<button class="settings-back" type="button" data-dl-back aria-label="Back to Downloads" data-parity="settings-downloads-albums.back">' + backSvg + "</button>" +
+        '<h2 data-parity="settings-downloads-albums.heading">Downloads</h2></div>' +
+      '<p class="settings-pane-desc" data-parity="settings-downloads-albums.desc">' + done + (done === 1 ? " album" : " albums") + " on this phone · " + size(s.used || 0) + "</p>" +
       (list.length
         ? '<div class="dl-toolbar">' +
             (selecting
-              ? '<button type="button" class="settings-update-btn" data-dl-select-all>' + (n === list.length ? "Select none" : "Select all") + "</button>" +
-                '<button type="button" class="settings-update-btn" data-dl-select-done>Done</button>'
-              : '<button type="button" class="settings-update-btn" data-dl-select>Select</button>' +
-                '<button type="button" class="settings-update-btn dl-danger" data-dl-clear-all>Clear all</button>') +
+              ? '<button type="button" class="settings-update-btn" data-parity="settings-downloads-albums.select-all" data-dl-select-all>' + (n === list.length ? "Select none" : "Select all") + "</button>" +
+                '<button type="button" class="settings-update-btn" data-parity="settings-downloads-albums.select-close" data-dl-select-done>Done</button>'
+              : '<button type="button" class="settings-update-btn" data-parity="settings-downloads-albums.select" data-dl-select>Select</button>' +
+                '<button type="button" class="settings-update-btn dl-danger" data-parity="settings-downloads-albums.clear-all" data-dl-clear-all>Clear all</button>') +
           "</div>" +
           '<div class="settings-block dl-list">' + albumRows(list) + "</div>" +
           (selecting
-            ? '<div class="dl-selbar"><span>' + (n ? n + " selected" : "Tap albums to select them") + "</span>" +
-              '<button type="button" class="settings-update-btn dl-danger" data-dl-delete-chosen' + (n ? "" : " disabled") + ">Remove" + (n ? " " + n : "") + "</button></div>"
+            ? '<div class="dl-selbar"><span data-parity="settings-downloads-albums.selected">' + (n ? n + " selected" : "Tap albums to select them") + "</span>" +
+              '<button type="button" class="settings-update-btn dl-danger" data-parity="settings-downloads-albums.remove-chosen" data-dl-delete-chosen' + (n ? "" : " disabled") + ">Remove" + (n ? " " + n : "") + "</button></div>"
             : "")
-        : '<div class="settings-note">Nothing here yet. On an album’s page, choose ⋯ → Download to this phone.</div>');
+        : '<div class="settings-note" data-parity="settings-downloads-albums.note">Nothing here yet. On an album’s page, choose ⋯ → Download to this phone.</div>');
     fetchCovers(list.map(d => d.id));
   }
 
@@ -147,14 +148,14 @@
 
     pane.innerHTML =
       '<div class="settings-pane-head">' +
-        '<button class="settings-back" type="button" data-settings-back aria-label="Back to settings">' + backSvg +
-        "</button><h2>Downloads</h2></div>" +
-      '<p class="settings-pane-desc">' + done + (done === 1 ? " album" : " albums") + " · " + size(s.used || 0) + " used</p>" +
+        '<button class="settings-back" type="button" data-settings-back aria-label="Back to settings" data-parity="settings-downloads.back">' + backSvg +
+        '</button><h2 data-parity="settings-downloads.heading">Downloads</h2></div>' +
+      '<p class="settings-pane-desc" data-parity="settings-downloads.desc">' + done + (done === 1 ? " album" : " albums") + " · " + size(s.used || 0) + " used</p>" +
 
       '<div class="settings-block">' +
-        '<button type="button" class="dl-folder" data-dl-folder>' +
+        '<button type="button" class="dl-folder" data-parity="settings-downloads.folder" aria-label="Downloads" data-dl-folder>' +
           '<span class="dl-folder-ico" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg></span>' +
-          '<span class="dl-folder-txt"><span class="dl-folder-title">Downloads</span><span class="dl-folder-sub">' + esc(folderSub) + "</span></span>" +
+          '<span class="dl-folder-txt"><span class="dl-folder-title" data-parity="settings-downloads.folder-title">Downloads</span><span class="dl-folder-sub" data-parity="settings-downloads.folder-sub">' + esc(folderSub) + "</span></span>" +
           '<svg class="dl-folder-chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 6 15 12 9 18"/></svg>' +
         "</button>" +
       "</div>" +
@@ -162,47 +163,47 @@
 
       ("offlineMode" in s ?
         '<div class="settings-block">' +
-          row("Offline mode", toggle("offlineMode", s.offlineMode)) +
-          '<div class="settings-note">' + (s.offlineMode
+          row("Offline mode", toggle("offlineMode", s.offlineMode, "Offline mode")) +
+          '<div class="settings-note" data-parity="settings-downloads.note">' + (s.offlineMode
             ? "On. Only the music on this phone shows — its music folder and downloads — and the app doesn’t use the server, even when it can be reached."
             : "Off. The server’s library shows whenever it can be reached; with no connection, only the music on this phone.") + "</div>" +
         "</div>" +
         '<div class="settings-divider"></div>' : "") +
 
-      '<div class="settings-block"><div class="settings-subhead">Downloading</div>' +
-        row("Quality" + settingsInfo("Original is the files as they are (formats a phone can’t play become lossless FLAC). Opus 256 is about a quarter of the size of a CD-quality FLAC, less against hi-res. You can choose each time."),
-          select("quality", [["original", "Original"], ["opus", "Opus 256 kbps"]], s.quality)) +
-        row("Save to" + settingsInfo("Phone storage and the SD card here are the app’s own: no permission needed, but uninstalling the app deletes what’s there (updates don’t). A folder of your own outlives the app: a fresh install pointed at the same folder finds the albums again."), select("location", places.map(p => [p.id, p.label + " · " + size(p.free || 0) + " free"]), s.location)) +
+      '<div class="settings-block"><div class="settings-subhead" data-parity="settings-downloads.subhead">Downloading</div>' +
+        row("Quality" + settingsInfo("Original is the files as they are (formats a phone can’t play become lossless FLAC). Opus 256 is about a quarter of the size of a CD-quality FLAC, less against hi-res. You can choose each time.", "settings-downloads.info"),
+          select("quality", [["original", "Original"], ["opus", "Opus 256 kbps"]], s.quality, "Quality")) +
+        row("Save to" + settingsInfo("Phone storage and the SD card here are the app’s own: no permission needed, but uninstalling the app deletes what’s there (updates don’t). A folder of your own outlives the app: a fresh install pointed at the same folder finds the albums again.", "settings-downloads.info"), select("location", places.map(p => [p.id, p.label + " · " + size(p.free || 0) + " free"]), s.location, "Save to")) +
         downloadFolderRow(s) +
         folderPlaceNote(s, places) +
-        row("Size limit", select("limitGb", [0, 8, 16, 32, 64, 128, 256].map(g => [g, g ? g + " GB" : "No limit"]), s.limitGb)) +
-        row("Wi-Fi only", toggle("wifiOnly", s.wifiOnly)) +
+        row("Size limit", select("limitGb", [0, 8, 16, 32, 64, 128, 256].map(g => [g, g ? g + " GB" : "No limit"]), s.limitGb, "Size limit")) +
+        row("Wi-Fi only", toggle("wifiOnly", s.wifiOnly, "Wi-Fi only")) +
       "</div>" +
       '<div class="settings-divider"></div>' +
 
       ("awayQuality" in s ?
-        '<div class="settings-block"><div class="settings-subhead">Playing away from home</div>' +
-          row("Stream as" + settingsInfo("Albums not on the phone, over mobile data or other Wi-Fi. Opus 256 is made by the server as it plays, about a quarter of the data of a CD-quality FLAC; Original sends the files as they are."),
-            select("awayQuality", [["opus", "Opus 256 kbps"], ["original", "Original"]], s.awayQuality)) +
-          '<div class="settings-note">At home it’s always the original.</div>' +
+        '<div class="settings-block"><div class="settings-subhead" data-parity="settings-downloads.subhead">Playing away from home</div>' +
+          row("Stream as" + settingsInfo("Albums not on the phone, over mobile data or other Wi-Fi. Opus 256 is made by the server as it plays, about a quarter of the data of a CD-quality FLAC; Original sends the files as they are.", "settings-downloads.info"),
+            select("awayQuality", [["opus", "Opus 256 kbps"], ["original", "Original"]], s.awayQuality, "Stream as")) +
+          '<div class="settings-note" data-parity="settings-downloads.note">At home it’s always the original.</div>' +
         "</div>" +
         '<div class="settings-divider"></div>' : "") +
 
       ("cacheWifi" in s && s.cacheChoices ?
-        '<div class="settings-block"><div class="settings-subhead">Cached ahead' + settingsInfo("Playing on this phone: the next tracks in the queue are kept on the phone ahead of time, so they play without the network — through a dead spot, or on mobile data without using any. On mobile data " + s.cacheMobile + " tracks is about " + Math.round(s.cacheMobile * 9) + " MB as Opus 256. Tracks stay until the space is needed, so one played again is already here.") + "</div>" +
-          row("On Wi-Fi", select("cacheWifi", s.cacheChoices.wifi.map(n => [n, n + " tracks"]), s.cacheWifi)) +
-          row("On mobile data", select("cacheMobile", s.cacheChoices.mobile.map(n => [n, n + " tracks"]), s.cacheMobile)) +
-          row("Cache size", select("cacheGb", s.cacheChoices.gb.map(g => [g, g + " GB"]), s.cacheGb)) +
-          '<div class="settings-row"><span class="settings-label dl-cache-status" id="dl-cache-status">…</span>' +
-            '<button type="button" class="settings-update-btn" data-dl-clear-cache>Clear cache</button></div>' +
+        '<div class="settings-block"><div class="settings-subhead" data-parity="settings-downloads.subhead">Cached ahead' + settingsInfo("Playing on this phone: the next tracks in the queue are kept on the phone ahead of time, so they play without the network — through a dead spot, or on mobile data without using any. On mobile data " + s.cacheMobile + " tracks is about " + Math.round(s.cacheMobile * 9) + " MB as Opus 256. Tracks stay until the space is needed, so one played again is already here.", "settings-downloads.info") + "</div>" +
+          row("On Wi-Fi", select("cacheWifi", s.cacheChoices.wifi.map(n => [n, n + " tracks"]), s.cacheWifi, "On Wi-Fi")) +
+          row("On mobile data", select("cacheMobile", s.cacheChoices.mobile.map(n => [n, n + " tracks"]), s.cacheMobile, "On mobile data")) +
+          row("Cache size", select("cacheGb", s.cacheChoices.gb.map(g => [g, g + " GB"]), s.cacheGb, "Cache size")) +
+          '<div class="settings-row"><span class="settings-label dl-cache-status" id="dl-cache-status" data-parity="settings-downloads.cache-status">…</span>' +
+            '<button type="button" class="settings-update-btn" data-parity="settings-downloads.clear-cache" data-dl-clear-cache>Clear cache</button></div>' +
         "</div>" +
         '<div class="settings-divider"></div>' : "") +
 
-      '<div class="settings-block"><div class="settings-subhead">Automatic downloads' + settingsInfo("Kept on the phone by themselves, in the quality above, and removed again when they drop off the list. Albums you download yourself are never removed.") + "</div>" +
-        row("Today’s Smart Picks", toggle("autoPicks", s.autoPicks)) +
-        row("Album of the day", toggle("autoAotd", s.autoAotd)) +
-        row("Recently added", select("autoRecent", [0, 5, 10, 20, 30].map(n => [n, n ? "The newest " + n : "Off"]), s.autoRecent)) +
-        '<div class="settings-note">Removed again when they drop off the list.</div>' +
+      '<div class="settings-block"><div class="settings-subhead" data-parity="settings-downloads.subhead">Automatic downloads' + settingsInfo("Kept on the phone by themselves, in the quality above, and removed again when they drop off the list. Albums you download yourself are never removed.", "settings-downloads.info") + "</div>" +
+        row("Today’s Smart Picks", toggle("autoPicks", s.autoPicks, "Today’s Smart Picks")) +
+        row("Album of the day", toggle("autoAotd", s.autoAotd, "Album of the day")) +
+        row("Recently added", select("autoRecent", [0, 5, 10, 20, 30].map(n => [n, n ? "The newest " + n : "Off"]), s.autoRecent, "Recently added")) +
+        '<div class="settings-note" data-parity="settings-downloads.note">Removed again when they drop off the list.</div>' +
       "</div>";
 
     paintCacheStatus();
@@ -214,13 +215,13 @@
     const f = s.folder || { access: "none" };
     if (!has("chooseDownloadFolder")) return "";
     if (!f.chosen) {
-      return '<div class="settings-row"><span class="settings-label">Download folder</span>' +
-        '<button type="button" class="settings-update-btn" data-dl-choose-folder>Choose</button></div>' +
-        '<div class="settings-note">A folder of your own on the phone or an SD card, as a third place to save to. Albums there outlive the app.</div>';
+      return '<div class="settings-row"><span class="settings-label" data-parity="settings-downloads.name">Download folder</span>' +
+        '<button type="button" class="settings-update-btn" data-parity="settings-downloads.folder-choose" data-dl-choose-folder>Choose</button></div>' +
+        '<div class="settings-note" data-parity="settings-downloads.note">A folder of your own on the phone or an SD card, as a third place to save to. Albums there outlive the app.</div>';
     }
-    return '<div class="settings-row"><span class="settings-label">Download folder: ' + esc(f.name || "chosen") + '</span>' +
-      '<span><button type="button" class="settings-update-btn" data-dl-choose-folder>Change</button> ' +
-      '<button type="button" class="settings-update-btn" data-dl-forget-folder>Forget</button></span></div>';
+    return '<div class="settings-row"><span class="settings-label" data-parity="settings-downloads.name">Download folder: ' + esc(f.name || "chosen") + '</span>' +
+      '<span><button type="button" class="settings-update-btn" data-parity="settings-downloads.folder-choose" data-dl-choose-folder>Change</button> ' +
+      '<button type="button" class="settings-update-btn" data-parity="settings-downloads.folder-forget" data-dl-forget-folder>Forget</button></span></div>';
   }
 
   // What stands between the download folder and downloads landing in it,
@@ -229,22 +230,22 @@
     const f = s.folder || { access: "none" };
     let html = "";
     if (f.access === "needed") {
-      html += '<div class="settings-row"><span class="settings-label">Save into “' + esc(f.name || "the download folder") + '”</span>' +
-        '<button type="button" class="settings-update-btn" data-dl-allow>Allow</button></div>' +
-        '<div class="settings-note">Android asks for the app to be allowed all files access first — tap Allow, switch it on, and come back.</div>';
+      html += '<div class="settings-row"><span class="settings-label" data-parity="settings-downloads.name">Save into “' + esc(f.name || "the download folder") + '”</span>' +
+        '<button type="button" class="settings-update-btn" data-parity="settings-downloads.allow" data-dl-allow>Allow</button></div>' +
+        '<div class="settings-note" data-parity="settings-downloads.note">Android asks for the app to be allowed all files access first — tap Allow, switch it on, and come back.</div>';
     } else if (f.access === "unmapped") {
-      html += '<div class="settings-note">The download folder you chose is on a drive the app can’t write plain files to (a cloud drive, say). Downloads can’t go there; choose a folder on the phone or its SD card.</div>';
+      html += '<div class="settings-note" data-parity="settings-downloads.note">The download folder you chose is on a drive the app can’t write plain files to (a cloud drive, say). Downloads can’t go there; choose a folder on the phone or its SD card.</div>';
     } else if (f.access === "away") {
-      html += '<div class="settings-note">The download folder isn’t reachable right now (its card out?). Downloads go to the place above until it is back.</div>';
+      html += '<div class="settings-note" data-parity="settings-downloads.note">The download folder isn’t reachable right now (its card out?). Downloads go to the place above until it is back.</div>';
     }
     const mv = s.moving;
     if (mv) {
-      html += '<div class="settings-note">' + (mv.error ? "Moving stopped: " + esc(mv.error) + " (" + mv.done + " of " + mv.total + " moved)"
+      html += '<div class="settings-note" data-parity="settings-downloads.note">' + (mv.error ? "Moving stopped: " + esc(mv.error) + " (" + mv.done + " of " + mv.total + " moved)"
         : "Moving " + (mv.done + 1 > mv.total ? mv.total : mv.done + 1) + " of " + mv.total + "…") + "</div>";
     } else if (s.elsewhere > 0 && places.length > 1) {
-      html += '<div class="settings-row"><span class="settings-label">' + s.elsewhere + (s.elsewhere === 1 ? " album is" : " albums are") + ' saved elsewhere</span>' +
-        '<button type="button" class="settings-update-btn" data-dl-move>Move all here</button></div>' +
-        '<div class="settings-note">Copied album by album, then removed from where they were. Stopped partway, nothing is lost: each album is whole at one end or the other.</div>';
+      html += '<div class="settings-row"><span class="settings-label" data-parity="settings-downloads.name">' + s.elsewhere + (s.elsewhere === 1 ? " album is" : " albums are") + ' saved elsewhere</span>' +
+        '<button type="button" class="settings-update-btn" data-parity="settings-downloads.move" data-dl-move>Move all here</button></div>' +
+        '<div class="settings-note" data-parity="settings-downloads.note">Copied album by album, then removed from where they were. Stopped partway, nothing is lost: each album is whole at one end or the other.</div>';
     }
     return html;
   }
