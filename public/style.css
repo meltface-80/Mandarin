@@ -4875,9 +4875,11 @@ input.vol-range::-moz-range-thumb {
   cursor: grab; touch-action: none;   /* the drag owns the gesture, not the scroller */
 }
 .home-row-item.is-dragging .home-row-grip { cursor: grabbing; }
-/* Two lines once a row carries a reason, so the ellipsis has to go — a
-   truncated explanation is no explanation. */
-.home-row-item.is-unavailable .home-row-name {
+/* Two lines once a row carries a reason (a setting off, or Downloaded albums
+   held on), so the ellipsis has to go — a truncated explanation is no
+   explanation. */
+.home-row-item.is-unavailable .home-row-name,
+.home-row-item.is-held .home-row-name {
   display: flex; flex-direction: column; gap: 2px;
   overflow: visible; white-space: normal; text-overflow: clip;
 }

@@ -10,6 +10,7 @@ import androidx.compose.runtime.setValue
 import com.musicd.server.client.AlbumSummary
 import com.musicd.server.client.GenreCard
 import com.musicd.server.client.HomeRow
+import com.musicd.server.client.HomeRowsSettings
 import com.musicd.server.client.LibraryClient
 import com.musicd.server.client.LibraryView
 import com.musicd.server.client.Pick
@@ -50,7 +51,7 @@ internal object HomeKept {
     /** The Not played row is kept five minutes once it has answered, as the page's (rowsTtlFresh). */
     private const val TTL_MS = 5 * 60 * 1000L
     /** The rows in the page's own order (HOME_ROWS), the app's two first. */
-    val ROW_IDS = listOf("phone", "downloads", "unplayed", "later", "playlists", "favourites", "history", "picks", "lotw", "random", "library", "genres")
+    val ROW_IDS = HomeRowsSettings.TITLES.keys.toList()
 
     /** The rows in the owner's order, each on or off (/api/settings/home-rows), the app's own at the top where the server doesn't know them. */
     val layout = mutableStateListOf<HomeRow>()
@@ -125,10 +126,13 @@ internal object HomeKept {
 
     private suspend fun layout(lib: LibraryClient) {
         val got = withContext(Dispatchers.IO) { runCatching { lib.homeRows() }.getOrNull() }
-        val next = (got ?: layout.toList()).toMutableList()
-        if (next.isEmpty()) next += ROW_IDS.map { HomeRow(it, true, null) }
         // A row this phone has that the saved layout doesn't know (an older server): at the top, on, as the page does.
-        for (id in ROW_IDS.reversed()) if (next.none { it.id == id }) next.add(0, HomeRow(id, true, null))
+        setLayout(got ?: layout.toList())
+    }
+
+    /** The layout as the server keeps it ([saved]: Settings → Home Screen's answer too), made whole for this phone. */
+    fun setLayout(saved: List<HomeRow>) {
+        val next = HomeRowsSettings.complete(saved, ROW_IDS)
         layout.clear(); layout.addAll(next)
     }
 

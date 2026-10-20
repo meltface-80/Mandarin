@@ -843,6 +843,24 @@
         "phone-open": { "kind": "action", "label": "Tailscale", "when": "in the app" }
       }
     },
+    "settings-homescreen": {
+      "page": "Settings' Home Screen (in Setup): Back, its title and what it holds; the greeting and Random Album, each on or off; Home's rows in their order, each with the handle that drags it to a new place, its name (and why it can't be switched, where it can't) and its switch; their notes",
+      "native": ["android/app/src/main/java/com/musicd/server/android/SettingsHome.kt"],
+      "preview": false,
+      "items": {
+        "back": { "kind": "action", "label": "Back to settings" },
+        "heading": { "kind": "shows" },
+        "desc": { "kind": "shows" },
+        "name": { "kind": "shows", "each": true },
+        "greeting": { "kind": "action", "label": "Greeting" },
+        "random": { "kind": "action", "label": "Random Album" },
+        "note": { "kind": "shows", "each": true },
+        "grip": { "kind": "action", "label": "Move {row}", "each": true },
+        "row-name": { "kind": "shows", "each": true },
+        "row-why": { "kind": "shows", "each": true, "when": "the row's setting is off, or albums are downloaded to this phone (Downloaded albums)" },
+        "row-on": { "kind": "action", "label": "{row} row", "each": true }
+      }
+    },
     "album": {
       "page": "an album's page: the album view (#album-modal, not Now playing), opened from a row of albums, a phone held upright",
       "native": ["android/app/src/main/java/com/musicd/server/android/AlbumScreen.kt", "android/app/src/main/java/com/musicd/server/android/AlbumTracks.kt", "android/app/src/main/java/com/musicd/server/android/AlbumAbout.kt", "android/app/src/main/java/com/musicd/server/android/AlbumHead.kt", "android/app/src/main/java/com/musicd/server/android/AlbumSelect.kt", "android/app/src/main/java/com/musicd/server/android/AlbumWorks.kt"],

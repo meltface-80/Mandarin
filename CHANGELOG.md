@@ -1,12 +1,20 @@
 # Changelog
 
 ## Unreleased
-- `82-settings-pages-unresponsive`: in the Android app, a page of Settings the app doesn't draw itself yet (Home
-  Screen, Music Folders, Services, Audio Devices and the rest) left the app unresponsive until it was swiped away. The
+- `82-settings-pages-unresponsive`: in the Android app, a page of Settings the app doesn't draw itself yet (Music
+  Folders, Services, Audio Devices and the rest; Home Screen too, before item 81) left the app unresponsive until it was swiped away. The
   page was put in front of the app's Settings to show it, but the rule that keeps the rest of the page out of sight
   while one of its sheets is over an app screen hid the Settings sheet too: an empty, clear page took every tap. The
   Settings sheet is now shown when it is the one asked for, and the page comes in front only once its sheet is seen,
   so a sheet that stays out of sight can never cover the app's screen again.
+- `81-native-settings-home`: Setup's Home Screen page natively in the Android app (plan T3), as the page's: the
+  greeting and Random Album, each on or off on this phone; Home's rows in their order, each with its handle, its name
+  (and why it can't be switched: a setting behind it off, or Downloaded albums while albums are on the phone) and its
+  switch. Held by its handle a row follows the finger and the rows it passes step past it; let go, the order is saved,
+  as a switch is at once, and the native Home is laid out from it straight away. On the page, Downloaded albums' reason
+  now reads on its own line under the name, as a row whose setting is off already did, instead of run into the name and
+  cut off. The page's is keyed for the screens contract (`settings-homescreen`). With it, every page of Setup is the
+  app's own.
 - `80-native-settings-share-away`: the last two of Setup's pages natively in the Android app (plan T2), as the page's:
   Share Card (the review on the card on or off, the services and the review sites to link to, each on or off, and the
   default service chosen from those on, the same default the card's held chip sets) and Away from home (the server's
