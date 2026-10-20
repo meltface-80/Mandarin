@@ -1,6 +1,12 @@
 # Changelog
 
 ## Unreleased
+- `103-scanner-pack-null`: Settings → Library Scanner's MusicBrainz pack read "null" after the folder's free space in
+  the Android app. Android's JSON reader gives the word "null" for a field the server sends empty (the JVM's gives
+  nothing, so the core tests never saw it); the pack's folder problem, the check's error and the job's error showed it
+  whenever there was none. The scanner's every text read from the server now takes an empty field as nothing, held by
+  tests that read the JSON as Android does. Choosing the pack's folder no longer shows the toast "The pack’s folder is
+  set", in the app or on the page.
 - `102-mini-player-docked`: the Android app's mini player docked, as the owner chose it from renders: the full width of
   the screen, straight on top of the row along the foot, solid in that row's own colour with a hairline above it, not
   rounded and no shadow; the track's progress along its top, the full width, above the cover and the words. It does
