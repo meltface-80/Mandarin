@@ -176,7 +176,7 @@ internal fun NowPlayingScreen(zoneId: String, client: () -> ServerClient?, onBac
                     }
                 }
                 Row(Modifier.fillMaxWidth().padding(top = 14.dp), verticalAlignment = Alignment.CenterVertically) {
-                    PlayOnMenu(zoneId, client, ::act, onRoom, onPage)
+                    PlayOnMenu(zoneId, client, ::act, onRoom)
                     Spacer(Modifier.weight(1f))
                     VolumeMenu(v.volume, v.muted, volumeOpen, { volumeOpen = it })
                 }

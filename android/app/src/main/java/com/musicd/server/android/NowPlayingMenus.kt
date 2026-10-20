@@ -35,6 +35,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -76,13 +77,15 @@ import kotlinx.coroutines.withContext
 
 /**
  * Play on: the rooms, the one playing here marked, each a tap to play there;
- * then Group zones and Device power, which are the page's own sheets
- * ([onPage]), and the all-room actions.
+ * then Group zones and Device power, the app's own sheets over the screen
+ * (RoomSheets.kt, item 68), and the all-room actions.
  */
 @Composable
-internal fun PlayOnMenu(zoneId: String, client: () -> ServerClient?, act: ((ServerClient) -> Unit) -> Unit, onRoom: (String) -> Unit, onPage: (String, String?) -> Unit,
+internal fun PlayOnMenu(zoneId: String, client: () -> ServerClient?, act: ((ServerClient) -> Unit) -> Unit, onRoom: (String) -> Unit,
                         size: Dp = 56.dp, iconSize: Dp = 32.dp) {
     var open by remember { mutableStateOf(false) }
+    var sheet by remember { mutableStateOf("") }
+    val scope = rememberCoroutineScope()
     var rooms by remember { mutableStateOf<List<Room>>(emptyList()) }
     LaunchedEffect(open) {
         val c = client() ?: return@LaunchedEffect
@@ -115,10 +118,10 @@ internal fun PlayOnMenu(zoneId: String, client: () -> ServerClient?, act: ((Serv
             // Each action 8 under the last, over a hairline (the page's .np-popover-action): 14px at 600 in the brass, 38 tall.
             val actionPad = PaddingValues(horizontal = 10.dp, vertical = 9.dp)
             ActionGap()
-            DropdownMenuItem(text = { Text(Contract.label("now-playing.group"), fontSize = 14.sp, lineHeight = 19.sp, fontWeight = FontWeight.W600, color = MaterialTheme.colorScheme.secondary) }, onClick = { open = false; onPage("group", null) }, contentPadding = actionPad,
+            DropdownMenuItem(text = { Text(Contract.label("now-playing.group"), fontSize = 14.sp, lineHeight = 19.sp, fontWeight = FontWeight.W600, color = MaterialTheme.colorScheme.secondary) }, onClick = { open = false; sheet = "group" }, contentPadding = actionPad,
                 modifier = Modifier.parity("now-playing.group mini-player.group", Contract.label("now-playing.group")).height(38.dp))
             ActionGap()
-            DropdownMenuItem(text = { Text(Contract.label("now-playing.power"), fontSize = 14.sp, lineHeight = 19.sp, fontWeight = FontWeight.W600, color = MaterialTheme.colorScheme.secondary) }, onClick = { open = false; onPage("power", null) }, contentPadding = actionPad,
+            DropdownMenuItem(text = { Text(Contract.label("now-playing.power"), fontSize = 14.sp, lineHeight = 19.sp, fontWeight = FontWeight.W600, color = MaterialTheme.colorScheme.secondary) }, onClick = { open = false; sheet = "power" }, contentPadding = actionPad,
                 modifier = Modifier.parity("now-playing.power mini-player.power", Contract.label("now-playing.power")).height(38.dp))
             ActionGap()
             DropdownMenuItem(text = { Text(Contract.label("now-playing.pause-all"), fontSize = 14.sp, lineHeight = 19.sp, fontWeight = FontWeight.W600, color = MaterialTheme.colorScheme.secondary) }, onClick = { open = false; act { it.pauseAll() } }, contentPadding = actionPad,
@@ -131,6 +134,9 @@ internal fun PlayOnMenu(zoneId: String, client: () -> ServerClient?, act: ((Serv
                 modifier = Modifier.parity("now-playing.unmute-all mini-player.unmute-all", Contract.label("now-playing.unmute-all")).height(38.dp))
         }
     }
+    // Grouped, the room is a new one (Roon mints a room for each set of speakers): the page told first, so its list has it, then followed here.
+    if (sheet == "group") GroupSheet(zoneId, client, scope, onClose = { sheet = "" }) { id -> NativeShell.zone = id; NativeShell.toPage("group-settled", id); onRoom(id) }
+    if (sheet == "power") PowerSheet(client) { sheet = "" }
 }
 
 /** The room before each of Play on's actions: 8, then the hairline. */

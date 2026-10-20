@@ -60,7 +60,7 @@ async function openDevicePowerSheet() {
       const withControls = list.filter(o => (o.source_controls || []).length);
       if (!withControls.length) {
         const note = document.createElement("div");
-        note.className = "lib-sheet-note";
+        note.className = "lib-sheet-note"; note.dataset.parity = "device-power.empty";
         note.textContent = list.length
           ? "None of your devices can be switched on or off from here."
           : "No Sonos rooms found. The server must share a network with your speakers (host networking), or set SONOS_HOSTS to a speaker's IP.";
@@ -72,14 +72,14 @@ async function openDevicePowerSheet() {
         const sec = document.createElement("div");
         sec.className = "lib-sheet-section";
         const label = document.createElement("div");
-        label.className = "lib-sheet-section-label";
+        label.className = "lib-sheet-section-label"; label.dataset.parity = "device-power.device";
         label.textContent = o.display_name;
         sec.appendChild(label);
 
         for (const sc of controls) {
           const row = document.createElement("div");
           row.className = "dev-row";
-          row.dataset.control = sc.control_key;
+          row.dataset.control = sc.control_key; row.dataset.parity = "device-power.control";
 
           const text = document.createElement("div");
           text.className = "dev-text";
@@ -102,7 +102,7 @@ async function openDevicePowerSheet() {
             const pwr = document.createElement("button");
             pwr.type = "button";
             pwr.className = "dev-btn" + (sc.status === "standby" ? "" : " is-on");
-            pwr.dataset.action = "standby";
+            pwr.dataset.action = "standby"; pwr.dataset.parity = "device-power.standby";
             pwr.textContent = "Power";
             pwr.setAttribute("aria-label",
               sc.status === "standby" ? "Wake " + sc.display_name
@@ -114,7 +114,7 @@ async function openDevicePowerSheet() {
           const sw = document.createElement("button");
           sw.type = "button";
           sw.className = "dev-btn";
-          sw.dataset.action = "switch";
+          sw.dataset.action = "switch"; sw.dataset.parity = "device-power.select";
           sw.textContent = "Select input";
           sw.setAttribute("aria-label", "Switch " + sc.display_name + " to this input");
           sw.addEventListener("click", () => act("/api/output/convenience-switch",
@@ -131,7 +131,7 @@ async function openDevicePowerSheet() {
           const all = document.createElement("button");
           all.type = "button";
           all.className = "dev-btn dev-all-off";
-          all.dataset.action = "all-off";
+          all.dataset.action = "all-off"; all.dataset.parity = "device-power.all-off";
           all.textContent = "Put whole device into standby";
           all.addEventListener("click", () => act("/api/output/standby",
             { output_id: o.output_id, mode: "standby" }, all));
@@ -144,7 +144,7 @@ async function openDevicePowerSheet() {
   }, (foot, close) => {
     const done = document.createElement("button");
     done.type = "button"; done.className = "action-btn primary";
-    done.textContent = "Done";
+    done.textContent = "Done"; done.dataset.parity = "device-power.done";
     done.addEventListener("click", close);
     foot.appendChild(done);
   });

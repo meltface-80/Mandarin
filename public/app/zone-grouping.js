@@ -73,6 +73,7 @@ async function openGroupSheet() {
       if (!primary) {
         const note = document.createElement("div");
         note.className = "lib-sheet-note";
+        note.dataset.parity = "group.empty";
         note.textContent = list.length
           ? "Choose a zone first — grouping needs a zone to build the group around."
           : "No Sonos rooms found. The server must share a network with your speakers (host networking), or set SONOS_HOSTS to a speaker's IP.";
@@ -86,6 +87,7 @@ async function openGroupSheet() {
         row.type = "button";
         row.className = "group-row" + (on ? " is-on" : "") + (isPrimary ? " is-anchor" : "");
         row.dataset.output = o.output_id;
+        row.dataset.parity = "group.row";
         const box = document.createElement("span");
         box.className = "group-box";
         box.textContent = "✓";
@@ -106,6 +108,7 @@ async function openGroupSheet() {
         if (noteText) {
           const nt = document.createElement("span");
           nt.className = "group-note";
+          nt.dataset.parity = "group.row-note";
           nt.textContent = noteText;
           text.appendChild(nt);
         }
@@ -128,6 +131,7 @@ async function openGroupSheet() {
       if (offerable.length < list.length) {
         const note = document.createElement("div");
         note.className = "lib-sheet-note";
+        note.dataset.parity = "group.limit";
         note.textContent = "Outputs your Core can't sync with " + primary.display_name +
                            " aren't listed — Sonos decides which rooms can play together.";
         body.appendChild(note);
@@ -138,10 +142,12 @@ async function openGroupSheet() {
     const cancel = document.createElement("button");
     cancel.type = "button"; cancel.className = "action-btn";
     cancel.textContent = "Cancel";
+    cancel.dataset.parity = "group.cancel";
     cancel.addEventListener("click", close);
     const apply = document.createElement("button");
     apply.type = "button"; apply.className = "action-btn primary";
     apply.textContent = "Apply";
+    apply.dataset.parity = "group.apply";
     apply.addEventListener("click", async () => {
       if (!primary) { close(); return; }
       const toRemove = anchorIds.filter(id => !picked.has(id));

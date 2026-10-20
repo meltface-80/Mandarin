@@ -145,8 +145,8 @@ internal object NativeShell {
         if (front && ShellRoute.isWeb(n.currentDestination?.route)) n.navigate(ShellRoute.home(prefs, zone)) { launchSingleTop = true }
     }
 
-    /** A room chosen on a native screen over Home: Home's own room too, so Back finds it following that room (item 63). */
-    fun roomChosen(id: String) { zone = id; homeArgs.value = homeArgs.value.first to id; toPage("zone", id) }
+    /** A room chosen on a native screen over Home: Home's own room too, so Back finds it following that room (item 63); what's playing in the one left offered to move (item 68). */
+    fun roomChosen(id: String) { RoomAsk.chosen(zone, id); zone = id; homeArgs.value = homeArgs.value.first to id; toPage("zone", id) }
 
     /**
      * Back on Home with the row's Home: its top; and with one of the page's own screens in front of it (Playlists, a label,
@@ -395,4 +395,5 @@ private fun Shell(client: () -> ServerClient?, startHome: Boolean, onShown: (Boo
         }
     }
     MenuOver(nav, client)   // the side menu over whichever screen is on (item 67)
+    RoomAskOver(client)     // and the question whether to move what's playing to the room chosen (item 68)
 }

@@ -291,6 +291,9 @@ function openLibSheet(title, buildBody, footer, onClose) {
   // The Library's two sheets are the screens contract's (docs/specs/screens.json, library): their title and ✕ keyed.
   if (title === "Focus") { h.dataset.parity = "library.focus-title"; x.dataset.parity = "library.focus-close"; }
   else if (title === "Sort by") { h.dataset.parity = "library.sort-title"; x.dataset.parity = "library.sort-close"; }
+  // Group zones and Device power too (group, device-power; item 68).
+  else if (title === "Group zones") { h.dataset.parity = "group.title"; x.dataset.parity = "group.close"; }
+  else if (title === "Device power") { h.dataset.parity = "device-power.title"; x.dataset.parity = "device-power.close"; }
   x.textContent = "✕";
   head.appendChild(h); head.appendChild(x);
   const body = document.createElement("div");

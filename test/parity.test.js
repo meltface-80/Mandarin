@@ -317,6 +317,26 @@ const OPEN_MENU = `(async () => {
   return "open";
 })()`;
 
+/* Group zones and Device power: the page's sheets, opened as Play on opens them, in the room the mini player is in. */
+const OPEN_GROUP = `(async () => {
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const until = async (fn, ms = 30000) => { const t0 = Date.now(); while (!fn()) { if (Date.now() - t0 > ms) return false; await sleep(50); } return true; };
+  if (!(await until(() => /Kitchen/.test((document.getElementById("mt-kicker") || {}).textContent || "")))) return "no room";
+  openGroupSheet();
+  if (!(await until(() => document.querySelectorAll(".lib-sheet .group-row").length > 1))) return "no rows";
+  await sleep(600);
+  return "open";
+})()`;
+const OPEN_POWER = `(async () => {
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const until = async (fn, ms = 30000) => { const t0 = Date.now(); while (!fn()) { if (Date.now() - t0 > ms) return false; await sleep(50); } return true; };
+  if (!(await until(() => /Kitchen/.test((document.getElementById("mt-kicker") || {}).textContent || "")))) return "no room";
+  openDevicePowerSheet();
+  if (!(await until(() => !!document.querySelector(".lib-sheet .lib-sheet-note, .lib-sheet .dev-row")))) return "no sheet";
+  await sleep(600);
+  return "open";
+})()`;
+
 /* How the page is brought to each screen of the contract, and what holds it; `shared`: screens of the contract's under the same root, held by their own checks. */
 const SCREENS = {
   // Home and what opens from it first, before any screen's check plays an album: today's album is still on Home, so its badge is checked too.
@@ -338,7 +358,9 @@ const SCREENS = {
   "playlist": { open: OPEN_PLAYLIST, root: "body", shared: ["mini-player", "nav"] },
   "smart-playlists": { open: OPEN_SMART_PLAYLISTS, root: "body", shared: ["mini-player", "nav"] },
   "smart-playlist": { open: OPEN_SMART_PLAYLIST, root: "body", shared: ["mini-player", "nav"] },
-  "menu": { open: OPEN_MENU, root: "#menu-overlay" }
+  "menu": { open: OPEN_MENU, root: "#menu-overlay" },
+  "group": { open: OPEN_GROUP, root: ".lib-sheet-backdrop" },
+  "device-power": { open: OPEN_POWER, root: ".lib-sheet-backdrop" }
 };
 
 test("every screen of the contract has a way to open it on the page", () => {

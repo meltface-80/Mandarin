@@ -453,6 +453,37 @@
         "settings": { "kind": "action", "label": "Settings" }
       }
     },
+    "group": {
+      "page": "Group zones (Play on's Group zones…): the page's sheet up from the foot, a row for each speaker the room's first may play with, ticked when in the room, the first kept and said to keep playing, another room's said; Cancel and Apply",
+      "native": ["android/app/src/main/java/com/musicd/server/android/RoomSheets.kt"],
+      "preview": false,
+      "items": {
+        "title": { "kind": "shows" },
+        "close": { "kind": "action", "label": "Close" },
+        "row": { "kind": "action", "label": "{speaker}", "each": true },
+        "row-note": { "kind": "shows", "each": true, "when": "the room's first speaker, or a speaker in another room" },
+        "empty": { "kind": "shows", "when": "no room to build around, or no speakers at all" },
+        "limit": { "kind": "shows", "when": "speakers left out that can't play with the room's first" },
+        "cancel": { "kind": "action", "label": "Cancel" },
+        "apply": { "kind": "action", "label": "Apply" }
+      }
+    },
+    "device-power": {
+      "page": "Device power (Play on's Device power…): the page's sheet up from the foot, each device with power controls as a section, each control with its state, Power and Select input, the whole device into standby where it has more than one; what it says with none; Done",
+      "native": ["android/app/src/main/java/com/musicd/server/android/RoomSheets.kt"],
+      "preview": false,
+      "items": {
+        "title": { "kind": "shows" },
+        "close": { "kind": "action", "label": "Close" },
+        "empty": { "kind": "shows", "when": "no device can be switched on or off from here" },
+        "device": { "kind": "shows", "each": true, "when": "a device with power controls" },
+        "control": { "kind": "shows", "each": true, "when": "a device with power controls" },
+        "standby": { "kind": "action", "label": ["Wake {control}", "Put {control} into standby"], "each": true, "when": "a control with standby" },
+        "select": { "kind": "action", "label": "Switch {control} to this input", "each": true, "when": "a device with power controls" },
+        "all-off": { "kind": "action", "label": "Put whole device into standby", "each": true, "when": "a device with more than one standby control" },
+        "done": { "kind": "action", "label": "Done" }
+      }
+    },
     "album": {
       "page": "an album's page: the album view (#album-modal, not Now playing), opened from a row of albums, a phone held upright",
       "native": ["android/app/src/main/java/com/musicd/server/android/AlbumScreen.kt", "android/app/src/main/java/com/musicd/server/android/AlbumTracks.kt", "android/app/src/main/java/com/musicd/server/android/AlbumAbout.kt", "android/app/src/main/java/com/musicd/server/android/AlbumHead.kt", "android/app/src/main/java/com/musicd/server/android/AlbumSelect.kt", "android/app/src/main/java/com/musicd/server/android/AlbumWorks.kt"],

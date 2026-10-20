@@ -166,9 +166,21 @@ window.__musicdNative = function (what, arg) {
     b.click();
     return true;
   }
+  // A room chosen on a native screen: the page's room too, without the page's question (the app asks whether to move
+  // what's playing, item 68); a room the app grouped, a new one, kept and the list read again so it is there to choose.
   if (what === "zone") {
     if (!zoneSel || !arg || ![...zoneSel.options].some(o => o.value === arg)) return false;
-    if (zoneSel.value !== arg) { zoneSel.value = arg; zoneSel.dispatchEvent(new Event("change")); }
+    if (zoneSel.value !== arg) {
+      zoneSel.value = arg;
+      window.__zoneFromApp = true;
+      try { zoneSel.dispatchEvent(new Event("change")); } finally { window.__zoneFromApp = false; }
+    }
+    return true;
+  }
+  if (what === "group-settled") {
+    if (!arg) return false;
+    try { localStorage.setItem("rra-zone", arg); } catch (e) { /* private mode: the list still picks a room */ }
+    loadZones().then(() => { if (typeof window.__refreshTransport === "function") window.__refreshTransport(); });
     return true;
   }
   return false;
