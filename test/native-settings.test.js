@@ -56,3 +56,18 @@ test("a page of Settings the app doesn't draw opens alone, and its Back hands ba
   }
   assert.equal(r.ownList, true, "the page's own Settings as ever");
 });
+
+test("a setting the page keeps on this device, changed in the app, is kept where the page keeps it", { skip, timeout: 120000 }, async (t) => {
+  const { base, token } = await started(t);
+  const b = await Browser.launch({ width: 412, height: 915 });
+  t.after(() => b.close());
+  const page = await b.page(base + "/", { cookies: [{ name: "musicd_session", value: token, url: base }], touch: true, init: BRIDGE });
+  const r = await page.eval(`(async () => {
+    const set = (name, value) => window.__musicdNative("page-pref", JSON.stringify({ name, value }));
+    const asked = [set("layout", "list"), set("text", "1.25"), set("labelOrder", "random"), set("labelMin", "5"), set("nothing", "1"), window.__musicdNative("page-pref", "{")];
+    return { asked, layout: window.__uiPrefs.get("layout"), text: getComputedStyle(document.documentElement).getPropertyValue("--ui-text").trim(),
+      order: localStorage.getItem("rra-label-order"), min: localStorage.getItem("rra-label-min"), kept: localStorage.getItem("rra-ui-cols") };
+  })()`);
+  assert.deepEqual(page.errors, [], "nothing thrown");
+  assert.deepEqual(r, { asked: [true, true, true, true, false, false], layout: "list", text: "1.25", order: "random", min: "5", kept: "list" });
+});

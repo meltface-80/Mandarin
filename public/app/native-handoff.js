@@ -38,6 +38,18 @@ window.__musicdNative = function (what, arg) {
     else npAlbum.click();
     return true;
   }
+  // A setting the page keeps on this device, changed in the app's own Settings (item 78): kept where the page keeps it,
+  // so the page and the app's next screens follow it. [arg]: {"name", "value"}, a UI Setting or a label's order or minimum.
+  if (what === "page-pref") {
+    let p;
+    try { p = JSON.parse(arg); } catch (e) { return false; }
+    if (!p || typeof p.name !== "string" || typeof p.value !== "string") return false;
+    const local = { labelOrder: "rra-label-order", labelMin: "rra-label-min" }[p.name];
+    if (local) { try { localStorage.setItem(local, p.value); } catch (e) { /* storage blocked: the app keeps it this visit */ } return true; }
+    if (!window.__uiPrefs || !window.__uiPrefs.OPTS[p.name]) return false;
+    window.__uiPrefs.set(p.name, p.value);
+    return true;
+  }
   // A page of Settings the app's own Settings doesn't draw (item 76): the page's, alone.
   if (what === "settings-pane") return !!(arg && window.__openSettingsPane && window.__openSettingsPane(arg));
   // The native share card's default service, held on its chip (item 75): kept where the page's chips keep it.

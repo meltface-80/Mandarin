@@ -235,6 +235,16 @@ class ServerClient(
         return ApiKey.parse(j)
     }
 
+    /**
+     * Setup's pages (item 78): one of the server's settings as it has it ([name]: "smart-picks", "labels", "display",
+     * "shelf", "label-folder-depth"), a change to it saved (its answer), today's picks built again, the labels looked
+     * for again.
+     */
+    fun setting(name: String): JSONObject = getJson("/api/settings/$name")
+    fun saveSetting(name: String, body: JSONObject): JSONObject = post("/api/settings/$name", body, 20_000)
+    fun rebuildPicks(): JSONObject = post("/api/smart-picks/rebuild", JSONObject())
+    fun rescanLabelsNow(): JSONObject = post("/api/labels/rescan-force", JSONObject())
+
     /** One of your playlists deleted (item 65), for good. */
     fun deletePlaylist(id: String) { post("/api/user-playlists/delete", JSONObject().put("id", id)) }
 
