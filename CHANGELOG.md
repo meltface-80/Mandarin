@@ -1,6 +1,13 @@
 # Changelog
 
 ## Unreleased
+- `112-server-notices-native`: the server's notice at the head of the app's Home is worked out by the app (O2-5 in
+  docs/specs/plan-android-native.md): core `ServerNotices` reads /api/status as the page's server-notice.js does (the
+  data not kept, no music folder, a first scan, no audio found, starting up, a music folder gone with Forget or Remove
+  the missing ones and its question, no Sonos rooms; none offline, nor a folder or the rooms away), asked again as the
+  page asks; `Notices.watch` keeps it while Home is up, and Forget asks its question and forgets the folder itself
+  (`/api/library/forget-folder`). `test/server-notices-words.test.js` holds every phrase to the page's. The page now tells
+  the app the update offer alone.
 - `113-mini-player-steady`: the docked mini player no longer dips when moving between screens. Each native screen
   draws its own mini player, and one just opened followed its room from nothing (no track known, no cover fetched), so
   the bar was first drawn without its cover and room line, shorter, then grew back. `followRoom` now keeps each room's

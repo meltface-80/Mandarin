@@ -1,5 +1,7 @@
 package com.musicd.server.android
 
+import android.content.Context
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -21,6 +23,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -31,6 +35,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -40,26 +45,61 @@ import androidx.compose.ui.unit.sp
 import com.musicd.server.client.Contract
 import com.musicd.server.client.PageNotices
 import com.musicd.server.client.Palette
+import com.musicd.server.client.ServerClient
+import com.musicd.server.client.ServerNotices
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import org.json.JSONObject
 
 /**
- * The page's notices as it last told them (public/app/native-notices.js, [AppBridge.notices]; bug list item 69): the
- * server's notice and the update offer, drawn at the head of the native Home as the page draws them at the head of its own.
+ * The notices at the head of the native Home: the server's, worked out by the app from /api/status ([watch]; core
+ * ServerNotices, bug list item 112), and the update offer as the page last told it (public/app/native-notices.js,
+ * [AppBridge.notices]; bug list item 69), drawn as the page draws them at the head of its own.
  */
 internal object Notices {
     val now = mutableStateOf(PageNotices())
+
+    /** The server asked for its status now and then while Home is on screen ([client]), its notice drawn, as the page's check does. */
+    suspend fun watch(client: () -> ServerClient?) {
+        while (true) {
+            val status = client()?.let { c -> withContext(Dispatchers.IO) { runCatching { c.getJson("/api/status") }.getOrNull() } }
+            // No answer: no notice, asked again soon (the offline sign says the rest).
+            val n = status?.let { ServerNotices.from(it) }
+            now.value = now.value.copy(notice = n)
+            delay(if (status == null) 5_000 else ServerNotices.nextLook(n, status.optJSONObject("scan")?.optBoolean("running") == true))
+        }
+    }
+
+    /** The notice's button [i] (Forget a folder, Remove the missing ones), its question answered Yes: done, said, and asked again. */
+    suspend fun forget(context: Context, client: () -> ServerClient?, i: Int) {
+        val n = now.value.notice ?: return
+        val dir = n.dirs.getOrNull(i) ?: return
+        val c = client() ?: return
+        withContext(Dispatchers.IO) { runCatching { c.post("/api/library/forget-folder", JSONObject().put("dir", dir)) } }
+            .onSuccess { j -> Toast.makeText(context, ServerNotices.forgotten(j.optInt("removed"), n.names.getOrNull(i).orEmpty()), Toast.LENGTH_SHORT).show(); watchAgain.value++ }
+            .onFailure { Toast.makeText(context, it.message ?: "Couldn't reach the server", Toast.LENGTH_SHORT).show() }
+    }
+
+    /** Bumped to ask the server again at once (a folder forgotten). */
+    val watchAgain = mutableStateOf(0)
 }
 
 /**
  * Both notices, the server's over the update offer, as the page's (style.css: .status-banner, .update-toast), at the UI
- * Settings' menu size (their zoom); each button is the page's own, tapped ([onPage]: "notice-button" by its place, "update").
- * A button that asks first (Forget a folder) asks here, as the page's yes-or-no sheet, and the page is told it was answered
- * Yes ("<place>:yes"): asked by the page behind the native Home, it was asked unseen and nothing happened (bug list item 96).
+ * Settings' menu size (their zoom). The notice's button (Forget a folder) asks its question as the page's yes-or-no sheet,
+ * then forgets the folder itself (item 112); the update offer's are the page's own, tapped ([onPage]: "update").
  */
 @Composable
-internal fun NoticeBanners(zoom: Double, onPage: (String, String?) -> Unit) {
+internal fun NoticeBanners(zoom: Double, client: () -> ServerClient?, onPage: (String, String?) -> Unit) {
     val now by Notices.now
+    val again by Notices.watchAgain
+    LaunchedEffect(again) { Notices.watch(client) }
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     var asking by remember { mutableStateOf<Pair<Int, String>?>(null) }
-    asking?.let { (i, q) -> ConfirmDialog(q) { yes -> asking = null; if (yes) onPage("notice-button", "$i:yes") } }
+    asking?.let { (i, q) -> ConfirmDialog(q) { yes -> asking = null; if (yes) scope.launch { Notices.forget(context, client, i) } } }
     if (now.notice == null && now.update == null) return
     val density = LocalDensity.current
     CompositionLocalProvider(LocalDensity provides Density(density.density * zoom.toFloat(), density.fontScale)) {
@@ -75,7 +115,7 @@ internal fun NoticeBanners(zoom: Double, onPage: (String, String?) -> Unit) {
                             val pill = RoundedCornerShape(8.dp)
                             Box(Modifier.parity("home.notice-button", Contract.label("home.notice-button", if (word.startsWith("Forget")) 0 else 1, word.removePrefix("Forget ")))
                                 .padding(top = 10.dp, end = 8.dp).height(36.dp).clip(pill).background(paletteColor(Palette.BG_ELEV_2)).border(1.dp, MaterialTheme.colorScheme.outline, pill)
-                                .clickable { n.ask(i)?.let { q -> asking = i to q } ?: onPage("notice-button", i.toString()) }.padding(horizontal = 14.dp), contentAlignment = Alignment.Center) {
+                                .clickable { n.ask(i)?.let { q -> asking = i to q } ?: scope.launch { Notices.forget(context, client, i) } }.padding(horizontal = 14.dp), contentAlignment = Alignment.Center) {
                                 Text(word, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp, lineHeight = 18.sp, maxLines = 1)
                             }
                         }

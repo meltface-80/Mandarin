@@ -194,9 +194,12 @@ class AppBridge(private val activity: Activity) {
     @JavascriptInterface
     fun overlayClosed() { activity.runOnUiThread { NativeShell.overlayClosed() } }
 
-    /** The page's notices as they now stand (public/app/native-notices.js, item 69): the native Home draws them at its head. */
+    /**
+     * The page's notices as they now stand (public/app/native-notices.js, item 69): the update offer, which the native Home
+     * draws at its head; the server's notice is the app's own since item 112 (Notices.watch).
+     */
     @JavascriptInterface
-    fun notices(json: String) { val n = com.musicd.server.client.PageNotices.parse(json); activity.runOnUiThread { Notices.now.value = n } }
+    fun notices(json: String) { val n = com.musicd.server.client.PageNotices.parse(json); activity.runOnUiThread { Notices.now.value = Notices.now.value.copy(update = n.update) } }
 
     /** This screen's settings, which the app's own Backup & restore asked the page for (item 92, BackupPage). */
     @JavascriptInterface
