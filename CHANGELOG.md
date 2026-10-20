@@ -10,6 +10,29 @@
   Accept and Reject, Undo or Check again, and Barcode… to match it by a barcode or a MusicBrainz link, the first 60 of
   each until Show all. Each block is drawn from its own answer as it comes and asked for again every five seconds. The
   page's is keyed for the screens contract (`settings-scanner`).
+- `97-label-logos-status-gap`: the server's label scan said, for a moment, that nothing was running between two passes:
+  between a logo pass and the one asked for while it ran (a second API key saved during the first pass), and between
+  the label lookups and the logo pass that follows them. Whoever waited for the scan to end (the page's and the app's
+  Record labels, and the label-logos test, which failed on dev for it) could read the logos before the next pass had
+  looked. The running pass now hands over to the next without letting go.
+- `93-native-add-to-playlist`: Add to playlist natively in the Android app, as the page's sheet, from an album's ⋯, from
+  tracks picked on an album's page, and from albums picked on a wall or an artist's page: how many are being added and
+  ✕, then ＋ New playlist… (named in the app's own name prompt, My playlist suggested) and each of your playlists with
+  how many tracks it holds. What came of it is said as the page says it (how many tracks, from how many albums, a
+  playlist now full, an album that couldn't be read, named). Made on the app's lane of changes to what Home shows, so
+  Home's Playlists row has it when Home is back. The page's sheet and name prompt are keyed for the screens contract
+  (`add-to-playlist`, `prompt`).
+- `91-native-settings-downloads`: Settings → Setup → Downloads natively in the Android app (plan T8), as the page's: the
+  Downloads row (how many albums, the space they take, how many are on the way) opening the albums; Offline mode;
+  Downloading (the quality, where to save, the download folder chosen, changed or forgotten, Allow for the all files
+  access it needs, Move all here for the albums saved elsewhere, the size limit, Wi-Fi only); Playing away from home;
+  Cached ahead (on Wi-Fi, on mobile data, the cache's size, how much is ahead, Clear cache); Automatic downloads. The
+  albums: each with its cover, title, artist and how far it has come, Play on this phone, Remove; Select (each ticked,
+  Select all or none, Done, Remove the ones ticked) and Clear all, each asked first; an album tapped opens its page.
+  Read again every two seconds while open, so a download is seen moving on; Home's Downloaded albums row follows a
+  removal. The page's pane is keyed for the screens contract (`settings-downloads`, `settings-downloads-albums`), its
+  switches and lists named for their rows; the page test and the page measurements stand the app's bridge in and ask
+  for the page as the app does (its user agent, so the server adds android.css), through new `init` and `app` options.
 - `88-native-settings-folders`: Settings → Music Folders natively in the Android app (plan T5), as the page's: the
   server's folders as cards (icon, name, path, how many tracks, or that it isn't there or can't be read and what to do),
   Remove where there is more than one (asked first); Add a folder, which browses the server's folders (Cancel, where it
