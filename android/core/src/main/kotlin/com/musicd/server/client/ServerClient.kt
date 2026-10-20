@@ -218,6 +218,9 @@ class ServerClient(
         return j.getLong("offset")
     }
 
+    /** Whether a service's album is one of its favourites now (item 73: a tile's + or ✓, read again after its page closes); null signed out. */
+    fun serviceFavouriteNow(service: String, albumId: String): Boolean? = getJson("/api/$service/state?album_id=" + enc(albumId)).let { if (it.optBoolean("connected")) it.optBoolean("favourite") else null }
+
     fun serviceFavourite(source: String, albumId: String, on: Boolean): JSONObject =
         post("/api/$source/" + (if (on) "favorite" else "unfavorite"), JSONObject().put("album_id", albumId))
 

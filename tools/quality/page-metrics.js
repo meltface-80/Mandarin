@@ -24,7 +24,7 @@ const { pdf } = require("../../test/fixtures");
 const { until, started } = require("../../test/helpers");
 const { FakeHousehold } = require("../../test/fake-sonos");
 const { FakeWeb } = require("../../test/fake-web");
-const { pitchforkPages } = require("../../test/fake-pitchfork");
+const { pitchforkPages, fakeQobuz } = require("../../test/fake-pitchfork");
 const { Browser } = require("../../test/browser-harness");
 const contract = require("../../docs/specs/screens.json");
 
@@ -91,9 +91,10 @@ async function main() {
   try {
     // Pitchfork's listings on loopback, for its screens (item 70).
     const web = new FakeWeb(pitchforkPages());
-    await web.start();
-    t.after(() => web.stop());
-    const { lib, base, token, api } = await started(/** @type {any} */ (t), { sonosHosts: [ports.host(0)], pitchforkBaseUrl: web.base });
+    const qobuz = fakeQobuz();
+    await Promise.all([web.start(), qobuz.start()]);
+    t.after(() => Promise.all([web.stop(), qobuz.stop()]));
+    const { lib, base, token, api } = await started(/** @type {any} */ (t), { sonosHosts: [ports.host(0)], pitchforkBaseUrl: web.base, qobuzBaseUrl: qobuz.base, qobuzSyncDelayMs: 100000 });
     fs.writeFileSync(path.join(lib.music, "Artist A", "Album One", "Booklet.pdf"), pdf(["0 0 1"]));
     const kitchen = await until(async () => ((await api("zones")).json.zones || []).find((/** @type {{ display_name: string }} */ z) => z.display_name === "Kitchen"), 20000, "the Kitchen room");
     const b = await Browser.launch({ width: 412, height: 915 });

@@ -19,7 +19,7 @@ const { pdf } = require("./fixtures");
 const { started, until } = require("./helpers");
 const { FakeHousehold } = require("./fake-sonos");
 const { FakeWeb } = require("./fake-web");
-const { pitchforkPages } = require("./fake-pitchfork");
+const { pitchforkPages, fakeQobuz } = require("./fake-pitchfork");
 const { Browser, findBrowser } = require("./browser-harness");
 const { built } = require("./server");
 const contract = require("../docs/specs/screens.json");
@@ -403,6 +403,31 @@ const OPEN_LABEL_UNMERGE = `(async () => { ${LABELS_KIT}
   return "open";
 })()`;
 
+/* The Qobuz browser: signed in to the stand-in Qobuz, opened from its hidden button, a search made (its artists and albums); then an artist of it. */
+const SERVICE_KIT = `
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const until = async (fn, ms = 30000) => { const t0 = Date.now(); while (!fn()) { if (Date.now() - t0 > ms) return false; await sleep(50); } return true; };
+  if (!(await until(() => document.querySelectorAll("#home-library .album").length > 0))) return "no Home";
+  await fetch("/api/settings/qobuz/signin", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ username: "tester@example.com", password: "pw" }) });
+  document.getElementById("qobuz-toggle").click();
+  // The stand-in's albums are years old: New Releases answers with none (its status says so), then the search.
+  if (!(await until(() => /releases/.test(document.getElementById("qobuz-nr-status").textContent) && !/Loading/.test(document.getElementById("qobuz-nr-status").textContent)))) return "no releases";
+  const input = document.getElementById("qobuz-search-input");
+  input.value = "Q"; input.dispatchEvent(new Event("input", { bubbles: true }));
+  input.value = "Q Artist"; input.dispatchEvent(new Event("input", { bubbles: true }));
+  if (!(await until(() => document.querySelectorAll("#qobuz-artists .qobuz-artist-chip").length > 0 && /albums for/.test(document.getElementById("qobuz-nr-status").textContent)))) return "no search";
+  input.blur();`;
+const OPEN_SERVICE = `(async () => { ${SERVICE_KIT}
+  await sleep(600);
+  return "open";
+})()`;
+const OPEN_SERVICE_ARTIST = `(async () => { ${SERVICE_KIT}
+  document.querySelector("#qobuz-artists .qobuz-artist-chip").click();
+  if (!(await until(() => !!document.querySelector("#qobuz-artist-head .qobuz-artist-head-name") && document.querySelectorAll("#qobuz-nr-list .qobuz-tile").length > 0))) return "no artist";
+  await sleep(600);
+  return "open";
+})()`;
+
 /* How the page is brought to each screen of the contract, and what holds it; `shared`: screens of the contract's under the same root, held by their own checks. */
 const SCREENS = {
   // Home and what opens from it first, before any screen's check plays an album: today's album is still on Home, so its badge is checked too.
@@ -429,6 +454,8 @@ const SCREENS = {
   "device-power": { open: OPEN_POWER, root: ".lib-sheet-backdrop" },
   "pitchfork": { open: OPEN_PITCHFORK, root: "#pitchfork-overlay" },
   "pitchfork-review": { open: OPEN_PITCHFORK_REVIEW, root: "#pitchfork-overlay", shared: ["pitchfork"] },
+  "service-browser": { open: OPEN_SERVICE, root: "#qobuz-overlay" },
+  "service-artist": { open: OPEN_SERVICE_ARTIST, root: "#qobuz-overlay", shared: ["service-browser"] },
   // Last, as they switch the labels on (Home's Label of the week with them) and merge two.
   "labels": { open: OPEN_LABELS, root: "body", shared: ["mini-player", "nav"] },
   "label-logo": { open: OPEN_LABEL_LOGO, root: "#logo-url-sheet" },
@@ -443,11 +470,12 @@ test("the page keeps the screens contract: each native screen's controls and rea
   const house = new FakeHousehold();
   await house.start();
   t.after(() => house.stop());
-  // Pitchfork's listings on loopback, for its screens (item 70).
+  // Pitchfork's listings on loopback, for its screens (item 70); a stand-in Qobuz, signed in to only by its browser's screens (item 72).
   const web = new FakeWeb(pitchforkPages());
-  await web.start();
-  t.after(() => web.stop());
-  const { lib, base, token, api } = await started(t, { sonosHosts: [ports.host(0)], pitchforkBaseUrl: web.base });
+  const qobuz = fakeQobuz();
+  await Promise.all([web.start(), qobuz.start()]);
+  t.after(() => Promise.all([web.stop(), qobuz.stop()]));
+  const { lib, base, token, api } = await started(t, { sonosHosts: [ports.host(0)], pitchforkBaseUrl: web.base, qobuzBaseUrl: qobuz.base, qobuzSyncDelayMs: 100000 });
   // Album One's booklet (one blue page), found in its folder when its page asks: the booklet screen's way in.
   fs.writeFileSync(path.join(lib.music, "Artist A", "Album One", "Booklet.pdf"), pdf(["0 0 1"]));
   const kitchen = await until(async () => ((await api("zones")).json.zones || []).find(z => z.display_name === "Kitchen"), 20000, "the Kitchen room");

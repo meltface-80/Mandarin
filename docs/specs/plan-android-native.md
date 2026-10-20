@@ -139,8 +139,8 @@ Sizes are the page's lines for that surface, a proxy for the native work.
 | Item | What | Page |
 |---|---|---|
 | B1 | **Built (item 71)** (`LabelsScreen.kt`, `LabelSheets.kt`, a label's albums a `WallScreen` of kind `label`). Labels: the list (find, #–Z order, the scan log, rescan), select and merge, unmerge, a label's albums (its order and minimum from Settings), the logo sheet (Discogs candidates or a pasted address) | `labels`, `labels-list`, `labels-albums` · ~935 |
-| B2 | The Qobuz and Tidal browsers: the tabs, search, the artist strip and head and their albums (Load more), the album's page, favourite, open in the library, play | `service-browser`, `-rows`, `-views`, `service-browsers` · ~1,100 |
-| B3 | **Built (item 70)** (`PitchforkScreen.kt`; Find on Qobuz opens the page's browser, seeded, until B2). Pitchfork: the lists, a review, the find buttons | `pitchfork` · ~230 |
+| B2 | **Built (item 73)** (`ServiceBrowserScreen.kt`; an album opens the native album page, as the page's opens its own). The Qobuz and Tidal browsers: the tabs, search, the artist strip and head and their albums (Load more), the album's page, favourite, open in the library, play | `service-browser`, `-rows`, `-views`, `service-browsers` · ~1,100 |
+| B3 | **Built (item 70)** (`PitchforkScreen.kt`; Find on Qobuz opens the app's Qobuz browser, seeded, since item 73). Pitchfork: the lists, a review, the find buttons | `pitchfork` · ~230 |
 | B4 | The Share card: the card drawn (sharecard.js's painting in Kotlin's Canvas), Save, Share and Copy through the app's own sharing, the service links with hold-to-prefer, If you like this | `share-card`, `-links`, `-suggestions`, `sharecard.js` · ~1,400 |
 | B5 | The album editor and the matcher: a cover found, pasted, removed or kept; title, artist and year with their "was"; MusicBrainz candidates, a barcode or a link; save, undo all | `album-editor`, `album-editor-match` · ~700 |
 

@@ -78,7 +78,7 @@ private val ON_GOLD = Color(0xFF1A1000)
  * third a large one (left, then right), each with its score (gold for Best New Music), BNM, and the album and artist over the
  * foot of its cover. A review's page: ‹ Back, the cover beside the album, the artist and the score, the note that the review
  * is read on pitchfork.com, then Read on Pitchfork (the browser), Open in your library (the album's native page, when the
- * library has it) and Find on Qobuz (the page's browser, its search seeded). [start]: a review opened straight away (the
+ * library has it) and Find on Qobuz (the app's Qobuz browser, its search seeded; item 73). [start]: a review opened straight away (the
  * search's), its list read when Back comes to it.
  */
 @Composable

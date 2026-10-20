@@ -25,16 +25,33 @@ internal fun NavGraphBuilder.moreRoutes(nav: NavHostController, client: () -> Se
             onRoom = NativeShell::roomChosen,
             onNav = { what -> navTap(nav, what) },
             // A Pitchfork review: its page in the app's own magazine (item 70).
-            onPage = { what, arg -> if (what == "review" && arg != null) nav.navigate(ShellRoute.pitchfork(arg, NativeShell.zone)) else toPageOrNative(nav, what, arg) }
+            onPage = { what, arg ->
+                when {
+                    what == "review" && arg != null -> nav.navigate(ShellRoute.pitchfork(arg, NativeShell.zone))
+                    // A service's artist: their albums in the app's own browser (item 73).
+                    what == "service-artist" && arg != null -> runCatching { org.json.JSONObject(arg) }.getOrNull()?.let { j ->
+                        nav.navigate(ShellRoute.serviceBrowser(j.optString("service"), NativeShell.zone, j.optString("id"), j.optString("name"))) }
+                    else -> toPageOrNative(nav, what, arg)
+                }
+            }
         )
     }
-    // Pitchfork (item 70): the magazine, or a review's page in it; an album the library has opens in its place, Find on Qobuz is the page's browser over Home.
+    // Pitchfork (item 70): the magazine, or a review's page in it; an album the library has opens in its place, Find on Qobuz the app's browser in its place (item 73).
     composable(ShellRoute.PITCHFORK, arguments = listOf(navArgument(ShellRoute.REVIEW) { type = NavType.StringType; defaultValue = "" }, navArgument(ShellRoute.ZONE) { type = NavType.StringType; defaultValue = "" })) { entry ->
         val zone = entry.arguments?.getString(ShellRoute.ZONE).orEmpty()
         PitchforkScreen(WallPrefs.parse(prefs), PitchforkHit.parse(entry.arguments?.getString(ShellRoute.REVIEW)), client,
             onClose = { nav.popBackStack() },
             onAlbum = { offset -> nav.popBackStack(); nav.navigate(ShellRoute.album(offset, zone, "")) },
-            onQobuz = { q -> if (!nav.popBackStack(ShellRoute.HOME, false)) nav.popBackStack(); NativeShell.toPage("qobuz-search", q) })
+            onQobuz = { q -> nav.popBackStack(); nav.navigate(ShellRoute.serviceBrowser("qobuz", zone, q = q)) })
+    }
+    // The Qobuz and Tidal browsers (item 73), each opening kept while on the back stack (its entry's id); an album's page over it.
+    composable(ShellRoute.SERVICE_BROWSER, arguments = listOf(navArgument(ShellRoute.SERVICE) { type = NavType.StringType }, navArgument(ShellRoute.ARTIST_ID) { type = NavType.StringType; defaultValue = "" },
+        navArgument("name") { type = NavType.StringType; defaultValue = "" }, navArgument("q") { type = NavType.StringType; defaultValue = "" }, navArgument(ShellRoute.ZONE) { type = NavType.StringType; defaultValue = "" })) { entry ->
+        val a = entry.arguments
+        val zone = a?.getString(ShellRoute.ZONE).orEmpty()
+        val kept = ServiceBrowsers.kept(entry.id, a?.getString(ShellRoute.SERVICE).orEmpty())
+        ServiceBrowserScreen(kept, (a?.getString(ShellRoute.ARTIST_ID).orEmpty() to a?.getString("name").orEmpty()).takeIf { it.first.isNotEmpty() }, a?.getString("q").orEmpty(),
+            WallPrefs.parse(prefs), client, onClose = { nav.popBackStack() }, onAlbum = { offset -> nav.navigate(ShellRoute.album(offset, zone, "")) })
     }
     // The record labels (item 71); a label's albums a wall over them.
     composable(ShellRoute.LABELS, arguments = listOf(navArgument(ShellRoute.ZONE) { type = NavType.StringType; defaultValue = "" })) { entry ->

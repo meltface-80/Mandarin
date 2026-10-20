@@ -40,6 +40,10 @@ function serviceBrowserRows(sb) {
       '<div class="album-artist">' + esc(a.artist) + '</div>';
     tile.appendChild(art);
     tile.appendChild(meta);
+    // Its keys for the screens contract (service-browser); the search screen keys it as its own (search-external.js).
+    tile.dataset.parity = "service-browser.album";
+    const parts = { ".album-art-wrap": "service-browser.album-art", ".album-title": "service-browser.album-title", ".album-artist": "service-browser.album-artist", ".qobuz-tile-fav": "service-browser.fav" };
+    for (const [sel, key] of Object.entries(parts)) { const el = tile.querySelector(sel); if (el) el.dataset.parity = key; }
     const open = () => outside ? openAlbumOutside(a, fav) : openAlbumPage(a, fav);
     tile.addEventListener("click", open);
     tile.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); open(); } });
@@ -142,7 +146,7 @@ function serviceBrowserRows(sb) {
     for (const ar of artists) {
       const chip = document.createElement("button");
       chip.type = "button";
-      chip.className = "qobuz-artist-chip";
+      chip.className = "qobuz-artist-chip"; chip.dataset.parity = "service-browser.artist";
       chip.innerHTML =
         (ar.image
           ? '<img class="qobuz-artist-thumb" loading="lazy" alt="" src="' + esc(ar.image) + '">'
@@ -161,16 +165,16 @@ function serviceBrowserRows(sb) {
     artistHeadEl.innerHTML = "";
     const back = document.createElement("button");
     back.type = "button";
-    back.className = "qobuz-nr-back";
+    back.className = "qobuz-nr-back"; back.dataset.parity = "service-artist.back";
     back.textContent = "‹ Back";
     back.addEventListener("click", goBack);
     const head = document.createElement("div");
     head.className = "qobuz-artist-head-row";
     head.innerHTML =
       (image
-        ? '<img class="qobuz-artist-head-art" alt="" src="' + esc(image) + '">'
-        : '<div class="qobuz-artist-head-art"></div>') +
-      '<div class="qobuz-artist-head-name">' + esc(name) + '</div>';
+        ? '<img class="qobuz-artist-head-art" data-parity="service-artist.art" alt="" src="' + esc(image) + '">'
+        : '<div class="qobuz-artist-head-art" data-parity="service-artist.art"></div>') +
+      '<div class="qobuz-artist-head-name" data-parity="service-artist.name">' + esc(name) + '</div>';
     artistHeadEl.appendChild(back);
     artistHeadEl.appendChild(head);
     artistHeadEl.classList.remove("hidden");
