@@ -606,6 +606,43 @@
         "bio-source": { "kind": "shows", "when": "the service has a biography" }
       }
     },
+    "album-edit": {
+      "page": "an album's editor (its ⋯, Edit album): the cover with Find cover, the covers found to choose from or an image's address pasted; Find match, MusicBrainz's releases to apply or a barcode; the title, the artist and the year, each with what the files say; Save, Cancel, Undo all edits, and ✕",
+      "native": ["android/app/src/main/java/com/musicd/server/android/AlbumEditSheet.kt", "android/app/src/main/java/com/musicd/server/android/AlbumEditParts.kt"],
+      "preview": false,
+      "items": {
+        "heading": { "kind": "shows" },
+        "close": { "kind": "action", "label": "Close" },
+        "cover": { "kind": "shows" },
+        "cover-status": { "kind": "shows" },
+        "find": { "kind": "action", "label": "Find cover" },
+        "remove": { "kind": "action", "label": "Remove found cover", "when": "the album has a cover found on the web, and none other is chosen" },
+        "undo": { "kind": "action", "label": "Keep current cover", "when": "another cover is chosen" },
+        "search-status": { "kind": "shows", "when": "covers searched for" },
+        "candidate": { "kind": "action", "label": "{cover}", "each": true, "when": "covers found" },
+        "url": { "kind": "action", "label": "Or paste an image address", "when": "covers searched for" },
+        "url-use": { "kind": "action", "label": "Use", "when": "covers searched for" },
+        "url-err": { "kind": "shows", "when": "the address pasted is no picture" },
+        "match-status": { "kind": "shows" },
+        "folder": { "kind": "shows", "when": "the album's folder is known" },
+        "match-find": { "kind": "action", "label": "Find match" },
+        "match-search-status": { "kind": "shows", "when": "MusicBrainz asked" },
+        "release": { "kind": "action", "label": "{release}", "each": true, "when": "MusicBrainz offers releases" },
+        "barcode": { "kind": "action", "label": "Or the barcode, or a MusicBrainz link", "when": "MusicBrainz asked" },
+        "barcode-use": { "kind": "action", "label": ["Match", "Matching…"], "when": "MusicBrainz asked" },
+        "barcode-err": { "kind": "shows", "when": "the barcode or link was refused" },
+        "title": { "kind": "action", "label": "Title" },
+        "artist": { "kind": "action", "label": "Artist" },
+        "year": { "kind": "action", "label": "Release year" },
+        "was": { "kind": "shows", "each": true, "when": "a field's words differ from the files'" },
+        "put-back": { "kind": "action", "label": "Put back", "each": true, "when": "a field's words differ from the files'" },
+        "err": { "kind": "shows", "when": "Save or a match failed" },
+        "save": { "kind": "action", "label": ["Save", "Saving…"] },
+        "cancel": { "kind": "action", "label": "Cancel" },
+        "reset": { "kind": "action", "label": ["Undo all edits to this album", "Saving…"], "when": "the album has been edited" },
+        "note": { "kind": "shows" }
+      }
+    },
     "album": {
       "page": "an album's page: the album view (#album-modal, not Now playing), opened from a row of albums, a phone held upright",
       "native": ["android/app/src/main/java/com/musicd/server/android/AlbumScreen.kt", "android/app/src/main/java/com/musicd/server/android/AlbumTracks.kt", "android/app/src/main/java/com/musicd/server/android/AlbumAbout.kt", "android/app/src/main/java/com/musicd/server/android/AlbumHead.kt", "android/app/src/main/java/com/musicd/server/android/AlbumSelect.kt", "android/app/src/main/java/com/musicd/server/android/AlbumWorks.kt"],

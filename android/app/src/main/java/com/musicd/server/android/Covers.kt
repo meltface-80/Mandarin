@@ -59,14 +59,14 @@ internal fun rememberWebImage(url: String?): ImageBitmap? {
     var image by remember(url) { mutableStateOf(url?.let { Covers.get(it) }) }
     LaunchedEffect(url) {
         if (url == null || image != null || !(url.startsWith("https://") || url.startsWith("http://"))) return@LaunchedEffect
-        val got = withContext(Dispatchers.IO) {
-            runCatching {
-                val c = java.net.URL(url).openConnection() as java.net.HttpURLConnection
-                c.connectTimeout = 5000; c.readTimeout = 15000
-                try { if (c.responseCode == 200) c.inputStream.use { BitmapFactory.decodeStream(it)?.asImageBitmap() } else null } finally { c.disconnect() }
-            }.getOrNull()
-        }
-        if (got != null) { Covers.put(url, got); image = got }
+        image = withContext(Dispatchers.IO) { fetchWebImage(url) }
     }
     return image
 }
+
+/** The picture at [url] on the web, fetched (on the caller's thread) and kept; null when none came or it isn't a picture. */
+internal fun fetchWebImage(url: String): ImageBitmap? = Covers.get(url) ?: runCatching {
+    val c = java.net.URL(url).openConnection() as java.net.HttpURLConnection
+    c.connectTimeout = 5000; c.readTimeout = 15000
+    try { if (c.responseCode == 200) c.inputStream.use { BitmapFactory.decodeStream(it)?.asImageBitmap() } else null } finally { c.disconnect() }
+}.getOrNull()?.also { Covers.put(url, it) }

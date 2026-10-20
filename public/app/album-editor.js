@@ -290,7 +290,7 @@ function aeWas(field) {
   if (now === scanned) return;
   box.appendChild(document.createTextNode(`From the files: ${scanned || "(none)"} · `));
   const b = document.createElement("button");
-  b.type = "button"; b.textContent = "Put back";
+  b.type = "button"; b.textContent = "Put back"; b.setAttribute("data-parity", "album-edit.put-back");
   b.addEventListener("click", () => { ae[field].value = scanned; aeWas(field); });
   box.appendChild(b);
 }
@@ -314,7 +314,7 @@ function aeRenderCandidates(list, sure) {
   for (const c of list) {
     const b = document.createElement("button");
     b.type = "button"; b.className = "ae-cand";
-    b.title = `${c.title} — ${c.artist} (${c.source})`;
+    b.title = `${c.title} — ${c.artist} (${c.source})`; b.setAttribute("aria-label", b.title); b.setAttribute("data-parity", "album-edit.candidate");
     const box = document.createElement("div"); box.className = "ae-cand-img";
     const im = document.createElement("img"); im.loading = "lazy"; im.alt = ""; im.src = c.thumb || c.url;
     // A dead image (the archive sometimes has none after all) drops out.
