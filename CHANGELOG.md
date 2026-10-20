@@ -1,6 +1,14 @@
 # Changelog
 
 ## Unreleased
+- `70-native-pitchfork`: Pitchfork natively in the Android app (plan B3), from the side menu and the search's reviews:
+  the magazine over the whole screen with its title, ✕ and the tabs Latest Reviews and Best New Music pinned at its head,
+  the reviews as the page's woven mosaic three across (every third large, left then right) with their scores (gold for
+  Best New Music), BNM and the album and artist over each cover; a review's page with ‹ Back, the cover, album, artist
+  and score, the note that the review is read on pitchfork.com, Read on Pitchfork (the phone's browser), Open in your
+  library (the album's native page, when the library has it) and Find on Qobuz (the page's Qobuz browser, its search
+  seeded). Two contract screens (`pitchfork`, `pitchfork-review`), the page keyed and measured against a stand-in
+  Pitchfork.
 - `69-native-notices`: the page's notices at the head of the native Home in the Android app (plan R3, in part). Since the
   native Home came in front from launch (item 64) the page's notices were hidden behind it: the update offer (the
   server's and the app's, with its notes, Update or Later, its progress and a failure) and the server's notice (an empty

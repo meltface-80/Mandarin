@@ -6,6 +6,7 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.musicd.server.client.ServerClient
+import com.musicd.server.client.PitchforkHit
 import com.musicd.server.client.ShellRoute
 import com.musicd.server.client.WallPrefs
 
@@ -23,8 +24,17 @@ internal fun NavGraphBuilder.moreRoutes(nav: NavHostController, client: () -> Se
             onNowPlaying = { id -> nav.navigate(ShellRoute.nowPlaying(id)) { launchSingleTop = true } },
             onRoom = NativeShell::roomChosen,
             onNav = { what -> navTap(nav, what) },
-            onPage = { what, arg -> toPageOrNative(nav, what, arg) }
+            // A Pitchfork review: its page in the app's own magazine (item 70).
+            onPage = { what, arg -> if (what == "review" && arg != null) nav.navigate(ShellRoute.pitchfork(arg, NativeShell.zone)) else toPageOrNative(nav, what, arg) }
         )
+    }
+    // Pitchfork (item 70): the magazine, or a review's page in it; an album the library has opens in its place, Find on Qobuz is the page's browser over Home.
+    composable(ShellRoute.PITCHFORK, arguments = listOf(navArgument(ShellRoute.REVIEW) { type = NavType.StringType; defaultValue = "" }, navArgument(ShellRoute.ZONE) { type = NavType.StringType; defaultValue = "" })) { entry ->
+        val zone = entry.arguments?.getString(ShellRoute.ZONE).orEmpty()
+        PitchforkScreen(WallPrefs.parse(prefs), PitchforkHit.parse(entry.arguments?.getString(ShellRoute.REVIEW)), client,
+            onClose = { nav.popBackStack() },
+            onAlbum = { offset -> nav.popBackStack(); nav.navigate(ShellRoute.album(offset, zone, "")) },
+            onQobuz = { q -> if (!nav.popBackStack(ShellRoute.HOME, false)) nav.popBackStack(); NativeShell.toPage("qobuz-search", q) })
     }
     composable(ShellRoute.PLAYLISTS, arguments = listOf(navArgument(ShellRoute.ZONE) { type = NavType.StringType; defaultValue = "" })) { entry ->
         val zone = entry.arguments?.getString(ShellRoute.ZONE).orEmpty()

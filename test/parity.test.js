@@ -18,6 +18,8 @@ const ports = require("./ports");
 const { pdf } = require("./fixtures");
 const { started, until } = require("./helpers");
 const { FakeHousehold } = require("./fake-sonos");
+const { FakeWeb } = require("./fake-web");
+const { pitchforkPages } = require("./fake-pitchfork");
 const { Browser, findBrowser } = require("./browser-harness");
 const { built } = require("./server");
 const contract = require("../docs/specs/screens.json");
@@ -337,6 +339,28 @@ const OPEN_POWER = `(async () => {
   return "open";
 })()`;
 
+/* Pitchfork: the side menu's Pitchfork, its Latest Reviews read; then a review's page, the first one's (an album the library has). */
+const OPEN_PITCHFORK = `(async () => {
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const until = async (fn, ms = 30000) => { const t0 = Date.now(); while (!fn()) { if (Date.now() - t0 > ms) return false; await sleep(50); } return true; };
+  if (!(await until(() => document.querySelectorAll("#home-library .album").length > 0))) return "no Home";
+  document.getElementById("pitchfork-toggle").click();
+  if (!(await until(() => document.querySelectorAll("#pitchfork-list .pf-card").length > 3))) return "no reviews";
+  await sleep(600);
+  return "open";
+})()`;
+const OPEN_PITCHFORK_REVIEW = `(async () => {
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const until = async (fn, ms = 30000) => { const t0 = Date.now(); while (!fn()) { if (Date.now() - t0 > ms) return false; await sleep(50); } return true; };
+  if (!(await until(() => document.querySelectorAll("#home-library .album").length > 0))) return "no Home";
+  document.getElementById("pitchfork-toggle").click();
+  if (!(await until(() => document.querySelectorAll("#pitchfork-list .pf-card").length > 3))) return "no reviews";
+  document.querySelector("#pitchfork-list .pf-card").click();
+  if (!(await until(() => !!document.querySelector("#pitchfork-detail .pf-action-primary")))) return "no review";
+  await sleep(600);
+  return "open";
+})()`;
+
 /* How the page is brought to each screen of the contract, and what holds it; `shared`: screens of the contract's under the same root, held by their own checks. */
 const SCREENS = {
   // Home and what opens from it first, before any screen's check plays an album: today's album is still on Home, so its badge is checked too.
@@ -360,7 +384,9 @@ const SCREENS = {
   "smart-playlist": { open: OPEN_SMART_PLAYLIST, root: "body", shared: ["mini-player", "nav"] },
   "menu": { open: OPEN_MENU, root: "#menu-overlay" },
   "group": { open: OPEN_GROUP, root: ".lib-sheet-backdrop" },
-  "device-power": { open: OPEN_POWER, root: ".lib-sheet-backdrop" }
+  "device-power": { open: OPEN_POWER, root: ".lib-sheet-backdrop" },
+  "pitchfork": { open: OPEN_PITCHFORK, root: "#pitchfork-overlay" },
+  "pitchfork-review": { open: OPEN_PITCHFORK_REVIEW, root: "#pitchfork-overlay", shared: ["pitchfork"] }
 };
 
 test("every screen of the contract has a way to open it on the page", () => {
@@ -371,7 +397,11 @@ test("the page keeps the screens contract: each native screen's controls and rea
   const house = new FakeHousehold();
   await house.start();
   t.after(() => house.stop());
-  const { lib, base, token, api } = await started(t, { sonosHosts: [ports.host(0)] });
+  // Pitchfork's listings on loopback, for its screens (item 70).
+  const web = new FakeWeb(pitchforkPages());
+  await web.start();
+  t.after(() => web.stop());
+  const { lib, base, token, api } = await started(t, { sonosHosts: [ports.host(0)], pitchforkBaseUrl: web.base });
   // Album One's booklet (one blue page), found in its folder when its page asks: the booklet screen's way in.
   fs.writeFileSync(path.join(lib.music, "Artist A", "Album One", "Booklet.pdf"), pdf(["0 0 1"]));
   const kitchen = await until(async () => ((await api("zones")).json.zones || []).find(z => z.display_name === "Kitchen"), 20000, "the Kitchen room");

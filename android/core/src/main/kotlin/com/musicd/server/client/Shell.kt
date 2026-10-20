@@ -93,6 +93,11 @@ object ShellRoute {
     const val SEARCH = "search?$Q={$Q}&$ZONE={$ZONE}"
     fun search(q: String, zoneId: String): String = "search?$Q=" + enc(q) + "&$ZONE=" + enc(zoneId)
 
+    const val REVIEW = "review"
+    /** Pitchfork (item 70): the magazine, or one review's page in it ([REVIEW], the review as JSON; none for the list). */
+    const val PITCHFORK = "pitchfork?$REVIEW={$REVIEW}&$ZONE={$ZONE}"
+    fun pitchfork(review: String, zoneId: String): String = "pitchfork?$REVIEW=" + enc(review) + "&$ZONE=" + enc(zoneId)
+
     /** An artist's page (L4, item 52): their albums and their biography. */
     const val ARTIST = "artist?name={name}&$ZONE={$ZONE}"
     fun artist(name: String, zoneId: String): String = "artist?name=" + enc(name) + "&$ZONE=" + enc(zoneId)
