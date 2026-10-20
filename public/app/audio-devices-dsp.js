@@ -7,36 +7,36 @@
 function renderHeadphones(dr) {
   const hp = dr.headphone;
   const ui = dr.hp || null;
-  let html = '<div class="cap-group" data-hp-group><span class="cap-label">Headphones</span>';
+  let html = '<div class="cap-group" data-hp-group><span class="cap-label"' + ' data-parity="settings-device.cap-label"' + '>Headphones</span>';
   if (hp) {
-    html += '<div class="hp-current"><div class="hp-name">' + esc(hp.name || "Profile") + '</div><div class="hp-sub">' +
+    html += '<div class="hp-current"><div class="hp-name"' + ' data-parity="settings-device.hp-name"' + ">" + esc(hp.name || "Profile") + '</div><div class="hp-sub"' + ' data-parity="settings-device.hp-sub"' + ">" +
       esc((hp.source === "autoeq" ? "AutoEq · " : "") + hp.bands.length + " band" + (hp.bands.length === 1 ? "" : "s") + (typeof hp.preamp === "number" ? " · preamp " + fmtDb(hp.preamp) : "")) + "</div></div>";
   } else if (!ui) {
-    html += '<div class="settings-note">None. A profile from AutoEq corrects a headphone’s measured response; pick yours, or paste one you have.</div>';
+    html += '<div class="settings-note"' + ' data-parity="settings-device.note"' + '>None. A profile from AutoEq corrects a headphone’s measured response; pick yours, or paste one you have.</div>';
   }
   if (!ui) {
-    html += '<div class="hp-actions"><button type="button" class="settings-update-btn" data-hp-choose>' + (hp ? "Change…" : "Choose from AutoEq…") + '</button>' +
-      '<button type="button" class="settings-update-btn" data-hp-paste>Paste a profile…</button>' +
-      (hp ? '<button type="button" class="settings-update-btn" data-hp-remove>Remove</button>' : "") + "</div>";
+    html += '<div class="hp-actions"><button type="button" class="settings-update-btn"' + ' data-parity="settings-device.hp-choose"' + ' data-hp-choose>' + (hp ? "Change…" : "Choose from AutoEq…") + '</button>' +
+      '<button type="button" class="settings-update-btn"' + ' data-parity="settings-device.hp-paste"' + ' data-hp-paste>Paste a profile…</button>' +
+      (hp ? '<button type="button" class="settings-update-btn"' + ' data-parity="settings-device.hp-remove"' + ' data-hp-remove>Remove</button>' : "") + "</div>";
   } else if (ui.mode === "search") {
-    html += '<div class="hp-search"><input type="search" class="dev-name-input" data-hp-q placeholder="Headphone name — HD 650, Aria, AirPods…" value="' + esc(ui.q || "") + '" autocomplete="off" autocapitalize="off">' +
+    html += '<div class="hp-search"><input type="search" class="dev-name-input"' + ' data-parity="settings-device.hp-search"' + ' aria-label="Headphone name" data-hp-q placeholder="Headphone name — HD 650, Aria, AirPods…" value="' + esc(ui.q || "") + '" autocomplete="off" autocapitalize="off">' +
       '<div class="hp-results" data-hp-results>' + renderHpResults(ui) + "</div>" +
-      '<div class="hp-actions"><button type="button" class="settings-update-btn" data-hp-cancel>Cancel</button></div></div>';
+      '<div class="hp-actions"><button type="button" class="settings-update-btn"' + ' data-parity="settings-device.hp-cancel"' + ' data-hp-cancel>Cancel</button></div></div>';
   } else if (ui.mode === "paste") {
-    html += '<div class="hp-paste"><input type="text" class="dev-name-input" data-hp-name placeholder="A name for it" maxlength="120" value="' + esc(ui.name || "") + '">' +
-      '<textarea class="hp-text" data-hp-text rows="6" placeholder="Preamp: -6.1 dB&#10;Filter 1: ON LSC Fc 105 Hz Gain 6.4 dB Q 0.70&#10;Filter 2: ON PK Fc 8800 Hz Gain 5.1 dB Q 1.42">' + esc(ui.text || "") + "</textarea>" +
-      (ui.error ? '<div class="settings-note away-error">' + esc(ui.error) + "</div>" : "") +
-      '<div class="hp-actions"><button type="button" class="action-btn primary" data-hp-use>Use it</button><button type="button" class="settings-update-btn" data-hp-cancel>Cancel</button></div></div>';
+    html += '<div class="hp-paste"><input type="text" class="dev-name-input"' + ' data-parity="settings-device.hp-label"' + ' aria-label="A name for it" data-hp-name placeholder="A name for it" maxlength="120" value="' + esc(ui.name || "") + '">' +
+      '<textarea class="hp-text"' + ' data-parity="settings-device.hp-text"' + ' aria-label="The profile" data-hp-text rows="6" placeholder="Preamp: -6.1 dB&#10;Filter 1: ON LSC Fc 105 Hz Gain 6.4 dB Q 0.70&#10;Filter 2: ON PK Fc 8800 Hz Gain 5.1 dB Q 1.42">' + esc(ui.text || "") + "</textarea>" +
+      (ui.error ? '<div class="settings-note away-error"' + ' data-parity="settings-device.note"' + '>' + esc(ui.error) + "</div>" : "") +
+      '<div class="hp-actions"><button type="button" class="action-btn primary"' + ' data-parity="settings-device.hp-use"' + ' data-hp-use>Use it</button><button type="button" class="settings-update-btn"' + ' data-parity="settings-device.hp-cancel"' + ' data-hp-cancel>Cancel</button></div></div>';
   }
   html += "</div>";
   return html;
 }
 function renderHpResults(ui) {
-  if (ui.busy) return '<div class="settings-note">Looking…</div>';
-  if (ui.error) return '<div class="settings-note away-error">' + esc(ui.error) + "</div>";
-  if (!ui.q || ui.q.trim().length < 2) return '<div class="settings-note">Type a name. AutoEq has profiles for most headphones and earphones that have been measured.</div>';
-  if (!ui.results || !ui.results.length) return '<div class="settings-note">Nothing by that name. Try fewer words, or paste a profile.</div>';
-  return ui.results.map(r => '<button type="button" class="hp-row" data-hp-pick="' + esc(r.id) + '"><span class="hp-row-name">' + esc(r.name) + '</span><span class="hp-row-sub">' + esc([r.source, r.rig, r.form].filter(Boolean).join(" · ")) + "</span></button>").join("");
+  if (ui.busy) return '<div class="settings-note"' + ' data-parity="settings-device.note"' + '>Looking…</div>';
+  if (ui.error) return '<div class="settings-note away-error"' + ' data-parity="settings-device.note"' + '>' + esc(ui.error) + "</div>";
+  if (!ui.q || ui.q.trim().length < 2) return '<div class="settings-note"' + ' data-parity="settings-device.note"' + '>Type a name. AutoEq has profiles for most headphones and earphones that have been measured.</div>';
+  if (!ui.results || !ui.results.length) return '<div class="settings-note"' + ' data-parity="settings-device.note"' + '>Nothing by that name. Try fewer words, or paste a profile.</div>';
+  return ui.results.map(r => '<button type="button" class="hp-row"' + ' data-parity="settings-device.hp-result"' + ' aria-label="' + esc(r.name) + '" data-hp-pick="' + esc(r.id) + '"><span class="hp-row-name">' + esc(r.name) + '</span><span class="hp-row-sub">' + esc([r.source, r.rig, r.form].filter(Boolean).join(" · ")) + "</span></button>").join("");
 }
 let hpTimer = null;
 async function hpSearch(dr) {

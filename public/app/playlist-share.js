@@ -43,7 +43,7 @@ function openShareSheet(name, j, caveats) {
   openLibSheet("Share " + name, (body) => {
     const n = j.track_count || 0;
     const sum = document.createElement("div");
-    sum.className = "share-sum"; sum.dataset.parity = "playlist-share.sum";
+    sum.className = "share-sum"; sum.dataset.parity = "playlist-share.sum share-tracks.sum";
     sum.textContent = `${n} track${n === 1 ? "" : "s"}`;
     body.appendChild(sum);
 
@@ -75,13 +75,13 @@ function openShareSheet(name, j, caveats) {
     }
     for (const w of warnings) {
       const el = document.createElement("div");
-      el.className = "share-warn"; el.dataset.parity = "playlist-share.warn";
+      el.className = "share-warn"; el.dataset.parity = "playlist-share.warn share-tracks.warn";
       el.textContent = w;
       body.appendChild(el);
     }
 
     const note = document.createElement("div");
-    note.className = "share-note"; note.dataset.parity = "playlist-share.note";
+    note.className = "share-note"; note.dataset.parity = "playlist-share.note share-tracks.note";
     note.textContent =
       "This describes the music, not the music itself. Whoever imports it " +
       "gets whatever their own library or streaming service can match.";
@@ -91,8 +91,7 @@ function openShareSheet(name, j, caveats) {
     // long-press copy works where the Clipboard API doesn't.
     const ta = document.createElement("textarea");
     ta.className = "share-blob";
-    ta.id = "share-blob"; ta.dataset.parity = "playlist-share.blob";
-    ta.setAttribute("aria-label", "Shared playlist");
+    ta.id = "share-blob"; ta.dataset.parity = "playlist-share.blob share-tracks.blob"; ta.setAttribute("aria-label", "The share file's text");
     ta.readOnly = true;
     ta.setAttribute("autocapitalize", "none");
     ta.setAttribute("autocorrect", "off");
@@ -102,7 +101,7 @@ function openShareSheet(name, j, caveats) {
     body.appendChild(ta);
   }, (foot, close) => {
     const copy = document.createElement("button");
-    copy.type = "button"; copy.className = "action-btn primary"; copy.dataset.parity = "playlist-share.copy";
+    copy.type = "button"; copy.className = "action-btn primary"; copy.dataset.parity = "playlist-share.copy share-tracks.copy";
     copy.textContent = "Copy";
     copy.addEventListener("click", async () => {
       // navigator.clipboard is a SECURE-CONTEXT api and this extension is
@@ -136,7 +135,7 @@ function openShareSheet(name, j, caveats) {
     foot.appendChild(copy);
 
     const dl = document.createElement("button");
-    dl.type = "button"; dl.className = "action-btn"; dl.dataset.parity = "playlist-share.download";
+    dl.type = "button"; dl.className = "action-btn"; dl.dataset.parity = "playlist-share.download share-tracks.download";
     dl.textContent = "Download";
     dl.addEventListener("click", () => {
       const safe = (name || "playlist").replace(/[^a-z0-9]+/gi, "_").slice(0, 60);
@@ -153,11 +152,11 @@ function openShareSheet(name, j, caveats) {
     foot.appendChild(dl);
 
     const done = document.createElement("button");
-    done.type = "button"; done.className = "action-btn"; done.dataset.parity = "playlist-share.done";
+    done.type = "button"; done.className = "action-btn"; done.dataset.parity = "playlist-share.done share-tracks.done";
     done.textContent = "Done";
     done.addEventListener("click", close);
     foot.appendChild(done);
-  });
+  }, null, { title: "share-tracks.title", close: "share-tracks.close" });
 }
 
 // Roon ARC's sort popover, in this app's bottom-sheet language: a plain list

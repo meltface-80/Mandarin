@@ -64,8 +64,13 @@ internal fun SettingsScreen(pane: String, client: () -> ServerClient?, onBack: (
     when (pane) {
         "account" -> SettingsAccount(client, onBack)
         "metadata" -> SettingsKeys(client, onBack)
+        "playback" -> SettingsAudio(client, onBack)
+        "backup" -> SettingsBackup(client, onBack)
+        "system" -> SettingsUpdates(client, onBack)
         "streaming" -> SettingsServices(client, onBack)
+        "downloads" -> SettingsDownloads(client, onBack)
         "folders" -> SettingsFolders(client, onBack)
+        "identify" -> SettingsScanner(client, onBack)
         in SETUP_PANES -> SettingsSetupPane(pane, client, onBack)
         "setup" -> SettingsFrame {
             SettingsHead(Modifier.parity("settings-setup.back", Contract.label("settings-setup.back")).clip(CircleShape).clickable(onClick = onBack), R.drawable.np_back,
@@ -79,8 +84,9 @@ internal fun SettingsScreen(pane: String, client: () -> ServerClient?, onBack: (
     }
 }
 
+/** The pages the app draws itself (Setup's small ones in SettingsSetup.kt, item 78; Services, item 87; Music Folders, item 88; Library Scanner, item 90); Setup is its list. */
+private val NATIVE_PANES = setOf("setup", "account", "metadata", "streaming", "folders", "identify", "downloads", "backup", "system", "playback") + SETUP_PANES
 /** The pages the app draws itself (Setup's small ones in SettingsSetup.kt, item 78; Services, item 87); Setup is its list. */
-private val NATIVE_PANES = setOf("setup", "account", "metadata", "streaming", "folders") + SETUP_PANES
 
 @Composable
 private fun SettingsHome(client: () -> ServerClient?, onClose: () -> Unit, open: (String) -> Unit) {

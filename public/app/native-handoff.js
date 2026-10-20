@@ -50,6 +50,27 @@ window.__musicdNative = function (what, arg) {
     window.__uiPrefs.set(p.name, p.value);
     return true;
   }
+  // The app's own Backup & restore (item 92): this screen's settings handed to it (they live here), and a restored set put back.
+  if (what === "backup-page") {
+    if (!window.MusicdApp || typeof window.MusicdApp.backupPageSettings !== "function" || !window.__backupPageSettings) return false;
+    window.MusicdApp.backupPageSettings(JSON.stringify(window.__backupPageSettings()));
+    return true;
+  }
+  if (what === "backup-page-restore") {
+    let p;
+    try { p = JSON.parse(arg); } catch (e) { return false; }
+    if (!p || typeof p !== "object" || !window.__backupApplyPage) return false;
+    window.__backupApplyPage(p);
+    return true;
+  }
+  // The app's own Check for updates found one (item 92): installed by the page's update banner, which owns the progress.
+  if (what === "apply-update") {
+    let w;
+    try { w = JSON.parse(arg); } catch (e) { return false; }
+    if (!w || typeof w !== "object" || typeof window.__applyUpdateNow !== "function") return false;
+    window.__applyUpdateNow({ server: !!w.server, app: !!w.app });
+    return true;
+  }
   // A page of Settings the app's own Settings doesn't draw (item 76): the page's, alone.
   if (what === "settings-pane") return !!(arg && window.__openSettingsPane && window.__openSettingsPane(arg));
   // The native share card's default service, held on its chip (item 75): kept where the page's chips keep it.
