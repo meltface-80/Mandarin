@@ -18,7 +18,8 @@ import org.json.JSONObject
  *   MusicdDownloads.download(albumId, title, artist)   asks Original / Opus 256, then queues it
  *   MusicdDownloads.remove(albumId)   asks, then deletes it from the phone
  *   MusicdDownloads.removeMany(ids)   deletes these (a JSON array) — the page has asked
- *   MusicdDownloads.open()            the Downloads screen
+ *   MusicdDownloads.open()            Settings → Downloads' albums
+ *   MusicdDownloads.retry(id)         a download that failed, tried again
  *   MusicdDownloads.ids()             albums fully on the phone, as a JSON array
  *   MusicdDownloads.all()             every album on the phone or on its way, newest first:
  *                                     [{"id", "state", "done", "total", "title", "artist",
@@ -263,9 +264,17 @@ class DownloadsBridge(private val activity: Activity) {
         }
     }
 
+    /** Settings → Downloads' albums, the app's own (item 110; the app's old Downloads screen before). */
     @JavascriptInterface
     fun open() {
-        activity.runOnUiThread { activity.startActivity(Intent(activity, DownloadsActivity::class.java)) }
+        activity.runOnUiThread { NativeShell.nav?.navigate(com.musicd.server.client.ShellRoute.settings("downloads-albums")) }
+    }
+
+    /** A download that failed, tried again as it was asked for (item 110; the app's old Downloads screen had it). */
+    @JavascriptInterface
+    fun retry(albumId: Int) {
+        val a = DownloadStore.album(activity, albumId) ?: return
+        DownloadWorker.enqueue(activity, a.id, a.quality, a.title, a.artist, a.auto)
     }
 
     private fun askQuality(albumId: Int, title: String, artist: String) {

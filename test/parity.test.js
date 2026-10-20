@@ -146,11 +146,12 @@ const DL_APP = `window.MusicdDownloads = (() => {
     folder: { access: "needed", name: "Music", path: "/storage/emulated/0/Music", chosen: true }, elsewhere: 2, moving: null, used: 1288490188,
     cacheWifi: 20, cacheMobile: 10, cacheGb: 2, cacheChoices: { wifi: [5, 10, 20, 50], mobile: [0, 5, 10, 20], gb: [1, 2, 4, 8] } };
   const albums = [{ id: 1, state: "done", done: 9, total: 9, title: "Album One", artist: "Artist A", quality: "original", bytes: 412000000, auto: false, error: "", image_key: "" },
-    { id: 2, state: "downloading", done: 3, total: 8, title: "Hi Res", artist: "Artist B", quality: "opus", bytes: 0, auto: true, error: "", image_key: "" }];
+    { id: 2, state: "downloading", done: 3, total: 8, title: "Hi Res", artist: "Artist B", quality: "opus", bytes: 0, auto: true, error: "", image_key: "" },
+    { id: 3, state: "failed", done: 1, total: 6, title: "Gone Wrong", artist: "Artist C", quality: "original", bytes: 0, auto: false, error: "HTTP 404", image_key: "" }];
   return { settings: () => JSON.stringify(s), all: () => JSON.stringify(albums), ids: () => "[1]", status: () => JSON.stringify({ state: "none" }),
     set: (k, v) => { s[k] = v; }, cacheStatus: () => JSON.stringify({ used: 52428800, ahead: 4, wanted: 20, metered: false }),
     localFolder: () => "null", localAlbums: () => "[]", clearCache() {}, chooseDownloadFolder() {}, forgetDownloadFolder() {}, allowAllFiles() {}, moveDownloads() {},
-    removeMany() {}, remove() {}, play() {}, playLocal() {}, download() {}, open() {}, chooseLocalFolder() {}, forgetLocalFolder() {}, rescanLocal() {} };
+    removeMany() {}, remove() {}, retry() {}, play() {}, playLocal() {}, download() {}, open() {}, chooseLocalFolder() {}, forgetLocalFolder() {}, rescanLocal() {} };
 })();`;
 
 // The Android app's WebView, by its name to the server: the page as the app has it, android.css and all (Pages.cs IsApp).
