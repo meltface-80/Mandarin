@@ -10,6 +10,7 @@ import android.util.Log
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import org.json.JSONArray
+import com.musicd.server.client.PhoneShelf
 import org.json.JSONObject
 import java.io.File
 import java.security.MessageDigest
@@ -409,38 +410,13 @@ object LocalMusic {
 
     // ------------------------------------------------------------ for the page and the player
 
-    fun albumJson(a: Album): JSONObject = JSONObject()
-        .put("key", a.key).put("offset", "phone:${a.key}").put("title", a.title).put("subtitle", a.artist)
-        .put("image_key", if (a.art != null) "phone-${a.key}" else JSONObject.NULL).put("source", "local")
-        .put("tracks", a.tracks.size).put("year", a.year ?: JSONObject.NULL)
-        // The tile's badge, as the server shapes it: "24/96" (hi-res marked) or the lossy format.
-        .put("quality", quality(a) ?: JSONObject.NULL).put("hires", hires(a))
+    /** The album as the server's lists show one (core's PhoneShelf, item 106). */
+    fun albumJson(a: Album): JSONObject = PhoneShelf.phoneJson(PhoneData.phone(a))
+    internal fun quality(a: Album): String? = PhoneShelf.quality(PhoneData.phone(a))
+    internal fun hires(a: Album): Boolean = PhoneShelf.hires(PhoneData.phone(a))
 
-    internal fun quality(a: Album): String? {
-        val t = a.tracks.firstOrNull() ?: return null
-        val lossless = t.ext in setOf("flac", "wav", "aif", "aiff", "alac", "wv", "ape")
-        if (!lossless) return t.ext.uppercase()
-        if (t.rate <= 0 || t.bits <= 0) return null
-        val khz = if (t.rate % 1000 == 0) (t.rate / 1000).toString() else String.format("%.1f", t.rate / 1000.0)
-        return "${t.bits}/$khz"
-    }
-    internal fun hires(a: Album): Boolean = a.tracks.firstOrNull()?.let { it.rate > 48000 || it.bits > 16 } ?: false
-
-    /** The album's page, as the server shapes one (OfflineApi.albumPage). */
-    fun albumPage(a: Album): JSONObject {
-        val tracks = JSONArray()
-        for (t in a.tracks) {
-            val len = t.duration.toInt()
-            tracks.put(JSONObject().put("title", t.title).put("subtitle", "%d:%02d".format(len / 60, len % 60))
-                .put("length", len).put("track_id", JSONObject.NULL).put("artist", t.artist)
-                .put("quality", if (t.rate > 0 && t.bits > 0) "${t.bits}/${if (t.rate % 1000 == 0) (t.rate / 1000).toString() else String.format("%.1f", t.rate / 1000.0)}" else JSONObject.NULL))
-        }
-        return JSONObject().put("album", albumJson(a)).put("tracks", tracks)
-            .put("actions", JSONArray(listOf("play_now" to "Play Now", "queue" to "Queue", "play_next" to "Play Next", "shuffle" to "Shuffle")
-                .map { JSONObject().put("kind", it.first).put("title", it.second) }))
-            .put("offset", "phone:${a.key}").put("artists", JSONArray().put(a.artist))
-            .put("library_moved", false).put("partial", false).put("declared_tracks", tracks.length()).put("on_phone", true)
-    }
+    /** The album's page, as the server shapes one. */
+    fun albumPage(a: Album): JSONObject = PhoneShelf.phonePage(PhoneData.phone(a))
 
     fun mediaItems(c: Context, key: String): List<MediaItem> {
         val a = album(key) ?: return emptyList()
