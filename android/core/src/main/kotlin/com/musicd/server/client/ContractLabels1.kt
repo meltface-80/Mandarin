@@ -1,8 +1,9 @@
 // Written by tools/quality/parity.js from docs/specs/screens.json (npm run parity -- write); never by hand.
 package com.musicd.server.client
 
-/** The screens contract's labels, 1 of the files of them (Contract.kt joins them). */
-internal val contractLabels1: Array<Pair<String, List<String>>> = arrayOf(
+/** The screens contract's labels, part 1 of 2 (Contract.kt joins them). */
+internal object ContractLabels1 {
+    val labels: Map<String, List<String>> = mapOf(
         "now-playing.back" to listOf("Back"),
         "now-playing.share" to listOf("Share card"),
         "now-playing.tab-now-playing" to listOf("Now playing"),
@@ -303,4 +304,5 @@ internal val contractLabels1: Array<Pair<String, List<String>>> = arrayOf(
         "settings-sharecard.site" to listOf("{site}"),
         "settings-sharecard.info" to listOf("About {setting}"),
         "settings-sharecard.default" to listOf("Default service"),
-)
+    )
+}

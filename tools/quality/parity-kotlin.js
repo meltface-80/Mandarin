@@ -152,46 +152,51 @@ function scan(src) {
   return { tags, findings };
 }
 
-/** Where core's Contract.kt and its files of labels are written. */
+/** Where the labels are written: Contract.kt, and the parts it joins (ContractLabels1.kt …). */
 const KOTLIN_DIR = "android/core/src/main/kotlin/com/musicd/server/client/";
-/** Labels a file: a few hundred, so no file of them outgrows the length gate as the contract grows (item 92). */
-const LABELS_A_FILE = 300;
+/** The most label rows a part holds, so no part nears the files' length watch however many screens there are. */
+const PART_ROWS = 300;
+const HEAD = "// Written by tools/quality/parity.js from docs/specs/screens.json (npm run parity -- write); never by hand.\npackage com.musicd.server.client\n";
 
 /**
- * The contract's labels as Kotlin (core's Contract.kt and its ContractLabels1.kt …): what each native control is
- * called, aloud too, so the app never spells one itself. Each file by its path from the repository's root.
+ * The contract's labels as Kotlin (core's Contract.kt and its parts): what
+ * each native control is called, aloud too, so the app never spells one
+ * itself. A screen's labels are kept in one part; a part takes the next
+ * screen while it stays within PART_ROWS rows.
  * @param {{ screens: Record<string, { items: Record<string, { kind: string, label?: string | string[], only?: string }> }> }} contract
- * @returns {Record<string, string>}
+ * @returns {Record<string, string>} each file's text by its path from the repository's root
  */
 function contractKotlin(contract) {
-  const rows = [];
+  /** @type {string[][]} */
+  const parts = [[]];
   for (const [s, screen] of Object.entries(contract.screens)) {
+    const rows = [];
     for (const [k, it] of Object.entries(screen.items)) {
       if (it.kind !== "action" || !it.label || it.only) continue;
       rows.push(`        "${s}.${k}" to listOf(${[].concat(it.label).map(l => JSON.stringify(l)).join(", ")}),`);
     }
+    const last = parts[parts.length - 1];
+    if (last.length && last.length + rows.length > PART_ROWS) parts.push(rows); else last.push(...rows);
   }
-  const HEAD = "// Written by tools/quality/parity.js from docs/specs/screens.json (npm run parity -- write); never by hand.\npackage com.musicd.server.client\n";
   /** @type {Record<string, string>} */
   const files = {};
-  const parts = [];
-  for (let i = 0; i * LABELS_A_FILE < Math.max(rows.length, 1); i++) {
-    const n = i + 1;
-    parts.push(`*contractLabels${n}`);
-    files[`${KOTLIN_DIR}ContractLabels${n}.kt`] = `${HEAD}
-/** The screens contract's labels, ${n} of the files of them (Contract.kt joins them). */
-internal val contractLabels${n}: Array<Pair<String, List<String>>> = arrayOf(
-${rows.slice(i * LABELS_A_FILE, (i + 1) * LABELS_A_FILE).join("\n")}
-)
+  parts.forEach((rows, i) => {
+    files[`${KOTLIN_DIR}ContractLabels${i + 1}.kt`] = `${HEAD}
+/** The screens contract's labels, part ${i + 1} of ${parts.length} (Contract.kt joins them). */
+internal object ContractLabels${i + 1} {
+    val labels: Map<String, List<String>> = mapOf(
+${rows.join("\n")}
+    )
+}
 `;
-  }
-  return Object.assign({ [`${KOTLIN_DIR}Contract.kt`]: `${HEAD}
+  });
+  files[`${KOTLIN_DIR}Contract.kt`] = `${HEAD}
 /**
  * The screens contract's labels (docs/specs/native-parity.md): what each
  * native control is called, aloud too, one per state, as the page calls it.
  */
 object Contract {
-    val labels: Map<String, List<String>> = mapOf(${parts.join(", ")})
+    val labels: Map<String, List<String>> = ${parts.map((_, i) => `ContractLabels${i + 1}.labels`).join(" + ")}
 
     /** [key]'s label in [state], each {…} in it filled from [fill] in turn. */
     fun label(key: String, state: Int = 0, vararg fill: String): String {
@@ -200,7 +205,8 @@ object Contract {
         return Regex("\\\\{[^}]+\\\\}").replace(all[state.coerceIn(0, all.size - 1)]) { fill.getOrElse(i++) { "" } }
     }
 }
-` }, files);
+`;
+  return files;
 }
 
 module.exports = { mask, scan, contractKotlin, KOTLIN_DIR, CONTROLS, GESTURES, READOUTS };

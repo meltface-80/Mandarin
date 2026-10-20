@@ -504,6 +504,7 @@ const SCREENS = {
   "settings-sharecard": { open: OPEN_SETTINGS(["setup", "sharecard"], `document.querySelectorAll("#share-services-list .switch").length > 0 && document.querySelectorAll("#share-reviews-list .switch").length > 0`), root: '#settings-overlay .settings-view[data-pane="sharecard"]' },
   "settings-homescreen": { open: OPEN_SETTINGS(["setup", "homescreen"], `document.querySelectorAll("#home-rows-list .home-row-item").length > 0`), root: '#settings-overlay .settings-view[data-pane="homescreen"]' },
   "settings-services": { open: OPEN_SETTINGS(["streaming"], `!!document.getElementById("qobuz-status").textContent`), root: '#settings-overlay .settings-view[data-pane="streaming"]' },
+  "settings-folders": { open: OPEN_SETTINGS(["folders"], `!!document.querySelector("#folders-pane-body .mf-row, #folders-pane-body .settings-note")`), root: '#settings-overlay .settings-view[data-pane="folders"]' },
   "settings-system": { open: OPEN_SETTINGS(["system"]), root: '#settings-overlay .settings-view[data-pane="system"]' },
   "settings-backup": { open: OPEN_SETTINGS(["backup"], `document.querySelectorAll("#backup-parts .backup-part").length > 0 && !!document.querySelector("#backup-list .settings-note, #backup-list .backup-item")`), root: '#settings-overlay .settings-view[data-pane="backup"]' },
   "settings-away": { open: OPEN_SETTINGS(["setup", "away"], `!!document.querySelector("#away-pane-body .settings-note")`), root: '#settings-overlay .settings-view[data-pane="away"]' },

@@ -6,7 +6,7 @@ package com.musicd.server.client
  * native control is called, aloud too, one per state, as the page calls it.
  */
 object Contract {
-    val labels: Map<String, List<String>> = mapOf(*contractLabels1, *contractLabels2)
+    val labels: Map<String, List<String>> = ContractLabels1.labels + ContractLabels2.labels
 
     /** [key]'s label in [state], each {…} in it filled from [fill] in turn. */
     fun label(key: String, state: Int = 0, vararg fill: String): String {

@@ -1,8 +1,9 @@
 // Written by tools/quality/parity.js from docs/specs/screens.json (npm run parity -- write); never by hand.
 package com.musicd.server.client
 
-/** The screens contract's labels, 2 of the files of them (Contract.kt joins them). */
-internal val contractLabels2: Array<Pair<String, List<String>>> = arrayOf(
+/** The screens contract's labels, part 2 of 2 (Contract.kt joins them). */
+internal object ContractLabels2 {
+    val labels: Map<String, List<String>> = mapOf(
         "settings-away.back" to listOf("Back to settings"),
         "settings-away.enabled" to listOf("Built-in Tailscale"),
         "settings-away.signin" to listOf("Sign in to Tailscale"),
@@ -25,6 +26,18 @@ internal val contractLabels2: Array<Pair<String, List<String>>> = arrayOf(
         "settings-services.import" to listOf("Favourites and purchases in the library", "Favourites in the library"),
         "settings-services.update" to listOf("Update library now", "…"),
         "settings-services.signout" to listOf("Sign out"),
+        "settings-folders.back" to listOf("Back to settings"),
+        "settings-folders.remove" to listOf("Remove"),
+        "settings-folders.add" to listOf("Add a folder"),
+        "settings-folders.add-close" to listOf("Cancel"),
+        "settings-folders.place" to listOf("{path}"),
+        "settings-folders.up" to listOf("Up"),
+        "settings-folders.dir" to listOf("{folder}"),
+        "settings-folders.choose" to listOf("Add “{folder}”"),
+        "settings-folders.info" to listOf("About {setting}"),
+        "settings-folders.local-choose" to listOf("Choose a folder", "Change folder"),
+        "settings-folders.local-rescan" to listOf("Read again"),
+        "settings-folders.local-forget" to listOf("Forget"),
         "settings-system.back" to listOf("Back to settings"),
         "settings-system.check" to listOf("Check for updates", "{state}"),
         "settings-backup.back" to listOf("Back to settings"),
@@ -89,4 +102,5 @@ internal val contractLabels2: Array<Pair<String, List<String>>> = arrayOf(
         "album.similar-artists-site" to listOf("Last.fm ↗"),
         "album.similar-album" to listOf("{album}"),
         "album.similar-albums-more" to listOf("More", "Less"),
-)
+    )
+}

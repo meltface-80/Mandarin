@@ -67,6 +67,7 @@ internal fun SettingsScreen(pane: String, client: () -> ServerClient?, onBack: (
         "backup" -> SettingsBackup(client, onBack)
         "system" -> SettingsUpdates(client, onBack)
         "streaming" -> SettingsServices(client, onBack)
+        "folders" -> SettingsFolders(client, onBack)
         in SETUP_PANES -> SettingsSetupPane(pane, client, onBack)
         "setup" -> SettingsFrame {
             SettingsHead(Modifier.parity("settings-setup.back", Contract.label("settings-setup.back")).clip(CircleShape).clickable(onClick = onBack), R.drawable.np_back,
@@ -81,7 +82,7 @@ internal fun SettingsScreen(pane: String, client: () -> ServerClient?, onBack: (
 }
 
 /** The pages the app draws itself (Setup's small ones in SettingsSetup.kt, item 78; Services, item 87); Setup is its list. */
-private val NATIVE_PANES = setOf("setup", "account", "metadata", "streaming", "backup", "system") + SETUP_PANES
+private val NATIVE_PANES = setOf("setup", "account", "metadata", "streaming", "folders", "backup", "system") + SETUP_PANES
 
 @Composable
 private fun SettingsHome(client: () -> ServerClient?, onClose: () -> Unit, open: (String) -> Unit) {
