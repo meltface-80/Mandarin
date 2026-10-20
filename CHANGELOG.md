@@ -1,6 +1,12 @@
 # Changelog
 
 ## Unreleased
+- `85-home-rows-after-marks`: in the Android app, an album put on Listen later (from its page, or picked on a wall)
+  showed in Home's Listen later row only once the app was started again, sometimes; a favourite likewise. The change was
+  made beside Home's read of its rows, which could be answered first, and from the screen that asked, which dropped it
+  if that screen closed first. The app's changes to what Home shows (Listen later, favourites, the rows' order) are now
+  made one at a time, in the order asked, to the end whatever becomes of the screen, and Home reads its rows once those
+  under way are made.
 - `83-home-order-after-settings`: in the Android app, Home's rows put in a new order in Settings → Home Screen showed in
   that order only once the app was started again. Home reads its layout from the server the moment it is back on
   screen, and that read could be answered before the new order was saved; the save's own answer was dropped when the
