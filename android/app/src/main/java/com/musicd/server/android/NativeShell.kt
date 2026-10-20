@@ -82,7 +82,7 @@ internal object NativeShell {
      * The page's sheets that open over whatever screen is on (the Share card, Add to playlist, the album editor,
      * Group zones, Device power, a Dynamic Playlist's name): a native screen asks for one with [overPage], not [toPage].
      */
-    val OVERLAYS = setOf("share", "album-share", "album-playlist", "album-playlist-tracks", "albums-playlist", "group", "power", "smart-save", "playlist-import", "playlist-share", "smart-new", "smart-edit", "smart-share")
+    val OVERLAYS = setOf("album-playlist", "album-playlist-tracks", "albums-playlist", "group", "power", "smart-save", "playlist-import", "playlist-share", "smart-new", "smart-edit", "smart-share")
     /** How many of the page's sheets have closed over the native screens: a screen whose list a sheet can change reads it again (Import). */
     val sheetsClosed = mutableStateOf(0)
     /** The side menu open over the native screen (item 67; MenuDrawer.kt): the row's Menu opens it, Back closes it. */

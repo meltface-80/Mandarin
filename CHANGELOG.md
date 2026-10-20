@@ -1,6 +1,17 @@
 # Changelog
 
 ## Unreleased
+- `75-native-share-card`: the Share card natively in the Android app (plan B4), from an album's native page and from
+  Now playing, as the page's: a panel over the screen (centred above the mini player and the row where they show), ✕
+  in its corner, the card drawn by the app itself with the page's measurements (core's `CardLayout`, sharecard.js's
+  arithmetic) and its look (Manrope; the cover softened behind a glass pane; the cover, the release, the title and the
+  artist stepped down in size to fit four lines; the review under a hairline with whose words they are; Pitchfork's
+  score and Best New Music on the cover; the duck tile in the corner), from the server's cache first and drawn again if
+  the full answer says more; Share… (the phone's share sheet) and Download (to Pictures/Mandarin, also by holding the
+  card); the places to hear or read about the record, as equal chips, a service held as the default (ticked, and the
+  page's default too), Qobuz's chip given the album's own address where it is the default; If you like this, each act
+  queued from the library in the room or found on the default service; the hint. Before, the page's card opened over
+  the native screen. The page's card is keyed for the screens contract (`share-card`; Copy image is the page's alone).
 - `74-native-album-editor`: the album editor and the matcher natively in the Android app (plan B5), from an album's ⋯,
   Edit album, as a sheet from the foot over the album's native page, as the page's: its grip, Edit album and ✕; the cover
   with what is said of it, Find cover (an album with no cover of its own is searched for at once, and a sure match

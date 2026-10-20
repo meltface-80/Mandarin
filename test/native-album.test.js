@@ -38,6 +38,16 @@ const TAP = `(async () => { ${KIT}
   return { page: shown($("#album-modal")), opened: window.MusicdApp ? window.MusicdApp.opened : null };
 })()`;
 
+/* The native share card's default service held (item 75): kept where the page's own chips keep it, so its card ticks that chip too. */
+const SERVICE = (offset) => `(async () => { ${KIT}
+  const ok = window.__musicdNative("share-service", "deezer");
+  const kept = localStorage.getItem("musicd-share-service");
+  window.__musicdNative("album-share", "${offset}");
+  await until(() => document.querySelector("#share-links a.is-default"), 10000);
+  const ticked = (document.querySelector("#share-links a.is-default") || {}).textContent || null;
+  return { ok, kept, ticked };
+})()`;
+
 /* What the native album page hands back, each asked for by name with the album's offset (or a label's name). */
 const HANDOFF = (offset) => `(async () => { ${KIT}
   const visible = sel => [...document.querySelectorAll(sel)].some(shown);
@@ -86,5 +96,9 @@ test("the app's native album page: an album tap handed over, and what it hands b
     assert.equal(r.playlist, true);
     assert.ok(Array.isArray(r.playlistSheet) && r.playlistSheet.length === 1, "the playlist sheet: " + JSON.stringify(r.playlistSheet));
     assert.deepEqual([r.edit, r.editShown], [true, true], "the album editor");
+  });
+
+  await t.test("the native share card's default service, held there, is the page's default too", async () => {
+    assert.deepEqual(await run(SERVICE(one.offset), bridge(true)), { ok: true, kept: "deezer", ticked: "Deezer" });
   });
 });

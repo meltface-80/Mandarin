@@ -100,5 +100,14 @@ class LibraryClient(private val get: (String) -> JSONObject) {
     fun pitchforkReviews(type: String): List<PitchforkHit> = PitchforkHit.list(get("/api/pitchfork/reviews?type=" + enc(type)))
     fun pitchforkMatch(r: PitchforkHit): Long? = PitchforkHit.match(get("/api/pitchfork/review?url=" + enc(r.url) + "&album=" + enc(r.album) + "&artist=" + enc(r.artist)))
 
+    /**
+     * The share card (item 75): what it says and the places under it (the extras, [fast]: the server's cache alone, no
+     * lookups); the acts suggested under it; a Qobuz album's own address for a record, which opens the app (none: not found).
+     */
+    fun shareCard(title: String, artist: String, fast: Boolean): CardFields =
+        CardFields.parse(get("/api/album/extras?title=" + enc(title) + "&artist=" + enc(artist) + if (fast) "&fast=1" else ""))
+    fun similarActs(artist: String): List<SimilarAct> = SimilarAct.list(get("/api/similar?artist=" + enc(artist)))
+    fun qobuzLink(album: String, artist: String): String? = get("/api/qobuz-link?album=" + enc(album) + "&artist=" + enc(artist)).optString("url").takeIf { it.startsWith("http") }
+
     private fun enc(s: String) = URLEncoder.encode(s, "UTF-8").replace("+", "%20")
 }

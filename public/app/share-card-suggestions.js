@@ -131,6 +131,7 @@ function renderSimilar(acts) {
     const sub = act.album
       ? (act.year ? act.album + " \u00b7 " + act.year : act.album) : "";
     const row = goRow(act, act.name, sub);
+    row.setAttribute("data-parity", "share-card.act");
     // Why it is here (v0.7.6): near which of your acts, or one you know
     // with a record you don't have.
     if (act.reason) {
@@ -202,7 +203,7 @@ function renderLinks(links) {
   for (const { link, review } of all) {
     if (!link || !link.url) continue;
     const a = document.createElement("a");
-    a.className = "share-link" + (review ? " is-review" : "");
+    a.className = "share-link" + (review ? " is-review" : ""); a.setAttribute("data-parity", "share-card.link");
     a.href = link.url;
     a.target = "_blank";
     a.rel = "noopener noreferrer";
@@ -265,7 +266,7 @@ function buildActions(blob, title, artist) {
     && navigator.clipboard && typeof navigator.clipboard.write === "function";
 
   if (canCopy) {
-    const b = mkBtn("ghost", icon("copy"), "Copy image");
+    const b = mkBtn("ghost", icon("copy"), "Copy image", "share-card.copy");
     b.onclick = async () => {
       try {
         await navigator.clipboard.write([new window.ClipboardItem({ "image/png": blob })]);
@@ -275,7 +276,7 @@ function buildActions(blob, title, artist) {
     actions.appendChild(b);
   }
   if (canShare) {
-    const b = mkBtn("primary", icon("share"), "Share…");
+    const b = mkBtn("primary", icon("share"), "Share…", "share-card.share");
     b.onclick = async () => {
       try {
         const file = new File([blob], fileName, { type: "image/png" });
@@ -296,7 +297,7 @@ function buildActions(blob, title, artist) {
   // WebView, so the app saves the card itself — to Pictures/Mandarin.
   const app = window.MusicDShare;
   if (app && typeof app.saveImage === "function") {
-    const b = mkBtn("ghost", icon("download"), "Download");
+    const b = mkBtn("ghost", icon("download"), "Download", "share-card.download");
     b.onclick = async () => {
       try {
         const url = await blobToDataUrl(blob);
@@ -309,7 +310,7 @@ function buildActions(blob, title, artist) {
   } else if (!iosStandalone()) {
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
-    a.download = fileName;
+    a.download = fileName; a.setAttribute("data-parity", "share-card.download");
     a.appendChild(document.createTextNode(""));
     a.innerHTML = `${icon("download")}<span>Download</span>`;
     actions.appendChild(a);
@@ -328,9 +329,9 @@ function blobToDataUrl(blob) {
     r.readAsDataURL(blob);
   });
 }
-function mkBtn(cls, iconSvg, label) {
+function mkBtn(cls, iconSvg, label, key) {
   const b = document.createElement("button");
-  b.className = cls;
+  b.className = cls; b.setAttribute("data-parity", key);
   b.type = "button";
   b.innerHTML = `${iconSvg}<span>${label}</span>`;
   return b;

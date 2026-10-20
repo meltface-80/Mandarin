@@ -154,9 +154,11 @@ window.__openDevicePowerSheet = openDevicePowerSheet;
 // The Android app draws the Library wall, the walls Home links to and an artist's page itself when its switch
 // is on (bug list items 51 and 52): each opened over the page, at this phone's UI Settings, with the page's
 // room; the page stays where it is for their Back. True when the app took it.
+// The share card's default service, as its chips keep it (share-card-links.js); none where storage is blocked.
+function storedShareService() { try { return localStorage.getItem("musicd-share-service"); } catch (e) { return null; } }
 function nativePrefsJson() {
   const p = window.__uiPrefs;
-  return JSON.stringify(p ? { layout: p.get("layout"), tile: p.get("tile"), text: p.get("text"), title: p.get("title"), greeting: p.get("greeting"), random: p.get("random"), menu: p.get("menu"), labelOrder: labelOrder(), labelMin: String(labelMin()) } : {});
+  return JSON.stringify(p ? { layout: p.get("layout"), tile: p.get("tile"), text: p.get("text"), title: p.get("title"), greeting: p.get("greeting"), random: p.get("random"), menu: p.get("menu"), labelOrder: labelOrder(), labelMin: String(labelMin()), shareService: storedShareService() } : {});
 }
 function nativeWallOpened(kind) {
   const app = window.MusicdApp;

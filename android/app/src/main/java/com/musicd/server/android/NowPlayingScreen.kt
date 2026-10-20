@@ -71,6 +71,7 @@ internal fun NowPlayingScreen(zoneId: String, client: () -> ServerClient?, onBac
     val now = room.now
     var queueTab by remember { mutableStateOf(false) }
     var volumeOpen by remember { mutableStateOf(false) }
+    var sharing by remember { mutableStateOf(false) }   // its Share card open (item 75)
     val scope = rememberCoroutineScope()
     BackHandler(onBack = onBack)
     val cover = rememberCover(view?.imageKey, 1000, client)
@@ -99,13 +100,15 @@ internal fun NowPlayingScreen(zoneId: String, client: () -> ServerClient?, onBac
                     NpTab(Contract.label("now-playing.tab-now-playing"), !queueTab, Modifier.parity("now-playing.tab-now-playing queue.tab-now-playing", Contract.label("now-playing.tab-now-playing")).clickable(role = Role.Tab) { queueTab = false })
                     NpTab(Contract.label("now-playing.tab-queue"), queueTab, Modifier.parity("now-playing.tab-queue queue.tab-queue", Contract.label("now-playing.tab-queue")).clickable(role = Role.Tab) { queueTab = true })
                 }
-                FilledIconButton(onClick = { onPage("share", null) }, enabled = view != null, colors = disc,
+                FilledIconButton(onClick = { sharing = true }, enabled = view != null, colors = disc,
                     modifier = Modifier.parity("now-playing.share queue.share", Contract.label("now-playing.share")).size(40.dp).align(Alignment.TopEnd)) {
                     Icon(painterResource(R.drawable.np_share), contentDescription = null, modifier = Modifier.size(20.dp))
                 }
             }
             // The volume sheet, at the foot of the screen as the page's is (24px up), over whichever tab is on.
             VolumeSheet(volumeOpen, { volumeOpen = false }, zoneId, view?.volume, ::act, above = false, inset = 24.dp)
+            // The Share card of what plays, natively (item 75): the mini player is hidden here, so no room is kept for it.
+            if (sharing) view?.let { ShareSheet(it.album, it.artist, it.imageKey, zoneId, 0.dp, client) { sharing = false } }
             if (queueTab) {
                 QueueScreen(zoneId, client, changed = view?.answeredAtMs, modifier = Modifier.weight(1f).padding(horizontal = 18.dp))
                 return@Column

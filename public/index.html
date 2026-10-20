@@ -909,13 +909,13 @@
   <div id="share-overlay" class="share-overlay hidden" role="dialog" aria-modal="true" aria-label="Share card">
     <div class="share-backdrop" data-share-close></div>
     <div class="share-panel">
-      <button class="share-close icon-btn" data-share-close aria-label="Close">
+      <button class="share-close icon-btn" data-share-close aria-label="Close" data-parity="share-card.close">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
              stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="M18 6 6 18M6 6l12 12"/>
         </svg>
       </button>
-      <div class="share-frame" id="share-frame">
+      <div class="share-frame" id="share-frame" data-parity="share-card.card">
         <div class="share-placeholder">
           <div class="share-spinner"></div>
           <div>Generating card…</div>
@@ -930,11 +930,11 @@
            on screen, because it costs up to five Deezer calls and the card
            must not wait on it. -->
       <section class="share-similar hidden" id="share-similar" aria-label="If you like this">
-        <h3 class="share-similar-title">If you like this</h3>
+        <h3 class="share-similar-title" data-parity="share-card.similar-title">If you like this</h3>
         <div class="share-similar-list" id="share-similar-list"></div>
       </section>
-      <p class="share-hint" id="share-hint"></p>
-      <p class="share-err"  id="share-err"></p>
+      <p class="share-hint" id="share-hint" data-parity="share-card.hint"></p>
+      <p class="share-err"  id="share-err" data-parity="share-card.err"></p>
     </div>
   </div>
 

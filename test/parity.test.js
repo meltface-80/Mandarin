@@ -102,6 +102,18 @@ const OPEN_ALBUM_EDIT = `(async () => {
   return "open";
 })()`;
 
+/* The Share card: Album One's page, its share button, the card drawn and its buttons under it. */
+const OPEN_SHARE_CARD = `(async () => {
+  const opened = await ${OPEN_ALBUM};
+  if (opened !== "open") return opened;
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const until = async (fn, ms = 30000) => { const t0 = Date.now(); while (!fn()) { if (Date.now() - t0 > ms) return false; await sleep(50); } return true; };
+  document.getElementById("modal-share-btn").click();
+  if (!(await until(() => document.querySelector("#share-frame img") && document.querySelector("#share-actions [data-parity]")))) return "no card";
+  await sleep(1500);
+  return "open";
+})()`;
+
 /* The mini player: an album played to the Kitchen, the bar showing its first track. */
 const OPEN_MINI_PLAYER = `(async () => {
   const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -460,6 +472,7 @@ const SCREENS = {
   "booklet": { open: OPEN_BOOKLET, root: "#booklet-viewer" },
   "album": { open: OPEN_ALBUM, root: "#album-modal .modal-panel" },
   "album-edit": { open: OPEN_ALBUM_EDIT, root: "#album-edit-overlay .album-edit-sheet" },
+  "share-card": { open: OPEN_SHARE_CARD, root: "#share-overlay .share-panel" },
   "library": { open: OPEN_LIBRARY, root: "body", shared: ["mini-player", "nav"] },
   "wall": { open: OPEN_WALL, root: "body", shared: ["mini-player", "nav"] },
   "artist": { open: OPEN_ARTIST, root: "body", shared: ["mini-player", "nav"] },
