@@ -79,8 +79,8 @@ class HttpTransport(private val baseUrl: String, private val token: String?) : T
     }
 }
 
-/** An answer made in the app: its [status] and its JSON (an error's words under "error"), or its [bytes]. */
-class Answer(val status: Int, val json: JSONObject? = null, val bytes: ByteArray? = null) {
+/** An answer made in the app: its [status] and its JSON (an error's words under "error"), or its [bytes] of type [mime]. */
+class Answer(val status: Int, val json: JSONObject? = null, val bytes: ByteArray? = null, val mime: String = "application/json") {
     companion object {
         fun ok(j: JSONObject) = Answer(200, j)
         fun error(status: Int, message: String) = Answer(status, JSONObject().put("error", message))
