@@ -525,6 +525,7 @@ const SCREENS = {
   "settings-services": { open: OPEN_SETTINGS(["streaming"], `!!document.getElementById("qobuz-status").textContent`), root: '#settings-overlay .settings-view[data-pane="streaming"]' },
   "settings-downloads": { open: OPEN_SETTINGS(["setup", "downloads"], `!!document.getElementById("dl-cache-status")`), root: '#settings-overlay .settings-view[data-pane="downloads"]', init: DL_APP, app: true },
   "settings-downloads-albums": { open: OPEN_SETTINGS(["setup", "downloads"], `!!document.querySelector('[data-dl-folder]') && (document.querySelector('[data-dl-folder]').click(), true) && !!document.querySelector(".dl-row")`), root: '#settings-overlay .settings-view[data-pane="downloads"]', init: DL_APP, app: true },
+  "settings-folders": { open: OPEN_SETTINGS(["folders"], `!!document.querySelector("#folders-pane-body .mf-row, #folders-pane-body .settings-note")`), root: '#settings-overlay .settings-view[data-pane="folders"]' },
   "settings-away": { open: OPEN_SETTINGS(["setup", "away"], `!!document.querySelector("#away-pane-body .settings-note")`), root: '#settings-overlay .settings-view[data-pane="away"]' },
   "library": { open: OPEN_LIBRARY, root: "body", shared: ["mini-player", "nav"] },
   "wall": { open: OPEN_WALL, root: "body", shared: ["mini-player", "nav"] },

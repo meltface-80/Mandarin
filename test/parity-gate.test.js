@@ -117,6 +117,11 @@ test("Contract.kt is the contract's labels; the gate refuses one written by hand
   put("android/core/src/main/kotlin/com/musicd/server/client/Contract.kt", "object Contract {}");
   assert.match(gate()[1].join("\n"), /Contract\.kt: not the contract's labels/);
   gate("write");
+  // A part left from a longer contract: the gate says so, and write takes it away.
+  put("android/core/src/main/kotlin/com/musicd/server/client/ContractLabels9.kt", "internal object ContractLabels9 {}");
+  assert.match(gate()[1].join("\n"), /ContractLabels9\.kt: a part of the contract's labels no longer written/);
+  gate("write");
+  assert.ok(!fs.existsSync(path.join(root, "android/core/src/main/kotlin/com/musicd/server/client/ContractLabels9.kt")));
   // Back taken out of the app: accept doesn't add it to the gaps, and the gate says so.
   put(F, SCREEN.replace(/FilledIconButton[^\n]*\n/, "\n").replace(/IconButton[^\n]*\n/, "\n"));
   const [code, out] = gate("accept");
@@ -126,15 +131,15 @@ test("Contract.kt is the contract's labels; the gate refuses one written by hand
   fs.rmSync(root, { recursive: true, force: true });
 });
 
-test("the contract's labels in parts of 300 a file, Contract.kt joining them, so none outgrows the watch line (item 91)", () => {
-  const c = contract();
-  for (let i = 0; i < 301; i++) c.screens.play.items["b" + i] = { kind: "action", label: "B" + i };
-  const files = contractKotlin(c);
-  const dir = "android/core/src/main/kotlin/com/musicd/server/client/";
-  assert.deepEqual(Object.keys(files).sort(), [dir + "Contract.kt", dir + "ContractLabels1.kt", dir + "ContractLabels2.kt"]);
-  assert.match(files[dir + "Contract.kt"], /val labels: Map<String, List<String>> = ContractLabels1\.labels \+ ContractLabels2\.labels\n/);
-  for (const [f, text] of Object.entries(files)) assert.ok(text.split("\n").length < 400, f + ": " + text.split("\n").length + " lines");
-  assert.match(files[dir + "ContractLabels2.kt"], /internal object ContractLabels2 \{[\s\S]*"play\.b300" to listOf\("B300"\),/);
+test("the labels in parts of 300 rows at most, a screen's together, Contract.kt joining them", () => {
+  const items = (n) => Object.fromEntries(Array.from({ length: n }, (_, i) => ["b" + i, { kind: "action", label: "B" + i }]));
+  const files = contractKotlin({ screens: { one: { page: "p", items: items(200) }, two: { page: "p", items: items(150) }, three: { page: "p", items: items(100) } } });
+  const parts = Object.keys(files).filter(f => /ContractLabels\d+\.kt$/.test(f)).sort();
+  assert.equal(parts.length, 2, "one alone, then two and three");
+  const rows = (f) => (files[f].match(/ to listOf\(/g) || []).length;
+  assert.deepEqual(parts.map(rows), [200, 250]);
+  assert.ok(Object.values(files).every(t => t.split("\n").length < 400), "no part near the length watch");
+  assert.match(files[Object.keys(files).find(f => f.endsWith("/Contract.kt"))], /val labels: Map<String, List<String>> = ContractLabels1\.labels \+ ContractLabels2\.labels\n/);
 });
 
 test("one element two screens': keys space-separated, each held by its own screen, a file both screens draw", () => {

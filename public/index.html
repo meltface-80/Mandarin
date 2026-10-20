@@ -1901,12 +1901,12 @@
            open their panes as the main list's do; Back from one comes here. -->
       <div class="settings-view settings-pane hidden" data-view="pane" data-pane="folders">
         <div class="settings-pane-head">
-          <button class="settings-back" type="button" data-settings-back aria-label="Back to settings">
+          <button class="settings-back" type="button" data-settings-back aria-label="Back to settings" data-parity="settings-folders.back">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
           </button>
-          <h2>Music Folders</h2>
+          <h2 data-parity="settings-folders.heading">Music Folders</h2>
         </div>
-        <p class="settings-pane-desc">Where your library is read from</p>
+        <p class="settings-pane-desc" data-parity="settings-folders.desc">Where your library is read from</p>
         <!-- Filled by initFoldersPane() in app.js from /api/library/folders. -->
         <div class="settings-block" id="folders-pane-body"></div>
       </div>

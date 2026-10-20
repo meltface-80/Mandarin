@@ -256,23 +256,23 @@
   window.__localFolderBlock = function localFolderBlock() {
     let info;
     try { const v = dl.localFolder(); info = v && v !== "null" ? JSON.parse(v) : null; } catch (e) { info = null; }
-    let html = '<div class="settings-block" data-local-block><div class="settings-subhead">Music on this phone' + settingsInfo("Music bought on this phone (a Qobuz purchase, say) in a folder of your choosing. Mandarin reads its tags and covers, shows it on Home as “Music on device”, and plays it here through the phone’s DSP. The folder is read again by itself when it changes, when the app comes back, and every few minutes. Forget stops Mandarin reading it; nothing in it is touched.") + "</div>";
+    let html = '<div class="settings-block" data-local-block><div class="settings-subhead" data-parity="settings-folders.local-title">Music on this phone' + settingsInfo("Music bought on this phone (a Qobuz purchase, say) in a folder of your choosing. Mandarin reads its tags and covers, shows it on Home as “Music on device”, and plays it here through the phone’s DSP. The folder is read again by itself when it changes, when the app comes back, and every few minutes. Forget stops Mandarin reading it; nothing in it is touched.", "settings-folders.info") + "</div>";
     if (!info) {
-      html += '<div class="settings-row"><span class="settings-label">No folder chosen</span>' +
-        '<button type="button" class="settings-update-btn" data-local-choose>Choose a folder</button></div>' +
-        '<div class="settings-note">Music already on the phone, in a folder you choose.</div>';
+      html += '<div class="settings-row"><span class="settings-label" data-parity="settings-folders.local-none">No folder chosen</span>' +
+        '<button type="button" class="settings-update-btn" data-parity="settings-folders.local-choose" data-local-choose>Choose a folder</button></div>' +
+        '<div class="settings-note" data-parity="settings-folders.local-note">Music already on the phone, in a folder you choose.</div>';
     } else {
       const when = info.scanned_at ? new Date(info.scanned_at).toLocaleString([], { dateStyle: "medium", timeStyle: "short" }) : "never";
       const sub = info.scanning ? "Reading the folder…"
         : !info.available ? "Not reachable right now — its card may be out"
         : info.albums + (info.albums === 1 ? " album" : " albums") + " · " + info.tracks + (info.tracks === 1 ? " track" : " tracks") + " · read " + when;
-      html += '<div class="dl-folder" style="cursor:default"><span class="dl-folder-ico" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></span>' +
-        '<span class="dl-folder-txt"><span class="dl-folder-title">' + esc(info.name) + '</span><span class="dl-folder-sub">' + esc(sub) + "</span></span></div>" +
-        (info.error ? '<div class="settings-note away-error">' + esc(info.error) + "</div>" : "") +
+      html += '<div class="dl-folder" data-parity="settings-folders.local-folder" style="cursor:default"><span class="dl-folder-ico" data-parity="settings-folders.icon" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></span>' +
+        '<span class="dl-folder-txt"><span class="dl-folder-title" data-parity="settings-folders.local-name">' + esc(info.name) + '</span><span class="dl-folder-sub" data-parity="settings-folders.local-state">' + esc(sub) + "</span></span></div>" +
+        (info.error ? '<div class="settings-note away-error" data-parity="settings-folders.local-error">' + esc(info.error) + "</div>" : "") +
         '<div class="dl-toolbar" style="justify-content:flex-start;margin-top:10px">' +
-          '<button type="button" class="settings-update-btn" data-local-rescan' + (info.scanning ? " disabled" : "") + ">Read again</button>" +
-          '<button type="button" class="settings-update-btn" data-local-choose>Change folder</button>' +
-          '<button type="button" class="settings-update-btn" data-local-forget>Forget</button></div>';
+          '<button type="button" class="settings-update-btn" data-parity="settings-folders.local-rescan" data-local-rescan' + (info.scanning ? " disabled" : "") + ">Read again</button>" +
+          '<button type="button" class="settings-update-btn" data-parity="settings-folders.local-choose" data-local-choose>Change folder</button>' +
+          '<button type="button" class="settings-update-btn" data-parity="settings-folders.local-forget" data-local-forget>Forget</button></div>';
     }
     return html + "</div>";
   };
