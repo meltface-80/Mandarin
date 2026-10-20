@@ -37,6 +37,8 @@ import com.musicd.server.client.ShellRoute
  *   MusicdApp.openWall(kind, prefs, zoneId)   a wall Home links to (item 52): later, favourites, history, unplayed or random
  *   MusicdApp.openArtist(name, prefs, zoneId)   an artist's page (item 52)
  *   MusicdApp.nativeHome() / setNativeHome(on)   the native Home (item 57), a preview: the switch in UI Settings
+ *   MusicdApp.nativeSearch() / setNativeSearch(on)   the native search (item 61), a preview: the switch in UI Settings
+ *   MusicdApp.openSearch(q, prefs, zoneId)   the native search, with the words to start from ("" for none), the UI Settings and the room
  *   MusicdApp.homeShown(front, prefs, zoneId)   the page is on Home with nothing of its own over it (front), or something
  *                                               of its own has come over it (the menu, the search, a wall): the app's Home
  *                                               in front, or the page (public/app/native-home.js); with the UI Settings and the room
@@ -119,6 +121,18 @@ class AppBridge(private val activity: Activity) {
 
     @JavascriptInterface
     fun setNativeHome(on: Boolean) { Store.setNativeHome(activity, on); NativeShell.nativeHome = on; if (!on) activity.runOnUiThread { NativeShell.leaveHome() } }
+
+    @JavascriptInterface
+    fun nativeSearch(): Boolean = Store.nativeSearch(activity).also { NativeShell.nativeSearch = it }
+
+    @JavascriptInterface
+    fun setNativeSearch(on: Boolean) { Store.setNativeSearch(activity, on); NativeShell.nativeSearch = on }
+
+    @JavascriptInterface
+    fun openSearch(q: String, prefs: String, zoneId: String) {
+        NativeShell.prefs = prefs; NativeShell.zone = zoneId; NativeShell.nativeSearch = true
+        activity.runOnUiThread { NativeShell.openSearch(q, zoneId) }
+    }
 
     @JavascriptInterface
     fun homeShown(front: Boolean, prefs: String, zoneId: String) { activity.runOnUiThread { NativeShell.homeShown(front, prefs, zoneId) } }

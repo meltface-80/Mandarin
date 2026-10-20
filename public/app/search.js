@@ -101,11 +101,11 @@ async function run(q) {
 
     // Artists section
     if (artists.length) {
-      const hdr = document.createElement("div"); hdr.className = "search-section-header"; hdr.textContent = "Artists";
+      const hdr = document.createElement("div"); hdr.className = "search-section-header"; hdr.dataset.parity = "search.section"; hdr.textContent = "Artists";
       frag.appendChild(hdr);
       const row = document.createElement("div"); row.className = "search-chip-row";
       for (const ar of artists) {
-        const btn = document.createElement("button"); btn.className = "search-chip";
+        const btn = document.createElement("button"); btn.className = "search-chip"; btn.dataset.parity = "search.artist";
         btn.textContent = ar.name;
         btn.addEventListener("click", () => {
           stopSearch();
@@ -118,11 +118,11 @@ async function run(q) {
 
     // Labels section
     if (labels.length) {
-      const hdr = document.createElement("div"); hdr.className = "search-section-header"; hdr.textContent = "Labels";
+      const hdr = document.createElement("div"); hdr.className = "search-section-header"; hdr.dataset.parity = "search.section"; hdr.textContent = "Labels";
       frag.appendChild(hdr);
       const row = document.createElement("div"); row.className = "search-chip-row";
       for (const lb of labels) {
-        const btn = document.createElement("button"); btn.className = "search-chip";
+        const btn = document.createElement("button"); btn.className = "search-chip"; btn.dataset.parity = "search.label";
         btn.textContent = lb.display;
         btn.addEventListener("click", () => {
           stopSearch();
@@ -137,10 +137,10 @@ async function run(q) {
     // Albums section
     if (results.length) {
       if (artists.length || labels.length) {
-        const hdr = document.createElement("div"); hdr.className = "search-section-header"; hdr.textContent = "Albums";
+        const hdr = document.createElement("div"); hdr.className = "search-section-header"; hdr.dataset.parity = "search.section"; hdr.textContent = "Albums";
         frag.appendChild(hdr);
       }
-      for (const a of results) frag.appendChild(buildAlbumTile(a));
+      for (const a of results) frag.appendChild(keySearchTile(buildAlbumTile(a)));   // the screens contract's `search`
     }
 
     grid.appendChild(frag);

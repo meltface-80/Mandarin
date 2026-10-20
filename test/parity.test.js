@@ -207,6 +207,22 @@ const OPEN_RANDOM_PICK = `(async () => {
   return "open";
 })()`;
 
+/* The search: the row's Search tapped on Home, "artist" typed; the library's artists as chips and its albums as tiles. */
+const OPEN_SEARCH = `(async () => {
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const until = async (fn, ms = 30000) => { const t0 = Date.now(); while (!fn()) { if (Date.now() - t0 > ms) return false; await sleep(50); } return true; };
+  if (!(await until(() => document.querySelectorAll("#home-library .album").length > 1 && /Kitchen/.test((document.getElementById("mt-kicker") || {}).textContent || "")))) return "no Home";
+  await sleep(400);
+  document.getElementById("tnav-search").click();
+  const field = document.getElementById("search-input");
+  if (!(await until(() => document.getElementById("topbar-search").classList.contains("is-open")))) return "no field";
+  field.value = "artist"; field.dispatchEvent(new Event("input", { bubbles: true }));
+  if (!(await until(() => document.querySelectorAll("#album-grid .search-chip").length > 0 && document.querySelectorAll("#album-grid .album").length > 0 &&
+    /album/.test(document.getElementById("search-status").textContent)))) return "no results";
+  await sleep(1500);
+  return "open";
+})()`;
+
 /* How the page is brought to each screen of the contract, and what holds it; `shared`: screens of the contract's under the same root, held by their own checks. */
 const SCREENS = {
   // Home and what opens from it first, before any screen's check plays an album: today's album is still on Home, so its badge is checked too.
@@ -222,7 +238,8 @@ const SCREENS = {
   "album": { open: OPEN_ALBUM, root: "#album-modal .modal-panel" },
   "library": { open: OPEN_LIBRARY, root: "body", shared: ["mini-player", "nav"] },
   "wall": { open: OPEN_WALL, root: "body", shared: ["mini-player", "nav"] },
-  "artist": { open: OPEN_ARTIST, root: "body", shared: ["mini-player", "nav"] }
+  "artist": { open: OPEN_ARTIST, root: "body", shared: ["mini-player", "nav"] },
+  "search": { open: OPEN_SEARCH, root: "body", shared: ["mini-player", "nav"] }
 };
 
 test("every screen of the contract has a way to open it on the page", () => {

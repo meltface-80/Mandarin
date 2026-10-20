@@ -108,7 +108,7 @@
           </svg>
         </button>
         <div class="search-row" id="search-row">
-          <div class="search-box">
+          <div class="search-box" data-parity="search.field">
             <svg class="search-ico" width="18" height="18" viewBox="0 0 24 24" fill="none"
                  stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
                  aria-hidden="true">
@@ -118,14 +118,14 @@
             <input id="search-input" type="search" inputmode="search" autocomplete="off"
                    autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="search"
                    placeholder="Search…" aria-label="Search your whole library">
-            <button id="search-clear" class="search-clear" type="button" aria-label="Clear search">
+            <button id="search-clear" class="search-clear" type="button" aria-label="Clear search" data-parity="search.clear">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <path d="M18 6 6 18M6 6l12 12"/>
               </svg>
             </button>
           </div>
-          <span class="search-status" id="search-status" aria-live="polite"></span>
+          <span class="search-status" id="search-status" aria-live="polite" data-parity="search.status"></span>
         </div>
       </div>
       <span id="album-count" class="album-count hidden" aria-live="polite" data-parity="library.title wall.title artist.title picks.title"></span>
@@ -301,15 +301,15 @@
       </div>
     </div>
     <div id="content-count" class="content-count hidden"></div>
-    <div id="status-banner" class="status-banner hidden" data-parity="library.banner wall.banner picks.banner"></div>
+    <div id="status-banner" class="status-banner hidden" data-parity="library.banner wall.banner picks.banner search.banner"></div>
 
     <!-- Home landing: sections of the library. The album wall (#album-grid)
          is one destination, reached from here or the side menu. -->
     <section id="home-view" class="home-view hidden" aria-label="Home">
       <!-- Good morning / afternoon / evening (Late-Night Hi-Fi only; app.js keeps it current). -->
       <div class="home-greeting" id="home-greeting" aria-live="off">
-        <div class="home-greeting-date" id="home-greeting-date" data-parity="home.greeting-date"></div>
-        <h1 class="home-greeting-text" id="home-greeting-text" data-parity="home.greeting"></h1>
+        <div class="home-greeting-date" id="home-greeting-date" data-parity="home.greeting-date search.greeting-date"></div>
+        <h1 class="home-greeting-text" id="home-greeting-text" data-parity="home.greeting search.greeting"></h1>
       </div>
       <div id="home-sections">
         <!-- Random Album and Album of the day, under the greeting with no heading
@@ -1827,6 +1827,14 @@
             </label>
           </div>
           <div class="settings-note">Home drawn by the phone: the greeting, Random Album and Album of the day, the rows in your order, Smart Picks, the label of the week and the genres, each heading opening its wall. A preview. On this phone only.</div>
+          <div class="settings-row">
+            <span class="settings-label">Native Search (preview)</span>
+            <label class="switch">
+              <input type="checkbox" id="native-search-on" aria-label="Native Search (preview)">
+              <span class="switch-track"><span class="switch-thumb"></span></span>
+            </label>
+          </div>
+          <div class="settings-note">Search drawn by the phone: your library's artists, labels and albums as you type, then Qobuz's, Tidal's and Pitchfork's as each answers. A preview. On this phone only.</div>
         </div>
       </div>
 

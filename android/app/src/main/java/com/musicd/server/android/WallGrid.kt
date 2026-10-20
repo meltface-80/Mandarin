@@ -159,7 +159,7 @@ internal fun WallHead(title: String, prefs: WallPrefs, banner: Pair<String, Bool
 internal fun Banner(said: String, error: Boolean, modifier: Modifier = Modifier) {
     Box(modifier.fillMaxWidth().border(1.dp, if (error) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.outline, RoundedCornerShape(10.dp))
         .clip(RoundedCornerShape(10.dp)).background(MaterialTheme.colorScheme.surfaceVariant).padding(horizontal = 16.dp, vertical = 14.dp)) {
-        Text(said, Modifier.parity("library.banner wall.banner artist.error picks.banner"), color = if (error) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp, lineHeight = 20.sp)
+        Text(said, Modifier.parity("library.banner wall.banner artist.error picks.banner search.banner"), color = if (error) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp, lineHeight = 20.sp)
     }
 }
 

@@ -40,6 +40,9 @@ class LibraryClient(private val get: (String) -> JSONObject) {
 
     fun search(query: String): SearchResults = SearchResults.parse(get("/api/search?q=" + enc(query)))
 
+    /** The search beyond the library (item 61): one [part] of it ("qobuz", "tidal", "pitchfork"), each asked on its own as the page asks. */
+    fun searchExternal(query: String, part: String): ExternalSearch = ExternalSearch.parse(get("/api/search/external?q=" + enc(query) + "&parts=" + enc(part)))
+
     /** Home's rows in the owner's order, each on or off. */
     fun homeRows(): List<HomeRow> = HomeRows.parse(get("/api/settings/home-rows"))
 

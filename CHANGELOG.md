@@ -1,6 +1,17 @@
 # Changelog
 
 ## Unreleased
+- `61-native-search`: the search natively in the Android app (plan S1 and S2), in a new preview, Native Search in UI
+  Settings, beside Native Library and Native Home. The row's Search, the glass, and a search started elsewhere open it in
+  place of the page's field: the field across the top bar in brass with its ✕ and the count beside it ("3 artists, 3
+  albums", or how far the index is built); under Home's greeting, the library's artists and labels as chips and its albums
+  as tiles, each under its small heading, asked a moment after the last letter; then Qobuz's and Tidal's artists (a strip
+  of portraits) and albums (each with its + or ✓, a tap opening the album's page) and Pitchfork's reviews with their
+  scores, each part landing as it answers, the last words' kept dim until the new ones replace them; the banner where
+  nothing matches anywhere; the mini player and the row out of the keyboard's way while the field has it. An album's page
+  opens over the results and Back comes back to them. A service's artist and a review open the page's own browser and
+  magazine, as they are not native yet. A contract screen (`search`), the page keyed and measured to match, its services'
+  and reviews' sections held in a browser against fakes. Offline the page's own search stays.
 - `63-native-home-review`: the native Home (item 57, a preview) read against the page's, and set right where it differed.
   A downloaded album the library still has opens its page as any album does (it was played from the phone with "Not in the
   library right now"), and a download's badge is worn in Downloaded albums and its wall alone, not on the same album in

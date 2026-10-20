@@ -182,6 +182,13 @@ class ServerClient(
     /** Never this artist again in Smart Picks (the page's "Not for me"). */
     fun blockSmartPick(artist: String) { post("/api/smart-picks/block", JSONObject().put("artist", artist)) }
 
+    /** A service's album made the library's (transient until it is a favourite), to open its page: its offset (item 61, the search's tiles). */
+    fun serviceOpen(service: String, albumId: String): Long {
+        val j = post("/api/$service/open", JSONObject().put("album_id", albumId))
+        if (!j.optBoolean("ok", false) || !j.has("offset")) throw IOException(j.optString("error").ifEmpty { "Couldn't open that album" })
+        return j.getLong("offset")
+    }
+
     fun serviceFavourite(source: String, albumId: String, on: Boolean): JSONObject =
         post("/api/$source/" + (if (on) "favorite" else "unfavorite"), JSONObject().put("album_id", albumId))
 

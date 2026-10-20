@@ -45,6 +45,14 @@ internal object NativeShell {
     @Volatile var nativeLibrary = false
     /** Whether the app draws Home itself (item 57; its switch in UI Settings). */
     @Volatile var nativeHome = false
+    /** Whether the app draws the search itself (item 61; its switch in UI Settings). */
+    @Volatile var nativeSearch = false
+
+    /** The native search opened afresh with [q] (the page's glass, the row's Search, a search seeded elsewhere), its albums playing in [zoneId]. */
+    fun openSearch(q: String, zoneId: String) {
+        SearchKept.reset(q)
+        nav?.navigate(ShellRoute.search(q, zoneId)) { launchSingleTop = true }
+    }
     /** The Library's view as the page last opened its wall with ([AppBridge.openLibrary]) or the app chose: Home's Library row is the head of that list. */
     @Volatile var libraryView = ""
     /** Home's arguments as the page last gave them ([homeShown]): the UI Settings as JSON, and the room; the native Home follows them. */
@@ -134,7 +142,7 @@ internal object NativeShell {
     fun landHome() { HomeKept.toTop = true; if (pageFront.value) toPage("nav", "home") }
 
     /** The row's button on the native Home: Home itself goes to its top; the rest are the page's own buttons (the page comes in front as it opens what they open). */
-    fun homeNav(what: String) { if (what == "home") HomeKept.toTop = true else toPage("nav", what) }
+    fun homeNav(what: String) { if (what == "home") HomeKept.toTop = true else if (what == "search" && nativeSearch) openSearch("", zone) else toPage("nav", what) }
 
     /** Native Home switched off (its switch in UI Settings): back to the page, whatever is over Home going with it. */
     fun leaveHome() {
@@ -198,7 +206,9 @@ private fun toPageOrNative(nav: NavHostController, what: String, arg: String?) {
  */
 private fun navTap(nav: NavHostController, what: String) {
     if (!nav.popBackStack(ShellRoute.HOME, false)) nav.popBackStack()
-    if (what == "home" && nav.currentDestination?.route == ShellRoute.HOME) NativeShell.landHome() else NativeShell.toPage("nav", what)
+    // Search, with the app's own on: its search over whatever is left (item 61), as the page's opens over Home.
+    if (what == "search" && NativeShell.nativeSearch) NativeShell.openSearch("", NativeShell.zone)
+    else if (what == "home" && nav.currentDestination?.route == ShellRoute.HOME) NativeShell.landHome() else NativeShell.toPage("nav", what)
 }
 
 /** The screens by route; [onShown] told whether the shell is on screen (a native route, and not the page in front of Home), so the page shows through on its own. */
@@ -238,6 +248,17 @@ private fun Shell(client: () -> ServerClient?, onShown: (Boolean) -> Unit) {
             PicksScreen(WallPrefs.parse(prefs), zone, client,
                 onBack = { nav.popBackStack() },
                 onAlbum = { offset, z -> nav.navigate(ShellRoute.album(offset, z, "")) },
+                onNowPlaying = { id -> nav.navigate(ShellRoute.nowPlaying(id)) { launchSingleTop = true } },
+                onRoom = NativeShell::roomChosen,
+                onNav = { what -> navTap(nav, what) },
+                onPage = { what, arg -> toPageOrNative(nav, what, arg) }
+            )
+        }
+        // The search (item 61): over Home or the page; an album's page over it, and Back comes back to the same results.
+        composable(ShellRoute.SEARCH, arguments = listOf(navArgument(ShellRoute.Q) { type = NavType.StringType; defaultValue = "" }, navArgument(ShellRoute.ZONE) { type = NavType.StringType; defaultValue = "" })) { entry ->
+            SearchScreen(WallPrefs.parse(prefs), entry.arguments?.getString(ShellRoute.ZONE).orEmpty(), client,
+                onBack = { nav.popBackStack() },
+                onAlbum = { offset, z, list -> nav.navigate(ShellRoute.album(offset, z, "", AlbumLists.put(list), list.index)) },
                 onNowPlaying = { id -> nav.navigate(ShellRoute.nowPlaying(id)) { launchSingleTop = true } },
                 onRoom = NativeShell::roomChosen,
                 onNav = { what -> navTap(nav, what) },

@@ -64,16 +64,16 @@ import com.musicd.server.client.WallPrefs
 @Composable
 internal fun AlbumTile(a: AlbumSummary, prefs: WallPrefs, coverPx: Int, client: () -> ServerClient?, selected: Boolean = false, onLongPress: () -> Unit = {}, badge: String? = null, dl: String? = null, onOpen: () -> Unit) {
     val cover = rememberTileCover(a.imageKey, coverPx, client)
-    Column(Modifier.parity("library.album wall.album artist.album home.album", Contract.label("library.album", if (a.subtitle.isEmpty()) 1 else 0, a.title.ifEmpty { "Untitled" }, a.subtitle))
+    Column(Modifier.parity("library.album wall.album artist.album home.album search.album", Contract.label("library.album", if (a.subtitle.isEmpty()) 1 else 0, a.title.ifEmpty { "Untitled" }, a.subtitle))
         .fillMaxWidth().combinedClickable(onLongClick = onLongPress, onClick = onOpen)) {
         TileArt(a, cover, selected, Modifier.fillMaxWidth().aspectRatio(1f), today = badge, dl = dl)
         // The page's phone sizes (style.css, max-width 767px, and the hifi palette's .album-meta and .album-title): 11 under the
         // cover, the title 12px at 600 in two lines of 1.25, a 1 gap, the artist 10.5px in one line of 1.3; each in its line box (Type.kt).
         val title = (12 * prefs.text).sp; val titleLine = (15 * prefs.text).sp
         val artist = (10.5 * prefs.text).sp; val artistLine = (13.65 * prefs.text).sp
-        Text(a.title.ifEmpty { "Untitled" }, Modifier.parity("library.album-title wall.album-title artist.album-title home.album-title").padding(top = 11.dp).lineBox(title, titleLine), color = MaterialTheme.colorScheme.onSurface,
+        Text(a.title.ifEmpty { "Untitled" }, Modifier.parity("library.album-title wall.album-title artist.album-title home.album-title search.album-title").padding(top = 11.dp).lineBox(title, titleLine), color = MaterialTheme.colorScheme.onSurface,
             fontSize = title, lineHeight = titleLine, fontWeight = FontWeight.W600, maxLines = 2, overflow = TextOverflow.Ellipsis)
-        if (a.subtitle.isNotEmpty()) Text(a.subtitle, Modifier.parity("library.album-artist wall.album-artist artist.album-artist home.album-artist").padding(top = 1.dp).lineBox(artist, artistLine), color = MaterialTheme.colorScheme.onSurfaceVariant,
+        if (a.subtitle.isNotEmpty()) Text(a.subtitle, Modifier.parity("library.album-artist wall.album-artist artist.album-artist home.album-artist search.album-artist").padding(top = 1.dp).lineBox(artist, artistLine), color = MaterialTheme.colorScheme.onSurfaceVariant,
             fontSize = artist, lineHeight = artistLine, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
@@ -85,14 +85,14 @@ internal fun AlbumRow(a: AlbumSummary, prefs: WallPrefs, coverPx: Int, client: (
     val cover = rememberTileCover(a.imageKey, coverPx, client)
     val faint = paletteColor(Palette.TEXT_FAINT)
     Column {
-        Row(Modifier.parity("library.album wall.album artist.album home.album", Contract.label("library.album", if (a.subtitle.isEmpty()) 1 else 0, a.title.ifEmpty { "Untitled" }, a.subtitle))
+        Row(Modifier.parity("library.album wall.album artist.album home.album search.album", Contract.label("library.album", if (a.subtitle.isEmpty()) 1 else 0, a.title.ifEmpty { "Untitled" }, a.subtitle))
             .fillMaxWidth().combinedClickable(onLongClick = onLongPress, onClick = onOpen).padding(horizontal = 2.dp, vertical = 7.dp),
             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             TileArt(a, cover, selected, Modifier.size(52.dp), today = null, dl = dl)
             Column(Modifier.weight(1f)) {
-                Text(a.title.ifEmpty { "Untitled" }, Modifier.parity("library.album-title wall.album-title artist.album-title home.album-title"), color = MaterialTheme.colorScheme.onSurface,
+                Text(a.title.ifEmpty { "Untitled" }, Modifier.parity("library.album-title wall.album-title artist.album-title home.album-title search.album-title"), color = MaterialTheme.colorScheme.onSurface,
                     fontSize = (12 * prefs.text).sp, lineHeight = (15 * prefs.text).sp, fontWeight = FontWeight.W600, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                if (a.subtitle.isNotEmpty()) Text(a.subtitle, Modifier.parity("library.album-artist wall.album-artist artist.album-artist home.album-artist").padding(top = 1.dp), color = MaterialTheme.colorScheme.onSurfaceVariant,
+                if (a.subtitle.isNotEmpty()) Text(a.subtitle, Modifier.parity("library.album-artist wall.album-artist artist.album-artist home.album-artist search.album-artist").padding(top = 1.dp), color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = (10.5 * prefs.text).sp, lineHeight = (13.6 * prefs.text).sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
             // The chevron that says the row opens something: two sides of a 7px square, turned (the page's ::after).
@@ -113,24 +113,24 @@ private fun TileArt(a: AlbumSummary, cover: ImageBitmap?, selected: Boolean, mod
     val onBadge = Color.White.copy(alpha = 0.92f)
     // The hifi palette's sleeve: corners of 12 and a faint white ring just inside the edge, no shadow (style.css, [data-palette="hifi"] .album-art-wrap).
     val corners = RoundedCornerShape(12.dp)
-    Box(modifier.parity("library.album-art wall.album-art artist.album-art home.album-art").clip(corners).background(paletteColor(Palette.BG_ELEV_2))
+    Box(modifier.parity("library.album-art wall.album-art artist.album-art home.album-art search.album-art").clip(corners).background(paletteColor(Palette.BG_ELEV_2))
         .border(if (selected) 2.5.dp else 1.dp, Color.White.copy(alpha = if (selected) 0.35f else 0.06f), corners)) {
         if (cover != null) Image(cover, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize().alpha(if (dl != null) 0.55f else 1f))
         else if (a.imageKey == null) Text("♪", Modifier.align(Alignment.Center), color = paletteColor(Palette.TEXT_FAINT), fontSize = 48.sp, lineHeight = 48.sp)
         // The service's mark, top right: only a Qobuz or Tidal album wears one (the page's .album-source).
         when (a.source) { "qobuz" -> R.drawable.src_qobuz; "tidal" -> R.drawable.src_tidal; else -> null }?.let { icon ->
-            Box(Modifier.parity("library.album-source wall.album-source artist.album-source home.album-source").align(Alignment.TopEnd).padding(6.dp).size(22.dp).clip(RoundedCornerShape(6.dp)).background(badge), contentAlignment = Alignment.Center) {
+            Box(Modifier.parity("library.album-source wall.album-source artist.album-source home.album-source search.album-source").align(Alignment.TopEnd).padding(6.dp).size(22.dp).clip(RoundedCornerShape(6.dp)).background(badge), contentAlignment = Alignment.Center) {
                 Icon(painterResource(icon), contentDescription = null, tint = onBadge, modifier = Modifier.size(13.dp))
             }
         }
         // The files' rate, bottom left, in brass when better than CD (the page's .album-quality).
         a.quality?.let { q ->
-            Box(Modifier.parity("library.album-quality wall.album-quality artist.album-quality home.album-quality").align(Alignment.BottomStart).padding(6.dp).clip(RoundedCornerShape(5.dp)).background(badge).padding(horizontal = 5.dp, vertical = 2.dp)) {
+            Box(Modifier.parity("library.album-quality wall.album-quality artist.album-quality home.album-quality search.album-quality").align(Alignment.BottomStart).padding(6.dp).clip(RoundedCornerShape(5.dp)).background(badge).padding(horizontal = 5.dp, vertical = 2.dp)) {
                 Text(q, color = if (a.hires) MaterialTheme.colorScheme.secondary else onBadge, fontSize = 10.sp, lineHeight = 13.sp, fontWeight = FontWeight.W700, letterSpacing = 0.02.em, maxLines = 1)
             }
         }
         // More than one disc, bottom right (the page's .album-discs).
-        if ((a.discs ?: 0) > 1) Box(Modifier.parity("library.album-discs wall.album-discs artist.album-discs home.album-discs").align(Alignment.BottomEnd).padding(6.dp).size(24.dp, 19.dp).clip(RoundedCornerShape(5.dp)).background(badge), contentAlignment = Alignment.Center) {
+        if ((a.discs ?: 0) > 1) Box(Modifier.parity("library.album-discs wall.album-discs artist.album-discs home.album-discs search.album-discs").align(Alignment.BottomEnd).padding(6.dp).size(24.dp, 19.dp).clip(RoundedCornerShape(5.dp)).background(badge), contentAlignment = Alignment.Center) {
             Icon(painterResource(R.drawable.tile_discs), contentDescription = null, tint = onBadge, modifier = Modifier.size(15.dp))
         }
         // Today's album: ★ Today in a brass pill, top left (the page's .aotd-badge).
