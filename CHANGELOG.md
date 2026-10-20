@@ -1,6 +1,11 @@
 # Changelog
 
 ## Unreleased
+- `113-mini-player-steady`: the docked mini player no longer dips when moving between screens. Each native screen
+  draws its own mini player, and one just opened followed its room from nothing (no track known, no cover fetched), so
+  the bar was first drawn without its cover and room line, shorter, then grew back. `followRoom` now keeps each room's
+  state while the app runs and a screen starts from it, and `rememberImage` keeps what it fetched (as the tiles' covers
+  are kept), so the bar's first frame on a new screen is the last screen's.
 - `108-phone-album-native`: one of the phone's own albums (Home's Music on device, its wall) opens the app's own album
   page (`ShellRoute.PHONE_ALBUM`), read from the phone (core `PhoneShelf.phoneView`) and played on it as the page's
   `invokePhone` plays one, with its toasts (picked tracks too, as the page's playTracks); About this album comes from
