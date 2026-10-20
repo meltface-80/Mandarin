@@ -29,9 +29,9 @@ function repo(v, had) {
   execFileSync("git", ["init", "-q", "--bare", "-b", "main", origin]);
   execFileSync("git", ["clone", "-q", origin, work], { stdio: "ignore" });
   git("config", "user.name", "t"); git("config", "user.email", "t@t");
-  const version = (x) => {
+  const version = (x, code) => {
     fs.mkdirSync(path.join(work, "android", "app"), { recursive: true });
-    fs.writeFileSync(path.join(work, "android", "app", "build.gradle.kts"), `        versionName = "${x}"\n`);
+    fs.writeFileSync(path.join(work, "android", "app", "build.gradle.kts"), (code ? `        versionCode = ${code}\n` : "") + `        versionName = "${x}"\n`);
   };
   const publish = (x) => {
     fs.mkdirSync(path.join(work, "dist"), { recursive: true });
@@ -44,7 +44,7 @@ function repo(v, had) {
   const log = path.join(root, "gh.log");
   fs.writeFileSync(path.join(bin, "gh"), `#!/bin/sh\necho "$*" >> "${log}"\ncase "$2" in create) echo https://pr/1 ;; esac\n`, { mode: 0o755 });
   return {
-    git, version, publish, origin,
+    git, version, publish, origin, work,
     /* The script on the commit checked out, the app built at [apk]; its output. */
     run(apk) {
       return execFileSync(SCRIPT, [apk], { cwd: work, encoding: "utf8",
@@ -95,4 +95,20 @@ test("main already carries this version's app (a run again): nothing done", () =
   const r = repo("1.0.17", "1.0.17");
   assert.match(r.run(r.built("1.0.17")), /1\.0\.17 already published/);
   assert.deepEqual(r.gh(), []);
+});
+
+test("the same version built again with a higher versionCode (a fix folded into it, item 115): published over it, its code said", () => {
+  const r = repo("1.1.0", "1.1.0");
+  r.version("1.1.0", 326);
+  fs.writeFileSync(path.join(r.work, "dist", "latest.json"), '{\n  "version": "1.1.0",\n  "code": 326,\n  "file": "Mandarin-Android-1.1.0.apk"\n}\n');
+  r.git("commit", "-q", "-am", "1.1.0 published as code 326"); r.git("push", "-q", "origin", "main");
+  assert.match(r.run(r.built("1.1.0")), /1\.1\.0 already published/, "the same code again: nothing done");
+  assert.deepEqual(r.gh(), []);
+  r.version("1.1.0", 327); r.git("commit", "-q", "-am", "the fix, code 327"); r.git("push", "-q", "origin", "main");
+  r.run(r.built("1.1.0"));
+  const latest = JSON.parse(r.on("publish-apk/1.1.0", "dist/latest.json"));
+  assert.equal(latest.version, "1.1.0");
+  assert.equal(latest.code, 327);
+  assert.equal(r.on("publish-apk/1.1.0", "dist/mandarin-android.apk"), "built 1.1.0");
+  assert.deepEqual(r.gh().map(l => l.split(" ").slice(0, 2).join(" ")), ["pr list", "pr create", "pr merge"]);
 });

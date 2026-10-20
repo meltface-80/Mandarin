@@ -1,6 +1,12 @@
 # Changelog
 
 ## v1.1.0
+- `115-menu-settings-close` (folded into v1.1.0): in the Android app, Settings, Playlists and the side menu's other
+  pages couldn't be closed when opened from Home (their ✕ and ‹ did nothing). The menu's "every screen over Home
+  closed" found none to close on Home and then closed Home itself, so the page opened had nothing under it. Every way
+  back to Home now goes through one step (`toHome`) that keeps Home, and puts it back if it is ever missing. The app is
+  built again as 1.1.0 with versionCode 327; `.github/publish-apk.sh` publishes the same version over itself when its
+  versionCode rises, and `dist/latest.json` says the code it carries.
 - `111-webview-gone`: the Android app has no web view (O2 in old/plan-android-native.md): it opens on its own
   Home (`ShellRoute.HOME` the first route), and `MainActivity` holds the shell, the pickers and the volume keys, the
   server's reachability moving to `ServerReach.kt` (the same looks and timings; the copy of the server's last answers

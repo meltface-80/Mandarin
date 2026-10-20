@@ -100,7 +100,7 @@ internal fun menuTap(nav: NavHostController, what: String, context: android.cont
     // Restart and Shut down: asked, and the server's time away shown, by the app itself (item 96).
     if (what.startsWith("power-")) { PowerKept.asking.value = what; return }
     if (what == "shelf") { openShelf(context); return }
-    if (!nav.popBackStack(ShellRoute.HOME, false)) nav.popBackStack()
+    toHome(nav)
     when (what) {
         "playlists" -> NativeShell.openPlaylists(NativeShell.zone)
         "smart-playlists" -> NativeShell.openSmartPlaylists(NativeShell.zone)
