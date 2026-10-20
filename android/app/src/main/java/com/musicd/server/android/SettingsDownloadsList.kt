@@ -114,7 +114,6 @@ internal fun SettingsDownloadsList(albums: List<DlAlbum>, used: Long, client: ()
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
             SettingsHead(Modifier.parity("settings-downloads-albums.back", Contract.label("settings-downloads-albums.back")).clip(CircleShape).clickable(onClick = onBack), R.drawable.np_back,
                 "Downloads", Modifier.parity("settings-downloads-albums.heading"))
-            SettingsDesc(Downloads.albumsDesc(albums, used), Modifier.parity("settings-downloads-albums.desc"))
             if (albums.isEmpty()) {
                 SetupNote(Downloads.EMPTY, Modifier.parity("settings-downloads-albums.note"))
                 return@Column

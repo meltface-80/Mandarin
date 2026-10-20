@@ -69,7 +69,6 @@ internal fun ShareCardPane(client: () -> ServerClient?, onBack: () -> Unit, info
     SettingsFrame {
         SettingsHead(Modifier.parity("settings-sharecard.back", Contract.label("settings-sharecard.back")).clip(CircleShape).clickable(onClick = onBack), R.drawable.np_back,
             "Share Card", Modifier.parity("settings-sharecard.heading"))
-        SettingsDesc("What the card shows, and the links under it", Modifier.parity("settings-sharecard.desc"))
         val l = links
         Block {
             Title("On the card", Modifier.parity("settings-sharecard.title"))
@@ -157,7 +156,6 @@ internal fun AwayPane(client: () -> ServerClient?, onBack: () -> Unit, info: (St
     SettingsFrame {
         SettingsHead(Modifier.parity("settings-away.back", Contract.label("settings-away.back")).clip(CircleShape).clickable(onClick = onBack), R.drawable.np_back,
             "Away from home", Modifier.parity("settings-away.heading"))
-        SettingsDesc("Tailscale, built into the server", Modifier.parity("settings-away.desc"))
         Block {
             val s = st
             when {

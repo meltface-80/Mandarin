@@ -109,7 +109,6 @@
   }
 
   function renderAlbums(s, list) {
-    const done = list.filter(d => d.state === "done").length;
     for (const id of [...chosen]) if (!list.some(d => d.id === id)) chosen.delete(id);
     if (!list.length) selecting = false;
     const n = chosen.size;
@@ -117,7 +116,6 @@
       '<div class="settings-pane-head">' +
         '<button class="settings-back" type="button" data-dl-back aria-label="Back to Downloads" data-parity="settings-downloads-albums.back">' + backSvg + "</button>" +
         '<h2 data-parity="settings-downloads-albums.heading">Downloads</h2></div>' +
-      '<p class="settings-pane-desc" data-parity="settings-downloads-albums.desc">' + done + (done === 1 ? " album" : " albums") + " on this phone · " + size(s.used || 0) + "</p>" +
       (list.length
         ? '<div class="dl-toolbar">' +
             (selecting
@@ -150,7 +148,6 @@
       '<div class="settings-pane-head">' +
         '<button class="settings-back" type="button" data-settings-back aria-label="Back to settings" data-parity="settings-downloads.back">' + backSvg +
         '</button><h2 data-parity="settings-downloads.heading">Downloads</h2></div>' +
-      '<p class="settings-pane-desc" data-parity="settings-downloads.desc">' + done + (done === 1 ? " album" : " albums") + " · " + size(s.used || 0) + " used</p>" +
 
       '<div class="settings-block">' +
         '<button type="button" class="dl-folder" data-parity="settings-downloads.folder" aria-label="Downloads" data-dl-folder>' +

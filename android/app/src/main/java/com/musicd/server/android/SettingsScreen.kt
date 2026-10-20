@@ -75,7 +75,6 @@ internal fun SettingsScreen(pane: String, client: () -> ServerClient?, onBack: (
         "setup" -> SettingsFrame {
             SettingsHead(Modifier.parity("settings-setup.back", Contract.label("settings-setup.back")).clip(CircleShape).clickable(onClick = onBack), R.drawable.np_back,
                 "Setup", Modifier.parity("settings-setup.heading"))
-            SettingsDesc(SettingsLists.SETUP_DESC, Modifier.parity("settings-setup.desc"))
             Column(Modifier.padding(horizontal = 4.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 for (row in SettingsLists.SETUP) SettingsNavRow(row, Modifier.parity("settings-setup.item", Contract.label("settings-setup.item", 0, row.title)).clip(RoundedCornerShape(10.dp)).clickable { open(row.pane) })
             }
@@ -145,10 +144,10 @@ internal fun SettingsFrame(scroll: Boolean = true, content: @Composable ColumnSc
 
 /**
  * A page's head (.settings-pane-head): the brass disc, 40 round with its 20 glyph dark on it ([disc], its key and tap;
- * [icon]), and the title in the serif, 8 apart, [below] under (6; the list's own head, 14).
+ * [icon]), and the title in the serif, 8 apart, [below] under (18, the page having no line under it since item 101; the list's own head, 14).
  */
 @Composable
-internal fun SettingsHead(disc: Modifier, icon: Int, title: String, heading: Modifier, below: Int = 6) {
+internal fun SettingsHead(disc: Modifier, icon: Int, title: String, heading: Modifier, below: Int = 18) {
     Row(Modifier.fillMaxWidth().padding(bottom = below.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Box(disc.size(40.dp).background(paletteColor(Palette.ACCENT), CircleShape), contentAlignment = Alignment.Center) {
             Icon(painterResource(icon), contentDescription = null, tint = paletteColor(Palette.ON_ACCENT), modifier = Modifier.size(20.dp))
@@ -157,11 +156,6 @@ internal fun SettingsHead(disc: Modifier, icon: Int, title: String, heading: Mod
     }
 }
 
-/** What a page holds, under its title (.settings-pane-desc): 13.5 faint, in under the title, 18 over what follows. */
-@Composable
-internal fun SettingsDesc(text: String, modifier: Modifier) {
-    Text(text, modifier.padding(start = 38.dp, bottom = 18.dp), color = paletteColor(Palette.TEXT_FAINT), fontSize = 13.5.sp, lineHeight = 18.225.sp)
-}
 
 /** A rule between two blocks of a page (.settings-divider), and the room round it. */
 @Composable

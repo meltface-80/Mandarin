@@ -161,7 +161,7 @@
     item.classList.toggle("is-on", on);
     item.setAttribute("aria-checked", String(on));
     const sub = document.getElementById("offline-sub");
-    if (sub) sub.textContent = on ? "On · only the music on this phone" : "Off";
+    if (sub) sub.textContent = "Offline Mode - " + (on ? "On" : "Off");
   }
   paintOfflineItem();
 

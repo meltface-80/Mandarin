@@ -6,6 +6,23 @@
   rounded and no shadow; the track's progress along its top, the full width, above the cover and the words. It does
   what it did and shows where it showed; the app's own bar and the page's in the app (android.css) alike. A browser
   keeps the floating bar.
+- `101-settings-no-subtitles`: every Settings page with nothing under its heading, as the owner asked: the line saying
+  what the page holds ("Qobuz and Tidal", "Where your library is read from", Setup's list of its pages), Account's
+  "Signed in as …", Downloads' counts and a device's model are gone, on the page and in the Android app alike; the
+  heading keeps the room the line used to end with (18). The page's Change password keeps the name signed in itself
+  rather than reading it back from the line.
+- `100-audio-devices-crash`: the Android app crashed opening Settings → Audio Devices. A list's words (the choice made,
+  else the list's first) were read from the zones' list before the zones had come, and the first of none threw. A list
+  with nothing in it yet now shows nothing; every list in Settings reads its words the same way.
+- `99-library-wall-away`: away from home (mobile data, a VPN) the Android app's Library stayed on its grey skeletons for
+  good. The Library's wall, kept while the app runs, set its "a page is on its way" when it asked for its first page and
+  cleared it only once the page came: the Library left or drawn again before then, the request was called off and the
+  flag stayed up, so every visit after asked for nothing. Seldom at home, where the first page comes at once. The flag
+  is now let go however the request ends; and a first page that failed ("Couldn't load") is asked for again when the
+  Library is opened again.
+- `98-offline-mode-one-line`: the side menu's Offline mode row on one line, as the owner asked: "Offline Mode - On" or
+  "Offline Mode - Off", where it read "Offline mode" with "On · only the music on this phone" or "Off" under it; in
+  the app's own menu and the page's alike.
 - `96-native-phone-album-and-menu`: the last of the page's screens the Android app's own screens still handed over to
   outside Settings and the playlist sheets. A server notice's Forget (a music folder gone) did nothing in the app: its
   question was asked by the page hidden behind the native Home, so the folder was never forgotten. The page now hands
