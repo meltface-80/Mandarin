@@ -1,6 +1,12 @@
 # Changelog
 
 ## Unreleased
+- `80-native-settings-share-away`: the last two of Setup's pages natively in the Android app (plan T2), as the page's:
+  Share Card (the review on the card on or off, the services and the review sites to link to, each on or off, and the
+  default service chosen from those on, the same default the card's held chip sets) and Away from home (the server's
+  built-in Tailscale on or off, its status, name and address, Sign in, which opens Tailscale's page, or Sign out, what
+  Tailscale warns or what went wrong, read again every three seconds; This phone, the app's own Tailscale). The page's
+  are keyed for the screens contract (`settings-sharecard`, `settings-away`). Every page of Setup is now the app's own.
 - `78-native-settings-setup`: five of Setup's pages natively in the Android app (plan T2), as the page's: Smart Picks
   (on or off, the hour the day's picks are built, Rebuild today's picks now), Record labels (on or off with how many
   labels, logos and tagged albums the server has, a label's albums in order or shuffled, the fewest albums a label

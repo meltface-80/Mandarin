@@ -3,9 +3,10 @@
 /* ------------------------------------------------------------------ */
 /* An ⓘ after a setting's name: its help, shown when tapped (v0.6.0-RC7 puts
  * every longer explanation behind one, as Smart Picks and the rest had). */
-function settingsInfo(text) {
+// [key]: its screens-contract key, where its page has one.
+function settingsInfo(text, key) {
   const t = String(text == null ? "" : text).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-  return ' <button class="settings-info-btn" type="button" data-info="' + t + '" aria-label="Info">ⓘ</button>';
+  return ' <button class="settings-info-btn" type="button" data-info="' + t + '"' + (key ? ' data-parity="' + key + '"' : "") + ' aria-label="Info">ⓘ</button>';
 }
 
 (() => {

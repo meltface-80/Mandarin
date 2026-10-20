@@ -34,18 +34,18 @@
   }
 
   function line(label, value) {
-    return '<div class="settings-row"><span class="settings-label">' + label + '</span><span class="away-value">' + value + "</span></div>";
+    return '<div class="settings-row"><span class="settings-label" data-parity="settings-away.name">' + label + '</span><span class="away-value" data-parity="settings-away.value">' + value + "</span></div>";
   }
 
   function render() {
-    if (!st) { body.innerHTML = '<div class="settings-note">Couldn’t ask the server.</div>'; return; }
+    if (!st) { body.innerHTML = '<div class="settings-note" data-parity="settings-away.note">Couldn’t ask the server.</div>'; return; }
     if (!st.available) {
-      body.innerHTML = '<div class="settings-note">Tailscale can’t be built in here — it runs in the Docker image (Linux, x64 or ARM64). Tailscale on the machine the server runs on works as before.</div>';
+      body.innerHTML = '<div class="settings-note" data-parity="settings-away.note">Tailscale can’t be built in here — it runs in the Docker image (Linux, x64 or ARM64). Tailscale on the machine the server runs on works as before.</div>';
       return;
     }
-    const toggle = '<label class="switch"><input type="checkbox" data-away-enable' + (st.enabled ? " checked" : "") + (busy ? " disabled" : "") + '>' +
+    const toggle = '<label class="switch" data-parity="settings-away.enabled"><input type="checkbox" aria-label="Built-in Tailscale" data-away-enable' + (st.enabled ? " checked" : "") + (busy ? " disabled" : "") + '>' +
       '<span class="switch-track"><span class="switch-thumb"></span></span></label>';
-    let html = '<div class="settings-row"><span class="settings-label">Built-in Tailscale</span>' + toggle + "</div>";
+    let html = '<div class="settings-row"><span class="settings-label" data-parity="settings-away.name">Built-in Tailscale</span>' + toggle + "</div>";
     const state = !st.enabled ? "off" : st.state;
     const words = {
       off: "Off",
@@ -61,21 +61,21 @@
     // The engine says Running but the tailnet doesn't see it, or Tailscale
     // warns (v0.7.2): said here, while the server rebinds and restarts it.
     if (state === "Running" && (st.online === false || (st.health && st.health.length))) {
-      html += '<div class="settings-note away-error">' + esc(st.online === false ? "Running, but not online on the tailnet — the server is rebinding it, then starting it afresh" : "Tailscale warns: " + st.health.join("; ")) + "</div>";
+      html += '<div class="settings-note away-error" data-parity="settings-away.error">' + esc(st.online === false ? "Running, but not online on the tailnet — the server is rebinding it, then starting it afresh" : "Tailscale warns: " + st.health.join("; ")) + "</div>";
     }
     if (state === "Running") {
       if (st.dns_name) html += line("Name", esc(st.dns_name));
       if (st.address) html += line("Address", esc(st.address.replace(/^http:\/\//, "")));
-      html += '<div class="settings-row"><span class="settings-label"></span><button type="button" class="settings-update-btn" data-away-act="logout"' + (busy ? " disabled" : "") + ">Sign out of Tailscale</button></div>";
-      html += '<div class="settings-note">On your tailnet as “' + esc(st.hostname) + '”' + settingsInfo("The Mandarin app on your Android phone uses it by itself away from home (after being home once, to learn the address); sign the phone in to Tailscale " + (window.MusicdApp ? "under This phone below" : "in the app, under Settings → Setup → Away from home") + ". Anything else with Tailscale — an iPhone, a laptop — opens " + (st.address || "the address above") + ".") + "</div>";
+      html += '<div class="settings-row"><span class="settings-label"></span><button type="button" class="settings-update-btn" data-parity="settings-away.signout" data-away-act="logout"' + (busy ? " disabled" : "") + ">Sign out of Tailscale</button></div>";
+      html += '<div class="settings-note" data-parity="settings-away.note">On your tailnet as “' + esc(st.hostname) + '”' + settingsInfo("The Mandarin app on your Android phone uses it by itself away from home (after being home once, to learn the address); sign the phone in to Tailscale " + (window.MusicdApp ? "under This phone below" : "in the app, under Settings → Setup → Away from home") + ". Anything else with Tailscale — an iPhone, a laptop — opens " + (st.address || "the address above") + ".", "settings-away.info") + "</div>";
     } else if (st.enabled) {
       const link = st.auth_url
-        ? '<a class="settings-update-btn" href="' + esc(st.auth_url) + '" target="_blank" rel="noopener">Sign in to Tailscale</a>'
-        : '<button type="button" class="settings-update-btn" data-away-act="login"' + (busy ? " disabled" : "") + ">Sign in to Tailscale</button>";
+        ? '<a class="settings-update-btn" data-parity="settings-away.signin" href="' + esc(st.auth_url) + '" target="_blank" rel="noopener">Sign in to Tailscale</a>'
+        : '<button type="button" class="settings-update-btn" data-parity="settings-away.signin" data-away-act="login"' + (busy ? " disabled" : "") + ">Sign in to Tailscale</button>";
       html += '<div class="settings-row"><span class="settings-label"></span>' + link + "</div>";
-      html += '<div class="settings-note">Sign in with the same account as your phone.' + settingsInfo("Opens Tailscale’s sign-in page. The server then joins your tailnet as “" + st.hostname + "” — nothing else to install. Free for personal use.") + "</div>";
+      html += '<div class="settings-note" data-parity="settings-away.note">Sign in with the same account as your phone.' + settingsInfo("Opens Tailscale’s sign-in page. The server then joins your tailnet as “" + st.hostname + "” — nothing else to install. Free for personal use.", "settings-away.info") + "</div>";
     }
-    if (err || st.error) html += '<div class="settings-note away-error">' + esc(err || st.error) + "</div>";
+    if (err || st.error) html += '<div class="settings-note away-error" data-parity="settings-away.error">' + esc(err || st.error) + "</div>";
     body.innerHTML = html;
   }
 

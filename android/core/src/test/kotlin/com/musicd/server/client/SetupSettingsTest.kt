@@ -40,4 +40,30 @@ class SetupSettingsTest {
         assertEquals("random", WallPrefs.parse(SetupSettings.prefsWith(null, "labelOrder", "random")).labelOrder)
         assertEquals("every choice is one the prefs take", SetupSettings.TILE.map { it.value }, SetupSettings.TILE.map { SetupSettings.uiValue(WallPrefs.parse("""{"tile":"${it.value}"}"""), "tile") })
     }
+
+    @Test fun `what the share card links to, each on or off, and its review`() {
+        val l = ShareLinkSettings.parse(JSONObject("""{"services":{"all":[{"id":"qobuz","name":"Qobuz"},{"id":"spotify","name":"Spotify"}],"enabled":["qobuz"]},
+            "reviews":{"all":[{"id":"allmusic-artist","name":"AllMusic","chip":"AllMusic artist"}],"enabled":[]},"card":{"review":false}}"""))
+        assertEquals(listOf(LinkToggle("qobuz", "Qobuz", true), LinkToggle("spotify", "Spotify", false)), l.services)
+        assertEquals("the chip's words", "AllMusic artist", l.reviews[0].name)
+        assertEquals(listOf("qobuz"), l.onServices.map { it.id })
+        assertEquals(false, l.cardReview)
+        assertEquals(true, ShareLinkSettings.parse(JSONObject("{}")).cardReview)
+        assertEquals("Off. The card shows the cover, title, artist and year — no write-up.", ShareLinkSettings.reviewNote(false))
+    }
+
+    @Test fun `the server's Tailscale in words`() {
+        val run = AwayState.parse(JSONObject("""{"available":true,"enabled":true,"state":"Running","serving":true,"online":true,"health":[],"dns_name":"mandarin.tail.ts.net","address":"http://100.1.2.3:8080","hostname":"mandarin"}"""))
+        assertEquals("Connected", run.status)
+        assertEquals("100.1.2.3:8080", run.shownAddress)
+        assertEquals(null, run.warning)
+        assertEquals("Running, but not online on the tailnet — the server is rebinding it, then starting it afresh", run.copy(online = false).warning)
+        assertEquals("Tailscale warns: a; b", run.copy(health = listOf("a", "b")).warning)
+        assertEquals("Connecting…", run.copy(serving = false).status)
+        assertEquals("Off", run.copy(enabled = false).status)
+        assertEquals("Not signed in yet", run.copy(state = "NeedsLogin").status)
+        assertEquals(null, run.copy(state = "NeedsLogin", online = false).warning)
+        assertEquals(true, run.connectedInfo(true).contains("under This phone below"))
+        assertEquals(false, AwayState.parse(JSONObject("""{"available":false}""")).available)
+    }
 }
