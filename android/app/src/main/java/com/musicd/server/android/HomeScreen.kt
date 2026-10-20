@@ -78,6 +78,10 @@ internal fun HomeScreen(prefs: WallPrefs, zoneId: String, client: () -> ServerCl
         HomeKept.refresh(scope, context, client(), NativeShell.libraryView)
         while (true) { delay(60_000); client()?.let { HomeKept.refreshAotd(it) } }
     }
+    // One of the page's own screens over Home has closed (Settings → Home Screen, Playlists, a label): the rows asked for again, as the page's showHome does.
+    val pageFront by NativeShell.pageFront
+    var wasFront by remember { mutableStateOf(pageFront) }
+    LaunchedEffect(pageFront) { if (wasFront && !pageFront) HomeKept.refresh(scope, context, client(), NativeShell.libraryView); wasFront = pageFront }
     LaunchedEffect(HomeKept.toTop) { if (HomeKept.toTop) { HomeKept.list.scrollToItem(0); HomeKept.toTop = false } }
     // Random Album (the page's playUnheard): the disc turns fast for two seconds, then the album chosen is offered.
     fun randomAlbum() {
@@ -96,7 +100,7 @@ internal fun HomeScreen(prefs: WallPrefs, zoneId: String, client: () -> ServerCl
     fun open(albums: List<AlbumSummary>, i: Int) {
         val a = albums[i]
         HomeKept.phoneKeys[a.offset]?.let { onPage("phone-album", it); return }
-        HomeKept.downloads[a.offset]?.let { d ->
+        HomeKept.phoneDownload(a.offset)?.let { d ->
             if (d.state == "away") toast("On a card that isn’t in right now")
             else { DownloadTiles.play(context, d.id); toast("Not in the library right now — playing from this phone") }
             return
@@ -172,7 +176,7 @@ internal fun HomeScreen(prefs: WallPrefs, zoneId: String, client: () -> ServerCl
                                     "downloads" -> SectionTitle(Modifier.parity("home.downloads-title", Contract.label("home.downloads-title")).clickable { onWall("downloads", "") }, "Downloaded albums", true)
                                     "phone" -> SectionTitle(Modifier.parity("home.phone-title", Contract.label("home.phone-title")).clickable { onWall("phone", "") }, "Music on device", true)
                                 }
-                                AlbumRowItems(kept, prefs, coverPx, client) { i -> open(kept.albums, i) }
+                                AlbumRowItems(kept, prefs, coverPx, client, badges = row.id == "downloads") { i -> open(kept.albums, i) }
                             }
                         }
                     }
@@ -220,13 +224,13 @@ private fun SectionTitle(modifier: Modifier, text: String, link: Boolean, name: 
     }
 }
 
-/** A row's tiles (an album each, with a download's badge on the app's own row), or its one line where it has none; the page's 18 under the row and 32 under the section. */
+/** A row's tiles (an album each, with a download's badge on the app's own row alone, [badges]), or its one line where it has none; the page's 18 under the row and 32 under the section. */
 @Composable
-private fun AlbumRowItems(row: RowKept, prefs: WallPrefs, coverPx: Int, client: () -> ServerClient?, onOpen: (Int) -> Unit) {
+private fun AlbumRowItems(row: RowKept, prefs: WallPrefs, coverPx: Int, client: () -> ServerClient?, badges: Boolean = false, onOpen: (Int) -> Unit) {
     if (row.albums.isEmpty()) row.note?.let { RowNote(it) }
     else Carousel(row.albums.size, key = { row.albums[it].offset }) { i ->
         val a = row.albums[i]
-        Box(Modifier.width((144 * prefs.tile).dp)) { AlbumTile(a, prefs, coverPx, client, dl = HomeKept.downloads[a.offset]?.badge) { onOpen(i) } }
+        Box(Modifier.width((144 * prefs.tile).dp)) { AlbumTile(a, prefs, coverPx, client, dl = if (badges) HomeKept.downloads[a.offset]?.badge else null) { onOpen(i) } }
     }
     Spacer(Modifier.height(50.dp))
 }

@@ -70,6 +70,12 @@ data class LibraryView(
         return p.joinToString("&")
     }
 
+    /**
+     * The order alone, as Home's Library row asks with it (the page's libSortKey): the sort, its direction and a random
+     * one's seed, none of the Focus nor the name filter, which narrow the wall and never the row (item 63).
+     */
+    fun sortQuery(): String = "sort=" + enc(sort) + "&dir=" + enc(dir) + (if (sort == "random") "&seed=$seed" else "")
+
     companion object {
         /** The facets, in the sheet's order (the page's LIB_FACET_IDS). */
         val FACET_IDS = listOf("genre", "source", "decade", "label", "format", "rate", "bits", "chan", "letter", "added")

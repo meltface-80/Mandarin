@@ -1,6 +1,17 @@
 # Changelog
 
 ## Unreleased
+- `63-native-home-review`: the native Home (item 57, a preview) read against the page's, and set right where it differed.
+  A downloaded album the library still has opens its page as any album does (it was played from the phone with "Not in the
+  library right now"), and a download's badge is worn in Downloaded albums and its wall alone, not on the same album in
+  every row. Random albums is new on every visit to Home and Not played kept five minutes only once it has answered, so a
+  failure is asked again next time, as the page's. The Library row asks in the Library's order alone (its Focus and name
+  filter narrow the wall, never the row), the view coming with Home from the page or from the native Library's Sort. The
+  room reaches Home whenever it changes, not only when Home comes in front (it could start with none), and a room chosen on
+  a screen over Home is Home's too. The row's Home goes back to Home from any depth (an artist from an album from a wall),
+  and through one of the page's own screens in front of it. The page's own questions over Home (moving the music to another
+  room, a name asked for) bring the page in front; offline, the page's Home stays in front, its rows the phone's. Home's
+  rows are asked again when one of the page's screens over it closes (Settings → Home Screen, say).
 - `57-native-home`: the Home group natively in the Android app (plan H1 to H5), in a new preview, Native Home in UI
   Settings, beside Native Library: Home itself (the greeting with the date over it; the strip under it with Random
   Album's turning disc and today's album wearing ★ Today; the rows in your order and visibility, each heading a tap to

@@ -21,6 +21,13 @@ class LibraryViewTest {
         assertEquals("the seed only with Random", "sort=random&dir=asc&seed=42", LibraryView.parse("sort=random&seed=42").query())
     }
 
+    @Test fun `Home's Library row asks with the order alone, never the Focus nor the name filter`() {
+        val v = LibraryView.parse("sort=year&dir=desc&genre=Rock&genre=!Jazz&played=never&prefix=Th")
+        assertEquals("sort=year&dir=desc", v.sortQuery())
+        assertEquals("a random order keeps its seed", "sort=random&dir=asc&seed=42", LibraryView.parse("sort=random&seed=42&decade=1990s").sortQuery())
+        assertEquals("nothing said: the default order", "sort=album&dir=asc", LibraryView.parse("").sortQuery())
+    }
+
     @Test fun `a chip cycles off, on, excluded and off again, with the count and the heading matching`() {
         var v = LibraryView()
         assertEquals(0, v.focusCount); assertFalse(v.focused)

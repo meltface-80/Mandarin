@@ -85,7 +85,7 @@ internal fun WallScreen(kind: String, filterQuery: String, prefs: WallPrefs, zon
         val a = shown[i]
         // One of the phone's own: the page's own page of it; a download the library no longer has: played from the phone, as the page does.
         HomeKept.phoneKeys[a.offset]?.let { onPage("phone-album", it); return }
-        HomeKept.downloads[a.offset]?.let { d ->
+        HomeKept.phoneDownload(a.offset)?.let { d ->
             if (d.state == "away") toast("On a card that isn’t in right now")
             else { DownloadTiles.play(context, d.id); toast("Not in the library right now — playing from this phone") }
             return
@@ -108,7 +108,7 @@ internal fun WallScreen(kind: String, filterQuery: String, prefs: WallPrefs, zon
     // The heading: the genre's name, Music on device with its count (as the page's renderLocalWall), or the wall's own.
     val title = when (kind) {
         "genre" -> filter?.title ?: "Random albums"
-        "phone" -> if (!wall.loaded) "Music on device" else "Music on device · " + shown.size + (if (local.focusCount > 0) " matching" else "") + (if (shown.size == 1) " album" else " albums")
+        "phone" -> if (!wall.loaded) "Music on device" else "Music on device · " + java.text.NumberFormat.getIntegerInstance().format(shown.size) + (if (local.focusCount > 0) " matching" else "") + (if (shown.size == 1) " album" else " albums")
         else -> Walls.title(kind)
     }
     val banner = if (kind == "phone" && wall.loaded) when {
@@ -119,7 +119,7 @@ internal fun WallScreen(kind: String, filterQuery: String, prefs: WallPrefs, zon
 
     Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         AlbumGrid(listOf(GridBlock(null, shown)), prefs, cols, coverPx, client, wall.loaded, picks.map { it.offset }.toSet(), grid, list,
-            onOpen = ::open, onLongPress = { i -> if (!own && !selecting) { selecting = true; pick(i) } }, dl = { a -> HomeKept.downloads[a.offset]?.badge }) { WallHead(title, prefs, banner) }
+            onOpen = ::open, onLongPress = { i -> if (!own && !selecting) { selecting = true; pick(i) } }, dl = { a -> if (kind == "downloads") HomeKept.downloads[a.offset]?.badge else null }) { WallHead(title, prefs, banner) }
         WallBack(onBack)
         // Top right: the ⋯ while albums are picked; Focus and Sort on the phone's wall; the random wall's (and a genre's) reshuffle otherwise (the bar's button).
         if (picks.isNotEmpty()) AlbumSelectMenu(picks.size, ::act, Modifier.align(Alignment.TopEnd).padding(end = 14.dp, top = 12.dp))
