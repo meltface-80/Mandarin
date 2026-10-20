@@ -84,6 +84,24 @@ const OPEN_ALBUM = `(async () => {
   return "open";
 })()`;
 
+/* An album's editor: Album One's page, its ⋯, Edit album; its title changed, so what the files say shows under it with Put back. */
+const OPEN_ALBUM_EDIT = `(async () => {
+  const opened = await ${OPEN_ALBUM};
+  if (opened !== "open") return opened;
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const until = async (fn, ms = 30000) => { const t0 = Date.now(); while (!fn()) { if (Date.now() - t0 > ms) return false; await sleep(50); } return true; };
+  const $ = s => document.querySelector(s);
+  $("#modal-actions .overflow-btn").click();
+  if (!(await until(() => $('[data-parity~="album.edit"]')))) return "no Edit album";
+  $('[data-parity~="album.edit"]').click();
+  if (!(await until(() => !$("#album-edit-overlay").classList.contains("hidden") && !$("#ae-save").disabled && /cover/i.test($("#ae-cover-status").textContent)))) return "no editor";
+  $("#ae-title").value = "Album One (Remaster)";
+  $("#ae-title").dispatchEvent(new Event("input"));
+  if (!(await until(() => $('[data-parity~="album-edit.put-back"]')))) return "no Put back";
+  await sleep(400);
+  return "open";
+})()`;
+
 /* The mini player: an album played to the Kitchen, the bar showing its first track. */
 const OPEN_MINI_PLAYER = `(async () => {
   const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -441,6 +459,7 @@ const SCREENS = {
   "nav": { open: OPEN_NAV, root: "#touch-nav" },
   "booklet": { open: OPEN_BOOKLET, root: "#booklet-viewer" },
   "album": { open: OPEN_ALBUM, root: "#album-modal .modal-panel" },
+  "album-edit": { open: OPEN_ALBUM_EDIT, root: "#album-edit-overlay .album-edit-sheet" },
   "library": { open: OPEN_LIBRARY, root: "body", shared: ["mini-player", "nav"] },
   "wall": { open: OPEN_WALL, root: "body", shared: ["mini-player", "nav"] },
   "artist": { open: OPEN_ARTIST, root: "body", shared: ["mini-player", "nav"] },

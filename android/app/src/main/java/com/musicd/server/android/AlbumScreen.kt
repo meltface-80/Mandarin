@@ -39,6 +39,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -92,8 +93,8 @@ import org.json.JSONObject
  * [zoneId], the room the page had chosen, or the one chosen since on the mini
  * player's Play on ([onRoom] tells the page); a tap on the mini player opens
  * Now playing ([onNowPlaying], with the room). What the page does with its
- * own sheets (Share card, Add to playlist, Edit album) and screens (an
- * artist's, a label's) it is asked for ([onPage]).
+ * own sheets (Share card, Add to playlist) and screens (an artist's, a
+ * label's) it is asked for ([onPage]); Edit album is its own (item 74).
  */
 @Composable
 internal fun AlbumScreen(offset: Long, zoneId: String, lit: String, client: () -> ServerClient?, list: NavList?, onStepTo: (Long, String, NavList) -> Unit,
@@ -118,10 +119,12 @@ internal fun AlbumScreen(offset: Long, zoneId: String, lit: String, client: () -
     var favourite by remember(offset) { mutableStateOf(false) }
     var later by remember(offset) { mutableStateOf(false) }
     var serviceFav by remember(offset) { mutableStateOf<Boolean?>(null) }   // a streamed album's favourite on its service, once known
+    var editing by remember(offset) { mutableStateOf(false) }   // its editor open (item 74)
+    var loads by remember(offset) { mutableIntStateOf(0) }   // read again once the editor changed it
     val room = followRoom(zone, client)
     BackHandler(onBack = onBack)
 
-    LaunchedEffect(offset) {
+    LaunchedEffect(offset, loads) {
         val c = client() ?: return@LaunchedEffect
         val lib = LibraryClient { c.getJson(it) }
         withContext(Dispatchers.IO) { runCatching { lib.album(offset) } }
@@ -229,7 +232,7 @@ internal fun AlbumScreen(offset: Long, zoneId: String, lit: String, client: () -
                             else Contract.label("album.download", 0)
                         val bridge = (context as? Activity)?.let { DownloadsBridge(it) }
                         MoreMenu(a, later, onLater = { later = !later; val on = later; mark { it.listenLater(offset, on) } },
-                            onPlay = { kind, said -> play(said) { it.playAlbum(offset, a.album.title, a.album.subtitle, zone, kind) } }, onPage = onPage,
+                            onPlay = { kind, said -> play(said) { it.playAlbum(offset, a.album.title, a.album.subtitle, zone, kind) } }, onPage = { what, arg -> if (what == "album-edit") editing = true else onPage(what, arg) },
                             download = dlLabel?.takeIf { bridge != null },
                             onDownload = {
                                 val b = bridge ?: return@MoreMenu
@@ -297,6 +300,8 @@ internal fun AlbumScreen(offset: Long, zoneId: String, lit: String, client: () -
                 MiniPlayer(zone, room, client, onOpen = { onNowPlaying(zone) }, onRoom = { id -> zone = id; onRoom(id) }, onPage = onPage)
                 TouchNav(lit, offline = Store.offlineMode(context), onTap = onNav)
             }
+            // Its editor (item 74), over the page; the page read again, and the walls told, once it changed the album.
+            if (editing) album?.let { AlbumEditSheet(offset, it.album.title, it.album.subtitle, client, onClose = { editing = false }, onChanged = { loads++; NativeShell.toPage("library-changed", null) }) }
         }
     }
 }

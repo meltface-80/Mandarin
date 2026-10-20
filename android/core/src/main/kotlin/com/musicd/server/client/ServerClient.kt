@@ -208,6 +208,19 @@ class ServerClient(
     fun rescanLabels() { post("/api/labels/rescan", JSONObject()) }
     fun labelsScanLog(): String = String(bytes(address.baseUrl + "/api/labels-scan-log"), Charsets.UTF_8)
 
+    /**
+     * The album editor (item 74): the editor's view of an album; the covers found on the web and the releases
+     * MusicBrainz offers (slow: a minute allowed); the corrections saved (the cover downloaded there) or all undone,
+     * each answering with the editor's view again; a release applied by its id ([how] "pick"), a barcode or a link.
+     */
+    fun albumEditState(offset: Long): EditState = EditState.parse(getJson("/api/album/edit?offset=$offset"))
+    fun albumArtSearch(offset: Long): ArtSearch = ArtSearch.parse(getJson("/api/album/art-search?offset=$offset", 60000))
+    fun releaseCandidates(offset: Long): MatchSearch = MatchSearch.parse(getJson("/api/identify/candidates?offset=$offset", 60000))
+    fun saveAlbumEdit(body: JSONObject): EditState = EditState.parse(post("/api/album/edit", body, 60000))
+    fun resetAlbumEdit(offset: Long): EditState = EditState.parse(post("/api/album/edit/reset", JSONObject().put("offset", offset)))
+    fun matchRelease(offset: Long, query: String, how: String): JSONObject =
+        post("/api/identify/match", JSONObject().put("offset", offset).put("query", query).put("how", how), 60000)
+
     /** One of your playlists deleted (item 65), for good. */
     fun deletePlaylist(id: String) { post("/api/user-playlists/delete", JSONObject().put("id", id)) }
 

@@ -142,7 +142,7 @@ Sizes are the page's lines for that surface, a proxy for the native work.
 | B2 | **Built (item 73)** (`ServiceBrowserScreen.kt`; an album opens the native album page, as the page's opens its own). The Qobuz and Tidal browsers: the tabs, search, the artist strip and head and their albums (Load more), the album's page, favourite, open in the library, play | `service-browser`, `-rows`, `-views`, `service-browsers` · ~1,100 |
 | B3 | **Built (item 70)** (`PitchforkScreen.kt`; Find on Qobuz opens the app's Qobuz browser, seeded, since item 73). Pitchfork: the lists, a review, the find buttons | `pitchfork` · ~230 |
 | B4 | The Share card: the card drawn (sharecard.js's painting in Kotlin's Canvas), Save, Share and Copy through the app's own sharing, the service links with hold-to-prefer, If you like this | `share-card`, `-links`, `-suggestions`, `sharecard.js` · ~1,400 |
-| B5 | The album editor and the matcher: a cover found, pasted, removed or kept; title, artist and year with their "was"; MusicBrainz candidates, a barcode or a link; save, undo all | `album-editor`, `album-editor-match` · ~700 |
+| B5 | **Built (item 74)** (`AlbumEditSheet.kt`, `AlbumEditParts.kt`; a sheet over the native album page, its own window so the keyboard lifts it). The album editor and the matcher: a cover found, pasted, removed or kept; title, artist and year with their "was"; MusicBrainz candidates, a barcode or a link; save, undo all | `album-editor`, `album-editor-match` · ~700 |
 
 ### T. Settings (the whole tree; one item a pane, in this order)
 

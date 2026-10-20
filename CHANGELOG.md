@@ -1,6 +1,16 @@
 # Changelog
 
 ## Unreleased
+- `74-native-album-editor`: the album editor and the matcher natively in the Android app (plan B5), from an album's ⋯,
+  Edit album, as a sheet from the foot over the album's native page, as the page's: its grip, Edit album and ✕; the cover
+  with what is said of it, Find cover (an album with no cover of its own is searched for at once, and a sure match
+  chosen), the covers found to choose from (the sure one marked Match) or an image's address pasted and shown before it
+  is used, Remove found cover and Keep current cover; the names from MusicBrainz with the album's folder (and its box
+  set), Find match, the releases offered with how alike each is (Match or Likely on the first), applied with a tap, or a
+  barcode or a release's link; the title, the artist and the year, each with what the files say and Put back; Save,
+  Cancel and Undo all edits, and the note. Once it changes the album, its page is read again and the page's walls are
+  told. Before, the page's own editor opened over the native page. The page's editor is keyed for the screens contract
+  (`album-edit`), its page test opens it on Album One with its title changed.
 - `73-native-service-browsers`: the Qobuz and Tidal browsers natively in the Android app (plan B2), from the side menu,
   the search's service artists and Pitchfork's Find on Qobuz. As the page's: over the whole screen, the title and ✕, the
   search field (450 ms after the last key, or Enter) and the tabs (New Releases, then Qobuz's lists, or the ones Tidal

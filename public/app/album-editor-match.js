@@ -21,7 +21,7 @@ function aeRenderMatches(list, verdict) {
   ae.mCands.innerHTML = "";
   list.forEach((c, i) => {
     const b = document.createElement("button");
-    b.type = "button"; b.className = "ae-mcand";
+    b.type = "button"; b.className = "ae-mcand"; b.setAttribute("data-parity", "album-edit.release");
     const top = document.createElement("div"); top.className = "ae-mcand-top";
     const t1 = document.createElement("span"); t1.className = "ae-mcand-t"; t1.textContent = (c.artist ? c.artist + " — " : "") + (c.title || "—");
     const pc = document.createElement("span"); pc.className = "ae-mcand-pc" + (c.similarity >= 96 ? " is-sure" : ""); pc.textContent = c.similarity + " %";
