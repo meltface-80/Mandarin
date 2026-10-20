@@ -95,17 +95,17 @@ Sizes are the page's lines for that surface, a proxy for the native work.
 
 | Item | What | Page |
 |---|---|---|
-| L1 | The wall: the grid (columns, list layout, tile size and text size from UI Settings), paged over `/api/library/albums`, the position kept on return, the quality, source and multi-disc marks on the tiles. **Built (item 51), in preview**: `LibraryScreen.kt`, `AlbumTile.kt`, opened by the page in its view of the library with its UI Settings; Focus, Sort and the name filter are its gaps (L2) | `walls`, `library-wall`, `album-grid`, `album-tiles` · ~1,000 |
-| L2 | **Built (item 52), in preview.** The controls row and its sheets: Focus (the facets: genre, source, decade, label, format, rate, bits, channels, letter, added; played: any, never, 6 or 12 months; Clear all, Save as a Dynamic Playlist, Show albums), Sort (name, artist, release, added, most and last played, random with its seed; a second tap flips it), the name filter; the Filter sheet (all, genre, tag, decade) | `library-controls`, `library-focus`, `playlist-share` (`openLibSortSheet`), `filter-sheet` · ~700 |
-| L3 | **Built (item 52), in preview.** Selecting albums: a long press, the action bar, the ⋯ (play now, next, at the end; add to playlist; Listen later; clear), `/api/play-multi` | `album-grid` (select mode), `labels-albums` (`invokeAlbumMulti`) · ~250 |
-| L4 | **Built (item 52), in preview** (`ArtistScreen.kt`; the phone's own albums on it wait for O1). The artist's page: their albums and the biography head, the title and count in the bar | `artist-view` · 303 |
-| L5 | **Built (item 52), in preview** (`WallScreen.kt`). The walls Home links to: Listen later, Favourites, Recently played, Not played in 6 months; Random albums with reshuffle | `walls`, `album-grid` (`loadRandom`) · ~300 |
+| L1 | The wall: the grid (columns, list layout, tile size and text size from UI Settings), paged over `/api/library/albums`, the position kept on return, the quality, source and multi-disc marks on the tiles. **Built (item 51), always on since item 64**: `LibraryScreen.kt`, `AlbumTile.kt`, opened by the page in its view of the library with its UI Settings; Focus, Sort and the name filter are its gaps (L2) | `walls`, `library-wall`, `album-grid`, `album-tiles` · ~1,000 |
+| L2 | **Built (item 52), always on since item 64.** The controls row and its sheets: Focus (the facets: genre, source, decade, label, format, rate, bits, channels, letter, added; played: any, never, 6 or 12 months; Clear all, Save as a Dynamic Playlist, Show albums), Sort (name, artist, release, added, most and last played, random with its seed; a second tap flips it), the name filter; the Filter sheet (all, genre, tag, decade) | `library-controls`, `library-focus`, `playlist-share` (`openLibSortSheet`), `filter-sheet` · ~700 |
+| L3 | **Built (item 52), always on since item 64.** Selecting albums: a long press, the action bar, the ⋯ (play now, next, at the end; add to playlist; Listen later; clear), `/api/play-multi` | `album-grid` (select mode), `labels-albums` (`invokeAlbumMulti`) · ~250 |
+| L4 | **Built (item 52), always on since item 64** (`ArtistScreen.kt`; the phone's own albums on it wait for O1). The artist's page: their albums and the biography head, the title and count in the bar | `artist-view` · 303 |
+| L5 | **Built (item 52), always on since item 64** (`WallScreen.kt`). The walls Home links to: Listen later, Favourites, Recently played, Not played in 6 months; Random albums with reshuffle | `walls`, `album-grid` (`loadRandom`) · ~300 |
 
 ### N5. Home
 
 | Item | What | Page |
 |---|---|---|
-| H1 | **Built (item 57), in preview** (`HomeScreen.kt`, `HomeRows.kt`, `HomeTiles.kt`). Home: the greeting, the Today strip (the Random Album tile, Album of the day), the rows in the user's order and visibility (`/api/settings/home-rows`), each heading a tap to its wall; drawn from a cache at once and refreshed behind; the scroll kept | `home`, `home-layout`, `home-render`, `home-rows` · ~1,400 |
+| H1 | **Built (item 57), always on since item 64** (`HomeScreen.kt`, `HomeRows.kt`, `HomeTiles.kt`). Home: the greeting, the Today strip (the Random Album tile, Album of the day), the rows in the user's order and visibility (`/api/settings/home-rows`), each heading a tap to its wall; drawn from a cache at once and refreshed behind; the scroll kept | `home`, `home-layout`, `home-render`, `home-rows` · ~1,400 |
 | H2 | **Built (item 57)** (`PicksScreen.kt`). Smart Picks: the row and the full screen with each pick's reason, favourite and block | `home-picks` · ~430 |
 | H3 | **Built (item 57)**. Browse by genre (the genre cards, `/api/home/genre-groups`) and Label of the week | `home-rows`, `device-power` (genre cache) · ~200 |
 | H4 | **Built (item 57)** (`RandomPickDialog.kt`). The Random Album pick: the spinning disc, Play now, Play next, Queue (`/api/pick-unheard`) | `play-unheard` · ~200 |
@@ -115,8 +115,8 @@ Sizes are the page's lines for that surface, a proxy for the native work.
 
 | Item | What | Page |
 |---|---|---|
-| S1 | **Built (item 61), in preview** (`SearchScreen.kt`, `SearchRows.kt`; Native Search in UI Settings). The library's search: the field in the bar, artists and labels as chips, the albums grid, the index building shown | `search` · ~200 |
-| S2 | **Built (item 61), in preview** (a service's artist and a Pitchfork review are handed to the page's browser and magazine until B makes them native). The services' search: Qobuz, Tidal and Pitchfork sections as each answers, the last query's kept dim until replaced | `search-external` · ~220 |
+| S1 | **Built (item 61), always on since item 64** (`SearchScreen.kt`, `SearchRows.kt`). The library's search: the field in the bar, artists and labels as chips, the albums grid, the index building shown | `search` · ~200 |
+| S2 | **Built (item 61), always on since item 64** (a service's artist and a Pitchfork review are handed to the page's browser and magazine until B makes them native). The services' search: Qobuz, Tidal and Pitchfork sections as each answers, the last query's kept dim until replaced | `search-external` · ~220 |
 
 ### P. Playlists
 

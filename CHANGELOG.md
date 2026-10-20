@@ -1,6 +1,12 @@
 # Changelog
 
 ## Unreleased
+- `64-native-always-on`: the Android app's native Library (its walls and an artist's page with it), Home (with Smart Picks and
+  Random Album's pick) and search are permanently on, as Now playing and the album page have been since item 47: the three
+  preview switches in UI Settings are gone and the page's own versions are no longer reached in the app. The native Home is
+  in front from the app's first frame, drawn to the UI Settings and in the room it was last given, so the page's Home never
+  shows first; it steps aside for the app's own error screen, and for a page that never says where Home stands (a sign-in
+  page). Offline, the page's Home and search stay, as their rows come from the phone, until the native offline mode (plan O1).
 - `61-native-search`: the search natively in the Android app (plan S1 and S2), in a new preview, Native Search in UI
   Settings, beside Native Library and Native Home. The row's Search, the glass, and a search started elsewhere open it in
   place of the page's field: the field across the top bar in brass with its ✕ and the count beside it ("3 artists, 3

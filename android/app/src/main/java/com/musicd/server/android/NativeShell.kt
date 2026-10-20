@@ -41,12 +41,9 @@ internal object NativeShell {
     /** A native screen opened over the page. */
     fun open(route: String) { nav?.navigate(route) { launchSingleTop = true } }
 
-    /** Whether the app draws the Library wall, the walls and an artist's page itself (item 52; the switch in UI Settings), as last told by the page. */
-    @Volatile var nativeLibrary = false
-    /** Whether the app draws Home itself (item 57; its switch in UI Settings). */
-    @Volatile var nativeHome = false
-    /** Whether the app draws the search itself (item 61; its switch in UI Settings). */
-    @Volatile var nativeSearch = false
+    /** Whether the page has said where Home stands since the app started ([homeShown]): until it does, the native Home is in front on trust. */
+    @Volatile private var told = false
+    fun wasTold() = told
 
     /** The native search opened afresh with [q] (the page's glass, the row's Search, a search seeded elsewhere), its albums playing in [zoneId]. */
     fun openSearch(q: String, zoneId: String) {
@@ -123,6 +120,7 @@ internal object NativeShell {
      * the page's own screen, the route staying Home underneath (a native screen over Home is left as it is).
      */
     fun homeShown(front: Boolean, prefs: String, zone: String) {
+        told = true
         this.prefs = prefs; this.zone = zone
         // The Library's view comes with them (item 63: "view", the page's libViewQuery), for Home's Library row and heading.
         runCatching { org.json.JSONObject(prefs).optString("view") }.getOrNull()?.takeIf { it.isNotEmpty() }?.let { libraryView = it }
@@ -142,10 +140,13 @@ internal object NativeShell {
     fun landHome() { HomeKept.toTop = true; if (pageFront.value) toPage("nav", "home") }
 
     /** The row's button on the native Home: Home itself goes to its top; the rest are the page's own buttons (the page comes in front as it opens what they open). */
-    fun homeNav(what: String) { if (what == "home") HomeKept.toTop = true else if (what == "search" && nativeSearch) openSearch("", zone) else toPage("nav", what) }
+    fun homeNav(what: String) { if (what == "home") HomeKept.toTop = true else if (what == "search") openSearch("", zone) else toPage("nav", what) }
 
-    /** Native Home switched off (its switch in UI Settings): back to the page, whatever is over Home going with it. */
-    fun leaveHome() {
+    /**
+     * Back to the page, whatever native screen is over it going with it: the app's error screen up (it lies under the
+     * shell), or the page never having said where Home stands (a sign-in page instead of the app's, say).
+     */
+    fun toWeb() {
         val n = nav ?: return
         if (!ShellRoute.isWeb(n.currentDestination?.route)) n.popBackStack(ShellRoute.WEB, false)
     }
@@ -165,12 +166,18 @@ internal object NativeShell {
     /** [root] (the page's frame) with the shell laid over it, for setContentView; [page] runs a script on the page. */
     fun attach(activity: ComponentActivity, root: FrameLayout, page: (String) -> Unit): FrameLayout {
         this.page = page
+        // Signed in and online, the native Home is in front from the first frame (item 64), drawn to the UI Settings and in the
+        // room it was last given, so the page's own Home is never seen; offline the page's Home is the one (its rows are the phone's).
+        val startHome = !Store.offlineMode(activity) && Store.token(activity) != null
+        told = false
+        prefs = Store.homePrefs(activity); zone = Store.zone(activity).orEmpty()
+        homeArgs.value = prefs.orEmpty() to zone
         val shell = ComposeView(activity).apply {
             visibility = View.GONE
             setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
             setContent {
                 MandarinTheme {
-                    Shell(client = { Store.client(activity) }, onShown = { shown -> visibility = if (shown) View.VISIBLE else View.GONE })
+                    Shell(client = { Store.client(activity) }, startHome = startHome, onShown = { shown -> visibility = if (shown) View.VISIBLE else View.GONE })
                 }
             }
         }
@@ -192,7 +199,7 @@ internal object NativeShell {
  * the screen; everything else closes the screen and asks the page.
  */
 private fun toPageOrNative(nav: NavHostController, what: String, arg: String?) {
-    if (what == "artist" && !arg.isNullOrEmpty() && NativeShell.nativeLibrary) { nav.navigate(ShellRoute.artist(arg, NativeShell.zone)); return }
+    if (what == "artist" && !arg.isNullOrEmpty()) { nav.navigate(ShellRoute.artist(arg, NativeShell.zone)); return }
     // The page's sheets open over the screen that asked, as they do over the page's own screens; the rest closes it.
     if (what in NativeShell.OVERLAYS) { NativeShell.overPage(what, arg); return }
     nav.popBackStack()
@@ -206,14 +213,14 @@ private fun toPageOrNative(nav: NavHostController, what: String, arg: String?) {
  */
 private fun navTap(nav: NavHostController, what: String) {
     if (!nav.popBackStack(ShellRoute.HOME, false)) nav.popBackStack()
-    // Search, with the app's own on: its search over whatever is left (item 61), as the page's opens over Home.
-    if (what == "search" && NativeShell.nativeSearch) NativeShell.openSearch("", NativeShell.zone)
+    // Search: the app's own over whatever is left (item 61), as the page's opens over Home.
+    if (what == "search") NativeShell.openSearch("", NativeShell.zone)
     else if (what == "home" && nav.currentDestination?.route == ShellRoute.HOME) NativeShell.landHome() else NativeShell.toPage("nav", what)
 }
 
 /** The screens by route; [onShown] told whether the shell is on screen (a native route, and not the page in front of Home), so the page shows through on its own. */
 @Composable
-private fun Shell(client: () -> ServerClient?, onShown: (Boolean) -> Unit) {
+private fun Shell(client: () -> ServerClient?, startHome: Boolean, onShown: (Boolean) -> Unit) {
     val nav = rememberNavController()
     val prefs = NativeShell.prefs
     DisposableEffect(nav) {
@@ -224,6 +231,13 @@ private fun Shell(client: () -> ServerClient?, onShown: (Boolean) -> Unit) {
     val route = entry?.destination?.route
     val front by NativeShell.pageFront
     LaunchedEffect(route, front) { onShown(!ShellRoute.isWeb(route) && !(route == ShellRoute.HOME && front)) }
+    // The native Home from the start; the page given eight seconds to say where Home stands, else it is the page's to show.
+    LaunchedEffect(nav) {
+        if (!startHome) return@LaunchedEffect
+        nav.navigate(ShellRoute.home(NativeShell.homeArgs.value.first, NativeShell.homeArgs.value.second)) { launchSingleTop = true }
+        kotlinx.coroutines.delay(8_000)
+        if (!NativeShell.wasTold()) NativeShell.toWeb()
+    }
     NavHost(navController = nav, startDestination = ShellRoute.WEB) {
         // The page at a path: drawn by the WebView under the shell, so nothing here.
         composable(ShellRoute.WEB, arguments = listOf(navArgument(ShellRoute.PATH) { type = NavType.StringType; defaultValue = "/" })) { }
