@@ -13,17 +13,18 @@ async function openSmartPlaylist(sp) {
   const back = document.createElement("button");
   back.type = "button"; back.className = "action-btn playlist-back";
   back.textContent = "← Dynamic Playlists";
+  back.setAttribute("aria-label", "Back to Dynamic Playlists"); back.dataset.parity = "smart-playlist.back";
   back.addEventListener("click", () => { smartDetailActive = false; showSmartPlaylists(); });
   wrap.appendChild(back);
 
   const head = document.createElement("div");
   head.className = "playlist-head";
   const h = document.createElement("h2");
-  h.className = "playlist-title";
+  h.className = "playlist-title"; h.dataset.parity = "smart-playlist.title";
   h.textContent = sp.name || "Dynamic Playlist";
   head.appendChild(h);
   const sub = document.createElement("div");
-  sub.className = "playlist-sub";
+  sub.className = "playlist-sub"; sub.dataset.parity = "smart-playlist.subtitle";
   // What it is made of and what order it is in, alongside the query — both
   // are properties of the playlist that the query description can't carry,
   // and "why are these shuffled?" is otherwise only answerable from Edit.
@@ -47,13 +48,16 @@ async function openSmartPlaylist(sp) {
   // Two actions on the row; the rest behind the overflow menu. Six pills
   // shrank together (.action-btn is flex: 1 1 0) rather than wrapping, which
   // is how "Send to Roon" came out as "end to Roo".
-  mkBtn("Play now", "action-btn primary", (b) => playSmartPlaylist(sp, "play_now", b));
-  mkBtn("Queue",    "action-btn",         (b) => playSmartPlaylist(sp, "queue", b));
-  actions.appendChild(buildOverflowMenu([
+  mkBtn("Play now", "action-btn primary", (b) => playSmartPlaylist(sp, "play_now", b)).dataset.parity = "smart-playlist.play-now";
+  mkBtn("Queue",    "action-btn",         (b) => playSmartPlaylist(sp, "queue", b)).dataset.parity = "smart-playlist.queue";
+  const menu = buildOverflowMenu([
     { label: "Share",        onClick: (b) => shareThis(b) },
     { label: "Edit",         onClick: () => editSmartPlaylist(sp) },
     { label: "Delete",       onClick: () => deleteSmartPlaylist(sp), danger: true },
-  ], { title: sp.name || "Dynamic Playlist" }));
+  ], { title: sp.name || "Dynamic Playlist" });
+  for (const [sel, key] of [[".overflow-btn", "smart-playlist.more"], [".sel-menu-title", "smart-playlist.more-title"], [".sel-menu-item:nth-of-type(1)", "smart-playlist.share"],
+    [".sel-menu-item:nth-of-type(2)", "smart-playlist.edit"], [".sel-menu-item.is-danger", "smart-playlist.delete"]]) { const el = menu.querySelector(sel); if (el) el.dataset.parity = key; }
+  actions.appendChild(menu);
   wrap.appendChild(actions);
 
   const ol = document.createElement("ol");
@@ -61,13 +65,13 @@ async function openSmartPlaylist(sp) {
   wrap.appendChild(ol);
 
   const status = document.createElement("div");
-  status.className = "playlist-empty";
+  status.className = "playlist-empty"; status.dataset.parity = "smart-playlist.status";
   status.textContent = "Reading tracks…";
   wrap.appendChild(status);
 
   const more = document.createElement("button");
   more.type = "button"; more.className = "action-btn playlist-more hidden";
-  more.textContent = "Load more";
+  more.textContent = "Load more"; more.dataset.parity = "smart-playlist.load-more";
   wrap.appendChild(more);
   grid.appendChild(wrap);
 
@@ -219,7 +223,12 @@ async function openSmartPlaylist(sp) {
     if (!r.ok) { status.textContent = j.error || "Couldn't read this playlist."; return; }
     const albums = j.albums || [];
     const frag = document.createDocumentFragment();
-    for (const a of albums) frag.appendChild(buildAlbumTile(a));
+    for (const a of albums) {
+      const tile = buildAlbumTile(a);
+      tile.dataset.parity = "smart-playlist.album";
+      for (const [sel, key] of [[".album-art-wrap", "smart-playlist.album-art"], [".album-title", "smart-playlist.album-title"], [".album-artist", "smart-playlist.album-artist"]]) { const el = tile.querySelector(sel); if (el) el.dataset.parity = key; }
+      frag.appendChild(tile);
+    }
     albumGrid.appendChild(frag);
     // Says what it PLAYS and, when the query matched more, what it left out —
     // the same honesty the tile subtitle carries.
@@ -242,9 +251,10 @@ function smartTrackRow(t) {
   li.className = "track-row track-row-art";
   li.dataset.albumOffset = String(t.album_offset);
   li.dataset.trackIndex  = String(t.track_index);
+  li.dataset.parity = "smart-playlist.track";
 
   const art = document.createElement("span");
-  art.className = "track-art";
+  art.className = "track-art"; art.dataset.parity = "smart-playlist.track-art";
   // The key stays on the element even if the <img> is removed by onerror, so
   // "which artwork was this row given" is answerable after the fact.
   if (t.image_key) art.dataset.artKey = t.image_key;
@@ -259,11 +269,11 @@ function smartTrackRow(t) {
   const text = document.createElement("div");
   text.className = "track-text";
   const tt = document.createElement("div");
-  tt.className = "track-title";
+  tt.className = "track-title"; tt.dataset.parity = "smart-playlist.track-title";
   tt.textContent = t.title || "";
   text.appendChild(tt);
   const ta = document.createElement("div");
-  ta.className = "track-artist";
+  ta.className = "track-artist"; ta.dataset.parity = "smart-playlist.track-artist";
   ta.textContent = [t.subtitle, t.album_title].filter(Boolean).join(" · ");
   text.appendChild(ta);
   li.appendChild(text);

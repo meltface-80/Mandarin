@@ -82,6 +82,12 @@ object ShellRoute {
     const val PLAYLIST = "playlist/{$ID}?$ZONE={$ZONE}"
     fun playlist(id: String, zoneId: String): String = "playlist/" + enc(id) + "?$ZONE=" + enc(zoneId)
 
+    /** The Dynamic Playlists (item 66), and one of them by its [ID]. */
+    const val SMART_PLAYLISTS = "smart-playlists?$ZONE={$ZONE}"
+    fun smartPlaylists(zoneId: String): String = "smart-playlists?$ZONE=" + enc(zoneId)
+    const val SMART_PLAYLIST = "smart-playlist/{$ID}?$ZONE={$ZONE}"
+    fun smartPlaylist(id: String, zoneId: String): String = "smart-playlist/" + enc(id) + "?$ZONE=" + enc(zoneId)
+
     const val Q = "q"
     /** The search (item 61): the words it opens with ([Q], none for an empty field), its albums playing in [ZONE]. */
     const val SEARCH = "search?$Q={$Q}&$ZONE={$ZONE}"

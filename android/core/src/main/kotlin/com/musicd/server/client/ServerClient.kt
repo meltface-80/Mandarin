@@ -182,6 +182,9 @@ class ServerClient(
     /** Never this artist again in Smart Picks (the page's "Not for me"). */
     fun blockSmartPick(artist: String) { post("/api/smart-picks/block", JSONObject().put("artist", artist)) }
 
+    /** A Dynamic Playlist deleted (item 66), for good. */
+    fun deleteSmartPlaylist(id: String) { post("/api/smart-playlists/delete", JSONObject().put("id", id)) }
+
     /** One of your playlists deleted (item 65), for good. */
     fun deletePlaylist(id: String) { post("/api/user-playlists/delete", JSONObject().put("id", id)) }
 

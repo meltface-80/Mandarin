@@ -264,6 +264,47 @@ const OPEN_PLAYLIST = `(async () => {
   return "open";
 })()`;
 
+/* A Dynamic Playlist of Artist A's and B's albums, made of their tracks, made through the page's own API (once), its id. */
+const MAKE_SMART = `const makeSmart = async () => {
+  const mine = ((await (await fetch("/api/smart-playlists")).json()).playlists || []).find(p => p.name === "Artists");
+  if (mine) return mine.id;
+  const r = await (await fetch("/api/smart-playlists", { method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name: "Artists", view: { sort: "album", dir: "asc" }, mode: "tracks", order: "album" }) })).json();
+  return r.playlist.id;
+};`;
+
+/* The Dynamic Playlists screen, as the side menu opens it, one saved. */
+const OPEN_SMART_PLAYLISTS = `(async () => {
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const until = async (fn, ms = 30000) => { const t0 = Date.now(); while (!fn()) { if (Date.now() - t0 > ms) return false; await sleep(50); } return true; };
+  ${MAKE_SMART}
+  if (!(await until(() => document.querySelectorAll("#home-library .album").length > 1 && /Kitchen/.test((document.getElementById("mt-kicker") || {}).textContent || "")))) return "no Home";
+  await makeSmart();
+  await sleep(400);
+  showSmartPlaylists();
+  if (!(await until(() => /Dynamic Playlists/.test(document.getElementById("album-count").textContent) && document.querySelectorAll("#album-grid .album:not(#new-smart-tile)").length > 0))) return "no screen";
+  await sleep(800);
+  return "open";
+})()`;
+
+/* A Dynamic Playlist made of tracks: its tile tapped, its tracks all read. */
+const OPEN_SMART_PLAYLIST = `(async () => {
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const until = async (fn, ms = 30000) => { const t0 = Date.now(); while (!fn()) { if (Date.now() - t0 > ms) return false; await sleep(50); } return true; };
+  ${MAKE_SMART}
+  if (!(await until(() => document.querySelectorAll("#home-library .album").length > 1 && /Kitchen/.test((document.getElementById("mt-kicker") || {}).textContent || "")))) return "no Home";
+  await makeSmart();
+  await sleep(400);
+  showSmartPlaylists();
+  const tile = () => document.querySelector('#album-grid [data-parity="smart-playlists.playlist"]');
+  if (!(await until(() => /Dynamic Playlists/.test(document.getElementById("album-count").textContent) && tile()))) return "no list";
+  await sleep(300);
+  tile().click();
+  if (!(await until(() => / from \\d+ album/.test((document.querySelector(".playlist-detail .playlist-empty") || {}).textContent || "")))) return "no tracks";
+  await sleep(800);
+  return "open";
+})()`;
+
 /* How the page is brought to each screen of the contract, and what holds it; `shared`: screens of the contract's under the same root, held by their own checks. */
 const SCREENS = {
   // Home and what opens from it first, before any screen's check plays an album: today's album is still on Home, so its badge is checked too.
@@ -282,7 +323,9 @@ const SCREENS = {
   "artist": { open: OPEN_ARTIST, root: "body", shared: ["mini-player", "nav"] },
   "search": { open: OPEN_SEARCH, root: "body", shared: ["mini-player", "nav"] },
   "playlists": { open: OPEN_PLAYLISTS, root: "body", shared: ["mini-player", "nav"] },
-  "playlist": { open: OPEN_PLAYLIST, root: "body", shared: ["mini-player", "nav"] }
+  "playlist": { open: OPEN_PLAYLIST, root: "body", shared: ["mini-player", "nav"] },
+  "smart-playlists": { open: OPEN_SMART_PLAYLISTS, root: "body", shared: ["mini-player", "nav"] },
+  "smart-playlist": { open: OPEN_SMART_PLAYLIST, root: "body", shared: ["mini-player", "nav"] }
 };
 
 test("every screen of the contract has a way to open it on the page", () => {

@@ -1,6 +1,15 @@
 # Changelog
 
 ## Unreleased
+- `66-native-dynamic-playlists`: the Dynamic Playlists natively in the Android app (plan P3), opened wherever the page
+  opened its own (the side menu, Home's tiles, a playlist saved from its Focus). The screen: the heading with the bar's
+  Back, New Dynamic Playlist as the first tile (the dashed brass sleeve with ＋), then each saved one with its covers'
+  mosaic, its name and its view in a line. A Dynamic Playlist's page: the bar's Back to Home, ← Dynamic Playlists, its name
+  over what it is made of, its order and its view, Play now and Queue (its albums, as many as one go takes, with how many
+  of how many said), ⋯ with Share (every album read first, then the page's sheet with the file), Edit (the page's Focus
+  with the playlist as what it saves) and Delete (asked first); then its albums as tiles, or its tracks numbered with
+  their covers read a few albums at a time with Load more, and the line saying how many. Two contract screens
+  (`smart-playlists`, `smart-playlist`), the page keyed and measured; a playlist's tile on the page is called by its name.
 - `65-native-playlists`: your playlists natively in the Android app (plan P1, and P2's page), opened wherever the page
   opened its own (the side menu's Playlists, Home's Playlists heading and its tiles). The Playlists screen: the heading with
   the bar's Back, Import in the top-right corner, each playlist as a tile of the wall with its covers' mosaic, its name and

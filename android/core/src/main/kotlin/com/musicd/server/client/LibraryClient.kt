@@ -79,6 +79,12 @@ class LibraryClient(private val get: (String) -> JSONObject) {
     fun userPlaylists(): List<PlaylistTile> = PlaylistTile.mine(get("/api/user-playlists"))
     fun userPlaylist(id: String): UserPlaylist = UserPlaylist.parse(get("/api/user-playlist?id=" + enc(id)))
 
+    /** The Dynamic Playlists (item 66); a tracks one's tracks from album [offset] on; an albums one's albums ([max] at most, else its own size). */
+    fun smartPlaylists(): List<SmartPlaylist> = SmartPlaylist.list(get("/api/smart-playlists"))
+    fun smartTracks(id: String, offset: Int, zoneId: String): SmartTracks =
+        SmartTracks.parse(get("/api/smart-playlist?id=" + enc(id) + "&offset=$offset" + (if (zoneId.isEmpty()) "" else "&zone=" + enc(zoneId))))
+    fun smartAlbums(id: String, max: Int? = null): SmartAlbums = SmartAlbums.parse(get("/api/smart-playlist/albums?id=" + enc(id) + (if (max == null) "" else "&max=$max")))
+
     /** Random Album's choice, to be offered (Play now, Play next, Queue). */
     fun pickUnheard(): PickedAlbum = PickedAlbum.parse(get("/api/pick-unheard"))
     /** Random albums narrowed by [filter] (a genre's wall from Browse by genre), [count] of them; [total] in the answer is the pool's. */
