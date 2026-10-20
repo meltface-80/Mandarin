@@ -1,6 +1,11 @@
 # Changelog
 
 ## Unreleased
+- `113-mini-player-steady`: the docked mini player no longer dips when moving between screens. Each native screen
+  draws its own mini player, and one just opened followed its room from nothing (no track known, no cover fetched), so
+  the bar was first drawn without its cover and room line, shorter, then grew back. `followRoom` now keeps each room's
+  state while the app runs and a screen starts from it, and `rememberImage` keeps what it fetched (as the tiles' covers
+  are kept), so the bar's first frame on a new screen is the last screen's.
 - `110-downloads-retry-native`: the app's old Downloads screen (`DownloadsActivity`, a View screen) is deleted, with the
   error panel's On this phone that opened it and the page-load error's automatic open of it (both dead since the page's
   copy took over offline). Its two buttons move, as the owner asked: Try again on a download that failed, in Settings →
