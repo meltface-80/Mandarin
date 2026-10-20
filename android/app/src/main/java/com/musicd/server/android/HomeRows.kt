@@ -84,6 +84,14 @@ internal object HomeKept {
     private var lotwLoaded = false
     private val serverAlbums = HashMap<Int, AlbumSummary>()
 
+    /** Everything kept forgotten, for the rows to be read afresh: the app gone offline, or back online (item 109). */
+    fun reset() {
+        rows.values.forEach { it.albums.clear(); it.note = null; it.at = 0 }
+        picks.clear(); playlists.clear(); genres.clear(); genresNote = null; lotwName = null; aotd = null
+        phoneKeys.clear(); downloads.clear(); serverAlbums.clear()
+        rowsAt = 0; unplayedLoaded = false; genresLoaded = false; lotwLoaded = false
+    }
+
     /** Whether a row hides itself when it has nothing to show (the page's rowHidesWhenEmpty). */
     fun hidesWhenEmpty(id: String) = id in setOf("unplayed", "history", "picks", "lotw", "favourites", "later", "playlists", "phone")
 

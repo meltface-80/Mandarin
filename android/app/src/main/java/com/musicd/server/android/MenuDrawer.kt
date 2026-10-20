@@ -277,15 +277,14 @@ private fun OfflineRow(on: Boolean, onTap: () -> Unit) {
 }
 
 /**
- * The Offline switch moved to [on]: as the page's own does (menu-drawer.js), the screen held as it is while the page loads
- * again onto the phone's music or back onto the server (PageCurtain), and the page's menu open on the page that comes, so
- * the switch is all that is seen to move; the native screens go under the picture, the page's being the one in front.
+ * The Offline mode switch (item 98's row): the app goes onto the phone's music or back onto the server, the native screens
+ * staying in front either way (item 109; before, the page was loaded again under a picture of the screen), the menu closed.
  */
 private fun switchOffline(activity: MainActivity, on: Boolean) {
-    NativeShell.toPage("menu", "reopen")
     Store.setOfflineMode(activity, on)
-    PageCurtain.want()
-    PageCurtain.up(activity) { NativeShell.menuOpen.value = false; NativeShell.toWeb(); activity.offlineModeChanged() }
+    NativeShell.menuOpen.value = false
+    activity.offlineModeChanged()
+}
 }
 
 /** Rescan library, as the page's rescanLibrary: its toasts, and a scan still going waited for, then how it ended said. */

@@ -42,7 +42,7 @@ internal object NativeShell {
     fun open(route: String) { nav?.navigate(route) { launchSingleTop = true } }
 
     /** Whether the page has said where Home stands since the app started ([homeShown]): until it does, the native Home is in front on trust. */
-    @Volatile private var told = false
+    @Volatile internal var told = false
     fun wasTold() = told
 
     /** Your playlists (item 65), or one of them, opened by the page (its side menu, a tile of its own). */
@@ -93,6 +93,7 @@ internal object NativeShell {
      * (public/app/native-handoff.js): its own sheets, its room.
      */
     fun toPage(what: String, arg: String? = null) {
+        if (OfflineNow.on) { OfflineNow.toPage(what, arg); return }   // offline the page is parked: the app's own (item 109)
         val a = arg?.let { org.json.JSONObject.quote(it) } ?: "null"
         page?.invoke("window.__musicdNative && window.__musicdNative(${org.json.JSONObject.quote(what)}, $a)")
     }
@@ -104,6 +105,7 @@ internal object NativeShell {
      * ([AppBridge.overlayClosed]).
      */
     fun overPage(what: String, arg: String? = null) {
+        if (OfflineNow.on) return
         lifted = true
         val a = arg?.let { org.json.JSONObject.quote(it) } ?: "null"
         page?.invoke("window.__musicdNativeOver && window.__musicdNativeOver(${org.json.JSONObject.quote(what)}, $a)")
@@ -183,9 +185,9 @@ internal object NativeShell {
     /** [root] (the page's frame) with the shell laid over it, for setContentView; [page] runs a script on the page. */
     fun attach(activity: ComponentActivity, root: FrameLayout, page: (String) -> Unit): FrameLayout {
         this.page = page
-        // Signed in and online, the native Home is in front from the first frame (item 64), drawn to the UI Settings and in the
-        // room it was last given, so the page's own Home is never seen; offline the page's Home is the one (its rows are the phone's).
-        val startHome = !Store.offlineMode(activity) && Store.token(activity) != null
+        // Signed in, the native Home is in front from the first frame (item 64), drawn to the UI Settings and in the room it was
+        // last given, so the page's own Home is never seen; offline too, its rows the phone's (item 109).
+        val startHome = Store.token(activity) != null
         told = false
         prefs = Store.homePrefs(activity); zone = Store.zone(activity).orEmpty()
         homeArgs.value = prefs.orEmpty() to zone
@@ -194,7 +196,7 @@ internal object NativeShell {
             setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
             setContent {
                 MandarinTheme {
-                    Shell(client = { Store.client(activity) }, startHome = startHome, onShown = { shown -> visibility = if (shown) View.VISIBLE else View.GONE })
+                    Shell(client = { Store.screenClient(activity) }, startHome = startHome, onShown = { shown -> visibility = if (shown) View.VISIBLE else View.GONE })
                 }
             }
         }
@@ -228,7 +230,7 @@ private fun Shell(client: () -> ServerClient?, startHome: Boolean, onShown: (Boo
         if (!startHome) return@LaunchedEffect
         nav.navigate(ShellRoute.home(NativeShell.homeArgs.value.first, NativeShell.homeArgs.value.second)) { launchSingleTop = true }
         kotlinx.coroutines.delay(8_000)
-        if (!NativeShell.wasTold()) NativeShell.toWeb()
+        if (!NativeShell.wasTold() && !OfflineNow.on) NativeShell.toWeb()
     }
     NavHost(navController = nav, startDestination = ShellRoute.WEB, enterTransition = { androidx.compose.animation.EnterTransition.None }, exitTransition = { androidx.compose.animation.ExitTransition.None }, popEnterTransition = { androidx.compose.animation.EnterTransition.None }, popExitTransition = { androidx.compose.animation.ExitTransition.None }) {   // no fade between screens (item 72): Navigation's own left the screen before as a ghost for 700 ms
         // The page at a path: drawn by the WebView under the shell, so nothing here.

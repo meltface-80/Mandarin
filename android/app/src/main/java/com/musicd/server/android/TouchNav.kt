@@ -43,20 +43,20 @@ import com.musicd.server.client.OfflineKind
  * in brass, and the Offline sign between Home and Library when the app is
  * offline. Each tap is the page's own button's ([onTap], by name), so there
  * is one way to do each thing; but Menu, which opens the app's own side menu
- * over the screen (item 67), or offline, where the page's is the one; and the
- * Offline sign, which says why in the app's own dialog (item 105).
+ * over the screen (item 67), offline too (item 109); and the Offline sign,
+ * which says why in the app's own dialog (item 105).
  */
 @Composable
 internal fun TouchNav(lit: String, offline: Boolean, onTap: (String) -> Unit, modifier: Modifier = Modifier) {
     var why by remember { mutableStateOf(false) }
     val context = LocalContext.current
     // Offline mode switched off as the page's dialog does it (MusicdDownloads.set), the page loaded again onto the server's library.
-    if (why) OfflineDialog(OfflineKind.MODE, onSwitch = { why = false; context.activity()?.let { DownloadsBridge(it).set("offlineMode", "false") } }, onClose = { why = false })
+    if (why) OfflineDialog(OfflineNow.kind.value ?: OfflineKind.MODE, onSwitch = { why = false; context.activity()?.let { DownloadsBridge(it).set("offlineMode", "false") } }, onClose = { why = false })
     Column(modifier.fillMaxWidth().background(MaterialTheme.colorScheme.background)) {
         HorizontalDivider(color = MaterialTheme.colorScheme.outline)
         Box(Modifier.fillMaxWidth().height(58.dp)) {
             Row(Modifier.fillMaxSize().padding(horizontal = 10.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                NavButton(R.drawable.tn_menu, Contract.label("nav.menu"), false, Modifier.parity("nav.menu", Contract.label("nav.menu")).clickable { if (offline) onTap("menu") else NativeShell.menuOpen.value = true })
+                NavButton(R.drawable.tn_menu, Contract.label("nav.menu"), false, Modifier.parity("nav.menu", Contract.label("nav.menu")).clickable { NativeShell.menuOpen.value = true })
                 NavButton(R.drawable.tn_home, Contract.label("nav.home"), lit == "home", Modifier.parity("nav.home", Contract.label("nav.home")).clickable { onTap("home") })
                 NavButton(R.drawable.tn_library, Contract.label("nav.library"), lit == "library", Modifier.parity("nav.library", Contract.label("nav.library")).clickable { onTap("library") })
                 NavButton(R.drawable.tn_search, Contract.label("nav.search"), lit == "search", Modifier.parity("nav.search", Contract.label("nav.search")).clickable { onTap("search") })
