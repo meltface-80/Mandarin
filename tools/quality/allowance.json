@@ -5,16 +5,13 @@
       "lines": 505
     },
     "android/app/src/main/java/com/musicd/server/android/LocalMusic.kt": {
-      "lines": 466
+      "lines": 442
     },
     "android/app/src/main/java/com/musicd/server/android/MainActivity.kt": {
       "lines": 952
     },
     "android/app/src/main/java/com/musicd/server/android/NowPlayingService.kt": {
       "lines": 437
-    },
-    "android/app/src/main/java/com/musicd/server/android/OfflineApi.kt": {
-      "lines": 477
     },
     "android/app/src/main/java/com/musicd/server/android/PhonePlayerService.kt": {
       "lines": 1440

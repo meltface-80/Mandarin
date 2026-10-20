@@ -2,7 +2,10 @@ package com.musicd.server.android
 
 import android.content.Context
 import android.content.Intent
+import com.musicd.server.client.Answer
 import com.musicd.server.client.Phone
+import com.musicd.server.client.PhoneShelf
+import com.musicd.server.client.ShelfAlbum
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
@@ -23,6 +26,7 @@ object OfflineApi {
 
     private fun json(o: Any, status: Int = 200) = Response(status, "application/json", o.toString().toByteArray())
     private fun error(msg: String, status: Int = 503) = json(JSONObject().put("error", msg), status)
+    private fun answer(a: Answer) = json(a.json ?: JSONObject(), a.status)
     private val OFFLINE = "Not available offline — Mandarin can't be reached"
 
     fun handle(c: Context, method: String, path: String, query: Map<String, String>, body: String?): Response {
@@ -36,41 +40,9 @@ object OfflineApi {
 
     // ------------------------------------------------------------ library
 
-    private class Local(val album: DownloadStore.Album, val dir: File) {
-        val page: JSONObject? by lazy {
-            runCatching { JSONObject(File(dir, "page.json").readText()) }.getOrNull()
-        }
-        /** The album as the server's lists show it. */
-        fun json(): JSONObject {
-            page?.optJSONObject("album")?.let { return JSONObject(it.toString()).put("offset", album.id) }
-            return JSONObject().put("offset", album.id).put("title", album.title).put("subtitle", album.artist)
-                .put("image_key", album.imageKey ?: "al-${album.id}").put("source", JSONObject.NULL)
-                .apply { album.year?.let { put("year", it) } }
-        }
-    }
+    private fun library(c: Context): List<ShelfAlbum> = PhoneData.downloads(c)
 
-    private fun library(c: Context): List<Local> =
-        DownloadStore.albums(c).filter { it.first.state == "done" }.map { Local(it.first, it.second) }
-
-    private fun local(c: Context, id: Int): Local? = library(c).firstOrNull { it.album.id == id }
-
-    private fun albums(list: List<Local>) = JSONArray().apply { list.forEach { put(it.json()) } }
-
-    private fun albumPage(l: Local): JSONObject {
-        l.page?.let { return it }
-        // Downloaded before album pages were kept: made from what the phone knows.
-        val tracks = JSONArray()
-        for (t in l.album.tracks) {
-            val len = t.duration.toInt()
-            tracks.put(JSONObject().put("title", t.title).put("subtitle", "%d:%02d".format(len / 60, len % 60))
-                .put("length", len).put("track_id", t.id).put("quality", JSONObject.NULL))
-        }
-        return JSONObject().put("album", l.json()).put("tracks", tracks)
-            .put("actions", JSONArray(listOf("play_now" to "Play Now", "queue" to "Queue", "play_next" to "Play Next", "shuffle" to "Shuffle")
-                .map { JSONObject().put("kind", it.first).put("title", it.second) }))
-            .put("offset", l.album.id).put("artists", JSONArray().put(l.album.artist))
-            .put("library_moved", false).put("partial", false).put("declared_tracks", tracks.length())
-    }
+    private fun local(c: Context, id: Int): ShelfAlbum? = library(c).firstOrNull { it.id == id }
 
     // ------------------------------------------------------------ the player
 
@@ -171,6 +143,8 @@ object OfflineApi {
     // ------------------------------------------------------------ GET
 
     private fun get(c: Context, path: String, q: Map<String, String>): Response {
+        // The library, from what is on the phone: core's PhoneShelf (item 106), as the app's native screens will ask it.
+        if (path in PhoneShelf.PATHS) PhoneData.shelf(c).get(path, q)?.let { return answer(it) }
         when (path) {
             "/api/health" -> return json(JSONObject().put("ok", true).put("version", BuildConfig.VERSION_NAME)
                 .put("albums", library(c).size).put("rooms", 0).put("offline", true))
@@ -225,90 +199,18 @@ object OfflineApi {
                 val h = JSONArray(); for (i in history.length() - 1 downTo 0) h.put(history.get(i))
                 return json(JSONObject().put("items", items).put("history", h))
             }
-            "/api/library/albums" -> {
-                var list = library(c)
-                list = when (q["sort"]) {
-                    "artist" -> list.sortedBy { it.album.artist.lowercase() }
-                    "year" -> list.sortedBy { it.album.year ?: 9999 }
-                    "added" -> list.sortedBy { it.album.addedAt }
-                    "random" -> list.shuffled()
-                    else -> list.sortedBy { it.album.title.lowercase() }
-                }
-                if (q["dir"] == "desc") list = list.reversed()
-                val offset = (q["offset"]?.toIntOrNull() ?: 0).coerceIn(0, list.size)
-                val count = (q["count"]?.toIntOrNull() ?: 60).coerceIn(1, 200)
-                return json(JSONObject().put("albums", albums(list.drop(offset).take(count)))
-                    .put("offset", offset).put("total", list.size))
-            }
-            "/api/random-albums" -> {
-                val list = library(c).shuffled().take(q["count"]?.toIntOrNull() ?: 30)
-                return json(JSONObject().put("albums", albums(list)).put("total", list.size).put("filtered", false))
-            }
-            // Not played in 6 months: the server offers nothing until it has six
-            // months of listening (v0.6.0-RC4), and the phone keeps no history of
-            // its own to judge by, so offline it's empty too (v0.6.13). It was a
-            // random handful of the phone's albums, which filled the row and the
-            // wall with albums that had never been "not played" at all.
-            "/api/home/unplayed" -> return json(JSONObject().put("albums", JSONArray()).put("total", 0)
-                .put("months", 6).put("no_history", true).put("ready_at", JSONObject.NULL))
-            "/api/home/history" -> return json(JSONObject().put("albums", JSONArray()).put("days", 30))
-            "/api/home/album-of-the-day" -> return json(JSONObject().put("album", JSONObject.NULL))
-            "/api/home/label-of-the-week" -> return json(JSONObject().put("label", JSONObject.NULL).put("albums", JSONArray()))
-            "/api/home/genre-groups" -> return json(JSONObject().put("parent", JSONObject.NULL)
-                .put("pop", JSONArray()).put("rockmetal", JSONArray()).put("flat", true))
-            "/api/smart-picks" -> return json(JSONObject().put("day", "").put("enabled", false)
-                .put("service_ready", false).put("building", false).put("picks", JSONArray()))
-            "/api/discover" -> return json(JSONObject().put("enabled", false).put("albums", JSONArray()))
-            "/api/library/facets" -> return json(JSONObject().put("facets", JSONArray()))
-            "/api/filters/genres" -> return json(JSONObject().put("genres", JSONArray()))
-            "/api/filters/decades" -> return json(JSONObject().put("decades", JSONArray()))
-            "/api/radio" -> return json(JSONObject().put("enabled", false).put("zones", JSONArray()))
-            "/api/search" -> {
-                val term = (q["q"] ?: "").trim().lowercase()
-                val hits = if (term.isEmpty()) emptyList() else library(c).filter {
-                    it.album.title.lowercase().contains(term) || it.album.artist.lowercase().contains(term)
-                }
-                return json(JSONObject().put("query", q["q"] ?: "").put("count", hits.size).put("indexed", library(c).size)
-                    .put("results", albums(hits)).put("artists", JSONArray()).put("labels", JSONArray()))
-            }
-            "/api/artist-albums" -> {
-                val name = (q["artist"] ?: "").trim().lowercase()
-                val hits = library(c).filter { it.album.artist.lowercase().contains(name) }
-                return json(JSONObject().put("artist", q["artist"] ?: "").put("primary", albums(hits)).put("featured", JSONArray()))
-            }
-            "/api/album" -> {
-                val off = q["offset"] ?: ""
-                if (off.startsWith("phone:")) {
-                    LocalMusic.load(c)
-                    val a = LocalMusic.album(off.removePrefix("phone:")) ?: return error("That album isn't on this phone any more", 409)
-                    return json(LocalMusic.albumPage(a))
-                }
-                val l = local(c, off.toIntOrNull() ?: -1) ?: return error("That album isn't on this phone", 409)
-                return json(albumPage(l))
-            }
-            // The phone's own music (LocalMusic): the page's "On this phone".
-            "/api/phone-music/albums" -> {
-                LocalMusic.load(c)
-                val a = JSONArray(); for (al in LocalMusic.albums) a.put(LocalMusic.albumJson(al))
-                return json(JSONObject().put("albums", a).put("folder", LocalMusic.folderName(c) ?: JSONObject.NULL)
-                    .put("scanning", LocalMusic.scanning).put("scanned_at", LocalMusic.scannedAt))
-            }
-            "/api/album/extras" -> return json(JSONObject())
             "/api/album/now-playing" -> {
                 val cur = PhonePlayerService.current?.offlineState()?.let { it.items.getOrNull(it.index) }
                 cur?.albumKey?.let { k -> LocalMusic.album(k)?.let { return json(JSONObject().put("album", LocalMusic.albumJson(it))) } }
                 val l = cur?.let { local(c, it.albumId) }
-                return json(JSONObject().put("album", l?.json() ?: JSONObject.NULL))
+                return json(JSONObject().put("album", l?.let { PhoneShelf.json(it) } ?: JSONObject.NULL))
             }
             "/api/shortcut/play-random" -> {
                 val l = library(c).randomOrNull() ?: return error("Nothing downloaded to play", 404)
-                val r = play(c, listOf(l.album.id), "play_now")
-                return if (r.status == 200) json(JSONObject().put("ok", true).put("album", l.json())) else r
+                val r = play(c, listOf(l.id), "play_now")
+                return if (r.status == 200) json(JSONObject().put("ok", true).put("album", PhoneShelf.json(l))) else r
             }
         }
-        // Playlists offline (v0.5.58): the server's aren't shown — their albums
-        // aren't on the phone, and their pages can't be opened without it.
-        if (path == "/api/user-playlists" || path == "/api/playlists") return json(JSONObject().put("playlists", JSONArray()))
         if (path == "/api/smart-playlists") {
             val o = OfflineSite.api(c, path)?.let { runCatching { JSONObject(it) }.getOrNull() } ?: JSONObject()
             return json(o.put("playlists", JSONArray()))
@@ -419,8 +321,8 @@ object OfflineApi {
             }
             "/api/play-unheard" -> {
                 val l = library(c).randomOrNull() ?: return error("Nothing downloaded to play", 404)
-                val r = play(c, listOf(l.album.id), "play_now")
-                return if (r.status == 200) json(JSONObject().put("ok", true).put("album", l.json())) else r
+                val r = play(c, listOf(l.id), "play_now")
+                return if (r.status == 200) json(JSONObject().put("ok", true).put("album", PhoneShelf.json(l))) else r
             }
             "/api/control" -> {
                 val cmd = b.optString("command")
@@ -458,18 +360,7 @@ object OfflineApi {
             }
             "/api/download/albums" -> {
                 val ids = b.optJSONArray("ids") ?: JSONArray()
-                val out = JSONArray()
-                for (i in 0 until ids.length()) {
-                    val id = ids.optInt(i)
-                    val l = DownloadStore.albums(c).firstOrNull { it.first.id == id }?.let { Local(it.first, it.second) }
-                    if (l == null) { out.put(JSONObject().put("id", id).put("exists", false)); continue }
-                    val j = l.json()
-                    out.put(JSONObject().put("id", id).put("exists", true).put("title", l.album.title)
-                        .put("artist", l.album.artist).put("year", l.album.year ?: JSONObject.NULL)
-                        .put("image_key", j.optString("image_key")).put("art_url", "/api/image/" + j.optString("image_key"))
-                        .put("album", j))
-                }
-                return json(JSONObject().put("albums", out))
+                return answer(PhoneShelf(emptyList()).downloadAlbums((0 until ids.length()).map { ids.optInt(it) }, PhoneData.everyDownload(c)))
             }
         }
         return error(OFFLINE)

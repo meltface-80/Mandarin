@@ -1,10 +1,7 @@
 package com.musicd.server.client
 
 import org.json.JSONObject
-import java.io.ByteArrayOutputStream
 import java.io.IOException
-import java.net.HttpURLConnection
-import java.net.URL
 import java.net.URLEncoder
 
 /**
@@ -13,13 +10,14 @@ import java.net.URLEncoder
  * lock screen, the notification, the widget and the Quick Settings tile, which
  * have no page to ask.
  *
- * Plain HttpURLConnection, no library: seven GETs and POSTs of small JSON.
+ * Asked over HTTP ([HttpTransport]), or answered in the app offline ([LocalTransport], item 106).
  */
 class ServerClient(
     val address: ServerAddress,
     private val timeoutMs: Int = 6000,
     /** This phone's sign-in (see [Account]); sent with every request. */
-    val token: String? = null
+    val token: String? = null,
+    private val transport: Transport = HttpTransport(address.baseUrl, token)
 ) {
 
     /** The server is busy with something else; ask again in a moment. */
@@ -208,7 +206,7 @@ class ServerClient(
     /** One of the server's backups deleted (item 92). */
     fun deleteBackup(id: String) { send("DELETE", "/api/backup/" + enc(id)) }
     fun rescanLabels() { post("/api/labels/rescan", JSONObject()) }
-    fun labelsScanLog(): String = String(bytes(address.baseUrl + "/api/labels-scan-log"), Charsets.UTF_8)
+    fun labelsScanLog(): String = String(transport.bytes("/api/labels-scan-log", timeoutMs), Charsets.UTF_8)
 
     /**
      * The album editor (item 74): the editor's view of an album; the covers found on the web and the releases
@@ -273,93 +271,18 @@ class ServerClient(
     fun imageUrl(imageKey: String, size: Int): String =
         address.baseUrl + "/api/image/" + enc(imageKey) + "?size=" + size
 
-    fun bytes(url: String): ByteArray {
-        val c = open(url, timeoutMs)
-        try {
-            if (c.responseCode != 200) throw ServerException(c.responseCode, "HTTP ${c.responseCode}")
-            return c.inputStream.use { it.readBytes() }
-        } finally {
-            c.disconnect()
-        }
-    }
+    /** The bytes at [url], one of this server's (a cover from [imageUrl]). */
+    fun bytes(url: String): ByteArray = transport.bytes(url.removePrefix(address.baseUrl), timeoutMs)
 
-    // ------------------------------------------------------------------ http
+    fun getJson(path: String, timeout: Int = timeoutMs): JSONObject = transport.json("GET", path, null, timeout)
 
-    private fun open(url: String, timeout: Int): HttpURLConnection =
-        (URL(url).openConnection() as HttpURLConnection).apply {
-            connectTimeout = minOf(timeout, 5000)
-            readTimeout = timeout
-            useCaches = false
-            setRequestProperty("Accept", "application/json")
-            if (token != null) setRequestProperty("Authorization", "Bearer $token")
-        }
+    fun post(path: String, body: JSONObject, timeout: Int = timeoutMs): JSONObject = transport.json("POST", path, body, timeout)
 
-    fun getJson(path: String, timeout: Int = timeoutMs): JSONObject {
-        val c = open(address.baseUrl + path, timeout)
-        try {
-            return readJson(c)
-        } finally {
-            c.disconnect()
-        }
-    }
-
-    fun post(path: String, body: JSONObject, timeout: Int = timeoutMs): JSONObject {
-        val c = open(address.baseUrl + path, timeout)
-        try {
-            c.requestMethod = "POST"
-            c.doOutput = true
-            c.setRequestProperty("Content-Type", "application/json")
-            c.outputStream.use { it.write(body.toString().toByteArray(Charsets.UTF_8)) }
-            return readJson(c)
-        } finally {
-            c.disconnect()
-        }
-    }
-
-    /**
-     * A change as a PATCH, [body] as JSON (Settings → Audio Devices, item 89: the server takes a device's changes only so):
-     * its answer. Android's connection takes the method; one that refuses it has it set underneath.
-     */
-    fun patch(path: String, body: JSONObject): JSONObject {
-        val c = open(address.baseUrl + path, timeoutMs)
-        try {
-            try { c.requestMethod = "PATCH" } catch (e: java.net.ProtocolException) {
-                HttpURLConnection::class.java.getDeclaredField("method").apply { isAccessible = true }.set(c, "PATCH")
-            }
-            c.doOutput = true
-            c.setRequestProperty("Content-Type", "application/json")
-            c.outputStream.use { it.write(body.toString().toByteArray(Charsets.UTF_8)) }
-            return readJson(c)
-        } finally {
-            c.disconnect()
-        }
-    }
+    /** A change as a PATCH, [body] as JSON (Settings → Audio Devices, item 89: the server takes a device's changes only so): its answer. */
+    fun patch(path: String, body: JSONObject): JSONObject = transport.json("PATCH", path, body, timeoutMs)
 
     /** A request with no body ([method]: DELETE), its answer. */
-    private fun send(method: String, path: String): JSONObject {
-        val c = open(address.baseUrl + path, timeoutMs)
-        try {
-            c.requestMethod = method
-            return readJson(c)
-        } finally {
-            c.disconnect()
-        }
-    }
-
-    private fun readJson(c: HttpURLConnection): JSONObject {
-        val code = c.responseCode
-        val stream = if (code >= 400) c.errorStream else c.inputStream
-        val text = stream?.use { s ->
-            val out = ByteArrayOutputStream()
-            s.copyTo(out)
-            out.toString("UTF-8")
-        } ?: ""
-        val j = try { JSONObject(text) } catch (e: Exception) { null }
-        if (code >= 400) {
-            throw ServerException(code, j?.optString("error")?.takeIf { it.isNotEmpty() } ?: "HTTP $code")
-        }
-        return j ?: throw ServerException(code, "The server answered with something that isn't JSON")
-    }
+    private fun send(method: String, path: String): JSONObject = transport.json(method, path, null, timeoutMs)
 
     private fun enc(s: String) = URLEncoder.encode(s, "UTF-8")
 }
