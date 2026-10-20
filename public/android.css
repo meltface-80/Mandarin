@@ -3,8 +3,23 @@
  * app's WebView (User-Agent MusicDAndroid). Browsers and the iPhone
  * home-screen app never receive it. Nothing here changes how the page
  * looks — the look is style.css's, the same everywhere — only what the
- * WebView needs: its downloads, its drawing speed, its keyboard.
+ * WebView needs: its downloads, its drawing speed, its keyboard; and one
+ * look the owner chose for the app alone, the mini player docked (item 102).
  */
+
+/* The mini player docked (bug list item 102, as the owner chose it): the
+   full width of the screen, straight on top of the row along the foot,
+   solid in that row's own colour with a hairline above it, not rounded,
+   no shadow; the track's progress along its top, the full width, above
+   the cover and the words. Its parts and what they do are as before. */
+.mini-transport, [data-palette="hifi"] .mini-transport {
+  left: 0; right: 0; width: auto; max-width: none; margin: 0; transform: none;
+  bottom: calc(var(--tnav-h) + env(safe-area-inset-bottom));
+  border-radius: 0; border-width: 1px 0 0 0; border-style: solid; border-color: var(--border);
+  background: var(--bg); -webkit-backdrop-filter: none; backdrop-filter: none; box-shadow: none;
+  padding: 20px 14px 12px;
+}
+[data-palette="hifi"] .mt-progress { inset: 9px 14px auto 14px; }
 
 /* Home Screen settings: "Downloaded albums" held on while there are
    downloads, with the reason on a second line. */

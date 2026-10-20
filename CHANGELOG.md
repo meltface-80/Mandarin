@@ -1,6 +1,11 @@
 # Changelog
 
 ## Unreleased
+- `102-mini-player-docked`: the Android app's mini player docked, as the owner chose it from renders: the full width of
+  the screen, straight on top of the row along the foot, solid in that row's own colour with a hairline above it, not
+  rounded and no shadow; the track's progress along its top, the full width, above the cover and the words. It does
+  what it did and shows where it showed; the app's own bar and the page's in the app (android.css) alike. A browser
+  keeps the floating bar.
 - `96-native-phone-album-and-menu`: the last of the page's screens the Android app's own screens still handed over to
   outside Settings and the playlist sheets. A server notice's Forget (a music folder gone) did nothing in the app: its
   question was asked by the page hidden behind the native Home, so the folder was never forgotten. The page now hands
