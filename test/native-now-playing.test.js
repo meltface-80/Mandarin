@@ -1,7 +1,7 @@
 "use strict";
 /*
  * The Android app's native Now playing (stage N2 of
- * docs/specs/plan-android-native.md), as the page hands over to it. The
+ * old/plan-android-native.md), as the page hands over to it. The
  * app's bridge (MusicdApp) says whether it draws the screen itself (always,
  * since item 47; an app from before says no): then a tap on the mini player
  * asks the app for its own Now playing of the room playing, instead of the

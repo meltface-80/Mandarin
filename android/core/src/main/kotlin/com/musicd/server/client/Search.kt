@@ -4,7 +4,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 /*
- * The search, typed (the Search group of docs/specs/plan-android-native.md,
+ * The search, typed (the Search group of old/plan-android-native.md,
  * bug list item 61): the library's answer (/api/search; Library.kt's
  * SearchResults) and what the services and Pitchfork answer beside it
  * (/api/search/external, each part asked on its own), as the page's search.js

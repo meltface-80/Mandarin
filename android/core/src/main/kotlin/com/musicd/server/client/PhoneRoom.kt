@@ -4,7 +4,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 /*
- * This phone as the one room offline (bug list item 107, O1 in docs/specs/plan-android-native.md; what the app's
+ * This phone as the one room offline (bug list item 107, O1 in old/plan-android-native.md; what the app's
  * OfflineApi answered the page with): its zone and output as the server shapes them, what it plays and its queue, and
  * the play and transport requests sent to its player. The library it plays from is the phone's ([PhoneShelf]).
  */

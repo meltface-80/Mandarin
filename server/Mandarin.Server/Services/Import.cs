@@ -1,5 +1,5 @@
 // Import.cs — Qobuz's and Tidal's import, the favourites' watch and the
-// service playlists (v0.8.45, stage 4.3 of docs/specs/csharp-migration.md),
+// service playlists (v0.8.45, stage 4.3 of old/csharp-migration.md),
 // from lib/services/streaming.js, lib/qobuz/index.js and lib/tidal/index.js,
 // rule for rule:
 //

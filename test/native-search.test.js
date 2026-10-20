@@ -1,7 +1,7 @@
 "use strict";
 /*
  * The Android app's native Search (the Search group of
- * docs/specs/plan-android-native.md, bug list item 61; a preview), as the page
+ * old/plan-android-native.md, bug list item 61; a preview), as the page
  * hands it over (public/app/native-search.js): with the app's Search on, the
  * glass and the row's Search open the app's (MusicdApp.openSearch, with the
  * words, the UI Settings and the room) in place of the page's field, as does a

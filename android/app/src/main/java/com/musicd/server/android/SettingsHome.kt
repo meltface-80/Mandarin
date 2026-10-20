@@ -52,7 +52,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /*
- * Settings → Setup → Home Screen natively (the group T of docs/specs/plan-android-native.md, T3; bug list item 81), as the
+ * Settings → Setup → Home Screen natively (the group T of old/plan-android-native.md, T3; bug list item 81), as the
  * page's (docs/specs/screens.json, settings-homescreen; settings-home.js renderHomeRowsList, style.css .home-row-item): the
  * greeting and Random Album, each on or off on this phone; then Home's rows in the owner's order, each with its handle, its
  * name (and why it can't be switched, where it can't) and its switch. Held by its handle a row follows the finger, the rows

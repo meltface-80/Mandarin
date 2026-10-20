@@ -5,7 +5,7 @@ import org.json.JSONObject
 
 /*
  * The server's /api answered by the app when the server can't be reached (bug list item 107, O1 in
- * docs/specs/plan-android-native.md; the app's OfflineApi before): the library is the phone's ([PhoneShelf]), the one
+ * old/plan-android-native.md; the app's OfflineApi before): the library is the phone's ([PhoneShelf]), the one
  * room this phone ([PhoneRoom]); this phone's audio device and the covers are the app's to answer; a setting answers as
  * the server last did. Anything that needs the server says so rather than pretend.
  */

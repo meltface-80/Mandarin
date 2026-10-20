@@ -1,7 +1,7 @@
 # Changelog
 
-## Unreleased
-- `111-webview-gone`: the Android app has no web view (O2 in docs/specs/plan-android-native.md): it opens on its own
+## v1.1.0
+- `111-webview-gone`: the Android app has no web view (O2 in old/plan-android-native.md): it opens on its own
   Home (`ShellRoute.HOME` the first route), and `MainActivity` holds the shell, the pickers and the volume keys, the
   server's reachability moving to `ServerReach.kt` (the same looks and timings; the copy of the server's last answers
   refreshed while it answers). What the screens handed to the page is the app's own (`ShellHand.kt`): the row's
@@ -18,7 +18,7 @@
   step, the `androidx.webkit` library, `test/offline-bundle.test.js` and its C# twin. The page's Android glue stays on
   the server until the next release, for older apps.
 - `112-server-notices-native`: the server's notice at the head of the app's Home is worked out by the app (O2-5 in
-  docs/specs/plan-android-native.md): core `ServerNotices` reads /api/status as the page's server-notice.js does (the
+  old/plan-android-native.md): core `ServerNotices` reads /api/status as the page's server-notice.js does (the
   data not kept, no music folder, a first scan, no audio found, starting up, a music folder gone with Forget or Remove
   the missing ones and its question, no Sonos rooms; none offline, nor a folder or the rooms away), asked again as the
   page asks; `Notices.watch` keeps it while Home is up, and Forget asks its question and forgets the folder itself
@@ -36,7 +36,7 @@
   server again in the Offline dialog when the server can't be reached (`offline.retry`; `MusicdApp.lookForServer`, the
   server looked for now rather than at its next look). An album's ⋯ → Downloading… (`MusicdDownloads.open`) opens
   Settings → Downloads' albums (`ShellRoute.settings("downloads-albums")`).
-- `109-offline-native`: offline, the Android app stays native (O1's switch-over, docs/specs/plan-android-native.md).
+- `109-offline-native`: offline, the Android app stays native (O1's switch-over, old/plan-android-native.md).
   With Offline mode on or the server out of reach, MainActivity no longer loads the page's copy kept in the APK: it
   parks the page (stopped, blank) and the native screens stay in front (`OfflineNow`), asking the phone the same
   questions they ask the server (`Store.screenClient`: core `PhoneAnswers` through a `LocalTransport`; the services keep
@@ -63,7 +63,7 @@
   (the one saved, or made for an old download), the phone's own music with its badge, downloads as the library has
   them, and the rows the phone keeps nothing for, empty. Today's offline mode answers from it already. Random Album
   offline now plays one of the phone's albums; it asked for `/api/pick-unheard`, which offline answered with nothing.
-- `105-offline-dialog-native`: the first step of O1 (offline natively, docs/specs/plan-android-native.md). The Offline
+- `105-offline-dialog-native`: the first step of O1 (offline natively, old/plan-android-native.md). The Offline
   sign in the app's row along the foot opens the app's own Offline dialog, the page's (server-notice.js openOffline)
   drawn natively: the heading, why only the music on this phone shows, and Switch offline mode off beside Close when
   Offline mode is on. Its words live in core (`Offline.kt`), held to the page's by `test/offline-words.test.js`; the
@@ -496,7 +496,7 @@
 - `46-native-plan-remaining`: a plan, nothing built: what is left for the Android app to be wholly native,
   every screen and function of the page's, set out as about forty items in stages (the frame, the Library,
   Home, Search, playlists, rooms and the menu, labels, the services, the share card and the editor, Settings
-  pane by pane, offline natively, the WebView's end), in `docs/specs/plan-android-native.md`.
+  pane by pane, offline natively, the WebView's end), in `old/plan-android-native.md`.
 - `45-native-volume-sheet`: the Android app's native Now playing and mini player open the page's volume sheet,
   not Material's menu: a glass pill the width of the screen (at the foot of Now playing; just above the mini
   bar), the speaker and the level in brass, the slider over the speaker's own scale with its ends written
@@ -618,7 +618,7 @@
   are kept in `test/golden/android-api.json` (AndroidApiTests), and the app's tests read its client's
   from there (LibraryTest): a change to either side fails until the other is told.
 - `21-android-native-n0`: the Android app's native shell (stage N0 of
-  `docs/specs/plan-android-native.md`): Compose, its navigation and Mandarin's graphite and brass
+  `old/plan-android-native.md`): Compose, its navigation and Mandarin's graphite and brass
   (held to the page's palette by a test), laid over the page's WebView. Nothing on screen changes;
   the native screens go in it from N2.
 - `20-dev-branch`: `migration` is `dev` now: its pushes publish `ghcr.io/meltface-80/musicd-server:dev`
@@ -639,7 +639,7 @@
 ## v1.0.16
 - `16-17-plans-ios-pwa-android-native`: plans, nothing built: playback on the iPhone's home-screen
   app (`docs/specs/plan-ios-pwa-playback.md`) and a native Android app
-  (`docs/specs/plan-android-native.md`).
+  (`old/plan-android-native.md`).
 
 ## v1.0.15
 - `15-spaces-in-search-fields`: a space typed in the Library's filter stays, so two words can be
@@ -1006,7 +1006,7 @@ Mac** (`v0.9.7-apk-name`).
   which failed on this about one run in seven (and on `migration` at v0.9.4), passes every time.
 
 ## v0.9.4
-**The audit's documentation** (`docs/specs/audit-b4-main.md` module 5). Nothing changes in use.
+**The audit's documentation** (`old/audit-b4-main.md` module 5). Nothing changes in use.
 
 - **Every route listed** (D2, `docs/specs/api.md`): 202 routes, each with its method, address, who
   may ask (open, signed in, a signed address, the server's own key) and the file that answers it.
@@ -1021,7 +1021,7 @@ Mac** (`v0.9.7-apk-name`).
   suppressions, so a new empty one fails the lint. `public/app.js` stays at 19,582 lines.
 
 ## v0.9.3
-**The audit's performance** (`docs/specs/audit-b4-main.md` module 4). The same answers, made
+**The audit's performance** (`old/audit-b4-main.md` module 4). The same answers, made
 less often.
 
 - **The library's lists are kept once made** (P1, `LibraryRoutes.Kept.cs`):
@@ -1038,7 +1038,7 @@ less often.
 - `test/library-kept.test.js` (new).
 
 ## v0.9.2
-**The audit's code quality** (`docs/specs/audit-b4-main.md` module 1). Nearly nothing changes in
+**The audit's code quality** (`old/audit-b4-main.md` module 1). Nearly nothing changes in
 use: the server reads and answers requests one way everywhere, and its code is split, renamed
 and checked by its build.
 
@@ -1066,7 +1066,7 @@ and checked by its build.
   writer's answer.
 
 ## v0.9.1
-**The audit's tests** (`docs/specs/audit-b4-main.md` module 2), the first of the audit's stages
+**The audit's tests** (`old/audit-b4-main.md` module 2), the first of the audit's stages
 to take a version of its own: one patch version a stage from here (the owner's choice). Nothing
 changes in use; the tests reach what they didn't, and wait for what they read.
 
@@ -1081,7 +1081,7 @@ changes in use; the tests reach what they didn't, and wait for what they read.
 - The two tests that asserted one thing on Linux and another on a Mac are a test each.
 
 ## v0.9.0
-**No Node.js.** Stage 7 part 6 of the move to C# (`docs/specs/csharp-migration.md`): the Node
+**No Node.js.** Stage 7 part 6 of the move to C# (`old/csharp-migration.md`): the Node
 server's code leaves the repository and Node.js the image. Mandarin's server is one program
 (`server/`, C#), as it has been behind the scenes since v0.8.50; this release takes away what
 stood behind it. Everything the page, the apps and the speakers see is as in v0.8.50.
@@ -1147,7 +1147,7 @@ stood behind it. Everything the page, the apps and the speakers see is as in v0.
 - **The loudness order test** read the order files were measured in from the order their ffmpeg
   stand-ins wrote a line, so files started together could be noted out of order on a busy
   machine; it reads the processes' order now.
-- **Security, before main** (the audit, `docs/specs/audit-b4-main.md` module 3; tested in
+- **Security, before main** (the audit, `old/audit-b4-main.md` module 3; tested in
   `test/security.test.js`, `test/backup-sealed.test.js` and `test/backup-page.test.js`):
   - **A backup sealed with a passphrase** (Settings → Backup & restore, 8 characters or more).
     The API keys, the Qobuz and Tidal sign-ins and the server's Tailscale identity go into one
@@ -1173,7 +1173,7 @@ stood behind it. Everything the page, the apps and the speakers see is as in v0.
   - `sharp` (used by `tools/icons` only, not in the image) is 0.35.5, out of libvips' advisories.
 
 ## v0.8.50
-Stage 7 of the move to C# (`docs/specs/csharp-migration.md`): **Node removed** — the C# server
+Stage 7 of the move to C# (`old/csharp-migration.md`): **Node removed** — the C# server
 stands on its own, the last routes move, the launcher and in-app updates are the C# server's, the
 tests drive the binary over HTTP, and the image and the repository lose Node. The last v0.8.x; the
 owner's merge to `main` is v0.9.0. The parts as they are built:
@@ -1310,7 +1310,7 @@ owner's merge to `main` is v0.9.0. The parts as they are built:
   `identify-probe.js` and `artist-report.js`, which ran `lib/` with the image's Node.
 
 ## v0.8.49
-Stage 6 of the move to C# (`docs/specs/csharp-migration.md`): **playback moves to the C# server,
+Stage 6 of the move to C# (`old/csharp-migration.md`): **playback moves to the C# server,
 whole** — the rooms, the queue, grouping, the radio, the phone as a zone, Sonos, UPnP renderers
 and sound devices on this computer — each part held to the Node server's own answers and command
 order. After it the Node server does nothing (stage 7 removes it). The parts as they are built:
@@ -1476,7 +1476,7 @@ readings of this machine's own interfaces.
   .9995 s is the next second from either server.
 
 ## v0.8.48
-Stage 5 of the move to C# (`docs/specs/csharp-migration.md`): **everything the Node server still did
+Stage 5 of the move to C# (`old/csharp-migration.md`): **everything the Node server still did
 but play moves to the C# server**, part by part, each held to the Node server's own answers and
 writes. After it the Node server is playback and nothing else (stage 6 moves that; stage 7 removes
 Node). The parts as they are built:
@@ -1595,11 +1595,11 @@ Node). The parts as they are built:
   from a speaker's address and from a stranger's, each answered as the Node server answers it. The
   pictures in another colour space than sRGB (CMYK, or carrying a profile of their own) still go to
   the Node server to draw, as before: drawing them the same needs the colour maths libvips does, and
-  how to have that in the C# server is put to the owner (`docs/specs/csharp-migration.md`, part 5).
+  how to have that in the C# server is put to the owner (`old/csharp-migration.md`, part 5).
 - The Android app for this version is 0.8.48 (version code 248). Nothing in it changed.
 
 ## v0.8.47
-Stage 4.4 and 4.5 of the move to C# (`docs/specs/csharp-migration.md`): **Qobuz and Tidal are the
+Stage 4.4 and 4.5 of the move to C# (`old/csharp-migration.md`): **Qobuz and Tidal are the
 C# server's, whole**, handed over as the job "services". Signing in and out, Tidal's token, playing an
 album from their browser and their streams join the catalogue, the rows and the import moved before.
 With the C# server in front and the services handed over, the Node server doesn't ask Qobuz or Tidal
@@ -1705,7 +1705,7 @@ screen right.
   main's, so it's offered to nobody who didn't fetch it.
 
 ## v0.8.45
-Stage 4.3 of the move to C# (`docs/specs/csharp-migration.md`): **Qobuz's and Tidal's import, the
+Stage 4.3 of the move to C# (`old/csharp-migration.md`): **Qobuz's and Tidal's import, the
 favourites' watch and the service playlists are the C# server's**, handed over as the job "import".
 Each writes what the Node server wrote, row for row and mark for mark, and answers in its words; the
 Node server is told and reads its library again, as before.
@@ -1777,7 +1777,7 @@ Node server is told and reads its library again, as before.
 - The Android app for this version is 0.8.45 (version code 245). Nothing in it changed.
 
 ## v0.8.44
-Stage 4.2 of the move to C# (`docs/specs/csharp-migration.md`): **Qobuz's and Tidal's albums as
+Stage 4.2 of the move to C# (`old/csharp-migration.md`): **Qobuz's and Tidal's albums as
 rows in the library are the C# server's**: opening one, adding it to your favourites and taking it
 away, its page, Clean up and the month's prune. Each writes what the Node server wrote, column for
 column, and answers in its words; the Node server is told and reads its library again, as before.
@@ -1942,7 +1942,7 @@ After this only Qobuz's and Tidal's tracks are converted by the Node server.
 - The Android app for this version is 0.8.40 (version code 240). Nothing in it changed.
 
 ## v0.8.39
-Stage 4.1 of the move to C# (`docs/specs/csharp-migration.md`): **Qobuz's and Tidal's catalogue
+Stage 4.1 of the move to C# (`old/csharp-migration.md`): **Qobuz's and Tidal's catalogue
 is the C# server's**. Built by Claude B, in parallel with stage 2 (v0.8.37 and v0.8.38), as the owner
 arranged. Nothing in the Android app changed (it is 0.8.39 so the version moves together).
 
@@ -2097,7 +2097,7 @@ time.
 - The Android app for this version is 0.8.35 (version code 235). Nothing in it changed.
 
 ## v0.8.34
-Stages 1e and 1f of the move to C# (`docs/specs/csharp-migration.md`): **the library scans are the
+Stages 1e and 1f of the move to C# (`old/csharp-migration.md`): **the library scans are the
 C# server's**, and so are the covers the Node server still drew with `sharp`, but for a few. Also a
 fix for Queue writing over a queue that wasn't playing, a calmer Shelf, and Add to playlist on the
 album page. From the `v0.8.32` branch, numbered 0.8.34 as v0.8.33 went out first.
@@ -2185,7 +2185,7 @@ C# server. From the `claude-b-booklets` branch, built on v0.8.31; `v0.8.32` is a
 - The Android app for this version is 0.8.33 (version code 233). Nothing in it changed.
 
 ## v0.8.31
-Stage 1d of the move to C# (`docs/specs/csharp-migration.md`): Restart and Shut down are the C#
+Stage 1d of the move to C# (`old/csharp-migration.md`): Restart and Shut down are the C#
 server's, and **Restart now starts both servers again**.
 
 - **Restart** (the side menu's power button) stops the Node server cleanly, then the C# server
@@ -2251,7 +2251,7 @@ processor core again after an update; and a label's albums no longer come back o
 ## v0.8.29
 A test build, from the `mac-csharp` branch, built on v0.8.28 (`shelf-cs`), so that one goes in first.
 Mandarin's C# server now runs on Macs too, updates bring both servers together, and from here on
-new server work is done in C# only (`docs/specs/csharp-migration.md`, 2.1, 2.2 and 2.4).
+new server work is done in C# only (`old/csharp-migration.md`, 2.1, 2.2 and 2.4).
 
 - **The C# server on a Mac.** As in the Docker image, it's what starts when you log in, and it
   starts the Node server behind it.
@@ -2325,7 +2325,7 @@ and its page moves to the C# server, so Shelf now asks the Node server for nothi
   C# server's.
 - **Playback stays the Node server's** for now: the rooms, the queue, play/pause, previous and
   next, volume and Play now. It moves with the rest of playback in stage 6 of the move to C#
-  (`docs/specs/csharp-migration.md`).
+  (`old/csharp-migration.md`).
 - **Shelf's list also gives Mandarin's version.** The help popup uses it to know when it's due
   again after an update, instead of asking the updater. It shows once the library has arrived.
 - **Tests:**
@@ -2395,7 +2395,7 @@ decades and previous/next buttons, which are Mandarin's own.
 
 ## v0.8.26
 A test build, from the `stage1-small-parts` branch: stage 1 (parts a to c) of the move to C#
-(`docs/specs/csharp-migration.md`). Three more parts of the server are now answered by the C#
+(`old/csharp-migration.md`). Three more parts of the server are now answered by the C#
 server. Nothing looks or works differently.
 
 - **Last.fm moves to the C# server.** The key in Settings → Setup → API Keys (or `LASTFM_KEY`),
@@ -2425,7 +2425,7 @@ server. Nothing looks or works differently.
 
 ## v0.8.25
 A test build, from the `stage0-csharp-updates` branch: stage 0 of the plan for the rest of the move
-to C# (`docs/specs/csharp-migration.md`, on the `migration-plan` branch). In-app updates now bring
+to C# (`old/csharp-migration.md`, on the `migration-plan` branch). In-app updates now bring
 Mandarin's C# server too.
 
 - **Updating from Settings now updates the C# server as well.** Until now an update from the app
@@ -4286,7 +4286,7 @@ A review of the whole Android app, and everything it found put right.
   is hearted, newest first; tapping its title opens the full wall. It is in Home Screen's list
   of rows like the others.
 - A written plan for finding an album's right names from its tracks —
-  `docs/specs/album-identification.md` — for review before anything is built.
+  `old/album-identification.md` — for review before anything is built.
 
 ## v0.5.6
 - **Renderers send their changes (UPnP events).** Mandarin subscribes to each renderer's
@@ -4384,7 +4384,7 @@ A review of the whole Android app, and everything it found put right.
   per the spec. Nothing about Sonos playback changed.
 
 ## v0.4.3
-- **A written plan for UPnP/DLNA renderers** — `docs/specs/audio-devices-upnp.md`: discovery
+- **A written plan for UPnP/DLNA renderers** — `old/audio-devices-upnp.md`: discovery
   of WiiM, Chord Poly and other renderers, a device register with editable names, the
   capability layers (advertised, known model, you set, verified), the Audio Devices page,
   Original / ×2 / ×4 / Max upsampling in 64-bit float out to 24 or 32 bits, gapless via

@@ -5,7 +5,7 @@ import org.json.JSONObject
 
 /*
  * Home's rows as the server answers them (stage N5 of
- * docs/specs/plan-android-native.md, bug list item 57), typed for the native
+ * old/plan-android-native.md, bug list item 57), typed for the native
  * Home: Smart Picks, the genre cards, the label of the week, the playlists'
  * tiles and Random Album's choice. Each as the C# server answers it, held by
  * test/golden/android-api.json (AndroidApiTests, LibraryTest) like the rest

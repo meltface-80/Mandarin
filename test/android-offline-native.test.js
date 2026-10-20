@@ -1,6 +1,6 @@
 "use strict";
 /*
- * Offline, the Android app's native screens are the app (bug list item 109, O1 in docs/specs/plan-android-native.md; the
+ * Offline, the Android app's native screens are the app (bug list item 109, O1 in old/plan-android-native.md; the
  * reachability ServerReach's since the web view went, item 111): the screens ask the phone the same questions they ask the server (a client
  * whose answers are the phone's, core PhoneAnswers through a LocalTransport); the row along the foot is the app's own; and
  * Home comes in front whether the app starts online or offline.

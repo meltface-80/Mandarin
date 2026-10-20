@@ -62,7 +62,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /**
- * One of your playlists, natively (the Playlists group of docs/specs/plan-android-native.md, P2's page; bug list item 65),
+ * One of your playlists, natively (the Playlists group of old/plan-android-native.md, P2's page; bug list item 65),
  * drawn as the page's (docs/specs/screens.json, playlist; playlists.js openUserPlaylist, style.css .playlist-detail):
  * the bar's Back to Home, ← Playlists, the name over its hairline and how many tracks, Play now, Queue and ⋯ (Share, the
  * page's sheet over this screen; Delete, asked first), then the tracks numbered, each with its album's cover, a tap playing

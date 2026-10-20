@@ -1,5 +1,5 @@
 // UpdateRoutes.cs — Settings → Updates (v0.8.48, stage 5 part 4 of
-// docs/specs/csharp-migration.md), from lib/server/api-playlists.js, in the
+// old/csharp-migration.md), from lib/server/api-playlists.js, in the
 // same shapes:
 //
 //   GET  /api/update/status   what the updater knows (Admin/Updater.cs getStatus),

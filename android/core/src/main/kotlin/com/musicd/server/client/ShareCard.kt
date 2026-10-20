@@ -4,7 +4,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 /*
- * The share card, typed (the group B of docs/specs/plan-android-native.md, B4; bug list item 75): what the card says
+ * The share card, typed (the group B of old/plan-android-native.md, B4; bug list item 75): what the card says
  * (from /api/album/extras, as share-card.js's cardFields reads it), where its record can be heard or read about (the
  * links under it), the acts suggested under them (/api/similar), and the card's layout, measured as sharecard.js
  * measures it before it draws: the height is a result of the words, so everything is wrapped first.

@@ -85,7 +85,7 @@ internal object LabelsKept {
 }
 
 /**
- * The record labels natively (the group B of docs/specs/plan-android-native.md, B1; bug list item 71), drawn as the page's
+ * The record labels natively (the group B of old/plan-android-native.md, B1; bug list item 71), drawn as the page's
  * (docs/specs/screens.json, labels; labels.js, labels-list.js): the heading with the bar's Back, the order (# to Z, Z to #) at
  * the top right, every label as a tile of the wall (its logo, or its name in words), its name, how many albums and how many
  * merged into it (a tap there, the labels merged into it: [LabelUnmergeSheet]); the row's Search finds a label. While the scan

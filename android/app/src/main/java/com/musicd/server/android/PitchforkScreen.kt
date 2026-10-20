@@ -72,7 +72,7 @@ private val GOLD = Color(0xFFD4A017)
 private val ON_GOLD = Color(0xFF1A1000)
 
 /**
- * Pitchfork natively (the group B of docs/specs/plan-android-native.md, B3; bug list item 70), drawn as the page's magazine
+ * Pitchfork natively (the group B of old/plan-android-native.md, B3; bug list item 70), drawn as the page's magazine
  * (docs/specs/screens.json, pitchfork and pitchfork-review; pitchfork.js, style.css .pf-*): over the whole screen, its title
  * and ✕ with the tabs Latest Reviews and Best New Music pinned at its head; the reviews as a woven mosaic three across, every
  * third a large one (left, then right), each with its score (gold for Best New Music), BNM, and the album and artist over the

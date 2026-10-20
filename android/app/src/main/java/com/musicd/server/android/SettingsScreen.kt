@@ -50,7 +50,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 /**
- * Settings, natively (the group T of docs/specs/plan-android-native.md, T1; bug list item 76), as the page draws it
+ * Settings, natively (the group T of old/plan-android-native.md, T1; bug list item 76), as the page draws it
  * over the whole screen (docs/specs/screens.json, settings and settings-setup; style.css #settings-overlay): ✕ and
  * Settings at the head, a row a section (its brass icon, its name), the server's version and View on GitHub at the
  * foot; Setup's list under its Back. [pane]: "home", "setup", or a page the app draws ("account", "metadata", in

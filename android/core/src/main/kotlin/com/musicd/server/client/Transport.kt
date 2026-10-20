@@ -6,7 +6,7 @@ import java.net.HttpURLConnection
 import java.net.URL
 
 /*
- * How a ServerClient's requests are answered (bug list item 106, O1 in docs/specs/plan-android-native.md): over HTTP by
+ * How a ServerClient's requests are answered (bug list item 106, O1 in old/plan-android-native.md): over HTTP by
  * the server ([HttpTransport]), or, offline, by the app itself ([LocalTransport]) from what is on the phone, so every
  * native screen asks the same way whether the server is there or not.
  */

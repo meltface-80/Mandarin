@@ -72,7 +72,7 @@ import kotlinx.coroutines.withContext
 import org.json.JSONObject
 
 /**
- * The side menu over the native screens (the Rooms group of docs/specs/plan-android-native.md; bug list item 67), opened
+ * The side menu over the native screens (the Rooms group of old/plan-android-native.md; bug list item 67), opened
  * by the row's Menu ([NativeShell.menuOpen]) and drawn as the page's (docs/specs/screens.json, menu; style.css, .menu-drawer):
  * the drawer from the left over the screen dimmed, Mandarin's mark and name with the red power button and its Restart and
  * Shut down, the Offline switch, the items (the ones that come and go as the server says), Rescan library with how old the
@@ -92,7 +92,7 @@ internal fun MenuOver(nav: NavHostController, client: () -> ServerClient?) {
  * An item of the menu chosen ([what], its key in the contract): the menu closes and, as the row's buttons do, every native
  * screen over Home with it; Playlists, Dynamic Playlists, Listen later, Pitchfork, Labels, Qobuz, Tidal and Settings open natively over Home;
  * Restart and Shut down ask and show the server's time away natively (PowerOver.kt, item 96); Shelf, a page of the
- * server's own for a screen on a wall (docs/specs/plan-android-native.md, "Not the app's"), opens in the phone's browser
+ * server's own for a screen on a wall (old/plan-android-native.md, "Not the app's"), opens in the phone's browser
  * (item 111).
  */
 internal fun menuTap(nav: NavHostController, what: String, context: android.content.Context) {

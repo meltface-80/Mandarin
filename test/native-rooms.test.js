@@ -1,7 +1,7 @@
 "use strict";
 /*
  * The Android app's native Play on sheets (the Rooms group of
- * docs/specs/plan-android-native.md, R1; bug list item 68), as the page answers
+ * old/plan-android-native.md, R1; bug list item 68), as the page answers
  * them (public/app/native-handoff.js): a room chosen on a native screen is the
  * page's room too, without the page's own "Move what's playing…?" (the app asks
  * that itself, over its own screen; the page's would open unseen behind it);

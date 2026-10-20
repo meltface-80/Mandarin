@@ -59,7 +59,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /**
- * An album's editor, natively (the group B of docs/specs/plan-android-native.md, B5; bug list item 74), as the page's
+ * An album's editor, natively (the group B of old/plan-android-native.md, B5; bug list item 74), as the page's
  * (docs/specs/screens.json, album-edit; album-editor.js, album-editor-match.js, style.css .album-edit-sheet): the sheet
  * from the foot over the album's page, its grip, Edit album and ✕ (a tap round it closes it too); the cover, the
  * names from MusicBrainz, the fields and Save (AlbumEditParts.kt); the note at its foot. [onChanged] once the album's

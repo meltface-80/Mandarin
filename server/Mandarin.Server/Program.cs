@@ -3,7 +3,7 @@
 // Mandarin's server, whole: it listens on Mandarin's port (PORT, 3500) and
 // answers everything itself. From v0.8.1 it stood in front of the Node server
 // and took its parts over one by one; since v0.9.0 (stage 7 of
-// docs/specs/csharp-migration.md) there is no Node server. Set up from the
+// old/csharp-migration.md) there is no Node server. Set up from the
 // environment (Config.cs). See server/README.md.
 //
 //   PORT                 the port Mandarin is reached on (3500)

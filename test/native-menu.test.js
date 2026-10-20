@@ -1,7 +1,7 @@
 "use strict";
 /*
  * The Android app's native side menu (the Rooms group of
- * docs/specs/plan-android-native.md, bug list item 67), as the page answers
+ * old/plan-android-native.md, bug list item 67), as the page answers
  * it (public/app/native-handoff.js, "menu"): an item the app leaves to the
  * page is the page's own item in its menu, tapped (Settings, Pitchfork, Restart
  * with its question); "reopen", the page's menu open again on the page the

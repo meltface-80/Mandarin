@@ -21,7 +21,7 @@ import com.musicd.server.client.WallPrefs
 import org.json.JSONObject
 
 /**
- * The app's frame (docs/specs/plan-android-native.md): Compose, its navigation and Mandarin's own colours, the whole
+ * The app's frame (old/plan-android-native.md): Compose, its navigation and Mandarin's own colours, the whole
  * screen. Home is the first route; every other screen opens over the one that opened it, Back closing it. Since bug list
  * item 111 there is no page under it: what the screens once handed to the page is the app's own ([handOn], ShellHand.kt),
  * and the screen settings the page kept on this phone (the UI Settings, the Library's view, the share card's service) are

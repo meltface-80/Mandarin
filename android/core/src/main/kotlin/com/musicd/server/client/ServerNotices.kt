@@ -6,7 +6,7 @@ import java.util.Locale
 
 /*
  * The server's notice at the head of Home, worked out by the app from /api/status (bug list item 112, O2 in
- * docs/specs/plan-android-native.md), as the page's server-notice.js works it out: the data not kept, no music folder,
+ * old/plan-android-native.md), as the page's server-notice.js works it out: the data not kept, no music folder,
  * a first scan under way, no audio found, starting up, a music folder gone (with Forget, or Remove the missing ones, and
  * its question), no Sonos rooms. None while the app is answering for the server (offline), nor for a folder or the rooms
  * while away from home. Before, the page worked it out and told the app what to draw.

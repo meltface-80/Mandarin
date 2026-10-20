@@ -1,5 +1,5 @@
 // Addresses.cs — where the server may go on someone's word (v0.9.0, the
-// audit's S5 and S6, docs/specs/audit-b4-main.md).
+// audit's S5 and S6, old/audit-b4-main.md).
 //
 // A cover from an address typed into the album editor is never fetched from
 // this machine or its link (loopback, link-local such as a cloud's

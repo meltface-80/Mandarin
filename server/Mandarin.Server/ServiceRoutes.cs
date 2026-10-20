@@ -1,5 +1,5 @@
 // ServiceRoutes.cs — Qobuz's and Tidal's catalogue, as the page and the apps
-// browse it (v0.8.39, stage 4.1 of docs/specs/csharp-migration.md), from
+// browse it (v0.8.39, stage 4.1 of old/csharp-migration.md), from
 // lib/server/api-service.js in the same shapes and words (Services/):
 //
 //   GET /api/<s>/lists              the lists the service features (Tidal), the browser's tabs

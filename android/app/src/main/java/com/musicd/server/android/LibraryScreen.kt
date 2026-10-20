@@ -60,7 +60,7 @@ import kotlinx.coroutines.withContext
 import java.text.NumberFormat
 
 /**
- * The Library wall, natively (stage N4 of docs/specs/plan-android-native.md; bug list items 51 and 52; a
+ * The Library wall, natively (stage N4 of old/plan-android-native.md; bug list items 51 and 52; a
  * preview: Settings → Setup → UI Settings), drawn as the page's (docs/specs/screens.json, library;
  * style.css, the touch layout): the heading with the count at the top, the bar's Back over the albums top
  * left and Focus and Sort top right, the grid at UI Settings' columns and text size (or its list), paged 60

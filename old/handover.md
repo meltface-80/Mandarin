@@ -1,7 +1,7 @@
 # Handover: the move from Node to C#
 
 For the next Claude session picking up the migration. Read this first, then `CLAUDE.md`, then
-`docs/specs/csharp-migration.md` (section 2.4 and "What is left: the fewest steps"), then
+`old/csharp-migration.md` (section 2.4 and "What is left: the fewest steps"), then
 `server/README.md` and the top of `CHANGELOG.md`. Update this file whenever the state below changes.
 
 Written 12 October 2026, at stage 4b's merge; brought up to date with stage 5 merged and the
@@ -84,7 +84,7 @@ From the spec's "fewest steps", decided by the owner after v0.8.47:
    v0.9.0 themselves. After that, bugs go on `v0.9.x-rc1 - <bug>` branches (CLAUDE.md section 4).
    Part 6 (#214) and part 7 (#216: the old Node hand-offs answered, a Mac's USB DAC through
    Mandarin DAC Bridge) are merged.
-4. **The audit before `main`** (`docs/specs/audit-b4-main.md`, branch `audit-b4-main`): the
+4. **The audit before `main`** (`old/audit-b4-main.md`, branch `audit-b4-main`): the
    report and the owner's decisions are at the end of it. Work in the order security, testing,
    code quality, performance, documentation, each on its `audit/*` branch from `audit-b4-main`
    and merged back into it; then `audit-b4-main` into `migration` before v0.9.0 goes to `main`.

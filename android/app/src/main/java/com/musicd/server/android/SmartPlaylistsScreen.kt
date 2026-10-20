@@ -48,7 +48,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 /**
- * The Dynamic Playlists screen, natively (the Playlists group of docs/specs/plan-android-native.md, P3; bug list item 66),
+ * The Dynamic Playlists screen, natively (the Playlists group of old/plan-android-native.md, P3; bug list item 66),
  * drawn as the page's (docs/specs/screens.json, smart-playlists; smart-playlists.js showSmartPlaylists): the heading with
  * the bar's Back, New Dynamic Playlist as the first tile (the page's sheet, then its Focus, over this screen), then each
  * saved one as a tile with its covers' mosaic, its name and its view in a line; the banner while there are none; the mini

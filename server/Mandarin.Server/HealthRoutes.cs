@@ -1,5 +1,5 @@
 // HealthRoutes.cs — GET /api/health (v0.8.48, stage 5 part 7 of
-// docs/specs/csharp-migration.md), from index.js, in the same shape. Open, as
+// old/csharp-migration.md), from index.js, in the same shape. Open, as
 // it was: Docker's health check asks it every minute.
 //
 //   { ok, version, albums, rooms, ffmpeg, soxr,

@@ -47,7 +47,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 /*
- * The last two of Setup's pages natively (the group T of docs/specs/plan-android-native.md, T2; bug list item 80), as
+ * The last two of Setup's pages natively (the group T of old/plan-android-native.md, T2; bug list item 80), as
  * the page's (docs/specs/screens.json, settings-sharecard and settings-away; settings-views.js, settings-away.js,
  * android-app-update.js's This phone): what the share card shows and links to, and the server's built-in Tailscale,
  * with the app's own under it. Drawn with Setup's rows, switches and lists (SettingsSetup.kt).

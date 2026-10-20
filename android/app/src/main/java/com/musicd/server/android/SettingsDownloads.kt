@@ -51,7 +51,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 /*
- * Settings → Setup → Downloads natively (the group T of docs/specs/plan-android-native.md, T8; bug list item 91), as the
+ * Settings → Setup → Downloads natively (the group T of old/plan-android-native.md, T8; bug list item 91), as the
  * page's (docs/specs/screens.json, settings-downloads and settings-downloads-albums; android-downloads.js; android.css
  * .dl-folder, .settings-subhead, .dl-row): the Downloads row opening the albums, Offline mode, Downloading, Playing away
  * from home, Cached ahead and Automatic downloads. What it shows and every change go through the app's own downloads

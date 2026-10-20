@@ -44,7 +44,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 /**
- * The Playlists screen, natively (the Playlists group of docs/specs/plan-android-native.md, P1; bug list item 65), drawn as
+ * The Playlists screen, natively (the Playlists group of old/plan-android-native.md, P1; bug list item 65), drawn as
  * the page's (docs/specs/screens.json, playlists; walls.js showPlaylists): the heading with the bar's Back, Import in the
  * top-right corner under it (the page's sheet for a pasted playlist, over this screen), then each of your playlists as a
  * tile of the wall with its covers' mosaic, its name and how many tracks, the last changed first; the banner while there

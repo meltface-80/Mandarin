@@ -5,7 +5,7 @@ import org.json.JSONObject
 import java.text.Normalizer
 
 /*
- * Record labels, typed (the group B of docs/specs/plan-android-native.md, B1; bug list item 71): the list as the
+ * Record labels, typed (the group B of old/plan-android-native.md, B1; bug list item 71): the list as the
  * server has it (/api/filters/labels), with the scan's progress, what the page says of it, the order and the find
  * it is shown in; a label's albums (/api/label-albums) and the logos Discogs offers for it; as the page's
  * labels.js, labels-list.js and labels-albums.js read and say them.

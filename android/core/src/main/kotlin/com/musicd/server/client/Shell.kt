@@ -4,7 +4,7 @@ import java.net.URLDecoder
 import java.net.URLEncoder
 
 /*
- * The native app's frame (docs/specs/plan-android-native.md): the screens it shows, by route, and the colours they are
+ * The native app's frame (old/plan-android-native.md): the screens it shows, by route, and the colours they are
  * drawn in. Every screen is the app's own since bug list item 111: there is no page under them.
  */
 

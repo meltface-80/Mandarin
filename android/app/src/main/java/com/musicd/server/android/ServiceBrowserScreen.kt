@@ -104,7 +104,7 @@ internal object ServiceBrowsers {
 }
 
 /**
- * The Qobuz or Tidal browser natively (the group B of docs/specs/plan-android-native.md, B2; bug list item 73), drawn as the
+ * The Qobuz or Tidal browser natively (the group B of old/plan-android-native.md, B2; bug list item 73), drawn as the
  * page's (docs/specs/screens.json, service-browser and service-artist; service-browser*.js; style.css .qobuz-*): over the
  * whole screen, its title and ✕, the search field (450 ms after the last key, or Enter) and the tabs (New Releases, then
  * Qobuz's lists or the ones Tidal says) pinned at its head, the line saying what is shown, the albums as tiles with the

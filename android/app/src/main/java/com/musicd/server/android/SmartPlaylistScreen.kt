@@ -69,7 +69,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /**
- * A Dynamic Playlist, natively (the Playlists group of docs/specs/plan-android-native.md, P3; bug list item 66), drawn as
+ * A Dynamic Playlist, natively (the Playlists group of old/plan-android-native.md, P3; bug list item 66), drawn as
  * the page's (docs/specs/screens.json, smart-playlist; smart-playlist.js): the bar's Back to Home, ← Dynamic Playlists, its
  * name over its hairline and what it is made of, its order and its view, Play now, Queue and ⋯ (Share and Edit, the page's
  * sheets over this screen; Delete, asked first); then, made of albums, its albums as tiles of the wall; made of tracks, its

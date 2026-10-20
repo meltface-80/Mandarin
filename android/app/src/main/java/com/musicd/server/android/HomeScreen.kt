@@ -49,7 +49,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /**
- * Home, natively (stage N5 of docs/specs/plan-android-native.md, bug list
+ * Home, natively (stage N5 of old/plan-android-native.md, bug list
  * item 57; a preview: Settings → Setup → UI Settings), drawn as the page's
  * (docs/specs/screens.json, home; style.css in the hifi palette): the
  * greeting with the date over it, the strip under it (Random Album with its

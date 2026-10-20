@@ -4,7 +4,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 /*
- * Settings, typed (the group T of docs/specs/plan-android-native.md, T1; bug list item 76): the list and Setup's list
+ * Settings, typed (the group T of old/plan-android-native.md, T1; bug list item 76): the list and Setup's list
  * as the page has them, the server's version at the list's foot (settings.js's loadVersion), the devices signed in to the
  * account (settings-account.js) and the API keys with what the server says of each (settings.js's wireKey).
  */

@@ -5,7 +5,7 @@ import com.musicd.server.client.OfflineKind
 import com.musicd.server.client.ShellRoute
 
 /**
- * Whether the app is offline now (bug list item 109, O1 in docs/specs/plan-android-native.md): null online; [OfflineKind.MODE]
+ * Whether the app is offline now (bug list item 109, O1 in old/plan-android-native.md): null online; [OfflineKind.MODE]
  * Offline mode switched on; [OfflineKind.APP] the server can't be reached. Set as ServerReach finds out, through
  * [goOffline] and [goOnline]; the screens are then answered by the phone ([Store.screenClient]).
  */

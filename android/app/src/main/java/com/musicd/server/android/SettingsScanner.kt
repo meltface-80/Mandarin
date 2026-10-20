@@ -56,7 +56,7 @@ import kotlinx.coroutines.withContext
 import org.json.JSONObject
 
 /*
- * Settings → Library Scanner natively (the group T of docs/specs/plan-android-native.md, T7; bug list item 90), as the
+ * Settings → Library Scanner natively (the group T of old/plan-android-native.md, T7; bug list item 90), as the
  * page's (docs/specs/screens.json, settings-scanner; settings-scanner.js and settings-scanner-albums.js; style.css
  * #identify-pane-body, .id-*): the schedule and what runs now, Identify albums and Ask iTunes too, the MusicBrainz pack
  * (ScannerPack.kt), identification's progress, Measure ReplayGain, Clean up, the processor, and the proposed, unidentified,

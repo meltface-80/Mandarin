@@ -4,7 +4,7 @@ import org.json.JSONObject
 
 /*
  * The page's two notices at the head of its screens, as it tells the app of them (public/app/native-notices.js; the
- * Rooms group of docs/specs/plan-android-native.md, R3; bug list item 69): the server's notice (server-notice.js: an
+ * Rooms group of old/plan-android-native.md, R3; bug list item 69): the server's notice (server-notice.js: an
  * empty library, no rooms, a music folder gone with Forget, the data not kept) and the update offer (updater.js: the
  * server's and the app's, Update or Later, the notes, its progress and a failure). The page goes on deciding what they
  * say and doing what their buttons do; the native Home draws them, which it hid behind itself until now.

@@ -1,6 +1,6 @@
 "use strict";
 /*
- * The Android app without its web view (bug list item 111, O2 in docs/specs/plan-android-native.md): it opens on its own
+ * The Android app without its web view (bug list item 111, O2 in old/plan-android-native.md): it opens on its own
  * Home, nothing of the page under it; what its screens handed to the page is its own (the row's buttons, the screen
  * settings, the room, Now playing's album, the update offer, the Shelf); the server's gate shutting signs it in again; and
  * the page's machinery, its copy in the APK and the webkit library are gone. The page itself stays for browsers.

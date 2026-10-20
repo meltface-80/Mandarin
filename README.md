@@ -9,7 +9,7 @@
 
 note: the v0.8.x series moved Mandarin's server to C#; v0.9.0 is the first with no Node.js
 
-# Mandarin — v1.0.17
+# Mandarin — v1.1.0
 
 **Your own music files, played to Sonos rooms, to UPnP/DLNA renderers (a WiiM, a Chord Poly,
 a streamer, an AV receiver) and to the Mandarin Android app.**
@@ -27,6 +27,16 @@ Wikipedia, Deezer and others); your music files stay on your machine.
                                                    │      ──HTTP──▶  the Android app (phone, USB DAC)
                                                    └──── audio: /stream/… ◀────────┘
 ```
+
+**New in v1.1.0** (since v1.0.17)
+* **The Android app is fully native.** Every screen is drawn by the app itself (Kotlin and Jetpack
+  Compose); it no longer shows the server's web page. Its screens and their controls follow the
+  page's, item by item, checked on every build ([docs/specs/screens.json](docs/specs/screens.json)).
+  Shelf opens in the phone's browser.
+* **The app's mini player** runs the full width of the screen, on the row along its foot.
+* **Classical albums** are set out as works and movements, with the composers and performers in the
+  album's head, in the browser and the app.
+* **The album page** leads with its cover, and beside it the title, artist, date, format and length.
 
 **New in v1.0.4** (since v1.0.0)
 * **Mandarin runs on Linux, in Docker (v1.0.3).** Mac support is dropped: no Mac install line, no
@@ -535,7 +545,7 @@ Open `http://<server-ip>:3500/display` on the screen. Its switch (on by default)
 
 📱 **The Android app**
 
-The same interface, plus lock-screen and notification controls, volume keys, a widget, a Quick Settings tile, a share sheet, Android Auto, and updates of its own.
+The same interface, drawn natively by the app, plus lock-screen and notification controls, volume keys, a widget, a Quick Settings tile, a share sheet, Android Auto, and updates of its own.
 
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 
@@ -822,7 +832,7 @@ docker build -t musicd-server:local .
 
 **In the app:** Settings → **Updates** → **Check for updates** → **Update to vX.Y.Z**. The server
 downloads the new release from GitHub, swaps it in and restarts itself in a few seconds;
-the page reloads on its own. In the Android app the same button then updates the app, once
+a browser's page reloads on its own. In the Android app the same button then updates the app, once
 the server is back (v0.7.3). It also checks twice a day and shows a banner when a new
 version is out. (From v0.1.3 on — an older container needs one update the manual way.)
 
@@ -911,7 +921,7 @@ screen like an app, with the same interface as the Android app.
 
 ## Android
 
-The app is in **[android/](android/)**. Enter the port (3500 unless you changed it) and it finds
+The app is in **[android/](android/)**, a native app (Kotlin and Jetpack Compose). Enter the port (3500 unless you changed it) and it finds
 the server on your Wi-Fi, or type the address; then sign in, or create the account on a new
 server, in the app. Its features are listed under [Features](#features).
 
@@ -1128,12 +1138,14 @@ through a subnet router arrive from a home address, and the server can't tell th
 * **Audio.** Each queued item is a URL on this server. Within 24/48 it serves the file as
   stored, with byte ranges; above that, ffmpeg writes FLAC 24/48 to the cache and the speaker
   is served from the growing file.
-* **Interface.** Mandarin's own page in `public/`, served by the server and shown in the browser,
-  the iPhone home-screen app and the Android app alike, talking to the server's `/api`.
+* **Interface.** Mandarin's own page in `public/`, served by the server and shown in the browser
+  and the iPhone home-screen app, talking to the server's `/api`. The Android app (`android/`) draws
+  the same screens natively and asks the same `/api`; `docs/specs/screens.json` holds the two to
+  the same controls.
 * **The server.** One program in C# (`server/`, .NET, built to a single self-contained file: no
   .NET or Node.js needed to run it). It began in v0.8.1 as a front door before the original
   Node.js server, took its parts over one by one with each held to the Node server's own answers,
-  and has been the whole server since v0.9.0 (`docs/specs/csharp-migration.md`).
+  and has been the whole server since v0.9.0 (`old/csharp-migration.md`).
 
 ## Troubleshooting
 

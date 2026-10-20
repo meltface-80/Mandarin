@@ -1,7 +1,7 @@
 "use strict";
 /*
  * Settings → Audio Devices, the writes made by the C# server (v0.8.48, stage 5
- * part 1 of docs/specs/csharp-migration.md; DeviceRoutes.cs): a device's name,
+ * part 1 of old/csharp-migration.md; DeviceRoutes.cs): a device's name,
  * hidden, sharing, output, DSP, levelling and the rates you tick, each written
  * to audio_devices as the Node server wrote it and each refusal in its words;
  * the Node server told, so its own effects follow (a name in /api/zones, a

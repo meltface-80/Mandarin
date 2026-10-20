@@ -1,5 +1,5 @@
 // DeviceRoutes.cs — Settings → Audio Devices, the writes (v0.8.48, stage 5
-// part 1 of docs/specs/csharp-migration.md): PATCH /api/audio-devices/:id,
+// part 1 of old/csharp-migration.md): PATCH /api/audio-devices/:id,
 // from lib/server/api-devices.js, lib/renderers/devices.js and registry.js,
 // rule for rule. The name, hidden, sharing, output, DSP, levelling and the
 // rates, depths and DSD you set are checked and written to audio_devices as

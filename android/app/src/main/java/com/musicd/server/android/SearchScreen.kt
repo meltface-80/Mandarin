@@ -104,7 +104,7 @@ internal object SearchKept {
 }
 
 /**
- * The search, natively (the Search group of docs/specs/plan-android-native.md, S1 and S2; bug list item 61; a preview:
+ * The search, natively (the Search group of old/plan-android-native.md, S1 and S2; bug list item 61; a preview:
  * Native Search in UI Settings), drawn as the page's (docs/specs/screens.json, search; style.css's search, the touch
  * layout): the field across the top bar with its ✕ and the count beside it; under Home's greeting, the library's artists
  * and labels as chips and its albums as tiles, each under its small heading, asked 120 ms after the last letter; then

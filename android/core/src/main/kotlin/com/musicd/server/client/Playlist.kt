@@ -3,7 +3,7 @@ package com.musicd.server.client
 import org.json.JSONObject
 
 /*
- * Your own playlists, typed (the Playlists group of docs/specs/plan-android-native.md,
+ * Your own playlists, typed (the Playlists group of old/plan-android-native.md,
  * P1 and P2's page; bug list item 65): the list is Home's (PlaylistTile.mine);
  * one playlist (/api/user-playlist) with its tracks, each a track of an album of
  * the library's, as the page's playlists.js reads them.

@@ -3,7 +3,7 @@ package com.musicd.server.client
 import org.json.JSONObject
 
 /*
- * Setup's small pages of Settings, typed (the group T of docs/specs/plan-android-native.md, T2; bug list item 78):
+ * Setup's small pages of Settings, typed (the group T of old/plan-android-native.md, T2; bug list item 78):
  * Smart Picks, Record labels, UI Settings, Wall Display and Shelf, with what each list offers and what the page says
  * (settings-views.js, settings-home.js, settings-services.js, settings-ui.js, features.js). What is kept on the server
  * is asked for and saved there; what the page keeps on this device (the UI Settings, a label's order and minimum) is

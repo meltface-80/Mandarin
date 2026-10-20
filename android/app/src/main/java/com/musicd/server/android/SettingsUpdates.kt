@@ -39,7 +39,7 @@ import org.json.JSONObject
 import kotlin.coroutines.resume
 
 /*
- * Settings → Updates natively (the group T of docs/specs/plan-android-native.md, T9; bug list item 92), as the page's
+ * Settings → Updates natively (the group T of old/plan-android-native.md, T9; bug list item 92), as the page's
  * (docs/specs/screens.json, settings-system; check-update.js, android-app-update.js; style.css .settings-update-btn,
  * .is-update-ready, .settings-release-notes): Check for updates looks for the server's update and this app's at once
  * (AppUpdate, as the page's __musicdAppUpd does), then offers to install what it found, in brass, with the server's

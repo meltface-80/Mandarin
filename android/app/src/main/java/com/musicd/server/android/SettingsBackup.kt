@@ -52,7 +52,7 @@ import org.json.JSONObject
 import java.util.Date
 
 /*
- * Settings → Backup & restore natively (the group T of docs/specs/plan-android-native.md, T9; bug list item 92), as the
+ * Settings → Backup & restore natively (the group T of old/plan-android-native.md, T9; bug list item 92), as the
  * page's (docs/specs/screens.json, settings-backup; settings-backup.js): Back up, its parts ticked, a passphrase, to a file
  * on this phone (Android's own "save as", AppBackup.saveTo) or to the server; Restore, from a file on this phone (Android's
  * "open") or from any backup in the list, the server's and this phone's, newest first, each with Restore… (its parts

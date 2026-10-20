@@ -1,5 +1,5 @@
 // ScanRoutes.cs — Rescan, Reindex and the music folders (v0.8.34, stage 1e of
-// docs/specs/csharp-migration.md), from lib/server/api-library.js, in the
+// old/csharp-migration.md), from lib/server/api-library.js, in the
 // same shapes and words, once the scans are made here (Scans.cs):
 //
 //   POST /api/library/rescan          Rescan library, from the side menu

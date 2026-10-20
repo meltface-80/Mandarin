@@ -60,7 +60,7 @@ import kotlinx.coroutines.withContext
 import org.json.JSONObject
 
 /*
- * Settings → Audio Devices natively (the group T of docs/specs/plan-android-native.md, T6; bug list item 89), as the page's
+ * Settings → Audio Devices natively (the group T of old/plan-android-native.md, T6; bug list item 89), as the page's
  * (docs/specs/screens.json, settings-audio; audio-devices.js renderList; style.css .dev-row): the zone the controls play to,
  * every player the server sees (Sonos rooms, phones, renderers, the server's own sound devices) a row with its switch where
  * it can be switched off, Hide / unhide and Look again, and Waveform. A row opens the device's own page (SettingsDevice.kt)

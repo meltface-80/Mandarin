@@ -1,7 +1,7 @@
 "use strict";
 /*
  * The Android app's native Playlists (the Playlists group of
- * docs/specs/plan-android-native.md, bug list item 65), as the page hands them
+ * old/plan-android-native.md, bug list item 65), as the page hands them
  * over (public/app/native-playlists.js): the side menu's Playlists, Home's
  * Playlists heading and a playlist's tile open the app's screens
  * (MusicdApp.openPlaylists, openPlaylist) with the UI Settings and the room, in

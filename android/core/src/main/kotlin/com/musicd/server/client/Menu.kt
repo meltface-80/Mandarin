@@ -5,7 +5,7 @@ import java.text.NumberFormat
 import kotlin.math.roundToLong
 
 /*
- * The side menu's words, typed (the Rooms group of docs/specs/plan-android-native.md;
+ * The side menu's words, typed (the Rooms group of old/plan-android-native.md;
  * bug list item 67): the Rescan row's line under it, what a rescan answered, and
  * which of the services' rows it shows; as the page's menu-drawer.js and
  * power.js say them, so the app's menu and the page's read alike.

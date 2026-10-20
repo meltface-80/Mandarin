@@ -1,6 +1,6 @@
 "use strict";
 /*
- * The Android app's native Home (stage N5 of docs/specs/plan-android-native.md,
+ * The Android app's native Home (stage N5 of old/plan-android-native.md,
  * bug list item 57; a preview), as the page tells the app when it should be
  * in front (public/app/native-home.js): the page keeps Home as ever, and says
  * `homeShown(true)` as it comes to Home with nothing of its own over it, and

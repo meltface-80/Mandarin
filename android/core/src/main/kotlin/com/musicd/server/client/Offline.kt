@@ -2,7 +2,7 @@ package com.musicd.server.client
 
 /*
  * Offline, in the page's words (server-notice.js, OFFLINE_WHY and openOffline; bug list item 105, the first of O1 in
- * docs/specs/plan-android-native.md): why the app is showing only the music on this phone, said when the row's Offline
+ * old/plan-android-native.md): why the app is showing only the music on this phone, said when the row's Offline
  * sign is tapped. The page's "unreachable" is a browser's; the app is either offline by choice or answering for a server
  * it can't reach.
  */

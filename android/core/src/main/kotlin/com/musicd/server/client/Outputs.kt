@@ -4,7 +4,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 /*
- * The speakers behind the rooms, typed (the Rooms group of docs/specs/plan-android-native.md,
+ * The speakers behind the rooms, typed (the Rooms group of old/plan-android-native.md,
  * R1; bug list item 68): each output, the room it plays in and what it may join, and the
  * power controls a device has; with the page's words for Group zones and Device power
  * (zone-grouping.js, device-power.js) and for moving what's playing (album-grid.js), so

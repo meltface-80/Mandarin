@@ -16,8 +16,8 @@ android {
         targetSdk = 36
         // versionCode must rise with every published build or Android refuses
         // to install over the previous one.
-        versionCode = 325
-        versionName = "1.0.17"
+        versionCode = 326
+        versionName = "1.1.0"
         // The Tailscale engine (jniLibs) is built for 64-bit ARM only, and so
         // is the native code below: one ABI, every phone the app runs on.
         ndk { abiFilters += "arm64-v8a" }
@@ -134,7 +134,7 @@ dependencies {
     implementation("androidx.media3:media3-database:1.8.0")
     // Downloads: queued, retried and resumed, waiting for Wi-Fi if asked to.
     implementation("androidx.work:work-runtime:2.10.3")
-    // The native screens (docs/specs/plan-android-native.md, from N0): Compose
+    // The native screens (old/plan-android-native.md, from N0): Compose
     // in Material 3, a ComponentActivity to hold it, and its navigation.
     implementation(platform("androidx.compose:compose-bom:2025.06.01"))
     implementation("androidx.compose.ui:ui")

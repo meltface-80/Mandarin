@@ -58,7 +58,7 @@ import java.text.DateFormat
 import java.util.Date
 
 /*
- * Settings → Services natively (the group T of docs/specs/plan-android-native.md, T4; bug list item 87), as the page's
+ * Settings → Services natively (the group T of old/plan-android-native.md, T4; bug list item 87), as the page's
  * (docs/specs/screens.json, settings-services; settings-services.js paintQobuz and paintTidal; style.css #qobuz-signed,
  * .settings-token-input, .tidal-auth-pending): Qobuz and Tidal, each under its title with its ⓘ. Signed out, Qobuz's email
  * and password and Sign in, Tidal's Sign in on tidal.com, which opens tidal.com with a code to type there, and is waited for

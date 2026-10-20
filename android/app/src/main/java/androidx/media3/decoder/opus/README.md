@@ -10,6 +10,6 @@ it is carried here and built by the app's own native build
 Why: Android's own Opus decoder gives 16-bit PCM. This one decodes to float
 when the audio sink is float, which is how the server's Opus 256 reaches the
 phone's DSP engine and its output at 24/48 (Stage 2 of
-docs/specs/roadmap-stages.md). The package name is Media3's because the JNI
+old/roadmap-stages.md). The package name is Media3's because the JNI
 symbols in `opus_jni.cc` are named after it, and `DefaultRenderersFactory`
 finds `LibopusAudioRenderer` by this name.

@@ -73,7 +73,7 @@ import kotlinx.coroutines.withContext
 import org.json.JSONObject
 
 /**
- * An album's page, natively (stage N3 of docs/specs/plan-android-native.md, a
+ * An album's page, natively (stage N3 of old/plan-android-native.md, a
  * preview: Settings → Setup → UI Settings), drawn as the page's sleeve
  * (docs/specs/screens.json, album; style.css, the album view in the hifi
  * palette): the brass corner discs (previous and next beside Share when it

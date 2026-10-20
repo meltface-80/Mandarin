@@ -1,7 +1,7 @@
 "use strict";
 /*
  * playback-csharp.test.js — playback by the C# server (v0.8.49, stage 6 of
- * docs/specs/csharp-migration.md), held to the Node server's own. The same
+ * old/csharp-migration.md), held to the Node server's own. The same
  * requests go to two servers at once: this suite's, behind the C# server,
  * which holds playback (test/setup.js hands it over), and a Node server alone
  * in a child process, with its own hub, as an install before the move ran;

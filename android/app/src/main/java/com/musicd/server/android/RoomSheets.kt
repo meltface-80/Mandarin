@@ -53,7 +53,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /*
- * Play on's two sheets natively (the Rooms group of docs/specs/plan-android-native.md, R1; bug list item 68), drawn as the
+ * Play on's two sheets natively (the Rooms group of old/plan-android-native.md, R1; bug list item 68), drawn as the
  * page's (docs/specs/screens.json, group and device-power; zone-grouping.js, device-power.js, style.css .group-row, .dev-row),
  * and the question the page asks when a room is chosen while the one left is playing (album-grid.js), asked by the app now.
  */

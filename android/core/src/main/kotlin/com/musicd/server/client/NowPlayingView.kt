@@ -2,7 +2,7 @@ package com.musicd.server.client
 
 /**
  * What the native Now playing shows of a room (stage N2 of
- * docs/specs/plan-android-native.md): its track, cover and transport, and
+ * old/plan-android-native.md): its track, cover and transport, and
  * where the track is. The server says where it was when it answered
  * ([Zone]'s seek); between answers, while it plays, the screen moves it on by
  * the clock itself, never past the track's end.

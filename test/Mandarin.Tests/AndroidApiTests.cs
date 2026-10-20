@@ -5,7 +5,7 @@ using System.Text.RegularExpressions;
 namespace Mandarin.Tests;
 
 /// <summary>
-/// The answers the Android app's typed client reads (stage N1 of docs/specs/plan-android-native.md),
+/// The answers the Android app's typed client reads (stage N1 of old/plan-android-native.md),
 /// as this server gives them on the suite's own library: test/golden/android-api.json, each with the
 /// path it was asked by, which the app's own tests answer its client with (android/core, LibraryTest). A change to any of them fails here until the file is
 /// written again, so the app is told: MANDARIN_GOLDEN_WRITE=1 writes it (then this passes), never CI.

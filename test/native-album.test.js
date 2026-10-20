@@ -1,7 +1,7 @@
 "use strict";
 /*
  * The Android app's native album page (stage N3 of
- * docs/specs/plan-android-native.md), as the page hands over to it. The app's
+ * old/plan-android-native.md), as the page hands over to it. The app's
  * bridge (MusicdApp) says whether it draws the page itself (always, since
  * item 47; an app from before says no): then an album tapped asks the app for
  * its own page of that album, in the room chosen; otherwise the page's opens,

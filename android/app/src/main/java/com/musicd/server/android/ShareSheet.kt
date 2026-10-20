@@ -83,7 +83,7 @@ import java.io.ByteArrayOutputStream
 internal object ShareKept { @Volatile var service: String? = null }
 
 /**
- * The Share card, natively (the group B of docs/specs/plan-android-native.md, B4; bug list item 75), as the page's
+ * The Share card, natively (the group B of old/plan-android-native.md, B4; bug list item 75), as the page's
  * (docs/specs/screens.json, share-card; share-card.js, share-card-links.js, share-card-suggestions.js, style.css
  * .share-*): a panel over the screen, centred above the mini player's room ([reserve]), ✕ in its corner; the card
  * drawn (ShareCardPainter.kt) from what the server has to hand, drawn again if the full answer says more; Share and

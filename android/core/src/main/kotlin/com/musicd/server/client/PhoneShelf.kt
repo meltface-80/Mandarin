@@ -5,7 +5,7 @@ import org.json.JSONObject
 import kotlin.random.Random
 
 /*
- * The library offline, as the app answers for the server (bug list item 106, O1 in docs/specs/plan-android-native.md;
+ * The library offline, as the app answers for the server (bug list item 106, O1 in old/plan-android-native.md;
  * what the app's OfflineApi answered the page with): the albums downloaded to this phone, each with the page saved when
  * it was downloaded, and the phone's own music. The rows the phone keeps nothing for (not played lately, history, the
  * album of the day, label of the week, genres, Smart Picks) answer empty, as the server's do with nothing to show.

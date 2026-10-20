@@ -4,7 +4,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 /*
- * The Qobuz and Tidal browsers, typed (the group B of docs/specs/plan-android-native.md, B2; bug list item 73): a
+ * The Qobuz and Tidal browsers, typed (the group B of old/plan-android-native.md, B2; bug list item 73): a
  * service's tabs, a page of albums (new releases, a featured list, a search's, an artist's) with what the status line
  * says of it, and an artist's head; as the page's service-browser*.js read and say them.
  */

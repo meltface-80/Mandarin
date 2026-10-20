@@ -4,7 +4,7 @@ import org.json.JSONObject
 import java.net.URLEncoder
 
 /**
- * The library's calls, typed (stage N1 of docs/specs/plan-android-native.md):
+ * The library's calls, typed (stage N1 of old/plan-android-native.md):
  * what the native screens will ask, each answer as its model (Library.kt).
  * [get] is the server's GET of a path, its answer as JSON; a [ServerClient]'s
  * by default, the recorded answers in the tests (LibraryTest).

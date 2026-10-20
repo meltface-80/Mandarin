@@ -1,5 +1,5 @@
 // Xml.cs — lib/xml.js (v0.8.37) for the playback ports (stage 2 of
-// docs/specs/csharp-migration.md): escaping what is written to a player, and
+// old/csharp-migration.md): escaping what is written to a player, and
 // reading what it writes back.
 //
 // The Node server read XML with fast-xml-parser 5.11.1, namespaces stripped,

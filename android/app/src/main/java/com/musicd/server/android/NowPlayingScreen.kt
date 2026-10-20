@@ -58,7 +58,7 @@ import androidx.compose.ui.platform.LocalContext
 import android.widget.Toast
 
 /**
- * Now playing, native (stage N2 of docs/specs/plan-android-native.md, a
+ * Now playing, native (stage N2 of old/plan-android-native.md, a
  * preview: Settings → Setup → UI Settings, on this phone), drawn as the
  * page's (style.css, `.np-screen` and the hifi palette): the brass corner
  * discs and the tabs, the cover whole in the room the controls leave, the

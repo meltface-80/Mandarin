@@ -1,5 +1,5 @@
 // ZoneState.cs — what the hub keeps of every zone (v0.8.49, stage 6 of
-// docs/specs/csharp-migration.md): the state a Sonos poll, a phone's report
+// old/csharp-migration.md): the state a Sonos poll, a phone's report
 // or a renderer's read produces (lib/sonos/zones.js applyState, the blankState
 // of phones.js and players.js), and the shapes the hub hands the routes (a
 // zone, an output, a queue entry) as zones.js's zones(), outputJson() and

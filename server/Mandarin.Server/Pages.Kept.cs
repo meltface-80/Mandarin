@@ -1,5 +1,5 @@
 // Pages.Kept.cs — the Android app's two files kept once made (v0.9.3, the
-// audit's P2, docs/specs/audit-b4-main.md): its page and its stylesheet were
+// audit's P2, old/audit-b4-main.md): its page and its stylesheet were
 // read from public/, changed (Pages.cs) and hashed for their tag every time the
 // app asked, and it asks each time it opens. Each is now kept with its tag
 // while the files it is made from are as they were (their size and write

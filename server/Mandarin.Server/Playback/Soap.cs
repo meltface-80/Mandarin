@@ -1,7 +1,7 @@
 // Soap.cs — the text of a UPnP action sent to a player, and the reading of its
 // answer: the pure parts of lib/sonos/soap.js (v0.8.37), rule for rule, held
 // to it by test/sonos-csharp.test.js. Sending it (HTTP, the retry on a reused
-// socket) waits for stage 6 of docs/specs/csharp-migration.md.
+// socket) waits for stage 6 of old/csharp-migration.md.
 //
 // An unreachable or unhappy player is an ordinary thing on a home network, so
 // every failure is one UPnPError, its code the player's own (or 501) and its

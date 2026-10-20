@@ -61,7 +61,7 @@ import java.text.DateFormat
 import java.util.Date
 
 /*
- * Settings → Music Folders natively (the group T of docs/specs/plan-android-native.md, T5; bug list item 88), as the page's
+ * Settings → Music Folders natively (the group T of old/plan-android-native.md, T5; bug list item 88), as the page's
  * (docs/specs/screens.json, settings-folders; settings-folders.js, android-downloads.js localFolderBlock; style.css .mf-*,
  * android.css .dl-folder): the server's folders as cards (icon, name, path, tracks or what is wrong), Remove where there are
  * more; Add a folder, which browses the server's folders (the drives and shares it sees, Up, the folders in it, Add); then

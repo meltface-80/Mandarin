@@ -1,5 +1,5 @@
 // ProtocolInfo.cs — what a renderer says it accepts (v0.8.37, stage 2a of
-// docs/specs/csharp-migration.md): lib/renderers/protocolinfo.js's parseSink
+// old/csharp-migration.md): lib/renderers/protocolinfo.js's parseSink
 // and containerOf, rule for rule. Not used by anything that runs yet.
 //
 // ConnectionManager.GetProtocolInfo answers with a Sink list:

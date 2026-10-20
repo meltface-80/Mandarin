@@ -1,7 +1,7 @@
 "use strict";
 /*
  * csharp-alone.test.js — the C# server with no Node server anywhere (v0.8.50,
- * stage 7 part 1 of docs/specs/csharp-migration.md): started by test/server.js
+ * stage 7 part 1 of old/csharp-migration.md): started by test/server.js
  * as the image will start it, it stands on its own — the account and the
  * sign-in, the scan made at the start and the library read from it, the
  * pages, the rooms and devices (none here), a heart (the library's state its

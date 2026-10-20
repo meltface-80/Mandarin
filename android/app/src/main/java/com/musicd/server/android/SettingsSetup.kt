@@ -65,7 +65,7 @@ import kotlinx.coroutines.withContext
 import org.json.JSONObject
 
 /*
- * Setup's small pages of Settings natively (the group T of docs/specs/plan-android-native.md, T2; bug list item 78),
+ * Setup's small pages of Settings natively (the group T of old/plan-android-native.md, T2; bug list item 78),
  * as the page's (docs/specs/screens.json, settings-picks, -labels, -ui, -display and -shelf; style.css .settings-row,
  * .switch, .settings-select, .settings-range): each row a setting's name with its ⓘ and its switch, list or button; a
  * list opens as the WebView's did, the phone's own list of choices. What the server keeps is saved there at once; what

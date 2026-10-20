@@ -5,7 +5,7 @@ import org.json.JSONObject
 
 /*
  * The library as the server lists it, typed (stage N1 of
- * docs/specs/plan-android-native.md), for the native screens to come: the
+ * old/plan-android-native.md), for the native screens to come: the
  * albums, an album's page, the artists, the search, and Home's rows. Each as
  * the C# server answers it: test/golden/android-api.json holds its answers on
  * the suite's own library, AndroidApiTests keeps that file the server's, and

@@ -4,7 +4,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 /*
- * An album's corrections, typed (the group B of docs/specs/plan-android-native.md, B5; bug list item 74): the editor's
+ * An album's corrections, typed (the group B of old/plan-android-native.md, B5; bug list item 74): the editor's
  * view of an album (/api/album/edit), the covers found on the web (/api/album/art-search) and the releases MusicBrainz
  * offers for it (/api/identify/candidates), with what the page says of each, as album-editor.js and
  * album-editor-match.js read and say them.

@@ -1,5 +1,5 @@
 // Schema.cs — the database's tables and migrations (v0.8.48, stage 5 part 8 of
-// docs/specs/csharp-migration.md): made and brought up to date here, as
+// old/csharp-migration.md): made and brought up to date here, as
 // lib/library/db.js open() and the Features constructor (lib/server/
 // features.js) made them, statement for statement, so the file reads the same
 // whichever made it (test/Mandarin.Tests/DbCsharpTests.cs holds the two together).

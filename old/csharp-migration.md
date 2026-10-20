@@ -1201,7 +1201,7 @@ and `/api/image/`).
 
 ## Appendix B: corrections found while surveying
 
-- `docs/specs/roadmap-stages.md` says the image has ffmpeg 6.0. Debian 12's is 5.1 (this is what
+- `old/roadmap-stages.md` says the image has ffmpeg 6.0. Debian 12's is 5.1 (this is what
   broke Measure ReplayGain; fixed in v0.8.24).
 - `server/README.md` says "streams and covers still gated by Node". C# checks the signature or the
   device itself (`Streams.cs`); only what it can't check is passed on.

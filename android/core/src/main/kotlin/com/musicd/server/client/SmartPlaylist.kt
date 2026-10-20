@@ -4,7 +4,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 /*
- * Dynamic Playlists, typed (the Playlists group of docs/specs/plan-android-native.md,
+ * Dynamic Playlists, typed (the Playlists group of old/plan-android-native.md,
  * P3; bug list item 66): each a saved view of the library (its sort and focus),
  * made of albums or of their tracks, in album order or random, read afresh each
  * time it is opened; as the page's smart-playlists.js and smart-playlist.js read them.
