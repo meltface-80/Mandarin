@@ -9,8 +9,9 @@
 /*  its mini player follows; the native mini player opens the page's    */
 /*  Now playing when this phone's native one is off; the native row at   */
 /*  the foot of the screen taps the page's own Menu, Home, Library,      */
-/*  Search or Offline sign. An album's own (its Share card, Add to     */
-/*  playlist, Edit album) are asked by its offset; a label by its name. */
+/*  Search or Offline sign; the app's side menu, its items the page's.  */
+/*  An album's own (its Share card, Add to playlist, Edit album) are    */
+/*  asked by its offset; a label by its name.                           */
 /*  True when done.                                                     */
 /* ------------------------------------------------------------------ */
 window.__musicdNative = function (what, arg) {
@@ -150,6 +151,19 @@ window.__musicdNative = function (what, arg) {
     try { it = JSON.parse(arg); } catch (e) { return false; }
     if (!it || !it.url || typeof window.__openPitchforkReview !== "function") return false;
     window.__openPitchforkReview(it);
+    return true;
+  }
+  // The app's own side menu (item 67): an item it leaves to the page, the page's own item in its menu, tapped (Pitchfork,
+  // Labels, Qobuz, Tidal, Shelf, Settings, Restart, Shut down); "reopen", the page's menu open again on the page the
+  // Offline switch loads (menu-drawer.js, its REOPEN_KEY), so only the switch is seen to move.
+  if (what === "menu") {
+    if (arg === "reopen") {
+      try { localStorage.setItem("rra-menu-reopen", String(Date.now())); } catch (e) { /* storage refused: the menu stays shut */ }
+      return true;
+    }
+    const b = /^(pitchfork|labels|qobuz|tidal|shelf|settings|power-restart|power-shutdown)$/.test(arg || "") ? document.querySelector('[data-parity="menu.' + arg + '"]') : null;
+    if (!b) return false;
+    b.click();
     return true;
   }
   if (what === "zone") {

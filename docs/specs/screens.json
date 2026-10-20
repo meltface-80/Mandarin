@@ -427,6 +427,32 @@
         "load-more": { "kind": "action", "label": "Load more", "when": "made of tracks, more albums to read" }
       }
     },
+    "menu": {
+      "page": "the side menu (#menu-overlay, the row's Menu): the drawer from the left over a dimmed screen, Mandarin's mark and name with the power button (Restart, Shut down), the Offline mode switch in the app, then Pitchfork, Labels, Qobuz, Tidal, Shelf, Listen later, Dynamic Playlists, Playlists, Rescan library with how old the library is, and Settings; a tap beside it closes it",
+      "native": ["android/app/src/main/java/com/musicd/server/android/MenuDrawer.kt"],
+      "preview": false,
+      "items": {
+        "close": { "kind": "action", "label": "Close the menu" },
+        "brand": { "kind": "shows" },
+        "power": { "kind": "action", "label": "Restart or shut down Mandarin" },
+        "power-restart": { "kind": "action", "label": "Restart", "in": "power" },
+        "power-shutdown": { "kind": "action", "label": "Shut down", "in": "power", "when": "the server can shut itself down (not in Docker)" },
+        "power-note": { "kind": "shows", "in": "power", "when": "the server can't shut itself down: how to, in Docker" },
+        "offline": { "kind": "action", "label": "Offline mode", "when": "in the Android app" },
+        "offline-sub": { "kind": "shows", "when": "in the Android app" },
+        "pitchfork": { "kind": "action", "label": "Pitchfork" },
+        "labels": { "kind": "action", "label": "Labels", "when": "Record labels is on in Settings" },
+        "qobuz": { "kind": "action", "label": "Qobuz", "when": "signed in to Qobuz" },
+        "tidal": { "kind": "action", "label": "Tidal", "when": "signed in to Tidal" },
+        "shelf": { "kind": "action", "label": "Shelf", "when": "online" },
+        "later": { "kind": "action", "label": "Listen later" },
+        "smart-playlists": { "kind": "action", "label": "Dynamic Playlists" },
+        "playlists": { "kind": "action", "label": "Playlists" },
+        "rescan": { "kind": "action", "label": "Rescan library" },
+        "rescan-sub": { "kind": "shows", "when": "the server has said how old the library is" },
+        "settings": { "kind": "action", "label": "Settings" }
+      }
+    },
     "album": {
       "page": "an album's page: the album view (#album-modal, not Now playing), opened from a row of albums, a phone held upright",
       "native": ["android/app/src/main/java/com/musicd/server/android/AlbumScreen.kt", "android/app/src/main/java/com/musicd/server/android/AlbumTracks.kt", "android/app/src/main/java/com/musicd/server/android/AlbumAbout.kt", "android/app/src/main/java/com/musicd/server/android/AlbumHead.kt", "android/app/src/main/java/com/musicd/server/android/AlbumSelect.kt", "android/app/src/main/java/com/musicd/server/android/AlbumWorks.kt"],

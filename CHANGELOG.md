@@ -1,6 +1,14 @@
 # Changelog
 
 ## Unreleased
+- `67-native-menu`: the side menu natively in the Android app (plan R2), opened by the row's Menu on every native screen:
+  the drawer from the left over the screen dimmed, sliding in as the page's, Mandarin's mark and name with the red power
+  button (Restart, and Shut down where the server can, else how to in Docker), the Offline switch with its line, then
+  Pitchfork, Labels, Qobuz, Tidal and Shelf as the server says, Listen later, Dynamic Playlists, Playlists, Rescan library
+  with how old the library is (the rescan's toasts, a scan still going waited for and its end said) and Settings, at the
+  UI Settings' menu size. Playlists, Dynamic Playlists and Listen later open natively over Home; the rest are the page's
+  own items, tapped. The Offline switch holds the screen while the page loads again, the page's menu open on it as before.
+  A tap beside the drawer closes it, Back too. A contract screen (`menu`), the page keyed and measured.
 - `66-native-dynamic-playlists`: the Dynamic Playlists natively in the Android app (plan P3), opened wherever the page
   opened its own (the side menu, Home's tiles, a playlist saved from its Focus). The screen: the heading with the bar's
   Back, New Dynamic Playlist as the first tile (the dashed brass sleeve with ＋), then each saved one with its covers'

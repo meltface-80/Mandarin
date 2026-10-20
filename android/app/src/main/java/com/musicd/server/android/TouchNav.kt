@@ -36,7 +36,8 @@ import com.musicd.server.client.Contract
  * Library and Search, the one the page is on ([lit]: "home", "library", "search")
  * in brass, and the Offline sign between Home and Library when the app is
  * offline. Each tap is the page's own button's ([onTap], by name), so there
- * is one way to do each thing.
+ * is one way to do each thing; but Menu, which opens the app's own side menu
+ * over the screen (item 67), or offline, where the page's is the one.
  */
 @Composable
 internal fun TouchNav(lit: String, offline: Boolean, onTap: (String) -> Unit, modifier: Modifier = Modifier) {
@@ -44,7 +45,7 @@ internal fun TouchNav(lit: String, offline: Boolean, onTap: (String) -> Unit, mo
         HorizontalDivider(color = MaterialTheme.colorScheme.outline)
         Box(Modifier.fillMaxWidth().height(58.dp)) {
             Row(Modifier.fillMaxSize().padding(horizontal = 10.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                NavButton(R.drawable.tn_menu, Contract.label("nav.menu"), false, Modifier.parity("nav.menu", Contract.label("nav.menu")).clickable { onTap("menu") })
+                NavButton(R.drawable.tn_menu, Contract.label("nav.menu"), false, Modifier.parity("nav.menu", Contract.label("nav.menu")).clickable { if (offline) onTap("menu") else NativeShell.menuOpen.value = true })
                 NavButton(R.drawable.tn_home, Contract.label("nav.home"), lit == "home", Modifier.parity("nav.home", Contract.label("nav.home")).clickable { onTap("home") })
                 NavButton(R.drawable.tn_library, Contract.label("nav.library"), lit == "library", Modifier.parity("nav.library", Contract.label("nav.library")).clickable { onTap("library") })
                 NavButton(R.drawable.tn_search, Contract.label("nav.search"), lit == "search", Modifier.parity("nav.search", Contract.label("nav.search")).clickable { onTap("search") })

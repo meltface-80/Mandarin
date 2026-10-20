@@ -10,7 +10,9 @@ import org.json.JSONObject
  */
 data class WallPrefs(val layout: String = "auto", val tile: Double = 1.0, val text: Double = 1.0, val title: Double = 1.0,
                      /** Home's greeting and its Random Album tile, each shown or not (Settings → Home Screen; item 57). */
-                     val greeting: Boolean = true, val random: Boolean = true) {
+                     val greeting: Boolean = true, val random: Boolean = true,
+                     /** The side menu's size (UI Settings' Menu size; item 67): its insides zoomed by it, its width not. */
+                     val menu: Double = 1.0) {
     /** The albums as rows (UI Settings' List), not tiles. */
     val list: Boolean get() = layout == "list"
 
@@ -37,7 +39,7 @@ data class WallPrefs(val layout: String = "auto", val tile: Double = 1.0, val te
             return WallPrefs(
                 layout = j.optString("layout", "auto").takeIf { it in LAYOUTS } ?: "auto",
                 tile = num("tile", TILES), text = num("text", TEXTS), title = num("title", TEXTS),
-                greeting = j.optString("greeting", "on") != "off", random = j.optString("random", "on") != "off"
+                greeting = j.optString("greeting", "on") != "off", random = j.optString("random", "on") != "off", menu = num("menu", TEXTS)
             )
         }
     }
