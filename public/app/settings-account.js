@@ -29,13 +29,13 @@
       listEl.innerHTML = "";
       for (const d of j.devices || []) {
         const row = document.createElement("div");
-        row.className = "settings-row acct-device";
+        row.className = "settings-row acct-device"; row.setAttribute("data-parity", "settings-account.device");
         const kind = d.kind === "android" ? "Android app" : "Browser";
         row.innerHTML = `<span class="settings-label"><span class="acct-name">${esc(d.name)}</span>` +
           `<span class="acct-sub">${esc(kind)} · ${d.current ? "this device" : esc(ago(d.last_seen))}</span></span>`;
         if (!d.current) {
           const b = document.createElement("button");
-          b.type = "button"; b.className = "settings-update-btn"; b.textContent = "Sign out";
+          b.type = "button"; b.className = "settings-update-btn"; b.textContent = "Sign out"; b.setAttribute("data-parity", "settings-account.revoke");
           b.addEventListener("click", async () => {
             b.disabled = true;
             try { await post("/api/auth/devices/revoke", { id: d.id }); row.remove(); toast(d.name + " signed out"); }

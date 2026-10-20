@@ -13,7 +13,7 @@ import com.musicd.server.client.WallPrefs
 /*
  * The native screens' routes past NativeShell.kt's own (it draws nothing; nor does
  * this): the search (item 61), your playlists and one of them (item 65), the Dynamic
- * Playlists and one of them (item 66), each over
+ * Playlists and one of them (item 66), Settings (item 76), each over
  * the page or over the screen that opened it, Back returning there.
  */
 internal fun NavGraphBuilder.moreRoutes(nav: NavHostController, client: () -> ServerClient?, prefs: String?) {
@@ -54,6 +54,14 @@ internal fun NavGraphBuilder.moreRoutes(nav: NavHostController, client: () -> Se
             WallPrefs.parse(prefs), client, onClose = { nav.popBackStack() }, onAlbum = { offset -> nav.navigate(ShellRoute.album(offset, zone, "")) })
     }
     // The record labels (item 71); a label's albums a wall over them.
+    // Settings (item 76): its list, Setup's, Account and API Keys; a page it doesn't draw yet, the page's own over it.
+    composable(ShellRoute.SETTINGS, arguments = listOf(navArgument(ShellRoute.PANE) { type = NavType.StringType; defaultValue = "home" })) { entry ->
+        SettingsScreen(entry.arguments?.getString(ShellRoute.PANE).orEmpty(), client,
+            onBack = { nav.popBackStack() },
+            onOpen = { pane -> nav.navigate(ShellRoute.settings(pane)) },
+            onPage = { pane -> NativeShell.overPage("settings-pane", pane) }
+        )
+    }
     composable(ShellRoute.LABELS, arguments = listOf(navArgument(ShellRoute.ZONE) { type = NavType.StringType; defaultValue = "" })) { entry ->
         val zone = entry.arguments?.getString(ShellRoute.ZONE).orEmpty()
         LabelsScreen(WallPrefs.parse(prefs), zone, client,

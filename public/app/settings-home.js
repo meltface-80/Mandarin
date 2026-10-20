@@ -273,8 +273,16 @@ async function loadHomeRowsSettings() {
   renderHomeRowsList();
 }
 
-const openSettings = () => { showView("home"); loadRadio(); loadVersion(); loadDiscogsToken(); loadFanartKey(); loadLastfmKey(); loadDisplaySettings(); loadLabelFolderDepth(); loadQobuzStatus(); loadTidalStatus(); loadSmartPicksSettings(); loadLabelsEnabled(); loadWaveformEnabled(); loadHomeRowsSettings(); settingsOverlay.classList.remove("hidden"); };
+const openSettings = () => { settingsAppPane = null; showView("home"); loadRadio(); loadVersion(); loadDiscogsToken(); loadFanartKey(); loadLastfmKey(); loadDisplaySettings(); loadLabelFolderDepth(); loadQobuzStatus(); loadTidalStatus(); loadSmartPicksSettings(); loadLabelsEnabled(); loadWaveformEnabled(); loadHomeRowsSettings(); settingsOverlay.classList.remove("hidden"); };
 const closeSettings = () => { settingsOverlay.classList.add("hidden"); };
+// One page of Settings for the Android app's own Settings (item 76), opened by its row as the list opens it (each loads
+// what it shows when its row is tapped), its Back closing Settings again.
+window.__openSettingsPane = (name) => {
+  const row = sheet && sheet.querySelector('.settings-nav-item[data-pane="' + name + '"]');
+  if (!row) return false;
+  openSettings(); row.click(); settingsAppPane = name;
+  return true;
+};
 
 openBtn.addEventListener("click", openSettings);
 settingsOverlay.addEventListener("click", (e) => {
@@ -287,7 +295,7 @@ settingsOverlay.addEventListener("click", (e) => {
   if (head) {
     const x = document.createElement("button");
     x.type = "button";
-    x.className = "settings-app-close";
+    x.className = "settings-app-close"; x.setAttribute("data-parity", "settings.close");
     x.setAttribute("aria-label", "Close settings");
     x.innerHTML = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>';
     x.addEventListener("click", closeSettings);

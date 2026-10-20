@@ -114,6 +114,25 @@ const OPEN_SHARE_CARD = `(async () => {
   return "open";
 })()`;
 
+/* Settings, as the side menu's Settings opens it; a section's page by its row ([path]: the rows tapped, in turn). */
+const OPEN_SETTINGS = (path, ready) => `(async () => {
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const until = async (fn, ms = 30000) => { const t0 = Date.now(); while (!fn()) { if (Date.now() - t0 > ms) return false; await sleep(50); } return true; };
+  const shown = e => !!e && e.getClientRects().length > 0;
+  if (!(await until(() => document.querySelectorAll("#home-library .album").length > 0))) return "no home";
+  document.getElementById("settings-toggle").click();
+  if (!(await until(() => shown(document.querySelector('#settings-overlay .settings-view[data-view="home"]'))))) return "no settings";
+  for (const pane of ${JSON.stringify(path)}) {
+    const row = [...document.querySelectorAll('#settings-overlay .settings-nav-item[data-pane="' + pane + '"]')].find(shown);
+    if (!row) return "no " + pane;
+    row.click();
+    if (!(await until(() => shown(document.querySelector('#settings-overlay .settings-view[data-pane="' + pane + '"]'))))) return "no " + pane + " page";
+  }
+  if (!(await until(() => ${ready || "true"}))) return "not ready";
+  await sleep(800);
+  return "open";
+})()`;
+
 /* The mini player: an album played to the Kitchen, the bar showing its first track. */
 const OPEN_MINI_PLAYER = `(async () => {
   const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -473,6 +492,10 @@ const SCREENS = {
   "album": { open: OPEN_ALBUM, root: "#album-modal .modal-panel" },
   "album-edit": { open: OPEN_ALBUM_EDIT, root: "#album-edit-overlay .album-edit-sheet" },
   "share-card": { open: OPEN_SHARE_CARD, root: "#share-overlay .share-panel" },
+  "settings": { open: OPEN_SETTINGS([], `/Mandarin v/.test(document.getElementById("settings-version").textContent)`), root: '#settings-overlay .settings-view[data-view="home"]' },
+  "settings-setup": { open: OPEN_SETTINGS(["setup"]), root: '#settings-overlay .settings-view[data-pane="setup"]' },
+  "settings-account": { open: OPEN_SETTINGS(["account"], `document.querySelectorAll("#acct-devices .acct-device").length > 0`), root: '#settings-overlay .settings-view[data-pane="account"]' },
+  "settings-keys": { open: OPEN_SETTINGS(["setup", "metadata"], `!!document.getElementById("lastfm-key-status").textContent`), root: '#settings-overlay .settings-view[data-pane="metadata"]' },
   "library": { open: OPEN_LIBRARY, root: "body", shared: ["mini-player", "nav"] },
   "wall": { open: OPEN_WALL, root: "body", shared: ["mini-player", "nav"] },
   "artist": { open: OPEN_ARTIST, root: "body", shared: ["mini-player", "nav"] },

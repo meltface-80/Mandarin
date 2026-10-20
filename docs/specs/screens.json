@@ -661,6 +661,65 @@
         "err": { "kind": "shows", "when": "the card failed, or saving or sharing it did" }
       }
     },
+    "settings": {
+      "page": "Settings (the side menu's Settings): over the whole screen, ✕ and Settings at the head, a row a section (its icon and name: Account, Music Folders, Services, Audio Devices, Library Scanner, Setup, Backup & restore, Updates), the server's version and View on GitHub at the foot",
+      "native": ["android/app/src/main/java/com/musicd/server/android/SettingsScreen.kt"],
+      "preview": false,
+      "items": {
+        "close": { "kind": "action", "label": "Close settings" },
+        "heading": { "kind": "shows" },
+        "item": { "kind": "action", "label": "{section}", "each": true },
+        "version": { "kind": "shows" },
+        "repo": { "kind": "action", "label": "View on GitHub" }
+      }
+    },
+    "settings-setup": {
+      "page": "Settings' Setup: Back, Setup and what it holds, a row a page (Smart Picks, Record labels, Home Screen, UI Settings, Wall Display, Shelf, Share Card, the app's Downloads, Away from home, API Keys)",
+      "native": ["android/app/src/main/java/com/musicd/server/android/SettingsScreen.kt"],
+      "preview": false,
+      "items": {
+        "back": { "kind": "action", "label": "Back to settings" },
+        "heading": { "kind": "shows" },
+        "desc": { "kind": "shows" },
+        "item": { "kind": "action", "label": "{page}", "each": true }
+      }
+    },
+    "settings-account": {
+      "page": "Settings' Account: Back, Account and who is signed in; the devices signed in, each but this one with its Sign out; Sign out of this device; the current password and the new one twice, Change password and what came of it; the notes",
+      "native": ["android/app/src/main/java/com/musicd/server/android/SettingsPanes.kt"],
+      "preview": false,
+      "items": {
+        "back": { "kind": "action", "label": "Back to settings" },
+        "heading": { "kind": "shows" },
+        "who": { "kind": "shows" },
+        "title": { "kind": "shows", "each": true },
+        "device": { "kind": "shows", "each": true, "when": "the devices read" },
+        "revoke": { "kind": "action", "label": "Sign out", "each": true, "when": "another device signed in" },
+        "note": { "kind": "shows", "each": true },
+        "signout": { "kind": "action", "label": "Sign out of this device" },
+        "current": { "kind": "action", "label": "Current password" },
+        "new": { "kind": "action", "label": "New password (8 or more characters)" },
+        "again": { "kind": "action", "label": "New password again" },
+        "change": { "kind": "action", "label": "Change password" },
+        "status": { "kind": "shows", "when": "a change tried" }
+      }
+    },
+    "settings-keys": {
+      "page": "Settings' API Keys (in Setup): Back, API Keys and what they are for; Discogs, FanArt.tv and Last.fm, each with its ⓘ, the box to paste the key into (its ✓ or ✕ once checked), Save, and what the server says of the key",
+      "native": ["android/app/src/main/java/com/musicd/server/android/SettingsPanes.kt"],
+      "preview": false,
+      "items": {
+        "back": { "kind": "action", "label": "Back to settings" },
+        "heading": { "kind": "shows" },
+        "desc": { "kind": "shows" },
+        "name": { "kind": "shows", "each": true },
+        "info": { "kind": "action", "label": "About {key}", "each": true },
+        "field": { "kind": "action", "label": "{key}", "each": true },
+        "check": { "kind": "shows", "each": true, "when": "the key checked by its service" },
+        "save": { "kind": "action", "label": "Save", "each": true },
+        "status": { "kind": "shows", "each": true }
+      }
+    },
     "album": {
       "page": "an album's page: the album view (#album-modal, not Now playing), opened from a row of albums, a phone held upright",
       "native": ["android/app/src/main/java/com/musicd/server/android/AlbumScreen.kt", "android/app/src/main/java/com/musicd/server/android/AlbumTracks.kt", "android/app/src/main/java/com/musicd/server/android/AlbumAbout.kt", "android/app/src/main/java/com/musicd/server/android/AlbumHead.kt", "android/app/src/main/java/com/musicd/server/android/AlbumSelect.kt", "android/app/src/main/java/com/musicd/server/android/AlbumWorks.kt"],
