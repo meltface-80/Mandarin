@@ -19,6 +19,15 @@ class ShellTest {
         assertEquals(ShellRoute.web("/"), ShellRoute.web(""))
     }
 
+    @Test fun `one screen gives way to the next at once, with no fade between them`() {
+        // Navigation's default cross-fade (700 ms) showed the screen left as a ghost over the one coming (bug list item 72).
+        val src = File("../app/src/main/java/com/musicd/server/android/NativeShell.kt").readText()
+        val host = src.substring(src.indexOf("NavHost(")).substringBefore(") {")
+        for (t in listOf("enterTransition = { androidx.compose.animation.EnterTransition.None }", "exitTransition = { androidx.compose.animation.ExitTransition.None }",
+            "popEnterTransition = { androidx.compose.animation.EnterTransition.None }", "popExitTransition = { androidx.compose.animation.ExitTransition.None }"))
+            assertTrue(t, host.contains(t))
+    }
+
     @Test fun `the page's route is the WebView's, any other the shell's`() {
         assertTrue(ShellRoute.isWeb(ShellRoute.WEB))
         assertTrue(ShellRoute.isWeb(ShellRoute.web("/album/1")))

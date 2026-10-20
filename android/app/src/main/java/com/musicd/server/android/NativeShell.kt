@@ -256,7 +256,7 @@ private fun Shell(client: () -> ServerClient?, startHome: Boolean, onShown: (Boo
         kotlinx.coroutines.delay(8_000)
         if (!NativeShell.wasTold()) NativeShell.toWeb()
     }
-    NavHost(navController = nav, startDestination = ShellRoute.WEB) {
+    NavHost(navController = nav, startDestination = ShellRoute.WEB, enterTransition = { androidx.compose.animation.EnterTransition.None }, exitTransition = { androidx.compose.animation.ExitTransition.None }, popEnterTransition = { androidx.compose.animation.EnterTransition.None }, popExitTransition = { androidx.compose.animation.ExitTransition.None }) {   // no fade between screens (item 72): Navigation's own left the screen before as a ghost for 700 ms
         // The page at a path: drawn by the WebView under the shell, so nothing here.
         composable(ShellRoute.WEB, arguments = listOf(navArgument(ShellRoute.PATH) { type = NavType.StringType; defaultValue = "/" })) { }
         // Home (N5, item 57): over the page's own Home, which stays underneath for its Back and its own screens; its rows' walls,

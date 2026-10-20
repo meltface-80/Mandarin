@@ -1,6 +1,9 @@
 # Changelog
 
 ## Unreleased
+- `72-snappy-screen-changes`: one native screen now gives way to the next at once in the Android app. Navigation's own
+  cross-fade (0.7 s) ran between every two screens, so the screen being left showed as a ghost over the one coming (Home
+  over Now playing, tapping the mini player); there is no fade now, in either direction, as on the page.
 - `71-native-labels`: the record labels natively in the Android app (plan B1), from the side menu, Home's Label of the
   week, an album's label and the search's label chips. The list as the page's: the heading and Back, the order (# to Z,
   Z to #) at the top right, the row's Search finding a label, every label as a tile (its logo, or its name in words) with
