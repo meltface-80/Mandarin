@@ -218,6 +218,18 @@ object Store {
         if (prefs(context).getString("phone_zone", null) != zoneId) prefs(context).edit().putString("phone_zone", zoneId).apply()
     }
 
+    /**
+     * The native screens' client (item 109): the server's ([client]) online; offline, the phone's own answers to the same
+     * requests (OfflineApi's, through a LocalTransport), so every screen asks the same way whether the server is there or not.
+     * The services keep [client]: what they ask is the server's alone.
+     */
+    fun screenClient(context: Context): ServerClient? {
+        if (!OfflineNow.on) return client(context)
+        val c = context.applicationContext
+        return ServerClient(server(c) ?: ServerAddress("phone", 0), token = token(c),
+            transport = com.musicd.server.client.LocalTransport { m, p, q, b -> OfflineApi.answers(c).answer(m, p, q, b) })
+    }
+
     /** A client for the server, signed in — null until both are known. */
     fun client(context: Context): ServerClient? {
         val address = active(context) ?: return null

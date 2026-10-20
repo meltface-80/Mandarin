@@ -118,7 +118,7 @@ internal fun ArtistScreen(name: String, prefs: WallPrefs, zoneId: String, client
         Column(Modifier.align(Alignment.BottomCenter)) {
             MiniPlayer(zone, room, client, onOpen = { onNowPlaying(zone) }, onRoom = { id -> zone = id; onRoom(id) }, onPage = onPage)
             if (selecting && picks.isEmpty()) SelectBar(onCancel = { selecting = false })
-            else TouchNav("", offline = Store.offlineMode(context), onTap = onNav)
+            else TouchNav("", offline = OfflineNow.on, onTap = onNav)
         }
     }
 }

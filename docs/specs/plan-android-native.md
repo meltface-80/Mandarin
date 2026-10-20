@@ -165,7 +165,7 @@ Sizes are the page's lines for that surface, a proxy for the native work.
 
 | Item | What |
 |---|---|
-| O1 | **Begun (item 105)**: the Offline dialog natively (`OfflineDialog.kt`, core `Offline.kt`). Offline natively: the native screens read `DownloadStore` and `LocalMusic` themselves when the server is away; `OfflineApi` and `OfflineSite` (the page's copy in the APK) go; `DownloadsActivity` (a View screen, not Compose) is replaced by the native Downloads pane and Home's rows |
+| O1 | **Built but its clean-up (items 105–109)**: the Offline dialog (`OfflineDialog.kt`, core `Offline.kt`); the phone's answers in core (`Transport.kt`, `PhoneShelf.kt`, `PhoneRoom.kt`, `PhoneAnswers.kt`); the phone's own album page; the native screens offline (`OfflineNow.kt`, `Store.screenClient`). Left: `OfflineSite`, `bundleSite` and `DownloadsActivity` deleted, the last with its Try again / Remove and Try the server again moved to Settings → Downloads. Offline natively: the native screens read `DownloadStore` and `LocalMusic` themselves when the server is away; `OfflineApi` and `OfflineSite` (the page's copy in the APK) go; `DownloadsActivity` (a View screen, not Compose) is replaced by the native Downloads pane and Home's rows |
 | O2 | The WebView's end: with every surface native, `MainActivity`'s page frame goes (`PageFrame`, `PageGuard`, `PageCurtain`, `PageRelay`, the JavaScript bridges, `native-handoff.js`), the preview switches go, and the app opens on native Home. The page stays on the server for browsers and the iPhone |
 
 ### Not the app's

@@ -1,6 +1,14 @@
 # Changelog
 
 ## Unreleased
+- `109-offline-native`: offline, the Android app stays native (O1's switch-over, docs/specs/plan-android-native.md).
+  With Offline mode on or the server out of reach, MainActivity no longer loads the page's copy kept in the APK: it
+  parks the page (stopped, blank) and the native screens stay in front (`OfflineNow`), asking the phone the same
+  questions they ask the server (`Store.screenClient`: core `PhoneAnswers` through a `LocalTransport`; the services keep
+  the server's client). The row along the foot is the app's own offline too (Home, the Library wall, the side menu, the
+  search, the Offline sign's dialog saying why); the page's sheets, which need the server, aren't offered. The menu's
+  Offline Mode switch no longer reloads the page under a picture of the screen. Home's rows are read afresh on each
+  switch (`HomeKept.reset`).
 - `108-phone-album-native`: one of the phone's own albums (Home's Music on device, its wall) opens the app's own album
   page (`ShellRoute.PHONE_ALBUM`), read from the phone (core `PhoneShelf.phoneView`) and played on it as the page's
   `invokePhone` plays one, with its toasts (picked tracks too, as the page's playTracks); About this album comes from

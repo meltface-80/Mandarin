@@ -27,6 +27,7 @@ import android.widget.TextView
 import androidx.webkit.ProxyConfig
 import androidx.webkit.ProxyController
 import androidx.webkit.WebViewFeature
+import com.musicd.server.client.OfflineKind
 import com.musicd.server.client.PageWatch
 
 /**
@@ -466,13 +467,19 @@ class MainActivity : androidx.activity.ComponentActivity() {
         }
     }
 
-    /** The server can't be reached: the app answers the page from what's on the phone. */
+    /**
+     * The server can't be reached, or Offline mode is on: the native screens answered by the phone (item 109), the page
+     * stopped and blank under them, never asked; the server looked for now and then.
+     */
     private fun goOffline() {
         offline = true
         loadFailed = false
+        ++loadSeq                                 // a reachability check still running is moot
+        pageLoaded = false
         errorPanel.visibility = View.GONE
-        web.visibility = View.VISIBLE
-        web.loadUrl("${loadedBase ?: return}/")
+        web.stopLoading()
+        web.loadUrl("about:blank")
+        OfflineNow.goOffline(if (Store.offlineMode(this)) OfflineKind.MODE else OfflineKind.APP, Store.phoneZone(this))
         web.removeCallbacks(serverWatch)
         web.postDelayed(serverWatch, 10_000)
     }
@@ -565,6 +572,7 @@ class MainActivity : androidx.activity.ComponentActivity() {
         loadedBase = base
         loadFailed = false
         offline = false
+        OfflineNow.goOnline(Store.zone(this).orEmpty())
         web.removeCallbacks(serverWatch)
         // The page signs in with the same token the rest of the app uses.
         runCatching {
@@ -601,18 +609,10 @@ class MainActivity : androidx.activity.ComponentActivity() {
         load()
     }
 
-    /** The app's own copy of the page, answered by the app (see [Client.shouldInterceptRequest]); the server is looked for now and then. */
+    /** Offline from the start (Offline mode, or no network): the native screens on the phone's music ([goOffline]). */
     private fun loadOffline(base: String) {
         loadedBase = base
-        loadFailed = false
-        offline = true
-        ++loadSeq                                 // a reachability check still running is moot
-        errorPanel.visibility = View.GONE
-        web.visibility = View.VISIBLE
-        pageLoaded = false
-        web.loadUrl("$base/")
-        web.removeCallbacks(serverWatch)
-        web.postDelayed(serverWatch, 10_000)
+        goOffline()
     }
 
     /**
