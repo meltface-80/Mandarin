@@ -1,6 +1,12 @@
 # Changelog
 
 ## Unreleased
+- `103-scanner-pack-null`: Settings → Library Scanner's MusicBrainz pack read "null" after the folder's free space in
+  the Android app. Android's JSON reader gives the word "null" for a field the server sends empty (the JVM's gives
+  nothing, so the core tests never saw it); the pack's folder problem, the check's error and the job's error showed it
+  whenever there was none. The scanner's every text read from the server now takes an empty field as nothing, held by
+  tests that read the JSON as Android does. Choosing the pack's folder no longer shows the toast "The pack’s folder is
+  set", in the app or on the page.
 - `99-library-wall-away`: away from home (mobile data, a VPN) the Android app's Library stayed on its grey skeletons for
   good. The Library's wall, kept while the app runs, set its "a page is on its way" when it asked for its first page and
   cleared it only once the page came: the Library left or drawn again before then, the request was called off and the

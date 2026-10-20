@@ -31,14 +31,14 @@ object Scanner {
 
     /** "Artist — Title", or the title alone. */
     fun names(artist: String?, title: String?): String = (if (!artist.isNullOrEmpty()) "$artist — " else "") + title.orEmpty()
-    private fun names(o: JSONObject?) = if (o == null) "…" else names(o.optString("artist"), o.optString("title"))
-    private fun albumNames(c: JSONObject?) = if (c == null) "…" else names(c.optString("subtitle"), c.optString("title"))
+    private fun names(o: JSONObject?) = if (o == null) "…" else names(o.text("artist"), o.text("title"))
+    private fun albumNames(c: JSONObject?) = if (c == null) "…" else names(c.text("subtitle"), c.text("title"))
     private fun plural(n: Int, one: String, many: String = one + "s") = if (n == 1) one else many
 
     /** The line under identification's progress: what it is doing, or why it isn't. */
     fun scanStatus(st: JSONObject): String {
-        val start = st.optJSONObject("settings")?.optString("start").orEmpty()
-        return when (st.optString("reason")) {
+        val start = st.optJSONObject("settings")?.text("start").orEmpty()
+        return when (st.text("reason")) {
             "off" -> "Off."
             "waiting" -> "Waits for $start (the server's clock)."
             "scanning" -> "Paused while the library is being scanned."
@@ -52,8 +52,8 @@ object Scanner {
 
     /** Measure ReplayGain's own line, while it is on: why it is or isn't measuring. */
     fun loudStatus(st: JSONObject?, loud: JSONObject?): String {
-        val start = st?.optJSONObject("settings")?.optString("start") ?: "the start time"
-        return when (loud?.optString("reason")) {
+        val start = st?.optJSONObject("settings")?.text("start") ?: "the start time"
+        return when (loud?.text("reason")) {
             "waiting" -> "Waits for $start (the server's clock)."
             "scanning" -> "Paused while the library is being scanned."
             "identifying" -> "Waits for identification to look at the next albums."
@@ -66,16 +66,16 @@ object Scanner {
     /** The schedule's "now": what is running, or why nothing is. */
     fun nowLine(st: JSONObject, loud: JSONObject?): String {
         val parts = mutableListOf<String>()
-        when (st.optString("reason")) {
+        when (st.text("reason")) {
             "checking" -> parts += "Identifying " + names(st.optJSONObject("current"))
             "starting" -> parts += "Identifying the next album"
             "pack" -> parts += "Matching from the MusicBrainz pack"
         }
-        val lr = loud?.optString("reason")
+        val lr = loud?.text("reason")
         if (lr == "measuring") parts += "Measuring " + albumNames(loud.optJSONObject("current"))
         if (parts.isNotEmpty()) return "Now: " + parts.joinToString(" · ")
-        val r = st.optString("reason")
-        if (r == "waiting" || lr == "waiting") return "Now: waiting for " + st.optJSONObject("settings")?.optString("start").orEmpty() + "."
+        val r = st.text("reason")
+        if (r == "waiting" || lr == "waiting") return "Now: waiting for " + st.optJSONObject("settings")?.text("start").orEmpty() + "."
         if (r == "scanning" || lr == "scanning") return "Now: waiting while the library is scanned."
         if (r == "unreachable") return "Now: MusicBrainz isn't answering; trying again in a few minutes."
         return "Now: nothing to do."
@@ -138,8 +138,8 @@ object Scanner {
     /** The MusicBrainz pack, said ([day]: an ISO date as the phone writes it); [busy]: something under way here. */
     fun pack(pack: JSONObject, busy: Boolean, day: (String) -> String, locale: Locale = Locale.getDefault()): PackView {
         val have = pack.optJSONObject("installed"); val job = pack.optJSONObject("job"); val latest = pack.optJSONObject("latest")
-        val jobError = job?.optString("error").orEmpty().ifEmpty { null }
-        val phase = job?.optString("phase").orEmpty()
+        val jobError = job?.text("error").orEmpty().ifEmpty { null }
+        val phase = job?.text("phase").orEmpty()
         val running = job != null && jobError == null && phase != "done"
         val state: String; var warn: String? = null; val buttons = mutableListOf<ScanButton>(); var enabled = !busy
         if (running && phase == "moving") state = "Moving the pack… between drives this takes a minute or two."
@@ -147,7 +147,7 @@ object Scanner {
             val total = job!!.optDouble("total", 0.0); val done = job.optDouble("done", 0.0)
             state = if (phase == "checking") "Asking GitHub…" else "Downloading… " + (if (total > 0) Math.floor(done / total * 100).toInt() else 0) + " % (" + mbs(done, locale) + " of " + mbs(total, locale) + ")"
         } else if (have != null) {
-            state = num(have.optLong("releases"), locale) + " releases · from " + day(have.optString("built")) + " · " + mbs(have.optDouble("size", 0.0), locale) + (if (pack.optBoolean("newer")) " · a newer one is out" else "")
+            state = num(have.optLong("releases"), locale) + " releases · from " + day(have.text("built")) + " · " + mbs(have.optDouble("size", 0.0), locale) + (if (pack.optBoolean("newer")) " · a newer one is out" else "")
             if (pack.optBoolean("newer")) buttons += ScanButton("Update", "download", true)
             buttons += ScanButton("Remove", "remove")
         } else {
@@ -156,7 +156,7 @@ object Scanner {
                 if (free != null && free < latest.optDouble("size", 0.0) + 200 * 1048576.0) warn = "Not enough room in this folder: choose another below."
                 "Not downloaded. A " + mbs(latest.optDouble("gz_size", 0.0), locale) + " download that unpacks to " + mbs(latest.optDouble("size", 0.0), locale) + " in the folder below."
             } else if (pack.optBoolean("checking")) "Not downloaded. Asking GitHub what’s published…"
-            else "Not downloaded." + pack.optString("check_error").let { if (it.isNotEmpty()) " ($it)" else "" }
+            else "Not downloaded." + pack.text("check_error").let { if (it.isNotEmpty()) " ($it)" else "" }
             buttons += ScanButton("Download", "download", true)
             if (latest == null) enabled = false
         }
@@ -165,9 +165,9 @@ object Scanner {
 
     /** Where the pack is kept, said, and what is wrong with the place (red); [jobError] already said above it. */
     fun packFolder(pack: JSONObject, locale: Locale = Locale.getDefault()): Pair<String, String?> {
-        val dir = pack.optString("dir"); val data = pack.optString("data_dir")
+        val dir = pack.text("dir"); val data = pack.text("data_dir")
         val free = if (pack.isNull("free") || !pack.has("free")) "" else " · " + mbs(pack.optDouble("free"), locale) + " free"
-        val problem = pack.optString("dir_problem").ifEmpty { null }?.takeIf { it != pack.optJSONObject("job")?.optString("error") }
+        val problem = pack.text("dir_problem").ifEmpty { null }?.takeIf { it != pack.optJSONObject("job")?.text("error") }
         return (dir + (if (dir == data) " (the data folder)" else "") + free) to problem
     }
 
@@ -196,7 +196,7 @@ object Scanner {
     fun version(c: JSONObject?): String {
         if (c == null) return ""
         val bits = mutableListOf<String>()
-        c.optString("edition").takeIf { it.isNotEmpty() }?.let { bits += it }
+        c.text("edition").takeIf { it.isNotEmpty() }?.let { bits += it }
         val ry = c.optInt("release_year"); val y = c.optInt("year")
         if (ry > 0 && y > 0 && ry != y) bits += "released $ry"
         val p = c.optJSONObject("parts") ?: JSONObject()
@@ -210,7 +210,7 @@ object Scanner {
     /** An album's second line on its list ([kind]), as the page's albumRow writes it; [itunes]: iTunes is asked too. */
     fun line2(it: JSONObject, kind: String, itunes: Boolean): String {
         val c = it.optJSONObject("candidate")
-        val from = if (c?.optString("source") == "itunes") " · from iTunes" else ""
+        val from = if (c?.text("source") == "itunes") " · from iTunes" else ""
         val why = it.optJSONArray("why")?.let { w -> if (w.length() > 0) " — " + (0 until w.length()).joinToString(", ") { w.optString(it) } else "" }.orEmpty()
         val sim = it.optInt("similarity")
         var line = when (kind) {
@@ -221,8 +221,8 @@ object Scanner {
             else -> if (c != null) "declined: " + names(c) else ""
         }
         if (kind == "applied" && c != null) {
-            val manual = c.optString("manual")
-            val by = c.optString("matched_by")
+            val manual = c.text("manual")
+            val by = c.text("matched_by")
             if (manual.isNotEmpty()) line += " · matched by " + when (manual) { "barcode" -> "barcode"; "pick" -> "you"; else -> "link" }
             else if (by.isNotEmpty()) line += " · matched by " + (mapOf("musicbrainz-id" to "the files' MusicBrainz ID", "barcode" to "barcode", "catalogue-number" to "catalogue number", "isrc" to "ISRCs")[by] ?: by) +
                 if (c.optBoolean("from_pack")) " (pack)" else ""
@@ -236,3 +236,9 @@ object Scanner {
     /** A list from an answer, empty when it has none. */
     fun list(j: JSONObject?, kind: String): List<JSONObject> = j?.optJSONArray(kind)?.let { a: JSONArray -> (0 until a.length()).mapNotNull { a.optJSONObject(it) } }.orEmpty()
 }
+
+/**
+ * A field's text, or "" where the server sends none or null. Android's org.json reads a JSON null as the word "null"
+ * (the server's "no problem with the folder" showed as a red "null"; bug list item 103), where the JVM's reads "".
+ */
+private fun JSONObject.text(key: String): String = if (!has(key) || isNull(key)) "" else optString(key)
