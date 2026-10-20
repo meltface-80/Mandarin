@@ -4,6 +4,12 @@ package com.musicd.server.client
 /** The screens contract's labels, part 2 of 2 (Contract.kt joins them). */
 internal object ContractLabels2 {
     val labels: Map<String, List<String>> = mapOf(
+        "settings-sharecard.back" to listOf("Back to settings"),
+        "settings-sharecard.review" to listOf("Show the review on the share card"),
+        "settings-sharecard.service" to listOf("{service}"),
+        "settings-sharecard.site" to listOf("{site}"),
+        "settings-sharecard.info" to listOf("About {setting}"),
+        "settings-sharecard.default" to listOf("Default service"),
         "settings-away.back" to listOf("Back to settings"),
         "settings-away.enabled" to listOf("Built-in Tailscale"),
         "settings-away.signin" to listOf("Sign in to Tailscale"),
