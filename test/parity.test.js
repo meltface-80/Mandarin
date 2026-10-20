@@ -168,12 +168,16 @@ const OPEN_ARTIST = `(async () => {
   return "open";
 })()`;
 
-/* Home, as the page opens on a phone, its rows drawn (the strip's Random Album and today's album too). */
+/* Home, as the page opens on a phone, its rows drawn: the strip's Random Album, and today's album where it hasn't been played
+   today (the day's album leaves Home once played, and the day decides which album it is: on a day it is the one an earlier
+   screen's check plays, Home comes up without it, which is Home as well). */
 const OPEN_HOME = `(async () => {
   const sleep = ms => new Promise(r => setTimeout(r, ms));
   const until = async (fn, ms = 30000) => { const t0 = Date.now(); while (!fn()) { if (Date.now() - t0 > ms) return false; await sleep(50); } return true; };
+  const day = await fetch("/api/home/album-of-the-day", { cache: "no-store" }).then(r => r.json()).catch(() => null);
+  const today = () => !(day && day.album) || document.querySelector("#home-today .home-aotd");
   if (!(await until(() => document.querySelectorAll("#home-library .album").length > 1 && document.querySelectorAll("#home-genres .home-genre-card").length > 0 &&
-    document.querySelector("#home-today .home-aotd") && /Kitchen/.test((document.getElementById("mt-kicker") || {}).textContent || "")))) return "no Home";
+    today() && /Kitchen/.test((document.getElementById("mt-kicker") || {}).textContent || "")))) return "no Home";
   await sleep(500);
   return "open";
 })()`;
@@ -205,6 +209,10 @@ const OPEN_RANDOM_PICK = `(async () => {
 
 /* How the page is brought to each screen of the contract, and what holds it; `shared`: screens of the contract's under the same root, held by their own checks. */
 const SCREENS = {
+  // Home and what opens from it first, before any screen's check plays an album: today's album is still on Home, so its badge is checked too.
+  "home": { open: OPEN_HOME, root: "body", shared: ["mini-player", "nav"] },
+  "picks": { open: OPEN_PICKS, root: "body", shared: ["mini-player", "nav"] },
+  "random-pick": { open: OPEN_RANDOM_PICK, root: "#random-pick-overlay" },
   "now-playing": { open: OPEN_NOW_PLAYING, root: "#album-modal .modal-panel" },
   "queue": { open: OPEN_QUEUE, root: "#album-modal .modal-panel" },
   "confirm": { open: OPEN_CONFIRM, root: "#confirm-overlay" },
@@ -214,10 +222,7 @@ const SCREENS = {
   "album": { open: OPEN_ALBUM, root: "#album-modal .modal-panel" },
   "library": { open: OPEN_LIBRARY, root: "body", shared: ["mini-player", "nav"] },
   "wall": { open: OPEN_WALL, root: "body", shared: ["mini-player", "nav"] },
-  "artist": { open: OPEN_ARTIST, root: "body", shared: ["mini-player", "nav"] },
-  "home": { open: OPEN_HOME, root: "body", shared: ["mini-player", "nav"] },
-  "picks": { open: OPEN_PICKS, root: "body", shared: ["mini-player", "nav"] },
-  "random-pick": { open: OPEN_RANDOM_PICK, root: "#random-pick-overlay" }
+  "artist": { open: OPEN_ARTIST, root: "body", shared: ["mini-player", "nav"] }
 };
 
 test("every screen of the contract has a way to open it on the page", () => {
