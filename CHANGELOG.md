@@ -1,6 +1,12 @@
 # Changelog
 
 ## Unreleased
+- `82-settings-pages-unresponsive`: in the Android app, a page of Settings the app doesn't draw itself yet (Music
+  Folders, Services, Audio Devices and the rest; Home Screen too, before item 81) left the app unresponsive until it was swiped away. The
+  page was put in front of the app's Settings to show it, but the rule that keeps the rest of the page out of sight
+  while one of its sheets is over an app screen hid the Settings sheet too: an empty, clear page took every tap. The
+  Settings sheet is now shown when it is the one asked for, and the page comes in front only once its sheet is seen,
+  so a sheet that stays out of sight can never cover the app's screen again.
 - `81-native-settings-home`: Setup's Home Screen page natively in the Android app (plan T3), as the page's: the
   greeting and Random Album, each on or off on this phone; Home's rows in their order, each with its handle, its name
   (and why it can't be switched: a setting behind it off, or Downloaded albums while albums are on the phone) and its

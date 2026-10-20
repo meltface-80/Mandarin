@@ -258,15 +258,23 @@ window.__musicdNativeOver = function (what, arg) {
     else html.classList.remove("native-over");
   };
   html.classList.add("native-over");
+  // A page of Settings is the Settings sheet itself, which `native-over` otherwise keeps out of sight (style.css).
+  html.classList.toggle("native-over-settings", what === "settings-pane");
   if (!window.__musicdNative(what, arg)) { done(); return false; }
-  requestAnimationFrame(() => requestAnimationFrame(() => {
-    if (html.classList.contains("native-over") && app && typeof app.overlayShown === "function") app.overlayShown();
+  // Up: on screen and seen. The page comes in front only once its sheet is up, so a sheet kept out of sight never puts a
+  // clear page over the app's screen to take every tap (bug list item 82: the app seemed frozen).
+  const up = () => [...document.querySelectorAll(OVER_SHEETS)].some(e => e.getClientRects().length > 0 && getComputedStyle(e).visibility !== "hidden");
+  let lifted = false;
+  const lift = () => requestAnimationFrame(() => requestAnimationFrame(() => {
+    if (lifted || !html.classList.contains("native-over") || !up()) return;
+    lifted = true;
+    if (app && typeof app.overlayShown === "function") app.overlayShown();
   }));
-  const up = () => [...document.querySelectorAll(OVER_SHEETS)].some(e => e.getClientRects().length > 0);
+  lift();
   // Every change to the page looked at: the sheet seen once it is up, done once it has gone again. Watched, not polled:
   // a sheet opened and closed between two polls was never seen, and the page stayed over the screen until the give-up.
   let seen = up();
-  watcher = new MutationObserver(() => { if (up()) seen = true; else if (seen) done(); });
+  watcher = new MutationObserver(() => { if (up()) { seen = true; if (!lifted) lift(); } else if (seen) done(); });
   watcher.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["class", "style", "hidden"] });
   giveUp = setTimeout(() => { if (!seen) done(); }, 6000);
   return true;

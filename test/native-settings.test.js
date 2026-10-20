@@ -14,7 +14,7 @@ const { built } = require("./server");
 const skip = built() || (!findBrowser() && !process.env.CI && "no Chromium or Chrome (set CHROME_PATH)");
 
 // Before the page's scripts: the app's bridge, counting the sheets it was told had closed.
-const BRIDGE = `window.MusicdApp = { closed: 0, overlayShown() {}, overlayClosed() { this.closed++; document.documentElement.classList.remove("native-over"); } };`;
+const BRIDGE = `window.MusicdApp = { closed: 0, shown: 0, overlayShown() { this.shown++; }, overlayClosed() { this.closed++; document.documentElement.classList.remove("native-over"); } };`;
 
 const RUN = `(async () => {
   const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -24,13 +24,18 @@ const RUN = `(async () => {
   await until(() => document.querySelectorAll("#home-library .album").length > 0, 20000);
   const out = { unknown: window.__musicdNative("settings-pane", "nothing") };
   for (const name of ["backup", "display"]) {
-    const before = window.MusicdApp.closed;
+    const before = window.MusicdApp.closed, shownBefore = window.MusicdApp.shown;
     const asked = window.__musicdNativeOver("settings-pane", name);
     const up = await until(() => shown(view(name)));
     const home = shown(document.querySelector('#settings-overlay .settings-view[data-view="home"]'));
-    view(name).querySelector("[data-settings-back]").click();
+    // Seen, and reached by a finger: the page is put in front of the app's screen, so a page drawn but not seen takes
+    // every tap and the app seems to freeze (item 82).
+    const lifted = await until(() => window.MusicdApp.shown > shownBefore);
+    const back = view(name).querySelector("[data-settings-back]"), r = back.getBoundingClientRect();
+    const seen = getComputedStyle(back).visibility === "visible" && back.contains(document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2));
+    back.click();
     const closed = await until(() => window.MusicdApp.closed > before);
-    out[name] = { asked, up, home, closed, hidden: document.getElementById("settings-overlay").classList.contains("hidden") };
+    out[name] = { asked, up, home, seen, lifted, closed, hidden: document.getElementById("settings-overlay").classList.contains("hidden") };
   }
   // Opened from the page's own list, a page's Back still goes back to the list.
   document.getElementById("settings-toggle").click();
@@ -52,7 +57,7 @@ test("a page of Settings the app doesn't draw opens alone, and its Back hands ba
   assert.deepEqual(page.errors, [], "nothing thrown");
   assert.equal(r.unknown, false, "a page there isn't");
   for (const name of ["backup", "display"]) {
-    assert.deepEqual(r[name], { asked: true, up: true, home: false, closed: true, hidden: true }, name);
+    assert.deepEqual(r[name], { asked: true, up: true, home: false, seen: true, lifted: true, closed: true, hidden: true }, name);
   }
   assert.equal(r.ownList, true, "the page's own Settings as ever");
 });

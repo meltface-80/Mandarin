@@ -6238,3 +6238,5 @@ html .topbar .icon-btn.labels-sort-btn { width: auto; min-width: 44px; padding: 
    screen with its ground clear, and shows nothing but the sheet. */
 html.native-over, html.native-over body { background: transparent !important; }
 html.native-over :is(.topbar, main, #touch-nav, #mini-transport, #album-modal, #settings-overlay, #menu-overlay) { visibility: hidden !important; }
+/* A page of Settings the app hands over (item 76) is the Settings sheet itself: seen (bug list item 82). */
+html.native-over.native-over-settings #settings-overlay:not(.hidden) { visibility: visible !important; }
