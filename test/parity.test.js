@@ -369,6 +369,31 @@ const OPEN_MENU = `(async () => {
 })()`;
 
 /* Group zones and Device power: the page's sheets, opened as Play on opens them, in the room the mini player is in. */
+/* Add to playlist (item 93): an album's, with one playlist made first so the sheet lists one. */
+const OPEN_ADD_TO_PLAYLIST = `(async () => {
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const until = async (fn, ms = 30000) => { const t0 = Date.now(); while (!fn()) { if (Date.now() - t0 > ms) return false; await sleep(50); } return true; };
+  if (!(await until(() => document.querySelectorAll("#home-library .album").length > 0))) return "no home";
+  const first = ((await (await fetch("/api/library/albums?count=1")).json()).albums || [])[0];
+  if (!first) return "no albums";
+  const j = await (await fetch("/api/album?offset=" + first.offset)).json();
+  const a = j.album, t = (j.tracks || [])[0];
+  if (!a || !t) return "no album";
+  await fetch("/api/user-playlists/add", { method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name: "Road trip", tracks: [{ album_offset: a.offset, album_title: a.title, album_subtitle: a.subtitle, track_index: 0, title: t.title, subtitle: a.subtitle, image_key: a.image_key || null }] }) });
+  openAddToPlaylistSheet(null, [{ offset: a.offset, title: a.title, subtitle: a.subtitle, image_key: a.image_key || null }]);
+  if (!(await until(() => document.querySelectorAll(".lib-sheet .sheet-row").length > 1))) return "no rows";
+  await sleep(600);
+  return "open";
+})()`;
+/* The page's name prompt (item 93), as a new playlist asks it. */
+const OPEN_PROMPT = `(async () => {
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  for (let i = 0; i < 400 && !window.__promptDialog; i++) await sleep(50);
+  window.__promptDialog("Name this playlist", "My playlist");
+  await sleep(300);
+  return document.getElementById("prompt-overlay").classList.contains("hidden") ? "not open" : "open";
+})()`;
 const OPEN_GROUP = `(async () => {
   const sleep = ms => new Promise(r => setTimeout(r, ms));
   const until = async (fn, ms = 30000) => { const t0 = Date.now(); while (!fn()) { if (Date.now() - t0 > ms) return false; await sleep(50); } return true; };
@@ -514,6 +539,8 @@ const SCREENS = {
   "smart-playlists": { open: OPEN_SMART_PLAYLISTS, root: "body", shared: ["mini-player", "nav"] },
   "smart-playlist": { open: OPEN_SMART_PLAYLIST, root: "body", shared: ["mini-player", "nav"] },
   "menu": { open: OPEN_MENU, root: "#menu-overlay" },
+  "add-to-playlist": { open: OPEN_ADD_TO_PLAYLIST, root: ".lib-sheet-backdrop" },
+  "prompt": { open: OPEN_PROMPT, root: "#prompt-overlay" },
   "group": { open: OPEN_GROUP, root: ".lib-sheet-backdrop" },
   "device-power": { open: OPEN_POWER, root: ".lib-sheet-backdrop" },
   "pitchfork": { open: OPEN_PITCHFORK, root: "#pitchfork-overlay" },

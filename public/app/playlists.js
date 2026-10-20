@@ -52,10 +52,11 @@ async function openAddToPlaylistSheet(entries, albums) {
     : `${n} album${n === 1 ? "" : "s"}`;
   openLibSheet(`Add ${what} to…`,
     (body, close) => {
-      const row = (label, fn) => {
+      const row = (label, fn, key) => {
         const b = document.createElement("button");
         b.type = "button";
         b.className = "action-btn sheet-row";
+        b.dataset.parity = key;
         // textContent, never a template: a playlist name is user text and
         // this sheet has no business interpreting it as markup.
         b.textContent = label;
@@ -70,13 +71,13 @@ async function openAddToPlaylistSheet(entries, albums) {
         addToUserPlaylist({ name: trimmed }, entries, albums).then(ok => {
           if (ok) clearAfterAdd();
         });
-      });
+      }, "add-to-playlist.new");
       for (const p of list) {
         row(`${p.name} · ${p.track_total} track${p.track_total === 1 ? "" : "s"}`, () => {
           addToUserPlaylist({ id: p.id }, entries, albums).then(ok => {
             if (ok) clearAfterAdd();
           });
-        });
+        }, "add-to-playlist.playlist");
       }
     });
 }

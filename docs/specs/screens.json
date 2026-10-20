@@ -887,6 +887,28 @@
         "import-status": { "kind": "shows", "each": true, "when": "signed in to the service" }
       }
     },
+    "add-to-playlist": {
+      "page": "Add to playlist (an album's ⋯, tracks picked on its page, or albums picked on a wall or an artist's page): the page's sheet up from the foot, how many tracks or albums are being added, ✕, a new playlist named first, then each of your playlists with how many tracks it holds",
+      "native": ["android/app/src/main/java/com/musicd/server/android/AddToPlaylist.kt"],
+      "preview": false,
+      "items": {
+        "title": { "kind": "shows" },
+        "close": { "kind": "action", "label": "Close" },
+        "new": { "kind": "action", "label": "＋ New playlist…" },
+        "playlist": { "kind": "action", "label": "{playlist} · {tracks}", "each": true, "when": "playlists made here" }
+      }
+    },
+    "prompt": {
+      "page": "the page's name prompt (#prompt-overlay), as a new playlist asks it: what is being named, the name (a suggestion in it), Cancel and Save",
+      "native": ["android/app/src/main/java/com/musicd/server/android/NamePrompt.kt"],
+      "preview": false,
+      "items": {
+        "message": { "kind": "shows" },
+        "field": { "kind": "action", "label": "Name" },
+        "cancel": { "kind": "action", "label": "Cancel" },
+        "save": { "kind": "action", "label": ["Save", "{word}"] }
+      }
+    },
     "album": {
       "page": "an album's page: the album view (#album-modal, not Now playing), opened from a row of albums, a phone held upright",
       "native": ["android/app/src/main/java/com/musicd/server/android/AlbumScreen.kt", "android/app/src/main/java/com/musicd/server/android/AlbumTracks.kt", "android/app/src/main/java/com/musicd/server/android/AlbumAbout.kt", "android/app/src/main/java/com/musicd/server/android/AlbumHead.kt", "android/app/src/main/java/com/musicd/server/android/AlbumSelect.kt", "android/app/src/main/java/com/musicd/server/android/AlbumWorks.kt"],
