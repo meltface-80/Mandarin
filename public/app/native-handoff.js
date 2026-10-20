@@ -154,16 +154,6 @@ window.__musicdNative = function (what, arg) {
     }).catch(() => { /* the playlist gone: nothing to open */ });
     return true;
   }
-  // The native Playlists' (item 65): Import, the page's sheet for a pasted playlist; a playlist of yours shared, by its id.
-  if (what === "playlist-import") { openImportSheet(); return true; }
-  if (what === "playlist-share") {
-    if (!arg) return false;
-    fetch("/api/user-playlist?id=" + encodeURIComponent(arg), { cache: "no-store" }).then(r => r.json()).then(j => {
-      if (!j || !Array.isArray(j.tracks)) return;
-      shareTracks(j.name || "Playlist", j.tracks.map(t => ({ title: t.title, artist: t.subtitle, album: t.album_title, track_no: t.track_no })), null, {});
-    }).catch(() => { /* the playlist gone: nothing to share */ });
-    return true;
-  }
   // The native Dynamic Playlists' (item 66): New (the page's sheet, then its Focus); Edit (its Focus with the playlist as the
   // save target); Share (every album read first, as the page's own Share does, then its sheet with the file).
   if (what === "smart-new") { createSmartPlaylist(); return true; }

@@ -10,7 +10,9 @@ import org.json.JSONObject
  */
 
 /** One track of a playlist: which album and which of its tracks, with the names it was added under and its album's cover. */
-data class PlaylistTrack(val albumOffset: Long, val trackIndex: Int, val title: String, val subtitle: String, val albumTitle: String, val albumSubtitle: String, val imageKey: String?) {
+data class PlaylistTrack(val albumOffset: Long, val trackIndex: Int, val title: String, val subtitle: String, val albumTitle: String, val albumSubtitle: String, val imageKey: String?,
+                         /** Its number on its album, where the server has it (a playlist shared names it; item 94). */
+                         val trackNo: Int? = null) {
     /** The line under the title, as the page writes it: the artist, then the album ("Artist A · Album One"). */
     val line: String get() = listOf(subtitle, albumTitle).filter { it.isNotEmpty() }.joinToString(" · ")
 }
@@ -25,7 +27,8 @@ data class UserPlaylist(val id: String, val name: String, val tracks: List<Playl
             val a = j.optJSONArray("tracks")
             val tracks = if (a == null) emptyList() else (0 until a.length()).mapNotNull { a.optJSONObject(it) }.map {
                 PlaylistTrack(it.optLong("album_offset"), it.optInt("track_index"), it.optString("title"), it.optString("subtitle"), it.optString("album_title"),
-                    it.optString("album_subtitle"), if (it.isNull("image_key")) null else it.optString("image_key").ifEmpty { null })
+                    it.optString("album_subtitle"), if (it.isNull("image_key")) null else it.optString("image_key").ifEmpty { null },
+                    if (it.isNull("track_no")) null else it.optInt("track_no").takeIf { n -> n > 0 })
             }
             return UserPlaylist(j.optString("id"), j.optString("name").ifEmpty { "Playlist" }, tracks)
         }
