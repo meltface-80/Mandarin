@@ -1,6 +1,9 @@
 # Changelog
 
 ## Unreleased
+- `72-snappy-screen-changes`: one native screen now gives way to the next at once in the Android app. Navigation's own
+  cross-fade (0.7 s) ran between every two screens, so the screen being left showed as a ghost over the one coming (Home
+  over Now playing, tapping the mini player); there is no fade now, in either direction, as on the page.
 - `70-native-pitchfork`: Pitchfork natively in the Android app (plan B3), from the side menu and the search's reviews:
   the magazine over the whole screen with its title, ✕ and the tabs Latest Reviews and Best New Music pinned at its head,
   the reviews as the page's woven mosaic three across (every third large, left then right) with their scores (gold for
