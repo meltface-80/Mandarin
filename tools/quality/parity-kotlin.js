@@ -159,14 +159,9 @@ function scan(src) {
  * @returns {string}
  */
 function contractKotlin(contract) {
-  const rows = [];
-  for (const [s, screen] of Object.entries(contract.screens)) {
-    for (const [k, it] of Object.entries(screen.items)) {
-      if (it.kind !== "action" || !it.label || it.only) continue;
-      rows.push(`        "${s}.${k}" to listOf(${[].concat(it.label).map(l => JSON.stringify(l)).join(", ")}),`);
-    }
-  }
-  return `// Written by tools/quality/parity.js from docs/specs/screens.json (npm run parity -- write); never by hand.
+  const chunks = labelChunks(contract);
+  const more = chunks.slice(1).map((_, i) => ` + ContractLabels${i + 2}.labels`).join("");
+  return `${WRITTEN}
 package com.musicd.server.client
 
 /**
@@ -175,8 +170,8 @@ package com.musicd.server.client
  */
 object Contract {
     val labels: Map<String, List<String>> = mapOf(
-${rows.join("\n")}
-    )
+${chunks[0].join("\n")}
+    )${more}
 
     /** [key]'s label in [state], each {…} in it filled from [fill] in turn. */
     fun label(key: String, state: Int = 0, vararg fill: String): String {
@@ -188,4 +183,46 @@ ${rows.join("\n")}
 `;
 }
 
-module.exports = { mask, scan, contractKotlin, CONTROLS, GESTURES, READOUTS };
+const WRITTEN = "// Written by tools/quality/parity.js from docs/specs/screens.json (npm run parity -- write); never by hand.";
+/** Labels in Contract.kt itself, and in each part after it: every file well under the 400-line watch. */
+const FIRST = 300, PART = 350;
+
+/**
+ * Each control's label as a Kotlin map entry, the first FIRST for Contract.kt, then PART at a time.
+ * @param {Parameters<typeof contractKotlin>[0]} contract @returns {string[][]}
+ */
+function labelChunks(contract) {
+  const rows = [];
+  for (const [s, screen] of Object.entries(contract.screens)) {
+    for (const [k, it] of Object.entries(screen.items)) {
+      if (it.kind !== "action" || !it.label || it.only) continue;
+      rows.push(`        "${s}.${k}" to listOf(${[].concat(it.label).map(l => JSON.stringify(l)).join(", ")}),`);
+    }
+  }
+  const chunks = [rows.slice(0, FIRST)];
+  for (let i = FIRST; i < rows.length; i += PART) chunks.push(rows.slice(i, i + PART));
+  return chunks;
+}
+
+/**
+ * The labels Contract.kt has no room for (bug list item 90): ContractLabels2.kt on, each its own object, joined into
+ * Contract.labels; none while the contract fits in Contract.kt alone.
+ * @param {Parameters<typeof contractKotlin>[0]} contract @returns {{ name: string, text: string }[]}
+ */
+function contractKotlinParts(contract) {
+  return labelChunks(contract).slice(1).map((rows, i) => ({
+    name: `ContractLabels${i + 2}.kt`,
+    text: `${WRITTEN}
+package com.musicd.server.client
+
+/** The screens contract's labels, part ${i + 2} (Contract.labels joins them). */
+object ContractLabels${i + 2} {
+    val labels: Map<String, List<String>> = mapOf(
+${rows.join("\n")}
+    )
+}
+`,
+  }));
+}
+
+module.exports = { mask, scan, contractKotlin, contractKotlinParts, CONTROLS, GESTURES, READOUTS };

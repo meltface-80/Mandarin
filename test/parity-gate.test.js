@@ -12,7 +12,7 @@ const fs = require("fs");
 const os = require("os");
 const path = require("path");
 const { spawnSync } = require("child_process");
-const { scan, mask, contractKotlin } = require("../tools/quality/parity-kotlin");
+const { scan, mask, contractKotlin, contractKotlinParts } = require("../tools/quality/parity-kotlin");
 const { compare, validate, onPage, main } = require("../tools/quality/parity");
 
 const F = "android/app/src/main/java/x/PlayScreen.kt";
@@ -124,6 +124,20 @@ test("Contract.kt is the contract's labels; the gate refuses one written by hand
   assert.match(out.join("\n"), /play\.back: on the page, not in the app \(PlayScreen\.kt\), nor on the gaps list/);
   assert.deepEqual(JSON.parse(fs.readFileSync(path.join(root, "tools/quality/parity-gaps.json"), "utf8")), { play: ["play"] });
   fs.rmSync(root, { recursive: true, force: true });
+});
+
+test("a contract too long for one file: its labels in parts, each under the 400-line watch, Contract's map all of them", () => {
+  const c = contract();
+  for (let i = 0; i < 700; i++) c.screens.play.items["b" + i] = { kind: "action", label: "B" + i };
+  const parts = contractKotlinParts(c);
+  assert.deepEqual(parts.map(p => p.name), ["ContractLabels2.kt", "ContractLabels3.kt"]);
+  const all = [contractKotlin(c), ...parts.map(p => p.text)];
+  for (const t of all) assert.ok(t.split("\n").length < 400, t.split("\n").length + " lines");
+  assert.match(all[0], /mapOf\([\s\S]*"play\.back" to listOf\("Back"\)[\s\S]*\) \+ ContractLabels2\.labels \+ ContractLabels3\.labels\n/);
+  assert.match(parts[0].text, /^\/\/ Written by tools\/quality\/parity\.js[\s\S]*object ContractLabels2 \{\n {4}val labels: Map<String, List<String>> = mapOf\(\n {8}"play\.b/);
+  const rows = all.join("\n").match(/^ {8}"play\.[^"]+" to listOf/gm) || [];
+  assert.equal(rows.length, 702, "every label once");
+  assert.deepEqual(contractKotlinParts(contract()), [], "a short contract in Contract.kt alone");
 });
 
 test("one element two screens': keys space-separated, each held by its own screen, a file both screens draw", () => {

@@ -1,6 +1,16 @@
 # Changelog
 
 ## Unreleased
+- `90-native-settings-scanner`: Settings → Library Scanner natively in the Android app (plan T7), as the page's: the
+  schedule (on or off, its start and end chosen on the phone's own clock, what runs now); Identify albums and Ask
+  iTunes too; the MusicBrainz pack (what is downloaded and from when, Download, Update or Remove, the download's progress
+  every second, its folder, and Change… among the server's drives and folders); identification's progress and Check the
+  proposed and unidentified again; Measure ReplayGain and how far it has got; Clean up, each kind with its Remove,
+  asked first; the processor; and the proposed, unidentified, applied and declined albums, each opened by its name, with
+  Accept and Reject, Undo or Check again, and Barcode… to match it by a barcode or a MusicBrainz link, the first 60 of
+  each until Show all. Each block is drawn from its own answer as it comes and asked for again every five seconds. The
+  page's is keyed for the screens contract (`settings-scanner`). The contract's labels for the app, which had grown
+  past the 400-line watch in one file, are now written in parts (`Contract.kt`, then `ContractLabels2.kt` on).
 - `87-native-settings-services`: Settings → Services natively in the Android app (plan T4), as the page's: Qobuz and
   Tidal, each under its title with its ⓘ. Signed out, Qobuz's email and password and Sign in; Tidal's Sign in on
   tidal.com, which opens tidal.com, then the link, the code to type there and Cancel, waited for until it lands. Signed

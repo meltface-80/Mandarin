@@ -27,7 +27,7 @@
 const fs = require("fs");
 const path = require("path");
 const { spawnSync } = require("child_process");
-const { scan, contractKotlin } = require("./parity-kotlin");
+const { scan, contractKotlin, contractKotlinParts } = require("./parity-kotlin");
 
 const CONTRACT = "docs/specs/screens.json";
 const GAPS = "tools/quality/parity-gaps.json";
@@ -182,7 +182,17 @@ function main(argv, root = process.env.PARITY_ROOT || path.resolve(__dirname, ".
   const cmd = argv[0] || "check";
   const x = load(root);
   const kotlin = contractKotlin(x.contract);
-  if (cmd === "write") { fs.mkdirSync(path.dirname(path.join(root, KOTLIN)), { recursive: true }); fs.writeFileSync(path.join(root, KOTLIN), kotlin); console.log(`parity: ${KOTLIN} written`); return 0; }
+  // The labels Contract.kt has no room for, in parts beside it (ContractLabels2.kt on); a part no longer needed is stale.
+  const dir = path.dirname(KOTLIN);
+  const parts = contractKotlinParts(x.contract).map(p => ({ file: path.join(dir, p.name), text: p.text }));
+  const stale = (fs.existsSync(path.join(root, dir)) ? fs.readdirSync(path.join(root, dir)) : [])
+    .filter(n => /^ContractLabels\d+\.kt$/.test(n) && !parts.some(p => p.file === path.join(dir, n))).map(n => path.join(dir, n));
+  if (cmd === "write") {
+    fs.mkdirSync(path.join(root, dir), { recursive: true });
+    for (const [f, t] of [[KOTLIN, kotlin], ...parts.map(p => [p.file, p.text])]) { fs.writeFileSync(path.join(root, f), t); console.log(`parity: ${f} written`); }
+    for (const f of stale) { fs.rmSync(path.join(root, f)); console.log(`parity: ${f} removed`); }
+    return 0;
+  }
   const r = refs(root);
   if (!r.length && process.env.PARITY_REQUIRE_BASE) { console.error("parity: no commit to hold the gaps list against (a shallow clone?)"); return 1; }
   const { findings, missing } = compare(Object.assign({ refs: r }, x));
@@ -200,7 +210,10 @@ function main(argv, root = process.env.PARITY_ROOT || path.resolve(__dirname, ".
     console.log(`parity: ${GAPS} written`);
     return main(["check"], root);
   }
-  if (!fs.existsSync(path.join(root, KOTLIN)) || read(root, KOTLIN) !== kotlin) findings.unshift(`${KOTLIN}: not the contract's labels: npm run parity -- write`);
+  for (const [f, t] of [[KOTLIN, kotlin], ...parts.map(p => [p.file, p.text])].reverse()) {
+    if (!fs.existsSync(path.join(root, f)) || read(root, f) !== t) findings.unshift(`${f}: not the contract's labels: npm run parity -- write`);
+  }
+  for (const f of stale) findings.unshift(`${f}: labels the contract no longer has: npm run parity -- write`);
   for (const f of findings) console.log(f);
   const gapCount = Object.values(x.gaps).reduce((n, g) => n + g.length, 0);
   if (!findings.length) console.log(`parity: the app's native screens keep the contract${gapCount ? ` (${gapCount} items still to build in preview, ${GAPS})` : ""}`);
