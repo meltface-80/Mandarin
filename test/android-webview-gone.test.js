@@ -20,7 +20,7 @@ test("no web view: the activity holds the app's own screens, Home the first", ()
   const main = read(APP + "MainActivity.kt");
   assert.doesNotMatch(main, /import android\.webkit|WebView\(|evaluateJavascript|addJavascriptInterface|loadUrl\(/);
   assert.match(main, /root\.addView\(NativeShell\.attach\(this\)/);
-  assert.match(main, /private fun back\(\) \{\s+if \(!NativeShell\.back\(\)\) moveTaskToBack\(true\)\s+\}/);
+  assert.match(main, /private fun back\(\) \{[\s\S]{0,260}?val closed = NativeShell\.back\(\)[\s\S]{0,200}?if \(!closed\) moveTaskToBack\(true\)\s+\}/);
   const shell = read(APP + "NativeShell.kt");
   assert.match(shell, /startDestination = ShellRoute\.HOME/);
   assert.doesNotMatch(shell, /toPage|overPage|OVERLAYS|pageFront|homeShown/);
@@ -47,7 +47,7 @@ test("what the screens handed to the page is the app's own", () => {
   assert.match(hand, /"zone", "group-settled" -> NativeShell\.keepZone\(arg\)/);
   const shell = read(APP + "NativeShell.kt");
   assert.match(shell, /fun roomChosen\(id: String\) \{ RoomAsk\.chosen\(zone, id\); keepZone\(id\) \}/);
-  assert.match(shell, /store\?\.let \{ Store\.setZone\(it, id\) \}/);
+  assert.match(shell, /store\?\.let \{ Store\.setZone\(it, id\); NowPlayingService\.start\(it\) \}/);
   assert.match(shell, /store\?\.let \{ Store\.setHomePrefs\(it, json\) \}/);
   assert.match(read(APP + "SetupActions.kt"), /NativeShell\.keep\(name, value\)/);
   const back = read(APP + "BackupParts.kt");
@@ -66,7 +66,8 @@ test("Now playing's album found as the page found it, the Shelf in the browser, 
 });
 
 test("the server's gate shutting on this phone signs it in again; a wrong password does not", () => {
-  assert.match(read(APP + "Store.kt"), /transport = com\.musicd\.server\.client\.GateWatch\(com\.musicd\.server\.client\.HttpTransport\(address\.baseUrl, token\)\) \{ MainActivity\.gateShut\(\) \}/);
+  assert.match(read(APP + "Store.kt"), /transport = AppLog\.server\(address\.baseUrl, token\) \{ MainActivity\.gateShut\(\) \}/);
+  assert.match(read(APP + "AppLog.kt"), /fun server\(baseUrl: String, token: String, shut: \(\) -> Unit\): Transport = net\(GateWatch\(HttpTransport\(baseUrl, token\), shut\), "server"\)/);
   assert.match(read(CORE + "ServerClient.kt"), /val gateShut get\(\) = status == 401 && message in GATE/);
   assert.match(read(APP + "MainActivity.kt"), /fun gateShut\(\) \{ shown\.get\(\)\?\.let \{ a -> a\.runOnUiThread \{ if \(!a\.isFinishing\) a\.signedOut\(\) \} \} \}/);
 });

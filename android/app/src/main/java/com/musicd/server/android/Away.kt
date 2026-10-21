@@ -118,22 +118,31 @@ object Away {
         // home address is tried too, and used if it answers through it.
         val vpn = !wifi && onVpn(c)
         val homeAnswers = (wifi || vpn) && answers(home, 1500)
-        var away = Route.away(wifi, homeAnswers, vpn)
+        // Away over MusicD's own Tailscale connection once the phone is signed in to it — the whole library,
+        // streamed as Opus by the server, no Tailscale app needed — whether its engine is up yet or not.
+        val way = Route.way(wifi, homeAnswers, vpn, awayAddress = awayAt != null,
+            ownSignedIn = TailscaleEngine.installed(c) && TailscaleEngine.signedInBefore(c))
+        val away = way.away
 
-        // Away: MusicD's own Tailscale connection first — the whole library,
-        // streamed as Opus by the server, no Tailscale app needed.
-        var engine = false
         val wasRunning = TailscaleEngine.alive()
         // The phone's addresses changed: the engine finds its way on the new network.
         if (wasRunning) TailscaleEngine.sendInterfaces()
-        if (away && awayAt != null) {
-            engine = TailscaleEngine.connectAway(c, "${awayAt.host}:${awayAt.port}")
-            if (!engine) Log.i(TAG, "own Tailscale connection not up; trying the Tailscale app")
+        // The way taken at once, before it is connected (item 118): the screens and the player stop asking an address
+        // the phone has left (the home one, off the Wi-Fi) while the way away comes up, which took 20 s and more.
+        Store.setViaEngine(c, way.viaEngine)
+        if (away != wasAway || way.viaEngine != wasEngine) {
+            Log.i(TAG, if (away) "away: using ${Store.awayBase(c)}" else "home: using $home")
+            Store.setAway(c, away)
+            tell(away)
         }
-        Store.setViaEngine(c, engine)
 
-        if (away && !engine && awayAt != null && !answers(awayAt, 3000)) {
-            // Not through yet: ask the Tailscale app, then give it a little while.
+        if (away && way.viaEngine && awayAt != null) {
+            // Its engine joined and forwarding; come up again (after the app was restarted, or afresh after a
+            // stall), the screens look for the server on it at once.
+            if (TailscaleEngine.connectAway(c, "${awayAt.host}:${awayAt.port}")) { if (!wasRunning) tell(away) }
+            else Log.i(TAG, "own Tailscale connection not up yet")
+        } else if (away && awayAt != null && !answers(awayAt, 3000)) {
+            // Not signed in to MusicD's own: ask the Tailscale app, then give it a little while.
             if (tailscale(c, connect = true)) weConnected = true
             val until = System.currentTimeMillis() + 15_000
             var ok = false
@@ -141,7 +150,7 @@ object Away {
                 try { Thread.sleep(1500) } catch (e: InterruptedException) { return wasAway }
                 ok = answers(awayAt, 3000)
             }
-            if (!ok) Log.i(TAG, "the server isn't answering on $awayAt either")
+            if (ok) tell(away) else Log.i(TAG, "the server isn't answering on $awayAt either")
         }
         if (!away) {
             // Home: the engine stays joined, idle, so leaving the house needn't
@@ -152,17 +161,12 @@ object Away {
                 weConnected = false
             }
         }
-        // Away needs a way to the server; without one it's the phone's downloads (offline).
-        away = away && (engine || awayAt != null)
-        // (Also when the engine has just come up again after the app was restarted: the page reloads onto it.)
-        if (away != wasAway || engine != wasEngine || (engine && !wasRunning)) {
-            Log.i(TAG, if (away) "away: using ${Store.awayBase(c)}" else "home: using $home")
-            Store.setAway(c, away)
-            main.post { for (l in listeners) runCatching { l(away) } }
-        }
         if (!away && awayAt != null) keepReady(c, "${awayAt.host}:${awayAt.port}")
         return away
     }
+
+    /** The listeners told the way now ([away]): changed, or come up (the screens look for the server on it again). */
+    private fun tell(away: Boolean) { main.post { for (l in listeners) runCatching { l(away) } } }
 
     /**
      * At home: MusicD's own Tailscale connection joined and its way to the

@@ -5,6 +5,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import com.musicd.server.client.AlbumCovers
 import com.musicd.server.client.AlbumSummary
 import com.musicd.server.client.LibraryClient
 import com.musicd.server.client.ServerClient
@@ -69,5 +70,16 @@ internal object LibraryWall {
         val l = last
         if (l != null && l.view == view) return l
         return WallState(view).also { last = it }
+    }
+
+    /**
+     * Album [offset]'s cover as its page has just read it ([imageKey], item 123): a tile showing another is put right in
+     * every list kept from before, the Library wall's, the other walls' and the search's (a cover found in the editor has
+     * a new key, and they went on drawing the old one for as long as the app ran).
+     */
+    fun coverIs(offset: Long, imageKey: String?) {
+        synchronized(this) { last?.let { l -> for ((i, a) in AlbumCovers.fixes(l.albums, offset, imageKey)) l.albums[i] = a } }
+        Walls.coverIs(offset, imageKey)
+        SearchKept.lib?.let { r -> val f = AlbumCovers.fixes(r.albums, offset, imageKey); if (f.isNotEmpty()) SearchKept.lib = r.copy(albums = r.albums.toMutableList().also { l -> for ((i, a) in f) l[i] = a }) }
     }
 }

@@ -7,7 +7,7 @@
 
 </div>
 
-# Mandarin — v1.1.0
+# Mandarin — v1.1.1
 
 **Your own music files, played to Sonos rooms, to UPnP/DLNA renderers (a WiiM, a Chord Poly,
 a streamer, an AV receiver) and to the Mandarin Android app.**
@@ -26,12 +26,14 @@ Wikipedia, Deezer and others); your music files stay on your machine.
                                                    └──── audio: /stream/… ◀────────┘
 ```
 
-**New in v1.1.0** (since v1.0.17)
-* **The Android app is fully native.** Every screen is drawn by the app itself (Kotlin and Jetpack
-  Compose); it no longer shows the server's web page. Its screens and their controls follow the
-  page's, item by item, checked on every build ([docs/specs/screens.json](docs/specs/screens.json)).
-  Shelf opens in the phone's browser.
-* **The app's mini player** runs the full width of the screen, on the row along its foot.
+**New in v1.1.1** (since v1.1.0)
+* **Logging**, in the Android app and the server, off by default: switch it on in **Settings → Setup →
+  Logging** when something goes wrong, use the app as usual for 24 hours, then save the log and send it.
+  It is made without personal data ([Logs](#logs)).
+* **Fixes in the Android app:** the screen you are on stays put when the server goes or comes back; away
+  from home the screens play on this phone; leaving the Wi-Fi switches to the way away at once; the app asks
+  the server for less while it's off screen; the side menu opens as it was last seen; a cover changed in
+  the album editor shows on the Library at once.
 
 ---
 
@@ -485,7 +487,7 @@ Open `http://<server-ip>:3500/display` on the screen. Its switch (on by default)
 
 ⸻
 
-📱 **The Android app** — *new in v1.1.0*
+📱 **The Android app**
 
 Mandarin's interface drawn natively by the app, plus lock-screen and notification controls, volume keys, a widget, a Quick Settings tile, a share sheet, Android Auto and its own updates.
 
@@ -638,6 +640,18 @@ Sign in with your Tidal subscription on tidal.com: your favourite albums become 
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 
 **Settings → Services → Tidal → Sign in on tidal.com**: open the link, sign in there, come back. Then **☰ → Tidal** to search and play; **+** on a cover adds an album to your Tidal favourites (a **✓** once added) and so to the library, as does **⋯ → Add to Tidal favourites** on its page. Details under [Tidal](#tidal).
+
+</details>
+
+⸻
+
+📝 **Logging** — *new in v1.1.1*
+
+Off by default. Switched on, the Android app and the server log what happened, without personal data, for you to send to the developer when something goes wrong.
+
+<details><summary><b>ⓘ</b> How to set it up and use it</summary>
+
+In the Android app, **Settings → Setup → Logging**. Use the app as you normally would for 24 hours, then tap **Save log** (it goes to Downloads/Mandarin) and send the file. Look through it first. Switching logging off deletes the log, the server's part too. Details under [Logs](#logs).
 
 </details>
 
@@ -1088,6 +1102,37 @@ through a subnet router arrive from a home address, and the server can't tell th
   .NET or Node.js needed to run it). It began in v0.8.1 as a front door before the original
   Node.js server, took its parts over one by one with each held to the Node server's own answers,
   and has been the whole server since v0.9.0 (`old/csharp-migration.md`).
+
+## Logs
+
+Logging is in the Android app and the server, and is **off by default**: while it is off, nothing is
+collected. Switch it on in the app, **Settings → Setup → Logging**, when something isn't right. Use the
+app as you normally would for **24 hours**, then tap **Save log**: the app's log and the server's are
+saved together to **Downloads/Mandarin** on the phone, for you to send to the developer. **Clear log**
+empties it; switching logging off deletes it, the server's part too.
+
+The log is made without personal data, and you are told so on the same screen. Please look through it
+before you send it: what you send is your choice.
+
+**What it captures**
+
+* **Screens:** each screen opened and how long after the tap, what is on screen, where each tap fell, and anything that doesn't flow: a screen shown for a moment between two others, one opened and closed by itself, a frame that stalls.
+* **Requests:** each request the app makes to the server: its address on the server (such as `/api/album`), how long it took and whether it worked. The values in it are left out.
+* **The way to the server:** home, away (Tailscale) or offline, and networks coming and going.
+* **The phone's player:** playing or paused, the track's number in the queue, its position and the volume.
+* **The app:** its memory, crashes and freezes, and Android's own lines for Mandarin.
+* **The server:** each line it logs, with its own words, numbers, the names of errors and its own addresses; every other value is replaced with […].
+
+**What it leaves out**
+
+* **Addresses:** no IP addresses (home, Tailscale or internet), web addresses, device hardware addresses or network names.
+* **People, rooms and devices:** no names of people, rooms or devices, no account names or emails, and no passwords, tokens or keys.
+* **What you play and search for:** no album, artist, track or playlist names, and no searches.
+* **Files and folders:** no paths or file names.
+* **Your phone:** only the app's version and Android's; not the phone's make or model.
+
+The app keeps its log in its own storage (two files of 3 MB at most); the server keeps its part in its
+data folder (two files of 1 MB at most) while logging is on.
 
 ## Troubleshooting
 

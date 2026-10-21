@@ -53,6 +53,7 @@ class NowPlayingService : Service() {
 
         /** Nothing playing for this long and the service bows out. */
         private const val IDLE_STOP_MS = 20 * 60 * 1000L
+        private const val ZONES_MS = 5 * 60 * 1000L   // the rooms looked at again after this long (item 120)
         private const val ART_PX = 512
 
         @Volatile var latest: Zone? = null
@@ -72,11 +73,7 @@ class NowPlayingService : Service() {
             if (Store.offlineMode(context)) return
             val i = Intent(context, NowPlayingService::class.java)
             if (action != null) i.action = action
-            try {
-                context.startForegroundService(i)
-            } catch (e: Exception) {
-                Log.w(TAG, "could not start the service", e)
-            }
+            try { context.startForegroundService(i) } catch (e: Exception) { Log.w(TAG, "could not start the service", e) }
         }
 
         fun pending(context: Context, action: String): PendingIntent =
@@ -179,6 +176,7 @@ class NowPlayingService : Service() {
     private fun loop() {
         var revision: Long? = null
         var failures = 0
+        var zonesAt = 0L   // the rooms last looked at: at the start, woken (the app open, a room chosen), after a miss, every few minutes
         while (running) {
             val client = Store.client(this)
             if (client == null) { stopSelf(); return }
@@ -191,11 +189,13 @@ class NowPlayingService : Service() {
                 continue
             }
             try {
-                val zones = client.zones()
-                val chosen = zones.lastZone ?: Store.zone(this) ?: zones.zones.firstOrNull()?.id
-                // "This phone" has its own notification and lock screen (PhonePlayerService).
-                if (chosen?.startsWith("PHONE_") == true) { main.post { stopSelf() }; return }
-                if (chosen != zoneId) { zoneId = chosen; revision = null; Store.setZone(this, chosen) }
+                if (zoneId == null || wake || failures > 0 || SystemClock.elapsedRealtime() - zonesAt > ZONES_MS) {
+                    val zones = client.zones().also { zonesAt = SystemClock.elapsedRealtime() }
+                    val chosen = zones.lastZone ?: Store.zone(this) ?: zones.zones.firstOrNull()?.id
+                    // "This phone" has its own notification and lock screen (PhonePlayerService).
+                    if (chosen?.startsWith("PHONE_") == true) { main.post { stopSelf() }; return }
+                    if (chosen != zoneId) { zoneId = chosen; revision = null; Store.setZone(this, chosen) }
+                }
                 val id = zoneId
                 if (id == null) {
                     publish(client, null)

@@ -2,6 +2,7 @@ package com.musicd.server.android
 
 import android.content.Context
 import com.musicd.server.client.ReplayGain
+import com.musicd.server.client.Route
 import com.musicd.server.client.ServerAddress
 import com.musicd.server.client.ServerClient
 
@@ -86,6 +87,14 @@ object Store {
     fun offlineMode(context: Context): Boolean = prefs(context).getBoolean("offline_mode", false)
     fun setOfflineMode(context: Context, on: Boolean) { prefs(context).edit().putBoolean("offline_mode", on).apply() }
 
+    /** The side menu as last seen (core Menu.keep, item 122), for it to open the same. */
+    fun menuKept(context: Context): String? = prefs(context).getString("menu_kept", null)
+    fun setMenuKept(context: Context, kept: String) { prefs(context).edit().putString("menu_kept", kept).apply() }
+
+    /** Logging (Settings → Setup, item 121): off unless switched on. */
+    fun logging(context: Context): Boolean = prefs(context).getBoolean("logging", false)
+    fun setLogging(context: Context, on: Boolean) { prefs(context).edit().putBoolean("logging", on).apply() }
+
     /** Native Home (bug list item 57, a preview): the same switch's neighbour in UI Settings. */
     /** The UI Settings as the page last handed them with Home (JSON), for the native Home drawn before the page has said (item 64). */
     fun homePrefs(context: Context): String? = prefs(context).getString("home_prefs", null)
@@ -144,6 +153,10 @@ object Store {
 
     fun zone(context: Context): String? =
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(KEY_ZONE, null)
+
+    /** The room the screens play in now (item 119): the one kept, or away this phone's, the only one the server offers there. */
+    fun playRoom(context: Context): String =
+        Route.room(isAway(context), zone(context), prefs(context).getString("phone_zone", null))
 
     fun setZone(context: Context, zoneId: String?) {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString(KEY_ZONE, zoneId).apply()
@@ -227,14 +240,14 @@ object Store {
         if (!OfflineNow.on) return client(context)
         val c = context.applicationContext
         return ServerClient(server(c) ?: ServerAddress("phone", 0), token = token(c),
-            transport = com.musicd.server.client.LocalTransport { m, p, q, b -> OfflineApi.answers(c).answer(m, p, q, b) })
+            transport = AppLog.net(com.musicd.server.client.LocalTransport { m, p, q, b -> OfflineApi.answers(c).answer(m, p, q, b) }, "phone"))
     }
 
     /** A client for the server, signed in — null until both are known. The server's gate shutting on this phone signs it in again (item 111). */
     fun client(context: Context): ServerClient? {
         val address = active(context) ?: return null
         val token = token(context) ?: return null
-        return ServerClient(address, token = token,
-            transport = com.musicd.server.client.GateWatch(com.musicd.server.client.HttpTransport(address.baseUrl, token)) { MainActivity.gateShut() })
+        // Every request logged, while logging is on (item 121).
+        return ServerClient(address, token = token, transport = AppLog.server(address.baseUrl, token) { MainActivity.gateShut() })
     }
 }

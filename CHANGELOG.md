@@ -1,5 +1,69 @@
 # Changelog
 
+## v1.1.1
+
+**Logging has been added to the server and the Android app, and is off by default.** When something isn't right,
+switch it on in the app (Settings → Setup → Logging), use the app as you normally would for 24 hours, then tap Save
+log: the app's log and the server's are saved together to Downloads/Mandarin on the phone, for you to send to the
+developer. While logging is off, nothing is collected. The log is made without personal data: no IP addresses
+(home, Tailscale or internet), no names of people, rooms or devices, nothing you play or search for, no files or
+folders and no account details. Please look through it before you send it. Clear log empties it, and switching
+logging off deletes it, the server's part too. What it captures and what it leaves out:
+[Logs](https://meltface-80.github.io/Mandarin/#logs).
+
+Also in the Android app: the screen you are on stays put when the server goes or comes back; away from home the
+screens play on this phone; leaving the Wi-Fi switches to the way away at once; the app asks the server for less
+while it's off screen; the side menu opens as it was last seen; a cover changed in the album editor shows on the
+Library at once.
+
+The details, item by item:
+- `123-library-new-cover`: in the Android app, a cover found or changed in the album editor shows on the Library wall,
+  the other walls and the search at once. They are kept as loaded while the app runs (and a playing phone keeps it
+  running, the screen made again or not), and nothing told them the album's cover had a new key: two albums given
+  their covers still showed the drawn placeholders. Now the album's page, each time it reads the album, puts its cover
+  right wherever a kept list shows an older one (core `AlbumCovers`, `LibraryWall.coverIs`).
+- `122-glitch`: in the Android app, the side menu opens as it was last seen. It opened as the page's markup has it,
+  Labels and Shelf drawn, then took them away when the server answered they were switched off, and the rescan line
+  ("13,549 albums · checked 2 hours ago") came in under them and moved Settings down: at every opening, a moment after
+  it slid in. Now the rows and the server's status are kept on the phone (core `Menu.keep`), the menu opens with them,
+  and only a change at the server changes it (the log says so, marked). Settings' foot likewise opens with the version
+  last read rather than "Mandarin" and then the version.
+- `121-logging-switch`: logging in the Android app, for sending to the developer when something is wrong: Settings →
+  Setup → Logging, under API Keys. Off unless switched on, and off nothing is collected. On, the screen says to use
+  the app as usual for 24 hours and then tap Save log (to Downloads/Mandarin), that the log is made without personal
+  data, and that it is the user's to look through before sending it; Clear log empties it, and switching off deletes
+  it. The log holds the app's lines (the log build's, item 116: the screens' moves and what didn't flow, each request
+  and how long it took, the way to the server, the phone's player, the app's own lines of Android's log, crashes and
+  freezes) and the server's. No personal data goes in: each app line goes through core `LogRedact` (addresses of
+  every kind, room and device ids, what is played or searched for, anything quoted, files and folders, keys), and the
+  server keeps, while on, only its code's own words and, of the values put into them, numbers, errors' names and its
+  own addresses (`LogLine.cs`, `Diagnostics.cs`, `/api/diagnostics`): no name, title, address or message.
+- `120-background-polling-trimmed`: the Android app asks the server for less while nobody is looking. With the app off
+  screen and nothing playing it asked 11 to 14 times a minute until Android froze it: the room followed by the
+  screen's mini player as well as by the notification, the rooms before every wait on the room, the server's status
+  and today's album every minute. Now the screens' repeated asks (the room followed, today's album, the notices,
+  Settings → Away from home's Tailscale status) run only while the app is on screen (`NativeShell.onScreen`, between
+  MainActivity's onResume and onPause), and are asked at once when it comes back; the notification looks at the rooms
+  every five minutes, woken at once by a room chosen in the app. Offline, the phone's answer about its room is held as
+  long as asked (20 s, as the server's), not 1.5 s, which had a screen asking 40 times a minute.
+- `119-away-phone-room`: in the Android app, away from home the screens play in this phone's room, the only one the
+  server offers there (core `Route.room`, `Store.playRoom`), and in the room kept again at home. They stayed in the
+  Sonos room kept from home: the mini player asked for it every 2 s and the server refused each time ("Away from home,
+  only this phone plays"), 46 times in two minutes one morning. And a room that isn't answered is asked for less and
+  less often, 2 s up to half a minute (core `Retry`), not every 2 s for as long as the screen is up.
+- `118-away-way-at-once`: in the Android app, the way to the server (home or away) is taken as soon as it is decided,
+  before it is connected (`Away.check`). Off the Wi-Fi the app used to go on asking the home address while it waited
+  for the way away to come up: 22 s for the Tailscale app at 07:53 one morning, every request waiting out its 5 s.
+  And a phone signed in to MusicD's own Tailscale stays on it (127.0.0.1:34500) while its engine comes up or starts
+  afresh after a stall (core `Route.way`); before, it was moved to the Tailscale app's address, which nothing answered
+  on that phone, and went offline until the engine was back. The Tailscale app is asked only on a phone not signed in
+  to MusicD's own.
+- `117-stay-on-screen-offline`: in the Android app, the server going or coming back no longer takes you to Home. Both
+  closed every screen over Home (`OfflineNow.goOffline` and `goOnline`), so Wi-Fi coming back while Settings → Away from
+  home was open left you on Home with the way back in to tap again; going offline did the same from an album's page or
+  Now playing. Now the screen on show stays and the side menu stays open; Home's rows are read afresh for when it is
+  next shown, in the room that plays now.
+
 ## v1.1.0
 - `115-menu-settings-close` (folded into v1.1.0): in the Android app, Settings, Playlists and the side menu's other
   pages couldn't be closed when opened from Home (their ✕ and ‹ did nothing). The menu's "every screen over Home

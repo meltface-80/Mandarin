@@ -78,6 +78,8 @@ internal fun SettingsScreen(pane: String, client: () -> ServerClient?, onBack: (
             Column(Modifier.padding(horizontal = 4.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 for (row in SettingsLists.SETUP) SettingsNavRow(row, Modifier.parity("settings-setup.item", Contract.label("settings-setup.item", 0, row.title)).clip(RoundedCornerShape(10.dp)).clickable { open(row.pane) })
             }
+            // Under API Keys, the app's own (item 121, SettingsLogging.kt).
+            LoggingBlock()
         }
         else -> SettingsHome(client, onBack, open)
     }
@@ -85,13 +87,17 @@ internal fun SettingsScreen(pane: String, client: () -> ServerClient?, onBack: (
 
 /** The pages the app draws itself (Setup's small ones in SettingsSetup.kt, item 78; Services, item 87); Setup is its list. */
 
+/** Settings' foot as last read (item 122). */
+private var lastVersion = "Mandarin"
+
 @Composable
 private fun SettingsHome(client: () -> ServerClient?, onClose: () -> Unit, open: (String) -> Unit) {
     val context = LocalContext.current
-    var version by rememberSaveable { mutableStateOf("Mandarin") }
+    // The version as last read, so the foot doesn't change as Settings opens (item 122); then the server's.
+    var version by rememberSaveable { mutableStateOf(lastVersion) }
     LaunchedEffect(Unit) {
         val c = client() ?: return@LaunchedEffect
-        withContext(Dispatchers.IO) { runCatching { SettingsLists.version(c.updateStatus()) }.getOrNull() }?.let { version = it }
+        withContext(Dispatchers.IO) { runCatching { SettingsLists.version(c.updateStatus()) }.getOrNull() }?.let { version = it; lastVersion = it }
     }
     SettingsFrame(scroll = false) {
         SettingsHead(Modifier.parity("settings.close", Contract.label("settings.close")).clip(CircleShape).clickable(onClick = onClose), R.drawable.np_close,

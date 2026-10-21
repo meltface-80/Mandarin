@@ -2,10 +2,13 @@ package com.musicd.server.android
 
 import android.content.Context
 import androidx.activity.ComponentActivity
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.navigation.NavHostController
@@ -61,6 +64,12 @@ internal object NativeShell {
 
     /** How many of the app's sheets have saved something over a screen: a screen whose list a sheet can change reads it again. */
     val sheetsClosed = mutableStateOf(0)
+    /**
+     * The app on screen (between MainActivity's onResume and onPause; item 120): what the screens ask the server for
+     * again and again (a room followed, today's album, the notices, the Tailscale status) is asked only while it is, not
+     * all night behind a phone switched off.
+     */
+    val onScreen = mutableStateOf(false)
     /** The side menu open over the screen (item 67; MenuDrawer.kt): the row's Menu opens it, Back closes it. */
     val menuOpen = mutableStateOf(false)
 
@@ -83,7 +92,19 @@ internal object NativeShell {
         if (id.isNullOrEmpty()) return
         zone = id
         homeArgs.value = homeArgs.value.first to id
-        store?.let { Store.setZone(it, id) }
+        // The notification and lock screen follow the room chosen now, not at their next look at the rooms (item 120).
+        store?.let { Store.setZone(it, id); NowPlayingService.start(it) }
+    }
+
+    /** Home or away now (item 119): Home in the room that plays there, this phone's away (offline has its own, OfflineNow). */
+    fun wayChanged() {
+        val c = store ?: return
+        if (OfflineNow.on) return
+        val room = Store.playRoom(c)
+        if (room.isEmpty() || room == zone) return
+        AppLog.line("ROOM", "the screens play in " + (if (room.startsWith("PHONE_")) "this phone's room" else "a room of the server's") + " now")
+        zone = room
+        homeArgs.value = homeArgs.value.first to room
     }
 
     /** A room chosen on a screen: Home's own room too, so Back finds it following that room (item 63); what's playing in the one left offered to move (item 68). */
@@ -108,7 +129,7 @@ internal object NativeShell {
         store = activity.applicationContext
         prefs = Store.homePrefs(activity)
         libraryView = runCatching { JSONObject(prefs ?: "{}").optString(ScreenPrefs.VIEW) }.getOrDefault("")
-        zone = Store.zone(activity).orEmpty()
+        zone = Store.playRoom(activity)
         homeArgs.value = prefs.orEmpty() to zone
         return ComposeView(activity).apply {
             setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
@@ -126,6 +147,8 @@ private fun Shell(client: () -> ServerClient?) {
         NativeShell.nav = nav
         onDispose { if (NativeShell.nav === nav) NativeShell.nav = null }
     }
+    LogTrace(nav)   // the log's watch, while logging is on (item 121)
+    Box(Modifier.fillMaxSize().logTaps()) {
     NavHost(navController = nav, startDestination = ShellRoute.HOME, enterTransition = { androidx.compose.animation.EnterTransition.None }, exitTransition = { androidx.compose.animation.ExitTransition.None }, popEnterTransition = { androidx.compose.animation.EnterTransition.None }, popExitTransition = { androidx.compose.animation.ExitTransition.None }) {   // no fade between screens (item 72): Navigation's own left the screen before as a ghost for 700 ms
         // Home (N5, item 57): its rows' walls, Smart Picks and an album's page open over it, and Back comes back to it as it was.
         composable(ShellRoute.HOME, arguments = listOf(navArgument(ShellRoute.PREFS) { type = NavType.StringType; defaultValue = "" }, navArgument(ShellRoute.ZONE) { type = NavType.StringType; defaultValue = "" })) {
@@ -261,4 +284,5 @@ private fun Shell(client: () -> ServerClient?) {
     }
     MenuOver(nav, client)   // the side menu over whichever screen is on (item 67)
     RoomAskOver(client); PlaylistAddOver(client)   // the question whether to move what's playing to the room chosen (item 68); Add to playlist (item 93)
+    }
 }

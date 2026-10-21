@@ -4,7 +4,8 @@
     "android/app/src/main/java/com/musicd/server/android/NativeShell.kt": "the native screens' frame: their navigation; it draws nothing of its own (the page's screens are the WebView's)",
     "android/app/src/main/java/com/musicd/server/android/Theme.kt": "Mandarin's colours and type for the native screens, as Material's theme; it draws nothing of its own",
     "android/app/src/main/java/com/musicd/server/android/RoomFollow.kt": "a room followed, and a cover fetched, for the screens that show them; it draws nothing of its own",
-    "android/app/src/main/java/com/musicd/server/android/Covers.kt": "the covers a wall's tiles show, kept once fetched; it draws nothing of its own"
+    "android/app/src/main/java/com/musicd/server/android/Covers.kt": "the covers a wall's tiles show, kept once fetched; it draws nothing of its own",
+    "android/app/src/main/java/com/musicd/server/android/AppLogUi.kt": "the app's log's watch on the screens (item 121, while logging is on): each move, what is shown, each tap; it draws nothing of its own"
   },
   "screens": {
     "now-playing": {
@@ -687,12 +688,17 @@
     },
     "settings-setup": {
       "page": "Settings' Setup: Back, Setup, a row a page (Smart Picks, Record labels, Home Screen, UI Settings, Wall Display, Shelf, Share Card, the app's Downloads, Away from home, API Keys)",
-      "native": ["android/app/src/main/java/com/musicd/server/android/SettingsScreen.kt"],
+      "native": ["android/app/src/main/java/com/musicd/server/android/SettingsScreen.kt", "android/app/src/main/java/com/musicd/server/android/SettingsLogging.kt"],
       "preview": false,
       "items": {
         "back": { "kind": "action", "label": "Back to settings" },
         "heading": { "kind": "shows" },
-        "item": { "kind": "action", "label": "{page}", "each": true }
+        "item": { "kind": "action", "label": "{page}", "each": true },
+        "logging": { "kind": "action", "label": "Logging", "only": "app", "why": "the Android app's logging (bug list item 121): the app's and the server's log, for sending to the developer; a browser has no log to send" },
+        "logging-note": { "kind": "shows", "only": "app", "why": "the Android app's logging (bug list item 121): the app's and the server's log, for sending to the developer; a browser has no log to send" },
+        "log-about": { "kind": "shows", "only": "app", "why": "the Android app's logging (bug list item 121): the app's and the server's log, for sending to the developer; a browser has no log to send" },
+        "log-save": { "kind": "action", "label": "Save log", "only": "app", "why": "the Android app's logging (bug list item 121): the app's and the server's log, for sending to the developer; a browser has no log to send" },
+        "log-clear": { "kind": "action", "label": "Clear log", "only": "app", "why": "the Android app's logging (bug list item 121): the app's and the server's log, for sending to the developer; a browser has no log to send" }
       }
     },
     "settings-account": {

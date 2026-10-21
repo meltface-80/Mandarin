@@ -28,5 +28,5 @@ test("the menu's items and the row's buttons go back to Home through the one ste
   assert.doesNotMatch(step, /nav\.popBackStack\(\)/);
   const menu = read("MenuDrawer.kt");
   assert.match(menu.slice(menu.indexOf("internal fun menuTap(")), /if \(what == "shelf"\) \{ openShelf\(context\); return \}\s+toHome\(nav\)/);
-  assert.match(routes.slice(routes.indexOf("internal fun navTap(")), /^internal fun navTap\(nav: NavHostController, what: String\) \{\s+toHome\(nav\)/);
+  assert.match(routes.slice(routes.indexOf("internal fun navTap(")), /^internal fun navTap\(nav: NavHostController, what: String\) \{\s+(AppLog\.line\("ROW", "button \$what"\)\s+)?toHome\(nav\)/);
 });

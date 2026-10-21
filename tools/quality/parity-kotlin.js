@@ -172,7 +172,7 @@ function contractKotlin(contract) {
   for (const [s, screen] of Object.entries(contract.screens)) {
     const rows = [];
     for (const [k, it] of Object.entries(screen.items)) {
-      if (it.kind !== "action" || !it.label || it.only) continue;
+      if (it.kind !== "action" || !it.label || it.only === "page") continue;
       rows.push(`        "${s}.${k}" to listOf(${[].concat(it.label).map(l => JSON.stringify(l)).join(", ")}),`);
     }
     const last = parts[parts.length - 1];

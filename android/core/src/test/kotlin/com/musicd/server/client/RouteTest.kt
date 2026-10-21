@@ -24,6 +24,31 @@ class RouteTest {
         assertTrue(Route.away(onWifi = false, homeAnswers = false, onVpn = true))
     }
 
+    @Test fun awayOnTheOwnTailscaleOnceSignedInToItUpOrNot() {
+        // Off Wi-Fi, signed in to MusicD's own Tailscale: its address (127.0.0.1:34500), even before the engine is up, and
+        // never the Tailscale app's (item 118: a stall left the app on the Tailscale app's address, which nothing answered).
+        assertEquals(Route.Way(away = true, viaEngine = true), Route.way(onWifi = false, homeAnswers = false, awayAddress = true, ownSignedIn = true))
+        // Not signed in to it: the server's Tailscale address, through the Tailscale app.
+        assertEquals(Route.Way(away = true, viaEngine = false), Route.way(onWifi = false, homeAnswers = false, awayAddress = true, ownSignedIn = false))
+        // Home: neither.
+        assertEquals(Route.Way(away = false, viaEngine = false), Route.way(onWifi = true, homeAnswers = true, awayAddress = true, ownSignedIn = true))
+        // No address away to reach the server on: home's (and offline once it doesn't answer).
+        assertEquals(Route.Way(away = false, viaEngine = false), Route.way(onWifi = false, homeAnswers = false, awayAddress = false, ownSignedIn = true))
+        // Another VPN into home, off Wi-Fi: home.
+        assertEquals(Route.Way(away = false, viaEngine = false), Route.way(onWifi = false, homeAnswers = true, onVpn = true, awayAddress = true, ownSignedIn = true))
+    }
+
+    @Test fun awayTheScreensPlayOnThePhone() {
+        // Away, the server offers only this phone to play on (item 119): the screens are in its room, not in a Sonos
+        // room the server refuses ("Away from home, only this phone plays") every time it is asked.
+        assertEquals("PHONE_ab", Route.room(away = true, kept = "RINCON_1", phone = "PHONE_ab"))
+        // Home: the room kept.
+        assertEquals("RINCON_1", Route.room(away = false, kept = "RINCON_1", phone = "PHONE_ab"))
+        // No phone room known yet (no hello): the room kept; none kept, none.
+        assertEquals("RINCON_1", Route.room(away = true, kept = "RINCON_1", phone = null))
+        assertEquals("", Route.room(away = false, kept = null, phone = "PHONE_ab"))
+    }
+
     @Test fun streamsGoAwayAsOpus() {
         val u = "$home/stream/t12.flac?s=abcdefghijklmnopqrstuv"
         assertEquals("$away/stream/t12.flac?s=abcdefghijklmnopqrstuv&q=opus", Route.rewrite(u, home, away, true))

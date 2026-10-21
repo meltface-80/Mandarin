@@ -48,15 +48,16 @@ internal class ServerReach(private val a: MainActivity) {
      */
     fun go() {
         if (Store.server(a) == null) return a.openConnect()
-        if (Store.offlineMode(a) || !Away.hasNetwork(a)) return goOffline()
+        if (Store.offlineMode(a) || !Away.hasNetwork(a)) { AppLog.line("REACH", if (Store.offlineMode(a)) "Offline mode on" else "no network"); return goOffline() }
         // No address to reach the server on at all (away, with no way there): offline, not a wait (v0.7.2).
-        val base = Store.active(a)?.baseUrl ?: run { Away.recheck(a); goOffline(); return }
+        val base = Store.active(a)?.baseUrl ?: run { AppLog.line("REACH", "no address to reach the server on", anomaly = true); Away.recheck(a); goOffline(); return }
+        AppLog.line("REACH", "to the server at $base (" + (if (Store.isAway(a)) "away" else "home") + ")")
         if (Store.token(a) == null) return a.signedOut()
         reachedOn = base
         offline = false
         reached = false
         liveFailures = 0
-        OfflineNow.goOnline(Store.zone(a).orEmpty())
+        OfflineNow.goOnline(Store.playRoom(a))
         main.removeCallbacks(serverWatch)
         checkReachable(base)
     }
@@ -66,7 +67,7 @@ internal class ServerReach(private val a: MainActivity) {
         onScreen = true
         if (offline) { lookSoon(500); return }
         val base = Store.active(a)?.baseUrl
-        if (base != null && base != reachedOn) go()
+        if (base != null && base != reachedOn) { AppLog.line("REACH", "the address changed while away from the screen: $reachedOn → $base"); go() }
         main.removeCallbacks(liveWatch)
         main.postDelayed(liveWatch, 15_000)
     }
@@ -75,6 +76,7 @@ internal class ServerReach(private val a: MainActivity) {
 
     /** The way to the server changed (home or away): the screens follow it, or, offline, the server is looked for. */
     fun moved() {
+        AppLog.line("REACH", "the way to the server changed: " + (if (Store.isAway(a)) "away" else "home") + ", ${Store.active(a)?.baseUrl}")
         if (offline) { if (Away.hasNetwork(a)) lookSoon(500); return }
         val base = Store.active(a)?.baseUrl
         if (base != null && base != reachedOn) go()
@@ -94,6 +96,7 @@ internal class ServerReach(private val a: MainActivity) {
 
     /** Offline: the screens answered by the phone, the server looked for now and then. */
     private fun goOffline() {
+        AppLog.line("REACH", "offline: the screens answered by the phone (" + (if (Store.offlineMode(a)) "Offline mode" else "the server can't be reached") + ")", anomaly = !Store.offlineMode(a))
         offline = true
         reached = false
         ++seq
@@ -125,6 +128,7 @@ internal class ServerReach(private val a: MainActivity) {
             }
             main.post {
                 if (mine != seq || offline || a.isFinishing) return@post
+                AppLog.line("REACH", if (ok) "the server answered" else "the server didn't answer three looks over about ten seconds", anomaly = !ok)
                 if (ok) { reached = true; OfflineSite.sync(a) } else { Away.recheck(a); goOffline() }
             }
         }
@@ -143,6 +147,7 @@ internal class ServerReach(private val a: MainActivity) {
                 main.post {
                     if (a.isFinishing) return@post
                     liveFailures = if (ok) 0 else liveFailures + 1
+                    if (!ok) AppLog.line("REACH", "the live look at $base missed ($liveFailures in a row)", anomaly = true)
                     if (ok) OfflineSite.sync(a)
                     if (liveFailures >= 2 && !offline && reachedOn == was) { liveFailures = 0; Away.recheck(a); goOffline() }
                     main.postDelayed(this, 15_000)
@@ -167,7 +172,7 @@ internal class ServerReach(private val a: MainActivity) {
                 val back = Store.active(a)?.baseUrl?.let { answers(it, 2500) } ?: false
                 main.post {
                     if (!offline || a.isFinishing) return@post
-                    if (back) go() else main.postDelayed(this, 10_000)
+                    if (back) { AppLog.line("REACH", "the server is back"); go() } else main.postDelayed(this, 10_000)
                 }
             }
         }
@@ -179,6 +184,7 @@ internal class ServerReach(private val a: MainActivity) {
      */
     private val netWatch = object : ConnectivityManager.NetworkCallback() {
         override fun onLost(network: Network) {
+            AppLog.line("REACH", "a network went" + if (Away.hasNetwork(a)) " (another is still up)" else " (none left)")
             main.postDelayed({
                 if (a.isFinishing || offline) return@postDelayed
                 if (Away.hasNetwork(a)) {
@@ -192,6 +198,7 @@ internal class ServerReach(private val a: MainActivity) {
         }
 
         override fun onAvailable(network: Network) {
+            AppLog.line("REACH", "a network came")
             main.post { if (!a.isFinishing && offline) lookSoon(1_500) }
         }
     }

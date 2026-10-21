@@ -14,7 +14,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 
-# (id, emoji, title, new in v1.1.0, what it is, how to set it up and use it)
+# (id, emoji, title, new in v1.1.1, what it is, how to set it up and use it)
 FEATURES = [
     # ---- Home and finding music
     ("home", "🏠", "Home", False,
@@ -217,7 +217,7 @@ FEATURES = [
      "in **Settings → Setup → Wall Display**; off, it is off entirely. Tap the screen for its "
      "controls; **Shelf ›** opens Shelf."),
     # ---- The Android app
-    ("android", "📱", "The Android app", True,
+    ("android", "📱", "The Android app", False,
      "Mandarin's interface drawn natively by the app, plus lock-screen and notification controls, volume "
      "keys, a widget, a Quick Settings tile, a share sheet, Android Auto and its own updates.",
      "Download [mandarin-android.apk](https://github.com/meltface-80/Mandarin/raw/main/dist/mandarin-android.apk) "
@@ -293,6 +293,12 @@ FEATURES = [
      "Then **☰ → Tidal** to search and play; **+** on a cover adds an album to your Tidal favourites "
      "(a **✓** once added) and so to the library, as does **⋯ → Add to Tidal favourites** on its page. "
      "Details under [Tidal](#tidal)."),
+    ("logging", "📝", "Logging", True,
+     "Off by default. Switched on, the Android app and the server log what happened, without personal "
+     "data, for you to send to the developer when something goes wrong.",
+     "In the Android app, **Settings → Setup → Logging**. Use the app as you normally would for 24 hours, "
+     "then tap **Save log** (it goes to Downloads/Mandarin) and send the file. Look through it first. "
+     "Switching logging off deletes the log, the server's part too. Details under [Logs](#logs)."),
     ("updates", "🔄", "Updates", False,
      "The server updates itself from GitHub from Settings and checks every 12 hours. In the Android app "
      "one Update does the server first, then the app.",
@@ -320,7 +326,7 @@ def md_inline_to_html(s):
 def readme_block():
     lines = ["Every feature below has an **ⓘ**: open it for how to switch the feature on and use it.", ""]
     for i, (fid, em, title, new, what, how) in enumerate(FEATURES):
-        lines.append("%s **%s**%s" % (em, title, " — *new in v1.1.0*" if new else ""))
+        lines.append("%s **%s**%s" % (em, title, " — *new in v1.1.1*" if new else ""))
         lines.append("")
         lines.append(what)
         lines.append("")

@@ -16,13 +16,30 @@ object Menu {
 
     /**
      * The rows offered, from `/api/settings/labels`, `/qobuz`, `/tidal` and `/shelf` as the page reads them
-     * (labels-albums.js, settings-services.js, features.js): an answer missing (null) leaves its row as the markup has it.
+     * (labels-albums.js, settings-services.js, features.js): an answer missing (null) leaves its row as it was ([d]: as last
+     * seen, else as the markup has it).
      */
-    fun items(labels: JSONObject?, qobuz: JSONObject?, tidal: JSONObject?, shelf: JSONObject?): Items {
-        val d = Items()
+    fun items(labels: JSONObject?, qobuz: JSONObject?, tidal: JSONObject?, shelf: JSONObject?, d: Items = Items()): Items {
         return Items(labels?.optBoolean("enabled") ?: d.labels, qobuz?.optBoolean("connected") ?: d.qobuz,
             tidal?.optBoolean("connected") ?: d.tidal, shelf?.optBoolean("enabled") ?: d.shelf)
     }
+
+    /** Before the server has ever said (the menu never opened): the rows that come and go not drawn, so none is taken away. */
+    val UNKNOWN = Items(labels = false, qobuz = false, tidal = false, shelf = false)
+
+    /**
+     * The rows and the server's status as last answered, kept for the next opening (item 122): the menu opens as it was
+     * last seen and then follows the server, rather than opening as the markup has it and changing under the finger.
+     */
+    fun keep(items: Items, status: JSONObject?): String = JSONObject().put("labels", items.labels).put("qobuz", items.qobuz)
+        .put("tidal", items.tidal).put("shelf", items.shelf).put("status", status ?: JSONObject.NULL).toString()
+
+    /** The rows kept ([keep]), or null when none are. */
+    fun keptItems(s: String?): Items? = s?.let { runCatching { JSONObject(it) }.getOrNull() }
+        ?.let { Items(it.optBoolean("labels"), it.optBoolean("qobuz"), it.optBoolean("tidal"), it.optBoolean("shelf")) }
+
+    /** The server's status kept ([keep]), or null. */
+    fun keptStatus(s: String?): JSONObject? = s?.let { runCatching { JSONObject(it) }.getOrNull() }?.optJSONObject("status")
 
     /** Offline mode's row, on one line, with On or Off after its name (the owner's wording, item 98). */
     fun offlineSub(on: Boolean): String = "Offline Mode - " + if (on) "On" else "Off"

@@ -61,10 +61,19 @@ internal static partial class Server
         Cpu.Resume();
     }
 
-    // Stamped as the Node server stamped its lines.
+    // Stamped as the Node server stamped its lines. A line made already: kept for diagnostics by its tag alone (item 121).
     public static void Log(string s)
     {
         lock (logLock) Console.WriteLine(DateTime.UtcNow.ToString("HH:mm:ss", System.Globalization.CultureInfo.InvariantCulture) + " " + s);
+        if (Diagnostics.On) Diagnostics.Record(Diagnostics.TagOnly(s));
+    }
+
+    // A line written here ($"..."): kept for diagnostics with its words, and only the values that can't be anyone's (LogLine.cs).
+    public static void Log(LogLine line)
+    {
+        var s = line.Text();
+        lock (logLock) Console.WriteLine(DateTime.UtcNow.ToString("HH:mm:ss", System.Globalization.CultureInfo.InvariantCulture) + " " + s);
+        Diagnostics.Record(line.Kept());
     }
 
     // The app's folder, with the page (public/index.html): beside this program,

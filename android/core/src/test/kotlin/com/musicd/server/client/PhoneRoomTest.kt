@@ -45,7 +45,9 @@ class PhoneRoomTest {
         assertEquals(listOf("This phone"), client.rooms().map { it.name })
         assertEquals("PHONE_1", client.zones().lastZone)
         val z = client.zoneState("PHONE_1", waitFor = 9).zone!!
-        assertEquals(9L to 1500L, deck.waited)
+        // Held as long as asked (the server's 20 s), as the server holds it (item 120: held 1.5 s, a screen's room was
+        // asked for 40 times a minute offline).
+        assertEquals(9L to 20_000L, deck.waited)
         assertEquals("Come Together", z.nowPlaying?.title)
         assertEquals("3", z.nowPlaying?.albumId)
         assertEquals("Lossless · DSP", z.nowPlaying?.format?.text)

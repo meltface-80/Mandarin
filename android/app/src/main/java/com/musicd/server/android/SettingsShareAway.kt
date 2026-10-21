@@ -137,7 +137,10 @@ internal fun AwayPane(client: () -> ServerClient?, onBack: () -> Unit, info: (St
     var read by remember { mutableStateOf(false) }
     var busy by remember { mutableStateOf(false) }
     var err by remember { mutableStateOf("") }
-    LaunchedEffect(Unit) {
+    // While the app is on screen (item 120: every three seconds behind the Tailscale app too, while signing in there).
+    val onScreen by NativeShell.onScreen
+    LaunchedEffect(onScreen) {
+        if (!onScreen) return@LaunchedEffect
         while (true) {
             if (!busy) client()?.let { c -> st = withContext(Dispatchers.IO) { runCatching { c.tailscale() }.getOrNull() }; read = true }
             delay(3000)
