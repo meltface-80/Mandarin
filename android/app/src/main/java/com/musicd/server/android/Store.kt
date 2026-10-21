@@ -87,6 +87,10 @@ object Store {
     fun offlineMode(context: Context): Boolean = prefs(context).getBoolean("offline_mode", false)
     fun setOfflineMode(context: Context, on: Boolean) { prefs(context).edit().putBoolean("offline_mode", on).apply() }
 
+    /** The side menu as last seen (core Menu.keep, item 122), for it to open the same. */
+    fun menuKept(context: Context): String? = prefs(context).getString("menu_kept", null)
+    fun setMenuKept(context: Context, kept: String) { prefs(context).edit().putString("menu_kept", kept).apply() }
+
     /** Logging (Settings → Setup, item 121): off unless switched on. */
     fun logging(context: Context): Boolean = prefs(context).getBoolean("logging", false)
     fun setLogging(context: Context, on: Boolean) { prefs(context).edit().putBoolean("logging", on).apply() }

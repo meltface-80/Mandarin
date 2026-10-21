@@ -87,13 +87,17 @@ internal fun SettingsScreen(pane: String, client: () -> ServerClient?, onBack: (
 
 /** The pages the app draws itself (Setup's small ones in SettingsSetup.kt, item 78; Services, item 87); Setup is its list. */
 
+/** Settings' foot as last read (item 122). */
+private var lastVersion = "Mandarin"
+
 @Composable
 private fun SettingsHome(client: () -> ServerClient?, onClose: () -> Unit, open: (String) -> Unit) {
     val context = LocalContext.current
-    var version by rememberSaveable { mutableStateOf("Mandarin") }
+    // The version as last read, so the foot doesn't change as Settings opens (item 122); then the server's.
+    var version by rememberSaveable { mutableStateOf(lastVersion) }
     LaunchedEffect(Unit) {
         val c = client() ?: return@LaunchedEffect
-        withContext(Dispatchers.IO) { runCatching { SettingsLists.version(c.updateStatus()) }.getOrNull() }?.let { version = it }
+        withContext(Dispatchers.IO) { runCatching { SettingsLists.version(c.updateStatus()) }.getOrNull() }?.let { version = it; lastVersion = it }
     }
     SettingsFrame(scroll = false) {
         SettingsHead(Modifier.parity("settings.close", Contract.label("settings.close")).clip(CircleShape).clickable(onClick = onClose), R.drawable.np_close,

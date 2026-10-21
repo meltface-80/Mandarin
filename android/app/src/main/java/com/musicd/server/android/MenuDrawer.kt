@@ -125,8 +125,11 @@ private fun MenuDrawer(zoom: Double, client: () -> ServerClient?, scope: Corouti
     // min(82vw, 320px); its insides at the UI Settings' menu size (style.css: .menu-drawer > * { zoom: var(--ui-menu) }).
     val width = minOf(LocalConfiguration.current.screenWidthDp * 0.82f, 320f).dp
     val widthPx = with(density) { width.toPx() }
-    var sub by remember { mutableStateOf("") }
-    var items by remember { mutableStateOf(Menu.Items()) }
+    // Opened as it was last seen, then following the server (item 122: it opened as the markup has it, Labels and Shelf
+    // drawn, then took them away and put the rescan line in as the server answered, at each opening).
+    val kept = remember { Store.menuKept(context) }
+    var sub by remember { mutableStateOf(Menu.rescanSub(Menu.keptStatus(kept), System.currentTimeMillis())) }
+    var items by remember { mutableStateOf(Menu.keptItems(kept) ?: Menu.UNKNOWN) }
     var offline by remember { mutableStateOf(Store.offlineMode(context)) }
     var power by remember { mutableStateOf(false) }
     var powerInfo by remember { mutableStateOf<JSONObject?>(null) }
@@ -138,9 +141,11 @@ private fun MenuDrawer(zoom: Double, client: () -> ServerClient?, scope: Corouti
             fun ask(path: String) = async { runCatching { c.getJson(path) }.getOrNull() }
             val st = ask("/api/status"); val l = ask("/api/settings/labels"); val q = ask("/api/settings/qobuz")
             val t = ask("/api/settings/tidal"); val sh = ask("/api/settings/shelf")
-            st.await() to Menu.items(l.await(), q.await(), t.await(), sh.await())
+            st.await() to Menu.items(l.await(), q.await(), t.await(), sh.await(), items)
         }
-        sub = Menu.rescanSub(status, System.currentTimeMillis()); items = shown
+        if (shown != items) AppLog.line("MENU", "its rows changed as the server answered: $items, then $shown", anomaly = kept != null)
+        sub = Menu.rescanSub(status ?: Menu.keptStatus(kept), System.currentTimeMillis()); items = shown
+        Store.setMenuKept(context, Menu.keep(shown, status ?: Menu.keptStatus(kept)))
     }
     LaunchedEffect(power) {
         val c = client() ?: return@LaunchedEffect
