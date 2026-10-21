@@ -42,8 +42,22 @@ class ExitReportTest {
 
     @Test
     fun `faults are said whenever they came`() {
-        for (r in listOf(ExitReport.EXCESSIVE_RESOURCE_USAGE, ExitReport.FREEZER, ExitReport.ANR, ExitReport.CRASH_NATIVE, ExitReport.DEPENDENCY_DIED))
+        for (r in listOf(ExitReport.EXCESSIVE_RESOURCE_USAGE, ExitReport.ANR, ExitReport.CRASH_NATIVE, ExitReport.DEPENDENCY_DIED))
             assertTrue("reason $r", ExitReport.worth(exit(1, r, ExitReport.CACHED)))
+    }
+
+    @Test
+    fun `frozen while idle is a clean-up, kept for the log alone`() {
+        // Item 125: 21 October 18:49, six minutes after the phone's player had stopped itself, idle (400), and a note
+        // at the next start as if something had gone wrong.
+        val frozen = exit(10, ExitReport.FREEZER, ExitReport.CACHED, "[FREEZER BINDER TRANSACTION] Sync transaction while frozen")
+        assertFalse(ExitReport.worth(frozen))
+        assertNull(ExitReport.pick(listOf(frozen), 5))
+        val low = exit(8, ExitReport.LOW_MEMORY, ExitReport.CACHED)
+        assertEquals(listOf(low, frozen), ExitReport.quiet(listOf(frozen, low, exit(3, ExitReport.LOW_MEMORY, ExitReport.CACHED)), 5))
+        assertEquals(emptyList<AppExit>(), ExitReport.quiet(listOf(frozen), null))
+        // In use it would still be said.
+        assertTrue(ExitReport.worth(exit(1, ExitReport.FREEZER, ExitReport.FOREGROUND_SERVICE)))
     }
 
     @Test

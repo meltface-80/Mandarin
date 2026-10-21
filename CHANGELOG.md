@@ -1,6 +1,13 @@
 # Changelog
 
 ## Unreleased
+- `125-frozen-idle-no-note`: in the Android app, Android ending the app while it is idle in the background and frozen
+  no longer brings up "Mandarin stopped in the background" at the next start. It happened again at 18:49 on 21
+  October, six minutes after the phone's player had stopped itself (item 124), with no player and no media session
+  left: another app called on the frozen app and had to wait for it ("Sync transaction while frozen"), and Android
+  ends a frozen app for that, whoever the caller. The app loses nothing it doesn't bring back (the screen it was on,
+  the phone's queue, paused), so this is Android's clean-up, like being short of memory, which never had a note. With
+  logging on, such endings are still written in the log ("no note: …").
 - `124-frozen-in-background`: in the Android app, "This phone" stops itself when it has not played for five minutes
   and the app is off screen, so Android no longer ends the app in the background. Paused, Media3 keeps the player's
   service in the foreground for ten minutes and then lets it go; Android then froze the app with the player's media
