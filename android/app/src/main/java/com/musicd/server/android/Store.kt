@@ -2,6 +2,7 @@ package com.musicd.server.android
 
 import android.content.Context
 import com.musicd.server.client.ReplayGain
+import com.musicd.server.client.Route
 import com.musicd.server.client.ServerAddress
 import com.musicd.server.client.ServerClient
 
@@ -144,6 +145,10 @@ object Store {
 
     fun zone(context: Context): String? =
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(KEY_ZONE, null)
+
+    /** The room the screens play in now (item 119): the one kept, or away this phone's, the only one the server offers there. */
+    fun playRoom(context: Context): String =
+        Route.room(isAway(context), zone(context), prefs(context).getString("phone_zone", null))
 
     fun setZone(context: Context, zoneId: String?) {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString(KEY_ZONE, zoneId).apply()

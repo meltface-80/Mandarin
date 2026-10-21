@@ -86,6 +86,16 @@ internal object NativeShell {
         store?.let { Store.setZone(it, id) }
     }
 
+    /** Home or away now (item 119): Home in the room that plays there, this phone's away (offline has its own, OfflineNow). */
+    fun wayChanged() {
+        val c = store ?: return
+        if (OfflineNow.on) return
+        val room = Store.playRoom(c)
+        if (room.isEmpty() || room == zone) return
+        zone = room
+        homeArgs.value = homeArgs.value.first to room
+    }
+
     /** A room chosen on a screen: Home's own room too, so Back finds it following that room (item 63); what's playing in the one left offered to move (item 68). */
     fun roomChosen(id: String) { RoomAsk.chosen(zone, id); keepZone(id) }
 
@@ -108,7 +118,7 @@ internal object NativeShell {
         store = activity.applicationContext
         prefs = Store.homePrefs(activity)
         libraryView = runCatching { JSONObject(prefs ?: "{}").optString(ScreenPrefs.VIEW) }.getOrDefault("")
-        zone = Store.zone(activity).orEmpty()
+        zone = Store.playRoom(activity)
         homeArgs.value = prefs.orEmpty() to zone
         return ComposeView(activity).apply {
             setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)

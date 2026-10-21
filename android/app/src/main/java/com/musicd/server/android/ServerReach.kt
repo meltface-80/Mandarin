@@ -56,7 +56,7 @@ internal class ServerReach(private val a: MainActivity) {
         offline = false
         reached = false
         liveFailures = 0
-        OfflineNow.goOnline(Store.zone(a).orEmpty())
+        OfflineNow.goOnline(Store.playRoom(a))
         main.removeCallbacks(serverWatch)
         checkReachable(base)
     }
