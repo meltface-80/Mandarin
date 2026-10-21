@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+- `117-stay-on-screen-offline`: in the Android app, the server going or coming back no longer takes you to Home. Both
+  closed every screen over Home (`OfflineNow.goOffline` and `goOnline`), so Wi-Fi coming back while Settings → Away from
+  home was open left you on Home with the way back in to tap again; going offline did the same from an album's page or
+  Now playing. Now the screen on show stays and the side menu stays open; Home's rows are read afresh for when it is
+  next shown, in the room that plays now.
+
 ## v1.1.0
 - `115-menu-settings-close` (folded into v1.1.0): in the Android app, Settings, Playlists and the side menu's other
   pages couldn't be closed when opened from Home (their ✕ and ‹ did nothing). The menu's "every screen over Home
