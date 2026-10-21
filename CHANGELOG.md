@@ -1,6 +1,22 @@
 # Changelog
 
-## Unreleased
+## v1.1.1
+
+**Logging has been added to the server and the Android app, and is off by default.** When something isn't right,
+switch it on in the app (Settings → Setup → Logging), use the app as you normally would for 24 hours, then tap Save
+log: the app's log and the server's are saved together to Downloads/Mandarin on the phone, for you to send to the
+developer. While logging is off, nothing is collected. The log is made without personal data: no IP addresses
+(home, Tailscale or internet), no names of people, rooms or devices, nothing you play or search for, no files or
+folders and no account details. Please look through it before you send it. Clear log empties it, and switching
+logging off deletes it, the server's part too. What it captures and what it leaves out:
+[Logs](https://meltface-80.github.io/Mandarin/#logs).
+
+Also in the Android app: the screen you are on stays put when the server goes or comes back; away from home the
+screens play on this phone; leaving the Wi-Fi switches to the way away at once; the app asks the server for less
+while it's off screen; the side menu opens as it was last seen; a cover changed in the album editor shows on the
+Library at once.
+
+The details, item by item:
 - `123-library-new-cover`: in the Android app, a cover found or changed in the album editor shows on the Library wall,
   the other walls and the search at once. They are kept as loaded while the app runs (and a playing phone keeps it
   running, the screen made again or not), and nothing told them the album's cover had a new key: two albums given
