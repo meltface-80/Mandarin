@@ -78,6 +78,8 @@ internal fun SettingsScreen(pane: String, client: () -> ServerClient?, onBack: (
             Column(Modifier.padding(horizontal = 4.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 for (row in SettingsLists.SETUP) SettingsNavRow(row, Modifier.parity("settings-setup.item", Contract.label("settings-setup.item", 0, row.title)).clip(RoundedCornerShape(10.dp)).clickable { open(row.pane) })
             }
+            // Under API Keys, the app's own (item 121, SettingsLogging.kt).
+            LoggingBlock()
         }
         else -> SettingsHome(client, onBack, open)
     }

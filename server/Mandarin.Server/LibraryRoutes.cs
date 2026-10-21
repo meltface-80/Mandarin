@@ -154,8 +154,8 @@ internal static partial class Library
             if (await PlaybackRoutes.Route(ctx) || await AdminRoute(ctx)) return;
             // Restart, Shut down and the processor split (v0.8.31, PowerRoutes.cs): nor here.
             if (await PowerRoute(ctx)) return;
-            // Settings → Updates (v0.8.48, UpdateRoutes.cs).
-            if (await UpdateRoute(ctx)) return;
+            // Settings → Updates (v0.8.48, UpdateRoutes.cs); the app's logging's server side (item 121, DiagnosticsRoutes.cs).
+            if (await UpdateRoute(ctx) || await DiagnosticsRoute(ctx)) return;
             // Audio Devices: the writes (v0.8.48, DeviceRoutes.cs); the list, a device's page, Look again and Forget (v0.8.49, DeviceRoutes.Read.cs) once this server holds playback.
             if (await DeviceRoute(ctx) || await DeviceReadRoute(ctx)) return;
             // /api/status, Clean up and the wall display's content (v0.8.48, HousekeepingRoutes.cs).

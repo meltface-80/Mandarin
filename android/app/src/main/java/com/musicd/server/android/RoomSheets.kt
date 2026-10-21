@@ -22,6 +22,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -247,6 +248,8 @@ private fun DevButton(modifier: Modifier, word: String, lit: Boolean) {
  */
 internal object RoomAsk {
     val asked = mutableStateOf<Pair<String, String>?>(null)
+    /** The question drawn (for the log, item 121: asked, it is first checked, and drawn only if the room left is playing). */
+    val drawn = mutableStateOf(false)
     fun chosen(from: String, to: String) { if (from.isNotEmpty() && to.isNotEmpty() && from != to) asked.value = from to to }
 }
 
@@ -274,6 +277,7 @@ internal fun RoomAskOver(client: () -> ServerClient?) {
     }
     val q = question ?: return
     val (from, to) = ask ?: return
+    DisposableEffect(Unit) { RoomAsk.drawn.value = true; onDispose { RoomAsk.drawn.value = false } }
     ConfirmDialog(q) { yes ->
         question = null; RoomAsk.asked.value = null
         val c = client()

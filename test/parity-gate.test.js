@@ -95,7 +95,21 @@ test("the contract itself: kinds, labels, the page's alone with a reason, in a c
   c.screens.play.items.mine = { kind: "action", label: "x", only: "page" };
   c.screens.play.items.deep = { kind: "shows", in: "title" };
   assert.deepEqual(validate(c).map(f => f.replace(/^.*?: play\./, "")), [
-    'odd: kind is "button", not action or shows', "mute: a control with no label", 'mine: only "page", and why', 'deep: in "title", which is not a control of play']);
+    'odd: kind is "button", not action or shows', "mute: a control with no label", 'mine: only "page" or "app", and why', 'deep: in "title", which is not a control of play']);
+});
+
+test("the app's alone (item 121, its logging): keyed and labelled in the app, never asked of the page", () => {
+  const log = { log: { kind: "action", label: "Save log", only: "app", why: "the app's logging" } };
+  const items = (x) => ({ items: Object.assign({}, contract().screens.play.items, x), preview: false });
+  const withLog = SCREEN.replace("    }\n}", '        TextButton(onClick = {}, modifier = Modifier.parity("play.log", Contract.label("play.log"))) { Text("Save log") }\n    }\n}');
+  assert.deepEqual(run(withLog, items(log)).findings, []);
+  assert.match(run(SCREEN, items(log)).findings.join("\n"), /play\.log: the app's alone, and not in the app \(PlayScreen\.kt\)/);
+  const c = contract(); c.screens.play.items.log = log.log;
+  assert.deepEqual(validate(c), []);
+  assert.deepEqual(onPage(c, '"play.back" "play.title" "play.play" "play.desk"'), [], "the page needn't carry it");
+  assert.match(Object.values(contractKotlin(c)).join("\n"), /"play\.log" to listOf\("Save log"\)/);
+  c.screens.play.items.log = { kind: "action", label: "Save log", only: "app" };
+  assert.match(validate(c).join("\n"), /log: only "page" or "app", and why/);
 });
 
 test("Contract.kt is the contract's labels; the gate refuses one written by hand, the gaps list one that grows", () => {
