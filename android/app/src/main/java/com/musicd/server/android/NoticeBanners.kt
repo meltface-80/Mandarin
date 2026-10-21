@@ -95,8 +95,10 @@ internal object Notices {
 internal fun NoticeBanners(zoom: Double, client: () -> ServerClient?, onPage: (String, String?) -> Unit) {
     val now by Notices.now
     val again by Notices.watchAgain
-    LaunchedEffect(again) { Notices.watch(client) }
-    LaunchedEffect(Unit) { UpdateNow.watch() }
+    // Asked while the app is on screen (item 120: the status every minute all night too).
+    val onScreen by NativeShell.onScreen
+    LaunchedEffect(again, onScreen) { if (onScreen) Notices.watch(client) }
+    LaunchedEffect(onScreen) { if (onScreen) UpdateNow.watch() }
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var asking by remember { mutableStateOf<Pair<Int, String>?>(null) }

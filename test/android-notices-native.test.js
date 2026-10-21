@@ -23,7 +23,8 @@ test("the app works out the server's notice and forgets a folder itself", () => 
 
 test("the update offer is the app's own: looked for while Home is on, its buttons the app's", () => {
   assert.ok(!fs.existsSync(path.join(APP, "AppBridge.kt")));
-  assert.match(read("NoticeBanners.kt"), /LaunchedEffect\(Unit\) \{ UpdateNow\.watch\(\) \}/);
+  // While the app is on screen as well (item 120).
+  assert.match(read("NoticeBanners.kt"), /LaunchedEffect\(onScreen\) \{ if \(onScreen\) UpdateNow\.watch\(\) \}/);
   const u = read("UpdateNow.kt");
   assert.match(u, /offer = UpdateBanner\.offer\(s, a, dismissed\)\s+show\(offer\?\.banner\)/);
   assert.match(u, /c\.post\("\/api\/update\/apply", JSONObject\(\)\)/);

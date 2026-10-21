@@ -53,8 +53,11 @@ private val kept = HashMap<String, RoomState>()
 @Composable
 internal fun followRoom(zoneId: String, client: () -> ServerClient?): RoomState {
     val room = remember(zoneId) { kept.getOrPut(zoneId) { RoomState() } }
-    LaunchedEffect(zoneId) {
-        if (zoneId.isEmpty()) return@LaunchedEffect
+    // Followed while the app is on screen (item 120: it was all night too, beside the notification's own following);
+    // back on screen, asked for at once.
+    val onScreen by NativeShell.onScreen
+    LaunchedEffect(zoneId, onScreen) {
+        if (zoneId.isEmpty() || !onScreen) return@LaunchedEffect
         var revision: Long? = null
         var missed = 0
         while (isActive) {

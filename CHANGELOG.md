@@ -1,6 +1,14 @@
 # Changelog
 
 ## Unreleased
+- `120-background-polling-trimmed`: the Android app asks the server for less while nobody is looking. With the app off
+  screen and nothing playing it asked 11 to 14 times a minute until Android froze it: the room followed by the
+  screen's mini player as well as by the notification, the rooms before every wait on the room, the server's status
+  and today's album every minute. Now the screens' repeated asks (the room followed, today's album, the notices,
+  Settings → Away from home's Tailscale status) run only while the app is on screen (`NativeShell.onScreen`, between
+  MainActivity's onResume and onPause), and are asked at once when it comes back; the notification looks at the rooms
+  every five minutes, woken at once by a room chosen in the app. Offline, the phone's answer about its room is held as
+  long as asked (20 s, as the server's), not 1.5 s, which had a screen asking 40 times a minute.
 - `119-away-phone-room`: in the Android app, away from home the screens play in this phone's room, the only one the
   server offers there (core `Route.room`, `Store.playRoom`), and in the room kept again at home. They stayed in the
   Sonos room kept from home: the mini player asked for it every 2 s and the server refused each time ("Away from home,

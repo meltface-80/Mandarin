@@ -76,8 +76,11 @@ internal fun HomeScreen(prefs: WallPrefs, zoneId: String, client: () -> ServerCl
     // Each time Home comes on screen, its rows as the page loads them on a visit; today's album asked for every minute while it stays.
     // Read again when the app goes offline or comes back (item 109): the phone's answers, or the server's.
     val offline by OfflineNow.kind
-    LaunchedEffect(offline) {
-        HomeKept.refresh(scope, context, client(), NativeShell.libraryView)
+    LaunchedEffect(offline) { HomeKept.refresh(scope, context, client(), NativeShell.libraryView) }
+    // Today's album while the app is on screen (item 120: every minute all night too).
+    val onScreen by NativeShell.onScreen
+    LaunchedEffect(offline, onScreen) {
+        if (!onScreen) return@LaunchedEffect
         while (true) { delay(60_000); client()?.let { HomeKept.refreshAotd(it) } }
     }
     LaunchedEffect(HomeKept.toTop) { if (HomeKept.toTop) { HomeKept.list.scrollToItem(0); HomeKept.toTop = false } }
