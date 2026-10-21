@@ -198,6 +198,11 @@ internal object Walls {
     private val kept = HashMap<String, WallKept>()
     @Synchronized fun state(id: String, kind: String): WallKept = kept.getOrPut(id) { WallKept(kind) }
 
+    /** Album [offset]'s cover read afresh ([LibraryWall.coverIs], item 123): put right on every wall held. */
+    @Synchronized fun coverIs(offset: Long, imageKey: String?) {
+        for (w in kept.values) for ((i, a) in com.musicd.server.client.AlbumCovers.fixes(w.albums, offset, imageKey)) w.albums[i] = a
+    }
+
     /** The wall's heading, as the page's. */
     fun title(kind: String): String = when (kind) {
         "later" -> "Listen later"; "favourites" -> "Favourites"; "history" -> "Recently played"; "unplayed" -> "Not played in 6 months"

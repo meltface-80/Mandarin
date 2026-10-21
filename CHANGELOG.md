@@ -1,6 +1,11 @@
 # Changelog
 
 ## Unreleased
+- `123-library-new-cover`: in the Android app, a cover found or changed in the album editor shows on the Library wall,
+  the other walls and the search at once. They are kept as loaded while the app runs (and a playing phone keeps it
+  running, the screen made again or not), and nothing told them the album's cover had a new key: two albums given
+  their covers still showed the drawn placeholders. Now the album's page, each time it reads the album, puts its cover
+  right wherever a kept list shows an older one (core `AlbumCovers`, `LibraryWall.coverIs`).
 - `122-glitch`: in the Android app, the side menu opens as it was last seen. It opened as the page's markup has it,
   Labels and Shelf drawn, then took them away when the server answered they were switched off, and the rescan line
   ("13,549 albums · checked 2 hours ago") came in under them and moved Settings down: at every opening, a moment after
