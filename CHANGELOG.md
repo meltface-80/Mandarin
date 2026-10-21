@@ -1,6 +1,13 @@
 # Changelog
 
 ## Unreleased
+- `118-away-way-at-once`: in the Android app, the way to the server (home or away) is taken as soon as it is decided,
+  before it is connected (`Away.check`). Off the Wi-Fi the app used to go on asking the home address while it waited
+  for the way away to come up: 22 s for the Tailscale app at 07:53 one morning, every request waiting out its 5 s.
+  And a phone signed in to MusicD's own Tailscale stays on it (127.0.0.1:34500) while its engine comes up or starts
+  afresh after a stall (core `Route.way`); before, it was moved to the Tailscale app's address, which nothing answered
+  on that phone, and went offline until the engine was back. The Tailscale app is asked only on a phone not signed in
+  to MusicD's own.
 - `117-stay-on-screen-offline`: in the Android app, the server going or coming back no longer takes you to Home. Both
   closed every screen over Home (`OfflineNow.goOffline` and `goOnline`), so Wi-Fi coming back while Settings → Away from
   home was open left you on Home with the way back in to tap again; going offline did the same from an album's page or
