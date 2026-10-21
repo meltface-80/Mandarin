@@ -39,7 +39,7 @@ class MainActivity : androidx.activity.ComponentActivity() {
     }
 
     private lateinit var reach: ServerReach
-    private val onAway: (Boolean) -> Unit = { if (::reach.isInitialized) reach.moved() }
+    private val onAway: (Boolean) -> Unit = { NativeShell.wayChanged(); if (::reach.isInitialized) reach.moved() }
 
     /** The USB port changed (a DAC in or out, permission answered): the phone's player follows. */
     private val onUsb: () -> Unit = { runOnUiThread { PhonePlayerService.current?.usbChanged() } }

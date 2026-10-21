@@ -35,6 +35,9 @@ object Route {
         return Way(away, away && ownSignedIn)
     }
 
+    /** The room the screens play in: [kept] at home; away, this phone's ([phone], once known). */
+    fun room(away: Boolean, kept: String?, phone: String?): String = if (away && !phone.isNullOrEmpty()) phone else kept.orEmpty()
+
     /**
      * [url] on the address in use: [home] or [away] (base URLs). A track's
      * stream away asks for Opus (`q=opus`) when [opus] (your choice; else the

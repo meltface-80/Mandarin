@@ -11,6 +11,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import com.musicd.server.client.NowPlayingView
+import com.musicd.server.client.Retry
 import com.musicd.server.client.ServerClient
 import com.musicd.server.client.VolumeScale
 import kotlinx.coroutines.Dispatchers
@@ -55,10 +56,14 @@ internal fun followRoom(zoneId: String, client: () -> ServerClient?): RoomState 
     LaunchedEffect(zoneId) {
         if (zoneId.isEmpty()) return@LaunchedEffect
         var revision: Long? = null
+        var missed = 0
         while (isActive) {
             val c = client()
             val st = if (c == null) null else withContext(Dispatchers.IO) { runCatching { c.zoneState(zoneId, revision) }.getOrNull() }
-            if (st == null) { delay(2000); continue }
+            // Not answered (the server away, or a room it won't offer: a Sonos room away from home): asked again less
+            // and less often, 2 s up to half a minute (item 119: it was every 2 s for as long as the screen was up).
+            if (st == null) { delay(Retry.ms(++missed)); continue }
+            missed = 0
             revision = st.revision
             room.zoneName = st.zone?.name
             room.volume = st.zone?.outputs?.firstNotNullOfOrNull { it.scale }

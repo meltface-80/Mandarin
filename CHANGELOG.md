@@ -1,6 +1,11 @@
 # Changelog
 
 ## Unreleased
+- `119-away-phone-room`: in the Android app, away from home the screens play in this phone's room, the only one the
+  server offers there (core `Route.room`, `Store.playRoom`), and in the room kept again at home. They stayed in the
+  Sonos room kept from home: the mini player asked for it every 2 s and the server refused each time ("Away from home,
+  only this phone plays"), 46 times in two minutes one morning. And a room that isn't answered is asked for less and
+  less often, 2 s up to half a minute (core `Retry`), not every 2 s for as long as the screen is up.
 - `118-away-way-at-once`: in the Android app, the way to the server (home or away) is taken as soon as it is decided,
   before it is connected (`Away.check`). Off the Wi-Fi the app used to go on asking the home address while it waited
   for the way away to come up: 22 s for the Tailscale app at 07:53 one morning, every request waiting out its 5 s.

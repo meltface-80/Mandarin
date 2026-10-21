@@ -38,6 +38,17 @@ class RouteTest {
         assertEquals(Route.Way(away = false, viaEngine = false), Route.way(onWifi = false, homeAnswers = true, onVpn = true, awayAddress = true, ownSignedIn = true))
     }
 
+    @Test fun awayTheScreensPlayOnThePhone() {
+        // Away, the server offers only this phone to play on (item 119): the screens are in its room, not in a Sonos
+        // room the server refuses ("Away from home, only this phone plays") every time it is asked.
+        assertEquals("PHONE_ab", Route.room(away = true, kept = "RINCON_1", phone = "PHONE_ab"))
+        // Home: the room kept.
+        assertEquals("RINCON_1", Route.room(away = false, kept = "RINCON_1", phone = "PHONE_ab"))
+        // No phone room known yet (no hello): the room kept; none kept, none.
+        assertEquals("RINCON_1", Route.room(away = true, kept = "RINCON_1", phone = null))
+        assertEquals("", Route.room(away = false, kept = null, phone = "PHONE_ab"))
+    }
+
     @Test fun streamsGoAwayAsOpus() {
         val u = "$home/stream/t12.flac?s=abcdefghijklmnopqrstuv"
         assertEquals("$away/stream/t12.flac?s=abcdefghijklmnopqrstuv&q=opus", Route.rewrite(u, home, away, true))
