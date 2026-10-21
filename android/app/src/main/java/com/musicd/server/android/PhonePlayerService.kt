@@ -49,6 +49,7 @@ import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.SettableFuture
 import com.musicd.server.client.CachePlan
 import com.musicd.server.client.Phone
+import com.musicd.server.client.PlayerIdle
 import com.musicd.server.client.ReplayGain
 import com.musicd.server.client.ServerClient
 import com.musicd.server.client.phoneCommands
@@ -89,8 +90,8 @@ import kotlin.math.roundToInt
  * plays from the phone; a server album is played on "This phone" through the
  * server, like everywhere else, so the queue and history stay the server's.
  *
- * Started while the app is open; it stays running while it plays. Closed and
- * idle, it stops, and the phone drops out of the zone list shortly after.
+ * Started while the app is open; it stays running while it plays. Closed and idle, or off screen
+ * and not playing for five minutes ([PlayerIdle]), it stops: the phone leaves the zone list soon after.
  */
 @OptIn(UnstableApi::class)
 class PhonePlayerService : MediaLibraryService() {
@@ -164,6 +165,7 @@ class PhonePlayerService : MediaLibraryService() {
     private lateinit var player: ExoPlayer
     private lateinit var audio: AudioManager
     @Volatile private var running = false
+    private val idle = PlayerIdle { android.os.SystemClock.elapsedRealtime() }
     private var worker: Thread? = null
     private var seq = 0L
     private var reportPending = false
@@ -434,10 +436,8 @@ class PhonePlayerService : MediaLibraryService() {
         }
     }
 
-    override fun onTaskRemoved(rootIntent: Intent?) {
-        // Swiped away while idle: stop, and the phone leaves the zone list.
-        if (!player.playWhenReady || player.mediaItemCount == 0) stopSelf()
-    }
+    /** Swiped away while idle: stop, and the phone leaves the zone list. */
+    override fun onTaskRemoved(rootIntent: Intent?) { if (!player.playWhenReady || player.mediaItemCount == 0) stopSelf() }
 
     override fun onDestroy() {
         if (current === this) current = null
@@ -1061,10 +1061,10 @@ class PhonePlayerService : MediaLibraryService() {
     private val heartbeat = object : Runnable {
         override fun run() {
             // While playing, the position and the volume keys' effect.
-            if (player.isPlaying) {
-                if (localMode) logLocalPlay()
-                report()
-            }
+            if (player.isPlaying) { if (localMode) logLocalPlay(); report() }
+            // Not playing for five minutes, off screen: stopped before Android freezes it, session and all (item 124).
+            val playing = player.playWhenReady && player.playbackState in Player.STATE_BUFFERING..Player.STATE_READY
+            if (idle.stop(playing, NativeShell.onScreen.value)) { AppLog.line("APP", "the phone player stops: off screen, not playing for five minutes"); stopSelf() }
             if (running) main.postDelayed(this, 10_000)
         }
     }

@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+- `124-frozen-in-background`: in the Android app, "This phone" stops itself when it has not played for five minutes
+  and the app is off screen, so Android no longer ends the app in the background. Paused, Media3 keeps the player's
+  service in the foreground for ten minutes and then lets it go; Android then froze the app with the player's media
+  session still open, and ended it when another app asked that session something ("Sync transaction while frozen",
+  21 October 17:16), or, on 1.1.0, for the player's long poll running on ("too much CPU"). Opened again, the app
+  starts the player, and the server puts its queue back, paused (core `PlayerIdle`).
+
 ## v1.1.1
 
 **Logging has been added to the server and the Android app, and is off by default.** When something isn't right,
