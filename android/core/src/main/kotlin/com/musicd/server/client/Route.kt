@@ -22,6 +22,19 @@ object Route {
     fun away(onWifi: Boolean, homeAnswers: Boolean, onVpn: Boolean = false): Boolean =
         !((onWifi || onVpn) && homeAnswers)
 
+    /** The way to the server: [away] or home, and away whether over MusicD's own Tailscale ([viaEngine], 127.0.0.1:34500). */
+    data class Way(val away: Boolean, val viaEngine: Boolean)
+
+    /**
+     * The way to the server, decided before anything is connected (item 118): away needs an address there
+     * ([awayAddress]), and a phone signed in to MusicD's own Tailscale ([ownSignedIn]) goes over it whether its engine
+     * is up yet or not, never over the Tailscale app's address in the meantime.
+     */
+    fun way(onWifi: Boolean, homeAnswers: Boolean, onVpn: Boolean = false, awayAddress: Boolean, ownSignedIn: Boolean): Way {
+        val away = away(onWifi, homeAnswers, onVpn) && awayAddress
+        return Way(away, away && ownSignedIn)
+    }
+
     /**
      * [url] on the address in use: [home] or [away] (base URLs). A track's
      * stream away asks for Opus (`q=opus`) when [opus] (your choice; else the

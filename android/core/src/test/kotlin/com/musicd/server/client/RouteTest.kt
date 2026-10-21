@@ -24,6 +24,20 @@ class RouteTest {
         assertTrue(Route.away(onWifi = false, homeAnswers = false, onVpn = true))
     }
 
+    @Test fun awayOnTheOwnTailscaleOnceSignedInToItUpOrNot() {
+        // Off Wi-Fi, signed in to MusicD's own Tailscale: its address (127.0.0.1:34500), even before the engine is up, and
+        // never the Tailscale app's (item 118: a stall left the app on the Tailscale app's address, which nothing answered).
+        assertEquals(Route.Way(away = true, viaEngine = true), Route.way(onWifi = false, homeAnswers = false, awayAddress = true, ownSignedIn = true))
+        // Not signed in to it: the server's Tailscale address, through the Tailscale app.
+        assertEquals(Route.Way(away = true, viaEngine = false), Route.way(onWifi = false, homeAnswers = false, awayAddress = true, ownSignedIn = false))
+        // Home: neither.
+        assertEquals(Route.Way(away = false, viaEngine = false), Route.way(onWifi = true, homeAnswers = true, awayAddress = true, ownSignedIn = true))
+        // No address away to reach the server on: home's (and offline once it doesn't answer).
+        assertEquals(Route.Way(away = false, viaEngine = false), Route.way(onWifi = false, homeAnswers = false, awayAddress = false, ownSignedIn = true))
+        // Another VPN into home, off Wi-Fi: home.
+        assertEquals(Route.Way(away = false, viaEngine = false), Route.way(onWifi = false, homeAnswers = true, onVpn = true, awayAddress = true, ownSignedIn = true))
+    }
+
     @Test fun streamsGoAwayAsOpus() {
         val u = "$home/stream/t12.flac?s=abcdefghijklmnopqrstuv"
         assertEquals("$away/stream/t12.flac?s=abcdefghijklmnopqrstuv&q=opus", Route.rewrite(u, home, away, true))
