@@ -61,6 +61,12 @@ internal object NativeShell {
 
     /** How many of the app's sheets have saved something over a screen: a screen whose list a sheet can change reads it again. */
     val sheetsClosed = mutableStateOf(0)
+    /**
+     * The app on screen (between MainActivity's onResume and onPause; item 120): what the screens ask the server for
+     * again and again (a room followed, today's album, the notices, the Tailscale status) is asked only while it is, not
+     * all night behind a phone switched off.
+     */
+    val onScreen = mutableStateOf(false)
     /** The side menu open over the screen (item 67; MenuDrawer.kt): the row's Menu opens it, Back closes it. */
     val menuOpen = mutableStateOf(false)
 
@@ -83,7 +89,8 @@ internal object NativeShell {
         if (id.isNullOrEmpty()) return
         zone = id
         homeArgs.value = homeArgs.value.first to id
-        store?.let { Store.setZone(it, id) }
+        // The notification and lock screen follow the room chosen now, not at their next look at the rooms (item 120).
+        store?.let { Store.setZone(it, id); NowPlayingService.start(it) }
     }
 
     /** Home or away now (item 119): Home in the room that plays there, this phone's away (offline has its own, OfflineNow). */

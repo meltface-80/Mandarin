@@ -49,8 +49,9 @@ class PhoneRoom(private val zoneId: String, private val deck: Deck, private val 
         "/api/outputs" -> Answer.ok(JSONObject().put("outputs", JSONArray()))
         "/api/zone-state" -> {
             val ready = deck.ready()
-            // Held briefly: a long hold would keep the asker's thread from everything else.
-            q["wait_for"]?.toLongOrNull()?.let { if (ready) deck.waitForChange(it, (q["timeout"]?.toLongOrNull() ?: 1500L).coerceIn(0, 1500)) }
+            // Held as long as asked, up to the server's 20 s (item 120): its askers wait on their own threads now the page's
+            // bridge is gone, and a hold of 1.5 s had a screen's room asked for 40 times a minute offline.
+            q["wait_for"]?.toLongOrNull()?.let { if (ready) deck.waitForChange(it, (q["timeout"]?.toLongOrNull() ?: 20_000L).coerceIn(0, 20_000)) }
             val st = deck.state()
             Answer.ok(JSONObject().put("revision", st?.revision ?: deck.revision()).put("zone", zone(st)))
         }

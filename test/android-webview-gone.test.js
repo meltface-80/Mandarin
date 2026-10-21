@@ -47,7 +47,7 @@ test("what the screens handed to the page is the app's own", () => {
   assert.match(hand, /"zone", "group-settled" -> NativeShell\.keepZone\(arg\)/);
   const shell = read(APP + "NativeShell.kt");
   assert.match(shell, /fun roomChosen\(id: String\) \{ RoomAsk\.chosen\(zone, id\); keepZone\(id\) \}/);
-  assert.match(shell, /store\?\.let \{ Store\.setZone\(it, id\) \}/);
+  assert.match(shell, /store\?\.let \{ Store\.setZone\(it, id\); NowPlayingService\.start\(it\) \}/);
   assert.match(shell, /store\?\.let \{ Store\.setHomePrefs\(it, json\) \}/);
   assert.match(read(APP + "SetupActions.kt"), /NativeShell\.keep\(name, value\)/);
   const back = read(APP + "BackupParts.kt");

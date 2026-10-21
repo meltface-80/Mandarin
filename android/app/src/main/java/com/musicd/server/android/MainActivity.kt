@@ -162,6 +162,7 @@ class MainActivity : androidx.activity.ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
+        NativeShell.onScreen.value = true
         if (!::reach.isInitialized) return
         shown = WeakReference(this)
         UpdateNow.attach(this)
@@ -175,6 +176,7 @@ class MainActivity : androidx.activity.ComponentActivity() {
     }
 
     override fun onPause() {
+        NativeShell.onScreen.value = false
         if (::reach.isInitialized) reach.paused()
         LocalMusic.foreground(this, false)
         super.onPause()
