@@ -1,6 +1,12 @@
 # Changelog
 
 ## Unreleased
+- `122-glitch`: in the Android app, the side menu opens as it was last seen. It opened as the page's markup has it,
+  Labels and Shelf drawn, then took them away when the server answered they were switched off, and the rescan line
+  ("13,549 albums · checked 2 hours ago") came in under them and moved Settings down: at every opening, a moment after
+  it slid in. Now the rows and the server's status are kept on the phone (core `Menu.keep`), the menu opens with them,
+  and only a change at the server changes it (the log says so, marked). Settings' foot likewise opens with the version
+  last read rather than "Mandarin" and then the version.
 - `121-logging-switch`: logging in the Android app, for sending to the developer when something is wrong: Settings →
   Setup → Logging, under API Keys. Off unless switched on, and off nothing is collected. On, the screen says to use
   the app as usual for 24 hours and then tap Save log (to Downloads/Mandarin), that the log is made without personal
