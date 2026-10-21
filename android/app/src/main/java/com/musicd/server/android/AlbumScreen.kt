@@ -138,7 +138,7 @@ internal fun AlbumScreen(offset: Long, zoneId: String, lit: String, client: () -
         val c = client() ?: return@LaunchedEffect
         val lib = LibraryClient { c.getJson(it) }
         withContext(Dispatchers.IO) { runCatching { lib.album(offset) } }
-            .onSuccess { album = it; favourite = it.album.favourite; later = it.album.later; serviceFav = it.album.serviceFavourite }
+            .onSuccess { album = it; favourite = it.album.favourite; later = it.album.later; serviceFav = it.album.serviceFavourite; LibraryWall.coverIs(offset, it.album.imageKey) }
             .onFailure { failed = it.message ?: "Couldn't load the album" }
         val a = album ?: return@LaunchedEffect
         // Its booklets, as the page asks: an album of your own files only.
