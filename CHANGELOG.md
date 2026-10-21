@@ -1,6 +1,16 @@
 # Changelog
 
 ## Unreleased
+- `121-logging-switch`: logging in the Android app, for sending to the developer when something is wrong: Settings →
+  Setup → Logging, under API Keys. Off unless switched on, and off nothing is collected. On, the screen says to use
+  the app as usual for 24 hours and then tap Save log (to Downloads/Mandarin), that the log is made without personal
+  data, and that it is the user's to look through before sending it; Clear log empties it, and switching off deletes
+  it. The log holds the app's lines (the log build's, item 116: the screens' moves and what didn't flow, each request
+  and how long it took, the way to the server, the phone's player, the app's own lines of Android's log, crashes and
+  freezes) and the server's. No personal data goes in: each app line goes through core `LogRedact` (addresses of
+  every kind, room and device ids, what is played or searched for, anything quoted, files and folders, keys), and the
+  server keeps, while on, only its code's own words and, of the values put into them, numbers, errors' names and its
+  own addresses (`LogLine.cs`, `Diagnostics.cs`, `/api/diagnostics`): no name, title, address or message.
 - `120-background-polling-trimmed`: the Android app asks the server for less while nobody is looking. With the app off
   screen and nothing playing it asked 11 to 14 times a minute until Android froze it: the room followed by the
   screen's mini player as well as by the notification, the rooms before every wait on the room, the server's status

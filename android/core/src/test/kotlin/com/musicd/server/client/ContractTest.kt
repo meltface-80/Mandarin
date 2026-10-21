@@ -29,7 +29,7 @@ class ContractTest {
             val items = screens.getJSONObject(s).getJSONObject("items")
             for (k in items.keySet()) {
                 val it = items.getJSONObject(k)
-                if (it.getString("kind") != "action" || it.has("only")) continue
+                if (it.getString("kind") != "action" || it.optString("only") == "page") continue
                 val l = it.get("label")
                 want["$s.$k"] = if (l is String) listOf(l) else (0 until it.getJSONArray("label").length()).map { i -> it.getJSONArray("label").getString(i) }
             }
