@@ -4,7 +4,7 @@ namespace Mandarin.Tests;
 
 /// <summary>
 /// An artist's page rebuilt (bug list item 131; public/app/artist-about.js): over their albums, what they are, where
-/// from and when, their links, and a band's members, each with what they played and when, a tap opening the member's
+/// from and when, their links (no MusicBrainz pill, item 133), and a band's members now, each with what they played and when, a tap opening the member's
 /// own page. MusicBrainz stood in for (CreditsTests' band), the page in a browser at a phone's size.
 /// </summary>
 public sealed class ArtistPageTests
@@ -27,8 +27,8 @@ public sealed class ArtistPageTests
             round: getComputedStyle(document.querySelector(".artist-stint-art")).borderTopLeftRadius,
             tiles: $$("#album-grid .album:not(.skeleton)").length,
           };
-          $$(".artist-stint").find(b => b.getAttribute("aria-label") === "Natalie Merchant").click();
-          await until(() => /Natalie Merchant/.test(document.getElementById("album-count").textContent));
+          $$(".artist-stint").find(b => b.getAttribute("aria-label") === "Jerome Augustyniak").click();
+          await until(() => /Jerome Augustyniak/.test(document.getElementById("album-count").textContent));
           out.memberTitle = document.getElementById("album-count").textContent;
           return out;
         })()
@@ -66,18 +66,19 @@ public sealed class ArtistPageTests
         var r = (await page.Eval(Look))!;
 
         Assert.Equal("Band · United States · since 1981", (string?)r["facts"]);
-        Assert.Equal(["MusicBrainz", "Official site", "Wikidata"], r["links"]!.AsArray().Select(l => (string?)l![0]));
-        Assert.Equal("https://musicbrainz.org/artist/" + CreditsTests.Band, (string?)r["links"]![0]![1]);
+        // No MusicBrainz pill (item 133); MusicBrainz's site where Wikidata has none.
+        Assert.Equal(["Official site", "Wikidata"], r["links"]!.AsArray().Select(l => (string?)l![0]));
+        Assert.Equal("https://www.maniacs.com/", (string?)r["links"]![0]![1]);
         Assert.True(r["links"]!.AsArray().All(l => (string?)l![2] == "_blank"), "each link opens beside the page");
         Assert.Equal(["Members"], r["sections"]!.AsArray().Select(h => (string?)h));
+        // Those in the band now (item 133): Natalie Merchant left in 2019.
+        Assert.Equal(1, r["members"]!.AsArray().Count);
         Assert.Equal("Jerome Augustyniak", (string?)r["members"]![0]![0]);
         Assert.Equal("Drums · since 1981", (string?)r["members"]![0]![1]);
-        Assert.Equal("Natalie Merchant", (string?)r["members"]![1]![0]);
-        Assert.Equal("Lead vocals · 1981–2019", (string?)r["members"]![1]![1]);
         Assert.Equal("auto", (string?)r["row"]);
         Assert.Equal("50%", (string?)r["round"]);
         Assert.Equal(1.0, r["tiles"]!.GetValue<double>());
-        Assert.Contains("Natalie Merchant", (string?)r["memberTitle"]);
+        Assert.Contains("Jerome Augustyniak", (string?)r["memberTitle"]);
         Assert.Empty(page.Errors);
     }
 }

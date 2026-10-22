@@ -64,6 +64,44 @@ internal static partial class Library
         return a;
     }
 
+    /*
+     * A band's members as its page shows them (bug list item 133): those in it now, as Wikipedia's "Members"; a band
+     * that has ended, its last line-up (those whose time ended with the band's); none of either, every one.
+     */
+    private static JsonNode? MainMembers(JsonNode? members, JsonNode about)
+    {
+        if (members is not JsonArray all || all.Count == 0) return members;
+        static string? Year(JsonNode? v) => (string?)v is { Length: >= 4 } y ? y[..4] : null;
+        var now = all.Where(m => m is JsonObject o && o["end"] == null && (bool?)o["ended"] != true).ToList();
+        if (now.Count > 0) return new JsonArray(now.Select(m => m!.DeepClone()).ToArray());
+        var last = Year(about["end"]) is { } end ? all.Where(m => Year(m?["end"]) == end).ToList() : new List<JsonNode?>();
+        return last.Count > 0 ? new JsonArray(last.Select(m => m!.DeepClone()).ToArray()) : members;
+    }
+
+    /*
+     * A person's bands' albums in the library, from their years in each (bug list item 133: a member's own page had
+     * none, "0 albums"): those not already among their own, each band its own group, the earliest stint first.
+     */
+    private static JsonArray BandAlbums(Snapshot s, JsonNode? bands, HashSet<long> shown)
+    {
+        var groups = new JsonArray();
+        if (bands is not JsonArray list) return groups;
+        static int? Year(JsonNode? v) => (string?)v is { Length: >= 4 } y && int.TryParse(y[..4], System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var n) ? n : null;
+        foreach (var b in list.OfType<JsonObject>().OrderBy(b => Year(b["begin"]) ?? 9999))
+        {
+            var band = (string?)b["name"] ?? "";
+            if (band.Length == 0) continue;
+            var (from, to) = (Year(b["begin"]), Year(b["end"]));
+            var albums = ArtistAlbumsOf(s, band).Primary
+                .Where(al => !shown.Contains(al.Id) && (al.Year is not { } y || ((from == null || y >= from) && (to == null || y <= to))))
+                .OrderBy(al => al.Year ?? 9999).ToList();
+            if (albums.Count == 0) continue;
+            foreach (var al in albums) shown.Add(al.Id);
+            groups.Add(new JsonObject { ["band"] = band, ["albums"] = new JsonArray(albums.Select(al => (JsonNode?)AlbumJson(s, al)).ToArray()) });
+        }
+        return groups;
+    }
+
     /* GET /api/artist?name= */
     private static async Task<bool> ArtistRoute(HttpContext ctx, Snapshot s, LibState st)
     {
@@ -74,8 +112,12 @@ internal static partial class Library
         var photos = CreditStore.Photos();
         var acts = LibraryActs(s);
         var about = info?.About ?? new JsonObject();
+        // Their bands' albums first, so an album is under its band rather than again under "credited on".
+        var (own, featured) = ArtistAlbumsOf(s, name);
+        var shown = own.Concat(featured).Select(al => al.Id).ToHashSet();
+        var bandAlbums = BandAlbums(s, about["member_of"], shown);
         var on = new JsonArray();
-        foreach (var (albumId, roles) in CreditStore.CreditedOn(key).Where(x => s.ById.ContainsKey(x.AlbumId)).OrderBy(x => s.ById[x.AlbumId].Year ?? 9999))
+        foreach (var (albumId, roles) in CreditStore.CreditedOn(key).Where(x => s.ById.ContainsKey(x.AlbumId) && !shown.Contains(x.AlbumId)).OrderBy(x => s.ById[x.AlbumId].Year ?? 9999))
         {
             var o = AlbumJson(s, s.ById[albumId]);
             o["roles"] = StringArray(roles);
@@ -87,8 +129,8 @@ internal static partial class Library
             ["photo_key"] = CreditRules.PhotoKey(info?.Photo), ["photo_source"] = info?.PhotoSource,
             ["disambiguation"] = about["disambiguation"]?.DeepClone(), ["begin"] = about["begin"]?.DeepClone(), ["end"] = about["end"]?.DeepClone(),
             ["ended"] = about["ended"]?.DeepClone(), ["area"] = about["area"]?.DeepClone(), ["links"] = about["links"]?.DeepClone() ?? new JsonObject(),
-            ["members"] = Stints(about["members"], photos, acts), ["member_of"] = Stints(about["member_of"], photos, acts),
-            ["credited_on"] = on, ["in_library"] = acts.Contains(key),
+            ["members"] = Stints(MainMembers(about["members"], about), photos, acts), ["member_of"] = Stints(about["member_of"], photos, acts),
+            ["band_albums"] = bandAlbums, ["credited_on"] = on, ["in_library"] = acts.Contains(key),
         });
     }
 

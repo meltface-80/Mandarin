@@ -275,7 +275,8 @@ public sealed class CreditsTests
         Assert.True(band.Bool("known"));
         Assert.Equal(Band, band.Str("mbid"));
         Assert.Equal("Group", band.Str("type"));
-        Assert.Equal(["Jerome Augustyniak", "Natalie Merchant"], Names(band["members"]));
+        // Those in the band now (item 133): Natalie Merchant's time ended in 2019.
+        Assert.Equal(["Jerome Augustyniak"], Names(band["members"]));
         Assert.Equal("Wikimedia Commons", band.Str("photo_source"));
         Assert.False(band["members"]![0].Bool("in_library"));
         Assert.True(band.Bool("in_library"));

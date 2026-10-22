@@ -30,12 +30,15 @@ import com.musicd.server.client.PlaylistAdd
 import com.musicd.server.client.ArtistAlbums
 import com.musicd.server.client.ArtistAbout
 import com.musicd.server.client.ArtistBio
+import com.musicd.server.client.Retry
+import com.musicd.server.client.Failure
 import com.musicd.server.client.LibraryClient
 import com.musicd.server.client.NavItem
 import com.musicd.server.client.NavList
 import com.musicd.server.client.ServerClient
 import com.musicd.server.client.WallPrefs
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -66,7 +69,14 @@ internal fun ArtistScreen(name: String, prefs: WallPrefs, zoneId: String, client
     LaunchedEffect(name) {
         val c = client() ?: return@LaunchedEffect
         val lib = LibraryClient { c.getJson(it) }
-        withContext(Dispatchers.IO) { runCatching { lib.artistAlbums(name) } }.onSuccess { albums = it }.onFailure { failed = it.message ?: "no answer" }
+        // Asked again a few times when the server isn't reached (a dropped connection, the server restarting; item 133).
+        var got = withContext(Dispatchers.IO) { runCatching { lib.artistAlbums(name) } }
+        var tries = 0
+        while (got.isFailure && tries < 3 && got.exceptionOrNull()?.let(Failure::unreachable) == true) {
+            delay(Retry.ms(++tries))
+            got = withContext(Dispatchers.IO) { runCatching { lib.artistAlbums(name) } }
+        }
+        got.onSuccess { albums = it }.onFailure { failed = Failure.said(it, "no answer") }
         // The head after the albums, so the grid never waits on another service; one of their own albums pins the lookup.
         // Who they are (item 131) alongside: the server may look them up there and then, for a few seconds.
         val a = albums
@@ -76,10 +86,12 @@ internal fun ArtistScreen(name: String, prefs: WallPrefs, zoneId: String, client
             if (a != null) launch { bio = withContext(Dispatchers.IO) { runCatching { lib.artistBio(name, pin) }.getOrNull() } }
         }
     }
-    // The albums they are credited on beyond their own and those they appear on, each saying as what (item 131).
-    val shown = ((albums?.primary ?: emptyList()) + (albums?.featured ?: emptyList())).map { it.offset }.toSet()
+    // Their bands' albums from their years in them (item 133), then those they are credited on beyond all of these,
+    // each saying as what (item 131).
+    val bands = about?.bandAlbums.orEmpty()
+    val shown = ((albums?.primary ?: emptyList()) + (albums?.featured ?: emptyList()) + bands.flatMap { it.albums }).map { it.offset }.toSet()
     val credited = about?.creditedBeyond(shown)?.map { c -> c.album.copy(subtitle = listOf(c.album.subtitle, c.roles.joinToString(", ")).filter { it.isNotEmpty() }.joinToString(" · ")) } ?: emptyList()
-    val all = (albums?.primary ?: emptyList()) + (albums?.featured ?: emptyList()) + credited
+    val all = (albums?.primary ?: emptyList()) + (albums?.featured ?: emptyList()) + bands.flatMap { it.albums } + credited
     val grid = rememberLazyGridState()
     val list = rememberLazyListState()
     fun pick(i: Int) { val a = all[i]; picks = if (picks.any { it.offset == a.offset }) picks.filter { it.offset != a.offset } else picks + a }
@@ -99,19 +111,18 @@ internal fun ArtistScreen(name: String, prefs: WallPrefs, zoneId: String, client
     }
     val a = albums
     val blocks = if (a == null) emptyList() else listOfNotNull(
-        if (a.primary.isNotEmpty()) GridBlock(if (a.featured.isNotEmpty() || credited.isNotEmpty()) "Albums" else null, a.primary) else null,
-        if (a.featured.isNotEmpty()) GridBlock("Also appears on", a.featured) else null,
-        if (credited.isNotEmpty()) GridBlock("Credited on", credited) else null
-    )
+        if (a.primary.isNotEmpty()) GridBlock(if (a.featured.isNotEmpty() || bands.isNotEmpty() || credited.isNotEmpty()) "Albums" else null, a.primary) else null,
+        if (a.featured.isNotEmpty()) GridBlock("Also appears on", a.featured) else null
+    ) + bands.map { GridBlock("With ${it.band}", it.albums) } + listOfNotNull(if (credited.isNotEmpty()) GridBlock("Credited on", credited) else null)
 
     Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         AlbumGrid(blocks, prefs, cols, coverPx, client, loaded = albums != null || failed != null, picks.map { it.offset }.toSet(), grid, list,
             onOpen = ::open, onLongPress = { i -> if (!selecting) { selecting = true; pick(i) } }) {
             // The name at once; the count when the albums come. An error as the page has it, in red under the heading.
-            val n = (a?.primary?.size ?: 0) + (a?.featured?.size ?: 0)
+            val n = (a?.primary?.size ?: 0) + (a?.featured?.size ?: 0) + bands.sumOf { it.albums.size }
             WallHead(if (a == null) name else "$n album" + (if (n == 1) "" else "s") + " · $name", prefs, failed?.let { "Error: $it" to true })
             if (about != null || bio != null) ArtistHero(about, bio, client, onArtist)
-            if (a != null && n == 0 && failed == null) Text("No albums found for \"$name\"", Modifier.parity("artist.empty").fillMaxWidth().padding(vertical = 48.dp), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 15.sp, lineHeight = 20.5.sp, textAlign = TextAlign.Center)
+            if (a != null && n == 0 && credited.isEmpty() && failed == null) Text("No albums found for \"$name\"", Modifier.parity("artist.empty").fillMaxWidth().padding(vertical = 48.dp), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 15.sp, lineHeight = 20.5.sp, textAlign = TextAlign.Center)
         }
         WallBack(onBack)
         if (picks.isNotEmpty()) AlbumSelectMenu(picks.size, ::act, Modifier.align(Alignment.TopEnd).padding(end = 14.dp, top = 12.dp))

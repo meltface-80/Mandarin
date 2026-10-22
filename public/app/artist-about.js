@@ -4,8 +4,9 @@
 // are, where from and when; their links as pills; the biography clipped with
 // Show more and where it is from (/api/artist-bio, as before); then a band's
 // members or a person's bands, a row of round pictures that scrolls sideways,
-// each opening their own page. Under their albums, those of the library's
-// they are credited on beyond their own, saying as what. Decorative, as the
+// each opening their own page. Under their albums, their bands' albums from
+// their years in them (item 133), then those of the library's they are
+// credited on beyond these, saying as what. Decorative, as the
 // biography always was: a failure leaves the album grid as it is, and a page
 // left before an answer comes ([alive] false) draws nothing.
 (function artistAbout() {
@@ -62,9 +63,11 @@
    * The head over [grid]'s albums, and what they are credited on under them. [pin] is one of their own album
    * titles, for the biography's lookup; [shown] the albums already on the page (offsets); [alive] false once the
    * page has been left or another artist's opened.
+   * [onCount] is told how many albums of their bands came, for the heading's count.
    * @param {string} name @param {string} pin @param {HTMLElement} grid @param {() => boolean} alive @param {Set<number>} shown
+   * @param {((n: number) => void)=} onCount
    */
-  function renderArtistHead(name, pin, grid, alive, shown) {
+  function renderArtistHead(name, pin, grid, alive, shown, onCount) {
     const head = document.createElement("div");
     head.className = "artist-bio-head";
     const top = document.createElement("div");
@@ -91,8 +94,8 @@
       if (a.photo_key) picture("/api/image/" + encodeURIComponent(a.photo_key) + "?size=600", true);
       const said = facts(a);
       if (said) { const f = document.createElement("div"); f.className = "artist-facts"; f.dataset.parity = "artist.facts"; f.textContent = said; top.appendChild(f); }
-      const links = (a.mbid ? [["MusicBrainz", "https://musicbrainz.org/artist/" + a.mbid]] : [])
-        .concat(LINKS.filter(([k]) => a.links && a.links[k]).map(([k, label]) => [label, a.links[k]]));
+      // No MusicBrainz pill of its own (the owner's call, item 133).
+      const links = LINKS.filter(([k]) => a.links && a.links[k]).map(([k, label]) => [label, a.links[k]]);
       if (links.length) {
         const row = document.createElement("div");
         row.className = "artist-links";
@@ -110,7 +113,21 @@
         const box = stints(title, list);
         after.after(box); after = box;
       }
+      // Their bands' albums from their years in them (item 133: a member's page said "0 albums"), each band its own section.
+      let added = 0;
+      for (const g of a.band_albums || []) {
+        const albums = (g && Array.isArray(g.albums) ? g.albums : []).filter((/** @type {any} */ al) => !shown.has(al.offset));
+        if (!g || !g.band || !albums.length) continue;
+        const hdr = document.createElement("div");
+        hdr.className = "artist-section-header"; hdr.dataset.parity = "artist.section"; hdr.textContent = "With " + g.band;
+        grid.appendChild(hdr);
+        for (const al of albums) { shown.add(al.offset); grid.appendChild(w.__keyArtistTile(w.__buildAlbumTile(al))); }
+        added += albums.length;
+      }
+      if (added && onCount) onCount(added);
       const credited = (a.credited_on || []).filter((/** @type {any} */ al) => !shown.has(al.offset));
+      // Something of theirs after all: not "No albums found".
+      if (added || credited.length) { const none = grid.querySelector(".artist-view-empty"); if (none) none.remove(); }
       if (credited.length) {
         const hdr = document.createElement("div");
         hdr.className = "artist-section-header"; hdr.dataset.parity = "artist.section"; hdr.textContent = "Credited on";

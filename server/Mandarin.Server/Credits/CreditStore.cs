@@ -176,10 +176,13 @@ CREATE TABLE IF NOT EXISTS artist_info (
 
     // ---------------------------------------------------------------- acts
 
+    /* How the facts are read now: kept before it (an ended link kept, Wikidata's site not asked; bug list item 133), an act is looked up again. */
+    public const int AboutVersion = 2;
+
     /* An act's facts as kept in artist_info.about. */
     public static JsonObject AboutJson(ArtistFacts? f)
     {
-        var o = new JsonObject();
+        var o = new JsonObject { ["v"] = AboutVersion };
         if (f == null) return o;
         static JsonArray Stints(IEnumerable<Member> list) => new(list.Select(m => (JsonNode?)new JsonObject
         {

@@ -1,6 +1,13 @@
 # Changelog
 
 ## Unreleased
+- `133-artist-enrichment`: an artist's page as the owner asked after trying it. A band's members are those in it now,
+  as Wikipedia lists them (a band that has ended: its last line-up), not everyone who ever played in it. A member's
+  own page shows their bands' albums from their years in them ("With Iron Maiden": Janick Gers from 1990), counted
+  in the heading, where it said "0 albums". The official site is Wikidata's where it has one, and a link MusicBrainz
+  marks ended (an old site) is left out; acts looked up before are looked up again when their page opens. No
+  MusicBrainz pill among the links. In the app, an artist's page that loses the server for a moment asks again
+  rather than showing "unexpected end of stream". New in `GET /api/artist`: `band_albums`.
 - `135-artist-head-overlap`: in the app, an artist's picture no longer sits over the heading ("6 albums · A.A.
   Williams"): the head of an album grid (the heading, the picture, links, biography, members) stands one part under
   another, on every screen that has one.
