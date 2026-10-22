@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+- `140-artist-page-order`: an artist's page in the owner's order, in the app and on the page. Under who they are
+  (picture, facts, genres, links, Play and Shuffle, biography): their members (or a person's bands) folded under the
+  heading, which says how many, until it is tapped; then their **Discography**, the albums they **Appear on**, their
+  bands' albums and those they are credited on; then **Similar artists** and **Similar albums**, last of all, where
+  similar artists were over the albums. Similar albums are Last.fm's with a key (each similar act's best-known
+  album, the library's own where it has it, else its Last.fm page), else the library's albums by the acts Deezer
+  relates. An artist's page opened again within a quarter of an hour is drawn at once as it was, its picture with it,
+  rather than asked for again. New: `GET /api/artist/similar-albums?name=`.
+
 ## v1.1.3
 
 **Artists.** Every act in your library gets a wall and a page of its own, in the Android app and in the browser. On a
