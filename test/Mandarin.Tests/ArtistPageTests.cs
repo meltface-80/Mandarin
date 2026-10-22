@@ -5,7 +5,9 @@ namespace Mandarin.Tests;
 /// <summary>
 /// An artist's page rebuilt (bug list item 131; public/app/artist-about.js): over their albums, what they are, where
 /// from and when, their links (no MusicBrainz pill, item 133), and a band's members now, each with what they played and when, a tap opening the member's
-/// own page. MusicBrainz stood in for (CreditsTests' band), the page in a browser at a phone's size.
+/// own page. Item 140: the members folded under their heading until it is tapped, then the discography, the foot last in
+/// the grid; and the page opened again drawn from what it last had, the server not asked for its albums again.
+/// MusicBrainz stood in for (CreditsTests' band), the page in a browser at a phone's size.
 /// </summary>
 public sealed class ArtistPageTests
 {
@@ -16,8 +18,13 @@ public sealed class ArtistPageTests
           const $$ = s => [...document.querySelectorAll(s)];
           await until(() => document.querySelector("#home-view .album"));
           await sleep(400);
+          const asked = [];
+          const fetch0 = window.fetch;
+          window.fetch = (u, o) => { asked.push(String(u)); return fetch0(u, o); };
           window.__showArtistAlbums("Ten Thousand Maniacs");
           await until(() => document.querySelector(".artist-facts") && document.querySelector(".artist-stint"));
+          const row = () => getComputedStyle(document.querySelector(".artist-stint-row")).display;
+          const grid = document.getElementById("album-grid");
           const out = {
             facts: document.querySelector(".artist-facts").textContent,
             links: $$(".artist-link").map(a => [a.textContent, a.getAttribute("href"), a.target]),
@@ -26,10 +33,24 @@ public sealed class ArtistPageTests
             row: getComputedStyle(document.querySelector(".artist-stint-row")).overflowX,
             round: getComputedStyle(document.querySelector(".artist-stint-art")).borderTopLeftRadius,
             tiles: $$("#album-grid .album:not(.skeleton)").length,
+            folded: row(),
+            footLast: grid.lastElementChild.classList.contains("artist-tail"),
+            membersFirst: grid.children[1].classList.contains("artist-stints"),
           };
+          const toggle = document.querySelector(".artist-stints-toggle");
+          toggle.click();
+          out.opened = [row(), toggle.getAttribute("aria-expanded")];
           $$(".artist-stint").find(b => b.getAttribute("aria-label") === "Jerome Augustyniak").click();
           await until(() => /Jerome Augustyniak/.test(document.getElementById("album-count").textContent));
           out.memberTitle = document.getElementById("album-count").textContent;
+          // Back to the band's page: drawn from what it had, its albums not asked for again.
+          const before = asked.filter(u => u.startsWith("/api/artist-albums?artist=Ten")).length;
+          document.getElementById("topbar-back").click();
+          await until(() => !document.getElementById("album-count").textContent.includes("Jerome"));
+          window.__showArtistAlbums("Ten Thousand Maniacs");
+          await until(() => document.querySelector(".artist-facts"));
+          out.askedAgain = asked.filter(u => u.startsWith("/api/artist-albums?artist=Ten")).length - before;
+          out.againTitle = document.getElementById("album-count").textContent;
           return out;
         })()
         """;
@@ -70,7 +91,11 @@ public sealed class ArtistPageTests
         Assert.Equal(["Official site", "Wikidata"], r["links"]!.AsArray().Select(l => (string?)l![0]));
         Assert.Equal("https://www.maniacs.com/", (string?)r["links"]![0]![1]);
         Assert.True(r["links"]!.AsArray().All(l => (string?)l![2] == "_blank"), "each link opens beside the page");
-        Assert.Equal(["Members"], r["sections"]!.AsArray().Select(h => (string?)h));
+        Assert.Equal(["Members · 1", "Discography"], r["sections"]!.AsArray().Select(h => (string?)h));
+        Assert.Equal("none", (string?)r["folded"]);
+        Assert.Equal(["flex", "true"], r["opened"]!.AsArray().Select(x => (string?)x));
+        Assert.True(r["membersFirst"]!.GetValue<bool>(), "the members straight under the head");
+        Assert.True(r["footLast"]!.GetValue<bool>(), "similar artists and albums last in the grid");
         // Those in the band now (item 133): Natalie Merchant left in 2019.
         Assert.Single(r["members"]!.AsArray());
         Assert.Equal("Jerome Augustyniak", (string?)r["members"]![0]![0]);
@@ -79,6 +104,8 @@ public sealed class ArtistPageTests
         Assert.Equal("50%", (string?)r["round"]);
         Assert.Equal(1.0, r["tiles"]!.GetValue<double>());
         Assert.Contains("Jerome Augustyniak", (string?)r["memberTitle"]);
+        Assert.Equal(0.0, r["askedAgain"]!.GetValue<double>());
+        Assert.Contains("Ten Thousand Maniacs", (string?)r["againTitle"]);
         Assert.Empty(page.Errors);
     }
 }

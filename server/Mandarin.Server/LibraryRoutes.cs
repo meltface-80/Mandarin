@@ -73,6 +73,7 @@ internal static partial class Library
         ["/api/album/credits"] = AlbumCreditsRoute,
         ["/api/artist"] = ArtistRoute,
         ["/api/artist/similar"] = ArtistSimilar,
+        ["/api/artist/similar-albums"] = ArtistSimilarAlbums,
         ["/api/credits/status"] = CreditsStatus,
         ["/api/pitchfork/reviews"] = PitchforkReviews,
         ["/api/pitchfork/review"] = PitchforkReviewMatch,
