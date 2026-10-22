@@ -2134,15 +2134,17 @@
        everything, for as long as the page is offline; a tap says why (the top
        bar's own sign's dialog). The touch layout's (style.css); a desktop
        keeps the sign in its top bar. -->
-  <button id="offline-toast" class="offline-toast" type="button" data-parity="offline-sign.sign" aria-label="Offline — tap for more" aria-haspopup="dialog">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-      <path d="M2 8.8a15 15 0 0 1 4.2-2.6"/><path d="M10.7 5.1A15 15 0 0 1 22 8.8"/>
-      <path d="M5 12.9a10 10 0 0 1 5.2-2.7"/><path d="M15.8 11a10 10 0 0 1 3.2 1.9"/>
-      <path d="M8.5 16.4a5 5 0 0 1 7 0"/><line x1="12" y1="20" x2="12.01" y2="20"/>
-      <line x1="3" y1="3" x2="21" y2="21"/>
-    </svg>
-    <span>Offline — tap for more</span>
-  </button>
+  <div id="offline-sign" class="offline-sign">
+    <button id="offline-toast" class="offline-toast" type="button" data-parity="offline-sign.sign" aria-label="Offline — tap for more" aria-haspopup="dialog">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M2 8.8a15 15 0 0 1 4.2-2.6"/><path d="M10.7 5.1A15 15 0 0 1 22 8.8"/>
+        <path d="M5 12.9a10 10 0 0 1 5.2-2.7"/><path d="M15.8 11a10 10 0 0 1 3.2 1.9"/>
+        <path d="M8.5 16.4a5 5 0 0 1 7 0"/><line x1="12" y1="20" x2="12.01" y2="20"/>
+        <line x1="3" y1="3" x2="21" y2="21"/>
+      </svg>
+      <span>Offline — tap for more</span>
+    </button>
+  </div>
 
   <!-- The card's font, Manrope, is bundled (public/fonts, @font-face in
        style.css): no wait on Google Fonts, the same offline and away. -->
