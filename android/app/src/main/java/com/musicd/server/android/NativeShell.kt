@@ -236,6 +236,7 @@ private fun Shell(client: () -> ServerClient?) {
             ArtistScreen(entry.arguments?.getString("name").orEmpty(), WallPrefs.parse(prefs), zone, client,
                 onBack = { nav.popBackStack() },
                 onAlbum = { offset, z, list -> nav.navigate(ShellRoute.album(offset, z, "", AlbumLists.put(list), list.index)) },
+                onArtist = { other -> nav.navigate(ShellRoute.artist(other, zone)) },
                 onNowPlaying = { id -> nav.navigate(ShellRoute.nowPlaying(id)) { launchSingleTop = true } },
                 onRoom = NativeShell::roomChosen,
                 onNav = { what -> navTap(nav, what) },
