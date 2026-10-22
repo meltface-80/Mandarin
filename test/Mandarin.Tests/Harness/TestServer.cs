@@ -30,7 +30,8 @@ public sealed class TestServer : IAsyncDisposable
     private static readonly Dictionary<string, string> Config = new()
     {
         ["qobuzSyncDelayMs"] = "service_sync_delay_ms", ["serviceWatchMs"] = "service_watch_ms", ["logoPauseMs"] = "logo_pause_ms",
-        ["upnpOfflineMs"] = "upnp_offline_ms", ["localDevices"] = "local_devices", ["massRemoval"] = "mass_removal", ["tailscaleWatchdog"] = "tailscale_watchdog"
+        ["upnpOfflineMs"] = "upnp_offline_ms", ["localDevices"] = "local_devices", ["massRemoval"] = "mass_removal", ["tailscaleWatchdog"] = "tailscale_watchdog",
+        ["credits"] = "credits", ["creditsTickMs"] = "credits_tick_ms", ["wikidataBaseUrl"] = "wikidata_url"
     };
 
     /// <summary>Every job's name: the C# server makes them all (Jobs.Names).</summary>

@@ -168,9 +168,12 @@ internal static partial class Library
         };
         var offset = (int)Math.Min(int.MaxValue, Math.Max(0, IntOr(Q(ctx, "offset"), 0)));
         var limit = (int)Math.Max(1, Math.Min(500, IntOr(Q(ctx, "limit"), 120)));
+        // Each act's own picture where one has been found (bug list item 129), beside its first album's cover.
+        var photos = Credits.CreditStore.Photos();
         return Send(ctx, new JsonObject
         {
-            ["artists"] = new JsonArray(list.Skip(offset).Take(limit).Select(n => (JsonNode)new JsonObject { ["name"] = m[n].Name, ["albumCount"] = m[n].Count, ["image_key"] = m[n].Image }).ToArray()),
+            ["artists"] = new JsonArray(list.Skip(offset).Take(limit).Select(n => (JsonNode)new JsonObject { ["name"] = m[n].Name, ["albumCount"] = m[n].Count, ["image_key"] = m[n].Image,
+                ["photo_key"] = Credits.CreditRules.PhotoKey(photos.GetValueOrDefault(Names.ArtistKey(m[n].Name))) }).ToArray()),
             ["offset"] = offset, ["total"] = list.Count
         });
     }

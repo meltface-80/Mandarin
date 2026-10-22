@@ -22,6 +22,7 @@
 //   { "fn": "dates", "dates": [tag], "releases": [common], "albums": [[[date, …], year]], "days": [[year, tagDate, mbDay]], "keys": [date] }
 //      (v0.8.50): a date tag, a track's release date, an album's, a looked-up day laid over it, the sort's key
 //      (Tags/TagReader.cs, Scan/Scanner.cs, Library.cs) → { dates, releases: [{ year, date }], albums, days, keys }
+//   { "fn": "credits", … } (bug list item 129): the credits and an act's facts read from tags and answers (Credits/CreditCommand.cs)
 using Mandarin.Server.Scan;
 using Mandarin.Server.Tags;
 
@@ -122,6 +123,9 @@ internal static class ScoreCommand
                         break;
                     case "works":
                         o = Works.Command(job);
+                        break;
+                    case "credits":
+                        o = Credits.CreditCommand.Run(job);
                         break;
                     case "fromnames":
                         o["names"] = L(job["files"]).Select(f0 =>

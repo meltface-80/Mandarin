@@ -110,6 +110,11 @@ internal static partial class Jobs
         if (NewLastfm(Text(cfg["lastfm_url"])) is var said && said.BaseUrl != Lastfm.BaseUrl) lastfm = said;
         // A record's write-up and links (v0.8.21): asked of MusicBrainz, Wikipedia, Pitchfork and Qobuz's site where the configuration says.
         WriteUps = new WriteUpSources(Text(cfg["musicbrainz_url"]), Text(cfg["wikipedia_url"]), Text(cfg["pitchfork_url"]), Text(cfg["qobuz_web_url"]), version);
+        // The albums' credits and the acts behind them (bug list item 129): MusicBrainz, Wikidata, FanArt.tv and Deezer where the configuration says.
+        Credits.CreditFinder.Current?.Stop();
+        var credits = new Credits.CreditFinder(new MusicBrainz(Text(cfg["musicbrainz_url"]), version), Text(cfg["deezer_url"]), Text(cfg["wikidata_url"]),
+            FanartBase, "Mandarin/" + version + " (+https://github.com/meltface-80/Mandarin)", Log) { Ready = () => Held };
+        Credits.CreditFinder.Current = credits;
         // Tailscale built in (v0.8.22): the engine, its folder and the port it serves.
         var watchdog = cfg["tailscale_watchdog"] as JsonObject;
         Tailscale = new Admin.Tailscale(
@@ -127,6 +132,9 @@ internal static partial class Jobs
         Packs.Start();
         Loudness.Start();
         Taste.Start();
+        // Found in the background, except while the tests keep to this machine and haven't asked for it (credits: true).
+        if (!Lookups.LoopbackOnly || (cfg["credits"] is JsonValue cr && cr.TryGetValue<bool>(out var crOn) && crOn))
+            credits.Start(Int(cfg["credits_tick_ms"], 2000));
         if (handed.Contains("tailscale")) _ = Tailscale.Start();
         if (handed.Contains("scan")) Scans.Start(cfg, dataDir);
         // Playback whole (v0.8.49, stage 6): the hub.

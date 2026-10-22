@@ -69,6 +69,10 @@ internal static partial class Library
         ["/api/album/booklets"] = AlbumBooklets,
         ["/api/booklet/page"] = BookletPage,
         ["/api/artist-bio"] = ArtistBio,
+        // The albums' credits and the acts behind them (bug list item 129, Credits/CreditRoutes.cs).
+        ["/api/album/credits"] = AlbumCreditsRoute,
+        ["/api/artist"] = ArtistRoute,
+        ["/api/credits/status"] = CreditsStatus,
         ["/api/pitchfork/reviews"] = PitchforkReviews,
         ["/api/pitchfork/review"] = PitchforkReviewMatch,
         ["/api/settings/share-links"] = ShareSettings,
