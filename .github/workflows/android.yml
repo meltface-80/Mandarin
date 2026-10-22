@@ -69,6 +69,20 @@ jobs:
     timeout-minutes: 80
     steps:
       - uses: actions/checkout@v4
+        with:
+          # The history and the tags, for a test build's number (below).
+          fetch-depth: 0
+      # dev's APK is a test build (bug list item 141): the next release with -tN (tools/test-version.js), as the
+      # server's image is, its versionName stamped for the build only; versionCode stays the release's, so the next
+      # release installs over it. Never on main: that is the release's own.
+      - name: Stamp a test build's version
+        if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
+        working-directory: .
+        run: |
+          set -e
+          v=$(node tools/test-version.js)
+          sed -i "s/versionName = \"[^\"]*\"/versionName = \"$v\"/" android/app/build.gradle.kts
+          grep -n 'versionName' android/app/build.gradle.kts
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
