@@ -1,6 +1,14 @@
 # Changelog
 
-## Unreleased
+## v1.1.2
+
+**Reliability updates.** No new features: the Android app is steadier in everyday use. At home it talks to the
+server over the Wi-Fi even when Android prefers mobile data, so a weak Wi-Fi no longer makes screens fail or flips
+the app away and back; an album that can't be read says so plainly and tries again by itself. Left paused in the
+background, "This phone" stops itself after five minutes rather than being ended by Android, and Android tidying
+away an idle app no longer brings up "Mandarin stopped in the background" (it is still in the log when logging is
+on). The test build of the app keeps one file rather than a copy of every version.
+
 - `128-test-android-one-apk`: the `test-android` pre-release keeps one APK, `mandarin-android-test.apk`. Each build
   of `dev` also uploaded a copy under its version's name, and 46 of them (13 to 20 MB each, from 0.8.0 on) had built
   up. The version built is still said in the pre-release's notes.

@@ -7,7 +7,7 @@
 
 </div>
 
-# Mandarin — v1.1.1
+# Mandarin — v1.1.2
 
 **Your own music files, played to Sonos rooms, to UPnP/DLNA renderers (a WiiM, a Chord Poly,
 a streamer, an AV receiver) and to the Mandarin Android app.**
