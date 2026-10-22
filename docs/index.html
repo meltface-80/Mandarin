@@ -340,7 +340,7 @@
      Android app play from it, controlled from a browser, an iPhone home screen or the Android app.
      No subscription or streaming account is needed.</p>
   <div class="badges">
-    <span class="badge">v1.1.2</span>
+    <span class="badge">v1.1.3</span>
     <span class="badge plain">Docker</span>
     <span class="badge plain">MIT</span>
     <span class="badge plain">Sonos</span>
@@ -352,13 +352,13 @@
 
 <section id="new">
   <div class="wrap">
-    <div class="note"><b>New in v1.1.1</b> (since v1.1.0). <b>Logging</b>, in the Android app and the server, off by
-      default: switch it on in <b>Settings → Setup → Logging</b> when something goes wrong, use the app as usual for 24
-      hours, then save the log and send it. It is made without personal data (<a href="#logs">Logs</a>). And fixes in
-      the Android app: the screen you are on stays put when the server goes or comes back; away from home the screens
-      play on this phone; leaving the Wi-Fi switches to the way away at once; the app asks the server for less while
-      it's off screen; the side menu opens as it was last seen; a cover changed in the album editor shows on the
-      Library at once.</div>
+    <div class="note"><b>New in v1.1.3</b> (since v1.1.2). <b>Artists</b>, in the app and in the browser: a wall of
+      every act in your library (<b>Artists</b> in the row at the foot of a phone's or tablet's screen), and a page for
+      each: their picture, where from and when, their links and biography, a band's current members or a person's bands
+      (with that band's albums from their years in it), similar artists, their genres, and <b>Play</b> and
+      <b>Shuffle</b> for all their albums. <b>Album credits</b> under an album's tracks: who played, sang, wrote and
+      made it. <b>Genres</b> as chips on album and artist pages, each opening that genre's albums. And the row at the
+      foot of the screen has its five buttons evenly spaced, with offline shown by a pill at the top of the screen.</div>
   </div>
 </section>
 
@@ -388,14 +388,14 @@
   <div class="wrap">
     <h2>Features</h2>
     <p class="lead">Tap <b class="i-eg">i</b> on any feature for how to switch it on and use it.
-      <span class="new-eg">New</span> marks what's new in v1.1.1.</p>
+      <span class="new-eg">New</span> marks what's new in v1.1.3.</p>
     <div class="grid">
       <!-- features:start -->
       <div class="card"><h3><span class="em">🏠</span>Home<button class="info" type="button" aria-expanded="false" aria-controls="how-home" aria-label="How to set up and use Home">i</button></h3>
         <p>Rows of albums under a greeting: Not played in 6 months, Listen later, Playlists, Favourites, Recently played, Smart Picks, Label of the week, Random albums, Library and Browse by genre.</p>
         <div class="how" id="how-home" hidden><b>How to set it up and use it.</b> Open <b>☰ → Home</b>. Tap a row's title for all of it. To reorder rows or hide one, open <b>Settings → Setup → Home Screen</b>, hold a row's grip and drag it, or switch it off.</div></div>
       <div class="card"><h3><span class="em">👆</span>Phones and tablets<button class="info" type="button" aria-expanded="false" aria-controls="how-touch" aria-label="How to set up and use Phones and tablets">i</button></h3>
-        <p>On a touchscreen, either way round: a row at the foot of the screen (Menu, Home, Library, Search) under the mini player, and albums scrolling to the screen's top edge.</p>
+        <p>On a touchscreen, either way round: a row at the foot (Menu, Home, Library, Artists, Search) under the mini player, and albums scrolling to the screen's top edge.</p>
         <div class="how" id="how-touch" hidden><b>How to set it up and use it.</b> Nothing to set up: a phone or tablet gets it in the browser, the iPhone home-screen app and the Android app; a computer with a mouse keeps the top bar. Tap Home or Library again to go back to the top; Search opens its field across the screen.</div></div>
       <div class="card"><h3><span class="em">🎲</span>Random Album<button class="info" type="button" aria-expanded="false" aria-controls="how-random-album" aria-label="How to set up and use Random Album">i</button></h3>
         <p>The first tile under the greeting chooses an album you haven't played in 12 months (until Mandarin has 12 months of history, any album) and offers it to play.</p>
@@ -414,13 +414,25 @@
         <div class="how" id="how-shelf" hidden><b>How to set it up and use it.</b> Its switch is <b>Settings → Setup → Shelf</b> (off on a new install); off, it is off entirely and not offered. Open <b>☰ → Shelf</b>, <code>http://&lt;server-ip&gt;:3500/shelf</code>, or <b>Shelf ›</b> on the wall display. Swipe for one album, swipe and hold to keep turning, flick to spin; tap the front cover to turn the case over, and hold a track on its back to choose tracks to play. The bar at its foot plays or queues the album in front, skips back and forward, pauses and sets the volume; the tabs at the edges fold the choices away and bring in the queue. Tap the order's name above the shelf (<b>A → Z by artist</b>) for <b>A → Z by album</b>; the Shelf keeps the one chosen.</div></div>
       <div class="card"><h3><span class="em">🔍</span>Search<button class="info" type="button" aria-expanded="false" aria-controls="how-search" aria-label="How to set up and use Search">i</button></h3>
         <p>Albums, artists and labels as you type, and Qobuz's and Tidal's catalogues beside them: an album from either opens and plays whether or not it is in your library.</p>
-        <div class="how" id="how-search" hidden><b>How to set it up and use it.</b> Tap the magnifying glass in the top bar (in the row at the foot of a phone's or tablet's screen) and type. Labels show when Record labels is on. Signed in to Qobuz or Tidal (Settings → Services), the service's artists and albums follow the library's, from the Library wall's filter too; tap a cover for the album's page, an artist for their albums.</div></div>
+        <div class="how" id="how-search" hidden><b>How to set it up and use it.</b> Tap the magnifying glass in the top bar (in the row at the foot of a phone's or tablet's screen) and type. Labels show when Record labels is on. Signed in to Qobuz or Tidal (Settings → Services), the service's artists and albums follow the library's, from the Library wall's filter too; tap a cover for the album's page, an artist for their page.</div></div>
       <div class="card"><h3><span class="em">💿</span>Album pages<button class="info" type="button" aria-expanded="false" aria-controls="how-album" aria-label="How to set up and use Album pages">i</button></h3>
         <p>Tracks, year and label, write-ups from Wikipedia and Qobuz, and Pitchfork's score where it reviewed the album. Step to the previous or next album of the row you came from.</p>
         <div class="how" id="how-album" hidden><b>How to set it up and use it.</b> Tap any album. <b>Play Now</b> and <b>Queue</b> are on the page; <b>⋯</b> has Play Next, Shuffle, Radio, Listen later, Edit album and (in the Android app) Download. Swipe sideways, tap <b>‹ ›</b> or press ← → for the previous or next album. The track playing has a small disc turning beside its number. A classical album is set out as its works and movements, its composers and performers in its head.</div></div>
       <div class="card"><h3><span class="em">🧭</span>More by, and similar<button class="info" type="button" aria-expanded="false" aria-controls="how-more" aria-label="How to set up and use More by, and similar">i</button></h3>
         <p>Under an album's review: the artist's other albums, the albums they appear on, and, with a Last.fm key, similar artists and albums. Ones in your library open here.</p>
         <div class="how" id="how-more" hidden><b>How to set it up and use it.</b> Open any album. For the Last.fm rows, get a free key at last.fm/api/account/create and paste it in <b>Settings → Setup → API Keys</b> (or set <code>LASTFM_KEY</code>). Read-only: nothing is scrobbled.</div></div>
+      <div class="card is-new"><h3><span class="em">🎤</span>Artists<span class="new">New</span><button class="info" type="button" aria-expanded="false" aria-controls="how-artists" aria-label="How to set up and use Artists">i</button></h3>
+        <p>Every act in your library as a round picture with their name and album count, in the album wall's columns, sorted A to Z, by most albums or at random.</p>
+        <div class="how" id="how-artists" hidden><b>How to set it up and use it.</b> On a phone or tablet, tap <b>Artists</b> in the row at the foot of the screen. <b>Sort</b> is at the top right; <b>Search</b> in the row finds an artist by part of the name. Tap one for their page.</div></div>
+      <div class="card is-new"><h3><span class="em">🧑‍🎤</span>Artist pages<span class="new">New</span><button class="info" type="button" aria-expanded="false" aria-controls="how-artist" aria-label="How to set up and use Artist pages">i</button></h3>
+        <p>Who they are: picture, where from and when, links, biography, genres, a band's current members or a person's bands, similar artists, and Play or Shuffle for all their albums.</p>
+        <div class="how" id="how-artist" hidden><b>How to set it up and use it.</b> Tap an artist's name on an album's page, on the Artists wall or in Search. Facts come from MusicBrainz, Wikidata and Wikipedia, pictures from FanArt.tv (with a key), Wikidata or Deezer, similar artists from Last.fm (with a key) or Deezer. A member's page shows their bands' albums from their years in them; a tap on a member, a band or a similar artist opens theirs. Tap a genre for its albums.</div></div>
+      <div class="card is-new"><h3><span class="em">👥</span>Album credits<span class="new">New</span><button class="info" type="button" aria-expanded="false" aria-controls="how-credits" aria-label="How to set up and use Album credits">i</button></h3>
+        <p>Under an album's tracks: who played, sang, wrote and made it, each with their parts and the tracks they are on, from the files' tags and MusicBrainz.</p>
+        <div class="how" id="how-credits" hidden><b>How to set it up and use it.</b> Nothing to set up: the server looks albums up in the background, a second at a time. Eight show at first; <b>More</b> for the rest. Tap a name for their artist page.</div></div>
+      <div class="card is-new"><h3><span class="em">🎸</span>Genres on pages<span class="new">New</span><button class="info" type="button" aria-expanded="false" aria-controls="how-genres" aria-label="How to set up and use Genres on pages">i</button></h3>
+        <p>An album's genres as small chips under its cover, and an artist's, the most used across their albums. A tap opens that genre's albums.</p>
+        <div class="how" id="how-genres" hidden><b>How to set it up and use it.</b> Nothing to set up: they come from your files' genre tags. A genre written two ways (<i>Indie Rock</i>, <i>indie rock</i>) is one, spelled as most of your albums spell it.</div></div>
       <div class="card"><h3><span class="em">✏️</span>Edit album<button class="info" type="button" aria-expanded="false" aria-controls="how-edit" aria-label="How to set up and use Edit album">i</button></h3>
         <p>Correct an album's title, artist or year and choose its cover. Edits are kept in the server's database; your music files are not changed.</p>
         <div class="how" id="how-edit" hidden><b>How to set it up and use it.</b> On an album, tap <b>⋯ → Edit album</b>.</div></div>
@@ -519,7 +531,7 @@
         <div class="how" id="how-onphone" hidden><b>How to set it up and use it.</b> In the app, <b>Settings → Music Folders → On this phone</b> and choose the folder. Selected with other albums and played on <b>This phone</b>, they go into the one queue.</div></div>
       <div class="card"><h3><span class="em">✈️</span>Offline mode<button class="info" type="button" aria-expanded="false" aria-controls="how-offline" aria-label="How to set up and use Offline mode">i</button></h3>
         <p>One switch: only the music on the phone shows, and the server isn't used. With no connection the app does the same by itself, and reconnects when it can.</p>
-        <div class="how" id="how-offline" hidden><b>How to set it up and use it.</b> In the Android app, <b>☰ → Offline mode</b>. While offline, a small symbol sits in the row at the foot of the screen, between Home and Library: tap it to see why (Offline mode, or the server can't be reached).</div></div>
+        <div class="how" id="how-offline" hidden><b>How to set it up and use it.</b> In the Android app, <b>☰ → Offline mode</b>. While offline, a small <i>Offline</i> pill sits at the top of the screen: tap it to see why (Offline mode, or the server can't be reached).</div></div>
       <div class="card"><h3><span class="em">🌍</span>Away from home<button class="info" type="button" aria-expanded="false" aria-controls="how-away" aria-label="How to set up and use Away from home">i</button></h3>
         <p>On mobile data the app reaches the server through its own Tailscale, with no ports opened. Away, only the phone plays: Opus 256 or the original files.</p>
         <div class="how" id="how-away" hidden><b>How to set it up and use it.</b> <b>Settings → Setup → Away from home</b> on the server: <b>Sign in to Tailscale</b>. Then in the app, the same page: <b>This phone</b>. Open the app once at home. Details under <a href="https://github.com/meltface-80/Mandarin#away-from-home-tailscale">Away from home</a>.</div></div>
@@ -541,7 +553,7 @@
       <div class="card"><h3><span class="em">🎵</span>Tidal<button class="info" type="button" aria-expanded="false" aria-controls="how-tidal" aria-label="How to set up and use Tidal">i</button></h3>
         <p>Sign in with your Tidal subscription on tidal.com: your favourite albums become albums here, and the Tidal browser plays anything in the catalogue, streamed through the server.</p>
         <div class="how" id="how-tidal" hidden><b>How to set it up and use it.</b> <b>Settings → Services → Tidal → Sign in on tidal.com</b>: open the link, sign in there, come back. Then <b>☰ → Tidal</b> to search and play; <b>+</b> on a cover adds an album to your Tidal favourites (a <b>✓</b> once added) and so to the library, as does <b>⋯ → Add to Tidal favourites</b> on its page. Details under <a href="https://github.com/meltface-80/Mandarin#tidal">Tidal</a>.</div></div>
-      <div class="card is-new"><h3><span class="em">📝</span>Logging<span class="new">New</span><button class="info" type="button" aria-expanded="false" aria-controls="how-logging" aria-label="How to set up and use Logging">i</button></h3>
+      <div class="card"><h3><span class="em">📝</span>Logging<button class="info" type="button" aria-expanded="false" aria-controls="how-logging" aria-label="How to set up and use Logging">i</button></h3>
         <p>Off by default. Switched on, the Android app and the server log what happened, without personal data, for you to send to the developer when something goes wrong.</p>
         <div class="how" id="how-logging" hidden><b>How to set it up and use it.</b> In the Android app, <b>Settings → Setup → Logging</b>. Use the app as you normally would for 24 hours, then tap <b>Save log</b> (it goes to Downloads/Mandarin) and send the file. Look through it first. Switching logging off deletes the log, the server's part too. Details under <a href="https://github.com/meltface-80/Mandarin#logs">Logs</a>.</div></div>
       <div class="card"><h3><span class="em">🔄</span>Updates<button class="info" type="button" aria-expanded="false" aria-controls="how-updates" aria-label="How to set up and use Updates">i</button></h3>
@@ -721,7 +733,7 @@
         <tr><td>SCAN_INTERVAL_HOURS</td><td>6</td><td>How often the music folders are re-checked in full. Changes are noticed as they happen where the file system reports them.</td></tr>
         <tr><td>TRANSCODE_CACHE_GB</td><td>4</td><td>Disk kept for converted hi-res tracks.</td></tr>
         <tr><td>TRANSCODE_CONCURRENCY</td><td>2</td><td>Tracks converted at once.</td></tr>
-        <tr><td>LASTFM_KEY</td><td>&mdash;</td><td>A Last.fm key for the album view's similar artists and albums, until one is saved in Settings.</td></tr>
+        <tr><td>LASTFM_KEY</td><td>&mdash;</td><td>A Last.fm key for similar artists and albums on album and artist pages, until one is saved in Settings.</td></tr>
         <tr><td>DEBUG</td><td>&mdash;</td><td>Log every API call.</td></tr>
       </table>
     </div>

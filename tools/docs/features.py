@@ -14,7 +14,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 
-# (id, emoji, title, new in v1.1.1, what it is, how to set it up and use it)
+# (id, emoji, title, new in v1.1.3, what it is, how to set it up and use it)
 FEATURES = [
     # ---- Home and finding music
     ("home", "🏠", "Home", False,
@@ -23,7 +23,7 @@ FEATURES = [
      "Open **☰ → Home**. Tap a row's title for all of it. To reorder rows or hide one, open "
      "**Settings → Setup → Home Screen**, hold a row's grip and drag it, or switch it off."),
     ("touch", "👆", "Phones and tablets", False,
-     "On a touchscreen, either way round: a row at the foot of the screen (Menu, Home, Library, "
+     "On a touchscreen, either way round: a row at the foot (Menu, Home, Library, Artists, "
      "Search) under the mini player, and albums scrolling to the screen's top edge.",
      "Nothing to set up: a phone or tablet gets it in the browser, the iPhone home-screen app and the "
      "Android app; a computer with a mouse keeps the top bar. Tap Home or Library again to go back to "
@@ -65,7 +65,7 @@ FEATURES = [
      "Tap the magnifying glass in the top bar (in the row at the foot of a phone's or tablet's screen) "
      "and type. Labels show when Record labels is on. Signed in "
      "to Qobuz or Tidal (Settings → Services), the service's artists and albums follow the library's, "
-     "from the Library wall's filter too; tap a cover for the album's page, an artist for their albums."),
+     "from the Library wall's filter too; tap a cover for the album's page, an artist for their page."),
     ("album", "💿", "Album pages", False,
      "Tracks, year and label, write-ups from Wikipedia and Qobuz, and Pitchfork's score where it "
      "reviewed the album. Step to the previous or next album of the row you came from.",
@@ -79,6 +79,29 @@ FEATURES = [
      "Last.fm key, similar artists and albums. Ones in your library open here.",
      "Open any album. For the Last.fm rows, get a free key at last.fm/api/account/create and paste "
      "it in **Settings → Setup → API Keys** (or set `LASTFM_KEY`). Read-only: nothing is scrobbled."),
+    ("artists", "🎤", "Artists", True,
+     "Every act in your library as a round picture with their name and album count, in the "
+     "album wall's columns, sorted A to Z, by most albums or at random.",
+     "On a phone or tablet, tap **Artists** in the row at the foot of the screen. **Sort** is at the "
+     "top right; **Search** in the row finds an artist by part of the name. Tap one for their page."),
+    ("artist", "🧑‍🎤", "Artist pages", True,
+     "Who they are: picture, where from and when, links, biography, genres, a band's current members "
+     "or a person's bands, similar artists, and Play or Shuffle for all their albums.",
+     "Tap an artist's name on an album's page, on the Artists wall or in Search. Facts come from "
+     "MusicBrainz, Wikidata and Wikipedia, pictures from FanArt.tv (with a key), Wikidata or Deezer, "
+     "similar artists from Last.fm (with a key) or Deezer. A member's page shows their bands' albums "
+     "from their years in them; a tap on a member, a band or a similar artist opens theirs. Tap a genre "
+     "for its albums."),
+    ("credits", "👥", "Album credits", True,
+     "Under an album's tracks: who played, sang, wrote and made it, each with their parts and the "
+     "tracks they are on, from the files' tags and MusicBrainz.",
+     "Nothing to set up: the server looks albums up in the background, a second at a time. Eight show "
+     "at first; **More** for the rest. Tap a name for their artist page."),
+    ("genres", "🎸", "Genres on pages", True,
+     "An album's genres as small chips under its cover, and an artist's, the most used across their "
+     "albums. A tap opens that genre's albums.",
+     "Nothing to set up: they come from your files' genre tags. A genre written two ways (*Indie Rock*, "
+     "*indie rock*) is one, spelled as most of your albums spell it."),
     ("edit", "✏️", "Edit album", False,
      "Correct an album's title, artist or year and choose its cover. Edits are kept in the server's "
      "database; your music files are not changed.",
@@ -244,8 +267,8 @@ FEATURES = [
     ("offline", "✈️", "Offline mode", False,
      "One switch: only the music on the phone shows, and the server isn't used. With no connection "
      "the app does the same by itself, and reconnects when it can.",
-     "In the Android app, **☰ → Offline mode**. While offline, a small symbol sits in the row at the foot "
-     "of the screen, between Home and Library: tap it to see why (Offline mode, or the server can't be reached)."),
+     "In the Android app, **☰ → Offline mode**. While offline, a small *Offline* pill sits at the top of "
+     "the screen: tap it to see why (Offline mode, or the server can't be reached)."),
     ("away", "🌍", "Away from home", False,
      "On mobile data the app reaches the server through its own Tailscale, with no ports opened. "
      "Away, only the phone plays: Opus 256 or the original files.",
@@ -293,7 +316,7 @@ FEATURES = [
      "Then **☰ → Tidal** to search and play; **+** on a cover adds an album to your Tidal favourites "
      "(a **✓** once added) and so to the library, as does **⋯ → Add to Tidal favourites** on its page. "
      "Details under [Tidal](#tidal)."),
-    ("logging", "📝", "Logging", True,
+    ("logging", "📝", "Logging", False,
      "Off by default. Switched on, the Android app and the server log what happened, without personal "
      "data, for you to send to the developer when something goes wrong.",
      "In the Android app, **Settings → Setup → Logging**. Use the app as you normally would for 24 hours, "
@@ -326,7 +349,7 @@ def md_inline_to_html(s):
 def readme_block():
     lines = ["Every feature below has an **ⓘ**: open it for how to switch the feature on and use it.", ""]
     for i, (fid, em, title, new, what, how) in enumerate(FEATURES):
-        lines.append("%s **%s**%s" % (em, title, " — *new in v1.1.1*" if new else ""))
+        lines.append("%s **%s**%s" % (em, title, " — *new in v1.1.3*" if new else ""))
         lines.append("")
         lines.append(what)
         lines.append("")

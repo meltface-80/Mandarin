@@ -1,6 +1,15 @@
 # Changelog
 
-## Unreleased
+## v1.1.3
+
+**Artists.** Every act in your library gets a wall and a page of its own, in the Android app and in the browser. On a
+phone or tablet the row at the foot of the screen has an Artists button (its five buttons now evenly spaced; offline
+is said by a pill at the top of the screen instead). An artist's page shows their picture, where from and when, their
+links and biography, their genres, a band's current members or a person's bands with that band's albums from their
+years in it, similar artists, and Play and Shuffle for all their albums. An album's page lists its credits under the
+tracks (who played, sang, wrote and made it, from its tags and MusicBrainz) and its genres as chips; a tap on a name
+or a genre opens its page. "10,000 Maniacs" and the like stay one artist.
+
 - `139-genres-tags`: an album's page and an artist's page show their genres, in the app and on the page: a row of small chips
   under an album's sleeve (its own tags), and on an artist's head the genres their albums are tagged with, the most
   used first, five at most. A tap opens that genre's wall. New in `GET /api/artist`: `genres`.
