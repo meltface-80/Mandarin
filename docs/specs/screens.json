@@ -229,7 +229,7 @@
     },
     "artist": {
       "page": "an artist's page (their name tapped on an album, on Now playing or on the Artists wall; rebuilt in bug list item 131): the count and the name as the heading, the bar's Back; who they are over their albums (their picture, what they are, where from and when, their links, the biography, a band's members or a person's bands, each opening their own page); their albums, those they appear on, their bands' albums from their years in them (\"With {band}\") and those they are credited on (as what, beside the album's artist); the mini player and the row are their own screens",
-      "native": ["android/app/src/main/java/com/musicd/server/android/ArtistScreen.kt", "android/app/src/main/java/com/musicd/server/android/ArtistHero.kt", "android/app/src/main/java/com/musicd/server/android/AlbumTile.kt", "android/app/src/main/java/com/musicd/server/android/WallGrid.kt", "android/app/src/main/java/com/musicd/server/android/WallSelect.kt"],
+      "native": ["android/app/src/main/java/com/musicd/server/android/ArtistScreen.kt", "android/app/src/main/java/com/musicd/server/android/ArtistHero.kt", "android/app/src/main/java/com/musicd/server/android/AlbumTile.kt", "android/app/src/main/java/com/musicd/server/android/WallGrid.kt", "android/app/src/main/java/com/musicd/server/android/WallSelect.kt", "android/app/src/main/java/com/musicd/server/android/GenreChips.kt"],
       "preview": false,
       "items": {
         "back": { "kind": "action", "label": "Back to Home" },
@@ -238,6 +238,7 @@
         "empty": { "kind": "shows", "when": "no albums of theirs" },
         "avatar": { "kind": "shows", "when": "they have a picture: their own once found, or the biography's portrait" },
         "facts": { "kind": "shows", "when": "the server knows what they are, where from or when" },
+        "genre": { "kind": "action", "label": "{genre}", "each": true, "when": "their albums are tagged with genres (bug list item 139)" },
         "link": { "kind": "action", "label": "{link}", "each": true, "when": "the server has found their links (no MusicBrainz pill, item 133)" },
         "bio": { "kind": "shows", "when": "there is a biography" },
         "bio-more": { "kind": "action", "label": ["Show more", "Show less"], "when": "the biography is longer than its clip" },
@@ -1265,7 +1266,7 @@
     },
     "album": {
       "page": "an album's page: the album view (#album-modal, not Now playing), opened from a row of albums, a phone held upright; under its tracks its credits (who played, sang, wrote and made it, each opening their page), then the review and the rows of albums",
-      "native": ["android/app/src/main/java/com/musicd/server/android/AlbumScreen.kt", "android/app/src/main/java/com/musicd/server/android/AlbumTracks.kt", "android/app/src/main/java/com/musicd/server/android/AlbumAbout.kt", "android/app/src/main/java/com/musicd/server/android/AlbumHead.kt", "android/app/src/main/java/com/musicd/server/android/AlbumHeadParts.kt", "android/app/src/main/java/com/musicd/server/android/AlbumSelect.kt", "android/app/src/main/java/com/musicd/server/android/AlbumWorks.kt", "android/app/src/main/java/com/musicd/server/android/AlbumCreditList.kt"],
+      "native": ["android/app/src/main/java/com/musicd/server/android/AlbumScreen.kt", "android/app/src/main/java/com/musicd/server/android/AlbumTracks.kt", "android/app/src/main/java/com/musicd/server/android/AlbumAbout.kt", "android/app/src/main/java/com/musicd/server/android/AlbumHead.kt", "android/app/src/main/java/com/musicd/server/android/AlbumHeadParts.kt", "android/app/src/main/java/com/musicd/server/android/AlbumSelect.kt", "android/app/src/main/java/com/musicd/server/android/AlbumWorks.kt", "android/app/src/main/java/com/musicd/server/android/AlbumCreditList.kt", "android/app/src/main/java/com/musicd/server/android/GenreChips.kt"],
       "preview": false,
       "items": {
         "back": { "kind": "action", "label": ["Back", "Close"] },
@@ -1325,6 +1326,7 @@
         "select-playlist": { "kind": "action", "label": "Add to playlist…", "when": "selecting tracks" },
         "select-later": { "kind": "action", "label": "Listen later", "when": "selecting tracks" },
         "select-clear": { "kind": "action", "label": "Clear selection", "when": "selecting tracks" },
+        "genre": { "kind": "action", "label": "{genre}", "each": true, "when": "its files carry a genre (bug list item 139)" },
         "credits": { "kind": "shows", "when": "who played, wrote or made it is known (bug list item 132)" },
         "credit": { "kind": "action", "label": "{name}", "each": true, "when": "who played, wrote or made it is known" },
         "credit-art": { "kind": "shows", "each": true, "when": "who played, wrote or made it is known" },

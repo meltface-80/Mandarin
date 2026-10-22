@@ -94,6 +94,13 @@
       if (a.photo_key) picture("/api/image/" + encodeURIComponent(a.photo_key) + "?size=600", true);
       const said = facts(a);
       if (said) { const f = document.createElement("div"); f.className = "artist-facts"; f.dataset.parity = "artist.facts"; f.textContent = said; top.appendChild(f); }
+      // Their genres (item 139), as their own albums are tagged, each opening the genre's wall.
+      if (Array.isArray(a.genres) && a.genres.length) {
+        const chips = document.createElement("div");
+        chips.className = "genre-chips artist-genres";
+        fillGenreChips(chips, a.genres, "artist.genre", (g) => { if (w.__applyFilter) w.__applyFilter({ type: "genre", value: g }); });
+        top.appendChild(chips);
+      }
       // No MusicBrainz pill of its own (the owner's call, item 133).
       const links = LINKS.filter(([k]) => a.links && a.links[k]).map(([k, label]) => [label, a.links[k]]);
       if (links.length) {

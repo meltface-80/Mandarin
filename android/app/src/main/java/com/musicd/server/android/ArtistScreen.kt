@@ -121,7 +121,7 @@ internal fun ArtistScreen(name: String, prefs: WallPrefs, zoneId: String, client
             // The name at once; the count when the albums come. An error as the page has it, in red under the heading.
             val n = (a?.primary?.size ?: 0) + (a?.featured?.size ?: 0) + bands.sumOf { it.albums.size }
             WallHead(if (a == null) name else "$n album" + (if (n == 1) "" else "s") + " · $name", prefs, failed?.let { "Error: $it" to true })
-            if (about != null || bio != null) ArtistHero(about, bio, client, onArtist)
+            if (about != null || bio != null) ArtistHero(about, bio, client, onArtist, onGenre = { onPage("genre", it) })
             if (a != null && n == 0 && credited.isEmpty() && failed == null) Text("No albums found for \"$name\"", Modifier.parity("artist.empty").fillMaxWidth().padding(vertical = 48.dp), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 15.sp, lineHeight = 20.5.sp, textAlign = TextAlign.Center)
         }
         WallBack(onBack)

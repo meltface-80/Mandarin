@@ -150,6 +150,7 @@ internal fun handOver(nav: NavHostController, what: String, arg: String?) {
     when {
         what == "artist" && !arg.isNullOrEmpty() -> nav.navigate(ShellRoute.artist(arg, NativeShell.zone))
         what == "label" && !arg.isNullOrEmpty() -> nav.navigate(ShellRoute.wall("label", NativeShell.zone, arg))   // a label's albums (item 71)
+        what == "genre" && !arg.isNullOrEmpty() -> nav.navigate(ShellRoute.wall("genre", NativeShell.zone, com.musicd.server.client.WallFilter.routeQuery(com.musicd.server.client.WallFilter("genre", arg))))   // a genre's albums (item 139)
         what == "phone-album" && !arg.isNullOrEmpty() -> nav.navigate(ShellRoute.phoneAlbum(arg, NativeShell.zone))   // the phone's own album (item 108)
         what == "album" && arg != null && arg.toLongOrNull() != null -> { nav.popBackStack(); nav.navigate(ShellRoute.album(arg.toLong(), NativeShell.zone, "")) }
         what == "library-changed" && arg != null -> nav.popBackStack()   // a streamed album taken out of the favourites: its page closes

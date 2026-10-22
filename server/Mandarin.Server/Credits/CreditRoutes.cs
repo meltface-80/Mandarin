@@ -102,6 +102,11 @@ internal static partial class Library
         return groups;
     }
 
+    /* An act's genres (bug list item 139): those its own albums are tagged with, the most used first, five at most. */
+    private static JsonArray GenresOf(IEnumerable<Album> albums) => new(albums.SelectMany(al => al.Genres.Select(g => Names.JsTrim(g)).Where(g => g.Length > 0).Distinct(StringComparer.OrdinalIgnoreCase))
+        .GroupBy(g => Names.Fold(g), StringComparer.Ordinal).OrderByDescending(g => g.Count()).ThenBy(g => g.Key, StringComparer.Ordinal).Take(5)
+        .Select(g => (JsonNode?)g.First()).ToArray());
+
     /* GET /api/artist?name= */
     private static async Task<bool> ArtistRoute(HttpContext ctx, Snapshot s, LibState st)
     {
@@ -130,7 +135,7 @@ internal static partial class Library
             ["disambiguation"] = about["disambiguation"]?.DeepClone(), ["begin"] = about["begin"]?.DeepClone(), ["end"] = about["end"]?.DeepClone(),
             ["ended"] = about["ended"]?.DeepClone(), ["area"] = about["area"]?.DeepClone(), ["links"] = about["links"]?.DeepClone() ?? new JsonObject(),
             ["members"] = Stints(MainMembers(about["members"], about), photos, acts), ["member_of"] = Stints(about["member_of"], photos, acts),
-            ["band_albums"] = bandAlbums, ["credited_on"] = on, ["in_library"] = acts.Contains(key),
+            ["band_albums"] = bandAlbums, ["credited_on"] = on, ["in_library"] = acts.Contains(key), ["genres"] = GenresOf(own.Count > 0 ? own : featured),
         });
     }
 

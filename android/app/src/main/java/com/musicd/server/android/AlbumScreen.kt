@@ -237,6 +237,7 @@ internal fun AlbumScreen(offset: Long, zoneId: String, lit: String, client: () -
                             }
                             DateLine(extras, onPage)
                             FactsLine(a)
+                            GenreChips(a.genres, "album", center = false, modifier = Modifier.padding(top = 8.dp)) { onPage("genre", it) }   // item 139
                             HeadNotes(a) { discs -> onStepTo(discs.items[discs.index].offset, zone, discs) }
                         }
                     }
