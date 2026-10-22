@@ -23,7 +23,7 @@ namespace Mandarin.Server.Extras;
 
 using Js = Mandarin.Server.Tags.Js;
 
-internal sealed class Taste(string? deezerBase, Action<string> log)
+internal sealed partial class Taste(string? deezerBase, Action<string> log)
 {
     public const string DeezerBase = "https://api.deezer.com";
     private const double Day = 86400000;

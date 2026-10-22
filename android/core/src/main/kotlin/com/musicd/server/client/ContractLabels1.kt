@@ -109,6 +109,7 @@ internal object ContractLabels1 {
         "artist.link" to listOf("{link}"),
         "artist.bio-more" to listOf("Show more", "Show less"),
         "artist.member" to listOf("{member}"),
+        "artist.similar" to listOf("{artist}"),
         "artist.album" to listOf("{album} by {artist}", "{album}"),
         "artist.select-cancel" to listOf("Cancel selection"),
         "artist.select-menu" to listOf("Actions for {n} selected albums", "Actions for 1 selected album"),

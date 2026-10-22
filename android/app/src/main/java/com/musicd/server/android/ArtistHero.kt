@@ -46,6 +46,7 @@ import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import com.musicd.server.client.ArtistAbout
 import com.musicd.server.client.ArtistBio
+import com.musicd.server.client.ArtistSimilar
 import com.musicd.server.client.Contract
 import com.musicd.server.client.Palette
 import com.musicd.server.client.ServerClient
@@ -55,10 +56,11 @@ import kotlin.math.min
  * The head of an artist's page (bug list item 131; the page's artist-about.js, .artist-bio-head): their picture,
  * round and centred (their own once the server has found one, else the biography's portrait); what they are, where
  * from and when; their links as pills; the biography clipped with Show more and where it is from; then a band's
- * members or a person's bands, each a round picture with the name and what they played, a tap opening their page.
+ * members or a person's bands, each a round picture with the name and what they played, a tap opening their page;
+ * then similar artists (item 137), each opening theirs.
  */
 @Composable
-internal fun ArtistHero(about: ArtistAbout?, bio: ArtistBio?, client: () -> ServerClient?, onArtist: (String) -> Unit, onPlay: ((String) -> Unit)? = null) {
+internal fun ArtistHero(about: ArtistAbout?, bio: ArtistBio?, similar: ArtistSimilar?, client: () -> ServerClient?, onArtist: (String) -> Unit, onPlay: ((String) -> Unit)? = null) {
     val own = rememberTileCover(about?.photoKey, 600, client)
     val portrait = own ?: rememberImage(bio?.image, client)
     val side = min(200, (LocalConfiguration.current.screenWidthDp * 0.46).toInt()).dp
@@ -72,6 +74,29 @@ internal fun ArtistHero(about: ArtistAbout?, bio: ArtistBio?, client: () -> Serv
     about?.let { a ->
         if (a.members.isNotEmpty()) Stints("Members", a.members, client, onArtist)
         if (a.memberOf.isNotEmpty()) Stints("Member of", a.memberOf, client, onArtist)
+    }
+    similar?.artists?.takeIf { it.isNotEmpty() }?.let { SimilarRow(it, client, onArtist) }
+}
+
+/** Similar artists (item 137): the small heading, then a row of round pictures that scrolls sideways, each opening their page. */
+@Composable
+private fun SimilarRow(list: List<ArtistSimilar.Act>, client: () -> ServerClient?, onArtist: (String) -> Unit) {
+    Column(Modifier.fillMaxWidth().padding(bottom = 10.dp)) {
+        Text("Similar artists".uppercase(), Modifier.parity("artist.section").padding(top = 12.dp, bottom = 8.dp), color = paletteColor(Palette.TEXT_FAINT), fontSize = 13.sp, lineHeight = 18.sp, fontWeight = FontWeight.W600, letterSpacing = 0.06.em)
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(14.dp), contentPadding = PaddingValues(end = 14.dp)) {
+            items(list.size) { i ->
+                val a = list[i]
+                Column(Modifier.parity("artist.similar", Contract.label("artist.similar", 0, a.name)).width(96.dp).clickable { onArtist(a.name) }, horizontalAlignment = Alignment.CenterHorizontally) {
+                    Box(Modifier.parity("artist.similar-art").fillMaxWidth().aspectRatio(1f).clip(CircleShape).background(paletteColor(Palette.BG_ELEV_2)), contentAlignment = Alignment.Center) {
+                        val art = rememberTileCover(a.photoKey, 300, client)
+                        if (art != null) Image(art, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
+                        else Text(a.name.take(1).uppercase(), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 26.sp, fontWeight = FontWeight.W600)
+                    }
+                    Text(a.name, Modifier.parity("artist.similar-name").padding(top = 8.dp), color = MaterialTheme.colorScheme.onSurface, fontSize = 12.sp, lineHeight = 15.sp,
+                        fontWeight = FontWeight.W600, maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
+                }
+            }
+        }
     }
 }
 
