@@ -8,6 +8,7 @@ Status: **Open** · **In progress** · **Ready to test** (green, waiting on the 
 
 | # | Item | Branch | Status |
 |---|------|--------|--------|
+| 135 | In the app, an artist's picture lay over the heading ("6 albums · A.A. Williams"): the head over an album grid laid its parts over each other; now one under another | `135-artist-head-overlap` | Ready to test |
 | 134 | The row along the foot: its five buttons evenly across (the Offline sign's seat left a gap between Home and Library); offline said instead by a pill at the top of the screen, over everything, for as long as it lasts, a tap saying why | `134-offline-toast` | Ready to test |
 | 131 | An artist's page shows who they are (app and page): their picture, what they are, where from and when, their links, the biography; a band's members or a person's bands as round pictures, each opening their own page; the albums they are credited on, and as what | `131-artist-page` | Ready to test |
 | 130 | An Artists wall: an Artists button in the row along the foot (app and page), every act as a round picture with their name and album count, in the album wall's columns, sizes and grid or list view; Sort (A to Z, most albums, random) kept; the row's Search finds an artist across the library; a tap opens their page, and Back returns to the wall | `130-artists-tab` | Ready to test |

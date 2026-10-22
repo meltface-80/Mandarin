@@ -1,6 +1,9 @@
 # Changelog
 
 ## Unreleased
+- `135-artist-head-overlap`: in the app, an artist's picture no longer sits over the heading ("6 albums · A.A.
+  Williams"): the head of an album grid (the heading, the picture, links, biography, members) stands one part under
+  another, on every screen that has one.
 - `134-offline-toast`: the row along the foot has its five buttons evenly across again, and offline is said at the
   top of the screen instead: a small pill in the middle, "Offline — tap for more", over every screen for as long as the
   app (or the page on a phone) is offline; a tap says why, as the sign in the row did. On a desktop the sign stays in
