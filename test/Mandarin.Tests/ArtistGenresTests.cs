@@ -4,8 +4,8 @@ namespace Mandarin.Tests;
 
 /// <summary>
 /// An act's genres on its page (bug list item 139; CreditRoutes.GenresOf): those its albums are tagged with, the most
-/// used first, the same genre in another case counted as one; an act with none tagged, none. The outside sources stood
-/// in for by one that knows nothing.
+/// used first, the same genre in another case counted as one and spelled as most of the library spells it; an act with
+/// none tagged, none. The outside sources stood in for by one that knows nothing.
 /// </summary>
 public sealed class ArtistGenresTests
 {
@@ -15,7 +15,7 @@ public sealed class ArtistGenresTests
         Needs.Server(); Needs.Ffmpeg();
         await using var none = await FakeServer.Start(ctx => Task.FromResult(ctx.Response.StatusCode = 404));
         var lib = Fixtures.MakeLibrary();
-        var albums = new[] { ("Debut", "Jangle Pop", 300), ("Second", "Indie Rock", 350), ("Third", "indie rock", 400), ("Untagged", "", 450) };
+        var albums = new[] { ("Debut", "Jangle Pop", 300), ("Second", "Indie Rock", 350), ("Third", "indie rock", 400), ("Fourth", "Indie Rock", 420), ("Untagged", "", 450) };
         foreach (var (album, genre, freq) in albums)
         {
             var tags = new Dictionary<string, object> { ["title"] = album + " track", ["artist"] = "The Chips", ["album"] = album, ["track"] = 1, ["date"] = "1990" };
