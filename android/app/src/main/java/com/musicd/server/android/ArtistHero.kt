@@ -60,13 +60,14 @@ import kotlin.math.min
  * then similar artists (item 137), each opening theirs.
  */
 @Composable
-internal fun ArtistHero(about: ArtistAbout?, bio: ArtistBio?, similar: ArtistSimilar?, client: () -> ServerClient?, onArtist: (String) -> Unit, onPlay: ((String) -> Unit)? = null) {
+internal fun ArtistHero(about: ArtistAbout?, bio: ArtistBio?, similar: ArtistSimilar?, client: () -> ServerClient?, onArtist: (String) -> Unit, onPlay: ((String) -> Unit)? = null, onGenre: (String) -> Unit = {}) {
     val own = rememberTileCover(about?.photoKey, 600, client)
     val portrait = own ?: rememberImage(bio?.image, client)
     val side = min(200, (LocalConfiguration.current.screenWidthDp * 0.46).toInt()).dp
     Column(Modifier.fillMaxWidth().padding(top = 6.dp, bottom = 12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
         portrait?.let { Image(it, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.parity("artist.avatar").padding(bottom = 14.dp).size(side).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant)) }
         about?.facts?.let { Text(it, Modifier.parity("artist.facts").padding(bottom = 10.dp), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.5.sp, lineHeight = 19.sp, fontWeight = FontWeight.W500, textAlign = TextAlign.Center) }
+        about?.genres?.let { GenreChips(it, "artist", center = true, modifier = Modifier.padding(bottom = 12.dp), onGenre = onGenre) }   // item 139
         about?.linkList?.takeIf { it.isNotEmpty() }?.let { ArtistLinks(it) }
         onPlay?.let { PlayRow(it) }
         bio?.let { BioText(it) }

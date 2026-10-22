@@ -241,6 +241,8 @@ internal fun AlbumScreen(offset: Long, zoneId: String, lit: String, client: () -
                         }
                     }
                 }
+                // Its genres (item 139), a row under the sleeve, as the page's #modal-genres: the head stays at the sleeve's foot.
+                if (a.genres.isNotEmpty()) item { GenreChips(a.genres, "album", center = false, modifier = Modifier.fillMaxWidth().padding(top = 14.dp)) { onPage("genre", it) } }
                 item {
                     // The heart, Play Now and Queue in brass, and ⋯, each the page's 42 tall (.modal-actions: 11 of padding round a 13px word), the heart
                     // and ⋯ 40 wide; 20 under the sleeve, 22 over the tracks. Outlined buttons for the rings: a plain button's border lay outside

@@ -16,7 +16,8 @@ class ArtistAboutTest {
                    {"name":"Craig Gannon","begin":"1986","end":null,"ended":true,"roles":[],"photo_key":null,"in_library":false}],
         "member_of":[],"credited_on":[{"offset":7,"title":"Hatful of Hollow","subtitle":"The Smiths","roles":["performer"]},
                                       {"offset":9,"title":"Rank","subtitle":"The Smiths","roles":["producer"]}],"in_library":true,
-        "band_albums":[{"band":"The Smiths","albums":[{"offset":11,"title":"Meat Is Murder","subtitle":"The Smiths"}]},{"band":"Empty","albums":[]}]}"""))
+        "band_albums":[{"band":"The Smiths","albums":[{"offset":11,"title":"Meat Is Murder","subtitle":"The Smiths"}]},{"band":"Empty","albums":[]}],
+        "genres":["Indie Rock","Jangle Pop"]}"""))
 
     @Test fun `what they are, where from and when, on one line`() {
         assertEquals("Band · Manchester · 1982–1987", band.facts)
@@ -49,6 +50,8 @@ class ArtistAboutTest {
         // Their bands' albums from their years in them (item 133), a band with none left out.
         assertEquals(listOf("The Smiths"), band.bandAlbums.map { it.band })
         assertEquals(listOf("Meat Is Murder"), band.bandAlbums[0].albums.map { it.title })
+        // Their genres, the most used first (item 139).
+        assertEquals(listOf("Indie Rock", "Jangle Pop"), band.genres)
         val unknown = ArtistAbout.parse(JSONObject("""{"name":"Nobody","known":false,"links":{},"members":[],"member_of":[],"credited_on":[]}"""))
         assertFalse(unknown.known)
         assertNull(unknown.facts)

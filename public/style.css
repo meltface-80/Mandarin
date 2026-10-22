@@ -912,7 +912,7 @@ main { padding-top: calc(var(--topbar-h) + 14px); }
   --sleeve: 160px;
   display: grid;
   grid-template-columns: var(--sleeve) minmax(0, 1fr);
-  grid-template-areas: "art head" "pane pane" "aside aside";
+  grid-template-areas: "art head" "genres genres" "pane pane" "aside aside";
   align-items: start; align-content: start;
   column-gap: 18px; row-gap: 0;
 }
@@ -946,6 +946,7 @@ main { padding-top: calc(var(--topbar-h) + 14px); }
 .modal-facts:has(#modal-quality.hidden):has(.modal-total:empty) { display: none; }
 .modal:not(.np-mode) .modal-tab-pane { grid-area: pane; min-width: 0; margin-top: 20px; }
 .modal:not(.np-mode) .modal-aside { grid-area: aside; }
+.modal:not(.np-mode) #modal-genres { grid-area: genres; margin-top: 14px; }
 .modal:not(.np-mode) .modal-actions { justify-content: center; }
 
 .modal-info { display: flex; flex-direction: column; min-width: 0; }
@@ -2945,6 +2946,16 @@ input.vol-range::-moz-range-thumb {
   font-size: 12.5px; line-height: 17px; color: var(--text); text-decoration: none; white-space: nowrap;
 }
 .artist-link:hover { border-color: var(--accent-text); }
+/* Genres as small chips (bug list item 139): an album's a row under the sleeve, an artist's under their facts; each opens its wall. */
+.genre-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.genre-chips.hidden { display: none; }
+.artist-genres { justify-content: center; margin: 0 0 12px; }
+.genre-chip {
+  padding: 3px 10px; border: 1px solid var(--border); border-radius: 12px; background: transparent;
+  font: inherit; font-size: 12px; line-height: 16px; color: var(--text-dim); cursor: pointer; white-space: nowrap;
+}
+.genre-chip:hover { color: var(--accent-text); border-color: var(--accent-text); }
+.np-mode #modal-genres { display: none; }
 /* Play and Shuffle (bug list item 138): the brass pill and the outlined one, side by side under the links. */
 .artist-play { display: flex; justify-content: center; gap: 10px; margin: 0 0 16px; }
 .artist-play.hidden { display: none; }
@@ -5615,7 +5626,7 @@ button.cap-chip:active { transform: scale(.96); }
 @media (min-width: 720px) {
   .modal:not(.np-mode) .modal-body {
     grid-template-columns: var(--sleeve) minmax(0, 1fr) minmax(240px, 320px);
-    grid-template-areas: "art head head" "pane pane aside";
+    grid-template-areas: "art head head" "genres genres genres" "pane pane aside";
     column-gap: 28px;
   }
   .modal:not(.np-mode) .modal-aside { margin-top: 6px; }

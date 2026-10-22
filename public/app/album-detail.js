@@ -213,6 +213,11 @@ async function fetchAlbumDetail(album) {
     modalActs.appendChild(err);
   }
 
+  // Its genres (item 139), each opening the genre's wall.
+  fillGenreChips(document.getElementById("modal-genres"), (j.album && j.album.genres) || [], "album.genre", (g) => {
+    closeModal();
+    if (window.__applyFilter) window.__applyFilter({ type: "genre", value: g });
+  });
   // Tracks — each row is tappable and reveals Play now / Queue for that
   // track (one open row at a time; tapping again collapses it).
   const trackWrap = document.querySelector(".track-list-wrap");
@@ -251,4 +256,20 @@ async function fetchAlbumDetail(album) {
     // The rows (album-works.js): the plain list, or the album's works and movements.
     renderTrackList(j, trackList);
   }
+}
+
+// Genres as small chips (item 139): an album's, or an artist's (artist-about.js); [key] their key in the screens
+// contract, [onTap] a genre tapped. Hidden when there are none.
+function fillGenreChips(el, genres, key, onTap) {
+  if (!el) return;
+  el.textContent = "";
+  const list = (Array.isArray(genres) ? genres : []).filter(g => typeof g === "string" && g.trim());
+  for (const g of list) {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "genre-chip"; b.dataset.parity = key;
+    b.textContent = g;
+    b.addEventListener("click", () => onTap(g));
+    el.appendChild(b);
+  }
+  el.classList.toggle("hidden", !list.length);
 }
