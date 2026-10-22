@@ -80,6 +80,7 @@ function openAlbum(album, opts) {
   // Reset bio sections, and the sections under them (cleared before any
   // answer for this album can arrive)
   resetMoreSections();
+  if (window.__resetAlbumCredits) window.__resetAlbumCredits();   // and its credits (item 132)
   document.getElementById("album-bio-section").classList.add("hidden");
   document.getElementById("album-bio-toggle").classList.add("hidden");
   document.getElementById("album-bio-source").classList.add("hidden");

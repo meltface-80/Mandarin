@@ -530,6 +530,13 @@
              sleeve's row; after the tracks on a phone (style.css places it
              with the grid). Not on Now playing. -->
         <div class="modal-aside" id="modal-aside">
+          <!-- Credits (bug list item 132, album-credits.js): who played, sang,
+               wrote and made it, each opening their page; eight at first. -->
+          <div class="credits-section hidden" id="album-credits" data-parity="album.credits">
+            <h3 class="section-label">Credits</h3>
+            <div class="credits-list"></div>
+            <button class="more-toggle hidden" type="button" aria-expanded="false" data-parity="album.credits-more">More</button>
+          </div>
           <div class="bio-section hidden" id="album-bio-section" data-parity="album.review">
             <h3 class="section-label">About this album</h3>
             <div class="bio-meta" id="album-meta"></div>
