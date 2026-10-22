@@ -1,6 +1,12 @@
 # Changelog
 
 ## Unreleased
+- `126-backup-ending-no-note`: in the Android app, Android ending the app after waking it for a task of its own no
+  longer brings up "Mandarin stopped in the background". At 04:05 on 22 October it ended the app with a signal, at
+  230 (perceptible: neither on screen, in view nor playing) and with no words of its own, after waking it overnight:
+  the nightly backup, which ends the app it backed up. A note now needs the app to have been on screen, in view or
+  playing; the note calls 230 "woken by Android" rather than "in view", and with logging on the ending is still in
+  the log ("no note: …").
 - `125-frozen-idle-no-note`: in the Android app, Android ending the app while it is idle in the background and frozen
   no longer brings up "Mandarin stopped in the background" at the next start. It happened again at 18:49 on 21
   October, six minutes after the phone's player had stopped itself (item 124), with no player and no media session

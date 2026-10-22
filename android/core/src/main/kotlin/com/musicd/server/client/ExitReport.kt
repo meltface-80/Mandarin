@@ -53,12 +53,14 @@ object ExitReport {
      * Worth saying: a fault, or an ending while the app was in use; never one asked for, or one the crash log already has.
      * Frozen (item 125) is Android's clean-up of an idle app, like short of memory: a frozen app another app calls on and
      * must wait for is ended for it ("Sync transaction while frozen"), whoever the caller, the app losing nothing it
-     * doesn't bring back (the screen it was on, the phone's queue, paused).
+     * doesn't bring back (the screen it was on, the phone's queue, paused). In use is on screen, in view or playing:
+     * perceptible (230) is Android waking the app for a task of its own (item 126: a signal at 04:05 with no words, the
+     * nightly backup, which ends the app it backed up), not the user using it.
      */
     fun worth(e: AppExit): Boolean = when (e.reason) {
         EXIT_SELF, CRASH, USER_REQUESTED, USER_STOPPED, PERMISSION_CHANGE, PACKAGE_STATE_CHANGE, PACKAGE_UPDATED -> false
         CRASH_NATIVE, ANR, INITIALIZATION_FAILURE, EXCESSIVE_RESOURCE_USAGE, DEPENDENCY_DIED -> true
-        else -> e.importance < SERVICE
+        else -> e.importance < PERCEPTIBLE
     }
 
     /** The endings since [since] not worth a note, oldest first: for the log alone. */
@@ -93,7 +95,8 @@ object ExitReport {
     fun importance(i: Int): String = when {
         i <= FOREGROUND -> "on screen"
         i <= FOREGROUND_SERVICE -> "playing in the background"
-        i <= PERCEPTIBLE -> "in the background, in view"
+        i <= VISIBLE -> "in the background, in view"
+        i <= PERCEPTIBLE -> "in the background, woken by Android"
         i <= SERVICE -> "in the background, not playing"
         else -> "idle"
     } + " ($i)"
