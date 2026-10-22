@@ -75,6 +75,12 @@ public sealed class CreditsTests
     { "entities": { "Q1361578": { "id": "Q1361578", "claims": { "P18": [{ "mainsnak": { "snaktype": "value", "property": "P18", "datavalue": { "value": "10,000 Maniacs 1987.jpg", "type": "string" } } }] } } } }
     """;
 
+    private const string DeezerJson = """
+    { "data": [{ "name": "Ten Thousand Maniacs Tribute", "picture_xl": "https://e-cdns-images.dzcdn.net/images/artist/aaa/1000x1000.jpg" },
+      { "name": "Ten Thousand Maniacs", "picture_xl": "https://e-cdns-images.dzcdn.net/images/artist//1000x1000.jpg" },
+      { "name": "ten thousand MANIACS", "picture_xl": "https://e-cdns-images.dzcdn.net/images/artist/bbb/1000x1000.jpg" }] }
+    """;
+
     private const string Photo = "https://commons.wikimedia.org/wiki/Special:FilePath/10%2C000_Maniacs_1987.jpg?width=640";
 
     private static Task<JsonNode> Run(object job) => Score.Run(job);
@@ -191,9 +197,7 @@ public sealed class CreditsTests
             wikidata = new object[] { JsonNode.Parse(WikidataJson)!, "https://www.wikidata.org/wiki/Q1361578" },
             fanart = JsonNode.Parse("""{ "artistthumb": [{ "url": "https://assets.fanart.tv/thumb.jpg" }] }"""),
             // Deezer's blank (no id in its address) passed over, and an act of another name.
-            deezer = new object[] { JsonNode.Parse("""{ "data": [{ "name": "Ten Thousand Maniacs Tribute", "picture_xl": "https://e-cdns-images.dzcdn.net/images/artist/aaa/1000x1000.jpg" },
-                { "name": "Ten Thousand Maniacs", "picture_xl": "https://e-cdns-images.dzcdn.net/images/artist//1000x1000.jpg" },
-                { "name": "ten thousand MANIACS", "picture_xl": "https://e-cdns-images.dzcdn.net/images/artist/bbb/1000x1000.jpg" }] }""")!, "Ten Thousand Maniacs" },
+            deezer = new object[] { JsonNode.Parse(DeezerJson)!, "Ten Thousand Maniacs" },
             search = new object[] { JsonNode.Parse($$"""{ "artists": [{ "id": "x", "name": "Ten Thousand Maniacs Tribute Band" }, { "id": "{{Band}}", "name": "Ten Thousand Maniacs" }] }""")!, "ten thousand maniacs" },
             url = Photo,
         });
