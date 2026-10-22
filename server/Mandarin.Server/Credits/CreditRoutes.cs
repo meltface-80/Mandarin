@@ -135,7 +135,7 @@ internal static partial class Library
             ["disambiguation"] = about["disambiguation"]?.DeepClone(), ["begin"] = about["begin"]?.DeepClone(), ["end"] = about["end"]?.DeepClone(),
             ["ended"] = about["ended"]?.DeepClone(), ["area"] = about["area"]?.DeepClone(), ["links"] = about["links"]?.DeepClone() ?? new JsonObject(),
             ["members"] = Stints(MainMembers(about["members"], about), photos, acts), ["member_of"] = Stints(about["member_of"], photos, acts),
-            ["band_albums"] = bandAlbums, ["credited_on"] = on, ["in_library"] = acts.Contains(key), ["genres"] = GenresOf([]),
+            ["band_albums"] = bandAlbums, ["credited_on"] = on, ["in_library"] = acts.Contains(key), ["genres"] = GenresOf(own.Count > 0 ? own : featured),
         });
     }
 

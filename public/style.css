@@ -912,7 +912,7 @@ main { padding-top: calc(var(--topbar-h) + 14px); }
   --sleeve: 160px;
   display: grid;
   grid-template-columns: var(--sleeve) minmax(0, 1fr);
-  grid-template-areas: "art head" "pane pane" "aside aside";
+  grid-template-areas: "art head" "genres genres" "pane pane" "aside aside";
   align-items: start; align-content: start;
   column-gap: 18px; row-gap: 0;
 }
@@ -946,6 +946,7 @@ main { padding-top: calc(var(--topbar-h) + 14px); }
 .modal-facts:has(#modal-quality.hidden):has(.modal-total:empty) { display: none; }
 .modal:not(.np-mode) .modal-tab-pane { grid-area: pane; min-width: 0; margin-top: 20px; }
 .modal:not(.np-mode) .modal-aside { grid-area: aside; }
+.modal:not(.np-mode) #modal-genres { grid-area: genres; margin-top: 14px; }
 .modal:not(.np-mode) .modal-actions { justify-content: center; }
 
 .modal-info { display: flex; flex-direction: column; min-width: 0; }
@@ -5616,7 +5617,7 @@ button.cap-chip:active { transform: scale(.96); }
 @media (min-width: 720px) {
   .modal:not(.np-mode) .modal-body {
     grid-template-columns: var(--sleeve) minmax(0, 1fr) minmax(240px, 320px);
-    grid-template-areas: "art head head" "pane pane aside";
+    grid-template-areas: "art head head" "genres genres genres" "pane pane aside";
     column-gap: 28px;
   }
   .modal:not(.np-mode) .modal-aside { margin-top: 6px; }
