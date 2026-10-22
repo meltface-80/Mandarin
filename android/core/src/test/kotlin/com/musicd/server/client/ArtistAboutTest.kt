@@ -1,0 +1,53 @@
+package com.musicd.server.client
+
+import org.json.JSONObject
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
+import org.junit.Test
+
+/** Who an act is on their page (item 131): the facts line, their links, members and bands, the albums credited on. */
+class ArtistAboutTest {
+    private val band = ArtistAbout.parse(JSONObject("""{"name":"The Smiths","key":"smiths","known":true,"mbid":"40f5d9e4","type":"Group",
+        "photo_key":"u-aHR0cHM6Ly9leGFtcGxlLmNvbS9zLmpwZw","begin":"1982","end":"1987-08","ended":true,"area":"Manchester",
+        "links":{"discogs":"https://www.discogs.com/artist/1","official":"https://officialsmiths.co.uk","wikidata":"https://www.wikidata.org/wiki/Q1"},
+        "members":[{"name":"Johnny Marr","begin":"1982","end":"1987","ended":true,"roles":["guitar","keyboard"],"photo_key":null,"in_library":true},
+                   {"name":"Craig Gannon","begin":"1986","end":null,"ended":true,"roles":[],"photo_key":null,"in_library":false}],
+        "member_of":[],"credited_on":[{"offset":7,"title":"Hatful of Hollow","subtitle":"The Smiths","roles":["performer"]},
+                                      {"offset":9,"title":"Rank","subtitle":"The Smiths","roles":["producer"]}],"in_library":true}"""))
+
+    @Test fun `what they are, where from and when, on one line`() {
+        assertEquals("Band · Manchester · 1982–1987", band.facts)
+        assertEquals("born 1959", ArtistAbout.years("1959-05-22", null, false, "Person"))
+        assertEquals("1946–2016", ArtistAbout.years("1946", "2016-01-10", true, "Person"))
+        assertEquals("since 2001", ArtistAbout.years("2001", null, false, "Group"))
+        assertEquals("1970–", ArtistAbout.years("1970", null, true, "Group"))
+        assertNull(ArtistAbout.years(null, null, false, "Group"))
+        val person = band.copy(type = "Person", area = null, begin = "1963", end = null, ended = false)
+        assertEquals("born 1963", person.facts)
+        assertNull(band.copy(type = null, area = null, begin = null, end = null).facts)
+    }
+
+    @Test fun `their links named, MusicBrainz first, in the page's order`() {
+        assertEquals(listOf("MusicBrainz", "Official site", "Wikidata", "Discogs"), band.linkList.map { it.first })
+        assertEquals("https://musicbrainz.org/artist/40f5d9e4", band.linkList[0].second)
+        assertEquals(listOf("Official site"), band.copy(mbid = null, links = mapOf("official" to "x", "myspace" to "y")).linkList.map { it.first })
+    }
+
+    @Test fun `members with what they played and when, and albums credited on beyond their own`() {
+        assertTrue(band.known)
+        assertEquals(listOf("Johnny Marr", "Craig Gannon"), band.members.map { it.name })
+        assertEquals("guitar, keyboard · 1982–1987", band.members[0].line)
+        assertEquals("1986–", band.members[1].line)
+        assertTrue(band.members[0].inLibrary)
+        assertFalse(band.members[1].inLibrary)
+        assertEquals("u-aHR0cHM6Ly9leGFtcGxlLmNvbS9zLmpwZw", band.photoKey)
+        assertEquals(listOf("Rank"), band.creditedBeyond(setOf(7L)).map { it.album.title })
+        assertEquals(listOf("producer"), band.creditedBeyond(setOf(7L))[0].roles)
+        val unknown = ArtistAbout.parse(JSONObject("""{"name":"Nobody","known":false,"links":{},"members":[],"member_of":[],"credited_on":[]}"""))
+        assertFalse(unknown.known)
+        assertNull(unknown.facts)
+        assertTrue(unknown.linkList.isEmpty())
+    }
+}

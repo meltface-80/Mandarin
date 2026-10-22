@@ -12,7 +12,7 @@ namespace Mandarin.Tests;
 /// </summary>
 public sealed class CreditsTests
 {
-    private const string Band = "0b3e1a0c-6c4e-4e7b-9f3e-1d2c3b4a5f60", Jerome = "1c2d3e4f-5a6b-4c7d-8e9f-0a1b2c3d4e5f", Natalie = "2d3e4f5a-6b7c-4d8e-9f0a-1b2c3d4e5f6a",
+    internal const string Band = "0b3e1a0c-6c4e-4e7b-9f3e-1d2c3b4a5f60", Jerome = "1c2d3e4f-5a6b-4c7d-8e9f-0a1b2c3d4e5f", Natalie = "2d3e4f5a-6b7c-4d8e-9f0a-1b2c3d4e5f6a",
         Novi = "3e4f5a6b-7c8d-4e9f-8a1b-2c3d4e5f6a7b", Robert = "4f5a6b7c-8d9e-4f0a-9b2c-3d4e5f6a7b8c", Peter = "5a6b7c8d-9e0f-4a1b-8c3d-4e5f6a7b8c9d",
         Release = "6b7c8d9e-0f1a-4b2c-9d4e-5f6a7b8c9d0e";
 
@@ -46,7 +46,7 @@ public sealed class CreditsTests
     """;
 
     // A band as MusicBrainz answers it with its artist and URL relations: a member twice (left, came back), its links.
-    private static readonly string BandJson = $$"""
+    internal static readonly string BandJson = $$"""
     {
       "id": "{{Band}}", "name": "Ten Thousand Maniacs", "type": "Group", "disambiguation": "US alternative rock band",
       "life-span": { "begin": "1981", "end": null, "ended": false }, "area": { "name": "United States" },

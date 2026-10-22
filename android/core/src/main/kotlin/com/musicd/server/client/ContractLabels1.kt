@@ -104,7 +104,9 @@ internal object ContractLabels1 {
         "wall.select-later" to listOf("Listen later"),
         "wall.select-clear" to listOf("Clear selection"),
         "artist.back" to listOf("Back to Home"),
+        "artist.link" to listOf("{link}"),
         "artist.bio-more" to listOf("Show more", "Show less"),
+        "artist.member" to listOf("{member}"),
         "artist.album" to listOf("{album} by {artist}", "{album}"),
         "artist.select-cancel" to listOf("Cancel selection"),
         "artist.select-menu" to listOf("Actions for {n} selected albums", "Actions for 1 selected album"),
@@ -296,12 +298,5 @@ internal object ContractLabels1 {
         "settings-labels.rescan" to listOf("Force rescan", "Starting…", "Done", "Rescan started"),
         "settings-labels.depth" to listOf("Label from folder depth"),
         "settings-labels.depth-save" to listOf("Save"),
-        "settings-ui.back" to listOf("Back to settings"),
-        "settings-ui.info" to listOf("About {setting}"),
-        "settings-ui.text" to listOf("Album & artist text"),
-        "settings-ui.title" to listOf("Grid screen title"),
-        "settings-ui.menu" to listOf("Menu & Home Screen text"),
-        "settings-ui.layout" to listOf("Grid layout"),
-        "settings-ui.tile" to listOf("Tile size"),
     )
 }

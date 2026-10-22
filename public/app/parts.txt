@@ -72,6 +72,7 @@ app/service-browsers.js
 app/pitchfork.js
 app/check-update.js
 app/play-unheard.js
+app/artist-about.js
 app/artist-view.js
 app/artists-wall.js
 app/menu-drawer.js
