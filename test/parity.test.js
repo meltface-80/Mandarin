@@ -93,6 +93,13 @@ const OPEN_OFFLINE = `(async () => {
   return document.getElementById("offline-overlay").classList.contains("hidden") ? "not open" : "open";
 })()`;
 
+/* Offline said at the top (item 134): the page offline, as OPEN_OFFLINE makes it, the pill up and not yet tapped. */
+const OPEN_OFFLINE_SIGN = OPEN_OFFLINE.replace(`  btn().click();
+  await sleep(300);
+  return document.getElementById("offline-overlay").classList.contains("hidden") ? "not open" : "open";`, `  await sleep(300);
+  const pill = document.getElementById("offline-toast");
+  return pill && pill.getClientRects().length ? "open" : "no pill";`);
+
 /* An album's page, opened from the Library row on Home (so it has a previous and a next). */
 const OPEN_ALBUM = `(async () => {
   const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -205,6 +212,18 @@ const OPEN_BOOKLET = `(async () => {
   $("#modal-booklet").click();
   if (!(await until(() => shown($("#booklet-viewer")) && $("#booklet-viewer .booklet-page"), 10000))) return "no viewer";
   await sleep(300);
+  return "open";
+})()`;
+
+/* The Artists wall (item 130): the row's Artists tapped, the round pictures and the count up. */
+const OPEN_ARTISTS = `(async () => {
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const until = async (fn, ms = 30000) => { const t0 = Date.now(); while (!fn()) { if (Date.now() - t0 > ms) return false; await sleep(50); } return true; };
+  if (!(await until(() => document.querySelectorAll("#home-library .album").length > 1 && /Kitchen/.test((document.getElementById("mt-kicker") || {}).textContent || "")))) return "no Home";
+  await sleep(400);
+  document.getElementById("tnav-artists").click();
+  if (!(await until(() => /Artists · \\d/.test(document.getElementById("album-count").textContent) && document.querySelectorAll("#album-grid .artist-tile").length >= 1))) return "no artists";
+  await sleep(600);
   return "open";
 })()`;
 
@@ -620,6 +639,7 @@ const SCREENS = {
   "library": { open: OPEN_LIBRARY, root: "body", shared: ["mini-player", "nav"] },
   "wall": { open: OPEN_WALL, root: "body", shared: ["mini-player", "nav"] },
   "artist": { open: OPEN_ARTIST, root: "body", shared: ["mini-player", "nav"] },
+  "artists": { open: OPEN_ARTISTS, root: "body", shared: ["mini-player", "nav"] },
   "search": { open: OPEN_SEARCH, root: "body", shared: ["mini-player", "nav"] },
   "playlists": { open: OPEN_PLAYLISTS, root: "body", shared: ["mini-player", "nav"] },
   "playlist": { open: OPEN_PLAYLIST, root: "body", shared: ["mini-player", "nav"] },
@@ -630,6 +650,7 @@ const SCREENS = {
   "add-to-playlist": { open: OPEN_ADD_TO_PLAYLIST, root: ".lib-sheet-backdrop" },
   "prompt": { open: OPEN_PROMPT, root: "#prompt-overlay" },
   "offline": { open: OPEN_OFFLINE, root: "#offline-overlay" },
+  "offline-sign": { open: OPEN_OFFLINE_SIGN, root: "#offline-sign" },
   "group": { open: OPEN_GROUP, root: ".lib-sheet-backdrop" },
   "device-power": { open: OPEN_POWER, root: ".lib-sheet-backdrop" },
   "playlist-import": { open: OPEN_IMPORT, root: ".lib-sheet-backdrop" },

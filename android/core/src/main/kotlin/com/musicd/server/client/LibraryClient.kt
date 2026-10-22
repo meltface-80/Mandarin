@@ -27,6 +27,9 @@ class LibraryClient(private val get: (String) -> JSONObject) {
 
     fun artists(): ArtistPage = ArtistPage.parse(get("/api/artists"))
 
+    /** A page of the Artists wall (item 130), as [ArtistsWall.path] asks for it. */
+    fun artistsWall(path: String): ArtistPage = ArtistPage.parse(get(path))
+
     fun artistAlbums(artist: String): ArtistAlbums = ArtistAlbums.parse(get("/api/artist-albums?artist=" + enc(artist)))
 
     /** The album's booklets, the PDFs in its folder (only an album of your own files has any). */
@@ -65,6 +68,12 @@ class LibraryClient(private val get: (String) -> JSONObject) {
 
     /** An artist's biography, one of their albums naming them ([album]); null when there is none. */
     fun artistBio(artist: String, album: String): ArtistBio? = ArtistBio.parse(get("/api/artist-bio?artist=" + enc(artist) + "&album=" + enc(album)))
+    /** Who an act is (bug list item 131): picture, facts, links, members or bands, albums credited on. */
+    fun artistAbout(artist: String): ArtistAbout = ArtistAbout.parse(get("/api/artist?name=" + enc(artist)))
+    /** An act's similar acts for its page (bug list item 137). */
+    fun artistSimilar(artist: String): ArtistSimilar = ArtistSimilar.parse(get("/api/artist/similar?name=" + enc(artist)))
+    /** Who played, sang, wrote and made an album (bug list item 132), by its offset. */
+    fun albumCredits(offset: Long): AlbumCredits = AlbumCredits.parse(get("/api/album/credits?offset=$offset"))
 
     fun albumOfTheDay(): AlbumOfTheDay = AlbumOfTheDay.parse(get("/api/home/album-of-the-day"))
 

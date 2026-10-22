@@ -1,5 +1,74 @@
 # Changelog
 
+## v1.1.3
+
+**Artists.** Every act in your library gets a wall and a page of its own, in the Android app and in the browser. On a
+phone or tablet the row at the foot of the screen has an Artists button (its five buttons now evenly spaced; offline
+is said by a pill at the top of the screen instead). An artist's page shows their picture, where from and when, their
+links and biography, their genres, a band's current members or a person's bands with that band's albums from their
+years in it, similar artists, and Play and Shuffle for all their albums. An album's page lists its credits under the
+tracks (who played, sang, wrote and made it, from its tags and MusicBrainz) and its genres as chips; a tap on a name
+or a genre opens its page. "10,000 Maniacs" and the like stay one artist.
+
+- `139-genres-tags`: an album's page and an artist's page show their genres, in the app and on the page: a row of small chips
+  under an album's sleeve (its own tags), and on an artist's head the genres their albums are tagged with, the most
+  used first, five at most. A tap opens that genre's wall. New in `GET /api/artist`: `genres`.
+- `138-artist-play`: Play and Shuffle on an artist's page, in the app and on the page, under the links: Play plays
+  their albums (their own and their bands', else those they appear on) in order in the room chosen; Shuffle plays
+  every track of them in a random order. `POST /api/play-multi` takes `kind: "shuffle"`.
+- `136-thousands-comma`: "10,000 Maniacs" is one band again. A comma inside a number (a digit before it, three
+  after) no longer splits an album's artist into acts, which made "10" (with another act's picture and facts) and
+  "000 Maniacs". Commas between names still split.
+- `137-similar-artists`: an artist's page shows similar artists, in the app and on the page: a row of round
+  pictures under the members, each opening that artist's page here, in the library or not. From Last.fm when a key is
+  set (Settings → Setup → API Keys), else Deezer's related artists, which need no key (kept a week). New:
+  `GET /api/artist/similar?name=`.
+- `133-artist-enrichment`: an artist's page as the owner asked after trying it. A band's members are those in it now,
+  as Wikipedia lists them (a band that has ended: its last line-up), not everyone who ever played in it. A member's
+  own page shows their bands' albums from their years in them ("With Iron Maiden": Janick Gers from 1990), counted
+  in the heading, where it said "0 albums". The official site is Wikidata's where it has one, and a link MusicBrainz
+  marks ended (an old site) is left out; acts looked up before are looked up again when their page opens. No
+  MusicBrainz pill among the links. In the app, an artist's page that loses the server for a moment asks again
+  rather than showing "unexpected end of stream". New in `GET /api/artist`: `band_albums`.
+- `135-artist-head-overlap`: in the app, an artist's picture no longer sits over the heading ("6 albums · A.A.
+  Williams"): the head of an album grid (the heading, the picture, links, biography, members) stands one part under
+  another, on every screen that has one.
+- `132-album-credits`: an album's page shows its credits, in the app and on the page. Under the tracks, over "About
+  this album": who played, sang, wrote and made it, players first, then the writers, those who made the record and
+  its art; each a row with their picture (or first letter), their name, and their parts, with the tracks they are on
+  when not all ("Organ · track 1", "Lead vocals · tracks 1–3, 5"). Eight at first, More for the rest; a tap opens
+  their artist page, and Back returns to the album. From the album's own tags and its MusicBrainz release (item 129).
+- `134-offline-toast`: the row along the foot has its five buttons evenly across again, and offline is said at the
+  top of the screen instead: a small pill in the middle, "Offline — tap for more", over every screen for as long as the
+  app (or the page on a phone) is offline; a tap says why, as the sign in the row did. On a desktop the sign stays in
+  the top bar.
+- `131-artist-page`: an artist's page shows who they are, in the app and on the page. Over their albums: their
+  picture (their own once the server has found one, else the biography's portrait), what they are, where from and
+  when ("Band · Manchester · 1982–1987"), their links as pills (MusicBrainz, official site, Wikipedia, Wikidata,
+  Discogs, AllMusic, Bandcamp, Last.fm, SoundCloud, YouTube; each opens in the browser), and the biography as before.
+  A band's members, or a person's bands, follow in a row of round pictures with what each played and when; a tap
+  opens their own page, even when the library has nothing of theirs. Under the albums and those they appear on, a
+  new "Credited on" section lists the library's albums they played on, wrote or produced, saying as what.
+- `130-artists-tab`: an Artists wall, in the app and on the page. The row along the foot has an Artists button
+  (Menu, Home, Library, Artists, Search, five equal buttons; the Offline sign keeps a seat of its own between Home and
+  Library, so the row doesn't shift when it comes). The wall shows every act in the library as a round picture (their
+  own once the server has found one, else their first album's cover) with their name and how many albums, in the
+  album wall's own columns, sizes and grid or list view (Settings → UI Settings), read a page at a time as you
+  scroll. Sort at the top right goes round A to Z, most albums and random, and is kept; Search in the row finds an
+  artist by part of the name across the whole library. A tap opens the artist's page, and Back from there comes back
+  to the wall where you left it. New: `GET /api/artists?q=` finds by part of the name (accents and case aside).
+- `129-artist-credits`: the server finds who played, sang, wrote and made each album, and who each act is, for the
+  artists' pages and the album credits to come (items 130–132). An album's credits come from its files' own tags
+  (PERFORMER "Name (drums)", PRODUCER, ENGINEER, ID3's credit lists) and, where the album has a MusicBrainz release
+  (its tags' album id, or the identification scan's applied match), from that release: who played and sang on each
+  recording, who wrote each work, who made the record. An act's members or bands, years, place and links (Wikidata,
+  Wikipedia, Discogs, AllMusic, its own site) come from MusicBrainz, and its picture from FanArt.tv (with a key),
+  Wikidata (Wikimedia Commons) or Deezer. It works in the background, one album and one act at a time at
+  MusicBrainz's pace of one request a second, the library's album artists first; a page that asks before it has got
+  there has its answer found there and then. New: `GET /api/album/credits`, `GET /api/artist`,
+  `GET /api/credits/status`; `GET /api/artists` gives each act's own picture (`photo_key`) once found. Kept in tables
+  of its own (`album_credits`, `album_credit_state`, `artist_info`), made the first time something is found.
+
 ## v1.1.2
 
 **Reliability updates.** No new features: the Android app is steadier in everyday use. At home it talks to the

@@ -72,7 +72,7 @@
         </svg>
       </button>
       <!-- Shown when navigated away from Home (wall / genre / labels). -->
-      <button id="topbar-back" class="icon-btn hidden" aria-label="Back to Home" title="Home" data-parity="library.back wall.back artist.back picks.back playlists.back playlist.home smart-playlists.back smart-playlist.home labels.back">
+      <button id="topbar-back" class="icon-btn hidden" aria-label="Back to Home" title="Home" data-parity="library.back wall.back artist.back picks.back playlists.back playlist.home smart-playlists.back smart-playlist.home labels.back artists.back">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
              stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <polyline points="15 18 9 12 15 6"/>
@@ -128,7 +128,7 @@
           <span class="search-status" id="search-status" aria-live="polite" data-parity="search.status"></span>
         </div>
       </div>
-      <span id="album-count" class="album-count hidden" aria-live="polite" data-parity="library.title wall.title artist.title picks.title playlists.title smart-playlists.title labels.title"></span>
+      <span id="album-count" class="album-count hidden" aria-live="polite" data-parity="library.title wall.title artist.title picks.title playlists.title smart-playlists.title labels.title artists.title"></span>
       <!-- The original top-bar controls stay in the DOM (hidden) as the action
            engine — the side-menu items trigger them by id. -->
       <div class="topbar-controls">
@@ -301,7 +301,7 @@
       </div>
     </div>
     <div id="content-count" class="content-count hidden"></div>
-    <div id="status-banner" class="status-banner hidden" data-parity="library.banner wall.banner picks.banner search.banner playlists.banner playlist.banner smart-playlists.banner labels.banner"></div>
+    <div id="status-banner" class="status-banner hidden" data-parity="library.banner wall.banner picks.banner search.banner playlists.banner playlist.banner smart-playlists.banner labels.banner artists.banner"></div>
 
     <!-- Home landing: sections of the library. The album wall (#album-grid)
          is one destination, reached from here or the side menu. -->
@@ -530,6 +530,13 @@
              sleeve's row; after the tracks on a phone (style.css places it
              with the grid). Not on Now playing. -->
         <div class="modal-aside" id="modal-aside">
+          <!-- Credits (bug list item 132, album-credits.js): who played, sang,
+               wrote and made it, each opening their page; eight at first. -->
+          <div class="credits-section hidden" id="album-credits" data-parity="album.credits">
+            <h3 class="section-label">Credits</h3>
+            <div class="credits-list"></div>
+            <button class="more-toggle hidden" type="button" aria-expanded="false" data-parity="album.credits-more">More</button>
+          </div>
           <div class="bio-section hidden" id="album-bio-section" data-parity="album.review">
             <h3 class="section-label">About this album</h3>
             <div class="bio-meta" id="album-meta"></div>
@@ -585,6 +592,9 @@
               <span class="modal-total" id="modal-total"></span>
             </div>
           </div>
+          <!-- Its genres (bug list item 139), each opening its wall: a row of
+               its own under the sleeve, so the head stays at the sleeve's foot. -->
+          <div class="genre-chips hidden" id="modal-genres"></div>
 
           <div class="modal-tab-pane" id="tab-album">
 
@@ -2094,10 +2104,9 @@
   </div>
 
   <!-- The touch layout's row along the foot of the screen (v0.9.6,
-       touchnav.js): the menu, Home, the Library and Search, under the mini
+       touchnav.js): the menu, Home, the Library, Artists and Search, under the mini
        player, on a phone or a tablet. A desktop never shows it (style.css).
-       Each button works the page's own control; the small Offline sign
-       between Home and Library is the top bar's, shown here. -->
+       Each button works the page's own control; the five evenly across. -->
   <nav id="touch-nav" class="touch-nav" aria-label="Main">
     <button id="tnav-menu" class="tnav-btn" type="button" data-parity="nav.menu" aria-label="Menu">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
@@ -2111,19 +2120,17 @@
       </svg>
       <span>Home</span>
     </button>
-    <button id="tnav-offline" class="tnav-offline" type="button" data-parity="nav.offline" aria-label="Offline — tap for more" title="Offline" aria-haspopup="dialog">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <path d="M2 8.8a15 15 0 0 1 4.2-2.6"/><path d="M10.7 5.1A15 15 0 0 1 22 8.8"/>
-        <path d="M5 12.9a10 10 0 0 1 5.2-2.7"/><path d="M15.8 11a10 10 0 0 1 3.2 1.9"/>
-        <path d="M8.5 16.4a5 5 0 0 1 7 0"/><line x1="12" y1="20" x2="12.01" y2="20"/>
-        <line x1="3" y1="3" x2="21" y2="21"/>
-      </svg>
-    </button>
     <button id="tnav-library" class="tnav-btn" type="button" data-parity="nav.library" aria-label="Library">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <line x1="5" y1="4" x2="5" y2="20"/><line x1="10" y1="4" x2="10" y2="20"/><path d="m14.5 4.6 4.6 14.8"/>
       </svg>
       <span>Library</span>
+    </button>
+    <button id="tnav-artists" class="tnav-btn" type="button" data-parity="nav.artists" aria-label="Artists">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.9 3.1-7 7-7s7 3.1 7 7"/>
+      </svg>
+      <span>Artists</span>
     </button>
     <button id="tnav-search" class="tnav-btn" type="button" data-parity="nav.search" aria-label="Search">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -2132,6 +2139,22 @@
       <span>Search</span>
     </button>
   </nav>
+
+  <!-- Offline (bug list item 134): a pill at the top of the screen, over
+       everything, for as long as the page is offline; a tap says why (the top
+       bar's own sign's dialog). The touch layout's (style.css); a desktop
+       keeps the sign in its top bar. -->
+  <div id="offline-sign" class="offline-sign">
+    <button id="offline-toast" class="offline-toast" type="button" data-parity="offline-sign.sign" aria-label="Offline — tap for more" aria-haspopup="dialog">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M2 8.8a15 15 0 0 1 4.2-2.6"/><path d="M10.7 5.1A15 15 0 0 1 22 8.8"/>
+        <path d="M5 12.9a10 10 0 0 1 5.2-2.7"/><path d="M15.8 11a10 10 0 0 1 3.2 1.9"/>
+        <path d="M8.5 16.4a5 5 0 0 1 7 0"/><line x1="12" y1="20" x2="12.01" y2="20"/>
+        <line x1="3" y1="3" x2="21" y2="21"/>
+      </svg>
+      <span>Offline — tap for more</span>
+    </button>
+  </div>
 
   <!-- The card's font, Manrope, is bundled (public/fonts, @font-face in
        style.css): no wait on Google Fonts, the same offline and away. -->

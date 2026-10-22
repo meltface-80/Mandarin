@@ -88,7 +88,7 @@
       }
     },
     "offline": {
-      "page": "the page's Offline dialog (#offline-overlay), opened from the row's Offline sign: why only the music on this phone shows, and, when Offline mode is on, the switch to turn it off, or, the server out of reach, Try the server again; Close",
+      "page": "the page's Offline dialog (#offline-overlay), opened from the Offline sign at the top of the screen (offline-sign): why only the music on this phone shows, and, when Offline mode is on, the switch to turn it off, or, the server out of reach, Try the server again; Close",
       "native": ["android/app/src/main/java/com/musicd/server/android/OfflineDialog.kt"],
       "preview": false,
       "items": {
@@ -136,14 +136,22 @@
       }
     },
     "nav": {
-      "page": "the touch layout's row along the foot of the screen (#touch-nav, touchnav.js): Menu, Home, Library and Search under the mini player, and the Offline sign between Home and Library, a phone held upright",
+      "page": "the touch layout's row along the foot of the screen (#touch-nav, touchnav.js): Menu, Home, Library, Artists and Search under the mini player, evenly across it, a phone held upright (offline is said at the top of the screen: offline-sign)",
       "native": ["android/app/src/main/java/com/musicd/server/android/TouchNav.kt"],
       "items": {
         "menu": { "kind": "action", "label": "Menu" },
         "home": { "kind": "action", "label": "Home" },
-        "offline": { "kind": "action", "label": "Offline — tap for more", "when": "offline, in the Android app" },
         "library": { "kind": "action", "label": "Library" },
+        "artists": { "kind": "action", "label": "Artists" },
         "search": { "kind": "action", "label": "Search" }
+      }
+    },
+    "offline-sign": {
+      "page": "offline, said at the top of the screen (bug list item 134; #offline-toast): a pill in the middle of the top, over every screen, for as long as the page or the app is offline; a tap opens the Offline dialog (offline). The touch layout's; a desktop keeps its sign in the top bar",
+      "native": ["android/app/src/main/java/com/musicd/server/android/OfflineToast.kt"],
+      "preview": false,
+      "items": {
+        "sign": { "kind": "action", "label": "Offline — tap for more" }
       }
     },
     "library": {
@@ -220,19 +228,31 @@
       }
     },
     "artist": {
-      "page": "an artist's page (their name tapped on an album or on Now playing): the count and the name as the heading, the bar's Back, their biography head over their albums and those they appear on; the mini player and the row are their own screens",
-      "native": ["android/app/src/main/java/com/musicd/server/android/ArtistScreen.kt", "android/app/src/main/java/com/musicd/server/android/AlbumTile.kt", "android/app/src/main/java/com/musicd/server/android/WallGrid.kt", "android/app/src/main/java/com/musicd/server/android/WallSelect.kt"],
+      "page": "an artist's page (their name tapped on an album, on Now playing or on the Artists wall; rebuilt in bug list item 131): the count and the name as the heading, the bar's Back; who they are over their albums (their picture, what they are, where from and when, their links, the biography, a band's members or a person's bands, each opening their own page); their albums, those they appear on, their bands' albums from their years in them (\"With {band}\") and those they are credited on (as what, beside the album's artist); the mini player and the row are their own screens",
+      "native": ["android/app/src/main/java/com/musicd/server/android/ArtistScreen.kt", "android/app/src/main/java/com/musicd/server/android/ArtistHero.kt", "android/app/src/main/java/com/musicd/server/android/AlbumTile.kt", "android/app/src/main/java/com/musicd/server/android/WallGrid.kt", "android/app/src/main/java/com/musicd/server/android/WallSelect.kt", "android/app/src/main/java/com/musicd/server/android/GenreChips.kt"],
       "preview": false,
       "items": {
         "back": { "kind": "action", "label": "Back to Home" },
         "title": { "kind": "shows" },
         "error": { "kind": "shows", "when": "the server couldn't answer" },
         "empty": { "kind": "shows", "when": "no albums of theirs" },
-        "avatar": { "kind": "shows", "when": "the biography has a portrait" },
+        "avatar": { "kind": "shows", "when": "they have a picture: their own once found, or the biography's portrait" },
+        "facts": { "kind": "shows", "when": "the server knows what they are, where from or when" },
+        "genre": { "kind": "action", "label": "{genre}", "each": true, "when": "their albums are tagged with genres (bug list item 139)" },
+        "play": { "kind": "action", "label": "Play", "when": "the library has albums of theirs or their bands' (bug list item 138)" },
+        "shuffle": { "kind": "action", "label": "Shuffle", "when": "the library has albums of theirs or their bands'" },
+        "link": { "kind": "action", "label": "{link}", "each": true, "when": "the server has found their links (no MusicBrainz pill, item 133)" },
         "bio": { "kind": "shows", "when": "there is a biography" },
         "bio-more": { "kind": "action", "label": ["Show more", "Show less"], "when": "the biography is longer than its clip" },
         "bio-source": { "kind": "shows", "when": "there is a biography" },
-        "section": { "kind": "shows", "each": true, "when": "albums they appear on as well as their own" },
+        "section": { "kind": "shows", "each": true, "when": "more than one kind of album, their members or bands known, or similar acts" },
+        "member": { "kind": "action", "label": "{member}", "each": true, "when": "a band's members (those in it now, or a band that ended its last line-up; item 133) or a person's bands are known" },
+        "member-art": { "kind": "shows", "each": true, "when": "a band's members or a person's bands are known" },
+        "member-name": { "kind": "shows", "each": true, "when": "a band's members or a person's bands are known" },
+        "member-line": { "kind": "shows", "each": true, "when": "what they played, or when, is known" },
+        "similar": { "kind": "action", "label": "{artist}", "each": true, "when": "Last.fm (with a key) or Deezer knows acts like them (bug list item 137)" },
+        "similar-art": { "kind": "shows", "each": true, "when": "Last.fm (with a key) or Deezer knows acts like them" },
+        "similar-name": { "kind": "shows", "each": true, "when": "Last.fm (with a key) or Deezer knows acts like them" },
         "album": { "kind": "action", "label": ["{album} by {artist}", "{album}"], "each": true },
         "album-art": { "kind": "shows", "each": true },
         "album-quality": { "kind": "shows", "each": true, "when": "the server knows the files' rate" },
@@ -561,6 +581,24 @@
         "merge-info": { "kind": "shows", "when": "selecting labels to merge" },
         "merge": { "kind": "action", "label": "Merge", "when": "selecting labels to merge" },
         "merge-cancel": { "kind": "action", "label": "Cancel selection", "when": "selecting labels to merge" }
+      }
+    },
+    "artists": {
+      "page": "Artists (the row's Artists, bug list item 130): the heading with how many and the bar's Back, the order (A to Z, most albums, at random) at the top right (the row's Search finds an artist by part of the name), every act an album of the library's is credited to as a round picture (their own once the server has found one, else their first album's cover), their name and how many albums, in the album wall's columns and sizes (UI Settings); a tap opens the artist's page",
+      "native": ["android/app/src/main/java/com/musicd/server/android/ArtistsScreen.kt", "android/app/src/main/java/com/musicd/server/android/WallGrid.kt"],
+      "preview": false,
+      "items": {
+        "back": { "kind": "action", "label": "Back to Home" },
+        "title": { "kind": "shows" },
+        "find-field": { "kind": "action", "label": "Find an artist", "when": "finding an artist" },
+        "find-clear": { "kind": "action", "label": "Clear", "when": "finding an artist" },
+        "sort": { "kind": "action", "label": ["Sort: A to Z — tap for most albums", "Sort: most albums — tap for random", "Sort: random — tap for A to Z"] },
+        "banner": { "kind": "shows", "when": "the artists can't be read" },
+        "artist": { "kind": "action", "label": "{artist}", "each": true },
+        "artist-art": { "kind": "shows", "each": true },
+        "artist-name": { "kind": "shows", "each": true },
+        "artist-subtitle": { "kind": "shows", "each": true },
+        "none": { "kind": "shows", "when": "no artist matches what is being found" }
       }
     },
     "label-unmerge": {
@@ -1232,8 +1270,8 @@
       }
     },
     "album": {
-      "page": "an album's page: the album view (#album-modal, not Now playing), opened from a row of albums, a phone held upright",
-      "native": ["android/app/src/main/java/com/musicd/server/android/AlbumScreen.kt", "android/app/src/main/java/com/musicd/server/android/AlbumTracks.kt", "android/app/src/main/java/com/musicd/server/android/AlbumAbout.kt", "android/app/src/main/java/com/musicd/server/android/AlbumHead.kt", "android/app/src/main/java/com/musicd/server/android/AlbumHeadParts.kt", "android/app/src/main/java/com/musicd/server/android/AlbumSelect.kt", "android/app/src/main/java/com/musicd/server/android/AlbumWorks.kt"],
+      "page": "an album's page: the album view (#album-modal, not Now playing), opened from a row of albums, a phone held upright; under its tracks its credits (who played, sang, wrote and made it, each opening their page), then the review and the rows of albums",
+      "native": ["android/app/src/main/java/com/musicd/server/android/AlbumScreen.kt", "android/app/src/main/java/com/musicd/server/android/AlbumTracks.kt", "android/app/src/main/java/com/musicd/server/android/AlbumAbout.kt", "android/app/src/main/java/com/musicd/server/android/AlbumHead.kt", "android/app/src/main/java/com/musicd/server/android/AlbumHeadParts.kt", "android/app/src/main/java/com/musicd/server/android/AlbumSelect.kt", "android/app/src/main/java/com/musicd/server/android/AlbumWorks.kt", "android/app/src/main/java/com/musicd/server/android/AlbumCreditList.kt", "android/app/src/main/java/com/musicd/server/android/GenreChips.kt"],
       "preview": false,
       "items": {
         "back": { "kind": "action", "label": ["Back", "Close"] },
@@ -1293,6 +1331,13 @@
         "select-playlist": { "kind": "action", "label": "Add to playlist…", "when": "selecting tracks" },
         "select-later": { "kind": "action", "label": "Listen later", "when": "selecting tracks" },
         "select-clear": { "kind": "action", "label": "Clear selection", "when": "selecting tracks" },
+        "genre": { "kind": "action", "label": "{genre}", "each": true, "when": "its files carry a genre (bug list item 139)" },
+        "credits": { "kind": "shows", "when": "who played, wrote or made it is known (bug list item 132)" },
+        "credit": { "kind": "action", "label": "{name}", "each": true, "when": "who played, wrote or made it is known" },
+        "credit-art": { "kind": "shows", "each": true, "when": "who played, wrote or made it is known" },
+        "credit-name": { "kind": "shows", "each": true, "when": "who played, wrote or made it is known" },
+        "credit-roles": { "kind": "shows", "each": true, "when": "their parts are known" },
+        "credits-more": { "kind": "action", "label": ["More", "Less"], "when": "more than eight are credited" },
         "review": { "kind": "shows", "when": "it has a review" },
         "review-more": { "kind": "action", "label": ["Show more", "Show less"], "when": "a review longer than its first lines" },
         "review-source": { "kind": "action", "label": "{source}", "when": "the review has a page of its own" },

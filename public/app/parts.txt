@@ -37,6 +37,7 @@ app/album-detail.js
 app/album-tracks.js
 app/album-works.js
 app/album-extras.js
+app/album-credits.js
 app/search.js
 app/search-external.js
 app/filter-sheet.js
@@ -72,7 +73,9 @@ app/service-browsers.js
 app/pitchfork.js
 app/check-update.js
 app/play-unheard.js
+app/artist-about.js
 app/artist-view.js
+app/artists-wall.js
 app/menu-drawer.js
 app/server-notice.js
 app/native-notices.js

@@ -159,6 +159,9 @@ internal static partial class Library
                 else { m[n] = (name, 1, al.ImageKey, Names.SortName(name)); order.Add(n); }
             }
         }
+        // Found by a part of the name (the Artists wall's find, bug list item 130): accents, case and punctuation aside.
+        var find = Names.Fold(Q(ctx, "q") ?? "");
+        if (find.Length > 0) order = order.Where(n => n.Contains(find, StringComparison.Ordinal)).ToList();
         var keys = sort == "random" ? null : order.ToDictionary(n => n, n => SortKey(m[n].SortName));
         var list = sort switch
         {
@@ -168,9 +171,17 @@ internal static partial class Library
         };
         var offset = (int)Math.Min(int.MaxValue, Math.Max(0, IntOr(Q(ctx, "offset"), 0)));
         var limit = (int)Math.Max(1, Math.Min(500, IntOr(Q(ctx, "limit"), 120)));
+        // Each act's own picture where one has been found (bug list item 129), beside its first album's cover; none said otherwise.
+        var photos = Credits.CreditStore.Photos();
+        JsonNode Act(string n)
+        {
+            var o = new JsonObject { ["name"] = m[n].Name, ["albumCount"] = m[n].Count, ["image_key"] = m[n].Image };
+            if (Credits.CreditRules.PhotoKey(photos.GetValueOrDefault(Names.ArtistKey(m[n].Name))) is { } photo) o["photo_key"] = photo;
+            return o;
+        }
         return Send(ctx, new JsonObject
         {
-            ["artists"] = new JsonArray(list.Skip(offset).Take(limit).Select(n => (JsonNode)new JsonObject { ["name"] = m[n].Name, ["albumCount"] = m[n].Count, ["image_key"] = m[n].Image }).ToArray()),
+            ["artists"] = new JsonArray(list.Skip(offset).Take(limit).Select(Act).ToArray()),
             ["offset"] = offset, ["total"] = list.Count
         });
     }

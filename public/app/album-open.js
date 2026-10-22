@@ -75,11 +75,13 @@ function openAlbum(album, opts) {
   modalActs.innerHTML    = isNP ? "" : `<div class="modal-loading" data-parity="album.notice">Loading…</div>`;
   modalTracks.innerHTML  = "";
   { const tt = document.getElementById("modal-total"); if (tt) tt.textContent = ""; }
+  { const mg = document.getElementById("modal-genres"); if (mg) { mg.textContent = ""; mg.classList.add("hidden"); } }
   { const dl = document.getElementById("modal-date"); if (dl) dl.innerHTML = ""; }
 
   // Reset bio sections, and the sections under them (cleared before any
   // answer for this album can arrive)
   resetMoreSections();
+  if (window.__resetAlbumCredits) window.__resetAlbumCredits();   // and its credits (item 132)
   document.getElementById("album-bio-section").classList.add("hidden");
   document.getElementById("album-bio-toggle").classList.add("hidden");
   document.getElementById("album-bio-source").classList.add("hidden");

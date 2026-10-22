@@ -213,6 +213,13 @@ a.action-btn:active,
 .labels-tools > .icon-btn { flex: 0 0 auto; }
 .labels-order-txt { font-size: 13px; font-weight: 700; letter-spacing: .04em; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .album-count.is-hidden-by-search { display: none; }
+/* The Artists wall (artists-wall.js, bug list item 130): round pictures, the name under each, centred; a first letter where there is no picture. */
+.album.artist-tile .album-art-wrap.is-round { border-radius: 50%; }
+.album-art-wrap.is-round .artist-tile-letter {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  font-size: calc(28px * var(--ui-tile, 1)); font-weight: 600; color: var(--text-dim);
+}
+.album-grid:not(.as-list) .artist-tile .album-meta { text-align: center; }
 /* UI Settings' four dropdowns one width, sized for the widest ("3 columns"). */
 .settings-pane[data-pane="ui"] .settings-select { width: 9.5em; }
 
@@ -905,7 +912,7 @@ main { padding-top: calc(var(--topbar-h) + 14px); }
   --sleeve: 160px;
   display: grid;
   grid-template-columns: var(--sleeve) minmax(0, 1fr);
-  grid-template-areas: "art head" "pane pane" "aside aside";
+  grid-template-areas: "art head" "genres genres" "pane pane" "aside aside";
   align-items: start; align-content: start;
   column-gap: 18px; row-gap: 0;
 }
@@ -939,6 +946,7 @@ main { padding-top: calc(var(--topbar-h) + 14px); }
 .modal-facts:has(#modal-quality.hidden):has(.modal-total:empty) { display: none; }
 .modal:not(.np-mode) .modal-tab-pane { grid-area: pane; min-width: 0; margin-top: 20px; }
 .modal:not(.np-mode) .modal-aside { grid-area: aside; }
+.modal:not(.np-mode) #modal-genres { grid-area: genres; margin-top: 14px; }
 .modal:not(.np-mode) .modal-actions { justify-content: center; }
 
 .modal-info { display: flex; flex-direction: column; min-width: 0; }
@@ -2926,6 +2934,62 @@ input.vol-range::-moz-range-thumb {
   gap: 2px; margin-top: 6px;
 }
 .artist-bio-src  { font-size: 12px; color: var(--text-faint); }
+/* Who they are (bug list item 131, artist-about.js): the portrait, then what
+   they are, where from and when, and their links as pills, all centred over
+   the biography; a band's members or a person's bands in a row of round
+   pictures that scrolls sideways, under the head. */
+.artist-hero { display: flex; flex-direction: column; align-items: center; width: 100%; max-width: 680px; }
+.artist-facts { font-size: 13.5px; line-height: 1.4; font-weight: 500; color: var(--text-dim); text-align: center; margin-bottom: 10px; }
+.artist-links { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-bottom: 14px; }
+.artist-link {
+  display: inline-block; padding: 5px 12px; border: 1px solid var(--border); border-radius: 20px;
+  font-size: 12.5px; line-height: 17px; color: var(--text); text-decoration: none; white-space: nowrap;
+}
+.artist-link:hover { border-color: var(--accent-text); }
+/* Genres as small chips (bug list item 139): an album's a row under the sleeve, an artist's under their facts; each opens its wall. */
+.genre-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.genre-chips.hidden { display: none; }
+.artist-genres { justify-content: center; margin: 0 0 12px; }
+.genre-chip {
+  padding: 3px 10px; border: 1px solid var(--border); border-radius: 12px; background: transparent;
+  font: inherit; font-size: 12px; line-height: 16px; color: var(--text-dim); cursor: pointer; white-space: nowrap;
+}
+.genre-chip:hover { color: var(--accent-text); border-color: var(--accent-text); }
+.np-mode #modal-genres { display: none; }
+/* Play and Shuffle (bug list item 138): the brass pill and the outlined one, side by side under the links. */
+.artist-play { display: flex; justify-content: center; gap: 10px; margin: 0 0 16px; }
+.artist-play.hidden { display: none; }
+.artist-play-btn, .artist-shuffle-btn {
+  display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 18px; border-radius: 999px;
+  font: inherit; font-size: 14px; cursor: pointer;
+}
+.artist-play-btn { background: var(--accent); color: var(--on-accent); border: 0; font-weight: 700; }
+.artist-shuffle-btn { background: transparent; color: var(--text); border: 1px solid var(--border); font-weight: 600; }
+.artist-stints { grid-column: 1 / -1; min-width: 0; padding-bottom: 10px; }
+.artist-stints .artist-section-header { padding-bottom: 8px; }
+.artist-stint-row {
+  display: flex; gap: 14px; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none;
+  padding-right: 14px;
+}
+.artist-stint-row::-webkit-scrollbar { display: none; }
+.artist-stint {
+  flex: 0 0 96px; width: 96px; display: flex; flex-direction: column; align-items: center;
+  background: none; border: 0; padding: 0; color: inherit; font: inherit; cursor: pointer; text-align: center;
+}
+.artist-stint-art {
+  position: relative; width: 96px; height: 96px; border-radius: 50%; overflow: hidden;
+  background: var(--bg-elev-2); display: flex; align-items: center; justify-content: center;
+  font-size: 26px; font-weight: 600; color: var(--text-dim);
+}
+.artist-stint-art img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.artist-stint-name {
+  margin-top: 8px; font-size: 12px; line-height: 15px; font-weight: 600; color: var(--text);
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.artist-stint-line {
+  margin-top: 1px; font-size: 10.5px; line-height: 13.65px; color: var(--text-dim);
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
 /* Qobuz artist screen: bio sits under the compact avatar+name row, so its
    footer stays inline/left rather than centred. */
 .qobuz-artist-bio { margin-top: 10px; }
@@ -5562,7 +5626,7 @@ button.cap-chip:active { transform: scale(.96); }
 @media (min-width: 720px) {
   .modal:not(.np-mode) .modal-body {
     grid-template-columns: var(--sleeve) minmax(0, 1fr) minmax(240px, 320px);
-    grid-template-areas: "art head head" "pane pane aside";
+    grid-template-areas: "art head head" "genres genres genres" "pane pane aside";
     column-gap: 28px;
   }
   .modal:not(.np-mode) .modal-aside { margin-top: 6px; }
@@ -5762,7 +5826,7 @@ html .topbar .icon-btn.labels-sort-btn { width: auto; min-width: 44px; padding: 
 .np-popover-title, .np-device-list, .vol-readout,
 .mt-text,
 .lib-sheet-head, .lib-sheet-body, .lib-sheet-foot,
-.artist-bio-head, .artist-section-header, .artist-view-empty,
+.artist-bio-head, .artist-section-header, .artist-view-empty, .artist-stints,
 .status-banner { zoom: var(--ui-menu, 1); }
 
 
@@ -5950,6 +6014,32 @@ html .topbar .icon-btn.labels-sort-btn { width: auto; min-width: 44px; padding: 
    from 720px up, after the tracks on a phone). Their own grid rather than
    .album-grid, so neither the wall's column count nor its list view (both
    set on .album-grid) can reach them. */
+/* An album's credits (bug list item 132, album-credits.js), over the review:
+   a row each, a round picture, the name over their parts and tracks; the app's
+   AlbumCreditList.kt the same. */
+.credits-section { margin-top: 22px; }
+.credits-section:first-child { margin-top: 0; }
+.credits-list { display: flex; flex-direction: column; }
+.credit {
+  display: flex; align-items: center; gap: 12px; width: 100%; padding: 6px 0;
+  background: transparent; border: 0; color: inherit; font: inherit; text-align: left; cursor: pointer;
+}
+.credit-pic {
+  position: relative; flex: 0 0 auto; width: 40px; height: 40px; border-radius: 50%; overflow: hidden;
+  background: var(--bg-elev-2); display: flex; align-items: center; justify-content: center;
+  font-size: 16px; font-weight: 600; color: var(--text-faint);
+}
+.credit-pic img { position: absolute; top: 0; right: 0; bottom: 0; left: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+.credit-text { min-width: 0; flex: 1 1 auto; }
+.credit-name {
+  font-size: calc(14px * var(--ui-text, 1)); line-height: 1.35; font-weight: 600; color: var(--text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.credit-roles {
+  font-size: calc(12.5px * var(--ui-text, 1)); line-height: 1.35; color: var(--text-dim);
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.credit:hover .credit-name { color: var(--accent-text); }
 .more-section { margin-top: 22px; }
 .more-section .section-label { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
 .more-grid {
@@ -6089,19 +6179,22 @@ html .topbar .icon-btn.labels-sort-btn { width: auto; min-width: 44px; padding: 
 /* ------------------------------------------------------------------ */
 /*  The touch layout (v0.9.6): a phone or a tablet, either way round   */
 /* ------------------------------------------------------------------ */
-/* The menu, Home, the Library and Search in a row along the foot of the
+/* The menu, Home, the Library, Artists and Search in a row along the foot of the
    screen (#touch-nav, touchnav.js), the mini player raised above it, and
    on Home no top bar: the greeting at the top. Search opens the top bar
    again with the field across it, and the page moves down under it. The
    scan's progress is a thin brass line along the top edge, on every
    screen. The same test as the touch-sized mini player above; a desktop
    (a mouse) keeps its layout and never shows the row. touchnav.js puts
-   tn-home, tn-search, tn-lib, tn-np and tn-offline on <html>. */
+   tn-home, tn-search, tn-lib, tn-artists, tn-np and tn-offline on <html>. */
+.offline-toast { display: none; }
 .touch-nav { display: none; }
 @media (hover: none), (pointer: coarse) {
   :root { --tnav-h: 58px; }
+  /* Five equal shares, evenly across (bug list items 130 and 134); the app's
+     row (TouchNav.kt) the same. Offline is said at the top: .offline-toast. */
   .touch-nav {
-    display: flex; align-items: center; justify-content: space-between;
+    display: grid; grid-template-columns: repeat(5, 1fr); align-items: center;
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 70;
     height: calc(var(--tnav-h) + env(safe-area-inset-bottom));
     padding: 0 max(10px, env(safe-area-inset-right)) env(safe-area-inset-bottom) max(10px, env(safe-area-inset-left));
@@ -6109,7 +6202,7 @@ html .topbar .icon-btn.labels-sort-btn { width: auto; min-width: 44px; padding: 
     border-top: 1px solid var(--border);
   }
   .tnav-btn {
-    flex: 0 0 auto; width: 64px; height: var(--tnav-h);
+    width: 100%; min-width: 0; height: var(--tnav-h);
     display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
     background: none; border: 0; padding: 0; color: var(--text-dim); font: inherit; cursor: pointer;
     -webkit-tap-highlight-color: transparent;
@@ -6119,16 +6212,20 @@ html .topbar .icon-btn.labels-sort-btn { width: auto; min-width: 44px; padding: 
   .tnav-btn:active { transform: scale(.94); }
   /* Where you are: Home or the Library wall, in the accent. */
   .tn-home:not(.tn-search) #tnav-home,
-  .tn-lib #tnav-library,
+  .tn-lib #tnav-library, .tn-artists:not(.tn-filter) #tnav-artists,
   .tn-search #tnav-search, .tn-filter #tnav-search { color: var(--accent-text); }
-  /* Offline: a small sign between Home and Library, at the row's centre. */
-  .tnav-offline {
-    display: none; position: absolute; left: 50%; top: calc(var(--tnav-h) / 2); transform: translate(-50%, -50%);
-    width: 30px; height: 30px; padding: 6px; border-radius: 50%;
-    background: var(--bg-elev); border: 1px solid var(--border); color: var(--accent-text); cursor: pointer;
+  /* Offline (bug list item 134): a pill in the middle of the top of the
+     screen, over everything (the toasts aside), for as long as it lasts; a
+     tap opens the Offline dialog. The app's OfflineToast.kt the same. */
+  .offline-sign { position: fixed; top: calc(env(safe-area-inset-top) + 10px); left: 50%; transform: translateX(-50%); z-index: 98; }
+  .tn-offline .offline-toast {
+    display: flex; align-items: center; gap: 8px;
+    padding: 7px 14px 7px 12px; border-radius: 999px; white-space: nowrap;
+    background: var(--bg-elev); border: 1px solid var(--border); box-shadow: var(--shadow-modal);
+    color: var(--text); font: inherit; font-size: 12.5px; line-height: 17px; font-weight: 600; cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
   }
-  .tnav-offline svg { width: 100%; height: 100%; display: block; }
-  .tn-offline .tnav-offline { display: block; }
+  .offline-toast svg { width: 16px; height: 16px; flex: 0 0 auto; color: var(--accent-text); }
   /* Now playing has its own transport, and no row. (While a field has the
      keyboard up, the keyboard goes over the row and the mini player; in the
      Android app, whose page shrinks above it, android.css hides them.) */
@@ -6180,7 +6277,7 @@ html .topbar .icon-btn.labels-sort-btn { width: auto; min-width: 44px; padding: 
      up into the buttons' line, on the right. */
   #library-filter:not(.is-filtering) .lib-filter-btn { display: none; }
   /* The Labels list likewise: Search in the row finds a label; #–Z alone on the right. */
-  .topbar #labels-search-btn { display: none; }
+  .topbar #labels-search-btn, .topbar #artists-search-btn { display: none; }
   .topbar.lib-wall .library-controls {
     position: absolute; top: calc(12px + env(safe-area-inset-top)); right: max(14px, env(safe-area-inset-right)); z-index: 1;
     display: flex; align-items: center; gap: 8px; height: var(--ctl-h); margin: 0; padding: 0; background: none; border: 0;

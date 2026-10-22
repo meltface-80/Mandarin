@@ -5,6 +5,7 @@
 //   { "fn": "decide", "album": {…}, "candidates": [{…}, …] }
 //      → { status, ambiguous, scored: [{ candidate (with parts and pairs), distance }] }
 //   { "fn": "names", "names": ["…", …] }
+//   { "fn": "split", "names": ["…", …] }  each credit as its acts (Names.SplitArtists, bug list item 136)
 //      → { names: [{ tidy, bare, clean, cmp, edition_year, disc }] }
 //   { "fn": "pairs", "pairs": [[a, b], …] }
 //      → { pairs: [{ string, title, levenshtein, suspect }] }
@@ -22,6 +23,7 @@
 //   { "fn": "dates", "dates": [tag], "releases": [common], "albums": [[[date, …], year]], "days": [[year, tagDate, mbDay]], "keys": [date] }
 //      (v0.8.50): a date tag, a track's release date, an album's, a looked-up day laid over it, the sort's key
 //      (Tags/TagReader.cs, Scan/Scanner.cs, Library.cs) → { dates, releases: [{ year, date }], albums, days, keys }
+//   { "fn": "credits", … } (bug list item 129): the credits and an act's facts read from tags and answers (Credits/CreditCommand.cs)
 using Mandarin.Server.Scan;
 using Mandarin.Server.Tags;
 
@@ -78,6 +80,9 @@ internal static class ScoreCommand
                             return (object?)x;
                         }).ToList();
                         break;
+                    case "split":
+                        o["split"] = L(job["names"]).Select(n => (object?)Names.SplitArtists(Js.Str(n)).Select(part => (object?)part).ToList()).ToList();
+                        break;
                     case "pairs":
                         o["pairs"] = L(job["pairs"]).Select(p0 =>
                         {
@@ -122,6 +127,9 @@ internal static class ScoreCommand
                         break;
                     case "works":
                         o = Works.Command(job);
+                        break;
+                    case "credits":
+                        o = Credits.CreditCommand.Run(job);
                         break;
                     case "fromnames":
                         o["names"] = L(job["files"]).Select(f0 =>

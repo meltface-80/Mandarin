@@ -58,6 +58,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import com.musicd.server.client.Album
+import com.musicd.server.client.AlbumCredits
 import com.musicd.server.client.PlaylistAdd
 import com.musicd.server.client.AlbumExtras
 import com.musicd.server.client.Booklet
@@ -70,6 +71,7 @@ import com.musicd.server.client.Palette
 import com.musicd.server.client.PhoneShelf
 import com.musicd.server.client.ServerClient
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -110,6 +112,7 @@ internal fun AlbumScreen(offset: Long, zoneId: String, lit: String, client: () -
     var album by remember(offset) { mutableStateOf<Album?>(null) }
     var extras by remember(offset) { mutableStateOf<AlbumExtras?>(null) }
     var more by remember(offset) { mutableStateOf<AlbumMore?>(null) }
+    var credits by remember(offset) { mutableStateOf<AlbumCredits?>(null) }   // who played, wrote and made it (item 132)
     var booklets by remember(offset) { mutableStateOf<List<Booklet>>(emptyList()) }
     var picks by remember(offset) { mutableStateOf<List<Int>?>(null) }   // selecting tracks: their places, in order of picking
     // Whether the album is on this phone, following the downloads as they go (the page's ⋯ reads the same store through its bridge).
@@ -152,7 +155,11 @@ internal fun AlbumScreen(offset: Long, zoneId: String, lit: String, client: () -
         // Its booklets, as the page asks: an album of your own files only.
         if (a.album.source == null || a.album.source == "local") booklets = withContext(Dispatchers.IO) { runCatching { lib.booklets(offset) }.getOrNull().orEmpty() }
         extras = withContext(Dispatchers.IO) { runCatching { lib.albumExtras(a.album.title, a.album.subtitle) }.getOrNull() }
-        more = withContext(Dispatchers.IO) { runCatching { loadMore(lib, a) }.getOrNull() }
+        // Its credits (item 132): the server may find them there and then, for a few seconds; the rows under them meanwhile.
+        coroutineScope {
+            launch { credits = withContext(Dispatchers.IO) { runCatching { lib.albumCredits(offset) }.getOrNull() } }
+            launch { more = withContext(Dispatchers.IO) { runCatching { loadMore(lib, a) }.getOrNull() } }
+        }
     }
     // A page of Last.fm's, or a write-up's: the phone's browser.
     fun openUrl(url: String) { runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) } }
@@ -234,6 +241,8 @@ internal fun AlbumScreen(offset: Long, zoneId: String, lit: String, client: () -
                         }
                     }
                 }
+                // Its genres (item 139), a row under the sleeve, as the page's #modal-genres: the head stays at the sleeve's foot.
+                if (a.genres.isNotEmpty()) item { GenreChips(a.genres, "album", center = false, modifier = Modifier.fillMaxWidth().padding(top = 14.dp)) { onPage("genre", it) } }
                 item {
                     // The heart, Play Now and Queue in brass, and ⋯, each the page's 42 tall (.modal-actions: 11 of padding round a 13px word), the heart
                     // and ⋯ 40 wide; 20 under the sleeve, 22 over the tracks. Outlined buttons for the rings: a plain button's border lay outside
@@ -294,6 +303,7 @@ internal fun AlbumScreen(offset: Long, zoneId: String, lit: String, client: () -
                     }
                 })
                 else albumTracks(a, playingId, room.view?.playing == true, picks, onPick, onPlay)
+                albumCredits(credits, client, onArtist = { onPage("artist", it) })
                 albumAbout(extras?.review, more, client, onAlbum = { id -> onAlbum(id, zone) }, onArtist = { onPage("artist", it) }, onUrl = ::openUrl)
             }
             // The corner discs, over the glow: Back, and Share.
@@ -329,7 +339,7 @@ internal fun AlbumScreen(offset: Long, zoneId: String, lit: String, client: () -
             }
             Column(Modifier.align(Alignment.BottomCenter)) {
                 MiniPlayer(zone, room, client, onOpen = { onNowPlaying(zone) }, onRoom = { id -> zone = id; onRoom(id) }, onPage = onPage)
-                TouchNav(lit, offline = OfflineNow.on, onTap = onNav)
+                TouchNav(lit, onTap = onNav)
             }
             // Its editor (item 74), over the page; the page read again, and the walls told, once it changed the album.
             // Its Share card (item 75), centred above the mini player and the row, as the page keeps room for them.

@@ -370,6 +370,7 @@ function enterFullWall(title, albumWall) {
   hideLibraryControls();
   exitAlbumSelectMode();   // a stale multi-select bar must not survive into a new wall
   if (window.__exitLabels) window.__exitLabels();
+  if (window.__exitArtists) window.__exitArtists();
   if (activeFilter) {
     activeFilter = null;
     try { localStorage.removeItem("rra-filter"); } catch (e) { /* localStorage optional (private browsing) */ }

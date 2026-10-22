@@ -33,6 +33,7 @@ refreshBtn.addEventListener("click", loadRandom);
       else   localStorage.removeItem("rra-filter");
     } catch (e) { /* localStorage optional (private browsing) */ }
     if (window.__exitLabels) window.__exitLabels();
+    if (window.__exitArtists) window.__exitArtists();
     markActive();
     close();
     if (!f && nativeWallOpened("random")) return;   // the Android app's own random wall (item 52)

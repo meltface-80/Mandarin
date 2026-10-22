@@ -236,6 +236,7 @@ private fun Shell(client: () -> ServerClient?) {
             ArtistScreen(entry.arguments?.getString("name").orEmpty(), WallPrefs.parse(prefs), zone, client,
                 onBack = { nav.popBackStack() },
                 onAlbum = { offset, z, list -> nav.navigate(ShellRoute.album(offset, z, "", AlbumLists.put(list), list.index)) },
+                onArtist = { other -> nav.navigate(ShellRoute.artist(other, zone)) },
                 onNowPlaying = { id -> nav.navigate(ShellRoute.nowPlaying(id)) { launchSingleTop = true } },
                 onRoom = NativeShell::roomChosen,
                 onNav = { what -> navTap(nav, what) },
@@ -284,5 +285,6 @@ private fun Shell(client: () -> ServerClient?) {
     }
     MenuOver(nav, client)   // the side menu over whichever screen is on (item 67)
     RoomAskOver(client); PlaylistAddOver(client)   // the question whether to move what's playing to the room chosen (item 68); Add to playlist (item 93)
+    OfflineToastOver()   // offline, said at the top over every screen (item 134)
     }
 }

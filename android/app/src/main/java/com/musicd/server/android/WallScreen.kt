@@ -145,7 +145,7 @@ internal fun WallScreen(kind: String, filterQuery: String, prefs: WallPrefs, zon
         Column(Modifier.align(Alignment.BottomCenter)) {
             MiniPlayer(zone, room, client, onOpen = { onNowPlaying(zone) }, onRoom = { id -> zone = id; onRoom(id) }, onPage = onPage)
             if (selecting && picks.isEmpty()) SelectBar(onCancel = { selecting = false })
-            else TouchNav("", offline = OfflineNow.on, onTap = onNav)
+            else TouchNav("", onTap = onNav)
         }
         if (focusOpen) LocalFocusSheet(local, wall.albums.toList(), onChange = ::changeLocal, onClose = { focusOpen = false })
         // A sort chosen closes the sheet; the one on, tapped again, reverses in place (Random reshuffles and closes), as the page's.

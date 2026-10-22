@@ -4,6 +4,7 @@
 let _labelsReturn = null;
 async function showLabelAlbums(name, fromLabelsList = false, returnTo = null) {
   if (window.__leavePlaylistScreens) window.__leavePlaylistScreens();
+  if (window.__exitArtists) window.__exitArtists();
   if (window.__clearSearchIfActive) window.__clearSearchIfActive();  // drop stale search results
   _labelsReturn = returnTo && returnTo.album ? returnTo : null;
   if (fromLabelsList) {

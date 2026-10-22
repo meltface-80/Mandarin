@@ -173,7 +173,7 @@ internal fun LabelsScreen(prefs: WallPrefs, zoneId: String, client: () -> Server
                     if (err != null) toast("Merge failed: " + (err.message ?: "no answer")) else { stopSelecting(); reads++ }
                 }
             }, onCancel = ::stopSelecting)
-            else TouchNav("", offline = OfflineNow.on, onTap = { what -> if (what == "search") finding = true else onNav(what) })
+            else TouchNav("", onTap = { what -> if (what == "search") finding = true else onNav(what) })
         }
         unmerge?.let { l ->
             LabelUnmergeSheet(l, client, onClose = { unmerge = null }, onChanged = { reads++ })

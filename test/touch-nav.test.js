@@ -3,7 +3,7 @@
  * touch-nav.test.js — the touch layout (v0.9.6; public/touchnav.js, the
  * "touch layout" section of style.css), in a browser at a phone's and a
  * tablet's sizes, both ways round, and a desktop's:
- *   - along the foot: Menu, Home, Library and Search, in that order, the
+ *   - along the foot: Menu, Home, Library, Artists and Search, in that order, the
  *     mini player above them; on Home no top bar, the greeting at the top;
  *   - Search opens the top bar again, the field across it, and the page
  *     moves down under it; the results are not under it;
@@ -13,9 +13,12 @@
  *     their title is the page's heading; on the Library, Focus and Sort are
  *     up in ‹'s line on the right, its glass gone, and Search opens its
  *     filter with the strip back under the field; the Labels list the same
- *     (#–Z alone on the right, Search finds a label);
- *   - Offline is a small sign between Home and Library; the scan's progress
- *     a line along the top edge;
+ *     (#–Z alone on the right, Search finds a label); the Artists wall the
+ *     same (Sort alone on the right, Search finds an artist), Artists lit;
+ *   - the five buttons evenly across; Offline is a pill at the top of the
+ *     screen, in the middle, over everything, for as long as it lasts (bug
+ *     list item 134), and the row doesn't move when it comes; the scan's
+ *     progress a line along the top edge;
  *   - while a field has the keyboard, in the Android app (android.css) the
  *     row and the mini player give way; a browser's keyboard goes over them;
  *     Now playing has no row;
@@ -61,10 +64,14 @@ const DRIVER = `(async () => {
   out.homeOn = html.classList.contains("tn-home") && getComputedStyle($("tnav-home")).color;
   out.libraryColour = getComputedStyle($("tnav-library")).color;
 
-  // Offline: the small sign between Home and Library. The scan: a line along the top.
-  out.offlineHidden = !shown($("tnav-offline"));
+  // The row evenly across. Offline: the pill at the top, over everything. The scan: a line along the top.
+  out.row = [...nav.querySelectorAll(".tnav-btn")].map(b => { const r = b.getBoundingClientRect(); return [r.left, r.width]; });
+  out.offlineHidden = !shown($("offline-toast"));
+  const rowBefore = [...nav.querySelectorAll(".tnav-btn")].map(box);
   $("offline-btn").classList.remove("hidden"); await frame();
-  out.offline = box($("tnav-offline")); out.home = box($("tnav-home")); out.library = box($("tnav-library"));
+  out.offline = box($("offline-toast")); out.home = box($("tnav-home"));
+  { const t = out.offline, at = document.elementFromPoint(t.l + t.w / 2, t.t + t.h / 2); out.offlineOnTop = !!at && $("offline-toast").contains(at); }
+  out.rowStill = JSON.stringify([...nav.querySelectorAll(".tnav-btn")].map(box)) === JSON.stringify(rowBefore);
   $("offline-btn").classList.add("hidden");
   $("scan-progress-bar").classList.remove("hidden"); await frame();
   out.scan = box($("scan-progress-bar"));
@@ -141,6 +148,24 @@ const DRIVER = `(async () => {
   out.labelsSearchStrip = bg(document.querySelector(".topbar"));
   $("labels-search-input").dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
 
+  // Artists (bug list item 130): the Artists wall, its button lit; Sort on the right in ‹'s line, Search finds an artist.
+  $("tnav-artists").click();
+  await until(() => html.classList.contains("tn-artists"), "the Artists wall");
+  await until(() => document.querySelector("#album-grid .artist-tile"), "the artists");
+  await frame();
+  out.artistsOn = getComputedStyle($("tnav-artists")).color;
+  out.artistsHomeOff = getComputedStyle($("tnav-home")).color;
+  out.artistsStrip = bg(document.querySelector(".topbar"));
+  out.artistsGlass = shown($("artists-search-btn"));
+  out.artistsSort = box($("artists-sort-btn")); out.artistsBack = box($("topbar-back"));
+  out.artistsHeading = $("album-count").textContent;
+  out.artistsRound = getComputedStyle(document.querySelector("#album-grid .artist-tile .album-art-wrap")).borderTopLeftRadius;
+  $("tnav-search").click();
+  await until(() => html.classList.contains("tn-filter") && document.activeElement === $("artists-find-input"), "Find an artist");
+  await frame();
+  out.artistsSearchStrip = bg(document.querySelector(".topbar"));
+  $("artists-find-input").dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+
   // Home from an album's page: the page closes, Home shows.
   const al = (await (await fetch("/api/library/albums?sort=album")).json()).albums[0];
   window.__openAlbum(al, { source: "home", filter: null });
@@ -162,7 +187,7 @@ const DRIVER = `(async () => {
   return out;
 })()`;
 
-test("the touch layout: Menu, Home, Library and Search along the foot on a phone and a tablet; a desktop as it was", { skip, timeout: 240000 }, async () => {
+test("the touch layout: Menu, Home, Library, Artists and Search along the foot on a phone and a tablet; a desktop as it was", { skip, timeout: 240000 }, async () => {
   const lib = makeLibrary();
   const { createServer } = require("./server");
   const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false, identify: false });
@@ -186,14 +211,18 @@ test("the touch layout: Menu, Home, Library and Search along the foot on a phone
       }
       assert.equal(r.nav, true, size + ": the row is shown");
       assert.equal(r.menuInBar, false, size + ": the menu is in the row, not the top bar");
-      assert.deepEqual(r.order, ["Menu", "Home", "Library", "Search"], size);
+      assert.deepEqual(r.order, ["Menu", "Home", "Library", "Artists", "Search"], size);
       assert.ok(r.navBox.b === h && r.navBox.l === 0 && r.navBox.r === w, `${size}: along the foot, edge to edge (${JSON.stringify(r.navBox)})`);
       assert.ok(r.mini.b <= r.navBox.t, `${size}: the mini player above the row (${r.mini.b} over ${r.navBox.t})`);
       assert.equal(r.topbarRow, false, size + ": on Home, no top bar");
       assert.ok(r.greeting.t < 40, `${size}: the greeting at the top (${r.greeting.t})`);
       assert.ok(r.homeOn && r.homeOn !== r.libraryColour, size + ": Home lit on Home");
       assert.equal(r.offlineHidden, true, size + ": no Offline sign while online");
-      assert.ok(r.offline.l > r.home.r - 8 && r.offline.r < r.library.l + 8 && r.offline.w <= 32, `${size}: Offline small, between Home and Library (${JSON.stringify([r.home, r.offline, r.library])})`);
+      const widths = r.row.map(x => x[1]), steps = r.row.slice(1).map((x, i) => x[0] - r.row[i][0]);
+      assert.ok(Math.max(...widths) - Math.min(...widths) < 1 && Math.max(...steps) - Math.min(...steps) < 1, `${size}: the five buttons evenly across (${JSON.stringify(r.row)})`);
+      assert.ok(r.offline.t <= 20 && Math.abs((r.offline.l + r.offline.r) / 2 - w / 2) <= 1 && r.offline.h <= 40, `${size}: Offline a pill at the top, in the middle (${JSON.stringify(r.offline)})`);
+      assert.equal(r.offlineOnTop, true, size + ": the pill over what is under it");
+      assert.equal(r.rowStill, true, size + ": the buttons don't move when Offline comes");
       assert.ok(r.scan.t === 0 && r.scan.h <= 4 && r.scan.w === w, `${size}: the scan's line along the top (${JSON.stringify(r.scan)})`);
       assert.ok(r.searchField.w >= w - 60, `${size}: the search field across the screen (${r.searchField.w} of ${w})`);
       assert.ok(r.searchTopbar.t === 0 && r.searchTopbar.h > 30, `${size}: the top bar back with the search (${JSON.stringify(r.searchTopbar)})`);
@@ -227,6 +256,14 @@ test("the touch layout: Menu, Home, Library and Search along the foot on a phone
       assert.ok(r.labelsOrder.r >= w - 24 && Math.abs((r.labelsOrder.t + r.labelsOrder.b) / 2 - (r.labelsBack.t + r.labelsBack.b) / 2) <= 2,
         `${size}: #–Z on the right, in ‹'s line (${JSON.stringify([r.labelsBack, r.labelsOrder])})`);
       assert.ok(!clear(r.labelsSearchStrip), size + ": Search finds a label, the strip back under the field");
+      assert.ok(r.artistsOn !== r.artistsHomeOff, size + ": Artists lit on the Artists wall");
+      assert.ok(clear(r.artistsStrip), size + ": the Artists wall has no strip");
+      assert.match(r.artistsHeading, /^Artists · \d+$/, size + ": its title, with how many, the heading");
+      assert.equal(r.artistsRound, "50%", size + ": the artists' pictures round");
+      assert.equal(r.artistsGlass, false, size + ": the Artists wall's glass gives way to Search in the row");
+      assert.ok(r.artistsSort.r >= w - 24 && Math.abs((r.artistsSort.t + r.artistsSort.b) / 2 - (r.artistsBack.t + r.artistsBack.b) / 2) <= 2,
+        `${size}: Sort on the right, in ‹'s line (${JSON.stringify([r.artistsBack, r.artistsSort])})`);
+      assert.ok(!clear(r.artistsSearchStrip), size + ": Search finds an artist, the strip back under the field");
       assert.ok(r.navOverAlbum, size + ": the row over an album's page, Home tappable there");
       assert.equal(r.menu, true, size + ": Menu opens the side menu");
       assert.equal(r.npNav, false, size + ": Now playing has no row");

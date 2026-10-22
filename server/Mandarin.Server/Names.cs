@@ -62,9 +62,10 @@ internal static partial class Names
         return Fold(m.Success ? m.Groups[1].Value : LeadingArticle().Replace(t, "", 1));
     }
 
-    [GeneratedRegex(@"\s*(?:;|/|,(?!\s*(?:the|jr|sr)" + B + @")|\s+feat\.?\s+|\s+featuring\s+|\s+ft\.?\s+|\s+with\s+|\s+&\s+|\s+and\s+|\s+x\s+|\s+vs\.?\s+)\s*", RegexOptions.IgnoreCase)]
+    // A comma inside a number ("10,000 Maniacs": a digit before it, three after) is not a list's (bug list item 136).
+    [GeneratedRegex(@"\s*(?:;|/|(?:(?<!\d),|,(?!\d{3}(?!\d)))(?!\s*(?:the|jr|sr)" + B + @")|\s+feat\.?\s+|\s+featuring\s+|\s+ft\.?\s+|\s+with\s+|\s+&\s+|\s+and\s+|\s+x\s+|\s+vs\.?\s+)\s*", RegexOptions.IgnoreCase)]
     private static partial Regex ArtistSplit();
-    /* "A feat. B", "A & B", "A; B" → ["A", "B"]. */
+    /* "A feat. B", "A & B", "A; B" → ["A", "B"]; "10,000 Maniacs" one. */
     public static List<string> SplitArtists(string? credit)
     {
         var s = JsTrim(credit ?? "");

@@ -71,6 +71,7 @@
         window.__restoreLibraryWall(saved.libraryWallWasActive);
       }
       if (window.__unparkLabels) window.__unparkLabels(saved.labels);
+      if (window.__unparkArtists) window.__unparkArtists(saved.artists);
       // The Music on device wall's Focus / Sort row, if that is what came back (v0.7.4).
       if (window.__restoreLocalControls) window.__restoreLocalControls();
       // Land back where the user was, not at the top of the wall.
@@ -112,6 +113,8 @@
     // Same for the labels browser: park its chrome (bar, sheets, select modes)
     // but keep the mode/label it was showing so Back restores it whole.
     const labels = window.__parkLabels ? window.__parkLabels() : null;
+    // And the Artists wall (item 130): it stops paging into this view, and comes back as it was.
+    const artists = window.__parkArtists ? window.__parkArtists() : null;
     // A multi-select started on the previous wall must not leak in here — its
     // action bar would stay on screen and this view's tiles would select
     // instead of open. Runs BEFORE the capture so the restored screen comes
@@ -143,6 +146,7 @@
       libraryWallWasActive,
       libraryWallSeq,
       labels,
+      artists,
       scrollTop:          savedScrollTop,
       gridHidden:         grid.classList.contains("hidden"),
       homeViewHidden:     homeView     ? homeView.classList.contains("hidden")     : true,
@@ -196,6 +200,8 @@
       if (!total) {
         if (failed) throw failed;
         grid.innerHTML = `<div class="artist-view-empty" data-parity="artist.empty">No albums found for "${artistName}"</div>`;
+        // Who they are all the same: a band's member opened from its page may have nothing of their own here.
+        renderHead(artistName, "", new Set(), 0, [], []);
         return;
       }
 
@@ -236,7 +242,7 @@
       // album titles pins their identity for the lookup (see /api/artist-bio).
       const bioAlbum = (j.primary[0] && j.primary[0].title) ||
                        (j.featured[0] && j.featured[0].title) || (mine[0] && mine[0].title) || "";
-      renderArtistBioHead(artistName, bioAlbum);
+      renderHead(artistName, bioAlbum, new Set(j.primary.concat(j.featured).map(a => a.offset)), total, j.primary, j.featured);
       if (failed) throw failed;   // the phone's albums are up; the server's absence is still said
     } catch (e) {
       if (countBar) {
@@ -247,55 +253,16 @@
     }
   }
 
-  // Build the LMS-style artist header: round avatar, bio with Show more,
-  // "Bio: <source>" attribution. Decorative — any failure leaves the plain
-  // album grid, and a view/artist switch mid-fetch renders nothing stale.
+  // Who they are, at the head of the page (artist-about.js, bug list item 131):
+  // after the albums, so the grid is never held up by other services; a
+  // view or artist switched before the answers come draws nothing.
   let bioSeq = 0;
-  async function renderArtistBioHead(artistName, albumTitle) {
+  function renderHead(artistName, pin, shown, total, own, featured) {
     const seq = bioSeq;   // generation is bumped by showArtistAlbums/exitArtistView, not here
-    try {
-      const r = await fetch("/api/artist-bio?artist=" + encodeURIComponent(artistName) +
-                            "&album=" + encodeURIComponent(albumTitle || ""));
-      if (!r.ok) return;
-      const j = await r.json();
-      const b = j.bio;
-      if (!b || !b.text) return;
-      if (seq !== bioSeq || !artistViewActive) return;   // superseded / view closed
-
-      // LMS-remote layout: large centred round portrait on top, bio beneath
-      // it full-width, then a centred Show more and a centred "Bio: <source>"
-      // caption — not a thumbnail beside the text.
-      const head = document.createElement("div");
-      head.className = "artist-bio-head";
-      if (b.image) {
-        const img = document.createElement("img");
-        img.className = "artist-bio-avatar"; img.dataset.parity = "artist.avatar";
-        img.alt = "";
-        img.onerror = () => img.remove();   // dead portrait URL — no broken-image circle
-        img.src = b.image;
-        head.appendChild(img);
-      }
-      const body = document.createElement("div");
-      body.className = "artist-bio-body";
-      const text = document.createElement("div");
-      text.className = "bio-text"; text.dataset.parity = "artist.bio";
-      text.dataset.clipped = "true";
-      text.textContent = b.text;
-      const foot = document.createElement("div");
-      foot.className = "artist-bio-foot";
-      const toggle = document.createElement("button");
-      toggle.type = "button";
-      toggle.className = "bio-toggle hidden"; toggle.dataset.parity = "artist.bio-more";
-      toggle.textContent = "Show more";
-      const src = document.createElement("span");
-      src.className = "artist-bio-src"; src.dataset.parity = "artist.bio-source";
-      src.textContent = b.source ? "Bio: " + b.source : "";
-      foot.appendChild(toggle); foot.appendChild(src);
-      body.appendChild(text); body.appendChild(foot);
-      head.appendChild(body);
-      grid.prepend(head);
-      if (window.__setupBioToggle) window.__setupBioToggle(text, toggle);
-    } catch (e) { /* bio is decorative — the album grid stands alone */ }
+    const alive = () => seq === bioSeq && artistViewActive;
+    // Their bands' albums count with their own in the heading (item 133).
+    const onCount = (more) => { if (!alive()) return; const n = total + more; setTitle(n + " album" + (n !== 1 ? "s" : "") + " · " + artistName); };
+    if (window.__renderArtistHead) window.__renderArtistHead(artistName, pin, grid, alive, shown, onCount, own, featured);
   }
 
   window.__showArtistAlbums = showArtistAlbums;
