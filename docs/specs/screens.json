@@ -228,7 +228,7 @@
       }
     },
     "artist": {
-      "page": "an artist's page (their name tapped on an album, on Now playing or on the Artists wall; rebuilt in bug list item 131): the count and the name as the heading, the bar's Back; who they are over their albums (their picture, what they are, where from and when, their links, the biography, a band's members or a person's bands, each opening their own page); their albums, those they appear on and those they are credited on (as what, beside the album's artist); the mini player and the row are their own screens",
+      "page": "an artist's page (their name tapped on an album, on Now playing or on the Artists wall; rebuilt in bug list item 131): the count and the name as the heading, the bar's Back; who they are over their albums (their picture, what they are, where from and when, their links, the biography, a band's members or a person's bands, each opening their own page); their albums, those they appear on, their bands' albums from their years in them (\"With {band}\") and those they are credited on (as what, beside the album's artist); the mini player and the row are their own screens",
       "native": ["android/app/src/main/java/com/musicd/server/android/ArtistScreen.kt", "android/app/src/main/java/com/musicd/server/android/ArtistHero.kt", "android/app/src/main/java/com/musicd/server/android/AlbumTile.kt", "android/app/src/main/java/com/musicd/server/android/WallGrid.kt", "android/app/src/main/java/com/musicd/server/android/WallSelect.kt"],
       "preview": false,
       "items": {
@@ -238,12 +238,12 @@
         "empty": { "kind": "shows", "when": "no albums of theirs" },
         "avatar": { "kind": "shows", "when": "they have a picture: their own once found, or the biography's portrait" },
         "facts": { "kind": "shows", "when": "the server knows what they are, where from or when" },
-        "link": { "kind": "action", "label": "{link}", "each": true, "when": "the server has found them (MusicBrainz) or their links" },
+        "link": { "kind": "action", "label": "{link}", "each": true, "when": "the server has found their links (no MusicBrainz pill, item 133)" },
         "bio": { "kind": "shows", "when": "there is a biography" },
         "bio-more": { "kind": "action", "label": ["Show more", "Show less"], "when": "the biography is longer than its clip" },
         "bio-source": { "kind": "shows", "when": "there is a biography" },
         "section": { "kind": "shows", "each": true, "when": "more than one kind of album, or their members or bands known" },
-        "member": { "kind": "action", "label": "{member}", "each": true, "when": "a band's members or a person's bands are known" },
+        "member": { "kind": "action", "label": "{member}", "each": true, "when": "a band's members (those in it now, or a band that ended its last line-up; item 133) or a person's bands are known" },
         "member-art": { "kind": "shows", "each": true, "when": "a band's members or a person's bands are known" },
         "member-name": { "kind": "shows", "each": true, "when": "a band's members or a person's bands are known" },
         "member-line": { "kind": "shows", "each": true, "when": "what they played, or when, is known" },

@@ -273,7 +273,8 @@ internal static partial class CreditRules
             {
                 if (S(r["direction"]) == "backward") members.Add(MemberOf(r, other)); else bands.Add(MemberOf(r, other));
             }
-            else if (r["url"] is JsObj u && N(u["resource"]) is { } url && LinkKinds.TryGetValue(type, out var kind) && !links.ContainsKey(kind))
+            // A link MusicBrainz marks ended (an old official site, item 133) is passed over.
+            else if (r["url"] is JsObj u && N(u["resource"]) is { } url && !Js.Truthy(r["ended"]) && LinkKinds.TryGetValue(type, out var kind) && !links.ContainsKey(kind))
                 links[kind] = url;
         }
         var life = O(a["life-span"]);
@@ -303,6 +304,18 @@ internal static partial class CreditRules
             if (N(O(O(c["mainsnak"])["datavalue"])["value"]) is { } file)
                 return CommonsFilePath + Uri.EscapeDataString(file.Replace(' ', '_')) + "?width=640";
         return null;
+    }
+
+    /*
+     * Wikidata's official website for the act (P856, bug list item 133): the preferred one, else the first not
+     * deprecated; one with an end (P582) is an old one and passed over. Null without one.
+     */
+    public static string? WikidataSite(JsObj data, string qid)
+    {
+        var claims = L(O(O(O(data["entities"])[qid])["claims"])["P856"]).Select(O)
+            .Where(c => S(c["rank"]) != "deprecated" && L(O(c["qualifiers"])["P582"]).Count == 0).ToList();
+        return claims.OrderBy(c => S(c["rank"]) == "preferred" ? 0 : 1)
+            .Select(c => N(O(O(c["mainsnak"])["datavalue"])["value"])).FirstOrDefault(u => u != null && u.StartsWith("http", StringComparison.Ordinal));
     }
 
     /* FanArt.tv's first portrait of the act (its artist thumbs). */

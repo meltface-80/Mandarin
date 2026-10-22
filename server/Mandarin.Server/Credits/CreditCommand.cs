@@ -7,7 +7,7 @@
 //     deezer?: [{…}, name], url?: "…" }
 //   → { credits: [{ track, name, mbid, role, source }], acts: [[name, mbid]],
 //       rows: [{ key, name, mbid, roles, tracks, source }], artist: {…}, found,
-//       wikidata, fanart, deezer, key, back }
+//       wikidata, wikidata_site, fanart, deezer, key, back }
 using Mandarin.Server.Tags;
 
 namespace Mandarin.Server.Credits;
@@ -58,6 +58,7 @@ internal static class CreditCommand
         {
             o["wikidata_id"] = CreditRules.WikidataId(Js.Str(w[1]));
             o["wikidata"] = CreditRules.WikidataPhoto(data, CreditRules.WikidataId(Js.Str(w[1])) ?? "");
+            o["wikidata_site"] = CreditRules.WikidataSite(data, CreditRules.WikidataId(Js.Str(w[1])) ?? "");
         }
         if (job["fanart"] is JsObj fa) o["fanart"] = CreditRules.FanartPhoto(fa);
         if (L(job["deezer"]) is { Count: 2 } d && d[0] is JsObj dz) o["deezer"] = CreditRules.DeezerPhoto(dz, Js.Str(d[1]));

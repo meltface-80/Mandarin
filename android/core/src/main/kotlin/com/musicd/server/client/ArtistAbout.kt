@@ -16,8 +16,12 @@ private fun JSONArray?.strings(): List<String> = if (this == null) emptyList() e
 data class ArtistAbout(
     val name: String, val known: Boolean, val mbid: String?, val type: String?, val photoKey: String?,
     val disambiguation: String?, val begin: String?, val end: String?, val ended: Boolean, val area: String?,
-    val links: Map<String, String>, val members: List<Stint>, val memberOf: List<Stint>, val creditedOn: List<Credited>
+    val links: Map<String, String>, val members: List<Stint>, val memberOf: List<Stint>, val creditedOn: List<Credited>,
+    val bandAlbums: List<BandAlbums> = emptyList()
 ) {
+    /** One of a person's bands and its albums in the library from their years in it (item 133). */
+    data class BandAlbums(val band: String, val albums: List<AlbumSummary>)
+
     /** One of a band's members, or one of a person's bands: their years in it and what they played. */
     data class Stint(val name: String, val begin: String?, val end: String?, val ended: Boolean, val roles: List<String>, val photoKey: String?, val inLibrary: Boolean) {
         /** Under the name: what they played and when ("guitar, vocals · 1982–1987"). */
@@ -33,10 +37,8 @@ data class ArtistAbout(
         return listOfNotNull(kind, area, years(begin, end, ended, type)).joinToString(" · ").ifEmpty { null }
     }
 
-    /** Their links in the order the page shows them, each with its name: MusicBrainz from their id, then the rest found. */
-    val linkList: List<Pair<String, String>> get() =
-        (if (mbid != null) listOf("MusicBrainz" to "https://musicbrainz.org/artist/$mbid") else emptyList()) +
-            LINKS.mapNotNull { (kind, label) -> links[kind]?.let { label to it } }
+    /** Their links in the order the page shows them, each with its name (no MusicBrainz of its own: the owner's call, item 133). */
+    val linkList: List<Pair<String, String>> get() = LINKS.mapNotNull { (kind, label) -> links[kind]?.let { label to it } }
 
     /** The albums credited on that aren't already among their own or those they appear on ([shown], by album offset). */
     fun creditedBeyond(shown: Set<Long>): List<Credited> = creditedOn.filter { it.album.offset !in shown }
@@ -68,7 +70,9 @@ data class ArtistAbout(
                 disambiguation = j.str("disambiguation"), begin = j.str("begin"), end = j.str("end"), ended = j.optBoolean("ended", false), area = j.str("area"),
                 links = links?.keys()?.asSequence()?.mapNotNull { k -> links.str(k)?.let { k to it } }?.toMap() ?: emptyMap(),
                 members = j.optJSONArray("members").items(::stint), memberOf = j.optJSONArray("member_of").items(::stint),
-                creditedOn = j.optJSONArray("credited_on").items { Credited(AlbumSummary.parse(it), it.optJSONArray("roles").strings()) }
+                creditedOn = j.optJSONArray("credited_on").items { Credited(AlbumSummary.parse(it), it.optJSONArray("roles").strings()) },
+                bandAlbums = j.optJSONArray("band_albums").items { BandAlbums(it.optString("band", ""), it.optJSONArray("albums").items(AlbumSummary::parse)) }
+                    .filter { it.band.isNotEmpty() && it.albums.isNotEmpty() }
             )
         }
     }

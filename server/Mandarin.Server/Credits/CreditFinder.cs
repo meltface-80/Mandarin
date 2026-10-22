@@ -166,8 +166,8 @@ internal sealed class CreditFinder(MusicBrainz mb, string? deezerBase, string? w
         await mb.Get("artist/", ("query", $"artist:\"{name.Replace("\"", "", StringComparison.Ordinal)}\""), ("limit", 5)) is JsObj found
             ? CreditRules.FoundMbid(found, name) : null;
 
-    /* A picture of the act: FanArt.tv's (with a key), Wikidata's, Deezer's; and where it came from. */
-    private async Task<(string? Url, string? Source)> Photo(string name, string? mbid, ArtistFacts? facts)
+    /* A picture of the act: FanArt.tv's (with a key), Wikidata's ([wd], its entity when it has one), Deezer's; and where it came from. */
+    private async Task<(string? Url, string? Source)> Photo(string name, string? mbid, (JsObj Data, string Q)? wd)
     {
         var key = LabelLogos.FanartKey();
         if (mbid != null && key.Length > 0)
@@ -179,15 +179,7 @@ internal sealed class CreditFinder(MusicBrainz mb, string? deezerBase, string? w
             }
             catch (LookupError) { /* none there: the next source */ }
         }
-        if (CreditRules.WikidataId(facts?.Links.GetValueOrDefault("wikidata")) is { } q)
-        {
-            try
-            {
-                if (await Lookups.Json($"{wikidata}/wiki/Special:EntityData/{q}.json", [("User-Agent", userAgent)], 15000) is JsObj w && CreditRules.WikidataPhoto(w, q) is { } u)
-                    return (u, "Wikimedia Commons");
-            }
-            catch (LookupError) { /* none there: the next source */ }
-        }
+        if (wd is { } w && CreditRules.WikidataPhoto(w.Data, w.Q) is { } u2) return (u2, "Wikimedia Commons");
         try
         {
             if (await Lookups.Json($"{deezer}/search/artist?q={Lookups.Encode(name)}&limit=5", [], 8000) is JsObj d && CreditRules.DeezerPhoto(d, name) is { } u)
@@ -209,7 +201,15 @@ internal sealed class CreditFinder(MusicBrainz mb, string? deezerBase, string? w
         {
             mbid ??= actIds.TryGetValue(key, out var id) ? id : await Find(name);
             if (mbid != null && await mb.Get("artist/" + mbid, ("inc", "artist-rels+url-rels")) is JsObj a) facts = CreditRules.ArtistOf(a);
-            (photo, source) = await Photo(name, mbid, facts);
+            // Wikidata's entry, once: its picture, and its official site over MusicBrainz's (kept up better; item 133).
+            (JsObj, string)? wd = null;
+            if (CreditRules.WikidataId(facts?.Links.GetValueOrDefault("wikidata")) is { } q)
+            {
+                try { if (await Lookups.Json($"{wikidata}/wiki/Special:EntityData/{q}.json", [("User-Agent", userAgent)], 15000) is JsObj w) wd = (w, q); }
+                catch (LookupError) { /* none there: MusicBrainz's site, and the next picture */ }
+            }
+            if (facts != null && wd is { } d && CreditRules.WikidataSite(d.Item1, d.Item2) is { } site) facts.Links["official"] = site;
+            (photo, source) = await Photo(name, mbid, wd);
         }
         catch (LookupError e)
         {
@@ -226,9 +226,11 @@ internal sealed class CreditFinder(MusicBrainz mb, string? deezerBase, string? w
     public async Task<StoredArtist?> ArtistNow(string name, int waitMs)
     {
         var key = Names.ArtistKey(name);
-        if (CreditStore.Artist(key) is { } kept) return kept;
+        var kept = CreditStore.Artist(key);
+        // Kept as read before (CreditStore.AboutVersion): looked up again, the old facts meanwhile and if that fails.
+        if (kept != null && (int?)kept.About["v"] >= CreditStore.AboutVersion) return kept;
         var t = LookUp(name, null);
         await Task.WhenAny(t, Task.Delay(waitMs));
-        return CreditStore.Artist(key);
+        return CreditStore.Artist(key) ?? kept;
     }
 }
