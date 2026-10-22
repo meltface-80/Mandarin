@@ -1,6 +1,9 @@
 # Changelog
 
 ## Unreleased
+- `136-thousands-comma`: "10,000 Maniacs" is one band again. A comma inside a number (a digit before it, three
+  after) no longer splits an album's artist into acts, which made "10" (with another act's picture and facts) and
+  "000 Maniacs". Commas between names still split.
 - `133-artist-enrichment`: an artist's page as the owner asked after trying it. A band's members are those in it now,
   as Wikipedia lists them (a band that has ended: its last line-up), not everyone who ever played in it. A member's
   own page shows their bands' albums from their years in them ("With Iron Maiden": Janick Gers from 1990), counted

@@ -4,7 +4,7 @@
 //
 //   { "fn": "decide", "album": {…}, "candidates": [{…}, …] }
 //      → { status, ambiguous, scored: [{ candidate (with parts and pairs), distance }] }
-//   { "fn": "names", "names": ["…", …] }
+//   { "fn": "names", "names": ["…", …] }  (each: tidy, bare, clean, cmp, edition_year, disc, split)
 //      → { names: [{ tidy, bare, clean, cmp, edition_year, disc }] }
 //   { "fn": "pairs", "pairs": [[a, b], …] }
 //      → { pairs: [{ string, title, levenshtein, suspect }] }
@@ -76,6 +76,7 @@ internal static class ScoreCommand
                             x["cmp"] = Score.Cmp(n);
                             x["edition_year"] = Score.EditionYear(n);
                             x["disc"] = Score.DiscOf(n);
+                            x["split"] = Names.SplitArtists(Js.Str(n)).Select(part => (object?)part).ToList();
                             return (object?)x;
                         }).ToList();
                         break;
