@@ -1,6 +1,14 @@
 # Changelog
 
 ## Unreleased
+- `127-home-over-wifi`: in the Android app, at home the app's connections go over the Wi-Fi. At 06:48 on 22 October
+  the Wi-Fi was still up (what was already open on it went on answering), but Android judged it poor and sent new
+  connections over mobile data, which can't reach the server's home address: for half a minute every new request
+  failed, and an album's page showed "failed to connect to /192.168.0.57 (port 3500) from /192.0.0.4 …" with no way
+  to ask again. Now, home on the Wi-Fi, the screens, the player's streams and downloads are tied to it, and the
+  check of the home address asks over it too (so a poor Wi-Fi no longer flips the app away and back); away, or the
+  Wi-Fi gone, they are let go at once. An album that can't be read says "Couldn't reach the server. Trying
+  again…" and asks again by itself, less and less often, while its page is up (core `Route.overWifi`, `Failure`).
 - `126-backup-ending-no-note`: in the Android app, Android ending the app after waking it for a task of its own no
   longer brings up "Mandarin stopped in the background". At 04:05 on 22 October it ended the app with a signal, at
   230 (perceptible: neither on screen, in view nor playing) and with no words of its own, after waking it overnight:
