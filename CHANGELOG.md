@@ -4,6 +4,10 @@
 - `136-thousands-comma`: "10,000 Maniacs" is one band again. A comma inside a number (a digit before it, three
   after) no longer splits an album's artist into acts, which made "10" (with another act's picture and facts) and
   "000 Maniacs". Commas between names still split.
+- `137-similar-artists`: an artist's page shows similar artists, in the app and on the page: a row of round
+  pictures under the members, each opening that artist's page here, in the library or not. From Last.fm when a key is
+  set (Settings → Setup → API Keys), else Deezer's related artists, which need no key (kept a week). New:
+  `GET /api/artist/similar?name=`.
 - `133-artist-enrichment`: an artist's page as the owner asked after trying it. A band's members are those in it now,
   as Wikipedia lists them (a band that has ended: its last line-up), not everyone who ever played in it. A member's
   own page shows their bands' albums from their years in them ("With Iron Maiden": Janick Gers from 1990), counted
