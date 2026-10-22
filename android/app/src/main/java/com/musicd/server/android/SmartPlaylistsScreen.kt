@@ -88,7 +88,7 @@ internal fun SmartPlaylistsScreen(prefs: WallPrefs, zoneId: String, client: () -
         WallBack(onBack)
         Column(Modifier.align(Alignment.BottomCenter)) {
             MiniPlayer(zone, room, client, onOpen = { onNowPlaying(zone) }, onRoom = { id -> zone = id; onRoom(id) }, onPage = onPage)
-            TouchNav("", offline = OfflineNow.on, onTap = onNav)
+            TouchNav("", onTap = onNav)
         }
         SmartSheets(sheets, client, onShowAlbums = { v -> onPage("library-show", v.query()) })
     }

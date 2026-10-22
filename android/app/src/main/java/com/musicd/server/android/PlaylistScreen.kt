@@ -178,7 +178,7 @@ internal fun PlaylistScreen(id: String, zoneId: String, client: () -> ServerClie
         WallBack(onHome)
         Column(Modifier.align(Alignment.BottomCenter)) {
             MiniPlayer(zone, room, client, onOpen = { onNowPlaying(zone) }, onRoom = { rid -> zone = rid; onRoom(rid) }, onPage = onPage)
-            TouchNav("", offline = OfflineNow.on, onTap = onNav)
+            TouchNav("", onTap = onNav)
         }
         if (asking) ConfirmDialog("Delete “${p?.name.orEmpty()}”? This can't be undone.") { yes -> asking = false; if (yes) delete() }
         sharing?.let { f -> PlaylistShareSheet(p?.name.orEmpty(), f) { sharing = null } }

@@ -2,7 +2,8 @@
 /*
  * Offline, the Android app's native screens are the app (bug list item 109, O1 in old/plan-android-native.md; the
  * reachability ServerReach's since the web view went, item 111): the screens ask the phone the same questions they ask the server (a client
- * whose answers are the phone's, core PhoneAnswers through a LocalTransport); the row along the foot is the app's own; and
+ * whose answers are the phone's, core PhoneAnswers through a LocalTransport); the row along the foot is the app's own, and
+ * offline is said at the top over every screen (item 134); and
  * Home comes in front whether the app starts online or offline.
  */
 const test = require("node:test");
@@ -28,10 +29,13 @@ test("the native screens ask the phone offline, the services the server", () => 
 });
 
 test("the row along the foot and Home are the app's own offline", () => {
+  // Offline said once, at the top over every screen (item 134), not in each screen's row.
   const files = fs.readdirSync(APP).filter(f => f.endsWith(".kt"));
-  const calls = files.flatMap(f => (read(f).match(/TouchNav\([^)]*offline = [^,]+,/g) || []).map(c => [f, c]));
+  const calls = files.flatMap(f => (read(f).match(/TouchNav\((lit|"[a-z]*"), onTap = /g) || []).map(c => [f, c]));
   assert.ok(calls.length >= 12, "every screen's row found");
-  for (const [f, c] of calls) assert.match(c, /offline = OfflineNow\.on,/, f);
+  assert.ok(!files.some(f => /TouchNav\([^)]*offline/.test(read(f))), "no row says offline");
+  assert.match(read("NativeShell.kt"), /OfflineToastOver\(\)/);
+  assert.match(read("OfflineToast.kt"), /val kind = OfflineNow\.kind\.value[\s\S]*if \(kind == null\) return/);
   assert.match(read("TouchNav.kt"), /\.clickable \{ NativeShell\.menuOpen\.value = true \}/);
   assert.match(read("NativeShell.kt"), /startDestination = ShellRoute\.HOME/);
   const nav = read("ShellRoutes.kt");

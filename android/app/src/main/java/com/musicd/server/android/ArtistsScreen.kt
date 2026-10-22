@@ -123,7 +123,7 @@ internal fun ArtistsScreen(prefs: WallPrefs, zoneId: String, client: () -> Serve
         else ArtistsSort(sort) { sort = ArtistsWall.nextSort(sort); saved.edit().putString("sort", sort).apply() }
         Column(Modifier.align(Alignment.BottomCenter)) {
             MiniPlayer(zone, room, client, onOpen = { onNowPlaying(zone) }, onRoom = { id -> zone = id; onRoom(id) }, onPage = onPage)
-            TouchNav("artists", offline = OfflineNow.on, onTap = { what -> if (what == "search") finding = true else onNav(what) })
+            TouchNav("artists", onTap = { what -> if (what == "search") finding = true else onNav(what) })
         }
     }
 }

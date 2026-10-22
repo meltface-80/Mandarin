@@ -1,6 +1,10 @@
 # Changelog
 
 ## Unreleased
+- `134-offline-toast`: the row along the foot has its five buttons evenly across again, and offline is said at the
+  top of the screen instead: a small pill in the middle, "Offline — tap for more", over every screen for as long as the
+  app (or the page on a phone) is offline; a tap says why, as the sign in the row did. On a desktop the sign stays in
+  the top bar.
 - `131-artist-page`: an artist's page shows who they are, in the app and on the page. Over their albums: their
   picture (their own once the server has found one, else the biography's portrait), what they are, where from and
   when ("Band · Manchester · 1982–1987"), their links as pills (MusicBrainz, official site, Wikipedia, Wikidata,

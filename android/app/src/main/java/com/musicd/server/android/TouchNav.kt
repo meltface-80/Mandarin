@@ -1,10 +1,8 @@
 package com.musicd.server.android
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -12,59 +10,35 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import com.musicd.server.client.Contract
-import com.musicd.server.client.OfflineKind
 
 /**
  * The touch layout's row along the foot of the screen, natively
  * (docs/specs/screens.json, nav; style.css, `.touch-nav`): Menu, Home,
  * Library, Artists (item 130) and Search, each an equal share of the row, the one the
- * page is on ([lit]: "home", "library", "artists", "search") in brass, and the
- * Offline sign in its own 30 between Home and Library when the app is offline. Each tap is the page's own button's ([onTap], by name), so there
- * is one way to do each thing; but Menu, which opens the app's own side menu
- * over the screen (item 67), offline too (item 109); and the Offline sign,
- * which says why in the app's own dialog (item 105).
+ * page is on ([lit]: "home", "library", "artists", "search") in brass. Each tap is the page's own button's ([onTap], by name),
+ * so there is one way to do each thing; but Menu, which opens the app's own side menu over the screen (item 67), offline
+ * too (item 109). Offline is said at the top of the screen now (OfflineToast.kt, item 134), not in the row.
  */
 @Composable
-internal fun TouchNav(lit: String, offline: Boolean, onTap: (String) -> Unit, modifier: Modifier = Modifier) {
-    var why by remember { mutableStateOf(false) }
-    val context = LocalContext.current
-    // Offline mode switched off as the page's dialog does it (MusicdDownloads.set), the page loaded again onto the server's library.
-    if (why) OfflineDialog(OfflineNow.kind.value ?: OfflineKind.MODE, onSwitch = { why = false; context.activity()?.let { DownloadsBridge(it).set("offlineMode", "false") } },
-        onRetry = { why = false; (context.activity() as? MainActivity)?.lookForServer() }, onClose = { why = false })
+internal fun TouchNav(lit: String, onTap: (String) -> Unit, modifier: Modifier = Modifier) {
     Column(modifier.fillMaxWidth().background(MaterialTheme.colorScheme.background)) {
         HorizontalDivider(color = MaterialTheme.colorScheme.outline)
         Row(Modifier.fillMaxWidth().height(58.dp).padding(horizontal = 10.dp), verticalAlignment = Alignment.CenterVertically) {
             NavButton(R.drawable.tn_menu, Contract.label("nav.menu"), false, Modifier.weight(1f).parity("nav.menu", Contract.label("nav.menu")).clickable { NativeShell.menuOpen.value = true })
             NavButton(R.drawable.tn_home, Contract.label("nav.home"), lit == "home", Modifier.weight(1f).parity("nav.home", Contract.label("nav.home")).clickable { onTap("home") })
-            // The Offline sign's seat, between Home and Library, kept when it isn't there so the row doesn't move under the thumb.
-            // A box of its own, not a button: a button's background lies outside its 48 touch target, and drew the disc 48 wide.
-            Box(Modifier.width(30.dp)) {
-                if (offline) Box(Modifier.parity("nav.offline", Contract.label("nav.offline")).size(30.dp)
-                    .clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant).border(1.dp, MaterialTheme.colorScheme.outline, CircleShape).clickable { why = true }, contentAlignment = Alignment.Center) {
-                    Icon(painterResource(R.drawable.tn_offline), contentDescription = null, tint = MaterialTheme.colorScheme.secondary, modifier = Modifier.size(18.dp))
-                }
-            }
             NavButton(R.drawable.tn_library, Contract.label("nav.library"), lit == "library", Modifier.weight(1f).parity("nav.library", Contract.label("nav.library")).clickable { onTap("library") })
             NavButton(R.drawable.tn_artists, Contract.label("nav.artists"), lit == "artists", Modifier.weight(1f).parity("nav.artists", Contract.label("nav.artists")).clickable { onTap("artists") })
             NavButton(R.drawable.tn_search, Contract.label("nav.search"), lit == "search", Modifier.weight(1f).parity("nav.search", Contract.label("nav.search")).clickable { onTap("search") })

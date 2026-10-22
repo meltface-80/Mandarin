@@ -15,9 +15,10 @@
  *     filter with the strip back under the field; the Labels list the same
  *     (#–Z alone on the right, Search finds a label); the Artists wall the
  *     same (Sort alone on the right, Search finds an artist), Artists lit;
- *   - Offline is a small sign between Home and Library, in a seat of its own
- *     (the row doesn't move when it comes); the scan's progress
- *     a line along the top edge;
+ *   - the five buttons evenly across; Offline is a pill at the top of the
+ *     screen, in the middle, over everything, for as long as it lasts (bug
+ *     list item 134), and the row doesn't move when it comes; the scan's
+ *     progress a line along the top edge;
  *   - while a field has the keyboard, in the Android app (android.css) the
  *     row and the mini player give way; a browser's keyboard goes over them;
  *     Now playing has no row;
@@ -63,11 +64,13 @@ const DRIVER = `(async () => {
   out.homeOn = html.classList.contains("tn-home") && getComputedStyle($("tnav-home")).color;
   out.libraryColour = getComputedStyle($("tnav-library")).color;
 
-  // Offline: the small sign between Home and Library. The scan: a line along the top.
-  out.offlineHidden = !shown($("tnav-offline"));
+  // The row evenly across. Offline: the pill at the top, over everything. The scan: a line along the top.
+  out.row = [...nav.querySelectorAll(".tnav-btn")].map(b => { const r = b.getBoundingClientRect(); return [r.left, r.width]; });
+  out.offlineHidden = !shown($("offline-toast"));
   const rowBefore = [...nav.querySelectorAll(".tnav-btn")].map(box);
   $("offline-btn").classList.remove("hidden"); await frame();
-  out.offline = box($("tnav-offline")); out.home = box($("tnav-home")); out.library = box($("tnav-library"));
+  out.offline = box($("offline-toast"));
+  { const t = out.offline, at = document.elementFromPoint(t.l + t.w / 2, t.t + t.h / 2); out.offlineOnTop = !!at && $("offline-toast").contains(at); }
   out.rowStill = JSON.stringify([...nav.querySelectorAll(".tnav-btn")].map(box)) === JSON.stringify(rowBefore);
   $("offline-btn").classList.add("hidden");
   $("scan-progress-bar").classList.remove("hidden"); await frame();
@@ -215,8 +218,11 @@ test("the touch layout: Menu, Home, Library, Artists and Search along the foot o
       assert.ok(r.greeting.t < 40, `${size}: the greeting at the top (${r.greeting.t})`);
       assert.ok(r.homeOn && r.homeOn !== r.libraryColour, size + ": Home lit on Home");
       assert.equal(r.offlineHidden, true, size + ": no Offline sign while online");
-      assert.ok(r.offline.l >= r.home.r && r.offline.r <= r.library.l && r.offline.w <= 32, `${size}: Offline small, between Home and Library (${JSON.stringify([r.home, r.offline, r.library])})`);
-      assert.equal(r.rowStill, true, size + ": the buttons don't move when the Offline sign comes");
+      const widths = r.row.map(x => x[1]), steps = r.row.slice(1).map((x, i) => x[0] - r.row[i][0]);
+      assert.ok(Math.max(...widths) - Math.min(...widths) < 1 && Math.max(...steps) - Math.min(...steps) < 1, `${size}: the five buttons evenly across (${JSON.stringify(r.row)})`);
+      assert.ok(r.offline.t <= 20 && Math.abs((r.offline.l + r.offline.r) / 2 - w / 2) <= 1 && r.offline.h <= 40, `${size}: Offline a pill at the top, in the middle (${JSON.stringify(r.offline)})`);
+      assert.equal(r.offlineOnTop, true, size + ": the pill over what is under it");
+      assert.equal(r.rowStill, true, size + ": the buttons don't move when Offline comes");
       assert.ok(r.scan.t === 0 && r.scan.h <= 4 && r.scan.w === w, `${size}: the scan's line along the top (${JSON.stringify(r.scan)})`);
       assert.ok(r.searchField.w >= w - 60, `${size}: the search field across the screen (${r.searchField.w} of ${w})`);
       assert.ok(r.searchTopbar.t === 0 && r.searchTopbar.h > 30, `${size}: the top bar back with the search (${JSON.stringify(r.searchTopbar)})`);

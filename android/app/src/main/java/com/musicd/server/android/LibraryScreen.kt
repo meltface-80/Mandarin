@@ -141,7 +141,7 @@ internal fun LibraryScreen(viewQuery: String, prefs: WallPrefs, zoneId: String, 
             MiniPlayer(zone, room, client, onOpen = { onNowPlaying(zone) }, onRoom = { id -> zone = id; onRoom(id) }, onPage = onPage)
             if (selecting && picks.isEmpty()) SelectBar(onCancel = { selecting = false })
             // Library, tapped where it is already: back to the top, as the page's row does; Search: the wall's own filter, as on the page.
-            else TouchNav("library", offline = OfflineNow.on, onTap = { what ->
+            else TouchNav("library", onTap = { what ->
                 when (what) {
                     "library" -> scope.launch { if (prefs.list) list.animateScrollToItem(0) else grid.animateScrollToItem(0) }
                     "search" -> filtering = true

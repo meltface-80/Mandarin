@@ -6141,14 +6141,14 @@ html .topbar .icon-btn.labels-sort-btn { width: auto; min-width: 44px; padding: 
    screen. The same test as the touch-sized mini player above; a desktop
    (a mouse) keeps its layout and never shows the row. touchnav.js puts
    tn-home, tn-search, tn-lib, tn-artists, tn-np and tn-offline on <html>. */
+.offline-toast { display: none; }
 .touch-nav { display: none; }
 @media (hover: none), (pointer: coarse) {
   :root { --tnav-h: 58px; }
-  /* Five equal shares, and between Home and Library the Offline sign's seat
-     (bug list item 130), kept when it isn't there so the row doesn't move
-     under the thumb; the app's row (TouchNav.kt) the same. */
+  /* Five equal shares, evenly across (bug list items 130 and 134); the app's
+     row (TouchNav.kt) the same. Offline is said at the top: .offline-toast. */
   .touch-nav {
-    display: grid; grid-template-columns: 1fr 1fr 30px 1fr 1fr 1fr; align-items: center;
+    display: grid; grid-template-columns: repeat(5, 1fr); align-items: center;
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 70;
     height: calc(var(--tnav-h) + env(safe-area-inset-bottom));
     padding: 0 max(10px, env(safe-area-inset-right)) env(safe-area-inset-bottom) max(10px, env(safe-area-inset-left));
@@ -6168,16 +6168,18 @@ html .topbar .icon-btn.labels-sort-btn { width: auto; min-width: 44px; padding: 
   .tn-home:not(.tn-search) #tnav-home,
   .tn-lib #tnav-library, .tn-artists:not(.tn-filter) #tnav-artists,
   .tn-search #tnav-search, .tn-filter #tnav-search { color: var(--accent-text); }
-  #tnav-menu { grid-column: 1; } #tnav-home { grid-column: 2; } #tnav-library { grid-column: 4; }
-  #tnav-artists { grid-column: 5; } #tnav-search { grid-column: 6; }
-  /* Offline: a small sign in its seat between Home and Library. */
-  .tnav-offline {
-    display: none; grid-column: 3; grid-row: 1;
-    width: 30px; height: 30px; padding: 6px; border-radius: 50%;
-    background: var(--bg-elev); border: 1px solid var(--border); color: var(--accent-text); cursor: pointer;
+  /* Offline (bug list item 134): a pill in the middle of the top of the
+     screen, over everything (the toasts aside), for as long as it lasts; a
+     tap opens the Offline dialog. The app's OfflineToast.kt the same. */
+  .tn-offline .offline-toast {
+    display: flex; align-items: center; gap: 8px;
+    position: fixed; top: calc(env(safe-area-inset-top) + 10px); left: 50%; transform: translateX(-50%); z-index: 98;
+    padding: 7px 14px 7px 12px; border-radius: 999px; white-space: nowrap;
+    background: var(--bg-elev); border: 1px solid var(--border); box-shadow: var(--shadow-modal);
+    color: var(--text); font: inherit; font-size: 12.5px; line-height: 17px; font-weight: 600; cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
   }
-  .tnav-offline svg { width: 100%; height: 100%; display: block; }
-  .tn-offline .tnav-offline { display: block; }
+  .offline-toast svg { width: 16px; height: 16px; flex: 0 0 auto; color: var(--accent-text); }
   /* Now playing has its own transport, and no row. (While a field has the
      keyboard up, the keyboard goes over the row and the mini player; in the
      Android app, whose page shrinks above it, android.css hides them.) */

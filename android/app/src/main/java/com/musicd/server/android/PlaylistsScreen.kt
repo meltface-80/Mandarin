@@ -97,7 +97,7 @@ internal fun PlaylistsScreen(prefs: WallPrefs, zoneId: String, client: () -> Ser
         WallBack(onBack)
         Column(Modifier.align(Alignment.BottomCenter)) {
             MiniPlayer(zone, room, client, onOpen = { onNowPlaying(zone) }, onRoom = { id -> zone = id; onRoom(id) }, onPage = onPage)
-            TouchNav("", offline = OfflineNow.on, onTap = onNav)
+            TouchNav("", onTap = onNav)
         }
         if (importing) PlaylistImportSheet(client, onSaved = { made++ }) { importing = false }
     }

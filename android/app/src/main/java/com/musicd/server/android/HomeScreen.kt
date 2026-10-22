@@ -187,7 +187,7 @@ internal fun HomeScreen(prefs: WallPrefs, zoneId: String, client: () -> ServerCl
         Column(Modifier.align(Alignment.BottomCenter)) {
             MiniPlayer(zone, room, client, onOpen = { onNowPlaying(zone) }, onRoom = { id -> zone = id; onRoom(id) }, onPage = onPage)
             // Home, tapped where it is already: its top, as the page's row does.
-            TouchNav("home", offline = OfflineNow.on, onTap = { what -> if (what == "home") scope.launch { HomeKept.list.animateScrollToItem(0) } else onNav(what) })
+            TouchNav("home", onTap = { what -> if (what == "home") scope.launch { HomeKept.list.animateScrollToItem(0) } else onNav(what) })
         }
         picked?.let { RandomPickDialog(it, zone, client, onClose = { picked = null }) }
     }
