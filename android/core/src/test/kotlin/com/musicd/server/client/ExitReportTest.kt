@@ -61,6 +61,19 @@ class ExitReportTest {
     }
 
     @Test
+    fun `woken by Android for a task of its own is not in use`() {
+        // Item 126: 22 October 04:05, "a signal" at 230 with no words from Android, overnight: the nightly backup ends
+        // the app it backed up. On screen, in view or playing, the same ending is still said.
+        val backup = exit(10, ExitReport.SIGNALED, ExitReport.PERCEPTIBLE)
+        assertFalse(ExitReport.worth(backup))
+        assertEquals(listOf(backup), ExitReport.quiet(listOf(backup), 5))
+        for (i in listOf(ExitReport.FOREGROUND, ExitReport.FOREGROUND_SERVICE, ExitReport.VISIBLE))
+            assertTrue("importance $i", ExitReport.worth(exit(1, ExitReport.SIGNALED, i)))
+        assertEquals("in the background, woken by Android (230)", ExitReport.importance(ExitReport.PERCEPTIBLE))
+        assertEquals("in the background, in view (200)", ExitReport.importance(ExitReport.VISIBLE))
+    }
+
+    @Test
     fun `never what was asked for, or a crash the crash log already keeps`() {
         for (r in listOf(ExitReport.USER_REQUESTED, ExitReport.USER_STOPPED, ExitReport.EXIT_SELF, ExitReport.PACKAGE_UPDATED, ExitReport.CRASH))
             assertFalse("reason $r", ExitReport.worth(exit(1, r, ExitReport.FOREGROUND_SERVICE)))
