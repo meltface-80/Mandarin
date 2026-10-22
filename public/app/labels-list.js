@@ -157,6 +157,7 @@ async function showLabelsList(isRepoll = false) {
     exitAlbumSelectMode(); closeLabelLogoSheet(); currentLabelName = null; currentLabelLogoUrl = null;
   }
   const restoreScroll = !isRepoll && _labelsScrollSaved > 0;
+  if (window.__exitArtists) window.__exitArtists();
   mode = "list";
   labelsActive = true;
   leaveLibraryWall();   // labels own the shared grid now — stop the wall's infinite scroll

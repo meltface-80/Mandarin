@@ -136,13 +136,14 @@
       }
     },
     "nav": {
-      "page": "the touch layout's row along the foot of the screen (#touch-nav, touchnav.js): Menu, Home, Library and Search under the mini player, and the Offline sign between Home and Library, a phone held upright",
+      "page": "the touch layout's row along the foot of the screen (#touch-nav, touchnav.js): Menu, Home, Library, Artists and Search under the mini player, and the Offline sign between Home and Library, a phone held upright",
       "native": ["android/app/src/main/java/com/musicd/server/android/TouchNav.kt"],
       "items": {
         "menu": { "kind": "action", "label": "Menu" },
         "home": { "kind": "action", "label": "Home" },
         "offline": { "kind": "action", "label": "Offline — tap for more", "when": "offline, in the Android app" },
         "library": { "kind": "action", "label": "Library" },
+        "artists": { "kind": "action", "label": "Artists" },
         "search": { "kind": "action", "label": "Search" }
       }
     },
@@ -561,6 +562,24 @@
         "merge-info": { "kind": "shows", "when": "selecting labels to merge" },
         "merge": { "kind": "action", "label": "Merge", "when": "selecting labels to merge" },
         "merge-cancel": { "kind": "action", "label": "Cancel selection", "when": "selecting labels to merge" }
+      }
+    },
+    "artists": {
+      "page": "Artists (the row's Artists, bug list item 130): the heading with how many and the bar's Back, the order (A to Z, most albums, at random) at the top right (the row's Search finds an artist by part of the name), every act an album of the library's is credited to as a round picture (their own once the server has found one, else their first album's cover), their name and how many albums, in the album wall's columns and sizes (UI Settings); a tap opens the artist's page",
+      "native": ["android/app/src/main/java/com/musicd/server/android/ArtistsScreen.kt", "android/app/src/main/java/com/musicd/server/android/WallGrid.kt"],
+      "preview": false,
+      "items": {
+        "back": { "kind": "action", "label": "Back to Home" },
+        "title": { "kind": "shows" },
+        "find-field": { "kind": "action", "label": "Find an artist", "when": "finding an artist" },
+        "find-clear": { "kind": "action", "label": "Clear", "when": "finding an artist" },
+        "sort": { "kind": "action", "label": ["Sort: A to Z — tap for most albums", "Sort: most albums — tap for random", "Sort: random — tap for A to Z"] },
+        "banner": { "kind": "shows", "when": "the artists can't be read" },
+        "artist": { "kind": "action", "label": "{artist}", "each": true },
+        "artist-art": { "kind": "shows", "each": true },
+        "artist-name": { "kind": "shows", "each": true },
+        "artist-subtitle": { "kind": "shows", "each": true },
+        "none": { "kind": "shows", "when": "no artist matches what is being found" }
       }
     },
     "label-unmerge": {

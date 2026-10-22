@@ -127,6 +127,7 @@ async function run(q) {
         btn.addEventListener("click", () => {
           stopSearch();
           if (window.__exitLabels) window.__exitLabels();
+          if (window.__exitArtists) window.__exitArtists();
           if (window.__showLabelAlbums) window.__showLabelAlbums(lb.display);
         });
         row.appendChild(btn);

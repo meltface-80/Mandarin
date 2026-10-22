@@ -1,22 +1,22 @@
 // @ts-check
 /*
  * touchnav.js — the touch layout's row along the foot of the screen (v0.9.6):
- * Menu, Home, Library and Search under the mini player, on a phone or a
+ * Menu, Home, Library, Artists (bug list item 130) and Search under the mini player, on a phone or a
  * tablet in either orientation. A desktop (a mouse) never shows it: the
  * layout is style.css's "touch layout" section, under the same media query
  * as the touch-sized mini player.
  *
  * Each button works the page's own control, so there is one way to do each
  * thing: the menu is #menu-toggle's, Library is Home's "Library" heading's
- * (the full A–Z wall), Search is the top bar's glass, and Home is the page's
+ * (the full A–Z wall), Artists is the Artists wall (artists-wall.js), Search is the top bar's glass, and Home is the page's
  * own showHome. What covers the screen (an album's page) closes first, as
  * its Back would.
  *
  * It also tells the layout, on <html>, what is on screen: tn-home (Home, so
  * no top bar), tn-search (the search open, so the top bar is back with the
  * field across it), tn-lib (the Library wall), tn-filter (the Library's
- * filter, or the Labels list's search, open: the top bar back for its
- * field), tn-labels (the Labels list), tn-np (Now playing, which
+ * filter, or the Labels list's or the Artists wall's find, open: the top bar back for its
+ * field), tn-labels (the Labels list), tn-artists (the Artists wall), tn-np (Now playing, which
  * has its own transport and no row), tn-offline (the Offline sign, shown
  * small between Home and Library).
  *
@@ -24,8 +24,9 @@
  * over the albums, which scroll up to the screen's edge, and the screen's
  * title (#album-count) is the page's heading, at the top of <main>, moved
  * there while the touch layout applies and back to the bar when it doesn't.
- * On the Library wall Search opens its filter ("starts with"), and on the
- * Labels list its "Find a label", not Home's: their own glasses give way.
+ * On the Library wall Search opens its filter ("starts with"), on the
+ * Labels list its "Find a label" and on the Artists wall "Find an artist",
+ * not Home's: their own glasses give way.
  */
 (function touchNav() {
   "use strict";
@@ -40,6 +41,7 @@
   const offline = byId("offline-btn");
   const modal = byId("album-modal");
   const labels = byId("labels-tools");
+  const artists = byId("artists-tools");
   /** @param {Element | null} el @param {string} cls */
   const has = (el, cls) => !!el && el.classList.contains(cls);
 
@@ -49,17 +51,18 @@
     root.classList.toggle("tn-home", !!home && !has(home, "hidden"));
     root.classList.toggle("tn-search", has(search, "is-open"));
     root.classList.toggle("tn-lib", has(topbar, "lib-wall"));
-    root.classList.toggle("tn-filter", has(topbar, "lib-filtering") || has(labels, "is-searching"));
+    root.classList.toggle("tn-filter", has(topbar, "lib-filtering") || has(labels, "is-searching") || has(artists, "is-searching"));
     // The Labels list: its tools shown, with their order (#–Z), which one label's albums don't have.
     const order = byId("labels-sort-btn");
     root.classList.toggle("tn-labels", !!labels && !has(labels, "hidden") && !!order && !has(order, "hidden"));
+    root.classList.toggle("tn-artists", !!artists && !has(artists, "hidden"));
     // Now playing (the album tab of the player's own screen): as app.js's onNowPlayingScreen.
     root.classList.toggle("tn-np", modalOpen && has(modal, "np-mode") && has(modal, "tab-album"));
     root.classList.toggle("tn-offline", !!offline && !has(offline, "hidden"));
   }
   const watched = [home, topbar, search, offline, modal];
   for (const el of watched) if (el) new MutationObserver(sync).observe(el, { attributes: true, attributeFilter: ["class"] });
-  if (labels) new MutationObserver(sync).observe(labels, { attributes: true, attributeFilter: ["class"], subtree: true });
+  for (const el of [labels, artists]) if (el) new MutationObserver(sync).observe(el, { attributes: true, attributeFilter: ["class"], subtree: true });
   sync();
 
   /* An album's page over the screen closes, as its Back does. */
@@ -94,6 +97,12 @@
     const heading = byId("home-library-title");
     if (heading) heading.click();
   });
+  on("tnav-artists", () => {
+    const already = root.classList.contains("tn-artists") && !(modal && !has(modal, "hidden"));
+    clearOver();
+    if (already) { toTop(); return; }
+    if (typeof w.__showArtists === "function") w.__showArtists();
+  });
   on("tnav-search", (e) => {
     // The page closes its search on any tap outside it: this one opens it.
     e.stopPropagation();
@@ -110,6 +119,11 @@
     if (root.classList.contains("tn-labels")) {
       if (has(labels, "is-searching")) { const i = byId("labels-search-input"); if (i) i.focus(); }
       else { const glass = byId("labels-search-btn"); if (glass) glass.click(); }
+      return;
+    }
+    // The Artists wall: "Find an artist", opened or, open, its field.
+    if (root.classList.contains("tn-artists")) {
+      if (typeof w.__openArtistsFind === "function") w.__openArtistsFind();
       return;
     }
     // The search is Home's: from anywhere else, Home first.

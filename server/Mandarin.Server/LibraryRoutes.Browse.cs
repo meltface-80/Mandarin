@@ -159,6 +159,9 @@ internal static partial class Library
                 else { m[n] = (name, 1, al.ImageKey, Names.SortName(name)); order.Add(n); }
             }
         }
+        // Found by a part of the name (the Artists wall's find, bug list item 130): accents, case and punctuation aside.
+        var find = Names.Fold(Q(ctx, "q") ?? "");
+        if (find.Length > 0) order = order.Where(n => n.Contains(find, StringComparison.Ordinal)).ToList();
         var keys = sort == "random" ? null : order.ToDictionary(n => n, n => SortKey(m[n].SortName));
         var list = sort switch
         {

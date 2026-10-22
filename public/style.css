@@ -213,6 +213,13 @@ a.action-btn:active,
 .labels-tools > .icon-btn { flex: 0 0 auto; }
 .labels-order-txt { font-size: 13px; font-weight: 700; letter-spacing: .04em; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .album-count.is-hidden-by-search { display: none; }
+/* The Artists wall (artists-wall.js, bug list item 130): round pictures, the name under each, centred; a first letter where there is no picture. */
+.album.artist-tile .album-art-wrap.is-round { border-radius: 50%; }
+.album-art-wrap.is-round .artist-tile-letter {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  font-size: calc(28px * var(--ui-tile, 1)); font-weight: 600; color: var(--text-dim);
+}
+.album-grid:not(.as-list) .artist-tile .album-meta { text-align: center; }
 /* UI Settings' four dropdowns one width, sized for the widest ("3 columns"). */
 .settings-pane[data-pane="ui"] .settings-select { width: 9.5em; }
 
@@ -6089,19 +6096,22 @@ html .topbar .icon-btn.labels-sort-btn { width: auto; min-width: 44px; padding: 
 /* ------------------------------------------------------------------ */
 /*  The touch layout (v0.9.6): a phone or a tablet, either way round   */
 /* ------------------------------------------------------------------ */
-/* The menu, Home, the Library and Search in a row along the foot of the
+/* The menu, Home, the Library, Artists and Search in a row along the foot of the
    screen (#touch-nav, touchnav.js), the mini player raised above it, and
    on Home no top bar: the greeting at the top. Search opens the top bar
    again with the field across it, and the page moves down under it. The
    scan's progress is a thin brass line along the top edge, on every
    screen. The same test as the touch-sized mini player above; a desktop
    (a mouse) keeps its layout and never shows the row. touchnav.js puts
-   tn-home, tn-search, tn-lib, tn-np and tn-offline on <html>. */
+   tn-home, tn-search, tn-lib, tn-artists, tn-np and tn-offline on <html>. */
 .touch-nav { display: none; }
 @media (hover: none), (pointer: coarse) {
   :root { --tnav-h: 58px; }
+  /* Five equal shares, and between Home and Library the Offline sign's seat
+     (bug list item 130), kept when it isn't there so the row doesn't move
+     under the thumb; the app's row (TouchNav.kt) the same. */
   .touch-nav {
-    display: flex; align-items: center; justify-content: space-between;
+    display: grid; grid-template-columns: 1fr 1fr 30px 1fr 1fr 1fr; align-items: center;
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 70;
     height: calc(var(--tnav-h) + env(safe-area-inset-bottom));
     padding: 0 max(10px, env(safe-area-inset-right)) env(safe-area-inset-bottom) max(10px, env(safe-area-inset-left));
@@ -6109,7 +6119,7 @@ html .topbar .icon-btn.labels-sort-btn { width: auto; min-width: 44px; padding: 
     border-top: 1px solid var(--border);
   }
   .tnav-btn {
-    flex: 0 0 auto; width: 64px; height: var(--tnav-h);
+    width: 100%; min-width: 0; height: var(--tnav-h);
     display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
     background: none; border: 0; padding: 0; color: var(--text-dim); font: inherit; cursor: pointer;
     -webkit-tap-highlight-color: transparent;
@@ -6119,11 +6129,13 @@ html .topbar .icon-btn.labels-sort-btn { width: auto; min-width: 44px; padding: 
   .tnav-btn:active { transform: scale(.94); }
   /* Where you are: Home or the Library wall, in the accent. */
   .tn-home:not(.tn-search) #tnav-home,
-  .tn-lib #tnav-library,
+  .tn-lib #tnav-library, .tn-artists:not(.tn-filter) #tnav-artists,
   .tn-search #tnav-search, .tn-filter #tnav-search { color: var(--accent-text); }
-  /* Offline: a small sign between Home and Library, at the row's centre. */
+  #tnav-menu { grid-column: 1; } #tnav-home { grid-column: 2; } #tnav-library { grid-column: 4; }
+  #tnav-artists { grid-column: 5; } #tnav-search { grid-column: 6; }
+  /* Offline: a small sign in its seat between Home and Library. */
   .tnav-offline {
-    display: none; position: absolute; left: 50%; top: calc(var(--tnav-h) / 2); transform: translate(-50%, -50%);
+    display: none; grid-column: 3; grid-row: 1;
     width: 30px; height: 30px; padding: 6px; border-radius: 50%;
     background: var(--bg-elev); border: 1px solid var(--border); color: var(--accent-text); cursor: pointer;
   }
@@ -6180,7 +6192,7 @@ html .topbar .icon-btn.labels-sort-btn { width: auto; min-width: 44px; padding: 
      up into the buttons' line, on the right. */
   #library-filter:not(.is-filtering) .lib-filter-btn { display: none; }
   /* The Labels list likewise: Search in the row finds a label; #–Z alone on the right. */
-  .topbar #labels-search-btn { display: none; }
+  .topbar #labels-search-btn, .topbar #artists-search-btn { display: none; }
   .topbar.lib-wall .library-controls {
     position: absolute; top: calc(12px + env(safe-area-inset-top)); right: max(14px, env(safe-area-inset-right)); z-index: 1;
     display: flex; align-items: center; gap: 8px; height: var(--ctl-h); margin: 0; padding: 0; background: none; border: 0;

@@ -16,6 +16,7 @@ function showHome() {
   leavePlaylistScreens();
   if (window.__clearSearchIfActive) window.__clearSearchIfActive();  // drop stale search results
   if (window.__exitLabels) window.__exitLabels();   // leave the labels browser if active
+  if (window.__exitArtists) window.__exitArtists();
   // Discard, don't restore: this function is establishing its own screen and
   // has already reset the view flags above.
   if (window.__exitArtistView) window.__exitArtistView({ restore: false });

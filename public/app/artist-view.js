@@ -71,6 +71,7 @@
         window.__restoreLibraryWall(saved.libraryWallWasActive);
       }
       if (window.__unparkLabels) window.__unparkLabels(saved.labels);
+      if (window.__unparkArtists) window.__unparkArtists(saved.artists);
       // The Music on device wall's Focus / Sort row, if that is what came back (v0.7.4).
       if (window.__restoreLocalControls) window.__restoreLocalControls();
       // Land back where the user was, not at the top of the wall.
@@ -112,6 +113,8 @@
     // Same for the labels browser: park its chrome (bar, sheets, select modes)
     // but keep the mode/label it was showing so Back restores it whole.
     const labels = window.__parkLabels ? window.__parkLabels() : null;
+    // And the Artists wall (item 130): it stops paging into this view, and comes back as it was.
+    const artists = window.__parkArtists ? window.__parkArtists() : null;
     // A multi-select started on the previous wall must not leak in here — its
     // action bar would stay on screen and this view's tiles would select
     // instead of open. Runs BEFORE the capture so the restored screen comes
@@ -143,6 +146,7 @@
       libraryWallWasActive,
       libraryWallSeq,
       labels,
+      artists,
       scrollTop:          savedScrollTop,
       gridHidden:         grid.classList.contains("hidden"),
       homeViewHidden:     homeView     ? homeView.classList.contains("hidden")     : true,

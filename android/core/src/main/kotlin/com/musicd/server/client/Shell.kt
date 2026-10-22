@@ -101,6 +101,10 @@ object ShellRoute {
     const val LABELS = "labels?$ZONE={$ZONE}"
     fun labels(zoneId: String): String = "labels?$ZONE=" + enc(zoneId)
 
+    /** The Artists wall (item 130): the row's Artists; an artist's page ([artist]) over it. */
+    const val ARTISTS = "artists?$ZONE={$ZONE}"
+    fun artists(zoneId: String): String = "artists?$ZONE=" + enc(zoneId)
+
     const val REVIEW = "review"
     /** Pitchfork (item 70): the magazine, or one review's page in it ([REVIEW], the review as JSON; none for the list). */
     const val PITCHFORK = "pitchfork?$REVIEW={$REVIEW}&$ZONE={$ZONE}"
