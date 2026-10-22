@@ -1,6 +1,13 @@
 # Changelog
 
 ## Unreleased
+- `131-artist-page`: an artist's page shows who they are, in the app and on the page. Over their albums: their
+  picture (their own once the server has found one, else the biography's portrait), what they are, where from and
+  when ("Band · Manchester · 1982–1987"), their links as pills (MusicBrainz, official site, Wikipedia, Wikidata,
+  Discogs, AllMusic, Bandcamp, Last.fm, SoundCloud, YouTube; each opens in the browser), and the biography as before.
+  A band's members, or a person's bands, follow in a row of round pictures with what each played and when; a tap
+  opens their own page, even when the library has nothing of theirs. Under the albums and those they appear on, a
+  new "Credited on" section lists the library's albums they played on, wrote or produced, saying as what.
 - `130-artists-tab`: an Artists wall, in the app and on the page. The row along the foot has an Artists button
   (Menu, Home, Library, Artists, Search, five equal buttons; the Offline sign keeps a seat of its own between Home and
   Library, so the row doesn't shift when it comes). The wall shows every act in the library as a round picture (their

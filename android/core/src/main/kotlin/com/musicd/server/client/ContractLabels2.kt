@@ -4,6 +4,13 @@ package com.musicd.server.client
 /** The screens contract's labels, part 2 of 2 (Contract.kt joins them). */
 internal object ContractLabels2 {
     val labels: Map<String, List<String>> = mapOf(
+        "settings-ui.back" to listOf("Back to settings"),
+        "settings-ui.info" to listOf("About {setting}"),
+        "settings-ui.text" to listOf("Album & artist text"),
+        "settings-ui.title" to listOf("Grid screen title"),
+        "settings-ui.menu" to listOf("Menu & Home Screen text"),
+        "settings-ui.layout" to listOf("Grid layout"),
+        "settings-ui.tile" to listOf("Tile size"),
         "settings-display.back" to listOf("Back to settings"),
         "settings-display.info" to listOf("About {setting}"),
         "settings-display.enabled" to listOf("Wall display"),
