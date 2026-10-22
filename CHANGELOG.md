@@ -4,6 +4,10 @@
 - `139-genres-tags`: an album's page and an artist's page show their genres, in the app and on the page: small chips
   under an album's facts (its own tags), and on an artist's head the genres their albums are tagged with, the most
   used first, five at most. A tap opens that genre's wall. New in `GET /api/artist`: `genres`.
+- `137-similar-artists`: an artist's page shows similar artists, in the app and on the page: a row of round
+  pictures under the members, each opening that artist's page here, in the library or not. From Last.fm when a key is
+  set (Settings → Setup → API Keys), else Deezer's related artists, which need no key (kept a week). New:
+  `GET /api/artist/similar?name=`.
 - `133-artist-enrichment`: an artist's page as the owner asked after trying it. A band's members are those in it now,
   as Wikipedia lists them (a band that has ended: its last line-up), not everyone who ever played in it. A member's
   own page shows their bands' albums from their years in them ("With Iron Maiden": Janick Gers from 1990), counted

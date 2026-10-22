@@ -30,6 +30,7 @@ import com.musicd.server.client.PlaylistAdd
 import com.musicd.server.client.ArtistAlbums
 import com.musicd.server.client.ArtistAbout
 import com.musicd.server.client.ArtistBio
+import com.musicd.server.client.ArtistSimilar
 import com.musicd.server.client.Retry
 import com.musicd.server.client.Failure
 import com.musicd.server.client.LibraryClient
@@ -60,6 +61,7 @@ internal fun ArtistScreen(name: String, prefs: WallPrefs, zoneId: String, client
     var albums by remember(name) { mutableStateOf<ArtistAlbums?>(null) }
     var bio by remember(name) { mutableStateOf<ArtistBio?>(null) }
     var about by remember(name) { mutableStateOf<ArtistAbout?>(null) }
+    var similar by remember(name) { mutableStateOf<ArtistSimilar?>(null) }
     var failed by remember(name) { mutableStateOf<String?>(null) }
     var selecting by remember { mutableStateOf(false) }
     var picks by remember { mutableStateOf<List<AlbumSummary>>(emptyList()) }
@@ -83,6 +85,7 @@ internal fun ArtistScreen(name: String, prefs: WallPrefs, zoneId: String, client
         val pin = (a?.primary?.firstOrNull() ?: a?.featured?.firstOrNull())?.title ?: ""
         coroutineScope {
             launch { about = withContext(Dispatchers.IO) { runCatching { lib.artistAbout(name) }.getOrNull() } }
+            launch { similar = withContext(Dispatchers.IO) { runCatching { lib.artistSimilar(name) }.getOrNull() } }   // item 137
             if (a != null) launch { bio = withContext(Dispatchers.IO) { runCatching { lib.artistBio(name, pin) }.getOrNull() } }
         }
     }
@@ -121,7 +124,7 @@ internal fun ArtistScreen(name: String, prefs: WallPrefs, zoneId: String, client
             // The name at once; the count when the albums come. An error as the page has it, in red under the heading.
             val n = (a?.primary?.size ?: 0) + (a?.featured?.size ?: 0) + bands.sumOf { it.albums.size }
             WallHead(if (a == null) name else "$n album" + (if (n == 1) "" else "s") + " · $name", prefs, failed?.let { "Error: $it" to true })
-            if (about != null || bio != null) ArtistHero(about, bio, client, onArtist, onGenre = { onPage("genre", it) })
+            if (about != null || bio != null || similar?.artists?.isNotEmpty() == true) ArtistHero(about, bio, similar, client, onArtist, onGenre = { onPage("genre", it) })
             if (a != null && n == 0 && credited.isEmpty() && failed == null) Text("No albums found for \"$name\"", Modifier.parity("artist.empty").fillMaxWidth().padding(vertical = 48.dp), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 15.sp, lineHeight = 20.5.sp, textAlign = TextAlign.Center)
         }
         WallBack(onBack)
