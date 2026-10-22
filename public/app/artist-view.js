@@ -19,6 +19,9 @@
   }
 
   let artistViewActive = false;
+  // Which opening is current: an artist left before their albums came must not draw over the next one's page (item 140:
+  // the next drawn at once from what it had, a late answer for the one before came after it).
+  let openSeq = 0;
   let saved            = null;   // snapshot of the screen we came from
 
   // opts.restore === false: the caller is building its OWN screen (Home, a
@@ -120,6 +123,7 @@
     // instead of open. Runs BEFORE the capture so the restored screen comes
     // back with its selection cleared in both the DOM and the state.
     if (window.__exitAlbumSelectMode) window.__exitAlbumSelectMode();
+    const opening = ++openSeq;
     // Invalidate any in-flight bio fetch NOW — bumping only inside
     // renderArtistBioHead left a window where artist A's late bio could
     // prepend into artist B's freshly-rendered grid.
@@ -191,7 +195,7 @@
       const got = window.__artistJson ? await window.__artistJson(url) : await fetch(url).then(r => { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); });
       j = { ...got, primary: got.primary || [], featured: got.featured || [] };
     } catch (e) { failed = e; }
-    if (!artistViewActive) return;
+    if (!artistViewActive || opening !== openSeq) return;
     try {
       const total = j.primary.length + j.featured.length + mine.length;
 

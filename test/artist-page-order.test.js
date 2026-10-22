@@ -2,7 +2,8 @@
 /*
  * An artist's page in the owner's order (bug list item 140), in a real browser at a phone's size against the real
  * server: their discography under the head, the foot (similar artists and albums) last in the grid; and the page
- * opened again drawn from what it last had, its albums not asked of the server again.
+ * opened again drawn from what it last had, its albums not asked of the server again; and another artist's page left
+ * before its albums came doesn't draw over it.
  * Skipped where no Chromium or Chrome is found (test/browser-harness.js).
  */
 const ports = require("./ports");
@@ -40,6 +41,12 @@ const DRIVER = `(async () => {
   await until(() => !/Artist A/.test($("album-count").textContent));
   await open();
   out.again = { title: $("album-count").textContent, asked: albumsAsked() - out.asked, tiles: grid.querySelectorAll(".album").length };
+  // Another artist opened and left before their albums come, then Artist A again, drawn at once: still Artist A's page.
+  window.__showArtistAlbums("Artist B");
+  $("topbar-back").click();
+  await open();
+  await sleep(1500);
+  out.after = $("album-count").textContent;
   return out;
 })()`;
 
@@ -69,5 +76,6 @@ test("an artist's page: the discography under the head, the foot last, and drawn
     assert.equal(r.again.asked, 0, "opened again: drawn from what it had, its albums not asked for again");
     assert.equal(r.again.title, r.title);
     assert.ok(r.again.tiles >= 1, "its albums there again");
+    assert.match(r.after, /albums? · Artist A$/, "Artist B's late answer didn't draw over Artist A's page");
   } finally { await srv.stop(); }
 });
