@@ -1,6 +1,14 @@
 # Changelog
 
 ## Unreleased
+- `130-artists-tab`: an Artists wall, in the app and on the page. The row along the foot has an Artists button
+  (Menu, Home, Library, Artists, Search, five equal buttons; the Offline sign keeps a seat of its own between Home and
+  Library, so the row doesn't shift when it comes). The wall shows every act in the library as a round picture (their
+  own once the server has found one, else their first album's cover) with their name and how many albums, in the
+  album wall's own columns, sizes and grid or list view (Settings → UI Settings), read a page at a time as you
+  scroll. Sort at the top right goes round A to Z, most albums and random, and is kept; Search in the row finds an
+  artist by part of the name across the whole library. A tap opens the artist's page, and Back from there comes back
+  to the wall where you left it. New: `GET /api/artists?q=` finds by part of the name (accents and case aside).
 - `129-artist-credits`: the server finds who played, sang, wrote and made each album, and who each act is, for the
   artists' pages and the album credits to come (items 130–132). An album's credits come from its files' own tags
   (PERFORMER "Name (drums)", PRODUCER, ENGINEER, ID3's credit lists) and, where the album has a MusicBrainz release

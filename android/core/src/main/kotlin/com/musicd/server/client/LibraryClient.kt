@@ -27,6 +27,9 @@ class LibraryClient(private val get: (String) -> JSONObject) {
 
     fun artists(): ArtistPage = ArtistPage.parse(get("/api/artists"))
 
+    /** A page of the Artists wall (item 130), as [ArtistsWall.path] asks for it. */
+    fun artistsWall(path: String): ArtistPage = ArtistPage.parse(get(path))
+
     fun artistAlbums(artist: String): ArtistAlbums = ArtistAlbums.parse(get("/api/artist-albums?artist=" + enc(artist)))
 
     /** The album's booklets, the PDFs in its folder (only an album of your own files has any). */

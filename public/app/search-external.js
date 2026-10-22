@@ -176,6 +176,7 @@ function onInput() {
   clearTimeout(debounceTimer);
   if (!q) { stopSearch(); return; }                  // emptied: back to Home sections
   if (window.__exitLabels) window.__exitLabels();    // leave the label browser
+  if (window.__exitArtists) window.__exitArtists();
   exitAlbumSelectMode();
   active = true;
   // Show the results grid in place of the Home sections (the search box

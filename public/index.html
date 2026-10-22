@@ -72,7 +72,7 @@
         </svg>
       </button>
       <!-- Shown when navigated away from Home (wall / genre / labels). -->
-      <button id="topbar-back" class="icon-btn hidden" aria-label="Back to Home" title="Home" data-parity="library.back wall.back artist.back picks.back playlists.back playlist.home smart-playlists.back smart-playlist.home labels.back">
+      <button id="topbar-back" class="icon-btn hidden" aria-label="Back to Home" title="Home" data-parity="library.back wall.back artist.back picks.back playlists.back playlist.home smart-playlists.back smart-playlist.home labels.back artists.back">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
              stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <polyline points="15 18 9 12 15 6"/>
@@ -128,7 +128,7 @@
           <span class="search-status" id="search-status" aria-live="polite" data-parity="search.status"></span>
         </div>
       </div>
-      <span id="album-count" class="album-count hidden" aria-live="polite" data-parity="library.title wall.title artist.title picks.title playlists.title smart-playlists.title labels.title"></span>
+      <span id="album-count" class="album-count hidden" aria-live="polite" data-parity="library.title wall.title artist.title picks.title playlists.title smart-playlists.title labels.title artists.title"></span>
       <!-- The original top-bar controls stay in the DOM (hidden) as the action
            engine — the side-menu items trigger them by id. -->
       <div class="topbar-controls">
@@ -301,7 +301,7 @@
       </div>
     </div>
     <div id="content-count" class="content-count hidden"></div>
-    <div id="status-banner" class="status-banner hidden" data-parity="library.banner wall.banner picks.banner search.banner playlists.banner playlist.banner smart-playlists.banner labels.banner"></div>
+    <div id="status-banner" class="status-banner hidden" data-parity="library.banner wall.banner picks.banner search.banner playlists.banner playlist.banner smart-playlists.banner labels.banner artists.banner"></div>
 
     <!-- Home landing: sections of the library. The album wall (#album-grid)
          is one destination, reached from here or the side menu. -->
@@ -2094,7 +2094,7 @@
   </div>
 
   <!-- The touch layout's row along the foot of the screen (v0.9.6,
-       touchnav.js): the menu, Home, the Library and Search, under the mini
+       touchnav.js): the menu, Home, the Library, Artists and Search, under the mini
        player, on a phone or a tablet. A desktop never shows it (style.css).
        Each button works the page's own control; the small Offline sign
        between Home and Library is the top bar's, shown here. -->
@@ -2124,6 +2124,12 @@
         <line x1="5" y1="4" x2="5" y2="20"/><line x1="10" y1="4" x2="10" y2="20"/><path d="m14.5 4.6 4.6 14.8"/>
       </svg>
       <span>Library</span>
+    </button>
+    <button id="tnav-artists" class="tnav-btn" type="button" data-parity="nav.artists" aria-label="Artists">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.9 3.1-7 7-7s7 3.1 7 7"/>
+      </svg>
+      <span>Artists</span>
     </button>
     <button id="tnav-search" class="tnav-btn" type="button" data-parity="nav.search" aria-label="Search">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">

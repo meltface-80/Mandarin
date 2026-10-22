@@ -220,13 +220,13 @@ data class Album(
     }
 }
 
-/** An artist as the Artists list shows them (/api/artists). */
-data class Artist(val name: String, val albumCount: Int, val imageKey: String?)
+/** An artist as the Artists list shows them (/api/artists): [photoKey] their own picture once the server has found one (item 129). */
+data class Artist(val name: String, val albumCount: Int, val imageKey: String?, val photoKey: String? = null)
 
 data class ArtistPage(val artists: List<Artist>, val offset: Int, val total: Int) {
     companion object {
         fun parse(j: JSONObject) = ArtistPage(
-            j.optJSONArray("artists").items { Artist(it.getString("name"), it.optInt("albumCount", 0), it.str("image_key")) },
+            j.optJSONArray("artists").items { Artist(it.getString("name"), it.optInt("albumCount", 0), it.str("image_key"), it.str("photo_key")) },
             j.optInt("offset", 0), j.optInt("total", 0)
         )
     }

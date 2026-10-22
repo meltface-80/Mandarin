@@ -208,6 +208,18 @@ const OPEN_BOOKLET = `(async () => {
   return "open";
 })()`;
 
+/* The Artists wall (item 130): the row's Artists tapped, the round pictures and the count up. */
+const OPEN_ARTISTS = `(async () => {
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const until = async (fn, ms = 30000) => { const t0 = Date.now(); while (!fn()) { if (Date.now() - t0 > ms) return false; await sleep(50); } return true; };
+  if (!(await until(() => document.querySelectorAll("#home-library .album").length > 1 && /Kitchen/.test((document.getElementById("mt-kicker") || {}).textContent || "")))) return "no Home";
+  await sleep(400);
+  document.getElementById("tnav-artists").click();
+  if (!(await until(() => /Artists · \\d/.test(document.getElementById("album-count").textContent) && document.querySelectorAll("#album-grid .artist-tile").length >= 1))) return "no artists";
+  await sleep(600);
+  return "open";
+})()`;
+
 /* The touch layout's row: on Home, as the page opens on a phone. */
 const OPEN_NAV = `(async () => {
   const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -620,6 +632,7 @@ const SCREENS = {
   "library": { open: OPEN_LIBRARY, root: "body", shared: ["mini-player", "nav"] },
   "wall": { open: OPEN_WALL, root: "body", shared: ["mini-player", "nav"] },
   "artist": { open: OPEN_ARTIST, root: "body", shared: ["mini-player", "nav"] },
+  "artists": { open: OPEN_ARTISTS, root: "body", shared: ["mini-player", "nav"] },
   "search": { open: OPEN_SEARCH, root: "body", shared: ["mini-player", "nav"] },
   "playlists": { open: OPEN_PLAYLISTS, root: "body", shared: ["mini-player", "nav"] },
   "playlist": { open: OPEN_PLAYLIST, root: "body", shared: ["mini-player", "nav"] },
