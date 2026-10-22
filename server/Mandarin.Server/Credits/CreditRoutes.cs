@@ -102,10 +102,12 @@ internal static partial class Library
         return groups;
     }
 
-    /* An act's genres (bug list item 139): those its own albums are tagged with, the most used first, five at most. */
+    /* An act's genres (bug list item 139): those its own albums are tagged with, the most used first, five at most; one
+       genre in two cases counted once, named as most of its albums write it (a tie: capitals first, "Indie Rock" over
+       "indie rock"), whatever order the albums come in. */
     private static JsonArray GenresOf(IEnumerable<Album> albums) => new(albums.SelectMany(al => al.Genres.Select(g => Names.JsTrim(g)).Where(g => g.Length > 0).Distinct(StringComparer.OrdinalIgnoreCase))
         .GroupBy(g => Names.Fold(g), StringComparer.Ordinal).OrderByDescending(g => g.Count()).ThenBy(g => g.Key, StringComparer.Ordinal).Take(5)
-        .Select(g => (JsonNode?)g.First()).ToArray());
+        .Select(g => (JsonNode?)g.GroupBy(x => x, StringComparer.Ordinal).OrderByDescending(x => x.Count()).ThenBy(x => x.Key, StringComparer.Ordinal).First().Key).ToArray());
 
     /* GET /api/artist?name= */
     private static async Task<bool> ArtistRoute(HttpContext ctx, Snapshot s, LibState st)
