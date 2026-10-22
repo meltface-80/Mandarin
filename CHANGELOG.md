@@ -1,6 +1,9 @@
 # Changelog
 
 ## Unreleased
+- `138-artist-play`: Play and Shuffle on an artist's page, in the app and on the page, under the links: Play plays
+  their albums (their own and their bands', else those they appear on) in order in the room chosen; Shuffle plays
+  every track of them in a random order. `POST /api/play-multi` takes `kind: "shuffle"`.
 - `133-artist-enrichment`: an artist's page as the owner asked after trying it. A band's members are those in it now,
   as Wikipedia lists them (a band that has ended: its last line-up), not everyone who ever played in it. A member's
   own page shows their bands' albums from their years in them ("With Iron Maiden": Janick Gers from 1990), counted

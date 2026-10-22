@@ -102,7 +102,7 @@ internal fun AlbumSelectMenu(n: Int, onAct: (String) -> Unit, modifier: Modifier
 internal fun selectAct(c: ServerClient, picks: List<AlbumSummary>, zoneId: String, zoneName: String?, act: String): String {
     if (act == "later") { c.listenLater(picks.map { it.offset }, true); return if (picks.size == 1) "Put aside to listen later" else "${picks.size} albums put aside to listen later" }
     val j = c.playMulti(picks, zoneId, act)
-    val verb = when (act) { "play_now" -> "Playing"; "play_next" -> "Playing next:"; else -> "Queued" }
+    val verb = when (act) { "play_now" -> "Playing"; "shuffle" -> "Shuffling"; "play_next" -> "Playing next:"; else -> "Queued" }
     val queued = if (j.has("queued")) j.optInt("queued") else picks.size
     val failed = j.optInt("failed", 0)
     return "$verb $queued album" + (if (queued == 1) "" else "s") + (if (failed > 0) " (Sonos refused $failed)" else "") + " → " + (zoneName ?: "the room")

@@ -3,7 +3,7 @@
  * play-routes.test.js — the playback routes no test called before (v0.9.1,
  * the audit's T1, old/audit-b4-main.md), each against a fake Sonos
  * household, the speaker's own queue read for what was put on it:
- *   POST /api/play-multi               several albums at once, in order
+ *   POST /api/play-multi               several albums at once, in order, or shuffled (item 138)
  *   POST /api/queue/play-history-next  a track played before, found by its names, next
  *   POST /api/queue/history-multi      several of them, the ones not in the library said
  *   GET  /api/shortcut/play-unheard    the shortcut's Random Album, to the room asked for
@@ -37,6 +37,15 @@ test("several albums, tracks played before, the shortcut's Random Album: on the 
   await until(() => room.queue.length === 5 && room.track === 1, 15000, "the queue on the speaker");
   assert.deepEqual(titles(), ["Hi 1", "Hi 2", "Song 1", "Song 2", "Song 3"]);
   assert.deepEqual((await api("play-multi", { offsets: [], zone_or_output_id: kitchen, kind: "play_now" })).json, { error: "offsets required" });
+
+  // Shuffled (an artist's page's Shuffle, item 138): every track of them, played now, in a random order.
+  r = await api("play-multi", { offsets: [hires.offset, one.offset], zone_or_output_id: kitchen, kind: "shuffle" });
+  assert.deepEqual(r, { status: 200, json: { ok: true, queued: 2, failed: 0, total: 2, first_error: null, shuffled: true } });
+  await until(() => room.queue.length === 5 && room.track === 1, 15000, "the shuffled queue on the speaker");
+  assert.deepEqual(titles().slice().sort(), ["Hi 1", "Hi 2", "Song 1", "Song 2", "Song 3"]);
+  // As it was, for what follows: in order.
+  await api("play-multi", { offsets: [hires.offset, one.offset], zone_or_output_id: kitchen, kind: "play_now" });
+  await until(() => titles().join() === "Hi 1,Hi 2,Song 1,Song 2,Song 3" && room.track === 1, 15000, "the albums in order again");
 
   // A track played before, found by its names: next, after the one playing.
   r = await api("queue/play-history-next", { zone_or_output_id: kitchen, album: "Album One", artist: "Artist A", track: "Song 3" });

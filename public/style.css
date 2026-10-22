@@ -2945,6 +2945,15 @@ input.vol-range::-moz-range-thumb {
   font-size: 12.5px; line-height: 17px; color: var(--text); text-decoration: none; white-space: nowrap;
 }
 .artist-link:hover { border-color: var(--accent-text); }
+/* Play and Shuffle (bug list item 138): the brass pill and the outlined one, side by side under the links. */
+.artist-play { display: flex; justify-content: center; gap: 10px; margin: 0 0 16px; }
+.artist-play.hidden { display: none; }
+.artist-play-btn, .artist-shuffle-btn {
+  display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 18px; border-radius: 999px;
+  font: inherit; font-size: 14px; cursor: pointer;
+}
+.artist-play-btn { background: var(--accent); color: var(--on-accent); border: 0; font-weight: 700; }
+.artist-shuffle-btn { background: transparent; color: var(--text); border: 1px solid var(--border); font-weight: 600; }
 .artist-stints { grid-column: 1 / -1; min-width: 0; padding-bottom: 10px; }
 .artist-stints .artist-section-header { padding-bottom: 8px; }
 .artist-stint-row {
