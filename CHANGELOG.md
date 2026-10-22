@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased
+- `129-artist-credits`: the server finds who played, sang, wrote and made each album, and who each act is, for the
+  artists' pages and the album credits to come (items 130–132). An album's credits come from its files' own tags
+  (PERFORMER "Name (drums)", PRODUCER, ENGINEER, ID3's credit lists) and, where the album has a MusicBrainz release
+  (its tags' album id, or the identification scan's applied match), from that release: who played and sang on each
+  recording, who wrote each work, who made the record. An act's members or bands, years, place and links (Wikidata,
+  Wikipedia, Discogs, AllMusic, its own site) come from MusicBrainz, and its picture from FanArt.tv (with a key),
+  Wikidata (Wikimedia Commons) or Deezer. It works in the background, one album and one act at a time at
+  MusicBrainz's pace of one request a second, the library's album artists first; a page that asks before it has got
+  there has its answer found there and then. New: `GET /api/album/credits`, `GET /api/artist`,
+  `GET /api/credits/status`; `GET /api/artists` gives each act's own picture (`photo_key`) once found. Kept in tables
+  of its own (`album_credits`, `album_credit_state`, `artist_info`), made the first time something is found.
+
 ## v1.1.2
 
 **Reliability updates.** No new features: the Android app is steadier in everyday use. At home it talks to the

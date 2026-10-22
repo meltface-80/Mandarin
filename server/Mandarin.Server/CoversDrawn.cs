@@ -192,6 +192,8 @@ internal static partial class Covers
     {
         Identify.Lookups.Allowed(url);
         using var req = new HttpRequestMessage(HttpMethod.Get, url);
+        // Named, as Wikimedia Commons asks of everyone fetching its pictures (an act's photo, bug list item 129).
+        req.Headers.TryAddWithoutValidation("User-Agent", "Mandarin/" + Server.Version + " (+https://github.com/meltface-80/Mandarin)");
         HttpResponseMessage res;
         using (var head = new CancellationTokenSource(TimeSpan.FromSeconds(8)))
             res = await Outside.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, head.Token);
