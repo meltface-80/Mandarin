@@ -62,12 +62,15 @@ import com.musicd.server.client.PlaylistAdd
 import com.musicd.server.client.AlbumExtras
 import com.musicd.server.client.Booklet
 import com.musicd.server.client.Contract
+import com.musicd.server.client.Failure
+import com.musicd.server.client.Retry
 import com.musicd.server.client.LibraryClient
 import com.musicd.server.client.NavList
 import com.musicd.server.client.Palette
 import com.musicd.server.client.PhoneShelf
 import com.musicd.server.client.ServerClient
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
@@ -123,6 +126,7 @@ internal fun AlbumScreen(offset: Long, zoneId: String, lit: String, client: () -
     var editing by remember(offset) { mutableStateOf(false) }   // its editor open (item 74)
     var sharing by remember(offset) { mutableStateOf(false) }   // its Share card open (item 75)
     var loads by remember(offset) { mutableIntStateOf(0) }   // read again once the editor changed it
+    var missed by remember(offset) { mutableIntStateOf(0) }   // the server not reached, in a row
     val room = followRoom(zone, client)
     BackHandler(onBack = onBack)
 
@@ -137,10 +141,14 @@ internal fun AlbumScreen(offset: Long, zoneId: String, lit: String, client: () -
         }
         val c = client() ?: return@LaunchedEffect
         val lib = LibraryClient { c.getJson(it) }
-        withContext(Dispatchers.IO) { runCatching { lib.album(offset) } }
+        val got = withContext(Dispatchers.IO) { runCatching { lib.album(offset) } }
             .onSuccess { album = it; favourite = it.album.favourite; later = it.album.later; serviceFav = it.album.serviceFavourite; LibraryWall.coverIs(offset, it.album.imageKey) }
-            .onFailure { failed = it.message ?: "Couldn't load the album" }
-        val a = album ?: return@LaunchedEffect
+            .onFailure { failed = Failure.said(it, "Couldn't load the album") + if (Failure.unreachable(it)) ". Trying again…" else "" }
+        val a = album ?: run {
+            // The server not reached (item 127): asked again in a while, less and less often, while the page is up.
+            if (got.exceptionOrNull()?.let(Failure::unreachable) == true) { delay(Retry.ms(++missed)); loads++ }
+            return@LaunchedEffect
+        }
         // Its booklets, as the page asks: an album of your own files only.
         if (a.album.source == null || a.album.source == "local") booklets = withContext(Dispatchers.IO) { runCatching { lib.booklets(offset) }.getOrNull().orEmpty() }
         extras = withContext(Dispatchers.IO) { runCatching { lib.albumExtras(a.album.title, a.album.subtitle) }.getOrNull() }

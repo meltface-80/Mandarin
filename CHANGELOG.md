@@ -1,5 +1,45 @@
 # Changelog
 
+## v1.1.2
+
+**Reliability updates.** No new features: the Android app is steadier in everyday use. At home it talks to the
+server over the Wi-Fi even when Android prefers mobile data, so a weak Wi-Fi no longer makes screens fail or flips
+the app away and back; an album that can't be read says so plainly and tries again by itself. Left paused in the
+background, "This phone" stops itself after five minutes rather than being ended by Android, and Android tidying
+away an idle app no longer brings up "Mandarin stopped in the background" (it is still in the log when logging is
+on). The test build of the app keeps one file rather than a copy of every version.
+
+- `128-test-android-one-apk`: the `test-android` pre-release keeps one APK, `mandarin-android-test.apk`. Each build
+  of `dev` also uploaded a copy under its version's name, and 46 of them (13 to 20 MB each, from 0.8.0 on) had built
+  up. The version built is still said in the pre-release's notes.
+- `127-home-over-wifi`: in the Android app, at home the app's connections go over the Wi-Fi. At 06:48 on 22 October
+  the Wi-Fi was still up (what was already open on it went on answering), but Android judged it poor and sent new
+  connections over mobile data, which can't reach the server's home address: for half a minute every new request
+  failed, and an album's page showed "failed to connect to /192.168.0.57 (port 3500) from /192.0.0.4 …" with no way
+  to ask again. Now, home on the Wi-Fi, the screens, the player's streams and downloads are tied to it, and the
+  check of the home address asks over it too (so a poor Wi-Fi no longer flips the app away and back); away, or the
+  Wi-Fi gone, they are let go at once. An album that can't be read says "Couldn't reach the server. Trying
+  again…" and asks again by itself, less and less often, while its page is up (core `Route.overWifi`, `Failure`).
+- `126-backup-ending-no-note`: in the Android app, Android ending the app after waking it for a task of its own no
+  longer brings up "Mandarin stopped in the background". At 04:05 on 22 October it ended the app with a signal, at
+  230 (perceptible: neither on screen, in view nor playing) and with no words of its own, after waking it overnight:
+  the nightly backup, which ends the app it backed up. A note now needs the app to have been on screen, in view or
+  playing; the note calls 230 "woken by Android" rather than "in view", and with logging on the ending is still in
+  the log ("no note: …").
+- `125-frozen-idle-no-note`: in the Android app, Android ending the app while it is idle in the background and frozen
+  no longer brings up "Mandarin stopped in the background" at the next start. It happened again at 18:49 on 21
+  October, six minutes after the phone's player had stopped itself (item 124), with no player and no media session
+  left: another app called on the frozen app and had to wait for it ("Sync transaction while frozen"), and Android
+  ends a frozen app for that, whoever the caller. The app loses nothing it doesn't bring back (the screen it was on,
+  the phone's queue, paused), so this is Android's clean-up, like being short of memory, which never had a note. With
+  logging on, such endings are still written in the log ("no note: …").
+- `124-frozen-in-background`: in the Android app, "This phone" stops itself when it has not played for five minutes
+  and the app is off screen, so Android no longer ends the app in the background. Paused, Media3 keeps the player's
+  service in the foreground for ten minutes and then lets it go; Android then froze the app with the player's media
+  session still open, and ended it when another app asked that session something ("Sync transaction while frozen",
+  21 October 17:16), or, on 1.1.0, for the player's long poll running on ("too much CPU"). Opened again, the app
+  starts the player, and the server puts its queue back, paused (core `PlayerIdle`).
+
 ## v1.1.1
 
 **Logging has been added to the server and the Android app, and is off by default.** When something isn't right,

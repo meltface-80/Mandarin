@@ -60,6 +60,8 @@ object Away {
                     override fun onCapabilitiesChanged(network: Network, caps: NetworkCapabilities) = recheck(app)
                 })
             }.onFailure { Log.w(TAG, "can't follow the network", it) }
+            // The Wi-Fi too: poor, it can come and go while Android follows mobile data (item 127).
+            HomeWifi.watch(app) { recheck(app, soon = true) }
         }
         recheck(app)
     }
@@ -117,12 +119,14 @@ object Away {
         // Off Wi-Fi with a VPN up (another VPN into the home network, v0.6.16): the
         // home address is tried too, and used if it answers through it.
         val vpn = !wifi && onVpn(c)
-        val homeAnswers = (wifi || vpn) && answers(home, 1500)
+        // Asked over the Wi-Fi: Android may be sending what it can over mobile data (item 127).
+        val homeAnswers = (wifi || vpn) && answers(home, 1500, if (wifi) HomeWifi.network(c) else null)
         // Away over MusicD's own Tailscale connection once the phone is signed in to it — the whole library,
         // streamed as Opus by the server, no Tailscale app needed — whether its engine is up yet or not.
         val way = Route.way(wifi, homeAnswers, vpn, awayAddress = awayAt != null,
             ownSignedIn = TailscaleEngine.installed(c) && TailscaleEngine.signedInBefore(c))
         val away = way.away
+        HomeWifi.follow(c, Route.overWifi(away, wifi))
 
         val wasRunning = TailscaleEngine.alive()
         // The phone's addresses changed: the engine finds its way on the new network.
@@ -207,20 +211,12 @@ object Away {
     }
 
     /** On Wi-Fi or Ethernet (a VPN on top of it counts; mobile data doesn't). */
-    @Suppress("DEPRECATION")
-    private fun onWifi(c: Context): Boolean {
-        val cm = c.getSystemService(ConnectivityManager::class.java) ?: return false
-        return runCatching {
-            cm.allNetworks.any { n ->
-                val caps = cm.getNetworkCapabilities(n) ?: return@any false
-                !caps.hasTransport(NetworkCapabilities.TRANSPORT_VPN) &&
-                    (caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) || caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET))
-            }
-        }.getOrDefault(false)
-    }
+    private fun onWifi(c: Context): Boolean = HomeWifi.network(c) != null
 
-    private fun answers(a: ServerAddress, timeoutMs: Int): Boolean = runCatching {
-        val conn = URL(a.baseUrl + "/api/health").openConnection() as HttpURLConnection
+    /** The server answering at [a], asked [over] a network of its own (the Wi-Fi) or wherever Android sends it. */
+    private fun answers(a: ServerAddress, timeoutMs: Int, over: Network? = null): Boolean = runCatching {
+        val url = URL(a.baseUrl + "/api/health")
+        val conn = (over?.openConnection(url) ?: url.openConnection()) as HttpURLConnection
         conn.connectTimeout = timeoutMs
         conn.readTimeout = timeoutMs
         try { conn.responseCode == 200 } finally { conn.disconnect() }

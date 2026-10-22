@@ -35,6 +35,13 @@ object Route {
         return Way(away, away && ownSignedIn)
     }
 
+    /**
+     * The app's connections tied to the Wi-Fi (item 127): at home on it, so the server's home address is asked over
+     * it even while Android sends what it can over mobile data (a Wi-Fi it judges poor), which can't reach a home
+     * address; away, or with no Wi-Fi, they go wherever Android sends them.
+     */
+    fun overWifi(away: Boolean, onWifi: Boolean): Boolean = !away && onWifi
+
     /** The room the screens play in: [kept] at home; away, this phone's ([phone], once known). */
     fun room(away: Boolean, kept: String?, phone: String?): String = if (away && !phone.isNullOrEmpty()) phone else kept.orEmpty()
 

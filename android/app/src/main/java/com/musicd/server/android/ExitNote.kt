@@ -30,6 +30,8 @@ internal object ExitNote {
             val prefs = c.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             val since = if (prefs.contains(SEEN)) prefs.getLong(SEEN, 0L) else null
             prefs.edit().putLong(SEEN, maxOf(since ?: 0L, exits.maxOfOrNull { it.at } ?: 0L)).apply()
+            // The ordinary ones (idle, frozen or short of memory: item 125) only in the log, when it is on.
+            for (q in ExitReport.quiet(exits, since)) AppLog.line("APP", "no note: " + ExitReport.text(q, time(q.at)))
             val e = ExitReport.pick(exits, since) ?: return
             CrashLog.keepNote(c, ExitReport.text(e, time(e.at)))
         }
