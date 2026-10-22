@@ -8,6 +8,7 @@ Status: **Open** · **In progress** · **Ready to test** (green, waiting on the 
 
 | # | Item | Branch | Status |
 |---|------|--------|--------|
+| 138 | Play and Shuffle on an artist's page (app and page): their albums and their bands', in order or every track shuffled | `138-artist-play` | Ready to test |
 | 136 | "10,000 Maniacs" showed as an act called "10" (another 10's picture and facts) and "000 Maniacs": the artist split took the number's comma for a list's | `136-thousands-comma` | Ready to test |
 | 137 | Similar artists on an artist's page (app and page): Last.fm's with a key, else Deezer's; each opens their page | `137-similar-artists` | Ready to test |
 | 133 | Artist pages after the owner's notes: a band's members those in it now (Iron Maiden showed every past member); a member's page with their bands' albums from their years in them (Janick Gers showed "0 albums"); the official site from Wikidata, old MusicBrainz links left out (A.A. Williams' failed); no MusicBrainz pill; a dropped connection asked again (Paul Day's "unexpected end of stream") | `133-artist-enrichment` | Ready to test |

@@ -95,6 +95,14 @@ internal fun ArtistScreen(name: String, prefs: WallPrefs, zoneId: String, client
     val shown = ((albums?.primary ?: emptyList()) + (albums?.featured ?: emptyList()) + bands.flatMap { it.albums }).map { it.offset }.toSet()
     val credited = about?.creditedBeyond(shown)?.map { c -> c.album.copy(subtitle = listOf(c.album.subtitle, c.roles.joinToString(", ")).filter { it.isNotEmpty() }.joinToString(" · ")) } ?: emptyList()
     val all = (albums?.primary ?: emptyList()) + (albums?.featured ?: emptyList()) + bands.flatMap { it.albums } + credited
+    // What Play and Shuffle play (item 138): their own albums and their bands', else those they appear on.
+    val playable = ((albums?.primary ?: emptyList()) + bands.flatMap { it.albums }).ifEmpty { albums?.featured ?: emptyList() }
+    fun playArtist(kind: String) {
+        val c = client() ?: return
+        if (zone.isEmpty()) { toast("Pick a zone first"); return }
+        val made = ServerWrites.write { selectAct(c, playable, zone, room.zoneName, kind) }
+        scope.launch { toast(ServerWrites.await(made).getOrElse { it.message ?: "Couldn't reach the server" }) }
+    }
     val grid = rememberLazyGridState()
     val list = rememberLazyListState()
     fun pick(i: Int) { val a = all[i]; picks = if (picks.any { it.offset == a.offset }) picks.filter { it.offset != a.offset } else picks + a }
@@ -124,7 +132,8 @@ internal fun ArtistScreen(name: String, prefs: WallPrefs, zoneId: String, client
             // The name at once; the count when the albums come. An error as the page has it, in red under the heading.
             val n = (a?.primary?.size ?: 0) + (a?.featured?.size ?: 0) + bands.sumOf { it.albums.size }
             WallHead(if (a == null) name else "$n album" + (if (n == 1) "" else "s") + " · $name", prefs, failed?.let { "Error: $it" to true })
-            if (about != null || bio != null || similar?.artists?.isNotEmpty() == true) ArtistHero(about, bio, similar, client, onArtist)
+            if (about != null || bio != null || playable.isNotEmpty() || similar?.artists?.isNotEmpty() == true)
+                ArtistHero(about, bio, similar, client, onArtist, onPlay = if (playable.isNotEmpty()) ::playArtist else null)
             if (a != null && n == 0 && credited.isEmpty() && failed == null) Text("No albums found for \"$name\"", Modifier.parity("artist.empty").fillMaxWidth().padding(vertical = 48.dp), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 15.sp, lineHeight = 20.5.sp, textAlign = TextAlign.Center)
         }
         WallBack(onBack)

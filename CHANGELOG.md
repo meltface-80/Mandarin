@@ -1,6 +1,9 @@
 # Changelog
 
 ## Unreleased
+- `138-artist-play`: Play and Shuffle on an artist's page, in the app and on the page, under the links: Play plays
+  their albums (their own and their bands', else those they appear on) in order in the room chosen; Shuffle plays
+  every track of them in a random order. `POST /api/play-multi` takes `kind: "shuffle"`.
 - `136-thousands-comma`: "10,000 Maniacs" is one band again. A comma inside a number (a digit before it, three
   after) no longer splits an album's artist into acts, which made "10" (with another act's picture and facts) and
   "000 Maniacs". Commas between names still split.

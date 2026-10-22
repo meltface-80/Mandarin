@@ -12,6 +12,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.ui.res.painterResource
+import androidx.compose.material3.Icon
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -56,7 +60,7 @@ import kotlin.math.min
  * then similar artists (item 137), each opening theirs.
  */
 @Composable
-internal fun ArtistHero(about: ArtistAbout?, bio: ArtistBio?, similar: ArtistSimilar?, client: () -> ServerClient?, onArtist: (String) -> Unit) {
+internal fun ArtistHero(about: ArtistAbout?, bio: ArtistBio?, similar: ArtistSimilar?, client: () -> ServerClient?, onArtist: (String) -> Unit, onPlay: ((String) -> Unit)? = null) {
     val own = rememberTileCover(about?.photoKey, 600, client)
     val portrait = own ?: rememberImage(bio?.image, client)
     val side = min(200, (LocalConfiguration.current.screenWidthDp * 0.46).toInt()).dp
@@ -64,6 +68,7 @@ internal fun ArtistHero(about: ArtistAbout?, bio: ArtistBio?, similar: ArtistSim
         portrait?.let { Image(it, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.parity("artist.avatar").padding(bottom = 14.dp).size(side).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant)) }
         about?.facts?.let { Text(it, Modifier.parity("artist.facts").padding(bottom = 10.dp), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.5.sp, lineHeight = 19.sp, fontWeight = FontWeight.W500, textAlign = TextAlign.Center) }
         about?.linkList?.takeIf { it.isNotEmpty() }?.let { ArtistLinks(it) }
+        onPlay?.let { PlayRow(it) }
         bio?.let { BioText(it) }
     }
     about?.let { a ->
@@ -104,6 +109,23 @@ private fun ArtistLinks(links: List<Pair<String, String>>) {
         for ((label, url) in links) Box(Modifier.parity("artist.link", Contract.label("artist.link", 0, label)).clip(RoundedCornerShape(20.dp)).border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(20.dp))
             .clickable { runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) } }.padding(horizontal = 12.dp, vertical = 5.dp)) {
             Text(label, color = MaterialTheme.colorScheme.onSurface, fontSize = 12.5.sp, lineHeight = 17.sp, maxLines = 1)
+        }
+    }
+}
+
+/** Play and Shuffle (item 138): the brass pill and the outlined one, side by side in the middle; their albums, in order or shuffled. */
+@Composable
+private fun PlayRow(onPlay: (String) -> Unit) {
+    Row(Modifier.padding(bottom = 16.dp), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.parity("artist.play", Contract.label("artist.play")).height(40.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primary).clickable { onPlay("play_now") }
+            .padding(horizontal = 18.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Icon(painterResource(R.drawable.np_play), contentDescription = null, tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(16.dp))
+            Text(Contract.label("artist.play"), color = MaterialTheme.colorScheme.onPrimary, fontSize = 14.sp, lineHeight = 18.sp, fontWeight = FontWeight.W700)
+        }
+        Row(Modifier.parity("artist.shuffle", Contract.label("artist.shuffle")).height(40.dp).clip(CircleShape).border(1.dp, MaterialTheme.colorScheme.outline, CircleShape).clickable { onPlay("shuffle") }
+            .padding(horizontal = 18.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Icon(painterResource(R.drawable.np_shuffle), contentDescription = null, tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(16.dp))
+            Text(Contract.label("artist.shuffle"), color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp, lineHeight = 18.sp, fontWeight = FontWeight.W600)
         }
     }
 }
