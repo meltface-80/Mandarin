@@ -8,6 +8,7 @@ Status: **Open** · **In progress** · **Ready to test** (green, waiting on the 
 
 | # | Item | Branch | Status |
 |---|------|--------|--------|
+| 141 | Test builds numbered like release candidates: dev's server and app are the next release with -tN (1.1.4-t3), worked out as they are built; the release is offered over them by the updaters | `141-test-versions` | Ready to test |
 | 140 | An artist's page in the owner's order: members folded until tapped, then discography, appears on, similar artists and similar albums (similar artists were over the albums); a page opened again drawn at once, picture and all, from what it last had | `140-artist-page-order` | Ready to test |
 | 139 | Genres and tags on an album's page and an artist's page (app and page): chips, an artist's the most used across their albums; a tap opens the genre's wall | `139-genres-tags` | To be confirmed |
 | 138 | Play and Shuffle on an artist's page (app and page): their albums and their bands', in order or every track shuffled | `138-artist-play` | To be confirmed |

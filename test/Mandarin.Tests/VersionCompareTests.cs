@@ -22,6 +22,23 @@ public sealed class VersionCompareTests
         Assert.Equal(1, await Cmp("0.6.1", "0.6.0"));
     }
 
+    /// <summary>
+    /// Test builds (bug list item 141): dev's builds are the next release with -tN. One is newer than the last release,
+    /// so it isn't offered that; the next counts up from it (t10 after t9); and the release itself is newer than all of
+    /// them, so the updater offers it. The server knows itself as the test build it was built as, its -t whole.
+    /// </summary>
+    [Test]
+    public async Task A_test_build_comes_after_the_last_release_and_before_its_own()
+    {
+        Assert.Equal(1, await Cmp("1.1.4-t1", "1.1.3"));
+        Assert.Equal(1, await Cmp("1.1.4-t2", "1.1.4-t1"));
+        Assert.Equal(1, await Cmp("1.1.4-t10", "1.1.4-t9"));
+        Assert.Equal(1, await Cmp("1.1.4", "1.1.4-t7"));
+        Assert.Equal(-1, await Cmp("1.1.4-t7", "v1.1.4"));
+        var built = (await Score.Run(new { fn = "versions", builds = new object?[] { new[] { "1.1.4-t7+1a2b3c4d", "1.1.4.0" }, new[] { "1.1.3", "1.1.3.0" }, new[] { null, "1.1.3.0" }, new[] { "nonsense", "1.1.3.0" } } }))["built"]!;
+        Assert.Equal(["1.1.4-t7", "1.1.3", "1.1.3", "1.1.3"], built.AsArray().Select(x => x!.GetValue<string>()).ToArray());
+    }
+
     [Test]
     public async Task An_update_unpacks_into_a_folder_whose_path_has_a_space_in_it()
     {

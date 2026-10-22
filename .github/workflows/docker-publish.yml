@@ -42,6 +42,9 @@ jobs:
       packages: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          # The history and the tags, for a test build's number (below).
+          fetch-depth: 0
 
       - uses: docker/setup-qemu-action@v3
 
@@ -53,6 +56,17 @@ jobs:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+
+      # A branch's image is a test build (bug list item 141): the next release with -tN, N the commits on it since the
+      # last release (tools/test-version.js), written into package.json for the build only, so the server says which
+      # test build it is and the release after it is offered over it. Never on main or a tag: those are releases.
+      - name: Stamp a test build's version
+        if: github.ref_type == 'branch' && github.ref != 'refs/heads/main'
+        run: |
+          set -e
+          v=$(node tools/test-version.js)
+          npm pkg set version="$v"
+          echo "test build: $v"
 
       - name: Read the version
         id: v

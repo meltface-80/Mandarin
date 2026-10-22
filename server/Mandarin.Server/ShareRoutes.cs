@@ -19,7 +19,7 @@ using TJs = Mandarin.Server.Tags.Js;
 
 internal static partial class Library
 {
-    private static readonly string AppVersion = (typeof(Library).Assembly.GetName().Version ?? new Version(0, 0, 0)).ToString(3);
+    private static readonly string AppVersion = BuildVersion.Of(typeof(Library).Assembly);
 
     // Sent without a length (chunked), it fits until it's read past the limit (JsBody).
     private static bool BodyFits(HttpContext ctx) => Http.Fits(ctx);

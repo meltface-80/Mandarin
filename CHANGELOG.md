@@ -1,6 +1,13 @@
 # Changelog
 
 ## Unreleased
+- `141-test-versions`: test builds say which they are. The server image and the Android app built from `dev` call
+  themselves the next release with `-tN`, N the changes merged into `dev` since the last release (`1.1.4-t3`, then
+  `1.1.4-t4`…), worked out as they are built (`tools/test-version.js`; nothing is committed, the version in the files
+  stays the release's). Settings and the app show it, and the updaters order it as they order `-RC`: a test build is
+  newer than the last release, so that isn't offered, and the release after it is newer than every test build, so
+  `v1.1.4` is offered over `1.1.4-t7` as any update is. The server now knows itself by its whole version (it read only
+  its first three numbers, which would have made `1.1.4-t7` look like `1.1.4` and the release not offered).
 - `140-artist-page-order`: an artist's page in the owner's order, in the app and on the page. Under who they are
   (picture, facts, genres, links, Play and Shuffle, biography): their members (or a person's bands) folded under the
   heading, which says how many, until it is tapped; then their **Discography**, the albums they **Appear on**, their
