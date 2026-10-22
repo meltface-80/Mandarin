@@ -73,8 +73,18 @@ internal static partial class PlaybackRoutes
                         var t = Tracks.OfAlbum(req.C, s, (long)id);
                         if (t.Count > 0) tracks.AddRange(t); else failed++;
                     }
-                    await Items.PlayTracks(hub, z, tracks.Take(1000).ToList(), Items.NormaliseKind(kind));
-                    return await Send(req.Ctx, new JsonObject { ["ok"] = true, ["queued"] = ids.Count - failed, ["failed"] = failed, ["total"] = ids.Count, ["first_error"] = failed > 0 ? "Some albums are no longer in the library" : null });
+                    // Shuffle (an artist's page, bug list item 138): every track of them in a random order, played now.
+                    var shuffle = kind == "shuffle";
+                    if (shuffle)
+                        for (int i = tracks.Count - 1; i > 0; i--)
+                        {
+                            var j = Random.Shared.Next(i + 1);
+                            (tracks[i], tracks[j]) = (tracks[j], tracks[i]);
+                        }
+                    await Items.PlayTracks(hub, z, tracks.Take(1000).ToList(), Items.NormaliseKind(shuffle ? "play_now" : kind), shuffled: shuffle ? true : null);
+                    var answer = new JsonObject { ["ok"] = true, ["queued"] = ids.Count - failed, ["failed"] = failed, ["total"] = ids.Count, ["first_error"] = failed > 0 ? "Some albums are no longer in the library" : null };
+                    if (shuffle) answer["shuffled"] = true;
+                    return await Send(req.Ctx, answer);
                 }
                 finally { lock (filling) filling.Remove(z); }
             }

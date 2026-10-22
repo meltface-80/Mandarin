@@ -63,16 +63,48 @@
    * The head over [grid]'s albums, and what they are credited on under them. [pin] is one of their own album
    * titles, for the biography's lookup; [shown] the albums already on the page (offsets); [alive] false once the
    * page has been left or another artist's opened.
-   * [onCount] is told how many albums of their bands came, for the heading's count.
+   * [onCount] is told how many albums of their bands came, for the heading's count. [ownAlbums] and [featured] their
+   * albums and those they appear on, for Play and Shuffle (item 138).
    * @param {string} name @param {string} pin @param {HTMLElement} grid @param {() => boolean} alive @param {Set<number>} shown
-   * @param {((n: number) => void)=} onCount
+   * @param {((n: number) => void)=} onCount @param {any[]=} ownAlbums @param {any[]=} featured
    */
-  function renderArtistHead(name, pin, grid, alive, shown, onCount) {
+  function renderArtistHead(name, pin, grid, alive, shown, onCount, ownAlbums, featured) {
     const head = document.createElement("div");
     head.className = "artist-bio-head";
     const top = document.createElement("div");
     top.className = "artist-hero";
     head.appendChild(top);
+    // Play and Shuffle (item 138): their own albums and their bands', else those they appear on; under the links.
+    /** @type {any[]} */ const bandAlbums = [];
+    const playable = () => { const a = (ownAlbums || []).concat(bandAlbums); return a.length ? a : (featured || []); };
+    const plays = document.createElement("div");
+    plays.className = "artist-play hidden";
+    plays.innerHTML =
+      '<button type="button" class="artist-play-btn" data-parity="artist.play" aria-label="Play">' +
+        '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4.5v15l13-7.5z"/></svg><span>Play</span></button>' +
+      '<button type="button" class="artist-shuffle-btn" data-parity="artist.shuffle" aria-label="Shuffle">' +
+        '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 3h5v5"/><path d="M4 20 21 3"/><path d="M21 16v5h-5"/><path d="M15 15l6 6"/><path d="M4 4l5 5"/></svg><span>Shuffle</span></button>';
+    head.appendChild(plays);
+    const paintPlays = () => plays.classList.toggle("hidden", !playable().length);
+    /** @param {string} kind */
+    async function play(kind) {
+      const albums = playable();
+      if (!albums.length) return;
+      if (!selectedZoneId) { showToast("Pick a zone first", "error"); return; }
+      try {
+        const r = await fetch("/api/play-multi", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ offsets: albums.map(a => a.offset), items: albums.map(a => ({ offset: a.offset, title: a.title || "", subtitle: a.subtitle || "" })),
+            zone_or_output_id: selectedZoneId, kind }),
+        });
+        const j = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(j.error || "HTTP " + r.status);
+        showToast(multiOutcome(kind === "shuffle" ? "Shuffling" : "Playing", j, albums.length, null) + " → " + zoneName(selectedZoneId), "ok");
+      } catch (e) { showToast("Couldn't play: " + (e && e.message ? e.message : "no answer"), "error"); }
+    }
+    /** @type {HTMLElement} */ (plays.querySelector(".artist-play-btn")).addEventListener("click", () => play("play_now"));
+    /** @type {HTMLElement} */ (plays.querySelector(".artist-shuffle-btn")).addEventListener("click", () => play("shuffle"));
+    paintPlays();
     grid.prepend(head);
     let avatar = /** @type {HTMLImageElement | null} */ (null), own = false;
     /** @param {string} src @param {boolean} theirs */
@@ -128,10 +160,11 @@
         const hdr = document.createElement("div");
         hdr.className = "artist-section-header"; hdr.dataset.parity = "artist.section"; hdr.textContent = "With " + g.band;
         grid.appendChild(hdr);
-        for (const al of albums) { shown.add(al.offset); grid.appendChild(w.__keyArtistTile(w.__buildAlbumTile(al))); }
+        for (const al of albums) { shown.add(al.offset); bandAlbums.push(al); grid.appendChild(w.__keyArtistTile(w.__buildAlbumTile(al))); }
         added += albums.length;
       }
       if (added && onCount) onCount(added);
+      paintPlays();
       const credited = (a.credited_on || []).filter((/** @type {any} */ al) => !shown.has(al.offset));
       // Something of theirs after all: not "No albums found".
       if (added || credited.length) { const none = grid.querySelector(".artist-view-empty"); if (none) none.remove(); }

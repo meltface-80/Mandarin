@@ -1,9 +1,15 @@
 # Changelog
 
 ## Unreleased
-- `139-genres-tags`: an album's page and an artist's page show their genres, in the app and on the page: small chips
-  under an album's facts (its own tags), and on an artist's head the genres their albums are tagged with, the most
+- `139-genres-tags`: an album's page and an artist's page show their genres, in the app and on the page: a row of small chips
+  under an album's sleeve (its own tags), and on an artist's head the genres their albums are tagged with, the most
   used first, five at most. A tap opens that genre's wall. New in `GET /api/artist`: `genres`.
+- `138-artist-play`: Play and Shuffle on an artist's page, in the app and on the page, under the links: Play plays
+  their albums (their own and their bands', else those they appear on) in order in the room chosen; Shuffle plays
+  every track of them in a random order. `POST /api/play-multi` takes `kind: "shuffle"`.
+- `136-thousands-comma`: "10,000 Maniacs" is one band again. A comma inside a number (a digit before it, three
+  after) no longer splits an album's artist into acts, which made "10" (with another act's picture and facts) and
+  "000 Maniacs". Commas between names still split.
 - `137-similar-artists`: an artist's page shows similar artists, in the app and on the page: a row of round
   pictures under the members, each opening that artist's page here, in the library or not. From Last.fm when a key is
   set (Settings → Setup → API Keys), else Deezer's related artists, which need no key (kept a week). New:

@@ -105,6 +105,8 @@ internal object ContractLabels1 {
         "wall.select-clear" to listOf("Clear selection"),
         "artist.back" to listOf("Back to Home"),
         "artist.genre" to listOf("{genre}"),
+        "artist.play" to listOf("Play"),
+        "artist.shuffle" to listOf("Shuffle"),
         "artist.link" to listOf("{link}"),
         "artist.bio-more" to listOf("Show more", "Show less"),
         "artist.member" to listOf("{member}"),

@@ -239,6 +239,8 @@
         "avatar": { "kind": "shows", "when": "they have a picture: their own once found, or the biography's portrait" },
         "facts": { "kind": "shows", "when": "the server knows what they are, where from or when" },
         "genre": { "kind": "action", "label": "{genre}", "each": true, "when": "their albums are tagged with genres (bug list item 139)" },
+        "play": { "kind": "action", "label": "Play", "when": "the library has albums of theirs or their bands' (bug list item 138)" },
+        "shuffle": { "kind": "action", "label": "Shuffle", "when": "the library has albums of theirs or their bands'" },
         "link": { "kind": "action", "label": "{link}", "each": true, "when": "the server has found their links (no MusicBrainz pill, item 133)" },
         "bio": { "kind": "shows", "when": "there is a biography" },
         "bio-more": { "kind": "action", "label": ["Show more", "Show less"], "when": "the biography is longer than its clip" },
