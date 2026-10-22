@@ -72,7 +72,7 @@ public sealed class ArtistPageTests
         Assert.True(r["links"]!.AsArray().All(l => (string?)l![2] == "_blank"), "each link opens beside the page");
         Assert.Equal(["Members"], r["sections"]!.AsArray().Select(h => (string?)h));
         // Those in the band now (item 133): Natalie Merchant left in 2019.
-        Assert.Equal(1, r["members"]!.AsArray().Count);
+        Assert.Single(r["members"]!.AsArray());
         Assert.Equal("Jerome Augustyniak", (string?)r["members"]![0]![0]);
         Assert.Equal("Drums · since 1981", (string?)r["members"]![0]![1]);
         Assert.Equal("auto", (string?)r["row"]);
