@@ -71,6 +71,13 @@ internal static partial class Library
         catch (Microsoft.Data.Sqlite.SqliteException) { return false; }
     }
 
+    /* A list whose answer changed beside the copy (an act's picture found, bug list item 129): its kept answers let go. */
+    internal static void ForgetKept(string path)
+    {
+        foreach (var key in Kept.Keys)
+            if (key == path || key.StartsWith(path + "?", StringComparison.Ordinal)) Kept.TryRemove(key, out _);
+    }
+
     /* An answer sent: kept, when its request was marked for it and it is a 200. Those of an older copy go. */
     private static void Keep(HttpContext ctx, byte[] bytes, string tag, int status)
     {

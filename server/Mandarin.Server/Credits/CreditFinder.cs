@@ -218,6 +218,8 @@ internal sealed class CreditFinder(MusicBrainz mb, string? deezerBase, string? w
             return;
         }
         CreditStore.SaveArtist(key, name, facts?.Mbid ?? mbid, facts, photo, source);
+        // The artists' list is kept for the library's copy (LibraryRoutes.Kept.cs); a picture found changes it without a new copy.
+        if (photo != null) Library.ForgetKept("/api/artists");
     }
 
     /* For a route: an act as kept, looked up first when it hasn't been (for [waitMs] at most). */
