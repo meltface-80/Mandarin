@@ -102,7 +102,7 @@ internal fun PicksScreen(prefs: WallPrefs, zoneId: String, client: () -> ServerC
         WallBack(onBack)
         Column(Modifier.align(Alignment.BottomCenter)) {
             MiniPlayer(zone, room, client, onOpen = { onNowPlaying(zone) }, onRoom = { id -> zone = id; onRoom(id) }, onPage = onPage)
-            TouchNav("", offline = OfflineNow.on, onTap = onNav)
+            TouchNav("", onTap = onNav)
         }
     }
 }

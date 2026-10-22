@@ -4,8 +4,8 @@
  * its Offline mode is on), /api/status says so (offline, offline_mode); in
  * a browser, /api/status doesn't answer at all. The page no longer writes a
  * notice across the top of the screen; a symbol sits in the top bar between
- * the menu and the search (on a phone or a tablet, v0.9.6: small, in the row
- * along the foot, between Home and Library), and a tap on it says what the
+ * the menu and the search (on a phone or a tablet: a pill at the top of the
+ * screen, over everything, bug list item 134), and a tap on it says what the
  * matter is: the server can't be reached, or Offline mode is on (with the
  * app's switch to turn it off).
  *
@@ -60,20 +60,21 @@ const LOOK = `(async () => {
   await until(() => window.__noticeRead > 0);
   await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
   const notice = $("server-notice");
-  // The touch layout (a phone, a tablet) shows the symbol in its row along the foot; a desktop in the top bar.
+  // The touch layout (a phone, a tablet) shows the symbol as a pill at the top of the screen (item 134); a desktop in the top bar.
   const touch = shown($("touch-nav"));
-  const sign = touch ? $("tnav-offline") : $("offline-btn");
+  const sign = touch ? $("offline-toast") : $("offline-btn");
   const out = { notice: shown(notice) ? notice.textContent : "", btn: shown(sign), layout: touch ? "row" : "top bar" };
   if (!out.btn) return out;
   const box = el => el.getBoundingClientRect();
   if (touch) {
-    out.between = box($("tnav-home")).right <= box(sign).left && box(sign).right <= box($("tnav-library")).left;
-    out.small = box(sign).width <= 32;
+    // At the top of the screen, in the middle (bug list item 134), not in the row.
+    out.between = box(sign).top <= 20 && Math.abs((box(sign).left + box(sign).right) / 2 - innerWidth / 2) <= 1;
+    out.small = box(sign).height <= 40;
   } else {
     out.between = box($("menu-toggle")).right <= box(sign).left && box(sign).right <= box($("search-open")).left;
     out.order = [...sign.parentElement.children].filter(shown).map(e => e.id).slice(0, 3);
   }
-  // The page's own symbol says why; the row's is its copy.
+  // The page's own symbol says why; the pill is its copy.
   out.label = $("offline-btn").getAttribute("aria-label");
   sign.click();
   out.popup = shown($("offline-overlay"));
@@ -116,13 +117,13 @@ test("offline: a symbol in the top bar, not a notice; a tap says what the matter
       assert.doesNotMatch(r.notice, /offline|can.t be reached/i);
     });
 
-    await t.test("the server can't be reached: on a phone, the symbol small between Home and Library, and why", async () => {
+    await t.test("the server can't be reached: on a phone, the symbol a pill at the top of the screen, and why", async () => {
       const r = await look({ offline: true, offline_mode: false });
       assert.equal(r.notice, "", "no notice across the top of the page");
       assert.equal(r.btn, true);
       assert.equal(r.layout, "row", "a phone has the touch layout");
-      assert.equal(r.between, true, "between the Home and Library buttons");
-      assert.equal(r.small, true, "a small sign");
+      assert.equal(r.between, true, "at the top of the screen, in the middle");
+      assert.equal(r.small, true, "a pill, one line tall");
       assert.equal(r.label, "Mandarin can't be reached — tap for more");
       assert.equal(r.popup, true);
       assert.equal(r.title, "Mandarin can’t be reached");
@@ -179,8 +180,8 @@ test("offline: a symbol in the top bar, not a notice; a tap says what the matter
         // are news: the symbol within ~25 s, never inside 10.
         window.__down = true;
         await sleep(6000);
-        // The symbol where this layout shows it: the row's on a phone, the top bar's on a desktop.
-        const sign = () => shown($("touch-nav")) ? $("tnav-offline") : $("offline-btn");
+        // The symbol where this layout shows it: the pill on a phone, the top bar's on a desktop.
+        const sign = () => shown($("touch-nav")) ? $("offline-toast") : $("offline-btn");
         const out = { early: shown(sign()) };
         out.after = await until(() => shown(sign()), 30000);
         out.notice = shown($("server-notice")) ? $("server-notice").textContent : "";

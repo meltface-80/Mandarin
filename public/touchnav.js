@@ -17,8 +17,8 @@
  * field across it), tn-lib (the Library wall), tn-filter (the Library's
  * filter, or the Labels list's or the Artists wall's find, open: the top bar back for its
  * field), tn-labels (the Labels list), tn-artists (the Artists wall), tn-np (Now playing, which
- * has its own transport and no row), tn-offline (the Offline sign, shown
- * small between Home and Library).
+ * has its own transport and no row), tn-offline (offline: the pill at the
+ * top of the screen, #offline-toast, bug list item 134).
  *
  * Elsewhere (the grid screens) the top bar has no strip: its buttons float
  * over the albums, which scroll up to the screen's edge, and the screen's
@@ -138,7 +138,7 @@
     const field = byId("search-input");
     if (field && document.activeElement !== field) field.focus();
   });
-  on("tnav-offline", (e) => { e.stopPropagation(); if (offline) offline.click(); });
+  on("offline-toast", (e) => { e.stopPropagation(); if (offline) offline.click(); });
 
   /* The screen's title: the page's heading in the touch layout, the bar's otherwise. */
   const title = byId("album-count");

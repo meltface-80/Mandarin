@@ -1,6 +1,10 @@
 # Changelog
 
 ## Unreleased
+- `134-offline-toast`: the row along the foot has its five buttons evenly across again, and offline is said at the
+  top of the screen instead: a small pill in the middle, "Offline — tap for more", over every screen for as long as the
+  app (or the page on a phone) is offline; a tap says why, as the sign in the row did. On a desktop the sign stays in
+  the top bar.
 - `130-artists-tab`: an Artists wall, in the app and on the page. The row along the foot has an Artists button
   (Menu, Home, Library, Artists, Search, five equal buttons; the Offline sign keeps a seat of its own between Home and
   Library, so the row doesn't shift when it comes). The wall shows every act in the library as a round picture (their

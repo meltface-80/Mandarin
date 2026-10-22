@@ -93,6 +93,13 @@ const OPEN_OFFLINE = `(async () => {
   return document.getElementById("offline-overlay").classList.contains("hidden") ? "not open" : "open";
 })()`;
 
+/* Offline said at the top (item 134): the page offline, as OPEN_OFFLINE makes it, the pill up and not yet tapped. */
+const OPEN_OFFLINE_SIGN = OPEN_OFFLINE.replace(`  btn().click();
+  await sleep(300);
+  return document.getElementById("offline-overlay").classList.contains("hidden") ? "not open" : "open";`, `  await sleep(300);
+  const pill = document.getElementById("offline-toast");
+  return pill && pill.getClientRects().length ? "open" : "no pill";`);
+
 /* An album's page, opened from the Library row on Home (so it has a previous and a next). */
 const OPEN_ALBUM = `(async () => {
   const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -643,6 +650,7 @@ const SCREENS = {
   "add-to-playlist": { open: OPEN_ADD_TO_PLAYLIST, root: ".lib-sheet-backdrop" },
   "prompt": { open: OPEN_PROMPT, root: "#prompt-overlay" },
   "offline": { open: OPEN_OFFLINE, root: "#offline-overlay" },
+  "offline-sign": { open: OPEN_OFFLINE_SIGN, root: "#offline-toast" },
   "group": { open: OPEN_GROUP, root: ".lib-sheet-backdrop" },
   "device-power": { open: OPEN_POWER, root: ".lib-sheet-backdrop" },
   "playlist-import": { open: OPEN_IMPORT, root: ".lib-sheet-backdrop" },

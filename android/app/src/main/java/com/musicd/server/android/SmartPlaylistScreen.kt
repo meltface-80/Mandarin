@@ -219,7 +219,7 @@ internal fun SmartPlaylistScreen(id: String, prefs: WallPrefs, zoneId: String, c
         WallBack(onHome)
         Column(Modifier.align(Alignment.BottomCenter)) {
             MiniPlayer(zone, room, client, onOpen = { onNowPlaying(zone) }, onRoom = { rid -> zone = rid; onRoom(rid) }, onPage = onPage)
-            TouchNav("", offline = OfflineNow.on, onTap = onNav)
+            TouchNav("", onTap = onNav)
         }
         if (asking) ConfirmDialog("Delete the Dynamic Playlist “${p?.name.orEmpty()}”?") { yes -> asking = false; if (yes) delete() }
         SmartSheets(smartSheets, client, onShowAlbums = { v -> onPage("library-show", v.query()) })

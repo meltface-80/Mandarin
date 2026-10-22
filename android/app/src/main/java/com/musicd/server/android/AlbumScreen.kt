@@ -329,7 +329,7 @@ internal fun AlbumScreen(offset: Long, zoneId: String, lit: String, client: () -
             }
             Column(Modifier.align(Alignment.BottomCenter)) {
                 MiniPlayer(zone, room, client, onOpen = { onNowPlaying(zone) }, onRoom = { id -> zone = id; onRoom(id) }, onPage = onPage)
-                TouchNav(lit, offline = OfflineNow.on, onTap = onNav)
+                TouchNav(lit, onTap = onNav)
             }
             // Its editor (item 74), over the page; the page read again, and the walls told, once it changed the album.
             // Its Share card (item 75), centred above the mini player and the row, as the page keeps room for them.

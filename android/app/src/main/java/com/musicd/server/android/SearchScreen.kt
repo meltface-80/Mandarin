@@ -249,7 +249,7 @@ internal fun SearchScreen(prefs: WallPrefs, zoneId: String, client: () -> Server
         // Out of the keyboard's way while the field has it, as the page's (android.css, html.is-typing).
         if (!typing) Column(Modifier.align(Alignment.BottomCenter)) {
             MiniPlayer(zone, room, client, onOpen = { onNowPlaying(zone) }, onRoom = { id -> zone = id; onRoom(id) }, onPage = onPage)
-            TouchNav("search", offline = OfflineNow.on, onTap = { what -> if (what == "search") scope.launch { SearchKept.grid.animateScrollToItem(0) } else onNav(what) })
+            TouchNav("search", onTap = { what -> if (what == "search") scope.launch { SearchKept.grid.animateScrollToItem(0) } else onNav(what) })
         }
     }
 }

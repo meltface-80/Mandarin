@@ -284,5 +284,6 @@ private fun Shell(client: () -> ServerClient?) {
     }
     MenuOver(nav, client)   // the side menu over whichever screen is on (item 67)
     RoomAskOver(client); PlaylistAddOver(client)   // the question whether to move what's playing to the room chosen (item 68); Add to playlist (item 93)
+    OfflineToastOver()   // offline, said at the top over every screen (item 134)
     }
 }
