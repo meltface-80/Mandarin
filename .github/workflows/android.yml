@@ -152,7 +152,8 @@ jobs:
       # nothing offers it to anyone who didn't fetch it. The dev branch's app
       # too (CLAUDE.md section 4; the migration branch's from v0.8.46, renamed),
       # the one the owner installs beside :dev: the same pre-release's file
-      # replaced, no tag or release made.
+      # replaced, no tag or release made. That one file only (item 128): a copy
+      # under each version's name piled up, 46 of them; the notes say the version.
       - name: Publish a test branch's APK
         if: github.event_name == 'push' && (startsWith(github.ref, 'refs/heads/claude/v0.8') || github.ref == 'refs/heads/dev')
         working-directory: .
@@ -168,7 +169,7 @@ jobs:
               --notes "The Android app built from a test branch. Not a release: for testing only." --target "${GITHUB_SHA}"
           fi
           gh release edit test-android --notes "The Android app from the $branch branch at ${GITHUB_SHA::7} ($APK). For testing only; not a release."
-          gh release upload test-android mandarin-android-test.apk "android/$APK" --clobber
+          gh release upload test-android mandarin-android-test.apk --clobber
 
       # One APK in dist/, committed once per versionName (and once more when a
       # signed build replaces a debug one), so the README and the Pages site can
