@@ -93,7 +93,8 @@ internal fun AlbumGrid(blocks: List<GridBlock>, prefs: WallPrefs, cols: Int, cov
     // Each album's place among all of them, for the list an album page steps through.
     var at = 0
     if (prefs.list) LazyColumn(Modifier.fillMaxSize(), state = list, contentPadding = WALL_PADDING) {
-        item { head() }
+        // A column: a lazy item lays its children over each other, and an artist's picture lay over the heading (item 135).
+        item { Column(Modifier.fillMaxWidth()) { head() } }
         for (b in blocks) {
             if (b.title != null) item { BlockTitle(b.title) }
             val from = at
@@ -104,7 +105,7 @@ internal fun AlbumGrid(blocks: List<GridBlock>, prefs: WallPrefs, cols: Int, cov
     }
     else LazyVerticalGrid(GridCells.Fixed(cols), Modifier.fillMaxSize(), state = grid, contentPadding = WALL_PADDING,
         horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        item(span = { GridItemSpan(maxLineSpan) }) { head() }
+        item(span = { GridItemSpan(maxLineSpan) }) { Column(Modifier.fillMaxWidth()) { head() } }
         for (b in blocks) {
             if (b.title != null) item(span = { GridItemSpan(maxLineSpan) }) { BlockTitle(b.title) }
             val from = at

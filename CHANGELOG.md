@@ -1,6 +1,9 @@
 # Changelog
 
 ## Unreleased
+- `135-artist-head-overlap`: in the app, an artist's picture no longer sits over the heading ("6 albums · A.A.
+  Williams"): the head of an album grid (the heading, the picture, links, biography, members) stands one part under
+  another, on every screen that has one.
 - `132-album-credits`: an album's page shows its credits, in the app and on the page. Under the tracks, over "About
   this album": who played, sang, wrote and made it, players first, then the writers, those who made the record and
   its art; each a row with their picture (or first letter), their name, and their parts, with the tracks they are on
