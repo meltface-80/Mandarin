@@ -19,7 +19,7 @@ public sealed class CreditsTests
     private static string Artist(string id, string name) => $$"""{ "id": "{{id}}", "name": "{{name}}", "sort-name": "{{name}}", "type": "Person", "disambiguation": "" }""";
 
     // A release as MusicBrainz answers it with its recordings', works' and artists' relations (inc=…recording-level-rels+work-level-rels).
-    private static readonly string ReleaseJson = $$"""
+    internal static readonly string ReleaseJson = $$"""
     {
       "id": "{{Release}}", "title": "In My Tribe", "date": "1987-07-27",
       "artist-credit": [{ "name": "Ten Thousand Maniacs", "joinphrase": "", "artist": { "id": "{{Band}}", "name": "Ten Thousand Maniacs" } }],

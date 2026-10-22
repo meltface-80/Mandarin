@@ -4,6 +4,11 @@
 - `135-artist-head-overlap`: in the app, an artist's picture no longer sits over the heading ("6 albums · A.A.
   Williams"): the head of an album grid (the heading, the picture, links, biography, members) stands one part under
   another, on every screen that has one.
+- `132-album-credits`: an album's page shows its credits, in the app and on the page. Under the tracks, over "About
+  this album": who played, sang, wrote and made it, players first, then the writers, those who made the record and
+  its art; each a row with their picture (or first letter), their name, and their parts, with the tracks they are on
+  when not all ("Organ · track 1", "Lead vocals · tracks 1–3, 5"). Eight at first, More for the rest; a tap opens
+  their artist page, and Back returns to the album. From the album's own tags and its MusicBrainz release (item 129).
 - `134-offline-toast`: the row along the foot has its five buttons evenly across again, and offline is said at the
   top of the screen instead: a small pill in the middle, "Offline — tap for more", over every screen for as long as the
   app (or the page on a phone) is offline; a tap says why, as the sign in the row did. On a desktop the sign stays in

@@ -37,6 +37,7 @@ app/album-detail.js
 app/album-tracks.js
 app/album-works.js
 app/album-extras.js
+app/album-credits.js
 app/search.js
 app/search-external.js
 app/filter-sheet.js

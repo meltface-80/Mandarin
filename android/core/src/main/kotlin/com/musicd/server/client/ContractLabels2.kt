@@ -226,6 +226,8 @@ internal object ContractLabels2 {
         "album.select-playlist" to listOf("Add to playlist…"),
         "album.select-later" to listOf("Listen later"),
         "album.select-clear" to listOf("Clear selection"),
+        "album.credit" to listOf("{name}"),
+        "album.credits-more" to listOf("More", "Less"),
         "album.review-more" to listOf("Show more", "Show less"),
         "album.review-source" to listOf("{source}"),
         "album.more-by-album" to listOf("{album}"),
