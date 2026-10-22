@@ -20,9 +20,9 @@ public sealed class ArtistSplitTests
             ("Beatles, The", ["Beatles, The"]),
             ("Harry Connick, Jr.", ["Harry Connick, Jr."]),
         };
-        var r = await Score.Run(new { fn = "names", names = cases.Select(c => c.Credit).ToArray() });
-        var got = r["names"]!.AsArray();
+        var r = await Score.Run(new { fn = "split", names = cases.Select(c => c.Credit).ToArray() });
+        var got = r["split"]!.AsArray();
         for (var i = 0; i < cases.Length; i++)
-            Assert.Equal(cases[i].Acts, got[i]!["split"]!.AsArray().Select(x => (string)x!).ToArray());
+            Assert.Equal(cases[i].Acts, got[i]!.AsArray().Select(x => (string)x!).ToArray());
     }
 }
