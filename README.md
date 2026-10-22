@@ -7,7 +7,7 @@
 
 </div>
 
-# Mandarin — v1.1.2
+# Mandarin — v1.1.3
 
 **Your own music files, played to Sonos rooms, to UPnP/DLNA renderers (a WiiM, a Chord Poly,
 a streamer, an AV receiver) and to the Mandarin Android app.**
@@ -26,14 +26,15 @@ Wikipedia, Deezer and others); your music files stay on your machine.
                                                    └──── audio: /stream/… ◀────────┘
 ```
 
-**New in v1.1.1** (since v1.1.0)
-* **Logging**, in the Android app and the server, off by default: switch it on in **Settings → Setup →
-  Logging** when something goes wrong, use the app as usual for 24 hours, then save the log and send it.
-  It is made without personal data ([Logs](#logs)).
-* **Fixes in the Android app:** the screen you are on stays put when the server goes or comes back; away
-  from home the screens play on this phone; leaving the Wi-Fi switches to the way away at once; the app asks
-  the server for less while it's off screen; the side menu opens as it was last seen; a cover changed in
-  the album editor shows on the Library at once.
+**New in v1.1.3** (since v1.1.2)
+* **Artists**, in the app and in the browser: a wall of every act in your library (**Artists** in the row
+  at the foot of a phone's or tablet's screen), and a page for each: their picture, where from and when,
+  their links and biography, a band's current members or a person's bands (with that band's albums from
+  their years in it), similar artists, their genres, and **Play** and **Shuffle** for all their albums.
+* **Album credits:** under an album's tracks, who played, sang, wrote and made it, each a tap from their page.
+* **Genres** as chips on album and artist pages, each opening that genre's albums.
+* The row at the foot of the screen has its five buttons evenly spaced, and offline is shown by a pill at the
+  top of the screen. An artist whose name has a comma in a number ("10,000 Maniacs") stays one artist.
 
 ---
 
@@ -57,7 +58,7 @@ Open **☰ → Home**. Tap a row's title for all of it. To reorder rows or hide 
 
 👆 **Phones and tablets**
 
-On a touchscreen, either way round: a row at the foot of the screen (Menu, Home, Library, Search) under the mini player, and albums scrolling to the screen's top edge.
+On a touchscreen, either way round: a row at the foot (Menu, Home, Library, Artists, Search) under the mini player, and albums scrolling to the screen's top edge.
 
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 
@@ -133,7 +134,7 @@ Albums, artists and labels as you type, and Qobuz's and Tidal's catalogues besid
 
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 
-Tap the magnifying glass in the top bar (in the row at the foot of a phone's or tablet's screen) and type. Labels show when Record labels is on. Signed in to Qobuz or Tidal (Settings → Services), the service's artists and albums follow the library's, from the Library wall's filter too; tap a cover for the album's page, an artist for their albums.
+Tap the magnifying glass in the top bar (in the row at the foot of a phone's or tablet's screen) and type. Labels show when Record labels is on. Signed in to Qobuz or Tidal (Settings → Services), the service's artists and albums follow the library's, from the Library wall's filter too; tap a cover for the album's page, an artist for their page.
 
 </details>
 
@@ -158,6 +159,54 @@ Under an album's review: the artist's other albums, the albums they appear on, a
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 
 Open any album. For the Last.fm rows, get a free key at last.fm/api/account/create and paste it in **Settings → Setup → API Keys** (or set `LASTFM_KEY`). Read-only: nothing is scrobbled.
+
+</details>
+
+⸻
+
+🎤 **Artists** — *new in v1.1.3*
+
+Every act in your library as a round picture with their name and album count, in the album wall's columns, sorted A to Z, by most albums or at random.
+
+<details><summary><b>ⓘ</b> How to set it up and use it</summary>
+
+On a phone or tablet, tap **Artists** in the row at the foot of the screen. **Sort** is at the top right; **Search** in the row finds an artist by part of the name. Tap one for their page.
+
+</details>
+
+⸻
+
+🧑‍🎤 **Artist pages** — *new in v1.1.3*
+
+Who they are: picture, where from and when, links, biography, genres, a band's current members or a person's bands, similar artists, and Play or Shuffle for all their albums.
+
+<details><summary><b>ⓘ</b> How to set it up and use it</summary>
+
+Tap an artist's name on an album's page, on the Artists wall or in Search. Facts come from MusicBrainz, Wikidata and Wikipedia, pictures from FanArt.tv (with a key), Wikidata or Deezer, similar artists from Last.fm (with a key) or Deezer. A member's page shows their bands' albums from their years in them; a tap on a member, a band or a similar artist opens theirs. Tap a genre for its albums.
+
+</details>
+
+⸻
+
+👥 **Album credits** — *new in v1.1.3*
+
+Under an album's tracks: who played, sang, wrote and made it, each with their parts and the tracks they are on, from the files' tags and MusicBrainz.
+
+<details><summary><b>ⓘ</b> How to set it up and use it</summary>
+
+Nothing to set up: the server looks albums up in the background, a second at a time. Eight show at first; **More** for the rest. Tap a name for their artist page.
+
+</details>
+
+⸻
+
+🎸 **Genres on pages** — *new in v1.1.3*
+
+An album's genres as small chips under its cover, and an artist's, the most used across their albums. A tap opens that genre's albums.
+
+<details><summary><b>ⓘ</b> How to set it up and use it</summary>
+
+Nothing to set up: they come from your files' genre tags. A genre written two ways (*Indie Rock*, *indie rock*) is one, spelled as most of your albums spell it.
 
 </details>
 
@@ -553,7 +602,7 @@ One switch: only the music on the phone shows, and the server isn't used. With n
 
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 
-In the Android app, **☰ → Offline mode**. While offline, a small symbol sits in the row at the foot of the screen, between Home and Library: tap it to see why (Offline mode, or the server can't be reached).
+In the Android app, **☰ → Offline mode**. While offline, a small *Offline* pill sits at the top of the screen: tap it to see why (Offline mode, or the server can't be reached).
 
 </details>
 
@@ -645,7 +694,7 @@ Sign in with your Tidal subscription on tidal.com: your favourite albums become 
 
 ⸻
 
-📝 **Logging** — *new in v1.1.1*
+📝 **Logging**
 
 Off by default. Switched on, the Android app and the server log what happened, without personal data, for you to send to the developer when something goes wrong.
 
@@ -837,10 +886,10 @@ Everything is optional; pass any of it with `-e NAME=value`.
 | `MBPACK_DIR` | data folder | Where the MusicBrainz pack is kept (Settings → Library Scanner); overrides the folder chosen there. |
 | `ITUNES_COUNTRY` | US | The Apple store the identification scan's iTunes lookups use (`GB`, `DE`…). |
 | `AUTOEQ_URL` | GitHub | Where AutoEq's results are read from for headphone profiles (Settings → Audio Devices → a device → DSP). |
-| `LASTFM_KEY` | — | A Last.fm API key for the album view's similar artists and albums, until one is saved in *Settings → Setup → API Keys* (which then wins). |
+| `LASTFM_KEY` | — | A Last.fm API key for similar artists and albums on album and artist pages, until one is saved in *Settings → Setup → API Keys* (which then wins). |
 | `DEBUG` | — | Log every API call. |
 
-Settings for the FanArt.tv key (wall-display artist photos), waveform, share-card services, Smart Picks,
+Settings for the FanArt.tv key (artist photos, on artist pages and the wall display), waveform, share-card services, Smart Picks,
 the wall display and the Home rows are in the app's Settings and are saved in the data volume.
 
 ## Your account
@@ -1077,6 +1126,11 @@ through a subnet router arrive from a home address, and the server can't tell th
   each release against the tracks and their lengths, and lays the names over the album, never on
   the files, with the MusicBrainz pack, loudness measuring and the waveforms alongside. Every
   MusicBrainz request waits its turn on one timer.
+* **Credits and artists.** In the background, one album and one act at a time at MusicBrainz's
+  pace, the server reads who played, sang, wrote and made each album from its tags and its
+  MusicBrainz release, and who each act is (members, years, place, links) from MusicBrainz and
+  Wikidata, with a picture from FanArt.tv, Wikidata or Deezer. A page asked for before it gets
+  there is looked up there and then. Kept in the database; your files are not changed.
 * **Renderers.** `server/Mandarin.Server/Playback/` finds UPnP/DLNA renderers by SSDP, reads each one's
   description and what it advertises it can play (plus a WiiM's own API), keeps a register
   of every device with your names and settings, and plays to them through AVTransport —
