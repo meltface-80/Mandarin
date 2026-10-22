@@ -1,6 +1,9 @@
 # Changelog
 
 ## Unreleased
+- `128-test-android-one-apk`: the `test-android` pre-release keeps one APK, `mandarin-android-test.apk`. Each build
+  of `dev` also uploaded a copy under its version's name, and 46 of them (13 to 20 MB each, from 0.8.0 on) had built
+  up. The version built is still said in the pre-release's notes.
 - `127-home-over-wifi`: in the Android app, at home the app's connections go over the Wi-Fi. At 06:48 on 22 October
   the Wi-Fi was still up (what was already open on it went on answering), but Android judged it poor and sent new
   connections over mobile data, which can't reach the server's home address: for half a minute every new request
