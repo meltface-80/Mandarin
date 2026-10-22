@@ -1264,8 +1264,8 @@
       }
     },
     "album": {
-      "page": "an album's page: the album view (#album-modal, not Now playing), opened from a row of albums, a phone held upright",
-      "native": ["android/app/src/main/java/com/musicd/server/android/AlbumScreen.kt", "android/app/src/main/java/com/musicd/server/android/AlbumTracks.kt", "android/app/src/main/java/com/musicd/server/android/AlbumAbout.kt", "android/app/src/main/java/com/musicd/server/android/AlbumHead.kt", "android/app/src/main/java/com/musicd/server/android/AlbumHeadParts.kt", "android/app/src/main/java/com/musicd/server/android/AlbumSelect.kt", "android/app/src/main/java/com/musicd/server/android/AlbumWorks.kt"],
+      "page": "an album's page: the album view (#album-modal, not Now playing), opened from a row of albums, a phone held upright; under its tracks its credits (who played, sang, wrote and made it, each opening their page), then the review and the rows of albums",
+      "native": ["android/app/src/main/java/com/musicd/server/android/AlbumScreen.kt", "android/app/src/main/java/com/musicd/server/android/AlbumTracks.kt", "android/app/src/main/java/com/musicd/server/android/AlbumAbout.kt", "android/app/src/main/java/com/musicd/server/android/AlbumHead.kt", "android/app/src/main/java/com/musicd/server/android/AlbumHeadParts.kt", "android/app/src/main/java/com/musicd/server/android/AlbumSelect.kt", "android/app/src/main/java/com/musicd/server/android/AlbumWorks.kt", "android/app/src/main/java/com/musicd/server/android/AlbumCreditList.kt"],
       "preview": false,
       "items": {
         "back": { "kind": "action", "label": ["Back", "Close"] },
@@ -1325,6 +1325,12 @@
         "select-playlist": { "kind": "action", "label": "Add to playlist…", "when": "selecting tracks" },
         "select-later": { "kind": "action", "label": "Listen later", "when": "selecting tracks" },
         "select-clear": { "kind": "action", "label": "Clear selection", "when": "selecting tracks" },
+        "credits": { "kind": "shows", "when": "who played, wrote or made it is known (bug list item 132)" },
+        "credit": { "kind": "action", "label": "{name}", "each": true, "when": "who played, wrote or made it is known" },
+        "credit-art": { "kind": "shows", "each": true, "when": "who played, wrote or made it is known" },
+        "credit-name": { "kind": "shows", "each": true, "when": "who played, wrote or made it is known" },
+        "credit-roles": { "kind": "shows", "each": true, "when": "their parts are known" },
+        "credits-more": { "kind": "action", "label": ["More", "Less"], "when": "more than eight are credited" },
         "review": { "kind": "shows", "when": "it has a review" },
         "review-more": { "kind": "action", "label": ["Show more", "Show less"], "when": "a review longer than its first lines" },
         "review-source": { "kind": "action", "label": "{source}", "when": "the review has a page of its own" },
