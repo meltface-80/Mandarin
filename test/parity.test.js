@@ -650,7 +650,7 @@ const SCREENS = {
   "add-to-playlist": { open: OPEN_ADD_TO_PLAYLIST, root: ".lib-sheet-backdrop" },
   "prompt": { open: OPEN_PROMPT, root: "#prompt-overlay" },
   "offline": { open: OPEN_OFFLINE, root: "#offline-overlay" },
-  "offline-sign": { open: OPEN_OFFLINE_SIGN, root: "#offline-toast" },
+  "offline-sign": { open: OPEN_OFFLINE_SIGN, root: "#offline-sign" },
   "group": { open: OPEN_GROUP, root: ".lib-sheet-backdrop" },
   "device-power": { open: OPEN_POWER, root: ".lib-sheet-backdrop" },
   "playlist-import": { open: OPEN_IMPORT, root: ".lib-sheet-backdrop" },

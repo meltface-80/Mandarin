@@ -69,7 +69,7 @@ const DRIVER = `(async () => {
   out.offlineHidden = !shown($("offline-toast"));
   const rowBefore = [...nav.querySelectorAll(".tnav-btn")].map(box);
   $("offline-btn").classList.remove("hidden"); await frame();
-  out.offline = box($("offline-toast"));
+  out.offline = box($("offline-toast")); out.home = box($("tnav-home"));
   { const t = out.offline, at = document.elementFromPoint(t.l + t.w / 2, t.t + t.h / 2); out.offlineOnTop = !!at && $("offline-toast").contains(at); }
   out.rowStill = JSON.stringify([...nav.querySelectorAll(".tnav-btn")].map(box)) === JSON.stringify(rowBefore);
   $("offline-btn").classList.add("hidden");

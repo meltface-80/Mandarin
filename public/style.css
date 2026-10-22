@@ -6171,9 +6171,9 @@ html .topbar .icon-btn.labels-sort-btn { width: auto; min-width: 44px; padding: 
   /* Offline (bug list item 134): a pill in the middle of the top of the
      screen, over everything (the toasts aside), for as long as it lasts; a
      tap opens the Offline dialog. The app's OfflineToast.kt the same. */
+  .offline-sign { position: fixed; top: calc(env(safe-area-inset-top) + 10px); left: 50%; transform: translateX(-50%); z-index: 98; }
   .tn-offline .offline-toast {
     display: flex; align-items: center; gap: 8px;
-    position: fixed; top: calc(env(safe-area-inset-top) + 10px); left: 50%; transform: translateX(-50%); z-index: 98;
     padding: 7px 14px 7px 12px; border-radius: 999px; white-space: nowrap;
     background: var(--bg-elev); border: 1px solid var(--border); box-shadow: var(--shadow-modal);
     color: var(--text); font: inherit; font-size: 12.5px; line-height: 17px; font-weight: 600; cursor: pointer;
