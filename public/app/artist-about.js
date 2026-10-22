@@ -4,7 +4,7 @@
 // are, where from and when; their links as pills; the biography clipped with
 // Show more and where it is from (/api/artist-bio, as before); then a band's
 // members or a person's bands, a row of round pictures that scrolls sideways,
-// each opening their own page. Under their albums, their bands' albums from
+// each opening their own page, and similar acts (item 137). Under their albums, their bands' albums from
 // their years in them (item 133), then those of the library's they are
 // credited on beyond these, saying as what. Decorative, as the
 // biography always was: a failure leaves the album grid as it is, and a page
@@ -140,6 +140,35 @@
           grid.appendChild(tile);
         }
       }
+    }).catch(() => { /* decorative: the albums stand alone */ });
+
+    // Similar acts (item 137): Last.fm's with a key, else Deezer's; a row under the members, each opening their page.
+    fetch("/api/artist/similar?name=" + encodeURIComponent(name)).then(r => r.ok ? r.json() : null).then(j => {
+      const list = (j && Array.isArray(j.artists) ? j.artists : []).filter((/** @type {any} */ x) => x && x.name);
+      if (!list.length || !alive()) return;
+      const box = document.createElement("div");
+      box.className = "artist-stints artist-similar";
+      const hdr = document.createElement("div");
+      hdr.className = "artist-section-header"; hdr.dataset.parity = "artist.section"; hdr.textContent = "Similar artists";
+      const row = document.createElement("div");
+      row.className = "artist-stint-row";
+      for (const x of list) {
+        const btn = document.createElement("button");
+        btn.type = "button"; btn.className = "artist-stint"; btn.dataset.parity = "artist.similar";
+        btn.setAttribute("aria-label", x.name);
+        const art = document.createElement("div");
+        art.className = "artist-stint-art"; art.dataset.parity = "artist.similar-art";
+        const letter = () => { const l = document.createElement("span"); l.textContent = String(x.name).trim().charAt(0).toUpperCase(); art.appendChild(l); };
+        if (x.photo_key) loadArt(art, x.photo_key, 300, (img) => { img.remove(); letter(); }); else letter();
+        const nm = document.createElement("div"); nm.className = "artist-stint-name"; nm.dataset.parity = "artist.similar-name"; nm.textContent = x.name;
+        btn.append(art, nm);
+        btn.addEventListener("click", () => { if (w.__showArtistAlbums) w.__showArtistAlbums(x.name); });
+        row.appendChild(btn);
+      }
+      box.append(hdr, row);
+      // Under the members and bands when they've come, else under the head.
+      const last = [...grid.querySelectorAll(".artist-stints:not(.artist-similar)")].pop();
+      (last || head).after(box);
     }).catch(() => { /* decorative: the albums stand alone */ });
 
     // The biography, as before: one of their own albums pins who they are.
