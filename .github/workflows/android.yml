@@ -109,14 +109,6 @@ jobs:
             -ldflags="-s -w -X main.version=$version" \
             -o ../app/src/main/jniLibs/arm64-v8a/libmusicdnet.so .
           ls -la ../app/src/main/jniLibs/arm64-v8a/
-      # Soloist on the phone's runtime (bug list item 148): Debian's glibc, Termux's proot and Spotifast's PulseAudio
-      # stand-in, built for 64-bit ARM (android/soloist/runtime.sh). In every APK; without it the Soloist screen says so.
-      - name: Soloist's runtime
-        timeout-minutes: 15
-        run: |
-          sudo apt-get update -o Acquire::http::Timeout=30
-          sudo apt-get install -y --no-install-recommends gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu libc6-dev-arm64-cross
-          bash soloist/runtime.sh
       - uses: gradle/actions/setup-gradle@v4
 
       # The signing key comes from repository secrets — the same two as
