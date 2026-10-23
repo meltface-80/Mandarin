@@ -207,9 +207,9 @@ class PhonePlayerService : MediaLibraryService() {
             .setCache(cache)
             .setUpstreamDataSourceFactory(routed)
             .setCacheWriteDataSinkFactory(CacheDataSink.Factory().setCache(cache))
-            .setCacheKeyFactory(CacheKeyFactory { spec -> keyFor(spec.uri.toString()) ?: spec.key ?: spec.uri.toString() })
+            .setCacheKeyFactory(CacheKeyFactory { spec -> SpotifyLiveSource.key(spec) ?: keyFor(spec.uri.toString()) ?: spec.key ?: spec.uri.toString() })
             .setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
-        val sources = DefaultDataSource.Factory(this, cacheSource)
+        val sources = DefaultDataSource.Factory(this, SpotifyLiveSource.uncached(cacheSource))
 
         // Held ahead in memory too: the playing track is fetched whole as fast
         // as the network allows (up to 5 minutes or 48 MB ahead), so leaving the

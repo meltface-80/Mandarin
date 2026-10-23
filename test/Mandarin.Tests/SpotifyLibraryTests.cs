@@ -183,6 +183,12 @@ public sealed class SpotifyLibraryTests
         Assert.Equal("spotify:album:al2", (string?)body["context_uri"]);
         Assert.Equal("spotify:track:al2t2", (string?)body["offset"]!["uri"]);
         Assert.DoesNotContain(fake.Paths, p => p.Contains("/stream", StringComparison.Ordinal));
+        // On a phone too (item 146): its player plays Soloist's stream, as a room does.
+        var phone = (string?)(await s.Api("phone/hello", new { name = "Pixel 8" })).J["zone_id"];
+        var onPhone = await s.Api("play-track", new { zone_or_output_id = phone, offset = (int)second["offset"]!, track_index = 0, kind = "play_now" });
+        Assert.True(onPhone.Status == 200, onPhone.Text);
+        Assert.True(fake.Plays.TryDequeue(out var phonePlay), "the Web API asked to play for the phone");
+        Assert.Equal("spotify:track:al2t1", (string?)JsonNode.Parse(phonePlay.Body)!["offset"]!["uri"]);
 
         // Signed out: the account let go, Soloist's settings kept; the albums off the walls.
         await s.Api("settings/spotify", new { device_name = "Lounge" });

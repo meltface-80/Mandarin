@@ -8,6 +8,7 @@ Status: **Open** · **In progress** · **Ready to test** (green, waiting on the 
 
 | # | Item | Branch | Status |
 |---|------|--------|--------|
+| 146 | Spotify on the phone ("Spotify plays in a room, not on this phone yet"), at home and away: the phone plays Soloist's stream, kept out of its cache; Spotify's sound let out at the speed it plays | `146-spotify-phone` | Ready to test |
 | 145 | Spotify has no stream quality setting, as Qobuz and Tidal have: Lossless (the default), Very high, High or Normal, asked of Spotify through Soloist's prefs | `145-spotify-quality` | Ready to test |
 | 144 | A Spotify album in the library doesn't open to its tracks ("Couldn't reach the server. Trying again…"): its page read the whole saved list from Spotify; now it asks of that album alone | `144-spotify-album-page` | Ready to test |
 | 143 | Spotify favourites in the library like Qobuz and Tidal: sign in with your own Spotify app (Web API, PKCE), saved albums kept as library albums, liked songs and playlists as playlists, and played losslessly from Mandarin on its own Soloist | `143-spotify-library` | Ready to test |
