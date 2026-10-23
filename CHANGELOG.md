@@ -1,6 +1,12 @@
 # Changelog
 
 ## Unreleased
+- `144-spotify-album-page`: a Spotify album opens to its tracks. Its page asked Spotify whether the album is saved by
+  reading your whole saved list, a page of 50 at a time, so with a big library the page took longer than the app waits
+  and it said it couldn't reach the server. Now Spotify is asked of that album alone (`/me/library/contains`), the list
+  from the last import is kept ten minutes, and the page waits at most five seconds for Spotify before it opens without
+  the Spotify heart; an answer that can't be read is taken as unknown, never as "not saved" (which would take the
+  album out of the library).
 - `143-spotify-library`: your Spotify library in Mandarin, as Qobuz's and Tidal's are, and played losslessly. Sign in
   in Settings → Services → Spotify with a Spotify app of your own (developer.spotify.com/dashboard: Create app, Web API,
   redirect URI `http://127.0.0.1:43143/mandarin-spotify`; its Client ID in Mandarin, then Sign in to Spotify). The app
