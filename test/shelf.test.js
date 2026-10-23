@@ -273,7 +273,7 @@ test("Shelf in a browser", { skip: (!haveFfmpeg() && "ffmpeg is not installed") 
         // Nothing left: said so, with Undo and Reset.
         $('.tab[data-tab="genre"]').click(); tile("genre", "Dance").click();
         $('.tab[data-tab="artist"]').click(); tile("artist", "M").click();
-        out.empty = { note: shown("#note"), title: $("#note-title").textContent, why: $("#note-why").textContent, info: shown("#info") };
+        out.empty = { note: shown("#note"), title: $("#note-title").textContent, why: $("#note-why").textContent, acts: shown("#actions") };
         $("#undo").click();
         out.undone = window.__shelfOrder();
         $("#note-reset").click();
@@ -288,7 +288,7 @@ test("Shelf in a browser", { skip: (!haveFfmpeg() && "ffmpeg is not installed") 
       assert.deepEqual(r.chips, ["Jazz", "Rock", "ArtistsM"]);
       assert.deepEqual(r.orLetters, ["Kind of Blue"], "letters OR among themselves");
       assert.equal(r.all, 10, "Reset shelf");
-      assert.deepEqual(r.empty, { note: true, title: "Nothing on this shelf", why: "No albums match Dance and artists under M.", info: false });
+      assert.deepEqual(r.empty, { note: true, title: "Nothing on this shelf", why: "No albums match Dance and artists under M.", acts: false }, "no album, so none of its buttons");
       assert.deepEqual(r.undone, ["Myth Takes"], "Undo takes back the last choice");
       assert.equal(r.reset2, 10);
       assert.deepEqual(page.errors, []);
@@ -352,11 +352,11 @@ test("Shelf in a browser", { skip: (!haveFfmpeg() && "ffmpeg is not installed") 
     await t.test("the transport bar: square, flat, in the page's flow at the shelf's foot, full width", async () => {
       const page = await open();
       const r = await page.eval(`(async () => { ${HELPERS} ${ready}
-        const bar = $("#mt"), shelf = $("#shelf"), info = $("#info");
-        const bb = bar.getBoundingClientRect(), sb = shelf.getBoundingClientRect(), ib = info.getBoundingClientRect();
+        const bar = $("#mt"), shelf = $("#shelf"), stage = $("#stage");
+        const bb = bar.getBoundingClientRect(), sb = shelf.getBoundingClientRect(), gb = stage.getBoundingClientRect();
         const cs = getComputedStyle(bar);
         return { position: cs.position, radius: cs.borderTopLeftRadius, shadow: cs.boxShadow, left: bb.left - sb.left, width: bb.width - sb.width,
-          bottom: sb.bottom - bb.bottom, under: bb.top >= ib.bottom - 1, parent: bar.parentElement.id, last: [...shelf.children].filter(e => getComputedStyle(e).position !== "absolute").pop().id,
+          bottom: sb.bottom - bb.bottom, under: Math.round(bb.top - gb.bottom), info: !!document.querySelector("#info, .info, #info-title"), parent: bar.parentElement.id, last: [...shelf.children].filter(e => getComputedStyle(e).position !== "absolute").pop().id,
           zone: $("#mt-zone").textContent, title: $("#mt-title").textContent, oldLine: !!document.querySelector(".np-line, #np-line, .legend") };
       })()`);
       assert.equal(r.position, "relative", "not fixed, not floating");
@@ -367,7 +367,8 @@ test("Shelf in a browser", { skip: (!haveFfmpeg() && "ffmpeg is not installed") 
       assert.equal(Math.round(r.left), 0);
       assert.equal(Math.round(r.width), 0, "the shelf column's full width");
       assert.equal(Math.round(r.bottom), 0, "at its foot");
-      assert.equal(r.under, true, "under the album's name");
+      assert.equal(r.under, 0, "right under the shelf: nothing between them (item 149)");
+      assert.equal(r.info, false, "no album details under the shelf");
       assert.equal(r.zone, "Kitchen");
       assert.equal(r.title, "Nothing playing");
       assert.equal(r.oldLine, false);
@@ -382,18 +383,15 @@ test("Shelf in a browser", { skip: (!haveFfmpeg() && "ffmpeg is not installed") 
         const st = $("#stage"), S = parseFloat(st.style.getPropertyValue("--S"));
         return {
           acts: [...document.querySelectorAll("[data-act]")].map(b => b.dataset.act + " " + b.textContent.trim()),
-          inBar: $("#actions").parentElement.id, underInfo: !$("#info").querySelector("[data-act]"),
+          inBar: $("#actions").parentElement.id,
           order: box("#mt-info").right <= box("#actions").left && box("#actions").right <= box("#mt-zone-btn").left,
-          infoOnBar: Math.round(box("#mt").top - box("#info").bottom),
           sizes: { prev: size("#mt-prev svg"), next: size("#mt-next svg"), pp: size("#mt-pp"), zone: size("#mt-zone-btn"), vol: size("#mt-vol-btn"), zoneIcon: size("#mt-zone-btn svg") },
           gap: Math.round((box("#mt-pp").left - box("#mt-prev").right) / rem * 10) / 10,
           cover: Math.round(S), stage: { h: st.clientHeight, w: st.clientWidth }
         }; })()`);
       assert.deepEqual(r.acts, ["play_now Play now", "queue Queue"], "Play now and Queue; Play next gone");
       assert.equal(r.inBar, "mt", "in the bar");
-      assert.equal(r.underInfo, true, "not under the album any more");
       assert.equal(r.order, true, "after what's playing, before the zone button");
-      assert.equal(r.infoOnBar, 0, "the album's name just above the bar");
       assert.deepEqual(r.sizes, { prev: 2.4, next: 2.4, pp: 5, zone: 4.4, vol: 4.4, zoneIcon: 2.7 }, "twice the size they were (1.2rem, 2.75rem, 1.35rem); play/pause bigger");
       assert.ok(r.gap >= 0.7, "more room between previous and play/pause: " + r.gap);
       assert.ok(r.cover >= Math.min(r.stage.h * 0.74, r.stage.w * 0.46) - 1, "the covers in the room the buttons left: " + JSON.stringify(r));
@@ -486,7 +484,7 @@ test("Shelf in a browser", { skip: (!haveFfmpeg() && "ffmpeg is not installed") 
         out.rows = rows();
         await holdRow(0); await tapRow(2);
         out.picks = S().picks; out.count = $("#tsel-count").textContent; out.chosen = rows();
-        out.barActs = getComputedStyle($("#actions")).visibility;
+        out.barActs = shown("#actions"); out.tselIn = $("#tsel").parentElement.id;
         // The back's list as big as it holds (v0.8.28): three tracks, one column, well above the smallest.
         const ol = document.querySelector(".it.flipped .bk-tracks");
         out.fit = { one: ol.classList.contains("one"), fit: parseFloat(ol.style.getPropertyValue("--fit")), fits: ol.scrollHeight <= ol.clientHeight + 1,
@@ -495,7 +493,7 @@ test("Shelf in a browser", { skip: (!haveFfmpeg() && "ffmpeg is not installed") 
         await until(() => posts("/api/play-track").length === 2);
         out.posts = posts("/api/play-track").map(b => [b.track, b.kind, b.title, b.only]);
         out.toast = await until(() => /^Playing /.test($("#toast").textContent)) && $("#toast").textContent;
-        out.after = { picks: S().picks, popup: shown("#tsel"), barActs: getComputedStyle($("#actions")).visibility };
+        out.after = { picks: S().picks, tsel: shown("#tsel"), barActs: shown("#actions") };
         out.playing = await until(() => $("#mt-title").textContent === "Song 1", 10000);
         out.prevOn = await until(() => !$("#mt-prev").disabled);
         out.nextOn = await until(() => !$("#mt-next").disabled);
@@ -533,8 +531,9 @@ test("Shelf in a browser", { skip: (!haveFfmpeg() && "ffmpeg is not installed") 
       assert.deepEqual(r.chosen, ["✓ Song 1", "2 Song 2", "✓ Song 3"]);
       assert.deepEqual(r.posts, [[0, "play_now", "Song 1", true], [2, "queue", "Song 3", true]], "the first alone, the rest queued behind it");
       assert.equal(r.toast, "Playing 2 tracks in Kitchen");
-      assert.deepEqual(r.after, { picks: [], popup: false, barActs: "visible" }, "then the choice is done, and the album's buttons are back");
-      assert.equal(r.barActs, "hidden", "the album's Play now and Queue step aside while tracks are chosen");
+      assert.deepEqual(r.after, { picks: [], tsel: false, barActs: true }, "then the choice is done, and the album's buttons are back");
+      assert.equal(r.barActs, false, "the album's Play now and Queue step aside while tracks are chosen");
+      assert.equal(r.tselIn, "mt", "the chosen tracks are played from the bar (item 149)");
       assert.equal(r.fit.one, true, "three tracks: one column");
       assert.ok(r.fit.fit > 1.5, "sized up to fill the back: " + JSON.stringify(r.fit));
       assert.deepEqual([r.fit.fits, r.fit.cut], [true, 0], "all of it on the back, no title cut short");
