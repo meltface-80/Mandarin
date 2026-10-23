@@ -2,8 +2,8 @@
 // only a pipe sink), and the pipe read and handed to the room's live stream (SoloistTap). A part of Soloist
 // (Soloist.cs), sharing its state and its lock; as Mandarin DAC Bridge's SoloistSound.cs.
 //
-// The pipe sink waits for its reader, so whoever reads sets the pace: the room, while a stream is open (it fetches
-// at the speed it plays, after filling its buffer), else the clock here, so Soloist plays on in time. The last
+// The pipe sink waits for its reader, so whoever reads sets the pace: the clock here (SoloistPace.cs), with a lead
+// while a room's or a phone's stream is open, so Soloist plays in time whoever reads. The last
 // moments heard are kept (the preroll), so the room's stream starts from the first notes, not from when it asked.
 using System.Diagnostics;
 using System.Runtime.InteropServices;
@@ -96,8 +96,8 @@ internal sealed partial class Soloist
         {
             var buf = new byte[1 << 14];
             int have = 0;
-            var pace = Stopwatch.StartNew();
-            long paced = 0;
+            var pace = new SoloistPace();
+            SoloistTap? pacedFor = null;
             while (!readerStop && !stop.IsCancellationRequested)
             {
                 int n;
@@ -114,20 +114,17 @@ internal sealed partial class Soloist
 
                 SoloistTap? t;
                 lock (gate) t = tap;
-                if (t != null)
-                {
-                    if (t.Push(chunk, stop.Token)) { pace.Restart(); paced = 0; continue; }
-                    Detach(t);
-                }
-                lock (gate)
-                {
-                    preroll.Enqueue(chunk);
-                    while (preroll.Count > 8) preroll.Dequeue();
-                }
-                paced += chunk.Length / FrameBytes;
-                var ahead = paced * 1000 / Rate - pace.ElapsedMilliseconds;
-                if (ahead > 0) stop.Token.WaitHandle.WaitOne((int)ahead);
-                if (pace.ElapsedMilliseconds > 2000) { pace.Restart(); paced = 0; }
+                if (t != pacedFor) { pace.Reset(); pacedFor = t; }
+                if (t != null && !t.Push(chunk, stop.Token)) { Detach(t); t = null; }
+                if (t == null)
+                    lock (gate)
+                    {
+                        preroll.Enqueue(chunk);
+                        while (preroll.Count > 8) preroll.Dequeue();
+                    }
+                // At the speed it plays, a stream open or not (SoloistPace.cs): a lead while one is open.
+                var wait = pace.Next(chunk.Length / FrameBytes, Environment.TickCount64, t != null ? SoloistPace.LeadMs : 0);
+                if (wait > 0) stop.Token.WaitHandle.WaitOne(wait);
             }
         }
     }

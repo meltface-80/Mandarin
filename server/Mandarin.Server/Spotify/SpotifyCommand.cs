@@ -10,7 +10,8 @@
 //     entities: [JSON text]                           Soloist.Entity: a track as Soloist's WebSocket says it
 //     cleans: [[line, key]]                           Soloist.Clean
 //     bodies: [{ uris, album, start, seconds }]       SpotifyPlay.Body (item 143): what the Web API is asked to play
-//     parts: [{ paths, start }] }                     SpotifyPlay.Part: the part of a mixed list that is played
+//     parts: [{ paths, start }]                       SpotifyPlay.Part: the part of a mixed list that is played
+//     paces: [[[frames, nowMs, leadMs], …]] }         SoloistPace (item 146): each read's wait, a pace per list
 //   → { follows, proofs, builds: [{ expires, plan }], prefs: [{ changed, text }], entities, cleans, bodies, parts: [{ paths, start, spotify }] }
 using System.Globalization;
 using System.Text.Json;
@@ -79,6 +80,11 @@ internal static class SpotifyCommand
             x["start"] = (double)start;
             x["spotify"] = spotify;
             return (object?)x;
+        }).ToList();
+        o["paces"] = L(job["paces"]).Select(steps =>
+        {
+            var pace = new SoloistPace();
+            return (object?)L(steps).Select(st => { var x = L(st); return (object?)(double)pace.Next((long)Tags.Js.ToNumber(x[0]), (long)Tags.Js.ToNumber(x[1]), (int)Tags.Js.ToNumber(x[2])); }).ToList();
         }).ToList();
         return o;
     }

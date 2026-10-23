@@ -63,13 +63,12 @@ internal static class SpotifyPlay
     }
 
     /* [tracks] (all Spotify's) played in [zoneId] from [startAt] ([how]: play_now, add_next, queue). */
-    public static async Task<JsonObject> Play(Hub hub, string zoneId, List<PlayTrack> tracks, string how, double startAt, double seconds, bool? shuffled)
+    public static async Task<JsonObject> Play(string zoneId, List<PlayTrack> tracks, string how, double startAt, double seconds, bool? shuffled)
     {
         var svc = Jobs.Spotify;
         var player = SpotifyLive.Player;
         if (svc == null || player == null) throw new HubError(503, "Spotify plays through Spotify Soloist: set it up in Settings → Services → Spotify");
         if (!svc.Connected()) throw new HubError(409, "Sign in to Spotify in Settings → Services → Spotify");
-        if (hub.Phones.IsPhoneId(zoneId)) throw new HubError(400, "Spotify plays in a room, not on this phone yet: choose a room");
         var uris = tracks.Select(UriOf).ToList();
         var start = (int)Math.Clamp(startAt, 0, uris.Count - 1);
         var name = SpotifyLive.Settings().DeviceName;

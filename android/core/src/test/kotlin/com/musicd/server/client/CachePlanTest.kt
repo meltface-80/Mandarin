@@ -50,4 +50,13 @@ class CachePlanTest {
         assertEquals("t12:opus", CachePlan.key(12, true))
         assertEquals("t12:orig", CachePlan.key(12, false))
     }
+
+    @Test fun `Spotify's live stream is told from the tracks, at home and away`() {
+        assertTrue(CachePlan.live("http://192.168.1.2:3500/stream/spotify/live.flac?s=abc"))
+        assertTrue(CachePlan.live("http://100.90.1.2:3500/stream/spotify/live.flac?s=abc&q=opus"))
+        assertTrue(CachePlan.live("http://192.168.1.2:3500/stream/spotify/live.flac"))
+        assertFalse(CachePlan.live("http://192.168.1.2:3500/stream/t12.flac?s=abc"))
+        assertFalse(CachePlan.live("http://192.168.1.2:3500/stream/spotify/live.flacx"))
+        assertEquals(null, CachePlan.trackIdOf("http://192.168.1.2:3500/stream/spotify/live.flac?s=abc"))
+    }
 }

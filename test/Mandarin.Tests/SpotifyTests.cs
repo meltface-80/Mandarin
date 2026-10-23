@@ -49,6 +49,46 @@ public sealed class SpotifyTests
         return (System.Text.Encoding.ASCII.GetString(b, 0, 4), rate, bits);
     }
 
+    // The stream read as fast as it comes for [ms]: how many seconds of sound came, decoded by ffmpeg, and how long it took.
+    private static async Task<(double Seconds, long Ms)> StreamFor(Session s, int ms)
+    {
+        using var req = new HttpRequestMessage(HttpMethod.Get, s.Base + "/stream/spotify/live.flac");
+        req.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", s.Token);
+        var file = Path.Combine(Directory.CreateTempSubdirectory("mandarin-spotify-heard-").FullName, "heard.flac");
+        var watch = System.Diagnostics.Stopwatch.StartNew();
+        using (var cts = new CancellationTokenSource(ms))
+        await using (var to = File.Create(file))
+        {
+            try
+            {
+                using var r = await Http.Client.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, cts.Token);
+                await (await r.Content.ReadAsStreamAsync(cts.Token)).CopyToAsync(to, cts.Token);
+            }
+            catch (OperationCanceledException) { /* as long as asked */ }
+        }
+        var took = watch.ElapsedMilliseconds;
+        var psi = new System.Diagnostics.ProcessStartInfo("ffmpeg") { RedirectStandardOutput = true, RedirectStandardError = true, UseShellExecute = false };
+        foreach (var a in new[] { "-v", "quiet", "-i", file, "-f", "s32le", "-ac", "2", "-ar", "44100", "pipe:1" }) psi.ArgumentList.Add(a);
+        using var ff = System.Diagnostics.Process.Start(psi)!;
+        _ = ff.StandardError.ReadToEndAsync();
+        using var pcm = new MemoryStream();
+        await ff.StandardOutput.BaseStream.CopyToAsync(pcm);
+        await ff.WaitForExitAsync();
+        return (pcm.Length / 8.0 / 44100, took);
+    }
+
+    // The stream's first four bytes and its type.
+    private static async Task<(string Marker, string? Type)> StreamStart(Session s, string query)
+    {
+        using var req = new HttpRequestMessage(HttpMethod.Get, s.Base + "/stream/spotify/live.flac" + query);
+        req.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", s.Token);
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+        using var r = await Http.Client.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, cts.Token);
+        var b = new byte[4];
+        await (await r.Content.ReadAsStreamAsync(cts.Token)).ReadExactlyAsync(b, cts.Token);
+        return (System.Text.Encoding.ASCII.GetString(b), r.Content.Headers.ContentType?.MediaType);
+    }
+
     [Test]
     public async Task Spotify_plays_lossless_through_Soloist_from_its_key_to_the_rooms_stream()
     {
@@ -99,6 +139,12 @@ public sealed class SpotifyTests
         Assert.Equal(("fLaC", 44100, 24), await StreamHead(s));
         Assert.Equal(("fLaC", 44100, 16), await StreamHead(s, "?bits=16"));
         Assert.Equal(401, (await Http.Get(s.Base + "/stream/spotify/live.flac")).Status);
+
+        // At the speed it plays (item 146): a player reading as fast as it can (a phone fetches minutes ahead) gets no
+        // more than real time and the lead, so Spotify isn't run ahead of what is heard; away, as Opus when asked.
+        var (heard, took) = await StreamFor(s, 4000);
+        Assert.True(heard > 2 && heard < took / 1000.0 + 4.5, $"{heard:F1} s of sound in {took} ms");
+        Assert.Equal(("OggS", "audio/ogg"), await StreamStart(s, "?q=opus"));
 
         // Another stream quality chosen (item 145): Soloist started again, its prefs asking Spotify for it; one not offered refused.
         Assert.Equal(400, (await s.Api("settings/spotify", new { quality = "best" })).Status);

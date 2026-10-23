@@ -1,6 +1,12 @@
 # Changelog
 
 ## Unreleased
+- `146-spotify-phone`: Spotify plays on the phone too, at home and away. Play a Spotify album or song with this phone
+  as the room and the phone plays Mandarin's Soloist stream, lossless (Opus at 256 kbps when your away quality is
+  Opus, as tracks are); pause, next, previous and seek go to Spotify as in a room. The phone keeps none of it (an
+  endless stream would fill its cache). And Spotify's sound is now let out at the speed it plays, with three seconds'
+  lead: a player that reads as fast as it can (the phone fetches minutes ahead; a Sonos room fills its buffer) took
+  minutes of Spotify at once, which ran Soloist ahead of what was heard, so pause and next would have been heard late.
 - `145-spotify-quality`: Spotify has a Stream quality in Settings → Services → Spotify, as Qobuz and Tidal have, in the
   app and on the page: **Lossless** (FLAC up to 24-bit/44.1 kHz, the default) or Spotify's Very high, High or Normal
   (Ogg Vorbis at 320, 160 or 96 kbps) for when data matters more. Soloist asks Spotify for it in its prefs and is started

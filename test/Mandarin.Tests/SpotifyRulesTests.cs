@@ -170,4 +170,21 @@ public sealed class SpotifyRulesTests
         Assert.Contains("audio.play_bitrate_non_metered_enumeration=4", (string)p[0]!["text"]!);
         Assert.Contains("audio.normalize_v2=false", (string)p[2]!["text"]!);
     }
+
+    [Test]
+    public async Task Spotifys_sound_is_let_out_at_the_speed_it_plays_with_a_lead_while_a_stream_is_open()
+    {
+        var p = (await Ask(new
+        {
+            paces = new[]
+            {
+                // No stream open: a second read waits out its second; after a stall, counted afresh rather than raced.
+                new[] { new long[] { 44100, 0, 0 }, [44100, 1000, 0], [44100, 10_000, 0] },
+                // A stream open: three seconds may go out at once, the fourth waits its second.
+                [[44100, 0, 3000], [88200, 0, 3000], [44100, 0, 3000]],
+            }
+        }))["paces"]!.AsArray();
+        Assert.Equal("1000 1000 1000", string.Join(" ", p[0]!.AsArray().Select(x => x!.GetValue<double>())));
+        Assert.Equal("0 0 1000", string.Join(" ", p[1]!.AsArray().Select(x => x!.GetValue<double>())));
+    }
 }
