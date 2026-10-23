@@ -79,6 +79,7 @@ internal fun SettingsServices(client: () -> ServerClient?, onBack: () -> Unit) {
             SettingsHead(Modifier.parity("settings-services.back", Contract.label("settings-services.back")).clip(CircleShape).clickable(onClick = onBack), R.drawable.np_back,
                 "Services", Modifier.parity("settings-services.heading"))
             for (s in SERVICES) Block { ServiceBlock(s, client) { info = it } }
+            SpotifyBlock(client) { info = it }
         }
         info?.let { InfoTip(it, Modifier.parity("settings-services.info")) }
     }
@@ -191,7 +192,7 @@ private fun ServiceBlock(service: String, client: () -> ServerClient?, info: (St
 
 /** A block's title with its ⓘ (.settings-block-title): 13 in 700, spaced, in capitals, faint, the ⓘ's 32 beside it; 10 under it. */
 @Composable
-private fun ServiceTitle(text: String, modifier: Modifier, info: Modifier) {
+internal fun ServiceTitle(text: String, modifier: Modifier, info: Modifier) {
     Row(Modifier.padding(bottom = 10.dp).heightIn(min = 32.dp), verticalAlignment = Alignment.CenterVertically) {
         Text(text.uppercase(), modifier, color = paletteColor(Palette.TEXT_FAINT), fontSize = 13.sp, lineHeight = 18.sp, fontWeight = FontWeight.W700, letterSpacing = 0.06.em)
         Box(info.size(32.dp).padding(start = 4.dp), contentAlignment = Alignment.Center) { Text("ⓘ", color = paletteColor(Palette.TEXT_FAINT), fontSize = 13.sp, lineHeight = 13.sp) }
@@ -204,7 +205,7 @@ private fun ServiceTitle(text: String, modifier: Modifier, info: Modifier) {
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun ServiceRow(name: String, info: Modifier, control: @Composable () -> Unit) {
+internal fun ServiceRow(name: String, info: Modifier, control: @Composable () -> Unit) {
     Row(Modifier.fillMaxWidth().heightIn(min = 44.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
         FlowRow(Modifier.weight(1f), itemVerticalAlignment = Alignment.CenterVertically) {
             Text(name, Modifier.parity("settings-services.name"), color = paletteColor(Palette.TEXT), fontSize = 16.sp, lineHeight = 22.sp)
@@ -216,13 +217,13 @@ private fun ServiceRow(name: String, info: Modifier, control: @Composable () -> 
 
 /** What is said of the account (.settings-token-status): 11 dim. */
 @Composable
-private fun StatusLine(text: String, modifier: Modifier) {
+internal fun StatusLine(text: String, modifier: Modifier) {
     Text(text, modifier, color = paletteColor(Palette.TEXT_DIM), fontSize = 11.sp, lineHeight = 15.sp)
 }
 
 /** A field's ground (.settings-token-input): 34 tall, 8 round on the raised ground, 10 and 7 in, its [hint] faint while empty. */
 @Composable
-private fun FieldBox(empty: Boolean, hint: String, inner: @Composable () -> Unit) {
+internal fun FieldBox(empty: Boolean, hint: String, inner: @Composable () -> Unit) {
     val shape = RoundedCornerShape(8.dp)
     Box(Modifier.fillMaxWidth().height(34.dp).clip(shape).background(paletteColor(Palette.BG_ELEV_2)).border(1.dp, paletteColor(Palette.BORDER), shape).padding(horizontal = 10.dp),
         contentAlignment = Alignment.CenterStart) {

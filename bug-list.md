@@ -8,6 +8,7 @@ Status: **Open** · **In progress** · **Ready to test** (green, waiting on the 
 
 | # | Item | Branch | Status |
 |---|------|--------|--------|
+| 142 | Spotify Lossless through Spotify Soloist, first build: Mandarin a Spotify Connect device, what plays on it played in the chosen room as a live lossless FLAC stream, Now Playing and its controls; Settings → Services → Spotify in the app and on the page; image on Debian 13 (plan: docs/spotify-plan.md, items 143–145 to follow) | `142-spotify-lossless` | Ready to test |
 | 141 | Test builds numbered like release candidates: dev's server and app are the next release with -tN (1.1.4-t3), worked out as they are built; the release is offered over them by the updaters | `141-test-versions` | Ready to test |
 | 140 | An artist's page in the owner's order: members folded until tapped, then discography, appears on, similar artists and similar albums (similar artists were over the albums); a page opened again drawn at once, picture and all, from what it last had | `140-artist-page-order` | Ready to test |
 | 139 | Genres and tags on an album's page and an artist's page (app and page): chips, an artist's the most used across their albums; a tap opens the genre's wall | `139-genres-tags` | To be confirmed |

@@ -24,6 +24,14 @@ internal sealed partial class Hub
 
     public Task Control(string zoneId, string command)
     {
+        // A room playing Spotify's live stream (item 142): its controls are Spotify's (SpotifyLive.cs).
+        if (Spotify.SpotifyLive.Intercepts(this, zoneId, command)) return Task.CompletedTask;
+        return ControlDevice(zoneId, command);
+    }
+
+    /* The command to the room's device itself, whatever it plays (SpotifyLive follows Spotify with it). */
+    public Task ControlDevice(string zoneId, string command)
+    {
         if (Phones.IsPhoneId(zoneId)) { Phones.Control(zoneId, command); return Task.CompletedTask; }
         if (IsUpnp(zoneId)) return UpnpControl(zoneId, command);
         return SonosControl(zoneId, command);
@@ -31,6 +39,7 @@ internal sealed partial class Hub
 
     public Task Seek(string zoneId, string how, double seconds)
     {
+        if (how == "absolute" && Spotify.SpotifyLive.Intercepts(this, zoneId, "seek", seconds)) return Task.CompletedTask;
         if (Phones.IsPhoneId(zoneId)) { Phones.Seek(zoneId, how, seconds); return Task.CompletedTask; }
         if (IsUpnp(zoneId)) return UpnpSeek(zoneId, how, seconds);
         return SonosSeek(zoneId, how, seconds);
