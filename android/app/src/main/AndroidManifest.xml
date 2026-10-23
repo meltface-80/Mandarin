@@ -158,6 +158,23 @@
             android:foregroundServiceType="dataSync"
             tools:node="merge" />
 
+        <!-- The Soloist test build (bug list item 148; its branch alone, never merged): its own icon. -->
+        <activity
+            android:name=".SoloistTestActivity"
+            android:exported="true"
+            android:label="Soloist test"
+            android:taskAffinity="com.musicd.server.remote.soloisttest"
+            android:windowSoftInputMode="adjustResize">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        <service
+            android:name=".SoloistTestService"
+            android:exported="false"
+            android:foregroundServiceType="mediaPlayback" />
+
         <service
             android:name=".NowPlayingService"
             android:exported="false"

@@ -8,6 +8,7 @@ Status: **Open** · **In progress** · **Ready to test** (green, waiting on the 
 
 | # | Item | Branch | Status |
 |---|------|--------|--------|
+| 148 | Soloist on the phone, a test build (this branch alone, never merged; its own pre-release, test-android-soloist, and its own "Soloist test" icon): whether Spotify's Soloist runs on the phone under proot with Debian's glibc, is signed in by the Spotify app on the same Wi-Fi, and plays lossless through the phone itself, a report shared from the screen | `148-soloist-phone-test` | Ready to test |
 | 147 | Away, Spotify on the phone says "Choose Mandarin once in the Spotify app's devices" with no way to do so: Soloist takes a sign-in only from the Spotify app at home; the words now say so, and that it then plays from anywhere | `147-spotify-pairing-words` | Ready to test |
 | 146 | Spotify on the phone ("Spotify plays in a room, not on this phone yet"), at home and away: the phone plays Soloist's stream, kept out of its cache; Spotify's sound let out at the speed it plays | `146-spotify-phone` | Ready to test |
 | 145 | Spotify has no stream quality setting, as Qobuz and Tidal have: Lossless (the default), Very high, High or Normal, asked of Spotify through Soloist's prefs | `145-spotify-quality` | Ready to test |

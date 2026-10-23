@@ -31,3 +31,5 @@ tools/lint/node_modules/
 test/StandIns/bin/
 test/StandIns/obj/
 tools/quality/out
+# The Soloist test build's runtime (android/soloist/runtime.sh), made by CI.
+android/app/src/main/assets/soloist-root/
