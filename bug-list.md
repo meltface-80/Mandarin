@@ -8,6 +8,7 @@ Status: **Open** · **In progress** · **Ready to test** (green, waiting on the 
 
 | # | Item | Branch | Status |
 |---|------|--------|--------|
+| 144 | A Spotify album in the library doesn't open to its tracks ("Couldn't reach the server. Trying again…"): its page read the whole saved list from Spotify; now it asks of that album alone | `144-spotify-album-page` | Ready to test |
 | 143 | Spotify favourites in the library like Qobuz and Tidal: sign in with your own Spotify app (Web API, PKCE), saved albums kept as library albums, liked songs and playlists as playlists, and played losslessly from Mandarin on its own Soloist | `143-spotify-library` | Ready to test |
 | 142 | Spotify Lossless through Spotify Soloist, first build: Mandarin a Spotify Connect device, what plays on it played in the chosen room as a live lossless FLAC stream, Now Playing and its controls; Settings → Services → Spotify in the app and on the page; image on Debian 13 (plan: docs/spotify-plan.md, items 143–145 to follow) | `142-spotify-lossless` | Ready to test |
 | 141 | Test builds numbered like release candidates: dev's server and app are the next release with -tN (1.1.4-t3), worked out as they are built; the release is offered over them by the updaters | `141-test-versions` | Ready to test |
