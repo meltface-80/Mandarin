@@ -1,6 +1,17 @@
 # Changelog
 
 ## Unreleased
+- `149-shelf-spines-bar`: three Shelf changes, as Rouen's v1.9.66:
+  - **Spines:** no spines show through a case as it turns during a swipe. The cases are now drawn one over another,
+    nearest the front on top. Before, they were left to one shared 3D depth, where a half-turned cover swung back
+    behind the spines beside it.
+  - **No album details under the shelf:** the shelf takes their room. In Spines the cases are bigger: half the width,
+    0.6 on a phone held upright, up to 680px. In Covers they grow where height held them back.
+  - **Chosen tracks play from the bar:** Play now, Play next and Queue for tracks chosen on the back of a case are in
+    the bar, where the album's own Play now and Queue are; those step aside while tracks are chosen.
+  - **The bar keeps its height and fits:** it is the same height whether tracks are chosen or not. Where the shelf's
+    column is too narrow for one row (it's measured, not the screen, since the panes beside it take room), the buttons
+    go on a row of their own above the rest.
 - `147-spotify-pairing-words`: Spotify says plainly what Soloist needs before it can play. Soloist takes a sign-in only
   from the Spotify app on the same network (Spotify refuses any other way), so the first time it has to be at home:
   Settings and Play now say "not signed in to Spotify yet · at home, on the same Wi-Fi, choose Mandarin once in the

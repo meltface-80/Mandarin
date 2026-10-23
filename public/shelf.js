@@ -325,13 +325,14 @@
     // (1.2:1 or narrower) keeps exactly the sizes they always had.
     const roomy = clamp((W / Math.max(1, H) - 1.2) / 1.8, 0, 1);
     if (look === "spines") {
-      S = Math.round(Math.max(110, Math.min(H * (0.72 + 0.08 * roomy), W * 0.42, 600)));
+      S = Math.round(Math.max(110, Math.min(H * (0.72 + 0.08 * roomy), W * (H > W ? 0.6 : 0.5), 680)));   // item 149: half the width (0.6 upright), to 680
       T = Math.max(14, Math.round(S * 0.115));
       TOP = Math.round((H - S * 1.075) * 0.62);
       stepPx = Math.max(56, S * 0.3);
       K = Math.min(30, Math.ceil((W / 2 - S / 2) / (T * 1.08)) + 2);
-      scene.style.perspective = Math.round(S * 3.2) + "px";
-      scene.style.perspectiveOrigin = `50% ${Math.round(TOP + S * 0.58)}px`;
+      // drawn one over another, not one 3D scene (shelf.css, render(); item 149): the perspective is the rig's
+      scene.style.perspective = ""; rig.style.perspective = Math.round(S * 3.2) + "px";
+      rig.style.perspectiveOrigin = `50% ${Math.round(TOP + S * 0.58)}px`;
       rig.style.transform = "none";
     } else {
       // v0.8.28: bigger, in the room the album's buttons left (they are in
@@ -343,7 +344,7 @@
       K = Math.min(12, Math.ceil((W / 2 + S * 0.3 - S * 0.62) / (S * 0.24)) + 1);
       scene.style.perspective = Math.round(S * 3.2) + "px";
       scene.style.perspectiveOrigin = `50% ${Math.round(TOP + S * 0.5)}px`;
-      rig.style.transform = "none";
+      rig.style.perspective = ""; rig.style.transform = "none";
     }
     // the player's height, for the queue drawer on a narrow screen to stop at
     screenEl.style.setProperty("--foot-h", footH + "px");
@@ -647,7 +648,7 @@
   // ---- Choosing tracks on the back of the case (v1.9.4) ---------------------------
   // A tap on the back turns the case over again, so choosing is a LONG press
   // on a track (500 ms, as the remote's) — its number becomes a tick and the
-  // choice pops up under the cover. While tracks are chosen a tap on another
+  // choice is played from the bar (item 149). While tracks are chosen a tap on another
   // adds it, a tap on a chosen one takes it away, and the last one taken away
   // ends the choosing. With a mouse, Ctrl/⌘-click chooses without the hold and
   // Shift-click chooses every track from the last one chosen. Turning the case
@@ -694,9 +695,7 @@
     }
     const n = tsel ? tsel.picks.size : 0;
     $("#tsel").classList.toggle("hidden", !n);
-    // The album's own title, and its buttons in the bar, step aside: they are
-    // for the whole album, and two Play nows would not say which is which.
-    $("#info").classList.toggle("choosing", !!n);
+    // The album's own buttons step aside for these: two Play nows would not say which is which.
     $("#mt").classList.toggle("choosing", !!n);
     if (n) $("#tsel-count").textContent = n === 1 ? "1 track chosen" : `${n} tracks chosen`;
   }
@@ -777,6 +776,9 @@
       const pl = place(v - p);
       pl.op *= fade;
       el.style.transform = pl.tf;
+      // Spines (item 149): nearer the front, higher, so a turning case is whole over the spines; "" in the other looks.
+      const z = look === "spines" ? String(-2 * Math.round(Math.abs(v - p) * 100) - (v > p ? 1 : 0)) : "";
+      if (el._z !== z) { el._z = z; el.style.zIndex = z; }
       el.style.setProperty("--op", pl.op.toFixed(3));
       el.style.visibility = pl.op < 0.002 ? "hidden" : "";
       // Spines: a box turned edge-on shows its spine, never its front — so the
@@ -1113,12 +1115,12 @@
     $("#note-title").textContent = title;
     $("#note-why").textContent = why;
     $("#note-actions").classList.toggle("hidden", !withActions);
-    $("#info").classList.add("hidden");
+    $("#actions").classList.add("hidden");
     stage.classList.add("empty");
   }
   function hideNote() {
     $("#note").classList.add("hidden");
-    $("#info").classList.remove("hidden");
+    $("#actions").classList.remove("hidden");
     stage.classList.remove("empty");
   }
   function updateInfo(force) {
@@ -1138,9 +1140,6 @@
     if (i === shownIdx && !force) return;
     shownIdx = i;
     const a = list[i];
-    $("#info-title").textContent = a.t;
-    $("#info-artist").textContent = a.a;
-    $("#info-meta").textContent = a.g.map((g) => (genres[g] || { name: "" }).name).filter(Boolean).join(" · ");
     $("#shelf-pos").textContent = `${(i + 1).toLocaleString()} of ${N.toLocaleString()}`;
     stage.setAttribute("aria-label", `${a.t} by ${a.a}, ${i + 1} of ${N}. Arrow keys move along the shelf, Enter turns the case over.`);
   }
@@ -1531,7 +1530,7 @@
   }
   $("#actions").addEventListener("click", (e) => { const b = e.target.closest(".act"); if (b) act(b.dataset.act, b); });
 
-  // The chosen tracks, from the popup under the cover (v1.9.4) — one request
+  // The chosen tracks, from the bar (v1.9.4; item 149) — one request
   // per track, as the remote's album view sends a selection: Play now plays
   // the first that goes and queues the rest behind it (play_now for each
   // would leave the last one playing alone), Play next sends them last to
