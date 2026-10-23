@@ -117,7 +117,7 @@ internal fun BookletButton(booklets: List<Booklet>, colors: IconButtonColors, mo
 /** The streaming service's mark on the cover (bottom left), as the page's badge: only a Qobuz or Tidal album wears one. */
 @Composable
 internal fun SourceBadge(source: String?, modifier: Modifier = Modifier) {
-    val icon = when (source) { "qobuz" -> R.drawable.src_qobuz; "tidal" -> R.drawable.src_tidal; else -> return }
+    val icon = when (source) { "qobuz" -> R.drawable.src_qobuz; "tidal" -> R.drawable.src_tidal; "spotify" -> R.drawable.src_spotify; else -> return }
     Box(modifier.parity("album.source").padding(8.dp).size(28.dp).clip(RoundedCornerShape(8.dp)).background(Color(0x9E0A0E14)), contentAlignment = Alignment.Center) {
         Icon(painterResource(icon), contentDescription = null, tint = Color.White.copy(alpha = 0.92f), modifier = Modifier.size(16.dp))
     }

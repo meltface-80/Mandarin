@@ -133,7 +133,7 @@ object Scanner {
     /** What is asked before a kind is removed. */
     fun cleanupQuestion(kind: String, n: Int, locale: Locale = Locale.getDefault()): String =
         if (kind == "files") "Remove " + num(n, locale) + " album" + plural(n, "") + " whose files are gone from the server?\n\nPlays stay in history; their edits, hearts and Listen later go. If the files come back, a scan adds the albums afresh."
-        else "Remove " + num(n, locale) + " Qobuz album" + plural(n, "") + " from the database?\n\nPlays stay in history. Signing in and favouriting again brings an album back."
+        else "Remove " + num(n, locale) + " " + (if (kind == "spotify") "Spotify" else "Qobuz") + " album" + plural(n, "") + " from the database?\n\nPlays stay in history. Signing in and favouriting again brings an album back."
 
     /** The MusicBrainz pack, said ([day]: an ISO date as the phone writes it); [busy]: something under way here. */
     fun pack(pack: JSONObject, busy: Boolean, day: (String) -> String, locale: Locale = Locale.getDefault()): PackView {

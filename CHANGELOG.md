@@ -1,6 +1,19 @@
 # Changelog
 
 ## Unreleased
+- `143-spotify-library`: your Spotify library in Mandarin, as Qobuz's and Tidal's are, and played losslessly. Sign in
+  in Settings → Services → Spotify with a Spotify app of your own (developer.spotify.com/dashboard: Create app, Web API,
+  redirect URI `http://127.0.0.1:43143/mandarin-spotify`; its Client ID in Mandarin, then Sign in to Spotify). The app
+  catches Spotify's answer by itself; in a browser, the address the browser lands on (which won't open) is pasted in.
+  Switch on Favourites in the library and every album you have saved on Spotify is an album here, with a Spotify mark,
+  on the walls, in search, Smart Picks and Listen later; your liked songs and playlists are playlists. Brought up to date
+  every six hours, or with Update library now. Playing a Spotify album, a track of one or a Spotify playlist from
+  Mandarin starts it on Mandarin's own Spotify Soloist (through Spotify's Web API, on its device), and the room you
+  played it in plays Soloist's lossless stream: nothing is fetched track by track and nothing goes through librespot.
+  Play next and Add to queue go into Spotify's queue while Spotify plays. A list mixing Spotify with other music plays
+  the part the starting track belongs to. Sign out keeps Soloist's key, room and name. New: `POST
+  /api/settings/spotify/signin` `{ client_id }`, `/signin/code` `{ url }`, `/signin/cancel`, `/signout`, `/import`;
+  `/api/spotify/…` (search, an artist's albums, an album, open, favourite, play) as for Qobuz and Tidal.
 - `142-spotify-lossless`: Spotify Lossless in Mandarin, the first build (`docs/spotify-plan.md`). Mandarin becomes a
   Spotify Connect device through **Spotify Soloist**, Spotify's own player for Linux and the only way to Spotify's
   lossless FLAC (librespot, and so SpotOn, is lossy). Settings → Services → Spotify, in the app and on the page: your

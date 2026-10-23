@@ -367,7 +367,7 @@ internal static class StreamPlans
 
     // ---------------------------------------------------------------- playback.js
 
-    private static readonly (string Id, string Name)[] Services = [("qobuz", "Qobuz"), ("tidal", "Tidal")];
+    private static readonly (string Id, string Name)[] Services = [("qobuz", "Qobuz"), ("tidal", "Tidal"), ("spotify", "Spotify")];
 
     /* services.ofPath(p): "qobuz" or "tidal" for a streamed track's path, else null. */
     public static string? ServiceOf(object? path)

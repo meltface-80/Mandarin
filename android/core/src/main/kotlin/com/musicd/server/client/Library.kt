@@ -28,7 +28,7 @@ data class AlbumSummary(
     val quality: String?,
     val year: Int?,
     val discs: Int?,
-    /** "qobuz" or "tidal" for a service's album, null for the library's own. */
+    /** "qobuz", "tidal" or "spotify" for a service's album, null for the library's own. */
     val source: String?,
     /** The heart: one of your favourites. */
     val favourite: Boolean = false,
@@ -43,7 +43,7 @@ data class AlbumSummary(
     val serviceFavourite: Boolean? = null
 ) {
     /** The service's name as the page writes it ("Qobuz", "Tidal"); null for the library's own files. */
-    val serviceName: String? get() = when (source) { "qobuz" -> "Qobuz"; "tidal" -> "Tidal"; else -> null }
+    val serviceName: String? get() = when (source) { "qobuz" -> "Qobuz"; "tidal" -> "Tidal"; "spotify" -> "Spotify"; else -> null }
 
     companion object {
         fun parse(j: JSONObject) = AlbumSummary(

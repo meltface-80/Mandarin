@@ -28,7 +28,9 @@ using TJs = Mandarin.Server.Tags.Js;
 
 internal static partial class Library
 {
-    private static readonly string[] ServiceIds = ["qobuz", "tidal"];
+    private static readonly string[] ServiceIds = ["qobuz", "tidal", "spotify"];
+    // Spotify (item 143) counted once it is in use (signed in, or its albums here): the answers as they were till then.
+    private static IEnumerable<string> ServicesInUse => ServiceIds.Where(id => id != "spotify" || Jobs.Spotify?.InUse == true);
     private static readonly string[] AlbumMarkTables = ["album_edits", "favourites", "listen_later", "track_edits"];
     private const double SevenDays = 7.0 * 86400000;
 
@@ -148,7 +150,7 @@ internal static partial class Library
     {
         var f = StaleFilesNow();
         var o = new JsonObject { ["files"] = new JsonObject { ["albums"] = f.Albums.Count, ["tracks"] = f.Tracks, ["folders"] = f.Dirs.Count } };
-        foreach (var id in ServiceIds)
+        foreach (var id in ServicesInUse)
         {
             var svc = CatalogueOf(id);
             o[id] = new JsonObject { ["albums"] = svc?.Stale() ?? 0, ["signed_in"] = svc?.Connected() ?? false };
@@ -165,7 +167,7 @@ internal static partial class Library
         var kind = Prop(b, "kind");
         if (Scans.Running) return await JsError(ctx, 409, ScanUnderWay);
         if (kind is string k && ServiceIds.Contains(k)) return false;
-        if (!TJs.StrictEq(kind, "files")) return await JsError(ctx, 400, "kind must be files, " + string.Join(" or ", ServiceIds));
+        if (!TJs.StrictEq(kind, "files")) return await JsError(ctx, 400, "kind must be files, " + string.Join(" or ", ServicesInUse));
         if (await Current() is not var (s, _)) return false;
         var f = StaleFilesNow();
         var keys = f.Albums.Select(id => s.Find(id)?.Key).Where(key => !string.IsNullOrEmpty(key)).ToList();

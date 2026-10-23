@@ -60,10 +60,15 @@ internal static class SpotifyLive
         return new SpotifySettings(Str("apiKey"), Str("room"), name != "" ? name : SpotifySettings.DefaultName);
     }
 
+    /* Soloist's three written into the setting, the Spotify account's (Services/SpotifyAccounts.cs) left as they are. */
     public static void Save(SpotifySettings s)
     {
-        var o = new JsObj { ["apiKey"] = s.ApiKey, ["room"] = s.Room, ["deviceName"] = s.DeviceName };
+        var o = Extras.Labels.Setting("spotify") as JsObj ?? new JsObj();
+        o["apiKey"] = s.ApiKey;
+        o["room"] = s.Room;
+        o["deviceName"] = s.DeviceName;
         Extras.Labels.SetSetting("spotify", o);
+        lock (gate) askedRoom = null;
     }
 
     private static SoloistSetup Setup()
@@ -136,6 +141,10 @@ internal static class SpotifyLive
     private static string lastPlayback = "idle"; // what Spotify did when last followed (SpotifyFollow.Decide)
     private static long startedAt;               // when the stream was started in the room (Environment.TickCount64)
     private static bool saidNoRoom;              // said once while it plays with no room, not at every change
+    private static string? askedRoom;            // the room Spotify was last played in from Mandarin (SpotifyPlay), over the setting's
+
+    /* Spotify played from Mandarin into [zoneId] (Services' play, SpotifyPlay.cs): the room follows it there. */
+    public static void PlayIn(string zoneId) { lock (gate) askedRoom = zoneId; }
 
     // The room made to follow Spotify (SpotifyFollow.cs says what to do), one change at a time.
     private static async Task Follow(string playback)
@@ -148,7 +157,8 @@ internal static class SpotifyLive
         {
             string? room;
             lock (gate) room = playingIn;
-            var want = Settings().Room;
+            string want;
+            lock (gate) want = askedRoom ?? Settings().Room;
             var st = room != null ? hub.StateOf(room) : null;
             var starting = Environment.TickCount64 - startedAt < SpotifyFollow.StartingMs;
             var what = SpotifyFollow.Decide(playback, lastPlayback, want, room, st != null ? new SpotifyRoom(IsLive(st), st.State) : null, starting);
@@ -160,6 +170,8 @@ internal static class SpotifyLive
                     saidNoRoom = true;
                     break;
                 case "start":
+                    // Played in another room now: the stream (one at a time) leaves the first, which stops.
+                    if (room != null && room != want && IsLive(st)) await hub.ControlDevice(room, "stop");
                     await hub.Enqueue(want, [Item(hub)], "play_now");
                     lock (gate) playingIn = want;
                     startedAt = Environment.TickCount64;
@@ -174,7 +186,7 @@ internal static class SpotifyLive
                 case "pause-room": await hub.ControlDevice(room!, "pause"); break;
                 case "stop-room" or "forget":
                     if (what == "stop-room") await hub.ControlDevice(room!, "stop");
-                    lock (gate) playingIn = null;
+                    lock (gate) { playingIn = null; askedRoom = null; }
                     break;
             }
             lastPlayback = playback;
