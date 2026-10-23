@@ -136,7 +136,7 @@ object SoloistPhone {
         val e = pb.environment()
         e["PROOT_LOADER"] = native(c, "libproot-loader.so").path
         e["PROOT_TMP_DIR"] = File(dir(c), "proot-tmp").path
-        e["LD_LIBRARY_PATH"] = File(dir(c), "bionic").path
+        e["LD_LIBRARY_PATH"] = File(dir(c), "bionic").path + ":" + c.applicationInfo.nativeLibraryDir
         e["HOME"] = "/home"
         e["TMPDIR"] = "/tmp"
         e["PATH"] = "/usr/bin:/bin"
