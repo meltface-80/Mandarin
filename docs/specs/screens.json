@@ -229,7 +229,7 @@
     },
     "artist": {
       "page": "an artist's page (their name tapped on an album, on Now playing or on the Artists wall; rebuilt in bug list item 131): the count and the name as the heading, the bar's Back; who they are over their albums (their picture, what they are, where from and when, their links, the biography, a band's members or a person's bands, each opening their own page); their albums, those they appear on, their bands' albums from their years in them (\"With {band}\") and those they are credited on (as what, beside the album's artist); the mini player and the row are their own screens",
-      "native": ["android/app/src/main/java/com/musicd/server/android/ArtistScreen.kt", "android/app/src/main/java/com/musicd/server/android/ArtistHero.kt", "android/app/src/main/java/com/musicd/server/android/AlbumTile.kt", "android/app/src/main/java/com/musicd/server/android/WallGrid.kt", "android/app/src/main/java/com/musicd/server/android/WallSelect.kt", "android/app/src/main/java/com/musicd/server/android/GenreChips.kt"],
+      "native": ["android/app/src/main/java/com/musicd/server/android/ArtistScreen.kt", "android/app/src/main/java/com/musicd/server/android/ArtistHero.kt", "android/app/src/main/java/com/musicd/server/android/AlbumTile.kt", "android/app/src/main/java/com/musicd/server/android/WallGrid.kt", "android/app/src/main/java/com/musicd/server/android/WallSelect.kt", "android/app/src/main/java/com/musicd/server/android/GenreChips.kt", "android/app/src/main/java/com/musicd/server/android/ArtistFoot.kt"],
       "preview": false,
       "items": {
         "back": { "kind": "action", "label": "Back to Home" },
@@ -246,6 +246,7 @@
         "bio-more": { "kind": "action", "label": ["Show more", "Show less"], "when": "the biography is longer than its clip" },
         "bio-source": { "kind": "shows", "when": "there is a biography" },
         "section": { "kind": "shows", "each": true, "when": "more than one kind of album, their members or bands known, or similar acts" },
+        "stints-toggle": { "kind": "action", "label": "{section}", "each": true, "when": "a band's members or a person's bands are known: folded under their heading until tapped (bug list item 140)" },
         "member": { "kind": "action", "label": "{member}", "each": true, "when": "a band's members (those in it now, or a band that ended its last line-up; item 133) or a person's bands are known" },
         "member-art": { "kind": "shows", "each": true, "when": "a band's members or a person's bands are known" },
         "member-name": { "kind": "shows", "each": true, "when": "a band's members or a person's bands are known" },
@@ -253,6 +254,10 @@
         "similar": { "kind": "action", "label": "{artist}", "each": true, "when": "Last.fm (with a key) or Deezer knows acts like them (bug list item 137)" },
         "similar-art": { "kind": "shows", "each": true, "when": "Last.fm (with a key) or Deezer knows acts like them" },
         "similar-name": { "kind": "shows", "each": true, "when": "Last.fm (with a key) or Deezer knows acts like them" },
+        "similar-album": { "kind": "action", "label": "{album}", "each": true, "when": "similar albums: Last.fm's with a key, else the library's by the acts Deezer relates (bug list item 140)" },
+        "similar-album-art": { "kind": "shows", "each": true, "when": "similar albums are known" },
+        "similar-album-title": { "kind": "shows", "each": true, "when": "similar albums are known" },
+        "similar-album-artist": { "kind": "shows", "each": true, "when": "similar albums are known" },
         "album": { "kind": "action", "label": ["{album} by {artist}", "{album}"], "each": true },
         "album-art": { "kind": "shows", "each": true },
         "album-quality": { "kind": "shows", "each": true, "when": "the server knows the files' rate" },

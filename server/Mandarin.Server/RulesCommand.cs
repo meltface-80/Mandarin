@@ -5,8 +5,8 @@
 //
 //   { fn: "mounts", mountinfo, dataDir, hints: [[dir, entries, docker]] }  Mounts.cs
 //      → { mounts: [{ path, type, waiting }], hints }
-//   { fn: "versions", pairs: [[a, b]], extracts: [[file, dest]] }         Admin/Updater.cs
-//      → { cmp, extracted }
+//   { fn: "versions", pairs: [[a, b]], extracts: [[file, dest]], builds: [[informational, assembly]] }  Admin/Updater.cs, BuildVersion.cs
+//      → { cmp, extracted, built }
 //   { fn: "soapcall", calls: [{ url, service, action, args, wait }] }     Playback/SoapHttp.cs
 //      → { results: [{ out } | { error }] }, one after another, each [wait] ms after the last
 //   { fn: "labelnames", canonical, keys, not_labels, folders: [[dir, roots, depth]] }  Names.cs
@@ -100,7 +100,8 @@ internal static class RulesCommand
     private static JsObj VersionFns(JsObj job) => new()
     {
         ["cmp"] = Each(job["pairs"], p => (double)Admin.Updater.CmpVer(At(p, 0), At(p, 1))),
-        ["extracted"] = Each(job["extracts"], p => Admin.Updater.Extract(S(At(p, 0)), S(At(p, 1))))
+        ["extracted"] = Each(job["extracts"], p => Admin.Updater.Extract(S(At(p, 0)), S(At(p, 1)))),
+        ["built"] = Each(job["builds"], p => BuildVersion.Parse(TJs.IsNullish(At(p, 0)) ? null : S(At(p, 0)), System.Version.TryParse(S(At(p, 1)), out var v) ? v : null))
     };
 
     private static async Task<JsObj> SoapCalls(JsObj job)

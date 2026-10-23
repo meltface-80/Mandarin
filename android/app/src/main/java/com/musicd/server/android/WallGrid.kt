@@ -85,11 +85,12 @@ internal fun randomWallCount(prefs: WallPrefs): Int {
 /**
  * The wall: [head] first across every column, then [blocks]' tiles (or rows, [prefs].list), [loaded] false drawing
  * skeletons after them; a tile's tap [onOpen] with its place among every album, a long press [onLongPress] likewise;
- * [selected] the offsets picked. [grid] and [list] keep the place for Back.
+ * [selected] the offsets picked; [foot] after all of them once loaded. [grid] and [list] keep the place for Back.
  */
 @Composable
 internal fun AlbumGrid(blocks: List<GridBlock>, prefs: WallPrefs, cols: Int, coverPx: Int, client: () -> ServerClient?, loaded: Boolean, selected: Set<Long>,
-                       grid: LazyGridState, list: LazyListState, onOpen: (Int) -> Unit, onLongPress: (Int) -> Unit, dl: (AlbumSummary) -> String? = { null }, head: @Composable () -> Unit) {
+                       grid: LazyGridState, list: LazyListState, onOpen: (Int) -> Unit, onLongPress: (Int) -> Unit, dl: (AlbumSummary) -> String? = { null },
+                       foot: (@Composable () -> Unit)? = null, head: @Composable () -> Unit) {
     // Each album's place among all of them, for the list an album page steps through.
     var at = 0
     if (prefs.list) LazyColumn(Modifier.fillMaxSize(), state = list, contentPadding = WALL_PADDING) {
@@ -102,6 +103,8 @@ internal fun AlbumGrid(blocks: List<GridBlock>, prefs: WallPrefs, cols: Int, cov
             at += b.albums.size
         }
         if (!loaded) items(12) { SkeletonRow() }
+        // What follows all the albums: an artist's similar artists and albums (item 140).
+        else if (foot != null) item { Column(Modifier.fillMaxWidth()) { foot() } }
     }
     else LazyVerticalGrid(GridCells.Fixed(cols), Modifier.fillMaxSize(), state = grid, contentPadding = WALL_PADDING,
         horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -113,6 +116,7 @@ internal fun AlbumGrid(blocks: List<GridBlock>, prefs: WallPrefs, cols: Int, cov
             at += b.albums.size
         }
         if (!loaded) items(cols * 8) { SkeletonTile() }
+        else if (foot != null) item(span = { GridItemSpan(maxLineSpan) }) { Column(Modifier.fillMaxWidth()) { foot() } }
     }
 }
 

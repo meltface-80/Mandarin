@@ -189,7 +189,7 @@ CREATE TABLE IF NOT EXISTS artist_info (
             ["name"] = m.Name, ["mbid"] = m.Mbid, ["begin"] = m.Begin, ["end"] = m.End, ["ended"] = m.Ended,
             ["roles"] = new JsonArray(m.Roles.Select(x => (JsonNode?)x).ToArray()),
         }).ToArray());
-        o["disambiguation"] = f.Disambiguation;
+        o["disambiguation"] = f.Disambiguation; o["mb_name"] = f.Name;   // MusicBrainz's own name for it (SameArtists, item 151)
         o["begin"] = f.Begin;
         o["end"] = f.End;
         o["ended"] = f.Ended;

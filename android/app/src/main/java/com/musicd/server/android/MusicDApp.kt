@@ -22,6 +22,15 @@ class MusicDApp : Application() {
         CrashLog.install(this)
         CrashLog.watchMainThread(this)
         ExitNote.keep(this)
+        leftovers()
+    }
+
+    /** What a test build that's gone left in the app's own storage (item 152): its folder and its settings, once. */
+    private fun leftovers() {
+        val dir = File(filesDir, "soloist")
+        if (!dir.exists()) return
+        Thread({ runCatching { dir.walkBottomUp().forEach { it.setWritable(true); it.delete() }; deleteSharedPreferences("soloist_test") } }, "leftovers")
+            .apply { isDaemon = true; start() }
     }
 }
 

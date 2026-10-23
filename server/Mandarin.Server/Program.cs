@@ -11,7 +11,7 @@
 using System.Net;
 using Mandarin.Server;
 
-var version = (typeof(Server).Assembly.GetName().Version ?? new Version(0, 0, 0)).ToString(3);
+var version = BuildVersion.Of(typeof(Server).Assembly);   // a test build's "1.1.4-t7" whole (item 141)
 Server.Version = version;
 
 // `mandarin-server --version`: this program's version, and nothing else — how

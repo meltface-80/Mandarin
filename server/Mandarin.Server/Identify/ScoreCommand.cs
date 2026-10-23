@@ -6,6 +6,8 @@
 //      → { status, ambiguous, scored: [{ candidate (with parts and pairs), distance }] }
 //   { "fn": "names", "names": ["…", …] }
 //   { "fn": "split", "names": ["…", …] }  each credit as its acts (Names.SplitArtists, bug list item 136)
+//   { "fn": "same", "kept": [[key, name, mbid, mb_name], …], "albums": ["…"], "artists": ["…"] }  each artist as the
+//      library writes it, names sharing a MusicBrainz id one artist (Credits/SameArtists.cs, item 151) → { same: ["…"] }
 //      → { names: [{ tidy, bare, clean, cmp, edition_year, disc }] }
 //   { "fn": "pairs", "pairs": [[a, b], …] }
 //      → { pairs: [{ string, title, levenshtein, suspect }] }
@@ -82,6 +84,11 @@ internal static class ScoreCommand
                         break;
                     case "split":
                         o["split"] = L(job["names"]).Select(n => (object?)Names.SplitArtists(Js.Str(n)).Select(part => (object?)part).ToList()).ToList();
+                        break;
+                    case "same":
+                        var same = Credits.SameArtists.From(L(job["kept"]).Select(k => L(k)).Select(k => (Js.Str(k[0]), Js.Str(k[1]), Js.Str(k[2]), k.Count > 3 && k[3] is string m ? m : null)),
+                            L(job["albums"]).Select(a => Js.Str(a)));
+                        o["same"] = L(job["artists"]).Select(a => (object?)same.Rewrite(Js.Str(a))).ToList();
                         break;
                     case "pairs":
                         o["pairs"] = L(job["pairs"]).Select(p0 =>

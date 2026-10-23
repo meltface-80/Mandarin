@@ -2990,6 +2990,29 @@ input.vol-range::-moz-range-thumb {
   margin-top: 1px; font-size: 10.5px; line-height: 13.65px; color: var(--text-dim);
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
 }
+/* Members or bands folded under their heading until it is tapped; then similar artists and albums, last of all (bug list item 140). */
+.artist-stints-toggle {
+  display: inline-flex; align-items: center; gap: 6px; background: none; border: 0; font-family: inherit; cursor: pointer; text-align: left;
+}
+.artist-stints-toggle svg { transition: transform .15s ease; }
+.artist-stints:not(.artist-stints-folded) .artist-stints-toggle svg { transform: rotate(180deg); }
+.artist-stints-folded .artist-stint-row { display: none; }
+.artist-tail { grid-column: 1 / -1; min-width: 0; padding-top: 18px; }
+.artist-tail .hidden { display: none; }
+.artist-similar-album {
+  flex: 0 0 128px; width: 128px; display: flex; flex-direction: column; align-items: stretch;
+  background: none; border: 0; padding: 0; color: inherit; font: inherit; cursor: pointer; text-align: left;
+}
+.artist-similar-album-art {
+  position: relative; width: 128px; height: 128px; border-radius: 6px; overflow: hidden; background: var(--bg-elev-2);
+}
+.artist-similar-album-art img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.artist-similar-album-title {
+  margin-top: 8px; font-size: 13px; line-height: 17px; font-weight: 500; color: var(--text);
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.artist-similar-album-artist { margin-top: 2px; font-size: 12px; line-height: 16px; color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.artist-similar-album-site { font-size: 10px; letter-spacing: .04em; color: var(--accent-text); }
 /* Qobuz artist screen: bio sits under the compact avatar+name row, so its
    footer stays inline/left rather than centred. */
 .qobuz-artist-bio { margin-top: 10px; }

@@ -282,9 +282,11 @@ internal static partial class CreditRules
             N(O(a["area"])["name"]), Together(members), Together(bands), links);
     }
 
-    /* The act on a name search: the first whose name is the one asked (a leading "The" aside). */
+    /* The act on a name search: the first whose name, or one of its aliases (a name it is credited under: "Mariana
+       Semkina" for Marjana Semkina, item 151), is the one asked (a leading "The" aside). */
     public static string? FoundMbid(JsObj search, string name) =>
-        L(search["artists"]).Select(O).FirstOrDefault(x => Extras.WriteUps.NamesEqualLoose(x["name"], name)) is { } act ? N(act["id"]) : null;
+        L(search["artists"]).Select(O).FirstOrDefault(x => Extras.WriteUps.NamesEqualLoose(x["name"], name)
+            || L(x["aliases"]).Select(O).Any(al => Extras.WriteUps.NamesEqualLoose(al["name"], name))) is { } act ? N(act["id"]) : null;
 
     // ---------------------------------------------------------------- pictures
 

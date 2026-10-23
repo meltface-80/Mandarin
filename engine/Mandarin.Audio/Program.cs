@@ -22,6 +22,7 @@
 //
 // Logs go to stderr.
 using System.Globalization;
+using System.Reflection;
 using System.Text;
 using System.Text.Json;
 
@@ -29,8 +30,11 @@ namespace Mandarin.Audio;
 
 internal static class Program
 {
-    // The server's version, stamped by engine/build.sh (-p:Version).
-    public static readonly string Version = (typeof(Program).Assembly.GetName().Version ?? new Version(0, 0, 0)).ToString(3);
+    // The server's version, stamped by engine/build.sh (-p:Version): whole, a test build's "1.1.4-t7" with its -t7
+    // (item 141; the server's BuildVersion.cs), the source revision a build may add after + left off.
+    public static readonly string Version =
+        (typeof(Program).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "").Split('+')[0].Trim() is { Length: > 0 } built
+            ? built : (typeof(Program).Assembly.GetName().Version ?? new Version(0, 0, 0)).ToString(3);
     public const int Protocol = 1;
     private static readonly object outLock = new();
 

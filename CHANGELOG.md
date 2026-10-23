@@ -1,5 +1,57 @@
 # Changelog
 
+## v1.1.4
+
+**Artist pages and the Shelf.** An artist's page is in a new order: who they are, their members folded under a
+heading until tapped, then their discography, the albums they appear on, similar artists and similar albums (Last.fm's
+with a key, else from Deezer), and it opens at once when visited again. An artist credited under another name on a
+sleeve (Mariana Semkina for Marjana Semkina) is one artist, with that album in their discography. The Shelf has no
+album details under it, so its cases are bigger; no spines show through a case as it turns; and tracks chosen on the
+back of a case play from the bar. A renderer's late answer no longer takes the room back a track.
+
+- `152-remove-spotify`: Spotify taken out of the dev builds. What it left behind goes as each next starts: on the
+  server, its albums, playlists, settings and its folder in the data folder; on the phone, the Soloist test's files.
+- `151-artist-same-mbid`: an artist is one artist however an album credits them.
+  - **The problem:** MusicBrainz credits *Disillusioned* to "Mariana Semkina", the name on its sleeve, while the
+    artist is Marjana Semkina, one entry with one id. Mandarin knew artists only by name, so the credit became a second
+    artist on the Artists wall, and the album sat under "Appears on" on Marjana Semkina's page.
+  - **The fix:** names that Mandarin's own artist lookups find share a MusicBrainz id are now one artist, everywhere:
+    the Artists wall, the artist page (the album in the discography), the album's own artist line, and Library's sort
+    and search.
+  - **The name it's written as:** MusicBrainz's own name for the artist, or the spelling most of the library uses.
+  - **Left alone:** a name that belongs to two artists (two ids), as it says nothing about which.
+  - **Lookups:** an artist looked up by name is also found under a MusicBrainz alias ("Mariana Semkina" finds Marjana
+    Semkina). When a lookup turns up a second name for an artist, the library is read again at once.
+- `150-renderer-stale-answer`: a renderer (UPnP) whose answer from before a skip or a jump came in after it no longer
+  puts the room back on the track before. Previous went from that stale track (Long 3 to Long 2 in the tests, which
+  failed now and then on a busy machine).
+- `149-shelf-spines-bar`: three Shelf changes, as Rouen's v1.9.66:
+  - **Spines:** no spines show through a case as it turns during a swipe. The cases are now drawn one over another,
+    nearest the front on top. Before, they were left to one shared 3D depth, where a half-turned cover swung back
+    behind the spines beside it.
+  - **No album details under the shelf:** the shelf takes their room. In Spines the cases are bigger: half the width,
+    0.6 on a phone held upright, up to 680px. In Covers they grow where height held them back.
+  - **Chosen tracks play from the bar:** Play now, Play next and Queue for tracks chosen on the back of a case are in
+    the bar, where the album's own Play now and Queue are; those step aside while tracks are chosen.
+  - **The bar keeps its height and fits:** it is the same height whether tracks are chosen or not. Where the shelf's
+    column is too narrow for one row (it's measured, not the screen, since the panes beside it take room), the buttons
+    go on a row of their own above the rest.
+- `141-test-versions`: test builds say which they are. The server image and the Android app built from `dev` call
+  themselves the next release with `-tN`, N the changes merged into `dev` since the last release (`1.1.4-t3`, then
+  `1.1.4-t4`…), worked out as they are built (`tools/test-version.js`; nothing is committed, the version in the files
+  stays the release's). Settings and the app show it, and the updaters order it as they order `-RC`: a test build is
+  newer than the last release, so that isn't offered, and the release after it is newer than every test build, so
+  `v1.1.4` is offered over `1.1.4-t7` as any update is. The server now knows itself by its whole version (it read only
+  its first three numbers, which would have made `1.1.4-t7` look like `1.1.4` and the release not offered).
+- `140-artist-page-order`: an artist's page in the owner's order, in the app and on the page. Under who they are
+  (picture, facts, genres, links, Play and Shuffle, biography): their members (or a person's bands) folded under the
+  heading, which says how many, until it is tapped; then their **Discography**, the albums they **Appear on**, their
+  bands' albums and those they are credited on; then **Similar artists** and **Similar albums**, last of all, where
+  similar artists were over the albums. Similar albums are Last.fm's with a key (each similar act's best-known
+  album, the library's own where it has it, else its Last.fm page), else the library's albums by the acts Deezer
+  relates. An artist's page opened again within a quarter of an hour is drawn at once as it was, its picture with it,
+  rather than asked for again. New: `GET /api/artist/similar-albums?name=`.
+
 ## v1.1.3
 
 **Artists.** Every act in your library gets a wall and a page of its own, in the Android app and in the browser. On a

@@ -155,7 +155,7 @@ test("Music on device: Focus and Sort on the wall; an artist's page shows the se
     assert.equal(r.select_left, 0, "the selection is cleared");
     assert.deepEqual(r.play_next, [["p3", -1, "play_next"], ["p1", -1, "play_next"]], "Play next: sent last to first, since the app puts each straight after the playing track");
     assert.deepEqual(r.play_now, [["p1", -1, "play_now"], ["p3", -1, "queue"]], "Play now: the first now, the rest after it");
-    assert.deepEqual(r.artist_heads, ["Albums", "On this phone"]);
+    assert.deepEqual(r.artist_heads, ["Discography", "On this phone"]);
     assert.deepEqual(r.artist_tiles, ["Album One", "Zebra Crossing"], "the server's album and the phone's, under their headings");
     assert.deepEqual(r.phone_only.slice().sort(), ["Abandoned Locations", "Shore Ghosts"], "an artist only on the phone is found too");
     assert.deepEqual(r.phone_only_heads, [], "no heading when the phone is all there is");

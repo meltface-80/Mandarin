@@ -19,6 +19,9 @@
   }
 
   let artistViewActive = false;
+  // Which opening is current: an artist left before their albums came must not draw over the next one's page (item 140:
+  // the next drawn at once from what it had, a late answer for the one before came after it).
+  let openSeq = 0;
   let saved            = null;   // snapshot of the screen we came from
 
   // opts.restore === false: the caller is building its OWN screen (Home, a
@@ -120,6 +123,7 @@
     // instead of open. Runs BEFORE the capture so the restored screen comes
     // back with its selection cleared in both the DOM and the state.
     if (window.__exitAlbumSelectMode) window.__exitAlbumSelectMode();
+    const opening = ++openSeq;
     // Invalidate any in-flight bio fetch NOW — bumping only inside
     // renderArtistBioHead left a window where artist A's late bio could
     // prepend into artist B's freshly-rendered grid.
@@ -186,12 +190,12 @@
     const mine = window.__phoneAlbumsByArtist ? window.__phoneAlbumsByArtist(artistName) : [];
     let j = { primary: [], featured: [] }, failed = null;
     try {
-      const r = await fetch("/api/artist-albums?artist=" + encodeURIComponent(artistName));
-      if (!r.ok) throw new Error("HTTP " + r.status);
-      j = await r.json();
-      j.primary = j.primary || []; j.featured = j.featured || [];
+      // As last answered when that was recent (artist-foot.js, item 140): a page opened again is drawn at once.
+      const url = "/api/artist-albums?artist=" + encodeURIComponent(artistName);
+      const got = window.__artistJson ? await window.__artistJson(url) : await fetch(url).then(r => { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); });
+      j = { ...got, primary: got.primary || [], featured: got.featured || [] };
     } catch (e) { failed = e; }
-    if (!artistViewActive) return;
+    if (!artistViewActive || opening !== openSeq) return;
     try {
       const total = j.primary.length + j.featured.length + mine.length;
 
@@ -213,8 +217,9 @@
         frag.appendChild(hdr);
       };
 
+      // Their discography, then what they appear on (item 140: the owner's order), their bands' and credits after.
       if (j.primary.length) {
-        if (j.featured.length || mine.length) header("Albums");
+        header("Discography");
         for (const a of j.primary) {
           frag.appendChild(window.__keyArtistTile(window.__buildAlbumTile(a)));
         }
@@ -228,7 +233,7 @@
       if (j.featured.length) {
         const hdr = document.createElement("div");
         hdr.className = "artist-section-header"; hdr.dataset.parity = "artist.section";
-        hdr.textContent = "Also appears on";
+        hdr.textContent = "Appears on";
         frag.appendChild(hdr);
         for (const a of j.featured) {
           frag.appendChild(window.__keyArtistTile(window.__buildAlbumTile(a)));

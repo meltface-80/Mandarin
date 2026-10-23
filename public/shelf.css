@@ -291,6 +291,10 @@ button:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--accent
 .stage.empty .floor, .stage.empty .ledge { display: none; }
 .scene { position: absolute; inset: 0; }
 .rig { position: absolute; inset: 0; transform-style: preserve-3d; }
+/* Spines (item 149): drawn one over another in the order render() gives, not
+   cut by one another in depth — a case half turned stood partly behind the
+   spines beside it. Each case keeps its own 3D. */
+.look-spines .rig { transform-style: flat; }
 .it { position: absolute; left: 50%; top: var(--top); width: var(--S); height: var(--S); margin-left: calc(var(--S) / -2); transform-style: preserve-3d; will-change: transform; }
 .box { position: absolute; inset: 0; transform-style: preserve-3d; transition: transform .65s cubic-bezier(.3,.7,.2,1); }
 .it.flipped .box { transform: rotateY(180deg); }
@@ -390,39 +394,17 @@ button:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--accent
 .note p { margin: 0; color: var(--text-dim); text-wrap: balance; }
 .note .row { display: flex; gap: .6rem; flex-wrap: wrap; justify-content: center; margin-top: .4rem; }
 
-.info { --title-size: clamp(1.35rem, 1.4vw + .55rem, 2.3rem); flex: 0 0 auto; display: flex; flex-direction: column; align-items: center; gap: .25rem; padding-block: .1rem .75rem; padding-inline: max(16px, 1.5rem); text-align: center; transition: opacity .25s; }
-/* A fixed height for the title, and one line each for the credit and the
-   genres: .info never changes height as albums pass, so the stage (and every
-   cover on it) never changes size under a flick. */
-.info-tbox { display: flex; align-items: flex-end; justify-content: center; height: calc(var(--title-size) * 2.24); max-width: 100%; }
-.shelf.fast .info { opacity: .28; }
-.info-title { margin: 0; max-width: 32em; font-family: var(--font-display); font-weight: 400; font-size: var(--title-size); line-height: 1.12; text-wrap: balance; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
-.info-artist { margin: 0; max-width: 100%; font-weight: 700; color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.info-meta { margin: 0; max-width: 100%; min-height: 1.2em; color: var(--text-faint); font-size: .84rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .act { display: inline-flex; align-items: center; gap: .45rem; height: 2.9rem; padding: 0 1.25rem; border-radius: 999px; border: 1px solid var(--border); background: var(--bg-elev); font-weight: 700; font-size: .92rem; white-space: nowrap; }
 .act svg { width: 1rem; height: 1rem; }
 .act.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
 .act.quiet { background: none; }
 
-/* tracks chosen on the back of the case (v1.9.4): popped up under the cover,
-   over the album's own buttons */
-.info { position: relative; }
-/* hidden, not removed: .info keeps its height, so the shelf above never moves */
-.info.choosing > :not(.tsel) { visibility: hidden; }
-.tsel { position: absolute; z-index: 6; bottom: .3rem; left: 50%; transform: translateX(-50%); width: min(34rem, calc(100% - 1.5rem)); display: flex; flex-direction: column; gap: .7rem; padding: .8rem .9rem .95rem; border-radius: 1.1rem; border: 1px solid var(--accent-dim); background: var(--bg-elev); box-shadow: 0 1.1rem 2.8rem var(--shadow); text-align: left; animation: tsel-in .18s ease-out; }
-@keyframes tsel-in { from { opacity: 0; transform: translate(-50%, .6rem); } }
-.tsel-head { display: flex; align-items: center; justify-content: space-between; gap: .8rem; }
-.tsel-text { display: flex; flex-direction: column; min-width: 0; }
-.tsel-count { font-weight: 800; }
-.tsel-hint { color: var(--text-faint); font-size: .84rem; }
 /* The × is DRAWN, in the middle of its circle (v1.9.5): it was a typed "×"
-   in a button that inherits the popup's text-align: left, so it sat against
+   in a button that inherited the popup's text-align: left, so it sat against
    the circle's left edge — and a glyph is centred by its line box, not its
    ink, so even centred text would not have put it in the middle. */
 .tsel-x { flex: 0 0 auto; display: grid; place-items: center; width: 2.3rem; height: 2.3rem; border-radius: 999px; border: 1px solid var(--border); color: var(--text-dim); }
 .tsel-x svg { width: 1.05rem; height: 1.05rem; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; }
-.tsel-acts { display: flex; flex-wrap: wrap; justify-content: center; gap: .5rem; }
-.tsel-acts .act:disabled { opacity: .5; }
 
 /* The remote's mini transport (v1.9.3), fixed under the shelf and FLAT: the
    pill's parts — the progress line along its top edge, play/pause, the cover
@@ -469,12 +451,23 @@ button:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--accent
 .mt-artist { color: var(--text-dim); font-size: .82rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .mt-title:empty, .mt-artist:empty { display: none; }
 /* The album in front's Play now and Queue (v0.8.28), towards the zone
-   button; they step aside while tracks are chosen on its back (the popup
-   over the album's name has its own). */
+   button; they step aside while tracks are chosen on its back, for the
+   chosen tracks' own (item 149). */
 .mt-acts { flex: 0 0 auto; display: flex; align-items: center; gap: .6rem; }
 .mt-acts .act { height: 3.6rem; padding: 0 1.5rem; font-size: 1.05rem; gap: .55rem; }
 .mt-acts .act svg { width: 1.2rem; height: 1.2rem; }
-.mt.choosing .mt-acts { visibility: hidden; }
+/* Tracks chosen on the back of the case (v1.9.4; in the bar since item 149):
+   the album's buttons give their place to the tracks' own (display: none, so
+   .tsel takes exactly that place), never squeezed (what is playing gives way
+   instead, or its buttons would run over the zone and volume), and as tall as
+   .mt-acts .act, so the bar keeps its height. */
+.mt.choosing .mt-acts { display: none; }
+.tsel { flex: 0 0 auto; display: flex; align-items: center; gap: .5rem; }
+.tsel .act { height: 3.6rem; padding: 0 .9rem; font-size: 1.05rem; gap: .5rem; }
+.tsel .act svg { width: 1.2rem; height: 1.2rem; }
+.tsel .act:disabled { opacity: .5; }
+.tsel-count { flex: 0 1 auto; min-width: 0; margin-right: .3rem; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mt.choosing .mt-info { overflow: hidden; }
 .mt-controls { flex: 0 0 auto; display: flex; align-items: center; gap: .7rem; }
 /* The volume sheet, over the bar's right end. */
 .vol {
@@ -591,13 +584,10 @@ button:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--accent
   .act { padding: 0 1rem; }
   .shelf-order { display: none; }
 }
-/* Too narrow for one row of the bar's parts at their size: the album's Play
-   now and Queue on a row of their own above the rest, and the buttons sized
-   for a hand rather than for across the room. */
+/* A phone: the buttons sized for a hand rather than for across the room (the
+   album's Play now and Queue on a row of their own, below). */
 @media (max-width: 700px) {
-  .shelf-foot.mt { flex-wrap: wrap; row-gap: .55rem; column-gap: .6rem; padding-top: .7rem; }
-  .mt-acts { order: -1; flex: 1 0 100%; justify-content: center; }
-  .mt-acts .act { height: 2.9rem; padding: 0 1.2rem; font-size: .95rem; }
+  .mt-acts .act, .tsel .act { height: 2.9rem; padding: 0 1.2rem; font-size: .95rem; }
   .mt-btn { width: 3rem; height: 3rem; }
   .mt-btn svg { width: 1.7rem; height: 1.7rem; }
   .mt-transport { gap: .25rem; }
@@ -608,9 +598,25 @@ button:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--accent
   .mt-info { flex: 1 1 0; }
   .mt-controls { gap: .2rem; }
 }
+/* The shelf's column too narrow for the bar's parts on one row (item 149, as
+   Rouen's): the album's buttons, or the chosen tracks' own, on a row of their
+   own above the rest, whether tracks are chosen or not, so the bar is as tall
+   either way. Its own width, not the screen's: the panes beside it take room. */
+.shelf { container: shelfcol / inline-size; }
+@container shelfcol (max-width: 56rem) {
+  .shelf-foot.mt { flex-wrap: wrap; row-gap: .55rem; column-gap: .6rem; padding-top: .7rem; }
+  .mt-acts, .tsel { order: -1; flex: 1 0 100%; justify-content: center; }
+}
+/* On one row but only just: the ticks on the case say how many are chosen. And
+   at a hand's width, where even their own row is tight. */
+@container shelfcol (56rem < width <= 80rem) { .tsel-count { display: none; } }
+@container shelfcol (max-width: 30rem) {
+  .tsel-count { display: none; }
+  .tsel .act { padding: 0 .85rem; }
+}
 
 @media (prefers-reduced-motion: reduce) {
-  .shuttle svg, .front.landed, .screen.spinning .spin-btn .disc-rot, .screen.spinning .spin-big .disc-rot, .tsel { animation: none !important; }
+  .shuttle svg, .front.landed, .screen.spinning .spin-btn .disc-rot, .screen.spinning .spin-big .disc-rot { animation: none !important; }
   .box, .bkl, .it.booklet .bkl, .scene, .stage.booklet-open .scene { transition: none; }
   .screen.sliding, .screen.sliding .edge-tab svg, .screen.sliding .edge-tab-l { transition: none !important; }
   .screen.sliding .queue { transition: visibility 0s !important; }

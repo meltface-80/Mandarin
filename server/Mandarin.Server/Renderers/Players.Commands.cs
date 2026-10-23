@@ -124,6 +124,7 @@ internal sealed partial class Players
             p.Next = null;              // SetAVTransportURI clears a renderer's next
             p.Index = index;
             p.LoadingSince = Hub.Now();
+            p.Jumping++;
             if (p.Shuffle) p.Played.Add(index);
         }
         var r = RendererOf(p);
@@ -133,9 +134,13 @@ internal sealed partial class Players
             st.TrackUri = it.Uri; st.TrackId = it.TrackId; st.Title = it.Title; st.Artist = it.Artist; st.Album = it.Album; st.ArtUri = it.ArtUri;
             st.Duration = it.Duration; st.Position = seconds; st.Sent = it.Sent; st.Unreachable = false;
         });
-        await r.SetUri(it.Uri, it.Meta);
-        await r.Play();
-        if (seconds > 0) { try { await r.SeekTime(seconds); } catch (RendererError) { /* from the start */ } }
+        try
+        {
+            await r.SetUri(it.Uri, it.Meta);
+            await r.Play();
+            if (seconds > 0) { try { await r.SeekTime(seconds); } catch (RendererError) { /* from the start */ } }
+        }
+        finally { lock (gate) { p.Jumping--; p.JumpedAt = Hub.Now(); } }
     }
 
     private void Fail(Player p, string message)

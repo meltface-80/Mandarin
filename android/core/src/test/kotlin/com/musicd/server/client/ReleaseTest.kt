@@ -27,6 +27,15 @@ class ReleaseTest {
         assertTrue(Release("0.6.0", "https://x", "").newerThan("0.6.0-RC1"))
     }
 
+    /** Test builds (bug list item 141): dev's APK is the next release with -tN; the release is offered over it, the last one isn't. */
+    @Test fun testBuilds() {
+        assertTrue(Release.compare("1.1.4-t1", "1.1.3") > 0)
+        assertTrue(Release.compare("1.1.4-t2", "1.1.4-t1") > 0)
+        assertTrue(Release.compare("1.1.4-t10", "1.1.4-t9") > 0)
+        assertTrue(Release("1.1.4", "https://x", "").newerThan("1.1.4-t7"))
+        assertFalse(Release("1.1.3", "https://x", "").newerThan("1.1.4-t7"))
+    }
+
     @Test fun latestJsonAsPublished() {
         val r = Release.parse(JSONObject("""
             {"version": "0.3.4",

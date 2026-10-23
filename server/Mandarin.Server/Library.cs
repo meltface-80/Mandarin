@@ -349,15 +349,15 @@ internal static partial class Library
             var a = Names.JsTrim(Text(F(r, "e_artist")) ?? Text(F(r, "artist")) ?? "");
             if (TheName().IsMatch(a)) theForms.TryAdd(Names.ArtistKey(a), a);
         }
-        var discs = new Dictionary<long, long>();
-        foreach (var r in Rows(c, "SELECT album_id, COUNT(DISTINCT COALESCE(disc_no, 1)) AS n FROM tracks GROUP BY album_id")) discs[(long)r[0]!] = (long)r[1]!;
+        var discs = Rows(c, "SELECT album_id, COUNT(DISTINCT COALESCE(disc_no, 1)) AS n FROM tracks GROUP BY album_id").ToDictionary(r => (long)r[0]!, r => (long)r[1]!);
+        var same = Credits.SameArtists.Of(c, rows.Select(r => Text(F(r, "e_artist")) ?? Text(F(r, "artist")) ?? ""));   // one name per MusicBrainz artist (item 151)
 
         var all = new List<Album>(rows.Count);
         foreach (var r in rows)
         {
             var id = (long)F(r, "id")!;
             var title = Text(F(r, "e_title")) ?? Text(F(r, "title")) ?? "";
-            var artist = Text(F(r, "e_artist")) ?? Text(F(r, "artist")) ?? "";
+            var artist = same.Rewrite(Text(F(r, "e_artist")) ?? Text(F(r, "artist")) ?? "");
             if (Text(F(r, "e_artist")) == null && !TheStart().IsMatch(artist) && theForms.TryGetValue(Names.ArtistKey(artist), out var the)) artist = the;
             var year = Long(F(r, "e_year")) ?? Long(F(r, "year"));
             var date = ReleaseDate(year, Text(F(r, "date")), Text(F(r, "mb_day")));
