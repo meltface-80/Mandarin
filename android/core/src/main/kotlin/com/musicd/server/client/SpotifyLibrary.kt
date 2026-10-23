@@ -19,8 +19,6 @@ data class SpotifyLibrary(
     val importing: Boolean,
     /** What the library holds of Spotify, under its buttons. */
     val importStatus: String,
-    /** The stream quality Soloist asks Spotify for (one of [SpotifyLibraries.QUALITIES]; item 145). */
-    val quality: String = "lossless",
 )
 
 object SpotifyLibraries {
@@ -32,13 +30,6 @@ object SpotifyLibraries {
         "Brought up to date every six hours. Off until you switch it on. Off: none of them are in the library; switched on again, they are back at once."
     const val NOTE = "Approve Mandarin on Spotify's page. Your browser then lands on an address beginning http://127.0.0.1:43143 that won't open: copy it and paste it here."
     const val IMPORTING = "Bringing your Spotify saved albums into the library…"
-    const val PLAYING = "Playing, through Spotify Soloist"
-    const val QUALITY_INFO = "The most Mandarin asks Spotify for, as Spotify's app numbers it: Lossless is FLAC up to 24-bit/44.1 kHz on a plan that has Spotify Lossless; " +
-        "Very high, High and Normal are Spotify's Ogg Vorbis at 320, 160 and 96 kbps, for when data matters more. Soloist is started again to take up a change, " +
-        "which stops what Spotify is playing for a moment. The line under it says what the sound has proven."
-    /** Settings' Stream quality, as the page lists it (item 145): lossless unless another is chosen. */
-    val QUALITIES = listOf(Choice("lossless", "Lossless (up to 24/44.1)"), Choice("very_high", "Very high (320 kbps)"),
-        Choice("high", "High (160 kbps)"), Choice("normal", "Normal (96 kbps)"))
 
     /** The account [a] as the server answered it; [at]: a moment (milliseconds) as the phone writes a date and time. */
     fun parse(a: JSONObject, at: (Long) -> String): SpotifyLibrary {
@@ -56,7 +47,6 @@ object SpotifyLibraries {
         }
         return SpotifyLibrary(on, a.optString("client_id"), pending,
             if (on) "Signed in as $who" else if (pending != null) "Waiting for Spotify's answer…" else "Not signed in.",
-            import, a.optBoolean("importing"), importStatus,
-            a.optString("quality").takeIf { q -> QUALITIES.any { it.value == q } } ?: "lossless")
+            import, a.optBoolean("importing"), importStatus)
     }
 }

@@ -85,9 +85,9 @@ So Mandarin runs Soloist itself and plays what it plays. That is how those who h
    for, or up to 100 songs; Soloist's own socket when the Web API can't (it plays a context from its start, then skips
    on). The room follows with Soloist's stream, as item 142's does. Never track by track: Spotify's sound is only ever
    Soloist's, so lossless where the plan has it.
-3. **Next: Spotify's catalogue in Mandarin.** The Spotify browser (☰ → Spotify) and Spotify in Search: ten at a
+3. **Item 145: Spotify's catalogue in Mandarin.** The Spotify browser (☰ → Spotify) and Spotify in Search: ten at a
    time (the API's limit), an artist's albums, an album, saved from there; the routes are in place from item 143.
-4. **Then: the rest.** Spotify albums in the walls, Focus and artist pages; Spotify's queue shown as the queue;
+4. **Item 146: the rest.** Spotify albums in the walls, Focus and artist pages; Spotify's queue shown as the queue;
    moving the music from room to room; no downloads to the phone for Spotify albums (Spotify allows none);
    measuring and shortening the time from Next to the new song.
 

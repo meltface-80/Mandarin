@@ -100,13 +100,6 @@ public sealed class SpotifyTests
         Assert.Equal(("fLaC", 44100, 16), await StreamHead(s, "?bits=16"));
         Assert.Equal(401, (await Http.Get(s.Base + "/stream/spotify/live.flac")).Status);
 
-        // Another stream quality chosen (item 145): Soloist started again, its prefs asking Spotify for it; one not offered refused.
-        Assert.Equal(400, (await s.Api("settings/spotify", new { quality = "best" })).Status);
-        var high = await s.Api("settings/spotify", new { quality = "high" });
-        Assert.Equal("high", (string?)high.J["quality"]);
-        await Session.Until(() => Task.FromResult(File.ReadAllLines(prefsLog) is var l && l.Length >= 3 && l[^1].Contains("audio.play_bitrate_enumeration=3", StringComparison.Ordinal)), 60000, "Soloist started again asking for high");
-        Assert.Equal("high", (string?)(await State(s))["account"]!["quality"]);
-
         // The key, said by Soloist, taken out before it is logged or kept.
         var logs = string.Join("\n", s.Server.Logs);
         Assert.Contains("started with api key [key]", logs);

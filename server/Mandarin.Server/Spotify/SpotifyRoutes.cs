@@ -40,7 +40,7 @@ internal static partial class Library
         if (answered) return true;
         if (signing) return Account() is { } acct ? await SpotifySignIn(ctx, acct, p, b) : await JsError(ctx, 503, "Spotify isn't set up on this server");
         // The favourites in the library on or off: the services' own switch.
-        if ((Prop(b, "import") is not Tags.Undef || Prop(b, "quality") is not Tags.Undef) && Account() is { } svc) return await SaveServiceSettings(ctx, svc, b);
+        if (Prop(b, "import") is not Tags.Undef && Account() is { } svc) return await SaveServiceSettings(ctx, svc, b);
         return await AfterBody(ctx, async () =>
         {
             var was = SpotifyLive.Settings();

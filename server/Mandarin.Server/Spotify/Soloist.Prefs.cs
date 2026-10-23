@@ -1,7 +1,6 @@
-// Soloist.Prefs.cs — the quality asked for (bug list items 142, 145). Soloist plays Ogg Vorbis at 160 kbps, loudness
+// Soloist.Prefs.cs — Lossless, asked for (bug list item 142). Soloist plays Ogg Vorbis at 160 kbps, loudness
 // normalised, unless each account's prefs file says otherwise: DATA/settings/Users/<id>-user/prefs, key=value
-// lines (as spotifast-lossless's prefs.rs writes them). Mandarin writes Spotify's number for the quality chosen in
-// Settings (lossless, 5, unless another is chosen; Spotify's app numbers very high 4, high 3, normal 2) for both
+// lines (as spotifast-lossless's prefs.rs writes them). Mandarin writes Spotify's number for lossless (5) for both
 // kinds of network, and normalisation off, before every start; Soloist reads the file as the account signs in, so
 // the first time an account is signed in (by the Spotify app) Soloist is started again once to take it up. On a plan
 // without lossless Spotify plays what it may, and the samples say lossy (SoloistProof.cs).
@@ -11,23 +10,16 @@ namespace Mandarin.Server.Spotify;
 
 internal sealed partial class Soloist
 {
-    /* Settings' qualities, as Spotify numbers them in its prefs. */
-    internal static readonly Dictionary<string, string> Bitrates = new(StringComparer.Ordinal) { ["lossless"] = "5", ["very_high"] = "4", ["high"] = "3", ["normal"] = "2" };
+    internal static readonly (string Key, string Value)[] Lossless =
+    [
+        ("audio.play_bitrate_enumeration", "5"),
+        ("audio.play_bitrate_non_metered_enumeration", "5"),
+        ("audio.normalize_v2", "false")
+    ];
 
-    /* The prefs that ask for [quality] (lossless for one not known), normalisation off. */
-    internal static (string Key, string Value)[] PrefsFor(string quality)
+    /* Every account's prefs under [data] made to ask for lossless; true when one of them changed. */
+    internal static bool AskLossless(string data)
     {
-        var n = Bitrates.TryGetValue(quality, out var v) ? v : Bitrates["lossless"];
-        return [("audio.play_bitrate_enumeration", n), ("audio.play_bitrate_non_metered_enumeration", n), ("audio.normalize_v2", "false")];
-    }
-
-    /* The quality Soloist was last started with (Settings' choice then). */
-    public string Quality { get; private set; } = "lossless";
-
-    /* Every account's prefs under [data] made to ask for [quality]; true when one of them changed. */
-    internal static bool AskQuality(string data, string quality)
-    {
-        var Lossless = PrefsFor(quality);
         var users = Path.Combine(data, "settings", "Users");
         if (!Directory.Exists(users)) return false;
         bool changed = false;
@@ -58,7 +50,7 @@ internal sealed partial class Soloist
         askedAfterSignIn = true;
         try
         {
-            if (!AskQuality(dataDir, Quality)) return;
+            if (!AskLossless(dataDir)) return;
             Log("lossless asked for on the account just signed in: starting Soloist again to take it up");
             Restart();
         }

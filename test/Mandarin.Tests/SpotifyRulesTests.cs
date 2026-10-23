@@ -157,17 +157,4 @@ public sealed class SpotifyRulesTests
         Assert.Equal("/music/a.flac /music/b.flac", string.Join(" ", p[1]!["paths"]!.AsArray().Select(x => (string?)x)));
         Assert.Equal(1, p[1]!["start"]!.GetValue<int>());
     }
-
-    [Test]
-    public async Task The_quality_chosen_is_asked_of_Spotify_in_its_own_numbers()
-    {
-        var p = (await Ask(new { prefs = new object?[] { null, null, null, null }, prefs_quality = new[] { "very_high", "high", "normal", "nonsense" } }))["prefs"]!.AsArray();
-        string Rate(JsonNode? x) => ((string)x!["text"]!).Split('\n').First(l => l.StartsWith("audio.play_bitrate_enumeration=", StringComparison.Ordinal));
-        Assert.Equal("audio.play_bitrate_enumeration=4", Rate(p[0]));
-        Assert.Equal("audio.play_bitrate_enumeration=3", Rate(p[1]));
-        Assert.Equal("audio.play_bitrate_enumeration=2", Rate(p[2]));
-        Assert.Equal("audio.play_bitrate_enumeration=5", Rate(p[3]));   // one not known: lossless
-        Assert.Contains("audio.play_bitrate_non_metered_enumeration=4", (string)p[0]!["text"]!);
-        Assert.Contains("audio.normalize_v2=false", (string)p[2]!["text"]!);
-    }
 }
