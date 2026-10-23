@@ -29,9 +29,6 @@ public sealed class SpotifyLibraryTests
         public readonly ConcurrentQueue<string> Refreshed = new();
         public readonly ConcurrentQueue<(string Path, string Body)> Plays = new();
         public readonly ConcurrentQueue<string> Paths = new();
-        /* The saved albums (PUT and DELETE me/library change them); [Slow]: the saved list takes twelve seconds a page, as a big one on a slow day. */
-        public readonly ConcurrentDictionary<string, bool> Saved = new(new Dictionary<string, bool> { ["al1"] = true, ["al2"] = true });
-        public volatile bool Slow;
 
         private static JsonObject Track(string album, int n) => new()
         {
@@ -62,20 +59,6 @@ public sealed class SpotifyLibraryTests
             if (path == "/api/token") { await Token(ctx, body); return; }
             if (path.StartsWith("/img/", StringComparison.Ordinal)) { ctx.Response.ContentType = "image/jpeg"; await ctx.Response.Body.WriteAsync(new byte[] { 0xFF, 0xD8, 0xFF, 0xD9 }); return; }
             if ((string?)ctx.Request.Headers.Authorization != "Bearer " + Access) { ctx.Response.StatusCode = 401; await ctx.Response.WriteAsync("{\"error\":{\"status\":401,\"message\":\"The access token expired\"}}"); return; }
-            if (path == "/v1/me/albums" && Slow) await Task.Delay(12_000);
-            var uris = Uri.UnescapeDataString(ctx.Request.Query["uris"].ToString()).Split(',').Select(u => u.Replace("spotify:album:", "", StringComparison.Ordinal)).ToList();
-            if (path == "/v1/me/library")
-            {
-                foreach (var id in uris) { if (ctx.Request.Method == "PUT") Saved[id] = true; else Saved.TryRemove(id, out _); }
-                ctx.Response.StatusCode = 200;
-                return;
-            }
-            if (path == "/v1/me/library/contains")
-            {
-                ctx.Response.ContentType = "application/json";
-                await ctx.Response.WriteAsync(new JsonArray(uris.Select(id => (JsonNode)Saved.ContainsKey(id)).ToArray()).ToJsonString());
-                return;
-            }
             JsonNode? answer = path switch
             {
                 "/v1/me" => new JsonObject { ["id"] = "ann1", ["display_name"] = "Ann" },
@@ -190,42 +173,5 @@ public sealed class SpotifyLibraryTests
         Assert.False(gone["connected"]!.GetValue<bool>());
         Assert.Equal("Lounge", (string?)(await s.Api("settings/spotify")).J["device_name"]);
         Assert.Null(await s.Album("First Light"));
-    }
-
-    /* Signed in to the stand-in and the favourites brought in: the session, ready. */
-    private static async Task SignedInWithFavourites(Session s, FakeSpotify fake, string fakeBase)
-    {
-        var url = (string)(await s.Api("settings/spotify/signin", new { client_id = ClientId })).J["pending"]!["url"]!;
-        fake.Challenge = QueryOf(url, "code_challenge");
-        var signed = await s.Api("settings/spotify/signin/code", new { url = $"http://127.0.0.1:43143/mandarin-spotify?code=AQ-good&state={QueryOf(url, "state")}" });
-        Assert.True(signed.Status == 200, signed.Text + " (" + fakeBase + ")");
-        await s.Api("settings/spotify", new { import = true });
-        await Session.Until(async () => (await s.Api("settings/spotify")).J["account"]!["last_import"] is JsonObject li && li["albums"] != null, 30000, "the import");
-    }
-
-    [Test]
-    public async Task A_Spotify_albums_page_opens_at_once_however_slow_the_saved_list_is()
-    {
-        var fake = new FakeSpotify();
-        await using var srv = await FakeServer.Start(fake.Handle);
-        fake.Base = srv.Base;
-        await using var s = await Session.Started(env: new Dictionary<string, string> { ["SPOTIFY_API_URL"] = srv.Base + "/v1/", ["SPOTIFY_ACCOUNTS_URL"] = srv.Base + "/" });
-        await SignedInWithFavourites(s, fake, srv.Base);
-        var first = (await s.Album("First Light"))!;
-        var second = (await s.Album("Second Wind"))!;
-
-        // Saving or removing one forgets the list kept; the list itself is slow now. Each page still opens at once,
-        // asking Spotify of that album alone, and says whether it is saved.
-        fake.Slow = true;
-        Assert.Equal(200, (await s.Api("spotify/unfavorite", new { album_id = "al1" })).Status);
-        var watch = System.Diagnostics.Stopwatch.StartNew();
-        var page = await s.Api("album?offset=" + (int)second["offset"]!);
-        Assert.True(watch.ElapsedMilliseconds < 4000, "the page took " + watch.ElapsedMilliseconds + " ms");
-        Assert.Equal(200, page.Status);
-        Assert.True(page.J["album"]!["service_favourite"]!.GetValue<bool>());
-        Assert.Contains(fake.Paths, p => p == "GET /v1/me/library/contains");
-        var unsaved = await s.Api("album?offset=" + (int)first["offset"]!);
-        Assert.Equal(200, unsaved.Status);
-        Assert.False(unsaved.J["album"]!["service_favourite"]!.GetValue<bool>());
     }
 }

@@ -16,10 +16,8 @@ using Js = Mandarin.Server.Tags.Js;
 internal sealed partial class SpotifyCatalogue : Catalogue
 {
     public SpotifyApi Api { get; }
-    private HashSet<string>? saved;      // the saved albums' ids, kept ten minutes (the browser marks each list with them)
+    private HashSet<string>? saved;      // the saved albums' ids, kept a minute (the browser marks each list with them)
     private double savedAt;
-    private const double SavedMs = 10 * 60_000;
-    private const int OneAlbumMs = 5_000;   // an album's page waits no longer than this for Spotify
 
     public SpotifyCatalogue(string? baseUrl, string? accountsUrl) : base("spotify", "Spotify") =>
         Api = new SpotifyApi(baseUrl, accountsUrl, Account, OnToken);
@@ -67,25 +65,11 @@ internal sealed partial class SpotifyCatalogue : Catalogue
 
     public override async Task<HashSet<string>> FavouriteIdSet(Ask ask, bool fresh = false)
     {
-        if (!fresh && saved != null && NowMs() - savedAt < SavedMs) return saved;
+        if (!fresh && saved != null && NowMs() - savedAt < 60_000) return saved;
         var ids = (await Api.All("me/albums?limit=50")).Select(x => SpotifyApi.Inner(x, "album")).Where(Js.Truthy)
             .Select(a => Js.Str(P(a, "id"))).ToHashSet(StringComparer.Ordinal);
         (saved, savedAt) = (ids, NowMs());
         return ids;
-    }
-
-    /*
-     * Whether one album is saved (an album's page opening, item 144): Spotify asked of that album alone, never the
-     * whole list (a big library's pages, read one after another, kept the page waiting until the app gave up); the
-     * list from the last import or listing while it is fresh. An answer that isn't a plain yes or no, or none in five
-     * seconds, is unknown, never "not saved": that would let the album go from the library.
-     */
-    public override async Task<bool> IsFavourite(string albumId, Ask ask)
-    {
-        if (saved != null && NowMs() - savedAt < SavedMs) return saved.Contains(albumId);
-        var asked = Api.GetJson("me/library/contains?uris=" + Component("spotify:album:" + albumId));
-        if (await Task.WhenAny(asked, Task.Delay(OneAlbumMs)) != asked) throw new ServiceError("Spotify didn't answer in time", 504);
-        return await asked is List<object?> { Count: 1 } l && l[0] is bool b ? b : throw new ServiceError("Spotify's answer unreadable", 502);
     }
 
     public override Task<List<object?>> NewReleases(double days, Ask ask) => Task.FromResult(new List<object?>());
