@@ -137,6 +137,7 @@ internal sealed partial class Soloist : IDisposable
 
         // Lossless asked for on the accounts already signed in, before Soloist reads their prefs.
         Quality = s.Quality;
+        Name = s.DeviceName;
         try { AskQuality(dataDir, Quality); }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException) { Log("couldn't ask for lossless: " + e.Message); }
         askedAfterSignIn = false;

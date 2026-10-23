@@ -51,6 +51,14 @@ internal sealed partial class Soloist
 
     private bool askedAfterSignIn;
 
+    // What the status says before Soloist is playing (item 147). Soloist takes a sign-in only from the Spotify app on
+    // the same network (its own discovery; Spotify refuses any other): once, at home; it keeps it from then on.
+    private string Unpaired => $"not signed in to Spotify yet · at home, on the same Wi-Fi, choose {Name} once in the Spotify app's devices";
+    private string Waiting => $"signed in · play from Mandarin, or choose {Name} in the Spotify app";
+
+    /* The name the Spotify app shows, as Soloist was last started with. */
+    public string Name { get; private set; } = SpotifySettings.DefaultName;
+
     // Signed in: an account new to Soloist hasn't been asked for lossless yet; asked, Soloist starts again to take it up.
     private void SignedInNow()
     {

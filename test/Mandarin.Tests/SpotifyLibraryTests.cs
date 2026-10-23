@@ -32,6 +32,8 @@ public sealed class SpotifyLibraryTests
         /* The saved albums (PUT and DELETE me/library change them); [Slow]: the saved list takes twelve seconds a page, as a big one on a slow day. */
         public readonly ConcurrentDictionary<string, bool> Saved = new(new Dictionary<string, bool> { ["al1"] = true, ["al2"] = true });
         public volatile bool Slow;
+        /* Soloist not among the account's devices: not yet signed in by the Spotify app. */
+        public volatile bool NoSoloist;
 
         private static JsonObject Track(string album, int n) => new()
         {
@@ -88,7 +90,8 @@ public sealed class SpotifyLibraryTests
                 "/v1/me/tracks" => Page(new JsonObject { ["track"] = Track("al3", 1) }),
                 "/v1/me/playlists" => Page(new JsonObject { ["id"] = "pl1", ["name"] = "Road" }),
                 "/v1/playlists/pl1/items" => Page(new JsonObject { ["item"] = Track("al1", 2) }, new JsonObject { ["item"] = new JsonObject { ["id"] = "ep1", ["type"] = "episode" } }),
-                "/v1/me/player/devices" => new JsonObject { ["devices"] = new JsonArray(new JsonObject { ["id"] = "dev-mandarin", ["name"] = "Mandarin" }, new JsonObject { ["id"] = "dev-phone", ["name"] = "Ann's phone" }) },
+                "/v1/me/player/devices" => new JsonObject { ["devices"] = NoSoloist ? new JsonArray(new JsonObject { ["id"] = "dev-phone", ["name"] = "Ann's phone" })
+                    : new JsonArray(new JsonObject { ["id"] = "dev-mandarin", ["name"] = "Mandarin" }, new JsonObject { ["id"] = "dev-phone", ["name"] = "Ann's phone" }) },
                 "/v1/me/player/play" => null,
                 _ => new JsonObject { ["error"] = new JsonObject { ["status"] = 404, ["message"] = "Not found" } }
             };
@@ -230,6 +233,12 @@ public sealed class SpotifyLibraryTests
         Assert.Equal(200, page.Status);
         Assert.True(page.J["album"]!["service_favourite"]!.GetValue<bool>());
         Assert.Contains(fake.Paths, p => p == "GET /v1/me/library/contains");
+        // Soloist not yet signed in by the Spotify app (item 147): Play says how, once, at home; nothing asked of Spotify.
+        fake.NoSoloist = true;
+        var notYet = await s.Api("play", new { zone_or_output_id = "RINCON_LOUNGE", offset = (int)second["offset"]!, kind = "play_now" });
+        Assert.Equal(409, notYet.Status);
+        Assert.Contains("At home, on the same Wi-Fi, choose \"Mandarin\" once in the Spotify app's devices; after that it plays from anywhere.", (string?)notYet.J["error"]);
+        Assert.Empty(fake.Plays);
         var unsaved = await s.Api("album?offset=" + (int)first["offset"]!);
         Assert.Equal(200, unsaved.Status);
         Assert.False(unsaved.J["album"]!["service_favourite"]!.GetValue<bool>());

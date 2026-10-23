@@ -29,7 +29,7 @@ internal sealed partial class Soloist
         lock (gate) ws = w;
         w.ConnectAsync(new Uri($"ws://{addr}:{port}"), stop.Token).Wait(TimeSpan.FromSeconds(10));
         if (w.State != WebSocketState.Open) throw new InvalidOperationException("couldn't reach Soloist's WebSocket");
-        SetStatus("ready · choose Mandarin in the Spotify app");
+        SetStatus(Unpaired);
         lastError = "";
 
         var buf = new byte[1 << 16];
@@ -77,8 +77,8 @@ internal sealed partial class Soloist
                     lock (gate) { SignedIn = signedIn; Active = active; }
                     Log(signedIn ? $"Soloist is signed in{(active ? ", and the Spotify app has chosen it" : "")}" : "Soloist is waiting for the Spotify app to choose it");
                 }
-                if (!signedIn) SetStatus("ready · choose Mandarin in the Spotify app");
-                else if (!active && Playback == "idle") SetStatus("connected · choose Mandarin in the Spotify app to play");
+                if (!signedIn) SetStatus(Unpaired);
+                else if (!active && Playback == "idle") SetStatus(Waiting);
                 if (signedIn) SignedInNow();
                 Changed?.Invoke();
                 break;
@@ -124,7 +124,7 @@ internal sealed partial class Soloist
         if (status == "buffering") return;   // as it was, until it plays
         if (status is not ("playing" or "paused" or "idle") || status == Playback) return;
         lock (gate) Playback = status;
-        SetStatus(status switch { "playing" => "playing", "paused" => "paused", _ => SignedIn ? "connected · choose Mandarin in the Spotify app to play" : "ready · choose Mandarin in the Spotify app" });
+        SetStatus(status switch { "playing" => "playing", "paused" => "paused", _ => SignedIn ? Waiting : Unpaired });
         Changed?.Invoke();
     }
 
