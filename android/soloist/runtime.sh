@@ -28,9 +28,11 @@ DEBIAN=https://deb.debian.org/debian
 TERMUX=https://packages.termux.dev/apt/termux-main
 
 # index <url of Packages, less .xz> <name>: the index, unpacked (or plain, where the mirror keeps no .xz).
+CURL=(curl -fsSL --retry 4 --connect-timeout 20 --max-time 300)
 index() {
-    if curl -fsSL --retry 4 -o "$work/$2.xz" "$1.xz"; then xz -d < "$work/$2.xz" > "$work/$2"
-    else curl -fsSL --retry 4 -o "$work/$2" "$1"; fi
+    echo "runtime.sh: index $1"
+    if "${CURL[@]}" -o "$work/$2.xz" "$1.xz"; then xz -d < "$work/$2.xz" > "$work/$2"
+    else "${CURL[@]}" -o "$work/$2" "$1"; fi
 }
 
 # fetch <mirror> <index> <package> <into>: the package named in the index, its SHA-256 checked, unpacked.
@@ -48,7 +50,8 @@ fetch() {
     }' "$work/$2")
     read -r file sha ver <<< "$line"
     [ -n "${file:-}" ] || { echo "runtime.sh: $3 isn't in $2" >&2; exit 1; }
-    curl -fsSL --retry 4 -o "$work/$3.deb" "$1/$file"
+    echo "runtime.sh: $3 $ver ($file)"
+    "${CURL[@]}" -o "$work/$3.deb" "$1/$file"
     echo "$sha  $work/$3.deb" | sha256sum -c --quiet -
     mkdir -p "$4"
     dpkg-deb -x "$work/$3.deb" "$4"
@@ -72,6 +75,7 @@ cp -L "$usr/libexec/proot/loader" "$jni/libproot-loader.so"
 cp -L "$usr/lib/libtalloc.so.2" "$jni/libtalloc.so"
 
 # Spotifast's PulseAudio stand-in, built for glibc on 64-bit ARM.
+echo "runtime.sh: building the PulseAudio stand-in"
 aarch64-linux-gnu-gcc -std=gnu11 -O2 -fPIC -fvisibility=hidden -Wall -Wextra -Werror -shared \
     -Wl,-soname,libpulse.so.0 -Wl,-z,relro,-z,now -o "$root/lib/aarch64-linux-gnu/libpulse.so.0" \
     "$here/shim/pulse-shim.c" -lpthread -lm

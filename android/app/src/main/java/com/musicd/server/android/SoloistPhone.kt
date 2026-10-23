@@ -59,6 +59,11 @@ object SoloistPhone {
         File(r, "etc/group").writeText("root:x:0:\nmandarin:x:$uid:\n")
         File(r, "etc/hosts").writeText("127.0.0.1 localhost\n::1 localhost ip6-localhost\n")
         File(r, "etc/nsswitch.conf").writeText("passwd: files\ngroup: files\nhosts: files dns\n")
+        File(r, "etc/os-release").writeText("PRETTY_NAME=\"Debian GNU/Linux 13 (trixie)\"\nNAME=\"Debian GNU/Linux\"\nVERSION_ID=\"13\"\nID=debian\n")
+        // One machine id for this phone, kept across runs (as a Linux machine keeps /etc/machine-id).
+        val id = File(dir(c), "machine-id")
+        if (!id.exists()) id.writeText(java.util.UUID.randomUUID().toString().replace("-", "") + "\n")
+        id.copyTo(File(r, "etc/machine-id"), overwrite = true)
         val dns = nameservers(c)
         File(r, "etc/resolv.conf").writeText(dns.joinToString("") { "nameserver $it\n" })
         note("prepare: nameservers ${dns.joinToString(", ")}")
