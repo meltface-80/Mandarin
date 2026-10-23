@@ -56,7 +56,7 @@ internal static partial class Streams
             var p = ctx.Request.Path.Value ?? "";
             if ((HttpMethods.IsGet(m) || HttpMethods.IsHead(m)) && p.StartsWith("/stream/", StringComparison.Ordinal))
             {
-                try { if (await Spotify.SpotifyStream.Answer(ctx, p) || await Answer(ctx, p)) return; }
+                try { if (await Answer(ctx, p)) return; }
                 catch (Exception e) when (!ctx.Response.HasStarted) { await Server.Failed(ctx, "stream", e); return; }
             }
             await next();

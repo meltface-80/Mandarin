@@ -14,8 +14,6 @@ public static class Program
         return args[0] switch
         {
             "musicdnet" => await Musicdnet.Run(args[1], args[2..]),
-            "soloist" => await Soloist.Run(args[1], args[2..]),
-            "pulseaudio" => await PulseAudio.Run(args[2..]),
             _ => Unknown(args[0])
         };
     }

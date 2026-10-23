@@ -64,7 +64,6 @@ app/native-playlists.js
 app/updater.js
 app/settings.js
 app/settings-services.js
-app/settings-spotify.js
 app/settings-views.js
 app/settings-home.js
 app/service-browser.js

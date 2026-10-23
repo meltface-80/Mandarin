@@ -168,8 +168,6 @@ internal static partial class Library
             if (await HousekeepingRoute(ctx)) return;
             // Rescan, Reindex and the music folders (v0.8.34, ScanRoutes.cs), once the scans are made here.
             if (await ScanRoute(ctx)) return;
-            // Settings → Services → Spotify (item 142, SpotifyRoutes.cs), once Soloist is started with playback.
-            if (await SpotifyRoute(ctx)) return;
             // Qobuz's and Tidal's catalogue, read-only (v0.8.39, ServiceRoutes.cs).
             if (await ServiceRoute(ctx)) return;
             // And their albums opened, favourited and cleaned up (v0.8.44, ServiceRoutes.cs), likewise.

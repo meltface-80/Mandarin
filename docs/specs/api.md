@@ -5,7 +5,7 @@ Written by `node tools/api-map.js write` from the C# sources (`server/Mandarin.S
 where the code decides it away from the address (the handler says). "…" ends an address the route takes
 the rest of; a pattern is as the code writes it. What each answers is said beside its handler.
 
-215 routes.
+213 routes.
 
 | Method | Address | Who may ask | Answered in |
 |---|---|---|---|
@@ -170,8 +170,6 @@ the rest of; a pattern is as the code writes it. What each answers is said besid
 | POST | `/api/settings/shelf` | signed in | `LibraryRoutes.cs` |
 | GET | `/api/settings/smart-picks` | signed in | `LibraryRoutes.cs` |
 | POST | `/api/settings/smart-picks` | signed in | `LibraryRoutes.cs` |
-| GET | `/api/settings/spotify` | signed in | `Spotify/SpotifyRoutes.cs` |
-|  | `/api/settings/spotify/download` | signed in | `Spotify/SpotifyRoutes.cs` |
 | GET | `/api/settings/waveform` | signed in | `LibraryRoutes.cs` |
 | POST | `/api/settings/waveform` | signed in | `LibraryRoutes.cs` |
 | POST | `/api/share/encode` | signed in | `LibraryRoutes.cs` |

@@ -277,7 +277,7 @@ async function loadHomeRowsSettings() {
   renderHomeRowsList();
 }
 
-const openSettings = () => { settingsAppPane = null; showView("home"); loadRadio(); loadVersion(); loadDiscogsToken(); loadFanartKey(); loadLastfmKey(); loadDisplaySettings(); loadLabelFolderDepth(); loadQobuzStatus(); loadTidalStatus(); loadSpotify(); loadSmartPicksSettings(); loadLabelsEnabled(); loadWaveformEnabled(); loadHomeRowsSettings(); settingsOverlay.classList.remove("hidden"); };
+const openSettings = () => { settingsAppPane = null; showView("home"); loadRadio(); loadVersion(); loadDiscogsToken(); loadFanartKey(); loadLastfmKey(); loadDisplaySettings(); loadLabelFolderDepth(); loadQobuzStatus(); loadTidalStatus(); loadSmartPicksSettings(); loadLabelsEnabled(); loadWaveformEnabled(); loadHomeRowsSettings(); settingsOverlay.classList.remove("hidden"); };
 const closeSettings = () => { settingsOverlay.classList.add("hidden"); };
 // One page of Settings for the Android app's own Settings (item 76), opened by its row as the list opens it (each loads
 // what it shows when its row is tapped), its Back closing Settings again.

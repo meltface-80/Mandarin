@@ -3,10 +3,8 @@
 # Four stages: MusicD's own Tailscale engine (Go, the same program as the
 # Android app's) is built for the image's platform; Mandarin's audio engine
 # (C#, engine/) likewise; Mandarin's server (C#, server/) likewise; and the
-# image that runs carries only ffmpeg, poppler, PulseAudio (for Spotify
-# Soloist's sound), the three programs and the page (public/). No Node.js
-# since v0.9.0. Debian 13 from bug list item 142: Spotify Soloist needs glibc
-# 2.38 or later, which Debian 12 hasn't.
+# image that runs carries only ffmpeg, poppler, the three programs and the
+# page (public/). No Node.js since v0.9.0.
 # Docker Hub's official images are pulled through Google's mirror of them
 # (mirror.gcr.io/library/…, v0.8.26): the same images, without Docker Hub's
 # limit on anonymous pulls, which GitHub's shared runners kept hitting
@@ -59,7 +57,7 @@ RUN set -e; cd server; \
       -p:EnableCompressionInSingleFile=true -o /out --nologo; \
     rm -f /out/*.pdb /out/*.dbg; ls -la /out
 
-FROM mirror.gcr.io/library/debian:trixie-slim
+FROM mirror.gcr.io/library/debian:bookworm-slim
 LABEL org.opencontainers.image.title="MusicD Server" \
       org.opencontainers.image.description="Your own music files, played to Sonos, with MusicD Remote's interface" \
       org.opencontainers.image.source="https://github.com/meltface-80/Mandarin" \
@@ -74,15 +72,11 @@ LABEL org.opencontainers.image.title="MusicD Server" \
 # so the image is never built without them.
 # poppler-utils (v0.8.33): pdfinfo and pdftoppm, which draw the pages of an
 # album's booklet for the album page (server/Mandarin.Server/Booklets.cs).
-# pulseaudio and libatomic1 (item 142): Spotify Soloist, which Mandarin
-# downloads from Spotify on request (it may not be redistributed), needs
-# libatomic and plays only to PulseAudio: Mandarin starts a private one for it
-# with no sound card, only a pipe it reads (server/Mandarin.Server/Spotify/).
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends ffmpeg tini ca-certificates libicu76 poppler-utils pulseaudio libatomic1 \
+    && apt-get install -y --no-install-recommends ffmpeg tini ca-certificates libicu72 poppler-utils \
     && rm -rf /var/lib/apt/lists/* \
     && taskset --version && ionice --version && nice --version \
-    && pdftoppm -v && pdfinfo -v && pulseaudio --version
+    && pdftoppm -v && pdfinfo -v
 
 # Tailscale built in: signed in once from Settings → Away from home (or with
 # TS_AUTHKEY), the server is on your tailnet by itself (server/Mandarin.Server/Admin/Tailscale.cs).
