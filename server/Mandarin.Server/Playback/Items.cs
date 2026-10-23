@@ -136,7 +136,7 @@ internal static class Items
         if (tracks.Any(Spotify.SpotifyPlay.IsSpotify))
         {
             var (part, first, spotify) = Spotify.SpotifyPlay.Part(tracks, (int)Math.Max(0, startAt));
-            if (spotify) return await Spotify.SpotifyPlay.Play(zoneId, part, how, how == "play_now" ? first : 0, seconds, shuffled);
+            if (spotify) return await Spotify.SpotifyPlay.Play(hub, zoneId, part, how, how == "play_now" ? first : 0, seconds, shuffled);
             (tracks, startAt) = (part, how == "play_now" ? first : startAt);
         }
         List<PlayItem> items;

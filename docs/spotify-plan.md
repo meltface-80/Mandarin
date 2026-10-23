@@ -69,9 +69,8 @@ So Mandarin runs Soloist itself and plays what it plays. That is how those who h
    artists, album and cover, and its play/pause/next/previous go back to Soloist. Settings → Services → Spotify (the
    page and the app): the API key, Download/Update Soloist, the room, the device name, and a status line (the build
    and its date, signed in or waiting for the Spotify app, playing, lossless proven). Seek goes back to Soloist too.
-   The phone plays it too from item 146: its player keeps Spotify's stream out of its cache (it has no end), and
-   the stream is let out at the speed it plays (a player reading ahead would otherwise run Soloist ahead of what is
-   heard). Tested end to end with stand-ins for Soloist, PulseAudio and Spotify's CDN
+   A phone is not offered as Spotify's room yet: the phone's player keeps what it streams in its cache, which an
+   endless stream would fill. Tested end to end with stand-ins for Soloist, PulseAudio and Spotify's CDN
    (`test/StandIns`, `SpotifyTests`): the download, the restart for lossless, the proof, the FLAC stream, the key
    never logged.
 2. **Item 143 (built): your Spotify library in Mandarin, played losslessly.** Your own Spotify app's Client ID

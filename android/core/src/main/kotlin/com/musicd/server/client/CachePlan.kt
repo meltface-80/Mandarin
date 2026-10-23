@@ -63,9 +63,6 @@ object CachePlan {
     }
 
     /** The track id in a server stream address (".../stream/t12.flac?s=..."), or null. */
-    /** Spotify's live stream (item 146): one with no end, never kept on the phone. */
-    fun live(url: String): Boolean = Regex("/stream/spotify/live\\.flac(?:[?#]|$)").containsMatchIn(url)
-
     fun trackIdOf(url: String): Long? =
         Regex("/stream/t(\\d+)(?:[./?]|$)").find(url)?.groupValues?.get(1)?.toLongOrNull()
 
