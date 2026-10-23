@@ -147,12 +147,12 @@ object SoloistPhone {
         return pb
     }
 
-    /** Runs [program] to its end (at most [seconds]), noting each line it writes; its exit code, or null if it didn't end. */
-    fun runOnce(c: Context, label: String, program: String, args: List<String>, noSeccomp: Boolean, seconds: Long = 30): Int? {
+    /** Runs [program] to its end (at most [seconds]), noting each line it writes (and handing it to [line]); its exit code, or null if it didn't end. */
+    fun runOnce(c: Context, label: String, program: String, args: List<String>, noSeccomp: Boolean, seconds: Long = 30, line: (String) -> Unit = {}): Int? {
         note("$label: $program ${args.joinToString(" ")}")
         val p = runCatching { command(c, program, args, noSeccomp = noSeccomp).start() }
             .getOrElse { note("$label: couldn't start proot: ${it.message}"); return -1 }
-        val reader = Thread { runCatching { p.inputStream.bufferedReader().forEachLine { note("$label| $it") } } }.apply { isDaemon = true; start() }
+        val reader = Thread { runCatching { p.inputStream.bufferedReader().forEachLine { note("$label| $it"); line(it) } } }.apply { isDaemon = true; start() }
         val ended = p.waitFor(seconds, java.util.concurrent.TimeUnit.SECONDS)
         if (!ended) { p.destroyForcibly(); note("$label: still running after ${seconds}s; stopped"); return null }
         reader.join(2_000)

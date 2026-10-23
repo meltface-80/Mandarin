@@ -60,9 +60,11 @@ fetch() {
 
 # Debian 13's glibc and friends, for arm64.
 index "$DEBIAN/dists/trixie/main/binary-arm64/Packages" debian
-for p in libc6 libatomic1 libgcc-s1; do fetch "$DEBIAN" debian "$p" "$work/deb"; done
-for f in ld-linux-aarch64.so.1 libc.so.6 libm.so.6 libatomic.so.1 libgcc_s.so.1; do
-    cp -L "$work/deb/usr/lib/aarch64-linux-gnu/$f" "$root/lib/aarch64-linux-gnu/$f"
+# Every library glibc ships, not a chosen few (item 150: Soloist links libpthread.so.0, which glibc 2.34 on keeps as
+# a library of its own), and C++'s and zlib's, which a program built as Soloist is may link too.
+for p in libc6 libatomic1 libgcc-s1 libstdc++6 zlib1g; do fetch "$DEBIAN" debian "$p" "$work/deb"; done
+find "$work/deb/usr/lib/aarch64-linux-gnu" -maxdepth 1 \( -type f -o -type l \) -name '*.so*' | while read -r f; do
+    cp -L "$f" "$root/lib/aarch64-linux-gnu/$(basename "$f")"
 done
 cp -L "$work/deb/usr/lib/aarch64-linux-gnu/ld-linux-aarch64.so.1" "$root/lib/ld-linux-aarch64.so.1"
 
@@ -91,6 +93,31 @@ aarch64-linux-gnu-gcc -std=gnu11 -O2 -fPIC -fvisibility=hidden -Wall -Wextra -We
     "$here/shim/pulse-shim.c" -lpthread -lm
 aarch64-linux-gnu-strip --strip-unneeded "$root/lib/aarch64-linux-gnu/libpulse.so.0"
 echo "pulse-shim spotifast-lossless@1eb904a" >> "$root/VERSIONS"
+
+# Soloist itself, looked at and thrown away (Spotify allows no copies; the phone downloads its own): every library it
+# links must be in the tree, or the build stops here and says which — not a phone, after the owner has installed it.
+echo "runtime.sh: checking Soloist's own needs"
+if "${CURL[@]}" -o "$work/soloist.tar.gz" https://soloist-builds.spotifycdn.com/soloist_release_arm64.tar.gz; then
+    mkdir -p "$work/soloist" && tar -xzf "$work/soloist.tar.gz" -C "$work/soloist"
+    bin=$(find "$work/soloist" -type f -name soloist | head -1)
+    need=$(readelf -d "$bin" | sed -n 's/.*(NEEDED).*\[\(.*\)\]/\1/p')
+    echo "runtime.sh: soloist needs: $(echo $need)"
+    echo "runtime.sh: soloist asks glibc for up to $(readelf -V "$bin" | grep -o 'GLIBC_[0-9.]*' | sort -uV | tail -1) (the tree has 2.41)"
+    echo "runtime.sh: soloist loads by name: $(strings "$bin" | grep -E '^lib[A-Za-z0-9_+-]+\.so(\.[0-9]+)*$' | sort -u | tr '\n' ' ')"
+    missing=""
+    for n in $need; do [ -e "$root/lib/aarch64-linux-gnu/$n" ] || missing="$missing $n"; done
+    # and what those libraries link in turn
+    for n in $need; do
+        f="$root/lib/aarch64-linux-gnu/$n"; [ -e "$f" ] || continue
+        for m in $(readelf -d "$f" | sed -n 's/.*(NEEDED).*\[\(.*\)\]/\1/p'); do
+            [ -e "$root/lib/aarch64-linux-gnu/$m" ] || [ "$m" = ld-linux-aarch64.so.1 ] || missing="$missing $m"
+        done
+    done
+    if [ -n "$missing" ]; then echo "runtime.sh: the tree lacks what Soloist links:$missing" >&2; exit 1; fi
+    rm -rf "$work/soloist" "$work/soloist.tar.gz"
+else
+    echo "::warning::runtime.sh: couldn't download Soloist to check what it links"
+fi
 
 cat "$root/VERSIONS"
 ls -la "$jni" "$root/lib" "$root/lib/aarch64-linux-gnu"

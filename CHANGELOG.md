@@ -1,6 +1,21 @@
 # Changelog
 
 ## Unreleased
+- `150-soloist-phone-libs-steps`: Soloist on the phone, after the owner's first try:
+  - **Soloist starts:** it stopped at once with "libpthread.so.0: cannot open shared object file". The app carried
+    five of glibc's libraries, and glibc 2.34 on still keeps libpthread, libdl, librt and others apart. Now it carries
+    every one, with C++'s and zlib's. CI downloads Soloist, looks at what it links, and stops the build if any library
+    is missing.
+  - **A screen that says what to do:**
+    - One step at a time, in a box at the top: Get ready, then your key and Start, then choose it once in the Spotify
+      app, then play.
+    - A checklist of what's done: Linux runs, downloaded, runs, signed in, playing, lossless.
+    - Buttons that can't work yet are greyed out (no more Play or Announce while Soloist isn't running).
+    - If something fails, it says what, in words, and to send the report.
+    - The log and the rarely needed settings are at the bottom.
+  - **Renderers (UPnP):** a slow device's answer from before a skip or a jump no longer puts the room back on the
+    track before. Previous went from that stale track (Long 3 to Long 2 in the tests, which failed now and then on a
+    busy machine).
 - `148-soloist-phone-test`: Soloist on the phone, to try out.
   - **Why:** whether Spotify's own Linux player can run inside the Android app and play lossless on the phone itself,
     away from home, with no server and no Spotify app in the sound's path.
