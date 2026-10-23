@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -29,6 +30,7 @@ import com.musicd.server.client.Contract
 import com.musicd.server.client.Palette
 import com.musicd.server.client.ServerClient
 import com.musicd.server.client.SpotifyAccount
+import com.musicd.server.client.SpotifyLibraries
 import com.musicd.server.client.SpotifySettings
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -87,6 +89,27 @@ internal fun SpotifyBlock(client: () -> ServerClient?, info: (String) -> Unit) {
         // Your library (item 143): signing in, the favourites in the library (SettingsSpotifyLibrary.kt).
         library?.let { SpotifyLibraryPart(client, it, info) { scope.launch { load() } } }
         val field = TextStyle(color = paletteColor(Palette.TEXT), fontSize = 13.sp, lineHeight = 18.sp)
+        // Playing (item 145): the stream quality Soloist asks Spotify for, then Soloist's own settings.
+        library?.let { lib ->
+            val quality = SpotifyLibraries.parse(lib) { "" }.quality
+            Text(SpotifyLibraries.PLAYING, Modifier.parity("settings-services.name").padding(top = 12.dp, bottom = 4.dp), color = paletteColor(Palette.TEXT), fontSize = 16.sp, lineHeight = 22.sp)
+            val qualityName = "Stream quality"
+            ServiceRow(qualityName, Modifier.parity("settings-services.info", Contract.label("settings-services.info", 0, qualityName)).clickable { info(SpotifyLibraries.QUALITY_INFO) }) {
+                val choices = SpotifyLibraries.QUALITIES
+                SelectBox(choiceWords(choices, quality), choices, null, Modifier.parity("settings-services.quality", Contract.label("settings-services.quality", 0, "Spotify")).clickable {
+                    pickChoice(context, choices, quality) { v ->
+                        library = JSONObject(lib.toString()).put("quality", v)
+                        // The answer is the account's alone: the whole state read again after it.
+                        val c = client() ?: return@pickChoice
+                        scope.launch {
+                            withContext(Dispatchers.IO) { runCatching { c.post("/api/settings/spotify", JSONObject().put("quality", v), 20_000) } }
+                                .onSuccess { setupToast(context, "Soloist starts again to take it up") }.onFailure { setupToast(context, it.message ?: "Couldn't reach the server") }
+                            load()
+                        }
+                    }
+                }, width = 187.5.dp)
+            }
+        }
         BasicTextField(key, { key = it }, Modifier.parity("settings-services.spotify-key", Contract.label("settings-services.spotify-key")).fillMaxWidth(), singleLine = true,
             textStyle = field, cursorBrush = SolidColor(paletteColor(Palette.ACCENT)), visualTransformation = PasswordVisualTransformation(),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Next),

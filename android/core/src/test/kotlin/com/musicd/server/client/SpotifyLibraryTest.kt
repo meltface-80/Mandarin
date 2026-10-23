@@ -55,4 +55,11 @@ class SpotifyLibraryTest {
     @Test fun `no answer within the time is none`() {
         assertNull(SpotifyCatch(port = 43178).await(300))
     }
+
+    @Test fun `the stream quality, lossless unless another is chosen`() {
+        assertEquals("lossless", SpotifyLibraries.parse(JSONObject("""{"connected":false}"""), at).quality)
+        assertEquals("high", SpotifyLibraries.parse(JSONObject("""{"connected":false,"quality":"high"}"""), at).quality)
+        assertEquals("lossless", SpotifyLibraries.parse(JSONObject("""{"connected":true,"quality":"best"}"""), at).quality)
+        assertEquals(listOf("lossless", "very_high", "high", "normal"), SpotifyLibraries.QUALITIES.map { it.value })
+    }
 }

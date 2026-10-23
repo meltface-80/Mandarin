@@ -929,7 +929,7 @@
         "tidal-code": { "kind": "shows", "when": "a Tidal sign-in under way" },
         "tidal-cancel": { "kind": "action", "label": "Cancel", "when": "a Tidal sign-in under way" },
         "name": { "kind": "shows", "each": true, "when": "signed in to the service" },
-        "quality": { "kind": "action", "label": "{service} stream quality", "each": true, "when": "signed in to the service" },
+        "quality": { "kind": "action", "label": "{service} stream quality", "each": true, "when": "signed in to the service (Spotify: once this server plays)" },
         "import": { "kind": "action", "label": ["Favourites and purchases in the library", "Favourites in the library"], "each": true, "when": "signed in to the service" },
         "update": { "kind": "action", "label": ["Update library now", "…"], "each": true, "when": "signed in to the service, with its favourites in the library" },
         "signout": { "kind": "action", "label": "Sign out", "each": true, "when": "signed in to the service" },

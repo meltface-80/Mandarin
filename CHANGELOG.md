@@ -1,6 +1,11 @@
 # Changelog
 
 ## Unreleased
+- `145-spotify-quality`: Spotify has a Stream quality in Settings → Services → Spotify, as Qobuz and Tidal have, in the
+  app and on the page: **Lossless** (FLAC up to 24-bit/44.1 kHz, the default) or Spotify's Very high, High or Normal
+  (Ogg Vorbis at 320, 160 or 96 kbps) for when data matters more. Soloist asks Spotify for it in its prefs and is started
+  again to take up a change; the line under it still says what the sound has proven. The block reads in one order on
+  both: your Spotify library, then Playing (the quality, Soloist's key, name and room, its status and its build).
 - `144-spotify-album-page`: a Spotify album opens to its tracks. Its page asked Spotify whether the album is saved by
   reading your whole saved list, a page of 50 at a time, so with a big library the page took longer than the app waits
   and it said it couldn't reach the server. Now Spotify is asked of that album alone (`/me/library/contains`), the list

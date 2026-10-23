@@ -1,7 +1,7 @@
 /* Settings → Services → Spotify, your library (bug list item 143; server/Mandarin.Server/Services/SpotifyAccounts.cs):
  * signing in with your own Spotify app's Client ID (the page to approve Mandarin on opens; the address Spotify then
  * sends the browser to, which won't open, pasted here), who is signed in, the favourites in the library on or off,
- * Update library now and Sign out. Drawn from the state settings-spotify.js reads (its account). */
+ * Update library now and Sign out; and the stream quality Soloist asks Spotify for (item 145). Drawn from the state settings-spotify.js reads (its account). */
 const spotifyClient    = document.getElementById("spotify-client");
 const spotifySignin    = document.getElementById("spotify-signin");
 const spotifyForm      = document.getElementById("spotify-signin-form");
@@ -15,6 +15,7 @@ const spotifyImport    = document.getElementById("spotify-import");
 const spotifyImportNow = document.getElementById("spotify-import-now");
 const spotifyImportSt  = document.getElementById("spotify-import-status");
 const spotifySignout   = document.getElementById("spotify-signout");
+const spotifyQuality   = document.getElementById("spotify-quality");
 let spotifyAccountPoll = null;
 
 /* What is said of the library: off, being brought in, or how many albums and when. */
@@ -38,6 +39,8 @@ function paintSpotifyAccount(a) {
     ? "Signed in as " + ((a.user && (a.user.name || a.user.login)) || "your account")
     : a.pending ? "Waiting for Spotify's answer…" : "Not signed in.";
   if (spotifyImport && on) spotifyImport.checked = a.import !== false;
+  // Stream quality (item 145): the account's, signed in or not (Soloist plays without the library's sign-in).
+  if (spotifyQuality && a.quality && document.activeElement !== spotifyQuality) spotifyQuality.value = a.quality;
   if (spotifyImportNow) spotifyImportNow.classList.toggle("hidden", a.import === false);
   if (spotifyImportSt && on) spotifyImportSt.textContent = spotifyImportText(a);
   clearTimeout(spotifyAccountPoll);
@@ -90,6 +93,12 @@ if (spotifyImportNow) spotifyImportNow.addEventListener("click", async () => {
     settingsToast(j.result.albums + " Spotify albums in the library", "ok");
   } catch (e) { settingsToast(e.message, "error"); }
   finally { spotifyImportNow.disabled = false; if (typeof loadSpotifyStatus === "function") loadSpotifyStatus(); }
+});
+if (spotifyQuality) spotifyQuality.addEventListener("change", async () => {
+  try {
+    paintSpotifyAccount(await spotifyPost("", { quality: spotifyQuality.value }));
+    settingsToast("Soloist starts again to take it up", "ok");
+  } catch (e) { settingsToast(e.message, "error"); }
 });
 if (spotifySignout) spotifySignout.addEventListener("click", async () => {
   spotifySignout.disabled = true;
