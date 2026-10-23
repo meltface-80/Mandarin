@@ -56,11 +56,13 @@ internal fun SpotifyBlock(client: () -> ServerClient?, info: (String) -> Unit) {
     var key by remember { mutableStateOf("") }
     var name by remember { mutableStateOf<String?>(null) }
     var busy by remember { mutableStateOf(false) }
+    var library by remember { mutableStateOf<JSONObject?>(null) }
     val dates = remember { DateFormat.getDateInstance(DateFormat.MEDIUM) }
     val ymd = remember { SimpleDateFormat("yyyy-MM-dd", Locale.ROOT) }
     fun show(j: JSONObject) {
         val a = SpotifySettings.parse(j) { d -> runCatching { dates.format(ymd.parse(d)!!) }.getOrDefault(d) }
         account = a
+        j.optJSONObject("account")?.let { library = it }
         if (name == null) name = a.deviceName
     }
     suspend fun load() {
@@ -82,6 +84,8 @@ internal fun SpotifyBlock(client: () -> ServerClient?, info: (String) -> Unit) {
     Block {
         ServiceTitle("Spotify", Modifier.parity("settings-services.title"),
             Modifier.parity("settings-services.info", Contract.label("settings-services.info", 0, "Spotify")).clickable { info(SpotifySettings.INFO) })
+        // Your library (item 143): signing in, the favourites in the library (SettingsSpotifyLibrary.kt).
+        library?.let { SpotifyLibraryPart(client, it, info) { scope.launch { load() } } }
         val field = TextStyle(color = paletteColor(Palette.TEXT), fontSize = 13.sp, lineHeight = 18.sp)
         BasicTextField(key, { key = it }, Modifier.parity("settings-services.spotify-key", Contract.label("settings-services.spotify-key")).fillMaxWidth(), singleLine = true,
             textStyle = field, cursorBrush = SolidColor(paletteColor(Palette.ACCENT)), visualTransformation = PasswordVisualTransformation(),

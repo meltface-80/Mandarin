@@ -5,6 +5,10 @@
 //   POST /api/settings/spotify            { api_key?, room?, device_name? }: kept; Soloist started again on them
 //   POST /api/settings/spotify/download   Soloist downloaded from Spotify now (Download / Update)
 //
+// From item 143 the state carries the Spotify account too (account: the services' status, Services/SpotifyAccounts.cs),
+// and { import } switches its favourites in the library on and off, as Qobuz's and Tidal's do; signing in and out and
+// Update library now are the services' routes (ServiceRoutes.cs: /signin, /signin/code, /signout, /import).
+//
 // Once this server holds playback (Jobs.cs starts Soloist then); before that, not answered here.
 using System.Text.Json.Nodes;
 using Mandarin.Server.Spotify;
@@ -19,16 +23,24 @@ internal static partial class Library
         var p = ctx.Request.Path.Value ?? "";
         if (!p.StartsWith("/api/settings/spotify", StringComparison.Ordinal) || SpotifyLive.Player is not { } player) return false;
         var m = ctx.Request.Method;
-        if ((HttpMethods.IsGet(m) || HttpMethods.IsHead(m)) && p == "/api/settings/spotify") return await Send(ctx, SpotifyState(player));
+        if ((HttpMethods.IsGet(m) || HttpMethods.IsHead(m)) && p == "/api/settings/spotify")
+        {
+            try { return await Send(ctx, SpotifyState(player)); }
+            catch (Exception e) when (!ctx.Response.HasStarted) { return await Server.Failed(ctx, "spotify", e); }
+        }
         if (!HttpMethods.IsPost(m)) return false;
         if (p == "/api/settings/spotify/download")
         {
             await SpotifyLive.Fetch();
             return await Send(ctx, SpotifyState(player), SpotifyLive.FetchError == "" ? 200 : 502);
         }
-        if (p != "/api/settings/spotify" || !BodyFits(ctx)) return false;
+        var signing = p is "/api/settings/spotify/signin" or "/api/settings/spotify/signin/code" or "/api/settings/spotify/signin/cancel";
+        if (p != "/api/settings/spotify" && !signing || !BodyFits(ctx)) return false;
         var (b, answered) = await JsBody(ctx);
         if (answered) return true;
+        if (signing) return Account() is { } acct ? await SpotifySignIn(ctx, acct, p, b) : await JsError(ctx, 503, "Spotify isn't set up on this server");
+        // The favourites in the library on or off: the services' own switch.
+        if (Prop(b, "import") is not Tags.Undef && Account() is { } svc) return await SaveServiceSettings(ctx, svc, b);
         return await AfterBody(ctx, async () =>
         {
             var was = SpotifyLive.Settings();
@@ -45,6 +57,28 @@ internal static partial class Library
             return await Send(ctx, SpotifyState(player));
         });
     }
+
+    /*
+     * Signing in to Spotify (item 143, Services/SpotifyAccounts.cs): your Client ID begins it (the page to approve
+     * Mandarin on), the address Spotify sent the browser to finishes it, Cancel lets it go. Refused in its words.
+     */
+    private static async Task<bool> SpotifySignIn(HttpContext ctx, Services.SpotifyCatalogue svc, string p, object? b)
+    {
+        try
+        {
+            if (p.EndsWith("/code", StringComparison.Ordinal)) return await SendJs(ctx, await svc.FinishSignIn(Prop(b, "url")));
+            if (p.EndsWith("/cancel", StringComparison.Ordinal)) { svc.CancelSignIn(); return await SendJs(ctx, svc.Status()); }
+            return await SendJs(ctx, svc.BeginSignIn(Prop(b, "client_id")));
+        }
+        catch (Exception e) when (!ctx.Response.HasStarted)
+        {
+            if (e is not (global::Mandarin.Server.Services.ServiceError or Tags.JsError)) Server.Log($"[spotify] sign-in: {e.GetType().Name}: {e.Message}");
+            return await ImportFailed(ctx, e);
+        }
+    }
+
+    /* The Spotify account's service, once this server holds the services' work. */
+    private static Services.SpotifyCatalogue? Account() => Jobs.Holds("services") ? Jobs.Spotify : null;
 
     /* What Settings shows: never the key itself. */
     internal static JsonObject SpotifyState(Soloist player)
@@ -69,7 +103,8 @@ internal static partial class Library
                 ["fetching"] = SpotifyLive.Fetching,
                 ["error"] = SpotifyLive.FetchError
             },
-            ["pulseaudio"] = SpotifyLive.PulseAudio() != ""
+            ["pulseaudio"] = SpotifyLive.PulseAudio() != "",
+            ["account"] = Account() is { } svc ? JsonNode.Parse(Tags.Js.Json(svc.Status()) ?? "null") : null
         };
     }
 }

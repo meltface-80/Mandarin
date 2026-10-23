@@ -912,8 +912,8 @@
       }
     },
     "settings-services": {
-      "page": "Settings' Services: Back, its title; Qobuz, Tidal and Spotify, each with its ⓘ and what is said of the sign-in: Qobuz's email and password and Sign in, Tidal's Sign in on tidal.com (then the link to open, the code and Cancel); once signed in, the stream quality chosen from a list, favourites in the library on or off, Update library now, Sign out, and what the library holds of the service; Spotify (once this server plays): the Soloist API key, the name the Spotify app shows and Save, the room it plays in, its status, Download or Update Soloist and the build's line",
-      "native": ["android/app/src/main/java/com/musicd/server/android/SettingsServices.kt", "android/app/src/main/java/com/musicd/server/android/SettingsSpotify.kt"],
+      "page": "Settings' Services: Back, its title; Qobuz, Tidal and Spotify, each with its ⓘ and what is said of the sign-in: Qobuz's email and password and Sign in, Tidal's Sign in on tidal.com (then the link to open, the code and Cancel); once signed in, the stream quality chosen from a list, favourites in the library on or off, Update library now, Sign out, and what the library holds of the service; Spotify (once this server plays): your Spotify library (your app's Client ID and Sign in to Spotify, then the address Spotify sent the browser to pasted with Finish or Cancel; signed in, who, favourites in the library on or off, Update library now, Sign out and what the library holds), the Soloist API key, the name the Spotify app shows and Save, the room it plays in, its status, Download or Update Soloist and the build's line",
+      "native": ["android/app/src/main/java/com/musicd/server/android/SettingsServices.kt", "android/app/src/main/java/com/musicd/server/android/SettingsSpotify.kt", "android/app/src/main/java/com/musicd/server/android/SettingsSpotifyLibrary.kt"],
       "preview": false,
       "items": {
         "back": { "kind": "action", "label": "Back to settings" },
@@ -923,7 +923,7 @@
         "status": { "kind": "shows", "each": true },
         "email": { "kind": "action", "label": "Qobuz email", "when": "not signed in to Qobuz" },
         "password": { "kind": "action", "label": "Qobuz password", "when": "not signed in to Qobuz" },
-        "signin": { "kind": "action", "label": ["Sign in", "Sign in on tidal.com", "…"], "each": true, "when": "not signed in to the service" },
+        "signin": { "kind": "action", "label": ["Sign in", "Sign in on tidal.com", "Sign in to Spotify", "…"], "each": true, "when": "not signed in to the service" },
         "tidal-note": { "kind": "shows", "when": "a Tidal sign-in under way" },
         "tidal-link": { "kind": "action", "label": "{link}", "when": "a Tidal sign-in under way" },
         "tidal-code": { "kind": "shows", "when": "a Tidal sign-in under way" },
@@ -939,7 +939,12 @@
         "spotify-save": { "kind": "action", "label": "Save", "when": "this server plays (Spotify's Soloist started with it)" },
         "spotify-room": { "kind": "action", "label": "Spotify's room", "when": "this server plays (Spotify's Soloist started with it)" },
         "spotify-download": { "kind": "action", "label": ["Download Soloist", "Update Soloist"], "when": "a Soloist API key is set" },
-        "spotify-build": { "kind": "shows", "when": "Soloist downloaded, or being downloaded" }
+        "spotify-build": { "kind": "shows", "when": "Soloist downloaded, or being downloaded" },
+        "spotify-client": { "kind": "action", "label": "Spotify Client ID", "when": "this server plays, not signed in to Spotify" },
+        "spotify-note": { "kind": "shows", "when": "not signed in to Spotify, once a sign-in is begun" },
+        "spotify-paste": { "kind": "action", "label": "The address Spotify sent you to", "when": "not signed in to Spotify, once a sign-in is begun" },
+        "spotify-finish": { "kind": "action", "label": "Finish", "when": "not signed in to Spotify, once a sign-in is begun" },
+        "spotify-cancel": { "kind": "action", "label": "Cancel", "when": "not signed in to Spotify, once a sign-in is begun" }
       }
     },
     "add-to-playlist": {
