@@ -17,6 +17,8 @@ internal static class NowPlaying
     {
         var st = z.State;
         if (st.TrackUri.Length == 0 && st.Title.Length == 0) return null;
+        // Spotify's live stream (item 142): what plays is Soloist's.
+        if (Spotify.SpotifyNow.Of(st) is { } spotify) return spotify;
         var s = await Library.CurrentCopy();
         var t = st.TrackId != null && s != null ? Tracks.Of(c, s, st.TrackId.Value) : null;
         var al = t != null && s != null ? s.Find(t.AlbumId) : null;

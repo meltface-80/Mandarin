@@ -1,6 +1,22 @@
 # Changelog
 
 ## Unreleased
+- `142-spotify-lossless`: Spotify Lossless in Mandarin, the first build (`docs/spotify-plan.md`). Mandarin becomes a
+  Spotify Connect device through **Spotify Soloist**, Spotify's own player for Linux and the only way to Spotify's
+  lossless FLAC (librespot, and so SpotOn, is lossy). Settings → Services → Spotify, in the app and on the page: your
+  Soloist API key (from developer.spotify.com/dashboard/soloist; never shown back or logged), the name the Spotify
+  app shows ("Mandarin"), the room Spotify plays in, and Download/Update Soloist (fetched from Spotify, which allows
+  no copies, and fetched again before its 90 days are up). Choose the name once in the Spotify app on the same
+  network; from then on, whatever you play on it plays in the room as one live FLAC stream, 24-bit (16 for a
+  device that takes no more), pause and stop follow, and Now Playing shows Spotify's track, artists, album, cover and
+  position, with play, pause, next, previous and seek going back to Spotify. Play something else in that room, or
+  pause it in the Sonos app, and Spotify pauses too, rather than taking the room back. Lossless is asked for in the account's
+  prefs, and the status says what the samples prove: "Lossless 24-bit/44.1 kHz", 16-bit, or Lossy. Soloist's volume
+  is held at 100% (the room has its own). Soloist runs with a private PulseAudio of its own, no sound card in it.
+  The server image moves to **Debian 13** (Soloist needs glibc 2.38), with PulseAudio and libatomic; ffmpeg is
+  Debian 13's. Soloist's own output is kept in `DATA_DIR/spotify/soloist.log`, its key taken out; the key is in
+  backups with the other keys. New: `GET`/`POST /api/settings/spotify`, `POST /api/settings/spotify/download`,
+  `GET /stream/spotify/live.flac`.
 - `141-test-versions`: test builds say which they are. The server image and the Android app built from `dev` call
   themselves the next release with `-tN`, N the changes merged into `dev` since the last release (`1.1.4-t3`, then
   `1.1.4-t4`…), worked out as they are built (`tools/test-version.js`; nothing is committed, the version in the files

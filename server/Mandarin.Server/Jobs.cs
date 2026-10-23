@@ -139,6 +139,8 @@ internal static partial class Jobs
         if (handed.Contains("scan")) Scans.Start(cfg, dataDir);
         // Playback whole (v0.8.49, stage 6): the hub.
         if (handed.Contains("playback")) await Playback.Hub.Start(Playback.HubConfig.Of(cfg, dataDir, frontPort), Log); else Playback.Hub.Stop();
+        // Spotify Lossless through Soloist (item 142): with the hub, which plays it into a room.
+        if (handed.Contains("playback")) Spotify.SpotifyLive.Start(dataDir);
         // The month's prune of the services' albums only ever played from the browser (v0.8.44): daily.
         Services.Prune.Start();
         // Their import and the favourites' watch (v0.8.45): on the Node server's timers.
@@ -178,6 +180,7 @@ internal static partial class Jobs
 
     public static void Stop()
     {
+        Spotify.SpotifyLive.Stop();
         Playback.Hub.Stop();
         Updater?.Stop();
         Scans.Stop();
