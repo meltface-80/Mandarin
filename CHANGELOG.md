@@ -1,6 +1,17 @@
 # Changelog
 
 ## Unreleased
+- `151-artist-same-mbid`: an artist is one artist however an album credits them.
+  - **The problem:** MusicBrainz credits *Disillusioned* to "Mariana Semkina", the name on its sleeve, while the
+    artist is Marjana Semkina, one entry with one id. Mandarin knew artists only by name, so the credit became a second
+    artist on the Artists wall, and the album sat under "Appears on" on Marjana Semkina's page.
+  - **The fix:** names that Mandarin's own artist lookups find share a MusicBrainz id are now one artist, everywhere:
+    the Artists wall, the artist page (the album in the discography), the album's own artist line, and Library's sort
+    and search.
+  - **The name it's written as:** MusicBrainz's own name for the artist, or the spelling most of the library uses.
+  - **Left alone:** a name that belongs to two artists (two ids), as it says nothing about which.
+  - **Lookups:** an artist looked up by name is also found under a MusicBrainz alias ("Mariana Semkina" finds Marjana
+    Semkina). When a lookup turns up a second name for an artist, the library is read again at once.
 - `150-soloist-phone-libs-steps`: Soloist on the phone, after the owner's first try:
   - **Soloist starts:** it stopped at once with "libpthread.so.0: cannot open shared object file". The app carried
     five of glibc's libraries, and glibc 2.34 on still keeps libpthread, libdl, librt and others apart. Now it carries
