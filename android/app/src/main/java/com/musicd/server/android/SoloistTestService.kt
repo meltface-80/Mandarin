@@ -16,7 +16,7 @@ import android.os.Looper
 import android.os.PowerManager
 
 /**
- * The Soloist test build's keep-alive (bug list item 148, [SoloistPhone]): while Soloist runs, the app is in the
+ * Soloist on the phone's keep-alive (bug list item 148, [SoloistPhone]): while Soloist runs, the app is in the
  * foreground as a media player, so Android neither freezes nor ends it (Soloist is the app's child process) when the
  * screen goes off; and the Wi-Fi lets multicast in, so the Spotify app can find it. Ends itself when Soloist does.
  */

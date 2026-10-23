@@ -1,6 +1,19 @@
 # Changelog
 
 ## Unreleased
+- `148-soloist-phone-test`: Soloist on the phone, to try out.
+  - **Why:** whether Spotify's own Linux player can run inside the Android app and play lossless on the phone itself,
+    away from home, with no server and no Spotify app in the sound's path.
+  - **How it runs:**
+    - The app carries what Soloist needs around it: Debian 13's glibc, Termux's proot, and Spotifast's PulseAudio
+      stand-in, built for 64-bit ARM by CI (`android/soloist/runtime.sh`).
+    - It downloads Soloist itself from Spotify, as the server does, and runs it under proot.
+    - Soloist's sound comes straight to the phone's audio as 32-bit float, paced by the phone's own output.
+  - **The "Soloist test" icon** opens a screen that goes a step at a time: Get ready, Start (choose its name once in
+    the Spotify app on the same Wi-Fi), Play.
+  - **What the screen shows:** whether the sound is lossless (judged from the samples, as the server judges them), and
+    a report to share. Lossless is asked for as an account signs in.
+  - **Kept running:** a foreground service keeps it going with the screen off.
 - `149-shelf-spines-bar`: three Shelf changes, as Rouen's v1.9.66:
   - **Spines:** no spines show through a case as it turns during a swipe. The cases are now drawn one over another,
     nearest the front on top. Before, they were left to one shared 3D depth, where a half-turned cover swung back

@@ -18,8 +18,7 @@ import android.widget.TextView
 import java.util.concurrent.Executors
 
 /**
- * The Soloist test build's screen (bug list item 148; the branch 148-soloist-phone-test alone, never merged), from its
- * own "Soloist test" icon: whether Spotify's Soloist runs on this phone and plays lossless here, a step at a time —
+ * Soloist on the phone's test screen (bug list item 148), from its own "Soloist test" icon: whether Spotify's Soloist runs on this phone and plays lossless here, a step at a time —
  * Get ready (the Debian tree, glibc under proot, Soloist downloaded, its version), Start (signed in by choosing it once
  * in the Spotify app on the same Wi-Fi), Play (a Spotify address, through Soloist's own socket), and what came of it,
  * shared as a report. The key is kept on this phone only, and never in the report.

@@ -158,7 +158,7 @@
             android:foregroundServiceType="dataSync"
             tools:node="merge" />
 
-        <!-- The Soloist test build (bug list item 148; its branch alone, never merged): its own icon. -->
+        <!-- Soloist on the phone (bug list item 148): its test screen, under its own icon. -->
         <activity
             android:name=".SoloistTestActivity"
             android:exported="true"

@@ -76,13 +76,11 @@ jobs:
       # server's image is, its versionName stamped for the build only; versionCode stays the release's, so the next
       # release installs over it. Never on main: that is the release's own.
       - name: Stamp a test build's version
-        if: github.event_name == 'push' && (github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/148-soloist-phone-test')
+        if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
         working-directory: .
         run: |
           set -e
           v=$(node tools/test-version.js)
-          # The Soloist test build (bug list item 148) says so in its name.
-          if [ "$GITHUB_REF" = "refs/heads/148-soloist-phone-test" ]; then v="$v-soloist"; fi
           sed -i "s/versionName = \"[^\"]*\"/versionName = \"$v\"/" android/app/build.gradle.kts
           grep -n 'versionName' android/app/build.gradle.kts
       - uses: actions/setup-java@v4
@@ -111,10 +109,9 @@ jobs:
             -ldflags="-s -w -X main.version=$version" \
             -o ../app/src/main/jniLibs/arm64-v8a/libmusicdnet.so .
           ls -la ../app/src/main/jniLibs/arm64-v8a/
-      # The Soloist test build's runtime (bug list item 148; this branch alone, never merged): Debian's glibc, Termux's
-      # proot and Spotifast's PulseAudio stand-in, built for 64-bit ARM (android/soloist/runtime.sh).
-      - name: The Soloist test build's runtime
-        if: github.ref == 'refs/heads/148-soloist-phone-test'
+      # Soloist on the phone's runtime (bug list item 148): Debian's glibc, Termux's proot and Spotifast's PulseAudio
+      # stand-in, built for 64-bit ARM (android/soloist/runtime.sh). In every APK; without it the Soloist screen says so.
+      - name: Soloist's runtime
         timeout-minutes: 15
         run: |
           sudo apt-get update -o Acquire::http::Timeout=30
@@ -195,25 +192,6 @@ jobs:
           fi
           gh release edit test-android --notes "The Android app from the $branch branch at ${GITHUB_SHA::7} ($APK). For testing only; not a release."
           gh release upload test-android mandarin-android-test.apk --clobber
-
-      # The Soloist test build (bug list item 148): this branch alone, never merged into dev or main. Its app goes to a
-      # pre-release of its own, "test-android-soloist", so dev's test-android stays dev's. Never "latest".
-      - name: Publish the Soloist test build's APK
-        if: github.event_name == 'push' && github.ref == 'refs/heads/148-soloist-phone-test'
-        working-directory: .
-        env:
-          GH_TOKEN: ${{ github.token }}
-          APK: ${{ steps.name.outputs.apk }}
-        run: |
-          set -e
-          tag=test-android-soloist
-          cp "android/$APK" mandarin-android-soloist.apk
-          if ! gh release view "$tag" >/dev/null 2>&1; then
-            gh release create "$tag" --prerelease --latest=false --title "Android app — Soloist test build" \
-              --notes "The Android app's Soloist test build. For testing only; not a release." --target "${GITHUB_SHA}"
-          fi
-          gh release edit "$tag" --notes "The Android app's Soloist test build (bug list item 148) at ${GITHUB_SHA::7} ($APK): the Soloist test icon. For testing only; not a release."
-          gh release upload "$tag" mandarin-android-soloist.apk --clobber
 
       # One APK in dist/, committed once per versionName (and once more when a
       # signed build replaces a debug one), so the README and the Pages site can

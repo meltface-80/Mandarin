@@ -1,4 +1,4 @@
-package com.musicd.server.android
+package com.musicd.server.client
 
 import org.json.JSONObject
 import java.io.BufferedInputStream
@@ -9,12 +9,12 @@ import java.security.SecureRandom
 import java.util.Base64
 
 /**
- * The Soloist test build's line to Soloist (bug list item 148, [SoloistPhone]): its control WebSocket on 127.0.0.1,
+ * Soloist on the phone (bug list item 148): the line to Soloist, its control WebSocket on 127.0.0.1,
  * spoken directly (the app has no WebSocket library): text frames of one JSON object each. Soloist sends its whole
  * state on connecting, then events (auth_state, playback_state, track_changed, playback_changed, error); this side sends
  * commands ({"type":"command","command":"play","uri":…}), as the server's Soloist.Socket.cs does.
  */
-internal class SoloistPhoneSocket(private val port: Int, private val onEvent: (JSONObject) -> Unit) {
+class SoloistSocket(private val port: Int, private val note: (String) -> Unit, private val onEvent: (JSONObject) -> Unit) {
     private val socket = Socket("127.0.0.1", port)
     private val out: OutputStream = socket.getOutputStream()
     private val input = DataInputStream(BufferedInputStream(socket.getInputStream()))
@@ -30,7 +30,7 @@ internal class SoloistPhoneSocket(private val port: Int, private val onEvent: (J
         if (!status.contains(" 101")) throw IllegalStateException("Soloist's socket answered: $status")
         while (readLine().isNotEmpty()) { /* the rest of the answer's head */ }
         socket.soTimeout = 0
-        Thread({ runCatching { readFrames() }.onFailure { SoloistPhone.note("socket: closed (${it.message})") } }, "soloist-socket").apply { isDaemon = true; start() }
+        Thread({ runCatching { readFrames() }.onFailure { note("socket: closed (${it.message})") } }, "soloist-socket").apply { isDaemon = true; start() }
     }
 
     private fun readLine(): String {
@@ -59,7 +59,7 @@ internal class SoloistPhoneSocket(private val port: Int, private val onEvent: (J
                     message.write(data)
                     if (b0 and 0x80 != 0) {
                         val text = message.toString("UTF-8"); message.reset()
-                        runCatching { onEvent(JSONObject(text)) }.onFailure { SoloistPhone.note("socket: unreadable event (${it.message})") }
+                        runCatching { onEvent(JSONObject(text)) }.onFailure { note("socket: unreadable event (${it.message})") }
                     }
                 }
             }

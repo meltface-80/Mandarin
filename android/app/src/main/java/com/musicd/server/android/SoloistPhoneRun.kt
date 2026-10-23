@@ -3,12 +3,14 @@ package com.musicd.server.android
 import android.content.Context
 import android.net.nsd.NsdManager
 import android.net.nsd.NsdServiceInfo
+import com.musicd.server.client.SoloistFiles
+import com.musicd.server.client.SoloistSocket
 import org.json.JSONObject
 import java.io.File
 
 /**
- * The Soloist test build's running Soloist (bug list item 148, [SoloistPhone]): started under proot with its sound
- * coming to [SoloistPhoneSound] and its control socket read by [SoloistPhoneSocket]; what it says kept here for the
+ * Soloist on the phone, running (bug list item 148, [SoloistPhone]): started under proot with its sound
+ * coming to [SoloistPhoneSound] and its control socket read by [SoloistSocket]; what it says kept here for the
  * screen. Signed in for the first time (by the Spotify app, over the Wi-Fi), its account is asked for lossless and it is
  * started again to take that up, as the server does. [announce] also offers it on the Wi-Fi through Android's own
  * service discovery, in case Soloist's own announcement doesn't get out of the app.
@@ -16,7 +18,7 @@ import java.io.File
 internal object SoloistPhoneRun {
     @Volatile private var process: Process? = null
     @Volatile var sound: SoloistPhoneSound? = null
-    @Volatile private var socket: SoloistPhoneSocket? = null
+    @Volatile private var socket: SoloistSocket? = null
     @Volatile var zeroconf = 0
     @Volatile var ws = 0
     @Volatile var signedIn: Boolean? = null
@@ -71,7 +73,7 @@ internal object SoloistPhoneRun {
     }
 
     private fun connect(c: Context, port: Int) {
-        val sk = runCatching { SoloistPhoneSocket(port) { event(c, it) } }
+        val sk = runCatching { SoloistSocket(port, SoloistPhone::note) { event(c, it) } }
             .getOrElse { SoloistPhone.note("socket: couldn't connect (${it.message})"); return }
         socket = sk
         SoloistPhone.note("socket: connected on $port")
@@ -106,7 +108,7 @@ internal object SoloistPhoneRun {
 
     /** An account just signed in asked for lossless; if that changed its prefs, Soloist started again to take it up. */
     private fun lossless(c: Context) {
-        val changed = runCatching { SoloistPhoneFiles.askLossless(c) }.getOrElse { SoloistPhone.note("lossless: couldn't write prefs (${it.message})"); false }
+        val changed = runCatching { SoloistFiles.askLossless(SoloistPhone.data(c)) }.getOrElse { SoloistPhone.note("lossless: couldn't write prefs (${it.message})"); false }
         if (!changed) return
         SoloistPhone.note("lossless: asked for on the account just signed in; starting Soloist again to take it up")
         val (key, name, noSeccomp) = last ?: return

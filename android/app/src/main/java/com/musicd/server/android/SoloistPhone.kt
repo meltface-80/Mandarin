@@ -10,7 +10,7 @@ import java.net.InetAddress
 import java.util.concurrent.ConcurrentLinkedDeque
 
 /**
- * The Soloist test build (bug list item 148; the branch 148-soloist-phone-test alone, never merged): Spotify's own
+ * Soloist on the phone (bug list item 148; its "Soloist test" icon): Spotify's own
  * Linux player, Soloist, run on the phone itself, its lossless sound played by the app.
  *
  * Soloist is a Linux program for glibc; the phone's processor is the one it's built for (64-bit ARM), its C library

@@ -1,8 +1,8 @@
 #!/bin/bash
-# runtime.sh — the Soloist test build's runtime (bug list item 148; the branch 148-soloist-phone-test alone, never
-# merged). Spotify makes Soloist for Linux on 64-bit ARM (glibc, Debian 13), the phone's processor; Android has its
-# own C library, not glibc. So the app carries what Soloist needs around it, and runs it under proot (as UserLAnd and
-# Termux's proot-distro run Debian), which shows Soloist a Debian file tree inside the app's own folder:
+# runtime.sh — Soloist on the phone's runtime (bug list item 148), made by CI for every APK. Spotify makes Soloist
+# for Linux on 64-bit ARM (glibc, Debian 13), the phone's processor; Android has its own C library, not glibc.
+# So the app carries what Soloist needs around it, and runs it under proot (as UserLAnd and Termux's proot-distro run
+# Debian), which shows Soloist a Debian file tree inside the app's own folder:
 #
 #   jniLibs/arm64-v8a/  libproot.so, libproot-loader.so, libtalloc.so, libandroid-shmem.so    Termux's proot (Android's C library): the
 #                       only programs the app runs itself, from where Android allows it (since Android 10, never
