@@ -68,11 +68,18 @@ cp -L "$work/deb/usr/lib/aarch64-linux-gnu/ld-linux-aarch64.so.1" "$root/lib/ld-
 
 # Termux's proot and the talloc it links, for aarch64 Android.
 index "$TERMUX/dists/stable/main/binary-aarch64/Packages" termux
-for p in proot libtalloc; do fetch "$TERMUX" termux "$p" "$work/termux"; done
-usr="$work/termux/data/data/com.termux/files/usr"
+for p in proot libtalloc; do fetch "$TERMUX" termux "$p" "$work/termux-pkgs"; done
+usr="$work/termux-pkgs/data/data/com.termux/files/usr"
+find "$usr" \( -type f -o -type l \) | sed "s#^$usr/#  #"
 cp -L "$usr/bin/proot" "$jni/libproot.so"
 cp -L "$usr/libexec/proot/loader" "$jni/libproot-loader.so"
 cp -L "$usr/lib/libtalloc.so.2" "$jni/libtalloc.so"
+# proot's own needs, beyond Android's: talloc alone, or the build stops here and says what else.
+need=$(readelf -d "$jni/libproot.so" | sed -n 's/.*(NEEDED).*\[\(.*\)\]/\1/p')
+echo "runtime.sh: proot needs: $(echo $need)"
+for n in $need; do
+    case "$n" in libtalloc.so.2|libc.so|libdl.so|libm.so|liblog.so) ;; *) echo "runtime.sh: proot also needs $n" >&2; exit 1 ;; esac
+done
 
 # Spotifast's PulseAudio stand-in, built for glibc on 64-bit ARM.
 echo "runtime.sh: building the PulseAudio stand-in"
