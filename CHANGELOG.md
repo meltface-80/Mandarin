@@ -1,6 +1,11 @@
 # Changelog
 
 ## Unreleased
+- `147-spotify-pairing-words`: Spotify says plainly what Soloist needs before it can play. Soloist takes a sign-in only
+  from the Spotify app on the same network (Spotify refuses any other way), so the first time it has to be at home:
+  Settings and Play now say "not signed in to Spotify yet · at home, on the same Wi-Fi, choose Mandarin once in the
+  Spotify app's devices", and that after that it plays from anywhere. Once signed in, the status says it can be played
+  from Mandarin or the Spotify app.
 - `146-spotify-phone`: Spotify plays on the phone too, at home and away. Play a Spotify album or song with this phone
   as the room and the phone plays Mandarin's Soloist stream, lossless (Opus at 256 kbps when your away quality is
   Opus, as tracks are); pause, next, previous and seek go to Spotify as in a room. The phone keeps none of it (an

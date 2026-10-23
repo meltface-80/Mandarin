@@ -8,6 +8,7 @@ Status: **Open** · **In progress** · **Ready to test** (green, waiting on the 
 
 | # | Item | Branch | Status |
 |---|------|--------|--------|
+| 147 | Away, Spotify on the phone says "Choose Mandarin once in the Spotify app's devices" with no way to do so: Soloist takes a sign-in only from the Spotify app at home; the words now say so, and that it then plays from anywhere | `147-spotify-pairing-words` | Ready to test |
 | 146 | Spotify on the phone ("Spotify plays in a room, not on this phone yet"), at home and away: the phone plays Soloist's stream, kept out of its cache; Spotify's sound let out at the speed it plays | `146-spotify-phone` | Ready to test |
 | 145 | Spotify has no stream quality setting, as Qobuz and Tidal have: Lossless (the default), Very high, High or Normal, asked of Spotify through Soloist's prefs | `145-spotify-quality` | Ready to test |
 | 144 | A Spotify album in the library doesn't open to its tracks ("Couldn't reach the server. Trying again…"): its page read the whole saved list from Spotify; now it asks of that album alone | `144-spotify-album-page` | Ready to test |
