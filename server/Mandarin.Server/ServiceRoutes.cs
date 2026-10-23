@@ -56,10 +56,10 @@ using SH = Mandarin.Server.Services.ServiceHttp;
 
 internal static partial class Library
 {
-    [GeneratedRegex(@"^/api/(qobuz|tidal|spotify)/(lists|new-releases|featured|search|artist-albums|album|state)$")]
+    [GeneratedRegex(@"^/api/(qobuz|tidal)/(lists|new-releases|featured|search|artist-albums|album|state)$")]
     private static partial Regex ServicePath();
 
-    private static Catalogue? CatalogueOf(string id) => !Jobs.Held ? null : id == "qobuz" ? Jobs.Qobuz : id == "tidal" ? Jobs.Tidal : id == "spotify" ? Jobs.Spotify : null;
+    private static Catalogue? CatalogueOf(string id) => !Jobs.Held ? null : id == "qobuz" ? Jobs.Qobuz : id == "tidal" ? Jobs.Tidal : null;
 
     private static JsObj Assigned(JsObj first, JsObj rest)
     {
@@ -136,7 +136,7 @@ internal static partial class Library
 
     // ------------------------------------------------------------ the library's rows (v0.8.44)
 
-    [GeneratedRegex(@"^/api/(qobuz|tidal|spotify)/(open|favorite|unfavorite|play)$")]
+    [GeneratedRegex(@"^/api/(qobuz|tidal)/(open|favorite|unfavorite|play)$")]
     private static partial Regex ServiceWritePath();
 
     [GeneratedRegex(@"^SQLite Error \d+: '(.*)'\.$", RegexOptions.Singleline)]
@@ -285,11 +285,11 @@ internal static partial class Library
 
     // ------------------------------------------------------------ the import (v0.8.45), and the accounts (v0.8.47)
 
-    [GeneratedRegex(@"^/api/settings/(qobuz|tidal|spotify)(/import|/signin|/signin/cancel|/signout|/disconnect)?$")]
+    [GeneratedRegex(@"^/api/settings/(qobuz|tidal)(/import|/signin|/signin/cancel|/signout|/disconnect)?$")]
     private static partial Regex ServiceSettingsPath();
 
     /* The service, once the import is set up (Jobs.cs, at the start). */
-    private static Catalogue? ImportOf(string id) => !Jobs.Holds("import") ? null : id == "qobuz" ? Jobs.Qobuz : id == "tidal" ? Jobs.Tidal : id == "spotify" ? Jobs.Spotify : null;
+    private static Catalogue? ImportOf(string id) => !Jobs.Holds("import") ? null : id == "qobuz" ? Jobs.Qobuz : id == "tidal" ? Jobs.Tidal : null;
     /* The service, once its account is set up too (v0.8.47): signed in or not. */
     private static Catalogue? AccountOf(string id) => !Jobs.Holds("services") ? null : ImportOf(id);
 

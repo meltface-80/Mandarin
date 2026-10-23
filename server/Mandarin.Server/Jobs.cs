@@ -46,8 +46,6 @@ internal static partial class Jobs
     // Qobuz's and Tidal's catalogue (v0.8.39, ServiceRoutes.cs): where each is asked.
     public static Services.QobuzCatalogue? Qobuz { get; private set; }
     public static Services.TidalCatalogue? Tidal { get; private set; }
-    // Spotify's (item 143): your library from its Web API; its sound is Soloist's (Spotify/).
-    public static Services.SpotifyCatalogue? Spotify { get; private set; }
 
     private static volatile HashSet<string> handed = [];
 
@@ -108,8 +106,6 @@ internal static partial class Jobs
         // Their albums' rows (v0.8.44): the covers kept in the data folder, beside the database. Tidal's sign-in (v0.8.47): where it is asked.
         Qobuz = new Services.QobuzCatalogue(Text(cfg["qobuz_url"])) { DataDir = dataDir };
         Tidal = new Services.TidalCatalogue(Text(cfg["tidal_url"]), Text(cfg["tidal_images_url"]), Text(cfg["tidal_auth_url"])) { DataDir = dataDir };
-        // SPOTIFY_API_URL and SPOTIFY_ACCOUNTS_URL: the tests' stand-in for Spotify's Web API.
-        Spotify = new Services.SpotifyCatalogue(Environment.GetEnvironmentVariable("SPOTIFY_API_URL"), Environment.GetEnvironmentVariable("SPOTIFY_ACCOUNTS_URL")) { DataDir = dataDir };
         // Kept (its answers and its spacing with it) unless Last.fm is asked elsewhere.
         if (NewLastfm(Text(cfg["lastfm_url"])) is var said && said.BaseUrl != Lastfm.BaseUrl) lastfm = said;
         // A record's write-up and links (v0.8.21): asked of MusicBrainz, Wikipedia, Pitchfork and Qobuz's site where the configuration says.
@@ -144,7 +140,7 @@ internal static partial class Jobs
         // Playback whole (v0.8.49, stage 6): the hub.
         if (handed.Contains("playback")) await Playback.Hub.Start(Playback.HubConfig.Of(cfg, dataDir, frontPort), Log); else Playback.Hub.Stop();
         // Spotify Lossless through Soloist (item 142): with the hub, which plays it into a room.
-        if (handed.Contains("playback")) global::Mandarin.Server.Spotify.SpotifyLive.Start(dataDir);
+        if (handed.Contains("playback")) Spotify.SpotifyLive.Start(dataDir);
         // The month's prune of the services' albums only ever played from the browser (v0.8.44): daily.
         Services.Prune.Start();
         // Their import and the favourites' watch (v0.8.45): on the Node server's timers.
@@ -184,7 +180,7 @@ internal static partial class Jobs
 
     public static void Stop()
     {
-        global::Mandarin.Server.Spotify.SpotifyLive.Stop();
+        Spotify.SpotifyLive.Stop();
         Playback.Hub.Stop();
         Updater?.Stop();
         Scans.Stop();

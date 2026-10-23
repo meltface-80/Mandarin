@@ -7,10 +7,8 @@
 //     builds: [{ version, exists, today }]            SoloistDownload.Expires and Plan
 //     prefs: [text | null]                            Soloist.AskLossless on an account's prefs file as it was (null: none)
 //     entities: [JSON text]                           Soloist.Entity: a track as Soloist's WebSocket says it
-//     cleans: [[line, key]]                           Soloist.Clean
-//     bodies: [{ uris, album, start, seconds }]       SpotifyPlay.Body (item 143): what the Web API is asked to play
-//     parts: [{ paths, start }] }                     SpotifyPlay.Part: the part of a mixed list that is played
-//   → { follows, proofs, builds: [{ expires, plan }], prefs: [{ changed, text }], entities, cleans, bodies, parts: [{ paths, start, spotify }] }
+//     cleans: [[line, key]] }                         Soloist.Clean
+//   → { follows, proofs, builds: [{ expires, plan }], prefs: [{ changed, text }], entities, cleans }
 using System.Globalization;
 using System.Text.Json;
 using Mandarin.Server.Tags;
@@ -61,23 +59,6 @@ internal static class SpotifyCommand
             return (object?)x;
         }).ToList();
         o["cleans"] = L(job["cleans"]).Select(c0 => { var c = L(c0); return (object?)Soloist.Clean(S(c.ElementAtOrDefault(0)), S(c.ElementAtOrDefault(1))); }).ToList();
-        o["bodies"] = L(job["bodies"]).Select(b0 =>
-        {
-            var b = O(b0);
-            var body = SpotifyPlay.Body(L(b["uris"]).Select(S).ToList(), b["album"] as string, (int)Tags.Js.ToNumber(b["start"]), Tags.Js.ToNumber(b["seconds"]) is var sec && double.IsFinite(sec) ? sec : 0);
-            return Scan.JsJson.Parse(body.ToJsonString());
-        }).ToList();
-        o["parts"] = L(job["parts"]).Select(p0 =>
-        {
-            var p = O(p0);
-            var tracks = L(p["paths"]).Select(x => new Playback.PlayTrack { Path = S(x) }).ToList();
-            var (part, start, spotify) = SpotifyPlay.Part(tracks, (int)Tags.Js.ToNumber(p["start"]));
-            var x = new JsObj();
-            x["paths"] = part.Select(t => (object?)t.Path).ToList();
-            x["start"] = (double)start;
-            x["spotify"] = spotify;
-            return (object?)x;
-        }).ToList();
         return o;
     }
 

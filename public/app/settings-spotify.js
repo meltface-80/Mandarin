@@ -30,8 +30,6 @@ function spotifyBuildText(s) {
 
 function paintSpotify(j) {
   if (spotifyBlock) spotifyBlock.hidden = false;
-  // Your library's part (item 143): settings-spotify-account.js.
-  if (j.account) paintSpotifyAccount(j.account);
   if (spotifyKey && document.activeElement !== spotifyKey) spotifyKey.placeholder = j.has_key ? "Soloist API key (set)" : "Soloist API key";
   if (spotifyName && document.activeElement !== spotifyName) spotifyName.value = j.device_name || "";
   if (spotifyRoom) spotifyRoom.dataset.want = j.room || "";

@@ -119,42 +119,4 @@ public sealed class SpotifyRulesTests
         Assert.Equal("key [key] said", (string?)o["cleans"]![0]);
         Assert.Equal("abc said", (string?)o["cleans"]![1]);   // too short to be a key
     }
-
-    [Test]
-    public async Task What_Soloist_is_asked_to_play_an_album_at_its_track_or_a_window_of_songs()
-    {
-        var songs = Enumerable.Range(0, 250).Select(i => "spotify:track:s" + i).ToArray();
-        var b = (await Ask(new
-        {
-            bodies = new object[]
-            {
-                new { uris = songs[..12], album = "spotify:album:a1", start = 3, seconds = 0 },
-                new { uris = songs, album = (string?)null, start = 200, seconds = 61.5 },
-                new { uris = songs[..5], album = (string?)null, start = 2, seconds = 0 },
-            }
-        }))["bodies"]!.AsArray();
-        Assert.Equal("spotify:album:a1", (string?)b[0]!["context_uri"]);
-        Assert.Equal("spotify:track:s3", (string?)b[0]!["offset"]!["uri"]);
-        Assert.Null(b[0]!["position_ms"]);
-        // 100 songs at most, the one asked for in the middle of them, where it was.
-        Assert.Equal(100, b[1]!["uris"]!.AsArray().Count);
-        Assert.Equal("spotify:track:s150", (string?)b[1]!["uris"]![0]);
-        Assert.Equal(50, b[1]!["offset"]!["position"]!.GetValue<int>());
-        Assert.Equal(61500, b[1]!["position_ms"]!.GetValue<int>());
-        Assert.Equal(5, b[2]!["uris"]!.AsArray().Count);
-        Assert.Equal(2, b[2]!["offset"]!["position"]!.GetValue<int>());
-    }
-
-    [Test]
-    public async Task A_list_mixing_Spotify_with_other_music_plays_the_part_its_first_track_is_in()
-    {
-        string[] mixed = ["/music/a.flac", "spotify://track/x", "/music/b.flac", "spotify://track/y"];
-        var p = (await Ask(new { parts = new object[] { new { paths = mixed, start = 3 }, new { paths = mixed, start = 2 } } }))["parts"]!.AsArray();
-        Assert.True(p[0]!["spotify"]!.GetValue<bool>());
-        Assert.Equal("spotify://track/x spotify://track/y", string.Join(" ", p[0]!["paths"]!.AsArray().Select(x => (string?)x)));
-        Assert.Equal(1, p[0]!["start"]!.GetValue<int>());
-        Assert.False(p[1]!["spotify"]!.GetValue<bool>());
-        Assert.Equal("/music/a.flac /music/b.flac", string.Join(" ", p[1]!["paths"]!.AsArray().Select(x => (string?)x)));
-        Assert.Equal(1, p[1]!["start"]!.GetValue<int>());
-    }
 }

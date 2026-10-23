@@ -106,7 +106,7 @@ internal static partial class Diagnostics
     /* A word kept: an error's name, a streaming service's, or one of the server's addresses (without what follows a "?"). */
     private static string Word(string s)
     {
-        if (ErrorName().IsMatch(s) || s is "qobuz" or "tidal" or "spotify" or "lastfm") return s;
+        if (ErrorName().IsMatch(s) || s is "qobuz" or "tidal" or "lastfm") return s;
         if (s.StartsWith("/api/", StringComparison.Ordinal) || s.StartsWith("/stream/", StringComparison.Ordinal))
         {
             var q = s.IndexOf('?');

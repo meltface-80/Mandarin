@@ -73,20 +73,14 @@ So Mandarin runs Soloist itself and plays what it plays. That is how those who h
    endless stream would fill. Tested end to end with stand-ins for Soloist, PulseAudio and Spotify's CDN
    (`test/StandIns`, `SpotifyTests`): the download, the restart for lossless, the proof, the FLAC stream, the key
    never logged.
-2. **Item 143 (built): your Spotify library in Mandarin, played losslessly.** Your own Spotify app's Client ID
-   (Development Mode: Premium, up to five users, a personal app is that), OAuth with PKCE. Spotify sends the code to
-   `http://127.0.0.1:43143/mandarin-spotify`, the one kind of address it allows without HTTPS: the Android app listens
-   there itself while a sign-in is under way; a browser shows the address, which is pasted into Settings. (An HTTPS relay
-   page on the Pages site, as SpotOn's and Music Assistant's, can follow once `docs/` is published with a release.) Saved
-   albums (`/me/albums`) kept as Spotify albums in the library, as Qobuz's and Tidal's favourites are; liked songs
-   (`/me/tracks`) and playlists (`/me/playlists`, `/playlists/{id}/items`, Development Mode's `item` read as `track`) as
-   playlists; saving and removing through `/me/library` (February 2026). Played from Mandarin: `PUT /me/player/play` on
-   Soloist's own device (found by its name among `/me/player/devices`), the album as its context at the track asked
-   for, or up to 100 songs; Soloist's own socket when the Web API can't (it plays a context from its start, then skips
-   on). The room follows with Soloist's stream, as item 142's does. Never track by track: Spotify's sound is only ever
-   Soloist's, so lossless where the plan has it.
-3. **Item 144: Spotify's catalogue in Mandarin.** The Spotify browser (☰ → Spotify) and Spotify in Search: ten at a
-   time (the API's limit), an artist's albums, an album, saved from there; the routes are in place from item 143.
+2. **Item 143: your Spotify library in Mandarin.** Sign in to the Web API with your own Client ID (Development Mode:
+   Premium, up to 5 users, a personal app is that), through an HTTPS page on Mandarin's GitHub Pages site that hands
+   the code back to the server (Spotify allows only HTTPS or loopback addresses). Saved albums, Liked Songs (as their
+   albums) and followed artists kept in the library as Spotify albums, as Qobuz's and Tidal's favourites are;
+   playlists as playlists; a heart that saves to Spotify (PUT /me/library).
+3. **Item 144: Spotify's catalogue in Mandarin, and playing from it.** Search (ten at a time, the API's limit), an
+   artist's albums, an album; Play starts it on Mandarin's Soloist through the Web API (`PUT /me/player/play` with
+   Soloist's device id), so Mandarin's own Play, Queue and Shuffle work on Spotify albums.
 4. **Item 145: the rest.** Spotify albums in the walls, Focus and artist pages; Spotify's queue shown as the queue;
    moving the music from room to room; no downloads to the phone for Spotify albums (Spotify allows none);
    measuring and shortening the time from Next to the new song.
