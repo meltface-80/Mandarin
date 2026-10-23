@@ -13,7 +13,7 @@ import java.io.File
  * started again to take that up, as the server does. [announce] also offers it on the Wi-Fi through Android's own
  * service discovery, in case Soloist's own announcement doesn't get out of the app.
  */
-object SoloistPhoneRun {
+internal object SoloistPhoneRun {
     @Volatile private var process: Process? = null
     @Volatile var sound: SoloistPhoneSound? = null
     @Volatile private var socket: SoloistPhoneSocket? = null
