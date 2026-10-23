@@ -14,7 +14,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 
-# (id, emoji, title, new in v1.1.3, what it is, how to set it up and use it)
+# (id, emoji, title, new in v1.1.4, what it is, how to set it up and use it)
 FEATURES = [
     # ---- Home and finding music
     ("home", "🏠", "Home", False,
@@ -49,14 +49,14 @@ FEATURES = [
      "**Focus** are in the top bar (at the top right on a phone or tablet); Focus also "
      "has *Added in the last* and *Listening* (never played, not in 6 or 12 months). "
      "**☰ → Random albums** opens a shuffled wall."),
-    ("shelf", "🗄️", "Shelf", False,
+    ("shelf", "🗄️", "Shelf", True,
      "A record shop's shelf of your collection: covers or spines, A → Z by artist or album, narrowed "
      "by genre, artist letter and decade, or spun to land anywhere.",
      "Its switch is **Settings → Setup → Shelf** (off on a new install); off, it is off entirely and not "
      "offered. Open **☰ → Shelf**, `http://<server-ip>:3500/shelf`, or **Shelf ›** on the wall display. Swipe "
      "for one album, swipe and hold to keep turning, flick to spin; tap the front cover to turn the "
-     "case over, and hold a track on its back to choose tracks to play. The bar at its foot plays "
-     "or queues the album in front, skips back and forward, pauses and sets the volume; the tabs at "
+     "case over, and hold a track on its back to choose tracks; the bar then plays or queues those. "
+     "The bar at its foot plays or queues the album in front, skips back and forward, pauses and sets the volume; the tabs at "
      "the edges fold the choices away and bring in the queue. Tap the order's name above the shelf "
      "(**A → Z by artist**) for **A → Z by album**; the Shelf keeps the one chosen."),
     ("search", "🔍", "Search", False,
@@ -79,25 +79,25 @@ FEATURES = [
      "Last.fm key, similar artists and albums. Ones in your library open here.",
      "Open any album. For the Last.fm rows, get a free key at last.fm/api/account/create and paste "
      "it in **Settings → Setup → API Keys** (or set `LASTFM_KEY`). Read-only: nothing is scrobbled."),
-    ("artists", "🎤", "Artists", True,
+    ("artists", "🎤", "Artists", False,
      "Every act in your library as a round picture with their name and album count, in the "
      "album wall's columns, sorted A to Z, by most albums or at random.",
      "On a phone or tablet, tap **Artists** in the row at the foot of the screen. **Sort** is at the "
      "top right; **Search** in the row finds an artist by part of the name. Tap one for their page."),
     ("artist", "🧑‍🎤", "Artist pages", True,
-     "Who they are: picture, where from and when, links, biography, genres, a band's current members "
-     "or a person's bands, similar artists, and Play or Shuffle for all their albums.",
+     "Who they are, then their discography, the albums they appear on, similar artists and similar "
+     "albums. Members fold under a heading. One artist however a sleeve credits them.",
      "Tap an artist's name on an album's page, on the Artists wall or in Search. Facts come from "
      "MusicBrainz, Wikidata and Wikipedia, pictures from FanArt.tv (with a key), Wikidata or Deezer, "
-     "similar artists from Last.fm (with a key) or Deezer. A member's page shows their bands' albums "
-     "from their years in them; a tap on a member, a band or a similar artist opens theirs. Tap a genre "
+     "similar artists and albums from Last.fm (with a key) or Deezer. Tap **Members** to unfold a band's "
+     "line-up. A member's page shows their bands' albums from their years in them; a tap on a member, a band or a similar artist opens theirs. Tap a genre "
      "for its albums."),
-    ("credits", "👥", "Album credits", True,
+    ("credits", "👥", "Album credits", False,
      "Under an album's tracks: who played, sang, wrote and made it, each with their parts and the "
      "tracks they are on, from the files' tags and MusicBrainz.",
      "Nothing to set up: the server looks albums up in the background, a second at a time. Eight show "
      "at first; **More** for the rest. Tap a name for their artist page."),
-    ("genres", "🎸", "Genres on pages", True,
+    ("genres", "🎸", "Genres on pages", False,
      "An album's genres as small chips under its cover, and an artist's, the most used across their "
      "albums. A tap opens that genre's albums.",
      "Nothing to set up: they come from your files' genre tags. A genre written two ways (*Indie Rock*, "
@@ -349,7 +349,7 @@ def md_inline_to_html(s):
 def readme_block():
     lines = ["Every feature below has an **ⓘ**: open it for how to switch the feature on and use it.", ""]
     for i, (fid, em, title, new, what, how) in enumerate(FEATURES):
-        lines.append("%s **%s**%s" % (em, title, " — *new in v1.1.3*" if new else ""))
+        lines.append("%s **%s**%s" % (em, title, " — *new in v1.1.4*" if new else ""))
         lines.append("")
         lines.append(what)
         lines.append("")

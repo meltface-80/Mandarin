@@ -1,6 +1,14 @@
 # Changelog
 
-## Unreleased
+## v1.1.4
+
+**Artist pages and the Shelf.** An artist's page is in a new order: who they are, their members folded under a
+heading until tapped, then their discography, the albums they appear on, similar artists and similar albums (Last.fm's
+with a key, else from Deezer), and it opens at once when visited again. An artist credited under another name on a
+sleeve (Mariana Semkina for Marjana Semkina) is one artist, with that album in their discography. The Shelf has no
+album details under it, so its cases are bigger; no spines show through a case as it turns; and tracks chosen on the
+back of a case play from the bar. A renderer's late answer no longer takes the room back a track.
+
 - `152-remove-spotify`: Spotify taken out of the dev builds. What it left behind goes as each next starts: on the
   server, its albums, playlists, settings and its folder in the data folder; on the phone, the Soloist test's files.
 - `151-artist-same-mbid`: an artist is one artist however an album credits them.

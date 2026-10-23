@@ -340,7 +340,7 @@
      Android app play from it, controlled from a browser, an iPhone home screen or the Android app.
      No subscription or streaming account is needed.</p>
   <div class="badges">
-    <span class="badge">v1.1.3</span>
+    <span class="badge">v1.1.4</span>
     <span class="badge plain">Docker</span>
     <span class="badge plain">MIT</span>
     <span class="badge plain">Sonos</span>
@@ -352,13 +352,12 @@
 
 <section id="new">
   <div class="wrap">
-    <div class="note"><b>New in v1.1.3</b> (since v1.1.2). <b>Artists</b>, in the app and in the browser: a wall of
-      every act in your library (<b>Artists</b> in the row at the foot of a phone's or tablet's screen), and a page for
-      each: their picture, where from and when, their links and biography, a band's current members or a person's bands
-      (with that band's albums from their years in it), similar artists, their genres, and <b>Play</b> and
-      <b>Shuffle</b> for all their albums. <b>Album credits</b> under an album's tracks: who played, sang, wrote and
-      made it. <b>Genres</b> as chips on album and artist pages, each opening that genre's albums. And the row at the
-      foot of the screen has its five buttons evenly spaced, with offline shown by a pill at the top of the screen.</div>
+    <div class="note"><b>New in v1.1.4</b> (since v1.1.3). <b>Artist pages</b> in a new order: who they are, a
+      band's members folded until tapped, then their discography, the albums they appear on, similar artists and
+      <b>similar albums</b>; a page visited again opens at once. An album credited under another name for the same
+      MusicBrainz artist is in that artist's discography, and the Artists wall has them once. The <b>Shelf</b> has no
+      album details under it, so its cases are bigger; no spines show through a case as it turns; and tracks chosen on
+      the back of a case play from the bar. A renderer's late answer no longer takes the room back a track.</div>
   </div>
 </section>
 
@@ -388,7 +387,7 @@
   <div class="wrap">
     <h2>Features</h2>
     <p class="lead">Tap <b class="i-eg">i</b> on any feature for how to switch it on and use it.
-      <span class="new-eg">New</span> marks what's new in v1.1.3.</p>
+      <span class="new-eg">New</span> marks what's new in v1.1.4.</p>
     <div class="grid">
       <!-- features:start -->
       <div class="card"><h3><span class="em">🏠</span>Home<button class="info" type="button" aria-expanded="false" aria-controls="how-home" aria-label="How to set up and use Home">i</button></h3>
@@ -409,9 +408,9 @@
       <div class="card"><h3><span class="em">📚</span>Library<button class="info" type="button" aria-expanded="false" aria-controls="how-library" aria-label="How to set up and use Library">i</button></h3>
         <p>Every album, sorted by name, artist, release date, date added, plays, last played or random, and narrowed by genre, decade, label, format, sample rate, bit depth or first letter.</p>
         <div class="how" id="how-library" hidden><b>How to set it up and use it.</b> Tap the <b>Library</b> row's title on Home, or <b>Library</b> in a phone's or tablet's row. <b>Sort</b> and <b>Focus</b> are in the top bar (at the top right on a phone or tablet); Focus also has <i>Added in the last</i> and <i>Listening</i> (never played, not in 6 or 12 months). <b>☰ → Random albums</b> opens a shuffled wall.</div></div>
-      <div class="card"><h3><span class="em">🗄️</span>Shelf<button class="info" type="button" aria-expanded="false" aria-controls="how-shelf" aria-label="How to set up and use Shelf">i</button></h3>
+      <div class="card is-new"><h3><span class="em">🗄️</span>Shelf<span class="new">New</span><button class="info" type="button" aria-expanded="false" aria-controls="how-shelf" aria-label="How to set up and use Shelf">i</button></h3>
         <p>A record shop's shelf of your collection: covers or spines, A → Z by artist or album, narrowed by genre, artist letter and decade, or spun to land anywhere.</p>
-        <div class="how" id="how-shelf" hidden><b>How to set it up and use it.</b> Its switch is <b>Settings → Setup → Shelf</b> (off on a new install); off, it is off entirely and not offered. Open <b>☰ → Shelf</b>, <code>http://&lt;server-ip&gt;:3500/shelf</code>, or <b>Shelf ›</b> on the wall display. Swipe for one album, swipe and hold to keep turning, flick to spin; tap the front cover to turn the case over, and hold a track on its back to choose tracks to play. The bar at its foot plays or queues the album in front, skips back and forward, pauses and sets the volume; the tabs at the edges fold the choices away and bring in the queue. Tap the order's name above the shelf (<b>A → Z by artist</b>) for <b>A → Z by album</b>; the Shelf keeps the one chosen.</div></div>
+        <div class="how" id="how-shelf" hidden><b>How to set it up and use it.</b> Its switch is <b>Settings → Setup → Shelf</b> (off on a new install); off, it is off entirely and not offered. Open <b>☰ → Shelf</b>, <code>http://&lt;server-ip&gt;:3500/shelf</code>, or <b>Shelf ›</b> on the wall display. Swipe for one album, swipe and hold to keep turning, flick to spin; tap the front cover to turn the case over, and hold a track on its back to choose tracks; the bar then plays or queues those. The bar at its foot plays or queues the album in front, skips back and forward, pauses and sets the volume; the tabs at the edges fold the choices away and bring in the queue. Tap the order's name above the shelf (<b>A → Z by artist</b>) for <b>A → Z by album</b>; the Shelf keeps the one chosen.</div></div>
       <div class="card"><h3><span class="em">🔍</span>Search<button class="info" type="button" aria-expanded="false" aria-controls="how-search" aria-label="How to set up and use Search">i</button></h3>
         <p>Albums, artists and labels as you type, and Qobuz's and Tidal's catalogues beside them: an album from either opens and plays whether or not it is in your library.</p>
         <div class="how" id="how-search" hidden><b>How to set it up and use it.</b> Tap the magnifying glass in the top bar (in the row at the foot of a phone's or tablet's screen) and type. Labels show when Record labels is on. Signed in to Qobuz or Tidal (Settings → Services), the service's artists and albums follow the library's, from the Library wall's filter too; tap a cover for the album's page, an artist for their page.</div></div>
@@ -421,16 +420,16 @@
       <div class="card"><h3><span class="em">🧭</span>More by, and similar<button class="info" type="button" aria-expanded="false" aria-controls="how-more" aria-label="How to set up and use More by, and similar">i</button></h3>
         <p>Under an album's review: the artist's other albums, the albums they appear on, and, with a Last.fm key, similar artists and albums. Ones in your library open here.</p>
         <div class="how" id="how-more" hidden><b>How to set it up and use it.</b> Open any album. For the Last.fm rows, get a free key at last.fm/api/account/create and paste it in <b>Settings → Setup → API Keys</b> (or set <code>LASTFM_KEY</code>). Read-only: nothing is scrobbled.</div></div>
-      <div class="card is-new"><h3><span class="em">🎤</span>Artists<span class="new">New</span><button class="info" type="button" aria-expanded="false" aria-controls="how-artists" aria-label="How to set up and use Artists">i</button></h3>
+      <div class="card"><h3><span class="em">🎤</span>Artists<button class="info" type="button" aria-expanded="false" aria-controls="how-artists" aria-label="How to set up and use Artists">i</button></h3>
         <p>Every act in your library as a round picture with their name and album count, in the album wall's columns, sorted A to Z, by most albums or at random.</p>
         <div class="how" id="how-artists" hidden><b>How to set it up and use it.</b> On a phone or tablet, tap <b>Artists</b> in the row at the foot of the screen. <b>Sort</b> is at the top right; <b>Search</b> in the row finds an artist by part of the name. Tap one for their page.</div></div>
       <div class="card is-new"><h3><span class="em">🧑‍🎤</span>Artist pages<span class="new">New</span><button class="info" type="button" aria-expanded="false" aria-controls="how-artist" aria-label="How to set up and use Artist pages">i</button></h3>
-        <p>Who they are: picture, where from and when, links, biography, genres, a band's current members or a person's bands, similar artists, and Play or Shuffle for all their albums.</p>
-        <div class="how" id="how-artist" hidden><b>How to set it up and use it.</b> Tap an artist's name on an album's page, on the Artists wall or in Search. Facts come from MusicBrainz, Wikidata and Wikipedia, pictures from FanArt.tv (with a key), Wikidata or Deezer, similar artists from Last.fm (with a key) or Deezer. A member's page shows their bands' albums from their years in them; a tap on a member, a band or a similar artist opens theirs. Tap a genre for its albums.</div></div>
-      <div class="card is-new"><h3><span class="em">👥</span>Album credits<span class="new">New</span><button class="info" type="button" aria-expanded="false" aria-controls="how-credits" aria-label="How to set up and use Album credits">i</button></h3>
+        <p>Who they are, then their discography, the albums they appear on, similar artists and similar albums. Members fold under a heading. One artist however a sleeve credits them.</p>
+        <div class="how" id="how-artist" hidden><b>How to set it up and use it.</b> Tap an artist's name on an album's page, on the Artists wall or in Search. Facts come from MusicBrainz, Wikidata and Wikipedia, pictures from FanArt.tv (with a key), Wikidata or Deezer, similar artists and albums from Last.fm (with a key) or Deezer. Tap <b>Members</b> to unfold a band's line-up. A member's page shows their bands' albums from their years in them; a tap on a member, a band or a similar artist opens theirs. Tap a genre for its albums.</div></div>
+      <div class="card"><h3><span class="em">👥</span>Album credits<button class="info" type="button" aria-expanded="false" aria-controls="how-credits" aria-label="How to set up and use Album credits">i</button></h3>
         <p>Under an album's tracks: who played, sang, wrote and made it, each with their parts and the tracks they are on, from the files' tags and MusicBrainz.</p>
         <div class="how" id="how-credits" hidden><b>How to set it up and use it.</b> Nothing to set up: the server looks albums up in the background, a second at a time. Eight show at first; <b>More</b> for the rest. Tap a name for their artist page.</div></div>
-      <div class="card is-new"><h3><span class="em">🎸</span>Genres on pages<span class="new">New</span><button class="info" type="button" aria-expanded="false" aria-controls="how-genres" aria-label="How to set up and use Genres on pages">i</button></h3>
+      <div class="card"><h3><span class="em">🎸</span>Genres on pages<button class="info" type="button" aria-expanded="false" aria-controls="how-genres" aria-label="How to set up and use Genres on pages">i</button></h3>
         <p>An album's genres as small chips under its cover, and an artist's, the most used across their albums. A tap opens that genre's albums.</p>
         <div class="how" id="how-genres" hidden><b>How to set it up and use it.</b> Nothing to set up: they come from your files' genre tags. A genre written two ways (<i>Indie Rock</i>, <i>indie rock</i>) is one, spelled as most of your albums spell it.</div></div>
       <div class="card"><h3><span class="em">✏️</span>Edit album<button class="info" type="button" aria-expanded="false" aria-controls="how-edit" aria-label="How to set up and use Edit album">i</button></h3>
