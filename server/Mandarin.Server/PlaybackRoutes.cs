@@ -165,12 +165,6 @@ internal static partial class PlaybackRoutes
             ["is_previous_allowed"] = onQueue || st.TrackUri.Length > 0,
             ["is_seek_allowed"] = st.Duration != 0
         };
-        // Spotify's live stream (item 142): next, previous and seek are Spotify's, whatever the device's queue says.
-        if (Spotify.SpotifyLive.IsLive(st))
-        {
-            o["is_next_allowed"] = o["is_previous_allowed"] = true;
-            o["is_seek_allowed"] = (Spotify.SpotifyLive.Player?.Track.Duration ?? 0) > 0;
-        }
         // How many tracks are still to come (v0.8.27): Shelf's queue reads itself again when it moves.
         if (onQueue) o["queue_items_remaining"] = Math.Max(0, st.QueueLength - st.TrackNumber);
         o["settings"] = z.Settings;

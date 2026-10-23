@@ -166,7 +166,7 @@ function qualityBadge(a) {
   return el;
 }
 
-const SOURCE_LABEL = { local: "Local albums", qobuz: "Qobuz", tidal: "Tidal", spotify: "Spotify" };
+const SOURCE_LABEL = { local: "Local albums", qobuz: "Qobuz", tidal: "Tidal" };
 function sourceBadge(a) {
   const kind = a.source || (a.local ? "local" : null);
   if (!kind || !SOURCE_LABEL[kind]) return null;

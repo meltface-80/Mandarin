@@ -118,7 +118,7 @@ private fun TileArt(a: AlbumSummary, cover: ImageBitmap?, selected: Boolean, mod
         if (cover != null) Image(cover, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize().alpha(if (dl != null) 0.55f else 1f))
         else if (a.imageKey == null) Text("♪", Modifier.align(Alignment.Center), color = paletteColor(Palette.TEXT_FAINT), fontSize = 48.sp, lineHeight = 48.sp)
         // The service's mark, top right: only a Qobuz or Tidal album wears one (the page's .album-source).
-        when (a.source) { "qobuz" -> R.drawable.src_qobuz; "tidal" -> R.drawable.src_tidal; "spotify" -> R.drawable.src_spotify; else -> null }?.let { icon ->
+        when (a.source) { "qobuz" -> R.drawable.src_qobuz; "tidal" -> R.drawable.src_tidal; else -> null }?.let { icon ->
             Box(Modifier.parity("library.album-source wall.album-source artist.album-source home.album-source search.album-source").align(Alignment.TopEnd).padding(6.dp).size(22.dp).clip(RoundedCornerShape(6.dp)).background(badge), contentAlignment = Alignment.Center) {
                 Icon(painterResource(icon), contentDescription = null, tint = onBadge, modifier = Modifier.size(13.dp))
             }

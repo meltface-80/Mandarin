@@ -94,7 +94,7 @@ internal abstract partial class Catalogue(string id, string name)
     public virtual Task<List<object?>>? Lists(Ask ask) => null;
 
     /* In the account's favourites, as the service has them now (streaming.js isFavourite). */
-    public virtual async Task<bool> IsFavourite(string albumId, Ask ask) => (await FavouriteIdSet(ask)).Contains(albumId);
+    public async Task<bool> IsFavourite(string albumId, Ask ask) => (await FavouriteIdSet(ask)).Contains(albumId);
 
     /*
      * A list's albums, each marked whether it is in the account's favourites

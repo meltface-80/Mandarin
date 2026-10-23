@@ -522,9 +522,9 @@ internal static class Prune
     {
         if (!Jobs.Holds("prune")) return null;
         var o = new JsObj();
-        foreach (var svc in new Catalogue?[] { Jobs.Qobuz, Jobs.Tidal, Jobs.Spotify })
+        foreach (var svc in new Catalogue?[] { Jobs.Qobuz, Jobs.Tidal })
         {
-            if (svc == null || svc is SpotifyCatalogue { InUse: false }) continue;
+            if (svc == null) continue;
             try { o[svc.Id] = (double)await svc.PruneTransient(); }
             catch (Exception e) when (e is SqliteException or JsError or IOException) { Server.Log($"[{svc.Id}] prune: {e.Message}"); /* the next day */ }
         }

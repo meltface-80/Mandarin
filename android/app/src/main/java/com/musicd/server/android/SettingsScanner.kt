@@ -189,8 +189,7 @@ private fun CleanupBlock(k: ScanKept, client: () -> ServerClient?, scope: Corout
     val cleanup = k.cleanup
     Block {
         ScanTitle("Clean up", CLEANUP_INFO, info = info)
-        for ((kind, name) in listOf("files" to "Files gone from the server", "qobuz" to "Qobuz albums no longer wanted", "tidal" to "Tidal albums no longer wanted", "spotify" to "Spotify albums no longer wanted")) {
-            if (kind == "spotify" && cleanup?.has("spotify") != true) continue   // Spotify once in use (item 143)
+        for ((kind, name) in listOf("files" to "Files gone from the server", "qobuz" to "Qobuz albums no longer wanted", "tidal" to "Tidal albums no longer wanted")) {
             ScanRow(name, null, if (kind == "tidal") Modifier.padding(top = 8.dp) else Modifier) {
                 val words = Scanner.cleanupButton(cleanup, kind)
                 if (cleanup == null) ScanWait()

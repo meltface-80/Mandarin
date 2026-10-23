@@ -131,7 +131,7 @@ const modalSource = document.getElementById("modal-source");
 function setModalSource(album) {
   if (!modalSource) return;
   const kind = album && (album.source || (album.local ? "local" : null));
-  const label = { local: "Local albums", qobuz: "Qobuz", tidal: "Tidal", spotify: "Spotify" }[kind];
+  const label = { local: "Local albums", qobuz: "Qobuz", tidal: "Tidal" }[kind];
   modalSource.className = "album-source" + (label ? " " + kind : " hidden");
   if (label) { modalSource.title = label; modalSource.setAttribute("aria-label", label); }
   // Same badge as the tiles, on the album's own artwork. Cleared on every

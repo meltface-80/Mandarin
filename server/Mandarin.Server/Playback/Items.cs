@@ -131,14 +131,6 @@ internal static class Items
     public static async Task<JsonObject> PlayTracks(Hub hub, string zoneId, List<PlayTrack> tracks, string how, double startAt = 0, double seconds = 0, bool? shuffled = null)
     {
         if (tracks.Count == 0) throw new HubError(500, "Nothing to play");
-        // Spotify's songs (item 143): played by Mandarin's Soloist, lossless, never queued track by track; a list mixing
-        // them with others plays the part the starting track is in.
-        if (tracks.Any(Spotify.SpotifyPlay.IsSpotify))
-        {
-            var (part, first, spotify) = Spotify.SpotifyPlay.Part(tracks, (int)Math.Max(0, startAt));
-            if (spotify) return await Spotify.SpotifyPlay.Play(zoneId, part, how, how == "play_now" ? first : 0, seconds, shuffled);
-            (tracks, startAt) = (part, how == "play_now" ? first : startAt);
-        }
         List<PlayItem> items;
         using (var c = Db.Open())
         {

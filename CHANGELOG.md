@@ -1,6 +1,8 @@
 # Changelog
 
 ## Unreleased
+- `152-remove-spotify`: Spotify taken out of the dev builds. What it left behind goes as each next starts: on the
+  server, its albums, playlists, settings and its folder in the data folder; on the phone, the Soloist test's files.
 - `151-artist-same-mbid`: an artist is one artist however an album credits them.
   - **The problem:** MusicBrainz credits *Disillusioned* to "Mariana Semkina", the name on its sleeve, while the
     artist is Marjana Semkina, one entry with one id. Mandarin knew artists only by name, so the credit became a second
@@ -12,34 +14,9 @@
   - **Left alone:** a name that belongs to two artists (two ids), as it says nothing about which.
   - **Lookups:** an artist looked up by name is also found under a MusicBrainz alias ("Mariana Semkina" finds Marjana
     Semkina). When a lookup turns up a second name for an artist, the library is read again at once.
-- `150-soloist-phone-libs-steps`: Soloist on the phone, after the owner's first try:
-  - **Soloist starts:** it stopped at once with "libpthread.so.0: cannot open shared object file". The app carried
-    five of glibc's libraries, and glibc 2.34 on still keeps libpthread, libdl, librt and others apart. Now it carries
-    every one, with C++'s and zlib's. CI downloads Soloist, looks at what it links, and stops the build if any library
-    is missing.
-  - **A screen that says what to do:**
-    - One step at a time, in a box at the top: Get ready, then your key and Start, then choose it once in the Spotify
-      app, then play.
-    - A checklist of what's done: Linux runs, downloaded, runs, signed in, playing, lossless.
-    - Buttons that can't work yet are greyed out (no more Play or Announce while Soloist isn't running).
-    - If something fails, it says what, in words, and to send the report.
-    - The log and the rarely needed settings are at the bottom.
-  - **Renderers (UPnP):** a slow device's answer from before a skip or a jump no longer puts the room back on the
-    track before. Previous went from that stale track (Long 3 to Long 2 in the tests, which failed now and then on a
-    busy machine).
-- `148-soloist-phone-test`: Soloist on the phone, to try out.
-  - **Why:** whether Spotify's own Linux player can run inside the Android app and play lossless on the phone itself,
-    away from home, with no server and no Spotify app in the sound's path.
-  - **How it runs:**
-    - The app carries what Soloist needs around it: Debian 13's glibc, Termux's proot, and Spotifast's PulseAudio
-      stand-in, built for 64-bit ARM by CI (`android/soloist/runtime.sh`).
-    - It downloads Soloist itself from Spotify, as the server does, and runs it under proot.
-    - Soloist's sound comes straight to the phone's audio as 32-bit float, paced by the phone's own output.
-  - **The "Soloist test" icon** opens a screen that goes a step at a time: Get ready, Start (choose its name once in
-    the Spotify app on the same Wi-Fi), Play.
-  - **What the screen shows:** whether the sound is lossless (judged from the samples, as the server judges them), and
-    a report to share. Lossless is asked for as an account signs in.
-  - **Kept running:** a foreground service keeps it going with the screen off.
+- `150-renderer-stale-answer`: a renderer (UPnP) whose answer from before a skip or a jump came in after it no longer
+  puts the room back on the track before. Previous went from that stale track (Long 3 to Long 2 in the tests, which
+  failed now and then on a busy machine).
 - `149-shelf-spines-bar`: three Shelf changes, as Rouen's v1.9.66:
   - **Spines:** no spines show through a case as it turns during a swipe. The cases are now drawn one over another,
     nearest the front on top. Before, they were left to one shared 3D depth, where a half-turned cover swung back
@@ -51,57 +28,6 @@
   - **The bar keeps its height and fits:** it is the same height whether tracks are chosen or not. Where the shelf's
     column is too narrow for one row (it's measured, not the screen, since the panes beside it take room), the buttons
     go on a row of their own above the rest.
-- `147-spotify-pairing-words`: Spotify says plainly what Soloist needs before it can play. Soloist takes a sign-in only
-  from the Spotify app on the same network (Spotify refuses any other way), so the first time it has to be at home:
-  Settings and Play now say "not signed in to Spotify yet · at home, on the same Wi-Fi, choose Mandarin once in the
-  Spotify app's devices", and that after that it plays from anywhere. Once signed in, the status says it can be played
-  from Mandarin or the Spotify app.
-- `146-spotify-phone`: Spotify plays on the phone too, at home and away. Play a Spotify album or song with this phone
-  as the room and the phone plays Mandarin's Soloist stream, lossless (Opus at 256 kbps when your away quality is
-  Opus, as tracks are); pause, next, previous and seek go to Spotify as in a room. The phone keeps none of it (an
-  endless stream would fill its cache). And Spotify's sound is now let out at the speed it plays, with three seconds'
-  lead: a player that reads as fast as it can (the phone fetches minutes ahead; a Sonos room fills its buffer) took
-  minutes of Spotify at once, which ran Soloist ahead of what was heard, so pause and next would have been heard late.
-- `145-spotify-quality`: Spotify has a Stream quality in Settings → Services → Spotify, as Qobuz and Tidal have, in the
-  app and on the page: **Lossless** (FLAC up to 24-bit/44.1 kHz, the default) or Spotify's Very high, High or Normal
-  (Ogg Vorbis at 320, 160 or 96 kbps) for when data matters more. Soloist asks Spotify for it in its prefs and is started
-  again to take up a change; the line under it still says what the sound has proven. The block reads in one order on
-  both: your Spotify library, then Playing (the quality, Soloist's key, name and room, its status and its build).
-- `144-spotify-album-page`: a Spotify album opens to its tracks. Its page asked Spotify whether the album is saved by
-  reading your whole saved list, a page of 50 at a time, so with a big library the page took longer than the app waits
-  and it said it couldn't reach the server. Now Spotify is asked of that album alone (`/me/library/contains`), the list
-  from the last import is kept ten minutes, and the page waits at most five seconds for Spotify before it opens without
-  the Spotify heart; an answer that can't be read is taken as unknown, never as "not saved" (which would take the
-  album out of the library).
-- `143-spotify-library`: your Spotify library in Mandarin, as Qobuz's and Tidal's are, and played losslessly. Sign in
-  in Settings → Services → Spotify with a Spotify app of your own (developer.spotify.com/dashboard: Create app, Web API,
-  redirect URI `http://127.0.0.1:43143/mandarin-spotify`; its Client ID in Mandarin, then Sign in to Spotify). The app
-  catches Spotify's answer by itself; in a browser, the address the browser lands on (which won't open) is pasted in.
-  Switch on Favourites in the library and every album you have saved on Spotify is an album here, with a Spotify mark,
-  on the walls, in search, Smart Picks and Listen later; your liked songs and playlists are playlists. Brought up to date
-  every six hours, or with Update library now. Playing a Spotify album, a track of one or a Spotify playlist from
-  Mandarin starts it on Mandarin's own Spotify Soloist (through Spotify's Web API, on its device), and the room you
-  played it in plays Soloist's lossless stream: nothing is fetched track by track and nothing goes through librespot.
-  Play next and Add to queue go into Spotify's queue while Spotify plays. A list mixing Spotify with other music plays
-  the part the starting track belongs to. Sign out keeps Soloist's key, room and name. New: `POST
-  /api/settings/spotify/signin` `{ client_id }`, `/signin/code` `{ url }`, `/signin/cancel`, `/signout`, `/import`;
-  `/api/spotify/…` (search, an artist's albums, an album, open, favourite, play) as for Qobuz and Tidal.
-- `142-spotify-lossless`: Spotify Lossless in Mandarin, the first build (`docs/spotify-plan.md`). Mandarin becomes a
-  Spotify Connect device through **Spotify Soloist**, Spotify's own player for Linux and the only way to Spotify's
-  lossless FLAC (librespot, and so SpotOn, is lossy). Settings → Services → Spotify, in the app and on the page: your
-  Soloist API key (from developer.spotify.com/dashboard/soloist; never shown back or logged), the name the Spotify
-  app shows ("Mandarin"), the room Spotify plays in, and Download/Update Soloist (fetched from Spotify, which allows
-  no copies, and fetched again before its 90 days are up). Choose the name once in the Spotify app on the same
-  network; from then on, whatever you play on it plays in the room as one live FLAC stream, 24-bit (16 for a
-  device that takes no more), pause and stop follow, and Now Playing shows Spotify's track, artists, album, cover and
-  position, with play, pause, next, previous and seek going back to Spotify. Play something else in that room, or
-  pause it in the Sonos app, and Spotify pauses too, rather than taking the room back. Lossless is asked for in the account's
-  prefs, and the status says what the samples prove: "Lossless 24-bit/44.1 kHz", 16-bit, or Lossy. Soloist's volume
-  is held at 100% (the room has its own). Soloist runs with a private PulseAudio of its own, no sound card in it.
-  The server image moves to **Debian 13** (Soloist needs glibc 2.38), with PulseAudio and libatomic; ffmpeg is
-  Debian 13's. Soloist's own output is kept in `DATA_DIR/spotify/soloist.log`, its key taken out; the key is in
-  backups with the other keys. New: `GET`/`POST /api/settings/spotify`, `POST /api/settings/spotify/download`,
-  `GET /stream/spotify/live.flac`.
 - `141-test-versions`: test builds say which they are. The server image and the Android app built from `dev` call
   themselves the next release with `-tN`, N the changes merged into `dev` since the last release (`1.1.4-t3`, then
   `1.1.4-t4`…), worked out as they are built (`tools/test-version.js`; nothing is committed, the version in the files

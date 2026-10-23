@@ -51,13 +51,13 @@ internal abstract partial class Catalogue
     /* services.ofPath(p): the service a streamed track's path is of, once it is this server's; null for a file. */
     public static Catalogue? Of(string path)
     {
-        foreach (var s in new Catalogue?[] { Jobs.Qobuz, Jobs.Tidal, Jobs.Spotify })
+        foreach (var s in new Catalogue?[] { Jobs.Qobuz, Jobs.Tidal })
             if (s != null && path.StartsWith(s.TrackPath, StringComparison.Ordinal)) return s;
         return null;
     }
 
     /* services.isStreamed(p) */
-    public static bool IsStreamed(string path) => path.StartsWith("qobuz://track/", StringComparison.Ordinal) || path.StartsWith("tidal://track/", StringComparison.Ordinal) || path.StartsWith("spotify://track/", StringComparison.Ordinal);
+    public static bool IsStreamed(string path) => path.StartsWith("qobuz://track/", StringComparison.Ordinal) || path.StartsWith("tidal://track/", StringComparison.Ordinal);
 
     /* The track's row, read now (a conversion handed over carries only its id). */
     public static StreamTrack? Row(long id)

@@ -108,7 +108,7 @@ function blocks() {
     "</div>";
   // Clean up (v0.6.23): what could go, counted; only what you press goes.
   {
-    const f = (cleanup && cleanup.files) || {}, qz = (cleanup && cleanup.qobuz) || {}, td = (cleanup && cleanup.tidal) || {}, sp = (cleanup && cleanup.spotify) || {};
+    const f = (cleanup && cleanup.files) || {}, qz = (cleanup && cleanup.qobuz) || {}, td = (cleanup && cleanup.tidal) || {};
     const gone = (x, kind) => !cleanup ? wait : x.albums ? '<button type="button" data-parity="settings-scanner.cleanup" class="settings-update-btn" data-cleanup="' + kind + '"' + (scanBusy ? " disabled" : "") + ">Remove " + num(x.albums) + " album" + (x.albums === 1 ? "" : "s") + "</button>" : '<span class="settings-note" data-parity="settings-scanner.note">Nothing to remove</span>';
     out.cleanup = '<div class="settings-divider"></div><div class="settings-block"><div class="settings-block-title" data-parity="settings-scanner.title">Clean up' +
       info("Albums the library still lists but can’t play: ones whose files are gone from the server (a folder the scanner found missing, empty or unreadable, kept in case it comes back), and Qobuz albums no longer in your favourites, purchases or playlists — every Qobuz album while you’re signed out. Nothing goes until you press. Plays stay in history; an album’s edits, heart and Listen later go with it.") + "</div>" +
@@ -116,7 +116,6 @@ function blocks() {
       '<div class="settings-note" data-parity="settings-scanner.note">' + (!cleanup ? "…" : f.albums ? num(f.albums) + " album" + (f.albums === 1 ? "" : "s") + " (" + num(f.tracks) + " tracks) in " + num(f.folders) + " folder" + (f.folders === 1 ? "" : "s") + " the scanner couldn’t find." : "Every album’s files are where the scanner last found them.") + "</div>" +
       row("Qobuz albums no longer wanted", gone(qz, "qobuz")) +
       row("Tidal albums no longer wanted", gone(td, "tidal")) +
-      (cleanup && cleanup.spotify ? row("Spotify albums no longer wanted", gone(sp, "spotify")) : "") +
       '<div class="settings-note" data-parity="settings-scanner.note">' + (!cleanup ? "…" : qz.signed_in ? "Qobuz albums neither in your favourites or purchases nor needed by a playlist." : "Signed out of Qobuz: every Qobuz album the database still holds.") + "</div></div>";
   }
   // How the processor is shared out (v0.8.13, lib/cpu.js): playback first.

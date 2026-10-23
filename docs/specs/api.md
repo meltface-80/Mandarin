@@ -5,13 +5,13 @@ Written by `node tools/api-map.js write` from the C# sources (`server/Mandarin.S
 where the code decides it away from the address (the handler says). "…" ends an address the route takes
 the rest of; a pattern is as the code writes it. What each answers is said beside its handler.
 
-218 routes.
+213 routes.
 
 | Method | Address | Who may ask | Answered in |
 |---|---|---|---|
 | GET | `/` | signed in | `Pages.cs` |
-|  | `/api/(qobuz\|tidal\|spotify)/(lists\|new-releases\|featured\|search\|artist-albums\|album\|state)` | signed in | `ServiceRoutes.cs` |
-|  | `/api/(qobuz\|tidal\|spotify)/(open\|favorite\|unfavorite\|play)` | signed in | `ServiceRoutes.cs` |
+|  | `/api/(qobuz\|tidal)/(lists\|new-releases\|featured\|search\|artist-albums\|album\|state)` | signed in | `ServiceRoutes.cs` |
+|  | `/api/(qobuz\|tidal)/(open\|favorite\|unfavorite\|play)` | signed in | `ServiceRoutes.cs` |
 | GET | `/api/album` | signed in | `LibraryRoutes.cs` |
 | GET | `/api/album/art-search` | signed in | `LibraryRoutes.cs` |
 | GET | `/api/album/booklets` | signed in | `LibraryRoutes.cs` |
@@ -149,7 +149,7 @@ the rest of; a pattern is as the code writes it. What each answers is said besid
 | GET | `/api/search/external` | signed in | `LibraryRoutes.cs` |
 | POST | `/api/seek` | signed in | `PlaybackRoutes.cs` |
 |  | `/api/services/watch` | signed in | `ServiceRoutes.cs` |
-|  | `/api/settings/(qobuz\|tidal\|spotify)(/import\|/signin\|/signin/cancel\|/signout\|/disconnect)?` | signed in | `ServiceRoutes.cs` |
+|  | `/api/settings/(qobuz\|tidal)(/import\|/signin\|/signin/cancel\|/signout\|/disconnect)?` | signed in | `ServiceRoutes.cs` |
 | GET | `/api/settings/discogs-token` | signed in | `LibraryRoutes.cs` |
 | POST | `/api/settings/discogs-token` | signed in | `LibraryRoutes.cs` |
 | GET | `/api/settings/display` | signed in | `LibraryRoutes.cs` |
@@ -170,11 +170,6 @@ the rest of; a pattern is as the code writes it. What each answers is said besid
 | POST | `/api/settings/shelf` | signed in | `LibraryRoutes.cs` |
 | GET | `/api/settings/smart-picks` | signed in | `LibraryRoutes.cs` |
 | POST | `/api/settings/smart-picks` | signed in | `LibraryRoutes.cs` |
-| GET | `/api/settings/spotify` | signed in | `Spotify/SpotifyRoutes.cs` |
-|  | `/api/settings/spotify/download` | signed in | `Spotify/SpotifyRoutes.cs` |
-|  | `/api/settings/spotify/signin` | signed in | `Spotify/SpotifyRoutes.cs` |
-|  | `/api/settings/spotify/signin/cancel` | signed in | `Spotify/SpotifyRoutes.cs` |
-|  | `/api/settings/spotify/signin/code` | signed in | `Spotify/SpotifyRoutes.cs` |
 | GET | `/api/settings/waveform` | signed in | `LibraryRoutes.cs` |
 | POST | `/api/settings/waveform` | signed in | `LibraryRoutes.cs` |
 | POST | `/api/share/encode` | signed in | `LibraryRoutes.cs` |

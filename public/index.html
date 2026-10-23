@@ -1599,57 +1599,6 @@
             <div id="tidal-import-status" data-parity="settings-services.import-status" class="settings-token-status"></div>
           </div>
         </div>
-
-        <div class="settings-block" id="spotify-block" hidden>
-          <div class="settings-block-title" data-parity="settings-services.title">Spotify <button data-parity="settings-services.info" class="settings-info-btn" data-info="Spotify Lossless, through Spotify Soloist: Mandarin becomes a device in the Spotify app (Spotify Connect), and what you play on it there plays in the room chosen here, lossless (FLAC up to 24-bit/44.1 kHz) on a plan that has Spotify Lossless. Soloist needs an API key of your own: sign in at developer.spotify.com/dashboard/soloist and make one. Mandarin downloads Soloist from Spotify and keeps it up to date. Then, on a phone on the same network, choose the name below in the Spotify app's devices once. Play, pause, next, previous and seek in Mandarin go back to Spotify. The status says what the sound has proven: Lossless 24-bit or 16-bit, or Lossy." aria-label="Info">&#9432;</button></div>
-          <div class="settings-row"><span class="settings-label" data-parity="settings-services.name">Your Spotify library <button data-parity="settings-services.info" class="settings-info-btn" data-info="Your Spotify saved albums become albums in the library, as Qobuz's and Tidal's favourites do, and your liked songs and playlists playlists here. They play through Mandarin's own Spotify Soloist, so lossless on a plan that has it: Play starts the album on Soloist and the room plays Soloist's stream. Signing in needs a Spotify app of your own: at developer.spotify.com/dashboard, Create app, tick Web API, and add the redirect URI http://127.0.0.1:43143/mandarin-spotify. Copy its Client ID here and Sign in to Spotify. In a browser, once you have approved Mandarin, the browser lands on an address that won't open: copy it and paste it here. The app finishes by itself." aria-label="Info">&#9432;</button></span></div>
-          <div id="spotify-signin-form">
-            <div class="settings-token-row">
-              <input id="spotify-client" data-parity="settings-services.spotify-client" aria-label="Spotify Client ID" class="settings-token-input" type="text" placeholder="Your Spotify app's Client ID" autocomplete="off" autocapitalize="off" spellcheck="false">
-              <button id="spotify-signin" data-parity="settings-services.signin" class="settings-update-btn" type="button">Sign in to Spotify</button>
-            </div>
-            <div id="spotify-pending" hidden>
-              <div class="settings-note" data-parity="settings-services.spotify-note">Approve Mandarin on Spotify's page. Your browser then lands on an address beginning http://127.0.0.1:43143 that won't open: copy it and paste it here.</div>
-              <div class="settings-token-row">
-                <input id="spotify-paste" data-parity="settings-services.spotify-paste" aria-label="The address Spotify sent you to" class="settings-token-input" type="url" placeholder="http://127.0.0.1:43143/mandarin-spotify?code=…" autocomplete="off" autocapitalize="off" spellcheck="false">
-                <button id="spotify-finish" data-parity="settings-services.spotify-finish" class="settings-update-btn" type="button">Finish</button>
-                <button id="spotify-cancel" data-parity="settings-services.spotify-cancel" class="settings-update-btn" type="button">Cancel</button>
-              </div>
-            </div>
-          </div>
-          <div id="spotify-account" data-parity="settings-services.status" class="settings-token-status"></div>
-          <div id="spotify-signed" hidden>
-            <div class="settings-row"><span class="settings-label" data-parity="settings-services.name">Favourites in the library <button data-parity="settings-services.info" class="settings-info-btn" data-info="Every album you have saved on Spotify, however many, as an album here: on the walls, in search, in Smart Picks and Listen later; your liked songs and your playlists as playlists. Brought up to date every six hours. Off until you switch it on. Off: none of them are in the library; switched on again, they are back at once." aria-label="Info">&#9432;</button></span>
-              <label class="switch" data-parity="settings-services.import"><input type="checkbox" id="spotify-import" aria-label="Favourites in the library"><span class="switch-track"><span class="switch-thumb"></span></span></label></div>
-            <div class="settings-token-row">
-              <button id="spotify-import-now" data-parity="settings-services.update" class="settings-update-btn" type="button">Update library now</button>
-              <button id="spotify-signout" data-parity="settings-services.signout" class="settings-update-btn" type="button">Sign out</button>
-            </div>
-            <div id="spotify-import-status" data-parity="settings-services.import-status" class="settings-token-status"></div>
-          </div>
-          <div class="settings-row"><span class="settings-label" data-parity="settings-services.name">Playing, through Spotify Soloist</span></div>
-          <div class="settings-row"><span class="settings-label" data-parity="settings-services.name">Stream quality <button data-parity="settings-services.info" class="settings-info-btn" data-info="The most Mandarin asks Spotify for, as Spotify's app numbers it: Lossless is FLAC up to 24-bit/44.1 kHz on a plan that has Spotify Lossless; Very high, High and Normal are Spotify's Ogg Vorbis at 320, 160 and 96 kbps, for when data matters more. Soloist is started again to take up a change, which stops what Spotify is playing for a moment. The line under it says what the sound has proven." aria-label="Info">&#9432;</button></span>
-            <div class="settings-select-wrap"><select id="spotify-quality" data-parity="settings-services.quality" aria-label="Spotify stream quality" class="settings-select">
-              <option value="lossless">Lossless (up to 24/44.1)</option>
-              <option value="very_high">Very high (320 kbps)</option>
-              <option value="high">High (160 kbps)</option>
-              <option value="normal">Normal (96 kbps)</option>
-            </select></div></div>
-          <div class="settings-token-row">
-            <input id="spotify-key" data-parity="settings-services.spotify-key" aria-label="Soloist API key" class="settings-token-input" type="password" placeholder="Soloist API key" autocomplete="off" autocapitalize="off" spellcheck="false">
-          </div>
-          <div class="settings-token-row">
-            <input id="spotify-name" data-parity="settings-services.spotify-name" aria-label="Name in the Spotify app" class="settings-token-input" type="text" placeholder="Mandarin" autocomplete="off" spellcheck="false">
-            <button id="spotify-save" data-parity="settings-services.spotify-save" class="settings-update-btn" type="button">Save</button>
-          </div>
-          <div class="settings-row"><span class="settings-label" data-parity="settings-services.name">Room <button data-parity="settings-services.info" class="settings-info-btn" data-info="The room Spotify plays in when you choose Mandarin in the Spotify app. Its queue is replaced, as Play now does; Mandarin's controls in that room go back to Spotify." aria-label="Info">&#9432;</button></span>
-            <div class="settings-select-wrap"><select id="spotify-room" data-parity="settings-services.spotify-room" aria-label="Spotify's room" class="settings-select"><option value="">None</option></select></div></div>
-          <div id="spotify-status" data-parity="settings-services.status" class="settings-token-status"></div>
-          <div class="settings-token-row">
-            <button id="spotify-download" data-parity="settings-services.spotify-download" class="settings-update-btn" type="button">Download Soloist</button>
-          </div>
-          <div id="spotify-build" data-parity="settings-services.spotify-build" class="settings-token-status"></div>
-        </div>
       </div>
 
       <!-- Share Card — the links under the card, grouped in one place -->
