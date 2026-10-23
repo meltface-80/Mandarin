@@ -27,6 +27,9 @@ internal object SoloistPhoneRun {
     @Volatile var track = ""
     @Volatile var expires = ""
     @Volatile var announced = ""
+    /** Why Soloist ended by itself (the screen says it), or "" — running, never started, or stopped by Stop. */
+    @Volatile var stopped = ""
+    @Volatile private var lastSaid = ""
     private var nsd: NsdManager.RegistrationListener? = null
     private var last: Triple<String, String, Boolean>? = null
 
@@ -49,13 +52,16 @@ internal object SoloistPhoneRun {
         SoloistPhone.note("start: $program ${args.joinToString(" ")}${if (noSeccomp) " (PROOT_NO_SECCOMP)" else ""}")
         val p = SoloistPhone.command(app, program, args, env, noSeccomp).start()
         process = p; sound = s
-        zeroconf = 0; ws = 0; signedIn = null; status = ""; active = false; track = ""
+        zeroconf = 0; ws = 0; signedIn = null; status = ""; active = false; track = ""; stopped = ""; lastSaid = ""
         Thread({
             runCatching { p.inputStream.bufferedReader().forEachLine { line(app, it) } }
             val code = runCatching { p.waitFor() }.getOrDefault(-1)
             SoloistPhone.note("soloist: ended, exit $code${SoloistPhone.signal(code)}")
             shimTail(app)
-            if (process === p) { process = null; socket?.close(); socket = null; s.close(); unannounce(app) }
+            if (process === p) {
+                process = null; socket?.close(); socket = null; s.close(); unannounce(app)
+                stopped = "It ended by itself (exit $code${SoloistPhone.signal(code)})." + (if (lastSaid.isNotEmpty()) " Its last words: $lastSaid" else "")
+            }
         }, "soloist-out").apply { isDaemon = true; start() }
     }
 
@@ -64,6 +70,7 @@ internal object SoloistPhoneRun {
     private fun line(c: Context, raw: String) {
         val l = raw.replace(ANSI, "")
         SoloistPhone.note("soloist| $l")
+        if (l.isNotBlank()) lastSaid = l.take(240)
         Regex("websocket server listening on [0-9.]+:(\\d+)").find(l)?.let { m ->
             ws = m.groupValues[1].toInt()
             Thread { connect(c, ws) }.start()
