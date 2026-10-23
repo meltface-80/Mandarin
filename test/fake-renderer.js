@@ -155,16 +155,6 @@ class FakeRenderer {
     this.endTimer.unref();
   }
 
-  /* Reads held from now on, each answered with what the device had when it was asked. */
-  holdReads() { this.readGate = []; }
-  /* The first n held reads answered, in the order asked; all of them, and no more holding, without n. */
-  releaseReads(n) {
-    const g = this.readGate || [];
-    const go = n === undefined ? g.splice(0) : g.splice(0, n);
-    if (n === undefined) this.readGate = null;
-    for (const f of go) f();
-  }
-
   handle(action, a) {
     this.log.push(action);
     switch (action) {
@@ -273,8 +263,6 @@ class FakeRenderer {
           try {
             const before = this.state + "|" + this.uri;
             const out = this.handle(actionTag, args);
-            // A slow device (holdReads): what it had when asked, answered only when the test lets it (releaseReads).
-            if (this.readGate && /^Get(Position|Transport)Info$/.test(actionTag)) { this.readGate.push(() => res.end(envelope(actionTag, service, out))); return; }
             res.end(envelope(actionTag, service, out));
             if (this.state + "|" + this.uri !== before) this.notify();
           } catch (code) {

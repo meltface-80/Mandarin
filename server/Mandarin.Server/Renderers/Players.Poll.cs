@@ -105,7 +105,6 @@ internal sealed partial class Players
         ZoneState prev;
         lock (zm.Gate) prev = zm.State.GetValueOrDefault(p.Id) ?? ZoneState.Blank(new Volume(p.Volume.Value, p.Volume.Muted));
         JsObj ti, pi;
-        var asked = Hub.Now();
         try
         {
             var t = r.GetTransportInfo(); var q = r.GetPositionInfo();
@@ -140,9 +139,8 @@ internal sealed partial class Players
         lock (gate)
         {
             var idx = uri.Length > 0 ? IndexOfUri(p, uri) : -1;
-            // The renderer moved on by itself: SetNextAVTransportURI honoured. Not an answer from before a jump of ours
-            // was done (item 150): a slow one still names the track jumped from, and took the queue back to it.
-            if (idx >= 0 && idx != p.Index && p.Jumping == 0 && asked > p.JumpedAt) { p.Index = idx; p.Next = null; p.Strikes = 0; if (p.Shuffle) p.Played.Add(idx); }
+            // The renderer moved on by itself: SetNextAVTransportURI honoured.
+            if (idx >= 0 && idx != p.Index) { p.Index = idx; p.Next = null; p.Strikes = 0; if (p.Shuffle) p.Played.Add(idx); }
             item = p.Index >= 0 && p.Index < p.Queue.Count ? p.Queue[p.Index] : null;
             index = p.Index;
         }

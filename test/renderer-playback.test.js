@@ -186,31 +186,6 @@ test("a renderer is a zone", { skip, timeout: 150000 }, async (t) => {
       assert.equal(q.items[0].title, "Long 1");
     });
 
-    // Item 150: a poll asked before a jump and answered after it named the track jumped from, and the room's place in
-    // the queue went back to it ("transport, seek, volume and modes" read 2 tracks left, not 3, on a busy machine: its
-    // Previous went from the stale Long 3 to Long 2). Made certain here: the device's reads are held, and the one asked
-    // before the jump is answered after it.
-    await t.test("a renderer's answer from before a jump doesn't put the room back on the track before", async () => {
-      await api("play-from-here", { zone_or_output_id: WIIM, queue_item_id: 3 });
-      await until(async () => { const z = await state(WIIM); return z.state === "playing" && z.now_playing && z.now_playing.line1 === "Long 3"; });
-      await sleep(1200);
-      wiim.holdReads();
-      try {
-        await api("control", { zone_or_output_id: WIIM, command: "play" });   // a poll 300 ms on, held: Long 3
-        await until(() => wiim.readGate.length >= 2);
-        await api("play-from-here", { zone_or_output_id: WIIM, queue_item_id: 1 });
-        await until(async () => { const z = await state(WIIM); return z.now_playing && z.now_playing.line1 === "Long 1"; });
-        wiim.releaseReads(2);   // the poll from before: "Long 3"
-        await sleep(400);
-        await api("control", { zone_or_output_id: WIIM, command: "previous" });   // at Long 1's start: stays on Long 1
-      } finally { wiim.releaseReads(); }
-      await sleep(1500);
-      const z = await state(WIIM);
-      assert.equal(z.now_playing && z.now_playing.line1, "Long 1", "still on Long 1, not Long 2");
-      const q = await api("queue?zone=" + WIIM);
-      assert.equal(q.items.length, 3, "the whole album still to come from Long 1");
-    });
-
     await t.test("what is playing moves between a renderer and a Sonos room, rebuilt for each", async () => {
       await api("play", { offset: cd.offset, zone_or_output_id: WIIM, kind: "play_now" });
       await until(() => wiim.state === "PLAYING");

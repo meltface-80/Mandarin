@@ -28,11 +28,11 @@ internal sealed class Player(string id)
     public string Loop = "disabled";
     public (double? Value, bool Muted) Volume = (null, false);
     public bool ExpectStop, NoSetNext, Subscribing;
-    public int Strikes, Jumping;      // Jumping: jumps under way (Jump), whose renderer may still say the track before
+    public int Strikes;
     public (double At, string Message)? LastError;
     public IRenderer? Renderer;
     public string Location = "";
-    public double TouchedAt, LoadingSince, JumpedAt;
+    public double TouchedAt, LoadingSince;
     public string? Verifying;
     public Timer? NotifyTimer;
     public (double At, JsObj Vars)? LastEvent;
