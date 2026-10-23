@@ -94,7 +94,7 @@ internal static class SpotifyPlay
             catch (Services.ServiceError e) when (player.SignedIn) { Server.Log("[spotify] the Web API didn't start it (" + e.Message + "): telling Soloist itself"); }
             catch (Services.ServiceError e) { throw new HubError(502, e.Message); }
         }
-        if (!player.SignedIn) throw new HubError(409, $"Soloist isn't signed in to Spotify yet. At home, on the same Wi-Fi, choose \"{name}\" once in the Spotify app's devices; after that it plays from anywhere.");
+        if (!player.SignedIn) throw new HubError(409, $"Choose \"{name}\" once in the Spotify app's devices, then play again");
         // On Soloist's own socket: it plays a context from its start only, so on to the track asked for.
         await player.Command("activate");
         await player.Play(album ?? uris[start]);
