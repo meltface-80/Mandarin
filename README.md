@@ -7,7 +7,7 @@
 
 </div>
 
-# Mandarin — v1.1.3
+# Mandarin — v1.1.4
 
 **Your own music files, played to Sonos rooms, to UPnP/DLNA renderers (a WiiM, a Chord Poly,
 a streamer, an AV receiver) and to the Mandarin Android app.**
@@ -26,15 +26,15 @@ Wikipedia, Deezer and others); your music files stay on your machine.
                                                    └──── audio: /stream/… ◀────────┘
 ```
 
-**New in v1.1.3** (since v1.1.2)
-* **Artists**, in the app and in the browser: a wall of every act in your library (**Artists** in the row
-  at the foot of a phone's or tablet's screen), and a page for each: their picture, where from and when,
-  their links and biography, a band's current members or a person's bands (with that band's albums from
-  their years in it), similar artists, their genres, and **Play** and **Shuffle** for all their albums.
-* **Album credits:** under an album's tracks, who played, sang, wrote and made it, each a tap from their page.
-* **Genres** as chips on album and artist pages, each opening that genre's albums.
-* The row at the foot of the screen has its five buttons evenly spaced, and offline is shown by a pill at the
-  top of the screen. An artist whose name has a comma in a number ("10,000 Maniacs") stays one artist.
+**New in v1.1.4** (since v1.1.3)
+* **Artist pages** in a new order: who they are, a band's **Members** folded until tapped, then their
+  discography, the albums they appear on, similar artists and **similar albums** (Last.fm's with a key, else from
+  Deezer). A page visited again opens at once.
+* **One artist however a sleeve credits them:** an album credited under another name for the same MusicBrainz artist
+  ("Mariana Semkina" for Marjana Semkina) is in that artist's discography, and the Artists wall has them once.
+* **Shelf:** no album details under the shelf, so the cases are bigger; no spines show through a case as it turns;
+  tracks chosen on the back of a case play or queue from the bar.
+* A renderer's late answer no longer takes the room back a track.
 
 ---
 
@@ -116,13 +116,13 @@ Tap the **Library** row's title on Home, or **Library** in a phone's or tablet's
 
 ⸻
 
-🗄️ **Shelf**
+🗄️ **Shelf** — *new in v1.1.4*
 
 A record shop's shelf of your collection: covers or spines, A → Z by artist or album, narrowed by genre, artist letter and decade, or spun to land anywhere.
 
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 
-Its switch is **Settings → Setup → Shelf** (off on a new install); off, it is off entirely and not offered. Open **☰ → Shelf**, `http://<server-ip>:3500/shelf`, or **Shelf ›** on the wall display. Swipe for one album, swipe and hold to keep turning, flick to spin; tap the front cover to turn the case over, and hold a track on its back to choose tracks to play. The bar at its foot plays or queues the album in front, skips back and forward, pauses and sets the volume; the tabs at the edges fold the choices away and bring in the queue. Tap the order's name above the shelf (**A → Z by artist**) for **A → Z by album**; the Shelf keeps the one chosen.
+Its switch is **Settings → Setup → Shelf** (off on a new install); off, it is off entirely and not offered. Open **☰ → Shelf**, `http://<server-ip>:3500/shelf`, or **Shelf ›** on the wall display. Swipe for one album, swipe and hold to keep turning, flick to spin; tap the front cover to turn the case over, and hold a track on its back to choose tracks; the bar then plays or queues those. The bar at its foot plays or queues the album in front, skips back and forward, pauses and sets the volume; the tabs at the edges fold the choices away and bring in the queue. Tap the order's name above the shelf (**A → Z by artist**) for **A → Z by album**; the Shelf keeps the one chosen.
 
 </details>
 
@@ -164,7 +164,7 @@ Open any album. For the Last.fm rows, get a free key at last.fm/api/account/crea
 
 ⸻
 
-🎤 **Artists** — *new in v1.1.3*
+🎤 **Artists**
 
 Every act in your library as a round picture with their name and album count, in the album wall's columns, sorted A to Z, by most albums or at random.
 
@@ -176,19 +176,19 @@ On a phone or tablet, tap **Artists** in the row at the foot of the screen. **So
 
 ⸻
 
-🧑‍🎤 **Artist pages** — *new in v1.1.3*
+🧑‍🎤 **Artist pages** — *new in v1.1.4*
 
-Who they are: picture, where from and when, links, biography, genres, a band's current members or a person's bands, similar artists, and Play or Shuffle for all their albums.
+Who they are, then their discography, the albums they appear on, similar artists and similar albums. Members fold under a heading. One artist however a sleeve credits them.
 
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 
-Tap an artist's name on an album's page, on the Artists wall or in Search. Facts come from MusicBrainz, Wikidata and Wikipedia, pictures from FanArt.tv (with a key), Wikidata or Deezer, similar artists from Last.fm (with a key) or Deezer. A member's page shows their bands' albums from their years in them; a tap on a member, a band or a similar artist opens theirs. Tap a genre for its albums.
+Tap an artist's name on an album's page, on the Artists wall or in Search. Facts come from MusicBrainz, Wikidata and Wikipedia, pictures from FanArt.tv (with a key), Wikidata or Deezer, similar artists and albums from Last.fm (with a key) or Deezer. Tap **Members** to unfold a band's line-up. A member's page shows their bands' albums from their years in them; a tap on a member, a band or a similar artist opens theirs. Tap a genre for its albums.
 
 </details>
 
 ⸻
 
-👥 **Album credits** — *new in v1.1.3*
+👥 **Album credits**
 
 Under an album's tracks: who played, sang, wrote and made it, each with their parts and the tracks they are on, from the files' tags and MusicBrainz.
 
@@ -200,7 +200,7 @@ Nothing to set up: the server looks albums up in the background, a second at a t
 
 ⸻
 
-🎸 **Genres on pages** — *new in v1.1.3*
+🎸 **Genres on pages**
 
 An album's genres as small chips under its cover, and an artist's, the most used across their albums. A tap opens that genre's albums.
 
@@ -1130,7 +1130,8 @@ through a subnet router arrive from a home address, and the server can't tell th
   pace, the server reads who played, sang, wrote and made each album from its tags and its
   MusicBrainz release, and who each act is (members, years, place, links) from MusicBrainz and
   Wikidata, with a picture from FanArt.tv, Wikidata or Deezer. A page asked for before it gets
-  there is looked up there and then. Kept in the database; your files are not changed.
+  there is looked up there and then. Names found to share a MusicBrainz id are one artist, written as
+  MusicBrainz names them. Kept in the database; your files are not changed.
 * **Renderers.** `server/Mandarin.Server/Playback/` finds UPnP/DLNA renderers by SSDP, reads each one's
   description and what it advertises it can play (plus a WiiM's own API), keeps a register
   of every device with your names and settings, and plays to them through AVTransport —
