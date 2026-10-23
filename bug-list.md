@@ -8,6 +8,7 @@ Status: **Open** · **In progress** · **Ready to test** (green, waiting on the 
 
 | # | Item | Branch | Status |
 |---|------|--------|--------|
+| 145 | Spotify has no stream quality setting, as Qobuz and Tidal have: Lossless (the default), Very high, High or Normal, asked of Spotify through Soloist's prefs | `145-spotify-quality` | Ready to test |
 | 144 | A Spotify album in the library doesn't open to its tracks ("Couldn't reach the server. Trying again…"): its page read the whole saved list from Spotify; now it asks of that album alone | `144-spotify-album-page` | Ready to test |
 | 143 | Spotify favourites in the library like Qobuz and Tidal: sign in with your own Spotify app (Web API, PKCE), saved albums kept as library albums, liked songs and playlists as playlists, and played losslessly from Mandarin on its own Soloist | `143-spotify-library` | Ready to test |
 | 142 | Spotify Lossless through Spotify Soloist, first build: Mandarin a Spotify Connect device, what plays on it played in the chosen room as a live lossless FLAC stream, Now Playing and its controls; Settings → Services → Spotify in the app and on the page; image on Debian 13 (plan: docs/spotify-plan.md, items 143–145 to follow) | `142-spotify-lossless` | Ready to test |

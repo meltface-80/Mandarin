@@ -5,7 +5,8 @@
 //     follows: [{ playback, last, want, playing_in, room: { live, state } | null, starting }]   SpotifyFollow.Decide
 //     proofs: [[s32 sample, …]]                       SoloistProof: each list of samples (interleaved stereo) heard afresh
 //     builds: [{ version, exists, today }]            SoloistDownload.Expires and Plan
-//     prefs: [text | null]                            Soloist.AskLossless on an account's prefs file as it was (null: none)
+//     prefs: [text | null]                            Soloist.AskQuality (lossless, or each's quality) on an account's prefs file as it was (null: none)
+//     prefs_quality: [quality]                        the quality asked of each of prefs (item 145)
 //     entities: [JSON text]                           Soloist.Entity: a track as Soloist's WebSocket says it
 //     cleans: [[line, key]]                           Soloist.Clean
 //     bodies: [{ uris, album, start, seconds }]       SpotifyPlay.Body (item 143): what the Web API is asked to play
@@ -51,7 +52,8 @@ internal static class SpotifyCommand
             x["plan"] = SoloistDownload.Plan(b["exists"] is true, expires, DateOnly.ParseExact(S(b["today"]), "yyyy-MM-dd", CultureInfo.InvariantCulture));
             return (object?)x;
         }).ToList();
-        o["prefs"] = L(job["prefs"]).Select(Prefs).ToList();
+        var qualities = L(job["prefs_quality"]);
+        o["prefs"] = L(job["prefs"]).Select((t, i) => Prefs(t, i < qualities.Count ? S(qualities[i]) : "lossless")).ToList();
         o["entities"] = L(job["entities"]).Select(e0 =>
         {
             using var doc = JsonDocument.Parse(S(e0));
@@ -82,7 +84,7 @@ internal static class SpotifyCommand
     }
 
     // An account's prefs as Soloist left them ([text], null for none), asked for lossless in a folder of its own.
-    private static object? Prefs(object? text)
+    private static object? Prefs(object? text, string quality)
     {
         var data = Directory.CreateTempSubdirectory("mandarin-spotify-prefs-").FullName;
         try
@@ -92,7 +94,7 @@ internal static class SpotifyCommand
             var file = Path.Combine(account, "prefs");
             if (text is string t) File.WriteAllText(file, t);
             var x = new JsObj();
-            x["changed"] = Soloist.AskLossless(data);
+            x["changed"] = Soloist.AskQuality(data, quality);
             x["text"] = File.Exists(file) ? File.ReadAllText(file) : null;
             return x;
         }

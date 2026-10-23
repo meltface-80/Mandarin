@@ -139,7 +139,8 @@ internal sealed partial class SpotifyCatalogue : Catalogue
 
     // ------------------------------------------------------------ the import
 
-    protected override string[] Qualities { get; } = ["lossless"];
+    // Settings' Stream quality (item 145): Soloist's prefs ask Spotify for it (Spotify/Soloist.Prefs.cs); lossless unless chosen.
+    protected override string[] Qualities { get; } = ["lossless", "very_high", "high", "normal"];
     protected override string DefaultQuality => "lossless";
 
     /* Your saved albums, every one, each since when you saved it; the listing (with its first tracks) kept as the hint. */
@@ -181,6 +182,17 @@ internal sealed partial class SpotifyCatalogue : Catalogue
             o.Add((P(p, "id"), P(p, "name"), items.Select(i => Pair(SpotifyApi.Inner(i, "track"))).OfType<(string, string)>().ToList()));
         }
         return o;
+    }
+
+    /* Another quality chosen: Soloist started again, as it reads its prefs only as it starts. */
+    public override Task SettingsWritten()
+    {
+        if (global::Mandarin.Server.Spotify.SpotifyLive.Player is { } p && p.Quality != Settings().Quality)
+        {
+            Server.Log("[spotify] another quality chosen: Soloist started again to take it up");
+            p.Restart();
+        }
+        return Task.CompletedTask;
     }
 
     protected override void Describe(JsObj o)

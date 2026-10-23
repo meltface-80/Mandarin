@@ -75,7 +75,7 @@ internal static class SpotifyLive
     {
         var s = Settings();
         var program = SoloistDownload.Program(dataDir);
-        return new SoloistSetup(File.Exists(program) ? program : "", PulseAudio(), s.ApiKey, s.DeviceName);
+        return new SoloistSetup(File.Exists(program) ? program : "", PulseAudio(), s.ApiKey, s.DeviceName, Jobs.Spotify?.Settings().Quality ?? "lossless");
     }
 
     /* PulseAudio's program, where it is installed (Mandarin's image has it); "" when it isn't. */
