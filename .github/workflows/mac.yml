@@ -1,0 +1,63 @@
+# A Mac (item 153): the C# server built for it and the C# suite run through it,
+# as the Mac installer runs Mandarin. GitHub's Mac runners are Apple silicon;
+# ffmpeg and poppler from Homebrew, as the installer has them.
+#
+# A workflow of its own, so nothing else waits for it: the image and the
+# Android app wait for CI alone (.github/wait-for-ci.sh ci.yml), and only the
+# Mac builds in a release wait for this (release.yml, mac job). v0.8.29 to
+# v1.0.2 had the Mac's tests in CI, and every build waited up to an hour for
+# one of GitHub's few Macs.
+name: Mac
+
+on:
+  push:
+    branches: ["**"]
+  workflow_dispatch:
+
+concurrency:
+  group: mac-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Tests on a Mac (part ${{ matrix.shard }})
+    runs-on: macos-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: ["1/2", "2/2"]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install ffmpeg and poppler
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: "1"
+          HOMEBREW_NO_INSTALL_CLEANUP: "1"
+        run: |
+          brew install ffmpeg poppler
+          ffmpeg -version | head -1
+          pdftoppm -v
+      # The tests' stand-in speakers and hosts live on loopback addresses
+      # besides 127.0.0.1 (test/Mandarin.Tests/Harness/Ports.cs, 127.0.0.150
+      # on): Linux answers on all of 127/8, a Mac on 127.0.0.1 alone until each
+      # is added.
+      - name: Loopback addresses for the stand-in speakers
+        run: for i in $(seq 150 254); do sudo ifconfig lo0 alias "127.0.0.$i" up; done
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+      - name: Restore the .NET packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('server/Mandarin.Server/*.csproj', 'test/Mandarin.Tests/*.csproj') }}
+      # Signed ad hoc as it is built (Apple silicon runs nothing unsigned).
+      - name: Build the C# server
+        run: |
+          ./server/build.sh
+          file server/bin/mandarin-server
+          codesign --verify server/bin/mandarin-server && echo "signed to run here"
+      - name: Tests in C# (test/Mandarin.Tests)
+        env:
+          TEST_SHARD: ${{ matrix.shard }}
+        run: .github/csharp-tests.sh "$TEST_SHARD"

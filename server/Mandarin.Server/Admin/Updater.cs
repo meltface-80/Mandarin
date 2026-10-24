@@ -452,14 +452,6 @@ internal sealed partial class Updater
         catch (Exception e) when (e is EntryPointNotFoundException or DllNotFoundException) { return true; }
     }
 
-    private static (string Platform, string Arch) Machine() => (
-        OperatingSystem.IsLinux() ? "linux" : OperatingSystem.IsMacOS() ? "darwin" : OperatingSystem.IsWindows() ? "win32" : "other",
-        RuntimeInformation.ProcessArchitecture switch { Architecture.X64 => "x64", Architecture.Arm64 => "arm64", Architecture.X86 => "ia32", Architecture.Arm => "arm", _ => "other" });
-    /* Linux's alone since v1.0.3 (Mac support dropped: a Mac on v1.0.2 finds no build for it, and nothing changes). */
-    private static string? Build() => Machine() switch
-    {
-        ("linux", "x64") => "linux-x64", ("linux", "arm64") => "linux-arm64", _ => null
-    };
     /* The program this one runs from: told (the tests) or its own file. */
     public static string BinPath() => Env("MANDARIN_SERVER_BIN") ?? Environment.ProcessPath ?? "";
 
@@ -473,7 +465,8 @@ internal sealed partial class Updater
     {
         if (Env("MANDARIN_SERVER_UPDATE") == "0") return;
         var (platform, arch) = Machine();
-        const string getAgain = "pull the image again (docker pull)";
+        var mac = platform == "darwin";
+        var getAgain = GetAgain(mac);
         if (Build() == null) throw new UpdateError($"no C# server is built for this machine ({platform} {arch}); the update would leave it behind");
         var bin = BinPath();
         if (bin.Length == 0 || !File.Exists(bin)) throw new UpdateError($"no C# server at {bin}");
@@ -481,7 +474,7 @@ internal sealed partial class Updater
         if (!Writable(binDir)) throw new UpdateError($"{binDir} can't be written to; {getAgain} instead");
         log($"[update] fetching the C# server {target} before the update");
         string next;
-        try { next = await FetchProgram(bin, target); }
+        try { next = await FetchProgram(bin, target, mac); }
         catch (Exception e)
         {
             throw new UpdateError($"the C# server {target} couldn't be fetched ({e.Message}); nothing was changed");
@@ -492,7 +485,7 @@ internal sealed partial class Updater
     }
 
     /* fetchProgram: the program for this machine from release v<v>, checked, put beside [bin] as <bin>.new. */
-    private async Task<string> FetchProgram(string bin, string v)
+    private async Task<string> FetchProgram(string bin, string v, bool mac)
     {
         var name = $"mandarin-server-{Build()}.gz";
         var r = await GetJson($"/repos/{owner}/{repo}/releases/tags/v{v}");
@@ -521,6 +514,7 @@ internal sealed partial class Updater
             await using (var dst = File.Create(next))
                 await gunzip.CopyToAsync(dst);
             if (!OperatingSystem.IsWindows()) File.SetUnixFileMode(next, (UnixFileMode)Convert.ToInt32("755", 8));
+            if (mac && !Codesign(next)) throw new UpdateError("the new program couldn't be signed to run on this Mac");
             // It runs here, and is the version it should be.
             var said = Run(next, ["--version"], 30000, ("DOTNET_CLI_TELEMETRY_OPTOUT", "1"));
             var got2 = Js.Trim(said.Out);

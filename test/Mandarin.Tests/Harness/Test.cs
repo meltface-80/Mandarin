@@ -24,4 +24,7 @@ public static class Needs
 
     /// <summary>ffmpeg on the PATH (or FFMPEG_PATH): the fixture library is made with it.</summary>
     public static void Ffmpeg() { if (!Fixtures.HaveFfmpeg) Assert.Skip("ffmpeg is not installed"); }
+
+    /// <summary>Mandarin's audio engine, which plays through ALSA: Linux's alone until it plays through Core Audio.</summary>
+    public static void Engine() { if (!OperatingSystem.IsLinux()) Assert.Skip("Mandarin's audio engine plays through ALSA, on Linux only"); }
 }

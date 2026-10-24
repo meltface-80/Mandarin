@@ -58,6 +58,26 @@ public sealed class LocalOutputTests
     }
 
     [Test]
+    public async Task A_Macs_sound_devices_its_Core_Audio_outputs()
+    {
+        Needs.Server();
+        // What system_profiler SPAudioDataType -json says (item 153): outputs only, each by its name.
+        var mac = (await Local(new JsonObject { ["mac"] = """
+            { "SPAudioDataType": [{ "_items": [
+              { "_name": "MacBook Pro Microphone", "coreaudio_device_input": 1, "coreaudio_device_srate": 48000 },
+              { "_name": "MacBook Pro Speakers", "coreaudio_device_output": 2, "coreaudio_device_srate": 48000,
+                "coreaudio_device_transport": "coreaudio_device_type_builtin", "coreaudio_default_audio_output_device": "spaudio_yes" },
+              { "_name": "Topping E30", "coreaudio_device_output": 2, "coreaudio_device_srate": 96000,
+                "coreaudio_device_transport": "coreaudio_device_type_usb", "coreaudio_device_manufacturer": "Topping" }
+            ] }] }
+            """ }))["mac"]!.AsArray();
+        Assert.Equal(["MacBook Pro Speakers|Built-in|48000", "Topping E30|USB audio|96000"],
+            mac.Select(d => $"{d.Str("network_name")}|{d.Str("model")}|{d!["caps"]!["advertised"]!["rates"]![0]}").ToArray());
+        Assert.Equal("coreaudio:Topping E30", mac[1].Str("location"));
+        Assert.Equal("Topping", mac[1].Str("manufacturer"));
+    }
+
+    [Test]
     public async Task This_computers_sound_devices_ALSA_cards()
     {
         Needs.Server();
@@ -104,7 +124,7 @@ public sealed class LocalOutputTests
     [Test]
     public async Task End_to_end_a_sound_device_on_this_computer_is_a_zone_an_album_plays_to_it()
     {
-        Needs.Server(); Needs.Ffmpeg();
+        Needs.Server(); Needs.Ffmpeg(); Needs.Engine();
         var lib = Fixtures.MakeLibrary();
         var output = Path.Combine(lib.Data, "dac.raw");
         var id = (string)(await Local(new JsonObject { ["ids"] = new JsonArray("test:dac") }))["ids"]![0]!;

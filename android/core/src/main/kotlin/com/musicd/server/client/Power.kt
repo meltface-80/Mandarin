@@ -8,7 +8,7 @@ import org.json.JSONObject
  */
 object Power {
     /** How the server is started again after a shut down, by `/api/system/power`'s `start_again`. */
-    private val START_AGAIN = mapOf("manual" to "To start it again, start it the way it was started.", "docker" to "")
+    private val START_AGAIN = mapOf("icon" to "To start it again, double-click Mandarin on the Mac's desktop. It also starts when you log in.", "manual" to "To start it again, start it the way it was started.", "docker" to "")
 
     /** The question before [what] ("power-restart" or "power-shutdown"); [power]: `/api/system/power`, or none when unread. */
     fun ask(what: String, power: JSONObject?): String =

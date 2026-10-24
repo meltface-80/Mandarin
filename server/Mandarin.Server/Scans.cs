@@ -358,7 +358,7 @@ internal sealed class ScanError(string message) : Exception(message);
 
 /*
  * The music folders watched for changes as they happen (lib/library/watch.js):
- * each folder with the file system's own notifications (inotify), recursively. Events are gathered, and a scan starts once
+ * each folder with the file system's own notifications (inotify; FSEvents on a Mac), recursively; a scan starts once
  * they have been quiet for [quietMs] (and at most once every [minGapMs]). The
  * scan is the ordinary one, so a flood of events costs one scan. What the file
  * system doesn't report (a change on a network share made from another

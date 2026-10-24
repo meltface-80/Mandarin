@@ -1,5 +1,20 @@
 # Changelog
 
+## Unreleased
+- `153-mac-server`: Mandarin's server runs on a Mac again, its first step back (v1.0.3 dropped it).
+  - **The server for a Mac:** built for Apple silicon and Intel Macs (`osx-arm64`, `osx-x64`), signed to run there.
+    Its folders are read with macOS's own calls, its music folders watched with FSEvents, and Settings → Check for
+    updates fetches the Mac's build, signed again on the Mac if its signature didn't come through.
+  - **Shut down on a Mac:** the login item is unloaded, and the page says to double-click Mandarin on the desktop to
+    start it again (it also starts at the next login).
+  - **Settings → Audio Devices on a Mac:** the Mac's own sound outputs are counted, and the page says they can't be
+    played from Mandarin yet. Playing them through Core Audio is item 155.
+  - **Its tests on a Mac:** a workflow of its own (`mac.yml`) runs the C# suite on GitHub's Macs on every push.
+    Nothing else waits for it: the image, the Android app and Linux's release don't. A release's Mac builds wait for
+    it, and are added to the release once it passes.
+  - Still to come before a Mac can have it: the install line (item 154), a Mac's USB DAC (155), and away from home
+    (156).
+
 ## v1.1.4
 
 **Artist pages and the Shelf.** An artist's page is in a new order: who they are, their members folded under a

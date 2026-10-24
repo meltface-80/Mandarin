@@ -66,7 +66,7 @@ internal sealed partial class Players
         LocalOutput = (p, r) =>
         {
             var name = r.Name ?? r.NetworkName;
-            // The engine where it is here and plays this device; without it (not yet downloaded) the device can't be played from this server.
+            // The engine where it is here and plays this device; without it (a Mac, or not yet downloaded) the device can't be played from this server.
             var eng = AudioEngine.Plays(r.Location) ? AudioEngine.Find(zm.Config.DataDir) : null;
             if (eng == null) throw new HubError(409, $"{name} can't be played from this server: Mandarin's audio engine isn't here");
             // The stream is this server's own: fetched over loopback, whatever address it was given out at.
