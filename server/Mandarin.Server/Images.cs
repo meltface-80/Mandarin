@@ -9,6 +9,11 @@
 //
 // Who may see one: a signed-in device, a signed address (a cover handed to a
 // speaker), or a speaker asking by its own address (v0.8.48).
+//
+// One that couldn't be had is kept in mind ten minutes: asked again (the phone
+// does, seconds later), an empty 404 at once, not the files read and ffmpeg run
+// again for it; and the phone told not to ask again for five minutes.
+using System.Collections.Concurrent;
 using Microsoft.Data.Sqlite;
 
 namespace Mandarin.Server;
@@ -18,6 +23,11 @@ internal static class Images
     private static readonly int[] Steps = [120, 200, 300, 400, 600, 800, 1200];
     private static string artDir = "", labelDir = "";
     public static string ArtDir => artDir;
+
+    // The covers missed, by image key: when. A few thousand at most, all forgotten past that.
+    private static readonly ConcurrentDictionary<string, long> Misses = new(StringComparer.Ordinal);
+    private const long MissMs = 10 * 60 * 1000;
+    private const int MostMisses = 4096;
 
     /* artwork.snap: the size drawn for the size asked. */
     public static int Snap(string? size)
@@ -122,16 +132,14 @@ internal static class Images
         // or a picture from elsewhere (v0.8.34); where sharp drew otherwise, Covers.cs says.
         if (!File.Exists(cached))
         {
+            // Missed a moment ago: missed still, without the work, marked as kept.
+            if (Missed(key)) { ctx.Response.Headers["X-Mandarin-Kept"] = "1"; return NotHad(ctx); }
             Covers.Drawn how;
             if (album != null) how = await Covers.DrawAlbum(album, cached, Snap(size));
-            else if (Covers.ForeignUrl(key) is { } url)
-            {
-                how = await Covers.DrawForeign(url, cached, Snap(size));
-                // Not to be had: absent, as the Node server answered it.
-                if (how == Covers.Drawn.NoCover) { ctx.Response.Headers["X-Mandarin-Answered"] = "C#"; ctx.Response.StatusCode = 404; return true; }
-            }
+            // Not to be had (NoCover): absent too, as the Node server answered it.
+            else if (Covers.ForeignUrl(key) is { } url) how = await Covers.DrawForeign(url, cached, Snap(size));
             else return Absent(ctx);
-            if (how != Covers.Drawn.Yes) return Absent(ctx);
+            if (how != Covers.Drawn.Yes) { Miss(key); return NotHad(ctx); }
         }
         await SendFile(ctx, cached, "image/jpeg", current ? "public, max-age=604800, immutable" : "no-cache");
         return true;
@@ -147,6 +155,30 @@ internal static class Images
         ctx.Response.StatusCode = 404;
         return true;
     }
+
+    /* A cover there was work to look for and none: absent, and not to be asked again for five minutes. */
+    private static bool NotHad(HttpContext ctx)
+    {
+        ctx.Response.Headers.CacheControl = "max-age=300";
+        return Absent(ctx);
+    }
+
+    private static bool Missed(string key)
+    {
+        if (!Misses.TryGetValue(key, out var at)) return false;
+        if (Environment.TickCount64 - at < MissMs) return true;
+        Misses.TryRemove(key, out _);
+        return false;
+    }
+
+    private static void Miss(string key)
+    {
+        if (Misses.Count >= MostMisses) Misses.Clear();
+        Misses[key] = Environment.TickCount64;
+    }
+
+    /* The covers missed forgotten: the library read again (a scan, an edit) may have them now. */
+    public static void ForgetMisses() => Misses.Clear();
 
     /* res.sendFile, as Express sends one: its weak ETag and Last-Modified, and "not modified". */
     private static async Task SendFile(HttpContext ctx, string file, string type, string cache)

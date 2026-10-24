@@ -194,8 +194,8 @@ internal sealed partial class Phones
         }
     }
 
-    /* Commands after `after`, waiting up to `timeoutMs` for one to arrive. */
-    public async Task<JsonObject> Commands(string uid, double after, int timeoutMs)
+    /* Commands after `after`, waiting up to `timeoutMs` for one to arrive, or until [stop] (the phone gone). */
+    public async Task<JsonObject> Commands(string uid, double after, int timeoutMs, CancellationToken stop = default)
     {
         PhoneRec p;
         TaskCompletionSource? wait = null;
@@ -217,7 +217,8 @@ internal sealed partial class Phones
         if (bump) zm.Bump();
         if (wait != null)
         {
-            using var cts = new CancellationTokenSource(timeoutMs);
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(stop);
+            cts.CancelAfter(timeoutMs);
             using (cts.Token.Register(() => wait.TrySetResult())) await wait.Task;
             lock (zm.Gate) { p.Waiters.Remove(wait); p.LastSeen = Hub.Now(); }
         }
@@ -234,6 +235,9 @@ internal sealed partial class Phones
             return new JsonObject { ["seq"] = Seq, ["commands"] = new JsonArray(pending) };
         }
     }
+
+    /* The phones' command polls waiting now (/api/status's waits). */
+    public int Waiting { get { lock (zm.Gate) return Map.Values.Sum(p => p.Waiters.Count); } }
 
     /* The phone's USB DAC as a stream target: null (the Sonos rule) with no DAC in use. */
     public JsObj? TargetFor(string uid)
