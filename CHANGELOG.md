@@ -9,7 +9,7 @@
   - **Settings → Audio Devices:** each of the Mac's outputs is offered, with every rate it takes as Core Audio lists
     them (`mandarin-audio --devices`), off until you turn it on, as on Linux. Its page says how a Mac plays it.
   - **The engine on a Mac:** fetched by the server from the `audio-engine` pre-release (Apple silicon and Intel
-    builds, published with Linux's), checked against its sums. CI's Mac builds it and runs the engine's tests.
+    builds, published with Linux's), checked against its sums. CI's Mac builds it and checks it runs there.
   - **Not yet tried on a real DAC:** GitHub's Macs have none. Tell me how it plays.
 - `153-mac-server`: Mandarin's server runs on a Mac again, its first step back (v1.0.3 dropped it).
   - **The server for a Mac:** built for Apple silicon and Intel Macs (`osx-arm64`, `osx-x64`), signed to run there.
