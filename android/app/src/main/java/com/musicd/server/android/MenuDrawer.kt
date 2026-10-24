@@ -2,6 +2,7 @@ package com.musicd.server.android
 
 import android.content.Context
 import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.tween
@@ -84,7 +85,12 @@ internal fun MenuOver(nav: NavHostController, client: () -> ServerClient?) {
     val open by NativeShell.menuOpen
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
-    if (open) MenuDrawer(WallPrefs.parse(NativeShell.prefs).menu, client, scope, onClose = { NativeShell.menuOpen.value = false }, onItem = { menuTap(nav, it, context) })
+    if (open) {
+        // Back closes the menu first, over any screen (item 158: it closed the screen under it, the menu left open). Composed
+        // only while open, so it comes after the screen's own and is asked first.
+        BackHandler { NativeShell.menuOpen.value = false }
+        MenuDrawer(WallPrefs.parse(NativeShell.prefs).menu, client, scope, onClose = { NativeShell.menuOpen.value = false }, onItem = { menuTap(nav, it, context) })
+    }
     PowerOver(client)
 }
 

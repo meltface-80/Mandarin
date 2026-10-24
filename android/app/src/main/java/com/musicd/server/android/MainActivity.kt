@@ -241,6 +241,7 @@ class MainActivity : androidx.activity.ComponentActivity() {
     override fun onTrimMemory(level: Int) {
         super.onTrimMemory(level)
         AppLog.line("APP", "Android asks for memory back (level $level)", anomaly = com.musicd.server.client.UiTrace.memoryLow(level))
+        Covers.trim(level)   // covers let go (item 158): nothing else did
     }
 
     private fun registerBack() {

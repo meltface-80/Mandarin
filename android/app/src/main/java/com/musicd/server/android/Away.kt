@@ -10,6 +10,7 @@ import android.os.Looper
 import android.util.Log
 import com.musicd.server.client.Route
 import com.musicd.server.client.ServerAddress
+import com.musicd.server.client.ServerId
 import java.net.HttpURLConnection
 import java.net.URL
 import java.util.concurrent.CopyOnWriteArrayList
@@ -156,7 +157,7 @@ object Away {
         val vpn = !wifi && onVpn(c)
         // Asked over the Wi-Fi: Android may be sending what it can over mobile data (item 127). Home till now and on its
         // Wi-Fi, three looks a second apart before going (item 157): one slow answer sent the phone away, at home.
-        val homeAnswers = (wifi || vpn) && homeAnswers(home, Route.looksBeforeAway(wasAway, wifi), if (wifi) HomeWifi.network(c) else null)
+        val homeAnswers = (wifi || vpn) && homeAnswers(home, Route.looksBeforeAway(wasAway, wifi), if (wifi) HomeWifi.network(c) else null, Store.serverId(c))
         // Away over MusicD's own Tailscale connection once the phone is signed in to it — the whole library,
         // streamed as Opus by the server, no Tailscale app needed — whether its engine is up yet or not.
         val ownSignedIn = TailscaleEngine.signedIn(c)
@@ -236,9 +237,9 @@ object Away {
     }
 
     /** The home address answering, asked up to [looks] times a second apart (item 157). */
-    private fun homeAnswers(home: ServerAddress, looks: Int, over: Network?): Boolean {
+    private fun homeAnswers(home: ServerAddress, looks: Int, over: Network?, kept: String?): Boolean {
         for (i in 1..looks) {
-            if (answers(home, 1500, over)) return true
+            if (answers(home, 1500, over, kept)) return true
             if (i < looks) try { Thread.sleep(1000) } catch (e: InterruptedException) { return false }
         }
         return false
@@ -296,18 +297,37 @@ object Away {
      * The server answering at [a], asked [over] a network of its own (the Wi-Fi) or wherever Android sends it: its
      * /api/ping (item 157: answered at once, whatever the server is busy with), or /api/health on a server from before it.
      */
-    private fun answers(a: ServerAddress, timeoutMs: Int, over: Network? = null): Boolean {
-        val code = status(a, "/api/ping", timeoutMs, over)
-        return code == 200 || (code == 404 && status(a, "/api/health", timeoutMs, over) == 200)
+    private fun answers(a: ServerAddress, timeoutMs: Int, over: Network? = null, kept: String? = null): Boolean {
+        val (code, body) = ask(a.baseUrl + "/api/ping", timeoutMs, over)
+        // Answered, and as this phone's own server ([kept], item 158), not another at the same address.
+        if (code == 200) return ServerId.ours(kept, ServerId.of(body)).also { if (!it) AppLog.line("REACH", "the home address answered as another server: not home", anomaly = true) }
+        return code == 404 && ask(a.baseUrl + "/api/health", timeoutMs, over).first == 200
     }
 
-    private fun status(a: ServerAddress, path: String, timeoutMs: Int, over: Network?): Int = runCatching {
-        val url = URL(a.baseUrl + path)
-        val conn = (over?.openConnection(url) ?: url.openConnection()) as HttpURLConnection
+    /** [url] asked: its status, and its body when 200 (-1 when nothing answered). Blocking. */
+    private fun ask(url: String, timeoutMs: Int, over: Network? = null): Pair<Int, String?> = runCatching {
+        val u = URL(url)
+        val conn = (over?.openConnection(u) ?: u.openConnection()) as HttpURLConnection
         conn.connectTimeout = timeoutMs
         conn.readTimeout = timeoutMs
-        try { conn.responseCode } finally { conn.disconnect() }
-    }.getOrDefault(-1)
+        try { val code = conn.responseCode; code to (if (code == 200) conn.inputStream.bufferedReader().use { it.readText() } else null) } finally { conn.disconnect() }
+    }.getOrDefault(-1 to null)
+
+    /**
+     * This phone's server's id kept (item 158) once its sign-in has been taken there: asked of [base] when none is kept
+     * yet, so that later another server at the home address isn't taken for home. Blocking.
+     */
+    fun learnId(c: Context, base: String) {
+        if (Store.serverId(c) != null) return
+        val id = ServerId.of(ask("$base/api/ping", 3000).second) ?: return
+        if (runCatching { Store.client(c)?.getJson("/api/status") }.getOrNull() != null) Store.setServerId(c, id)
+    }
+
+    /** The server answering on the way in use now is this phone's own (or there is nothing to tell by). Blocking. */
+    fun stillOurs(c: Context): Boolean {
+        val base = Store.active(c)?.baseUrl ?: return true
+        return ServerId.ours(Store.serverId(c), ServerId.of(ask("$base/api/ping", 3000).second))
+    }
 
     private fun tailscale(c: Context, connect: Boolean): Boolean = runCatching {
         c.sendBroadcast(Intent(if (connect) "$TAILSCALE.CONNECT_VPN" else "$TAILSCALE.DISCONNECT_VPN")

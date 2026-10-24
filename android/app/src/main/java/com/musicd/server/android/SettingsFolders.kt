@@ -251,7 +251,7 @@ private fun PhoneFolder(info: (String) -> Unit, ask: (String, () -> Unit) -> Uni
             LocalMusic.available(context), LocalMusic.lastError)
     LaunchedEffect(Unit) {
         withContext(Dispatchers.IO) { LocalMusic.load(context) }
-        while (true) { local = withContext(Dispatchers.IO) { read() }; delay(1_500) }
+        while (true) { untilOnScreen(); local = withContext(Dispatchers.IO) { read() }; delay(1_500) }
     }
     val choose = { (context as? MainActivity)?.pickLocalFolder(); Unit }
     Column(Modifier.padding(vertical = 4.dp)) {

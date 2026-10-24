@@ -55,7 +55,7 @@ internal fun UsbBlock(info: (String) -> Unit) {
     val bridge = remember { UsbBridge(activity) }
     var usb by remember { mutableStateOf(UsbView(UsbDac.json(context))) }
     var tick by remember { mutableIntStateOf(0) }
-    LaunchedEffect(tick) { while (true) { usb = UsbView(UsbDac.json(context)); delay(2_000) } }
+    LaunchedEffect(tick) { while (true) { untilOnScreen(); usb = UsbView(UsbDac.json(context)); delay(2_000) } }
     val again = { tick++ }
     SettingsDivider(18, 18)
     Block {

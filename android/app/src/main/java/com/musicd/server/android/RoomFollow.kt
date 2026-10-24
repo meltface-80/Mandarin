@@ -84,8 +84,7 @@ internal fun followRoom(zoneId: String, client: () -> ServerClient?): RoomState 
 
 /** The cover [key] at [size] pixels, once fetched; null until then, or with no key. */
 @Composable
-internal fun rememberCover(key: String?, size: Int, client: () -> ServerClient?): ImageBitmap? =
-    rememberImage(key?.let { k -> client()?.imageUrl(k, size) }, client)
+internal fun rememberCover(key: String?, size: Int, client: () -> ServerClient?): ImageBitmap? = rememberTileCover(key, size, client)
 
 /**
  * The picture at [url] on the server, once fetched; null until then, or with no address. Kept as the tiles' covers are

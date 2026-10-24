@@ -30,8 +30,8 @@ object TailscaleEngine {
     private const val TAG = "TailscaleEngine"
 
     @Volatile private var process: Process? = null
-    private var port = 0
-    private var secret = ""
+    @Volatile private var port = 0
+    @Volatile private var secret = ""
     /** For the default route, which [sendInterfaces] asks Android for. */
     @Volatile private var appContext: Context? = null
 
@@ -197,7 +197,8 @@ object TailscaleEngine {
         val p = process
         process = null   // first: its watcher then knows the end was asked for
         readyFor = null
-        p?.let { runCatching { it.outputStream.close() }; it.destroy() }
+        // Gone before a new one starts (item 158): the dying one held the app's port, and the new one couldn't have it.
+        p?.let { runCatching { it.outputStream.close() }; it.destroy(); runCatching { it.waitFor(3, java.util.concurrent.TimeUnit.SECONDS) } }
     }
 
     /**

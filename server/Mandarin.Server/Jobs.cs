@@ -40,7 +40,7 @@ internal static partial class Jobs
     private static Lastfm? lastfm;
     public static Lastfm Lastfm => lastfm ??= NewLastfm(Environment.GetEnvironmentVariable("LASTFM_URL"));
     public static string? LastfmEnvKey { get; private set; } = Environment.GetEnvironmentVariable("LASTFM_KEY") is { Length: > 0 } ek ? ek : null;
-    private static Lastfm NewLastfm(string? url) => new(url is { Length: > 0 } ? url : null, Library.LastfmKey, "Mandarin/" + Server.Version + " (+https://github.com/meltface-80/Mandarin)");
+    private static Lastfm NewLastfm(string? url) => new(url is { Length: > 0 } ? url : null, Library.LastfmKey, "Mandarin/" + Server.Version + " (+https://github.com/meltface-80/Mandarin)") { KeptInDb = true };
     // Headphone profiles (v0.8.26, DspRoutes.cs): where AutoEq is.
     public static AutoEq? AutoEq { get; private set; }
     // Qobuz's and Tidal's catalogue (v0.8.39, ServiceRoutes.cs): where each is asked.
@@ -137,6 +137,8 @@ internal static partial class Jobs
         // Found in the background, except while the tests keep to this machine and haven't asked for it (credits: true).
         if (!Lookups.LoopbackOnly || (cfg["credits"] is JsonValue cr && cr.TryGetValue<bool>(out var crOn) && crOn))
             credits.Start(Int(cfg["credits_tick_ms"], 2000));
+        // The tiles' covers drawn ahead after a scan: likewise (covers_ahead: true).
+        Covers.AheadOn = !Lookups.LoopbackOnly || (cfg["covers_ahead"] is JsonValue ca && ca.TryGetValue<bool>(out var caOn) && caOn);
         if (handed.Contains("tailscale")) _ = Tailscale.Start();
         if (handed.Contains("scan")) Scans.Start(cfg, dataDir);
         // Playback whole (v0.8.49, stage 6): the hub.
@@ -153,13 +155,15 @@ internal static partial class Jobs
         });
     }
 
-    /* After a library scan (Scans.cs; the tests' /internal/jobs/after-scan): the release days, and today's Smart Picks. */
+    /* After a library scan (Scans.cs; the tests' /internal/jobs/after-scan): the release days, today's Smart Picks, and the covers drawn ahead. */
     public static async Task AfterScan()
     {
         try
         {
             if (Holds("days") && Days is { } d) _ = d.Run();
             if (Holds("taste") && Taste is { } t && await Library.CurrentCopy() is { } s) t.Kick(s, false);
+            // The tiles' covers not drawn yet, drawn ahead (Covers.Ahead.cs).
+            Covers.DrawAhead();
         }
         catch (Exception e) { Server.Log($"[jobs] after the scan: {e.GetType().Name}: {e.Message}"); }
     }

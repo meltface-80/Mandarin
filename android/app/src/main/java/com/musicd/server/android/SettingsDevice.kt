@@ -86,7 +86,7 @@ internal fun DevicePane(id: String, client: () -> ServerClient?, onBack: () -> U
         val c = client() ?: return
         withContext(Dispatchers.IO) { runCatching { c.getJson(devicePath(id)) } }.onSuccess { page = DevicePage(it); error = "" }.onFailure { error = it.message ?: "" }
     }
-    LaunchedEffect(id) { while (true) { if (!busy) load(); delay(10_000) } }
+    LaunchedEffect(id) { while (true) { untilOnScreen(); if (!busy) load(); delay(10_000) } }
     // A change to the device (PATCH), on the lane: the page drawn from the answer; [said] once it is made.
     fun patch(body: JSONObject, said: ((DevicePage) -> String)? = null) {
         val c = client() ?: return

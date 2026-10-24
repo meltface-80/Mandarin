@@ -51,8 +51,8 @@ class NowPlayingService : Service() {
         const val ACTION_RANDOM = "com.musicd.server.android.RANDOM"
         const val ACTION_STOP = "com.musicd.server.android.STOP"
 
-        /** Nothing playing for this long and the service bows out. */
-        private const val IDLE_STOP_MS = 20 * 60 * 1000L
+        /** Nothing playing for this long and the service bows out (item 158: twenty minutes after every open, the app kept awake). */
+        private const val IDLE_STOP_MS = 5 * 60 * 1000L
         private const val ZONES_MS = 5 * 60 * 1000L   // the rooms looked at again after this long (item 120)
         private const val ART_PX = 512
 
@@ -146,7 +146,7 @@ class NowPlayingService : Service() {
         } else {
             wake = true
         }
-        return START_STICKY
+        return START_NOT_STICKY   // not brought back by Android from the background, where it may not come to the front (item 158)
     }
 
     override fun onDestroy() {
@@ -165,9 +165,9 @@ class NowPlayingService : Service() {
     private fun goForeground() {
         val n = notification(latest)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            startForeground(NOTIFICATION_ID, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE)
+            runCatching { startForeground(NOTIFICATION_ID, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE) }.onFailure { Log.w(TAG, "can't come to the front", it); stopSelf() }
         } else {
-            startForeground(NOTIFICATION_ID, n)
+            runCatching { startForeground(NOTIFICATION_ID, n) }.onFailure { Log.w(TAG, "can't come to the front", it); stopSelf() }
         }
     }
 
@@ -180,7 +180,7 @@ class NowPlayingService : Service() {
         while (running) {
             val client = Store.client(this)
             if (client == null) { stopSelf(); return }
-            if (Store.offlineMode(this)) { main.post { stopSelf() }; return }
+            if (Store.offlineMode(this) || Store.isAway(this)) { main.post { stopSelf() }; return }   // away: the phone's own (item 158)
             // No Wi-Fi, no mobile data: nothing to ask (and nothing to draw again and again).
             if (!Away.hasNetwork(this)) {
                 if (reachable) { reachable = false; showSoon(latest) }

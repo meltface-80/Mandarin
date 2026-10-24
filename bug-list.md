@@ -8,6 +8,7 @@ Status: **Open** · **In progress** · **Ready to test** (green, waiting on the 
 
 | # | Item | Branch | Status |
 |---|------|--------|--------|
+| 158 | P2 of the audit after v1.1.4: stutter (discs, Now Playing, R8), covers fetched again on every start away, battery off screen, the home Wi-Fi taken on another server's word, a taken Tailscale port, slow history and artist pages, Back with the menu open, downloads that never gave up | `p2-slow-battery-security` | In progress |
 | 157 | P1 of the audit after v1.1.4 (the owner's log and screenshot): the app opening on last run's way (Library "Couldn't load: Failed to connect to /127.0.0.1:34500"); screens that never asked again after a failure; away with the app's own Tailscale never started (twelve minutes); false "away" at home; engine restarts that made outages longer; the server stalled by a database write lock and by rebuilding its library copy | `p1-breaks-the-app` | Ready to test |
 | 154 | Mandarin on a Mac, step 2: the one-line installer again (Homebrew's ffmpeg and poppler, the latest release's page and Mac server, the music folder, a login item and a desktop icon), and Install on a Mac in the README | `154-mac-install` | Ready to test |
 | 156 | Mandarin on a Mac, step 4: away from home, the server's built-in Tailscale on a Mac (its engine built for a Mac and fetched by the server) | `156-mac-away` | Ready to test |

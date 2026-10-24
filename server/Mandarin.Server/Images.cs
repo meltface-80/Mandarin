@@ -28,6 +28,14 @@ internal static class Images
         return 1200;
     }
 
+    /* Where a cover's size is kept: <data>/art/<key>@<size>.jpg, the key's safe letters. */
+    public static string KeptFile(string key, int size)
+    {
+        var safe = new string(key.Where(ch => char.IsAsciiLetterOrDigit(ch) || ch == '_' || ch == '-').ToArray());
+        if (safe.Length > 200) safe = safe[..200];
+        return Path.Combine(artDir, $"{safe}@{size}.jpg");
+    }
+
     public static void Use(WebApplication app, string dataDir)
     {
         artDir = Path.Combine(dataDir, "art");
@@ -109,19 +117,13 @@ internal static class Images
             }
         }
         var size = ctx.Request.Query["size"].ToString() is { Length: > 0 } sz ? sz : ctx.Request.Query["width"].ToString() is { Length: > 0 } w ? w : null;
-        var safe = new string(key.Where(ch => char.IsAsciiLetterOrDigit(ch) || ch == '_' || ch == '-').ToArray());
-        if (safe.Length > 200) safe = safe[..200];
-        var cached = Path.Combine(artDir, $"{safe}@{Snap(size)}.jpg");
-        // Not drawn yet: drawn here — the album's own cover, else its placeholder,
+        var cached = KeptFile(key, Snap(size));
+        // Not drawn yet (nor ahead, Covers.Ahead.cs): drawn here — the album's own cover, else its placeholder,
         // or a picture from elsewhere (v0.8.34); where sharp drew otherwise, Covers.cs says.
         if (!File.Exists(cached))
         {
             Covers.Drawn how;
-            if (album != null)
-            {
-                how = await Covers.Draw(album, cached, Snap(size));
-                if (how == Covers.Drawn.NoCover) how = await Covers.DrawPlaceholder(album, cached, Snap(size));
-            }
+            if (album != null) how = await Covers.DrawAlbum(album, cached, Snap(size));
             else if (Covers.ForeignUrl(key) is { } url)
             {
                 how = await Covers.DrawForeign(url, cached, Snap(size));

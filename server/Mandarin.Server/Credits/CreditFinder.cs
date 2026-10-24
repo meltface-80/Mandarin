@@ -35,6 +35,10 @@ internal sealed class CreditFinder(MusicBrainz mb, string? deezerBase, string? w
     private readonly string wikidata = (string.IsNullOrEmpty(wikidataBase) ? "https://www.wikidata.org" : wikidataBase).TrimEnd('/');
     // The release's own ids for its acts, by key: an act looked up later needn't be searched for by name.
     private readonly ConcurrentDictionary<string, string> actIds = new(StringComparer.Ordinal);
+    // An act's lookup under way, shared by the pages that ask meanwhile; and when one last failed, by key.
+    private readonly ConcurrentDictionary<string, Task> lookingUp = new(StringComparer.Ordinal);
+    private readonly ConcurrentDictionary<string, long> failed = new(StringComparer.Ordinal);
+    private const long FailedMs = 3_600_000;
     private ConcurrentDictionary<long, byte>? looked;
     private ConcurrentDictionary<string, byte>? known;
     private Timer? timer;
@@ -213,10 +217,12 @@ internal sealed class CreditFinder(MusicBrainz mb, string? deezerBase, string? w
         }
         catch (LookupError e)
         {
-            // MusicBrainz out of reach: not kept, so asked again after a restart.
+            // MusicBrainz out of reach: not kept, so asked again after a restart; a page asks again in an hour.
             log($"[credits] {name}: {e.Message}");
+            failed[key] = NowMs();
             return;
         }
+        failed.TryRemove(key, out _);
         CreditStore.SaveArtist(key, name, facts?.Mbid ?? mbid, facts, photo, source);
         // Another name for an artist already kept (item 151): the library read again, as one artist (in the background, Library.Copy.cs).
         if ((facts?.Mbid ?? mbid) is { } kept && SameArtists.Shared(kept)) await Library.TellSoon(new System.Text.Json.Nodes.JsonObject { ["lookups"] = true });
@@ -224,15 +230,33 @@ internal sealed class CreditFinder(MusicBrainz mb, string? deezerBase, string? w
         if (photo != null) Library.ForgetKept("/api/artists");
     }
 
-    /* For a route: an act as kept, looked up first when it hasn't been (for [waitMs] at most). */
+    /*
+     * For a route: an act as kept, looked up first when it hasn't been (for [waitMs] at most, the lookup going on
+     * behind for the next visit). One whose lookup failed in the last hour is answered as kept, not waited on again.
+     */
     public async Task<StoredArtist?> ArtistNow(string name, int waitMs)
     {
         var key = Names.ArtistKey(name);
         var kept = CreditStore.Artist(key);
         // Kept as read before (CreditStore.AboutVersion): looked up again, the old facts meanwhile and if that fails.
         if (kept != null && (int?)kept.About["v"] >= CreditStore.AboutVersion) return kept;
-        var t = LookUp(name, null);
-        await Task.WhenAny(t, Task.Delay(waitMs));
+        if (failed.TryGetValue(key, out var at) && NowMs() - at < FailedMs) return kept;
+        await Task.WhenAny(LookingUp(key, name), Task.Delay(waitMs));
         return CreditStore.Artist(key) ?? kept;
+    }
+
+    /* An act's lookup, one at a time however many pages ask; anything it throws said, not the page's. */
+    private Task LookingUp(string key, string name)
+    {
+        var mine = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var running = lookingUp.GetOrAdd(key, mine.Task);
+        if (running != mine.Task) return running;
+        _ = Task.Run(async () =>
+        {
+            try { await LookUp(name, null); }
+            catch (Exception e) { log($"[credits] {name}: {e.GetType().Name}: {e.Message}"); }
+            finally { lookingUp.TryRemove(key, out _); mine.TrySetResult(); }
+        });
+        return mine.Task;
     }
 }

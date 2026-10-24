@@ -1,5 +1,6 @@
 package com.musicd.server.android
 
+import android.content.Context
 import android.graphics.BitmapFactory
 import android.util.LruCache
 import androidx.compose.runtime.Composable
@@ -11,41 +12,96 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.graphics.asImageBitmap
+import com.musicd.server.client.CoverDisk
 import com.musicd.server.client.ServerClient
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
+import java.io.File
+import java.util.concurrent.atomic.AtomicInteger
 
 /**
  * The covers a wall's tiles show, kept once fetched (bug list item 51): the
- * last 48 MB of them by their address, so a wall scrolled back to, or come
- * back to from an album, draws at once; a tile asks for its own size, so a
- * three-across wall doesn't fetch 500px covers. Nothing is drawn here (the
- * screens contract's shell, docs/specs/screens.json).
+ * last 48 MB of them by their key and size (not their address: home or away
+ * it's the same cover, item 158), so a wall scrolled back to, or come back
+ * to from an album, draws at once; a tile asks for its own size, so a
+ * three-across wall doesn't fetch 500px covers. Kept on the phone's disk too
+ * (item 158: every start away fetched every cover again), at most six fetched
+ * at once, and a tile scrolled away before its turn fetches nothing. Nothing
+ * is drawn here (the screens contract's shell, docs/specs/screens.json).
  */
 internal object Covers {
     private val cache = object : LruCache<String, ImageBitmap>(48 * 1024 * 1024) {
         override fun sizeOf(key: String, value: ImageBitmap): Int = value.width * value.height * 4
     }
+    private val fetching = Semaphore(6)
+    private const val DISK_LIMIT = 200L * 1024 * 1024
+    private val writes = AtomicInteger(0)
 
-    fun get(url: String): ImageBitmap? = cache.get(url)
-    fun put(url: String, image: ImageBitmap) { cache.put(url, image) }
+    fun get(id: String): ImageBitmap? = cache.get(id)
+    fun put(id: String, image: ImageBitmap) { cache.put(id, image) }
+
+    /** Android asking for memory back ([level], onTrimMemory's): half let go, or all once the app is in the background. */
+    fun trim(level: Int) { if (level >= 40) cache.evictAll() else if (level >= 15) cache.trimToSize(cache.maxSize() / 2) }
+
+    /** The server's cover [key] at [size]: kept in memory, kept on disk, or fetched (and kept both ways). */
+    suspend fun server(context: Context, c: ServerClient, key: String, size: Int): ImageBitmap? {
+        val id = "$key@$size"
+        get(id)?.let { return it }
+        withContext(Dispatchers.IO) { runCatching { disk(context, key, size)?.let { decode(it) }?.also { put(id, it) } }.getOrNull() }?.let { return it }
+        return fetching.withPermit {
+            // Kept within the fetch, so one called off on the way (the tile gone) is still kept, not fetched again.
+            get(id) ?: withContext(Dispatchers.IO) {
+                runCatching { c.bytes(c.imageUrl(key, size)).let { b -> decode(b)?.also { put(id, it); keep(context, key, size, b) } } }.getOrNull()
+            }
+        }
+    }
+
+    /** One of the phone's own albums' covers ("phone-…"), read at no more than [size] (item 158: a 3000-pixel scan was 36 MB a tile). Blocking. */
+    fun phone(context: Context, key: String, size: Int): ImageBitmap? = runCatching {
+        val id = "$key@$size"
+        get(id)?.let { return it }
+        val f = LocalMusic.art(context, key.removePrefix("phone-")) ?: return null
+        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        BitmapFactory.decodeFile(f.path, bounds)
+        var sample = 1
+        while (bounds.outWidth / (sample * 2) >= size && bounds.outHeight / (sample * 2) >= size) sample *= 2
+        BitmapFactory.decodeFile(f.path, BitmapFactory.Options().apply { inSampleSize = sample })?.asImageBitmap()?.also { put(id, it) }
+    }.getOrNull()
+
+    private fun decode(b: ByteArray): ImageBitmap? = BitmapFactory.decodeByteArray(b, 0, b.size)?.asImageBitmap()
+
+    private fun dir(context: Context) = File(context.cacheDir, "covers")
+
+    private fun disk(context: Context, key: String, size: Int): ByteArray? {
+        val f = File(dir(context), CoverDisk.name(key, size))
+        if (!f.isFile) return null
+        f.setLastModified(System.currentTimeMillis())
+        return f.readBytes()
+    }
+
+    private fun keep(context: Context, key: String, size: Int, b: ByteArray) {
+        val d = dir(context).apply { mkdirs() }
+        val tmp = File(d, CoverDisk.name(key, size) + ".part")
+        tmp.writeBytes(b)
+        tmp.renameTo(File(d, CoverDisk.name(key, size)))
+        if (writes.incrementAndGet() % 50 == 0) {
+            val files = d.listFiles()?.map { CoverDisk.Kept(it.name, it.length(), it.lastModified()) }.orEmpty()
+            for (n in CoverDisk.trim(files, DISK_LIMIT)) File(d, n).delete()
+        }
+    }
 }
 
 /** The cover [key] at [size] pixels for a tile, kept or fetched and kept; null until then, or with no key. A "phone-" key is one of the phone's own albums (item 57), read from its index, never asked of the server. */
 @Composable
 internal fun rememberTileCover(key: String?, size: Int, client: () -> ServerClient?): ImageBitmap? {
     val context = LocalContext.current
-    val phone = key != null && key.startsWith("phone-")
-    val url = if (phone) key else key?.let { k -> client()?.imageUrl(k, size) }
-    var image by remember(url) { mutableStateOf(url?.let { Covers.get(it) }) }
-    LaunchedEffect(url) {
-        if (url == null || image != null) return@LaunchedEffect
-        val got = if (phone) withContext(Dispatchers.IO) { runCatching { LocalMusic.art(context, url.removePrefix("phone-"))?.let { BitmapFactory.decodeFile(it.path)?.asImageBitmap() } }.getOrNull() }
-        else {
-            val c = client() ?: return@LaunchedEffect
-            withContext(Dispatchers.IO) { runCatching { c.bytes(url).let { BitmapFactory.decodeByteArray(it, 0, it.size)?.asImageBitmap() } }.getOrNull() }
-        }
-        if (got != null) { Covers.put(url, got); image = got }
+    var image by remember(key, size) { mutableStateOf(key?.let { Covers.get("$it@$size") }) }
+    LaunchedEffect(key, size) {
+        if (key == null || image != null) return@LaunchedEffect
+        image = if (key.startsWith("phone-")) withContext(Dispatchers.IO) { Covers.phone(context, key, size) }
+        else Covers.server(context, client() ?: return@LaunchedEffect, key, size)
     }
     return image
 }

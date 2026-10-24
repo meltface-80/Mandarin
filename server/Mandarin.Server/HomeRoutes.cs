@@ -73,7 +73,8 @@ internal static partial class Library
     {
         var count = (int)Math.Min(60, Math.Max(1, IntOr(Q(ctx, "count"), 60)));
         using var c = Db.Open();
-        var rows = Rows(c, "SELECT album_id, MAX(ts) AS ts FROM plays WHERE ts >= $1 AND album_id IS NOT NULL GROUP BY album_id ORDER BY ts DESC LIMIT $2",
+        // Read by time (plays_ts), the month's plays alone: the + keeps SQLite from walking every play by album for the GROUP BY.
+        var rows = Rows(c, "SELECT album_id, MAX(ts) AS ts FROM plays WHERE ts >= $1 AND +album_id IS NOT NULL GROUP BY +album_id ORDER BY ts DESC LIMIT $2",
             Now - 30 * Day, count);
         var albums = rows.Select(r => s.ById.TryGetValue((long)r[0]!, out var al) ? al : null).Where(a => a != null).Select(a => a!);
         return Send(ctx, new JsonObject { ["albums"] = AlbumList(s, albums), ["days"] = 30 });

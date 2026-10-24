@@ -2,6 +2,35 @@
 
 ## Unreleased
 
+- `p2-slow-battery-security` (item 158, the audit's P2): slow, battery, security.
+  - **Stutter:** the playing track's disc turns in its own layer (the album page drew the row again every frame);
+    Home's random disc asks for no frames while still; Now Playing and the mini player redraw only the seek bar and
+    meter as the track plays (everything, twice a second, before); the release build is optimised (R8, the app's own
+    code kept as written) and carries its start-up profile; the album page reads whether it's downloaded off the main
+    thread.
+  - **Covers:** kept on the phone too, by cover and size (every start away from home fetched them all again over
+    Tailscale; home or away it's one cover), at most six fetched at once, and a tile scrolled past before its turn
+    fetches nothing; the phone's own albums' covers are read at the size shown (a 3000-pixel scan was 36 MB a tile);
+    let go when Android asks for memory. The server draws covers as many at a time as it has cores (2 to 4), and after
+    each scan draws the tile sizes of albums that haven't them yet, one at a time in the background (about 20–30 KB an
+    album; Random and Not played no longer wait on a cover being drawn).
+  - **Battery:** Settings pages look again only while the app is on screen (Music Folders every 1.5 s all night); the
+    Now Playing notification bows out after 5 minutes of nothing playing (was 20, keeping the app awake), stops away,
+    and isn't brought back by Android from the background; offline and off screen, the server is looked for less and
+    less often, up to every five minutes.
+  - **Away and home:** the server is called unreachable only after three looks and ten seconds (refused at once while
+    the app's Tailscale came up, it went offline for nothing); downloads look at home or away before they start.
+  - **Security:** "home" is the home address answering as this phone's own server (its id from `/api/ping`, kept once
+    it took the phone's sign-in): another network with the same address isn't taken for home and given the sign-in,
+    and another Mandarin there can't sign the phone out. The app's Tailscale port, if something else holds it, is an
+    error, never another port the app would not be asking.
+  - **Faster server answers:** play history, Not played, Most played and the Played filter read a new index (history
+    40 ms → under 1, Not played 44 → 3.5 on 40,000 plays); an artist's page waits for MusicBrainz a second at most and
+    doesn't ask again for an hour after a failed lookup; Last.fm's similar albums and artists are kept through a restart.
+  - **Fixed along the way:** Back with the side menu open closes the menu, not the screen under it; a download gives up
+    after a dozen tries (a 416, a sign-out or a changed file used to retry for ever, or join two files); the Library
+    wall never shows an album twice (two tiles of one album ended the grid).
+
 - `p1-breaks-the-app` (item 157, from the owner's log after v1.1.4): what stopped the app working at home and away.
   - **Opening the app after Android ended it:** it no longer asks the server the way it had last time (away over
     Tailscale, 127.0.0.1:34500, though it was now home): the first look at home or away is made at once and every

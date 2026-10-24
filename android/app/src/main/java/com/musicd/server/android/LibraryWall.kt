@@ -47,7 +47,10 @@ internal class WallState(val view: String, val offline: Boolean = false) {
         val first = albums.isEmpty()
         val r = withContext(Dispatchers.IO) { runCatching { LibraryClient { client.getJson(it) }.albums(albums.size, PAGE, view) } }
         r.onSuccess { p ->
-            albums.addAll(p.albums)
+            // An album already on the wall (the list moved between pages, as a scan adds albums) isn't added twice
+            // (item 158: two tiles of one key end the grid).
+            val have = albums.mapTo(HashSet()) { it.offset }
+            albums.addAll(p.albums.filter { have.add(it.offset) })
             total = p.total
             done = p.albums.size < PAGE
             loaded = true

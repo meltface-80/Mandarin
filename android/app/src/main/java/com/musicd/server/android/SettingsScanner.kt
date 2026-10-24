@@ -98,6 +98,7 @@ internal fun SettingsScanner(client: () -> ServerClient?, onBack: () -> Unit) {
         scanLoad(k, client, scope, true)
         while (true) {
             delay(5_000)
+            untilOnScreen()
             if (!k.busy && k.matching == null && k.browse == null) scanLoad(k, client, scope, false)
         }
     }

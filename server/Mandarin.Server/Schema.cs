@@ -28,7 +28,7 @@ using Microsoft.Data.Sqlite;
 
 namespace Mandarin.Server;
 
-internal static class Schema
+internal static partial class Schema
 {
     /* lib/library/db.js SCHEMA, as it is written there. */
     private const string Tables = """
@@ -568,7 +568,7 @@ CREATE TABLE IF NOT EXISTS audio_devices (
             Exec(c, "PRAGMA journal_mode = WAL");
             Exec(c, "PRAGMA foreign_keys = ON");
             Exec(c, "PRAGMA synchronous = NORMAL");
-            Exec(c, Tables);
+            Exec(c, Tables + Indexes);
             AddColumns(c);
             if (UserVersion(c) < Version) Exec(c, $"PRAGMA user_version = {Version}");
             if (aside != null) CarryOver(c, aside, log);

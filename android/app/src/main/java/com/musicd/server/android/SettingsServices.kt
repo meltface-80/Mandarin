@@ -99,7 +99,7 @@ private fun ServiceBlock(service: String, client: () -> ServerClient?, info: (St
     fun show(j: JSONObject) { account = ServiceSettings.parse(service, j, { dates.format(Date(it)) }); said = null }
     suspend fun load() { readSetting(client, service)?.let(::show) }
     // Asked again while a Tidal sign-in is waited for, or the library is being brought in (the page's two and four seconds).
-    LaunchedEffect(Unit) { while (true) { load(); delay(if (account?.again == true) (if (tidal) 2_000L else 4_000L) else 30_000L) } }
+    LaunchedEffect(Unit) { while (true) { untilOnScreen(); load(); delay(if (account?.again == true) (if (tidal) 2_000L else 4_000L) else 30_000L) } }
     // A change to the account, made on the lane: its answer shown, or what went wrong said and the account read again.
     fun change(path: String, body: JSONObject = JSONObject(), timeout: Int = 20_000, done: (JSONObject) -> Unit = ::show) {
         val c = client() ?: return
