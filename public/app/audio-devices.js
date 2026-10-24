@@ -84,8 +84,9 @@ function renderList() {
   // can't be searched from there, so Look again goes.
   if (rescan) rescan.classList.toggle("hidden", away);
   if (away && !devices.length) { list.innerHTML = '<div class="settings-note"' + ' data-parity="settings-audio.note"' + '>Away from home, this phone is the only player — and it shows here once the app has started playing.</div>'; return; }
-  // Sound devices on the server's computer that it can't open (v0.6.18).
+  // Sound devices on the server's computer that it can't open (v0.6.18); a Mac's, not yet played (item 153).
   const localNote = away || !local || local.off ? ""
+    : local.platform === "darwin" ? (local.mac ? "This Mac's own sound outputs can't be played from Mandarin yet: its audio engine doesn't play through Core Audio yet." : "")
     : local.platform !== "linux" || local.count || !(local.hidden || local.docker) ? "" : local.docker ? "To play through a USB DAC or speakers plugged into the computer Mandarin runs on, start its container with --device /dev/snd and --privileged."
       : "This computer has sound devices Mandarin isn’t allowed to open: add the user Mandarin runs as to the audio group.";
   if (!devices.length) { list.innerHTML = '<div class="settings-note"' + ' data-parity="settings-audio.note"' + ">" + esc(err || "Nothing found yet — the network is being searched.") + "</div>" + (localNote ? '<div class="settings-note"' + ' data-parity="settings-audio.note"' + ">" + localNote + "</div>" : ""); paintHideTools(); return; }

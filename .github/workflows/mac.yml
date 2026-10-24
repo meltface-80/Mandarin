@@ -1,0 +1,43 @@
+# A Mac (item 153): the server built for it, started on a library of one
+# album and checked that it comes up, scans it and is healthy
+# (.github/mac-smoke.sh) — the Mac's own layer, end to end, in a few minutes.
+# The whole suite runs on Linux (ci.yml): the code is the same, and running it
+# on GitHub's few, slow Macs held builds up and lost its logs when one hung.
+#
+# A workflow of its own, so nothing else waits for it: the image and the
+# Android app wait for CI alone (.github/wait-for-ci.sh ci.yml), and only the
+# Mac builds in a release wait for this (release.yml, mac job).
+name: Mac
+
+on:
+  push:
+    branches: ["**"]
+  workflow_dispatch:
+
+concurrency:
+  group: mac-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  smoke:
+    name: Mandarin on a Mac
+    runs-on: macos-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install ffmpeg
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: "1"
+          HOMEBREW_NO_INSTALL_CLEANUP: "1"
+        run: brew install ffmpeg
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+      # Signed ad hoc as it is built (Apple silicon runs nothing unsigned).
+      - name: Build the C# server
+        run: |
+          ./server/build.sh
+          codesign --verify server/bin/mandarin-server && echo "signed to run here"
+      - name: Started, scanned, healthy
+        timeout-minutes: 5
+        run: .github/mac-smoke.sh

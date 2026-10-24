@@ -102,6 +102,13 @@ internal static class EngineCommand
     private static bool KillEngine()
     {
         var me = Environment.ProcessId;
+        // A Mac has no /proc (item 153): pkill finds this process's own engine instead.
+        if (!OperatingSystem.IsLinux())
+        {
+            using var pk = Process.Start(new ProcessStartInfo("pkill", ["-KILL", "-P", me.ToString(System.Globalization.CultureInfo.InvariantCulture), "mandarin-audio"]) { UseShellExecute = false })!;
+            pk.WaitForExit(10000);
+            return pk.ExitCode == 0;
+        }
         var killed = false;
         foreach (var dir in Directory.EnumerateDirectories("/proc"))
         {

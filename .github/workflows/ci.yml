@@ -3,9 +3,8 @@ name: CI
 on:
   push:
     branches: ["**"]
-  # By hand too ("Run workflow", any branch). Linux only: Mac support was
-  # dropped in v1.0.3, and with it the Mac's tests, the pull request runs into
-  # main and the weekly run that existed for them.
+  # By hand too ("Run workflow", any branch). Linux: a Mac's tests are mac.yml's
+  # (item 153), which nothing here waits for.
   workflow_dispatch:
 
 jobs:

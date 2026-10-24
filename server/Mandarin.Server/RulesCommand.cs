@@ -19,7 +19,7 @@
 //     expands, compacts }                                                  Cpu.cs, Cpu.Place.cs
 //      → { decides: [{ split, playback, background, core, slots }], places: [command line], expands, compacts }
 //   { fn: "auth", locals, uas, clients: [[remote, x-forwarded-for]], tailnet, aways: [{ port, set, own, ifaces }],
-//     powers: [{ env }] }                                                 Auth.cs, Server.cs, PhoneRoutes.cs, PowerRoutes.cs
+//     powers: [{ env, mac }] }                                            Auth.cs, Server.cs, PhoneRoutes.cs, PowerRoutes.cs
 //      → { locals, names, clients, tailnet, aways, powers }
 //   { fn: "register", data, steps: [{ seen } | { rename: [id, name] } | { caps: [id, user] } | { verified: [id, rate, bits] }
 //     | { forget } | { get } | { name } | { wait: ms }] }                  Playback/Register.cs, DeviceRoutes.cs
@@ -27,8 +27,8 @@
 //   { fn: "ssdp", sonos: [{ usn, server }], seeds, ids, heard: [text] }   Renderers/Ssdp.cs, Discovery.cs, SsdpListen.cs
 //      → { sonos, seeds, ids, alive }
 //   { fn: "engine", steps }                                               Local/EngineCommand.cs: the engine's driver from a script
-//   { fn: "local", linux: [root, dev], hw: [[location, root]], ids, amplitude: [[pct, muted]] }
-//      → { devices, hidden, hw, ids, amplitude }                         Local/LocalDevices.cs, EngineOutput.cs
+//   { fn: "local", linux: [root, dev], mac: json, hw: [[location, root]], ids, amplitude: [[pct, muted]] }
+//      → { devices, hidden, mac, hw, ids, amplitude }                    Local/LocalDevices.cs, EngineOutput.cs
 //   { fn: "scorecall" | "itunes" | "mbpack", … }                          Identify/ScoreCalls.cs
 //   { fn: "logos", … }                                                    Extras/LogosCommand.cs: the label-logo finder, step by step
 //   { fn: "lastfm", … }                                                   Extras/LastfmCommand.cs: the Last.fm client, step by step
@@ -173,7 +173,7 @@ internal static class RulesCommand
         ["tailnet"] = Each(job["tailnet"], ip => Playback.Topology.IsCgnat(S(ip))),
         ["aways"] = Each(job["aways"], c => PlaybackRoutes.AwayAddress((int)N(O(c)["port"]), TJs.IsNullish(O(c)["set"]) ? null : S(O(c)["set"]),
             TJs.IsNullish(O(c)["own"]) ? null : S(O(c)["own"]), O(c)["ifaces"] ?? new JsObj())),
-        ["powers"] = Each(job["powers"], c => Scan.JsJson.Parse(Library.PowerInfo(k => TJs.IsNullish(O(O(c)["env"])[k]) ? null : S(O(O(c)["env"])[k])).ToJsonString()))
+        ["powers"] = Each(job["powers"], c => Scan.JsJson.Parse(Library.PowerInfo(k => TJs.IsNullish(O(O(c)["env"])[k]) ? null : S(O(O(c)["env"])[k]), TJs.Truthy(O(c)["mac"])).ToJsonString()))
     };
 
     /* A device's row as registry.js's row() gives it. */
@@ -246,6 +246,7 @@ internal static class RulesCommand
             o["devices"] = list.Devices.Select(SeenJson).ToList();
             o["hidden"] = (double)list.Hidden;
         }
+        if (job["mac"] is string mac) o["mac"] = Local.LocalDevices.ParseMac(mac).Select(SeenJson).ToList();
         o["hw"] = Each(job["hw"], h => Local.LocalDevices.HwParams(S(At(h, 0)), S(At(h, 1))) is { } p ? new JsObj { ["rate"] = p.Rate, ["format"] = p.Format } : null);
         o["ids"] = Each(job["ids"], k => Local.LocalDevices.IdOf(S(k)));
         o["amplitude"] = Each(job["amplitude"], a => Local.EngineOutput.Amplitude(N(At(a, 0)), TJs.Truthy(At(a, 1))));

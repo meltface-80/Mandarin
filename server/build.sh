@@ -1,10 +1,12 @@
 #!/bin/sh
-# Builds Mandarin's C# server for this Linux machine (or for RID, e.g.
-# linux-arm64) into server/bin/mandarin-server: one self-contained file, no .NET needed to
+# Builds Mandarin's C# server for this machine (or for RID, e.g. linux-arm64,
+# osx-arm64)
+# into server/bin/mandarin-server: one self-contained file, no .NET needed to
 # run it. Needs the .NET 10 SDK.
 set -e
 cd "$(dirname "$0")"
-RID=${RID:-linux-$(uname -m | sed 's/x86_64/x64/;s/aarch64/arm64/')}
+case "$(uname -s)" in Darwin) OS=osx ;; *) OS=linux ;; esac
+RID=${RID:-$OS-$(uname -m | sed 's/x86_64/x64/;s/aarch64/arm64/')}
 VERSION=${VERSION:-$(grep -m1 '"version"' ../package.json | cut -d'"' -f4)}
 VERSION=${VERSION:-0.0.0}
 dotnet publish Mandarin.Server/Mandarin.Server.csproj -c Release -r "$RID" -p:Version="$VERSION" \

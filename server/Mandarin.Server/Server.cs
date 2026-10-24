@@ -36,13 +36,18 @@ internal static partial class Server
         return true;
     }
 
+    [LibraryImport("libc", EntryPoint = "getuid")]
+    private static partial uint GetUid();
+    /* This user's id (launchctl's gui/<uid> domain). */
+    public static uint Uid() => GetUid();
+
     [LibraryImport("libc", EntryPoint = "execv", SetLastError = true, StringMarshalling = StringMarshalling.Utf8)]
     private static partial int Execv(string path, string?[] argv);
 
     /*
      * This program started again in this same process, from its file as it is
      * now (a newer one put in its place), with the same arguments: nothing
-     * outside (Docker, tini) has to notice. Returns only if it couldn't.
+     * outside (Docker, tini, launchd) has to notice. Returns only if it couldn't.
      */
     public static void StartAgain(string[] args)
     {

@@ -8,6 +8,7 @@ Status: **Open** · **In progress** · **Ready to test** (green, waiting on the 
 
 | # | Item | Branch | Status |
 |---|------|--------|--------|
+| 153 | Mandarin on a Mac again (dropped in v1.0.3), step 1: the server built and signed for a Mac, its file system, Shut down's login item, the Mac's builds in an update and a release, a Mac's sound outputs listed, and the C# suite on GitHub's Macs, which only a release's Mac builds wait for | `153-mac-server` | In progress |
 | 152 | Spotify taken out, at the owner's word: everything items 142–148 and 150 added for it (the server's Soloist, Spotify in the library, Settings → Services → Spotify, the phone's Soloist test), and what it left on the server and the phone removed as each next starts | `152-remove-spotify` | Ready to test |
 | 151 | Marjana Semkina and Mariana Semkina are two artists: MusicBrainz credits Disillusioned under the sleeve's name, and Mandarin knew artists only by name. Names Mandarin's lookups find share a MusicBrainz id are now one artist (MusicBrainz's own name), the album in her discography; a name search also finds an artist by their aliases | `151-artist-same-mbid` | Ready to test |
 | 150 | A renderer's (UPnP) answer from before a skip or a jump, come after it, put the room back on the track before | `150-renderer-stale-answer` | Ready to test |

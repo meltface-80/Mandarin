@@ -31,9 +31,11 @@ internal static partial class Cpu
     private static string sig = "";
     private static readonly object Moving = new();
     private static readonly ConcurrentDictionary<int, (CpuKind Kind, int[] Cores)> Children = new();
-    // Linux's (Mac support, with BSD's nice, was dropped in v1.0.3).
+    // On a Mac (v0.8.29), nice alone, asked as lib/cpu.js asks it: BSD's has no --version.
     private static readonly Lazy<(bool Taskset, bool Nice, bool Ionice)> Tools = new(() =>
-        OperatingSystem.IsLinux() ? (Have("taskset"), Have("nice"), Have("ionice")) : (false, false, false));
+        OperatingSystem.IsLinux() ? (Have("taskset"), Have("nice"), Have("ionice"))
+        : OperatingSystem.IsMacOS() ? (false, Have("nice", "-n", "0", "true"), false)
+        : (false, false, false));
 
     /* The cores this server could use when it started (lib/cpu.js allowed: MANDARIN_CPUS, else its own). */
     public static readonly string Startup = Environment.GetEnvironmentVariable("MANDARIN_CPUS") is { Length: > 0 } given && Expand(given).Length > 0 ? Compact(Expand(given)) : Own();
