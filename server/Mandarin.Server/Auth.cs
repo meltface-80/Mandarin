@@ -20,37 +20,6 @@ using Microsoft.Data.Sqlite;
 
 namespace Mandarin.Server;
 
-internal static class Db
-{
-    public static string File = "";
-
-    // A connection of its own each time, so a database put back from a backup
-    // (swapped in as the server starts again) is the one read next.
-    public static SqliteConnection Open()
-    {
-        var c = new SqliteConnection(new SqliteConnectionStringBuilder
-        {
-            DataSource = File, Mode = SqliteOpenMode.ReadWrite, Pooling = false, DefaultTimeout = 10
-        }.ToString());
-        c.Open();
-        using var cmd = c.CreateCommand();
-        cmd.CommandText = "PRAGMA busy_timeout = 5000";
-        cmd.ExecuteNonQuery();
-        return c;
-    }
-
-    // A setting as the Node server kept it: JSON in settings.value.
-    public static JsonNode? Setting(SqliteConnection c, string key)
-    {
-        using var cmd = c.CreateCommand();
-        cmd.CommandText = "SELECT value FROM settings WHERE key = $k";
-        cmd.Parameters.AddWithValue("$k", key);
-        var v = cmd.ExecuteScalar() as string;
-        if (v == null) return null;
-        try { return JsonNode.Parse(v); } catch { return null; }
-    }
-}
-
 internal sealed record Account(string Username, string Salt, string Verifier, int Iterations);
 internal sealed record Device(string Id, string Name, string Kind, long LastSeen);
 
@@ -139,13 +108,8 @@ internal static partial class Auth
             cmd.Parameters.AddWithValue("$h", Sha256Hex(t));
             using (var r = cmd.ExecuteReader())
                 if (r.Read()) dev = new Device(r.GetString(0), r.GetString(1), r.GetString(2), r.GetInt64(3));
-            if (dev != null && Now - dev.LastSeen > 60000)
-            {
-                using var up = c.CreateCommand();
-                up.CommandText = "UPDATE devices SET last_seen = $t, last_ip = $ip WHERE id = $id";
-                up.Parameters.AddWithValue("$t", Now); up.Parameters.AddWithValue("$ip", ClientIp(ctx)); up.Parameters.AddWithValue("$id", dev.Id);
-                up.ExecuteNonQuery();
-            }
+            // Seen now: kept here and written in the background (Auth.Seen.cs), never on the request's way.
+            if (dev != null) Saw(dev.Id, dev.LastSeen, ClientIp(ctx));
         }
         ctx.Items["device"] = dev;
         return dev;
@@ -420,20 +384,7 @@ internal static partial class Auth
             using var c = Db.Open();
             var dev = DeviceOf(ctx, c);
             if (dev == null) { await Json(ctx, 401, new JsonObject { ["error"] = "Sign in to Mandarin", ["sign_in_required"] = true }); return; }
-            var list = new JsonArray();
-            using (var cmd = c.CreateCommand())
-            {
-                cmd.CommandText = "SELECT id, name, kind, created_at, last_seen, last_ip FROM devices ORDER BY last_seen DESC";
-                using var r = cmd.ExecuteReader();
-                while (r.Read())
-                    list.Add(new JsonObject
-                    {
-                        ["id"] = r.GetString(0), ["name"] = r.GetString(1), ["kind"] = r.GetString(2),
-                        ["created_at"] = r.GetInt64(3), ["last_seen"] = r.GetInt64(4), ["last_ip"] = r.IsDBNull(5) ? null : r.GetString(5),
-                        ["current"] = r.GetString(0) == dev.Id
-                    });
-            }
-            await Json(ctx, 200, new JsonObject { ["username"] = GetAccount(c)?.Username, ["devices"] = list });
+            await Json(ctx, 200, new JsonObject { ["username"] = GetAccount(c)?.Username, ["devices"] = DeviceList(c, dev.Id) });
         });
 
         app.MapPost("/api/auth/devices/revoke", async (HttpContext ctx) =>
@@ -479,6 +430,7 @@ internal static partial class Auth
 
     private static int Drop(SqliteConnection c, string id)
     {
+        Unseen(id);
         using var cmd = c.CreateCommand();
         cmd.CommandText = "DELETE FROM devices WHERE id = $id";
         cmd.Parameters.AddWithValue("$id", id);

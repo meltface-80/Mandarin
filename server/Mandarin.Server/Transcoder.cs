@@ -93,6 +93,8 @@ internal static partial class Transcoder
         concurrency = Math.Max(1, int.TryParse(Environment.GetEnvironmentVariable("TRANSCODE_CONCURRENCY"), out var c) ? c : 2);
         // A .part left from a crash is never complete (none can be this run's yet).
         foreach (var f in Directory.EnumerateFiles(dir, "*.part")) { try { File.Delete(f); } catch (IOException) { /* gone */ } }
+        // The cache counted for /api/health (Transcoder.Stats.cs).
+        CountSoon();
     }
 
     /* ffmpeg.js info: where ffmpeg is, whether it has libsoxr, and whether it writes 32-bit FLAC. */
@@ -147,19 +149,6 @@ internal static partial class Transcoder
     public static string Bin => Ff.Value.Bin;
     /* ffmpeg is there and runs (ffmpeg.js info().ok). */
     public static bool FfOk => Ff.Value.Ok;
-
-    /* The cache as /api/health says it (lib/stream.js cacheStats): its FLAC files, their size, what is being made and what waits. */
-    public static (int Files, double Bytes, int Running, int Queued) CacheStats()
-    {
-        try
-        {
-            var files = new DirectoryInfo(dir).GetFiles().Where(f => f.Name.EndsWith(".flac", StringComparison.Ordinal)).ToList();
-            int queued;
-            lock (Queue) queued = Queue.Count;
-            return (files.Count, files.Sum(f => (double)f.Length), Jobs.Count, queued);
-        }
-        catch (Exception e) when (e is IOException or UnauthorizedAccessException) { return (0, 0, 0, 0); }
-    }
 
     /* The Transcoder's keyFor (lib/stream.js), as Playback/StreamPlans.cs writes it. */
     public static string KeyFor(ConvTrack t, ConvPlan p) => StreamPlans.KeyFor(Jv.Obj(("id", (double)t.Id), ("mtime", (double)t.Mtime)), p.ToJs());
