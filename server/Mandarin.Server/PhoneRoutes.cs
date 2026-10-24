@@ -97,7 +97,10 @@ internal static partial class PlaybackRoutes
                 var wait = (int)Math.Max(0, Math.Min(25000, Tags.Js.ParseInt(req.Q("wait")) is var w && !double.IsNaN(w) ? w : 0));
                 var uid = Phones.UidFor(dev.Id);
                 phones.SetAway(uid, req.Away);
-                return await Send(req.Ctx, await phones.Commands(uid, after, wait));
+                // As /api/zone-state's wait: no connection held, and over when the phone goes away.
+                req.LetGo();
+                var commands = await phones.Commands(uid, after, wait, req.Ctx.RequestAborted);
+                return req.Ctx.RequestAborted.IsCancellationRequested || await Send(req.Ctx, commands);
             }
             case "/api/phone/state":
             {
