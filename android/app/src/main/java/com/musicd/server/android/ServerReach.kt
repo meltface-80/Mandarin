@@ -4,7 +4,9 @@ import android.net.ConnectivityManager
 import android.net.Network
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
 import com.musicd.server.client.OfflineKind
+import com.musicd.server.client.Retry
 import java.util.concurrent.Executors
 
 /**
@@ -25,6 +27,8 @@ internal class ServerReach(private val a: MainActivity) {
     /** Which start a reachability check belongs to (a newer one makes older checks moot). */
     private var seq = 0
     private var liveFailures = 0
+    /** The server looked for off screen and not found, in a row. */
+    private var watchMisses = 0
     private var onScreen = false
     /** The address the screens went to the server on. */
     private var reachedOn: String? = null
@@ -127,16 +131,19 @@ internal class ServerReach(private val a: MainActivity) {
             Away.awaitWay(a)
             if (Store.active(a)?.baseUrl != base) return@execute
             var ok = false
-            for (attempt in 1..3) {
+            // Looked for until three looks and ten seconds both have gone by (item 158: refused at once, three took three seconds).
+            val from = SystemClock.elapsedRealtime()
+            var looks = 0
+            while (true) {
                 if (mine != seq || a.isFinishing) return@execute
-                ok = answers(base, 3000)
-                if (ok || attempt == 3) break
+                ok = answers(base, 3000); looks++
+                if (ok || Retry.unreachable(looks, SystemClock.elapsedRealtime() - from)) break
                 try { Thread.sleep(1500) } catch (e: InterruptedException) { return@execute }
             }
             main.post {
                 if (mine != seq || offline || a.isFinishing) return@post
                 AppLog.line("REACH", if (ok) "the server answered" else "the server didn't answer three looks over about ten seconds", anomaly = !ok)
-                if (ok) { reached = true; Reach.bump(); OfflineSite.sync(a) } else { Away.recheck(a); goOffline() }
+                if (ok) { reached = true; Reach.bump(); OfflineSite.sync(a); checks.execute { Away.learnId(a, base) } } else { Away.recheck(a); goOffline() }
             }
         }
     }
@@ -179,7 +186,8 @@ internal class ServerReach(private val a: MainActivity) {
                 val back = Store.active(a)?.baseUrl?.let { answers(it, 2500) } ?: false
                 main.post {
                     if (!offline || a.isFinishing) return@post
-                    if (back) { AppLog.line("REACH", "the server is back"); go() } else main.postDelayed(this, 10_000)
+                    // Off screen, less and less often (item 158: every ten seconds all night).
+                    if (back) { AppLog.line("REACH", "the server is back"); watchMisses = 0; go() } else main.postDelayed(this, if (onScreen) 10_000L else Retry.offScreen(++watchMisses))
                 }
             }
         }

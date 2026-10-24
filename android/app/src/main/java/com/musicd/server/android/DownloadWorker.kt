@@ -97,7 +97,7 @@ class DownloadWorker(context: Context, params: WorkerParameters) : Worker(contex
         val dir = DownloadStore.dirOf(c, id) ?: return Result.success()     // removed meanwhile
         // Offline mode: waits (tried again later) rather than reaching for the server.
         if (Store.offlineMode(c)) return Result.retry()
-        Away.ensureRoute(c)                                           // away: MusicD's own Tailscale up
+        Away.awaitWay(c); Away.ensureRoute(c)                         // home or away looked at first (item 158), then Tailscale up
         val server = Store.active(c) ?: return Result.retry()      // home, or Tailscale away
         val token = Store.token(c) ?: return Result.retry()
         var album = DownloadStore.load(dir) ?: return Result.success()

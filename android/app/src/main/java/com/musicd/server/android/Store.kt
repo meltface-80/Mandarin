@@ -36,6 +36,8 @@ object Store {
     }
 
     fun setServer(context: Context, address: ServerAddress) {
+        // Another server: its id learnt afresh (item 158).
+        if (server(context) != address) setServerId(context, null)
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
             .putString(KEY_HOST, address.host)
             .putInt(KEY_PORT, address.port)
@@ -188,6 +190,13 @@ object Store {
     fun isAway(context: Context): Boolean =
         prefs(context).getBoolean(KEY_AWAY_NOW, false) && (awayAddress(context) != null || viaEngine(context))
 
+    /** This phone's server's id (GET /api/ping's), kept once it took the phone's sign-in (item 158); null until then. */
+    fun serverId(context: Context): String? = prefs(context).getString("server_id", null)
+
+    fun setServerId(context: Context, id: String?) {
+        prefs(context).edit().apply { if (id == null) remove("server_id") else putString("server_id", id) }.apply()
+    }
+
     /** This phone has joined MusicD's own Tailscale here (item 157: remembered beside the engine's own state, which was found missing). */
     fun engineJoined(context: Context): Boolean = prefs(context).getBoolean("engine_joined", false)
 
@@ -258,6 +267,7 @@ object Store {
         // this run's first look at it has been made (item 157: a start with last run's way asked an address the phone had left).
         val app = context.applicationContext
         return ServerClient(address, token = token,
-            transport = AppLog.server({ active(app)?.baseUrl ?: address.baseUrl }, token, { Away.awaitWay(app) }) { MainActivity.gateShut() })
+            // The gate shut signs the phone out only on its own server (item 158: another Mandarin at the home address did).
+            transport = AppLog.server({ active(app)?.baseUrl ?: address.baseUrl }, token, { Away.awaitWay(app) }) { if (Away.stillOurs(app)) MainActivity.gateShut() else Away.recheck(app) })
     }
 }
