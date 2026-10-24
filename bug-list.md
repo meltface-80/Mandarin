@@ -8,6 +8,10 @@ Status: **Open** · **In progress** · **Ready to test** (green, waiting on the 
 
 | # | Item | Branch | Status |
 |---|------|--------|--------|
+| 154 | Mandarin on a Mac, step 2: the one-line installer again (Homebrew's ffmpeg and poppler, the latest release's page and Mac server, the music folder, a login item and a desktop icon), and Install on a Mac in the README | `154-mac-install` | Ready to test |
+| 156 | Mandarin on a Mac, step 4: away from home, the server's built-in Tailscale on a Mac (its engine built for a Mac and fetched by the server) | `156-mac-away` | Ready to test |
+| 155 | Mandarin on a Mac, step 3: a Mac's own sound devices (a USB DAC) played through Core Audio by Mandarin's audio engine, bit-perfect at each track's rate, every rate the device takes offered; the engine for a Mac built and published with Linux's | `155-mac-dac` | Ready to test |
+| 153 | Mandarin on a Mac again (dropped in v1.0.3), step 1: the server built and signed for a Mac, its file system, Shut down's login item, the Mac's builds in an update and a release, a Mac's sound outputs listed, and the C# suite on GitHub's Macs, which only a release's Mac builds wait for | `153-mac-server` | Ready to test |
 | 152 | Spotify taken out, at the owner's word: everything items 142–148 and 150 added for it (the server's Soloist, Spotify in the library, Settings → Services → Spotify, the phone's Soloist test), and what it left on the server and the phone removed as each next starts | `152-remove-spotify` | Ready to test |
 | 151 | Marjana Semkina and Mariana Semkina are two artists: MusicBrainz credits Disillusioned under the sleeve's name, and Mandarin knew artists only by name. Names Mandarin's lookups find share a MusicBrainz id are now one artist (MusicBrainz's own name), the album in her discography; a name search also finds an artist by their aliases | `151-artist-same-mbid` | Ready to test |
 | 150 | A renderer's (UPnP) answer from before a skip or a jump, come after it, put the room back on the track before | `150-renderer-stale-answer` | Ready to test |

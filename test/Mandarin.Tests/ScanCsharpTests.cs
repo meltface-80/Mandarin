@@ -107,7 +107,9 @@ public sealed partial class ScanCsharpTests(ScanCsharpTests.Book book) : IClassF
 
         private static (long, double)? Stat(string p)
         {
-            var psi = new ProcessStartInfo("stat", ["-L", "-c", "%s|%Y|%.9Y", p]) { RedirectStandardOutput = true, RedirectStandardError = true };
+            // GNU's stat, or a Mac's (BSD's: -f, %z the length, %m and %Fm the time; item 153).
+            string[] args = OperatingSystem.IsMacOS() ? ["-L", "-f", "%z|%m|%.9Fm", p] : ["-L", "-c", "%s|%Y|%.9Y", p];
+            var psi = new ProcessStartInfo("stat", args) { RedirectStandardOutput = true, RedirectStandardError = true };
             using var x = Process.Start(psi)!;
             var line = x.StandardOutput.ReadToEnd().Trim();
             x.WaitForExit();

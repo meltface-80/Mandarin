@@ -26,7 +26,9 @@ const CANDIDATES = [
   "/usr/bin/google-chrome",
   "/usr/bin/google-chrome-stable",
   "/usr/bin/chromium",
-  "/usr/bin/chromium-browser"
+  "/usr/bin/chromium-browser",
+  // A Mac's (GitHub's Mac runners have it; v0.8.29).
+  "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 ];
 
 /* The browser to use, or null. */
@@ -41,8 +43,8 @@ function findBrowser() {
 // it headless Chrome reports no hover and a coarse pointer, as a tablet does.
 const MOUSE = "--blink-settings=primaryPointerType=4,availablePointerTypes=4,primaryHoverType=2,availableHoverTypes=2";
 // Without one, said outright: no pointer and no hover, as headless Chrome
-// reports on Linux (said all the same, so a phone's or a tablet's run never
-// measures a desktop).
+// reports on Linux. On a Mac it reports the machine's own mouse otherwise,
+// and a phone's or a tablet's run would measure a desktop.
 const NO_MOUSE = "--blink-settings=primaryPointerType=1,availablePointerTypes=1,primaryHoverType=1,availableHoverTypes=1";
 // The longest the browser is given to answer a DevTools command, or a page to load (send, page).
 const CALL_MS = 90000;

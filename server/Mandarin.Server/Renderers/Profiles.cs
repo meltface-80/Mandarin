@@ -105,7 +105,8 @@ internal static class Profiles
 
     /*
      * A sound device on this computer (v0.6.18): the rates and depths it lists
-     * itself (a USB DAC), over the 44.1/48 floor; yours when ticked.
+     * itself (a USB DAC on Linux), or the rate the Mac has it set to, over the
+     * 44.1/48 floor; yours when ticked.
      */
     public static readonly Profile Local = new("local", "Sound output on this computer", null, None, None, None, true, null, "upnp", HasMatch: false);
 

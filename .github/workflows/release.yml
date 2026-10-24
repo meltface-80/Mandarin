@@ -10,7 +10,8 @@
 # for (mandarin-server-linux-x64.gz, mandarin-server-linux-arm64.gz, and their
 # SHA-256 sums in mandarin-server.sha256): an install updated from Settings
 # fetches the one for its machine (server/Mandarin.Server/Admin/Updater.cs).
-# (v0.8.29 to v1.0.2 carried a Mac's too; Mac support was dropped in v1.0.3.)
+# A Mac's too (mandarin-server-osx-arm64.gz, -osx-x64.gz: v0.8.29 to v1.0.2,
+# and again from item 153), added by the mac job once the Mac's tests pass.
 # From v0.8.31 nothing is released until CI has passed on the same commit,
 # every job of it (.github/wait-for-ci.sh).
 name: Release
@@ -187,3 +188,45 @@ jobs:
         run: |
           v=${{ steps.v.outputs.version }}
           gh release upload "v$v" out/csharp/* --clobber
+
+  # A Mac's builds (item 153): osx-arm64 and osx-x64, built on a Mac and signed
+  # ad hoc there (macOS runs nothing unsigned), added to the release with their
+  # sums beside Linux's. Only these wait for the Mac's tests (mac.yml): Linux's
+  # release above doesn't, so a Mac that is slow to come never holds it up.
+  mac:
+    needs: release
+    runs-on: macos-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - name: Wait for the Mac's tests to pass
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: .github/wait-for-ci.sh "$GITHUB_SHA" mac.yml
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+      - name: Build and add the Mac's C# server
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -e
+          v=$(node -p "require('./package.json').version")
+          names=$(gh release view "v$v" --json assets -q '.assets[].name')
+          if grep -qx "mandarin-server-osx-arm64.gz" <<<"$names" && grep -qx "mandarin-server-osx-x64.gz" <<<"$names"; then
+            echo "v$v has the Mac's builds already"; exit 0
+          fi
+          mkdir -p out/mac
+          for rid in osx-arm64 osx-x64; do
+            RID=$rid ./server/build.sh
+            codesign --force --sign - "server/bin/$rid/mandarin-server"
+            codesign --verify "server/bin/$rid/mandarin-server"
+            gzip -9 -c "server/bin/$rid/mandarin-server" > "out/mac/mandarin-server-$rid.gz"
+          done
+          test "$(server/bin/osx-arm64/mandarin-server --version)" = "$v"
+          # The sums: Linux's as released, and the Mac's added.
+          gh release download "v$v" -p mandarin-server.sha256 -D out/sums
+          grep -v ' mandarin-server-osx-' out/sums/mandarin-server.sha256 > out/mac/mandarin-server.sha256 || true
+          (cd out/mac && shasum -a 256 mandarin-server-osx-*.gz >> mandarin-server.sha256 && cat mandarin-server.sha256)
+          gh release upload "v$v" out/mac/* --clobber

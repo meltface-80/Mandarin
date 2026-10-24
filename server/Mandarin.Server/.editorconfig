@@ -12,7 +12,7 @@ dotnet_diagnostic.IDE0051.severity = warning
 dotnet_diagnostic.IDE0052.severity = warning
 dotnet_diagnostic.IDE0060.severity = warning
 dotnet_diagnostic.CA1823.severity = warning
-# A number parsed or written in the machine's locale (a machine may run in its owner's).
+# A number parsed or written in the machine's locale (a Mac runs in its owner's).
 dotnet_diagnostic.CA1305.severity = warning
 # A result ignored, a bare Exception, a case-insensitive compare by lower-casing.
 dotnet_diagnostic.CA1806.severity = warning

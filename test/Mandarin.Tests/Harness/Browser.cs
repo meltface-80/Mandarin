@@ -22,7 +22,9 @@ public sealed partial class Browser : IAsyncDisposable
         Environment.GetEnvironmentVariable("CHROME_PATH"),
         "/opt/pw-browsers/chromium",
         // Chrome itself before /usr/bin/google-chrome, a script that starts it (killing the script would leave Chrome running).
-        "/opt/google/chrome/chrome", "/usr/bin/google-chrome", "/usr/bin/google-chrome-stable", "/usr/bin/chromium", "/usr/bin/chromium-browser"];
+        "/opt/google/chrome/chrome", "/usr/bin/google-chrome", "/usr/bin/google-chrome-stable", "/usr/bin/chromium", "/usr/bin/chromium-browser",
+        // A Mac's (GitHub's Mac runners have it; item 153).
+        "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"];
 
     // A desktop: a mouse, so (hover: hover) and (pointer: fine) match; without it, said outright: no
     // pointer and no hover, as headless Chrome reports on Linux.

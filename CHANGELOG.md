@@ -1,5 +1,47 @@
 # Changelog
 
+## v1.1.5
+
+**Mandarin on a Mac again.** Mandarin installs on a Mac with one line in Terminal (README, Install on a Mac), Apple
+silicon or Intel, and does there what it does on Linux: Sonos rooms, renderers, the Android app, a USB DAC plugged
+into the Mac (played through Core Audio at each track's own rate, held for Mandarin while it plays), and away from
+home with the built-in Tailscale. It starts at login, a Mandarin icon on the desktop starts it again after a Shut
+down, and updates come from Settings as on Linux. Nothing changes for an install in Docker.
+
+- `154-mac-install`: Mandarin installs on a Mac with one line again (README, Install on a Mac). It installs Homebrew's
+  ffmpeg and poppler, downloads the latest release (its page and the server built for the Mac, checked against the
+  release's sums; no git, so no Xcode tools first), asks for the music folder in a Finder window, starts Mandarin now
+  and at every login, and puts a Mandarin icon on the desktop that starts it again after a Shut down. Run again, it
+  keeps the library, the account and the settings.
+- `156-mac-away`: away from home with a Mac, as with Linux. The server's built-in Tailscale (Settings → Away from
+  home) runs on a Mac too: the engine for Apple silicon and Intel Macs is built and published with Linux's (the
+  `engine` pre-release) and fetched by the server, checked against its sums, the first time it is turned on.
+- `155-mac-dac`: a Mac plays its own sound devices, a USB DAC among them, as Linux does: Mandarin's audio engine
+  plays through Core Audio.
+  - **Bit-perfect:** the device is set to each track's own rate (never resampled; a rate it can't take is said, as on
+    Linux), held for Mandarin alone while it plays so nothing else is mixed in, and handed Mandarin's samples as they
+    are (Core Audio carries up to 24 bits exactly).
+  - **Settings → Audio Devices:** each of the Mac's outputs is offered, with every rate it takes as Core Audio lists
+    them (`mandarin-audio --devices`), off until you turn it on, as on Linux. Its page says how a Mac plays it.
+  - **The engine on a Mac:** fetched by the server from the `audio-engine` pre-release (Apple silicon and Intel
+    builds, published with Linux's), checked against its sums. CI's Mac builds it and checks it runs there.
+  - **Not yet tried on a real DAC:** GitHub's Macs have none. Tell me how it plays.
+- `153-mac-server`: Mandarin's server runs on a Mac again, its first step back (v1.0.3 dropped it).
+  - **The server for a Mac:** built for Apple silicon and Intel Macs (`osx-arm64`, `osx-x64`), signed to run there.
+    Its folders are read with macOS's own calls, its music folders watched with FSEvents, and Settings → Check for
+    updates fetches the Mac's build, signed again on the Mac if its signature didn't come through.
+  - **Shut down on a Mac:** the login item is unloaded, and the page says to double-click Mandarin on the desktop to
+    start it again (it also starts at the next login).
+  - **Settings → Audio Devices on a Mac:** the Mac's own sound outputs are counted, and the page says they can't be
+    played from Mandarin yet. Playing them through Core Audio is item 155.
+  - **Checked on a Mac, briefly:** a workflow of its own (`mac.yml`, a few minutes) starts the Mac's build on a
+    library of one album and checks it comes up, scans it and is healthy. The whole suite stays on Linux, where it
+    runs on every push: running it on GitHub's few, slow Macs is what held builds up before v1.0.3, and lost its
+    logs when one hung. Nothing else waits for the Mac's check: the image, the Android app and Linux's release
+    don't. A release's Mac builds wait for it, and are added to the release once it passes.
+  - Still to come before a Mac can have it: the install line (item 154), a Mac's USB DAC (155), and away from home
+    (156).
+
 ## v1.1.4
 
 **Artist pages and the Shelf.** An artist's page is in a new order: who they are, their members folded under a

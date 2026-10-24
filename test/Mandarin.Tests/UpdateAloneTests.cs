@@ -21,7 +21,8 @@ public sealed class UpdateAloneTests
     private static string Version => (string)JsonNode.Parse(File.ReadAllText(Path.Combine(ServerProcess.Root, "package.json")))!["version"]!;
 
     // The program's build for this machine, as Admin/Updater.cs names it (release.yml's assets).
-    private static string? Build => OperatingSystem.IsLinux() ? RuntimeInformation.OSArchitecture switch { Architecture.X64 => "linux-x64", Architecture.Arm64 => "linux-arm64", _ => null } : null;
+    private static string? Build => (OperatingSystem.IsLinux() ? "linux-" : OperatingSystem.IsMacOS() ? "osx-" : null) is { } os
+        ? RuntimeInformation.OSArchitecture switch { Architecture.X64 => os + "x64", Architecture.Arm64 => os + "arm64", _ => null } : null;
 
     // GitHub, stood in for: the latest release (or a status instead), the release of v9.9.9 the program is fetched from, and the files of both.
     private sealed class Fake
@@ -200,7 +201,7 @@ public sealed class UpdateAloneTests
             Assert.True(r.Body.Bool("ok"));
             JsonAssert.Same("""{"phase":"restarting","error":null,"version":"9.9.9"}""", r.Body["status"]?["apply"]);
             await srv.Proc.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(30));
-            Assert.True(srv.Proc.ExitCode == 3, "the stand-in's own leaving, in the same process");
+            Assert.True(srv.Proc.ExitCode == 3, $"the stand-in's own leaving, in the same process (left with {srv.Proc.ExitCode}; it wrote: {(File.Exists(marker) ? await File.ReadAllTextAsync(marker) : "nothing")})");
             // The file as the program knows itself: its real path (a temporary folder may be reached through a link).
             var real = new FileInfo(bin).ResolveLinkTarget(true)?.FullName ?? Path.GetFullPath(bin);
             Assert.True(await File.ReadAllTextAsync(marker) == $"{RealPath(real)}|0|\n", "started from its own file, with the same (no) arguments: " + await File.ReadAllTextAsync(marker));

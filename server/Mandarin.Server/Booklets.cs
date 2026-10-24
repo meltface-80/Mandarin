@@ -15,7 +15,7 @@
 // (Cpu.cs), each page at a width kept in data/booklets, the least lately
 // shown let go past half a gigabyte. Where poppler isn't installed nothing is
 // offered (the album page shows no button), and it's looked for again every
-// five minutes, so a machine given it later needn't be restarted.
+// five minutes, so a Mac given it later needn't be restarted.
 using System.Collections.Concurrent;
 using System.Globalization;
 using System.Security.Cryptography;

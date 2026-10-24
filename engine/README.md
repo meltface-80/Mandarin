@@ -12,6 +12,7 @@ one JSON object a line; `Mandarin.Audio/Program.cs` lists the commands and event
 | `Program.cs` | the command line, the control channel |
 | `Engine.cs` | the decoder thread (ffmpeg into the buffer), the playback thread (the buffer to the device), the position |
 | `Sinks.cs` | the devices: ALSA, and the tests' file |
+| `CoreAudio.cs`, `CoreAudioSink.cs` | a Mac's devices: Core Audio's calls, and the sink that plays through its output unit (item 155) |
 | `Native.cs` | the C calls: ALSA (libasound), the thread's core and priority (libc) |
 
 Build it with `./build.sh` (needs the .NET 10 SDK and clang): the program lands in

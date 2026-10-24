@@ -13,6 +13,9 @@ class PowerTest {
         assertEquals("Shut down Mandarin? Music playing from Mandarin stops. To start it again, start it the way it was started.",
             Power.ask("power-shutdown", JSONObject("""{"shutdown":true,"start_again":"manual"}""")))
         assertEquals("Shut down Mandarin? Music playing from Mandarin stops. ", Power.ask("power-shutdown", JSONObject("""{"start_again":"docker"}""")))
+        // A Mac's login item (item 153): the Mandarin icon starts it again.
+        assertEquals("Shut down Mandarin? Music playing from Mandarin stops. To start it again, double-click Mandarin on the Mac's desktop. It also starts when you log in.",
+            Power.ask("power-shutdown", JSONObject("""{"shutdown":true,"start_again":"icon"}""")))
         assertEquals("/api/system/shutdown", Power.path("power-shutdown"))
     }
 

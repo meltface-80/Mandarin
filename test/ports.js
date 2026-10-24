@@ -18,15 +18,16 @@
  * (a file per slot naming the process that holds it, reclaimed when that
  * process is gone), under a lock so two processes never take the same one.
  * Slot k owns the ports BASE + k * PER_SLOT … + PER_SLOT - 1 (well below the
- * ephemeral ports Linux hands out for port 0, so they never clash
+ * ephemeral ports Linux and macOS hand out for port 0, so they never clash
  * with those either), and the addresses 127.0.0.(FIRST_HOST + k * HOSTS) …
  * + HOSTS - 1. Two `npm test` runs at once on one machine share the registry,
  * so they keep apart too.
  *
  * Sonos speakers answer on port 1400 and nowhere else, so the stand-in
  * household (fake-sonos.js) puts its rooms on host(0), host(1)…: an address
- * apiece instead of a port. Linux answers on all of 127/8; `node
- * test/ports.js --addresses` lists them, for a machine that needs each added.
+ * apiece instead of a port. Linux answers on all of 127/8; a Mac on 127.0.0.1
+ * alone until an address is added to lo0, which CI's Mac job does for every
+ * address here: `node test/ports.js --addresses` lists them.
  */
 const fs = require("fs");
 const os = require("os");

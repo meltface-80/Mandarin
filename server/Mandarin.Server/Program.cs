@@ -9,7 +9,14 @@
 //   PORT                 the port Mandarin is reached on (3500)
 //   MANDARIN_APP_DIR     where the page is (public/; found by itself)
 using System.Net;
+using System.Runtime.InteropServices;
 using Mandarin.Server;
+
+// On a Mac (v0.8.29) the C library is libSystem: what this program imports as
+// "libc" (the scan's file system, starting itself again, the pack's checks).
+if (OperatingSystem.IsMacOS())
+    NativeLibrary.SetDllImportResolver(typeof(Server).Assembly, (name, _, _) =>
+        name == "libc" ? NativeLibrary.Load("/usr/lib/libSystem.B.dylib") : IntPtr.Zero);
 
 var version = BuildVersion.Of(typeof(Server).Assembly);   // a test build's "1.1.4-t7" whole (item 141)
 Server.Version = version;
