@@ -115,6 +115,7 @@ public sealed class TailscaleBuiltinTests
     [Test]
     public async Task Without_the_engine_a_source_install_it_says_so_and_stays_out_of_the_way()
     {
+        if (OperatingSystem.IsMacOS()) Assert.Skip("a Mac fetches its engine wherever it runs (item 156)");
         var (srv, h, _) = await Server("/nonexistent/musicdnet");
         await using var _srv = srv;
         var s = await Tailscale(srv, h);
@@ -128,7 +129,8 @@ public sealed class TailscaleBuiltinTests
     [Test]
     public async Task An_install_updated_in_place_downloads_the_engine_checked_once_per_server_version()
     {
-        if (!OperatingSystem.IsLinux()) Assert.Skip("the engine is built for Linux only");
+        if (!OperatingSystem.IsLinux() && !OperatingSystem.IsMacOS()) Assert.Skip("the engine is built for Linux and a Mac");
+        var os = OperatingSystem.IsMacOS() ? "darwin" : "linux";
         // A release site (here, a server of our own) with the engine and its checksums.
         var eng = StubEngine();
         byte[] gz;
@@ -138,14 +140,14 @@ public sealed class TailscaleBuiltinTests
             gz = ms.ToArray();
         }
         var arch = RuntimeInformation.OSArchitecture == Architecture.Arm64 ? "arm64" : "amd64";
-        var good = Convert.ToHexStringLower(SHA256.HashData(gz)) + "  musicdnet-linux-" + arch + ".gz\n";
+        var good = Convert.ToHexStringLower(SHA256.HashData(gz)) + "  musicdnet-" + os + "-" + arch + ".gz\n";
         var sums = good;
         int fetches = 0;
         await using var web = await FakeServer.Start(async ctx =>
         {
             var u = ctx.Request.Path.Value;
             if (u == "/SHA256SUMS") { await ctx.Response.Body.WriteAsync(Encoding.UTF8.GetBytes(sums)); return; }
-            if (u == "/musicdnet-linux-" + arch + ".gz") { Interlocked.Increment(ref fetches); await ctx.Response.Body.WriteAsync(gz); return; }
+            if (u == "/musicdnet-" + os + "-" + arch + ".gz") { Interlocked.Increment(ref fetches); await ctx.Response.Body.WriteAsync(gz); return; }
             ctx.Response.StatusCode = 404;
         });
         var (srv, h, token) = await Server("/nonexistent/musicdnet", new() { ["TS_ENGINE_URL"] = web.Base });
@@ -171,7 +173,7 @@ public sealed class TailscaleBuiltinTests
         // The server updated (the engine there was fetched for an older one): fetched again. A damaged
         // download is refused, and the old engine still runs.
         await File.WriteAllTextAsync(bin + ".version", "0.3.21");
-        sums = new string('0', 64) + "  musicdnet-linux-" + arch + ".gz\n";
+        sums = new string('0', 64) + "  musicdnet-" + os + "-" + arch + ".gz\n";
         await srv.Restart(token);
         Assert.Matches("checksum", (await Waiting()).Str("error") ?? "");
         Assert.Equal(2, fetches);

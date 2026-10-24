@@ -70,15 +70,15 @@ internal sealed partial class Tailscale(string imageBin, string dir, int port, s
         catch (Exception) { return false; }
     }
 
-    /* It can run here: in the image, or downloadable for this platform (Docker, or TS_ENGINE_URL set; Linux, x64 or arm64). */
+    /* It can run here: in the image, or downloadable for this platform (Docker, a Mac, or TS_ENGINE_URL set; Linux or a Mac (item 156), x64 or arm64). */
     public bool Available
     {
         get
         {
             if (string.Equals(Env("TAILSCALE"), "off", StringComparison.OrdinalIgnoreCase)) return false;
             if (Executable(imageBin)) return true;
-            var may = Env("DOCKER") == "1" || Env("TS_ENGINE_URL").Length > 0;
-            return may && OperatingSystem.IsLinux() && Arch != null;
+            var may = Env("DOCKER") == "1" || OperatingSystem.IsMacOS() || Env("TS_ENGINE_URL").Length > 0;
+            return may && (OperatingSystem.IsLinux() || OperatingSystem.IsMacOS()) && Arch != null;
         }
     }
 
@@ -164,7 +164,7 @@ internal sealed partial class Tailscale(string imageBin, string dir, int port, s
     {
         await Task.Yield();
         var b = (Env("TS_ENGINE_URL").Length > 0 ? Env("TS_ENGINE_URL") : EngineUrl).TrimEnd('/');
-        var name = $"musicdnet-linux-{Arch}.gz";
+        var name = $"musicdnet-{(OperatingSystem.IsMacOS() ? "darwin" : "linux")}-{Arch}.gz";
         log($"[tailscale] downloading the Tailscale engine ({name})…");
         async Task<byte[]> Get(string u)
         {

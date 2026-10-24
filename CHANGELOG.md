@@ -1,6 +1,9 @@
 # Changelog
 
 ## Unreleased
+- `156-mac-away`: away from home with a Mac, as with Linux. The server's built-in Tailscale (Settings → Away from
+  home) runs on a Mac too: the engine for Apple silicon and Intel Macs is built and published with Linux's (the
+  `engine` pre-release) and fetched by the server, checked against its sums, the first time it is turned on.
 - `155-mac-dac`: a Mac plays its own sound devices, a USB DAC among them, as Linux does: Mandarin's audio engine
   plays through Core Audio.
   - **Bit-perfect:** the device is set to each track's own rate (never resampled; a rate it can't take is said, as on
