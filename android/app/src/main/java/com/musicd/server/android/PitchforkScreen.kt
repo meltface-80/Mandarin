@@ -88,7 +88,10 @@ internal fun PitchforkScreen(prefs: WallPrefs, start: PitchforkHit?, client: () 
     var list by remember { mutableStateOf<List<PitchforkHit>?>(null) }
     var failed by remember { mutableStateOf(false) }
     BackHandler { if (review != null) review = null else onClose() }
-    LaunchedEffect(tab, review == null) {
+    // Failed, asked again when the server answers again or in a while (item 157).
+    var asks by remember { mutableStateOf(0) }
+    AskAgain(failed && review == null) { asks++ }
+    LaunchedEffect(tab, review == null, asks) {
         if (review != null) return@LaunchedEffect
         failed = false
         PitchforkKept.lists[tab]?.let { list = it; return@LaunchedEffect }

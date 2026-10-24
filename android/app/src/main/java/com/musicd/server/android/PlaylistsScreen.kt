@@ -64,7 +64,10 @@ internal fun PlaylistsScreen(prefs: WallPrefs, zoneId: String, client: () -> Ser
     var importing by remember { mutableStateOf(false) }
     var made by remember { mutableStateOf(0) }
     BackHandler { onBack() }
-    LaunchedEffect(sheets, made) {
+    // Failed, asked again when the server answers again or in a while (item 157).
+    var asks by remember { mutableStateOf(0) }
+    AskAgain(failed) { asks++ }
+    LaunchedEffect(sheets, made, asks) {
         val c = client() ?: return@LaunchedEffect
         val got = withContext(Dispatchers.IO) { runCatching { LibraryClient { c.getJson(it) }.userPlaylists() }.getOrNull() }
         failed = got == null

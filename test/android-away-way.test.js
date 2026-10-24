@@ -16,19 +16,24 @@ const away = fs.readFileSync(path.join(APP, "Away.kt"), "utf8");
 const check = away.slice(away.indexOf("    fun check(c: Context): Boolean {"), away.indexOf("\n    }\n", away.indexOf("    fun check(c: Context): Boolean {")));
 
 test("the way is decided (core Route.way) with MusicD's own Tailscale whenever the phone is signed in to it", () => {
-  assert.match(check, /Route\.way\(wifi, homeAnswers, vpn, awayAddress = awayAt != null,\s+ownSignedIn = TailscaleEngine\.installed\(c\) && TailscaleEngine\.signedInBefore\(c\)\)/);
+  // Signed in by the engine's state or the app's own note that it joined (item 157: TailscaleEngine.signedIn).
+  assert.match(check, /val ownSignedIn = TailscaleEngine\.signedIn\(c\)/);
+  assert.match(check, /Route\.way\(wifi, homeAnswers, vpn, awayAddress = awayAt != null, ownSignedIn = ownSignedIn\)/);
   assert.match(check, /Store\.setViaEngine\(c, way\.viaEngine\)/);
 });
 
 test("the way is taken before anything is connected", () => {
   const taken = check.indexOf("Store.setAway(c, away)");
   assert.ok(taken > 0, "the way stored");
-  for (const later of ["TailscaleEngine.connectAway(", "tailscale(c, connect = true)"]) {
+  // The engine brought up by repair() on its own thread (item 157), after the way is stored as before.
+  for (const later of ["repair(c, ", "tailscale(c, connect = true)"]) {
     const at = check.indexOf(later);
     assert.ok(at > taken, `${later} after the way is taken`);
   }
 });
 
 test("the Tailscale app is asked only on a phone not signed in to MusicD's own", () => {
-  assert.match(check, /if \(away && way\.viaEngine && awayAt != null\) \{[\s\S]*?TailscaleEngine\.connectAway\([\s\S]*?\} else if \(away && awayAt != null && !answers\(awayAt, 3000\)\) \{[\s\S]*?tailscale\(c, connect = true\)/);
+  assert.match(check, /if \(away && way\.viaEngine && awayAt != null\) \{[\s\S]*?repair\(c, [\s\S]*?\} else if \(away && awayAt != null && !answers\(awayAt, 3000\)\) \{[\s\S]*?tailscale\(c, connect = true\)/);
+  // repair() is what brings MusicD's own up.
+  assert.match(away, /private fun repair\(c: Context, target: String, wasRunning: Boolean\) \{[\s\S]*?TailscaleEngine\.connectAway\(c, target\)/);
 });

@@ -18,7 +18,7 @@ internal object OfflineNow {
  * the app comes back to). [kind]: why. The screen on show stays where it is (item 117: it used to be closed for Home).
  */
 internal fun OfflineNow.goOffline(kind: OfflineKind, phoneZone: String) {
-    if (this.kind.value == null) HomeKept.reset()
+    if (this.kind.value == null) { HomeKept.reset(); ArtistPages.kept.clear() }
     this.kind.value = kind
     NativeShell.zone = phoneZone
     NativeShell.homeArgs.value = NativeShell.homeArgs.value.first to phoneZone
@@ -27,7 +27,10 @@ internal fun OfflineNow.goOffline(kind: OfflineKind, phoneZone: String) {
 /** Online again: the server's answers, Home's rows read afresh, in the room kept ([zone]); the screen on show stays (item 117). */
 internal fun OfflineNow.goOnline(zone: String) {
     if (kind.value == null) return
+    // What the phone answered isn't kept for the server's (item 157); the Library's wall and the others are kept by
+    // which answered them (LibraryWall.state, Walls.state).
     HomeKept.reset()
+    ArtistPages.kept.clear()
     kind.value = null
     NativeShell.zone = zone
     NativeShell.homeArgs.value = NativeShell.homeArgs.value.first to zone

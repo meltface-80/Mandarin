@@ -59,7 +59,8 @@ internal fun WallScreen(kind: String, filterQuery: String, prefs: WallPrefs, zon
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val filter = remember(filterQuery) { WallFilter.parse(filterQuery) }
-    val wall = remember(kind, filterQuery) { Walls.state(if (kind == "genre" || kind == "label") "$kind:$filterQuery" else kind, kind) }
+    val offline = OfflineNow.on
+    val wall = remember(kind, filterQuery, offline) { Walls.state(if (kind == "genre" || kind == "label") "$kind:$filterQuery" else kind, kind, offline) }
     // A label's albums (item 71): [filterQuery] is the label's name; its logo button opens the logo panel under the heading.
     var logoOpen by remember { mutableStateOf(false) }
     var zone by remember { mutableStateOf(zoneId) }
@@ -77,7 +78,10 @@ internal fun WallScreen(kind: String, filterQuery: String, prefs: WallPrefs, zon
     fun toast(text: String) = Toast.makeText(context, text, Toast.LENGTH_SHORT).show()
     BackHandler { when { logoOpen -> logoOpen = false; focusOpen -> focusOpen = false; sortOpen -> sortOpen = false; selecting -> { selecting = false; picks = emptyList() }; else -> onBack() } }
     fun load() { scope.launch { wall.load(context, client(), randomCount, filter, label = filterQuery, labelOrder = prefs.labelOrder) } }
-    LaunchedEffect(wall) { if (!wall.loaded) load() }
+    // Read afresh on every visit (item 157: Favourites and Listen later were read once a run, an error kept till the app
+    // was closed), what was there shown meanwhile; the random walls keep theirs until reshuffled.
+    LaunchedEffect(wall) { if (!wall.loaded || (kind != "random" && kind != "genre")) load() }
+    AskAgain(wall.failed) { load() }
     fun changeLocal(v: LocalView) { local = v; Store.setLocalView(context, v.toJson()) }
     // The phone's albums as its view has them; every other wall as the server gave it.
     val shown = if (kind == "phone") local.sorted(wall.albums.filter(local::passes)) else wall.albums.toList()
@@ -154,9 +158,11 @@ internal fun WallScreen(kind: String, filterQuery: String, prefs: WallPrefs, zon
 }
 
 /** A wall as loaded, kept while the app runs (random albums until reshuffled). */
-internal class WallKept(val kind: String) {
+internal class WallKept(val kind: String, val offline: Boolean = false) {
     val albums = androidx.compose.runtime.mutableStateListOf<AlbumSummary>()
     var loaded by mutableStateOf(false)
+    /** The last load failed, and is worth asking again (item 157: [AskAgain]). */
+    var failed by mutableStateOf(false)
     var banner by mutableStateOf<Pair<String, Boolean>?>(null)
     /** A label's logo, as its albums came with it (a label's wall). */
     var logo by mutableStateOf<String?>(null)
@@ -187,8 +193,12 @@ internal class WallKept(val kind: String) {
                 else -> lib.randomAlbums(randomCount).albums to "No albums were returned. Is your library indexed?"
             }
         } }
-        r.onSuccess { (list, empty) -> albums.clear(); albums.addAll(list); banner = if (list.isEmpty()) empty to (kind == "random" || kind == "genre") else null }
-            .onFailure { e -> albums.clear(); banner = (if (e is ServerClient.ServerException && e.status == 503) (e.message?.takeIf { !it.startsWith("HTTP") } ?: "Reading your music library…") else "Couldn’t load: " + (e.message ?: "no answer")) to true }
+        r.onSuccess { (list, empty) -> albums.clear(); albums.addAll(list); banner = if (list.isEmpty()) empty to (kind == "random" || kind == "genre") else null; failed = false }
+            .onFailure { e ->
+                // What was there stays (item 157); with nothing, said.
+                if (albums.isEmpty()) banner = (if (e is ServerClient.ServerException && e.status == 503) (e.message?.takeIf { !it.startsWith("HTTP") } ?: "Reading your music library…") else "Couldn’t load: " + com.musicd.server.client.Failure.said(e, "no answer")) to true
+                failed = com.musicd.server.client.Failure.worthAgain(e)
+            }
         loaded = true
     }
 }
@@ -196,7 +206,9 @@ internal class WallKept(val kind: String) {
 /** The walls held: one of each kind opened (a genre's by its filter). */
 internal object Walls {
     private val kept = HashMap<String, WallKept>()
-    @Synchronized fun state(id: String, kind: String): WallKept = kept.getOrPut(id) { WallKept(kind) }
+    /** Wall [id]: the one held, unless it was answered the other way ([offline]: by the phone; item 157). */
+    @Synchronized fun state(id: String, kind: String, offline: Boolean = false): WallKept =
+        kept[id]?.takeIf { it.offline == offline } ?: WallKept(kind, offline).also { kept[id] = it }
 
     /** Album [offset]'s cover read afresh ([LibraryWall.coverIs], item 123): put right on every wall held. */
     @Synchronized fun coverIs(offset: Long, imageKey: String?) {

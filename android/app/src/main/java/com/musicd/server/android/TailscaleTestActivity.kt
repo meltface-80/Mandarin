@@ -85,7 +85,7 @@ class TailscaleTestActivity : Activity() {
 
         col.addView(button("Test connection") { test() })
         col.addView(button("Copy log") { copyLog() })
-        col.addView(button("Sign this phone out of Tailscale") { run("Sign out") { TailscaleEngine.json("POST", "/logout") } })
+        col.addView(button("Sign this phone out of Tailscale") { run("Sign out") { Store.setEngineJoined(this@TailscaleTestActivity, false); TailscaleEngine.json("POST", "/logout") } })
 
         log = TextView(this).apply {
             setTextColor(DIM); textSize = 12f; typeface = Typeface.MONOSPACE

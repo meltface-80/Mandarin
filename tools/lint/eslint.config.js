@@ -55,7 +55,8 @@ const parts = {
 };
 
 module.exports = [
-  { ignores: ["node_modules/**", "**/bin/**", "**/obj/**", "android/**", "dist/**", "docs/**", "data/**", "https:/**"] },
+  // .claude/: an assistant's own work copies of the repository (git-ignored), never Mandarin's code.
+  { ignores: [".claude/**", "node_modules/**", "**/bin/**", "**/obj/**", "android/**", "dist/**", "docs/**", "data/**", "https:/**"] },
   js.configs.recommended,
   node,
   pages,

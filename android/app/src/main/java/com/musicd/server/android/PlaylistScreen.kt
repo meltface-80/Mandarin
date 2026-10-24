@@ -90,11 +90,15 @@ internal fun PlaylistScreen(id: String, zoneId: String, client: () -> ServerClie
         if (p.tracks.isEmpty()) { toast("Nothing to share yet"); return }
         scope.launch { encodeShare(c, p.name, p.tracks).onSuccess { sharing = it }.onFailure { toast(it.message ?: "Couldn't build the share file") } }
     }
-    LaunchedEffect(id) {
+    // Failed (not reached, or the server's own trouble), asked again when it answers again or in a while (item 157).
+    var asks by remember { mutableStateOf(0) }
+    var loadFailed by remember { mutableStateOf(false) }
+    AskAgain(loadFailed) { asks++ }
+    LaunchedEffect(id, asks) {
         val c = client() ?: return@LaunchedEffect
         withContext(Dispatchers.IO) { runCatching { LibraryClient { c.getJson(it) }.userPlaylist(id) } }
-            .onSuccess { playlist = it; trouble = null }
-            .onFailure { trouble = (it as? ServerClient.ServerException)?.message?.takeIf { m -> m.isNotEmpty() && !m.startsWith("HTTP") } ?: "Couldn't open that playlist." }
+            .onSuccess { playlist = it; trouble = null; loadFailed = false }
+            .onFailure { trouble = (it as? ServerClient.ServerException)?.message?.takeIf { m -> m.isNotEmpty() && !m.startsWith("HTTP") } ?: "Couldn't open that playlist."; loadFailed = com.musicd.server.client.Failure.worthAgain(it) }
     }
     // Play now or Queue: one track after another (the server has no batch of tracks), the first as asked and the rest queued.
     fun playAll(kind: String) {

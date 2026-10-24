@@ -13,7 +13,10 @@ import com.musicd.server.client.ServerAddress
 import java.net.HttpURLConnection
 import java.net.URL
 import java.util.concurrent.CopyOnWriteArrayList
+import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * Home or away, followed as the phone's network changes.
@@ -42,6 +45,17 @@ object Away {
     /** Tailscale was switched on by this app, so it may switch it off at home. */
     @Volatile private var weConnected = false
 
+    /**
+     * This run's first look at the way to the server (item 157): until it is made the way saved is the last run's — away
+     * over the engine, 127.0.0.1:34500, after Android ended the app away from home — and every request failed on it.
+     * Counted down once the way is decided and, over the engine, once it has been brought up (or tried).
+     */
+    private val firstLook = CountDownLatch(1)
+    private val firstAsked = AtomicBoolean(false)
+    /** MusicD's own Tailscale being brought up or put right, on its own thread ([repair]). */
+    private val repairs = Executors.newSingleThreadExecutor()
+    @Volatile private var repairing = false
+
     /** [l] hears `away` whenever it changes (on the main thread). */
     fun listen(l: (Boolean) -> Unit) { listeners += l }
     fun unlisten(l: (Boolean) -> Unit) { listeners -= l }
@@ -63,7 +77,28 @@ object Away {
             // The Wi-Fi too: poor, it can come and go while Android follows mobile data (item 127).
             HomeWifi.watch(app) { recheck(app, soon = true) }
         }
-        recheck(app)
+        // The first look at once (item 157): it used to wait the usual pause while the screens asked last run's way.
+        if (firstLook.count > 0) lookFirst(app) else recheck(app)
+    }
+
+    private fun lookFirst(app: Context) { if (firstAsked.compareAndSet(false, true)) work.execute { check(app) } }
+
+    /**
+     * Before a request to the server (item 157): this run's first look at the way to it made, waited for up to [ms] —
+     * and asked for now if nothing has (the player or a download starting the app with no screen). Blocking; on the main
+     * thread it doesn't wait (nothing asks the server there).
+     */
+    fun awaitWay(c: Context, ms: Long = 6000) {
+        if (firstLook.count == 0L || Looper.myLooper() == Looper.getMainLooper()) return
+        lookFirst(c.applicationContext)
+        runCatching { firstLook.await(ms, TimeUnit.MILLISECONDS) }
+    }
+
+    /** [check], then MusicD's own Tailscale's repair waited for, up to [ms] (the server looked for straight after). Blocking. */
+    fun checkAndWait(c: Context, ms: Long = 20_000) {
+        check(c)
+        val until = System.currentTimeMillis() + ms
+        while (repairing && System.currentTimeMillis() < until) runCatching { Thread.sleep(100) }
     }
 
     /**
@@ -105,13 +140,13 @@ object Away {
     /** Where we are now, decided and stored. Blocking; not on the main thread. */
     @Synchronized
     fun check(c: Context): Boolean {
-        val home = Store.server(c) ?: return false
+        val home = Store.server(c) ?: return looked(false)
         // No network at all: nothing to reach, so nothing is tried — before
         // v0.5.56 this started, rejoined and restarted Tailscale for minutes,
         // holding up every other look at the way to the server meanwhile.
-        if (!hasNetwork(c)) return Store.isAway(c)
+        if (!hasNetwork(c)) return looked(Store.isAway(c))
         // Offline mode: the server isn't reached for, so no Tailscale either.
-        if (Store.offlineMode(c)) return Store.isAway(c)
+        if (Store.offlineMode(c)) return looked(Store.isAway(c))
         val awayAt = Store.awayAddress(c)
         val wasAway = Store.isAway(c)
         val wasEngine = Store.viaEngine(c)
@@ -119,12 +154,13 @@ object Away {
         // Off Wi-Fi with a VPN up (another VPN into the home network, v0.6.16): the
         // home address is tried too, and used if it answers through it.
         val vpn = !wifi && onVpn(c)
-        // Asked over the Wi-Fi: Android may be sending what it can over mobile data (item 127).
-        val homeAnswers = (wifi || vpn) && answers(home, 1500, if (wifi) HomeWifi.network(c) else null)
+        // Asked over the Wi-Fi: Android may be sending what it can over mobile data (item 127). Home till now and on its
+        // Wi-Fi, three looks a second apart before going (item 157): one slow answer sent the phone away, at home.
+        val homeAnswers = (wifi || vpn) && homeAnswers(home, Route.looksBeforeAway(wasAway, wifi), if (wifi) HomeWifi.network(c) else null)
         // Away over MusicD's own Tailscale connection once the phone is signed in to it — the whole library,
         // streamed as Opus by the server, no Tailscale app needed — whether its engine is up yet or not.
-        val way = Route.way(wifi, homeAnswers, vpn, awayAddress = awayAt != null,
-            ownSignedIn = TailscaleEngine.installed(c) && TailscaleEngine.signedInBefore(c))
+        val ownSignedIn = TailscaleEngine.signedIn(c)
+        val way = Route.way(wifi, homeAnswers, vpn, awayAddress = awayAt != null, ownSignedIn = ownSignedIn)
         val away = way.away
         HomeWifi.follow(c, Route.overWifi(away, wifi))
 
@@ -141,20 +177,25 @@ object Away {
         }
 
         if (away && way.viaEngine && awayAt != null) {
-            // Its engine joined and forwarding; come up again (after the app was restarted, or afresh after a
-            // stall), the screens look for the server on it at once.
-            if (TailscaleEngine.connectAway(c, "${awayAt.host}:${awayAt.port}")) { if (!wasRunning) tell(away) }
-            else Log.i(TAG, "own Tailscale connection not up yet")
+            // Its engine joined and forwarding, on its own thread (item 157: this look held every other one — coming
+            // home among them — for as long as a repair took, a minute and more).
+            repair(c, "${awayAt.host}:${awayAt.port}", wasRunning)
         } else if (away && awayAt != null && !answers(awayAt, 3000)) {
-            // Not signed in to MusicD's own: ask the Tailscale app, then give it a little while.
-            if (tailscale(c, connect = true)) weConnected = true
-            val until = System.currentTimeMillis() + 15_000
-            var ok = false
-            while (!ok && System.currentTimeMillis() < until) {
-                try { Thread.sleep(1500) } catch (e: InterruptedException) { return wasAway }
-                ok = answers(awayAt, 3000)
+            if (!tailscaleApp(c)) {
+                // Neither MusicD's own Tailscale signed in nor the Tailscale app here: nothing more to try (item 157:
+                // fifteen seconds of it, every twenty, for twelve minutes, holding up every other look meanwhile).
+                AppLog.line("REACH", "away, and this phone isn't signed in to Tailscale: Settings → Away → Tailscale", anomaly = true)
+            } else {
+                // Not signed in to MusicD's own: ask the Tailscale app, then give it a little while.
+                if (tailscale(c, connect = true)) weConnected = true
+                val until = System.currentTimeMillis() + 15_000
+                var ok = false
+                while (!ok && System.currentTimeMillis() < until) {
+                    try { Thread.sleep(1500) } catch (e: InterruptedException) { return looked(wasAway) }
+                    ok = answers(awayAt, 3000)
+                }
+                if (ok) tell(away) else Log.i(TAG, "the server isn't answering on $awayAt either")
             }
-            if (ok) tell(away) else Log.i(TAG, "the server isn't answering on $awayAt either")
         }
         if (!away) {
             // Home: the engine stays joined, idle, so leaving the house needn't
@@ -166,8 +207,46 @@ object Away {
             }
         }
         if (!away && awayAt != null) keepReady(c, "${awayAt.host}:${awayAt.port}")
-        return away
+        // Over the engine the first look is over once it has been brought up ([repair]).
+        return if (away && way.viaEngine && awayAt != null) away else looked(away)
     }
+
+    /** This run's first look made (item 157): the requests waiting on it go. */
+    private fun looked(away: Boolean): Boolean { firstLook.countDown(); return away }
+
+    /**
+     * MusicD's own Tailscale joined and forwarding to [target] (come up again after the app was restarted, or afresh
+     * after a stall), on its own thread: one at a time, and moot once a newer look has found the phone home. The
+     * screens look for the server on it at once when it comes up.
+     */
+    private fun repair(c: Context, target: String, wasRunning: Boolean) {
+        if (repairing) return
+        repairing = true
+        repairs.execute {
+            try {
+                if (Store.isAway(c) && Store.viaEngine(c)) {
+                    if (TailscaleEngine.connectAway(c, target)) { if (!wasRunning) tell(true) }
+                    else Log.i(TAG, "own Tailscale connection not up yet")
+                }
+            } finally {
+                repairing = false
+                firstLook.countDown()
+            }
+        }
+    }
+
+    /** The home address answering, asked up to [looks] times a second apart (item 157). */
+    private fun homeAnswers(home: ServerAddress, looks: Int, over: Network?): Boolean {
+        for (i in 1..looks) {
+            if (answers(home, 1500, over)) return true
+            if (i < looks) try { Thread.sleep(1000) } catch (e: InterruptedException) { return false }
+        }
+        return false
+    }
+
+    /** The Tailscale app is on this phone (the manifest's queries let it be seen). */
+    private fun tailscaleApp(c: Context): Boolean =
+        runCatching { c.packageManager.getPackageInfo(TAILSCALE, 0); true }.getOrDefault(false)
 
     /** The listeners told the way now ([away]): changed, or come up (the screens look for the server on it again). */
     private fun tell(away: Boolean) { main.post { for (l in listeners) runCatching { l(away) } } }
@@ -179,7 +258,7 @@ object Away {
      * Only for a phone signed in to it.
      */
     private fun keepReady(c: Context, target: String) {
-        if (!TailscaleEngine.installed(c) || !TailscaleEngine.signedInBefore(c)) return
+        if (!TailscaleEngine.signedIn(c)) return
         if (TailscaleEngine.ready(target)) return
         // On its own thread: joining can take a few seconds, and the next check mustn't wait for it.
         warming.execute {
@@ -213,14 +292,22 @@ object Away {
     /** On Wi-Fi or Ethernet (a VPN on top of it counts; mobile data doesn't). */
     private fun onWifi(c: Context): Boolean = HomeWifi.network(c) != null
 
-    /** The server answering at [a], asked [over] a network of its own (the Wi-Fi) or wherever Android sends it. */
-    private fun answers(a: ServerAddress, timeoutMs: Int, over: Network? = null): Boolean = runCatching {
-        val url = URL(a.baseUrl + "/api/health")
+    /**
+     * The server answering at [a], asked [over] a network of its own (the Wi-Fi) or wherever Android sends it: its
+     * /api/ping (item 157: answered at once, whatever the server is busy with), or /api/health on a server from before it.
+     */
+    private fun answers(a: ServerAddress, timeoutMs: Int, over: Network? = null): Boolean {
+        val code = status(a, "/api/ping", timeoutMs, over)
+        return code == 200 || (code == 404 && status(a, "/api/health", timeoutMs, over) == 200)
+    }
+
+    private fun status(a: ServerAddress, path: String, timeoutMs: Int, over: Network?): Int = runCatching {
+        val url = URL(a.baseUrl + path)
         val conn = (over?.openConnection(url) ?: url.openConnection()) as HttpURLConnection
         conn.connectTimeout = timeoutMs
         conn.readTimeout = timeoutMs
-        try { conn.responseCode == 200 } finally { conn.disconnect() }
-    }.getOrDefault(false)
+        try { conn.responseCode } finally { conn.disconnect() }
+    }.getOrDefault(-1)
 
     private fun tailscale(c: Context, connect: Boolean): Boolean = runCatching {
         c.sendBroadcast(Intent(if (connect) "$TAILSCALE.CONNECT_VPN" else "$TAILSCALE.DISCONNECT_VPN")

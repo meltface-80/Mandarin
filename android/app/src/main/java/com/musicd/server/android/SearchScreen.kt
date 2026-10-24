@@ -33,6 +33,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -127,8 +128,13 @@ internal fun SearchScreen(prefs: WallPrefs, zoneId: String, client: () -> Server
     fun toast(text: String) = Toast.makeText(context, text, Toast.LENGTH_SHORT).show()
     BackHandler { onBack() }
 
-    // The library: 120 ms after the last letter; while the index is first built, how far, asked again every 350 ms.
-    LaunchedEffect(q) {
+    // The library: 120 ms after the last letter; while the index is first built, how far, asked again every 350 ms; failed
+    // (not reached, or the library still being read), asked again when the server answers again or in a while (item 157).
+    var asks by remember { mutableIntStateOf(0) }
+    var failed by remember { mutableStateOf(false) }
+    AskAgain(failed) { asks++ }
+    LaunchedEffect(q, asks) {
+        failed = false
         if (q.isEmpty()) { SearchKept.stop(); return@LaunchedEffect }
         delay(120)
         val c = client() ?: return@LaunchedEffect
@@ -140,6 +146,7 @@ internal fun SearchScreen(prefs: WallPrefs, zoneId: String, client: () -> Server
                 val busy = (r.exceptionOrNull() as? ServerClient.ServerException)?.status == 503
                 SearchKept.lib = null; SearchKept.libFor = q
                 if (busy) { SearchKept.status = ""; SearchKept.trouble = "Reading your music library…" to true } else SearchKept.status = "search error"
+                failed = r.exceptionOrNull()?.let { com.musicd.server.client.Failure.worthAgain(it) } == true
                 return@LaunchedEffect
             }
             SearchKept.status = got.status()

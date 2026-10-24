@@ -92,7 +92,10 @@ internal fun ArtistsScreen(prefs: WallPrefs, zoneId: String, client: () -> Serve
     LaunchedEffect(sort, find) { artists = emptyList(); total = null; asked = 0; grid.scrollToItem(0) }
     // The next page, when the grid nears its end (and the first at once).
     val near by remember { derivedStateOf { (grid.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0) >= artists.size - cols * 3 } }
-    LaunchedEffect(sort, find, near, artists.size) {
+    // Failed, asked again when the server answers again or in a while (item 157: only a scroll asked again).
+    var asks by remember { mutableStateOf(0) }
+    AskAgain(failed != null) { asks++ }
+    LaunchedEffect(sort, find, near, artists.size, asks) {
         val t = total
         if (!near || (t != null && !ArtistsWall.more(artists.size, t)) || asked > artists.size) return@LaunchedEffect
         val c = client() ?: return@LaunchedEffect
