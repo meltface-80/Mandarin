@@ -2,7 +2,9 @@
 //
 //   mandarin-audio --version
 //   mandarin-audio --device alsa:plughw:CARD=Mojo,DEV=0 [--ffmpeg PATH] [--core N] [--latency-ms 500]
+//   mandarin-audio --device coreaudio:Topping E30      (a Mac's, by its name; item 155)
 //   mandarin-audio --device file:/tmp/out.raw          (the tests' device)
+//   mandarin-audio --devices                           (a Mac's output devices and their rates)
 //
 // The server (lib/local/engine.js) starts one per sound device and talks to it
 // over stdin and stdout, one JSON object a line.
@@ -48,6 +50,8 @@ internal static class Program
             switch (args[i])
             {
                 case "--version": Console.WriteLine(Version + " protocol " + Protocol); return 0;
+                // A Mac's output devices and the rates each takes (item 155), for Settings → Audio Devices.
+                case "--devices": if (CoreAudioNative.Available()) CoreAudioSink.List(Console.WriteLine); return 0;
                 case "--device": device = Arg(args, ref i); break;
                 case "--ffmpeg": ffmpeg = Arg(args, ref i); break;
                 case "--core": core = int.Parse(Arg(args, ref i), CultureInfo.InvariantCulture); break;
@@ -62,6 +66,11 @@ internal static class Program
         {
             if (!Alsa.Available()) { Emit(Json.Obj("ev", "error", "message", "this computer has no ALSA (libasound.so.2)")); return 3; }
             sink = new AlsaSink(device[5..], latencyMs * 1000);
+        }
+        else if (device.StartsWith("coreaudio:", StringComparison.Ordinal))
+        {
+            if (!CoreAudioNative.Available()) { Emit(Json.Obj("ev", "error", "message", "this computer has no Core Audio (a Mac's)")); return 3; }
+            sink = new CoreAudioSink(device[10..], latencyMs);
         }
         else if (device.StartsWith("file:", StringComparison.Ordinal)) sink = new FileSink(device[5..]);
         else { Console.Error.WriteLine("unknown device " + device); return 2; }

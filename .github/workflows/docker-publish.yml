@@ -151,8 +151,11 @@ jobs:
     strategy:
       matrix:
         include:
-          - { runner: ubuntu-latest, arch: x64 }
-          - { runner: ubuntu-24.04-arm, arch: arm64 }
+          - { runner: ubuntu-latest, os: linux, arch: x64 }
+          - { runner: ubuntu-24.04-arm, os: linux, arch: arm64 }
+          # A Mac's (item 155): Apple silicon on its own runner, Intel cross-built there by Xcode's toolchain.
+          - { runner: macos-latest, os: osx, arch: arm64 }
+          - { runner: macos-latest, os: osx, arch: x64 }
     runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v4
@@ -162,12 +165,12 @@ jobs:
       - name: Build
         run: |
           set -e
-          ./engine/build.sh
+          RID=${{ matrix.os }}-${{ matrix.arch }} ./engine/build.sh
           mkdir -p out
-          gzip -9 -c engine/bin/mandarin-audio > out/mandarin-audio-linux-${{ matrix.arch }}.gz
+          gzip -9 -c engine/bin/mandarin-audio > out/mandarin-audio-${{ matrix.os }}-${{ matrix.arch }}.gz
       - uses: actions/upload-artifact@v4
         with:
-          name: audio-engine-${{ matrix.arch }}
+          name: audio-engine-${{ matrix.os }}-${{ matrix.arch }}
           path: out/
 
   audio-engine-publish:
@@ -188,7 +191,7 @@ jobs:
         run: |
           set -e
           cd out
-          sha256sum mandarin-audio-linux-*.gz > SHA256SUMS
+          sha256sum mandarin-audio-*.gz > SHA256SUMS
           node -p "require('../package.json').version" > VERSION
           cat SHA256SUMS VERSION
           cd ..

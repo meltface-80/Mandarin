@@ -1,6 +1,16 @@
 # Changelog
 
 ## Unreleased
+- `155-mac-dac`: a Mac plays its own sound devices, a USB DAC among them, as Linux does: Mandarin's audio engine
+  plays through Core Audio.
+  - **Bit-perfect:** the device is set to each track's own rate (never resampled; a rate it can't take is said, as on
+    Linux), held for Mandarin alone while it plays so nothing else is mixed in, and handed Mandarin's samples as they
+    are (Core Audio carries up to 24 bits exactly).
+  - **Settings → Audio Devices:** each of the Mac's outputs is offered, with every rate it takes as Core Audio lists
+    them (`mandarin-audio --devices`), off until you turn it on, as on Linux. Its page says how a Mac plays it.
+  - **The engine on a Mac:** fetched by the server from the `audio-engine` pre-release (Apple silicon and Intel
+    builds, published with Linux's), checked against its sums. CI's Mac builds it and runs the engine's tests.
+  - **Not yet tried on a real DAC:** GitHub's Macs have none. Tell me how it plays.
 - `153-mac-server`: Mandarin's server runs on a Mac again, its first step back (v1.0.3 dropped it).
   - **The server for a Mac:** built for Apple silicon and Intel Macs (`osx-arm64`, `osx-x64`), signed to run there.
     Its folders are read with macOS's own calls, its music folders watched with FSEvents, and Settings → Check for

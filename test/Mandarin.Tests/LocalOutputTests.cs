@@ -78,6 +78,26 @@ public sealed class LocalOutputTests
     }
 
     [Test]
+    public async Task A_Macs_devices_take_every_rate_the_engine_lists()
+    {
+        Needs.Server();
+        // With the engine here (item 155), each device's rates as Core Audio lists them; a rate Mandarin doesn't
+        // send (8 kHz) left out; a device the engine didn't list keeps the one it is set to.
+        var mac = (await Local(new JsonObject
+        {
+            ["mac"] = """
+                { "SPAudioDataType": [{ "_items": [
+                  { "_name": "MacBook Pro Speakers", "coreaudio_device_output": 2, "coreaudio_device_srate": 48000 },
+                  { "_name": "Topping E30", "coreaudio_device_output": 2, "coreaudio_device_srate": 96000, "coreaudio_device_transport": "coreaudio_device_type_usb" }
+                ] }] }
+                """,
+            ["mac_engine"] = "{\"name\":\"Topping E30\",\"rates\":\"8000,44100,48000,88200,96000,176400,192000,352800,384000\"}\nnot a line\n",
+        }))["mac"]!.AsArray();
+        Assert.Equal("48000", string.Join(",", mac[0]!["caps"]!["advertised"]!["rates"]!.AsArray().Select(r => r!.ToString())));
+        Assert.Equal("44100,48000,88200,96000,176400,192000,352800,384000", string.Join(",", mac[1]!["caps"]!["advertised"]!["rates"]!.AsArray().Select(r => r!.ToString())));
+    }
+
+    [Test]
     public async Task This_computers_sound_devices_ALSA_cards()
     {
         Needs.Server();
