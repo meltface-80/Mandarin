@@ -68,7 +68,7 @@ latest_version() {
 # $1 (its data folder never touched). False if it couldn't be had.
 fetch_page() {
   local dir="$1" version="$2" t
-  say "Downloading Mandarin $version…"
+  say "Downloading Mandarin ${version}…"
   t="$(mktemp -d)"
   if curl -fsSL --retry 3 -o "$t/bundle.tar.gz" "$RELEASES/v$version/musicd-server-$version.tar.gz" \
      && tar -xzf "$t/bundle.tar.gz" -C "$t" && [ -f "$t/musicd-server/package.json" ]; then
