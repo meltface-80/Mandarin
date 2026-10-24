@@ -85,6 +85,9 @@ test("the Queue screen: the Sonos queue kept, Play from here at once", { skip, t
     await until(() => room.queue.length === 6);
     // The room's next reading (once a second) sees the queue grow, and the server reads it then.
     await until(() => room.browsed >= 6, 5000);
+    // Settled: that reading's questions all answered (more than one, the last a moment after the
+    // sixth track), so none of them is counted below.
+    for (let last = -1, still = 0; still < 6; await sleep(200)) { still = room.browses === last ? still + 1 : 0; last = room.browses; }
     room.browses = 0; room.browsed = 0;
     const q = await queue();
     assert.deepEqual(titles(q), ["Song 1", "Song 2", "Song 3", "Hi 1", "Hi 1", "Hi 2"]);
