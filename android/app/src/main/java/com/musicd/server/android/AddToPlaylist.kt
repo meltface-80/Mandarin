@@ -116,7 +116,7 @@ private fun addTo(context: Context, scope: CoroutineScope, client: () -> ServerC
     val made = ServerWrites.write { c.post(add.path, add.body(id, name), 180_000) }
     scope.launch {
         ServerWrites.await(made).onSuccess { j -> toast(context, AddToPlaylist.said(j).first, long = true) }
-            .onFailure { toast(context, it.message ?: "Couldn't save that") }
+            .onFailure { toast(context, com.musicd.server.client.Failure.said(it, "Couldn't save that")) }
     }
 }
 

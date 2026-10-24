@@ -41,7 +41,7 @@ internal fun saveSetting(scope: CoroutineScope, context: Context, client: () -> 
     val c = client() ?: return
     scope.launch {
         val r = withContext(Dispatchers.IO) { runCatching { c.saveSetting(name, body).also { if (it.optString("error").isNotEmpty()) throw IllegalStateException(it.optString("error")) } } }
-        r.onSuccess { said?.let { s -> setupToast(context, s) }; then(it) }.onFailure { undo(); setupToast(context, failed + (it.message ?: "no answer")) }
+        r.onSuccess { said?.let { s -> setupToast(context, s) }; then(it) }.onFailure { undo(); setupToast(context, failed + (com.musicd.server.client.Failure.said(it, "no answer"))) }
     }
 }
 

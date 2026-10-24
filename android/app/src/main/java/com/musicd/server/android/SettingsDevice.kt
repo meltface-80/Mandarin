@@ -84,7 +84,7 @@ internal fun DevicePane(id: String, client: () -> ServerClient?, onBack: () -> U
     val at = { ms: Long -> dates.format(Date(ms)) }
     suspend fun load() {
         val c = client() ?: return
-        withContext(Dispatchers.IO) { runCatching { c.getJson(devicePath(id)) } }.onSuccess { page = DevicePage(it); error = "" }.onFailure { error = it.message ?: "" }
+        withContext(Dispatchers.IO) { runCatching { c.getJson(devicePath(id)) } }.onSuccess { page = DevicePage(it); error = "" }.onFailure { error = com.musicd.server.client.Failure.said(it, "") }
     }
     LaunchedEffect(id) { while (true) { untilOnScreen(); if (!busy) load(); delay(10_000) } }
     // A change to the device (PATCH), on the lane: the page drawn from the answer; [said] once it is made.
@@ -94,7 +94,7 @@ internal fun DevicePane(id: String, client: () -> ServerClient?, onBack: () -> U
         busy = true
         val made = ServerWrites.write { c.patch(devicePath(id), body) }
         scope.launch {
-            ServerWrites.await(made).onSuccess { page = DevicePage(it); error = ""; said?.let { s -> setupToast(context, s(page!!)) } }.onFailure { error = it.message ?: "" }
+            ServerWrites.await(made).onSuccess { page = DevicePage(it); error = ""; said?.let { s -> setupToast(context, s(page!!)) } }.onFailure { error = com.musicd.server.client.Failure.said(it, "") }
             busy = false
         }
     }
@@ -237,7 +237,7 @@ internal fun DevicePane(id: String, client: () -> ServerClient?, onBack: () -> U
                             val c = client() ?: return@setPositiveButton
                             busy = true
                             val made = ServerWrites.write { c.post(devicePath(d.id) + "/forget", JSONObject()) }
-                            scope.launch { ServerWrites.await(made).onSuccess { setupToast(context, "Forgotten"); onBack() }.onFailure { error = it.message ?: "" }; busy = false }
+                            scope.launch { ServerWrites.await(made).onSuccess { setupToast(context, "Forgotten"); onBack() }.onFailure { error = com.musicd.server.client.Failure.said(it, "") }; busy = false }
                         }.show()
                     })
                 }

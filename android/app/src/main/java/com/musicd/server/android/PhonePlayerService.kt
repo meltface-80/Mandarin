@@ -1128,7 +1128,7 @@ class PhonePlayerService : MediaLibraryService() {
         val r = Phone.Report(
             index = if (count > 0) player.currentMediaItemIndex else -1,
             positionSeconds = player.currentPosition / 1000.0,
-            durationSeconds = if (player.duration > 0) player.duration / 1000.0 else 0.0,
+            durationSeconds = if (player.duration > 0) player.duration / 1000.0 else (player.currentMediaItem?.mediaMetadata?.extras?.getDouble("duration", 0.0) ?: 0.0),   // not yet read: the track's own (item 159)
             state = state,
             shuffle = player.shuffleModeEnabled,
             loop = when (player.repeatMode) {
@@ -1422,7 +1422,7 @@ class PhonePlayerService : MediaLibraryService() {
         val max = audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC).coerceAtLeast(1)
         OfflineState(
             state, if (items.isEmpty()) -1 else p.currentMediaItemIndex,
-            p.currentPosition / 1000.0, if (p.duration > 0) p.duration / 1000.0 else 0.0,
+            p.currentPosition / 1000.0, if (p.duration > 0) p.duration / 1000.0 else (p.currentMediaItem?.mediaMetadata?.extras?.getDouble("duration", 0.0) ?: 0.0),
             p.shuffleModeEnabled,
             when (p.repeatMode) { Player.REPEAT_MODE_ALL -> "loop"; Player.REPEAT_MODE_ONE -> "loop_one"; else -> "disabled" },
             if (usbVolume()) UsbDriver.volume() else (audio.getStreamVolume(AudioManager.STREAM_MUSIC) * 100.0 / max).roundToInt(),

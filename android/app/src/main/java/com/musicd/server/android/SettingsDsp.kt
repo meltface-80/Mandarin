@@ -92,7 +92,7 @@ internal fun DspBlock(d: DevicePage, client: () -> ServerClient?, busy: Boolean,
     fun ask(path: String, post: JSONObject? = null, done: (JSONObject) -> Unit, failed: (String) -> Unit) {
         val c = client() ?: return
         scope.launch {
-            withContext(Dispatchers.IO) { runCatching { if (post != null) c.post(path, post) else c.getJson(path) } }.onSuccess(done).onFailure { failed(it.message ?: "Couldn't reach the server") }
+            withContext(Dispatchers.IO) { runCatching { if (post != null) c.post(path, post) else c.getJson(path) } }.onSuccess(done).onFailure { failed(com.musicd.server.client.Failure.said(it, "Couldn't reach the server")) }
         }
     }
     // AutoEq asked a quarter of a second after the name stops changing, as the page's.

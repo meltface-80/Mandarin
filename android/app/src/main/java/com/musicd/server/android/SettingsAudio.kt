@@ -101,7 +101,7 @@ private fun DeviceListPane(client: () -> ServerClient?, onBack: () -> Unit, onOp
     suspend fun load() {
         val c = client() ?: return
         val got = withContext(Dispatchers.IO) { runCatching { c.getJson("/api/audio-devices") } }
-        got.onSuccess { list = AudioDevices.parse(it); error = "" }.onFailure { error = it.message ?: "Couldn't reach the server" }
+        got.onSuccess { list = AudioDevices.parse(it); error = "" }.onFailure { error = com.musicd.server.client.Failure.said(it, "Couldn't reach the server") }
     }
     LaunchedEffect(Unit) {
         val c = client()
@@ -118,7 +118,7 @@ private fun DeviceListPane(client: () -> ServerClient?, onBack: () -> Unit, onOp
         busy = true
         val made = ServerWrites.write { c.patch(devicePath(r.id), JSONObject().put("enabled", on)) }
         scope.launch {
-            ServerWrites.await(made).onSuccess { setupToast(context, AudioDevices.enabledSaid(it.optString("name", r.name), on)) }.onFailure { error = it.message ?: "" }
+            ServerWrites.await(made).onSuccess { setupToast(context, AudioDevices.enabledSaid(it.optString("name", r.name), on)) }.onFailure { error = com.musicd.server.client.Failure.said(it, "") }
             busy = false; load()
         }
     }
@@ -131,7 +131,7 @@ private fun DeviceListPane(client: () -> ServerClient?, onBack: () -> Unit, onOp
         busy = true
         val made = ServerWrites.write { for (d in chosen) c.patch(devicePath(d.id), JSONObject().put("hidden", !d.hidden)) }
         scope.launch {
-            ServerWrites.await(made).onFailure { error = it.message ?: "" }
+            ServerWrites.await(made).onFailure { error = com.musicd.server.client.Failure.said(it, "") }
             busy = false; load()
             AlertDialog.Builder(context).setMessage(AudioDevices.hideSaid(chosen.count { !it.hidden }, chosen.count { it.hidden })).setPositiveButton("OK", null).show()
         }
@@ -167,7 +167,7 @@ private fun DeviceListPane(client: () -> ServerClient?, onBack: () -> Unit, onOp
                             val c = client() ?: return@clickable
                             looking = true
                             val made = ServerWrites.write { c.post("/api/audio-devices/rescan", JSONObject(), 60_000) }
-                            scope.launch { ServerWrites.await(made).onSuccess { list = AudioDevices.parse(it); error = "" }.onFailure { error = it.message ?: "" }; looking = false }
+                            scope.launch { ServerWrites.await(made).onSuccess { list = AudioDevices.parse(it); error = "" }.onFailure { error = com.musicd.server.client.Failure.said(it, "") }; looking = false }
                         })
                 }
             }

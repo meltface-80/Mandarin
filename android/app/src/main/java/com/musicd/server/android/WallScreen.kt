@@ -109,7 +109,7 @@ internal fun WallScreen(kind: String, filterQuery: String, prefs: WallPrefs, zon
             else -> {
                 val c = client() ?: return
                 if (what != "later" && zone.isEmpty()) { toast("Pick a zone first"); return }
-                scope.launch { toast(withContext(Dispatchers.IO) { runCatching { selectAct(c, chosen, zone, room.zoneName, what) }.getOrElse { it.message ?: "Couldn't reach the server" } }); selecting = false; picks = emptyList() }
+                scope.launch { toast(withContext(Dispatchers.IO) { runCatching { selectAct(c, chosen, zone, room.zoneName, what) }.getOrElse { com.musicd.server.client.Failure.said(it, "Couldn't reach the server") } }); selecting = false; picks = emptyList() }
             }
         }
     }

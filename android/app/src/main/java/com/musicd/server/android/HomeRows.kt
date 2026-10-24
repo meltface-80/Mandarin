@@ -123,8 +123,8 @@ internal object HomeKept {
             }
             // Random albums turns over on every visit (the page's isFresh: false): a new handful each time.
             scope.launch { plainRow("random", lib) { it.randomAlbums(30).albums } }
-            scope.launch { hidingRow("later", lib) { it.listenLater().albums } }
-            scope.launch { hidingRow("favourites", lib) { it.favourites().albums } }
+            scope.launch { hidingRow("later", lib) { it.listenLater(30).albums } }
+            scope.launch { hidingRow("favourites", lib) { it.favourites(30).albums } }
             scope.launch { hidingRow("history", lib) { it.history(30).albums } }
             // The Library row in the Library's order alone: its Focus and name filter narrow the wall, never the row (the page's libSortKey).
             val order = LibraryView.parse(libraryView).sortQuery()

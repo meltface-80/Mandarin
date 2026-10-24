@@ -96,7 +96,7 @@ internal fun HomeScreen(prefs: WallPrefs, zoneId: String, client: () -> ServerCl
             delay(2000)
             val r = withContext(Dispatchers.IO) { runCatching { LibraryClient { c.getJson(it) }.pickUnheard().album } }
             spin.stop()
-            r.onSuccess { picked = it }.onFailure { toast(it.message ?: "Could not choose an album") }
+            r.onSuccess { picked = it }.onFailure { toast(com.musicd.server.client.Failure.said(it, "Could not choose an album")) }
         }
     }
     // A tile tapped: the album's page over Home with its row as the list; one of the phone's own, the page's own page of it; a download the library no longer has, played from the phone.

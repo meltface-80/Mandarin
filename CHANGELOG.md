@@ -2,6 +2,23 @@
 
 ## Unreleased
 
+- `p3-minor` (item 159, the audit's P3): the smaller things.
+  - **Errors in words:** every screen and Settings page says what went wrong as "Couldn't reach the server" or the
+    server's own words, never the connection's message with addresses and ports ("Failed to connect to
+    /127.0.0.1:34500").
+  - **Lighter Home away:** its Favourites and Listen later rows ask for the first thirty (`?count=` on both lists, new),
+    not the whole list.
+  - **Long waits let go:** a phone waiting on the server for a change holds no database connection meanwhile, and a phone
+    gone (asleep, out of range) ends its wait at once rather than after 25 s (`/api/status` counts the waits).
+  - **Covers that aren't there:** a missing cover is remembered for ten minutes (until the library is read again) and
+    answered at once, and the phone is told not to ask again for five (it took up to a second, asked again and again).
+  - **Away over the Tailscale app:** nothing is sent until its VPN is up (the address is the carriers' own range on
+    mobile data too, and the phone's sign-in went with every request).
+  - **Album pages:** previous and next keep the 32 lists last used, letting the oldest go one at a time (all were cleared
+    at once); a page restored after Android ended the app no longer picks up another list.
+  - **The log:** one NAV line a move; slow frames counted only while on screen; the phone player's track length the
+    track's own until the player has read it.
+
 - `p2-slow-battery-security` (item 158, the audit's P2): slow, battery, security.
   - **Stutter:** the playing track's disc turns in its own layer (the album page drew the row again every frame);
     Home's random disc asks for no frames while still; Now Playing and the mini player redraw only the seek bar and

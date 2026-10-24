@@ -183,7 +183,7 @@ internal fun SearchScreen(prefs: WallPrefs, zoneId: String, client: () -> Server
         val c = client() ?: return
         scope.launch {
             withContext(Dispatchers.IO) { runCatching { c.serviceOpen(service, id) } }
-                .onSuccess { onAlbum(it, zone, NavList(listOf(NavItem(it, "")), 0)) }.onFailure { toast(it.message ?: "Couldn't open that album") }
+                .onSuccess { onAlbum(it, zone, NavList(listOf(NavItem(it, "")), 0)) }.onFailure { toast(com.musicd.server.client.Failure.said(it, "Couldn't open that album")) }
         }
     }
     fun toggleFav(service: String, id: String, now: Boolean) {

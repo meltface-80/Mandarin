@@ -286,7 +286,11 @@ internal static partial class Library
 
     private static Task<bool> Favourites(HttpContext ctx, Snapshot s, LibState st) => Marked(ctx, s, s.Marks.Fav);
     private static Task<bool> ListenLater(HttpContext ctx, Snapshot s, LibState st) => Marked(ctx, s, s.Marks.Later);
-    /* Newest first. */
-    private static Task<bool> Marked(HttpContext ctx, Snapshot s, Dictionary<string, long> keys) =>
-        Send(ctx, new JsonObject { ["albums"] = AlbumList(s, Sorted(s.Albums.Where(al => keys.ContainsKey(al.Key)), (a, b) => Math.Sign(keys[b.Key] - keys[a.Key]))) });
+    /* Newest first; ?count=N the first N alone (Home's rows ask 30, not the whole list). */
+    private static Task<bool> Marked(HttpContext ctx, Snapshot s, Dictionary<string, long> keys)
+    {
+        var list = Sorted(s.Albums.Where(al => keys.ContainsKey(al.Key)), (a, b) => Math.Sign(keys[b.Key] - keys[a.Key]));
+        var count = IntOr(Q(ctx, "count"), 0);
+        return Send(ctx, new JsonObject { ["albums"] = AlbumList(s, count > 0 ? list.Take((int)Math.Min(count, list.Count)) : list) });
+    }
 }

@@ -86,7 +86,7 @@ internal fun HomeScreenPane(client: () -> ServerClient?, onBack: () -> Unit) {
         val c = client() ?: return
         HomeKept.saveLayout(c, rows.toList()) { r ->
             r.onSuccess { got -> if (got != null) show(got) }
-                .onFailure { setupToast(context, it.message ?: "Couldn't save"); scope.launch { reload() } }
+                .onFailure { setupToast(context, com.musicd.server.client.Failure.said(it, "Couldn't save")); scope.launch { reload() } }
         }
     }
     // The row held moved by [by] down the screen: past each neighbour once the finger is beyond its middle (the page's drag).

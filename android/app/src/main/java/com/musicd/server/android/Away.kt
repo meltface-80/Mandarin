@@ -281,6 +281,15 @@ object Away {
         if (!TailscaleEngine.connectAway(c, "${awayAt.host}:${awayAt.port}")) check(c)
     }
 
+    /**
+     * Away over the Tailscale app's address with no VPN up yet: nothing is sent (item 159). The address (100.x) is the
+     * carriers' own range on mobile data too, and the app's sign-in went with every request before the Tailscale app
+     * was connected. Blocking callers only.
+     */
+    fun notBeforeVpn(c: Context) {
+        if (Store.isAway(c) && !Store.viaEngine(c) && !onVpn(c)) throw java.io.IOException("waiting for Tailscale to connect")
+    }
+
     /** A VPN is up (another VPN app; MusicD's own Tailscale isn't one). */
     @Suppress("DEPRECATION")
     private fun onVpn(c: Context): Boolean {

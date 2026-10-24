@@ -145,7 +145,7 @@ internal fun SmartPlaylistScreen(id: String, prefs: WallPrefs, zoneId: String, c
                         val pj = c.playMulti(a.albums, zone, kind)
                         SmartPlaylist.outcome(if (kind == "queue") "Queued" else "Playing", pj.optInt("queued", a.albums.size), pj.optInt("failed", 0), a.albums.size, a.matched)
                     }
-                }.getOrElse { it.message ?: "Couldn't read this playlist" }
+                }.getOrElse { com.musicd.server.client.Failure.said(it, "Couldn't read this playlist") }
             }
             busy = false
             toast(said)
@@ -156,7 +156,7 @@ internal fun SmartPlaylistScreen(id: String, prefs: WallPrefs, zoneId: String, c
         if (zone.isEmpty()) { toast("Choose a zone first"); return }
         scope.launch {
             withContext(Dispatchers.IO) { runCatching { c.playTrack(t.albumOffset, t.trackIndex, t.title, "", "", zone, "play_now") } }
-                .onSuccess { toast(it.optString("action").ifEmpty { "Playing" }) }.onFailure { toast(it.message ?: "Couldn't play that track") }
+                .onSuccess { toast(it.optString("action").ifEmpty { "Playing" }) }.onFailure { toast(com.musicd.server.client.Failure.said(it, "Couldn't play that track")) }
         }
     }
     fun delete() {
@@ -164,7 +164,7 @@ internal fun SmartPlaylistScreen(id: String, prefs: WallPrefs, zoneId: String, c
         val name = sp?.name.orEmpty()
         scope.launch {
             withContext(Dispatchers.IO) { runCatching { c.deleteSmartPlaylist(id) } }
-                .onSuccess { toast("Deleted “$name”"); onBack() }.onFailure { toast(it.message ?: "Couldn't delete that") }
+                .onSuccess { toast("Deleted “$name”"); onBack() }.onFailure { toast(com.musicd.server.client.Failure.said(it, "Couldn't delete that")) }
         }
     }
 

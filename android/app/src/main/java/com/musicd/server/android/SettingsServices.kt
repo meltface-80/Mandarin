@@ -105,7 +105,7 @@ private fun ServiceBlock(service: String, client: () -> ServerClient?, info: (St
         val c = client() ?: return
         val made = ServerWrites.write { c.post("/api/settings/$service$path", body, timeout).also { j -> j.optString("error").takeIf { it.isNotEmpty() }?.let { throw IllegalStateException(it) } } }
         scope.launch {
-            ServerWrites.await(made).onSuccess(done).onFailure { busy = false; updating = false; said = null; setupToast(context, it.message ?: "Couldn't reach the server"); load() }
+            ServerWrites.await(made).onSuccess(done).onFailure { busy = false; updating = false; said = null; setupToast(context, com.musicd.server.client.Failure.said(it, "Couldn't reach the server")); load() }
         }
     }
     val a = account

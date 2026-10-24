@@ -132,7 +132,12 @@ internal static partial class Library
             try { using var c = Db.Open(); Admin.Backup.ExportEdits(c, Path.GetDirectoryName(Db.File) ?? "."); }
             catch (Exception e) when (e is IOException or UnauthorizedAccessException or Microsoft.Data.Sqlite.SqliteException) { Server.Log($"[musicd] couldn't write album-edits.json: {e.Message}"); }
         }
-        if (reload) Moved(soon || (scan != null && !Js.Truthy(scan["done"])));
+        if (reload)
+        {
+            // A cover missed may be there now (Images.cs).
+            Images.ForgetMisses();
+            Moved(soon || (scan != null && !Js.Truthy(scan["done"])));
+        }
         var o = new JsonObject { ["ok"] = true, ["version"] = Interlocked.Read(ref version), ["marks"] = Interlocked.Read(ref marks) };
         if (scan != null && Js.Truthy(scan["done"]))
         {
