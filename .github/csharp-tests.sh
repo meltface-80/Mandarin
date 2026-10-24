@@ -23,11 +23,32 @@ filter=$(printf 'FullyQualifiedName~%s.|' $classes)
 filter=${filter%|}
 log=${RUNNER_TEMP:-/tmp}/csharp-tests-$k.log
 echo "== C# tests, part $shard: $(echo "$classes" | wc -l) classes"
-# A test still running after 8 minutes (each has 5 of its own) is stopped and named: the run ends,
-# where the job's own limit would end it saying nothing (item 153, on a Mac).
-dotnet test "$proj" -c Release --no-build --nologo --filter "$filter" --logger "console;verbosity=normal" \
-  --blame-hang --blame-hang-timeout 8m --blame-hang-dump-type none 2>&1 | tee "$log"
-[ "${PIPESTATUS[0]}" -eq 0 ] && exit 0
+# CLASS_MINUTES set (a Mac, item 153): each class run by itself, stopped and named if it takes longer,
+# so a class that hangs doesn't take the whole run (and its log) with it.
+if [ -n "${CLASS_MINUTES:-}" ]; then
+  : > "$log"
+  status=0
+  for c in $classes; do
+    dotnet test "$proj" -c Release --no-build --nologo --filter "FullyQualifiedName~$c." --logger "console;verbosity=normal" >> "$log" 2>&1 &
+    pid=$!
+    waited=0
+    while kill -0 "$pid" 2>/dev/null && [ "$waited" -lt $((CLASS_MINUTES * 60)) ]; do sleep 5; waited=$((waited + 5)); done
+    if kill -0 "$pid" 2>/dev/null; then
+      pkill -P "$pid" 2>/dev/null; kill "$pid" 2>/dev/null
+      echo "::error::$c still running after $CLASS_MINUTES minutes: stopped"
+      grep -E "^ *(Passed|Failed|Skipped) $c\." "$log" | tail -5
+      status=1
+      continue
+    fi
+    wait "$pid" || status=1
+    echo "== $c: $(grep -cE "^ *Passed $c\." "$log") passed, $(grep -cE "^ *Failed $c\." "$log") failed"
+  done
+  [ "$status" -eq 0 ] && exit 0
+  cat "$log" | grep -E "^ *Failed |Error Message" -A3 | head -80
+else
+  dotnet test "$proj" -c Release --no-build --nologo --filter "$filter" --logger "console;verbosity=normal" 2>&1 | tee "$log"
+  [ "${PIPESTATUS[0]}" -eq 0 ] && exit 0
+fi
 failed=$(sed -n 's/^ *Failed \(Mandarin\.Tests\.[A-Za-z0-9_.]*\).*$/\1/p' "$log" | sort -u)
 if [ -z "$failed" ]; then
   echo "::error::the C# run failed without naming a test; see the log above"
