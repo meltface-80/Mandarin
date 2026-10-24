@@ -1,6 +1,11 @@
 # Changelog
 
 ## Unreleased
+- `154-mac-install`: Mandarin installs on a Mac with one line again (README, Install on a Mac). It installs Homebrew's
+  ffmpeg and poppler, downloads the latest release (its page and the server built for the Mac, checked against the
+  release's sums; no git, so no Xcode tools first), asks for the music folder in a Finder window, starts Mandarin now
+  and at every login, and puts a Mandarin icon on the desktop that starts it again after a Shut down. Run again, it
+  keeps the library, the account and the settings.
 - `156-mac-away`: away from home with a Mac, as with Linux. The server's built-in Tailscale (Settings → Away from
   home) runs on a Mac too: the engine for Apple silicon and Intel Macs is built and published with Linux's (the
   `engine` pre-release) and fetched by the server, checked against its sums, the first time it is turned on.

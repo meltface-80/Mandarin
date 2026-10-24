@@ -858,6 +858,48 @@ docker stop musicd-server && docker rm musicd-server
 # re-run the docker run command above — the data volume carries everything over
 ```
 
+## Install on a Mac
+
+Mandarin runs on a Mac without Docker: macOS 14 or newer, Apple silicon or Intel. The Mac needs to
+stay on, on the same network as your speakers.
+
+**1. Open Terminal**: press Command-Space, type **Terminal** and press Return.
+
+**2. Paste this line** and press Return:
+
+```bash
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/meltface-80/Mandarin/main/tools/mac/install.sh)"
+```
+
+**3. Answer what it asks:**
+* **Your Mac's password**, if it asks (for Homebrew, the Mac's package installer): type it and press
+  Return. Nothing shows as you type; that's normal.
+* **Your music folder**: a Finder window opens. Click the folder your music is in (on the Mac or on
+  an external drive) and click **Choose**.
+* **The MusicBrainz pack**: where to keep it, if you download it later (optional, about 2 GB).
+  **On this Mac** is fine; **Choose a folder...** to put it on another drive.
+* **Keep this Mac awake**: choose **Keep awake** so the music doesn't stop when the Mac would sleep.
+* **Allow** if macOS asks to let **mandarin-server** find devices on your network or open your
+  files. Mandarin needs both to reach your speakers and read your music.
+
+**4. Done.** Mandarin opens in your browser: create your account. It starts by itself every time you
+log in. On a phone, open the address Terminal shows at the end (`http://<mac-ip>:3500`).
+
+**On a Mac, as on Linux:**
+* **Updates** come from the app (Settings → **Updates**): the new version's server for your Mac,
+  checked against the release's sums, then started in place.
+* **A USB DAC** plugged into the Mac: in **Settings → Audio Devices**, switch it on. Mandarin plays it
+  through Core Audio at each track's own rate, holding it while it plays so nothing else is mixed in.
+* **Away from home**: **Settings → Away from home** turns on Mandarin's built-in Tailscale, as on Linux.
+* **Shut down and start again:** the **power button** at the top right of the side menu (☰) →
+  **Shut down** stops Mandarin; double-click **Mandarin** on the desktop (or in your Applications
+  folder) to start it again. It also starts when you log in.
+* **Your data** (library, history, playlists, settings) is kept in `~/Mandarin/data`.
+* **No albums?** macOS may be keeping Mandarin out of the folder. In System Settings → Privacy &
+  Security → **Full Disk Access**, click **+**, press Command-Shift-G, paste
+  `~/Mandarin/server/bin/mandarin-server`, and click **Open**.
+* **Stop Mandarin starting at login:** `launchctl unload ~/Library/LaunchAgents/app.mandarin.server.plist`
+
 ## Configuration
 
 Everything is optional; pass any of it with `-e NAME=value`.

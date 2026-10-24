@@ -49,6 +49,32 @@ jobs:
         run: |
           ./server/build.sh
           codesign --verify server/bin/mandarin-server && echo "signed to run here"
+      # The installer's own steps (tools/mac/install.sh fetch_page and fetch_server, item 154), on a Mac:
+      # this build served as a release (its page bundle and the server with its sums), fetched, checked,
+      # signed and placed; with a sum that doesn't match, nothing placed.
+      - name: The installer fetches Mandarin
+        run: |
+          set -e
+          v=$(node -p "require('./package.json').version")
+          rid=osx-$(uname -m | sed 's/x86_64/x64/')
+          rel="$RUNNER_TEMP/release"
+          mkdir -p "$rel/v$v" "$rel/v0.0.1" "$RUNNER_TEMP/bundle/musicd-server"
+          cp -r package.json public README.md CHANGELOG.md LICENSE "$RUNNER_TEMP/bundle/musicd-server/"
+          tar -C "$RUNNER_TEMP/bundle" -czf "$rel/v$v/musicd-server-$v.tar.gz" musicd-server
+          gzip -9 -c server/bin/mandarin-server > "$rel/v$v/mandarin-server-$rid.gz"
+          (cd "$rel/v$v" && shasum -a 256 "mandarin-server-$rid.gz" > mandarin-server.sha256)
+          cp "$rel/v$v/mandarin-server-$rid.gz" "$rel/v0.0.1/"
+          echo "$(printf '0%.0s' $(seq 64))  mandarin-server-$rid.gz" > "$rel/v0.0.1/mandarin-server.sha256"
+          python3 -m http.server 8799 --bind 127.0.0.1 --directory "$rel" >/dev/null 2>&1 &
+          served=$!
+          trap 'kill $served 2>/dev/null' EXIT
+          sleep 2
+          export MANDARIN_INSTALL_FUNCTIONS_ONLY=1 MANDARIN_RELEASES=http://127.0.0.1:8799
+          bash -c 'source tools/mac/install.sh; fetch_page "$1" "$2"; fetch_server "$1" "$2"; test -n "$SERVER"; test "$("$SERVER" --version)" = "$2"; codesign --verify "$SERVER"' _ "$RUNNER_TEMP/app" "$v"
+          test -f "$RUNNER_TEMP/app/public/index.html" && test "$(cat "$RUNNER_TEMP/app/server/bin/mandarin-server.version")" = "$v"
+          bash -c 'source tools/mac/install.sh; fetch_server "$1" "$2"; test -z "$SERVER"' _ "$RUNNER_TEMP/bad" "0.0.1"
+          test ! -e "$RUNNER_TEMP/bad/server/bin/mandarin-server"
+          echo "page and server fetched, checked and placed; a wrong sum placed nothing"
       - name: Started, scanned, healthy
         timeout-minutes: 5
         run: .github/mac-smoke.sh
