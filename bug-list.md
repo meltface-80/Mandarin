@@ -8,6 +8,7 @@ Status: **Open** · **In progress** · **Ready to test** (green, waiting on the 
 
 | # | Item | Branch | Status |
 |---|------|--------|--------|
+| 160 | Away from home (Wi-Fi off), the phone player stopped on the first track: "NoSuchMethodError: SimpleDecoderOutputBuffer.init" — R8 (item 158) took out the method libopus calls back into from native code | `160-opus-r8-keep` | Ready to test |
 | 159 | P3 of the audit after v1.1.4: errors that named addresses and ports, Home's rows taking whole lists, long waits that held on, missing covers worked out again and again, the Tailscale app's address asked before its VPN, album pages' previous and next lost, the log's own mistakes | `p3-minor` | Ready to test |
 | 158 | P2 of the audit after v1.1.4: stutter (discs, Now Playing, R8), covers fetched again on every start away, battery off screen, the home Wi-Fi taken on another server's word, a taken Tailscale port, slow history and artist pages, Back with the menu open, downloads that never gave up | `p2-slow-battery-security` | Ready to test |
 | 157 | P1 of the audit after v1.1.4 (the owner's log and screenshot): the app opening on last run's way (Library "Couldn't load: Failed to connect to /127.0.0.1:34500"); screens that never asked again after a failure; away with the app's own Tailscale never started (twelve minutes); false "away" at home; engine restarts that made outages longer; the server stalled by a database write lock and by rebuilding its library copy | `p1-breaks-the-app` | Ready to test |
