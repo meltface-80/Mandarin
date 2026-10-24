@@ -155,7 +155,8 @@ internal sealed partial class ReleaseDays(string? mbBase, string version, Action
             }
             tx.Commit();
         }
-        if (found.Count > 0) await Library.Tell(new JsonObject { ["days"] = found });
+        // Read in by the library's copy in the background, a batch at a time (Library.Copy.cs).
+        if (found.Count > 0) await Library.TellSoon(new JsonObject { ["days"] = found });
         return byKey;
     }
 

@@ -47,6 +47,14 @@
     server's new `/api/ping` (answered at once, whatever the server is busy with; `/api/health` on an older server).
   - **Tailscale repairs:** run on their own, so coming home isn't held up by one; a first miss after the phone's sleep
     rebinds without dropping the music playing; the engine is started afresh at most once in three minutes.
+  - **The server no longer stalls:** a database write held elsewhere (a scan, a job) held up every request, even ones
+    that read nothing, for seconds (`phone/state` took up to 3.4 s away): when a phone was last seen is now kept in
+    memory and written aside, the database's connections are kept open and reused, and a scan commits a few hundred
+    albums at a time. A job's steps (a scan's progress, release days, the credit finder) have the library read again
+    in the background, the requests meanwhile answered from the copy there is; steps told close together make one
+    reading (an evening of the owner's had some 175). `/api/health` counts the conversions' cache in the background.
+  - **`GET /api/ping`:** answered at once, before anything else, with the server's version and its id (made at its
+    first start and kept, through a restore too).
   - Test builds from `dev` are numbered 1.1.7-tN.
 
 ## v1.1.5

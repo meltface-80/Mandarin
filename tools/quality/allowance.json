@@ -35,7 +35,7 @@
       "lines": 569
     },
     "server/Mandarin.Server/Auth.cs": {
-      "lines": 546
+      "lines": 498
     },
     "server/Mandarin.Server/Covers.cs": {
       "lines": 559
@@ -59,7 +59,7 @@
       "lines": 514
     },
     "server/Mandarin.Server/Library.cs": {
-      "lines": 581
+      "lines": 518
     },
     "server/Mandarin.Server/Playback/JsMath.cs": {
       "lines": 615
@@ -74,7 +74,7 @@
       "lines": 634
     },
     "server/Mandarin.Server/Scan/Scanner.cs": {
-      "lines": 1043
+      "lines": 1041
     },
     "server/Mandarin.Server/Scans.cs": {
       "lines": 492
@@ -114,9 +114,6 @@
     },
     "server/Mandarin.Server/Tags/TagReader.cs": {
       "lines": 540
-    },
-    "server/Mandarin.Server/Transcoder.cs": {
-      "lines": 404
     }
   }
 }
