@@ -46,8 +46,8 @@ It takes Mandarin's port (`PORT`, 3500) and answers everything itself, set up fr
 - **On a Mac** (v0.8.29 to v1.0.2, and again from item 153): built on GitHub's Mac runners (signed
   ad hoc, as macOS needs) and started by launchd (`tools/mac/install.sh`). The scan's file system
   calls take macOS's forms (`Scan/PosixFs.cs`), "libc" is libSystem, and `nice` is all `Cpu.cs` has
-  there. `.github/workflows/mac.yml` runs the C# suite on a Mac; only the Mac builds in a release
-  wait for it. A Mac's sound outputs are listed (Core Audio), not yet played.
+  there. `.github/workflows/mac.yml` starts it on a Mac and checks it scans an album and is healthy
+  (`.github/mac-smoke.sh`; the suite itself runs on Linux); only the Mac builds in a release wait for it. A Mac's sound outputs are listed (Core Audio), not yet played.
 - **Subcommands:** `--version`, `--health` (the image's health check), `config`,
   `reset-password` (the account removed and every device signed out), `db <data folder>`, `scan`,
   `tags <file>…`, `waveform <file>`, `score` (the rules asked directly, for the tests),
