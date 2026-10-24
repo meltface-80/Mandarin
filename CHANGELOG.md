@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- `160-opus-r8-keep` (item 160): away from home, the first track ended the phone's player with "NoSuchMethodError:
+  SimpleDecoderOutputBuffer.init" (1.1.7-t3 and -t4). The release build's R8 (item 158) had taken out a method nothing
+  in Java calls but libopus calls from native code, to hand back each decoded block of Opus. It is kept now, and a test
+  checks every class the app's native code names is kept.
+
 - `p3-minor` (item 159, the audit's P3): the smaller things.
   - **Errors in words:** every screen and Settings page says what went wrong as "Couldn't reach the server" or the
     server's own words, never the connection's message with addresses and ports ("Failed to connect to

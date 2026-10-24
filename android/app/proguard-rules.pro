@@ -5,4 +5,8 @@
 -dontobfuscate
 -keep class com.musicd.** { *; }
 -keep class androidx.media3.decoder.opus.** { *; }
+# Classes the native code calls back into by name, which R8 can't see from Java (item 160: libopus asks for
+# SimpleDecoderOutputBuffer.init, and the first Opus track away from home ended the player without it). Every class a
+# FindClass in src/main/cpp names is kept here; test/android-r8-native.test.js checks it.
+-keep class androidx.media3.decoder.SimpleDecoderOutputBuffer { *; }
 -keepclasseswithmembernames class * { native <methods>; }
