@@ -23,7 +23,10 @@ filter=$(printf 'FullyQualifiedName~%s.|' $classes)
 filter=${filter%|}
 log=${RUNNER_TEMP:-/tmp}/csharp-tests-$k.log
 echo "== C# tests, part $shard: $(echo "$classes" | wc -l) classes"
-dotnet test "$proj" -c Release --no-build --nologo --filter "$filter" --logger "console;verbosity=normal" 2>&1 | tee "$log"
+# A test still running after 8 minutes (each has 5 of its own) is stopped and named: the run ends,
+# where the job's own limit would end it saying nothing (item 153, on a Mac).
+dotnet test "$proj" -c Release --no-build --nologo --filter "$filter" --logger "console;verbosity=normal" \
+  --blame-hang --blame-hang-timeout 8m --blame-hang-dump-type none 2>&1 | tee "$log"
 [ "${PIPESTATUS[0]}" -eq 0 ] && exit 0
 failed=$(sed -n 's/^ *Failed \(Mandarin\.Tests\.[A-Za-z0-9_.]*\).*$/\1/p' "$log" | sort -u)
 if [ -z "$failed" ]; then
