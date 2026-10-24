@@ -152,7 +152,7 @@ internal fun AwayPane(client: () -> ServerClient?, onBack: () -> Unit, info: (St
         busy = true; err = ""
         scope.launch {
             withContext(Dispatchers.IO) { runCatching { c.tailscaleDo(what, body) } }
-                .onSuccess { st = it; if (what == "login" && it.authUrl.isNotEmpty()) open(context, it.authUrl) }.onFailure { err = it.message ?: "no answer" }
+                .onSuccess { st = it; if (what == "login" && it.authUrl.isNotEmpty()) open(context, it.authUrl) }.onFailure { err = com.musicd.server.client.Failure.said(it, "no answer") }
             busy = false
         }
     }

@@ -88,7 +88,7 @@ internal fun PlaylistScreen(id: String, zoneId: String, client: () -> ServerClie
         val p = playlist ?: return
         val c = client() ?: return
         if (p.tracks.isEmpty()) { toast("Nothing to share yet"); return }
-        scope.launch { encodeShare(c, p.name, p.tracks).onSuccess { sharing = it }.onFailure { toast(it.message ?: "Couldn't build the share file") } }
+        scope.launch { encodeShare(c, p.name, p.tracks).onSuccess { sharing = it }.onFailure { toast(com.musicd.server.client.Failure.said(it, "Couldn't build the share file")) } }
     }
     // Failed (not reached, or the server's own trouble), asked again when it answers again or in a while (item 157).
     var asks by remember { mutableStateOf(0) }
@@ -112,7 +112,7 @@ internal fun PlaylistScreen(id: String, zoneId: String, client: () -> ServerClie
             for ((i, t) in p.tracks.withIndex()) {
                 if (p.tracks.size > 3) toast("Adding track ${i + 1} of ${p.tracks.size}…")
                 withContext(Dispatchers.IO) { runCatching { c.playTrack(t.albumOffset, t.trackIndex, t.title, t.albumTitle, t.albumSubtitle, zone, if (i == 0) kind else "queue") } }
-                    .onSuccess { queued++ }.onFailure { failed++; if (first.isEmpty()) first = it.message ?: "Couldn't reach the server" }
+                    .onSuccess { queued++ }.onFailure { failed++; if (first.isEmpty()) first = com.musicd.server.client.Failure.said(it, "Couldn't reach the server") }
             }
             busy = false
             toast(UserPlaylist.report(kind, queued, failed, first))
@@ -123,7 +123,7 @@ internal fun PlaylistScreen(id: String, zoneId: String, client: () -> ServerClie
         if (zone.isEmpty()) { toast("Choose a zone first"); return }
         scope.launch {
             withContext(Dispatchers.IO) { runCatching { c.playTrack(t.albumOffset, t.trackIndex, t.title, t.albumTitle, t.albumSubtitle, zone, "play_now") } }
-                .onSuccess { toast("Playing ${t.title}") }.onFailure { toast(it.message ?: "Couldn't play that track") }
+                .onSuccess { toast("Playing ${t.title}") }.onFailure { toast(com.musicd.server.client.Failure.said(it, "Couldn't play that track")) }
         }
     }
     fun delete() {

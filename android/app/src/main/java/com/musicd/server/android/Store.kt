@@ -268,6 +268,6 @@ object Store {
         val app = context.applicationContext
         return ServerClient(address, token = token,
             // The gate shut signs the phone out only on its own server (item 158: another Mandarin at the home address did).
-            transport = AppLog.server({ active(app)?.baseUrl ?: address.baseUrl }, token, { Away.awaitWay(app) }) { if (Away.stillOurs(app)) MainActivity.gateShut() else Away.recheck(app) })
+            transport = AppLog.server({ active(app)?.baseUrl ?: address.baseUrl }, token, { Away.awaitWay(app); Away.notBeforeVpn(app) }) { if (Away.stillOurs(app)) MainActivity.gateShut() else Away.recheck(app) })
     }
 }

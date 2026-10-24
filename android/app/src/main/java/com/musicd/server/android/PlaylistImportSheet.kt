@@ -149,7 +149,7 @@ internal fun PlaylistImportSheet(client: () -> ServerClient?, onSaved: () -> Uni
         val made = ServerWrites.write { c.post("/api/user-playlists/add", JSONObject().put("name", trimmed).put("tracks", r.resolved)) }
         scope.launch {
             ServerWrites.await(made).onSuccess { j -> saved = true; toast(PlaylistShare.added(j)); onSaved() }
-                .onFailure { toast(it.message ?: "Couldn't save that") }
+                .onFailure { toast(com.musicd.server.client.Failure.said(it, "Couldn't save that")) }
         }
     }
 }

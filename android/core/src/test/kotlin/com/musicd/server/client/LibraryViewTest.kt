@@ -77,4 +77,13 @@ class LibraryViewTest {
         assertEquals(listOf("/api/library/facets", "/api/favourites", "/api/listen-later", "/api/home/history?count=60", "/api/home/unplayed?months=6&count=96",
             "/api/random-albums?count=24", "/api/artist-bio?artist=Artist%20A&album=Album%20One"), asked)
     }
+
+    @Test fun `Home's rows ask the first thirty of a list, a wall the whole of it`() {
+        // Item 159: Home's Favourites and Listen later rows took every album (400 favourites, 67 KB, over Tailscale).
+        val asked = ArrayList<String>()
+        val client = LibraryClient { path -> asked += path; JSONObject("""{"albums":[]}""") }
+        client.favourites(30); client.listenLater(30); client.favourites()
+        assertEquals(listOf("/api/favourites?count=30", "/api/listen-later?count=30", "/api/favourites"), asked)
+    }
 }
+

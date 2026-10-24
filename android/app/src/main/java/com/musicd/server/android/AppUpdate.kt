@@ -121,7 +121,7 @@ object AppUpdate {
                 runCatching { progress.dismiss() }
                 if (activity.isFinishing) return@post
                 result.onSuccess { install(activity, dest) }
-                    .onFailure { toast(activity, "Couldn't download the update: ${it.message}") }
+                    .onFailure { toast(activity, "Couldn't download the update: " + com.musicd.server.client.Failure.said(it, "no answer")) }
             }
         }
     }
@@ -146,7 +146,7 @@ object AppUpdate {
             activity.startActivity(Intent(Intent.ACTION_VIEW)
                 .setDataAndType(uri, "application/vnd.android.package-archive")
                 .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK))
-        }.onFailure { toast(activity, "Couldn't open the installer: ${it.message}") }
+        }.onFailure { toast(activity, "Couldn't open the installer: " + com.musicd.server.client.Failure.said(it, "no answer")) }
     }
 
     private fun latest(): Release? =

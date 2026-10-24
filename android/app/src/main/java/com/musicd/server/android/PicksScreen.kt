@@ -93,7 +93,7 @@ internal fun PicksScreen(prefs: WallPrefs, zoneId: String, client: () -> ServerC
         val c = client() ?: return
         scope.launch {
             val r = withContext(Dispatchers.IO) { runCatching { c.blockSmartPick(p.artist) } }
-            r.onSuccess { picks = picks.filter { it !== p }; toast("Won't suggest " + p.artist + " again") }.onFailure { toast(it.message ?: "Couldn't save that") }
+            r.onSuccess { picks = picks.filter { it !== p }; toast("Won't suggest " + p.artist + " again") }.onFailure { toast(com.musicd.server.client.Failure.said(it, "Couldn't save that")) }
         }
     }
     Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {

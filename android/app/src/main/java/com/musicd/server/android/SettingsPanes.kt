@@ -109,7 +109,7 @@ internal fun SettingsAccount(client: () -> ServerClient?, onBack: () -> Unit) {
                     scope.launch {
                         val r = withContext(Dispatchers.IO) { runCatching { c.revokeDevice(d.id) } }
                         busy = null
-                        r.onSuccess { account = account?.let { a -> a.copy(devices = a.devices - d) }; toast("${d.name} signed out") }.onFailure { toast(it.message ?: "Couldn't sign it out") }
+                        r.onSuccess { account = account?.let { a -> a.copy(devices = a.devices - d) }; toast("${d.name} signed out") }.onFailure { toast(com.musicd.server.client.Failure.said(it, "Couldn't sign it out")) }
                     }
                 })
             }
@@ -145,7 +145,7 @@ internal fun SettingsAccount(client: () -> ServerClient?, onBack: () -> Unit) {
             scope.launch {
                 val r = withContext(Dispatchers.IO) { runCatching { Account(c).changePassword(username, current, new) } }
                 busy = null
-                r.onSuccess { current = ""; new = ""; again = ""; status = "Password changed." }.onFailure { status = it.message ?: "Couldn't change it" }
+                r.onSuccess { current = ""; new = ""; again = ""; status = "Password changed." }.onFailure { status = com.musicd.server.client.Failure.said(it, "Couldn't change it") }
             }
         })
         if (status.isNotEmpty()) Text(status, Modifier.parity("settings-account.status").padding(top = 8.dp), color = paletteColor(Palette.TEXT_DIM), fontSize = 11.sp, lineHeight = 15.sp)
@@ -225,7 +225,7 @@ internal fun SettingsKeys(client: () -> ServerClient?, onBack: () -> Unit) {
                             val r = withContext(Dispatchers.IO) { runCatching { c.saveApiKey(spec.route, spec.field, v) } }
                             saving = null
                             r.onSuccess { nk -> keys.value = keys.value + (spec.route to nk); typed.value = typed.value - spec.route; Toast.makeText(context, spec.saved(nk), Toast.LENGTH_SHORT).show() }
-                                .onFailure { Toast.makeText(context, it.message ?: "Failed to save ${spec.noun}", Toast.LENGTH_SHORT).show() }
+                                .onFailure { Toast.makeText(context, com.musicd.server.client.Failure.said(it, "Failed to save ${spec.noun}"), Toast.LENGTH_SHORT).show() }
                         }
                     })
                 }

@@ -137,7 +137,7 @@ internal fun LabelLogoPanel(label: String, current: String?, client: () -> Serve
         val c = client() ?: return@LaunchedEffect
         withContext(Dispatchers.IO) { runCatching { LibraryClient { c.getJson(it) }.labelLogoCandidates(label) } }
             .onSuccess { candidates = it; hint = if (it.isEmpty()) Labels.NO_LOGOS else null }
-            .onFailure { hint = it.message ?: "Discogs search failed" }
+            .onFailure { hint = com.musicd.server.client.Failure.said(it, "Discogs search failed") }
     }
     fun save(address: String) {
         val c = client() ?: return
@@ -147,7 +147,7 @@ internal fun LabelLogoPanel(label: String, current: String?, client: () -> Serve
             val r = withContext(Dispatchers.IO) { runCatching { c.saveLabelLogo(label, address) } }
             saving = false
             r.onSuccess { Toast.makeText(context, "Logo saved", Toast.LENGTH_SHORT).show(); onSaved(it) }
-                .onFailure { Toast.makeText(context, it.message ?: "Failed to save logo", Toast.LENGTH_SHORT).show() }
+                .onFailure { Toast.makeText(context, com.musicd.server.client.Failure.said(it, "Failed to save logo"), Toast.LENGTH_SHORT).show() }
         }
     }
     Column(Modifier.fillMaxWidth().padding(top = 18.dp, bottom = 2.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {

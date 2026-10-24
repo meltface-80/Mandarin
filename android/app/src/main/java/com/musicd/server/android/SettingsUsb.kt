@@ -127,7 +127,7 @@ internal fun UsbBlock(info: (String) -> Unit) {
                 SetupButton("Copy", false, Modifier.parity("settings-device.usb-copy", Contract.label("settings-device.usb-copy")).clickable {
                     runCatching {
                         (context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager).setPrimaryClip(ClipData.newPlainText("Mandarin USB DAC", bridge.diagnostics()))
-                    }.fold({ setupToast(context, "Copied — paste it into a report") }, { setupToast(context, "Couldn't copy: " + (it.message ?: "")) })
+                    }.fold({ setupToast(context, "Copied — paste it into a report") }, { setupToast(context, "Couldn't copy: " + (com.musicd.server.client.Failure.said(it, ""))) })
                 })
             }
         }

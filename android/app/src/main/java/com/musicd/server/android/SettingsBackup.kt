@@ -119,7 +119,7 @@ internal fun SettingsBackup(client: () -> ServerClient?, onBack: () -> Unit) {
     // A restore made on the lane ([made]: the call), its answer finished here.
     fun restore(made: () -> JSONObject) {
         busy = true; open = null
-        val f = ServerWrites.write { runCatching(made).getOrElse { JSONObject().put("ok", false).put("error", it.message ?: "Restore failed") } }
+        val f = ServerWrites.write { runCatching(made).getOrElse { JSONObject().put("ok", false).put("error", com.musicd.server.client.Failure.said(it, "Restore failed")) } }
         scope.launch { ServerWrites.await(f).onSuccess(::finish).onFailure { busy = false; setupToast(context, "Couldn't reach the server") } }
     }
     fun openPanel(key: String, parts: List<String>) { open = if (open == key) null else key; panelTicked = parts.toSet(); panelPass = "" }
@@ -156,7 +156,7 @@ internal fun SettingsBackup(client: () -> ServerClient?, onBack: () -> Unit) {
                                 if (uri == null) { busy = false; note = ""; return@chooseBackupFile }
                                 note = "Backing up…"
                                 scope.launch {
-                                    val r = withContext(Dispatchers.IO) { runCatching { AppBackup.saveTo(context, uri, req) }.getOrElse { JSONObject().put("ok", false).put("error", it.message ?: "Backup failed") } }
+                                    val r = withContext(Dispatchers.IO) { runCatching { AppBackup.saveTo(context, uri, req) }.getOrElse { JSONObject().put("ok", false).put("error", com.musicd.server.client.Failure.said(it, "Backup failed")) } }
                                     busy = false
                                     if (r.optBoolean("ok")) { note = BackupSettings.backedUp(r.optLong("bytes"), r.optLong("created", System.currentTimeMillis()), date); load() }
                                     else { note = ""; setupToast(context, r.optString("error").ifEmpty { "Backup failed" }) }
@@ -177,7 +177,7 @@ internal fun SettingsBackup(client: () -> ServerClient?, onBack: () -> Unit) {
                             val r = withContext(Dispatchers.IO) { runCatching { c.post("/api/backup/save", body, 600_000) } }
                             busy = false
                             r.onSuccess { j -> val b = j.optJSONObject("backup"); note = BackupSettings.backedUp(b?.optLong("bytes") ?: 0, b?.optLong("created") ?: 0, date); load() }
-                                .onFailure { note = ""; setupToast(context, it.message ?: "Backup failed") }
+                                .onFailure { note = ""; setupToast(context, com.musicd.server.client.Failure.said(it, "Backup failed")) }
                         }
                     })
                 }

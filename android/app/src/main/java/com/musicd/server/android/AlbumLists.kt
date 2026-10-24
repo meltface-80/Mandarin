@@ -9,13 +9,17 @@ import com.musicd.server.client.NavList
  * page of each album stepped to carries the same id with its own place.
  */
 internal object AlbumLists {
-    private val lists = HashMap<String, NavList>()
+    // The 32 last used, the oldest let go one at a time (item 159: all were cleared at once, lists on the back stack with them).
+    private val lists = object : LinkedHashMap<String, NavList>(16, 0.75f, true) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, NavList>?) = size > 32
+    }
     private var next = 1
+    /** This run's own: an album page restored after Android ended the app names a list of the last run, never one of this. */
+    private val run = Integer.toHexString(java.util.Random().nextInt(0xffff))
 
     /** [list] held under a new id, which the route carries. */
     @Synchronized fun put(list: NavList): String {
-        if (lists.size > 32) lists.clear()   // the few last are all a session steps through
-        val id = "l${next++}"
+        val id = "l$run-${next++}"
         lists[id] = list
         return id
     }

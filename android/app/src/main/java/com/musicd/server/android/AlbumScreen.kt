@@ -185,7 +185,7 @@ internal fun AlbumScreen(offset: Long, zoneId: String, lit: String, client: () -
     fun mark(block: (ServerClient) -> Unit) {
         val c = client() ?: return
         val made = ServerWrites.write { block(c) }
-        scope.launch { ServerWrites.await(made).exceptionOrNull()?.let { toast(it.message ?: "Couldn't reach the server") } }
+        scope.launch { ServerWrites.await(made).exceptionOrNull()?.let { toast(com.musicd.server.client.Failure.said(it, "Couldn't reach the server")) } }
     }
 
     val bg = MaterialTheme.colorScheme.background

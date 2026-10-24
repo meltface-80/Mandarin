@@ -117,7 +117,7 @@ internal fun LabelsScreen(prefs: WallPrefs, zoneId: String, client: () -> Server
     LaunchedEffect(reads) {
         val c = client() ?: return@LaunchedEffect
         val got = withContext(Dispatchers.IO) { runCatching { LibraryClient { c.getJson(it) }.labels() } }
-        got.onSuccess { LabelsKept.list = it; failed = null }.onFailure { failed = "Couldn't load labels: " + (it.message ?: "no answer") }
+        got.onSuccess { LabelsKept.list = it; failed = null }.onFailure { failed = "Couldn't load labels: " + (com.musicd.server.client.Failure.said(it, "no answer")) }
         val l = got.getOrNull()
         val wait = when { l == null -> 10_000L; l.scanning && l.labels.none { it.albumCount >= prefs.labelMin } -> 4_000L; l.scanning -> 5_000L; else -> return@LaunchedEffect }
         delay(wait); reads++

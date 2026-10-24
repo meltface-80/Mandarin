@@ -161,7 +161,7 @@ internal fun SettingsScanner(client: () -> ServerClient?, onBack: () -> Unit) {
                         val c = client() ?: return@clickable
                         k.busy = true
                         val made = ServerWrites.write { c.post("/api/loudness", JSONObject().put("measure", !measuring)) }
-                        scope.launch { ServerWrites.await(made).onSuccess { k.loud = it; k.err = "" }.onFailure { k.err = it.message ?: "Couldn't reach the server" }; k.busy = false }
+                        scope.launch { ServerWrites.await(made).onSuccess { k.loud = it; k.err = "" }.onFailure { k.err = com.musicd.server.client.Failure.said(it, "Couldn't reach the server") }; k.busy = false }
                     })
                 }
                 ScanNote("Loudness for your files without ReplayGain tags.")
@@ -214,7 +214,7 @@ private fun CleanupBlock(k: ScanKept, client: () -> ServerClient?, scope: Corout
 internal fun scanLoad(k: ScanKept, client: () -> ServerClient?, scope: CoroutineScope, opening: Boolean) {
     val c = client() ?: return
     fun get(path: String, set: (JSONObject) -> Unit) = scope.launch {
-        withContext(Dispatchers.IO) { runCatching { c.getJson(path) } }.onSuccess(set).onFailure { if (path.startsWith("/api/identify?")) k.err = it.message ?: "" }
+        withContext(Dispatchers.IO) { runCatching { c.getJson(path) } }.onSuccess(set).onFailure { if (path.startsWith("/api/identify?")) k.err = com.musicd.server.client.Failure.said(it, "") }
     }
     get("/api/identify?lists=0") { k.st = it; k.err = ""; if (opening || k.lists == null || Scanner.countsOf(it) != k.listsAt) loadLists(k, c, scope) }
     get("/api/loudness") { k.loud = it }
@@ -244,7 +244,7 @@ internal fun scanAct(k: ScanKept, client: () -> ServerClient?, scope: CoroutineS
             if (st.has("proposed")) { k.lists = st; k.listsAt = Scanner.countsOf(st) }
             if (path == "/api/library/cleanup") scanLoad(k, client, scope, true)
             then()
-        }.onFailure { k.err = it.message ?: "Couldn't reach the server" }
+        }.onFailure { k.err = com.musicd.server.client.Failure.said(it, "Couldn't reach the server") }
         k.busy = false
     }
 }
