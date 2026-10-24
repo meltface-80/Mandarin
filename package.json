@@ -1,6 +1,6 @@
 {
   "name": "musicd-server",
-  "version": "1.1.5",
+  "version": "1.1.7",
   "description": "A music server for your local files that plays to Sonos rooms and UPnP/DLNA renderers (WiiM, Chord Poly). MusicD Remote's interface; hi-res to 24/48 for Sonos, bit-perfect or upsampled for renderers.",
   "license": "MIT",
   "author": "Lewis Menzies (Music Duck / MusicD)",
@@ -31,6 +31,5 @@
     "fast-xml-parser": "^5.11.1",
     "music-metadata": "^11.13.0",
     "sharp": "^0.35.5"
-  },
-  "nextVersion": "1.1.7"
+  }
 }
