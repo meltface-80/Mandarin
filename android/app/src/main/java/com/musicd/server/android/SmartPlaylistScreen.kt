@@ -88,6 +88,9 @@ internal fun SmartPlaylistScreen(id: String, prefs: WallPrefs, zoneId: String, c
     val tracks = remember { mutableStateListOf<PlaylistTrack>() }
     var albums by remember { mutableStateOf<List<AlbumSummary>>(emptyList()) }
     var status by remember { mutableStateOf("") }
+    /** The last read failed and is worth asking again (item 157), and how many times it has been asked again. */
+    var failed by remember { mutableStateOf(false) }
+    var asks by remember { mutableStateOf(0) }
     var read by remember { mutableStateOf(0) }
     var done by remember { mutableStateOf(false) }
     var loading by remember { mutableStateOf(false) }
@@ -107,22 +110,26 @@ internal fun SmartPlaylistScreen(id: String, prefs: WallPrefs, zoneId: String, c
         scope.launch {
             withContext(Dispatchers.IO) { runCatching { LibraryClient { c.getJson(it) }.smartTracks(id, read, zone) } }
                 .onSuccess { page -> tracks.addAll(page.tracks); read += page.albumsExpanded; done = page.done || page.albumsExpanded <= 0; status = SmartTracks.status(tracks.size, read, page.albumTotal, done) }
-                .onFailure { status = it.message?.takeIf { m -> !m.startsWith("HTTP") } ?: "Couldn't read this playlist."; done = true }
+                .onFailure { status = it.message?.takeIf { m -> !m.startsWith("HTTP") } ?: "Couldn't read this playlist."; done = true; failed = com.musicd.server.client.Failure.worthAgain(it) }
             loading = false
         }
     }
-    // The playlist read afresh (and again once Edit's sheet over it has closed): its albums, or its first tracks.
-    LaunchedEffect(id, sheets) {
+    // The playlist read afresh (and again once Edit's sheet over it has closed): its albums, or its first tracks; failed,
+    // read again when the server answers again or in a while (item 157).
+    AskAgain(failed) { asks++ }
+    LaunchedEffect(id, sheets, asks) {
+        failed = false
         val c = client() ?: return@LaunchedEffect
         val lib = LibraryClient { c.getJson(it) }
-        val found = withContext(Dispatchers.IO) { runCatching { lib.smartPlaylists().firstOrNull { it.id == id } }.getOrNull() }
-        if (found == null) { status = "Couldn't read this playlist."; return@LaunchedEffect }
+        val r = withContext(Dispatchers.IO) { runCatching { lib.smartPlaylists().firstOrNull { it.id == id } } }
+        val found = r.getOrNull()
+        if (found == null) { status = "Couldn't read this playlist."; failed = r.exceptionOrNull()?.let { com.musicd.server.client.Failure.worthAgain(it) } == true; return@LaunchedEffect }
         sp = found
         tracks.clear(); albums = emptyList(); read = 0; done = false
         if (found.tracks) { status = "Reading tracks…"; more(); return@LaunchedEffect }
         status = "Reading albums…"
         withContext(Dispatchers.IO) { runCatching { lib.smartAlbums(id) } }
-            .onSuccess { albums = it.albums; status = it.status }.onFailure { status = "Couldn't read this playlist." }
+            .onSuccess { albums = it.albums; status = it.status }.onFailure { status = "Couldn't read this playlist."; failed = com.musicd.server.client.Failure.worthAgain(it) }
     }
     // Play now or Queue: its albums (as many as one go takes) played in turn by the server.
     fun playAll(kind: String) {

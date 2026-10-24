@@ -77,7 +77,8 @@ internal fun LibraryScreen(viewQuery: String, prefs: WallPrefs, zoneId: String, 
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var view by remember { mutableStateOf(LibraryView.parse(viewQuery)) }
-    val wall = remember(view) { LibraryWall.state(view.query()) }
+    val offline = OfflineNow.on
+    val wall = remember(view, offline) { LibraryWall.state(view.query(), offline) }
     var zone by remember { mutableStateOf(zoneId) }
     val room = followRoom(zone, client)
     var focusOpen by remember { mutableStateOf(false) }
@@ -96,6 +97,8 @@ internal fun LibraryScreen(viewQuery: String, prefs: WallPrefs, zoneId: String, 
     BackHandler { when { focusOpen -> focusOpen = false; sortOpen -> sortOpen = false; filtering -> { filtering = false; typed = ""; change(view.copy(prefix = "")) }; selecting -> { selecting = false; picks = emptyList() }; else -> onBack() } }
     fun more() { val c = client() ?: return; scope.launch { wall.more(c) } }
     LaunchedEffect(wall) { if (wall.needsFirst) more() }
+    // A page that failed asked again: at once when the server answers again, else in a while (item 157).
+    AskAgain(wall.failed) { more() }
     LaunchedEffect(focusOpen) { if (focusOpen) { val c = client() ?: return@LaunchedEffect; facets = withContext(Dispatchers.IO) { runCatching { LibraryClient { c.getJson(it) }.facets() }.getOrNull() } ?: facets } }
     // The letters typed narrow the wall once they have settled (the page asks on each keystroke).
     LaunchedEffect(typed) { delay(250); if (filtering && typed.trim() != view.prefix) change(view.copy(prefix = typed.trim())) }

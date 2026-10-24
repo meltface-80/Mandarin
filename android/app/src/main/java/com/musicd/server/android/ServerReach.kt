@@ -59,6 +59,8 @@ internal class ServerReach(private val a: MainActivity) {
         liveFailures = 0
         OfflineNow.goOnline(Store.playRoom(a))
         main.removeCallbacks(serverWatch)
+        // The screens to the server: one whose load failed asks again (item 157).
+        Reach.bump()
         checkReachable(base)
     }
 
@@ -66,6 +68,7 @@ internal class ServerReach(private val a: MainActivity) {
     fun resumed() {
         onScreen = true
         if (offline) { lookSoon(500); return }
+        Reach.bump()
         val base = Store.active(a)?.baseUrl
         if (base != null && base != reachedOn) { AppLog.line("REACH", "the address changed while away from the screen: $reachedOn → $base"); go() }
         main.removeCallbacks(liveWatch)
@@ -79,7 +82,7 @@ internal class ServerReach(private val a: MainActivity) {
         AppLog.line("REACH", "the way to the server changed: " + (if (Store.isAway(a)) "away" else "home") + ", ${Store.active(a)?.baseUrl}")
         if (offline) { if (Away.hasNetwork(a)) lookSoon(500); return }
         val base = Store.active(a)?.baseUrl
-        if (base != null && base != reachedOn) go()
+        if (base != null && base != reachedOn) go() else Reach.bump()
     }
 
     /** Offline mode switched (the menu, or Settings → Downloads): onto the phone's music, or back to the server. */
@@ -119,6 +122,10 @@ internal class ServerReach(private val a: MainActivity) {
     private fun checkReachable(base: String) {
         val mine = ++seq
         checks.execute {
+            // This run's first look at the way made first (item 157); a way other than [base] found, the screens are
+            // moved to it ([moved]) and looked for there.
+            Away.awaitWay(a)
+            if (Store.active(a)?.baseUrl != base) return@execute
             var ok = false
             for (attempt in 1..3) {
                 if (mine != seq || a.isFinishing) return@execute
@@ -129,7 +136,7 @@ internal class ServerReach(private val a: MainActivity) {
             main.post {
                 if (mine != seq || offline || a.isFinishing) return@post
                 AppLog.line("REACH", if (ok) "the server answered" else "the server didn't answer three looks over about ten seconds", anomaly = !ok)
-                if (ok) { reached = true; OfflineSite.sync(a) } else { Away.recheck(a); goOffline() }
+                if (ok) { reached = true; Reach.bump(); OfflineSite.sync(a) } else { Away.recheck(a); goOffline() }
             }
         }
     }
@@ -168,7 +175,7 @@ internal class ServerReach(private val a: MainActivity) {
             if (Store.offlineMode(a)) return
             if (!Away.hasNetwork(a)) { main.postDelayed(this, 10_000); return }
             watching.execute {
-                runCatching { Away.check(a) }
+                runCatching { Away.checkAndWait(a) }
                 val back = Store.active(a)?.baseUrl?.let { answers(it, 2500) } ?: false
                 main.post {
                     if (!offline || a.isFinishing) return@post

@@ -8,6 +8,7 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.musicd.server.client.AlbumSummary
+import com.musicd.server.client.Failure
 import com.musicd.server.client.GenreCard
 import com.musicd.server.client.HomeLayoutSync
 import com.musicd.server.client.HomeRow
@@ -63,6 +64,8 @@ internal object HomeKept {
     var lotwName by mutableStateOf<String?>(null)
     val genres = mutableStateListOf<GenreCard>()
     var genresNote by mutableStateOf<String?>(null)
+    /** A row of the last visit's failed, worth asking again (item 157: Home asks again — [AskAgain] — rather than keep "Couldn’t load."). */
+    var failed by mutableStateOf(false)
     /** Today's album, under the greeting; none once it has been played today. */
     var aotd by mutableStateOf<AlbumSummary?>(null)
     /**
@@ -102,6 +105,7 @@ internal object HomeKept {
     fun refresh(scope: CoroutineScope, context: Context, client: ServerClient?, libraryView: String) {
         loadPhone(context)
         if (client == null) return
+        failed = false
         val lib = LibraryClient { client.getJson(it) }
         val now = System.currentTimeMillis()
         // The page's rowsTtlFresh: within five minutes, Not played answered, and Random holding tiles.
@@ -178,7 +182,7 @@ internal object HomeKept {
     /** A row that hides itself when empty: its tiles, or none; what it had kept when the server can't say. True once answered. */
     private suspend fun hidingRow(id: String, lib: LibraryClient, load: (LibraryClient) -> List<AlbumSummary>): Boolean {
         val row = rows[id]!!
-        val got = withContext(Dispatchers.IO) { runCatching { load(lib) }.getOrNull() } ?: return false
+        val got = withContext(Dispatchers.IO) { runCatching { load(lib) } }.getOrElse { e -> if (Failure.worthAgain(e)) failed = true; return false }
         row.albums.clear(); row.albums.addAll(got); row.at = System.currentTimeMillis()
         return true
     }
@@ -192,6 +196,7 @@ internal object HomeKept {
             if (got.isNotEmpty() || row.albums.isEmpty()) { row.albums.clear(); row.albums.addAll(got); row.note = if (got.isEmpty()) "No albums." else null; row.at = System.currentTimeMillis() }
         }.onFailure { e ->
             if (row.albums.isEmpty()) row.note = if (e is ServerClient.ServerException && e.status == 503) "Reading your music library…" else "Couldn’t load."
+            if (Failure.worthAgain(e)) failed = true
         }
     }
 
@@ -209,7 +214,10 @@ internal object HomeKept {
         r.onSuccess { cards ->
             if (cards.isNotEmpty()) { genres.clear(); genres.addAll(cards); genresNote = null; genresLoaded = true }
             else if (genres.isEmpty()) genresNote = "No genres found."
-        }.onFailure { e -> if (genres.isEmpty()) genresNote = if (e is ServerClient.ServerException && e.status == 503) "Reading your music library…" else "Couldn’t load genres." }
+        }.onFailure { e ->
+            if (genres.isEmpty()) genresNote = if (e is ServerClient.ServerException && e.status == 503) "Reading your music library…" else "Couldn’t load genres."
+            if (Failure.worthAgain(e)) failed = true
+        }
     }
 
     /** Music on device (the page's loadHomeLocal): the phone's own albums, from its index. */

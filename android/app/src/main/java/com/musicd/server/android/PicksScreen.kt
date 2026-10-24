@@ -69,9 +69,14 @@ internal fun PicksScreen(prefs: WallPrefs, zoneId: String, client: () -> ServerC
     var loaded by remember { mutableStateOf(false) }
     fun toast(text: String) = Toast.makeText(context, text, Toast.LENGTH_SHORT).show()
     BackHandler(onBack = onBack)
-    LaunchedEffect(Unit) {
+    // Failed, asked again when the server answers again or in a while (item 157).
+    var asks by remember { mutableStateOf(0) }
+    var failed by remember { mutableStateOf(false) }
+    AskAgain(failed) { asks++ }
+    LaunchedEffect(asks) {
         val c = client() ?: return@LaunchedEffect
         val r = withContext(Dispatchers.IO) { runCatching { LibraryClient { c.getJson(it) }.smartPicks() } }
+        failed = r.exceptionOrNull()?.let { com.musicd.server.client.Failure.worthAgain(it) } == true
         r.onSuccess { sp ->
             picks = sp.picks
             // The page's words: the server's own reason when it has one, else that it didn't answer; building, or none yet.

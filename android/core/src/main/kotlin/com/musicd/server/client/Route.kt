@@ -35,6 +35,25 @@ object Route {
         return Way(away, away && ownSignedIn)
     }
 
+    /** Signed in to MusicD's own Tailscale: its engine is in the app, and it has joined here before ([stateFile], or [joined] as the app remembers it; item 157). */
+    fun ownSignedIn(installed: Boolean, stateFile: Boolean, joined: Boolean): Boolean = installed && (stateFile || joined)
+
+    /**
+     * How many looks at the home address, none answered, make the phone away (item 157): on the home Wi-Fi and home
+     * till now, [HOME_MISSES] in a row — one slow answer (the server reading its library again) sent the phone away for
+     * a quarter of a minute, at home; coming home, or off the Wi-Fi, one look decides.
+     */
+    fun looksBeforeAway(wasAway: Boolean, onWifi: Boolean): Int = if (!wasAway && onWifi) HOME_MISSES else 1
+    const val HOME_MISSES = 3
+
+    /**
+     * May MusicD's own Tailscale engine be started afresh at [now] (ms), last started afresh at [last] (0: never)?
+     * At most once in [RESTART_GAP_MS] (item 157): each restart dropped the music playing and every request, and one
+     * after a sleep started over an engine that was only waking.
+     */
+    fun mayRestartEngine(now: Long, last: Long): Boolean = last == 0L || now - last >= RESTART_GAP_MS
+    const val RESTART_GAP_MS = 180_000L
+
     /**
      * The app's connections tied to the Wi-Fi (item 127): at home on it, so the server's home address is asked over
      * it even while Android sends what it can over mobile data (a Wi-Fi it judges poor), which can't reach a home

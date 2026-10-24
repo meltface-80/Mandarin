@@ -521,7 +521,7 @@ class PhonePlayerService : MediaLibraryService() {
                 // (the phone slept; a tunnel that no longer carries anything).
                 // Have it looked at and repaired, here on this thread, rather
                 // than knocking on a dead door every few seconds.
-                if (failures % 3 == 0) runCatching { Away.check(this) }
+                if (failures % 3 == 0) runCatching { Away.checkAndWait(this) }
                 pause(minOf(15_000L, 1_000L * failures))
             }
         }

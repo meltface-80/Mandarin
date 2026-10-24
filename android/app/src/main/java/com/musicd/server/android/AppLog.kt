@@ -5,7 +5,7 @@ import android.content.Context
 import android.os.Build
 import android.os.SystemClock
 import com.musicd.server.client.GateWatch
-import com.musicd.server.client.HttpTransport
+import com.musicd.server.client.WayTransport
 import com.musicd.server.client.LogRedact
 import com.musicd.server.client.ServerClient
 import com.musicd.server.client.Transport
@@ -153,8 +153,8 @@ internal object AppLog {
         }
     }
 
-    /** The server's client as Store makes it, logged while on. */
-    fun server(baseUrl: String, token: String, shut: () -> Unit): Transport = net(GateWatch(HttpTransport(baseUrl, token), shut), "server")
+    /** The server's client as Store makes it, logged while on: at the address [base] gives at each request, [ready] first (item 157). */
+    fun server(base: () -> String, token: String, ready: () -> Unit, shut: () -> Unit): Transport = net(GateWatch(WayTransport(base, token, ready), shut), "server")
 
     /**
      * Now and then while the app is on screen (every five minutes, and on coming back): the server's health and status,

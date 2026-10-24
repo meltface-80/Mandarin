@@ -91,4 +91,26 @@ class RouteTest {
         assertNull(ServerAddress.fromUrl("musicd:3500"))
         assertNull(ServerAddress.fromUrl(""))
     }
+
+    @Test fun `signed in to the own Tailscale by its state or by the app's memory of joining`() {
+        // Item 157: the state file not found, the app went to the Tailscale app's address for twelve minutes, the engine never started.
+        assertTrue(Route.ownSignedIn(installed = true, stateFile = false, joined = true))
+        assertTrue(Route.ownSignedIn(installed = true, stateFile = true, joined = false))
+        assertFalse(Route.ownSignedIn(installed = true, stateFile = false, joined = false))
+        assertFalse(Route.ownSignedIn(installed = false, stateFile = true, joined = true))
+    }
+
+    @Test fun `home on its Wi-Fi is left only after three missed looks`() {
+        // Item 157: one health check slower than 1.5 s (the server reading its library) sent the phone away, at home.
+        assertEquals(3, Route.looksBeforeAway(wasAway = false, onWifi = true))
+        assertEquals(1, Route.looksBeforeAway(wasAway = true, onWifi = true))    // coming home: one answer is enough
+        assertEquals(1, Route.looksBeforeAway(wasAway = false, onWifi = false))  // the Wi-Fi gone: away at once
+    }
+
+    @Test fun `the engine is started afresh at most once in three minutes`() {
+        assertTrue(Route.mayRestartEngine(now = 1_000_000, last = 0))
+        assertFalse(Route.mayRestartEngine(now = 1_000_000, last = 1_000_000 - 60_000))
+        assertTrue(Route.mayRestartEngine(now = 1_000_000, last = 1_000_000 - 180_000))
+    }
 }
+

@@ -79,6 +79,17 @@ class HttpTransport(private val baseUrl: String, private val token: String?) : T
     }
 }
 
+/**
+ * The server over HTTP at the address [base] gives at each request (item 157), signed in with [token]; [ready] first
+ * (the app's first look at the way to the server, home or away, made). A client made before the way changed asks the
+ * new address, not the one it was made on: Home's rows, asked on the old way, failed for good.
+ */
+class WayTransport(private val base: () -> String, private val token: String?, private val ready: () -> Unit = {}) : Transport {
+    override fun json(method: String, path: String, body: JSONObject?, timeout: Int): JSONObject = now().json(method, path, body, timeout)
+    override fun bytes(path: String, timeout: Int): ByteArray = now().bytes(path, timeout)
+    private fun now(): HttpTransport { ready(); return HttpTransport(base(), token) }
+}
+
 /** An answer made in the app: its [status] and its JSON (an error's words under "error"), or its [bytes] of type [mime]. */
 class Answer(val status: Int, val json: JSONObject? = null, val bytes: ByteArray? = null, val mime: String = "application/json") {
     companion object {

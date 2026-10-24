@@ -1,5 +1,25 @@
 # Changelog
 
+## Unreleased
+
+- `p1-breaks-the-app` (item 157, from the owner's log after v1.1.4): what stopped the app working at home and away.
+  - **Opening the app after Android ended it:** it no longer asks the server the way it had last time (away over
+    Tailscale, 127.0.0.1:34500, though it was now home): the first look at home or away is made at once and every
+    request waits for it, a few seconds at most. A screen's requests go the way the app is as each is asked.
+  - **Screens ask again:** a screen whose load failed asks again at once when the server answers again, else after 2 s,
+    doubling to half a minute, while it is up: the Library ("Couldn't load: Failed to connect…" until opened again),
+    every album wall, Home's rows, Search, Playlists and a playlist, Dynamic Playlists, Smart Picks, Pitchfork, Artists,
+    an artist and an album. Favourites, Listen later, Recently played and Not played are read on every visit, what was
+    there shown meanwhile; lists the phone answered while offline aren't kept once the server is back.
+  - **Away without the app's own Tailscale started:** the app knows it has joined MusicD's own Tailscale by its own
+    note as well as the engine's state, so it starts it away (it went to the Tailscale app's address, with no Tailscale
+    app, for twelve minutes); one that needs signing in again is said in the log; with neither, no fifteen-second waits.
+  - **False "away" at home:** on the home Wi-Fi, home is left only after three missed looks a second apart, asked of the
+    server's new `/api/ping` (answered at once, whatever the server is busy with; `/api/health` on an older server).
+  - **Tailscale repairs:** run on their own, so coming home isn't held up by one; a first miss after the phone's sleep
+    rebinds without dropping the music playing; the engine is started afresh at most once in three minutes.
+  - Test builds from `dev` are numbered 1.1.7-tN.
+
 ## v1.1.5
 
 **Mandarin on a Mac again.** Mandarin installs on a Mac with one line in Terminal (README, Install on a Mac), Apple

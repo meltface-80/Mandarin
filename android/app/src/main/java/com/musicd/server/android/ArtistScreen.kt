@@ -72,7 +72,10 @@ internal fun ArtistScreen(name: String, prefs: WallPrefs, zoneId: String, client
     val (cols, coverPx) = wallColumns(prefs)
     fun toast(text: String) = Toast.makeText(context, text, Toast.LENGTH_SHORT).show()
     BackHandler { if (selecting) { selecting = false; picks = emptyList() } else onBack() }
-    LaunchedEffect(name) {
+    // Still failed after the few tries below, asked again when the server answers again or in a while (item 157).
+    var asks by remember { mutableStateOf(0) }
+    AskAgain(failed != null && albums == null) { asks++ }
+    LaunchedEffect(name, asks) {
         if (kept?.albums != null && ArtistPages.kept.fresh(key)) return@LaunchedEffect   // as it was, and recent: nothing to ask
         val c = client() ?: return@LaunchedEffect
         val lib = LibraryClient { c.getJson(it) }
@@ -84,7 +87,7 @@ internal fun ArtistScreen(name: String, prefs: WallPrefs, zoneId: String, client
             got = withContext(Dispatchers.IO) { runCatching { lib.artistAlbums(name) } }
         }
         // Asked afresh: kept from now, the rest of what was kept drawn until its answer replaces it.
-        got.onSuccess { albums = it; ArtistPages.kept.put(key, (ArtistPages.kept.get(key) ?: ArtistPage()).copy(albums = it)) }
+        got.onSuccess { albums = it; failed = null; ArtistPages.kept.put(key, (ArtistPages.kept.get(key) ?: ArtistPage()).copy(albums = it)) }
             .onFailure { if (albums == null) failed = Failure.said(it, "no answer") }
         // The head after the albums, so the grid never waits on another service; one of their own albums pins the lookup.
         // Who they are (item 131) alongside: the server may look them up there and then, for a few seconds.

@@ -14,4 +14,10 @@ object Failure {
 
     /** The server not reached at all (worth asking again in a while), not an answer of its own. */
     fun unreachable(t: Throwable): Boolean = t is IOException && t !is ServerClient.ServerException
+
+    /**
+     * Worth asking again in a while (item 157): the server not reached, or its own trouble (a 5xx, its library still
+     * being read) — not a refusal or a not-found, which asking again won't change.
+     */
+    fun worthAgain(t: Throwable): Boolean = unreachable(t) || (t as? ServerClient.ServerException)?.status?.let { it >= 500 } == true
 }
