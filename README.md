@@ -7,7 +7,7 @@
 
 </div>
 
-# Mandarin — v1.1.4
+# Mandarin — v1.1.5
 
 **Your own music files, played to Sonos rooms, to UPnP/DLNA renderers (a WiiM, a Chord Poly,
 a streamer, an AV receiver) and to the Mandarin Android app.**
@@ -26,15 +26,12 @@ Wikipedia, Deezer and others); your music files stay on your machine.
                                                    └──── audio: /stream/… ◀────────┘
 ```
 
-**New in v1.1.4** (since v1.1.3)
-* **Artist pages** in a new order: who they are, a band's **Members** folded until tapped, then their
-  discography, the albums they appear on, similar artists and **similar albums** (Last.fm's with a key, else from
-  Deezer). A page visited again opens at once.
-* **One artist however a sleeve credits them:** an album credited under another name for the same MusicBrainz artist
-  ("Mariana Semkina" for Marjana Semkina) is in that artist's discography, and the Artists wall has them once.
-* **Shelf:** no album details under the shelf, so the cases are bigger; no spines show through a case as it turns;
-  tracks chosen on the back of a case play or queue from the bar.
-* A renderer's late answer no longer takes the room back a track.
+**New in v1.1.5** (since v1.1.4)
+* **Mandarin on a Mac again**, Apple silicon or Intel: one line in Terminal installs it (see
+  [Install on a Mac](#install-on-a-mac)), and it does there what it does on Linux: Sonos rooms, renderers, the
+  Android app, **a USB DAC plugged into the Mac** (played through Core Audio at each track's own rate, held for
+  Mandarin while it plays) and **away from home** with the built-in Tailscale. It starts at login, a Mandarin icon on
+  the desktop starts it again after a Shut down, and updates come from Settings.
 
 ---
 
@@ -116,7 +113,7 @@ Tap the **Library** row's title on Home, or **Library** in a phone's or tablet's
 
 ⸻
 
-🗄️ **Shelf** — *new in v1.1.4*
+🗄️ **Shelf**
 
 A record shop's shelf of your collection: covers or spines, A → Z by artist or album, narrowed by genre, artist letter and decade, or spun to land anywhere.
 
@@ -176,7 +173,7 @@ On a phone or tablet, tap **Artists** in the row at the foot of the screen. **So
 
 ⸻
 
-🧑‍🎤 **Artist pages** — *new in v1.1.4*
+🧑‍🎤 **Artist pages**
 
 Who they are, then their discography, the albums they appear on, similar artists and similar albums. Members fold under a heading. One artist however a sleeve credits them.
 
@@ -356,13 +353,13 @@ A renderer found on the network is off until you switch it on in **Settings → 
 
 ⸻
 
-🖥️ **Sound devices on the server**
+🖥️ **Sound devices on the server** — *new in v1.1.5*
 
 A USB DAC, speakers or HDMI on the computer Mandarin runs on, played like a Sonos room. Tracks at the same rate join with nothing between them.
 
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 
-Plug it in, then switch it on in **Settings → Audio Devices**. In Docker, add `--device /dev/snd` and `--privileged`. Details under [Sound devices on the server](#sound-devices-on-the-server).
+Plug it in, then switch it on in **Settings → Audio Devices**. In Docker, add `--device /dev/snd` and `--privileged`; on a Mac, nothing to add: it plays through Core Audio at each track's own rate. Details under [Sound devices on the server](#sound-devices-on-the-server).
 
 </details>
 
@@ -650,7 +647,7 @@ Restart Mandarin, or shut it down so it stops finding and controlling your speak
 
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 
-Open the side menu (☰) and tap the **power button** in its top-right corner, then **Restart** or **Shut down**. In Docker: `docker stop musicd-server`, then `docker start musicd-server`.
+Open the side menu (☰) and tap the **power button** in its top-right corner, then **Restart** or **Shut down**. On a Mac, double-click **Mandarin** on the desktop to start it again. In Docker: `docker stop musicd-server`, then `docker start musicd-server`.
 
 </details>
 
@@ -775,7 +772,7 @@ few minutes and albums appear as it goes.
 > **`--network host` is required.** Sonos players are found by multicast, which does not
 > cross Docker's default bridge network — and the speakers fetch audio from this machine's
 > own address. Docker Desktop on macOS/Windows has no real host networking, so this needs a
-> Linux host.
+> Linux host. On a Mac, install it without Docker: see [Install on a Mac](#install-on-a-mac).
 
 > **Keep the `musicd-server-data` volume.** It holds the library database, play history,
 > playlists, settings and the artwork and transcode caches. Point every future `docker run`

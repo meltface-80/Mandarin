@@ -14,7 +14,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 
-# (id, emoji, title, new in v1.1.4, what it is, how to set it up and use it)
+# (id, emoji, title, new in v1.1.5, what it is, how to set it up and use it)
 FEATURES = [
     # ---- Home and finding music
     ("home", "🏠", "Home", False,
@@ -49,7 +49,7 @@ FEATURES = [
      "**Focus** are in the top bar (at the top right on a phone or tablet); Focus also "
      "has *Added in the last* and *Listening* (never played, not in 6 or 12 months). "
      "**☰ → Random albums** opens a shuffled wall."),
-    ("shelf", "🗄️", "Shelf", True,
+    ("shelf", "🗄️", "Shelf", False,
      "A record shop's shelf of your collection: covers or spines, A → Z by artist or album, narrowed "
      "by genre, artist letter and decade, or spun to land anywhere.",
      "Its switch is **Settings → Setup → Shelf** (off on a new install); off, it is off entirely and not "
@@ -84,7 +84,7 @@ FEATURES = [
      "album wall's columns, sorted A to Z, by most albums or at random.",
      "On a phone or tablet, tap **Artists** in the row at the foot of the screen. **Sort** is at the "
      "top right; **Search** in the row finds an artist by part of the name. Tap one for their page."),
-    ("artist", "🧑‍🎤", "Artist pages", True,
+    ("artist", "🧑‍🎤", "Artist pages", False,
      "Who they are, then their discography, the albums they appear on, similar artists and similar "
      "albums. Members fold under a heading. One artist however a sleeve credits them.",
      "Tap an artist's name on an album's page, on the Artists wall or in Search. Facts come from "
@@ -164,10 +164,11 @@ FEATURES = [
      "Tracks join gaplessly on a renderer that supports it.",
      "A renderer found on the network is off until you switch it on in **Settings → Audio Devices**. "
      "Then pick it with the speaker button. **Look again** searches the network now."),
-    ("localout", "🖥️", "Sound devices on the server", False,
+    ("localout", "🖥️", "Sound devices on the server", True,
      "A USB DAC, speakers or HDMI on the computer Mandarin runs on, played like a Sonos room. "
      "Tracks at the same rate join with nothing between them.",
-     "Plug it in, then switch it on in **Settings → Audio Devices**. In Docker, add `--device /dev/snd` and `--privileged`. "
+     "Plug it in, then switch it on in **Settings → Audio Devices**. In Docker, add `--device /dev/snd` and `--privileged`; "
+     "on a Mac, nothing to add: it plays through Core Audio at each track's own rate. "
      "Details under [Sound devices on the server](#sound-devices-on-the-server)."),
     ("devices", "🎚️", "Audio Devices", False,
      "Every room, renderer and phone with the rates, depths and formats it takes, your own name "
@@ -289,6 +290,7 @@ FEATURES = [
      "Restart Mandarin, or shut it down so it stops finding and controlling your speakers until you "
      "start it again. In Docker, only Restart.",
      "Open the side menu (☰) and tap the **power button** in its top-right corner, then **Restart** or **Shut down**. "
+     "On a Mac, double-click **Mandarin** on the desktop to start it again. "
      "In Docker: `docker stop musicd-server`, then `docker start musicd-server`."),
     ("backup", "💾", "Backup and restore", False,
      "Back up settings, players, collection, API keys (with the Tailscale identity) and the whole "
@@ -349,7 +351,7 @@ def md_inline_to_html(s):
 def readme_block():
     lines = ["Every feature below has an **ⓘ**: open it for how to switch the feature on and use it.", ""]
     for i, (fid, em, title, new, what, how) in enumerate(FEATURES):
-        lines.append("%s **%s**%s" % (em, title, " — *new in v1.1.4*" if new else ""))
+        lines.append("%s **%s**%s" % (em, title, " — *new in v1.1.5*" if new else ""))
         lines.append("")
         lines.append(what)
         lines.append("")

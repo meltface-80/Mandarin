@@ -1,6 +1,13 @@
 # Changelog
 
-## Unreleased
+## v1.1.5
+
+**Mandarin on a Mac again.** Mandarin installs on a Mac with one line in Terminal (README, Install on a Mac), Apple
+silicon or Intel, and does there what it does on Linux: Sonos rooms, renderers, the Android app, a USB DAC plugged
+into the Mac (played through Core Audio at each track's own rate, held for Mandarin while it plays), and away from
+home with the built-in Tailscale. It starts at login, a Mandarin icon on the desktop starts it again after a Shut
+down, and updates come from Settings as on Linux. Nothing changes for an install in Docker.
+
 - `154-mac-install`: Mandarin installs on a Mac with one line again (README, Install on a Mac). It installs Homebrew's
   ffmpeg and poppler, downloads the latest release (its page and the server built for the Mac, checked against the
   release's sums; no git, so no Xcode tools first), asks for the music folder in a Finder window, starts Mandarin now

@@ -320,6 +320,7 @@
     <a href="#features">Features</a>
     <a href="#formats">Formats</a>
     <a href="#install">Install</a>
+    <a href="#mac">Mac</a>
     <a href="#apps">Phones</a>
     <a href="#env">Environment</a>
     <a href="#logs">Logs</a>
@@ -340,8 +341,9 @@
      Android app play from it, controlled from a browser, an iPhone home screen or the Android app.
      No subscription or streaming account is needed.</p>
   <div class="badges">
-    <span class="badge">v1.1.4</span>
+    <span class="badge">v1.1.5</span>
     <span class="badge plain">Docker</span>
+    <span class="badge plain">macOS</span>
     <span class="badge plain">MIT</span>
     <span class="badge plain">Sonos</span>
     <span class="badge plain">UPnP / DLNA</span>
@@ -352,12 +354,11 @@
 
 <section id="new">
   <div class="wrap">
-    <div class="note"><b>New in v1.1.4</b> (since v1.1.3). <b>Artist pages</b> in a new order: who they are, a
-      band's members folded until tapped, then their discography, the albums they appear on, similar artists and
-      <b>similar albums</b>; a page visited again opens at once. An album credited under another name for the same
-      MusicBrainz artist is in that artist's discography, and the Artists wall has them once. The <b>Shelf</b> has no
-      album details under it, so its cases are bigger; no spines show through a case as it turns; and tracks chosen on
-      the back of a case play from the bar. A renderer's late answer no longer takes the room back a track.</div>
+    <div class="note"><b>New in v1.1.5</b> (since v1.1.4). <b>Mandarin on a Mac again</b>, Apple silicon or Intel:
+      one line in Terminal installs it (<a href="#mac">Install on a Mac</a>), and it does there what it does on
+      Linux: Sonos rooms, renderers, the Android app, a <b>USB DAC plugged into the Mac</b> (played through Core Audio
+      at each track's own rate) and <b>away from home</b> with the built-in Tailscale. It starts at login, and updates
+      come from Settings.</div>
   </div>
 </section>
 
@@ -387,7 +388,7 @@
   <div class="wrap">
     <h2>Features</h2>
     <p class="lead">Tap <b class="i-eg">i</b> on any feature for how to switch it on and use it.
-      <span class="new-eg">New</span> marks what's new in v1.1.4.</p>
+      <span class="new-eg">New</span> marks what's new in v1.1.5.</p>
     <div class="grid">
       <!-- features:start -->
       <div class="card"><h3><span class="em">🏠</span>Home<button class="info" type="button" aria-expanded="false" aria-controls="how-home" aria-label="How to set up and use Home">i</button></h3>
@@ -408,7 +409,7 @@
       <div class="card"><h3><span class="em">📚</span>Library<button class="info" type="button" aria-expanded="false" aria-controls="how-library" aria-label="How to set up and use Library">i</button></h3>
         <p>Every album, sorted by name, artist, release date, date added, plays, last played or random, and narrowed by genre, decade, label, format, sample rate, bit depth or first letter.</p>
         <div class="how" id="how-library" hidden><b>How to set it up and use it.</b> Tap the <b>Library</b> row's title on Home, or <b>Library</b> in a phone's or tablet's row. <b>Sort</b> and <b>Focus</b> are in the top bar (at the top right on a phone or tablet); Focus also has <i>Added in the last</i> and <i>Listening</i> (never played, not in 6 or 12 months). <b>☰ → Random albums</b> opens a shuffled wall.</div></div>
-      <div class="card is-new"><h3><span class="em">🗄️</span>Shelf<span class="new">New</span><button class="info" type="button" aria-expanded="false" aria-controls="how-shelf" aria-label="How to set up and use Shelf">i</button></h3>
+      <div class="card"><h3><span class="em">🗄️</span>Shelf<button class="info" type="button" aria-expanded="false" aria-controls="how-shelf" aria-label="How to set up and use Shelf">i</button></h3>
         <p>A record shop's shelf of your collection: covers or spines, A → Z by artist or album, narrowed by genre, artist letter and decade, or spun to land anywhere.</p>
         <div class="how" id="how-shelf" hidden><b>How to set it up and use it.</b> Its switch is <b>Settings → Setup → Shelf</b> (off on a new install); off, it is off entirely and not offered. Open <b>☰ → Shelf</b>, <code>http://&lt;server-ip&gt;:3500/shelf</code>, or <b>Shelf ›</b> on the wall display. Swipe for one album, swipe and hold to keep turning, flick to spin; tap the front cover to turn the case over, and hold a track on its back to choose tracks; the bar then plays or queues those. The bar at its foot plays or queues the album in front, skips back and forward, pauses and sets the volume; the tabs at the edges fold the choices away and bring in the queue. Tap the order's name above the shelf (<b>A → Z by artist</b>) for <b>A → Z by album</b>; the Shelf keeps the one chosen.</div></div>
       <div class="card"><h3><span class="em">🔍</span>Search<button class="info" type="button" aria-expanded="false" aria-controls="how-search" aria-label="How to set up and use Search">i</button></h3>
@@ -423,7 +424,7 @@
       <div class="card"><h3><span class="em">🎤</span>Artists<button class="info" type="button" aria-expanded="false" aria-controls="how-artists" aria-label="How to set up and use Artists">i</button></h3>
         <p>Every act in your library as a round picture with their name and album count, in the album wall's columns, sorted A to Z, by most albums or at random.</p>
         <div class="how" id="how-artists" hidden><b>How to set it up and use it.</b> On a phone or tablet, tap <b>Artists</b> in the row at the foot of the screen. <b>Sort</b> is at the top right; <b>Search</b> in the row finds an artist by part of the name. Tap one for their page.</div></div>
-      <div class="card is-new"><h3><span class="em">🧑‍🎤</span>Artist pages<span class="new">New</span><button class="info" type="button" aria-expanded="false" aria-controls="how-artist" aria-label="How to set up and use Artist pages">i</button></h3>
+      <div class="card"><h3><span class="em">🧑‍🎤</span>Artist pages<button class="info" type="button" aria-expanded="false" aria-controls="how-artist" aria-label="How to set up and use Artist pages">i</button></h3>
         <p>Who they are, then their discography, the albums they appear on, similar artists and similar albums. Members fold under a heading. One artist however a sleeve credits them.</p>
         <div class="how" id="how-artist" hidden><b>How to set it up and use it.</b> Tap an artist's name on an album's page, on the Artists wall or in Search. Facts come from MusicBrainz, Wikidata and Wikipedia, pictures from FanArt.tv (with a key), Wikidata or Deezer, similar artists and albums from Last.fm (with a key) or Deezer. Tap <b>Members</b> to unfold a band's line-up. A member's page shows their bands' albums from their years in them; a tap on a member, a band or a similar artist opens theirs. Tap a genre for its albums.</div></div>
       <div class="card"><h3><span class="em">👥</span>Album credits<button class="info" type="button" aria-expanded="false" aria-controls="how-credits" aria-label="How to set up and use Album credits">i</button></h3>
@@ -468,9 +469,9 @@
       <div class="card"><h3><span class="em">📡</span>UPnP/DLNA renderers<button class="info" type="button" aria-expanded="false" aria-controls="how-upnp" aria-label="How to set up and use UPnP/DLNA renderers">i</button></h3>
         <p>WiiM, Chord Poly, streamers, AV receivers and TVs on your network, played like a Sonos room. Tracks join gaplessly on a renderer that supports it.</p>
         <div class="how" id="how-upnp" hidden><b>How to set it up and use it.</b> A renderer found on the network is off until you switch it on in <b>Settings → Audio Devices</b>. Then pick it with the speaker button. <b>Look again</b> searches the network now.</div></div>
-      <div class="card"><h3><span class="em">🖥️</span>Sound devices on the server<button class="info" type="button" aria-expanded="false" aria-controls="how-localout" aria-label="How to set up and use Sound devices on the server">i</button></h3>
+      <div class="card is-new"><h3><span class="em">🖥️</span>Sound devices on the server<span class="new">New</span><button class="info" type="button" aria-expanded="false" aria-controls="how-localout" aria-label="How to set up and use Sound devices on the server">i</button></h3>
         <p>A USB DAC, speakers or HDMI on the computer Mandarin runs on, played like a Sonos room. Tracks at the same rate join with nothing between them.</p>
-        <div class="how" id="how-localout" hidden><b>How to set it up and use it.</b> Plug it in, then switch it on in <b>Settings → Audio Devices</b>. In Docker, add <code>--device /dev/snd</code> and <code>--privileged</code>. Details under <a href="https://github.com/meltface-80/Mandarin#sound-devices-on-the-server">Sound devices on the server</a>.</div></div>
+        <div class="how" id="how-localout" hidden><b>How to set it up and use it.</b> Plug it in, then switch it on in <b>Settings → Audio Devices</b>. In Docker, add <code>--device /dev/snd</code> and <code>--privileged</code>; on a Mac, nothing to add: it plays through Core Audio at each track's own rate. Details under <a href="https://github.com/meltface-80/Mandarin#sound-devices-on-the-server">Sound devices on the server</a>.</div></div>
       <div class="card"><h3><span class="em">🎚️</span>Audio Devices<button class="info" type="button" aria-expanded="false" aria-controls="how-devices" aria-label="How to set up and use Audio Devices">i</button></h3>
         <p>Every room, renderer and phone with the rates, depths and formats it takes, your own name for it, and a switch. Renderers play Original or upsampled ×2, ×4 or Max.</p>
         <div class="how" id="how-devices" hidden><b>How to set it up and use it.</b> Open <b>Settings → Audio Devices</b> and tap a device. The name you give it is what the speaker list and Now playing show. <b>Output</b> is on a renderer's page. <b>Hide / unhide</b> takes devices you don't use off the list; tap it again and tick one under Hidden to bring it back.</div></div>
@@ -542,7 +543,7 @@
         <div class="how" id="how-account" hidden><b>How to set it up and use it.</b> Create it on first visit from a device at home. <b>Settings → Account</b> lists devices, signs one out and changes the password. Forgotten: see <a href="https://github.com/meltface-80/Mandarin#your-account">Your account</a>.</div></div>
       <div class="card"><h3><span class="em">⏻</span>Restart and shut down<button class="info" type="button" aria-expanded="false" aria-controls="how-power" aria-label="How to set up and use Restart and shut down">i</button></h3>
         <p>Restart Mandarin, or shut it down so it stops finding and controlling your speakers until you start it again. In Docker, only Restart.</p>
-        <div class="how" id="how-power" hidden><b>How to set it up and use it.</b> Open the side menu (☰) and tap the <b>power button</b> in its top-right corner, then <b>Restart</b> or <b>Shut down</b>. In Docker: <code>docker stop musicd-server</code>, then <code>docker start musicd-server</code>.</div></div>
+        <div class="how" id="how-power" hidden><b>How to set it up and use it.</b> Open the side menu (☰) and tap the <b>power button</b> in its top-right corner, then <b>Restart</b> or <b>Shut down</b>. On a Mac, double-click <b>Mandarin</b> on the desktop to start it again. In Docker: <code>docker stop musicd-server</code>, then <code>docker start musicd-server</code>.</div></div>
       <div class="card"><h3><span class="em">💾</span>Backup and restore<button class="info" type="button" aria-expanded="false" aria-controls="how-backup" aria-label="How to set up and use Backup and restore">i</button></h3>
         <p>Back up settings, players, collection, API keys (with the Tailscale identity) and the whole database, at home or away: to the server, or from the app to a file.</p>
         <div class="how" id="how-backup" hidden><b>How to set it up and use it.</b> Open <b>Settings → Backup &amp; restore</b>, tick what to include, then <b>Back up to the server</b> (or, in the app, <b>Back up to a file on this phone</b>). To restore, pick a backup (or the file), tick the parts and tap <b>Restore</b>. Mandarin keeps a backup of how things were first, then restarts. <b>What a backup holds.</b> The API keys part (and the whole database) holds your Discogs, FanArt.tv and Last.fm keys, the Qobuz and Tidal sign-ins (tokens, never a password) and the server's Tailscale identity. Without a passphrase they are in the file as they are, so keep the file as you would keep them. Type a <b>passphrase</b> (8 characters or more) before backing up and they are sealed (AES-256-GCM; v0.9.0): restoring them asks for it, and nothing opens them without it. Everything else in a sealed backup restores without it. A backup never holds your password or other devices' sign-ins.</div></div>
@@ -638,6 +639,7 @@
         <b>--network host is required.</b> Speakers are found by multicast, which does not cross
         Docker's default bridge network, and they fetch audio from this machine's own address.
         Docker Desktop for macOS and Windows has no real host networking, so this needs a Linux host.
+        On a Mac, install it without Docker: see <a href="#mac">Install on a Mac</a>.
       </div>
       <div class="note">
         <b>A USB DAC on this machine</b> needs both <code>--device /dev/snd</code> (the devices handed to the
@@ -678,6 +680,38 @@
       <p class="fine" style="font-size:12.5px;color:var(--muted);margin-top:12px">
         If Docker isn't installed: <code>dietpi-software install 162</code> on DietPi, or
         <code>curl -fsSL https://get.docker.com | sh</code> on Debian, Ubuntu and Raspberry Pi OS.</p>
+    </div>
+  </div>
+</section>
+
+<section id="mac">
+  <div class="wrap">
+    <h2>Install on a Mac</h2>
+    <p class="lead">No Docker needed: macOS 14 or newer, Apple silicon or Intel. The Mac stays on, on the same
+      network as your speakers. It does everything Linux does: Sonos rooms, renderers, the Android app, a USB DAC
+      plugged into the Mac, and away from home.</p>
+    <div class="out">
+      <div class="firstrun"><ol start="1"><li><b>Open Terminal</b>: press Command-Space, type <b>Terminal</b> and press Return.</li></ol></div>
+      <div class="firstrun"><ol start="2"><li><b>Paste this line</b> and press Return.</li></ol></div>
+      <div class="codebox">
+        <button class="copy-btn" data-copy>Copy</button>
+<pre>/bin/bash -c &quot;$(curl -fsSL https://raw.githubusercontent.com/meltface-80/Mandarin/main/tools/mac/install.sh)&quot;</pre>
+      </div>
+      <div class="firstrun"><ol start="3"><li><b>Answer what it asks.</b> Your <b>Mac's password</b>, if asked, for Homebrew
+        (nothing shows as you type; that's normal). Your <b>music folder</b>: a Finder window opens; click the folder
+        your music is in, on the Mac or an external drive, and click <b>Choose</b>. Where to keep the
+        <b>MusicBrainz pack</b> if you download it later (optional, about 2&nbsp;GB). <b>Keep awake</b>, so the music
+        doesn't stop. And <b>Allow</b> if macOS asks to let <b>mandarin-server</b> find devices on your network or open
+        your files.</li></ol></div>
+      <div class="firstrun"><ol start="4"><li><b>Done.</b> Mandarin opens in your browser: create your account. It starts by itself
+        whenever you log in. On a phone, open the address Terminal shows at the end.</li></ol></div>
+      <div class="note"><b>On a Mac, as on Linux:</b> updates come from the app (Settings &rarr; Updates). A USB DAC: switch it
+        on in Settings &rarr; Audio Devices; Mandarin plays it through Core Audio at each track's own rate, holding it
+        while it plays. Away from home: Settings &rarr; Away from home. Your data is kept in <code>~/Mandarin/data</code>.</div>
+      <div class="note"><b>Shut down and start again:</b> the power button at the top right of the side menu (☰)
+        &rarr; Shut down stops Mandarin; double-click <b>Mandarin</b> on the desktop to start it again. It also starts
+        when you log in. <b>No albums?</b> In System Settings &rarr; Privacy &amp; Security &rarr; Full Disk Access,
+        click +, press Command-Shift-G, paste <code>~/Mandarin/server/bin/mandarin-server</code> and click Open.</div>
     </div>
   </div>
 </section>
