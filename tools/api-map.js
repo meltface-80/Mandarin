@@ -107,7 +107,7 @@ function routesIn(file, text) {
 
 /** Who the gate lets ask (Auth.cs Gate, IsOpen, IsMedia). @param {string} p */
 function access(p) {
-  if (/^\/(api\/health|server-info|login)$/.test(p) || p.startsWith("/api/auth/") || p.startsWith("/upnp/event")) return "open";
+  if (/^\/(api\/health|api\/ping|server-info|login)$/.test(p) || p.startsWith("/api/auth/") || p.startsWith("/upnp/event")) return "open";
   if (p.startsWith("/stream/") || p.startsWith("/api/image/")) return "signed in, or a signed address";
   if (p.startsWith("/internal/")) return "the server's own key";
   return "signed in";

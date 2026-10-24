@@ -979,11 +979,9 @@ internal sealed partial class Scanner(SqliteConnection db, string root, IReadOnl
         });
         var words = new Dictionary<string, string> { ["missing"] = "is missing", ["empty"] = "is empty", ["unreadable"] = "couldn't all be read", ["vanished"] = "has lost most of its files at once" };
         foreach (var (d, reason, n) in offline) log($"[scan] {d} {words[reason]} — kept its {Js.Num(n)} tracks as they were");
-        Transaction(() =>
-        {
-            foreach (var id in touched.Items) RefreshAlbum(id, imagesByDir);
-            DropEmptyAlbums();
-        });
+        // A few hundred albums a transaction: the server's own writes wait for one batch, not the whole reindex.
+        foreach (var batch in touched.Items.Chunk(300)) Transaction(() => { foreach (var id in batch) RefreshAlbum(id, imagesByDir); });
+        Transaction(DropEmptyAlbums);
 
         var albums = Js.ToNumber(Get("SELECT COUNT(*) AS n FROM albums")!["n"]);
         var tracksN = Js.ToNumber(Get("SELECT COUNT(*) AS n FROM tracks")!["n"]);

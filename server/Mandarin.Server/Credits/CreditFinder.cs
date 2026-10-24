@@ -218,8 +218,8 @@ internal sealed class CreditFinder(MusicBrainz mb, string? deezerBase, string? w
             return;
         }
         CreditStore.SaveArtist(key, name, facts?.Mbid ?? mbid, facts, photo, source);
-        // Another name for an artist already kept (item 151): the library read again, as one artist.
-        if ((facts?.Mbid ?? mbid) is { } kept && SameArtists.Shared(kept)) await Library.Tell(new System.Text.Json.Nodes.JsonObject { ["lookups"] = true });
+        // Another name for an artist already kept (item 151): the library read again, as one artist (in the background, Library.Copy.cs).
+        if ((facts?.Mbid ?? mbid) is { } kept && SameArtists.Shared(kept)) await Library.TellSoon(new System.Text.Json.Nodes.JsonObject { ["lookups"] = true });
         // The artists' list is kept for the library's copy (LibraryRoutes.Kept.cs); a picture found changes it without a new copy.
         if (photo != null) Library.ForgetKept("/api/artists");
     }
