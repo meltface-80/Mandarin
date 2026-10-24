@@ -182,7 +182,9 @@ internal static class LocalDevices
             using var p = Process.Start(new ProcessStartInfo(bin, "--devices") { RedirectStandardOutput = true, RedirectStandardError = true, UseShellExecute = false })!;
             var text = p.StandardOutput.ReadToEndAsync();
             _ = p.StandardError.ReadToEndAsync();
-            return p.WaitForExit(10000) && p.ExitCode == 0 ? text.Result : null;
+            if (p.WaitForExit(10000)) return p.ExitCode == 0 ? text.Result : null;
+            try { p.Kill(true); } catch (InvalidOperationException) { /* gone */ }
+            return null;
         }
         catch (Exception e) when (e is System.ComponentModel.Win32Exception or IOException or InvalidOperationException) { return null; }
     }
