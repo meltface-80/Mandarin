@@ -66,7 +66,10 @@ internal fun SmartPlaylistsScreen(prefs: WallPrefs, zoneId: String, client: () -
     // New's sheets, the app's own (item 95): what it is made of, its Focus, its name.
     val sheets = rememberSmartSheets()
     BackHandler { onBack() }
-    LaunchedEffect(closed) {
+    // Failed, asked again when the server answers again or in a while (item 157).
+    var asks by remember { mutableStateOf(0) }
+    AskAgain(failed) { asks++ }
+    LaunchedEffect(closed, asks) {
         val c = client() ?: return@LaunchedEffect
         val got = withContext(Dispatchers.IO) { runCatching { LibraryClient { c.getJson(it) }.smartPlaylists() }.getOrNull() }
         failed = got == null

@@ -77,6 +77,8 @@ internal fun HomeScreen(prefs: WallPrefs, zoneId: String, client: () -> ServerCl
     // Read again when the app goes offline or comes back (item 109): the phone's answers, or the server's.
     val offline by OfflineNow.kind
     LaunchedEffect(offline) { HomeKept.refresh(scope, context, client(), NativeShell.libraryView) }
+    // A row that failed asked again: at once when the server answers again, else in a while (item 157).
+    AskAgain(HomeKept.failed) { HomeKept.refresh(scope, context, client(), NativeShell.libraryView) }
     // Today's album while the app is on screen (item 120: every minute all night too).
     val onScreen by NativeShell.onScreen
     LaunchedEffect(offline, onScreen) {

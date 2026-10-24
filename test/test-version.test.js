@@ -22,6 +22,17 @@ test("a test build is the next release with -tN", () => {
   assert.ok(Number.isInteger(commitsSince("v0.0.0-none", path.join(__dirname, ".."))));
 });
 
+test("the next release named: dev's builds after v1.1.5 are 1.1.7-tN", () => {
+  assert.equal(testVersion("1.1.5", 4, "1.1.7"), "1.1.7-t4");
+  assert.equal(testVersion("1.1.5", 0, "1.1.7"), "1.1.5", "nothing since the release: the release");
+  assert.equal(testVersion("1.1.7", 2, "1.1.7"), "1.1.8-t2", "named, but not later than the release: passed over");
+  assert.equal(testVersion("1.2.0", 2, "1.1.9"), "1.2.1-t2");
+  assert.throws(() => testVersion("1.1.5", 1, "soon"));
+  // This checkout's package.json: a later release, if it names one.
+  const pkg = require("../package.json");
+  if (pkg.nextVersion) assert.match(testVersion(pkg.version, 1, pkg.nextVersion), new RegExp("^" + pkg.nextVersion.replace(/\./g, "\\.") + "-t1$"));
+});
+
 test("the page's updater: a test build after the last release, before its own", () => {
   // __verNewer as the page defines it, without the rest of the updater.
   const src = fs.readFileSync(path.join(__dirname, "../public/app/updater.js"), "utf8");

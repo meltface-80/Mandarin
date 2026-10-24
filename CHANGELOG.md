@@ -1,5 +1,33 @@
 # Changelog
 
+## Unreleased
+
+- `p1-breaks-the-app` (item 157, from the owner's log after v1.1.4): what stopped the app working at home and away.
+  - **Opening the app after Android ended it:** it no longer asks the server the way it had last time (away over
+    Tailscale, 127.0.0.1:34500, though it was now home): the first look at home or away is made at once and every
+    request waits for it, a few seconds at most. A screen's requests go the way the app is as each is asked.
+  - **Screens ask again:** a screen whose load failed asks again at once when the server answers again, else after 2 s,
+    doubling to half a minute, while it is up: the Library ("Couldn't load: Failed to connect…" until opened again),
+    every album wall, Home's rows, Search, Playlists and a playlist, Dynamic Playlists, Smart Picks, Pitchfork, Artists,
+    an artist and an album. Favourites, Listen later, Recently played and Not played are read on every visit, what was
+    there shown meanwhile; lists the phone answered while offline aren't kept once the server is back.
+  - **Away without the app's own Tailscale started:** the app knows it has joined MusicD's own Tailscale by its own
+    note as well as the engine's state, so it starts it away (it went to the Tailscale app's address, with no Tailscale
+    app, for twelve minutes); one that needs signing in again is said in the log; with neither, no fifteen-second waits.
+  - **False "away" at home:** on the home Wi-Fi, home is left only after three missed looks a second apart, asked of the
+    server's new `/api/ping` (answered at once, whatever the server is busy with; `/api/health` on an older server).
+  - **Tailscale repairs:** run on their own, so coming home isn't held up by one; a first miss after the phone's sleep
+    rebinds without dropping the music playing; the engine is started afresh at most once in three minutes.
+  - **The server no longer stalls:** a database write held elsewhere (a scan, a job) held up every request, even ones
+    that read nothing, for seconds (`phone/state` took up to 3.4 s away): when a phone was last seen is now kept in
+    memory and written aside, the database's connections are kept open and reused, and a scan commits a few hundred
+    albums at a time. A job's steps (a scan's progress, release days, the credit finder) have the library read again
+    in the background, the requests meanwhile answered from the copy there is; steps told close together make one
+    reading (an evening of the owner's had some 175). `/api/health` counts the conversions' cache in the background.
+  - **`GET /api/ping`:** answered at once, before anything else, with the server's version and its id (made at its
+    first start and kept, through a restore too).
+  - Test builds from `dev` are numbered 1.1.7-tN.
+
 ## v1.1.5
 
 **Mandarin on a Mac again.** Mandarin installs on a Mac with one line in Terminal (README, Install on a Mac), Apple

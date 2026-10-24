@@ -17,7 +17,9 @@ const read = f => fs.readFileSync(path.join(APP, f), "utf8");
 test("the way decided, the app's connections are tied to the Wi-Fi at home and let go away", () => {
   const away = read("Away.kt");
   assert.match(away, /val away = way\.away\s+HomeWifi\.follow\(c, Route\.overWifi\(away, wifi\)\)/);
-  assert.match(away, /answers\(home, 1500, if \(wifi\) HomeWifi\.network\(c\) else null\)/, "the home address asked over the Wi-Fi");
+  // Asked over the Wi-Fi, up to three times before home is left (item 157: homeAnswers), each look over that network.
+  assert.match(away, /homeAnswers\(home, Route\.looksBeforeAway\(wasAway, wifi\), if \(wifi\) HomeWifi\.network\(c\) else null\)/, "the home address asked over the Wi-Fi");
+  assert.match(away, /private fun homeAnswers\(home: ServerAddress, looks: Int, over: Network\?\): Boolean \{[\s\S]*?answers\(home, 1500, over\)/);
   assert.match(away, /HomeWifi\.watch\(app\) \{ recheck\(app, soon = true\) \}/, "the Wi-Fi itself followed");
   const wifi = read("HomeWifi.kt");
   assert.match(wifi, /cm\.bindProcessToNetwork\(want\)/);
@@ -26,6 +28,8 @@ test("the way decided, the app's connections are tied to the Wi-Fi at home and l
 
 test("an album that couldn't be read says so in words, and asks again while the server can't be reached", () => {
   const album = read("AlbumScreen.kt");
-  assert.match(album, /\.onFailure \{ failed = Failure\.said\(it, "Couldn't load the album"\) \+ if \(Failure\.unreachable\(it\)\) "\. Trying again…" else "" \}/);
-  assert.match(album, /if \(got\.exceptionOrNull\(\)\?\.let\(Failure::unreachable\) == true\) \{ delay\(Retry\.ms\(\+\+missed\)\); loads\+\+ \}/);
+  // Not reached, or the server's own trouble, asked again (item 157): at once when it answers again, else in a while (AskAgain).
+  assert.match(album, /\.onFailure \{ failed = Failure\.said\(it, "Couldn't load the album"\) \+ if \(Failure\.worthAgain\(it\)\) "\. Trying again…" else "" \}/);
+  assert.match(album, /again = album == null && got\.exceptionOrNull\(\)\?\.let\(Failure::worthAgain\) == true/);
+  assert.match(album, /AskAgain\(again\) \{ loads\+\+ \}/);
 });

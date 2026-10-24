@@ -101,8 +101,15 @@ System.Text.Json.Nodes.JsonObject ownConfig;
 try { ownConfig = Config.FromEnvironment(dataDir, port); }
 catch (InvalidOperationException e) { Server.Log("[server] " + e.Message + "; stopping"); return 2; }
 // The install's secret, for signed addresses (Auth.Secret.cs).
-try { Auth.EnsureSecret(); }
+// And this server's id, for /api/ping (PingRoutes.cs).
+try { Auth.EnsureSecret(); PingRoutes.Init(version); }
 catch (Microsoft.Data.Sqlite.SqliteException e) { Server.Log($"[server] the install's secret couldn't be written ({e.Message}); stopping"); return 1; }
+// When each device was last seen, written in the background (Auth.Seen.cs).
+Auth.KeepSeen();
+// Threads enough at once: the pool starts with one a core (all but playback's, Cpu.cs) and adds
+// more slowly, so a burst of requests each waiting on something held even those waiting on nothing.
+ThreadPool.GetMinThreads(out var minWorkers, out var minIo);
+ThreadPool.SetMinThreads(Math.Max(minWorkers, 64), Math.Max(minIo, 64));
 Library.InitAlone(frontKey, ownConfig["server_ip"]?.GetValue<string>(), port);
 Transcoder.Init(dataDir);
 Downloads.Init(dataDir);
@@ -154,6 +161,8 @@ app.Use(async (ctx, next) =>
     await next();
 });
 app.UseResponseCompression();
+// Is this server there: answered ahead of everything else (PingRoutes.cs).
+PingRoutes.Use(app);
 
 // MusicBrainz's one timer, a turn asked for (Identify/Lookups.cs).
 Mandarin.Server.Identify.Lookups.UseInternal(app);
@@ -200,6 +209,7 @@ app.MapFallback("/{**catch-all}", Pages.NotThere);
 Server.StopApp = app.Services.GetRequiredService<IHostApplicationLifetime>().StopApplication;
 
 app.Services.GetRequiredService<IHostApplicationLifetime>().ApplicationStopping.Register(Jobs.Stop);
+app.Services.GetRequiredService<IHostApplicationLifetime>().ApplicationStopping.Register(Auth.WriteSeen);
 await app.StartAsync();
 Server.Log($"[server] listening on port {port}");
 await app.WaitForShutdownAsync();
@@ -207,6 +217,7 @@ await app.WaitForShutdownAsync();
 // program started again in this process; if that can't be done, stopped with
 // the code, and Docker's restart policy starts the container again. Shut
 // down: 0, for nothing to start it again.
-if (Server.Leaving == Server.Leave.Restart) { Server.StartAgain(args); return Server.StartAgainCode; }
+// The database's pooled connections closed first: the new run opens it, or a backup put back in its place, anew.
+if (Server.Leaving == Server.Leave.Restart) { Db.LetGo(); Server.StartAgain(args); return Server.StartAgainCode; }
 if (Server.Leaving == Server.Leave.ShutDown) return 0;
 return Environment.ExitCode;

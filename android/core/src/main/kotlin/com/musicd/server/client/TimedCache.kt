@@ -26,4 +26,7 @@ class TimedCache<K, V>(private val capacity: Int, private val ttlMs: Long, priva
         val k = map[key]
         if (k == null) put(key, change(empty)) else map[key] = Kept(change(k.value), k.at)
     }
+
+    /** Lets everything go (item 157: what the phone answered offline isn't kept for the server's). */
+    @Synchronized fun clear() = map.clear()
 }

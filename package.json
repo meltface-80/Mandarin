@@ -31,5 +31,6 @@
     "fast-xml-parser": "^5.11.1",
     "music-metadata": "^11.13.0",
     "sharp": "^0.35.5"
-  }
+  },
+  "nextVersion": "1.1.7"
 }
