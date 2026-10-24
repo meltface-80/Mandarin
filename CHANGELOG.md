@@ -1,6 +1,14 @@
 # Changelog
 
-## Unreleased
+## v1.1.7
+
+**The Android app, at home and away, without the waiting.** From an audit of the app and its way to the server (the
+owner's log and a performance test with 13,660 albums): the app finds its way to the server (home or away) before it
+asks anything, and every screen that couldn't load asks again the moment the server answers; away from home its own
+Tailscale comes up by itself, it no longer flips to "away" at home when the server is busy, and it takes a Wi-Fi for
+home only when its own server answers there; smoother screens, a smaller optimised app (R8), covers kept on the
+phone, less battery off screen; and a server that a scan or a job no longer stalls, with history, Not played and
+artist pages answering at once. Opus away from home plays again (item 160). Items 157 to 160; there was no v1.1.6.
 
 - `160-opus-r8-keep` (item 160): away from home, the first track ended the phone's player with "NoSuchMethodError:
   SimpleDecoderOutputBuffer.init" (1.1.7-t3 and -t4). The release build's R8 (item 158) had taken out a method nothing

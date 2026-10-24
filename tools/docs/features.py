@@ -14,7 +14,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 
-# (id, emoji, title, new in v1.1.5, what it is, how to set it up and use it)
+# (id, emoji, title, new in v1.1.7, what it is, how to set it up and use it)
 FEATURES = [
     # ---- Home and finding music
     ("home", "🏠", "Home", False,
@@ -164,7 +164,7 @@ FEATURES = [
      "Tracks join gaplessly on a renderer that supports it.",
      "A renderer found on the network is off until you switch it on in **Settings → Audio Devices**. "
      "Then pick it with the speaker button. **Look again** searches the network now."),
-    ("localout", "🖥️", "Sound devices on the server", True,
+    ("localout", "🖥️", "Sound devices on the server", False,
      "A USB DAC, speakers or HDMI on the computer Mandarin runs on, played like a Sonos room. "
      "Tracks at the same rate join with nothing between them.",
      "Plug it in, then switch it on in **Settings → Audio Devices**. In Docker, add `--device /dev/snd` and `--privileged`; "
@@ -241,9 +241,9 @@ FEATURES = [
      "in **Settings → Setup → Wall Display**; off, it is off entirely. Tap the screen for its "
      "controls; **Shelf ›** opens Shelf."),
     # ---- The Android app
-    ("android", "📱", "The Android app", False,
-     "Mandarin's interface drawn natively by the app, plus lock-screen and notification controls, volume "
-     "keys, a widget, a Quick Settings tile, a share sheet, Android Auto and its own updates.",
+    ("android", "📱", "The Android app", True,
+     "Mandarin's interface drawn natively by the app, which finds the server home or away and asks again when it's "
+     "back; lock-screen controls, volume keys, a widget, Android Auto, its updates.",
      "Download [mandarin-android.apk](https://github.com/meltface-80/Mandarin/raw/main/dist/mandarin-android.apk) "
      "and install it (Android 8.0 or newer). Enter the port; it finds the server on your Wi-Fi."),
     ("phone", "🎧", "This phone", False,
@@ -270,9 +270,9 @@ FEATURES = [
      "the app does the same by itself, and reconnects when it can.",
      "In the Android app, **☰ → Offline mode**. While offline, a small *Offline* pill sits at the top of "
      "the screen: tap it to see why (Offline mode, or the server can't be reached)."),
-    ("away", "🌍", "Away from home", False,
-     "On mobile data the app reaches the server through its own Tailscale, with no ports opened. "
-     "Away, only the phone plays: Opus 256 or the original files.",
+    ("away", "🌍", "Away from home", True,
+     "On mobile data the app reaches the server through its own Tailscale, by itself, with no ports opened. "
+     "Away, only the phone plays: Opus 256 or original files.",
      "**Settings → Setup → Away from home** on the server: **Sign in to Tailscale**. Then in the app, the "
      "same page: **This phone**. Open the app once at home. Details under "
      "[Away from home](#away-from-home-tailscale)."),
@@ -351,7 +351,7 @@ def md_inline_to_html(s):
 def readme_block():
     lines = ["Every feature below has an **ⓘ**: open it for how to switch the feature on and use it.", ""]
     for i, (fid, em, title, new, what, how) in enumerate(FEATURES):
-        lines.append("%s **%s**%s" % (em, title, " — *new in v1.1.5*" if new else ""))
+        lines.append("%s **%s**%s" % (em, title, " — *new in v1.1.7*" if new else ""))
         lines.append("")
         lines.append(what)
         lines.append("")
