@@ -23,8 +23,8 @@ namespace Mandarin.Server;
 
 internal static partial class Covers
 {
-    // Two at a time (sharp.concurrency(2)), the rest waiting their turn.
-    private static readonly SemaphoreSlim Drawing = new(2);
+    // As many at once as there are cores, two to four (Covers.Ahead.cs), the rest waiting their turn.
+    private static readonly SemaphoreSlim Drawing = new(DrawLimit);
     private static readonly ConcurrentDictionary<string, Task<Drawn>> Inflight = new();
 
     /* How a cover went: drawn; none of its own (a placeholder is drawn, CoversDrawn.cs); or it couldn't be drawn. */

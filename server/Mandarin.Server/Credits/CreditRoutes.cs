@@ -6,7 +6,8 @@
 //   GET /api/credits/status                   how far the finding has come
 //
 // What hasn't been found yet is found there and then (CreditFinder.cs), for a
-// few seconds at most; the rest of the time the background has it already.
+// few seconds at most (an artist's page, a second); the rest of the time the
+// background has it already.
 using System.Text.Json.Nodes;
 using Mandarin.Server.Credits;
 
@@ -15,6 +16,8 @@ namespace Mandarin.Server;
 internal static partial class Library
 {
     private const int CreditsWaitMs = 15000;
+    // An artist's page: answered from what is kept, a lookup waited for a second at most (it goes on behind).
+    private const int ArtistWaitMs = 1000;
 
     /* Every act an album of the library's is credited to, by key. */
     private static HashSet<string> LibraryActs(Snapshot s)
@@ -114,7 +117,7 @@ internal static partial class Library
         var name = Names.JsTrim(Q(ctx, "name") ?? "");
         if (name.Length == 0) return await Send(ctx, new JsonObject { ["error"] = "name required" }, 400);
         var key = Names.ArtistKey(name);
-        var info = CreditFinder.Current is { } f ? await f.ArtistNow(name, CreditsWaitMs) : CreditStore.Artist(key);
+        var info = CreditFinder.Current is { } f ? await f.ArtistNow(name, ArtistWaitMs) : CreditStore.Artist(key);
         var photos = CreditStore.Photos();
         var acts = LibraryActs(s);
         var about = info?.About ?? new JsonObject();

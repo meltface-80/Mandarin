@@ -51,9 +51,19 @@ public sealed partial class DbCsharpTests(DbCsharpTests.Book book) : IClassFixtu
     // ALTER TABLE ADD COLUMN wrote them on its end.
     private static readonly (string Column, string Type)[] Ours = [("composer", "TEXT"), ("conductor", "TEXT"), ("work", "TEXT"), ("movement", "TEXT"), ("movement_no", "INTEGER"), ("performers", "TEXT")];
 
+    // Its own indexes beyond the Node server's (Schema.Indexes.cs): made, then taken out of the dump as its columns are.
+    private static readonly string[] OurIndexes = ["plays_album_ts"];
+
     private static JsonNode Db(string dir)
     {
         var d = SqliteDump.Dump(Path.Combine(dir, "musicd.db"));
+        var master = d["master"]!.AsArray();
+        foreach (var name in OurIndexes)
+        {
+            var mine = master.FirstOrDefault(m => m.Str("name") == name);
+            Assert.True(mine != null, "no index " + name);
+            master.Remove(mine);
+        }
         var added = string.Concat(Ours.Select(o => $", {o.Column} {o.Type}"));
         foreach (var m in d["master"]!.AsArray()) if (m.Str("name") == "tracks" && m.Str("sql") is { } sql) m!["sql"] = sql.Replace(added, "", StringComparison.Ordinal);
         if (d["columns"]!["tracks"] is JsonArray cols)
