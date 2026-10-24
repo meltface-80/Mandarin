@@ -120,12 +120,15 @@ jobs:
           set -e
           V=$(node -p "require('../../package.json').version")
           mkdir -p ../../engine-out
-          for A in amd64 arm64; do
-            CGO_ENABLED=0 GOOS=linux GOARCH=$A go build -trimpath -ldflags "-s -w -X main.version=$V" -o ../../engine-out/musicdnet-linux-$A .
-            gzip -9 -f ../../engine-out/musicdnet-linux-$A
+          # Linux's, and a Mac's (item 156; Go signs a Mac's build itself, as Apple silicon needs).
+          for OS in linux darwin; do
+            for A in amd64 arm64; do
+              CGO_ENABLED=0 GOOS=$OS GOARCH=$A go build -trimpath -ldflags "-s -w -X main.version=$V" -o ../../engine-out/musicdnet-$OS-$A .
+              gzip -9 -f ../../engine-out/musicdnet-$OS-$A
+            done
           done
           cd ../../engine-out
-          sha256sum musicdnet-linux-*.gz > SHA256SUMS
+          sha256sum musicdnet-*.gz > SHA256SUMS
           echo "$V" > VERSION
           cat SHA256SUMS VERSION
       - name: Publish to the "engine" pre-release

@@ -8,6 +8,7 @@ Status: **Open** · **In progress** · **Ready to test** (green, waiting on the 
 
 | # | Item | Branch | Status |
 |---|------|--------|--------|
+| 156 | Mandarin on a Mac, step 4: away from home, the server's built-in Tailscale on a Mac (its engine built for a Mac and fetched by the server) | `156-mac-away` | In progress |
 | 155 | Mandarin on a Mac, step 3: a Mac's own sound devices (a USB DAC) played through Core Audio by Mandarin's audio engine, bit-perfect at each track's rate, every rate the device takes offered; the engine for a Mac built and published with Linux's | `155-mac-dac` | In progress |
 | 153 | Mandarin on a Mac again (dropped in v1.0.3), step 1: the server built and signed for a Mac, its file system, Shut down's login item, the Mac's builds in an update and a release, a Mac's sound outputs listed, and the C# suite on GitHub's Macs, which only a release's Mac builds wait for | `153-mac-server` | In progress |
 | 152 | Spotify taken out, at the owner's word: everything items 142–148 and 150 added for it (the server's Soloist, Spotify in the library, Settings → Services → Spotify, the phone's Soloist test), and what it left on the server and the phone removed as each next starts | `152-remove-spotify` | Ready to test |
