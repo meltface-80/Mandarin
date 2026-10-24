@@ -109,7 +109,7 @@ private fun DeviceListPane(client: () -> ServerClient?, onBack: () -> Unit, onOp
             withContext(Dispatchers.IO) { runCatching { c.zones().zones.map { z -> Choice(z.id, z.name) } } }.onSuccess { zones = it }
             readSetting(client, "waveform")?.let { waveform = it.optBoolean("enabled") }
         }
-        while (true) { if (!busy) load(); delay(10_000) }
+        while (true) { untilOnScreen(); if (!busy) load(); delay(10_000) }
     }
     // A device switched on or off from its row: said, and the list read again.
     fun enable(r: DeviceRow, on: Boolean) {

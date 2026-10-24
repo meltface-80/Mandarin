@@ -44,17 +44,12 @@ func (f *Forwarder) SetDown(down bool) int {
 func (f *Forwarder) Start() (string, error) { return f.StartOn(0) }
 
 // StartOn listens on 127.0.0.1:port — the same port every time, so the page
-// keeps one address (its saved settings belong to it) — or on a free port
-// if that one is taken, or if port is 0.
+// keeps one address (its saved settings belong to it) — or on a free port if
+// port is 0. A port that is taken is an error, never another port in its place
+// (bug list item 158): the app goes on asking the port it named, its sign-in
+// with every request, and whatever held it would have had them.
 func (f *Forwarder) StartOn(port int) (string, error) {
-	var ln net.Listener
-	var err error
-	if port > 0 {
-		ln, err = net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", port))
-	}
-	if port == 0 || err != nil {
-		ln, err = net.Listen("tcp", "127.0.0.1:0")
-	}
+	ln, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", port))
 	if err != nil {
 		return "", err
 	}

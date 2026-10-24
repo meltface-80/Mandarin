@@ -116,7 +116,9 @@ internal fun AlbumScreen(offset: Long, zoneId: String, lit: String, client: () -
     var booklets by remember(offset) { mutableStateOf<List<Booklet>>(emptyList()) }
     var picks by remember(offset) { mutableStateOf<List<Int>?>(null) }   // selecting tracks: their places, in order of picking
     // Whether the album is on this phone, following the downloads as they go (the page's ⋯ reads the same store through its bridge).
-    var download by remember(offset) { mutableStateOf(DownloadStore.status(context, offset.toInt())) }
+    // Read off the main thread (item 158: the phone's storage and the album's file, read as the page was drawn).
+    var download by remember(offset) { mutableStateOf(JSONObject().put("state", "none")) }
+    LaunchedEffect(offset) { download = withContext(Dispatchers.IO) { DownloadStore.status(context, offset.toInt()) } }
     DisposableEffect(offset) {
         val l = { download = DownloadStore.status(context, offset.toInt()) }
         DownloadStore.listen(l)

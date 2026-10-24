@@ -28,6 +28,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.withFrameMillis
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -58,7 +59,7 @@ import kotlin.math.ceil
 import kotlin.math.floor
 import kotlin.math.min
 import kotlin.math.pow
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 
 /*
  * Home's own tiles (bug list item 57; the page's home-render.js, home-rows.js
@@ -123,7 +124,8 @@ internal class DiscSpin {
             val k = ((System.currentTimeMillis() - rampAt) / 600f).coerceIn(0f, 1f)
             speed = from + (to - from) * (1 - (1 - k).pow(3))
             val stop = stopAt
-            if (stop != null && angle >= stop) { angle = stop; speed = 0f; from = 0f; to = 0f; delay(100); last = withFrameMillis { it }; continue }
+            // Still: no frames asked for until a Random Album sets it turning again (item 158: ten a second, all the time Home was up).
+            if (stop != null && angle >= stop) { angle = stop; speed = 0f; from = 0f; to = 0f; snapshotFlow { finding }.first { it }; last = withFrameMillis { it }; continue }
             angle += speed * dt
             if (stop != null && angle > stop) angle = stop
         }

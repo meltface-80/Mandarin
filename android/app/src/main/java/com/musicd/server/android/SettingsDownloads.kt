@@ -73,6 +73,7 @@ internal fun SettingsDownloads(client: () -> ServerClient?, onBack: () -> Unit, 
     // Read now, after a change (reads), and every two seconds while open: a download moving on, the cache filling.
     LaunchedEffect(reads) {
         while (true) {
+            untilOnScreen()
             val got = withContext(Dispatchers.IO) {
                 runCatching { Triple(DlSettings.parse(JSONObject(bridge.settings())), DlAlbum.list(JSONArray(bridge.all())), Downloads.cacheLine(JSONObject(bridge.cacheStatus()))) }.getOrNull()
             }
