@@ -201,7 +201,7 @@ public sealed class UpdateAloneTests
             Assert.True(r.Body.Bool("ok"));
             JsonAssert.Same("""{"phase":"restarting","error":null,"version":"9.9.9"}""", r.Body["status"]?["apply"]);
             await srv.Proc.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(30));
-            Assert.True(srv.Proc.ExitCode == 3, "the stand-in's own leaving, in the same process");
+            Assert.True(srv.Proc.ExitCode == 3, $"the stand-in's own leaving, in the same process (left with {srv.Proc.ExitCode}; it wrote: {(File.Exists(marker) ? await File.ReadAllTextAsync(marker) : "nothing")})");
             // The file as the program knows itself: its real path (a temporary folder may be reached through a link).
             var real = new FileInfo(bin).ResolveLinkTarget(true)?.FullName ?? Path.GetFullPath(bin);
             Assert.True(await File.ReadAllTextAsync(marker) == $"{RealPath(real)}|0|\n", "started from its own file, with the same (no) arguments: " + await File.ReadAllTextAsync(marker));

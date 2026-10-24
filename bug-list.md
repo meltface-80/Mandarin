@@ -8,6 +8,7 @@ Status: **Open** · **In progress** · **Ready to test** (green, waiting on the 
 
 | # | Item | Branch | Status |
 |---|------|--------|--------|
+| 154 | Mandarin on a Mac, step 2: the one-line installer again (Homebrew's ffmpeg and poppler, the latest release's page and Mac server, the music folder, a login item and a desktop icon), and Install on a Mac in the README | `154-mac-install` | In progress |
 | 156 | Mandarin on a Mac, step 4: away from home, the server's built-in Tailscale on a Mac (its engine built for a Mac and fetched by the server) | `156-mac-away` | In progress |
 | 155 | Mandarin on a Mac, step 3: a Mac's own sound devices (a USB DAC) played through Core Audio by Mandarin's audio engine, bit-perfect at each track's rate, every rate the device takes offered; the engine for a Mac built and published with Linux's | `155-mac-dac` | In progress |
 | 153 | Mandarin on a Mac again (dropped in v1.0.3), step 1: the server built and signed for a Mac, its file system, Shut down's login item, the Mac's builds in an update and a release, a Mac's sound outputs listed, and the C# suite on GitHub's Macs, which only a release's Mac builds wait for | `153-mac-server` | In progress |
