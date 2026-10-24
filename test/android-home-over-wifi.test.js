@@ -18,8 +18,9 @@ test("the way decided, the app's connections are tied to the Wi-Fi at home and l
   const away = read("Away.kt");
   assert.match(away, /val away = way\.away\s+HomeWifi\.follow\(c, Route\.overWifi\(away, wifi\)\)/);
   // Asked over the Wi-Fi, up to three times before home is left (item 157: homeAnswers), each look over that network.
-  assert.match(away, /homeAnswers\(home, Route\.looksBeforeAway\(wasAway, wifi\), if \(wifi\) HomeWifi\.network\(c\) else null\)/, "the home address asked over the Wi-Fi");
-  assert.match(away, /private fun homeAnswers\(home: ServerAddress, looks: Int, over: Network\?\): Boolean \{[\s\S]*?answers\(home, 1500, over\)/);
+  // ...and as this phone's own server (item 158: Store.serverId, the id its sign-in was taken by).
+  assert.match(away, /homeAnswers\(home, Route\.looksBeforeAway\(wasAway, wifi\), if \(wifi\) HomeWifi\.network\(c\) else null, Store\.serverId\(c\)\)/, "the home address asked over the Wi-Fi");
+  assert.match(away, /private fun homeAnswers\(home: ServerAddress, looks: Int, over: Network\?, kept: String\?\): Boolean \{[\s\S]*?answers\(home, 1500, over, kept\)/);
   assert.match(away, /HomeWifi\.watch\(app\) \{ recheck\(app, soon = true\) \}/, "the Wi-Fi itself followed");
   const wifi = read("HomeWifi.kt");
   assert.match(wifi, /cm\.bindProcessToNetwork\(want\)/);
