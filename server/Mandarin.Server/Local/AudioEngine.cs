@@ -3,7 +3,7 @@
 // (v0.8.49, stage 6 part 4): AUDIO_ENGINE_BIN, the image's
 // (engine/bin/mandarin-audio beside the app), or the one downloaded into the
 // data folder; the first that answers "<version> protocol 1". None with
-// AUDIO_ENGINE=0, or off Linux (it plays through ALSA). One found is
+// AUDIO_ENGINE=0, or off Linux and a Mac (ALSA; Core Audio from item 155). One found is
 // remembered; none is looked for again a minute on. Where the image lacks it
 // (an install updated in place whose image predates the engine) it is fetched
 // once, in the background, from the "audio-engine" pre-release on GitHub and
@@ -31,7 +31,8 @@ internal static partial class AudioEngine
 
     public static string? Version() => Find()?.Version;
 
-    private static bool Off => (Environment.GetEnvironmentVariable("AUDIO_ENGINE") ?? "").Trim() == "0" || !OperatingSystem.IsLinux();
+    private static bool Off => (Environment.GetEnvironmentVariable("AUDIO_ENGINE") ?? "").Trim() == "0" || !(OperatingSystem.IsLinux() || OperatingSystem.IsMacOS());
+    private static string Os => OperatingSystem.IsMacOS() ? "osx" : "linux";
     private static string DownloadedBin(string dataDir) => Path.Combine(dataDir, "bin", "mandarin-audio");
 
     /* The engine to use, or null. Decided once (and again after a download, or a minute on when there was none). */
@@ -55,8 +56,8 @@ internal static partial class AudioEngine
     /* For a test: forget what was found. */
     public static void Reset() { lock (Gate) { found = null; lookedAt = 0; } }
 
-    /* A location the engine can play: an ALSA device, or the tests' file. */
-    public static bool Plays(string? location) => Regex.IsMatch(location ?? "", "^(alsa|file):");
+    /* A location the engine can play: an ALSA device, a Mac's (Core Audio), or the tests' file. */
+    public static bool Plays(string? location) => Regex.IsMatch(location ?? "", "^(alsa|coreaudio|file):");
 
     private static bool Executable(string f)
     {
@@ -68,7 +69,7 @@ internal static partial class AudioEngine
     /* "0.8.0 protocol 1" from the program, or null if it isn't one that can be driven. */
     public static string? Probe(string bin)
     {
-        if (!OperatingSystem.IsLinux() || !Executable(bin)) return null;
+        if (Off || !Executable(bin)) return null;
         try
         {
             using var p = Process.Start(new ProcessStartInfo(bin, "--version") { RedirectStandardOutput = true, RedirectStandardError = true, UseShellExecute = false })!;
@@ -91,7 +92,8 @@ internal static partial class AudioEngine
         var e = Find(dataDir);
         if (e != null) { log($"[local] Mandarin's audio engine {e.Version} plays sound devices on this computer"); return; }
         static string? Env(string k) => Environment.GetEnvironmentVariable(k);
-        var may = Env("DOCKER") == "1" || Env("AUDIO_ENGINE_DOWNLOAD") == "1" || !string.IsNullOrEmpty(Env("AUDIO_ENGINE_URL"));
+        // A Mac has no image to bring it (item 155): fetched there too.
+        var may = Env("DOCKER") == "1" || OperatingSystem.IsMacOS() || Env("AUDIO_ENGINE_DOWNLOAD") == "1" || !string.IsNullOrEmpty(Env("AUDIO_ENGINE_URL"));
         if (may) _ = Ensure(dataDir, version, log);
     }
 
@@ -115,7 +117,7 @@ internal static partial class AudioEngine
 
     private static async Task<bool> Download(string bin, string marker, string version, Action<string> log)
     {
-        var name = $"mandarin-audio-linux-{Arch}.gz";
+        var name = $"mandarin-audio-{Os}-{Arch}.gz";
         try
         {
             var baseUrl = Regex.Replace(Environment.GetEnvironmentVariable("AUDIO_ENGINE_URL") is { Length: > 0 } u ? u : ReleaseUrl, "/+$", "");

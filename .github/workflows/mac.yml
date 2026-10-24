@@ -33,6 +33,17 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: "10.0.x"
+      # The audio engine (Native AOT, with Xcode's own toolchain), which plays a Mac's devices through
+      # Core Audio (item 155): it says its version, lists the Mac's outputs (a line each, the runner may
+      # have none), and a device that isn't there is said, not a crash.
+      - name: Build and check the audio engine
+        run: |
+          ./engine/build.sh
+          engine/bin/mandarin-audio --devices | tee "$RUNNER_TEMP/devices"
+          ! grep -v '^{"name":".*","rates":"[0-9,]*"}$' "$RUNNER_TEMP/devices"
+          said=$( (echo '{"cmd":"play","uri":"http://127.0.0.1:9/none.flac","offset":0}'; sleep 3; echo '{"cmd":"quit"}') | engine/bin/mandarin-audio --device "coreaudio:No Such DAC" )
+          echo "$said"
+          grep -q '"ev":"hello"' <<<"$said"
       # Signed ad hoc as it is built (Apple silicon runs nothing unsigned).
       - name: Build the C# server
         run: |

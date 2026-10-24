@@ -246,7 +246,7 @@ internal static class RulesCommand
             o["devices"] = list.Devices.Select(SeenJson).ToList();
             o["hidden"] = (double)list.Hidden;
         }
-        if (job["mac"] is string mac) o["mac"] = Local.LocalDevices.ParseMac(mac).Select(SeenJson).ToList();
+        if (job["mac"] is string mac) o["mac"] = Local.LocalDevices.ParseMac(mac, job["mac_engine"] as string).Select(SeenJson).ToList();
         o["hw"] = Each(job["hw"], h => Local.LocalDevices.HwParams(S(At(h, 0)), S(At(h, 1))) is { } p ? new JsObj { ["rate"] = p.Rate, ["format"] = p.Format } : null);
         o["ids"] = Each(job["ids"], k => Local.LocalDevices.IdOf(S(k)));
         o["amplitude"] = Each(job["amplitude"], a => Local.EngineOutput.Amplitude(N(At(a, 0)), TJs.Truthy(At(a, 1))));

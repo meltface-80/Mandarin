@@ -65,6 +65,13 @@ class AudioDevicesTest {
         assertTrue(d.capNotes[0].startsWith("DSD files go to it as they are"))
     }
 
+    @Test fun `a sound device's note says how it plays, a Mac's by Core Audio`() {
+        val mac = DevicePage(JSONObject("""{"kind":"local","found_by":"This Mac (Core Audio)"}"""))
+        assertTrue(mac.capNotes[0].startsWith("Mandarin sets the device to each track’s rate"))
+        val linux = DevicePage(JSONObject("""{"kind":"local","found_by":"This computer (ALSA)"}"""))
+        assertTrue(linux.capNotes[0].startsWith("Mandarin sends the rates that are on; ALSA"))
+    }
+
     @Test fun `a lone rate stays on, and a phone's and a Sonos room's words`() {
         val one = DevicePage(JSONObject("""{"kind":"upnp","editable":true,"rates":[{"hz":48000,"on":true}]}"""))
         assertNull(one.tapped(one.rates[0]))
