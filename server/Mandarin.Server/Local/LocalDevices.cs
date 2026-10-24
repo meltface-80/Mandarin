@@ -152,7 +152,9 @@ internal static class LocalDevices
             var text = p.StandardOutput.ReadToEndAsync();
             _ = p.StandardError.ReadToEndAsync();
             using var cts = new CancellationTokenSource(20000);
-            await p.WaitForExitAsync(cts.Token);
+            // Not done in 20 s: let go of, not left behind (a Mac with no sound devices can keep it waiting).
+            try { await p.WaitForExitAsync(cts.Token); }
+            catch (OperationCanceledException) { try { p.Kill(true); } catch (InvalidOperationException) { /* gone */ } throw; }
             if (p.ExitCode == 0) list.Devices = ParseMac(await text);
         }
         catch (Exception e) when (e is System.ComponentModel.Win32Exception or IOException or OperationCanceledException or InvalidOperationException) { /* none listed */ }
