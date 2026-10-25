@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- `169-native-settings-seen-wait` (item 169): the test that a Settings page opened from the app is seen and can be
+  tapped failed now and then on a busy machine: it looked at the middle of Back once, the moment the app was told, and
+  the page was still sliding in. It looks until Back has come to rest (within 10 s, as its other waits); a page never
+  seen still fails it.
+
 - `167-settings-desktop-test-slow` (item 167): the desktop Settings test took two minutes against its two-minute
   limit, so on a busy machine it ran out of time. Each step waited for everything on the page to stop moving, and
   Home's unheard disc, turning behind Settings for 12 seconds, held every run's first steps to their 8 s limit. It
