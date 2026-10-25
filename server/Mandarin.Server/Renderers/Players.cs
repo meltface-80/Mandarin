@@ -23,12 +23,19 @@ internal sealed class Player(string id)
     public List<UpnpItem> Queue = [];
     public int Index = -1;
     public (int Index, string Uri, bool Sent)? Next;
-    public HashSet<int> Played = [];
+    // Shuffle's: the tracks played (the items themselves, so an edit of the queue moves them with it), and the track picked
+    // to follow the one playing, kept while that one plays (item 183).
+    public HashSet<UpnpItem> Played = [];
+    public (UpnpItem After, UpnpItem Next)? Successor;
     public bool Shuffle;
     public string Loop = "disabled";
     public (double? Value, bool Muted) Volume = (null, false);
     public bool ExpectStop, NoSetNext, Subscribing;
     public int Strikes, Jumping;      // Jumping: jumps under way (Jump), whose renderer may still say the track before
+    // Heard: the state the room shows is the device's own, read from it (or a jump of ours): not one carried over an
+    // outage or a restart, whose stop is no end of a track (item 184). Polling: a read under way; PollAgain: another
+    // asked for meanwhile, made once it has answered.
+    public bool Heard, Polling, PollAgain, PollAgainVolume;
     public (double At, string Message)? LastError;
     public IRenderer? Renderer;
     public string Location = "";
@@ -116,10 +123,13 @@ internal sealed partial class Players
         {
             p.Queue = items.Take(QueueMax).Select(ToItem).ToList();
             p.Index = Math.Max(0, Math.Min(p.Queue.Count - 1, (int)snap.Index));
+            // Kept as it was, but not heard: the first read says how the device is now, and a stop then is no end of a track.
+            p.Heard = false;
             p.Next = null;
             p.Shuffle = snap.Shuffle;
             p.Loop = snap.Loop is "disabled" or "loop" or "loop_one" ? snap.Loop : "disabled";
-            p.Played = p.Shuffle ? [p.Index] : [];
+            p.Played = p.Shuffle ? [p.Queue[p.Index]] : [];
+            p.Successor = null;
             if (snap.VolumeValue != null) p.Volume = (snap.VolumeValue.Value, snap.VolumeValue.Muted);
             var it = p.Queue[p.Index];
             next = ZoneState.Blank(new Volume(p.Volume.Value, p.Volume.Muted));
@@ -244,7 +254,11 @@ internal sealed partial class Players
         lock (gate)
         {
             if (items.Count != p.Queue.Count) return false;
+            // The same tracks in the same places, made again: what was played is still played.
+            var played = Enumerable.Range(0, p.Queue.Count).Where(i => p.Played.Contains(p.Queue[i])).ToList();
             p.Queue = items.Select(ToItem).ToList();
+            p.Played = played.Select(i => p.Queue[i]).ToHashSet();
+            p.Successor = null;
             p.Next = null;
         }
         return true;
@@ -299,7 +313,7 @@ internal sealed partial class Players
     /* Its queue emptied, the renderer stopped, the room blank and kept so. */
     private async Task Emptied(Player p)
     {
-        lock (gate) { p.Queue = []; p.Index = -1; p.Next = null; p.Played = []; p.ExpectStop = true; }
+        lock (gate) { p.Queue = []; p.Index = -1; p.Next = null; p.Played = []; p.Successor = null; p.ExpectStop = true; }
         try { await RendererOf(p).Stop(); } catch (RendererError) { /* already */ }
         lock (zm.Gate) zm.State[p.Id] = ZoneState.Blank(new Volume(p.Volume.Value, p.Volume.Muted));
         zm.Bump();

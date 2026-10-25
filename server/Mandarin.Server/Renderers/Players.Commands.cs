@@ -123,10 +123,11 @@ internal sealed partial class Players
             it = p.Queue[index];
             p.ExpectStop = false;
             p.Next = null;              // SetAVTransportURI clears a renderer's next
+            p.Heard = true;             // started by us: a stop now is this track's
             p.Index = index;
             p.LoadingSince = Hub.Now();
             p.Jumping++;
-            if (p.Shuffle) p.Played.Add(index);
+            if (p.Shuffle) p.Played.Add(it);
         }
         var r = RendererOf(p);
         Optimistic(p.Id, st =>
@@ -350,8 +351,9 @@ internal sealed partial class Players
         var p = Get(id);
         lock (gate)
         {
-            if (shuffle != null) { p.Shuffle = shuffle.Value; p.Played = p.Index >= 0 ? [p.Index] : []; }
+            if (shuffle != null) { p.Shuffle = shuffle.Value; p.Played = p.Index >= 0 && p.Index < p.Queue.Count ? [p.Queue[p.Index]] : []; }
             if (loop is "disabled" or "loop" or "loop_one") p.Loop = loop;
+            p.Successor = null;
         }
         Optimistic(id, s => { s.Shuffle = p.Shuffle; s.Loop = p.Loop; });
     }

@@ -155,6 +155,8 @@ class FakeRenderer {
     this.endTimer.unref();
   }
 
+  /* Off the network (offline = true): every request's connection dropped unanswered, counted in refused. */
+
   /* Reads held from now on, each answered with what the device had when it was asked. */
   holdReads() { this.readGate = []; }
   /* The first n held reads answered, in the order asked; all of them, and no more holding, without n. */
@@ -214,6 +216,7 @@ class FakeRenderer {
 
   start() {
     this.server = http.createServer((req, res) => {
+      if (this.offline) { this.refused = (this.refused || 0) + 1; req.socket.destroy(); return; }
       const u = new URL(req.url, "http://x");
       this.requests.push({ method: req.method, path: u.pathname, query: u.search, soap: req.headers.soapaction || "" });
       if (req.method === "GET" && u.pathname === "/description.xml") {
