@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- `173-http-input-hardening` (item 173): three ways a request's body was read too trustingly, from a review. A
+  renderer's event (NOTIFY, taken before the sign-in and before the 2 MB limit) was read whole into memory, so anyone
+  who reached the port could send one of any size and take the server's memory: no more than 1 MB is read, past it a
+  413. A body was read as JSON whenever its type had "json" anywhere in it, "text/plain; x=json" too, a type any site
+  may send without asking first: only application/json and the …+json types are, their parameters aside. And a
+  body naming a field twice ({"a":1,"a":2}) was a 500 with nothing said on the sign-in and settings routes, the
+  second name found only when the route read it: the whole body is read at once and the last one kept, as the Node
+  server's JSON.parse kept it and as every other route here reads a body.
+
 - `178-update-message-test-builds` (item 178): Check for updates, with dev's server (a test build, 1.1.9-tN) ahead of
   the app, said "App v1.1.9-t2 is on its way — try again in a few minutes" every time, in the page and in the
   Android app's own Settings, and it never came: the app updates only from main's dist/, which never carries a test
