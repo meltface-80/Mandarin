@@ -12,6 +12,12 @@
   never measured: it is kept only while the track is still the file measured. What was left before is taken away
   once, as the server starts.
 
+- `194-phone-shuffle-start` (item 194): Shuffle on the Android phone's own player always began at track 1: an album of
+  the phone's music, or a download played in the phone's room offline, went onto the player in its order from the
+  first track, with the player's shuffle switched on. That shuffle then stayed on, so every album played after it was
+  shuffled too. Now Shuffle plays the album in a shuffled order, as the server does: its first track is any of them,
+  and the player's own shuffle (Now playing's button) is left as it was.
+
 - `193-server-reach-one-loop` (item 193): the Android app's look at whether the server is still there, every quarter
   of a minute while on screen, could run twice over, then three times and more. Coming back to the app, or a network
   dropping, while a look was out started another loop beside the one already running. The server was then asked more
