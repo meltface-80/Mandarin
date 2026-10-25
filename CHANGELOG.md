@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- `189-sign-in-away-address` (item 189): the Android app's sign-in screen always asked the home address, so away
+  from home (Tailscale) it said the server didn't answer and could not sign the phone in. It asks on the way the app
+  is using now, home or away. Before it makes an account, joins or signs in, it checks that the server answering is
+  this phone's own (the server id kept since item 158), so another Mandarin server at the same address is not taken
+  for it. It now has a Try again button after the server didn't answer, or couldn't be set up from where the phone
+  is. Making the account (Settings → Account, Ask for a sign-in, with no account yet) sends this phone's sign-in, so
+  the server replaces the device the phone was without an account and no longer leaves that device in the list.
+
 - `170-android-test-build-every-dev-push` (item 170): every dev build of the server now has an Android test build of the
   same number, as the owner's rule is. The server's image was built on every push to dev, the APK only when the app,
   the page or its workflow changed: after items 165 to 169 (tooling and tests alone) dev's server moved on while
