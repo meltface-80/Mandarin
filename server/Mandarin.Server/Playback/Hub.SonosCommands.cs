@@ -218,8 +218,14 @@ internal sealed partial class Hub
         var d = new SonosDevice(m.Ip, m.Uid, m.Name);
         (double? Value, bool Muted, double At) v;
         lock (Gate) volumes.TryGetValue(m.Uid, out v);
-        var target = how is "relative" or "relative_step" ? Math.Max(0, Math.Min(100, (v.Value ?? 0) + value)) : Math.Max(0, Math.Min(100, value));
-        await d.SetVolume(target);
+        double target;
+        // A nudge before the room's volume was read (item 187): the room's own relative step, from where it is, not from nought.
+        if (how is "relative" or "relative_step" && v.Value == null) target = await d.SetRelativeVolume(value);
+        else
+        {
+            target = how is "relative" or "relative_step" ? Math.Max(0, Math.Min(100, v.Value!.Value + value)) : Math.Max(0, Math.Min(100, value));
+            await d.SetVolume(target);
+        }
         lock (Gate) volumes[m.Uid] = (target, v.Muted, Now());
         Bump();
     }

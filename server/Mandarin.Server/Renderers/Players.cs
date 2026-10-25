@@ -292,7 +292,8 @@ internal sealed partial class Players
         }
     }
 
-    public List<long> TrackIds(string id) { var p = Get(id); lock (gate) return p.Queue.Select(it => it.TrackId ?? 0).Where(x => x > 0).ToList(); }
+    /* The library's ids of the queue, in order: 0 for what isn't the library's, so a place in it stays a place (item 187). */
+    public List<long> TrackIds(string id) { var p = Get(id); lock (gate) return p.Queue.Select(it => it.TrackId ?? 0).ToList(); }
     public (double At, string Message)? ErrorOf(string id) { lock (gate) return map.TryGetValue(id, out var p) ? p.LastError : null; }
 
     /* Its queue emptied, the renderer stopped, the room blank and kept so. */
