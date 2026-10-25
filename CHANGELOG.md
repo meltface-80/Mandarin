@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- `180-updater-stuck-and-swap-order` (item 180): an update could stick, and could leave a new program among old
+  files. A check whose answer was cut off (a dropped connection) wasn't caught, and an Update that began with that
+  check stayed "checking" for good, every later Update turned away at once: the check ends in its error now, and so
+  does the Update, each time it is asked. The new program was put in place of the old before the release's files were
+  laid in, so a failure laying them in left the new program with the old pages and no way back (and the scans ran the
+  new one meanwhile): it is fetched and checked first, kept beside the old, and swapped in last, the old one kept as
+  `mandarin-server.prev` and put back if anything fails after the swap. A folder or file the release is laid over that
+  can't be written is refused before anything is changed, saying which.
+
 - `170-android-test-build-every-dev-push` (item 170): every dev build of the server now has an Android test build of the
   same number, as the owner's rule is. The server's image was built on every push to dev, the APK only when the app,
   the page or its workflow changed: after items 165 to 169 (tooling and tests alone) dev's server moved on while

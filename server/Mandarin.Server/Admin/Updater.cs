@@ -7,10 +7,10 @@
 // request the release's bundle downloaded, unpacked with the system's tar,
 // checked (package.json, the package's name), then — before anything is laid
 // in — this program of the new version fetched for this machine, checked
-// against the release's SHA-256 sums and asked its version, and put in place
-// of the running one (which carries on from the old file). Then the bundle's
-// files are laid over the install (never the data) and this program starts
-// again from the new file, in the same process (Jobs.Restart, Server.StartAgain).
+// against the release's SHA-256 sums and asked its version, and put beside
+// the running one. Then the bundle's files are laid over the install (never
+// the data), the new program swapped in last (Updater.Swap.cs), and this one
+// starts again from the new file, in the same process (Jobs.Restart, Server.StartAgain).
 //
 // The check by itself: half a minute after the start, then every twelve hours
 // (UPDATE_CHECK=false: never). The job "update" (Jobs.cs).
@@ -22,7 +22,6 @@
 using System.Diagnostics;
 using System.Globalization;
 using System.IO.Compression;
-using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
@@ -167,6 +166,7 @@ internal sealed partial class Updater
             string data;
             try { data = await res.Content.ReadAsStringAsync(cts.Token); }
             catch (OperationCanceledException) { throw new UpdateError("GitHub API timeout"); }
+            catch (HttpRequestException e) { throw new UpdateError(e.InnerException?.Message ?? e.Message); }   // the connection dropped mid-answer (item 180)
             if (code is >= 200 and < 300)
             {
                 try { return new Got(code, JsJson.Parse(data), null); }
@@ -313,7 +313,8 @@ internal sealed partial class Updater
             }
             Debug($"checked: {Js.Str(latest)} available={(available ? "true" : "false")} src={Js.Str(source)}");
         }
-        catch (Exception e) when (e is UpdateError or LookupError or IOException)
+        // Whatever stopped it ends it with its error (item 180): a faulted check left Apply, which waits on it, in "checking".
+        catch (Exception e)
         {
             lock (gate) error = e.Message;
             Debug("check failed: " + e.Message);
@@ -339,27 +340,26 @@ internal sealed partial class Updater
             if (Busy.Contains(phase) || phase == "checking") return;
             phase = "checking"; applyError = null; applyVersion = null;
         }
-        bool have;
-        lock (gate) have = available && !Js.IsNullish(downloadUrl);
-        if (!have)
-        {
-            await CheckNow();
-            lock (gate)
-            {
-                if (!available || Js.IsNullish(downloadUrl))
-                {
-                    phase = "error"; applyError = error ?? "No update available"; applyVersion = null;
-                    return;
-                }
-            }
-        }
-        string target, url;
-        lock (gate) { target = Js.Str(latest); url = Js.Str(downloadUrl); }
         var upd = Path.Combine(dir, ".update");
         var dlFile = Path.Combine(upd, "download.tgz");
         var exRoot = Path.Combine(upd, "extract");
+        string? applying = null;
         try
         {
+            // The check it may start with inside too (item 180): one that fails ends the phase in "error", never "checking".
+            bool have;
+            lock (gate) have = available && !Js.IsNullish(downloadUrl);
+            if (!have)
+            {
+                await CheckNow();
+                lock (gate)
+                {
+                    if (!available || Js.IsNullish(downloadUrl)) { phase = "error"; applyError = error ?? "No update available"; applyVersion = null; return; }
+                }
+            }
+            string target, url;
+            lock (gate) { target = Js.Str(latest); url = Js.Str(downloadUrl); }
+            applying = target;
             Directory.CreateDirectory(upd);
             try { Directory.Delete(exRoot, true); } catch (IOException) { /* none yet */ } catch (UnauthorizedAccessException) { /* left to the copy */ }
             Directory.CreateDirectory(exRoot);
@@ -380,11 +380,9 @@ internal sealed partial class Updater
 
             // What has to come with it, ready before anything is staged (v0.8.29):
             // this program of the new version. It throws if it can't be had, and
-            // the update stops here with nothing changed.
+            // the update stops here with nothing changed. Swapped in last (item 180).
             Phase("preparing", target);
-            await Prepare(target);
-
-            ApplyStaged(staged, dir);
+            LayIn(staged, await Prepare(staged, target), target);
             try { Directory.Delete(upd, true); } catch (Exception e) when (e is IOException or UnauthorizedAccessException) { /* left behind */ }
             Phase("restarting", target);
             Debug("applied in place; this program starts again from the new file");
@@ -394,7 +392,7 @@ internal sealed partial class Updater
         // "error", never left in the middle, where every later ask would be turned away.
         catch (Exception e)
         {
-            lock (gate) { phase = "error"; applyError = e.Message; applyVersion = target; }
+            lock (gate) { phase = "error"; applyError = e.Message; applyVersion = applying; }
             Debug("apply failed: " + e.Message);
         }
     }
@@ -439,49 +437,6 @@ internal sealed partial class Updater
             if (Directory.Exists(s)) { Directory.CreateDirectory(d); CopyOverlay(s, d); }
             else File.Copy(s, d, overwrite: true);
         }
-    }
-
-    // --------------------------------------------- this program, of the new version
-
-    [LibraryImport("libc", EntryPoint = "access", SetLastError = true, StringMarshalling = StringMarshalling.Utf8)]
-    private static partial int Access(string path, int mode);
-
-    private static bool Writable(string d)
-    {
-        try { return Access(d, 2) == 0; }
-        catch (Exception e) when (e is EntryPointNotFoundException or DllNotFoundException) { return true; }
-    }
-
-    /* The program this one runs from: told (the tests) or its own file. */
-    public static string BinPath() => Env("MANDARIN_SERVER_BIN") ?? Environment.ProcessPath ?? "";
-
-    /*
-     * csharp-update.js prepare: this program of the version being installed,
-     * fetched, checked and put in place before the update stages anything;
-     * throws, and nothing has changed, when it can't be had. Nothing to do with
-     * its updates switched off.
-     */
-    private async Task Prepare(string target)
-    {
-        if (Env("MANDARIN_SERVER_UPDATE") == "0") return;
-        var (platform, arch) = Machine();
-        var mac = platform == "darwin";
-        var getAgain = GetAgain(mac);
-        if (Build() == null) throw new UpdateError($"no C# server is built for this machine ({platform} {arch}); the update would leave it behind");
-        var bin = BinPath();
-        if (bin.Length == 0 || !File.Exists(bin)) throw new UpdateError($"no C# server at {bin}");
-        var binDir = Path.GetDirectoryName(bin) ?? ".";
-        if (!Writable(binDir)) throw new UpdateError($"{binDir} can't be written to; {getAgain} instead");
-        log($"[update] fetching the C# server {target} before the update");
-        string next;
-        try { next = await FetchProgram(bin, target, mac); }
-        catch (Exception e)
-        {
-            throw new UpdateError($"the C# server {target} couldn't be fetched ({e.Message}); nothing was changed");
-        }
-        File.Move(next, bin, overwrite: true);
-        File.WriteAllText(bin + ".version", target + "\n");
-        log($"[update] the C# server {target} is in place; it starts with the update");
     }
 
     /* fetchProgram: the program for this machine from release v<v>, checked, put beside [bin] as <bin>.new. */
