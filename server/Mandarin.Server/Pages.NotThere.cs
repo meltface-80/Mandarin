@@ -6,8 +6,6 @@
 // without a length a 413 (with one, Auth.UseBodyLimit has refused it) — then
 // not there: an /api/ address as JSON, with its path under /api, anything else
 // finalhandler's page.
-using Microsoft.Net.Http.Headers;
-
 namespace Mandarin.Server;
 
 internal static partial class Pages
@@ -26,13 +24,13 @@ internal static partial class Pages
 
     /*
      * body-parser's json(), as every route reads a body (Http.ReadJson): one
-     * typed application/json, read; turned down, its refusal. Empty is {}, and
+     * typed as JSON (Http.IsJson), read; turned down, its refusal. Empty is {}, and
      * any other type isn't its to read.
      */
     private static async Task<JsonBody?> Unreadable(HttpContext ctx)
     {
         var req = ctx.Request;
-        if (!MediaTypeHeaderValue.TryParse(req.ContentType, out var type) || !type.MediaType.Equals("application/json", StringComparison.OrdinalIgnoreCase)) return null;
+        if (!Http.IsJson(ctx)) return null;
         if (req.ContentLength is null && !req.Headers.ContainsKey("Transfer-Encoding")) return null;
         var (_, read) = await Http.ReadJs(ctx);
         return read.Refused ? read : null;
