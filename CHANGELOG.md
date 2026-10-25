@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- `162-toasts-big-screen` (item 162): on a 65" TV the toasts' writing was too small to read. They follow the page's
+  text size now (UI Settings, the size for every other piece of text), and on a screen 1600px wide or more they grow
+  with its width: twice the size at 1920px (28px), the box they are written in with them. Settings' ⓘ notes too. A
+  laptop's stay as they were.
+
 - `161-account-optional` (item 161): **an account is optional.** A TV showing the shelf or the wall can't easily have
   a username and a password typed into it, so asking for a sign-in is now a choice.
   - **A new install** offers "Use without an account" on its setup page (and in the Android app's first screen): the
