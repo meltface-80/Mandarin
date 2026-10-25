@@ -251,7 +251,7 @@ internal sealed partial class Tailscale(string imageBin, string dir, int port, s
         {
             lock (gate)
             {
-                if (proc == p) { proc = null; ctl = null; }
+                if (!LetGo(p)) return;
                 timer?.Cancel();
                 if (stopping) return;
                 string said;

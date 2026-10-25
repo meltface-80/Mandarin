@@ -13,7 +13,8 @@ namespace Mandarin.StandIns;
 /// said on its first line ("CONTROL port"), every call checked against MUSICDNET_SECRET and written down
 /// in calls.log beside the script, the arguments it was started with in args.txt (and whether an auth
 /// key leaked into its environment). Signed in by an auth key, or waiting for a sign-in link; with
-/// TS_STUB_STALE, Running but never online. It leaves when its input closes, as the real one does.
+/// TS_STUB_STALE, Running but never online. It leaves when its input closes, as the real one does; with
+/// TS_STUB_LINGER, not until it is killed (an engine slow to leave, item 181).
 /// </summary>
 public static class Musicdnet
 {
@@ -73,6 +74,7 @@ public static class Musicdnet
         Console.Out.Flush();
         // Until the server lets go of it.
         await Console.OpenStandardInput().CopyToAsync(Stream.Null);
+        if (Environment.GetEnvironmentVariable("TS_STUB_LINGER") is { Length: > 0 }) await Task.Delay(Timeout.Infinite);
         await app.StopAsync();
         return 0;
     }

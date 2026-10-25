@@ -6,8 +6,8 @@
  * test build is installed, and the release after it is offered over it by the updaters (1.1.4-t7 < 1.1.4). The next
  * release's number (package.json's, its last number one up) with -tN, N the commits on this branch since that release
  * was tagged, or, while that next release is on dev and not yet tagged on main, the same count up to it (versionFor;
- * first parent only: one each merged pull request; merge commits left out, so bringing the release back
- * from main counts for nothing and the first pull request after a release is -t1, item 161). Nothing is committed: the build stamps it as it builds
+ * first parent only: one each merged pull request, squashed or merged; a merge of main back into dev counts for
+ * nothing, so the first pull request after a release is -t1, items 161 and 171). Nothing is committed: the build stamps it as it builds
  * (.github/workflows/docker-publish.yml, android.yml). package.json's "nextVersion", when later than the release, names the
  * next release instead (the owner's word: dev's builds after v1.1.5 are 1.1.7-tN).
  *   node tools/test-version.js      the version for this checkout, e.g. 1.1.4-t7
@@ -38,12 +38,22 @@ function later(a, b) {
   return false;
 }
 
-/** The commits on HEAD since [tag] (all of HEAD's when the tag isn't here), merges not counted. @param {string} tag @param {string} cwd */
+/**
+ * The changes on HEAD since [tag] (all of HEAD's when the tag isn't here): each commit on the first-parent line, a
+ * pull request's merge commit included, but not a merge of main back into dev, which brings nothing new (what it
+ * merges is on main already). All merges were left out (item 161), and pull requests merged with a merge commit
+ * then counted for nothing: dev's builds after v1.1.8 said 1.1.8, 1.1.8, 1.1.9-t1, 1.1.9-t1 (item 171).
+ * @param {string} tag @param {string} cwd
+ */
 function commitsSince(tag, cwd) {
   const git = (/** @type {string[]} */ ...a) => execFileSync("git", a, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim();
-  let range = "HEAD";
-  try { git("rev-parse", "--verify", "--quiet", tag + "^{commit}"); range = tag + "..HEAD"; } catch { /* no such tag: every commit */ }
-  return Number(git("rev-list", "--count", "--first-parent", "--no-merges", range));
+  const ok = (/** @type {string[]} */ ...a) => { try { git(...a); return true; } catch { return false; } };
+  const tagged = ok("rev-parse", "--verify", "--quiet", tag + "^{commit}");
+  const main = ["refs/remotes/origin/main", "refs/heads/main"].find(r => ok("rev-parse", "--verify", "--quiet", r));
+  // From main already: on main (a merge back), or, with no main here, released with the tag.
+  const fromMain = (/** @type {string} */ c) => main ? ok("merge-base", "--is-ancestor", c, main) : tagged && ok("merge-base", "--is-ancestor", c, tag);
+  const lines = git("rev-list", "--first-parent", "--parents", tagged ? tag + "..HEAD" : "HEAD").split("\n").filter(Boolean);
+  return lines.filter(l => { const p = l.split(" "); return p.length < 3 || !fromMain(p[2]); }).length;
 }
 
 /** The newest release tagged on HEAD's history (v1.1.7), or null. @param {string} cwd @returns {string|null} */

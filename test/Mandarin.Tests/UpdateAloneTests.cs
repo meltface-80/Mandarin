@@ -16,7 +16,7 @@ namespace Mandarin.Tests;
 /// program in an install of its own, so nothing of this checkout is touched. The new program is a
 /// stand-in that writes down how it was started and leaves (test/update-alone.test.js, in C#).
 /// </summary>
-public sealed class UpdateAloneTests
+public sealed partial class UpdateAloneTests
 {
     private static string Version => (string)JsonNode.Parse(File.ReadAllText(Path.Combine(ServerProcess.Root, "package.json")))!["version"]!;
 

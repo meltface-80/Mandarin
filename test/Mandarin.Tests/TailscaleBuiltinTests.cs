@@ -211,4 +211,25 @@ public sealed class TailscaleBuiltinTests
             throw new Xunit.Sdk.XunitException(e.Message + "\nCALLS:\n" + eng.Calls() + "\nSTATUS: " + st?.ToJsonString());
         }
     }
+
+    // An engine let go of by a restart (Restart: its input closed, killed 1.5 s on) that leaves only after the
+    // next one has started (item 181): its leaving is the old one's, and touches nothing of the new one's —
+    // not reported as the engine stopping, no restart of its own, the new one's asking left going.
+    [Test]
+    public async Task An_engine_that_leaves_after_the_next_has_started_leaves_the_new_one_alone()
+    {
+        var eng = StubEngine();
+        var (srv, h, _) = await Server(eng.Bin, new() { ["TS_AUTHKEY"] = "tskey-auth-test", ["TS_STUB_LINGER"] = "1" });
+        await using var _srv = srv;
+        await Session.Until(async () => Truthy((await Tailscale(srv, h))["serving"]), 15000, "serving");
+        // Signed out: the engine let go of (lingering until killed) and started afresh.
+        Assert.Equal(200, (await Http.Post(srv.Base + "/api/tailscale/logout", new { }, h)).Status);
+        await Session.Until(async () => eng.Count("POST /start ") == 2 && Truthy((await Tailscale(srv, h))["serving"]), 15000, "the new engine serving");
+        // Past the old one's leaving, the new one still asked how it is, every few seconds.
+        await Task.Delay(2000);
+        var asked = eng.Count("GET /status");
+        await Session.Until(() => Task.FromResult(eng.Count("GET /status") >= asked + 2), 15000, "the new engine asked on");
+        Assert.DoesNotContain(srv.Logs, l => l.Contains("[tailscale] stopped", StringComparison.Ordinal));
+        Assert.Null((await Tailscale(srv, h)).Str("error"));
+    }
 }
