@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- `171-test-version-count-pr-merges` (item 171): dev's builds after v1.1.8 were numbered 1.1.8, 1.1.8, 1.1.9-t1,
+  1.1.9-t1, 1.1.9-t2: the first two said they were the release itself, and two builds shared a number. To keep a
+  merge of main back into dev from counting, every merge commit had been left out (item 161), and pull requests merged
+  with a merge commit (#466, #470, #472) then counted for nothing. Each pull request counts again, merged or
+  squashed; only a merge of main back into dev, which brings nothing new, is passed over. Dev is 1.1.9-t4 as of #473.
+
 - `169-native-settings-seen-wait` (item 169): the test that a Settings page opened from the app is seen and can be
   tapped failed now and then on a busy machine: it looked at the middle of Back once, the moment the app was told, and
   the page was still sliding in. It looks until Back has come to rest (within 10 s, as its other waits); a page never
