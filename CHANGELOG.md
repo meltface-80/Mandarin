@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- `193-server-reach-one-loop` (item 193): the Android app's look at whether the server is still there, every quarter
+  of a minute while on screen, could run twice over, then three times and more. Coming back to the app, or a network
+  dropping, while a look was out started another loop beside the one already running. The server was then asked more
+  and more often, and two loops counted each other's misses. It is one loop now, however often it is started again.
+
 - `192-update-now-destroyed-activity` (item 192): the Android app could close itself during an update. The update
   offer kept the screen it installs from, and once the server's update was done (or the app's own had downloaded) it
   showed its dialog on that screen even when it was gone: the phone turned meanwhile, or the app was closed. A dialog on
