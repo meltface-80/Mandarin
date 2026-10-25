@@ -1,0 +1,20 @@
+name: Android (dev)
+
+# Every push to dev builds the Android app (android.yml, called whole), whatever
+# the push changed: dev's server image is built on every push too
+# (docker-publish.yml), and each image needs a test APK of the same number, the
+# number both take from tools/test-version.js on the same commit (item 170).
+# android.yml itself leaves dev to this file, so a push builds the APK once.
+on:
+  push:
+    branches: [dev]
+
+permissions:
+  contents: write
+  pull-requests: write
+  actions: read
+
+jobs:
+  android:
+    uses: ./.github/workflows/android.yml
+    secrets: inherit

@@ -5,13 +5,19 @@ name: Android
 # an artifact, and pushes to main publish the APK into dist/ when versionName
 # changes, once CI has passed on the same commit (v0.8.32): the app goes out
 # with the server's release, never ahead of its tests.
+#
+# dev is built by android-dev.yml on every push, whatever changed, so every dev
+# image of the server has a test APK of the same number (item 170: a dev push
+# of server code alone built no APK, and the test build fell behind). Other
+# branches and main build here when the app, the page or this file changes.
 on:
   push:
-    branches: ["**"]
+    branches: ["**", "!dev"]
     paths: ["android/**", "public/**", ".github/workflows/android.yml"]
   pull_request:
     paths: ["android/**", "public/**", ".github/workflows/android.yml"]
   workflow_dispatch:
+  workflow_call:
 
 permissions:
   contents: write
