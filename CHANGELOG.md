@@ -8,6 +8,14 @@
   for the same found two more, made text as well: a label's logo search said the server's error (which can carry
   Discogs' words) as markup, and the album editor's match line a MusicBrainz release's year.
 
+- `175-dev-apk-after-ci` (item 175): dev's test APK went out without waiting for CI. The image waited for CI on its
+  commit; the APK's wait ran on main only, so a dev commit whose tests failed still reached the phone. Every APK
+  published, dev's test build and main's dist/ alike, now waits for CI on its commit. The APK's and the image's
+  workflows run one at a time for each branch, so an older run finishing late no longer puts its test APK or its
+  :dev image over a newer one's: on dev, a branch or a pull request a newer push cancels the run before it; main's
+  and a tag's are never cut short, a newer one waiting its turn. And the release runs a Node test file that failed
+  under load once more on its own, as CI does (a pass then is a warning; failing again still stops the release).
+
 - `171-test-version-count-pr-merges` (item 171): dev's builds after v1.1.8 were numbered 1.1.8, 1.1.8, 1.1.9-t1,
   1.1.9-t1, 1.1.9-t2: the first two said they were the release itself, and two builds shared a number. To keep a
   merge of main back into dev from counting, every merge commit had been left out (item 161), and pull requests merged
