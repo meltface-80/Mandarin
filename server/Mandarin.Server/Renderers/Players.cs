@@ -23,7 +23,10 @@ internal sealed class Player(string id)
     public List<UpnpItem> Queue = [];
     public int Index = -1;
     public (int Index, string Uri, bool Sent)? Next;
-    public HashSet<int> Played = [];
+    // Shuffle's: the tracks played (the items themselves, so an edit of the queue moves them with it), and the track picked
+    // to follow the one playing, kept while that one plays (item 183).
+    public HashSet<UpnpItem> Played = [];
+    public (UpnpItem After, UpnpItem Next)? Successor;
     public bool Shuffle;
     public string Loop = "disabled";
     public (double? Value, bool Muted) Volume = (null, false);
@@ -119,7 +122,8 @@ internal sealed partial class Players
             p.Next = null;
             p.Shuffle = snap.Shuffle;
             p.Loop = snap.Loop is "disabled" or "loop" or "loop_one" ? snap.Loop : "disabled";
-            p.Played = p.Shuffle ? [p.Index] : [];
+            p.Played = p.Shuffle ? [p.Queue[p.Index]] : [];
+            p.Successor = null;
             if (snap.VolumeValue != null) p.Volume = (snap.VolumeValue.Value, snap.VolumeValue.Muted);
             var it = p.Queue[p.Index];
             next = ZoneState.Blank(new Volume(p.Volume.Value, p.Volume.Muted));
@@ -244,7 +248,11 @@ internal sealed partial class Players
         lock (gate)
         {
             if (items.Count != p.Queue.Count) return false;
+            // The same tracks in the same places, made again: what was played is still played.
+            var played = Enumerable.Range(0, p.Queue.Count).Where(i => p.Played.Contains(p.Queue[i])).ToList();
             p.Queue = items.Select(ToItem).ToList();
+            p.Played = played.Select(i => p.Queue[i]).ToHashSet();
+            p.Successor = null;
             p.Next = null;
         }
         return true;
@@ -298,7 +306,7 @@ internal sealed partial class Players
     /* Its queue emptied, the renderer stopped, the room blank and kept so. */
     private async Task Emptied(Player p)
     {
-        lock (gate) { p.Queue = []; p.Index = -1; p.Next = null; p.Played = []; p.ExpectStop = true; }
+        lock (gate) { p.Queue = []; p.Index = -1; p.Next = null; p.Played = []; p.Successor = null; p.ExpectStop = true; }
         try { await RendererOf(p).Stop(); } catch (RendererError) { /* already */ }
         lock (zm.Gate) zm.State[p.Id] = ZoneState.Blank(new Volume(p.Volume.Value, p.Volume.Muted));
         zm.Bump();
