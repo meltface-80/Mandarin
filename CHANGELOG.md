@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- `163-wall-reviews-big-screen` (item 163): on a 65" TV the wall display's review card and its "More from" covers
+  were too small to read from across the room. On a screen 1600px wide or more they grow with its width: the
+  writing twice the size at 1920px (the review 38px, its heading 52px, More from's heading 64px), the covers as big as
+  two rows of them, their titles and the heading still fit (1166px across at 1080px high, from 820). A laptop's stay
+  as they were.
+
 - `161-account-optional` (item 161): **an account is optional.** A TV showing the shelf or the wall can't easily have
   a username and a password typed into it, so asking for a sign-in is now a choice.
   - **A new install** offers "Use without an account" on its setup page (and in the Android app's first screen): the

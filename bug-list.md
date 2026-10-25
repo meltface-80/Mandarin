@@ -9,7 +9,7 @@ Status: **Open** · **In progress** · **Ready to test** (green, waiting on the 
 | # | Item | Branch | Status |
 |---|------|--------|--------|
 | 164 | Desktop (a 65" TV): the mini Now playing kept on screen while an album is open — dragged to a corner (top right, say), albums opening beside it; or the album view itself dragged where it suits | `164-desktop-mini-beside-album` | Open |
-| 163 | Desktop (a 65" TV): the wall display's review and "More from" panels too small to read from the sofa — twice the size on a screen that size | `163-wall-reviews-big-screen` | Open |
+| 163 | Desktop (a 65" TV): the wall display's review and "More from" panels too small to read from the sofa — twice the size on a screen that size | `163-wall-reviews-big-screen` | Ready to test |
 | 162 | Desktop (a 65" TV): toasts' writing tiny, can't be read | `162-toasts-big-screen` | Open |
 | 161 | An account optional, for new installs and existing ones through an update: a TV showing the shelf or the wall can't easily have a username and password typed in. A new install's "Use without an account"; Settings → Account → Ask for a sign-in (on after the update until switched off); with it off, the home network and the tailnet come straight in, each browser and app still a device, anywhere else still signs in | `161-account-optional` | Ready to test |
 | 160 | Away from home (Wi-Fi off), the phone player stopped on the first track: "NoSuchMethodError: SimpleDecoderOutputBuffer.init" — R8 (item 158) took out the method libopus calls back into from native code | `160-opus-r8-keep` | Ready to test |
