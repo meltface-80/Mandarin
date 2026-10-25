@@ -217,7 +217,8 @@ class FakeRenderer {
 
   start() {
     this.server = http.createServer((req, res) => {
-      if (this.offline) {
+      // Its event subscriptions alone dropped unanswered (dropSubscribe): asked while it was off the network.
+      if (this.offline || (this.dropSubscribe && req.method === "SUBSCRIBE")) {
         this.refusals.push((/#(\w+)/.exec(req.headers.soapaction || "") || [])[1] || req.method + " " + req.url);
         req.socket.destroy(); return;
       }

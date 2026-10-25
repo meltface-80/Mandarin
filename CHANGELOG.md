@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- `196-renderer-events-retry` (item 196): a renderer whose event subscription went unanswered (asked while it was
+  off the network for a moment) was asked again only ten minutes later, and until then it was polled, a playing one
+  read every few seconds where its events would have said at once. One left unanswered is now asked again after 15 s,
+  then 30 s and so on up to the ten minutes; one the device says no to still waits the ten minutes. Back on the
+  network, it is evented again within seconds, and the log says so.
 - `195-renderer-outage-between-reads` (item 195): a renderer gone from the network for a moment and back stopped could
   still start the next track by itself, as before item 184. Only a read that failed counted as the device being away;
   a call to it that went unanswered between reads (a command, the next track armed, its events renewed, a WiiM's

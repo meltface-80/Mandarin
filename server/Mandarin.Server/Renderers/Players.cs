@@ -344,6 +344,7 @@ internal sealed partial class Players
         {
             if (map.Remove(id, out var p)) p.Renderer?.Halt();
             had = subs.Remove(id, out s);
+            subsUnanswered.Remove(id);
         }
         lock (zm.Gate) zm.State.Remove(id);
         if (had && s.Sid.Length > 0) _ = GenaClient.Unsubscribe(s.Url, s.Sid);
