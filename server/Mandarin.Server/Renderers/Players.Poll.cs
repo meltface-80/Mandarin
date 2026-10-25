@@ -16,6 +16,16 @@ internal sealed partial class Players
 
     public string? EventsOf(string id) { lock (gate) return subs.TryGetValue(id, out var s) && s.Expires > Hub.Now() ? "live" : null; }
 
+    /*
+     * Subscriptions the device left unanswered, running (item 196). One it said no to is asked again in ten minutes;
+     * one it didn't answer at all was most likely asked while it was off the network, and is asked again after 15 s,
+     * then 30 s, and so on up to the same ten minutes: back on the network, it is evented again within seconds.
+     */
+    private readonly Dictionary<string, int> subsUnanswered = [];
+    private const double SubscribeRetryMs = 10 * 60 * 1000;
+    private double SubscribeRetryAfter(string id) =>
+        subsUnanswered.TryGetValue(id, out var n) && n > 0 ? Math.Min(SubscribeRetryMs, 15000 * Math.Pow(2, Math.Min(n - 1, 6))) : SubscribeRetryMs;
+
     /* Subscribed to the renderer's AVTransport events, renewed in time. */
     private async Task EnsureSubscribed(Player p, DeviceRecord rec)
     {
@@ -41,14 +51,20 @@ internal sealed partial class Players
                 catch (Exception e) when (e is RendererError or HttpRequestException or OperationCanceledException) { next = await GenaClient.Subscribe(url, cb); }
             }
             else next = await GenaClient.Subscribe(url, cb);
-            lock (gate) subs[p.Id] = (url, next.Sid, next.Expires, 0);
-            if (!had) Log($"[renderers] {rec.Name ?? rec.NetworkName}: events on ({next.Sid})");
+            lock (gate) { subs[p.Id] = (url, next.Sid, next.Expires, 0); subsUnanswered.Remove(p.Id); }
+            if (!had || s.Sid.Length == 0) Log($"[renderers] {rec.Name ?? rec.NetworkName}: events on ({next.Sid})");
         }
         catch (Exception e) when (e is RendererError or HttpRequestException or OperationCanceledException or UriFormatException)
         {
             // No events from this one: it is polled, and asked again in a while.
-            lock (gate) subs[p.Id] = (url, "", 0, Hub.Now());
-            if (e is HttpRequestException or OperationCanceledException) Unanswered(p);
+            var unanswered = e is HttpRequestException or OperationCanceledException;
+            lock (gate)
+            {
+                subs[p.Id] = (url, "", 0, Hub.Now());
+                if (unanswered) subsUnanswered[p.Id] = subsUnanswered.GetValueOrDefault(p.Id) + 1;
+                else subsUnanswered.Remove(p.Id);
+            }
+            if (unanswered) Unanswered(p);
         }
         finally { lock (gate) p.Subscribing = false; }
     }
@@ -104,7 +120,7 @@ internal sealed partial class Players
         lock (gate)
         {
             evented = subs.TryGetValue(p.Id, out var sub) && sub.Expires > Hub.Now();
-            retry = !(subs.TryGetValue(p.Id, out var s2) && s2.FailedAt > 0 && Hub.Now() - s2.FailedAt < 10 * 60 * 1000);
+            retry = !(subs.TryGetValue(p.Id, out var s2) && s2.FailedAt > 0 && Hub.Now() - s2.FailedAt < SubscribeRetryAfter(p.Id));
         }
         if (retry) _ = EnsureSubscribed(p, r).ContinueWith(_ => { }, TaskContinuationOptions.OnlyOnFaulted);
         // Evented and unwatched: the device says when things change, so a playing one is only read every few seconds, for its position.
