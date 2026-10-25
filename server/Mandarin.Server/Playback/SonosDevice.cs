@@ -120,7 +120,8 @@ internal sealed class SonosDevice(string ip, string uid = "", string name = "")
     // -- rendering --
     public async Task<double> GetVolume() => NumOr0((await Rc("GetVolume", ("Channel", "Master")))["CurrentVolume"]);
     public Task SetVolume(double v) => Rc("SetVolume", ("Channel", "Master"), ("DesiredVolume", Math.Max(0, Math.Min(100, TJs.Round(v)))));
-    public Task SetRelativeVolume(double delta) => Rc("SetRelativeVolume", ("Channel", "Master"), ("Adjustment", TJs.Round(delta)));
+    /* The room's own step from where it is; the volume it is at after. */
+    public async Task<double> SetRelativeVolume(double delta) => NumOr0((await Rc("SetRelativeVolume", ("Channel", "Master"), ("Adjustment", TJs.Round(delta))))["NewVolume"]);
     public async Task<bool> GetMute()
     {
         var m = (await Rc("GetMute", ("Channel", "Master")))["CurrentMute"];

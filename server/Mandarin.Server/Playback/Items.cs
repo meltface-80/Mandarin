@@ -114,7 +114,7 @@ internal static class Items
     {
         var target = hub.TargetFor(zoneId);
         var phone = hub.Phones.IsPhoneId(zoneId);
-        var shuffle = shuffled ?? (hub.State.TryGetValue(zoneId, out var st) && st.Shuffle);
+        var shuffle = shuffled ?? hub.StateOf(zoneId)?.Shuffle == true;
         var levelling = LevellingFor(c, zoneId);
         var gains = Gain.GainsFor(tracks.Select(t => (object?)t.ToJs()).ToList(), shuffle, levelling, id => Measured(c, id), id => AlbumRows(c, id));
         var secret = hub.Secret(c);

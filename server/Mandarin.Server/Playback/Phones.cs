@@ -163,12 +163,15 @@ internal sealed partial class Phones
     /* What the store keeps of the list this phone last played (its own, when the server can name every track; v0.9.5); null when empty. */
     public QueueSnapshot? Saved(string uid)
     {
-        var p = Map.GetValueOrDefault(uid);
-        if (p == null) return null;
-        var own = zm.State.GetValueOrDefault(uid) is { Local: true } && p.Local is { Count: > 0 };
-        var list = own ? p.Local! : p.Queue;
-        if (list.Count == 0 || (own && list.Any(it => it.TrackId is null or 0))) return null;
-        return new QueueSnapshot { Kind = "phone", DeviceId = p.DeviceId, Name = p.Name, Ids = list.Select(it => it.TrackId).ToList() };
+        lock (zm.Gate)
+        {
+            var p = Map.GetValueOrDefault(uid);
+            if (p == null) return null;
+            var own = zm.State.GetValueOrDefault(uid) is { Local: true } && p.Local is { Count: > 0 };
+            var list = own ? p.Local! : p.Queue;
+            if (list.Count == 0 || (own && list.Any(it => it.TrackId is null or 0))) return null;
+            return new QueueSnapshot { Kind = "phone", DeviceId = p.DeviceId, Name = p.Name, Ids = list.Select(it => it.TrackId).ToList() };
+        }
     }
 
     /* A queue kept from before a restart, back on the server's side; until the app is heard, the phone is not in the zone list. */

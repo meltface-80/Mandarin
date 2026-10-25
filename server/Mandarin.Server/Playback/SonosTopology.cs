@@ -42,7 +42,7 @@ internal sealed class SonosTopology
     private readonly List<string> include, exclude;
     private readonly Action<string> log;
     private List<SonosMember> all = [];                    // the household, in the order given
-    public readonly Dictionary<string, string> Models = []; // uid -> model name ("" while asked)
+    private readonly Dictionary<string, string> models = []; // uid -> model name ("" while asked), under the gate
     private List<string> recent = [];
     public double LastRefresh;
     public string LastError = "";
@@ -220,7 +220,7 @@ internal sealed class SonosTopology
             foreach (var m in members) { var i = next.FindIndex(x => x.Uid == m.Uid); if (i >= 0) next[i] = m; else next.Add(m); }
             all = next;
             foreach (var m in all)
-                if (!Models.ContainsKey(m.Uid) && m.Ip.Length > 0 && !m.Invisible) { Models[m.Uid] = ""; ask.Add(m.Uid); }
+                if (!models.ContainsKey(m.Uid) && m.Ip.Length > 0 && !m.Invisible) { models[m.Uid] = ""; ask.Add(m.Uid); }
             LastRefresh = Hub.Now();
             LastError = "";
         }
@@ -230,7 +230,7 @@ internal sealed class SonosTopology
             var ip = members.First(m => m.Uid == uid).Ip;
             _ = FetchModel(ip).ContinueWith(t =>
             {
-                lock (gate) { if (t.Result.Length > 0) Models[uid] = t.Result; else Models.Remove(uid); }
+                lock (gate) { if (t.Result.Length > 0) models[uid] = t.Result; else models.Remove(uid); }
             }, TaskContinuationOptions.OnlyOnRanToCompletion);
         }
         try { OnHosts?.Invoke(members.Where(m => m.Ip.Length > 0 && !m.Invisible).Select(m => m.Ip).ToList()); }
@@ -255,6 +255,9 @@ internal sealed class SonosTopology
     public List<SonosMember> Rooms() { lock (gate) return all.Where(m => !m.Invisible && !m.IsBridge && m.Ip.Length > 0 && Allowed(m.Name)).ToList(); }
 
     public SonosMember? Member(string? uid) { lock (gate) return all.FirstOrDefault(m => m.Uid == uid); }
+
+    /* A player's model, "" while it is asked or when it doesn't say: read under this gate, where it is written (item 188). */
+    public string Model(string uid) { lock (gate) return models.GetValueOrDefault(uid, ""); }
 
     public SonosMember? CoordinatorOf(string? uid)
     {

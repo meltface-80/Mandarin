@@ -11,6 +11,37 @@
   it waited for any four refused requests, which in CI were not a failed read; it now waits for the server to have
   noticed, and two more cases hold the gap between reads.
 
+- `188-playback-thread-safety` (item 188): playback's shared state read under the lock it is written under.
+  - Conversions made ahead of play ran more than TRANSCODE_CONCURRENCY at a time: the count was checked under the
+    queue's lock but added to only once the conversion had started, outside it, so many asking at once all found room
+    (sixteen at once against a limit of one, in the test). Its place is taken under the lock now, and given back if
+    nothing is left running.
+  - What the rooms are (their state), the phones' queues and the Sonos players' models were read in places without
+    the lock they are written under (a queue kept for a restart, the gains planned for a zone, a room's model): read
+    under it now.
+
+- `187-renderer-small-fixes` (item 187): three small things about rooms and renderers.
+  - A renderer's ✓ on Now playing (a WiiM says it plays what it was sent) vanished at the next read of the device, a
+    second on: it stays for the track now, and is asked again for the next one (or the same one played again).
+  - Move to another room, to or from a renderer, from a queue with something in it that isn't the library's (the
+    Sonos app's own) before the track playing, started one track on (or more): what isn't the library's is left out,
+    and the start is counted among what is kept. Picked up at the same second only when that track itself was kept.
+  - A volume nudged before the server had read it went from nought: up 5 on a Sonos room at 20 set it to 5. A Sonos
+    room is nudged with its own relative step now, from where it is; a renderer is asked its volume first, and the
+    nudge is refused if it can't say.
+
+- `186-phone-local-queue-ops` (item 186): the phone playing a list of its own (its downloads, its own music), which
+  the page shows as the queue. Remove and Play next were done to the server's queue for the phone behind it, which
+  isn't playing (and the app, rightly, dropped them): the wrong tracks gone from it, and nothing changed on the phone.
+  They are refused in words now ("change it on the phone"): the app takes no removal or move in its own list, and a
+  track of the phone's own music can't be handed back to it. And Move to another room sent that queue behind it, not
+  what was playing: it sends the phone's own list, from the track it is on, when every track in it is the library's,
+  and says so when one isn't.
+
+- `185-radio-busy-cleared` (item 185): Random Album Radio switched on (or a room's queue running low) with no album to
+  give, an empty library on a new install say, marked the room busy with the radio and never let it go: the radio was
+  dead for that room until the server restarted, music or not. It is let go on every way out.
+
 - `184-renderer-stop-and-poll` (item 184): a renderer (a WiiM, a Poly) and the rooms beside it.
   - A renderer started on the next track by the server when it stops at the end of one (one without
     SetNextAVTransportURI) took any stop for that end. Gone from the network while playing and back stopped, or

@@ -148,24 +148,23 @@ internal static class History
      */
     public static async Task<Album?> RadioTopUp(Hub hub, string zoneId, bool force = false)
     {
-        Snapshot? s;
-        Album? al;
         using (var c = Db.Open())
         {
             if (!force && !RadioEnabled(c, zoneId)) return null;
-            lock (gate) { if (!radioBusy.Add(zoneId)) return null; }
-            try
+        }
+        lock (gate) { if (!radioBusy.Add(zoneId)) return null; }
+        // Let go on every way out (item 185): an empty library kept the room busy, and its radio dead until a restart.
+        try
+        {
+            Album? al;
+            using (var c = Db.Open())
             {
-                s = await Library.CurrentCopy();
+                var s = await Library.CurrentCopy();
                 if (s == null || s.Count == 0) return null;
                 var recent = Tracks.PlayedAlbumIdsSince(c, Hub.Now() - 60 * Day);
                 var i = Memory().Pick(s.Albums, a => RadioMemory.RadioKey(AlbumJs(a)), a => recent.Contains(a.Id), Random.Shared.NextDouble);
                 al = i < 0 ? null : s.Albums[i];
             }
-            catch { lock (gate) radioBusy.Remove(zoneId); throw; }
-        }
-        try
-        {
             if (al == null) return null;
             await Items.PlayAlbum(hub, zoneId, al.Id, "queue");
             // Used up only once the room has taken it: a failed add costs nothing.

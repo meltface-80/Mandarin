@@ -306,11 +306,16 @@ internal static partial class Transcoder
                 if (running >= concurrency || Queue.Count == 0) return;
                 next = Queue[0];
                 Queue.RemoveAt(0);
+                // Its place taken here, under the lock (item 188): counted only once started, two asking at once both
+                // saw room for one more, and as many ran as asked.
+                running++;
             }
-            var job = Start(next.T, next.P, background: true);
+            ConvJob? job = null;
+            // Nothing left running (made already, or it failed to start): the place is given back.
+            try { job = Start(next.T, next.P, background: true); }
+            finally { if (job == null || job.Done) lock (Queue) running--; }
             if (job.Done) continue;
-            Interlocked.Increment(ref running);
-            job.Finished.Task.ContinueWith(_ => { Interlocked.Decrement(ref running); Pump(); });
+            job.Finished.Task.ContinueWith(_ => { lock (Queue) running--; Pump(); });
         }
     }
 
