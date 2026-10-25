@@ -11,7 +11,7 @@ const path = require("path");
 const os = require("os");
 const vm = require("vm");
 const { execFileSync } = require("child_process");
-const { testVersion, commitsSince } = require("../tools/test-version");
+const { testVersion, commitsSince, versionFor } = require("../tools/test-version");
 
 test("a test build is the next release with -tN", () => {
   assert.equal(testVersion("1.1.3", 7), "1.1.4-t7");
@@ -51,6 +51,28 @@ test("main brought back into dev after a release counts for nothing: the next pu
   assert.equal(testVersion("1.1.7", commitsSince("v1.1.7", dir)), "1.1.8-t1");
   commit("162 (squashed)");
   assert.equal(commitsSince("v1.1.7", dir), 2);
+  fs.rmSync(dir, { recursive: true, force: true });
+});
+
+test("the release made on dev, not yet tagged on main: still 1.1.8-tN, counted on, never 1.1.9-t224", () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "musicd-testver-"));
+  const git = (...a) => execFileSync("git", a, { cwd: dir, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] });
+  const commit = (m) => git("commit", "-q", "--allow-empty", "-m", m);
+  git("init", "-q", "-b", "dev");
+  git("config", "user.email", "t@example.com"); git("config", "user.name", "t");
+  for (let i = 0; i < 30; i++) commit("before v1.1.7: " + i);
+  git("tag", "v1.1.7");
+  for (const m of ["161", "162", "163", "164"]) commit(m);
+  assert.equal(versionFor({ version: "1.1.7" }, dir), "1.1.8-t4", "test builds of v1.1.8");
+  commit("v1.1.8: the release branch squashed into dev, package.json 1.1.8");
+  assert.equal(versionFor({ version: "1.1.8" }, dir), "1.1.8-t5", "still a test build of v1.1.8, counted on");
+  commit("165");
+  assert.equal(versionFor({ version: "1.1.8" }, dir), "1.1.8-t6");
+  git("tag", "v1.1.8");
+  assert.equal(versionFor({ version: "1.1.8" }, dir), "1.1.8", "tagged: the release itself");
+  commit("after v1.1.8");
+  assert.equal(versionFor({ version: "1.1.8" }, dir), "1.1.9-t1", "then the next release's test builds");
+  assert.equal(versionFor({ version: "1.1.8", nextVersion: "1.2.0" }, dir), "1.2.0-t1", "or the one the owner names");
   fs.rmSync(dir, { recursive: true, force: true });
 });
 
