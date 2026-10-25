@@ -56,6 +56,7 @@ app/share-card.js
 app/share-card-links.js
 app/share-card-suggestions.js
 app/mini-player-move.js
+app/album-beside-mini.js
 app/app-update-bridge.js
 app/native-handoff.js
 app/native-home.js

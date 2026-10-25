@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- `164-desktop-mini-beside-album` (item 164): on a desktop (a TV with a mouse, say) the mini player stays on screen
+  over an open album and can be dragged anywhere, but the album opened in the middle of the screen whatever it
+  covered. It opens beside the player now: the player on the right (its corner, or dragged to the top right), the
+  album in the room on its left; the player dragged to the left, the album on its right; it follows the player as it
+  is dragged. Where the room beside it is under 600px, and on touch screens, the album is centred as before.
+
 - `163-wall-reviews-big-screen` (item 163): on a 65" TV the wall display's review card and its "More from" covers
   were too small to read from across the room. On a screen 1600px wide or more they grow with its width: the
   writing twice the size at 1920px (the review 38px, its heading 52px, More from's heading 64px), the covers as big as
