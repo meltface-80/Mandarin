@@ -8,6 +8,7 @@ Status: **Open** · **In progress** · **Ready to test** (green, waiting on the 
 
 | # | Item | Branch | Status |
 |---|------|--------|--------|
+| 168 | The loudness test's measuring order failed now and then on a busy machine: it ordered the measuring processes by id, and ids wrap round at the system's limit (32,768). It orders them by when each began, the id only within the same tick | `168-loudness-order-pid-wrap` | Ready to test |
 | 166 | The v1.1.8 release stopped at its CI wait: main's newest commit was the APK's own publish commit, which starts no CI. An APK-only commit (dist/) now has its parent's CI stand for it | `166-release-ci-after-apk-commit` | Ready to test |
 | 165 | The Android app and dev's server said v1.1.9-t224 once v1.1.8 was on dev and not yet tagged on main: with no v1.1.8 tag, every commit was counted as a test build of the release after. Dev's builds stay 1.1.8-tN, counted on from v1.1.7, until v1.1.8 is tagged | `165-test-version-before-tag` | Ready to test |
 | 164 | Desktop (a 65" TV): the mini Now playing kept on screen while an album is open — dragged to a corner (top right, say), albums opening beside it; or the album view itself dragged where it suits | `164-desktop-mini-beside-album` | Ready to test |

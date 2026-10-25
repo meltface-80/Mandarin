@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- `168-loudness-order-pid-wrap` (item 168): the loudness test's measuring order failed now and then on a busy
+  machine (New first, where Old and Single had been measured first). The server measured in the right order; the test
+  read the order from the measuring processes' ids, and ids wrap round at the system's limit (32,768 on the test
+  machine, which a whole run of the suite goes past). It orders them by when each began (/proc's start time), the id
+  only between processes started in the same tick, with a check of a wrapped run.
+
 - `166-release-ci-after-apk-commit` (item 166): the v1.1.8 release stopped before it began. Its first step waits for
   CI on main's newest commit, and that was the APK's own "Publish mandarin-android.apk" commit, which starts no CI (a
   bot's push doesn't): ten minutes, then a failure. A commit that only publishes the APK (dist/) now has its parent's
