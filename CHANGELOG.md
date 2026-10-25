@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- `191-download-removed-midway` (item 191): on the Android app, an album removed while it was downloading came back:
+  its folder was deleted, but the download still running wrote it again when its track finished (or as it stopped),
+  and it was back in Downloads. A download now writes only while its album is still on the phone, and a removal takes
+  it away first, so a removed album stays removed. And the space Downloads said it took (and the limit it is held to)
+  was every file in each place downloads go: a chosen download folder's other music, tracks half downloaded, folders
+  waiting to be deleted. It is the downloaded albums' own files now.
+
 - `170-android-test-build-every-dev-push` (item 170): every dev build of the server now has an Android test build of the
   same number, as the owner's rule is. The server's image was built on every push to dev, the APK only when the app,
   the page or its workflow changed: after items 165 to 169 (tooling and tests alone) dev's server moved on while
