@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+- `184-renderer-stop-and-poll` (item 184): a renderer (a WiiM, a Poly) and the rooms beside it.
+  - A renderer started on the next track by the server when it stops at the end of one (one without
+    SetNextAVTransportURI) took any stop for that end. Gone from the network while playing and back stopped, or
+    stopped while the server restarted, the room still said "playing" from before, and the next track started by
+    itself. A stop counts as the end of a track only after the device was heard playing (or started by the server).
+  - It was read by more than one thing at once (the second's reading, the device's events, a command's read-back): at
+    the end of a track two reads each started "the next", and a track was skipped. It is read once at a time; a read
+    asked for meanwhile is made when that one has answered; and a stop read before a jump of the server's has finished
+    is the track jumped from, not the end of the new one.
+  - Every Sonos room and renderer was read in one round each second that waited for every answer: one device not
+    answering (10 s before a Sonos room is given up on, 8 s a renderer) held every room's state to every 9–20 s. Each
+    is read on its own now, asked again only once its last read has answered.
+
 - `169-native-settings-seen-wait` (item 169): the test that a Settings page opened from the app is seen and can be
   tapped failed now and then on a busy machine: it looked at the middle of Back once, the moment the app was told, and
   the page was still sliding in. It looks until Back has come to rest (within 10 s, as its other waits); a page never

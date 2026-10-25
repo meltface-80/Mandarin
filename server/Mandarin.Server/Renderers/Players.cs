@@ -29,6 +29,10 @@ internal sealed class Player(string id)
     public (double? Value, bool Muted) Volume = (null, false);
     public bool ExpectStop, NoSetNext, Subscribing;
     public int Strikes, Jumping;      // Jumping: jumps under way (Jump), whose renderer may still say the track before
+    // Heard: the state the room shows is the device's own, read from it (or a jump of ours): not one carried over an
+    // outage or a restart, whose stop is no end of a track (item 184). Polling: a read under way; PollAgain: another
+    // asked for meanwhile, made once it has answered.
+    public bool Heard, Polling, PollAgain, PollAgainVolume;
     public (double At, string Message)? LastError;
     public IRenderer? Renderer;
     public string Location = "";
@@ -116,6 +120,8 @@ internal sealed partial class Players
         {
             p.Queue = items.Take(QueueMax).Select(ToItem).ToList();
             p.Index = Math.Max(0, Math.Min(p.Queue.Count - 1, (int)snap.Index));
+            // Kept as it was, but not heard: the first read says how the device is now, and a stop then is no end of a track.
+            p.Heard = false;
             p.Next = null;
             p.Shuffle = snap.Shuffle;
             p.Loop = snap.Loop is "disabled" or "loop" or "loop_one" ? snap.Loop : "disabled";
