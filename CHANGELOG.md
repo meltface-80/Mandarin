@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+- `174-sign-in-hardening` (item 174): holes in signing in, from a review. Five wrong passwords lock an address
+  out, but a password was counted only once found wrong, after the wait every wrong password adds, so guesses sent all
+  at once were all let in while the first was still being checked: hundreds where five were meant. A password now
+  takes its place among the five as it comes in and holds it until it is found right or wrong. An IPv6 address was
+  locked out alone, where its network hands out any of 2^64: the lockout is the /64's. And every address that asked
+  was kept, wrong password or not, so a flood of new ones could push a locked-out address off the list (5,000 kept):
+  only addresses with a wrong password are kept now, and past 5,000 the one wrong longest ago goes. A sign-in begun
+  (the challenge) could be asked for without limit, and past 500 held one was given up at random, the owner's
+  half-way through as likely as any: an address holds ten at most, its oldest given up for an eleventh, and the
+  oldest of all goes first. And the sign-in page went on to `/\evil.com`, another site to a browser, which reads a
+  backslash as a slash: where it goes next is read as the browser reads it, and must be on this server.
+
 - `169-native-settings-seen-wait` (item 169): the test that a Settings page opened from the app is seen and can be
   tapped failed now and then on a busy machine: it looked at the middle of Back once, the moment the app was told, and
   the page was still sliding in. It looks until Back has come to rest (within 10 s, as its other waits); a page never
