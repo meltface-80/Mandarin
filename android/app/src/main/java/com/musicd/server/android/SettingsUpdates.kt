@@ -3,7 +3,10 @@ package com.musicd.server.android
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
@@ -22,6 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.musicd.server.client.Contract
@@ -80,9 +84,14 @@ internal fun SettingsUpdates(client: () -> ServerClient?, onBack: () -> Unit) {
         SettingsHead(Modifier.parity("settings-system.back", Contract.label("settings-system.back")).clip(CircleShape).clickable(onClick = onBack), R.drawable.np_back,
             "Updates", Modifier.parity("settings-system.heading"))
         Block {
-            SetupRow("Updates", Modifier.parity("settings-system.name"), null) {
+            // Not SetupRow: its control is measured first and takes what it wants, so a long answer ("App v… is on its
+            // way…") left the name a letter wide, one letter a line (item 178). As the page's flex row: the name its own
+            // width, the button the rest, its words wrapping inside it.
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                Text("Updates", Modifier.parity("settings-system.name").heightIn(min = 22.dp), color = paletteColor(Palette.TEXT), fontSize = 16.sp, lineHeight = 22.sp, maxLines = 1)
                 val o = found
-                UpdateButton(words, ready = o != null, busy = busy, Modifier.parity("settings-system.check", Contract.label("settings-system.check", 1, words))
+                UpdateButton(words, ready = o != null, busy = busy, Modifier.weight(1f, fill = false).padding(start = 16.dp)
+                    .parity("settings-system.check", Contract.label("settings-system.check", 1, words))
                     .clickable(enabled = !busy) { if (o != null) install(o) else check() })
             }
             found?.notes?.let { notes ->
@@ -103,6 +112,6 @@ private fun UpdateButton(words: String, ready: Boolean, busy: Boolean, modifier:
     Box(modifier.heightIn(min = 36.dp).alpha(if (busy && !ready) 0.6f else 1f).clip(shape).background(paletteColor(Palette.BG_ELEV_2))
         .border(1.dp, paletteColor(if (ready) Palette.ACCENT else Palette.BORDER), shape).padding(horizontal = 14.dp), contentAlignment = Alignment.Center) {
         Text(words, color = paletteColor(if (ready) Palette.ACCENT_TEXT else Palette.TEXT_DIM), fontSize = 13.sp, lineHeight = 18.sp,
-            fontWeight = if (ready) FontWeight.W600 else FontWeight.W400, maxLines = 2)
+            fontWeight = if (ready) FontWeight.W600 else FontWeight.W400, textAlign = TextAlign.Center)
     }
 }
