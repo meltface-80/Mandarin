@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- `183-renderer-shuffle-next` (item 183): shuffle on a renderer (a WiiM, a Poly, a sound device here). The track after
+  the one playing was picked again at every read of the device, about once a second: SetNextAVTransportURI was sent
+  again each time with another track, and a conversion of each started. It is picked once for the track playing and
+  kept while that track plays, the one picked still in the queue and not played, and the modes as they were. And what
+  shuffle has played is the tracks themselves, not their places in the queue: a track removed, added or moved made it
+  play one twice and skip another (or say "Nothing after this" with tracks still to come).
+
 - `169-native-settings-seen-wait` (item 169): the test that a Settings page opened from the app is seen and can be
   tapped failed now and then on a busy machine: it looked at the middle of Back once, the moment the app was told, and
   the page was still sliding in. It looks until Back has come to rest (within 10 s, as its other waits); a page never
