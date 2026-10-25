@@ -18,6 +18,15 @@ permissions:
   pull-requests: write   # the APK reaches main through a pull request (v1.0.0)
   actions: read     # to see CI's runs (.github/wait-for-ci.sh)
 
+# One run at a time for each branch (item 175), so an older run finishing late
+# never puts its test APK over a newer one's: a newer push to dev, a branch or a
+# pull request cancels the run before it. main's is never cut short, mid-way
+# through its publication into dist/: a newer one waits for it. Named here, not
+# after github.workflow, which a run called from another workflow takes from it.
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' && !startsWith(github.ref, 'refs/tags/') }}
+
 defaults:
   run:
     working-directory: android
@@ -65,7 +74,7 @@ jobs:
     name: APK
     runs-on: ubuntu-latest
     needs: [core, engine]
-    # The build, then the wait for CI before publishing to dist/ (an hour at most).
+    # The build, then the wait for CI before publishing to dist/ or the test build (an hour at most).
     timeout-minutes: 80
     steps:
       - uses: actions/checkout@v4
@@ -160,6 +169,21 @@ jobs:
           name: ${{ steps.name.outputs.apk }}
           path: android/${{ steps.name.outputs.apk }}
 
+      # CI on this commit, passed: every test (v0.8.32), as
+      # the release and the image wait for it (.github/wait-for-ci.sh). Without
+      # this the app reached phones some 15 minutes before the server it goes
+      # with, and before that version's tests had finished. Before every APK
+      # published, main's into dist/ and dev's test build alike (item 175: dev's
+      # waited for nothing, so a commit whose tests failed still reached the
+      # phone, where dev's image waited for CI).
+      - name: Wait for CI to pass
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev' || startsWith(github.ref, 'refs/heads/claude/v0.8'))
+        working-directory: .
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: .github/wait-for-ci.sh "$GITHUB_SHA"
+
       # A test branch's app (v0.8.0 on): a direct download for the phone, from
       # the rolling "test-android" pre-release, at one fixed address. Never
       # "latest", and the app's own update check reads main's dist/, so
@@ -198,18 +222,6 @@ jobs:
       # Without the signing secrets the published APK (a release build) is
       # signed with the committed key: the same every build, so updates
       # install in place.
-      # CI on this commit, passed: every test (v0.8.32), as
-      # the release and the image wait for it (.github/wait-for-ci.sh). Without
-      # this the app reached phones some 15 minutes before the server it goes
-      # with, and before that version's tests had finished.
-      - name: Wait for CI to pass
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        working-directory: .
-        env:
-          GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
-        run: .github/wait-for-ci.sh "$GITHUB_SHA"
-
       - name: Publish the APK into dist/
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         working-directory: .

@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- `175-dev-apk-after-ci` (item 175): dev's test APK went out without waiting for CI. The image waited for CI on its
+  commit; the APK's wait ran on main only, so a dev commit whose tests failed still reached the phone. Every APK
+  published, dev's test build and main's dist/ alike, now waits for CI on its commit. The APK's and the image's
+  workflows run one at a time for each branch, so an older run finishing late no longer puts its test APK or its
+  :dev image over a newer one's: on dev, a branch or a pull request a newer push cancels the run before it; main's
+  and a tag's are never cut short, a newer one waiting its turn. And the release runs a Node test file that failed
+  under load once more on its own, as CI does (a pass then is a warning; failing again still stops the release).
+
 - `169-native-settings-seen-wait` (item 169): the test that a Settings page opened from the app is seen and can be
   tapped failed now and then on a busy machine: it looked at the middle of Back once, the moment the app was told, and
   the page was still sliding in. It looks until Back has come to rest (within 10 s, as its other waits); a page never
