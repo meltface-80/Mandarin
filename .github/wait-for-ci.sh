@@ -10,6 +10,20 @@
 set -u
 sha=${1:?usage: .github/wait-for-ci.sh <commit> [workflow]}
 wf=${2:-ci.yml}
+pause=${WAIT_FOR_CI_PAUSE:-10}   # seconds between looks (the tests make it short)
+
+# A commit that only publishes the APK (dist/, android.yml's own commit) starts
+# no CI: a bot's push doesn't. Its parent's CI stands for it, the rest of the
+# tree being the same (item 166: the v1.1.8 release waited ten minutes for a
+# run that never came). Read from GitHub, as the checkout has no history.
+for _ in 1 2 3; do
+  info=$(gh api "repos/{owner}/{repo}/commits/$sha" \
+    --jq '[(.files | length), (.files | all(.filename | startswith("dist/"))), (.parents | length), (.parents[0].sha // "")] | @tsv') || break
+  read -r files only parents parent <<<"$info"
+  [ "${files:-0}" -gt 0 ] && [ "$only" = "true" ] && [ "${parents:-0}" = 1 ] && [ -n "$parent" ] || break
+  echo "$sha only publishes the APK (dist/): CI on $parent stands for it"
+  sha=$parent
+done
 for i in $(seq 1 360); do   # every 10 s, for an hour at most
   runs=$(gh run list --workflow "$wf" --commit "$sha" --event push --json status,conclusion,url \
     -q '.[] | "\(.status) \(.conclusion) \(.url)"') || runs=""
@@ -27,7 +41,7 @@ for i in $(seq 1 360); do   # every 10 s, for an hour at most
     echo "No $wf run on $sha after 10 minutes"
     exit 1
   fi
-  sleep 10
+  sleep "$pause"
 done
 echo "$wf on $sha still not finished after an hour"
 exit 1

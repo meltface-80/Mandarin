@@ -26,6 +26,7 @@ internal sealed partial class Hub
     private readonly Dictionary<string, SonosDevice.Browsed> queues = [];      // coordinator uid -> its queue as last read
     private readonly Dictionary<string, (double? Value, bool Muted, double At)> volumes = [];   // room uid -> volume
     private readonly List<CancellationTokenSource> loops = [];
+    private readonly HashSet<string> reading = [];                                 // groups whose last read hasn't answered
     private int pollTick;
     public bool Discovered { get; private set; }
 
@@ -85,12 +86,17 @@ internal sealed partial class Hub
 
     // ------------------------------------------------------------ polling
 
+    /*
+     * Each group read on its own (item 184): the loop waits for none of them,
+     * so a speaker that doesn't answer (10 s before it is given up on) holds up
+     * no other room; it is asked again only once its last read has answered.
+     */
     private async Task PollAll()
     {
         pollTick++;
         var groups = Sonos.Groups();
         var now = Now();
-        await Task.WhenAll(groups.Select(async g =>
+        foreach (var g in groups)
         {
             var id = g.Coordinator.Uid;
             bool hot, playing;
@@ -98,12 +104,21 @@ internal sealed partial class Hub
             {
                 hot = now - Hot.GetValueOrDefault(id) < HotMs;
                 playing = State.TryGetValue(id, out var st) && st.State == "playing";
+                // Fast while watched, or while playing (to notice the queue running out and each track change); slow for an idle room nobody looks at.
+                if (!hot && !playing && pollTick % 5 != 0) continue;
+                if (!reading.Add(id)) continue;
             }
-            // Fast while watched, or while playing (to notice the queue running out and each track change); slow for an idle room nobody looks at.
-            if (!hot && !playing && pollTick % 5 != 0) return;
-            await PollGroup(g);
-            if (hot || pollTick % 5 == 0) await PollVolumes(g.Members);
-        }));
+            var volumes = hot || pollTick % 5 == 0;
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await PollGroup(g);
+                    if (volumes) await PollVolumes(g.Members);
+                }
+                finally { lock (Gate) reading.Remove(id); }
+            }).ContinueWith(t => Log($"[sonos] poll {id}: {t.Exception?.InnerException?.Message}"), TaskContinuationOptions.OnlyOnFaulted);
+        }
         // Forget state for groups that no longer exist.
         var live = groups.Select(g => g.Coordinator.Uid).ToHashSet();
         var gone = new List<string>();
@@ -227,7 +242,8 @@ internal sealed partial class Hub
     {
         (double? Value, bool Muted, double At) v;
         string model;
-        lock (Gate) { volumes.TryGetValue(m.Uid, out v); model = Sonos.Models.GetValueOrDefault(m.Uid, ""); }
+        lock (Gate) volumes.TryGetValue(m.Uid, out v);
+        model = Sonos.Model(m.Uid);
         var has = v.At > 0;
         return new OutputInfo
         {

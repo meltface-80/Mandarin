@@ -16,6 +16,16 @@ internal sealed partial class Players
 
     public string? EventsOf(string id) { lock (gate) return subs.TryGetValue(id, out var s) && s.Expires > Hub.Now() ? "live" : null; }
 
+    /*
+     * Subscriptions the device left unanswered, running (item 196). One it said no to is asked again in ten minutes;
+     * one it didn't answer at all was most likely asked while it was off the network, and is asked again after 15 s,
+     * then 30 s, and so on up to the same ten minutes: back on the network, it is evented again within seconds.
+     */
+    private readonly Dictionary<string, int> subsUnanswered = [];
+    private const double SubscribeRetryMs = 10 * 60 * 1000;
+    private double SubscribeRetryAfter(string id) =>
+        subsUnanswered.TryGetValue(id, out var n) && n > 0 ? Math.Min(SubscribeRetryMs, 15000 * Math.Pow(2, Math.Min(n - 1, 6))) : SubscribeRetryMs;
+
     /* Subscribed to the renderer's AVTransport events, renewed in time. */
     private async Task EnsureSubscribed(Player p, DeviceRecord rec)
     {
@@ -41,13 +51,20 @@ internal sealed partial class Players
                 catch (Exception e) when (e is RendererError or HttpRequestException or OperationCanceledException) { next = await GenaClient.Subscribe(url, cb); }
             }
             else next = await GenaClient.Subscribe(url, cb);
-            lock (gate) subs[p.Id] = (url, next.Sid, next.Expires, 0);
-            if (!had) Log($"[renderers] {rec.Name ?? rec.NetworkName}: events on ({next.Sid})");
+            lock (gate) { subs[p.Id] = (url, next.Sid, next.Expires, 0); subsUnanswered.Remove(p.Id); }
+            if (!had || s.Sid.Length == 0) Log($"[renderers] {rec.Name ?? rec.NetworkName}: events on ({next.Sid})");
         }
         catch (Exception e) when (e is RendererError or HttpRequestException or OperationCanceledException or UriFormatException)
         {
             // No events from this one: it is polled, and asked again in a while.
-            lock (gate) subs[p.Id] = (url, "", 0, Hub.Now());
+            var unanswered = e is HttpRequestException or OperationCanceledException;
+            lock (gate)
+            {
+                subs[p.Id] = (url, "", 0, Hub.Now());
+                if (unanswered) subsUnanswered[p.Id] = subsUnanswered.GetValueOrDefault(p.Id) + 1;
+                else subsUnanswered.Remove(p.Id);
+            }
+            if (unanswered) Unanswered(p);
         }
         finally { lock (gate) p.Subscribing = false; }
     }
@@ -71,34 +88,80 @@ internal sealed partial class Players
 
     // ------------------------------------------------------------ polling
 
-    public async Task PollAll(int tick)
+    /*
+     * A call the device didn't answer at all — a read, a command, the next track
+     * armed, its events renewed (item 195). The device was off the network at
+     * some point since it was last read, so what the room shows is not known to
+     * be its own: a stop read next is no end of a track. A read that failed only
+     * once, answered on the retry SoapHttp makes, is a connection the device
+     * closed, not an outage.
+     */
+    private void Unanswered(Player p) { lock (gate) { p.Heard = false; p.UnansweredAt = Hub.Now(); } }
+
+    /* Each renderer read on its own (item 184): the loop waits for none, so one that doesn't answer holds up no other room. */
+    public Task PollAll(int tick)
     {
         List<Player> players;
         lock (gate) players = map.Values.ToList();
-        await Task.WhenAll(players.Select(async p =>
-        {
-            var r = Record(p.Id);
-            if (r == null || !Devices.Online(r)) return;
-            bool watched, playing, evented, retry;
-            lock (zm.Gate)
-            {
-                watched = Hub.Now() - zm.Hot.GetValueOrDefault(p.Id) < HotMs;
-                playing = zm.State.TryGetValue(p.Id, out var st) && st.State is "playing" or "loading";
-            }
-            lock (gate)
-            {
-                evented = subs.TryGetValue(p.Id, out var sub) && sub.Expires > Hub.Now();
-                retry = !(subs.TryGetValue(p.Id, out var s2) && s2.FailedAt > 0 && Hub.Now() - s2.FailedAt < 10 * 60 * 1000);
-            }
-            if (retry) _ = EnsureSubscribed(p, r).ContinueWith(_ => { }, TaskContinuationOptions.OnlyOnFaulted);
-            // Evented and unwatched: the device says when things change, so a playing one is only read every few seconds, for its position.
-            if (!watched && (!playing || evented) && tick % 5 != 0) return;
-            try { await Poll(p, watched || tick % 5 == 0); }
-            catch (Exception e) when (e is RendererError or HubError or UPnPError or SqliteException) { Log($"[renderers] {p.Id}: {e.Message}"); }
-        }));
+        foreach (var p in players) _ = PollTick(p, tick).ContinueWith(t => Log($"[renderers] {p.Id}: {t.Exception?.InnerException?.Message}"), TaskContinuationOptions.OnlyOnFaulted);
+        return Task.CompletedTask;
     }
 
-    private async Task Poll(Player p, bool withVolume)
+    private async Task PollTick(Player p, int tick)
+    {
+        var r = Record(p.Id);
+        if (r == null || !Devices.Online(r)) return;
+        bool watched, playing, evented, retry;
+        lock (zm.Gate)
+        {
+            watched = Hub.Now() - zm.Hot.GetValueOrDefault(p.Id) < HotMs;
+            playing = zm.State.TryGetValue(p.Id, out var st) && st.State is "playing" or "loading";
+        }
+        lock (gate)
+        {
+            evented = subs.TryGetValue(p.Id, out var sub) && sub.Expires > Hub.Now();
+            retry = !(subs.TryGetValue(p.Id, out var s2) && s2.FailedAt > 0 && Hub.Now() - s2.FailedAt < SubscribeRetryAfter(p.Id));
+        }
+        if (retry) _ = EnsureSubscribed(p, r).ContinueWith(_ => { }, TaskContinuationOptions.OnlyOnFaulted);
+        // Evented and unwatched: the device says when things change, so a playing one is only read every few seconds, for its position.
+        if (!watched && (!playing || evented) && tick % 5 != 0) return;
+        // Still being read from the last time: not asked again until it answers.
+        try { await Poll(p, watched || tick % 5 == 0, again: false); }
+        catch (Exception e) when (e is RendererError or HubError or UPnPError or SqliteException) { Log($"[renderers] {p.Id}: {e.Message}"); }
+    }
+
+    /*
+     * One read of a renderer at a time (item 184): two at once, at the end of a
+     * track, each started the next track — one skipped. A read asked for while
+     * one is under way (an event, a command's read-back) is made once that one
+     * has answered, so it sees what came after; the loop's is simply skipped.
+     */
+    private async Task Poll(Player p, bool withVolume, bool again = true)
+    {
+        lock (gate)
+        {
+            if (p.Polling) { if (again) { p.PollAgain = true; p.PollAgainVolume |= withVolume; } return; }
+            p.Polling = true;
+        }
+        var done = false;
+        try
+        {
+            while (!done)
+            {
+                await PollOnce(p, withVolume);
+                lock (gate)
+                {
+                    done = !p.PollAgain;
+                    withVolume = p.PollAgainVolume;
+                    p.PollAgain = p.PollAgainVolume = false;
+                    if (done) p.Polling = false;
+                }
+            }
+        }
+        finally { if (!done) lock (gate) { p.Polling = false; p.PollAgain = p.PollAgainVolume = false; } }
+    }
+
+    private async Task PollOnce(Player p, bool withVolume)
     {
         var r = RendererOf(p);
         var rec = Record(p.Id);
@@ -114,9 +177,10 @@ internal sealed partial class Players
         }
         catch (RendererError)
         {
+            lock (gate) p.Heard = false;
             var bump = false;
             lock (zm.Gate) { if (!prev.Unreachable) { prev.Unreachable = true; zm.State[p.Id] = prev; bump = true; } }
-            if (bump) zm.Bump();
+            if (bump) { zm.Bump(); Log($"[renderers] {r.Name}: not answering"); }
             return;
         }
         // A sound device on this computer says what went wrong itself.
@@ -137,19 +201,28 @@ internal sealed partial class Players
         var uri = Str(pi["TrackURI"]);
         UpnpItem? item;
         int index;
+        bool heard, stale;
         lock (gate)
         {
             var idx = uri.Length > 0 ? IndexOfUri(p, uri) : -1;
             // The renderer moved on by itself: SetNextAVTransportURI honoured. Not an answer from before a jump of ours
             // was done (item 150): a slow one still names the track jumped from, and took the queue back to it.
-            if (idx >= 0 && idx != p.Index && p.Jumping == 0 && asked > p.JumpedAt) { p.Index = idx; p.Next = null; p.Strikes = 0; if (p.Shuffle) p.Played.Add(idx); }
+            if (idx >= 0 && idx != p.Index && p.Jumping == 0 && asked > p.JumpedAt) { p.Index = idx; p.Next = null; p.Strikes = 0; if (p.Shuffle) p.Played.Add(p.Queue[idx]); }
             item = p.Index >= 0 && p.Index < p.Queue.Count ? p.Queue[p.Index] : null;
             index = p.Index;
+            heard = p.Heard;
+            // Asked before a jump of ours was done: what it says of the transport is from before it too.
+            stale = p.Jumping > 0 || asked <= p.JumpedAt;
         }
+        // A stop from before a jump is the track jumped from stopping: the jump's own state stands until the next read.
+        if (tstate == "stopped" && stale) return;
         // Stopped at the end of a track with more to play: the renderer does not take a next URI — start it by hand.
         // A device still starting a track may say STOPPED for a moment while it buffers; that is given eight seconds.
         // One that stops before ever playing three times running is not taking what it is sent; that is reported rather than looped.
-        if (tstate == "stopped" && !p.ExpectStop && item != null && prev.State is "playing" or "loading")
+        // Only after the device was heard playing (item 184): back from an outage, or after a restart, the room's "playing" is
+        // from before, and a stop then is the device's own, not the end of a track — nothing starts by itself. An outage is
+        // any call it left unanswered since (item 195), not only a read: one between reads leaves no failed read behind.
+        if (tstate == "stopped" && !p.ExpectStop && item != null && prev.State is "playing" or "loading" && heard)
         {
             if (prev.State == "loading" && Hub.Now() - p.LoadingSince < 8000) return;
             p.Strikes = prev.State == "loading" ? p.Strikes + 1 : 0;
@@ -163,6 +236,8 @@ internal sealed partial class Players
                 return;
             }
         }
+        // Heard again, unless something went unanswered after this read was asked: what it says may be from before that.
+        lock (gate) p.Heard = asked > p.UnansweredAt;
         if (tstate == "stopped") p.ExpectStop = false;
         if (tstate == "playing") { p.Strikes = 0; p.LastError = null; }
         var next = ZoneState.Blank(new Volume(p.Volume.Value, p.Volume.Muted));
@@ -177,6 +252,8 @@ internal sealed partial class Players
         next.Title = item?.Title ?? ""; next.Artist = item?.Artist ?? ""; next.Album = item?.Album ?? ""; next.ArtUri = item?.ArtUri ?? "";
         next.MediaUri = uri;
         next.Sent = item?.Sent;
+        // The device's word on what it plays holds for the track (item 187): it is asked once per track, a few seconds in.
+        next.Verified = prev.TrackUri == next.TrackUri ? prev.Verified : null;
         next.At = Hub.Now(); next.Unreachable = false;
         zm.ApplyState(p.Id, prev, next);
         if (tstate == "playing" && item != null && !p.NoSetNext) _ = ArmNext(p).ContinueWith(_ => { }, TaskContinuationOptions.OnlyOnFaulted);
@@ -205,12 +282,7 @@ internal sealed partial class Players
     {
         if (p.Queue.Count == 0) return -1;
         if (p.Loop == "loop_one") return p.Index;
-        if (p.Shuffle)
-        {
-            var cands = Enumerable.Range(0, p.Queue.Count).Where(i => i != p.Index && !p.Played.Contains(i)).ToList();
-            if (cands.Count == 0 && p.Loop == "loop" && p.Queue.Count > 1) { p.Played = [p.Index]; cands = Enumerable.Range(0, p.Queue.Count).Where(i => i != p.Index).ToList(); }
-            return cands.Count > 0 ? cands[(int)Math.Floor(Random.Shared.NextDouble() * cands.Count)] : -1;
-        }
+        if (p.Shuffle) return ShuffleNext(p);
         var n = p.Index + 1;
         if (n < p.Queue.Count) return n;
         return p.Loop == "loop" ? 0 : -1;

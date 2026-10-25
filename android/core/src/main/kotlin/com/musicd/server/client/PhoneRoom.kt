@@ -28,7 +28,10 @@ interface Deck {
     fun revision(): Long
     /** Held until the revision moves past [since], or [ms] pass. */
     fun waitForChange(since: Long, ms: Long)
-    /** Downloads [albumIds] played ([kind] play_now, queue, add_next) from track [start], or only track [only]: false when none is on the phone. */
+    /**
+     * Downloads [albumIds] played ([kind] play_now, queue, add_next, or shuffle: play_now in a shuffled order, [PhoneShuffle])
+     * from track [start], or only track [only]: false when none is on the phone.
+     */
     fun play(albumIds: List<Int>, start: Int, kind: String, only: Int?): Boolean
     /** A transport command, as the server's phone commands are. */
     fun command(c: Phone.Command)
@@ -130,8 +133,8 @@ class PhoneRoom(private val zoneId: String, private val deck: Deck, private val 
 
     private fun play(ids: List<Int>, kind: String?, start: Int = 0, only: Int? = null): Answer {
         if (!deck.ready()) return Answer.error(503, NOT_STARTED)
-        if (!deck.play(ids, start, normalise(kind), only)) return Answer.error(404, "That album isn't on this phone")
-        if (kind == "shuffle") deck.command(Phone.Command(seq = 0, op = "mode", shuffle = true, loop = deck.state()?.loop ?: "disabled"))
+        // A shuffle played in a shuffled order, the player's own shuffle left as it was (item 194).
+        if (!deck.play(ids, start, if (kind == PhoneShuffle.KIND) kind else normalise(kind), only)) return Answer.error(404, "That album isn't on this phone")
         return Answer.ok(JSONObject().put("ok", true).put("action", kind ?: "play_now"))
     }
 

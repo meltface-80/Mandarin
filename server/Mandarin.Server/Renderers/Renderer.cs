@@ -36,7 +36,8 @@ internal sealed class RendererError(string message, double code) : Exception(mes
     public double Code => code;
 }
 
-internal sealed class Renderer(string id, string? name, JsObj? services) : IRenderer
+/* unanswered: told of each call the device didn't answer at all (Players: what the room shows of it is then not its own). */
+internal sealed class Renderer(string id, string? name, JsObj? services, Action? unanswered = null) : IRenderer
 {
     public const string AvTransport = "urn:schemas-upnp-org:service:AVTransport:1";
     public const string RenderingControl = "urn:schemas-upnp-org:service:RenderingControl:1";
@@ -52,6 +53,7 @@ internal sealed class Renderer(string id, string? name, JsObj? services) : IRend
         try { return await SoapHttp.Call(url, type, action, args, timeoutMs); }
         catch (UPnPError e)
         {
+            if (e.Unanswered) unanswered?.Invoke();
             var msg = e.Message;
             const string prefix = "Sonos player at ";
             if (msg.StartsWith(prefix, StringComparison.Ordinal) && msg.IndexOf(" is not responding: ", StringComparison.Ordinal) is var i && i > 0)

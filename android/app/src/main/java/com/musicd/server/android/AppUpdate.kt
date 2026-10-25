@@ -69,12 +69,16 @@ object AppUpdate {
         }
     }
 
+    /** [a] closed or destroyed (item 192: the phone turned while the update downloaded): no dialog, no installer, from it. */
+    private fun gone(a: Activity) = a.isFinishing || a.isDestroyed
+
     /** Update: fetch the newer app and hand it to Android's installer, no second question; looked for first if need be. */
     fun installNow(activity: Activity) {
+        if (gone(activity)) return
         val r = known
         if (r != null && r.newerThan(BuildConfig.VERSION_NAME)) { download(activity, r); return }
         lookup(true) {
-            if (activity.isFinishing) return@lookup
+            if (gone(activity)) return@lookup
             val n = known
             if (n != null && n.newerThan(BuildConfig.VERSION_NAME)) download(activity, n)
             else toast(activity, if (n == null) "Couldn't reach GitHub to look for an update" else "Mandarin is up to date (v${BuildConfig.VERSION_NAME})")
@@ -94,12 +98,13 @@ object AppUpdate {
                 if (!ok) dest.delete()
                 main.post {
                     busy = false
-                    if (activity.isFinishing) return@post
+                    if (gone(activity)) return@post
                     if (ok) install(activity, dest) else download(activity, r)
                 }
             }
             return
         }
+        if (gone(activity)) return
         val progress = AlertDialog.Builder(activity)
             .setTitle("Updating Mandarin")
             .setMessage("Downloading version ${r.version}…")
@@ -119,7 +124,7 @@ object AppUpdate {
             main.post {
                 busy = false
                 runCatching { progress.dismiss() }
-                if (activity.isFinishing) return@post
+                if (gone(activity)) return@post
                 result.onSuccess { install(activity, dest) }
                     .onFailure { toast(activity, "Couldn't download the update: " + com.musicd.server.client.Failure.said(it, "no answer")) }
             }
@@ -128,6 +133,7 @@ object AppUpdate {
 
     /** Hand the APK to Android's installer — which asks, once, to allow installs from MusicD. */
     private fun install(activity: Activity, apk: File) {
+        if (gone(activity)) return
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && !activity.packageManager.canRequestPackageInstalls()) {
             AlertDialog.Builder(activity)
                 .setTitle("Allow Mandarin to install updates")

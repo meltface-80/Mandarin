@@ -28,7 +28,7 @@ internal sealed partial class Players
         lock (gate) p.Verifying = key;
         JsObj? meta = null;
         try { meta = await LinkPlay.Command(Jv.Str(lp["base"]), "getMetaInfo"); }
-        catch (Exception e) when (e is HttpRequestException or OperationCanceledException or UriFormatException) { meta = null; }
+        catch (Exception e) when (e is HttpRequestException or OperationCanceledException or UriFormatException) { meta = null; if (e is not UriFormatException) Unanswered(p); }
         var m = meta?["metaData"] as JsObj;
         if (m == null) return;
         var rate = Tags.Js.ToNumber(m["sampleRate"]) is var rt && !double.IsNaN(rt) ? rt : 0;
@@ -119,20 +119,22 @@ internal sealed partial class Players
         lock (gate)
         {
             if (index < 0 || index >= p.Queue.Count) throw new HubError(500, "Nothing to play");
+            p.Verifying = null;         // the device asked again what it plays, for the same track played again too
             it = p.Queue[index];
             p.ExpectStop = false;
             p.Next = null;              // SetAVTransportURI clears a renderer's next
+            p.Heard = true;             // started by us: a stop now is this track's
             p.Index = index;
             p.LoadingSince = Hub.Now();
             p.Jumping++;
-            if (p.Shuffle) p.Played.Add(index);
+            if (p.Shuffle) p.Played.Add(it);
         }
         var r = RendererOf(p);
         Optimistic(p.Id, st =>
         {
             st.State = "loading"; st.TrackNumber = index + 1; st.QueueLength = p.Queue.Count; st.OnQueue = true;
             st.TrackUri = it.Uri; st.TrackId = it.TrackId; st.Title = it.Title; st.Artist = it.Artist; st.Album = it.Album; st.ArtUri = it.ArtUri;
-            st.Duration = it.Duration; st.Position = seconds; st.Sent = it.Sent; st.Unreachable = false;
+            st.Duration = it.Duration; st.Position = seconds; st.Sent = it.Sent; st.Unreachable = false; st.Verified = null;
         });
         try
         {
@@ -349,8 +351,9 @@ internal sealed partial class Players
         var p = Get(id);
         lock (gate)
         {
-            if (shuffle != null) { p.Shuffle = shuffle.Value; p.Played = p.Index >= 0 ? [p.Index] : []; }
+            if (shuffle != null) { p.Shuffle = shuffle.Value; p.Played = p.Index >= 0 && p.Index < p.Queue.Count ? [p.Queue[p.Index]] : []; }
             if (loop is "disabled" or "loop" or "loop_one") p.Loop = loop;
+            p.Successor = null;
         }
         Optimistic(id, s => { s.Shuffle = p.Shuffle; s.Loop = p.Loop; });
     }
@@ -360,7 +363,8 @@ internal sealed partial class Players
         var p = Get(id);
         var rec = Record(id)!;
         if (FixedVolume(rec)) throw new HubError(500, $"{rec.Name ?? rec.NetworkName}'s volume is set on the device itself");
-        var cur = p.Volume.Value ?? 0;
+        // A nudge goes from where the device is (item 187): never read yet, it is asked (and refused if it can't say).
+        var cur = p.Volume.Value ?? (how is "relative" or "relative_step" ? await RendererOf(p).GetVolume() : 0);
         var target = Math.Max(0, Math.Min(100, Tags.Js.Round(how is "relative" or "relative_step" ? cur + value : value)));
         await RendererOf(p).SetVolume(target);
         lock (gate) p.Volume = (target, p.Volume.Muted);

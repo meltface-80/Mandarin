@@ -8,6 +8,10 @@
 //   album_credit_state  each album looked at: the release asked and what came of it
 //   artist_info         one row an act, by its key (Names.ArtistKey): its MusicBrainz
 //                       id, kind, facts (JSON) and picture's address
+//
+// An album's credits go with it, however it goes (bug list item 179): a trigger on
+// albums, made with the tables, so a scan's, a service's or a start's delete takes
+// them alike. Albums' ids are given out again, and another album would have them.
 using System.Globalization;
 using System.Text.Json.Nodes;
 using Microsoft.Data.Sqlite;
@@ -47,7 +51,24 @@ CREATE TABLE IF NOT EXISTS artist_info (
   photo_source  TEXT,
   fetched       INTEGER NOT NULL
 );
+""" + GoWithAlbums;
+
+    /* An album's credits and what came of looking, deleted with the album (foreign keys on or off). */
+    private const string GoWithAlbums = """
+CREATE TRIGGER IF NOT EXISTS album_credits_go AFTER DELETE ON albums BEGIN
+  DELETE FROM album_credits WHERE album_id = old.id;
+  DELETE FROM album_credit_state WHERE album_id = old.id;
+END;
 """;
+
+    /// <summary>
+    /// The trigger that takes an album's credits with it, made where the tables are (as the server starts:
+    /// a database from before it has the tables and not the trigger). Nothing where they aren't yet.
+    /// </summary>
+    public static void FollowAlbums(SqliteConnection c)
+    {
+        if (Rows(c, "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'album_credit_state'").Count > 0) Exec(c, GoWithAlbums);
+    }
 
     private static volatile bool made;
 
@@ -122,6 +143,8 @@ CREATE TABLE IF NOT EXISTS artist_info (
     {
         using var c = Writing();
         using var tx = c.BeginTransaction();
+        // Gone while it was looked up: nothing kept under its id, which another album may be given.
+        if (Rows(c, "SELECT 1 FROM albums WHERE id = $a", ("$a", albumId)).Count == 0) return;
         Exec(c, "DELETE FROM album_credits WHERE album_id = $a", ("$a", albumId));
         foreach (var r in rows)
             Exec(c, "INSERT OR REPLACE INTO album_credits(album_id, key, name, mbid, roles, tracks, source) VALUES($a, $k, $n, $m, $r, $t, $s)",

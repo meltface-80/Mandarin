@@ -51,6 +51,7 @@ class FakeRenderer {
     this.volume = 25; this.muted = false;
     this.endTimer = null;
     this.subscribers = [];      // GENA: [{ sid, callback }]
+    this.refusals = [];         // what was asked while offline: the action, or the method and path
     this.notified = 0;
   }
 
@@ -155,6 +156,8 @@ class FakeRenderer {
     this.endTimer.unref();
   }
 
+  /* Off the network (offline = true): every request's connection dropped unanswered, each named in refusals. */
+
   /* Reads held from now on, each answered with what the device had when it was asked. */
   holdReads() { this.readGate = []; }
   /* The first n held reads answered, in the order asked; all of them, and no more holding, without n. */
@@ -214,6 +217,11 @@ class FakeRenderer {
 
   start() {
     this.server = http.createServer((req, res) => {
+      // Its event subscriptions alone dropped unanswered (dropSubscribe): asked while it was off the network.
+      if (this.offline || (this.dropSubscribe && req.method === "SUBSCRIBE")) {
+        this.refusals.push((/#(\w+)/.exec(req.headers.soapaction || "") || [])[1] || req.method + " " + req.url);
+        req.socket.destroy(); return;
+      }
       const u = new URL(req.url, "http://x");
       this.requests.push({ method: req.method, path: u.pathname, query: u.search, soap: req.headers.soapaction || "" });
       if (req.method === "GET" && u.pathname === "/description.xml") {

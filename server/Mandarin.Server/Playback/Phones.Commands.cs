@@ -232,6 +232,7 @@ internal sealed partial class Phones
         int n;
         lock (zm.Gate)
         {
+            NotOwnList(p);
             var index = (int)(position - 1);
             if (index < 0 || index >= p.Queue.Count) return;
             p.Queue.RemoveAt(index);
@@ -248,6 +249,7 @@ internal sealed partial class Phones
         QueueMoves.Plan plan;
         lock (zm.Gate)
         {
+            NotOwnList(p);
             var st = zm.State.GetValueOrDefault(uid) ?? new ZoneState();
             plan = QueueMoves.PlanMoves((double)p.Queue.Count, st.TrackNumber, positions.Select(x => (object?)x).ToList());
             // The phone has remove and insert: each move is the two, in the server's order.
@@ -324,15 +326,10 @@ internal sealed partial class Phones
         lock (zm.Gate) foreach (var p in Map.Values) if (Present(p)) Push(p, new JsonObject { ["op"] = "pause" });
     }
 
-    /* The queue as Sonos-style items, for moving what's playing elsewhere. */
-    public List<PlayItem> ItemsFor(string uid)
+    /* The server's queue for the phone as Sonos-style items. Under the gate. */
+    private static List<PlayItem> QueueItems(PhoneRec p) => p.Queue.Select(it => new PlayItem
     {
-        var p = Get(uid);
-        lock (zm.Gate)
-            return p.Queue.Select(it => new PlayItem
-            {
-                Uri = it.Uri, Phone = it,
-                Meta = Didl.Build(it.Uri, Jv.Obj(("title", it.Title), ("artist", it.Artist), ("album", it.Album), ("artUri", it.ArtUri), ("duration", it.Duration)))
-            }).ToList();
-    }
+        Uri = it.Uri, Phone = it,
+        Meta = Didl.Build(it.Uri, Jv.Obj(("title", it.Title), ("artist", it.Artist), ("album", it.Album), ("artUri", it.ArtUri), ("duration", it.Duration)))
+    }).ToList();
 }

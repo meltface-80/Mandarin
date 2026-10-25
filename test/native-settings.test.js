@@ -31,8 +31,11 @@ const RUN = `(async () => {
     // Seen, and reached by a finger: the page is put in front of the app's screen, so a page drawn but not seen takes
     // every tap and the app seems to freeze (item 82).
     const lifted = await until(() => window.MusicdApp.shown > shownBefore);
-    const back = view(name).querySelector("[data-settings-back]"), r = back.getBoundingClientRect();
-    const seen = getComputedStyle(back).visibility === "visible" && back.contains(document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2));
+    // Seen once it has come to rest: on a busy machine the page is still sliding in when the app is told, and the
+    // middle of Back is then something else for a moment (item 169). A page never seen still fails.
+    const back = view(name).querySelector("[data-settings-back]");
+    const atBack = () => { const r = back.getBoundingClientRect(); return getComputedStyle(back).visibility === "visible" && back.contains(document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2)); };
+    const seen = await until(atBack);
     back.click();
     const closed = await until(() => window.MusicdApp.closed > before);
     out[name] = { asked, up, home, seen, lifted, closed, hidden: document.getElementById("settings-overlay").classList.contains("hidden") };

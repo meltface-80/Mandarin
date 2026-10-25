@@ -75,7 +75,7 @@ internal static partial class Scans
         var period = TimeSpan.FromMilliseconds(Math.Min(scanHours * 3600 * 1000, uint.MaxValue - 1d));
         first = new Timer(_ => Kick(), null, 500, Timeout.Infinite);
         every = new Timer(_ => Kick(), null, period, period);
-        watcher = new Watcher(Roots, () => Run(false, false), Server.Log,
+        watcher = new Watcher(Roots, FromWatcher, Server.Log,
             Ms("MANDARIN_WATCH_QUIET_MS", 20000), Ms("MANDARIN_WATCH_GAP_MS", 60000));
         watcher.Refresh();
         Server.Log($"[scan] the library scans are made here (every {scanHours.ToString(System.Globalization.CultureInfo.InvariantCulture)} h, and when the music folders change)");
@@ -264,7 +264,7 @@ internal static partial class Scans
             watcher?.Refresh();
             return new Scanned(result!, told?["count"] is JsonValue cv && cv.TryGetValue<double>(out var count) ? count : null);
         }
-        finally { Ended(g); }
+        finally { Ended(g); AgainIfAsked(); }
     }
 
     /* The scan by this program (`mandarin-server scan`), each of its lines to [heard]; whether it was killed, and why it ended otherwise. */

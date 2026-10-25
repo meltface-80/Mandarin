@@ -37,13 +37,13 @@ internal static class SoapHttp
             if ((int)res.StatusCode >= 400 && !text.Contains("Fault")) throw UPnPError.Of(501, $"HTTP {(int)res.StatusCode} from {url}");
             return Soap.ParseResponse(text, action);
         }
-        catch (OperationCanceledException) { throw UPnPError.Of(501, $"Sonos player at {HostOf(url)} is not responding: timed out"); }
+        catch (OperationCanceledException) { throw UPnPError.NoAnswer($"Sonos player at {HostOf(url)} is not responding: timed out"); }
         catch (UriFormatException) { throw UPnPError.Of(501, "bad url " + url); }
         catch (HttpRequestException e)
         {
             if (attempt == 0 && e.InnerException is IOException or SocketException { SocketErrorCode: SocketError.ConnectionReset })
                 return await Call(url, service, action, args, timeoutMs, 1);
-            throw UPnPError.Of(501, $"Sonos player at {HostOf(url)} is not responding: {e.Message}");
+            throw UPnPError.NoAnswer($"Sonos player at {HostOf(url)} is not responding: {e.Message}");
         }
     }
 
