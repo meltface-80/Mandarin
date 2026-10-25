@@ -11,6 +11,40 @@
   second name found only when the route read it: the whole body is read at once and the last one kept, as the Node
   server's JSON.parse kept it and as every other route here reads a body.
 
+- `177-tv-wall-cards-fit` (item 177): on a TV (1600px wide and up) the wall display's cards, twice the size since
+  item 163, no longer fitted. A long review or biography ran past its card, so its last lines and whose words they
+  were were cut off; the "More from" card's second row of covers and their titles ran past its foot. The review is
+  cut at a whole line, 7 rather than 10, under a heading of two lines at most, in a card up to 76% of the screen's
+  height, its attribution under it; the covers' card goes up to 78%, so both rows and their titles show. Each stays
+  clear of the bottom strip. The sizes now follow the screen's height as well as its width, so a screen shorter than
+  16:9 (a browser window not full screen, a wide monitor) fits the same: twice the size at 1920 x 1080 as before.
+
+- `176-artist-name-escaped` (item 176): an artist's name was put into the artist page as the page's own markup, in
+  its "No albums found" line, and the error said beside it the same: a name from the tags, MusicBrainz, Last.fm or the
+  credits such as `<img src=x onerror=…>` ran in the page. Both are shown as text now. A look through the whole page
+  for the same found two more, made text as well: a label's logo search said the server's error (which can carry
+  Discogs' words) as markup, and the album editor's match line a MusicBrainz release's year.
+
+- `175-dev-apk-after-ci` (item 175): dev's test APK went out without waiting for CI. The image waited for CI on its
+  commit; the APK's wait ran on main only, so a dev commit whose tests failed still reached the phone. Every APK
+  published, dev's test build and main's dist/ alike, now waits for CI on its commit. The APK's and the image's
+  workflows run one at a time for each branch, so an older run finishing late no longer puts its test APK or its
+  :dev image over a newer one's: on dev, a branch or a pull request a newer push cancels the run before it; main's
+  and a tag's are never cut short, a newer one waiting its turn. And the release runs a Node test file that failed
+  under load once more on its own, as CI does (a pass then is a warning; failing again still stops the release).
+
+- `171-test-version-count-pr-merges` (item 171): dev's builds after v1.1.8 were numbered 1.1.8, 1.1.8, 1.1.9-t1,
+  1.1.9-t1, 1.1.9-t2: the first two said they were the release itself, and two builds shared a number. To keep a
+  merge of main back into dev from counting, every merge commit had been left out (item 161), and pull requests merged
+  with a merge commit (#466, #470, #472) then counted for nothing. Each pull request counts again, merged or
+  squashed; only a merge of main back into dev, which brings nothing new, is passed over. Dev is 1.1.9-t4 as of #473.
+
+- `170-android-test-build-every-dev-push` (item 170): every dev build of the server now has an Android test build of the
+  same number, as the owner's rule is. The server's image was built on every push to dev, the APK only when the app,
+  the page or its workflow changed: after items 165 to 169 (tooling and tests alone) dev's server moved on while
+  the test APK stayed at the misnumbered 1.1.9-t224. A new workflow (android-dev.yml) builds the APK on every dev
+  push, calling the Android workflow whole; that workflow leaves dev to it, so a push builds the APK once.
+
 - `169-native-settings-seen-wait` (item 169): the test that a Settings page opened from the app is seen and can be
   tapped failed now and then on a busy machine: it looked at the middle of Back once, the moment the app was told, and
   the page was still sliding in. It looks until Back has come to rest (within 10 s, as its other waits); a page never
