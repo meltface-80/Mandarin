@@ -34,6 +34,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 
+/** The seek bar on the room's own clock, read here alone (item 158: read by Now Playing, its every half second drew the whole screen again). */
+@Composable
+internal fun RoomSeekBar(room: RoomState, v: NowPlayingView, client: () -> ServerClient?, onSeek: (Double) -> Unit) = SeekBar(v, room.now, client, onSeek)
+
 /**
  * Now playing's seek bar, where the track is and how long it is, as the
  * page's (docs/specs/screens.json, now-playing; style.css, `.np-progress`):

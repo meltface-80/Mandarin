@@ -30,4 +30,15 @@ class FailureTest {
         assertFalse(Route.overWifi(away = false, onWifi = false))  // home through another VPN, off Wi-Fi
         assertFalse(Route.overWifi(away = true, onWifi = false))
     }
+
+    @Test fun `asked again when not reached or the server is in trouble, not when refused`() {
+        // Item 157: a screen whose load failed asks again; a 503 (the library still being read) is asked again too.
+        assertTrue(Failure.worthAgain(java.net.ConnectException("Failed to connect to /127.0.0.1:34500")))
+        assertTrue(Failure.worthAgain(ServerClient.ServerException(503, "Reading your music library…")))
+        assertTrue(Failure.worthAgain(ServerClient.ServerException(500, "HTTP 500")))
+        assertFalse(Failure.worthAgain(ServerClient.ServerException(404, "Album not found")))
+        assertFalse(Failure.worthAgain(ServerClient.ServerException(401, "Sign in")))
+        assertFalse(Failure.worthAgain(IllegalStateException()))
+    }
 }
+

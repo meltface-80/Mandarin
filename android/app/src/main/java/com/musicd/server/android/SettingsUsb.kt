@@ -55,7 +55,7 @@ internal fun UsbBlock(info: (String) -> Unit) {
     val bridge = remember { UsbBridge(activity) }
     var usb by remember { mutableStateOf(UsbView(UsbDac.json(context))) }
     var tick by remember { mutableIntStateOf(0) }
-    LaunchedEffect(tick) { while (true) { usb = UsbView(UsbDac.json(context)); delay(2_000) } }
+    LaunchedEffect(tick) { while (true) { untilOnScreen(); usb = UsbView(UsbDac.json(context)); delay(2_000) } }
     val again = { tick++ }
     SettingsDivider(18, 18)
     Block {
@@ -127,7 +127,7 @@ internal fun UsbBlock(info: (String) -> Unit) {
                 SetupButton("Copy", false, Modifier.parity("settings-device.usb-copy", Contract.label("settings-device.usb-copy")).clickable {
                     runCatching {
                         (context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager).setPrimaryClip(ClipData.newPlainText("Mandarin USB DAC", bridge.diagnostics()))
-                    }.fold({ setupToast(context, "Copied — paste it into a report") }, { setupToast(context, "Couldn't copy: " + (it.message ?: "")) })
+                    }.fold({ setupToast(context, "Copied — paste it into a report") }, { setupToast(context, "Couldn't copy: " + (com.musicd.server.client.Failure.said(it, ""))) })
                 })
             }
         }

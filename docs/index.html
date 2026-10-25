@@ -341,7 +341,7 @@
      Android app play from it, controlled from a browser, an iPhone home screen or the Android app.
      No subscription or streaming account is needed.</p>
   <div class="badges">
-    <span class="badge">v1.1.5</span>
+    <span class="badge">v1.1.7</span>
     <span class="badge plain">Docker</span>
     <span class="badge plain">macOS</span>
     <span class="badge plain">MIT</span>
@@ -354,11 +354,13 @@
 
 <section id="new">
   <div class="wrap">
-    <div class="note"><b>New in v1.1.5</b> (since v1.1.4). <b>Mandarin on a Mac again</b>, Apple silicon or Intel:
-      one line in Terminal installs it (<a href="#mac">Install on a Mac</a>), and it does there what it does on
-      Linux: Sonos rooms, renderers, the Android app, a <b>USB DAC plugged into the Mac</b> (played through Core Audio
-      at each track's own rate) and <b>away from home</b> with the built-in Tailscale. It starts at login, and updates
-      come from Settings.</div>
+    <div class="note"><b>New in v1.1.7</b> (since v1.1.5): <b>the Android app, at home and away, without the
+      waiting.</b> It finds its way to the server (home or away) before it asks anything, and every screen that couldn't
+      load asks again the moment the server answers. <b>Away from home just works</b>: the app's own Tailscale comes up
+      by itself, it no longer flips to "away" at home when the server is busy, and it takes a Wi-Fi for home only when
+      your own server answers there. <b>Faster and lighter</b>: smoother screens, a smaller app, covers kept on the
+      phone, less battery off screen. And <b>a server that doesn't stall</b>: a scan no longer holds requests up, and
+      history, Not played and artist pages answer at once.</div>
   </div>
 </section>
 
@@ -388,7 +390,7 @@
   <div class="wrap">
     <h2>Features</h2>
     <p class="lead">Tap <b class="i-eg">i</b> on any feature for how to switch it on and use it.
-      <span class="new-eg">New</span> marks what's new in v1.1.5.</p>
+      <span class="new-eg">New</span> marks what's new in v1.1.7.</p>
     <div class="grid">
       <!-- features:start -->
       <div class="card"><h3><span class="em">🏠</span>Home<button class="info" type="button" aria-expanded="false" aria-controls="how-home" aria-label="How to set up and use Home">i</button></h3>
@@ -469,7 +471,7 @@
       <div class="card"><h3><span class="em">📡</span>UPnP/DLNA renderers<button class="info" type="button" aria-expanded="false" aria-controls="how-upnp" aria-label="How to set up and use UPnP/DLNA renderers">i</button></h3>
         <p>WiiM, Chord Poly, streamers, AV receivers and TVs on your network, played like a Sonos room. Tracks join gaplessly on a renderer that supports it.</p>
         <div class="how" id="how-upnp" hidden><b>How to set it up and use it.</b> A renderer found on the network is off until you switch it on in <b>Settings → Audio Devices</b>. Then pick it with the speaker button. <b>Look again</b> searches the network now.</div></div>
-      <div class="card is-new"><h3><span class="em">🖥️</span>Sound devices on the server<span class="new">New</span><button class="info" type="button" aria-expanded="false" aria-controls="how-localout" aria-label="How to set up and use Sound devices on the server">i</button></h3>
+      <div class="card"><h3><span class="em">🖥️</span>Sound devices on the server<button class="info" type="button" aria-expanded="false" aria-controls="how-localout" aria-label="How to set up and use Sound devices on the server">i</button></h3>
         <p>A USB DAC, speakers or HDMI on the computer Mandarin runs on, played like a Sonos room. Tracks at the same rate join with nothing between them.</p>
         <div class="how" id="how-localout" hidden><b>How to set it up and use it.</b> Plug it in, then switch it on in <b>Settings → Audio Devices</b>. In Docker, add <code>--device /dev/snd</code> and <code>--privileged</code>; on a Mac, nothing to add: it plays through Core Audio at each track's own rate. Details under <a href="https://github.com/meltface-80/Mandarin#sound-devices-on-the-server">Sound devices on the server</a>.</div></div>
       <div class="card"><h3><span class="em">🎚️</span>Audio Devices<button class="info" type="button" aria-expanded="false" aria-controls="how-devices" aria-label="How to set up and use Audio Devices">i</button></h3>
@@ -514,8 +516,8 @@
       <div class="card"><h3><span class="em">📺</span>Wall display<button class="info" type="button" aria-expanded="false" aria-controls="how-wall" aria-label="How to set up and use Wall display">i</button></h3>
         <p>A full-screen now playing page for a TV or tablet.</p>
         <div class="how" id="how-wall" hidden><b>How to set it up and use it.</b> Open <code>http://&lt;server-ip&gt;:3500/display</code> on the screen. Its switch (on by default) and options are in <b>Settings → Setup → Wall Display</b>; off, it is off entirely. Tap the screen for its controls; <b>Shelf ›</b> opens Shelf.</div></div>
-      <div class="card"><h3><span class="em">📱</span>The Android app<button class="info" type="button" aria-expanded="false" aria-controls="how-android" aria-label="How to set up and use The Android app">i</button></h3>
-        <p>Mandarin's interface drawn natively by the app, plus lock-screen and notification controls, volume keys, a widget, a Quick Settings tile, a share sheet, Android Auto and its own updates.</p>
+      <div class="card is-new"><h3><span class="em">📱</span>The Android app<span class="new">New</span><button class="info" type="button" aria-expanded="false" aria-controls="how-android" aria-label="How to set up and use The Android app">i</button></h3>
+        <p>Mandarin's interface drawn natively by the app, which finds the server home or away and asks again when it's back; lock-screen controls, volume keys, a widget, Android Auto, its updates.</p>
         <div class="how" id="how-android" hidden><b>How to set it up and use it.</b> Download <a href="https://github.com/meltface-80/Mandarin/raw/main/dist/mandarin-android.apk">mandarin-android.apk</a> and install it (Android 8.0 or newer). Enter the port; it finds the server on your Wi-Fi.</div></div>
       <div class="card"><h3><span class="em">🎧</span>This phone<button class="info" type="button" aria-expanded="false" aria-controls="how-phone" aria-label="How to set up and use This phone">i</button></h3>
         <p>The phone is a player of its own: speaker, headphones or Bluetooth, with queue, history and radio. At home, your other devices can play to it while the app runs.</p>
@@ -532,8 +534,8 @@
       <div class="card"><h3><span class="em">✈️</span>Offline mode<button class="info" type="button" aria-expanded="false" aria-controls="how-offline" aria-label="How to set up and use Offline mode">i</button></h3>
         <p>One switch: only the music on the phone shows, and the server isn't used. With no connection the app does the same by itself, and reconnects when it can.</p>
         <div class="how" id="how-offline" hidden><b>How to set it up and use it.</b> In the Android app, <b>☰ → Offline mode</b>. While offline, a small <i>Offline</i> pill sits at the top of the screen: tap it to see why (Offline mode, or the server can't be reached).</div></div>
-      <div class="card"><h3><span class="em">🌍</span>Away from home<button class="info" type="button" aria-expanded="false" aria-controls="how-away" aria-label="How to set up and use Away from home">i</button></h3>
-        <p>On mobile data the app reaches the server through its own Tailscale, with no ports opened. Away, only the phone plays: Opus 256 or the original files.</p>
+      <div class="card is-new"><h3><span class="em">🌍</span>Away from home<span class="new">New</span><button class="info" type="button" aria-expanded="false" aria-controls="how-away" aria-label="How to set up and use Away from home">i</button></h3>
+        <p>On mobile data the app reaches the server through its own Tailscale, by itself, with no ports opened. Away, only the phone plays: Opus 256 or original files.</p>
         <div class="how" id="how-away" hidden><b>How to set it up and use it.</b> <b>Settings → Setup → Away from home</b> on the server: <b>Sign in to Tailscale</b>. Then in the app, the same page: <b>This phone</b>. Open the app once at home. Details under <a href="https://github.com/meltface-80/Mandarin#away-from-home-tailscale">Away from home</a>.</div></div>
       <div class="card"><h3><span class="em">🎨</span>UI Settings<button class="info" type="button" aria-expanded="false" aria-controls="how-ui" aria-label="How to set up and use UI Settings">i</button></h3>
         <p>Text sizes, grid layout (Auto, 3 or 2 columns, or List) and tile size, saved on each device. On a desktop, text goes up to +100%.</p>

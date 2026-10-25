@@ -7,6 +7,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.musicd.server.client.AlbumCovers
 import com.musicd.server.client.AlbumSummary
+import com.musicd.server.client.Failure
 import com.musicd.server.client.LibraryClient
 import com.musicd.server.client.ServerClient
 import kotlinx.coroutines.Dispatchers
@@ -18,7 +19,7 @@ import kotlinx.coroutines.withContext
  * runs so the wall comes back as it was from an album's page (its place is
  * the list's own saved state); a wall in another view starts afresh.
  */
-internal class WallState(val view: String) {
+internal class WallState(val view: String, val offline: Boolean = false) {
     val albums = mutableStateListOf<AlbumSummary>()
     var total by mutableIntStateOf(0)
     /** The first page has answered (the skeletons go). */
@@ -28,6 +29,8 @@ internal class WallState(val view: String) {
     var loading by mutableStateOf(false)
     /** What the banner says, and whether as an error (the page's setBanner); null: nothing. */
     var banner by mutableStateOf<Pair<String, Boolean>?>(null)
+    /** The last page asked for failed, and is worth asking again (item 157: [AskAgain]). */
+    var failed by mutableStateOf(false)
     /** No page yet, and more to come: the first asked for (again, after a failure) when the Library opens. */
     val needsFirst: Boolean get() = !done && albums.isEmpty()
 
@@ -44,17 +47,23 @@ internal class WallState(val view: String) {
         val first = albums.isEmpty()
         val r = withContext(Dispatchers.IO) { runCatching { LibraryClient { client.getJson(it) }.albums(albums.size, PAGE, view) } }
         r.onSuccess { p ->
-            albums.addAll(p.albums)
+            // An album already on the wall (the list moved between pages, as a scan adds albums) isn't added twice
+            // (item 158: two tiles of one key end the grid).
+            val have = albums.mapTo(HashSet()) { it.offset }
+            albums.addAll(p.albums.filter { have.add(it.offset) })
             total = p.total
             done = p.albums.size < PAGE
             loaded = true
+            failed = false
             // Nothing at all: as the page says it; otherwise whatever the banner said is over.
             banner = if (first && p.albums.isEmpty()) "Nothing matches this focus — try clearing a filter." to false else null
         }.onFailure { e ->
-            // The library's index still being built (503): said, and not asked again until the wall is reopened.
-            if (e is ServerClient.ServerException && e.status == 503) { banner = (e.message?.takeIf { !it.startsWith("HTTP") } ?: "Reading your music library…") to true; done = true; loaded = true }
-            else if (first) { banner = "Couldn’t load: " + (e.message ?: "no answer") to true; loaded = true }
-            // Mid-scroll: what is loaded stays; the next nudge asks the same page again.
+            // The library's index still being built (503): said, and asked again in a while (item 157: it used to wait
+            // for the wall to be opened again).
+            if (e is ServerClient.ServerException && e.status == 503) { banner = (e.message?.takeIf { !it.startsWith("HTTP") } ?: "Reading your music library…") to true; loaded = true }
+            else if (first) { banner = "Couldn’t load: " + Failure.said(e, "no answer") to true; loaded = true }
+            // Mid-scroll: what is loaded stays; the same page is asked again, as is a first that failed (item 157).
+            failed = Failure.worthAgain(e)
         }
     }
 
@@ -65,11 +74,15 @@ internal class WallState(val view: String) {
 internal object LibraryWall {
     private var last: WallState? = null
 
-    /** The wall in [view]: the one held when it is that view's, else a new one. */
-    @Synchronized fun state(view: String): WallState {
+    /**
+     * The wall in [view]: the one held when it is that view's and was answered the same way ([offline]: by the phone),
+     * else a new one (item 157: pages the phone answered offline stayed after the server was back, the wall stuck at the
+     * downloads' count).
+     */
+    @Synchronized fun state(view: String, offline: Boolean = false): WallState {
         val l = last
-        if (l != null && l.view == view) return l
-        return WallState(view).also { last = it }
+        if (l != null && l.view == view && l.offline == offline) return l
+        return WallState(view, offline).also { last = it }
     }
 
     /**

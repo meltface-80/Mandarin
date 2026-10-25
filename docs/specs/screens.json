@@ -5,6 +5,7 @@
     "android/app/src/main/java/com/musicd/server/android/Theme.kt": "Mandarin's colours and type for the native screens, as Material's theme; it draws nothing of its own",
     "android/app/src/main/java/com/musicd/server/android/RoomFollow.kt": "a room followed, and a cover fetched, for the screens that show them; it draws nothing of its own",
     "android/app/src/main/java/com/musicd/server/android/Covers.kt": "the covers a wall's tiles show, kept once fetched; it draws nothing of its own",
+    "android/app/src/main/java/com/musicd/server/android/AskAgain.kt": "a screen's failed load asked again when the server answers again; it draws nothing of its own",
     "android/app/src/main/java/com/musicd/server/android/AppLogUi.kt": "the app's log's watch on the screens (item 121, while logging is on): each move, what is shown, each tap; it draws nothing of its own"
   },
   "screens": {

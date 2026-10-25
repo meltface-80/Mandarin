@@ -68,7 +68,7 @@ class AutoDownloads(context: Context, params: WorkerParameters) : Worker(context
         val s = DownloadStore.settings(c)
         val keep = HashMap<Int, Pair<String, String>>()
         if (s.autoOn) {
-            Away.ensureRoute(c)
+            Away.awaitWay(c); Away.ensureRoute(c)   // home or away looked at first (item 158: a start by WorkManager took last run's)
             val client = Store.client(c) ?: return Result.retry()
             try {
                 val j = client.getJson("/api/download/auto?picks=${if (s.autoPicks) 1 else 0}" +

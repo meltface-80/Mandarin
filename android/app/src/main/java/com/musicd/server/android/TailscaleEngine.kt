@@ -30,8 +30,8 @@ object TailscaleEngine {
     private const val TAG = "TailscaleEngine"
 
     @Volatile private var process: Process? = null
-    private var port = 0
-    private var secret = ""
+    @Volatile private var port = 0
+    @Volatile private var secret = ""
     /** For the default route, which [sendInterfaces] asks Android for. */
     @Volatile private var appContext: Context? = null
 
@@ -86,19 +86,31 @@ object TailscaleEngine {
     fun signedInBefore(c: Context) = File(File(c.filesDir, "tailscale"), "tailscaled.state").exists()
 
     /**
+     * Signed in to Tailscale here: its state on disk, or the app's own note that it joined (item 157: the state wasn't
+     * found, and the app went to the Tailscale app's address — with no Tailscale app — for twelve minutes, its own
+     * engine never started; asked to join, it says if it needs signing in again).
+     */
+    fun signedIn(c: Context) = com.musicd.server.client.Route.ownSignedIn(installed(c), signedInBefore(c), Store.engineJoined(c))
+
+    /** When the engine was last started afresh ([connectAway]): at most once in three minutes (item 157). */
+    @Volatile private var freshAt = 0L
+
+    /**
      * Away: the engine running, joined, forwarding 127.0.0.1:[PORT] to the
      * server's Tailscale address, and the server answering through it.
      * Blocking (a few seconds at most when all is well); not on the main thread.
      */
     fun connectAway(c: Context, target: String): Boolean = runCatching {
-        if (!installed(c) || !signedInBefore(c)) return false
+        if (!signedIn(c)) return false
         val wasAlive = alive()
         if (join(c, target) == null) return false
         // The server answering, directly over the tailnet.
         for (i in 0 until 3) {
             if (json("GET", "/probe", timeoutMs = 10_000).optBoolean("ok")) return true
-            // Connections from before a network change hang until they time out: drop them.
-            json("POST", "/down?on=1"); json("POST", "/down?on=0")
+            // Connections from before a network change hang until they time out: dropped — but not on a first miss
+            // (item 157), most often a tunnel only waking from the phone's sleep, which the rebind below puts right
+            // without cutting off the music playing.
+            if (i > 0) { json("POST", "/down?on=1"); json("POST", "/down?on=0") }
             // And have Tailscale rebind its sockets and find its addresses again —
             // its tunnel can go stale with nothing on the phone having changed.
             json("POST", "/rebind", timeoutMs = 12_000)
@@ -106,8 +118,13 @@ object TailscaleEngine {
         // An engine that was already running and still can't reach the server
         // has most likely gone stale — its tunnel outlived a sleep or a change
         // of network without noticing. Start it afresh, once: the state on
-        // disk keeps it signed in, so joining again takes seconds.
+        // disk keeps it signed in, so joining again takes seconds. Not again
+        // within three minutes (item 157): a restart drops everything, and the
+        // server itself may be what isn't answering.
         if (wasAlive) {
+            val now = android.os.SystemClock.elapsedRealtime()
+            if (!com.musicd.server.client.Route.mayRestartEngine(now, freshAt)) { Log.i(TAG, "the engine can't reach $target; started afresh lately, so not again yet"); return false }
+            freshAt = now
             Log.i(TAG, "the engine can't reach $target; starting it afresh")
             stop()
             if (join(c, target) == null) return false
@@ -129,8 +146,13 @@ object TailscaleEngine {
         for (i in 0 until 40) {
             val st = json("GET", "/status", timeoutMs = 4000)
             when (st.optString("state")) {
-                "Running" -> { running = true }
-                "NeedsLogin", "NeedsMachineAuth" -> return null   // sign in again on the Tailscale screen
+                "Running" -> { running = true; Store.setEngineJoined(c, true) }
+                "NeedsLogin", "NeedsMachineAuth" -> {
+                    // Sign in again on the Tailscale screen; till then the engine isn't the way (item 157: said, not silent).
+                    AppLog.line("REACH", "Tailscale on this phone needs signing in again: Settings → Away → Tailscale", anomaly = true)
+                    Store.setEngineJoined(c, false)
+                    return null
+                }
             }
             if (running) break
             Thread.sleep(250)
@@ -153,12 +175,12 @@ object TailscaleEngine {
      * (at home it's reached another way). Blocking; not on the main thread.
      */
     fun prepare(c: Context, target: String) {
-        if (!installed(c) || !signedInBefore(c)) return
+        if (!signedIn(c)) return
         ensureRunning(c)
         json("POST", "/start", JSONObject().put("Hostname", "musicd-phone").toString(), 30_000)
         for (i in 0 until 40) {
             val s = json("GET", "/status", timeoutMs = 4000).optString("state")
-            if (s == "Running") break
+            if (s == "Running") { Store.setEngineJoined(c, true); break }
             if (s == "NeedsLogin" || s == "NeedsMachineAuth") return
             Thread.sleep(250)
         }
@@ -175,7 +197,8 @@ object TailscaleEngine {
         val p = process
         process = null   // first: its watcher then knows the end was asked for
         readyFor = null
-        p?.let { runCatching { it.outputStream.close() }; it.destroy() }
+        // Gone before a new one starts (item 158): the dying one held the app's port, and the new one couldn't have it.
+        p?.let { runCatching { it.outputStream.close() }; it.destroy(); runCatching { it.waitFor(3, java.util.concurrent.TimeUnit.SECONDS) } }
     }
 
     /**

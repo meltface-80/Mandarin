@@ -144,7 +144,8 @@ class MainActivity : androidx.activity.ComponentActivity() {
         AppLog.trace.reset()
         // Every frame drawn, timed by Android (while logging is on, item 121): a stall is found, slow ones counted.
         window.addOnFrameMetricsAvailableListener({ _, m, _ ->
-            if (m.getMetric(android.view.FrameMetrics.FIRST_DRAW_FRAME) == 0L)
+            // Counted only while on screen (item 159: more slow frames were counted on a page than its seconds there could hold).
+            if (m.getMetric(android.view.FrameMetrics.FIRST_DRAW_FRAME) == 0L && NativeShell.onScreen.value)
                 AppLog.trace.frame(m.getMetric(android.view.FrameMetrics.TOTAL_DURATION) / 1_000_000, SystemClock.uptimeMillis())?.let { AppLog.found(listOf(it)) }
         }, android.os.Handler(android.os.Looper.getMainLooper()))
 
@@ -241,6 +242,7 @@ class MainActivity : androidx.activity.ComponentActivity() {
     override fun onTrimMemory(level: Int) {
         super.onTrimMemory(level)
         AppLog.line("APP", "Android asks for memory back (level $level)", anomaly = com.musicd.server.client.UiTrace.memoryLow(level))
+        Covers.trim(level)   // covers let go (item 158): nothing else did
     }
 
     private fun registerBack() {

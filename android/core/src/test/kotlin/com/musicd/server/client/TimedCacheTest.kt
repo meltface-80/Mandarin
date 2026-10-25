@@ -42,4 +42,12 @@ class TimedCacheTest {
         t = 100
         assertFalse("its time from when it was first put", c.fresh("x"))
     }
+
+    @Test fun `cleared, nothing is kept`() {
+        val c = TimedCache<String, Int>(capacity = 4, ttlMs = 60_000, now = { 0L })
+        c.put("a", 1); c.put("b", 2)
+        c.clear()
+        assertNull(c.get("a")); assertFalse(c.fresh("b"))
+    }
 }
+

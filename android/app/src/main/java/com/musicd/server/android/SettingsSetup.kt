@@ -130,7 +130,7 @@ private fun PicksPane(client: () -> ServerClient?, onBack: () -> Unit, info: (St
                     scope.launch {
                         val r = withContext(Dispatchers.IO) { runCatching { c.rebuildPicks() } }
                         rebuilding = false
-                        setupToast(context, r.fold({ "Rebuilding today's picks — check back in a minute" }, { "Couldn't rebuild: " + (it.message ?: "no answer") }))
+                        setupToast(context, r.fold({ "Rebuilding today's picks — check back in a minute" }, { "Couldn't rebuild: " + (com.musicd.server.client.Failure.said(it, "no answer")) }))
                     }
                 })
             }
@@ -193,7 +193,7 @@ private fun LabelsPane(client: () -> ServerClient?, onBack: () -> Unit, info: (S
                     scope.launch {
                         val r = withContext(Dispatchers.IO) { runCatching { c.rescanLabelsNow() } }
                         r.onSuccess { rescan = SetupSettings.rescanWord(it); rescanSaid = SetupSettings.rescanSaid(it); delay(5000); rescan = "Force rescan" }
-                            .onFailure { rescan = "Force rescan"; rescanSaid = "Error: " + (it.message ?: "no answer") }
+                            .onFailure { rescan = "Force rescan"; rescanSaid = "Error: " + (com.musicd.server.client.Failure.said(it, "no answer")) }
                     }
                 })
             }
@@ -219,7 +219,7 @@ private fun LabelsPane(client: () -> ServerClient?, onBack: () -> Unit, info: (S
                         val r = withContext(Dispatchers.IO) { runCatching { c.saveSetting("label-folder-depth", JSONObject().put("depth", depth.toIntOrNull() ?: 0)) } }
                         savingDepth = false
                         r.onSuccess { j -> setupToast(context, if (!j.optBoolean("ok")) j.optString("error").ifEmpty { "Failed to save" } else if (j.optBoolean("rescanning")) "Saved — re-scanning labels…" else "Saved"); reload() }
-                            .onFailure { setupToast(context, "Failed: " + (it.message ?: "no answer")) }
+                            .onFailure { setupToast(context, "Failed: " + (com.musicd.server.client.Failure.said(it, "no answer"))) }
                     }
                 })
             }

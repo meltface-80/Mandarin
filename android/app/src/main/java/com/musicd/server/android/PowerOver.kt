@@ -66,7 +66,7 @@ internal fun PowerOver(client: () -> ServerClient?) {
             if (yes && c != null) scope.launch {
                 withContext(Dispatchers.IO) { runCatching { c.post(Power.path(w), JSONObject()) } }
                     .onSuccess { cover = Power.cover(w, it, power) }
-                    .onFailure { Toast.makeText(context, it.message ?: "The server said no", Toast.LENGTH_SHORT).show() }
+                    .onFailure { Toast.makeText(context, com.musicd.server.client.Failure.said(it, "The server said no"), Toast.LENGTH_SHORT).show() }
             }
         }
     }

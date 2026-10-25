@@ -149,7 +149,8 @@ internal sealed partial class Hub
         foreach (var w in woken) w.TrySetResult();
     }
 
-    public async Task WaitForChange(double sinceRevision, int timeoutMs)
+    /* Until the revision moves past [sinceRevision], [timeoutMs] passes, or [stop] (the device gone). */
+    public async Task WaitForChange(double sinceRevision, int timeoutMs, CancellationToken stop = default)
     {
         TaskCompletionSource tcs;
         lock (Gate)
@@ -158,10 +159,14 @@ internal sealed partial class Hub
             tcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
             waiters.Add(tcs);
         }
-        using var cts = new CancellationTokenSource(timeoutMs);
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(stop);
+        cts.CancelAfter(timeoutMs);
         using (cts.Token.Register(() => tcs.TrySetResult())) await tcs.Task;
         lock (Gate) waiters.Remove(tcs);
     }
+
+    /* The /api/zone-state polls waiting now (/api/status's waits). */
+    public int Waiting { get { lock (Gate) return waiters.Count; } }
 
     public void Watch(string? zoneId) { if (!string.IsNullOrEmpty(zoneId)) lock (Gate) Hot[zoneId] = Now(); }
 

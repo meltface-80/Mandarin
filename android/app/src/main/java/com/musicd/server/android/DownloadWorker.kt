@@ -31,6 +31,8 @@ class DownloadWorker(context: Context, params: WorkerParameters) : Worker(contex
 
     companion object {
         private const val TAG = "Downloads"
+        /** Tries before a download gives up (WorkManager spaces them out, doubling: a few hours in all). */
+        private const val MAX_TRIES = 12
         private const val KEY_ALBUM = "album"
         private const val KEY_QUALITY = "quality"
         private const val NOTIFICATION_ID = 7400
@@ -95,7 +97,7 @@ class DownloadWorker(context: Context, params: WorkerParameters) : Worker(contex
         val dir = DownloadStore.dirOf(c, id) ?: return Result.success()     // removed meanwhile
         // Offline mode: waits (tried again later) rather than reaching for the server.
         if (Store.offlineMode(c)) return Result.retry()
-        Away.ensureRoute(c)                                           // away: MusicD's own Tailscale up
+        Away.awaitWay(c); Away.ensureRoute(c)                         // home or away looked at first (item 158), then Tailscale up
         val server = Store.active(c) ?: return Result.retry()      // home, or Tailscale away
         val token = Store.token(c) ?: return Result.retry()
         var album = DownloadStore.load(dir) ?: return Result.success()
@@ -127,7 +129,7 @@ class DownloadWorker(context: Context, params: WorkerParameters) : Worker(contex
                 val path = "/api/download/t${t.id}?quality=$quality"
                 // Opus is made by the server: a fresh start rather than the rest of a
                 // file that may have been made again since (two halves of two encodes).
-                fetch(server.baseUrl, token, path, File(dir, t.fileName()), resume = quality != DownloadStore.QUALITY_OPUS)
+                fetch(server.baseUrl, token, path, File(dir, t.fileName()), resume = quality != DownloadStore.QUALITY_OPUS, size = t.size)
                 t.done = true
                 DownloadStore.save(dir, album)
             }
@@ -141,10 +143,12 @@ class DownloadWorker(context: Context, params: WorkerParameters) : Worker(contex
             DownloadStore.save(dir, album)
             Result.failure()
         } catch (e: Exception) {
-            Log.i(TAG, "album $id: ${e.message} — will try again")
-            album.state = "waiting"; album.error = e.message
+            // Not for ever (item 158): after a dozen tries, spaced further and further apart, it's said and left.
+            val last = runAttemptCount >= MAX_TRIES
+            Log.i(TAG, "album $id: ${e.message} — " + if (last) "giving up" else "will try again")
+            album.state = if (last) "failed" else "waiting"; album.error = e.message
             DownloadStore.save(dir, album)
-            Result.retry()
+            if (last) Result.failure() else Result.retry()
         }
     }
 
@@ -188,7 +192,7 @@ class DownloadWorker(context: Context, params: WorkerParameters) : Worker(contex
      * a file of the length the server said is kept: a connection cut short no
      * longer leaves a short track marked as downloaded (v0.5.57).
      */
-    private fun fetch(base: String, token: String, pathOrUrl: String, dest: File, resume: Boolean = true) {
+    private fun fetch(base: String, token: String, pathOrUrl: String, dest: File, resume: Boolean = true, size: Long = -1) {
         val part = File(dest.parentFile, dest.name + ".part")
         if (!resume) part.delete()
         val have = if (part.exists()) part.length() else 0L
@@ -198,7 +202,13 @@ class DownloadWorker(context: Context, params: WorkerParameters) : Worker(contex
         try {
             val code = c.responseCode
             if (code == 404) throw Stop("A track is no longer in the library — remove this album and download it again")
+            if (code == 401) throw Stop("This phone was signed out of Mandarin — sign in again, then download it again")
+            // The part already whole, or longer than the track is now (item 158: asked again and again, for ever): started afresh.
+            if (code == 416) { part.delete(); throw IOException("HTTP 416") }
             if (code != 200 && code != 206) throw IOException("HTTP $code")
+            // The rest of a file that has changed since the part began (another size): started afresh, never two joined.
+            val total = c.getHeaderField("Content-Range")?.substringAfterLast('/')?.toLongOrNull()
+            if (code == 206 && size > 0 && total != null && total != size) { part.delete(); throw IOException("the track changed on the server") }
             val append = code == 206 && have > 0
             val expected = c.contentLengthLong   // -1 when the server doesn't say
             var got = 0L

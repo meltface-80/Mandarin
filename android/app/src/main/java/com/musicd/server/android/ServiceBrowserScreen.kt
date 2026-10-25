@@ -165,7 +165,7 @@ internal fun ServiceBrowserScreen(kept: ServiceKept, startArtist: Pair<String, S
             v.more = false
             if (seq != v.seq) return@launch
             got.onSuccess { p -> v.offset = next; v.hasMore = p.hasMore; v.limit = p.limit; v.albums.addAll(p.albums); for (a in p.albums) if (a.id !in kept.favs) kept.favs[a.id] = a.favourited }
-                .onFailure { toast("Couldn't load more: " + (it.message ?: "no answer")) }
+                .onFailure { toast("Couldn't load more: " + (com.musicd.server.client.Failure.said(it, "no answer"))) }
         }
     }
     fun favourite(a: ServiceAlbum) {
@@ -174,14 +174,14 @@ internal fun ServiceBrowserScreen(kept: ServiceKept, startArtist: Pair<String, S
         scope.launch {
             val j = withContext(Dispatchers.IO) { runCatching { c.serviceFavourite(service, a.id, !was) } }
             j.onSuccess { r -> if (r.optBoolean("ok")) { kept.favs[a.id] = !was; toast(ServiceBrowse.favourited(service, !was)) } else toast(r.optString("error").ifEmpty { "Couldn't update favourite" }) }
-                .onFailure { toast("Failed: " + (it.message ?: "no answer")) }
+                .onFailure { toast("Failed: " + (com.musicd.server.client.Failure.said(it, "no answer"))) }
         }
     }
     fun open(a: ServiceAlbum) {
         val c = client() ?: return
         scope.launch {
             withContext(Dispatchers.IO) { runCatching { c.serviceOpen(service, a.id) } }
-                .onSuccess { kept.opened = a.id; onAlbum(it) }.onFailure { toast(it.message ?: "Couldn't open that album") }
+                .onSuccess { kept.opened = a.id; onAlbum(it) }.onFailure { toast(com.musicd.server.client.Failure.said(it, "Couldn't open that album")) }
         }
     }
 

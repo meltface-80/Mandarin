@@ -40,7 +40,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
@@ -53,6 +53,9 @@ import com.musicd.server.client.Album
 import com.musicd.server.client.Contract
 import com.musicd.server.client.Palette
 import com.musicd.server.client.Track
+
+/** A track's "Disc 2" part, left out where the album says its discs itself. */
+private val DISC_PART = Regex("^Disc \\d+$")
 
 /**
  * The album page's tracks (docs/specs/screens.json, album), as the page's
@@ -98,7 +101,7 @@ internal fun TrackRow(i: Int, t: Track, title: String, movement: Boolean, noDisc
     val selecting = picks != null
     val picked = picks?.contains(i) == true
     if (selecting && open) open = false   // an open row and a selection are two intents: the row closes as selecting starts
-    val sub = if (noDisc) t.sub.split(" · ").filter { !Regex("^Disc \\d+$").matches(it) }.joinToString(" · ") else t.sub
+    val sub = if (noDisc) t.sub.split(" · ").filter { !DISC_PART.matches(it) }.joinToString(" · ") else t.sub
     Column(Modifier.parity("album.track", Contract.label("album.track", 0, title)).fillMaxWidth()
         .let { m -> if (picked) m.clip(RoundedCornerShape(8.dp)).background(paletteColor(Palette.ACCENT_SOFT)) else if (open) m.clip(rowShape).background(paletteColor(Palette.ROW_OPEN)) else m }
         .combinedClickable(onLongClick = { if (!selecting) onPick(i) }, onClick = { if (selecting) onPick(i) else open = !open })) {
@@ -112,11 +115,12 @@ internal fun TrackRow(i: Int, t: Track, title: String, movement: Boolean, noDisc
                 // end and the row's 12 gap after it), on the name's line, as the page's (nowdisc.js, item 50): from the box's end
                 // half the room past it, less half the box's spare width.
                 if (playingId != null && playingId == t.id) {
-                    val turn by rememberInfiniteTransition(label = "disc").animateFloat(0f, 360f, infiniteRepeatable(tween(1800, easing = LinearEasing)), label = "turn")
+                    // Turned in its own layer (item 158): read in the composition, the turn drew the whole row again on every frame.
+                    val turn = if (playing) rememberInfiniteTransition(label = "disc").animateFloat(0f, 360f, infiniteRepeatable(tween(1800, easing = LinearEasing)), label = "turn") else null
                     val figures = with(LocalDensity.current) { numberWidth.toDp() }
                     val box = if (figures > 22.dp) figures else 22.dp
                     Icon(painterResource(R.drawable.np_disc), contentDescription = null, tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.parity("album.track-playing").align(Alignment.CenterEnd).offset(x = 13.dp - (box - figures) / 2).size(14.dp).let { m -> if (playing) m.rotate(turn) else m })
+                        modifier = Modifier.parity("album.track-playing").align(Alignment.CenterEnd).offset(x = 13.dp - (box - figures) / 2).size(14.dp).graphicsLayer { rotationZ = turn?.value ?: 0f })
                 }
             }
             Column(Modifier.weight(1f)) {

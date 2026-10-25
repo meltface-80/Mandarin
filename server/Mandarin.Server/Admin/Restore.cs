@@ -13,6 +13,8 @@ internal static partial class Backup
         var staged = Path.Combine(dataDir, "restore-staged.db");
         if (!File.Exists(staged)) return false;
         var file = Path.Combine(dataDir, "musicd.db");
+        // No connection of the pool's left holding the file put aside (Db.cs).
+        Db.LetGo();
         var dir = Path.Combine(dataDir, "backups");
         Directory.CreateDirectory(dir);
         var aside = Path.Combine(dir, $"before-restore-{Stamp(DateTime.Now)}.db");

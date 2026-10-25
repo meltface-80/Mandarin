@@ -6,8 +6,8 @@
 // Their terms ask for no more than five requests a second: calls go out one at
 // a time, a quarter of a second apart, through one queue, and every answer is
 // kept for a week (a failure for ten minutes; a missing key and Last.fm's own
-// "too many requests" not at all). Where Last.fm is asked comes from the Node
-// server (Jobs.cs: a fake in the tests).
+// "too many requests" not at all), in the database too (Lastfm.Kept.cs). Where
+// Last.fm is asked comes from the Node server (Jobs.cs: a fake in the tests).
 using System.Diagnostics;
 using System.Net;
 using System.Text;
@@ -185,6 +185,8 @@ internal sealed partial class Lastfm(string? baseUrl, Func<string> getKey, strin
                     return hit.Error != null ? Task.FromException<object?>(hit.Error) : Task.FromResult(hit.Value);
                 }
             }
+            // Kept from an earlier run (Lastfm.Kept.cs).
+            if (Stored(kind, artist) is { } kept) { Put(k, new Entry { At = kept.At, TtlMs = Ttl, Value = kept.Value }); return Task.FromResult(kept.Value); }
             var gen = generation;
             var pending = Run();
             if (!pending.IsCompleted) { Put(k, new Entry { Pending = pending }); }
@@ -195,7 +197,9 @@ internal sealed partial class Lastfm(string? baseUrl, Func<string> getKey, strin
                 try
                 {
                     var value = await compute();
-                    lock (gate) if (gen == generation) Put(k, new Entry { At = Now, TtlMs = Ttl, Value = value });
+                    bool current;
+                    lock (gate) if (current = gen == generation) Put(k, new Entry { At = Now, TtlMs = Ttl, Value = value });
+                    if (current) Store(kind, artist, value);
                     return value;
                 }
                 catch (Exception e)
@@ -292,6 +296,7 @@ internal sealed partial class Lastfm(string? baseUrl, Func<string> getKey, strin
     public void Clear()
     {
         lock (gate) { generation++; cache.Clear(); order.Clear(); }
+        Unstore();
     }
 
     // ------------------------------------------------------------ the key's check

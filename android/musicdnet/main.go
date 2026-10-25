@@ -18,7 +18,7 @@
 //	POST /start                join (body: {"control_url","auth_key","hostname"})
 //	POST /login                ask for a sign-in link (after an expiry, say)
 //	POST /logout               sign this phone out of the tailnet
-//	POST /forward?target=ip:port[&port=n]   open the loopback port (n if free) → {"addr"}
+//	POST /forward?target=ip:port[&port=n]   open the loopback port (n, or an error if taken) → {"addr"}
 //	GET  /probe                is the server answering, directly? → {"ok","ms"}
 //	POST /down?on=1|0          the app's verdict: drop and refuse, or let through
 //	GET  /log                  recent log lines, for the diagnostics screen

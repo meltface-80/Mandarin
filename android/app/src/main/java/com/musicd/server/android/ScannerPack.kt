@@ -158,7 +158,7 @@ private fun packAct(k: ScanKept, client: () -> ServerClient?, scope: CoroutineSc
     val c = client() ?: return
     k.busy = true
     scope.launch {
-        withContext(Dispatchers.IO) { runCatching { c.post("/api/identify/pack/$what", JSONObject()) } }.onSuccess { k.pack = it; k.err = "" }.onFailure { k.err = it.message ?: "" }
+        withContext(Dispatchers.IO) { runCatching { c.post("/api/identify/pack/$what", JSONObject()) } }.onSuccess { k.pack = it; k.err = "" }.onFailure { k.err = com.musicd.server.client.Failure.said(it, "") }
         k.busy = false
         if (what == "download") followPack(k, c, scope)
     }
@@ -191,7 +191,7 @@ private fun packGo(k: ScanKept, client: () -> ServerClient?, scope: CoroutineSco
                 if (k.places.isEmpty()) k.places = c.getJson("/api/library/folders").optJSONArray("mounts")?.let { a -> (0 until a.length()).mapNotNull { a.optJSONObject(it)?.optString("path") } }.orEmpty()
                 c.getJson("/api/library/browse?path=" + URLEncoder.encode(path, "UTF-8"))
             }
-        }.onSuccess { k.browse = it; k.err = "" }.onFailure { k.err = it.message ?: ""; if (k.browse == null) k.browse = JSONObject().put("path", "/").put("dirs", org.json.JSONArray()) }
+        }.onSuccess { k.browse = it; k.err = "" }.onFailure { k.err = com.musicd.server.client.Failure.said(it, ""); if (k.browse == null) k.browse = JSONObject().put("path", "/").put("dirs", org.json.JSONArray()) }
     }
 }
 

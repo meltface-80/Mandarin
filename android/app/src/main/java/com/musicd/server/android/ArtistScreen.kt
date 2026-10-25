@@ -72,7 +72,10 @@ internal fun ArtistScreen(name: String, prefs: WallPrefs, zoneId: String, client
     val (cols, coverPx) = wallColumns(prefs)
     fun toast(text: String) = Toast.makeText(context, text, Toast.LENGTH_SHORT).show()
     BackHandler { if (selecting) { selecting = false; picks = emptyList() } else onBack() }
-    LaunchedEffect(name) {
+    // Still failed after the few tries below, asked again when the server answers again or in a while (item 157).
+    var asks by remember { mutableStateOf(0) }
+    AskAgain(failed != null && albums == null) { asks++ }
+    LaunchedEffect(name, asks) {
         if (kept?.albums != null && ArtistPages.kept.fresh(key)) return@LaunchedEffect   // as it was, and recent: nothing to ask
         val c = client() ?: return@LaunchedEffect
         val lib = LibraryClient { c.getJson(it) }
@@ -84,7 +87,7 @@ internal fun ArtistScreen(name: String, prefs: WallPrefs, zoneId: String, client
             got = withContext(Dispatchers.IO) { runCatching { lib.artistAlbums(name) } }
         }
         // Asked afresh: kept from now, the rest of what was kept drawn until its answer replaces it.
-        got.onSuccess { albums = it; ArtistPages.kept.put(key, (ArtistPages.kept.get(key) ?: ArtistPage()).copy(albums = it)) }
+        got.onSuccess { albums = it; failed = null; ArtistPages.kept.put(key, (ArtistPages.kept.get(key) ?: ArtistPage()).copy(albums = it)) }
             .onFailure { if (albums == null) failed = Failure.said(it, "no answer") }
         // The head after the albums, so the grid never waits on another service; one of their own albums pins the lookup.
         // Who they are (item 131) alongside: the server may look them up there and then, for a few seconds.
@@ -111,7 +114,7 @@ internal fun ArtistScreen(name: String, prefs: WallPrefs, zoneId: String, client
         val c = client() ?: return
         if (zone.isEmpty()) { toast("Pick a zone first"); return }
         val made = ServerWrites.write { selectAct(c, playable, zone, room.zoneName, kind) }
-        scope.launch { toast(ServerWrites.await(made).getOrElse { it.message ?: "Couldn't reach the server" }) }
+        scope.launch { toast(ServerWrites.await(made).getOrElse { com.musicd.server.client.Failure.said(it, "Couldn't reach the server") }) }
     }
     val grid = rememberLazyGridState()
     val list = rememberLazyListState()
@@ -126,7 +129,7 @@ internal fun ArtistScreen(name: String, prefs: WallPrefs, zoneId: String, client
                 val c = client() ?: return
                 if (what != "later" && zone.isEmpty()) { toast("Pick a zone first"); return }
                 val made = ServerWrites.write { selectAct(c, chosen, zone, room.zoneName, what) }   // Listen later before Home reads (item 85)
-                scope.launch { toast(ServerWrites.await(made).getOrElse { it.message ?: "Couldn't reach the server" }); selecting = false; picks = emptyList() }
+                scope.launch { toast(ServerWrites.await(made).getOrElse { com.musicd.server.client.Failure.said(it, "Couldn't reach the server") }); selecting = false; picks = emptyList() }
             }
         }
     }

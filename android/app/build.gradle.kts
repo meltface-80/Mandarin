@@ -16,8 +16,8 @@ android {
         targetSdk = 36
         // versionCode must rise with every published build or Android refuses
         // to install over the previous one.
-        versionCode = 332
-        versionName = "1.1.5"
+        versionCode = 333
+        versionName = "1.1.7"
         // The Tailscale engine (jniLibs) is built for 64-bit ARM only, and so
         // is the native code below: one ABI, every phone the app runs on.
         ndk { abiFilters += "arm64-v8a" }
@@ -81,7 +81,9 @@ android {
      */
     buildTypes {
         release {
-            isMinifyEnabled = false
+            // R8 (item 158): the libraries optimised, the app's own code kept as written (proguard-rules.pro).
+            isMinifyEnabled = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             signingConfig = signingConfigs.findByName("release") ?: signingConfigs.getByName("debug")
         }
     }
@@ -141,4 +143,7 @@ dependencies {
     implementation("androidx.compose.material3:material3")
     implementation("androidx.activity:activity-compose:1.10.1")
     implementation("androidx.navigation:navigation-compose:2.9.0")
+    // The compiled start-up paths (item 158): Compose's own profiles and the app's (src/main/baseline-prof.txt) put in
+    // place on the phone when the app is installed from its APK, not only from a store.
+    implementation("androidx.profileinstaller:profileinstaller:1.4.1")
 }

@@ -93,7 +93,7 @@ internal fun SettingsFolders(client: () -> ServerClient?, onBack: () -> Unit) {
         if (browsing == null) { browsing = Browsed(path, null, emptyList(), null); loadingDirs = true }
         scope.launch {
             withContext(Dispatchers.IO) { runCatching { FolderSettings.browsed(c.getJson("/api/library/browse?path=" + URLEncoder.encode(path, "UTF-8"))) } }
-                .onSuccess { browsing = it; err = "" }.onFailure { err = it.message ?: "Couldn’t open it"; if (browsing == null) browsing = Browsed("/", null, emptyList(), null) }
+                .onSuccess { browsing = it; err = "" }.onFailure { err = com.musicd.server.client.Failure.said(it, "Couldn’t open it"); if (browsing == null) browsing = Browsed("/", null, emptyList(), null) }
             loadingDirs = false
         }
     }
@@ -103,7 +103,7 @@ internal fun SettingsFolders(client: () -> ServerClient?, onBack: () -> Unit) {
         busy = true
         val made = ServerWrites.write { c.post("/api/library/folders", body, 60_000) }
         scope.launch {
-            ServerWrites.await(made).onSuccess { j -> folders = folders?.let { FolderSettings.after(it, j) }; err = ""; done(j) }.onFailure { err = it.message ?: "Couldn’t change it" }
+            ServerWrites.await(made).onSuccess { j -> folders = folders?.let { FolderSettings.after(it, j) }; err = ""; done(j) }.onFailure { err = com.musicd.server.client.Failure.said(it, "Couldn’t change it") }
             busy = false
         }
     }
@@ -251,7 +251,7 @@ private fun PhoneFolder(info: (String) -> Unit, ask: (String, () -> Unit) -> Uni
             LocalMusic.available(context), LocalMusic.lastError)
     LaunchedEffect(Unit) {
         withContext(Dispatchers.IO) { LocalMusic.load(context) }
-        while (true) { local = withContext(Dispatchers.IO) { read() }; delay(1_500) }
+        while (true) { untilOnScreen(); local = withContext(Dispatchers.IO) { read() }; delay(1_500) }
     }
     val choose = { (context as? MainActivity)?.pickLocalFolder(); Unit }
     Column(Modifier.padding(vertical = 4.dp)) {

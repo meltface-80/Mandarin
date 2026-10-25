@@ -84,7 +84,7 @@ internal fun QueueScreen(zoneId: String, client: () -> ServerClient?, changed: A
         val c = client() ?: return@LaunchedEffect
         withContext(Dispatchers.IO) { runCatching { c.queue(zoneId) } }
             .onSuccess { if (it != view) { view = it; picks = null; historyPicks = null }; failed = null }
-            .onFailure { if (view == null) failed = "Couldn't load queue: " + (it.message ?: "") }
+            .onFailure { if (view == null) failed = "Couldn't load queue: " + (com.musicd.server.client.Failure.said(it, "")) }
     }
     fun toast(text: String) = Toast.makeText(context, text, Toast.LENGTH_SHORT).show()
     // A change to the room: what the server says, the queue asked for again a moment after.
@@ -92,7 +92,7 @@ internal fun QueueScreen(zoneId: String, client: () -> ServerClient?, changed: A
         val c = client() ?: return
         scope.launch {
             val r = withContext(Dispatchers.IO) { runCatching { block(c) } }
-            r.exceptionOrNull()?.let { toast(it.message ?: "Couldn't reach the server") } ?: done?.let { toast(it) }
+            r.exceptionOrNull()?.let { toast(com.musicd.server.client.Failure.said(it, "Couldn't reach the server")) } ?: done?.let { toast(it) }
             delay(600); reload++
         }
     }

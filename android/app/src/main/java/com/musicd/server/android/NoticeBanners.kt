@@ -79,7 +79,7 @@ internal object Notices {
         val c = client() ?: return
         withContext(Dispatchers.IO) { runCatching { c.post("/api/library/forget-folder", JSONObject().put("dir", dir)) } }
             .onSuccess { j -> Toast.makeText(context, ServerNotices.forgotten(j.optInt("removed"), n.names.getOrNull(i).orEmpty()), Toast.LENGTH_SHORT).show(); watchAgain.value++ }
-            .onFailure { Toast.makeText(context, it.message ?: "Couldn't reach the server", Toast.LENGTH_SHORT).show() }
+            .onFailure { Toast.makeText(context, com.musicd.server.client.Failure.said(it, "Couldn't reach the server"), Toast.LENGTH_SHORT).show() }
     }
 
     /** Bumped to ask the server again at once (a folder forgotten). */

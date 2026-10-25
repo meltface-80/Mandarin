@@ -7,7 +7,7 @@
 
 </div>
 
-# Mandarin — v1.1.5
+# Mandarin — v1.1.7
 
 **Your own music files, played to Sonos rooms, to UPnP/DLNA renderers (a WiiM, a Chord Poly,
 a streamer, an AV receiver) and to the Mandarin Android app.**
@@ -26,12 +26,18 @@ Wikipedia, Deezer and others); your music files stay on your machine.
                                                    └──── audio: /stream/… ◀────────┘
 ```
 
-**New in v1.1.5** (since v1.1.4)
-* **Mandarin on a Mac again**, Apple silicon or Intel: one line in Terminal installs it (see
-  [Install on a Mac](#install-on-a-mac)), and it does there what it does on Linux: Sonos rooms, renderers, the
-  Android app, **a USB DAC plugged into the Mac** (played through Core Audio at each track's own rate, held for
-  Mandarin while it plays) and **away from home** with the built-in Tailscale. It starts at login, a Mandarin icon on
-  the desktop starts it again after a Shut down, and updates come from Settings.
+**New in v1.1.7** (since v1.1.5): **the Android app, at home and away, without the waiting.**
+* **It finds its way first.** Opened after Android closed it, the app looks at where it is (home or away) before it
+  asks the server anything, and every screen that couldn't load asks again by itself the moment the server answers,
+  with no "Couldn't load" left on screen until you open it again.
+* **Away from home just works.** The app's own Tailscale comes up by itself as you leave the Wi-Fi, the app no longer
+  flips to "away" at home when the server is busy, and it takes a Wi-Fi for home only when your own server answers
+  there (another network with the same address never gets your sign-in).
+* **Faster and lighter.** Smoother album pages and Now Playing, a smaller optimised app, covers kept on the phone (no
+  fetching them all again away from home), and less battery when the app isn't on screen.
+* **A server that doesn't stall.** A scan or a job no longer holds every request up; history, Not played and artist
+  pages answer at once, and Home's covers are drawn ahead after a scan.
+* **Clearer when something goes wrong:** "Couldn't reach the server", never addresses and ports.
 
 ---
 
@@ -353,7 +359,7 @@ A renderer found on the network is off until you switch it on in **Settings → 
 
 ⸻
 
-🖥️ **Sound devices on the server** — *new in v1.1.5*
+🖥️ **Sound devices on the server**
 
 A USB DAC, speakers or HDMI on the computer Mandarin runs on, played like a Sonos room. Tracks at the same rate join with nothing between them.
 
@@ -533,9 +539,9 @@ Open `http://<server-ip>:3500/display` on the screen. Its switch (on by default)
 
 ⸻
 
-📱 **The Android app**
+📱 **The Android app** — *new in v1.1.7*
 
-Mandarin's interface drawn natively by the app, plus lock-screen and notification controls, volume keys, a widget, a Quick Settings tile, a share sheet, Android Auto and its own updates.
+Mandarin's interface drawn natively by the app, which finds the server home or away and asks again when it's back; lock-screen controls, volume keys, a widget, Android Auto, its updates.
 
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 
@@ -605,9 +611,9 @@ In the Android app, **☰ → Offline mode**. While offline, a small *Offline* p
 
 ⸻
 
-🌍 **Away from home**
+🌍 **Away from home** — *new in v1.1.7*
 
-On mobile data the app reaches the server through its own Tailscale, with no ports opened. Away, only the phone plays: Opus 256 or the original files.
+On mobile data the app reaches the server through its own Tailscale, by itself, with no ports opened. Away, only the phone plays: Opus 256 or original files.
 
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 

@@ -139,7 +139,7 @@ internal class AlbumEditor(private val offset: Long, title: String, artist: Stri
         val c = client() ?: return
         withContext(Dispatchers.IO) { runCatching { c.albumEditState(offset) } }
             .onSuccess { take(it); if (!it.artOwn) search() }
-            .onFailure { err = it.message ?: "Couldn't reach the server" }
+            .onFailure { err = com.musicd.server.client.Failure.said(it, "Couldn't reach the server") }
     }
 
     /** Covers found on the web; a sure one is chosen at once. */
@@ -154,7 +154,7 @@ internal class AlbumEditor(private val offset: Long, title: String, artist: Stri
             r.onSuccess { s ->
                 searchSaid = s.status; found = s.candidates; sure = s.sure
                 s.sure?.let { pick = CoverPick(it.url, it.thumb, it.source) }
-            }.onFailure { searchSaid = Said("", AlbumEdit.searchFailed(it.message ?: "no answer")) }
+            }.onFailure { searchSaid = Said("", AlbumEdit.searchFailed(com.musicd.server.client.Failure.said(it, "no answer"))) }
         }
     }
 
@@ -179,7 +179,7 @@ internal class AlbumEditor(private val offset: Long, title: String, artist: Stri
         scope.launch {
             val r = withContext(Dispatchers.IO) { runCatching { c.releaseCandidates(offset) } }
             finding = false
-            r.onSuccess { releases = it; asked = it.status }.onFailure { asked = Said("", AlbumEdit.matchFailed(it.message ?: "no answer")) }
+            r.onSuccess { releases = it; asked = it.status }.onFailure { asked = Said("", AlbumEdit.matchFailed(com.musicd.server.client.Failure.said(it, "no answer"))) }
         }
     }
 
@@ -216,7 +216,7 @@ internal class AlbumEditor(private val offset: Long, title: String, artist: Stri
                 runCatching { if (which == "save") c.saveAlbumEdit(AlbumEdit.saveBody(d.offset, title, artist, year, pick)) else c.resetAlbumEdit(d.offset) }
             }
             saving = null
-            r.onSuccess { onChanged(); toast("Album saved"); onClose() }.onFailure { err = it.message ?: "Couldn't save" }
+            r.onSuccess { onChanged(); toast("Album saved"); onClose() }.onFailure { err = com.musicd.server.client.Failure.said(it, "Couldn't save") }
         }
     }
 }

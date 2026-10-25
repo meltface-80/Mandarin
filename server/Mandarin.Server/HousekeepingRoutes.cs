@@ -111,7 +111,9 @@ internal static partial class Library
                 ["last"] = state["lastResult"]?.DeepClone()
             },
             ["version"] = AppVersion,
-            ["server"] = true
+            ["server"] = true,
+            // The long polls waiting now, and the playback requests holding the database (none for a wait).
+            ["waits"] = new JsonObject { ["zone_state"] = hub.Waiting, ["phone_commands"] = hub.Phones.Waiting, ["database"] = PlaybackRoutes.Holding }
         });
     }
 

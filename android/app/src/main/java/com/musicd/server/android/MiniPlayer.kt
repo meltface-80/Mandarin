@@ -73,7 +73,7 @@ internal fun MiniPlayer(zoneId: String, room: RoomState, client: () -> ServerCli
         Column(Modifier.fillMaxWidth().background(paletteColor(Palette.BG))) {
             // The hairline above (border-top 1, --border); the meter 9 under it and 14 in; the row 20 under the line, 12 above the foot.
             Box(Modifier.fillMaxWidth().height(1.dp).background(paletteColor(Palette.BORDER)))
-            Meter(v?.fraction(room.now) ?: 0f, brass, Modifier.parity("mini-player.progress").fillMaxWidth().padding(start = 14.dp, top = 9.dp, end = 14.dp).height(4.dp))
+            RoomMeter(room, brass, Modifier.parity("mini-player.progress").fillMaxWidth().padding(start = 14.dp, top = 9.dp, end = 14.dp).height(4.dp))
             Row(Modifier.fillMaxWidth().padding(start = 14.dp, top = 7.dp, end = 14.dp, bottom = 12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 FilledIconButton(onClick = { act { it.control(zoneId, "playpause") } }, enabled = v != null, shape = CircleShape,
                     colors = IconButtonDefaults.filledIconButtonColors(containerColor = brass, contentColor = MaterialTheme.colorScheme.onPrimary,
@@ -114,6 +114,10 @@ internal fun MiniPlayer(zoneId: String, room: RoomState, client: () -> ServerCli
         }
     }
 }
+
+/** The meter on the room's own clock, read here alone (item 158: read by the bar, its every half second drew the whole bar again). */
+@Composable
+private fun RoomMeter(room: RoomState, lit: Color, modifier: Modifier) = Meter(room.view?.fraction(room.now) ?: 0f, lit, modifier)
 
 /** The track's progress as the page's level meter: brass segments over faint ones, [fraction] of the way lit. */
 @Composable

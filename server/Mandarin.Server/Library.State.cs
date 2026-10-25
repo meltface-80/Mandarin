@@ -2,7 +2,7 @@
 // part 1 of old/csharp-migration.md): what GET /internal/library said
 // when a Node server stood behind this one, counted and read here. The
 // version and the marks move with each change (Told, LibraryChanges.cs): the
-// copy here is read again on the next request.
+// copy here is read again (Library.Copy.cs).
 // The scan's state is Scans.cs's, the label rules are the settings', the day
 // and the week are this clock's (the container's time zone, as the Node
 // server's were), the address is the configuration's.
@@ -102,7 +102,12 @@ internal static partial class Library
             JsonObject? what = null;
             try { what = await System.Net.Http.Json.HttpContentJsonExtensions.ReadFromJsonAsync<JsonObject>(new StreamContent(ctx.Request.Body)); }
             catch (System.Text.Json.JsonException) { /* no body: nothing but a word */ }
-            var said = await LocalTold(what ?? []);
+            // Told as a job's step ("background") or as a change someone waits for; then, unless a step, the copy
+            // with it waited for; and the copies read so far.
+            var background = Js.Truthy(what?["background"]);
+            var said = await LocalTold(what ?? [], background);
+            if (!background) await Fresh();
+            said["reads"] = Reads;
             ctx.Response.ContentType = "application/json";
             await ctx.Response.WriteAsync(said.ToJsonString());
         });
@@ -112,8 +117,9 @@ internal static partial class Library
      * A change told (the Node server's /internal/library/changed, api-library.js
      * libraryChanged): a mark moved the marks, anything else the version (the
      * copy read again), and a scan's end what follows a scan; its answer.
+     * [soon], and a scan's steps: read in the background (Library.Copy.cs).
      */
-    private static async Task<JsonObject> LocalTold(JsonObject what)
+    private static async Task<JsonObject> LocalTold(JsonObject what, bool soon = false)
     {
         var keys = what.Select(kv => kv.Key).ToList();
         var scan = what["scan"] as JsonObject;
@@ -126,7 +132,12 @@ internal static partial class Library
             try { using var c = Db.Open(); Admin.Backup.ExportEdits(c, Path.GetDirectoryName(Db.File) ?? "."); }
             catch (Exception e) when (e is IOException or UnauthorizedAccessException or Microsoft.Data.Sqlite.SqliteException) { Server.Log($"[musicd] couldn't write album-edits.json: {e.Message}"); }
         }
-        if (reload) Interlocked.Increment(ref version);
+        if (reload)
+        {
+            // A cover missed may be there now (Images.cs).
+            Images.ForgetMisses();
+            Moved(soon || (scan != null && !Js.Truthy(scan["done"])));
+        }
         var o = new JsonObject { ["ok"] = true, ["version"] = Interlocked.Read(ref version), ["marks"] = Interlocked.Read(ref marks) };
         if (scan != null && Js.Truthy(scan["done"]))
         {

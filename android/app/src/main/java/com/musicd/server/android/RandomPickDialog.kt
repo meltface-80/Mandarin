@@ -77,7 +77,7 @@ internal fun RandomPickDialog(album: AlbumSummary, zoneId: String, client: () ->
         scope.launch {
             val r = withContext(Dispatchers.IO) { runCatching { c.playAlbum(album.offset, album.title, album.subtitle, zoneId, kind) } }
             r.onSuccess { if (kind != "play_now") toast((if (kind == "play_next") "Playing next: " else "Queued: ") + album.title.ifEmpty { "random album" }); onClose() }
-                .onFailure { toast(it.message ?: "Could not start playback"); sending = false }
+                .onFailure { toast(com.musicd.server.client.Failure.said(it, "Could not start playback")); sending = false }
         }
     }
     // The box at the page's 360 at most, in from the screen's edges by its overlay's room; not the platform's dialog width, which is narrower.

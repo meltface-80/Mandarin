@@ -23,14 +23,40 @@ internal static partial class PlaybackRoutes
         "/api/play-unheard", "/api/queue/remove", "/api/queue/clear", "/api/queue/move", "/api/queue/play-history-next", "/api/queue/history-multi",
         "/api/radio", "/api/output/standby", "/api/output/convenience-switch"];
 
-    /* The request as the routes read it: the signed-in device, where it is, its body. */
-    private sealed class Req(HttpContext ctx, SqliteConnection c, Hub hub, JsonObject body)
+    /* Playback requests holding a database connection now (/api/status's waits): a long poll's wait holds none. */
+    private static int holding;
+    internal static int Holding => Volatile.Read(ref holding);
+
+    /*
+     * The request as the routes read it: the signed-in device, where it is, its
+     * body. The database is opened when first asked for, and let go before a
+     * long poll waits: a poll held 25 s never holds a connection for it.
+     */
+    private sealed class Req(HttpContext ctx, Hub hub, JsonObject body) : IDisposable
     {
+        private SqliteConnection? c;
         public HttpContext Ctx => ctx;
-        public SqliteConnection C => c;
+        public SqliteConnection C
+        {
+            get
+            {
+                if (c != null) return c;
+                c = Db.Open();
+                Interlocked.Increment(ref holding);
+                return c;
+            }
+        }
+        public void LetGo()
+        {
+            if (c == null) return;
+            c.Dispose();
+            c = null;
+            Interlocked.Decrement(ref holding);
+        }
+        public void Dispose() => LetGo();
         public Hub Hub => hub;
         public JsonObject Body => body;
-        public Device? Device => Auth.DeviceOf(ctx, c);
+        public Device? Device => Auth.DeviceOf(ctx, C);
         public bool Away => Auth.IsAway(ctx);
         public string? OwnPhone => Device is { } d ? Phones.UidFor(d.Id) : null;
         public string? Q(string name) => ctx.Request.Query.TryGetValue(name, out var v) ? v.ToString() : null;
@@ -50,8 +76,7 @@ internal static partial class PlaybackRoutes
         if (body == null) return true;
         try
         {
-            using var c = Db.Open();
-            var req = new Req(ctx, c, hub, body);
+            using var req = new Req(ctx, hub, body);
             if (phone) return await PhoneRoute(req, p);
             if (!await Gate(req, p)) return true;
             return get ? await Read(req, p) : await Write(req, p);
@@ -232,7 +257,10 @@ internal static partial class PlaybackRoutes
         if (req.Q("wait_for") is { } wf)
         {
             var timeout = (int)Math.Max(0, Math.Min(25000, Phones.JsNumber(req.Q("timeout") is { } t ? JsonValue.Create(t) : null) is var n && !double.IsNaN(n) && n != 0 ? n : 20000));
-            await hub.WaitForChange(Phones.JsNumber(JsonValue.Create(wf)), timeout);
+            // No connection held while waiting, and a device that goes away ends the wait at once.
+            req.LetGo();
+            await hub.WaitForChange(Phones.JsNumber(JsonValue.Create(wf)), timeout, req.Ctx.RequestAborted);
+            if (req.Ctx.RequestAborted.IsCancellationRequested) return true;
         }
         var revision = hub.Revision;
         var z = zoneId.Length > 0 ? hub.Zone(zoneId) : null;

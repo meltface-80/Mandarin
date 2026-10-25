@@ -7,9 +7,9 @@
 // The database is the record and this is a working copy, as the Node server
 // kept one. Which copy is current is said by the library's state
 // (Library.State.cs: a version moved by each change), and the copy here is
-// rebuilt from the database when that changed. Hearts and Listen later
-// ("marks") change no list's order, so they alone only re-read their own two
-// tables.
+// rebuilt from the database when that changed (Library.Copy.cs). Hearts and
+// Listen later ("marks") change no list's order, so they alone only re-read
+// their own two tables.
 //
 // Orders are JavaScript's: localeCompare is ICU's collation, which this
 // server uses too (so it isn't built with invariant globalization), and every
@@ -68,6 +68,8 @@ internal sealed record LibState(string Boot, long Version, long Marks, bool Buil
     public double? BuiltAt { get; init; }
 
     public string Sig => Boot + "|" + Version + "|" + LabelsOn + "|" + Depth + "|" + string.Join("\n", Roots);
+    // The same but the version: what a copy answered from always matches (the label rules, the music folders).
+    public string Rest => Boot + "|" + LabelsOn + "|" + Depth + "|" + string.Join("\n", Roots);
 }
 
 internal sealed class LabelGroup
@@ -86,7 +88,8 @@ internal sealed class Marks(Dictionary<string, long> fav, Dictionary<string, lon
 
 internal sealed partial class Snapshot
 {
-    public string Sig = "";
+    public string Sig = "", Rest = "";
+    public long Version;
     public List<Album> Albums = [];
     public Dictionary<long, Album> ById = [];
     public volatile Marks Marks = new([], [], 0);
@@ -208,72 +211,6 @@ internal static partial class Library
         var arr = src.Select((x, i) => (x, i)).ToArray();
         Array.Sort(arr, (a, b) => { int c = cmp(a.x, b.x); return c != 0 ? c : a.i.CompareTo(b.i); });
         return arr.Select(p => p.x).ToList();
-    }
-
-    // ------------------------------------------------------------- the state
-
-    private static string frontKey = "";
-    /* The key this server's private addresses (/internal/…, the tests') are asked with. */
-    public static string FrontKey => frontKey;
-    private static volatile Snapshot? current;
-    private static readonly SemaphoreSlim Building = new(1, 1);
-
-    private static void Init(string key)
-    {
-        frontKey = key;
-        // Kept current in the background too (every five seconds at most), so
-        // the next screen after a scan or an edit seldom waits for the rebuild.
-        _ = Task.Run(async () =>
-        {
-            while (true)
-            {
-                await Task.Delay(TimeSpan.FromSeconds(5));
-                try { await Current(); }
-                catch (Exception e) { Server.Log($"[library] {e.GetType().Name}: {e.Message}"); }
-            }
-        });
-    }
-
-    private static Task<LibState?> State() => Task.FromResult<LibState?>(LocalState());
-
-    /* The library's version now, for what is kept no longer than it stays (Services/). */
-    public static async Task<long?> StateVersion() => (await State())?.Version;
-
-    /* The current copy, for the covers (Images.cs); null when it can't be read. */
-    public static async Task<Snapshot?> CurrentCopy() => (await Current()) is var (s, _) ? s : null;
-
-    /* The current copy and the library's state with it (Identify/), or null when it can't be read. */
-    public static Task<(Snapshot, LibState)?> CurrentState() => Current();
-
-    /* The current copy, built here if it isn't already. */
-    private static async Task<(Snapshot, LibState)?> Current()
-    {
-        var st = await State();
-        if (st == null) return null;
-        var s = current;
-        if (s == null || s.Sig != st.Sig)
-        {
-            await Building.WaitAsync();
-            try
-            {
-                s = current;
-                if (s == null || s.Sig != st.Sig)
-                {
-                    var t0 = Environment.TickCount64;
-                    s = await Task.Run(() => Build(st));
-                    current = s; builtAt = NowMs();
-                    var ms = Environment.TickCount64 - t0;
-                    if (ms > 500) Server.Log($"[library] {s.Albums.Count} albums read in {ms} ms");
-                }
-            }
-            finally { Building.Release(); }
-        }
-        if (s.Marks.N != st.Marks)
-        {
-            using var c = Db.Open();
-            s.Marks = ReadMarks(c, st.Marks);
-        }
-        return (s, st);
     }
 
     private static Marks ReadMarks(SqliteConnection c, long n) =>
@@ -438,7 +375,7 @@ internal static partial class Library
 
         var s = new Snapshot
         {
-            Sig = st.Sig,
+            Sig = st.Sig, Rest = st.Rest, Version = st.Version,
             Albums = all.Where(a => !a.Transient).ToList(),
             LabelsOn = st.LabelsOn,
         };

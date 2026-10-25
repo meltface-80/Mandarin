@@ -71,7 +71,6 @@ internal fun NowPlayingScreen(zoneId: String, client: () -> ServerClient?, onBac
     val room = followRoom(zoneId, client)
     val view = room.view
     val answered = room.answered
-    val now = room.now
     var queueTab by remember { mutableStateOf(false) }
     var volumeOpen by remember { mutableStateOf(false) }
     var sharing by remember { mutableStateOf(false) }   // its Share card open (item 75)
@@ -153,7 +152,7 @@ internal fun NowPlayingScreen(zoneId: String, client: () -> ServerClient?, onBac
                     Text(it, Modifier.parity("now-playing.format").padding(top = 8.dp).border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(6.dp))
                         .padding(horizontal = 9.dp, vertical = 3.dp).lineBox(12.sp, 14.4.sp), fontSize = 12.sp, lineHeight = 14.4.sp, fontWeight = FontWeight.W600, letterSpacing = 0.02.em, color = dim)
                 }
-                SeekBar(v, now, client) { to -> act { it.seek(zoneId, to) } }
+                RoomSeekBar(room, v, client) { to -> act { it.seek(zoneId, to) } }
                 // The transport: shuffle and repeat smaller and dimmer until on, previous and next in brass, play/pause a brass disc.
                 Row(Modifier.fillMaxWidth().padding(top = 12.dp), horizontalArrangement = Arrangement.spacedBy(14.dp, Alignment.CenterHorizontally), verticalAlignment = Alignment.CenterVertically) {
                     val lit = MaterialTheme.colorScheme.secondary

@@ -59,8 +59,9 @@ class LibraryClient(private val get: (String) -> JSONObject) {
     fun facets(): Facets = Facets.parse(get("/api/library/facets"))
 
     /** The walls Home links to (item 52): Favourites, Listen later, Recently played (the last 30 days, [count] at most), Not played in [months] ([count] at most). */
-    fun favourites(): AlbumRow = AlbumRow.parse(get("/api/favourites"))
-    fun listenLater(): AlbumRow = AlbumRow.parse(get("/api/listen-later"))
+    /** The favourites, or Listen later: all of them, or the first [count] for a row (item 159: Home's rows took the whole list). */
+    fun favourites(count: Int? = null): AlbumRow = AlbumRow.parse(get("/api/favourites" + (count?.let { "?count=$it" } ?: "")))
+    fun listenLater(count: Int? = null): AlbumRow = AlbumRow.parse(get("/api/listen-later" + (count?.let { "?count=$it" } ?: "")))
     fun history(count: Int): AlbumRow = AlbumRow.parse(get("/api/home/history?count=$count"))
     fun unplayed(months: Int, count: Int): Unplayed = Unplayed.parse(get("/api/home/unplayed?months=$months&count=$count"))
     /** Random albums, [count] of them (the random wall; asked again to reshuffle). */

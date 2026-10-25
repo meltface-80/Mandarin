@@ -41,10 +41,15 @@ internal fun logName(e: NavBackStackEntry?): String {
 @Composable
 internal fun LogTrace(nav: NavHostController) {
     DisposableEffect(nav) {
+        // A pop and a move together are one move, logged once (item 159: two NAV lines, both naming where it ended).
+        var queued = false
         val moved = NavController.OnDestinationChangedListener { c, _, _ ->
             val now = SystemClock.uptimeMillis()
+            if (queued) return@OnDestinationChangedListener
+            queued = true
             // The stack read once the move has settled: read at once, a screen closed was still in it.
             main.post {
+                queued = false
                 val stack = c.currentBackStack.value.filter { it.destination !is NavGraph }.map { logName(it) }
                 // A move with no tap just before it: Back (a screen's own, which isn't seen), or the app itself.
                 val after = AppLog.lastTap.takeIf { it > 0 && now - it < 1_500 }?.let { " (${now - it} ms after the last tap)" } ?: " (not after a tap: Back, or the app itself)"
