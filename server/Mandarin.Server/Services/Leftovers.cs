@@ -1,7 +1,9 @@
 // Leftovers.cs — what a service Mandarin no longer has left behind, taken away as the server starts (bug list item
 // 152): its albums (with their edits, hearts and Listen later; plays stay, as text, as Clean up leaves them), its
 // marks, its settings (its sign-in among them), its playlists, and its folder in the data folder. Once done, it finds
-// nothing.
+// nothing. Its albums are deleted with foreign keys on, as Clean up deletes them (Rows.cs OpenRows): their tracks go
+// with them, and the tracks' tags, loudness and tag checks with those (item 179; with them off, a Spotify track stayed
+// under its album's id, and the next album given that id had it).
 using Microsoft.Data.Sqlite;
 using System.Text.Json.Nodes;
 
@@ -29,6 +31,7 @@ internal static class Leftovers
     private static int FromDatabase(string id, Action<string> log)
     {
         using var c = Db.Open();
+        using (var fk = c.CreateCommand()) { fk.CommandText = "PRAGMA foreign_keys = ON"; fk.ExecuteNonQuery(); }
         using var tx = c.BeginTransaction();
         var albums = 0;
         if (Has(c, "albums"))

@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- `179-rows-left-for-removed-albums` (item 179): albums' and tracks' ids are given out again, and some rows outlived
+  theirs, so a new album could show another's. A gone service's albums (item 152) were deleted with foreign keys off:
+  their tracks stayed, with their tags, loudness and tag checks, under ids the next albums were given. They go with
+  foreign keys on now. An album's credits never went with it, so a new album under its id had them and counted as
+  looked up: a trigger on albums takes them, however the album goes (a scan, a service, a start), and the credits
+  finder reads again what was looked at when the library changes; credits found for an album gone meanwhile aren't
+  kept. A track gone while its loudness was measured had its loudness kept, and the next track under its id was
+  never measured: it is kept only while the track is still the file measured. What was left before is taken away
+  once, as the server starts.
+
 - `194-phone-shuffle-start` (item 194): Shuffle on the Android phone's own player always began at track 1: an album of
   the phone's music, or a download played in the phone's room offline, went onto the player in its order from the
   first track, with the player's shuffle switched on. That shuffle then stayed on, so every album played after it was
