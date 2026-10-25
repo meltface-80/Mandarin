@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- `176-artist-name-escaped` (item 176): an artist's name was put into the artist page as the page's own markup, in
+  its "No albums found" line, and the error said beside it the same: a name from the tags, MusicBrainz, Last.fm or the
+  credits such as `<img src=x onerror=…>` ran in the page. Both are shown as text now. A look through the whole page
+  for the same found two more, made text as well: a label's logo search said the server's error (which can carry
+  Discogs' words) as markup, and the album editor's match line a MusicBrainz release's year.
+
 - `169-native-settings-seen-wait` (item 169): the test that a Settings page opened from the app is seen and can be
   tapped failed now and then on a busy machine: it looked at the middle of Back once, the moment the app was told, and
   the page was still sliding in. It looks until Back has come to rest (within 10 s, as its other waits); a page never
