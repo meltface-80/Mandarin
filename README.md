@@ -7,7 +7,7 @@
 
 </div>
 
-# Mandarin — v1.1.7
+# Mandarin — v1.1.8
 
 **Your own music files, played to Sonos rooms, to UPnP/DLNA renderers (a WiiM, a Chord Poly,
 a streamer, an AV receiver) and to the Mandarin Android app.**
@@ -26,18 +26,16 @@ Wikipedia, Deezer and others); your music files stay on your machine.
                                                    └──── audio: /stream/… ◀────────┘
 ```
 
-**New in v1.1.7** (since v1.1.5): **the Android app, at home and away, without the waiting.**
-* **It finds its way first.** Opened after Android closed it, the app looks at where it is (home or away) before it
-  asks the server anything, and every screen that couldn't load asks again by itself the moment the server answers,
-  with no "Couldn't load" left on screen until you open it again.
-* **Away from home just works.** The app's own Tailscale comes up by itself as you leave the Wi-Fi, the app no longer
-  flips to "away" at home when the server is busy, and it takes a Wi-Fi for home only when your own server answers
-  there (another network with the same address never gets your sign-in).
-* **Faster and lighter.** Smoother album pages and Now Playing, a smaller optimised app, covers kept on the phone (no
-  fetching them all again away from home), and less battery when the app isn't on screen.
-* **A server that doesn't stall.** A scan or a job no longer holds every request up; history, Not played and artist
-  pages answer at once, and Home's covers are drawn ahead after a scan.
-* **Clearer when something goes wrong:** "Couldn't reach the server", never addresses and ports.
+**New in v1.1.8** (since v1.1.7): **an account optional, and Mandarin on a TV.**
+* **No account needed.** A TV showing the shelf or the wall display shouldn't need a username and password typed
+  into it. A new install offers **Use without an account**; an existing one keeps asking for a sign-in until you
+  switch it off in **Settings → Account → Ask for a sign-in** (the page and the Android app alike). Off, anything on
+  your home network or your own Tailscale network comes straight in, each browser and app still a device of its own;
+  from anywhere else a sign-in is still needed. See [Your account](#your-account).
+* **Readable from the sofa.** On a big screen toasts follow your text size and grow with the screen, and the wall
+  display's review and "More from" cards are twice the size on a 1920px TV.
+* **The album beside the player.** On a desktop (a TV with a mouse) an album opens in the room beside the mini player,
+  wherever you've dragged it, instead of under it.
 
 ---
 
@@ -527,9 +525,9 @@ Tap the share button on an album's page. Choose the services in **Settings → S
 
 ⸻
 
-📺 **Wall display**
+📺 **Wall display** — *new in v1.1.8*
 
-A full-screen now playing page for a TV or tablet.
+A full-screen now playing page for a TV or tablet; on a big TV its reviews and covers are drawn large enough to read from across the room.
 
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 
@@ -539,7 +537,7 @@ Open `http://<server-ip>:3500/display` on the screen. Its switch (on by default)
 
 ⸻
 
-📱 **The Android app** — *new in v1.1.7*
+📱 **The Android app**
 
 Mandarin's interface drawn natively by the app, which finds the server home or away and asks again when it's back; lock-screen controls, volume keys, a widget, Android Auto, its updates.
 
@@ -611,7 +609,7 @@ In the Android app, **☰ → Offline mode**. While offline, a small *Offline* p
 
 ⸻
 
-🌍 **Away from home** — *new in v1.1.7*
+🌍 **Away from home**
 
 On mobile data the app reaches the server through its own Tailscale, by itself, with no ports opened. Away, only the phone plays: Opus 256 or original files.
 
@@ -635,13 +633,13 @@ Open **Settings → Setup → UI Settings** and pick from each list; it applies 
 
 ⸻
 
-👤 **One account**
+👤 **An account, or none** — *new in v1.1.8*
 
-One username and password, kept on the server. Devices sign in with SRP, so the password itself is never sent, and every signed-in device is listed.
+One username and password kept on the server, or none: a TV showing the shelf or the wall needs nothing typed. The password itself is never sent.
 
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 
-Create it on first visit from a device at home. **Settings → Account** lists devices, signs one out and changes the password. Forgotten: see [Your account](#your-account).
+On first visit from a device at home, create the account or choose **Use without an account**. **Settings → Account → Ask for a sign-in** switches it on or off: off, the home network and your Tailscale network come straight in, anywhere else still signs in. Details under [Your account](#your-account).
 
 </details>
 
@@ -885,7 +883,7 @@ stay on, on the same network as your speakers.
 * **Allow** if macOS asks to let **mandarin-server** find devices on your network or open your
   files. Mandarin needs both to reach your speakers and read your music.
 
-**4. Done.** Mandarin opens in your browser: create your account. It starts by itself every time you
+**4. Done.** Mandarin opens in your browser: create your account, or choose **Use without an account**. It starts by itself every time you
 log in. On a phone, open the address Terminal shows at the end (`http://<mac-ip>:3500`).
 
 **On a Mac, as on Linux:**
@@ -939,14 +937,24 @@ the wall display and the Home rows are in the app's Settings and are saved in th
 
 ## Your account
 
-Mandarin has **one account**, kept on the server itself — nothing online. Until it
-exists the server does nothing but ask for it:
+Mandarin has **one account**, kept on the server itself — nothing online — or, if you'd rather, none
+(v1.1.8). On a new install the server does nothing until you choose:
 
 1. Open `http://<server-ip>:3500` on a device **on your home network** (a browser, the iPhone
-   home-screen app, or the Android app) and choose a username and password.
-2. Every other device signs in with them once and is remembered.
-3. **Settings → Account** lists every signed-in device, with a *Sign out* button for each, and
-   changes the password.
+   home-screen app, or the Android app) and choose a username and password, **or** tap
+   **Use without an account**.
+2. With an account, every other device signs in with it once and is remembered.
+3. **Settings → Account** lists every device, with a *Sign out* button for each, and changes the
+   password.
+
+**Ask for a sign-in** (*Settings → Account*, on the page and in the Android app) switches the
+sign-in on or off. An install that had an account before v1.1.8 keeps asking until you switch it
+off. Off, anything on your home network or on your own Tailscale network (100.64.0.0/10) comes
+straight in: a TV showing the shelf or the wall needs nothing typed. Each browser and app is still
+a device of its own, listed in *Settings → Account*. From anywhere else (a port forwarded to the
+internet) a sign-in is still needed, and with no account there is none to give. Switching it on
+with no account asks you to create the account first; devices already in stay in until you sign
+them out.
 
 The password never crosses the network, even on plain http: devices prove they know it with
 SRP (the scheme Apple uses for HomeKit pairing), and the server proves it knows the account
@@ -973,7 +981,7 @@ screen like an app, with the same interface as the Android app.
 
 The app is in **[android/](android/)**, a native app (Kotlin and Jetpack Compose). Enter the port (3500 unless you changed it) and it finds
 the server on your Wi-Fi, or type the address; then sign in, or create the account on a new
-server, in the app. Its features are listed under [Features](#features).
+server (or use it without one), in the app. With the sign-in switched off, it goes straight in. Its features are listed under [Features](#features).
 
 **Download: [mandarin-android.apk](https://github.com/meltface-80/Mandarin/raw/main/dist/mandarin-android.apk)**
 — the newest build, published by GitHub Actions on every version merged to `main`. Sideload it
