@@ -20,8 +20,13 @@ const DRIVER = `(async () => {
   const sleep = ms => new Promise(r => setTimeout(r, ms));
   const until = async (fn, ms = 8000) => { const t0 = Date.now(); while (!fn()) { if (Date.now() - t0 > ms) return false; await sleep(50); } return true; };
   // A step's wait, and then until what it set moving has stopped: the sheet
-  // slides in, a page slides over; on a busy machine they finish later.
-  const moving = () => document.getAnimations().some(x => x.playState === "running" && x.effect && x.effect.getComputedTiming().endTime !== Infinity);
+  // slides in, a page slides over; on a busy machine they finish later. Only
+  // what the steps move (Settings, the side menu, the top bar): Home's unheard
+  // disc behind them turns for 12 s, and waiting on it took every run's first
+  // steps to their 8 s limit, the test to its own (item 167).
+  const OURS = "#settings-overlay, #menu-overlay, .topbar";
+  const moving = () => document.getAnimations().some(x => x.playState === "running" && x.effect && x.effect.getComputedTiming().endTime !== Infinity
+    && x.effect.target && x.effect.target.closest && x.effect.target.closest(OURS));
   const step = async (ms) => { await sleep(ms); await until(() => !moving()); };
   await until(() => document.querySelector("#home-random .album, #home-today .album"));
   const sheet = () => document.querySelector("#settings-overlay > .settings-sheet");
