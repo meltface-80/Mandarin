@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- `177-tv-wall-cards-fit` (item 177): on a TV (1600px wide and up) the wall display's cards, twice the size since
+  item 163, no longer fitted. A long review or biography ran past its card, so its last lines and whose words they
+  were were cut off; the "More from" card's second row of covers and their titles ran past its foot. The review is
+  cut at a whole line, 7 rather than 10, under a heading of two lines at most, in a card up to 76% of the screen's
+  height, its attribution under it; the covers' card goes up to 78%, so both rows and their titles show. Each stays
+  clear of the bottom strip. The sizes now follow the screen's height as well as its width, so a screen shorter than
+  16:9 (a browser window not full screen, a wide monitor) fits the same: twice the size at 1920 x 1080 as before.
+
 - `169-native-settings-seen-wait` (item 169): the test that a Settings page opened from the app is seen and can be
   tapped failed now and then on a busy machine: it looked at the middle of Back once, the moment the app was told, and
   the page was still sliding in. It looks until Back has come to rest (within 10 s, as its other waits); a page never

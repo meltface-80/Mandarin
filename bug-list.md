@@ -8,6 +8,7 @@ Status: **Open** · **In progress** · **Ready to test** (green, waiting on the 
 
 | # | Item | Branch | Status |
 |---|------|--------|--------|
+| 177 | The wall display's review and More from cards, twice the size on a TV since item 163, ran past their cards at 1920 x 1080 and 3840 x 2160: a long review lost its last lines and its attribution, More from its second row's titles. The review cut at 7 whole lines in a taller card, the covers' card taller, the sizes following the screen's height too | `177-tv-wall-cards-fit` | Ready to test |
 | 169 | The test that a Settings page opened from the app is seen and tappable failed now and then on a busy machine: it looked at Back once while the page was still sliding in. It looks until Back has come to rest | `169-native-settings-seen-wait` | Ready to test |
 | 168 | The loudness test's measuring order failed now and then on a busy machine: it ordered the measuring processes by id, and ids wrap round at the system's limit (32,768). It orders them by when each began, the id only within the same tick | `168-loudness-order-pid-wrap` | Ready to test |
 | 167 | The desktop Settings test ran out of time on a busy machine: each step waited for the whole page to stop moving, Home's 12 s unheard-disc spin included, two minutes against a two-minute limit. It waits only on what its steps move (66 s) | `167-settings-desktop-test-slow` | Ready to test |
