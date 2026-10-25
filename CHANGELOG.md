@@ -15,6 +15,18 @@
   same machine that says who asked with X-Real-IP or Forwarded but not X-Forwarded-For made the internet look like
   home: those are believed, and a proxy that names nobody leaves the caller unknown, never home.
 
+- `174-sign-in-hardening` (item 174): holes in signing in, from a review. Five wrong passwords lock an address
+  out, but a password was counted only once found wrong, after the wait every wrong password adds, so guesses sent all
+  at once were all let in while the first was still being checked: hundreds where five were meant. A password now
+  takes its place among the five as it comes in and holds it until it is found right or wrong. An IPv6 address was
+  locked out alone, where its network hands out any of 2^64: the lockout is the /64's. And every address that asked
+  was kept, wrong password or not, so a flood of new ones could push a locked-out address off the list (5,000 kept):
+  only addresses with a wrong password are kept now, and past 5,000 the one wrong longest ago goes. A sign-in begun
+  (the challenge) could be asked for without limit, and past 500 held one was given up at random, the owner's
+  half-way through as likely as any: an address holds ten at most, its oldest given up for an eleventh, and the
+  oldest of all goes first. And the sign-in page went on to `/\evil.com`, another site to a browser, which reads a
+  backslash as a slash: where it goes next is read as the browser reads it, and must be on this server.
+
 - `173-http-input-hardening` (item 173): three ways a request's body was read too trustingly, from a review. A
   renderer's event (NOTIFY, taken before the sign-in and before the 2 MB limit) was read whole into memory, so anyone
   who reached the port could send one of any size and take the server's memory: no more than 1 MB is read, past it a

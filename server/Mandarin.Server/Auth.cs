@@ -171,53 +171,9 @@ internal static partial class Auth
     private static void ClearCookie(HttpContext ctx) =>
         ctx.Response.Headers.Append("Set-Cookie", $"{Cookie}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0");
 
-    // ------------------------------------------------------------ lockout
-    // Five wrong passwords from one address in 15 minutes locks that address
-    // out for 15 minutes; every failure anywhere also slows the next attempt.
-    private static readonly object lockGate = new();
-    private static readonly Dictionary<string, List<long>> failures = new();
-    private static List<long> recentFailures = [];
-
-    private static long LockedFor(string ip)
-    {
-        lock (lockGate)
-        {
-            var now = Now;
-            var list = (failures.GetValueOrDefault(ip) ?? []).Where(t => now - t < 15 * 60000).ToList();
-            failures[ip] = list;
-            return list.Count >= 5 ? Math.Max(0, list[^1] + 15 * 60000 - now) : 0;
-        }
-    }
-
-    private static void Failed(string ip)
-    {
-        lock (lockGate)
-        {
-            var now = Now;
-            failures[ip] = (failures.GetValueOrDefault(ip) ?? []).Append(now).ToList();
-            recentFailures = recentFailures.Where(t => now - t < 3600000).Append(now).ToList();
-            if (failures.Count > 5000) failures.Remove(failures.Keys.First());
-        }
-        Server.Log($"[auth] wrong password from {ip}");
-    }
-
-    private static Task Slowdown()
-    {
-        int n; lock (lockGate) n = recentFailures.Count;
-        return Task.Delay(Math.Min(3000, 150 * n));
-    }
-
     // ------------------------------------------------------------ SRP sessions
-    private sealed record Challenge(string Username, Srp.Start Start, bool Real, long Expires);
-    private static readonly ConcurrentDictionary<string, Challenge> challenges = new();
+    // Wrong passwords and sign-ins begun: Auth.Lockout.cs.
     private static readonly ConcurrentDictionary<string, long> reauthed = new();   // device id → until
-
-    private static void Sweep()
-    {
-        var now = Now;
-        foreach (var kv in challenges) if (kv.Value.Expires < now) challenges.TryRemove(kv.Key, out _);
-        while (challenges.Count > 500) { var k = challenges.Keys.FirstOrDefault(); if (k == null) break; challenges.TryRemove(k, out _); }
-    }
 
     // A made-up account for a username that doesn't exist, so a stranger can't
     // tell which names are real. The same name always gets the same salt.
@@ -317,8 +273,7 @@ internal static partial class Auth
             var b = await Body(ctx);
             if (b == null) return;
             var ip = ClientIp(ctx);
-            var wait = LockedFor(ip);
-            if (wait > 0) { await Error(ctx, 429, $"Too many wrong passwords — try again in {(int)Math.Ceiling(wait / 60000.0)} min"); return; }
+            if (LockedFor(ip) is > 0 and var wait) { await TooMany(ctx, wait); return; }
             using var c = Db.Open();
             var acct = GetAccount(c);
             if (acct == null) { await Json(ctx, 409, new JsonObject { ["error"] = "Create the account first", ["setup_required"] = true }); return; }
@@ -326,9 +281,7 @@ internal static partial class Auth
             bool real = username == acct.Username;
             var rec = real ? acct : Decoy(username, Secret(c));
             var start = Srp.ServerStart(rec.Verifier);
-            Sweep();
-            var id = B64Url(RandomNumberGenerator.GetBytes(12));
-            challenges[id] = new Challenge(username, start, real, Now + 60000);
+            var id = Begin(new Challenge(username, start, real, Now + 60000, LockKey(ip)));
             await Json(ctx, 200, new JsonObject { ["id"] = id, ["salt"] = rec.Salt, ["iterations"] = rec.Iterations, ["B"] = start.B });
         });
 
@@ -336,16 +289,15 @@ internal static partial class Auth
         {
             var b = await Body(ctx);
             if (b == null) return;
-            var ip = ClientIp(ctx);
-            var wait = LockedFor(ip);
-            if (wait > 0) { await Error(ctx, 429, $"Too many wrong passwords — try again in {(int)Math.Ceiling(wait / 60000.0)} min"); return; }
-            var cid = Js.Str(b["id"]);
-            challenges.TryRemove(cid, out var ch);
+            // Its place among the address's five taken before anything is checked (Auth.Lockout.cs).
+            using var guess = TakeGuess(ClientIp(ctx), out var wait);
+            if (guess == null) { await TooMany(ctx, wait); return; }
+            var ch = TakeChallenge(Js.Str(b["id"]));
             if (ch == null || ch.Expires < Now) { await Error(ctx, 400, "That sign-in took too long — try again"); return; }
             await Slowdown();
             var r = ch.Real && IsHex(b["A"], 2, 512) ? Srp.ServerVerify(ch.Start, Js.Str(b["A"]), Js.Str(b["M1"])) : new Srp.Result(false, null);
-            if (!r.Ok) { Failed(ip); await Error(ctx, 401, "Wrong username or password"); return; }
-            lock (lockGate) failures.Remove(ip);
+            if (!r.Ok) { guess.Wrong(); await Error(ctx, 401, "Wrong username or password"); return; }
+            guess.Right();
             using var c = Db.Open();
             if (Js.Str(b["purpose"]) == "reauth")
             {
