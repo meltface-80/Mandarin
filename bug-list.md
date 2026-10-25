@@ -8,6 +8,7 @@ Status: **Open** · **In progress** · **Ready to test** (green, waiting on the 
 
 | # | Item | Branch | Status |
 |---|------|--------|--------|
+| 193 | The Android app's live look at the server (every 15 s on screen) could start a second loop, then more: coming back to the app or a network dropping while a look was out added one each time, the server asked more and more often. One loop now, however often it is started | `193-server-reach-one-loop` | Ready to test |
 | 170 | Every dev build of the server to have an Android test build of the same number: the APK was built only when the app, the page or its workflow changed, so after items 165–169 the test APK stayed at 1.1.9-t224 while dev's server moved on. android-dev.yml builds it on every dev push | `170-android-test-build-every-dev-push` | Ready to test |
 | 169 | The test that a Settings page opened from the app is seen and tappable failed now and then on a busy machine: it looked at Back once while the page was still sliding in. It looks until Back has come to rest | `169-native-settings-seen-wait` | Ready to test |
 | 168 | The loudness test's measuring order failed now and then on a busy machine: it ordered the measuring processes by id, and ids wrap round at the system's limit (32,768). It orders them by when each began, the id only within the same tick | `168-loudness-order-pid-wrap` | Ready to test |

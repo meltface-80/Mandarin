@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- `193-server-reach-one-loop` (item 193): the Android app's look at whether the server is still there, every quarter
+  of a minute while on screen, could run twice over, then three times and more. Coming back to the app, or a network
+  dropping, while a look was out started another loop beside the one already running. The server was then asked more
+  and more often, and two loops counted each other's misses. It is one loop now, however often it is started again.
+
 - `170-android-test-build-every-dev-push` (item 170): every dev build of the server now has an Android test build of the
   same number, as the owner's rule is. The server's image was built on every push to dev, the APK only when the app,
   the page or its workflow changed: after items 165 to 169 (tooling and tests alone) dev's server moved on while
