@@ -88,7 +88,7 @@ async function aeMatch(query, how, btn) {
     }
     const done = (j.applied || []).find(x => x.album && x.album.offset === mine.album.offset);
     const c = done && done.candidate;
-    ae.mStatus.innerHTML = c ? `<strong>Matched:</strong> ${escapeHtml((c.artist ? c.artist + " — " : "") + c.title)}${c.year ? " (" + c.year + ")" : ""}. Undo is under Settings → Library Scanner.` : "<strong>Matched.</strong>";
+    ae.mStatus.innerHTML = c ? `<strong>Matched:</strong> ${escapeHtml((c.artist ? c.artist + " — " : "") + c.title)}${c.year ? " (" + escapeHtml(c.year) + ")" : ""}. Undo is under Settings → Library Scanner.` : "<strong>Matched.</strong>";
     ae.mCands.querySelectorAll(".ae-mcand").forEach(x => x.classList.toggle("is-picked", x === btn));
     showToast("Matched — names applied");
   } catch (e) {
