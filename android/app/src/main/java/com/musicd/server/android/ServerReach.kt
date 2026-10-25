@@ -6,6 +6,7 @@ import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
 import com.musicd.server.client.OfflineKind
+import com.musicd.server.client.OneLoop
 import com.musicd.server.client.Retry
 import java.util.concurrent.Executors
 
@@ -42,6 +43,7 @@ internal class ServerReach(private val a: MainActivity) {
     fun stop() {
         runCatching { a.getSystemService(ConnectivityManager::class.java).unregisterNetworkCallback(netWatch) }
         main.removeCallbacksAndMessages(null)
+        live.stop()
         checks.shutdownNow()
         watching.shutdownNow()
     }
@@ -75,11 +77,10 @@ internal class ServerReach(private val a: MainActivity) {
         Reach.bump()
         val base = Store.active(a)?.baseUrl
         if (base != null && base != reachedOn) { AppLog.line("REACH", "the address changed while away from the screen: $reachedOn → $base"); go() }
-        main.removeCallbacks(liveWatch)
-        main.postDelayed(liveWatch, 15_000)
+        live.start(15_000)
     }
 
-    fun paused() { onScreen = false; main.removeCallbacks(liveWatch) }
+    fun paused() { onScreen = false; live.stop() }
 
     /** The way to the server changed (home or away): the screens follow it, or, offline, the server is looked for. */
     fun moved() {
@@ -148,24 +149,25 @@ internal class ServerReach(private val a: MainActivity) {
         }
     }
 
-    /** While on screen and online: is the server still there? Asked every 15 s; two missed in a row, offline. */
-    private val liveWatch = object : Runnable {
-        override fun run() {
-            if (a.isFinishing || !onScreen) return
-            if (offline || !reached) { main.postDelayed(this, 15_000); return }
-            val base = Store.active(a)?.baseUrl
-            if (base == null) { Away.recheck(a); goOffline(); return }
-            val was = reachedOn
-            checks.execute {
-                val ok = answers(base, 4000)
-                main.post {
-                    if (a.isFinishing) return@post
-                    liveFailures = if (ok) 0 else liveFailures + 1
-                    if (!ok) AppLog.line("REACH", "the live look at $base missed ($liveFailures in a row)", anomaly = true)
-                    if (ok) OfflineSite.sync(a)
-                    if (liveFailures >= 2 && !offline && reachedOn == was) { liveFailures = 0; Away.recheck(a); goOffline() }
-                    main.postDelayed(this, 15_000)
-                }
+    /**
+     * While on screen and online: is the server still there? Asked every 15 s; two missed in a row, offline. One loop of it
+     * however often it is started again (item 193: each start while a look was out added another).
+     */
+    private val live = OneLoop({ r, ms -> main.postDelayed(r, ms) }, { r -> main.removeCallbacks(r) }) look@{ next ->
+        if (a.isFinishing || !onScreen) return@look
+        if (offline || !reached) { next(15_000); return@look }
+        val base = Store.active(a)?.baseUrl
+        if (base == null) { Away.recheck(a); goOffline(); return@look }
+        val was = reachedOn
+        checks.execute {
+            val ok = answers(base, 4000)
+            main.post {
+                if (a.isFinishing) return@post
+                liveFailures = if (ok) 0 else liveFailures + 1
+                if (!ok) AppLog.line("REACH", "the live look at $base missed ($liveFailures in a row)", anomaly = true)
+                if (ok) OfflineSite.sync(a)
+                if (liveFailures >= 2 && !offline && reachedOn == was) { liveFailures = 0; Away.recheck(a); goOffline() }
+                next(15_000)
             }
         }
     }
@@ -204,8 +206,7 @@ internal class ServerReach(private val a: MainActivity) {
                 if (a.isFinishing || offline) return@postDelayed
                 if (Away.hasNetwork(a)) {
                     Away.recheck(a, soon = true)
-                    main.removeCallbacks(liveWatch)
-                    main.postDelayed(liveWatch, 2_000)
+                    live.start(2_000)
                     return@postDelayed
                 }
                 goOffline()

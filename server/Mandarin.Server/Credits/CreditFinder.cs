@@ -40,6 +40,7 @@ internal sealed class CreditFinder(MusicBrainz mb, string? deezerBase, string? w
     private readonly ConcurrentDictionary<string, long> failed = new(StringComparer.Ordinal);
     private const long FailedMs = 3_600_000;
     private ConcurrentDictionary<long, byte>? looked;
+    private Snapshot? lookedIn;
     private ConcurrentDictionary<string, byte>? known;
     private Timer? timer;
     private int ticking;
@@ -69,6 +70,8 @@ internal sealed class CreditFinder(MusicBrainz mb, string? deezerBase, string? w
         try
         {
             if (await Library.CurrentState() is not var (s, st) || st.Scanning) return;
+            // The library changed: read again what was looked at (an album gone takes its own, and its id may be another's now; item 179).
+            if (!ReferenceEquals(s, lookedIn)) { looked = null; lookedIn = s; }
             var done = Looked();
             if (s.Albums.FirstOrDefault(a => !done.ContainsKey(a.Id) && !a.Transient && a.Service == null) is { } al) await LookAtAlbum(al);
             if (NextArtist(s) is { } act) await LookUp(act.Name, act.Mbid);

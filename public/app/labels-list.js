@@ -90,7 +90,11 @@ async function loadLogoCandidates(labelName) {
       logoCandidatesEl.appendChild(btn);
     }
   } catch (e) {
-    logoCandidatesEl.innerHTML = '<span class="logo-candidates-hint" data-parity="label-logo.hint">' + (e.message || "Discogs search failed") + '</span>';
+    // As text (item 176): the server's error, which can carry Discogs' own words.
+    const hint = document.createElement("span");
+    hint.className = "logo-candidates-hint"; hint.dataset.parity = "label-logo.hint";
+    hint.textContent = e.message || "Discogs search failed";
+    logoCandidatesEl.replaceChildren(hint);
   }
 }
 
