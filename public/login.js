@@ -1,7 +1,8 @@
 /*
  * login.js — the sign-in page. Creates the account on first run, or signs in,
  * with SRP (srp.js): the page proves it knows the password and checks the
- * server's proof back, so the password itself is never sent.
+ * server's proof back, so the password itself is never sent. With the sign-in
+ * switched off (item 161) a browser at home or on the tailnet goes straight in.
  */
 (function () {
   "use strict";
@@ -29,7 +30,11 @@
     show("loading");
     try {
       const s = await (await fetch("/api/auth/status", { credentials: "same-origin", cache: "no-store" })).json();
-      if (s.signed_in) return go();
+      // ?create: Settings → Account asking for a sign-in, with no account yet to sign in to.
+      const create = new URLSearchParams(location.search).has("create");
+      if (s.signed_in && !create) return go();
+      if (s.open_here && !create) { await post("/api/auth/join", {}); return go(); }
+      $("su-open-block").classList.toggle("hidden", !!s.open);
       if (s.setup_required) return show(s.can_setup ? "setup" : "notlocal");
       show("signin");
       $("si-user").focus();
@@ -56,6 +61,20 @@
     } catch (x) {
       err.textContent = x.message;
       btn.disabled = false; btn.textContent = "Create account";
+    }
+  });
+
+  // A new install used without an account: this browser in, the sign-in off (Auth.Open.cs).
+  $("su-open").addEventListener("click", async () => {
+    const err = $("su-open-err"), btn = $("su-open");
+    err.textContent = "";
+    btn.disabled = true;
+    try {
+      await post("/api/auth/open", { open: true });
+      go();
+    } catch (x) {
+      err.textContent = x.message;
+      btn.disabled = false;
     }
   });
 

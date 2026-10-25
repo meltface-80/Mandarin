@@ -1,5 +1,21 @@
 # Changelog
 
+## Unreleased
+
+- `161-account-optional` (item 161): **an account is optional.** A TV showing the shelf or the wall can't easily have
+  a username and a password typed into it, so asking for a sign-in is now a choice.
+  - **A new install** offers "Use without an account" on its setup page (and in the Android app's first screen): the
+    browser or phone goes straight in.
+  - **An install with an account** keeps asking for a sign-in after the update until it is switched off: Settings →
+    Account → Ask for a sign-in (the page and the app alike).
+  - **With it off**, anything on the home network or on your own Tailscale network comes straight in, every browser
+    and app still a device of its own (phone zones, the devices list); a browser is let in as it opens a page, the app
+    joins without a password. From anywhere else (a port forwarded to the internet) a sign-in is still needed, and with
+    no account there is none to give. Switching it on with no account makes the account first; devices already in
+    stay in (sign any out from the list).
+  - Test builds are numbered from the pull requests since the release only: bringing the release back into `dev`
+    counts for nothing, so this is 1.1.8-t1.
+
 ## v1.1.7
 
 **The Android app, at home and away, without the waiting.** From an audit of the app and its way to the server (the

@@ -73,6 +73,12 @@ data class AccountDevices(val username: String, val devices: List<SignedInDevice
                 SignedInDevice(it.optString("id"), it.optString("name"), it.optString("kind") == "android", it.optBoolean("current"), it.optLong("last_seen"))
             })
 
+        /** What Ask for a sign-in means, on ([open] false) or off (item 161), as the page says it (settings-account.js). */
+        fun askNote(open: Boolean, hasAccount: Boolean): String = if (open)
+            "Off: anything on your home network or your Tailscale network uses Mandarin without signing in — a TV showing the shelf or the wall, say. Anywhere else still can't. " +
+                (if (hasAccount) "Switch it on to ask for the username and password again." else "Switching it on makes the account first.")
+        else "Every device signs in with the username and password. Switch it off to use Mandarin on a TV or a wall display without typing them: anything on your home network or your Tailscale network then comes straight in."
+
         /** Why a new password can't be set yet (null: it can be tried), as the page says it. */
         fun passwordProblem(current: String, new: String, again: String): String? = when {
             current.isEmpty() -> "Enter your current password."

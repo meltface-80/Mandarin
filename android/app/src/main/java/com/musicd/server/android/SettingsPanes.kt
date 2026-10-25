@@ -72,14 +72,16 @@ import kotlinx.coroutines.withContext
  */
 
 /**
- * Account: who is signed in; the devices signed in, each but this one with its Sign out; Sign out of this device (the
- * app goes to its sign-in); the current password and the new one twice, Change password, and what came of it.
+ * Account: Ask for a sign-in on or off (item 161; on with no account yet, the account made first); the devices signed
+ * in, each but this one with its Sign out; Sign out of this device (the app goes to its sign-in) while a sign-in is
+ * asked for; the current password and the new one twice, Change password, and what came of it, once there is an account.
  */
 @Composable
 internal fun SettingsAccount(client: () -> ServerClient?, onBack: () -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var account by remember { mutableStateOf<AccountDevices?>(null) }
+    var ask by remember { mutableStateOf<Account.Status?>(null) }
     var busy by remember { mutableStateOf<String?>(null) }   // a device being signed out, or "password"
     var current by remember { mutableStateOf("") }
     var new by remember { mutableStateOf("") }
@@ -88,12 +90,33 @@ internal fun SettingsAccount(client: () -> ServerClient?, onBack: () -> Unit) {
     fun toast(text: String) = Toast.makeText(context, text, Toast.LENGTH_SHORT).show()
     LaunchedEffect(Unit) {
         val c = client() ?: return@LaunchedEffect
+        withContext(Dispatchers.IO) { runCatching { Account(c).status() } }.onSuccess { ask = it }
         withContext(Dispatchers.IO) { runCatching { c.accountDevices() } }
             .onSuccess { account = it }
     }
+    val open = ask?.open == true
+    val hasAccount = ask?.setupRequired != true
     SettingsFrame {
         SettingsHead(Modifier.parity("settings-account.back", Contract.label("settings-account.back")).clip(CircleShape).clickable(onClick = onBack), R.drawable.np_back,
             "Account", Modifier.parity("settings-account.heading"))
+        Block {
+            SetupRow("Ask for a sign-in", Modifier.parity("settings-account.name"), null) {
+                Toggle(!open, Modifier.parity("settings-account.ask", Contract.label("settings-account.ask")).clickable(enabled = ask != null && busy == null) {
+                    val want = !open
+                    if (!want && !hasAccount) { context.startActivity(Intent(context, SignInActivity::class.java).putExtra(SignInActivity.EXTRA_CREATE, true)); return@clickable }
+                    val c = client() ?: return@clickable
+                    busy = "ask"
+                    scope.launch {
+                        val r = withContext(Dispatchers.IO) { runCatching { Account(c).setOpen(want); Account(c).status() } }
+                        busy = null
+                        r.onSuccess { ask = it; toast(if (want) "Sign-in off at home and on your tailnet" else "Sign-in asked for again") }
+                            .onFailure { toast(com.musicd.server.client.Failure.said(it, "Couldn't change it")) }
+                    }
+                })
+            }
+            SetupNote(AccountDevices.askNote(open, hasAccount), Modifier.parity("settings-account.ask-note"))
+        }
+        SettingsDivider()
         BlockTitle("Signed-in devices", Modifier.parity("settings-account.title"))
         val devices = account?.devices.orEmpty()
         val now = System.currentTimeMillis()
@@ -116,7 +139,7 @@ internal fun SettingsAccount(client: () -> ServerClient?, onBack: () -> Unit) {
             if (i < devices.size - 1) Box(Modifier.fillMaxWidth().height(1.dp).background(paletteColor(Palette.BORDER)))
         }
         Note(AnnotatedString("Sign out a device you've lost or don't use. It will need the password to come back."), Modifier.parity("settings-account.note"))
-        UpdateButton("Sign out of this device", false, Modifier.parity("settings-account.signout", Contract.label("settings-account.signout")).padding(top = 20.dp).clickable {
+        if (!open) UpdateButton("Sign out of this device", false, Modifier.parity("settings-account.signout", Contract.label("settings-account.signout")).padding(top = 20.dp).clickable {
             val activity = context as? Activity
             scope.launch {
                 client()?.let { c -> withContext(Dispatchers.IO) { Account(c).signOut() } }
@@ -125,35 +148,37 @@ internal fun SettingsAccount(client: () -> ServerClient?, onBack: () -> Unit) {
                 activity?.finish()
             }
         })
-        SettingsDivider()
-        BlockTitle("Change password", Modifier.parity("settings-account.title"))
-        val focus = remember { List(3) { MutableInteractionSource() } }
-        BasicTextField(current, { current = it }, Modifier.parity("settings-account.current", Contract.label("settings-account.current")).fillMaxWidth().padding(bottom = 8.dp),
-            singleLine = true, interactionSource = focus[0], textStyle = PASSWORD, cursorBrush = SolidColor(paletteColor(Palette.ACCENT)), visualTransformation = PasswordVisualTransformation(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, autoCorrectEnabled = false), decorationBox = { PasswordBox(current, "Current password", focus[0], it) })
-        BasicTextField(new, { new = it }, Modifier.parity("settings-account.new", Contract.label("settings-account.new")).fillMaxWidth().padding(bottom = 8.dp),
-            singleLine = true, interactionSource = focus[1], textStyle = PASSWORD, cursorBrush = SolidColor(paletteColor(Palette.ACCENT)), visualTransformation = PasswordVisualTransformation(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, autoCorrectEnabled = false), decorationBox = { PasswordBox(new, "New password (8 or more characters)", focus[1], it) })
-        BasicTextField(again, { again = it }, Modifier.parity("settings-account.again", Contract.label("settings-account.again")).fillMaxWidth().padding(bottom = 8.dp),
-            singleLine = true, interactionSource = focus[2], textStyle = PASSWORD, cursorBrush = SolidColor(paletteColor(Palette.ACCENT)), visualTransformation = PasswordVisualTransformation(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, autoCorrectEnabled = false), decorationBox = { PasswordBox(again, "New password again", focus[2], it) })
-        UpdateButton("Change password", busy == "password", Modifier.parity("settings-account.change", Contract.label("settings-account.change")).padding(top = 8.dp).clickable(enabled = busy == null) {
-            AccountDevices.passwordProblem(current, new, again)?.let { status = it; return@clickable }
-            val c = client() ?: return@clickable
-            val username = account?.username.orEmpty()
-            busy = "password"; status = "Checking…"
-            scope.launch {
-                val r = withContext(Dispatchers.IO) { runCatching { Account(c).changePassword(username, current, new) } }
-                busy = null
-                r.onSuccess { current = ""; new = ""; again = ""; status = "Password changed." }.onFailure { status = com.musicd.server.client.Failure.said(it, "Couldn't change it") }
-            }
-        })
-        if (status.isNotEmpty()) Text(status, Modifier.parity("settings-account.status").padding(top = 8.dp), color = paletteColor(Palette.TEXT_DIM), fontSize = 11.sp, lineHeight = 15.sp)
-        Note(buildAnnotatedString {
-            append("Devices already signed in stay signed in. Forgot it? On the server run ")
-            withStyle(SpanStyle(fontFamily = FontFamily.Monospace)) { append("docker exec musicd-server /app/server/bin/mandarin-server reset-password") }
-            append(" and create the account again.")
-        }, Modifier.parity("settings-account.note").padding(top = 4.dp))
+        if (hasAccount) {
+            SettingsDivider()
+            BlockTitle("Change password", Modifier.parity("settings-account.title"))
+            val focus = remember { List(3) { MutableInteractionSource() } }
+            BasicTextField(current, { current = it }, Modifier.parity("settings-account.current", Contract.label("settings-account.current")).fillMaxWidth().padding(bottom = 8.dp),
+                singleLine = true, interactionSource = focus[0], textStyle = PASSWORD, cursorBrush = SolidColor(paletteColor(Palette.ACCENT)), visualTransformation = PasswordVisualTransformation(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, autoCorrectEnabled = false), decorationBox = { PasswordBox(current, "Current password", focus[0], it) })
+            BasicTextField(new, { new = it }, Modifier.parity("settings-account.new", Contract.label("settings-account.new")).fillMaxWidth().padding(bottom = 8.dp),
+                singleLine = true, interactionSource = focus[1], textStyle = PASSWORD, cursorBrush = SolidColor(paletteColor(Palette.ACCENT)), visualTransformation = PasswordVisualTransformation(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, autoCorrectEnabled = false), decorationBox = { PasswordBox(new, "New password (8 or more characters)", focus[1], it) })
+            BasicTextField(again, { again = it }, Modifier.parity("settings-account.again", Contract.label("settings-account.again")).fillMaxWidth().padding(bottom = 8.dp),
+                singleLine = true, interactionSource = focus[2], textStyle = PASSWORD, cursorBrush = SolidColor(paletteColor(Palette.ACCENT)), visualTransformation = PasswordVisualTransformation(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, autoCorrectEnabled = false), decorationBox = { PasswordBox(again, "New password again", focus[2], it) })
+            UpdateButton("Change password", busy == "password", Modifier.parity("settings-account.change", Contract.label("settings-account.change")).padding(top = 8.dp).clickable(enabled = busy == null) {
+                AccountDevices.passwordProblem(current, new, again)?.let { status = it; return@clickable }
+                val c = client() ?: return@clickable
+                val username = account?.username.orEmpty()
+                busy = "password"; status = "Checking…"
+                scope.launch {
+                    val r = withContext(Dispatchers.IO) { runCatching { Account(c).changePassword(username, current, new) } }
+                    busy = null
+                    r.onSuccess { current = ""; new = ""; again = ""; status = "Password changed." }.onFailure { status = com.musicd.server.client.Failure.said(it, "Couldn't change it") }
+                }
+            })
+            if (status.isNotEmpty()) Text(status, Modifier.parity("settings-account.status").padding(top = 8.dp), color = paletteColor(Palette.TEXT_DIM), fontSize = 11.sp, lineHeight = 15.sp)
+            Note(buildAnnotatedString {
+                append("Devices already signed in stay signed in. Forgot it? On the server run ")
+                withStyle(SpanStyle(fontFamily = FontFamily.Monospace)) { append("docker exec musicd-server /app/server/bin/mandarin-server reset-password") }
+                append(" and create the account again.")
+            }, Modifier.parity("settings-account.note").padding(top = 4.dp))
+        }
     }
 }
 

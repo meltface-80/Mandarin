@@ -27,6 +27,9 @@ import java.util.concurrent.Executors
  * The password never leaves the phone. Account/Srp prove it to the server, and
  * the server has to prove it knows the account in return, so the app won't
  * sign in to anything that isn't your server.
+ *
+ * Or none of that (item 161): a server with its sign-in switched off lets the phone straight in at home or on the
+ * tailnet ([join]), and a brand-new one can be used without an account at all ("Use without an account").
  */
 class SignInActivity : Activity() {
 
@@ -42,6 +45,7 @@ class SignInActivity : Activity() {
     private lateinit var go: Button
     private lateinit var status: TextView
     private lateinit var form: LinearLayout
+    private lateinit var openButton: Button
     private var creating = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -101,6 +105,14 @@ class SignInActivity : Activity() {
         form.addView(go, LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT
         ).apply { topMargin = px(24) })
+        openButton = Button(this).apply {
+            text = "Use without an account"
+            visibility = View.GONE
+            setOnClickListener { useOpen() }
+        }
+        form.addView(openButton, LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT
+        ).apply { topMargin = px(12) })
         form.visibility = View.GONE
         col.addView(form)
 
@@ -146,8 +158,17 @@ class SignInActivity : Activity() {
             main.post {
                 if (isFinishing) return@post
                 st.onSuccess { s ->
+                    // Settings → Account switching the sign-in on with no account yet: the account made here first.
+                    val make = intent.getBooleanExtra(EXTRA_CREATE, false)
                     when {
-                        s.setupRequired && s.canSetup -> showForm(create = true)
+                        s.openHere && !make -> join()
+                        s.setupRequired && s.canSetup -> showForm(create = true, offerOpen = !s.open)
+                        s.setupRequired && s.open -> {
+                            title.text = "Join at home"
+                            intro.text = "This Mandarin server is used without an account, on its home network and its " +
+                                "Tailscale network only. Join the Wi-Fi the server is on, or Tailscale, and try again."
+                            status.text = ""
+                        }
                         s.setupRequired -> {
                             title.text = "Create the account at home"
                             intro.text = "This Mandarin server has no account yet. For safety it can only be created " +
@@ -165,12 +186,14 @@ class SignInActivity : Activity() {
         }
     }
 
-    private fun showForm(create: Boolean) {
+    private fun showForm(create: Boolean, offerOpen: Boolean = false) {
         creating = create
+        openButton.visibility = if (offerOpen) View.VISIBLE else View.GONE
         title.text = if (create) "Create your account" else "Sign in"
         intro.text = if (create)
-            "Mandarin needs an account before it can be used. Choose a username and password — you'll use " +
-                "them on every device. The password never leaves this phone."
+            "Choose a username and password — you'll use them on every device. The password never leaves this phone." +
+                (if (offerOpen) " Or use Mandarin without an account: anything on your home network or your Tailscale " +
+                    "network can then use it without signing in — handy for a TV showing the shelf or the wall." else "")
         else "Sign in to ${Store.server(this)}. The password never leaves this phone."
         pass2Label.visibility = if (create) View.VISIBLE else View.GONE
         pass2Box.visibility = if (create) View.VISIBLE else View.GONE
@@ -215,6 +238,40 @@ class SignInActivity : Activity() {
                 }
             }
         }
+    }
+
+    /** The sign-in is off here: this phone made a device, no password asked. */
+    private fun join() {
+        intro.text = "Joining ${Store.server(this)}…"
+        signedInBy { account().join(deviceName()) }
+    }
+
+    /** A new server used without an account: the sign-in switched off, this phone made a device. */
+    private fun useOpen() {
+        openButton.isEnabled = false
+        status.text = "Setting up…"
+        signedInBy { account().setOpen(true, deviceName()) ?: account().join(deviceName()) }
+    }
+
+    private fun signedInBy(token: () -> String) {
+        work.execute {
+            val result = runCatching(token)
+            main.post {
+                if (isFinishing) return@post
+                openButton.isEnabled = true
+                result.onSuccess { t ->
+                    Store.setToken(this, t)
+                    startActivity(Intent(this, MainActivity::class.java)
+                        .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK))
+                    finish()
+                }.onFailure { e -> status.text = e.message ?: e.javaClass.simpleName }
+            }
+        }
+    }
+
+    companion object {
+        /** Make the account, even where the sign-in is off (Settings → Account, Ask for a sign-in, with no account yet). */
+        const val EXTRA_CREATE = "create"
     }
 
     private fun toConnect() {

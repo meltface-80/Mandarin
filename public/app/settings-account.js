@@ -1,5 +1,6 @@
 /* ------------------------------------------------------------------ */
-/*  Settings → Account: signed-in devices, sign out, change password   */
+/*  Settings → Account: ask for a sign-in or not (item 161), signed-in */
+/*  devices, sign out, change password                                 */
 /* ------------------------------------------------------------------ */
 (function initAccount() {
   const listEl = document.getElementById("acct-devices");
@@ -23,7 +24,35 @@
     return j;
   }
 
+  // Ask for a sign-in (item 161): off, the home network and the tailnet come straight in.
+  const ask = document.getElementById("acct-ask"), askNote = document.getElementById("acct-ask-note");
+  let hasAccount = true;
+  function showAsk(open) {
+    ask.checked = !open;
+    askNote.textContent = open
+      ? "Off: anything on your home network or your Tailscale network uses Mandarin without signing in — a TV showing the shelf or the wall, say. Anywhere else still can't. " +
+        (hasAccount ? "Switch it on to ask for the username and password again." : "Switching it on makes the account first.")
+      : "Every device signs in with the username and password. Switch it off to use Mandarin on a TV or a wall display without typing them: anything on your home network or your Tailscale network then comes straight in.";
+    document.getElementById("acct-signout").classList.toggle("hidden", open);
+    document.getElementById("acct-pw-block").classList.toggle("hidden", !hasAccount);
+    document.getElementById("acct-pw-divider").classList.toggle("hidden", !hasAccount);
+  }
+  async function loadAsk() {
+    try {
+      const s = await (await fetch("/api/auth/status", { cache: "no-store" })).json();
+      hasAccount = !s.setup_required;
+      showAsk(!!s.open);
+    } catch (e) { /* as it was */ }
+  }
+  ask.addEventListener("change", async () => {
+    const open = !ask.checked;
+    if (!open && !hasAccount) { location.href = "/login?create=1&next=" + encodeURIComponent(location.pathname); return; }
+    try { await post("/api/auth/open", { open }); showAsk(open); toast(open ? "Sign-in off at home and on your tailnet" : "Sign-in asked for again"); }
+    catch (e) { ask.checked = open; toast(e.message, "error"); }
+  });
+
   async function load() {
+    loadAsk();
     try {
       const j = await (await fetch("/api/auth/devices", { cache: "no-store" })).json();
       username = j.username || "";

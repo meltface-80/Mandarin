@@ -3,8 +3,9 @@
 //
 // No cloud: the account lives in the server's database, made on first run from
 // a device on the home network; until it exists the server serves nothing but
-// the page that makes it. Signing in is SRP (Srp.cs, public/srp.js): the
-// password never crosses the network. Each signed-in browser, app or wall
+// the page that makes it, unless it is used without one (Auth.Open.cs).
+// Signing in is SRP (Srp.cs, public/srp.js): the password never crosses the
+// network. Each signed-in browser, app or wall
 // display is a device with its own random token, only its hash stored;
 // browsers carry it in an HttpOnly cookie, the Android app as a bearer token.
 //
@@ -101,7 +102,7 @@ internal static partial class Auth
         if (ctx.Items.TryGetValue("device", out var cached)) return cached as Device;
         Device? dev = null;
         var t = TokenOf(ctx);
-        if (!string.IsNullOrEmpty(t) && GetAccount(c) != null)
+        if (!string.IsNullOrEmpty(t) && (GetAccount(c) != null || OpenMode(c)))
         {
             using var cmd = c.CreateCommand();
             cmd.CommandText = "SELECT id, name, kind, last_seen FROM devices WHERE token_hash = $h";
@@ -243,9 +244,9 @@ internal static partial class Auth
         // speaker (MediaAllowed). A renderer's NOTIFY (UPnP eventing): a
         // device can't sign in, so it is taken before the gate.
         if (IsOpen(p) || p.StartsWith("/upnp/event", StringComparison.Ordinal) || (IsMedia(p) && await MediaAllowed(ctx))) { await next(); return; }
-        Account? acct; Device? dev;
-        using (var c = Db.Open()) { acct = GetAccount(c); dev = acct != null ? DeviceOf(ctx, c) : null; }
-        if (acct != null && dev != null) { ctx.Items[SignedIn] = true; await next(); return; }
+        Account? acct; Device? dev; bool open;
+        using (var c = Db.Open()) { acct = GetAccount(c); dev = DeviceOf(ctx, c); open = dev == null && OpenIn(ctx, c); }
+        if (dev != null || open) { ctx.Items[SignedIn] = true; await next(); return; }
         bool page = ctx.Request.Method == "GET" && !p.StartsWith("/api/", StringComparison.Ordinal) && !IsMedia(p)
             && !System.Text.RegularExpressions.Regex.IsMatch(p, @"\.(js|css|png|jpe?g|svg|ico|woff2?|json|map)$", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
         if (page)
@@ -277,21 +278,8 @@ internal static partial class Auth
 
     public static void Map(WebApplication app)
     {
-        app.MapMethods("/api/auth/status", Http.GetOrHead, (HttpContext ctx) =>
-        {
-            using var c = Db.Open();
-            var acct = GetAccount(c);
-            var dev = DeviceOf(ctx, c);
-            return Json(ctx, 200, new JsonObject
-            {
-                ["setup_required"] = acct == null,
-                ["can_setup"] = acct == null && IsLocal(ClientIp(ctx)),
-                ["away"] = IsAway(ctx),
-                ["signed_in"] = dev != null,
-                ["username"] = dev != null ? acct!.Username : null,
-                ["device"] = dev != null ? new JsonObject { ["id"] = dev.Id, ["name"] = dev.Name, ["kind"] = dev.Kind } : null
-            });
-        });
+        // Who is asking, and whether a sign-in is asked for at all (Auth.Open.cs).
+        MapOpen(app);
 
         app.MapPost("/api/auth/setup", async (HttpContext ctx) =>
         {
@@ -315,6 +303,9 @@ internal static partial class Auth
             cmd.Parameters.AddWithValue("$t", Now);
             if (cmd.ExecuteNonQuery() == 0) { await Error(ctx, 409, "The account already exists — sign in instead"); return; }
             Server.Log($"[auth] account created for {username} from {ClientIp(ctx)}");
+            // An account made asks for a sign-in again (item 161); the device it was made on is made anew.
+            SetOpen(c, false);
+            if (DeviceOf(ctx, c) is { } had) Drop(c, had.Id);
             var (token, device) = IssueDevice(ctx, c, b);
             if (Js.Truthy(b["want_token"])) { await Json(ctx, 200, new JsonObject { ["ok"] = true, ["token"] = token, ["device"] = device, ["username"] = username }); return; }
             SetCookie(ctx, token, !Js.IsFalse(b["remember"]));

@@ -4,6 +4,14 @@ package com.musicd.server.client
 /** The screens contract's labels, part 2 of 2 (Contract.kt joins them). */
 internal object ContractLabels2 {
     val labels: Map<String, List<String>> = mapOf(
+        "settings-labels.back" to listOf("Back to settings"),
+        "settings-labels.info" to listOf("About {setting}"),
+        "settings-labels.enabled" to listOf("Record labels"),
+        "settings-labels.order" to listOf("Label album order"),
+        "settings-labels.min" to listOf("Minimum albums per label"),
+        "settings-labels.rescan" to listOf("Force rescan", "Starting…", "Done", "Rescan started"),
+        "settings-labels.depth" to listOf("Label from folder depth"),
+        "settings-labels.depth-save" to listOf("Save"),
         "settings-ui.back" to listOf("Back to settings"),
         "settings-ui.info" to listOf("About {setting}"),
         "settings-ui.text" to listOf("Album & artist text"),

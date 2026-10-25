@@ -5,7 +5,7 @@ Written by `node tools/api-map.js write` from the C# sources (`server/Mandarin.S
 where the code decides it away from the address (the handler says). "…" ends an address the route takes
 the rest of; a pattern is as the code writes it. What each answers is said beside its handler.
 
-214 routes.
+216 routes.
 
 | Method | Address | Who may ask | Answered in |
 |---|---|---|---|
@@ -30,10 +30,12 @@ the rest of; a pattern is as the code writes it. What each answers is said besid
 | POST | `/api/auth/challenge` | open | `Auth.cs` |
 | GET | `/api/auth/devices` | open | `Auth.cs` |
 | POST | `/api/auth/devices/revoke` | open | `Auth.cs` |
+| POST | `/api/auth/join` | open | `Auth.Open.cs` |
 | POST | `/api/auth/logout` | open | `Auth.cs` |
+| POST | `/api/auth/open` | open | `Auth.Open.cs` |
 | POST | `/api/auth/password` | open | `Auth.cs` |
 | POST | `/api/auth/setup` | open | `Auth.cs` |
-| GET | `/api/auth/status` | open | `Auth.cs` |
+| GET | `/api/auth/status` | open | `Auth.Open.cs` |
 | POST | `/api/auth/verify` | open | `Auth.cs` |
 | GET | `/api/backup` | signed in | `AdminRoutes.cs` |
 | GET | `/api/backup/download/…` | signed in | `AdminRoutes.cs` |
