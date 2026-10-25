@@ -261,7 +261,7 @@ CREATE TABLE IF NOT EXISTS audio_devices (
     public const int Version = 1;
 
     // Columns added after a table first shipped, each nullable (db.js ADDED_COLUMNS).
-    private static readonly (string Table, string Column, string Type)[] Added =
+    private static readonly (string Table, string Column, string Type)[] AddedFirst =
     [
         // The release date as precisely as the tags state it, beside the year (v0.3.13).
         ("albums", "date", "TEXT"),
@@ -386,7 +386,7 @@ CREATE TABLE IF NOT EXISTS audio_devices (
     private static void AddColumns(SqliteConnection c)
     {
         foreach (var (table, col, type) in Added)
-            if (!Columns(c, table).Contains(col)) { Exec(c, $"ALTER TABLE {table} ADD COLUMN {col} {type}"); if (table == "tracks" && col == "composer") Exec(c, "UPDATE tracks SET tags_v = 1 WHERE tags_v > 1"); }   // the classical fields (item 48) just added: every track read once more for them at the next scan
+            if (!Columns(c, table).Contains(col)) { Exec(c, $"ALTER TABLE {table} ADD COLUMN {col} {type}"); JustAdded(c, table, col); }   // what a column just added asks for (Schema.Added.cs)
     }
 
     /* What you did, copied column by column from the database moved aside, where its tables have them (db.js carryOver). */

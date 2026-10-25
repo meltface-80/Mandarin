@@ -93,11 +93,19 @@ jobs:
       - name: Build the C# server
         run: ./server/build.sh
 
+      # As CI runs them (item 175): the tests that failed said again at the end
+      # (.github/failed-tests.sh), and their files run once more on their own
+      # (.github/retry-failed.sh). A file that passes then failed only under
+      # load, a warning on the run; one that fails again stops the release.
       - name: Test before releasing
         timeout-minutes: 25
         run: |
+          set -o pipefail
           npm ci --no-audit --no-fund
-          npm test
+          if ! npm test 2>&1 | tee "$RUNNER_TEMP/tests.log"; then
+            .github/failed-tests.sh "$RUNNER_TEMP/tests.log"
+            .github/retry-failed.sh "$RUNNER_TEMP/tests.log"
+          fi
           .github/csharp-tests.sh
 
       - name: Is this version released yet?
