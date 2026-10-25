@@ -8,6 +8,7 @@ Status: **Open** · **In progress** · **Ready to test** (green, waiting on the 
 
 | # | Item | Branch | Status |
 |---|------|--------|--------|
+| 184 | A renderer back on the network stopped, or stopped over a restart, started the next track by itself; two reads at once at the end of a track skipped one; and one device not answering held every room's state to every 9–20 s | `184-renderer-stop-and-poll` | Ready to test |
 | 183 | Shuffle on a renderer: the next track picked again at every read (SetNextAVTransportURI sent again, a conversion started each time); and what had played kept as places in the queue, so a track removed, added or moved made shuffle play one twice and skip another | `183-renderer-shuffle-next` | Ready to test |
 | 181 | Music copied into an already-scanned folder during a long scan waited up to 6 hours: the watcher's scan, turned away while one ran, was dropped; one more is made once it ends. And an old Tailscale engine leaving after a restart had started the new one stopped the new one's checks | `181-scan-again-after-running` | Ready to test |
 | 180 | An update that stuck at "checking" for good when GitHub's answer was cut off, every later Update turned away; and the new program put in place before the release's files, so a failure laying them in left it among the old files with no way back. The program swapped in last, the one before kept and put back on a failure; an install that can't be written refused first | `180-updater-stuck-and-swap-order` | Ready to test |
