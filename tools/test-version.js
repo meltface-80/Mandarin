@@ -5,7 +5,8 @@
  * A test build's version (bug list item 141): what dev's builds call themselves, so Settings and the app say which
  * test build is installed, and the release after it is offered over it by the updaters (1.1.4-t7 < 1.1.4). The next
  * release's number (package.json's, its last number one up) with -tN, N the commits on this branch since that release
- * was tagged (first parent only: one each merged pull request; merge commits left out, so bringing the release back
+ * was tagged, or, while that next release is on dev and not yet tagged on main, the same count up to it (versionFor;
+ * first parent only: one each merged pull request; merge commits left out, so bringing the release back
  * from main counts for nothing and the first pull request after a release is -t1, item 161). Nothing is committed: the build stamps it as it builds
  * (.github/workflows/docker-publish.yml, android.yml). package.json's "nextVersion", when later than the release, names the
  * next release instead (the owner's word: dev's builds after v1.1.5 are 1.1.7-tN).
@@ -45,10 +46,37 @@ function commitsSince(tag, cwd) {
   return Number(git("rev-list", "--count", "--first-parent", "--no-merges", range));
 }
 
-if (require.main === module) {
-  const root = path.join(__dirname, "..");
-  const pkg = require(path.join(root, "package.json"));
-  process.stdout.write(testVersion(pkg.version, commitsSince("v" + pkg.version, root), pkg.nextVersion) + "\n");
+/** The newest release tagged on HEAD's history (v1.1.7), or null. @param {string} cwd @returns {string|null} */
+function lastRelease(cwd) {
+  try {
+    return execFileSync("git", ["describe", "--tags", "--abbrev=0", "--match", "v[0-9]*.[0-9]*.[0-9]*"],
+      { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim() || null;
+  } catch { return null; }
 }
 
-module.exports = { testVersion, commitsSince };
+/**
+ * This checkout's test build version, from package.json ([pkg]). Its version tagged: the next release's test build,
+ * counted from that tag. Not tagged yet (the release made on dev, waiting for main to tag it): still a test build
+ * of that release, counted from the release before it, as every build since that one was (the owner's 1.1.8-tN up to
+ * v1.1.8 itself; it was 1.1.9-t224, counted from the first commit, item 165).
+ * @param {{ version: string, nextVersion?: string }} pkg @param {string} cwd @returns {string}
+ */
+function versionFor(pkg, cwd) {
+  const tag = "v" + pkg.version;
+  const prev = lastRelease(cwd);
+  if (prev && prev !== tag && later(parse(pkg.version), parse(prev))) return testVersion(prev, commitsSince(prev, cwd), pkg.version);
+  return testVersion(pkg.version, commitsSince(tag, cwd), pkg.nextVersion);
+}
+
+/** [major, minor, patch] of "v1.1.8" or "1.1.8". @param {string} v */
+function parse(v) {
+  const m = /^v?(\d+)\.(\d+)\.(\d+)/.exec(v);
+  return m ? m.slice(1, 4).map(Number) : [0, 0, 0];
+}
+
+if (require.main === module) {
+  const root = path.join(__dirname, "..");
+  process.stdout.write(versionFor(require(path.join(root, "package.json")), root) + "\n");
+}
+
+module.exports = { testVersion, commitsSince, versionFor };

@@ -7,7 +7,12 @@ username and password are hard to type: a new install can be used without an acc
 asking for a sign-in (Settings → Account), the home network and your own Tailscale network then coming straight in;
 anywhere else still signs in. And on a big screen read from across the room: toasts and the wall display's review and
 "More from" cards twice the size on a 1920px TV, and on a desktop an album opens beside the mini player instead of
-under it. Items 161 to 164.
+under it. Items 161 to 165.
+
+- `165-test-version-before-tag` (item 165): dev's builds are test builds of the coming release (1.1.8-tN up to v1.1.8),
+  but once v1.1.8 was made on dev and before main tagged it, they called themselves 1.1.9-t224: with no v1.1.8 tag
+  yet, every commit since the first was counted, as a test build of the release after. They stay test builds of
+  v1.1.8 until it is tagged, counted on from v1.1.7 (1.1.8-t5, -t6), so v1.1.8 is offered over them as before.
 
 - `164-desktop-mini-beside-album` (item 164): on a desktop (a TV with a mouse, say) the mini player stays on screen
   over an open album and can be dragged anywhere, but the album opened in the middle of the screen whatever it
