@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- `181-scan-again-after-running` (item 181): music copied into a folder a long scan had already looked in waited up
+  to six hours. The folder watcher heard it, but its scan was turned away while one was running and the change was
+  dropped: a change heard since the running scan began now has one more scan made once that one ends (a change from
+  before it is that scan's to read). And with Tailscale built in, an engine let go of by a restart (a sign-out, the
+  watchdog) that left after the next one had started stopped the new one's checks, said the engine had stopped and
+  set about starting one: only the current engine's leaving counts now.
+
 - `170-android-test-build-every-dev-push` (item 170): every dev build of the server now has an Android test build of the
   same number, as the owner's rule is. The server's image was built on every push to dev, the APK only when the app,
   the page or its workflow changed: after items 165 to 169 (tooling and tests alone) dev's server moved on while
