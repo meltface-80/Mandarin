@@ -31,8 +31,15 @@ internal static class Http
     /* As res.json writes it: an apostrophe or an accent as it is, not '. */
     public static readonly JsonSerializerOptions Relaxed = new() { Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
 
-    /* A body this server reads as JSON: one that says it is. */
-    public static bool IsJson(HttpContext ctx) => (ctx.Request.ContentType ?? "").Contains("json", StringComparison.OrdinalIgnoreCase);
+    /*
+     * A body this server reads as JSON: one typed application/json, or a type
+     * of JSON's own (…/…+json), its parameters aside. Not one whose type only
+     * has "json" somewhere in it (item 173): "text/plain; x=json" is a type a
+     * page on any site may send without asking first (CORS's safelist).
+     */
+    public static bool IsJson(HttpContext ctx) =>
+        MediaTypeHeaderValue.TryParse(ctx.Request.ContentType, out var type)
+        && (type.MediaType.Equals("application/json", StringComparison.OrdinalIgnoreCase) || type.SubType.EndsWith("+json", StringComparison.OrdinalIgnoreCase));
 
     /* Not past the limit by the length it gives (one sent without a length is judged as it is read). */
     public static bool Fits(HttpContext ctx) => !IsJson(ctx) || ctx.Request.ContentLength is not long n || n <= BodyLimit;
