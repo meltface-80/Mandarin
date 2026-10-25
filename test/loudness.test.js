@@ -37,6 +37,26 @@ function lufs(file) {
 const PORT = ports.port();
 const B = "http://127.0.0.1:" + PORT;
 
+/**
+ * The albums in the order their measuring began, from the stand-in ffmpeg's notes ("<start> <pid> <args>"): each
+ * once, by its first file. By the process's start (in clock ticks since boot, from /proc), then its id: ids are
+ * given out in turn, but wrap round at the system's limit, and on a busy machine (32,768 there) a whole run of the
+ * suite wraps them; started in the same tick, the id still orders them (item 168).
+ */
+function measuredOrder(notes) {
+  return [...new Set(notes.split("\n").filter(Boolean)
+    .map(l => { const [start, pid] = l.split(" ", 2).map(Number); return [start, pid, (/\/Someone\/([^/]+)\//.exec(l) || [])[1]]; })
+    .sort((a, b) => a[0] - b[0] || a[1] - b[1]).map(([, , title]) => title).filter(Boolean))];
+}
+
+test("the measuring order, from the stand-in's notes: by when each began, the process ids wrapping round or not", () => {
+  const note = (start, pid, album) => `${start} ${pid} -i /m/Someone/${album}/01.flac -af ebur128=peak=true`;
+  // Old and Single at 32,700-odd; the ids wrapped before New, Middle and Unseen began.
+  assert.deepEqual(measuredOrder([note(500, 32760, "Old"), note(500, 32761, "Single"), note(500, 32762, "Single"),
+    note(900, 310, "New"), note(901, 330, "Middle"), note(901, 312, "New"), note(905, 340, "Unseen")].join("\n")),
+  ["Old", "Single", "New", "Middle", "Unseen"]);
+});
+
 async function until(fn, ms = 20000) {
   const t0 = Date.now();
   for (;;) {
@@ -131,10 +151,11 @@ test("measuring keeps to the hours and the order (v0.8.24): the schedule's windo
   // The order files are measured in, as the server starts ffmpeg on them: a stand-in that notes each
   // measuring's process and file, then runs ffmpeg itself. Files started together (one per free core)
   // reach the note in any order, so the order is the processes' (nice, ionice and taskset each exec,
-  // so the stand-in has the id the server's start gave it, and ids are given out in turn).
+  // so the stand-in is the process the server started: its start time and id, measuredOrder).
   const started = path.join(root, "started.log"), stand = path.join(root, "ffmpeg");
   const real = require("child_process").execFileSync("sh", ["-c", 'command -v "$0"', FFMPEG]).toString().trim();
-  fs.writeFileSync(stand, `#!/bin/sh\ncase "$*" in *ebur128*) echo "$$ $*" >> '${started}';; esac\nexec '${real}' "$@"\n`, { mode: 0o755 });
+  // Its start too (clock ticks since boot, /proc's 22nd field): the ids wrap round on a busy machine (item 168).
+  fs.writeFileSync(stand, `#!/bin/sh\ncase "$*" in *ebur128*) st=$(cut -d' ' -f22 /proc/$$/stat 2>/dev/null || echo 0); echo "\${st:-0} $$ $*" >> '${started}';; esac\nexec '${real}' "$@"\n`, { mode: 0o755 });
   const before = process.env.FFMPEG_PATH;
   process.env.FFMPEG_PATH = stand;
   t.after(() => { if (before === undefined) delete process.env.FFMPEG_PATH; else process.env.FFMPEG_PATH = before; });
@@ -187,8 +208,7 @@ test("measuring keeps to the hours and the order (v0.8.24): the schedule's windo
   // look at — Old, edited; Single, one track — newest first, then nothing until it has looked.
   assert.equal((await api("identify/settings", { schedule: false })).status, 200);
   // Each album once, in the order its first file was started on.
-  const order = () => [...new Set((fs.existsSync(started) ? fs.readFileSync(started, "utf8") : "").split("\n").filter(Boolean)
-    .map(l => [Number(l.split(" ", 1)[0]), (/\/Someone\/([^/]+)\//.exec(l) || [])[1]]).sort((a, b) => a[0] - b[0]).map(([, title]) => title).filter(Boolean))];
+  const order = () => measuredOrder(fs.existsSync(started) ? fs.readFileSync(started, "utf8") : "");
   // Identification says "starting" before its first ask, and measuring waits from then on: both
   // seen before anything is read (CI's runner saw "identifying" with MusicBrainz not yet asked).
   await until(async () => waiting.length > 0 && (await api("loudness")).reason === "identifying", 30000);
