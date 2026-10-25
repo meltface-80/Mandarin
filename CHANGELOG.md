@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- `186-phone-local-queue-ops` (item 186): the phone playing a list of its own (its downloads, its own music), which
+  the page shows as the queue. Remove and Play next were done to the server's queue for the phone behind it, which
+  isn't playing (and the app, rightly, dropped them): the wrong tracks gone from it, and nothing changed on the phone.
+  They are refused in words now ("change it on the phone"): the app takes no removal or move in its own list, and a
+  track of the phone's own music can't be handed back to it. And Move to another room sent that queue behind it, not
+  what was playing: it sends the phone's own list, from the track it is on, when every track in it is the library's,
+  and says so when one isn't.
+
 - `185-radio-busy-cleared` (item 185): Random Album Radio switched on (or a room's queue running low) with no album to
   give, an empty library on a new install say, marked the room busy with the radio and never let it go: the radio was
   dead for that room until the server restarted, music or not. It is let go on every way out.
