@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- `187-renderer-small-fixes` (item 187): three small things about rooms and renderers.
+  - A renderer's ✓ on Now playing (a WiiM says it plays what it was sent) vanished at the next read of the device, a
+    second on: it stays for the track now, and is asked again for the next one (or the same one played again).
+  - Move to another room, to or from a renderer, from a queue with something in it that isn't the library's (the
+    Sonos app's own) before the track playing, started one track on (or more): what isn't the library's is left out,
+    and the start is counted among what is kept. Picked up at the same second only when that track itself was kept.
+  - A volume nudged before the server had read it went from nought: up 5 on a Sonos room at 20 set it to 5. A Sonos
+    room is nudged with its own relative step now, from where it is; a renderer is asked its volume first, and the
+    nudge is refused if it can't say.
+
 - `186-phone-local-queue-ops` (item 186): the phone playing a list of its own (its downloads, its own music), which
   the page shows as the queue. Remove and Play next were done to the server's queue for the phone behind it, which
   isn't playing (and the app, rightly, dropped them): the wrong tracks gone from it, and nothing changed on the phone.

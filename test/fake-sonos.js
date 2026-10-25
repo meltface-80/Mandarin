@@ -150,6 +150,7 @@ class Room {
         this.track--; this.setPos(0); if (this.state === "PLAYING") this.fetchCurrent(); return {};
       case "GetVolume": return { CurrentVolume: String(this.volume) };
       case "SetVolume": this.volume = Number(a.DesiredVolume); return {};
+      case "SetRelativeVolume": this.volume = Math.max(0, Math.min(100, this.volume + Number(a.Adjustment))); return { NewVolume: String(this.volume) };
       case "GetMute": return { CurrentMute: this.muted ? "1" : "0" };
       case "SetMute": this.muted = a.DesiredMute === "1" || a.DesiredMute === "true"; return {};
       case "Browse": {
