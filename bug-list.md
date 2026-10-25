@@ -8,6 +8,7 @@ Status: **Open** · **In progress** · **Ready to test** (green, waiting on the 
 
 | # | Item | Branch | Status |
 |---|------|--------|--------|
+| 167 | The desktop Settings test ran out of time on a busy machine: each step waited for the whole page to stop moving, Home's 12 s unheard-disc spin included, two minutes against a two-minute limit. It waits only on what its steps move (66 s) | `167-settings-desktop-test-slow` | Ready to test |
 | 165 | The Android app and dev's server said v1.1.9-t224 once v1.1.8 was on dev and not yet tagged on main: with no v1.1.8 tag, every commit was counted as a test build of the release after. Dev's builds stay 1.1.8-tN, counted on from v1.1.7, until v1.1.8 is tagged | `165-test-version-before-tag` | Ready to test |
 | 164 | Desktop (a 65" TV): the mini Now playing kept on screen while an album is open — dragged to a corner (top right, say), albums opening beside it; or the album view itself dragged where it suits | `164-desktop-mini-beside-album` | Ready to test |
 | 163 | Desktop (a 65" TV): the wall display's review and "More from" panels too small to read from the sofa — twice the size on a screen that size | `163-wall-reviews-big-screen` | Ready to test |

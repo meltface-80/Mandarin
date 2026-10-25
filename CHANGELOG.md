@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- `167-settings-desktop-test-slow` (item 167): the desktop Settings test took two minutes against its two-minute
+  limit, so on a busy machine it ran out of time. Each step waited for everything on the page to stop moving, and
+  Home's unheard disc, turning behind Settings for 12 seconds, held every run's first steps to their 8 s limit. It
+  waits only on what its steps move now (the Settings sheet, the side menu, the top bar): 66 s, the same checks. The
+  album view's tablet test waited the same way and waits on the album view now.
+
 ## v1.1.8
 
 **An account optional, and Mandarin on a TV.** From users who want the shelf or the wall display on a TV, where a
