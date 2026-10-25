@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- `195-renderer-outage-between-reads` (item 195): a renderer gone from the network for a moment and back stopped could
+  still start the next track by itself, as before item 184. Only a read that failed counted as the device being away;
+  a call to it that went unanswered between reads (a command, the next track armed, its events renewed, a WiiM's
+  rate check) did not, and a renderer with events is read only every five seconds when nobody is looking. Any call it
+  doesn't answer at all now counts (a fault is still an answer), and only a read asked after the last of those hears
+  it playing again: a slow read from before says nothing of after. Its log says when it stops answering. The test of
+  it waited for any four refused requests, which in CI were not a failed read; it now waits for the server to have
+  noticed, and two more cases hold the gap between reads.
+
 - `188-playback-thread-safety` (item 188): playback's shared state read under the lock it is written under.
   - Conversions made ahead of play ran more than TRANSCODE_CONCURRENCY at a time: the count was checked under the
     queue's lock but added to only once the conversion had started, outside it, so many asking at once all found room

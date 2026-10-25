@@ -48,6 +48,7 @@ internal sealed partial class Players
         {
             // No events from this one: it is polled, and asked again in a while.
             lock (gate) subs[p.Id] = (url, "", 0, Hub.Now());
+            if (e is HttpRequestException or OperationCanceledException) Unanswered(p);
         }
         finally { lock (gate) p.Subscribing = false; }
     }
@@ -70,6 +71,16 @@ internal sealed partial class Players
     }
 
     // ------------------------------------------------------------ polling
+
+    /*
+     * A call the device didn't answer at all — a read, a command, the next track
+     * armed, its events renewed (item 195). The device was off the network at
+     * some point since it was last read, so what the room shows is not known to
+     * be its own: a stop read next is no end of a track. A read that failed only
+     * once, answered on the retry SoapHttp makes, is a connection the device
+     * closed, not an outage.
+     */
+    private void Unanswered(Player p) { lock (gate) { p.Heard = false; p.UnansweredAt = Hub.Now(); } }
 
     /* Each renderer read on its own (item 184): the loop waits for none, so one that doesn't answer holds up no other room. */
     public Task PollAll(int tick)
@@ -153,7 +164,7 @@ internal sealed partial class Players
             lock (gate) p.Heard = false;
             var bump = false;
             lock (zm.Gate) { if (!prev.Unreachable) { prev.Unreachable = true; zm.State[p.Id] = prev; bump = true; } }
-            if (bump) zm.Bump();
+            if (bump) { zm.Bump(); Log($"[renderers] {r.Name}: not answering"); }
             return;
         }
         // A sound device on this computer says what went wrong itself.
@@ -193,7 +204,8 @@ internal sealed partial class Players
         // A device still starting a track may say STOPPED for a moment while it buffers; that is given eight seconds.
         // One that stops before ever playing three times running is not taking what it is sent; that is reported rather than looped.
         // Only after the device was heard playing (item 184): back from an outage, or after a restart, the room's "playing" is
-        // from before, and a stop then is the device's own, not the end of a track — nothing starts by itself.
+        // from before, and a stop then is the device's own, not the end of a track — nothing starts by itself. An outage is
+        // any call it left unanswered since (item 195), not only a read: one between reads leaves no failed read behind.
         if (tstate == "stopped" && !p.ExpectStop && item != null && prev.State is "playing" or "loading" && heard)
         {
             if (prev.State == "loading" && Hub.Now() - p.LoadingSince < 8000) return;
@@ -208,7 +220,8 @@ internal sealed partial class Players
                 return;
             }
         }
-        lock (gate) p.Heard = true;
+        // Heard again, unless something went unanswered after this read was asked: what it says may be from before that.
+        lock (gate) p.Heard = asked > p.UnansweredAt;
         if (tstate == "stopped") p.ExpectStop = false;
         if (tstate == "playing") { p.Strikes = 0; p.LastError = null; }
         var next = ZoneState.Blank(new Volume(p.Volume.Value, p.Volume.Muted));
