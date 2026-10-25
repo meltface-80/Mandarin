@@ -12,6 +12,115 @@
   never measured: it is kept only while the track is still the file measured. What was left before is taken away
   once, as the server starts.
 
+- `193-server-reach-one-loop` (item 193): the Android app's look at whether the server is still there, every quarter
+  of a minute while on screen, could run twice over, then three times and more. Coming back to the app, or a network
+  dropping, while a look was out started another loop beside the one already running. The server was then asked more
+  and more often, and two loops counted each other's misses. It is one loop now, however often it is started again.
+
+- `192-update-now-destroyed-activity` (item 192): the Android app could close itself during an update. The update
+  offer kept the screen it installs from, and once the server's update was done (or the app's own had downloaded) it
+  showed its dialog on that screen even when it was gone: the phone turned meanwhile, or the app was closed. A dialog on
+  a screen that is gone brings the app down. The update now uses the screen only while it is still there; with none,
+  nothing is shown, and the app's own update is offered again at the next look.
+
+- `191-download-removed-midway` (item 191): on the Android app, an album removed while it was downloading came back:
+  its folder was deleted, but the download still running wrote it again when its track finished (or as it stopped),
+  and it was back in Downloads. A download now writes only while its album is still on the phone, and a removal takes
+  it away first, so a removed album stays removed. And the space Downloads said it took (and the limit it is held to)
+  was every file in each place downloads go: a chosen download folder's other music, tracks half downloaded, folders
+  waiting to be deleted. It is the downloaded albums' own files now.
+
+- `190-ui-settings-observed` (item 190): a setting changed in the Android app's UI Settings was kept, but the Library,
+  the walls, an artist's page, the search, Smart Picks, the labels, the playlists and Pitchfork went on drawing the old
+  one until the app was started again; only Home followed. The screen settings were a plain value, read once when the
+  app's frame was drawn. They are Compose state now, and each screen reads them where it is drawn, so a change draws
+  the screens again at once, those already open under Settings included.
+
+- `189-sign-in-away-address` (item 189): the Android app's sign-in screen always asked the home address, so away
+  from home (Tailscale) it said the server didn't answer and could not sign the phone in. It asks on the way the app
+  is using now, home or away. Before it makes an account, joins or signs in, it checks that the server answering is
+  this phone's own (the server id kept since item 158), so another Mandarin server at the same address is not taken
+  for it. It now has a Try again button after the server didn't answer, or couldn't be set up from where the phone
+  is. Making the account (Settings → Account, Ask for a sign-in, with no account yet) sends this phone's sign-in, so
+  the server replaces the device the phone was without an account and no longer leaves that device in the list.
+
+- `172-open-mode-hardening` (item 172): with the sign-in off (item 161), a security review found five gaps, each
+  fixed. A web page open in any browser at home could post to the server behind your back (restart it, ask for the
+  sign-in again, restore a backup), and a page that pointed its own name at the server (DNS rebinding) could read it
+  and make itself a device: what the sign-in off lets in by its address must now be asked for by a name used at home
+  (an address, a bare name, .local, .lan, .home.arpa, .ts.net and the like), and anything but a read must come from
+  Mandarin's own page or the app; another site gets a 403. A device made without a password worked from anywhere,
+  the internet too: it is marked so, and works on the home network and the tailnet only (on an install with no
+  account, every device already there is taken as one). Restoring a whole database took Ask for a sign-in from the
+  backup: today's is kept. A browser that keeps no cookies was made a new device on every page it opened: one per
+  address and browser now, the same one again for an hour, and none for a page's own requests. And a proxy on the
+  same machine that says who asked with X-Real-IP or Forwarded but not X-Forwarded-For made the internet look like
+  home: those are believed, and a proxy that names nobody leaves the caller unknown, never home.
+
+- `174-sign-in-hardening` (item 174): holes in signing in, from a review. Five wrong passwords lock an address
+  out, but a password was counted only once found wrong, after the wait every wrong password adds, so guesses sent all
+  at once were all let in while the first was still being checked: hundreds where five were meant. A password now
+  takes its place among the five as it comes in and holds it until it is found right or wrong. An IPv6 address was
+  locked out alone, where its network hands out any of 2^64: the lockout is the /64's. And every address that asked
+  was kept, wrong password or not, so a flood of new ones could push a locked-out address off the list (5,000 kept):
+  only addresses with a wrong password are kept now, and past 5,000 the one wrong longest ago goes. A sign-in begun
+  (the challenge) could be asked for without limit, and past 500 held one was given up at random, the owner's
+  half-way through as likely as any: an address holds ten at most, its oldest given up for an eleventh, and the
+  oldest of all goes first. And the sign-in page went on to `/\evil.com`, another site to a browser, which reads a
+  backslash as a slash: where it goes next is read as the browser reads it, and must be on this server.
+
+- `173-http-input-hardening` (item 173): three ways a request's body was read too trustingly, from a review. A
+  renderer's event (NOTIFY, taken before the sign-in and before the 2 MB limit) was read whole into memory, so anyone
+  who reached the port could send one of any size and take the server's memory: no more than 1 MB is read, past it a
+  413. A body was read as JSON whenever its type had "json" anywhere in it, "text/plain; x=json" too, a type any site
+  may send without asking first: only application/json and the …+json types are, their parameters aside. And a
+  body naming a field twice ({"a":1,"a":2}) was a 500 with nothing said on the sign-in and settings routes, the
+  second name found only when the route read it: the whole body is read at once and the last one kept, as the Node
+  server's JSON.parse kept it and as every other route here reads a body.
+
+- `178-update-message-test-builds` (item 178): Check for updates, with dev's server (a test build, 1.1.9-tN) ahead of
+  the app, said "App v1.1.9-t2 is on its way — try again in a few minutes" every time, in the page and in the
+  Android app's own Settings, and it never came: the app updates only from main's dist/, which never carries a test
+  build. A release's server ahead of the app still says the app is on its way (it is, a few minutes behind); a test
+  build's says what is true: "Server v1.1.9-t5 is a test build — the app's test builds are installed from the
+  test-android page", the same words in both. And the Android app's Updates row drew its name one letter a line
+  down the left edge whenever the button's words were long (that message), the button taking the whole row: the
+  name keeps its width now and the button's words wrap inside it, as the page's row does.
+
+- `177-tv-wall-cards-fit` (item 177): on a TV (1600px wide and up) the wall display's cards, twice the size since
+  item 163, no longer fitted. A long review or biography ran past its card, so its last lines and whose words they
+  were were cut off; the "More from" card's second row of covers and their titles ran past its foot. The review is
+  cut at a whole line, 7 rather than 10, under a heading of two lines at most, in a card up to 76% of the screen's
+  height, its attribution under it; the covers' card goes up to 78%, so both rows and their titles show. Each stays
+  clear of the bottom strip. The sizes now follow the screen's height as well as its width, so a screen shorter than
+  16:9 (a browser window not full screen, a wide monitor) fits the same: twice the size at 1920 x 1080 as before.
+
+- `176-artist-name-escaped` (item 176): an artist's name was put into the artist page as the page's own markup, in
+  its "No albums found" line, and the error said beside it the same: a name from the tags, MusicBrainz, Last.fm or the
+  credits such as `<img src=x onerror=…>` ran in the page. Both are shown as text now. A look through the whole page
+  for the same found two more, made text as well: a label's logo search said the server's error (which can carry
+  Discogs' words) as markup, and the album editor's match line a MusicBrainz release's year.
+
+- `175-dev-apk-after-ci` (item 175): dev's test APK went out without waiting for CI. The image waited for CI on its
+  commit; the APK's wait ran on main only, so a dev commit whose tests failed still reached the phone. Every APK
+  published, dev's test build and main's dist/ alike, now waits for CI on its commit. The APK's and the image's
+  workflows run one at a time for each branch, so an older run finishing late no longer puts its test APK or its
+  :dev image over a newer one's: on dev, a branch or a pull request a newer push cancels the run before it; main's
+  and a tag's are never cut short, a newer one waiting its turn. And the release runs a Node test file that failed
+  under load once more on its own, as CI does (a pass then is a warning; failing again still stops the release).
+
+- `171-test-version-count-pr-merges` (item 171): dev's builds after v1.1.8 were numbered 1.1.8, 1.1.8, 1.1.9-t1,
+  1.1.9-t1, 1.1.9-t2: the first two said they were the release itself, and two builds shared a number. To keep a
+  merge of main back into dev from counting, every merge commit had been left out (item 161), and pull requests merged
+  with a merge commit (#466, #470, #472) then counted for nothing. Each pull request counts again, merged or
+  squashed; only a merge of main back into dev, which brings nothing new, is passed over. Dev is 1.1.9-t4 as of #473.
+
+- `170-android-test-build-every-dev-push` (item 170): every dev build of the server now has an Android test build of the
+  same number, as the owner's rule is. The server's image was built on every push to dev, the APK only when the app,
+  the page or its workflow changed: after items 165 to 169 (tooling and tests alone) dev's server moved on while
+  the test APK stayed at the misnumbered 1.1.9-t224. A new workflow (android-dev.yml) builds the APK on every dev
+  push, calling the Android workflow whole; that workflow leaves dev to it, so a push builds the APK once.
+
 - `169-native-settings-seen-wait` (item 169): the test that a Settings page opened from the app is seen and can be
   tapped failed now and then on a busy machine: it looked at the middle of Back once, the moment the app was told, and
   the page was still sliding in. It looks until Back has come to rest (within 10 s, as its other waits); a page never

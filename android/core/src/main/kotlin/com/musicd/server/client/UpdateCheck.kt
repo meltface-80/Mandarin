@@ -30,11 +30,17 @@ object UpdateCheck {
         }
         val sc = s?.optString("current").orEmpty(); val ac = a?.optString("current").orEmpty()
         // The server ahead of the app, and GitHub without the app yet: it is built a few minutes after the server's release.
+        // Not a test build's (dev's 1.1.9-tN, item 178): the app updates from main's dist/, which never has one, so that
+        // is said rather than promised; the page's check-update.js says the same.
         if (a != null && s != null && sc.isNotEmpty() && ac.isNotEmpty() && Release.compare(sc, ac) > 0)
-            return UpdateOutcome(false, "App v$sc is on its way — try again in a few minutes", false, false, null, 6_000)
+            return UpdateOutcome(false, if (testBuild(sc)) "Server v$sc is a test build — the app's test builds are installed from the test-android page"
+                else "App v$sc is on its way — try again in a few minutes", false, false, null, 6_000)
         val words = if (a != null) "Up to date (server v" + sc.ifEmpty { "?" } + ", app v" + ac.ifEmpty { "?" } + ")" else "Up to date (v" + sc.ifEmpty { "?" } + ")"
         return UpdateOutcome(false, words, false, false, null, 4_000)
     }
+
+    /** A test build's version (tools/test-version.js: the next release with -tN), which main's dist/ never carries. */
+    fun testBuild(version: String): Boolean = Regex("-t\\d+$", RegexOption.IGNORE_CASE).containsMatchIn(version.trim())
 
     /** The app's own row: its version, updated with the server. */
     fun appName(version: String): String = "Android app" + if (version.isNotEmpty()) " v$version" else ""

@@ -37,7 +37,13 @@ internal object UpdateNow {
     /** The activity the app's update installs from, and the server is asked through. */
     fun attach(a: Activity) { activity = WeakReference(a) }
 
-    private fun client(): ServerClient? = activity.get()?.let { if (OfflineNow.on) null else Store.client(it) }
+    /**
+     * That activity while it is still there (item 192): the reference outlived it (the phone turned, or the app closed while
+     * an update ran), and a dialog shown on a destroyed activity brought the app down. Gone, nothing is shown on it.
+     */
+    private fun live(): Activity? = activity.get()?.takeIf { !it.isFinishing && !it.isDestroyed }
+
+    private fun client(): ServerClient? = live()?.let { if (OfflineNow.on) null else Store.client(it) }
     private fun show(u: UpdateOffer?) { Notices.now.value = Notices.now.value.copy(update = u) }
 
     /** Looked for now and every quarter of an hour while Home is on screen (NoticeBanners). */
@@ -84,7 +90,7 @@ internal object UpdateNow {
     private fun update() {
         val o = offer ?: return
         if (applying) return
-        val a = activity.get()
+        val a = live()
         // The app alone goes at once; with the server's, once the server is back.
         if (o.app && !o.server) { a?.let { AppUpdate.installNow(it) }; show(null); return }
         appAfterServer = o.app
@@ -114,7 +120,8 @@ internal object UpdateNow {
                 if (s == null) { wasDown = true; show(UpdateBanner.busy(UpdateBanner.RESTARTING)); continue }
                 if (UpdateBanner.back(s, target, wasDown)) {
                     applying = false; restarted = true; show(null)
-                    if (appAfterServer) { appAfterServer = false; activity.get()?.let { AppUpdate.installNow(it) } }
+                    // The app's own then, from the activity on screen now; none there, it is offered again at the next look.
+                    if (appAfterServer) live()?.let { appAfterServer = false; AppUpdate.installNow(it) }
                     HomeKept.reset()
                     look()
                     return@launch

@@ -409,7 +409,7 @@ object DownloadStore {
 
     fun remove(c: Context, id: Int) {
         DownloadWorker.cancel(c, id)
-        dirOf(c, id)?.deleteRecursively()
+        dirOf(c, id)?.let { com.musicd.server.client.DownloadDirs.remove(it) }   // never written back by its download (item 191)
         index = null
         changed()
     }
@@ -426,8 +426,8 @@ object DownloadStore {
         }
     }
 
-    fun usedBytes(c: Context): Long =
-        places(c).sumOf { p -> p.dir.walkTopDown().filter { it.isFile }.sumOf { it.length() } }
+    fun usedBytes(c: Context): Long =   // the albums' own files, not all the folder holds (item 191)
+        com.musicd.server.client.DownloadDirs.usedBytes(places(c).map { it.dir })
 
     @Volatile private var usedCache = 0L
     @Volatile private var usedFresh = false
