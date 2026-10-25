@@ -19,6 +19,8 @@ class AccountTest {
     private var pending: Srp.ServerStart? = null
     private var lieAboutProof = false
     private var lastAuth: String? = null
+    private var open = false
+    private var joined: JSONObject? = null
 
     @Before fun start() {
         http = HttpServer.create(InetSocketAddress("127.0.0.1", 0), 0)
@@ -27,6 +29,9 @@ class AccountTest {
             val body = ex.requestBody.readBytes().toString(Charsets.UTF_8).let { if (it.isEmpty()) JSONObject() else JSONObject(it) }
             val out: JSONObject = when (ex.requestURI.path) {
                 "/api/auth/status" -> JSONObject().put("setup_required", verifier.isEmpty()).put("can_setup", true).put("signed_in", false)
+                    .put("open", open).put("open_here", open)
+                "/api/auth/join" -> { joined = body; JSONObject().put("ok", true).put("token", "tok-join").put("device", JSONObject().put("id", "d1")) }
+                "/api/auth/open" -> { open = body.getBoolean("open"); JSONObject().put("ok", true).put("open", open) }
                 "/api/auth/setup" -> {
                     salt = body.getString("salt"); verifier = body.getString("verifier"); iterations = body.getInt("iterations")
                     JSONObject().put("ok", true).put("token", "tok-setup").put("username", body.getString("username").lowercase())
@@ -84,6 +89,20 @@ class AccountTest {
         } catch (e: Account.AuthException) {
             assertTrue(e.message!!.contains("prove"))
         }
+    }
+
+    @Test fun `with the sign-in off, the phone joins without a password and is an android device`() {
+        val acct = Account(client())
+        assertEquals(false, acct.status().openHere)
+        acct.setOpen(true)
+        val st = acct.status()
+        assertTrue(st.open && st.openHere)
+        assertEquals("tok-join", acct.join("Living room TV"))
+        assertEquals("android", joined!!.getString("kind"))
+        assertEquals("Living room TV", joined!!.getString("device_name"))
+        assertTrue(joined!!.getBoolean("want_token"))
+        acct.setOpen(false)
+        assertEquals(false, acct.status().open)
     }
 
     @Test fun `the token goes with every request`() {

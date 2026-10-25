@@ -341,7 +341,7 @@
      Android app play from it, controlled from a browser, an iPhone home screen or the Android app.
      No subscription or streaming account is needed.</p>
   <div class="badges">
-    <span class="badge">v1.1.7</span>
+    <span class="badge">v1.1.8</span>
     <span class="badge plain">Docker</span>
     <span class="badge plain">macOS</span>
     <span class="badge plain">MIT</span>
@@ -354,13 +354,13 @@
 
 <section id="new">
   <div class="wrap">
-    <div class="note"><b>New in v1.1.7</b> (since v1.1.5): <b>the Android app, at home and away, without the
-      waiting.</b> It finds its way to the server (home or away) before it asks anything, and every screen that couldn't
-      load asks again the moment the server answers. <b>Away from home just works</b>: the app's own Tailscale comes up
-      by itself, it no longer flips to "away" at home when the server is busy, and it takes a Wi-Fi for home only when
-      your own server answers there. <b>Faster and lighter</b>: smoother screens, a smaller app, covers kept on the
-      phone, less battery off screen. And <b>a server that doesn't stall</b>: a scan no longer holds requests up, and
-      history, Not played and artist pages answer at once.</div>
+    <div class="note"><b>New in v1.1.8</b> (since v1.1.7): <b>an account optional, and Mandarin on a TV.</b>
+      <b>No account needed</b>: a TV showing the shelf or the wall shouldn't need a username and password typed into it.
+      A new install offers <b>Use without an account</b>, and an existing one stops asking when you switch off
+      <b>Settings &rarr; Account &rarr; Ask for a sign-in</b>: then your home network and your own Tailscale network come
+      straight in, while anywhere else still signs in. <b>Readable from the sofa</b>: toasts and the wall display's
+      reviews and covers twice the size on a big TV. And on a desktop, <b>an album opens beside the mini player</b>,
+      wherever you've dragged it, instead of under it.</div>
   </div>
 </section>
 
@@ -390,7 +390,7 @@
   <div class="wrap">
     <h2>Features</h2>
     <p class="lead">Tap <b class="i-eg">i</b> on any feature for how to switch it on and use it.
-      <span class="new-eg">New</span> marks what's new in v1.1.7.</p>
+      <span class="new-eg">New</span> marks what's new in v1.1.8.</p>
     <div class="grid">
       <!-- features:start -->
       <div class="card"><h3><span class="em">🏠</span>Home<button class="info" type="button" aria-expanded="false" aria-controls="how-home" aria-label="How to set up and use Home">i</button></h3>
@@ -513,10 +513,10 @@
       <div class="card"><h3><span class="em">🖼️</span>Share card<button class="info" type="button" aria-expanded="false" aria-controls="how-sharecard" aria-label="How to set up and use Share card">i</button></h3>
         <p>The album as a picture, the duck in its corner, links to hear and read about it, and three acts near what you play, two of them new to you.</p>
         <div class="how" id="how-sharecard" hidden><b>How to set it up and use it.</b> Tap the share button on an album's page. Choose the services in <b>Settings → Setup → Share Card</b>. In the Android app, <b>Download</b> saves the card to Pictures/Mandarin.</div></div>
-      <div class="card"><h3><span class="em">📺</span>Wall display<button class="info" type="button" aria-expanded="false" aria-controls="how-wall" aria-label="How to set up and use Wall display">i</button></h3>
-        <p>A full-screen now playing page for a TV or tablet.</p>
+      <div class="card is-new"><h3><span class="em">📺</span>Wall display<span class="new">New</span><button class="info" type="button" aria-expanded="false" aria-controls="how-wall" aria-label="How to set up and use Wall display">i</button></h3>
+        <p>A full-screen now playing page for a TV or tablet; on a big TV its reviews and covers are drawn large enough to read from across the room.</p>
         <div class="how" id="how-wall" hidden><b>How to set it up and use it.</b> Open <code>http://&lt;server-ip&gt;:3500/display</code> on the screen. Its switch (on by default) and options are in <b>Settings → Setup → Wall Display</b>; off, it is off entirely. Tap the screen for its controls; <b>Shelf ›</b> opens Shelf.</div></div>
-      <div class="card is-new"><h3><span class="em">📱</span>The Android app<span class="new">New</span><button class="info" type="button" aria-expanded="false" aria-controls="how-android" aria-label="How to set up and use The Android app">i</button></h3>
+      <div class="card"><h3><span class="em">📱</span>The Android app<button class="info" type="button" aria-expanded="false" aria-controls="how-android" aria-label="How to set up and use The Android app">i</button></h3>
         <p>Mandarin's interface drawn natively by the app, which finds the server home or away and asks again when it's back; lock-screen controls, volume keys, a widget, Android Auto, its updates.</p>
         <div class="how" id="how-android" hidden><b>How to set it up and use it.</b> Download <a href="https://github.com/meltface-80/Mandarin/raw/main/dist/mandarin-android.apk">mandarin-android.apk</a> and install it (Android 8.0 or newer). Enter the port; it finds the server on your Wi-Fi.</div></div>
       <div class="card"><h3><span class="em">🎧</span>This phone<button class="info" type="button" aria-expanded="false" aria-controls="how-phone" aria-label="How to set up and use This phone">i</button></h3>
@@ -534,15 +534,15 @@
       <div class="card"><h3><span class="em">✈️</span>Offline mode<button class="info" type="button" aria-expanded="false" aria-controls="how-offline" aria-label="How to set up and use Offline mode">i</button></h3>
         <p>One switch: only the music on the phone shows, and the server isn't used. With no connection the app does the same by itself, and reconnects when it can.</p>
         <div class="how" id="how-offline" hidden><b>How to set it up and use it.</b> In the Android app, <b>☰ → Offline mode</b>. While offline, a small <i>Offline</i> pill sits at the top of the screen: tap it to see why (Offline mode, or the server can't be reached).</div></div>
-      <div class="card is-new"><h3><span class="em">🌍</span>Away from home<span class="new">New</span><button class="info" type="button" aria-expanded="false" aria-controls="how-away" aria-label="How to set up and use Away from home">i</button></h3>
+      <div class="card"><h3><span class="em">🌍</span>Away from home<button class="info" type="button" aria-expanded="false" aria-controls="how-away" aria-label="How to set up and use Away from home">i</button></h3>
         <p>On mobile data the app reaches the server through its own Tailscale, by itself, with no ports opened. Away, only the phone plays: Opus 256 or original files.</p>
         <div class="how" id="how-away" hidden><b>How to set it up and use it.</b> <b>Settings → Setup → Away from home</b> on the server: <b>Sign in to Tailscale</b>. Then in the app, the same page: <b>This phone</b>. Open the app once at home. Details under <a href="https://github.com/meltface-80/Mandarin#away-from-home-tailscale">Away from home</a>.</div></div>
       <div class="card"><h3><span class="em">🎨</span>UI Settings<button class="info" type="button" aria-expanded="false" aria-controls="how-ui" aria-label="How to set up and use UI Settings">i</button></h3>
         <p>Text sizes, grid layout (Auto, 3 or 2 columns, or List) and tile size, saved on each device. On a desktop, text goes up to +100%.</p>
         <div class="how" id="how-ui" hidden><b>How to set it up and use it.</b> Open <b>Settings → Setup → UI Settings</b> and pick from each list; it applies at once.</div></div>
-      <div class="card"><h3><span class="em">👤</span>One account<button class="info" type="button" aria-expanded="false" aria-controls="how-account" aria-label="How to set up and use One account">i</button></h3>
-        <p>One username and password, kept on the server. Devices sign in with SRP, so the password itself is never sent, and every signed-in device is listed.</p>
-        <div class="how" id="how-account" hidden><b>How to set it up and use it.</b> Create it on first visit from a device at home. <b>Settings → Account</b> lists devices, signs one out and changes the password. Forgotten: see <a href="https://github.com/meltface-80/Mandarin#your-account">Your account</a>.</div></div>
+      <div class="card is-new"><h3><span class="em">👤</span>An account, or none<span class="new">New</span><button class="info" type="button" aria-expanded="false" aria-controls="how-account" aria-label="How to set up and use An account, or none">i</button></h3>
+        <p>One username and password kept on the server, or none: a TV showing the shelf or the wall needs nothing typed. The password itself is never sent.</p>
+        <div class="how" id="how-account" hidden><b>How to set it up and use it.</b> On first visit from a device at home, create the account or choose <b>Use without an account</b>. <b>Settings → Account → Ask for a sign-in</b> switches it on or off: off, the home network and your Tailscale network come straight in, anywhere else still signs in. Details under <a href="https://github.com/meltface-80/Mandarin#your-account">Your account</a>.</div></div>
       <div class="card"><h3><span class="em">⏻</span>Restart and shut down<button class="info" type="button" aria-expanded="false" aria-controls="how-power" aria-label="How to set up and use Restart and shut down">i</button></h3>
         <p>Restart Mandarin, or shut it down so it stops finding and controlling your speakers until you start it again. In Docker, only Restart.</p>
         <div class="how" id="how-power" hidden><b>How to set it up and use it.</b> Open the side menu (☰) and tap the <b>power button</b> in its top-right corner, then <b>Restart</b> or <b>Shut down</b>. On a Mac, double-click <b>Mandarin</b> on the desktop to start it again. In Docker: <code>docker stop musicd-server</code>, then <code>docker start musicd-server</code>.</div></div>
@@ -674,7 +674,8 @@
     <div class="firstrun" style="margin-top:22px">
       <ol>
         <li>Open <b>http://&lt;server-ip&gt;:<span class="port">3500</span></b> on a device at home and
-            <b>create your account</b> — one username and password, kept on the server. The first scan
+            <b>create your account</b> — one username and password, kept on the server — or choose
+            <b>Use without an account</b> (a TV needs nothing typed). The first scan
             starts straight away; albums appear as it goes.</li>
         <li>Pick a room under <b>Settings &rarr; Audio Devices</b>, or from the speaker button on Now playing.</li>
         <li>Tap an album and <b>Play Now</b>.</li>
@@ -705,7 +706,7 @@
         <b>MusicBrainz pack</b> if you download it later (optional, about 2&nbsp;GB). <b>Keep awake</b>, so the music
         doesn't stop. And <b>Allow</b> if macOS asks to let <b>mandarin-server</b> find devices on your network or open
         your files.</li></ol></div>
-      <div class="firstrun"><ol start="4"><li><b>Done.</b> Mandarin opens in your browser: create your account. It starts by itself
+      <div class="firstrun"><ol start="4"><li><b>Done.</b> Mandarin opens in your browser: create your account, or use it without one. It starts by itself
         whenever you log in. On a phone, open the address Terminal shows at the end.</li></ol></div>
       <div class="note"><b>On a Mac, as on Linux:</b> updates come from the app (Settings &rarr; Updates). A USB DAC: switch it
         on in Settings &rarr; Audio Devices; Mandarin plays it through Core Audio at each track's own rate, holding it

@@ -86,7 +86,7 @@ internal static class Images
     private static async Task<bool> Answer(HttpContext ctx, string key)
     {
         bool may;
-        using (var c = Db.Open()) may = Signed(ctx, c) || Auth.DeviceOf(ctx, c) != null;
+        using (var c = Db.Open()) may = Signed(ctx, c) || Auth.Through(ctx, c);
         if (!may && !await FromSpeaker(ctx)) return false;
 
         // A record label's logo, as kept: its address changes with it.

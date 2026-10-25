@@ -746,21 +746,24 @@
       }
     },
     "settings-account": {
-      "page": "Settings' Account: Back, Account; the devices signed in, each but this one with its Sign out; Sign out of this device; the current password and the new one twice, Change password and what came of it; the notes",
+      "page": "Settings' Account: Back, Account; Ask for a sign-in on or off and what that means (item 161); the devices signed in, each but this one with its Sign out; Sign out of this device; the current password and the new one twice, Change password and what came of it; the notes",
       "native": ["android/app/src/main/java/com/musicd/server/android/SettingsPanes.kt"],
       "preview": false,
       "items": {
         "back": { "kind": "action", "label": "Back to settings" },
         "heading": { "kind": "shows" },
+        "name": { "kind": "shows" },
+        "ask": { "kind": "action", "label": "Ask for a sign-in" },
+        "ask-note": { "kind": "shows" },
         "title": { "kind": "shows", "each": true },
         "device": { "kind": "shows", "each": true, "when": "the devices read" },
         "revoke": { "kind": "action", "label": "Sign out", "each": true, "when": "another device signed in" },
         "note": { "kind": "shows", "each": true },
-        "signout": { "kind": "action", "label": "Sign out of this device" },
-        "current": { "kind": "action", "label": "Current password" },
-        "new": { "kind": "action", "label": "New password (8 or more characters)" },
-        "again": { "kind": "action", "label": "New password again" },
-        "change": { "kind": "action", "label": "Change password" },
+        "signout": { "kind": "action", "label": "Sign out of this device", "when": "a sign-in is asked for" },
+        "current": { "kind": "action", "label": "Current password", "when": "there is an account" },
+        "new": { "kind": "action", "label": "New password (8 or more characters)", "when": "there is an account" },
+        "again": { "kind": "action", "label": "New password again", "when": "there is an account" },
+        "change": { "kind": "action", "label": "Change password", "when": "there is an account" },
         "status": { "kind": "shows", "when": "a change tried" }
       }
     },

@@ -1170,7 +1170,9 @@ main { padding-top: calc(var(--topbar-h) + 14px); }
   width: max-content;
   max-width: min(560px, calc(100vw - 28px));
   text-align: left; line-height: 1.45;
-  font-size: 14px; opacity: 0;
+  /* The text size chosen for the rest of the page (UI Settings, "every other
+     piece of text": --ui-menu), as the side menu and Settings have it (item 162). */
+  font-size: calc(14px * var(--ui-menu, 1)); opacity: 0;
   transition: opacity .18s ease, transform .18s ease;
   z-index: 100;
   /* NEVER TAPPABLE, SHOWN OR NOT. `opacity: 0` hides a box; it does not stop
@@ -1184,6 +1186,16 @@ main { padding-top: calc(var(--topbar-h) + 14px); }
   pointer-events: none;
 }
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+/* A big screen, read from across the room (a TV, item 162): the toast grows
+   with the screen's width, twice its size at 1920px (28px), and so does the
+   box it is written in. A 1280px laptop keeps its 14px. */
+@media (min-width: 1600px) {
+  .toast {
+    font-size: calc(1.46vw * var(--ui-menu, 1));
+    padding: .86em 1.3em; border-radius: 1.6em;
+    max-width: min(40em, calc(100vw - 28px));
+  }
+}
 .toast.error { border-color: var(--danger); }
 
 /* ------------------------------------------------------------------ */
@@ -3047,13 +3059,17 @@ input.vol-range::-moz-range-thumb {
 .settings-info-toast {
   position: fixed; bottom: max(calc(88px + env(safe-area-inset-bottom)), var(--toast-lift, 0px)); left: 50%; transform: translateX(-50%);
   background: var(--bg-elev-2); border: 1px solid var(--border);
-  color: var(--text); font-size: 14px; line-height: 1.5;
+  color: var(--text); font-size: calc(14px * var(--ui-menu, 1)); line-height: 1.5;
   padding: 12px 18px; border-radius: 12px; max-width: min(400px, 92vw);
   box-shadow: var(--shadow-modal); z-index: 9999;
   opacity: 0; pointer-events: none;
   transition: opacity .2s ease;
 }
 .settings-info-toast.visible { opacity: 1; pointer-events: auto; }
+/* A big screen, as the toast (item 162). */
+@media (min-width: 1600px) {
+  .settings-info-toast { font-size: calc(1.46vw * var(--ui-menu, 1)); padding: .86em 1.3em; max-width: min(28em, 92vw); }
+}
 
 .settings-select-wrap { position: relative; flex: 0 0 auto; }
 .settings-select {

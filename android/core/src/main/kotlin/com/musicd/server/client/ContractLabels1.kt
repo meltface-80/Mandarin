@@ -281,6 +281,7 @@ internal object ContractLabels1 {
         "settings-setup.log-save" to listOf("Save log"),
         "settings-setup.log-clear" to listOf("Clear log"),
         "settings-account.back" to listOf("Back to settings"),
+        "settings-account.ask" to listOf("Ask for a sign-in"),
         "settings-account.revoke" to listOf("Sign out"),
         "settings-account.signout" to listOf("Sign out of this device"),
         "settings-account.current" to listOf("Current password"),
@@ -296,13 +297,5 @@ internal object ContractLabels1 {
         "settings-picks.enabled" to listOf("Smart Picks"),
         "settings-picks.hour" to listOf("Smart Picks build hour"),
         "settings-picks.rebuild" to listOf("Rebuild", "…"),
-        "settings-labels.back" to listOf("Back to settings"),
-        "settings-labels.info" to listOf("About {setting}"),
-        "settings-labels.enabled" to listOf("Record labels"),
-        "settings-labels.order" to listOf("Label album order"),
-        "settings-labels.min" to listOf("Minimum albums per label"),
-        "settings-labels.rescan" to listOf("Force rescan", "Starting…", "Done", "Rescan started"),
-        "settings-labels.depth" to listOf("Label from folder depth"),
-        "settings-labels.depth-save" to listOf("Save"),
     )
 }

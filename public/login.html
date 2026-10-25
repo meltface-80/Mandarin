@@ -1,6 +1,6 @@
 <!doctype html>
 <!--
-  Mandarin — sign in, or create the account on first run.
+  Mandarin — sign in, or create the account on first run (or use it without one).
   The password never leaves this page: public/srp.js proves it to the server.
 -->
 <html lang="en">
@@ -47,6 +47,9 @@
     .err { color: var(--err); font-size: 14px; margin-top: 14px; min-height: 1em; }
     .err:empty { display: none; }
     .foot { margin-top: 16px; font-size: 12px; color: var(--dim); text-align: center; line-height: 1.5; }
+    button.second { background: transparent; color: var(--accent); border: 1px solid var(--accent); margin-top: 6px; }
+    .or { text-align: center; margin: 18px 0 0; }
+    .small { font-size: 13px; margin: 12px 0 0; }
     .hidden { display: none; }
     code { font-size: 12px; }
   </style>
@@ -59,8 +62,8 @@
 
   <form class="card hidden" id="setup" autocomplete="on">
     <h2>Create your account</h2>
-    <p>Mandarin needs an account before it can be used. Choose a username and password — you'll use them to sign
-      in on every device. The password never leaves this device.</p>
+    <p>Choose a username and password — you'll use them to sign in on every device. The password never leaves
+      this device.</p>
     <label for="su-user">Username</label>
     <input id="su-user" type="text" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" required>
     <label for="su-pass">Password</label>
@@ -69,6 +72,13 @@
     <input id="su-pass2" type="password" autocomplete="new-password" required minlength="8">
     <button type="submit" id="su-go">Create account</button>
     <div class="err" id="su-err"></div>
+    <div id="su-open-block">
+      <p class="or">or</p>
+      <button type="button" class="second" id="su-open">Use without an account</button>
+      <p class="small">For a TV showing the shelf or the wall: anything on your home network or your Tailscale network
+        can then use Mandarin without signing in. Anywhere else still can't. An account can be made later in Settings → Account.</p>
+      <div class="err" id="su-open-err"></div>
+    </div>
   </form>
 
   <div class="card hidden" id="notlocal">

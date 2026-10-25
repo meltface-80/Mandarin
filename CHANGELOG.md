@@ -1,5 +1,45 @@
 # Changelog
 
+## v1.1.8
+
+**An account optional, and Mandarin on a TV.** From users who want the shelf or the wall display on a TV, where a
+username and password are hard to type: a new install can be used without an account, and an existing one can stop
+asking for a sign-in (Settings → Account), the home network and your own Tailscale network then coming straight in;
+anywhere else still signs in. And on a big screen read from across the room: toasts and the wall display's review and
+"More from" cards twice the size on a 1920px TV, and on a desktop an album opens beside the mini player instead of
+under it. Items 161 to 164.
+
+- `164-desktop-mini-beside-album` (item 164): on a desktop (a TV with a mouse, say) the mini player stays on screen
+  over an open album and can be dragged anywhere, but the album opened in the middle of the screen whatever it
+  covered. It opens beside the player now: the player on the right (its corner, or dragged to the top right), the
+  album in the room on its left; the player dragged to the left, the album on its right; it follows the player as it
+  is dragged. Where the room beside it is under 600px, and on touch screens, the album is centred as before.
+
+- `163-wall-reviews-big-screen` (item 163): on a 65" TV the wall display's review card and its "More from" covers
+  were too small to read from across the room. On a screen 1600px wide or more they grow with its width: the
+  writing twice the size at 1920px (the review 38px, its heading 52px, More from's heading 64px), the covers as big as
+  two rows of them, their titles and the heading still fit (1166px across at 1080px high, from 820). A laptop's stay
+  as they were.
+
+- `162-toasts-big-screen` (item 162): on a 65" TV the toasts' writing was too small to read. They follow the page's
+  text size now (UI Settings, the size for every other piece of text), and on a screen 1600px wide or more they grow
+  with its width: twice the size at 1920px (28px), the box they are written in with them. Settings' ⓘ notes too. A
+  laptop's stay as they were.
+
+- `161-account-optional` (item 161): **an account is optional.** A TV showing the shelf or the wall can't easily have
+  a username and a password typed into it, so asking for a sign-in is now a choice.
+  - **A new install** offers "Use without an account" on its setup page (and in the Android app's first screen): the
+    browser or phone goes straight in.
+  - **An install with an account** keeps asking for a sign-in after the update until it is switched off: Settings →
+    Account → Ask for a sign-in (the page and the app alike).
+  - **With it off**, anything on the home network or on your own Tailscale network comes straight in, every browser
+    and app still a device of its own (phone zones, the devices list); a browser is let in as it opens a page, the app
+    joins without a password. From anywhere else (a port forwarded to the internet) a sign-in is still needed, and with
+    no account there is none to give. Switching it on with no account makes the account first; devices already in
+    stay in (sign any out from the list).
+  - Test builds are numbered from the pull requests since the release only: bringing the release back into `dev`
+    counts for nothing, so this is 1.1.8-t1.
+
 ## v1.1.7
 
 **The Android app, at home and away, without the waiting.** From an audit of the app and its way to the server (the

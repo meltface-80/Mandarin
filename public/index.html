@@ -1468,15 +1468,28 @@
         </div>
 
         <div class="settings-block">
+          <div class="settings-row">
+            <span class="settings-label" data-parity="settings-account.name">Ask for a sign-in</span>
+            <label class="switch" data-parity="settings-account.ask">
+              <input type="checkbox" id="acct-ask" aria-label="Ask for a sign-in" checked>
+              <span class="switch-track"><span class="switch-thumb"></span></span>
+            </label>
+          </div>
+          <div class="settings-note" id="acct-ask-note" data-parity="settings-account.ask-note"></div>
+        </div>
+
+        <div class="settings-divider"></div>
+
+        <div class="settings-block">
           <h3 class="settings-block-title" data-parity="settings-account.title">Signed-in devices</h3>
           <div id="acct-devices" class="acct-devices"></div>
           <p class="settings-note" data-parity="settings-account.note">Sign out a device you've lost or don't use. It will need the password to come back.</p>
           <button id="acct-signout" class="settings-update-btn" type="button" data-parity="settings-account.signout">Sign out of this device</button>
         </div>
 
-        <div class="settings-divider"></div>
+        <div class="settings-divider" id="acct-pw-divider"></div>
 
-        <div class="settings-block">
+        <div class="settings-block" id="acct-pw-block">
           <h3 class="settings-block-title" data-parity="settings-account.title">Change password</h3>
           <input id="acct-cur" type="password" aria-label="Current password" data-parity="settings-account.current" class="settings-token-input acct-input" placeholder="Current password" autocomplete="current-password">
           <input id="acct-new" type="password" aria-label="New password (8 or more characters)" data-parity="settings-account.new" class="settings-token-input acct-input" placeholder="New password (8 or more characters)" autocomplete="new-password">
