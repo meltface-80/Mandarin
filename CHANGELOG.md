@@ -10,6 +10,10 @@
   what was playing: it sends the phone's own list, from the track it is on, when every track in it is the library's,
   and says so when one isn't.
 
+- `185-radio-busy-cleared` (item 185): Random Album Radio switched on (or a room's queue running low) with no album to
+  give, an empty library on a new install say, marked the room busy with the radio and never let it go: the radio was
+  dead for that room until the server restarted, music or not. It is let go on every way out.
+
 - `184-renderer-stop-and-poll` (item 184): a renderer (a WiiM, a Poly) and the rooms beside it.
   - A renderer started on the next track by the server when it stops at the end of one (one without
     SetNextAVTransportURI) took any stop for that end. Gone from the network while playing and back stopped, or
