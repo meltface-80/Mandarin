@@ -10,6 +10,12 @@
   and a tag's are never cut short, a newer one waiting its turn. And the release runs a Node test file that failed
   under load once more on its own, as CI does (a pass then is a warning; failing again still stops the release).
 
+- `171-test-version-count-pr-merges` (item 171): dev's builds after v1.1.8 were numbered 1.1.8, 1.1.8, 1.1.9-t1,
+  1.1.9-t1, 1.1.9-t2: the first two said they were the release itself, and two builds shared a number. To keep a
+  merge of main back into dev from counting, every merge commit had been left out (item 161), and pull requests merged
+  with a merge commit (#466, #470, #472) then counted for nothing. Each pull request counts again, merged or
+  squashed; only a merge of main back into dev, which brings nothing new, is passed over. Dev is 1.1.9-t4 as of #473.
+
 - `170-android-test-build-every-dev-push` (item 170): every dev build of the server now has an Android test build of the
   same number, as the owner's rule is. The server's image was built on every push to dev, the APK only when the app,
   the page or its workflow changed: after items 165 to 169 (tooling and tests alone) dev's server moved on while
