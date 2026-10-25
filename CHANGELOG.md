@@ -11,6 +11,15 @@
   second name found only when the route read it: the whole body is read at once and the last one kept, as the Node
   server's JSON.parse kept it and as every other route here reads a body.
 
+- `178-update-message-test-builds` (item 178): Check for updates, with dev's server (a test build, 1.1.9-tN) ahead of
+  the app, said "App v1.1.9-t2 is on its way — try again in a few minutes" every time, in the page and in the
+  Android app's own Settings, and it never came: the app updates only from main's dist/, which never carries a test
+  build. A release's server ahead of the app still says the app is on its way (it is, a few minutes behind); a test
+  build's says what is true: "Server v1.1.9-t5 is a test build — the app's test builds are installed from the
+  test-android page", the same words in both. And the Android app's Updates row drew its name one letter a line
+  down the left edge whenever the button's words were long (that message), the button taking the whole row: the
+  name keeps its width now and the button's words wrap inside it, as the page's row does.
+
 - `177-tv-wall-cards-fit` (item 177): on a TV (1600px wide and up) the wall display's cards, twice the size since
   item 163, no longer fitted. A long review or biography ran past its card, so its last lines and whose words they
   were were cut off; the "More from" card's second row of covers and their titles ran past its foot. The review is

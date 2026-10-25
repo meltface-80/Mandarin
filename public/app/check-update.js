@@ -61,8 +61,13 @@
         }
       } else if (a && s && s.current && a.current && verNewer(s.current, a.current)) {
         // The server is ahead of the app, and GitHub doesn't have the app yet:
-        // it's built after the server's release, a few minutes later.
-        btn.textContent = "App v" + s.current + " is on its way — try again in a few minutes";
+        // it's built after the server's release, a few minutes later. Not a
+        // test build's (dev's 1.1.9-tN, item 178): the app updates from main's
+        // dist/, which never has one, so that is said rather than promised. The
+        // Android app's own Settings says the same (core UpdateCheck.kt).
+        btn.textContent = /-t\d+$/i.test(String(s.current).trim())
+          ? "Server v" + s.current + " is a test build — the app's test builds are installed from the test-android page"
+          : "App v" + s.current + " is on its way — try again in a few minutes";
         setTimeout(() => { btn.disabled = false; btn.textContent = "Check for updates"; }, 6000);
       } else {
         btn.textContent = a
