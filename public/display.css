@@ -131,20 +131,30 @@ body {
   .more-cell:nth-child(n+7) { display: none; }   /* 2 rows of 3 on phones */
 }
 /* A big screen read from across the room (a 65" TV, item 163): the review
-   and "More from" cards grow with the screen's width, their writing twice the
-   size at 1920px (the numbers above × 2 ÷ 19.2, in vw). The covers grow as far
-   as the screen's height lets two rows of them, their titles and the heading
-   fit (1166px across at 1080px high). */
+   and "More from" cards grow with the screen, their writing twice the size at
+   1920 x 1080 (the numbers above × 2 ÷ 19.2, in --big: 1vw on a 16:9 screen,
+   less on a wider or shorter one, so what fits at 16:9 fits on any). The
+   covers grow as far as the screen's height lets two rows of them, their
+   titles and the heading fit (1166px across at 1080px high).
+   And twice the size, they still fit their cards (item 177): the review is cut
+   at 7 lines rather than 10, under a heading of 2 at most, in a card up to 76%
+   of the height, so its attribution shows under it; the covers' card up to
+   78%, so both rows and their titles do. Each still clear of the bottom strip
+   (the slide's 14vh). */
 @media (min-width: 1600px) {
-  .review-card { max-width: 88vw; padding: 3.54vw 3.96vw; border-radius: 1.67vw; }
-  .review-card h2 { font-size: 2.71vw; margin-bottom: 1.46vw; }
-  .review-card .review-text { font-size: 1.98vw; }
-  .review-card .review-attrib { margin-top: 1.67vw; font-size: 1.35vw; }
-  .more-card { max-width: min(86vw, 108vh); }
-  .more-card h2 { font-size: 3.33vw; }
-  .more-sub { font-size: 1.46vw; margin: .62vw 0 2.29vw; }
-  .more-grid { gap: 1.88vw; }
-  .more-title { margin-top: .83vw; font-size: 1.35vw; }
+  :root { --big: min(1vw, 1.778vh); }
+  .review-card { max-width: 88vw; max-height: 76vh; padding: calc(3.54 * var(--big)) calc(3.96 * var(--big)); border-radius: calc(1.67 * var(--big)); }
+  .review-card h2 {
+    font-size: calc(2.71 * var(--big)); margin-bottom: calc(1.46 * var(--big));
+    display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden;
+  }
+  .review-card .review-text { font-size: calc(1.98 * var(--big)); -webkit-line-clamp: 7; }
+  .review-card .review-attrib { margin-top: calc(1.67 * var(--big)); font-size: calc(1.35 * var(--big)); }
+  .more-card { max-width: min(86vw, 108vh); max-height: 78vh; }
+  .more-card h2 { font-size: calc(3.33 * var(--big)); }
+  .more-sub { font-size: calc(1.46 * var(--big)); margin: calc(.62 * var(--big)) 0 calc(2.29 * var(--big)); }
+  .more-grid { gap: calc(1.88 * var(--big)); }
+  .more-title { margin-top: calc(.83 * var(--big)); font-size: calc(1.35 * var(--big)); }
 }
 
 /* Mode controls — revealed on tap/pointer, fade out after a few seconds */
