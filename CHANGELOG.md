@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- `169-native-settings-seen-wait` (item 169): the test that a Settings page opened from the app is seen and can be
+  tapped failed now and then on a busy machine: it looked at the middle of Back once, the moment the app was told, and
+  the page was still sliding in. It looks until Back has come to rest (within 10 s, as its other waits); a page never
+  seen still fails it.
+
 - `168-loudness-order-pid-wrap` (item 168): the loudness test's measuring order failed now and then on a busy
   machine (New first, where Old and Single had been measured first). The server measured in the right order; the test
   read the order from the measuring processes' ids, and ids wrap round at the system's limit (32,768 on the test
