@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- `179-rows-left-for-removed-albums` (item 179): albums' and tracks' ids are given out again, and some rows outlived
+  theirs, so a new album could show another's. A gone service's albums (item 152) were deleted with foreign keys off:
+  their tracks stayed, with their tags, loudness and tag checks, under ids the next albums were given. They go with
+  foreign keys on now. An album's credits never went with it, so a new album under its id had them and counted as
+  looked up: a trigger on albums takes them, however the album goes (a scan, a service, a start), and the credits
+  finder reads again what was looked at when the library changes; credits found for an album gone meanwhile aren't
+  kept. A track gone while its loudness was measured had its loudness kept, and the next track under its id was
+  never measured: it is kept only while the track is still the file measured. What was left before is taken away
+  once, as the server starts.
+
 - `169-native-settings-seen-wait` (item 169): the test that a Settings page opened from the app is seen and can be
   tapped failed now and then on a busy machine: it looked at the middle of Back once, the moment the app was told, and
   the page was still sliding in. It looks until Back has come to rest (within 10 s, as its other waits); a page never
