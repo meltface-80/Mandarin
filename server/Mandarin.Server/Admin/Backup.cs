@@ -40,7 +40,8 @@ internal static partial class Backup
     public static readonly string[] KeyKeys = ["discogsToken", "fanartKey", "lastfmKey", "qobuz", "qobuzSettings", "tidal", "tidalSettings"];
     // Kept from the server being restored, whatever the database brought.
     private static readonly string[] KeepTables = ["account", "devices"];
-    private static readonly string[] KeepSettings = ["authSecret", "tailscale", "serverId"];
+    // Whether a sign-in is asked for (openAccess) is today's too: a restore never opens the server (item 172).
+    private static readonly string[] KeepSettings = ["authSecret", "tailscale", "serverId", "openAccess"];
 
     /* An error the page shows, with its HTTP status (400 unless said). */
     public sealed class Refused(string message, int status = 400) : Exception(message)

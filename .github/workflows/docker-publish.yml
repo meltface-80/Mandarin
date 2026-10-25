@@ -12,6 +12,14 @@ on:
       - 'v*.*.*'
   workflow_dispatch:
 
+# One run at a time for each branch or tag (item 175), so an older run finishing
+# late never pushes its :dev (or :<branch>) image over a newer one's: a newer
+# push cancels the run before it. main's and a tag's are never cut short (the
+# engines' pre-releases are published from main): a newer one waits for it.
+concurrency:
+  group: image-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' && !startsWith(github.ref, 'refs/tags/') }}
+
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository_owner }}/musicd-server

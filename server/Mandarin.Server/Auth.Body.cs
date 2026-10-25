@@ -26,11 +26,42 @@ internal static partial class Auth
     {
         var read = await Http.ReadJson(ctx);
         if (read.Refused) { await Error(ctx, read.Status, read.Words); return null; }
-        try { return read.Text!.Length == 0 ? [] : JsonNode.Parse(read.Text) as JsonObject ?? []; }
+        try
+        {
+            if (read.Text!.Length == 0) return [];
+            // Its values outlive the document read (Clone): a value made here keeps the element it came from.
+            using var doc = JsonDocument.Parse(read.Text);
+            return Node(doc.RootElement.Clone()) as JsonObject ?? [];
+        }
         catch (JsonException)
         {
             await Error(ctx, 400, "Bad JSON");
             return null;
+        }
+    }
+
+    /*
+     * The value whole, every object in it made here, a name given twice its
+     * last value, as JSON.parse keeps it (item 173). JsonNode.Parse made an
+     * object only when first read, so a name given twice threw then, on the
+     * route's way and outside any catch: a 500, with nothing said. Kept last
+     * rather than refused, as the Node server read it and as every other
+     * route here reads a body (Http.ReadJs, Scan/JsJson.cs).
+     */
+    private static JsonNode? Node(JsonElement e)
+    {
+        switch (e.ValueKind)
+        {
+            case JsonValueKind.Object:
+                var o = new JsonObject();
+                foreach (var p in e.EnumerateObject()) o[p.Name] = Node(p.Value);
+                return o;
+            case JsonValueKind.Array:
+                var a = new JsonArray();
+                foreach (var v in e.EnumerateArray()) a.Add(Node(v));
+                return a;
+            default:
+                return JsonValue.Create(e);
         }
     }
 }

@@ -46,10 +46,12 @@ public sealed partial class DbCsharpTests(DbCsharpTests.Book book) : IClassFixtu
     // What was said, the folder named.
     private static JsonArray Said(IEnumerable<string> lines, string dir) => new([.. lines.Select(l => (JsonNode?)JsonValue.Create(Aside().Replace(l, "musicd.old-<ms>.db").Replace(dir, "<dir>", StringComparison.Ordinal)))]);
 
-    // The C# server's own columns beyond the Node server's (the classical fields, bug list item 48): the recording
-    // is from before them, so they are taken out of the dump, from tracks' columns and from its CREATE text as
-    // ALTER TABLE ADD COLUMN wrote them on its end.
-    private static readonly (string Column, string Type)[] Ours = [("composer", "TEXT"), ("conductor", "TEXT"), ("work", "TEXT"), ("movement", "TEXT"), ("movement_no", "INTEGER"), ("performers", "TEXT")];
+    // The C# server's own columns beyond the Node server's (the classical fields, bug list item 48; devices made
+    // without a password, item 172): the recording is from before them, so each is looked for, then taken out of
+    // the dump, from its table's columns and from its CREATE text as ALTER TABLE ADD COLUMN wrote them on its end.
+    private static readonly (string Table, string Column, string Type)[] Ours = [("tracks", "composer", "TEXT"), ("tracks", "conductor", "TEXT"),
+        ("tracks", "work", "TEXT"), ("tracks", "movement", "TEXT"), ("tracks", "movement_no", "INTEGER"), ("tracks", "performers", "TEXT"),
+        ("devices", "joined", "INTEGER NOT NULL DEFAULT 0")];
 
     // Its own indexes beyond the Node server's (Schema.Indexes.cs): made, then taken out of the dump as its columns are.
     private static readonly string[] OurIndexes = ["plays_album_ts"];
@@ -64,12 +66,18 @@ public sealed partial class DbCsharpTests(DbCsharpTests.Book book) : IClassFixtu
             Assert.True(mine != null, "no index " + name);
             master.Remove(mine);
         }
-        var added = string.Concat(Ours.Select(o => $", {o.Column} {o.Type}"));
-        foreach (var m in d["master"]!.AsArray()) if (m.Str("name") == "tracks" && m.Str("sql") is { } sql) m!["sql"] = sql.Replace(added, "", StringComparison.Ordinal);
-        if (d["columns"]!["tracks"] is JsonArray cols)
+        foreach (var table in Ours.Select(o => o.Table).Distinct())
         {
-            var ours = Ours.Select(o => o.Column).ToHashSet(StringComparer.Ordinal);
-            foreach (var c in cols.Where(c => ours.Contains(c.Str("name") ?? "")).ToList()) cols.Remove(c);
+            var mine = Ours.Where(o => o.Table == table).ToList();
+            var added = string.Concat(mine.Select(o => $", {o.Column} {o.Type}"));
+            foreach (var m in master) if (m.Str("name") == table && m.Str("sql") is { } sql) m!["sql"] = sql.Replace(added, "", StringComparison.Ordinal);
+            if (d["columns"]![table] is not JsonArray cols) continue;
+            foreach (var o in mine)
+            {
+                var col = cols.FirstOrDefault(c => c.Str("name") == o.Column);
+                Assert.True(col != null, $"no column {table}.{o.Column}");
+                cols.Remove(col);
+            }
         }
         return d;
     }
