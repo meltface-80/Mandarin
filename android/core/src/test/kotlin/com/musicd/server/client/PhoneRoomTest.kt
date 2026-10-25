@@ -74,8 +74,9 @@ class PhoneRoomTest {
         assertEquals("play_now", client.playAlbum(7, "Blue Train", "John Coltrane", "PHONE_1", "play_now").getString("action"))
         client.playTrack(3, 1, "Something", "Abbey Road", "The Beatles", "PHONE_1", "play_next")
         client.playAlbum(3, "", "", "PHONE_1", "shuffle")
-        assertEquals(listOf("[7] 0 play_now null", "[3] 0 add_next 1", "[3] 0 play_now null"), deck.plays)
-        assertTrue(deck.commands.last().shuffle)
+        // Shuffle (item 194): the deck plays it shuffled; the player's own shuffle is left as it was, not switched on.
+        assertEquals(listOf("[7] 0 play_now null", "[3] 0 add_next 1", "[3] 0 shuffle null"), deck.plays)
+        assertTrue(deck.commands.none { it.op == "mode" })
         val multi = client.playMulti(listOf(summary(7), summary(5)), "PHONE_1", "queue")
         assertEquals(1, multi.getInt("queued")); assertEquals(1, multi.getInt("failed"))
         try { client.playAlbum(5, "", "", "PHONE_1", "play_now"); fail("not on the phone") } catch (e: ServerClient.ServerException) { assertEquals(404, e.status) }

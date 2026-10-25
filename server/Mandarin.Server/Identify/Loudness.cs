@@ -264,12 +264,14 @@ internal sealed partial class Loudness(Action<string> log, int tickMs)
         return x != y ? x > y : (aId ?? 0) > (bId ?? 0);
     }
 
-    private static void Put(double id, double? lufs, double? peak, string? error)
+    /* Kept only while the track is still the file measured: one gone meanwhile has nothing kept under its id, the next track's (item 179). */
+    private static void Put(double id, string file, double? lufs, double? peak, string? error)
     {
         using var c = Db.Open();
         using var cmd = c.CreateCommand();
-        cmd.CommandText = @"INSERT INTO track_loudness(track_id, lufs, peak, measured_at, error) VALUES($1, $2, $3, $4, $5)
+        cmd.CommandText = @"INSERT INTO track_loudness(track_id, lufs, peak, measured_at, error) SELECT $1, $2, $3, $4, $5 WHERE EXISTS (SELECT 1 FROM tracks WHERE id = $1 AND path = $6)
             ON CONFLICT(track_id) DO UPDATE SET lufs = excluded.lufs, peak = excluded.peak, measured_at = excluded.measured_at, error = excluded.error";
+        cmd.Parameters.AddWithValue("$6", file);
         cmd.Parameters.AddWithValue("$1", id);
         cmd.Parameters.AddWithValue("$2", (object?)lufs ?? DBNull.Value);
         cmd.Parameters.AddWithValue("$3", (object?)peak ?? DBNull.Value);
@@ -283,12 +285,12 @@ internal sealed partial class Loudness(Action<string> log, int tickMs)
         try
         {
             var (lufs, peak) = await Measure(file, p => { lock (gate) { if (jobs.ContainsKey(id)) jobs[id] = p; } });
-            Put(id, lufs, peak, lufs == null ? "no loudness found" : null);
+            Put(id, file, lufs, peak, lufs == null ? "no loudness found" : null);
         }
         catch (Exception e)
         {
-            // Stopped on purpose: measured again next time. (A track gone meanwhile has nothing to keep.)
-            try { if (On) { var m = e.Message; Put(id, null, null, m.Length > 200 ? m[..200] : m); } } catch (Exception) { /* gone */ }
+            // Stopped on purpose: measured again next time. (A track gone meanwhile has nothing to keep: Put.)
+            try { if (On) { var m = e.Message; Put(id, file, null, null, m.Length > 200 ? m[..200] : m); } } catch (Exception) { /* gone */ }
         }
         finally
         {

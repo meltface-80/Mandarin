@@ -56,8 +56,14 @@ internal object NativeShell {
     @Volatile var libraryView = ""
     /** Home's arguments: the screen settings as JSON, and the room; Home follows them. */
     val homeArgs = mutableStateOf("" to "")
-    /** The screen settings as JSON (core ScreenPrefs), and the room: the screens draw to them and play in it. */
-    @Volatile var prefs: String? = null
+    /**
+     * The screen settings as JSON (core ScreenPrefs), and the room: the screens draw to them and play in it. The settings
+     * are Compose state (item 190): a screen reading them is drawn again when UI Settings changes one, not at the next start.
+     */
+    private val prefsNow = mutableStateOf<String?>(null)
+    var prefs: String?
+        get() = prefsNow.value
+        set(v) { prefsNow.value = v }
     @Volatile var zone: String = ""
     /** Where they are kept (set by [attach]). */
     private var store: Context? = null
@@ -142,7 +148,6 @@ internal object NativeShell {
 @Composable
 private fun Shell(client: () -> ServerClient?) {
     val nav = rememberNavController()
-    val prefs = NativeShell.prefs
     DisposableEffect(nav) {
         NativeShell.nav = nav
         onDispose { if (NativeShell.nav === nav) NativeShell.nav = null }
@@ -175,7 +180,7 @@ private fun Shell(client: () -> ServerClient?) {
         }
         composable(ShellRoute.PICKS, arguments = listOf(navArgument(ShellRoute.ZONE) { type = NavType.StringType; defaultValue = "" })) { entry ->
             val zone = entry.arguments?.getString(ShellRoute.ZONE).orEmpty()
-            PicksScreen(WallPrefs.parse(prefs), zone, client,
+            PicksScreen(WallPrefs.parse(NativeShell.prefs), zone, client,
                 onBack = { nav.popBackStack() },
                 onAlbum = { offset, z -> nav.navigate(ShellRoute.album(offset, z, "")) },
                 onNowPlaying = { id -> nav.navigate(ShellRoute.nowPlaying(id)) { launchSingleTop = true } },
@@ -186,7 +191,7 @@ private fun Shell(client: () -> ServerClient?) {
         }
         // The search (item 61): over Home or the page; an album's page over it, and Back comes back to the same results.
         // The search (item 61) and the playlists (item 65): ShellRoutes.kt.
-        moreRoutes(nav, client, prefs)
+        moreRoutes(nav, client)
         composable(ShellRoute.NOW_PLAYING, arguments = listOf(navArgument(ShellRoute.ZONE) { type = NavType.StringType })) { entry ->
             NowPlayingScreen(
                 entry.arguments?.getString(ShellRoute.ZONE).orEmpty(), client, onBack = { nav.popBackStack() },
@@ -206,7 +211,8 @@ private fun Shell(client: () -> ServerClient?) {
             navArgument(ShellRoute.ZONE) { type = NavType.StringType; defaultValue = "" }
         )) { entry ->
             LibraryScreen(
-                entry.arguments?.getString(ShellRoute.VIEW).orEmpty(), WallPrefs.parse(entry.arguments?.getString(ShellRoute.PREFS)),
+                // The screen settings as they are now (item 190), not as they were when it opened.
+                entry.arguments?.getString(ShellRoute.VIEW).orEmpty(), WallPrefs.parse(NativeShell.prefs ?: entry.arguments?.getString(ShellRoute.PREFS)),
                 entry.arguments?.getString(ShellRoute.ZONE).orEmpty(), client,
                 onBack = { nav.popBackStack() },
                 onAlbum = { offset, zone, list -> nav.navigate(ShellRoute.album(offset, zone, "library", AlbumLists.put(list), list.index)) },
@@ -222,7 +228,7 @@ private fun Shell(client: () -> ServerClient?) {
         composable(ShellRoute.WALL, arguments = listOf(navArgument(ShellRoute.KIND) { type = NavType.StringType }, navArgument(ShellRoute.ZONE) { type = NavType.StringType; defaultValue = "" },
             navArgument(ShellRoute.FILTER) { type = NavType.StringType; defaultValue = "" })) { entry ->
             val zone = entry.arguments?.getString(ShellRoute.ZONE).orEmpty()
-            WallScreen(entry.arguments?.getString(ShellRoute.KIND).orEmpty(), entry.arguments?.getString(ShellRoute.FILTER).orEmpty(), WallPrefs.parse(prefs), zone, client,
+            WallScreen(entry.arguments?.getString(ShellRoute.KIND).orEmpty(), entry.arguments?.getString(ShellRoute.FILTER).orEmpty(), WallPrefs.parse(NativeShell.prefs), zone, client,
                 onBack = { nav.popBackStack() },
                 onAlbum = { offset, z, list -> nav.navigate(ShellRoute.album(offset, z, "", AlbumLists.put(list), list.index)) },
                 onNowPlaying = { id -> nav.navigate(ShellRoute.nowPlaying(id)) { launchSingleTop = true } },
@@ -233,7 +239,7 @@ private fun Shell(client: () -> ServerClient?) {
         }
         composable(ShellRoute.ARTIST, arguments = listOf(navArgument("name") { type = NavType.StringType; defaultValue = "" }, navArgument(ShellRoute.ZONE) { type = NavType.StringType; defaultValue = "" })) { entry ->
             val zone = entry.arguments?.getString(ShellRoute.ZONE).orEmpty()
-            ArtistScreen(entry.arguments?.getString("name").orEmpty(), WallPrefs.parse(prefs), zone, client,
+            ArtistScreen(entry.arguments?.getString("name").orEmpty(), WallPrefs.parse(NativeShell.prefs), zone, client,
                 onBack = { nav.popBackStack() },
                 onAlbum = { offset, z, list -> nav.navigate(ShellRoute.album(offset, z, "", AlbumLists.put(list), list.index)) },
                 onArtist = { other -> nav.navigate(ShellRoute.artist(other, zone)) },
