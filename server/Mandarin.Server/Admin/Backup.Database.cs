@@ -85,6 +85,8 @@ internal static partial class Backup
                     }
                     foreach (var t in KeepTables)
                     {
+                        // A database from before a column was added (devices.joined, item 172) given it first, so today's is copied whole.
+                        Schema.AddMissing(d, "main", t);
                         var have = Cols("cur", t).ToHashSet();
                         var use = Cols("main", t).Where(have.Contains).ToList();
                         if (use.Count == 0) continue;
