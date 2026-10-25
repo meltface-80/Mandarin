@@ -8,6 +8,12 @@
   machine, which a whole run of the suite goes past). It orders them by when each began (/proc's start time), the id
   only between processes started in the same tick, with a check of a wrapped run.
 
+- `167-settings-desktop-test-slow` (item 167): the desktop Settings test took two minutes against its two-minute
+  limit, so on a busy machine it ran out of time. Each step waited for everything on the page to stop moving, and
+  Home's unheard disc, turning behind Settings for 12 seconds, held every run's first steps to their 8 s limit. It
+  waits only on what its steps move now (the Settings sheet, the side menu, the top bar): 66 s, the same checks. The
+  album view's tablet test waited the same way and waits on the album view now.
+
 - `166-release-ci-after-apk-commit` (item 166): the v1.1.8 release stopped before it began. Its first step waits for
   CI on main's newest commit, and that was the APK's own "Publish mandarin-android.apk" commit, which starts no CI (a
   bot's push doesn't): ten minutes, then a failure. A commit that only publishes the APK (dist/) now has its parent's

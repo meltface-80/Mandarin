@@ -42,8 +42,8 @@ const DRIVER = `(async () => {
   // Expanded (Show more): long, and it must grow downwards from under the cover.
   $("album-bio-text").textContent = "Late Developers is the twelfth studio album by the Scottish indie pop band Belle and Sebastian. ".repeat(12);
   $("album-bio-text").dataset.clipped = "false";
-  // Laid out, any transition of the section's done.
-  await until(() => document.getAnimations().every(a => a.playState === "finished" || a.effect.getTiming().iterations === Infinity));
+  // Laid out, any transition of the section's done: the album view's own (Home's unheard disc turns behind it, item 167).
+  await until(() => $("album-modal").getAnimations({ subtree: true }).every(a => a.playState === "finished" || a.effect.getTiming().iterations === Infinity));
   await new Promise(r => requestAnimationFrame(r));
   const body = document.querySelector("#album-modal .modal-body");
   const box = el => { const b = el.getBoundingClientRect(); return { l: b.left, t: b.top, r: b.right, b: b.bottom }; };
