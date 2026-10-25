@@ -9,10 +9,14 @@
   const $ = id => document.getElementById(id);
   const show = id => ["loading", "setup", "notlocal", "signin"].forEach(x => $(x).classList.toggle("hidden", x !== id));
 
-  // Only a path on this server, never somewhere else.
+  // Only a path on this server, never somewhere else, as the browser itself
+  // reads it (item 174): "/\evil.com" starts with one slash, but a backslash is
+  // read as a slash and a tab or a newline not at all, so it is //evil.com.
   function nextUrl() {
     const n = new URLSearchParams(location.search).get("next") || "/";
-    return /^\/(?!\/)/.test(n) && !n.startsWith("/login") ? n : "/";
+    let u;
+    try { u = new URL(n, location.origin); } catch (e) { return "/"; }
+    return n.startsWith("/") && u.origin === location.origin && !u.pathname.startsWith("/login") ? u.pathname + u.search + u.hash : "/";
   }
   const go = () => location.replace(nextUrl());
 
