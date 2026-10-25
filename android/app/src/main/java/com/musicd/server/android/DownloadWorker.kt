@@ -11,6 +11,7 @@ import androidx.work.OneTimeWorkRequest
 import androidx.work.WorkManager
 import androidx.work.Worker
 import androidx.work.WorkerParameters
+import com.musicd.server.client.DownloadDirs
 import org.json.JSONObject
 import java.io.File
 import java.io.FileOutputStream
@@ -76,6 +77,12 @@ class DownloadWorker(context: Context, params: WorkerParameters) : Worker(contex
 
     private class Stop(message: String) : Exception(message)
 
+    /** The album was removed while it downloaded (item 191). */
+    private class Removed : Exception("removed")
+
+    /** [a] written only while the album is still on the phone: one removed meanwhile is never brought back ([Removed]). */
+    private fun keep(dir: File, a: DownloadStore.Album) { if (!DownloadDirs.whileKept(dir) { DownloadStore.save(dir, a) }) throw Removed() }
+
     private fun foregroundInfo(c: Context, title: String): androidx.work.ForegroundInfo {
         val nm = c.getSystemService(android.app.NotificationManager::class.java)
         nm.createNotificationChannel(android.app.NotificationChannel("downloads", "Downloads", android.app.NotificationManager.IMPORTANCE_LOW).apply { setShowBadge(false) })
@@ -110,7 +117,7 @@ class DownloadWorker(context: Context, params: WorkerParameters) : Worker(contex
         return try {
             if (album.tracks.isEmpty()) album = fetchDetails(server.baseUrl, token, id, quality, album, dir)
             album.state = "downloading"; album.error = null
-            DownloadStore.save(dir, album)
+            keep(dir, album)
 
             // Room for it, within the limit and on the disk.
             val remaining = album.tracks.filter { !it.done }.sumOf { it.size }
@@ -131,23 +138,28 @@ class DownloadWorker(context: Context, params: WorkerParameters) : Worker(contex
                 // file that may have been made again since (two halves of two encodes).
                 fetch(server.baseUrl, token, path, File(dir, t.fileName()), resume = quality != DownloadStore.QUALITY_OPUS, size = t.size)
                 t.done = true
-                DownloadStore.save(dir, album)
+                keep(dir, album)
             }
             // Its page, for the app's offline copy of MusicD.
-            OfflineSite.savePage(c, id, dir)
+            if (File(dir, "album.json").exists()) OfflineSite.savePage(c, id, dir)
             album.state = "done"
-            DownloadStore.save(dir, album)
+            keep(dir, album)
+            Result.success()
+        } catch (e: Removed) {
+            // Nothing written back, nothing tried again; a page saved as it went, gone with it.
+            if (!File(dir, "album.json").exists()) dir.deleteRecursively()
             Result.success()
         } catch (e: Stop) {
             album.state = "failed"; album.error = e.message
-            DownloadStore.save(dir, album)
+            DownloadDirs.whileKept(dir) { DownloadStore.save(dir, album) }
             Result.failure()
         } catch (e: Exception) {
             // Not for ever (item 158): after a dozen tries, spaced further and further apart, it's said and left.
             val last = runAttemptCount >= MAX_TRIES
             Log.i(TAG, "album $id: ${e.message} — " + if (last) "giving up" else "will try again")
             album.state = if (last) "failed" else "waiting"; album.error = e.message
-            DownloadStore.save(dir, album)
+            // Stopped because it was removed (item 191): left gone.
+            if (!DownloadDirs.whileKept(dir) { DownloadStore.save(dir, album) }) return Result.success()
             if (last) Result.failure() else Result.retry()
         }
     }
@@ -180,7 +192,7 @@ class DownloadWorker(context: Context, params: WorkerParameters) : Worker(contex
                 old.addedAt,
                 old.auto
             )
-            DownloadStore.save(dir, a)
+            keep(dir, a)
             return a
         } finally {
             c.disconnect()

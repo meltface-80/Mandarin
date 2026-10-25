@@ -372,8 +372,8 @@ class PhonePlayerService : MediaLibraryService() {
         if (index >= 0) {
             if (k == "play_now") start = index.coerceIn(0, items.size - 1) else items = listOfNotNull(items.getOrNull(index))
         }
-        localPlay(items, start, if (k == "shuffle") "play_now" else k)
-        if (k == "shuffle") player.shuffleModeEnabled = true
+        // Shuffle (item 194): in a shuffled order, from any track; the player's own shuffle left as it was.
+        localPlay(com.musicd.server.client.PhoneShuffle.order(items, k), start, if (k == "shuffle") "play_now" else k)
         localRev++
         reportSoon()
     }
@@ -1365,7 +1365,7 @@ class PhonePlayerService : MediaLibraryService() {
     /** Downloaded albums onto the player: now (from [startTrack] of the first), next, or at the end. */
     fun offlinePlay(albumIds: List<Int>, startTrack: Int, kind: String, onlyTrack: Int? = null): Boolean = onPlayer { p ->
         var items = albumIds.flatMap { localItems(it) }
-        if (onlyTrack != null) items = listOfNotNull(items.getOrNull(onlyTrack))
+        items = com.musicd.server.client.PhoneShuffle.order(if (onlyTrack != null) listOfNotNull(items.getOrNull(onlyTrack)) else items, kind)   // a shuffle (item 194)
         if (items.isEmpty()) return@onPlayer false
         localMode = true
         loggedKey = null
@@ -1379,7 +1379,7 @@ class PhonePlayerService : MediaLibraryService() {
                 p.play()
             }
         }
-        if (wasEmpty && kind != "play_now") { p.prepare(); p.play() }
+        if (wasEmpty && kind != "play_now" && kind != "shuffle") { p.prepare(); p.play() }
         bumpRevision()
         true
     } ?: false

@@ -16,9 +16,9 @@ import com.musicd.server.client.WallPrefs
  * Playlists and one of them (item 66), Settings (item 76), each over
  * the screen that opened it, Back returning there.
  */
-internal fun NavGraphBuilder.moreRoutes(nav: NavHostController, client: () -> ServerClient?, prefs: String?) {
+internal fun NavGraphBuilder.moreRoutes(nav: NavHostController, client: () -> ServerClient?) {
     composable(ShellRoute.SEARCH, arguments = listOf(navArgument(ShellRoute.Q) { type = NavType.StringType; defaultValue = "" }, navArgument(ShellRoute.ZONE) { type = NavType.StringType; defaultValue = "" })) { entry ->
-        SearchScreen(WallPrefs.parse(prefs), entry.arguments?.getString(ShellRoute.ZONE).orEmpty(), client,
+        SearchScreen(WallPrefs.parse(NativeShell.prefs), entry.arguments?.getString(ShellRoute.ZONE).orEmpty(), client,
             onBack = { nav.popBackStack() },
             onAlbum = { offset, z, list -> nav.navigate(ShellRoute.album(offset, z, "", AlbumLists.put(list), list.index)) },
             onNowPlaying = { id -> nav.navigate(ShellRoute.nowPlaying(id)) { launchSingleTop = true } },
@@ -39,7 +39,7 @@ internal fun NavGraphBuilder.moreRoutes(nav: NavHostController, client: () -> Se
     // Pitchfork (item 70): the magazine, or a review's page in it; an album the library has opens in its place, Find on Qobuz the app's browser in its place (item 73).
     composable(ShellRoute.PITCHFORK, arguments = listOf(navArgument(ShellRoute.REVIEW) { type = NavType.StringType; defaultValue = "" }, navArgument(ShellRoute.ZONE) { type = NavType.StringType; defaultValue = "" })) { entry ->
         val zone = entry.arguments?.getString(ShellRoute.ZONE).orEmpty()
-        PitchforkScreen(WallPrefs.parse(prefs), PitchforkHit.parse(entry.arguments?.getString(ShellRoute.REVIEW)), client,
+        PitchforkScreen(WallPrefs.parse(NativeShell.prefs), PitchforkHit.parse(entry.arguments?.getString(ShellRoute.REVIEW)), client,
             onClose = { nav.popBackStack() },
             onAlbum = { offset -> nav.popBackStack(); nav.navigate(ShellRoute.album(offset, zone, "")) },
             onQobuz = { q -> nav.popBackStack(); nav.navigate(ShellRoute.serviceBrowser("qobuz", zone, q = q)) })
@@ -51,7 +51,7 @@ internal fun NavGraphBuilder.moreRoutes(nav: NavHostController, client: () -> Se
         val zone = a?.getString(ShellRoute.ZONE).orEmpty()
         val kept = ServiceBrowsers.kept(entry.id, a?.getString(ShellRoute.SERVICE).orEmpty())
         ServiceBrowserScreen(kept, (a?.getString(ShellRoute.ARTIST_ID).orEmpty() to a?.getString("name").orEmpty()).takeIf { it.first.isNotEmpty() }, a?.getString("q").orEmpty(),
-            WallPrefs.parse(prefs), client, onClose = { nav.popBackStack() }, onAlbum = { offset -> nav.navigate(ShellRoute.album(offset, zone, "")) })
+            WallPrefs.parse(NativeShell.prefs), client, onClose = { nav.popBackStack() }, onAlbum = { offset -> nav.navigate(ShellRoute.album(offset, zone, "")) })
     }
     // The record labels (item 71); a label's albums a wall over them.
     // Settings (item 76): its list, Setup's, and every page of it.
@@ -63,7 +63,7 @@ internal fun NavGraphBuilder.moreRoutes(nav: NavHostController, client: () -> Se
     }
     composable(ShellRoute.LABELS, arguments = listOf(navArgument(ShellRoute.ZONE) { type = NavType.StringType; defaultValue = "" })) { entry ->
         val zone = entry.arguments?.getString(ShellRoute.ZONE).orEmpty()
-        LabelsScreen(WallPrefs.parse(prefs), zone, client,
+        LabelsScreen(WallPrefs.parse(NativeShell.prefs), zone, client,
             onBack = { nav.popBackStack() },
             onLabel = { name -> nav.navigate(ShellRoute.wall("label", zone, name)) },
             onNowPlaying = { id -> nav.navigate(ShellRoute.nowPlaying(id)) { launchSingleTop = true } },
@@ -75,7 +75,7 @@ internal fun NavGraphBuilder.moreRoutes(nav: NavHostController, client: () -> Se
     // The Artists wall (item 130), the row's Artists; an artist's page over it.
     composable(ShellRoute.ARTISTS, arguments = listOf(navArgument(ShellRoute.ZONE) { type = NavType.StringType; defaultValue = "" })) { entry ->
         val zone = entry.arguments?.getString(ShellRoute.ZONE).orEmpty()
-        ArtistsScreen(WallPrefs.parse(prefs), zone, client,
+        ArtistsScreen(WallPrefs.parse(NativeShell.prefs), zone, client,
             onBack = { nav.popBackStack() },
             onArtist = { name -> nav.navigate(ShellRoute.artist(name, zone)) },
             onNowPlaying = { id -> nav.navigate(ShellRoute.nowPlaying(id)) { launchSingleTop = true } },
@@ -86,7 +86,7 @@ internal fun NavGraphBuilder.moreRoutes(nav: NavHostController, client: () -> Se
     }
     composable(ShellRoute.PLAYLISTS, arguments = listOf(navArgument(ShellRoute.ZONE) { type = NavType.StringType; defaultValue = "" })) { entry ->
         val zone = entry.arguments?.getString(ShellRoute.ZONE).orEmpty()
-        PlaylistsScreen(WallPrefs.parse(prefs), zone, client,
+        PlaylistsScreen(WallPrefs.parse(NativeShell.prefs), zone, client,
             onBack = { nav.popBackStack() },
             onPlaylist = { id -> nav.navigate(ShellRoute.playlist(id, zone)) },
             onNowPlaying = { id -> nav.navigate(ShellRoute.nowPlaying(id)) { launchSingleTop = true } },
@@ -109,25 +109,25 @@ internal fun NavGraphBuilder.moreRoutes(nav: NavHostController, client: () -> Se
     }
     composable(ShellRoute.SMART_PLAYLISTS, arguments = listOf(navArgument(ShellRoute.ZONE) { type = NavType.StringType; defaultValue = "" })) { entry ->
         val zone = entry.arguments?.getString(ShellRoute.ZONE).orEmpty()
-        SmartPlaylistsScreen(WallPrefs.parse(prefs), zone, client,
+        SmartPlaylistsScreen(WallPrefs.parse(NativeShell.prefs), zone, client,
             onBack = { nav.popBackStack() },
             onPlaylist = { id -> nav.navigate(ShellRoute.smartPlaylist(id, zone)) },
             onNowPlaying = { id -> nav.navigate(ShellRoute.nowPlaying(id)) { launchSingleTop = true } },
             onRoom = NativeShell::roomChosen,
             onNav = { what -> navTap(nav, what) },
-            onPage = { what, arg -> smartPage(nav, prefs, zone, what, arg) }
+            onPage = { what, arg -> smartPage(nav, NativeShell.prefs, zone, what, arg) }
         )
     }
     composable(ShellRoute.SMART_PLAYLIST, arguments = listOf(navArgument(ShellRoute.ID) { type = NavType.StringType }, navArgument(ShellRoute.ZONE) { type = NavType.StringType; defaultValue = "" })) { entry ->
         val zone = entry.arguments?.getString(ShellRoute.ZONE).orEmpty()
-        SmartPlaylistScreen(entry.arguments?.getString(ShellRoute.ID).orEmpty(), WallPrefs.parse(prefs), zone, client,
+        SmartPlaylistScreen(entry.arguments?.getString(ShellRoute.ID).orEmpty(), WallPrefs.parse(NativeShell.prefs), zone, client,
             onBack = { if (!nav.popBackStack(ShellRoute.SMART_PLAYLISTS, false)) { nav.popBackStack(); nav.navigate(ShellRoute.smartPlaylists(zone)) } },
             onHome = { navTap(nav, "home") },
             onAlbum = { offset, z, list -> nav.navigate(ShellRoute.album(offset, z, "", AlbumLists.put(list), list.index)) },
             onNowPlaying = { id -> nav.navigate(ShellRoute.nowPlaying(id)) { launchSingleTop = true } },
             onRoom = NativeShell::roomChosen,
             onNav = { what -> navTap(nav, what) },
-            onPage = { what, arg -> smartPage(nav, prefs, zone, what, arg) }
+            onPage = { what, arg -> smartPage(nav, NativeShell.prefs, zone, what, arg) }
         )
     }
     // One of the phone's own albums (item 108): the album page, read from the phone and played on it.
