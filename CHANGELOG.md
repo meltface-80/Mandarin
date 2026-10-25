@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- `181-scan-again-after-running` (item 181): music copied into a folder a long scan had already looked in waited up
+  to six hours. The folder watcher heard it, but its scan was turned away while one was running and the change was
+  dropped: a change heard since the running scan began now has one more scan made once that one ends (a change from
+  before it is that scan's to read). And with Tailscale built in, an engine let go of by a restart (a sign-out, the
+  watchdog) that left after the next one had started stopped the new one's checks, said the engine had stopped and
+  set about starting one: only the current engine's leaving counts now.
+
 - `180-updater-stuck-and-swap-order` (item 180): an update could stick, and could leave a new program among old
   files. A check whose answer was cut off (a dropped connection) wasn't caught, and an Update that began with that
   check stayed "checking" for good, every later Update turned away at once: the check ends in its error now, and so
