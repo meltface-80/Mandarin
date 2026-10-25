@@ -28,7 +28,7 @@ internal sealed partial class Players
         lock (gate) p.Verifying = key;
         JsObj? meta = null;
         try { meta = await LinkPlay.Command(Jv.Str(lp["base"]), "getMetaInfo"); }
-        catch (Exception e) when (e is HttpRequestException or OperationCanceledException or UriFormatException) { meta = null; }
+        catch (Exception e) when (e is HttpRequestException or OperationCanceledException or UriFormatException) { meta = null; if (e is not UriFormatException) Unanswered(p); }
         var m = meta?["metaData"] as JsObj;
         if (m == null) return;
         var rate = Tags.Js.ToNumber(m["sampleRate"]) is var rt && !double.IsNaN(rt) ? rt : 0;

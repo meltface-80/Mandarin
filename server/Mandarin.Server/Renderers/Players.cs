@@ -33,13 +33,14 @@ internal sealed class Player(string id)
     public bool ExpectStop, NoSetNext, Subscribing;
     public int Strikes, Jumping;      // Jumping: jumps under way (Jump), whose renderer may still say the track before
     // Heard: the state the room shows is the device's own, read from it (or a jump of ours): not one carried over an
-    // outage or a restart, whose stop is no end of a track (item 184). Polling: a read under way; PollAgain: another
-    // asked for meanwhile, made once it has answered.
+    // outage or a restart, whose stop is no end of a track (item 184); lost with any call it didn't answer, and won back
+    // only by a read asked after the last of those (UnansweredAt, item 195). Polling: a read under way; PollAgain:
+    // another asked for meanwhile, made once it has answered.
     public bool Heard, Polling, PollAgain, PollAgainVolume;
     public (double At, string Message)? LastError;
     public IRenderer? Renderer;
     public string Location = "";
-    public double TouchedAt, LoadingSince, JumpedAt;
+    public double TouchedAt, LoadingSince, JumpedAt, UnansweredAt;
     public string? Verifying;
     public Timer? NotifyTimer;
     public (double At, JsObj Vars)? LastEvent;
@@ -195,7 +196,7 @@ internal sealed partial class Players
             {
                 p.Renderer?.Halt();
                 if (r?.Kind == "local") p.Renderer = LocalOutput(p, r);
-                else p.Renderer = new Renderer(p.Id, r?.Name ?? r?.NetworkName ?? p.Id, r?.Caps["services"] as JsObj);
+                else p.Renderer = new Renderer(p.Id, r?.Name ?? r?.NetworkName ?? p.Id, r?.Caps["services"] as JsObj, () => Unanswered(p));
                 p.Location = location;
             }
             return p.Renderer;

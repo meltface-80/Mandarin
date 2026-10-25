@@ -5,9 +5,12 @@
  * the end of one; a stop counts as that end only after a reading of it
  * playing. Gone from the network while playing and back stopped, or stopped
  * while the server restarted, it stays stopped: before, the room still said
- * "playing" from before, and the next track started by itself. And it is read
- * once at a time: two reads at the end of a track both started "the next",
- * one track skipped.
+ * "playing" from before, and the next track started by itself. Nor when what
+ * went unanswered was not a read (item 195): evented and unwatched, it is read
+ * only every five seconds, and a call to it in between (here a seek; in CI the
+ * next track armed) left it "heard" all the same. And it is read once at a
+ * time: two reads at the end of a track both started "the next", one track
+ * skipped.
  */
 const ports = require("./ports");
 const test = require("node:test");
@@ -54,6 +57,8 @@ test("a renderer started on the next track by hand: only at the end of a track i
   await until(async () => (await api("audio-devices")).devices.some(d => d.id === POLY), 20000);
   assert.equal((await call("PATCH", "audio-devices/" + POLY, { enabled: true })).status, 200);
   await until(async () => (await api("zones")).zones.some(z => z.zone_id === POLY), 20000);
+  // Its events subscribed to before anything is played: a subscription asked for during an outage is not asked again for minutes.
+  await until(() => poly.subscribers.length > 0, 20000);
   const one = (await api("library/albums?sort=album")).albums.find(a => a.title === "Album One");
   // Album One from Song 1, playing, its clock held: it never ends by itself.
   const playing = async () => {
@@ -66,9 +71,10 @@ test("a renderer started on the next track by hand: only at the end of a track i
 
   await t.test("off the network while playing, back stopped: it stays stopped", async () => {
     await playing();
+    const seen = ctx.logs.length;
     poly.offline = true;
-    // Read and not answered, twice over (it is read every second while playing).
-    await until(() => (poly.refused || 0) >= 4);
+    // Until a read has gone unanswered, its retry too: any four refused requests were not that (item 195).
+    await until(() => ctx.logs.slice(seen).some(l => l.includes("Poly: not answering")));
     // Stopped while away (switched off and on, its own remote).
     poly.handle("Stop", {});
     const before = sets(), asked = poly.log.length;
@@ -81,6 +87,51 @@ test("a renderer started on the next track by hand: only at the end of a track i
     const z = await state();
     assert.equal(z.state, "stopped");
     assert.equal(z.now_playing && z.now_playing.line1, "Song 1");
+  });
+
+  await t.test("off the network between two reads, a call to it unanswered, back stopped: it stays stopped", async () => {
+    await playing();
+    // Evented, and nobody looking (the room last asked after 15 s ago): read every five seconds.
+    assert.ok(poly.subscribers.length > 0, "evented");
+    await sleep(16500);
+    // Just read: the next read is seconds away.
+    const n = poly.log.length;
+    await until(() => ["GetTransportInfo", "GetPositionInfo"].every(a => poly.log.slice(n).includes(a)), 10000);
+    poly.refusals = [];
+    poly.offline = true;
+    // Asked of it meanwhile, and not answered.
+    assert.notEqual((await api("seek", { zone_or_output_id: POLY, how: "absolute", seconds: 1 })).status, 200);
+    poly.handle("Stop", {});
+    const before = sets(), asked = poly.log.length;
+    poly.offline = false;
+    assert.deepEqual(poly.refusals, ["Seek", "Seek"], "only the seek went unanswered (and its retry): no read failed");
+    // Read again, back on the network: stopped, and not by the end of the track.
+    await until(() => poly.log.slice(asked).includes("GetTransportInfo"));
+    await sleep(2500);
+    assert.equal(sets(), before, "no track started by itself");
+    assert.equal(poly.state, "STOPPED");
+    assert.equal((await state()).state, "stopped");
+  });
+
+  await t.test("a read asked before a call went unanswered, answered after it: it vouches for nothing", async () => {
+    await playing();
+    poly.holdReads();
+    try {
+      // A read asked while it plays, its answer slow to come ("playing").
+      await until(() => poly.readGate.length >= 2);
+      poly.offline = true;
+      assert.notEqual((await api("seek", { zone_or_output_id: POLY, how: "absolute", seconds: 1 })).status, 200);
+      poly.handle("Stop", {});
+      const before = sets(), asked = poly.log.length;
+      poly.offline = false;
+      // The slow read answers now, from before the outage; the next one finds it stopped.
+      poly.releaseReads();
+      await until(() => poly.log.slice(asked).includes("GetTransportInfo"));
+      await sleep(2500);
+      assert.equal(sets(), before, "no track started by itself");
+      assert.equal(poly.state, "STOPPED");
+      assert.equal((await state()).state, "stopped");
+    } finally { poly.releaseReads(); }
   });
 
   await t.test("stopped while the server restarted: it stays stopped", async () => {

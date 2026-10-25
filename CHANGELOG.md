@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- `195-renderer-outage-between-reads` (item 195): a renderer gone from the network for a moment and back stopped could
+  still start the next track by itself, as before item 184. Only a read that failed counted as the device being away;
+  a call to it that went unanswered between reads (a command, the next track armed, its events renewed, a WiiM's
+  rate check) did not, and a renderer with events is read only every five seconds when nobody is looking. Any call it
+  doesn't answer at all now counts (a fault is still an answer), and only a read asked after the last of those hears
+  it playing again: a slow read from before says nothing of after. Its log says when it stops answering. The test of
+  it waited for any four refused requests, which in CI were not a failed read; it now waits for the server to have
+  noticed, and two more cases hold the gap between reads.
+
 - `184-renderer-stop-and-poll` (item 184): a renderer (a WiiM, a Poly) and the rooms beside it.
   - A renderer started on the next track by the server when it stops at the end of one (one without
     SetNextAVTransportURI) took any stop for that end. Gone from the network while playing and back stopped, or

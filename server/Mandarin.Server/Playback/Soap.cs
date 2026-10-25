@@ -19,6 +19,8 @@ internal sealed class UPnPError : Exception
 {
     public readonly double Code;
     public readonly string Description;
+    /* No answer at all (a timeout, a refused or dropped connection), as against an answer that says no. */
+    public bool Unanswered { get; private set; }
 
     private UPnPError(string message, double code, string description) : base(message) { Code = code; Description = description; }
 
@@ -44,6 +46,14 @@ internal sealed class UPnPError : Exception
     {
         var desc = description.Length > 0 ? description : ErrorText.GetValueOrDefault(Js.Num(code), "Unknown error");
         return new UPnPError($"UPnP error {Js.Num(code)}: {desc}", double.IsNaN(code) || code == 0 ? 501 : code, desc);
+    }
+
+    /* The player didn't answer: Of(501, description), marked Unanswered. */
+    public static UPnPError NoAnswer(string description)
+    {
+        var e = Of(501, description);
+        e.Unanswered = true;
+        return e;
     }
 }
 
