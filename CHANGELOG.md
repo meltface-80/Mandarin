@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- `176-artist-name-escaped` (item 176): an artist's name was put into the artist page as the page's own markup, in
+  its "No albums found" line, and the error said beside it the same: a name from the tags, MusicBrainz, Last.fm or the
+  credits such as `<img src=x onerror=…>` ran in the page. Both are shown as text now. A look through the whole page
+  for the same found two more, made text as well: a label's logo search said the server's error (which can carry
+  Discogs' words) as markup, and the album editor's match line a MusicBrainz release's year.
+
 - `175-dev-apk-after-ci` (item 175): dev's test APK went out without waiting for CI. The image waited for CI on its
   commit; the APK's wait ran on main only, so a dev commit whose tests failed still reached the phone. Every APK
   published, dev's test build and main's dist/ alike, now waits for CI on its commit. The APK's and the image's
