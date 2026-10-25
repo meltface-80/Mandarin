@@ -203,7 +203,11 @@
 
       if (!total) {
         if (failed) throw failed;
-        grid.innerHTML = `<div class="artist-view-empty" data-parity="artist.empty">No albums found for "${artistName}"</div>`;
+        // As text (item 176): the name comes from tags, MusicBrainz, Last.fm and credits, never this page's markup.
+        const none = document.createElement("div");
+        none.className = "artist-view-empty"; none.dataset.parity = "artist.empty";
+        none.textContent = `No albums found for "${artistName}"`;
+        grid.replaceChildren(none);
         // Who they are all the same: a band's member opened from its page may have nothing of their own here.
         renderHead(artistName, "", new Set(), 0, [], []);
         return;
@@ -252,9 +256,11 @@
     } catch (e) {
       if (countBar) {
         countBar.classList.remove("hidden");
-        countBar.innerHTML = `
-            <span class="count-text" style="color:var(--danger)" data-parity="artist.error">Error: ${e.message}</span>`;
-        }
+        const said = document.createElement("span");
+        said.className = "count-text"; said.style.color = "var(--danger)"; said.dataset.parity = "artist.error";
+        said.textContent = "Error: " + e.message;
+        countBar.replaceChildren(said);
+      }
     }
   }
 

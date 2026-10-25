@@ -16,7 +16,7 @@ import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import com.musicd.server.client.Account
-import com.musicd.server.client.ServerClient
+import com.musicd.server.client.SignInServer
 import java.util.concurrent.Executors
 
 /**
@@ -30,6 +30,9 @@ import java.util.concurrent.Executors
  *
  * Or none of that (item 161): a server with its sign-in switched off lets the phone straight in at home or on the
  * tailnet ([join]), and a brand-new one can be used without an account at all ("Use without an account").
+ *
+ * Asked on the way the app is using now, home or away, of this phone's own server only, with Try again when it
+ * didn't answer (item 189; core SignInServer).
  */
 class SignInActivity : Activity() {
 
@@ -46,6 +49,7 @@ class SignInActivity : Activity() {
     private lateinit var status: TextView
     private lateinit var form: LinearLayout
     private lateinit var openButton: Button
+    private lateinit var retry: Button
     private var creating = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -122,6 +126,13 @@ class SignInActivity : Activity() {
             setPadding(0, px(16), 0, px(8))
         }
         col.addView(status)
+        // The server didn't answer, or not as this phone's, or can't be set up from here: asked again (item 189).
+        retry = Button(this).apply {
+            text = "Try again"
+            visibility = View.GONE
+            setOnClickListener { check() }
+        }
+        col.addView(retry)
         col.addView(Button(this).apply {
             text = "Change server"
             setOnClickListener { toConnect() }
@@ -148,13 +159,23 @@ class SignInActivity : Activity() {
         super.onDestroy()
     }
 
-    private fun account() = Account(ServerClient(Store.server(this)!!, 8000))
+    /** The server asked: on the way in use now (home, or away), this phone's sign-in kept for making the account. */
+    private fun server() = SignInServer(SignInServer.address(Store.server(this)!!, Store.active(this)), Store.token(this), Store.serverId(this))
+
+    private fun account() = server().account()
+
+    /** Another server answering at the address in use: nothing made, joined or signed in to there. */
+    private fun ensureOurs(s: SignInServer) { if (!s.ours()) throw Account.AuthException(NOT_OURS) }
 
     private fun check() {
+        val srv = server()
         title.text = "Mandarin"
-        intro.text = "Checking ${Store.server(this)}…"
+        intro.text = "Checking ${srv.address}…"
+        status.text = ""
+        retry.visibility = View.GONE
+        form.visibility = View.GONE
         work.execute {
-            val st = runCatching { account().status() }
+            val st = runCatching { ensureOurs(srv); srv.account().status() }
             main.post {
                 if (isFinishing) return@post
                 st.onSuccess { s ->
@@ -167,20 +188,23 @@ class SignInActivity : Activity() {
                             title.text = "Join at home"
                             intro.text = "This Mandarin server is used without an account, on its home network and its " +
                                 "Tailscale network only. Join the Wi-Fi the server is on, or Tailscale, and try again."
-                            status.text = ""
+                            retry.visibility = View.VISIBLE
                         }
                         s.setupRequired -> {
                             title.text = "Create the account at home"
                             intro.text = "This Mandarin server has no account yet. For safety it can only be created " +
                                 "from the home network — join the Wi-Fi the server is on and try again."
-                            status.text = ""
+                            retry.visibility = View.VISIBLE
                         }
                         else -> showForm(create = false)
                     }
                 }.onFailure { e ->
+                    retry.visibility = View.VISIBLE
+                    if (e.message == NOT_OURS) { title.text = "Not your server"; intro.text = NOT_OURS; return@onFailure }
                     title.text = "Can't reach the server"
-                    intro.text = "${Store.server(this)} didn't answer (${e.message ?: e.javaClass.simpleName}). " +
-                        "Check the container is running and this phone is on the same network."
+                    intro.text = "${srv.address} didn't answer (${e.message ?: e.javaClass.simpleName}). " +
+                        "Check the container is running and this phone is on the same network" +
+                        (if (Store.isAway(this)) ", or that Tailscale is on." else ".")
                 }
             }
         }
@@ -194,7 +218,7 @@ class SignInActivity : Activity() {
             "Choose a username and password — you'll use them on every device. The password never leaves this phone." +
                 (if (offerOpen) " Or use Mandarin without an account: anything on your home network or your Tailscale " +
                     "network can then use it without signing in — handy for a TV showing the shelf or the wall." else "")
-        else "Sign in to ${Store.server(this)}. The password never leaves this phone."
+        else "Sign in to ${server().address}. The password never leaves this phone."
         pass2Label.visibility = if (create) View.VISIBLE else View.GONE
         pass2Box.visibility = if (create) View.VISIBLE else View.GONE
         passBox.imeOptions = if (create) EditorInfo.IME_ACTION_NEXT else EditorInfo.IME_ACTION_GO
@@ -220,9 +244,12 @@ class SignInActivity : Activity() {
         go.isEnabled = false
         status.text = if (creating) "Creating the account…" else "Signing in…"
         val create = creating
+        val srv = server()
         work.execute {
             val result = runCatching {
-                if (create) account().create(user, pass, deviceName()) else account().signIn(user, pass, deviceName())
+                ensureOurs(srv)
+                // Made with this phone's sign-in (a device without an account until now): that device made anew, none left behind.
+                if (create) srv.creating().create(user, pass, deviceName()) else srv.account().signIn(user, pass, deviceName())
             }
             main.post {
                 if (isFinishing) return@post
@@ -242,7 +269,7 @@ class SignInActivity : Activity() {
 
     /** The sign-in is off here: this phone made a device, no password asked. */
     private fun join() {
-        intro.text = "Joining ${Store.server(this)}…"
+        intro.text = "Joining ${server().address}…"
         signedInBy { account().join(deviceName()) }
     }
 
@@ -254,8 +281,9 @@ class SignInActivity : Activity() {
     }
 
     private fun signedInBy(token: () -> String) {
+        val srv = server()
         work.execute {
-            val result = runCatching(token)
+            val result = runCatching { ensureOurs(srv); token() }
             main.post {
                 if (isFinishing) return@post
                 openButton.isEnabled = true
@@ -272,6 +300,9 @@ class SignInActivity : Activity() {
     companion object {
         /** Make the account, even where the sign-in is off (Settings → Account, Ask for a sign-in, with no account yet). */
         const val EXTRA_CREATE = "create"
+
+        const val NOT_OURS = "Another Mandarin server answered there, not this phone's own — not signing in. " +
+            "Join the network your server is on, or choose Change server."
     }
 
     private fun toConnect() {

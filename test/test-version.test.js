@@ -76,6 +76,29 @@ test("the release made on dev, not yet tagged on main: still 1.1.8-tN, counted o
   fs.rmSync(dir, { recursive: true, force: true });
 });
 
+test("a pull request merged with a merge commit counts, as a squashed one does; main merged back into dev doesn't", () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "musicd-testver-"));
+  const git = (...a) => execFileSync("git", a, { cwd: dir, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] });
+  const commit = (m) => git("commit", "-q", "--allow-empty", "-m", m);
+  git("init", "-q", "-b", "dev");
+  git("config", "user.email", "t@example.com"); git("config", "user.name", "t");
+  commit("v1.1.8 squashed into dev");
+  git("checkout", "-q", "-b", "main"); commit("dev into main"); git("tag", "v1.1.8");
+  git("checkout", "-q", "dev");
+  git("merge", "-q", "--no-ff", "-m", "main into dev after v1.1.8 (#469)", "main");
+  assert.equal(versionFor({ version: "1.1.8" }, dir), "1.1.8", "the merge back is no change: dev is the release");
+  // #470: a pull request merged with a merge commit (the owner's Merge button).
+  git("checkout", "-q", "-b", "166"); commit("166"); git("checkout", "-q", "dev");
+  git("merge", "-q", "--no-ff", "-m", "Merge pull request #470", "166");
+  assert.equal(versionFor({ version: "1.1.8" }, dir), "1.1.9-t1", "it was 1.1.8: the dev image said it was the release");
+  commit("167 (#471, squashed)");
+  assert.equal(versionFor({ version: "1.1.8" }, dir), "1.1.9-t2");
+  git("checkout", "-q", "-b", "168"); commit("168"); commit("168, a fix to it"); git("checkout", "-q", "dev");
+  git("merge", "-q", "--no-ff", "-m", "Merge pull request #472", "168");
+  assert.equal(versionFor({ version: "1.1.8" }, dir), "1.1.9-t3", "one pull request, however many commits: it was 1.1.9-t1 twice");
+  fs.rmSync(dir, { recursive: true, force: true });
+});
+
 test("the page's updater: a test build after the last release, before its own", () => {
   // __verNewer as the page defines it, without the rest of the updater.
   const src = fs.readFileSync(path.join(__dirname, "../public/app/updater.js"), "utf8");
