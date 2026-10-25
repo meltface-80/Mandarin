@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- `192-update-now-destroyed-activity` (item 192): the Android app could close itself during an update. The update
+  offer kept the screen it installs from, and once the server's update was done (or the app's own had downloaded) it
+  showed its dialog on that screen even when it was gone: the phone turned meanwhile, or the app was closed. A dialog on
+  a screen that is gone brings the app down. The update now uses the screen only while it is still there; with none,
+  nothing is shown, and the app's own update is offered again at the next look.
+
 - `170-android-test-build-every-dev-push` (item 170): every dev build of the server now has an Android test build of the
   same number, as the owner's rule is. The server's image was built on every push to dev, the APK only when the app,
   the page or its workflow changed: after items 165 to 169 (tooling and tests alone) dev's server moved on while
