@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- `188-playback-thread-safety` (item 188): playback's shared state read under the lock it is written under.
+  - Conversions made ahead of play ran more than TRANSCODE_CONCURRENCY at a time: the count was checked under the
+    queue's lock but added to only once the conversion had started, outside it, so many asking at once all found room
+    (sixteen at once against a limit of one, in the test). Its place is taken under the lock now, and given back if
+    nothing is left running.
+  - What the rooms are (their state), the phones' queues and the Sonos players' models were read in places without
+    the lock they are written under (a queue kept for a restart, the gains planned for a zone, a room's model): read
+    under it now.
+
 - `187-renderer-small-fixes` (item 187): three small things about rooms and renderers.
   - A renderer's ✓ on Now playing (a WiiM says it plays what it was sent) vanished at the next read of the device, a
     second on: it stays for the track now, and is asked again for the next one (or the same one played again).
