@@ -99,20 +99,50 @@ internal static partial class Server
  * last X-Forwarded-For is believed, as a proxy here (the built-in Tailscale,
  * `tailscale serve`) speaks for the device behind it; else the connection's
  * own address, so no device can claim to be at home by sending the header.
+ * A proxy here that names the caller another way (X-Real-IP, Forwarded's
+ * for=) is believed too, and one that names none but is plainly a proxy
+ * (X-Forwarded-Host) leaves the caller unknown: never this machine, so never
+ * home (item 172: nginx with only X-Real-IP made the internet home).
  */
 internal static class Caller
 {
+    /* What a proxy that doesn't say who asked is given: no address, so neither home nor the tailnet. */
+    public const string Unknown = "unknown";
+
     public static string ClientIp(HttpContext ctx)
     {
         var remote = ctx.Connection.RemoteIpAddress;
         string bare = Bare(remote);
         if (IsLoopback(remote))
         {
-            var fwd = ctx.Request.Headers["X-Forwarded-For"].ToString()
+            var h = ctx.Request.Headers;
+            var fwd = h["X-Forwarded-For"].ToString()
                 .Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
             if (fwd.Length > 0) return Bare(fwd[^1]);
+            var real = h["X-Real-IP"].ToString().Trim();
+            if (real.Length > 0) return Bare(real);
+            if (ForwardedFor(h["Forwarded"].ToString()) is { } f) return f;
+            if (h.ContainsKey("Forwarded") || h.ContainsKey("X-Forwarded-Host")) return Unknown;
         }
         return bare;
+    }
+
+    // The last for= of a Forwarded header (RFC 7239), the proxy nearest this
+    // server: "for=1.2.3.4", for="[2001:db8::1]:4711", for="1.2.3.4:80".
+    private static string? ForwardedFor(string header)
+    {
+        string? last = null;
+        foreach (var element in header.Split(','))
+            foreach (var pair in element.Split(';'))
+            {
+                int eq = pair.IndexOf('=');
+                if (eq < 0 || !pair[..eq].Trim().Equals("for", StringComparison.OrdinalIgnoreCase)) continue;
+                var v = pair[(eq + 1)..].Trim().Trim('"');
+                if (v.StartsWith('[')) { int end = v.IndexOf(']'); v = end > 0 ? v[1..end] : v[1..]; }
+                else if (v.Count(ch => ch == ':') == 1) v = v[..v.IndexOf(':')];
+                last = v.Length > 0 ? Bare(v) : Unknown;
+            }
+        return last;
     }
 
     private static bool IsLoopback(IPAddress? a) => a != null && IPAddress.IsLoopback(a.IsIPv4MappedToIPv6 ? a.MapToIPv4() : a);

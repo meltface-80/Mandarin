@@ -140,9 +140,11 @@ test("the whole database: restored at the next start, today's account and sign-i
     const token = await signIn(BASE);
     const H = { Authorization: "Bearer " + token, "Content-Type": "application/json" };
     ctx.db.raw.prepare("INSERT INTO favourites(key, added_at) VALUES('then', 1)").run();
+    ctx.db.setSetting("openAccess", true);   // the sign-in off when the backup was made…
     const r = await fetch(BASE + "/api/backup/file", { method: "POST", headers: H, body: JSON.stringify({ include: { database: true } }) });
     const file = Buffer.from(await r.arrayBuffer());
     ctx.db.raw.prepare("INSERT INTO favourites(key, added_at) VALUES('later', 2)").run();
+    ctx.db.setSetting("openAccess", false);  // …and on now
     const back = await fetch(BASE + "/api/backup/restore?parts=database", {
       method: "POST", headers: { Authorization: "Bearer " + token, "Content-Type": "application/gzip" }, body: file });
     const j = await back.json();
@@ -156,6 +158,36 @@ test("the whole database: restored at the next start, today's account and sign-i
     const st = await fetch(BASE + "/api/backup", { headers: H });
     assert.equal(st.status, 200, "the same sign-in still works");
     assert.ok(fs.readdirSync(path.join(lib.data, "backups")).some(n => /^before-restore-.*\.db$/.test(n)), "the replaced one kept");
+    // Whether a sign-in is asked for is today's, never the backup's (item 172).
+    assert.equal(ctx.db.setting("openAccess"), false, "the sign-in still asked for");
+    assert.equal((await fetch(BASE + "/api/status", { headers: { "X-Forwarded-For": "192.168.1.20" } })).status, 401);
+  } finally { await srv.stop(); }
+});
+
+test("a database from before devices were marked made without a password: today's marks kept", { skip, timeout: 60000 }, async () => {
+  const lib = makeLibrary();
+  const { srv, ctx, boot0 } = await server(lib);
+  try {
+    const token = await signIn(BASE);
+    // The backup's database as an older Mandarin's: no devices.joined (item 172). Taken with the
+    // sign-in off and no token, as a signed-in device's is looked up by that column.
+    ctx.db.setSetting("openAccess", true);
+    ctx.db.raw.exec("ALTER TABLE devices DROP COLUMN joined");
+    const r = await fetch(BASE + "/api/backup/file", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ include: { database: true } }) });
+    assert.equal(r.status, 200);
+    const file = Buffer.from(await r.arrayBuffer());
+    ctx.db.raw.exec("ALTER TABLE devices ADD COLUMN joined INTEGER NOT NULL DEFAULT 0");
+    ctx.db.setSetting("openAccess", false);
+    ctx.db.raw.prepare("INSERT INTO devices(id, token_hash, name, kind, created_at, last_seen, last_ip, joined) VALUES('tv', 'h', 'TV', 'browser', 1, 1, '192.168.1.5', 1)").run();
+    const back = await fetch(BASE + "/api/backup/restore?parts=database", {
+      method: "POST", headers: { Authorization: "Bearer " + token, "Content-Type": "application/gzip" }, body: file });
+    assert.deepEqual((await back.json()).restored, ["database"]);
+    await restarted(boot0);
+    ctx.db.close();
+    const rows = ctx.db.raw.prepare("SELECT id, joined FROM devices").all();
+    assert.equal(rows.length, 2);
+    assert.equal(rows.find(d => d.id === "tv").joined, 1, "made without a password, still marked so");
+    assert.equal(rows.find(d => d.id !== "tv").joined, 0, "signed in");
   } finally { await srv.stop(); }
 });
 

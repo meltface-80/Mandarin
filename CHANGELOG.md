@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+- `172-open-mode-hardening` (item 172): with the sign-in off (item 161), a security review found five gaps, each
+  fixed. A web page open in any browser at home could post to the server behind your back (restart it, ask for the
+  sign-in again, restore a backup), and a page that pointed its own name at the server (DNS rebinding) could read it
+  and make itself a device: what the sign-in off lets in by its address must now be asked for by a name used at home
+  (an address, a bare name, .local, .lan, .home.arpa, .ts.net and the like), and anything but a read must come from
+  Mandarin's own page or the app; another site gets a 403. A device made without a password worked from anywhere,
+  the internet too: it is marked so, and works on the home network and the tailnet only (on an install with no
+  account, every device already there is taken as one). Restoring a whole database took Ask for a sign-in from the
+  backup: today's is kept. A browser that keeps no cookies was made a new device on every page it opened: one per
+  address and browser now, the same one again for an hour, and none for a page's own requests. And a proxy on the
+  same machine that says who asked with X-Real-IP or Forwarded but not X-Forwarded-For made the internet look like
+  home: those are believed, and a proxy that names nobody leaves the caller unknown, never home.
+
 - `174-sign-in-hardening` (item 174): holes in signing in, from a review. Five wrong passwords lock an address
   out, but a password was counted only once found wrong, after the wait every wrong password adds, so guesses sent all
   at once were all let in while the first was still being checked: hundreds where five were meant. A password now
