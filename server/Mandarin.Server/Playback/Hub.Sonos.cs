@@ -227,7 +227,8 @@ internal sealed partial class Hub
     {
         (double? Value, bool Muted, double At) v;
         string model;
-        lock (Gate) { volumes.TryGetValue(m.Uid, out v); model = Sonos.Models.GetValueOrDefault(m.Uid, ""); }
+        lock (Gate) volumes.TryGetValue(m.Uid, out v);
+        model = Sonos.Model(m.Uid);
         var has = v.At > 0;
         return new OutputInfo
         {

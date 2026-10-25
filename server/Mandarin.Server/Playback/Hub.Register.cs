@@ -24,7 +24,7 @@ internal sealed partial class Hub
             foreach (var m in Sonos.Rooms())
             {
                 string model;
-                lock (Gate) model = Sonos.Models.GetValueOrDefault(m.Uid, "");
+                model = Sonos.Model(m.Uid);
                 SeenIfChanged(c, new SeenInfo { Id = m.Uid, Kind = "sonos", NetworkName = m.Name, Model = model, Ip = m.Ip, Manufacturer = "Sonos" });
             }
             foreach (var p in Phones.Zones()) SeenIfChanged(c, new SeenInfo { Id = p.ZoneId, Kind = "phone", NetworkName = p.DisplayName, Model = "Phone" });

@@ -249,20 +249,24 @@ internal sealed partial class Hub
     /* A phone's or a renderer's queue and place, as the store keeps it; null when empty. */
     public QueueSnapshot? SnapshotOf(string id)
     {
-        QueueSnapshot? snap = null;
-        if (Phones.IsPhoneId(id)) snap = Phones.Saved(id);
-        else if (IsUpnp(id)) snap = UpnpSaved(id);
-        if (snap == null) return null;
-        var st = State.GetValueOrDefault(id) ?? new ZoneState();
-        snap.Id = id;
-        snap.Index = Math.Max(0, (st.TrackNumber > 0 ? st.TrackNumber : 1) - 1);
-        snap.Seconds = PositionNow(st);
-        snap.State = st.State;
-        snap.Shuffle = st.Shuffle;
-        snap.Loop = st.Loop;
-        snap.VolumeValue = st.VolumeValue;
-        snap.At = Now();
-        return snap;
+        // Under the gate, where the polls and the phones write (item 188): a Persist comes from outside it as well.
+        lock (Gate)
+        {
+            QueueSnapshot? snap = null;
+            if (Phones.IsPhoneId(id)) snap = Phones.Saved(id);
+            else if (IsUpnp(id)) snap = UpnpSaved(id);
+            if (snap == null) return null;
+            var st = State.GetValueOrDefault(id) ?? new ZoneState();
+            snap.Id = id;
+            snap.Index = Math.Max(0, (st.TrackNumber > 0 ? st.TrackNumber : 1) - 1);
+            snap.Seconds = PositionNow(st);
+            snap.State = st.State;
+            snap.Shuffle = st.Shuffle;
+            snap.Loop = st.Loop;
+            snap.VolumeValue = st.VolumeValue;
+            snap.At = Now();
+            return snap;
+        }
     }
 
     /* The queue changed (or, light, only the position): keep it. */

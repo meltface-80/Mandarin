@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- `188-playback-thread-safety` (item 188): playback's shared state read under the lock it is written under.
+  - Conversions made ahead of play ran more than TRANSCODE_CONCURRENCY at a time: the count was checked under the
+    queue's lock but added to only once the conversion had started, outside it, so many asking at once all found room
+    (sixteen at once against a limit of one, in the test). Its place is taken under the lock now, and given back if
+    nothing is left running.
+  - What the rooms are (their state), the phones' queues and the Sonos players' models were read in places without
+    the lock they are written under (a queue kept for a restart, the gains planned for a zone, a room's model): read
+    under it now.
+
 - `171-test-version-count-pr-merges` (item 171): dev's builds after v1.1.8 were numbered 1.1.8, 1.1.8, 1.1.9-t1,
   1.1.9-t1, 1.1.9-t2: the first two said they were the release itself, and two builds shared a number. To keep a
   merge of main back into dev from counting, every merge commit had been left out (item 161), and pull requests merged
