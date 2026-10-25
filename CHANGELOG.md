@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- `194-phone-shuffle-start` (item 194): Shuffle on the Android phone's own player always began at track 1: an album of
+  the phone's music, or a download played in the phone's room offline, went onto the player in its order from the
+  first track, with the player's shuffle switched on. That shuffle then stayed on, so every album played after it was
+  shuffled too. Now Shuffle plays the album in a shuffled order, as the server does: its first track is any of them,
+  and the player's own shuffle (Now playing's button) is left as it was.
+
 - `170-android-test-build-every-dev-push` (item 170): every dev build of the server now has an Android test build of the
   same number, as the owner's rule is. The server's image was built on every push to dev, the APK only when the app,
   the page or its workflow changed: after items 165 to 169 (tooling and tests alone) dev's server moved on while
