@@ -7,7 +7,7 @@
 
 </div>
 
-# Mandarin — v1.1.8
+# Mandarin — v1.1.9
 
 **Your own music files, played to Sonos rooms, to UPnP/DLNA renderers (a WiiM, a Chord Poly,
 a streamer, an AV receiver) and to the Mandarin Android app.**
@@ -26,16 +26,23 @@ Wikipedia, Deezer and others); your music files stay on your machine.
                                                    └──── audio: /stream/… ◀────────┘
 ```
 
-**New in v1.1.8** (since v1.1.7): **an account optional, and Mandarin on a TV.**
-* **No account needed.** A TV showing the shelf or the wall display shouldn't need a username and password typed
-  into it. A new install offers **Use without an account**; an existing one keeps asking for a sign-in until you
-  switch it off in **Settings → Account → Ask for a sign-in** (the page and the Android app alike). Off, anything on
-  your home network or your own Tailscale network comes straight in, each browser and app still a device of its own;
-  from anywhere else a sign-in is still needed. See [Your account](#your-account).
-* **Readable from the sofa.** On a big screen toasts follow your text size and grow with the screen, and the wall
-  display's review and "More from" cards are twice the size on a 1920px TV.
-* **The album beside the player.** On a desktop (a TV with a mouse) an album opens in the room beside the mini player,
-  wherever you've dragged it, instead of under it.
+**New in v1.1.9** (since v1.1.8): **a full review — safer, steadier, sturdier.** No new features this time: the
+whole of Mandarin (the server, the page, the Android app and how each is built) was read through, and everything it
+turned up is fixed. Thirty fixes in all; the [changelog](CHANGELOG.md) has each one.
+* **Safer.** With the sign-in off, only your home network and your tailnet come in without one, asking by a name
+  used at home, and only Mandarin's own page and app can change anything: another site open in a browser at home
+  gets nowhere. Password guesses are held to five at a time. A renderer's event, a request's body and an artist's
+  name can no longer be turned against the server or the page. See [Your account](#your-account).
+* **Steadier playback on renderers.** A WiiM, a Poly or another renderer that drops off the network and comes back
+  no longer starts the next track by itself or skips one at a track's end, and is evented again within seconds.
+  Shuffle on a renderer picks the next track once, not every second. Each room is read on its own, so one device not
+  answering no longer slows every other room's display.
+* **Sturdier updates and scans.** An update can't stick on "checking" or leave a new program among old files: the
+  new one is checked first, swapped in last, and the old one put back if anything fails. Music copied into a folder
+  during a long scan is found as that scan ends, not hours later.
+* **A sturdier Android app.** UI Settings apply to every screen at once; Shuffle on the phone's own music starts
+  anywhere and no longer leaves the player shuffling; sign-in works away from home; a download removed mid-way stays
+  removed; and the app no longer closes itself during an update.
 
 ---
 
@@ -525,7 +532,7 @@ Tap the share button on an album's page. Choose the services in **Settings → S
 
 ⸻
 
-📺 **Wall display** — *new in v1.1.8*
+📺 **Wall display**
 
 A full-screen now playing page for a TV or tablet; on a big TV its reviews and covers are drawn large enough to read from across the room.
 
@@ -633,7 +640,7 @@ Open **Settings → Setup → UI Settings** and pick from each list; it applies 
 
 ⸻
 
-👤 **An account, or none** — *new in v1.1.8*
+👤 **An account, or none**
 
 One username and password kept on the server, or none: a TV showing the shelf or the wall needs nothing typed. The password itself is never sent.
 
@@ -850,6 +857,10 @@ Docker's restart policy (`--restart unless-stopped`, as above, or `restart: unle
 `docker-compose.yml`) starts the container again; without one, start it yourself (`docker start
 musicd-server`).
 
+The new program is checked and laid in beside the old before anything is swapped (v1.1.9): if
+something fails after the swap, the old one (kept as `mandarin-server.prev`) is put back, and a
+folder the release can't be written over is named before anything is changed.
+
 **Manually** — also the way to pick up changes to the image itself (ffmpeg, the audio engine,
 and the move to v0.9.0 from an image with Node.js in it):
 
@@ -956,9 +967,21 @@ internet) a sign-in is still needed, and with no account there is none to give. 
 with no account asks you to create the account first; devices already in stay in until you sign
 them out.
 
+With the sign-in off, a device comes in without one only when it asks for the server by a name used
+at home — its address, a bare name, or one ending .local, .lan, .home.arpa or .ts.net — so another
+web site can't reach it through a name of its own (v1.1.9). Anything but a read must come from
+Mandarin's own page or the Android app: a page of another site open in a browser at home can't
+restart the server, change a setting or restore a backup. A device let in without a password works
+only from home and your tailnet, never from the internet. Behind a reverse proxy on the same
+machine, the proxy must say who asked (`X-Forwarded-For`, `X-Real-IP` or `Forwarded`); one that
+names nobody is taken as the internet, never home.
+
 The password never crosses the network, even on plain http: devices prove they know it with
 SRP (the scheme Apple uses for HomeKit pairing), and the server proves it knows the account
 back. The server stores only an SRP verifier, never the password.
+
+Five wrong passwords from one address in 15 minutes lock it out for 15 minutes (for IPv6, its whole
+/64), and guesses sent all at once count as they arrive, so no more than five are ever tried.
 
 **Forgot the password?** On the server run
 

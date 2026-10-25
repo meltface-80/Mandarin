@@ -14,7 +14,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 
-# (id, emoji, title, new in v1.1.8, what it is, how to set it up and use it)
+# (id, emoji, title, new in v1.1.9, what it is, how to set it up and use it)
 FEATURES = [
     # ---- Home and finding music
     ("home", "🏠", "Home", False,
@@ -235,7 +235,7 @@ FEATURES = [
      "acts near what you play, two of them new to you.",
      "Tap the share button on an album's page. Choose the services in **Settings → Setup → Share "
      "Card**. In the Android app, **Download** saves the card to Pictures/Mandarin."),
-    ("wall", "📺", "Wall display", True,
+    ("wall", "📺", "Wall display", False,
      "A full-screen now playing page for a TV or tablet; on a big TV its reviews and covers are drawn large "
      "enough to read from across the room.",
      "Open `http://<server-ip>:3500/display` on the screen. Its switch (on by default) and options are "
@@ -282,7 +282,7 @@ FEATURES = [
      "Text sizes, grid layout (Auto, 3 or 2 columns, or List) and tile size, saved on each device. "
      "On a desktop, text goes up to +100%.",
      "Open **Settings → Setup → UI Settings** and pick from each list; it applies at once."),
-    ("account", "👤", "An account, or none", True,
+    ("account", "👤", "An account, or none", False,
      "One username and password kept on the server, or none: a TV showing the shelf or the wall needs "
      "nothing typed. The password itself is never sent.",
      "On first visit from a device at home, create the account or choose **Use without an account**. "
@@ -353,7 +353,7 @@ def md_inline_to_html(s):
 def readme_block():
     lines = ["Every feature below has an **ⓘ**: open it for how to switch the feature on and use it.", ""]
     for i, (fid, em, title, new, what, how) in enumerate(FEATURES):
-        lines.append("%s **%s**%s" % (em, title, " — *new in v1.1.8*" if new else ""))
+        lines.append("%s **%s**%s" % (em, title, " — *new in v1.1.9*" if new else ""))
         lines.append("")
         lines.append(what)
         lines.append("")

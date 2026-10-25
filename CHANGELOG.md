@@ -1,12 +1,24 @@
 # Changelog
 
-## Unreleased
+## v1.1.9
+
+**A full review: safer, steadier playback, a sturdier app.** No new features: a review of the whole of Mandarin (the
+server, the page, the Android app and how they are built) and everything it found, fixed. Safer: with the sign-in off,
+only your home network and your tailnet come in without one, and only Mandarin's own page and app can change anything;
+guesses at the password are held to five at a time; a renderer's event, a request's body and an artist's name can no
+longer be used against the server or the page. Steadier: a WiiM, a Poly or another renderer back on the network no
+longer starts the next track by itself, skips one at a track's end or shuffles by changing its mind every second, and
+every room is read on its own, so one silent device no longer slows the others. An update can no longer stick or leave
+a new program among old files, and music copied in during a long scan is found when it ends, not hours later. The
+Android app keeps its UI settings on every screen, shuffles the phone's own music, signs in away from home, keeps a
+removed download removed and no longer closes itself during an update. Items 166 to 196.
 
 - `196-renderer-events-retry` (item 196): a renderer whose event subscription went unanswered (asked while it was
   off the network for a moment) was asked again only ten minutes later, and until then it was polled, a playing one
   read every few seconds where its events would have said at once. One left unanswered is now asked again after 15 s,
   then 30 s and so on up to the ten minutes; one the device says no to still waits the ten minutes. Back on the
   network, it is evented again within seconds, and the log says so.
+
 - `195-renderer-outage-between-reads` (item 195): a renderer gone from the network for a moment and back stopped could
   still start the next track by itself, as before item 184. Only a read that failed counted as the device being away;
   a call to it that went unanswered between reads (a command, the next track armed, its events renewed, a WiiM's
