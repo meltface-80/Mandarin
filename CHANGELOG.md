@@ -8,6 +8,11 @@
   waits only on what its steps move now (the Settings sheet, the side menu, the top bar): 66 s, the same checks. The
   album view's tablet test waited the same way and waits on the album view now.
 
+- `166-release-ci-after-apk-commit` (item 166): the v1.1.8 release stopped before it began. Its first step waits for
+  CI on main's newest commit, and that was the APK's own "Publish mandarin-android.apk" commit, which starts no CI (a
+  bot's push doesn't): ten minutes, then a failure. A commit that only publishes the APK (dist/) now has its parent's
+  CI stand for it, in the release, the image and the APK alike; anything else in the commit still needs its own CI.
+
 ## v1.1.8
 
 **An account optional, and Mandarin on a TV.** From users who want the shelf or the wall display on a TV, where a
