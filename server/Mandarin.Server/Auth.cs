@@ -105,10 +105,10 @@ internal static partial class Auth
         if (!string.IsNullOrEmpty(t) && (GetAccount(c) != null || OpenMode(c)))
         {
             using var cmd = c.CreateCommand();
-            cmd.CommandText = "SELECT id, name, kind, last_seen FROM devices WHERE token_hash = $h";
+            cmd.CommandText = "SELECT id, name, kind, last_seen, joined FROM devices WHERE token_hash = $h";
             cmd.Parameters.AddWithValue("$h", Sha256Hex(t));
             using (var r = cmd.ExecuteReader())
-                if (r.Read()) dev = new Device(r.GetString(0), r.GetString(1), r.GetString(2), r.GetInt64(3));
+                if (r.Read() && (r.GetInt64(4) == 0 || HomeOrTailnet(ClientIp(ctx)))) dev = new Device(r.GetString(0), r.GetString(1), r.GetString(2), r.GetInt64(3));   // made without a password: home and the tailnet only (item 172)
             // Seen now: kept here and written in the background (Auth.Seen.cs), never on the request's way.
             if (dev != null) Saw(dev.Id, dev.LastSeen, ClientIp(ctx));
         }
@@ -256,9 +256,9 @@ internal static partial class Auth
             ctx.Response.Headers.Location = "/login?next=" + Js.EncodeURIComponent(OriginalUrl(ctx));
             return;
         }
-        await Json(ctx, 401, acct != null
+        await (ctx.Items[OpenRefused] is string why ? Error(ctx, 403, why) : Json(ctx, 401, acct != null
             ? new JsonObject { ["error"] = "Sign in to Mandarin", ["sign_in_required"] = true }
-            : new JsonObject { ["error"] = "Create the Mandarin account first", ["setup_required"] = true });
+            : new JsonObject { ["error"] = "Create the Mandarin account first", ["setup_required"] = true }));
     }
 
     // The address as asked for: the path and query as they came, a proxy's

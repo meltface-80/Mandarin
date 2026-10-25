@@ -8,6 +8,7 @@ Status: **Open** · **In progress** · **Ready to test** (green, waiting on the 
 
 | # | Item | Branch | Status |
 |---|------|--------|--------|
+| 172 | The sign-in off let any web page at home post to the server and, under its own name (DNS rebinding), join it; a device made without a password worked from the internet; a restore took Ask for a sign-in from the backup; a cookieless browser was a new device per page; a same-machine proxy without X-Forwarded-For made the internet home. Each fixed: home names and own-page requests only, such devices home and tailnet only, the setting kept, one device per address and browser an hour, X-Real-IP and Forwarded believed | `172-open-mode-hardening` | Ready to test |
 | 169 | The test that a Settings page opened from the app is seen and tappable failed now and then on a busy machine: it looked at Back once while the page was still sliding in. It looks until Back has come to rest | `169-native-settings-seen-wait` | Ready to test |
 | 168 | The loudness test's measuring order failed now and then on a busy machine: it ordered the measuring processes by id, and ids wrap round at the system's limit (32,768). It orders them by when each began, the id only within the same tick | `168-loudness-order-pid-wrap` | Ready to test |
 | 167 | The desktop Settings test ran out of time on a busy machine: each step waited for the whole page to stop moving, Home's 12 s unheard-disc spin included, two minutes against a two-minute limit. It waits only on what its steps move (66 s) | `167-settings-desktop-test-slow` | Ready to test |
