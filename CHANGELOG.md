@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- `170-android-test-build-every-dev-push` (item 170): every dev build of the server now has an Android test build of the
+  same number, as the owner's rule is. The server's image was built on every push to dev, the APK only when the app,
+  the page or its workflow changed: after items 165 to 169 (tooling and tests alone) dev's server moved on while
+  the test APK stayed at the misnumbered 1.1.9-t224. A new workflow (android-dev.yml) builds the APK on every dev
+  push, calling the Android workflow whole; that workflow leaves dev to it, so a push builds the APK once.
+
 - `169-native-settings-seen-wait` (item 169): the test that a Settings page opened from the app is seen and can be
   tapped failed now and then on a busy machine: it looked at the middle of Back once, the moment the app was told, and
   the page was still sliding in. It looks until Back has come to rest (within 10 s, as its other waits); a page never
