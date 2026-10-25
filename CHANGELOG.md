@@ -9,6 +9,12 @@
   was every file in each place downloads go: a chosen download folder's other music, tracks half downloaded, folders
   waiting to be deleted. It is the downloaded albums' own files now.
 
+- `190-ui-settings-observed` (item 190): a setting changed in the Android app's UI Settings was kept, but the Library,
+  the walls, an artist's page, the search, Smart Picks, the labels, the playlists and Pitchfork went on drawing the old
+  one until the app was started again; only Home followed. The screen settings were a plain value, read once when the
+  app's frame was drawn. They are Compose state now, and each screen reads them where it is drawn, so a change draws
+  the screens again at once, those already open under Settings included.
+
 - `189-sign-in-away-address` (item 189): the Android app's sign-in screen always asked the home address, so away
   from home (Tailscale) it said the server didn't answer and could not sign the phone in. It asks on the way the app
   is using now, home or away. Before it makes an account, joins or signs in, it checks that the server answering is
