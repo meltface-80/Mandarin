@@ -4,8 +4,8 @@
  * the player stays on screen over an open album and can be dragged; the
  * album opens in the room beside it, on the left with the player on the
  * right (its corner, or dragged top right), on the right with it dragged to
- * the left, and centred as before where the room is too narrow or there is
- * no player. Skipped where no Chromium or Chrome is found (test/browser-harness.js).
+ * the left, and centred as before where the room is too narrow or on a touch
+ * screen. Skipped where no Chromium or Chrome is found (test/browser-harness.js).
  */
 const ports = require("./ports");
 const test = require("node:test");
@@ -19,12 +19,12 @@ const PORT = ports.port();
 const B = "http://127.0.0.1:" + PORT;
 
 // The player shown (as it is while a room plays), an album opened from Home, where each stands.
-const OPEN = (hideBar) => `(async () => {
+const OPEN = `(async () => {
   const sleep = ms => new Promise(r => setTimeout(r, ms));
   const find = () => [...document.querySelectorAll("body *")].find(e => e.children.length === 0 && e.textContent.trim() === "Album One");
   for (let i = 0; i < 200 && !find(); i++) await sleep(50);
   const bar = document.getElementById("mini-transport");
-  ${hideBar ? "bar.classList.add('hidden');" : "bar.classList.remove('hidden');"}
+  bar.classList.remove("hidden");
   await sleep(100);
   find().click();
   const modal = document.getElementById("album-modal");
@@ -46,12 +46,12 @@ test("an album opens beside the mini player on a desktop", { skip, timeout: 1800
       if (s.index_count >= 3 && !s.library_importing) break;
       await new Promise(r => setTimeout(r, 100));
     }
-    const at = async (width, height, { pos = null, hideBar = false, mouse = true } = {}) => {
+    const at = async (width, height, { pos = null, mouse = true } = {}) => {
       const b = await Browser.launch({ width, height, mouse });
       try {
         const init = pos ? `localStorage.setItem("rra-mini-pos", ${JSON.stringify(JSON.stringify(pos))});` : null;
         const page = await b.page(B + "/", { cookies: [{ name: "musicd_session", value: token, url: B }], init });
-        const r = await page.eval(OPEN(hideBar));
+        const r = await page.eval(OPEN);
         assert.deepEqual(page.errors, []);
         return r;
       } finally { await b.close(); }
@@ -72,10 +72,11 @@ test("an album opens beside the mini player on a desktop", { skip, timeout: 1800
     const left = await at(1920, 1080, { pos: { left: 8, top: 400 } });
     assert.ok(left.panel.left >= left.bar.right + 24 - 0.5, `the album (from ${left.panel.left}) right of the player (to ${left.bar.right})`);
 
-    // No player (nothing to keep clear of): centred as before.
-    const none = await at(1920, 1080, { hideBar: true });
-    assert.equal(none.beside, false);
-    assert.ok(Math.abs((none.panel.left + none.panel.right) / 2 - 960) < 1, "centred");
+    // A narrow desktop, too little room beside the player for the album: centred as before.
+    const narrow = await at(1024, 768);
+    assert.ok(narrow.bar.left - 48 < 600, `under 600px beside the player: ${narrow.bar.left - 48}`);
+    assert.equal(narrow.beside, false);
+    assert.ok(Math.abs((narrow.panel.left + narrow.panel.right) / 2 - 512) < 1, "centred");
 
     // A touch screen: as it was (the player doesn't move there).
     const touch = await at(1920, 1080, { mouse: false });
