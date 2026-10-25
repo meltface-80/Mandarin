@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- `190-ui-settings-observed` (item 190): a setting changed in the Android app's UI Settings was kept, but the Library,
+  the walls, an artist's page, the search, Smart Picks, the labels, the playlists and Pitchfork went on drawing the old
+  one until the app was started again; only Home followed. The screen settings were a plain value, read once when the
+  app's frame was drawn. They are Compose state now, and each screen reads them where it is drawn, so a change draws
+  the screens again at once, those already open under Settings included.
+
 - `170-android-test-build-every-dev-push` (item 170): every dev build of the server now has an Android test build of the
   same number, as the owner's rule is. The server's image was built on every push to dev, the APK only when the app,
   the page or its workflow changed: after items 165 to 169 (tooling and tests alone) dev's server moved on while
