@@ -1,6 +1,13 @@
 # Changelog
 
-## Unreleased
+## v1.1.8
+
+**An account optional, and Mandarin on a TV.** From users who want the shelf or the wall display on a TV, where a
+username and password are hard to type: a new install can be used without an account, and an existing one can stop
+asking for a sign-in (Settings → Account), the home network and your own Tailscale network then coming straight in;
+anywhere else still signs in. And on a big screen read from across the room: toasts and the wall display's review and
+"More from" cards twice the size on a 1920px TV, and on a desktop an album opens beside the mini player instead of
+under it. Items 161 to 164.
 
 - `164-desktop-mini-beside-album` (item 164): on a desktop (a TV with a mouse, say) the mini player stays on screen
   over an open album and can be dragged anywhere, but the album opened in the middle of the screen whatever it
