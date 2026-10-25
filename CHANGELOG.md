@@ -15,6 +15,13 @@
     answering (10 s before a Sonos room is given up on, 8 s a renderer) held every room's state to every 9–20 s. Each
     is read on its own now, asked again only once its last read has answered.
 
+- `183-renderer-shuffle-next` (item 183): shuffle on a renderer (a WiiM, a Poly, a sound device here). The track after
+  the one playing was picked again at every read of the device, about once a second: SetNextAVTransportURI was sent
+  again each time with another track, and a conversion of each started. It is picked once for the track playing and
+  kept while that track plays, the one picked still in the queue and not played, and the modes as they were. And what
+  shuffle has played is the tracks themselves, not their places in the queue: a track removed, added or moved made it
+  play one twice and skip another (or say "Nothing after this" with tracks still to come).
+
 - `181-scan-again-after-running` (item 181): music copied into a folder a long scan had already looked in waited up
   to six hours. The folder watcher heard it, but its scan was turned away while one was running and the change was
   dropped: a change heard since the running scan began now has one more scan made once that one ends (a change from

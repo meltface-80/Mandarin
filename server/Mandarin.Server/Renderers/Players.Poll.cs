@@ -180,7 +180,7 @@ internal sealed partial class Players
             var idx = uri.Length > 0 ? IndexOfUri(p, uri) : -1;
             // The renderer moved on by itself: SetNextAVTransportURI honoured. Not an answer from before a jump of ours
             // was done (item 150): a slow one still names the track jumped from, and took the queue back to it.
-            if (idx >= 0 && idx != p.Index && p.Jumping == 0 && asked > p.JumpedAt) { p.Index = idx; p.Next = null; p.Strikes = 0; if (p.Shuffle) p.Played.Add(idx); }
+            if (idx >= 0 && idx != p.Index && p.Jumping == 0 && asked > p.JumpedAt) { p.Index = idx; p.Next = null; p.Strikes = 0; if (p.Shuffle) p.Played.Add(p.Queue[idx]); }
             item = p.Index >= 0 && p.Index < p.Queue.Count ? p.Queue[p.Index] : null;
             index = p.Index;
             heard = p.Heard;
@@ -251,12 +251,7 @@ internal sealed partial class Players
     {
         if (p.Queue.Count == 0) return -1;
         if (p.Loop == "loop_one") return p.Index;
-        if (p.Shuffle)
-        {
-            var cands = Enumerable.Range(0, p.Queue.Count).Where(i => i != p.Index && !p.Played.Contains(i)).ToList();
-            if (cands.Count == 0 && p.Loop == "loop" && p.Queue.Count > 1) { p.Played = [p.Index]; cands = Enumerable.Range(0, p.Queue.Count).Where(i => i != p.Index).ToList(); }
-            return cands.Count > 0 ? cands[(int)Math.Floor(Random.Shared.NextDouble() * cands.Count)] : -1;
-        }
+        if (p.Shuffle) return ShuffleNext(p);
         var n = p.Index + 1;
         if (n < p.Queue.Count) return n;
         return p.Loop == "loop" ? 0 : -1;
