@@ -130,6 +130,22 @@ body {
   .more-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
   .more-cell:nth-child(n+7) { display: none; }   /* 2 rows of 3 on phones */
 }
+/* A big screen read from across the room (a 65" TV, item 163): the review
+   and "More from" cards grow with the screen's width, their writing twice the
+   size at 1920px (the numbers above × 2 ÷ 19.2, in vw). The covers grow as far
+   as the screen's height lets two rows of them, their titles and the heading
+   fit (1166px across at 1080px high). */
+@media (min-width: 1600px) {
+  .review-card { max-width: 88vw; padding: 3.54vw 3.96vw; border-radius: 1.67vw; }
+  .review-card h2 { font-size: 2.71vw; margin-bottom: 1.46vw; }
+  .review-card .review-text { font-size: 1.98vw; }
+  .review-card .review-attrib { margin-top: 1.67vw; font-size: 1.35vw; }
+  .more-card { max-width: min(86vw, 108vh); }
+  .more-card h2 { font-size: 3.33vw; }
+  .more-sub { font-size: 1.46vw; margin: .62vw 0 2.29vw; }
+  .more-grid { gap: 1.88vw; }
+  .more-title { margin-top: .83vw; font-size: 1.35vw; }
+}
 
 /* Mode controls — revealed on tap/pointer, fade out after a few seconds */
 .controls {

@@ -8,6 +8,12 @@
   album in the room on its left; the player dragged to the left, the album on its right; it follows the player as it
   is dragged. Where the room beside it is under 600px, and on touch screens, the album is centred as before.
 
+- `163-wall-reviews-big-screen` (item 163): on a 65" TV the wall display's review card and its "More from" covers
+  were too small to read from across the room. On a screen 1600px wide or more they grow with its width: the
+  writing twice the size at 1920px (the review 38px, its heading 52px, More from's heading 64px), the covers as big as
+  two rows of them, their titles and the heading still fit (1166px across at 1080px high, from 820). A laptop's stay
+  as they were.
+
 - `162-toasts-big-screen` (item 162): on a 65" TV the toasts' writing was too small to read. They follow the page's
   text size now (UI Settings, the size for every other piece of text), and on a screen 1600px wide or more they grow
   with its width: twice the size at 1920px (28px), the box they are written in with them. Settings' ⓘ notes too. A
