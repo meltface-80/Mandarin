@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- `192-update-now-destroyed-activity` (item 192): the Android app could close itself during an update. The update
+  offer kept the screen it installs from, and once the server's update was done (or the app's own had downloaded) it
+  showed its dialog on that screen even when it was gone: the phone turned meanwhile, or the app was closed. A dialog on
+  a screen that is gone brings the app down. The update now uses the screen only while it is still there; with none,
+  nothing is shown, and the app's own update is offered again at the next look.
+
 - `191-download-removed-midway` (item 191): on the Android app, an album removed while it was downloading came back:
   its folder was deleted, but the download still running wrote it again when its track finished (or as it stopped),
   and it was back in Downloads. A download now writes only while its album is still on the phone, and a removal takes
