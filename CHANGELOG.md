@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- `168-loudness-order-pid-wrap` (item 168): the loudness test's measuring order failed now and then on a busy
+  machine (New first, where Old and Single had been measured first). The server measured in the right order; the test
+  read the order from the measuring processes' ids, and ids wrap round at the system's limit (32,768 on the test
+  machine, which a whole run of the suite goes past). It orders them by when each began (/proc's start time), the id
+  only between processes started in the same tick, with a check of a wrapped run.
+
 - `167-settings-desktop-test-slow` (item 167): the desktop Settings test took two minutes against its two-minute
   limit, so on a busy machine it ran out of time. Each step waited for everything on the page to stop moving, and
   Home's unheard disc, turning behind Settings for 12 seconds, held every run's first steps to their 8 s limit. It
