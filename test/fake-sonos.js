@@ -45,6 +45,9 @@ class Room {
     return this.position + (Date.now() - this.at) / 1000;
   }
   setPos(s) { this.position = s; this.at = Date.now(); }
+  /* This room alone stops answering (a speaker gone unresponsive), each request counted in stalled, until unstall(). */
+  stall() { if (!this.unstalled) { this.stalled = 0; this.unstalled = new Promise(r => { this.letGo = r; }); } }
+  unstall() { const go = this.letGo; this.stalled = undefined; this.unstalled = null; this.letGo = null; if (go) go(); }
 
   /* The queue's UpdateID: a number of its content (never 0), as a speaker moves its own on every change. */
   queueUpdateId() {
@@ -170,6 +173,7 @@ class Room {
     this.server = http.createServer((req, res) => {
       // Held (house.hold()): answered once the test lets go.
       if (this.house.held) return this.house.held.then(() => this.server.emit("request", req, res));
+      if (this.unstalled) { this.stalled++; return this.unstalled.then(() => this.server.emit("request", req, res)); }
       if (req.method === "GET" && req.url === "/xml/device_description.xml") {
         res.setHeader("Content-Type", "text/xml");
         return res.end(`<?xml version="1.0"?><root xmlns="urn:schemas-upnp-org:device-1-0"><device>` +
@@ -200,7 +204,7 @@ class Room {
       this.server.listen(1400, this.ip, resolve);
     });
   }
-  stop() { return require("./fixtures").stopServer(this.server); }
+  stop() { this.unstall(); return require("./fixtures").stopServer(this.server); }
 }
 
 class FakeHousehold {
