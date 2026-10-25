@@ -8,10 +8,15 @@ import org.json.JSONObject
  * the server has to prove it knows the account too, so a sign-in to anything
  * but your own server fails. The result is this phone's own token, which the
  * server can sign out from Settings.
+ *
+ * With the sign-in switched off (item 161) there is no password at all: at home or on the tailnet the phone
+ * [join]s, and is a device of its own just the same.
  */
 class Account(private val client: ServerClient) {
 
-    class Status(val setupRequired: Boolean, val canSetup: Boolean, val signedIn: Boolean, val username: String?)
+    /** [open]: the sign-in is off; [openHere]: and that lets this phone in, where it is now. */
+    class Status(val setupRequired: Boolean, val canSetup: Boolean, val signedIn: Boolean, val username: String?,
+                 val open: Boolean = false, val openHere: Boolean = false)
 
     class Session(val token: String, val username: String)
 
@@ -23,9 +28,23 @@ class Account(private val client: ServerClient) {
             setupRequired = j.optBoolean("setup_required"),
             canSetup = j.optBoolean("can_setup"),
             signedIn = j.optBoolean("signed_in"),
-            username = j.optString("username").takeIf { it.isNotEmpty() && !j.isNull("username") }
+            username = j.optString("username").takeIf { it.isNotEmpty() && !j.isNull("username") },
+            open = j.optBoolean("open"),
+            openHere = j.optBoolean("open_here")
         )
     }
+
+    /** The sign-in off: this phone made a device, no password asked; its token. */
+    fun join(deviceName: String): String =
+        call("/api/auth/join", JSONObject().put("want_token", true).put("kind", "android").put("device_name", deviceName)).getString("token")
+
+    /**
+     * Ask for a sign-in ([open] false) or not (Settings → Account; a new server's "Use without an account"). A phone
+     * not yet a device is made one: its token, else null.
+     */
+    fun setOpen(open: Boolean, deviceName: String = ""): String? =
+        call("/api/auth/open", JSONObject().put("open", open).put("want_token", true).put("kind", "android").put("device_name", deviceName))
+            .optString("token").takeIf { it.isNotEmpty() }
 
     /** First run: make the account (home network only) and sign this phone in. */
     fun create(username: String, password: String, deviceName: String, iterations: Int = Srp.ITERATIONS): Session {

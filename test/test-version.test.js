@@ -8,7 +8,9 @@ const test = require("node:test");
 const assert = require("node:assert");
 const fs = require("fs");
 const path = require("path");
+const os = require("os");
 const vm = require("vm");
+const { execFileSync } = require("child_process");
 const { testVersion, commitsSince } = require("../tools/test-version");
 
 test("a test build is the next release with -tN", () => {
@@ -31,6 +33,25 @@ test("the next release named: dev's builds after v1.1.5 are 1.1.7-tN", () => {
   // This checkout's package.json: a later release, if it names one.
   const pkg = require("../package.json");
   if (pkg.nextVersion) assert.match(testVersion(pkg.version, 1, pkg.nextVersion), new RegExp("^" + pkg.nextVersion.replace(/\./g, "\\.") + "-t1$"));
+});
+
+test("main brought back into dev after a release counts for nothing: the next pull request is -t1", () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "musicd-testver-"));
+  const git = (...a) => execFileSync("git", a, { cwd: dir, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] });
+  const commit = (m) => git("commit", "-q", "--allow-empty", "-m", m);
+  git("init", "-q", "-b", "dev");
+  git("config", "user.email", "t@example.com"); git("config", "user.name", "t");
+  commit("the release, squashed into dev");
+  git("checkout", "-q", "-b", "main");
+  commit("dev into main"); git("tag", "v1.1.7");
+  git("checkout", "-q", "dev");
+  git("merge", "-q", "--no-ff", "-m", "main into dev after v1.1.7", "main");
+  assert.equal(commitsSince("v1.1.7", dir), 0, "the merge back is not a change");
+  commit("161: the account optional (squashed)");
+  assert.equal(testVersion("1.1.7", commitsSince("v1.1.7", dir)), "1.1.8-t1");
+  commit("162 (squashed)");
+  assert.equal(commitsSince("v1.1.7", dir), 2);
+  fs.rmSync(dir, { recursive: true, force: true });
 });
 
 test("the page's updater: a test build after the last release, before its own", () => {
