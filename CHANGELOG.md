@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- `200-switches-move-at-once` (item 200): a switch on the Android app's Settings pages moved only once the server had
+  answered, so a tap did nothing for a moment: Account's Ask for a sign-in, every switch and choice on a device's
+  page (DSP's among them), a device's row in Audio (two round trips), the Scanner's switches and Measure ReplayGain,
+  Away from home's Built-in Tailscale, and Downloads' Offline mode and lists. Each moves as it is tapped, the server's
+  answer taking its place after; refused, it goes back where it was and says why, as the Setup pages' switches have.
+
 - `199-no-gaps-between-screens` (item 199): on the Android app, tapping Settings in the side menu, or Library or Artists
   in the row, showed Home for a moment: the menu went at once, every screen over Home was closed, and only then was the
   next one opened. An album opened from Now playing or Pitchfork, and the Playlists from a playlist opened elsewhere,

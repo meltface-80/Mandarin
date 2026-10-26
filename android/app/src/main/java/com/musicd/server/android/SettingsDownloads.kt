@@ -82,7 +82,8 @@ internal fun SettingsDownloads(client: () -> ServerClient?, onBack: () -> Unit, 
         }
     }
     LaunchedEffect(info) { val t = info ?: return@LaunchedEffect; delay(minOf(25_000L, 4_000L + t.split(Regex("\\s+")).size * 220L)); info = null }
-    fun set(key: String, value: String) { bridge.set(key, value); reads++ }
+    // Shown with the change at once (item 200), then read back from the bridge.
+    fun set(key: String, value: String) { settings = settings?.with(key, value); bridge.set(key, value); reads++ }
     if (showAlbums) {
         // Opened on them (an album's ⋯ → Downloading…), Back closes Downloads; else it comes back to Downloads.
         val back = { if (albums) onBack() else { showAlbums = false } }

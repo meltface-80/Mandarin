@@ -119,9 +119,13 @@ private fun DeviceListPane(client: () -> ServerClient?, onBack: () -> Unit, onOp
         val c = client() ?: return
         if (busy) return
         busy = true
+        // The row's switch moved as it is tapped (item 200), the list read again after; back where it was if refused.
+        val before = list
+        list = before?.withEnabled(r.id, on)
         val made = ServerWrites.write { c.patch(devicePath(r.id), JSONObject().put("enabled", on)) }
         scope.launch {
-            ServerWrites.await(made).onSuccess { setupToast(context, AudioDevices.enabledSaid(it.optString("name", r.name), on)) }.onFailure { error = com.musicd.server.client.Failure.said(it, "") }
+            ServerWrites.await(made).onSuccess { setupToast(context, AudioDevices.enabledSaid(it.optString("name", r.name), on)) }
+                .onFailure { list = before; error = com.musicd.server.client.Failure.said(it, "") }
             busy = false; load()
         }
     }

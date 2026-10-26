@@ -17,6 +17,9 @@ class Account(private val client: ServerClient) {
     /** [open]: the sign-in is off; [openHere]: and that lets this phone in, where it is now. */
     class Status(val setupRequired: Boolean, val canSetup: Boolean, val signedIn: Boolean, val username: String?,
                  val open: Boolean = false, val openHere: Boolean = false) {
+        /** This status with the sign-in [open] or not (Ask for a sign-in tapped, item 200): shown at once, the server's answer taking its place. */
+        fun withOpen(open: Boolean) = Status(setupRequired, canSetup, signedIn, username, open, openHere)
+
         companion object {
             const val PATH = "/api/auth/status"
 
