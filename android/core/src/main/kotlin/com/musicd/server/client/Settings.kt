@@ -66,6 +66,7 @@ data class AccountDevices(val username: String, val devices: List<SignedInDevice
     val who: String get() = "Signed in as " + username.ifEmpty { "?" }
 
     companion object {
+        const val PATH = "/api/auth/devices"
         const val FAILED = "Couldn't load the account"
 
         fun parse(j: JSONObject): AccountDevices = AccountDevices(j.optString("username").takeIf { !j.isNull("username") }.orEmpty(),

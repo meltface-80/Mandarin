@@ -41,6 +41,7 @@ data class LocalFolder(val name: String, val albums: Int, val tracks: Int, val s
  * server's folders, choosing one to add, and the phone's own, in the page's words.
  */
 object FolderSettings {
+    const val PATH = "/api/library/folders"
     fun parse(j: JSONObject): MusicFolders = MusicFolders(
         j.optJSONArray("folders").items { f ->
             MusicFolder(f.optString("name").ifEmpty { f.optString("path") }, f.optString("path"), f.optBoolean("exists", true), f.optBoolean("readable", true),

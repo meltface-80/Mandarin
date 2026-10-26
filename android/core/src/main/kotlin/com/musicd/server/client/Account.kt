@@ -16,23 +16,27 @@ class Account(private val client: ServerClient) {
 
     /** [open]: the sign-in is off; [openHere]: and that lets this phone in, where it is now. */
     class Status(val setupRequired: Boolean, val canSetup: Boolean, val signedIn: Boolean, val username: String?,
-                 val open: Boolean = false, val openHere: Boolean = false)
+                 val open: Boolean = false, val openHere: Boolean = false) {
+        companion object {
+            const val PATH = "/api/auth/status"
+
+            /** /api/auth/status's answer [j]. */
+            fun parse(j: JSONObject) = Status(
+                setupRequired = j.optBoolean("setup_required"),
+                canSetup = j.optBoolean("can_setup"),
+                signedIn = j.optBoolean("signed_in"),
+                username = j.optString("username").takeIf { it.isNotEmpty() && !j.isNull("username") },
+                open = j.optBoolean("open"),
+                openHere = j.optBoolean("open_here")
+            )
+        }
+    }
 
     class Session(val token: String, val username: String)
 
     class AuthException(message: String) : Exception(message)
 
-    fun status(): Status {
-        val j = client.getJson("/api/auth/status")
-        return Status(
-            setupRequired = j.optBoolean("setup_required"),
-            canSetup = j.optBoolean("can_setup"),
-            signedIn = j.optBoolean("signed_in"),
-            username = j.optString("username").takeIf { it.isNotEmpty() && !j.isNull("username") },
-            open = j.optBoolean("open"),
-            openHere = j.optBoolean("open_here")
-        )
-    }
+    fun status(): Status = Status.parse(client.getJson(Status.PATH))
 
     /** The sign-in off: this phone made a device, no password asked; its token. */
     fun join(deviceName: String): String =

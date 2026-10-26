@@ -119,6 +119,7 @@ data class AwayState(val available: Boolean, val enabled: Boolean, val state: St
     val signInInfo: String get() = "Opens Tailscale’s sign-in page. The server then joins your tailnet as “$hostname” — nothing else to install. Free for personal use."
 
     companion object {
+        const val PATH = "/api/tailscale"
         const val UNREACHABLE = "Couldn’t ask the server."
         const val UNAVAILABLE = "Tailscale can’t be built in here — it runs in the Docker image (Linux, x64 or ARM64). Tailscale on the machine the server runs on works as before."
         const val PHONE_INFO = "The app has its own Tailscale — no Tailscale app needed. Sign it in once, with the same account as the server; away from home the app then reaches the server by itself."

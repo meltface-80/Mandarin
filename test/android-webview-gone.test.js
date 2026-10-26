@@ -68,7 +68,8 @@ test("Now playing's album found as the page found it, the Shelf in the browser, 
 test("the server's gate shutting on this phone signs it in again; a wrong password does not", () => {
   // Each request on the way as it is when asked, once the first look at it is made (item 157: WayTransport).
   // Signed out only on its own server (item 158: another Mandarin at the home address did): Away.stillOurs.
-  assert.match(read(APP + "Store.kt"), /transport = AppLog\.server\(\{ active\(app\)\?\.baseUrl \?: address\.baseUrl \}, token, \{ Away\.awaitWay\(app\); Away\.notBeforeVpn\(app\) \}\) \{ if \(Away\.stillOurs\(app\)\) MainActivity\.gateShut\(\) else Away\.recheck\(app\) \}/);
+  // Settings' reads kept on the way through (item 198: KeptTransport), the gate watched inside it.
+  assert.match(read(APP + "Store.kt"), /transport = com\.musicd\.server\.client\.KeptTransport\(AppLog\.server\(\{ active\(app\)\?\.baseUrl \?: address\.baseUrl \}, token, \{ Away\.awaitWay\(app\); Away\.notBeforeVpn\(app\) \}\) \{ if \(Away\.stillOurs\(app\)\) MainActivity\.gateShut\(\) else Away\.recheck\(app\) \}\)\)/);
   assert.match(read(APP + "AppLog.kt"), /fun server\(base: \(\) -> String, token: String, ready: \(\) -> Unit, shut: \(\) -> Unit\): Transport = net\(GateWatch\(WayTransport\(base, token, ready\), shut\), "server"\)/);
   assert.match(read(CORE + "ServerClient.kt"), /val gateShut get\(\) = status == 401 && message in GATE/);
   assert.match(read(APP + "MainActivity.kt"), /fun gateShut\(\) \{ shown\.get\(\)\?\.let \{ a -> a\.runOnUiThread \{ if \(!a\.isFinishing\) a\.signedOut\(\) \} \} \}/);

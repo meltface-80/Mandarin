@@ -2,6 +2,23 @@
 
 ## Unreleased
 
+- `198-settings-open-as-last-seen` (item 198): the Android app's Settings pages opened with their defaults and changed
+  as the server answered. Account drew Ask for a sign-in on, then off, with Change password and Sign out of this
+  device shown and then taken away. Music Folders had no folders, and its Music on this phone said "No folder chosen".
+  The Scanner's switches, Smart Picks, Record labels, Wall Display, Shelf, Waveform and Share Card's Review all drew in
+  the default position, and Audio, a device's page, Away from home, the services and Backup were blank until the answer
+  came.
+  - Each page opens as it was last seen, then follows the server, as the side menu has since item 122. The server's
+    last answer to each of Settings' reads is kept in memory and on the phone, for that server only, and only the
+    server's own answers are kept, never the phone's offline ones. API keys are never kept.
+  - A change is followed by the reads it affects, made again behind it, so the next opening isn't from before the
+    change.
+  - Opened for the very first time, with nothing kept yet, a switch isn't drawn until its answer comes, rather than
+    drawn wrong; on Account, what hangs on it waits too.
+  - Reads that waited on each other are asked together: Account's, Audio's rooms and waveform beside its list, Record
+    labels' two, Backup's and the phone's own backups, and Home Screen's.
+  - Away from home no longer shows "Couldn't ask the server" for one read that wasn't answered; two in a row still do.
+
 - `197-phone-album-cover-and-now-playing` (item 197): the phone's own music (Settings → Music Folders, Music on this
   phone), which the server has never seen, on the Android app.
   - Its share card had no cover: the card asked the server for the album's cover, and the server has none. A phone

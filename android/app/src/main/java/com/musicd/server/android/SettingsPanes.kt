@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -60,6 +61,7 @@ import com.musicd.server.client.ApiKeySpec
 import com.musicd.server.client.Contract
 import com.musicd.server.client.Palette
 import com.musicd.server.client.ServerClient
+import com.musicd.server.client.SettingsKept
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -80,8 +82,9 @@ import kotlinx.coroutines.withContext
 internal fun SettingsAccount(client: () -> ServerClient?, onBack: () -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    var account by remember { mutableStateOf<AccountDevices?>(null) }
-    var ask by remember { mutableStateOf<Account.Status?>(null) }
+    // As last seen, then the server's (item 198): before, Ask for a sign-in drew on until the server said it was off.
+    var account by remember { mutableStateOf(SettingsKept.last(AccountDevices.PATH) { AccountDevices.parse(it) }) }
+    var ask by remember { mutableStateOf(SettingsKept.last(Account.Status.PATH) { Account.Status.parse(it) }) }
     var busy by remember { mutableStateOf<String?>(null) }   // a device being signed out, or "password"
     var current by remember { mutableStateOf("") }
     var new by remember { mutableStateOf("") }
@@ -90,10 +93,11 @@ internal fun SettingsAccount(client: () -> ServerClient?, onBack: () -> Unit) {
     fun toast(text: String) = Toast.makeText(context, text, Toast.LENGTH_SHORT).show()
     LaunchedEffect(Unit) {
         val c = client() ?: return@LaunchedEffect
-        withContext(Dispatchers.IO) { runCatching { Account(c).status() } }.onSuccess { ask = it }
-        withContext(Dispatchers.IO) { runCatching { c.accountDevices() } }
-            .onSuccess { account = it }
+        launch { withContext(Dispatchers.IO) { runCatching { Account(c).status() } }.onSuccess { ask = it } }
+        launch { withContext(Dispatchers.IO) { runCatching { c.accountDevices() } }.onSuccess { account = it } }
     }
+    // Not known yet (never opened, the server not answered): no switch drawn, and nothing that hangs on it.
+    val known = ask != null
     val open = ask?.open == true
     val hasAccount = ask?.setupRequired != true
     SettingsFrame {
@@ -101,7 +105,7 @@ internal fun SettingsAccount(client: () -> ServerClient?, onBack: () -> Unit) {
             "Account", Modifier.parity("settings-account.heading"))
         Block {
             SetupRow("Ask for a sign-in", Modifier.parity("settings-account.name"), null) {
-                Toggle(!open, Modifier.parity("settings-account.ask", Contract.label("settings-account.ask")).clickable(enabled = ask != null && busy == null) {
+                if (!known) Spacer(Modifier.size(46.dp, 28.dp)) else Toggle(!open, Modifier.parity("settings-account.ask", Contract.label("settings-account.ask")).clickable(enabled = ask != null && busy == null) {
                     val want = !open
                     if (!want && !hasAccount) { context.startActivity(Intent(context, SignInActivity::class.java).putExtra(SignInActivity.EXTRA_CREATE, true)); return@clickable }
                     val c = client() ?: return@clickable
@@ -114,7 +118,7 @@ internal fun SettingsAccount(client: () -> ServerClient?, onBack: () -> Unit) {
                     }
                 })
             }
-            SetupNote(AccountDevices.askNote(open, hasAccount), Modifier.parity("settings-account.ask-note"))
+            if (known) SetupNote(AccountDevices.askNote(open, hasAccount), Modifier.parity("settings-account.ask-note"))
         }
         SettingsDivider()
         BlockTitle("Signed-in devices", Modifier.parity("settings-account.title"))
@@ -139,7 +143,7 @@ internal fun SettingsAccount(client: () -> ServerClient?, onBack: () -> Unit) {
             if (i < devices.size - 1) Box(Modifier.fillMaxWidth().height(1.dp).background(paletteColor(Palette.BORDER)))
         }
         Note(AnnotatedString("Sign out a device you've lost or don't use. It will need the password to come back."), Modifier.parity("settings-account.note"))
-        if (!open) UpdateButton("Sign out of this device", false, Modifier.parity("settings-account.signout", Contract.label("settings-account.signout")).padding(top = 20.dp).clickable {
+        if (known && !open) UpdateButton("Sign out of this device", false, Modifier.parity("settings-account.signout", Contract.label("settings-account.signout")).padding(top = 20.dp).clickable {
             val activity = context as? Activity
             scope.launch {
                 client()?.let { c -> withContext(Dispatchers.IO) { Account(c).signOut() } }
@@ -148,7 +152,7 @@ internal fun SettingsAccount(client: () -> ServerClient?, onBack: () -> Unit) {
                 activity?.finish()
             }
         })
-        if (hasAccount) {
+        if (known && hasAccount) {
             SettingsDivider()
             BlockTitle("Change password", Modifier.parity("settings-account.title"))
             val focus = remember { List(3) { MutableInteractionSource() } }
