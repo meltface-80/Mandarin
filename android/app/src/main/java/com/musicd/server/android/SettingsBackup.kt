@@ -43,8 +43,10 @@ import com.musicd.server.client.BackupSettings
 import com.musicd.server.client.Contract
 import com.musicd.server.client.Palette
 import com.musicd.server.client.ServerClient
+import com.musicd.server.client.SettingsKept
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
@@ -63,13 +65,17 @@ import java.util.Date
  */
 
 /** Settings' Backup & restore ([client]: the server's, [onBack]: back to Settings). */
+/** The server's backups and what a backup holds: kept as last read (item 198). */
+private const val BACKUPS = "/api/backup"
+
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun SettingsBackup(client: () -> ServerClient?, onBack: () -> Unit) {
     val context = LocalContext.current
     val activity = context as? MainActivity
     val scope = rememberCoroutineScope()
-    var info by remember { mutableStateOf<JSONObject?>(null) }
+    // As last seen, then the server's (item 198): before, no parts to tick and no backups until the server answered.
+    var info by remember { mutableStateOf(SettingsKept.last(BACKUPS)) }
     var phone by remember { mutableStateOf(JSONArray()) }
     var ticked by remember { mutableStateOf(BackupSettings.backupParts(true).toSet()) }
     var pass by remember { mutableStateOf("") }
@@ -83,10 +89,13 @@ internal fun SettingsBackup(client: () -> ServerClient?, onBack: () -> Unit) {
     var tip by remember { mutableStateOf<String?>(null) }
     val dates = remember { java.text.SimpleDateFormat(android.text.format.DateFormat.getBestDateTimePattern(java.util.Locale.getDefault(), "yMMMdhhmm"), java.util.Locale.getDefault()) }
     val date = { ms: Long -> dates.format(Date(ms)) }
+    // The phone's own backups read beside the server's, not after them.
     suspend fun load() {
-        val c = client() ?: return
-        withContext(Dispatchers.IO) { runCatching { c.getJson("/api/backup") }.getOrNull() }?.let { info = it }
-        phone = withContext(Dispatchers.IO) { runCatching { AppBackup.files(context) }.getOrDefault(JSONArray()) }
+        coroutineScope {
+            launch { phone = withContext(Dispatchers.IO) { runCatching { AppBackup.files(context) }.getOrDefault(JSONArray()) } }
+            val c = client() ?: return@coroutineScope
+            withContext(Dispatchers.IO) { runCatching { c.getJson(BACKUPS) }.getOrNull() }?.let { info = it }
+        }
     }
     LaunchedEffect(Unit) { load() }
     LaunchedEffect(tip) { val t = tip ?: return@LaunchedEffect; delay(minOf(25_000L, 4_000L + t.split(Regex("\\s+")).size * 220L)); tip = null }

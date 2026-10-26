@@ -55,6 +55,7 @@ import com.musicd.server.client.DevicePage
 import com.musicd.server.client.Palette
 import com.musicd.server.client.SegChoice
 import com.musicd.server.client.ServerClient
+import com.musicd.server.client.SettingsKept
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -77,7 +78,8 @@ import java.util.Date
 internal fun DevicePane(id: String, client: () -> ServerClient?, onBack: () -> Unit, info: (String) -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    var page by remember(id) { mutableStateOf<DevicePage?>(null) }
+    // As last seen, then the server's (item 198): before, "Device" and nothing under it until the server answered.
+    var page by remember(id) { mutableStateOf(SettingsKept.last(devicePath(id)) { DevicePage(it) }) }
     var busy by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf("") }
     val dates = remember { DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT) }

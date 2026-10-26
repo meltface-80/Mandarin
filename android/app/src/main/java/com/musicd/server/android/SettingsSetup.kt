@@ -60,6 +60,7 @@ import com.musicd.server.client.ServerClient
 import com.musicd.server.client.SetupSettings
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
@@ -100,17 +101,19 @@ internal fun SettingsSetupPane(pane: String, client: () -> ServerClient?, onBack
 private fun PicksPane(client: () -> ServerClient?, onBack: () -> Unit, info: (String) -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    var on by remember { mutableStateOf(false) }
-    var hour by remember { mutableStateOf(4) }
+    val kept = remember { keptSetting("smart-picks") }   // as last seen, then the server's (item 198)
+    var on by remember { mutableStateOf(kept?.optBoolean("enabled") ?: false) }
+    var hour by remember { mutableStateOf(kept?.optInt("hour", 4) ?: 4) }
+    var known by remember { mutableStateOf(kept != null) }
     var rebuilding by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) { readSetting(client, "smart-picks")?.let { on = it.optBoolean("enabled"); hour = it.optInt("hour", hour) } }
+    LaunchedEffect(Unit) { readSetting(client, "smart-picks")?.let { on = it.optBoolean("enabled"); hour = it.optInt("hour", hour); known = true } }
     fun save(patch: JSONObject, said: String, undo: () -> Unit) = saveSetting(scope, context, client, "smart-picks", patch, said, undo)
     SettingsFrame {
         SettingsHead(Modifier.parity("settings-picks.back", Contract.label("settings-picks.back")).clip(CircleShape).clickable(onClick = onBack), R.drawable.np_back,
             "Smart Picks", Modifier.parity("settings-picks.heading"))
         Block {
             SetupRow("Smart Picks", Modifier.parity("settings-picks.name"), Modifier.parity("settings-picks.info", Contract.label("settings-picks.info", 0, "Smart Picks")).clickable { info(PICKS_INFO) }) {
-                Toggle(on, Modifier.parity("settings-picks.enabled", Contract.label("settings-picks.enabled")).clickable { val was = on; on = !on; save(JSONObject().put("enabled", on), SetupSettings.picksSaid(on)) { on = was } })
+                Toggle(on, Modifier.parity("settings-picks.enabled", Contract.label("settings-picks.enabled")).clickable { val was = on; on = !on; save(JSONObject().put("enabled", on), SetupSettings.picksSaid(on)) { on = was } }, known)
             }
             SetupNote("On by default. Everything below applies only while this is on.", Modifier.parity("settings-picks.note"))
         }
@@ -143,18 +146,20 @@ private fun PicksPane(client: () -> ServerClient?, onBack: () -> Unit, info: (St
 private fun LabelsPane(client: () -> ServerClient?, onBack: () -> Unit, info: (String) -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    var on by remember { mutableStateOf(false) }
-    var note by remember { mutableStateOf("Off by default. Everything below applies only while this is on.") }
+    val kept = remember { keptSetting("labels") to keptSetting("label-folder-depth") }   // as last seen, then the server's (item 198)
+    var on by remember { mutableStateOf(kept.first?.optBoolean("enabled") ?: false) }
+    var note by remember { mutableStateOf(kept.first?.let { SetupSettings.labelsNote(it) } ?: "Off by default. Everything below applies only while this is on.") }
     var prefs by remember { mutableStateOf(pagePrefs(context)) }
     var rescan by remember { mutableStateOf("Force rescan") }
     var rescanSaid by remember { mutableStateOf<String?>(null) }
-    var depth by remember { mutableStateOf("") }
-    var depthStatus by remember { mutableStateOf("") }
+    var depth by remember { mutableStateOf(kept.second?.optInt("depth")?.toString() ?: "") }
+    var depthStatus by remember { mutableStateOf(kept.second?.optInt("depth")?.let { SetupSettings.depthStatus(it) } ?: "") }
     var savingDepth by remember { mutableStateOf(false) }
-    suspend fun reload() {
-        readSetting(client, "labels")?.let { on = it.optBoolean("enabled"); note = SetupSettings.labelsNote(it) }
-        readSetting(client, "label-folder-depth")?.let { val d = it.optInt("depth"); depth = d.toString(); depthStatus = SetupSettings.depthStatus(d) }
-    }
+    var known by remember { mutableStateOf(kept.first != null) }
+    suspend fun reload() { coroutineScope {
+        launch { readSetting(client, "labels")?.let { on = it.optBoolean("enabled"); note = SetupSettings.labelsNote(it); known = true } }
+        launch { readSetting(client, "label-folder-depth")?.let { val d = it.optInt("depth"); depth = d.toString(); depthStatus = SetupSettings.depthStatus(d) } }
+    } }
     LaunchedEffect(Unit) { reload() }
     SettingsFrame {
         SettingsHead(Modifier.parity("settings-labels.back", Contract.label("settings-labels.back")).clip(CircleShape).clickable(onClick = onBack), R.drawable.np_back,
@@ -164,7 +169,7 @@ private fun LabelsPane(client: () -> ServerClient?, onBack: () -> Unit, info: (S
                 Toggle(on, Modifier.parity("settings-labels.enabled", Contract.label("settings-labels.enabled")).clickable {
                     val was = on; on = !on
                     saveSetting(scope, context, client, "labels", JSONObject().put("enabled", on), if (on) "Labels on" else "Labels off", undo = { on = was }) { scope.launch { reload() } }
-                })
+                }, known)
             }
             SetupNote(note, Modifier.parity("settings-labels.note"))
         }
@@ -255,9 +260,11 @@ private fun UiPane(onBack: () -> Unit, info: (String) -> Unit) {
 private fun DisplayPane(client: () -> ServerClient?, onBack: () -> Unit, info: (String) -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    var on by remember { mutableStateOf(false) }
-    var seconds by remember { mutableStateOf(10) }
-    LaunchedEffect(Unit) { readSetting(client, "display")?.let { on = it.optBoolean("enabled"); seconds = it.optInt("seconds", seconds) } }
+    val kept = remember { keptSetting("display") }   // as last seen, then the server's (item 198)
+    var on by remember { mutableStateOf(kept?.optBoolean("enabled") ?: false) }
+    var seconds by remember { mutableStateOf(kept?.optInt("seconds", 10) ?: 10) }
+    var known by remember { mutableStateOf(kept != null) }
+    LaunchedEffect(Unit) { readSetting(client, "display")?.let { on = it.optBoolean("enabled"); seconds = it.optInt("seconds", seconds); known = true } }
     fun save() = saveSetting(scope, context, client, "display", JSONObject().put("enabled", on).put("seconds", seconds), null, undo = {}) { j ->
         if (!j.optBoolean("ok")) setupToast(context, "Display settings didn't persist — check the data volume")
     }
@@ -266,7 +273,7 @@ private fun DisplayPane(client: () -> ServerClient?, onBack: () -> Unit, info: (
             "Wall Display", Modifier.parity("settings-display.heading"))
         Block {
             SetupRow("Wall display", Modifier.parity("settings-display.name"), Modifier.parity("settings-display.info", Contract.label("settings-display.info", 0, "Wall display")).clickable { info(DISPLAY_INFO) }) {
-                Toggle(on, Modifier.parity("settings-display.enabled", Contract.label("settings-display.enabled")).clickable { on = !on; save() })
+                Toggle(on, Modifier.parity("settings-display.enabled", Contract.label("settings-display.enabled")).clickable { on = !on; save() }, known)
             }
             SetupRow("Rotate every ${seconds}s", Modifier.parity("settings-display.name"), null) {
                 // The page's range (.settings-range): 5 to 60 seconds, 180 at most; the value beside it as it moves, saved once let go.
@@ -287,8 +294,10 @@ private fun DisplayPane(client: () -> ServerClient?, onBack: () -> Unit, info: (
 private fun ShelfPane(client: () -> ServerClient?, onBack: () -> Unit, info: (String) -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    var on by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) { readSetting(client, "shelf")?.let { on = it.optBoolean("enabled") } }
+    val kept = remember { keptSetting("shelf") }   // as last seen, then the server's (item 198)
+    var on by remember { mutableStateOf(kept?.optBoolean("enabled") ?: false) }
+    var known by remember { mutableStateOf(kept != null) }
+    LaunchedEffect(Unit) { readSetting(client, "shelf")?.let { on = it.optBoolean("enabled"); known = true } }
     SettingsFrame {
         SettingsHead(Modifier.parity("settings-shelf.back", Contract.label("settings-shelf.back")).clip(CircleShape).clickable(onClick = onBack), R.drawable.np_back,
             "Shelf", Modifier.parity("settings-shelf.heading"))
@@ -297,7 +306,7 @@ private fun ShelfPane(client: () -> ServerClient?, onBack: () -> Unit, info: (St
                 Toggle(on, Modifier.parity("settings-shelf.enabled", Contract.label("settings-shelf.enabled")).clickable {
                     val was = on; on = !on
                     saveSetting(scope, context, client, "shelf", JSONObject().put("enabled", on), null, undo = { on = was }, failed = "Couldn't change Shelf: ") { j -> on = j.optBoolean("enabled", on) }
-                })
+                }, known)
             }
         }
     }
@@ -329,9 +338,10 @@ internal fun SetupNote(text: String, modifier: Modifier) {
     Text(text, modifier.padding(top = 6.dp), color = paletteColor(Palette.TEXT_FAINT), fontSize = 12.sp, lineHeight = 17.4.sp)
 }
 
-/** A switch (.switch): 46 by 28, its 22 thumb dim on the raised ground, or white on the accent once on. */
+/** A switch (.switch): 46 by 28, its 22 thumb dim on the raised ground, or white on the accent once on; its room alone while not [known] (item 198). */
 @Composable
-internal fun Toggle(on: Boolean, modifier: Modifier) {
+internal fun Toggle(on: Boolean, modifier: Modifier, known: Boolean = true) {
+    if (!known) { Box(Modifier.size(46.dp, 28.dp)); return }
     Box(modifier.size(46.dp, 28.dp).clip(CircleShape).background(paletteColor(if (on) Palette.ACCENT else Palette.BG_ELEV_2))
         .border(1.dp, if (on) Color.Transparent else paletteColor(Palette.BORDER), CircleShape).padding(horizontal = 3.dp), contentAlignment = Alignment.CenterStart) {
         Box(Modifier.offset(x = if (on) 18.dp else 0.dp).size(22.dp).background(if (on) Color.White else paletteColor(Palette.TEXT_DIM), CircleShape))

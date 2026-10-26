@@ -233,7 +233,7 @@ class ServerClient(
      * the server has it ([route]: "discogs-token", "fanart-key", "lastfm-key"), and a new one saved (checked by its service).
      */
     fun updateStatus(): JSONObject = getJson("/api/update/status")
-    fun accountDevices(): AccountDevices = AccountDevices.parse(getJson("/api/auth/devices"))
+    fun accountDevices(): AccountDevices = AccountDevices.parse(getJson(AccountDevices.PATH))
     fun revokeDevice(id: String) { post("/api/auth/devices/revoke", JSONObject().put("id", id)) }
     fun apiKey(route: String): ApiKey = ApiKey.parse(getJson("/api/settings/$route"))
     fun saveApiKey(route: String, field: String, value: String): ApiKey {
@@ -252,7 +252,7 @@ class ServerClient(
     fun rebuildPicks(): JSONObject = post("/api/smart-picks/rebuild", JSONObject())
     fun rescanLabelsNow(): JSONObject = post("/api/labels/rescan-force", JSONObject())
     /** The server's built-in Tailscale (item 80), and [what] done to it ("enable" with {on}, "login", "logout"): its state after. */
-    fun tailscale(): AwayState = AwayState.parse(getJson("/api/tailscale"))
+    fun tailscale(): AwayState = AwayState.parse(getJson(AwayState.PATH))
     fun tailscaleDo(what: String, body: JSONObject = JSONObject()): AwayState = AwayState.parse(post("/api/tailscale/$what", body, 30_000))
 
     /** One of your playlists deleted (item 65), for good. */

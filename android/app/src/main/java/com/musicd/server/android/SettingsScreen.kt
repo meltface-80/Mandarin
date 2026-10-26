@@ -88,7 +88,7 @@ internal fun SettingsScreen(pane: String, client: () -> ServerClient?, onBack: (
 /** The pages the app draws itself (Setup's small ones in SettingsSetup.kt, item 78; Services, item 87); Setup is its list. */
 
 /** Settings' foot as last read (item 122). */
-private var lastVersion = "Mandarin"
+private var lastVersion = com.musicd.server.client.SettingsKept.last("/api/update/status") { SettingsLists.version(it) } ?: "Mandarin"
 
 @Composable
 private fun SettingsHome(client: () -> ServerClient?, onClose: () -> Unit, open: (String) -> Unit) {
