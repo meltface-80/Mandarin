@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- `204-folder-reread-on-screen` (item 204): the Android app read the phone's own music folder again every three
+  minutes for as long as the app's process lived, on screen or not: 179 reads in a day, most with the app in the
+  background. Off screen it now relies on Android's change notices for the folder alone, and reads again when it
+  comes back on screen; the read every few minutes is made while it is on screen only.
+
 - `203-idle-player-dormant` (item 203): the Android app's phone player, off screen and not playing for five minutes,
   asked to stop and nothing happened: Android keeps a media service bound (its media controls, Bluetooth's browsing,
   Android Auto), and a bound service isn't ended that way. It stayed up for as long as the app lived, its heartbeat
