@@ -105,22 +105,31 @@ public sealed partial class ScanCsharpTests(ScanCsharpTests.Book book) : IClassF
         public readonly Dictionary<string, (long Size, double MtimeMs)> Stats = [];
         public readonly Dictionary<string, JsonNode?> Seconds = [];
 
-        private static (long, double)? Stat(string p)
+        // Each file's length and time as Node's fs.statSync gives them (mtimeMs: seconds × 1000 + nanoseconds ÷ 10⁶, the
+        // figure a cover's key is made from), asked of node itself in one go. The stat command gave them until item 205:
+        // Ubuntu 26.04's runners carry uutils' stat (0.10.0), whose %.9Y gives the nanoseconds rounded to the tenth of
+        // a microsecond (.441316400 for 441316361), so a key made from its figure matched the server's only for the
+        // files whose time happened to be round.
+        private void StatAll(IReadOnlyList<string> paths)
         {
-            // GNU's stat, or a Mac's (BSD's: -f, %z the length, %m and %Fm the time; item 153).
-            string[] args = OperatingSystem.IsMacOS() ? ["-L", "-f", "%z|%m|%.9Fm", p] : ["-L", "-c", "%s|%Y|%.9Y", p];
-            var psi = new ProcessStartInfo("stat", args) { RedirectStandardOutput = true, RedirectStandardError = true };
+            if (paths.Count == 0) return;
+            var psi = new ProcessStartInfo("node") { RedirectStandardInput = true, RedirectStandardOutput = true, RedirectStandardError = true, UseShellExecute = false };
+            psi.ArgumentList.Add("-e");
+            psi.ArgumentList.Add("const fs=require('fs');let s='';process.stdin.setEncoding('utf8');process.stdin.on('data',d=>s+=d).on('end',()=>{"
+                + "for(const p of s.split('\\n').filter(Boolean)){try{const t=fs.statSync(p);console.log(JSON.stringify({p,size:t.size,ms:t.mtimeMs}))}catch{}}})");
             using var x = Process.Start(psi)!;
-            var line = x.StandardOutput.ReadToEnd().Trim();
+            var output = x.StandardOutput.ReadToEndAsync();
+            x.StandardInput.Write(string.Join("\n", paths) + "\n");
+            x.StandardInput.Close();
             x.WaitForExit();
-            if (x.ExitCode != 0) return null;
-            var parts = line.Split('|');
-            var sec = double.Parse(parts[1], CultureInfo.InvariantCulture);
-            var ns = parts[2].Contains('.') ? double.Parse(parts[2].Split('.')[1].PadRight(9, '0')[..9], CultureInfo.InvariantCulture) : 0;
-            return (long.Parse(parts[0], CultureInfo.InvariantCulture), sec * 1000 + ns / 1e6);
+            foreach (var l in output.Result.Split('\n').Where(l => l.Length > 0))
+            {
+                var o = JsJson.Parse(l)!;
+                Stats[o.Str("p")!] = ((long)o.Num("size")!, (double)o.Num("ms")!);
+            }
         }
 
-        private void Walk(string dir, HashSet<string> seen)
+        private void Walk(string dir, HashSet<string> seen, List<string> files)
         {
             string[] names;
             try { names = Directory.GetFileSystemEntries(dir); } catch (Exception e) when (e is IOException or UnauthorizedAccessException) { return; }
@@ -131,15 +140,17 @@ public sealed partial class ScanCsharpTests(ScanCsharpTests.Book book) : IClassF
                 if (isDir)
                 {
                     bool link = new DirectoryInfo(p).LinkTarget != null;
-                    if (!link || !seen.Contains(p)) { seen.Add(p); Walk(p, seen); }
+                    if (!link || !seen.Contains(p)) { seen.Add(p); Walk(p, seen, files); }
                 }
-                else if (Stat(p) is { } st) Stats[p] = st;
+                else files.Add(p);
             }
         }
 
         public async Task Look()
         {
-            Walk(music, []);
+            var files = new List<string>();
+            Walk(music, [], files);
+            StatAll(files);
             var lossy = Stats.Keys.Where(p => Regex.IsMatch(p, @"\.(mp3|m4a)$", RegexOptions.IgnoreCase) && File.Exists(p)).ToList();
             if (lossy.Count == 0) return;
             var r = await ServerCommand.Run(["tags"], stdin: string.Join("\n", lossy));
