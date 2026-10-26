@@ -18,7 +18,7 @@ const idle = fs.readFileSync(path.join(ROOT, "core/src/main/kotlin/com/musicd/se
 
 test("the heartbeat stops the player when it has not played for a while and the app is off screen", () => {
   assert.match(svc, /private val idle = PlayerIdle \{ android\.os\.SystemClock\.elapsedRealtime\(\) \}/, "a clock that counts the phone's sleep");
-  assert.match(svc, /val playing = player\.playWhenReady && player\.playbackState in Player\.STATE_BUFFERING\.\.Player\.STATE_READY\s+if \(idle\.stop\(playing, NativeShell\.onScreen\.value\)\) \{ AppLog\.line\("APP", "[^"]+"\); stopSelf\(\) \}\s+if \(running\) main\.postDelayed\(this, 10_000\)/);
+  assert.match(svc, /val playing = player\.playWhenReady && player\.playbackState in Player\.STATE_BUFFERING\.\.Player\.STATE_READY\s+if \(idle\.stop\(playing, NativeShell\.onScreen\.value\)\) dormant\(\)[^\n]*\n\s+if \(running\) main\.postDelayed\(this, 10_000\)/, "stopped by going dormant (item 203): stopSelf alone did nothing while Android kept the service bound");
 });
 
 test("before Media3 lets the paused service out of the foreground, ten minutes after the pause", () => {

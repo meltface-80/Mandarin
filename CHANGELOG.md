@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- `203-idle-player-dormant` (item 203): the Android app's phone player, off screen and not playing for five minutes,
+  asked to stop and nothing happened: Android keeps a media service bound (its media controls, Bluetooth's browsing,
+  Android Auto), and a bound service isn't ended that way. It stayed up for as long as the app lived, its heartbeat
+  every ten seconds and its long poll of the server's commands every 25 seconds, and said it was stopping every five
+  minutes. It now goes dormant: the heartbeat and the long poll end, and it still asks to stop, for Android to end it
+  once nothing has it bound. A play from the app, a download, a controller connecting or a Bluetooth play wakes it.
+
 - `202-engine-idle-at-home` (item 202): on 26 Oct Android ended the Android app in the background for "excessive CPU
   usage, caused by child process": the one process Mandarin runs beside itself, its own Tailscale engine, had used 131
   seconds of CPU in five minutes while the app sat swiped away at home. At home the engine was kept joined and idle
