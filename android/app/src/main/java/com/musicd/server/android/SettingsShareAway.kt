@@ -36,6 +36,7 @@ import com.musicd.server.client.Contract
 import com.musicd.server.client.LinkToggle
 import com.musicd.server.client.Palette
 import com.musicd.server.client.ServerClient
+import com.musicd.server.client.SettingsKept
 import com.musicd.server.client.ShareCard
 import com.musicd.server.client.ShareLinkSettings
 import com.musicd.server.client.WallPrefs
@@ -61,7 +62,8 @@ import org.json.JSONObject
 internal fun ShareCardPane(client: () -> ServerClient?, onBack: () -> Unit, info: (String) -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    var links by remember { mutableStateOf<ShareLinkSettings?>(null) }
+    // As last seen, then the server's (item 198): before, no services and Review on until the server answered.
+    var links by remember { mutableStateOf(keptSetting("share-links")?.let { runCatching { ShareLinkSettings.parse(it) }.getOrNull() }) }
     var service by remember { mutableStateOf(ShareKept.service ?: WallPrefs.parse(NativeShell.prefs).shareService) }
     LaunchedEffect(Unit) { readSetting(client, "share-links")?.let { links = ShareLinkSettings.parse(it) } }
     fun save(patch: JSONObject) = saveSetting(scope, context, client, "share-links", patch, null, undo = {}, failed = "Couldn't save that: ")
@@ -133,8 +135,10 @@ internal fun ShareCardPane(client: () -> ServerClient?, onBack: () -> Unit, info
 internal fun AwayPane(client: () -> ServerClient?, onBack: () -> Unit, info: (String) -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    var st by remember { mutableStateOf<AwayState?>(null) }
-    var read by remember { mutableStateOf(false) }
+    // As last seen, then the server's (item 198): before, nothing of the server's until it answered.
+    var st by remember { mutableStateOf(SettingsKept.last(AwayState.PATH) { AwayState.parse(it) }) }
+    var read by remember { mutableStateOf(st != null) }
+    var missed by remember { mutableStateOf(0) }
     var busy by remember { mutableStateOf(false) }
     var err by remember { mutableStateOf("") }
     // While the app is on screen (item 120: every three seconds behind the Tailscale app too, while signing in there).
@@ -142,7 +146,9 @@ internal fun AwayPane(client: () -> ServerClient?, onBack: () -> Unit, info: (St
     LaunchedEffect(onScreen) {
         if (!onScreen) return@LaunchedEffect
         while (true) {
-            if (!busy) client()?.let { c -> st = withContext(Dispatchers.IO) { runCatching { c.tailscale() }.getOrNull() }; read = true }
+            // One read not answered keeps the page as it was; two in a row say the server can't be reached.
+            if (!busy) client()?.let { c -> val got = withContext(Dispatchers.IO) { runCatching { c.tailscale() }.getOrNull() }
+                missed = if (got == null) missed + 1 else 0; if (got != null || missed > 1) st = got; read = true }
             delay(3000)
         }
     }

@@ -47,6 +47,8 @@ import com.musicd.server.client.LibraryClient
 import com.musicd.server.client.ListedRow
 import com.musicd.server.client.Palette
 import com.musicd.server.client.ServerClient
+import com.musicd.server.client.HomeRows
+import com.musicd.server.client.SettingsKept
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -59,13 +61,18 @@ import kotlinx.coroutines.withContext
  * it passes stepping past it; let go, the order is saved, as a switch is at once, and native Home takes it from the answer.
  */
 
+/** The rows as the server last said, every row in (item 198); none if never read. */
+private fun keptRows(): List<HomeRow> =
+    SettingsKept.last("/api/settings/home-rows") { HomeRowsSettings.complete(HomeRows.parse(it), HomeKept.ROW_IDS) } ?: emptyList()
+
 /** Settings' Home Screen ([client]: the server's, [onBack]: back to Setup). */
 @Composable
 internal fun HomeScreenPane(client: () -> ServerClient?, onBack: () -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var prefs by remember { mutableStateOf(pagePrefs(context)) }
-    val rows = remember { mutableStateListOf<HomeRow>().apply { addAll(HomeKept.layout) } }
+    // As last seen (this run's Home, else the last answer kept), then the server's (item 198).
+    val rows = remember { mutableStateListOf<HomeRow>().apply { addAll(HomeKept.layout.ifEmpty { keptRows() }) } }
     var downloaded by remember { mutableStateOf(0) }
     var dragging by remember { mutableStateOf<String?>(null) }
     var dy by remember { mutableFloatStateOf(0f) }
@@ -76,7 +83,7 @@ internal fun HomeScreenPane(client: () -> ServerClient?, onBack: () -> Unit) {
         HomeKept.readLayout(LibraryClient { c.getJson(it) })?.let(::show)
     }
     LaunchedEffect(Unit) {
-        downloaded = withContext(Dispatchers.IO) { runCatching { DownloadTiles.list(context).size }.getOrDefault(0) }
+        launch { downloaded = withContext(Dispatchers.IO) { runCatching { DownloadTiles.list(context).size }.getOrDefault(0) } }
         reload()
     }
     // Saved at once (the page's saveHomeRows), and Home laid out from it before the answer comes; the server's answer drawn

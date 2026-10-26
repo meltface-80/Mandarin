@@ -91,11 +91,12 @@ private fun ServiceBlock(service: String, client: () -> ServerClient?, info: (St
     val scope = rememberCoroutineScope()
     val tidal = service == "tidal"
     val name = ServiceSettings.name(service)
-    var account by remember { mutableStateOf<ServiceAccount?>(null) }
+    val dates = remember { DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT) }
+    // As last seen, then the server's (item 198): before, the service's name alone until the server answered.
+    var account by remember { mutableStateOf(keptSetting(service)?.let { j -> runCatching { ServiceSettings.parse(service, j, { dates.format(Date(it)) }) }.getOrNull() }) }
     var busy by remember { mutableStateOf(false) }
     var updating by remember { mutableStateOf(false) }
     var said by remember { mutableStateOf<String?>(null) }
-    val dates = remember { DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT) }
     fun show(j: JSONObject) { account = ServiceSettings.parse(service, j, { dates.format(Date(it)) }); said = null }
     suspend fun load() { readSetting(client, service)?.let(::show) }
     // Asked again while a Tidal sign-in is waited for, or the library is being brought in (the page's two and four seconds).

@@ -28,7 +28,8 @@ test("what the screens ask again and again is asked only while the app is on scr
   const notices = read("NoticeBanners.kt");
   assert.match(notices, /LaunchedEffect\(again, onScreen\) \{ if \(onScreen\) Notices\.watch\(client\) \}/, "the server's status");
   assert.match(notices, /LaunchedEffect\(onScreen\) \{ if \(onScreen\) UpdateNow\.watch\(\) \}/, "the update offer");
-  assert.match(read("SettingsShareAway.kt"), /LaunchedEffect\(onScreen\) \{\s+if \(!onScreen\) return@LaunchedEffect\s+while \(true\) \{\s+if \(!busy\) client\(\)\?\.let \{ c -> st = withContext\(Dispatchers\.IO\) \{ runCatching \{ c\.tailscale\(\) \}/, "the Tailscale status");
+  // One read not answered keeps the page as it was; two in a row say the server can't be reached (item 198).
+  assert.match(read("SettingsShareAway.kt"), /LaunchedEffect\(onScreen\) \{\s+if \(!onScreen\) return@LaunchedEffect\s+while \(true\) \{\s+\/\/[^\n]*\n\s+if \(!busy\) client\(\)\?\.let \{ c -> val got = withContext\(Dispatchers\.IO\) \{ runCatching \{ c\.tailscale\(\) \}\.getOrNull\(\) \}\s+missed = if \(got == null\) missed \+ 1 else 0; if \(got != null \|\| missed > 1\) st = got; read = true \}/, "the Tailscale status");
 });
 
 test("the notification looks at the rooms now and then, not before every wait on the room", () => {
