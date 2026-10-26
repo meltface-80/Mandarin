@@ -103,4 +103,17 @@ class ExitReportTest {
         val lines = (1..10).map { "line $it" }
         assertTrue(ExitReport.engineText(2, lines, "now").endsWith("Its last lines:\n" + (3..10).joinToString("\n") { "line $it" }))
     }
+
+    @Test
+    fun `ended for a child process's CPU, the note names the engine (item 202)`() {
+        val words = "[EXCESSIVE CPU USAGE] Caused by child process: excessive cpu 131180 during 300059 dur=250359 limit=25"
+        val e = exit(5, ExitReport.EXCESSIVE_RESOURCE_USAGE, ExitReport.CACHED, words)
+        assertTrue(ExitReport.childProcess(e))
+        val t = ExitReport.text(e, "26 Oct 2026 15:25")
+        assertTrue(t, t.contains("Android's words: " + words))
+        assertTrue(t, t.endsWith(ExitReport.CHILD))
+        val own = exit(6, ExitReport.EXCESSIVE_RESOURCE_USAGE, ExitReport.CACHED, "[EXCESSIVE CPU USAGE] excessive cpu 90000 during 300000")
+        assertFalse(ExitReport.childProcess(own))
+        assertFalse(ExitReport.text(own, "x").contains(ExitReport.CHILD))
+    }
 }

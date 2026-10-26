@@ -7,7 +7,9 @@ import android.net.Network
 import android.net.NetworkCapabilities
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
 import android.util.Log
+import com.musicd.server.client.EngineIdle
 import com.musicd.server.client.Route
 import com.musicd.server.client.ServerAddress
 import com.musicd.server.client.ServerId
@@ -42,6 +44,8 @@ object Away {
     private val main = Handler(Looper.getMainLooper())
     private val listeners = CopyOnWriteArrayList<(Boolean) -> Unit>()
     @Volatile private var watching = false
+    /** The app, for a look at the way made on a timer ([lookAgain]). */
+    @Volatile private var app: Context? = null
     @Volatile private var pending = false
     /** Tailscale was switched on by this app, so it may switch it off at home. */
     @Volatile private var weConnected = false
@@ -64,6 +68,7 @@ object Away {
     /** Follow the phone's network from now on (once per process). */
     fun watch(context: Context) {
         val app = context.applicationContext
+        this.app = app
         if (!watching) {
             watching = true
             val cm = app.getSystemService(ConnectivityManager::class.java)
@@ -199,15 +204,15 @@ object Away {
             }
         }
         if (!away) {
-            // Home: the engine stays joined, idle, so leaving the house needn't
-            // wait for it to start (see [keepReady] below).
+            // Home: the engine is kept only while the phone's player is playing, and stopped once it has been idle
+            // a while (item 202, [engineAtHome]).
             if (homeAnswers && weConnected) {
                 // Tailscale goes off if this app turned it on.
                 tailscale(c, connect = false)
                 weConnected = false
             }
         }
-        if (!away && awayAt != null) keepReady(c, "${awayAt.host}:${awayAt.port}")
+        if (!away && awayAt != null) engineAtHome(c, "${awayAt.host}:${awayAt.port}") else engineIdle.verdict(away = true, inUse = true)
         // Over the engine the first look is over once it has been brought up ([repair]).
         return if (away && way.viaEngine && awayAt != null) away else looked(away)
     }
@@ -252,11 +257,32 @@ object Away {
     /** The listeners told the way now ([away]): changed, or come up (the screens look for the server on it again). */
     private fun tell(away: Boolean) { main.post { for (l in listeners) runCatching { l(away) } } }
 
+    private val engineIdle = EngineIdle { SystemClock.elapsedRealtime() }
+
     /**
-     * At home: MusicD's own Tailscale connection joined and its way to the
-     * server open, but unused — so the moment the Wi-Fi goes, the way away is
-     * already there. Idle, it costs little; it ends with the app's process.
-     * Only for a phone signed in to it.
+     * At home, the engine's fate (item 202): kept joined and forwarding while the phone's player is playing, so that
+     * walking out keeps the music going; otherwise stopped once it has been idle for the grace. Before, it was kept for
+     * as long as the app's process lived, and on 26 Oct Android ended the app for the engine's CPU while both sat in
+     * the background. The next look is made on a timer, since nothing else need happen at home.
+     */
+    private fun engineAtHome(c: Context, target: String) {
+        val playing = runCatching { PhonePlayerService.current?.offlineState()?.state == "playing" }.getOrDefault(false)
+        when (engineIdle.verdict(away = false, inUse = playing)) {
+            EngineIdle.Verdict.KEEP -> { keepReady(c, target); lookAgain(5 * 60_000L) }
+            EngineIdle.Verdict.WAIT -> if (TailscaleEngine.alive()) lookAgain(engineIdle.remaining() + 500)
+            EngineIdle.Verdict.STOP -> if (TailscaleEngine.alive()) TailscaleEngine.stop("idle at home for ${EngineIdle.GRACE_MS / 60_000} min")
+        }
+    }
+
+    private val lookAgainRun = Runnable { app?.let { a -> work.execute { check(a) } } }
+
+    /** The way looked at again in [inMs], once however often asked. */
+    private fun lookAgain(inMs: Long) { main.removeCallbacks(lookAgainRun); main.postDelayed(lookAgainRun, inMs) }
+
+    /**
+     * MusicD's own Tailscale connection joined and its way to the server open, but unused, so the moment the Wi-Fi
+     * goes the way away is already there. Only for a phone signed in to it; at home only while the phone plays
+     * ([engineAtHome], item 202).
      */
     private fun keepReady(c: Context, target: String) {
         if (!TailscaleEngine.signedIn(c)) return

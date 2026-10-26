@@ -13,9 +13,6 @@
     "android/app/src/main/java/com/musicd/server/android/PhonePlayerService.kt": {
       "lines": 1440
     },
-    "android/musicdnet/main.go": {
-      "lines": 401
-    },
     "engine/Mandarin.Audio/Engine.cs": {
       "lines": 502
     },
