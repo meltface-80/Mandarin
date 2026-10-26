@@ -70,7 +70,13 @@ object ExitReport {
     /** What the next start says of it; [time] is when, as the phone writes a date. */
     fun text(e: AppExit, time: String): String =
         "Android ended Mandarin (${reason(e.reason)}) while it was ${importance(e.importance)}, $time." +
-            (e.description?.takeIf { it.isNotBlank() }?.let { "\nAndroid's words: $it" } ?: "")
+            (e.description?.takeIf { it.isNotBlank() }?.let { "\nAndroid's words: $it" } ?: "") +
+            (if (childProcess(e)) "\n$CHILD" else "")
+
+    /** Android ended the app for what a child process did: the one process Mandarin runs beside itself is the Tailscale engine (item 202). */
+    fun childProcess(e: AppExit): Boolean = e.description?.contains("Caused by child process") == true
+
+    const val CHILD = "The child process is Mandarin's own Tailscale engine: it was using the CPU, and Android ended the app with it."
 
     fun reason(r: Int): String = when (r) {
         EXIT_SELF -> "it closed itself"
