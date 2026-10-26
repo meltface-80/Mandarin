@@ -45,6 +45,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.Layout
@@ -259,7 +260,9 @@ internal class ShareState(private val title: String, private val artist: String,
         try {
             withContext(Dispatchers.IO) {
                 val full = async { runCatching { lib.shareCard(title, artist, false) }.getOrNull() }
-                val cover = async { imageKey?.let { k -> runCatching { c.bytes(c.imageUrl(k, 800)).let { BitmapFactory.decodeByteArray(it, 0, it.size) } }.getOrNull() } }
+                // One of the phone's own albums has its cover on the phone; the server, which has never seen it, has none (item 197).
+                val cover = async { imageKey?.let { k -> if (ShareCard.phoneCover(k)) LocalMusic.load(context).let { Covers.phone(context, k, 800)?.asAndroidBitmap() }
+                    else runCatching { c.bytes(c.imageUrl(k, 800)).let { BitmapFactory.decodeByteArray(it, 0, it.size) } }.getOrNull() } }
                 val logo = async { runCatching { c.bytes(c.address.baseUrl + "/icons/duck-tile.png").let { BitmapFactory.decodeByteArray(it, 0, it.size) } }.getOrNull() }
                 val first = runCatching { lib.shareCard(title, artist, true) }.getOrNull() ?: CardFields.NONE
                 paint(painter, first, cover.await(), logo.await())

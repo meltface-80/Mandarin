@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+- `197-phone-album-cover-and-now-playing` (item 197): the phone's own music (Settings → Music Folders, Music on this
+  phone), which the server has never seen, on the Android app.
+  - Its share card had no cover: the card asked the server for the album's cover, and the server has none. A phone
+    album's cover is read from the phone now, as its page and Now playing already read it.
+  - Its name on Now playing said "Album not yet indexed — try again in a moment": a tap searched the server's library
+    for it, and it is never there. Playing on the phone from its own music, a tap opens the phone's own page of the
+    album; anything else is found in the library as before.
+
 ## v1.1.9
 
 **A full review: safer, steadier playback, a sturdier app.** No new features: a review of the whole of Mandarin (the
