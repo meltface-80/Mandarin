@@ -38,6 +38,8 @@ internal object AppLog {
     @Volatile private var dir: File? = null
     @Volatile private var app: Context? = null
     @Volatile private var logcat: Process? = null
+    /** The Tailscale engine's CPU time at the last snapshot (item 202). */
+    @Volatile private var lastEngineCpu: Double? = null
     private var out: FileWriter? = null
     /** Switched on (Settings → Setup → Logging); off, nothing is collected. */
     @Volatile var on = false
@@ -188,6 +190,12 @@ internal object AppLog {
             PhonePlayerService.current?.offlineState()?.let { p ->
                 line("SNAP", "phone player: ${p.state}, track ${p.index} of ${p.items.size}, at ${p.position} of ${p.duration}, volume ${p.volume}, revision ${p.revision}")
             } ?: line("SNAP", "phone player: not running")
+            // The engine's CPU time, and how much since the last snapshot (item 202: Android ended the app for it, unseen).
+            line("SNAP", "engine: " + (TailscaleEngine.cpuSeconds()?.let { cpu ->
+                val since = lastEngineCpu?.let { " (+%.1f s since the last snapshot)".format(cpu - it) }.orEmpty()
+                lastEngineCpu = cpu
+                "running, cpu %.1f s%s".format(cpu, since)
+            } ?: run { lastEngineCpu = null; "not running" }))
         }, "applog-snap").apply { isDaemon = true; start() }
     }
 
