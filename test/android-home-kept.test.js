@@ -26,7 +26,24 @@ test("the menu's items and the row's buttons go back to Home through the one ste
   assert.match(step, /if \(nav\.popBackStack\(ShellRoute\.HOME, false\) \|\| nav\.currentDestination\?\.route == ShellRoute\.HOME\) return/);
   assert.match(step, /nav\.navigate\(ShellRoute\.home\(/, "a stack without Home gets it back");
   assert.doesNotMatch(step, /nav\.popBackStack\(\)/);
+  // Since item 199 the menu's items and the row's Library, Artists and Search open their screen over Home in one
+  // navigation (overHome): Home got back if the stack lost it, then popUpTo(HOME), never inclusive, so Home stays
+  // under the screen opened; nothing in either taps popBackStack, and nothing navigates past that one step.
+  const over = routes.slice(routes.indexOf("internal fun overHome("), routes.indexOf("\n}\n", routes.indexOf("internal fun overHome(")));
+  assert.match(over, /if \(runCatching \{ nav\.getBackStackEntry\(ShellRoute\.HOME\) \}\.isFailure\) toHome\(nav\)/, "a stack without Home gets it back first");
+  assert.match(over, /nav\.navigate\(route\) \{ popUpTo\(ShellRoute\.HOME\) \}/);
+  assert.doesNotMatch(over, /inclusive = true|popBackStack\(/, "Home is never popped");
   const menu = read("MenuDrawer.kt");
-  assert.match(menu.slice(menu.indexOf("internal fun menuTap(")), /if \(what == "shelf"\) \{ openShelf\(context\); return \}\s+toHome\(nav\)/);
-  assert.match(routes.slice(routes.indexOf("internal fun navTap(")), /^internal fun navTap\(nav: NavHostController, what: String\) \{\s+(AppLog\.line\("ROW", "button \$what"\)\s+)?toHome\(nav\)/);
+  const tap = menu.slice(menu.indexOf("internal fun menuTap("), menu.indexOf("\n}\n", menu.indexOf("internal fun menuTap(")));
+  assert.match(tap, /if \(what == "shelf"\) \{ openShelf\(context\); return \}/);
+  for (const item of ["playlists", "smart-playlists", "later", "pitchfork", "labels", "qobuz", "tidal", "settings"])
+    assert.match(tap, new RegExp('"' + item + '"[^\\n]*-> overHome\\(nav, '), item);
+  assert.doesNotMatch(tap, /popBackStack\(|nav\.navigate\(/, "every item goes through overHome");
+  const row = routes.slice(routes.indexOf("internal fun navTap("), routes.indexOf("\n}\n", routes.indexOf("internal fun navTap(")));
+  assert.match(row, /"home" -> \{ toHome\(nav\); NativeShell\.landHome\(\) \}/);
+  assert.match(row, /"library" -> overHome\(nav, ShellRoute\.library\(/);
+  assert.match(row, /"artists" -> overHome\(nav, ShellRoute\.artists\(/);
+  assert.match(row, /"search" -> \{ SearchKept\.reset\(""\); overHome\(nav, ShellRoute\.search\(/);
+  assert.match(row, /"menu" -> \{ toHome\(nav\); NativeShell\.menuOpen\.value = true \}/);
+  assert.doesNotMatch(row, /popBackStack\(|nav\.navigate\(/);
 });

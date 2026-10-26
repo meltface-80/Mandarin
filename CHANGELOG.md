@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- `199-no-gaps-between-screens` (item 199): on the Android app, tapping Settings in the side menu, or Library or Artists
+  in the row, showed Home for a moment: the menu went at once, every screen over Home was closed, and only then was the
+  next one opened. An album opened from Now playing or Pitchfork, and the Playlists from a playlist opened elsewhere,
+  closed the screen first and opened after, showing what was under it for a frame.
+  - The screen chosen opens over Home in one step, the screens between taken away with it; a screen that takes
+    another's place does so in one step too.
+  - The menu stays until the screen chosen has been drawn under it, then slides away over it with its dim fading; a
+    tap on it or beside it while it goes does nothing.
+
 - `198-settings-open-as-last-seen` (item 198): the Android app's Settings pages opened with their defaults and changed
   as the server answered. Account drew Ask for a sign-in on, then off, with Change password and Sign out of this
   device shown and then taken away. Music Folders had no folders, and its Music on this phone said "No folder chosen".

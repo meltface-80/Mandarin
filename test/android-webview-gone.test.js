@@ -58,7 +58,8 @@ test("what the screens handed to the page is the app's own", () => {
 test("Now playing's album found as the page found it, the Shelf in the browser, the old update dialog gone", () => {
   assert.match(read(APP + "NowPlayingScreen.kt"), /findNowAlbum\(client, zoneId, v\.album, v\.artist\)\?\.let \{ onPage\("album", it\.toString\(\)\) \} \?: Toast\.makeText\(context, NowAlbum\.NOT_INDEXED/);
   assert.match(read(APP + "ShellHand.kt"), /NowAlbum\.playing\(c\.getJson\("\/api\/album\/now-playing\?zone="[\s\S]*NowAlbum\.match\(c\.getJson\(NowAlbum\.searchPath\(a\)\), a, artist\)/);
-  assert.match(read(APP + "ShellRoutes.kt"), /what == "album" && arg != null && arg\.toLongOrNull\(\) != null -> \{ nav\.popBackStack\(\); nav\.navigate\(ShellRoute\.album\(arg\.toLong\(\)/);
+  // In Now playing's place in one step (item 199: inPlace), not closed first and opened after.
+  assert.match(read(APP + "ShellRoutes.kt"), /what == "album" && arg != null && arg\.toLongOrNull\(\) != null -> inPlace\(nav, ShellRoute\.album\(arg\.toLong\(\)/);
   assert.match(read(APP + "MenuDrawer.kt"), /if \(what == "shelf"\) \{ openShelf\(context\); return \}/);
   assert.match(read(APP + "ShellHand.kt"), /Uri\.parse\("\$base\/shelf"\)/);
   const upd = read(APP + "AppUpdate.kt");
