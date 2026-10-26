@@ -21,6 +21,14 @@ data class PackView(val state: String, val error: String?, val buttons: List<Sca
  * (/api/identify, /api/loudness, /api/cpu, /api/library/cleanup, /api/identify/pack); numbers as the phone writes them.
  */
 object Scanner {
+    /** The scanner's state [st] with [patch] laid over its settings (a switch tapped, item 200): shown at once, the server's answer taking its place. */
+    fun withSettings(st: JSONObject?, patch: JSONObject): JSONObject? = st?.let { s ->
+        JSONObject(s.toString()).also { c -> val set = c.optJSONObject("settings") ?: JSONObject().also { c.put("settings", it) }; patch.keys().forEach { k -> set.put(k, patch.get(k)) } }
+    }
+
+    /** The loudness state [loud] with measuring switched [on] (item 200). */
+    fun withMeasure(loud: JSONObject?, on: Boolean): JSONObject? = withSettings(loud, JSONObject().put("measure", on))
+
     /** A count as the phone writes it (the page's toLocaleString). */
     fun num(n: Long, locale: Locale = Locale.getDefault()): String = NumberFormat.getIntegerInstance(locale).format(n)
     private fun num(n: Int, locale: Locale) = num(n.toLong(), locale)

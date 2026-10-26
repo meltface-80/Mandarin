@@ -27,6 +27,9 @@ data class DeviceRow(
 
 /** The list as the server answered (GET /api/audio-devices): its rows, away from home or not, what can't be opened, what went wrong. */
 data class DeviceList(val rows: List<DeviceRow>, val away: Boolean, val localNote: String, val error: String) {
+    /** This list with the device [id] switched [on] (its row's switch tapped, item 200): shown at once, the list read again after. */
+    fun withEnabled(id: String, on: Boolean): DeviceList = copy(rows = rows.map { if (it.id == id) it.copy(enabled = on) else it })
+
     val shown: List<DeviceRow> get() = rows.filter { !it.hidden }
     val hidden: List<DeviceRow> get() = rows.filter { it.hidden }
 }

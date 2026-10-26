@@ -71,6 +71,7 @@ import org.json.JSONObject
 private const val SCAN = "/api/identify?lists=0"
 private const val LOUD = "/api/loudness"
 private const val CLEANUP = "/api/library/cleanup"
+private const val SCAN_SETTINGS = "/api/identify/settings"
 
 internal class ScanKept {
     var st by mutableStateOf<JSONObject?>(null)
@@ -167,8 +168,11 @@ internal fun SettingsScanner(client: () -> ServerClient?, onBack: () -> Unit) {
                     Toggle(measuring, Modifier.parity("settings-scanner.measure", Contract.label("settings-scanner.measure")).clickable(enabled = loud != null && !k.busy) {
                         val c = client() ?: return@clickable
                         k.busy = true
-                        val made = ServerWrites.write { c.post("/api/loudness", JSONObject().put("measure", !measuring)) }
-                        scope.launch { ServerWrites.await(made).onSuccess { k.loud = it; k.err = "" }.onFailure { k.err = com.musicd.server.client.Failure.said(it, "Couldn't reach the server") }; k.busy = false }
+                        // Moved as it is tapped (item 200); back where it was if refused.
+                        val before = loud
+                        k.loud = Scanner.withMeasure(before, !measuring)
+                        val made = ServerWrites.write { c.post(LOUD, JSONObject().put("measure", !measuring)) }
+                        scope.launch { ServerWrites.await(made).onSuccess { k.loud = it; k.err = "" }.onFailure { k.loud = before; k.err = com.musicd.server.client.Failure.said(it, "Couldn't reach the server") }; k.busy = false }
                     })
                 }
                 ScanNote("Loudness for your files without ReplayGain tags.")
@@ -244,14 +248,17 @@ internal fun scanAct(k: ScanKept, client: () -> ServerClient?, scope: CoroutineS
     if (k.busy) return
     val c = client() ?: return
     k.busy = true
+    // A setting's switch moved as it is tapped (item 200), the server's answer taking its place; back where it was if refused.
+    val before = k.st
+    if (path == SCAN_SETTINGS) k.st = Scanner.withSettings(before, body)
     val made = ServerWrites.write { c.post(path, body, 120_000) }
     scope.launch {
         ServerWrites.await(made).onSuccess { st ->
             k.st = st; k.err = ""; done?.let { setupToast(context, it) }
             if (st.has("proposed")) { k.lists = st; k.listsAt = Scanner.countsOf(st) }
-            if (path == "/api/library/cleanup") scanLoad(k, client, scope, true)
+            if (path == CLEANUP) scanLoad(k, client, scope, true)
             then()
-        }.onFailure { k.err = com.musicd.server.client.Failure.said(it, "Couldn't reach the server") }
+        }.onFailure { if (path == SCAN_SETTINGS) k.st = before; k.err = com.musicd.server.client.Failure.said(it, "Couldn't reach the server") }
         k.busy = false
     }
 }

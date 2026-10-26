@@ -94,9 +94,13 @@ internal fun DevicePane(id: String, client: () -> ServerClient?, onBack: () -> U
         val c = client() ?: return
         if (busy) return
         busy = true
+        // Shown with the change at once (item 200), the server's answer taking its place; back as it was if refused.
+        val before = page
+        page = before?.with(body)
         val made = ServerWrites.write { c.patch(devicePath(id), body) }
         scope.launch {
-            ServerWrites.await(made).onSuccess { page = DevicePage(it); error = ""; said?.let { s -> setupToast(context, s(page!!)) } }.onFailure { error = com.musicd.server.client.Failure.said(it, "") }
+            ServerWrites.await(made).onSuccess { page = DevicePage(it); error = ""; said?.let { s -> setupToast(context, s(page!!)) } }
+                .onFailure { page = before; error = com.musicd.server.client.Failure.said(it, "") }
             busy = false
         }
     }

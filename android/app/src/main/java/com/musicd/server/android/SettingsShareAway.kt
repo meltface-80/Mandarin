@@ -156,9 +156,12 @@ internal fun AwayPane(client: () -> ServerClient?, onBack: () -> Unit, info: (St
         val c = client() ?: return
         if (busy) return
         busy = true; err = ""
+        // The switch moved as it is tapped (item 200), the server's answer taking its place; back where it was if refused.
+        val before = st
+        if (what == "enable") st = before?.copy(enabled = body.optBoolean("on"))
         scope.launch {
             withContext(Dispatchers.IO) { runCatching { c.tailscaleDo(what, body) } }
-                .onSuccess { st = it; if (what == "login" && it.authUrl.isNotEmpty()) open(context, it.authUrl) }.onFailure { err = com.musicd.server.client.Failure.said(it, "no answer") }
+                .onSuccess { st = it; if (what == "login" && it.authUrl.isNotEmpty()) open(context, it.authUrl) }.onFailure { st = before; err = com.musicd.server.client.Failure.said(it, "no answer") }
             busy = false
         }
     }

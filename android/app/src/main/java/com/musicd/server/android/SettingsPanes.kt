@@ -109,12 +109,15 @@ internal fun SettingsAccount(client: () -> ServerClient?, onBack: () -> Unit) {
                     val want = !open
                     if (!want && !hasAccount) { context.startActivity(Intent(context, SignInActivity::class.java).putExtra(SignInActivity.EXTRA_CREATE, true)); return@clickable }
                     val c = client() ?: return@clickable
+                    // Moved as it is tapped (item 200), the server's answer taking its place; back where it was if refused.
+                    val before = ask
+                    ask = before?.withOpen(want)
                     busy = "ask"
                     scope.launch {
                         val r = withContext(Dispatchers.IO) { runCatching { Account(c).setOpen(want); Account(c).status() } }
                         busy = null
                         r.onSuccess { ask = it; toast(if (want) "Sign-in off at home and on your tailnet" else "Sign-in asked for again") }
-                            .onFailure { toast(com.musicd.server.client.Failure.said(it, "Couldn't change it")) }
+                            .onFailure { ask = before; toast(com.musicd.server.client.Failure.said(it, "Couldn't change it")) }
                     }
                 })
             }
