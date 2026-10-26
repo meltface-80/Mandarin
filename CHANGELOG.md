@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- `204-folder-reread-on-screen` (item 204): the Android app read the phone's own music folder again every three
+  minutes for as long as the app's process lived, on screen or not: 179 reads in a day, most with the app in the
+  background. Off screen it now relies on Android's change notices for the folder alone, and reads again when it
+  comes back on screen; the read every few minutes is made while it is on screen only.
+
 - `200-switches-move-at-once` (item 200): a switch on the Android app's Settings pages moved only once the server had
   answered, so a tap did nothing for a moment: Account's Ask for a sign-in, every switch and choice on a device's
   page (DSP's among them), a device's row in Audio (two round trips), the Scanner's switches and Measure ReplayGain,
