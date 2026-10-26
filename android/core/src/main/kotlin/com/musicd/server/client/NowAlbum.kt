@@ -10,6 +10,7 @@ import org.json.JSONObject
  */
 object NowAlbum {
     const val NOT_INDEXED = "Album not yet indexed — try again in a moment"
+    private const val PHONE = "phone:"
 
     /** The album's offset in /api/album/now-playing's answer [j], or null. */
     fun playing(j: JSONObject?): Long? {
@@ -29,6 +30,12 @@ object NowAlbum {
         }
         return null
     }
+
+    /**
+     * The phone's own album playing, its key, when the room's album is one ("phone:<key>", the phone playing its own
+     * music, item 197): its page is the phone's, not the library's, which has never seen it. Null otherwise.
+     */
+    fun phoneKey(albumOffset: String?): String? = albumOffset?.takeIf { it.startsWith(PHONE) }?.removePrefix(PHONE)?.ifEmpty { null }
 
     /** The path the library is searched by for [album]. */
     fun searchPath(album: String): String = "/api/search?q=" + java.net.URLEncoder.encode(album, "UTF-8").replace("+", "%20") + "&limit=20"

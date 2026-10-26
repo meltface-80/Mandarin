@@ -145,6 +145,8 @@ internal fun NowPlayingScreen(zoneId: String, client: () -> ServerClient?, onBac
                     }
                 }
                 Text(v.album, Modifier.parity("now-playing.album", Contract.label("now-playing.album", 0, v.album)).padding(top = 3.dp).clickable {
+                    // The phone's own album, playing on the phone, is the phone's page (item 197): the library has never seen it.
+                    v.phoneAlbum?.let { onPage("phone-album", it); return@clickable }
                     // Its album found as the page finds it (item 111): by the playing track, else the library searched by its name.
                     scope.launch { findNowAlbum(client, zoneId, v.album, v.artist)?.let { onPage("album", it.toString()) } ?: Toast.makeText(context, NowAlbum.NOT_INDEXED, Toast.LENGTH_SHORT).show() } },
                     fontSize = 14.sp, lineHeight = 19.sp, color = dim, maxLines = 1, overflow = TextOverflow.Ellipsis)

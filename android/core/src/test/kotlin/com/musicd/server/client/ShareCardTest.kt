@@ -104,4 +104,11 @@ class ShareCardTest {
         assertNull(WallPrefs.parse("""{"shareService":null}""").shareService)
         assertNull(WallPrefs.parse("{}").shareService)
     }
+
+    @Test fun `a phone album's cover is read from the phone, a library album's from the server (item 197)`() {
+        assertTrue(ShareCard.phoneCover("phone-k9"))
+        assertFalse(ShareCard.phoneCover("al-3-x"))
+        assertFalse(ShareCard.phoneCover("phone-"))
+        assertFalse(ShareCard.phoneCover(null))
+    }
 }
