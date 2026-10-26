@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- `203-idle-player-dormant` (item 203): the Android app's phone player, off screen and not playing for five minutes,
+  asked to stop and nothing happened: Android keeps a media service bound (its media controls, Bluetooth's browsing,
+  Android Auto), and a bound service isn't ended that way. It stayed up for as long as the app lived, its heartbeat
+  every ten seconds and its long poll of the server's commands every 25 seconds, and said it was stopping every five
+  minutes. It now goes dormant: the heartbeat and the long poll end, and it still asks to stop, for Android to end it
+  once nothing has it bound. A play from the app, a download, a controller connecting or a Bluetooth play wakes it.
+
 - `200-switches-move-at-once` (item 200): a switch on the Android app's Settings pages moved only once the server had
   answered, so a tap did nothing for a moment: Account's Ask for a sign-in, every switch and choice on a device's
   page (DSP's among them), a device's row in Audio (two round trips), the Scanner's switches and Measure ReplayGain,

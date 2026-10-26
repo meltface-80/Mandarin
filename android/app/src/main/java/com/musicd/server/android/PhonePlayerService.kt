@@ -150,23 +150,23 @@ class PhonePlayerService : MediaLibraryService() {
         }
     }
 
-    private val main = Handler(Looper.getMainLooper())
+    internal val main = Handler(Looper.getMainLooper())
     private val reports = Executors.newSingleThreadExecutor()
-    private var session: MediaLibrarySession? = null
+    internal var session: MediaLibrarySession? = null
     private val browse = Executors.newFixedThreadPool(2)
     /** This phone's zone, from the server's hello. */
     @Volatile private var zoneId: String? = null
     /** The server answered the last time it was asked (its long poll is running). */
-    @Volatile private var connected = false
+    @Volatile internal var connected = false
     /** For the Downloads screen: a downloaded album played now goes through the server. */
     val serverInReach: Boolean get() = connected && zoneId != null
     /** Android Auto asked for a server album: the server's "load" answers it. */
     private var pendingLoad: SettableFuture<MediaSession.MediaItemsWithStartPosition>? = null
     private lateinit var player: ExoPlayer
     private lateinit var audio: AudioManager
-    @Volatile private var running = false
+    @Volatile internal var running = false
     private val idle = PlayerIdle { android.os.SystemClock.elapsedRealtime() }
-    private var worker: Thread? = null
+    internal var worker: Thread? = null
     private var seq = 0L
     private var reportPending = false
     /** Playing downloads from the Downloads screen rather than the server's queue. */
@@ -318,7 +318,7 @@ class PhonePlayerService : MediaLibraryService() {
         main.postDelayed(heartbeat, 10_000)
     }
 
-    override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaLibrarySession? = session
+    override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaLibrarySession? = session.also { wake() }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == ACTION_PLAY_PHONE) {
@@ -327,7 +327,7 @@ class PhonePlayerService : MediaLibraryService() {
         if (intent?.action == ACTION_PLAY_LOCAL) {
             playDownloaded(intent.getIntExtra(EXTRA_ALBUM, 0), intent.getIntExtra(EXTRA_INDEX, 0))
         }
-        return super.onStartCommand(intent, flags, startId)
+        return super.onStartCommand(intent, flags, startId).also { wake() }
     }
 
     /**
@@ -461,7 +461,7 @@ class PhonePlayerService : MediaLibraryService() {
 
     // ------------------------------------------------------------ commands
 
-    private fun loop() {
+    internal fun loop() {
         var hello = false
         var failures = 0
         while (running) {
@@ -1058,19 +1058,19 @@ class PhonePlayerService : MediaLibraryService() {
 
     // ------------------------------------------------------------ reports
 
-    private val heartbeat = object : Runnable {
+    internal val heartbeat = object : Runnable {
         override fun run() {
             // While playing, the position and the volume keys' effect.
             if (player.isPlaying) { if (localMode) logLocalPlay(); report() }
             // Not playing for five minutes, off screen: stopped before Android freezes it, session and all (item 124).
             val playing = player.playWhenReady && player.playbackState in Player.STATE_BUFFERING..Player.STATE_READY
-            if (idle.stop(playing, NativeShell.onScreen.value)) { AppLog.line("APP", "the phone player stops: off screen, not playing for five minutes"); stopSelf() }
+            if (idle.stop(playing, NativeShell.onScreen.value)) dormant()   // item 203: stopSelf alone did nothing while Android kept the service bound
             if (running) main.postDelayed(this, 10_000)
         }
     }
 
     private fun reportSoon() {
-        if (reportPending) return
+        wake(); if (reportPending) return   // a player event while dormant (a Bluetooth play, say) wakes it (item 203)
         reportPending = true
         main.postDelayed({ reportPending = false; report() }, 300)
     }
