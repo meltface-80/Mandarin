@@ -341,7 +341,7 @@
      Android app play from it, controlled from a browser, an iPhone home screen or the Android app.
      No subscription or streaming account is needed.</p>
   <div class="badges">
-    <span class="badge">v1.1.9</span>
+    <span class="badge">v1.1.10</span>
     <span class="badge plain">Docker</span>
     <span class="badge plain">macOS</span>
     <span class="badge plain">MIT</span>
@@ -354,14 +354,13 @@
 
 <section id="new">
   <div class="wrap">
-    <div class="note"><b>New in v1.1.9</b> (since v1.1.8): <b>a full review &mdash; safer, steadier, sturdier.</b>
-      No new features this time: the whole of Mandarin was read through and thirty fixes made.
-      <b>Safer</b>: with the sign-in off, only your home network and tailnet come in without one, and only Mandarin's
-      own page and app can change anything; password guesses are held to five. <b>Steadier on renderers</b>: a WiiM or
-      a Poly back on the network no longer starts the next track by itself or skips one, shuffle picks once, and one
-      silent device no longer slows the other rooms. <b>Sturdier</b>: updates can't stick or leave old files behind,
-      music copied in during a scan is found when it ends, and the Android app keeps its settings on every screen,
-      signs in away from home and no longer closes itself mid-update.</div>
+    <div class="note"><b>New in v1.1.10</b> (since v1.1.9): <b>a smoother Android app that rests when it isn't needed.</b>
+      No new features this time: seven fixes to the Android app. <b>Settings as you left them</b>: each Settings page
+      opens as you last saw it, then follows the server, and a switch moves as soon as you tap it. <b>No flashes</b>:
+      Settings from the side menu, Library or Artists from the row and an album from Now playing open in one step,
+      without Home showing between. <b>Rests in the background</b>: at home the app's own Tailscale runs only while the
+      phone plays, the idle phone player rests after five minutes off screen, and the phone's music folder is read
+      every few minutes only while the app is on screen. And a phone album's share card has its cover.</div>
   </div>
 </section>
 
@@ -391,7 +390,7 @@
   <div class="wrap">
     <h2>Features</h2>
     <p class="lead">Tap <b class="i-eg">i</b> on any feature for how to switch it on and use it.
-      <span class="new-eg">New</span> marks what's new in a release; v1.1.9 brings fixes, not new features.</p>
+      <span class="new-eg">New</span> marks what's new in a release; v1.1.10 brings fixes, not new features.</p>
     <div class="grid">
       <!-- features:start -->
       <div class="card"><h3><span class="em">🏠</span>Home<button class="info" type="button" aria-expanded="false" aria-controls="how-home" aria-label="How to set up and use Home">i</button></h3>
@@ -856,6 +855,14 @@
            .local, .lan, .home.arpa or .ts.net), from your home network or tailnet. Behind a reverse proxy on the
            same machine, the proxy must pass on who asked (<code>X-Forwarded-For</code>, <code>X-Real-IP</code> or
            <code>Forwarded</code>).</p>
+      </div>
+      <div class="info-card">
+        <span class="sym">Android</span>
+        <h3>&ldquo;Mandarin stopped in the background&rdquo;</h3>
+        <p>The app says so when Android ended it while you weren't using it, with Android's own words. &ldquo;Too much
+           CPU&rdquo; caused by a child process was the app's Tailscale left running at home; from v1.1.10 it runs at
+           home only while the phone plays. If it comes back, switch on <b>Settings &rarr; Setup &rarr; Logging</b>
+           and send the saved log.</p>
       </div>
     </div>
   </div>

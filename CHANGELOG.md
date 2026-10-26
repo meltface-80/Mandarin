@@ -1,6 +1,14 @@
 # Changelog
 
-## Unreleased
+## v1.1.10
+
+**A smoother Android app that rests when it isn't needed.** No new features: the Android app's Settings pages open as
+you last saw them instead of with their defaults and then changing, a switch moves as soon as you tap it, and moving
+between screens no longer shows Home for a moment. In the background, the app no longer keeps its own Tailscale
+engine running at home when nothing is playing, after Android ended it on 26 October for the engine's CPU; its phone
+player rests once it has been idle off screen for five minutes, and the phone's music folder is read again every few
+minutes only while the app is on screen. A phone album's share card has its cover, and Now playing opens the phone's
+own album. Items 197 to 204.
 
 - `204-folder-reread-on-screen` (item 204): the Android app read the phone's own music folder again every three
   minutes for as long as the app's process lived, on screen or not: 179 reads in a day, most with the app in the
