@@ -41,8 +41,8 @@ internal fun NavGraphBuilder.moreRoutes(nav: NavHostController, client: () -> Se
         val zone = entry.arguments?.getString(ShellRoute.ZONE).orEmpty()
         PitchforkScreen(WallPrefs.parse(NativeShell.prefs), PitchforkHit.parse(entry.arguments?.getString(ShellRoute.REVIEW)), client,
             onClose = { nav.popBackStack() },
-            onAlbum = { offset -> nav.popBackStack(); nav.navigate(ShellRoute.album(offset, zone, "")) },
-            onQobuz = { q -> nav.popBackStack(); nav.navigate(ShellRoute.serviceBrowser("qobuz", zone, q = q)) })
+            onAlbum = { offset -> inPlace(nav, ShellRoute.album(offset, zone, "")) },
+            onQobuz = { q -> inPlace(nav, ShellRoute.serviceBrowser("qobuz", zone, q = q)) })
     }
     // The Qobuz and Tidal browsers (item 73), each opening kept while on the back stack (its entry's id); an album's page over it.
     composable(ShellRoute.SERVICE_BROWSER, arguments = listOf(navArgument(ShellRoute.SERVICE) { type = NavType.StringType }, navArgument(ShellRoute.ARTIST_ID) { type = NavType.StringType; defaultValue = "" },
@@ -99,7 +99,7 @@ internal fun NavGraphBuilder.moreRoutes(nav: NavHostController, client: () -> Se
         val zone = entry.arguments?.getString(ShellRoute.ZONE).orEmpty()
         PlaylistScreen(entry.arguments?.getString(ShellRoute.ID).orEmpty(), zone, client,
             // ← Playlists: the Playlists screen under it, or opened in its place when this came from Home or the page.
-            onBack = { if (!nav.popBackStack(ShellRoute.PLAYLISTS, false)) { nav.popBackStack(); nav.navigate(ShellRoute.playlists(zone)) } },
+            onBack = { if (!nav.popBackStack(ShellRoute.PLAYLISTS, false)) inPlace(nav, ShellRoute.playlists(zone)) },
             onHome = { navTap(nav, "home") },
             onNowPlaying = { id -> nav.navigate(ShellRoute.nowPlaying(id)) { launchSingleTop = true } },
             onRoom = NativeShell::roomChosen,
@@ -121,7 +121,7 @@ internal fun NavGraphBuilder.moreRoutes(nav: NavHostController, client: () -> Se
     composable(ShellRoute.SMART_PLAYLIST, arguments = listOf(navArgument(ShellRoute.ID) { type = NavType.StringType }, navArgument(ShellRoute.ZONE) { type = NavType.StringType; defaultValue = "" })) { entry ->
         val zone = entry.arguments?.getString(ShellRoute.ZONE).orEmpty()
         SmartPlaylistScreen(entry.arguments?.getString(ShellRoute.ID).orEmpty(), WallPrefs.parse(NativeShell.prefs), zone, client,
-            onBack = { if (!nav.popBackStack(ShellRoute.SMART_PLAYLISTS, false)) { nav.popBackStack(); nav.navigate(ShellRoute.smartPlaylists(zone)) } },
+            onBack = { if (!nav.popBackStack(ShellRoute.SMART_PLAYLISTS, false)) inPlace(nav, ShellRoute.smartPlaylists(zone)) },
             onHome = { navTap(nav, "home") },
             onAlbum = { offset, z, list -> nav.navigate(ShellRoute.album(offset, z, "", AlbumLists.put(list), list.index)) },
             onNowPlaying = { id -> nav.navigate(ShellRoute.nowPlaying(id)) { launchSingleTop = true } },
@@ -152,7 +152,7 @@ internal fun handOver(nav: NavHostController, what: String, arg: String?) {
         what == "label" && !arg.isNullOrEmpty() -> nav.navigate(ShellRoute.wall("label", NativeShell.zone, arg))   // a label's albums (item 71)
         what == "genre" && !arg.isNullOrEmpty() -> nav.navigate(ShellRoute.wall("genre", NativeShell.zone, com.musicd.server.client.WallFilter.routeQuery(com.musicd.server.client.WallFilter("genre", arg))))   // a genre's albums (item 139)
         what == "phone-album" && !arg.isNullOrEmpty() -> nav.navigate(ShellRoute.phoneAlbum(arg, NativeShell.zone))   // the phone's own album (item 108)
-        what == "album" && arg != null && arg.toLongOrNull() != null -> { nav.popBackStack(); nav.navigate(ShellRoute.album(arg.toLong(), NativeShell.zone, "")) }
+        what == "album" && arg != null && arg.toLongOrNull() != null -> inPlace(nav, ShellRoute.album(arg.toLong(), NativeShell.zone, ""))
         what == "library-changed" && arg != null -> nav.popBackStack()   // a streamed album taken out of the favourites: its page closes
         else -> handOn(what, arg)
     }
@@ -176,14 +176,29 @@ internal fun toHome(nav: NavHostController) {
  */
 internal fun navTap(nav: NavHostController, what: String) {
     AppLog.line("ROW", "button $what")
-    toHome(nav)
     when (what) {
-        "home" -> NativeShell.landHome()
-        "library" -> nav.navigate(ShellRoute.library(NativeShell.libraryView, NativeShell.prefs.orEmpty(), NativeShell.zone)) { launchSingleTop = true }
-        "artists" -> nav.navigate(ShellRoute.artists(NativeShell.zone)) { launchSingleTop = true }
-        "search" -> NativeShell.openSearch("", NativeShell.zone)
-        "menu" -> NativeShell.menuOpen.value = true
+        "home" -> { toHome(nav); NativeShell.landHome() }
+        // Opened over Home in one step (item 199): Home was drawn for a moment between the screen left and this one.
+        "library" -> overHome(nav, ShellRoute.library(NativeShell.libraryView, NativeShell.prefs.orEmpty(), NativeShell.zone))
+        "artists" -> overHome(nav, ShellRoute.artists(NativeShell.zone))
+        "search" -> { SearchKept.reset(""); overHome(nav, ShellRoute.search("", NativeShell.zone)) }
+        "menu" -> { toHome(nav); NativeShell.menuOpen.value = true }
     }
+}
+
+/**
+ * [route] opened over Home in one step, every screen between them taken away with it (item 199): before, they were
+ * taken away first and Home drawn for a frame or more before [route] came. A stack without Home gets it back first.
+ */
+internal fun overHome(nav: NavHostController, route: String) {
+    if (runCatching { nav.getBackStackEntry(ShellRoute.HOME) }.isFailure) toHome(nav)
+    nav.navigate(route) { popUpTo(ShellRoute.HOME) }
+}
+
+/** [route] in place of the screen showing, in one step (item 199): before, it was closed first and the one under it drawn. */
+internal fun inPlace(nav: NavHostController, route: String) {
+    val here = nav.currentBackStackEntry?.destination?.id
+    nav.navigate(route) { if (here != null) popUpTo(here) { inclusive = true } }
 }
 
 /**

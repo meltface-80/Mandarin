@@ -39,6 +39,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -85,12 +86,15 @@ internal fun MenuOver(nav: NavHostController, client: () -> ServerClient?) {
     val open by NativeShell.menuOpen
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
-    if (open) {
-        // Back closes the menu first, over any screen (item 158: it closed the screen under it, the menu left open). Composed
-        // only while open, so it comes after the screen's own and is asked first.
-        BackHandler { NativeShell.menuOpen.value = false }
-        MenuDrawer(WallPrefs.parse(NativeShell.prefs).menu, client, scope, onClose = { NativeShell.menuOpen.value = false }, onItem = { menuTap(nav, it, context) })
-    }
+    // Drawn while open and while it slides away after (item 199): it went at once, and the screen under it showed for a
+    // moment before the one chosen came. Now it goes once the screen chosen has been drawn under it.
+    var drawn by remember { mutableStateOf(false) }
+    LaunchedEffect(open) { if (open) drawn = true }
+    // Back closes the menu first, over any screen (item 158: it closed the screen under it, the menu left open). Composed
+    // only while open, so it comes after the screen's own and is asked first.
+    if (open) BackHandler { NativeShell.menuOpen.value = false }
+    if (open || drawn) MenuDrawer(WallPrefs.parse(NativeShell.prefs).menu, client, scope, open, onGone = { drawn = false }, onClose = { NativeShell.menuOpen.value = false },
+        onItem = { if (NativeShell.menuOpen.value) menuTap(nav, it, context) })
     PowerOver(client)
 }
 
@@ -107,25 +111,27 @@ internal fun menuTap(nav: NavHostController, what: String, context: android.cont
     // Restart and Shut down: asked, and the server's time away shown, by the app itself (item 96).
     if (what.startsWith("power-")) { PowerKept.asking.value = what; return }
     if (what == "shelf") { openShelf(context); return }
-    toHome(nav)
+    // Opened over Home in one step, the screens between taken away with it (item 199: Home was drawn between them).
+    val z = NativeShell.zone
     when (what) {
-        "playlists" -> NativeShell.openPlaylists(NativeShell.zone)
-        "smart-playlists" -> NativeShell.openSmartPlaylists(NativeShell.zone)
-        "later" -> nav.navigate(ShellRoute.wall("later", NativeShell.zone, ""))
-        "pitchfork" -> nav.navigate(ShellRoute.pitchfork("", NativeShell.zone))
-        "labels" -> nav.navigate(ShellRoute.labels(NativeShell.zone))
-        "qobuz", "tidal" -> nav.navigate(ShellRoute.serviceBrowser(what, NativeShell.zone))
-        "settings" -> nav.navigate(ShellRoute.settings())
+        "playlists" -> overHome(nav, ShellRoute.playlists(z))
+        "smart-playlists" -> overHome(nav, ShellRoute.smartPlaylists(z))
+        "later" -> overHome(nav, ShellRoute.wall("later", z, ""))
+        "pitchfork" -> overHome(nav, ShellRoute.pitchfork("", z))
+        "labels" -> overHome(nav, ShellRoute.labels(z))
+        "qobuz", "tidal" -> overHome(nav, ShellRoute.serviceBrowser(what, z))
+        "settings" -> overHome(nav, ShellRoute.settings())
     }
 }
 
-/** The page's slide (menuSlideIn: .24s, cubic-bezier(.2,.8,.2,1)). */
+/** The page's slide (menuSlideIn: .24s, cubic-bezier(.2,.8,.2,1)); out, the same curve in .2s (item 199). */
 private val SLIDE = CubicBezierEasing(0.2f, 0.8f, 0.2f, 1f)
+private const val SLIDE_OUT_MS = 200
 /** The Offline switch's own movement (style.css, .18s), seen through before the page loads again (menu-drawer.js OFFLINE_SWITCH_MS). */
 private const val OFFLINE_SWITCH_MS = 220L
 
 @Composable
-private fun MenuDrawer(zoom: Double, client: () -> ServerClient?, scope: CoroutineScope, onClose: () -> Unit, onItem: (String) -> Unit) {
+private fun MenuDrawer(zoom: Double, client: () -> ServerClient?, scope: CoroutineScope, open: Boolean, onGone: () -> Unit, onClose: () -> Unit, onItem: (String) -> Unit) {
     val context = LocalContext.current
     val density = LocalDensity.current
     // min(82vw, 320px); its insides at the UI Settings' menu size (style.css: .menu-drawer > * { zoom: var(--ui-menu) }).
@@ -140,7 +146,11 @@ private fun MenuDrawer(zoom: Double, client: () -> ServerClient?, scope: Corouti
     var power by remember { mutableStateOf(false) }
     var powerInfo by remember { mutableStateOf<JSONObject?>(null) }
     val slide = remember { Animatable(-1f) }
-    LaunchedEffect(Unit) { slide.animateTo(0f, tween(240, easing = SLIDE)) }
+    // In as it opens; out once closed, two frames on, so a screen chosen from it is drawn under it first (item 199).
+    LaunchedEffect(open) {
+        if (open) slide.animateTo(0f, tween(240, easing = SLIDE))
+        else { withFrameNanos { }; withFrameNanos { }; slide.animateTo(-1f, tween(SLIDE_OUT_MS, easing = SLIDE)); onGone() }
+    }
     LaunchedEffect(Unit) {
         val c = client() ?: return@LaunchedEffect
         val (status, shown) = withContext(Dispatchers.IO) {
@@ -158,10 +168,10 @@ private fun MenuDrawer(zoom: Double, client: () -> ServerClient?, scope: Corouti
         if (power) powerInfo = withContext(Dispatchers.IO) { runCatching { c.getJson("/api/system/power") }.getOrNull() } ?: powerInfo
     }
     // Taps beside the drawer close it; on a blank part of it, they only close the power drop-down (the items take their own).
-    Box(Modifier.fillMaxSize().parity("menu.close", Contract.label("menu.close")).pointerInput(widthPx) {
-        detectTapGestures { at -> if (at.x > widthPx) onClose() else power = false }
+    Box(Modifier.fillMaxSize().parity("menu.close", Contract.label("menu.close")).pointerInput(widthPx, open) {
+        detectTapGestures { at -> if (!open) return@detectTapGestures; if (at.x > widthPx) onClose() else power = false }
     }) {
-        Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.5f)))
+        Box(Modifier.fillMaxSize().graphicsLayer { alpha = 1f + slide.value }.background(Color.Black.copy(alpha = 0.5f)))   // the dim comes and goes with it
         val border = paletteColor(Palette.BORDER)
         Box(Modifier.width(width).fillMaxHeight().graphicsLayer { translationX = slide.value * size.width }
             // box-shadow: 8px 0 40px rgba(0,0,0,.4), off its right edge; border-right: 1px var(--border).

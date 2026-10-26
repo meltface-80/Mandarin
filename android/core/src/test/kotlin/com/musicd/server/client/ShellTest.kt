@@ -1,6 +1,7 @@
 package com.musicd.server.client
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
@@ -72,5 +73,36 @@ class ShellTest {
             val want = (Math.round(a.toDouble() * 255).toLong() shl 24) or (r.toLong() shl 16) or (g.toLong() shl 8) or b.toLong()
             assertEquals("--$name", want, argb)
         }
+    }
+
+    private fun app(name: String) = File("../app/src/main/java/com/musicd/server/android/$name").readText()
+    private fun body(src: String, head: String) = src.substringAfter(head).substringBefore("\n}\n")
+
+    @Test fun `a screen chosen from the menu or the row opens over Home in one step, Home never drawn between (item 199)`() {
+        // Before, every screen over Home was closed first and the one chosen opened after: Home showed for a moment.
+        val tap = body(app("MenuDrawer.kt"), "internal fun menuTap(")
+        assertFalse(tap, tap.contains("toHome(nav)"))
+        assertTrue(tap.contains("\"settings\" -> overHome(nav, ShellRoute.settings())"))
+        val routes = app("ShellRoutes.kt")
+        val row = body(routes, "internal fun navTap(")
+        assertTrue(row.contains("\"library\" -> overHome(nav, ShellRoute.library("))
+        assertTrue(row.contains("\"artists\" -> overHome(nav, ShellRoute.artists("))
+        assertTrue(body(routes, "internal fun overHome(").contains("nav.navigate(route) { popUpTo(ShellRoute.HOME) }"))
+    }
+
+    @Test fun `no screen is closed and then another opened in its place, two steps apart (item 199)`() {
+        // An album from Now playing, from Pitchfork; the Playlists from a playlist opened elsewhere: one step each now.
+        val twoSteps = Regex("""popBackStack\(\); *nav\.navigate""")
+        File("../app/src/main/java/com/musicd/server/android").listFiles()!!.filter { it.name.endsWith(".kt") }
+            .forEach { assertFalse(it.name, twoSteps.containsMatchIn(it.readText())) }
+        assertTrue(body(app("ShellRoutes.kt"), "internal fun inPlace(").contains("popUpTo(here) { inclusive = true }"))
+    }
+
+    @Test fun `the menu stays while the screen chosen is drawn under it, then slides away (item 199)`() {
+        // It was taken away at once, and the screen under it (Home, mostly) showed before the one chosen came.
+        val menu = app("MenuDrawer.kt")
+        assertTrue(menu.contains("if (open || drawn) MenuDrawer("))
+        assertTrue(menu.contains("withFrameNanos { }; withFrameNanos { }; slide.animateTo(-1f"))
+        assertTrue("a second tap while it goes does nothing", menu.contains("onItem = { if (NativeShell.menuOpen.value) menuTap("))
     }
 }
