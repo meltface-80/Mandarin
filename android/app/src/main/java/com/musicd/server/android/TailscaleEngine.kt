@@ -1,7 +1,11 @@
 package com.musicd.server.android
 
 import android.content.Context
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
+import com.musicd.server.client.InterfaceFeed
+import com.musicd.server.client.LogRedact
 import org.json.JSONObject
 import com.musicd.server.client.ExitReport
 import java.io.File
@@ -76,7 +80,7 @@ object TailscaleEngine {
             if (process === p) CrashLog.keepNote(app, ExitReport.engineText(code, stderrTail.toList(), ExitNote.time(System.currentTimeMillis())))
         }, "musicdnet-stderr").apply { isDaemon = true; start() }
         Log.i(TAG, "engine running, control port $port")
-        sendInterfaces()
+        sendInterfaces(force = true)
     }
 
     /** The phone-side port: fixed, so the page keeps one address (its saved settings go with it). */
@@ -126,7 +130,7 @@ object TailscaleEngine {
             if (!com.musicd.server.client.Route.mayRestartEngine(now, freshAt)) { Log.i(TAG, "the engine can't reach $target; started afresh lately, so not again yet"); return false }
             freshAt = now
             Log.i(TAG, "the engine can't reach $target; starting it afresh")
-            stop()
+            stop("not reaching the server; started afresh")
             if (join(c, target) == null) return false
             if (json("GET", "/probe", timeoutMs = 10_000).optBoolean("ok")) return true
         }
@@ -192,9 +196,24 @@ object TailscaleEngine {
 
     fun alive() = process?.isAlive == true
 
+    /** The engine's CPU time so far, in seconds (its own rusage, /status's cpu_s; item 202); null when it isn't running or doesn't say. */
+    fun cpuSeconds(): Double? = if (!alive()) null else runCatching { json("GET", "/status", timeoutMs = 2000).optDouble("cpu_s", -1.0) }.getOrNull()?.takeIf { it >= 0 }
+
+    /** The engine's last [n] log lines, each with addresses and names taken out, for the app's log (item 202); none when it can't say. */
+    fun logTail(n: Int = 8): List<String> = if (!alive()) emptyList() else
+        runCatching { call("GET", "/log", timeoutMs = 2000).second.lines().filter { it.isNotBlank() }.takeLast(n).map { LogRedact.line(it) } }.getOrDefault(emptyList())
+
+    /**
+     * Stopped, [why] said in the app's log with its CPU time and last lines (item 202: Android ended the app for the
+     * engine's CPU, and nothing of the engine's was in the log to say what it had been doing).
+     */
     @Synchronized
-    fun stop() {
+    fun stop(why: String = "") {
         val p = process
+        if (p != null && p.isAlive) runCatching {
+            AppLog.line("REACH", "the Tailscale engine stopped" + (if (why.isNotEmpty()) " ($why)" else "") + ": cpu " + (cpuSeconds()?.let { "%.1f s".format(it) } ?: "?") +
+                logTail().takeIf { it.isNotEmpty() }?.let { "; its last lines: " + it.joinToString(" | ") }.orEmpty())
+        }
         process = null   // first: its watcher then knows the end was asked for
         readyFor = null
         // Gone before a new one starts (item 158): the dying one held the app's port, and the new one couldn't have it.
@@ -208,7 +227,31 @@ object TailscaleEngine {
      * gives it). A list that differs from the last makes Tailscale look at the
      * network again at once — before v0.5.48 it waited up to ten minutes.
      */
-    fun sendInterfaces() {
+    private val feed = InterfaceFeed { android.os.SystemClock.elapsedRealtime() }
+    private val later = Handler(Looper.getMainLooper())
+    @Volatile private var laterPending = false
+
+    /**
+     * The list sent only when it differs from the last, and at most once in ten seconds, a change in the gap sent
+     * when the gap is up (InterfaceFeed, item 202): every network callback is a look, and each list that differs
+     * makes the engine look at the network again. [force]: a new engine process, which has no list yet. Blocking;
+     * not on the main thread.
+     */
+    fun sendInterfaces(force: Boolean = false) {
+        val text = interfacesText()
+        val action = synchronized(feed) { if (force) feed.reset(); feed.offer(text) }
+        when (action) {
+            InterfaceFeed.Action.Skip -> return
+            is InterfaceFeed.Action.Later -> {
+                if (laterPending) return
+                laterPending = true
+                later.postDelayed({ laterPending = false; Thread({ sendInterfaces() }, "musicdnet-interfaces").apply { isDaemon = true; start() } }, action.inMs)
+            }
+            InterfaceFeed.Action.Send -> runCatching { call("POST", "/interfaces", text) }
+        }
+    }
+
+    private fun interfacesText(): String {
         val sb = StringBuilder()
         appContext?.let { c ->
             runCatching {
@@ -236,7 +279,7 @@ object TailscaleEngine {
                     .append(' ').append(flags.joinToString("|")).append(' ').append(addrs.joinToString(",")).append('\n')
             }
         }
-        runCatching { call("POST", "/interfaces", sb.toString()) }
+        return sb.toString()
     }
 
     /** One call to the engine. Returns (HTTP status, body). Blocking. */

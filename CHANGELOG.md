@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+- `202-engine-idle-at-home` (item 202): on 26 Oct Android ended the Android app in the background for "excessive CPU
+  usage, caused by child process": the one process Mandarin runs beside itself, its own Tailscale engine, had used 131
+  seconds of CPU in five minutes while the app sat swiped away at home. At home the engine was kept joined and idle
+  for as long as the app's process lived, so that leaving the house needn't wait for it.
+  - At home the engine is now kept only while the phone's player is playing, and stopped once it has been idle for
+    two minutes; away again it is started in seconds, its sign-in kept on disk.
+  - The phone's interface list, which the app handed to the engine on every look at the network (a signal-strength
+    change among them) and which makes the engine look at the network again whenever it differs, is sent only when it
+    changed and at most once in ten seconds, a change in between sent when the gap is up.
+  - The engine says its CPU time, which the app's snapshots log with how much it used since the last, and when the
+    engine is stopped the log says why, with its CPU time and its last lines (addresses taken out); the note on the
+    next start names the engine when Android's words say a child process.
+
 - `200-switches-move-at-once` (item 200): a switch on the Android app's Settings pages moved only once the server had
   answered, so a tap did nothing for a moment: Account's Ask for a sign-in, every switch and choice on a device's
   page (DSP's among them), a device's row in Audio (two round trips), the Scanner's switches and Measure ReplayGain,
