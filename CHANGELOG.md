@@ -5,6 +5,10 @@
 Dev's builds are numbered 1.1.11-tN, the server's image and the test APK alike. The Shelf's merge (item 206) came out
 as 1.9.69-t1 by mistake: Rouen's version, not Mandarin's. Item 207 puts the numbering right, as 1.1.11-t2.
 
+- `213-shelf-genre-sort` (item 213): **#N, A → Z and Z → A are the Genres tab's**, as in Rouen (1.9.70-t5), on the page
+  and in the Android app: three buttons above the genre tiles put them in order, #N (the most albums first) by default,
+  and each device keeps the one chosen. The Order tab is Rouen's again: A → Z by artist, by label and catalogue №, by
+  catalogue №, by year and random; A → Z by album is gone, and a device that kept it opens by artist.
 - `211-shelf-album-order-freeze` (item 211): **the Android app's Shelf froze when put A → Z by album**, and Android
   ended it: for each of the library's titles it made three search patterns afresh, twice over, on the screen's own
   thread (13,874 albums: over ten seconds). Each pattern is now made once. Each album's names are worked out once

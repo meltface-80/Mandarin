@@ -1,10 +1,12 @@
 "use strict";
 /*
- * Shelf's orders: A → Z by artist (the server's, the Library wall's) and A → Z
- * by album (v1.0.1, public/shelforder.js: titles read as the server reads
- * them, "The" and accents aside; signs, then numbers, then letters), and since
- * item 206 Rouen's by label and catalogue №, by catalogue №, by year and
+ * Shelf's orders: A → Z by artist (the server's, the Library wall's), and
+ * since item 206 Rouen's by label and catalogue №, by catalogue №, by year and
  * random, all in the Order tab; each device keeps its own, a shuffle aside.
+ * Item 213 (the owner, as Rouen's v1.9.70-t5): A → Z, Z → A and #N are the
+ * Genres tab's, the order of its tiles (#N, the most albums first, the
+ * default), kept per device; Mandarin's A → Z by album (v1.0.1) is gone from
+ * the Order tab, and a device that kept it opens by artist.
  * One look since item 206 (Rouen v1.9.68): the spines; a device that kept
  * another gets them.
  * The browser half is skipped where no Chromium or Chrome is found.
@@ -12,9 +14,7 @@
 const ports = require("./ports");
 const test = require("node:test");
 const assert = require("node:assert");
-const fs = require("fs");
 const path = require("path");
-const vm = require("vm");
 const { haveFfmpeg, makeLibrary, gen } = require("./fixtures");
 const { signIn } = require("./auth-helper");
 const { Browser, findBrowser } = require("./browser-harness");
@@ -24,44 +24,22 @@ const PORT = ports.port();
 const B = "http://127.0.0.1:" + PORT;
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-// public/shelforder.js as the page has it: its window.ShelfOrder.
-function shelfOrder() {
-  const window = {};
-  vm.runInNewContext(fs.readFileSync(path.join(__dirname, "..", "public", "shelforder.js"), "utf8"), { window, Intl, String });
-  return window.ShelfOrder;
-}
-
-test("by album: a title as the server files it, and signs, numbers, then letters", () => {
-  const o = shelfOrder();
-  assert.equal(o.titleKey("The Wall"), "wall");
-  assert.equal(o.titleKey("Wall, The"), "wall");
-  assert.equal(o.titleKey("A Love Supreme"), "love supreme");
-  assert.equal(o.titleKey("Theatre"), "theatre", "only a whole word");
-  assert.equal(o.titleKey("Sigur Rós & Friends"), "sigur ros and friends");
-  assert.deepEqual(["a", "z", "1", "9", "0", "", "é"].map(o.bucket), ["A", "Z", "1", "9", "#", "#", "#"]);
-  const albums = ["Zed", "The Apple", "10 Years", "abba", "!!!", "2 Fast", "Ägypten", "Abba"].map((t, i) => ({ t, i }));
-  const out = o.byAlbum(albums.slice());
-  assert.deepEqual(out.map(a => a.t), ["!!!", "10 Years", "2 Fast", "abba", "Abba", "Ägypten", "The Apple", "Zed"]);
-  assert.deepEqual(out.map(a => a.tb), ["#", "1", "2", "A", "A", "A", "A", "Z"], "each title's letter, for the spines' tabs");
-  assert.ok(out[3] === albums[3], "the same albums, not copies");
-  assert.deepEqual(albums.map(a => a.t)[0], "Zed", "the list given keeps its order");
-});
-
-// makeLibrary's three albums and eight more: one titled with a number, one with a leading "The".
+// makeLibrary's three albums and eight more: one titled with a number, one with a leading "The"; genres whose
+// commonest first (Electronic 4, Rock 3, Jazz 2, Soul 1) is neither A → Z nor Z → A.
 function library() {
   const lib = makeLibrary();
-  const more = [["The Beatles", "Abbey Road", 1969], ["Björk", "Homogenic", 1997], ["Miles Davis", "Kind of Blue", 1959],
-    ["10cc", "The Original Soundtrack", 1975], ["!!!", "Myth Takes", 2007], ["Daft Punk", "Discovery", 2001],
-    ["Nina Simone", "Pastel Blues", 1965], ["Adele", "21", 2011]];
-  for (const [artist, album, year] of more) {
-    gen(path.join(lib.music, artist, album, "01 x.flac"), { seconds: 1, tags: { title: album + " one", artist, album, track: 1, genre: "Rock", date: String(year) } });
+  const more = [["The Beatles", "Abbey Road", 1969, "Rock"], ["Björk", "Homogenic", 1997, "Electronic"], ["Miles Davis", "Kind of Blue", 1959, "Jazz"],
+    ["10cc", "The Original Soundtrack", 1975, "Rock"], ["!!!", "Myth Takes", 2007, "Electronic"], ["Daft Punk", "Discovery", 2001, "Electronic"],
+    ["Nina Simone", "Pastel Blues", 1965, "Soul"], ["Adele", "21", 2011, "Electronic"]];
+  for (const [artist, album, year, genre] of more) {
+    gen(path.join(lib.music, artist, album, "01 x.flac"), { seconds: 1, tags: { title: album + " one", artist, album, track: 1, genre, date: String(year) } });
   }
   return lib;
 }
 
 const skip = built() || (!haveFfmpeg() && "ffmpeg is not installed") || (!findBrowser() && !process.env.CI && "no Chromium or Chrome (set CHROME_PATH)");
 
-test("Shelf: the Order tab files it by artist, by album, by label and catalogue №, by catalogue №, by year or at random; kept per device; one look, the spines", { skip, timeout: 180000 }, async () => {
+test("Shelf: the Order tab files it by artist, by label and catalogue №, by catalogue №, by year or at random; kept per device; one look, the spines", { skip, timeout: 180000 }, async () => {
   const lib = library();
   const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false, identify: false });
   await srv.start();
@@ -78,7 +56,6 @@ test("Shelf: the Order tab files it by artist, by album, by label and catalogue 
     const list = (await (await fetch(B + "/api/shelf/albums", { headers: H })).json()).albums;
     const byArtist = list.map(a => a.t);
     assert.deepEqual(byArtist.slice(0, 4), ["Myth Takes", "The Original Soundtrack", "21", "Album One"], "by artist (!!!, 10cc, Adele, Artist A): signs, numbers, then letters");
-    const byAlbum = ["21", "Abbey Road", "Album One", "Best Of", "Discovery", "Hi Res", "Homogenic", "Kind of Blue", "Myth Takes", "The Original Soundtrack", "Pastel Blues"];
     const byYear = list.slice().sort((x, y) => (!x.y !== !y.y ? (x.y ? -1 : 1) : (x.y || 0) - (y.y || 0))).map(a => a.t);
 
     const open = async (before) => b.page(B + "/shelf", { cookies: [{ name: "musicd_session", value: token, url: B }], init: before || "" });
@@ -107,41 +84,79 @@ test("Shelf: the Order tab files it by artist, by album, by label and catalogue 
     assert.equal(r.label, "A → Z by artist");
     assert.deepEqual(r.order, byArtist, "by artist, as the server sends it");
 
-    // Moved on to an album, then by album: the same album still in front.
+    // Moved on to an album, then by year: the same album still in front.
     await page.eval(`(async () => { const sleep = ms => new Promise(r => setTimeout(r, ms));
       document.getElementById("stage").dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }));
       for (let i = 0; i < 100 && window.__shelfState().mode !== "idle"; i++) await sleep(50); return true; })()`);
-    r = await page.eval(choose("album"));
-    assert.deepEqual(r.tiles, ["artist", "album*", "label", "catno", "year", "random"], "the orders, Mandarin's by album among Rouen's");
-    assert.equal(r.label, "A → Z by album");
-    assert.deepEqual(r.order, byAlbum, "by title: the number first, \"The\" aside");
+    r = await page.eval(choose("year"));
+    assert.deepEqual(r.tiles, ["artist", "label", "catno", "year*", "random"], "Rouen's orders, and no A → Z by album (item 213)");
+    assert.equal(r.label, "By year");
+    assert.deepEqual(r.order, byYear, "oldest first, the undated last");
     assert.equal(r.after, r.before, "the album in front stays in front");
     assert.deepEqual(page.errors, []);
 
-    // Kept on this device: the next visit opens by album, its chip on.
+    // Kept on this device: the next visit opens by year, its chip on.
     page = await open();
     r = await page.eval(STATE);
-    assert.equal(r.label, "A → Z by album");
-    assert.deepEqual(r.order, byAlbum);
-    assert.deepEqual(r.chips, ["A → Z by album"]);
-    r = await page.eval(choose("year"));
     assert.equal(r.label, "By year");
-    assert.deepEqual(r.order, byYear, "oldest first, the undated last");
+    assert.deepEqual(r.order, byYear);
+    assert.deepEqual(r.chips, ["By year"]);
     r = await page.eval(choose("artist"));
     assert.equal(r.label, "A → Z by artist");
     assert.deepEqual(r.order, byArtist);
 
+    // A device that kept A → Z by album (before item 213): by artist, no chip.
+    page = await open(`localStorage.setItem("rra-shelf-order", "album");`);
+    r = await page.eval(STATE);
+    assert.equal(r.label, "A → Z by artist");
+    assert.deepEqual(r.order, byArtist);
+    assert.deepEqual(r.chips, []);
+
     // Random: not kept — the next visit opens in the order before it.
-    await page.eval(choose("album"));
+    await page.eval(choose("year"));
     r = await page.eval(choose("random"));
     assert.equal(r.label, "Random order");
     assert.deepEqual(r.order.slice().sort(), byArtist.slice().sort(), "the same albums");
     page = await open();
-    assert.equal((await page.eval(STATE)).label, "A → Z by album", "a shuffle isn't kept: the order before it is");
+    assert.equal((await page.eval(STATE)).label, "By year", "a shuffle isn't kept: the order before it is");
     // Reset shelf: the artist order again, and kept so.
     await page.eval(`(() => { document.getElementById("reset-all").click(); return true; })()`);
     page = await open();
     assert.equal((await page.eval(STATE)).label, "A → Z by artist");
+    assert.deepEqual(page.errors, []);
+
+    // Item 213: the Genres tab's own order, #N (the most albums first), A → Z or Z → A, kept on this device.
+    const GENRES = `(async () => {
+      const sleep = ms => new Promise(r => setTimeout(r, ms));
+      for (let i = 0; i < 300 && !document.querySelector(".tile[data-cat=genre]"); i++) { document.querySelector('.tab[data-tab="genre"]').click(); await sleep(50); }
+      return { sorts: [...document.querySelectorAll(".g-sort")].map(b => b.textContent.trim() + (b.getAttribute("aria-pressed") === "true" ? "*" : "")),
+        said: [...document.querySelectorAll(".g-sort")].map(b => b.getAttribute("aria-label")),
+        names: [...document.querySelectorAll(".tile[data-cat=genre] .ch")].map(n => n.textContent.trim()),
+        counts: [...document.querySelectorAll(".tile[data-cat=genre] .t-count")].map(n => n.textContent.trim()) };
+    })()`;
+    const sortBy = (id) => `(async () => { document.querySelector('.g-sort[data-sort="${id}"]').click(); return ${GENRES}; })()`;
+    r = await page.eval(GENRES);
+    assert.deepEqual(r.sorts, ["#N*", "A → Z", "Z → A"], "the three, #N the default");
+    assert.deepEqual(r.said, ["Most albums first", "A to Z", "Z to A"]);
+    assert.deepEqual(r.names, ["Electronic", "Rock", "Jazz", "Soul"], "#N: the most albums first, as the server sends them");
+    assert.deepEqual(r.counts, ["4", "3", "2", "1"]);
+    r = await page.eval(sortBy("az"));
+    assert.deepEqual([r.sorts, r.names, r.counts], [["#N", "A → Z*", "Z → A"], ["Electronic", "Jazz", "Rock", "Soul"], ["4", "2", "3", "1"]], "A → Z, each with its own count");
+    page = await open();
+    await page.eval(STATE);
+    r = await page.eval(GENRES);
+    assert.deepEqual([r.sorts, r.names], [["#N", "A → Z*", "Z → A"], ["Electronic", "Jazz", "Rock", "Soul"]], "kept on this device");
+    r = await page.eval(sortBy("za"));
+    assert.deepEqual(r.names, ["Soul", "Rock", "Jazz", "Electronic"], "Z → A");
+    // A genre chosen in this order is that genre: its chip, and the shelf its albums.
+    r = await page.eval(`(async () => { document.querySelectorAll(".tile[data-cat=genre]")[2].click(); await new Promise(r => setTimeout(r, 50));
+      return { chips: [...document.querySelectorAll(".chip")].map(c => c.textContent.replace("×", "").trim()), n: window.__shelfState().N,
+        pressed: [...document.querySelectorAll(".tile[data-cat=genre]")].filter(t => t.getAttribute("aria-pressed") === "true").map(t => t.querySelector(".ch").textContent.trim()) }; })()`);
+    assert.deepEqual(r.chips, ["Jazz"], "the third tile Z → A is Jazz");
+    assert.deepEqual(r.pressed, ["Jazz"]);
+    assert.equal(r.n, 2, "Jazz's two albums on the shelf");
+    r = await page.eval(sortBy("count"));
+    assert.deepEqual(r.names, ["Electronic", "Rock", "Jazz", "Soul"], "#N again");
     assert.deepEqual(page.errors, []);
   } finally { await b.close(); await srv.stop(); }
 });

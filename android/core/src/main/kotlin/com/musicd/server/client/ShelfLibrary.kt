@@ -5,14 +5,13 @@ import org.json.JSONObject
 import java.math.BigInteger
 import java.text.CollationKey
 import java.text.Collator
-import java.text.Normalizer
 import java.util.Locale
 
 /*
  * The Shelf's library natively (bug list item 207): /api/shelf/albums as the page's shelf-pick.js reads it — the whole
  * library once, each album with the places of its genres and its label, its letter, year, catalogue number, kinds,
- * format and version, and (item 208) the Format tile it is under and whether it is a favourite — and the orders the shelf is filed in (shelf-pick.js, shelforder.js): by artist as the server
- * sends it, by album, by label and catalogue number, by catalogue number alone, by year, or shuffled.
+ * format and version, and (item 208) the Format tile it is under and whether it is a favourite — and the orders the shelf is filed in (shelf-pick.js): by artist as the server
+ * sends it (item 213: by album no longer), by label and catalogue number, by catalogue number alone, by year, or shuffled.
  */
 
 /** A genre or a label as the shelf lists it: its name and how many albums carry it. */
@@ -81,12 +80,11 @@ data class ShelfLibrary(
     }
 }
 
-/** The orders the shelf is filed in, and the names they are compared by (shelf-pick.js, shelforder.js). */
+/** The orders the shelf is filed in, and the names they are compared by (shelf-pick.js). */
 object ShelfSort {
     /** The orders, each with its name and its line on the Order tab, the artist order first (the default). */
     val ORDERS = listOf(
         Triple("artist", "A → Z by artist", "As a shop files them: by the artist's name, then the title."),
-        Triple("album", "A → Z by album", "By the album's title, a leading The, A or An not counting; two of one name in the artist's order."),
         Triple("label", "By label and catalogue №", "Each label together, its releases in catalogue order. Albums with no label come last, by artist."),
         Triple("catno", "By catalogue №", "The numbers in order across every label, as a shop's stock list. Albums with no number come last, by artist."),
         Triple("year", "By year", "Oldest first. Albums with no year come last."),
@@ -97,12 +95,6 @@ object ShelfSort {
     fun name(id: String): String = ORDERS.firstOrNull { it.first == id }?.second ?: id
 
     private val primary: Collator = Collator.getInstance(Locale.ENGLISH).apply { strength = Collator.PRIMARY }
-    private val variant: Collator = Collator.getInstance(Locale.ENGLISH).apply { strength = Collator.TERTIARY }
-    // The patterns made once (item 211): built on each call, for each of a library of thousands of titles, they held the
-    // screen for over ten seconds on a phone when the shelf was put A → Z by album.
-    private val NOT_WORD = Regex("[^\\p{L}\\p{N}]+")
-    private val ARTICLE_LAST = Regex("^(.*),\\s*(the|a|an)$", RegexOption.IGNORE_CASE)
-    private val ARTICLE_FIRST = Regex("^(the|a|an)\\s+", RegexOption.IGNORE_CASE)
 
     /**
      * Two names in a shop's order, as the page's Intl.Collator("en", numeric, base) has them: numbers as numbers ("WARP 61"
@@ -145,31 +137,9 @@ object ShelfSort {
         return out
     }
 
-    /** A name folded as the server folds it (Names.Fold, shelforder.js fold): accents and case gone, "&" as "and", anything else a space. */
-    fun fold(s: String): String = Normalizer.normalize(s, Normalizer.Form.NFKD).filter { Character.getType(it) != Character.NON_SPACING_MARK.toInt() }.lowercase(Locale.ROOT)
-        .replace("&", " and ").replace(NOT_WORD, " ").trim()
-
-    /** The name a title is filed under (Names.SortName): "The Wall" and "Wall, The" under "wall". */
-    fun titleKey(title: String): String {
-        val t = title.trim()
-        val last = ARTICLE_LAST.find(t)
-        return fold(last?.groupValues?.get(1) ?: t.replace(ARTICLE_FIRST, ""))
-    }
-
-    /** The letter a folded name is filed under: A–Z, 1–9 or "#". */
-    fun bucket(key: String): String {
-        val c = key.firstOrNull() ?: return "#"
-        return when (c) { in 'a'..'z' -> c.uppercaseChar().toString(); in '1'..'9' -> c.toString(); else -> "#" }
-    }
-
-    /** The albums by title, A → Z: two of one title in the order given (the artist order). */
-    fun byAlbum(list: List<ShelfCase>): List<ShelfCase> =
-        list.mapIndexed { i, a -> Triple(a, i, variant.getCollationKey(titleKey(a.title))) }.sortedWith { x, y -> x.third.compareTo(y.third).takeIf { it != 0 } ?: x.second.compareTo(y.second) }.map { it.first }
-
     /** [list] filed in the order [by] ([seed] the shuffle's), from the artist order the server sends; a stable sort keeps it within a label or a year. */
     fun filed(lib: ShelfLibrary, list: List<ShelfCase>, by: String, seed: Long): List<ShelfCase> = when (by) {
         "random" -> shuffled(list, seed)
-        "album" -> byAlbum(list)
         // each album's names split once, then sorted (item 211)
         "label" -> list.map { Keyed(it, Natural(lib.labelName(it)), it.catno?.let(::Natural), Natural(it.title)) }.sortedWith { x, y ->
             if ((x.a.label == null) != (y.a.label == null)) (if (x.a.label == null) 1 else -1)

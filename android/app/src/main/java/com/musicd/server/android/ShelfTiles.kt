@@ -46,6 +46,7 @@ import androidx.compose.ui.unit.sp
 import com.musicd.server.client.Contract
 import com.musicd.server.client.Palette
 import com.musicd.server.client.ServerClient
+import com.musicd.server.client.ShelfChoices
 import com.musicd.server.client.ShelfTile
 
 /**
@@ -68,6 +69,8 @@ internal fun ShelfTilesGrid(shelf: ShelfControl, tab: String, rem: Dp, client: (
         if (tiles.isEmpty()) shelf.choices.message(tab)?.let { m -> item(span = { GridItemSpan(maxLineSpan) }) {
             Text(m, Modifier.parity("shelf-choices.message").padding(vertical = rem * 0.4f), color = paletteColor(Palette.TEXT_DIM), fontSize = (rem.value * 0.9f).sp)
         } }
+        // the genres' order above them (item 213, as Rouen's v1.9.70-t5): #N, A → Z, Z → A
+        if (tab == "genre" && tiles.isNotEmpty()) item(key = "genre-sorts", span = { GridItemSpan(maxLineSpan) }) { GenreSorts(shelf, rem) }
         items(tiles, key = { it.id }) { t ->
             val fan = rem * 0.85f
             when (tab) {
@@ -114,6 +117,21 @@ internal fun ShelfTilesGrid(shelf: ShelfControl, tab: String, rem: Dp, client: (
                         Text("It lands on something in three seconds", color = paletteColor(Palette.TEXT_DIM), fontSize = (rem.value * 0.8f).sp)
                     }
                 }
+            }
+        }
+    }
+}
+
+/** The genres' order, three pills across the top of their tiles (shelf-pick.css .g-sort): the one chosen in the brass. */
+@Composable
+private fun GenreSorts(shelf: ShelfControl, rem: Dp) {
+    Row(Modifier.padding(bottom = rem * 0.2f), horizontalArrangement = Arrangement.spacedBy(rem * 0.4f)) {
+        ShelfChoices.GENRE_SORTS.forEachIndexed { i, (id, name) ->
+            val on = shelf.choices.genreSort == id
+            Box(Modifier.parity("shelf-choices.genre-sort", Contract.label("shelf-choices.genre-sort", i)).heightIn(min = rem * 2.2f).clip(CircleShape)
+                .then(if (on) Modifier.background(paletteColor(Palette.ACCENT)) else Modifier.border(1.dp, SHELF_BRASS_DIM, CircleShape))
+                .clickable { shelf.sortGenres(id) }.padding(horizontal = rem * 0.95f), contentAlignment = Alignment.Center) {
+                Text(name, color = paletteColor(if (on) Palette.ON_ACCENT else Palette.TEXT), fontSize = (rem.value * 0.82f).sp, fontWeight = FontWeight.W700)
             }
         }
     }

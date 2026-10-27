@@ -31,8 +31,8 @@ import kotlin.random.Random
 internal class ShelfControl(private val context: Context, private val client: () -> ServerClient?, private val scope: CoroutineScope) {
     /** The library as last read; null until it is. */
     var lib by mutableStateOf<ShelfLibrary?>(null); private set
-    /** The choices made, kept per device as the page keeps them (the order). */
-    val choices = ShelfChoices(Store.shelf(context, "order"), Random.nextLong(1, 0xffffffffL))
+    /** The choices made, kept per device as the page keeps them (the order, and the genres' order: item 213). */
+    val choices = ShelfChoices(Store.shelf(context, "order"), Random.nextLong(1, 0xffffffffL), Store.shelf(context, "genre-sort"))
     /** What the shelf holds now, its divider cards, and a count that moves whenever either does (or a choice). */
     var list by mutableStateOf<List<ShelfCase>>(emptyList()); private set
     var tabs by mutableStateOf<List<String>>(emptyList()); private set
@@ -146,6 +146,11 @@ internal class ShelfControl(private val context: Context, private val client: ()
     fun choose(change: ShelfChoices.() -> String?) {
         choices.change()?.let { Store.setShelf(context, "order", it) }
         refresh()
+    }
+
+    /** The genres put in order [id] on their tab (#N, A → Z, Z → A; item 213): kept on this device, the tiles drawn again. */
+    fun sortGenres(id: String) {
+        choices.sortGenres(id)?.let { Store.setShelf(context, "genre-sort", it); rev++ }
     }
 
     // ---- Moving -----------------------------------------------------------------------------------------------------
