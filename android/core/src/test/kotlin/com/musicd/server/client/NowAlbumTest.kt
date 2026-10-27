@@ -30,4 +30,11 @@ class NowAlbumTest {
         assertNull(NowAlbum.match(results, "Thriller", ""))
         assertEquals("/api/search?q=Kind%20of%20Blue&limit=20", NowAlbum.searchPath("Kind of Blue"))
     }
+
+    @Test fun `the phone's own album playing is known by its key, the library's is not (item 197)`() {
+        assertEquals("a1b2c3", NowAlbum.phoneKey("phone:a1b2c3"))
+        assertNull(NowAlbum.phoneKey("42"))
+        assertNull(NowAlbum.phoneKey("phone:"))
+        assertNull(NowAlbum.phoneKey(null))
+    }
 }

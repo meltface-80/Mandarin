@@ -29,6 +29,9 @@ internal fun pickChoice(context: Context, choices: List<Choice>, current: String
     }.show()
 }
 
+/** One of the server's settings as last read ([name]), for a page's first frame (item 198); none if never read. */
+internal fun keptSetting(name: String): JSONObject? = com.musicd.server.client.SettingsKept.last("/api/settings/$name")
+
 /** One of the server's settings as it has it ([name]); none when it can't be reached. */
 internal suspend fun readSetting(client: () -> ServerClient?, name: String): JSONObject? {
     val c = client() ?: return null

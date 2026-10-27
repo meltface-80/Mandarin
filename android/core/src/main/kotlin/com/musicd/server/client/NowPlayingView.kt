@@ -31,7 +31,9 @@ data class NowPlayingView(
     /** The track's artists, each a link when the library has their page; empty from an older server (show [artist]). */
     val artists: List<Credit> = emptyList(),
     /** The library's track playing, when it is one. */
-    val trackId: Long? = null
+    val trackId: Long? = null,
+    /** The phone's own album playing, its key ([NowAlbum.phoneKey]), when it is one. */
+    val phoneAlbum: String? = null
 ) {
     /** Shuffle's state in the contract's labels: Shuffle, Shuffle on. */
     val shuffleState: Int get() = if (shuffle) 1 else 0
@@ -74,7 +76,8 @@ data class NowPlayingView(
                 playing = z.isPlaying, seekSeconds = (np.seekSeconds ?: 0).toDouble(), lengthSeconds = np.lengthSeconds?.toDouble(),
                 canNext = z.nextAllowed, canPrevious = z.previousAllowed, answeredAtMs = answeredAtMs,
                 shuffle = z.shuffle, loop = z.loop, format = np.format,
-                volume = z.outputs.firstNotNullOfOrNull { it.scale }, muted = z.outputs.any { it.muted }, artists = np.artists, trackId = np.trackId
+                volume = z.outputs.firstNotNullOfOrNull { it.scale }, muted = z.outputs.any { it.muted }, artists = np.artists, trackId = np.trackId,
+                phoneAlbum = NowAlbum.phoneKey(np.albumId)
             )
         }
 

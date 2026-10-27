@@ -55,6 +55,7 @@ import com.musicd.server.client.DevicePage
 import com.musicd.server.client.Palette
 import com.musicd.server.client.SegChoice
 import com.musicd.server.client.ServerClient
+import com.musicd.server.client.SettingsKept
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -77,7 +78,8 @@ import java.util.Date
 internal fun DevicePane(id: String, client: () -> ServerClient?, onBack: () -> Unit, info: (String) -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    var page by remember(id) { mutableStateOf<DevicePage?>(null) }
+    // As last seen, then the server's (item 198): before, "Device" and nothing under it until the server answered.
+    var page by remember(id) { mutableStateOf(SettingsKept.last(devicePath(id)) { DevicePage(it) }) }
     var busy by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf("") }
     val dates = remember { DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT) }
@@ -92,9 +94,13 @@ internal fun DevicePane(id: String, client: () -> ServerClient?, onBack: () -> U
         val c = client() ?: return
         if (busy) return
         busy = true
+        // Shown with the change at once (item 200), the server's answer taking its place; back as it was if refused.
+        val before = page
+        page = before?.with(body)
         val made = ServerWrites.write { c.patch(devicePath(id), body) }
         scope.launch {
-            ServerWrites.await(made).onSuccess { page = DevicePage(it); error = ""; said?.let { s -> setupToast(context, s(page!!)) } }.onFailure { error = com.musicd.server.client.Failure.said(it, "") }
+            ServerWrites.await(made).onSuccess { page = DevicePage(it); error = ""; said?.let { s -> setupToast(context, s(page!!)) } }
+                .onFailure { page = before; error = com.musicd.server.client.Failure.said(it, "") }
             busy = false
         }
     }

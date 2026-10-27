@@ -25,6 +25,17 @@ data class DlSettings(
     val cacheWifi: Int, val cacheMobile: Int, val cacheGb: Int,
     val cacheWifiChoices: List<Int>, val cacheMobileChoices: List<Int>, val cacheGbChoices: List<Int>,
 ) {
+    /** These settings with [key] set to [value] as the bridge takes them (a switch or a list changed, item 200): shown at once, read back after. */
+    fun with(key: String, value: String): DlSettings = when (key) {
+        "offlineMode" -> copy(offlineMode = value.toBoolean())
+        "quality" -> copy(quality = value)
+        "location" -> copy(location = value)
+        "wifiOnly" -> copy(wifiOnly = value.toBoolean())
+        "autoPicks" -> copy(autoPicks = value.toBoolean())
+        "autoAotd" -> copy(autoAotd = value.toBoolean())
+        else -> this
+    }
+
     companion object {
         fun parse(j: JSONObject): DlSettings {
             val places = j.optJSONArray("places")?.let { a -> (0 until a.length()).map { a.getJSONObject(it) }.map { DlPlace(it.optString("id"), it.optString("label"), it.optLong("free")) } }.orEmpty()

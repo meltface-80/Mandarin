@@ -113,4 +113,13 @@ class NowPlayingViewTest {
             {"zone_id": "z2", "display_name": "Lounge + Study", "outputs": [{"display_name": "Lounge"}, {"display_name": "Study"}]}, {"display_name": "no id"}]}"""))
         assertEquals(listOf(Room("z1", "Kitchen", listOf("Kitchen")), Room("z2", "Lounge + Study", listOf("Lounge", "Study"))), rooms)
     }
+
+    @Test fun `the phone playing its own music carries that album's key for its page (item 197)`() {
+        fun room(offset: String) = ZoneState.parse(JSONObject("""{"revision": 1, "zone": {"zone_id": "phone-1", "display_name": "This phone",
+            "state": "playing", "now_playing": {"line1": "Eye For Love", "line2": "The Stone Foxes", "line3": "Twelve Spells",
+            "image_key": "phone-k9", "album_offset": $offset}, "outputs": []}}"""))
+        assertEquals("k9", NowPlayingView.of(room("\"phone:k9\""), 0)!!.phoneAlbum)
+        assertNull(NowPlayingView.of(room("12"), 0)!!.phoneAlbum)
+        assertNull(NowPlayingView.of(room("null"), 0)!!.phoneAlbum)
+    }
 }

@@ -14,7 +14,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 
-# (id, emoji, title, new in v1.1.9, what it is, how to set it up and use it)
+# (id, emoji, title, new in v1.1.10, what it is, how to set it up and use it)
 FEATURES = [
     # ---- Home and finding music
     ("home", "🏠", "Home", False,
@@ -353,7 +353,7 @@ def md_inline_to_html(s):
 def readme_block():
     lines = ["Every feature below has an **ⓘ**: open it for how to switch the feature on and use it.", ""]
     for i, (fid, em, title, new, what, how) in enumerate(FEATURES):
-        lines.append("%s **%s**%s" % (em, title, " — *new in v1.1.9*" if new else ""))
+        lines.append("%s **%s**%s" % (em, title, " — *new in v1.1.10*" if new else ""))
         lines.append("")
         lines.append(what)
         lines.append("")

@@ -53,6 +53,7 @@ import com.musicd.server.client.DeviceList
 import com.musicd.server.client.DeviceRow
 import com.musicd.server.client.Palette
 import com.musicd.server.client.ServerClient
+import com.musicd.server.client.SettingsKept
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -89,10 +90,11 @@ internal fun SettingsAudio(client: () -> ServerClient?, onBack: () -> Unit) {
 private fun DeviceListPane(client: () -> ServerClient?, onBack: () -> Unit, onOpen: (String) -> Unit, info: (String) -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    var list by remember { mutableStateOf<DeviceList?>(null) }
+    // As last seen, then the server's (item 198): before, no devices and Waveform off until the server answered.
+    var list by remember { mutableStateOf(SettingsKept.last(DEVICES) { AudioDevices.parse(it) }) }
     var zones by remember { mutableStateOf<List<Choice>>(emptyList()) }
     var zone by remember { mutableStateOf(NativeShell.zone) }
-    var waveform by remember { mutableStateOf(false) }
+    var waveform by remember { mutableStateOf(SettingsKept.last(WAVEFORM) { it.optBoolean("enabled") } ?: false) }
     var hiding by remember { mutableStateOf(false) }
     var picks by remember { mutableStateOf(setOf<String>()) }
     var looking by remember { mutableStateOf(false) }
@@ -100,14 +102,15 @@ private fun DeviceListPane(client: () -> ServerClient?, onBack: () -> Unit, onOp
     var error by remember { mutableStateOf("") }
     suspend fun load() {
         val c = client() ?: return
-        val got = withContext(Dispatchers.IO) { runCatching { c.getJson("/api/audio-devices") } }
+        val got = withContext(Dispatchers.IO) { runCatching { c.getJson(DEVICES) } }
         got.onSuccess { list = AudioDevices.parse(it); error = "" }.onFailure { error = com.musicd.server.client.Failure.said(it, "Couldn't reach the server") }
     }
     LaunchedEffect(Unit) {
         val c = client()
+        // The rooms and the waveform asked beside the list, not before it.
         if (c != null) {
-            withContext(Dispatchers.IO) { runCatching { c.zones().zones.map { z -> Choice(z.id, z.name) } } }.onSuccess { zones = it }
-            readSetting(client, "waveform")?.let { waveform = it.optBoolean("enabled") }
+            launch { withContext(Dispatchers.IO) { runCatching { c.zones().zones.map { z -> Choice(z.id, z.name) } } }.onSuccess { zones = it } }
+            launch { readSetting(client, "waveform")?.let { waveform = it.optBoolean("enabled") } }
         }
         while (true) { untilOnScreen(); if (!busy) load(); delay(10_000) }
     }
@@ -116,9 +119,13 @@ private fun DeviceListPane(client: () -> ServerClient?, onBack: () -> Unit, onOp
         val c = client() ?: return
         if (busy) return
         busy = true
+        // The row's switch moved as it is tapped (item 200), the list read again after; back where it was if refused.
+        val before = list
+        list = before?.withEnabled(r.id, on)
         val made = ServerWrites.write { c.patch(devicePath(r.id), JSONObject().put("enabled", on)) }
         scope.launch {
-            ServerWrites.await(made).onSuccess { setupToast(context, AudioDevices.enabledSaid(it.optString("name", r.name), on)) }.onFailure { error = com.musicd.server.client.Failure.said(it, "") }
+            ServerWrites.await(made).onSuccess { setupToast(context, AudioDevices.enabledSaid(it.optString("name", r.name), on)) }
+                .onFailure { list = before; error = com.musicd.server.client.Failure.said(it, "") }
             busy = false; load()
         }
     }
@@ -260,4 +267,8 @@ internal fun Modifier.dashed(color: Color, radius: Dp): Modifier = drawBehind {
 }
 
 /** A device's address on the server (/api/audio-devices/:id), its id as one segment. */
+/** The devices, and the waveform setting: kept as last read (item 198). */
+private const val DEVICES = "/api/audio-devices"
+private const val WAVEFORM = "/api/settings/waveform"
+
 internal fun devicePath(id: String) = "/api/audio-devices/" + java.net.URLEncoder.encode(id, "UTF-8").replace("+", "%20")

@@ -51,6 +51,7 @@ import com.musicd.server.client.LocalFolder
 import com.musicd.server.client.MusicFolders
 import com.musicd.server.client.Palette
 import com.musicd.server.client.ServerClient
+import com.musicd.server.client.SettingsKept
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -74,7 +75,8 @@ import java.util.Date
 internal fun SettingsFolders(client: () -> ServerClient?, onBack: () -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    var folders by remember { mutableStateOf<MusicFolders?>(null) }
+    // As last seen, then the server's (item 198): before, no folders until the server answered.
+    var folders by remember { mutableStateOf(SettingsKept.last(FolderSettings.PATH) { FolderSettings.parse(it) }) }
     var err by remember { mutableStateOf("") }
     var busy by remember { mutableStateOf(false) }
     var browsing by remember { mutableStateOf<Browsed?>(null) }
@@ -84,7 +86,7 @@ internal fun SettingsFolders(client: () -> ServerClient?, onBack: () -> Unit) {
     LaunchedEffect(info) { val t = info ?: return@LaunchedEffect; delay(minOf(25_000L, 4_000L + t.split(Regex("\\s+")).size * 220L)); info = null }
     suspend fun load() {
         val c = client() ?: run { err = FolderSettings.UNREACHABLE; return }
-        withContext(Dispatchers.IO) { runCatching { FolderSettings.parse(c.getJson("/api/library/folders")) } }
+        withContext(Dispatchers.IO) { runCatching { FolderSettings.parse(c.getJson(FolderSettings.PATH)) } }
             .onSuccess { folders = it; err = "" }.onFailure { folders = null; err = it.message ?: FolderSettings.UNREACHABLE }
     }
     // Open at once (the page's), the folders filling in when the server answers.
@@ -244,14 +246,17 @@ private fun DirRow(modifier: Modifier, name: String, tag: String?, last: Boolean
 private fun PhoneFolder(info: (String) -> Unit, ask: (String, () -> Unit) -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    var local by remember { mutableStateOf<LocalFolder?>(null) }
+    // As last seen this run, or none when no folder was ever chosen (item 198): before, "No folder chosen" was drawn
+    // until the phone had read its folder, a moment on.
+    var local by remember { mutableStateOf(lastLocal) }
+    var known by remember { mutableStateOf(lastLocal != null || Store.localFolder(context) == null) }
     val dates = remember { DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT) }
     fun read(): LocalFolder? = if (Store.localFolder(context) == null) null else
         LocalFolder(LocalMusic.folderName(context) ?: "Folder", LocalMusic.albums.size, LocalMusic.albums.sumOf { it.tracks.size }, LocalMusic.scanning, LocalMusic.scannedAt,
             LocalMusic.available(context), LocalMusic.lastError)
     LaunchedEffect(Unit) {
         withContext(Dispatchers.IO) { LocalMusic.load(context) }
-        while (true) { untilOnScreen(); local = withContext(Dispatchers.IO) { read() }; delay(1_500) }
+        while (true) { untilOnScreen(); local = withContext(Dispatchers.IO) { read() }; lastLocal = local; known = true; delay(1_500) }
     }
     val choose = { (context as? MainActivity)?.pickLocalFolder(); Unit }
     Column(Modifier.padding(vertical = 4.dp)) {
@@ -262,7 +267,8 @@ private fun PhoneFolder(info: (String) -> Unit, ask: (String, () -> Unit) -> Uni
                 contentAlignment = Alignment.Center) { Text("ⓘ", color = paletteColor(Palette.TEXT_FAINT), fontSize = 12.sp, lineHeight = 12.sp) }
         }
         val l = local
-        if (l == null) {
+        if (!known) Unit
+        else if (l == null) {
             SetupRow("No folder chosen", Modifier.parity("settings-folders.local-none"), null) {
                 SetupButton("Choose a folder", false, Modifier.parity("settings-folders.local-choose", Contract.label("settings-folders.local-choose")).clickable { choose() })
             }
@@ -271,6 +277,9 @@ private fun PhoneFolder(info: (String) -> Unit, ask: (String, () -> Unit) -> Uni
             onForget = { ask(FolderSettings.FORGET_QUESTION) { scope.launch(Dispatchers.IO) { LocalMusic.forget(context) } } })
     }
 }
+
+/** The phone's folder as last read this run (item 198). */
+private var lastLocal: LocalFolder? = null
 
 /** The phone's folder (.dl-folder) and its buttons (.dl-toolbar): Read again (dim while reading), Change folder, Forget. */
 @Composable

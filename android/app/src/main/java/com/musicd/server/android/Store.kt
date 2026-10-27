@@ -21,6 +21,7 @@ object Store {
     private const val KEY_ZONE = "zone"
     private const val KEY_TOKEN = "token"
     private const val KEY_TOKEN_FOR = "token_for"
+    private const val KEY_SETTINGS_KEPT = "settings_kept"
     private const val KEY_USER = "username"
     private const val KEY_AWAY_LEARNED = "away_learned"
     private const val KEY_AWAY_TYPED = "away_typed"
@@ -56,7 +57,7 @@ object Store {
 
     fun setToken(context: Context, token: String?, username: String? = null) {
         val e = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
-        if (token == null) e.remove(KEY_TOKEN).remove(KEY_TOKEN_FOR)
+        if (token == null) { e.remove(KEY_TOKEN).remove(KEY_TOKEN_FOR); com.musicd.server.client.SettingsKept.forget() }
         else e.putString(KEY_TOKEN, token).putString(KEY_TOKEN_FOR, server(context)?.toString())
         if (username != null) e.putString(KEY_USER, username)
         e.apply()
@@ -194,6 +195,8 @@ object Store {
     fun serverId(context: Context): String? = prefs(context).getString("server_id", null)
 
     fun setServerId(context: Context, id: String?) {
+        // Another server's settings never shown as this one's (item 198).
+        if (id != serverId(context)) com.musicd.server.client.SettingsKept.forget()
         prefs(context).edit().apply { if (id == null) remove("server_id") else putString("server_id", id) }.apply()
     }
 
@@ -266,8 +269,11 @@ object Store {
         // Every request logged, while logging is on (item 121); each asked on the way to the server as it is when asked, once
         // this run's first look at it has been made (item 157: a start with last run's way asked an address the phone had left).
         val app = context.applicationContext
+        // Settings' reads kept as the server answers them, on the phone for this server (item 198).
+        com.musicd.server.client.SettingsKept.attach({ serverId(app) }, { prefs(app).getString(KEY_SETTINGS_KEPT, null) },
+            { prefs(app).edit().putString(KEY_SETTINGS_KEPT, it).apply() })
         return ServerClient(address, token = token,
             // The gate shut signs the phone out only on its own server (item 158: another Mandarin at the home address did).
-            transport = AppLog.server({ active(app)?.baseUrl ?: address.baseUrl }, token, { Away.awaitWay(app); Away.notBeforeVpn(app) }) { if (Away.stillOurs(app)) MainActivity.gateShut() else Away.recheck(app) })
+            transport = com.musicd.server.client.KeptTransport(AppLog.server({ active(app)?.baseUrl ?: address.baseUrl }, token, { Away.awaitWay(app); Away.notBeforeVpn(app) }) { if (Away.stillOurs(app)) MainActivity.gateShut() else Away.recheck(app) }))
     }
 }

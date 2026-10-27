@@ -20,6 +20,9 @@ data class SegChoice(val value: String, val label: String, val off: Boolean = fa
  * answer itself; the changes are PATCHes of it.
  */
 class DevicePage(val j: JSONObject) {
+    /** This page with [patch] laid over it (a switch tapped, item 200): shown at once, the server's own answer taking its place. */
+    fun with(patch: JSONObject): DevicePage = DevicePage(JSONObject(j.toString()).apply { patch.keys().forEach { k -> put(k, patch.get(k)) } })
+
     val id: String get() = j.optString("id")
     val name: String get() = j.optString("name")
     val kind: String get() = j.optString("kind")

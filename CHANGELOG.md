@@ -1,5 +1,92 @@
 # Changelog
 
+## v1.1.10
+
+**A smoother Android app that rests when it isn't needed.** No new features: the Android app's Settings pages open as
+you last saw them instead of with their defaults and then changing, a switch moves as soon as you tap it, and moving
+between screens no longer shows Home for a moment. In the background, the app no longer keeps its own Tailscale
+engine running at home when nothing is playing, after Android ended it on 26 October for the engine's CPU; its phone
+player rests once it has been idle off screen for five minutes, and the phone's music folder is read again every few
+minutes only while the app is on screen. A phone album's share card has its cover, and Now playing opens the phone's
+own album. Items 197 to 205 (205 is the test suite's own: GitHub's runners moved to Ubuntu 26.04 on 26 Oct).
+
+- `205-scan-test-file-times` (item 205): the C# suite's scan test failed on GitHub's runners from 26 Oct, when
+  `ubuntu-latest` became Ubuntu 26.04: it took each file's time from the `stat` command to make the cover keys it
+  expects, and 26.04's `stat` (uutils coreutils) gives the nanoseconds rounded to the tenth of a microsecond, so the
+  keys matched the server's for some albums and not others. The test now takes each file's length and time from
+  node's own `fs.statSync`, the figures the keys were defined by. The server was right throughout.
+
+- `205-scan-test-file-times` (item 205): the C# suite's scan test failed on GitHub's runners from 26 Oct, when
+  `ubuntu-latest` became Ubuntu 26.04: it took each file's time from the `stat` command to make the cover keys it
+  expects, and 26.04's `stat` (uutils coreutils) gives the nanoseconds rounded to the tenth of a microsecond, so the
+  keys matched the server's for some albums and not others. The test now takes each file's length and time from
+  node's own `fs.statSync`, the figures the keys were defined by. The server was right throughout.
+
+- `204-folder-reread-on-screen` (item 204): the Android app read the phone's own music folder again every three
+  minutes for as long as the app's process lived, on screen or not: 179 reads in a day, most with the app in the
+  background. Off screen it now relies on Android's change notices for the folder alone, and reads again when it
+  comes back on screen; the read every few minutes is made while it is on screen only.
+
+- `203-idle-player-dormant` (item 203): the Android app's phone player, off screen and not playing for five minutes,
+  asked to stop and nothing happened: Android keeps a media service bound (its media controls, Bluetooth's browsing,
+  Android Auto), and a bound service isn't ended that way. It stayed up for as long as the app lived, its heartbeat
+  every ten seconds and its long poll of the server's commands every 25 seconds, and said it was stopping every five
+  minutes. It now goes dormant: the heartbeat and the long poll end, and it still asks to stop, for Android to end it
+  once nothing has it bound. A play from the app, a download, a controller connecting or a Bluetooth play wakes it.
+
+- `202-engine-idle-at-home` (item 202): on 26 Oct Android ended the Android app in the background for "excessive CPU
+  usage, caused by child process": the one process Mandarin runs beside itself, its own Tailscale engine, had used 131
+  seconds of CPU in five minutes while the app sat swiped away at home. At home the engine was kept joined and idle
+  for as long as the app's process lived, so that leaving the house needn't wait for it.
+  - At home the engine is now kept only while the phone's player is playing, and stopped once it has been idle for
+    two minutes; away again it is started in seconds, its sign-in kept on disk.
+  - The phone's interface list, which the app handed to the engine on every look at the network (a signal-strength
+    change among them) and which makes the engine look at the network again whenever it differs, is sent only when it
+    changed and at most once in ten seconds, a change in between sent when the gap is up.
+  - The engine says its CPU time, which the app's snapshots log with how much it used since the last, and when the
+    engine is stopped the log says why, with its CPU time and its last lines (addresses taken out); the note on the
+    next start names the engine when Android's words say a child process.
+
+- `200-switches-move-at-once` (item 200): a switch on the Android app's Settings pages moved only once the server had
+  answered, so a tap did nothing for a moment: Account's Ask for a sign-in, every switch and choice on a device's
+  page (DSP's among them), a device's row in Audio (two round trips), the Scanner's switches and Measure ReplayGain,
+  Away from home's Built-in Tailscale, and Downloads' Offline mode and lists. Each moves as it is tapped, the server's
+  answer taking its place after; refused, it goes back where it was and says why, as the Setup pages' switches have.
+
+- `199-no-gaps-between-screens` (item 199): on the Android app, tapping Settings in the side menu, or Library or Artists
+  in the row, showed Home for a moment: the menu went at once, every screen over Home was closed, and only then was the
+  next one opened. An album opened from Now playing or Pitchfork, and the Playlists from a playlist opened elsewhere,
+  closed the screen first and opened after, showing what was under it for a frame.
+  - The screen chosen opens over Home in one step, the screens between taken away with it; a screen that takes
+    another's place does so in one step too.
+  - The menu stays until the screen chosen has been drawn under it, then slides away over it with its dim fading; a
+    tap on it or beside it while it goes does nothing.
+
+- `198-settings-open-as-last-seen` (item 198): the Android app's Settings pages opened with their defaults and changed
+  as the server answered. Account drew Ask for a sign-in on, then off, with Change password and Sign out of this
+  device shown and then taken away. Music Folders had no folders, and its Music on this phone said "No folder chosen".
+  The Scanner's switches, Smart Picks, Record labels, Wall Display, Shelf, Waveform and Share Card's Review all drew in
+  the default position, and Audio, a device's page, Away from home, the services and Backup were blank until the answer
+  came.
+  - Each page opens as it was last seen, then follows the server, as the side menu has since item 122. The server's
+    last answer to each of Settings' reads is kept in memory and on the phone, for that server only, and only the
+    server's own answers are kept, never the phone's offline ones. API keys are never kept.
+  - A change is followed by the reads it affects, made again behind it, so the next opening isn't from before the
+    change.
+  - Opened for the very first time, with nothing kept yet, a switch isn't drawn until its answer comes, rather than
+    drawn wrong; on Account, what hangs on it waits too.
+  - Reads that waited on each other are asked together: Account's, Audio's rooms and waveform beside its list, Record
+    labels' two, Backup's and the phone's own backups, and Home Screen's.
+  - Away from home no longer shows "Couldn't ask the server" for one read that wasn't answered; two in a row still do.
+
+- `197-phone-album-cover-and-now-playing` (item 197): the phone's own music (Settings → Music Folders, Music on this
+  phone), which the server has never seen, on the Android app.
+  - Its share card had no cover: the card asked the server for the album's cover, and the server has none. A phone
+    album's cover is read from the phone now, as its page and Now playing already read it.
+  - Its name on Now playing said "Album not yet indexed — try again in a moment": a tap searched the server's library
+    for it, and it is never there. Playing on the phone from its own music, a tap opens the phone's own page of the
+    album; anything else is found in the library as before.
+
 ## v1.1.9
 
 **A full review: safer, steadier playback, a sturdier app.** No new features: a review of the whole of Mandarin (the

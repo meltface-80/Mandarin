@@ -58,7 +58,8 @@ test("what the screens handed to the page is the app's own", () => {
 test("Now playing's album found as the page found it, the Shelf in the browser, the old update dialog gone", () => {
   assert.match(read(APP + "NowPlayingScreen.kt"), /findNowAlbum\(client, zoneId, v\.album, v\.artist\)\?\.let \{ onPage\("album", it\.toString\(\)\) \} \?: Toast\.makeText\(context, NowAlbum\.NOT_INDEXED/);
   assert.match(read(APP + "ShellHand.kt"), /NowAlbum\.playing\(c\.getJson\("\/api\/album\/now-playing\?zone="[\s\S]*NowAlbum\.match\(c\.getJson\(NowAlbum\.searchPath\(a\)\), a, artist\)/);
-  assert.match(read(APP + "ShellRoutes.kt"), /what == "album" && arg != null && arg\.toLongOrNull\(\) != null -> \{ nav\.popBackStack\(\); nav\.navigate\(ShellRoute\.album\(arg\.toLong\(\)/);
+  // In Now playing's place in one step (item 199: inPlace), not closed first and opened after.
+  assert.match(read(APP + "ShellRoutes.kt"), /what == "album" && arg != null && arg\.toLongOrNull\(\) != null -> inPlace\(nav, ShellRoute\.album\(arg\.toLong\(\)/);
   assert.match(read(APP + "MenuDrawer.kt"), /if \(what == "shelf"\) \{ openShelf\(context\); return \}/);
   assert.match(read(APP + "ShellHand.kt"), /Uri\.parse\("\$base\/shelf"\)/);
   const upd = read(APP + "AppUpdate.kt");
@@ -68,7 +69,8 @@ test("Now playing's album found as the page found it, the Shelf in the browser, 
 test("the server's gate shutting on this phone signs it in again; a wrong password does not", () => {
   // Each request on the way as it is when asked, once the first look at it is made (item 157: WayTransport).
   // Signed out only on its own server (item 158: another Mandarin at the home address did): Away.stillOurs.
-  assert.match(read(APP + "Store.kt"), /transport = AppLog\.server\(\{ active\(app\)\?\.baseUrl \?: address\.baseUrl \}, token, \{ Away\.awaitWay\(app\); Away\.notBeforeVpn\(app\) \}\) \{ if \(Away\.stillOurs\(app\)\) MainActivity\.gateShut\(\) else Away\.recheck\(app\) \}/);
+  // Settings' reads kept on the way through (item 198: KeptTransport), the gate watched inside it.
+  assert.match(read(APP + "Store.kt"), /transport = com\.musicd\.server\.client\.KeptTransport\(AppLog\.server\(\{ active\(app\)\?\.baseUrl \?: address\.baseUrl \}, token, \{ Away\.awaitWay\(app\); Away\.notBeforeVpn\(app\) \}\) \{ if \(Away\.stillOurs\(app\)\) MainActivity\.gateShut\(\) else Away\.recheck\(app\) \}\)\)/);
   assert.match(read(APP + "AppLog.kt"), /fun server\(base: \(\) -> String, token: String, ready: \(\) -> Unit, shut: \(\) -> Unit\): Transport = net\(GateWatch\(WayTransport\(base, token, ready\), shut\), "server"\)/);
   assert.match(read(CORE + "ServerClient.kt"), /val gateShut get\(\) = status == 401 && message in GATE/);
   assert.match(read(APP + "MainActivity.kt"), /fun gateShut\(\) \{ shown\.get\(\)\?\.let \{ a -> a\.runOnUiThread \{ if \(!a\.isFinishing\) a\.signedOut\(\) \} \} \}/);

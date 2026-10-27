@@ -137,7 +137,7 @@ object LocalMusic {
      */
     private fun period() = if (front) (lastWalkMs * 15).coerceIn(PERIOD_FRONT_MS, PERIOD_MS) else PERIOD_MS
     @Volatile private var lastWalkMs = 0L
-    private val periodic = object : Runnable { override fun run() { watched?.let { c -> rescan(c) ; main.postDelayed(this, period()) } } }
+    private val periodic = object : Runnable { override fun run() { watched?.let { c -> rescan(c); if (front) main.postDelayed(this, period()) } } }   // on screen only (item 204)
     @Volatile private var watched: Context? = null
 
     /** The app came to the screen ([on]) or left it: the reads follow, and coming back reads now. */
@@ -145,16 +145,16 @@ object LocalMusic {
         front = on
         if (watched == null) return
         main.removeCallbacks(periodic)
-        main.postDelayed(periodic, period())
+        if (on) main.postDelayed(periodic, period())   // off screen, Android's change notices alone (item 204: a read every three minutes all day)
         if (on) checkSoon(c)
     }
 
-    /** From the activity's start to its end: Android's change notices for the folder, and a read every few minutes. */
+    /** From the activity's start to its end: Android's change notices for the folder, and, on screen, a read every few minutes. */
     fun watch(c: Context) {
         watched = c.applicationContext
         observe(c.applicationContext)
         main.removeCallbacks(periodic)
-        main.postDelayed(periodic, PERIOD_MS)
+        if (front) main.postDelayed(periodic, PERIOD_MS)
     }
 
     fun unwatch(c: Context) {

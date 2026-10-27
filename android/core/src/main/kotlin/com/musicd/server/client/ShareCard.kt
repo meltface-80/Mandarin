@@ -70,6 +70,9 @@ object ShareCard {
     const val FAILED = "Could not generate the card."
     const val HINT = "Tap a button above, or long-press the card to save."
 
+    /** Whether the cover [imageKey] is one of the phone's own albums' ("phone-<key>"): read from the phone, the server has none (item 197). */
+    fun phoneCover(imageKey: String?): Boolean = imageKey?.startsWith("phone-") == true && imageKey.length > "phone-".length
+
     /** The review as the card carries it: ten sentences at most, and 1,400 characters, cut at a word with "…". */
     fun trimReview(desc: String): String {
         var t = desc.trim()
