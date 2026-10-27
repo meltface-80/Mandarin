@@ -98,7 +98,7 @@
         const now = playing && i === 0;
         if (i === 0 || (playing && i === 1)) {
           const head = document.createElement("li");
-          head.className = "q-h";
+          head.className = "q-h"; head.dataset.parity = "shelf.queue-head";
           head.textContent = now ? "Now playing" : "Up next";
           frag.appendChild(head);
         }
@@ -107,10 +107,10 @@
         li.dataset.qid = String(it.queue_item_id);
         const art = it.image_key ? `<img src="${imageUrl(it.image_key, 120)}" alt="" loading="lazy">` : "";
         const len = Number(it.length) > 0 ? fmtLen(it.length) : "";
-        li.innerHTML = `<button class="q-item" type="button"><span class="q-art">${art}</span>`
+        li.innerHTML = `<button class="q-item" type="button" data-parity="shelf.queue-track"><span class="q-art">${art}</span>`
           + `<span class="q-text"><span class="q-t">${esc(it.title || "")}</span><span class="q-a">${esc(it.subtitle || "")}</span></span>`
           + `<span class="q-len">${len}</span></button>`
-          + (now ? "" : `<button class="act primary q-go" type="button">${PLAY_SVG}Play from here</button>`);
+          + (now ? "" : `<button class="act primary q-go" type="button" data-parity="shelf.queue-play">${PLAY_SVG}Play from here</button>`);
         frag.appendChild(li);
       });
       ol.textContent = "";

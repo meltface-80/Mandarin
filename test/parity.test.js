@@ -599,6 +599,30 @@ const OPEN_SERVICE_ARTIST = `(async () => { ${SERVICE_KIT}
   return "open";
 })()`;
 
+/* The Shelf (/shelf, item 207), switched on, its gestures' help put away: at rest, the zone's state read (Kitchen),
+   its volume to be had; then its choices opened, or the case in front turned over into the album view. */
+const SHELF_KIT = `
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const until = async (fn, ms = 30000) => { const t0 = Date.now(); while (!fn()) { if (Date.now() - t0 > ms) return false; await sleep(50); } return true; };
+  const $ = s => document.querySelector(s);
+  const S = () => window.__shelfState && window.__shelfState();
+  if (!(await until(() => S() && S().N > 0 && S().mode === "idle" && /Kitchen/.test($("#mt-zone").textContent) && !$("#mt-vol-btn").disabled))) return "no shelf";
+  await sleep(500);`;
+const OPEN_SHELF = `(async () => { ${SHELF_KIT} return "open"; })()`;
+const OPEN_SHELF_CHOICES = `(async () => { ${SHELF_KIT}
+  $("#pick-tab").click();
+  if (!(await until(() => S().pick && document.querySelectorAll("#tiles .tile").length > 0))) return "no choices";
+  await sleep(600);
+  return "open";
+})()`;
+const OPEN_SHELF_ALBUM = `(async () => { ${SHELF_KIT}
+  $("#stage").dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+  if (!(await until(() => $("#open").classList.contains("on") && !!document.querySelector("#open .bk-tracks li") && !document.querySelector("#open .ov-reading")))) return "no album view";
+  await sleep(900);
+  return "open";
+})()`;
+const SHELF = { url: "/shelf", before: (api) => api("settings/shelf", { enabled: true }), init: `localStorage.setItem("rra-shelf-help", JSON.stringify({ seen: "", never: true }));` };
+
 /* How the page is brought to each screen of the contract, and what holds it; `shared`: screens of the contract's under the same root, held by their own checks. */
 const SCREENS = {
   // Home and what opens from it first, before any screen's check plays an album: today's album is still on Home, so its badge is checked too.
@@ -662,7 +686,11 @@ const SCREENS = {
   // Last, as they switch the labels on (Home's Label of the week with them) and merge two.
   "labels": { open: OPEN_LABELS, root: "body", shared: ["mini-player", "nav"] },
   "label-logo": { open: OPEN_LABEL_LOGO, root: "#logo-url-sheet" },
-  "label-unmerge": { open: OPEN_LABEL_UNMERGE, root: "#label-unmerge-sheet" }
+  "label-unmerge": { open: OPEN_LABEL_UNMERGE, root: "#label-unmerge-sheet" },
+  // The Shelf, a page of its own (/shelf), switched on first (item 207).
+  "shelf": Object.assign({ open: OPEN_SHELF, root: "body" }, SHELF),
+  "shelf-choices": Object.assign({ open: OPEN_SHELF_CHOICES, root: "#pick" }, SHELF),
+  "shelf-album": Object.assign({ open: OPEN_SHELF_ALBUM, root: "#open" }, SHELF)
 };
 
 test("every screen of the contract has a way to open it on the page", () => {
@@ -686,7 +714,8 @@ test("the page keeps the screens contract: each native screen's controls and rea
   t.after(() => b.close());
   for (const [name, how] of Object.entries(SCREENS)) {
     await t.test(name, async () => {
-      const page = await b.page(base + "/", {
+      if (how.before) await how.before(api);
+      const page = await b.page(base + (how.url || "/"), {
         cookies: [{ name: "musicd_session", value: token, url: base }], touch: true,
         init: `localStorage.setItem("rra-zone", ${JSON.stringify(kitchen.zone_id)});` + (how.init || ""), userAgent: how.app ? APP_UA : null
       });

@@ -101,16 +101,14 @@ internal fun MenuOver(nav: NavHostController, client: () -> ServerClient?) {
 /**
  * An item of the menu chosen ([what], its key in the contract): the menu closes and, as the row's buttons do, every native
  * screen over Home with it; Playlists, Dynamic Playlists, Listen later, Pitchfork, Labels, Qobuz, Tidal and Settings open natively over Home;
- * Restart and Shut down ask and show the server's time away natively (PowerOver.kt, item 96); Shelf, a page of the
- * server's own for a screen on a wall (old/plan-android-native.md, "Not the app's"), opens in the phone's browser
- * (item 111).
+ * Restart and Shut down ask and show the server's time away natively (PowerOver.kt, item 96); Shelf opens natively
+ * too (item 207: it was the server's page in the phone's browser from item 111).
  */
 internal fun menuTap(nav: NavHostController, what: String, context: android.content.Context) {
     AppLog.line("MENU", "item $what")
     NativeShell.menuOpen.value = false
     // Restart and Shut down: asked, and the server's time away shown, by the app itself (item 96).
     if (what.startsWith("power-")) { PowerKept.asking.value = what; return }
-    if (what == "shelf") { openShelf(context); return }
     // Opened over Home in one step, the screens between taken away with it (item 199: Home was drawn between them).
     val z = NativeShell.zone
     when (what) {
@@ -121,6 +119,7 @@ internal fun menuTap(nav: NavHostController, what: String, context: android.cont
         "labels" -> overHome(nav, ShellRoute.labels(z))
         "qobuz", "tidal" -> overHome(nav, ShellRoute.serviceBrowser(what, z))
         "settings" -> overHome(nav, ShellRoute.settings())
+        "shelf" -> overHome(nav, ShellRoute.shelf(z))
     }
 }
 

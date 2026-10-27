@@ -106,6 +106,9 @@ object Store {
 
     fun localView(context: Context): String? = prefs(context).getString("local_view", null)
     fun setLocalView(context: Context, json: String) { prefs(context).edit().putString("local_view", json).apply() }
+    /** The native Shelf's own keeps (item 207), as the page keeps them in localStorage: "order" (the order last chosen), "help" (the help seen). */
+    fun shelf(context: Context, key: String): String? = prefs(context).getString("shelf_$key", null)
+    fun setShelf(context: Context, key: String, value: String) { prefs(context).edit().putString("shelf_$key", value).apply() }
 
     fun usbDirect(context: Context): Boolean = prefs(context).getBoolean("usb_direct", false)
     fun setUsbDirect(context: Context, on: Boolean) { prefs(context).edit().putBoolean("usb_direct", on).apply() }

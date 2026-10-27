@@ -35,7 +35,7 @@ const APP_UA = "Mozilla/5.0 (Linux; Android 16) MusicDAndroid/1.0.17";
 function openers() {
   const src = fs.readFileSync(path.join(__dirname, "../../test/parity.test.js"), "utf8");
   const block = src.slice(src.indexOf("const OPEN_NOW_PLAYING"), src.indexOf('test("every screen'));
-  return /** @type {Record<string, { open: string, root: string, init?: string, app?: boolean }>} */ (new Function(block + "\nreturn SCREENS;")());
+  return /** @type {Record<string, { open: string, root: string, init?: string, app?: boolean, url?: string, before?: (api: any) => Promise<unknown> }>} */ (new Function(block + "\nreturn SCREENS;")());
 }
 
 /** In the page: every keyed element (and the frame's parts) with its rect, line boxes, style and inner texts. */
@@ -106,7 +106,8 @@ async function main() {
     const all = {};
     for (const [name, how] of Object.entries(openers())) {
       if (only && !only.includes(name)) continue;
-      const page = await b.page(base + "/", { cookies: [{ name: "musicd_session", value: token, url: base }], touch: true, init: `localStorage.setItem("rra-zone", ${JSON.stringify(kitchen.zone_id)});` + (how.init || ""),
+      if (how.before) await how.before(api);
+      const page = await b.page(base + (how.url || "/"), { cookies: [{ name: "musicd_session", value: token, url: base }], touch: true, init: `localStorage.setItem("rra-zone", ${JSON.stringify(kitchen.zone_id)});` + (how.init || ""),
         userAgent: how.app ? APP_UA : null });
       await page.send("Emulation.setDeviceMetricsOverride", { width: 412, height: 915, deviceScaleFactor: 2.625, mobile: true });
       const opened = await page.eval(how.open);

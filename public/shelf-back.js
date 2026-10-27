@@ -66,11 +66,11 @@
       st.tracks.forEach((t, i) => {
         if (discs) {
           const d = Number.isInteger(t.disc) && t.disc >= 1 ? t.disc : (disc || 1);
-          if (d !== disc) { rows.push(`<li class="bk-disc">${esc(discs[d - 1] || "Disc " + d)}</li>`); disc = d; n = 0; }
+          if (d !== disc) { rows.push(`<li class="bk-disc" data-parity="shelf-album.disc">${esc(discs[d - 1] || "Disc " + d)}</li>`); disc = d; n = 0; }
         }
         n++;
         const on = !!(picks && picks.has(i));
-        rows.push(`<li class="bk-t${on ? " sel" : ""}" data-i="${i}" data-n="${n}"><i>${on ? TICK : n}</i><span>${esc(t.title)}</span></li>`);
+        rows.push(`<li class="bk-t${on ? " sel" : ""}" data-parity="shelf-album.track" data-i="${i}" data-n="${n}"><i>${on ? TICK : n}</i><span>${esc(t.title)}</span></li>`);
       });
       return rows;
     }
@@ -78,16 +78,16 @@
     function viewHTML(a) {
       const key = albumKeyOf(a), st = tracksOf.get(key);
       let list;
-      if (st && st.tracks) list = st.tracks.length ? `<ol class="bk-tracks">${trackRows(st, tsel && tsel.key === key ? tsel.picks : null).join("")}</ol>` : '<p class="ov-msg">This album lists no tracks.</p>';
-      else if (st && st.error) list = `<p class="ov-msg">${esc(st.error)}</p>`;
-      else list = '<p class="ov-msg">Reading the track list…</p>';
+      if (st && st.tracks) list = st.tracks.length ? `<ol class="bk-tracks">${trackRows(st, tsel && tsel.key === key ? tsel.picks : null).join("")}</ol>` : '<p class="ov-msg" data-parity="shelf-album.tracks-message">This album lists no tracks.</p>';
+      else if (st && st.error) list = `<p class="ov-msg" data-parity="shelf-album.tracks-message">${esc(st.error)}</p>`;
+      else list = '<p class="ov-msg" data-parity="shelf-album.tracks-message">Reading the track list…</p>';
       const line = lineOf(a);
       // v1.9.68 (the owner): the play controls under the cover (placed by draw), then the review and the artist's
       // other albums (shelf-about.js); the title, the facts and the tracks beside them.
-      return `<div class="ov-side"><div class="ov-art">${a.k ? `<img src="${imageUrl(a.k, 500)}" alt="" decoding="async" draggable="false">` : `<div class="blank"><b>${esc(a.t)}</b><span>${esc(a.a)}</span></div>`}</div>`
+      return `<div class="ov-side"><div class="ov-art" data-parity="shelf-album.cover">${a.k ? `<img src="${imageUrl(a.k, 500)}" alt="" decoding="async" draggable="false">` : `<div class="blank"><b>${esc(a.t)}</b><span>${esc(a.a)}</span></div>`}</div>`
         + `<div class="ov-acts-slot"></div><div class="ov-about">${h.about ? h.about.html(a) : ""}</div></div>`
-        + `<div class="ov-info"><div class="ov-head"><h2 class="ov-title">${esc(a.t)}</h2><div class="ov-sub">${esc(a.a)}</div>${line ? `<div class="ov-line">${esc(line)}</div>` : ""}</div>`
-        + `<div class="ov-tracks"><h3 class="ov-label">Tracks</h3>${list}</div></div>`;
+        + `<div class="ov-info"><div class="ov-head"><h2 class="ov-title" data-parity="shelf-album.title">${esc(a.t)}</h2><div class="ov-sub" data-parity="shelf-album.artist">${esc(a.a)}</div>${line ? `<div class="ov-line" data-parity="shelf-album.line">${esc(line)}</div>` : ""}</div>`
+        + `<div class="ov-tracks"><h3 class="ov-label" data-parity="shelf-album.tracks-head">Tracks</h3>${list}</div></div>`;
     }
     // The view drawn for an album, and its buttons put back under its cover (they keep their listeners: moved, not
     // made). Held here, not looked up: once moved in, the next drawing's innerHTML takes them out of the document.

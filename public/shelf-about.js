@@ -52,18 +52,18 @@
     /** @param {any} a */
     function html(a) {
       const got = known.get(keyOf(a));
-      if (!got || got === "loading") return '<p class="ov-msg ov-reading">Reading about this album…</p>';
+      if (!got || got === "loading") return '<p class="ov-msg ov-reading" data-parity="shelf-album.about-reading">Reading about this album…</p>';
       let out = "";
       const r = got.review;
       if (r) {
         // Pitchfork's own words never leave the server (UK law): its link says so, as the remote's does.
-        const link = r.url && r.source ? `<a class="ov-src" href="${esc(r.url)}" target="_blank" rel="noopener noreferrer">${esc(r.source === "Pitchfork" ? "Read the full review on Pitchfork" : "View on " + r.source)}</a>` : "";
-        out += `<section class="ov-review"><h3 class="ov-label">About this album</h3>${r.text ? `<p class="ov-text">${esc(r.text)}</p>` : ""}`
-          + `${r.from ? `<p class="ov-from">From ${r.fromUrl ? `<a href="${esc(r.fromUrl)}" target="_blank" rel="noopener noreferrer">${esc(r.from)}</a>` : esc(r.from)}</p>` : ""}${link}</section>`;
+        const link = r.url && r.source ? `<a class="ov-src" data-parity="shelf-album.about-link" href="${esc(r.url)}" target="_blank" rel="noopener noreferrer">${esc(r.source === "Pitchfork" ? "Read the full review on Pitchfork" : "View on " + r.source)}</a>` : "";
+        out += `<section class="ov-review"><h3 class="ov-label" data-parity="shelf-album.about-head">About this album</h3>${r.text ? `<p class="ov-text" data-parity="shelf-album.about-text">${esc(r.text)}</p>` : ""}`
+          + `${r.from ? `<p class="ov-from" data-parity="shelf-album.about-from">From ${r.fromUrl ? `<a data-parity="shelf-album.about-from-link" href="${esc(r.fromUrl)}" target="_blank" rel="noopener noreferrer">${esc(r.from)}</a>` : esc(r.from)}</p>` : ""}${link}</section>`;
       }
       if (got.more.length) {
-        out += `<section class="ov-more"><h3 class="ov-label">More by ${esc(got.artist)}</h3><div class="ov-grid">`
-          + got.more.map((m, i) => `<button class="ov-tile" type="button" data-more="${i}"><span class="ov-tile-art">${m.image_key ? `<img src="${imageUrl(m.image_key, 300)}" alt="" loading="lazy" draggable="false">` : ""}</span><span class="ov-tile-t">${esc(m.title)}</span></button>`).join("")
+        out += `<section class="ov-more"><h3 class="ov-label" data-parity="shelf-album.more-head">More by ${esc(got.artist)}</h3><div class="ov-grid">`
+          + got.more.map((m, i) => `<button class="ov-tile" type="button" data-parity="shelf-album.more" data-more="${i}"><span class="ov-tile-art">${m.image_key ? `<img src="${imageUrl(m.image_key, 300)}" alt="" loading="lazy" draggable="false">` : ""}</span><span class="ov-tile-t">${esc(m.title)}</span></button>`).join("")
           + "</div></section>";
       }
       return out;

@@ -2,7 +2,25 @@
 
 ## Unreleased
 
-Dev's builds from here are numbered 1.9.69-tN (the owner's word), the server's image and the test APK alike.
+Dev's builds are numbered 1.1.11-tN, the server's image and the test APK alike. The Shelf's merge (item 206) came out
+as 1.9.69-t1 by mistake: Rouen's version, not Mandarin's. Item 207 puts the numbering right, as 1.1.11-t2.
+
+- `207-android-native-shelf` (item 207): **the Shelf in the Android app**, drawn by the app itself instead of
+  opened in the phone's browser. Shelf in the side menu opens it full screen, for the room the app is playing in:
+  - **The shelf** as the page draws it: the spines in their 3D row with the album in front, swiped along one at a
+    time, flicked to run on, a case tapped to bring it to the front and the one in front tapped to open it; Spin
+    lands somewhere at random, and the record playing is brought to the front as it opens.
+  - **The choices** (Genres, Artists, Years, Labels, Types, Order) over the whole screen, with the same tiles,
+    counts, chips, Undo and Show N albums; the order chosen is kept on the phone, random apart.
+  - **The album view**: Play now, Add to queue, tracks to choose and play, next or queue, About this album and More
+    by the artist.
+  - **The bar**: what's playing and its progress, the album count, the order, Spin, the zone and the volume sheet
+    with − and +; **the queue** drawn in from the right, Play from here on a track to come.
+  - The help on first opening, as the page shows it, and Don't show again.
+  - Its shelf, choice and motion rules are the page's own (orders, shuffle, the spring, a case's place), held in the
+    app's core and checked number for number against the page's.
+- Dev's numbering: the version the merges take comes from the last release again (1.1.11-tN), not from a version
+  written in `package.json`.
 
 - `206-shelf-rouen-1969` (item 206): the Shelf brought up to Rouen's v1.9.69-t1, everything its shelf gained since
   v1.9.66:
