@@ -2,7 +2,7 @@
 /*
  * touchnav.js — the touch layout's row along the foot of the screen (v0.9.6):
  * Home, Library, Artists (bug list item 130), Shelf while it is switched on and Search (item 210) under the
- * mini player, on a phone or a tablet in either orientation; and Home's own menu button, at its top right
+ * mini player, on a phone or a tablet in either orientation; and Home's own menu button, at its top left
  * (item 210: it was the row's first). A desktop (a mouse) never shows it: the
  * layout is style.css's "touch layout" section, under the same media query
  * as the touch-sized mini player.

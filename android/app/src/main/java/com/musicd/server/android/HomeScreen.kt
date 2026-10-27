@@ -63,7 +63,7 @@ import kotlinx.coroutines.withContext
  * that opens its wall over its tiles scrolling sideways, Smart Picks' cards,
  * the label of the week, the genre cards two to a row, and the app's own
  * two rows (Downloaded albums, Music on device) from the phone; the mini
- * player and the row along the foot. The side menu opens from the top right (item 210: it was the row's first button). Its rows are kept (HomeKept) and asked
+ * player and the row along the foot. The side menu opens from the top left, the side it opens from (item 210: it was the row's first button). Its rows are kept (HomeKept) and asked
  * for again on each visit, and Back from a wall or an album finds it as it was.
  */
 @Composable
@@ -123,14 +123,14 @@ internal fun HomeScreen(prefs: WallPrefs, zoneId: String, client: () -> ServerCl
         LazyColumn(Modifier.fillMaxSize(), state = HomeKept.list, contentPadding = PaddingValues(top = 14.dp, bottom = 164.dp)) {
             // The notices (the server's, the update offer; items 112 and 111), at Home's head as on the page's.
             item("notices") { NoticeBanners(prefs.menu, client) { what, arg -> handOn(what, arg) } }
-            // The greeting, and the side menu at the top right whether it is on or not (item 210).
+            // The side menu at the top left, where it opens, whether the greeting is on or not; the greeting beside it (item 210).
             item("greeting") {
-                Row(Modifier.fillMaxWidth().padding(end = 6.dp)) {
-                    if (prefs.greeting) Box(Modifier.weight(1f)) { Greeting() } else Spacer(Modifier.weight(1f))
+                Row(Modifier.fillMaxWidth().padding(start = 6.dp)) {
                     Box(Modifier.parity("home.menu", Contract.label("home.menu")).size(44.dp).clip(CircleShape).clickable { NativeShell.menuOpen.value = true },
                         contentAlignment = Alignment.Center) {
                         Icon(painterResource(R.drawable.tn_menu), contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(26.dp))
                     }
+                    if (prefs.greeting) Box(Modifier.weight(1f)) { Greeting() }
                 }
             }
             // The strip under the greeting: Random Album, then today's album; gone with both.

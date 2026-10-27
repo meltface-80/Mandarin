@@ -5474,7 +5474,7 @@ button.cap-chip:active { transform: scale(.96); }
 /* ---- Home ---------------------------------------------------------- */
 .home-greeting { display: none; }
 [data-palette="hifi"] .home-greeting { display: block; margin: 6px 0 26px; }
-/* Home's head (item 210): the greeting and, in the touch layout, the menu at its right; on a desktop the menu is the top bar's. */
+/* Home's head (item 210): in the touch layout the menu at its left, where the side menu opens, then the greeting; on a desktop the menu is the top bar's. */
 .home-head { display: flex; align-items: flex-start; gap: 12px; }
 .home-head > .home-greeting { flex: 1 1 auto; min-width: 0; }
 .home-menu { display: none; }
@@ -6224,7 +6224,7 @@ html .topbar .icon-btn.labels-sort-btn { width: auto; min-width: 44px; padding: 
 /* ------------------------------------------------------------------ */
 /* Home, the Library, Artists, Shelf (while it is on) and Search in a row along the foot of the
    screen (#touch-nav, touchnav.js), the mini player raised above it, and
-   on Home no top bar: the greeting at the top, the menu at its right (item 210). Search opens the top bar
+   on Home no top bar: the menu at the top left, the greeting beside it (item 210). Search opens the top bar
    again with the field across it, and the page moves down under it. The
    scan's progress is a thin brass line along the top edge, on every
    screen. The same test as the touch-sized mini player above; a desktop
@@ -6252,9 +6252,9 @@ html .topbar .icon-btn.labels-sort-btn { width: auto; min-width: 44px; padding: 
   }
   .tnav-btn.feature-off { display: none; }
   .tnav-btn svg { width: 26px; height: 26px; }
-  /* The menu at the top right of Home (item 210; it was the row's first button), the greeting beside it. */
+  /* The menu at the top left of Home, where the side menu opens (item 210; it was the row's first button), the greeting beside it. */
   .home-menu {
-    display: grid; place-items: center; flex: 0 0 auto; width: 44px; height: 44px; margin: 0 -8px 0 auto;
+    display: grid; place-items: center; flex: 0 0 auto; width: 44px; height: 44px; margin: 0 0 0 -8px;
     background: none; border: 0; border-radius: 50%; padding: 0; color: var(--text-dim); cursor: pointer;
     -webkit-tap-highlight-color: transparent;
   }

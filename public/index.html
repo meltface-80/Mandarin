@@ -306,18 +306,19 @@
     <!-- Home landing: sections of the library. The album wall (#album-grid)
          is one destination, reached from here or the side menu. -->
     <section id="home-view" class="home-view hidden" aria-label="Home">
-      <!-- Home's head (item 210): the greeting on the left, the menu at the top right in the touch layout (a desktop
-           keeps the top bar's). Good morning / afternoon / evening is Late-Night Hi-Fi only; app.js keeps it current. -->
+      <!-- Home's head (item 210): the menu at the top left in the touch layout, where the side menu opens (a desktop
+           keeps the top bar's), the greeting after it. Good morning / afternoon / evening is Late-Night Hi-Fi only;
+           app.js keeps it current. -->
       <div class="home-head">
-        <div class="home-greeting" id="home-greeting" aria-live="off">
-          <div class="home-greeting-date" id="home-greeting-date" data-parity="home.greeting-date search.greeting-date"></div>
-          <h1 class="home-greeting-text" id="home-greeting-text" data-parity="home.greeting search.greeting"></h1>
-        </div>
         <button id="home-menu" class="home-menu" type="button" data-parity="home.menu" aria-label="Menu">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
             <line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/>
           </svg>
         </button>
+        <div class="home-greeting" id="home-greeting" aria-live="off">
+          <div class="home-greeting-date" id="home-greeting-date" data-parity="home.greeting-date search.greeting-date"></div>
+          <h1 class="home-greeting-text" id="home-greeting-text" data-parity="home.greeting search.greeting"></h1>
+        </div>
       </div>
       <div id="home-sections">
         <!-- Random Album and Album of the day, under the greeting with no heading
@@ -2126,7 +2127,7 @@
 
   <!-- The touch layout's row along the foot of the screen (v0.9.6,
        touchnav.js): Home, the Library, Artists, Shelf while it is switched on, and Search, under the mini
-       player, on a phone or a tablet (item 210: the menu went to Home's top right). A desktop never shows it
+       player, on a phone or a tablet (item 210: the menu went to Home's top left). A desktop never shows it
        (style.css). Each button works the page's own control; the four or five evenly across. -->
   <nav id="touch-nav" class="touch-nav" aria-label="Main">
     <button id="tnav-home" class="tnav-btn" type="button" data-parity="nav.home" aria-label="Home">

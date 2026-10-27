@@ -28,7 +28,7 @@ import com.musicd.server.client.Contract
 /**
  * The touch layout's row along the foot of the screen, natively
  * (docs/specs/screens.json, nav; style.css, `.touch-nav`): Home, Library, Artists (item 130), Shelf while it is switched
- * on and not offline, and Search (item 210: Menu went to Home's top right, HomeScreen.kt), each an equal share of the
+ * on and not offline, and Search (item 210: Menu went to Home's top left, HomeScreen.kt), each an equal share of the
  * row, four or five, the one the page is on ([lit]: "home", "library", "artists", "search") in brass. Each tap is the
  * page's own button's ([onTap], by name), so there is one way to do each thing. Offline is said at the top of the
  * screen now (OfflineToast.kt, item 134), not in the row.

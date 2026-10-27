@@ -5,10 +5,10 @@
 Dev's builds are numbered 1.1.11-tN, the server's image and the test APK alike. The Shelf's merge (item 206) came out
 as 1.9.69-t1 by mistake: Rouen's version, not Mandarin's. Item 207 puts the numbering right, as 1.1.11-t2.
 
-- `210-home-menu-bottom-bar` (item 210): **the menu at Home's top right, and Shelf in the row along the foot**, in
+- `210-home-menu-bottom-bar` (item 210): **the menu at Home's top left, and Shelf in the row along the foot**, in
   the Android app and on a phone's or a tablet's page:
-  - The side menu opens from a button at the top right of Home, beside the greeting (or alone there with the
-    greeting off); it was the row's first button.
+  - The side menu opens from a button at the top left of Home, the side it opens from, with the greeting beside
+    it (or alone there with the greeting off); it was the row's first button.
   - The row along the foot is Home, Library, Artists, Shelf and Search, evenly across. Shelf is there only while it
     is switched on (Settings → Setup → Shelf), and not offline; without it the other four share the row evenly.
 - `209-shelf-tiles-tab-highlight` (item 209): the Shelf's choices, after a look at them on a phone:

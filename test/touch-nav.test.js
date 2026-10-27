@@ -5,7 +5,7 @@
  * tablet's sizes, both ways round, and a desktop's:
  *   - along the foot: Home, Library, Artists, Shelf while it is switched on, and Search, in
  *     that order, the mini player above them; on Home no top bar, the greeting at the top
- *     and the menu at the top right (item 210: it was the row's first);
+ *     and the menu at the top left, where the side menu opens (item 210: it was the row's first);
  *   - Search opens the top bar again, the field across it, and the page
  *     moves down under it; the results are not under it;
  *   - Library opens the Library wall; Home, from an album's page, closes it
@@ -56,7 +56,7 @@ const DRIVER = `(async () => {
   out.menuInBar = shown($("menu-toggle"));
   if (!out.nav) return out;   // a desktop: nothing more to see
 
-  // Home: the row in order, the mini player above it, no top bar; the menu at the top right.
+  // Home: the row in order, the mini player above it, no top bar; the menu at the top left, the greeting after it.
   const buttons = () => [...nav.querySelectorAll(".tnav-btn")].filter(shown);
   out.order = buttons().map(b => b.textContent.trim());
   out.homeMenu = box($("home-menu"));
@@ -198,7 +198,7 @@ const DRIVER = `(async () => {
   return out;
 })()`;
 
-test("the touch layout: Home, Library, Artists, Shelf when on and Search along the foot, the menu at Home's top right, on a phone and a tablet; a desktop as it was", { skip, timeout: 240000 }, async () => {
+test("the touch layout: Home, Library, Artists, Shelf when on and Search along the foot, the menu at Home's top left, on a phone and a tablet; a desktop as it was", { skip, timeout: 240000 }, async () => {
   const lib = makeLibrary();
   const { createServer } = require("./server");
   const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false, identify: false });
@@ -224,7 +224,7 @@ test("the touch layout: Home, Library, Artists, Shelf when on and Search along t
       assert.equal(r.menuInBar, false, size + ": the menu is Home's, not the top bar's");
       assert.deepEqual(r.order, ["Home", "Library", "Artists", "Search"], size + ": Shelf off, four");
       assert.deepEqual(r.order5, ["Home", "Library", "Artists", "Shelf", "Search"], size + ": Shelf on, before Search");
-      assert.ok(r.homeMenu.r >= w - 24 && r.homeMenu.r <= w && r.homeMenu.t < 60 && r.homeMenu.w >= 40, `${size}: the menu at Home's top right (${JSON.stringify(r.homeMenu)})`);
+      assert.ok(r.homeMenu.l >= 0 && r.homeMenu.l <= 24 && r.homeMenu.t < 60 && r.homeMenu.w >= 40, `${size}: the menu at Home's top left, where the side menu opens (${JSON.stringify(r.homeMenu)})`);
       assert.ok(r.navBox.b === h && r.navBox.l === 0 && r.navBox.r === w, `${size}: along the foot, edge to edge (${JSON.stringify(r.navBox)})`);
       assert.ok(r.mini.b <= r.navBox.t, `${size}: the mini player above the row (${r.mini.b} over ${r.navBox.t})`);
       assert.equal(r.topbarRow, false, size + ": on Home, no top bar");
