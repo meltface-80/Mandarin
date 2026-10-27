@@ -20,7 +20,8 @@
 /* eight since item 208 (Formats and Favourites beside Labels, Types and Order): two even rows of four, at any width */
 .tabs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 2px; padding: .25rem; border-radius: 1.6rem; background: var(--bg-elev); border: 1px solid var(--border); }
 .tab { display: flex; align-items: center; justify-content: center; gap: .35rem; height: 2.65rem; border-radius: 999px; color: var(--text-dim); font-weight: 700; font-size: .9rem; white-space: nowrap; }
-.tab[aria-selected="true"] { background: var(--bg-elev-2); color: var(--text); box-shadow: inset 0 0 0 1px var(--border); }
+/* the open tab: lifted, in a brass outline (item 209) */
+.tab[aria-selected="true"] { background: var(--bg-elev-2); color: var(--text); box-shadow: inset 0 0 0 1px var(--accent); }
 .badge { display: inline-grid; place-items: center; min-width: 1.2rem; height: 1.2rem; padding: 0 .3rem; border-radius: 999px; background: var(--accent); color: var(--on-accent); font-size: .68rem; font-weight: 800; font-variant-numeric: tabular-nums; }
 .badge:empty { display: none; }
 
@@ -31,19 +32,16 @@
 
 .tiles-wrap { flex: 1 1 auto; min-height: 0; overflow-y: auto; margin-inline: -.6rem; padding: .5rem .6rem calc(1.3rem + env(safe-area-inset-bottom)); scrollbar-width: thin; }
 .tiles { display: grid; gap: .6rem; grid-template-columns: repeat(var(--cols, 3), minmax(0, 1fr)); }
-.tiles.genre { --cols: 3; }
 .tiles.artist { --cols: 6; gap: .5rem; }
 .tiles.order { --cols: 1; }
-.tiles.year, .tiles.type { --cols: 3; gap: .5rem; }
+/* genres and formats the size of a decade or a kind (item 209); the one Favourites tile with a fan of covers, as a label's */
+.tiles.year, .tiles.type, .tiles.genre, .tiles.format { --cols: 3; gap: .5rem; }
 .tiles.label { --cols: 3; }
-/* a format's name runs longer than a decade's ("24/96 Multichannel"); the one Favourites tile as a genre's */
-.tiles.format { --cols: 3; gap: .5rem; }
 .tiles.favourite { --cols: 2; }
-@container pick (max-width: 430px) { .tiles.genre { --cols: 2; } }
 /* a label's name is longer than a genre's ("Ghostly International"): wider tiles, and never broken inside a word */
-@container pick (max-width: 560px) { .tiles.label, .tiles.format { --cols: 2; } }
+@container pick (max-width: 560px) { .tiles.label { --cols: 2; } }
 .t-label .t-name { overflow-wrap: normal; hyphens: auto; font-size: .9rem; }
-@container pick (min-width: 700px) { .tiles.genre, .tiles.label { --cols: 4; } .tiles.artist { --cols: 9; } .tiles.year, .tiles.type { --cols: 5; } .tiles.format { --cols: 4; } .tiles.favourite { --cols: 3; } .tiles.order { --cols: 2; } .t-genre { aspect-ratio: 1.45; } .fan { width: 30%; } }
+@container pick (min-width: 700px) { .tiles.label { --cols: 4; } .tiles.artist { --cols: 9; } .tiles.year, .tiles.type, .tiles.genre, .tiles.format { --cols: 5; } .tiles.favourite { --cols: 3; } .tiles.order { --cols: 2; } .t-genre { aspect-ratio: 1.45; } .fan { width: 30%; } }
 .tiles-msg { grid-column: 1 / -1; margin: .4rem 0; color: var(--text-dim); font-size: .9rem; }
 
 .tile {
@@ -92,8 +90,8 @@
 
 /* a kind of release (v1.9.67): as a decade, its name in the page's own type */
 .t-type .ch { font-family: inherit; font-size: .95rem; font-weight: 800; }
-/* a format (item 208): as a kind, its name kept to the tile, centred where it runs to two lines */
-.t-format .ch { font-family: inherit; font-size: .92rem; font-weight: 800; line-height: 1.15; text-align: center; padding: 0 .5rem; }
+/* a genre or a format (items 208, 209): as a kind, its name kept to the tile, centred where it runs to two lines */
+.t-word .ch { font-family: inherit; font-size: .92rem; font-weight: 800; line-height: 1.15; text-align: center; padding: 0 .5rem; }
 /* the order (v1.9.67): one chosen at a time, each with a line on what it does */
 .t-order { min-height: 4.6rem; display: flex; flex-direction: column; justify-content: flex-end; padding-right: 2.4rem; }
 .t-order .ic { position: absolute; top: .8rem; right: .8rem; width: 1.3rem; height: 1.3rem; color: var(--accent-hi); }

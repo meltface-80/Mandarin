@@ -287,7 +287,7 @@ test("Shelf in a browser", { skip: (!haveFfmpeg() && "ffmpeg is not installed") 
         out.sum = $("#pick-sum").textContent; out.badge = $('.tab[data-tab="year"] .badge').textContent; out.note2 = $("#sec-note").textContent;
         out.chips = [...document.querySelectorAll(".chip")].map(c => c.textContent.replace("×", "").trim());
         $('.tab[data-tab="genre"]').click();
-        out.genreCounts = counts(".t-genre", ".t-name");
+        out.genreCounts = counts('.tile[data-cat="genre"]', ".ch");
         tile("genre", "Jazz").click();
         out.narrowed = window.__shelfOrder();
         $('.tab[data-tab="year"]').click();
@@ -355,8 +355,18 @@ test("Shelf in a browser", { skip: (!haveFfmpeg() && "ffmpeg is not installed") 
         out.favourites = window.__shelfOrder();
         out.favNote = $("#sec-note").textContent;
         out.chips = [...document.querySelectorAll(".chip")].map(c => c.textContent.replace("×", "").trim());
+        // Item 209 (a user's request): a genre's and a format's tile the size of a kind's and a decade's; Favourites as it was;
+        // the open tab in a brass outline.
+        const size = (tab, cat) => { $('.tab[data-tab="' + tab + '"]').click(); const b = document.querySelector('.tile[data-cat="' + cat + '"]').getBoundingClientRect(); return Math.round(b.width) + "x" + Math.round(b.height); };
+        out.sizes = [size("genre", "genre"), size("format", "format"), size("type", "type"), size("year", "year"), size("favourite", "favourite")];
+        const brass = document.createElement("i"); brass.style.color = "var(--accent)"; document.body.append(brass);
+        out.outline = [getComputedStyle($('.tab[data-tab="favourite"]')).boxShadow, getComputedStyle(brass).color, getComputedStyle($('.tab[data-tab="genre"]')).boxShadow];
         return out; })()`);
       assert.deepEqual(r.rows, [true, true, true, true], "the eight tabs in two even rows of four");
+      assert.deepEqual(r.sizes.slice(0, 4), Array(4).fill(r.sizes[2]), "a genre's and a format's tile the size of a kind's and a decade's");
+      assert.notEqual(r.sizes[4], r.sizes[2], "the Favourites tile its own, larger size");
+      assert.ok(r.outline[0].includes(r.outline[1]), "the open tab in a brass outline: " + r.outline[0]);
+      assert.equal(r.outline[2], "none", "the others none");
       assert.deepEqual(r.formats, after.formats, "a tile for each format, in the server's order");
       assert.deepEqual(r.counts, after.formats.map(f => after.albums.filter(a => a.q === f).length), "each counting its albums");
       assert.equal(r.note, "Tap formats. Choose as many as you like.");

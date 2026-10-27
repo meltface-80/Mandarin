@@ -107,6 +107,9 @@ class ShelfTest {
         assertEquals(listOf("The 2000s", "The 1970s", "The 1960s", "The 1950s", "Albums with no year"), c.tiles(lib, "year").map { it.said })
         assertEquals(listOf("album", "compilation", "none"), c.kindsHere(lib))
         assertEquals(listOf("Albums", "Compilations", "Unknown"), c.tiles(lib, "type").map { it.name })
+        // a genre's tile its name and count alone, the size of a kind's (item 209); a label's still with a fan of its covers
+        assertTrue(c.tiles(lib, "genre").all { it.fan.isEmpty() })
+        assertEquals(listOf("al-2-0"), c.tiles(lib, "label").first { it.id == "Apple" }.fan)
         assertEquals("Artists under #: names starting with 0, or with no letter A to Z", c.tiles(lib, "artist").first { it.id == "#" }.said)
         assertEquals(listOf(true, false), c.tiles(lib, "artist").filter { it.id in listOf("A", "B") }.map { it.zero })
         assertEquals("Tap to choose. Choose as many as you like.", c.note(lib, "genre"))
