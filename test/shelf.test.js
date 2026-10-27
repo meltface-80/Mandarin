@@ -16,15 +16,16 @@
  *     brought to the front, previous and next), choosing what is on the
  *     shelf (decades too), choosing tracks on the back of the case, a set's
  *     discs under their own headings, the queue pane and the lane's fold.
+ * The album view and the slimmer bar (item 206) are test/shelf-album-view.test.js's; the page's setup is test/shelf-kit.js.
  * The browser part is skipped where no Chromium or Chrome is found.
  */
 const ports = require("./ports");
 const test = require("node:test");
 const assert = require("node:assert");
-const path = require("path");
 const { built } = require("./server");
 const { score } = require("./score");
-const { haveFfmpeg, makeLibrary, gen } = require("./fixtures");
+const { haveFfmpeg } = require("./fixtures");
+const { library, INIT, HELPERS, DRIVE } = require("./shelf-kit");
 const { FakeHousehold } = require("./fake-sonos");
 const { signIn } = require("./auth-helper");
 const { Browser, findBrowser } = require("./browser-harness");
@@ -55,7 +56,7 @@ test("the shelf's list: genres commonest first, each album's genres as places in
   [al(1, "Abbey Road", "The Beatles", "beatles", ["Rock"])], [al(1, "Abbey Road (Remaster)", "The Beatles", "beatles", ["Rock"])],
   [al(1, "Abbey Road", "The Beatles", "beatles", ["Rock"], 1969)], [al(1, "Abbey Road", "The Beatles", "beatles", ["Rock"], 2019)]] }).shelves;
   assert.deepEqual(shelf.genres, [{ name: "Electronic", count: 2 }, { name: "Jazz", count: 1 }, { name: "Pop", count: 1 }, { name: "Rock", count: 1 }]);
-  assert.deepEqual(shelf.albums[0], { o: 1, t: "Abbey Road", a: "The Beatles", k: "al-1-0", g: [2, 3], b: "B", y: 1969 });
+  assert.deepEqual(shelf.albums[0], { o: 1, t: "Abbey Road", a: "The Beatles", k: "al-1-0", g: [2, 3], b: "B", y: 1969, l: null, c: null, ty: null, fm: null, v: null });
   assert.deepEqual(shelf.albums.map(a => a.y), [1969, null, null, null, null], "no year: null");
   assert.deepEqual(shelf.albums.map(a => a.g), [[2, 3], [0], [1], [0], []], "a genre once per album, empty names left out");
   assert.deepEqual(shelf.albums.map(a => a.b), ["B", "B", "M", "D", "#"]);
@@ -65,91 +66,36 @@ test("the shelf's list: genres commonest first, each album's genres as places in
   assert.notEqual(year1.sig, year2.sig, "a new year, a new signature");
 });
 
-// The library: makeLibrary's three albums (1997, 2020 and a set with no year)
-// and seven more, across genres, letters and decades.
-function library() {
-  const lib = makeLibrary();
-  const more = [["The Beatles", "Abbey Road", "Rock", 1969], ["Björk", "Homogenic", "Electronic", 1997], ["Miles Davis", "Kind of Blue", "Jazz", 1959],
-    ["10cc", "The Original Soundtrack", "Rock", 1975], ["!!!", "Myth Takes", "Dance", 2007], ["Daft Punk", "Discovery", "Electronic", 2001],
-    ["Nina Simone", "Pastel Blues", "Jazz", 1965]];
-  for (const [artist, album, genre, year] of more) {
-    gen(path.join(lib.music, artist, album, "01 x.flac"), { seconds: 1, tags: { title: album + " one", artist, album, track: 1, genre, date: String(year) } });
-  }
-  return lib;
-}
-
-// Before the page's own scripts: every POST written down, which server
-// answered each request (window.__by), and any address answered with a
-// stand-in (window.__fake) or refused (window.__fail).
-const INIT = `(() => {
-  window.__log = []; window.__fake = {}; window.__fail = {}; window.__by = []; window.__asked = {}; window.__heard = {};
-  const real = window.fetch.bind(window);
-  const json = (body, status) => new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
-  window.fetch = async (input, init) => {
-    const url = new URL(typeof input === "string" ? input : input.url, location.href);
-    if (init && init.method === "POST") window.__log.push({ path: url.pathname, body: init.body ? JSON.parse(init.body) : null });
-    if (window.__fail[url.pathname]) return json({ error: "Refused: " + url.pathname }, window.__fail[url.pathname]);
-    if (window.__fake[url.pathname]) {
-      // Counted once the page has read it (window.__heard): a test waits for
-      // that, not for a while, before it acts on what the page now shows.
-      const k = url.pathname, n = window.__asked[k] = (window.__asked[k] || 0) + 1;
-      const r = json(window.__fake[k], 200), read = r.json.bind(r);
-      r.json = async () => { const v = await read(); window.__heard[k] = Math.max(window.__heard[k] || 0, n); return v; };
-      return r;
-    }
-    const r = await real(input, init);
-    window.__by.push(url.pathname + " " + (r.headers.get("x-mandarin-answered") || "Node"));
-    return r;
-  };
-})();`;
-
-const HELPERS = `
-  const sleep = ms => new Promise(r => setTimeout(r, ms));
-  const until = async (fn, ms = 8000) => { const t0 = Date.now(); while (!fn()) { if (Date.now() - t0 > ms) return false; await sleep(50); } return true; };
-  const $ = s => document.querySelector(s);
-  const shown = s => { const e = $(s); return !!e && !e.classList.contains("hidden") && getComputedStyle(e).display !== "none"; };
-  const posts = p => window.__log.filter(x => x.path === p).map(x => x.body);
-  const poll = () => document.dispatchEvent(new Event("visibilitychange"));   // the page asks for the zone again
-  // Asked again, and an answer asked for from now on read and painted: not one
-  // already on its way with what was there before (a busy machine can take
-  // longer than any fixed wait).
-  const polled = async () => {
-    const k = "/api/zone-state", n = window.__asked[k] || 0;
-    poll();
-    await until(() => (window.__heard[k] || 0) > n);
-    await sleep(0);
-  };
-  const tile = (cat, label) => [...document.querySelectorAll('.tile[data-cat="' + cat + '"]')].find(t => t.textContent.includes(label));
-`;
-
-// A finger on the shelf (as Rouen's own shelf tests drive it): taps, long
-// presses, the case at the front turned over, and the rows on its back.
-const DRIVE = `
-  const S = () => window.__shelfState();
-  const stage = $("#stage");
-  let pid = 20;
-  const pe = (type, x, y, id) => stage.dispatchEvent(new PointerEvent(type, { pointerId: id, clientX: x, clientY: y, bubbles: true, pointerType: "touch", isPrimary: true }));
-  const tap = (x, y) => { const id = ++pid; pe("pointerdown", x, y, id); pe("pointerup", x, y, id); };
-  // A long press: held this long.
-  const hold = async (x, y) => { const id = ++pid; pe("pointerdown", x, y, id); await sleep(650); pe("pointerup", x, y, id); await sleep(60); };
-  const mid = (el) => { const r = el.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; };
-  // The cover on show at the front: a pooled one put away may still carry its number.
-  const front = () => [...document.querySelectorAll('.it[data-v="' + Math.round(S().p) + '"]')].find(e => e.getBoundingClientRect().width > 0);
-  // Turned over: its back drawn, and the case all the way round (a .65 s transition), then a frame.
-  const turnedRound = () => { const b = document.querySelector(".it.flipped .box"); return !!b && new DOMMatrix(getComputedStyle(b).transform).m11 < -0.999 && b.getAnimations().every(a => a.playState !== "running"); };
-  const turnOver = async () => { await until(() => front(), 4000); const c = mid(front()); tap(c.x, c.y); await until(() => document.querySelector(".it.flipped .bk-tracks li"), 6000);
-    await until(turnedRound, 4000); await new Promise(r => requestAnimationFrame(r)); };
-  // At rest: no move under way, on a case, nothing on the shelf still moving; then a frame.
-  const rest = async () => {
-    await until(() => S().mode === "idle" && Math.abs(S().p - Math.round(S().p)) < 0.01 && stage.getAnimations({ subtree: true }).every(a => a.playState !== "running"), 6000);
-    await new Promise(r => requestAnimationFrame(r));
-  };
-  const row = (i) => document.querySelector('.it.flipped li[data-i="' + i + '"]');
-  const tapRow = async (i) => { const c = mid(row(i)); tap(c.x, c.y); await sleep(60); };
-  const holdRow = async (i) => { const c = mid(row(i)); await hold(c.x, c.y); };
-  const rows = () => [...document.querySelectorAll(".it.flipped .bk-tracks li")].map(li => li.classList.contains("bk-disc") ? "# " + li.textContent
-    : (li.classList.contains("sel") ? "✓" : li.querySelector("i").textContent) + " " + li.querySelector("span").textContent);
-`;
+// Item 206 (Rouen's Shelf of v1.9.67 to v1.9.69-t1): each album's label as a place in a list of labels, commonest
+// first; its catalogue number; the kinds of release it is, from the identification's match or the compilation flag;
+// the format of its files or its service; and the version its title ends with.
+test("the shelf's list: labels, catalogue numbers, kinds, formats and versions", { skip: rules }, () => {
+  const al = (id, title, label, more) => Object.assign({ id, title, artist: "A", sortArtist: "a", genres: [], image_key: "al-" + id + "-0", label }, more);
+  const [shelf, plain, numbered, typed, flac, mp3] = score({ fn: "shelf", shelves: [[
+    al(1, "Untrue", "Hyperdub", { catno: "HDBCD002", type: "Album", lossless: true, container: "FLAC", bits: 16, rate: 44100 }),
+    al(2, "Archangel", "Hyperdub", { catno: "HDB008", type: "EP", lossless: false, container: "MP3", bits: 16, rate: 44100 }),
+    al(3, "MTV Unplugged in New York", "DGC", { type: "Album + Live", lossless: true, container: "FLAC", rate: 96000 }),
+    al(4, "Now 1", null, { compilation: true, lossless: true, container: "WAV", bits: 24, rate: 48000 }),
+    al(5, "Mezzanine (2018 Remaster)", "Virgin", { type: "Album + Compilation + Live", service: "qobuz", lossless: true, bits: 24, rate: 96000 }),
+    al(6, "Rounds - Deluxe Edition (Remastered)", "Domino", { service: "tidal", type: "Broadcast" }),
+    al(7, "Music for the Masses (Instrumental)", "Mute", { compilation: true, type: "Album" }),
+    al(8, "(What's the Story) Morning Glory?", "", {})
+  ], [al(1, "Untrue", "Hyperdub")], [al(1, "Untrue", "Hyperdub", { catno: "HDBCD002" })], [al(1, "Untrue", "Hyperdub", { type: "EP" })],
+  [al(1, "Untrue", "Hyperdub", { lossless: true, container: "FLAC", bits: 16, rate: 44100 })], [al(1, "Untrue", "Hyperdub", { lossless: false, container: "MP3" })]] }).shelves;
+  assert.deepEqual(shelf.labels, [{ name: "Hyperdub", count: 2 }, { name: "DGC", count: 1 }, { name: "Domino", count: 1 }, { name: "Mute", count: 1 }, { name: "Virgin", count: 1 }],
+    "labels commonest first, then by name; none for an album with none, or an empty one");
+  assert.deepEqual(shelf.albums.map(a => a.l), [0, 0, 1, null, 4, 2, 3, null]);
+  assert.deepEqual(shelf.albums.map(a => a.c), ["HDBCD002", "HDB008", null, null, null, null, null, null]);
+  assert.deepEqual(shelf.albums.map(a => a.ty), [["album"], ["ep"], ["album", "live"], ["compilation"], ["album", "compilation", "live"], ["other"], ["album"], null],
+    "the match's kinds, each once, in the tiles' order; the compilation flag only where the match says nothing");
+  assert.deepEqual(shelf.albums.map(a => a.fm), ["FLAC 16/44.1", "MP3", "FLAC 96 kHz", "WAV 24/48", "Qobuz 24/96", "TIDAL", null, null],
+    "the files' container and numbers, a lossy file's container alone, a service and what it states");
+  assert.deepEqual(shelf.albums.map(a => a.v), [null, null, null, null, ["Mezzanine", "2018 Remaster"], ["Rounds", "Deluxe Edition · Remastered"], null, null],
+    "a version taken off the title's end; a title's own brackets stay");
+  assert.notEqual(plain.sig, numbered.sig, "a catalogue number, a new signature");
+  assert.notEqual(plain.sig, typed.sig, "a kind, a new signature");
+  assert.notEqual(flac.sig, mp3.sig, "a format, a new signature");
+});
 
 test("Shelf in a browser", { skip: (!haveFfmpeg() && "ffmpeg is not installed") || (!findBrowser() && !process.env.CI && "no Chromium or Chrome (set CHROME_PATH)"), timeout: 180000 }, async (t) => {
   const lib = library();
@@ -180,6 +126,16 @@ test("Shelf in a browser", { skip: (!haveFfmpeg() && "ffmpeg is not installed") 
       assert.deepEqual(j.albums.map(a => a.y), [2007, 1975, 1997, 2020, 1969, 1997, 2001, 1959, 1965, null], "each album's year, null for none");
       assert.equal(j.version, VERSION, "Mandarin's version, for the help popup");
       assert.deepEqual(await (await fetch(B + "/api/shelf/albums?sig=" + j.sig, { headers: H })).json(), { same: true, sig: j.sig });
+      assert.deepEqual(j.kinds.map(k => k.one), ["Album", "EP", "Single", "Compilation", "Live", "Soundtrack", "Remix", "Other"], "the kinds' names, for the Types tiles");
+      assert.deepEqual(j.albums.filter(a => a.fm).map(a => a.fm).sort().slice(0, 1), ["FLAC 16/44.1"], "each album's format");
+      // The album view's More by (item 206, Rouen's /api/album/more): the lead artist's other albums, the one looked
+      // at left out (the same title and credit); a credit's first name is the lead.
+      const more = async (title, artist) => (await fetch(B + "/api/album/more?title=" + encodeURIComponent(title) + "&artist=" + encodeURIComponent(artist), { headers: H })).json();
+      const other = await more("Something Else", "Artist A feat. Someone");
+      assert.equal(other.artist, "Artist A", "the lead artist, the credit's first name");
+      assert.deepEqual(other.by.map(a => a.title), ["Album One"], "Artist A's albums");
+      assert.deepEqual((await more("Album One", "Artist A")).by, [], "the album looked at is left out");
+      assert.equal((await fetch(B + "/api/album/more?title=x", { headers: H })).status, 400, "an artist is needed");
       const page = await fetch(B + "/shelf", { headers: H });
       assert.equal(page.status, 200);
       assert.match(await page.text(), /<title>Mandarin Shelf<\/title>/);
@@ -233,12 +189,11 @@ test("Shelf in a browser", { skip: (!haveFfmpeg() && "ffmpeg is not installed") 
         assert.equal(first.help, true, "shown the first time");
         assert.equal(first.saved, null);
         assert.equal(first.focus, "help-ok", "Dismiss has the focus");
-        assert.equal(first.items.length, 7);
+        assert.equal(first.items.length, 6);
         assert.match(first.items[0], /^Swipe moves one album/);
-        assert.match(first.items[3], /^Tap a cover at the side/);
-        assert.match(first.items[4], /^Hold a track on the back of the case to choose it/);
+        assert.match(first.items[3], /^Tap a spine to bring it to the front, and the front case to turn it over and open the album/);
+        assert.match(first.items[4], /^Hold a track on the opened album to choose it, then tap more to add them — play them from under the cover/);
         assert.match(first.items[5], /tabs at the edges fold the choices away/);
-        assert.match(first.items[6], /^A → Z above the shelf orders it by artist or by album: tap it to change/);
         assert.equal(first.legend, 0, "nothing on the shelf itself says how it moves");
         assert.equal(first.helpAfter, false);
         assert.deepEqual(first.after, { seen: VERSION, never: false });
@@ -273,7 +228,7 @@ test("Shelf in a browser", { skip: (!haveFfmpeg() && "ffmpeg is not installed") 
         // Nothing left: said so, with Undo and Reset.
         $('.tab[data-tab="genre"]').click(); tile("genre", "Dance").click();
         $('.tab[data-tab="artist"]').click(); tile("artist", "M").click();
-        out.empty = { note: shown("#note"), title: $("#note-title").textContent, why: $("#note-why").textContent, acts: shown("#actions") };
+        out.empty = { note: shown("#note"), title: $("#note-title").textContent, why: $("#note-why").textContent, view: shown("#open") };
         $("#undo").click();
         out.undone = window.__shelfOrder();
         $("#note-reset").click();
@@ -288,7 +243,7 @@ test("Shelf in a browser", { skip: (!haveFfmpeg() && "ffmpeg is not installed") 
       assert.deepEqual(r.chips, ["Jazz", "Rock", "ArtistsM"]);
       assert.deepEqual(r.orLetters, ["Kind of Blue"], "letters OR among themselves");
       assert.equal(r.all, 10, "Reset shelf");
-      assert.deepEqual(r.empty, { note: true, title: "Nothing on this shelf", why: "No albums match Dance and artists under M.", acts: false }, "no album, so none of its buttons");
+      assert.deepEqual(r.empty, { note: true, title: "Nothing on this shelf", why: "No albums match Dance and artists under M.", view: false }, "no album, so no album view");
       assert.deepEqual(r.undone, ["Myth Takes"], "Undo takes back the last choice");
       assert.equal(r.reset2, 10);
       assert.deepEqual(page.errors, []);
@@ -324,12 +279,12 @@ test("Shelf in a browser", { skip: (!haveFfmpeg() && "ffmpeg is not installed") 
         $('.tab[data-tab="year"]').click(); tile("year", "Undated").click();
         out.undated = window.__shelfOrder();
         tile("year", "Undated").click(); tile("year", "1990s").click();
-        $('.tab[data-tab="random"]').click();
-        out.randomNote = $(".t-rand .t-note").textContent;
-        $('.tile[data-cat="random"]').click();
+        $('.tab[data-tab="order"]').click();
+        out.randomNote = $('.tile[data-cat="order"][data-id="random"] .t-note').textContent;
+        $('.tile[data-cat="order"][data-id="random"]').click();
         out.random = window.__shelfOrder().slice().sort();
         return out; })()`);
-      assert.deepEqual(r.tabs, ["Genres", "Artists", "Years", "Random"]);
+      assert.deepEqual(r.tabs, ["Genres", "Artists", "Years", "Labels", "Types", "Order"], "Rouen's tabs (item 206): Random is an order");
       assert.deepEqual(r.tiles, ["2020s 1", "2000s 2", "1990s 2", "1970s 1", "1960s 2", "1950s 1", "Undated 1"], "newest first, the albums with no year last");
       assert.equal(r.note, "Tap decades. Choose as many as you like.");
       assert.deepEqual(r.sixties, ["Abbey Road", "Pastel Blues"], "1960–1969, in artist order");
@@ -374,37 +329,15 @@ test("Shelf in a browser", { skip: (!haveFfmpeg() && "ffmpeg is not installed") 
       assert.equal(r.oldLine, false);
     });
 
-    await t.test("v0.8.28: the album's Play now and Queue in the bar, by the zone button; no Play next; bigger buttons; bigger covers", async () => {
-      const page = await open();
-      const r = await page.eval(`(async () => { ${HELPERS} ${ready}
-        const box = (s) => $(s).getBoundingClientRect();
-        const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
-        const size = (s) => Math.round($(s).getBoundingClientRect().width / rem * 10) / 10;
-        const st = $("#stage"), S = parseFloat(st.style.getPropertyValue("--S"));
-        return {
-          acts: [...document.querySelectorAll("[data-act]")].map(b => b.dataset.act + " " + b.textContent.trim()),
-          inBar: $("#actions").parentElement.id,
-          order: box("#mt-info").right <= box("#actions").left && box("#actions").right <= box("#mt-zone-btn").left,
-          sizes: { prev: size("#mt-prev svg"), next: size("#mt-next svg"), pp: size("#mt-pp"), zone: size("#mt-zone-btn"), vol: size("#mt-vol-btn"), zoneIcon: size("#mt-zone-btn svg") },
-          gap: Math.round((box("#mt-pp").left - box("#mt-prev").right) / rem * 10) / 10,
-          cover: Math.round(S), stage: { h: st.clientHeight, w: st.clientWidth }
-        }; })()`);
-      assert.deepEqual(r.acts, ["play_now Play now", "queue Queue"], "Play now and Queue; Play next gone");
-      assert.equal(r.inBar, "mt", "in the bar");
-      assert.equal(r.order, true, "after what's playing, before the zone button");
-      assert.deepEqual(r.sizes, { prev: 2.4, next: 2.4, pp: 5, zone: 4.4, vol: 4.4, zoneIcon: 2.7 }, "twice the size they were (1.2rem, 2.75rem, 1.35rem); play/pause bigger");
-      assert.ok(r.gap >= 0.7, "more room between previous and play/pause: " + r.gap);
-      assert.ok(r.cover >= Math.min(r.stage.h * 0.74, r.stage.w * 0.46) - 1, "the covers in the room the buttons left: " + JSON.stringify(r));
-      assert.deepEqual(page.errors, []);
-    });
-
     await t.test("Play now plays the album in front; the bar shows it, and pauses it", async () => {
       const page = await open();
-      const r = await page.eval(`(async () => { ${HELPERS} ${ready}
+      const r = await page.eval(`(async () => { ${HELPERS} ${ready} ${DRIVE}
         const out = {};
-        // Dance: one album on the shelf, so the one in front is known.
+        // Dance: one album on the shelf, so the one in front is known; its buttons are under its cover (item 206).
         [...document.querySelectorAll('.tile[data-cat="genre"]')].find(t => t.textContent.includes("Dance")).click();
+        await until(() => S().N === 1 && S().mode === "idle"); await rest();
         out.front = window.__shelfState().title;
+        await turnOver();
         $('.act[data-act="play_now"]').click();
         await until(() => posts("/api/play").length);
         out.play = posts("/api/play")[0];
@@ -484,11 +417,10 @@ test("Shelf in a browser", { skip: (!haveFfmpeg() && "ffmpeg is not installed") 
         out.rows = rows();
         await holdRow(0); await tapRow(2);
         out.picks = S().picks; out.count = $("#tsel-count").textContent; out.chosen = rows();
-        out.barActs = shown("#actions"); out.tselIn = $("#tsel").parentElement.id;
-        // The back's list as big as it holds (v0.8.28): three tracks, one column, well above the smallest.
-        const ol = document.querySelector(".it.flipped .bk-tracks");
-        out.fit = { one: ol.classList.contains("one"), fit: parseFloat(ol.style.getPropertyValue("--fit")), fits: ol.scrollHeight <= ol.clientHeight + 1,
-          cut: [...ol.querySelectorAll("li span")].filter(s => s.scrollWidth > s.clientWidth + 1).length };
+        out.barActs = shown("#actions"); out.tselIn = !!$("#tsel").closest("#open .ov-side");
+        // The view holds every track, and no title is cut short (the remote's rows wrap).
+        const ol = document.querySelector("#open .bk-tracks");
+        out.fit = { cut: [...ol.querySelectorAll("li span")].filter(s => s.scrollWidth > s.clientWidth + 1).length, n: ol.querySelectorAll("li[data-i]").length };
         document.querySelector('#tsel [data-tact="play_now"]').click();
         await until(() => posts("/api/play-track").length === 2);
         out.posts = posts("/api/play-track").map(b => [b.track, b.kind, b.title, b.only]);
@@ -533,10 +465,8 @@ test("Shelf in a browser", { skip: (!haveFfmpeg() && "ffmpeg is not installed") 
       assert.equal(r.toast, "Playing 2 tracks in Kitchen");
       assert.deepEqual(r.after, { picks: [], tsel: false, barActs: true }, "then the choice is done, and the album's buttons are back");
       assert.equal(r.barActs, false, "the album's Play now and Queue step aside while tracks are chosen");
-      assert.equal(r.tselIn, "mt", "the chosen tracks are played from the bar (item 149)");
-      assert.equal(r.fit.one, true, "three tracks: one column");
-      assert.ok(r.fit.fit > 1.5, "sized up to fill the back: " + JSON.stringify(r.fit));
-      assert.deepEqual([r.fit.fits, r.fit.cut], [true, 0], "all of it on the back, no title cut short");
+      assert.equal(r.tselIn, true, "the chosen tracks are played from under the cover (item 206, Rouen v1.9.68)");
+      assert.deepEqual(r.fit, { cut: 0, n: 3 }, "every track in the view, no title cut short");
       const titles = house.room("Kitchen").queue.map(q => (q.meta.match(/<dc:title>([^<]*)/) || [])[1]);
       assert.deepEqual(titles, ["Song 1", "Song 3"], "the room's queue: just the two chosen");
       assert.equal(r.playing, true);
@@ -633,6 +563,11 @@ test("Shelf in a browser", { skip: (!haveFfmpeg() && "ffmpeg is not installed") 
         await until(() => $("#mt-title").textContent === "So What");
         $("#mt-vol-btn").click();
         out.open = shown("#vol");
+        // the remote's sheet (Rouen v1.9.68-t2): centred over the shelf, just above the bar, 0 and 100 under the slider
+        { const box = (s) => $(s).getBoundingClientRect(), v = box("#vol"), col = box("#shelf"), bar = box("#mt");
+          out.sheet = { centred: Math.abs((v.left + v.right) / 2 - (col.left + col.right) / 2) < 1.5, inside: v.left >= col.left && v.right <= col.right,
+            above: v.bottom <= bar.top + 0.5 && bar.top - v.bottom < 20, ends: [$("#vol-min").textContent, $("#vol-max").textContent],
+            under: box("#vol-scale").top >= box("#vol-slider").bottom - 6, steps: box("#vol-plus").left >= box("#vol-minus").right - 1 }; }
         out.max = $("#vol-slider").max; out.value = $("#vol-slider").value;
         out.fill = $("#vol-slider").style.getPropertyValue("--fill");
         $("#vol-plus").click();
@@ -665,6 +600,7 @@ test("Shelf in a browser", { skip: (!haveFfmpeg() && "ffmpeg is not installed") 
         out.fixed = $("#mt-vol-btn").disabled; out.fixedClosed = !shown("#vol");
         return out; })()`);
       assert.equal(r.open, true);
+      assert.deepEqual(r.sheet, { centred: true, inside: true, above: true, ends: ["0", "60"], under: true, steps: true }, "the remote's sheet, centred just above the bar");
       assert.equal(r.max, "60", "the range ends at the soft limit");
       assert.equal(r.value, "30");
       assert.equal(r.fill, "50.0%", "the slider's track filled to the level (v0.8.28)");

@@ -2,9 +2,14 @@
 // its route in lib/server/api-library.js, in the same shape. The whole library
 // in the Library wall's artist order, each album's genres as places in a list
 // of genres (commonest first), the letter its artist is filed under and its
-// year (v0.8.27); and Mandarin's version (v0.8.28). The page filters it itself; one
-// answer per library, built once and kept with the copy of the library it was
-// built from. test/library-front.test.js holds the two servers' answers to
+// year (v0.8.27); and Mandarin's version (v0.8.28). Since item 206 (Rouen's
+// Shelf v1.9.67 to v1.9.69-t1): each album's record label as a place in a list
+// of labels (commonest first), its catalogue number, the kinds of release it
+// is, its format and the version its title ends with (ShelfFacts.cs), for the
+// Labels and Types tiles, the label and catalogue orders and the spine's foot;
+// and the kinds' names, so the page keeps no copy. The page filters it itself;
+// one answer per library, built once and kept with the copy of the library it
+// was built from. test/library-front.test.js holds the two servers' answers to
 // each other.
 using System.Globalization;
 using System.Security.Cryptography;
@@ -19,7 +24,7 @@ internal sealed partial class Snapshot
     public ShelfAnswer? Shelf;
 }
 
-internal sealed record ShelfAnswer(JsonArray Genres, JsonArray Albums, int Total, string Sig);
+internal sealed record ShelfAnswer(JsonArray Genres, JsonArray Labels, JsonArray Albums, int Total, string Sig);
 
 internal static partial class Library
 {
@@ -31,7 +36,7 @@ internal static partial class Library
         var shelf = s.Shelf;
         if (shelf == null)
         {
-            shelf = BuildShelf(View(name => name == "sort" ? ["artist"] : null, s));
+            shelf = BuildShelf(View(name => name == "sort" ? ["artist"] : null, s), s.LabelOf);
             s.Shelf = shelf;
         }
         if (Q(ctx, "sig") is { Length: > 0 } sig && sig == shelf.Sig)
@@ -42,6 +47,8 @@ internal static partial class Library
             ["sig"] = shelf.Sig,
             ["version"] = Server.Version,
             ["genres"] = shelf.Genres.DeepClone(),
+            ["labels"] = shelf.Labels.DeepClone(),
+            ["kinds"] = ShelfFacts.KindsJson(),
             ["albums"] = shelf.Albums.DeepClone()
         });
     }
@@ -57,12 +64,15 @@ internal static partial class Library
         return "#";
     }
 
-    /* buildShelf and shelfSignature. */
-    internal static ShelfAnswer BuildShelf(List<Album> albums)
+    /* buildShelf and shelfSignature. labelOf: an album's record label as the Label focus names it (Snapshot.LabelOf), or null. */
+    internal static ShelfAnswer BuildShelf(List<Album> albums, Func<Album, string?> labelOf)
     {
         var counts = new Dictionary<string, int>();
         var order = new List<string>();
         var perAlbum = new List<List<string>>(albums.Count);
+        var labelCounts = new Dictionary<string, int>();
+        var labelOrder = new List<string>();
+        var perLabel = new List<string?>(albums.Count);
         foreach (var al in albums)
         {
             var names = new List<string>();
@@ -73,10 +83,20 @@ internal static partial class Library
                 if (counts.TryGetValue(n, out var k)) counts[n] = k + 1;
                 else { counts[n] = 1; order.Add(n); }
             }
+            var label = labelOf(al) is { Length: > 0 } l ? l : null;
+            perLabel.Add(label);
+            if (label != null)
+            {
+                if (labelCounts.TryGetValue(label, out var k)) labelCounts[label] = k + 1;
+                else { labelCounts[label] = 1; labelOrder.Add(label); }
+            }
         }
         var genres = Sorted(order, (a, b) => Or(counts[b].CompareTo(counts[a]), () => Lc(a, b)));
         var index = new Dictionary<string, int>();
         for (int i = 0; i < genres.Count; i++) index[genres[i]] = i;
+        var labels = Sorted(labelOrder, (a, b) => Or(labelCounts[b].CompareTo(labelCounts[a]), () => Lc(a, b)));
+        var labelIndex = new Dictionary<string, int>();
+        for (int i = 0; i < labels.Count; i++) labelIndex[labels[i]] = i;
 
         using var sha = IncrementalHash.CreateHash(HashAlgorithmName.SHA1);
         void Add(string text) => sha.AppendData(Encoding.UTF8.GetBytes(text));
@@ -88,6 +108,13 @@ internal static partial class Library
             Add(g + "\u0001" + counts[g].ToString(CultureInfo.InvariantCulture) + "\u0002");
         }
         Add("\u0003");
+        var lOut = new JsonArray();
+        foreach (var l in labels)
+        {
+            lOut.Add(new JsonObject { ["name"] = l, ["count"] = labelCounts[l] });
+            Add(l + "\u0001" + labelCounts[l].ToString(CultureInfo.InvariantCulture) + "\u0002");
+        }
+        Add("\u0003");
         var aOut = new JsonArray();
         for (int i = 0; i < albums.Count; i++)
         {
@@ -96,6 +123,11 @@ internal static partial class Library
             var b = ShelfBucket(al.SortArtist);
             var k = string.IsNullOrEmpty(al.ImageKey) ? null : al.ImageKey;
             long? y = al.Year is long yr && yr != 0 ? yr : null;
+            // item 206: the label's place, the catalogue number, the kinds, the format, the version (ShelfFacts.cs)
+            int? li = perLabel[i] is { } ln ? labelIndex[ln] : null;
+            var kinds = ShelfFacts.KindsOf(al.MbType, al.Compilation);
+            var fm = ShelfFacts.FormatOf(al);
+            var v = ShelfFacts.SplitVersion(al.Title);
             aOut.Add(new JsonObject
             {
                 ["o"] = al.Id,
@@ -104,13 +136,19 @@ internal static partial class Library
                 ["k"] = k,
                 ["g"] = new JsonArray(gi.Select(x => (JsonNode)x).ToArray()),
                 ["b"] = b,
-                ["y"] = y
+                ["y"] = y,
+                ["l"] = li,
+                ["c"] = al.Catno,
+                ["ty"] = kinds == null ? null : new JsonArray(kinds.Select(x => (JsonNode)x).ToArray()),
+                ["fm"] = fm,
+                ["v"] = v is { } ver ? new JsonArray(ver.Base, ver.Version) : null
             });
             Add(string.Join("\u0001", al.Id.ToString(CultureInfo.InvariantCulture), al.Title, al.Artist, k ?? "",
                 string.Join(",", gi.Select(x => x.ToString(CultureInfo.InvariantCulture))), b,
-                y?.ToString(CultureInfo.InvariantCulture) ?? "") + "\u0002");
+                y?.ToString(CultureInfo.InvariantCulture) ?? "", li?.ToString(CultureInfo.InvariantCulture) ?? "", al.Catno ?? "",
+                kinds == null ? "" : string.Join(",", kinds), fm ?? "", v is { } vv ? vv.Base + "\u0004" + vv.Version : "") + "\u0002");
         }
         var sig = Convert.ToHexStringLower(sha.GetHashAndReset())[..16];
-        return new ShelfAnswer(gOut, aOut, albums.Count, sig);
+        return new ShelfAnswer(gOut, lOut, aOut, albums.Count, sig);
     }
 }
