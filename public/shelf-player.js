@@ -347,9 +347,9 @@
       pickZone().catch(() => false).then((ok) => {
         // a failed read says so, rather than claiming there are no zones
         if (ok === false && !zoneList.length) { toast("Mandarin didn’t answer. Try again in a moment."); return; }
-        zonesEl.innerHTML = '<p>Play in</p>' + (zoneList.length
-          ? zoneList.map((z) => `<button type="button" role="menuitemradio" data-zone="${esc(z.zone_id)}" aria-checked="${z.zone_id === zoneId ? "true" : "false"}">${esc(z.display_name)}<small>${z.state === "playing" ? "Playing" : z.state === "paused" ? "Paused" : ""}</small></button>`).join("")
-          : '<p>No zones found</p>');
+        zonesEl.innerHTML = '<p data-parity="shelf.zones-head">Play in</p>' + (zoneList.length
+          ? zoneList.map((z) => `<button type="button" role="menuitemradio" data-parity="shelf.zone-choice" data-zone="${esc(z.zone_id)}" aria-checked="${z.zone_id === zoneId ? "true" : "false"}">${esc(z.display_name)}<small>${z.state === "playing" ? "Playing" : z.state === "paused" ? "Paused" : ""}</small></button>`).join("")
+          : '<p data-parity="shelf.zones-none">No zones found</p>');
         zonesEl.classList.remove("hidden");
         volClose();
         $("#mt-zone-btn").setAttribute("aria-expanded", "true");

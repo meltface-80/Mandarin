@@ -167,12 +167,12 @@
         return;
       }
       if (tab === "genre") {
-        html = genres.length ? genres.map((g, i) => `<button class="tile t-genre" type="button" data-cat="genre" data-id="${i}" aria-pressed="false">
+        html = genres.length ? genres.map((g, i) => `<button class="tile t-genre" type="button" data-cat="genre" data-id="${i}" aria-pressed="false" data-parity="shelf-choices.genre">
             <span class="fan" aria-hidden="true">${(fans[i] || []).map((k, n) => `<span class="m m${n}"><img src="${imageUrl(k, 500)}" alt="" loading="lazy" decoding="async"></span>`).join("")}</span>
             <span class="t-row"><span class="t-name">${esc(g.name)}</span><span class="t-count"></span></span><span class="tick">${TICK}</span></button>`).join("")
-          : '<p class="tiles-msg">None of your albums carries a genre tag, so there are no genres to choose from. Artists, Years and Order work.</p>';
+          : '<p class="tiles-msg" data-parity="shelf-choices.message">None of your albums carries a genre tag, so there are no genres to choose from. Artists, Years and Order work.</p>';
       } else if (tab === "artist") {
-        html = LETTERS.map((l) => `<button class="tile t-letter" type="button" data-cat="artist" data-id="${l}" aria-pressed="false" aria-label="Artists under ${l === "#" ? "#: names starting with 0, or with no letter A to Z" : l}">
+        html = LETTERS.map((l) => `<button class="tile t-letter" type="button" data-cat="artist" data-id="${l}" aria-pressed="false" data-parity="shelf-choices.letter" aria-label="Artists under ${l === "#" ? "#: names starting with 0, or with no letter A to Z" : l}">
           <span class="ch">${l}</span><span class="t-count"></span><span class="tick">${TICK}</span></button>`).join("");
       } else if (tab === "year") {
         // The decades the library has, newest first (as the Library's Decade
@@ -181,27 +181,27 @@
         const years = ds.filter((d) => d !== "none").sort((x, y) => +y - +x);
         if (ds.includes("none")) years.push("none");
         html = years.length && years[0] !== "none"
-          ? years.map((d) => `<button class="tile t-decade${d === "none" ? " undated" : ""}" type="button" data-cat="year" data-id="${d}" aria-pressed="false" aria-label="${d === "none" ? "Albums with no year" : "The " + d + "s"}">
+          ? years.map((d) => `<button class="tile t-decade${d === "none" ? " undated" : ""}" type="button" data-cat="year" data-id="${d}" aria-pressed="false" data-parity="shelf-choices.decade" aria-label="${d === "none" ? "Albums with no year" : "The " + d + "s"}">
           <span class="ch">${d === "none" ? "Undated" : d + "s"}</span><span class="t-count"></span><span class="tick">${TICK}</span></button>`).join("")
-          : '<p class="tiles-msg">None of your albums carries a year, so there are no decades to choose from. Genres, Artists and Order work.</p>';
+          : '<p class="tiles-msg" data-parity="shelf-choices.message">None of your albums carries a year, so there are no decades to choose from. Genres, Artists and Order work.</p>';
       } else if (tab === "label") {
         // As the genre tiles: a fan of three covers, the name and how many (v1.9.67).
-        html = labels.length ? labels.map((l, i) => `<button class="tile t-genre t-label" type="button" data-cat="label" data-id="${i}" aria-pressed="false">
+        html = labels.length ? labels.map((l, i) => `<button class="tile t-genre t-label" type="button" data-cat="label" data-id="${i}" aria-pressed="false" data-parity="shelf-choices.label">
             <span class="fan" aria-hidden="true">${(labelFans[i] || []).map((k, n) => `<span class="m m${n}"><img src="${imageUrl(k, 500)}" alt="" loading="lazy" decoding="async"></span>`).join("")}</span>
             <span class="t-row"><span class="t-name">${esc(l.name)}</span><span class="t-count"></span></span><span class="tick">${TICK}</span></button>`).join("")
-          : '<p class="tiles-msg">Labels appear once the label scan has read them: switch Record labels on in Settings → Setup.</p>';
+          : '<p class="tiles-msg" data-parity="shelf-choices.message">Labels appear once the label scan has read them: switch Record labels on in Settings → Setup.</p>';
       } else if (tab === "type") {
-        html = kindsHere().map((id) => `<button class="tile t-decade t-type${id === "none" ? " undated" : ""}" type="button" data-cat="type" data-id="${esc(id)}" aria-pressed="false">
+        html = kindsHere().map((id) => `<button class="tile t-decade t-type${id === "none" ? " undated" : ""}" type="button" data-cat="type" data-id="${esc(id)}" aria-pressed="false" data-parity="shelf-choices.type">
           <span class="ch">${esc(kindName(id, true))}</span><span class="t-count"></span><span class="tick">${TICK}</span></button>`).join("");
       } else {
         // The order: one of four, the artist order by default (v1.9.67); Random keeps its reshuffle and the spin.
-        html = ORDERS.map(([id, name, note]) => `<button class="tile t-order" type="button" data-cat="order" data-id="${id}" aria-pressed="false">${id === "random" ? SHUFFLE : ""}
+        html = ORDERS.map(([id, name, note]) => `<button class="tile t-order" type="button" data-cat="order" data-id="${id}" aria-pressed="false" data-parity="shelf-choices.order">${id === "random" ? SHUFFLE : ""}
             <span class="t-row"><span class="t-name">${name}</span></span>
             <span class="t-note">${note}</span><span class="tick">${TICK}</span></button>`).join("")
           + `<div class="rand-acts">
-            <button class="act" type="button" id="reshuffle">Shuffle again</button>
+            <button class="act" type="button" id="reshuffle" data-parity="shelf-choices.reshuffle">Shuffle again</button>
           </div>
-          <button class="spin-big" type="button" id="spin-big"><span class="disc-rot">${DISC}</span><span><b>Spin the shelf</b><span>It lands on something in three seconds</span></span></button>`;
+          <button class="spin-big" type="button" id="spin-big" aria-label="Spin the shelf" data-parity="shelf-choices.spin"><span class="disc-rot">${DISC}</span><span><b>Spin the shelf</b><span>It lands on something in three seconds</span></span></button>`;
       }
       tilesEl.innerHTML = html;
       if (!keepScroll) $("#tiles-wrap").scrollTop = 0;
@@ -254,8 +254,8 @@
       // a phone's way back to the shelf (v1.9.69-t1) says what it will show
       $("#pick-done").innerHTML = !ready ? "Show the shelf" : `Show <b>${h.N.toLocaleString()}</b> album${h.N === 1 ? "" : "s"}`;
       const shown = chosen.length > 7 ? chosen.slice(0, 6) : chosen;
-      $("#chips").innerHTML = shown.map(([c, i]) => `<span class="chip">${c === "artist" ? "<i>Artists</i>" : ""}<span>${esc(labelOf(c, i))}</span><button class="x" type="button" data-cat="${c}" data-id="${esc(i)}" aria-label="Remove ${esc(labelOf(c, i))}">×</button></span>`).join("")
-        + (chosen.length > 7 ? `<span class="chip more">+${chosen.length - 6} more</span>` : "");
+      $("#chips").innerHTML = shown.map(([c, i]) => `<span class="chip" data-parity="shelf-choices.chip">${c === "artist" ? "<i>Artists</i>" : ""}<span>${esc(labelOf(c, i))}</span><button class="x" type="button" data-parity="shelf-choices.chip-remove" data-cat="${c}" data-id="${esc(i)}" aria-label="Remove ${esc(labelOf(c, i))}">×</button></span>`).join("")
+        + (chosen.length > 7 ? `<span class="chip more" data-parity="shelf-choices.chip-more">+${chosen.length - 6} more</span>` : "");
       const cats = new Set(chosen.map(([c]) => c));
       $("#reset-all").classList.toggle("hidden", !(chosen.length >= 2 && cats.size >= 2));
       const n = sel[tab].size;

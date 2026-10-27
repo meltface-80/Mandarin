@@ -170,7 +170,7 @@
   }
   function makeNode() {
     const el = document.createElement("div");
-    el.className = "it";
+    el.className = "it"; el.setAttribute("data-parity", "shelf.case");
     el.innerHTML = '<div class="box"><div class="face front"></div><div class="face back"></div><div class="face side l"></div><div class="face side r"></div></div>';
     const f = el.firstChild.children;
     el._front = f[0]; el._back = f[1]; el._l = f[2]; el._r = f[3];

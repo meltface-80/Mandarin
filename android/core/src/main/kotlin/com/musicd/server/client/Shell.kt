@@ -110,6 +110,10 @@ object ShellRoute {
     const val PITCHFORK = "pitchfork?$REVIEW={$REVIEW}&$ZONE={$ZONE}"
     fun pitchfork(review: String, zoneId: String): String = "pitchfork?$REVIEW=" + enc(review) + "&$ZONE=" + enc(zoneId)
 
+    /** The Shelf (item 207): the library as a record shop's shelf, played in [ZONE]. */
+    const val SHELF = "shelf?$ZONE={$ZONE}"
+    fun shelf(zoneId: String): String = "shelf?$ZONE=" + enc(zoneId)
+
     /** An artist's page (L4, item 52): their albums and their biography. */
     const val ARTIST = "artist?name={name}&$ZONE={$ZONE}"
     fun artist(name: String, zoneId: String): String = "artist?name=" + enc(name) + "&$ZONE=" + enc(zoneId)

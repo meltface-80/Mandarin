@@ -1,7 +1,5 @@
 package com.musicd.server.android
 
-import android.content.Context
-import android.content.Intent
 import android.net.Uri
 import com.musicd.server.client.NowAlbum
 import com.musicd.server.client.ServerClient
@@ -41,10 +39,4 @@ internal suspend fun findNowAlbum(client: () -> ServerClient?, zone: String, alb
         runCatching { NowAlbum.playing(c.getJson("/api/album/now-playing?zone=" + Uri.encode(zone))) }.getOrNull()
             ?: album.takeIf { it.isNotEmpty() }?.let { a -> runCatching { NowAlbum.match(c.getJson(NowAlbum.searchPath(a)), a, artist) }.getOrNull() }
     }
-}
-
-/** The side menu's Shelf: the server's own page of it, a screen for a wall, in the phone's browser. */
-internal fun openShelf(context: Context) {
-    val base = Store.active(context)?.baseUrl ?: return
-    runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("$base/shelf")).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
 }
