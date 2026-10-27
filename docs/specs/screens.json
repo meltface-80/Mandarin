@@ -1418,7 +1418,7 @@
       }
     },
     "shelf-choices": {
-      "page": "the Shelf's choices (its tab at the top tapped; item 207): over the whole screen on a phone, Shelf and Reset shelf at the head, how many albums the choices leave, a chip for each choice, the tabs Genres, Artists, Years, Labels, Types, Formats, Favourites and Order in two rows of four (each with how many are chosen; item 208 added Formats and Favourites), a line on the tab and Clear all, the tiles of the tab (a genre's or a label's with a fan of covers, a letter, a decade, a kind of release, a format, Favourites with a fan of their covers, an order with a line on what it does; each with how many albums it would bring, ticked when chosen), Shuffle again and Spin the shelf on Order; and Show N albums at the foot, which takes them away",
+      "page": "the Shelf's choices (its tab at the top tapped; item 207): over the whole screen on a phone, Shelf and Reset shelf at the head, how many albums the choices leave, a chip for each choice, the tabs Genres, Artists, Years, Labels, Types, Formats, Favourites and Order in two rows of four (each with how many are chosen; item 208 added Formats and Favourites), a line on the tab and Clear all, the tiles of the tab (a genre's name, a letter, a decade, a kind of release and a format each the same size, a label's and Favourites with a fan of covers (item 209), an order with a line on what it does; each with how many albums it would bring, ticked when chosen), Shuffle again and Spin the shelf on Order; and Show N albums at the foot, which takes them away",
       "native": ["android/app/src/main/java/com/musicd/server/android/ShelfPick.kt", "android/app/src/main/java/com/musicd/server/android/ShelfTiles.kt"],
       "preview": false,
       "items": {

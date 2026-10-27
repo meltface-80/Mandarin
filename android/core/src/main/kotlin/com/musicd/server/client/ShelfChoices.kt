@@ -132,11 +132,11 @@ class ShelfChoices(keptOrder: String? = null, var seed: Long = 1) {
         val counts = counts(lib, tab)
         fun tile(id: String, name: String, said: String, fan: List<String> = emptyList()) = ShelfTile(id, name, counts[id] ?: 0, isChosen(tab, id), said, fan = fan)
         return when (tab) {
-            "genre" -> lib.genres.map { tile(it.name, it.name, it.name, fanOf(lib, it.name, false)) }
+            "genre" -> lib.genres.map { tile(it.name, it.name, it.name) }
             "artist" -> LETTERS.map { l -> tile(l, l, "Artists under " + if (l == "#") "#: names starting with 0, or with no letter A to Z" else l) }
             "year" -> decades(lib).let { ds -> if (ds.isEmpty() || ds[0] == "none") emptyList() else ds.map { d ->
                 tile(d, if (d == "none") "Undated" else d + "s", if (d == "none") "Albums with no year" else "The ${d}s") } }
-            "label" -> lib.labels.map { tile(it.name, it.name, it.name, fanOf(lib, it.name, true)) }
+            "label" -> lib.labels.map { tile(it.name, it.name, it.name, fanOf(lib, it.name)) }
             "type" -> kindsHere(lib).map { tile(it, kindName(lib, it, true), kindName(lib, it, true)) }
             "format" -> lib.formats.map { tile(it, it, it) }
             "favourite" -> if (lib.albums.none { it.favourite }) emptyList() else listOf(tile(FAVOURITE, "Favourites", "Favourites", favouritesFan(lib)))
@@ -249,11 +249,10 @@ class ShelfChoices(keptOrder: String? = null, var seed: Long = 1) {
         return Triple("Nothing on this shelf", "No albums match $joined.", true)
     }
 
-    /** Up to three covers for a genre's or a label's tile, spread through its albums from a place its name gives. */
-    fun fanOf(lib: ShelfLibrary, name: String, label: Boolean): List<String> =
-        spread(name, lib.albums.filter { a -> if (label) lib.labelName(a) == name else a.genres.any { lib.genres.getOrNull(it)?.name == name } }.mapNotNull { it.imageKey })
+    /** Up to three covers for a label's tile, spread through its albums from a place its name gives (a genre's had them too until item 209). */
+    fun fanOf(lib: ShelfLibrary, name: String): List<String> = spread(name, lib.albums.filter { lib.labelName(it) == name }.mapNotNull { it.imageKey })
 
-    /** Up to three of the favourites' covers for their tile, as a genre's (item 208). */
+    /** Up to three of the favourites' covers for their tile, as a label's (item 208). */
     fun favouritesFan(lib: ShelfLibrary): List<String> = spread("Favourites", lib.albums.filter { it.favourite }.mapNotNull { it.imageKey })
 
     private fun spread(name: String, keys: List<String>): List<String> {

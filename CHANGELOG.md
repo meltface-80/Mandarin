@@ -5,6 +5,11 @@
 Dev's builds are numbered 1.1.11-tN, the server's image and the test APK alike. The Shelf's merge (item 206) came out
 as 1.9.69-t1 by mistake: Rouen's version, not Mandarin's. Item 207 puts the numbering right, as 1.1.11-t2.
 
+- `209-shelf-tiles-tab-highlight` (item 209): the Shelf's choices, after a look at them on a phone:
+  - **Genres and Formats** tiles are the size of the Types and Years tiles, three to a row on a phone: a genre's
+    name and its count, without the fan of covers. Labels and Favourites keep theirs.
+  - **The open tab** is outlined in brass, and in the Android app it now follows the tab you are on: it stayed on
+    Genres whichever was open, and its counts didn't move either until the choices were opened again.
 - `208-shelf-format-favourites` (item 208): **Formats and Favourites** in the Shelf's choices, on the page and in the
   Android app, so there are eight tabs in two even rows of four: Genres, Artists, Years, Labels, Types, Formats,
   Favourites and Order.

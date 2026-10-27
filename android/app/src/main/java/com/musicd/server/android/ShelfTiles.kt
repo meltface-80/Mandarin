@@ -59,8 +59,9 @@ internal fun ShelfTilesGrid(shelf: ShelfControl, tab: String, rem: Dp, client: (
     val lib = shelf.lib ?: return
     shelf.rev   // drawn again when a choice moves the counts
     val tiles = shelf.choices.tiles(lib, tab)
-    val cols = when (tab) { "artist" -> 6; "year", "type" -> 3; "order" -> 1; else -> 2 }
-    val gap = if (tab == "artist" || tab == "year" || tab == "type" || tab == "format") rem * 0.5f else rem * 0.6f
+    // genres and formats the size of a decade or a kind (item 209); a label and the Favourites tile with a fan of covers
+    val cols = when (tab) { "artist" -> 6; "year", "type", "genre", "format" -> 3; "order" -> 1; else -> 2 }
+    val gap = if (tab == "artist" || tab == "year" || tab == "type" || tab == "genre" || tab == "format") rem * 0.5f else rem * 0.6f
     fun toggle(id: String) = shelf.choose { toggle(tab, id, kotlin.random.Random.nextLong(1, 0xffffffffL)) }
     LazyVerticalGrid(GridCells.Fixed(cols), modifier, contentPadding = PaddingValues(top = rem * 0.5f, bottom = rem * 1.3f),
         verticalArrangement = Arrangement.spacedBy(gap), horizontalArrangement = Arrangement.spacedBy(gap)) {
@@ -70,7 +71,9 @@ internal fun ShelfTilesGrid(shelf: ShelfControl, tab: String, rem: Dp, client: (
         items(tiles, key = { it.id }) { t ->
             val fan = rem * 0.85f
             when (tab) {
-                "genre" -> TileBox(Modifier.parity("shelf-choices.genre", Contract.label("shelf-choices.genre", 0, t.said)).clickable { toggle(t.id) }.aspectRatio(1.15f), t, rem, fan) { FanFace(t, rem, client) }
+                "genre" -> TileBox(Modifier.parity("shelf-choices.genre", Contract.label("shelf-choices.genre", 0, t.said)).clickable { toggle(t.id) }.aspectRatio(1.6f), t, rem, rem * 0.7f) {
+                    WordFace(t, rem, 1.6f, serif = false, lines = 2)
+                }
                 "label" -> TileBox(Modifier.parity("shelf-choices.label", Contract.label("shelf-choices.label", 0, t.said)).clickable { toggle(t.id) }.aspectRatio(1.15f), t, rem, fan) { FanFace(t, rem, client) }
                 "artist" -> TileBox(Modifier.parity("shelf-choices.letter", Contract.label("shelf-choices.letter", 0, t.id)).clickable { toggle(t.id) }.aspectRatio(1f), t, rem, rem * 0.7f) {
                     WordFace(t, rem, 1f, serif = true)
@@ -81,7 +84,7 @@ internal fun ShelfTilesGrid(shelf: ShelfControl, tab: String, rem: Dp, client: (
                 "type" -> TileBox(Modifier.parity("shelf-choices.type", Contract.label("shelf-choices.type", 0, t.name)).clickable { toggle(t.id) }.aspectRatio(1.6f), t, rem, rem * 0.7f) {
                     WordFace(t, rem, 1.6f, serif = false)
                 }
-                // item 208: a format's name may run to two lines ("DSD128 Multichannel"); the one Favourites tile as a genre's
+                // item 208: a format's name may run to two lines ("DSD128 Multichannel"); the one Favourites tile as a label's
                 "format" -> TileBox(Modifier.parity("shelf-choices.format", Contract.label("shelf-choices.format", 0, t.name)).clickable { toggle(t.id) }.aspectRatio(1.6f), t, rem, rem * 0.7f) {
                     WordFace(t, rem, 1.6f, serif = false, lines = 2)
                 }
@@ -157,7 +160,7 @@ private fun BoxScope.FanFace(t: ShelfTile, rem: Dp, client: () -> ServerClient?)
     }
 }
 
-/** A letter's, a decade's, a kind's or a format's tile: its word in the middle (the serif for a letter or a decade; a format's on up to [lines]), its count in the corner. */
+/** A letter's, a decade's, a kind's, a genre's or a format's tile: its word in the middle (the serif for a letter or a decade; a genre's or a format's on up to [lines]), its count in the corner. */
 @Composable
 private fun BoxScope.WordFace(t: ShelfTile, rem: Dp, ratio: Float, serif: Boolean, lines: Int = 1) {
     Text(t.name, Modifier.align(Alignment.Center).padding(horizontal = rem * 0.5f), color = paletteColor(Palette.TEXT), fontFamily = if (serif) youngSerif else null,

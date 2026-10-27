@@ -55,7 +55,7 @@
     /** @param {string} tab */
     function tiles(tab) {
       if (tab === "format") {
-        return formats.length ? formats.map((f) => `<button class="tile t-decade t-format" type="button" data-cat="format" data-id="${esc(f)}" aria-pressed="false" data-parity="shelf-choices.format">
+        return formats.length ? formats.map((f) => `<button class="tile t-decade t-format t-word" type="button" data-cat="format" data-id="${esc(f)}" aria-pressed="false" data-parity="shelf-choices.format">
           <span class="ch">${esc(f)}</span><span class="t-count"></span><span class="tick">${TICK}</span></button>`).join("")
           : '<p class="tiles-msg" data-parity="shelf-choices.message">Nothing is known yet of your albums’ files, so there are no formats to choose from.</p>';
       }

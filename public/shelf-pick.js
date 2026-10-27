@@ -41,7 +41,6 @@
     let libRev = null;        // /api/live's library revision the list was read at
     let ready = false;
     let readyAt = 0;          // when it first was: the playing record is put in front only soon after
-    let fans = [];            // per genre: up to three image keys for its tile
     let labelFans = [];       // per label: the same
 
     // ---- Choices ---------------------------------------------------------------
@@ -170,9 +169,9 @@
         return;
       }
       if (tab === "genre") {
-        html = genres.length ? genres.map((g, i) => `<button class="tile t-genre" type="button" data-cat="genre" data-id="${i}" aria-pressed="false" data-parity="shelf-choices.genre">
-            <span class="fan" aria-hidden="true">${(fans[i] || []).map((k, n) => `<span class="m m${n}"><img src="${imageUrl(k, 500)}" alt="" loading="lazy" decoding="async"></span>`).join("")}</span>
-            <span class="t-row"><span class="t-name">${esc(g.name)}</span><span class="t-count"></span></span><span class="tick">${TICK}</span></button>`).join("")
+        // a genre's name in a tile the size of a kind's (item 209, a user's request; a fan of covers before)
+        html = genres.length ? genres.map((g, i) => `<button class="tile t-decade t-word" type="button" data-cat="genre" data-id="${i}" aria-pressed="false" data-parity="shelf-choices.genre">
+            <span class="ch">${esc(g.name)}</span><span class="t-count"></span><span class="tick">${TICK}</span></button>`).join("")
           : '<p class="tiles-msg" data-parity="shelf-choices.message">None of your albums carries a genre tag, so there are no genres to choose from. Artists, Years and Order work.</p>';
       } else if (tab === "artist") {
         html = LETTERS.map((l) => `<button class="tile t-letter" type="button" data-cat="artist" data-id="${l}" aria-pressed="false" data-parity="shelf-choices.letter" aria-label="Artists under ${l === "#" ? "#: names starting with 0, or with no letter A to Z" : l}">
@@ -348,15 +347,10 @@
           chosen = chosen.filter(([c, i]) => c !== "type" || have.has(i));
           facets.read(j, albums);
           for (const c of ["format", "favourite"]) { const here = facets.have(c); sel[c] = new Set([...sel[c]].filter((i) => here.has(i))); chosen = chosen.filter(([k, i]) => k !== c || here.has(i)); }
-          // Three covers for each genre's tile, spread through its albums; and each label's.
-          const fanOf = facets.fanOf;
-          const keysOf = genres.map(() => []), keysOfL = labels.map(() => []);
-          for (const a of albums) if (a.k) {
-            for (const gi of a.g) if (keysOf[gi]) keysOf[gi].push(a.k);
-            if (a.l !== null && keysOfL[a.l]) keysOfL[a.l].push(a.k);
-          }
-          fans = keysOf.map((keys, gi) => fanOf(genres[gi].name, keys));
-          labelFans = keysOfL.map((keys, li) => fanOf(labels[li].name, keys));
+          // Three covers for each label's tile, spread through its albums.
+          const keysOfL = labels.map(() => []);
+          for (const a of albums) if (a.k && a.l !== null && keysOfL[a.l]) keysOfL[a.l].push(a.k);
+          labelFans = keysOfL.map((keys, li) => facets.fanOf(labels[li].name, keys));
           const wasReady = ready;
           if (!wasReady) readyAt = Date.now();
           ready = true;

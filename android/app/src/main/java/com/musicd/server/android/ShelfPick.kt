@@ -112,6 +112,9 @@ internal fun ShelfPick(shelf: ShelfControl, rem: Dp, client: () -> ServerClient?
 /** The eight tabs (item 208: Formats and Favourites added), two even rows of four, each with how many of it are chosen. */
 @Composable
 private fun Tabs(shelf: ShelfControl, rem: Dp) {
+    // drawn again when a tab is picked or a choice moves its badge: the choices' own fields aren't Compose state (item 209:
+    // the open tab stayed lifted on Genres)
+    shelf.rev
     val c = shelf.choices
     val shape = RoundedCornerShape(rem * 1.6f)
     Column(Modifier.fillMaxWidth().clip(shape).background(paletteColor(Palette.BG_ELEV)).border(1.dp, paletteColor(Palette.BORDER), shape).padding(rem * 0.25f),
@@ -133,12 +136,12 @@ private fun Tabs(shelf: ShelfControl, rem: Dp) {
     }
 }
 
-/** A tab: its name and its count's badge in the brass; the open one lifted. */
+/** A tab: its name and its count's badge in the brass; the open one lifted, in a brass outline (item 209). */
 @Composable
 private fun TabButton(modifier: Modifier, id: String, c: ShelfChoices, rem: Dp) {
     val name = ShelfChoices.TABS.first { it.first == id }.second
     val n = c.count(id); val open = c.tab == id
-    val ground = if (open) Modifier.background(paletteColor(Palette.BG_ELEV_2), CircleShape).border(1.dp, paletteColor(Palette.BORDER), CircleShape) else Modifier
+    val ground = if (open) Modifier.background(paletteColor(Palette.BG_ELEV_2), CircleShape).border(1.dp, paletteColor(Palette.ACCENT), CircleShape) else Modifier
     Row(modifier.height(rem * 2.65f).clip(CircleShape).then(ground), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
         Text(name, color = paletteColor(if (open) Palette.TEXT else Palette.TEXT_DIM), fontSize = (rem.value * 0.9f).sp, fontWeight = FontWeight.W700, maxLines = 1)
         if (n > 0) Box(Modifier.padding(start = rem * 0.35f).heightIn(min = rem * 1.2f).widthIn(min = rem * 1.2f).clip(CircleShape).background(paletteColor(Palette.ACCENT)).padding(horizontal = rem * 0.3f),
