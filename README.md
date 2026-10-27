@@ -7,7 +7,7 @@
 
 </div>
 
-# Mandarin — v1.1.9
+# Mandarin — v1.1.10
 
 **Your own music files, played to Sonos rooms, to UPnP/DLNA renderers (a WiiM, a Chord Poly,
 a streamer, an AV receiver) and to the Mandarin Android app.**
@@ -26,23 +26,20 @@ Wikipedia, Deezer and others); your music files stay on your machine.
                                                    └──── audio: /stream/… ◀────────┘
 ```
 
-**New in v1.1.9** (since v1.1.8): **a full review — safer, steadier, sturdier.** No new features this time: the
-whole of Mandarin (the server, the page, the Android app and how each is built) was read through, and everything it
-turned up is fixed. Thirty fixes in all; the [changelog](CHANGELOG.md) has each one.
-* **Safer.** With the sign-in off, only your home network and your tailnet come in without one, asking by a name
-  used at home, and only Mandarin's own page and app can change anything: another site open in a browser at home
-  gets nowhere. Password guesses are held to five at a time. A renderer's event, a request's body and an artist's
-  name can no longer be turned against the server or the page. See [Your account](#your-account).
-* **Steadier playback on renderers.** A WiiM, a Poly or another renderer that drops off the network and comes back
-  no longer starts the next track by itself or skips one at a track's end, and is evented again within seconds.
-  Shuffle on a renderer picks the next track once, not every second. Each room is read on its own, so one device not
-  answering no longer slows every other room's display.
-* **Sturdier updates and scans.** An update can't stick on "checking" or leave a new program among old files: the
-  new one is checked first, swapped in last, and the old one put back if anything fails. Music copied into a folder
-  during a long scan is found as that scan ends, not hours later.
-* **A sturdier Android app.** UI Settings apply to every screen at once; Shuffle on the phone's own music starts
-  anywhere and no longer leaves the player shuffling; sign-in works away from home; a download removed mid-way stays
-  removed; and the app no longer closes itself during an update.
+**New in v1.1.10** (since v1.1.9): **a smoother Android app that rests when it isn't needed.** No new features:
+seven fixes to the Android app; the [changelog](CHANGELOG.md) has each one.
+* **Settings as you left them.** Each Settings page opens as you last saw it, then follows the server, instead of
+  opening with its defaults and changing a moment later. A switch moves as soon as you tap it; if the server refuses,
+  it goes back and says why.
+* **No flashes between screens.** Settings from the side menu, Library or Artists from the row, and an album from Now
+  playing open in one step: Home no longer shows for a moment between them, and the menu slides away over the screen
+  you chose.
+* **Rests in the background.** At home the app's own Tailscale engine runs only while the phone is playing, and stops
+  after two minutes idle; away it starts again in seconds. The phone's player rests once it has been idle off screen
+  for five minutes, and the phone's music folder is read every few minutes only while the app is on screen. Android
+  had ended the app for its engine's CPU while it sat idle at home.
+* **The phone's own music.** A phone album's share card has its cover, and its name on Now playing opens the phone's
+  own page of the album.
 
 ---
 
@@ -1180,6 +1177,10 @@ address; on mobile data (or anyone else's Wi-Fi) it goes over its own Tailscale 
 the page, the queue and the music carry on without a reload. Anything else signed in to your
 tailnet — an iPhone with the Tailscale app, a laptop — opens the address *Away from home* shows.
 
+At home the app keeps its own Tailscale running only while the phone is playing, so that walking
+out of the house doesn't stop the music; with nothing playing it is stopped after two minutes, and
+started again in seconds when you leave, its sign-in kept on the phone (v1.1.10).
+
 The server's Tailscale keeps its identity in the data volume, so a new container is the same
 machine. `TAILSCALE=off` leaves it out; `TS_HOSTNAME` names it something other than *musicd*.
 Tailscale installed on the host still works as before (the server uses its own first when both
@@ -1252,6 +1253,7 @@ before you send it: what you send is your choice.
 * **The way to the server:** home, away (Tailscale) or offline, and networks coming and going.
 * **The phone's player:** playing or paused, the track's number in the queue, its position and the volume.
 * **The app:** its memory, crashes and freezes, and Android's own lines for Mandarin.
+* **The app's Tailscale:** whether it is running and the CPU time it has used, and when it is stopped, why, with its last lines (addresses taken out).
 * **The server:** each line it logs, with its own words, numbers, the names of errors and its own addresses; every other value is replaced with […].
 
 **What it leaves out**

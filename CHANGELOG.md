@@ -1,6 +1,20 @@
 # Changelog
 
-## Unreleased
+## v1.1.10
+
+**A smoother Android app that rests when it isn't needed.** No new features: the Android app's Settings pages open as
+you last saw them instead of with their defaults and then changing, a switch moves as soon as you tap it, and moving
+between screens no longer shows Home for a moment. In the background, the app no longer keeps its own Tailscale
+engine running at home when nothing is playing, after Android ended it on 26 October for the engine's CPU; its phone
+player rests once it has been idle off screen for five minutes, and the phone's music folder is read again every few
+minutes only while the app is on screen. A phone album's share card has its cover, and Now playing opens the phone's
+own album. Items 197 to 205 (205 is the test suite's own: GitHub's runners moved to Ubuntu 26.04 on 26 Oct).
+
+- `205-scan-test-file-times` (item 205): the C# suite's scan test failed on GitHub's runners from 26 Oct, when
+  `ubuntu-latest` became Ubuntu 26.04: it took each file's time from the `stat` command to make the cover keys it
+  expects, and 26.04's `stat` (uutils coreutils) gives the nanoseconds rounded to the tenth of a microsecond, so the
+  keys matched the server's for some albums and not others. The test now takes each file's length and time from
+  node's own `fs.statSync`, the figures the keys were defined by. The server was right throughout.
 
 - `205-scan-test-file-times` (item 205): the C# suite's scan test failed on GitHub's runners from 26 Oct, when
   `ubuntu-latest` became Ubuntu 26.04: it took each file's time from the `stat` command to make the cover keys it
