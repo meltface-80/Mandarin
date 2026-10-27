@@ -139,8 +139,9 @@ internal fun ShelfScreen(zoneArg: String, client: () -> ServerClient?, onBack: (
                     onTouch = { touched = System.currentTimeMillis(); zonesOpen = false; volumeOpen = false },
                     modifier = Modifier.fillMaxSize().statusBarsPadding().padding(top = 16.dp + rem * 3f))
                 shelf.note?.let { (title, why, acts) -> Note(shelf, title, why, acts, rem, Modifier.align(Alignment.Center)) }
-                // the queue, drawn in from the right down to the bar, its tab going with it
-                AnimatedVisibility(play.queueOpen, Modifier.align(Alignment.CenterEnd), enter = slideInHorizontally(tween(320, easing = SHELF_EASE)) { it },
+                // the queue, drawn in from the right down to the bar, its tab going with it (AnimatedVisibility named in full:
+                // inside the Column the bare name is ColumnScope's)
+                androidx.compose.animation.AnimatedVisibility(play.queueOpen, Modifier.align(Alignment.CenterEnd), enter = slideInHorizontally(tween(320, easing = SHELF_EASE)) { it },
                     exit = slideOutHorizontally(tween(320, easing = SHELF_EASE)) { it }) {
                     ShelfQueue(play, room.zoneName.orEmpty().takeIf { play.zone.isNotEmpty() }.orEmpty(), v != null, rem, client, onNow = { play.toPlaying(v) }, Modifier.width(drawer))
                 }
@@ -148,7 +149,7 @@ internal fun ShelfScreen(zoneArg: String, client: () -> ServerClient?, onBack: (
                     .clip(RoundedCornerShape(topStart = rem * 0.8f, bottomStart = rem * 0.8f)).clickable { play.queueOpen = !play.queueOpen; if (!play.queueOpen) play.armed = null },
                     rem, if (play.queueOpen) 180f else 0f, rem * 1.55f, rem * 4.4f)
                 // the album view, out of the case in front, over the screen above the bar
-                AnimatedVisibility(opened != null, enter = fadeIn(tween(300, delayMillis = 220)) + scaleIn(tween(500, delayMillis = 220, easing = SHELF_EASE), 0.38f, TransformOrigin(0.5f, 0.45f)),
+                androidx.compose.animation.AnimatedVisibility(opened != null, enter = fadeIn(tween(300, delayMillis = 220)) + scaleIn(tween(500, delayMillis = 220, easing = SHELF_EASE), 0.38f, TransformOrigin(0.5f, 0.45f)),
                     exit = fadeOut(tween(220)) + scaleOut(tween(300), 0.38f, TransformOrigin(0.5f, 0.45f))) {
                     shown?.let { a -> ShelfAlbumView(shelf, play, a, rem, client, openZones, onBack = { shelf.flipped = null }) }
                 }

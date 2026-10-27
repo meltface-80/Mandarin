@@ -116,7 +116,7 @@ internal fun ShelfVolume(play: ShelfPlay, volume: VolumeScale?, rem: Dp, modifie
                 Text(fmtLevel(v.max), color = brass, fontSize = (rem.value * 0.85f).sp)
             }
         } else Box(Modifier.weight(1f))
-        fun step(sign: Int) { if (v.incremental || v.value == null) play.volumeStep(sign, v.step) else show(((level ?: v.value) + sign * v.step).coerceIn(v.min, v.max)) }
+        fun step(sign: Int) { val now = v.value?.let { level ?: it }; if (v.incremental || now == null) play.volumeStep(sign, v.step) else show((now + sign * v.step).coerceIn(v.min, v.max)) }
         VolumeStep(Modifier.parity("shelf.volume-down", Contract.label("shelf.volume-down")).size(rem * 2.75f).clip(CircleShape).clickable { step(-1) }, R.drawable.np_minus, rem)
         VolumeStep(Modifier.parity("shelf.volume-up", Contract.label("shelf.volume-up")).size(rem * 2.75f).clip(CircleShape).clickable { step(1) }, R.drawable.np_plus, rem)
     }

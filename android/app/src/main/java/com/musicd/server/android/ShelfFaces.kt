@@ -23,12 +23,12 @@ import com.musicd.server.client.ShelfPlaying
  * (0 to its width, 0 to its height); the stage (ShelfStage.kt) puts it in place. Nothing here is Compose.
  */
 internal class ShelfFaces(context: Context, private val density: Float) {
-    private fun font(id: Int) = runCatching { ResourcesCompat.getFont(context, id) }.getOrNull() ?: Typeface.DEFAULT
-    private val regular = font(R.font.manrope_regular)
-    private val medium = font(R.font.manrope_medium)
-    private val bold = font(R.font.manrope_bold)
-    private val heavy = font(R.font.manrope_extrabold)
-    private val serif = font(R.font.young_serif)
+    private fun font(context: Context, id: Int) = runCatching { ResourcesCompat.getFont(context, id) }.getOrNull() ?: Typeface.DEFAULT
+    private val regular = font(context, R.font.manrope_regular)
+    private val medium = font(context, R.font.manrope_medium)
+    private val bold = font(context, R.font.manrope_bold)
+    private val heavy = font(context, R.font.manrope_extrabold)
+    private val serif = font(context, R.font.young_serif)
 
     private val fill = Paint(Paint.ANTI_ALIAS_FLAG)
     private val shade = Paint(Paint.ANTI_ALIAS_FLAG)
