@@ -3,6 +3,7 @@ package com.musicd.server.client
 import org.json.JSONArray
 import org.json.JSONObject
 import java.math.BigInteger
+import java.text.CollationKey
 import java.text.Collator
 import java.text.Normalizer
 import java.util.Locale
@@ -97,25 +98,38 @@ object ShelfSort {
 
     private val primary: Collator = Collator.getInstance(Locale.ENGLISH).apply { strength = Collator.PRIMARY }
     private val variant: Collator = Collator.getInstance(Locale.ENGLISH).apply { strength = Collator.TERTIARY }
+    // The patterns made once (item 211): built on each call, for each of a library of thousands of titles, they held the
+    // screen for over ten seconds on a phone when the shelf was put A → Z by album.
+    private val NOT_WORD = Regex("[^\\p{L}\\p{N}]+")
+    private val ARTICLE_LAST = Regex("^(.*),\\s*(the|a|an)$", RegexOption.IGNORE_CASE)
+    private val ARTICLE_FIRST = Regex("^(the|a|an)\\s+", RegexOption.IGNORE_CASE)
 
     /**
      * Two names in a shop's order, as the page's Intl.Collator("en", numeric, base) has them: numbers as numbers ("WARP 61"
      * before "WARP 123", "Label 9" before "Label 10"), case and accents alike.
      */
-    fun natural(a: String, b: String): Int {
-        val x = runs(a); val y = runs(b)
-        for (i in 0 until minOf(x.size, y.size)) {
-            val p = x[i]; val q = y[i]
-            val dp = p[0] in '0'..'9'; val dq = q[0] in '0'..'9'
-            val c = when {
-                dp && dq -> BigInteger(p).compareTo(BigInteger(q))
-                dp -> -1   // a number before a word, as the collator puts digits before letters
-                dq -> 1
-                else -> primary.compare(p, q)
+    fun natural(a: String, b: String): Int = Natural(a).compareTo(Natural(b))
+
+    /**
+     * A name split once for [natural]'s order (item 211: split again at each comparison, a sort of thousands took
+     * seconds on a phone): its runs, numbers as numbers and words as the collator's keys.
+     */
+    class Natural(s: String) : Comparable<Natural> {
+        private val parts: List<Any> = runs(s).map { if (it[0] in '0'..'9') BigInteger(it) else primary.getCollationKey(it) }
+
+        override fun compareTo(other: Natural): Int {
+            for (i in 0 until minOf(parts.size, other.parts.size)) {
+                val p = parts[i]; val q = other.parts[i]
+                val c = when {
+                    p is BigInteger && q is BigInteger -> p.compareTo(q)
+                    p is BigInteger -> -1   // a number before a word, as the collator puts digits before letters
+                    q is BigInteger -> 1
+                    else -> (p as CollationKey).compareTo(q as CollationKey)
+                }
+                if (c != 0) return c
             }
-            if (c != 0) return c
+            return parts.size.compareTo(other.parts.size)
         }
-        return x.size.compareTo(y.size)
     }
 
     private fun runs(s: String): List<String> {
@@ -133,13 +147,13 @@ object ShelfSort {
 
     /** A name folded as the server folds it (Names.Fold, shelforder.js fold): accents and case gone, "&" as "and", anything else a space. */
     fun fold(s: String): String = Normalizer.normalize(s, Normalizer.Form.NFKD).filter { Character.getType(it) != Character.NON_SPACING_MARK.toInt() }.lowercase(Locale.ROOT)
-        .replace("&", " and ").replace(Regex("[^\\p{L}\\p{N}]+"), " ").trim()
+        .replace("&", " and ").replace(NOT_WORD, " ").trim()
 
     /** The name a title is filed under (Names.SortName): "The Wall" and "Wall, The" under "wall". */
     fun titleKey(title: String): String {
         val t = title.trim()
-        val last = Regex("^(.*),\\s*(the|a|an)$", RegexOption.IGNORE_CASE).find(t)
-        return fold(last?.groupValues?.get(1) ?: t.replace(Regex("^(the|a|an)\\s+", RegexOption.IGNORE_CASE), ""))
+        val last = ARTICLE_LAST.find(t)
+        return fold(last?.groupValues?.get(1) ?: t.replace(ARTICLE_FIRST, ""))
     }
 
     /** The letter a folded name is filed under: A–Z, 1–9 or "#". */
@@ -150,30 +164,34 @@ object ShelfSort {
 
     /** The albums by title, A → Z: two of one title in the order given (the artist order). */
     fun byAlbum(list: List<ShelfCase>): List<ShelfCase> =
-        list.mapIndexed { i, a -> Triple(a, i, titleKey(a.title)) }.sortedWith { x, y -> variant.compare(x.third, y.third).takeIf { it != 0 } ?: x.second.compareTo(y.second) }.map { it.first }
+        list.mapIndexed { i, a -> Triple(a, i, variant.getCollationKey(titleKey(a.title))) }.sortedWith { x, y -> x.third.compareTo(y.third).takeIf { it != 0 } ?: x.second.compareTo(y.second) }.map { it.first }
 
     /** [list] filed in the order [by] ([seed] the shuffle's), from the artist order the server sends; a stable sort keeps it within a label or a year. */
     fun filed(lib: ShelfLibrary, list: List<ShelfCase>, by: String, seed: Long): List<ShelfCase> = when (by) {
         "random" -> shuffled(list, seed)
         "album" -> byAlbum(list)
-        "label" -> list.sortedWith { x, y ->
-            if ((x.label == null) != (y.label == null)) (if (x.label == null) 1 else -1)
-            else natural(lib.labelName(x), lib.labelName(y)).takeIf { it != 0 } ?: lastIfNone(x.catno, y.catno).takeIf { it != 0 } ?: natural(x.title, y.title)
-        }
-        "catno" -> list.sortedWith { x, y ->
-            if ((x.catno == null) != (y.catno == null)) (if (x.catno == null) 1 else -1)
-            else natural(x.catno.orEmpty(), y.catno.orEmpty()).takeIf { it != 0 } ?: natural(x.title, y.title)
-        }
+        // each album's names split once, then sorted (item 211)
+        "label" -> list.map { Keyed(it, Natural(lib.labelName(it)), it.catno?.let(::Natural), Natural(it.title)) }.sortedWith { x, y ->
+            if ((x.a.label == null) != (y.a.label == null)) (if (x.a.label == null) 1 else -1)
+            else x.first.compareTo(y.first).takeIf { it != 0 } ?: lastIfNone(x.second, y.second).takeIf { it != 0 } ?: x.title.compareTo(y.title)
+        }.map { it.a }
+        "catno" -> list.map { Keyed(it, Natural(it.catno.orEmpty()), null, Natural(it.title)) }.sortedWith { x, y ->
+            if ((x.a.catno == null) != (y.a.catno == null)) (if (x.a.catno == null) 1 else -1)
+            else x.first.compareTo(y.first).takeIf { it != 0 } ?: x.title.compareTo(y.title)
+        }.map { it.a }
         "year" -> list.sortedWith { x, y -> if ((x.year == null) != (y.year == null)) (if (x.year == null) 1 else -1) else (x.year ?: 0).compareTo(y.year ?: 0) }
         else -> list
     }
 
+    /** An album with its names split for a sort: its label's or catalogue number, its catalogue number, its title. */
+    private class Keyed(val a: ShelfCase, val first: Natural, val second: Natural?, val title: Natural)
+
     /** Two catalogue numbers in order, none after any (the page compares "\uffff" for none, which its collator puts after every letter). */
-    private fun lastIfNone(x: String?, y: String?): Int = when {
+    private fun lastIfNone(x: Natural?, y: Natural?): Int = when {
         x == null && y == null -> 0
         x == null -> 1
         y == null -> -1
-        else -> natural(x, y)
+        else -> x.compareTo(y)
     }
 
     /** The page's shuffle (shelf.js rng, a xorshift from [seed]): the same seed, the same order. */

@@ -5,6 +5,11 @@
 Dev's builds are numbered 1.1.11-tN, the server's image and the test APK alike. The Shelf's merge (item 206) came out
 as 1.9.69-t1 by mistake: Rouen's version, not Mandarin's. Item 207 puts the numbering right, as 1.1.11-t2.
 
+- `211-shelf-album-order-freeze` (item 211): **the Android app's Shelf froze when put A → Z by album**, and Android
+  ended it: for each of the library's titles it made three search patterns afresh, twice over, on the screen's own
+  thread (13,874 albums: over ten seconds). Each pattern is now made once. Each album's names are worked out once
+  per sort instead of at every comparison, so the label and catalogue orders and finding the record that is playing
+  are quicker on a large library too.
 - `210-home-menu-bottom-bar` (item 210): **the menu at Home's top left, and Shelf in the row along the foot**, in
   the Android app and on a phone's or a tablet's page:
   - The side menu opens from a button at the top left of Home, the side it opens from, with the greeting beside

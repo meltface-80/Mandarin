@@ -60,12 +60,15 @@ data class ShelfMore(val artist: String, val albums: List<Triple<Long, String, S
 }
 
 object ShelfPlaying {
+    // Made once (item 211): a pattern built on each call, for each album of a library of thousands, held the screen.
+    private val NOT_WORD = Regex("[^a-z0-9]")
+    private val CREDIT = Regex(" / |/| feat\\.? | featuring | ft\\.? |,| & | \\+ | and ", RegexOption.IGNORE_CASE)
+
     /** A name as the remote compares names: its letters and numbers, lowercase. */
-    fun norm(s: String): String = s.lowercase().replace(Regex("[^a-z0-9]"), "")
+    fun norm(s: String): String = s.lowercase().replace(NOT_WORD, "")
 
     /** The names a credit is made of ("A & B feat. C"), each as [norm] makes it. */
-    fun creditNames(s: String): List<String> =
-        s.split(Regex(" / |/| feat\\.? | featuring | ft\\.? |,| & | \\+ | and ", RegexOption.IGNORE_CASE)).map(::norm).filter { it.isNotEmpty() }
+    fun creditNames(s: String): List<String> = s.split(CREDIT).map(::norm).filter { it.isNotEmpty() }
 
     /**
      * Where the playing record is on [list]: by its album's id ([albumId]) where the server says it; else the album
