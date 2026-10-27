@@ -39,7 +39,7 @@ const BRIDGE = `window.MusicdApp = { opened: [],
 const OPENED = `(async () => { ${KIT}
   const r = await (await fetch("/api/user-playlists/add", { method: "POST", headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ name: "Mine", tracks: [{ album_offset: 0, album_title: "X", album_subtitle: "Y", track_index: 0, title: "T", subtitle: "Y", image_key: null }] }) })).json();
-  $("#tnav-menu").click(); await until(() => shown($("#menu-overlay")));
+  $("#home-menu").click(); await until(() => shown($("#menu-overlay")));
   $('#menu-overlay [data-action="playlists"]').click(); await sleep(400);
   const pageList = /Playlists/.test($("#album-count").textContent) && $("#home-view").classList.contains("hidden");
   if (shown($("#menu-overlay"))) { $("#menu-overlay [data-menu-close]").click(); await sleep(200); }
@@ -54,7 +54,7 @@ const SMART = `(async () => { ${KIT}
   const r = await (await fetch("/api/smart-playlists", { method: "POST", headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ name: "Rocks", view: { sort: "album", dir: "asc" }, mode: "tracks", order: "album" }) })).json();
   const id = r.playlist.id;
-  $("#tnav-menu").click(); await until(() => shown($("#menu-overlay")));
+  $("#home-menu").click(); await until(() => shown($("#menu-overlay")));
   $('#menu-overlay [data-action="smart-playlists"]').click(); await sleep(400);
   const pageList = /Dynamic Playlists/.test($("#album-count").textContent) && $("#home-view").classList.contains("hidden");
   if (shown($("#menu-overlay"))) { $("#menu-overlay [data-menu-close]").click(); await sleep(200); }

@@ -1,13 +1,14 @@
 // @ts-check
 /*
  * touchnav.js — the touch layout's row along the foot of the screen (v0.9.6):
- * Menu, Home, Library, Artists (bug list item 130) and Search under the mini player, on a phone or a
- * tablet in either orientation. A desktop (a mouse) never shows it: the
+ * Home, Library, Artists (bug list item 130), Shelf while it is switched on and Search (item 210) under the
+ * mini player, on a phone or a tablet in either orientation; and Home's own menu button, at its top right
+ * (item 210: it was the row's first). A desktop (a mouse) never shows it: the
  * layout is style.css's "touch layout" section, under the same media query
  * as the touch-sized mini player.
  *
  * Each button works the page's own control, so there is one way to do each
- * thing: the menu is #menu-toggle's, Library is Home's "Library" heading's
+ * thing: the menu is #menu-toggle's, Shelf is the side menu's own, Library is Home's "Library" heading's
  * (the full A–Z wall), Artists is the Artists wall (artists-wall.js), Search is the top bar's glass, and Home is the page's
  * own showHome. What covers the screen (an album's page) closes first, as
  * its Back would.
@@ -83,7 +84,9 @@
     const b = byId(id);
     if (b) b.addEventListener("click", fn);
   }
-  on("tnav-menu", () => { const m = byId("menu-toggle"); if (m) m.click(); });
+  on("home-menu", () => { const m = byId("menu-toggle"); if (m) m.click(); });
+  // The side menu's Shelf, as it opens it (app/menu-drawer.js): a page of its own, its "‹ Remote" back to this one.
+  on("tnav-shelf", () => { const s = document.querySelector('#menu-overlay .menu-item[data-action="shelf"]'); if (s) /** @type {HTMLElement} */ (s).click(); });
   on("tnav-home", () => {
     const already = root.classList.contains("tn-home") && !(modal && !has(modal, "hidden"));
     clearOver();

@@ -158,6 +158,8 @@
     // Shelf is the server's whole library, a page of its own: not offline.
     const shelfItem = overlay.querySelector('.menu-item[data-action="shelf"]');
     if (shelfItem) shelfItem.classList.toggle("hidden", on);
+    const rowShelf = document.getElementById("tnav-shelf");   // the row along the foot's too (item 210)
+    if (rowShelf) rowShelf.classList.toggle("hidden", on);
     item.classList.toggle("is-on", on);
     item.setAttribute("aria-checked", String(on));
     const sub = document.getElementById("offline-sub");

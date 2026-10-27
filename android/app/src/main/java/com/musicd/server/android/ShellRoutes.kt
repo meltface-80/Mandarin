@@ -175,8 +175,8 @@ internal fun toHome(nav: NavHostController) {
 
 /**
  * The row along the foot: every screen over Home closes (however deep: a wall, an album from it, an artist from that;
- * item 63); then Home goes to its top, or the Library wall (in the view kept), the Artists wall (item 130) or the
- * search opens over it.
+ * item 63); then Home goes to its top, or the Library wall (in the view kept), the Artists wall (item 130), the Shelf
+ * (item 210) or the search opens over it.
  */
 internal fun navTap(nav: NavHostController, what: String) {
     AppLog.line("ROW", "button $what")
@@ -186,6 +186,7 @@ internal fun navTap(nav: NavHostController, what: String) {
         "library" -> overHome(nav, ShellRoute.library(NativeShell.libraryView, NativeShell.prefs.orEmpty(), NativeShell.zone))
         "artists" -> overHome(nav, ShellRoute.artists(NativeShell.zone))
         "search" -> { SearchKept.reset(""); overHome(nav, ShellRoute.search("", NativeShell.zone)) }
+        "shelf" -> overHome(nav, ShellRoute.shelf(NativeShell.zone))   // item 210: the row's own, as the side menu's
         "menu" -> { toHome(nav); NativeShell.menuOpen.value = true }
     }
 }

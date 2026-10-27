@@ -5474,6 +5474,10 @@ button.cap-chip:active { transform: scale(.96); }
 /* ---- Home ---------------------------------------------------------- */
 .home-greeting { display: none; }
 [data-palette="hifi"] .home-greeting { display: block; margin: 6px 0 26px; }
+/* Home's head (item 210): the greeting and, in the touch layout, the menu at its right; on a desktop the menu is the top bar's. */
+.home-head { display: flex; align-items: flex-start; gap: 12px; }
+.home-head > .home-greeting { flex: 1 1 auto; min-width: 0; }
+.home-menu { display: none; }
 [data-palette="hifi"] .home-greeting-date {
   font-size: 12px; font-weight: 700; letter-spacing: .18em; text-transform: uppercase; color: var(--accent-text);
 }
@@ -6218,9 +6222,9 @@ html .topbar .icon-btn.labels-sort-btn { width: auto; min-width: 44px; padding: 
 /* ------------------------------------------------------------------ */
 /*  The touch layout (v0.9.6): a phone or a tablet, either way round   */
 /* ------------------------------------------------------------------ */
-/* The menu, Home, the Library, Artists and Search in a row along the foot of the
+/* Home, the Library, Artists, Shelf (while it is on) and Search in a row along the foot of the
    screen (#touch-nav, touchnav.js), the mini player raised above it, and
-   on Home no top bar: the greeting at the top. Search opens the top bar
+   on Home no top bar: the greeting at the top, the menu at its right (item 210). Search opens the top bar
    again with the field across it, and the page moves down under it. The
    scan's progress is a thin brass line along the top edge, on every
    screen. The same test as the touch-sized mini player above; a desktop
@@ -6230,10 +6234,10 @@ html .topbar .icon-btn.labels-sort-btn { width: auto; min-width: 44px; padding: 
 .touch-nav { display: none; }
 @media (hover: none), (pointer: coarse) {
   :root { --tnav-h: 58px; }
-  /* Five equal shares, evenly across (bug list items 130 and 134); the app's
-     row (TouchNav.kt) the same. Offline is said at the top: .offline-toast. */
+  /* Equal shares, evenly across (bug list items 130 and 134): five, or four while Shelf is off or the page offline
+     (item 210); the app's row (TouchNav.kt) the same. Offline is said at the top: .offline-toast. */
   .touch-nav {
-    display: grid; grid-template-columns: repeat(5, 1fr); align-items: center;
+    display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); align-items: center;
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 70;
     height: calc(var(--tnav-h) + env(safe-area-inset-bottom));
     padding: 0 max(10px, env(safe-area-inset-right)) env(safe-area-inset-bottom) max(10px, env(safe-area-inset-left));
@@ -6246,7 +6250,18 @@ html .topbar .icon-btn.labels-sort-btn { width: auto; min-width: 44px; padding: 
     background: none; border: 0; padding: 0; color: var(--text-dim); font: inherit; cursor: pointer;
     -webkit-tap-highlight-color: transparent;
   }
+  .tnav-btn.feature-off { display: none; }
   .tnav-btn svg { width: 26px; height: 26px; }
+  /* The menu at the top right of Home (item 210; it was the row's first button), the greeting beside it. */
+  .home-menu {
+    display: grid; place-items: center; flex: 0 0 auto; width: 44px; height: 44px; margin: 0 -8px 0 auto;
+    background: none; border: 0; border-radius: 50%; padding: 0; color: var(--text-dim); cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .home-menu svg { width: 26px; height: 26px; }
+  .home-menu:active { transform: scale(.94); }
+  /* The search open over Home: the top bar is back with its field, and the menu gives way (the app's Search has none). */
+  .tn-search .home-menu { display: none; }
   .tnav-btn span { font-size: 11px; font-weight: 600; letter-spacing: .02em; }
   .tnav-btn:active { transform: scale(.94); }
   /* Where you are: Home or the Library wall, in the accent. */

@@ -13,9 +13,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -27,7 +30,9 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
@@ -58,7 +63,7 @@ import kotlinx.coroutines.withContext
  * that opens its wall over its tiles scrolling sideways, Smart Picks' cards,
  * the label of the week, the genre cards two to a row, and the app's own
  * two rows (Downloaded albums, Music on device) from the phone; the mini
- * player and the row along the foot. Its rows are kept (HomeKept) and asked
+ * player and the row along the foot. The side menu opens from the top right (item 210: it was the row's first button). Its rows are kept (HomeKept) and asked
  * for again on each visit, and Back from a wall or an album finds it as it was.
  */
 @Composable
@@ -77,6 +82,8 @@ internal fun HomeScreen(prefs: WallPrefs, zoneId: String, client: () -> ServerCl
     // Read again when the app goes offline or comes back (item 109): the phone's answers, or the server's.
     val offline by OfflineNow.kind
     LaunchedEffect(offline) { HomeKept.refresh(scope, context, client(), NativeShell.libraryView) }
+    // Whether the row along the foot offers Shelf (item 210), as the server says it now.
+    LaunchedEffect(offline) { if (offline == null) readSetting(client, "shelf")?.let { NavShelf.on.value = it.optBoolean("enabled") } }
     // A row that failed asked again: at once when the server answers again, else in a while (item 157).
     AskAgain(HomeKept.failed) { HomeKept.refresh(scope, context, client(), NativeShell.libraryView) }
     // Today's album while the app is on screen (item 120: every minute all night too).
@@ -116,7 +123,16 @@ internal fun HomeScreen(prefs: WallPrefs, zoneId: String, client: () -> ServerCl
         LazyColumn(Modifier.fillMaxSize(), state = HomeKept.list, contentPadding = PaddingValues(top = 14.dp, bottom = 164.dp)) {
             // The notices (the server's, the update offer; items 112 and 111), at Home's head as on the page's.
             item("notices") { NoticeBanners(prefs.menu, client) { what, arg -> handOn(what, arg) } }
-            if (prefs.greeting) item("greeting") { Greeting() }
+            // The greeting, and the side menu at the top right whether it is on or not (item 210).
+            item("greeting") {
+                Row(Modifier.fillMaxWidth().padding(end = 6.dp)) {
+                    if (prefs.greeting) Box(Modifier.weight(1f)) { Greeting() } else Spacer(Modifier.weight(1f))
+                    Box(Modifier.parity("home.menu", Contract.label("home.menu")).size(44.dp).clip(CircleShape).clickable { NativeShell.menuOpen.value = true },
+                        contentAlignment = Alignment.Center) {
+                        Icon(painterResource(R.drawable.tn_menu), contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(26.dp))
+                    }
+                }
+            }
             // The strip under the greeting: Random Album, then today's album; gone with both.
             val aotd = HomeKept.aotd
             if (prefs.random || aotd != null) item("today") {

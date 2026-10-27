@@ -160,6 +160,7 @@ private fun MenuDrawer(zoom: Double, client: () -> ServerClient?, scope: Corouti
         }
         if (shown != items) AppLog.line("MENU", "its rows changed as the server answered: $items, then $shown", anomaly = kept != null)
         sub = Menu.rescanSub(status ?: Menu.keptStatus(kept), System.currentTimeMillis()); items = shown
+        NavShelf.on.value = shown.shelf   // the row along the foot's Shelf too (item 210)
         Store.setMenuKept(context, Menu.keep(shown, status ?: Menu.keptStatus(kept)))
     }
     LaunchedEffect(power) {
