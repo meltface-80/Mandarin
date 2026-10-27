@@ -137,13 +137,13 @@
       }
     },
     "nav": {
-      "page": "the touch layout's row along the foot of the screen (#touch-nav, touchnav.js): Menu, Home, Library, Artists and Search under the mini player, evenly across it, a phone held upright (offline is said at the top of the screen: offline-sign)",
+      "page": "the touch layout's row along the foot of the screen (#touch-nav, touchnav.js): Home, Library, Artists, Shelf while it is switched on, and Search under the mini player, evenly across it whether four or five (item 210: Menu went to Home's top left), a phone held upright (offline is said at the top of the screen: offline-sign)",
       "native": ["android/app/src/main/java/com/musicd/server/android/TouchNav.kt"],
       "items": {
-        "menu": { "kind": "action", "label": "Menu" },
         "home": { "kind": "action", "label": "Home" },
         "library": { "kind": "action", "label": "Library" },
         "artists": { "kind": "action", "label": "Artists" },
+        "shelf": { "kind": "action", "label": "Shelf", "when": "Shelf is switched on (Settings → Setup → Shelf), and not offline" },
         "search": { "kind": "action", "label": "Search" }
       }
     },
@@ -279,7 +279,7 @@
       }
     },
     "home": {
-      "page": "Home (#home-view; the top bar is hidden in the touch layout, the row along the foot has its Menu and Search): the greeting, the strip under it (Random Album, Album of the day), then the rows in the owner's order, each a heading that opens its wall over its albums, Smart Picks' cards, the label of the week, the genre cards; in the Android app, Downloaded albums and Music on device too; the mini player and the row along the foot are their own screens; a phone held upright",
+      "page": "Home (#home-view; the top bar is hidden in the touch layout: the menu at Home's top left, where the side menu opens (item 210), the row along the foot has its Search): the menu and the greeting beside it, the strip under it (Random Album, Album of the day), then the rows in the owner's order, each a heading that opens its wall over its albums, Smart Picks' cards, the label of the week, the genre cards; in the Android app, Downloaded albums and Music on device too; the mini player and the row along the foot are their own screens; a phone held upright",
       "native": ["android/app/src/main/java/com/musicd/server/android/HomeScreen.kt", "android/app/src/main/java/com/musicd/server/android/HomeRows.kt", "android/app/src/main/java/com/musicd/server/android/HomeTiles.kt", "android/app/src/main/java/com/musicd/server/android/AlbumTile.kt", "android/app/src/main/java/com/musicd/server/android/NoticeBanners.kt"],
       "preview": false,
       "items": {
@@ -289,6 +289,7 @@
         "update-now": { "kind": "action", "label": ["Update", "Roll back"], "when": "an update offered" },
         "update-later": { "kind": "action", "label": "Dismiss", "when": "an update offered" },
         "update-notes": { "kind": "shows", "when": "the offered update's notes" },
+        "menu": { "kind": "action", "label": "Menu" },
         "greeting-date": { "kind": "shows", "when": "the greeting is on (Settings → Home Screen)" },
         "greeting": { "kind": "shows", "when": "the greeting is on" },
         "random-album": { "kind": "action", "label": "Random Album", "when": "Random Album is on (Settings → Home Screen)" },

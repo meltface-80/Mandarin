@@ -68,7 +68,9 @@ const MENU = `(async () => { ${KIT}
     .map(b => b.dataset.action || b.dataset.target);
 })()`;
 const ITEM = (key) => `(async () => { ${KIT}
-  const open = $("#tnav-menu") && shown($("#tnav-menu")) ? $("#tnav-menu") : $("#menu-toggle");
+  // The menu is Home's in the touch layout (item 210), the top bar's on a desktop: Home first where it is.
+  if ($("#tnav-home") && shown($("#tnav-home")) && !shown($("#home-menu"))) { $("#tnav-home").click(); await sleep(300); }
+  const open = $("#home-menu") && shown($("#home-menu")) ? $("#home-menu") : $("#menu-toggle");
   open.click(); await sleep(450);
   const b = [...document.querySelectorAll(".menu-item")].find(x => (x.dataset.action || x.dataset.target) === ${JSON.stringify(key)});
   b.click(); await sleep(1200);

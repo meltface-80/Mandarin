@@ -417,13 +417,13 @@ const OPEN_SMART_PLAYLIST = `(async () => {
   return "open";
 })()`;
 
-/* The side menu: the row's Menu tapped on Home, the library's age under Rescan. */
+/* The side menu: Home's menu tapped (item 210: it was the row's), the library's age under Rescan. */
 const OPEN_MENU = `(async () => {
   const sleep = ms => new Promise(r => setTimeout(r, ms));
   const until = async (fn, ms = 30000) => { const t0 = Date.now(); while (!fn()) { if (Date.now() - t0 > ms) return false; await sleep(50); } return true; };
   if (!(await until(() => document.querySelectorAll("#home-library .album").length > 1 && /Kitchen/.test((document.getElementById("mt-kicker") || {}).textContent || "")))) return "no Home";
   await sleep(400);
-  document.getElementById("tnav-menu").click();
+  document.getElementById("home-menu").click();
   if (!(await until(() => !document.getElementById("menu-overlay").classList.contains("hidden") && /albums/.test(document.getElementById("rescan-sub").textContent)))) return "no menu";
   await sleep(600);
   return "open";
