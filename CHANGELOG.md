@@ -10,6 +10,12 @@ as 1.9.69-t1 by mistake: Rouen's version, not Mandarin's. Item 207 puts the numb
   thread (13,874 albums: over ten seconds). Each pattern is now made once. Each album's names are worked out once
   per sort instead of at every comparison, so the label and catalogue orders and finding the record that is playing
   are quicker on a large library too.
+- `210-home-menu-bottom-bar` (item 210): **the menu at Home's top left, and Shelf in the row along the foot**, in
+  the Android app and on a phone's or a tablet's page:
+  - The side menu opens from a button at the top left of Home, the side it opens from, with the greeting beside
+    it (or alone there with the greeting off); it was the row's first button.
+  - The row along the foot is Home, Library, Artists, Shelf and Search, evenly across. Shelf is there only while it
+    is switched on (Settings → Setup → Shelf), and not offline; without it the other four share the row evenly.
 - `209-shelf-tiles-tab-highlight` (item 209): the Shelf's choices, after a look at them on a phone:
   - **Genres and Formats** tiles are the size of the Types and Years tiles, three to a row on a phone: a genre's
     name and its count, without the fan of covers. Labels and Favourites keep theirs.

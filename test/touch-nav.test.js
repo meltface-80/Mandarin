@@ -3,19 +3,20 @@
  * touch-nav.test.js — the touch layout (v0.9.6; public/touchnav.js, the
  * "touch layout" section of style.css), in a browser at a phone's and a
  * tablet's sizes, both ways round, and a desktop's:
- *   - along the foot: Menu, Home, Library, Artists and Search, in that order, the
- *     mini player above them; on Home no top bar, the greeting at the top;
+ *   - along the foot: Home, Library, Artists, Shelf while it is switched on, and Search, in
+ *     that order, the mini player above them; on Home no top bar, the greeting at the top
+ *     and the menu at the top left, where the side menu opens (item 210: it was the row's first);
  *   - Search opens the top bar again, the field across it, and the page
  *     moves down under it; the results are not under it;
  *   - Library opens the Library wall; Home, from an album's page, closes it
- *     and shows Home; Menu opens the side menu;
+ *     and shows Home; Home's menu opens the side menu;
  *   - the grid screens have no strip: their buttons float where they were,
  *     their title is the page's heading; on the Library, Focus and Sort are
  *     up in ‹'s line on the right, its glass gone, and Search opens its
  *     filter with the strip back under the field; the Labels list the same
  *     (#–Z alone on the right, Search finds a label); the Artists wall the
  *     same (Sort alone on the right, Search finds an artist), Artists lit;
- *   - the five buttons evenly across; Offline is a pill at the top of the
+ *   - the four buttons evenly across, or five with Shelf; Offline is a pill at the top of the
  *     screen, in the middle, over everything, for as long as it lasts (bug
  *     list item 134), and the row doesn't move when it comes; the scan's
  *     progress a line along the top edge;
@@ -55,8 +56,18 @@ const DRIVER = `(async () => {
   out.menuInBar = shown($("menu-toggle"));
   if (!out.nav) return out;   // a desktop: nothing more to see
 
-  // Home: the row in order, the mini player above it, no top bar.
-  out.order = [...nav.querySelectorAll(".tnav-btn")].map(b => b.textContent.trim());
+  // Home: the row in order, the mini player above it, no top bar; the menu at the top left, the greeting after it.
+  const buttons = () => [...nav.querySelectorAll(".tnav-btn")].filter(shown);
+  out.order = buttons().map(b => b.textContent.trim());
+  out.homeMenu = box($("home-menu"));
+  // Shelf switched on (Settings → Setup → Shelf): it joins the row, before Search, the five evenly across; then off again.
+  const shelfSwitch = $("shelf-toggle");
+  shelfSwitch.checked = true; shelfSwitch.dispatchEvent(new Event("change"));
+  await until(() => shown($("tnav-shelf")), "the row's Shelf");
+  out.order5 = buttons().map(b => b.textContent.trim());
+  out.row5 = buttons().map(b => { const r = b.getBoundingClientRect(); return [r.left, r.width]; });
+  shelfSwitch.checked = false; shelfSwitch.dispatchEvent(new Event("change"));
+  await until(() => !shown($("tnav-shelf")), "the row without Shelf");
   out.navBox = box(nav);
   out.mini = box($("mini-transport"));
   out.topbarRow = shown(document.querySelector(".topbar-row"));
@@ -65,7 +76,7 @@ const DRIVER = `(async () => {
   out.libraryColour = getComputedStyle($("tnav-library")).color;
 
   // The row evenly across. Offline: the pill at the top, over everything. The scan: a line along the top.
-  out.row = [...nav.querySelectorAll(".tnav-btn")].map(b => { const r = b.getBoundingClientRect(); return [r.left, r.width]; });
+  out.row = buttons().map(b => { const r = b.getBoundingClientRect(); return [r.left, r.width]; });
   out.offlineHidden = !shown($("offline-toast"));
   const rowBefore = [...nav.querySelectorAll(".tnav-btn")].map(box);
   $("offline-btn").classList.remove("hidden"); await frame();
@@ -175,8 +186,8 @@ const DRIVER = `(async () => {
   $("tnav-home").click();
   await until(() => $("album-modal").classList.contains("hidden") && html.classList.contains("tn-home"), "Home, the album's page closed");
 
-  // Menu: the side menu.
-  $("tnav-menu").click();
+  // Home's menu: the side menu.
+  $("home-menu").click();
   out.menu = !!(await until(() => { const m = document.getElementById("menu-overlay"); return m && !m.classList.contains("hidden") && shown(m); }, "the side menu"));
   document.querySelector("#menu-overlay [data-close], #menu-overlay .menu-backdrop")?.click();
 
@@ -187,7 +198,7 @@ const DRIVER = `(async () => {
   return out;
 })()`;
 
-test("the touch layout: Menu, Home, Library, Artists and Search along the foot on a phone and a tablet; a desktop as it was", { skip, timeout: 240000 }, async () => {
+test("the touch layout: Home, Library, Artists, Shelf when on and Search along the foot, the menu at Home's top left, on a phone and a tablet; a desktop as it was", { skip, timeout: 240000 }, async () => {
   const lib = makeLibrary();
   const { createServer } = require("./server");
   const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false, identify: false });
@@ -210,16 +221,21 @@ test("the touch layout: Menu, Home, Library, Artists and Search along the foot o
         continue;
       }
       assert.equal(r.nav, true, size + ": the row is shown");
-      assert.equal(r.menuInBar, false, size + ": the menu is in the row, not the top bar");
-      assert.deepEqual(r.order, ["Menu", "Home", "Library", "Artists", "Search"], size);
+      assert.equal(r.menuInBar, false, size + ": the menu is Home's, not the top bar's");
+      assert.deepEqual(r.order, ["Home", "Library", "Artists", "Search"], size + ": Shelf off, four");
+      assert.deepEqual(r.order5, ["Home", "Library", "Artists", "Shelf", "Search"], size + ": Shelf on, before Search");
+      assert.ok(r.homeMenu.l >= 0 && r.homeMenu.l <= 24 && r.homeMenu.t < 60 && r.homeMenu.w >= 40, `${size}: the menu at Home's top left, where the side menu opens (${JSON.stringify(r.homeMenu)})`);
       assert.ok(r.navBox.b === h && r.navBox.l === 0 && r.navBox.r === w, `${size}: along the foot, edge to edge (${JSON.stringify(r.navBox)})`);
       assert.ok(r.mini.b <= r.navBox.t, `${size}: the mini player above the row (${r.mini.b} over ${r.navBox.t})`);
       assert.equal(r.topbarRow, false, size + ": on Home, no top bar");
       assert.ok(r.greeting.t < 40, `${size}: the greeting at the top (${r.greeting.t})`);
       assert.ok(r.homeOn && r.homeOn !== r.libraryColour, size + ": Home lit on Home");
       assert.equal(r.offlineHidden, true, size + ": no Offline sign while online");
-      const widths = r.row.map(x => x[1]), steps = r.row.slice(1).map((x, i) => x[0] - r.row[i][0]);
-      assert.ok(Math.max(...widths) - Math.min(...widths) < 1 && Math.max(...steps) - Math.min(...steps) < 1, `${size}: the five buttons evenly across (${JSON.stringify(r.row)})`);
+      for (const [row, n] of [[r.row, "four"], [r.row5, "five"]]) {
+        const widths = row.map(x => x[1]), steps = row.slice(1).map((x, i) => x[0] - row[i][0]);
+        assert.ok(Math.max(...widths) - Math.min(...widths) < 1 && Math.max(...steps) - Math.min(...steps) < 1 && Math.abs(row[0][0] + widths.reduce((a, x) => a + x, 0) - (w - row[0][0])) <= 2,
+          `${size}: the ${n} buttons evenly across the row (${JSON.stringify(row)})`);
+      }
       assert.ok(r.offline.t <= 20 && Math.abs((r.offline.l + r.offline.r) / 2 - w / 2) <= 1 && r.offline.h <= 40, `${size}: Offline a pill at the top, in the middle (${JSON.stringify(r.offline)})`);
       assert.equal(r.offlineOnTop, true, size + ": the pill over what is under it");
       assert.equal(r.rowStill, true, size + ": the buttons don't move when Offline comes");
@@ -265,7 +281,7 @@ test("the touch layout: Menu, Home, Library, Artists and Search along the foot o
         `${size}: Sort on the right, in ‹'s line (${JSON.stringify([r.artistsBack, r.artistsSort])})`);
       assert.ok(!clear(r.artistsSearchStrip), size + ": Search finds an artist, the strip back under the field");
       assert.ok(r.navOverAlbum, size + ": the row over an album's page, Home tappable there");
-      assert.equal(r.menu, true, size + ": Menu opens the side menu");
+      assert.equal(r.menu, true, size + ": Home's menu opens the side menu");
       assert.equal(r.npNav, false, size + ": Now playing has no row");
     }
   } finally { await srv.stop(); }

@@ -35,7 +35,7 @@ public sealed class OfflineSwitchTests
           const sleep = ms => new Promise(r => setTimeout(r, ms));
           const until = async (fn, ms = 15000) => { const t0 = Date.now(); while (!fn()) { if (Date.now() - t0 > ms) throw new Error("timed out"); await sleep(50); } };
           await until(() => document.querySelector("#home-random .album, #home-today .album"));
-          document.getElementById("tnav-menu").click();
+          document.getElementById("home-menu").click();   // Home's menu, at its top right (item 210)
           const item = document.getElementById("menu-item-offline");
           await until(() => !document.getElementById("menu-overlay").classList.contains("hidden") && !item.classList.contains("hidden"));
           const before = item.classList.contains("is-on");

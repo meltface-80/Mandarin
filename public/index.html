@@ -306,10 +306,19 @@
     <!-- Home landing: sections of the library. The album wall (#album-grid)
          is one destination, reached from here or the side menu. -->
     <section id="home-view" class="home-view hidden" aria-label="Home">
-      <!-- Good morning / afternoon / evening (Late-Night Hi-Fi only; app.js keeps it current). -->
-      <div class="home-greeting" id="home-greeting" aria-live="off">
-        <div class="home-greeting-date" id="home-greeting-date" data-parity="home.greeting-date search.greeting-date"></div>
-        <h1 class="home-greeting-text" id="home-greeting-text" data-parity="home.greeting search.greeting"></h1>
+      <!-- Home's head (item 210): the menu at the top left in the touch layout, where the side menu opens (a desktop
+           keeps the top bar's), the greeting after it. Good morning / afternoon / evening is Late-Night Hi-Fi only;
+           app.js keeps it current. -->
+      <div class="home-head">
+        <button id="home-menu" class="home-menu" type="button" data-parity="home.menu" aria-label="Menu">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+            <line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/>
+          </svg>
+        </button>
+        <div class="home-greeting" id="home-greeting" aria-live="off">
+          <div class="home-greeting-date" id="home-greeting-date" data-parity="home.greeting-date search.greeting-date"></div>
+          <h1 class="home-greeting-text" id="home-greeting-text" data-parity="home.greeting search.greeting"></h1>
+        </div>
       </div>
       <div id="home-sections">
         <!-- Random Album and Album of the day, under the greeting with no heading
@@ -2117,16 +2126,10 @@
   </div>
 
   <!-- The touch layout's row along the foot of the screen (v0.9.6,
-       touchnav.js): the menu, Home, the Library, Artists and Search, under the mini
-       player, on a phone or a tablet. A desktop never shows it (style.css).
-       Each button works the page's own control; the five evenly across. -->
+       touchnav.js): Home, the Library, Artists, Shelf while it is switched on, and Search, under the mini
+       player, on a phone or a tablet (item 210: the menu went to Home's top left). A desktop never shows it
+       (style.css). Each button works the page's own control; the four or five evenly across. -->
   <nav id="touch-nav" class="touch-nav" aria-label="Main">
-    <button id="tnav-menu" class="tnav-btn" type="button" data-parity="nav.menu" aria-label="Menu">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
-        <line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/>
-      </svg>
-      <span>Menu</span>
-    </button>
     <button id="tnav-home" class="tnav-btn" type="button" data-parity="nav.home" aria-label="Home">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <path d="M3.5 10.5 12 3.5l8.5 7"/><path d="M5.5 9v11h4.5v-6h4v6h4.5V9"/>
@@ -2144,6 +2147,12 @@
         <circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.9 3.1-7 7-7s7 3.1 7 7"/>
       </svg>
       <span>Artists</span>
+    </button>
+    <button id="tnav-shelf" class="tnav-btn feature-off" type="button" data-parity="nav.shelf" aria-label="Shelf">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+        <path d="M4 5v13M7.5 5v13M15 5v13M18.5 5v13"/><rect x="9.5" y="4" width="4" height="15" rx=".8"/><path d="M2 21h20"/>
+      </svg>
+      <span>Shelf</span>
     </button>
     <button id="tnav-search" class="tnav-btn" type="button" data-parity="nav.search" aria-label="Search">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
