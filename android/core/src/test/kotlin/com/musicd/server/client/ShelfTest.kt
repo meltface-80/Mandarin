@@ -46,8 +46,9 @@ class ShelfTest {
         assertEquals(listOf("9 Records", "10 Records", "Ácid 2", "acid 10", "Label 9", "label 9b", "Label 10", "warp 61", "WARP 123"), labels.sortedWith(ShelfSort::natural))
         val c = ShelfChoices()
         assertEquals(listOf("The Wall", "Abbey Road", "Kind of Blue", "Discovery (Deluxe Edition)", "Best Of", "an Album"), titles(c.list(lib)))
-        // By album: a leading The, A or An doesn't count.
-        assertEquals(listOf("Abbey Road", "an Album", "Best Of", "Discovery (Deluxe Edition)", "Kind of Blue", "The Wall"), titles(ShelfSort.byAlbum(lib.albums)))
+        // Rouen's orders (item 213: Mandarin's A → Z by album gone); a device that kept it opens by artist.
+        assertEquals(listOf("artist", "label", "catno", "year", "random"), ShelfSort.ORDERS.map { it.first })
+        assertEquals("artist", ShelfChoices(keptOrder = "album").order())
         c.toggle("order", "label")
         // Each label together in catalogue order; the unlabelled last, those with a number first (the page's own order).
         assertEquals(listOf("Abbey Road", "Discovery (Deluxe Edition)", "Kind of Blue", "an Album", "Best Of", "The Wall"), titles(c.list(lib)))
@@ -83,7 +84,7 @@ class ShelfTest {
         // Undo takes back the last that narrowed; Reset everything, the artist order kept again where another was chosen.
         c.undo()
         assertEquals(2, c.list(lib).size)
-        c.toggle("order", "album")
+        c.toggle("order", "year")
         assertEquals("artist", c.clearAll())
         assertEquals(6, c.list(lib).size)
         assertEquals(Triple("The whole library · ", "6", " albums"), c.sum(lib, 6, ""))
@@ -99,6 +100,30 @@ class ShelfTest {
         c.carry(fewer)
         assertEquals(0, c.count("label"))
         assertEquals(1, c.count("type"))
+    }
+
+    @Test fun `the genres in the order chosen above them, #N by default, kept per device (item 213)`() {
+        // the albums' genres are places in this list: Rock and Jazz where they were, two more after them
+        val three = lib.copy(genres = listOf(ShelfName("Rock", 3), ShelfName("Jazz", 2), ShelfName("blues", 1), ShelfName("Zydeco", 1)))
+        val c = ShelfChoices()
+        assertEquals(listOf("count" to "#N", "az" to "A → Z", "za" to "Z → A"), ShelfChoices.GENRE_SORTS.map { it.first to it.second })
+        assertEquals(listOf("Most albums first", "A to Z", "Z to A"), ShelfChoices.GENRE_SORTS.map { it.third })
+        assertEquals("count", c.genreSort)
+        // #N: as the server sends them, the most albums first; A → Z with case aside
+        assertEquals(listOf("Rock", "Jazz", "blues", "Zydeco"), c.tiles(three, "genre").map { it.name })
+        assertEquals("az", c.sortGenres("az"))
+        assertEquals(listOf("blues", "Jazz", "Rock", "Zydeco"), c.tiles(three, "genre").map { it.name })
+        assertEquals("za", c.sortGenres("za"))
+        assertEquals(listOf("Zydeco", "Rock", "Jazz", "blues"), c.tiles(three, "genre").map { it.name })
+        assertEquals(null, c.sortGenres("za"))   // the same again: nothing to keep
+        assertEquals(null, c.sortGenres("nonsense"))
+        // Each tile still its own genre: chosen by name, its own count.
+        c.toggle("genre", "Jazz")
+        assertEquals(listOf(false, false, true, false), c.tiles(three, "genre").map { it.chosen })
+        assertEquals(listOf("Kind of Blue", "Discovery (Deluxe Edition)"), titles(c.list(three)))
+        // Kept on this device: the next Shelf opens in it; one unknown, #N.
+        assertEquals(listOf("blues", "Jazz", "Rock", "Zydeco"), ShelfChoices(keptGenreSort = "az").tiles(three, "genre").map { it.name })
+        assertEquals("count", ShelfChoices(keptGenreSort = "sideways").genreSort)
     }
 
     @Test fun `the tiles and what the tabs say`() {

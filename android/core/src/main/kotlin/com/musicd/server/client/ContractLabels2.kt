@@ -280,6 +280,7 @@ internal object ContractLabels2 {
         "shelf-choices.tab-favourite" to listOf("Favourites", "Favourites {count}"),
         "shelf-choices.tab-order" to listOf("Order", "Order {count}"),
         "shelf-choices.clear" to listOf("Clear all"),
+        "shelf-choices.genre-sort" to listOf("Most albums first", "A to Z", "Z to A"),
         "shelf-choices.genre" to listOf("{genre}"),
         "shelf-choices.letter" to listOf("Artists under {letter}"),
         "shelf-choices.decade" to listOf("The {decade}s", "Albums with no year"),

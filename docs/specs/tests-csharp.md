@@ -22,7 +22,7 @@ or the page does changes. The page itself stays HTML, CSS and JavaScript.
   | `test/score.js` | `Score` (`mandarin-server score`) |
   | `public/srp.js` in Node | `Srp` (the device's half), held to `test/srp-vector.json` |
 
-- The page's own scripts (`srp.js`, and later `biquad.js`, `sharecard.js`, `shelforder.js`) are
+- The page's own scripts (`srp.js`, and later `biquad.js`, `sharecard.js`) are
   tested in headless Chromium, the browser they are written for, not in a JavaScript engine of C#'s.
 - CI runs both suites while the move goes on: each test job runs its third of the Node files, then
   its third of the C# classes (`.github/csharp-tests.sh k/n`). A C# test that fails runs once more on

@@ -1,5 +1,6 @@
 package com.musicd.server.client
 
+import java.text.Collator
 import java.text.NumberFormat
 import java.util.Locale
 
@@ -22,11 +23,13 @@ data class ShelfTile(val id: String, val name: String, val count: Int?, val chos
 data class ShelfChip(val cat: String, val id: String, val text: String, val artists: Boolean)
 
 /** The choices made on the Shelf, and what they leave of a library. */
-class ShelfChoices(keptOrder: String? = null, var seed: Long = 1) {
+class ShelfChoices(keptOrder: String? = null, var seed: Long = 1, keptGenreSort: String? = null) {
     private val sel: Map<String, LinkedHashSet<String>> = (NARROWING + "order").associateWith { LinkedHashSet() }
     private val chosen = ArrayList<Pair<String, String>>()
     /** The tab open on the choices. */
     var tab: String = "genre"
+    /** The genres' order on their tab (item 213, as Rouen's v1.9.70-t5): "count" (#N, the default), "az" or "za"; kept per device. */
+    var genreSort: String = keptGenreSort?.takeIf { k -> GENRE_SORTS.any { it.first == k } } ?: "count"; private set
 
     init {
         // The order kept on this device (the page's rra-shelf-order): not the artist order (the default), nor random (a shuffle is for now).
@@ -112,7 +115,6 @@ class ShelfChoices(keptOrder: String? = null, var seed: Long = 1) {
         val key: (ShelfCase) -> String = when (by) {
             "label" -> { a -> lib.labelName(a) }
             "year" -> { a -> a.year?.let { decadeOf(a) + "s" }.orEmpty() }
-            "album" -> { a -> ShelfSort.bucket(ShelfSort.titleKey(a.title)) }
             else -> { a -> a.bucket }
         }
         return list.mapIndexed { i, a -> if (i == 0 || key(list[i - 1]) != key(a)) key(a) else "" }
@@ -132,7 +134,7 @@ class ShelfChoices(keptOrder: String? = null, var seed: Long = 1) {
         val counts = counts(lib, tab)
         fun tile(id: String, name: String, said: String, fan: List<String> = emptyList()) = ShelfTile(id, name, counts[id] ?: 0, isChosen(tab, id), said, fan = fan)
         return when (tab) {
-            "genre" -> lib.genres.map { tile(it.name, it.name, it.name) }
+            "genre" -> genreOrder(lib).map { tile(it.name, it.name, it.name) }
             "artist" -> LETTERS.map { l -> tile(l, l, "Artists under " + if (l == "#") "#: names starting with 0, or with no letter A to Z" else l) }
             "year" -> decades(lib).let { ds -> if (ds.isEmpty() || ds[0] == "none") emptyList() else ds.map { d ->
                 tile(d, if (d == "none") "Undated" else d + "s", if (d == "none") "Albums with no year" else "The ${d}s") } }
@@ -142,6 +144,20 @@ class ShelfChoices(keptOrder: String? = null, var seed: Long = 1) {
             "favourite" -> if (lib.albums.none { it.favourite }) emptyList() else listOf(tile(FAVOURITE, "Favourites", "Favourites", favouritesFan(lib)))
             else -> ShelfSort.ORDERS.map { (id, name, note) -> ShelfTile(id, name, null, order() == id, name, note) }
         }
+    }
+
+    /** The genres in the order chosen: as the server sends them (the most albums first), or by name either way, case and accents aside (the page's localeCompare, base). */
+    private fun genreOrder(lib: ShelfLibrary): List<ShelfName> = when (genreSort) {
+        "az" -> lib.genres.sortedWith { x, y -> BY_NAME.compare(x.name, y.name) }
+        "za" -> lib.genres.sortedWith { x, y -> BY_NAME.compare(y.name, x.name) }
+        else -> lib.genres
+    }
+
+    /** The genres put in order [id] (#N, A → Z or Z → A): the order to keep on this device, or null when it is no change. */
+    fun sortGenres(id: String): String? {
+        if (id == genreSort || GENRE_SORTS.none { it.first == id }) return null
+        genreSort = id
+        return id
     }
 
     /** What a tab with no tiles says instead. */
@@ -262,6 +278,9 @@ class ShelfChoices(keptOrder: String? = null, var seed: Long = 1) {
     }
 
     companion object {
+        /** The genres' orders (item 213): each with its button's words and what it is called aloud. */
+        val GENRE_SORTS = listOf(Triple("count", "#N", "Most albums first"), Triple("az", "A → Z", "A to Z"), Triple("za", "Z → A", "Z to A"))
+        private val BY_NAME: Collator = Collator.getInstance(Locale.ENGLISH).apply { strength = Collator.PRIMARY }
         /** The kinds of choice that narrow the shelf (the order only files it). */
         val NARROWING = listOf("genre", "artist", "year", "label", "type", "format", "favourite")
         /** The tabs, in the page's order, with their names: two rows of four (item 208). */

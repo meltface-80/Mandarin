@@ -32,6 +32,10 @@
 
 .tiles-wrap { flex: 1 1 auto; min-height: 0; overflow-y: auto; margin-inline: -.6rem; padding: .5rem .6rem calc(1.3rem + env(safe-area-inset-bottom)); scrollbar-width: thin; }
 .tiles { display: grid; gap: .6rem; grid-template-columns: repeat(var(--cols, 3), minmax(0, 1fr)); }
+/* The Genres tab's order (item 213, as Rouen's v1.9.70-t5): #N, A → Z, Z → A, across the top of the tiles. */
+.g-sorts { grid-column: 1 / -1; display: flex; gap: .4rem; margin-bottom: .2rem; }
+.g-sort { height: 2.2rem; padding: 0 .95rem; border-radius: 999px; border: 1px solid var(--accent-dim); color: var(--text); font-weight: 700; font-size: .82rem; }
+.g-sort[aria-pressed="true"] { background: var(--accent); border-color: transparent; color: var(--on-accent); }
 .tiles.artist { --cols: 6; gap: .5rem; }
 .tiles.order { --cols: 1; }
 /* genres and formats the size of a decade or a kind (item 209); the one Favourites tile with a fan of covers, as a label's */

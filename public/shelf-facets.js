@@ -5,7 +5,9 @@
  * (shelf-pick.js): each album is under one Format tile, as the server names it
  * ("16/44.1", "24/96 Multichannel", "DSD64 2CH", "MP3"; ShelfFormats.cs), the
  * tiles in the server's order; and one Favourites tile, a fan of their covers,
- * for the albums hearted.
+ * for the albums hearted. And the Genres tab's own order (item 213, the
+ * owner, as Rouen's v1.9.70-t5): #N (the most albums first, as the server
+ * sends them, the default), A → Z or Z → A, kept per device.
  * Copyright (c) 2026 Lewis Menzies (Music Duck / MusicD)
  * Released under the MIT License. See the LICENSE file for details.
  *
@@ -18,13 +20,14 @@
  *   facets.counts(tab, albums, passes), facets.labelOf(cat, id), facets.note(tab, n)
  *   facets.have(cat)                the ids the library has now, to let go of one that has gone
  *   facets.fanOf(name, keys)        three covers for a tile, spread through its albums (a genre's and a label's too)
+ *   facets.genreOrder(genres), facets.genreSorts(), facets.sortGenres(id)   the genres' order, its buttons, one tapped
  */
 (() => {
   "use strict";
 
   /** @param {any} h */
   function create(h) {
-    const { esc, imageUrl, hash, TICK } = h;
+    const { esc, imageUrl, hash, TICK, storeGet, storeSet } = h;
     /** @type {string[]} */
     let formats = [];         // the Format tiles' names, in their order
     /** @type {string[]} */
@@ -87,10 +90,24 @@
     const note = (tab, n) => (tab === "favourite" ? (n ? "Only your favourites" : "Tap to show only the albums you have hearted.")
       : n ? `${n} format${n === 1 ? "" : "s"} chosen` : "Tap formats. Choose as many as you like.");
 
+    const GENRE_SORT_KEY = "rra-shelf-genre-sort";
+    const GENRE_SORTS = [["count", "#N", "Most albums first"], ["az", "A → Z", "A to Z"], ["za", "Z → A", "Z to A"]];
+    let genreSort = GENRE_SORTS.some(([id]) => id === storeGet(GENRE_SORT_KEY)) ? storeGet(GENRE_SORT_KEY) : "count";
+    /** The genres' places in the order chosen. @param {{ name: string }[]} genres */
+    function genreOrder(genres) {
+      const at = genres.map((g, i) => i);
+      if (genreSort !== "count") at.sort((x, y) => genres[x].name.localeCompare(genres[y].name, undefined, { sensitivity: "base" }) * (genreSort === "za" ? -1 : 1));
+      return at;
+    }
+    const genreSorts = () => `<div class="g-sorts" role="group" aria-label="Sort the genres">${GENRE_SORTS.map(([id, name, said]) =>
+      `<button class="g-sort" type="button" data-sort="${id}" aria-pressed="${genreSort === id}" aria-label="${said}" data-parity="shelf-choices.genre-sort">${name}</button>`).join("")}</div>`;
+    /** A sort tapped: the genres in its order, and kept on this device. @param {string} id */
+    function sortGenres(id) { genreSort = id; storeSet(GENRE_SORT_KEY, id); }
+
     /** @param {string} cat */
     const have = (cat) => new Set(cat === "format" ? formats : favCount ? ["yes"] : []);
 
-    return { read, passes, tiles, counts, labelOf, note, have, fanOf };
+    return { read, passes, tiles, counts, labelOf, note, have, fanOf, genreOrder, genreSorts, sortGenres };
   }
 
   /** @type {any} */ (window).ShelfFacets = { create };

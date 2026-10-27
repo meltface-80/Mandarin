@@ -5,9 +5,9 @@
  * (Rouen's, moved out of shelf.js in v1.9.66, behaviour unchanged). Since
  * v1.9.67 (a user's request): Labels and Types tiles, and the shelf's order —
  * by artist, by label and catalogue number (as a record shop files electronic
- * music), by catalogue number alone, by year, or random; and Mandarin's own A → Z
- * by album (v1.0.1, shelforder.js), kept from before (item 206). Format and
- * Favourites (item 208) are shelf-facets.js's.
+ * music), by catalogue number alone, by year, or random (Mandarin's A → Z by album
+ * gone in item 213); the Genres tab's own order, #N, A → Z or Z → A (item 213, as
+ * Rouen's v1.9.70-t5). Format and Favourites (item 208) are shelf-facets.js's.
  * Copyright (c) 2026 Lewis Menzies (Music Duck / MusicD)
  * Released under the MIT License. See the LICENSE file for details.
  *
@@ -60,7 +60,6 @@
       return named.concat(other, have.has("none") ? ["none"] : []);
     };
     const ORDERS = [["artist", "A → Z by artist", "As a shop files them: by the artist's name, then the title."],
-      ["album", "A → Z by album", "By the album's title, a leading The, A or An not counting; two of one name in the artist's order."],
       ["label", "By label and catalogue №", "Each label together, its releases in catalogue order. Albums with no label come last, by artist."],
       ["catno", "By catalogue №", "The numbers in order across every label, as a shop's stock list. Albums with no number come last, by artist."],
       ["year", "By year", "Oldest first. Albums with no year come last."],
@@ -110,7 +109,7 @@
     /** The order's tabs: where a new letter, label or decade begins. @param {any[]} list */
     function tabsFor(list) {
       const by = order();
-      const keyOf = by === "label" ? (a) => (a.l === null ? "" : labelName(a)) : by === "year" ? (a) => (a.y ? decadeOf(a) + "s" : "") : by === "album" ? (a) => a.tb || "" : (a) => a.b;
+      const keyOf = by === "label" ? (a) => (a.l === null ? "" : labelName(a)) : by === "year" ? (a) => (a.y ? decadeOf(a) + "s" : "") : (a) => a.b;
       return list.map((a, i) => (by !== "random" && by !== "catno" && (i === 0 || keyOf(list[i - 1]) !== keyOf(a)) ? keyOf(a) : ""));
     }
     /** The back of the case's line under the title: its label, catalogue number and kind. @param {any} a */
@@ -124,9 +123,7 @@
       const out = albums.filter((a) => passes(a));
       const by = order();
       // The list arrives in artist order, and a stable sort keeps it within a label or a year.
-      // by album (Mandarin v1.0.1): the titles as the server files them (shelforder.js), each given its letter (tb)
-      return by === "random" ? seededShuffle(out, shuffleSeed) : by === "label" ? out.sort(byLabel) : by === "catno" ? out.sort(byCat) : by === "year" ? out.sort(byYear)
-        : by === "album" ? /** @type {any} */ (window).ShelfOrder.byAlbum(out) : out;
+      return by === "random" ? seededShuffle(out, shuffleSeed) : by === "label" ? out.sort(byLabel) : by === "catno" ? out.sort(byCat) : by === "year" ? out.sort(byYear) : out;
     }
     function labelOf(cat, id) {
       if (cat === "genre") return (genres[id] || { name: "?" }).name;
@@ -169,9 +166,9 @@
         return;
       }
       if (tab === "genre") {
-        // a genre's name in a tile the size of a kind's (item 209, a user's request; a fan of covers before)
-        html = genres.length ? genres.map((g, i) => `<button class="tile t-decade t-word" type="button" data-cat="genre" data-id="${i}" aria-pressed="false" data-parity="shelf-choices.genre">
-            <span class="ch">${esc(g.name)}</span><span class="t-count"></span><span class="tick">${TICK}</span></button>`).join("")
+        // a genre's name in a tile the size of a kind's (item 209, a user's request; a fan of covers before), in the order chosen above them (item 213)
+        html = genres.length ? facets.genreSorts() + facets.genreOrder(genres).map((i) => `<button class="tile t-decade t-word" type="button" data-cat="genre" data-id="${i}" aria-pressed="false" data-parity="shelf-choices.genre">
+            <span class="ch">${esc(genres[i].name)}</span><span class="t-count"></span><span class="tick">${TICK}</span></button>`).join("")
           : '<p class="tiles-msg" data-parity="shelf-choices.message">None of your albums carries a genre tag, so there are no genres to choose from. Artists, Years and Order work.</p>';
       } else if (tab === "artist") {
         html = LETTERS.map((l) => `<button class="tile t-letter" type="button" data-cat="artist" data-id="${l}" aria-pressed="false" data-parity="shelf-choices.letter" aria-label="Artists under ${l === "#" ? "#: names starting with 0, or with no letter A to Z" : l}">
@@ -284,6 +281,8 @@
     tilesEl.addEventListener("click", (e) => {
       if (e.target.closest("#spin-big")) { h.spin(1, 2.4); return; }
       if (e.target.closest("#reshuffle")) { shuffleSeed = newSeed(); h.refresh(); return; }
+      const gs = e.target.closest(".g-sort");
+      if (gs) { facets.sortGenres(gs.dataset.sort); renderTiles(true); renderPick(); return; }
       const t = e.target.closest(".tile");
       if (t) toggle(t.dataset.cat, t.dataset.cat === "genre" || t.dataset.cat === "label" ? +t.dataset.id : t.dataset.id);
     });
