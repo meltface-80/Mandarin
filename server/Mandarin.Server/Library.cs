@@ -41,7 +41,7 @@ internal sealed class Album
     // albums.track_count, as the Node server had it (al.tracks): what the identification scan counts.
     public double? TrackCount;
     public bool Lossless, Compilation, CustomArt, Edited;
-    public string? Container, Dir, Label, Service;
+    public string? Container, Dir, Label, Service, Catno, MbType;
     // Where a found cover came from (album_edits.art_source).
     public string? ArtSource;
     public int Discs = 1;
@@ -268,12 +268,12 @@ internal static partial class Library
     private static Snapshot Build(LibState st)
     {
         using var c = Db.Open();
-        const string sql = @"SELECT a.id, a.key, a.title, a.artist, a.sort_title, a.sort_artist, a.year, a.date, a.label, a.genres, a.dir,
+        const string sql = @"SELECT a.id, a.key, a.title, a.artist, a.sort_title, a.sort_artist, a.year, a.date, a.label, a.catno, a.genres, a.dir,
                                     a.art_hash, a.max_rate, a.max_bits, a.lossless, a.container, a.added_at, a.compilation, a.track_count,
                                     e.title AS e_title, e.artist AS e_artist, e.year AS e_year,
-                                    e.art_hash AS e_art_hash, e.art_source AS e_art_source, d.value AS mb_day
+                                    e.art_hash AS e_art_hash, e.art_source AS e_art_source, d.value AS mb_day, m.candidate AS mb_candidate
                                FROM albums a LEFT JOIN album_edits e ON e.key = a.key
-                               LEFT JOIN cache d ON d.ns = 'mbday' AND d.key = a.key
+                               LEFT JOIN cache d ON d.ns = 'mbday' AND d.key = a.key LEFT JOIN album_matches m ON m.key = a.key AND m.status = 'applied'
                               ORDER BY a.id";
         var col = Columns(c, sql);
         var rows = Rows(c, sql);
@@ -328,7 +328,7 @@ internal static partial class Library
                 Compilation = Truthy(F(r, "compilation")),
                 Discs = discs.TryGetValue(id, out var dn) && dn != 0 ? (int)dn : 1,
                 Dir = Text(F(r, "dir")) ?? (F(r, "dir") as string),
-                Label = Text(F(r, "label")),
+                Label = Text(F(r, "label")), Catno = Text(F(r, "catno"))?.Trim() is { Length: > 0 } cn ? cn : null, MbType = ShelfFacts.TypeOf(Text(F(r, "mb_candidate"))),
                 CustomArt = eArt != null,
                 ArtSource = Text(F(r, "e_art_source")),
                 ScannedTitle = Text(F(r, "title")) ?? "", ScannedArtist = Text(F(r, "artist")) ?? "", ScannedYear = Long(F(r, "year")),
