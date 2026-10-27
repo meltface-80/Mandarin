@@ -5,7 +5,9 @@
  * tests run on: a brace that isn't a count ({2}, {1,3}) must be escaped, `}`
  * as well as `{`. The JVM takes `\{[^}]+}`; Android throws on it, and native
  * Now playing crashed on opening (bug list item 33). So each Regex("…")
- * literal under android/ is held to ICU's rule here.
+ * literal under android/ is held to ICU's rule here. And ICU is slow to make
+ * one: the Shelf's makes each of its patterns once, never on each call (item
+ * 211: a pattern made for each title of a large library froze the screen).
  */
 const test = require("node:test");
 const assert = require("node:assert");
@@ -76,4 +78,17 @@ test("every regex in the Android app's Kotlin is one Android can compile", () =>
   }
   assert.ok(n > 5, "the app's regexes found");
   assert.deepEqual(bad, [], "escape each brace that isn't a count");
+});
+
+// Item 211: A → Z by album made three patterns for each title, twice over, on the screen's thread: a library of
+// 13,874 albums held the screen past Android's limit. The Shelf's patterns are each made once, as a value of its own.
+test("the Shelf's patterns are made once, not on each call", () => {
+  const files = kotlinFiles(ROOT).filter(f => /[\\/]Shelf[A-Za-z]*\.kt$/.test(f));
+  assert.ok(files.length >= 10, "the Shelf's sources found");
+  const made = [];
+  for (const f of files) {
+    const lines = fs.readFileSync(f, "utf8").split("\n");
+    lines.forEach((l, i) => { if (/Regex\(|\.toRegex\(/.test(l) && !/^\s*(private )?val [A-Z_]+ = Regex\(/.test(l)) made.push(path.relative(ROOT, f) + ":" + (i + 1) + ": " + l.trim()); });
+  }
+  assert.deepEqual(made, [], "made once, as a value");
 });
