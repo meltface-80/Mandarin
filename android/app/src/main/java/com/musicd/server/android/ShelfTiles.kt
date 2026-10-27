@@ -38,6 +38,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -59,7 +60,7 @@ internal fun ShelfTilesGrid(shelf: ShelfControl, tab: String, rem: Dp, client: (
     shelf.rev   // drawn again when a choice moves the counts
     val tiles = shelf.choices.tiles(lib, tab)
     val cols = when (tab) { "artist" -> 6; "year", "type" -> 3; "order" -> 1; else -> 2 }
-    val gap = if (tab == "artist" || tab == "year" || tab == "type") rem * 0.5f else rem * 0.6f
+    val gap = if (tab == "artist" || tab == "year" || tab == "type" || tab == "format") rem * 0.5f else rem * 0.6f
     fun toggle(id: String) = shelf.choose { toggle(tab, id, kotlin.random.Random.nextLong(1, 0xffffffffL)) }
     LazyVerticalGrid(GridCells.Fixed(cols), modifier, contentPadding = PaddingValues(top = rem * 0.5f, bottom = rem * 1.3f),
         verticalArrangement = Arrangement.spacedBy(gap), horizontalArrangement = Arrangement.spacedBy(gap)) {
@@ -80,6 +81,11 @@ internal fun ShelfTilesGrid(shelf: ShelfControl, tab: String, rem: Dp, client: (
                 "type" -> TileBox(Modifier.parity("shelf-choices.type", Contract.label("shelf-choices.type", 0, t.name)).clickable { toggle(t.id) }.aspectRatio(1.6f), t, rem, rem * 0.7f) {
                     WordFace(t, rem, 1.6f, serif = false)
                 }
+                // item 208: a format's name may run to two lines ("DSD128 Multichannel"); the one Favourites tile as a genre's
+                "format" -> TileBox(Modifier.parity("shelf-choices.format", Contract.label("shelf-choices.format", 0, t.name)).clickable { toggle(t.id) }.aspectRatio(1.6f), t, rem, rem * 0.7f) {
+                    WordFace(t, rem, 1.6f, serif = false, lines = 2)
+                }
+                "favourite" -> TileBox(Modifier.parity("shelf-choices.favourite", Contract.label("shelf-choices.favourite")).clickable { toggle(t.id) }.aspectRatio(1.15f), t, rem, fan) { FanFace(t, rem, client) }
                 else -> TileBox(Modifier.parity("shelf-choices.order", Contract.label("shelf-choices.order", 0, t.name)).clickable { toggle(t.id) }.fillMaxWidth().heightIn(min = rem * 4.6f), t, rem, fan) {
                     OrderFace(t, rem)
                 }
@@ -151,11 +157,12 @@ private fun BoxScope.FanFace(t: ShelfTile, rem: Dp, client: () -> ServerClient?)
     }
 }
 
-/** A letter's, a decade's or a kind's tile: its word in the middle (the serif for a letter or a decade), its count in the corner. */
+/** A letter's, a decade's, a kind's or a format's tile: its word in the middle (the serif for a letter or a decade; a format's on up to [lines]), its count in the corner. */
 @Composable
-private fun BoxScope.WordFace(t: ShelfTile, rem: Dp, ratio: Float, serif: Boolean) {
-    Text(t.name, Modifier.align(Alignment.Center), color = paletteColor(Palette.TEXT), fontFamily = if (serif) youngSerif else null,
-        fontSize = (rem.value * if (!serif) 0.95f else if (ratio > 1f) 1.3f else 1.55f).sp, fontWeight = if (serif) FontWeight.W400 else FontWeight.W800, maxLines = 1)
+private fun BoxScope.WordFace(t: ShelfTile, rem: Dp, ratio: Float, serif: Boolean, lines: Int = 1) {
+    Text(t.name, Modifier.align(Alignment.Center).padding(horizontal = rem * 0.5f), color = paletteColor(Palette.TEXT), fontFamily = if (serif) youngSerif else null,
+        fontSize = (rem.value * if (!serif) 0.95f else if (ratio > 1f) 1.3f else 1.55f).sp, fontWeight = if (serif) FontWeight.W400 else FontWeight.W800, maxLines = lines,
+        lineHeight = (rem.value * 1.1f).sp, textAlign = TextAlign.Center, overflow = TextOverflow.Ellipsis)
     Text(t.count?.toString().orEmpty(), Modifier.align(Alignment.BottomEnd).padding(end = rem * 0.4f, bottom = rem * 0.3f), color = paletteColor(Palette.TEXT_FAINT),
         fontSize = (rem.value * 0.62f).sp, fontWeight = FontWeight.W600)
 }

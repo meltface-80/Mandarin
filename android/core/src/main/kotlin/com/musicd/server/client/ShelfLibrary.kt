@@ -10,7 +10,7 @@ import java.util.Locale
 /*
  * The Shelf's library natively (bug list item 207): /api/shelf/albums as the page's shelf-pick.js reads it — the whole
  * library once, each album with the places of its genres and its label, its letter, year, catalogue number, kinds,
- * format and version — and the orders the shelf is filed in (shelf-pick.js, shelforder.js): by artist as the server
+ * format and version, and (item 208) the Format tile it is under and whether it is a favourite — and the orders the shelf is filed in (shelf-pick.js, shelforder.js): by artist as the server
  * sends it, by album, by label and catalogue number, by catalogue number alone, by year, or shuffled.
  */
 
@@ -21,14 +21,15 @@ data class ShelfName(val name: String, val count: Int)
 data class ShelfKind(val id: String, val one: String, val many: String)
 
 /**
- * An album on the Shelf (the answer's o, t, a, k, g, b, y, l, c, ty, fm, v): its id, title and artist, its cover's key,
- * the places of its genres in [ShelfLibrary.genres], the letter its artist is filed under, its year, the place of its
- * label in [ShelfLibrary.labels], its catalogue number, its kinds, its format ("FLAC 16/44.1") and its title split
- * from its version ("Discovery", "Deluxe Edition").
+ * An album on the Shelf (the answer's o, t, a, k, g, b, y, l, c, ty, fm, v, q, fv): its id, title and artist, its cover's
+ * key, the places of its genres in [ShelfLibrary.genres], the letter its artist is filed under, its year, the place of its
+ * label in [ShelfLibrary.labels], its catalogue number, its kinds, its format ("FLAC 16/44.1"), its title split from its
+ * version ("Discovery", "Deluxe Edition"), the Format tile it is under ("24/96 Multichannel") and whether it is a favourite.
  */
 data class ShelfCase(
     val offset: Long, val title: String, val artist: String, val imageKey: String?, val genres: List<Int>, val bucket: String,
     val year: Int?, val label: Int?, val catno: String?, val kinds: List<String>, val format: String?, val version: Pair<String, String>?,
+    val tile: String? = null, val favourite: Boolean = false,
 ) {
     /** The title as a spine and a card read it, its version apart. */
     val baseTitle: String get() = version?.first ?: title
@@ -37,8 +38,14 @@ data class ShelfCase(
     val versionText: String get() = version?.second.orEmpty()
 }
 
-/** The shelf as the server sent it: genres and labels commonest first, the kinds it names, the albums in artist order, and the signature to ask again with. */
-data class ShelfLibrary(val genres: List<ShelfName>, val labels: List<ShelfName>, val kinds: List<ShelfKind>, val albums: List<ShelfCase>, val sig: String?) {
+/**
+ * The shelf as the server sent it: genres and labels commonest first, the kinds it names, the albums in artist order, the
+ * signature to ask again with, and the Format tiles in their order (item 208).
+ */
+data class ShelfLibrary(
+    val genres: List<ShelfName>, val labels: List<ShelfName>, val kinds: List<ShelfKind>, val albums: List<ShelfCase>, val sig: String?,
+    val formats: List<String> = emptyList(),
+) {
     /** The label's name of [a], or "" for none. */
     fun labelName(a: ShelfCase): String = a.label?.let { labels.getOrNull(it)?.name }.orEmpty()
 
@@ -51,7 +58,8 @@ data class ShelfLibrary(val genres: List<ShelfName>, val labels: List<ShelfName>
             if (j.optBoolean("same", false)) return null
             return ShelfLibrary(names(j.optJSONArray("genres")), names(j.optJSONArray("labels")),
                 objects(j.optJSONArray("kinds")).map { ShelfKind(it.optString("id"), it.optString("one"), it.optString("many")) },
-                objects(j.optJSONArray("albums")).map(::case), j.str("sig"))
+                objects(j.optJSONArray("albums")).map(::case), j.str("sig"),
+                j.optJSONArray("formats")?.let { a -> (0 until a.length()).map { a.optString(it) }.filter { it.isNotEmpty() } }.orEmpty())
         }
 
         private fun case(o: JSONObject) = ShelfCase(
@@ -59,7 +67,8 @@ data class ShelfLibrary(val genres: List<ShelfName>, val labels: List<ShelfName>
             genres = ints(o.optJSONArray("g")), bucket = o.str("b") ?: "#", year = o.int("y"), label = o.int("l"), catno = o.str("c"),
             kinds = o.optJSONArray("ty")?.let { a -> (0 until a.length()).map { a.optString(it) }.filter { it.isNotEmpty() } }.orEmpty(),
             format = o.str("fm"),
-            version = o.optJSONArray("v")?.takeIf { it.length() == 2 }?.let { it.optString(0) to it.optString(1) }
+            version = o.optJSONArray("v")?.takeIf { it.length() == 2 }?.let { it.optString(0) to it.optString(1) },
+            tile = o.str("q"), favourite = o.optBoolean("fv", false)
         )
 
         private fun names(a: JSONArray?) = objects(a).map { ShelfName(it.optString("name"), it.optInt("count")) }
@@ -80,7 +89,7 @@ object ShelfSort {
         Triple("label", "By label and catalogue №", "Each label together, its releases in catalogue order. Albums with no label come last, by artist."),
         Triple("catno", "By catalogue №", "The numbers in order across every label, as a shop's stock list. Albums with no number come last, by artist."),
         Triple("year", "By year", "Oldest first. Albums with no year come last."),
-        Triple("random", "Random order", "The shelf in a random order, as on the Random albums screen. Only the genres, artists, decades, labels and types you have chosen, if any."),
+        Triple("random", "Random order", "The shelf in a random order, as on the Random albums screen. Only the albums your other choices leave, if any."),
     )
 
     /** An order's name ("A → Z by artist"). */

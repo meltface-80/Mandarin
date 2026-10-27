@@ -6,7 +6,8 @@
  * v1.9.67 (a user's request): Labels and Types tiles, and the shelf's order —
  * by artist, by label and catalogue number (as a record shop files electronic
  * music), by catalogue number alone, by year, or random; and Mandarin's own A → Z
- * by album (v1.0.1, shelforder.js), kept from before (item 206).
+ * by album (v1.0.1, shelforder.js), kept from before (item 206). Format and
+ * Favourites (item 208) are shelf-facets.js's.
  * Copyright (c) 2026 Lewis Menzies (Music Duck / MusicD)
  * Released under the MIT License. See the LICENSE file for details.
  *
@@ -25,7 +26,8 @@
 
   /** @param {any} h */
   function create(h) {
-    const { $, esc, rng, hash, imageUrl, jget, TICK, storeGet, storeSet } = h;
+    const { $, esc, rng, imageUrl, jget, TICK, storeGet, storeSet } = h;
+    const facets = /** @type {any} */ (window).ShelfFacets.create(h);
 
     const LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("").concat(["#", "1", "2", "3", "4", "5", "6", "7", "8", "9"]);
     const DISC = '<svg class="disc" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="currentColor" opacity=".16"/><circle cx="12" cy="12" r="11" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="12" cy="12" r="6.5" fill="none" stroke="currentColor" stroke-width="1" opacity=".5"/><circle cx="12" cy="12" r="2.2" fill="currentColor"/><path d="M12 2.5v3.2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>';
@@ -44,8 +46,8 @@
 
     // ---- Choices ---------------------------------------------------------------
     // order holds one of label, year or random; empty is the artist order (the default).
-    const sel = { genre: new Set(), artist: new Set(), year: new Set(), label: new Set(), type: new Set(), order: new Set() };
-    const NARROWING = ["genre", "artist", "year", "label", "type"];
+    const sel = { genre: new Set(), artist: new Set(), year: new Set(), label: new Set(), type: new Set(), format: new Set(), favourite: new Set(), order: new Set() };
+    const NARROWING = ["genre", "artist", "year", "label", "type", "format", "favourite"];
     /** The kinds of release an album is (v1.9.67-t4: several at once, a live compilation under both tiles); ["none"] for one no source says. */
     const NONE = ["none"];
     const typesOf = (a) => (a.ty && a.ty.length ? a.ty : NONE);
@@ -63,7 +65,7 @@
       ["label", "By label and catalogue №", "Each label together, its releases in catalogue order. Albums with no label come last, by artist."],
       ["catno", "By catalogue №", "The numbers in order across every label, as a shop's stock list. Albums with no number come last, by artist."],
       ["year", "By year", "Oldest first. Albums with no year come last."],
-      ["random", "Random order", "The shelf in a random order, as on the Random albums screen. Only the genres, artists, decades, labels and types you have chosen, if any."]];
+      ["random", "Random order", "The shelf in a random order, as on the Random albums screen. Only the albums your other choices leave, if any."]];
     const ORDER_TEXT = Object.fromEntries(ORDERS.map(([id, name]) => [id, name]));
     const order = () => [...sel.order][0] || "artist";
     let chosen = [];          // [cat, id] in the order chosen: the chips, and Undo
@@ -87,7 +89,7 @@
       if (skip !== "year" && sel.year.size && !sel.year.has(decadeOf(a))) return false;
       if (skip !== "label" && sel.label.size && !sel.label.has(a.l)) return false;
       if (skip !== "type" && sel.type.size && !typesOf(a).some((t) => sel.type.has(t))) return false;
-      return true;
+      return facets.passes(a, sel, skip);
     }
     // Labels and catalogue numbers in a shop's order, as the Library's sort collates them (lib/release-facts.js
     // naturalCompare: "en", numbers as numbers, case alike): "WARP 61" before "WARP 123", "Label 9" before "Label 10".
@@ -131,6 +133,7 @@
       if (cat === "genre") return (genres[id] || { name: "?" }).name;
       if (cat === "label") return (labels[id] || { name: "?" }).name;
       if (cat === "type") return kindName(String(id), true);
+      if (cat === "format" || cat === "favourite") return facets.labelOf(cat, id);
       if (cat === "order") return ORDER_TEXT[id] || String(id);
       if (cat === "year") return id === "none" ? "Undated" : id + "s";
       return id;
@@ -193,6 +196,8 @@
       } else if (tab === "type") {
         html = kindsHere().map((id) => `<button class="tile t-decade t-type${id === "none" ? " undated" : ""}" type="button" data-cat="type" data-id="${esc(id)}" aria-pressed="false" data-parity="shelf-choices.type">
           <span class="ch">${esc(kindName(id, true))}</span><span class="t-count"></span><span class="tick">${TICK}</span></button>`).join("");
+      } else if (tab === "format" || tab === "favourite") {
+        html = facets.tiles(tab);
       } else {
         // The order: one of four, the artist order by default (v1.9.67); Random keeps its reshuffle and the spin.
         html = ORDERS.map(([id, name, note]) => `<button class="tile t-order" type="button" data-cat="order" data-id="${id}" aria-pressed="false" data-parity="shelf-choices.order">${id === "random" ? SHUFFLE : ""}
@@ -208,6 +213,7 @@
     }
     function updateTiles() {
       let gCount = null, lCount = null, yCount = null, bCount = null, tCount = null;
+      const fCount = tab === "format" || tab === "favourite" ? facets.counts(tab, albums, passes) : {};
       if (tab === "genre") {
         gCount = new Array(genres.length).fill(0);
         for (const a of albums) if (passes(a, "genre")) for (const i of a.g) gCount[i]++;
@@ -235,6 +241,7 @@
         else if (cat === "year") n = yCount[id] || 0;
         else if (cat === "label") n = bCount[id];
         else if (cat === "type") n = tCount[id] || 0;
+        else if (cat === "format" || cat === "favourite") n = fCount[id] || 0;
         if (c) c.textContent = n === null ? "" : String(n);
         el.classList.toggle("zero", n === 0);
       }
@@ -262,6 +269,7 @@
       const noun = { genre: ["genre", "genres"], artist: ["letter", "letters"], year: ["decade", "decades"], label: ["label", "labels"], type: ["type", "types"] }[tab];
       $("#sec-note").textContent =
         tab === "order" ? (order() === "random" ? "On: the shelf is shuffled" : "How the shelf is filed. One order at a time.")
+        : tab === "format" || tab === "favourite" ? facets.note(tab, n)
         : n ? `${n} ${noun[n === 1 ? 0 : 1]} chosen`
         : tab === "artist" ? "Tap letters. # holds names that start with 0, or have no letter A–Z."
         : tab === "year" ? "Tap decades. Choose as many as you like."
@@ -338,12 +346,10 @@
           const have = new Set(albums.flatMap(typesOf));
           sel.type = new Set([...sel.type].filter((t) => have.has(t)));
           chosen = chosen.filter(([c, i]) => c !== "type" || have.has(i));
+          facets.read(j, albums);
+          for (const c of ["format", "favourite"]) { const here = facets.have(c); sel[c] = new Set([...sel[c]].filter((i) => here.has(i))); chosen = chosen.filter(([k, i]) => k !== c || here.has(i)); }
           // Three covers for each genre's tile, spread through its albums; and each label's.
-          const fanOf = (name, keys) => {
-            const out = [], step = Math.max(1, Math.floor(keys.length / 3)), start = hash(name) % Math.max(1, keys.length);
-            for (let n = 0; n < Math.min(3, keys.length); n++) out.push(keys[(start + n * step) % keys.length]);
-            return out;
-          };
+          const fanOf = facets.fanOf;
           const keysOf = genres.map(() => []), keysOfL = labels.map(() => []);
           for (const a of albums) if (a.k) {
             for (const gi of a.g) if (keysOf[gi]) keysOf[gi].push(a.k);

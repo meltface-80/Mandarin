@@ -1418,7 +1418,7 @@
       }
     },
     "shelf-choices": {
-      "page": "the Shelf's choices (its tab at the top tapped; item 207): over the whole screen on a phone, Shelf and Reset shelf at the head, how many albums the choices leave, a chip for each choice, the tabs Genres, Artists, Years, Labels, Types and Order (each with how many are chosen), a line on the tab and Clear all, the tiles of the tab (a genre's or a label's with a fan of covers, a letter, a decade, a kind of release, an order with a line on what it does; each with how many albums it would bring, ticked when chosen), Shuffle again and Spin the shelf on Order; and Show N albums at the foot, which takes them away",
+      "page": "the Shelf's choices (its tab at the top tapped; item 207): over the whole screen on a phone, Shelf and Reset shelf at the head, how many albums the choices leave, a chip for each choice, the tabs Genres, Artists, Years, Labels, Types, Formats, Favourites and Order in two rows of four (each with how many are chosen; item 208 added Formats and Favourites), a line on the tab and Clear all, the tiles of the tab (a genre's or a label's with a fan of covers, a letter, a decade, a kind of release, a format, Favourites with a fan of their covers, an order with a line on what it does; each with how many albums it would bring, ticked when chosen), Shuffle again and Spin the shelf on Order; and Show N albums at the foot, which takes them away",
       "native": ["android/app/src/main/java/com/musicd/server/android/ShelfPick.kt", "android/app/src/main/java/com/musicd/server/android/ShelfTiles.kt"],
       "preview": false,
       "items": {
@@ -1433,6 +1433,8 @@
         "tab-year": { "kind": "action", "label": ["Years", "Years {count}"] },
         "tab-label": { "kind": "action", "label": ["Labels", "Labels {count}"] },
         "tab-type": { "kind": "action", "label": ["Types", "Types {count}"] },
+        "tab-format": { "kind": "action", "label": ["Formats", "Formats {count}"] },
+        "tab-favourite": { "kind": "action", "label": ["Favourites", "Favourites {count}"] },
         "tab-order": { "kind": "action", "label": ["Order", "Order {count}"] },
         "note": { "kind": "shows" },
         "clear": { "kind": "action", "label": "Clear all", "when": "two or more of the tab's chosen" },
@@ -1441,10 +1443,12 @@
         "decade": { "kind": "action", "label": ["The {decade}s", "Albums with no year"], "each": true, "in": "tab-year", "when": "the library's albums carry years" },
         "label": { "kind": "action", "label": "{label}", "each": true, "in": "tab-label", "when": "the label scan has read some labels" },
         "type": { "kind": "action", "label": "{type}", "each": true, "in": "tab-type" },
+        "format": { "kind": "action", "label": "{format}", "each": true, "in": "tab-format", "when": "something is known of the albums' files" },
+        "favourite": { "kind": "action", "label": "Favourites", "in": "tab-favourite", "when": "an album hearted" },
         "order": { "kind": "action", "label": "{order}", "each": true, "in": "tab-order" },
         "reshuffle": { "kind": "action", "label": "Shuffle again", "in": "tab-order" },
         "spin": { "kind": "action", "label": "Spin the shelf", "in": "tab-order" },
-        "message": { "kind": "shows", "when": "a tab with nothing to choose: no genres, no years, no labels read" },
+        "message": { "kind": "shows", "when": "a tab with nothing to choose: no genres, no years, no labels read, no formats known, no favourites" },
         "done": { "kind": "action", "label": ["Show {count} albums", "Show {count} album", "Show the shelf"] }
       }
     },

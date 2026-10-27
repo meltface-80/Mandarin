@@ -56,7 +56,7 @@ test("the shelf's list: genres commonest first, each album's genres as places in
   [al(1, "Abbey Road", "The Beatles", "beatles", ["Rock"])], [al(1, "Abbey Road (Remaster)", "The Beatles", "beatles", ["Rock"])],
   [al(1, "Abbey Road", "The Beatles", "beatles", ["Rock"], 1969)], [al(1, "Abbey Road", "The Beatles", "beatles", ["Rock"], 2019)]] }).shelves;
   assert.deepEqual(shelf.genres, [{ name: "Electronic", count: 2 }, { name: "Jazz", count: 1 }, { name: "Pop", count: 1 }, { name: "Rock", count: 1 }]);
-  assert.deepEqual(shelf.albums[0], { o: 1, t: "Abbey Road", a: "The Beatles", k: "al-1-0", g: [2, 3], b: "B", y: 1969, l: null, c: null, ty: null, fm: null, v: null });
+  assert.deepEqual(shelf.albums[0], { o: 1, t: "Abbey Road", a: "The Beatles", k: "al-1-0", g: [2, 3], b: "B", y: 1969, l: null, c: null, ty: null, fm: null, v: null, q: null, fv: false });
   assert.deepEqual(shelf.albums.map(a => a.y), [1969, null, null, null, null], "no year: null");
   assert.deepEqual(shelf.albums.map(a => a.g), [[2, 3], [0], [1], [0], []], "a genre once per album, empty names left out");
   assert.deepEqual(shelf.albums.map(a => a.b), ["B", "B", "M", "D", "#"]);
@@ -95,6 +95,28 @@ test("the shelf's list: labels, catalogue numbers, kinds, formats and versions",
   assert.notEqual(plain.sig, numbered.sig, "a catalogue number, a new signature");
   assert.notEqual(plain.sig, typed.sig, "a kind, a new signature");
   assert.notEqual(flac.sig, mp3.sig, "a format, a new signature");
+});
+
+// Item 208 (a user's request): the Format tiles, each album under one by its files (PCM by bits and rate, DSD by its
+// rate and channels as SACD says them, over two channels Multichannel, the rest by name) and the tiles in order; and
+// whether each album is a favourite.
+test("the shelf's list: the Format tiles and the favourites", { skip: rules }, () => {
+  const al = (id, more) => Object.assign({ id, title: "T" + id, artist: "A", sortArtist: "a", genres: [], image_key: "al-" + id + "-0" }, more);
+  const flac = (bits, rate, channels) => ({ lossless: true, container: "FLAC", bits, rate, channels });
+  const [shelf, two, six, plain, hearted] = score({ fn: "shelf", shelves: [[
+    al(1, flac(16, 44100, 2)), al(2, flac(24, 96000, 6)), al(3, flac(24, 44100, 2)), al(4, flac(24, 96000, 2)),
+    al(5, { lossless: true, container: "DSD", bits: 1, rate: 2822400, channels: 2, favourite: true }),
+    al(6, { lossless: true, container: "DSD", bits: 1, rate: 5644800, channels: 6 }),
+    al(7, { lossless: false, container: "MP3", channels: 2, favourite: true }), al(8, { service: "tidal" }), al(9, {}),
+    al(10, { lossless: true, container: "FLAC", rate: 96000 })
+  ], [al(1, flac(24, 96000, 2))], [al(1, flac(24, 96000, 6))], [al(1, {})], [al(1, { favourite: true })]] }).shelves;
+  assert.deepEqual(shelf.albums.map(a => a.q), ["16/44.1", "24/96 Multichannel", "24/44.1", "24/96", "DSD64 2CH", "DSD128 Multichannel", "MP3", "TIDAL", null, "96 kHz"],
+    "PCM by bits and rate, DSD by its rate and channels, over two channels Multichannel, the rest by name; nothing known, none");
+  assert.deepEqual(shelf.formats, ["16/44.1", "24/44.1", "24/96", "24/96 Multichannel", "96 kHz", "DSD64 2CH", "DSD128 Multichannel", "MP3", "TIDAL"],
+    "PCM by bits then rate, stereo first, the bits unknown last; then DSD by rate; then the rest by name");
+  assert.deepEqual(shelf.albums.map(a => a.fv), [false, false, false, false, true, false, true, false, false, false], "the favourites");
+  assert.notEqual(two.sig, six.sig, "its channels, a new signature");
+  assert.notEqual(plain.sig, hearted.sig, "a favourite, a new signature");
 });
 
 test("Shelf in a browser", { skip: (!haveFfmpeg() && "ffmpeg is not installed") || (!findBrowser() && !process.env.CI && "no Chromium or Chrome (set CHROME_PATH)"), timeout: 180000 }, async (t) => {
@@ -284,7 +306,7 @@ test("Shelf in a browser", { skip: (!haveFfmpeg() && "ffmpeg is not installed") 
         $('.tile[data-cat="order"][data-id="random"]').click();
         out.random = window.__shelfOrder().slice().sort();
         return out; })()`);
-      assert.deepEqual(r.tabs, ["Genres", "Artists", "Years", "Labels", "Types", "Order"], "Rouen's tabs (item 206): Random is an order");
+      assert.deepEqual(r.tabs, ["Genres", "Artists", "Years", "Labels", "Types", "Formats", "Favourites", "Order"], "Rouen's tabs (item 206: Random is an order), Formats and Favourites (item 208)");
       assert.deepEqual(r.tiles, ["2020s 1", "2000s 2", "1990s 2", "1970s 1", "1960s 2", "1950s 1", "Undated 1"], "newest first, the albums with no year last");
       assert.equal(r.note, "Tap decades. Choose as many as you like.");
       assert.deepEqual(r.sixties, ["Abbey Road", "Pastel Blues"], "1960–1969, in artist order");
@@ -299,8 +321,52 @@ test("Shelf in a browser", { skip: (!haveFfmpeg() && "ffmpeg is not installed") 
       assert.equal(r.all, 10, "Reset shelf clears the decades too");
       assert.equal(r.why, "No albums match the 1950s and Dance.");
       assert.deepEqual(r.undated, ["Best Of"]);
-      assert.match(r.randomNote, /decades/);
+      assert.match(r.randomNote, /your other choices/);
       assert.deepEqual(r.random, ["Album One", "Homogenic"], "Random keeps to the decades chosen");
+      assert.deepEqual(page.errors, []);
+    });
+
+    // Item 208 (a user's request): Formats and Favourites, two more tabs, the eight in two even rows of four.
+    await t.test("formats and favourites: a tile for each format in the server's order, one for the favourites; each narrows the shelf", async () => {
+      const j = await (await fetch(B + "/api/shelf/albums", { headers: H })).json();
+      const hearted = j.albums.find(a => a.t === "Kind of Blue");
+      const heart = await fetch(B + "/api/favourites", { method: "POST", headers: Object.assign({ "Content-Type": "application/json" }, H), body: JSON.stringify({ offset: hearted.o, on: true }) });
+      assert.equal(heart.status, 200);
+      const after = await (await fetch(B + "/api/shelf/albums?sig=" + j.sig, { headers: H })).json();
+      assert.ok(!after.same && after.albums.find(a => a.o === hearted.o).fv, "a heart is a new shelf, the album a favourite on it");
+      assert.ok(after.formats.length >= 1 && after.albums.every(a => a.q === null || after.formats.includes(a.q)), "every album's tile among the formats");
+      const page = await open();
+      const r = await page.eval(`(async () => { ${HELPERS} ${ready}
+        const out = {};
+        const tabs = [...document.querySelectorAll(".tab")].map(t => t.getBoundingClientRect());
+        out.rows = [tabs.slice(0, 4).every(b => Math.abs(b.top - tabs[0].top) < 1), tabs.slice(4).every(b => Math.abs(b.top - tabs[4].top) < 1), tabs[4].top > tabs[0].top,
+          tabs.every(b => Math.abs(b.width - tabs[0].width) < 1)];
+        $('.tab[data-tab="format"]').click();
+        out.formats = [...document.querySelectorAll(".t-format")].map(t => t.querySelector(".ch").textContent);
+        out.counts = [...document.querySelectorAll(".t-format")].map(t => +t.querySelector(".t-count").textContent);
+        out.note = $("#sec-note").textContent;
+        document.querySelector(".t-format").click();
+        out.formatN = window.__shelfState().N;
+        out.formatNote = $("#sec-note").textContent; out.formatBadge = $('.tab[data-tab="format"] .badge').textContent;
+        $("#sec-clear").click(); document.querySelector(".t-format").click();
+        $('.tab[data-tab="favourite"]').click();
+        out.favTiles = [...document.querySelectorAll(".t-favourite")].map(t => t.querySelector(".t-name").textContent + " " + t.querySelector(".t-count").textContent);
+        tile("favourite", "Favourites").click();
+        out.favourites = window.__shelfOrder();
+        out.favNote = $("#sec-note").textContent;
+        out.chips = [...document.querySelectorAll(".chip")].map(c => c.textContent.replace("×", "").trim());
+        return out; })()`);
+      assert.deepEqual(r.rows, [true, true, true, true], "the eight tabs in two even rows of four");
+      assert.deepEqual(r.formats, after.formats, "a tile for each format, in the server's order");
+      assert.deepEqual(r.counts, after.formats.map(f => after.albums.filter(a => a.q === f).length), "each counting its albums");
+      assert.equal(r.note, "Tap formats. Choose as many as you like.");
+      assert.equal(r.formatN, r.counts[0], "a format narrows the shelf to its albums");
+      assert.equal(r.formatNote, "1 format chosen");
+      assert.equal(r.formatBadge, "1");
+      assert.deepEqual(r.favTiles, ["Favourites 1"], "one Favourites tile, counting what the format leaves");
+      assert.deepEqual(r.favourites, ["Kind of Blue"], "the favourites alone");
+      assert.equal(r.favNote, "Only your favourites");
+      assert.deepEqual(r.chips, [after.formats[0], "Favourites"]);
       assert.deepEqual(page.errors, []);
     });
 

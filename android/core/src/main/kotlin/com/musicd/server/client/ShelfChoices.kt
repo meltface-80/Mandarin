@@ -5,7 +5,8 @@ import java.util.Locale
 
 /*
  * What is on the Shelf natively (bug list item 207), as the page's shelf-pick.js chooses it: genres OR among
- * themselves, artists' letters, decades, labels and kinds of release likewise, each kind of choice narrowing the
+ * themselves, artists' letters, decades, labels, kinds of release and (item 208) formats likewise, and the
+ * favourites alone, each kind of choice narrowing the
  * others; one order at a time, the artist order the default and no chip; the counts on the tiles what each would
  * bring; and the words the choices and the shelf say about it. Genres and labels are held by name, so a library read
  * again keeps them wherever they come in its new lists.
@@ -87,6 +88,9 @@ class ShelfChoices(keptOrder: String? = null, var seed: Long = 1) {
         if (skip != "year" && y.isNotEmpty() && decadeOf(a) !in y) return false
         if (skip != "label" && l.isNotEmpty() && lib.labelName(a).let { it.isEmpty() || it !in l }) return false
         if (skip != "type" && t.isNotEmpty() && typesOf(a).none { it in t }) return false
+        // item 208: the Format tile it is under; the favourites alone
+        if (skip != "format" && sel.getValue("format").let { it.isNotEmpty() && a.tile !in it }) return false
+        if (skip != "favourite" && sel.getValue("favourite").isNotEmpty() && !a.favourite) return false
         return true
     }
 
@@ -96,7 +100,8 @@ class ShelfChoices(keptOrder: String? = null, var seed: Long = 1) {
     /** The choices of a library read again that it no longer has let go: a genre, a label, a decade or a kind gone has no tile to un-tick. */
     fun carry(lib: ShelfLibrary) {
         val keep = mapOf("genre" to lib.genres.map { it.name }.toSet(), "label" to lib.labels.map { it.name }.toSet(),
-            "year" to lib.albums.map(::decadeOf).toSet(), "type" to lib.albums.flatMap(::typesOf).toSet())
+            "year" to lib.albums.map(::decadeOf).toSet(), "type" to lib.albums.flatMap(::typesOf).toSet(),
+            "format" to lib.formats.toSet(), "favourite" to if (lib.albums.any { it.favourite }) setOf(FAVOURITE) else emptySet())
         for ((cat, have) in keep) { sel.getValue(cat).retainAll(have); chosen.removeAll { it.first == cat && it.second !in have } }
     }
 
@@ -118,6 +123,7 @@ class ShelfChoices(keptOrder: String? = null, var seed: Long = 1) {
         "type" -> kindName(lib, id, true)
         "order" -> ShelfSort.name(id)
         "year" -> if (id == "none") "Undated" else id + "s"
+        "favourite" -> "Favourites"
         else -> id
     }
 
@@ -132,6 +138,8 @@ class ShelfChoices(keptOrder: String? = null, var seed: Long = 1) {
                 tile(d, if (d == "none") "Undated" else d + "s", if (d == "none") "Albums with no year" else "The ${d}s") } }
             "label" -> lib.labels.map { tile(it.name, it.name, it.name, fanOf(lib, it.name, true)) }
             "type" -> kindsHere(lib).map { tile(it, kindName(lib, it, true), kindName(lib, it, true)) }
+            "format" -> lib.formats.map { tile(it, it, it) }
+            "favourite" -> if (lib.albums.none { it.favourite }) emptyList() else listOf(tile(FAVOURITE, "Favourites", "Favourites", favouritesFan(lib)))
             else -> ShelfSort.ORDERS.map { (id, name, note) -> ShelfTile(id, name, null, order() == id, name, note) }
         }
     }
@@ -141,6 +149,8 @@ class ShelfChoices(keptOrder: String? = null, var seed: Long = 1) {
         "genre" -> "None of your albums carries a genre tag, so there are no genres to choose from. Artists, Years and Order work."
         "year" -> "None of your albums carries a year, so there are no decades to choose from. Genres, Artists and Order work."
         "label" -> "Labels appear once the label scan has read them: switch Record labels on in Settings → Setup."
+        "format" -> "Nothing is known yet of your albums’ files, so there are no formats to choose from."
+        "favourite" -> "No favourites yet: tap the heart on an album’s page and it is here."
         else -> null
     }
 
@@ -156,6 +166,8 @@ class ShelfChoices(keptOrder: String? = null, var seed: Long = 1) {
                 "year" -> add(decadeOf(a))
                 "label" -> lib.labelName(a).takeIf { it.isNotEmpty() }?.let(::add)
                 "type" -> typesOf(a).forEach(::add)
+                "format" -> a.tile?.let(::add)
+                "favourite" -> if (a.favourite) add(FAVOURITE)
             }
         }
         return out
@@ -203,6 +215,8 @@ class ShelfChoices(keptOrder: String? = null, var seed: Long = 1) {
             tab == "artist" -> "Tap letters. # holds names that start with 0, or have no letter A–Z."
             tab == "year" -> "Tap decades. Choose as many as you like."
             tab == "label" -> "Tap labels. Choose as many as you like; the Order tab files the shelf by label."
+            tab == "favourite" -> if (n > 0) "Only your favourites" else "Tap to show only the albums you have hearted."
+            tab == "format" -> if (n > 0) "$n ${if (n == 1) "format" else "formats"} chosen" else "Tap formats. Choose as many as you like."
             tab == "type" -> if (lib != null && lib.albums.none { it.kinds.isNotEmpty() }) "The kinds come from the identification scan’s matches: none has said yet."
                 else "Tap kinds of release. Choose as many as you like."
             else -> "Tap to choose. Choose as many as you like."
@@ -236,8 +250,13 @@ class ShelfChoices(keptOrder: String? = null, var seed: Long = 1) {
     }
 
     /** Up to three covers for a genre's or a label's tile, spread through its albums from a place its name gives. */
-    fun fanOf(lib: ShelfLibrary, name: String, label: Boolean): List<String> {
-        val keys = lib.albums.filter { a -> a.imageKey != null && if (label) lib.labelName(a) == name else a.genres.any { lib.genres.getOrNull(it)?.name == name } }.mapNotNull { it.imageKey }
+    fun fanOf(lib: ShelfLibrary, name: String, label: Boolean): List<String> =
+        spread(name, lib.albums.filter { a -> if (label) lib.labelName(a) == name else a.genres.any { lib.genres.getOrNull(it)?.name == name } }.mapNotNull { it.imageKey })
+
+    /** Up to three of the favourites' covers for their tile, as a genre's (item 208). */
+    fun favouritesFan(lib: ShelfLibrary): List<String> = spread("Favourites", lib.albums.filter { it.favourite }.mapNotNull { it.imageKey })
+
+    private fun spread(name: String, keys: List<String>): List<String> {
         if (keys.isEmpty()) return emptyList()
         val step = maxOf(1, keys.size / 3); val start = (ShelfSort.hash(name) % keys.size).toInt()
         return (0 until minOf(3, keys.size)).map { keys[(start + it * step) % keys.size] }
@@ -245,9 +264,12 @@ class ShelfChoices(keptOrder: String? = null, var seed: Long = 1) {
 
     companion object {
         /** The kinds of choice that narrow the shelf (the order only files it). */
-        val NARROWING = listOf("genre", "artist", "year", "label", "type")
-        /** The tabs, in the page's order, with their names. */
-        val TABS = listOf("genre" to "Genres", "artist" to "Artists", "year" to "Years", "label" to "Labels", "type" to "Types", "order" to "Order")
+        val NARROWING = listOf("genre", "artist", "year", "label", "type", "format", "favourite")
+        /** The tabs, in the page's order, with their names: two rows of four (item 208). */
+        val TABS = listOf("genre" to "Genres", "artist" to "Artists", "year" to "Years", "label" to "Labels", "type" to "Types",
+            "format" to "Formats", "favourite" to "Favourites", "order" to "Order")
+        /** The Favourites tile's id. */
+        const val FAVOURITE = "yes"
         /** The Artists tab's letters: A to Z, then #, then 1 to 9. */
         val LETTERS = ('A'..'Z').map { it.toString() } + "#" + (1..9).map { it.toString() }
 
