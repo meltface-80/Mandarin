@@ -5,6 +5,17 @@
 Dev's builds are numbered 1.1.11-tN, the server's image and the test APK alike. The Shelf's merge (item 206) came out
 as 1.9.69-t1 by mistake: Rouen's version, not Mandarin's. Item 207 puts the numbering right, as 1.1.11-t2.
 
+- `208-shelf-format-favourites` (item 208): **Formats and Favourites** in the Shelf's choices, on the page and in the
+  Android app, so there are eight tabs in two even rows of four: Genres, Artists, Years, Labels, Types, Formats,
+  Favourites and Order.
+  - **Formats**: a tile for each format the library has, each album under one: PCM by bits and rate ("16/44.1",
+    "24/44.1", "24/96"), DSD by its rate and channels ("DSD64 2CH", "DSD128 Multichannel"), anything over two
+    channels marked Multichannel ("24/96 Multichannel"), and the rest by name ("MP3", "AAC"). Choose as many as
+    you like; they narrow the other choices as those narrow each other.
+  - **Favourites**: one tile, with a fan of their covers and how many, showing only the albums you have hearted. A
+    heart added or taken off reaches the shelf on its next look.
+  - The server's shelf list now says each album's format tile and whether it is a favourite, with the tiles in
+    order; the channels come from the most any of an album's tracks has.
 - `207-android-native-shelf` (item 207): **the Shelf in the Android app**, drawn by the app itself instead of
   opened in the phone's browser. Shelf in the side menu opens it full screen, for the room the app is playing in:
   - **The shelf** as the page draws it: the spines in their 3D row with the album in front, swiped along one at a

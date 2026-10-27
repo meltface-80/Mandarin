@@ -174,7 +174,7 @@ test("the library in C# answers as the Node server did", { skip, timeout: 180000
         const want = await rec.want(label + step);
         assert.equal(c.status, want.status, label + p + ": the same status");
         const node = Object.assign({}, cj, { albums: cj.albums.map(a => Object.fromEntries(NODE_KEYS.map(k => [k, a[k]]))) });
-        delete node.labels; delete node.kinds;
+        delete node.labels; delete node.kinds; delete node.formats;
         assert.deepStrictEqual(steady(node), want.j, label + p + ": the Node server's answer");
         return cj;
       };
@@ -185,6 +185,12 @@ test("the library in C# answers as the Node server did", { skip, timeout: 180000
       const named = (t) => shelf.albums.find(a => a.t === t);
       assert.deepStrictEqual(shelf.kinds.map(k => k.id), ["album", "ep", "single", "compilation", "live", "soundtrack", "remix", "other"], label + "the kinds' names");
       assert.deepStrictEqual(["Abbey Road", "Kind of Blue", "Now 1", "Studio"].map(t => named(t).fm), ["FLAC 16/44.1", "FLAC 24/96", "MP3", "WAV 24/44.1"], label + "each album's format");
+      // Item 208: each album's Format tile, the tiles in order with none missing or over, and the favourites (a heart reaches the shelf).
+      assert.deepStrictEqual(["Abbey Road", "Kind of Blue", "Now 1", "Studio"].map(t => named(t).q), ["16/44.1", "24/96", "MP3", "24/44.1"], label + "each album's Format tile");
+      assert.deepStrictEqual([...shelf.formats].sort(), [...new Set(shelf.albums.map(a => a.q).filter(Boolean))].sort(), label + "a tile for each format the library has");
+      assert.ok(shelf.formats.indexOf("16/44.1") < shelf.formats.indexOf("24/44.1") && shelf.formats.indexOf("24/96") < shelf.formats.indexOf("MP3"), label + "the tiles in order");
+      const hearts = (await getJ("/api/favourites")).albums.map(a => a.offset).sort((x, y) => x - y);
+      assert.deepStrictEqual(shelf.albums.filter(a => a.fv).map(a => a.o).sort((x, y) => x - y), hearts, label + "the favourites");
       assert.deepStrictEqual(named("Now 1").ty, ["compilation"], label + "a compilation, by its flag, with no match to say");
       assert.equal(named("Abbey Road").ty, null, label + "no kind where nothing says");
       assert.ok(shelf.albums.every(a => a.c === null && a.v === null), label + "no catalogue numbers tagged, no versions in the titles");

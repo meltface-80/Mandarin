@@ -120,6 +120,34 @@ class ShelfTest {
         assertEquals(listOf("1950s", "1960s", "1970s", "", "2000s", ""), c.tabsFor(lib, c.list(lib)))
     }
 
+    @Test fun `Formats and Favourites narrow as the other choices do, the server's tiles in its order (item 208)`() {
+        val tiles = listOf("16/44.1", "24/96", "MP3", "16/44.1", null, "DSD64 2CH")
+        val l = lib.copy(formats = listOf("16/44.1", "24/96", "DSD64 2CH", "MP3"),
+            albums = lib.albums.mapIndexed { i, a -> a.copy(tile = tiles[i], favourite = a.offset in setOf(2L, 3L, 6L)) })
+        assertEquals(listOf("16/44.1", "24/96", "DSD64 2CH", "MP3"), ShelfLibrary.parse(JSONObject(answer.toString())
+            .put("formats", org.json.JSONArray(l.formats)))!!.formats)
+        val c = ShelfChoices()
+        assertEquals(listOf("Genres", "Artists", "Years", "Labels", "Types", "Formats", "Favourites", "Order"), ShelfChoices.TABS.map { it.second })
+        assertEquals(listOf("16/44.1", "24/96", "DSD64 2CH", "MP3"), c.tiles(l, "format").map { it.name })
+        assertEquals(mapOf("16/44.1" to 2, "24/96" to 1, "MP3" to 1, "DSD64 2CH" to 1), c.counts(l, "format"))
+        c.toggle("format", "16/44.1"); c.toggle("format", "DSD64 2CH")
+        assertEquals(listOf("The Wall", "Discovery (Deluxe Edition)", "an Album"), titles(c.list(l)))
+        assertEquals("2 formats chosen", c.note(l, "format"))
+        // The favourites among what the formats leave.
+        assertEquals(mapOf(ShelfChoices.FAVOURITE to 1), c.counts(l, "favourite"))
+        c.toggle("favourite", ShelfChoices.FAVOURITE)
+        assertEquals(listOf("an Album"), titles(c.list(l)))
+        assertEquals(listOf("16/44.1", "DSD64 2CH", "Favourites"), c.chips(l).first.map { it.text })
+        assertEquals("Only your favourites", c.note(l, "favourite"))
+        assertEquals(listOf("al-2-0"), c.tiles(l, "favourite").single().fan)
+        // A format the library no longer has, and the favourites all gone: let go.
+        val after = l.copy(formats = listOf("16/44.1"), albums = l.albums.map { it.copy(favourite = false) })
+        c.carry(after)
+        assertEquals(1, c.count("format")); assertEquals(0, c.count("favourite"))
+        assertEquals(emptyList<ShelfTile>(), c.tiles(after, "favourite"))
+        assertEquals("No favourites yet: tap the heart on an album’s page and it is here.", c.message("favourite"))
+    }
+
     @Test fun `nothing on the shelf says why, and offers Undo where the choices left nothing`() {
         val c = ShelfChoices()
         c.toggle("genre", "Jazz"); c.toggle("artist", "B"); c.toggle("year", "none")
