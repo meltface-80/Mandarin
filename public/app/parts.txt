@@ -60,6 +60,7 @@ app/album-beside-mini.js
 app/album-wide.js
 app/app-update-bridge.js
 app/native-handoff.js
+app/album-embed.js
 app/native-home.js
 app/native-search.js
 app/native-playlists.js

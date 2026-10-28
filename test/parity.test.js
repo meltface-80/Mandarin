@@ -615,12 +615,6 @@ const OPEN_SHELF_CHOICES = `(async () => { ${SHELF_KIT}
   await sleep(600);
   return "open";
 })()`;
-const OPEN_SHELF_ALBUM = `(async () => { ${SHELF_KIT}
-  $("#stage").dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
-  if (!(await until(() => $("#open").classList.contains("on") && !!document.querySelector("#open .bk-tracks li") && !document.querySelector("#open .ov-reading")))) return "no album view";
-  await sleep(900);
-  return "open";
-})()`;
 const SHELF = { url: "/shelf", before: (api) => api("settings/shelf", { enabled: true }), init: `localStorage.setItem("rra-shelf-help", JSON.stringify({ seen: "", never: true }));` };
 
 /* How the page is brought to each screen of the contract, and what holds it; `shared`: screens of the contract's under the same root, held by their own checks. */
@@ -689,8 +683,7 @@ const SCREENS = {
   "label-unmerge": { open: OPEN_LABEL_UNMERGE, root: "#label-unmerge-sheet" },
   // The Shelf, a page of its own (/shelf), switched on first (item 207).
   "shelf": Object.assign({ open: OPEN_SHELF, root: "body" }, SHELF),
-  "shelf-choices": Object.assign({ open: OPEN_SHELF_CHOICES, root: "#pick" }, SHELF),
-  "shelf-album": Object.assign({ open: OPEN_SHELF_ALBUM, root: "#open" }, SHELF)
+  "shelf-choices": Object.assign({ open: OPEN_SHELF_CHOICES, root: "#pick" }, SHELF)
 };
 
 test("every screen of the contract has a way to open it on the page", () => {

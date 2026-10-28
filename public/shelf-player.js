@@ -1,9 +1,9 @@
 // @ts-check
 /*
  * shelf-player.js — playing from the Shelf: the zone it plays in, what that
- * zone is playing, the bar along the foot of the page (v1.9.3, v1.9.10), the
- * album in front and the tracks chosen on its back sent to play, and the zone
- * chooser. Moved out of shelf.js in v1.9.66, behaviour unchanged.
+ * zone is playing, the bar along the foot of the page (v1.9.3, v1.9.10), and
+ * the zone chooser. Moved out of shelf.js in v1.9.66. The album in front is
+ * played from its album view, the library's (item 218, shelf-back.js).
  * Copyright (c) 2026 Lewis Menzies (Music Duck / MusicD)
  * Released under the MIT License. See the LICENSE file for details.
  *
@@ -220,115 +220,6 @@
       const only = list.filter(sameTitle);
       return only.length === 1 ? list.indexOf(only[0]) : -1;
     }
-    // A zone to play in, or the zone list opened and false.
-    async function needZone() {
-      // a zone given by name (?zone=Kitchen) is turned into its id first
-      if (!zoneKnown) await pollNowPlaying();
-      if (!zoneKnown) { toast("Choose a zone to play in first"); openZones(); return false; }
-      return true;
-    }
-    async function act(kind, btn) {
-      const a = h.centre();
-      if (!a) return;
-      if (!(await needZone())) return;
-      btn.disabled = true;
-      try {
-        const r = await fetch("/api/play", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          // The album's id: Mandarin's albums keep theirs, whatever list they were shown in.
-          body: JSON.stringify({ offset: a.o, zone_or_output_id: zoneId, kind })
-        });
-        if (r.ok) {
-          const where = zoneName ? " in " + zoneName : "";
-          toast(kind === "play_now" ? `Playing ${a.t}${where}` : kind === "play_next" ? `${a.t} plays next${where}` : `${a.t} added to the queue${where}`);
-          setTimeout(afterPlay, 1200);
-        } else if (r.status === 404 || r.status === 409) {
-          toast("That album isn’t in your library any more");
-          h.pick.loadLibrary();
-        } else {
-          toast(await reason(r, "That didn’t work. Try again."));
-        }
-      } catch (e) {
-        toast("Mandarin didn’t answer. Try again.");
-      } finally {
-        btn.disabled = false;
-      }
-    }
-    $("#actions").addEventListener("click", (e) => { const b = e.target.closest(".act"); if (b) act(b.dataset.act, b); });
-
-    // The chosen tracks, from their buttons under the cover (v1.9.4; v1.9.68) — one request
-    // per track, as the remote's album view sends a selection: Play now plays
-    // the first that goes and queues the rest behind it (play_now for each
-    // would leave the last one playing alone), Play next sends them last to
-    // first so they land in album order, Queue adds them in album order.
-    let picksBusy = false;
-    async function playPicks(kind) {
-      const tsel = h.back.tsel(), tracksOf = h.back.tracksOf, endPicks = h.back.endPicks;
-      if (!tsel || picksBusy) return;
-      const sel = tsel, a = sel.album, st = tracksOf.get(sel.key);
-      // Its list was found stale and forgotten: nothing here can be trusted to
-      // play. Said, and the choosing ended, rather than a button that does nothing.
-      if (!st || !st.tracks) { toast("Turn the case over again to read its tracks."); endPicks(); return; }
-      // Busy from the first moment — before the zone is looked up — or two quick
-      // taps both get through and every track is sent twice.
-      picksBusy = true;
-      const btns = document.querySelectorAll("#tsel [data-tact]");
-      for (const b of btns) /** @type {HTMLButtonElement} */ (b).disabled = true;
-      const sent = [];
-      /** @type {number[]} */
-      let order;
-      let why = "", stale = false;
-      try {
-        if (!(await needZone())) return;
-        order = [...sel.picks].sort((x, y) => x - y);
-        if (kind === "play_next") order.reverse();
-        for (let k = 0; k < order.length; k++) {
-          const i = order[k], t = st.tracks[i];
-          if (!t) continue;
-          if (order.length > 3) toast(`Adding track ${k + 1} of ${order.length}…`);
-          let r;
-          try {
-            r = await fetch("/api/play-track", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                offset: a.o, track: i, title: t.title || "",
-                zone_or_output_id: zoneId,
-                kind: kind === "play_now" && sent.length ? "queue" : kind,
-                // The chosen track alone: Play now on a track otherwise plays the
-                // rest of the album after it (the album page's meaning).
-                only: true
-              })
-            });
-          } catch (e) { why = "Mandarin didn’t answer."; break; }
-          if (r.ok) { sent.push(i); continue; }
-          // The list is not the album's any more: every index after this one
-          // is as wrong, so stop, forget the list, and end the choosing.
-          if (r.status === 404 || r.status === 409) { why = "This album’s tracks have changed — open the album again."; tracksOf.delete(sel.key); stale = true; break; }
-          if (!why) why = await reason(r, "A track couldn’t be played.");
-        }
-      } finally {
-        picksBusy = false;
-        for (const b of btns) /** @type {HTMLButtonElement} */ (b).disabled = false;
-      }
-      if (stale && h.back.tsel() === sel) endPicks();
-      if (!sent.length) { toast(why || "That didn’t work. Try again."); return; }
-      const where = zoneName ? " in " + zoneName : "";
-      const what = sent.length === 1 ? "1 track" : `${sent.length} tracks`;
-      let msg = kind === "play_now" ? `Playing ${what}${where}`
-        : kind === "play_next" ? `${what} play${sent.length === 1 ? "s" : ""} next${where}`
-        : `${what} added to the queue${where}`;
-      if (sent.length < order.length) msg += ` — ${order.length - sent.length} didn’t go. ${why}`;
-      toast(msg);
-      // What went is done with. What did not stays chosen, to try again — and so
-      // does anything chosen while these were on their way.
-      if (h.back.tsel() === sel) {
-        for (const i of sent) sel.picks.delete(i);
-        if (!sel.picks.size) endPicks(); else h.back.paintPicks();
-      }
-      setTimeout(afterPlay, 1200);
-    }
     // What a play changed: the player, and the queue if it is open (a track
     // added to the end moves nothing the player shows when the server does not
     // say how much is queued).
@@ -338,8 +229,6 @@
       // once: the poll has already read the queue if it saw it move
       if (h.queue.isOpen() && h.queue.seq() === seq) h.queue.load(true);
     }
-    $("#tsel").addEventListener("click", (e) => { const b = e.target.closest("[data-tact]"); if (b) playPicks(b.dataset.tact); });
-    $("#tsel-clear").addEventListener("click", () => h.back.endPicks());
 
     // the zone chooser
     const zonesEl = $("#zones");
@@ -364,6 +253,7 @@
       zoneId = b.dataset.zone;
       zoneKnown = true;
       storeSet(ZONE_KEY, zoneId);
+      if (h.back) h.back.zoneIs(zoneId);   // the album view, if open, plays there too (item 218)
       // The choice rides along to the wall display, which follows ?zone= too.
       try { const u = new URL(location.href); u.searchParams.set("zone", zoneId); window.history.replaceState(null, "", u.pathname + u.search); }
       catch (err) { /* an old browser without URL: the choice still holds on this page */ }

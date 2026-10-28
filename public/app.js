@@ -41,8 +41,8 @@ async function bootstrap() {
         if (activeFilter) showWall({ loadIfEmpty: true });
         else showHome();
 
-        // Restore the album modal if it was open
-        try {
+        // Restore the album modal if it was open (not in the Shelf's frame: it opens what the Shelf asks, item 218)
+        if (!document.documentElement.classList.contains("embed-album")) try {
           const m = sessionStorage.getItem("rra-modal");
           if (m) {
             const parsed = JSON.parse(m);
@@ -53,6 +53,10 @@ async function bootstrap() {
             }
           }
         } catch (e) { /* corrupt sessionStorage modal state — skip restore, open normally */ }
+
+        // Up: what waits for the page to be ready goes (album-embed.js).
+        window.__musicdReady = true;
+        window.dispatchEvent(new Event("musicd-ready"));
 
         // Every 15 s while on screen (v0.8.36: not while hidden), and at once on coming back.
         setInterval(() => { if (!document.hidden) loadZones(); }, 15000);

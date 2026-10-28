@@ -2,8 +2,11 @@
 /*
  * The Shelf's album view and its slimmer bar (item 206, Rouen v1.9.67-t5 to v1.9.68), in a real browser against the
  * real server and a fake Sonos household: the bar one row with the count, the order and Spin; the case in front
- * turned over opens the album view over the screen above the bar, Play now and Queue under the cover, then the
- * review and More by; a tile of More by turns the shelf to that album. Skipped where no Chromium or Chrome is found.
+ * turned over opens the album view over the screen above the bar — since item 218 (the owner: the same screen as
+ * the library's) the library's own album view, the page in a frame: three columns on a desktop and a tablet held
+ * sideways, one on a tablet upright and a phone, every track with its time, its heart and ⋯, Play now in the
+ * Shelf's room; its Back turns the case back; an artist it asks for opens as the whole page. Skipped where no
+ * Chromium or Chrome is found.
  */
 const ports = require("./ports");
 const test = require("node:test");
@@ -65,73 +68,89 @@ test("Shelf's album view in a browser", { skip: (!haveFfmpeg() && "ffmpeg is not
       assert.deepEqual(page.errors, []);
     });
 
-    await t.test("the album view (item 206, Rouen v1.9.67-t5 and v1.9.68): the case in front opens it over the screen above the bar; Play now and Queue under the cover, then the review and More by; a tile opens that album; × closes", async () => {
+    await t.test("the album view is the library's (item 218): over the screen above the bar, three columns, every track's time, its heart and ⋯; Play now plays in the Shelf's room; its Back turns the case back", async () => {
       const list = (await (await fetch(B + "/api/shelf/albums", { headers: H })).json()).albums;
-      const best = list.find(a => a.t === "Best Of"), kob = list.find(a => a.t === "Kind of Blue");   // Best Of: not a Jazz album, so not on the shelf
+      const kob = list.find(a => a.t === "Kind of Blue");
       const page = await open();
       const r = await page.eval(`(async () => { ${HELPERS} ${ready} ${DRIVE}
         const out = {};
-        window.__fake["/api/album/extras"] = { album: { description: "Modal and unhurried.", source: "Wikipedia", url: "https://example.org/kob" } };
-        window.__fake["/api/album/more"] = { artist: "Miles Davis", by: [{ offset: ${best.o}, title: "Best Of", subtitle: "Various Artists", image_key: ${JSON.stringify(best.k)} },
-          { offset: 999999, title: "Not Here", subtitle: "Miles Davis", image_key: null }] };
         $('.tab[data-tab="genre"]').click(); tile("genre", "Jazz").click();
         await until(() => S().N === 3 && S().mode === "idle"); await rest();
         while (S().title !== "Kind of Blue") { stage.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true })); await rest(); }
         out.before = viewOpen();
         await turnOver();
-        await until(() => document.querySelector("#open .ov-review"), 4000);
-        const box = (s) => $(s).getBoundingClientRect(), o = box("#open"), bar = box("#mt");
-        out.over = { top: Math.round(o.top), bottom: Math.round(o.bottom - bar.top), width: Math.round(o.width - innerWidth) };
-        out.head = { title: $("#open .ov-title").textContent, sub: $("#open .ov-sub").textContent, line: $("#open .ov-line") && $("#open .ov-line").textContent };
+        const box = (el) => el.getBoundingClientRect(), o = box(ov), bar = box($("#mt")), f = box(ov.querySelector("iframe"));
+        out.over = { top: Math.round(o.top), bottom: Math.round(o.bottom - bar.top), width: Math.round(o.width - innerWidth), frame: Math.round(f.width - o.width) + Math.round(f.height - o.height) };
+        const m = $f("#album-modal");
+        out.wide = m.classList.contains("album-wide");
+        out.cols = [...fdoc().querySelectorAll(".aw-col")].map(c => c.className.replace("aw-col ", ""));
+        out.title = $f("#modal-title").textContent;
         out.tracks = rows();
-        out.under = $("#actions").closest(".ov-side") !== null && box("#actions").top >= box("#open .ov-art").bottom - 1;
-        out.acts = [...document.querySelectorAll("#open [data-act]")].map(b => b.dataset.act);
-        out.review = { text: $("#open .ov-text").textContent, link: $("#open .ov-src").textContent, href: $("#open .ov-src").href };
-        out.more = { label: $("#open .ov-more .ov-label").textContent, tiles: [...document.querySelectorAll("#open .ov-tile .ov-tile-t")].map(e => e.textContent) };
-        out.order = ["#actions", "#open .ov-review", "#open .ov-more"].map(s => Math.round(box(s).top)).every((y, i, a) => i === 0 || y >= a[i - 1]);
-        // Play now from under the cover
-        $('#open [data-act="play_now"]').click();
-        await until(() => posts("/api/play").length);
-        out.play = posts("/api/play")[0];
-        await until(() => /^Playing /.test($("#toast").textContent), 4000);
-        // A tile of one the shelf doesn't hold (the choices leave it off): said, nothing moves
-        document.querySelectorAll("#open .ov-tile")[0].click(); await sleep(50);
-        out.notHere = $("#toast").textContent; out.still = S().title;
-        // The choices changing close it
+        out.buttons = ["album.favourite", "album.play-now", "album.queue", "album.more"].map(k => !!$f('[data-parity="' + k + '"]'));
+        out.chrome = ["#mini-transport", "#touch-nav"].map(s => { const e = $f(s); return !!e && e.getClientRects().length > 0; }).concat(!!$f(".app") && $f(".app").getClientRects().length > 0);
+        out.zone = S().zone;
+        $f('[data-parity="album.play-now"]').click();
+        await until(() => fposts("/api/play").length, 6000);
+        out.play = fposts("/api/play")[0];
+        // Its Back: the album closes, and the case with it.
+        $f("#modal-close-btn").click();
+        out.closed = await until(() => !viewOpen() && S().flipped === null, 4000);
+        // Opened again: at once, the frame kept.
+        const frameWas = ov.querySelector("iframe");
+        await turnOver();
+        out.again = ov.querySelector("iframe") === frameWas && $f("#modal-title").textContent === "Kind of Blue";
+        // The choices changing close it.
         tile("genre", "Jazz").click();
         out.closedByChoice = await until(() => !viewOpen(), 3000);
+        out.errors = fwin().__errors || [];
         return out; })()`);
       assert.equal(r.before, false, "closed until the case is turned over");
-      assert.deepEqual(r.over, { top: 0, bottom: 0, width: 0 }, "the whole screen above the bar");
-      assert.deepEqual(r.head, { title: "Kind of Blue", sub: "Miles Davis", line: "1959" });
-      assert.deepEqual(r.tracks, ["1 Kind of Blue one"]);
-      assert.equal(r.under, true, "Play now and Queue under the cover");
-      assert.deepEqual(r.acts, ["play_now", "queue"]);
-      assert.deepEqual(r.review, { text: "Modal and unhurried.", link: "View on Wikipedia", href: "https://example.org/kob" });
-      assert.deepEqual(r.more, { label: "More by Miles Davis", tiles: ["Best Of", "Not Here"] });
-      assert.equal(r.order, true, "the buttons, then the review, then More by");
+      assert.deepEqual(r.over, { top: 0, bottom: 0, width: 0, frame: 0 }, "the whole screen above the bar, the frame filling it");
+      assert.equal(r.wide, true, "three columns on a desktop");
+      assert.deepEqual(r.cols, ["aw-left", "aw-mid", "aw-right"]);
+      assert.equal(r.title, "Kind of Blue");
+      assert.equal(r.tracks.length, 1);
+      assert.match(r.tracks[0], /^Kind of Blue one \d+:\d\d$/, "the track with its time: " + r.tracks[0]);
+      assert.deepEqual(r.buttons, [true, true, true, true], "the heart, Play now, Queue and ⋯");
+      assert.deepEqual(r.chrome, [false, false, false], "the page's mini player, its row and the rest of it out of sight");
       assert.equal(r.play.offset, kob.o, "the album in the view");
-      assert.equal(r.play.kind, "play_now");
-      assert.equal(r.notHere, "That album isn’t on this shelf — clear the choices to find it");
-      assert.equal(r.still, "Kind of Blue");
+      assert.equal(r.play.zone_or_output_id, r.zone, "played in the Shelf's room");
+      assert.equal(r.closed, true, "its Back turns the case back");
+      assert.equal(r.again, true, "opened again in the same frame");
       assert.equal(r.closedByChoice, true, "the choices changing close it");
       assert.deepEqual(page.errors, []);
     });
 
-    await t.test("More by: a tap on an album the shelf holds turns the shelf to it and opens it", async () => {
-      const list = (await (await fetch(B + "/api/shelf/albums", { headers: H })).json()).albums;
-      const pastel = list.find(a => a.t === "Pastel Blues");
+    await t.test("an artist the album view asks for opens as the whole page, at that artist (item 218)", async () => {
       const page = await open();
-      const r = await page.eval(`(async () => { ${HELPERS} ${ready} ${DRIVE}
-        window.__fake["/api/album/more"] = { artist: "Someone", by: [{ offset: ${pastel.o}, title: "Pastel Blues", subtitle: "Nina Simone", image_key: null }] };
-        await rest(); await turnOver(); await until(() => document.querySelector("#open .ov-tile"), 4000);
-        const was = S().title;
-        document.querySelector("#open .ov-tile").click();
-        await until(() => S().title === "Pastel Blues" && $("#open .ov-title").textContent === "Pastel Blues", 4000);
-        return { was, now: S().title, view: viewOpen(), shown: $("#open .ov-title").textContent, flipped: S().flipped === Math.round(S().p) }; })()`);
-      assert.notEqual(r.was, "Pastel Blues");
-      assert.deepEqual([r.now, r.view, r.shown, r.flipped], ["Pastel Blues", true, "Pastel Blues", true]);
+      await page.eval(`(async () => { ${HELPERS} ${ready} ${DRIVE}
+        await rest(); await turnOver();
+        fwin().__showArtistAlbums("Miles Davis");
+        return true; })()`);
+      // The Shelf leaves for the page: what it evaluates next is the page's, once it has come.
+      for (let i = 0; i < 100; i++) { await sleep(150); try { if (await page.eval("location.pathname === '/' && document.readyState === 'complete'")) break; } catch (e) { /* on its way */ } }
+      const r = await page.eval(`(async () => { ${HELPERS}
+        await until(() => location.pathname === "/" && window.__artistViewActive && window.__artistViewActive(), 15000);
+        return { path: location.pathname + location.search, artist: window.__artistViewActive() }; })()`);
+      assert.deepEqual(r, { path: "/", artist: true }, "the page, at the artist, its address put back");
       assert.deepEqual(page.errors, []);
+    });
+
+    await t.test("three columns on a tablet held sideways; one on a tablet upright and a phone, each track with its time (item 218)", async () => {
+      for (const [w, h, wide] of [[1180, 820, true], [820, 1180, false], [412, 915, false]]) {
+        const tb = await Browser.launch({ width: w, height: h, mouse: false });
+        try {
+          const page = await tb.page(B + "/shelf", { cookies: [{ name: "musicd_session", value: token, url: B }], init: INIT, touch: true });
+          const r = await page.eval(`(async () => { ${HELPERS} ${ready} ${DRIVE}
+            await rest(); await turnOver();
+            return { wide: $f("#album-modal").classList.contains("album-wide"), cols: fdoc().querySelectorAll(".aw-col").length,
+              timed: rows().every(t => / \\d+:\\d\\d$/.test(t)), n: rows().length }; })()`);
+          assert.equal(r.wide, wide, `${w}x${h}: ${wide ? "three columns" : "one column"}`);
+          assert.equal(r.cols, wide ? 3 : 0);
+          assert.ok(r.n > 0 && r.timed, `${w}x${h}: every track with its time`);
+          assert.deepEqual(page.errors, [], `${w}x${h}`);
+        } finally { await tb.close(); }
+      }
     });
 
   } finally {
