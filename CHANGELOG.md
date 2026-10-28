@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- `222-ci-blobless-history` (item 222): **CI's quality gates no longer run out of time fetching the history.** The gates,
+  the Android build and the image's build fetch the whole history (for where a branch left dev, and a test build's
+  number), and the history carries every APK published, 107 of them at some 12 MB each. Fetching it ran past the gates'
+  10 minutes three times on 28 October, cancelling them before a check ran. They now fetch the commits without every
+  file's every version (`filter: blob:none`), 22 MB in seconds; a file of an older commit is fetched when it is read.
+
 - `221-android-portrait-phones-fold-tablet` (item 221): **the Android app on a phone, a tablet and a foldable.** A
   phone is held upright, whatever its rotation setting; a tablet, and a foldable opened, turns freely and is laid out
   as a tablet, the album's three columns among it. The line is Android's own, a screen whose shorter side is 600 dp or

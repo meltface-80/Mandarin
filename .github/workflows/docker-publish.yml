@@ -53,6 +53,10 @@ jobs:
         with:
           # The history and the tags, for a test build's number (below).
           fetch-depth: 0
+          # Commits and trees, not every file's every version: the history carries each APK published,
+          # gigabytes, which ran past the gates' 10 minutes (item 222). A file of an older commit is
+          # fetched when it is read.
+          filter: blob:none
 
       - uses: docker/setup-qemu-action@v3
 
