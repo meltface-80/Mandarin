@@ -1,5 +1,96 @@
 # Changelog
 
+## v1.1.11
+
+**The Shelf in the Android app, and the album view in three columns on a big screen.** The Shelf is brought up to
+Rouen's: one look of spines, the album opened over the whole screen, a slimmer bar with the remote's volume, and eight
+tabs of choices, with Labels, Types, Formats and Favourites new among them; #N, A → Z and Z → A put the genres in
+order, and the shelf goes by artist, by label and catalogue number, by catalogue number, by year or at random. The
+Android app now draws the Shelf itself. On a computer, a TV or a tablet held sideways the album view fills the screen
+in three columns: the cover and what goes with it, the write-ups with Read more, and the tracks. On a phone or a
+tablet Home's menu is at its top left and Shelf is in the row along the foot, and a tablet's mini player is docked on
+that row as the Android app's is. Items 206 to 215.
+
+- `215-tablet-mini-docked` (item 215): **on a tablet, either way round, the mini player is docked on the row along the
+  foot**, edge to edge and square, as the Android app has it, not a pill floating over it. A phone keeps the pill.
+- `214-album-three-columns` (item 214): **the album view in three columns on a desktop, a TV or a tablet held
+  sideways** (wider than tall, 1000 by 600 at least; a phone either way round, and a tablet upright, as before), over
+  the whole screen, each column scrolling on its own and all ending above the mini player:
+  - on the left the cover, the album's head and its buttons, then its credits, more by the artist, what they appear
+    on, similar artists and similar albums;
+  - in the middle About this album and, new there, about its artist, fitted to the screen: each as tall as its words,
+    the two shortened together when they don't both fit, with Read more, which opens the whole of both (Read less
+    shortens them again);
+  - on the right the tracks.
+- `213-shelf-genre-sort` (item 213): **#N, A → Z and Z → A are the Genres tab's**, as in Rouen (1.9.70-t5), on the page
+  and in the Android app: three buttons above the genre tiles put them in order, #N (the most albums first) by default,
+  and each device keeps the one chosen. The Order tab is Rouen's again: A → Z by artist, by label and catalogue №, by
+  catalogue №, by year and random; A → Z by album is gone, and a device that kept it opens by artist.
+- `211-shelf-album-order-freeze` (item 211): **the Android app's Shelf froze when put A → Z by album**, and Android
+  ended it: for each of the library's titles it made three search patterns afresh, twice over, on the screen's own
+  thread (13,874 albums: over ten seconds). Each pattern is now made once. Each album's names are worked out once
+  per sort instead of at every comparison, so the label and catalogue orders and finding the record that is playing
+  are quicker on a large library too.
+- `210-home-menu-bottom-bar` (item 210): **the menu at Home's top left, and Shelf in the row along the foot**, in
+  the Android app and on a phone's or a tablet's page:
+  - The side menu opens from a button at the top left of Home, the side it opens from, with the greeting beside
+    it (or alone there with the greeting off); it was the row's first button.
+  - The row along the foot is Home, Library, Artists, Shelf and Search, evenly across. Shelf is there only while it
+    is switched on (Settings → Setup → Shelf), and not offline; without it the other four share the row evenly.
+- `209-shelf-tiles-tab-highlight` (item 209): the Shelf's choices, after a look at them on a phone:
+  - **Genres and Formats** tiles are the size of the Types and Years tiles, three to a row on a phone: a genre's
+    name and its count, without the fan of covers. Labels and Favourites keep theirs.
+  - **The open tab** is outlined in brass, and in the Android app it now follows the tab you are on: it stayed on
+    Genres whichever was open, and its counts didn't move either until the choices were opened again.
+- `208-shelf-format-favourites` (item 208): **Formats and Favourites** in the Shelf's choices, on the page and in the
+  Android app, so there are eight tabs in two even rows of four: Genres, Artists, Years, Labels, Types, Formats,
+  Favourites and Order.
+  - **Formats**: a tile for each format the library has, each album under one: PCM by bits and rate ("16/44.1",
+    "24/44.1", "24/96"), DSD by its rate and channels ("DSD64 2CH", "DSD128 Multichannel"), anything over two
+    channels marked Multichannel ("24/96 Multichannel"), and the rest by name ("MP3", "AAC"). Choose as many as
+    you like; they narrow the other choices as those narrow each other.
+  - **Favourites**: one tile, with a fan of their covers and how many, showing only the albums you have hearted. A
+    heart added or taken off reaches the shelf on its next look.
+  - The server's shelf list now says each album's format tile and whether it is a favourite, with the tiles in
+    order; the channels come from the most any of an album's tracks has.
+- `207-android-native-shelf` (item 207): **the Shelf in the Android app**, drawn by the app itself instead of
+  opened in the phone's browser. Shelf in the side menu opens it full screen, for the room the app is playing in:
+  - **The shelf** as the page draws it: the spines in their 3D row with the album in front, swiped along one at a
+    time, flicked to run on, a case tapped to bring it to the front and the one in front tapped to open it; Spin
+    lands somewhere at random, and the record playing is brought to the front as it opens.
+  - **The choices** (Genres, Artists, Years, Labels, Types, Order) over the whole screen, with the same tiles,
+    counts, chips, Undo and Show N albums; the order chosen is kept on the phone, random apart.
+  - **The album view**: Play now, Add to queue, tracks to choose and play, next or queue, About this album and More
+    by the artist.
+  - **The bar**: what's playing and its progress, the album count, the order, Spin, the zone and the volume sheet
+    with − and +; **the queue** drawn in from the right, Play from here on a track to come.
+  - The help on first opening, as the page shows it, and Don't show again.
+  - Its shelf, choice and motion rules are the page's own (orders, shuffle, the spring, a case's place), held in the
+    app's core and checked number for number against the page's.
+- Dev's numbering: the version the merges take comes from the last release again (1.1.11-tN), not from a version
+  written in `package.json`.
+
+- `206-shelf-rouen-1969` (item 206): the Shelf brought up to Rouen's v1.9.69-t1, everything its shelf gained since
+  v1.9.66:
+  - **One look**, the spines, as tall as the screen allows: each spine one line, the artist, the album and its
+    version ("Deluxe Edition") down from the top, the format ("FLAC 16/44.1", "MP3", "Qobuz"), the year and the
+    catalogue number up from the foot, on a phone too. Where the stage is taller than the cover is wide (a phone held
+    upright, or the choices open beside it) the case in front is a tall card, its cover over the same names.
+  - **The album view**: tapping the case in front opens the album over the whole screen above the bar, with Play now
+    and Queue under its cover, then About this album (the review the album page shows) and More by the artist. A tile
+    of More by turns the shelf to that album and opens it; one the choices leave off says so. Tracks chosen on it are
+    played or queued from under the cover.
+  - **A slimmer bar**, one row: what's playing, the album count, the order and Spin, then the zone and the volume.
+    The volume is the remote's sheet, centred over the shelf just above the bar, with the level, 0 and the top under
+    the slider, and − and +.
+  - **Labels and Types** tiles to narrow the shelf, and the orders **by label and catalogue number**, **by catalogue
+    number**, **by year** and **random**, beside A → Z by artist and by album. The order chosen is kept on the
+    device, random apart.
+  - **On a phone** the choices open over the whole screen, and **Show N albums** at their foot takes them away.
+  - The server's shelf list now carries each album's label, catalogue number, kinds (from its applied MusicBrainz
+    match, or a compilation), format and version, with the labels counted; a new `/api/album/more` gives an
+    artist's other albums for More by.
+
 ## v1.1.10
 
 **A smoother Android app that rests when it isn't needed.** No new features: the Android app's Settings pages open as
@@ -9,12 +100,6 @@ engine running at home when nothing is playing, after Android ended it on 26 Oct
 player rests once it has been idle off screen for five minutes, and the phone's music folder is read again every few
 minutes only while the app is on screen. A phone album's share card has its cover, and Now playing opens the phone's
 own album. Items 197 to 205 (205 is the test suite's own: GitHub's runners moved to Ubuntu 26.04 on 26 Oct).
-
-- `205-scan-test-file-times` (item 205): the C# suite's scan test failed on GitHub's runners from 26 Oct, when
-  `ubuntu-latest` became Ubuntu 26.04: it took each file's time from the `stat` command to make the cover keys it
-  expects, and 26.04's `stat` (uutils coreutils) gives the nanoseconds rounded to the tenth of a microsecond, so the
-  keys matched the server's for some albums and not others. The test now takes each file's length and time from
-  node's own `fs.statSync`, the figures the keys were defined by. The server was right throughout.
 
 - `205-scan-test-file-times` (item 205): the C# suite's scan test failed on GitHub's runners from 26 Oct, when
   `ubuntu-latest` became Ubuntu 26.04: it took each file's time from the `stat` command to make the cover keys it

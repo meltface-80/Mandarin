@@ -162,11 +162,45 @@ test("the library in C# answers as the Node server did", { skip, timeout: 180000
       for (const p of ["/api/filters/genres", "/api/filters/decades", "/api/favourites", "/api/listen-later", "/api/home/genre-groups", "/api/library-stats",
         "/api/random-albums?seed=3&count=5", "/api/random-albums?seed=3&filter_type=genre&filter_value=rock", "/api/random-albums?seed=1&filter_type=decade&filter_value=1960"])
         await same(p, label);
-      // Shelf (/shelf): the whole list, and "the same" for the signature it gave.
-      const shelf = await same("/api/shelf/albums", label);
+      // Shelf (/shelf): the whole list, and "the same" for the signature it gave. Since item 206 (Rouen's Shelf of
+      // v1.9.69-t1) Mandarin's list says more than the Node server's did: each album's label as a place in a list of
+      // labels, its catalogue number, kinds, format and version, and the kinds' names. The recording holds what the
+      // Node server said, every key of it; what it never said is held to the library here.
+      const NODE_KEYS = ["o", "t", "a", "k", "g", "b", "y"];
+      const sameShelf = async (p, step = p) => {
+        const c = await fetch(B + p, { headers: H });
+        const cj = await c.json();
+        assert.equal(c.headers.get("x-mandarin-answered"), "C#", label + p + ": answered by C#");
+        const want = await rec.want(label + step);
+        assert.equal(c.status, want.status, label + p + ": the same status");
+        const node = Object.assign({}, cj, { albums: cj.albums.map(a => Object.fromEntries(NODE_KEYS.map(k => [k, a[k]]))) });
+        delete node.labels; delete node.kinds; delete node.formats;
+        assert.deepStrictEqual(steady(node), want.j, label + p + ": the Node server's answer");
+        return cj;
+      };
+      const shelf = await sameShelf("/api/shelf/albums");
       assert.equal(shelf.albums.length, ids.length, label + "the shelf holds the library");
       assert.deepStrictEqual(await same("/api/shelf/albums?sig=" + shelf.sig, label, "/api/shelf/albums?sig=<sig>"), { same: true, sig: shelf.sig });
-      await same("/api/shelf/albums?sig=0000000000000000", label);
+      await sameShelf("/api/shelf/albums?sig=0000000000000000");
+      const named = (t) => shelf.albums.find(a => a.t === t);
+      assert.deepStrictEqual(shelf.kinds.map(k => k.id), ["album", "ep", "single", "compilation", "live", "soundtrack", "remix", "other"], label + "the kinds' names");
+      assert.deepStrictEqual(["Abbey Road", "Kind of Blue", "Now 1", "Studio"].map(t => named(t).fm), ["FLAC 16/44.1", "FLAC 24/96", "MP3", "WAV 24/44.1"], label + "each album's format");
+      // Item 208: each album's Format tile, the tiles in order with none missing or over, and the favourites (a heart reaches the shelf).
+      assert.deepStrictEqual(["Abbey Road", "Kind of Blue", "Now 1", "Studio"].map(t => named(t).q), ["16/44.1", "24/96", "MP3", "24/44.1"], label + "each album's Format tile");
+      assert.deepStrictEqual([...shelf.formats].sort(), [...new Set(shelf.albums.map(a => a.q).filter(Boolean))].sort(), label + "a tile for each format the library has");
+      assert.ok(shelf.formats.indexOf("16/44.1") < shelf.formats.indexOf("24/44.1") && shelf.formats.indexOf("24/96") < shelf.formats.indexOf("MP3"), label + "the tiles in order");
+      const hearts = (await getJ("/api/favourites")).albums.map(a => a.offset).sort((x, y) => x - y);
+      assert.deepStrictEqual(shelf.albums.filter(a => a.fv).map(a => a.o).sort((x, y) => x - y), hearts, label + "the favourites");
+      assert.deepStrictEqual(named("Now 1").ty, ["compilation"], label + "a compilation, by its flag, with no match to say");
+      assert.equal(named("Abbey Road").ty, null, label + "no kind where nothing says");
+      assert.ok(shelf.albums.every(a => a.c === null && a.v === null), label + "no catalogue numbers tagged, no versions in the titles");
+      // The labels: as each album's page names its label (labels off: none), commonest first.
+      for (const a of shelf.albums) {
+        const page = await getJ("/api/album?offset=" + a.o);
+        assert.equal(a.l === null ? null : shelf.labels[a.l].name, (page.album && page.album.label) || null, label + a.t + ": its label, as its page names it");
+      }
+      for (let i = 1; i < shelf.labels.length; i++) assert.ok(shelf.labels[i - 1].count >= shelf.labels[i].count, label + "labels commonest first");
+      for (const [i, l] of shelf.labels.entries()) assert.equal(shelf.albums.filter(a => a.l === i).length, l.count, label + l.name + ": its count");
       // Home's rows (v0.8.6).
       for (const p of ["/api/home/album-of-the-day", "/api/home/label-of-the-week", "/api/home/history", "/api/home/history?count=1"]) await same(p, label);
       for (const q of ["", "?months=1&count=3", "?months=0", "?months=99&count=500"]) {

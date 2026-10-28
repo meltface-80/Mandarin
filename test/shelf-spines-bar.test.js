@@ -1,9 +1,12 @@
 "use strict";
 /*
- * Shelf (bug list item 149, as Rouen's v1.9.66-t2): in the Spines look, a case turning as the shelf moves is whole over
- * the spines beside it, never cut through by them (the cases are drawn one over another, nearest the front on top,
- * not cut by one another in a shared depth); and tracks chosen on the back of a case are played from the bar, where
- * the album's own Play now and Queue were, the bar's parts all on screen, none over another, and the bar no taller.
+ * Shelf (bug list item 149, as Rouen's v1.9.66-t2): a case turning as the shelf moves is whole over the spines beside
+ * it, never cut through by them (the cases are drawn one over another, nearest the front on top, not cut by one
+ * another in a shared depth). Item 206 (Rouen v1.9.67 to v1.9.69-t1): the spines the one look, each in one line —
+ * the artist, the album and its version down from the top, the format, the year and the catalogue number up from the
+ * foot, on a phone too; a phone held upright shows the case in front as a tall card; the album view's chosen tracks
+ * played from under its cover, its parts on screen and apart; the Labels and Types tiles and the label and catalogue
+ * orders; and on a phone the choices full screen, Show N albums taking them away.
  *
  * The spines are proved in the picture itself: the fronts painted green and the spines red, the shelf held halfway
  * between two albums on a tablet and on a phone, a screenshot taken, and the row across the covers found in it. No
@@ -48,12 +51,15 @@ function png(buf) {
 const green = ([r, g, b]) => g > 200 && r < 60 && b < 60;
 const red = ([r, g, b]) => r > 200 && g < 60 && b < 60;
 
+// makeLibrary's three albums and seven more, four with a label and a catalogue number, one with a version in its title.
 function library() {
   const lib = makeLibrary();
-  const more = [["The Beatles", "Abbey Road", 1969], ["Björk", "Homogenic", 1997], ["Miles Davis", "Kind of Blue", 1959],
-    ["10cc", "The Original Soundtrack", 1975], ["!!!", "Myth Takes", 2007], ["Daft Punk", "Discovery", 2001], ["Nina Simone", "Pastel Blues", 1965]];
-  for (const [artist, album, year] of more) {
-    gen(path.join(lib.music, artist, album, "01 x.flac"), { seconds: 1, tags: { title: album + " one", artist, album, track: 1, genre: "Rock", date: String(year) } });
+  const more = [["The Beatles", "Abbey Road", 1969, "Apple", "PCS 7088"], ["Björk", "Homogenic", 1997, "One Little Indian", "TPLP71"],
+    ["Miles Davis", "Kind of Blue", 1959, "Columbia", "CL 1355"], ["10cc", "The Original Soundtrack", 1975], ["!!!", "Myth Takes", 2007],
+    ["Daft Punk", "Discovery (Deluxe Edition)", 2001, "Virgin", "V2940"], ["Nina Simone", "Pastel Blues", 1965]];
+  for (const [artist, album, year, label, catalognumber] of more) {
+    const tags = Object.assign({ title: album + " one", artist, album, track: 1, genre: "Rock", date: String(year) }, label ? { label, catalognumber } : {});
+    gen(path.join(lib.music, artist, album, "01 x.flac"), { seconds: 1, tags });
   }
   return lib;
 }
@@ -76,7 +82,7 @@ const READY = `
   const pe = (type, x, y, id) => stage.dispatchEvent(new PointerEvent(type, { pointerId: id, clientX: x, clientY: y, bubbles: true, pointerType: "touch", isPrimary: true }));
 `;
 
-test("Shelf: spines never through a turning case; chosen tracks played from the bar", { skip, timeout: 240000 }, async (t) => {
+test("Shelf: spines never through a turning case; one line along each spine; the album view's chosen tracks; labels, types and the phone", { skip, timeout: 300000 }, async (t) => {
   const lib = library();
   const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false, identify: false });
   await srv.start();
@@ -84,6 +90,7 @@ test("Shelf: spines never through a turning case; chosen tracks played from the 
     const token = await signIn(B);
     const H = { Authorization: "Bearer " + token };
     await fetch(B + "/api/settings/shelf", { method: "POST", headers: Object.assign({ "Content-Type": "application/json" }, H), body: JSON.stringify({ enabled: true }) });
+    await fetch(B + "/api/settings/labels", { method: "POST", headers: Object.assign({ "Content-Type": "application/json" }, H), body: JSON.stringify({ enabled: true }) });
     for (let i = 0; i < 150; i++) {
       const st = await (await fetch(B + "/api/status", { headers: H })).json();
       if (st.index_count >= 10 && !st.scan.running) break;
@@ -135,46 +142,128 @@ test("Shelf: spines never through a turning case; chosen tracks played from the 
       });
     }
 
+    const TURN = `
+      const box = (el) => (typeof el === "string" ? $(el) : el).getBoundingClientRect();
+      const front = () => [...document.querySelectorAll('.it[data-v="' + Math.round(S().p) + '"]')].find(e => e.getBoundingClientRect().width > 0);
+      const viewOpen = () => !$("#open").classList.contains("hidden") && $("#open").classList.contains("on");
+      const turnOver = async () => { await until(() => front()); const m = box(front()), id = ++pid;
+        pe("pointerdown", m.left + m.width / 2, m.top + m.height / 2, id); pe("pointerup", m.left + m.width / 2, m.top + m.height / 2, id);
+        await until(() => viewOpen() && document.querySelector("#open .bk-tracks li[data-i]")); await sleep(600); };
+      const goTo = async (title) => { for (let k = 0; k < 12 && S().title !== title; k++) { stage.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true })); await until(() => S().mode === "idle"); } };
+    `;
+
     for (const [name, size] of [["a wide screen", { width: 1440, height: 900 }], ["a tablet", { width: 1024, height: 768 }], ["a phone", { width: 390, height: 844 }]]) {
-      await t.test(`the bar, on ${name}: tracks chosen are played from it, its parts on screen and apart, its height the same`, async () => {
-        const r = await at(size, "covers", (page) => page.eval(`(async () => { ${READY}
-          const box = (el) => el.getBoundingClientRect();
-          const parts = () => [".mt-transport", "#mt-info", "#actions", "#tsel", ".mt-controls"].map(s => [s, $(s)])
+      await t.test(`the album view, on ${name}: tracks chosen are played from under the cover, its parts on screen and apart; the bar no taller`, async () => {
+        const r = await at(size, "covers", (page) => page.eval(`(async () => { ${READY} ${TURN}
+          const parts = () => [".ov-art", "#actions", "#tsel", ".ov-head", ".mt-transport", "#mt-info", ".mt-controls"].map(s => [s, $(s)])
             .filter(([, e]) => e && !e.classList.contains("hidden") && getComputedStyle(e).display !== "none").map(([s, e]) => [s, box(e)]);
-          const before = { h: box($("#mt")).height, stage: box(stage).bottom, bar: box($("#mt")).top };
-          const front = () => [...document.querySelectorAll('.it[data-v="' + Math.round(S().p) + '"]')].find(e => e.getBoundingClientRect().width > 0);
-          await until(() => front());
-          const m = box(front()), id = ++pid;
-          pe("pointerdown", m.left + m.width / 2, m.top + m.height / 2, id); pe("pointerup", m.left + m.width / 2, m.top + m.height / 2, id);
-          await until(() => document.querySelector(".it.flipped .bk-tracks li[data-i]"));
-          await sleep(900);
-          const li = document.querySelector('.it.flipped li[data-i="0"]').getBoundingClientRect(), id2 = ++pid;
-          pe("pointerdown", li.left + li.width / 2, li.top + li.height / 2, id2); await sleep(650); pe("pointerup", li.left + li.width / 2, li.top + li.height / 2, id2);
+          const before = { h: box("#mt").height };
+          await turnOver();
+          const li = box('#open li[data-i="0"]'), el = $('#open li[data-i="0"]'), id2 = ++pid;
+          const pr = (type) => el.dispatchEvent(new PointerEvent(type, { pointerId: id2, clientX: li.left + li.width / 2, clientY: li.top + li.height / 2, bubbles: true, pointerType: "touch", isPrimary: true }));
+          pr("pointerdown"); await sleep(650); pr("pointerup");
           await until(() => S().picks.length === 1);
           await frame();
+          $("#open-body").scrollTop = 0; await frame();
           const now = parts(), over = [], off = [];
           for (let i = 0; i < now.length; i++) {
             const [s, a] = now[i];
-            if (a.left < -0.5 || a.right > innerWidth + 0.5 || a.top < -0.5 || a.bottom > innerHeight + 0.5) off.push(s);
+            if (a.left < -0.5 || a.right > innerWidth + 0.5) off.push(s);
             for (let j = i + 1; j < now.length; j++) {
               const [s2, b2] = now[j];
               if (a.left < b2.right - 0.5 && b2.left < a.right - 0.5 && a.top < b2.bottom - 0.5 && b2.top < a.bottom - 0.5) over.push(s + " over " + s2);
             }
           }
-          const dbg = { width: innerWidth, parts: now.map(([s, b]) => s + " " + Math.round(b.left) + "–" + Math.round(b.right)).join(", ") };
-          return { dbg, shown: now.map(([s]) => s), in: $("#tsel").parentElement.id, over, off, count: $("#tsel-count").textContent,
-            h: box($("#mt")).height, before, stageToBar: Math.round(box($("#mt")).top - box(stage).bottom),
+          return { shown: now.map(([s]) => s), under: !!$("#tsel").closest("#open .ov-side") && box("#tsel").top >= box(".ov-art").bottom - 1,
+            over, off, count: $("#tsel-count").textContent, h: box("#mt").height, before, stageToBar: Math.round(box("#mt").top - box(stage).bottom),
+            viewToBar: box("#mt").top - box("#open").bottom,
             buttons: [...document.querySelectorAll("#tsel [data-tact]")].map(b => b.dataset.tact) };
         })()`));
-        assert.equal(r.in, "mt", "in the bar");
+        assert.equal(r.under, true, "under the cover (Rouen v1.9.68)");
         assert.deepEqual(r.buttons, ["play_now", "play_next", "queue"]);
         assert.ok(r.shown.includes("#tsel") && !r.shown.includes("#actions"), "the chosen tracks' buttons in the album's place: " + r.shown);
         assert.deepEqual(r.over, [], "none over another");
-        assert.deepEqual(r.off, [], "none off screen: " + JSON.stringify(r.dbg));
+        assert.deepEqual(r.off, [], "none off screen");
         assert.equal(Math.round(r.h), Math.round(r.before.h), "the bar no taller as tracks are chosen");
         assert.equal(r.stageToBar, 0, "nothing between the shelf and the bar");
-        if (size.width > 440) assert.equal(r.count, "1 track chosen");
+        // the view ends where the bar's height, as offsetHeight rounds it, says: within the pixel
+        assert.ok(Math.abs(r.viewToBar) < 1, "the view ends at the bar: " + r.viewToBar);
+        assert.equal(r.count, "1 track chosen");
       });
     }
+
+    for (const [name, size] of [["a tablet", { width: 1180, height: 820 }], ["a phone", { width: 390, height: 844 }]]) {
+      await t.test(`the spines, on ${name}: one line each, the artist, the album and its version down from the top; the format, the year and the catalogue № up from the foot`, async () => {
+        const r = await at(size, "spines", (page) => page.eval(`(async () => { ${READY} ${TURN}
+          await goTo("Abbey Road");
+          // Discovery's spine: beside the front, drawn whole
+          const sp = [...document.querySelectorAll(".it .side.r .sp")].find(e => e.querySelector(".sp-ar") && e.querySelector(".sp-ar").textContent === "Daft Punk");
+          const txt = (c) => { const e = sp.querySelector(c); return e ? e.textContent : null; };
+          const sb = sp.getBoundingClientRect(), cat = sp.querySelector(".sp-cat").getBoundingClientRect(), ar = sp.querySelector(".sp-ar").getBoundingClientRect();
+          const tall = stage.classList.contains("tall"), card = front().querySelector(".card");
+          return { ar: txt(".sp-ar"), ti: txt(".sp-ti"), vr: txt(".sp-vr"), fm: txt(".sp-fm"), yr: txt(".sp-yr"), cat: txt(".sp-cat"),
+            catShown: getComputedStyle(sp.querySelector(".sp-cat")).display !== "none",
+            ends: { top: ar.top - sb.top < sb.height * 0.2 || ar.left - sb.left < sb.width * 0.2, foot: Math.max(sb.bottom - cat.bottom, sb.right - cat.right) < sb.height * 0.12 },
+            tall, card: tall ? { a: card.querySelector(".card-a").textContent, t: card.querySelector(".card-t").textContent, foot: [...card.querySelectorAll(".card-f span")].map(e => e.textContent),
+              shown: getComputedStyle(card).display !== "none" } : null };
+        })()`));
+        assert.deepEqual([r.ar, r.ti, r.vr], ["Daft Punk", "Discovery", "Deluxe Edition"], "the artist, the album, its version");
+        assert.deepEqual([r.fm, r.yr, r.cat], ["FLAC 16/44.1", "2001", "V2940"], "the format, the year, the catalogue №");
+        assert.equal(r.catShown, true, "the catalogue № on every spine, a phone's too (Rouen v1.9.69-t1)");
+        assert.equal(r.ends.foot, true, "the catalogue № pinned to the foot");
+        // a stage taller than the cover is wide (a phone held upright; a tablet with the choices' lane open): a tall card
+        assert.equal(r.tall, true, "the case in front a tall card");
+        assert.deepEqual(r.card, { a: "The Beatles", t: "Abbey Road", foot: ["FLAC 16/44.1", "1969", "PCS 7088"], shown: true }, "its names in the spine's order");
+      });
+    }
+
+    await t.test("Labels and Types: tiles that narrow the shelf; by label and catalogue №, and by catalogue № alone", async () => {
+      const r = await at({ width: 1440, height: 900 }, "spines", (page) => page.eval(`(async () => { ${READY}
+        const tiles = () => [...document.querySelectorAll("#tiles .tile")].map(t => (t.querySelector(".t-name, .ch") || t).textContent.trim() + " " + (t.querySelector(".t-count") || { textContent: "" }).textContent);
+        const out = {};
+        document.querySelector('.tab[data-tab="label"]').click(); out.labels = tiles();
+        [...document.querySelectorAll('.tile[data-cat="label"]')].find(t => t.textContent.includes("Columbia")).click();
+        out.columbia = window.__shelfOrder();
+        [...document.querySelectorAll('.tile[data-cat="label"]')].find(t => t.textContent.includes("Columbia")).click();
+        document.querySelector('.tab[data-tab="type"]').click(); out.types = tiles();
+        [...document.querySelectorAll('.tile[data-cat="type"]')].find(t => t.textContent.includes("Compilation")).click();
+        out.comps = window.__shelfOrder();
+        [...document.querySelectorAll('.tile[data-cat="type"]')].find(t => t.textContent.includes("Compilation")).click();
+        document.querySelector('.tab[data-tab="order"]').click();
+        document.querySelector('.tile[data-cat="order"][data-id="label"]').click();
+        out.byLabel = window.__shelfOrder().slice(0, 6);
+        document.querySelector('.tile[data-cat="order"][data-id="catno"]').click();
+        out.byCat = window.__shelfOrder();
+        return out; })()`));
+      assert.deepEqual(r.labels, ["Apple 1", "Blue Note 1", "Columbia 1", "One Little Indian 1", "Parlophone 1", "Virgin 1"], "a tile for each label, with its count");
+      assert.deepEqual(r.columbia, ["Kind of Blue"]);
+      assert.deepEqual(r.types, ["Compilations 1", "Unknown 9"], "the kinds the library has, then Unknown");
+      assert.deepEqual(r.comps, ["Best Of"]);
+      assert.deepEqual(r.byLabel, ["Abbey Road", "Hi Res", "Kind of Blue", "Homogenic", "Album One", "Discovery (Deluxe Edition)"],
+        "each label together, in a shop's order; the unlabelled last");
+      assert.deepEqual(r.byCat, ["Kind of Blue", "Abbey Road", "Homogenic", "Discovery (Deluxe Edition)",
+        "Album One", "Best Of", "Hi Res", "Myth Takes", "Pastel Blues", "The Original Soundtrack"], "the numbers in order across every label, then the unnumbered (by title, as Rouen sorts them)");
+    });
+
+    await t.test("a phone: the choices full screen, Show N albums takes them away; a tablet keeps its side pull-out (Rouen v1.9.69-t1)", async () => {
+      const phone = await at({ width: 390, height: 844 }, "spines", (page) => page.eval(`(async () => { ${READY}
+        const box = (s) => $(s).getBoundingClientRect();
+        const out = { start: S().pick };
+        $("#pick-tab").click(); await until(() => S().pick); await sleep(450);
+        const p = box("#pick");
+        out.full = Math.round(p.left) <= 0 && Math.round(p.right) >= innerWidth && Math.round(p.top) <= 0 && Math.round(p.bottom) >= innerHeight - 1;
+        [...document.querySelectorAll('.tile[data-cat="genre"]')].find(t => t.textContent.includes("Jazz")).click();
+        out.done = $("#pick-done").textContent;
+        $("#pick-done").click(); await until(() => !S().pick); await sleep(450);
+        out.after = { pick: S().pick, N: S().N, kept: localStorage.getItem("rra-shelf-pick") };
+        return out; })()`));
+      assert.equal(phone.start, false, "a phone opens on the shelf");
+      assert.equal(phone.full, true, "the choices over the whole screen");
+      assert.equal(phone.done, "Show 1 album", "and say how many albums they leave");
+      assert.deepEqual(phone.after, { pick: false, N: 1, kept: null }, "taken away; a phone keeps nothing of it");
+      const tablet = await at({ width: 1180, height: 820 }, "spines", (page) => page.eval(`(async () => { ${READY}
+        return { pick: S().pick, done: getComputedStyle($("#pick-done").closest(".pick-done-bar")).display, w: Math.round($("#pick").getBoundingClientRect().width) < innerWidth / 2 }; })()`));
+      assert.deepEqual(tablet, { pick: true, done: "none", w: true }, "a tablet: the side pull-out, open, and no Show button");
+    });
   } finally { await srv.stop(); }
 });

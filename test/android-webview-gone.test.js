@@ -55,13 +55,14 @@ test("what the screens handed to the page is the app's own", () => {
   assert.match(back, /ScreenPrefs\.restore\(page, NativeShell\.prefs\)/);
 });
 
-test("Now playing's album found as the page found it, the Shelf in the browser, the old update dialog gone", () => {
+test("Now playing's album found as the page found it, the Shelf the app's own, the old update dialog gone", () => {
   assert.match(read(APP + "NowPlayingScreen.kt"), /findNowAlbum\(client, zoneId, v\.album, v\.artist\)\?\.let \{ onPage\("album", it\.toString\(\)\) \} \?: Toast\.makeText\(context, NowAlbum\.NOT_INDEXED/);
   assert.match(read(APP + "ShellHand.kt"), /NowAlbum\.playing\(c\.getJson\("\/api\/album\/now-playing\?zone="[\s\S]*NowAlbum\.match\(c\.getJson\(NowAlbum\.searchPath\(a\)\), a, artist\)/);
   // In Now playing's place in one step (item 199: inPlace), not closed first and opened after.
   assert.match(read(APP + "ShellRoutes.kt"), /what == "album" && arg != null && arg\.toLongOrNull\(\) != null -> inPlace\(nav, ShellRoute\.album\(arg\.toLong\(\)/);
-  assert.match(read(APP + "MenuDrawer.kt"), /if \(what == "shelf"\) \{ openShelf\(context\); return \}/);
-  assert.match(read(APP + "ShellHand.kt"), /Uri\.parse\("\$base\/shelf"\)/);
+  // The Shelf natively since item 207 (ShelfScreen.kt), over Home as the menu's other items; the browser no longer.
+  assert.match(read(APP + "MenuDrawer.kt"), /"shelf" -> overHome\(nav, ShellRoute\.shelf\(z\)\)/);
+  assert.doesNotMatch(read(APP + "ShellHand.kt"), /\/shelf"/);
   const upd = read(APP + "AppUpdate.kt");
   assert.doesNotMatch(upd, /fun check\(|AlertDialog\.Builder\(activity\)\s+\.setTitle\("Update Mandarin"\)/);
 });

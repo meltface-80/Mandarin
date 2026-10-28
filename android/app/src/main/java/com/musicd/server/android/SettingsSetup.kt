@@ -305,7 +305,7 @@ private fun ShelfPane(client: () -> ServerClient?, onBack: () -> Unit, info: (St
             SetupRow("Shelf", Modifier.parity("settings-shelf.name"), Modifier.parity("settings-shelf.info", Contract.label("settings-shelf.info", 0, "Shelf")).clickable { info(SHELF_INFO) }) {
                 Toggle(on, Modifier.parity("settings-shelf.enabled", Contract.label("settings-shelf.enabled")).clickable {
                     val was = on; on = !on
-                    saveSetting(scope, context, client, "shelf", JSONObject().put("enabled", on), null, undo = { on = was }, failed = "Couldn't change Shelf: ") { j -> on = j.optBoolean("enabled", on) }
+                    saveSetting(scope, context, client, "shelf", JSONObject().put("enabled", on), null, undo = { on = was }, failed = "Couldn't change Shelf: ") { j -> on = j.optBoolean("enabled", on); NavShelf.on.value = on }
                 }, known)
             }
         }

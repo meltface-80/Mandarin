@@ -221,12 +221,23 @@ internal static class RulesCommand
         ["buckets"] = Each(job["buckets"], v => Library.ShelfBucket(v as string)),
         ["shelves"] = Each(job["shelves"], list =>
         {
-            var shelf = Library.BuildShelf(L(list).Select(O).Select(a => new Album
+            // Its label, catalogue number, kind and files' facts too (item 206: the Labels and Types tiles, the spine's foot).
+            string? Str(object? v) => TJs.IsNullish(v) ? null : S(v);
+            // item 208: each album's channels and whether it is a favourite, as the route reads them
+            var given = L(list).Select(O).ToList();
+            var channels = given.Where(a => !TJs.IsNullish(a["channels"])).ToDictionary(a => N(a["id"]), a => N(a["channels"]));
+            var favs = given.Where(a => TJs.Truthy(a["favourite"])).Select(a => N(a["id"])).ToHashSet();
+            var shelf = Library.BuildShelf(given.Select(a => new Album
             {
                 Id = N(a["id"]), Title = S(a["title"]), Artist = S(a["artist"]), SortArtist = S(a["sortArtist"]), ImageKey = S(a["image_key"]),
-                Genres = L(a["genres"]).Select(S).ToList(), Year = TJs.IsNullish(a["year"]) ? null : N(a["year"])
-            }).ToList());
-            return new JsObj { ["genres"] = Scan.JsJson.Parse(shelf.Genres.ToJsonString()), ["albums"] = Scan.JsJson.Parse(shelf.Albums.ToJsonString()), ["sig"] = shelf.Sig };
+                Genres = L(a["genres"]).Select(S).ToList(), Year = TJs.IsNullish(a["year"]) ? null : N(a["year"]),
+                Label = Str(a["label"]), Catno = Str(a["catno"]), MbType = Str(a["type"]), Compilation = TJs.Truthy(a["compilation"]),
+                Lossless = TJs.Truthy(a["lossless"]), Container = Str(a["container"]), Service = Str(a["service"]),
+                Bits = TJs.IsNullish(a["bits"]) ? null : N(a["bits"]), Rate = TJs.IsNullish(a["rate"]) ? null : N(a["rate"])
+            }).ToList(), al => al.Label, channels, al => favs.Contains(al.Id));
+            return new JsObj { ["genres"] = Scan.JsJson.Parse(shelf.Genres.ToJsonString()), ["labels"] = Scan.JsJson.Parse(shelf.Labels.ToJsonString()),
+                ["formats"] = Scan.JsJson.Parse(shelf.Formats.ToJsonString()),
+                ["albums"] = Scan.JsJson.Parse(shelf.Albums.ToJsonString()), ["sig"] = shelf.Sig };
         })
     };
 

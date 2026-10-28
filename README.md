@@ -7,7 +7,7 @@
 
 </div>
 
-# Mandarin — v1.1.10
+# Mandarin — v1.1.11
 
 **Your own music files, played to Sonos rooms, to UPnP/DLNA renderers (a WiiM, a Chord Poly,
 a streamer, an AV receiver) and to the Mandarin Android app.**
@@ -26,20 +26,21 @@ Wikipedia, Deezer and others); your music files stay on your machine.
                                                    └──── audio: /stream/… ◀────────┘
 ```
 
-**New in v1.1.10** (since v1.1.9): **a smoother Android app that rests when it isn't needed.** No new features:
-seven fixes to the Android app; the [changelog](CHANGELOG.md) has each one.
-* **Settings as you left them.** Each Settings page opens as you last saw it, then follows the server, instead of
-  opening with its defaults and changing a moment later. A switch moves as soon as you tap it; if the server refuses,
-  it goes back and says why.
-* **No flashes between screens.** Settings from the side menu, Library or Artists from the row, and an album from Now
-  playing open in one step: Home no longer shows for a moment between them, and the menu slides away over the screen
-  you chose.
-* **Rests in the background.** At home the app's own Tailscale engine runs only while the phone is playing, and stops
-  after two minutes idle; away it starts again in seconds. The phone's player rests once it has been idle off screen
-  for five minutes, and the phone's music folder is read every few minutes only while the app is on screen. Android
-  had ended the app for its engine's CPU while it sat idle at home.
-* **The phone's own music.** A phone album's share card has its cover, and its name on Now playing opens the phone's
-  own page of the album.
+**New in v1.1.11** (since v1.1.10): **the Shelf in the Android app, and the album view in three columns on a big
+screen.** The [changelog](CHANGELOG.md) has each change.
+* **The Shelf, brought up to Rouen's.** One look of spines, as tall as the screen allows, each with its artist, album,
+  format, year and catalogue number. Tap the one in front for the album over the whole screen, with Play now, Queue,
+  About this album and More by the artist. The bar is one slim row with the remote's volume sheet.
+* **More ways to choose.** Eight tabs of choices: Genres, Artists, Years, Labels, Types, Formats, Favourites and
+  Order. #N, A → Z and Z → A put the genres in order; the shelf goes by artist, by label and catalogue number, by
+  catalogue number, by year or at random, and each device keeps the order chosen.
+* **The Shelf in the Android app.** Drawn by the app itself, with the same shelf, choices, album view, bar and queue,
+  from the side menu or the row along the foot.
+* **The album view in three columns.** On a computer, a TV or a tablet held sideways an album fills the screen: the
+  cover, its credits and more by the artist on the left; About this album and about its artist in the middle, fitted
+  to the screen with Read more; the tracks on the right.
+* **Phones and tablets.** Home's menu is at its top left; the row along the foot is Home, Library, Artists, Shelf
+  (while it is on) and Search. On a tablet the mini player is docked on that row, as in the Android app.
 
 ---
 
@@ -61,13 +62,13 @@ Open **☰ → Home**. Tap a row's title for all of it. To reorder rows or hide 
 
 ⸻
 
-👆 **Phones and tablets**
+👆 **Phones and tablets** — *new in v1.1.11*
 
-On a touchscreen, either way round: a row at the foot (Menu, Home, Library, Artists, Search) under the mini player, and albums scrolling to the screen's top edge.
+On a touchscreen: a row at the foot (Home, Library, Artists, Shelf, Search), the mini player docked on it on a tablet, and the menu at Home's top left.
 
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 
-Nothing to set up: a phone or tablet gets it in the browser, the iPhone home-screen app and the Android app; a computer with a mouse keeps the top bar. Tap Home or Library again to go back to the top; Search opens its field across the screen.
+Nothing to set up: a phone or tablet gets it in the browser, the iPhone home-screen app and the Android app; a computer with a mouse keeps the top bar. Shelf is in the row while it is switched on (**Settings → Setup → Shelf**). **☰** at Home's top left opens the side menu. Tap Home or Library again to go back to the top; Search opens its field across the screen. A phone's mini player floats over the row; a tablet's is docked on it, edge to edge.
 
 </details>
 
@@ -121,13 +122,13 @@ Tap the **Library** row's title on Home, or **Library** in a phone's or tablet's
 
 ⸻
 
-🗄️ **Shelf**
+🗄️ **Shelf** — *new in v1.1.11*
 
-A record shop's shelf of your collection: covers or spines, A → Z by artist or album, narrowed by genre, artist letter and decade, or spun to land anywhere.
+A record shop's shelf: your albums' spines in a 3D row, narrowed by genre, artist, year, label, type, format or favourites, put in order, or spun to land anywhere.
 
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 
-Its switch is **Settings → Setup → Shelf** (off on a new install); off, it is off entirely and not offered. Open **☰ → Shelf**, `http://<server-ip>:3500/shelf`, or **Shelf ›** on the wall display. Swipe for one album, swipe and hold to keep turning, flick to spin; tap the front cover to turn the case over, and hold a track on its back to choose tracks; the bar then plays or queues those. The bar at its foot plays or queues the album in front, skips back and forward, pauses and sets the volume; the tabs at the edges fold the choices away and bring in the queue. Tap the order's name above the shelf (**A → Z by artist**) for **A → Z by album**; the Shelf keeps the one chosen.
+Its switch is **Settings → Setup → Shelf** (off on a new install); off, it is off entirely and not offered. Open **☰ → Shelf**, **Shelf** in a phone's or tablet's row, `http://<server-ip>:3500/shelf`, or **Shelf ›** on the wall display; the Android app draws it itself. Swipe for one album, swipe and hold to keep turning, flick to spin; tap a spine to bring it to the front, and the one in front to open the album, with **Play now** and **Queue** under its cover; hold a track to choose tracks and play or queue those. The choices' eight tabs (Genres, Artists, Years, Labels, Types, Formats, Favourites, Order) narrow the shelf; **#N**, **A → Z** and **Z → A** put the genres in order. **Order** has A → Z by artist, by label and catalogue number, by catalogue number, by year, and random; each device keeps the one chosen. The bar at its foot has what's playing, Spin, the zone and the volume; the queue comes in from the right.
 
 </details>
 
@@ -145,13 +146,13 @@ Tap the magnifying glass in the top bar (in the row at the foot of a phone's or 
 
 ⸻
 
-💿 **Album pages**
+💿 **Album pages** — *new in v1.1.11*
 
 Tracks, year and label, write-ups from Wikipedia and Qobuz, and Pitchfork's score where it reviewed the album. Step to the previous or next album of the row you came from.
 
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 
-Tap any album. **Play Now** and **Queue** are on the page; **⋯** has Play Next, Shuffle, Radio, Listen later, Edit album and (in the Android app) Download. Swipe sideways, tap **‹ ›** or press ← → for the previous or next album. The track playing has a small disc turning beside its number. A classical album is set out as its works and movements, its composers and performers in its head.
+Tap any album. **Play Now** and **Queue** are on the page; **⋯** has Play Next, Shuffle, Radio, Listen later, Edit album and (in the Android app) Download. Swipe sideways, tap **‹ ›** or press ← → for the previous or next album. The track playing has a small disc turning beside its number. A classical album is set out as its works and movements, its composers and performers in its head. On a computer, a TV or a tablet held sideways the page fills the screen in three columns: the cover, its credits and more by the artist on the left; About this album and about its artist in the middle, with **Read more**; the tracks on the right.
 
 </details>
 

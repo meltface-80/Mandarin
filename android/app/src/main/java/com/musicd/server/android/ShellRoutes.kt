@@ -53,6 +53,10 @@ internal fun NavGraphBuilder.moreRoutes(nav: NavHostController, client: () -> Se
         ServiceBrowserScreen(kept, (a?.getString(ShellRoute.ARTIST_ID).orEmpty() to a?.getString("name").orEmpty()).takeIf { it.first.isNotEmpty() }, a?.getString("q").orEmpty(),
             WallPrefs.parse(NativeShell.prefs), client, onClose = { nav.popBackStack() }, onAlbum = { offset -> nav.navigate(ShellRoute.album(offset, zone, "")) })
     }
+    // The Shelf (item 207): the side menu's Shelf, natively; Back (or its pill) returns to the screen under it.
+    composable(ShellRoute.SHELF, arguments = listOf(navArgument(ShellRoute.ZONE) { type = NavType.StringType; defaultValue = "" })) { entry ->
+        ShelfScreen(entry.arguments?.getString(ShellRoute.ZONE).orEmpty(), client, onBack = { nav.popBackStack() })
+    }
     // The record labels (item 71); a label's albums a wall over them.
     // Settings (item 76): its list, Setup's, and every page of it.
     composable(ShellRoute.SETTINGS, arguments = listOf(navArgument(ShellRoute.PANE) { type = NavType.StringType; defaultValue = "home" })) { entry ->
@@ -171,8 +175,8 @@ internal fun toHome(nav: NavHostController) {
 
 /**
  * The row along the foot: every screen over Home closes (however deep: a wall, an album from it, an artist from that;
- * item 63); then Home goes to its top, or the Library wall (in the view kept), the Artists wall (item 130) or the
- * search opens over it.
+ * item 63); then Home goes to its top, or the Library wall (in the view kept), the Artists wall (item 130), the Shelf
+ * (item 210) or the search opens over it.
  */
 internal fun navTap(nav: NavHostController, what: String) {
     AppLog.line("ROW", "button $what")
@@ -182,6 +186,7 @@ internal fun navTap(nav: NavHostController, what: String) {
         "library" -> overHome(nav, ShellRoute.library(NativeShell.libraryView, NativeShell.prefs.orEmpty(), NativeShell.zone))
         "artists" -> overHome(nav, ShellRoute.artists(NativeShell.zone))
         "search" -> { SearchKept.reset(""); overHome(nav, ShellRoute.search("", NativeShell.zone)) }
+        "shelf" -> overHome(nav, ShellRoute.shelf(NativeShell.zone))   // item 210: the row's own, as the side menu's
         "menu" -> { toHome(nav); NativeShell.menuOpen.value = true }
     }
 }

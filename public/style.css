@@ -5474,6 +5474,10 @@ button.cap-chip:active { transform: scale(.96); }
 /* ---- Home ---------------------------------------------------------- */
 .home-greeting { display: none; }
 [data-palette="hifi"] .home-greeting { display: block; margin: 6px 0 26px; }
+/* Home's head (item 210): in the touch layout the menu at its left, where the side menu opens, then the greeting; on a desktop the menu is the top bar's. */
+.home-head { display: flex; align-items: flex-start; gap: 12px; }
+.home-head > .home-greeting { flex: 1 1 auto; min-width: 0; }
+.home-menu { display: none; }
 [data-palette="hifi"] .home-greeting-date {
   font-size: 12px; font-weight: 700; letter-spacing: .18em; text-transform: uppercase; color: var(--accent-text);
 }
@@ -6218,9 +6222,9 @@ html .topbar .icon-btn.labels-sort-btn { width: auto; min-width: 44px; padding: 
 /* ------------------------------------------------------------------ */
 /*  The touch layout (v0.9.6): a phone or a tablet, either way round   */
 /* ------------------------------------------------------------------ */
-/* The menu, Home, the Library, Artists and Search in a row along the foot of the
+/* Home, the Library, Artists, Shelf (while it is on) and Search in a row along the foot of the
    screen (#touch-nav, touchnav.js), the mini player raised above it, and
-   on Home no top bar: the greeting at the top. Search opens the top bar
+   on Home no top bar: the menu at the top left, the greeting beside it (item 210). Search opens the top bar
    again with the field across it, and the page moves down under it. The
    scan's progress is a thin brass line along the top edge, on every
    screen. The same test as the touch-sized mini player above; a desktop
@@ -6230,10 +6234,10 @@ html .topbar .icon-btn.labels-sort-btn { width: auto; min-width: 44px; padding: 
 .touch-nav { display: none; }
 @media (hover: none), (pointer: coarse) {
   :root { --tnav-h: 58px; }
-  /* Five equal shares, evenly across (bug list items 130 and 134); the app's
-     row (TouchNav.kt) the same. Offline is said at the top: .offline-toast. */
+  /* Equal shares, evenly across (bug list items 130 and 134): five, or four while Shelf is off or the page offline
+     (item 210); the app's row (TouchNav.kt) the same. Offline is said at the top: .offline-toast. */
   .touch-nav {
-    display: grid; grid-template-columns: repeat(5, 1fr); align-items: center;
+    display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); align-items: center;
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 70;
     height: calc(var(--tnav-h) + env(safe-area-inset-bottom));
     padding: 0 max(10px, env(safe-area-inset-right)) env(safe-area-inset-bottom) max(10px, env(safe-area-inset-left));
@@ -6246,7 +6250,18 @@ html .topbar .icon-btn.labels-sort-btn { width: auto; min-width: 44px; padding: 
     background: none; border: 0; padding: 0; color: var(--text-dim); font: inherit; cursor: pointer;
     -webkit-tap-highlight-color: transparent;
   }
+  .tnav-btn.feature-off { display: none; }
   .tnav-btn svg { width: 26px; height: 26px; }
+  /* The menu at the top left of Home, where the side menu opens (item 210; it was the row's first button), the greeting beside it. */
+  .home-menu {
+    display: grid; place-items: center; flex: 0 0 auto; width: 44px; height: 44px; margin: 0 0 0 -8px;
+    background: none; border: 0; border-radius: 50%; padding: 0; color: var(--text-dim); cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .home-menu svg { width: 26px; height: 26px; }
+  .home-menu:active { transform: scale(.94); }
+  /* The search open over Home: the top bar is back with its field, and the menu gives way (the app's Search has none). */
+  .tn-search .home-menu { display: none; }
   .tnav-btn span { font-size: 11px; font-weight: 600; letter-spacing: .02em; }
   .tnav-btn:active { transform: scale(.94); }
   /* Where you are: Home or the Library wall, in the accent. */
@@ -6343,6 +6358,20 @@ html .topbar .icon-btn.labels-sort-btn { width: auto; min-width: 44px; padding: 
   .scan-progress-fill { background: var(--accent); }
 }
 
+/* A tablet, either way round (item 215, the owner's): the mini player as the Android app has it, docked on the row along
+   the foot, edge to edge and square, on the ground the row is on, with the row's line along its top; not the pill a
+   phone's floats over it (a phone held sideways is under 600px tall, and keeps the pill). Every palette's pill. */
+@media (hover: none) and (min-width: 600px) and (min-height: 600px), (pointer: coarse) and (min-width: 600px) and (min-height: 600px) {
+  .mini-transport, [data-palette] .mini-transport {
+    left: 0; right: 0;
+    bottom: calc(var(--tnav-h) + env(safe-area-inset-bottom));
+    border: 0; border-top: 1px solid var(--border); border-radius: 0;
+    box-shadow: none; background: var(--bg);
+    padding-left: max(14px, env(safe-area-inset-left)); padding-right: max(14px, env(safe-area-inset-right));
+  }
+  .mt-progress-fill { border-top-left-radius: 0; }
+}
+
 /* ------------------------------------------------------------------ */
 /* A classical album as works and movements (bug list item 49; the app's
    AlbumWorks.kt draws the same): the composers' line in the artists'
@@ -6378,3 +6407,70 @@ html.native-over, html.native-over body { background: transparent !important; }
 html.native-over :is(.topbar, main, #touch-nav, #mini-transport, #album-modal, #settings-overlay, #menu-overlay) { visibility: hidden !important; }
 /* A page of Settings the app hands over (item 76) is the Settings sheet itself: seen (bug list item 82). */
 html.native-over.native-over-settings #settings-overlay:not(.hidden) { visibility: visible !important; }
+
+/* ================================================================== */
+/*  The album view in three columns (item 214, album-wide.js)         */
+/* ================================================================== */
+/* A landscape screen beyond a phone's (a desktop, a TV, a tablet held
+   sideways): the album over the whole screen, in three columns that each
+   scroll on their own — the cover, the head, the buttons and what is about
+   the album and its artist on the left; About this album and about its
+   artist, in full, in the middle; the tracks on the right. album-wide.js
+   decides (one query) and sets .album-wide; the columns end above the mini
+   player (--aw-foot), as a bar along the foot of the screen would have them. */
+.modal.album-wide:not(.np-mode) { padding: 0; }
+.modal.album-wide:not(.np-mode) .modal-panel {
+  width: 100%; height: 100%; max-width: none; max-height: 100%;
+  border-radius: 0; border: 0;
+}
+.modal.album-wide:not(.np-mode) .modal-body {
+  display: grid;
+  grid-template-columns: minmax(300px, 1fr) minmax(0, 1.3fr) minmax(320px, 1fr);
+  grid-template-rows: minmax(0, 1fr);   /* the screen's height, each column scrolling within it */
+  grid-template-areas: none;
+  height: 100%; overflow: hidden;
+  padding: calc(24px + var(--ctl-h) + env(safe-area-inset-top)) 0 var(--aw-foot, 0px);
+  gap: 0;
+}
+/* What the columns took their parts from: empty of anything the album shows (Now playing's own parts stay there). */
+.modal.album-wide:not(.np-mode) .modal-body > :is(.modal-aside, .modal-info) { display: none; }
+.aw-col {
+  min-width: 0; min-height: 0; overflow-y: auto; overscroll-behavior: contain;
+  align-self: stretch;   /* the row's height, not its content's (the album view's grid aligns its items to the end) */
+  scrollbar-width: thin; scrollbar-color: var(--border) transparent;   /* the page's dark, not the browser's white */
+  padding: 0 28px 24px;
+  border-right: 1px solid var(--border);
+}
+.aw-col:last-child { border-right: 0; }
+.aw-left { padding-left: calc(28px + env(safe-area-inset-left)); }
+.aw-right { padding-right: calc(28px + env(safe-area-inset-right)); }
+/* Nothing about the album or its artist to read: two columns, not an empty middle. */
+.modal.album-wide:not(.np-mode) .modal-body:has(.aw-mid > .hidden:first-child + .hidden:last-child) {
+  grid-template-columns: minmax(300px, 1fr) minmax(320px, 1.3fr);
+}
+.aw-mid:has(> .hidden:first-child + .hidden:last-child) { display: none; }
+.modal.album-wide .aw-left .modal-art { width: 100%; max-width: 440px; margin: 0 auto 18px; }
+.modal.album-wide .aw-left .modal-art img { width: 100%; height: auto; }
+.modal.album-wide .aw-left .modal-head { padding: 0 0 6px; }
+.modal.album-wide .aw-left > * + * { margin-top: 14px; }
+.modal.album-wide .aw-left > .modal-art + .modal-head { margin-top: 0; }
+.modal.album-wide .aw-mid > .bio-section + .bio-section { margin-top: 28px; }
+.modal.album-wide .aw-mid .bio-text[data-clipped] { max-height: none; -webkit-mask-image: none; mask-image: none; }
+.modal.album-wide .aw-mid .bio-toggle { display: none; }
+/* The middle fitted to the screen (the owner's): each part as tall as its words, the two shortened together when they
+   don't both fit, the rest faded under Read more; Read more opens the whole of both in the column, scrolling. */
+.modal.album-wide .aw-mid:not(.aw-reading) { display: flex; flex-direction: column; overflow: hidden; }
+.modal.album-wide .aw-mid:not(.aw-reading) > .bio-section:not(.hidden) { display: flex; flex-direction: column; flex: 0 1 auto; min-height: 0; }
+.modal.album-wide .aw-mid:not(.aw-reading) > .bio-section > * { flex: none; }
+.modal.album-wide .aw-mid:not(.aw-reading) > .bio-section > .bio-text { flex: 0 1 auto; min-height: 3em; overflow: hidden; }
+.modal.album-wide .aw-mid .aw-clipped > .bio-text { -webkit-mask-image: linear-gradient(black 70%, transparent); mask-image: linear-gradient(black 70%, transparent); }
+.aw-read {
+  align-self: flex-start; margin-top: 6px; padding: 4px 0;
+  background: transparent; border: 0; color: var(--accent-text);
+  font-size: 14px; font-weight: 600; cursor: pointer;
+}
+.aw-read.hidden { display: none; }
+.aw-read:hover { filter: brightness(1.15); }
+.modal.album-wide .aw-mid .bio-text { font-size: 15px; line-height: 1.6; }
+/* About the artist is the three columns' alone. */
+.modal:not(.album-wide) #album-artist-bio { display: none; }

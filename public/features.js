@@ -2,7 +2,7 @@
 /*
  * features.js — the parts of Mandarin that switch off whole (v1.0.2), on the
  * page: Shelf's switch in Settings → Setup → Shelf, and the side menu's
- * Shelf, offered only while it is on. (The wall display's switch, on its own
+ * Shelf and the row along the foot's (item 210), offered only while it is on. (The wall display's switch, on its own
  * Setup page, is app.js's as before.)
  *
  * The server keeps the switch (/api/settings/shelf, on by default) and does
@@ -22,6 +22,8 @@
   function paint(on) {
     const item = document.querySelector('.menu-item[data-action="shelf"]');
     if (item) item.classList.toggle("feature-off", !on);
+    const row = document.getElementById("tnav-shelf");
+    if (row) row.classList.toggle("feature-off", !on);
     if (toggle) toggle.checked = on;
   }
 

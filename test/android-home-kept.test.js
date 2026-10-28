@@ -35,8 +35,9 @@ test("the menu's items and the row's buttons go back to Home through the one ste
   assert.doesNotMatch(over, /inclusive = true|popBackStack\(/, "Home is never popped");
   const menu = read("MenuDrawer.kt");
   const tap = menu.slice(menu.indexOf("internal fun menuTap("), menu.indexOf("\n}\n", menu.indexOf("internal fun menuTap(")));
-  assert.match(tap, /if \(what == "shelf"\) \{ openShelf\(context\); return \}/);
-  for (const item of ["playlists", "smart-playlists", "later", "pitchfork", "labels", "qobuz", "tidal", "settings"])
+  // The Shelf too since item 207: its own screen over Home, no longer the phone's browser.
+  assert.doesNotMatch(tap, /openShelf/);
+  for (const item of ["playlists", "smart-playlists", "later", "pitchfork", "labels", "qobuz", "tidal", "settings", "shelf"])
     assert.match(tap, new RegExp('"' + item + '"[^\\n]*-> overHome\\(nav, '), item);
   assert.doesNotMatch(tap, /popBackStack\(|nav\.navigate\(/, "every item goes through overHome");
   const row = routes.slice(routes.indexOf("internal fun navTap("), routes.indexOf("\n}\n", routes.indexOf("internal fun navTap(")));
@@ -44,6 +45,7 @@ test("the menu's items and the row's buttons go back to Home through the one ste
   assert.match(row, /"library" -> overHome\(nav, ShellRoute\.library\(/);
   assert.match(row, /"artists" -> overHome\(nav, ShellRoute\.artists\(/);
   assert.match(row, /"search" -> \{ SearchKept\.reset\(""\); overHome\(nav, ShellRoute\.search\(/);
+  assert.match(row, /"shelf" -> overHome\(nav, ShellRoute\.shelf\(/, "the row's Shelf, as the side menu's (item 210)");
   assert.match(row, /"menu" -> \{ toHome\(nav\); NativeShell\.menuOpen\.value = true \}/);
   assert.doesNotMatch(row, /popBackStack\(|nav\.navigate\(/);
 });

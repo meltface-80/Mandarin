@@ -341,7 +341,7 @@
      Android app play from it, controlled from a browser, an iPhone home screen or the Android app.
      No subscription or streaming account is needed.</p>
   <div class="badges">
-    <span class="badge">v1.1.10</span>
+    <span class="badge">v1.1.11</span>
     <span class="badge plain">Docker</span>
     <span class="badge plain">macOS</span>
     <span class="badge plain">MIT</span>
@@ -354,13 +354,14 @@
 
 <section id="new">
   <div class="wrap">
-    <div class="note"><b>New in v1.1.10</b> (since v1.1.9): <b>a smoother Android app that rests when it isn't needed.</b>
-      No new features this time: seven fixes to the Android app. <b>Settings as you left them</b>: each Settings page
-      opens as you last saw it, then follows the server, and a switch moves as soon as you tap it. <b>No flashes</b>:
-      Settings from the side menu, Library or Artists from the row and an album from Now playing open in one step,
-      without Home showing between. <b>Rests in the background</b>: at home the app's own Tailscale runs only while the
-      phone plays, the idle phone player rests after five minutes off screen, and the phone's music folder is read
-      every few minutes only while the app is on screen. And a phone album's share card has its cover.</div>
+    <div class="note"><b>New in v1.1.11</b> (since v1.1.10): <b>the Shelf in the Android app, and the album view in
+      three columns on a big screen.</b> <b>The Shelf</b>, brought up to Rouen's: one look of spines, the album opened
+      over the whole screen, a slim bar with the remote's volume, and eight tabs of choices, Labels, Types, Formats and
+      Favourites among them; #N, A &rarr; Z and Z &rarr; A put the genres in order, and the shelf goes by artist, label
+      and catalogue number, catalogue number, year or at random. The Android app now draws it itself. <b>Three
+      columns</b>: on a computer, a TV or a tablet held sideways an album fills the screen, the cover and its credits on
+      the left, the write-ups with Read more in the middle, the tracks on the right. <b>Phones and tablets</b>: Home's
+      menu at its top left, Shelf in the row along the foot, and a tablet's mini player docked on that row.</div>
   </div>
 </section>
 
@@ -390,15 +391,15 @@
   <div class="wrap">
     <h2>Features</h2>
     <p class="lead">Tap <b class="i-eg">i</b> on any feature for how to switch it on and use it.
-      <span class="new-eg">New</span> marks what's new in a release; v1.1.10 brings fixes, not new features.</p>
+      <span class="new-eg">New</span> marks what's new in v1.1.11.</p>
     <div class="grid">
       <!-- features:start -->
       <div class="card"><h3><span class="em">🏠</span>Home<button class="info" type="button" aria-expanded="false" aria-controls="how-home" aria-label="How to set up and use Home">i</button></h3>
         <p>Rows of albums under a greeting: Not played in 6 months, Listen later, Playlists, Favourites, Recently played, Smart Picks, Label of the week, Random albums, Library and Browse by genre.</p>
         <div class="how" id="how-home" hidden><b>How to set it up and use it.</b> Open <b>☰ → Home</b>. Tap a row's title for all of it. To reorder rows or hide one, open <b>Settings → Setup → Home Screen</b>, hold a row's grip and drag it, or switch it off.</div></div>
-      <div class="card"><h3><span class="em">👆</span>Phones and tablets<button class="info" type="button" aria-expanded="false" aria-controls="how-touch" aria-label="How to set up and use Phones and tablets">i</button></h3>
-        <p>On a touchscreen, either way round: a row at the foot (Menu, Home, Library, Artists, Search) under the mini player, and albums scrolling to the screen's top edge.</p>
-        <div class="how" id="how-touch" hidden><b>How to set it up and use it.</b> Nothing to set up: a phone or tablet gets it in the browser, the iPhone home-screen app and the Android app; a computer with a mouse keeps the top bar. Tap Home or Library again to go back to the top; Search opens its field across the screen.</div></div>
+      <div class="card is-new"><h3><span class="em">👆</span>Phones and tablets<span class="new">New</span><button class="info" type="button" aria-expanded="false" aria-controls="how-touch" aria-label="How to set up and use Phones and tablets">i</button></h3>
+        <p>On a touchscreen: a row at the foot (Home, Library, Artists, Shelf, Search), the mini player docked on it on a tablet, and the menu at Home's top left.</p>
+        <div class="how" id="how-touch" hidden><b>How to set it up and use it.</b> Nothing to set up: a phone or tablet gets it in the browser, the iPhone home-screen app and the Android app; a computer with a mouse keeps the top bar. Shelf is in the row while it is switched on (<b>Settings → Setup → Shelf</b>). <b>☰</b> at Home's top left opens the side menu. Tap Home or Library again to go back to the top; Search opens its field across the screen. A phone's mini player floats over the row; a tablet's is docked on it, edge to edge.</div></div>
       <div class="card"><h3><span class="em">🎲</span>Random Album<button class="info" type="button" aria-expanded="false" aria-controls="how-random-album" aria-label="How to set up and use Random Album">i</button></h3>
         <p>The first tile under the greeting chooses an album you haven't played in 12 months (until Mandarin has 12 months of history, any album) and offers it to play.</p>
         <div class="how" id="how-random-album" hidden><b>How to set it up and use it.</b> Choose where to play with the speaker button, then tap <b>Random Album</b>. Its disc turns while an album is chosen; then tap <b>Play now</b>, <b>Play next</b> or <b>Queue</b>, or close it.</div></div>
@@ -411,15 +412,15 @@
       <div class="card"><h3><span class="em">📚</span>Library<button class="info" type="button" aria-expanded="false" aria-controls="how-library" aria-label="How to set up and use Library">i</button></h3>
         <p>Every album, sorted by name, artist, release date, date added, plays, last played or random, and narrowed by genre, decade, label, format, sample rate, bit depth or first letter.</p>
         <div class="how" id="how-library" hidden><b>How to set it up and use it.</b> Tap the <b>Library</b> row's title on Home, or <b>Library</b> in a phone's or tablet's row. <b>Sort</b> and <b>Focus</b> are in the top bar (at the top right on a phone or tablet); Focus also has <i>Added in the last</i> and <i>Listening</i> (never played, not in 6 or 12 months). <b>☰ → Random albums</b> opens a shuffled wall.</div></div>
-      <div class="card"><h3><span class="em">🗄️</span>Shelf<button class="info" type="button" aria-expanded="false" aria-controls="how-shelf" aria-label="How to set up and use Shelf">i</button></h3>
-        <p>A record shop's shelf of your collection: covers or spines, A → Z by artist or album, narrowed by genre, artist letter and decade, or spun to land anywhere.</p>
-        <div class="how" id="how-shelf" hidden><b>How to set it up and use it.</b> Its switch is <b>Settings → Setup → Shelf</b> (off on a new install); off, it is off entirely and not offered. Open <b>☰ → Shelf</b>, <code>http://&lt;server-ip&gt;:3500/shelf</code>, or <b>Shelf ›</b> on the wall display. Swipe for one album, swipe and hold to keep turning, flick to spin; tap the front cover to turn the case over, and hold a track on its back to choose tracks; the bar then plays or queues those. The bar at its foot plays or queues the album in front, skips back and forward, pauses and sets the volume; the tabs at the edges fold the choices away and bring in the queue. Tap the order's name above the shelf (<b>A → Z by artist</b>) for <b>A → Z by album</b>; the Shelf keeps the one chosen.</div></div>
+      <div class="card is-new"><h3><span class="em">🗄️</span>Shelf<span class="new">New</span><button class="info" type="button" aria-expanded="false" aria-controls="how-shelf" aria-label="How to set up and use Shelf">i</button></h3>
+        <p>A record shop's shelf: your albums' spines in a 3D row, narrowed by genre, artist, year, label, type, format or favourites, put in order, or spun to land anywhere.</p>
+        <div class="how" id="how-shelf" hidden><b>How to set it up and use it.</b> Its switch is <b>Settings → Setup → Shelf</b> (off on a new install); off, it is off entirely and not offered. Open <b>☰ → Shelf</b>, <b>Shelf</b> in a phone's or tablet's row, <code>http://&lt;server-ip&gt;:3500/shelf</code>, or <b>Shelf ›</b> on the wall display; the Android app draws it itself. Swipe for one album, swipe and hold to keep turning, flick to spin; tap a spine to bring it to the front, and the one in front to open the album, with <b>Play now</b> and <b>Queue</b> under its cover; hold a track to choose tracks and play or queue those. The choices' eight tabs (Genres, Artists, Years, Labels, Types, Formats, Favourites, Order) narrow the shelf; <b>#N</b>, <b>A → Z</b> and <b>Z → A</b> put the genres in order. <b>Order</b> has A → Z by artist, by label and catalogue number, by catalogue number, by year, and random; each device keeps the one chosen. The bar at its foot has what's playing, Spin, the zone and the volume; the queue comes in from the right.</div></div>
       <div class="card"><h3><span class="em">🔍</span>Search<button class="info" type="button" aria-expanded="false" aria-controls="how-search" aria-label="How to set up and use Search">i</button></h3>
         <p>Albums, artists and labels as you type, and Qobuz's and Tidal's catalogues beside them: an album from either opens and plays whether or not it is in your library.</p>
         <div class="how" id="how-search" hidden><b>How to set it up and use it.</b> Tap the magnifying glass in the top bar (in the row at the foot of a phone's or tablet's screen) and type. Labels show when Record labels is on. Signed in to Qobuz or Tidal (Settings → Services), the service's artists and albums follow the library's, from the Library wall's filter too; tap a cover for the album's page, an artist for their page.</div></div>
-      <div class="card"><h3><span class="em">💿</span>Album pages<button class="info" type="button" aria-expanded="false" aria-controls="how-album" aria-label="How to set up and use Album pages">i</button></h3>
+      <div class="card is-new"><h3><span class="em">💿</span>Album pages<span class="new">New</span><button class="info" type="button" aria-expanded="false" aria-controls="how-album" aria-label="How to set up and use Album pages">i</button></h3>
         <p>Tracks, year and label, write-ups from Wikipedia and Qobuz, and Pitchfork's score where it reviewed the album. Step to the previous or next album of the row you came from.</p>
-        <div class="how" id="how-album" hidden><b>How to set it up and use it.</b> Tap any album. <b>Play Now</b> and <b>Queue</b> are on the page; <b>⋯</b> has Play Next, Shuffle, Radio, Listen later, Edit album and (in the Android app) Download. Swipe sideways, tap <b>‹ ›</b> or press ← → for the previous or next album. The track playing has a small disc turning beside its number. A classical album is set out as its works and movements, its composers and performers in its head.</div></div>
+        <div class="how" id="how-album" hidden><b>How to set it up and use it.</b> Tap any album. <b>Play Now</b> and <b>Queue</b> are on the page; <b>⋯</b> has Play Next, Shuffle, Radio, Listen later, Edit album and (in the Android app) Download. Swipe sideways, tap <b>‹ ›</b> or press ← → for the previous or next album. The track playing has a small disc turning beside its number. A classical album is set out as its works and movements, its composers and performers in its head. On a computer, a TV or a tablet held sideways the page fills the screen in three columns: the cover, its credits and more by the artist on the left; About this album and about its artist in the middle, with <b>Read more</b>; the tracks on the right.</div></div>
       <div class="card"><h3><span class="em">🧭</span>More by, and similar<button class="info" type="button" aria-expanded="false" aria-controls="how-more" aria-label="How to set up and use More by, and similar">i</button></h3>
         <p>Under an album's review: the artist's other albums, the albums they appear on, and, with a Last.fm key, similar artists and albums. Ones in your library open here.</p>
         <div class="how" id="how-more" hidden><b>How to set it up and use it.</b> Open any album. For the Last.fm rows, get a free key at last.fm/api/account/create and paste it in <b>Settings → Setup → API Keys</b> (or set <code>LASTFM_KEY</code>). Read-only: nothing is scrobbled.</div></div>

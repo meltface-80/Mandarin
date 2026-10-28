@@ -5,7 +5,10 @@
  * album opens in the room beside it, on the left with the player on the
  * right (its corner, or dragged top right), on the right with it dragged to
  * the left, and centred as before where the room is too narrow or on a touch
- * screen. Skipped where no Chromium or Chrome is found (test/browser-harness.js).
+ * screen. Since item 214 a desktop window or a TV 1000 by 600 at least, wider
+ * than tall, has the album in three columns over the whole screen instead,
+ * each column ending above the player; beside it is a shorter window's.
+ * Skipped where no Chromium or Chrome is found (test/browser-harness.js).
  */
 const ports = require("./ports");
 const test = require("node:test");
@@ -31,10 +34,11 @@ const OPEN = `(async () => {
   for (let i = 0; i < 100 && modal.classList.contains("hidden"); i++) await sleep(50);
   await sleep(400);
   const box = el => { const b = el.getBoundingClientRect(); return { left: b.left, right: b.right, top: b.top, bottom: b.bottom, width: b.width }; };
-  return { bar: box(bar), panel: box(modal.querySelector(".modal-panel")), beside: modal.classList.contains("beside-mini"), w: innerWidth };
+  return { bar: box(bar), panel: box(modal.querySelector(".modal-panel")), beside: modal.classList.contains("beside-mini"), w: innerWidth,
+    wide: modal.classList.contains("album-wide"), cols: [...document.querySelectorAll(".aw-col")].map(box) };
 })()`;
 
-test("an album opens beside the mini player on a desktop", { skip, timeout: 180000 }, async () => {
+test("an album opens beside the mini player on a desktop; in three columns above it on a large screen (item 214)", { skip, timeout: 180000 }, async () => {
   const lib = makeLibrary();
   const { createServer } = require("./server");
   const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false, identify: false });
@@ -57,30 +61,39 @@ test("an album opens beside the mini player on a desktop", { skip, timeout: 1800
       } finally { await b.close(); }
     };
 
-    // The player in its corner, bottom right: the album on the left, clear of it.
-    const corner = await at(1920, 1080);
+    // A TV (item 214): the album in three columns over the whole screen, not beside the player; each column ends above it.
+    const tv = await at(1920, 1080);
+    assert.equal(tv.wide, true);
+    assert.equal(tv.beside, false);
+    assert.ok(tv.panel.left === 0 && Math.abs(tv.panel.width - 1920) < 1, "over the whole screen");
+    assert.ok(tv.cols.length === 3 && tv.cols.every(c => c.bottom <= tv.bar.top + 0.5), `the columns above the player (${JSON.stringify(tv.cols.map(c => c.bottom))} over ${tv.bar.top})`);
+
+    // A window under 600px tall keeps the album beside the player. In its corner, bottom right: the album on the left, clear of it.
+    const corner = await at(1920, 560);
+    assert.equal(corner.wide, false);
     assert.equal(corner.beside, true);
     assert.ok(corner.panel.right <= corner.bar.left - 24 + 0.5, `the album (to ${corner.panel.right}) clear of the player (from ${corner.bar.left})`);
-    assert.ok(Math.abs(corner.panel.width - 960) < 1, "at its full width, room enough on a TV");
+    assert.ok(Math.abs(corner.panel.width - 960) < 1, "at its full width, room enough on a wide screen");
 
     // Dragged to the top right: the album still on the left.
-    const topRight = await at(1920, 1080, { pos: { left: 1432, top: 8 } });
+    const topRight = await at(1920, 560, { pos: { left: 1432, top: 8 } });
     assert.ok(topRight.bar.top < 20, "the player where it was put");
     assert.ok(topRight.panel.right <= topRight.bar.left - 24 + 0.5, "the album on the left of it");
 
     // Dragged to the left: the album on the right of it.
-    const left = await at(1920, 1080, { pos: { left: 8, top: 400 } });
+    const left = await at(1920, 560, { pos: { left: 8, top: 300 } });
     assert.ok(left.panel.left >= left.bar.right + 24 - 0.5, `the album (from ${left.panel.left}) right of the player (to ${left.bar.right})`);
 
     // A narrow desktop, too little room beside the player for the album: centred as before.
-    const narrow = await at(1024, 768);
+    const narrow = await at(1024, 560);
     assert.ok(narrow.bar.left - 48 < 600, `under 600px beside the player: ${narrow.bar.left - 48}`);
     assert.equal(narrow.beside, false);
     assert.ok(Math.abs((narrow.panel.left + narrow.panel.right) / 2 - 512) < 1, "centred");
 
-    // A touch screen: as it was (the player doesn't move there).
+    // A touch screen: never beside the player (it doesn't move there); a large one in three columns.
     const touch = await at(1920, 1080, { mouse: false });
     assert.equal(touch.beside, false);
+    assert.equal(touch.wide, true);
   } finally {
     await srv.stop();
   }

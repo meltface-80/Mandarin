@@ -68,6 +68,8 @@ async function fetchAlbumDetail(album) {
     .catch(() => { /* extras: the album page stands without them */ });
   // Over them, who played, wrote and made it (item 132).
   if (window.__albumCredits) window.__albumCredits(album);
+  // About its artist, for the album view's middle column on a wide screen (item 214).
+  if (window.__albumArtistBio) window.__albumArtistBio((Array.isArray(j.artists) && j.artists[0]) || album.subtitle || "", album.title || "");
   // The notes below go at the foot of the album's head, after its date and
   // its rate and length (bug list item 28), not between its lines.
   const headEnd = document.getElementById("modal-facts") || modalSub;

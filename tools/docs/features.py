@@ -14,7 +14,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 
-# (id, emoji, title, new in v1.1.10, what it is, how to set it up and use it)
+# (id, emoji, title, new in v1.1.11, what it is, how to set it up and use it)
 FEATURES = [
     # ---- Home and finding music
     ("home", "🏠", "Home", False,
@@ -22,12 +22,14 @@ FEATURES = [
      "Recently played, Smart Picks, Label of the week, Random albums, Library and Browse by genre.",
      "Open **☰ → Home**. Tap a row's title for all of it. To reorder rows or hide one, open "
      "**Settings → Setup → Home Screen**, hold a row's grip and drag it, or switch it off."),
-    ("touch", "👆", "Phones and tablets", False,
-     "On a touchscreen, either way round: a row at the foot (Menu, Home, Library, Artists, "
-     "Search) under the mini player, and albums scrolling to the screen's top edge.",
+    ("touch", "👆", "Phones and tablets", True,
+     "On a touchscreen: a row at the foot (Home, Library, Artists, Shelf, Search), the mini player "
+     "docked on it on a tablet, and the menu at Home's top left.",
      "Nothing to set up: a phone or tablet gets it in the browser, the iPhone home-screen app and the "
-     "Android app; a computer with a mouse keeps the top bar. Tap Home or Library again to go back to "
-     "the top; Search opens its field across the screen."),
+     "Android app; a computer with a mouse keeps the top bar. Shelf is in the row while it is switched "
+     "on (**Settings → Setup → Shelf**). **☰** at Home's top left opens the side menu. Tap Home or "
+     "Library again to go back to the top; Search opens its field across the screen. A phone's mini "
+     "player floats over the row; a tablet's is docked on it, edge to edge."),
     ("random-album", "🎲", "Random Album", False,
      "The first tile under the greeting chooses an album you haven't played in 12 months (until "
      "Mandarin has 12 months of history, any album) and offers it to play.",
@@ -49,16 +51,19 @@ FEATURES = [
      "**Focus** are in the top bar (at the top right on a phone or tablet); Focus also "
      "has *Added in the last* and *Listening* (never played, not in 6 or 12 months). "
      "**☰ → Random albums** opens a shuffled wall."),
-    ("shelf", "🗄️", "Shelf", False,
-     "A record shop's shelf of your collection: covers or spines, A → Z by artist or album, narrowed "
-     "by genre, artist letter and decade, or spun to land anywhere.",
+    ("shelf", "🗄️", "Shelf", True,
+     "A record shop's shelf: your albums' spines in a 3D row, narrowed by genre, artist, year, label, "
+     "type, format or favourites, put in order, or spun to land anywhere.",
      "Its switch is **Settings → Setup → Shelf** (off on a new install); off, it is off entirely and not "
-     "offered. Open **☰ → Shelf**, `http://<server-ip>:3500/shelf`, or **Shelf ›** on the wall display. Swipe "
-     "for one album, swipe and hold to keep turning, flick to spin; tap the front cover to turn the "
-     "case over, and hold a track on its back to choose tracks; the bar then plays or queues those. "
-     "The bar at its foot plays or queues the album in front, skips back and forward, pauses and sets the volume; the tabs at "
-     "the edges fold the choices away and bring in the queue. Tap the order's name above the shelf "
-     "(**A → Z by artist**) for **A → Z by album**; the Shelf keeps the one chosen."),
+     "offered. Open **☰ → Shelf**, **Shelf** in a phone's or tablet's row, `http://<server-ip>:3500/shelf`, "
+     "or **Shelf ›** on the wall display; the Android app draws it itself. Swipe for one album, swipe and "
+     "hold to keep turning, flick to spin; tap a spine to bring it to the front, and the one in front to "
+     "open the album, with **Play now** and **Queue** under its cover; hold a track to choose tracks and "
+     "play or queue those. The choices' eight tabs (Genres, Artists, Years, Labels, Types, Formats, "
+     "Favourites, Order) narrow the shelf; **#N**, **A → Z** and **Z → A** put the genres in order. "
+     "**Order** has A → Z by artist, by label and catalogue number, by catalogue number, by year, and "
+     "random; each device keeps the one chosen. The bar at its foot has what's playing, Spin, the zone "
+     "and the volume; the queue comes in from the right."),
     ("search", "🔍", "Search", False,
      "Albums, artists and labels as you type, and Qobuz's and Tidal's catalogues beside them: an "
      "album from either opens and plays whether or not it is in your library.",
@@ -66,14 +71,16 @@ FEATURES = [
      "and type. Labels show when Record labels is on. Signed in "
      "to Qobuz or Tidal (Settings → Services), the service's artists and albums follow the library's, "
      "from the Library wall's filter too; tap a cover for the album's page, an artist for their page."),
-    ("album", "💿", "Album pages", False,
+    ("album", "💿", "Album pages", True,
      "Tracks, year and label, write-ups from Wikipedia and Qobuz, and Pitchfork's score where it "
      "reviewed the album. Step to the previous or next album of the row you came from.",
      "Tap any album. **Play Now** and **Queue** are on the page; **⋯** has Play Next, Shuffle, Radio, "
      "Listen later, Edit album and (in the Android app) Download. Swipe sideways, tap **‹ ›** or "
      "press ← → for the previous or next album. The track playing has a small disc turning beside "
      "its number. A classical album is set out as its works and movements, its composers and "
-     "performers in its head."),
+     "performers in its head. On a computer, a TV or a tablet held sideways the page fills the screen in "
+     "three columns: the cover, its credits and more by the artist on the left; About this album and "
+     "about its artist in the middle, with **Read more**; the tracks on the right."),
     ("more", "🧭", "More by, and similar", False,
      "Under an album's review: the artist's other albums, the albums they appear on, and, with a "
      "Last.fm key, similar artists and albums. Ones in your library open here.",
@@ -353,7 +360,7 @@ def md_inline_to_html(s):
 def readme_block():
     lines = ["Every feature below has an **ⓘ**: open it for how to switch the feature on and use it.", ""]
     for i, (fid, em, title, new, what, how) in enumerate(FEATURES):
-        lines.append("%s **%s**%s" % (em, title, " — *new in v1.1.10*" if new else ""))
+        lines.append("%s **%s**%s" % (em, title, " — *new in v1.1.11*" if new else ""))
         lines.append("")
         lines.append(what)
         lines.append("")

@@ -196,6 +196,28 @@ internal static partial class Library
         return Send(ctx, new JsonObject { ["artist"] = artist, ["primary"] = AlbumList(s, primary), ["featured"] = AlbumList(s, featured) });
     }
 
+    /* The Shelf's album view's "More by <artist>" (item 206; Rouen's /api/album/more): the album's lead artist's other
+       albums (`by`), and the albums they appear on (`appears`). The lead artist is the first name of the credit's split.
+       The album looked at — the same title and credit — is left out once, so a reissue of the same name stays. */
+    private static Task<bool> AlbumMore(HttpContext ctx, Snapshot s, LibState st)
+    {
+        var title = Names.JsTrim(Q(ctx, "title") ?? "");
+        var credit = Names.JsTrim(Q(ctx, "artist") ?? "");
+        if (credit.Length == 0) return Send(ctx, new JsonObject { ["error"] = "artist required" }, 400);
+        var artist = Names.SplitArtists(credit).FirstOrDefault(n => n.Length > 0) ?? credit;
+        var (primary, featured) = ArtistAlbumsOf(s, artist);
+        var tN = Names.Fold(title);
+        var cN = Names.Fold(credit);
+        var skipped = false;
+        var others = primary.Where(al =>
+        {
+            if (skipped || Names.Fold(al.Title) != tN || Names.Fold(al.Artist) != cN) return true;
+            skipped = true;
+            return false;
+        }).ToList();
+        return Send(ctx, new JsonObject { ["artist"] = artist, ["by"] = AlbumList(s, others), ["appears"] = AlbumList(s, featured) });
+    }
+
     /* library.artistAlbums(name): the albums credited to the act first, then those it is on (Last.fm's tiles too, LastfmRoutes.cs). */
     private static (List<Album> Primary, List<Album> Featured) ArtistAlbumsOf(Snapshot s, string artist)
     {
