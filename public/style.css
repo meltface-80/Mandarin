@@ -6358,6 +6358,20 @@ html .topbar .icon-btn.labels-sort-btn { width: auto; min-width: 44px; padding: 
   .scan-progress-fill { background: var(--accent); }
 }
 
+/* A tablet, either way round (item 215, the owner's): the mini player as the Android app has it, docked on the row along
+   the foot, edge to edge and square, on the ground the row is on, with the row's line along its top; not the pill a
+   phone's floats over it (a phone held sideways is under 600px tall, and keeps the pill). Every palette's pill. */
+@media (hover: none) and (min-width: 600px) and (min-height: 600px), (pointer: coarse) and (min-width: 600px) and (min-height: 600px) {
+  .mini-transport, [data-palette] .mini-transport {
+    left: 0; right: 0;
+    bottom: calc(var(--tnav-h) + env(safe-area-inset-bottom));
+    border: 0; border-top: 1px solid var(--border); border-radius: 0;
+    box-shadow: none; background: var(--bg);
+    padding-left: max(14px, env(safe-area-inset-left)); padding-right: max(14px, env(safe-area-inset-right));
+  }
+  .mt-progress-fill { border-top-left-radius: 0; }
+}
+
 /* ------------------------------------------------------------------ */
 /* A classical album as works and movements (bug list item 49; the app's
    AlbumWorks.kt draws the same): the composers' line in the artists'
