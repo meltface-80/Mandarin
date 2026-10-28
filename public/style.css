@@ -6455,16 +6455,15 @@ html.native-over.native-over-settings #settings-overlay:not(.hidden) { visibilit
 .modal.album-wide .aw-left > * + * { margin-top: 14px; }
 .modal.album-wide .aw-left > .modal-art + .modal-head { margin-top: 0; }
 .modal.album-wide .aw-mid > .bio-section + .bio-section { margin-top: 28px; }
-.aw-fit .bio-text[data-clipped] { max-height: none; -webkit-mask-image: none; mask-image: none; }
-.aw-fit .bio-toggle { display: none; }
-/* The middle fitted to the screen (the owner's; wide-words.js, the album view's and Now playing's): each part as tall as
-   its words, shortened together when they don't all fit, the rest faded under Read more; Read more opens the whole of
-   them in the column, scrolling. */
-.aw-fit:not(.aw-reading) { display: flex; flex-direction: column; overflow: hidden; }
-.aw-fit:not(.aw-reading) > .bio-section:not(.hidden) { display: flex; flex-direction: column; flex: 0 1 auto; min-height: 0; }
-.aw-fit:not(.aw-reading) > .bio-section > * { flex: none; }
-.aw-fit:not(.aw-reading) > .bio-section > .bio-text { flex: 0 1 auto; min-height: 3em; overflow: hidden; }
-.aw-fit .aw-clipped > .bio-text { -webkit-mask-image: linear-gradient(black 70%, transparent); mask-image: linear-gradient(black 70%, transparent); }
+.modal.album-wide .aw-mid .bio-text[data-clipped] { max-height: none; -webkit-mask-image: none; mask-image: none; }
+.modal.album-wide .aw-mid .bio-toggle { display: none; }
+/* The middle fitted to the screen (the owner's): each part as tall as its words, the two shortened together when they
+   don't both fit, the rest faded under Read more; Read more opens the whole of both in the column, scrolling. */
+.modal.album-wide .aw-mid:not(.aw-reading) { display: flex; flex-direction: column; overflow: hidden; }
+.modal.album-wide .aw-mid:not(.aw-reading) > .bio-section:not(.hidden) { display: flex; flex-direction: column; flex: 0 1 auto; min-height: 0; }
+.modal.album-wide .aw-mid:not(.aw-reading) > .bio-section > * { flex: none; }
+.modal.album-wide .aw-mid:not(.aw-reading) > .bio-section > .bio-text { flex: 0 1 auto; min-height: 3em; overflow: hidden; }
+.modal.album-wide .aw-mid .aw-clipped > .bio-text { -webkit-mask-image: linear-gradient(black 70%, transparent); mask-image: linear-gradient(black 70%, transparent); }
 .aw-read {
   align-self: flex-start; margin-top: 6px; padding: 4px 0;
   background: transparent; border: 0; color: var(--accent-text);
@@ -6472,38 +6471,6 @@ html.native-over.native-over-settings #settings-overlay:not(.hidden) { visibilit
 }
 .aw-read.hidden { display: none; }
 .aw-read:hover { filter: brightness(1.15); }
-.aw-fit .bio-text { font-size: 15px; line-height: 1.6; }
-.aw-fit > .bio-section + .bio-section { margin-top: 28px; }
+.modal.album-wide .aw-mid .bio-text { font-size: 15px; line-height: 1.6; }
 /* About the artist is the three columns' alone. */
 .modal:not(.album-wide) #album-artist-bio { display: none; }
-
-/* ================================================================== */
-/*  Now playing in three columns (item 216, np-wide.js)               */
-/* ================================================================== */
-/* The album view's three columns (item 214) on Now playing's own tab, on the
-   same screens: the cover over the playing track, its progress and transport
-   on the left; About this album and about its artist in the middle, fitted
-   (.aw-fit); the playing album's tracks on the right, the one playing lit.
-   The mini player is off this tab, so the columns run to the foot. */
-.modal.np-mode.tab-album.np-wide .modal-body {
-  grid-template-columns: minmax(320px, 1fr) minmax(0, 1.3fr) minmax(320px, 1fr);
-  grid-template-rows: auto minmax(0, 1fr) auto;
-  grid-template-areas: "tabs tabs tabs" "art mid right" "info mid right";
-  justify-content: stretch; align-items: stretch;
-  column-gap: 0;
-  padding-left: 0; padding-right: 0;
-}
-.modal.np-mode.tab-album.np-wide .modal-art { justify-self: center; padding: 8px 28px 0 calc(28px + env(safe-area-inset-left)); }
-.modal.np-mode.tab-album.np-wide .modal-info {
-  grid-area: info; justify-self: stretch; max-width: none;
-  padding: 0 28px 8px calc(28px + env(safe-area-inset-left));
-}
-.np-col {
-  min-width: 0; min-height: 0; overflow-y: auto; overscroll-behavior: contain;
-  padding: 8px 28px 24px; border-left: 1px solid var(--border);
-  scrollbar-width: thin; scrollbar-color: var(--border) transparent;
-}
-.np-mid { grid-area: mid; }
-.np-right { grid-area: right; padding-right: calc(28px + env(safe-area-inset-right)); }
-.np-right .t-row { cursor: pointer; }
-.np-right .t-row.is-now-track .t-title { color: var(--accent-text); font-weight: 700; }
