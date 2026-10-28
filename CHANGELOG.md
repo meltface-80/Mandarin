@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+- `201-tests-tmp-cleanup` (item 201): **the test suites no longer fill the machine's temp directory.** Every fixture
+  library, server, update bundle and browser profile the Node and C# suites made stayed in `/tmp`: some 290 MB a
+  run, and over 20 GB in a few days on a machine that runs them often. Each test process now has a folder of its own
+  there (`musicd-run-…`), which everything it starts writes into and which goes when the process ends, passing or
+  failing (`test/tmp-run.js`, and `TempRun` in the C# suite). The ports registries stay in the shared temp directory.
+  Nothing changes for Mandarin itself.
+
 ## v1.1.11
 
 **The Shelf in the Android app, and the album view in three columns on a big screen.** The Shelf is brought up to
