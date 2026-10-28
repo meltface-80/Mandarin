@@ -19,7 +19,8 @@
   const GAP = 24, ROOM = 600;
 
   function place() {
-    const open = !modal.classList.contains("hidden") && !modal.classList.contains("np-mode");
+    // the album in three columns over the whole screen (album-wide.js, item 214): no room beside the player to keep
+    const open = !modal.classList.contains("hidden") && !modal.classList.contains("np-mode") && !modal.classList.contains("album-wide");
     const shown = !bar.classList.contains("hidden") && bar.offsetWidth > 0;
     let left = "", right = "";
     if (desk.matches && open && shown) {

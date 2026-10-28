@@ -12,7 +12,10 @@
  *   - the head a line each beside the sleeve (item 28): the title, the
  *     artists, the date and its label, then the rate and the album's length;
  *   - from 720px up About this album sits beside the tracks;
- *   - on a phone one column, the review after the tracks.
+ *   - on a phone one column, the review after the tracks;
+ *   - a tablet held sideways (item 214): the album in three columns, the
+ *     cover, its head and its buttons on the left, the tracks on the right;
+ *     still the whole ⋯ menu on screen, every item tapped.
  */
 const ports = require("./ports");
 const test = require("node:test");
@@ -60,7 +63,7 @@ const DRIVER = `(async () => {
     btn.click(); await sleep(60);
     return r;
   };
-  const out = {};
+  const out = { wide: $("album-modal").classList.contains("album-wide") };
   body.scrollTop = 0; await new Promise(r => requestAnimationFrame(r));
   out.rest = await open();
   out.panel = box(document.querySelector("#album-modal .modal-panel"));
@@ -113,6 +116,16 @@ test("the album view on a tablet and a phone: a 160px sleeve, the title beside i
       assert.equal(r.rest.items[r.rest.items.indexOf("Listen later") + 1], "Add to playlist", size + ": Add to playlist under Listen later: " + r.rest.items.join(", "));
       assert.ok(r.rest.hit.every(Boolean), `${size}: every item can be tapped (${r.rest.items.map((t, i) => (r.rest.hit[i] ? "✓ " : "✗ ") + t).join(", ")})`);
       assert.ok(r.rest.menu.t >= r.panel.t, `${size}: the menu's top (${r.rest.menu.t}) is inside the panel (${r.panel.t})`);
+      if (r.wide) {
+        // Item 214: three columns. The cover over the head on the left, the tracks on the right; the menu on screen.
+        assert.ok(w > h, size + ": three columns held sideways only");
+        assert.ok(r.rest.menu.b <= h && r.rest.menu.t >= r.share.b, `${size}: the whole menu on screen, clear of Share (${JSON.stringify(r.rest.menu)})`);
+        assert.ok(r.title.t >= r.art.b && r.title.l < r.art.r, `${size}: the title under the cover (title ${JSON.stringify(r.title)}, art ${JSON.stringify(r.art)})`);
+        assert.ok(r.tracks.l > r.title.r && r.tracks.l > r.art.r, `${size}: the tracks on the right (${JSON.stringify(r.tracks)})`);
+        assert.ok(r.bio.l > r.art.r && r.bio.r < r.tracks.l, `${size}: About this album between them (${JSON.stringify(r.bio)})`);
+        assert.equal(r.hscroll, false, size + ": no sideways scroll");
+        continue;
+      }
       assert.equal(r.rest.down, true, size + ": at rest it opens downwards, the row near the top");
       assert.ok(r.rest.menu.t >= r.share.b, `${size}: the menu (${r.rest.menu.t}) stays clear of Share (${r.share.b})`);
       // The sleeve: 160px, the title and the artist line beside it, the tracks under it.

@@ -1351,6 +1351,8 @@
         "review": { "kind": "shows", "when": "it has a review" },
         "review-more": { "kind": "action", "label": ["Show more", "Show less"], "when": "a review longer than its first lines" },
         "review-source": { "kind": "action", "label": "{source}", "when": "the review has a page of its own" },
+        "read-more": { "kind": "action", "label": ["Read more", "Read less"], "each": true, "when": "a landscape screen beyond a phone's, and the review or the biography longer than its share of the screen (item 214)", "only": "page", "why": "the album view's three columns (item 214), on a desktop, a TV or a tablet held sideways; the app's tablet layout is an item of its own" },
+        "artist-bio": { "kind": "shows", "when": "a landscape screen beyond a phone's and the artist has a biography (item 214)", "only": "page", "why": "the album view's three columns (item 214), on a desktop, a TV or a tablet held sideways; the app's tablet layout is an item of its own" },
         "more-by": { "kind": "shows", "when": "the artist has other albums here" },
         "more-by-album": { "kind": "action", "label": "{album}", "each": true, "when": "the artist has other albums here" },
         "more-by-more": { "kind": "action", "label": ["More", "Less"], "when": "more than three" },
