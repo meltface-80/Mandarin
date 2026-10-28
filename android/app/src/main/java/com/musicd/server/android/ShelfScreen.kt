@@ -53,11 +53,13 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.musicd.server.client.Booklet
 import com.musicd.server.client.Contract
 import com.musicd.server.client.Palette
 import com.musicd.server.client.ServerClient
 import com.musicd.server.client.ShelfCase
 import com.musicd.server.client.ShelfChoices
+import com.musicd.server.client.ShelfCorners
 import com.musicd.server.client.ShelfMotion
 import com.musicd.server.client.ShelfPlaying
 import kotlinx.coroutines.Dispatchers
@@ -72,11 +74,12 @@ import kotlin.math.roundToInt
  * case in front a tall card; the way back in a faint pill at the top left; the choices' tab hanging from the top (they
  * open over the whole screen, ShelfPick.kt) and the queue's at the right edge (it slides in, ShelfQueue.kt); the bar at
  * the foot (ShelfBar.kt) with the zone list and the volume over it (ShelfSheets.kt); the album view over the screen above
- * the bar once the case in front is turned over (ShelfAlbumView.kt); a word said for a moment at the top; and the gestures
+ * the bar once the case in front is turned over (the library's album page, AlbumScreen.kt; item 218); a word said for a moment at the top; and the gestures
  * said once. It plays in the room the app's screens play in.
  */
 @Composable
-internal fun ShelfScreen(zoneArg: String, client: () -> ServerClient?, onBack: () -> Unit) {
+internal fun ShelfScreen(zoneArg: String, client: () -> ServerClient?, onBack: () -> Unit, onPage: (String, String?) -> Unit,
+                         onBooklet: (Long, Booklet) -> Unit, onNowPlaying: (String) -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val shelf = remember { ShelfControl(context.applicationContext, client, scope) }
@@ -109,18 +112,13 @@ internal fun ShelfScreen(zoneArg: String, client: () -> ServerClient?, onBack: (
     // The queue read again when the room's track moves, while it is open.
     LaunchedEffect(play.queueOpen, play.zone, v?.title, v?.album) { if (play.queueOpen) play.readQueue() }
     val opened = shelf.opened()
-    LaunchedEffect(opened?.offset) {
-        opened?.let { play.read(it) }
-        // what is chosen is always the album at the front: another album open, or none, ends the choosing
-        if (play.pickedOn != opened?.offset) play.endPicks()
-    }
-    var shown by remember { mutableStateOf<ShelfCase?>(null) }
-    if (opened != null) shown = opened
+    // The album shown: the one turned over, or one of its rows' (More by, similar) opened in its place.
+    var shown by remember { mutableStateOf<Long?>(null) }
+    LaunchedEffect(opened?.offset) { if (opened != null) shown = opened.offset }
     BackHandler {
         when {
             zonesOpen || volumeOpen -> { zonesOpen = false; volumeOpen = false }
             pickOpen -> pickOpen = false
-            play.picks.isNotEmpty() -> play.endPicks()
             shelf.flipped != null -> shelf.flipped = null
             play.queueOpen -> play.queueOpen = false
             else -> onBack()
@@ -151,7 +149,12 @@ internal fun ShelfScreen(zoneArg: String, client: () -> ServerClient?, onBack: (
                 // the album view, out of the case in front, over the screen above the bar
                 androidx.compose.animation.AnimatedVisibility(opened != null, enter = fadeIn(tween(300, delayMillis = 220)) + scaleIn(tween(500, delayMillis = 220, easing = SHELF_EASE), 0.38f, TransformOrigin(0.5f, 0.45f)),
                     exit = fadeOut(tween(220)) + scaleOut(tween(300), 0.38f, TransformOrigin(0.5f, 0.45f))) {
-                    shown?.let { a -> ShelfAlbumView(shelf, play, a, rem, client, openZones, onBack = { shelf.flipped = null }) }
+                    // The library's own album page (item 218, the owner: the same screen), in the Shelf's room, its bar under it.
+                    shown?.let { id -> Box(Modifier.parity("shelf.album")) {
+                        AlbumScreen(id, play.zone, "", client, list = null, onStepTo = { _, _, _ -> }, onBack = { shelf.flipped = null }, onPage = onPage,
+                            onBooklet = onBooklet, onNowPlaying = onNowPlaying, onRoom = { z -> play.choose(z) }, onNav = { },
+                            onAlbum = { other, _ -> shown = other }, chrome = false)
+                    } }
                 }
                 if (zonesOpen) ShelfZones(play, rem, onClose = { zonesOpen = false }, Modifier.align(Alignment.BottomEnd).padding(end = rem * 1.25f, bottom = rem * 0.5f))
                 if (volumeOpen) ShelfVolume(play, room.volume, rem, Modifier.align(Alignment.BottomCenter).padding(start = rem, end = rem, bottom = rem * 0.6f))
@@ -162,14 +165,15 @@ internal fun ShelfScreen(zoneArg: String, client: () -> ServerClient?, onBack: (
         AnimatedVisibility(pickOpen, enter = slideInVertically(tween(320, easing = SHELF_EASE)) { -it }, exit = slideOutVertically(tween(320, easing = SHELF_EASE)) { -it }) {
             ShelfPick(shelf, rem, client, onDone = { pickOpen = false })
         }
-        // the way back, in the wall display's faint pill; the choices' tab hanging from the top while they are away
-        Row(Modifier.statusBarsPadding().padding(start = 16.dp, top = 16.dp).parity("shelf.back", Contract.label("shelf.back")).height(rem * 2.6f).clip(CircleShape)
+        // the way back, in the wall display's faint pill; the choices' tab hanging from the top while they are away; neither
+        // over an open album, whose own Back takes their place (item 219, core's ShelfCorners)
+        if (ShelfCorners.remote(opened != null)) Row(Modifier.statusBarsPadding().padding(start = 16.dp, top = 16.dp).parity("shelf.back", Contract.label("shelf.back")).height(rem * 2.6f).clip(CircleShape)
             .border(1.dp, Color(0x42ECE8DF), CircleShape).clickable(onClick = onBack).padding(start = rem * 0.6f, end = rem), verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(rem * 0.2f)) {
             Icon(painterResource(R.drawable.np_back), contentDescription = null, tint = Color(0x9EECE8DF), modifier = Modifier.size(rem * 1.15f))
             Text("Remote", color = Color(0x9EECE8DF), fontSize = (rem.value * 0.85f).sp, fontWeight = FontWeight.W600)
         }
-        if (!pickOpen) EdgeTab(Modifier.align(Alignment.TopCenter).statusBarsPadding().parity("shelf.pick-tab", Contract.label("shelf.pick-tab", 0))
+        if (ShelfCorners.pickTab(opened != null, pickOpen)) EdgeTab(Modifier.align(Alignment.TopCenter).statusBarsPadding().parity("shelf.pick-tab", Contract.label("shelf.pick-tab", 0))
             .clip(RoundedCornerShape(bottomStart = rem * 0.8f, bottomEnd = rem * 0.8f)).clickable { pickOpen = true; zonesOpen = false; volumeOpen = false }, rem, -90f, rem * 4.4f, rem * 1.55f)
         shelf.toast?.let { (words, at) ->
             var on by remember(at) { mutableStateOf(true) }

@@ -55,7 +55,11 @@ internal fun NavGraphBuilder.moreRoutes(nav: NavHostController, client: () -> Se
     }
     // The Shelf (item 207): the side menu's Shelf, natively; Back (or its pill) returns to the screen under it.
     composable(ShellRoute.SHELF, arguments = listOf(navArgument(ShellRoute.ZONE) { type = NavType.StringType; defaultValue = "" })) { entry ->
-        ShelfScreen(entry.arguments?.getString(ShellRoute.ZONE).orEmpty(), client, onBack = { nav.popBackStack() })
+        // An album opened on it is the library's album page (item 218), over the shelf; what that asks for past an album, as the page's.
+        ShelfScreen(entry.arguments?.getString(ShellRoute.ZONE).orEmpty(), client, onBack = { nav.popBackStack() },
+            onPage = { what, arg -> handOver(nav, what, arg) },
+            onBooklet = { offset, b -> nav.navigate(ShellRoute.booklet(offset, b.id, b.name, b.pages)) },
+            onNowPlaying = { id -> nav.navigate(ShellRoute.nowPlaying(id)) { launchSingleTop = true } })
     }
     // The record labels (item 71); a label's albums a wall over them.
     // Settings (item 76): its list, Setup's, and every page of it.

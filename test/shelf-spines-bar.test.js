@@ -148,47 +148,27 @@ test("Shelf: spines never through a turning case; one line along each spine; the
       const viewOpen = () => !$("#open").classList.contains("hidden") && $("#open").classList.contains("on");
       const turnOver = async () => { await until(() => front()); const m = box(front()), id = ++pid;
         pe("pointerdown", m.left + m.width / 2, m.top + m.height / 2, id); pe("pointerup", m.left + m.width / 2, m.top + m.height / 2, id);
-        await until(() => viewOpen() && document.querySelector("#open .bk-tracks li[data-i]")); await sleep(600); };
+        // the library's album view in its frame (item 218), its album up with its tracks
+        const fd = () => { const f = document.querySelector("#open iframe"); return f && f.contentDocument; };
+        await until(() => viewOpen() && fd() && fd().querySelector("#album-modal:not(.hidden) #modal-tracks li.t-row"), 20000); await sleep(600); };
       const goTo = async (title) => { for (let k = 0; k < 12 && S().title !== title; k++) { stage.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true })); await until(() => S().mode === "idle"); } };
     `;
 
     for (const [name, size] of [["a wide screen", { width: 1440, height: 900 }], ["a tablet", { width: 1024, height: 768 }], ["a phone", { width: 390, height: 844 }]]) {
-      await t.test(`the album view, on ${name}: tracks chosen are played from under the cover, its parts on screen and apart; the bar no taller`, async () => {
+      await t.test(`the album view, on ${name}: the library's (item 218), over the whole screen down to the bar; the bar no taller`, async () => {
         const r = await at(size, "covers", (page) => page.eval(`(async () => { ${READY} ${TURN}
-          const parts = () => [".ov-art", "#actions", "#tsel", ".ov-head", ".mt-transport", "#mt-info", ".mt-controls"].map(s => [s, $(s)])
-            .filter(([, e]) => e && !e.classList.contains("hidden") && getComputedStyle(e).display !== "none").map(([s, e]) => [s, box(e)]);
           const before = { h: box("#mt").height };
           await turnOver();
-          const li = box('#open li[data-i="0"]'), el = $('#open li[data-i="0"]'), id2 = ++pid;
-          const pr = (type) => el.dispatchEvent(new PointerEvent(type, { pointerId: id2, clientX: li.left + li.width / 2, clientY: li.top + li.height / 2, bubbles: true, pointerType: "touch", isPrimary: true }));
-          pr("pointerdown"); await sleep(650); pr("pointerup");
-          await until(() => S().picks.length === 1);
           await frame();
-          $("#open-body").scrollTop = 0; await frame();
-          const now = parts(), over = [], off = [];
-          for (let i = 0; i < now.length; i++) {
-            const [s, a] = now[i];
-            if (a.left < -0.5 || a.right > innerWidth + 0.5) off.push(s);
-            for (let j = i + 1; j < now.length; j++) {
-              const [s2, b2] = now[j];
-              if (a.left < b2.right - 0.5 && b2.left < a.right - 0.5 && a.top < b2.bottom - 0.5 && b2.top < a.bottom - 0.5) over.push(s + " over " + s2);
-            }
-          }
-          return { shown: now.map(([s]) => s), under: !!$("#tsel").closest("#open .ov-side") && box("#tsel").top >= box(".ov-art").bottom - 1,
-            over, off, count: $("#tsel-count").textContent, h: box("#mt").height, before, stageToBar: Math.round(box("#mt").top - box(stage).bottom),
-            viewToBar: box("#mt").top - box("#open").bottom,
-            buttons: [...document.querySelectorAll("#tsel [data-tact]")].map(b => b.dataset.tact) };
+          const f = box("#open iframe"), o = box("#open");
+          return { h: box("#mt").height, before, stageToBar: Math.round(box("#mt").top - box(stage).bottom),
+            viewToBar: box("#mt").top - o.bottom, fills: Math.round(f.width - o.width) + Math.round(f.height - o.height), left: Math.round(o.left), width: Math.round(o.width - innerWidth) };
         })()`));
-        assert.equal(r.under, true, "under the cover (Rouen v1.9.68)");
-        assert.deepEqual(r.buttons, ["play_now", "play_next", "queue"]);
-        assert.ok(r.shown.includes("#tsel") && !r.shown.includes("#actions"), "the chosen tracks' buttons in the album's place: " + r.shown);
-        assert.deepEqual(r.over, [], "none over another");
-        assert.deepEqual(r.off, [], "none off screen");
-        assert.equal(Math.round(r.h), Math.round(r.before.h), "the bar no taller as tracks are chosen");
+        assert.equal(Math.round(r.h), Math.round(r.before.h), "the bar no taller with the album open");
         assert.equal(r.stageToBar, 0, "nothing between the shelf and the bar");
         // the view ends where the bar's height, as offsetHeight rounds it, says: within the pixel
         assert.ok(Math.abs(r.viewToBar) < 1, "the view ends at the bar: " + r.viewToBar);
-        assert.equal(r.count, "1 track chosen");
+        assert.deepEqual([r.fills, r.left, r.width], [0, 0, 0], "the library's album view filling it, across the whole screen");
       });
     }
 

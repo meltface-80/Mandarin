@@ -11,6 +11,8 @@ if (!process.env.LOCAL_AUDIO) process.env.LOCAL_AUDIO = "0";
 if (!process.env.TAGCHECK) process.env.TAGCHECK = "0";
 // Nor Apple's iTunes: a closed port on loopback unless a test brings a fake.
 if (!process.env.ITUNES_URL) process.env.ITUNES_URL = "http://127.0.0.1:9";
+// Nothing left in the system's temp directory (item 201): a folder of this process's own, gone at its end.
+require("./tmp-run");
 
 // Nor anything else off this machine (v0.6.2): GitHub's runners reach the
 // internet and this suite must not. Opening a page or an album makes the

@@ -16,12 +16,14 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -103,7 +105,8 @@ import org.json.JSONObject
 @Composable
 internal fun AlbumScreen(offset: Long, zoneId: String, lit: String, client: () -> ServerClient?, list: NavList?, onStepTo: (Long, String, NavList) -> Unit,
                          onBack: () -> Unit, onPage: (String, String?) -> Unit, onBooklet: (Long, Booklet) -> Unit,
-                         onNowPlaying: (String) -> Unit, onRoom: (String) -> Unit, onNav: (String) -> Unit, onAlbum: (Long, String) -> Unit, phone: String? = null) {
+                         onNowPlaying: (String) -> Unit, onRoom: (String) -> Unit, onNav: (String) -> Unit, onAlbum: (Long, String) -> Unit, phone: String? = null,
+                         chrome: Boolean = true) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var zone by remember(offset) { mutableStateOf(zoneId) }
@@ -204,13 +207,8 @@ internal fun AlbumScreen(offset: Long, zoneId: String, lit: String, client: () -
                     Box(Modifier.fillMaxSize().background(Brush.verticalGradient(0f to Color.Transparent, 0.6f to bg.copy(alpha = 0.4f), 1f to bg)))
                 }
             }
-            // The foot keeps room for the mini player and the row, as the page's does; the head starts below the corner discs.
-            LazyColumn(Modifier.fillMaxSize().padding(horizontal = 18.dp), contentPadding = PaddingValues(top = 64.dp, bottom = 176.dp)) {
-                val a = album
-                if (a == null) {
-                    item { Text(failed ?: "Loading…", Modifier.parity("album.notice").padding(vertical = 24.dp), color = dim) }
-                    return@LazyColumn
-                }
+            // The head and its buttons, and the tracks: the one column's, or the left and right columns' on a tablet held sideways.
+            fun LazyListScope.headItems(a: Album) {
                 item {
                     // The sleeve, and its head beside it, a line each, at its foot.
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(18.dp)) {
@@ -289,6 +287,8 @@ internal fun AlbumScreen(offset: Long, zoneId: String, lit: String, client: () -
                             })
                     }
                 }
+            }
+            fun LazyListScope.trackItems(a: Album) {
                 val playingId = room.view?.takeIf { it.album == a.album.title }?.trackId
                 val onPick = { i: Int -> val p = picks; picks = if (p == null) listOf(i) else if (i in p) (p - i).ifEmpty { null } else p + i }
                 val onPlay = { i: Int, kind: String, said: String -> if (phone != null) playPhone(i, kind) else play("$said: ${a.tracks[i].title}") { it.playTrack(offset, i, a.tracks[i].title, a.album.title, a.album.subtitle, zone, kind) } }
@@ -302,7 +302,26 @@ internal fun AlbumScreen(offset: Long, zoneId: String, lit: String, client: () -
                     }
                 })
                 else albumTracks(a, playingId, room.view?.playing == true, picks, onPick, onPlay)
-                albumCredits(credits, client, onArtist = { onPage("artist", it) })
+            }
+            val a = album
+            // The foot keeps room for the mini player and the row, as the page's does (in the Shelf its bar, under it); the head starts below the corner discs.
+            val foot = if (chrome) 176.dp else 32.dp
+            val pad = PaddingValues(top = 64.dp, bottom = foot)
+            val credited = { lazy: LazyListScope -> lazy.albumCredits(credits, client, onArtist = { onPage("artist", it) }) }
+            if (a == null) LazyColumn(Modifier.fillMaxSize().padding(horizontal = 18.dp), contentPadding = pad) {
+                item { Text(failed ?: "Loading…", Modifier.parity("album.notice").padding(vertical = 24.dp), color = dim) }
+            }
+            // A tablet held sideways (item 218): three columns, each scrolling on its own, as the page's album view.
+            else if (tabletSideways()) Row(Modifier.fillMaxSize().padding(horizontal = 24.dp), horizontalArrangement = Arrangement.spacedBy(28.dp)) {
+                LazyColumn(Modifier.weight(0.3f).fillMaxHeight(), contentPadding = pad) {
+                    headItems(a); credited(this)
+                    albumAbout(null, more, client, onAlbum = { id -> onAlbum(id, zone) }, onArtist = { onPage("artist", it) }, onUrl = ::openUrl)
+                }
+                AlbumWordsColumn(a, extras?.review, client, ::openUrl, Modifier.weight(0.33f).fillMaxHeight().padding(top = 64.dp, bottom = foot))
+                LazyColumn(Modifier.weight(0.37f).fillMaxHeight(), contentPadding = pad) { trackItems(a) }
+            }
+            else LazyColumn(Modifier.fillMaxSize().padding(horizontal = 18.dp), contentPadding = pad) {
+                headItems(a); trackItems(a); credited(this)
                 albumAbout(extras?.review, more, client, onAlbum = { id -> onAlbum(id, zone) }, onArtist = { onPage("artist", it) }, onUrl = ::openUrl)
             }
             // The corner discs, over the glow: Back, and Share.
@@ -336,7 +355,7 @@ internal fun AlbumScreen(offset: Long, zoneId: String, lit: String, client: () -
                     Icon(painterResource(R.drawable.np_share), contentDescription = null, modifier = Modifier.size(20.dp))
                 }
             }
-            Column(Modifier.align(Alignment.BottomCenter)) {
+            if (chrome) Column(Modifier.align(Alignment.BottomCenter)) {
                 MiniPlayer(zone, room, client, onOpen = { onNowPlaying(zone) }, onRoom = { id -> zone = id; onRoom(id) }, onPage = onPage)
                 TouchNav(lit, onTap = onNav)
             }

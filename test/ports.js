@@ -51,7 +51,8 @@ if (require.main === module) {
   process.exit(2);
 }
 
-const DIR = path.join(os.tmpdir(), "mandarin-test-slots");
+// The system's temp directory, shared by every test file, not the file's own (test/tmp-run.js).
+const DIR = path.join(process.env.MANDARIN_TEST_TMP_ROOT || os.tmpdir(), "mandarin-test-slots");
 const LOCK = path.join(DIR, "lock");
 const pause = (ms) => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
 

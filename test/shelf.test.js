@@ -409,15 +409,14 @@ test("Shelf in a browser", { skip: (!haveFfmpeg() && "ffmpeg is not installed") 
       const page = await open();
       const r = await page.eval(`(async () => { ${HELPERS} ${ready} ${DRIVE}
         const out = {};
-        // Dance: one album on the shelf, so the one in front is known; its buttons are under its cover (item 206).
+        // Dance: one album on the shelf, so the one in front is known; its buttons are its album view's (the library's, item 218).
         [...document.querySelectorAll('.tile[data-cat="genre"]')].find(t => t.textContent.includes("Dance")).click();
         await until(() => S().N === 1 && S().mode === "idle"); await rest();
         out.front = window.__shelfState().title;
         await turnOver();
-        $('.act[data-act="play_now"]').click();
-        await until(() => posts("/api/play").length);
-        out.play = posts("/api/play")[0];
-        out.toast = await until(() => /^Playing /.test($("#toast").textContent), 4000) && $("#toast").textContent;
+        $f('[data-parity="album.play-now"]').click();
+        await until(() => fposts("/api/play").length);
+        out.play = fposts("/api/play")[0];
         out.showing = await until(() => $("#mt-title").textContent === out.front + " one", 10000);
         out.label = $("#mt-pp").getAttribute("aria-label");
         out.artist = $("#mt-artist").textContent;
@@ -425,18 +424,16 @@ test("Shelf in a browser", { skip: (!haveFfmpeg() && "ffmpeg is not installed") 
         out.flipped = $("#mt-pp").getAttribute("aria-label");
         await until(() => posts("/api/control").length);
         out.control = posts("/api/control")[0];
-        $('.act[data-act="queue"]').click();
-        await until(() => posts("/api/play").length === 2);
-        out.queued = posts("/api/play")[1];
-        out.queueToast = await until(() => /added to the queue/.test($("#toast").textContent), 4000) && $("#toast").textContent;
+        $f('[data-parity="album.queue"]').click();
+        await until(() => fposts("/api/play").length === 2);
+        out.queued = fposts("/api/play")[1];
         return out; })()`);
       assert.equal(r.queued.kind, "queue", "Queue adds the album to the end");
-      assert.equal(r.queueToast, r.front + " added to the queue in Kitchen");
+      assert.equal(r.queued.zone_or_output_id, "RINCON_KITCHEN01400", "in the Shelf's room");
       assert.equal(r.front, "Myth Takes");
       assert.equal(r.play.kind, "play_now");
       assert.equal(r.play.zone_or_output_id, "RINCON_KITCHEN01400");
       assert.ok(Number.isInteger(r.play.offset), "the album's id");
-      assert.equal(r.toast, "Playing " + r.front + " in Kitchen");
       assert.equal(r.showing, true, "the bar shows the track");
       assert.equal(r.label, "Pause", "Pause while it plays");
       assert.equal(r.flipped, "Play", "flipped at once");
@@ -490,18 +487,17 @@ test("Shelf in a browser", { skip: (!haveFfmpeg() && "ffmpeg is not installed") 
         await until(() => S().N === 1 && S().mode === "idle"); await rest();
         out.front = S().title;
         await turnOver();
-        out.rows = rows();
-        await holdRow(0); await tapRow(2);
-        out.picks = S().picks; out.count = $("#tsel-count").textContent; out.chosen = rows();
-        out.barActs = shown("#actions"); out.tselIn = !!$("#tsel").closest("#open .ov-side");
-        // The view holds every track, and no title is cut short (the remote's rows wrap).
-        const ol = document.querySelector("#open .bk-tracks");
-        out.fit = { cut: [...ol.querySelectorAll("li span")].filter(s => s.scrollWidth > s.clientWidth + 1).length, n: ol.querySelectorAll("li[data-i]").length };
-        document.querySelector('#tsel [data-tact="play_now"]').click();
-        await until(() => posts("/api/play-track").length === 2);
-        out.posts = posts("/api/play-track").map(b => [b.track, b.kind, b.title, b.only]);
-        out.toast = await until(() => /^Playing /.test($("#toast").textContent)) && $("#toast").textContent;
-        out.after = { picks: S().picks, tsel: shown("#tsel"), barActs: shown("#actions") };
+        out.rows = rows().map(t => t.replace(/ \\d+:\\d\\d$/, ""));
+        // Chosen as the library's album view chooses (item 218): held on a track, another tapped, the selection's menu.
+        const f = fwin(), li = (n) => fdoc().querySelectorAll("#modal-tracks li.t-row")[n];
+        li(0).dispatchEvent(new f.MouseEvent("mousedown", { bubbles: true })); await sleep(700);
+        li(0).dispatchEvent(new f.MouseEvent("mouseup", { bubbles: true })); li(0).click(); await sleep(50);
+        li(2).click(); await sleep(50);
+        out.picked = fdoc().querySelectorAll("#modal-tracks li.is-picked").length;
+        $f("#select-menu-btn").click(); await until(() => fdoc().querySelectorAll("#select-menu .sel-menu-item").length);
+        $f('#select-menu [data-sel-act="play_now"]').click();
+        await until(() => fposts("/api/play-track").length === 2);
+        out.posts = fposts("/api/play-track").map(b => [b.track, b.kind, b.title, !!b.only]);
         out.playing = await until(() => $("#mt-title").textContent === "Song 1", 10000);
         out.prevOn = await until(() => !$("#mt-prev").disabled);
         out.nextOn = await until(() => !$("#mt-next").disabled);
@@ -533,16 +529,9 @@ test("Shelf in a browser", { skip: (!haveFfmpeg() && "ffmpeg is not installed") 
         out.queueClosed = { state: S().queue, expanded: $("#queue-tab").getAttribute("aria-expanded") };
         return out; })()`);
       assert.equal(r.front, "Album One");
-      assert.deepEqual(r.rows, ["1 Song 1", "2 Song 2", "3 Song 3"], "one disc: no headings");
-      assert.deepEqual(r.picks, [0, 2], "a long press chooses, a tap adds");
-      assert.equal(r.count, "2 tracks chosen");
-      assert.deepEqual(r.chosen, ["✓ Song 1", "2 Song 2", "✓ Song 3"]);
+      assert.deepEqual(r.rows, ["Song 1", "Song 2", "Song 3"]);
+      assert.equal(r.picked, 2, "a long press chooses, a tap adds");
       assert.deepEqual(r.posts, [[0, "play_now", "Song 1", true], [2, "queue", "Song 3", true]], "the first alone, the rest queued behind it");
-      assert.equal(r.toast, "Playing 2 tracks in Kitchen");
-      assert.deepEqual(r.after, { picks: [], tsel: false, barActs: true }, "then the choice is done, and the album's buttons are back");
-      assert.equal(r.barActs, false, "the album's Play now and Queue step aside while tracks are chosen");
-      assert.equal(r.tselIn, true, "the chosen tracks are played from under the cover (item 206, Rouen v1.9.68)");
-      assert.deepEqual(r.fit, { cut: 0, n: 3 }, "every track in the view, no title cut short");
       const titles = house.room("Kitchen").queue.map(q => (q.meta.match(/<dc:title>([^<]*)/) || [])[1]);
       assert.deepEqual(titles, ["Song 1", "Song 3"], "the room's queue: just the two chosen");
       assert.equal(r.playing, true);
@@ -565,17 +554,19 @@ test("Shelf in a browser", { skip: (!haveFfmpeg() && "ffmpeg is not installed") 
       assert.deepEqual(page.errors, []);
     });
 
-    await t.test("a set: each disc under its own heading, numbered from 1", async () => {
+    await t.test("a set: each track says its disc, as the library's album view says it", async () => {
       const page = await open();
       const r = await page.eval(`(async () => { ${HELPERS} ${ready} ${DRIVE}
         $('.tab[data-tab="artist"]').click(); tile("artist", "V").click();
         await until(() => S().N === 1 && S().mode === "idle"); await rest();
         const out = { front: S().title };
         await turnOver();
-        out.rows = rows();
+        out.rows = rows().map(t => t.replace(/ \\d+:\\d\\d$/, ""));
+        out.discs = [...fdoc().querySelectorAll("#modal-tracks li.t-row .t-sub")].map(e => (e.textContent.match(/Disc \\d+/) || [""])[0]);
         return out; })()`);
       assert.equal(r.front, "Best Of");
-      assert.deepEqual(r.rows, ["# Disc 1", "1 C1", "# Disc 2", "1 C2"]);
+      assert.deepEqual(r.rows, ["C1", "C2"], "both discs' tracks");
+      assert.deepEqual(r.discs, ["Disc 1", "Disc 2"], "each track saying its disc, as the library's album view says it (item 218)");
       assert.deepEqual(page.errors, []);
     });
 
@@ -761,7 +752,7 @@ test("Shelf in a browser", { skip: (!haveFfmpeg() && "ffmpeg is not installed") 
         $("#queue-tab").click();
         // A window for the rest of the answers to come in.
         $("#mt-pp").click(); await until(() => posts("/api/control").length); await sleep(500);
-        return [...new Set(window.__by)].sort(); })()`);
+        return [...new Set(window.__by.concat(fwin().__by || []))].sort(); })()`);
       const others = r.filter(x => !x.endsWith(" C#"));
       const csharp = r.filter(x => x.endsWith(" C#")).map(x => x.slice(0, -3));
       assert.deepEqual(others, [], "nothing from anyone else: " + JSON.stringify(r));

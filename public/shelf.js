@@ -28,8 +28,8 @@
  * The rest of the page is in its own scripts (v1.9.66; the volume sheet since
  * v1.9.10), loaded before this one and made here with the hub below:
  * shelf-page.js (the theme, no scroll, no zoom), shelf-pick.js (the library
- * and the choices), shelf-back.js (the album view, the tracks chosen on
- * it), shelf-player.js (the zone, the bar, playing), shelf-queue.js (the
+ * and the choices), shelf-back.js (the album view: the library's, in a
+ * frame), shelf-player.js (the zone, the bar, playing), shelf-queue.js (the
  * queue pane), shelf-ways.js (the ways out, the idle clock, the help) and
  * shelf-panes.js (the side panes).
  */
@@ -92,7 +92,7 @@
   const pick = window.ShelfPick.create(hub), back = window.ShelfBack.create(hub), player = window.ShelfPlayer.create(hub);
   const queue = window.ShelfQueue.create(hub), ways = window.ShelfWays.create(hub), panes = window.ShelfPanes.create(hub);
   const faces = window.ShelfFaces.create(hub);
-  Object.assign(hub, { pick, back, player, queue, ways, panes, faces, about: window.ShelfAbout.create(hub) });
+  Object.assign(hub, { pick, back, player, queue, ways, panes, faces });
 
   // Where a new letter, label or decade begins, in the order chosen (shelf-pick.js, v1.9.67).
   function computeTabs() {
@@ -235,7 +235,6 @@
     if (flippedV !== null && Math.abs(flippedV - p) >= 0.5 && !(mode === "spring" && target === flippedV)) flippedV = null;
     // the album view is open exactly while a case is turned over at the front (t5): its album, and its case where drawn
     back.setOpen(flippedV !== null ? list[mod(flippedV, N)] : null, flippedV !== null ? live.get(flippedV) || null : null);
-    if (back.tsel() && !back.picking()) back.endPicks();
   }
   // A cover that will not load shows the plain sleeve beneath it; one that does
   // gives its spine and its back its own colour.
@@ -347,8 +346,8 @@
     screenEl.classList.remove("spinning");
   }
   function rubber(x) { if (x < 0) return x * 0.3; if (x > N - 1) return N - 1 + (x - (N - 1)) * 0.3; return x; }
-  // The tracks are chosen on the album view (shelf-back.js), which has its
-  // own presses: the stage's pointer is the shelf's alone since v1.9.67-t5.
+  // The album view (shelf-back.js) is a frame of its own, with its own presses:
+  // the stage's pointer is the shelf's alone since v1.9.67-t5.
   stage.addEventListener("pointerdown", (e) => {
     if ((e.pointerType === "mouse" && e.button !== 0) || !N) return;
     try { stage.setPointerCapture(e.pointerId); } catch (err) { /* a pointer the browser no longer tracks: the drag still works while it stays over the stage */ }
@@ -583,7 +582,7 @@
   document.addEventListener("visibilitychange", () => { if (!document.hidden) { ways.touched(); ways.checkLive(); player.poll(); } });
 
   // For the test suite: where the shelf is, without reaching into its closure.
-  window.__shelfState = () => { const c = centre(), tsel = back.tsel(); return { p, mode, N, look: "spines", title: c && c.t, zone: player.zoneId(), flipped: flippedV, picks: tsel ? [...tsel.picks].sort((x, y) => x - y) : [],
+  window.__shelfState = () => { const c = centre(); return { p, mode, N, look: "spines", title: c && c.t, zone: player.zoneId(), flipped: flippedV,
     pick: !screenEl.classList.contains("pick-off"), queue: queue.isOpen(), swipe: stepPx * SWIPE }; };
   window.__shelfOrder = () => list.map((a) => a.t);
 })();

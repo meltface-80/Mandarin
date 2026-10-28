@@ -1,5 +1,37 @@
 # Changelog
 
+## v1.1.12
+
+**The Shelf's album view is the library's album view.** An album opened on the Shelf is the library's own album
+page, in the Shelf's room: its track times, the heart, Play now, Queue and ⋯, its credits, more by the artist and
+similar albums, and its three columns on a big screen. The Android app's album page is in three columns on a tablet
+held sideways, and the Android Shelf's Remote no longer sits over an open album. Items 201, 218 and 219.
+
+- `219-shelf-remote-over-album` (item 219): **in the Android app, the Shelf's "‹ Remote" no longer sits over an open
+  album's Back.** An album opened on the Shelf now covers the Shelf's corners as it does in the browser: the way back
+  to the remote and the choices' tab hanging from the top show on the shelf only, and the album's own Back takes
+  their place.
+- `218-shelf-album-is-library-album` (item 218): **the Shelf's album view is the library's own album view**, on the
+  page and in the Android app, so the two are the same screen: track times, the heart, Play now, Queue and ⋯, the
+  credits, more by the artist and similar albums, and in three columns where the library's are. On the page the
+  Shelf holds the library's album view in a frame, in the Shelf's room; in the Android app the Shelf opens the app's
+  own album page above its bar.
+  - The Android app's album page, from the library or the Shelf, is in three columns on a tablet held sideways (a
+    screen whose shorter side is 600 or more, wider than tall): on the left the cover, the head, its buttons, the
+    credits and the rows of more by and similar; in the middle About this album and about its artist, with Read
+    more; on the right the tracks. A phone either way round, and a tablet upright, keep the one column.
+  - Choosing tracks on the Shelf is now the library's: hold a track, tap the others, then Play now or Queue from
+    the selection menu. More by and similar albums open in the Shelf's place; an artist, a label or a genre leaves
+    the Shelf for the library's page of it.
+  - The library's Play now on chosen tracks plays those tracks alone; before, the rest of the album followed them.
+
+- `201-tests-tmp-cleanup` (item 201): **the test suites no longer fill the machine's temp directory.** Every fixture
+  library, server, update bundle and browser profile the Node and C# suites made stayed in `/tmp`: some 290 MB a
+  run, and over 20 GB in a few days on a machine that runs them often. Each test process now has a folder of its own
+  there (`musicd-run-…`), which everything it starts writes into and which goes when the process ends, passing or
+  failing (`test/tmp-run.js`, and `TempRun` in the C# suite). The ports registries stay in the shared temp directory.
+  Nothing changes for Mandarin itself.
+
 ## v1.1.11
 
 **The Shelf in the Android app, and the album view in three columns on a big screen.** The Shelf is brought up to
