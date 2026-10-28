@@ -20,7 +20,11 @@ public static class Ports
     private const int HostsPerSlot = 25;
     private const int FirstHost = 150;
     private static readonly int BasePort = int.TryParse(Environment.GetEnvironmentVariable("MANDARIN_CS_TEST_PORT_BASE"), out var b) ? b : 22000;
-    private static readonly string Dir = Path.Combine(Path.GetTempPath(), "mandarin-cs-test-slots");
+    private static readonly string Dir = Path.Combine(
+        Environment.GetEnvironmentVariable(TempRun.RootVar) is { Length: > 0 } root ? root : Path.GetTempPath(), "mandarin-cs-test-slots");
+
+    /// <summary>The registry's folder: in the system's temp directory, shared by every test process, not this one's own (TempRun).</summary>
+    public static string RegistryDir => Dir;
     private static readonly Lazy<int> SlotOf = new(Claim);
     private static int nextPort = -1, nextHost = -1;
 
