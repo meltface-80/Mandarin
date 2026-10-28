@@ -1,13 +1,16 @@
 # Changelog
 
-## Unreleased
+## v1.1.11
 
-Dev's builds are numbered 1.1.11-tN, the server's image and the test APK alike. The Shelf's merge (item 206) came out
-as 1.9.69-t1 by mistake: Rouen's version, not Mandarin's. Item 207 puts the numbering right, as 1.1.11-t2.
+**The Shelf in the Android app, and the album view in three columns on a big screen.** The Shelf is brought up to
+Rouen's: one look of spines, the album opened over the whole screen, a slimmer bar with the remote's volume, and eight
+tabs of choices, with Labels, Types, Formats and Favourites new among them; #N, A → Z and Z → A put the genres in
+order, and the shelf goes by artist, by label and catalogue number, by catalogue number, by year or at random. The
+Android app now draws the Shelf itself. On a computer, a TV or a tablet held sideways the album view fills the screen
+in three columns: the cover and what goes with it, the write-ups with Read more, and the tracks. On a phone or a
+tablet Home's menu is at its top left and Shelf is in the row along the foot, and a tablet's mini player is docked on
+that row as the Android app's is. Items 206 to 215.
 
-- `217-now-playing-as-before` (item 217): **Now playing is one screen again, as before item 216**: the cover, the
-  playing track and its transport, and the Queue tab. Item 216 put it in three columns, which wasn't asked for; only
-  the album view has them (item 214).
 - `215-tablet-mini-docked` (item 215): **on a tablet, either way round, the mini player is docked on the row along the
   foot**, edge to edge and square, as the Android app has it, not a pill floating over it. A phone keeps the pill.
 - `214-album-three-columns` (item 214): **the album view in three columns on a desktop, a TV or a tablet held
