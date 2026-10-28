@@ -559,6 +559,14 @@
               <a class="bio-source hidden" id="album-bio-source" data-parity="album.review-source" target="_blank" rel="noopener noreferrer"></a>
             </div>
           </div>
+          <!-- About the album's artist (item 214): only in the album view's three
+               columns (a landscape screen beyond a phone's, album-wide.js), in the
+               middle one under About this album; the artist's page has it too. -->
+          <div class="bio-section hidden" id="album-artist-bio" data-parity="album.artist-bio">
+            <h3 class="section-label" id="album-artist-bio-title">About the artist</h3>
+            <div class="bio-text" id="album-artist-bio-text" data-clipped="false"></div>
+            <div class="artist-bio-src" id="album-artist-bio-source"></div>
+          </div>
           <!-- Below the review: the library's other albums by this album's
                artist and the ones they appear on, then Last.fm's similar
                artists and similar albums (with a Last.fm key). Each is hidden

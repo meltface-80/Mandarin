@@ -6393,3 +6393,70 @@ html.native-over, html.native-over body { background: transparent !important; }
 html.native-over :is(.topbar, main, #touch-nav, #mini-transport, #album-modal, #settings-overlay, #menu-overlay) { visibility: hidden !important; }
 /* A page of Settings the app hands over (item 76) is the Settings sheet itself: seen (bug list item 82). */
 html.native-over.native-over-settings #settings-overlay:not(.hidden) { visibility: visible !important; }
+
+/* ================================================================== */
+/*  The album view in three columns (item 214, album-wide.js)         */
+/* ================================================================== */
+/* A landscape screen beyond a phone's (a desktop, a TV, a tablet held
+   sideways): the album over the whole screen, in three columns that each
+   scroll on their own — the cover, the head, the buttons and what is about
+   the album and its artist on the left; About this album and about its
+   artist, in full, in the middle; the tracks on the right. album-wide.js
+   decides (one query) and sets .album-wide; the columns end above the mini
+   player (--aw-foot), as a bar along the foot of the screen would have them. */
+.modal.album-wide:not(.np-mode) { padding: 0; }
+.modal.album-wide:not(.np-mode) .modal-panel {
+  width: 100%; height: 100%; max-width: none; max-height: 100%;
+  border-radius: 0; border: 0;
+}
+.modal.album-wide:not(.np-mode) .modal-body {
+  display: grid;
+  grid-template-columns: minmax(300px, 1fr) minmax(0, 1.3fr) minmax(320px, 1fr);
+  grid-template-rows: minmax(0, 1fr);   /* the screen's height, each column scrolling within it */
+  grid-template-areas: none;
+  height: 100%; overflow: hidden;
+  padding: calc(24px + var(--ctl-h) + env(safe-area-inset-top)) 0 var(--aw-foot, 0px);
+  gap: 0;
+}
+/* What the columns took their parts from: empty of anything the album shows (Now playing's own parts stay there). */
+.modal.album-wide:not(.np-mode) .modal-body > :is(.modal-aside, .modal-info) { display: none; }
+.aw-col {
+  min-width: 0; min-height: 0; overflow-y: auto; overscroll-behavior: contain;
+  align-self: stretch;   /* the row's height, not its content's (the album view's grid aligns its items to the end) */
+  scrollbar-width: thin; scrollbar-color: var(--border) transparent;   /* the page's dark, not the browser's white */
+  padding: 0 28px 24px;
+  border-right: 1px solid var(--border);
+}
+.aw-col:last-child { border-right: 0; }
+.aw-left { padding-left: calc(28px + env(safe-area-inset-left)); }
+.aw-right { padding-right: calc(28px + env(safe-area-inset-right)); }
+/* Nothing about the album or its artist to read: two columns, not an empty middle. */
+.modal.album-wide:not(.np-mode) .modal-body:has(.aw-mid > .hidden:first-child + .hidden:last-child) {
+  grid-template-columns: minmax(300px, 1fr) minmax(320px, 1.3fr);
+}
+.aw-mid:has(> .hidden:first-child + .hidden:last-child) { display: none; }
+.modal.album-wide .aw-left .modal-art { width: 100%; max-width: 440px; margin: 0 auto 18px; }
+.modal.album-wide .aw-left .modal-art img { width: 100%; height: auto; }
+.modal.album-wide .aw-left .modal-head { padding: 0 0 6px; }
+.modal.album-wide .aw-left > * + * { margin-top: 14px; }
+.modal.album-wide .aw-left > .modal-art + .modal-head { margin-top: 0; }
+.modal.album-wide .aw-mid > .bio-section + .bio-section { margin-top: 28px; }
+.modal.album-wide .aw-mid .bio-text[data-clipped] { max-height: none; -webkit-mask-image: none; mask-image: none; }
+.modal.album-wide .aw-mid .bio-toggle { display: none; }
+/* The middle fitted to the screen (the owner's): each part as tall as its words, the two shortened together when they
+   don't both fit, the rest faded under Read more; Read more opens the whole of both in the column, scrolling. */
+.modal.album-wide .aw-mid:not(.aw-reading) { display: flex; flex-direction: column; overflow: hidden; }
+.modal.album-wide .aw-mid:not(.aw-reading) > .bio-section:not(.hidden) { display: flex; flex-direction: column; flex: 0 1 auto; min-height: 0; }
+.modal.album-wide .aw-mid:not(.aw-reading) > .bio-section > * { flex: none; }
+.modal.album-wide .aw-mid:not(.aw-reading) > .bio-section > .bio-text { flex: 0 1 auto; min-height: 3em; overflow: hidden; }
+.modal.album-wide .aw-mid .aw-clipped > .bio-text { -webkit-mask-image: linear-gradient(black 70%, transparent); mask-image: linear-gradient(black 70%, transparent); }
+.aw-read {
+  align-self: flex-start; margin-top: 6px; padding: 4px 0;
+  background: transparent; border: 0; color: var(--accent-text);
+  font-size: 14px; font-weight: 600; cursor: pointer;
+}
+.aw-read.hidden { display: none; }
+.aw-read:hover { filter: brightness(1.15); }
+.modal.album-wide .aw-mid .bio-text { font-size: 15px; line-height: 1.6; }
+/* About the artist is the three columns' alone. */
+.modal:not(.album-wide) #album-artist-bio { display: none; }

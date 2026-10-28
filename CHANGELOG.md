@@ -5,6 +5,15 @@
 Dev's builds are numbered 1.1.11-tN, the server's image and the test APK alike. The Shelf's merge (item 206) came out
 as 1.9.69-t1 by mistake: Rouen's version, not Mandarin's. Item 207 puts the numbering right, as 1.1.11-t2.
 
+- `214-album-three-columns` (item 214): **the album view in three columns on a desktop, a TV or a tablet held
+  sideways** (wider than tall, 1000 by 600 at least; a phone either way round, and a tablet upright, as before), over
+  the whole screen, each column scrolling on its own and all ending above the mini player:
+  - on the left the cover, the album's head and its buttons, then its credits, more by the artist, what they appear
+    on, similar artists and similar albums;
+  - in the middle About this album and, new there, about its artist, fitted to the screen: each as tall as its words,
+    the two shortened together when they don't both fit, with Read more, which opens the whole of both (Read less
+    shortens them again);
+  - on the right the tracks.
 - `213-shelf-genre-sort` (item 213): **#N, A → Z and Z → A are the Genres tab's**, as in Rouen (1.9.70-t5), on the page
   and in the Android app: three buttons above the genre tiles put them in order, #N (the most albums first) by default,
   and each device keeps the one chosen. The Order tab is Rouen's again: A → Z by artist, by label and catalogue №, by

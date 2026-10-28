@@ -344,7 +344,8 @@ test("Last.fm's routes, and the album view's sections under the review", { skip:
           await until(() => !document.getElementById("album-lastfm-albums").classList.contains("hidden"));
           const out = { by: sec("album-more-by"), appears: sec("album-more-appears"), artists: sec("album-lastfm-artists"), albums: sec("album-lastfm-albums"),
             site: $("#album-lastfm-artists .more-site").href, cols: getComputedStyle($("#album-more-by .more-grid")).gridTemplateColumns.split(" ").length,
-            order: [...$("#modal-aside").children].filter(e => !e.classList.contains("hidden")).map(e => e.id) };
+            // where they are: the album view's aside, or its left-hand column in three (item 214)
+            order: [...$("#album-more-by").parentElement.children].filter(e => /^album-(more|lastfm)-/.test(e.id) && !e.classList.contains("hidden")).map(e => e.id) };
           $("#album-more-by .more-toggle").click();
           out.expanded = sec("album-more-by");
           out.less = $("#album-more-by .more-toggle").textContent;
