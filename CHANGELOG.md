@@ -5,6 +5,8 @@
 Dev's builds are numbered 1.1.11-tN, the server's image and the test APK alike. The Shelf's merge (item 206) came out
 as 1.9.69-t1 by mistake: Rouen's version, not Mandarin's. Item 207 puts the numbering right, as 1.1.11-t2.
 
+- `215-tablet-mini-docked` (item 215): **on a tablet, either way round, the mini player is docked on the row along the
+  foot**, edge to edge and square, as the Android app has it, not a pill floating over it. A phone keeps the pill.
 - `214-album-three-columns` (item 214): **the album view in three columns on a desktop, a TV or a tablet held
   sideways** (wider than tall, 1000 by 600 at least; a phone either way round, and a tablet upright, as before), over
   the whole screen, each column scrolling on its own and all ending above the mini player:

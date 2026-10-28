@@ -16,6 +16,8 @@
  *     filter with the strip back under the field; the Labels list the same
  *     (#–Z alone on the right, Search finds a label); the Artists wall the
  *     same (Sort alone on the right, Search finds an artist), Artists lit;
+ *   - on a tablet either way round the mini player docked on the row, edge to
+ *     edge, as the Android app's (item 215); on a phone the pill over it;
  *   - the four buttons evenly across, or five with Shelf; Offline is a pill at the top of the
  *     screen, in the middle, over everything, for as long as it lasts (bug
  *     list item 134), and the row doesn't move when it comes; the scan's
@@ -70,6 +72,7 @@ const DRIVER = `(async () => {
   await until(() => !shown($("tnav-shelf")), "the row without Shelf");
   out.navBox = box(nav);
   out.mini = box($("mini-transport"));
+  out.miniRadius = getComputedStyle($("mini-transport")).borderTopLeftRadius;
   out.topbarRow = shown(document.querySelector(".topbar-row"));
   out.greeting = box(document.querySelector("#home-view .home-greeting, #home-view"));
   out.homeOn = html.classList.contains("tn-home") && getComputedStyle($("tnav-home")).color;
@@ -227,6 +230,12 @@ test("the touch layout: Home, Library, Artists, Shelf when on and Search along t
       assert.ok(r.homeMenu.l >= 0 && r.homeMenu.l <= 24 && r.homeMenu.t < 60 && r.homeMenu.w >= 40, `${size}: the menu at Home's top left, where the side menu opens (${JSON.stringify(r.homeMenu)})`);
       assert.ok(r.navBox.b === h && r.navBox.l === 0 && r.navBox.r === w, `${size}: along the foot, edge to edge (${JSON.stringify(r.navBox)})`);
       assert.ok(r.mini.b <= r.navBox.t, `${size}: the mini player above the row (${r.mini.b} over ${r.navBox.t})`);
+      // A tablet, either way round (item 215, as the Android app has it): the mini player docked on the row, edge to
+      // edge, square; a phone keeps the floating pill.
+      const tablet = Math.min(w, h) >= 600;
+      if (tablet) assert.ok(r.mini.b === r.navBox.t && r.mini.l === 0 && r.mini.r === w && r.miniRadius === "0px",
+        `${size}: a tablet's mini player docked on the row, edge to edge (${JSON.stringify(r.mini)}, ${r.miniRadius})`);
+      else assert.ok(r.mini.b < r.navBox.t && r.mini.l > 0 && r.miniRadius !== "0px", `${size}: a phone's mini player a pill over the row (${JSON.stringify(r.mini)})`);
       assert.equal(r.topbarRow, false, size + ": on Home, no top bar");
       assert.ok(r.greeting.t < 40, `${size}: the greeting at the top (${r.greeting.t})`);
       assert.ok(r.homeOn && r.homeOn !== r.libraryColour, size + ": Home lit on Home");
