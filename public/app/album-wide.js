@@ -67,16 +67,53 @@
     if (wide && !moved.length) into();
     else if (!wide && moved.length) back();
     modal.classList.toggle("album-wide", wide);
-    if (!wide) words.reset();
+    if (!wide) mid.classList.remove("aw-reading");
     foot();
     if (wide) { readBio(); fit(); }
   }
 
-  // ---- The middle column fitted to the screen, Read more for the rest (the owner's; wide-words.js) ----
+  // ---- The middle column fitted to the screen, Read more for the rest (the owner's) ----
   const mid = cols[1];
-  const words = fitWords(mid, ["#album-bio-section", "#album-artist-bio"].map((sel) => /** @type {HTMLElement} */ (document.querySelector(sel))).filter(Boolean),
-    () => modal.classList.contains("album-wide"), "album.read-more");
-  const fit = words.fit;
+  const WORDS = ["#album-bio-section", "#album-artist-bio"].map((sel) => {
+    const section = /** @type {HTMLElement | null} */ (document.querySelector(sel));
+    const text = section && /** @type {HTMLElement | null} */ (section.querySelector(".bio-text"));
+    if (!section || !text) return null;
+    const read = document.createElement("button");
+    read.type = "button";
+    read.className = "aw-read hidden"; read.dataset.parity = "album.read-more";
+    read.textContent = "Read more";
+    read.addEventListener("click", () => {
+      const reading = !mid.classList.contains("aw-reading");
+      mid.classList.toggle("aw-reading", reading);
+      if (!reading) mid.scrollTop = 0;
+      fit();
+    });
+    text.after(read);   // under the words, over where they are from
+    return { section, text, read };
+  }).filter(Boolean);
+  let fitting = 0;
+  /** After this frame's layout: a part whose words run on past its share is shortened, with Read more under it. */
+  function fit() {
+    if (fitting) return;
+    fitting = requestAnimationFrame(() => {
+      fitting = 0;
+      const reading = mid.classList.contains("aw-reading");
+      for (const p of /** @type {{ section: HTMLElement, text: HTMLElement, read: HTMLElement }[]} */ (WORDS)) {
+        const shown = modal.classList.contains("album-wide") && !p.section.classList.contains("hidden");
+        const clipped = shown && !reading && p.text.scrollHeight > p.text.clientHeight + 1;
+        p.section.classList.toggle("aw-clipped", clipped);
+        p.read.classList.toggle("hidden", !(clipped || (shown && reading)));
+        const word = reading ? "Read less" : "Read more";
+        if (p.read.textContent !== word) p.read.textContent = word;
+      }
+    });
+  }
+  // A new album: shortened again.
+  const words = new MutationObserver(fit);
+  for (const p of /** @type {{ section: HTMLElement, text: HTMLElement }[]} */ (WORDS)) {
+    words.observe(p.text, { childList: true, characterData: true, subtree: true });
+    words.observe(p.section, { attributes: true, attributeFilter: ["class"] });
+  }
 
   // ---- About the album's artist (the middle column's second part) ----
   const bio = document.getElementById("album-artist-bio");
@@ -90,7 +127,7 @@
   function albumArtistBio(artist, album) {
     want = { artist, album };
     had = ""; seq++;
-    words.reset();
+    mid.classList.remove("aw-reading");
     if (bio) bio.classList.add("hidden");
     if (modal && modal.classList.contains("album-wide")) readBio();
   }
@@ -116,7 +153,7 @@
   // The album opened or closed, Now playing in and out, the window resized or turned, the player moved.
   new MutationObserver(apply).observe(modal, { attributes: true, attributeFilter: ["class"] });
   if (bar) new MutationObserver(foot).observe(bar, { attributes: true, attributeFilter: ["class", "style"] });
-  window.addEventListener("resize", apply);
+  window.addEventListener("resize", () => { apply(); fit(); });
   if (wideQ.addEventListener) wideQ.addEventListener("change", apply); else if (wideQ.addListener) wideQ.addListener(apply);
   apply();
 })();
