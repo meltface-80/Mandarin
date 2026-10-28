@@ -12,7 +12,7 @@ object AlbumWords {
      * Three columns: a tablet ([smallestWidthDp], the screen's shorter side, 600 or more — Android's own line between a
      * phone and a tablet) held sideways. A phone, either way round, and a tablet upright keep the one column.
      */
-    fun sideways(smallestWidthDp: Int, landscape: Boolean): Boolean = landscape && smallestWidthDp >= 600
+    fun sideways(smallestWidthDp: Int, landscape: Boolean): Boolean = landscape && smallestWidthDp >= ScreenSize.TABLET_DP
 
     /**
      * The lines the review ([review] long) and the biography ([bio] long) are shown in, [room] lines between them;

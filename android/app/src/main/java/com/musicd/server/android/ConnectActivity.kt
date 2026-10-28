@@ -42,6 +42,7 @@ class ConnectActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        holdUprightOnPhones()
         val dp = resources.displayMetrics.density
         fun px(v: Int) = (v * dp).toInt()
 

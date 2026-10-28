@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- `221-android-portrait-phones-fold-tablet` (item 221): **the Android app on a phone, a tablet and a foldable.** A
+  phone is held upright, whatever its rotation setting; a tablet, and a foldable opened, turns freely and is laid out
+  as a tablet, the album's three columns among it. The line is Android's own, a screen whose shorter side is 600 dp or
+  more: a Pixel Fold folded is a phone, opened a tablet, and the app follows it as it is folded or opened without
+  starting again. The browser is as it was.
+  - The Shelf's choices on a wide screen (a tablet, a foldable opened) are the size a phone held upright shows them,
+    as many more across as fit, not three tiles stretched across the screen.
+
 - `220-shelf-genre-order-chip` (item 220): **in the Android app, the Genres tab's #N, A → Z and Z → A show the order
   chosen.** The genres were put in the new order, but #N stayed lit: the pills were skipped when the tiles were drawn
   again, as the order they read isn't something the screen watches. They are now handed the order chosen.

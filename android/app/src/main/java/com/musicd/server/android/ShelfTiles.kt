@@ -37,6 +37,7 @@ import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -45,6 +46,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.musicd.server.client.Contract
 import com.musicd.server.client.Palette
+import com.musicd.server.client.ScreenSize
 import com.musicd.server.client.ServerClient
 import com.musicd.server.client.ShelfChoices
 import com.musicd.server.client.ShelfTile
@@ -61,7 +63,9 @@ internal fun ShelfTilesGrid(shelf: ShelfControl, tab: String, rem: Dp, client: (
     shelf.rev   // drawn again when a choice moves the counts
     val tiles = shelf.choices.tiles(lib, tab)
     // genres and formats the size of a decade or a kind (item 209); a label and the Favourites tile with a fan of covers
-    val cols = when (tab) { "artist" -> 6; "year", "type", "genre", "format" -> 3; "order" -> 1; else -> 2 }
+    // a phone's columns; a wide screen (a tablet, a foldable opened) as many more of the same size as fit (item 221)
+    val phoneCols = when (tab) { "artist" -> 6; "year", "type", "genre", "format" -> 3; "order" -> 1; else -> 2 }
+    val cols = ScreenSize.shelfColumns(phoneCols, LocalConfiguration.current.screenWidthDp)
     val gap = if (tab == "artist" || tab == "year" || tab == "type" || tab == "genre" || tab == "format") rem * 0.5f else rem * 0.6f
     fun toggle(id: String) = shelf.choose { toggle(tab, id, kotlin.random.Random.nextLong(1, 0xffffffffL)) }
     LazyVerticalGrid(GridCells.Fixed(cols), modifier, contentPadding = PaddingValues(top = rem * 0.5f, bottom = rem * 1.3f),
