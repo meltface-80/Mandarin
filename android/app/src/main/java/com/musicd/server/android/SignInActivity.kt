@@ -54,6 +54,7 @@ class SignInActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        holdUprightOnPhones()
         if (Store.server(this) == null) { toConnect(); return }
         val dp = resources.displayMetrics.density
         fun px(v: Int) = (v * dp).toInt()

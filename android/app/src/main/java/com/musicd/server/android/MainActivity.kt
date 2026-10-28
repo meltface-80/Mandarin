@@ -123,8 +123,15 @@ class MainActivity : androidx.activity.ComponentActivity() {
         }
     }
 
+    // A foldable folded or opened changes the screen without starting this again (smallestScreenSize, AndroidManifest.xml).
+    override fun onConfigurationChanged(newConfig: android.content.res.Configuration) {
+        super.onConfigurationChanged(newConfig)
+        holdUprightOnPhones(newConfig)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        holdUprightOnPhones()
         if (intent?.action == ACTION_CHANGE_SERVER || Store.server(this) == null) {
             openConnect()
             finish()
