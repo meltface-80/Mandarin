@@ -59,6 +59,7 @@ import com.musicd.server.client.Palette
 import com.musicd.server.client.ServerClient
 import com.musicd.server.client.ShelfCase
 import com.musicd.server.client.ShelfChoices
+import com.musicd.server.client.ShelfCorners
 import com.musicd.server.client.ShelfMotion
 import com.musicd.server.client.ShelfPlaying
 import kotlinx.coroutines.Dispatchers
@@ -164,14 +165,15 @@ internal fun ShelfScreen(zoneArg: String, client: () -> ServerClient?, onBack: (
         AnimatedVisibility(pickOpen, enter = slideInVertically(tween(320, easing = SHELF_EASE)) { -it }, exit = slideOutVertically(tween(320, easing = SHELF_EASE)) { -it }) {
             ShelfPick(shelf, rem, client, onDone = { pickOpen = false })
         }
-        // the way back, in the wall display's faint pill; the choices' tab hanging from the top while they are away
-        Row(Modifier.statusBarsPadding().padding(start = 16.dp, top = 16.dp).parity("shelf.back", Contract.label("shelf.back")).height(rem * 2.6f).clip(CircleShape)
+        // the way back, in the wall display's faint pill; the choices' tab hanging from the top while they are away; neither
+        // over an open album, whose own Back takes their place (item 219, core's ShelfCorners)
+        if (ShelfCorners.remote(opened != null)) Row(Modifier.statusBarsPadding().padding(start = 16.dp, top = 16.dp).parity("shelf.back", Contract.label("shelf.back")).height(rem * 2.6f).clip(CircleShape)
             .border(1.dp, Color(0x42ECE8DF), CircleShape).clickable(onClick = onBack).padding(start = rem * 0.6f, end = rem), verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(rem * 0.2f)) {
             Icon(painterResource(R.drawable.np_back), contentDescription = null, tint = Color(0x9EECE8DF), modifier = Modifier.size(rem * 1.15f))
             Text("Remote", color = Color(0x9EECE8DF), fontSize = (rem.value * 0.85f).sp, fontWeight = FontWeight.W600)
         }
-        if (!pickOpen) EdgeTab(Modifier.align(Alignment.TopCenter).statusBarsPadding().parity("shelf.pick-tab", Contract.label("shelf.pick-tab", 0))
+        if (ShelfCorners.pickTab(opened != null, pickOpen)) EdgeTab(Modifier.align(Alignment.TopCenter).statusBarsPadding().parity("shelf.pick-tab", Contract.label("shelf.pick-tab", 0))
             .clip(RoundedCornerShape(bottomStart = rem * 0.8f, bottomEnd = rem * 0.8f)).clickable { pickOpen = true; zonesOpen = false; volumeOpen = false }, rem, -90f, rem * 4.4f, rem * 1.55f)
         shelf.toast?.let { (words, at) ->
             var on by remember(at) { mutableStateOf(true) }

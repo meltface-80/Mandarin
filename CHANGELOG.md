@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- `219-shelf-remote-over-album` (item 219): **in the Android app, the Shelf's "‹ Remote" no longer sits over an open
+  album's Back.** An album opened on the Shelf now covers the Shelf's corners as it does in the browser: the way back
+  to the remote and the choices' tab hanging from the top show on the shelf only, and the album's own Back takes
+  their place.
 - `218-shelf-album-is-library-album` (item 218): **the Shelf's album view is the library's own album view**, on the
   page and in the Android app, so the two are the same screen: track times, the heart, Play now, Queue and ⋯, the
   credits, more by the artist and similar albums, and in three columns where the library's are. On the page the
