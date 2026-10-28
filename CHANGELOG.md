@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- `220-shelf-genre-order-chip` (item 220): **in the Android app, the Genres tab's #N, A → Z and Z → A show the order
+  chosen.** The genres were put in the new order, but #N stayed lit: the pills were skipped when the tiles were drawn
+  again, as the order they read isn't something the screen watches. They are now handed the order chosen.
+
 ## v1.1.12
 
 **The Shelf's album view is the library's album view.** An album opened on the Shelf is the library's own album
