@@ -136,7 +136,6 @@
     document.addEventListener("keydown", (e) => {
       if (e.key !== "Escape") return;
       if (!$("#help").classList.contains("hidden")) dismissHelp();
-      else if (h.back.tsel()) h.back.endPicks();
       else if (h.flippedV !== null) { h.flippedV = null; h.kick(); }   // the album view closes, the case turns back (t5)
       else if (h.queue.armed()) h.queue.disarm();
     });

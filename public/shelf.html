@@ -186,38 +186,12 @@
       <ol class="q-list" id="q-list"></ol>
     </aside>
     <p class="sr" id="live" aria-live="polite" data-parity="shelf.said"></p>
-    <!-- The album view (v1.9.67-t5): a case turned over at the front unfolds
-         into this, over the whole screen above the bar, in the remote's
-         album-screen style. shelf-back.js fills it and chooses tracks on it;
-         the bar below plays them. Back (a chevron on a phone, × from 720px)
-         turns the case back, as does a tap away from the tracks and Escape. -->
+    <!-- The album view (v1.9.67-t5; item 218): a case turned over at the front
+         unfolds into this, over the whole screen above the bar: the library's
+         own album view, Mandarin's page in a frame (shelf-back.js makes it).
+         Its Back turns the case back, as Escape does. -->
     <div class="ov hidden" id="open" role="dialog" aria-modal="true" aria-label="Album">
-      <button class="ov-close" id="open-close" type="button" data-parity="shelf-album.back" aria-label="Back" title="Back">
-        <svg class="ico-back" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
-        <svg class="ico-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
-      </button>
       <div class="ov-body" id="open-body"></div>
-      <!-- The album's Play now and Queue, and the chosen tracks' own (v1.9.68, the owner: the play controls on the
-           album page, under its cover; they were in the bar). shelf-back.js puts them under the cover each time
-           the view is drawn. -->
-      <div class="ov-acts" id="ov-acts">
-        <div class="mt-acts" id="actions" role="group" aria-label="The album in front">
-          <button class="act primary" type="button" data-act="play_now" data-parity="shelf-album.play"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4.5v15l13-7.5z"/></svg>Play now</button>
-          <button class="act" type="button" data-act="queue" aria-label="Add to queue" data-parity="shelf-album.queue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 5h11M3 10h11M3 15h7"/><path d="M18 5v12"/><path d="M14.5 13.5L18 17l3.5-3.5"/><path d="M3 20h18"/></svg>Queue</button>
-        </div>
-        <!-- Tracks chosen on the back of the case (v1.9.4): a long press on a
-             track chooses it, a tap adds or takes away more, and these play
-             them. In the bar since v1.9.66 (the owner's choice), in the place
-             of the album's own Play now and Queue, which step aside meanwhile;
-             before, a popup under the cover, over the album's name. -->
-        <div class="tsel hidden" id="tsel" role="group" aria-label="Chosen tracks">
-          <button class="tsel-x" id="tsel-clear" type="button" data-parity="shelf-album.chosen-clear" aria-label="Clear the chosen tracks"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button>
-          <b class="tsel-count" id="tsel-count" data-parity="shelf-album.chosen-count"></b>
-          <button class="act primary" type="button" data-tact="play_now" data-parity="shelf-album.chosen-play">Play now</button>
-          <button class="act" type="button" data-tact="play_next" data-parity="shelf-album.chosen-next">Play next</button>
-          <button class="act" type="button" data-tact="queue" aria-label="Queue — add to the end" data-parity="shelf-album.chosen-queue">Queue</button>
-        </div>
-      </div>
     </div>
   </main>
 
@@ -253,7 +227,6 @@
   <script src="/shelf-queue.js"></script>
   <script src="/shelf-ways.js"></script>
   <script src="/shelf-panes.js"></script>
-  <script src="/shelf-about.js"></script>
   <script src="/shelf-faces.js"></script>
   <script src="/shelf.js"></script>
 </body>

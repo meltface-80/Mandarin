@@ -76,24 +76,28 @@ const DRIVE = `
   const mid = (el) => { const r = el.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; };
   // The cover on show at the front: a pooled one put away may still carry its number.
   const front = () => [...document.querySelectorAll('.it[data-v="' + Math.round(S().p) + '"]')].find(e => e.getBoundingClientRect().width > 0);
-  // Turned over (item 206, Rouen v1.9.67-t5): the turn unfolds into the album view over the screen above the bar,
-  // its tracks read and its opening done, then a frame.
+  // Turned over (item 206, Rouen v1.9.67-t5): the turn unfolds into the album view over the screen above the bar —
+  // since item 218 the library's own, the page in a frame (/?embed=album): its album shown with its tracks, its
+  // opening done, then a frame. In the frame: fwin(), its document fdoc(), and $f(selector).
   const ov = $("#open");
+  const fwin = () => { const f = ov.querySelector("iframe"); return f ? f.contentWindow : null; };
+  const fdoc = () => { const w = fwin(); return w ? w.document : null; };
+  const $f = (s) => { const d = fdoc(); return d ? d.querySelector(s) : null; };
   const viewOpen = () => !ov.classList.contains("hidden") && ov.classList.contains("on");
-  const turnOver = async () => { await until(() => front(), 4000); const c = mid(front()); tap(c.x, c.y); await until(() => viewOpen() && document.querySelector("#open .bk-tracks li"), 6000);
+  const albumShown = (t) => { const m = $f("#album-modal"); return !!m && !m.classList.contains("hidden") && !!$f("#modal-tracks li.t-row") && (!t || ($f("#modal-title") || {}).textContent === t); };
+  const turnOver = async () => { await until(() => front(), 4000); const c = mid(front()), t = S().title; tap(c.x, c.y);
+    await until(() => viewOpen() && !ov.classList.contains("loading") && albumShown(t), 20000);
     await until(() => ov.getAnimations({ subtree: false }).every(a => a.playState !== "running"), 4000); await new Promise(r => requestAnimationFrame(r)); };
   // At rest: no move under way, on a case, nothing on the shelf still moving; then a frame.
   const rest = async () => {
     await until(() => S().mode === "idle" && Math.abs(S().p - Math.round(S().p)) < 0.01 && stage.getAnimations({ subtree: true }).every(a => a.playState !== "running"), 6000);
     await new Promise(r => requestAnimationFrame(r));
   };
-  // A press on a row of the album view: the view's own (shelf-back.js), not the stage's.
-  const pr = (el, type, x, y, id) => el.dispatchEvent(new PointerEvent(type, { pointerId: id, clientX: x, clientY: y, bubbles: true, pointerType: "touch", isPrimary: true }));
-  const row = (i) => document.querySelector('#open li[data-i="' + i + '"]');
-  const tapRow = async (i) => { const el = row(i), c = mid(el), id = ++pid; pr(el, "pointerdown", c.x, c.y, id); pr(el, "pointerup", c.x, c.y, id); await sleep(60); };
-  const holdRow = async (i) => { const el = row(i), c = mid(el), id = ++pid; pr(el, "pointerdown", c.x, c.y, id); await sleep(650); pr(el, "pointerup", c.x, c.y, id); await sleep(60); };
-  const rows = () => [...document.querySelectorAll("#open .bk-tracks li")].map(li => li.classList.contains("bk-disc") ? "# " + li.textContent
-    : (li.classList.contains("sel") ? "✓" : li.querySelector("i").textContent) + " " + li.querySelector("span").textContent);
+  // The album view's tracks, as the library's album view lists them: each its title and its length, a set's discs headed.
+  const rows = () => [...fdoc().querySelectorAll("#modal-tracks li.t-row, #modal-tracks li.t-disc")].map(li => li.classList.contains("t-disc") ? "# " + li.textContent
+    : li.querySelector(".t-title").textContent + (li.querySelector(".t-len") ? " " + li.querySelector(".t-len").textContent : ""));
+  // What the frame asked the server to do (its own stand-in log: INIT runs in it too).
+  const fposts = (path) => (fwin().__log || []).filter(x => x.path === path).map(x => x.body);
 `;
 
 module.exports = { library, INIT, HELPERS, DRIVE };

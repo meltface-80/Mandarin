@@ -82,6 +82,9 @@ async function invokeTrackMulti(kind, given) {
           // having wiped the ones before it). Play next is every one, last
           // to first (above).
           kind: (kind === "play_next" || i === 0 ? kind : "queue"),
+          // The chosen tracks alone (item 218, as the Shelf's own did): Play now on a track otherwise plays the rest of
+          // the album after it, and the picks after the first came again behind that.
+          only: kind === "play_now",
           album_title: currentAlbum.title || "",
           album_subtitle: currentAlbum.subtitle || "",
           filter_type:   currentDetailFilter ? currentDetailFilter.type   : "",
