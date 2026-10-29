@@ -7,7 +7,7 @@
 
 </div>
 
-# Mandarin — v1.1.12
+# Mandarin — v1.1.13
 
 **Your own music files, played to Sonos rooms, to UPnP/DLNA renderers (a WiiM, a Chord Poly,
 a streamer, an AV receiver) and to the Mandarin Android app.**
@@ -26,18 +26,8 @@ Wikipedia, Deezer and others); your music files stay on your machine.
                                                    └──── audio: /stream/… ◀────────┘
 ```
 
-**New in v1.1.12** (since v1.1.11): **the Shelf's album view is the library's album view.** The
-[changelog](CHANGELOG.md) has each change.
-* **One album view.** An album opened on the Shelf is the library's own album page, in the Shelf's room: its track
-  times, the heart, Play now, Queue and ⋯, its credits, more by the artist and similar albums, and its three columns
-  on a computer, a TV or a tablet held sideways. Choose tracks as in the library: hold one, tap the others, then Play
-  now or Queue. An artist, a label or a genre opens the library's page of it.
-* **Three columns in the Android app.** On a tablet held sideways the app's album page is in three columns, as the
-  browser's: the cover, its buttons, credits and more by the artist on the left; About this album and about its
-  artist in the middle, with Read more; the tracks on the right. A phone, either way round, keeps the one column.
-* **Play now on chosen tracks** plays those tracks alone; before, the rest of the album followed them.
-* **The Android Shelf's corners.** "‹ Remote" and the choices' tab show on the shelf only, no longer over an open
-  album's Back.
+**New in v1.1.13** (since v1.1.12): Additional work to the Android app for better device type support based on
+screen size. The [changelog](CHANGELOG.md) has each change.
 
 ---
 
@@ -59,13 +49,13 @@ Open **☰ → Home**. Tap a row's title for all of it. To reorder rows or hide 
 
 ⸻
 
-👆 **Phones and tablets**
+👆 **Phones and tablets** — *new in v1.1.13*
 
 On a touchscreen: a row at the foot (Home, Library, Artists, Shelf, Search), the mini player docked on it on a tablet, and the menu at Home's top left.
 
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 
-Nothing to set up: a phone or tablet gets it in the browser, the iPhone home-screen app and the Android app; a computer with a mouse keeps the top bar. Shelf is in the row while it is switched on (**Settings → Setup → Shelf**). **☰** at Home's top left opens the side menu. Tap Home or Library again to go back to the top; Search opens its field across the screen. A phone's mini player floats over the row; a tablet's is docked on it, edge to edge.
+Nothing to set up: a phone or tablet gets it in the browser, the iPhone home-screen app and the Android app; a computer with a mouse keeps the top bar. Shelf is in the row while it is switched on (**Settings → Setup → Shelf**). **☰** at Home's top left opens the side menu. Tap Home or Library again to go back to the top; Search opens its field across the screen. A phone's mini player floats over the row; a tablet's is docked on it, edge to edge. In the Android app a phone is held upright; a tablet, and a foldable opened, turns and is laid out as a tablet.
 
 </details>
 
@@ -119,7 +109,7 @@ Tap the **Library** row's title on Home, or **Library** in a phone's or tablet's
 
 ⸻
 
-🗄️ **Shelf** — *new in v1.1.12*
+🗄️ **Shelf**
 
 A record shop's shelf: your albums' spines in a 3D row, narrowed by genre, artist, year, label, type, format or favourites, put in order, or spun to land anywhere.
 
@@ -143,7 +133,7 @@ Tap the magnifying glass in the top bar (in the row at the foot of a phone's or 
 
 ⸻
 
-💿 **Album pages** — *new in v1.1.12*
+💿 **Album pages**
 
 Tracks, year and label, write-ups from Wikipedia and Qobuz, and Pitchfork's score where it reviewed the album. Step to the previous or next album of the row you came from.
 
