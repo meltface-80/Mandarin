@@ -48,19 +48,4 @@ class BackupSettingsTest {
         assertEquals(BackupSettings.CHOOSE_AGAIN, BackupSettings.restoreSaid(JSONObject("""{"ok":true,"app_result":{"choose_again":["local_folder"]}}""")))
         assertNull(BackupSettings.restoreSaid(JSONObject("""{"ok":true,"restarting":true}""")))
     }
-
-    @Test fun `Check for updates, what it comes to`() {
-        val found = UpdateCheck.outcome(JSONObject("""{"available":true,"latest":"1.1.0","current":"1.0.17","notes":"New"}"""), JSONObject("""{"available":true,"latest":"1.1.0","current":"1.0.17"}"""))
-        assertEquals("Update server and app to v1.1.0", found.words)
-        assertEquals("New", found.notes)
-        assertEquals(true, found.server && found.app && found.offer)
-        assertEquals("Update app to v1.1.0", UpdateCheck.outcome(JSONObject("""{"available":false,"current":"1.1.0"}"""), JSONObject("""{"available":true,"latest":"1.1.0","current":"1.0.17"}""")).words)
-        assertEquals("Roll back to v1.0.9", UpdateCheck.outcome(JSONObject("""{"available":true,"latest":"1.0.9","isDowngrade":true}"""), null).words)
-        val coming = UpdateCheck.outcome(JSONObject("""{"available":false,"current":"1.0.18"}"""), JSONObject("""{"available":false,"latest":null,"current":"1.0.17"}"""))
-        assertEquals("App v1.0.18 is on its way — try again in a few minutes", coming.words)
-        assertEquals(6_000L, coming.holdMs)
-        assertEquals("Up to date (server v1.0.17, app v1.0.17)", UpdateCheck.outcome(JSONObject("""{"current":"1.0.17"}"""), JSONObject("""{"current":"1.0.17","latest":null}""")).words)
-        assertEquals("Up to date (v?)", UpdateCheck.outcome(JSONObject("{}"), null).words)
-        assertEquals("Android app v1.0.17", UpdateCheck.appName("1.0.17"))
-    }
 }

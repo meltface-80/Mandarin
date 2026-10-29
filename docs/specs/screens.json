@@ -1095,17 +1095,17 @@
       }
     },
     "settings-system": {
-      "page": "Settings' Updates: Back, its title; Updates and Check for updates, which looks for the server's update and the app's at once and then offers to install what it found (or says all is up to date), the server's release notes under it once one is found; in the app, the app's own version, updated with the server",
+      "page": "Settings' Updates: Back, its title; the server and, in the app, the app a row each (item 223): its name with its version, and its own Check for update, which looks for that one's update alone and becomes Update available once one is found (installing it on the next tap), or says how things stand; under both, what each update found brings, a heading and its short lines, once for a version both bring",
       "native": ["android/app/src/main/java/com/musicd/server/android/SettingsUpdates.kt"],
       "preview": false,
       "items": {
         "back": { "kind": "action", "label": "Back to settings" },
         "heading": { "kind": "shows" },
         "name": { "kind": "shows", "each": true },
-        "check": { "kind": "action", "label": ["Check for updates", "{state}"] },
-        "notes": { "kind": "shows", "when": "a server update found, with its release notes" },
-        "app-note": { "kind": "shows", "when": "in the Android app" },
-        "app-check": { "kind": "action", "label": "Check for app update", "only": "page", "why": "an Android app older than the page's own update offer: the app always offers its update with the server's" }
+        "check": { "kind": "action", "label": ["Check for update", "{state}"] },
+        "app-check": { "kind": "action", "label": ["Check for update", "{state}"], "when": "in the Android app" },
+        "notes-head": { "kind": "shows", "each": true, "when": "an update found with its notes" },
+        "notes": { "kind": "shows", "each": true, "when": "an update found with its notes" }
       }
     },
     "settings-backup": {

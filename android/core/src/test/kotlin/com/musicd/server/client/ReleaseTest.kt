@@ -47,5 +47,14 @@ class ReleaseTest {
         assertFalse(r.newerThan("0.3.4"))
         assertNull(Release.parse(JSONObject("""{"version": "0.3.4", "url": "http://example.com/a.apk"}""")))
         assertNull(Release.parse(JSONObject("{}")))
+        assertNull(r.notes)
+    }
+
+    /** Its short notes (item 223), as .github/publish-apk.sh writes them from CHANGELOG.md; null, or none written, is none. */
+    @Test fun latestJsonWithItsNotes() {
+        val r = Release.parse(JSONObject("""{"version": "1.1.14", "url": "https://x/a.apk", "sha256": "ab", "notes": "• Fixed - track times\n• New - Shelf"}"""))!!
+        assertEquals("• Fixed - track times\n• New - Shelf", r.notes)
+        assertNull(Release.parse(JSONObject("""{"version": "1.1.14", "url": "https://x/a.apk", "notes": null}"""))!!.notes)
+        assertNull(Release.parse(JSONObject("""{"version": "1.1.14", "url": "https://x/a.apk", "notes": ""}"""))!!.notes)
     }
 }

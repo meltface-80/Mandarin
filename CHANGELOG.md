@@ -1,5 +1,23 @@
 # Changelog
 
+## Unreleased
+
+- New - the server and the Android app each have their own Check for update button
+- Redesign - the update notes are a short list of what changed
+
+- `223-separate-app-server-updates` (item 223): **Settings → Updates has a row for the server and one for the Android
+  app, each with its own button.** "Server v1.1.13" and "Android app v1.1.13", each with Check for update, which
+  looks for that one's update alone and becomes Update available once one is found; tapped again it installs that
+  one alone, the server's under the banner on Home as before, the app's through Android's installer. Opened, the page
+  says what was last found. Under both, what the update brings: "What's new in v1.1.14" and its short lines,
+  "• Fixed - …", "• New - …", "• Redesign - …", once for a version both bring. One button for both meant the app's
+  update ran first and the page had to be opened again for the server's.
+  - Each version's section here now opens with those short lines (`- Fixed - …`, `- New - …`, `- Redesign - …`, and
+    Improved, Changed or Removed), above the entries. The server shows them alone from the release's notes
+    (`Admin/ReleaseNotes.cs`), with no branch, item or test build; the app's are written into `dist/latest.json` with
+    its APK (`tools/release-notes.js`, `.github/publish-apk.sh`). A release without them shows no notes.
+  - The browser's Updates is the server's row alone, as before.
+
 ## v1.1.13
 
 Additional work to the Android app for better device type support based on screen size. Items 220 to 222.

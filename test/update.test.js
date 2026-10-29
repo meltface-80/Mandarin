@@ -104,7 +104,7 @@ test("Check for updates installs the newer release and restarts into it, library
     const base = `http://127.0.0.1:${gh.address().port}`;
     const json = o => { res.setHeader("Content-Type", "application/json"); res.end(JSON.stringify(o)); };
     if (req.url === "/repos/me/musicd/releases/latest") {
-      return json({ tag_name: "v" + NEXT, html_url: base + "/r", body: "Notes for " + NEXT,
+      return json({ tag_name: "v" + NEXT, html_url: base + "/r", body: "Notes for " + NEXT + ".\n\n- New - faster starts\n- `9-faster` (item 9): **faster.**",
         assets: [{ name: `musicd-server-${NEXT}.tar.gz`, browser_download_url: base + "/dl/bundle" }] });
     }
     if (req.url === `/repos/me/musicd/releases/tags/v${NEXT}`) {
@@ -134,7 +134,7 @@ test("Check for updates installs the newer release and restarts into it, library
     body: JSON.stringify({ offset: one.offset, title: "Album One (fixed)", year: "1999" }) });
   assert.equal(edit.status, 200);
   const st = await api("update/check", true);
-  assert.deepEqual([st.available, st.latest, st.viaLauncher, st.notes], [true, NEXT, false, "Notes for " + NEXT]);
+  assert.deepEqual([st.available, st.latest, st.viaLauncher, st.notes], [true, NEXT, false, "• New - faster starts"]);
   // What the page reads when Settings opens (v0.9.1, the audit's T1): what the check found, kept.
   assert.deepEqual(await api("update/status"), st);
 

@@ -28,10 +28,11 @@ import java.util.concurrent.Executors
  * it offers to fetch it and install it over the top — the same signing key
  * every time, so nothing is uninstalled and downloads stay on the phone.
  *
- * One Update button does both: the update banner (UpdateNow, bug list item 111)
- * asks here ([lookup], [statusJson]) alongside the server's own update, shows
- * one offer for whichever is newer, and its Update installs this one
- * ([installNow]) once the server's is done.
+ * The update banner (UpdateNow, bug list item 111) asks here ([lookup],
+ * [statusJson]) alongside the server's own update, shows one offer for
+ * whichever is newer, and its Update installs this one ([installNow]) once the
+ * server's is done; Settings → Updates asks here for this app's row alone
+ * (item 223), its notes under it.
  */
 object AppUpdate {
     private const val TAG = "AppUpdate"
@@ -46,13 +47,14 @@ object AppUpdate {
     @Volatile private var lookedAt = 0L
     @Volatile private var looking = false
 
-    /** For the banner and Settings → Updates: {"current", "latest", "available", "installing"}. */
+    /** For the banner and Settings → Updates: {"current", "latest", "available", "installing", "notes"}. */
     fun statusJson(): String {
         val r = known
         return JSONObject().put("current", BuildConfig.VERSION_NAME)
             .put("latest", r?.version ?: JSONObject.NULL)
             .put("available", r != null && r.newerThan(BuildConfig.VERSION_NAME))
             .put("installing", busy)
+            .put("notes", r?.notes ?: JSONObject.NULL)
             .toString()
     }
 

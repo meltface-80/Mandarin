@@ -1,83 +1,76 @@
 /* ------------------------------------------------------------------ */
-/*  Check for updates button in settings                               */
+/*  Settings → Updates: the server's row (item 223)                    */
 /* ------------------------------------------------------------------ */
+// The server's name with its version and its own button: Check for update,
+// which looks for the server's update alone and becomes Update available
+// once one is found (installing it on the next tap), or says how things
+// stand for a few seconds. Opened, it says what the last check found. Under
+// it, what the update brings: the release's short lines ("• Fixed - …"),
+// which the server takes from its notes (Admin/ReleaseNotes.cs). The Android
+// app has a row of its own beside it, natively (SettingsUpdates.kt).
 (function initCheckUpdate() {
-  const btn      = document.getElementById("check-update-btn");
-  const notesDiv = document.getElementById("settings-release-notes");
+  const btn  = document.getElementById("check-update-btn");
+  const name = document.getElementById("update-server-name");
+  const box  = document.getElementById("settings-whats-new");
   if (!btn) return;
-  // After a check finds an update, the button itself becomes the install
-  // action (the old copy said "tap Update below", but the update banner sits
-  // BEHIND the Settings sheet — there was no visible button to tap).
-  let pendingUpdate = false;
-  const appUpd = window.__musicdAppUpd;
-  // Shared with the update banner (v0.7.3).
-  const verNewer = window.__verNewer;
-  let pendingWhat = null;          // { server, app } in the Android app
+  const CHECK = "Check for update", AVAILABLE = "Update available";
+  let found = null;          // { latest, notes } once an update is on offer
+
+  // What's new under the row: its heading and its short lines, or nothing.
+  function whatsNew(f) {
+    if (!box) return;
+    box.textContent = "";
+    box.classList.toggle("hidden", !(f && f.notes));
+    if (!(f && f.notes)) return;
+    const head = document.createElement("div");
+    head.className = "settings-release-head"; head.setAttribute("data-parity", "settings-system.notes-head");
+    head.textContent = "What's new in v" + f.latest;
+    const notes = document.createElement("div");
+    notes.className = "settings-release-notes"; notes.setAttribute("data-parity", "settings-system.notes");
+    notes.textContent = f.notes;
+    box.appendChild(head); box.appendChild(notes);
+  }
+
+  // The server's status ([s]) as it stands: its version in the name, and its update on offer, if any.
+  function show(s) {
+    if (s && s.current && name) name.textContent = "Server v" + s.current;
+    found = s && s.available && s.latest ? { latest: s.latest, notes: s.notes || null } : null;
+    btn.classList.toggle("is-update-ready", !!found);
+    btn.textContent = found ? AVAILABLE : CHECK;
+    whatsNew(found);
+  }
+
+  const status = async () => (await fetch("/api/update/status", { cache: "no-store" })).json();
+  const look = () => { if (!btn.disabled) status().then(show).catch(() => {}); };
+  look();
+  document.querySelectorAll('.settings-nav-item[data-pane="system"]').forEach(b => b.addEventListener("click", look));
 
   btn.addEventListener("click", async () => {
     if (btn.disabled) return;
-
-    if (pendingUpdate) {
-      // Second tap: install. Close Settings so the update banner (which owns
-      // the download/unpack/restart progress UI) is visible, then hand off.
-      pendingUpdate = false;
+    if (found) {
+      // Update available, tapped: Settings closes so the update banner (which owns
+      // the download/unpack/restart progress) is seen, and installs the server's.
+      found = null;
       btn.classList.remove("is-update-ready");
+      btn.textContent = CHECK;
+      whatsNew(null);
       const closer = document.querySelector("#settings-overlay [data-settings-close]");
       if (closer) closer.click();
-      if (window.__applyUpdateNow) window.__applyUpdateNow(pendingWhat);
-      // The banner owns all progress/error/retry state from here — reset this
-      // button so a reopened Settings offers a fresh check (on success the
-      // page reloads anyway; on failure the banner shows the retry, and a
-      // disabled "Updating…" here would strand with no reset path).
-      btn.textContent = "Check for updates";
+      if (window.__applyUpdateNow) window.__applyUpdateNow({ server: true, app: false });
       return;
     }
-
     btn.disabled = true;
     btn.textContent = "Checking…";
-    if (notesDiv) notesDiv.classList.add("hidden");
+    whatsNew(null);
+    let said = "Check failed";
     try {
-      // In the Android app, the app looks for its own update at the same time.
-      const appLook = appUpd ? appUpd.look(true) : Promise.resolve(null);
       await fetch("/api/update/check", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
-      const r = await fetch("/api/update/status", { cache: "no-store" });
-      const s = await r.json();
-      const a = await appLook;
-      const server = !!(s && s.available && s.latest);
-      const app = !!(a && a.available && a.latest);
-      if (server || app) {
-        pendingUpdate = true;
-        pendingWhat = { server, app };
-        btn.disabled = false;
-        btn.classList.add("is-update-ready");
-        btn.textContent = server && app
-          ? (s.latest === a.latest ? "Update server and app to v" + s.latest : "Update server and app")
-          : app ? "Update app to v" + a.latest
-          : s.isDowngrade ? "Roll back to v" + s.latest
-          : "Update to v" + s.latest;
-        if (notesDiv && server && s.notes) {
-          notesDiv.textContent = s.notes;
-          notesDiv.classList.remove("hidden");
-        }
-      } else if (a && s && s.current && a.current && verNewer(s.current, a.current)) {
-        // The server is ahead of the app, and GitHub doesn't have the app yet:
-        // it's built after the server's release, a few minutes later. Not a
-        // test build's (dev's 1.1.9-tN, item 178): the app updates from main's
-        // dist/, which never has one, so that is said rather than promised. The
-        // Android app's own Settings says the same (core UpdateCheck.kt).
-        btn.textContent = /-t\d+$/i.test(String(s.current).trim())
-          ? "Server v" + s.current + " is a test build — the app's test builds are installed from the test-android page"
-          : "App v" + s.current + " is on its way — try again in a few minutes";
-        setTimeout(() => { btn.disabled = false; btn.textContent = "Check for updates"; }, 6000);
-      } else {
-        btn.textContent = a
-          ? "Up to date (server v" + (s && s.current || "?") + ", app v" + (a.current || "?") + ")"
-          : "Up to date (v" + (s && s.current || "?") + ")";
-        setTimeout(() => { btn.disabled = false; btn.textContent = "Check for updates"; }, 4000);
-      }
-    } catch (e) {
-      btn.textContent = "Check failed";
-      setTimeout(() => { btn.disabled = false; btn.textContent = "Check for updates"; }, 3000);
-    }
+      const s = await status();
+      if (s && s.available && s.latest) { btn.disabled = false; show(s); return; }
+      if (s && s.current && name) name.textContent = "Server v" + s.current;
+      said = s && !s.error ? "Up to date" : "Check failed";
+    } catch (e) { /* said: Check failed */ }
+    btn.textContent = said;
+    setTimeout(() => { btn.disabled = false; btn.textContent = CHECK; }, 4000);
   });
 })();
