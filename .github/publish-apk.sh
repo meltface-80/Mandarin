@@ -13,7 +13,9 @@
 # this version, or a newer one (the later merge's run ended first), is left as
 # it is. The same version built again with a higher versionCode (a fix folded
 # into a version already out, bug list item 115) replaces it: latest.json says
-# the code it carries.
+# the code it carries. Its short notes (item 223), the version's "- Fixed - …"
+# lines in CHANGELOG.md (tools/release-notes.js), go in it too: Settings →
+# Updates shows them under the app's button.
 set -euo pipefail
 src=${1:?usage: .github/publish-apk.sh <apk>}
 base=${GITHUB_REF_NAME:?}
@@ -21,6 +23,8 @@ version=$(grep -oP 'versionName = "\K[^"]+' android/app/build.gradle.kts)
 code=$(grep -oP 'versionCode = \K[0-9]+' android/app/build.gradle.kts || true)
 apk=$(basename "$src")
 OUT=mandarin-android.apk
+# Read from the commit the app was built from, before the branch is checked out over it.
+notes=$(node "$(dirname "$0")/../tools/release-notes.js" "$version")
 
 git fetch -q origin "$base"
 had=$(git show "origin/$base:dist/latest.json" 2>/dev/null | grep -oP '"version": "\K[^"]+' || true)
@@ -42,8 +46,8 @@ git rm -q --ignore-unmatch 'dist/musicd-server-android-*.apk' 'dist/Mandarin-And
 mkdir -p dist
 cp "$keep/$apk" "dist/$OUT"
 sha=$(sha256sum "dist/$OUT" | cut -d' ' -f1)
-printf '{\n  "version": "%s",\n%b  "url": "https://github.com/%s/raw/main/dist/%s",\n  "sha256": "%s",\n  "file": "%s"\n}\n' \
-  "$version" "${code:+  \"code\": $code,\n}" "$GITHUB_REPOSITORY" "$OUT" "$sha" "$apk" > dist/latest.json
+printf '{\n  "version": "%s",\n%b  "url": "https://github.com/%s/raw/main/dist/%s",\n  "sha256": "%s",\n  "file": "%s",\n  "notes": %s\n}\n' \
+  "$version" "${code:+  \"code\": $code,\n}" "$GITHUB_REPOSITORY" "$OUT" "$sha" "$apk" "$notes" > dist/latest.json
 git add "dist/$OUT" dist/latest.json
 git config user.name  "github-actions[bot]"
 git config user.email "41898282+github-actions[bot]@users.noreply.github.com"

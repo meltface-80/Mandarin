@@ -299,9 +299,7 @@ internal sealed partial class Updater
                     latest = ver;
                     latestTag = rel["tag_name"];
                     htmlUrl = Js.Truthy(rel["html_url"]) ? rel["html_url"] : null;
-                    var body = Js.Trim(Js.IsNullish(rel["body"]) ? "" : Js.Str(rel["body"]));
-                    if (body.Length > 3000) body = body[..3000];
-                    notes = body.Length > 0 ? body : null;
+                    notes = ReleaseNotes.Short(Js.IsNullish(rel["body"]) ? null : Js.Str(rel["body"]));
                     source = src;
                     downloadUrl = tarAsset != null ? tarAsset["browser_download_url"] : Js.Truthy(rel["tarball_url"]) ? rel["tarball_url"] : Js.Truthy(rel["_tarball"]) ? rel["_tarball"] : null;
                     var diff = ParseVer(ver) != null && ParseVer(current) != null ? CmpVer(ver, current) : 0;

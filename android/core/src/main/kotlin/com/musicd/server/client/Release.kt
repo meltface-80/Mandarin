@@ -4,9 +4,10 @@ import org.json.JSONObject
 
 /**
  * The newest Android app, as GitHub Actions publishes it: dist/latest.json
- * beside the APK on the main branch.
+ * beside the APK on the main branch, with its short notes (item 223: "• Fixed
+ * - …" one to a line, tools/release-notes.js), null when it has none.
  */
-class Release(val version: String, val url: String, val sha256: String) {
+class Release(val version: String, val url: String, val sha256: String, val notes: String? = null) {
 
     companion object {
         const val LATEST = "https://raw.githubusercontent.com/meltface-80/Mandarin/main/dist/latest.json"
@@ -26,7 +27,8 @@ class Release(val version: String, val url: String, val sha256: String) {
             val v = j.optString("version").trim()
             val u = j.optString("url").trim()
             if (v.isEmpty() || !u.startsWith("https://")) return null
-            return Release(v, u, j.optString("sha256").trim().lowercase())
+            val notes = if (j.isNull("notes")) null else j.optString("notes").trim().takeIf { it.isNotEmpty() }
+            return Release(v, u, j.optString("sha256").trim().lowercase(), notes)
         }
 
         /**

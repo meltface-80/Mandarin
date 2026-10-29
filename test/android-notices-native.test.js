@@ -29,5 +29,8 @@ test("the update offer is the app's own: looked for while Home is on, its button
   assert.match(u, /offer = UpdateBanner\.offer\(s, a, dismissed\)\s+show\(offer\?\.banner\)/);
   assert.match(u, /c\.post\("\/api\/update\/apply", JSONObject\(\)\)/);
   assert.match(read("ShellHand.kt"), /"update" -> UpdateNow\.tap\(arg == "now"\)/);
-  assert.match(read("SettingsUpdates.kt"), /UpdateNow\.apply\(o\.server, o\.app\)/);
+  // Settings → Updates hands each its own install (item 223): the server's alone, or this app's alone.
+  const su = read("SettingsUpdates.kt");
+  assert.match(su, /UpdateNow\.apply\(server = true, app = false\)/);
+  assert.match(su, /UpdateNow\.apply\(server = false, app = true\)/);
 });
