@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased
+## v1.1.13
+
+Additional work to the Android app for better device type support based on screen size. Items 220 to 222.
 
 - `222-ci-blobless-history` (item 222): **CI's quality gates no longer run out of time fetching the history.** The gates,
   the Android build and the image's build fetch the whole history (for where a branch left dev, and a test build's

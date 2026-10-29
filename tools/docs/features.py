@@ -14,7 +14,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 
-# (id, emoji, title, new in v1.1.12, what it is, how to set it up and use it)
+# (id, emoji, title, new in v1.1.13, what it is, how to set it up and use it)
 FEATURES = [
     # ---- Home and finding music
     ("home", "🏠", "Home", False,
@@ -22,14 +22,15 @@ FEATURES = [
      "Recently played, Smart Picks, Label of the week, Random albums, Library and Browse by genre.",
      "Open **☰ → Home**. Tap a row's title for all of it. To reorder rows or hide one, open "
      "**Settings → Setup → Home Screen**, hold a row's grip and drag it, or switch it off."),
-    ("touch", "👆", "Phones and tablets", False,
+    ("touch", "👆", "Phones and tablets", True,
      "On a touchscreen: a row at the foot (Home, Library, Artists, Shelf, Search), the mini player "
      "docked on it on a tablet, and the menu at Home's top left.",
      "Nothing to set up: a phone or tablet gets it in the browser, the iPhone home-screen app and the "
      "Android app; a computer with a mouse keeps the top bar. Shelf is in the row while it is switched "
      "on (**Settings → Setup → Shelf**). **☰** at Home's top left opens the side menu. Tap Home or "
      "Library again to go back to the top; Search opens its field across the screen. A phone's mini "
-     "player floats over the row; a tablet's is docked on it, edge to edge."),
+     "player floats over the row; a tablet's is docked on it, edge to edge. In the Android app a phone is "
+     "held upright; a tablet, and a foldable opened, turns and is laid out as a tablet."),
     ("random-album", "🎲", "Random Album", False,
      "The first tile under the greeting chooses an album you haven't played in 12 months (until "
      "Mandarin has 12 months of history, any album) and offers it to play.",
@@ -51,7 +52,7 @@ FEATURES = [
      "**Focus** are in the top bar (at the top right on a phone or tablet); Focus also "
      "has *Added in the last* and *Listening* (never played, not in 6 or 12 months). "
      "**☰ → Random albums** opens a shuffled wall."),
-    ("shelf", "🗄️", "Shelf", True,
+    ("shelf", "🗄️", "Shelf", False,
      "A record shop's shelf: your albums' spines in a 3D row, narrowed by genre, artist, year, label, "
      "type, format or favourites, put in order, or spun to land anywhere.",
      "Its switch is **Settings → Setup → Shelf** (off on a new install); off, it is off entirely and not "
@@ -72,7 +73,7 @@ FEATURES = [
      "and type. Labels show when Record labels is on. Signed in "
      "to Qobuz or Tidal (Settings → Services), the service's artists and albums follow the library's, "
      "from the Library wall's filter too; tap a cover for the album's page, an artist for their page."),
-    ("album", "💿", "Album pages", True,
+    ("album", "💿", "Album pages", False,
      "Tracks, year and label, write-ups from Wikipedia and Qobuz, and Pitchfork's score where it "
      "reviewed the album. Step to the previous or next album of the row you came from.",
      "Tap any album. **Play Now** and **Queue** are on the page; **⋯** has Play Next, Shuffle, Radio, "
@@ -362,7 +363,7 @@ def md_inline_to_html(s):
 def readme_block():
     lines = ["Every feature below has an **ⓘ**: open it for how to switch the feature on and use it.", ""]
     for i, (fid, em, title, new, what, how) in enumerate(FEATURES):
-        lines.append("%s **%s**%s" % (em, title, " — *new in v1.1.12*" if new else ""))
+        lines.append("%s **%s**%s" % (em, title, " — *new in v1.1.13*" if new else ""))
         lines.append("")
         lines.append(what)
         lines.append("")
