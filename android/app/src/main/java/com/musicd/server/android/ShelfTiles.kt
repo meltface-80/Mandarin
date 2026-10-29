@@ -37,6 +37,7 @@ import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -45,6 +46,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.musicd.server.client.Contract
 import com.musicd.server.client.Palette
+import com.musicd.server.client.ScreenSize
 import com.musicd.server.client.ServerClient
 import com.musicd.server.client.ShelfChoices
 import com.musicd.server.client.ShelfTile
@@ -61,7 +63,9 @@ internal fun ShelfTilesGrid(shelf: ShelfControl, tab: String, rem: Dp, client: (
     shelf.rev   // drawn again when a choice moves the counts
     val tiles = shelf.choices.tiles(lib, tab)
     // genres and formats the size of a decade or a kind (item 209); a label and the Favourites tile with a fan of covers
-    val cols = when (tab) { "artist" -> 6; "year", "type", "genre", "format" -> 3; "order" -> 1; else -> 2 }
+    // a phone's columns; a wide screen (a tablet, a foldable opened) as many more of the same size as fit (item 221)
+    val phoneCols = when (tab) { "artist" -> 6; "year", "type", "genre", "format" -> 3; "order" -> 1; else -> 2 }
+    val cols = ScreenSize.shelfColumns(phoneCols, LocalConfiguration.current.screenWidthDp)
     val gap = if (tab == "artist" || tab == "year" || tab == "type" || tab == "genre" || tab == "format") rem * 0.5f else rem * 0.6f
     fun toggle(id: String) = shelf.choose { toggle(tab, id, kotlin.random.Random.nextLong(1, 0xffffffffL)) }
     LazyVerticalGrid(GridCells.Fixed(cols), modifier, contentPadding = PaddingValues(top = rem * 0.5f, bottom = rem * 1.3f),
@@ -69,8 +73,10 @@ internal fun ShelfTilesGrid(shelf: ShelfControl, tab: String, rem: Dp, client: (
         if (tiles.isEmpty()) shelf.choices.message(tab)?.let { m -> item(span = { GridItemSpan(maxLineSpan) }) {
             Text(m, Modifier.parity("shelf-choices.message").padding(vertical = rem * 0.4f), color = paletteColor(Palette.TEXT_DIM), fontSize = (rem.value * 0.9f).sp)
         } }
-        // the genres' order above them (item 213, as Rouen's v1.9.70-t5): #N, A → Z, Z → A
-        if (tab == "genre" && tiles.isNotEmpty()) item(key = "genre-sorts", span = { GridItemSpan(maxLineSpan) }) { GenreSorts(shelf, rem) }
+        // the genres' order above them (item 213, as Rouen's v1.9.70-t5): #N, A → Z, Z → A. The order chosen is passed in, not
+        // read inside: it isn't Compose state, so the keyed item would be skipped and #N stay lit (item 220).
+        val sort = shelf.choices.genreSort
+        if (tab == "genre" && tiles.isNotEmpty()) item(key = "genre-sorts", span = { GridItemSpan(maxLineSpan) }) { GenreSorts(shelf, sort, rem) }
         items(tiles, key = { it.id }) { t ->
             val fan = rem * 0.85f
             when (tab) {
@@ -124,10 +130,10 @@ internal fun ShelfTilesGrid(shelf: ShelfControl, tab: String, rem: Dp, client: (
 
 /** The genres' order, three pills across the top of their tiles (shelf-pick.css .g-sort): the one chosen in the brass. */
 @Composable
-private fun GenreSorts(shelf: ShelfControl, rem: Dp) {
+private fun GenreSorts(shelf: ShelfControl, sort: String, rem: Dp) {
     Row(Modifier.padding(bottom = rem * 0.2f), horizontalArrangement = Arrangement.spacedBy(rem * 0.4f)) {
         ShelfChoices.GENRE_SORTS.forEachIndexed { i, (id, name) ->
-            val on = shelf.choices.genreSort == id
+            val on = sort == id
             Box(Modifier.parity("shelf-choices.genre-sort", Contract.label("shelf-choices.genre-sort", i)).heightIn(min = rem * 2.2f).clip(CircleShape)
                 .then(if (on) Modifier.background(paletteColor(Palette.ACCENT)) else Modifier.border(1.dp, SHELF_BRASS_DIM, CircleShape))
                 .clickable { shelf.sortGenres(id) }.padding(horizontal = rem * 0.95f), contentAlignment = Alignment.Center) {

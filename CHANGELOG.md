@@ -1,5 +1,27 @@
 # Changelog
 
+## v1.1.13
+
+Additional work to the Android app for better device type support based on screen size. Items 220 to 222.
+
+- `222-ci-blobless-history` (item 222): **CI's quality gates no longer run out of time fetching the history.** The gates,
+  the Android build and the image's build fetch the whole history (for where a branch left dev, and a test build's
+  number), and the history carries every APK published, 107 of them at some 12 MB each. Fetching it ran past the gates'
+  10 minutes three times on 28 October, cancelling them before a check ran. They now fetch the commits without every
+  file's every version (`filter: blob:none`), 22 MB in seconds; a file of an older commit is fetched when it is read.
+
+- `221-android-portrait-phones-fold-tablet` (item 221): **the Android app on a phone, a tablet and a foldable.** A
+  phone is held upright, whatever its rotation setting; a tablet, and a foldable opened, turns freely and is laid out
+  as a tablet, the album's three columns among it. The line is Android's own, a screen whose shorter side is 600 dp or
+  more: a Pixel Fold folded is a phone, opened a tablet, and the app follows it as it is folded or opened without
+  starting again. The browser is as it was.
+  - The Shelf's choices on a wide screen (a tablet, a foldable opened) are the size a phone held upright shows them,
+    as many more across as fit, not three tiles stretched across the screen.
+
+- `220-shelf-genre-order-chip` (item 220): **in the Android app, the Genres tab's #N, A → Z and Z → A show the order
+  chosen.** The genres were put in the new order, but #N stayed lit: the pills were skipped when the tiles were drawn
+  again, as the order they read isn't something the screen watches. They are now handed the order chosen.
+
 ## v1.1.12
 
 **The Shelf's album view is the library's album view.** An album opened on the Shelf is the library's own album

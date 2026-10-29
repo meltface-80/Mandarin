@@ -20,6 +20,10 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          # Commits and trees, not every file's every version: the history carries each APK published,
+          # gigabytes, which ran past the gates' 10 minutes (item 222). A file of an older commit is
+          # fetched when it is read.
+          filter: blob:none
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
