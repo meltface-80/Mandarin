@@ -4,7 +4,6 @@ import android.app.Activity
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
-import android.content.Intent
 import android.util.Base64
 import android.util.Log
 import android.webkit.JavascriptInterface
@@ -13,7 +12,7 @@ import java.io.File
 
 /**
  * Where a share card, a playlist's file or a copied link goes from the app's own share sheets (ShareSheet,
- * PlaylistShareSheet): Android's share sheet, the clipboard, or Pictures/Mandarin. Once the page's way to them too,
+ * PlaylistShareSheet): the clipboard (the card as a picture, item 224), Pictures/Mandarin or Download/Mandarin. Once the page's way to them too,
  * from its WebView (window.MusicDShare), until that went (bug list item 111).
  */
 class ShareBridge(private val activity: Activity) {
@@ -114,26 +113,18 @@ class ShareBridge(private val activity: Activity) {
         }
     }
 
-    @JavascriptInterface
-    fun shareImage(base64: String, fileName: String, mime: String) { decode(base64)?.let { share(it, fileName, mime) } }
-
-    /** [bytes] offered to the phone's share sheet as [fileName] (the page's Share, and the native card's: item 75). */
-    fun share(bytes: ByteArray, fileName: String, mime: String) {
-        activity.runOnUiThread {
-            try {
-                val uri = FileProvider.getUriForFile(
-                    activity, "${activity.packageName}.shares", write(bytes, fileName)
-                )
-                val send = Intent(Intent.ACTION_SEND).apply {
-                    type = mime.ifEmpty { "image/png" }
-                    putExtra(Intent.EXTRA_STREAM, uri)
-                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                }
-                activity.startActivity(Intent.createChooser(send, "Share card"))
-            } catch (e: Exception) {
-                Log.w(TAG, "share failed", e)
-            }
-        }
+    /**
+     * [bytes] copied as a picture (the native card's Copy image, item 224; as Rouen's CardShare, v1.9.72-t22): Android's
+     * clipboard holds a content:// address to the PNG, which the app it is pasted into reads, a forum's post among them.
+     */
+    fun copyImage(bytes: ByteArray, fileName: String): Boolean = try {
+        val uri = FileProvider.getUriForFile(activity, "${activity.packageName}.shares", write(bytes, fileName))
+        val clipboard = activity.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        clipboard.setPrimaryClip(ClipData.newUri(activity.contentResolver, "Album card", uri))
+        true
+    } catch (e: Exception) {
+        Log.w(TAG, "copy image failed", e)
+        false
     }
 
     /** A share cache holding exactly the file being shared right now. */
