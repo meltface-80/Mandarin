@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased
+## v1.1.14
+
+Tweaks - altered share card copy function, Android app copies it to the clipboard. Items 223 to 225.
 
 - New - the server and the Android app each have their own Check for update button
 - Redesign - the update notes are a short list of what changed

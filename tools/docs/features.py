@@ -14,7 +14,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 
-# (id, emoji, title, new in v1.1.13, what it is, how to set it up and use it)
+# (id, emoji, title, new in v1.1.14, what it is, how to set it up and use it)
 FEATURES = [
     # ---- Home and finding music
     ("home", "🏠", "Home", False,
@@ -22,7 +22,7 @@ FEATURES = [
      "Recently played, Smart Picks, Label of the week, Random albums, Library and Browse by genre.",
      "Open **☰ → Home**. Tap a row's title for all of it. To reorder rows or hide one, open "
      "**Settings → Setup → Home Screen**, hold a row's grip and drag it, or switch it off."),
-    ("touch", "👆", "Phones and tablets", True,
+    ("touch", "👆", "Phones and tablets", False,
      "On a touchscreen: a row at the foot (Home, Library, Artists, Shelf, Search), the mini player "
      "docked on it on a tablet, and the menu at Home's top left.",
      "Nothing to set up: a phone or tablet gets it in the browser, the iPhone home-screen app and the "
@@ -240,11 +240,12 @@ FEATURES = [
      "shared as text and imported, matched against the other library's tracks.",
      "**☰ → Playlists**, **☰ → Dynamic Playlists** and **☰ → Import a playlist**. A playlist's "
      "**Share** gives the text to send."),
-    ("sharecard", "🖼️", "Share card", False,
+    ("sharecard", "🖼️", "Share card", True,
      "The album as a picture, the duck in its corner, links to hear and read about it, and three "
      "acts near what you play, two of them new to you.",
      "Tap the share button on an album's page. Choose the services in **Settings → Setup → Share "
-     "Card**. In the Android app, **Download** saves the card to Pictures/Mandarin."),
+     "Card**. In the Android app, **Copy image** puts the card on the clipboard, to paste into a forum "
+     "or a message, and **Download** saves it to Pictures/Mandarin."),
     ("wall", "📺", "Wall display", False,
      "A full-screen now playing page for a TV or tablet; on a big TV its reviews and covers are drawn large "
      "enough to read from across the room.",
@@ -336,11 +337,12 @@ FEATURES = [
      "In the Android app, **Settings → Setup → Logging**. Use the app as you normally would for 24 hours, "
      "then tap **Save log** (it goes to Downloads/Mandarin) and send the file. Look through it first. "
      "Switching logging off deletes the log, the server's part too. Details under [Logs](#logs)."),
-    ("updates", "🔄", "Updates", False,
-     "The server updates itself from GitHub from Settings and checks every 12 hours. In the Android app "
-     "one Update does the server first, then the app.",
-     "**Settings → Updates → Check for updates**, then **Update to vX.Y.Z**. The server puts the new "
-     "version in place and starts again in a few seconds; in the app, Android's installer then asks."),
+    ("updates", "🔄", "Updates", True,
+     "The server updates itself from GitHub and checks every 12 hours. The Android app has its own "
+     "button beside the server's; what an update brings is listed under them.",
+     "**Settings → Updates → Check for update** beside the server (and, in the Android app, beside the "
+     "app); once it says **Update available**, tap it again. The server puts the new version in place "
+     "and starts again in a few seconds; the app's goes to Android's installer."),
 ]
 
 MAX_WORDS = 30
@@ -363,7 +365,7 @@ def md_inline_to_html(s):
 def readme_block():
     lines = ["Every feature below has an **ⓘ**: open it for how to switch the feature on and use it.", ""]
     for i, (fid, em, title, new, what, how) in enumerate(FEATURES):
-        lines.append("%s **%s**%s" % (em, title, " — *new in v1.1.13*" if new else ""))
+        lines.append("%s **%s**%s" % (em, title, " — *new in v1.1.14*" if new else ""))
         lines.append("")
         lines.append(what)
         lines.append("")
