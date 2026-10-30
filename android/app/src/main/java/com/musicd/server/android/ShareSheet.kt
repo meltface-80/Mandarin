@@ -83,6 +83,9 @@ import java.io.ByteArrayOutputStream
 /** The default service held on a chip in this run of the app, ahead of what the page last said (item 75). */
 internal object ShareKept { @Volatile var service: String? = null }
 
+/** Copy image's words while nothing has been copied (the contract's share-card.copy, its first). */
+private const val COPY = "Copy image"
+
 /**
  * The Share card, natively (the group B of old/plan-android-native.md, B4; bug list item 75), as the page's
  * (docs/specs/screens.json, share-card; share-card.js, share-card-links.js, share-card-suggestions.js, style.css
@@ -140,12 +143,16 @@ private fun ShareFrame(s: ShareState) {
     }
 }
 
-/** Share… in the accent and Download (.share-actions): side by side, 10 apart, 14 under the card, each 45 tall, 10 round, an 18 icon before the words. */
+/**
+ * Copy image in the accent and Download (.share-actions): side by side, 10 apart, 14 under the card, each 45 tall, 10
+ * round, an 18 icon before the words. Copy image in place of Share… (item 224, as Rouen's app): the card on the clipboard,
+ * pasted where it is wanted, a forum's post among them, rather than an app chosen from Android's share sheet.
+ */
 @Composable
 private fun ShareActions(s: ShareState) {
     if (s.card == null) return
     Row(Modifier.fillMaxWidth().padding(top = 14.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        ShareButton("Share…", R.drawable.np_share, true, Modifier.parity("share-card.share", Contract.label("share-card.share")).weight(1f).clickable { s.share() })
+        ShareButton(s.copied, R.drawable.sc_copy, true, Modifier.parity("share-card.copy", Contract.label("share-card.copy", if (s.copied == COPY) 0 else 1)).weight(1f).clickable { s.copy() })
         ShareButton(s.saved, R.drawable.sc_download, false, Modifier.parity("share-card.download", Contract.label("share-card.download")).weight(1f).clickable { s.download() })
     }
 }
@@ -245,6 +252,7 @@ internal class ShareState(private val title: String, private val artist: String,
     var tags by mutableStateOf<Map<String, String>>(emptyMap())
     var service by mutableStateOf(ShareKept.service ?: WallPrefs.parse(NativeShell.prefs).shareService)
     var saved by mutableStateOf("Download")
+    var copied by mutableStateOf(COPY)
     var err by mutableStateOf<String?>(null)
     private var png: ByteArray? = null
     private val bridge get() = (context as? Activity)?.let { ShareBridge(it) }
@@ -301,7 +309,18 @@ internal class ShareState(private val title: String, private val artist: String,
         scope.launch { client()?.let { upgradeQobuz(LibraryClient(it)) } }
     }
 
-    fun share() { val b = png ?: return; bridge?.share(b, ShareCard.fileName(title, artist), "image/png") }
+    /** On the clipboard as a picture; Copy image says Copied! for a moment, or what went wrong is said under the card. */
+    fun copy() {
+        val b = png ?: return
+        val br = bridge ?: return
+        scope.launch {
+            val ok = withContext(Dispatchers.IO) { br.copyImage(b, ShareCard.fileName(title, artist)) }
+            if (!ok) { err = "Couldn’t copy the card"; return@launch }
+            err = null; copied = "Copied!"
+            delay(2000)
+            copied = COPY
+        }
+    }
 
     /** Saved to Pictures/Mandarin; Download says how it went for a moment. */
     fun download() {

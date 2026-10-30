@@ -13,24 +13,14 @@
   let v = "";
   try { v = app.version(); } catch (e) { /* an app without this call (older than the page): nothing to do */ }
   label.textContent = "Android app" + (v ? " v" + v : "");
-  if (window.__musicdAppUpd) {
-    // "Check for updates" above does the server and this app, so this row
-    // only says which app this is.
-    row.appendChild(label);
-    const note = document.createElement("span");
-    note.className = "settings-note"; note.setAttribute("data-parity", "settings-system.app-note");
-    note.textContent = "Updated with the server";
-    row.appendChild(note);
-    pane.appendChild(row);
-  } else {
+  // Its own row and its own button (item 223), above what's new, which is under both rows.
   const btn = document.createElement("button");
   btn.type = "button";
   btn.className = "settings-update-btn"; btn.setAttribute("data-parity", "settings-system.app-check");
-  btn.textContent = "Check for app update";
+  btn.textContent = "Check for update";
   btn.addEventListener("click", () => { try { app.checkUpdate(); } catch (e) { /* an app without this call (older than the page): nothing to do */ } });
   row.appendChild(label); row.appendChild(btn);
-  pane.appendChild(row);
-  }
+  pane.insertBefore(row, document.getElementById("settings-whats-new"));
   // This phone's own Tailscale (the app's): in Settings → Away from home,
   // beside the server's — one place for getting at the library away.
   const awayPane = document.querySelector('.settings-pane[data-pane="away"]');

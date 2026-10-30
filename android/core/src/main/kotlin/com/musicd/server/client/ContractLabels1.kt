@@ -269,7 +269,7 @@ internal object ContractLabels1 {
         "album-edit.reset" to listOf("Undo all edits to this album", "Saving…"),
         "share-card.close" to listOf("Close"),
         "share-card.image" to listOf("Share card"),
-        "share-card.share" to listOf("Share…"),
+        "share-card.copy" to listOf("Copy image", "Copied!"),
         "share-card.download" to listOf("Download", "Saved to Pictures", "Couldn’t save"),
         "share-card.link" to listOf("{link}"),
         "share-card.act" to listOf("{act}"),
