@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"net/http"
 	"sync"
 	"time"
 
@@ -120,12 +121,29 @@ func (f *Forwarder) DropConnections() int {
 func (f *Forwarder) Probe(timeout time.Duration) bool {
 	hc := f.TS.HTTPClient()
 	hc.Timeout = timeout
-	res, err := hc.Get("http://" + f.Target + "/api/health")
-	if err != nil {
-		return false
+	return probe(hc, f.Target)
+}
+
+// probe: the server at target answering — its /api/ping, answered at once
+// whatever the server is busy with, or /api/health on a server from before
+// /api/ping (a 404). Bug list item 228: /api/health waits on a busy server
+// (the library being read again), and over Tailscale's relay it took longer
+// than the probe's four seconds; the app, taking the tunnel for broken,
+// dropped the connections that were getting through, every quarter of a
+// minute for two and a half minutes.
+func probe(hc *http.Client, target string) bool {
+	for _, p := range []string{"/api/ping", "/api/health"} {
+		res, err := hc.Get("http://" + target + p)
+		if err != nil {
+			return false
+		}
+		res.Body.Close()
+		if res.StatusCode == 404 && p == "/api/ping" {
+			continue
+		}
+		return res.StatusCode == 200
 	}
-	res.Body.Close()
-	return res.StatusCode == 200
+	return false
 }
 
 // Close stops listening and drops open connections.

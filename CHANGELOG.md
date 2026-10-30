@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+- Fixed - away from home, the Android app no longer drops a working connection after its Tailscale restarts
+
+- `228-engine-probe-ping` (item 228): **away over MusicD's own Tailscale, the app's check of the way to the server
+  asks the server's ping.** It asked /api/health, which waits on a busy server (the library being read again); over
+  Tailscale's relay that took longer than the check's four seconds, so the app took a working tunnel for broken and
+  dropped its connections every quarter of a minute: on 29 October, two and a half minutes of "connection reset" after
+  the engine restarted, while the music's own requests were getting through. The check now asks /api/ping, which the
+  server answers at once, and /api/health only of a server from before it.
+
 ## v1.1.14
 
 Tweaks - altered share card copy function, Android app copies it to the clipboard. Items 223 to 225.
