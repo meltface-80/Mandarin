@@ -7,7 +7,7 @@
 
 </div>
 
-# Mandarin — v1.1.13
+# Mandarin — v1.1.14
 
 **Your own music files, played to Sonos rooms, to UPnP/DLNA renderers (a WiiM, a Chord Poly,
 a streamer, an AV receiver) and to the Mandarin Android app.**
@@ -26,8 +26,10 @@ Wikipedia, Deezer and others); your music files stay on your machine.
                                                    └──── audio: /stream/… ◀────────┘
 ```
 
-**New in v1.1.13** (since v1.1.12): Additional work to the Android app for better device type support based on
-screen size. The [changelog](CHANGELOG.md) has each change.
+**New in v1.1.14** (since v1.1.13): Tweaks - altered share card copy function, Android app copies it to the clipboard. The [changelog](CHANGELOG.md) has each
+change.
+* **Updates:** the server and the Android app each have their own Check for update, and what an update
+  brings is listed under them in short lines.
 
 ---
 
@@ -49,7 +51,7 @@ Open **☰ → Home**. Tap a row's title for all of it. To reorder rows or hide 
 
 ⸻
 
-👆 **Phones and tablets** — *new in v1.1.13*
+👆 **Phones and tablets**
 
 On a touchscreen: a row at the foot (Home, Library, Artists, Shelf, Search), the mini player docked on it on a tablet, and the menu at Home's top left.
 
@@ -505,13 +507,13 @@ Playlists you make, and Dynamic Playlists that follow a saved Library view. A pl
 
 ⸻
 
-🖼️ **Share card**
+🖼️ **Share card** — *new in v1.1.14*
 
 The album as a picture, the duck in its corner, links to hear and read about it, and three acts near what you play, two of them new to you.
 
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 
-Tap the share button on an album's page. Choose the services in **Settings → Setup → Share Card**. In the Android app, **Download** saves the card to Pictures/Mandarin.
+Tap the share button on an album's page. Choose the services in **Settings → Setup → Share Card**. In the Android app, **Copy image** puts the card on the clipboard, to paste into a forum or a message, and **Download** saves it to Pictures/Mandarin.
 
 </details>
 
@@ -699,13 +701,13 @@ In the Android app, **Settings → Setup → Logging**. Use the app as you norma
 
 ⸻
 
-🔄 **Updates**
+🔄 **Updates** — *new in v1.1.14*
 
-The server updates itself from GitHub from Settings and checks every 12 hours. In the Android app one Update does the server first, then the app.
+The server updates itself from GitHub and checks every 12 hours. The Android app has its own button beside the server's; what an update brings is listed under them.
 
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 
-**Settings → Updates → Check for updates**, then **Update to vX.Y.Z**. The server puts the new version in place and starts again in a few seconds; in the app, Android's installer then asks.
+**Settings → Updates → Check for update** beside the server (and, in the Android app, beside the app); once it says **Update available**, tap it again. The server puts the new version in place and starts again in a few seconds; the app's goes to Android's installer.
 
 </details>
 
@@ -828,10 +830,10 @@ docker build -t musicd-server:local .
 
 ### Updating
 
-**In the app:** Settings → **Updates** → **Check for updates** → **Update to vX.Y.Z**. The server
-downloads the new release from GitHub, swaps it in and restarts itself in a few seconds;
-a browser's page reloads on its own. In the Android app the same button then updates the app, once
-the server is back (v0.7.3). It also checks twice a day and shows a banner when a new
+**In the app:** Settings → **Updates** → **Check for update** beside the server → **Update available**. The
+server downloads the new release from GitHub, swaps it in and restarts itself in a few seconds;
+a browser's page reloads on its own. In the Android app the app has its own **Check for update**
+beside it (v1.1.14), and what each update brings is listed under them. It also checks twice a day and shows a banner when a new
 version is out. (From v0.1.3 on — an older container needs one update the manual way.)
 
 Since v0.9.0 Mandarin's server is one program, in C#, with no Node.js anywhere. An update from

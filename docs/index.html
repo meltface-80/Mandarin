@@ -341,7 +341,7 @@
      Android app play from it, controlled from a browser, an iPhone home screen or the Android app.
      No subscription or streaming account is needed.</p>
   <div class="badges">
-    <span class="badge">v1.1.13</span>
+    <span class="badge">v1.1.14</span>
     <span class="badge plain">Docker</span>
     <span class="badge plain">macOS</span>
     <span class="badge plain">MIT</span>
@@ -354,7 +354,7 @@
 
 <section id="new">
   <div class="wrap">
-    <div class="note"><b>New in v1.1.13</b> (since v1.1.12): Additional work to the Android app for better device type support based on screen size.</div>
+    <div class="note"><b>New in v1.1.14</b> (since v1.1.13): Tweaks - altered share card copy function, Android app copies it to the clipboard. The server and the Android app each have their own Check for update, with what an update brings listed under them.</div>
   </div>
 </section>
 
@@ -384,13 +384,13 @@
   <div class="wrap">
     <h2>Features</h2>
     <p class="lead">Tap <b class="i-eg">i</b> on any feature for how to switch it on and use it.
-      <span class="new-eg">New</span> marks what's new in v1.1.13.</p>
+      <span class="new-eg">New</span> marks what's new in v1.1.14.</p>
     <div class="grid">
       <!-- features:start -->
       <div class="card"><h3><span class="em">🏠</span>Home<button class="info" type="button" aria-expanded="false" aria-controls="how-home" aria-label="How to set up and use Home">i</button></h3>
         <p>Rows of albums under a greeting: Not played in 6 months, Listen later, Playlists, Favourites, Recently played, Smart Picks, Label of the week, Random albums, Library and Browse by genre.</p>
         <div class="how" id="how-home" hidden><b>How to set it up and use it.</b> Open <b>☰ → Home</b>. Tap a row's title for all of it. To reorder rows or hide one, open <b>Settings → Setup → Home Screen</b>, hold a row's grip and drag it, or switch it off.</div></div>
-      <div class="card is-new"><h3><span class="em">👆</span>Phones and tablets<span class="new">New</span><button class="info" type="button" aria-expanded="false" aria-controls="how-touch" aria-label="How to set up and use Phones and tablets">i</button></h3>
+      <div class="card"><h3><span class="em">👆</span>Phones and tablets<button class="info" type="button" aria-expanded="false" aria-controls="how-touch" aria-label="How to set up and use Phones and tablets">i</button></h3>
         <p>On a touchscreen: a row at the foot (Home, Library, Artists, Shelf, Search), the mini player docked on it on a tablet, and the menu at Home's top left.</p>
         <div class="how" id="how-touch" hidden><b>How to set it up and use it.</b> Nothing to set up: a phone or tablet gets it in the browser, the iPhone home-screen app and the Android app; a computer with a mouse keeps the top bar. Shelf is in the row while it is switched on (<b>Settings → Setup → Shelf</b>). <b>☰</b> at Home's top left opens the side menu. Tap Home or Library again to go back to the top; Search opens its field across the screen. A phone's mini player floats over the row; a tablet's is docked on it, edge to edge. In the Android app a phone is held upright; a tablet, and a foldable opened, turns and is laid out as a tablet.</div></div>
       <div class="card"><h3><span class="em">🎲</span>Random Album<button class="info" type="button" aria-expanded="false" aria-controls="how-random-album" aria-label="How to set up and use Random Album">i</button></h3>
@@ -504,9 +504,9 @@
       <div class="card"><h3><span class="em">🎵</span>Playlists<button class="info" type="button" aria-expanded="false" aria-controls="how-playlists" aria-label="How to set up and use Playlists">i</button></h3>
         <p>Playlists you make, and Dynamic Playlists that follow a saved Library view. A playlist can be shared as text and imported, matched against the other library's tracks.</p>
         <div class="how" id="how-playlists" hidden><b>How to set it up and use it.</b> <b>☰ → Playlists</b>, <b>☰ → Dynamic Playlists</b> and <b>☰ → Import a playlist</b>. A playlist's <b>Share</b> gives the text to send.</div></div>
-      <div class="card"><h3><span class="em">🖼️</span>Share card<button class="info" type="button" aria-expanded="false" aria-controls="how-sharecard" aria-label="How to set up and use Share card">i</button></h3>
+      <div class="card is-new"><h3><span class="em">🖼️</span>Share card<span class="new">New</span><button class="info" type="button" aria-expanded="false" aria-controls="how-sharecard" aria-label="How to set up and use Share card">i</button></h3>
         <p>The album as a picture, the duck in its corner, links to hear and read about it, and three acts near what you play, two of them new to you.</p>
-        <div class="how" id="how-sharecard" hidden><b>How to set it up and use it.</b> Tap the share button on an album's page. Choose the services in <b>Settings → Setup → Share Card</b>. In the Android app, <b>Download</b> saves the card to Pictures/Mandarin.</div></div>
+        <div class="how" id="how-sharecard" hidden><b>How to set it up and use it.</b> Tap the share button on an album's page. Choose the services in <b>Settings → Setup → Share Card</b>. In the Android app, <b>Copy image</b> puts the card on the clipboard, to paste into a forum or a message, and <b>Download</b> saves it to Pictures/Mandarin.</div></div>
       <div class="card"><h3><span class="em">📺</span>Wall display<button class="info" type="button" aria-expanded="false" aria-controls="how-wall" aria-label="How to set up and use Wall display">i</button></h3>
         <p>A full-screen now playing page for a TV or tablet; on a big TV its reviews and covers are drawn large enough to read from across the room.</p>
         <div class="how" id="how-wall" hidden><b>How to set it up and use it.</b> Open <code>http://&lt;server-ip&gt;:3500/display</code> on the screen. Its switch (on by default) and options are in <b>Settings → Setup → Wall Display</b>; off, it is off entirely. Tap the screen for its controls; <b>Shelf ›</b> opens Shelf.</div></div>
@@ -552,9 +552,9 @@
       <div class="card"><h3><span class="em">📝</span>Logging<button class="info" type="button" aria-expanded="false" aria-controls="how-logging" aria-label="How to set up and use Logging">i</button></h3>
         <p>Off by default. Switched on, the Android app and the server log what happened, without personal data, for you to send to the developer when something goes wrong.</p>
         <div class="how" id="how-logging" hidden><b>How to set it up and use it.</b> In the Android app, <b>Settings → Setup → Logging</b>. Use the app as you normally would for 24 hours, then tap <b>Save log</b> (it goes to Downloads/Mandarin) and send the file. Look through it first. Switching logging off deletes the log, the server's part too. Details under <a href="https://github.com/meltface-80/Mandarin#logs">Logs</a>.</div></div>
-      <div class="card"><h3><span class="em">🔄</span>Updates<button class="info" type="button" aria-expanded="false" aria-controls="how-updates" aria-label="How to set up and use Updates">i</button></h3>
-        <p>The server updates itself from GitHub from Settings and checks every 12 hours. In the Android app one Update does the server first, then the app.</p>
-        <div class="how" id="how-updates" hidden><b>How to set it up and use it.</b> <b>Settings → Updates → Check for updates</b>, then <b>Update to vX.Y.Z</b>. The server puts the new version in place and starts again in a few seconds; in the app, Android's installer then asks.</div></div>
+      <div class="card is-new"><h3><span class="em">🔄</span>Updates<span class="new">New</span><button class="info" type="button" aria-expanded="false" aria-controls="how-updates" aria-label="How to set up and use Updates">i</button></h3>
+        <p>The server updates itself from GitHub and checks every 12 hours. The Android app has its own button beside the server's; what an update brings is listed under them.</p>
+        <div class="how" id="how-updates" hidden><b>How to set it up and use it.</b> <b>Settings → Updates → Check for update</b> beside the server (and, in the Android app, beside the app); once it says <b>Update available</b>, tap it again. The server puts the new version in place and starts again in a few seconds; the app's goes to Android's installer.</div></div>
       <!-- features:end -->
     </div>
   </div>
