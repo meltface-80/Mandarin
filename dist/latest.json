@@ -1,7 +1,8 @@
 {
-  "version": "1.1.13",
-  "code": 339,
+  "version": "1.1.14",
+  "code": 340,
   "url": "https://github.com/meltface-80/Mandarin/raw/main/dist/mandarin-android.apk",
-  "sha256": "1c1ee865609dee8c708bb2f69174bdd81df1229f204a509964511e8b152772ae",
-  "file": "Mandarin-Android-1.1.13.apk"
+  "sha256": "b8016f44f4fb7a6c2d49493578a7ff04b5d0aa40bc0e4337f167a2186bb70096",
+  "file": "Mandarin-Android-1.1.14.apk",
+  "notes": "• New - the server and the Android app each have their own Check for update button\n• Redesign - the update notes are a short list of what changed\n• Tweaks - altered share card copy function, Android app copies it to the clipboard"
 }
