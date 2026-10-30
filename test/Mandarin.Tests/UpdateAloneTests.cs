@@ -163,11 +163,11 @@ public sealed partial class UpdateAloneTests
             Refused(await Api("apply", true), "No update available");
             // A release, its notes its short lines alone (item 223): no summary, no branch's entry or its points; its bundle not there to download.
             const string Section = "Two things for 9.9.9. Items 1 and 2.\r\n\r\n- Fixed - track times now show on albums\r\n- new – **Shelf**, a new way to browse\n"
-                + "- Redesign: the `now playing` screen\n\n- `2-shelf` (item 2): **the Shelf.** Fixed - not a short line\n  - New - an entry's own point\n";
+                + "- Redesign: the `now playing` screen\n- Tweaks - the share card copies itself\n\n- `2-shelf` (item 2): **the Shelf.** Fixed - not a short line\n  - New - an entry's own point\n";
             fake.Latest = JsonNode.Parse(Http.Json(new { tag_name = "v9.9.9", html_url = gh.Base + "/r", body = Section,
                 assets = new[] { new { name = "musicd-server-9.9.9.tar.gz", browser_download_url = gh.Base + "/dl/musicd-server-9.9.9.tar.gz" } } }));
             r = await Api("check", true);
-            Assert.Equal(("9.9.9", "v9.9.9", true, gh.Base + "/r", "• Fixed - track times now show on albums\n• New - Shelf, a new way to browse\n• Redesign - the now playing screen", "release", (string?)null),
+            Assert.Equal(("9.9.9", "v9.9.9", true, gh.Base + "/r", "• Fixed - track times now show on albums\n• New - Shelf, a new way to browse\n• Redesign - the now playing screen\n• Tweaks - the share card copies itself", "release", (string?)null),
                 (r.Body.Str("latest"), r.Body.Str("latestTag"), r.Body.Bool("available") ?? false, r.Body.Str("html_url"), r.Body.Str("notes"), r.Body.Str("source"), r.Body.Str("error")));
             // A release written before them: no notes, rather than the repository's entries.
             fake.Latest!["body"] = "Notes for 9.9.9, the way they were";

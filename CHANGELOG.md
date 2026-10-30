@@ -4,7 +4,11 @@
 
 - New - the server and the Android app each have their own Check for update button
 - Redesign - the update notes are a short list of what changed
-- Changed - the Android app's share card copies the card, to paste into a forum or a message, in place of Share
+- Tweaks - altered share card copy function, Android app copies it to the clipboard
+
+- `225-release-notes-tweaks` (item 225): **"Tweaks - …" is a short line the update page shows**, beside Fixed, New,
+  Redesign, Improved, Changed and Removed (`Admin/ReleaseNotes.cs`, `tools/release-notes.js`): the owner's own note for
+  1.1.14 is one.
 
 - `224-share-card-copy-image` (item 224): **in the Android app, the share card's Copy image puts the card on the
   clipboard, in place of Share….** The card is pasted where it is wanted, a forum's post among them, rather than sent
