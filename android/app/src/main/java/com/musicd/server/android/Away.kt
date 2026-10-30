@@ -313,7 +313,11 @@ object Away {
      * was connected. Blocking callers only.
      */
     fun notBeforeVpn(c: Context) {
-        if (Store.isAway(c) && !Store.viaEngine(c) && !onVpn(c)) throw java.io.IOException("waiting for Tailscale to connect")
+        val away = Store.isAway(c)
+        val engine = away && Store.viaEngine(c)
+        // Over the engine: only while this app's own engine forwards its port (item 226: another app's held it).
+        com.musicd.server.client.Route.notYet(away, engine, engine && TailscaleEngine.forwarding(), !engine && away && onVpn(c))
+            ?.let { throw java.io.IOException(it) }
     }
 
     /** A VPN is up (another VPN app; MusicD's own Tailscale isn't one). */
