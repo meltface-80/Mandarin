@@ -702,15 +702,15 @@
       }
     },
     "share-card": {
-      "page": "the Share card (an album's or Now playing's share): over the screen, ✕ in the corner, the card drawn (the cover softened behind a glass pane holding the cover, the release, the title, the artist and the review, Pitchfork's score on the cover, the duck in the corner); Share and Download; the places to hear or read about the record (one held as the default service); If you like this, three acts each to queue or find; the hint",
+      "page": "the Share card (an album's or Now playing's share): over the screen, ✕ in the corner, the card drawn (the cover softened behind a glass pane holding the cover, the release, the title, the artist and the review, Pitchfork's score on the cover, the duck in the corner); Copy image and Share (the app: Copy image), and Download; the places to hear or read about the record (one held as the default service); If you like this, three acts each to queue or find; the hint",
       "native": ["android/app/src/main/java/com/musicd/server/android/ShareSheet.kt"],
       "preview": false,
       "items": {
         "close": { "kind": "action", "label": "Close" },
         "card": { "kind": "shows" },
         "image": { "kind": "action", "label": "Share card", "when": "the card drawn (held: saved to the phone)" },
-        "copy": { "kind": "action", "label": ["Copy image", "Copied!"], "when": "the browser copies pictures", "only": "page", "why": "a picture handed to Android's clipboard can't be pasted by another app (ShareBridge.kt), so the app offers Share and Download" },
-        "share": { "kind": "action", "label": "Share…", "when": "the platform shares files" },
+        "copy": { "kind": "action", "label": ["Copy image", "Copied!"], "when": "the browser copies pictures, and in the app" },
+        "share": { "kind": "action", "label": "Share…", "when": "the platform shares files", "only": "page", "why": "the app copies the card to the clipboard instead, to paste where it is wanted (item 224, as Rouen's app)" },
         "download": { "kind": "action", "label": ["Download", "Saved to Pictures", "Couldn’t save"], "when": "the card drawn, but for an iPhone's home-screen app" },
         "link": { "kind": "action", "label": "{link}", "each": true, "when": "places to hear or read about the record (held: the default service)" },
         "similar-title": { "kind": "shows", "when": "acts suggested" },

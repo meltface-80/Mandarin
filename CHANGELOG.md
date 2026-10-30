@@ -4,6 +4,13 @@
 
 - New - the server and the Android app each have their own Check for update button
 - Redesign - the update notes are a short list of what changed
+- Changed - the Android app's share card copies the card, to paste into a forum or a message, in place of Share
+
+- `224-share-card-copy-image` (item 224): **in the Android app, the share card's Copy image puts the card on the
+  clipboard, in place of Share….** The card is pasted where it is wanted, a forum's post among them, rather than sent
+  to an app chosen from Android's share sheet. Android's clipboard holds an address to the card's picture, which the
+  app it is pasted into reads, as Rouen's app does since its 1.9.72-t22. "Copied!" says it went; what went wrong, if
+  anything, is said under the card. Download stays. The browser's card is as it was.
 
 - `223-separate-app-server-updates` (item 223): **Settings → Updates has a row for the server and one for the Android
   app, each with its own button.** "Server v1.1.13" and "Android app v1.1.13", each with Check for update, which
