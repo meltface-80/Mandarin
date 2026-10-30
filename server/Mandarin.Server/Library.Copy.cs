@@ -10,7 +10,10 @@
 // answered from the copy there is meanwhile, and the new one takes its place
 // when it is done. Such changes told close together make one reading: it starts
 // once they have been quiet a moment (QuietMs), or a couple of seconds on in a
-// storm of them (LongestMs).
+// storm of them (LongestMs); and never sooner after the last reading than nine
+// times its length (item 227: at 13,900 albums a reading took 2.4 s, and a
+// scan's steps had it read 83 times in an hour), so reading takes a tenth of
+// the time at most.
 //
 // Any other change (an edit, a merge, a verdict, a job's last word, a scan's
 // end, the label rules or the music folders changed) is waited for by the next
@@ -37,6 +40,8 @@ internal static partial class Library
     private static bool wanted;
     // When the copy first fell behind, and when a change was last told (Environment.TickCount64).
     private static long behindSince, lastTold;
+    // When the last reading ended (Environment.TickCount64), and how long it took.
+    private static long lastReadEnd, lastReadMs;
     // The version every copy answered from has at least: the last change told that isn't a job's step.
     private static long mustVersion;
     private static long reads;
@@ -136,6 +141,7 @@ internal static partial class Library
             current = s; builtAt = NowMs();
             Interlocked.Increment(ref reads);
             var ms = Environment.TickCount64 - t0;
+            lastReadEnd = Environment.TickCount64; lastReadMs = ms;
             if (ms > 500) Server.Log($"[library] {s.Albums.Count} albums read in {ms} ms");
             return s;
         }
@@ -164,11 +170,19 @@ internal static partial class Library
             {
                 if (!wanted) { rebuilding = null; return; }
                 var now = Environment.TickCount64;
-                if (now - lastTold < QuietMs && now - behindSince < LongestMs) continue;
+                if (!ReadDue(now, lastTold, behindSince, lastReadEnd, lastReadMs, QuietMs, LongestMs)) continue;
                 wanted = false;
             }
             try { await Read(); }
             catch (Exception e) { Server.Log($"[library] {e.GetType().Name}: {e.Message}"); }
         }
     }
+
+    /*
+     * May the background reading start [now] (item 227)? The changes told quiet [quietMs] since [lastTold], or behind
+     * [longestMs] since [behindSince]; and nine times the last reading's length ([lastMs]) gone since it ended
+     * ([lastEnd]), so reading takes a tenth of the time at most however long the jobs go on telling.
+     */
+    public static bool ReadDue(long now, long lastTold, long behindSince, long lastEnd, long lastMs, int quietMs, int longestMs) =>
+        (now - lastTold >= quietMs || now - behindSince >= longestMs) && now - lastEnd >= 9 * lastMs;
 }
