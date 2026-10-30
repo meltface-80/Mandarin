@@ -116,11 +116,11 @@ test("the same version built again with a higher versionCode (a fix folded into 
 test("the version's short notes (item 223): its \"- Fixed - …\" lines in CHANGELOG.md go in latest.json, and none without them", () => {
   const r = repo("1.0.16", "1.0.15");
   fs.writeFileSync(path.join(r.work, "CHANGELOG.md"), "# Changelog\n\n## Unreleased\n\n- New - not out yet\n\n## v1.0.17\n\nWhat 1.0.17 is. Items 1 and 2.\n\n" +
-    "- Fixed - track times now show on albums\n- New - the **Shelf**, a new way to browse\n\n- `2-shelf` (item 2): **the Shelf.**\n  - Redesign - an entry's own point\n\n" +
+    "- Fixed - track times now show on albums\n- New - the **Shelf**, a new way to browse\n- Tweaks - the share card copies itself\n\n- `2-shelf` (item 2): **the Shelf.**\n  - Redesign - an entry's own point\n\n" +
     "## v1.0.16\n\n- Fixed - an older one\n");
   r.version("1.0.17"); r.git("add", "-A"); r.git("commit", "-q", "-m", "v1.0.17"); r.git("push", "-q", "origin", "main");
   r.run(r.built("1.0.17"));
-  assert.equal(JSON.parse(r.on("publish-apk/1.0.17", "dist/latest.json")).notes, "• Fixed - track times now show on albums\n• New - the Shelf, a new way to browse");
+  assert.equal(JSON.parse(r.on("publish-apk/1.0.17", "dist/latest.json")).notes, "• Fixed - track times now show on albums\n• New - the Shelf, a new way to browse\n• Tweaks - the share card copies itself");
   const s = repo("1.0.16", "1.0.15");
   s.version("1.0.17"); s.git("commit", "-q", "-am", "v1.0.17, no changelog"); s.git("push", "-q", "origin", "main");
   s.run(s.built("1.0.17"));

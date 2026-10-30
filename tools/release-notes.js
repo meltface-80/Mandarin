@@ -18,7 +18,7 @@ const fs = require("fs");
 const path = require("path");
 
 /** The kinds of change a short line names, as the update page writes them. */
-const KINDS = ["Fixed", "New", "Redesign", "Improved", "Changed", "Removed"];
+const KINDS = ["Fixed", "New", "Redesign", "Improved", "Changed", "Removed", "Tweaks"];
 // A list line at the left edge (an entry's own points are indented), its kind, a dash or colon, its words.
 const LINE = new RegExp(`^[-*•]\\s+(${KINDS.join("|")})\\s*[-–—:]\\s+(.+)$`, "i");
 
