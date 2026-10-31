@@ -75,8 +75,15 @@ test("Shelf's album view in a browser", { skip: (!haveFfmpeg() && "ffmpeg is not
       const r = await page.eval(`(async () => { ${HELPERS} ${ready} ${DRIVE}
         const out = {};
         $('.tab[data-tab="genre"]').click(); tile("genre", "Jazz").click();
-        await until(() => S().N === 3 && S().mode === "idle"); await rest();
-        while (S().title !== "Kind of Blue") { stage.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true })); await rest(); }
+        out.jazz = await until(() => S().N === 3 && S().mode === "idle", 20000); await rest();
+        // Stepped toward it by the shelf's own order (item 229): three albums don't wrap, and the shelf can come to rest
+        // past it; stepping right only, the loop never ended and the browser was given up on after 90 s.
+        for (let i = 0; i < 2 * S().N + 2 && S().title !== "Kind of Blue"; i++) {
+          const order = window.__shelfOrder();
+          const key = order.indexOf("Kind of Blue") < order.indexOf(S().title) ? "ArrowLeft" : "ArrowRight";
+          stage.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true })); await rest();
+        }
+        out.at = S().title;
         out.before = viewOpen();
         await turnOver();
         const box = (el) => el.getBoundingClientRect(), o = box(ov), bar = box($("#mt")), f = box(ov.querySelector("iframe"));
@@ -104,6 +111,8 @@ test("Shelf's album view in a browser", { skip: (!haveFfmpeg() && "ffmpeg is not
         out.closedByChoice = await until(() => !viewOpen(), 3000);
         out.errors = fwin().__errors || [];
         return out; })()`);
+      assert.equal(r.jazz, true, "the Jazz genre's three albums on the shelf");
+      assert.equal(r.at, "Kind of Blue", "stepped to it");
       assert.equal(r.before, false, "closed until the case is turned over");
       assert.deepEqual(r.over, { top: 0, bottom: 0, width: 0, frame: 0 }, "the whole screen above the bar, the frame filling it");
       assert.equal(r.wide, true, "three columns on a desktop");

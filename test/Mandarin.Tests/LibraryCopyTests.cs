@@ -55,4 +55,27 @@ public sealed class LibraryCopyTests
         var after = (await s.Server.Internal("/internal/library/changed", new { })).J.Num("reads");
         Assert.Equal(before + 1, after);
     }
+
+    /// <summary>
+    /// Item 227: a job's steps told on and on (a scan's, the release days', the credits') had the library read again as
+    /// often as every couple of seconds; at 13,900 albums each reading took 2.4 s, 83 of them in an hour. A background
+    /// reading now waits, besides the changes' quiet moment (or the longest wait), nine times the last reading's length
+    /// since it ended: reading takes a tenth of the time at most. A small library's readings of a few milliseconds wait
+    /// for nothing more than before.
+    /// </summary>
+    [Test]
+    public async Task A_background_reading_waits_nine_times_the_last_ones_length()
+    {
+        // (now, lastTold, behindSince, lastEnd, lastMs, quietMs, longestMs)
+        long[][] cases =
+        [
+            [10_000, 9_000, 5_000, 0, 5, 300, 2_100],          // quiet a moment, the last reading long past and quick: read
+            [10_000, 9_900, 5_000, 0, 5, 300, 2_100],          // told 100 ms ago, behind 5 s: the longest wait is up, read
+            [10_000, 9_900, 9_000, 0, 5, 300, 2_100],          // told 100 ms ago, behind 1 s: not yet
+            [30_000, 29_000, 25_000, 20_000, 2_400, 300, 2_100], // 2.4 s readings, the last ended 10 s ago: not yet (21.6 s)
+            [42_000, 41_000, 25_000, 20_000, 2_400, 300, 2_100], // 22 s after it: read
+        ];
+        var due = (await Score.Run(new { fn = "librarycopy", due = cases }))["due"]!.AsArray().Select(x => x!.GetValue<bool>()).ToArray();
+        Assert.Equal([true, true, false, false, true], due);
+    }
 }
