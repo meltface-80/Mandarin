@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- `229-shelf-test-steps-both-ways` (item 229): **a test of the Shelf's album view no longer hangs now and then.** It
+  stepped right along the shelf until Kind of Blue was in front; with the Jazz genre chosen the shelf holds three
+  albums, which don't wrap, and when it came to rest past Kind of Blue the loop never ended and the browser was given
+  up on after 90 seconds. It now steps toward the album by the shelf's own order, a few steps at most, and says if it
+  never got there. Nothing changes in Mandarin.
+
 ## v1.1.14
 
 Tweaks - altered share card copy function, Android app copies it to the clipboard. Items 223 to 225.
