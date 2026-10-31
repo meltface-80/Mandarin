@@ -3,6 +3,14 @@
 ## Unreleased
 
 - Fixed - away from home, the Android app only talks to its own server through its own Tailscale
+- Improved - the server re-reads the library far less often while its background jobs run
+
+- `227-library-reads-spaced` (item 227): **the server re-reads the whole library at most a tenth of the time while its
+  jobs go on.** A scan's steps, the release days and the credits each tell the library they changed something, and it
+  was read again as often as every couple of seconds in a storm of them: at 13,900 albums a reading took 2.4 s, and on
+  27 October it was read 83 times in an hour (your server's log). A reading in the background now also waits nine
+  times the last one's length after it (some 22 s at 2.4 s), so reading takes a tenth of the time at most. A change you
+  make yourself (an edit, a merge, a scan's end) is still seen at once.
 
 - `226-refuse-other-servers` (item 226): **away over MusicD's own Tailscale, the app sends nothing until its own
   engine is forwarding.** The app reaches the server at 127.0.0.1:34500 on the phone, which its engine forwards; until
