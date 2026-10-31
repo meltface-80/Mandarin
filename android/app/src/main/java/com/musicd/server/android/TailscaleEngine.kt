@@ -174,6 +174,9 @@ object TailscaleEngine {
     /** Already joined and forwarding to [target] (as far as this process knows). */
     fun ready(target: String) = alive() && readyFor == target
 
+    /** Forwarding [PORT] to the server, this app's own engine holding it (item 226: until then the port is anyone's). */
+    fun forwarding() = alive() && readyFor != null
+
     /**
      * Joined and forwarding to [target], without checking the server answers
      * (at home it's reached another way). Blocking; not on the main thread.

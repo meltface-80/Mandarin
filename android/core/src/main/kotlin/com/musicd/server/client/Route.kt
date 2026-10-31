@@ -52,6 +52,19 @@ object Route {
      * after a sleep started over an engine that was only waking.
      */
     fun mayRestartEngine(now: Long, last: Long): Boolean = last == 0L || now - last >= RESTART_GAP_MS
+
+    /**
+     * Why a request to the server mustn't be sent now, or null when it may (item 226). Away over MusicD's own Tailscale
+     * ([viaEngine]) the address is 127.0.0.1:34500, and only while this app's engine forwards it ([engineForwarding]) is
+     * the server at the other end: until then the port is anyone's. Another app's Tailscale held it on 30 Oct (Rouen's,
+     * from the code it came from), and the phone's player said hello to Rouen's server and was refused forty times. Away
+     * over the Tailscale app ([viaEngine] false) the server's own address waits for a VPN ([onVpn]).
+     */
+    fun notYet(away: Boolean, viaEngine: Boolean, engineForwarding: Boolean, onVpn: Boolean): String? = when {
+        !away -> null
+        viaEngine -> if (engineForwarding) null else "waiting for MusicD's Tailscale to connect"
+        else -> if (onVpn) null else "waiting for Tailscale to connect"
+    }
     const val RESTART_GAP_MS = 180_000L
 
     /**
