@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Fixed - away from home, the Android app only talks to its own server through its own Tailscale
+
+- `226-refuse-other-servers` (item 226): **away over MusicD's own Tailscale, the app sends nothing until its own
+  engine is forwarding.** The app reaches the server at 127.0.0.1:34500 on the phone, which its engine forwards; until
+  the engine held it, the port was anyone's. On 30 October another app's Tailscale held it (Rouen's, which had taken
+  the port from the code it came from), and the phone's player said hello to Rouen's server, refused forty times over
+  seven minutes. Every request now waits for the app's own engine to be forwarding, and goes nowhere meanwhile.
+
 - `229-shelf-test-steps-both-ways` (item 229): **a test of the Shelf's album view no longer hangs now and then.** It
   stepped right along the shelf until Kind of Blue was in front; with the Jazz genre chosen the shelf holds three
   albums, which don't wrap, and when it came to rest past Kind of Blue the loop never ended and the browser was given

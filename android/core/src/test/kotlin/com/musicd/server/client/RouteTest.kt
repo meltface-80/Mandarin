@@ -112,5 +112,20 @@ class RouteTest {
         assertFalse(Route.mayRestartEngine(now = 1_000_000, last = 1_000_000 - 60_000))
         assertTrue(Route.mayRestartEngine(now = 1_000_000, last = 1_000_000 - 180_000))
     }
+
+    /**
+     * Item 226: away over MusicD's own Tailscale, nothing is sent to 127.0.0.1:34500 until this app's engine forwards it;
+     * another app's Tailscale held that port on 30 Oct, and the phone's player said hello to its server forty times.
+     */
+    @Test fun overTheEngineOnlyWhileItsOwnEngineForwards() {
+        assertEquals("waiting for MusicD's Tailscale to connect", Route.notYet(away = true, viaEngine = true, engineForwarding = false, onVpn = false))
+        assertEquals("waiting for MusicD's Tailscale to connect", Route.notYet(away = true, viaEngine = true, engineForwarding = false, onVpn = true))
+        assertNull(Route.notYet(away = true, viaEngine = true, engineForwarding = true, onVpn = false))
+        // Over the Tailscale app: its VPN, as before; at home, always.
+        assertEquals("waiting for Tailscale to connect", Route.notYet(away = true, viaEngine = false, engineForwarding = false, onVpn = false))
+        assertNull(Route.notYet(away = true, viaEngine = false, engineForwarding = false, onVpn = true))
+        assertNull(Route.notYet(away = false, viaEngine = false, engineForwarding = false, onVpn = false))
+        assertNull(Route.notYet(away = false, viaEngine = true, engineForwarding = false, onVpn = false))
+    }
 }
 
