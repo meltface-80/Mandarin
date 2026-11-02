@@ -124,7 +124,7 @@ internal sealed partial class Players
             p.ExpectStop = false;
             p.Next = null;              // SetAVTransportURI clears a renderer's next
             p.Heard = true;             // started by us: a stop now is this track's
-            p.Index = index;
+            p.Index = index; p.NamedEarly = -1;
             p.LoadingSince = Hub.Now();
             p.Jumping++;
             if (p.Shuffle) p.Played.Add(it);

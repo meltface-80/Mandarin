@@ -6,6 +6,16 @@
 - Improved - the server re-reads the library far less often while its background jobs run
 - Fixed - away from home, the Android app no longer drops a working connection after its Tailscale restarts
 - Fixed - albums added to your music folders appear in the Library and on Home by themselves, moments after they are copied
+- Fixed - playing an album on a streamer such as the FiiO SR11 no longer shows track 2 while track 1 plays
+
+- `233-renderer-names-next-early` (item 233): **Play now on a FiiO SR11 shows track 1, not track 2, while track 1
+  plays.** For gapless playback the server hands a streamer the next track (SetNextAVTransportURI) a moment after an
+  album starts, and reads back which track it plays. The SR11 names the next track as soon as it is given it, while
+  it goes on playing the first, and the server took that for the device having moved on: track 2 on screen at once,
+  then 3, and Play now again only sometimes put it right. A move to another track is now believed when the track
+  playing has come to its end, or the position has gone back to the start of another; the SR11's own move at the end
+  of a track is followed as before, gapless. The log says so once a track ("a renderer names track 2 1 s into track
+  1 of 245 s"), in words that survive the log's redaction.
 
 - `232-library-live` (item 232): **albums added show up by themselves in the Android app, and at once in the page.**
   Copied into a watched folder, an album was read by the server's scan some 20 seconds after the copy went quiet, but
