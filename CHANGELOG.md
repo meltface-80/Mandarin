@@ -10,6 +10,18 @@
 - Fixed - a Qobuz or Tidal favourite the service won't give is no longer asked for every two minutes all day
 - Improved - a saved log now says what went wrong: it hides only passwords, keys, emails, account names and logins, and internet or Tailscale addresses
 - New - Album of the Day beside Random Album is one you haven't played in a year or more (or never), stays all day, and has its own switch in Settings → Home Screen
+- Fixed - upsampling ×16 (705.6 and 768 kHz) plays: as WAV where the device takes WAV, else at the highest rate FLAC carries; it was silent
+
+- `238-high-rates-as-wav` (item 238): **upsampling to 705.6 and 768 kHz plays, as WAV.** A FiiO SR11 set to Max
+  (×16) showed tracks playing and played nothing: the owner's log held 215 conversions failed, "705600 Hz not
+  supported" and "768000 Hz not supported". FLAC's frames name rates up to 655,350 Hz; above that, neither the ffmpeg
+  in Mandarin's image (Debian's 5.1) nor the FLAC decoders most streamers carry will have it. A plan above 655,350 Hz
+  now goes out as WAV where the device lists WAV among its formats (the SR11 does): PCM at the depth chosen, its
+  length left open in its header so the device plays it as it is made (`-seekable 0`), cached as `.wav` beside the
+  `.flac` files and pruned with them. A device that doesn't take WAV gets the highest rate of its family that FLAC
+  carries (×8 from a CD) and is told why. Now playing says WAV for it. WAV at 705.6 kHz/24-bit is about 34 Mbps and
+  250 MB a minute in the conversion cache (`TRANSCODE_CACHE_GB`). The conversion's plan and job moved from
+  Transcoder.cs to TranscodePlans.cs for room.
 
 - `236-album-of-the-day` (item 236): **Album of the Day is chosen by the owner's rule, and stays all day.**
   The tile beside Random Album (★ Today) was any album of the library, by the day's hash, so it was as likely to be

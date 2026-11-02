@@ -32,7 +32,7 @@ internal static partial class Transcoder
         {
             try
             {
-                var files = new DirectoryInfo(dir).GetFiles().Where(f => f.Name.EndsWith(".flac", StringComparison.Ordinal)).ToList();
+                var files = new DirectoryInfo(dir).GetFiles().Where(f => f.Name.EndsWith(".flac", StringComparison.Ordinal) || f.Name.EndsWith(".wav", StringComparison.Ordinal)).ToList();
                 counted = new Count(files.Count, files.Sum(f => (double)f.Length));
             }
             catch (Exception e) when (e is IOException or UnauthorizedAccessException) { counted = new Count(0, 0); }

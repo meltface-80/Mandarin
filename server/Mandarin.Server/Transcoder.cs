@@ -24,51 +24,8 @@ using System.Text;
 
 namespace Mandarin.Server;
 
-using JsObj = Mandarin.Server.Tags.JsObj;
 using Jv = Mandarin.Server.Playback.Jv;
 using StreamPlans = Mandarin.Server.Playback.StreamPlans;
-
-internal sealed record ConvTrack(long Id, string Path, long Mtime);
-internal sealed record ConvPlan(long Rate, int Bits, bool Hq, bool Exact, string Reason)
-{
-    // A ReplayGain in dB (0: none), and a zone's DSP: the plan's part (lib/dsp.js planPart) and the file's own rate (v0.8.40).
-    public double Gain { get; init; }
-    public JsObj? Dsp { get; init; }
-    public double InRate { get; init; }
-    // A Qobuz or Tidal stream already what was planned: its FLAC frames copied as they come (v0.8.47).
-    public bool Copy { get; init; }
-
-    /* The plan as lib/stream.js has it, for its name and ffmpeg's arguments. */
-    public JsObj ToJs()
-    {
-        var o = Jv.Obj(("transcode", true), ("rate", (double)Rate), ("bits", (double)Bits), ("reason", Reason));
-        if (Copy) o["copy"] = true;
-        if (Hq) o["hq"] = true;
-        if (Exact) o["exact"] = true;
-        if (Dsp != null) { o["dsp"] = Dsp; o["inRate"] = InRate; }
-        if (Gain != 0) o["gain"] = Gain;
-        return o;
-    }
-
-    /* A plan of lib/stream.js's (or Playback/StreamPlans.cs's) for a conversion. */
-    public static ConvPlan Of(JsObj p) => new((long)Jv.Num(p["rate"]), (int)Jv.Num(p["bits"]), Jv.T(p["hq"]), Jv.T(p["exact"]), Jv.Str(Jv.Or(p["reason"], "")))
-    {
-        Gain = Jv.T(p["gain"]) ? Jv.Num(p["gain"]) : 0,
-        Dsp = Jv.T(p["dsp"]) ? p["dsp"] as JsObj : null,
-        InRate = Jv.T(p["inRate"]) ? Jv.Num(p["inRate"]) : 0
-    };
-}
-
-internal sealed class ConvJob
-{
-    public required string Key, Part, Final;
-    public volatile bool Done, Failed;
-    public readonly TaskCompletionSource Finished = new(TaskCreationOptions.RunContinuationsAsynchronously);
-    // Woken whenever ffmpeg writes (a reader waits on it rather than polling fast).
-    private TaskCompletionSource more = new(TaskCreationOptions.RunContinuationsAsynchronously);
-    public Task More => Volatile.Read(ref more).Task;
-    public void Wake() => Interlocked.Exchange(ref more, new(TaskCreationOptions.RunContinuationsAsynchronously)).TrySetResult();
-}
 
 internal static partial class Transcoder
 {
@@ -151,15 +108,15 @@ internal static partial class Transcoder
     public static bool FfOk => Ff.Value.Ok;
 
     /* The Transcoder's keyFor (lib/stream.js), as Playback/StreamPlans.cs writes it. */
-    public static string KeyFor(ConvTrack t, ConvPlan p) => StreamPlans.KeyFor(Jv.Obj(("id", (double)t.Id), ("mtime", (double)t.Mtime)), p.ToJs());
-    public static string FinalPath(string key) => Path.Combine(dir, key + ".flac");
+    public static string KeyFor(ConvTrack t, ConvPlan p) => StreamPlans.KeyFor(Jv.Obj(("id", (double)t.Id), ("mtime", (double)t.Mtime)), p.ToJs()) + (p.Wav ? "-wav" : "");
+    public static string FinalPath(string key) => Path.Combine(dir, key + (key.EndsWith("-wav", StringComparison.Ordinal) ? ".wav" : ".flac"));
 
     /* stream.js ffmpegArgs (Playback/StreamPlans.cs): the gain first, the DSP before the requantise. */
     public static List<string> Args(string src, ConvPlan p, string dest) => Args(src, p, dest, Ff.Value.Soxr);
 
     /* The same with soxr said (whether ffmpeg has libsoxr), as the tests ask it. */
     public static List<string> Args(string src, ConvPlan p, string dest, bool soxr) =>
-        StreamPlans.FfmpegArgs(src, p.ToJs(), dest, soxr).Select(Jv.Str).ToList();
+        Playback.HighRates.Args(StreamPlans.FfmpegArgs(src, p.ToJs(), dest, soxr).Select(Jv.Str).ToList(), p.Wav, p.Bits);
 
     /* Start (or join) a conversion now. */
     public static ConvJob Start(ConvTrack t, ConvPlan p, bool background = false)
@@ -324,7 +281,7 @@ internal static partial class Transcoder
     {
         try
         {
-            var files = new DirectoryInfo(dir).GetFiles("*.flac").OrderBy(f => f.LastWriteTimeUtc).ToList();
+            var files = new DirectoryInfo(dir).GetFiles().Where(f => f.Name.EndsWith(".flac", StringComparison.Ordinal) || f.Name.EndsWith(".wav", StringComparison.Ordinal)).OrderBy(f => f.LastWriteTimeUtc).ToList();
             long total = files.Sum(f => f.Length);
             while (total > maxBytes && files.Count > 1)
             {

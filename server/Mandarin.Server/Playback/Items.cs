@@ -48,6 +48,7 @@ internal static class Items
     {
         var al = s.Find(t.AlbumId);
         var p = (JsObj)StreamPlans.PlanFor(t.ToJs(), target, gain)!;
+        if (target != null) p = HighRates.Fit(p, target);   // above FLAC's rates: WAV, or the highest FLAC carries (item 238)
         var uri = StreamUrl(secret, baseUrl, t, p, target);
         var meta = Jv.Obj(
             ("itemId", $"musicd-t{t.Id}"),

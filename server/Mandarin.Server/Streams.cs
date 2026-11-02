@@ -161,6 +161,8 @@ internal static partial class Streams
         {
             p = Jv.Obj(("transcode", true), ("hq", true), ("mime", "audio/flac"), ("ext", "flac"), ("rate", (double)segRate), ("bits", (double)segBits),
                 ("reason", "what the renderer was promised"));
+            // Promised as WAV (above FLAC's rates, Playback/HighRates.cs, item 238): made so.
+            if (a.Groups[3].Value.Equals("wav", StringComparison.OrdinalIgnoreCase)) { p["mime"] = "audio/wav"; p["ext"] = "wav"; p["wav"] = true; }
             if (output != null)
             {
                 using var c = Db.Open();
