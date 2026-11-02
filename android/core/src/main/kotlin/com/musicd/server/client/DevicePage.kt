@@ -115,6 +115,12 @@ class DevicePage(val j: JSONObject) {
     val flac32: Boolean get() = output.optBoolean("flac32")
     val has32: Boolean get() = bits.any { it.value == 32 && it.on }
     val modes: List<SegChoice> get() = listOf(SegChoice("original", "Original"), SegChoice("x2", "×2"), SegChoice("x4", "×4"), SegChoice("max", "Max"))
+    /** The filter upsampling uses (item 237): SoX's as it plays, or one as long as the track, made ahead. */
+    val filter: String get() = output.optString("filter", "standard")
+    val showFilter: Boolean get() = mode != "original"
+    val filters: List<SegChoice> get() = listOf(SegChoice("standard", "Standard"), SegChoice("whole", "Whole track"))
+    val filterNote: String get() = if (filter == "whole") "One filter as long as the track, made ahead of playing (some 30 seconds a track); a track not yet made plays with the standard filter. Tracks from the library, ×2 to ×16."
+        else "SoX’s filter, made as it plays."
     val depths: List<SegChoice> get() = listOf(SegChoice("auto", "Auto"), SegChoice("24", "24"), SegChoice("32", "32", off = !flac32))
     val outputInfo: String get() = "Original sends the file as stored wherever this device takes its rate, depth and format; above its ceiling, FLAC at the highest rate it takes. Upsampling stays in the file's family (44.1 → 88.2 → 176.4; 48 → 96 → 192), runs in 64-bit float, and goes out at " +
         (if (has32 && flac32) "24 or 32 bits" else "24 bits") + "."
@@ -128,7 +134,7 @@ class DevicePage(val j: JSONObject) {
         return "A 16-bit/44.1 kHz file plays as $b-bit/${rateWord(rate)} kHz FLAC" + (if (rate == 176400) " (×4)" else if (rate == 88200) " (×2)" else "") + "."
     }
 
-    /** The change a segment tapped makes (PATCH {output: {mode|bits: …}}). */
+    /** The change a segment tapped makes (PATCH {output: {mode|filter|bits: …}}). */
     fun segment(name: String, v: String): JSONObject = JSONObject().put("output", JSONObject().put(name, if (name == "bits" && v != "auto") v.toInt() else v))
 
     val canFixVolume: Boolean get() = j.optBoolean("can_fix_volume")

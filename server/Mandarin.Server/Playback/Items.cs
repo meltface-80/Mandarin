@@ -29,7 +29,7 @@ internal static class Items
     public static string StreamUrl(string secret, string baseUrl, PlayTrack t, JsObj p, JsObj? target)
     {
         var transcode = Jv.T(p["transcode"]);
-        var seg = target == null ? "" : transcode ? $".{TJs.Num(Jv.Num(p["rate"]))}-{TJs.Num(Jv.Num(p["bits"]))}" : ".orig";
+        var seg = target == null ? "" : transcode ? $".{TJs.Num(Jv.Num(p["rate"]))}-{TJs.Num(Jv.Num(p["bits"]))}{(Jv.T(p["whole"]) ? "w" : "")}" : ".orig";
         var qs = new List<string>();
         // A conversion with DSP names its output (?o=), so the stream route runs that zone's setting as it stands when the device fetches.
         if (Jv.T(p["dsp"]) && target != null && Jv.T(target["id"])) qs.Add("o=" + AJs.EncodeURIComponent(Jv.Str(target["id"])));
@@ -49,6 +49,7 @@ internal static class Items
         var al = s.Find(t.AlbumId);
         var p = (JsObj)StreamPlans.PlanFor(t.ToJs(), target, gain)!;
         if (target != null) p = HighRates.Fit(p, target);   // above FLAC's rates: WAV, or the highest FLAC carries (item 238)
+        p = Upsample.WholePlan.Mark(p, target, t.Path);   // the whole track in one transform, where the device asks it (item 237)
         var uri = StreamUrl(secret, baseUrl, t, p, target);
         var meta = Jv.Obj(
             ("itemId", $"musicd-t{t.Id}"),
@@ -81,7 +82,7 @@ internal static class Items
             work.Add((new ConvTrack(it.Track.Id, it.Track.Path, Hub.TierOrMtime(it.Track)), ConvPlan.Of(it.Plan)));
             if (work.Count == 40) break;
         }
-        if (work.Count > 0) Transcoder.Prefetch(work);
+        if (work.Count > 0) Upsample.WholeJobs.Prefetch(work);   // whole tracks made ahead too (item 237)
     }
 
     /* The device's Volume Levelling, from its row in audio_devices (devices.js levellingFor). */

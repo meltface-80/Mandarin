@@ -235,11 +235,13 @@ internal sealed partial class Players
             ("dff", Find(mimes, "^audio/(x-)?dff$") ?? Find(mimes, "^audio/(x-)?dsd$")));
         JsObj? dsp;
         using (var c = Db.Open()) dsp = PlaybackRoutes.DspFor(c, id);
-        return Jv.Obj(
+        var target = Jv.Obj(
             ("name", r.Name ?? r.NetworkName), ("rates", rates), ("maxBits", maxBits), ("containers", caps["containers"]), ("dsd", dsd), ("dsdMimes", dsdMimes),
             ("mode", s["mode"] is string mode && mode is "original" or "x2" or "x4" or "max" ? mode : "original"),
             ("bits", s["bits"] is double b && b is 24 or 32 ? (object)b : "auto"),
             ("dsp", dsp), ("id", r.Id));
+        if (s["filter"] is "whole") target["filter"] = "whole";   // the whole-track filter (item 237); standard by its absence
+        return target;
     }
 
     /* The settings changed (output, DSP): what follows in the queue is planned again; the track playing carries on as it was given. */

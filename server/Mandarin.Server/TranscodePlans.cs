@@ -15,6 +15,8 @@ internal sealed record ConvPlan(long Rate, int Bits, bool Hq, bool Exact, string
     public double InRate { get; init; }
     // Above FLAC's rates, PCM in a WAV whose length is left open (Playback/HighRates.cs, item 238).
     public bool Wav { get; init; }
+    // Upsampled whole, in one transform, made ahead (Upsample/WholeJobs.cs, item 237).
+    public bool Whole { get; init; }
     // A Qobuz or Tidal stream already what was planned: its FLAC frames copied as they come (v0.8.47).
     public bool Copy { get; init; }
 
@@ -37,7 +39,8 @@ internal sealed record ConvPlan(long Rate, int Bits, bool Hq, bool Exact, string
         Gain = Jv.T(p["gain"]) ? Jv.Num(p["gain"]) : 0,
         Dsp = Jv.T(p["dsp"]) ? p["dsp"] as JsObj : null,
         InRate = Jv.T(p["inRate"]) ? Jv.Num(p["inRate"]) : 0,
-        Wav = Jv.T(p["wav"])
+        Wav = Jv.T(p["wav"]),
+        Whole = Jv.T(p["whole"])
     };
 }
 

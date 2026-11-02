@@ -108,7 +108,7 @@ internal static partial class Transcoder
     public static bool FfOk => Ff.Value.Ok;
 
     /* The Transcoder's keyFor (lib/stream.js), as Playback/StreamPlans.cs writes it. */
-    public static string KeyFor(ConvTrack t, ConvPlan p) => StreamPlans.KeyFor(Jv.Obj(("id", (double)t.Id), ("mtime", (double)t.Mtime)), p.ToJs()) + (p.Wav ? "-wav" : "");
+    public static string KeyFor(ConvTrack t, ConvPlan p) => StreamPlans.KeyFor(Jv.Obj(("id", (double)t.Id), ("mtime", (double)t.Mtime)), p.ToJs()) + (p.Whole ? "-w" : "") + (p.Wav ? "-wav" : "");
     public static string FinalPath(string key) => Path.Combine(dir, key + (key.EndsWith("-wav", StringComparison.Ordinal) ? ".wav" : ".flac"));
 
     /* stream.js ffmpegArgs (Playback/StreamPlans.cs): the gain first, the DSP before the requantise. */
@@ -277,7 +277,7 @@ internal static partial class Transcoder
     }
 
     /* Keep the cache under its ceiling, least recently used first. */
-    private static void Prune()
+    internal static void Prune()
     {
         try
         {

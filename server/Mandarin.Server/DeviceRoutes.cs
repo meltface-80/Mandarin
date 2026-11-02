@@ -127,6 +127,13 @@ internal static partial class Library
                     if (!Jv.OneOf(mode, "original", "x2", "x4", "max")) throw new DeviceRefusal(400, "mode must be original, x2, x4 or max");
                     patch["mode"] = mode;
                 }
+                // The upsampler (item 237): SoX as it goes, or the whole track in one transform.
+                var filter = Prop(output, "filter");
+                if (filter is not Undef)
+                {
+                    if (!Jv.OneOf(filter, "standard", "whole")) throw new DeviceRefusal(400, "filter must be standard or whole");
+                    patch["filter"] = filter;
+                }
                 var bits = Prop(output, "bits");
                 if (bits is not Undef)
                 {
