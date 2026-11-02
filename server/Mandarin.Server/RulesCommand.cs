@@ -9,6 +9,8 @@
 //      → { cmp, extracted, built }
 //   { fn: "librarycopy", due: [[now, lastTold, behindSince, lastEnd, lastMs, quietMs, longestMs]] }  Library.Copy.cs
 //      → { due }: whether the background reading may start
+//   { fn: "watchmisses", steps: [[op, id, now]], rests: [times] }        Services/WatchMisses.cs
+//      → { steps: [first failure | resting | null], rests: [ms] }
 //   { fn: "soapcall", calls: [{ url, service, action, args, wait }] }     Playback/SoapHttp.cs
 //      → { results: [{ out } | { error }] }, one after another, each [wait] ms after the last
 //   { fn: "labelnames", canonical, keys, not_labels, folders: [[dir, roots, depth]] }  Names.cs
@@ -55,7 +57,7 @@ internal static class RulesCommand
     private static List<object?> Each(object? list, Func<object?, object?> f) => L(list).Select(f).ToList();
     private static JsObj O(object? v) => v as JsObj ?? new JsObj();
 
-    public static readonly string[] Fns = ["mounts", "versions", "soapcall", "labelnames", "phoneplays", "uris", "cpu", "auth", "register", "ssdp", "engine", "local", "scorecall", "itunes", "logos", "lastfm", "shelf", "mbpack", "addresses", "librarycopy"];
+    public static readonly string[] Fns = ["mounts", "versions", "soapcall", "labelnames", "phoneplays", "uris", "cpu", "auth", "register", "ssdp", "engine", "local", "scorecall", "itunes", "logos", "lastfm", "shelf", "mbpack", "addresses", "librarycopy", "watchmisses"];
 
     public static JsObj Run(string fn, JsObj job) => fn switch
     {
@@ -70,6 +72,7 @@ internal static class RulesCommand
         "lastfm" => Extras.LastfmCommand.Run(job),
         "shelf" => ShelfFns(job),
         "librarycopy" => new JsObj { ["due"] = Each(job["due"], d => Library.ReadDue(N(At(d, 0)), N(At(d, 1)), N(At(d, 2)), N(At(d, 3)), N(At(d, 4)), (int)N(At(d, 5)), (int)N(At(d, 6)))) },
+        "watchmisses" => new JsObj { ["steps"] = Services.WatchMisses.Steps(L(job["steps"])), ["rests"] = Each(job["rests"], t => Services.WatchMisses.RestMs((int)N(t))) },
         "register" => RegisterFns(job),
         "local" => LocalFns(job),
         "addresses" => AddressFns(job).GetAwaiter().GetResult(),

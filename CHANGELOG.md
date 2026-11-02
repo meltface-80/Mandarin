@@ -7,6 +7,15 @@
 - Fixed - away from home, the Android app no longer drops a working connection after its Tailscale restarts
 - Fixed - albums added to your music folders appear in the Library and on Home by themselves, moments after they are copied
 - Fixed - playing an album on a streamer such as the FiiO SR11 no longer shows track 2 while track 1 plays
+- Fixed - a Qobuz or Tidal favourite the service won't give is no longer asked for every two minutes all day
+
+- `234-qobuz-watch-misses` (item 234): **a favourite the service won't give is rested, not asked for every two minutes.**
+  The watch brings in each Qobuz (or Tidal) favourite not yet in the library, every couple of minutes. One the service
+  wouldn't give (gone from its catalogue, or refused) failed every time and was asked for again on the next watch: on
+  2 November 125 Qobuz favourites failed every two minutes all day, a request each to Qobuz and a line each in the log,
+  30,767 lines. One that fails now rests: 30 minutes the first time, twice as long each time after, a day at most; once
+  read it is forgotten. Its first failure is said in the log once, with the error's name and the service's status, so
+  the cause can be seen; its later ones are not.
 
 - `233-renderer-names-next-early` (item 233): **Play now on a FiiO SR11 shows track 1, not track 2, while track 1
   plays.** For gapless playback the server hands a streamer the next track (SetNextAVTransportURI) a moment after an

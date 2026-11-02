@@ -349,10 +349,10 @@ internal abstract partial class Catalogue
         double added = 0, dropped = 0, failed = 0;
         foreach (var (id, why) in want)
         {
-            if (before.Contains(Key + id)) continue;
+            if (before.Contains(Key + id) || WatchMisses.Of(Id).Resting(id, NowMs())) continue;
             Going(gen);
-            try { await EnsureAlbum(id); Keep(id, true, why); added++; }
-            catch (Exception e) { failed++; Server.Log($"[{Id}] watch {id}: {Said(e)}"); }
+            try { await EnsureAlbum(id); Keep(id, true, why); added++; WatchMisses.Of(Id).Read(id); }
+            catch (Exception e) { failed++; WatchMisses.Failed(Id, id, e, NowMs()); }
         }
         Going(gen);
         using (var c = Db.Open())
