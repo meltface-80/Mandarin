@@ -15,8 +15,8 @@ import kotlinx.coroutines.withContext
  * grouped, the share card's service, the update offer's Update or Later. What only told the page to catch up
  * ("library-changed", "reload", "page-pref") has nothing left to tell: each screen reads its own afresh.
  */
-/** A hand-off's argument as logged: a number (an album's), else withheld (a search, a name; item 121). */
-internal fun logArg(arg: String?): String = if (arg.isNullOrEmpty()) "" else if (arg.all { it.isDigit() }) arg else com.musicd.server.client.LogRedact.HIDDEN
+/** A hand-off's argument as logged: as it is, AppLog taking out what is the owner's alone (LogRedact, item 235). */
+internal fun logArg(arg: String?): String = arg ?: ""
 
 internal fun handOn(what: String, arg: String?) {
     AppLog.line("HAND", "$what ${logArg(arg)} (the app's own)")

@@ -8,6 +8,19 @@
 - Fixed - albums added to your music folders appear in the Library and on Home by themselves, moments after they are copied
 - Fixed - playing an album on a streamer such as the FiiO SR11 no longer shows track 2 while track 1 plays
 - Fixed - a Qobuz or Tidal favourite the service won't give is no longer asked for every two minutes all day
+- Improved - a saved log now says what went wrong: it hides only passwords, keys, emails, account names and logins, and internet or Tailscale addresses
+
+- `235-log-keeps-more` (item 235): **the log kept for the app hides what is the owner's alone and keeps what helps.**
+  Since item 121 the server kept only its own words and numbers of each line, and the app hid every address, name,
+  title, file and quoted word too: on 2 November the server's log held 30,767 Qobuz watch failures and not one said
+  why. Asked, the owner set the rule: hide tokens, keys and passwords, their name and account logins, and internet
+  (WAN) and Tailscale addresses; home-network addresses (192.168.x.x and the like) are fine, and help tell the
+  players apart. The server's LogScrub and the app's LogRedact now hide just that: keys, tokens and passwords
+  (`token=[…]`, `Bearer […]`, a run of 32 or more letters and figures, a login in a web address), email addresses,
+  the Mandarin account's name and the Qobuz and Tidal logins (put into their lines as Personal), internet addresses
+  (`[wan]`), Tailscale's addresses and names (`[tailscale]`), and the user's own folder in a path (`/home/[user]`).
+  Home-network addresses, rooms' and devices' names and ids, titles, files and error messages stay. The app's
+  Logging note says so, and its hand-offs and room changes now name what they hand on.
 
 - `234-qobuz-watch-misses` (item 234): **a favourite the service won't give is rested, not asked for every two minutes.**
   The watch brings in each Qobuz (or Tidal) favourite not yet in the library, every couple of minutes. One the service

@@ -108,7 +108,7 @@ internal object NativeShell {
         if (OfflineNow.on) return
         val room = Store.playRoom(c)
         if (room.isEmpty() || room == zone) return
-        AppLog.line("ROOM", "the screens play in " + (if (room.startsWith("PHONE_")) "this phone's room" else "a room of the server's") + " now")
+        AppLog.line("ROOM", "the screens play in " + (if (room.startsWith("PHONE_")) "this phone's room" else "a room of the server's") + " ($room) now")
         zone = room
         homeArgs.value = homeArgs.value.first to room
     }
