@@ -153,6 +153,7 @@ private fun Shell(client: () -> ServerClient?) {
         onDispose { if (NativeShell.nav === nav) NativeShell.nav = null }
     }
     LogTrace(nav)   // the log's watch, while logging is on (item 121)
+    LibraryLive.Follow(client)   // the server's albums followed while on screen (item 232)
     Box(Modifier.fillMaxSize().logTaps()) {
     NavHost(navController = nav, startDestination = ShellRoute.HOME, enterTransition = { androidx.compose.animation.EnterTransition.None }, exitTransition = { androidx.compose.animation.ExitTransition.None }, popEnterTransition = { androidx.compose.animation.EnterTransition.None }, popExitTransition = { androidx.compose.animation.ExitTransition.None }) {   // no fade between screens (item 72): Navigation's own left the screen before as a ghost for 700 ms
         // Home (N5, item 57): its rows' walls, Smart Picks and an album's page open over it, and Back comes back to it as it was.

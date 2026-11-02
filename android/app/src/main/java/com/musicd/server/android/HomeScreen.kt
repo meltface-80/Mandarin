@@ -92,6 +92,9 @@ internal fun HomeScreen(prefs: WallPrefs, zoneId: String, client: () -> ServerCl
         if (!onScreen) return@LaunchedEffect
         while (true) { delay(60_000); client()?.let { HomeKept.refreshAotd(it) } }
     }
+    // The server's albums moved while Home is on screen (item 232, LibraryLive): the Library row read again at once.
+    val movesSeen = remember { LibraryLive.moves }
+    LaunchedEffect(LibraryLive.moves) { if (LibraryLive.moves != movesSeen && offline == null) HomeKept.libraryRow(scope, client(), NativeShell.libraryView) }
     LaunchedEffect(HomeKept.toTop) { if (HomeKept.toTop) { HomeKept.list.scrollToItem(0); HomeKept.toTop = false } }
     // Random Album (the page's playUnheard): the disc turns fast for two seconds, then the album chosen is offered.
     fun randomAlbum() {

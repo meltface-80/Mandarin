@@ -112,6 +112,16 @@ internal fun LibraryScreen(viewQuery: String, prefs: WallPrefs, zoneId: String, 
         }
     }
     LaunchedEffect(near, wall.albums.size) { if (near && wall.loaded) more() }
+    // The server's albums moved (item 232, LibraryLive): the wall read again in place while it is near its top and nothing
+    // is picked, the new albums first under Recently added; further down it stays put until scrolled back up.
+    val atTop by remember(prefs.list, cols) { derivedStateOf { if (prefs.list) list.firstVisibleItemIndex < 8 else grid.firstVisibleItemIndex < cols * 4 } }
+    LaunchedEffect(wall, wall.behind, atTop, selecting) {
+        if (!wall.behind || !atTop || selecting || !wall.loaded || offline) return@LaunchedEffect
+        val c = client() ?: return@LaunchedEffect
+        val head = if (prefs.list) list.firstVisibleItemIndex == 0 else grid.firstVisibleItemIndex == 0
+        wall.again(c)
+        if (head) { if (prefs.list) list.scrollToItem(0) else grid.scrollToItem(0) }
+    }
     fun pick(i: Int) { val a = wall.albums[i]; picks = if (picks.any { it.offset == a.offset }) picks.filter { it.offset != a.offset } else picks + a }
     fun open(i: Int) { if (selecting) { pick(i); return }; val a = wall.albums[i]; onAlbum(a.offset, zone, NavList(wall.albums.map { NavItem(it.offset, it.title) }, i)) }
     fun act(what: String) {

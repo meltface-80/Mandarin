@@ -5,6 +5,19 @@
 - Fixed - away from home, the Android app only talks to its own server through its own Tailscale
 - Improved - the server re-reads the library far less often while its background jobs run
 - Fixed - away from home, the Android app no longer drops a working connection after its Tailscale restarts
+- Fixed - albums added to your music folders appear in the Library and on Home by themselves, moments after they are copied
+
+- `232-library-live` (item 232): **albums added show up by themselves in the Android app, and at once in the page.**
+  Copied into a watched folder, an album was read by the server's scan some 20 seconds after the copy went quiet, but
+  the app's Library wall kept the albums it had loaded for its sort for as long as the app ran: sorted by Recently
+  added, the new album only came by changing the sort and changing it back. The page has read its rows again since
+  v0.8.43 when the server's mark of which albums there are moves, but heard of a move only with another answer, or by
+  asking every ten seconds once it had heard nothing for twenty. The mark (/api/library/mark) can now be waited on:
+  asked with the mark a screen has, the server answers the moment a new copy holds other albums. The app follows it
+  while it is on screen: the Library wall near its top is read again in place, the new albums first under Recently
+  added (further down it stays put until scrolled back up), and Home's Library row while Home is showing. The page
+  waits on it too, in place of its ten-second asks. The 20-second quiet before a scan stays, so an album still being
+  copied isn't read half-way.
 
 - `231-actions-current-majors` (item 231): **the build's GitHub Actions moved to their current versions, on Node 24.**
   Every run warned that checkout, setup-node, setup-dotnet, cache and the rest ran on Node 20, which GitHub has

@@ -137,8 +137,10 @@ internal static partial class Library
             var s = current;
             if (s != null && s.Sig == st.Sig) return s;
             var t0 = Environment.TickCount64;
+            var before = s?.AlbumSet;
             s = await Task.Run(() => Build(st));
             current = s; builtAt = NowMs();
+            MarkRead(before, s.AlbumSet);
             Interlocked.Increment(ref reads);
             var ms = Environment.TickCount64 - t0;
             lastReadEnd = Environment.TickCount64; lastReadMs = ms;
