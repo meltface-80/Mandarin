@@ -901,7 +901,7 @@
       }
     },
     "settings-homescreen": {
-      "page": "Settings' Home Screen (in Setup): Back, its title; the greeting and Random Album, each on or off; Home's rows in their order, each with the handle that drags it to a new place, its name (and why it can't be switched, where it can't) and its switch; their notes",
+      "page": "Settings' Home Screen (in Setup): Back, its title; the greeting, Random Album and Album of the Day, each on or off; Home's rows in their order, each with the handle that drags it to a new place, its name (and why it can't be switched, where it can't) and its switch; their notes",
       "native": ["android/app/src/main/java/com/musicd/server/android/SettingsHome.kt"],
       "preview": false,
       "items": {
@@ -910,6 +910,7 @@
         "name": { "kind": "shows", "each": true },
         "greeting": { "kind": "action", "label": "Greeting" },
         "random": { "kind": "action", "label": "Random Album" },
+        "aotd": { "kind": "action", "label": "Album of the Day" },
         "note": { "kind": "shows", "each": true },
         "grip": { "kind": "action", "label": "Move {row}", "each": true },
         "row-name": { "kind": "shows", "each": true },

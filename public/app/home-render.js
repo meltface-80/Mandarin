@@ -254,8 +254,9 @@ function renderHomeUnplayed(albums) {
 }
 
 // The strip under the greeting (v0.6.1): Random Album, then Album of the
-// day when there is one (none once it has been played, until the next
-// 00:01). Random Album is kept, not rebuilt, so a disc that is spinning
+// day when there is one (kept all day since item 236, played or not: asked
+// with keep=1; it was gone once played, until the next 00:01). Random
+// Album is kept, not rebuilt, so a disc that is spinning
 // carries on spinning when Album of the day changes beside it.
 let shownAotd = null;
 function renderHomeToday(aotd) {
@@ -271,17 +272,18 @@ function renderHomeToday(aotd) {
  * Album of the day, in step on every device (v0.6.0-RC4): the server
  * chooses it at 00:01 and keeps it (v0.6.0-RC8), and is asked every minute
  * while Home is on screen, when you come back to the app or the tab, and
- * on every Home visit. Played anywhere, it goes everywhere; at 00:01 the
+ * on every Home visit. Kept all day, played or not (item 236); at 00:01 the
  * new one comes everywhere. It no longer depends on the Not-played row
  * (v0.6.1): switched off or empty, Album of the day still turns over.
  */
 async function refreshAotd() {
   if (!homeToday) return;
+  if (window.__uiPrefs && window.__uiPrefs.get("aotd") === "off") return;   // switched off (item 236): not asked for
   // Random Album needs no answer: it shows before one arrives.
   if (!homeToday.querySelector("#home-unheard-tile")) renderHomeToday(shownAotd);
   let aj;
   try {
-    const r = await fetch("/api/home/album-of-the-day", { cache: "no-store" });
+    const r = await fetch("/api/home/album-of-the-day?keep=1", { cache: "no-store" });
     if (!r.ok) return;   // the index building, or a server error: what is showing stays
     aj = await r.json();
   } catch (e) { return; }   // offline or restarting: what is showing stays
@@ -289,6 +291,7 @@ async function refreshAotd() {
   if ((next && next.offset) !== (shownAotd && shownAotd.offset)) renderHomeToday(next);
   saveHomeCache({ today: { aotd: next, day: todayKey() } });
 }
+window.__refreshAotd = refreshAotd;
 setInterval(() => {
   if (document.visibilityState !== "visible" || !homeView || homeView.classList.contains("hidden")) return;
   refreshAotd();

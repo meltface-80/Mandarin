@@ -158,7 +158,7 @@ window.__openDevicePowerSheet = openDevicePowerSheet;
 function storedShareService() { try { return localStorage.getItem("musicd-share-service"); } catch (e) { return null; } }
 function nativePrefsJson() {
   const p = window.__uiPrefs;
-  return JSON.stringify(p ? { layout: p.get("layout"), tile: p.get("tile"), text: p.get("text"), title: p.get("title"), greeting: p.get("greeting"), random: p.get("random"), menu: p.get("menu"), labelOrder: labelOrder(), labelMin: String(labelMin()), shareService: storedShareService() } : {});
+  return JSON.stringify(p ? { layout: p.get("layout"), tile: p.get("tile"), text: p.get("text"), title: p.get("title"), greeting: p.get("greeting"), random: p.get("random"), aotd: p.get("aotd"), menu: p.get("menu"), labelOrder: labelOrder(), labelMin: String(labelMin()), shareService: storedShareService() } : {});
 }
 function nativeWallOpened(kind) {
   const app = window.MusicdApp;

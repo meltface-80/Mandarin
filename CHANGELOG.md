@@ -9,6 +9,20 @@
 - Fixed - playing an album on a streamer such as the FiiO SR11 no longer shows track 2 while track 1 plays
 - Fixed - a Qobuz or Tidal favourite the service won't give is no longer asked for every two minutes all day
 - Improved - a saved log now says what went wrong: it hides only passwords, keys, emails, account names and logins, and internet or Tailscale addresses
+- New - Album of the Day beside Random Album is one you haven't played in a year or more (or never), stays all day, and has its own switch in Settings → Home Screen
+
+- `236-album-of-the-day` (item 236): **Album of the Day is chosen by the owner's rule, and stays all day.**
+  The tile beside Random Album (★ Today) was any album of the library, by the day's hash, so it was as likely to be
+  last night's as one not heard in years; and it went once played, leaving the space empty for the rest of the day.
+  It is now an album never played or last played more than twelve months ago, never one played lately. For a newer
+  listener, with less than twelve months of plays, it is also nothing like what has been heard lately: no album by an
+  artist, or in a genre, played in the last 30 days. Where that leaves nothing (a small library, nearly all of it
+  heard) the rule is eased a step at a time, the genres first, then the artists, then an album not played for 30
+  days (DayPick.cs). Home on the page and in the Android app asks with `keep=1`, and the day's album stays all day,
+  played or not; the plain answer is unchanged. A pick kept by the old rule is chosen again at once, and the server's
+  log says why the day's album was chosen. Settings → Home Screen gains an Album of the Day switch beside Greeting and
+  Random Album, on this device only as they are: off, its tile is gone (with Random Album off too, the strip) and it
+  isn't asked for at all; on again, it is asked for at once.
 
 - `235-log-keeps-more` (item 235): **the log kept for the app hides what is the owner's alone and keeps what helps.**
   Since item 121 the server kept only its own words and numbers of each line, and the app hid every address, name,

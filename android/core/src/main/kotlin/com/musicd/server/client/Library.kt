@@ -286,7 +286,7 @@ data class AlbumRow(val albums: List<AlbumSummary>) {
     }
 }
 
-/** Today's album (/api/home/album-of-the-day): none once it has been played today. */
+/** Today's album (/api/home/album-of-the-day?keep=1): kept all day, [played] once it has been played today (item 236). */
 data class AlbumOfTheDay(val album: AlbumSummary?, val played: Boolean, val day: String) {
     companion object {
         fun parse(j: JSONObject) = AlbumOfTheDay(j.optJSONObject("album")?.let(AlbumSummary::parse), j.optBoolean("played", false), j.optString("day", ""))
