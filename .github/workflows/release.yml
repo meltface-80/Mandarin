@@ -37,7 +37,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 70
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Wait for CI to pass
         env:
           GH_TOKEN: ${{ github.token }}
@@ -48,9 +48,9 @@ jobs:
     needs: ci
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
@@ -61,7 +61,7 @@ jobs:
       # third-party action (one broke when the build's readme changed shape).
       - name: Restore ffmpeg
         id: ffmpeg-cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/ffmpeg-static
           key: ffmpeg-static-amd64-release-v1
@@ -85,7 +85,7 @@ jobs:
       # The audio engine and the C# server, built as CI builds them: on CI the
       # tests that need them fail rather than skip (test/Mandarin.Tests/EngineTests.cs,
       # test/Mandarin.Tests/SrpTests.cs), so without these no 0.8.x release got past its tests.
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: "10.0.x"
       - name: Build the audio engine
@@ -206,13 +206,13 @@ jobs:
     runs-on: macos-latest
     timeout-minutes: 90
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Wait for the Mac's tests to pass
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: .github/wait-for-ci.sh "$GITHUB_SHA" mac.yml
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: "10.0.x"
       - name: Build and add the Mac's C# server

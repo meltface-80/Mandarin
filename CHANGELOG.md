@@ -6,6 +6,15 @@
 - Improved - the server re-reads the library far less often while its background jobs run
 - Fixed - away from home, the Android app no longer drops a working connection after its Tailscale restarts
 
+- `231-actions-current-majors` (item 231): **the build's GitHub Actions moved to their current versions, on Node 24.**
+  Every run warned that checkout, setup-node, setup-dotnet, cache and the rest ran on Node 20, which GitHub has
+  retired and runs on Node 24 in its place until it stops altogether. All fifteen are now at their current major
+  (checkout v7, setup-node v7, setup-dotnet v6, setup-go v7, setup-java v6, cache v6, upload-artifact v7,
+  download-artifact v8, setup-android v4, the five Docker actions at build-push v7, login v4, metadata v6, buildx v4
+  and QEMU v4, and setup-gradle v6), each out for months and with nothing in its breaking changes that the workflows
+  use. setup-gradle keeps its open-source cache (`cache-provider: basic`): from v6 its default is a proprietary one.
+  Nothing changes in Mandarin.
+
 - `228-engine-probe-ping` (item 228): **away over MusicD's own Tailscale, the app's check of the way to the server
   asks the server's ping.** It asked /api/health, which waits on a busy server (the library being read again); over
   Tailscale's relay that took longer than the check's four seconds, so the app took a working tunnel for broken and
