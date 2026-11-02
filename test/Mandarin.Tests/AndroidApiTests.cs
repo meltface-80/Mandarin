@@ -43,7 +43,8 @@ public sealed partial class AndroidApiTests
     [GeneratedRegex("^al-\\d+-[0-9a-f]+$")]
     private static partial Regex ImageKey();
 
-    [GeneratedRegex("^\\d{4}-\\d{2}-\\d{2}$")]
+    // The server's day is unpadded ("2026-11-2", library.dayKey), so a day or month under 10 is one figure.
+    [GeneratedRegex("^\\d{4}-\\d{1,2}-\\d{1,2}$")]
     private static partial Regex Day();
 
     [GeneratedRegex("^/api/image/al-\\d+-[0-9a-f]+\\?size=\\d+$")]
