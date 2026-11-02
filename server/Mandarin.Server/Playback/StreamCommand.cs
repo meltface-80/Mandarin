@@ -2,7 +2,7 @@
 // `mandarin-server score` (Identify/ScoreCommand.cs), a line of JSON in and a
 // line out, so test/streams-csharp.test.js holds them to the Node server's:
 //
-//   { fn: "plans", native, ext_mime, family, renderer_mime, plan, fit, whole, repack, with_gain, with_dsp, args, keys, plan_for, service,
+//   { fn: "plans", native, ext_mime, family, renderer_mime, plan, fit, whole, whole_badge, repack, with_gain, with_dsp, args, keys, plan_for, service,
 //     held_mime, held_sonos, held_keys, held_args }   lib/stream.js, playback.js; Streams.cs, Transcoder.cs
 //   { fn: "gain", levelling, patch, ebur, combine, held_combine, album, info, gain_of, gains_for }   lib/loudness.js
 //   { fn: "dsp", coeffs, section_db, response, sweep, peak, bands_of, headroom, normalise_band, normalise, active,
@@ -120,6 +120,8 @@ internal static class StreamCommand
         o["fit"] = Each(job["fit"], a => HighRates.Fit(StreamPlans.Plan(Arg(a, 0), Arg(a, 1)), Arg(a, 1)));
         // As a renderer's queue item is planned (Playback/Items.cs): fitted, then marked to be upsampled whole (item 237).
         o["whole"] = Each(job["whole"], a => Upsample.WholePlan.Mark(HighRates.Fit(StreamPlans.Plan(Arg(a, 0), Arg(a, 1)), Arg(a, 1)), Arg(a, 1), Jv.Str(Jv.Get(Arg(a, 0), "path"))));
+        // The Now playing badge's words for a whole-track plan: [sent, the making] (item 239).
+        o["whole_badge"] = Each(job["whole_badge"], a => Upsample.WholeServed.Badge(Arg(a, 0) is bool b ? b : null, Arg(a, 1) as string));
         o["repack"] = Each(job["repack"], a => StreamPlans.Repack(Arg(a, 0), Arg(a, 1)));
         o["with_gain"] = Each(job["with_gain"], a => StreamPlans.WithGain(Arg(a, 0), Arg(a, 1), Arg(a, 2), Arg(a, 3)));
         o["with_dsp"] = Each(job["with_dsp"], a => StreamPlans.WithDsp((JsObj)Arg(a, 0)!, Arg(a, 1), Arg(a, 2)));

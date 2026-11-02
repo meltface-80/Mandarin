@@ -15,6 +15,9 @@ internal sealed record Volume(double? Value, bool Muted);
 /* What a renderer or a sound device is being sent (players.js toItem's `sent`): the Now playing badge's words. */
 internal sealed record SentInfo(bool Transcode, double Rate, double Bits, double Upsampled, bool Dsp, double Dsd, string Ext, string Mime)
 {
+    // Planned to be upsampled whole (item 237): Now playing says whether its own file went out (item 239).
+    public bool Whole { get; init; }
+
     public JsonObject Json() => new()
     {
         ["transcode"] = Transcode, ["rate"] = Rate, ["bits"] = Bits, ["upsampled"] = Upsampled,

@@ -12,6 +12,16 @@
 - New - Album of the Day beside Random Album is one you haven't played in a year or more (or never), stays all day, and has its own switch in Settings → Home Screen
 - Fixed - upsampling ×16 (705.6 and 768 kHz) plays: as WAV where the device takes WAV, else at the highest rate FLAC carries; it was silent
 - New - whole-track upsampling: a streamer or DAC set to upsample can use one filter as long as the track (Settings → Audio Devices → a device → Output → Filter), made ahead of playing
+- Improved - whole-track upsampling shows itself: Now playing says whether a track went out whole or with the standard filter and why, and the device's Output says how many tracks are made and which is being made
+
+- `239-whole-track-shown` (item 239): **whole-track upsampling shows itself.** Only the server's log said whether
+  a track went out upsampled whole. Now playing's badge now says it: "↑×16 · whole track" when the track's own file
+  went out; otherwise the standard filter's, and why: "whole track being made", "whole track next play", or "whole
+  track failed: see the log". A device's Output, set to Whole track, says how the making goes: the tracks made and
+  kept, the one being made, and how many are waiting. And one play keeps one file: a renderer reads a track in more
+  than one request (a range at a time, again after a seek), and a track whose own file was finished while it played
+  would have been handed that file part-way through. A track sent with the standard filter now keeps it until half
+  an hour has passed without a request for it (WholeServed.cs).
 
 - `237-whole-track-upsampling` (item 237): **upsampling with one filter as long as the track.** A renderer or a
   sound device of the server's (not a Sonos room, not a phone) set to upsample gains a Filter under Output: Standard
