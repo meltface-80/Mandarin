@@ -137,6 +137,13 @@ internal object HomeKept {
         }
     }
 
+    /** Home's Library row alone read again, in the Library's order (item 232: the server's albums moved while Home is on screen). */
+    fun libraryRow(scope: CoroutineScope, client: ServerClient?, libraryView: String) {
+        if (client == null) return
+        val order = LibraryView.parse(libraryView).sortQuery()
+        scope.launch { plainRow("library", LibraryClient { client.getJson(it) }) { it.albums(0, 30, order).albums } }
+    }
+
     /** Today's album, as the server says now: gone once played today (a real answer), kept as it was when the server can't say. */
     suspend fun refreshAotd(client: ServerClient) {
         withContext(Dispatchers.IO) { runCatching { LibraryClient { client.getJson(it) }.albumOfTheDay().album } }.onSuccess { aotd = it }

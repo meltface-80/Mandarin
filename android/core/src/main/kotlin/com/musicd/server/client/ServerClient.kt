@@ -57,6 +57,14 @@ class ServerClient(
         return ZoneState.parse(getJson(q.toString(), timeout))
     }
 
+    /**
+     * Which albums there are, as the server marks them (bug list item 232, [AlbumsMark]). With [waitFor], the mark the
+     * app has, the server holds the request until the albums move (or ~20 s pass), as [zoneState]'s wait.
+     */
+    fun libraryMark(waitFor: String? = null): String =
+        if (waitFor == null) AlbumsMark.of(getJson("/api/library/mark"))
+        else AlbumsMark.of(getJson("/api/library/mark?wait_for=" + enc(waitFor) + "&timeout=20000", 30_000))
+
     fun control(zoneId: String, command: String) {
         post("/api/control", JSONObject().put("zone_or_output_id", zoneId).put("command", command))
     }
