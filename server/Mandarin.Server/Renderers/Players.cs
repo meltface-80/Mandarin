@@ -32,6 +32,7 @@ internal sealed class Player(string id)
     public (double? Value, bool Muted) Volume = (null, false);
     public bool ExpectStop, NoSetNext, Subscribing;
     public int Strikes, Jumping;      // Jumping: jumps under way (Jump), whose renderer may still say the track before
+    public int NamedEarly = -1;       // the track a renderer named the next of early (item 233), logged once for it
     // Heard: the state the room shows is the device's own, read from it (or a jump of ours): not one carried over an
     // outage or a restart, whose stop is no end of a track (item 184); lost with any call it didn't answer, and won back
     // only by a read asked after the last of those (UnansweredAt, item 195). Polling: a read under way; PollAgain:
