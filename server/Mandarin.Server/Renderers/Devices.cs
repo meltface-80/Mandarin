@@ -212,6 +212,8 @@ internal sealed class Devices
             ("mode", r.Settings["mode"] is string mode && mode is "original" or "x2" or "x4" or "max" ? mode : "original"),
             ("bits", r.Settings["bits"] is double b && b is 24 or 32 ? (object)b : "auto"),
             ("flac32", Transcoder.Flac32)) : null;
+        // The whole-track filter (item 237), said only where it is set: standard is said by its absence.
+        if (streamer && r.Settings["filter"] is "whole") ((JsObj)o["output"]!)["filter"] = "whole";
         o["first_seen"] = r.FirstSeen; o["last_seen"] = r.LastSeen;
         o["profile"] = caps["profile"]; o["editable"] = caps["editable"];
         o["playable"] = r.Kind != "upnp" || Jv.T(caps["playable"]);

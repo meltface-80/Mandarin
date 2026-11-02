@@ -34,7 +34,7 @@ using JsObj = Mandarin.Server.Tags.JsObj;
 
 internal static partial class Streams
 {
-    [GeneratedRegex(@"^/stream/t([0-9]+)(?:\.(orig|[0-9]+-[0-9]+))?\.([a-z0-9]+)\z", RegexOptions.IgnoreCase)]
+    [GeneratedRegex(@"^/stream/t([0-9]+)(?:\.(orig|[0-9]+-[0-9]+w?))?\.([a-z0-9]+)\z", RegexOptions.IgnoreCase)]
     private static partial Regex Address();
     [GeneratedRegex(@"^audio/(x-)?(dsf|dff|dsd)\z")]
     private static partial Regex DsdMime();
@@ -108,7 +108,8 @@ internal static partial class Streams
         long segRate = 0, segBits = 0;
         if (seg.Length > 0 && seg != "orig")
         {
-            var rb = seg.Split('-');
+            // "w": the whole track in one transform, where it is made (Upsample/, item 237).
+            var rb = seg.TrimEnd('w', 'W').Split('-');
             if (!long.TryParse(rb[0], out segRate) || !long.TryParse(rb[1], out segBits)) return Refuse(ctx, 400);
             if (segRate < 8000 || segRate > 768000 || !(segBits is 16 or 24 || (segBits == 32 && Transcoder.Flac32))) return Refuse(ctx, 400);
         }
@@ -204,7 +205,10 @@ internal static partial class Streams
         }
         // Made already: sent from the cache, marked as used. Not yet: made
         // now, and sent as it is made (v0.8.11; before, the Node server's).
-        var job = Transcoder.Start(new ConvTrack(id, t.Path, mtime), ConvPlan.Of(p));
+        var track = new ConvTrack(id, t.Path, mtime);
+        if (seg.EndsWith('w') && segRate != 0 && svc == null && t.Rate > 0 && Upsample.WholePlan.Takes(segRate / t.Rate) && segRate % t.Rate == 0) { p["whole"] = true; p["inRate"] = (double)t.Rate; }
+        // Whole and made: that file; whole and not yet: the standard filter now, the whole one made for next time.
+        var job = Transcoder.Start(track, Upsample.WholeJobs.Choose(track, ConvPlan.Of(p)));
         if (job.Done && !job.Failed) return await SendFile(ctx, job.Final, Jv.Str(p["mime"]));
         if (job.Done) { ctx.Response.StatusCode = 500; ctx.Response.Headers["X-Mandarin-Answered"] = "C#"; return true; }
         await Transcoder.TailFollow(ctx, job, Jv.Str(p["mime"]));

@@ -191,6 +191,10 @@ internal fun DevicePane(id: String, client: () -> ServerClient?, onBack: () -> U
                 CapGroup("Mode", Modifier.parity("settings-device.cap-label")) {
                     Seg(d.modes, d.mode, key = { i, c -> Modifier.parity("settings-device.mode", Contract.label("settings-device.mode", i)).clickable(enabled = !busy) { patch(d.segment("mode", c.value)) } })
                 }
+                if (d.showFilter) CapGroup("Filter", Modifier.parity("settings-device.cap-label")) {
+                    Seg(d.filters, d.filter, key = { i, c -> Modifier.parity("settings-device.filter", Contract.label("settings-device.filter", i)).clickable(enabled = !busy) { patch(d.segment("filter", c.value)) } })
+                    DeviceNote(d.filterNote, Modifier.parity("settings-device.note"))
+                }
                 if (d.has32) CapGroup("Bit depth", Modifier.parity("settings-device.cap-label")) {
                     Seg(d.depths, d.outBits, key = { i, c -> Modifier.parity("settings-device.depth", Contract.label("settings-device.depth", i)).clickable(enabled = !busy && !c.off) { patch(d.segment("bits", c.value)) } })
                     if (!d.flac32) DeviceNote("32-bit needs an ffmpeg that writes 32-bit FLAC; this one stops at 24.", Modifier.parity("settings-device.note"))

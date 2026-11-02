@@ -11,6 +11,23 @@
 - Improved - a saved log now says what went wrong: it hides only passwords, keys, emails, account names and logins, and internet or Tailscale addresses
 - New - Album of the Day beside Random Album is one you haven't played in a year or more (or never), stays all day, and has its own switch in Settings → Home Screen
 - Fixed - upsampling ×16 (705.6 and 768 kHz) plays: as WAV where the device takes WAV, else at the highest rate FLAC carries; it was silent
+- New - whole-track upsampling: a streamer or DAC set to upsample can use one filter as long as the track (Settings → Audio Devices → a device → Output → Filter), made ahead of playing
+
+- `237-whole-track-upsampling` (item 237): **upsampling with one filter as long as the track.** A renderer or a
+  sound device of the server's (not a Sonos room, not a phone) set to upsample gains a Filter under Output: Standard
+  (SoX as it plays, as before) or Whole track. Whole track takes the track to the frequency domain in one transform,
+  lays its spectrum into one two to sixteen times the size with nothing above the original band, and brings it back:
+  a linear-phase filter as long as the track, flat to 95% of the original Nyquist frequency and falling along a
+  raised cosine to nothing at it, its error some 190 dB down in the tests. A track too long for the machine's memory
+  in one transform (2^28 points from 12 GB) is done in overlapping sections that join without a trace. Where its
+  peaks between samples go over full scale, the whole track is scaled to −0.1 dBFS, one gain, never clipped. It
+  needs the whole track before it can give anything, so it is made ahead: in a process of its own
+  (`mandarin-server upsample`) on the cores playback doesn't keep, one at a time, the queue's next tracks first,
+  some 30 seconds for a six-minute track at ×16 on a four-core machine; a track asked for before it is made plays
+  with the standard filter, and from its own file once it is. It only uses the rates the device reports or that are
+  set for it, ×2, ×4, ×8 or ×16, for tracks of the library (a Qobuz or Tidal stream comes as it comes). The files
+  are kept with the other conversions and pruned with them (`TRANSCODE_CACHE_GB`); above FLAC's rates they are WAV
+  (item 238). The server's log says each one made, how long it took, and any gain it needed.
 
 - `238-high-rates-as-wav` (item 238): **upsampling to 705.6 and 768 kHz plays, as WAV.** A FiiO SR11 set to Max
   (×16) showed tracks playing and played nothing: the owner's log held 215 conversions failed, "705600 Hz not

@@ -77,7 +77,7 @@ internal sealed partial class Players
         // stream.js status(track, plan): ready (the file is there), running (being made), else none — and then it is started.
         var key = Transcoder.KeyFor(t, plan);
         var ready = File.Exists(Transcoder.FinalPath(key));
-        if (!ready && !Transcoder.Jobs.ContainsKey(key)) Transcoder.Prefetch([(t, plan)]);
+        if (!ready && !Transcoder.Jobs.ContainsKey(key)) Upsample.WholeJobs.Prefetch([(t, plan)]);
         return ready;
     }
 

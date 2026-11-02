@@ -65,6 +65,19 @@ class AudioDevicesTest {
         assertTrue(d.capNotes[0].startsWith("DSD files go to it as they are"))
     }
 
+    @Test fun `the filter is offered while upsampling, standard until set to whole track`() {
+        fun page(output: String) = DevicePage(JSONObject("""{"kind":"upnp","rates":[],"bits":[],"dsd":[],"output":$output}"""))
+        val standard = page("""{"mode":"x4","bits":"auto","flac32":false}""")
+        assertTrue(standard.showFilter)
+        assertEquals("standard", standard.filter)
+        assertEquals(listOf("Standard", "Whole track"), standard.filters.map { it.label })
+        assertEquals("""{"output":{"filter":"whole"}}""", standard.segment("filter", "whole").toString())
+        val whole = page("""{"mode":"max","bits":"auto","flac32":false,"filter":"whole"}""")
+        assertEquals("whole", whole.filter)
+        assertTrue(whole.filterNote.startsWith("One filter as long as the track"))
+        assertFalse(page("""{"mode":"original","bits":"auto","flac32":false,"filter":"whole"}""").showFilter)
+    }
+
     @Test fun `a sound device's note says how it plays, a Mac's by Core Audio`() {
         val mac = DevicePage(JSONObject("""{"kind":"local","found_by":"This Mac (Core Audio)"}"""))
         assertTrue(mac.capNotes[0].startsWith("Mandarin sets the device to each track’s rate"))
