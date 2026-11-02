@@ -6,6 +6,8 @@
 - Improved - the server re-reads the library far less often while its background jobs run
 - Fixed - away from home, the Android app no longer drops a working connection after its Tailscale restarts
 - Fixed - albums added to your music folders appear in the Library and on Home by themselves, moments after they are copied
+- Fixed - playing an album on a streamer such as the FiiO SR11 no longer shows track 2 while track 1 plays
+- Fixed - a Qobuz or Tidal favourite the service won't give is no longer asked for every two minutes all day
 - Improved - a saved log now says what went wrong: it hides only passwords, keys, emails, account names and logins, and internet or Tailscale addresses
 
 - `235-log-keeps-more` (item 235): **the log kept for the app hides what is the owner's alone and keeps what helps.**
@@ -19,6 +21,23 @@
   (`[wan]`), Tailscale's addresses and names (`[tailscale]`), and the user's own folder in a path (`/home/[user]`).
   Home-network addresses, rooms' and devices' names and ids, titles, files and error messages stay. The app's
   Logging note says so, and its hand-offs and room changes now name what they hand on.
+
+- `234-qobuz-watch-misses` (item 234): **a favourite the service won't give is rested, not asked for every two minutes.**
+  The watch brings in each Qobuz (or Tidal) favourite not yet in the library, every couple of minutes. One the service
+  wouldn't give (gone from its catalogue, or refused) failed every time and was asked for again on the next watch: on
+  2 November 125 Qobuz favourites failed every two minutes all day, a request each to Qobuz and a line each in the log,
+  30,767 lines. One that fails now rests: 30 minutes the first time, twice as long each time after, a day at most; once
+  read it is forgotten. Its first failure is said in the log once, with the error's name and the service's status, so
+  the cause can be seen; its later ones are not.
+
+- `233-renderer-names-next-early` (item 233): **Play now on a FiiO SR11 shows track 1, not track 2, while track 1
+  plays.** For gapless playback the server hands a streamer the next track (SetNextAVTransportURI) a moment after an
+  album starts, and reads back which track it plays. The SR11 names the next track as soon as it is given it, while
+  it goes on playing the first, and the server took that for the device having moved on: track 2 on screen at once,
+  then 3, and Play now again only sometimes put it right. A move to another track is now believed when the track
+  playing has come to its end, or the position has gone back to the start of another; the SR11's own move at the end
+  of a track is followed as before, gapless. The log says so once a track ("a renderer names track 2 1 s into track
+  1 of 245 s"), in words that survive the log's redaction.
 
 - `232-library-live` (item 232): **albums added show up by themselves in the Android app, and at once in the page.**
   Copied into a watched folder, an album was read by the server's scan some 20 seconds after the copy went quiet, but

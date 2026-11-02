@@ -36,8 +36,9 @@ const CM = "urn:schemas-upnp-org:service:ConnectionManager:1";
 
 class FakeRenderer {
   constructor({ name, manufacturer = "Acme", model = "Streamer", modelNumber = "1", udn, sink = SINK_WIIM,
-                linkplay = null, nested = false, urlBase = false, noAvTransport = false, setNext = true } = {}) {
-    Object.assign(this, { name, manufacturer, model, modelNumber, sink, linkplay, nested, urlBase, noAvTransport, setNext });
+                linkplay = null, nested = false, urlBase = false, noAvTransport = false, setNext = true, namesNext = false } = {}) {
+    // namesNext: GetPositionInfo names the next URI as soon as it is set, while the first goes on playing (a FiiO SR11, item 233).
+    Object.assign(this, { name, manufacturer, model, modelNumber, sink, linkplay, nested, urlBase, noAvTransport, setNext, namesNext });
     this.udn = udn || ("uuid:" + require("crypto").randomUUID());
     this.requests = [];
     this.log = [];              // AVTransport / RenderingControl actions, in order
@@ -174,7 +175,7 @@ class FakeRenderer {
       case "GetProtocolInfo": return { Source: "", Sink: this.sink };
       case "GetTransportInfo": return { CurrentTransportState: this.state, CurrentTransportStatus: "OK", CurrentSpeed: "1" };
       case "GetPositionInfo": return {
-        Track: this.uri ? "1" : "0", TrackDuration: XML.hms(this.uri ? this.duration() : 0), TrackMetaData: this.meta, TrackURI: this.uri,
+        Track: this.uri ? "1" : "0", TrackDuration: XML.hms(this.uri ? this.duration() : 0), TrackMetaData: this.meta, TrackURI: this.namesNext && this.nextUri ? this.nextUri : this.uri,
         RelTime: XML.hms(this.pos()), AbsTime: "NOT_IMPLEMENTED", RelCount: "2147483647", AbsCount: "2147483647"
       };
       case "GetMediaInfo": return { NrTracks: this.uri ? "1" : "0", MediaDuration: XML.hms(this.duration()), CurrentURI: this.uri, CurrentURIMetaData: this.meta, NextURI: this.nextUri, NextURIMetaData: this.nextMeta, PlayMedium: "NETWORK", RecordMedium: "NOT_IMPLEMENTED", WriteStatus: "NOT_IMPLEMENTED" };
