@@ -9,8 +9,8 @@ import org.json.JSONObject
  * opens the native Library wall ([ShellRoute.library]); what it doesn't say is the default.
  */
 data class WallPrefs(val layout: String = "auto", val tile: Double = 1.0, val text: Double = 1.0, val title: Double = 1.0,
-                     /** Home's greeting and its Random Album tile, each shown or not (Settings → Home Screen; item 57). */
-                     val greeting: Boolean = true, val random: Boolean = true,
+                     /** Home's greeting, its Random Album tile and its Album of the Day (item 236), each shown or not (Settings → Home Screen; item 57). */
+                     val greeting: Boolean = true, val random: Boolean = true, val aotd: Boolean = true,
                      /** The side menu's size (UI Settings' Menu size; item 67): its insides zoomed by it, its width not. */
                      val menu: Double = 1.0,
                      /** A label's albums in alphabetical or random order, and the fewest albums a label needs to be listed (Settings → Record labels; item 71). */
@@ -43,7 +43,7 @@ data class WallPrefs(val layout: String = "auto", val tile: Double = 1.0, val te
             return WallPrefs(
                 layout = j.optString("layout", "auto").takeIf { it in LAYOUTS } ?: "auto",
                 tile = num("tile", TILES), text = num("text", TEXTS), title = num("title", TEXTS),
-                greeting = j.optString("greeting", "on") != "off", random = j.optString("random", "on") != "off", menu = num("menu", TEXTS),
+                greeting = j.optString("greeting", "on") != "off", random = j.optString("random", "on") != "off", aotd = j.optString("aotd", "on") != "off", menu = num("menu", TEXTS),
                 labelOrder = if (j.optString("labelOrder") == "random") "random" else "alpha", labelMin = j.optString("labelMin").toIntOrNull()?.takeIf { it > 0 } ?: 1,
                 shareService = j.optString("shareService").takeIf { it.isNotEmpty() && it != "null" }
             )

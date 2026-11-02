@@ -27,7 +27,7 @@ public sealed partial class AndroidApiTests
         ("home_rows", "/api/settings/home-rows"),
         ("home_history", "/api/home/history"),
         ("home_unplayed", "/api/home/unplayed"),
-        ("home_album_of_the_day", "/api/home/album-of-the-day"),
+        ("home_album_of_the_day", "/api/home/album-of-the-day?keep=1"),
         // Home's other rows (bug list item 57).
         ("smart_picks", "/api/smart-picks"),
         ("genres", "/api/filters/genres"),

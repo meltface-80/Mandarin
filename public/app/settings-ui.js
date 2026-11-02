@@ -24,10 +24,10 @@
   if (navItem) navItem.addEventListener("click", paint);
   paint();
 })();
-// Settings → Setup → Home Screen (v1.0.7): the greeting and Random Album, each on or off, on this device.
+// Settings → Setup → Home Screen (v1.0.7): the greeting, Random Album and Album of the Day (item 236), each on or off, on this device.
 (function initHomeTopSwitches() {
   if (!window.__uiPrefs) return;
-  const sws = { greeting: "home-greeting-on", random: "home-random-on" };
+  const sws = { greeting: "home-greeting-on", random: "home-random-on", aotd: "home-aotd-on" };
   const paint = () => { for (const [k, id] of Object.entries(sws)) { const el = document.getElementById(id); if (el) el.checked = window.__uiPrefs.get(k) !== "off"; } };
   for (const [k, id] of Object.entries(sws)) {
     const el = document.getElementById(id);

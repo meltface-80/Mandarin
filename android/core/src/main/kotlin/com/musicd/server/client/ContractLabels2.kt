@@ -41,6 +41,7 @@ internal object ContractLabels2 {
         "settings-homescreen.back" to listOf("Back to settings"),
         "settings-homescreen.greeting" to listOf("Greeting"),
         "settings-homescreen.random" to listOf("Random Album"),
+        "settings-homescreen.aotd" to listOf("Album of the Day"),
         "settings-homescreen.grip" to listOf("Move {row}"),
         "settings-homescreen.row-on" to listOf("{row} row"),
         "settings-services.back" to listOf("Back to settings"),

@@ -26,6 +26,12 @@ class WallTest {
         assertFalse(WallPrefs.parse("""{"random":"off"}""").random)
     }
 
+    @Test fun `Album of the Day, on unless the page says off (item 236)`() {
+        assertTrue(WallPrefs.parse("{}").aotd)
+        assertFalse(WallPrefs.parse("""{"aotd":"off"}""").aotd)
+        assertTrue(WallPrefs.parse("""{"aotd":"on","random":"off"}""").aotd)
+    }
+
     @Test fun `the columns are the page's breakpoints divided by the tile size, or fixed`() {
         val auto = WallPrefs()
         assertEquals("a phone", 3, auto.cols(412, 915))
