@@ -251,7 +251,7 @@
     }
   },
   "home_album_of_the_day": {
-    "path": "/api/home/album-of-the-day",
+    "path": "/api/home/album-of-the-day?keep=1",
     "answer": {
       "album": {
         "offset": 3,

@@ -78,7 +78,7 @@ class LibraryClient(private val get: (String) -> JSONObject) {
     /** Who played, sang, wrote and made an album (bug list item 132), by its offset. */
     fun albumCredits(offset: Long): AlbumCredits = AlbumCredits.parse(get("/api/album/credits?offset=$offset"))
 
-    fun albumOfTheDay(): AlbumOfTheDay = AlbumOfTheDay.parse(get("/api/home/album-of-the-day"))
+    fun albumOfTheDay(): AlbumOfTheDay = AlbumOfTheDay.parse(get("/api/home/album-of-the-day?keep=1"))
 
     /** Home's other rows (item 57): today's Smart Picks; the genres and their groups, as the Browse by genre cards; the label of the week; the playlists' tiles. */
     fun smartPicks(): SmartPicks = SmartPicks.parse(get("/api/smart-picks"))

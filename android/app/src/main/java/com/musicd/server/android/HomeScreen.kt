@@ -88,8 +88,8 @@ internal fun HomeScreen(prefs: WallPrefs, zoneId: String, client: () -> ServerCl
     AskAgain(HomeKept.failed) { HomeKept.refresh(scope, context, client(), NativeShell.libraryView) }
     // Today's album while the app is on screen (item 120: every minute all night too).
     val onScreen by NativeShell.onScreen
-    LaunchedEffect(offline, onScreen) {
-        if (!onScreen) return@LaunchedEffect
+    LaunchedEffect(offline, onScreen, prefs.aotd) {
+        if (!onScreen || !prefs.aotd) return@LaunchedEffect   // switched off (item 236): not asked for
         while (true) { delay(60_000); client()?.let { HomeKept.refreshAotd(it) } }
     }
     // The server's albums moved while Home is on screen (item 232, LibraryLive): the Library row read again at once.
@@ -137,7 +137,7 @@ internal fun HomeScreen(prefs: WallPrefs, zoneId: String, client: () -> ServerCl
                 }
             }
             // The strip under the greeting: Random Album, then today's album; gone with both.
-            val aotd = HomeKept.aotd
+            val aotd = HomeKept.aotd.takeIf { prefs.aotd }
             if (prefs.random || aotd != null) item("today") {
                 Column {
                     LazyRow(Modifier.fillMaxWidth(), contentPadding = PaddingValues(horizontal = 14.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {

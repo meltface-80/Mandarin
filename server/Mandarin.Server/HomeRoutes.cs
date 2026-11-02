@@ -1,5 +1,5 @@
 // HomeRoutes.cs — Home's rows (v0.8.6), from lib/server/api-library.js and
-// lib/server/features.js: Album of the day, Label of the week, Recently played
+// lib/server/features.js: Album of the day (chosen by DayPick.cs since item 236), Label of the week, Recently played
 // and Not played lately. The day and the week are the Node server's (its time
 // zone), told with the library's state, so both servers turn over together.
 using System.Text.Json.Nodes;
@@ -16,15 +16,19 @@ internal static partial class Library
         return h;
     }
 
+    /* How the day's album is chosen (DayPick.cs, item 236): a pick kept by an older rule is chosen again. */
+    private const int DayRule = 2;
+
     /*
-     * The day's album: chosen at the first ask of the day and kept in the
-     * database (the setting album_of_the_day), so it stays the day's album
+     * The day's album: chosen at the first ask of the day (DayPick) and kept in
+     * the database (the setting album_of_the_day), so it stays the day's album
      * through scans and restarts, whichever server is asked.
      */
     private static Album? DayAlbum(SqliteConnection c, Snapshot s, LibState st)
     {
         if (s.Albums.Count == 0) return null;
-        if (Db.Setting(c, "album_of_the_day") is JsonObject kept && kept["day"] is JsonValue dv && dv.TryGetValue<string>(out var kd) && kd == st.Day)
+        if (Db.Setting(c, "album_of_the_day") is JsonObject kept && kept["day"] is JsonValue dv && dv.TryGetValue<string>(out var kd) && kd == st.Day
+            && kept["rule"] is JsonValue rv && rv.TryGetValue<double>(out var rule) && rule == DayRule)
         {
             Album? al = null;
             var key = kept["key"] is JsonValue kv && kv.TryGetValue<string>(out var ks) ? ks : null;
@@ -32,13 +36,18 @@ internal static partial class Library
             if (al == null && kept["id"] is JsonValue iv && iv.TryGetValue<double>(out var id) && id == Math.Floor(id)) s.ById.TryGetValue((long)id, out al);
             if (al != null) return al;
         }
-        var sorted = s.Albums.OrderBy(a => a.Id).ToList();
-        var pick = sorted[(int)(Fnv1a(st.Day) % (uint)sorted.Count)];
+        var last = new Dictionary<long, long>();
+        foreach (var r in Rows(c, "SELECT album_id, MAX(ts) AS ts FROM plays WHERE album_id IS NOT NULL GROUP BY album_id"))
+            if (r[0] is long id && Long(r[1]) is long at) last[id] = at;
+        var firstRow = Rows(c, "SELECT MIN(ts) AS ts FROM plays");
+        var (pick, why, pool) = DayPick.Choose(s.Albums, last, firstRow.Count > 0 ? Long(firstRow[0][0]) : null, Now, st.Day);
+        if (pick == null) return null;
         using var cmd = c.CreateCommand();
         cmd.CommandText = "INSERT INTO settings(key, value) VALUES($k, $v) ON CONFLICT(key) DO UPDATE SET value = excluded.value";
         cmd.Parameters.AddWithValue("$k", "album_of_the_day");
-        cmd.Parameters.AddWithValue("$v", new JsonObject { ["day"] = st.Day, ["key"] = pick.Key, ["id"] = pick.Id, ["at"] = Now }.ToJsonString(Out));
+        cmd.Parameters.AddWithValue("$v", new JsonObject { ["day"] = st.Day, ["key"] = pick.Key, ["id"] = pick.Id, ["at"] = Now, ["rule"] = DayRule }.ToJsonString(Out));
         cmd.ExecuteNonQuery();
+        Server.Log($"[home] album of the day for {st.Day}: {why}, one of {pool}");
         return pick;
     }
 
@@ -48,10 +57,11 @@ internal static partial class Library
         using var c = Db.Open();
         var al = DayAlbum(c, s, st);
         if (al == null) return Send(ctx, new JsonObject { ["album"] = null, ["day"] = st.Day });
-        // Gone from Home once played today (since 00:01).
+        // Gone once played today (since 00:01), as the Node server had it; asked with keep=1, as Home asks since item 236,
+        // kept all day, said played: the space beside Random Album no longer empty for the rest of the day.
         var played = Rows(c, "SELECT 1 FROM plays WHERE album_id = $1 AND ts >= $2 LIMIT 1", al.Id, st.DayStart).Count > 0;
-        if (played) return Send(ctx, new JsonObject { ["album"] = null, ["played"] = true, ["day"] = st.Day });
-        return Send(ctx, new JsonObject { ["album"] = AlbumJson(s, al), ["played"] = false, ["day"] = st.Day });
+        if (played && Q(ctx, "keep") != "1") return Send(ctx, new JsonObject { ["album"] = null, ["played"] = true, ["day"] = st.Day });
+        return Send(ctx, new JsonObject { ["album"] = AlbumJson(s, al), ["played"] = played, ["day"] = st.Day });
     }
 
     /* One label a week, from those with three albums or more. */

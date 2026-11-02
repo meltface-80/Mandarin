@@ -214,10 +214,11 @@ test("the library in C# answers as the Node server did", { skip, timeout: 180000
       assert.equal(r.total, ids.length);
     };
 
-    // The day's album fixed for the recording: Abbey Road kept as today's (the setting album_of_the_day, which both servers keep it in).
+    // The day's album fixed for the recording: Abbey Road kept as today's (the setting album_of_the_day, which both servers keep it in),
+    // by the rule the server chooses by now (rule 2, item 236), so it isn't chosen again.
     const day = (await getJ("/api/home/album-of-the-day")).day;
     const abbeyRoad = raw.prepare("SELECT id, key FROM albums WHERE title = 'Abbey Road'").get();
-    ctx.db.setSetting("album_of_the_day", { day, key: abbeyRoad.key, id: abbeyRoad.id, at: 1 });
+    ctx.db.setSetting("album_of_the_day", { day, key: abbeyRoad.key, id: abbeyRoad.id, at: 1, rule: 2 });
     await battery("as scanned: ");
     // The library changes: hearts, Listen later and labels made by C# (v0.8.16); the Node server's copy told (recording).
     const change = async (p, body, method = "POST") => {

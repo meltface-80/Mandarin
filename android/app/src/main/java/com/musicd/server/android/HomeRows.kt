@@ -66,7 +66,7 @@ internal object HomeKept {
     var genresNote by mutableStateOf<String?>(null)
     /** A row of the last visit's failed, worth asking again (item 157: Home asks again — [AskAgain] — rather than keep "Couldn’t load."). */
     var failed by mutableStateOf(false)
-    /** Today's album, under the greeting; none once it has been played today. */
+    /** Today's album, under the greeting, all day (item 236: it was gone once played, the space beside Random Album left empty). */
     var aotd by mutableStateOf<AlbumSummary?>(null)
     /**
      * The phone's own albums by the offset their tiles carry here: Music on device's key; a download by its tile's offset
@@ -144,7 +144,7 @@ internal object HomeKept {
         scope.launch { plainRow("library", LibraryClient { client.getJson(it) }) { it.albums(0, 30, order).albums } }
     }
 
-    /** Today's album, as the server says now: gone once played today (a real answer), kept as it was when the server can't say. */
+    /** Today's album, as the server says now (none only when the library has nothing to offer), kept as it was when the server can't say. */
     suspend fun refreshAotd(client: ServerClient) {
         withContext(Dispatchers.IO) { runCatching { LibraryClient { client.getJson(it) }.albumOfTheDay().album } }.onSuccess { aotd = it }
     }

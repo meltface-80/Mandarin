@@ -22,7 +22,8 @@
     layout: { key: "rra-ui-cols",  def: "auto", allowed: ["auto", "3", "2", "list"] },
     tile:   { key: "rra-ui-tile",  def: "1",    allowed: ["0.5", "0.75", "0.9", "1", "1.1", "1.25", "1.5"] },
     greeting: { key: "rra-ui-greeting", def: "on", allowed: ["on", "off"] },
-    random:   { key: "rra-ui-random",   def: "on", allowed: ["on", "off"] }
+    random:   { key: "rra-ui-random",   def: "on", allowed: ["on", "off"] },
+    aotd:     { key: "rra-ui-aotd",     def: "on", allowed: ["on", "off"] }   // Album of the Day (item 236)
   };
   const mem = {};
   // A desktop: a large screen with a mouse (the test Now playing's corner
@@ -75,6 +76,7 @@
     for (const grid of document.querySelectorAll(".album-grid")) grid.classList.toggle("as-list", get("layout") === "list");
     document.documentElement.classList.toggle("ui-no-greeting", get("greeting") === "off");
     document.documentElement.classList.toggle("ui-no-random", get("random") === "off");
+    document.documentElement.classList.toggle("ui-no-aotd", get("aotd") === "off");
   }
   function set(k, v) {
     const o = OPTS[k];
@@ -85,6 +87,8 @@
     // The columns moved at once (CSS); the random wall's COUNT was a screenful
     // at the old columns, so it asks again when that is now a different number.
     if ((k === "layout" || k === "tile") && window.__refreshWallCount) window.__refreshWallCount();
+    // Album of the Day on again (item 236): asked for at once, not asked while it was off.
+    if (k === "aotd" && v === "on" && window.__refreshAotd) window.__refreshAotd();
   }
   window.addEventListener("resize", apply);
   if (desktopQ && desktopQ.addEventListener) desktopQ.addEventListener("change", apply);

@@ -24,7 +24,8 @@ test("the app knows when it is on screen", () => {
 
 test("what the screens ask again and again is asked only while the app is on screen", () => {
   assert.match(read("RoomFollow.kt"), /val onScreen by NativeShell\.onScreen\s+LaunchedEffect\(zoneId, onScreen\) \{\s+if \(zoneId\.isEmpty\(\) \|\| !onScreen\) return@LaunchedEffect/, "the room followed");
-  assert.match(read("HomeScreen.kt"), /LaunchedEffect\(offline, onScreen\) \{\s+if \(!onScreen\) return@LaunchedEffect\s+while \(true\) \{ delay\(60_000\); client\(\)\?\.let \{ HomeKept\.refreshAotd\(it\) \} \}/, "today's album");
+  // Today's album: only on screen, and not at all while it is switched off in Settings → Home Screen (item 236).
+  assert.match(read("HomeScreen.kt"), /LaunchedEffect\(offline, onScreen, prefs\.aotd\) \{\s+if \(!onScreen \|\| !prefs\.aotd\) return@LaunchedEffect[^\n]*\s+while \(true\) \{ delay\(60_000\); client\(\)\?\.let \{ HomeKept\.refreshAotd\(it\) \} \}/, "today's album");
   const notices = read("NoticeBanners.kt");
   assert.match(notices, /LaunchedEffect\(again, onScreen\) \{ if \(onScreen\) Notices\.watch\(client\) \}/, "the server's status");
   assert.match(notices, /LaunchedEffect\(onScreen\) \{ if \(onScreen\) UpdateNow\.watch\(\) \}/, "the update offer");
