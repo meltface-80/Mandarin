@@ -2,7 +2,7 @@
 // `mandarin-server score` (Identify/ScoreCommand.cs), a line of JSON in and a
 // line out, so test/streams-csharp.test.js holds them to the Node server's:
 //
-//   { fn: "plans", native, ext_mime, family, renderer_mime, plan, repack, with_gain, with_dsp, args, keys, plan_for, service,
+//   { fn: "plans", native, ext_mime, family, renderer_mime, plan, fit, repack, with_gain, with_dsp, args, keys, plan_for, service,
 //     held_mime, held_sonos, held_keys, held_args }   lib/stream.js, playback.js; Streams.cs, Transcoder.cs
 //   { fn: "gain", levelling, patch, ebur, combine, held_combine, album, info, gain_of, gains_for }   lib/loudness.js
 //   { fn: "dsp", coeffs, section_db, response, sweep, peak, bands_of, headroom, normalise_band, normalise, active,
@@ -117,6 +117,7 @@ internal static class StreamCommand
             return StreamPlans.RendererMime(Arg(a, 0), c => containers.Exists(x => x is string s && s == c));
         });
         o["plan"] = Each(job["plan"], a => StreamPlans.Plan(Arg(a, 0), Arg(a, 1)));
+        o["fit"] = Each(job["fit"], a => HighRates.Fit(StreamPlans.Plan(Arg(a, 0), Arg(a, 1)), Arg(a, 1)));
         o["repack"] = Each(job["repack"], a => StreamPlans.Repack(Arg(a, 0), Arg(a, 1)));
         o["with_gain"] = Each(job["with_gain"], a => StreamPlans.WithGain(Arg(a, 0), Arg(a, 1), Arg(a, 2), Arg(a, 3)));
         o["with_dsp"] = Each(job["with_dsp"], a => StreamPlans.WithDsp((JsObj)Arg(a, 0)!, Arg(a, 1), Arg(a, 2)));
@@ -133,11 +134,11 @@ internal static class StreamCommand
         o["held_keys"] = Each(job["held_keys"], a =>
         {
             var t = new ConvTrack((long)Jv.Num(Arg(a, 0)), "", (long)Jv.Num(Arg(a, 1)));
-            return Transcoder.KeyFor(t, new ConvPlan((long)Jv.Num(Arg(a, 2)), (int)Jv.Num(Arg(a, 3)), Jv.T(Arg(a, 4)), Jv.T(Arg(a, 5)), ""));
+            return Transcoder.KeyFor(t, new ConvPlan((long)Jv.Num(Arg(a, 2)), (int)Jv.Num(Arg(a, 3)), Jv.T(Arg(a, 4)), Jv.T(Arg(a, 5)), "") { Wav = Jv.T(Arg(a, 6)) });
         });
         o["held_args"] = Each(job["held_args"], a =>
         {
-            var p = new ConvPlan((long)Jv.Num(Arg(a, 1)), (int)Jv.Num(Arg(a, 2)), Jv.T(Arg(a, 3)), Jv.T(Arg(a, 4)), "");
+            var p = new ConvPlan((long)Jv.Num(Arg(a, 1)), (int)Jv.Num(Arg(a, 2)), Jv.T(Arg(a, 3)), Jv.T(Arg(a, 4)), "") { Wav = Jv.T(Arg(a, 7)) };
             return Strs(Transcoder.Args(Js.Str(Arg(a, 0)), p, Js.Str(Arg(a, 5)), Jv.T(Arg(a, 6))));
         });
         return o;
