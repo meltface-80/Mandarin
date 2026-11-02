@@ -258,7 +258,7 @@ internal static partial class Auth
             cmd.Parameters.AddWithValue("$v", verifier.ToLowerInvariant()); cmd.Parameters.AddWithValue("$i", iterations);
             cmd.Parameters.AddWithValue("$t", Now);
             if (cmd.ExecuteNonQuery() == 0) { await Error(ctx, 409, "The account already exists — sign in instead"); return; }
-            Server.Log($"[auth] account created for {username} from {ClientIp(ctx)}");
+            Server.Log($"[auth] account created for {new Personal(username)} from {ClientIp(ctx)}");
             // An account made asks for a sign-in again (item 161); the device it was made on is made anew.
             SetOpen(c, false);
             if (DeviceOf(ctx, c) is { } had) Drop(c, had.Id);

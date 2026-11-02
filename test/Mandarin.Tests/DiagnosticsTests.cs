@@ -2,8 +2,9 @@ namespace Mandarin.Tests;
 
 /// <summary>
 /// The server's side of the Android app's logging (bug list item 121, Diagnostics.cs): nothing kept
-/// until it is switched on; then each line the server logs, with the code's own words and no value that
-/// could be someone's personal data (an IP address, a user name, a device's kind); off again, deleted.
+/// until it is switched on; then each line the server logs, without what is the owner's alone (their account's
+/// name, keys, internet and Tailscale addresses: LogScrubTests) but with what helps (a home-network address, a
+/// device's name, item 235); off again, deleted.
 /// </summary>
 public sealed class DiagnosticsTests
 {
@@ -14,7 +15,7 @@ public sealed class DiagnosticsTests
     }
 
     [Test]
-    public async Task The_servers_log_kept_for_the_app_holds_no_personal_data()
+    public async Task The_servers_log_kept_for_the_app_holds_what_helps_and_not_the_owners_own()
     {
         await using var s = await Session.Started();
         Assert.False((await s.Api("diagnostics")).J["on"]!.GetValue<bool>(), "off unless switched on");
@@ -26,10 +27,10 @@ public sealed class DiagnosticsTests
         await Session.SignIn(s.Base);
         var log = (await s.Api("diagnostics/log")).Text;
         Assert.Contains("[diagnostics] on", log);
-        // The line as written: "[auth] wrong password from {ip}" and "[auth] signed in: {name} ({kind}) from {ip}".
-        Assert.Contains("[auth] wrong password from […]", log);
-        Assert.Contains("[auth] signed in: […] ([…]) from […]", log);
-        Assert.DoesNotContain("127.0.0.1", log);
+        // The lines as written, "[auth] wrong password from {ip}" and "[auth] signed in: {name} ({kind}) from {ip}":
+        // the device's own address and the device's name kept; the account's name nowhere.
+        Assert.Contains("[auth] wrong password from 127.0.0.1", log);
+        Assert.Contains("[auth] signed in: test (android) from 127.0.0.1", log);
         Assert.DoesNotContain(Session.User, log);
 
         Assert.False((await s.Api("diagnostics", new { on = false })).J["on"]!.GetValue<bool>());

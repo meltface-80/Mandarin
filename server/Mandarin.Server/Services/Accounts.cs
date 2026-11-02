@@ -82,7 +82,7 @@ internal sealed partial class QobuzCatalogue
         Extras.Labels.SetSetting(Id, Obj(("token", token), ("user", u), ("since", NowMs())));
         Api.Cache.Clear();
         var offer = AndP(u["subscription"], "offer");
-        Server.Log($"[qobuz] signed in as {Js.Str(u["login"])}{(Js.Truthy(offer) ? " (" + Js.Str(offer) + ")" : "")}");
+        Server.Log($"[qobuz] signed in as {new Personal(Js.Str(u["login"]))}{(Js.Truthy(offer) ? " (" + Js.Str(offer) + ")" : "")}");
         await Changed();
         return Status();
     }
@@ -226,7 +226,7 @@ internal sealed partial class TidalCatalogue
         }
         catch (Exception) { /* the page shows less */ }
         Api.Cache.Clear();
-        Server.Log($"[tidal] signed in as {Js.Str(Or(Or(user["email"], user["username"]), userId))}");
+        Server.Log($"[tidal] signed in as {new Personal(Js.Str(Or(Or(user["email"], user["username"]), userId)))}");
         await Changed();
         if (Settings().Import && Jobs.Holds("import")) Import.Later(this);
         return Status();

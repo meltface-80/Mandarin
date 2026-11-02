@@ -66,14 +66,14 @@ internal static partial class Server
         Cpu.Resume();
     }
 
-    // Stamped as the Node server stamped its lines. A line made already: kept for diagnostics by its tag alone (item 121).
+    // Stamped as the Node server stamped its lines. A line made already: kept for diagnostics as LogScrub leaves it (item 235).
     public static void Log(string s)
     {
         lock (logLock) Console.WriteLine(DateTime.UtcNow.ToString("HH:mm:ss", System.Globalization.CultureInfo.InvariantCulture) + " " + s);
-        if (Diagnostics.On) Diagnostics.Record(Diagnostics.TagOnly(s));
+        if (Diagnostics.On) Diagnostics.Record(LogScrub.Line(s));
     }
 
-    // A line written here ($"..."): kept for diagnostics with its words, and only the values that can't be anyone's (LogLine.cs).
+    // A line written here ($"..."): kept for diagnostics without what is the owner's alone (LogLine.cs).
     public static void Log(LogLine line)
     {
         var s = line.Text();
