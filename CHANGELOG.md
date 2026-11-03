@@ -22,6 +22,18 @@
 - Fixed - an album played with PCM as DSD on a FiiO SR11 stopped after its first track; and what was being made for an album no longer playing went on being made
 - New - Now playing's signal path: what goes out, how it was made and what is being made, centred under the album; a tap shows every step from the file to the room
 - New - two more upsampling filters (Settings → Audio Devices → a device → Output → Filter): Minimum phase, whose ringing comes only after a sound starts, and Gentle, which rolls off earlier and rings for half as long; made ahead as Whole track is, and used for PCM as DSD too
+- Improved - PCM as DSD is made about three times faster: a track at DSD256 in about a quarter of its own length here, where it took longer than the track itself
+
+- `251-dsd-faster` (item 251): **DSD made three times faster.** A 220 s track at DSD256 took 456 s on the owner's server.
+  Measured here, 60 s at DSD256 took 38.9 s: the whole-track step 6 s; the doublings 60% and the modulator 25% of the
+  rest. Each doubling is a half-band filter: its even taps are its centre and nothing else, and its odd taps are the same
+  either side. So an even output is now its input, delayed, and an odd one is 8 multiplications of paired taps, where
+  33 were done. Each doubling works in a buffer kept from push to push, where megabytes were made anew each time. The
+  seventh order's four sections run with their states in locals, the same arithmetic in the same order. Each channel's
+  modulator runs on a thread of its own beside its doublings, the writer taking both channels' bits under one lock. 60 s
+  at DSD256 now takes 11.6 to 12.7 s. Nothing in the file changes. A doubling matches the whole 33-tap filter to 7×10⁻¹⁶,
+  the seventh order's own path makes the same bits as the loops, and a pipelined track is the same file, byte for byte,
+  as one made in turn (DsdSpeedTests). Noise in the band is as before: −139 dB at DSD64, −229 dB at DSD256.
 
 - `248-filter-shapes` (item 248): **Minimum phase and Gentle.** Output's Filter had Standard (SoX's, as it plays) and
   Whole track (one transform as long as the track, linear phase, made ahead). It gains two shapes of the whole-track
