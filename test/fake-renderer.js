@@ -53,6 +53,7 @@ class FakeRenderer {
     // a WAV whose length is left open (item 246) waits there for more that never comes.
     this.hangAtEnd = false; this.hung = false;
     this.nextUri = ""; this.nextMeta = "";
+    this.actions = []; this.slow = {};
     this.position = 0; this.at = Date.now();
     this.volume = 25; this.muted = false;
     this.endTimer = null;
@@ -287,17 +288,24 @@ class FakeRenderer {
           const service = u.pathname.endsWith("ConnectionManager1") ? CM : u.pathname.endsWith("RenderingControl1") ? RC : AVT;
           res.setHeader("Content-Type", 'text/xml; charset="utf-8"');
           if ((service === AVT && this.noAvTransport) || !actionTag) { res.statusCode = 404; return res.end(); }
-          try {
-            const before = this.state + "|" + this.uri;
-            const out = this.handle(actionTag, args);
-            // A slow device (holdReads): what it had when asked, answered only when the test lets it (releaseReads).
-            if (this.readGate && /^Get(Position|Transport)Info$/.test(actionTag)) { this.readGate.push(() => res.end(envelope(actionTag, service, out))); return; }
-            res.end(envelope(actionTag, service, out));
-            if (this.state + "|" + this.uri !== before) this.notify();
-          } catch (code) {
-            res.statusCode = 500;
-            res.end(fault(typeof code === "number" ? code : 501));
-          }
+          // Every action told, in order (item 264).
+          this.actions.push(actionTag);
+          const answer = () => {
+            try {
+              const before = this.state + "|" + this.uri;
+              const out = this.handle(actionTag, args);
+              // A slow device (holdReads): what it had when asked, answered only when the test lets it (releaseReads).
+              if (this.readGate && /^Get(Position|Transport)Info$/.test(actionTag)) { this.readGate.push(() => res.end(envelope(actionTag, service, out))); return; }
+              res.end(envelope(actionTag, service, out));
+              if (this.state + "|" + this.uri !== before) this.notify();
+            } catch (code) {
+              res.statusCode = 500;
+              res.end(fault(typeof code === "number" ? code : 501));
+            }
+          };
+          // An action slow to answer (slow: { action: ms }: a FiiO SR11 fetches the track it is given before it answers).
+          if (this.slow[actionTag]) setTimeout(answer, this.slow[actionTag]);
+          else answer();
         });
         return;
       }

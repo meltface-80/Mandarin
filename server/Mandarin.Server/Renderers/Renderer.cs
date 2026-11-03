@@ -55,9 +55,11 @@ internal sealed class Renderer(string id, string? name, JsObj? services, Action?
         {
             if (e.Unanswered) unanswered?.Invoke();
             var msg = e.Message;
-            const string prefix = "Sonos player at ";
-            if (msg.StartsWith(prefix, StringComparison.Ordinal) && msg.IndexOf(" is not responding: ", StringComparison.Ordinal) is var i && i > 0)
-                msg = msg[(i + " is not responding: ".Length)..];
+            // Soap's words for a player that didn't answer ("Sonos player at … is not responding: …") are a Sonos's: a
+            // renderer's are "not answering: …", wherever in the message they are (after a UPnP error's code too: item 264).
+            const string prefix = "Sonos player at ", mid = " is not responding: ";
+            if (msg.IndexOf(prefix, StringComparison.Ordinal) is var at && at >= 0 && msg.IndexOf(mid, at, StringComparison.Ordinal) is var i && i > at)
+                msg = msg[..at] + "not answering: " + msg[(i + mid.Length)..];
             throw new RendererError($"{Name}: {msg}", e.Code);
         }
     }
