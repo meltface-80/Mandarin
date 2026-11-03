@@ -24,6 +24,25 @@
 - New - two more upsampling filters (Settings → Audio Devices → a device → Output → Filter): Minimum phase, whose ringing comes only after a sound starts, and Gentle, which rolls off earlier and rings for half as long; made ahead as Whole track is, and used for PCM as DSD too
 - Fixed - Output's Filter button for minimum phase read "Minimum p…" on a phone; it says Min phase
 - Improved - PCM as DSD is made about three times faster: a track at DSD256 in about a quarter of its own length here, where it took longer than the track itself
+- Fixed - with PCM as DSD, a track that starts before its DSD is ready is still made, after the tracks to come, so it plays as DSD next time; Now playing says why it has the standard filter meanwhile, and Output's Filter says it is the filter the DSD is made with
+
+- `254-dsd-plays` (item 254): **PCM as DSD that plays as DSD, and says so.** A FiiO SR11 at Max, Min phase and DSD256
+  (3 November) never seemed to play DSD256, and Now playing said "Standard filter" under a filter set to minimum phase.
+  The log showed why. A track that starts before its DSF is made goes as PCM, and its making was then dropped for ten
+  minutes so that the tracks after it came first. Nothing took it up again, so Now playing's "DSD256 next play" was
+  never true. Its sheet even read "for this track's next play: next play". It is now put after the tracks still to
+  come (WholeJobs.Skip); one under way is stopped and made again in its turn. Meanwhile the PCM standing in for it
+  says why its filter is the standard one: "Standard filter · until the DSD256 (minimum phase) is made". The Being
+  made step says "waiting its turn", "being made now", or "made: this track plays as DSD next time". A stream's log
+  line says WAV where it is sent as WAV ("as WAV: FLAC stops at 655.35 kHz → FLAC 24/705.6 kHz" before). The
+  renderer test sees Long 1 made after Long 2, and the stand-in's words with a device set to minimum phase; with the
+  old code, Long 1 is never made and the line is "Standard filter". DsdLowpassTests counts a stream's frames by
+  decoding it, not from STREAMINFO, which a stream read while it is made has as 0 (253's cause; met on a busy run).
+  Output's Filter, with PCM as DSD on, said "a track not yet made plays with the standard filter" and showed the
+  makings twice, under it and under PCM as DSD. Its note now says it is the filter each track is made DSD with
+  (minimum phase, gentle, or the whole track's linear one) and that a track playing first goes as PCM with the
+  standard filter; the makings are shown once, under PCM as DSD (page and app; device-filter-note-page.test.js,
+  AudioDevicesTest).
 
 - `251-dsd-faster` (item 251): **DSD made three times faster.** A 220 s track at DSD256 took 456 s on the owner's server.
   Measured here, 60 s at DSD256 took 38.9 s: the whole-track step 6 s; the doublings 60% and the modulator 25% of the

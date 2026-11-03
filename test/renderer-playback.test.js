@@ -473,8 +473,13 @@ test("a renderer is a zone", { skip, timeout: 150000 }, async (t) => {
       assert.deepEqual(dz.now_playing.signal.lines, ["DSD64 · 2.8224 MHz", "From PCM · whole track ×16 · 7th-order modulator"]);
       assert.deepEqual(dz.now_playing.signal.steps.map(x => x.kind), ["source", "upsample", "modulator", "output"]);
       assert.deepEqual(ctx.logs.slice(said).filter(l => /\[upsample\] .*couldn't/.test(l)), []);
-      // Long 1 went as PCM: its DSF was never made, though the play asked for it before Long 1 started (item 246).
-      assert.deepEqual(ctx.logs.slice(said).filter(l => /Long 1\.flac: DSD64 from PCM/.test(l)), []);
+      // Long 1 went as PCM: its DSF, asked for before Long 1 started, was put after the tracks still to come (item 246)
+      // and made after them, for its next play (item 254: it was dropped, and Now playing's "next play" never so).
+      await until(() => ctx.logs.slice(said).some(l => /Long 1\.flac: DSD64 from PCM/.test(l)), 60000);
+      const madeOrder = ctx.logs.slice(said).filter(l => /Long \d\.flac: DSD64 from PCM/.test(l)).map(l => l.match(/Long (\d)/)[1]);
+      assert.equal(madeOrder[madeOrder.length - 1], "1", madeOrder.join(","));
+      assert.equal(madeOrder.filter(n => n === "1").length, 1, madeOrder.join(","));
+      assert.ok(madeOrder.indexOf("2") < madeOrder.indexOf("1"), madeOrder.join(","));
       // Another album played at once: what was to be made for the one before no longer is (item 246); the Lorde album
       // went on being made upsampled whole long after other albums were played on 3 November.
       const before = ctx.logs.length;
@@ -485,6 +490,24 @@ test("a renderer is a zone", { skip, timeout: 150000 }, async (t) => {
       assert.deepEqual(ctx.logs.slice(before).filter(l => /Song \d\.flac: DSD64 from PCM/.test(l)), []);
       await api("control", { zone_or_output_id: DAC, command: "stop" });
       await api("audio-devices/" + DAC, { output: { dsd_out: "off" }, enabled: false }, "PATCH");
+    });
+
+    await t.test("PCM standing in for a DSF says why it has the standard filter, the device set to minimum phase (item 254)", async () => {
+      // A FiiO SR11 at Max, Min phase and DSD256 on 3 November: "Standard filter" under a filter set to minimum phase.
+      let r = await api("audio-devices/" + DAC, { enabled: true, caps: { user: { rates: [44100, 48000, 88200, 96000] } }, output: { mode: "x2", filter: "minphase", dsd_out: 64 } }, "PATCH");
+      assert.equal(r.status, 200, JSON.stringify(r));
+      await until(async () => (await api("zones")).zones.some(z => z.zone_id === DAC), 20000);
+      await api("play", { offset: long.offset, zone_or_output_id: DAC, kind: "play_now" });
+      const z = await until(async () => { const s = await state(DAC); return s && s.now_playing && s.now_playing.signal && s.now_playing.line1 === "Long 1" && / · DSD64 /.test(s.now_playing.format.text) && s; }, 20000);
+      const sp = z.now_playing.signal;
+      assert.equal(sp.lines[1], "Standard filter · until the DSD64 (minimum phase) is made", JSON.stringify(sp.lines));
+      assert.equal(sp.steps.find(x => x.kind === "upsample").detail, "×2 to 88.2 kHz · Standard filter (until the DSD64 (minimum phase) is made)");
+      // Its own DSF, put after Long 2's: waiting its turn, or being made once Long 2's is (never "next play: next play").
+      assert.match(sp.steps.find(x => x.kind === "pending").detail, /^DSD64 for this track’s next play: (waiting its turn|being made now)$/);
+      await api("control", { zone_or_output_id: DAC, command: "stop" });
+      // Its makings ended before the next test (three tracks in minimum phase: minutes, on a busy machine).
+      await until(async () => { const o = (await api("audio-devices/" + DAC)).output; return o.whole && !o.whole.making && o.whole.waiting === 0; }, 180000);
+      await api("audio-devices/" + DAC, { caps: { user: { rates: null } }, output: { mode: "original", filter: "standard", dsd_out: "off" }, enabled: false }, "PATCH");
     });
 
     await t.test("a renderer still PLAYING at the end of a track, with nothing to go on to, is started on the next by hand (item 246)", async () => {

@@ -180,7 +180,7 @@ internal static partial class Transcoder
                 if (pieces != null) _ = Services.Catalogue.FeedDash(proc.StandardInput, pieces);
                 else proc.StandardInput.Close();
                 proc.BeginErrorReadLine();
-                Server.Log($"[stream] {Path.GetFileName(t.Path)}: {plan.Reason} → FLAC {plan.Bits}/{(plan.Rate / 1000.0).ToString(CultureInfo.InvariantCulture)} kHz{(plan.Copy ? " (as it comes)" : "")}");
+                Server.Log($"[stream] {Path.GetFileName(t.Path)}: {plan.Reason} → {(plan.Wav ? "WAV" : "FLAC")} {plan.Bits}/{(plan.Rate / 1000.0).ToString(CultureInfo.InvariantCulture)} kHz{(plan.Copy ? " (as it comes)" : "")}");
                 // A reader waiting for more is woken as the .part grows.
                 _ = Task.Run(async () =>
                 {
