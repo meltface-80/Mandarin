@@ -8,10 +8,11 @@ internal static class DsdOut
     public static DsdNtf Ntf(int dsdRate) => new(7, dsdRate / 2.0 / 20000, 1.4);
 
     /*
-     * [left] and [right] at [rate] (44.1 kHz's family, 352.8 kHz or less) made DSD at [dsdRate] into the file [path]:
-     * the whole-track result, and the times the modulators were overloaded and started again (none, measured).
+     * [left] and [right] at [rate] (44.1 kHz's family, 352.8 kHz or less) made DSD at [dsdRate] into the file [path],
+     * upsampled in [shape] (item 248; null: linear): the whole-track result, and the times the modulators were
+     * overloaded and started again (none, measured).
      */
-    public static (WholeTrack.Result R, long Resets) Make(double[] left, double[] right, int rate, int dsdRate, int maxOutBits, string path)
+    public static (WholeTrack.Result R, long Resets) Make(double[] left, double[] right, int rate, int dsdRate, int maxOutBits, string path, string? shape = null)
     {
         if (rate <= 0 || DsdChain.InRate % rate != 0 || !WholePlan.Takes(DsdChain.InRate / rate))
             throw new ArgumentException("the track must reach DSD from a rate of 44.1 kHz's family, 352.8 kHz or less: " + rate);
@@ -22,7 +23,7 @@ internal static class DsdOut
         using var file = File.Create(path);
         using var w = new DsfWriter(file, dsdRate, frames * l.Factor);
         const int chunk = 1 << 15;
-        var result = WholeTrack.Run(left, right, rate, new WholeTrack.Options(factor, MaxOutBits: maxOutBits), (re, im, from, count, gain) =>
+        var result = WholeTrack.Run(left, right, rate, WholeTrack.Options.For(factor, shape, maxOutBits), (re, im, from, count, gain) =>
         {
             for (long done = 0; done < count; done += chunk)
             {

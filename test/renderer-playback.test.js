@@ -319,6 +319,18 @@ test("a renderer is a zone", { skip, timeout: 150000 }, async (t) => {
       await until(() => fs.existsSync(made) && fs.readdirSync(made).filter(f => /-w\.flac$/.test(f)).length >= 3, 60000);
       // Each made once, none failed on the way.
       assert.deepEqual(ctx.logs.slice(said).filter(l => /\[upsample\] .*couldn't/.test(l)), []);
+      // Minimum phase (item 248): made the same way into files of its own, the address saying the shape it is made in.
+      r = await api("audio-devices/" + WIIM, { output: { filter: "minphase" } }, "PATCH");
+      assert.equal(r.output.filter, "minphase");
+      const asked = wiim.fetches.length;
+      await api("play", { offset: cd.offset, zone_or_output_id: WIIM, kind: "play_now" });
+      const f4 = await until(() => wiim.fetches.slice(asked).find(x => /\.88200-24w\.flac/.test(x.uri)), 15000);
+      assert.match(f4.uri, /[?&]f=min(&|$)/);
+      // Now playing says which: the minimum-phase filter, or the standard one while it is made.
+      const np = await until(async () => { const z = await state(WIIM); return z && z.now_playing && z.now_playing.signal && z.now_playing; }, 15000);
+      assert.match(np.signal.lines[1], /^(Minimum-phase filter|Standard filter · minimum phase (being made|next play))$/);
+      await until(() => fs.readdirSync(made).filter(f => /-w-min\.flac$/.test(f)).length >= 3, 60000);
+      assert.deepEqual(ctx.logs.slice(said).filter(l => /\[upsample\] .*couldn't/.test(l)), []);
       await api("audio-devices/" + WIIM, { output: { mode: "original", filter: "standard" } }, "PATCH");
     });
 

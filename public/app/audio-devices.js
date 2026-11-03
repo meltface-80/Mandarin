@@ -21,6 +21,13 @@ let picks = new Set();
 const esc = (v) => String(v == null ? "" : v).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 // The whole-track filter (item 237): what it is and what it costs.
 const WHOLE_NOTE = "One filter as long as the track, made ahead of playing (some 30 seconds a track); a track not yet made plays with the standard filter. Tracks from the library, ×2 to ×16.";
+// The filter's notes by choice (items 237, 248): the three made ahead share Whole track's way of being made.
+const FILTER_NOTE = {
+  standard: "SoX’s filter, made as it plays.",
+  whole: WHOLE_NOTE,
+  minphase: "Whole track’s filter made minimum phase: all its ringing after a sound starts, none before. Made ahead as Whole track is; a track not yet made plays with the standard filter.",
+  gentle: "Whole track’s filter rolling off from 90% of the band (19.8 kHz for a CD), twice as gently: its ringing half as long, the very top a little down (−6 dB at 21 kHz). Made ahead as Whole track is."
+};
 // DSD sent as PCM (item 241): what the low-pass does.
 const DSD_LOWPASS_NOTE = (cut) => cut
   ? "DSD this device is sent as PCM has the modulator’s noise above " + (cut / 1000) + " kHz taken off; below it, as recorded. DSD it takes as DSD goes as it is."
@@ -305,10 +312,10 @@ function renderDetail(keepInput) {
       (caps.length ? '<div class="cap-group"><span class="cap-label"' + ' data-parity="settings-device.cap-label"' + '>Highest rate</span>' +
         seg("max_rate", [{ v: "auto", label: "Auto" }].concat(caps.map(c => ({ v: c, label: (c / 1000) + "k" }))), cap || "auto") +
         '<div class="settings-note"' + ' data-parity="settings-device.note"' + '>' + (cap ? "Nothing goes above " + (cap / 1000) + " kHz (" + (cap / 48000 * 44.1) + " kHz for music in 44.1’s family), upsampled or not." : "As high as the device takes.") + "</div></div>" : "") +
-      (o.mode !== "original" ? '<div class="cap-group"><span class="cap-label"' + ' data-parity="settings-device.cap-label"' + '>Filter</span>' +
-        seg("filter", [{ v: "standard", label: "Standard" }, { v: "whole", label: "Whole track" }], o.filter || "standard") +
-        '<div class="settings-note"' + ' data-parity="settings-device.note"' + '>' + (o.filter === "whole" ? WHOLE_NOTE : "SoX’s filter, made as it plays.") + "</div>" +
-        (o.filter === "whole" && o.whole ? '<div class="settings-note"' + ' data-parity="settings-device.note"' + '>' + esc(wholeLine(o.whole)) + "</div>" : "") + "</div>" : "") +
+      (o.mode !== "original" || o.dsd_out ? '<div class="cap-group"><span class="cap-label"' + ' data-parity="settings-device.cap-label"' + '>Filter</span>' +
+        seg("filter", [{ v: "standard", label: "Standard" }, { v: "whole", label: "Whole track" }, { v: "minphase", label: "Minimum phase" }, { v: "gentle", label: "Gentle" }], o.filter || "standard") +
+        '<div class="settings-note"' + ' data-parity="settings-device.note"' + '>' + FILTER_NOTE[o.filter || "standard"] + "</div>" +
+        (o.filter && o.filter !== "standard" && o.whole ? '<div class="settings-note"' + ' data-parity="settings-device.note"' + '>' + esc(wholeLine(o.whole)) + "</div>" : "") + "</div>" : "") +
       (has32 ? '<div class="cap-group"><span class="cap-label"' + ' data-parity="settings-device.cap-label"' + '>Bit depth</span>' +
         seg("bits", [{ v: "auto", label: "Auto" }, { v: 24, label: "24" }, { v: 32, label: "32", off: !o.flac32 }], o.bits) +
         "" +

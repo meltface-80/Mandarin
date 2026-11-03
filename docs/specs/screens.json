@@ -1190,7 +1190,7 @@
         "mode": { "kind": "action", "label": ["Original", "×2", "×4", "Max"], "each": true, "when": "a renderer or a sound device of the server's" },
         "depth": { "kind": "action", "label": ["Auto", "24", "32"], "each": true, "when": "one that takes 32 bits" },
         "maxrate": { "kind": "action", "label": ["Auto", "96k", "192k", "384k", "768k"], "each": true, "when": "one that takes above 96 kHz" },
-        "filter": { "kind": "action", "label": ["Standard", "Whole track"], "each": true, "when": "upsampling on" },
+        "filter": { "kind": "action", "label": ["Standard", "Whole track", "Minimum phase", "Gentle"], "each": true, "when": "upsampling or PCM as DSD on" },
         "dsdlowpass": { "kind": "action", "label": ["Off", "50 kHz", "30 kHz"], "each": true, "when": "a renderer or a sound device of the server's" },
         "dsdout": { "kind": "action", "label": ["Off", "DSD64", "DSD128", "DSD256"], "each": true, "when": "one that takes DSD" },
         "fixvol": { "kind": "action", "label": "Fixed volume", "when": "one whose volume can be fixed" },

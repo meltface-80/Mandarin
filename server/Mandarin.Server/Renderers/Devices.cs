@@ -212,12 +212,13 @@ internal sealed class Devices
             ("mode", r.Settings["mode"] is string mode && mode is "original" or "x2" or "x4" or "max" ? mode : "original"),
             ("bits", r.Settings["bits"] is double b && b is 24 or 32 ? (object)b : "auto"),
             ("flac32", Transcoder.Flac32)) : null;
-        // The whole-track filter (item 237), said only where it is set: standard is said by its absence.
-        if (streamer && r.Settings["filter"] is "whole")
+        // A filter made ahead (whole track, minimum phase, gentle: items 237, 248), said only where it is set: standard
+        // is said by its absence.
+        if (streamer && Upsample.WholeShape.MadeAhead(r.Settings["filter"]))
         {
             var (made, making, waiting) = Upsample.WholeJobs.Status();   // how the making goes (item 239)
             var output = (JsObj)o["output"]!;
-            output["filter"] = "whole";
+            output["filter"] = r.Settings["filter"];
             output["whole"] = Jv.Obj(("made", (double)made), ("making", making), ("waiting", (double)waiting));
         }
         // The highest rate its owner allows (item 240), said only where it is set: Auto by its absence.

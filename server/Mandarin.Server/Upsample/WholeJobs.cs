@@ -12,8 +12,12 @@ using Jv = Mandarin.Server.Playback.Jv;
 
 namespace Mandarin.Server.Upsample;
 
-internal static class WholeJobs
+internal static partial class WholeJobs
 {
+    // A whole track's file, in any shape: "-w", "-w-min", "-w-gentle", then ".flac" or "-wav.wav".
+    [System.Text.RegularExpressions.GeneratedRegex(@"-w(-min|-gentle)?(\.flac|-wav\.wav)$")]
+    private static partial System.Text.RegularExpressions.Regex MadeFile();
+
     private static readonly List<(string Key, ConvTrack T, ConvPlan P)> Queue = [];
     private static readonly HashSet<string> Making = [];
     private static readonly HashSet<long> Failed = [];
@@ -57,7 +61,8 @@ internal static class WholeJobs
     public static (int Made, string? Making, int Waiting) Status()
     {
         var dir = Path.GetDirectoryName(Transcoder.FinalPath("x"))!;
-        var made = !Directory.Exists(dir) ? 0 : Directory.EnumerateFiles(dir).Count(f => f.EndsWith("-w.flac", StringComparison.Ordinal) || f.EndsWith("-w-wav.wav", StringComparison.Ordinal) || f.EndsWith(".dsf", StringComparison.Ordinal));
+        // Whole tracks in any shape (item 248: "-w-min", "-w-gentle"), as FLAC or WAV, and DSFs made from PCM.
+        var made = !Directory.Exists(dir) ? 0 : Directory.EnumerateFiles(dir).Count(f => MadeFile().IsMatch(f) || f.EndsWith(".dsf", StringComparison.Ordinal));
         lock (Queue) return (made, makingName, Queue.Count);
     }
 
@@ -224,7 +229,7 @@ internal static class WholeJobs
         return new JsonObject
         {
             ["ffmpeg"] = Transcoder.Bin, ["decode"] = decode, ["encode"] = encode,
-            ["rate"] = inRate, ["factor"] = p.Rate / Math.Max(1, inRate), ["max_out_bits"] = MaxOutBits(),
+            ["rate"] = inRate, ["factor"] = p.Rate / Math.Max(1, inRate), ["max_out_bits"] = MaxOutBits(), ["shape"] = p.Shape,
         };
     }
 

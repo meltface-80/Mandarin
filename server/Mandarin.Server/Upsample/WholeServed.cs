@@ -41,12 +41,16 @@ internal static class WholeServed
     }
 
     /*
-     * The Now playing badge's words for a whole-track plan sent [sent] (Last), its making [state] (WholeJobs.State):
-     * "whole track" when its own file went out; else the standard filter's and why.
+     * The Now playing badge's words for a whole-track plan sent [sent] (Last), its making [state] (WholeJobs.State),
+     * in [shape] (item 248: "minimum phase", "gentle filter"; null: "whole track"): those words when its own file went
+     * out; else the standard filter's and why.
      */
-    public static string Badge(bool? sent, string? state) =>
-        sent == true ? " · whole track"
-        : state is "queued" or "making" ? " · standard (whole track being made)"
-        : state == "failed" ? " · standard (whole track failed: see the log)"
-        : " · standard (whole track next play)";
+    public static string Badge(bool? sent, string? state, string? shape = null)
+    {
+        var what = WholeShape.Making(shape);
+        return sent == true ? $" · {what}"
+            : state is "queued" or "making" ? $" · standard ({what} being made)"
+            : state == "failed" ? $" · standard ({what} failed: see the log)"
+            : $" · standard ({what} next play)";
+    }
 }

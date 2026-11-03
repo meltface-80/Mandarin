@@ -108,7 +108,10 @@ internal static partial class Transcoder
     public static bool FfOk => Ff.Value.Ok;
 
     /* The Transcoder's keyFor (lib/stream.js), as Playback/StreamPlans.cs writes it. */
-    public static string KeyFor(ConvTrack t, ConvPlan p) => StreamPlans.KeyFor(Jv.Obj(("id", (double)t.Id), ("mtime", (double)t.Mtime)), p.ToJs()) + (p.Lowpass != 0 ? "-lp" + p.Lowpass : "") + (p.Whole ? "-w" : "") + (p.Wav ? "-wav" : "") + (p.DsdUp != 0 ? Upsample.DsdPlan.Suffix(p.DsdUp) : "");
+    public static string KeyFor(ConvTrack t, ConvPlan p) => StreamPlans.KeyFor(Jv.Obj(("id", (double)t.Id), ("mtime", (double)t.Mtime)), p.ToJs()) + (p.Lowpass != 0 ? "-lp" + p.Lowpass : "") + (p.Whole ? "-w" : "")
+        // A made-ahead filter's shape (item 248), before the endings FinalPath reads its kind of file from; a standard conversion has none.
+        + ((p.Whole || p.DsdUp != 0) && p.Shape != null ? "-" + p.Shape : "")
+        + (p.Wav ? "-wav" : "") + (p.DsdUp != 0 ? Upsample.DsdPlan.Suffix(p.DsdUp) : "");
     public static string FinalPath(string key) => Path.Combine(dir, key + (key.EndsWith("-wav", StringComparison.Ordinal) ? ".wav" : Upsample.DsdPlan.IsDsf(key) ? ".dsf" : ".flac"));
 
     /* stream.js ffmpegArgs (Playback/StreamPlans.cs): the gain first, the DSP before the requantise. */

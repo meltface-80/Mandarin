@@ -45,6 +45,8 @@ internal static class DsdPlan
         var o = Jv.Obj(("transcode", true), ("hq", true), ("mime", mime), ("ext", "dsf"), ("rate", (double)rate), ("bits", 1.0),
             ("dsd", (double)n), ("dsdUp", (double)n), ("inRate", (double)rate), ("reason", $"DSD{n} from PCM, made ahead"));
         if (Jv.T(plan["gain"])) o["gain"] = plan["gain"];
+        // Its way to 705.6 kHz in the shape the device's filter asks (item 248): minimum phase or gentle; else linear.
+        if (Upsample.WholeShape.OfFilter(Jv.Get(target, "filter")) is { } shape) o["shape"] = shape;
         return o;
     }
 
@@ -55,9 +57,9 @@ internal static class DsdPlan
      */
     public static JsObj Waiting(JsObj pcm, int n)
     {
-        var o = Jv.CopyWithout(Jv.CopyWithout(pcm, "dsdMaking"), "whole");
+        var o = Jv.CopyWithout(Jv.CopyWithout(Jv.CopyWithout(pcm, "dsdMaking"), "whole"), "shape");
         o["dsdMaking"] = (double)n;
-        o["reason"] = Jv.Str(o["reason"]).Replace(" (whole track)", "", StringComparison.Ordinal) + $" (DSD{n} being made)";
+        o["reason"] = System.Text.RegularExpressions.Regex.Replace(Jv.Str(o["reason"]), @" \((whole track|minimum phase|gentle filter)\)$", "") + $" (DSD{n} being made)";
         return o;
     }
 
@@ -90,7 +92,7 @@ internal static class DsdPlan
         return new JsonObject
         {
             ["ffmpeg"] = Transcoder.Bin, ["decode"] = decode, ["rate"] = from, ["factor"] = DsdChain.InRate / from,
-            ["max_out_bits"] = maxOutBits, ["dsd"] = 44100 * p.DsdUp, ["out"] = dest,
+            ["max_out_bits"] = maxOutBits, ["dsd"] = 44100 * p.DsdUp, ["out"] = dest, ["shape"] = p.Shape,
         };
     }
 }

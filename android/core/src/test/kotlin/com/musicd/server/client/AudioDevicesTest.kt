@@ -70,12 +70,24 @@ class AudioDevicesTest {
         val standard = page("""{"mode":"x4","bits":"auto","flac32":false}""")
         assertTrue(standard.showFilter)
         assertEquals("standard", standard.filter)
-        assertEquals(listOf("Standard", "Whole track"), standard.filters.map { it.label })
+        assertEquals(listOf("Standard", "Whole track", "Minimum phase", "Gentle"), standard.filters.map { it.label })
         assertEquals("""{"output":{"filter":"whole"}}""", standard.segment("filter", "whole").toString())
         val whole = page("""{"mode":"max","bits":"auto","flac32":false,"filter":"whole"}""")
         assertEquals("whole", whole.filter)
         assertTrue(whole.filterNote.startsWith("One filter as long as the track"))
         assertFalse(page("""{"mode":"original","bits":"auto","flac32":false,"filter":"whole"}""").showFilter)
+    }
+
+    @Test fun `minimum phase and gentle are made ahead as whole track is, and offered with PCM as DSD too`() {
+        fun page(output: String) = DevicePage(JSONObject("""{"kind":"upnp","rates":[],"bits":[],"dsd":[],"output":$output}"""))
+        val min = page("""{"mode":"max","filter":"minphase","whole":{"made":4,"making":null,"waiting":2}}""")
+        assertTrue(min.filterNote.startsWith("Whole track’s filter made minimum phase"))
+        assertEquals("4 tracks made · 2 waiting", min.wholeLine)
+        val gentle = page("""{"mode":"x2","filter":"gentle"}""")
+        assertTrue(gentle.filterNote.startsWith("Whole track’s filter rolling off from 90%"))
+        assertEquals("""{"output":{"filter":"gentle"}}""", min.segment("filter", "gentle").toString())
+        // The file as it is, but made DSD from PCM: the filter takes it to 705.6 kHz on the way, so it is offered.
+        assertTrue(page("""{"mode":"original","dsd_out":256}""").showFilter)
     }
 
     @Test fun `the highest rate offers the caps below the device's top and holds the example to it`() {
