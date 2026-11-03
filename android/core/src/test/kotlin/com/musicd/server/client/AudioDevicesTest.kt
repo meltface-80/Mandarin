@@ -70,7 +70,9 @@ class AudioDevicesTest {
         val standard = page("""{"mode":"x4","bits":"auto","flac32":false}""")
         assertTrue(standard.showFilter)
         assertEquals("standard", standard.filter)
-        assertEquals(listOf("Standard", "Whole track", "Minimum phase", "Gentle"), standard.filters.map { it.label })
+        assertEquals(listOf("Standard", "Whole track", "Min phase", "Gentle"), standard.filters.map { it.label })
+        // Four to a row on a phone: none longer than "Whole track", the longest that fits a quarter of it (item 250).
+        assertTrue(standard.filters.map { it.label }.toString(), standard.filters.all { it.label.length <= "Whole track".length })
         assertEquals("""{"output":{"filter":"whole"}}""", standard.segment("filter", "whole").toString())
         val whole = page("""{"mode":"max","bits":"auto","flac32":false,"filter":"whole"}""")
         assertEquals("whole", whole.filter)

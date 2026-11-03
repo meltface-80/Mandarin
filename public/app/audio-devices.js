@@ -313,7 +313,7 @@ function renderDetail(keepInput) {
         seg("max_rate", [{ v: "auto", label: "Auto" }].concat(caps.map(c => ({ v: c, label: (c / 1000) + "k" }))), cap || "auto") +
         '<div class="settings-note"' + ' data-parity="settings-device.note"' + '>' + (cap ? "Nothing goes above " + (cap / 1000) + " kHz (" + (cap / 48000 * 44.1) + " kHz for music in 44.1’s family), upsampled or not." : "As high as the device takes.") + "</div></div>" : "") +
       (o.mode !== "original" || o.dsd_out ? '<div class="cap-group"><span class="cap-label"' + ' data-parity="settings-device.cap-label"' + '>Filter</span>' +
-        seg("filter", [{ v: "standard", label: "Standard" }, { v: "whole", label: "Whole track" }, { v: "minphase", label: "Minimum phase" }, { v: "gentle", label: "Gentle" }], o.filter || "standard") +
+        seg("filter", [{ v: "standard", label: "Standard" }, { v: "whole", label: "Whole track" }, { v: "minphase", label: "Min phase" }, { v: "gentle", label: "Gentle" }], o.filter || "standard") +
         '<div class="settings-note"' + ' data-parity="settings-device.note"' + '>' + FILTER_NOTE[o.filter || "standard"] + "</div>" +
         (o.filter && o.filter !== "standard" && o.whole ? '<div class="settings-note"' + ' data-parity="settings-device.note"' + '>' + esc(wholeLine(o.whole)) + "</div>" : "") + "</div>" : "") +
       (has32 ? '<div class="cap-group"><span class="cap-label"' + ' data-parity="settings-device.cap-label"' + '>Bit depth</span>' +
