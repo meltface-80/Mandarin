@@ -33,6 +33,7 @@
 - Fixed - room correction plays a response at its own level with ffmpeg 7 or later (a Mac's, from Homebrew), where one resampled to a track's rate came out quieter
 - Improved - PCM as DSD is made as it plays: a track goes as DSD from its first play, sent while it is made, where it went as PCM until made ahead; Output says how fast this server makes it, and whether that keeps up
 - Improved - Min phase and Gentle are made as they play too, from a track's first play; Whole track is gone (a device set to it has the standard filter)
+- Improved - a track upsampled or made DSD as it plays gets the processor: playback keeps all the cores but one while it is made, or as many as Settings → Library Scanner → Processor → Cores for upsampling and DSD says (Auto, 1, 2 or 3)
 - Improved - PCM as DSD keeps a 48 kHz-family track (48, 96, 192 kHz) in its own family: 96 kHz goes ×8 to 768 kHz and DSD256 at 12.288 MHz, nothing resampled, where it went down to 88.2 kHz first; on a device that takes PCM at the rate DoP carries it on (768 kHz for DSD256), else as before
 
 - `259-dsd-on-demand` (item 259): **PCM as DSD, and the shaped filters, made as they play.** A track made DSD from
@@ -60,6 +61,20 @@
   whole; a renderer's first play of an album as DSF from the first track, its signal path, its speed said, the next
   armed whole, another play stopping what was made; Minimum phase for PCM from the first play; the page's and the
   app's words.
+
+- `260-cpu-for-making` (item 260): **the making on playback's cores.** A track made as it plays (item 259) is
+  playback, but its `mandarin-server upsample` was started like any child of the server's and so ran where the server
+  runs: on the cores playback doesn't keep, beside the scans and the library's re-reads, while the core kept for
+  playback sat idle (htop on the owner's four-core server: cores 0 to 2 full, core 3 at 2%). Now, while one is made and
+  for 30 s after (`MANDARIN_CPU_MAKING_HOLD_MS`, so the next track's, begun in its turn, finds them kept), playback keeps
+  all the cores but one (Cpu.Making.cs; Cpu.Decide's `making`), and the making is placed on them and moved with them
+  when the split changes, as a conversion a device waits for is (MadeAsPlayed.cs: Cpu.Place, Adopt, Forget). Measured
+  here, DSD256 went 1.4× real time on one core, 3.4× on two, 4.6× on three. New setting, Settings → Library Scanner →
+  Processor → Cores for upsampling and DSD: Auto (all but one) or 1 to 3, never every core (`POST /api/cpu
+  { making_cores }`, kept as the setting `making_cores`; `GET /api/cpu` says `making` and `making_cores`); shown where
+  the cores are split. The Processor line says "(making as it plays)" while it lasts; the app the same (Scanner.kt
+  cpuLine, makingChoices). Tests: CpuTests (the split while making, Auto and as set), PowerCsharpTests (the route, its
+  refusals, kept), ScannerTest (the line and the choices), scanner-page.test.js (the choices drawn, one tapped and kept).
 
 - `261-dsd-48k-family` (item 261): **48 kHz's family made DSD in its own family.** PCM as DSD made a 96 kHz track
   DSD256 by taking it down to 88.2 kHz with SoX, then ×8 to 705.6 kHz and DSD256 at 11.2896 MHz (Now playing: "To 44.1

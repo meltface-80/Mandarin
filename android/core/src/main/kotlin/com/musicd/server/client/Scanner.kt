@@ -117,10 +117,17 @@ object Scanner {
     fun cpuLine(cpu: JSONObject?): String? {
         val cores = cpu?.optJSONArray("cores") ?: return null
         fun c(k: Int) = "$k core" + plural(k, "")
-        return if (cpu.optBoolean("split")) c(cores.length()) + " · " + (cpu.optJSONArray("playback")?.length() ?: 0) + " kept for playback" + (if (cpu.optBoolean("dsp")) " (DSP in use)" else "") +
+        return if (cpu.optBoolean("split")) c(cores.length()) + " · " + (cpu.optJSONArray("playback")?.length() ?: 0) + " kept for playback" + (if (cpu.optBoolean("making")) " (making as it plays)" else if (cpu.optBoolean("dsp")) " (DSP in use)" else "") +
             " · " + (cpu.optJSONArray("background")?.length() ?: 0) + " for scanning and everything else"
         else c(cores.length()) + ", shared"
     }
+    /** The choices of cores for a making (item 260): Auto, then 1 to 3, no more than all the cores but one; none where the cores aren't split. */
+    fun makingChoices(cpu: JSONObject?): List<SegChoice> {
+        val most = if (cpu?.optBoolean("split") != true) 0 else minOf(3, (cpu.optJSONArray("cores")?.length() ?: 0) - 1)
+        return if (most < 1) emptyList() else listOf(SegChoice("auto", "Auto")) + (1..most).map { SegChoice("$it", "$it") }
+    }
+    /** The choice in force: "auto" or the number. */
+    fun makingCurrent(cpu: JSONObject?): String = cpu?.optInt("making_cores", 0)?.takeIf { it > 0 }?.toString() ?: "auto"
     fun cpuNote(cpu: JSONObject?): String = if (cpu?.optJSONArray("cores") == null) "…" else if (!cpu.optBoolean("split")) "Playback comes first by priority."
         else if (cpu.optBoolean("raised")) "Playback also runs at a higher priority." else "To run playback at a higher priority too, start the container with --cap-add SYS_NICE."
 

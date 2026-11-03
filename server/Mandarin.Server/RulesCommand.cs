@@ -26,7 +26,7 @@
 //      → { plays }
 //   { fn: "uris", uris }                                                  Playback/Phones.Commands.cs
 //      → { tracks }: the library track each stream address names, or null
-//   { fn: "cpu", decides: [{ linux, taskset, cores, env, dsp }], places: [{ kind, tools, raise, cores, env, bin, args }],
+//   { fn: "cpu", decides: [{ linux, taskset, cores, env, dsp, making, making_cores }], places: [{ kind, tools, raise, cores, env, bin, args }],
 //     expands, compacts }                                                  Cpu.cs, Cpu.Place.cs
 //      → { decides: [{ split, playback, background, core, slots }], places: [command line], expands, compacts }
 //   { fn: "auth", locals, uas, clients: [[remote, x-forwarded-for]], tailnet, aways: [{ port, set, own, ifaces }],
@@ -143,11 +143,12 @@ internal static class RulesCommand
         ["folders"] = Each(job["folders"], f => Names.LabelFromFolder(S(At(f, 0)), L(At(f, 1)).Select(S).ToList(), (int)N(At(f, 2))))
     };
 
-    /* A split decided as Cpu.Decide decides it, from a case's cores and its PLAYBACK_CORES / PLAYBACK_CORE. */
+    /* A split decided as Cpu.Decide decides it, from a case's cores, its PLAYBACK_CORES / PLAYBACK_CORE, its DSP and its making (item 260). */
     private static (bool Split, int[] Cores, int[] Playback, int[] Background, int? Core) Decided(object? c, bool taskset) =>
         Cpu.Decide(O(c)["linux"] is not false, taskset, L(O(c)["cores"]).Select(x => (int)N(x)).ToArray(),
             TJs.IsNullish(O(O(c)["env"])["PLAYBACK_CORES"]) ? null : S(O(O(c)["env"])["PLAYBACK_CORES"]),
-            TJs.IsNullish(O(O(c)["env"])["PLAYBACK_CORE"]) ? null : S(O(O(c)["env"])["PLAYBACK_CORE"]), TJs.Truthy(O(c)["dsp"]));
+            TJs.IsNullish(O(O(c)["env"])["PLAYBACK_CORE"]) ? null : S(O(O(c)["env"])["PLAYBACK_CORE"]), TJs.Truthy(O(c)["dsp"]),
+            TJs.Truthy(O(c)["making"]), TJs.IsNullish(O(c)["making_cores"]) ? 0 : (int)N(O(c)["making_cores"]));
 
     private static List<object?> Ints(IEnumerable<int> l) => l.Select(x => (object?)(double)x).ToList();
 
