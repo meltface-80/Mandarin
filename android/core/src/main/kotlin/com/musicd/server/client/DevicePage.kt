@@ -121,7 +121,7 @@ class DevicePage(val j: JSONObject) {
      */
     val filter: String get() = output.optString("filter", "standard")
     val showFilter: Boolean get() = mode != "original" || output.has("dsd_out")
-    val filters: List<SegChoice> get() = listOf(SegChoice("standard", "Standard"), SegChoice("whole", "Whole track"), SegChoice("minphase", "Minimum phase"), SegChoice("gentle", "Gentle"))
+    val filters: List<SegChoice> get() = listOf(SegChoice("standard", "Standard"), SegChoice("whole", "Whole track"), SegChoice("minphase", "Min phase"), SegChoice("gentle", "Gentle"))
     val filterNote: String get() = when (filter) {
         "whole" -> "One filter as long as the track, made ahead of playing (some 30 seconds a track); a track not yet made plays with the standard filter. Tracks from the library, ×2 to ×16."
         "minphase" -> "Whole track’s filter made minimum phase: all its ringing after a sound starts, none before. Made ahead as Whole track is; a track not yet made plays with the standard filter."
