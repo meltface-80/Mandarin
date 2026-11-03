@@ -98,7 +98,7 @@ public sealed class WholeTrackPlayTests
             whole = Directory.Exists(made) ? Directory.GetFiles(made, "*-w.flac").FirstOrDefault() : null;
             var read = await Bytes.Get(s.Base + addr, s.H);
             reads++;
-            if (!read.Body.AsSpan().SequenceEqual(first.Body)) others++;
+            if (!SameFile(read.Body, first.Body)) others++;
             return whole != null;
         }, 60000, "the whole track made");
         Assert.True(others == 0, $"one play, one file: {others} of {reads} reads while it was made weren't the standard filter's");
@@ -107,9 +107,16 @@ public sealed class WholeTrackPlayTests
         var source = await File.ReadAllBytesAsync((string)song["path"]!);
         Assert.Equal((88200L, 2 * Frames(source)), (Rate(file), Frames(file)));
         Assert.False(first.Body.AsSpan().SequenceEqual(file), "the first time, the standard filter's");
+        // A read of a file still being made (its STREAMINFO body as ffmpeg leaves it till the end) is the same file; one
+        // byte of its audio otherwise is not (item 253).
+        var midWrite = (byte[])file.Clone();
+        Array.Clear(midWrite, 13, 29);
+        Assert.True(SameFile(midWrite, file), "the same file, read while it was made");
+        midWrite[^1] ^= 1;
+        Assert.False(SameFile(midWrite, file), "a byte of its audio otherwise: another file");
         // Made, but this play started on the standard filter's: it keeps it.
         var held = await Bytes.Get(s.Base + addr, s.H);
-        Assert.True(held.Body.AsSpan().SequenceEqual(first.Body), "made while it played: the play keeps its file");
+        Assert.True(SameFile(held.Body, first.Body), "made while it played: the play keeps its file");
         // The device's page says how the making went.
         var dev = await s.Api("audio-devices/UPNP_test-whole");
         Assert.Equal((1.0, (string?)null, 0.0), (dev.J["output"]?["whole"].Num("made") ?? -1, dev.J["output"]?["whole"].Str("making"), dev.J["output"]?["whole"].Num("waiting") ?? -1));
@@ -136,6 +143,15 @@ public sealed class WholeTrackPlayTests
         Assert.Equal([" · whole track", " · standard (whole track being made)", " · standard (whole track being made)",
             " · standard (whole track failed: see the log)", " · standard (whole track next play)"], r);
     }
+
+    /*
+     * The same FLAC file, read at two times (item 253): every byte the same but STREAMINFO's body (bytes 8 to 41: the
+     * frame sizes, the samples in all, the MD5), which ffmpeg writes last, seeking back to it. The first read of a
+     * conversion still being made is sent as it is written (Transcoder.TailFollow), so it has that block as it was
+     * before the end; a read once it is made has it filled in. The audio, and everything else, is the same.
+     */
+    private static bool SameFile(byte[] a, byte[] b) =>
+        a.Length == b.Length && a.Length > 42 && a.AsSpan(0, 8).SequenceEqual(b.AsSpan(0, 8)) && a.AsSpan(42).SequenceEqual(b.AsSpan(42));
 
     // A FLAC's STREAMINFO: its rate (20 bits from byte 18) and its frames (36 bits from byte 21's low half).
     private static long Rate(byte[] f) => (f[18] << 12) | (f[19] << 4) | (f[20] >> 4);
