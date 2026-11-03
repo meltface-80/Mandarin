@@ -146,6 +146,17 @@ internal sealed partial class TidalApi(string? baseUrl, string? imagesUrl, strin
         }
     }
 
+    /*
+     * A token for a call Tidal refused with [refused]: the one kept now, where another call refreshed it meanwhile;
+     * else a new one (item 266: two calls refused at once both refreshed, the second after the first had finished).
+     */
+    private async Task<string> Renewed(string refused)
+    {
+        var t = token();
+        var now = Js.Truthy(t) ? Js.Str(P(t, "access")) : "";
+        return now.Length > 0 && now != refused ? now : Js.Str((await Refresh())["access"]);
+    }
+
     /* The access token: refreshed first when it expires within the minute (api.js accessToken). */
     private async Task<string> AccessToken()
     {
@@ -186,8 +197,9 @@ internal sealed partial class TidalApi(string? baseUrl, string? imagesUrl, strin
         var url = UrlFor(path, prms);
         var key = "GET " + url;
         if (ttl > 0 && !fresh && Cache.TryGet(key, version, out var kept)) return kept;
-        var (status, text) = await ServiceHttp.Get(url, [("Authorization", "Bearer " + await AccessToken())], 20000);
-        if (status == 401) (status, text) = await ServiceHttp.Get(url, [("Authorization", "Bearer " + Js.Str((await Refresh())["access"]))], 20000);
+        var used = await AccessToken();
+        var (status, text) = await ServiceHttp.Get(url, [("Authorization", "Bearer " + used)], 20000);
+        if (status == 401) (status, text) = await ServiceHttp.Get(url, [("Authorization", "Bearer " + await Renewed(used))], 20000);
         var j = Answered(status, text);
         if (ttl > 0) Cache.Set(key, ttl, j, version);
         return j;
@@ -214,8 +226,9 @@ internal sealed partial class TidalApi(string? baseUrl, string? imagesUrl, strin
     {
         var url = UrlFor(path, []);
         var body = form == null ? null : string.Join("&", form.Select(x => Form(x.Key) + "=" + Form(x.Value)));
-        var (status, text) = await ServiceHttp.Send(method, url, [("Authorization", "Bearer " + await AccessToken())], body, "application/x-www-form-urlencoded", 20000);
-        if (status == 401) (status, text) = await ServiceHttp.Send(method, url, [("Authorization", "Bearer " + Js.Str((await Refresh())["access"]))], body, "application/x-www-form-urlencoded", 20000);
+        var used = await AccessToken();
+        var (status, text) = await ServiceHttp.Send(method, url, [("Authorization", "Bearer " + used)], body, "application/x-www-form-urlencoded", 20000);
+        if (status == 401) (status, text) = await ServiceHttp.Send(method, url, [("Authorization", "Bearer " + await Renewed(used))], body, "application/x-www-form-urlencoded", 20000);
         return Answered(status, text);
     }
 
