@@ -121,6 +121,8 @@ internal static class StreamCommand
         // As a renderer's queue item is planned (Playback/Items.cs): fitted, then given the filter's shape (items 248, 259).
         o["shaped"] = Each(job["shaped"], a => Upsample.MadeAsPlayed.Mark(HighRates.Fit(StreamPlans.Plan(Arg(a, 0), Arg(a, 1)), Arg(a, 1)), Arg(a, 1), Jv.Str(Jv.Get(Arg(a, 0), "path"))));
         // A DSD track's plan for a device set to a low-pass (item 241): fitted, then marked, as Items.cs makes it.
+        // afir's options for a room correction from what an ffmpeg's help says it takes (item 258).
+        o["afir_options"] = Each(job["afir_options"], h => Convolution.Options(Js.Str(h)));
         o["dsd_lowpass"] = Each(job["dsd_lowpass"], a => DsdLowpass.Mark(HighRates.Fit(StreamPlans.Plan(Arg(a, 0), Arg(a, 1)), Arg(a, 1)), Arg(a, 1), Arg(a, 0)));
         // A track's plan for a device set to PCM as DSD (item 243): fitted, then marked, as Items.cs makes it; the job that
         // makes it [src, plan, dest, soxr, seconds].
