@@ -220,6 +220,8 @@ internal sealed class Devices
             output["filter"] = "whole";
             output["whole"] = Jv.Obj(("made", (double)made), ("making", making), ("waiting", (double)waiting));
         }
+        // DSD as PCM, low-passed (item 241), said only where it is set: Off by its absence.
+        if (streamer && DsdLowpass.Of(r.Settings["dsd_lowpass"]) is { } cut) ((JsObj)o["output"]!)["dsd_lowpass"] = cut;
         o["first_seen"] = r.FirstSeen; o["last_seen"] = r.LastSeen;
         o["profile"] = caps["profile"]; o["editable"] = caps["editable"];
         o["playable"] = r.Kind != "upnp" || Jv.T(caps["playable"]);

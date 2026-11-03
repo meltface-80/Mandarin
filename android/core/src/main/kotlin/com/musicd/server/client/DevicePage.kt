@@ -132,6 +132,12 @@ class DevicePage(val j: JSONObject) {
         w.optInt("waiting").takeIf { it > 0 }?.let { parts += "$it waiting" }
         return parts.joinToString(" · ")
     }
+    /** DSD sent as PCM (item 241): its modulator's noise above the cut taken off; 0 for Off. */
+    val dsdLowpass: Int get() = output.optInt("dsd_lowpass", 0)
+    val dsdLowpassValue: String get() = if (dsdLowpass == 0) "off" else dsdLowpass.toString()
+    val dsdLowpasses: List<SegChoice> get() = listOf(SegChoice("off", "Off"), SegChoice("50000", "50 kHz"), SegChoice("30000", "30 kHz"))
+    val dsdLowpassNote: String get() = if (dsdLowpass != 0) "DSD this device is sent as PCM has the modulator’s noise above ${dsdLowpass / 1000} kHz taken off; below it, as recorded. DSD it takes as DSD goes as it is."
+        else "DSD this device is sent as PCM keeps the modulator’s noise up to the top of the rate it goes at. DSD it takes as DSD goes as it is."
     val depths: List<SegChoice> get() = listOf(SegChoice("auto", "Auto"), SegChoice("24", "24"), SegChoice("32", "32", off = !flac32))
     val outputInfo: String get() = "Original sends the file as stored wherever this device takes its rate, depth and format; above its ceiling, FLAC at the highest rate it takes. Upsampling stays in the file's family (44.1 → 88.2 → 176.4; 48 → 96 → 192), runs in 64-bit float, and goes out at " +
         (if (has32 && flac32) "24 or 32 bits" else "24 bits") + "."
@@ -146,7 +152,7 @@ class DevicePage(val j: JSONObject) {
     }
 
     /** The change a segment tapped makes (PATCH {output: {mode|filter|bits: …}}). */
-    fun segment(name: String, v: String): JSONObject = JSONObject().put("output", JSONObject().put(name, if (name == "bits" && v != "auto") v.toInt() else v))
+    fun segment(name: String, v: String): JSONObject = JSONObject().put("output", JSONObject().put(name, if ((name == "bits" || name == "dsd_lowpass") && v != "auto" && v != "off") v.toInt() else v))
 
     val canFixVolume: Boolean get() = j.optBoolean("can_fix_volume")
     val volumeFixed: Boolean get() = j.optBoolean("volume_fixed")

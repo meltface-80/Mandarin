@@ -216,7 +216,7 @@ body.addEventListener("click", async (e) => {
   if (sb && !sb.disabled) {
     const name = sb.closest(".seg").getAttribute("data-seg");
     const raw = sb.getAttribute("data-seg-v");
-    const v = name === "bits" && raw !== "auto" ? Number(raw) : raw;
+    const v = (name === "bits" || name === "dsd_lowpass") && raw !== "auto" && raw !== "off" ? Number(raw) : raw;
     return patch({ output: { [name]: v } });
   }
   const add = e.target.closest("[data-dsp-add]");

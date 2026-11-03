@@ -201,6 +201,10 @@ internal fun DevicePane(id: String, client: () -> ServerClient?, onBack: () -> U
                     if (!d.flac32) DeviceNote("32-bit needs an ffmpeg that writes 32-bit FLAC; this one stops at 24.", Modifier.parity("settings-device.note"))
                 }
                 DeviceNote(d.example, Modifier.parity("settings-device.note"))
+                CapGroup("DSD as PCM", Modifier.parity("settings-device.cap-label")) {
+                    Seg(d.dsdLowpasses, d.dsdLowpassValue, key = { i, c -> Modifier.parity("settings-device.dsdlowpass", Contract.label("settings-device.dsdlowpass", i)).clickable(enabled = !busy) { patch(d.segment("dsd_lowpass", c.value)) } })
+                    DeviceNote(d.dsdLowpassNote, Modifier.parity("settings-device.note"))
+                }
                 if (d.canFixVolume) {
                     Box(Modifier.padding(top = 14.dp)) {
                         SetupRow("Fixed volume", Modifier.parity("settings-device.name"), null) {

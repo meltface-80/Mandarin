@@ -13,6 +13,20 @@
 - Fixed - upsampling ×16 (705.6 and 768 kHz) plays: as WAV where the device takes WAV, else at the highest rate FLAC carries; it was silent
 - New - whole-track upsampling: a streamer or DAC set to upsample can use one filter as long as the track (Settings → Audio Devices → a device → Output → Filter), made ahead of playing
 - Improved - whole-track upsampling shows itself: Now playing says whether a track went out whole or with the standard filter and why, and the device's Output says how many tracks are made and which is being made
+- New - DSD sent to a device as PCM can have the DSD modulator's ultrasonic noise taken off above 30 or 50 kHz (Settings → Audio Devices → a device → Output → DSD as PCM)
+
+- `241-dsd-lowpass` (item 241): **DSD played as PCM, its modulator's noise above the band taken off.** DSD64
+  carries its noise above the audio band, rising from some 20 kHz. A DSD-capable DAC is sent the file as it is and
+  filters it itself; a device that takes PCM was sent PCM decoded from it (ffmpeg's decoder, 352.8 kHz for DSD64)
+  and resampled to its rate, the modulator's noise passing through up to that rate's Nyquist frequency: at
+  176.4 kHz, from 20 to 88 kHz, some 40 dB below a half-scale tone at the top. Output gains DSD as PCM: Off (as
+  before), 50 kHz or 30 kHz. Set, the track goes through SoX's resampler twice, down to 110.25 or 66.15 kHz and
+  back up: a linear-phase low-pass as steep as the resampler (on a DSD64 tone, the noise above 33 kHz falls from
+  some −40 dB to the dither's floor near −144 dB), the band below untouched (within 0.001 dB to 24 kHz), with no
+  delay and no tail, so gapless play stays gapless. It applies only where it does something: DSD going out as PCM
+  at a rate above the one it passes through (DsdLowpass.cs). The address carries it (`?lp=`), the cache keeps it
+  apart (`-lp66150`), and Now playing's reason says "low-passed at 30 kHz". Mandarin makes no DSD itself: DSD
+  that a device takes as DSD goes bit for bit, its noise the recording's own.
 
 - `239-whole-track-shown` (item 239): **whole-track upsampling shows itself.** Only the server's log said whether
   a track went out upsampled whole. Now playing's badge now says it: "↑×16 · whole track" when the track's own file
