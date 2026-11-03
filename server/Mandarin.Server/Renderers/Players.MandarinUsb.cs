@@ -1,7 +1,6 @@
 // Players.MandarinUsb.cs — a Mandarin USB renderer's own word on what it plays (MandarinUsb.cs): the
 // verification Players.Commands.cs's Verify hands over for one, as it hands a sound device's to VerifyLocal.
 using Mandarin.Server.Playback;
-using Mandarin.Server.Tags;
 
 namespace Mandarin.Server.Renderers;
 
