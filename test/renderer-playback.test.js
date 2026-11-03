@@ -299,6 +299,16 @@ test("a renderer is a zone", { skip, timeout: 150000 }, async (t) => {
       assert.equal(r.output.max_rate, undefined);
     });
 
+    await t.test("A device that misreads a length (an open-length WAV, item 245): Now playing keeps the track's own", async () => {
+      // 419:57:09, as a FiiO SR11 said of a ×16 WAV on 3 November; the fixture's tracks are three seconds.
+      wiim.reportedDuration = 1511829;
+      await api("play", { offset: cd.offset, zone_or_output_id: WIIM, kind: "play_now" });
+      const s = await until(async () => { const z = await state(WIIM); return z && z.now_playing && z.now_playing.seek_position >= 1 && z; }, 15000);
+      wiim.reportedDuration = null;
+      await api("control", { zone_or_output_id: WIIM, command: "stop" });
+      assert.ok(s.now_playing.length > 0 && s.now_playing.length < 10, "the track's own length, not the device's: " + s.now_playing.length);
+    });
+
     await t.test("DSP: on, a CD rip is decoded, filtered and sent as 24/44.1 FLAC; off, as it is", async () => {
       // A −6 dB band and the switch, saved together. The zone's queue is
       // planned again, so the next address carries the output's id.

@@ -14,6 +14,12 @@
 - New - whole-track upsampling: a streamer or DAC set to upsample can use one filter as long as the track (Settings → Audio Devices → a device → Output → Filter), made ahead of playing
 - Improved - whole-track upsampling shows itself: Now playing says whether a track went out whole or with the standard filter and why, and the device's Output says how many tracks are made and which is being made
 - New - a highest rate for each streamer or DAC (Settings → Audio Devices → a device → Output → Highest rate): nothing goes above it, upsampled or not
+- Fixed - Now playing shows a track's real length on a streamer that misreads it (419 hours for an upsampled ×16 track on a FiiO SR11)
+
+- `245-length-of-an-open-wav` (item 245): **Now playing keeps a track's length when a device misreads it.** A
+  track sent as WAV above FLAC's rates (item 238) is written as it plays, its length left open in its header; the
+  FiiO SR11 read that as 419:57:09 and Now playing showed it. The length the device reports is still taken, unless it
+  is more than ten seconds from the track's own, when the track's own is shown (Players.Poll.cs).
 
 - `240-rate-limits` (item 240): **a highest rate for each device, set by its owner.** A device's rates are what it
   reports or what its owner switched on, and Max upsampling went to the highest of them; to keep a FiiO SR11 below
