@@ -102,6 +102,18 @@ class AudioDevicesTest {
         assertNull(page("""{"mode":"max"}""").wholeLine)
     }
 
+    @Test fun `DSD as PCM offers off and two cuts and sends the cut in Hz`() {
+        fun page(output: String) = DevicePage(JSONObject("""{"kind":"upnp","rates":[],"bits":[],"dsd":[],"output":$output}"""))
+        val off = page("""{"mode":"original"}""")
+        assertEquals("off", off.dsdLowpassValue)
+        assertEquals(listOf("Off", "50 kHz", "30 kHz"), off.dsdLowpasses.map { it.label })
+        assertEquals("""{"output":{"dsd_lowpass":30000}}""", off.segment("dsd_lowpass", "30000").toString())
+        assertEquals("""{"output":{"dsd_lowpass":"off"}}""", off.segment("dsd_lowpass", "off").toString())
+        val cut = page("""{"mode":"original","dsd_lowpass":30000}""")
+        assertEquals("30000", cut.dsdLowpassValue)
+        assertTrue(cut.dsdLowpassNote.contains("above 30 kHz taken off"))
+    }
+
     @Test fun `a sound device's note says how it plays, a Mac's by Core Audio`() {
         val mac = DevicePage(JSONObject("""{"kind":"local","found_by":"This Mac (Core Audio)"}"""))
         assertTrue(mac.capNotes[0].startsWith("Mandarin sets the device to each track’s rate"))

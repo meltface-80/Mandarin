@@ -50,7 +50,7 @@ internal static class StreamPlans
         Jv.EndsCI(path, ".wav") || Jv.EndsCI(path, ".wave") || Jv.EndsCI(path, ".aif") || Jv.EndsCI(path, ".aiff") || Jv.EndsCI(path, ".aifc");
     private static bool DsdFile(string path) => Jv.EndsCI(path, ".dsf") || Jv.EndsCI(path, ".dff");
     // /dsd|dsf|dff/i on the codec as it is, or a .dsf/.dff file.
-    private static bool IsDsd(object? t)
+    internal static bool IsDsd(object? t)
     {
         var codec = Jv.Str(Jv.Or(Jv.Get(t, "codec"), ""));
         return Jv.HasCI(codec, "dsd") || Jv.HasCI(codec, "dsf") || Jv.HasCI(codec, "dff") || DsdFile(PathText(t));

@@ -222,6 +222,8 @@ internal sealed class Devices
         }
         // The highest rate its owner allows (item 240), said only where it is set: Auto by its absence.
         if (streamer && RateCap.Of(r.Settings["max_rate"]) is { } cap) ((JsObj)o["output"]!)["max_rate"] = cap;
+        // DSD as PCM, low-passed (item 241), said only where it is set: Off by its absence.
+        if (streamer && DsdLowpass.Of(r.Settings["dsd_lowpass"]) is { } cut) ((JsObj)o["output"]!)["dsd_lowpass"] = cut;
         o["first_seen"] = r.FirstSeen; o["last_seen"] = r.LastSeen;
         o["profile"] = caps["profile"]; o["editable"] = caps["editable"];
         o["playable"] = r.Kind != "upnp" || Jv.T(caps["playable"]);

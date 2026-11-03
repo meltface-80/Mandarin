@@ -17,6 +17,8 @@ internal sealed record ConvPlan(long Rate, int Bits, bool Hq, bool Exact, string
     public bool Wav { get; init; }
     // Upsampled whole, in one transform, made ahead (Upsample/WholeJobs.cs, item 237).
     public bool Whole { get; init; }
+    // DSD as PCM, low-passed through this rate (Playback/DsdLowpass.cs, item 241); 0 for none.
+    public long Lowpass { get; init; }
     // A Qobuz or Tidal stream already what was planned: its FLAC frames copied as they come (v0.8.47).
     public bool Copy { get; init; }
 
@@ -40,7 +42,8 @@ internal sealed record ConvPlan(long Rate, int Bits, bool Hq, bool Exact, string
         Dsp = Jv.T(p["dsp"]) ? p["dsp"] as JsObj : null,
         InRate = Jv.T(p["inRate"]) ? Jv.Num(p["inRate"]) : 0,
         Wav = Jv.T(p["wav"]),
-        Whole = Jv.T(p["whole"])
+        Whole = Jv.T(p["whole"]),
+        Lowpass = Jv.T(p["lowpass"]) ? (long)Jv.Num(p["lowpass"]) : 0
     };
 }
 

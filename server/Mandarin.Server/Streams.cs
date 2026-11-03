@@ -207,6 +207,8 @@ internal static partial class Streams
         // now, and sent as it is made (v0.8.11; before, the Node server's).
         var track = new ConvTrack(id, t.Path, mtime);
         if (seg.EndsWith('w') && segRate != 0 && svc == null && t.Rate > 0 && Upsample.WholePlan.Takes(segRate / t.Rate) && segRate % t.Rate == 0) { p["whole"] = true; p["inRate"] = (double)t.Rate; }
+        // DSD as PCM, low-passed through the rate asked (?lp=, Playback/DsdLowpass.cs, item 241): a DSD file, a promised rate above it.
+        if (segRate != 0 && svc == null && QueryOne(raw, "lp") is { } lq && lq.Here && long.TryParse(lq.Value, out var lpm) && DsdLowpass.IsMid(lpm) && segRate > lpm && StreamPlans.IsDsd(Row(t))) p["lowpass"] = (double)lpm;
         // Whole and made: that file; whole and not yet: the standard filter now, the whole one made for next time.
         var job = Transcoder.Start(track, Upsample.WholeJobs.Choose(track, ConvPlan.Of(p)));
         if (job.Done && !job.Failed) return await SendFile(ctx, job.Final, Jv.Str(p["mime"]));

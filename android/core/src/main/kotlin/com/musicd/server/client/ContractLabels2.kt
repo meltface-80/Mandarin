@@ -156,6 +156,7 @@ internal object ContractLabels2 {
         "settings-device.depth" to listOf("Auto", "24", "32"),
         "settings-device.maxrate" to listOf("Auto", "96k", "192k", "384k", "768k"),
         "settings-device.filter" to listOf("Standard", "Whole track"),
+        "settings-device.dsdlowpass" to listOf("Off", "50 kHz", "30 kHz"),
         "settings-device.fixvol" to listOf("Fixed volume"),
         "settings-device.lv-mode" to listOf("Volume levelling"),
         "settings-device.lv-target" to listOf("Target volume level"),
