@@ -94,6 +94,14 @@ class AudioDevicesTest {
         assertFalse(DevicePage(JSONObject("""{"kind":"upnp","bits":[],"dsd":[],"rates":[{"hz":44100,"on":true},{"hz":96000,"on":true}]}""")).showMaxRate)
     }
 
+    @Test fun `with the whole-track filter, how the making goes`() {
+        fun page(output: String) = DevicePage(JSONObject("""{"kind":"upnp","rates":[],"bits":[],"dsd":[],"output":$output}"""))
+        assertEquals("12 tracks made · making “01 Song” · 3 waiting",
+            page("""{"mode":"max","filter":"whole","whole":{"made":12,"making":"01 Song","waiting":3}}""").wholeLine)
+        assertEquals("1 track made", page("""{"mode":"max","filter":"whole","whole":{"made":1,"making":null,"waiting":0}}""").wholeLine)
+        assertNull(page("""{"mode":"max"}""").wholeLine)
+    }
+
     @Test fun `a sound device's note says how it plays, a Mac's by Core Audio`() {
         val mac = DevicePage(JSONObject("""{"kind":"local","found_by":"This Mac (Core Audio)"}"""))
         assertTrue(mac.capNotes[0].startsWith("Mandarin sets the device to each track’s rate"))

@@ -213,7 +213,13 @@ internal sealed class Devices
             ("bits", r.Settings["bits"] is double b && b is 24 or 32 ? (object)b : "auto"),
             ("flac32", Transcoder.Flac32)) : null;
         // The whole-track filter (item 237), said only where it is set: standard is said by its absence.
-        if (streamer && r.Settings["filter"] is "whole") ((JsObj)o["output"]!)["filter"] = "whole";
+        if (streamer && r.Settings["filter"] is "whole")
+        {
+            var (made, making, waiting) = Upsample.WholeJobs.Status();   // how the making goes (item 239)
+            var output = (JsObj)o["output"]!;
+            output["filter"] = "whole";
+            output["whole"] = Jv.Obj(("made", (double)made), ("making", making), ("waiting", (double)waiting));
+        }
         // The highest rate its owner allows (item 240), said only where it is set: Auto by its absence.
         if (streamer && RateCap.Of(r.Settings["max_rate"]) is { } cap) ((JsObj)o["output"]!)["max_rate"] = cap;
         o["first_seen"] = r.FirstSeen; o["last_seen"] = r.LastSeen;

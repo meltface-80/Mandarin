@@ -64,7 +64,10 @@ public sealed class WholeTrackPlayTests
     public async Task A_device_set_to_whole_track_plays_the_standard_filter_until_the_whole_track_is_made_then_that()
     {
         Needs.Server(); Needs.Ffmpeg();
-        await using var s = await Session.Started();
+        // One play keeps one file (item 239): a track sent with the standard filter keeps it until it has gone
+        // unasked for this long (half an hour unless said).
+        const int hold = 3000;
+        await using var s = await Session.Started(env: new Dictionary<string, string> { ["MANDARIN_WHOLE_HOLD_MS"] = hold.ToString(System.Globalization.CultureInfo.InvariantCulture) });
         await Session.Until(async () => (await s.Api("library-stats")).J.Num("albums") == 3, 30000, "the library");
         var song = s.Server.Rows("SELECT * FROM tracks WHERE title = $1", "Song 1")[0];
         var now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
@@ -84,20 +87,51 @@ public sealed class WholeTrackPlayTests
         var addr = $"/stream/t{song["id"]}.88200-24w.flac?o=UPNP_test-whole";
         var first = await Bytes.Get(s.Base + addr, s.H);
         Assert.Equal((200, "audio/flac"), (first.Status, first.Header("content-type")));
+        // Read again and again as a renderer reads (a range, a seek) while the whole one is made: the same file each time.
         string? whole = null;
-        await Session.Until(() => Task.FromResult((whole = Directory.Exists(made) ? Directory.GetFiles(made, "*-w.flac").FirstOrDefault() : null) != null), 60000, "the whole track made");
+        int reads = 0, others = 0;
+        await Session.Until(async () =>
+        {
+            whole = Directory.Exists(made) ? Directory.GetFiles(made, "*-w.flac").FirstOrDefault() : null;
+            var read = await Bytes.Get(s.Base + addr, s.H);
+            reads++;
+            if (!read.Body.AsSpan().SequenceEqual(first.Body)) others++;
+            return whole != null;
+        }, 60000, "the whole track made");
+        Assert.True(others == 0, $"one play, one file: {others} of {reads} reads while it was made weren't the standard filter's");
         var file = await File.ReadAllBytesAsync(whole!);
         // Twice the frames at twice the rate: the track, upsampled whole.
         var source = await File.ReadAllBytesAsync((string)song["path"]!);
         Assert.Equal((88200L, 2 * Frames(source)), (Rate(file), Frames(file)));
         Assert.False(first.Body.AsSpan().SequenceEqual(file), "the first time, the standard filter's");
-        // Asked for again: that file.
+        // Made, but this play started on the standard filter's: it keeps it.
+        var held = await Bytes.Get(s.Base + addr, s.H);
+        Assert.True(held.Body.AsSpan().SequenceEqual(first.Body), "made while it played: the play keeps its file");
+        // The device's page says how the making went.
+        var dev = await s.Api("audio-devices/UPNP_test-whole");
+        Assert.Equal((1.0, (string?)null, 0.0), (dev.J["output"]?["whole"].Num("made") ?? -1, dev.J["output"]?["whole"].Str("making"), dev.J["output"]?["whole"].Num("waiting") ?? -1));
+        // Played again once that play is over: its own file.
+        await Task.Delay(hold + 500);
         var again = await Bytes.Get(s.Base + addr, s.H);
         Assert.Equal(200, again.Status);
         Assert.True(again.Body.AsSpan().SequenceEqual(file), "then the whole track's own file");
         // Without the mark (the standard filter asked for): not that file.
         var standard = await Bytes.Get(s.Base + $"/stream/t{song["id"]}.88200-24.flac?o=UPNP_test-whole", s.H);
         Assert.False(standard.Body.AsSpan().SequenceEqual(file), "the standard filter's is its own");
+    }
+
+    [Test]
+    public async Task Now_playing_says_whether_the_whole_track_went_out_and_if_not_why()
+    {
+        Needs.Server();
+        // [sent: true | false | null, the making: queued | making | failed | null]
+        var r = (await Plans(new JsonObject
+        {
+            ["whole_badge"] = new JsonArray(new JsonArray(true, null), new JsonArray(false, "making"), new JsonArray(null, "queued"),
+                new JsonArray(false, "failed"), new JsonArray(false, null)),
+        }))["whole_badge"]!.AsArray().Select(x => (string)x!).ToArray();
+        Assert.Equal([" · whole track", " · standard (whole track being made)", " · standard (whole track being made)",
+            " · standard (whole track failed: see the log)", " · standard (whole track next play)"], r);
     }
 
     // A FLAC's STREAMINFO: its rate (20 bits from byte 18) and its frames (36 bits from byte 21's low half).
