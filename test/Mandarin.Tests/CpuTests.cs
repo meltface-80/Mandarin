@@ -22,10 +22,11 @@ public sealed class CpuTests
     private static JsonArray N(int k) => new([.. Enumerable.Range(0, k).Select(i => (JsonNode)i)]);
 
     // [split, playback, background, core] for a machine.
-    private static async Task<string> D(JsonArray cores, bool dsp = false, Dictionary<string, string>? env = null, bool notLinux = false, bool taskset = true)
+    private static async Task<string> D(JsonArray cores, bool dsp = false, Dictionary<string, string>? env = null, bool notLinux = false, bool taskset = true, bool making = false, int makingCores = 0)
     {
         var o = new JsonObject { ["linux"] = !notLinux, ["taskset"] = taskset, ["env"] = JsonNode.Parse(Http.Json(env ?? [])), ["cores"] = cores };
         if (dsp) o["dsp"] = true;
+        if (making) { o["making"] = true; o["making_cores"] = makingCores; }
         var r = await Decide(o);
         return new JsonArray(r["split"]?.DeepClone(), r["playback"]?.DeepClone(), r["background"]?.DeepClone(), r["core"]?.DeepClone()).ToJsonString();
     }
@@ -55,6 +56,23 @@ public sealed class CpuTests
         var r = await Score.Run(new { fn = "cpu", expands = new[] { "0-2,5" }, compacts = new[] { new[] { 5, 0, 2, 1 } } });
         JsonAssert.Same("[0,1,2,5]", r["expands"]![0]);
         Assert.Equal("0-2,5", (string?)r["compacts"]![0]);
+    }
+
+    [Test]
+    public async Task While_a_track_is_made_as_it_plays_playback_keeps_all_the_cores_but_one_or_as_many_as_set()
+    {
+        // Item 260: the making was left on the background's cores beside the scans, the playback core idle.
+        JsonAssert.Same("[true,[1,2,3],[0],3]", JsonNode.Parse(await D(N(4), making: true)), "Auto: all but one");
+        JsonAssert.Same("[true,[1,2,3],[0],3]", JsonNode.Parse(await D(N(4), dsp: true, making: true)), "DSP too: still all but one");
+        JsonAssert.Same("[true,[2,3],[0,1],3]", JsonNode.Parse(await D(N(4), making: true, makingCores: 2)), "two, as set");
+        JsonAssert.Same("[true,[3],[0,1,2],3]", JsonNode.Parse(await D(N(4), making: true, makingCores: 1)), "one, as set");
+        JsonAssert.Same("[true,[1,2],[0],2]", JsonNode.Parse(await D(N(3), making: true, makingCores: 3)), "never every core");
+        JsonAssert.Same("[true,[1,2,3,4,5,6,7],[0],7]", JsonNode.Parse(await D(N(8), making: true)));
+        JsonAssert.Same("[true,[5,6,7],[0,1,2,3,4],7]", JsonNode.Parse(await D(N(8), making: true, makingCores: 3)));
+        JsonAssert.Same("[true,[2,6,7],[0,1,3,4,5],2]", JsonNode.Parse(await D(N(8), making: true, makingCores: 3, env: new() { ["PLAYBACK_CORE"] = "2" })), "the chosen core first");
+        Assert.True(JsonNode.Parse(await D(N(2), making: true))![0]!.GetValue<bool>() == false, "two cores: still shared");
+        Assert.True(JsonNode.Parse(await D(N(8), making: true, env: new() { ["PLAYBACK_CORES"] = "0" }))![0]!.GetValue<bool>() == false, "turned off: still off");
+        JsonAssert.Same("[true,[3],[0,1,2],3]", JsonNode.Parse(await D(N(4), makingCores: 3)), "no making: the setting does nothing");
     }
 
     [Test]

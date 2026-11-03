@@ -1059,7 +1059,7 @@
       }
     },
     "settings-scanner": {
-      "page": "Settings' Library Scanner: Back, its title; the schedule (on or off, its start and end, what runs now); Identify albums and Ask iTunes too, each on or off; the MusicBrainz pack (Download, Update or Remove, its folder, Change… with the server's folders to choose from); identification's progress and Check again; Measure ReplayGain on or off and how far it has got; Clean up, each kind with its Remove; the processor; the proposed, unidentified, applied and declined albums, each with its actions and a barcode or link to match it by; each with its ⓘ and notes",
+      "page": "Settings' Library Scanner: Back, its title; the schedule (on or off, its start and end, what runs now); Identify albums and Ask iTunes too, each on or off; the MusicBrainz pack (Download, Update or Remove, its folder, Change… with the server's folders to choose from); identification's progress and Check again; Measure ReplayGain on or off and how far it has got; Clean up, each kind with its Remove; the processor, and the cores for upsampling and DSD (Auto, 1, 2 or 3); the proposed, unidentified, applied and declined albums, each with its actions and a barcode or link to match it by; each with its ⓘ and notes",
       "native": ["android/app/src/main/java/com/musicd/server/android/SettingsScanner.kt", "android/app/src/main/java/com/musicd/server/android/ScannerPack.kt", "android/app/src/main/java/com/musicd/server/android/ScannerLists.kt"],
       "preview": false,
       "items": {
@@ -1088,6 +1088,7 @@
         "dir": { "kind": "action", "label": "{folder}", "each": true, "when": "choosing the pack's folder" },
         "browse-choose": { "kind": "action", "label": "Keep the pack in “{folder}”", "when": "choosing the pack's folder" },
         "cleanup": { "kind": "action", "label": "Remove {albums}", "each": true, "when": "albums that could go" },
+        "making": { "kind": "action", "label": ["Auto", "1", "2", "3"], "each": true, "when": "the processor's cores split" },
         "album": { "kind": "action", "label": "{album}", "each": true, "when": "albums proposed, unidentified, applied or declined" },
         "accept": { "kind": "action", "label": "Accept", "each": true, "when": "albums proposed" },
         "reject": { "kind": "action", "label": "Reject", "each": true, "when": "albums proposed" },

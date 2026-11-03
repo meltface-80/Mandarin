@@ -7,6 +7,7 @@
 //   POST /api/system/restart   the server started again
 //   POST /api/system/shutdown  stopped, to stay stopped (not in Docker)
 //   GET  /api/cpu              the cores playback keeps and the rest (lib/cpu.js plan())
+//   POST /api/cpu             { making_cores: "auto" | 1 | 2 | 3 }: the cores a track made as it plays has (item 260)
 //
 // Restart: this program starts again in this same process, on every core it
 // started with (Server.StartAgain, as after an update).
@@ -70,6 +71,7 @@ internal static partial class Library
         {
             return (HttpMethods.IsGet(m) || HttpMethods.IsHead(m)) && p == "/api/system/power" ? await SystemPower(ctx)
                 : (HttpMethods.IsGet(m) || HttpMethods.IsHead(m)) && p == "/api/cpu" ? await CpuPlan(ctx)
+                : HttpMethods.IsPost(m) && p == "/api/cpu" ? await CpuSet(ctx)
                 : HttpMethods.IsPost(m) && p == "/api/system/restart" ? await SystemRestart(ctx)
                 : HttpMethods.IsPost(m) && p == "/api/system/shutdown" && await SystemShutdown(ctx);
         }
@@ -143,4 +145,17 @@ internal static partial class Library
 
     /* GET /api/cpu: the split as decided here (v0.8.48, Cpu.cs). */
     private static Task<bool> CpuPlan(HttpContext ctx) => Send(ctx, Cpu.Plan());
+
+    /* POST /api/cpu: the cores a making has (item 260), "auto" or 1 to all but one of them; the split as it then is. */
+    private static async Task<bool> CpuSet(HttpContext ctx)
+    {
+        var b = await Auth.Body(ctx);
+        var v = b?["making_cores"];
+        var most = Math.Max(1, Cpu.Expand(Cpu.Startup).Length - 1);
+        int? n = v is JsonValue jv && jv.TryGetValue<string>(out var word) && word == "auto" ? 0
+            : v is JsonValue nv && nv.TryGetValue<double>(out var d) && d == Math.Floor(d) && d >= 1 && d <= Math.Min(3, most) ? (int)d : null;
+        if (n is not { } cores) return await Send(ctx, new JsonObject { ["error"] = $"making_cores must be \"auto\" or 1 to {Math.Min(3, most)}" }, 400);
+        Cpu.SetMakingCores(cores);
+        return await Send(ctx, Cpu.Plan());
+    }
 }

@@ -3,8 +3,8 @@
 // Made whole and ahead (items 237, 243), a track's first play was always the standard filter's PCM, and DSD only the
 // next time. Now each is `mandarin-server upsample` (UpsampleCommand.cs) begun when the device asks for the track,
 // writing its file a block at a time, and the device is sent it as it grows (Transcoder.TailFollow), as a conversion
-// is: a DSF's header first, its length known from the track's. One is made at a time, on every core (the most the
-// modulators can be given): the next track asked for while one is made waits its turn. A new play stops what was being
+// is: a DSF's header first, its length known from the track's. One is made at a time, on playback's cores, all but one
+// of them while it runs (Cpu.Making.cs, item 260): the next track asked for while one is made waits its turn. A new play stops what was being
 // made for the play before (Only). Each making's speed is kept, and Output says it: a DSF made slower than it plays
 // would run dry.
 using System.Collections.Concurrent;
@@ -83,7 +83,17 @@ internal static class MadeAsPlayed
         var spec = p.DsdUp != 0 ? DsdPlan.Job(t.Path, p, job.Part, Transcoder.Soxr, seconds) : PcmJob(t.Path, p, job.Part);
         var psi = new ProcessStartInfo(Environment.ProcessPath ?? "mandarin-server") { UseShellExecute = false, RedirectStandardInput = true, RedirectStandardOutput = true, RedirectStandardError = true };
         psi.ArgumentList.Add("upsample");
+        // Playback, the most of it there is (item 260): its cores kept, all but one while it runs, and it put on them.
+        Cpu.Making(true);
+        try { return await Made(t, p, job, err, psi, seconds, spec); }
+        finally { Cpu.Making(false); }
+    }
+
+    private static async Task<int> Made(ConvTrack t, ConvPlan p, ConvJob job, StringBuilder err, ProcessStartInfo psi, double seconds, JsonObject spec)
+    {
+        Cpu.Place(psi, CpuKind.Playback);
         using var proc = Process.Start(psi)!;
+        Cpu.Adopt(proc, CpuKind.Playback);
         Under[job.Key] = proc;
         if (Stopped.TryRemove(job.Key, out _)) Stop(proc);
         try { await proc.StandardInput.WriteLineAsync(spec.ToJsonString()); proc.StandardInput.Close(); }
@@ -91,6 +101,7 @@ internal static class MadeAsPlayed
         var said = await proc.StandardOutput.ReadToEndAsync();
         var trace = await proc.StandardError.ReadToEndAsync();
         await proc.WaitForExitAsync();
+        Cpu.Forget(proc);
         var r = said.Trim().Split('\n')[^1] is { Length: > 0 } last ? JsonNode.Parse(last) as JsonObject : null;
         if (proc.ExitCode != 0 || r == null || r["error"] != null)
         {

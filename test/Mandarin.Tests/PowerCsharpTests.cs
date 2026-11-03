@@ -53,8 +53,20 @@ public sealed class PowerCsharpTests
             r = await Http.Get(c.Base + "/api/cpu", h);
             Assert.Equal("C#", r.Header("x-mandarin-answered"));
             var plan = r.J.AsObject();
-            foreach (var k in new[] { "split", "cores", "playback", "background", "core", "dsp", "raised", "tools" }) Assert.True(plan.ContainsKey(k), k + " in " + plan.ToJsonString());
+            foreach (var k in new[] { "split", "cores", "playback", "background", "core", "dsp", "raised", "tools", "making", "making_cores" }) Assert.True(plan.ContainsKey(k), k + " in " + plan.ToJsonString());
             Assert.NotEmpty(plan["cores"]!.AsArray());
+            Assert.Equal(0, (int)plan["making_cores"]!);
+            // The cores a making has (item 260): "auto" or 1 to 3, no more than all but one; kept, and said.
+            Assert.True((await Http.Post(c.Base + "/api/cpu", new { making_cores = 1 })).Status == 401, "signed in only");
+            r = await Http.Post(c.Base + "/api/cpu", new { making_cores = 1 }, h);
+            Assert.Equal(200, r.Status);
+            Assert.Equal(1, (int)r.J["making_cores"]!);
+            Assert.Equal(1, (int)(await Http.Get(c.Base + "/api/cpu", h)).J["making_cores"]!);
+            foreach (var bad in new object[] { 0, 4, 1.5, "two", -1 })
+                Assert.True((await Http.Post(c.Base + "/api/cpu", new { making_cores = bad }, h)).Status == 400, "refused: " + bad);
+            Assert.Equal(1, (int)(await Http.Get(c.Base + "/api/cpu", h)).J["making_cores"]!);
+            r = await Http.Post(c.Base + "/api/cpu", new { making_cores = "auto" }, h);
+            Assert.Equal(0, (int)r.J["making_cores"]!);
 
             // Restart: started again in its same process.
             var pid = c.Proc.Id;

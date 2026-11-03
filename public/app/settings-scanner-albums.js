@@ -122,11 +122,14 @@ function blocks() {
   {
     const cores = k => k + " core" + (k === 1 ? "" : "s");
     const known = cpu && Array.isArray(cpu.cores);
+    // The cores a track made as it plays has (item 260): Auto (all but one), or 1 to 3 of them; where the cores are split.
+    const making = most => most < 1 ? "" : row("Cores for upsampling and DSD", '<div class="seg" data-cpu-making>' + ["auto", 1, 2, 3].filter(v => v === "auto" || v <= most).map(v =>
+      '<button type="button" data-parity="settings-scanner.making" class="seg-btn' + ((cpu.making_cores || 0) === (v === "auto" ? 0 : v) ? " is-on" : "") + '" data-making="' + v + '"' + (scanBusy ? " disabled" : "") + ">" + (v === "auto" ? "Auto" : v) + "</button>").join("") + "</div>");
     out.cpu = '<div class="settings-divider"></div><div class="settings-block"><div class="settings-block-title" data-parity="settings-scanner.title">Processor' +
-      info("Playback keeps cores of its own: one, or two while DSP is in use. Scanning, measuring ReplayGain and the phone’s downloads run on the other cores, at the lowest priority, so playback comes first. Set PLAYBACK_CORES to 1 or 2 to fix how many playback keeps, or 0 to share every core.") + "</div>" +
+      info("Playback keeps cores of its own: one, or two while DSP is in use. While a track is upsampled or made DSD as it plays, and for half a minute after, playback keeps all the cores but one, or as many as Cores for upsampling and DSD says. Scanning, measuring ReplayGain and the phone’s downloads run on the other cores, at the lowest priority, so playback comes first. Set PLAYBACK_CORES to 1 or 2 to fix how many playback keeps, or 0 to share every core.") + "</div>" +
       '<div class="id-progress" data-parity="settings-scanner.progress">' + (!known ? wait : cpu.split
-        ? cores(cpu.cores.length) + " · " + cpu.playback.length + " kept for playback" + (cpu.dsp ? " (DSP in use)" : "") + " · " + cpu.background.length + " for scanning and everything else"
-        : cores(cpu.cores.length) + ", shared") + "</div>" +
+        ? cores(cpu.cores.length) + " · " + cpu.playback.length + " kept for playback" + (cpu.making ? " (making as it plays)" : cpu.dsp ? " (DSP in use)" : "") + " · " + cpu.background.length + " for scanning and everything else"
+        : cores(cpu.cores.length) + ", shared") + "</div>" + making(known && cpu.split ? Math.min(3, cpu.cores.length - 1) : 0) +
       '<div class="settings-note" data-parity="settings-scanner.note">' + (!known ? "…" : !cpu.split ? "Playback comes first by priority."
         : cpu.raised ? "Playback also runs at a higher priority."
         : "To run playback at a higher priority too, start the container with --cap-add SYS_NICE.") + "</div></div>";
@@ -179,6 +182,8 @@ scanBody.addEventListener("click", (e) => {
   if (e.target.closest("[data-pack-choose]")) return packFolder(packBrowse.path);
   const pk = e.target.closest("[data-pack]");
   if (pk) return packAct(pk.getAttribute("data-pack"));
+  const mk = e.target.closest("[data-making]");
+  if (mk) return setMaking(mk.getAttribute("data-making"));
   if (e.target.closest("[data-id-recheck-all]")) return act("/api/identify/recheck-all", {}, "They will be looked at again");
   const cu = e.target.closest("[data-cleanup]");
   if (cu) {

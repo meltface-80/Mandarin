@@ -60,6 +60,18 @@ const DRIVER = `(async () => {
   out.lists_again = since.filter(u => /\\/api\\/identify\\?lists=[1-9]/.test(u)).length;
   out.github_again = since.filter(u => u.includes("check=1")).length;
   out.lists_on_open = asked.slice(0, before).filter(u => /\\/api\\/identify\\?lists=[1-9]/.test(u)).length;
+  // The cores for a making (item 260): where the cores are split, Auto and the rest, the one tapped kept.
+  const plan = await (await realFetch("/api/cpu", { cache: "no-store" })).json();
+  const segs = () => [...body.querySelectorAll("[data-making]")];
+  out.making = { split: plan.split, most: Math.min(3, plan.cores.length - 1), choices: segs().map(b => b.textContent), on: segs().filter(b => b.classList.contains("is-on")).map(b => b.textContent) };
+  if (plan.split) {
+    segs()[1].click();
+    await until(() => segs().length && segs()[1].classList.contains("is-on"));
+    out.making.tapped = segs().filter(b => b.classList.contains("is-on")).map(b => b.textContent);
+    out.making.kept = (await (await realFetch("/api/cpu", { cache: "no-store" })).json()).making_cores;
+    segs()[0].click();
+    await until(() => segs().length && segs()[0].classList.contains("is-on"));
+  }
   // Back, and open again: what it showed is there straight away, numbers and all.
   document.querySelector('#settings-overlay .settings-pane:not(.hidden) [data-settings-back]').click();
   for (let i = 0; i < 200 && !navItem().offsetParent; i++) await sleep(25);
@@ -99,6 +111,12 @@ test("Library Scanner: the page at once, each block as its answer comes, only wh
       assert.equal(r.lists_again, 0, "and not again while their counts stood still");
       assert.equal(r.github_again, 0, "GitHub asked about only when the page opened");
       assert.equal(r.again_at_once, true, "opened again: what it showed, at once");
+      if (r.making.split) {
+        assert.deepEqual(r.making.choices, ["Auto", "1", "2", "3"].slice(0, r.making.most + 1), "Auto, then 1 to all but one");
+        assert.deepEqual(r.making.on, ["Auto"]);
+        assert.deepEqual(r.making.tapped, ["1"], "the one tapped");
+        assert.equal(r.making.kept, 1, "kept by the server");
+      } else assert.deepEqual(r.making.choices, [], "cores shared: nothing to choose");
     } finally { await b.close(); }
   } finally {
     await srv.stop();

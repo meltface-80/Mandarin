@@ -259,11 +259,12 @@ internal static partial class Cpu
     /*
      * lib/cpu.js decide: the split from the machine and the settings. Playback
      * takes one core, or two with DSP, leaving the rest at least two where the
-     * machine has four or more; the first of playback's is the one it always
-     * has (the engine's playback thread is kept to it). [env]: PLAYBACK_CORES
-     * and PLAYBACK_CORE as given. Linux with taskset only.
+     * machine has four or more; while a track is made as it plays ([making],
+     * item 260), all but one, or the [makingCores] its owner set. The first of
+     * playback's is the one it always has (the engine's playback thread is kept
+     * to it). [env]: PLAYBACK_CORES and PLAYBACK_CORE as given. Linux with taskset only.
      */
-    public static (bool Split, int[] Cores, int[] Playback, int[] Background, int? Core) Decide(bool linux, bool taskset, int[] cores, string? playbackCores, string? playbackCore, bool dsp)
+    public static (bool Split, int[] Cores, int[] Playback, int[] Background, int? Core) Decide(bool linux, bool taskset, int[] cores, string? playbackCores, string? playbackCore, bool dsp, bool making = false, int makingCores = 0)
     {
         var none = (false, cores.ToArray(), Array.Empty<int>(), cores.ToArray(), (int?)null);
         if (!linux || !taskset) return none;
@@ -274,8 +275,8 @@ internal static partial class Cpu
         bool fixedOk = fixedN is { } f0 && double.IsFinite(f0), askedOk = asked is { } a0 && double.IsFinite(a0);
         var chosen = fixedOk || askedOk;
         if (n < 2 || (n < 3 && !chosen)) return none;
-        var want = fixedOk && fixedN!.Value > 0 ? fixedN.Value : dsp ? 2 : 1;
-        want = Math.Max(1, Math.Min(want, chosen || n < 4 ? n - 1 : n - 2));
+        var want = making ? (makingCores > 0 ? makingCores : n - 1) : fixedOk && fixedN!.Value > 0 ? fixedN.Value : dsp ? 2 : 1;
+        want = Math.Max(1, Math.Min(want, making || chosen || n < 4 ? n - 1 : n - 2));
         var playback = new List<int>();
         if (askedOk) { var av = asked!.Value; playback.Add(cores.Any(c => c == av) ? (int)av : cores[n - 1]); }
         for (int i = n - 1; i >= 0 && playback.Count < want; i--) if (!playback.Contains(cores[i])) playback.Add(cores[i]);
@@ -334,7 +335,7 @@ internal static partial class Cpu
     {
         Func<string, string?> env = Environment.GetEnvironmentVariable;
         var dsp = DspActive();
-        var d = Decide(OperatingSystem.IsLinux(), Tools.Value.Taskset, AllCores(), env("PLAYBACK_CORES"), env("PLAYBACK_CORE"), dsp);
+        var d = Decide(OperatingSystem.IsLinux(), Tools.Value.Taskset, AllCores(), env("PLAYBACK_CORES"), env("PLAYBACK_CORE"), dsp, MakingActive(), MakingCores);
         var next = new Split(d.Split, d.Playback, d.Background, d.Cores);
         decided = next;
         decidedDsp = dsp;
@@ -355,6 +356,8 @@ internal static partial class Cpu
             ["background"] = new JsonArray(p.Background.Select(c => (JsonNode)c).ToArray()),
             ["core"] = p.On && p.Playback.Length > 0 ? CoreOf(p) : null,
             ["dsp"] = dsp,
+            ["making"] = MakingActive(),
+            ["making_cores"] = MakingCores,
             ["raised"] = Raise.Value,
             ["tools"] = new JsonObject { ["taskset"] = t.Taskset, ["nice"] = t.Nice, ["ionice"] = t.Ionice }
         };
