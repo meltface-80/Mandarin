@@ -18,6 +18,19 @@
 - Fixed - Now playing shows a track's real length on a streamer that misreads it (419 hours for an upsampled ×16 track on a FiiO SR11)
 - New - DSD sent to a device as PCM can have the DSD modulator's ultrasonic noise taken off above 30 or 50 kHz (Settings → Audio Devices → a device → Output → DSD as PCM)
 - New - Mandarin can make DSD from PCM: a seventh-order modulator, its noise from 20 Hz to 20 kHz some 139 dB down at DSD64 (the engine; choosing it for a device follows)
+- New - PCM as DSD: a streamer or DAC that takes DSD can have the library's PCM made DSD64, DSD128 or DSD256 ahead of playing and sent as DSF (Settings → Audio Devices → a device → Output → PCM as DSD)
+
+- `243-dsd-output` (item 243): **PCM sent as DSD.** Output gains PCM as DSD (Off, DSD64, DSD128, DSD256), offered
+  where the device takes DSD and only at the multiples it takes. Set, each track of the library that isn't DSD is made
+  DSD ahead of playing by item 242's modulator and kept as a DSF beside the conversions (`-dsd64.dsf`), then sent as
+  it is in the device's own word for it (`/stream/t<id>.d64.dsf`, DsdPlan.cs). A track of 48 kHz's family is made
+  from the 44.1 kHz rate below its own (96 → 88.2 kHz) by SoX's resampler at its finest; the ReplayGain goes in
+  before the modulator; a DSP setting, a service's stream and DSD already DSD stay as they were. A DSF promised is a
+  DSF, so a track's queue entry carries its PCM beside it: a track started before its DSF is made goes as PCM (and the
+  tracks after it are made first); the next track is armed as its DSF once made, or as PCM in the last 30 s of the
+  one playing if it isn't (Players.Dsd.cs). Three tracks are made ahead, no more: a DSD256 track is a gigabyte of the
+  cache. Now playing says "DSD64 from PCM", or the PCM sent and "DSD64 being made"; the device's Output says how the
+  making goes. DSD64 takes about a third of a track's length to make, DSD256 about its length.
 
 - `242-dsd-modulator` (item 242): **PCM made DSD.** The engine for DSD output (item 243): a one-bit delta-sigma
   modulator of the seventh order in 64-bit floats (DsdModulator.cs), its noise transfer function of optimal zeros
@@ -40,8 +53,8 @@
   some −40 dB to the dither's floor near −144 dB), the band below untouched (within 0.001 dB to 24 kHz), with no
   delay and no tail, so gapless play stays gapless. It applies only where it does something: DSD going out as PCM
   at a rate above the one it passes through (DsdLowpass.cs). The address carries it (`?lp=`), the cache keeps it
-  apart (`-lp66150`), and Now playing's reason says "low-passed at 30 kHz". Mandarin makes no DSD itself: DSD
-  that a device takes as DSD goes bit for bit, its noise the recording's own.
+  apart (`-lp66150`), and Now playing's reason says "low-passed at 30 kHz". DSD that a device takes as DSD goes
+  bit for bit, its noise the recording's own.
 
 - `245-length-of-an-open-wav` (item 245): **Now playing keeps a track's length when a device misreads it.** A
   track sent as WAV above FLAC's rates (item 238) is written as it plays, its length left open in its header; the

@@ -209,6 +209,11 @@ internal fun DevicePane(id: String, client: () -> ServerClient?, onBack: () -> U
                     Seg(d.dsdLowpasses, d.dsdLowpassValue, key = { i, c -> Modifier.parity("settings-device.dsdlowpass", Contract.label("settings-device.dsdlowpass", i)).clickable(enabled = !busy) { patch(d.segment("dsd_lowpass", c.value)) } })
                     DeviceNote(d.dsdLowpassNote, Modifier.parity("settings-device.note"))
                 }
+                if (d.showDsdOut) CapGroup("PCM as DSD", Modifier.parity("settings-device.cap-label")) {
+                    Seg(d.dsdOuts, d.dsdOutValue, key = { i, c -> Modifier.parity("settings-device.dsdout", Contract.label("settings-device.dsdout", i)).clickable(enabled = !busy && !c.off) { patch(d.segment("dsd_out", c.value)) } })
+                    DeviceNote(d.dsdOutNote, Modifier.parity("settings-device.note"))
+                    d.dsdOutLine?.let { DeviceNote(it, Modifier.parity("settings-device.note")) }
+                }
                 if (d.canFixVolume) {
                     Box(Modifier.padding(top = 14.dp)) {
                         SetupRow("Fixed volume", Modifier.parity("settings-device.name"), null) {

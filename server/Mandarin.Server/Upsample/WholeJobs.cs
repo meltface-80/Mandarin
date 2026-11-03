@@ -19,6 +19,9 @@ internal static class WholeJobs
     private static readonly HashSet<long> Failed = [];
     private static string? makingName;
     private static bool running;
+    // The making under way, and the one stopped for a track sent as PCM meanwhile (Skip).
+    private static (string Key, Process Proc)? current;
+    private static string? stopped;
 
     /*
      * The plan to send now for [p]: itself where it isn't whole, or its file is made and this play didn't start on
@@ -51,7 +54,7 @@ internal static class WholeJobs
     public static (int Made, string? Making, int Waiting) Status()
     {
         var dir = Path.GetDirectoryName(Transcoder.FinalPath("x"))!;
-        var made = !Directory.Exists(dir) ? 0 : Directory.EnumerateFiles(dir).Count(f => f.EndsWith("-w.flac", StringComparison.Ordinal) || f.EndsWith("-w-wav.wav", StringComparison.Ordinal));
+        var made = !Directory.Exists(dir) ? 0 : Directory.EnumerateFiles(dir).Count(f => f.EndsWith("-w.flac", StringComparison.Ordinal) || f.EndsWith("-w-wav.wav", StringComparison.Ordinal) || f.EndsWith(".dsf", StringComparison.Ordinal));
         lock (Queue) return (made, makingName, Queue.Count);
     }
 
@@ -61,10 +64,26 @@ internal static class WholeJobs
         var rest = new List<(ConvTrack, ConvPlan)>();
         foreach (var (t, p) in items)
         {
-            if (p.Whole) Enqueue(t, p);
+            if (p.Whole || p.DsdUp != 0) Enqueue(t, p);   // made DSD from PCM too (DsdPlan.cs, item 243)
             else rest.Add((t, p));
         }
         if (rest.Count > 0) Transcoder.Prefetch(rest);
+    }
+
+    /*
+     * Track [t]'s making by [p] dropped, waiting or under way (one sent as PCM this time, item 243): the tracks after
+     * it, still to come, are made first.
+     */
+    public static void Skip(ConvTrack t, ConvPlan p)
+    {
+        var key = Transcoder.KeyFor(t, p);
+        lock (Queue)
+        {
+            Queue.RemoveAll(q => q.Key == key);
+            if (current is not { } c || c.Key != key) return;
+            stopped = key;
+            try { c.Proc.Kill(true); } catch (InvalidOperationException) { /* ended already */ }
+        }
     }
 
     private static void Enqueue(ConvTrack t, ConvPlan p)
@@ -104,18 +123,29 @@ internal static class WholeJobs
     {
         var final = Transcoder.FinalPath(key);
         var part = final + ".part";
-        var job = Job(t.Path, p, part);
+        var job = p.DsdUp != 0 ? DsdPlan.Job(t.Path, p, part, Transcoder.Soxr, MaxOutBits()) : Job(t.Path, p, part);
         var psi = new ProcessStartInfo(Environment.ProcessPath ?? "mandarin-server") { UseShellExecute = false, RedirectStandardInput = true, RedirectStandardOutput = true, RedirectStandardError = true };
         psi.ArgumentList.Add("upsample");
         Cpu.Place(psi, CpuKind.Ahead);
         using var proc = Process.Start(psi)!;
+        lock (Queue) current = (key, proc);
         Cpu.Adopt(proc, CpuKind.Ahead);
-        await proc.StandardInput.WriteLineAsync(job.ToJsonString());
-        proc.StandardInput.Close();
+        try { await proc.StandardInput.WriteLineAsync(job.ToJsonString()); proc.StandardInput.Close(); }
+        catch (IOException) { /* stopped before it read its job (Skip); its exit says so */ }
         var said = await proc.StandardOutput.ReadToEndAsync();
         _ = await proc.StandardError.ReadToEndAsync();
         await proc.WaitForExitAsync();
         Cpu.Forget(proc);
+        lock (Queue)
+        {
+            current = null;
+            if (stopped == key)
+            {
+                stopped = null;
+                try { File.Delete(part); } catch (IOException) { /* never made */ }
+                return;
+            }
+        }
         var r = JsonNode.Parse(said.Trim().Split('\n')[^1]) as JsonObject;
         if (proc.ExitCode != 0 || r == null || r["error"] != null)
         {
@@ -127,7 +157,7 @@ internal static class WholeJobs
         File.Move(part, final, overwrite: true);
         lock (Queue) Failed.Remove(t.Id);
         var gain = (double?)r["gain"] ?? 1;
-        Server.Log($"[upsample] {Path.GetFileName(t.Path)}: ×{(int)(p.Rate / Math.Max(1, p.InRate))} whole in {(double?)r["seconds"]} s, {(int?)r["sections"]} section(s){(gain < 1 ? $", {Math.Round(20 * Math.Log10(gain), 2)} dB to keep its peaks under full scale" : "")}");
+        Server.Log($"[upsample] {Path.GetFileName(t.Path)}: {(p.DsdUp != 0 ? $"DSD{p.DsdUp} from PCM ({(long?)r["resets"] ?? 0} reset(s))" : $"×{(int)(p.Rate / Math.Max(1, p.InRate))} whole")} in {(double?)r["seconds"]} s, {(int?)r["sections"]} section(s){(gain < 1 ? $", {Math.Round(20 * Math.Log10(gain), 2)} dB to keep its peaks under full scale" : "")}");
         Transcoder.Prune();
     }
 

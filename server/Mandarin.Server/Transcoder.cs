@@ -108,8 +108,8 @@ internal static partial class Transcoder
     public static bool FfOk => Ff.Value.Ok;
 
     /* The Transcoder's keyFor (lib/stream.js), as Playback/StreamPlans.cs writes it. */
-    public static string KeyFor(ConvTrack t, ConvPlan p) => StreamPlans.KeyFor(Jv.Obj(("id", (double)t.Id), ("mtime", (double)t.Mtime)), p.ToJs()) + (p.Lowpass != 0 ? "-lp" + p.Lowpass : "") + (p.Whole ? "-w" : "") + (p.Wav ? "-wav" : "");
-    public static string FinalPath(string key) => Path.Combine(dir, key + (key.EndsWith("-wav", StringComparison.Ordinal) ? ".wav" : ".flac"));
+    public static string KeyFor(ConvTrack t, ConvPlan p) => StreamPlans.KeyFor(Jv.Obj(("id", (double)t.Id), ("mtime", (double)t.Mtime)), p.ToJs()) + (p.Lowpass != 0 ? "-lp" + p.Lowpass : "") + (p.Whole ? "-w" : "") + (p.Wav ? "-wav" : "") + (p.DsdUp != 0 ? Upsample.DsdPlan.Suffix(p.DsdUp) : "");
+    public static string FinalPath(string key) => Path.Combine(dir, key + (key.EndsWith("-wav", StringComparison.Ordinal) ? ".wav" : Upsample.DsdPlan.IsDsf(key) ? ".dsf" : ".flac"));
 
     /* stream.js ffmpegArgs (Playback/StreamPlans.cs): the gain first, the DSP before the requantise. */
     public static List<string> Args(string src, ConvPlan p, string dest) => Args(src, p, dest, Ff.Value.Soxr);
@@ -281,7 +281,7 @@ internal static partial class Transcoder
     {
         try
         {
-            var files = new DirectoryInfo(dir).GetFiles().Where(f => f.Name.EndsWith(".flac", StringComparison.Ordinal) || f.Name.EndsWith(".wav", StringComparison.Ordinal)).OrderBy(f => f.LastWriteTimeUtc).ToList();
+            var files = new DirectoryInfo(dir).GetFiles().Where(f => f.Name.EndsWith(".flac", StringComparison.Ordinal) || f.Name.EndsWith(".wav", StringComparison.Ordinal) || f.Name.EndsWith(".dsf", StringComparison.Ordinal)).OrderBy(f => f.LastWriteTimeUtc).ToList();
             long total = files.Sum(f => f.Length);
             while (total > maxBytes && files.Count > 1)
             {

@@ -17,6 +17,7 @@ internal sealed class PlayItem
     public double? Gain;              // for the phone to apply (null: none)
     public PhoneItem? Phone;          // a phone's queue entry, moving elsewhere (phones.js itemsFor)
     public UpnpItem? Upnp { get; set; }   // a renderer's queue entry (players.js), part 3
+    public PlayItem? Instead;         // a track made DSD from PCM (item 243): the PCM, sent while the DSF is made
 }
 
 /* A phone's queue entry (phones.js toItem). */
@@ -59,4 +60,6 @@ internal sealed class UpnpItem
     public string ArtUri { get; set; } = "";
     public double Duration { get; set; }
     public SentInfo? Sent { get; set; }
+    // A track made DSD from PCM (item 243): the other of the two, the DSF's or the PCM's (Renderers/Players.Dsd.cs).
+    public UpnpItem? Instead { get; set; }
 }

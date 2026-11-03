@@ -17,6 +17,8 @@ internal sealed record SentInfo(bool Transcode, double Rate, double Bits, double
 {
     // Planned to be upsampled whole (item 237): Now playing says whether its own file went out (item 239).
     public bool Whole { get; init; }
+    // Sent as PCM while it is made DSD at this multiple (item 243): Now playing says so.
+    public int DsdMaking { get; init; }
 
     public JsonObject Json() => new()
     {

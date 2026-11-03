@@ -2,7 +2,7 @@
 // `mandarin-server score` (Identify/ScoreCommand.cs), a line of JSON in and a
 // line out, so test/streams-csharp.test.js holds them to the Node server's:
 //
-//   { fn: "plans", native, ext_mime, family, renderer_mime, plan, fit, whole, whole_badge, dsd_lowpass, repack, with_gain, with_dsp, args, keys, plan_for, service,
+//   { fn: "plans", native, ext_mime, family, renderer_mime, plan, fit, whole, whole_badge, dsd_lowpass, dsd_up, dsd_job, dsd_badge, repack, with_gain, with_dsp, args, keys, plan_for, service,
 //     held_mime, held_sonos, held_keys, held_args }   lib/stream.js, playback.js; Streams.cs, Transcoder.cs
 //   { fn: "gain", levelling, patch, ebur, combine, held_combine, album, info, gain_of, gains_for }   lib/loudness.js
 //   { fn: "dsp", coeffs, section_db, response, sweep, peak, bands_of, headroom, normalise_band, normalise, active,
@@ -124,6 +124,11 @@ internal static class StreamCommand
         o["whole_badge"] = Each(job["whole_badge"], a => Upsample.WholeServed.Badge(Arg(a, 0) is bool b ? b : null, Arg(a, 1) as string));
         // A DSD track's plan for a device set to a low-pass (item 241): fitted, then marked, as Items.cs makes it.
         o["dsd_lowpass"] = Each(job["dsd_lowpass"], a => DsdLowpass.Mark(HighRates.Fit(StreamPlans.Plan(Arg(a, 0), Arg(a, 1)), Arg(a, 1)), Arg(a, 1), Arg(a, 0)));
+        // A track's plan for a device set to PCM as DSD (item 243): fitted, then marked, as Items.cs makes it; the job that
+        // makes it [src, plan, dest, soxr]; the badge of one sent as PCM meanwhile [multiple, the making].
+        o["dsd_up"] = Each(job["dsd_up"], a => Upsample.DsdPlan.Mark(HighRates.Fit(StreamPlans.Plan(Arg(a, 0), Arg(a, 1)), Arg(a, 1)), Arg(a, 1), Arg(a, 0), Jv.Str(Jv.Get(Arg(a, 0), "path"))));
+        o["dsd_job"] = Each(job["dsd_job"], a => Scan.JsJson.Parse(Upsample.DsdPlan.Job(Js.Str(Arg(a, 0)), ConvPlan.Of((JsObj)Arg(a, 1)!), Js.Str(Arg(a, 2)), Jv.T(Arg(a, 3)), 24).ToJsonString()));
+        o["dsd_badge"] = Each(job["dsd_badge"], a => Upsample.DsdPlan.Badge((int)Jv.Num(Arg(a, 0)), Arg(a, 1) as string));
         o["repack"] = Each(job["repack"], a => StreamPlans.Repack(Arg(a, 0), Arg(a, 1)));
         o["with_gain"] = Each(job["with_gain"], a => StreamPlans.WithGain(Arg(a, 0), Arg(a, 1), Arg(a, 2), Arg(a, 3)));
         o["with_dsp"] = Each(job["with_dsp"], a => StreamPlans.WithDsp((JsObj)Arg(a, 0)!, Arg(a, 1), Arg(a, 2)));
@@ -140,7 +145,7 @@ internal static class StreamCommand
         o["held_keys"] = Each(job["held_keys"], a =>
         {
             var t = new ConvTrack((long)Jv.Num(Arg(a, 0)), "", (long)Jv.Num(Arg(a, 1)));
-            return Transcoder.KeyFor(t, new ConvPlan((long)Jv.Num(Arg(a, 2)), (int)Jv.Num(Arg(a, 3)), Jv.T(Arg(a, 4)), Jv.T(Arg(a, 5)), "") { Wav = Jv.T(Arg(a, 6)), Whole = Jv.T(Arg(a, 7)), Lowpass = (long)Jv.Num(Jv.Or(Arg(a, 8), 0.0)) });
+            return Transcoder.KeyFor(t, new ConvPlan((long)Jv.Num(Arg(a, 2)), (int)Jv.Num(Arg(a, 3)), Jv.T(Arg(a, 4)), Jv.T(Arg(a, 5)), "") { Wav = Jv.T(Arg(a, 6)), Whole = Jv.T(Arg(a, 7)), Lowpass = (long)Jv.Num(Jv.Or(Arg(a, 8), 0.0)), DsdUp = (int)Jv.Num(Jv.Or(Arg(a, 9), 0.0)) });
         });
         o["held_args"] = Each(job["held_args"], a =>
         {

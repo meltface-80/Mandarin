@@ -242,6 +242,7 @@ internal sealed partial class Players
             ("dsp", dsp), ("id", r.Id));
         if (s["filter"] is "whole") target["filter"] = "whole";   // the whole-track filter (item 237); standard by its absence
         if (DsdLowpass.Of(s["dsd_lowpass"]) is { } cut) target["dsd_lowpass"] = cut;   // DSD as PCM, low-passed (item 241)
+        if (Upsample.DsdPlan.Of(s["dsd_out"]) is { } up) target["dsd_out"] = (double)up;   // PCM as DSD (item 243)
         return target;
     }
 
