@@ -36,6 +36,7 @@
 - Improved - a track upsampled or made DSD as it plays gets the processor: playback keeps all the cores but one while it is made, or as many as Settings → Library Scanner → Processor → Cores for upsampling and DSD says (Auto, 1, 2 or 3)
 - Improved - PCM as DSD keeps a 48 kHz-family track (48, 96, 192 kHz) in its own family: 96 kHz goes ×8 to 768 kHz and DSD256 at 12.288 MHz, nothing resampled, where it went down to 88.2 kHz first; on a device that takes PCM at the rate DoP carries it on (768 kHz for DSD256), else as before
 - Fixed - PCM as DSD, Min phase and Gentle are gapless: an album that runs on from track to track plays on without a pause or a click, the next track sent to the device while it is still being made and made as one stream with the track before
+- Fixed - signed in to Tidal, a token that stops working is renewed once, however many requests find it stale at the same time
 
 - `259-dsd-on-demand` (item 259): **PCM as DSD, and the shaped filters, made as they play.** A track made DSD from
   PCM had to be made whole, ahead (items 243, 254): its filter was one as long as the track (237, PGGB's way), so
@@ -460,6 +461,13 @@
   up on after 90 seconds. It now steps toward the album by the shelf's own order, a few steps at most, and says if it
   never got there. Nothing changes in Mandarin.
 
+- `266-tidal-refresh-once` (item 266): **a stale Tidal token renewed once.** Two calls refused at once with a token
+  that had stopped working both renewed it when the second's refusal came after the first's renewal had finished
+  (TidalApi.Refresh was one at a time, but only while one was under way): a renewal more than needed, and the test
+  of it ("a token that stops working is refreshed, unasked") failed when the server's own call for the featured
+  lists ran beside the test's search. Now a call refused with a token that has since been replaced is made again with
+  the one kept, and only a call refused with the current one renews it (TidalApi.Renewed). Test: tidal.test.js (two
+  calls refused with a stale token, the second's refusal held until the first has renewed it: renewed once).
 ## v1.1.14
 
 Tweaks - altered share card copy function, Android app copies it to the clipboard. Items 223 to 225.
