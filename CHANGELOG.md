@@ -24,6 +24,16 @@
 - New - two more upsampling filters (Settings → Audio Devices → a device → Output → Filter): Minimum phase, whose ringing comes only after a sound starts, and Gentle, which rolls off earlier and rings for half as long; made ahead as Whole track is, and used for PCM as DSD too
 - Fixed - Output's Filter button for minimum phase read "Minimum p…" on a phone; it says Min phase
 - Improved - PCM as DSD is made about three times faster: a track at DSD256 in about a quarter of its own length here, where it took longer than the track itself
+- Improved - Mandarin's DSD modulator holds past SACD's highest level (+3.1 dB, 71% modulation) with room to spare, where it held only to 62%
+
+- `255-modulator-headroom` (item 255): **the modulator holds to SACD's highest level.** SACD's reference is 50%
+  modulation, and its signal may peak 3.1 dB above it, at 71.4%. Mandarin's seventh-order modulator, its gain out of
+  band 1.4, was measured stable only to about 62%: at 65% it was reset twice in half a second, at 71% hundreds of
+  times. It never went that high, each track being scaled so its true peaks fall at full scale (50%), but the margin
+  was 1.6 dB. Its gain out of band is now 1.3 at DSD64 and 1.25 at DSD128 and DSD256 (DsdOut.Hinf), each measured
+  with no reset to 75% or more. The noise in the band is a little higher, still below what any DAC resolves: −126 dB
+  at DSD64 (was −139), −161 dB at DSD128, −204 dB at DSD256 (was −228). Tests hold each rate to no reset at 71.4% and
+  75%, on a tone, on three tones and on noise; with the gain of 1.4 they fail.
 
 - `251-dsd-faster` (item 251): **DSD made three times faster.** A 220 s track at DSD256 took 456 s on the owner's server.
   Measured here, 60 s at DSD256 took 38.9 s: the whole-track step 6 s; the doublings 60% and the modulator 25% of the
