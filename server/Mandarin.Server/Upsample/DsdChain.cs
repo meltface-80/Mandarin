@@ -1,6 +1,6 @@
 // DsdChain.cs — one channel from 705.6 kHz PCM to DSD bits (bug list item 242).
 //
-// The whole-track upsampler (WholeTrack.cs) takes a track to 705.6 kHz, sixteen times a CD's rate, with nothing above
+// The upsampler (StreamUpsample.cs) takes a track to 705.6 kHz, sixteen times a CD's rate, with nothing above
 // the original band. From there to DSD64 (2.8224 MHz), DSD128 or DSD256 is two, three or four doublings, each a
 // half-band filter: a Kaiser-windowed sinc of 33 taps, flat to far above the audio band and keeping the images of the
 // doubling 100 dB and more down, where the modulator's own noise is a hundred times louder. Each doubling delays the

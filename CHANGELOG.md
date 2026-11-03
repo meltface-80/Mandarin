@@ -31,6 +31,34 @@
 - New - DSD to a USB DAC on the server: native DSD where the DAC says it takes it (found from the DAC itself), DoP where you tick DSD for it; DSD files and PCM as DSD alike, never made PCM
 - New - room correction takes one impulse response a rate (several WAVs at once, or a zip of them): each track runs through the one made at its rate, else the nearest of its family, resampled
 - Fixed - room correction plays a response at its own level with ffmpeg 7 or later (a Mac's, from Homebrew), where one resampled to a track's rate came out quieter
+- Improved - PCM as DSD is made as it plays: a track goes as DSD from its first play, sent while it is made, where it went as PCM until made ahead; Output says how fast this server makes it, and whether that keeps up
+- Improved - Min phase and Gentle are made as they play too, from a track's first play; Whole track is gone (a device set to it has the standard filter)
+
+- `259-dsd-on-demand` (item 259): **PCM as DSD, and the shaped filters, made as they play.** A track made DSD from
+  PCM had to be made whole, ahead (items 243, 254): its filter was one as long as the track (237, PGGB's way), so
+  nothing of it could go until the end of it had been read, and its first play was always PCM, the standard filter's,
+  DSD only the next time (264 s for a 4:37 track on the owner's server). Now each is made as it plays, as HQPlayer does:
+  the upsampler is a filter of a fixed length, 2048 of the track's samples (46 ms at 44.1 kHz), run a block at a time by
+  overlap-save (Upsample/StreamUpsample.cs): Standard (flat to 95% of the band, linear phase, its delay taken off so
+  the output is the input's length times the factor), Gentle (from 90%) and Minimum phase (Standard's levels, the
+  cepstrum's phase); against the exact tones it is some 210 dB out, the same however the input comes in blocks. The
+  device asking for the track starts `mandarin-server upsample` (UpsampleCommand.cs, Upsample/MadeAsPlayed.cs): the
+  track decoded a block at a time, upsampled, each channel's doublings and modulator on threads of their own, the
+  DSF's header written first (its length from the track's) and each block after it as both channels have it; the
+  device is sent the file as it grows, as a conversion is, and it is kept, so the next play is the file whole. One is
+  made at a time, on every core; the next track is made in its turn and armed once whole; another play stops what was
+  being made for the one before. A peak past +2.9 dB over full scale, between the samples, is held there (70% of the
+  modulation, inside what the modulator holds): a track is no longer scaled to its own peak, which needed all of it
+  first. Here DSD256 is made at 5.8× real time (it was 4.2×), DSD64 at 11×; each making's speed is logged and Output
+  says it under PCM as DSD ("made the last at 1.4× real time, fast enough to keep up"; under 1.15× it says it is too
+  slow and that half the rate is half the work). Min phase and Gentle for PCM are made the same way, from the first
+  play; Standard for PCM is SoX's as before. Whole track is gone from the page, the app and the server (a device left
+  at it has the standard filter; the setting is refused), and with it the queue of makings, the PCM sent while a DSF
+  was made and Now playing's "being made" and "next play". Tests: the upsampler against the exact tones, its length,
+  its blocks, its shapes' ringing and levels; a DSF never made sent as it is made, its header right, then kept and sent
+  whole; a renderer's first play of an album as DSF from the first track, its signal path, its speed said, the next
+  armed whole, another play stopping what was made; Minimum phase for PCM from the first play; the page's and the
+  app's words.
 
 - `258-ir-per-rate` (item 258): **room correction, one response a rate.** A device's DSP held one impulse response,
   made at one rate and resampled to every track's. A measurement is made at a rate, and REW or Dirac give one a rate,

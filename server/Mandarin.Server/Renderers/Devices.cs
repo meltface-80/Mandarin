@@ -212,25 +212,23 @@ internal sealed class Devices
             ("mode", r.Settings["mode"] is string mode && mode is "original" or "x2" or "x4" or "max" ? mode : "original"),
             ("bits", r.Settings["bits"] is double b && b is 24 or 32 ? (object)b : "auto"),
             ("flac32", Transcoder.Flac32)) : null;
-        // A filter made ahead (whole track, minimum phase, gentle: items 237, 248), said only where it is set: standard
-        // is said by its absence.
-        if (streamer && Upsample.WholeShape.MadeAhead(r.Settings["filter"]))
+        // A filter other than the standard one (minimum phase, gentle: items 248, 259), said only where it is set (a
+        // device left at Whole track, scrapped, is the standard filter's); made as it plays, and how fast that went.
+        if (streamer && Upsample.Shape.OfFilter(r.Settings["filter"]) != null)
         {
-            var (made, making, waiting) = Upsample.WholeJobs.Status();   // how the making goes (item 239)
             var output = (JsObj)o["output"]!;
             output["filter"] = r.Settings["filter"];
-            output["whole"] = Jv.Obj(("made", (double)made), ("making", making), ("waiting", (double)waiting));
+            output["making"] = Upsample.MadeAsPlayed.Note(0);
         }
         // The highest rate its owner allows (item 240), said only where it is set: Auto by its absence.
         if (streamer && RateCap.Of(r.Settings["max_rate"]) is { } cap) ((JsObj)o["output"]!)["max_rate"] = cap;
         // DSD as PCM, low-passed (item 241), said only where it is set: Off by its absence.
         if (streamer && DsdLowpass.Of(r.Settings["dsd_lowpass"]) is { } cut) ((JsObj)o["output"]!)["dsd_lowpass"] = cut;
-        // PCM as DSD (item 243), said only where it is set, with how the making goes: Off by its absence.
+        // PCM as DSD (item 243), said only where it is set, with how fast it was made as it played (259): Off by its absence.
         if (streamer && Upsample.DsdPlan.Of(r.Settings["dsd_out"]) is { } up)
         {
-            var (made, making, waiting) = Upsample.WholeJobs.Status();
             ((JsObj)o["output"]!)["dsd_out"] = (double)up;
-            ((JsObj)o["output"]!)["whole"] = Jv.Obj(("made", (double)made), ("making", making), ("waiting", (double)waiting));
+            ((JsObj)o["output"]!)["making"] = Upsample.MadeAsPlayed.Note(up);
         }
         o["first_seen"] = r.FirstSeen; o["last_seen"] = r.LastSeen;
         o["profile"] = caps["profile"]; o["editable"] = caps["editable"];

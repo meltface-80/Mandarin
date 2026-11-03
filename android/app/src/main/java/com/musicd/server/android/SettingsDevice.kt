@@ -198,7 +198,7 @@ internal fun DevicePane(id: String, client: () -> ServerClient?, onBack: () -> U
                 if (d.showFilter) CapGroup("Filter", Modifier.parity("settings-device.cap-label")) {
                     Seg(d.filters, d.filter, key = { i, c -> Modifier.parity("settings-device.filter", Contract.label("settings-device.filter", i)).clickable(enabled = !busy) { patch(d.segment("filter", c.value)) } })
                     DeviceNote(d.filterNote, Modifier.parity("settings-device.note"))
-                    d.wholeLine?.let { DeviceNote(it, Modifier.parity("settings-device.note")) }
+                    d.filterMakingLine?.let { DeviceNote(it, Modifier.parity("settings-device.note")) }
                 }
                 if (d.has32) CapGroup("Bit depth", Modifier.parity("settings-device.cap-label")) {
                     Seg(d.depths, d.outBits, key = { i, c -> Modifier.parity("settings-device.depth", Contract.label("settings-device.depth", i)).clickable(enabled = !busy && !c.off) { patch(d.segment("bits", c.value)) } })

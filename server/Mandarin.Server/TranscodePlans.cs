@@ -15,15 +15,14 @@ internal sealed record ConvPlan(long Rate, int Bits, bool Hq, bool Exact, string
     public double InRate { get; init; }
     // Above FLAC's rates, PCM in a WAV whose length is left open (Playback/HighRates.cs, item 238).
     public bool Wav { get; init; }
-    // Upsampled whole, in one transform, made ahead (Upsample/WholeJobs.cs, item 237).
-    public bool Whole { get; init; }
     // DSD as PCM, low-passed through this rate (Playback/DsdLowpass.cs, item 241); 0 for none.
     public long Lowpass { get; init; }
-    // Made DSD at this multiple from PCM, made ahead (Upsample/DsdPlan.cs, item 243); 0 for none.
+    // Made DSD at this multiple from PCM, as it plays (Upsample/DsdPlan.cs, items 243, 259); 0 for none.
     public int DsdUp { get; init; }
     // A Qobuz or Tidal stream already what was planned: its FLAC frames copied as they come (v0.8.47).
     public bool Copy { get; init; }
-    // The whole-track filter's shape, where one is made ahead: "min", "gentle", or null for linear (Upsample/WholeShape.cs, item 248).
+    // The upsampling filter's shape where it isn't the standard one: "min", "gentle", or null (Upsample/Shape.cs, items 248, 259);
+    // made as it plays (Upsample/MadeAsPlayed.cs).
     public string? Shape { get; init; }
 
     /* The plan as lib/stream.js has it, for its name and ffmpeg's arguments. */
@@ -46,10 +45,9 @@ internal sealed record ConvPlan(long Rate, int Bits, bool Hq, bool Exact, string
         Dsp = Jv.T(p["dsp"]) ? p["dsp"] as JsObj : null,
         InRate = Jv.T(p["inRate"]) ? Jv.Num(p["inRate"]) : 0,
         Wav = Jv.T(p["wav"]),
-        Whole = Jv.T(p["whole"]),
         Lowpass = Jv.T(p["lowpass"]) ? (long)Jv.Num(p["lowpass"]) : 0,
         DsdUp = Jv.T(p["dsdUp"]) ? (int)Jv.Num(p["dsdUp"]) : 0,
-        Shape = Upsample.WholeShape.Word(Upsample.WholeShape.Of(p["shape"] as string))
+        Shape = Upsample.Shape.Word(Upsample.Shape.Of(p["shape"] as string))
     };
 }
 

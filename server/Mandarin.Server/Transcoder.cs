@@ -108,9 +108,9 @@ internal static partial class Transcoder
     public static bool FfOk => Ff.Value.Ok;
 
     /* The Transcoder's keyFor (lib/stream.js), as Playback/StreamPlans.cs writes it. */
-    public static string KeyFor(ConvTrack t, ConvPlan p) => StreamPlans.KeyFor(Jv.Obj(("id", (double)t.Id), ("mtime", (double)t.Mtime)), p.ToJs()) + (p.Lowpass != 0 ? "-lp" + p.Lowpass : "") + (p.Whole ? "-w" : "")
-        // A made-ahead filter's shape (item 248), before the endings FinalPath reads its kind of file from; a standard conversion has none.
-        + ((p.Whole || p.DsdUp != 0) && p.Shape != null ? "-" + p.Shape : "")
+    public static string KeyFor(ConvTrack t, ConvPlan p) => StreamPlans.KeyFor(Jv.Obj(("id", (double)t.Id), ("mtime", (double)t.Mtime)), p.ToJs()) + (p.Lowpass != 0 ? "-lp" + p.Lowpass : "")
+        // A filter's shape (items 248, 259), before the endings FinalPath reads its kind of file from; the standard filter has none.
+        + (p.Shape != null ? "-" + p.Shape : "")
         + (p.Wav ? "-wav" : "") + (p.DsdUp != 0 ? Upsample.DsdPlan.Suffix(p.DsdUp) : "");
     public static string FinalPath(string key) => Path.Combine(dir, key + (key.EndsWith("-wav", StringComparison.Ordinal) ? ".wav" : Upsample.DsdPlan.IsDsf(key) ? ".dsf" : ".flac"));
 
@@ -161,8 +161,28 @@ internal static partial class Transcoder
             job.Finished.TrySetResult();
             Prune();
         }
+        // A reader waiting for more is woken as the .part grows.
+        void Watch() => _ = Task.Run(async () =>
+        {
+            long last = -1;
+            while (!job.Done)
+            {
+                await Task.Delay(100);
+                long len = 0;
+                try { len = new FileInfo(job.Part).Length; } catch (IOException) { /* not there yet */ }
+                if (len != last) { last = len; job.Wake(); }
+            }
+        });
         void Begin(string src, ConvPlan plan, List<string>? pieces)
         {
+            // A DSF from PCM, or PCM in a shape (item 259): made by `mandarin-server upsample` as it plays.
+            if (pieces == null && Upsample.MadeAsPlayed.Takes(plan))
+            {
+                Server.Log($"[stream] {Path.GetFileName(t.Path)}: {plan.Reason} → {(plan.DsdUp != 0 ? $"DSF, DSD{plan.DsdUp}" : $"{(plan.Wav ? "WAV" : "FLAC")} {plan.Bits}/{(plan.Rate / 1000.0).ToString(CultureInfo.InvariantCulture)} kHz")}");
+                Upsample.MadeAsPlayed.Start(t, plan, job, Finish, err);
+                Watch();
+                return;
+            }
             try
             {
                 var psi = new ProcessStartInfo(Ff.Value.Bin) { UseShellExecute = false, RedirectStandardError = true, RedirectStandardInput = true };
@@ -182,18 +202,7 @@ internal static partial class Transcoder
                 else proc.StandardInput.Close();
                 proc.BeginErrorReadLine();
                 Server.Log($"[stream] {Path.GetFileName(t.Path)}: {plan.Reason} → {(plan.Wav ? "WAV" : "FLAC")} {plan.Bits}/{(plan.Rate / 1000.0).ToString(CultureInfo.InvariantCulture)} kHz{(plan.Copy ? " (as it comes)" : "")}");
-                // A reader waiting for more is woken as the .part grows.
-                _ = Task.Run(async () =>
-                {
-                    long last = -1;
-                    while (!job.Done)
-                    {
-                        await Task.Delay(100);
-                        long len = 0;
-                        try { len = new FileInfo(job.Part).Length; } catch (IOException) { /* not there yet */ }
-                        if (len != last) { last = len; job.Wake(); }
-                    }
-                });
+                Watch();
             }
             catch (Exception e)
             {
@@ -250,7 +259,8 @@ internal static partial class Transcoder
             foreach (var (t, p) in items)
             {
                 var key = KeyFor(t, p);
-                if (Jobs.ContainsKey(key) || File.Exists(FinalPath(key)) || Queue.Any(q => q.Key == key)) continue;
+                // A DSF from PCM, or PCM in a shape, is made as it plays, one at a time (Upsample/MadeAsPlayed.cs): never ahead.
+                if (Upsample.MadeAsPlayed.Takes(p) || Jobs.ContainsKey(key) || File.Exists(FinalPath(key)) || Queue.Any(q => q.Key == key)) continue;
                 Queue.Add((key, t, p));
             }
         }

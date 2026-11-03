@@ -127,11 +127,11 @@ internal static partial class Library
                     if (!Jv.OneOf(mode, "original", "x2", "x4", "max")) throw new DeviceRefusal(400, "mode must be original, x2, x4 or max");
                     patch["mode"] = mode;
                 }
-                // The upsampler (items 237, 248): SoX as it goes, or the whole track in one transform, linear, minimum phase or gentle.
+                // The upsampler (items 248, 259): the standard filter, minimum phase or gentle, each as it plays.
                 var filter = Prop(output, "filter");
                 if (filter is not Undef)
                 {
-                    if (!Jv.OneOf(filter, "standard", "whole", "minphase", "gentle")) throw new DeviceRefusal(400, "filter must be standard, whole, minphase or gentle");
+                    if (!Jv.OneOf(filter, "standard", "minphase", "gentle")) throw new DeviceRefusal(400, "filter must be standard, minphase or gentle");
                     patch["filter"] = filter;
                 }
                 // DSD as PCM, low-passed (item 241): off, or the cut in Hz.

@@ -123,32 +123,62 @@ internal static class DsdRules
         return new JsObj { ["same"] = fast.AsSpan().SequenceEqual(slow), ["fast_ms"] = fastMs, ["generic_ms"] = t0.Elapsed.TotalMilliseconds };
     }
 
-    // [seconds] of tones at [from] made DSD at [dsd] as a track is (DsdOut.Make), into a file thrown away after: the time
-    // it took, and the time the whole-track step alone takes (item 251), in ms; the rest is the doublings and modulators.
-    // With [compare], made too with the modulators in turn rather than beside the doublings: whether the files are the
-    // same, byte for byte, and the time that took.
+    // [seconds] of tones at [from] made DSD at [dsd] as a track is (UpsampleCommand.Dsd, item 259), into a file thrown
+    // away after: the time it took in ms, and how many times real time that is. With [compare], made too with each
+    // channel's modulator run in turn after its doublings, not beside them: whether the files are the same, byte for byte.
     private static JsObj Make(int dsd, int from, double seconds, bool compare)
     {
         var frames = (long)(seconds * from);
-        double[] left = new double[frames], right = new double[frames];
-        for (long i = 0; i < frames; i++) { left[i] = 0.4 * Math.Sin(2 * Math.PI * 997 * i / from) + 0.1 * Math.Sin(2 * Math.PI * 15000 * i / from); right[i] = -left[i]; }
+        var pcm = new byte[frames * 16];
+        for (long i = 0; i < frames; i++)
+        {
+            var v = 0.4 * Math.Sin(2 * Math.PI * 997 * i / from) + 0.1 * Math.Sin(2 * Math.PI * 15000 * i / from);
+            System.Buffers.Binary.BinaryPrimitives.WriteDoubleLittleEndian(pcm.AsSpan((int)(i * 16)), v);
+            System.Buffers.Binary.BinaryPrimitives.WriteDoubleLittleEndian(pcm.AsSpan((int)(i * 16 + 8)), -v);
+        }
+        var factor = DsdChain.InRate / from;
         var path = Path.Combine(Path.GetTempPath(), "mandarin-dsdmake-" + Guid.NewGuid().ToString("N") + ".dsf");
         try
         {
             var t0 = System.Diagnostics.Stopwatch.StartNew();
-            var (r, resets) = DsdOut.Make(left, right, from, dsd, 28, path);
+            var r = UpsampleCommand.Dsd(new MemoryStream(pcm), factor, Shape.Kind.Standard, dsd, path, frames);
             var total = t0.Elapsed.TotalMilliseconds;
-            t0.Restart();
-            WholeTrack.Run(left, right, from, WholeTrack.Options.For(DsdChain.InRate / from, null, 28), (_, _, _, _, _) => { });
-            var o = new JsObj { ["ms"] = total, ["whole_ms"] = t0.Elapsed.TotalMilliseconds, ["bytes"] = (double)new FileInfo(path).Length, ["resets"] = (double)resets, ["frames"] = (double)r.Frames };
+            var o = new JsObj
+            {
+                ["ms"] = total, ["speed"] = seconds * 1000 / total, ["bytes"] = (double)new FileInfo(path).Length,
+                ["resets"] = (double)r.Resets, ["frames"] = (double)r.Frames,
+            };
             if (!compare) return o;
-            t0.Restart();
-            DsdOut.Make(left, right, from, dsd, 28, path + ".seq", pipelined: false);
-            o["sequential_ms"] = t0.Elapsed.TotalMilliseconds;
-            o["same"] = File.ReadAllBytes(path).AsSpan().SequenceEqual(File.ReadAllBytes(path + ".seq"));
+            o["same"] = File.ReadAllBytes(path).AsSpan().SequenceEqual(InTurn(pcm, frames, factor, dsd));
             return o;
         }
-        finally { File.Delete(path); File.Delete(path + ".seq"); }
+        finally { File.Delete(path); }
+    }
+
+    // The same DSF made with each chain's modulator run after its doublings, on the caller's thread, the bits gathered.
+    private static byte[] InTurn(byte[] pcm, long frames, int factor, int dsd)
+    {
+        var ntf = DsdOut.Ntf(dsd);
+        DsdChain l = new(dsd, ntf), r = new(dsd, ntf);
+        List<byte> bl = [], br = [];
+        var up = new StreamUpsample(factor, Shape.Kind.Standard, (a, b, n) =>
+        {
+            l.Push(a.AsSpan(0, n), x => bl.AddRange(x.ToArray()));
+            r.Push(b.AsSpan(0, n), x => br.AddRange(x.ToArray()));
+        });
+        double[] x = new double[frames], y = new double[frames];
+        for (long i = 0; i < frames; i++)
+        {
+            x[i] = System.Buffers.Binary.BinaryPrimitives.ReadDoubleLittleEndian(pcm.AsSpan((int)(i * 16)));
+            y[i] = System.Buffers.Binary.BinaryPrimitives.ReadDoubleLittleEndian(pcm.AsSpan((int)(i * 16 + 8)));
+        }
+        up.Push(x, y);
+        up.Finish();
+        l.Finish(frames * factor, b => bl.AddRange(b.ToArray()));
+        r.Finish(frames * factor, b => br.AddRange(b.ToArray()));
+        using var ms = new MemoryStream();
+        using (var w = new DsfWriter(ms, dsd, frames * factor * l.Factor)) { w.Write(0, [.. bl]); w.Write(1, [.. br]); }
+        return ms.ToArray();
     }
 
     // A 705.6 kHz tone through the chain to [rate]: the noise and the tone in the band, and the length made.

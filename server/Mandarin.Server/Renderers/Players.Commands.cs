@@ -79,7 +79,8 @@ internal sealed partial class Players
         // stream.js status(track, plan): ready (the file is there), running (being made), else none — and then it is started.
         var key = Transcoder.KeyFor(t, plan);
         var ready = File.Exists(Transcoder.FinalPath(key));
-        if (!ready && !Transcoder.Jobs.ContainsKey(key)) Upsample.WholeJobs.Prefetch([(t, plan)]);
+        // Not yet: begun (a DSF from PCM, or PCM in a shape, in its turn after what is being made now: item 259).
+        if (!ready && !Transcoder.Jobs.ContainsKey(key)) { if (Upsample.MadeAsPlayed.Takes(plan)) Transcoder.Start(t, plan); else Transcoder.Prefetch([(t, plan)]); }
         return ready;
     }
 
@@ -98,7 +99,7 @@ internal sealed partial class Players
             return;
         }
         lock (gate) { if (p.Next is { Sent: true } nx && nx.Uri == it.Uri) return; }
-        if (!Ready(it = Arming(p, n, it))) return;   // a track made DSD from PCM: the DSF, or the PCM late (item 243)
+        if (!Ready(it)) return;
         try
         {
             await RendererOf(p).SetNextUri(it.Uri, it.Meta);
@@ -122,7 +123,7 @@ internal sealed partial class Players
         {
             if (index < 0 || index >= p.Queue.Count) throw new HubError(500, "Nothing to play");
             p.Verifying = null;         // the device asked again what it plays, for the same track played again too
-            it = Starting(p, index);    // a track made DSD from PCM: the DSF where it is made, else the PCM (item 243)
+            it = p.Queue[index];
             p.ExpectStop = false;
             p.Next = null;              // SetAVTransportURI clears a renderer's next
             p.Heard = true;             // started by us: a stop now is this track's
@@ -179,7 +180,7 @@ internal sealed partial class Players
         var t = it.Track;
         var p = it.Plan;
         string Or(object? a, string? b) => Jv.T(a) ? Jv.Str(a) : b ?? "";
-        return Paired(it.Instead, new UpnpItem
+        return new UpnpItem
         {
             Uri = it.Uri, Meta = it.Meta, Track = t, Plan = p,
             TrackId = t?.Id ?? Phones.TrackIdFromUri(it.Uri),
@@ -190,8 +191,8 @@ internal sealed partial class Players
             Sent = p == null ? null : new SentInfo(Jv.T(p["transcode"]),
                 Jv.T(p["transcode"]) ? Jv.Num(p["rate"]) : t?.SampleRate ?? 0, Jv.T(p["transcode"]) ? Jv.Num(p["bits"]) : t?.Bits ?? 0,
                 Jv.T(p["upsampled"]) ? Jv.Num(p["upsampled"]) : 0, Jv.T(p["dsp"]), Jv.T(p["dsd"]) ? Jv.Num(p["dsd"]) : 0,
-                Jv.T(p["ext"]) ? Jv.Str(p["ext"]) : "", Jv.T(p["mime"]) ? Jv.Str(p["mime"]) : "") { Whole = Jv.T(p["whole"]), DsdMaking = Jv.T(p["dsdMaking"]) ? (int)Jv.Num(p["dsdMaking"]) : 0, Gain = Jv.T(p["gain"]) ? Jv.Num(p["gain"]) : 0, Lowpass = Jv.T(p["lowpass"]) ? Jv.Num(p["lowpass"]) : 0, Shape = p["shape"] as string }
-        });
+                Jv.T(p["ext"]) ? Jv.Str(p["ext"]) : "", Jv.T(p["mime"]) ? Jv.Str(p["mime"]) : "") { Gain = Jv.T(p["gain"]) ? Jv.Num(p["gain"]) : 0, Lowpass = Jv.T(p["lowpass"]) ? Jv.Num(p["lowpass"]) : 0, Shape = p["shape"] as string }
+        };
     }
 
     public async Task<System.Text.Json.Nodes.JsonObject> Enqueue(string id, List<PlayItem> items, string how, double startAt, double seconds)

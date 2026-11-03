@@ -54,7 +54,7 @@ test("a renderer is a zone", { skip, timeout: 150000 }, async (t) => {
   const { createServer } = require("./server");
   const options = {
     port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [ports.host(0)],
-    upnpHosts: [wiim.location, poly.location, dac.location], upnpMulticast: false, dsdLateS: 5, makeWaitMs: 1500
+    upnpHosts: [wiim.location, poly.location, dac.location], upnpMulticast: false, makeWaitMs: 1500
   };
   let srv = createServer(options);
   let ctx = await srv.start();
@@ -308,29 +308,26 @@ test("a renderer is a zone", { skip, timeout: 150000 }, async (t) => {
       assert.deepEqual(probe(f3.body), { rate: 88200, channels: 2, bits: 24 });
       r = await api("audio-devices/" + WIIM, { output: { max_rate: "auto", mode: "original" } }, "PATCH");
       assert.equal(r.output.max_rate, undefined);
-      // Whole track, played from a queue (items 237, 244): the album's tracks made ahead upsampled whole, kept as their
-      // own files. Planned for the queue, every one of them failed ("the factor must be a power of two") on 3 November.
-      r = await api("audio-devices/" + WIIM, { output: { mode: "x2", filter: "whole" } }, "PATCH");
+      // Whole track is gone (item 259): refused.
+      assert.equal((await api("audio-devices/" + WIIM, { output: { mode: "x2", filter: "whole" } }, "PATCH")).status, 400);
+      // Minimum phase (items 248, 259): made as it plays, the address saying the shape, a file of its own.
+      r = await api("audio-devices/" + WIIM, { output: { mode: "x2", filter: "minphase" } }, "PATCH");
       assert.equal(r.status, 200, JSON.stringify(r));
-      const said = ctx.logs.length;
-      await api("play", { offset: cd.offset, zone_or_output_id: WIIM, kind: "play_now" });
-      const made = path.join(lib.data, "transcode");
-      // All three of its tracks, the ones the WiiM hasn't asked for yet too: those only the queue makes ahead.
-      await until(() => fs.existsSync(made) && fs.readdirSync(made).filter(f => /-w\.flac$/.test(f)).length >= 3, 60000);
-      // Each made once, none failed on the way.
-      assert.deepEqual(ctx.logs.slice(said).filter(l => /\[upsample\] .*couldn't/.test(l)), []);
-      // Minimum phase (item 248): made the same way into files of its own, the address saying the shape it is made in.
-      r = await api("audio-devices/" + WIIM, { output: { filter: "minphase" } }, "PATCH");
       assert.equal(r.output.filter, "minphase");
+      const said = ctx.logs.length;
       const asked = wiim.fetches.length;
       await api("play", { offset: cd.offset, zone_or_output_id: WIIM, kind: "play_now" });
-      const f4 = await until(() => wiim.fetches.slice(asked).find(x => /\.88200-24w\.flac/.test(x.uri)), 15000);
-      assert.match(f4.uri, /[?&]f=min(&|$)/);
-      // Now playing says which: the minimum-phase filter, or the standard one while it is made.
+      // Its first track the minimum phase's from the first play, never the standard filter's while it is made.
+      const f4 = await until(() => wiim.fetches.slice(asked).find(x => x.done && x.body && x.body.length > 1000), 15000);
+      assert.match(f4.uri, /\.88200-24\.flac\?(.*&)?f=min(&|$)/);
+      assert.deepEqual(probe(f4.body), { rate: 88200, channels: 2, bits: 24 });
       const np = await until(async () => { const z = await state(WIIM); return z && z.now_playing && z.now_playing.signal && z.now_playing; }, 15000);
-      assert.match(np.signal.lines[1], /^(Minimum-phase filter|Standard filter · minimum phase (being made|next play))$/);
-      await until(() => fs.readdirSync(made).filter(f => /-w-min\.flac$/.test(f)).length >= 3, 60000);
-      assert.deepEqual(ctx.logs.slice(said).filter(l => /\[upsample\] .*couldn't/.test(l)), []);
+      assert.equal(np.signal.lines[1], "Minimum-phase filter");
+      // The next made in its turn, then armed whole: its file too, and none failed on the way.
+      const made = path.join(lib.data, "transcode");
+      await until(() => fs.existsSync(made) && fs.readdirSync(made).filter(f => /-min\.flac$/.test(f)).length >= 2, 60000);
+      assert.deepEqual(ctx.logs.slice(said).filter(l => /\[upsample\] .*couldn't|transcode failed/.test(l)), []);
+      assert.ok(ctx.logs.slice(said).some(l => /\[upsample\] .*×2, minimum phase, made as it played at [\d.]+× real time/.test(l)), "its speed in the log");
       await api("audio-devices/" + WIIM, { output: { mode: "original", filter: "standard" } }, "PATCH");
     });
 
@@ -448,77 +445,46 @@ test("a renderer is a zone", { skip, timeout: 150000 }, async (t) => {
       await api("audio-devices/" + POLY, { caps: { user: { dsd: null } } }, "PATCH");
     });
 
-    await t.test("PCM as DSD (item 243): the library's PCM made DSD64 ahead and sent as a DSF; a track not yet made, as PCM", async () => {
+    await t.test("PCM as DSD (items 243, 259): the library's PCM made DSD64 as it plays, a DSF from the first play", async () => {
       let r = await api("audio-devices/" + DAC, { enabled: true }, "PATCH");
       assert.equal(r.status, 200, JSON.stringify(r));
       assert.deepEqual(r.dsd.filter(d => d.on).map(d => d.n), [64], "a device of no profile of its own: DSD64");
       r = await api("audio-devices/" + DAC, { output: { dsd_out: 64 } }, "PATCH");
       assert.equal(r.status, 200, JSON.stringify(r));
       assert.equal(r.output.dsd_out, 64);
+      assert.match(r.output.making, /^Made as it plays/);
       assert.equal((await api("audio-devices/" + DAC, { output: { dsd_out: 32 } }, "PATCH")).status, 400);
       await until(async () => (await api("zones")).zones.some(z => z.zone_id === DAC), 20000);
       const said = ctx.logs.length;
-      await api("play", { offset: long.offset, zone_or_output_id: DAC, kind: "play_now" });
-      // Long 1, not made yet: as PCM (the file as it is), Now playing saying its DSF is on the way.
-      const first = await until(() => dac.fetches.find(x => x.done && x.body && x.body.length > 1000 && x), 15000);
-      assert.match(first.uri, /\.orig\.flac/, first.uri);
-      const pcm = await until(async () => { const z = await state(DAC); return z && z.now_playing && / · DSD64 (being made|next play)$/.test(z.now_playing.format.text) && z; }, 15000);
-      // Its signal path (item 247): the file as it is, its DSF still to come.
-      assert.deepEqual(pcm.now_playing.signal.lines.slice(0, 1), ["FLAC 16/44.1 kHz · bit-perfect"]);
-      assert.match(pcm.now_playing.signal.lines[pcm.now_playing.signal.lines.length - 1], /^DSD64 (being made|next play)$/);
-      assert.deepEqual(pcm.now_playing.signal.steps.map(x => x.kind), ["source", "output", "pending"]);
-      // Long 2, made meanwhile: armed next as its DSF.
-      await until(() => /\.d64\.dsf/.test(dac.nextUri), 40000);
-      // Skipped to: started as the DSF, DSD64 in the device's own word for it.
       const from = dac.fetches.length;
-      await api("control", { zone_or_output_id: DAC, command: "next" });
-      const f = await until(() => dac.fetches.slice(from).find(x => x.done && /\.d64\.dsf/.test(x.uri) && x), 15000);
+      await api("play", { offset: long.offset, zone_or_output_id: DAC, kind: "play_now" });
+      // Long 1, never made: its DSF from the first play, sent as it is made, its 30 s in its header from the first bytes.
+      const f = await until(() => dac.fetches.slice(from).find(x => x.done && x.body && x.body.length > 1000 && x), 60000);
+      assert.match(f.uri, /\.d64\.dsf/, f.uri);
       assert.equal(f.status, 200);
       assert.equal(f.type, "audio/x-dsf");
       assert.equal(f.body.toString("ascii", 0, 4), "DSD ");
       assert.equal(f.body.readUInt32LE(56), 2822400, "DSD64");
+      assert.equal(Number(f.body.readBigInt64LE(64)), 30 * 44100 * 64);
       const dz = await until(async () => { const z = await state(DAC); return z && z.now_playing && z.now_playing.format && z.now_playing.format.text === "DSD64 from PCM" && z; }, 15000);
-      // Its signal path (item 247): ×16 whole to 705.6 kHz, the modulator, the DSF.
-      assert.deepEqual(dz.now_playing.signal.lines, ["DSD64 · 2.8224 MHz", "From PCM · whole track ×16 · 7th-order modulator"]);
+      // Its signal path (item 247): ×16 to 705.6 kHz, the modulator, the DSF; nothing still to be made.
+      assert.deepEqual(dz.now_playing.signal.lines, ["DSD64 · 2.8224 MHz", "From PCM · standard filter ×16 · 7th-order modulator"]);
       assert.deepEqual(dz.now_playing.signal.steps.map(x => x.kind), ["source", "upsample", "modulator", "output"]);
-      assert.deepEqual(ctx.logs.slice(said).filter(l => /\[upsample\] .*couldn't/.test(l)), []);
-      // Long 1 went as PCM: its DSF, asked for before Long 1 started, was put after the tracks still to come (item 246)
-      // and made after them, for its next play (item 254: it was dropped, and Now playing's "next play" never so).
-      await until(() => ctx.logs.slice(said).some(l => /Long 1\.flac: DSD64 from PCM/.test(l)), 60000);
-      const madeOrder = ctx.logs.slice(said).filter(l => /Long \d\.flac: DSD64 from PCM/.test(l)).map(l => l.match(/Long (\d)/)[1]);
-      assert.equal(madeOrder[madeOrder.length - 1], "1", madeOrder.join(","));
-      assert.equal(madeOrder.filter(n => n === "1").length, 1, madeOrder.join(","));
-      assert.ok(madeOrder.indexOf("2") < madeOrder.indexOf("1"), madeOrder.join(","));
-      // Another album played at once: what was to be made for the one before no longer is (item 246); the Lorde album
-      // went on being made upsampled whole long after other albums were played on 3 November.
-      const before = ctx.logs.length;
+      // How fast it was made: in the log, and under PCM as DSD.
+      await until(() => ctx.logs.slice(said).some(l => /Long 1\.flac: DSD64 from PCM, standard filter \(0 reset\(s\)\), made as it played at [\d.]+× real time/.test(l)), 60000);
+      await until(async () => /^Made as it plays: this server made the last at [\d.]+× real time/.test((await api("audio-devices/" + DAC)).output.making), 10000);
+      // Long 2 made in its turn after it, then armed whole.
+      await until(() => /\.d64\.dsf/.test(dac.nextUri), 60000);
+      assert.deepEqual(ctx.logs.slice(said).filter(l => /\[upsample\] .*couldn't|transcode failed/.test(l)), []);
+      // Another album played while one is being made: what was being made for the one before stops (item 246).
+      const asked = dac.fetches.length;
       await api("play", { offset: cd.offset, zone_or_output_id: DAC, kind: "play_now" });
+      await until(() => dac.fetches.slice(asked).some(x => /\.d64\.dsf/.test(x.uri)), 15000);
+      const before = ctx.logs.length;
       await api("play", { offset: long.offset, zone_or_output_id: DAC, kind: "play_now" });
       await until(() => ctx.logs.slice(before).some(l => /track\(s\) no longer made: another play/.test(l)), 15000);
-      await until(async () => { const o = (await api("audio-devices/" + DAC)).output; return o.whole && !o.whole.making && o.whole.waiting === 0; }, 40000);
-      assert.deepEqual(ctx.logs.slice(before).filter(l => /Song \d\.flac: DSD64 from PCM/.test(l)), []);
       await api("control", { zone_or_output_id: DAC, command: "stop" });
       await api("audio-devices/" + DAC, { output: { dsd_out: "off" }, enabled: false }, "PATCH");
-    });
-
-    await t.test("PCM standing in for a DSF says why it has the standard filter, the device set to minimum phase (item 254)", async () => {
-      // A FiiO SR11 at Max, Min phase and DSD256 on 3 November: "Standard filter" under a filter set to minimum phase.
-      let r = await api("audio-devices/" + DAC, { enabled: true, caps: { user: { rates: [44100, 48000, 88200, 96000] } }, output: { mode: "x2", filter: "minphase", dsd_out: 64 } }, "PATCH");
-      assert.equal(r.status, 200, JSON.stringify(r));
-      await until(async () => (await api("zones")).zones.some(z => z.zone_id === DAC), 20000);
-      // The short album (three tracks of 3 s): its makings in minimum phase take seconds, where the long one's took a
-      // minute of this test's budget on a busy machine. Whichever plays first goes as PCM while its DSF is made.
-      await api("play", { offset: cd.offset, zone_or_output_id: DAC, kind: "play_now" });
-      const z = await until(async () => { const s = await state(DAC); return s && s.now_playing && s.now_playing.signal && /^Song \d$/.test(s.now_playing.line1) && / · DSD64 /.test(s.now_playing.format.text) && s; }, 20000);
-      const sp = z.now_playing.signal;
-      assert.equal(sp.lines[1], "Standard filter · until the DSD64 (minimum phase) is made", JSON.stringify(sp.lines));
-      assert.equal(sp.steps.find(x => x.kind === "upsample").detail, "×2 to 88.2 kHz · Standard filter (until the DSD64 (minimum phase) is made)");
-      // Its own DSF, put after the tracks to come: waiting its turn, or being made (never "next play: next play").
-      assert.match(sp.steps.find(x => x.kind === "pending").detail, /^DSD64 (for this track’s next play: (waiting its turn|being made now)|made: this track plays as DSD next time)$/);
-      await api("control", { zone_or_output_id: DAC, command: "stop" });
-      // Its makings ended before the next test.
-      await until(async () => { const o = (await api("audio-devices/" + DAC)).output; return o.whole && !o.whole.making && o.whole.waiting === 0; }, 60000);
-      await api("audio-devices/" + DAC, { caps: { user: { rates: null } }, output: { mode: "original", filter: "standard", dsd_out: "off" }, enabled: false }, "PATCH");
     });
 
     await t.test("a renderer still PLAYING at the end of a track, with nothing to go on to, is started on the next by hand (item 246)", async () => {

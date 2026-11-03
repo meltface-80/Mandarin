@@ -1,6 +1,6 @@
-// UpsampleRules.cs — the whole-track upsampler measured, for the tests (bug list item 237; RulesCommand's
-// "wholetrack"). Tones are made at the input rate, faded in and out, upsampled, and set against the same tones worked
-// out exactly at the output rate: what differs is the upsampler's error, in dB below full scale.
+// UpsampleRules.cs — the upsampler measured, for the tests (bug list items 237, 259; RulesCommand's "upsample").
+// Tones are made at the input rate, faded in and out, upsampled a block at a time (StreamUpsample.cs), and set against
+// the same tones worked out exactly at the output rate: what differs is the upsampler's error, in dB below full scale.
 using Mandarin.Server.Tags;
 using TJs = Mandarin.Server.Tags.Js;
 
@@ -9,74 +9,115 @@ namespace Mandarin.Server.Upsample;
 internal static class UpsampleRules
 {
     /*
-     * { rate, factor, seconds, tones: [[hz, amplitude]], max_out_bits, pass } → { error_db, peak, gain, sections, frames },
-     * the error over the middle (a second in from each end). With compare: true, the same also done in sections of
-     * 2^max_out_bits points and set against the whole: { error_db, joins_db }. With fft: n, the transform against
-     * the DFT done by hand on n points: { fft_db, round_trip_db }. With shape ("min", "gentle", item 248) the filter
-     * of that shape; with gains: true, each tone's level out against its level in, in dB ({ gains_db }); with
-     * impulse: true, a click in the middle instead of the tones, and its ringing before and after it
-     * ({ pre_db, post_db, pre_energy_db }: WholeShapeRules.cs).
+     * { rate, factor, seconds, tones: [[hz, amplitude]], shape? } → { error_db, leak_db, frames, out_frames, blocks_db }:
+     * the error over the middle (a second in from each end), the left leaking into the right, the output's length, and
+     * how far the output differs when the input comes in other blocks. With gains: true, each tone's level out against
+     * its level in, in dB ({ gains_db }); with impulse: true, a click in the middle instead of the tones, and its
+     * ringing before and after it ({ pre_db, post_db, pre_energy_db }). With fft: n, the transform against the DFT
+     * done by hand on n points: { fft_db, round_trip_db }.
      */
     public static JsObj Run(JsObj job)
     {
         if (job["fft"] is double fn) return FftCheck((int)fn);
         var rate = (int)TJs.ToNumber(job["rate"]);
         var factor = (int)TJs.ToNumber(job["factor"]);
-        var shape = job["shape"] as string;
-        if (job["impulse"] is true) return WholeShapeRules.Impulse(rate, factor, shape);
+        var kind = Shape.Of(job["shape"] as string);
+        if (job["impulse"] is true) return Impulse(rate, factor, kind);
         var seconds = TJs.ToNumber(job["seconds"]);
         var tones = (job["tones"] as List<object?> ?? []).Select(t => t as List<object?> ?? []).Select(t => (Hz: TJs.ToNumber(t[0]), Amp: TJs.ToNumber(t[1]))).ToArray();
-        var pass = job["pass"] is double p ? p : 0.95;
-        var maxBits = job["max_out_bits"] is double mb ? (int)mb : 28;
         var frames = (long)(seconds * rate);
         var fade = (long)(0.25 * rate);
         double Signal(double t, long i, long n) => Envelope(i, n, fade) * tones.Sum(x => x.Amp * Math.Sin(2 * Math.PI * x.Hz * t));
         var left = new double[frames]; var right = new double[frames];
         for (long i = 0; i < frames; i++) { left[i] = Signal((double)i / rate, i, frames); right[i] = -0.5 * left[i]; }
 
-        double[] Upsampled(int bits, out WholeTrack.Result r)
+        var (y, yr) = Upsampled(left, right, factor, kind, new Random(259));
+        var (z, _) = Upsampled(left, right, factor, kind, new Random(7));
+        double leak = 0, blocks = 0;
+        for (long i = 0; i < y.LongLength; i++)
         {
-            var outL = new double[frames * factor]; var outR = new double[frames * factor];
-            long at = 0;
-            var opts = shape != null ? WholeTrack.Options.For(factor, shape, bits) : new WholeTrack.Options(factor, pass, MaxOutBits: bits);
-            r = WholeTrack.Run(left, right, rate, opts, (re, im, from, count, gain) =>
-            {
-                for (long i = 0; i < count; i++) { outL[at + i] = re[from + i] * gain; outR[at + i] = im[from + i] * gain; }
-                at += count;
-            });
-            // The right channel is the left's -½: any leak between them shows here too.
-            double leak = 0;
-            for (long i = 0; i < outL.LongLength; i++) leak = Math.Max(leak, Math.Abs(outR[i] + 0.5 * outL[i]));
-            Leak = Math.Max(Leak, leak);
-            return outL;
+            leak = Math.Max(leak, Math.Abs(yr[i] + 0.5 * y[i]));
+            blocks = Math.Max(blocks, Math.Abs(y[i] - z[i]));
         }
-
-        Leak = 0;
-        var whole = Upsampled(maxBits, out var res);
-        // The middle, against the tones worked out exactly at the output rate (the gain taken off).
+        // The middle, against the tones worked out exactly at the output rate.
         var outRate = (double)rate * factor;
-        var outFrames = frames * factor;
         double err = 0;
-        for (var i = (long)outRate; i < outFrames - (long)outRate; i++)
-            err = Math.Max(err, Math.Abs(whole[i] / res.Gain - Signal(i / outRate, i / factor, frames)));
+        for (var i = (long)outRate; i < y.LongLength - (long)outRate; i++)
+            err = Math.Max(err, Math.Abs(y[i] - Signal(i / outRate, i / factor, frames)));
         var o = new JsObj
         {
-            ["error_db"] = Db(err), ["peak"] = res.Peak, ["gain"] = res.Gain, ["sections"] = (double)res.Sections,
-            ["frames"] = (double)res.Frames, ["leak_db"] = Db(Leak),
+            ["error_db"] = Db(err), ["leak_db"] = Db(leak), ["blocks_db"] = Db(blocks),
+            ["frames"] = (double)frames, ["out_frames"] = (double)y.LongLength,
         };
-        if (job["gains"] is true) o["gains_db"] = WholeShapeRules.Gains(whole, res.Gain, outRate, seconds, tones);
-        if (job["compare"] is true)
-        {
-            var parts = Upsampled((int)TJs.ToNumber(job["section_bits"]), out var pr);
-            double d = 0;
-            for (long i = 0; i < outFrames; i++) d = Math.Max(d, Math.Abs(parts[i] / pr.Gain - whole[i] / res.Gain));
-            o["joins_db"] = Db(d);
-            o["section_count"] = (double)pr.Sections;
-        }
+        if (job["gains"] is true) o["gains_db"] = Gains(y, outRate, seconds, tones);
         return o;
     }
 
-    private static double Leak;
+    // [left] and [right] through the upsampler, pushed in blocks of sizes drawn from [rnd]: the two channels out.
+    private static (double[] L, double[] R) Upsampled(double[] left, double[] right, int factor, Shape.Kind kind, Random rnd)
+    {
+        var l = new List<double>(left.Length * factor);
+        var r = new List<double>(left.Length * factor);
+        var up = new StreamUpsample(factor, kind, (a, b, n) => { l.AddRange(a.AsSpan(0, n)); r.AddRange(b.AsSpan(0, n)); });
+        for (var at = 0; at < left.Length;)
+        {
+            var n = Math.Min(left.Length - at, 1 + rnd.Next(20000));
+            up.Push(left.AsSpan(at, n), right.AsSpan(at, n));
+            at += n;
+        }
+        up.Finish();
+        return ([.. l], [.. r]);
+    }
+
+    // Each of [tones]' level in [y] (at [outRate]) against its level in, in dB, over the whole seconds but the first and last.
+    private static List<object?> Gains(double[] y, double outRate, double seconds, (double Hz, double Amp)[] tones)
+    {
+        var from = (long)outRate;
+        var to = (long)(outRate * (Math.Floor(seconds) - 1));
+        var n = to - from;
+        var out_ = new List<object?>();
+        foreach (var (hz, amp) in tones)
+        {
+            double a = 0, b = 0;
+            for (var i = from; i < to; i++)
+            {
+                var (s, c) = Math.SinCos(2 * Math.PI * hz * i / outRate);
+                a += y[i] * s; b += y[i] * c;
+            }
+            out_.Add(Db(2 * Math.Sqrt(a * a + b * b) / n / amp));
+        }
+        return out_;
+    }
+
+    /*
+     * A click (one sample of 0.5) in the middle of four seconds at [rate], upsampled by [factor] in [kind]: the most
+     * the output rings more than a millisecond before and after the click, and the share of its energy before the
+     * click (more than one input sample before), in dB against the output's peak and its whole.
+     */
+    private static JsObj Impulse(int rate, int factor, Shape.Kind kind)
+    {
+        var frames = 4 * rate;
+        var left = new double[frames]; var right = new double[frames];
+        left[frames / 2] = 0.5; right[frames / 2] = -0.25;
+        var (y, _) = Upsampled(left, right, factor, kind, new Random(1));
+        var p = (long)frames / 2 * factor;   // the click's own time at the output rate
+        var peak = y.Max(Math.Abs);
+        var ms = (long)(rate * factor / 1000.0);
+        double pre = 0, post = 0, before = 0, all = 0;
+        for (long i = 0; i < y.LongLength; i++)
+        {
+            var v = Math.Abs(y[i]);
+            if (i < p - ms) pre = Math.Max(pre, v);
+            if (i > p + ms) post = Math.Max(post, v);
+            if (i < p - factor) before += v * v;
+            all += v * v;
+        }
+        return new JsObj
+        {
+            ["pre_db"] = Db(pre / peak), ["post_db"] = Db(post / peak),
+            ["pre_energy_db"] = 10 * Math.Log10(Math.Max(before, 1e-300) / all),
+        };
+    }
 
     // Up and down over [fade] frames at each end (a Hann half), so the tones start and stop without a click.
     private static double Envelope(long i, long n, long fade)

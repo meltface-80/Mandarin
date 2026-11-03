@@ -176,7 +176,7 @@ internal static partial class Streams
         {
             var asked = q["m"].Count == 1 ? q["m"].ToString() : "";
             p = Jv.Obj(("transcode", true), ("hq", true), ("mime", DsdMime().IsMatch(asked) ? asked : "audio/x-dsf"), ("ext", "dsf"), ("rate", (double)t.Rate), ("bits", 1.0),
-                ("dsd", (double)dsdUp), ("dsdUp", (double)dsdUp), ("inRate", (double)t.Rate), ("reason", $"DSD{dsdUp} from PCM, made ahead"));
+                ("dsd", (double)dsdUp), ("dsdUp", (double)dsdUp), ("inRate", (double)t.Rate), ("reason", $"DSD{dsdUp} from PCM, made as it plays"));
             if (gain is { } g0) p["gain"] = g0;   // in the PCM it is made from, as the plan had it (WithGain leaves DSD alone)
         }
         else if (seg == "orig")
@@ -215,21 +215,19 @@ internal static partial class Streams
         // Made already: sent from the cache, marked as used. Not yet: made
         // now, and sent as it is made (v0.8.11; before, the Node server's).
         var track = new ConvTrack(id, t.Path, mtime);
-        if (seg.EndsWith('w') && segRate != 0 && svc == null && t.Rate > 0 && Upsample.WholePlan.Takes(segRate / t.Rate) && segRate % t.Rate == 0) { p["whole"] = true; p["inRate"] = (double)t.Rate; }
-        // ?f=: the shape a made-ahead filter was asked in (item 248), its file that shape's.
-        if ((Jv.T(p["whole"]) || dsdUp != 0) && QueryOne(raw, "f") is { } fq && fq.Here && Upsample.WholeShape.Word(Upsample.WholeShape.Of(fq.Value)) is { } shape) p["shape"] = shape;
+        // ?f=: the filter's shape (items 248, 259), for a DSF from PCM or a library track upsampled by a power of two;
+        // that shape's file, made as it plays (Upsample/MadeAsPlayed.cs).
+        if (QueryOne(raw, "f") is { } fq && fq.Here && Upsample.Shape.Word(Upsample.Shape.Of(fq.Value)) is { } shape && svc == null
+            && (dsdUp != 0 || segRate != 0 && t.Rate > 0 && segRate % t.Rate == 0 && Upsample.MadeAsPlayed.Power(segRate / t.Rate)))
+        {
+            p["shape"] = shape;
+            if (dsdUp == 0) p["inRate"] = (double)t.Rate;
+        }
         // DSD as PCM, low-passed through the rate asked (?lp=, Playback/DsdLowpass.cs, item 241): a DSD file, a promised rate above it.
         if (segRate != 0 && svc == null && QueryOne(raw, "lp") is { } lq && lq.Here && long.TryParse(lq.Value, out var lpm) && DsdLowpass.IsMid(lpm) && segRate > lpm && StreamPlans.IsDsd(Row(t))) p["lowpass"] = (double)lpm;
-        // Made DSD from PCM (item 243): the DSF, made ahead; not made yet, asked to be, and not here (the PCM is sent meanwhile).
-        if (dsdUp != 0)
-        {
-            var dsf = Transcoder.FinalPath(Transcoder.KeyFor(track, ConvPlan.Of(p)));
-            if (svc == null && File.Exists(dsf)) return await SendFile(ctx, dsf, Jv.Str(p["mime"]));
-            if (svc == null) Upsample.WholeJobs.Prefetch([(track, ConvPlan.Of(p))]);
-            return Refuse(ctx, 503);
-        }
-        // Whole and made: that file; whole and not yet: the standard filter now, the whole one made for next time.
-        var job = Transcoder.Start(track, Upsample.WholeJobs.Choose(track, ConvPlan.Of(p)));
+        // Made already: that file; else made now, and sent as it is made (a DSF from PCM too: item 259).
+        if (dsdUp != 0 && svc != null) return Refuse(ctx, 404);
+        var job = Transcoder.Start(track, ConvPlan.Of(p));
         if (job.Done && !job.Failed) return await SendFile(ctx, job.Final, Jv.Str(p["mime"]));
         if (job.Done) { ctx.Response.StatusCode = 500; ctx.Response.Headers["X-Mandarin-Answered"] = "C#"; return true; }
         await Transcoder.TailFollow(ctx, job, Jv.Str(p["mime"]));
