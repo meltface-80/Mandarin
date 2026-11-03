@@ -13,6 +13,8 @@
 - Fixed - upsampling ×16 (705.6 and 768 kHz) plays: as WAV where the device takes WAV, else at the highest rate FLAC carries; it was silent
 - New - whole-track upsampling: a streamer or DAC set to upsample can use one filter as long as the track (Settings → Audio Devices → a device → Output → Filter), made ahead of playing
 - Improved - whole-track upsampling shows itself: Now playing says whether a track went out whole or with the standard filter and why, and the device's Output says how many tracks are made and which is being made
+- New - a highest rate for each streamer or DAC (Settings → Audio Devices → a device → Output → Highest rate): nothing goes above it, upsampled or not
+- Fixed - whole-track upsampling works for an album or a queue played on a streamer; every track planned from a queue failed ("whole track failed: see the log")
 - New - DSD sent to a device as PCM can have the DSD modulator's ultrasonic noise taken off above 30 or 50 kHz (Settings → Audio Devices → a device → Output → DSD as PCM)
 
 - `241-dsd-lowpass` (item 241): **DSD played as PCM, its modulator's noise above the band taken off.** DSD64
@@ -27,6 +29,24 @@
   at a rate above the one it passes through (DsdLowpass.cs). The address carries it (`?lp=`), the cache keeps it
   apart (`-lp66150`), and Now playing's reason says "low-passed at 30 kHz". Mandarin makes no DSD itself: DSD
   that a device takes as DSD goes bit for bit, its noise the recording's own.
+
+- `244-whole-track-from-the-queue` (item 244): **whole-track upsampling works from a queue.** On 3 November an
+  album played on a FiiO SR11 set to Whole track showed "standard (whole track failed: see the log)", and the log
+  said why for every track: "the factor must be a power of two". A track's whole-track job divides the plan's rate by
+  the track's own; a plan made for a queue (what an album, a playlist or a radio plays) carried no rate of the
+  track's own, so the factor came out as the plan's rate itself (705,600) and every job failed, and failed again
+  each time the queue was looked at. Only a track asked for by its address alone, as the tests had it, carried the
+  rate. The plan now carries it wherever it is marked to be upsampled whole (WholePlan.cs), and a job without one
+  says so plainly. A renderer test now plays an album with Whole track on and holds the server to all its tracks
+  made ahead, none failed on the way (it failed so before the fix, exactly as on the SR11).
+
+- `240-rate-limits` (item 240): **a highest rate for each device, set by its owner.** A device's rates are what it
+  reports or what its owner switched on, and Max upsampling went to the highest of them; to keep a FiiO SR11 below
+  ×16 its owner had to switch its top rates off. Output gains Highest rate: Auto, or 96, 192, 384 or 768 kHz (only
+  those below the device's own top). It is named by 48 kHz's family and holds 44.1 kHz's to the rate that matches
+  (88.2, 176.4, 352.8, 705.6 kHz). Nothing goes above it, upsampled or not: a file above it is converted down to it,
+  and Max stops there. The device's rates are left as they are (RateCap.cs, applied where the device's rates
+  become the plan's ceiling). The example under Output follows it.
 
 - `239-whole-track-shown` (item 239): **whole-track upsampling shows itself.** Only the server's log said whether
   a track went out upsampled whole. Now playing's badge now says it: "↑×16 · whole track" when the track's own file

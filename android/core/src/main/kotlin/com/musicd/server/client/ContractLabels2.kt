@@ -154,6 +154,7 @@ internal object ContractLabels2 {
         "settings-device.chip" to listOf("{value}"),
         "settings-device.mode" to listOf("Original", "×2", "×4", "Max"),
         "settings-device.depth" to listOf("Auto", "24", "32"),
+        "settings-device.maxrate" to listOf("Auto", "96k", "192k", "384k", "768k"),
         "settings-device.filter" to listOf("Standard", "Whole track"),
         "settings-device.dsdlowpass" to listOf("Off", "50 kHz", "30 kHz"),
         "settings-device.fixvol" to listOf("Fixed volume"),

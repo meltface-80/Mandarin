@@ -35,6 +35,9 @@ public sealed class WholeTrackPlayTests
         // ×4, set to Whole track: so planned, and said.
         Assert.Equal((176400.0, true), (p[0].Num("rate")!.Value, p[0].Bool("whole") ?? false));
         Assert.EndsWith("(whole track)", p[0].Str("reason"), StringComparison.Ordinal);
+        // With the track's own rate, which the job divides by: a queue's plan carried none (item 244).
+        Assert.Equal(44100.0, p[0].Num("inRate"));
+        Assert.Equal(44100.0, p[4].Num("inRate"));
         // The standard filter (no setting), the file as it is, a Qobuz stream: as before.
         Assert.Equal((176400.0, (bool?)null), (p[1].Num("rate")!.Value, p[1].Bool("whole")));
         Assert.Null(p[2].Bool("whole"));

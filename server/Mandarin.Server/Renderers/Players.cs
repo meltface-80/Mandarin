@@ -221,9 +221,9 @@ internal sealed partial class Players
         if (!IsStreamer(r)) return null;
         var caps = Profiles.Effective(Devices.RecordJs(r!));
         static List<object?> On(object? list, string key) => (list as List<object?> ?? []).Where(x => Jv.T(Jv.Get(x, "on"))).Select(x => Jv.Get(x, key)).ToList();
-        var rates = On(caps["rates"], "hz");
-        var bits = On(caps["bits"], "n").Select(Jv.Num).ToList();
         var s = r!.Settings;
+        var rates = RateCap.Limit(On(caps["rates"], "hz"), RateCap.Of(s["max_rate"]));   // the owner's cap (item 240)
+        var bits = On(caps["bits"], "n").Select(Jv.Num).ToList();
         // 32-bit output only where this ffmpeg writes 32-bit FLAC.
         var most = bits.Count > 0 ? bits.Max() : 24;
         var maxBits = Math.Min(most, Transcoder.Flac32 ? 32 : 24);

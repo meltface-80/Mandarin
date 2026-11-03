@@ -140,6 +140,7 @@ internal static class WholeJobs
     public static JsonObject Job(string src, ConvPlan p, string dest)
     {
         var inRate = (long)p.InRate;
+        if (inRate <= 0 || p.Rate % inRate != 0) throw new InvalidOperationException($"no rate of the track's own to upsample from ({p.InRate} Hz to {p.Rate} Hz)");
         var decode = new JsonArray("-hide_banner", "-nostdin", "-loglevel", "error", "-i", src, "-map", "0:a:0", "-vn");
         if (p.Gain != 0) { decode.Add("-af"); decode.Add($"volume=volume={Jv.Str(p.Gain)}dB:precision=double"); }
         foreach (var a in new[] { "-ac", "2", "-ar", inRate.ToString(System.Globalization.CultureInfo.InvariantCulture), "-f", "f64le", "-c:a", "pcm_f64le", "pipe:1" }) decode.Add(a);

@@ -142,6 +142,14 @@ internal static partial class Library
                     if (!off && DsdLowpass.Of(lowpass) == null) throw new DeviceRefusal(400, "dsd_lowpass must be off, 30000 or 50000");
                     patch["dsd_lowpass"] = off ? null : lowpass;
                 }
+                // The highest rate sent (item 240): Auto, or a cap by 48 kHz's family.
+                var maxRate = Prop(output, "max_rate");
+                if (maxRate is not Undef)
+                {
+                    var auto = TJs.StrictEq(maxRate, "auto");
+                    if (!auto && RateCap.Of(maxRate) == null) throw new DeviceRefusal(400, "max_rate must be auto, 96000, 192000, 384000 or 768000");
+                    patch["max_rate"] = auto ? null : maxRate;
+                }
                 var bits = Prop(output, "bits");
                 if (bits is not Undef)
                 {
