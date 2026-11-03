@@ -22,6 +22,7 @@
 - Fixed - an album played with PCM as DSD on a FiiO SR11 stopped after its first track; and what was being made for an album no longer playing went on being made
 - New - Now playing's signal path: what goes out, how it was made and what is being made, centred under the album; a tap shows every step from the file to the room
 - New - two more upsampling filters (Settings → Audio Devices → a device → Output → Filter): Minimum phase, whose ringing comes only after a sound starts, and Gentle, which rolls off earlier and rings for half as long; made ahead as Whole track is, and used for PCM as DSD too
+- Fixed - Output's Filter button for minimum phase read "Minimum p…" on a phone; it says Min phase
 - Improved - PCM as DSD is made about three times faster: a track at DSD256 in about a quarter of its own length here, where it took longer than the track itself
 
 - `251-dsd-faster` (item 251): **DSD made three times faster.** A 220 s track at DSD256 took 456 s on the owner's server.
@@ -34,6 +35,20 @@
   at DSD256 now takes 11.6 to 12.7 s. Nothing in the file changes. A doubling matches the whole 33-tap filter to 7×10⁻¹⁶,
   the seventh order's own path makes the same bits as the loops, and a pipelined track is the same file, byte for byte,
   as one made in turn (DsdSpeedTests). Noise in the band is as before: −139 dB at DSD64, −229 dB at DSD256.
+
+- `253-whole-play-flac-header` (item 253, a test's): **"one play, one file" held to the file, not to its header.**
+  WholeTrackPlayTests compared each read of the standard filter's file, byte for byte, with the first. When the first
+  read came while the conversion was still being made (sent as written, Transcoder.TailFollow), it had STREAMINFO's body
+  as ffmpeg leaves it till the end: the frame sizes, the samples in all and the MD5, written last by seeking back.
+  Every later read then "differed" ("7 of 7 reads", "11 of 11", on busy runs), the audio the same. Measured: a copy
+  taken mid-encode differs from the finished file in bytes 13 to 41 only. Reads are now the same file when all but
+  STREAMINFO's body (bytes 8 to 41) is the same. A copy with that body cleared counts as the same file, and one audio
+  byte changed does not. With the server's hold broken, the test still fails ("1 of 6 reads").
+
+- `250-filter-label` (item 250): **the Filter's buttons fit a phone.** Four to a row, "Minimum phase" was cut to "Minimum
+  p…" in the app (seen on 3 November). It is "Min phase" on the button, on the page and in the app alike (the contract's
+  label); its note still says minimum phase in full. A test holds every Filter label to the length of "Whole track", the
+  longest that fits a quarter of the row.
 
 - `248-filter-shapes` (item 248): **Minimum phase and Gentle.** Output's Filter had Standard (SoX's, as it plays) and
   Whole track (one transform as long as the track, linear phase, made ahead). It gains two shapes of the whole-track
