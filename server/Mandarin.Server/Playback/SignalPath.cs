@@ -67,7 +67,7 @@ internal static class SignalPath
                 : $"{Library.FormatName(t.Container, false) ?? (t.Codec ?? "").ToUpperInvariant()} {N(s.Bits)}/{Khz(s.Rate)} kHz";
             if (s.Upsampled != 0)
             {
-                var (filter, state) = Filter(s, t);
+                var (filter, state) = s.DsdMaking != 0 ? StandIn(z, s) : Filter(s, t);
                 steps.Add(Step("upsample", "Upsampling", $"×{N(s.Upsampled)} to {Khz(s.Rate)} kHz · {filter}{(state != null ? $" ({state})" : "")}", "enhanced"));
                 how = state != null ? $"{filter} · {state}" : filter;
             }
@@ -85,7 +85,15 @@ internal static class SignalPath
         {
             var state = Upsample.WholeJobs.State(t.Id);
             var words = state is "queued" or "making" ? "being made" : state == "failed" ? "failed: see the log" : "next play";
-            steps.Add(Step("pending", "Being made", $"DSD{s.DsdMaking} for this track’s next play: {(state == "queued" ? "waiting" : words)}", "pending"));
+            // Neither waiting nor under way nor failed: made while this plays (item 254), for its next play.
+            var detail = state switch
+            {
+                "queued" => $"DSD{s.DsdMaking} for this track’s next play: waiting its turn",
+                "making" => $"DSD{s.DsdMaking} for this track’s next play: being made now",
+                "failed" => $"DSD{s.DsdMaking} for this track’s next play: failed, see the log",
+                _ => $"DSD{s.DsdMaking} made: this track plays as DSD next time",
+            };
+            steps.Add(Step("pending", "Being made", detail, "pending"));
             making = $"DSD{s.DsdMaking} {words}";
         }
         else if (svc != null && Renderers.Players.TargetFor(z.DeviceId ?? z.ZoneId)?["dsd_out"] is double up && up > 0)
@@ -105,6 +113,16 @@ internal static class SignalPath
         var state = Upsample.WholeJobs.State(t.Id);
         var what = Upsample.WholeShape.Making(s.Shape);   // whole track, minimum phase, gentle filter (item 248)
         return ("Standard filter", state is "queued" or "making" ? $"{what} being made" : state == "failed" ? $"{what} failed: see the log" : $"{what} next play");
+    }
+
+    /*
+     * The filter of PCM sent while its DSF is made (item 254): the standard one, and why, the device's own filter (a
+     * minimum phase, say, or else the whole track's) going into the DSF; Now playing said "Standard filter" alone, under a filter set otherwise.
+     */
+    private static (string Filter, string? State) StandIn(ZoneInfo z, SentInfo s)
+    {
+        var shape = Upsample.WholeShape.OfFilter(Renderers.Players.TargetFor(z.DeviceId ?? z.ZoneId)?["filter"]);
+        return ("Standard filter", $"until the DSD{N(s.DsdMaking)} ({Upsample.WholeShape.Making(shape)}) is made");
     }
 
     private static JsonObject Source(PlayTrack t)
