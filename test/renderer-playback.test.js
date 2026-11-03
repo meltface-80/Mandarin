@@ -497,16 +497,18 @@ test("a renderer is a zone", { skip, timeout: 150000 }, async (t) => {
       let r = await api("audio-devices/" + DAC, { enabled: true, caps: { user: { rates: [44100, 48000, 88200, 96000] } }, output: { mode: "x2", filter: "minphase", dsd_out: 64 } }, "PATCH");
       assert.equal(r.status, 200, JSON.stringify(r));
       await until(async () => (await api("zones")).zones.some(z => z.zone_id === DAC), 20000);
-      await api("play", { offset: long.offset, zone_or_output_id: DAC, kind: "play_now" });
-      const z = await until(async () => { const s = await state(DAC); return s && s.now_playing && s.now_playing.signal && s.now_playing.line1 === "Long 1" && / · DSD64 /.test(s.now_playing.format.text) && s; }, 20000);
+      // The short album (three tracks of 3 s): its makings in minimum phase take seconds, where the long one's took a
+      // minute of this test's budget on a busy machine. Whichever plays first goes as PCM while its DSF is made.
+      await api("play", { offset: cd.offset, zone_or_output_id: DAC, kind: "play_now" });
+      const z = await until(async () => { const s = await state(DAC); return s && s.now_playing && s.now_playing.signal && /^Song \d$/.test(s.now_playing.line1) && / · DSD64 /.test(s.now_playing.format.text) && s; }, 20000);
       const sp = z.now_playing.signal;
       assert.equal(sp.lines[1], "Standard filter · until the DSD64 (minimum phase) is made", JSON.stringify(sp.lines));
       assert.equal(sp.steps.find(x => x.kind === "upsample").detail, "×2 to 88.2 kHz · Standard filter (until the DSD64 (minimum phase) is made)");
-      // Its own DSF, put after Long 2's: waiting its turn, or being made once Long 2's is (never "next play: next play").
-      assert.match(sp.steps.find(x => x.kind === "pending").detail, /^DSD64 for this track’s next play: (waiting its turn|being made now)$/);
+      // Its own DSF, put after the tracks to come: waiting its turn, or being made (never "next play: next play").
+      assert.match(sp.steps.find(x => x.kind === "pending").detail, /^DSD64 (for this track’s next play: (waiting its turn|being made now)|made: this track plays as DSD next time)$/);
       await api("control", { zone_or_output_id: DAC, command: "stop" });
-      // Its makings ended before the next test (three tracks in minimum phase: minutes, on a busy machine).
-      await until(async () => { const o = (await api("audio-devices/" + DAC)).output; return o.whole && !o.whole.making && o.whole.waiting === 0; }, 180000);
+      // Its makings ended before the next test.
+      await until(async () => { const o = (await api("audio-devices/" + DAC)).output; return o.whole && !o.whole.making && o.whole.waiting === 0; }, 60000);
       await api("audio-devices/" + DAC, { caps: { user: { rates: null } }, output: { mode: "original", filter: "standard", dsd_out: "off" }, enabled: false }, "PATCH");
     });
 

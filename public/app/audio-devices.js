@@ -77,11 +77,11 @@ function dspOf(d) {
   if (dspDraft && dspDraft.id === d.id) return dspDraft;
   const cur = d.dsp || { enabled: false, peq: null, headroom: "auto" };
   dspDraft = { id: d.id, dirty: false, bands: ((cur.peq && cur.peq.bands) || []).map(b => Object.assign({}, b)), headroom: cur.headroom == null ? "auto" : cur.headroom,
-    headphone: cur.headphone || null };
+    headphone: cur.headphone || null, convolution: cur.convolution || null };
   return dspDraft;
 }
 function dspSetting(draft, enabled) {
-  return { enabled, headphone: draft.headphone, peq: { bands: draft.bands }, headroom: draft.headroom };
+  return { enabled, headphone: draft.headphone, peq: { bands: draft.bands }, headroom: draft.headroom, convolution: draft.convolution || undefined };
 }
 // Every band the draft runs: the headphone profile's, then the PEQ's.
 const allBands = dr => (dr.headphone && dr.headphone.bands ? dr.headphone.bands : []).concat(dr.bands);

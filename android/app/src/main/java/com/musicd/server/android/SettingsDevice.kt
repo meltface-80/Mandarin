@@ -251,6 +251,7 @@ internal fun DevicePane(id: String, client: () -> ServerClient?, onBack: () -> U
             }
         }
         if (d.showDsp) DspBlock(d, client, busy, info) { body, said -> patch(body, said?.let { s -> { _: DevicePage -> s } }) }
+        if (d.showRoomCorrection) RoomCorrection(d, client, busy) { page = DevicePage(it) }   // item 252
         if (d.kind == "phone" && Store.phoneZone(context) == d.id) UsbBlock(info)
         if (!d.online) {
             SettingsDivider(18, 18)

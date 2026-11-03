@@ -296,6 +296,13 @@ class ServerClient(
     /** A change as a PATCH, [body] as JSON (Settings → Audio Devices, item 89: the server takes a device's changes only so): its answer. */
     fun patch(path: String, body: JSONObject): JSONObject = transport.json("PATCH", path, body, timeoutMs)
 
+    /** [bytes] of [type] sent to [path] (item 252: a room correction's WAV, a minute allowed): the answer. */
+    fun upload(path: String, bytes: ByteArray, type: String): JSONObject = transport.upload(path, bytes, type, 60_000)
+
+    /** A device's room correction (item 252): [bytes], a WAV named [name], loaded; or taken off. The device as it then is. */
+    fun loadImpulse(id: String, name: String, bytes: ByteArray): JSONObject = upload("/api/audio-devices/${enc(id)}/impulse?name=${enc(name)}", bytes, "audio/wav")
+    fun removeImpulse(id: String): JSONObject = send("DELETE", "/api/audio-devices/${enc(id)}/impulse")
+
     /** A request with no body ([method]: DELETE), its answer. */
     private fun send(method: String, path: String): JSONObject = transport.json(method, path, null, timeoutMs)
 
