@@ -8,8 +8,9 @@ namespace Mandarin.Tests;
 /// the track's own rate → upsampling → out. A conversion to another rate runs its bands before the resample, not after;
 /// a track upsampled as it plays, or made DSD, has them in its decode, before the upsampler, and nothing after it but
 /// the requantise; a device set to PCM as DSD is sent DSD with its DSP on (before, the DSP kept it on PCM). And the
-/// headroom is what the DSP lifts the track by less what levelling has left it under full scale: a quiet track levelled
-/// up 6 dB that still peaks 12 dB down has none taken off, measured on the file the server makes.
+/// headroom allows for the levelling: the same for every track whose peak is known (levelling never takes one over full
+/// scale, and a headroom that changed with each track's peak would undo the levelling), and more by as much as a track
+/// turned up whose peak isn't known could go over, measured on the file the server makes.
 /// </summary>
 public sealed partial class DspOrderTests
 {
@@ -80,13 +81,13 @@ public sealed partial class DspOrderTests
     }
 
     [Test]
-    public async Task The_headroom_is_what_the_DSP_lifts_less_what_levelling_has_left_under_full_scale()
+    public async Task The_headroom_is_the_DSPs_and_more_only_where_levelling_could_take_a_track_over_full_scale()
     {
         Needs.Server();
-        // [auto, peak, gain]: a track at full scale levelled down 8 dB needs none of the 6.5; one peaking 6 dB down turned
-        // up 3 dB, 3.5 of it; one not levelled, all of it; one whose peak isn't known, all of it; never above 0 dB.
-        var got = (await Dsp(new JsonObject { ["levelled"] = JsonNode.Parse("[[-6.5, 1, -8], [-6.5, 0.5, 3], [-6.5, 1, 0], [-6.5, 0, -8], [0, 1, 2]]") }))["levelled"]!.AsArray();
-        JsonAssert.Same("[0, -3.5, -6.5, -6.5, -2]", got);
+        // [auto, peak, gain]: levelled down, or up within its known peak, the DSP's own 6.5 dB, whatever the peak; turned
+        // up 3 dB from full scale, 3 more; turned up 4 dB, its peak not known (taken as full scale), 4 more; never above 0 dB.
+        var got = (await Dsp(new JsonObject { ["levelled"] = JsonNode.Parse("[[-6.5, 1, -8], [-6.5, 0.5, 3], [-6.5, 0.25, 6], [-6.5, 1, 3], [-6.5, 0, 4], [0, 1, 2], [0, 0.1, 2]]") }))["levelled"]!.AsArray();
+        JsonAssert.Same("[-6.5, -6.5, -6.5, -9.5, -10.5, -2, 0]", got);
     }
 
     [GeneratedRegex(@"Peak level dB:\s*(-?[\d.]+)")] private static partial Regex PeakDb();
@@ -101,12 +102,12 @@ public sealed partial class DspOrderTests
     }
 
     [Test]
-    public async Task A_quiet_track_levelled_up_has_only_the_headroom_it_still_needs_taken_off()
+    public async Task A_track_levelled_up_has_the_DSPs_headroom_and_more_where_its_peak_isnt_known()
     {
         Needs.Server(); Needs.Ffmpeg();
         await using var s = await Session.Started();
         await Session.Until(async () => (await s.Api("library-stats")).J.Num("albums") == 3, 30000, "the library");
-        var song = s.Server.Rows("SELECT * FROM tracks WHERE title = $1", "Song 1")[0];   // a 200 Hz tone at ffmpeg's −18 dB
+        var song = s.Server.Rows("SELECT * FROM tracks WHERE title = $1", "Song 1")[0];   // a 200 Hz tone well under full scale
         var now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
         s.Server.Exec("INSERT INTO audio_devices(id, kind, network_name, first_seen, last_seen) VALUES($1, $2, $3, $4, $5)", "UPNP_order", "upnp", "UPNP_order", now, now);
         var set = await Http.Send(HttpMethod.Patch, s.Base + "/api/audio-devices/UPNP_order", new StringContent(Http.Json(new { dsp = Setting }), System.Text.Encoding.UTF8, "application/json"), s.H);
@@ -114,9 +115,9 @@ public sealed partial class DspOrderTests
         var made = Path.Combine(s.Lib.Data, "transcode");
         var source = Peak((string)song["path"]!);
         // Levelled up 6 dB, the tone lifted 6 dB by the band: made, its file's peak read; the cache emptied between.
-        async Task<double> Made(object? peak)
+        async Task<double> Made(object peak)
         {
-            s.Server.Exec("UPDATE tracks SET rg_track_gain = -8, rg_track_peak = $1 WHERE id = $2", peak!, song["id"]!);
+            s.Server.Exec("UPDATE tracks SET rg_track_gain = -8, rg_track_peak = $1 WHERE id = $2", peak, song["id"]!);
             foreach (var f in Directory.Exists(made) ? Directory.GetFiles(made) : []) File.Delete(f);
             var got = await Bytes.Get(s.Base + $"/stream/t{song["id"]}.44100-24.flac?o=UPNP_order&g=6", s.H);
             Assert.True(got.Status == 200, "the stream: " + got.Status);
@@ -124,13 +125,12 @@ public sealed partial class DspOrderTests
             await File.WriteAllBytesAsync(file, got.Body);
             return Peak(file);
         }
-        // Its peak not known: the 6.5 dB the band needs, as before.
-        var unknown = await Made(DBNull.Value);
-        Assert.True(Math.Abs(unknown - (source + 6 + 6 - 6.5)) < 0.3, $"peak unknown: {unknown:F2} dBFS from {source:F2}");
-        // Known (the tone's own): levelled, it peaks 12 dB down, room enough for the band; nothing taken off, nothing clipped.
+        // Its peak known (the tone's own), levelling leaves it under full scale: the 6.5 dB the band needs, as for any track.
         var known = await Made(Math.Pow(10, source / 20));
-        Assert.True(Math.Abs(known - (source + 6 + 6)) < 0.3, $"peak known: {known:F2} dBFS from {source:F2}");
-        Assert.True(known < -0.5, "under full scale: " + known);
+        Assert.True(Math.Abs(known - (source + 6 + 6 - 6.5)) < 0.3, $"peak known: {known:F2} dBFS from {source:F2}");
+        // Not known: taken as full scale, so turned up 6 dB it could go 6 dB over; that much more is taken off.
+        var unknown = await Made(DBNull.Value);
+        Assert.True(Math.Abs(unknown - (source + 6 + 6 - 6.5 - 6)) < 0.3, $"peak unknown: {unknown:F2} dBFS from {source:F2}");
     }
 
     // A number as JavaScript writes it into a string.
