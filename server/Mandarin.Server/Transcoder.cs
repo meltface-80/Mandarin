@@ -108,8 +108,8 @@ internal static partial class Transcoder
     public static bool FfOk => Ff.Value.Ok;
 
     /* The Transcoder's keyFor (lib/stream.js), as Playback/StreamPlans.cs writes it. */
-    public static string KeyFor(ConvTrack t, ConvPlan p) => StreamPlans.KeyFor(Jv.Obj(("id", (double)t.Id), ("mtime", (double)t.Mtime)), p.ToJs()) + (p.Lowpass != 0 ? "-lp" + p.Lowpass : "")
-        // A filter's shape (items 248, 259), before the endings FinalPath reads its kind of file from; the standard filter has none.
+    public static string KeyFor(ConvTrack t, ConvPlan p) => StreamPlans.KeyFor(Jv.Obj(("id", (double)t.Id), ("mtime", (double)t.Mtime)), p.ToJs()) + (p.Dsp != null ? "-o" : "") + (p.Lowpass != 0 ? "-lp" + p.Lowpass : "")
+        // "-o": DSP in the order of item 263 (none made before it kept). A filter's shape (items 248, 259), before the endings FinalPath reads its kind of file from.
         + (p.Shape != null ? "-" + p.Shape + Upsample.Joins.Mark : "")
         + (p.Wav ? "-wav" : "") + (p.DsdUp != 0 ? Upsample.DsdPlan.Suffix(p.DsdUp, p.DsdBase) : "");
     public static string FinalPath(string key) => Path.Combine(dir, key + (key.EndsWith("-wav", StringComparison.Ordinal) ? ".wav" : Upsample.DsdPlan.IsDsf(key) ? ".dsf" : ".flac"));
@@ -224,10 +224,10 @@ internal static partial class Transcoder
                     Finish(-1);
                     return;
                 }
-                Begin(from.Src, from.Plan, from.Pieces);
+                Begin(from.Src, Playback.Levelled.Into(t.Id, from.Plan), from.Pieces);
             });
         }
-        else Begin(t.Path, p, null);
+        else Begin(t.Path, Playback.Levelled.Into(t.Id, p), null);   // the headroom less what levelling leaves (item 263)
         return job;
     }
 

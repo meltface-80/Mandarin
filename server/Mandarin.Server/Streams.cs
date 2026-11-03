@@ -120,9 +120,9 @@ internal static partial class Streams
         var raw = ctx.Request.QueryString.HasValue ? ctx.Request.QueryString.Value![1..] : "";
         var gq = QueryOne(raw, "g");
         string? output = null;
-        if (segRate != 0)
+        if (segRate != 0 || dsdUp != 0)
         {
-            // An ?o= that isn't one plain value: no zone's DSP (String(o) names none).
+            // An ?o= that isn't one plain value: no zone's DSP (String(o) names none). A DSF from PCM too (item 263).
             if (QueryOne(raw, "o") is { } oq && oq.Here && oq.Value!.Length > 0) output = oq.Value;
         }
 
@@ -169,7 +169,7 @@ internal static partial class Streams
             if (output != null)
             {
                 using var c = Db.Open();
-                if (Dsp.PlanPart(DspFor(c, output), p["rate"]) is { } part) { p["dsp"] = part; p["inRate"] = (double)t.Rate; }
+                if (Dsp.PlanPart(DspFor(c, output), p["rate"], (double)t.Rate) is { } part) { p["dsp"] = part; p["inRate"] = (double)t.Rate; }
             }
         }
         else if (dsdUp != 0)
@@ -178,6 +178,7 @@ internal static partial class Streams
             p = Jv.Obj(("transcode", true), ("hq", true), ("mime", DsdMime().IsMatch(asked) ? asked : "audio/x-dsf"), ("ext", "dsf"), ("rate", (double)t.Rate), ("bits", 1.0),
                 ("dsd", (double)dsdUp), ("dsdUp", (double)dsdUp), ("inRate", (double)t.Rate), ("reason", $"DSD{dsdUp} from PCM, made as it plays"));
             if (gain is { } g0) p["gain"] = g0;   // in the PCM it is made from, as the plan had it (WithGain leaves DSD alone)
+            if (output != null) { using var c = Db.Open(); if (Dsp.PlanPart(DspFor(c, output), (double)t.Rate, (double)t.Rate) is { } part) p["dsp"] = part; }
         }
         else if (seg == "orig")
         {

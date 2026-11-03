@@ -2,11 +2,11 @@
 // `mandarin-server score` (Identify/ScoreCommand.cs), a line of JSON in and a
 // line out, so test/streams-csharp.test.js holds them to the Node server's:
 //
-//   { fn: "plans", native, ext_mime, family, renderer_mime, plan, fit, shaped, dsd_lowpass, dsd_up, dsd_job, repack, with_gain, with_dsp, args, keys, plan_for, service,
+//   { fn: "plans", native, ext_mime, family, renderer_mime, plan, fit, shaped, dsd_lowpass, dsd_up, dsd_job, pcm_job, repack, with_gain, with_dsp, args, keys, plan_for, service,
 //     held_mime, held_sonos, held_keys, held_args }   lib/stream.js, playback.js; Streams.cs, Transcoder.cs
 //   { fn: "gain", levelling, patch, ebur, combine, held_combine, album, info, gain_of, gains_for }   lib/loudness.js
 //   { fn: "dsp", coeffs, section_db, response, sweep, peak, bands_of, headroom, normalise_band, normalise, active,
-//     fingerprint, num, band_filter, filters, plan_part, held_autoeq }   public/biquad.js, lib/dsp.js; Extras/AutoEq.cs
+//     fingerprint, num, band_filter, filters, plan_part, levelled, held_autoeq }   public/biquad.js, lib/dsp.js; Extras/AutoEq.cs
 //   { fn: "sign", secret, sigs, urls, valid, targets, queries, decode }   lib/server/auth.js
 //   { fn: "radio", keys, runs: [{ saved, start, window, ops }] }   lib/radio-memory.js
 //   { fn: "math", sin, cos, log, log10, pow }   JsMath.cs itself, against this machine's Math
@@ -130,6 +130,8 @@ internal static class StreamCommand
         // [src, plan, dest, soxr, seconds, join?: [before, after, carry, cut]] (item 262).
         o["dsd_job"] = Each(job["dsd_job"], a => Scan.JsJson.Parse(Upsample.DsdPlan.Job(Js.Str(Arg(a, 0)), ConvPlan.Of((JsObj)Arg(a, 1)!), Js.Str(Arg(a, 2)), Jv.T(Arg(a, 3)), Jv.Num(Jv.Or(Arg(a, 4), 0.0)),
             Arg(a, 5) is List<object?> j ? new Upsample.Joins.Join(Arg(j, 0) as string, Arg(j, 1) as string, (long)Jv.Num(Jv.Or(Arg(j, 2), 0.0)), (long)Jv.Num(Jv.Or(Arg(j, 3), 0.0))) : null).ToJsonString()));
+        // [src, plan, dest]: a track upsampled as it plays, its decode and its encode (item 263).
+        o["pcm_job"] = Each(job["pcm_job"], a => Scan.JsJson.Parse(Upsample.MadeAsPlayed.PcmJob(Js.Str(Arg(a, 0)), ConvPlan.Of((JsObj)Arg(a, 1)!), Js.Str(Arg(a, 2))).ToJsonString()));
         o["repack"] = Each(job["repack"], a => StreamPlans.Repack(Arg(a, 0), Arg(a, 1)));
         o["with_gain"] = Each(job["with_gain"], a => StreamPlans.WithGain(Arg(a, 0), Arg(a, 1), Arg(a, 2), Arg(a, 3)));
         o["with_dsp"] = Each(job["with_dsp"], a => StreamPlans.WithDsp((JsObj)Arg(a, 0)!, Arg(a, 1), Arg(a, 2)));
@@ -218,8 +220,9 @@ internal static class StreamCommand
         o["fingerprint"] = Each(job["fingerprint"], a => Biquad.Fingerprint(Arg(a, 0), Arg(a, 1)));
         o["num"] = Each(job["num"], Dsp.Num);
         o["band_filter"] = Each(job["band_filter"], Dsp.BandFilter);
-        o["filters"] = Each(job["filters"], a => Strs(Dsp.Filters(Arg(a, 0), Arg(a, 1), Arg(a, 2), Jv.T(Arg(a, 3)))));
-        o["plan_part"] = Each(job["plan_part"], a => Dsp.PlanPart(Arg(a, 0), Arg(a, 1)));
+        o["filters"] = Each(job["filters"], a => Strs(Dsp.Filters(Arg(a, 0), Arg(a, 1), Arg(a, 2), Jv.T(Arg(a, 3)), Arg(a, 4))));
+        o["plan_part"] = Each(job["plan_part"], a => Dsp.PlanPart(Arg(a, 0), Arg(a, 1), Arg(a, 2)));
+        o["levelled"] = Each(job["levelled"], a => Levelled.Headroom(Jv.Num(Arg(a, 0)), Jv.Num(Arg(a, 1)), Jv.Num(Arg(a, 2))));   // [auto, peak, gain] (item 263)
         // AutoEq's typed twin of normaliseBand (Extras/AutoEq.cs).
         o["held_autoeq"] = Each(job["held_autoeq"], a =>
         {

@@ -107,12 +107,12 @@ public sealed partial class ConversionsCsharpTests(ConversionsCsharpTests.Book b
             var p1 = Way("24/96 to 48 kHz with the zone's DSP");
             Assert.True(p1["plan"]?["dsp"].Str("hash") is { Length: > 0 }, "the Node server's plan has the DSP");
             var k1 = await ConvertedAsNode($"/stream/t{hi["id"]}.48000-24.flac?o=UPNP_test-dsp", hi, p1, "24/96 to 48 kHz with the zone's DSP");
-            Assert.Matches($"-48000-24-hq-d{p1["plan"]?["dsp"].Str("hash")}$", k1);
+            Assert.Matches($"-48000-24-hq-d{p1["plan"]?["dsp"].Str("hash")}-o$", k1);   // "-o": the DSP's order of item 263
             Assert.False(dspBefore, "no DSP in use before");
             await Session.Until(Dsp, 5000, "playback's second core while DSP runs, and for a while after");
             // With a gain as well: the gain first, then the DSP.
             var p2 = Way("the zone's DSP and -4 dB");
-            Assert.Matches("-hq-d[0-9a-f]+-g-4$", await ConvertedAsNode($"/stream/t{hi["id"]}.96000-24.flac?o=UPNP_test-dsp&g=-4", hi, p2, "the zone's DSP and -4 dB"));
+            Assert.Matches("-hq-d[0-9a-f]+-g-4-o$", await ConvertedAsNode($"/stream/t{hi["id"]}.96000-24.flac?o=UPNP_test-dsp&g=-4", hi, p2, "the zone's DSP and -4 dB"));
             // A Sonos room's, or a zone that isn't one: no DSP, the conversion alone.
             foreach (var o in new[] { "RINCON_TESTDSP01400", "nobody" })
             {

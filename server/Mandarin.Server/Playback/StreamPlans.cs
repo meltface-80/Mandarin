@@ -277,7 +277,7 @@ internal static class StreamPlans
     /* withDsp(p, target, inRate): the zone's DSP attached (when on), and the file's rate for the resample. */
     public static JsObj WithDsp(JsObj p, object? target, object? inRate)
     {
-        var part = Dsp.PlanPart(Jv.Get(target, "dsp"), p["rate"]);
+        var part = Dsp.PlanPart(Jv.Get(target, "dsp"), p["rate"], inRate);   // at the track's rate (item 263)
         if (part != null) { p["dsp"] = part; p["inRate"] = Jv.Or(inRate, 0.0); }
         return p;
     }
@@ -325,7 +325,7 @@ internal static class StreamPlans
         var rate = Jv.Get(p, "rate");
         var dsp = Jv.Get(p, "dsp");
         var graph = Jv.T(dsp)
-            ? string.Join(",", Dsp.Filters(Jv.Get(dsp, "dsp"), Jv.Get(p, "inRate"), rate, soxr).Append($"aresample=osr={Jv.Str(rate)}:{dither}"))
+            ? string.Join(",", Dsp.Filters(Jv.Get(dsp, "dsp"), Jv.Get(p, "inRate"), rate, soxr, Jv.Get(dsp, "headroom")).Append($"aresample=osr={Jv.Str(rate)}:{dither}"))
             : $"aresample={resampler}{internalFmt}osr={Jv.Str(rate)}:{dither}";
         // ReplayGain first, in 64-bit float, before anything else is done.
         var gain = Jv.Get(p, "gain");

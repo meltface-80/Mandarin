@@ -148,12 +148,13 @@ public sealed partial class DspTests
             """))!;
         var f = await Filters(dsp, 44100, 88200, true);
         Assert.Equal("aformat=sample_fmts=dbl", f[0]);
-        var pre = await Headroom(dsp, 88200);
-        Assert.True(pre == await bq.Num($"Biquad.headroom({dsp.ToJsonString()}, 88200)"), "the page's own sum");
+        // The headroom and the bands at the track's own rate, then the resample (item 263; before, the bands after it).
+        var pre = await Headroom(dsp, 44100);
+        Assert.True(pre == await bq.Num($"Biquad.headroom({dsp.ToJsonString()}, 44100)"), "the page's own sum");
         Assert.True(pre < -1 && pre > -3, "the shelf's lift, less what the high-pass takes: " + pre);
         Assert.Equal($"volume={Js(pre)}dB:precision=double", f[1]);
-        Assert.Equal("aresample=resampler=soxr:precision=33:internal_sample_fmt=dblp:osr=88200:out_sample_fmt=dbl", f[2]);
-        Assert.Equal(["equalizer=f=1000:width_type=q:w=1.41:g=-6", "lowshelf=f=100:width_type=q:w=0.707:g=2", "highpass=f=30:width_type=q:w=0.707"], f.Skip(3));
+        Assert.Equal(["equalizer=f=1000:width_type=q:w=1.41:g=-6", "lowshelf=f=100:width_type=q:w=0.707:g=2", "highpass=f=30:width_type=q:w=0.707"], f.Skip(2).Take(3));
+        Assert.Equal("aresample=resampler=soxr:precision=33:internal_sample_fmt=dblp:osr=88200:out_sample_fmt=dbl", f[5]);
         // Same rate: no resample stage.
         Assert.Equal(5, (await Filters(dsp, 44100, 44100, true)).Count);
 

@@ -39,6 +39,7 @@
 - Fixed - Next, Back, Play and Pause on a streamer such as the FiiO SR11 no longer pile up and stop it answering: taps in a row are one jump to where they end, and a track skipped from is no longer made
 - New - a phone playing through a USB DAC has a streamer's Output (Settings → Audio Devices → this phone → Output): upsampled ×2, ×4 or to the most, in Standard, Min phase or Gentle, to the highest rate allowed, or PCM made DSD64, DSD128 or DSD256, made by the server and played by the app's USB driver, DSD natively or as DoP
 - Fixed - signed in to Tidal, a token that stops working is renewed once, however many requests find it stale at the same time
+- Improved - a device's DSP runs in the order set: volume levelling, then the headroom (more where levelling could take a track over full scale), then the DSP at the track's own rate, then upsampling; and PCM as DSD works with DSP on
 
 - `259-dsd-on-demand` (item 259): **PCM as DSD, and the shaped filters, made as they play.** A track made DSD from
   PCM had to be made whole, ahead (items 243, 254): its filter was one as long as the track (237, PGGB's way), so
@@ -135,6 +136,29 @@
   from"). A renderer's words for a call it didn't answer are its own ("not answering: timed out"), not a Sonos's.
   Tests: renderer-playback.test.js (Next, Next, Back on a renderer slow to answer SetAVTransportURI: two told, not
   three, and the room on Long 2; a skip while Song 1 waits to be made stops it, Song 2 made in its place).
+
+- `263-processing-order` (item 263): **levelling, headroom, DSP, then upsampling.** The owner's order is 16/44.1 →
+  64-bit float → volume levelling → headroom (allowing for the levelling) → DSP → upsampling → out at the Output
+  settings. It was not quite that: a conversion to another rate ran the bands after the resample, at the rate sent
+  (705.6 or 768 kHz for a track upsampled ×16); a track upsampled as it plays had them after the upsampler; a
+  track turned up by levelling whose peak isn't known could go over full scale and the DSP then clip it; and PCM as
+  DSD was refused while DSP was on. Now the headroom and the bands, and a room correction, run at the track's own
+  rate in 64-bit float, after the gain and before any resample, upsampling or modulator (Dsp.Filters, Dsp.At;
+  MadeAsPlayed.PcmJob, whose encode is the requantise alone; DsdPlan.Before). A DSD file's DSP is still after its
+  resample, since DSD's own rate is no rate to run a filter at. The headroom allows for the levelling
+  (Playback/Levelled.cs). Levelling never takes a track whose peak is known over full scale, so for those the
+  headroom is the DSP's own, the same for every track: one that changed with each track's peak would undo the
+  levelling. A track turned up whose peak isn't known (tagged or measured) is taken as peaking at full scale, and its
+  headroom is the DSP's plus however much the gain could take it over. It is worked out where the file is made
+  (Transcoder.Start), so the file's name is still the one the device was promised. A headroom set by hand is used as
+  set. A device set to PCM as DSD is made DSD with its DSP on; the DSP part names the
+  DSF, and the stream route reads the zone's DSP for it (?o=). Every file made with DSP has a new name ("-o"), so none
+  made in the old order is served again. The signal path says the DSP runs at the track's rate, before anything is
+  upsampled. A phone's own DSP, which the app runs on the phone, still keeps the phone on PCM. Tests: DspOrderTests
+  (the bands before the resample, in the decode before the upsampler and nothing after it, a DSD job's bands at
+  96 kHz then SoX to 88.2 kHz; the headroom rule; a 200 Hz tone levelled up 6 dB and lifted 6 dB by a band has the
+  band's 6.5 dB taken off when its peak is known, and 6 dB more when it isn't). DspTests and the kept conversions and streams
+  answers are brought to the new order and names; every kept answer that changed is a DSP case.
 
 - `265-phone-usb-output` (item 265): **a phone's USB DAC has a streamer's Output.** The app's own USB driver plays a
   DAC bit-perfect at the rate it is sent, and DSD natively or as DoP (Stage 9), but what it was sent was the file as
