@@ -40,8 +40,6 @@
   headroom covers the loudest of the set. The signal path says which ran ("room.wav, made at 48 kHz, resampled to
   44.1 kHz"). A device that kept one, as item 252 kept it, has a set of one. Item 252's resampled response came out
   a few hundred samples late (the resampler's lead); the track is now padded and trimmed by it, so it is on time.
-  Where a resampled response starts is measured once a pair of rates with the server's own ffmpeg (a lone sample
-  through the same resampler, Playback/ConvolutionLead.cs), as ffmpeg builds don't all place it alike.
   The page and the app list the set, a row each with its Remove. Tests: a set loaded, replaced, zipped, refused and
   taken off one rate at a time; a track played through its own rate's response and through its family's, resampled,
   on time; the page's and the app's rows; the signal path's step.
