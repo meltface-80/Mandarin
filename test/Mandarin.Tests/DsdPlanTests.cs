@@ -57,7 +57,7 @@ public sealed class DsdPlanTests
             ["held_keys"] = new JsonArray(new JsonArray(7, 5, 96000, 1, true, false, false, false, 0, 0), new JsonArray(7, 5, 96000, 1, true, false, false, false, 0, 64)),
         });
         var keys = r["held_keys"]!.AsArray().Select(k => (string)k!).ToArray();
-        Assert.Equal(keys[0] + "-dsd64", keys[1]);
+        Assert.Equal(keys[0] + "-dsd64j", keys[1]);   // "j": joined to its album's neighbours (item 262)
 
         var dir = Directory.CreateTempSubdirectory("musicd-test-").FullName;
         try
@@ -110,8 +110,8 @@ public sealed class DsdPlanTests
         {
             ["held_keys"] = new JsonArray(new JsonArray(7, 5, 96000, 1, true, false, false, false, 0, 256), new JsonArray(7, 5, 96000, 1, true, false, false, false, 0, 256, null, 48000)),
         }))["held_keys"]!.AsArray().Select(k => (string)k!).ToArray();
-        Assert.EndsWith("-dsd256", keys[0], StringComparison.Ordinal);
-        Assert.Equal(keys[0] + "x48", keys[1]);
+        Assert.EndsWith("-dsd256j", keys[0], StringComparison.Ordinal);
+        Assert.Equal(keys[0][..^1] + "x48j", keys[1]);
 
         var dir = Directory.CreateTempSubdirectory("musicd-test-").FullName;
         try
@@ -145,22 +145,41 @@ public sealed class DsdPlanTests
         var song = s.Server.Rows("SELECT * FROM tracks WHERE title = $1", "Song 1")[0];
         var seconds = Convert.ToDouble(song["duration"], System.Globalization.CultureInfo.InvariantCulture);
         var url = s.Base + $"/stream/t{song["id"]}.d64.dsf";
-        // Asked for before any of it is made: sent as it is made, its length not yet known to the transfer (no
-        // Content-Length), the DSF's own header saying it from the first bytes.
+        // Asked for before any of it is made: sent as it is made, with its length (item 262: its header's, known
+        // before the first bit is made), and a range of it too; the DSF's own header saying it from the first bytes.
+        var part = Bytes.Get(url, new Dictionary<string, string>(s.H) { ["Range"] = "bytes=1000-1999" });
         var first = await Bytes.Get(url, s.H);
         Assert.Equal(200, first.Status);
-        Assert.Equal(((string?)null, "chunked"), (first.Header("Content-Length"), first.Header("Transfer-Encoding")));
+        Assert.Equal((first.Body.LongLength.ToString(System.Globalization.CultureInfo.InvariantCulture), (string?)null), (first.Header("Content-Length"), first.Header("Transfer-Encoding")));
         Assert.Equal("DSD ", System.Text.Encoding.ASCII.GetString(first.Body, 0, 4));
-        var samples = (long)Math.Round(seconds * 44100) * 64;
+        // Song 1 is joined to Song 2: its file ends on a whole block (512 frames at DSD64), the frames short of one Song 2's.
+        var frames = (long)Math.Round(seconds * 44100);
+        var samples = (frames - frames % 512) * 64;
         Assert.Equal((2822400, samples), (BitConverter.ToInt32(first.Body, 56), BitConverter.ToInt64(first.Body, 64)));
-        // Every block the header promised (4096 bytes a channel), nothing more.
-        Assert.Equal(92 + (samples / 8 + 4095) / 4096 * 4096 * 2, first.Body.LongLength);
+        // Every block the header promised (4096 bytes a channel), nothing more and nothing filled out.
+        Assert.Equal(92 + samples / 8 * 2, first.Body.LongLength);
+        var range = await part;
+        Assert.Equal((206, $"bytes 1000-1999/{first.Body.LongLength}"), (range.Status, range.Header("Content-Range")));
+        Assert.True(range.Body.AsSpan().SequenceEqual(first.Body.AsSpan(1000, 1000)), "the range is those bytes");
         // Kept: the next play the file itself, whole, its length known, the same bytes.
         var again = await Bytes.Get(url, s.H);
         Assert.Equal((200, first.Body.LongLength.ToString(System.Globalization.CultureInfo.InvariantCulture)), (again.Status, again.Header("Content-Length")));
         Assert.True(again.Body.AsSpan().SequenceEqual(first.Body), "the file kept is what was sent");
-        // Its speed in the log.
-        Assert.Contains(s.Server.Logs, l => l.Contains("DSD64 from PCM, standard filter (0 reset(s)), made as it played at", StringComparison.Ordinal));
+        // Its speed in the log (said once the making is done, which may be just after its last bytes went).
+        await Session.Until(() => Task.FromResult(s.Server.Logs.Any(l => l.Contains("DSD64 from PCM, standard filter (0 reset(s)), made as it played at", StringComparison.Ordinal))), 10000, "its speed in the log");
+
+        // Song 2 next (item 262): its making handed to Song 1's, kept on into Song 2's start, so that the modulators
+        // run on from one into the other; its file begins with Song 1's frames short of a block, and ends on a whole
+        // block itself, Song 3 after it.
+        var two = s.Server.Rows("SELECT * FROM tracks WHERE title = $1", "Song 2")[0];
+        var second = await Bytes.Get(s.Base + $"/stream/t{two["id"]}.d64.dsf", s.H);
+        Assert.Equal(200, second.Status);
+        var frames2 = (long)Math.Round(Convert.ToDouble(two["duration"], System.Globalization.CultureInfo.InvariantCulture) * 44100);
+        var carry = frames % 512;
+        var samples2 = (carry + frames2 - (carry + frames2) % 512) * 64;
+        Assert.Equal(samples2, BitConverter.ToInt64(second.Body, 64));
+        Assert.Equal(0, samples2 % (4096 * 8));
+        await Session.Until(() => Task.FromResult(s.Server.Logs.Any(l => l.Contains("02 Song 2.flac: DSD64 from PCM", StringComparison.Ordinal) && l.EndsWith(", on from the track before", StringComparison.Ordinal))), 10000, "Song 2 made on from Song 1");
     }
 
     // `mandarin-server upsample` given [job]: its line of JSON.

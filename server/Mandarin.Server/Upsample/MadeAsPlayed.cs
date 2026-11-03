@@ -25,6 +25,9 @@ internal static class MadeAsPlayed
     // A pause between a making's turn and its start: the tests' own, to hold that moment open (items 246, 259).
     private static readonly int Wait = int.TryParse(Environment.GetEnvironmentVariable("MANDARIN_MAKE_WAIT_MS"), out var w) && w > 0 ? w : 0;
 
+    /* Whether track [key]'s making has begun (its file being written, a DSF's header first), not only waiting its turn. */
+    public static bool Begun(string key) => Under.TryGetValue(key, out var p) && p != null;
+
     /* Whether [p] is made so: a DSF from PCM, or PCM upsampled in a shape; else ffmpeg makes it. */
     public static bool Takes(ConvPlan p) => p.DsdUp != 0 || p.Shape != null;
 
@@ -80,41 +83,72 @@ internal static class MadeAsPlayed
     private static async Task<int> Run(ConvTrack t, ConvPlan p, ConvJob job, StringBuilder err)
     {
         var seconds = Seconds(t.Id);
-        var spec = p.DsdUp != 0 ? DsdPlan.Job(t.Path, p, job.Part, Transcoder.Soxr, seconds) : PcmJob(t.Path, p, job.Part);
-        var psi = new ProcessStartInfo(Environment.ProcessPath ?? "mandarin-server") { UseShellExecute = false, RedirectStandardInput = true, RedirectStandardOutput = true, RedirectStandardError = true };
-        psi.ArgumentList.Add("upsample");
+        // Joined to its album's tracks either side (item 262): a DSF's at its blocks, PCM's at any frame.
+        JsonObject spec;
+        string? next = null;
+        if (p.DsdUp != 0)
+        {
+            var join = DsdPlan.BlockFrames(p) is > 0 and var b ? Joins.For(t.Id, (long)p.InRate, b) : null;
+            spec = DsdPlan.Job(t.Path, p, job.Part, Transcoder.Soxr, seconds, join);
+            // Made on into the start of the next track, and kept for its making: the modulators run on into it.
+            if (join?.After != null) { spec["continue"] = true; next = Transcoder.KeyFor(new ConvTrack(join.AfterId, join.After, join.AfterMtime), p); }
+        }
+        else spec = PcmJob(t.Path, p, job.Part, Joins.For(t.Id, (long)p.InRate, 0));
         // Playback, the most of it there is (item 260): its cores kept, all but one while it runs, and it put on them.
         Cpu.Making(true);
-        try { return await Made(t, p, job, err, psi, seconds, spec); }
+        try { return await Made(t, p, job, err, seconds, spec, next); }
         finally { Cpu.Making(false); }
     }
 
-    private static async Task<int> Made(ConvTrack t, ConvPlan p, ConvJob job, StringBuilder err, ProcessStartInfo psi, double seconds, JsonObject spec)
+    private static async Task<int> Made(ConvTrack t, ConvPlan p, ConvJob job, StringBuilder err, double seconds, JsonObject spec, string? next)
     {
-        Cpu.Place(psi, CpuKind.Playback);
-        using var proc = Process.Start(psi)!;
-        Cpu.Adopt(proc, CpuKind.Playback);
+        // The making that went on into this track's start, where there is one waiting for it; else one of its own.
+        var warm = Warm.Take(job.Key);
+        var (proc, trace) = warm ?? Spawn();
         Under[job.Key] = proc;
         if (Stopped.TryRemove(job.Key, out _)) Stop(proc);
-        try { await proc.StandardInput.WriteLineAsync(spec.ToJsonString()); proc.StandardInput.Close(); }
-        catch (IOException) { /* stopped before it read its job; its exit says so */ }
-        var said = await proc.StandardOutput.ReadToEndAsync();
-        var trace = await proc.StandardError.ReadToEndAsync();
-        await proc.WaitForExitAsync();
-        Cpu.Forget(proc);
-        var r = said.Trim().Split('\n')[^1] is { Length: > 0 } last ? JsonNode.Parse(last) as JsonObject : null;
-        if (proc.ExitCode != 0 || r == null || r["error"] != null)
+        try
         {
-            err.Append((string?)r?["error"] ?? (trace.Trim() is { Length: > 0 } tr ? tr[..Math.Min(300, tr.Length)] : "stopped"));
-            return proc.ExitCode == 0 ? 1 : proc.ExitCode;
+            await proc.StandardInput.WriteLineAsync(spec.ToJsonString());
+            await proc.StandardInput.FlushAsync();
+            if (next == null) proc.StandardInput.Close();
         }
+        catch (IOException) { /* stopped before it read its job; its exit says so */ }
+        var said = await proc.StandardOutput.ReadLineAsync();
+        var r = said is { Length: > 0 } ? JsonNode.Parse(said) as JsonObject : null;
+        if (r == null || r["error"] != null || next == null || proc.HasExited)
+        {
+            if (next != null) proc.StandardInput.Close();
+            await proc.WaitForExitAsync();
+            Cpu.Forget(proc);
+            var code = proc.ExitCode;
+            var tr = (await trace).Trim();
+            proc.Dispose();
+            if (code != 0 || r == null || r["error"] != null)
+            {
+                err.Append((string?)r?["error"] ?? (tr.Length > 0 ? tr[..Math.Min(300, tr.Length)] : "stopped"));
+                return code == 0 ? 1 : code;
+            }
+        }
+        else Warm.Keep(proc, next, trace);
         var took = (double?)r["seconds"] ?? 0;
         var speed = took > 0 && seconds > 0 ? seconds / took : 0;
         if (speed > 0) Speeds[p.DsdUp] = speed;
         var held = (long?)r["held"] ?? 0;
         var what = p.DsdUp != 0 ? $"DSD{p.DsdUp} from PCM, {Shape.Words(p.Shape)} ({(long?)r["resets"] ?? 0} reset(s){(held > 0 ? $", {held} sample(s) over +2.9 dB held" : "")})" : $"×{p.Rate / Math.Max(1, (long)p.InRate)}, {Shape.Words(p.Shape)}";
-        Server.Log($"[upsample] {Path.GetFileName(t.Path)}: {what}, made as it played at {Math.Round(speed, 2).ToString(System.Globalization.CultureInfo.InvariantCulture)}× real time ({took} s)");
+        Server.Log($"[upsample] {Path.GetFileName(t.Path)}: {what}, made as it played at {Math.Round(speed, 2).ToString(System.Globalization.CultureInfo.InvariantCulture)}× real time ({took} s){(warm != null ? ", on from the track before" : "")}");
         return 0;
+    }
+
+    // `mandarin-server upsample`, on playback's cores; what it says wrong read beside it.
+    private static (Process, Task<string>) Spawn()
+    {
+        var psi = new ProcessStartInfo(Environment.ProcessPath ?? "mandarin-server") { UseShellExecute = false, RedirectStandardInput = true, RedirectStandardOutput = true, RedirectStandardError = true };
+        psi.ArgumentList.Add("upsample");
+        Cpu.Place(psi, CpuKind.Playback);
+        var proc = Process.Start(psi)!;
+        Cpu.Adopt(proc, CpuKind.Playback);
+        return (proc, proc.StandardError.ReadToEndAsync());
     }
 
     /* What was being made, or waited to be, for a play other than the one of [keep] (their keys): stopped (item 246). */
@@ -122,6 +156,7 @@ internal static class MadeAsPlayed
     {
         var k = keep.ToHashSet();
         if (k.Count == 0) return;
+        Warm.Unless(k);
         var n = 0;
         foreach (var (key, proc) in Under)
         {
@@ -166,7 +201,7 @@ internal static class MadeAsPlayed
      * and a room or headphone correction at that rate), and ffmpeg making the file from 64-bit float at the plan's rate
      * (the DSP and the requantise, as a conversion's).
      */
-    public static JsonObject PcmJob(string src, ConvPlan p, string dest)
+    public static JsonObject PcmJob(string src, ConvPlan p, string dest, Joins.Join? join = null)
     {
         var inRate = (long)p.InRate;
         if (inRate <= 0 || p.Rate % inRate != 0) throw new InvalidOperationException($"no rate of the track's own to upsample from ({p.InRate} Hz to {p.Rate} Hz)");
@@ -190,10 +225,13 @@ internal static class MadeAsPlayed
             else if (convArgs[i] == "-map_metadata" && i + 1 < convArgs.Count) { encode.Add("-map_metadata"); encode.Add("1"); i++; }
             else encode.Add(convArgs[i]);
         }
-        return new JsonObject
+        var o = new JsonObject
         {
             ["ffmpeg"] = Transcoder.Bin, ["decode"] = decode, ["encode"] = encode,
             ["rate"] = inRate, ["factor"] = p.Rate / Math.Max(1, inRate), ["shape"] = p.Shape,
         };
+        // Joined to its neighbours (item 262), but not through a room correction, whose own filter isn't carried across.
+        if (conv == null) Joins.Into(o, join, decode, src, inRate);
+        return o;
     }
 }

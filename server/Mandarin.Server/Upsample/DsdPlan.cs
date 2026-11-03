@@ -57,18 +57,37 @@ internal static class DsdPlan
         return o;
     }
 
-    /* The cache's name ends so for a DSF made from PCM: DSD[n], "x48" after it in 48 kHz's family ([base]). */
-    public static string Suffix(int n, int @base = 44100) => "-dsd" + n + (@base == 48000 ? "x48" : "");
+    /* The cache's name ends so for a DSF made from PCM: DSD[n], "x48" after it in 48 kHz's family ([base]); "j": joined to its album's neighbours (item 262). */
+    public static string Suffix(int n, int @base = 44100) => "-dsd" + n + (@base == 48000 ? "x48" : "") + Joins.Mark;
 
     /* Whether the cache's [key] is a DSF's. */
     public static bool IsDsf(string key) => Multiples.Any(m => key.EndsWith(Suffix(m), StringComparison.Ordinal) || key.EndsWith(Suffix(m, 48000), StringComparison.Ordinal));
 
+    /* A DSF's block of 4096 bytes a channel in frames of the rate [p] is made from; 0 where it is resampled to it (nothing joined: item 262). */
+    public static long BlockFrames(ConvPlan p)
+    {
+        var own = (long)p.InRate;
+        var from = FromRate(own, p.DsdBase);
+        return from == 0 || from != own || p.DsdUp == 0 ? 0 : DsfWriter.Block * 8L / (DsdRate(p.DsdUp, p.DsdBase) / from);
+    }
+
+    /* The DSF's size in bytes for track [id] by [p], [seconds] long (the header says it before the first bit is made; Streams.cs sends it so). */
+    public static long FileBytes(long id, ConvPlan p, double seconds)
+    {
+        var from = FromRate((long)p.InRate, p.DsdBase);
+        var b = BlockFrames(p);
+        var join = b > 0 ? Joins.For(id, from, b) : Joins.None;
+        var samples = (join.Carry + Joins.Frames(seconds, from) - join.Cut) * (DsdRate(p.DsdUp, p.DsdBase) / from);
+        return DsfWriter.Size(samples);
+    }
+
     /*
      * The job for [src] by [p] into [dest] (UpsampleCommand.cs): ffmpeg decoding it to 64-bit float stereo at the
      * rate it is made from (the gain on it, and SoX's resampler for 48 kHz's family made DSD of 44.1 kHz's), the DSF
-     * written at DSD[p.DsdUp]'s rate in its family as it is made, its length [seconds] long (the track's, as the library has it).
+     * written at DSD[p.DsdUp]'s rate in its family as it is made, its length [seconds] long (the track's, as the library
+     * has it); [join], its album's neighbours either side (Joins.cs, item 262), decoded as it is.
      */
-    public static JsonObject Job(string src, ConvPlan p, string dest, bool soxr, double seconds)
+    public static JsonObject Job(string src, ConvPlan p, string dest, bool soxr, double seconds, Joins.Join? join = null)
     {
         var own = (long)p.InRate;
         var from = FromRate(own, p.DsdBase);
@@ -80,10 +99,12 @@ internal static class DsdPlan
         var decode = new JsonArray("-hide_banner", "-nostdin", "-loglevel", "error", "-i", src, "-map", "0:a:0", "-vn");
         if (filters.Count > 0) { decode.Add("-af"); decode.Add(string.Join(",", filters)); }
         foreach (var a in new[] { "-ac", "2", "-ar", from.ToString(CultureInfo.InvariantCulture), "-f", "f64le", "-c:a", "pcm_f64le", "pipe:1" }) decode.Add(a);
-        return new JsonObject
+        var o = new JsonObject
         {
             ["ffmpeg"] = Transcoder.Bin, ["decode"] = decode, ["rate"] = from, ["factor"] = DsdChain.InRateFor(dsdRate) / from,
-            ["frames"] = (long)Math.Round(seconds * from), ["dsd"] = dsdRate, ["out"] = dest, ["shape"] = p.Shape,
+            ["frames"] = Joins.Frames(seconds, from), ["dsd"] = dsdRate, ["out"] = dest, ["shape"] = p.Shape,
         };
+        Joins.Into(o, join, decode, src, from);
+        return o;
     }
 }

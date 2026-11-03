@@ -230,7 +230,9 @@ internal static partial class Streams
         var job = Transcoder.Start(track, ConvPlan.Of(p));
         if (job.Done && !job.Failed) return await SendFile(ctx, job.Final, Jv.Str(p["mime"]));
         if (job.Done) { ctx.Response.StatusCode = 500; ctx.Response.Headers["X-Mandarin-Answered"] = "C#"; return true; }
-        await Transcoder.TailFollow(ctx, job, Jv.Str(p["mime"]));
+        // A DSF from PCM goes with its length, its header's (item 262): the device can take it as the next track while it is made.
+        var plan = ConvPlan.Of(p);
+        await Transcoder.TailFollow(ctx, job, Jv.Str(p["mime"]), plan.DsdUp != 0 ? Upsample.DsdPlan.FileBytes(id, plan, t.Duration) : -1);
         return true;
     }
 

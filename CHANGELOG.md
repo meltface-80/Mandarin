@@ -35,6 +35,7 @@
 - Improved - Min phase and Gentle are made as they play too, from a track's first play; Whole track is gone (a device set to it has the standard filter)
 - Improved - a track upsampled or made DSD as it plays gets the processor: playback keeps all the cores but one while it is made, or as many as Settings → Library Scanner → Processor → Cores for upsampling and DSD says (Auto, 1, 2 or 3)
 - Improved - PCM as DSD keeps a 48 kHz-family track (48, 96, 192 kHz) in its own family: 96 kHz goes ×8 to 768 kHz and DSD256 at 12.288 MHz, nothing resampled, where it went down to 88.2 kHz first; on a device that takes PCM at the rate DoP carries it on (768 kHz for DSD256), else as before
+- Fixed - PCM as DSD, Min phase and Gentle are gapless: an album that runs on from track to track plays on without a pause or a click, the next track sent to the device while it is still being made and made as one stream with the track before
 
 - `259-dsd-on-demand` (item 259): **PCM as DSD, and the shaped filters, made as they play.** A track made DSD from
   PCM had to be made whole, ahead (items 243, 254): its filter was one as long as the track (237, PGGB's way), so
@@ -87,6 +88,36 @@
   Tests: DsdPlanTests (the plan where the device takes 768 kHz and not where it doesn't, the key, the job and the DSF
   made: 12.288 MHz, 96000 × 128 bits), DsdModulatorTests (the chain from 768 kHz at 3.072 and 12.288 MHz, its length,
   level and noise), UsbDsdTests (3.072 MHz to the DAC as DoP at 192 kHz, every bit).
+
+- `262-gapless-made-as-played` (item 262): **gapless, made as it plays.** With PCM as DSD (or Min phase or Gentle) an
+  album wasn't gapless. The next track was told to the device only once its file was whole, and as one is made at a
+  time it was begun only once the track before was made: on the owner's server, near the end of that track, so the
+  device came to the end with nothing to follow, stopped, and was started again by hand. And each track was made on
+  its own: its filter saw silence before its first sample and after its last, its modulator started from rest, its
+  DSF's last block was filled out with silence, so that an album that runs on (Dark Side of the Moon) dipped and
+  clicked at every join. Now:
+  - A DSF made as it plays is told to the device as soon as its making has begun (Players.Commands.cs Ready), and sent
+    with its length, its header's, known before the first bit is made, and its byte ranges as they are made
+    (Transcoder.TailFollow; DsdPlan.FileBytes): the device has it in hand long before the track before ends.
+  - A track is made joined to its album's tracks either side (Upsample/Joins.cs) where they are lossless files of the
+    library at its rate: the upsampler starts on the end of the track before and looks ahead to the start of the one
+    after, so that PCM upsampled in a shape is, joined, the very samples of the two made as one (to 1e-9).
+  - A DSF of a joined album ends on a whole block, the frames short of one left for the next file, which begins with
+    them (each block where the album's running sum of frames puts it): no padding is played at a join.
+  - The making of a DSF goes on into the start of the next track (16384 frames, past all the upsampler holds back)
+    and is kept (Upsample/Warm.cs, two minutes, `MANDARIN_MAKE_WARM_MS`); the next track's making, in its turn, is
+    handed to it where its file is the one it looked ahead to (its key the same, its gain too), and it goes on into
+    it, the upsampler and the modulators as they were (Upsample/DsdRun.cs: one stream, each file a window of it), so
+    that the two files are one stream: two modulators started apart make different noise, and the switch from one to
+    the other at a join was a click of its own (-43 dB here). The log says "on from the track before".
+  - Files made so are named apart from those made before ("j"), which are not mixed with them.
+  Tests: JoinTests (a signal cut in two at no block's frame: as DSD, the two files laid end to end against the whole
+  made at once, at the join no more than the modulators' noise elsewhere, where made alone they click; the first
+  file whole blocks; as PCM upsampled, the very samples), DsdPlanTests (Song 1's DSF sent with its length and a range
+  while it is made, to its last whole block; Song 2 made on from Song 1, its file beginning with Song 1's frames short
+  of a block), renderer-playback.test.js (the device told of Long 2 before it was made, and Long 2 made on from Long 1).
+  ShapePlanTests no longer compares the bytes ffmpeg writes into a FLAC's STREAMINFO once it has made the whole (its
+  frame sizes, samples and MD5): a FLAC sent as it is made has them yet to come, and the test failed one run in six.
 
 - `258-ir-per-rate` (item 258): **room correction, one response a rate.** A device's DSP held one impulse response,
   made at one rate and resampled to every track's. A measurement is made at a rate, and REW or Dirac give one a rate,

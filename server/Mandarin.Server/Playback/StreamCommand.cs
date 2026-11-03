@@ -127,7 +127,9 @@ internal static class StreamCommand
         // A track's plan for a device set to PCM as DSD (item 243): fitted, then marked, as Items.cs makes it; the job that
         // makes it [src, plan, dest, soxr, seconds].
         o["dsd_up"] = Each(job["dsd_up"], a => Upsample.DsdPlan.Mark(HighRates.Fit(StreamPlans.Plan(Arg(a, 0), Arg(a, 1)), Arg(a, 1)), Arg(a, 1), Arg(a, 0), Jv.Str(Jv.Get(Arg(a, 0), "path"))));
-        o["dsd_job"] = Each(job["dsd_job"], a => Scan.JsJson.Parse(Upsample.DsdPlan.Job(Js.Str(Arg(a, 0)), ConvPlan.Of((JsObj)Arg(a, 1)!), Js.Str(Arg(a, 2)), Jv.T(Arg(a, 3)), Jv.Num(Jv.Or(Arg(a, 4), 0.0))).ToJsonString()));
+        // [src, plan, dest, soxr, seconds, join?: [before, after, carry, cut]] (item 262).
+        o["dsd_job"] = Each(job["dsd_job"], a => Scan.JsJson.Parse(Upsample.DsdPlan.Job(Js.Str(Arg(a, 0)), ConvPlan.Of((JsObj)Arg(a, 1)!), Js.Str(Arg(a, 2)), Jv.T(Arg(a, 3)), Jv.Num(Jv.Or(Arg(a, 4), 0.0)),
+            Arg(a, 5) is List<object?> j ? new Upsample.Joins.Join(Arg(j, 0) as string, Arg(j, 1) as string, (long)Jv.Num(Jv.Or(Arg(j, 2), 0.0)), (long)Jv.Num(Jv.Or(Arg(j, 3), 0.0))) : null).ToJsonString()));
         o["repack"] = Each(job["repack"], a => StreamPlans.Repack(Arg(a, 0), Arg(a, 1)));
         o["with_gain"] = Each(job["with_gain"], a => StreamPlans.WithGain(Arg(a, 0), Arg(a, 1), Arg(a, 2), Arg(a, 3)));
         o["with_dsp"] = Each(job["with_dsp"], a => StreamPlans.WithDsp((JsObj)Arg(a, 0)!, Arg(a, 1), Arg(a, 2)));

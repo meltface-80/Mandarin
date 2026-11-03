@@ -70,7 +70,8 @@ internal sealed partial class Players
         await Task.CompletedTask;
     }
 
-    /* The next file must be complete before the renderer is told about it, so it always sees a length and byte ranges for it. */
+    /* The next file must be complete before the renderer is told about it, so it always sees a length and byte ranges for it;
+       a DSF made as it plays once its making has begun, sent with its header's length and ranges as made (item 262). */
     private static bool Ready(UpnpItem it)
     {
         if (it.Plan == null || !Jv.T(it.Plan["transcode"]) || it.Track == null) return true;
@@ -81,7 +82,7 @@ internal sealed partial class Players
         var ready = File.Exists(Transcoder.FinalPath(key));
         // Not yet: begun (a DSF from PCM, or PCM in a shape, in its turn after what is being made now: item 259).
         if (!ready && !Transcoder.Jobs.ContainsKey(key)) { if (Upsample.MadeAsPlayed.Takes(plan)) Transcoder.Start(t, plan); else Transcoder.Prefetch([(t, plan)]); }
-        return ready;
+        return ready || plan.DsdUp != 0 && Upsample.MadeAsPlayed.Begun(key);
     }
 
     /* p.Next is what the device holds as its next URI. Whenever what SHOULD follow differs — the queue was edited, the mode changed — it is told again. */
