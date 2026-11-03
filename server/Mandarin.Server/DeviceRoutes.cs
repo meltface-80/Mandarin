@@ -142,6 +142,14 @@ internal static partial class Library
                     if (!off && DsdLowpass.Of(lowpass) == null) throw new DeviceRefusal(400, "dsd_lowpass must be off, 30000 or 50000");
                     patch["dsd_lowpass"] = off ? null : lowpass;
                 }
+                // PCM as DSD (item 243): off, or the multiple.
+                var dsdOut = Prop(output, "dsd_out");
+                if (dsdOut is not Undef)
+                {
+                    var off = TJs.StrictEq(dsdOut, "off");
+                    if (!off && Upsample.DsdPlan.Of(dsdOut) == null) throw new DeviceRefusal(400, "dsd_out must be off, 64, 128 or 256");
+                    patch["dsd_out"] = off ? null : dsdOut;
+                }
                 // The highest rate sent (item 240): Auto, or a cap by 48 kHz's family.
                 var maxRate = Prop(output, "max_rate");
                 if (maxRate is not Undef)

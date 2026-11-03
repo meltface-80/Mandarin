@@ -96,7 +96,7 @@ internal sealed partial class Players
             return;
         }
         lock (gate) { if (p.Next is { Sent: true } nx && nx.Uri == it.Uri) return; }
-        if (!Ready(it)) return;
+        if (!Ready(it = Arming(p, n, it))) return;   // a track made DSD from PCM: the DSF, or the PCM late (item 243)
         try
         {
             await RendererOf(p).SetNextUri(it.Uri, it.Meta);
@@ -120,7 +120,7 @@ internal sealed partial class Players
         {
             if (index < 0 || index >= p.Queue.Count) throw new HubError(500, "Nothing to play");
             p.Verifying = null;         // the device asked again what it plays, for the same track played again too
-            it = p.Queue[index];
+            it = Starting(p, index);    // a track made DSD from PCM: the DSF where it is made, else the PCM (item 243)
             p.ExpectStop = false;
             p.Next = null;              // SetAVTransportURI clears a renderer's next
             p.Heard = true;             // started by us: a stop now is this track's
@@ -177,7 +177,7 @@ internal sealed partial class Players
         var t = it.Track;
         var p = it.Plan;
         string Or(object? a, string? b) => Jv.T(a) ? Jv.Str(a) : b ?? "";
-        return new UpnpItem
+        return Paired(it.Instead, new UpnpItem
         {
             Uri = it.Uri, Meta = it.Meta, Track = t, Plan = p,
             TrackId = t?.Id ?? Phones.TrackIdFromUri(it.Uri),
@@ -188,8 +188,8 @@ internal sealed partial class Players
             Sent = p == null ? null : new SentInfo(Jv.T(p["transcode"]),
                 Jv.T(p["transcode"]) ? Jv.Num(p["rate"]) : t?.SampleRate ?? 0, Jv.T(p["transcode"]) ? Jv.Num(p["bits"]) : t?.Bits ?? 0,
                 Jv.T(p["upsampled"]) ? Jv.Num(p["upsampled"]) : 0, Jv.T(p["dsp"]), Jv.T(p["dsd"]) ? Jv.Num(p["dsd"]) : 0,
-                Jv.T(p["ext"]) ? Jv.Str(p["ext"]) : "", Jv.T(p["mime"]) ? Jv.Str(p["mime"]) : "") { Whole = Jv.T(p["whole"]) }
-        };
+                Jv.T(p["ext"]) ? Jv.Str(p["ext"]) : "", Jv.T(p["mime"]) ? Jv.Str(p["mime"]) : "") { Whole = Jv.T(p["whole"]), DsdMaking = Jv.T(p["dsdMaking"]) ? (int)Jv.Num(p["dsdMaking"]) : 0 }
+        });
     }
 
     public async Task<System.Text.Json.Nodes.JsonObject> Enqueue(string id, List<PlayItem> items, string how, double startAt, double seconds)

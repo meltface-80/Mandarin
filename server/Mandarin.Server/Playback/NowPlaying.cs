@@ -89,11 +89,15 @@ internal static class NowPlaying
             var s = st.Sent;
             static string Khz(double hz) => hz != 0 ? Tags.Js.Num(hz / 1000) : "";
             var tick = st.Verified == "yes" ? " ✓" : "";
+            // Sent as PCM while it is made DSD (item 243): said after what went.
+            var making = s.DsdMaking != 0 ? Upsample.DsdPlan.Badge(s.DsdMaking, Upsample.WholeJobs.State(t.Id)) : "";
             // DSD as it is: the file itself, at its multiple.
             if (!s.Transcode && s.Dsd != 0) return ("lossless", $"DSD{Tags.Js.Num(s.Dsd)}");
-            if (s.Transcode) return ("lossless", $"{(s.Mime == "audio/wav" ? "WAV" : "FLAC")} {Tags.Js.Num(s.Bits)}/{Khz(s.Rate)}{(s.Upsampled != 0 ? $" ↑×{Tags.Js.Num(s.Upsampled)}" : "")}{(s.Whole ? Upsample.WholeServed.Badge(Upsample.WholeServed.Last(t.Id, s.Rate), Upsample.WholeJobs.State(t.Id)) : "")}{(s.Dsp ? " · DSP" : "")}{tick}");
+            // Made DSD from PCM (item 243): the DSF of the track's own PCM.
+            if (s.Dsd != 0) return ("lossless", $"DSD{Tags.Js.Num(s.Dsd)} from PCM");
+            if (s.Transcode) return ("lossless", $"{(s.Mime == "audio/wav" ? "WAV" : "FLAC")} {Tags.Js.Num(s.Bits)}/{Khz(s.Rate)}{(s.Upsampled != 0 ? $" ↑×{Tags.Js.Num(s.Upsampled)}" : "")}{(s.Whole ? Upsample.WholeServed.Badge(Upsample.WholeServed.Last(t.Id, s.Rate), Upsample.WholeJobs.State(t.Id)) : "")}{making}{(s.Dsp ? " · DSP" : "")}{tick}");
             var name = Library.FormatName(t.Container, false) ?? (t.Codec ?? "").ToUpperInvariant();
-            if (t.Lossless) return ("lossless", string.Join(" ", new[] { name.Length > 0 ? name : "Lossless", s.Bits != 0 && s.Rate != 0 ? $"{Tags.Js.Num(s.Bits)}/{Khz(s.Rate)}" : "" }.Where(x => x.Length > 0)) + tick);
+            if (t.Lossless) return ("lossless", string.Join(" ", new[] { name.Length > 0 ? name : "Lossless", s.Bits != 0 && s.Rate != 0 ? $"{Tags.Js.Num(s.Bits)}/{Khz(s.Rate)}" : "" }.Where(x => x.Length > 0)) + making + tick);
             return name.Length > 0 ? ("lossy", name) : null;
         }
         if (t.Lossless) return ("lossless", "Lossless");

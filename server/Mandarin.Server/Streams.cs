@@ -34,7 +34,7 @@ using JsObj = Mandarin.Server.Tags.JsObj;
 
 internal static partial class Streams
 {
-    [GeneratedRegex(@"^/stream/t([0-9]+)(?:\.(orig|[0-9]+-[0-9]+w?))?\.([a-z0-9]+)\z", RegexOptions.IgnoreCase)]
+    [GeneratedRegex(@"^/stream/t([0-9]+)(?:\.(orig|[0-9]+-[0-9]+w?|d(?:64|128|256)))?\.([a-z0-9]+)\z", RegexOptions.IgnoreCase)]
     private static partial Regex Address();
     [GeneratedRegex(@"^audio/(x-)?(dsf|dff|dsd)\z")]
     private static partial Regex DsdMime();
@@ -106,7 +106,9 @@ internal static partial class Streams
         if (!long.TryParse(a.Groups[1].Value, out var id)) return Refuse(ctx, 404);
         // A rate and depth a streamer was promised: made with the high-quality settings (32 bits where ffmpeg writes them).
         long segRate = 0, segBits = 0;
-        if (seg.Length > 0 && seg != "orig")
+        // "d64", "d128", "d256": made DSD from PCM (Upsample/DsdPlan.cs, item 243).
+        var dsdUp = seg.Length > 1 && seg[0] is 'd' or 'D' ? int.Parse(seg[1..], CultureInfo.InvariantCulture) : 0;
+        if (seg.Length > 0 && seg != "orig" && dsdUp == 0)
         {
             // "w": the whole track in one transform, where it is made (Upsample/, item 237).
             var rb = seg.TrimEnd('w', 'W').Split('-');
@@ -170,6 +172,13 @@ internal static partial class Streams
                 if (Dsp.PlanPart(DspFor(c, output), p["rate"]) is { } part) { p["dsp"] = part; p["inRate"] = (double)t.Rate; }
             }
         }
+        else if (dsdUp != 0)
+        {
+            var asked = q["m"].Count == 1 ? q["m"].ToString() : "";
+            p = Jv.Obj(("transcode", true), ("hq", true), ("mime", DsdMime().IsMatch(asked) ? asked : "audio/x-dsf"), ("ext", "dsf"), ("rate", (double)t.Rate), ("bits", 1.0),
+                ("dsd", (double)dsdUp), ("dsdUp", (double)dsdUp), ("inRate", (double)t.Rate), ("reason", $"DSD{dsdUp} from PCM, made ahead"));
+            if (gain is { } g0) p["gain"] = g0;   // in the PCM it is made from, as the plan had it (WithGain leaves DSD alone)
+        }
         else if (seg == "orig")
         {
             var mime = MimeForExt(a.Groups[3].Value);
@@ -209,6 +218,14 @@ internal static partial class Streams
         if (seg.EndsWith('w') && segRate != 0 && svc == null && t.Rate > 0 && Upsample.WholePlan.Takes(segRate / t.Rate) && segRate % t.Rate == 0) { p["whole"] = true; p["inRate"] = (double)t.Rate; }
         // DSD as PCM, low-passed through the rate asked (?lp=, Playback/DsdLowpass.cs, item 241): a DSD file, a promised rate above it.
         if (segRate != 0 && svc == null && QueryOne(raw, "lp") is { } lq && lq.Here && long.TryParse(lq.Value, out var lpm) && DsdLowpass.IsMid(lpm) && segRate > lpm && StreamPlans.IsDsd(Row(t))) p["lowpass"] = (double)lpm;
+        // Made DSD from PCM (item 243): the DSF, made ahead; not made yet, asked to be, and not here (the PCM is sent meanwhile).
+        if (dsdUp != 0)
+        {
+            var dsf = Transcoder.FinalPath(Transcoder.KeyFor(track, ConvPlan.Of(p)));
+            if (svc == null && File.Exists(dsf)) return await SendFile(ctx, dsf, Jv.Str(p["mime"]));
+            if (svc == null) Upsample.WholeJobs.Prefetch([(track, ConvPlan.Of(p))]);
+            return Refuse(ctx, 503);
+        }
         // Whole and made: that file; whole and not yet: the standard filter now, the whole one made for next time.
         var job = Transcoder.Start(track, Upsample.WholeJobs.Choose(track, ConvPlan.Of(p)));
         if (job.Done && !job.Failed) return await SendFile(ctx, job.Final, Jv.Str(p["mime"]));

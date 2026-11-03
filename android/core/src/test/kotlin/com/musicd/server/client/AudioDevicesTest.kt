@@ -114,6 +114,24 @@ class AudioDevicesTest {
         assertTrue(cut.dsdLowpassNote.contains("above 30 kHz taken off"))
     }
 
+    @Test fun `PCM as DSD is offered where the device takes DSD, its multiples only, and sends the multiple`() {
+        fun page(dsd: String, output: String) = DevicePage(JSONObject("""{"kind":"upnp","rates":[],"bits":[],"dsd":$dsd,"output":$output}"""))
+        assertFalse(page("""[{"n":64,"on":false}]""", """{"mode":"original"}""").showDsdOut)
+        val off = page("""[{"n":64,"on":true},{"n":128,"on":true},{"n":256,"on":false}]""", """{"mode":"original"}""")
+        assertTrue(off.showDsdOut)
+        assertEquals("off", off.dsdOutValue)
+        assertEquals(listOf("Off", "DSD64", "DSD128", "DSD256"), off.dsdOuts.map { it.label })
+        assertEquals(listOf(false, false, false, true), off.dsdOuts.map { it.off })
+        assertNull(off.dsdOutLine)
+        assertEquals("""{"output":{"dsd_out":128}}""", off.segment("dsd_out", "128").toString())
+        assertEquals("""{"output":{"dsd_out":"off"}}""", off.segment("dsd_out", "off").toString())
+        val on = page("""[{"n":64,"on":true}]""", """{"mode":"original","dsd_out":64,"whole":{"made":2,"making":"03 Song","waiting":1}}""")
+        assertEquals("64", on.dsdOutValue)
+        assertTrue(on.dsdOutNote.contains("made DSD64 ahead of playing"))
+        assertEquals("2 tracks made · making “03 Song” · 1 waiting", on.dsdOutLine)
+        assertNull("the whole-track filter’s line is the filter’s", on.wholeLine)
+    }
+
     @Test fun `a sound device's note says how it plays, a Mac's by Core Audio`() {
         val mac = DevicePage(JSONObject("""{"kind":"local","found_by":"This Mac (Core Audio)"}"""))
         assertTrue(mac.capNotes[0].startsWith("Mandarin sets the device to each track’s rate"))

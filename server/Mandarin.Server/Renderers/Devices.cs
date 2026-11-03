@@ -224,6 +224,13 @@ internal sealed class Devices
         if (streamer && RateCap.Of(r.Settings["max_rate"]) is { } cap) ((JsObj)o["output"]!)["max_rate"] = cap;
         // DSD as PCM, low-passed (item 241), said only where it is set: Off by its absence.
         if (streamer && DsdLowpass.Of(r.Settings["dsd_lowpass"]) is { } cut) ((JsObj)o["output"]!)["dsd_lowpass"] = cut;
+        // PCM as DSD (item 243), said only where it is set, with how the making goes: Off by its absence.
+        if (streamer && Upsample.DsdPlan.Of(r.Settings["dsd_out"]) is { } up)
+        {
+            var (made, making, waiting) = Upsample.WholeJobs.Status();
+            ((JsObj)o["output"]!)["dsd_out"] = (double)up;
+            ((JsObj)o["output"]!)["whole"] = Jv.Obj(("made", (double)made), ("making", making), ("waiting", (double)waiting));
+        }
         o["first_seen"] = r.FirstSeen; o["last_seen"] = r.LastSeen;
         o["profile"] = caps["profile"]; o["editable"] = caps["editable"];
         o["playable"] = r.Kind != "upnp" || Jv.T(caps["playable"]);

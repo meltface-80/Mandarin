@@ -135,9 +135,9 @@ class DevicePage(val j: JSONObject) {
         else "Nothing goes above ${maxRate / 1000} kHz (${rateWord(maxRate / 48000 * 44100)} kHz for music in 44.1’s family), upsampled or not."
 
     /** How the making goes (item 239): the tracks made and kept, the one being made, those waiting; null unless whole. */
-    val wholeLine: String? get() {
+    val wholeLine: String? get() = if (filter == "whole") wholeStatus else null
+    private val wholeStatus: String? get() {
         val w = output.optJSONObject("whole") ?: return null
-        if (filter != "whole") return null
         val made = w.optInt("made")
         val parts = mutableListOf(if (made == 1) "1 track made" else "$made tracks made")
         w.optString("making").takeIf { it.isNotEmpty() && !w.isNull("making") }?.let { parts += "making “$it”" }
@@ -150,6 +150,14 @@ class DevicePage(val j: JSONObject) {
     val dsdLowpasses: List<SegChoice> get() = listOf(SegChoice("off", "Off"), SegChoice("50000", "50 kHz"), SegChoice("30000", "30 kHz"))
     val dsdLowpassNote: String get() = if (dsdLowpass != 0) "DSD this device is sent as PCM has the modulator’s noise above ${dsdLowpass / 1000} kHz taken off; below it, as recorded. DSD it takes as DSD goes as it is."
         else "DSD this device is sent as PCM keeps the modulator’s noise up to the top of the rate it goes at. DSD it takes as DSD goes as it is."
+    /** PCM as DSD (item 243): the multiple each track is made at ahead of playing; 0 for Off. Offered where the device takes DSD. */
+    val dsdOut: Int get() = output.optInt("dsd_out", 0)
+    val dsdOutValue: String get() = if (dsdOut == 0) "off" else dsdOut.toString()
+    val showDsdOut: Boolean get() = dsd.any { it.on }
+    val dsdOuts: List<SegChoice> get() = listOf(SegChoice("off", "Off")) + listOf(64, 128, 256).map { n -> SegChoice("$n", "DSD$n", off = dsd.none { it.value == n && it.on }) }
+    val dsdOutNote: String get() = if (dsdOut != 0) "Each track of the library that isn’t DSD is made DSD$dsdOut ahead of playing, by Mandarin’s seventh-order modulator, and sent as a DSF; a track not yet made goes as PCM. DSD64 takes about a third of a track’s length to make, DSD256 about its length."
+        else "PCM goes to this device as PCM. Set, each track of the library that isn’t DSD is made DSD ahead of playing and sent as a DSF."
+    val dsdOutLine: String? get() = if (dsdOut != 0) wholeStatus else null
     val depths: List<SegChoice> get() = listOf(SegChoice("auto", "Auto"), SegChoice("24", "24"), SegChoice("32", "32", off = !flac32))
     val outputInfo: String get() = "Original sends the file as stored wherever this device takes its rate, depth and format; above its ceiling, FLAC at the highest rate it takes. Upsampling stays in the file's family (44.1 → 88.2 → 176.4; 48 → 96 → 192), runs in 64-bit float, and goes out at " +
         (if (has32 && flac32) "24 or 32 bits" else "24 bits") + "."
@@ -164,7 +172,7 @@ class DevicePage(val j: JSONObject) {
     }
 
     /** The change a segment tapped makes (PATCH {output: {mode|filter|bits: …}}). */
-    fun segment(name: String, v: String): JSONObject = JSONObject().put("output", JSONObject().put(name, if ((name == "bits" || name == "max_rate" || name == "dsd_lowpass") && v != "auto" && v != "off") v.toInt() else v))
+    fun segment(name: String, v: String): JSONObject = JSONObject().put("output", JSONObject().put(name, if ((name == "bits" || name == "max_rate" || name == "dsd_lowpass" || name == "dsd_out") && v != "auto" && v != "off") v.toInt() else v))
 
     val canFixVolume: Boolean get() = j.optBoolean("can_fix_volume")
     val volumeFixed: Boolean get() = j.optBoolean("volume_fixed")

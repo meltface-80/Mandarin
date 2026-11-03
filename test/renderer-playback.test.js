@@ -48,11 +48,13 @@ test("a renderer is a zone", { skip, timeout: 150000 }, async (t) => {
   // A Poly feeds a Mojo: fixed volume, and this one has no SetNextAVTransportURI.
   const poly = new FakeRenderer({ name: "Poly", manufacturer: "Chord Electronics Ltd", model: "Poly", setNext: false,
     sink: "http-get:*:audio/flac:*,http-get:*:audio/wav:*,http-get:*:audio/dsf:*,http-get:*:audio/dff:*" });
-  await wiim.start(); await poly.start();
+  // A DAC of no profile of its own that takes DSF files and SetNextAVTransportURI: PCM made DSD for it (item 243).
+  const dac = new FakeRenderer({ name: "DSD DAC", sink: "http-get:*:audio/flac:*,http-get:*:audio/x-dsf:*" });
+  await wiim.start(); await poly.start(); await dac.start();
   const { createServer } = require("./server");
   const options = {
     port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [ports.host(0)],
-    upnpHosts: [wiim.location, poly.location], upnpMulticast: false
+    upnpHosts: [wiim.location, poly.location, dac.location], upnpMulticast: false, dsdLateS: 5
   };
   let srv = createServer(options);
   let ctx = await srv.start();
@@ -66,7 +68,7 @@ test("a renderer is a zone", { skip, timeout: 150000 }, async (t) => {
     return { status: r.status, ...j };
   };
   const state = async (zone) => (await api("zone-state?zone=" + zone)).zone;
-  const WIIM = idFor(wiim.udn), POLY = idFor(poly.udn);
+  const WIIM = idFor(wiim.udn), POLY = idFor(poly.udn), DAC = idFor(dac.udn);
 
   try {
     await until(async () => (await api("status")).index_count === 5);
@@ -417,6 +419,37 @@ test("a renderer is a zone", { skip, timeout: 150000 }, async (t) => {
       await api("audio-devices/" + POLY, { caps: { user: { dsd: null } } }, "PATCH");
     });
 
+    await t.test("PCM as DSD (item 243): the library's PCM made DSD64 ahead and sent as a DSF; a track not yet made, as PCM", async () => {
+      let r = await api("audio-devices/" + DAC, { enabled: true }, "PATCH");
+      assert.equal(r.status, 200, JSON.stringify(r));
+      assert.deepEqual(r.dsd.filter(d => d.on).map(d => d.n), [64], "a device of no profile of its own: DSD64");
+      r = await api("audio-devices/" + DAC, { output: { dsd_out: 64 } }, "PATCH");
+      assert.equal(r.status, 200, JSON.stringify(r));
+      assert.equal(r.output.dsd_out, 64);
+      assert.equal((await api("audio-devices/" + DAC, { output: { dsd_out: 32 } }, "PATCH")).status, 400);
+      await until(async () => (await api("zones")).zones.some(z => z.zone_id === DAC), 20000);
+      const said = ctx.logs.length;
+      await api("play", { offset: long.offset, zone_or_output_id: DAC, kind: "play_now" });
+      // Long 1, not made yet: as PCM (the file as it is), Now playing saying its DSF is on the way.
+      const first = await until(() => dac.fetches.find(x => x.done && x.body && x.body.length > 1000 && x), 15000);
+      assert.match(first.uri, /\.orig\.flac/, first.uri);
+      await until(async () => { const z = await state(DAC); return z && z.now_playing && / · DSD64 (being made|next play)$/.test(z.now_playing.format.text) && z; }, 15000);
+      // Long 2, made meanwhile: armed next as its DSF.
+      await until(() => /\.d64\.dsf/.test(dac.nextUri), 40000);
+      // Skipped to: started as the DSF, DSD64 in the device's own word for it.
+      const from = dac.fetches.length;
+      await api("control", { zone_or_output_id: DAC, command: "next" });
+      const f = await until(() => dac.fetches.slice(from).find(x => x.done && /\.d64\.dsf/.test(x.uri) && x), 15000);
+      assert.equal(f.status, 200);
+      assert.equal(f.type, "audio/x-dsf");
+      assert.equal(f.body.toString("ascii", 0, 4), "DSD ");
+      assert.equal(f.body.readUInt32LE(56), 2822400, "DSD64");
+      await until(async () => { const z = await state(DAC); return z && z.now_playing && z.now_playing.format && z.now_playing.format.text === "DSD64 from PCM" && z; }, 15000);
+      assert.deepEqual(ctx.logs.slice(said).filter(l => /\[upsample\] .*couldn't/.test(l)), []);
+      await api("control", { zone_or_output_id: DAC, command: "stop" });
+      await api("audio-devices/" + DAC, { output: { dsd_out: "off" }, enabled: false }, "PATCH");
+    });
+
     await t.test("the server restarted (an update): the renderer's queue is kept and the playing track recognised", async () => {
       await api("play", { offset: cd.offset, zone_or_output_id: WIIM, kind: "play_now" });
       await until(async () => { const z = await state(WIIM); return z && z.state === "playing" && z.now_playing && z.now_playing.line1 === "Song 1"; });
@@ -442,6 +475,6 @@ test("a renderer is a zone", { skip, timeout: 150000 }, async (t) => {
   } finally {
     await srv.stop();
     await house.stop();
-    await wiim.stop(); await poly.stop();
+    await wiim.stop(); await poly.stop(); await dac.stop();
   }
 });
