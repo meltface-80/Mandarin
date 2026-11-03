@@ -165,7 +165,7 @@ internal fun VolumeMenu(volume: VolumeScale?, muted: Boolean, open: Boolean, onO
 }
 
 /** Where the page puts the sheet: [above] the composable it is drawn in (the mini bar), or at its foot, [inset] up from the bottom (Now playing). */
-private class SheetAt(private val above: Boolean, private val inset: Int) : PopupPositionProvider {
+internal class SheetAt(private val above: Boolean, private val inset: Int) : PopupPositionProvider {
     override fun calculatePosition(anchorBounds: IntRect, windowSize: IntSize, layoutDirection: LayoutDirection, popupContentSize: IntSize): IntOffset =
         IntOffset(0, (if (above) anchorBounds.top else anchorBounds.bottom) - popupContentSize.height - inset)
 }

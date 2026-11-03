@@ -19,6 +19,9 @@ internal sealed record SentInfo(bool Transcode, double Rate, double Bits, double
     public bool Whole { get; init; }
     // Sent as PCM while it is made DSD at this multiple (item 243): Now playing says so.
     public int DsdMaking { get; init; }
+    // The ReplayGain in it (dB, 0: none) and DSD's low-pass (Hz, 0: none), for the signal path (item 247).
+    public double Gain { get; init; }
+    public double Lowpass { get; init; }
 
     public JsonObject Json() => new()
     {

@@ -38,7 +38,9 @@ internal static class NowPlaying
             // Not in Roon's shape: what the speaker is actually being sent, for the format line on Now playing.
             ["track_id"] = t?.Id,
             ["album_offset"] = st.AlbumOffset != null ? st.AlbumOffset : al != null ? al.Id : null,
-            ["format"] = format == null ? null : new JsonObject { ["kind"] = format.Value.Kind, ["text"] = format.Value.Text }
+            ["format"] = format == null ? null : new JsonObject { ["kind"] = format.Value.Kind, ["text"] = format.Value.Text },
+            // Every step of the way, for Now playing's lines and its Signal path sheet (SignalPath.cs, item 247).
+            ["signal"] = SignalPath.Of(z, st, t, format)
         };
     }
 

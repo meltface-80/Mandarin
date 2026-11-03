@@ -20,6 +20,18 @@
 - New - Mandarin can make DSD from PCM: a seventh-order modulator, its noise from 20 Hz to 20 kHz some 139 dB down at DSD64 (the engine; choosing it for a device follows)
 - New - PCM as DSD: a streamer or DAC that takes DSD can have the library's PCM made DSD64, DSD128 or DSD256 ahead of playing and sent as DSF (Settings → Audio Devices → a device → Output → PCM as DSD)
 - Fixed - an album played with PCM as DSD on a FiiO SR11 stopped after its first track; and what was being made for an album no longer playing went on being made
+- New - Now playing's signal path: what goes out, how it was made and what is being made, centred under the album; a tap shows every step from the file to the room
+
+- `247-signal-path` (item 247): **Now playing's signal path.** The line under the album said everything at once ("WAV
+  24/705.6 ↑×16 · standard (whole track being made) · DSD256 being made"). The server now says it as lines, centred
+  under the album (what goes out, with its upsampling; how it was made: the filter, the modulator, a low-pass, the
+  DSP, the ReplayGain; what is being made for next time), and as the steps from the file to the room: the source, the
+  ReplayGain, DSD's low-pass, the DSP, the move to 44.1 kHz's family, the upsampling and its filter, the modulator, the
+  output to the device by name, the device's own confirmation, what is still being made, and a Qobuz or Tidal stream
+  that plays as PCM though the device is set to DSD (now_playing.signal, SignalPath.cs). Each step says what was
+  actually done to the stream the device is reading, never what the settings would do next: lossless (nothing changed),
+  enhanced (on purpose), lossy, or pending. A tap on the lines opens the Signal path sheet, on the page and in the app
+  (SignalPathSheet.kt), each step with its dot; a room or a phone shows its badge's words the same way.
 
 - `246-dsd-album-stops` (item 246): **an album with PCM as DSD plays on, and only what's playing is made.** On 3
   November an album played on a FiiO SR11 set to Whole track and DSD256 stopped at the end of its first track. The

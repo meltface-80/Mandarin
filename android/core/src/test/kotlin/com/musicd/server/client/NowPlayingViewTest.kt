@@ -77,6 +77,24 @@ class NowPlayingViewTest {
                         {"output_id": "o2", "display_name": "Sub", "is_muted": true, "volume": null}]}}"""
     ))
 
+    @Test fun `the signal path's lines under the album and its steps, the badge's words from an older server`() {
+        fun view(signal: String) = NowPlayingView.of(ZoneState.parse(JSONObject(
+            """{"zone": {"zone_id": "z1", "display_name": "SR11", "state": "playing",
+                "now_playing": {"line1": "Cocaine", "line2": "Eric Clapton", "line3": "Slowhand", "format": {"kind": "lossless", "text": "WAV 24/705.6 ↑×16"}$signal},
+                "outputs": []}}""")), 0)!!
+        val v = view(""", "signal": {"lines": ["WAV 24/705.6 kHz ↑×16", "Standard filter", "DSD256 being made"],
+            "steps": [{"kind": "source", "title": "File", "detail": "FLAC 16/44.1 kHz", "quality": "lossless"},
+                      {"kind": "pending", "title": "Being made", "detail": "DSD256 for this track’s next play: being made", "quality": "pending"}]}""")
+        assertEquals(listOf("WAV 24/705.6 kHz ↑×16", "Standard filter", "DSD256 being made"), v.infoLines)
+        assertEquals(listOf("source", "pending"), v.signal!!.steps.map { it.kind })
+        assertEquals("FLAC 16/44.1 kHz", v.signal!!.steps[0].detail)
+        // An older server: no signal, the badge's words on one line, nothing to open.
+        val old = view("")
+        assertEquals(listOf("WAV 24/705.6 ↑×16"), old.infoLines)
+        assertEquals(null, old.signal)
+        assertEquals("nothing said: none", null, Signal.of(JSONObject("""{"lines": [], "steps": []}""")))
+    }
+
     @Test fun `shuffle, repeat and the format, as the page's buttons and badge have them`() {
         val v = NowPlayingView.of(full("loop", true, "null"), 0)!!
         assertEquals(1, v.shuffleState)

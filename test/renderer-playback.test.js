@@ -280,6 +280,14 @@ test("a renderer is a zone", { skip, timeout: 150000 }, async (t) => {
       // The badge says what went, and — once the WiiM's own API agrees — its tick.
       const s = await until(async () => { const z = await state(WIIM); return z && z.now_playing && /↑×2/.test(z.now_playing.format.text) && /✓/.test(z.now_playing.format.text) && z; }, 15000);
       assert.equal(s.now_playing.format.text, "FLAC 24/88.2 ↑×2 ✓");
+      // Its signal path (item 247): what goes out and how, centred; every step from the file to the device.
+      const sp = s.now_playing.signal;
+      assert.deepEqual(sp.lines, ["FLAC 24/88.2 kHz ↑×2 ✓", "Standard filter"]);
+      assert.deepEqual(sp.steps.map(x => x.kind), ["source", "upsample", "output", "verified"]);
+      assert.equal(sp.steps[0].detail, "FLAC 16/44.1 kHz");
+      assert.equal(sp.steps[1].detail, "×2 to 88.2 kHz · Standard filter");
+      assert.match(sp.steps[2].detail, /^FLAC 24\/88\.2 kHz, to Living Room WiiM$/);
+      assert.deepEqual(sp.steps.map(x => x.quality), ["lossless", "enhanced", "enhanced", "lossless"]);
       const d = await api("audio-devices/" + WIIM);
       assert.equal(d.rates.find(x => x.hz === 88200).source, "verified");
       assert.ok(d.caps.verified.rates["88200"]);
@@ -433,7 +441,11 @@ test("a renderer is a zone", { skip, timeout: 150000 }, async (t) => {
       // Long 1, not made yet: as PCM (the file as it is), Now playing saying its DSF is on the way.
       const first = await until(() => dac.fetches.find(x => x.done && x.body && x.body.length > 1000 && x), 15000);
       assert.match(first.uri, /\.orig\.flac/, first.uri);
-      await until(async () => { const z = await state(DAC); return z && z.now_playing && / · DSD64 (being made|next play)$/.test(z.now_playing.format.text) && z; }, 15000);
+      const pcm = await until(async () => { const z = await state(DAC); return z && z.now_playing && / · DSD64 (being made|next play)$/.test(z.now_playing.format.text) && z; }, 15000);
+      // Its signal path (item 247): the file as it is, its DSF still to come.
+      assert.deepEqual(pcm.now_playing.signal.lines.slice(0, 1), ["FLAC 16/44.1 kHz · bit-perfect"]);
+      assert.match(pcm.now_playing.signal.lines[pcm.now_playing.signal.lines.length - 1], /^DSD64 (being made|next play)$/);
+      assert.deepEqual(pcm.now_playing.signal.steps.map(x => x.kind), ["source", "output", "pending"]);
       // Long 2, made meanwhile: armed next as its DSF.
       await until(() => /\.d64\.dsf/.test(dac.nextUri), 40000);
       // Skipped to: started as the DSF, DSD64 in the device's own word for it.
@@ -444,7 +456,10 @@ test("a renderer is a zone", { skip, timeout: 150000 }, async (t) => {
       assert.equal(f.type, "audio/x-dsf");
       assert.equal(f.body.toString("ascii", 0, 4), "DSD ");
       assert.equal(f.body.readUInt32LE(56), 2822400, "DSD64");
-      await until(async () => { const z = await state(DAC); return z && z.now_playing && z.now_playing.format && z.now_playing.format.text === "DSD64 from PCM" && z; }, 15000);
+      const dz = await until(async () => { const z = await state(DAC); return z && z.now_playing && z.now_playing.format && z.now_playing.format.text === "DSD64 from PCM" && z; }, 15000);
+      // Its signal path (item 247): ×16 whole to 705.6 kHz, the modulator, the DSF.
+      assert.deepEqual(dz.now_playing.signal.lines, ["DSD64 · 2.8224 MHz", "From PCM · whole track ×16 · 7th-order modulator"]);
+      assert.deepEqual(dz.now_playing.signal.steps.map(x => x.kind), ["source", "upsample", "modulator", "output"]);
       assert.deepEqual(ctx.logs.slice(said).filter(l => /\[upsample\] .*couldn't/.test(l)), []);
       // Long 1 went as PCM: its DSF was never made, though the play asked for it before Long 1 started (item 246).
       assert.deepEqual(ctx.logs.slice(said).filter(l => /Long 1\.flac: DSD64 from PCM/.test(l)), []);
