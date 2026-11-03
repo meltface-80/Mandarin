@@ -1,7 +1,7 @@
 // Program.cs — mandarin-audio, Mandarin's audio engine (v0.8.0).
 //
 //   mandarin-audio --version
-//   mandarin-audio --device alsa:plughw:CARD=Mojo,DEV=0 [--ffmpeg PATH] [--core N] [--latency-ms 500]
+//   mandarin-audio --device alsa:plughw:CARD=Mojo,DEV=0 [--ffmpeg PATH] [--core N] [--latency-ms 500] [--dsd-native DSD_U32_BE:64,128]
 //   mandarin-audio --device coreaudio:Topping E30      (a Mac's, by its name; item 155)
 //   mandarin-audio --device file:/tmp/out.raw          (the tests' device)
 //   mandarin-audio --devices                           (a Mac's output devices and their rates)
@@ -42,7 +42,7 @@ internal static class Program
 
     private static int Main(string[] args)
     {
-        string? device = null, ffmpeg = "ffmpeg";
+        string? device = null, ffmpeg = "ffmpeg", dsdNative = "";
         int core = -1;
         uint latencyMs = 500;
         for (int i = 0; i < args.Length; i++)
@@ -56,6 +56,8 @@ internal static class Program
                 case "--ffmpeg": ffmpeg = Arg(args, ref i); break;
                 case "--core": core = int.Parse(Arg(args, ref i), CultureInfo.InvariantCulture); break;
                 case "--latency-ms": latencyMs = uint.Parse(Arg(args, ref i), CultureInfo.InvariantCulture); break;
+                // The DSD the DAC takes natively (item 256): "DSD_U32_BE:64,128,256"; any other DSD goes as DoP.
+                case "--dsd-native": dsdNative = Arg(args, ref i); break;
                 default: Console.Error.WriteLine("unknown argument " + args[i]); return 2;
             }
         }
@@ -76,7 +78,12 @@ internal static class Program
         else { Console.Error.WriteLine("unknown device " + device); return 2; }
 
         System.Runtime.GCSettings.LatencyMode = System.Runtime.GCLatencyMode.SustainedLowLatency;
-        var engine = new Engine(sink, ffmpeg!, core, Emit, Log);
+        var native = dsdNative.Split(':', 2);
+        var engine = new Engine(sink, ffmpeg!, core, Emit, Log)
+        {
+            NativeFormat = Dsd.NativeOf(native[0]),
+            NativeDsd = native.Length > 1 ? [.. native[1].Split(',').Select(x => int.TryParse(x, NumberStyles.Integer, CultureInfo.InvariantCulture, out var n) ? n : 0).Where(n => n > 0)] : [],
+        };
         Emit(Json.Obj("ev", "hello", "version", Version, "protocol", Protocol));
 
         // Commands, until stdin closes (the server went away) or "quit".

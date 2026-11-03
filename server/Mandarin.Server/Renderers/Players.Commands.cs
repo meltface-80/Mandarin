@@ -60,8 +60,10 @@ internal sealed partial class Players
         lock (gate) p.Verifying = key;
         var hw = HwParams(rec.Location);
         if (hw == null || hw.Value.Rate == 0) return;
-        var ok = hw.Value.Rate == sink.Value.Rate && sink.Value.Rate == item.Sent.Rate;
-        if (ok) { using var c = Db.Open(); Register.MarkVerified(c, p.Id, hw.Value.Rate, null); }
+        // DSD (item 256): the device open at the DSD rate over 16 (DoP) or over 32 (native words), not at a PCM rate.
+        var dsd = item.Sent.Dsd * 44100;
+        var ok = hw.Value.Rate == sink.Value.Rate && (dsd > 0 ? sink.Value.Rate * 16 == dsd || sink.Value.Rate * 32 == dsd : sink.Value.Rate == item.Sent.Rate);
+        if (ok && dsd == 0) { using var c = Db.Open(); Register.MarkVerified(c, p.Id, hw.Value.Rate, null); }
         var bump = false;
         lock (zm.Gate) { if (zm.State.TryGetValue(p.Id, out var now) && now.TrackUri == item.Uri) { now.Verified = ok ? "yes" : "no"; bump = true; } }
         if (bump) zm.Bump();

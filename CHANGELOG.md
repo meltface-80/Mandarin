@@ -28,6 +28,24 @@
 - New - room and headphone correction: load an impulse response (a WAV from REW, Dirac or a headphone measurement) on a streamer's or DAC's DSP and everything it plays runs through it (Settings → Audio Devices → a device → DSP → Room correction)
 - Improved - Mandarin's DSD modulator holds past SACD's highest level (+3.1 dB, 71% modulation) with room to spare, where it held only to 62%
 - Fixed - just after a scan, a page could show the albums from before it for a moment (the scan seemed to have ended before the server had read them)
+- New - DSD to a USB DAC on the server: native DSD where the DAC says it takes it (found from the DAC itself), DoP where you tick DSD for it; DSD files and PCM as DSD alike, never made PCM
+
+- `256-usb-dsd` (item 256): **DSD to a USB DAC on the server, as DSD.** The audio engine made every track 32-bit PCM
+  through ffmpeg, DSD files too, and a sound device here listed no DSD, so PCM as DSD wasn't offered for it. A DAC's
+  own descriptor, as the kernel lists it (/proc/asound/cardN/stream0), says what it takes, a format to each altset
+  with its rates (Local/UsbFormats.cs): its PCM rates are now those of its PCM altsets only (a DSD_U32 altset's
+  88.2 kHz is DSD64's words a second, not a PCM rate), and a DSD_U32_BE or DSD_U32_LE altset is the native DSD it
+  takes, on in its DSD chips as "advertised" with no tick. DoP can't be read from a descriptor (the DAC sees PCM),
+  so a DAC with no native DSD that takes the rate DoP needs (176.4 kHz for DSD64) is offered DSD, off until ticked.
+  The engine reads a DSF itself (engine/Mandarin.Audio/Dsd.cs, Engine.Dsd.cs) and hands the device its bits, each
+  byte turned round so the first bit goes first: natively in 32-bit words at the DSD rate over 32, the device opened
+  directly (hw:, ALSA's plug layer has no DSD), or as DoP, 16 bits a frame under the markers 0x05 and 0xFA in turn
+  at the rate over 16. No volume is put on DSD. The engine is told the native DSD at start (--dsd-native
+  DSD_U32_BE:64,128,256); anything else goes as DoP. The device's own word on what it plays (hw_params) confirms
+  DSD at those rates too. A Mac's devices take DoP only. UsbDsdTests reads a native DAC's descriptor and a DoP-only
+  one's, and plays a DSF as DoP and as native DSD to the tests' device, every byte of its audio as the file has
+  it; with the markers swapped or the DSD rates taken as PCM, they fail. Tested here against descriptors and the
+  bytes sent; a real DAC is the owner's to try.
 
 - `257-scan-end-status` (item 257): **a scan is under way until its albums are read.** /api/status said a scan had
   ended a moment too soon now and then: the scan's own ticks, every half second, went on after it ended and before

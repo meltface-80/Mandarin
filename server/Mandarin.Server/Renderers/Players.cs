@@ -84,7 +84,7 @@ internal sealed partial class Players
             if (eng == null) throw new HubError(409, $"{name} can't be played from this server: Mandarin's audio engine isn't here");
             // The stream is this server's own: fetched over loopback, whatever address it was given out at.
             var o = new EngineOutput(name, r.Location, eng.Bin, Transcoder.Bin, Log, LocalVolume(r), () => FixedVolume(Record(p.Id)),
-                u => System.Text.RegularExpressions.Regex.Replace(u, "^https?://[^/]+", $"http://127.0.0.1:{zm.Config.Port}"));
+                u => System.Text.RegularExpressions.Regex.Replace(u, "^https?://[^/]+", $"http://127.0.0.1:{zm.Config.Port}")) { DsdNative = UsbFormats.EngineArg(r.Caps) };
             p.Volume = (o.Volume, false);
             return o;
         };
@@ -235,7 +235,8 @@ internal sealed partial class Players
         var mimes = ((r.Caps["advertised"] as JsObj)?["mimes"] as List<object?> ?? []).Select(Jv.Str).ToList();
         static string? Find(List<string> l, string re) => l.FirstOrDefault(m => System.Text.RegularExpressions.Regex.IsMatch(m, re));
         var dsdMimes = Jv.Obj(
-            ("dsf", Find(mimes, "^audio/(x-)?dsf$") ?? Find(mimes, "^audio/(x-)?dsd$")),
+            // A sound device here is sent DSF, which the engine reads itself (item 256).
+            ("dsf", r.Kind == "local" ? "audio/x-dsf" : Find(mimes, "^audio/(x-)?dsf$") ?? Find(mimes, "^audio/(x-)?dsd$")),
             ("dff", Find(mimes, "^audio/(x-)?dff$") ?? Find(mimes, "^audio/(x-)?dsd$")));
         JsObj? dsp;
         using (var c = Db.Open()) dsp = PlaybackRoutes.DspFor(c, id);

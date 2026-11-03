@@ -15,6 +15,10 @@ internal static partial class Alsa
     [LibraryImport(Lib, EntryPoint = "snd_pcm_open", StringMarshalling = StringMarshalling.Utf8)]
     public static partial int Open(out IntPtr pcm, string name, int stream, int mode);
 
+    // A sample format's number by its name ("DSD_U32_BE"), as this ALSA has it (item 256).
+    [LibraryImport(Lib, EntryPoint = "snd_pcm_format_value", StringMarshalling = StringMarshalling.Utf8)]
+    public static partial int FormatValue(string name);
+
     [LibraryImport(Lib, EntryPoint = "snd_pcm_set_params")]
     public static partial int SetParams(IntPtr pcm, int format, int access, uint channels, uint rate, int softResample, uint latencyUs);
 
