@@ -116,16 +116,15 @@ class DevicePage(val j: JSONObject) {
     val has32: Boolean get() = bits.any { it.value == 32 && it.on }
     val modes: List<SegChoice> get() = listOf(SegChoice("original", "Original"), SegChoice("x2", "×2"), SegChoice("x4", "×4"), SegChoice("max", "Max"))
     /**
-     * The filter upsampling uses (items 237, 248): SoX's as it plays, or one as long as the track, made ahead, in its
-     * linear, minimum-phase or gentle shape. Shown where it upsamples, or makes DSD from PCM.
+     * The filter upsampling uses (items 248, 259): SoX's, or Mandarin's own in its minimum-phase or gentle shape, each
+     * made as it plays. Shown where it upsamples, or makes DSD from PCM.
      */
     val filter: String get() = output.optString("filter", "standard")
     val showFilter: Boolean get() = mode != "original" || output.has("dsd_out")
-    val filters: List<SegChoice> get() = listOf(SegChoice("standard", "Standard"), SegChoice("whole", "Whole track"), SegChoice("minphase", "Min phase"), SegChoice("gentle", "Gentle"))
+    val filters: List<SegChoice> get() = listOf(SegChoice("standard", "Standard"), SegChoice("minphase", "Min phase"), SegChoice("gentle", "Gentle"))
     val filterNote: String get() = if (dsdOut != 0) dsdFilterNote(dsdOut, filter) else when (filter) {
-        "whole" -> "One filter as long as the track, made ahead of playing (some 30 seconds a track); a track not yet made plays with the standard filter. Tracks from the library, ×2 to ×16."
-        "minphase" -> "Whole track’s filter made minimum phase: all its ringing after a sound starts, none before. Made ahead as Whole track is; a track not yet made plays with the standard filter."
-        "gentle" -> "Whole track’s filter rolling off from 90% of the band (19.8 kHz for a CD), twice as gently: its ringing half as long, the very top a little down (−6 dB at 21 kHz). Made ahead as Whole track is."
+        "minphase" -> "Minimum phase: all its ringing after a sound starts, none before. Mandarin’s own filter, made as it plays; tracks from the library, ×2 to ×16."
+        "gentle" -> "Rolling off from 90% of the band (19.8 kHz for a CD), twice as gently: its ringing half as long, the very top a little down (−6 dB at 21 kHz). Mandarin’s own filter, made as it plays."
         else -> "SoX’s filter, made as it plays."
     }
     /** The highest rate its owner allows (item 240), by 48 kHz's family; 0 for Auto. 44.1 kHz's is held to the rate that matches. */
@@ -141,31 +140,23 @@ class DevicePage(val j: JSONObject) {
     val maxRateNote: String get() = if (maxRate == 0) "As high as the device takes."
         else "Nothing goes above ${maxRate / 1000} kHz (${rateWord(maxRate / 48000 * 44100)} kHz for music in 44.1’s family), upsampled or not."
 
-    /** How the making goes (item 239): the tracks made and kept, the one being made, those waiting; null unless made ahead. */
-    /** How the making goes, under the filter; with PCM as DSD on, under that instead (they are its makings, item 254). */
-    val wholeLine: String? get() = if (filter != "standard" && dsdOut == 0) wholeStatus else null
-    private val wholeStatus: String? get() {
-        val w = output.optJSONObject("whole") ?: return null
-        val made = w.optInt("made")
-        val parts = mutableListOf(if (made == 1) "1 track made" else "$made tracks made")
-        w.optString("making").takeIf { it.isNotEmpty() && !w.isNull("making") }?.let { parts += "making “$it”" }
-        w.optInt("waiting").takeIf { it > 0 }?.let { parts += "$it waiting" }
-        return parts.joinToString(" · ")
-    }
+    /** How fast the server made the last track as it played (item 259), under the filter; with PCM as DSD on, under that instead. */
+    val filterMakingLine: String? get() = if (filter != "standard" && dsdOut == 0) making else null
+    private val making: String? get() = output.optString("making").takeIf { it.isNotEmpty() }
     /** DSD sent as PCM (item 241): its modulator's noise above the cut taken off; 0 for Off. */
     val dsdLowpass: Int get() = output.optInt("dsd_lowpass", 0)
     val dsdLowpassValue: String get() = if (dsdLowpass == 0) "off" else dsdLowpass.toString()
     val dsdLowpasses: List<SegChoice> get() = listOf(SegChoice("off", "Off"), SegChoice("50000", "50 kHz"), SegChoice("30000", "30 kHz"))
     val dsdLowpassNote: String get() = if (dsdLowpass != 0) "DSD this device is sent as PCM has the modulator’s noise above ${dsdLowpass / 1000} kHz taken off; below it, as recorded. DSD it takes as DSD goes as it is."
         else "DSD this device is sent as PCM keeps the modulator’s noise up to the top of the rate it goes at. DSD it takes as DSD goes as it is."
-    /** PCM as DSD (item 243): the multiple each track is made at ahead of playing; 0 for Off. Offered where the device takes DSD. */
+    /** PCM as DSD (items 243, 259): the multiple each track is made at as it plays; 0 for Off. Offered where the device takes DSD. */
     val dsdOut: Int get() = output.optInt("dsd_out", 0)
     val dsdOutValue: String get() = if (dsdOut == 0) "off" else dsdOut.toString()
     val showDsdOut: Boolean get() = dsd.any { it.on }
     val dsdOuts: List<SegChoice> get() = listOf(SegChoice("off", "Off")) + listOf(64, 128, 256).map { n -> SegChoice("$n", "DSD$n", off = dsd.none { it.value == n && it.on }) }
-    val dsdOutNote: String get() = if (dsdOut != 0) "Each track of the library that isn’t DSD is made DSD$dsdOut ahead of playing, by Mandarin’s seventh-order modulator, and sent as a DSF; a track not yet made goes as PCM, and so do Qobuz and Tidal. Making takes a while: DSD256 can take longer than the track."
-        else "PCM goes to this device as PCM. Set, each track of the library that isn’t DSD is made DSD ahead of playing and sent as a DSF."
-    val dsdOutLine: String? get() = if (dsdOut != 0) wholeStatus else null
+    val dsdOutNote: String get() = if (dsdOut != 0) "Each track of the library that isn’t DSD is made DSD$dsdOut as it plays, by Mandarin’s seventh-order modulator, and sent as a DSF while it is made; Qobuz and Tidal go as PCM."
+        else "PCM goes to this device as PCM. Set, each track of the library that isn’t DSD is made DSD as it plays and sent as a DSF."
+    val dsdOutLine: String? get() = if (dsdOut != 0) making else null
     val depths: List<SegChoice> get() = listOf(SegChoice("auto", "Auto"), SegChoice("24", "24"), SegChoice("32", "32", off = !flac32))
     val outputInfo: String get() = "Original sends the file as stored wherever this device takes its rate, depth and format; above its ceiling, FLAC at the highest rate it takes. Upsampling stays in the file's family (44.1 → 88.2 → 176.4; 48 → 96 → 192), runs in 64-bit float, and goes out at " +
         (if (has32 && flac32) "24 or 32 bits" else "24 bits") + "."
@@ -238,10 +229,9 @@ class DevicePage(val j: JSONObject) {
         /** 0 to −12 dB, −5 the default. */
         val UNKNOWNS = (0 downTo -12).map { Choice("$it", "$it dB" + if (it == -5) " (Default)" else "") }
 
-        /** The filter's note with PCM as DSD[n] on (item 254): the one each track is made DSD with, and the PCM meanwhile. */
-        fun dsdFilterNote(n: Int, filter: String): String = "With PCM as DSD$n on, this is the filter each track is made DSD$n with: " +
-            (when (filter) { "minphase" -> "minimum phase, all its ringing after a sound starts"; "gentle" -> "gentle, rolling off from 90% of the band"; else -> "one as long as the track, linear phase" }) +
-            ". A track that plays before its DSD$n is made goes as PCM, with the standard filter."
+        /** The filter's note with PCM as DSD[n] on (items 254, 259): the one each track is upsampled with on its way to DSD. */
+        fun dsdFilterNote(n: Int, filter: String): String = "With PCM as DSD$n on, this is the filter each track is upsampled with on its way to DSD$n: " +
+            (when (filter) { "minphase" -> "minimum phase, all its ringing after a sound starts"; "gentle" -> "gentle, rolling off from 90% of the band"; else -> "standard, linear phase" }) + "."
         /** A rate in kHz as the page writes it: 44.1, 48, 176.4. */
         fun rateWord(hz: Int): String = (hz / 1000.0).let { if (it == Math.floor(it)) it.toLong().toString() else it.toString() }
         /** A number as the page writes it (String(n)): 1, not 1.0. */

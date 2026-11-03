@@ -245,7 +245,7 @@ internal sealed partial class Players
             ("mode", s["mode"] is string mode && mode is "original" or "x2" or "x4" or "max" ? mode : "original"),
             ("bits", s["bits"] is double b && b is 24 or 32 ? (object)b : "auto"),
             ("dsp", dsp), ("id", r.Id));
-        if (Upsample.WholeShape.MadeAhead(s["filter"])) target["filter"] = s["filter"];   // whole, minimum phase, gentle (items 237, 248); standard by its absence
+        if (Upsample.Shape.OfFilter(s["filter"]) != null) target["filter"] = s["filter"];   // minimum phase, gentle (items 248, 259); standard by its absence
         if (DsdLowpass.Of(s["dsd_lowpass"]) is { } cut) target["dsd_lowpass"] = cut;   // DSD as PCM, low-passed (item 241)
         if (Upsample.DsdPlan.Of(s["dsd_out"]) is { } up) target["dsd_out"] = (double)up;   // PCM as DSD (item 243)
         return target;

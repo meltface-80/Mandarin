@@ -15,14 +15,10 @@ internal sealed record Volume(double? Value, bool Muted);
 /* What a renderer or a sound device is being sent (players.js toItem's `sent`): the Now playing badge's words. */
 internal sealed record SentInfo(bool Transcode, double Rate, double Bits, double Upsampled, bool Dsp, double Dsd, string Ext, string Mime)
 {
-    // Planned to be upsampled whole (item 237): Now playing says whether its own file went out (item 239).
-    public bool Whole { get; init; }
-    // Sent as PCM while it is made DSD at this multiple (item 243): Now playing says so.
-    public int DsdMaking { get; init; }
     // The ReplayGain in it (dB, 0: none) and DSD's low-pass (Hz, 0: none), for the signal path (item 247).
     public double Gain { get; init; }
     public double Lowpass { get; init; }
-    // The shape of the filter made ahead ("min", "gentle"; null: linear), for Now playing (item 248).
+    // The upsampling filter's shape ("min", "gentle"; null: standard), for Now playing (items 248, 259).
     public string? Shape { get; init; }
 
     public JsonObject Json() => new()

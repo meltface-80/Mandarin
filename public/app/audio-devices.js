@@ -19,38 +19,27 @@ const hideNote = document.getElementById("devices-hide-note");
 let hideMode = false;
 let picks = new Set();
 const esc = (v) => String(v == null ? "" : v).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-// The whole-track filter (item 237): what it is and what it costs.
-const WHOLE_NOTE = "One filter as long as the track, made ahead of playing (some 30 seconds a track); a track not yet made plays with the standard filter. Tracks from the library, ×2 to ×16.";
-// The filter's notes by choice (items 237, 248): the three made ahead share Whole track's way of being made.
+// The filter's notes by choice (items 248, 259): each made as it plays.
 const FILTER_NOTE = {
   standard: "SoX’s filter, made as it plays.",
-  whole: WHOLE_NOTE,
-  minphase: "Whole track’s filter made minimum phase: all its ringing after a sound starts, none before. Made ahead as Whole track is; a track not yet made plays with the standard filter.",
-  gentle: "Whole track’s filter rolling off from 90% of the band (19.8 kHz for a CD), twice as gently: its ringing half as long, the very top a little down (−6 dB at 21 kHz). Made ahead as Whole track is."
+  minphase: "Minimum phase: all its ringing after a sound starts, none before. Mandarin’s own filter, made as it plays; tracks from the library, ×2 to ×16.",
+  gentle: "Rolling off from 90% of the band (19.8 kHz for a CD), twice as gently: its ringing half as long, the very top a little down (−6 dB at 21 kHz). Mandarin’s own filter, made as it plays."
 };
-// The filter with PCM as DSD on (item 254): the one each track is made DSD with, and the PCM that stands in meanwhile.
-const DSD_FILTER_NOTE = (n, f) => "With PCM as DSD" + n + " on, this is the filter each track is made DSD" + n + " with: " +
-  (f === "minphase" ? "minimum phase, all its ringing after a sound starts" : f === "gentle" ? "gentle, rolling off from 90% of the band" : "one as long as the track, linear phase") +
-  ". A track that plays before its DSD" + n + " is made goes as PCM, with the standard filter.";
+// The filter with PCM as DSD on (items 254, 259): the one each track is upsampled with on its way to DSD.
+const DSD_FILTER_NOTE = (n, f) => "With PCM as DSD" + n + " on, this is the filter each track is upsampled with on its way to DSD" + n + ": " +
+  (f === "minphase" ? "minimum phase, all its ringing after a sound starts" : f === "gentle" ? "gentle, rolling off from 90% of the band" : "standard, linear phase") + ".";
 // DSD sent as PCM (item 241): what the low-pass does.
 const DSD_LOWPASS_NOTE = (cut) => cut
   ? "DSD this device is sent as PCM has the modulator’s noise above " + (cut / 1000) + " kHz taken off; below it, as recorded. DSD it takes as DSD goes as it is."
   : "DSD this device is sent as PCM keeps the modulator’s noise up to the top of the rate it goes at. DSD it takes as DSD goes as it is.";
-// PCM made DSD (item 243): what it does and what it costs.
+// PCM made DSD (items 243, 259): what it does.
 const DSD_OUT_NOTE = (n) => n
-  ? "Each track of the library that isn’t DSD is made DSD" + n + " ahead of playing, by Mandarin’s seventh-order modulator, and sent as a DSF; a track not yet made goes as PCM, and so do Qobuz and Tidal. Making takes a while: DSD256 can take longer than the track."
-  : "PCM goes to this device as PCM. Set, each track of the library that isn’t DSD is made DSD ahead of playing and sent as a DSF.";
-// How the making goes (item 239): the tracks made and kept, the one being made, those waiting.
-const wholeLine = (w) => {
-  const parts = [w.made === 1 ? "1 track made" : (w.made || 0) + " tracks made"];
-  if (w.making) parts.push("making “" + w.making + "”");
-  if (w.waiting) parts.push(w.waiting + " waiting");
-  return parts.join(" · ");
-};
-// The Filter's note and how its making goes (item 254): with PCM as DSD on, the filter is the DSD's and the makings
-// are said under PCM as DSD, not twice.
-const filterNotes = (o) => [o.dsd_out ? DSD_FILTER_NOTE(o.dsd_out, o.filter) : FILTER_NOTE[o.filter || "standard"],
-  !o.dsd_out && o.filter && o.filter !== "standard" && o.whole ? wholeLine(o.whole) : null];
+  ? "Each track of the library that isn’t DSD is made DSD" + n + " as it plays, by Mandarin’s seventh-order modulator, and sent as a DSF while it is made; Qobuz and Tidal go as PCM."
+  : "PCM goes to this device as PCM. Set, each track of the library that isn’t DSD is made DSD as it plays and sent as a DSF.";
+// The Filter's note and how fast its making goes (item 259): with PCM as DSD on, the filter is the DSD's and its speed
+// is said under PCM as DSD, not twice.
+const filterNotes = (o) => [o.dsd_out ? DSD_FILTER_NOTE(o.dsd_out, o.filter) : FILTER_NOTE[o.filter || "standard"] || FILTER_NOTE.standard,
+  !o.dsd_out && o.filter && o.filter !== "standard" && o.making ? o.making : null];
 const ask = (q) => window.__confirmDialog ? window.__confirmDialog(q) : Promise.resolve(confirm(q));
 const deviceToast = (m, kind) => { if (window.__showToast) window.__showToast(m, kind); };
 const svg = (paths) => '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + paths + "</svg>";
@@ -321,7 +310,7 @@ function renderDetail(keepInput) {
         seg("max_rate", [{ v: "auto", label: "Auto" }].concat(caps.map(c => ({ v: c, label: (c / 1000) + "k" }))), cap || "auto") +
         '<div class="settings-note"' + ' data-parity="settings-device.note"' + '>' + (cap ? "Nothing goes above " + (cap / 1000) + " kHz (" + (cap / 48000 * 44.1) + " kHz for music in 44.1’s family), upsampled or not." : "As high as the device takes.") + "</div></div>" : "") +
       (o.mode !== "original" || o.dsd_out ? '<div class="cap-group"><span class="cap-label"' + ' data-parity="settings-device.cap-label"' + '>Filter</span>' +
-        seg("filter", [{ v: "standard", label: "Standard" }, { v: "whole", label: "Whole track" }, { v: "minphase", label: "Min phase" }, { v: "gentle", label: "Gentle" }], o.filter || "standard") +
+        seg("filter", [{ v: "standard", label: "Standard" }, { v: "minphase", label: "Min phase" }, { v: "gentle", label: "Gentle" }], o.filter || "standard") +
         '<div class="settings-note"' + ' data-parity="settings-device.note"' + '>' + filterNotes(o)[0] + "</div>" +
         (filterNotes(o)[1] ? '<div class="settings-note"' + ' data-parity="settings-device.note"' + '>' + esc(filterNotes(o)[1]) + "</div>" : "") + "</div>" : "") +
       (has32 ? '<div class="cap-group"><span class="cap-label"' + ' data-parity="settings-device.cap-label"' + '>Bit depth</span>' +
@@ -333,11 +322,11 @@ function renderDetail(keepInput) {
       '<div class="cap-group"><span class="cap-label"' + ' data-parity="settings-device.cap-label"' + '>DSD as PCM</span>' +
         seg("dsd_lowpass", [{ v: "off", label: "Off" }, { v: 50000, label: "50 kHz" }, { v: 30000, label: "30 kHz" }], o.dsd_lowpass || "off") +
         '<div class="settings-note"' + ' data-parity="settings-device.note"' + '>' + esc(DSD_LOWPASS_NOTE(o.dsd_lowpass)) + "</div></div>" +
-      // PCM made DSD ahead of playing, for a device that takes DSD (item 243).
+      // PCM made DSD as it plays, for a device that takes DSD (items 243, 259).
       (dsdOn.length ? '<div class="cap-group"><span class="cap-label"' + ' data-parity="settings-device.cap-label"' + '>PCM as DSD</span>' +
         seg("dsd_out", [{ v: "off", label: "Off" }].concat([64, 128, 256].map(n => ({ v: n, label: "DSD" + n, off: !dsdOn.includes(n) }))), o.dsd_out || "off") +
         '<div class="settings-note"' + ' data-parity="settings-device.note"' + '>' + esc(DSD_OUT_NOTE(o.dsd_out)) + "</div>" +
-        (o.dsd_out && o.whole ? '<div class="settings-note"' + ' data-parity="settings-device.note"' + '>' + esc(wholeLine(o.whole)) + "</div>" : "") + "</div>" : "") +
+        (o.dsd_out && o.making ? '<div class="settings-note"' + ' data-parity="settings-device.note"' + '>' + esc(o.making) + "</div>" : "") + "</div>" : "") +
       (d.can_fix_volume ? '<div class="settings-row" style="margin-top:14px"><span class="settings-label"' + ' data-parity="settings-device.name"' + '>Fixed volume</span>' +
         '<label class="switch"' + ' data-parity="settings-device.fixvol"' + '><input type="checkbox" data-dev-fixvol' + (d.volume_fixed ? " checked" : "") + ' aria-label="Fixed volume">' +
         '<span class="switch-track"><span class="switch-thumb"></span></span></label></div>' +

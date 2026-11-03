@@ -4,10 +4,11 @@ using System.Text.Json.Nodes;
 namespace Mandarin.Tests;
 
 /// <summary>
-/// PCM sent as DSD (bug list item 243, Upsample/DsdPlan.cs): a device set to PCM as DSD has each track of the library
-/// that isn't DSD made DSD ahead of playing by the modulator of item 242 and sent as a DSF; where the device takes that
-/// multiple and DSF files, from a rate of either family (48 kHz's through 44.1 kHz's, by SoX), never a service's stream,
-/// DSD that is DSD already, or a track a DSP setting runs on. The job made for 96 kHz is run and its file read.
+/// PCM sent as DSD (bug list items 243, 259, Upsample/DsdPlan.cs): a device set to PCM as DSD has each track of the
+/// library that isn't DSD made DSD as it plays by the modulator of item 242 and sent as a DSF while it is made; where
+/// the device takes that multiple and DSF files, from a rate of either family (48 kHz's through 44.1 kHz's, by SoX),
+/// never a service's stream, DSD that is DSD already, or a track a DSP setting runs on. The job made for 96 kHz is run
+/// and its file read; a track asked for as a DSF never made is sent as it is made, then kept and sent whole.
 /// </summary>
 public sealed class DsdPlanTests
 {
@@ -38,7 +39,7 @@ public sealed class DsdPlanTests
         var p = (await Plans(new JsonObject { ["dsd_up"] = JsonNode.Parse(Http.Json(cases)) }))["dsd_up"]!.AsArray();
         // A CD at DSD64: a DSF in the device's own word for it, made from the track's own rate.
         Assert.Equal(("dsf", "audio/dsf", 64.0, 64.0, 44100.0), (p[0].Str("ext"), p[0].Str("mime"), p[0].Num("dsd")!.Value, p[0].Num("dsdUp")!.Value, p[0].Num("inRate")!.Value));
-        Assert.Equal("DSD64 from PCM, made ahead", p[0].Str("reason"));
+        Assert.Equal("DSD64 from PCM, made as it plays", p[0].Str("reason"));
         // 96 kHz at DSD128: 48 kHz's family too.
         Assert.Equal((128.0, 96000.0), (p[1].Num("dsdUp")!.Value, p[1].Num("inRate")!.Value));
         // Off; a multiple it doesn't take; no DSF in its words; DSD already (as it is); a rate of neither family; a service: PCM, as before.
@@ -54,11 +55,9 @@ public sealed class DsdPlanTests
         {
             // [id, mtime, rate, bits, hq, exact, wav, whole, lowpass, dsdUp]
             ["held_keys"] = new JsonArray(new JsonArray(7, 5, 96000, 1, true, false, false, false, 0, 0), new JsonArray(7, 5, 96000, 1, true, false, false, false, 0, 64)),
-            ["dsd_badge"] = new JsonArray(new JsonArray(64, "making"), new JsonArray(128, "failed"), new JsonArray(256, null)),
         });
         var keys = r["held_keys"]!.AsArray().Select(k => (string)k!).ToArray();
         Assert.Equal(keys[0] + "-dsd64", keys[1]);
-        Assert.Equal([" · DSD64 being made", " · DSD128 failed: see the log", " · DSD256 next play"], r["dsd_badge"]!.AsArray().Select(x => (string)x!).ToArray());
 
         var dir = Directory.CreateTempSubdirectory("musicd-test-").FullName;
         try
@@ -67,12 +66,14 @@ public sealed class DsdPlanTests
             Fixtures.Gen(src, seconds: 1, freq: 997, rate: 96000);
             var dsf = Path.Combine(dir, "a.dsf");
             var plan = new { transcode = true, hq = true, rate = 96000, bits = 1, dsdUp = 64, inRate = 96000, gain = -3, reason = "" };
-            var job = (await Plans(new JsonObject { ["dsd_job"] = JsonNode.Parse(Http.Json(new object[] { new object[] { src, plan, dsf, true } })) }))["dsd_job"]![0]!.AsObject();
+            var job = (await Plans(new JsonObject { ["dsd_job"] = JsonNode.Parse(Http.Json(new object[] { new object[] { src, plan, dsf, true, 1.0 } })) }))["dsd_job"]![0]!.AsObject();
             // Decoded at 88.2 kHz by SoX at its finest, the gain on it; made ×8 to 705.6 kHz, then DSD64.
             var decode = string.Join(" ", job["decode"]!.AsArray().Select(x => (string?)x));
             Assert.Contains("-af volume=volume=-3dB:precision=double,aresample=resampler=soxr:precision=33:osr=88200 -ac 2 -ar 88200 ", decode, StringComparison.Ordinal);
             Assert.Equal((88200.0, 8.0, 2822400.0, dsf), (job.Num("rate")!.Value, job.Num("factor")!.Value, job.Num("dsd")!.Value, job.Str("out")));
-            // Run as WholeJobs runs it: a DSF of the track's length, DSD64, stereo.
+            // Its length said before it is made, from the track's (a second): the DSF's header written first.
+            Assert.Equal(88200.0, job.Num("frames"));
+            // Run as MadeAsPlayed runs it: a DSF of the track's length, DSD64, stereo.
             job["ffmpeg"] = "ffmpeg";
             var said = await Upsample(job);
             Assert.True(said["error"] == null, (string?)said["error"]);
@@ -86,16 +87,30 @@ public sealed class DsdPlanTests
     }
 
     [Test]
-    public async Task While_its_DSF_is_made_a_track_goes_with_the_standard_filter_never_a_whole_tracks()
+    public async Task A_DSF_never_made_is_sent_as_it_is_made_then_kept_and_sent_whole()
     {
-        Needs.Server();
-        // A device set to Whole track and to DSD256 (item 246): the PCM that stands in for the DSF is the standard
-        // filter's; a whole track's is made in the same queue, behind the DSFs, and was never there to be armed.
-        var whole = new { transcode = true, hq = true, mime = "audio/wav", ext = "wav", wav = true, rate = 705600, bits = 24, upsampled = 16, whole = true, inRate = 44100, reason = "upsampled ×16 to 705.6 kHz for SR11 (whole track)" };
-        var p = (await Plans(new JsonObject { ["dsd_waiting"] = JsonNode.Parse(Http.Json(new object[] { new object[] { whole, 256 } })) }))["dsd_waiting"]![0]!;
-        Assert.Null(p["whole"]);
-        Assert.Equal((256.0, 705600.0, true), (p.Num("dsdMaking")!.Value, p.Num("rate")!.Value, (bool?)p["wav"] ?? false));
-        Assert.Equal("upsampled ×16 to 705.6 kHz for SR11 (DSD256 being made)", p.Str("reason"));
+        Needs.Server(); Needs.Ffmpeg();
+        await using var s = await Session.Started();
+        await Session.Until(async () => (await s.Api("library-stats")).J.Num("albums") == 3, 30000, "the library");
+        var song = s.Server.Rows("SELECT * FROM tracks WHERE title = $1", "Song 1")[0];
+        var seconds = Convert.ToDouble(song["duration"], System.Globalization.CultureInfo.InvariantCulture);
+        var url = s.Base + $"/stream/t{song["id"]}.d64.dsf";
+        // Asked for before any of it is made: sent as it is made, its length not yet known to the transfer (no
+        // Content-Length), the DSF's own header saying it from the first bytes.
+        var first = await Bytes.Get(url, s.H);
+        Assert.Equal(200, first.Status);
+        Assert.Equal(((string?)null, "chunked"), (first.Header("Content-Length"), first.Header("Transfer-Encoding")));
+        Assert.Equal("DSD ", System.Text.Encoding.ASCII.GetString(first.Body, 0, 4));
+        var samples = (long)Math.Round(seconds * 44100) * 64;
+        Assert.Equal((2822400, samples), (BitConverter.ToInt32(first.Body, 56), BitConverter.ToInt64(first.Body, 64)));
+        // Every block the header promised (4096 bytes a channel), nothing more.
+        Assert.Equal(92 + (samples / 8 + 4095) / 4096 * 4096 * 2, first.Body.LongLength);
+        // Kept: the next play the file itself, whole, its length known, the same bytes.
+        var again = await Bytes.Get(url, s.H);
+        Assert.Equal((200, first.Body.LongLength.ToString(System.Globalization.CultureInfo.InvariantCulture)), (again.Status, again.Header("Content-Length")));
+        Assert.True(again.Body.AsSpan().SequenceEqual(first.Body), "the file kept is what was sent");
+        // Its speed in the log.
+        Assert.Contains(s.Server.Logs, l => l.Contains("DSD64 from PCM, standard filter (0 reset(s)), made as it played at", StringComparison.Ordinal));
     }
 
     // `mandarin-server upsample` given [job]: its line of JSON.

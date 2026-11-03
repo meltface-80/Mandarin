@@ -1,4 +1,4 @@
-// Fft.cs — the fast Fourier transform the whole-track upsampler runs on (bug list item 237, WholeTrack.cs).
+// Fft.cs — the fast Fourier transform the upsampler runs on (bug list items 237, 259, StreamUpsample.cs).
 //
 // A power-of-two length, complex, in place, in 64-bit floats, on all the cores but none of the server's own work.
 // Forward is decimation in frequency: the input in natural order, the spectrum left in bit-reversed order. Inverse is

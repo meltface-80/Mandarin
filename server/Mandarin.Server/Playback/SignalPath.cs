@@ -59,14 +59,14 @@ internal static class SignalPath
         }
         else if (s.Dsd != 0)
         {
-            // Made DSD from PCM (items 242, 243): upsampled whole to 705.6 kHz, then the modulator.
+            // Made DSD from PCM (items 242, 243, 259): upsampled to 705.6 kHz, then the modulator, as it plays.
             var from = Upsample.DsdPlan.FromRate(t.SampleRate ?? 0);
             if (from != (t.SampleRate ?? 0)) steps.Add(Step("resample", "To 44.1 kHz’s family", $"{Khz(t.SampleRate ?? 0)} → {Khz(from)} kHz, by SoX at its finest", "enhanced"));
-            steps.Add(Step("upsample", "Upsampling", $"×{N(Upsample.DsdChain.InRate / Math.Max(1, from))} to 705.6 kHz · {Upsample.WholeShape.Name(s.Shape).ToLowerInvariant()}, one transform as long as the track", "enhanced"));
+            steps.Add(Step("upsample", "Upsampling", $"×{N(Upsample.DsdChain.InRate / Math.Max(1, from))} to 705.6 kHz · {Upsample.Shape.Name(s.Shape).ToLowerInvariant()}", "enhanced"));
             steps.Add(Step("modulator", "DSD modulator", $"Seventh order, its noise shaped out of the audio band; doubled to DSD{N(s.Dsd)} ({Mhz(s.Dsd)} MHz)", "enhanced"));
-            steps.Add(Step("output", "Output", $"DSF, DSD{N(s.Dsd)}, to {z.DisplayName}", "enhanced"));
+            steps.Add(Step("output", "Output", $"DSF, DSD{N(s.Dsd)}, made as it plays, to {z.DisplayName}", "enhanced"));
             output = $"DSD{N(s.Dsd)} · {Mhz(s.Dsd)} MHz";
-            how = $"From PCM · {Upsample.WholeShape.Making(s.Shape)} ×{N(Upsample.DsdChain.InRate / Math.Max(1, from))} · 7th-order modulator";
+            how = $"From PCM · {Upsample.Shape.Words(s.Shape)} ×{N(Upsample.DsdChain.InRate / Math.Max(1, from))} · 7th-order modulator";
         }
         else
         {
@@ -74,9 +74,9 @@ internal static class SignalPath
                 : $"{Library.FormatName(t.Container, false) ?? (t.Codec ?? "").ToUpperInvariant()} {N(s.Bits)}/{Khz(s.Rate)} kHz";
             if (s.Upsampled != 0)
             {
-                var (filter, state) = s.DsdMaking != 0 ? StandIn(z, s) : Filter(s, t);
-                steps.Add(Step("upsample", "Upsampling", $"×{N(s.Upsampled)} to {Khz(s.Rate)} kHz · {filter}{(state != null ? $" ({state})" : "")}", "enhanced"));
-                how = state != null ? $"{filter} · {state}" : filter;
+                var filter = Upsample.Shape.Name(s.Shape);
+                steps.Add(Step("upsample", "Upsampling", $"×{N(s.Upsampled)} to {Khz(s.Rate)} kHz · {filter}", "enhanced"));
+                how = filter;
             }
             var exact = !s.Transcode;
             steps.Add(Step("output", "Output", $"{words}{(exact ? ", the file as it is" : "")}, to {z.DisplayName}", exact ? "lossless" : "enhanced"));
@@ -87,49 +87,14 @@ internal static class SignalPath
             steps.Add(Step("verified", "Confirmed by the device", "It reports playing what it was sent", "lossless"));
             output += " ✓";
         }
-        // Still to be made: the DSF this track was sent as PCM for; a stream never made DSD although the device is set to it.
-        if (s.DsdMaking != 0)
-        {
-            var state = Upsample.WholeJobs.State(t.Id);
-            var words = state is "queued" or "making" ? "being made" : state == "failed" ? "failed: see the log" : "next play";
-            // Neither waiting nor under way nor failed: made while this plays (item 254), for its next play.
-            var detail = state switch
-            {
-                "queued" => $"DSD{s.DsdMaking} for this track’s next play: waiting its turn",
-                "making" => $"DSD{s.DsdMaking} for this track’s next play: being made now",
-                "failed" => $"DSD{s.DsdMaking} for this track’s next play: failed, see the log",
-                _ => $"DSD{s.DsdMaking} made: this track plays as DSD next time",
-            };
-            steps.Add(Step("pending", "Being made", detail, "pending"));
-            making = $"DSD{s.DsdMaking} {words}";
-        }
-        else if (svc != null && Renderers.Players.TargetFor(z.DeviceId ?? z.ZoneId)?["dsd_out"] is double up && up > 0)
+        // A stream never made DSD although the device is set to it.
+        if (svc != null && Renderers.Players.TargetFor(z.DeviceId ?? z.ZoneId)?["dsd_out"] is double up && up > 0)
         {
             steps.Add(Step("pending", "Not DSD", $"{Service(svc)} plays as PCM: PCM as DSD{N(up)} is made from the library’s own files", "pending"));
             making = $"{Service(svc)} plays as PCM, not DSD";
         }
         if (extras.Count > 0) how = how == null ? string.Join(" · ", extras) : how + " · " + string.Join(" · ", extras);
         return Path([output, how, making], steps);
-    }
-
-    // The upsampling filter, and where the whole track is if it was planned and didn't go (items 237, 239).
-    private static (string Filter, string? State) Filter(SentInfo s, PlayTrack t)
-    {
-        if (!s.Whole) return ("Standard filter", null);
-        if (Upsample.WholeServed.Last(t.Id, s.Rate) == true) return (Upsample.WholeShape.Name(s.Shape), null);
-        var state = Upsample.WholeJobs.State(t.Id);
-        var what = Upsample.WholeShape.Making(s.Shape);   // whole track, minimum phase, gentle filter (item 248)
-        return ("Standard filter", state is "queued" or "making" ? $"{what} being made" : state == "failed" ? $"{what} failed: see the log" : $"{what} next play");
-    }
-
-    /*
-     * The filter of PCM sent while its DSF is made (item 254): the standard one, and why, the device's own filter (a
-     * minimum phase, say, or else the whole track's) going into the DSF; Now playing said "Standard filter" alone, under a filter set otherwise.
-     */
-    private static (string Filter, string? State) StandIn(ZoneInfo z, SentInfo s)
-    {
-        var shape = Upsample.WholeShape.OfFilter(Renderers.Players.TargetFor(z.DeviceId ?? z.ZoneId)?["filter"]);
-        return ("Standard filter", $"until the DSD{N(s.DsdMaking)} ({Upsample.WholeShape.Making(shape)}) is made");
     }
 
     private static JsonObject Source(PlayTrack t)

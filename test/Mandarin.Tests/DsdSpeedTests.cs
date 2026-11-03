@@ -3,10 +3,11 @@ using System.Text.Json.Nodes;
 namespace Mandarin.Tests;
 
 /// <summary>
-/// DSD made faster (bug list item 251), and nothing else about it changed: the seventh order's modulator with its
-/// sections held in locals makes the same bits as the loops it stands for, and a track made with each channel's
-/// modulator on a thread beside its doublings is the same file, byte for byte, as one made with them in turn; and a
-/// doubling done with only its odd taps, in pairs, is the whole filter's, to the last bits of a double.
+/// DSD made faster (bug list items 251, 259), and nothing else about it changed: the seventh order's modulator with its
+/// sections held in locals makes the same bits as the loops it stands for, and a track made as it plays (its doublings
+/// on a thread beside the upsampler, each channel's modulator on a thread beside its doublings) is the same file, byte
+/// for byte, as one made with them in turn; and a doubling done with only its odd taps, in pairs, is the whole
+/// filter's, to the last bits of a double.
 /// </summary>
 public sealed class DsdSpeedTests
 {

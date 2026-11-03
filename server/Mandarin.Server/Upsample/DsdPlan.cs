@@ -1,11 +1,6 @@
-// DsdPlan.cs — PCM sent to a device as DSD (bug list item 243): a device's Output set to PCM as DSD (DSD64, DSD128 or
-// DSD256) has each track of the library that isn't DSD already made DSD ahead of playing, by the modulator of item
-// 242 (DsdOut.cs), and sent as a DSF.
-//
-// Like a whole-track upsample (item 237), a track has to be made before any of it can go; unlike one, a track not yet
-// made can't go with a standard filter under the same address, a DSF promised being a DSF. So a DSD track's queue entry
-// carries the PCM one beside it (the plan as it would have been): the player sends the DSF where it is made, and the
-// PCM where it isn't yet when the track has to start (Renderers/Players.Dsd.cs). Tracks are made in play order.
+// DsdPlan.cs — PCM sent to a device as DSD (bug list items 243, 259): a device's Output set to PCM as DSD (DSD64,
+// DSD128 or DSD256) has each track of the library that isn't DSD already made DSD by the modulator of item 242
+// (DsdChain.cs) as it plays, and sent as a DSF as it is made (MadeAsPlayed.cs).
 //
 // A track of 48 kHz's family reaches 705.6 kHz from the 44.1 kHz rate below its own (48 → 44.1, 96 → 88.2…), by SoX's
 // resampler at its finest; 44.1 kHz's goes as it is. A DSP setting, which runs on PCM, keeps the device on PCM; a
@@ -29,10 +24,7 @@ internal static class DsdPlan
     public static long FromRate(long rate) =>
         rate <= 0 ? 0 : rate % 44100 == 0 && rate <= 352800 ? rate : rate % 48000 == 0 && rate <= 384000 ? rate / 48000 * 44100 : 0;
 
-    /*
-     * [plan], made for [target] for the track [t] at [path], made DSD where the device is set to it and takes it: the
-     * DSF's plan, the PCM one kept to send while it is made (Pcm). Else [plan] as it was.
-     */
+    /* [plan], made for [target] for the track [t] at [path], made DSD where the device is set to it and takes it; else as it was. */
     public static JsObj Mark(JsObj plan, object? target, object? t, string path)
     {
         if (target == null || Of(Jv.Get(target, "dsd_out")) is not { } n) return plan;
@@ -43,29 +35,12 @@ internal static class DsdPlan
         var rate = (long)Jv.Or(Jv.Num(Jv.Get(t, "sampleRate")), Jv.Or(Jv.Num(Jv.Get(t, "sample_rate")), 0));
         if (FromRate(rate) == 0) return plan;
         var o = Jv.Obj(("transcode", true), ("hq", true), ("mime", mime), ("ext", "dsf"), ("rate", (double)rate), ("bits", 1.0),
-            ("dsd", (double)n), ("dsdUp", (double)n), ("inRate", (double)rate), ("reason", $"DSD{n} from PCM, made ahead"));
+            ("dsd", (double)n), ("dsdUp", (double)n), ("inRate", (double)rate), ("reason", $"DSD{n} from PCM, made as it plays"));
         if (Jv.T(plan["gain"])) o["gain"] = plan["gain"];
-        // Its way to 705.6 kHz in the shape the device's filter asks (item 248): minimum phase or gentle; else linear.
-        if (Upsample.WholeShape.OfFilter(Jv.Get(target, "filter")) is { } shape) o["shape"] = shape;
+        // Its way to 705.6 kHz in the shape the device's filter asks (item 248): minimum phase or gentle; else standard.
+        if (Shape.OfFilter(Jv.Get(target, "filter")) is { } shape) o["shape"] = shape;
         return o;
     }
-
-    /*
-     * [pcm], the plan sent while the track is made DSD[n]: said so, for Now playing. With the standard filter, never
-     * a whole track's (item 246): that is made in the same queue as the DSF, behind it, and a track the device is to
-     * be armed with must be made first; the DSF is what the device is set to, and the PCM only stands in for it.
-     */
-    public static JsObj Waiting(JsObj pcm, int n)
-    {
-        var o = Jv.CopyWithout(Jv.CopyWithout(Jv.CopyWithout(pcm, "dsdMaking"), "whole"), "shape");
-        o["dsdMaking"] = (double)n;
-        o["reason"] = System.Text.RegularExpressions.Regex.Replace(Jv.Str(o["reason"]), @" \((whole track|minimum phase|gentle filter)\)$", "") + $" (DSD{n} being made)";
-        return o;
-    }
-
-    /* The Now playing badge's words for a track sent as PCM while it is made DSD[n], its making [state] (WholeJobs.State). */
-    public static string Badge(int n, string? state) =>
-        state is "queued" or "making" ? $" · DSD{n} being made" : state == "failed" ? $" · DSD{n} failed: see the log" : $" · DSD{n} next play";
 
     /* The cache's name ends so for a DSF made from PCM. */
     public static string Suffix(int n) => "-dsd" + n;
@@ -76,9 +51,9 @@ internal static class DsdPlan
     /*
      * The job for [src] by [p] into [dest] (UpsampleCommand.cs): ffmpeg decoding it to 64-bit float stereo at the
      * 44.1 kHz family's rate it is made from (the gain on it, and SoX's resampler for 48 kHz's family), the DSF written
-     * at DSD[p.DsdUp]'s rate.
+     * at DSD[p.DsdUp]'s rate as it is made, its length [seconds] long (the track's, as the library has it).
      */
-    public static JsonObject Job(string src, ConvPlan p, string dest, bool soxr, int maxOutBits)
+    public static JsonObject Job(string src, ConvPlan p, string dest, bool soxr, double seconds)
     {
         var own = (long)p.InRate;
         var from = FromRate(own);
@@ -92,7 +67,7 @@ internal static class DsdPlan
         return new JsonObject
         {
             ["ffmpeg"] = Transcoder.Bin, ["decode"] = decode, ["rate"] = from, ["factor"] = DsdChain.InRate / from,
-            ["max_out_bits"] = maxOutBits, ["dsd"] = 44100 * p.DsdUp, ["out"] = dest, ["shape"] = p.Shape,
+            ["frames"] = (long)Math.Round(seconds * from), ["dsd"] = 44100 * p.DsdUp, ["out"] = dest, ["shape"] = p.Shape,
         };
     }
 }

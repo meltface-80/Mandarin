@@ -8,8 +8,8 @@ namespace Mandarin.Tests;
 /// renderer's DSP as WAVs, or a zip of them, are checked, measured (the most each lifts anything, for the headroom) and
 /// kept, one a rate; anything but a WAV is refused; Remove takes one rate's off, or all. A track runs through the one
 /// at its rate, else the nearest of its family, resampled. Played, the track is run through it at its own rate: a response of −1 turns a
-/// conversion upside down, the auto headroom's half a dB taken, on the stream as it is made and on a whole track made
-/// ahead alike.
+/// conversion upside down, the auto headroom's half a dB taken, with the standard filter and with Mandarin's own
+/// minimum-phase one alike.
 /// </summary>
 public sealed class ConvolutionTests
 {
@@ -134,7 +134,7 @@ public sealed class ConvolutionTests
     }
 
     [Test]
-    public async Task Played_the_track_is_run_through_it_as_made_and_made_ahead()
+    public async Task Played_the_track_is_run_through_it_with_the_standard_filter_and_in_minimum_phase()
     {
         Needs.Server(); Needs.Ffmpeg();
         await using var s = await Started();
@@ -167,19 +167,15 @@ public sealed class ConvolutionTests
         var fworst = Inverted(Decode(family.Body), Decode(without.Body), g);
         Assert.True(fworst < 1e-3, string.Create(CultureInfo.InvariantCulture, $"its family's, resampled, turned over: {fworst}"));
 
-        // Made ahead, the whole track: the response in its decoding, before it is upsampled.
+        // In minimum phase, Mandarin's own upsampler (items 248, 259): the response in its decoding, before it is upsampled.
         await Load(s, Wav(flip, 44100), "flip.wav");
-        Assert.True((await Patch(s, new { output = new { filter = "whole" } })).Status == 200);
-        var made = Path.Combine(s.Lib.Data, "transcode");
-        var whole = addr.Replace("88200-24.", "88200-24w.", StringComparison.Ordinal);
-        await Bytes.Get(s.Base + whole, s.H);
-        string? first = null;
-        await Session.Until(() => Task.FromResult((first = Directory.Exists(made) ? Directory.GetFiles(made, "*-w.flac").FirstOrDefault() : null) != null), 60000, "the whole track made");
+        Assert.True((await Patch(s, new { output = new { filter = "minphase" } })).Status == 200);
+        var min = addr + "&f=min";
+        var minWith = await Bytes.Get(s.Base + min, s.H);
         await Http.Send(HttpMethod.Delete, s.Base + $"/api/audio-devices/{Dev}/impulse", null, s.H);
-        await Bytes.Get(s.Base + whole, s.H);
-        string? second = null;
-        await Session.Until(() => Task.FromResult((second = Directory.GetFiles(made, "*-w.flac").FirstOrDefault(f => f != first)) != null), 60000, "the whole track made again");
-        var wworst = Inverted(Decode(await File.ReadAllBytesAsync(first!)), Decode(await File.ReadAllBytesAsync(second!)), g);
-        Assert.True(wworst < 1e-4, string.Create(CultureInfo.InvariantCulture, $"made ahead, turned over: {wworst}"));
+        var minWithout = await Bytes.Get(s.Base + min, s.H);
+        Assert.Equal((200, 200), (minWith.Status, minWithout.Status));
+        var wworst = Inverted(Decode(minWith.Body), Decode(minWithout.Body), g);
+        Assert.True(wworst < 1e-4, string.Create(CultureInfo.InvariantCulture, $"in minimum phase, turned over: {wworst}"));
     }
 }
