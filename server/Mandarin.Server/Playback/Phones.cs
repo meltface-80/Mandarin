@@ -268,7 +268,7 @@ internal sealed partial class Phones
             ("bits", s["bits"] is double b && b is 24 or 32 ? (object)b : "auto"), ("dsd", c["dsd"]),
             ("dsdMimes", Jv.Obj(("dsf", "audio/x-dsf"), ("dff", null))), ("dsp", null));
         Renderers.Players.OutputInto(target, s);
-        if (Biquad.Active(dsp)) target["dsd_out"] = null;
+        if (Biquad.Active(dsp)) target["dsd_out"] = null;   // the phone runs its own DSP, on PCM, as it plays (the server runs a renderer's: item 263)
         return target;
     }
 

@@ -1,9 +1,11 @@
 // Dsp.cs — a zone's DSP setting turned into ffmpeg's filter graph (v0.8.38),
 // from lib/dsp.js, rule for rule. The maths is Biquad.cs (public/biquad.js);
-// this is what ffmpeg runs, in the owner's order:
+// this is what ffmpeg runs, in the owner's order (item 263; before, the DSP ran after the resample, at the rate sent):
 //
-//   decode → 64-bit float → headroom → [upsample] → DSP → dither → 24/32-bit
+//   decode → 64-bit float → volume levelling → headroom → DSP, at the track's own rate → [resample] → dither → 24/32-bit
 //
+// The headroom is what the DSP lifts the track by, less what levelling has already left under full scale
+// (Playback/Levelled.cs). A DSD file's DSP is after its resample, as before: DSD's own rate is no rate to run one at.
 // `aformat` pins the samples to 64-bit float, the biquads then choose their
 // double-precision form by themselves, `volume` is told to, and the resample
 // is SoX at 33 bits. The final requantise with dither is StreamPlans.cs's
@@ -57,25 +59,32 @@ internal static class Dsp
     }
 
     /*
-     * The filters after decoding, for a conversion to `rate` Hz (`inRate` is
-     * the file's): [aformat, volume, (resample), bands…].
+     * The filters after decoding, for a conversion to `rate` Hz (`inRate` is the file's): [aformat, volume, bands…,
+     * (resample)], the headroom [headroom] where it is said (the plan's, Levelled.cs), else the setting's own.
      */
-    public static List<string> Filters(object? dsp, object? inRate, object? rate, bool soxr)
+    public static List<string> Filters(object? dsp, object? inRate, object? rate, bool soxr, object? headroom = null)
     {
         var out_ = new List<string> { "aformat=sample_fmts=dbl" };
-        var pre = Biquad.Headroom(dsp, rate);
+        var at = At(inRate, rate);
+        var pre = headroom is double h && double.IsFinite(h) ? h : Biquad.Headroom(dsp, at);
         if (pre < 0) out_.Add($"volume={Num(pre)}dB:precision=double");
-        if (Jv.T(rate) && Jv.T(inRate) && !Jv.Same(rate, inRate))
-            out_.Add($"aresample={(soxr ? "resampler=soxr:precision=33:" : "")}internal_sample_fmt=dblp:osr={Jv.Str(rate)}:out_sample_fmt=dbl");
+        var resample = Jv.T(rate) && Jv.T(inRate) && !Jv.Same(rate, inRate)
+            ? $"aresample={(soxr ? "resampler=soxr:precision=33:" : "")}internal_sample_fmt=dblp:osr={Jv.Str(rate)}:out_sample_fmt=dbl" : null;
+        if (resample != null && !Jv.Same(at, inRate)) out_.Add(resample);
         foreach (var b in Biquad.BandsOf(dsp)) out_.Add(BandFilter(b));
+        if (resample != null && Jv.Same(at, inRate)) out_.Add(resample);
         return out_;
     }
 
-    /* What a plan carries for a conversion with DSP: enough to make the file and to name it; null when off. */
-    public static JsObj? PlanPart(object? dsp, object? rate)
+    /* The rate the DSP runs at: the track's own (item 263), a DSD file's aside (the rate it is sent at); without one, [rate]. */
+    public static object? At(object? inRate, object? rate) => Jv.T(inRate) && Jv.Num(inRate) > 0 && Jv.Num(inRate) <= 768000 ? inRate : rate;
+
+    /* What a plan carries for a conversion with DSP: enough to make the file and to name it, at the rate it runs at (At); null when off. */
+    public static JsObj? PlanPart(object? dsp, object? rate, object? inRate = null)
     {
         if (!Biquad.Active(dsp)) return null;
-        return Jv.Obj(("hash", Biquad.Fingerprint(dsp, rate)), ("headroom", Biquad.Headroom(dsp, rate)),
+        var at = At(inRate, rate);
+        return Jv.Obj(("hash", Biquad.Fingerprint(dsp, at)), ("headroom", Biquad.Headroom(dsp, at)),
             ("bands", (double)Biquad.BandsOf(dsp).Count), ("dsp", dsp));
     }
 }

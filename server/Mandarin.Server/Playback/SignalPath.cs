@@ -46,7 +46,9 @@ internal static class SignalPath
                 var at = made == (t.SampleRate ?? 0) ? $"made at {Khz(made)} kHz" : $"made at {Khz(made)} kHz, resampled to {Khz(t.SampleRate ?? 0)} kHz";
                 steps.Add(Step("convolution", "Room correction", $"{Jv.Str(conv["name"])}, {at}", "enhanced"));
             }
-            steps.Add(Step("dsp", "DSP", "The device’s equaliser, in 64-bit float", "enhanced"));
+            // At the track's own rate, after the headroom and before any upsampling (item 263); a DSD file's at the rate it goes at.
+            var own = t.SampleRate is { } sr and > 0 and <= 768000 ? $", at {Khz(sr)} kHz, before anything is upsampled" : "";
+            steps.Add(Step("dsp", "DSP", $"The device’s equaliser, in 64-bit float{own}", "enhanced"));
             extras.Add("DSP");
         }
         string output;
