@@ -120,7 +120,7 @@ internal static partial class Transcoder
     /* The same with soxr said (whether ffmpeg has libsoxr), as the tests ask it. */
     public static List<string> Args(string src, ConvPlan p, string dest, bool soxr, bool convolve = true) =>
         Playback.Convolution.Args(Playback.HighRates.Args(Playback.DsdLowpass.Args(StreamPlans.FfmpegArgs(src, p.ToJs(), dest, soxr).Select(Jv.Str).ToList(), p.Lowpass, soxr), p.Wav, p.Bits),
-            convolve && p.Dsp != null ? Playback.Convolution.Of(Jv.Get(p.Dsp, "dsp")) : null, p.InRate, soxr);   // a room or headphone correction, at the track's rate (item 252)
+            convolve && p.Dsp != null ? Playback.Convolution.For(Jv.Get(p.Dsp, "dsp"), p.InRate) : null, p.InRate, soxr);   // a room or headphone correction, at the track's rate (item 252)
 
     /* Start (or join) a conversion now. */
     public static ConvJob Start(ConvTrack t, ConvPlan p, bool background = false)

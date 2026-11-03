@@ -8,7 +8,8 @@
 // times the work for nothing): a mono one spread to both channels at unity, the convolution placed before the graph's
 // first resample. Without a response the graph is as it was.
 //
-// A response made at another rate than the track's is resampled to it. Two things are put right on the way: its level
+// A device may hold one response a rate (item 258); a track runs through the one made at its rate, else the
+// nearest of its family. A response made at another rate than the track's is resampled to it. Two things are put right on the way: its level
 // (a response resampled from fs1 to fs2 has its gain scaled by fs2/fs1, so it is scaled back), and its start (a
 // response whose peak is its first sample would lose the part of its band-limited shape before it, so [Lead] samples
 // of silence are laid before it, a delay of a millisecond or so). At the track's own rate it is used as it is.
@@ -27,6 +28,9 @@ internal static class Convolution
     /* The largest file taken, and the longest response. */
     public const int MaxBytes = 32 << 20;
     public const double MaxSeconds = 10;
+
+    /* The largest set taken at once (a zip of one response a rate). */
+    public const int MaxSetBytes = 128 << 20;
 
     /* Where the responses are kept: beside the database. */
     public static string Dir => Path.Combine(Path.GetDirectoryName(Db.File) ?? ".", "impulses");
@@ -143,8 +147,42 @@ internal static class Convolution
             ("seconds", Math.Round((double)w.Channels[0].Length / w.Rate, 3)), ("peak_db", Math.Round(PeakDb(w), 1)));
     }
 
-    /* A setting's "convolution" as stored, or null where it isn't one (Biquad.Normalise). */
-    public static JsObj? Normalise(object? c)
+    /*
+     * The WAVs in [b] (item 258): the file itself, named [name]; or, a zip, each WAV in it by its own name. Throws a
+     * ConvolutionError where a zip holds none.
+     */
+    public static List<(byte[] Bytes, string Name)> Unpack(byte[] b, string name)
+    {
+        if (b.Length < 4 || b[0] != 'P' || b[1] != 'K' || b[2] != 3 || b[3] != 4) return [(b, name)];
+        using var zip = new System.IO.Compression.ZipArchive(new MemoryStream(b), System.IO.Compression.ZipArchiveMode.Read);
+        var out_ = new List<(byte[], string)>();
+        foreach (var e in zip.Entries)
+        {
+            if (!e.Name.EndsWith(".wav", StringComparison.OrdinalIgnoreCase) || e.Name.StartsWith("._", StringComparison.Ordinal)) continue;
+            if (e.Length > MaxBytes) throw new ConvolutionError($"{e.Name}: a response is at most 32 MB");
+            using var s = e.Open();
+            using var ms = new MemoryStream();
+            s.CopyTo(ms);
+            out_.Add((ms.ToArray(), e.Name));
+        }
+        if (out_.Count == 0) throw new ConvolutionError("the zip holds no WAV file");
+        return out_;
+    }
+
+    /*
+     * A setting's "convolution" as stored (Biquad.Normalise): its responses, one a rate (item 258), in the order of
+     * their rates; null where there is none. One response on its own, as item 252 kept it, is a set of one; a second
+     * at a rate already there takes its place.
+     */
+    public static List<object?>? Normalise(object? c)
+    {
+        var given = c as List<object?> ?? (Jv.T(c) ? [c] : []);
+        var byRate = new SortedDictionary<double, JsObj>();
+        foreach (var one in given) if (NormaliseOne(one) is { } r) byRate[Jv.Num(r["rate"])] = r;
+        return byRate.Count == 0 ? null : [.. byRate.Values];
+    }
+
+    private static JsObj? NormaliseOne(object? c)
     {
         if (!Jv.T(c) || Jv.Get(c, "file") is not string file || !System.Text.RegularExpressions.Regex.IsMatch(file, "^[0-9a-f]{16}\\.wav$")) return null;
         var channels = Jv.Num(Jv.Get(c, "channels"));
@@ -152,12 +190,34 @@ internal static class Convolution
             ("channels", channels == 2 ? 2.0 : 1.0), ("seconds", Jv.Num(Jv.Get(c, "seconds"))), ("peak_db", Jv.Num(Jv.Get(c, "peak_db"))));
     }
 
-    /* The response a DSP setting [dsp] runs, where its file is here; null for none. */
-    public static JsObj? Of(object? dsp) =>
-        Jv.T(dsp) && Jv.Get(dsp, "convolution") is JsObj c && Jv.Get(c, "file") is string f && File.Exists(Path.Combine(Dir, f)) ? c : null;
+    /* The responses a DSP setting [dsp] holds whose files are here, in the order of their rates. */
+    public static List<JsObj> All(object? dsp) =>
+        !Jv.T(dsp) ? [] : (Normalise(Jv.Get(dsp, "convolution")) ?? []).Cast<JsObj>().Where(c => File.Exists(Path.Combine(Dir, Jv.Str(c["file"])))).ToList();
 
-    /* The most the response of [dsp] lifts anything, in dB; 0 with none. */
-    public static double Peak(object? dsp) => Jv.T(dsp) && Jv.Get(dsp, "convolution") is JsObj c ? Jv.Num(Jv.Get(c, "peak_db")) : 0;
+    /*
+     * The response [dsp] runs on a track at [inRate] (item 258): the one made at that rate; else the nearest of the
+     * track's family (44.1 kHz's or 48 kHz's), resampled; else the nearest of all. Null with none.
+     */
+    public static JsObj? For(object? dsp, double inRate)
+    {
+        var all = All(dsp);
+        if (all.Count == 0) return null;
+        static double Rate(JsObj c) => Jv.Num(c["rate"]);
+        static bool Family(double a, double b) => a % 44100 == 0 == (b % 44100 == 0);
+        static double Apart(double a, double b) => Math.Abs(Math.Log(a / b));
+        if (inRate <= 0) return all[0];
+        return all.FirstOrDefault(c => Rate(c) == inRate)
+            ?? all.Where(c => Family(Rate(c), inRate)).OrderBy(c => Apart(Rate(c), inRate)).FirstOrDefault()
+            ?? all.OrderBy(c => Apart(Rate(c), inRate)).First();
+    }
+
+    /* The most any response of [dsp] lifts anything, in dB, for the headroom; 0 with none. */
+    public static double Peak(object? dsp) =>
+        !Jv.T(dsp) || Normalise(Jv.Get(dsp, "convolution")) is not { } l ? 0 : l.Max(c => Jv.Num(Jv.Get(c, "peak_db")));
+
+    /* The responses' files, for the DSP's fingerprint: one as it was (item 252), several joined. */
+    public static string? Files(object? dsp) =>
+        !Jv.T(dsp) || Normalise(Jv.Get(dsp, "convolution")) is not { } l ? null : string.Join("+", l.Select(c => Jv.Str(Jv.Get(c, "file"))));
 
     /*
      * ffmpeg's arguments [args] with [c]'s response run on the track at [inRate] before the graph's first resample (at
@@ -173,7 +233,13 @@ internal static class Convolution
         return copy;
     }
 
-    /* [graph], a chain, with [c]'s response run before its first resample (or after it all, where there is none). */
+    /*
+     * [graph], a chain, with [c]'s response run before its first resample (or after it all, where there is none). A
+     * response at another rate has silence laid before it so its start isn't cut (at least [Lead] of its own samples,
+     * a whole number at both rates), and the track as much later out of the convolution: so the track is given that
+     * much silence at its end, and the convolution's first that many samples taken off (item 258; before, a track
+     * through a resampled response came out late by them).
+     */
     public static string Graph(string graph, JsObj c, double inRate, bool soxr)
     {
         var cut = graph.IndexOf("aresample=", StringComparison.Ordinal);
@@ -181,13 +247,22 @@ internal static class Convolution
         var after = cut < 0 ? "anull" : graph[cut..];
         var rate = Jv.Str((double)(long)inRate);
         var spread = Jv.Num(Jv.Get(c, "channels")) == 2 ? "" : ",pan=stereo|c0=c0|c1=c0";   // one channel, both sides, at unity
-        var own = Jv.Num(Jv.Get(c, "rate"));
-        var to = own == (long)inRate ? ""
-            : $",adelay=delays={Lead}S:all=1,aresample={(soxr ? "resampler=soxr:precision=33:" : "")}osr={rate},volume={Jv.Str(own / (long)inRate)}:precision=double";
+        long own = (long)Jv.Num(Jv.Get(c, "rate")), track = (long)inRate;
+        string to = "", pad = "", trim = "";
+        if (own != track && own > 0 && track > 0)
+        {
+            var g = Gcd(own, track);
+            long steps = (Lead + own / g - 1) / (own / g), leadOwn = steps * (own / g), leadOut = steps * (track / g);
+            to = $",adelay=delays={leadOwn}S:all=1,aresample={(soxr ? "resampler=soxr:precision=33:" : "")}osr={rate},volume={Jv.Str((double)own / track)}:precision=double";
+            pad = $",apad=pad_len={leadOut}";
+            trim = $",atrim=start_sample={leadOut},asetpts=PTS-STARTPTS";
+        }
         var ir = $"amovie={Escape(Path.Combine(Dir, Jv.Str(Jv.Get(c, "file"))))},aformat=sample_fmts=dbl{to}{spread}[ir]";
-        var main = $"[in]{(before.Length > 0 ? before + "," : "")}aformat=sample_fmts=dbl:channel_layouts=stereo[pre]";
-        return $"{ir};{main};[pre][ir]afir=gtype=none{(Precise.Value ? ":precision=double" : "")},{after}[out]";
+        var main = $"[in]{(before.Length > 0 ? before + "," : "")}aformat=sample_fmts=dbl:channel_layouts=stereo{pad}[pre]";
+        return $"{ir};{main};[pre][ir]afir=gtype=none{(Precise.Value ? ":precision=double" : "")}{trim},{after}[out]";
     }
+
+    private static long Gcd(long a, long b) { while (b != 0) (a, b) = (b, a % b); return a; }
 
     // A path as a filter's option value inside a graph: its own escaping (\ ' :), then the graph's (\ ' [ ] , ;).
     private static string Escape(string path)

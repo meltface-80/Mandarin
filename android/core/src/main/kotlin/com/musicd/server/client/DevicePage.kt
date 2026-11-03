@@ -200,14 +200,18 @@ class DevicePage(val j: JSONObject) {
     /** DSP: on a renderer, a sound device of the server's, or a phone, where the server sends it. */
     val showDsp: Boolean get() = (kind == "upnp" || kind == "local" || kind == "phone") && dsp != null
     val dspOn: Boolean get() = dsp?.optBoolean("enabled") == true
-    /** Room correction (item 252): the impulse response loaded for a renderer or a sound device here, or null; and its words, as the page's. */
-    val convolution: JSONObject? get() = dsp?.optJSONObject("convolution")
+    /** One impulse response of a device's room correction (items 252, 258): its name, its facts as the page says them, and its rate. */
+    data class IrRow(val name: String, val meta: String, val rate: Int)
+    /** Room correction: the responses loaded for a renderer or a sound device here, one a rate (one kept as item 252 kept it, a set of one). */
+    val convolutions: List<JSONObject> get() = dsp?.optJSONArray("convolution")?.let { a -> (0 until a.length()).mapNotNull { a.optJSONObject(it) } }
+        ?: listOfNotNull(dsp?.optJSONObject("convolution"))
     val showRoomCorrection: Boolean get() = showDsp && kind != "phone"
-    val irName: String get() = convolution?.optString("name").orEmpty().ifEmpty { "Impulse response" }
-    val irMeta: String? get() = convolution?.let { c ->
-        "${rateWord(c.optInt("rate"))} kHz · ${if (c.optInt("channels") == 2) "2 channels" else "1 channel"} · ${jsNum(c.optDouble("seconds"))} s · lifts at most ${dbWord(c.optDouble("peak_db"))}"
+    val irRows: List<IrRow> get() = convolutions.map { c ->
+        IrRow(c.optString("name").ifEmpty { "Impulse response" },
+            "${rateWord(c.optInt("rate"))} kHz · ${if (c.optInt("channels") == 2) "2 channels" else "1 channel"} · ${jsNum(c.optDouble("seconds"))} s · lifts at most ${dbWord(c.optDouble("peak_db"))}",
+            c.optInt("rate"))
     }
-    val irLoad: String get() = if (convolution != null) "Load another…" else "Load a response…"
+    val irLoad: String get() = if (convolutions.isNotEmpty()) "Load another…" else "Load a response…"
     val dspInfo: String get() = if (kind == "phone") "The app runs the headphone profile and the bands on everything this phone plays — the server's stream, Opus away from home, downloads — in 64-bit float, out through Bluetooth, USB or the speaker as float."
         else "Every track is decoded to 64-bit float, the headroom taken, upsampled if set, the bands run, then dithered to " + (if (flac32 && has32 && outBits != "24") "32" else "24") + " bits. Off, the device gets the file as stored (or the conversion the Output settings ask for)."
     val dspNote: String get() = if (dspOn) "On. A headphone profile and up to ten bands, on everything it plays." else if (kind == "phone") "Off. The app plays what it is given as it is." else "Off. The device gets the file as stored."
@@ -244,6 +248,8 @@ class DevicePage(val j: JSONObject) {
         fun jsNum(v: Double): String = if (v == Math.floor(v) && !v.isInfinite()) v.toLong().toString() else v.toString()
         /** dB as the page's fmtDb: its sign (a true minus), one decimal. */
         fun dbWord(v: Double): String = (if (v > 0) "+" else if (v < 0) "−" else "") + String.format(java.util.Locale.ROOT, "%.1f", Math.abs(v)) + " dB"
+        /** What a set of responses does (item 258), as the page says it. */
+        const val IR_SET_NOTE = "One a rate: a track runs through the one made at its rate, else the nearest of its family (44.1 kHz's or 48 kHz's), resampled. Load several WAVs at once, or a zip of them."
         /** Room correction's words with none loaded. */
         const val IR_NONE = "None. An impulse response (a WAV from REW, Dirac or a headphone measurement) corrects the room or the headphones; it runs on everything this device plays, before the bands."
         private fun when_(ms: Long, at: (Long) -> String) = if (ms > 0) at(ms) else "—"
