@@ -8,7 +8,7 @@
 //
 // A one-bit loop of high order can be overloaded: driven too hard its states grow until it no longer tracks the
 // signal. The input is kept to SACD's level (full-scale PCM is half the modulation, DsdChain.cs), well inside what the
-// loop takes (it was measured stable to 60%); should the quantiser's input still pass [Guard], the states are cleared
+// loop takes (it holds past SACD's highest level, 71.4%, to 75% and more: DsdOut.Hinf, item 255); should the quantiser's input still pass [Guard], the states are cleared
 // and the loop starts again, and the reset is counted, for the log and the tests.
 namespace Mandarin.Server.Upsample;
 

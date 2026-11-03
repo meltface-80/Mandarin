@@ -7,7 +7,7 @@ namespace Mandarin.Tests;
 
 /// <summary>
 /// PCM made DSD (bug list item 242, Upsample/Dsd*.cs): a seventh-order one-bit delta-sigma modulator, its noise pushed
-/// out of the audio band by a noise transfer function of optimal zeros and a gain out of band of 1.4. Measured on its
+/// out of the audio band by a noise transfer function of optimal zeros and a gain out of band of 1.3 (DSD64) or 1.25 (item 255). Measured on its
 /// own bits: the noise from 20 Hz to 20 kHz below a full-scale sine, the signal at SACD's level (full-scale PCM is
 /// half the modulation), the loop never overloaded at that level or above it, on tones and on noise; then a whole
 /// track made a DSF file that ffmpeg reads back at the source's level, 6 dB down as SACD has it.
@@ -26,20 +26,36 @@ public sealed partial class DsdModulatorTests
     }
 
     [Test]
-    public async Task At_DSD64_the_noise_in_the_band_is_139_dB_down_and_the_loop_holds_above_SACDs_level()
+    public async Task At_DSD64_the_noise_in_the_band_is_126_dB_down_and_the_loop_holds_past_SACDs_highest_level()
     {
         // SACD's level: full-scale PCM, half the modulation.
         var r = await Run(new { fn = "dsdmod", rate = 2822400, amp = 0.5 });
-        Assert.True(r.Num("noise_db") < -135, $"in the band: {r.Num("noise_db")} dB");
+        Assert.True(r.Num("noise_db") < -124, $"in the band: {r.Num("noise_db")} dB");
         Assert.Equal(-6.02, r.Num("tone_db")!.Value, 2);
         Assert.Equal(0.0, r.Num("resets"));
-        // A fifth above it (60%): still steady, still as quiet.
-        var hi = await Run(new { fn = "dsdmod", rate = 2822400, amp = 0.6 });
-        Assert.Equal(0.0, hi.Num("resets"));
-        Assert.True(hi.Num("noise_db") < -135, $"at 60%: {hi.Num("noise_db")} dB");
-        // Three tones together, and noise as music has it: never overloaded.
+        // SACD's highest, 3.1 dB over its reference (71.4%), and 75% (item 255; the gain of 1.4 broke down at 65%):
+        // still steady, still as quiet.
+        foreach (var amp in new[] { 0.714, 0.75 })
+        {
+            var hi = await Run(new { fn = "dsdmod", rate = 2822400, amp });
+            Assert.Equal(0.0, hi.Num("resets"));
+            Assert.True(hi.Num("noise_db") < -124, $"at {amp}: {hi.Num("noise_db")} dB");
+        }
+        // Three tones together, and noise as music has it, at SACD's highest: never overloaded.
         foreach (var signal in new[] { "tones", "noise" })
-            Assert.Equal(0.0, (await Run(new { fn = "dsdmod", rate = 2822400, amp = 0.5, signal }))["resets"]!.GetValue<double>());
+            Assert.Equal(0.0, (await Run(new { fn = "dsdmod", rate = 2822400, amp = 0.714, signal }))["resets"]!.GetValue<double>());
+    }
+
+    [Test]
+    public async Task At_DSD128_and_DSD256_the_loop_holds_past_SACDs_highest_level_too()
+    {
+        foreach (var rate in new[] { 5644800, 11289600 })
+            foreach (var amp in new[] { 0.714, 0.75 })
+            {
+                var r = await Run(new { fn = "dsdmod", rate, amp, seconds = 0.25 });
+                Assert.True(r.Num("resets") == 0, $"DSD{rate / 44100} at {amp}: {r.Num("resets")} reset(s)");
+                Assert.True(r.Num("noise_db") < -150, $"DSD{rate / 44100} at {amp}: {r.Num("noise_db")} dB in the band");
+            }
     }
 
     [Test]
@@ -56,7 +72,7 @@ public sealed partial class DsdModulatorTests
         var r = await Run(new { fn = "dsdmod", chain = 2822400, amp = 1, seconds = 1 });
         Assert.Equal(r.Num("frames")!.Value * 4, r.Num("samples"));
         Assert.Equal(-6.02, r.Num("tone_db")!.Value, 2);
-        Assert.True(r.Num("noise_db") < -135, $"in the band: {r.Num("noise_db")} dB");
+        Assert.True(r.Num("noise_db") < -124, $"in the band: {r.Num("noise_db")} dB");
         Assert.Equal(0.0, r.Num("resets"));
     }
 

@@ -26,6 +26,16 @@
 - Improved - PCM as DSD is made about three times faster: a track at DSD256 in about a quarter of its own length here, where it took longer than the track itself
 - Fixed - with PCM as DSD, a track that starts before its DSD is ready is still made, after the tracks to come, so it plays as DSD next time; Now playing says why it has the standard filter meanwhile, and Output's Filter says it is the filter the DSD is made with
 - New - room and headphone correction: load an impulse response (a WAV from REW, Dirac or a headphone measurement) on a streamer's or DAC's DSP and everything it plays runs through it (Settings → Audio Devices → a device → DSP → Room correction)
+- Improved - Mandarin's DSD modulator holds past SACD's highest level (+3.1 dB, 71% modulation) with room to spare, where it held only to 62%
+
+- `255-modulator-headroom` (item 255): **the modulator holds to SACD's highest level.** SACD's reference is 50%
+  modulation, and its signal may peak 3.1 dB above it, at 71.4%. Mandarin's seventh-order modulator, its gain out of
+  band 1.4, was measured stable only to about 62%: at 65% it was reset twice in half a second, at 71% hundreds of
+  times. It never went that high, each track being scaled so its true peaks fall at full scale (50%), but the margin
+  was 1.6 dB. Its gain out of band is now 1.3 at DSD64 and 1.25 at DSD128 and DSD256 (DsdOut.Hinf), each measured
+  with no reset to 75% or more. The noise in the band is a little higher, still below what any DAC resolves: −126 dB
+  at DSD64 (was −139), −161 dB at DSD128, −204 dB at DSD256 (was −228). Tests hold each rate to no reset at 71.4% and
+  75%, on a tone, on three tones and on noise; with the gain of 1.4 they fail.
 
 - `252-convolution` (item 252): **room correction from an impulse response.** A device's DSP (a renderer, or a sound
   device on the server) gains Room correction: Load a response… takes a WAV (16, 24 or 32-bit PCM, or 32 or 64-bit
