@@ -199,6 +199,14 @@ class DevicePage(val j: JSONObject) {
     /** DSP: on a renderer, a sound device of the server's, or a phone, where the server sends it. */
     val showDsp: Boolean get() = (kind == "upnp" || kind == "local" || kind == "phone") && dsp != null
     val dspOn: Boolean get() = dsp?.optBoolean("enabled") == true
+    /** Room correction (item 252): the impulse response loaded for a renderer or a sound device here, or null; and its words, as the page's. */
+    val convolution: JSONObject? get() = dsp?.optJSONObject("convolution")
+    val showRoomCorrection: Boolean get() = showDsp && kind != "phone"
+    val irName: String get() = convolution?.optString("name").orEmpty().ifEmpty { "Impulse response" }
+    val irMeta: String? get() = convolution?.let { c ->
+        "${rateWord(c.optInt("rate"))} kHz · ${if (c.optInt("channels") == 2) "2 channels" else "1 channel"} · ${jsNum(c.optDouble("seconds"))} s · lifts at most ${dbWord(c.optDouble("peak_db"))}"
+    }
+    val irLoad: String get() = if (convolution != null) "Load another…" else "Load a response…"
     val dspInfo: String get() = if (kind == "phone") "The app runs the headphone profile and the bands on everything this phone plays — the server's stream, Opus away from home, downloads — in 64-bit float, out through Bluetooth, USB or the speaker as float."
         else "Every track is decoded to 64-bit float, the headroom taken, upsampled if set, the bands run, then dithered to " + (if (flac32 && has32 && outBits != "24") "32" else "24") + " bits. Off, the device gets the file as stored (or the conversion the Output settings ask for)."
     val dspNote: String get() = if (dspOn) "On. A headphone profile and up to ten bands, on everything it plays." else if (kind == "phone") "Off. The app plays what it is given as it is." else "Off. The device gets the file as stored."
@@ -227,6 +235,12 @@ class DevicePage(val j: JSONObject) {
 
         /** A rate in kHz as the page writes it: 44.1, 48, 176.4. */
         fun rateWord(hz: Int): String = (hz / 1000.0).let { if (it == Math.floor(it)) it.toLong().toString() else it.toString() }
+        /** A number as the page writes it (String(n)): 1, not 1.0. */
+        fun jsNum(v: Double): String = if (v == Math.floor(v) && !v.isInfinite()) v.toLong().toString() else v.toString()
+        /** dB as the page's fmtDb: its sign (a true minus), one decimal. */
+        fun dbWord(v: Double): String = (if (v > 0) "+" else if (v < 0) "−" else "") + String.format(java.util.Locale.ROOT, "%.1f", Math.abs(v)) + " dB"
+        /** Room correction's words with none loaded. */
+        const val IR_NONE = "None. An impulse response (a WAV from REW, Dirac or a headphone measurement) corrects the room or the headphones; it runs on everything this device plays, before the bands."
         private fun when_(ms: Long, at: (Long) -> String) = if (ms > 0) at(ms) else "—"
         private fun JSONArray?.strings(): List<String> = if (this == null) emptyList() else (0 until length()).map { optString(it) }
         fun forgetAsk(name: String) = "Forget “$name”?\n\nIts name and settings go. If it turns up again it starts afresh."

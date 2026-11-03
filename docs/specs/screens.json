@@ -1167,7 +1167,7 @@
     },
     "settings-device": {
       "page": "Settings' Audio Devices, a device's page: Back, its name; on or off, Random album radio, a phone's Other devices can play here; its name to change (or the phone's own), About, Capabilities (rates, depths and DSD, each a chip, tapped on or off where it can be set; its formats), Output (the mode, the highest rate, the filter, the depth, DSD as PCM, PCM as DSD, Fixed volume), Volume levelling with its level and the unknown's adjustment, DSP (a headphone profile chosen from AutoEq or pasted, the bands' curve, each band's type, frequency, gain and Q, Add band, the headroom, Save), this phone's USB DAC (Allow, what it takes, USB direct, Fixed volume, the limit, DSD, Copy), Forget this device; their notes",
-      "native": ["android/app/src/main/java/com/musicd/server/android/SettingsDevice.kt", "android/app/src/main/java/com/musicd/server/android/SettingsDsp.kt", "android/app/src/main/java/com/musicd/server/android/SettingsUsb.kt"],
+      "native": ["android/app/src/main/java/com/musicd/server/android/SettingsDevice.kt", "android/app/src/main/java/com/musicd/server/android/SettingsDsp.kt", "android/app/src/main/java/com/musicd/server/android/SettingsUsb.kt", "android/app/src/main/java/com/musicd/server/android/SettingsRoomCorrection.kt"],
       "preview": false,
       "items": {
         "back": { "kind": "action", "label": "Back to Audio Devices" },
@@ -1203,6 +1203,10 @@
         "hp-choose": { "kind": "action", "label": ["Choose from AutoEq…", "Change…"], "when": "DSP offered" },
         "hp-paste": { "kind": "action", "label": "Paste a profile…", "when": "DSP offered" },
         "hp-remove": { "kind": "action", "label": "Remove", "when": "a headphone profile in use" },
+        "ir-name": { "kind": "shows", "when": "a room correction loaded" },
+        "ir-meta": { "kind": "shows", "when": "a room correction loaded" },
+        "ir-load": { "kind": "action", "label": ["Load a response…", "Load another…"], "when": "a renderer or a sound device here, DSP offered" },
+        "ir-remove": { "kind": "action", "label": "Remove", "when": "a room correction loaded" },
         "hp-search": { "kind": "action", "label": "Headphone name", "when": "choosing from AutoEq" },
         "hp-result": { "kind": "action", "label": "{headphone}", "each": true, "when": "AutoEq's answer" },
         "hp-cancel": { "kind": "action", "label": "Cancel", "when": "choosing or pasting a profile" },

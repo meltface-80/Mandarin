@@ -23,6 +23,21 @@
 - New - Now playing's signal path: what goes out, how it was made and what is being made, centred under the album; a tap shows every step from the file to the room
 - New - two more upsampling filters (Settings → Audio Devices → a device → Output → Filter): Minimum phase, whose ringing comes only after a sound starts, and Gentle, which rolls off earlier and rings for half as long; made ahead as Whole track is, and used for PCM as DSD too
 - Fixed - Output's Filter button for minimum phase read "Minimum p…" on a phone; it says Min phase
+- New - room and headphone correction: load an impulse response (a WAV from REW, Dirac or a headphone measurement) on a streamer's or DAC's DSP and everything it plays runs through it (Settings → Audio Devices → a device → DSP → Room correction)
+
+- `252-convolution` (item 252): **room correction from an impulse response.** A device's DSP (a renderer, or a sound
+  device on the server) gains Room correction: Load a response… takes a WAV (16, 24 or 32-bit PCM, or 32 or 64-bit
+  float; one channel or two; up to 10 seconds and 32 MB), checks it, measures the most it lifts anything from 20 Hz to
+  20 kHz, keeps it beside the database by its hash and saves its facts with the DSP setting (POST and DELETE
+  /api/audio-devices/:id/impulse; Playback/Convolution.cs, ImpulseRoutes.cs). Played, the track runs through it with
+  ffmpeg's afir in 64-bit float at the track's own rate, before it is upsampled, as it is streamed and in a whole track
+  made ahead alike; a one-channel response is used on both sides. A response made at another rate is resampled to the
+  track's, its level put back (a resampled response's gain moves by the ratio of the rates; left alone it lost 1.8 dB)
+  and a few samples of silence laid before it so its start isn't cut; within 0.0004 dB of exact. The auto headroom
+  takes what the response lifts as it does the bands'. The page and the app show what is loaded (name, rate,
+  channels, length, the most it lifts) with Load another… and Remove; a phone's DSP has no room correction. A test
+  loads and measures responses, refuses a non-WAV and takes one off, and plays a track through a response of −1 to
+  see it come out turned over, streamed and made ahead.
 
 - `250-filter-label` (item 250): **the Filter's buttons fit a phone.** Four to a row, "Minimum phase" was cut to "Minimum
   p…" in the app (seen on 3 November). It is "Min phase" on the button, on the page and in the app alike (the contract's

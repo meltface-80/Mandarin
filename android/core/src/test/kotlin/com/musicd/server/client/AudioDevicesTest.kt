@@ -168,4 +168,19 @@ class AudioDevicesTest {
         assertEquals("-5 dB (Default)", DevicePage.UNKNOWNS[5].words)
         assertEquals("Volume levelling: Album", DevicePage.levelSaid("album"))
     }
+
+    @Test fun `room correction is offered on a renderer's DSP, not a phone's, and says what is loaded as the page does`() {
+        val none = DevicePage(JSONObject("""{"kind":"upnp","dsp":{"enabled":true}}"""))
+        assertTrue(none.showRoomCorrection)
+        assertNull(none.irMeta)
+        assertEquals("Load a response…", none.irLoad)
+        assertFalse(DevicePage(JSONObject("""{"kind":"phone","dsp":{}}""")).showRoomCorrection)
+        val room = DevicePage(JSONObject("""{"kind":"local","dsp":{"convolution":{"file":"0123456789abcdef.wav","name":"room.wav","rate":44100,"channels":2,"seconds":0.5,"peak_db":-6}}}"""))
+        assertEquals("room.wav", room.irName)
+        assertEquals("44.1 kHz · 2 channels · 0.5 s · lifts at most −6.0 dB", room.irMeta)
+        assertEquals("Load another…", room.irLoad)
+        val bare = DevicePage(JSONObject("""{"kind":"upnp","dsp":{"convolution":{"rate":48000,"channels":1,"seconds":2,"peak_db":3.25}}}"""))
+        assertEquals("Impulse response", bare.irName)
+        assertEquals("48 kHz · 1 channel · 2 s · lifts at most +3.3 dB", bare.irMeta)
+    }
 }

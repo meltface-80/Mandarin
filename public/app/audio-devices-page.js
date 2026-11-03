@@ -138,6 +138,7 @@ function renderDsp(d) {
     '<div class="settings-note"' + ' data-parity="settings-device.note"' + '>' + (on ? "On. A headphone profile and up to ten bands, on everything it plays."
       : d.kind === "phone" ? "Off. The app plays what it is given as it is." : "Off. The device gets the file as stored.") + "</div>";
   html += renderHeadphones(dr);
+  if (d.kind !== "phone") html += renderConvolution(d.dsp && d.dsp.convolution);
   html += '<div class="cap-group"><span class="cap-label"' + ' data-parity="settings-device.cap-label"' + '>Parametric EQ · ' + dr.bands.length + ' of 10 bands</span>' +
     '<canvas class="dsp-curve"' + ' data-parity="settings-device.curve"' + ' data-dsp-curve height="150" aria-label="The bands’ response"></canvas>';
   if (!dr.bands.length) html += '<div class="settings-note"' + ' data-parity="settings-device.note"' + '>No bands yet. Add one for each correction: a peak at a frequency, a shelf below or above one, or a pass filter.</div>';
@@ -164,9 +165,27 @@ function renderDsp(d) {
   html += "</div>";
   return html;
 }
+/*
+ * Room correction (item 252): an impulse response the owner made elsewhere (REW, Dirac, a headphone measurement),
+ * loaded as a WAV and run by the server on everything this device plays, at the track's own rate, before the bands.
+ */
+function renderConvolution(c) {
+  let html = '<div class="cap-group"><span class="cap-label"' + ' data-parity="settings-device.cap-label"' + '>Room correction</span>';
+  if (c) {
+    html += '<div class="hp-current"><div class="hp-name"' + ' data-parity="settings-device.ir-name"' + ">" + esc(c.name || "Impulse response") + '</div><div class="hp-meta"' + ' data-parity="settings-device.ir-meta"' + ">" +
+      esc((c.rate / 1000) + " kHz · " + (c.channels === 2 ? "2 channels" : "1 channel") + " · " + c.seconds + " s · lifts at most " + fmtDb(c.peak_db)) + "</div></div>";
+  } else {
+    html += '<div class="settings-note"' + ' data-parity="settings-device.note"' + '>None. An impulse response (a WAV from REW, Dirac or a headphone measurement) corrects the room or the headphones; it runs on everything this device plays, before the bands.</div>';
+  }
+  html += '<div class="hp-actions"><button type="button" class="settings-update-btn"' + ' data-parity="settings-device.ir-load"' + ' data-ir-load>' + (c ? "Load another…" : "Load a response…") + "</button>" +
+    (c ? '<button type="button" class="settings-update-btn"' + ' data-parity="settings-device.ir-remove"' + ' data-ir-remove>Remove</button>' : "") +
+    '<input type="file" accept=".wav,audio/wav,audio/x-wav" hidden data-ir-file aria-label="Impulse response"></div></div>';
+  return html;
+}
 function headroomNote(dr, peak, auto) {
   if (typeof dr.headroom === "number") return "Set by hand: " + fmtDb(dr.headroom) + " before the bands. Auto would take " + fmtDb(auto) + ".";
-  if (!allBands(dr).length) return "Auto: nothing to take yet.";
+  if (!allBands(dr).length && !dr.convolution) return "Auto: nothing to take yet.";
+  if (dr.convolution) return "Auto: " + fmtDb(auto) + " before the correction and the bands — together they lift at most " + fmtDb(peak + (Number(dr.convolution.peak_db) || 0)) + ", and half a dB is kept under it so nothing clips.";
   const own = dr.headphone && typeof dr.headphone.preamp === "number" ? dr.headphone.preamp : null;
   if (own != null && own === auto) return "Auto: " + fmtDb(auto) + " — the headphone profile's own preamp, which covers the bands' peak of " + fmtDb(peak) + ".";
   return "Auto: " + fmtDb(auto) + " before the bands — their peak together is " + fmtDb(peak) + ", and half a dB is kept under it so nothing clips." +

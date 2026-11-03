@@ -166,6 +166,8 @@ internal object ContractLabels2 {
         "settings-device.hp-choose" to listOf("Choose from AutoEq…", "Change…"),
         "settings-device.hp-paste" to listOf("Paste a profile…"),
         "settings-device.hp-remove" to listOf("Remove"),
+        "settings-device.ir-load" to listOf("Load a response…", "Load another…"),
+        "settings-device.ir-remove" to listOf("Remove"),
         "settings-device.hp-search" to listOf("Headphone name"),
         "settings-device.hp-result" to listOf("{headphone}"),
         "settings-device.hp-cancel" to listOf("Cancel"),
