@@ -221,9 +221,9 @@ internal sealed partial class Players
         if (!IsStreamer(r)) return null;
         var caps = Profiles.Effective(Devices.RecordJs(r!));
         static List<object?> On(object? list, string key) => (list as List<object?> ?? []).Where(x => Jv.T(Jv.Get(x, "on"))).Select(x => Jv.Get(x, key)).ToList();
-        var rates = On(caps["rates"], "hz");
-        var bits = On(caps["bits"], "n").Select(Jv.Num).ToList();
         var s = r!.Settings;
+        var rates = RateCap.Limit(On(caps["rates"], "hz"), RateCap.Of(s["max_rate"]));   // the owner's cap (item 240)
+        var bits = On(caps["bits"], "n").Select(Jv.Num).ToList();
         // 32-bit output only where this ffmpeg writes 32-bit FLAC.
         var most = bits.Count > 0 ? bits.Max() : 24;
         var maxBits = Math.Min(most, Transcoder.Flac32 ? 32 : 24);
@@ -241,6 +241,7 @@ internal sealed partial class Players
             ("bits", s["bits"] is double b && b is 24 or 32 ? (object)b : "auto"),
             ("dsp", dsp), ("id", r.Id));
         if (s["filter"] is "whole") target["filter"] = "whole";   // the whole-track filter (item 237); standard by its absence
+        if (DsdLowpass.Of(s["dsd_lowpass"]) is { } cut) target["dsd_lowpass"] = cut;   // DSD as PCM, low-passed (item 241)
         return target;
     }
 

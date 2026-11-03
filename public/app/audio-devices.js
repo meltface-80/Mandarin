@@ -21,6 +21,10 @@ let picks = new Set();
 const esc = (v) => String(v == null ? "" : v).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 // The whole-track filter (item 237): what it is and what it costs.
 const WHOLE_NOTE = "One filter as long as the track, made ahead of playing (some 30 seconds a track); a track not yet made plays with the standard filter. Tracks from the library, ×2 to ×16.";
+// DSD sent as PCM (item 241): what the low-pass does.
+const DSD_LOWPASS_NOTE = (cut) => cut
+  ? "DSD this device is sent as PCM has the modulator’s noise above " + (cut / 1000) + " kHz taken off; below it, as recorded. DSD it takes as DSD goes as it is."
+  : "DSD this device is sent as PCM keeps the modulator’s noise up to the top of the rate it goes at. DSD it takes as DSD goes as it is.";
 // How the making goes (item 239): the tracks made and kept, the one being made, those waiting.
 const wholeLine = (w) => {
   const parts = [w.made === 1 ? "1 track made" : (w.made || 0) + " tracks made"];
@@ -273,9 +277,15 @@ function renderDetail(keepInput) {
   if (d.kind === "upnp" || d.kind === "local") {
     const o = d.output || { mode: "original", bits: "auto", flac32: false };
     const seg = (name, opts, cur) => '<div class="seg" data-seg="' + name + '">' + opts.map(x =>
-      '<button type="button"' + ({ mode: ' data-parity="settings-device.mode"', bits: ' data-parity="settings-device.depth"', filter: ' data-parity="settings-device.filter"' })[name] + ' class="seg-btn' + (String(x.v) === String(cur) ? " is-on" : "") + '" data-seg-v="' + x.v + '"' + (x.off ? " disabled" : "") + ">" + esc(x.label) + "</button>").join("") + "</div>";
+      '<button type="button"' + ({ mode: ' data-parity="settings-device.mode"', bits: ' data-parity="settings-device.depth"', filter: ' data-parity="settings-device.filter"', max_rate: ' data-parity="settings-device.maxrate"', dsd_lowpass: ' data-parity="settings-device.dsdlowpass"' })[name] + ' class="seg-btn' + (String(x.v) === String(cur) ? " is-on" : "") + '" data-seg-v="' + x.v + '"' + (x.off ? " disabled" : "") + ">" + esc(x.label) + "</button>").join("") + "</div>";
     const has32 = d.bits.some(b => b.n === 32 && b.on);
-    const topOf = fam => { const on = d.rates.filter(r => r.on && (fam === 44100 ? r.hz % 44100 === 0 : r.hz % 44100 !== 0)).map(r => r.hz); return on.length ? Math.max(...on) : 0; };
+    // The highest rate its owner allows (item 240), by 48 kHz's family; 44.1 kHz's is held to the rate that matches.
+    const cap = o.max_rate || 0;
+    const capFor = hz => !cap ? Infinity : hz % 44100 === 0 ? cap / 48000 * 44100 : cap;
+    const topOf = fam => { const on = d.rates.filter(r => r.on && (fam === 44100 ? r.hz % 44100 === 0 : r.hz % 44100 !== 0) && r.hz <= capFor(r.hz)).map(r => r.hz); return on.length ? Math.max(...on) : 0; };
+    // The caps worth offering: those below the highest rate the device takes.
+    const top48 = Math.max(0, ...d.rates.filter(r => r.on).map(r => r.hz % 44100 === 0 ? r.hz / 44100 * 48000 : r.hz));
+    const caps = [96000, 192000, 384000, 768000].filter(c => c < top48 || c === cap);
     const outBits = (has32 && o.flac32 && o.bits !== 24) ? 32 : 24;
     const example = (() => {
       const top = topOf(44100);
@@ -287,6 +297,9 @@ function renderDetail(keepInput) {
     html += '<div class="settings-divider"></div><div class="settings-block"><div class="settings-block-title"' + ' data-parity="settings-device.title"' + '>Output' + settingsInfo("Original sends the file as stored wherever this device takes its rate, depth and format; above its ceiling, FLAC at the highest rate it takes. Upsampling stays in the file's family (44.1 → 88.2 → 176.4; 48 → 96 → 192), runs in 64-bit float, and goes out at " + (has32 && o.flac32 ? "24 or 32 bits" : "24 bits") + ".", "settings-device.info") + "</div>" +
       '<div class="cap-group"><span class="cap-label"' + ' data-parity="settings-device.cap-label"' + '>Mode</span>' +
       seg("mode", [{ v: "original", label: "Original" }, { v: "x2", label: "×2" }, { v: "x4", label: "×4" }, { v: "max", label: "Max" }], o.mode) + "</div>" +
+      (caps.length ? '<div class="cap-group"><span class="cap-label"' + ' data-parity="settings-device.cap-label"' + '>Highest rate</span>' +
+        seg("max_rate", [{ v: "auto", label: "Auto" }].concat(caps.map(c => ({ v: c, label: (c / 1000) + "k" }))), cap || "auto") +
+        '<div class="settings-note"' + ' data-parity="settings-device.note"' + '>' + (cap ? "Nothing goes above " + (cap / 1000) + " kHz (" + (cap / 48000 * 44.1) + " kHz for music in 44.1’s family), upsampled or not." : "As high as the device takes.") + "</div></div>" : "") +
       (o.mode !== "original" ? '<div class="cap-group"><span class="cap-label"' + ' data-parity="settings-device.cap-label"' + '>Filter</span>' +
         seg("filter", [{ v: "standard", label: "Standard" }, { v: "whole", label: "Whole track" }], o.filter || "standard") +
         '<div class="settings-note"' + ' data-parity="settings-device.note"' + '>' + (o.filter === "whole" ? WHOLE_NOTE : "SoX’s filter, made as it plays.") + "</div>" +
@@ -296,6 +309,10 @@ function renderDetail(keepInput) {
         "" +
         (!o.flac32 ? '<div class="settings-note"' + ' data-parity="settings-device.note"' + '>32-bit needs an ffmpeg that writes 32-bit FLAC; this one stops at 24.</div>' : "") + "</div>" : "") +
       '<div class="settings-note"' + ' data-parity="settings-device.note"' + '>' + esc(example) + "</div>" +
+      // DSD played as PCM, its modulator's noise above the band taken off (item 241).
+      '<div class="cap-group"><span class="cap-label"' + ' data-parity="settings-device.cap-label"' + '>DSD as PCM</span>' +
+        seg("dsd_lowpass", [{ v: "off", label: "Off" }, { v: 50000, label: "50 kHz" }, { v: 30000, label: "30 kHz" }], o.dsd_lowpass || "off") +
+        '<div class="settings-note"' + ' data-parity="settings-device.note"' + '>' + esc(DSD_LOWPASS_NOTE(o.dsd_lowpass)) + "</div></div>" +
       (d.can_fix_volume ? '<div class="settings-row" style="margin-top:14px"><span class="settings-label"' + ' data-parity="settings-device.name"' + '>Fixed volume</span>' +
         '<label class="switch"' + ' data-parity="settings-device.fixvol"' + '><input type="checkbox" data-dev-fixvol' + (d.volume_fixed ? " checked" : "") + ' aria-label="Fixed volume">' +
         '<span class="switch-track"><span class="switch-thumb"></span></span></label></div>' +

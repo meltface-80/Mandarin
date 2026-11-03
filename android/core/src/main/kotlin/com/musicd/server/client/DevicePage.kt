@@ -121,6 +121,18 @@ class DevicePage(val j: JSONObject) {
     val filters: List<SegChoice> get() = listOf(SegChoice("standard", "Standard"), SegChoice("whole", "Whole track"))
     val filterNote: String get() = if (filter == "whole") "One filter as long as the track, made ahead of playing (some 30 seconds a track); a track not yet made plays with the standard filter. Tracks from the library, ×2 to ×16."
         else "SoX’s filter, made as it plays."
+    /** The highest rate its owner allows (item 240), by 48 kHz's family; 0 for Auto. 44.1 kHz's is held to the rate that matches. */
+    val maxRate: Int get() = output.optInt("max_rate", 0)
+    private fun capFor(hz: Int): Int = if (maxRate == 0) Int.MAX_VALUE else if (hz % 44100 == 0) maxRate / 48000 * 44100 else maxRate
+    private val caps: List<Int> get() {
+        val top48 = rates.filter { it.on }.maxOfOrNull { if (it.value % 44100 == 0) it.value / 44100 * 48000 else it.value } ?: 0
+        return listOf(96000, 192000, 384000, 768000).filter { it < top48 || it == maxRate }
+    }
+    val showMaxRate: Boolean get() = caps.isNotEmpty()
+    val maxRateValue: String get() = if (maxRate == 0) "auto" else maxRate.toString()
+    val maxRates: List<SegChoice> get() = listOf(SegChoice("auto", "Auto")) + caps.map { SegChoice(it.toString(), "${it / 1000}k") }
+    val maxRateNote: String get() = if (maxRate == 0) "As high as the device takes."
+        else "Nothing goes above ${maxRate / 1000} kHz (${rateWord(maxRate / 48000 * 44100)} kHz for music in 44.1’s family), upsampled or not."
 
     /** How the making goes (item 239): the tracks made and kept, the one being made, those waiting; null unless whole. */
     val wholeLine: String? get() {
@@ -132,13 +144,19 @@ class DevicePage(val j: JSONObject) {
         w.optInt("waiting").takeIf { it > 0 }?.let { parts += "$it waiting" }
         return parts.joinToString(" · ")
     }
+    /** DSD sent as PCM (item 241): its modulator's noise above the cut taken off; 0 for Off. */
+    val dsdLowpass: Int get() = output.optInt("dsd_lowpass", 0)
+    val dsdLowpassValue: String get() = if (dsdLowpass == 0) "off" else dsdLowpass.toString()
+    val dsdLowpasses: List<SegChoice> get() = listOf(SegChoice("off", "Off"), SegChoice("50000", "50 kHz"), SegChoice("30000", "30 kHz"))
+    val dsdLowpassNote: String get() = if (dsdLowpass != 0) "DSD this device is sent as PCM has the modulator’s noise above ${dsdLowpass / 1000} kHz taken off; below it, as recorded. DSD it takes as DSD goes as it is."
+        else "DSD this device is sent as PCM keeps the modulator’s noise up to the top of the rate it goes at. DSD it takes as DSD goes as it is."
     val depths: List<SegChoice> get() = listOf(SegChoice("auto", "Auto"), SegChoice("24", "24"), SegChoice("32", "32", off = !flac32))
     val outputInfo: String get() = "Original sends the file as stored wherever this device takes its rate, depth and format; above its ceiling, FLAC at the highest rate it takes. Upsampling stays in the file's family (44.1 → 88.2 → 176.4; 48 → 96 → 192), runs in 64-bit float, and goes out at " +
         (if (has32 && flac32) "24 or 32 bits" else "24 bits") + "."
 
     /** What a 16/44.1 file becomes with the mode set. */
     val example: String get() {
-        val top = rates.filter { it.on && it.value % 44100 == 0 }.maxOfOrNull { it.value } ?: 0
+        val top = rates.filter { it.on && it.value % 44100 == 0 && it.value <= capFor(it.value) }.maxOfOrNull { it.value } ?: 0
         val rate = when (mode) { "x2" -> minOf(88200, if (top > 0) top else 44100); "x4" -> minOf(176400, if (top > 0) top else 44100); "max" -> if (top > 0) top else 44100; else -> 44100 }
         if (mode == "original" || rate <= 44100) return "A 16-bit/44.1 kHz file plays as it is."
         val b = if (has32 && flac32 && outBits != "24") 32 else 24
@@ -146,7 +164,7 @@ class DevicePage(val j: JSONObject) {
     }
 
     /** The change a segment tapped makes (PATCH {output: {mode|filter|bits: …}}). */
-    fun segment(name: String, v: String): JSONObject = JSONObject().put("output", JSONObject().put(name, if (name == "bits" && v != "auto") v.toInt() else v))
+    fun segment(name: String, v: String): JSONObject = JSONObject().put("output", JSONObject().put(name, if ((name == "bits" || name == "max_rate" || name == "dsd_lowpass") && v != "auto" && v != "off") v.toInt() else v))
 
     val canFixVolume: Boolean get() = j.optBoolean("can_fix_volume")
     val volumeFixed: Boolean get() = j.optBoolean("volume_fixed")

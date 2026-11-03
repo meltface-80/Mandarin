@@ -36,6 +36,7 @@ internal static class Items
         // DSD as it is, in the device's own word for it (audio/dsf…): the stream says the same as the DIDL.
         if (Jv.T(p["dsd"]) && target != null && !Jv.Same(p["mime"], StreamPlans.MimeForExt(p["ext"]))) qs.Add("m=" + AJs.EncodeURIComponent(Jv.Str(p["mime"])));
         if (Jv.T(p["gain"])) qs.Add("g=" + TJs.Num(Jv.Num(p["gain"])));
+        if (Jv.T(p["lowpass"])) qs.Add("lp=" + TJs.Num(Jv.Num(p["lowpass"])));   // DSD low-passed through this rate (item 241)
         var q = qs.Count > 0 ? "?" + string.Join("&", qs) : "";
         return Signing.SignUrl(secret, $"{baseUrl}/stream/t{t.Id}{seg}.{Jv.Str(p["ext"])}{q}");
     }
@@ -47,9 +48,11 @@ internal static class Items
     public static PlayItem Item(Snapshot s, string secret, string baseUrl, PlayTrack t, JsObj? target, double? gain, double? phoneGain)
     {
         var al = s.Find(t.AlbumId);
-        var p = (JsObj)StreamPlans.PlanFor(t.ToJs(), target, gain)!;
+        var tj = t.ToJs();
+        var p = (JsObj)StreamPlans.PlanFor(tj, target, gain)!;
         if (target != null) p = HighRates.Fit(p, target);   // above FLAC's rates: WAV, or the highest FLAC carries (item 238)
         p = Upsample.WholePlan.Mark(p, target, t.Path);   // the whole track in one transform, where the device asks it (item 237)
+        p = DsdLowpass.Mark(p, target, tj);   // DSD as PCM, its modulator's noise above the band taken off (item 241)
         var uri = StreamUrl(secret, baseUrl, t, p, target);
         var meta = Jv.Obj(
             ("itemId", $"musicd-t{t.Id}"),

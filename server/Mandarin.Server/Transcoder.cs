@@ -108,7 +108,7 @@ internal static partial class Transcoder
     public static bool FfOk => Ff.Value.Ok;
 
     /* The Transcoder's keyFor (lib/stream.js), as Playback/StreamPlans.cs writes it. */
-    public static string KeyFor(ConvTrack t, ConvPlan p) => StreamPlans.KeyFor(Jv.Obj(("id", (double)t.Id), ("mtime", (double)t.Mtime)), p.ToJs()) + (p.Whole ? "-w" : "") + (p.Wav ? "-wav" : "");
+    public static string KeyFor(ConvTrack t, ConvPlan p) => StreamPlans.KeyFor(Jv.Obj(("id", (double)t.Id), ("mtime", (double)t.Mtime)), p.ToJs()) + (p.Lowpass != 0 ? "-lp" + p.Lowpass : "") + (p.Whole ? "-w" : "") + (p.Wav ? "-wav" : "");
     public static string FinalPath(string key) => Path.Combine(dir, key + (key.EndsWith("-wav", StringComparison.Ordinal) ? ".wav" : ".flac"));
 
     /* stream.js ffmpegArgs (Playback/StreamPlans.cs): the gain first, the DSP before the requantise. */
@@ -116,7 +116,7 @@ internal static partial class Transcoder
 
     /* The same with soxr said (whether ffmpeg has libsoxr), as the tests ask it. */
     public static List<string> Args(string src, ConvPlan p, string dest, bool soxr) =>
-        Playback.HighRates.Args(StreamPlans.FfmpegArgs(src, p.ToJs(), dest, soxr).Select(Jv.Str).ToList(), p.Wav, p.Bits);
+        Playback.HighRates.Args(Playback.DsdLowpass.Args(StreamPlans.FfmpegArgs(src, p.ToJs(), dest, soxr).Select(Jv.Str).ToList(), p.Lowpass, soxr), p.Wav, p.Bits);
 
     /* Start (or join) a conversion now. */
     public static ConvJob Start(ConvTrack t, ConvPlan p, bool background = false)

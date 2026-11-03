@@ -78,12 +78,40 @@ class AudioDevicesTest {
         assertFalse(page("""{"mode":"original","bits":"auto","flac32":false,"filter":"whole"}""").showFilter)
     }
 
+    @Test fun `the highest rate offers the caps below the device's top and holds the example to it`() {
+        fun page(output: String) = DevicePage(JSONObject("""{"kind":"upnp","bits":[],"dsd":[],"output":$output,
+            "rates":[{"hz":44100,"on":true},{"hz":176400,"on":true},{"hz":352800,"on":true},{"hz":384000,"on":true}]}"""))
+        val auto = page("""{"mode":"max","bits":"auto","flac32":false}""")
+        assertTrue(auto.showMaxRate)
+        assertEquals("auto", auto.maxRateValue)
+        assertEquals(listOf("Auto", "96k", "192k"), auto.maxRates.map { it.label })
+        assertEquals("A 16-bit/44.1 kHz file plays as 24-bit/352.8 kHz FLAC.", auto.example)
+        assertEquals("""{"output":{"max_rate":192000}}""", auto.segment("max_rate", "192000").toString())
+        val capped = page("""{"mode":"max","bits":"auto","flac32":false,"max_rate":192000}""")
+        assertEquals("192000", capped.maxRateValue)
+        assertEquals("A 16-bit/44.1 kHz file plays as 24-bit/176.4 kHz FLAC (×4).", capped.example)
+        assertTrue(capped.maxRateNote.startsWith("Nothing goes above 192 kHz (176.4 kHz"))
+        assertFalse(DevicePage(JSONObject("""{"kind":"upnp","bits":[],"dsd":[],"rates":[{"hz":44100,"on":true},{"hz":96000,"on":true}]}""")).showMaxRate)
+    }
+
     @Test fun `with the whole-track filter, how the making goes`() {
         fun page(output: String) = DevicePage(JSONObject("""{"kind":"upnp","rates":[],"bits":[],"dsd":[],"output":$output}"""))
         assertEquals("12 tracks made · making “01 Song” · 3 waiting",
             page("""{"mode":"max","filter":"whole","whole":{"made":12,"making":"01 Song","waiting":3}}""").wholeLine)
         assertEquals("1 track made", page("""{"mode":"max","filter":"whole","whole":{"made":1,"making":null,"waiting":0}}""").wholeLine)
         assertNull(page("""{"mode":"max"}""").wholeLine)
+    }
+
+    @Test fun `DSD as PCM offers off and two cuts and sends the cut in Hz`() {
+        fun page(output: String) = DevicePage(JSONObject("""{"kind":"upnp","rates":[],"bits":[],"dsd":[],"output":$output}"""))
+        val off = page("""{"mode":"original"}""")
+        assertEquals("off", off.dsdLowpassValue)
+        assertEquals(listOf("Off", "50 kHz", "30 kHz"), off.dsdLowpasses.map { it.label })
+        assertEquals("""{"output":{"dsd_lowpass":30000}}""", off.segment("dsd_lowpass", "30000").toString())
+        assertEquals("""{"output":{"dsd_lowpass":"off"}}""", off.segment("dsd_lowpass", "off").toString())
+        val cut = page("""{"mode":"original","dsd_lowpass":30000}""")
+        assertEquals("30000", cut.dsdLowpassValue)
+        assertTrue(cut.dsdLowpassNote.contains("above 30 kHz taken off"))
     }
 
     @Test fun `a sound device's note says how it plays, a Mac's by Core Audio`() {

@@ -13,6 +13,10 @@
 - Fixed - upsampling ×16 (705.6 and 768 kHz) plays: as WAV where the device takes WAV, else at the highest rate FLAC carries; it was silent
 - New - whole-track upsampling: a streamer or DAC set to upsample can use one filter as long as the track (Settings → Audio Devices → a device → Output → Filter), made ahead of playing
 - Improved - whole-track upsampling shows itself: Now playing says whether a track went out whole or with the standard filter and why, and the device's Output says how many tracks are made and which is being made
+- New - a highest rate for each streamer or DAC (Settings → Audio Devices → a device → Output → Highest rate): nothing goes above it, upsampled or not
+- Fixed - whole-track upsampling works for an album or a queue played on a streamer; every track planned from a queue failed ("whole track failed: see the log")
+- Fixed - Now playing shows a track's real length on a streamer that misreads it (419 hours for an upsampled ×16 track on a FiiO SR11)
+- New - DSD sent to a device as PCM can have the DSD modulator's ultrasonic noise taken off above 30 or 50 kHz (Settings → Audio Devices → a device → Output → DSD as PCM)
 - New - Mandarin can make DSD from PCM: a seventh-order modulator, its noise from 20 Hz to 20 kHz some 139 dB down at DSD64 (the engine; choosing it for a device follows)
 
 - `242-dsd-modulator` (item 242): **PCM made DSD.** The engine for DSD output (item 243): a one-bit delta-sigma
@@ -25,6 +29,42 @@
   filters (DsdChain.cs), each channel on a core of its own, and is written as a DSF (DsfWriter.cs) exactly as long as
   the track; ffmpeg reads it back at the source's level, 6 dB down as SACD has it. `mandarin-server upsample` makes it
   given `{ dsd, out }`. DSD256 takes about as long as the track on two cores; DSD64 a third of that.
+
+- `241-dsd-lowpass` (item 241): **DSD played as PCM, its modulator's noise above the band taken off.** DSD64
+  carries its noise above the audio band, rising from some 20 kHz. A DSD-capable DAC is sent the file as it is and
+  filters it itself; a device that takes PCM was sent PCM decoded from it (ffmpeg's decoder, 352.8 kHz for DSD64)
+  and resampled to its rate, the modulator's noise passing through up to that rate's Nyquist frequency: at
+  176.4 kHz, from 20 to 88 kHz, some 40 dB below a half-scale tone at the top. Output gains DSD as PCM: Off (as
+  before), 50 kHz or 30 kHz. Set, the track goes through SoX's resampler twice, down to 110.25 or 66.15 kHz and
+  back up: a linear-phase low-pass as steep as the resampler (on a DSD64 tone, the noise above 33 kHz falls from
+  some −40 dB to the dither's floor near −144 dB), the band below untouched (within 0.001 dB to 24 kHz), with no
+  delay and no tail, so gapless play stays gapless. It applies only where it does something: DSD going out as PCM
+  at a rate above the one it passes through (DsdLowpass.cs). The address carries it (`?lp=`), the cache keeps it
+  apart (`-lp66150`), and Now playing's reason says "low-passed at 30 kHz". Mandarin makes no DSD itself: DSD
+  that a device takes as DSD goes bit for bit, its noise the recording's own.
+
+- `245-length-of-an-open-wav` (item 245): **Now playing keeps a track's length when a device misreads it.** A
+  track sent as WAV above FLAC's rates (item 238) is written as it plays, its length left open in its header; the
+  FiiO SR11 read that as 419:57:09 and Now playing showed it. The length the device reports is still taken, unless it
+  is more than ten seconds from the track's own, when the track's own is shown (Players.Poll.cs).
+
+- `244-whole-track-from-the-queue` (item 244): **whole-track upsampling works from a queue.** On 3 November an
+  album played on a FiiO SR11 set to Whole track showed "standard (whole track failed: see the log)", and the log
+  said why for every track: "the factor must be a power of two". A track's whole-track job divides the plan's rate by
+  the track's own; a plan made for a queue (what an album, a playlist or a radio plays) carried no rate of the
+  track's own, so the factor came out as the plan's rate itself (705,600) and every job failed, and failed again
+  each time the queue was looked at. Only a track asked for by its address alone, as the tests had it, carried the
+  rate. The plan now carries it wherever it is marked to be upsampled whole (WholePlan.cs), and a job without one
+  says so plainly. A renderer test now plays an album with Whole track on and holds the server to all its tracks
+  made ahead, none failed on the way (it failed so before the fix, exactly as on the SR11).
+
+- `240-rate-limits` (item 240): **a highest rate for each device, set by its owner.** A device's rates are what it
+  reports or what its owner switched on, and Max upsampling went to the highest of them; to keep a FiiO SR11 below
+  ×16 its owner had to switch its top rates off. Output gains Highest rate: Auto, or 96, 192, 384 or 768 kHz (only
+  those below the device's own top). It is named by 48 kHz's family and holds 44.1 kHz's to the rate that matches
+  (88.2, 176.4, 352.8, 705.6 kHz). Nothing goes above it, upsampled or not: a file above it is converted down to it,
+  and Max stops there. The device's rates are left as they are (RateCap.cs, applied where the device's rates
+  become the plan's ceiling). The example under Output follows it.
 
 - `239-whole-track-shown` (item 239): **whole-track upsampling shows itself.** Only the server's log said whether
   a track went out upsampled whole. Now playing's badge now says it: "↑×16 · whole track" when the track's own file
