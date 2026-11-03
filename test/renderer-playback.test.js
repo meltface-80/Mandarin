@@ -54,7 +54,7 @@ test("a renderer is a zone", { skip, timeout: 150000 }, async (t) => {
   const { createServer } = require("./server");
   const options = {
     port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [ports.host(0)],
-    upnpHosts: [wiim.location, poly.location, dac.location], upnpMulticast: false, dsdLateS: 5
+    upnpHosts: [wiim.location, poly.location, dac.location], upnpMulticast: false, dsdLateS: 5, makeWaitMs: 1500
   };
   let srv = createServer(options);
   let ctx = await srv.start();
@@ -446,8 +446,32 @@ test("a renderer is a zone", { skip, timeout: 150000 }, async (t) => {
       assert.equal(f.body.readUInt32LE(56), 2822400, "DSD64");
       await until(async () => { const z = await state(DAC); return z && z.now_playing && z.now_playing.format && z.now_playing.format.text === "DSD64 from PCM" && z; }, 15000);
       assert.deepEqual(ctx.logs.slice(said).filter(l => /\[upsample\] .*couldn't/.test(l)), []);
+      // Long 1 went as PCM: its DSF was never made, though the play asked for it before Long 1 started (item 246).
+      assert.deepEqual(ctx.logs.slice(said).filter(l => /Long 1\.flac: DSD64 from PCM/.test(l)), []);
+      // Another album played at once: what was to be made for the one before no longer is (item 246); the Lorde album
+      // went on being made upsampled whole long after other albums were played on 3 November.
+      const before = ctx.logs.length;
+      await api("play", { offset: cd.offset, zone_or_output_id: DAC, kind: "play_now" });
+      await api("play", { offset: long.offset, zone_or_output_id: DAC, kind: "play_now" });
+      await until(() => ctx.logs.slice(before).some(l => /track\(s\) no longer made: another play/.test(l)), 15000);
+      await until(async () => { const o = (await api("audio-devices/" + DAC)).output; return o.whole && !o.whole.making && o.whole.waiting === 0; }, 40000);
+      assert.deepEqual(ctx.logs.slice(before).filter(l => /Song \d\.flac: DSD64 from PCM/.test(l)), []);
       await api("control", { zone_or_output_id: DAC, command: "stop" });
       await api("audio-devices/" + DAC, { output: { dsd_out: "off" }, enabled: false }, "PATCH");
+    });
+
+    await t.test("a renderer still PLAYING at the end of a track, with nothing to go on to, is started on the next by hand (item 246)", async () => {
+      // A FiiO SR11 at the end of a WAV whose length is left open waits there for more: nothing armed, it stood still.
+      poly.hangAtEnd = true;
+      const said = ctx.logs.length;
+      const from = poly.fetches.length;
+      await api("play", { offset: cd.offset, zone_or_output_id: POLY, kind: "play_now" });
+      const f = await until(() => poly.fetches.slice(from).find(x => /\/stream\/t\d+\./.test(x.uri) && x !== poly.fetches[from] && x), 30000);
+      assert.notEqual(f.uri.replace(/\?.*/, ""), poly.fetches[from].uri.replace(/\?.*/, ""), "the next track, not the first again");
+      assert.ok(poly.log.includes("hung"), "it hung at the end of the first");
+      assert.ok(ctx.logs.slice(said).some(l => /Poly: still playing at the end of track 1 .* track 2 started by hand/.test(l)), ctx.logs.slice(said).join("\n"));
+      poly.hangAtEnd = false;
+      await api("control", { zone_or_output_id: POLY, command: "stop" });
     });
 
     await t.test("the server restarted (an update): the renderer's queue is kept and the playing track recognised", async () => {

@@ -155,7 +155,7 @@ class DevicePage(val j: JSONObject) {
     val dsdOutValue: String get() = if (dsdOut == 0) "off" else dsdOut.toString()
     val showDsdOut: Boolean get() = dsd.any { it.on }
     val dsdOuts: List<SegChoice> get() = listOf(SegChoice("off", "Off")) + listOf(64, 128, 256).map { n -> SegChoice("$n", "DSD$n", off = dsd.none { it.value == n && it.on }) }
-    val dsdOutNote: String get() = if (dsdOut != 0) "Each track of the library that isn’t DSD is made DSD$dsdOut ahead of playing, by Mandarin’s seventh-order modulator, and sent as a DSF; a track not yet made goes as PCM. DSD64 takes about a third of a track’s length to make, DSD256 about its length."
+    val dsdOutNote: String get() = if (dsdOut != 0) "Each track of the library that isn’t DSD is made DSD$dsdOut ahead of playing, by Mandarin’s seventh-order modulator, and sent as a DSF; a track not yet made goes as PCM, and so do Qobuz and Tidal. Making takes a while: DSD256 can take longer than the track."
         else "PCM goes to this device as PCM. Set, each track of the library that isn’t DSD is made DSD ahead of playing and sent as a DSF."
     val dsdOutLine: String? get() = if (dsdOut != 0) wholeStatus else null
     val depths: List<SegChoice> get() = listOf(SegChoice("auto", "Auto"), SegChoice("24", "24"), SegChoice("32", "32", off = !flac32))

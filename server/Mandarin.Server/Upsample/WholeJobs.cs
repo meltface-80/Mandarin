@@ -19,9 +19,12 @@ internal static class WholeJobs
     private static readonly HashSet<long> Failed = [];
     private static string? makingName;
     private static bool running;
-    // The making under way, and the one stopped for a track sent as PCM meanwhile (Skip).
+    // The making under way, and those dropped (Skip, Only), until when: not made again before then.
     private static (string Key, Process Proc)? current;
-    private static string? stopped;
+    private static readonly Dictionary<string, DateTime> Skipped = [];
+    private static readonly TimeSpan Dropped = TimeSpan.FromMinutes(10);
+    // A pause between a making taken from the queue and its start: the tests' own, to hold that moment open (246).
+    private static readonly int Wait = int.TryParse(Environment.GetEnvironmentVariable("MANDARIN_MAKE_WAIT_MS"), out var w) && w > 0 ? w : 0;
 
     /*
      * The plan to send now for [p]: itself where it isn't whole, or its file is made and this play didn't start on
@@ -71,19 +74,47 @@ internal static class WholeJobs
     }
 
     /*
-     * Track [t]'s making by [p] dropped, waiting or under way (one sent as PCM this time, item 243): the tracks after
-     * it, still to come, are made first.
+     * Track [t]'s making by [p] dropped, waiting, about to start or under way (one sent as PCM this time, item 243),
+     * and not taken up again for [Dropped]: the tracks after it, still to come, are made first. A play queues its
+     * tracks to be made before it starts the first (Items.PlayTracks), so the first's may be on its way already (246).
      */
     public static void Skip(ConvTrack t, ConvPlan p)
     {
         var key = Transcoder.KeyFor(t, p);
         lock (Queue)
         {
+            var now = DateTime.UtcNow;
+            foreach (var old in Skipped.Where(s => s.Value <= now).Select(s => s.Key).ToList()) Skipped.Remove(old);
+            Skipped[key] = now + Dropped;
             Queue.RemoveAll(q => q.Key == key);
-            if (current is not { } c || c.Key != key) return;
-            stopped = key;
-            try { c.Proc.Kill(true); } catch (InvalidOperationException) { /* ended already */ }
+            if (current is { } c && c.Key == key) Stop(c.Proc);
         }
+    }
+
+    /*
+     * A new play, of [items] (item 246): the makings of what was playing before and isn't now are dropped, waiting or
+     * under way; an album played after another had the other's tracks made first, minutes each at DSD256.
+     */
+    public static void Only(IEnumerable<(ConvTrack T, ConvPlan P)> items)
+    {
+        var keep = items.Where(x => x.P.Whole || x.P.DsdUp != 0).Select(x => Transcoder.KeyFor(x.T, x.P)).ToHashSet();
+        if (keep.Count == 0) return;   // a play of nothing made ahead (a phone's, a room's) leaves a streamer's alone
+        lock (Queue)
+        {
+            var dropped = Queue.RemoveAll(q => !keep.Contains(q.Key));
+            // Taken from the queue, starting or under way: stopped; long enough to end, then free to be made again.
+            foreach (var k in Making.Where(k => !keep.Contains(k))) { Skipped[k] = DateTime.UtcNow + TimeSpan.FromSeconds(30); dropped++; }
+            if (current is { } c && !keep.Contains(c.Key)) Stop(c.Proc);
+            if (dropped > 0) Server.Log($"[upsample] {dropped} track(s) no longer made: another play");
+        }
+    }
+
+    // Under the lock: whether [key] was dropped and isn't free again yet.
+    private static bool WasSkipped(string key) => Skipped.TryGetValue(key, out var until) && DateTime.UtcNow < until;
+
+    private static void Stop(Process proc)
+    {
+        try { proc.Kill(true); } catch (InvalidOperationException) { /* ended already */ }
     }
 
     private static void Enqueue(ConvTrack t, ConvPlan p)
@@ -91,7 +122,7 @@ internal static class WholeJobs
         var key = Transcoder.KeyFor(t, p);
         lock (Queue)
         {
-            if (Making.Contains(key) || Queue.Exists(q => q.Key == key) || File.Exists(Transcoder.FinalPath(key))) return;
+            if (Making.Contains(key) || Queue.Exists(q => q.Key == key) || File.Exists(Transcoder.FinalPath(key)) || WasSkipped(key)) return;
             Queue.Add((key, t, p));
             if (running) return;
             running = true;
@@ -112,6 +143,7 @@ internal static class WholeJobs
                 Making.Add(next.Key);
                 makingName = Path.GetFileNameWithoutExtension(next.T.Path);
             }
+            if (Wait > 0) await Task.Delay(Wait);
             try { await Make(next.Key, next.T, next.P); }
             catch (Exception e) { Fail(next.T.Id); Server.Log($"[upsample] {Path.GetFileName(next.T.Path)}: couldn't be upsampled whole ({e.GetType().Name}: {e.Message})"); }
             finally { lock (Queue) { Making.Remove(next.Key); makingName = null; } }
@@ -121,6 +153,7 @@ internal static class WholeJobs
     // One track made: the job handed to `mandarin-server upsample`, its file moved into place once whole.
     private static async Task Make(string key, ConvTrack t, ConvPlan p)
     {
+        lock (Queue) { if (WasSkipped(key)) return; }   // dropped on its way here
         var final = Transcoder.FinalPath(key);
         var part = final + ".part";
         var job = p.DsdUp != 0 ? DsdPlan.Job(t.Path, p, part, Transcoder.Soxr, MaxOutBits()) : Job(t.Path, p, part);
@@ -128,7 +161,7 @@ internal static class WholeJobs
         psi.ArgumentList.Add("upsample");
         Cpu.Place(psi, CpuKind.Ahead);
         using var proc = Process.Start(psi)!;
-        lock (Queue) current = (key, proc);
+        lock (Queue) { current = (key, proc); if (WasSkipped(key)) Stop(proc); }
         Cpu.Adopt(proc, CpuKind.Ahead);
         try { await proc.StandardInput.WriteLineAsync(job.ToJsonString()); proc.StandardInput.Close(); }
         catch (IOException) { /* stopped before it read its job (Skip); its exit says so */ }
@@ -139,9 +172,8 @@ internal static class WholeJobs
         lock (Queue)
         {
             current = null;
-            if (stopped == key)
+            if (WasSkipped(key))
             {
-                stopped = null;
                 try { File.Delete(part); } catch (IOException) { /* never made */ }
                 return;
             }

@@ -85,6 +85,19 @@ public sealed class DsdPlanTests
         finally { Directory.Delete(dir, true); }
     }
 
+    [Test]
+    public async Task While_its_DSF_is_made_a_track_goes_with_the_standard_filter_never_a_whole_tracks()
+    {
+        Needs.Server();
+        // A device set to Whole track and to DSD256 (item 246): the PCM that stands in for the DSF is the standard
+        // filter's; a whole track's is made in the same queue, behind the DSFs, and was never there to be armed.
+        var whole = new { transcode = true, hq = true, mime = "audio/wav", ext = "wav", wav = true, rate = 705600, bits = 24, upsampled = 16, whole = true, inRate = 44100, reason = "upsampled ×16 to 705.6 kHz for SR11 (whole track)" };
+        var p = (await Plans(new JsonObject { ["dsd_waiting"] = JsonNode.Parse(Http.Json(new object[] { new object[] { whole, 256 } })) }))["dsd_waiting"]![0]!;
+        Assert.Null(p["whole"]);
+        Assert.Equal((256.0, 705600.0, true), (p.Num("dsdMaking")!.Value, p.Num("rate")!.Value, (bool?)p["wav"] ?? false));
+        Assert.Equal("upsampled ×16 to 705.6 kHz for SR11 (DSD256 being made)", p.Str("reason"));
+    }
+
     // `mandarin-server upsample` given [job]: its line of JSON.
     private static async Task<JsonNode> Upsample(JsonObject job)
     {

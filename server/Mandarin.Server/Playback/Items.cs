@@ -159,8 +159,10 @@ internal static class Items
             var s = await Library.CurrentCopy() ?? throw new HubError(503, "The library is still being scanned");
             items = ItemsFor(c, s, hub, zoneId, tracks, shuffled);
         }
-        // The track that starts first is prepared first.
+        // The track that starts first is prepared first; what was being made for another play no longer is (246).
         var start = (int)Math.Max(0, startAt);
+        Upsample.WholeJobs.Only(items.Where(it => it.Track != null && it.Plan != null && Jv.T(it.Plan["transcode"]))
+            .Select(it => (new ConvTrack(it.Track!.Id, it.Track.Path, Hub.TierOrMtime(it.Track)), ConvPlan.Of(it.Plan!))));
         Prefetch(items.Skip(start).Concat(items.Take(start)));
         return await hub.Enqueue(zoneId, items, how, startAt, seconds);
     }
