@@ -173,12 +173,14 @@ internal static partial class Cpu
             int moved = own.Length > 0 ? PinProcess(Environment.ProcessId, own) : 0;
             if (next.On && moved > 0) Server.Log($"[cpu] {Span(next.Playback)} kept for playback, {Span(next.Background)} for this server and everything else");
             else if (next.On && first) Server.Log("[cpu] couldn't move this server off playback's cores; playback comes first by priority alone");
-            // A conversion running outside its cores now is moved to them.
+            // A conversion not on its cores now is moved to them: off cores taken from it, and onto cores given it (item 267:
+            // a making kept for the next track, moved to playback's one core while it waited, was left there when playback
+            // was given three again, and made DSD256 at one core's speed).
             foreach (var (pid, c) in Children)
             {
                 if (!OursStill(pid)) { Children.TryRemove(pid, out _); continue; }
                 var want = next.On ? CoresFor(c.Kind) : next.All;
-                if (want.Length == 0 || c.Cores.Length > 0 && c.Cores.All(x => want.Contains(x))) continue;
+                if (want.Length == 0 || c.Cores.Length > 0 && c.Cores.Order().SequenceEqual(want.Order())) continue;
                 if (PinProcess(pid, want) > 0) Children[pid] = (c.Kind, want);
             }
         }
