@@ -78,11 +78,12 @@ public sealed class ShapePlanTests
             ["held_keys"] = new JsonArray(Key(0, null), Key(0, "min"), Key(0, "gentle"), Key(256, "min"), Key(0, "min", wav: true)),
         }))["held_keys"]!.AsArray().Select(k => (string)k!).ToArray();
         Assert.Equal("7-5-88200-24-hq", keys[0]);
-        Assert.Equal(keys[0] + "-min", keys[1]);
-        Assert.Equal(keys[0] + "-gentle", keys[2]);
+        // "j": made joined to the album's neighbours (item 262), not mixed with those made before.
+        Assert.Equal(keys[0] + "-minj", keys[1]);
+        Assert.Equal(keys[0] + "-gentlej", keys[2]);
         // The shape before the endings a file's kind is read from: a DSF's and a WAV's stay theirs.
-        Assert.EndsWith("-min-dsd256", keys[3], StringComparison.Ordinal);
-        Assert.EndsWith("-min-wav", keys[4], StringComparison.Ordinal);
+        Assert.EndsWith("-minj-dsd256j", keys[3], StringComparison.Ordinal);
+        Assert.EndsWith("-minj-wav", keys[4], StringComparison.Ordinal);
     }
 
     [Test]
@@ -108,8 +109,14 @@ public sealed class ShapePlanTests
         Assert.Equal((200, 200), (min.Status, standard.Status));
         Assert.False(min.Body.AsSpan().SequenceEqual(standard.Body), "minimum phase isn't the standard filter's");
         string? file = null;
-        await Session.Until(() => Task.FromResult((file = Directory.Exists(made) ? Directory.GetFiles(made, "*-min.flac").FirstOrDefault() : null) != null), 30000, "its file kept");
-        Assert.True((await File.ReadAllBytesAsync(file!)).AsSpan().SequenceEqual(min.Body), "what was sent is the file kept");
+        await Session.Until(() => Task.FromResult((file = Directory.Exists(made) ? Directory.GetFiles(made, "*-minj.flac").FirstOrDefault() : null) != null), 30000, "its file kept");
+        // What was sent is the file kept, every byte but those ffmpeg writes into the FLAC's STREAMINFO once it has
+        // made the whole (its frames' least and most sizes, its samples, its MD5: bytes 12 to 17 and 20 to 41), which
+        // a FLAC sent as it is made has yet to have, and has where it was made first (in one run in six or so).
+        var kept = await File.ReadAllBytesAsync(file!);
+        Assert.Equal(kept.Length, min.Body.Length);
+        Assert.True(kept.AsSpan(0, 12).SequenceEqual(min.Body.AsSpan(0, 12)) && kept.AsSpan(18, 2).SequenceEqual(min.Body.AsSpan(18, 2)), "the same FLAC: its block sizes, its rate");
+        Assert.True(kept.AsSpan(42).SequenceEqual(min.Body.AsSpan(42)), "what was sent is the file kept");
         // How fast it was made, said under the filter.
         var dev = await s.Api("audio-devices/UPNP_test-shape");
         Assert.Matches(@"^Made as it plays: this server made the last at [\d.]+× real time", dev.J["output"].Str("making"));

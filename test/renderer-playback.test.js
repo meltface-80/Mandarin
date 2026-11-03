@@ -325,7 +325,7 @@ test("a renderer is a zone", { skip, timeout: 150000 }, async (t) => {
       assert.equal(np.signal.lines[1], "Minimum-phase filter");
       // The next made in its turn, then armed whole: its file too, and none failed on the way.
       const made = path.join(lib.data, "transcode");
-      await until(() => fs.existsSync(made) && fs.readdirSync(made).filter(f => /-min\.flac$/.test(f)).length >= 2, 60000);
+      await until(() => fs.existsSync(made) && fs.readdirSync(made).filter(f => /-minj\.flac$/.test(f)).length >= 2, 60000);
       assert.deepEqual(ctx.logs.slice(said).filter(l => /\[upsample\] .*couldn't|transcode failed/.test(l)), []);
       assert.ok(ctx.logs.slice(said).some(l => /\[upsample\] .*×2, minimum phase, made as it played at [\d.]+× real time/.test(l)), "its speed in the log");
       await api("audio-devices/" + WIIM, { output: { mode: "original", filter: "standard" } }, "PATCH");
@@ -457,15 +457,20 @@ test("a renderer is a zone", { skip, timeout: 150000 }, async (t) => {
       await until(async () => (await api("zones")).zones.some(z => z.zone_id === DAC), 20000);
       const said = ctx.logs.length;
       const from = dac.fetches.length;
+      // How far the log had got when the device was told of a DSF to follow (item 262).
+      let toldAt = -1;
+      const handle = dac.handle.bind(dac);
+      dac.handle = (action, a) => { if (action === "SetNextAVTransportURI" && toldAt < 0 && /\.d64\.dsf/.test(a.NextURI || "")) toldAt = ctx.logs.length; return handle(action, a); };
       await api("play", { offset: long.offset, zone_or_output_id: DAC, kind: "play_now" });
-      // Long 1, never made: its DSF from the first play, sent as it is made, its 30 s in its header from the first bytes.
+      // Long 1, never made: its DSF from the first play, sent as it is made, its 30 s in its header from the first bytes,
+      // to its last whole block: the frames short of one are Long 2's, which it runs on into (item 262).
       const f = await until(() => dac.fetches.slice(from).find(x => x.done && x.body && x.body.length > 1000 && x), 60000);
       assert.match(f.uri, /\.d64\.dsf/, f.uri);
       assert.equal(f.status, 200);
       assert.equal(f.type, "audio/x-dsf");
       assert.equal(f.body.toString("ascii", 0, 4), "DSD ");
       assert.equal(f.body.readUInt32LE(56), 2822400, "DSD64");
-      assert.equal(Number(f.body.readBigInt64LE(64)), 30 * 44100 * 64);
+      assert.equal(Number(f.body.readBigInt64LE(64)), (30 * 44100 - (30 * 44100) % 512) * 64);
       const dz = await until(async () => { const z = await state(DAC); return z && z.now_playing && z.now_playing.format && z.now_playing.format.text === "DSD64 from PCM" && z; }, 15000);
       // Its signal path (item 247): ×16 to 705.6 kHz, the modulator, the DSF; nothing still to be made.
       assert.deepEqual(dz.now_playing.signal.lines, ["DSD64 · 2.8224 MHz", "From PCM · standard filter ×16 · 7th-order modulator"]);
@@ -473,8 +478,13 @@ test("a renderer is a zone", { skip, timeout: 150000 }, async (t) => {
       // How fast it was made: in the log, and under PCM as DSD.
       await until(() => ctx.logs.slice(said).some(l => /Long 1\.flac: DSD64 from PCM, standard filter \(0 reset\(s\)\), made as it played at [\d.]+× real time/.test(l)), 60000);
       await until(async () => /^Made as it plays: this server made the last at [\d.]+× real time/.test((await api("audio-devices/" + DAC)).output.making), 10000);
-      // Long 2 made in its turn after it, then armed whole.
+      // Long 2 made in its turn after it, its making Long 1's gone on into it, and the device told of it while it is
+      // made (item 262): before, only once it was made whole, and a device at the end of Long 1 by then played on.
       await until(() => /\.d64\.dsf/.test(dac.nextUri), 60000);
+      assert.ok(toldAt >= 0, "the device told of Long 2");
+      assert.deepEqual(ctx.logs.slice(said, toldAt).filter(l => /Long 2\.flac: DSD64 from PCM.*made as it played/.test(l)), [], "told of Long 2 before it was made");
+      await until(() => ctx.logs.slice(said).some(l => /Long 2\.flac: DSD64 from PCM.*made as it played.*, on from the track before$/.test(l)), 60000);
+      dac.handle = handle;
       assert.deepEqual(ctx.logs.slice(said).filter(l => /\[upsample\] .*couldn't|transcode failed/.test(l)), []);
       // Another album played while one is being made: what was being made for the one before stops (item 246).
       const asked = dac.fetches.length;
