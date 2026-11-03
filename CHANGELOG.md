@@ -27,6 +27,15 @@
 - Fixed - with PCM as DSD, a track that starts before its DSD is ready is still made, after the tracks to come, so it plays as DSD next time; Now playing says why it has the standard filter meanwhile, and Output's Filter says it is the filter the DSD is made with
 - New - room and headphone correction: load an impulse response (a WAV from REW, Dirac or a headphone measurement) on a streamer's or DAC's DSP and everything it plays runs through it (Settings → Audio Devices → a device → DSP → Room correction)
 - Improved - Mandarin's DSD modulator holds past SACD's highest level (+3.1 dB, 71% modulation) with room to spare, where it held only to 62%
+- Fixed - just after a scan, a page could show the albums from before it for a moment (the scan seemed to have ended before the server had read them)
+
+- `257-scan-end-status` (item 257): **a scan is under way until its albums are read.** /api/status said a scan had
+  ended a moment too soon now and then: the scan's own ticks, every half second, went on after it ended and before
+  it said its result, and the last could say "not running". A page that saw that asked for the albums before the
+  server had read them again and got the ones from before the scan (ScanEndTests, 5 runs in 113 on 3 November). What
+  the scan says is now under way until the server itself ends it, once the library is read (Scans.Mirror). A test
+  holds the moment open (the scan waits 1.5 s between its end and its result, MANDARIN_SCAN_END_WAIT_MS): before,
+  the albums answered 0 of 1; now 1.
 
 - `255-modulator-headroom` (item 255): **the modulator holds to SACD's highest level.** SACD's reference is 50%
   modulation, and its signal may peak 3.1 dB above it, at 71.4%. Mandarin's seventh-order modulator, its gain out of

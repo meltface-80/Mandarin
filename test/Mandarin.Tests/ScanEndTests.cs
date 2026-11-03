@@ -48,4 +48,32 @@ public sealed class ScanEndTests
         }
         Assert.True(wrong.Count == 0, string.Join("; ", wrong));
     }
+
+    [Test]
+    public async Task A_scan_is_under_way_until_the_library_is_read_again_though_its_last_tick_says_it_ended()
+    {
+        // The scan's ticks (every half second) went on after it ended and before its result: one said "not running",
+        // and a page that saw it asked for the albums before the server had read them (item 257; 5 runs in 113). Held
+        // open here: the scan waits 1.5 s between its end and its result, its ticks saying it ended all the while.
+        Needs.Server(); Needs.Ffmpeg();
+        var lib = Fixtures.MakeLibrary();
+        foreach (var f in Directory.GetFiles(lib.Music, "*", SearchOption.AllDirectories)) File.Delete(f);
+        await using var s = await LibraryServer.Start(lib, env: new Dictionary<string, string> { ["MANDARIN_SCAN_END_WAIT_MS"] = "1500" });
+        var h = new Dictionary<string, string> { ["Authorization"] = "Bearer " + s.Token };
+        await Session.Until(async () => (await Http.Get(s.B + "/api/status", h)).Json?["scan"].Bool("running") == false, 30000, "the first scan");
+        Fixtures.Gen(Path.Combine(lib.Music, "Artist", "Album", "01.flac"), seconds: 1,
+            tags: new Dictionary<string, object> { ["title"] = "One", ["artist"] = "Artist", ["album"] = "Album", ["track"] = 1 });
+        var post = s.PostJ("/api/library/rescan", new { force = true });
+        bool seen = false;
+        int? count = null;
+        for (var t0 = DateTime.UtcNow; count == null && DateTime.UtcNow - t0 < TimeSpan.FromSeconds(30);)
+        {
+            var st = (await Http.Get(s.B + "/api/status", h)).Json;
+            if (st?["scan"].Bool("running") == true) seen = true;
+            else if (seen) count = (await Http.Get(s.B + "/api/library/albums?count=200", h)).J["albums"].Items().Count();
+        }
+        await post;
+        Assert.True(seen, "the scan was seen under way");
+        Assert.True(count == 1, $"ended, then the albums answered {count}");
+    }
 }
