@@ -260,7 +260,9 @@ internal static partial class Cpu
      * lib/cpu.js decide: the split from the machine and the settings. Playback
      * takes one core, or two with DSP, leaving the rest at least two where the
      * machine has four or more; while a track is made as it plays ([making],
-     * item 260), all but one, or the [makingCores] its owner set. The first of
+     * item 260), all but two where there are four or more (this server, which
+     * answers the devices and streams to them, kept two: item 267), else all
+     * but one; or the [makingCores] its owner set. The first of
      * playback's is the one it always has (the engine's playback thread is kept
      * to it). [env]: PLAYBACK_CORES and PLAYBACK_CORE as given. Linux with taskset only.
      */
@@ -275,7 +277,7 @@ internal static partial class Cpu
         bool fixedOk = fixedN is { } f0 && double.IsFinite(f0), askedOk = asked is { } a0 && double.IsFinite(a0);
         var chosen = fixedOk || askedOk;
         if (n < 2 || (n < 3 && !chosen)) return none;
-        var want = making ? (makingCores > 0 ? makingCores : n - 1) : fixedOk && fixedN!.Value > 0 ? fixedN.Value : dsp ? 2 : 1;
+        var want = making ? (makingCores > 0 ? makingCores : n >= 4 ? n - 2 : n - 1) : fixedOk && fixedN!.Value > 0 ? fixedN.Value : dsp ? 2 : 1;
         want = Math.Max(1, Math.Min(want, making || chosen || n < 4 ? n - 1 : n - 2));
         var playback = new List<int>();
         if (askedOk) { var av = asked!.Value; playback.Add(cores.Any(c => c == av) ? (int)av : cores[n - 1]); }

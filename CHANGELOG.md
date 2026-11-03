@@ -39,6 +39,7 @@
 - Fixed - Next, Back, Play and Pause on a streamer such as the FiiO SR11 no longer pile up and stop it answering: taps in a row are one jump to where they end, and a track skipped from is no longer made
 - New - a phone playing through a USB DAC has a streamer's Output (Settings → Audio Devices → this phone → Output): upsampled ×2, ×4 or to the most, in Standard, Min phase or Gentle, to the highest rate allowed, or PCM made DSD64, DSD128 or DSD256, made by the server and played by the app's USB driver, DSD natively or as DoP
 - Fixed - signed in to Tidal, a token that stops working is renewed once, however many requests find it stale at the same time
+- Fixed - while a track is upsampled or made DSD as it plays, the app and the device no longer time out: the server keeps two cores of its own, not one
 
 - `259-dsd-on-demand` (item 259): **PCM as DSD, and the shaped filters, made as they play.** A track made DSD from
   PCM had to be made whole, ahead (items 243, 254): its filter was one as long as the track (237, PGGB's way), so
@@ -490,6 +491,18 @@
   albums, which don't wrap, and when it came to rest past Kind of Blue the loop never ended and the browser was given
   up on after 90 seconds. It now steps toward the album by the shelf's own order, a few steps at most, and says if it
   never got there. Nothing changes in Mandarin.
+
+- `267-making-leaves-the-server-two-cores` (item 267): **the server keeps two cores while a track is made.** Since
+  item 260 a track made as it plays kept all the cores but one, and the one left was all this server had: its own
+  threads, which answer the app and stream each track to the device, are kept to the cores playback doesn't keep
+  (Cpu.cs, so that the library's reading and the scans keep off playback's), and they shared it with the library's
+  re-reading (4 to 8 s each). On the owner's four-core server, playing DSD256 to the FiiO SR11, the app's requests
+  timed out after 6 s in bursts (17 in a minute) and the SR11, which fetches its track before it answers, stopped
+  answering Play. Every burst fell while a making held cores 1 to 3 (the log of 3 November, 23:26). Now Auto keeps all
+  the cores but two where there are four or more (two of four, six of eight), and all but one on a machine of two or
+  three, as before; a number set by hand (Settings → Library Scanner → Cores for upsampling and DSD) is kept as set.
+  The page's and the app's words say so. Tests: CpuTests (Auto, with and without DSP, on three, four and eight cores;
+  three set by hand).
 
 - `266-tidal-refresh-once` (item 266): **a stale Tidal token renewed once.** Two calls refused at once with a token
   that had stopped working both renewed it when the second's refusal came after the first's renewal had finished
