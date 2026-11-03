@@ -3,7 +3,8 @@
 // A queue entry of a track a device is set to have made DSD carries two: the DSF's and, beside it, the PCM's
 // (Playback/Items.cs). The DSF goes where it is made. A track started before its DSF is made goes as PCM, and its
 // making is dropped from the queue of makings, so that the tracks after it, still to come, are made first. The next
-// track is armed as DSF once made (Ready) and waited for; with the track playing in its last [Late], it goes as PCM.
+// track is armed as DSF once made (Ready) and waited for; with the track playing in its last [Late], it goes as PCM,
+// its conversion begun [Lead] before the end so that it is whole by then (item 246: a ×16 WAV takes its time).
 using Mandarin.Server.Playback;
 
 namespace Mandarin.Server.Renderers;
@@ -13,6 +14,9 @@ internal sealed partial class Players
     /* How near its end (s) the track playing is when the next, not yet made DSD, is armed as PCM instead; the tests' own, if said. */
     private static readonly double Late =
         double.TryParse(Environment.GetEnvironmentVariable("MANDARIN_DSD_LATE_S"), System.Globalization.CultureInfo.InvariantCulture, out var s) && s >= 0 ? s : 30;
+
+    /* How near its end the track playing is when the PCM that may stand in for the next is begun. */
+    private static double Lead => Late * 5;
 
     // [it] and the entry beside it, the two paired: each the other's Instead (ToItem).
     private UpnpItem Paired(PlayItem? instead, UpnpItem it)
@@ -51,6 +55,7 @@ internal sealed partial class Players
         var (dsd, pcm, made) = Pair(it);
         double left;
         lock (zm.Gate) left = zm.State.TryGetValue(p.Id, out var st) && st.Duration > 0 ? st.Duration - st.Position : double.MaxValue;
+        if (!made && left <= Lead) _ = Ready(pcm);   // begun, so it is there should the DSF not be
         lock (gate) return n < p.Queue.Count && ReferenceEquals(p.Queue[n], it) ? Put(p, n, made || left > Late ? dsd : pcm) : it;
     }
 

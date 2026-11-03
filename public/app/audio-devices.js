@@ -27,7 +27,7 @@ const DSD_LOWPASS_NOTE = (cut) => cut
   : "DSD this device is sent as PCM keeps the modulator’s noise up to the top of the rate it goes at. DSD it takes as DSD goes as it is.";
 // PCM made DSD (item 243): what it does and what it costs.
 const DSD_OUT_NOTE = (n) => n
-  ? "Each track of the library that isn’t DSD is made DSD" + n + " ahead of playing, by Mandarin’s seventh-order modulator, and sent as a DSF; a track not yet made goes as PCM. DSD64 takes about a third of a track’s length to make, DSD256 about its length."
+  ? "Each track of the library that isn’t DSD is made DSD" + n + " ahead of playing, by Mandarin’s seventh-order modulator, and sent as a DSF; a track not yet made goes as PCM, and so do Qobuz and Tidal. Making takes a while: DSD256 can take longer than the track."
   : "PCM goes to this device as PCM. Set, each track of the library that isn’t DSD is made DSD ahead of playing and sent as a DSF.";
 // How the making goes (item 239): the tracks made and kept, the one being made, those waiting.
 const wholeLine = (w) => {

@@ -48,12 +48,16 @@ internal static class DsdPlan
         return o;
     }
 
-    /* [pcm], the plan sent while the track is made DSD[n]: said so, for Now playing. */
+    /*
+     * [pcm], the plan sent while the track is made DSD[n]: said so, for Now playing. With the standard filter, never
+     * a whole track's (item 246): that is made in the same queue as the DSF, behind it, and a track the device is to
+     * be armed with must be made first; the DSF is what the device is set to, and the PCM only stands in for it.
+     */
     public static JsObj Waiting(JsObj pcm, int n)
     {
-        var o = Jv.CopyWithout(pcm, "dsdMaking");
+        var o = Jv.CopyWithout(Jv.CopyWithout(pcm, "dsdMaking"), "whole");
         o["dsdMaking"] = (double)n;
-        o["reason"] = Jv.Str(o["reason"]) + $" (DSD{n} being made)";
+        o["reason"] = Jv.Str(o["reason"]).Replace(" (whole track)", "", StringComparison.Ordinal) + $" (DSD{n} being made)";
         return o;
     }
 

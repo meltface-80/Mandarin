@@ -128,6 +128,8 @@ internal static class StreamCommand
         // makes it [src, plan, dest, soxr]; the badge of one sent as PCM meanwhile [multiple, the making].
         o["dsd_up"] = Each(job["dsd_up"], a => Upsample.DsdPlan.Mark(HighRates.Fit(StreamPlans.Plan(Arg(a, 0), Arg(a, 1)), Arg(a, 1)), Arg(a, 1), Arg(a, 0), Jv.Str(Jv.Get(Arg(a, 0), "path"))));
         o["dsd_job"] = Each(job["dsd_job"], a => Scan.JsJson.Parse(Upsample.DsdPlan.Job(Js.Str(Arg(a, 0)), ConvPlan.Of((JsObj)Arg(a, 1)!), Js.Str(Arg(a, 2)), Jv.T(Arg(a, 3)), 24).ToJsonString()));
+        // The PCM sent while it is made: [plan, multiple] (item 246: the standard filter's, never a whole track's).
+        o["dsd_waiting"] = Each(job["dsd_waiting"], a => Upsample.DsdPlan.Waiting((JsObj)Arg(a, 0)!, (int)Jv.Num(Arg(a, 1))));
         o["dsd_badge"] = Each(job["dsd_badge"], a => Upsample.DsdPlan.Badge((int)Jv.Num(Arg(a, 0)), Arg(a, 1) as string));
         o["repack"] = Each(job["repack"], a => StreamPlans.Repack(Arg(a, 0), Arg(a, 1)));
         o["with_gain"] = Each(job["with_gain"], a => StreamPlans.WithGain(Arg(a, 0), Arg(a, 1), Arg(a, 2), Arg(a, 3)));

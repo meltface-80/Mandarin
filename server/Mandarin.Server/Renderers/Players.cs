@@ -42,6 +42,10 @@ internal sealed class Player(string id)
     public IRenderer? Renderer;
     public string Location = "";
     public double TouchedAt, LoadingSince, JumpedAt, UnansweredAt;
+    // A track that has run out with the renderer still PLAYING at its end (Players.End.cs, item 246): the track read,
+    // its position and since when it has stood there; the track moved on from by hand.
+    public int EndIndex = -1, EndedOn = -1;
+    public double EndRel, EndSince;
     public string? Verifying;
     public Timer? NotifyTimer;
     public (double At, JsObj Vars)? LastEvent;

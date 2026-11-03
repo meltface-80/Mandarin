@@ -273,6 +273,7 @@ internal sealed partial class Players
         next.At = Hub.Now(); next.Unreachable = false;
         zm.ApplyState(p.Id, prev, next);
         if (tstate == "playing" && item != null && !p.NoSetNext) _ = ArmNext(p).ContinueWith(_ => { }, TaskContinuationOptions.OnlyOnFaulted);
+        if (tstate == "playing" && item != null && !stale) Overrun(p, item, index, rel);   // still PLAYING at its end (item 246)
         if (tstate == "playing" && item != null) _ = Verify(p, item).ContinueWith(_ => { }, TaskContinuationOptions.OnlyOnFaulted);
     }
 

@@ -49,6 +49,9 @@ class FakeRenderer {
     this.uri = ""; this.meta = "";
     // A length the device says of what it plays, whatever the track's is (a FiiO SR11 of a WAV whose length is open, item 245).
     this.reportedDuration = null;
+    // At a track's end with nothing to follow, still PLAYING, its clock stopped at the end: a FiiO SR11 at the end of
+    // a WAV whose length is left open (item 246) waits there for more that never comes.
+    this.hangAtEnd = false; this.hung = false;
     this.nextUri = ""; this.nextMeta = "";
     this.position = 0; this.at = Date.now();
     this.volume = 25; this.muted = false;
@@ -98,7 +101,7 @@ class FakeRenderer {
 
   // ------------------------------------------------------------ transport
 
-  pos() { return this.state === "PLAYING" && !this.held ? this.position + (Date.now() - this.at) / 1000 : this.position; }
+  pos() { return this.state === "PLAYING" && !this.held && !this.hung ? this.position + (Date.now() - this.at) / 1000 : this.position; }
   /* Playing on, but the clock stopped: the track can't run out until
    * release(), however long the test takes (a restart of the server under
    * test, on a busy machine) — the tracks here are only a few seconds long. */
@@ -112,7 +115,7 @@ class FakeRenderer {
     this.held = false; this.at = Date.now();
     if (this.state === "PLAYING") this.armEnd();
   }
-  setPos(s) { this.position = s; this.at = Date.now(); }
+  setPos(s) { this.position = s; this.at = Date.now(); this.hung = false; }
   duration() {
     const it = XML.parseItems(this.meta || "")[0] || {};
     return it.duration || 3;
@@ -149,6 +152,9 @@ class FakeRenderer {
         this.fetchCurrent();
         this.armEnd();
         this.notify();
+      } else if (this.hangAtEnd) {
+        this.log.push("hung");
+        this.position = this.duration(); this.hung = true;
       } else {
         this.log.push("ended");
         this.state = "STOPPED";

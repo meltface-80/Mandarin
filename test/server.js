@@ -110,6 +110,8 @@ const ENV = {
   tidalAuthUrl: "TIDAL_AUTH_URL", tidalImagesUrl: "TIDAL_IMAGES_URL",
   // How near its end a track is when the next, not yet made DSD, goes as PCM (Renderers/Players.Dsd.cs, item 243).
   dsdLateS: "MANDARIN_DSD_LATE_S",
+  // A pause between a making taken from its queue and its start (Upsample/WholeJobs.cs, item 246).
+  makeWaitMs: "MANDARIN_MAKE_WAIT_MS",
   // The folder public/ is served from (v0.9.3): a test's own copy, to change a file of.
   appDir: "MANDARIN_APP_DIR"
 };

@@ -19,6 +19,21 @@
 - New - DSD sent to a device as PCM can have the DSD modulator's ultrasonic noise taken off above 30 or 50 kHz (Settings → Audio Devices → a device → Output → DSD as PCM)
 - New - Mandarin can make DSD from PCM: a seventh-order modulator, its noise from 20 Hz to 20 kHz some 139 dB down at DSD64 (the engine; choosing it for a device follows)
 - New - PCM as DSD: a streamer or DAC that takes DSD can have the library's PCM made DSD64, DSD128 or DSD256 ahead of playing and sent as DSF (Settings → Audio Devices → a device → Output → PCM as DSD)
+- Fixed - an album played with PCM as DSD on a FiiO SR11 stopped after its first track; and what was being made for an album no longer playing went on being made
+
+- `246-dsd-album-stops` (item 246): **an album with PCM as DSD plays on, and only what's playing is made.** On 3
+  November an album played on a FiiO SR11 set to Whole track and DSD256 stopped at the end of its first track. The
+  log said why. A DSD256 track took 456 s to make for a track of 220 s, so the second was never ready; the PCM that
+  stood in for it was a whole track's, queued behind the DSFs and made half an hour later, so nothing was ever armed
+  next; and the SR11, at the end of a WAV whose length is left open, says PLAYING and waits, so it was never started
+  by hand either. The first track's DSF was made too, though it went as PCM: the play queued it before the track was
+  started, and its making was already on its way when it was dropped. Now: the PCM that stands in for a DSF is the
+  standard filter's (DsdPlan.cs); it is converted from 150 s before the end of the track playing, and armed in the
+  last 30 s if the DSF isn't made (Players.Dsd.cs); a making dropped is remembered, refused or stopped at whatever
+  stage it is (WholeJobs.cs); a new play drops what was being made for the one before (the Lorde album was still
+  being made upsampled whole after several others were played); and a renderer still PLAYING at a track's end, its
+  position standing there or run past it, with nothing to go on to, has the next started by hand (Players.End.cs).
+  The device's note says Qobuz and Tidal play as PCM, as they always did.
 
 - `243-dsd-output` (item 243): **PCM sent as DSD.** Output gains PCM as DSD (Off, DSD64, DSD128, DSD256), offered
   where the device takes DSD and only at the multiples it takes. Set, each track of the library that isn't DSD is made
