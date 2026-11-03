@@ -32,7 +32,7 @@ internal static class DsdRules
         if (job["halfband"] is true) return HalfBand();
         if (job["make"] is double md) return Make((int)md, (int)Num(job, "from", 44100), Num(job, "seconds", 10), job["compare"] is true);
         var dsd = (int)Num(job, "rate", 2822400);
-        var mod = new DsdModulator(new DsdNtf((int)Num(job, "order", 7), dsd / 2.0 / 20000, Num(job, "hinf", 1.4)));
+        var mod = new DsdModulator(new DsdNtf((int)Num(job, "order", 7), dsd / 2.0 / 20000, Num(job, "hinf", DsdOut.Hinf(dsd))));
         var n = Pow2(dsd * Num(job, "seconds", 1));
         var amp = Num(job, "amp", 0.5);
         var hz = Num(job, "hz", 997);
@@ -114,7 +114,7 @@ internal static class DsdRules
         var noise = Signal("noise", n, dsd, 0.1, 997);
         for (var i = 0; i < n; i++) x[i] += noise[i];
         byte[] fast = new byte[n / 8], slow = new byte[n / 8];
-        var ntf = new DsdNtf(7, dsd / 2.0 / 20000, 1.4);
+        var ntf = DsdOut.Ntf(dsd);
         var t0 = System.Diagnostics.Stopwatch.StartNew();
         new DsdModulator(ntf).Run(x, fast);
         var fastMs = t0.Elapsed.TotalMilliseconds;
@@ -155,7 +155,7 @@ internal static class DsdRules
     private static JsObj Chain(int rate, double amp, double hz, double seconds, int order)
     {
         var took = System.Diagnostics.Stopwatch.StartNew();
-        var ntf = new DsdNtf(order, rate / 2.0 / 20000, 1.4);
+        var ntf = new DsdNtf(order, rate / 2.0 / 20000, DsdOut.Hinf(rate));
         var chain = new DsdChain(rate, ntf);
         var frames = (long)(seconds * DsdChain.InRate);
         var bits = new List<byte>();
