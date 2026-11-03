@@ -24,6 +24,15 @@
 - New - two more upsampling filters (Settings → Audio Devices → a device → Output → Filter): Minimum phase, whose ringing comes only after a sound starts, and Gentle, which rolls off earlier and rings for half as long; made ahead as Whole track is, and used for PCM as DSD too
 - Fixed - Output's Filter button for minimum phase read "Minimum p…" on a phone; it says Min phase
 
+- `253-whole-play-flac-header` (item 253, a test's): **"one play, one file" held to the file, not to its header.**
+  WholeTrackPlayTests compared each read of the standard filter's file, byte for byte, with the first. When the first
+  read came while the conversion was still being made (sent as written, Transcoder.TailFollow), it had STREAMINFO's body
+  as ffmpeg leaves it till the end: the frame sizes, the samples in all and the MD5, written last by seeking back.
+  Every later read then "differed" ("7 of 7 reads", "11 of 11", on busy runs), the audio the same. Measured: a copy
+  taken mid-encode differs from the finished file in bytes 13 to 41 only. Reads are now the same file when all but
+  STREAMINFO's body (bytes 8 to 41) is the same. A copy with that body cleared counts as the same file, and one audio
+  byte changed does not. With the server's hold broken, the test still fails ("1 of 6 reads").
+
 - `250-filter-label` (item 250): **the Filter's buttons fit a phone.** Four to a row, "Minimum phase" was cut to "Minimum
   p…" in the app (seen on 3 November). It is "Min phase" on the button, on the page and in the app alike (the contract's
   label); its note still says minimum phase in full. A test holds every Filter label to the length of "Whole track", the
