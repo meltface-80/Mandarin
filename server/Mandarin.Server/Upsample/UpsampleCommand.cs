@@ -5,7 +5,8 @@
 // max_out_bits? }. The decode arguments make ffmpeg write the track as 64-bit float stereo at [rate] to its
 // standard output (the gain already on it); the encode arguments make it read 64-bit float stereo at rate × factor
 // from its standard input and write the file (the DSP and the requantise its own). In between, WholeTrack.cs.
-// What it did is one line of JSON on standard output: { frames, sections, peak, gain, seconds }, or { error }.
+// What it did is one line of JSON on standard output: { frames, sections, peak, gain, seconds, resets }, or { error }.
+// With { dsd: rate, out: path } it makes a DSF instead (DsdOut.cs, item 242): no encode, the bits written itself.
 using System.Buffers.Binary;
 using System.Diagnostics;
 using System.Text.Json.Nodes;
@@ -25,11 +26,15 @@ internal static class UpsampleCommand
             var factor = (int)job["factor"]!;
             var maxBits = job["max_out_bits"] is JsonValue mb ? (int)mb : 28;
             var (left, right) = Decode(ffmpeg, Strings(job["decode"]));
-            var r = Encode(ffmpeg, Strings(job["encode"]), write => WholeTrack.Run(left, right, rate, new WholeTrack.Options(factor, MaxOutBits: maxBits), write));
+            // Made DSD (item 242): { dsd: its rate, out: the DSF }, the whole track at 705.6 kHz on the way.
+            long resets = 0;
+            var r = job["dsd"] is JsonValue dv
+                ? Dsd(left, right, rate, (int)dv, maxBits, (string)job["out"]!, out resets)
+                : Encode(ffmpeg, Strings(job["encode"]), write => WholeTrack.Run(left, right, rate, new WholeTrack.Options(factor, MaxOutBits: maxBits), write));
             Console.WriteLine(new JsonObject
             {
                 ["frames"] = r.Frames, ["sections"] = r.Sections, ["peak"] = r.Peak, ["gain"] = r.Gain,
-                ["seconds"] = Math.Round(started.Elapsed.TotalSeconds, 1),
+                ["seconds"] = Math.Round(started.Elapsed.TotalSeconds, 1), ["resets"] = resets,
             }.ToJsonString());
             return 0;
         }
@@ -38,6 +43,13 @@ internal static class UpsampleCommand
             Console.WriteLine(new JsonObject { ["error"] = e.GetType().Name + ": " + e.Message }.ToJsonString());
             return 1;
         }
+    }
+
+    private static WholeTrack.Result Dsd(double[] left, double[] right, int rate, int dsdRate, int maxBits, string path, out long resets)
+    {
+        var (r, x) = DsdOut.Make(left, right, rate, dsdRate, maxBits, path);
+        resets = x;
+        return r;
     }
 
     private static List<string> Strings(JsonNode? n) => n is JsonArray a ? a.Select(x => (string)x!).ToList() : [];

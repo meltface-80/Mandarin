@@ -13,6 +13,18 @@
 - Fixed - upsampling ×16 (705.6 and 768 kHz) plays: as WAV where the device takes WAV, else at the highest rate FLAC carries; it was silent
 - New - whole-track upsampling: a streamer or DAC set to upsample can use one filter as long as the track (Settings → Audio Devices → a device → Output → Filter), made ahead of playing
 - Improved - whole-track upsampling shows itself: Now playing says whether a track went out whole or with the standard filter and why, and the device's Output says how many tracks are made and which is being made
+- New - Mandarin can make DSD from PCM: a seventh-order modulator, its noise from 20 Hz to 20 kHz some 139 dB down at DSD64 (the engine; choosing it for a device follows)
+
+- `242-dsd-modulator` (item 242): **PCM made DSD.** The engine for DSD output (item 243): a one-bit delta-sigma
+  modulator of the seventh order in 64-bit floats (DsdModulator.cs), its noise transfer function of optimal zeros
+  (the roots of the Legendre polynomial, spread over the audio band) and a Butterworth high-pass's poles set for a gain
+  out of band of 1.4 (DsdNtf.cs). Measured on its own bits at SACD's level (full-scale PCM is half the modulation): the
+  noise from 20 Hz to 20 kHz is 139 dB below full scale at DSD64 and 228 dB at DSD256; the loop holds to 60%
+  modulation and on three tones and noise together, a guard starting it again (and counting) should it ever be
+  overloaded. A track reaches it upsampled whole to 705.6 kHz (item 237), then doubled to the DSD rate by half-band
+  filters (DsdChain.cs), each channel on a core of its own, and is written as a DSF (DsfWriter.cs) exactly as long as
+  the track; ffmpeg reads it back at the source's level, 6 dB down as SACD has it. `mandarin-server upsample` makes it
+  given `{ dsd, out }`. DSD256 takes about as long as the track on two cores; DSD64 a third of that.
 
 - `239-whole-track-shown` (item 239): **whole-track upsampling shows itself.** Only the server's log said whether
   a track went out upsampled whole. Now playing's badge now says it: "↑×16 · whole track" when the track's own file
