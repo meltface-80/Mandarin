@@ -1163,7 +1163,7 @@
       }
     },
     "settings-device": {
-      "page": "Settings' Audio Devices, a device's page: Back, its name; on or off, Random album radio, a phone's Other devices can play here; its name to change (or the phone's own), About, Capabilities (rates, depths and DSD, each a chip, tapped on or off where it can be set; its formats), Output (the mode, the filter, the depth, Fixed volume), Volume levelling with its level and the unknown's adjustment, DSP (a headphone profile chosen from AutoEq or pasted, the bands' curve, each band's type, frequency, gain and Q, Add band, the headroom, Save), this phone's USB DAC (Allow, what it takes, USB direct, Fixed volume, the limit, DSD, Copy), Forget this device; their notes",
+      "page": "Settings' Audio Devices, a device's page: Back, its name; on or off, Random album radio, a phone's Other devices can play here; its name to change (or the phone's own), About, Capabilities (rates, depths and DSD, each a chip, tapped on or off where it can be set; its formats), Output (the mode, the highest rate, the filter, the depth, Fixed volume), Volume levelling with its level and the unknown's adjustment, DSP (a headphone profile chosen from AutoEq or pasted, the bands' curve, each band's type, frequency, gain and Q, Add band, the headroom, Save), this phone's USB DAC (Allow, what it takes, USB direct, Fixed volume, the limit, DSD, Copy), Forget this device; their notes",
       "native": ["android/app/src/main/java/com/musicd/server/android/SettingsDevice.kt", "android/app/src/main/java/com/musicd/server/android/SettingsDsp.kt", "android/app/src/main/java/com/musicd/server/android/SettingsUsb.kt"],
       "preview": false,
       "items": {
@@ -1186,6 +1186,7 @@
         "legend": { "kind": "shows" },
         "mode": { "kind": "action", "label": ["Original", "×2", "×4", "Max"], "each": true, "when": "a renderer or a sound device of the server's" },
         "depth": { "kind": "action", "label": ["Auto", "24", "32"], "each": true, "when": "one that takes 32 bits" },
+        "maxrate": { "kind": "action", "label": ["Auto", "96k", "192k", "384k", "768k"], "each": true, "when": "one that takes above 96 kHz" },
         "filter": { "kind": "action", "label": ["Standard", "Whole track"], "each": true, "when": "upsampling on" },
         "fixvol": { "kind": "action", "label": "Fixed volume", "when": "one whose volume can be fixed" },
         "lv-mode": { "kind": "action", "label": "Volume levelling", "when": "levelling offered" },

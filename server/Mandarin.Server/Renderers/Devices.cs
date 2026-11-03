@@ -220,6 +220,8 @@ internal sealed class Devices
             output["filter"] = "whole";
             output["whole"] = Jv.Obj(("made", (double)made), ("making", making), ("waiting", (double)waiting));
         }
+        // The highest rate its owner allows (item 240), said only where it is set: Auto by its absence.
+        if (streamer && RateCap.Of(r.Settings["max_rate"]) is { } cap) ((JsObj)o["output"]!)["max_rate"] = cap;
         o["first_seen"] = r.FirstSeen; o["last_seen"] = r.LastSeen;
         o["profile"] = caps["profile"]; o["editable"] = caps["editable"];
         o["playable"] = r.Kind != "upnp" || Jv.T(caps["playable"]);
