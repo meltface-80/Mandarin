@@ -213,7 +213,13 @@ internal sealed class Devices
             ("bits", r.Settings["bits"] is double b && b is 24 or 32 ? (object)b : "auto"),
             ("flac32", Transcoder.Flac32)) : null;
         // The whole-track filter (item 237), said only where it is set: standard is said by its absence.
-        if (streamer && r.Settings["filter"] is "whole") ((JsObj)o["output"]!)["filter"] = "whole";
+        if (streamer && r.Settings["filter"] is "whole")
+        {
+            var (made, making, waiting) = Upsample.WholeJobs.Status();   // how the making goes (item 239)
+            var output = (JsObj)o["output"]!;
+            output["filter"] = "whole";
+            output["whole"] = Jv.Obj(("made", (double)made), ("making", making), ("waiting", (double)waiting));
+        }
         o["first_seen"] = r.FirstSeen; o["last_seen"] = r.LastSeen;
         o["profile"] = caps["profile"]; o["editable"] = caps["editable"];
         o["playable"] = r.Kind != "upnp" || Jv.T(caps["playable"]);

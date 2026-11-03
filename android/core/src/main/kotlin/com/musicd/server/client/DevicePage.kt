@@ -121,6 +121,17 @@ class DevicePage(val j: JSONObject) {
     val filters: List<SegChoice> get() = listOf(SegChoice("standard", "Standard"), SegChoice("whole", "Whole track"))
     val filterNote: String get() = if (filter == "whole") "One filter as long as the track, made ahead of playing (some 30 seconds a track); a track not yet made plays with the standard filter. Tracks from the library, ×2 to ×16."
         else "SoX’s filter, made as it plays."
+
+    /** How the making goes (item 239): the tracks made and kept, the one being made, those waiting; null unless whole. */
+    val wholeLine: String? get() {
+        val w = output.optJSONObject("whole") ?: return null
+        if (filter != "whole") return null
+        val made = w.optInt("made")
+        val parts = mutableListOf(if (made == 1) "1 track made" else "$made tracks made")
+        w.optString("making").takeIf { it.isNotEmpty() && !w.isNull("making") }?.let { parts += "making “$it”" }
+        w.optInt("waiting").takeIf { it > 0 }?.let { parts += "$it waiting" }
+        return parts.joinToString(" · ")
+    }
     val depths: List<SegChoice> get() = listOf(SegChoice("auto", "Auto"), SegChoice("24", "24"), SegChoice("32", "32", off = !flac32))
     val outputInfo: String get() = "Original sends the file as stored wherever this device takes its rate, depth and format; above its ceiling, FLAC at the highest rate it takes. Upsampling stays in the file's family (44.1 → 88.2 → 176.4; 48 → 96 → 192), runs in 64-bit float, and goes out at " +
         (if (has32 && flac32) "24 or 32 bits" else "24 bits") + "."
