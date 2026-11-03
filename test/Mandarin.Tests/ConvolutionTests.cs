@@ -134,6 +134,19 @@ public sealed class ConvolutionTests
     }
 
     [Test]
+    public async Task A_response_is_used_at_its_own_level_whatever_ffmpeg_runs_it()
+    {
+        Needs.Server();
+        // afir's help as ffmpeg 6.1 gives it (its gain type), and as 7.0 on (irnorm, which scales a response to a norm
+        // of 1 unless told not to: a resampled response came out 9% too quiet on CI's ffmpeg, item 258).
+        const string six = "   gtype             <int>        ..F.A...... set IR auto gain type (from -1 to 4) (default peak)\n     none            -1           ..F.A...... without auto gain\n   irgain            <float>      ..F.A...... set IR gain (from 0 to 1) (default 1)\n   precision         <int>        ..F.A...... set processing precision (from 0 to 2) (default auto)\n";
+        const string seven = "   irnorm            <float>      ..F.A....T. set IR norm (from -1 to 2) (default 1)\n   irlink            <boolean>    ..F.A....T. set IR link (default true)\n   precision         <int>        ..F.A...... set processing precision (from 0 to 2) (default auto)\n";
+        const string five = "   gtype             <int>        ..F.A...... set IR auto gain type (from -1 to 4) (default peak)\n";
+        var o = (await Score.Run(new JsonObject { ["fn"] = "plans", ["afir_options"] = new JsonArray(six, seven, five) }))["afir_options"]!.AsArray().Select(x => (string)x!).ToArray();
+        Assert.Equal(["gtype=none:precision=double", "irnorm=-1:precision=double", "gtype=none"], o);
+    }
+
+    [Test]
     public async Task Played_the_track_is_run_through_it_as_made_and_made_ahead()
     {
         Needs.Server(); Needs.Ffmpeg();

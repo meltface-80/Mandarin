@@ -123,6 +123,8 @@ internal static class StreamCommand
         // The Now playing badge's words for a whole-track plan: [sent, the making] (item 239).
         o["whole_badge"] = Each(job["whole_badge"], a => Upsample.WholeServed.Badge(Arg(a, 0) is bool b ? b : null, Arg(a, 1) as string));
         // A DSD track's plan for a device set to a low-pass (item 241): fitted, then marked, as Items.cs makes it.
+        // afir's options for a room correction from what an ffmpeg's help says it takes (item 258).
+        o["afir_options"] = Each(job["afir_options"], h => Convolution.Options(Js.Str(h)));
         o["dsd_lowpass"] = Each(job["dsd_lowpass"], a => DsdLowpass.Mark(HighRates.Fit(StreamPlans.Plan(Arg(a, 0), Arg(a, 1)), Arg(a, 1)), Arg(a, 1), Arg(a, 0)));
         // A track's plan for a device set to PCM as DSD (item 243): fitted, then marked, as Items.cs makes it; the job that
         // makes it [src, plan, dest, soxr]; the badge of one sent as PCM meanwhile [multiple, the making].

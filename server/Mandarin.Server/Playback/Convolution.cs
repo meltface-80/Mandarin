@@ -38,8 +38,14 @@ internal static class Convolution
     /* A response's samples: its rate and each channel's. */
     public sealed record Wave(int Rate, double[][] Channels);
 
-    /* Whether this ffmpeg's afir takes precision=double (5.1's may not; asked once). */
-    private static readonly Lazy<bool> Precise = new(() =>
+    /*
+     * afir's options for a response used as it is (asked once of this ffmpeg): no gain of its own on it, in 64-bit
+     * float where it can be. Its levels are left alone whichever way this ffmpeg says so: gtype=none (up to 6.1), and
+     * irnorm=-1 (7.0 on, whose irnorm otherwise scales a response to a norm of 1: one sample long it is so already,
+     * but a response resampled to the track's rate came out some 9% too quiet on CI's ffmpeg, item 258); precision=double
+     * where it is taken (5.1's may not).
+     */
+    private static readonly Lazy<string> AfirOptions = new(() =>
     {
         try
         {
@@ -48,10 +54,21 @@ internal static class Convolution
             using var p = System.Diagnostics.Process.Start(psi)!;
             var o = p.StandardOutput.ReadToEnd();
             p.WaitForExit(5000);
-            return o.Contains("precision", StringComparison.Ordinal);
+            return Options(o);
         }
-        catch (Exception) { return false; }
+        catch (Exception) { return "gtype=none"; }
     });
+
+    /* afir's options, from what its help ([help]) says it takes. */
+    public static string Options(string help)
+    {
+        bool Has(string name) => System.Text.RegularExpressions.Regex.IsMatch(help, @"^\s*" + name + @"\s", System.Text.RegularExpressions.RegexOptions.Multiline);
+        var o = new List<string>();
+        if (Has("gtype")) o.Add("gtype=none");
+        if (Has("irnorm")) o.Add("irnorm=-1");
+        if (Has("precision")) o.Add("precision=double");
+        return string.Join(":", o);
+    }
 
     /*
      * [b], a WAV file: its rate and samples, each channel's, scaled to ±1. PCM of 16, 24 or 32 bits, or floating point
@@ -259,7 +276,7 @@ internal static class Convolution
         }
         var ir = $"amovie={Escape(Path.Combine(Dir, Jv.Str(Jv.Get(c, "file"))))},aformat=sample_fmts=dbl{to}{spread}[ir]";
         var main = $"[in]{(before.Length > 0 ? before + "," : "")}aformat=sample_fmts=dbl:channel_layouts=stereo{pad}[pre]";
-        return $"{ir};{main};[pre][ir]afir=gtype=none{(Precise.Value ? ":precision=double" : "")}{trim},{after}[out]";
+        return $"{ir};{main};[pre][ir]afir{(AfirOptions.Value.Length > 0 ? "=" + AfirOptions.Value : "")}{trim},{after}[out]";
     }
 
     private static long Gcd(long a, long b) { while (b != 0) (a, b) = (b, a % b); return a; }
