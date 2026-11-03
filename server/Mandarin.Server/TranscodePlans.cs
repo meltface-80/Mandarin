@@ -23,6 +23,8 @@ internal sealed record ConvPlan(long Rate, int Bits, bool Hq, bool Exact, string
     public int DsdUp { get; init; }
     // A Qobuz or Tidal stream already what was planned: its FLAC frames copied as they come (v0.8.47).
     public bool Copy { get; init; }
+    // The whole-track filter's shape, where one is made ahead: "min", "gentle", or null for linear (Upsample/WholeShape.cs, item 248).
+    public string? Shape { get; init; }
 
     /* The plan as lib/stream.js has it, for its name and ffmpeg's arguments. */
     public JsObj ToJs()
@@ -46,7 +48,8 @@ internal sealed record ConvPlan(long Rate, int Bits, bool Hq, bool Exact, string
         Wav = Jv.T(p["wav"]),
         Whole = Jv.T(p["whole"]),
         Lowpass = Jv.T(p["lowpass"]) ? (long)Jv.Num(p["lowpass"]) : 0,
-        DsdUp = Jv.T(p["dsdUp"]) ? (int)Jv.Num(p["dsdUp"]) : 0
+        DsdUp = Jv.T(p["dsdUp"]) ? (int)Jv.Num(p["dsdUp"]) : 0,
+        Shape = Upsample.WholeShape.Word(Upsample.WholeShape.Of(p["shape"] as string))
     };
 }
 

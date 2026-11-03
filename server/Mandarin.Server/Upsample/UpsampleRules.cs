@@ -12,13 +12,18 @@ internal static class UpsampleRules
      * { rate, factor, seconds, tones: [[hz, amplitude]], max_out_bits, pass } → { error_db, peak, gain, sections, frames },
      * the error over the middle (a second in from each end). With compare: true, the same also done in sections of
      * 2^max_out_bits points and set against the whole: { error_db, joins_db }. With fft: n, the transform against
-     * the DFT done by hand on n points: { fft_db, round_trip_db }.
+     * the DFT done by hand on n points: { fft_db, round_trip_db }. With shape ("min", "gentle", item 248) the filter
+     * of that shape; with gains: true, each tone's level out against its level in, in dB ({ gains_db }); with
+     * impulse: true, a click in the middle instead of the tones, and its ringing before and after it
+     * ({ pre_db, post_db, pre_energy_db }: WholeShapeRules.cs).
      */
     public static JsObj Run(JsObj job)
     {
         if (job["fft"] is double fn) return FftCheck((int)fn);
         var rate = (int)TJs.ToNumber(job["rate"]);
         var factor = (int)TJs.ToNumber(job["factor"]);
+        var shape = job["shape"] as string;
+        if (job["impulse"] is true) return WholeShapeRules.Impulse(rate, factor, shape);
         var seconds = TJs.ToNumber(job["seconds"]);
         var tones = (job["tones"] as List<object?> ?? []).Select(t => t as List<object?> ?? []).Select(t => (Hz: TJs.ToNumber(t[0]), Amp: TJs.ToNumber(t[1]))).ToArray();
         var pass = job["pass"] is double p ? p : 0.95;
@@ -33,7 +38,8 @@ internal static class UpsampleRules
         {
             var outL = new double[frames * factor]; var outR = new double[frames * factor];
             long at = 0;
-            r = WholeTrack.Run(left, right, rate, new WholeTrack.Options(factor, pass, MaxOutBits: bits), (re, im, from, count, gain) =>
+            var opts = shape != null ? WholeTrack.Options.For(factor, shape, bits) : new WholeTrack.Options(factor, pass, MaxOutBits: bits);
+            r = WholeTrack.Run(left, right, rate, opts, (re, im, from, count, gain) =>
             {
                 for (long i = 0; i < count; i++) { outL[at + i] = re[from + i] * gain; outR[at + i] = im[from + i] * gain; }
                 at += count;
@@ -58,6 +64,7 @@ internal static class UpsampleRules
             ["error_db"] = Db(err), ["peak"] = res.Peak, ["gain"] = res.Gain, ["sections"] = (double)res.Sections,
             ["frames"] = (double)res.Frames, ["leak_db"] = Db(Leak),
         };
+        if (job["gains"] is true) o["gains_db"] = WholeShapeRules.Gains(whole, res.Gain, outRate, seconds, tones);
         if (job["compare"] is true)
         {
             var parts = Upsampled((int)TJs.ToNumber(job["section_bits"]), out var pr);
@@ -79,7 +86,7 @@ internal static class UpsampleRules
         return 1;
     }
 
-    private static double Db(double x) => x <= 0 ? -400 : 20 * Math.Log10(x);
+    internal static double Db(double x) => x <= 0 ? -400 : 20 * Math.Log10(x);
 
     // The transform against a DFT done by hand, and a round trip back to the start.
     private static JsObj FftCheck(int n)

@@ -38,6 +38,8 @@ internal static class Items
         if (Jv.T(p["dsd"]) && target != null && !Jv.Same(p["mime"], StreamPlans.MimeForExt(p["ext"]))) qs.Add("m=" + AJs.EncodeURIComponent(Jv.Str(p["mime"])));
         if (Jv.T(p["gain"])) qs.Add("g=" + TJs.Num(Jv.Num(p["gain"])));
         if (Jv.T(p["lowpass"])) qs.Add("lp=" + TJs.Num(Jv.Num(p["lowpass"])));   // DSD low-passed through this rate (item 241)
+        // A filter made ahead in a shape of its own (item 248): its file is that shape's.
+        if ((Jv.T(p["whole"]) || Jv.T(p["dsdUp"])) && p["shape"] is string shape) qs.Add("f=" + shape);
         var q = qs.Count > 0 ? "?" + string.Join("&", qs) : "";
         return Signing.SignUrl(secret, $"{baseUrl}/stream/t{t.Id}{seg}.{Jv.Str(p["ext"])}{q}");
     }

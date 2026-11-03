@@ -83,7 +83,7 @@ public sealed class WholeTrackPlayTests
         Assert.True(set.Status == 200, set.Text);
         Assert.Equal("whole", set.J["output"].Str("filter"));
         var bad = await Patch(new { output = new { filter = "sinc" } });
-        Assert.Equal((400, "filter must be standard or whole"), (bad.Status, bad.J.Str("error")));
+        Assert.Equal((400, "filter must be standard, whole, minphase or gentle"), (bad.Status, bad.J.Str("error")));
 
         // Asked for before it is made: the standard filter's file, and the whole one made in the background.
         var made = Path.Combine(s.Lib.Data, "transcode");

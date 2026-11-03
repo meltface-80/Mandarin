@@ -115,12 +115,19 @@ class DevicePage(val j: JSONObject) {
     val flac32: Boolean get() = output.optBoolean("flac32")
     val has32: Boolean get() = bits.any { it.value == 32 && it.on }
     val modes: List<SegChoice> get() = listOf(SegChoice("original", "Original"), SegChoice("x2", "×2"), SegChoice("x4", "×4"), SegChoice("max", "Max"))
-    /** The filter upsampling uses (item 237): SoX's as it plays, or one as long as the track, made ahead. */
+    /**
+     * The filter upsampling uses (items 237, 248): SoX's as it plays, or one as long as the track, made ahead, in its
+     * linear, minimum-phase or gentle shape. Shown where it upsamples, or makes DSD from PCM.
+     */
     val filter: String get() = output.optString("filter", "standard")
-    val showFilter: Boolean get() = mode != "original"
-    val filters: List<SegChoice> get() = listOf(SegChoice("standard", "Standard"), SegChoice("whole", "Whole track"))
-    val filterNote: String get() = if (filter == "whole") "One filter as long as the track, made ahead of playing (some 30 seconds a track); a track not yet made plays with the standard filter. Tracks from the library, ×2 to ×16."
-        else "SoX’s filter, made as it plays."
+    val showFilter: Boolean get() = mode != "original" || output.has("dsd_out")
+    val filters: List<SegChoice> get() = listOf(SegChoice("standard", "Standard"), SegChoice("whole", "Whole track"), SegChoice("minphase", "Minimum phase"), SegChoice("gentle", "Gentle"))
+    val filterNote: String get() = when (filter) {
+        "whole" -> "One filter as long as the track, made ahead of playing (some 30 seconds a track); a track not yet made plays with the standard filter. Tracks from the library, ×2 to ×16."
+        "minphase" -> "Whole track’s filter made minimum phase: all its ringing after a sound starts, none before. Made ahead as Whole track is; a track not yet made plays with the standard filter."
+        "gentle" -> "Whole track’s filter rolling off from 90% of the band (19.8 kHz for a CD), twice as gently: its ringing half as long, the very top a little down (−6 dB at 21 kHz). Made ahead as Whole track is."
+        else -> "SoX’s filter, made as it plays."
+    }
     /** The highest rate its owner allows (item 240), by 48 kHz's family; 0 for Auto. 44.1 kHz's is held to the rate that matches. */
     val maxRate: Int get() = output.optInt("max_rate", 0)
     private fun capFor(hz: Int): Int = if (maxRate == 0) Int.MAX_VALUE else if (hz % 44100 == 0) maxRate / 48000 * 44100 else maxRate
@@ -134,8 +141,8 @@ class DevicePage(val j: JSONObject) {
     val maxRateNote: String get() = if (maxRate == 0) "As high as the device takes."
         else "Nothing goes above ${maxRate / 1000} kHz (${rateWord(maxRate / 48000 * 44100)} kHz for music in 44.1’s family), upsampled or not."
 
-    /** How the making goes (item 239): the tracks made and kept, the one being made, those waiting; null unless whole. */
-    val wholeLine: String? get() = if (filter == "whole") wholeStatus else null
+    /** How the making goes (item 239): the tracks made and kept, the one being made, those waiting; null unless made ahead. */
+    val wholeLine: String? get() = if (filter != "standard") wholeStatus else null
     private val wholeStatus: String? get() {
         val w = output.optJSONObject("whole") ?: return null
         val made = w.optInt("made")

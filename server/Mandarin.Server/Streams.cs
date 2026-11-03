@@ -216,6 +216,8 @@ internal static partial class Streams
         // now, and sent as it is made (v0.8.11; before, the Node server's).
         var track = new ConvTrack(id, t.Path, mtime);
         if (seg.EndsWith('w') && segRate != 0 && svc == null && t.Rate > 0 && Upsample.WholePlan.Takes(segRate / t.Rate) && segRate % t.Rate == 0) { p["whole"] = true; p["inRate"] = (double)t.Rate; }
+        // ?f=: the shape a made-ahead filter was asked in (item 248), its file that shape's.
+        if ((Jv.T(p["whole"]) || dsdUp != 0) && QueryOne(raw, "f") is { } fq && fq.Here && Upsample.WholeShape.Word(Upsample.WholeShape.Of(fq.Value)) is { } shape) p["shape"] = shape;
         // DSD as PCM, low-passed through the rate asked (?lp=, Playback/DsdLowpass.cs, item 241): a DSD file, a promised rate above it.
         if (segRate != 0 && svc == null && QueryOne(raw, "lp") is { } lq && lq.Here && long.TryParse(lq.Value, out var lpm) && DsdLowpass.IsMid(lpm) && segRate > lpm && StreamPlans.IsDsd(Row(t))) p["lowpass"] = (double)lpm;
         // Made DSD from PCM (item 243): the DSF, made ahead; not made yet, asked to be, and not here (the PCM is sent meanwhile).

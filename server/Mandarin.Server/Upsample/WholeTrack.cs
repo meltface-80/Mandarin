@@ -16,12 +16,26 @@
 //
 // Above full scale anywhere (an upsampled track's peaks fall between the original's samples): the whole track scaled
 // down to −0.1 dBFS, one gain for all of it, so nothing is clipped and nothing else changes.
+//
+// Three shapes (item 248). Linear, the above: no phase shift, its ringing either side of a transient. Minimum: the
+// same response in level, its phase made minimum (WholeShape.cs), so that all the ringing comes after a transient and
+// none before. Gentle: linear, the roll-off begun at 90% of the Nyquist frequency rather than 95%, twice as wide, so
+// the ringing is half as long, at the cost of a little of the top of the band. The two channels still go together: a
+// minimum-phase filter is no longer even, but it is still real, which is all the pairing needs.
 namespace Mandarin.Server.Upsample;
 
 internal static class WholeTrack
 {
-    /* How it is done: the factor (a power of two), the filter, the guard, and the most points a transform may have. */
-    public sealed record Options(int Factor, double PassFraction = 0.95, double GuardSeconds = 4, int MaxOutBits = 28);
+    /* How it is done: the factor (a power of two), the filter, the guard, the most points a transform may have, its shape. */
+    public sealed record Options(int Factor, double PassFraction = 0.95, double GuardSeconds = 4, int MaxOutBits = 28, WholeShape.Kind Shape = WholeShape.Kind.Linear)
+    {
+        /* The options for [factor] in [shape] (a plan's "shape": "min", "gentle", or none), [maxOutBits] the most points. */
+        public static Options For(int factor, string? shape, int maxOutBits) => WholeShape.Of(shape) switch
+        {
+            WholeShape.Kind.Gentle => new(factor, WholeShape.GentlePass, MaxOutBits: maxOutBits, Shape: WholeShape.Kind.Gentle),
+            var k => new(factor, MaxOutBits: maxOutBits, Shape: k),
+        };
+    }
 
     /* What was done: frames written, sections, the peak before any gain, the gain. */
     public sealed record Result(long Frames, int Sections, double Peak, double Gain);
@@ -54,6 +68,8 @@ internal static class WholeTrack
         var nOut = fOut.Length;
         double[] inRe = new double[nIn], inIm = new double[nIn], outRe = new double[nOut], outIm = new double[nOut];
         var h = Response(nIn, rate, o.PassFraction, o.Factor);
+        // Minimum phase: the same levels, a phase of their own, worked out on the output's arrays before they are used.
+        var hIm = o.Shape == WholeShape.Kind.Minimum ? WholeShape.Minimum(h, nIn, fOut, outRe, outIm) : null;
 
         // One section done: its middle's output in outRe/outIm from guard·factor, for its length.
         (long From, long Count) Section(int s)
@@ -77,11 +93,14 @@ internal static class WholeTrack
             {
                 if (k == halfIn) return;                  // the Nyquist bin: the filter is nothing there
                 var g = h[k < halfIn ? k : nIn - k];
-                if (g == 0) return;
+                // A real filter: the negative frequencies the positive's conjugate.
+                var gi = hIm == null ? 0 : k < halfIn ? hIm[k] : -hIm[nIn - k];
+                if (g == 0 && gi == 0) return;
                 var f = k < halfIn ? k : k - nIn;
                 var src = fIn.BitReverse(k);
                 var dst = fOut.BitReverse(f >= 0 ? f : nOut + f);
-                outRe[dst] = inRe[src] * g; outIm[dst] = inIm[src] * g;
+                double xr = inRe[src], xi = inIm[src];
+                outRe[dst] = xr * g - xi * gi; outIm[dst] = xr * gi + xi * g;
             });
             fOut.Inverse(outRe, outIm);
             return (guard * o.Factor, count * o.Factor);

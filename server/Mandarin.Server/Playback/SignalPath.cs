@@ -55,11 +55,11 @@ internal static class SignalPath
             // Made DSD from PCM (items 242, 243): upsampled whole to 705.6 kHz, then the modulator.
             var from = Upsample.DsdPlan.FromRate(t.SampleRate ?? 0);
             if (from != (t.SampleRate ?? 0)) steps.Add(Step("resample", "To 44.1 kHz’s family", $"{Khz(t.SampleRate ?? 0)} → {Khz(from)} kHz, by SoX at its finest", "enhanced"));
-            steps.Add(Step("upsample", "Upsampling", $"×{N(Upsample.DsdChain.InRate / Math.Max(1, from))} to 705.6 kHz · whole-track filter, one transform as long as the track", "enhanced"));
+            steps.Add(Step("upsample", "Upsampling", $"×{N(Upsample.DsdChain.InRate / Math.Max(1, from))} to 705.6 kHz · {Upsample.WholeShape.Name(s.Shape).ToLowerInvariant()}, one transform as long as the track", "enhanced"));
             steps.Add(Step("modulator", "DSD modulator", $"Seventh order, its noise shaped out of the audio band; doubled to DSD{N(s.Dsd)} ({Mhz(s.Dsd)} MHz)", "enhanced"));
             steps.Add(Step("output", "Output", $"DSF, DSD{N(s.Dsd)}, to {z.DisplayName}", "enhanced"));
             output = $"DSD{N(s.Dsd)} · {Mhz(s.Dsd)} MHz";
-            how = $"From PCM · whole track ×{N(Upsample.DsdChain.InRate / Math.Max(1, from))} · 7th-order modulator";
+            how = $"From PCM · {Upsample.WholeShape.Making(s.Shape)} ×{N(Upsample.DsdChain.InRate / Math.Max(1, from))} · 7th-order modulator";
         }
         else
         {
@@ -101,9 +101,10 @@ internal static class SignalPath
     private static (string Filter, string? State) Filter(SentInfo s, PlayTrack t)
     {
         if (!s.Whole) return ("Standard filter", null);
-        if (Upsample.WholeServed.Last(t.Id, s.Rate) == true) return ("Whole-track filter", null);
+        if (Upsample.WholeServed.Last(t.Id, s.Rate) == true) return (Upsample.WholeShape.Name(s.Shape), null);
         var state = Upsample.WholeJobs.State(t.Id);
-        return ("Standard filter", state is "queued" or "making" ? "whole track being made" : state == "failed" ? "whole track failed: see the log" : "whole track next play");
+        var what = Upsample.WholeShape.Making(s.Shape);   // whole track, minimum phase, gentle filter (item 248)
+        return ("Standard filter", state is "queued" or "making" ? $"{what} being made" : state == "failed" ? $"{what} failed: see the log" : $"{what} next play");
     }
 
     private static JsonObject Source(PlayTrack t)

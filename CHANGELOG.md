@@ -21,6 +21,22 @@
 - New - PCM as DSD: a streamer or DAC that takes DSD can have the library's PCM made DSD64, DSD128 or DSD256 ahead of playing and sent as DSF (Settings → Audio Devices → a device → Output → PCM as DSD)
 - Fixed - an album played with PCM as DSD on a FiiO SR11 stopped after its first track; and what was being made for an album no longer playing went on being made
 - New - Now playing's signal path: what goes out, how it was made and what is being made, centred under the album; a tap shows every step from the file to the room
+- New - two more upsampling filters (Settings → Audio Devices → a device → Output → Filter): Minimum phase, whose ringing comes only after a sound starts, and Gentle, which rolls off earlier and rings for half as long; made ahead as Whole track is, and used for PCM as DSD too
+
+- `248-filter-shapes` (item 248): **Minimum phase and Gentle.** Output's Filter had Standard (SoX's, as it plays) and
+  Whole track (one transform as long as the track, linear phase, made ahead). It gains two shapes of the whole-track
+  filter, made the same way and kept as files of their own (Upsample/WholeShape.cs). Minimum phase has the same levels
+  as Whole track and the one phase that puts all its ringing after a transient, none before. It is worked out by the
+  cepstrum on the output's grid: the whole upsampling filter is made causal, not just the band at the input's samples,
+  which would still ring before a transient between them. A click shows nothing before it to some 180 dB down. The band
+  is flat to 10^-9 dB to 20 kHz, and a track done in sections matches the same done whole to 145 dB. Gentle is linear
+  phase, rolling off from 90% of the Nyquist frequency instead of 95%: −0.1 dB at 20 kHz and −6.7 dB at 21 kHz for a
+  CD, and its ringing a millisecond from a click 15 dB lower. The shape takes PCM made DSD to 705.6 kHz too, and the
+  Filter is offered with PCM as DSD on although the file is sent as it is. A stream's address says the shape (?f=min,
+  ?f=gentle). Its file is named for it, before the endings a file's kind is read from (-w-min.flac, -w-min-wav.wav,
+  -min-dsd256.dsf). A standard conversion and the PCM sent while a DSF is made carry no shape. Now playing and its
+  signal path name the filter ("Minimum-phase filter", "Standard filter · minimum phase being made"). The device's
+  Output counts the tracks made in any shape. HQPlayer's own filters are Signalyst's and closed; these are Mandarin's.
 
 - `247-signal-path` (item 247): **Now playing's signal path.** The line under the album said everything at once ("WAV
   24/705.6 ↑×16 · standard (whole track being made) · DSD256 being made"). The server now says it as lines, centred

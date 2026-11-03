@@ -25,12 +25,13 @@ internal static class UpsampleCommand
             var rate = (int)job["rate"]!;
             var factor = (int)job["factor"]!;
             var maxBits = job["max_out_bits"] is JsonValue mb ? (int)mb : 28;
+            var shape = (string?)job["shape"];   // the filter's shape, item 248: "min", "gentle", or none (linear)
             var (left, right) = Decode(ffmpeg, Strings(job["decode"]));
             // Made DSD (item 242): { dsd: its rate, out: the DSF }, the whole track at 705.6 kHz on the way.
             long resets = 0;
             var r = job["dsd"] is JsonValue dv
-                ? Dsd(left, right, rate, (int)dv, maxBits, (string)job["out"]!, out resets)
-                : Encode(ffmpeg, Strings(job["encode"]), write => WholeTrack.Run(left, right, rate, new WholeTrack.Options(factor, MaxOutBits: maxBits), write));
+                ? Dsd(left, right, rate, (int)dv, maxBits, shape, (string)job["out"]!, out resets)
+                : Encode(ffmpeg, Strings(job["encode"]), write => WholeTrack.Run(left, right, rate, WholeTrack.Options.For(factor, shape, maxBits), write));
             Console.WriteLine(new JsonObject
             {
                 ["frames"] = r.Frames, ["sections"] = r.Sections, ["peak"] = r.Peak, ["gain"] = r.Gain,
@@ -45,9 +46,9 @@ internal static class UpsampleCommand
         }
     }
 
-    private static WholeTrack.Result Dsd(double[] left, double[] right, int rate, int dsdRate, int maxBits, string path, out long resets)
+    private static WholeTrack.Result Dsd(double[] left, double[] right, int rate, int dsdRate, int maxBits, string? shape, string path, out long resets)
     {
-        var (r, x) = DsdOut.Make(left, right, rate, dsdRate, maxBits, path);
+        var (r, x) = DsdOut.Make(left, right, rate, dsdRate, maxBits, path, shape);
         resets = x;
         return r;
     }

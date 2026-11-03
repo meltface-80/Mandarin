@@ -7,7 +7,8 @@ namespace Mandarin.Tests;
 /// at two to sixteen times its rate, the filter as long as the track. Measured against the arithmetic itself: the
 /// transform against a DFT done by hand, tones upsampled against the same tones worked out exactly at the output
 /// rate, the two channels apart, a track done in sections against the same done whole, and a track whose peaks
-/// between samples go over full scale brought under it, never clipped.
+/// between samples go over full scale brought under it, never clipped. Its shapes (item 248): minimum phase rings only
+/// after a transient and keeps the band's level; gentle rolls off from 90% of the band and rings for less.
 /// </summary>
 public sealed class WholeTrackTests
 {
@@ -53,5 +54,44 @@ public sealed class WholeTrackTests
             tones = new[] { new[] { 440, 0.5 }, new[] { 18000, 0.2 } } });
         Assert.True(r.Num("section_count") >= 2, "done in sections");
         Assert.True(r.Num("joins_db") < -240, $"the sections against the whole: {r.Num("joins_db")} dB");
+    }
+
+    [Test]
+    public async Task Minimum_phase_rings_only_after_a_transient_and_keeps_the_band_as_it_was()
+    {
+        // A click: the linear filter rings either side of it; the minimum-phase one only after.
+        var linear = await Run(new { fn = "wholetrack", impulse = true, rate = 44100, factor = 4 });
+        var min = await Run(new { fn = "wholetrack", impulse = true, rate = 44100, factor = 4, shape = "min" });
+        Assert.True(linear.Num("pre_db") > -70, $"the linear filter rings before the click ({linear.Num("pre_db")} dB)");
+        Assert.True(min.Num("pre_db") < -170, $"the minimum-phase filter doesn't ({min.Num("pre_db")} dB a millisecond before)");
+        Assert.True(min.Num("pre_energy_db") < -150, $"nothing of the click before it ({min.Num("pre_energy_db")} dB of its energy)");
+        Assert.True(min.Num("post_db") > -40, "its ringing all after it");
+        // Its levels the linear filter's: every tone of the band through as it went in, the channels apart.
+        var r = await Run(new { fn = "wholetrack", gains = true, rate = 44100, factor = 16, seconds = 4, shape = "min", tones = new[] { new[] { 1000, 0.5 }, new[] { 15000, 0.2 }, new[] { 20000, 0.1 } } });
+        foreach (var g in r["gains_db"]!.AsArray()) Assert.True(Math.Abs((double)g!) < 1e-6, $"a tone through at {(double)g!} dB");
+        Assert.True(r.Num("leak_db") < -250, $"the right channel stays its own ({r.Num("leak_db")} dB)");
+        // In sections, against whole: the two worked out on grids of their own, alike below a 24-bit sample.
+        var j = await Run(new { fn = "wholetrack", rate = 44100, factor = 4, seconds = 20, compare = true, section_bits = 22, shape = "min",
+            tones = new[] { new[] { 440, 0.5 }, new[] { 18000, 0.2 } } });
+        Assert.True(j.Num("section_count") >= 2, "done in sections");
+        Assert.True(j.Num("joins_db") < -140, $"the sections against the whole: {j.Num("joins_db")} dB");
+    }
+
+    [Test]
+    public async Task Gentle_rolls_off_from_nine_tenths_of_the_band_and_rings_for_less()
+    {
+        object Tones(string? shape) => new { fn = "wholetrack", gains = true, rate = 44100, factor = 4, seconds = 4, shape,
+            tones = new[] { new[] { 1000, 0.5 }, new[] { 15000, 0.2 }, new[] { 21000, 0.05 } } };
+        var linear = (await Run(Tones(null)))["gains_db"]!.AsArray().Select(g => (double)g!).ToArray();
+        var gentle = (await Run(Tones("gentle")))["gains_db"]!.AsArray().Select(g => (double)g!).ToArray();
+        // Below 19.8 kHz as it was; at 21 kHz, halfway down its slope, some 6.7 dB down where the linear one is all but flat.
+        Assert.True(Math.Abs(gentle[0]) < 1e-9 && Math.Abs(gentle[1]) < 1e-9, $"the band through: {gentle[0]}, {gentle[1]} dB");
+        Assert.True(gentle[2] < -6 && gentle[2] > -7.5, $"21 kHz: {gentle[2]} dB");
+        Assert.True(linear[2] > -0.1, $"the linear filter's 21 kHz: {linear[2]} dB");
+        // Its ringing a millisecond from a click, before and after alike, well below the linear one's.
+        var l = await Run(new { fn = "wholetrack", impulse = true, rate = 44100, factor = 4 });
+        var g2 = await Run(new { fn = "wholetrack", impulse = true, rate = 44100, factor = 4, shape = "gentle" });
+        Assert.True(g2.Num("post_db") < l.Num("post_db") - 10, $"gentle {g2.Num("post_db")} dB against linear {l.Num("post_db")} dB");
+        Assert.Equal(g2.Num("pre_db")!.Value, g2.Num("post_db")!.Value, 6);
     }
 }
