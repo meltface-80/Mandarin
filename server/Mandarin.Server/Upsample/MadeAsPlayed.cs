@@ -197,9 +197,10 @@ internal static class MadeAsPlayed
     }
 
     /*
-     * The job for [src] by [p] into [dest]: ffmpeg decoding it to 64-bit float stereo at its own rate (the gain on it,
-     * and a room or headphone correction at that rate), and ffmpeg making the file from 64-bit float at the plan's rate
-     * (the DSP and the requantise, as a conversion's).
+     * The job for [src] by [p] into [dest]: ffmpeg decoding it to 64-bit float stereo at its own rate, levelled, the
+     * headroom taken off and the DSP run on it there (a room or headphone correction and the bands: item 263, before
+     * the upsampling, which had the bands after it), and ffmpeg making the file from 64-bit float at the plan's rate
+     * (the requantise alone, as a conversion's).
      */
     public static JsonObject PcmJob(string src, ConvPlan p, string dest, Joins.Join? join = null)
     {
@@ -207,12 +208,11 @@ internal static class MadeAsPlayed
         if (inRate <= 0 || p.Rate % inRate != 0) throw new InvalidOperationException($"no rate of the track's own to upsample from ({p.InRate} Hz to {p.Rate} Hz)");
         var decode = new JsonArray("-hide_banner", "-nostdin", "-loglevel", "error", "-i", src, "-map", "0:a:0", "-vn");
         var conv = p.Dsp != null ? Playback.Convolution.For(Jv.Get(p.Dsp, "dsp"), inRate) : null;   // the one at its rate (item 258)
-        var pre = p.Gain != 0 ? $"volume=volume={Jv.Str(p.Gain)}dB:precision=double" : conv != null ? "anull" : null;
-        if (pre != null) { decode.Add("-af"); decode.Add(conv != null ? Playback.Convolution.Graph(pre, conv, inRate, Transcoder.Soxr) : pre); }
+        if (DsdPlan.Before(p, inRate, null, Transcoder.Soxr) is { } pre) { decode.Add("-af"); decode.Add(conv != null ? Playback.Convolution.Graph(pre, conv, inRate, Transcoder.Soxr) : pre); }
         foreach (var a in new[] { "-ac", "2", "-ar", inRate.ToString(System.Globalization.CultureInfo.InvariantCulture), "-f", "f64le", "-c:a", "pcm_f64le", "pipe:1" }) decode.Add(a);
         // The conversion's own arguments, from 64-bit float at the plan's rate on standard input (nothing to resample,
-        // no gain twice, the correction already on it), the source's tags beside it.
-        var convArgs = Transcoder.Args(src, p with { Gain = 0, Shape = null, InRate = p.Rate }, dest, Transcoder.Soxr, convolve: false);
+        // no gain or DSP twice), the source's tags beside it.
+        var convArgs = Transcoder.Args(src, p with { Gain = 0, Shape = null, InRate = p.Rate, Dsp = null }, dest, Transcoder.Soxr, convolve: false);
         var rate = p.Rate.ToString(System.Globalization.CultureInfo.InvariantCulture);
         var encode = new JsonArray();
         for (var i = 0; i < convArgs.Count; i++)

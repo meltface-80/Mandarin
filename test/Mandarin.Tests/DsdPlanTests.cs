@@ -7,7 +7,7 @@ namespace Mandarin.Tests;
 /// PCM sent as DSD (bug list items 243, 259, Upsample/DsdPlan.cs): a device set to PCM as DSD has each track of the
 /// library that isn't DSD made DSD as it plays by the modulator of item 242 and sent as a DSF while it is made; where
 /// the device takes that multiple and DSF files, from a rate of either family (48 kHz's through 44.1 kHz's, by SoX),
-/// never a service's stream, DSD that is DSD already, or a track a DSP setting runs on. The job made for 96 kHz is run
+/// never a service's stream or DSD that is DSD already (a DSP setting runs on the PCM it is made from: item 263). The job made for 96 kHz is run
 /// and its file read; a track asked for as a DSF never made is sent as it is made, then kept and sent whole.
 /// </summary>
 public sealed class DsdPlanTests
