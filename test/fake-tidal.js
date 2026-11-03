@@ -43,6 +43,7 @@ class FakeTidal {
     this.access = "at-" + crypto.randomBytes(6).toString("hex");
     this.refreshToken = "rt-" + crypto.randomBytes(6).toString("hex");
     this.expiredTokens = new Set();    // access tokens that no longer work (to make the server refresh)
+    this.slowRefusal = null;
     this.polls = 0;
     this.refreshes = 0;
     this.deviceExpiresIn = 300;        // how long a sign-in's code lasts, in seconds
@@ -185,7 +186,12 @@ class FakeTidal {
         }
         // ---- the API: a Bearer token that works
         const bearer = String(req.headers.authorization || "").replace(/^Bearer /, "");
-        if (bearer !== this.access || this.expiredTokens.has(bearer)) return json(401, { status: 401, subStatus: 11003, userMessage: "The token has expired" });
+        if (bearer !== this.access || this.expiredTokens.has(bearer)) {
+          const refuse = () => json(401, { status: 401, subStatus: 11003, userMessage: "The token has expired" });
+          // A refusal slow to come for an address (slowRefusal: { has, ms }: item 266): refused last, after another refreshed.
+          if (this.slowRefusal && req.url.includes(this.slowRefusal.has)) { setTimeout(refuse, this.slowRefusal.ms); return; }
+          return refuse();
+        }
         if (!q.countryCode) return json(400, { userMessage: "countryCode missing" });
         const call = u.pathname.replace(/^\/v1\//, "");
         const uid = String(this.user.userId);

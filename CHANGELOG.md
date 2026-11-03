@@ -38,6 +38,7 @@
 - Fixed - PCM as DSD, Min phase and Gentle are gapless: an album that runs on from track to track plays on without a pause or a click, the next track sent to the device while it is still being made and made as one stream with the track before
 - Fixed - Next, Back, Play and Pause on a streamer such as the FiiO SR11 no longer pile up and stop it answering: taps in a row are one jump to where they end, and a track skipped from is no longer made
 - New - a phone playing through a USB DAC has a streamer's Output (Settings → Audio Devices → this phone → Output): upsampled ×2, ×4 or to the most, in Standard, Min phase or Gentle, to the highest rate allowed, or PCM made DSD64, DSD128 or DSD256, made by the server and played by the app's USB driver, DSD natively or as DoP
+- Fixed - signed in to Tidal, a token that stops working is renewed once, however many requests find it stale at the same time
 - Improved - a device's DSP runs in the order set: volume levelling, then the headroom (more where levelling could take a track over full scale), then the DSP at the track's own rate, then upsampling; and PCM as DSD works with DSP on
 
 - `259-dsd-on-demand` (item 259): **PCM as DSD, and the shaped filters, made as they play.** A track made DSD from
@@ -514,6 +515,13 @@
   up on after 90 seconds. It now steps toward the album by the shelf's own order, a few steps at most, and says if it
   never got there. Nothing changes in Mandarin.
 
+- `266-tidal-refresh-once` (item 266): **a stale Tidal token renewed once.** Two calls refused at once with a token
+  that had stopped working both renewed it when the second's refusal came after the first's renewal had finished
+  (TidalApi.Refresh was one at a time, but only while one was under way): a renewal more than needed, and the test
+  of it ("a token that stops working is refreshed, unasked") failed when the server's own call for the featured
+  lists ran beside the test's search. Now a call refused with a token that has since been replaced is made again with
+  the one kept, and only a call refused with the current one renews it (TidalApi.Renewed). Test: tidal.test.js (two
+  calls refused with a stale token, the second's refusal held until the first has renewed it: renewed once).
 ## v1.1.14
 
 Tweaks - altered share card copy function, Android app copies it to the clipboard. Items 223 to 225.
