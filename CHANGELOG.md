@@ -15,6 +15,12 @@
 - Improved - whole-track upsampling shows itself: Now playing says whether a track went out whole or with the standard filter and why, and the device's Output says how many tracks are made and which is being made
 - New - a highest rate for each streamer or DAC (Settings → Audio Devices → a device → Output → Highest rate): nothing goes above it, upsampled or not
 - Fixed - whole-track upsampling works for an album or a queue played on a streamer; every track planned from a queue failed ("whole track failed: see the log")
+- Fixed - Now playing shows a track's real length on a streamer that misreads it (419 hours for an upsampled ×16 track on a FiiO SR11)
+
+- `245-length-of-an-open-wav` (item 245): **Now playing keeps a track's length when a device misreads it.** A
+  track sent as WAV above FLAC's rates (item 238) is written as it plays, its length left open in its header; the
+  FiiO SR11 read that as 419:57:09 and Now playing showed it. The length the device reports is still taken, unless it
+  is more than ten seconds from the track's own, when the track's own is shown (Players.Poll.cs).
 
 - `244-whole-track-from-the-queue` (item 244): **whole-track upsampling works from a queue.** On 3 November an
   album played on a FiiO SR11 set to Whole track showed "standard (whole track failed: see the log)", and the log

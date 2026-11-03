@@ -47,6 +47,8 @@ class FakeRenderer {
     // transport
     this.state = "NO_MEDIA_PRESENT";
     this.uri = ""; this.meta = "";
+    // A length the device says of what it plays, whatever the track's is (a FiiO SR11 of a WAV whose length is open, item 245).
+    this.reportedDuration = null;
     this.nextUri = ""; this.nextMeta = "";
     this.position = 0; this.at = Date.now();
     this.volume = 25; this.muted = false;
@@ -175,7 +177,7 @@ class FakeRenderer {
       case "GetProtocolInfo": return { Source: "", Sink: this.sink };
       case "GetTransportInfo": return { CurrentTransportState: this.state, CurrentTransportStatus: "OK", CurrentSpeed: "1" };
       case "GetPositionInfo": return {
-        Track: this.uri ? "1" : "0", TrackDuration: XML.hms(this.uri ? this.duration() : 0), TrackMetaData: this.meta, TrackURI: this.namesNext && this.nextUri ? this.nextUri : this.uri,
+        Track: this.uri ? "1" : "0", TrackDuration: XML.hms(this.uri ? (this.reportedDuration ?? this.duration()) : 0), TrackMetaData: this.meta, TrackURI: this.namesNext && this.nextUri ? this.nextUri : this.uri,
         RelTime: XML.hms(this.pos()), AbsTime: "NOT_IMPLEMENTED", RelCount: "2147483647", AbsCount: "2147483647"
       };
       case "GetMediaInfo": return { NrTracks: this.uri ? "1" : "0", MediaDuration: XML.hms(this.duration()), CurrentURI: this.uri, CurrentURIMetaData: this.meta, NextURI: this.nextUri, NextURIMetaData: this.nextMeta, PlayMedium: "NETWORK", RecordMedium: "NOT_IMPLEMENTED", WriteStatus: "NOT_IMPLEMENTED" };

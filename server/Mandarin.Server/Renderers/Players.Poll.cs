@@ -261,7 +261,10 @@ internal sealed partial class Players
         lock (gate) { next.QueueLength = p.Queue.Count; next.OnQueue = p.Queue.Count > 0; next.Shuffle = p.Shuffle; next.Loop = p.Loop; }
         next.Position = rel;
         var dur = Didl.ToSeconds(pi["TrackDuration"]);
-        next.Duration = dur != 0 ? dur : item?.Duration ?? 0;
+        // The device's word on the length, unless it is far from the track's own: a WAV whose length is left open (item
+        // 238) the FiiO SR11 says is 419 hours long (item 245).
+        var known = item?.Duration ?? 0;
+        next.Duration = known > 0 && (dur == 0 || Math.Abs(dur - known) > 10) ? known : dur != 0 ? dur : known;
         next.Title = item?.Title ?? ""; next.Artist = item?.Artist ?? ""; next.Album = item?.Album ?? ""; next.ArtUri = item?.ArtUri ?? "";
         next.MediaUri = uri;
         next.Sent = item?.Sent;
