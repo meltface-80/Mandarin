@@ -23,6 +23,7 @@
 - New - Now playing's signal path: what goes out, how it was made and what is being made, centred under the album; a tap shows every step from the file to the room
 - New - two more upsampling filters (Settings → Audio Devices → a device → Output → Filter): Minimum phase, whose ringing comes only after a sound starts, and Gentle, which rolls off earlier and rings for half as long; made ahead as Whole track is, and used for PCM as DSD too
 - Fixed - Output's Filter button for minimum phase read "Minimum p…" on a phone; it says Min phase
+- Improved - PCM as DSD is made about three times faster: a track at DSD256 in about a quarter of its own length here, where it took longer than the track itself
 - Fixed - with PCM as DSD, a track that starts before its DSD is ready is still made, after the tracks to come, so it plays as DSD next time; Now playing says why it has the standard filter meanwhile
 
 - `254-dsd-plays` (item 254): **PCM as DSD that plays as DSD, and says so.** A FiiO SR11 at Max, Min phase and DSD256
@@ -36,6 +37,17 @@
   line says WAV where it is sent as WAV ("as WAV: FLAC stops at 655.35 kHz → FLAC 24/705.6 kHz" before). The
   renderer test sees Long 1 made after Long 2, and the stand-in's words with a device set to minimum phase; with the
   old code, Long 1 is never made and the line is "Standard filter".
+
+- `251-dsd-faster` (item 251): **DSD made three times faster.** A 220 s track at DSD256 took 456 s on the owner's server.
+  Measured here, 60 s at DSD256 took 38.9 s: the whole-track step 6 s; the doublings 60% and the modulator 25% of the
+  rest. Each doubling is a half-band filter: its even taps are its centre and nothing else, and its odd taps are the same
+  either side. So an even output is now its input, delayed, and an odd one is 8 multiplications of paired taps, where
+  33 were done. Each doubling works in a buffer kept from push to push, where megabytes were made anew each time. The
+  seventh order's four sections run with their states in locals, the same arithmetic in the same order. Each channel's
+  modulator runs on a thread of its own beside its doublings, the writer taking both channels' bits under one lock. 60 s
+  at DSD256 now takes 11.6 to 12.7 s. Nothing in the file changes. A doubling matches the whole 33-tap filter to 7×10⁻¹⁶,
+  the seventh order's own path makes the same bits as the loops, and a pipelined track is the same file, byte for byte,
+  as one made in turn (DsdSpeedTests). Noise in the band is as before: −139 dB at DSD64, −229 dB at DSD256.
 
 - `253-whole-play-flac-header` (item 253, a test's): **"one play, one file" held to the file, not to its header.**
   WholeTrackPlayTests compared each read of the standard filter's file, byte for byte, with the first. When the first

@@ -29,6 +29,12 @@ internal sealed class DsdModulator
     /* The times the loop was overloaded and started again. */
     public long Resets { get; private set; }
 
+    /*
+     * Every loop through the sections as arrays, never the seventh order's own path (Run4): for the tests, which hold
+     * the two to the same bits (item 251).
+     */
+    public bool Generic { get; init; }
+
     /* The most the quantiser's input has been. */
     public double Most { get; private set; }
 
@@ -38,6 +44,7 @@ internal sealed class DsdModulator
      */
     public void Run(ReadOnlySpan<double> x, Span<byte> bits)
     {
+        if (s.Length == 4 && !Generic) { Run4(x, bits); return; }
         var n = s.Length;
         var most = Most;
         for (var k = 0; k < x.Length; k += 8)
@@ -65,6 +72,40 @@ internal sealed class DsdModulator
             }
             bits[k / 8] = (byte)b;
         }
+        Most = most;
+    }
+
+    /*
+     * The seventh order's four sections (three of second order and one of first) with their states and coefficients
+     * held in locals rather than read from arrays at every sample (item 251): the same arithmetic in the same order as
+     * Run's loops, and so the same bits.
+     */
+    private void Run4(ReadOnlySpan<double> x, Span<byte> bits)
+    {
+        DsdNtf.Section c0 = s[0], c1 = s[1], c2 = s[2], c3 = s[3];
+        double a0 = s1[0], a1 = s1[1], a2 = s1[2], a3 = s1[3], b0 = s2[0], b1 = s2[1], b2 = s2[2], b3 = s2[3];
+        var most = Most;
+        for (var k = 0; k < x.Length; k += 8)
+        {
+            var b = 0;
+            for (var j = 0; j < 8; j++)
+            {
+                var w = (((0 + a0) + a1) + a2) + a3;   // as Run sums them, from 0
+                var v = x[k + j] + w;
+                var a = Math.Abs(v);
+                if (a > most) most = a;
+                double q;
+                if (v >= 0) { q = 1; b |= 1 << j; } else q = -1;
+                var e = q - v;
+                var o = e + a0; a0 = c0.B1 * e - c0.A1 * o + b0; b0 = c0.B2 * e - c0.A2 * o; e = o;
+                o = e + a1; a1 = c1.B1 * e - c1.A1 * o + b1; b1 = c1.B2 * e - c1.A2 * o; e = o;
+                o = e + a2; a2 = c2.B1 * e - c2.A1 * o + b2; b2 = c2.B2 * e - c2.A2 * o; e = o;
+                o = e + a3; a3 = c3.B1 * e - c3.A1 * o + b3; b3 = c3.B2 * e - c3.A2 * o;
+                if (a > Guard) { a0 = a1 = a2 = a3 = b0 = b1 = b2 = b3 = 0; Resets++; }
+            }
+            bits[k / 8] = (byte)b;
+        }
+        s1[0] = a0; s1[1] = a1; s1[2] = a2; s1[3] = a3; s2[0] = b0; s2[1] = b1; s2[2] = b2; s2[3] = b3;
         Most = most;
     }
 }
