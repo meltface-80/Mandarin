@@ -20,6 +20,8 @@ internal sealed record SentInfo(bool Transcode, double Rate, double Bits, double
     public double Lowpass { get; init; }
     // The upsampling filter's shape ("min", "gentle"; null: standard), for Now playing (items 248, 259).
     public string? Shape { get; init; }
+    // DSD's family: 44100, or 48000 for DSD made from a track of 48 kHz's at its own rate (item 261).
+    public double DsdBase { get; init; } = 44100;
 
     public JsonObject Json() => new()
     {

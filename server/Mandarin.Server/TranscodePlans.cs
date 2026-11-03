@@ -19,6 +19,8 @@ internal sealed record ConvPlan(long Rate, int Bits, bool Hq, bool Exact, string
     public long Lowpass { get; init; }
     // Made DSD at this multiple from PCM, as it plays (Upsample/DsdPlan.cs, items 243, 259); 0 for none.
     public int DsdUp { get; init; }
+    // DSD[DsdUp]'s family: 44100 (2.8224 MHz and its doubles), or 48000 for a track of 48 kHz's made so (item 261).
+    public int DsdBase { get; init; } = 44100;
     // A Qobuz or Tidal stream already what was planned: its FLAC frames copied as they come (v0.8.47).
     public bool Copy { get; init; }
     // The upsampling filter's shape where it isn't the standard one: "min", "gentle", or null (Upsample/Shape.cs, items 248, 259);
@@ -47,6 +49,7 @@ internal sealed record ConvPlan(long Rate, int Bits, bool Hq, bool Exact, string
         Wav = Jv.T(p["wav"]),
         Lowpass = Jv.T(p["lowpass"]) ? (long)Jv.Num(p["lowpass"]) : 0,
         DsdUp = Jv.T(p["dsdUp"]) ? (int)Jv.Num(p["dsdUp"]) : 0,
+        DsdBase = Jv.Num(p["dsdBase"]) == 48000 ? 48000 : 44100,
         Shape = Upsample.Shape.Word(Upsample.Shape.Of(p["shape"] as string))
     };
 }

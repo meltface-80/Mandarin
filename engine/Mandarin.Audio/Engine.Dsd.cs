@@ -15,8 +15,8 @@ internal sealed partial class Engine
     // The DoP marker the next frame carries, kept across blocks and tracks so that it goes on alternating.
     private bool dopMarker;
 
-    /* How the device is sent DSD at [dsdRate]: natively where it says it takes that rate, else DoP. */
-    public OutFormat DsdFormat(int dsdRate) => NativeFormat != OutFormat.Pcm && NativeDsd.Contains(dsdRate / 44100) ? NativeFormat : OutFormat.Dop;
+    /* How the device is sent DSD at [dsdRate]: natively where it says it takes that rate (44.1 kHz's family), else DoP (48 kHz's always: item 261). */
+    public OutFormat DsdFormat(int dsdRate) => NativeFormat != OutFormat.Pcm && dsdRate % 44100 == 0 && NativeDsd.Contains(dsdRate / 44100) ? NativeFormat : OutFormat.Dop;
 
     // One DSF into the buffer from [offset] s: true when read to the end.
     private bool DecodeDsf(int gen, string uri, double offset)

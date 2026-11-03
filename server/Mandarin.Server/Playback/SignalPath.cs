@@ -59,14 +59,16 @@ internal static class SignalPath
         }
         else if (s.Dsd != 0)
         {
-            // Made DSD from PCM (items 242, 243, 259): upsampled to 705.6 kHz, then the modulator, as it plays.
-            var from = Upsample.DsdPlan.FromRate(t.SampleRate ?? 0);
+            // Made DSD from PCM (items 242, 243, 259): upsampled to 705.6 kHz (768 kHz in 48 kHz's family: item 261), then the modulator, as it plays.
+            var family = s.DsdBase == 48000 ? 48000 : 44100;
+            var from = Upsample.DsdPlan.FromRate(t.SampleRate ?? 0, family);
+            var top = Upsample.DsdChain.InRateFor(Upsample.DsdPlan.DsdRate((int)s.Dsd, family));
             if (from != (t.SampleRate ?? 0)) steps.Add(Step("resample", "To 44.1 kHz’s family", $"{Khz(t.SampleRate ?? 0)} → {Khz(from)} kHz, by SoX at its finest", "enhanced"));
-            steps.Add(Step("upsample", "Upsampling", $"×{N(Upsample.DsdChain.InRate / Math.Max(1, from))} to 705.6 kHz · {Upsample.Shape.Name(s.Shape).ToLowerInvariant()}", "enhanced"));
-            steps.Add(Step("modulator", "DSD modulator", $"Seventh order, its noise shaped out of the audio band; doubled to DSD{N(s.Dsd)} ({Mhz(s.Dsd)} MHz)", "enhanced"));
+            steps.Add(Step("upsample", "Upsampling", $"×{N(top / Math.Max(1, from))} to {Khz(top)} kHz · {Upsample.Shape.Name(s.Shape).ToLowerInvariant()}", "enhanced"));
+            steps.Add(Step("modulator", "DSD modulator", $"Seventh order, its noise shaped out of the audio band; doubled to DSD{N(s.Dsd)} ({Mhz(s.Dsd, family)} MHz)", "enhanced"));
             steps.Add(Step("output", "Output", $"DSF, DSD{N(s.Dsd)}, made as it plays, to {z.DisplayName}", "enhanced"));
-            output = $"DSD{N(s.Dsd)} · {Mhz(s.Dsd)} MHz";
-            how = $"From PCM · {Upsample.Shape.Words(s.Shape)} ×{N(Upsample.DsdChain.InRate / Math.Max(1, from))} · 7th-order modulator";
+            output = $"DSD{N(s.Dsd)} · {Mhz(s.Dsd, family)} MHz";
+            how = $"From PCM · {Upsample.Shape.Words(s.Shape)} ×{N(top / Math.Max(1, from))} · 7th-order modulator";
         }
         else
         {
@@ -119,6 +121,6 @@ internal static class SignalPath
     private static string Service(string id) => id == "qobuz" ? "Qobuz" : id == "tidal" ? "Tidal" : id;
     private static string N(double v) => Tags.Js.Num(v);
     private static string Khz(double hz) => Tags.Js.Num(hz / 1000);
-    private static string Mhz(double n) => Tags.Js.Num(Math.Round(44100 * n / 1e6, 4));
+    private static string Mhz(double n, int family = 44100) => Tags.Js.Num(Math.Round(family * n / 1e6, 4));
     private static string Db(double db) => (db > 0 ? "+" : db < 0 ? "−" : "") + Tags.Js.Num(Math.Abs(db)) + " dB";
 }
