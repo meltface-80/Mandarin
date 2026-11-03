@@ -87,6 +87,56 @@ public sealed class DsdPlanTests
     }
 
     [Test]
+    public async Task A_96_kHz_track_is_made_DSD256_of_48_kHzs_family_at_its_own_rate_where_the_device_takes_768_kHz()
+    {
+        // Item 261: 96 kHz went to 88.2 kHz by SoX, then ×8 to 705.6 kHz and DSD256 at 11.2896 MHz; now ×8 to 768 kHz,
+        // DSD256 at 12.288 MHz, nothing resampled, where the device takes PCM at the rate DoP carries that on.
+        Needs.Server(); Needs.Ffmpeg();
+        var hi = J(new { path = "/m/b.flac", codec = "FLAC", sampleRate = 96000, bitsPerSample = 24, channels = 2 });
+        var cd = J(new { path = "/m/a.flac", codec = "FLAC", sampleRate = 44100, bitsPerSample = 16, channels = 2 });
+        object Wide(int up) => new
+        {
+            name = "DAC", rates = new[] { 44100, 48000, 88200, 96000, 176400, 192000, 352800, 384000, 705600, 768000 }, maxBits = 24, containers = new[] { "flac", "dsd" },
+            dsd = new[] { 64, 128, 256 }, dsdMimes = new { dsf = "audio/dsf", dff = (string?)null }, mode = "original", dsd_out = up,
+        };
+        var p = (await Plans(new JsonObject { ["dsd_up"] = JsonNode.Parse(Http.Json(new object[][] { [hi, Wide(256)], [hi, Dev(128, [64, 128])], [cd, Wide(256)], [hi, Wide(64)] })) }))["dsd_up"]!.AsArray();
+        Assert.Equal((256.0, 48000.0), (p[0].Num("dsdUp")!.Value, p[0].Num("dsdBase")!.Value));
+        Assert.Null(p[1].Num("dsdBase"));    // no 384 kHz said for DSD128's DoP: 44.1 kHz's family, as before
+        Assert.Equal(128.0, p[1].Num("dsdUp"));
+        Assert.Null(p[2].Num("dsdBase"));    // a CD: 44.1 kHz's, as it is
+        Assert.Equal(48000.0, p[3].Num("dsdBase"));   // DSD64 rides on 192 kHz
+        // A cache file of its own, apart from the 44.1 kHz family's.
+        var keys = (await Plans(new JsonObject
+        {
+            ["held_keys"] = new JsonArray(new JsonArray(7, 5, 96000, 1, true, false, false, false, 0, 256), new JsonArray(7, 5, 96000, 1, true, false, false, false, 0, 256, null, 48000)),
+        }))["held_keys"]!.AsArray().Select(k => (string)k!).ToArray();
+        Assert.EndsWith("-dsd256", keys[0], StringComparison.Ordinal);
+        Assert.Equal(keys[0] + "x48", keys[1]);
+
+        var dir = Directory.CreateTempSubdirectory("musicd-test-").FullName;
+        try
+        {
+            var src = Path.Combine(dir, "b.flac");
+            Fixtures.Gen(src, seconds: 1, freq: 997, rate: 96000);
+            var dsf = Path.Combine(dir, "b.dsf");
+            var plan = new { transcode = true, hq = true, rate = 96000, bits = 1, dsdUp = 256, dsdBase = 48000, inRate = 96000, reason = "" };
+            var job = (await Plans(new JsonObject { ["dsd_job"] = JsonNode.Parse(Http.Json(new object[] { new object[] { src, plan, dsf, true, 1.0 } })) }))["dsd_job"]![0]!.AsObject();
+            var decode = string.Join(" ", job["decode"]!.AsArray().Select(x => (string?)x));
+            Assert.DoesNotContain("aresample", decode, StringComparison.Ordinal);
+            Assert.Contains("-ar 96000 ", decode, StringComparison.Ordinal);
+            Assert.Equal((96000.0, 8.0, 12288000.0, 96000.0), (job.Num("rate")!.Value, job.Num("factor")!.Value, job.Num("dsd")!.Value, job.Num("frames")!.Value));
+            job["ffmpeg"] = "ffmpeg";
+            var said = await Upsample(job);
+            Assert.True(said["error"] == null, (string?)said["error"]);
+            var head = new byte[92];
+            using (var f = File.OpenRead(dsf)) f.ReadExactly(head);
+            Assert.Equal((12288000, 2), (BitConverter.ToInt32(head, 56), BitConverter.ToInt32(head, 52)));
+            Assert.Equal(96000L * 128, BitConverter.ToInt64(head, 64));
+        }
+        finally { Directory.Delete(dir, true); }
+    }
+
+    [Test]
     public async Task A_DSF_never_made_is_sent_as_it_is_made_then_kept_and_sent_whole()
     {
         Needs.Server(); Needs.Ffmpeg();

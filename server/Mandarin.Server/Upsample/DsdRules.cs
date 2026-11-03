@@ -14,7 +14,7 @@ internal static class DsdRules
      * { ntf: [order, rate, hinf] } → { peak, on_circle, predicted_db }: the design itself.
      * { rate, order, hinf, amp, hz, signal: "tone" | "tones" | "noise", seconds } → { noise_db, tone_db, resets, most }:
      *   the modulator alone, the signal made at the DSD rate (amp the peak, of ±1).
-     * { chain: rate, amp, hz, seconds, order } → { noise_db, tone_db, samples, frames, resets, ms }: 705.6 kHz PCM
+     * { chain: rate, amp, hz, seconds, order } → { noise_db, tone_db, samples, frames, resets, ms }: 705.6 kHz PCM (768 kHz for 48 kHz's family)
      *   through the whole chain (DsdChain.cs: SACD's level, the doublings) by the modulator of [order] (DsdOut.cs: 7
      *   unless said, item 249), its length, its noise, and the milliseconds it took.
      */
@@ -136,7 +136,7 @@ internal static class DsdRules
             System.Buffers.Binary.BinaryPrimitives.WriteDoubleLittleEndian(pcm.AsSpan((int)(i * 16)), v);
             System.Buffers.Binary.BinaryPrimitives.WriteDoubleLittleEndian(pcm.AsSpan((int)(i * 16 + 8)), -v);
         }
-        var factor = DsdChain.InRate / from;
+        var factor = DsdChain.InRateFor(dsd) / from;
         var path = Path.Combine(Path.GetTempPath(), "mandarin-dsdmake-" + Guid.NewGuid().ToString("N") + ".dsf");
         try
         {
@@ -181,13 +181,14 @@ internal static class DsdRules
         return ms.ToArray();
     }
 
-    // A 705.6 kHz tone through the chain to [rate]: the noise and the tone in the band, and the length made.
+    // A 705.6 kHz tone (768 kHz in 48 kHz's family) through the chain to [rate]: the noise and the tone in the band, and the length made.
     private static JsObj Chain(int rate, double amp, double hz, double seconds, int order)
     {
         var took = System.Diagnostics.Stopwatch.StartNew();
         var ntf = new DsdNtf(order, rate / 2.0 / 20000, DsdOut.Hinf(rate));
         var chain = new DsdChain(rate, ntf);
-        var frames = (long)(seconds * DsdChain.InRate);
+        var top = DsdChain.InRateFor(rate);
+        var frames = (long)(seconds * top);
         var bits = new List<byte>();
         const int block = 1 << 16;
         for (long at = 0; at < frames; at += block)
@@ -197,8 +198,8 @@ internal static class DsdRules
             for (var i = 0; i < c; i++)
             {
                 var k = at + i;
-                var env = k < DsdChain.InRate / 100 ? 0.5 - 0.5 * Math.Cos(Math.PI * k / (DsdChain.InRate / 100.0)) : 1;
-                x[i] = env * amp * Math.Sin(2 * Math.PI * hz * k / DsdChain.InRate);
+                var env = k < top / 100 ? 0.5 - 0.5 * Math.Cos(Math.PI * k / (top / 100.0)) : 1;
+                x[i] = env * amp * Math.Sin(2 * Math.PI * hz * k / top);
             }
             chain.Push(x, b => bits.AddRange(b.ToArray()));
         }

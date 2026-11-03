@@ -144,7 +144,7 @@ internal static class StreamCommand
         o["held_keys"] = Each(job["held_keys"], a =>
         {
             var t = new ConvTrack((long)Jv.Num(Arg(a, 0)), "", (long)Jv.Num(Arg(a, 1)));
-            return Transcoder.KeyFor(t, new ConvPlan((long)Jv.Num(Arg(a, 2)), (int)Jv.Num(Arg(a, 3)), Jv.T(Arg(a, 4)), Jv.T(Arg(a, 5)), "") { Wav = Jv.T(Arg(a, 6)), Lowpass = (long)Jv.Num(Jv.Or(Arg(a, 8), 0.0)), DsdUp = (int)Jv.Num(Jv.Or(Arg(a, 9), 0.0)), Shape = Arg(a, 10) as string });
+            return Transcoder.KeyFor(t, new ConvPlan((long)Jv.Num(Arg(a, 2)), (int)Jv.Num(Arg(a, 3)), Jv.T(Arg(a, 4)), Jv.T(Arg(a, 5)), "") { Wav = Jv.T(Arg(a, 6)), Lowpass = (long)Jv.Num(Jv.Or(Arg(a, 8), 0.0)), DsdUp = (int)Jv.Num(Jv.Or(Arg(a, 9), 0.0)), Shape = Arg(a, 10) as string, DsdBase = Jv.Num(Jv.Or(Arg(a, 11), 0.0)) == 48000 ? 48000 : 44100 });
         });
         o["held_args"] = Each(job["held_args"], a =>
         {

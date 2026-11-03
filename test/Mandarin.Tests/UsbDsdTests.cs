@@ -74,7 +74,7 @@ public sealed class UsbDsdTests
 
     // A DSF of [blocks] whole 4096-byte blocks a channel and [tail] bytes more, both channels: its path and each
     // channel's bytes as the file holds them (first bit the least significant).
-    private static (string Path, byte[][] Channels) Dsf(string dir, int blocks, int tail)
+    private static (string Path, byte[][] Channels) Dsf(string dir, int blocks, int tail, int rate = 2822400)
     {
         const int block = 4096;
         int per = blocks * block + tail;
@@ -89,7 +89,7 @@ public sealed class UsbDsdTests
         using var ms = new MemoryStream();
         using var w = new BinaryWriter(ms);
         w.Write("DSD "u8); w.Write(28L); w.Write(92L + data.Length); w.Write(0L);
-        w.Write("fmt "u8); w.Write(52L); w.Write(1); w.Write(0); w.Write(2); w.Write(2); w.Write(2822400); w.Write(1); w.Write((long)per * 8); w.Write(block); w.Write(0);
+        w.Write("fmt "u8); w.Write(52L); w.Write(1); w.Write(0); w.Write(2); w.Write(2); w.Write(rate); w.Write(1); w.Write((long)per * 8); w.Write(block); w.Write(0);
         w.Write("data"u8); w.Write(12L + data.Length); w.Write(data);
         w.Flush();
         var path = System.IO.Path.Combine(dir, "t.dsf");
@@ -162,6 +162,20 @@ public sealed class UsbDsdTests
             // Told it takes DSD128 natively only: DSD64 goes as DoP.
             var (_, other) = await Play(found.Str("bin")!, dir, dsf, "DSD_U32_BE:128", per / 2 * 2 * 4);
             Assert.Equal("S32_LE (DoP)", other.Str("format"));
+
+            // 48 kHz's family (item 261): 3.072 MHz goes as DoP at 192 kHz, every bit as the file has it, though the
+            // DAC takes DSD64 natively (its native rates are 44.1 kHz's).
+            var (dsf48, ch48) = Dsf(dir, 40, 1000, 3072000);
+            var (dop48, sink48) = await Play(found.Str("bin")!, dir, dsf48, "DSD_U32_BE:64", per / 2 * 2 * 4);
+            Assert.Equal((192000.0, "S32_LE (DoP)"), (sink48.Num("rate")!.Value, sink48.Str("format")!));
+            Assert.Equal(per / 2 * 2 * 4, dop48.Length);
+            for (int i = 0; i < per / 2; i++)
+                for (int c = 0; c < 2; c++)
+                {
+                    int o = (i * 2 + c) * 4;
+                    byte[] want = [0, Rev(ch48[c][2 * i + 1]), Rev(ch48[c][2 * i]), i % 2 == 0 ? (byte)0x05 : (byte)0xFA];
+                    if (!dop48.AsSpan(o, 4).SequenceEqual(want)) Assert.Fail($"48 kHz family DoP frame {i}, channel {c}: {Convert.ToHexString(dop48, o, 4)}, not {Convert.ToHexString(want)}");
+                }
         }
         finally { Directory.Delete(dir, true); }
     }

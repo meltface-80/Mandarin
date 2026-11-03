@@ -66,7 +66,7 @@ internal static class Dsd
         long samples = BitConverter.ToInt64(b.Slice(64, 8));
         int block = BitConverter.ToInt32(b.Slice(72, 4));
         long data = 28 + fmtSize;
-        if (bits != 1 || channels is < 1 or > 8 || rate % 44100 != 0 || block <= 0 || data + 12 > b.Length) return null;
+        if (bits != 1 || channels is < 1 or > 8 || rate % 44100 != 0 && rate % 48000 != 0 || block <= 0 || data + 12 > b.Length) return null;
         if (!b.Slice((int)data, 4).SequenceEqual("data"u8)) return null;
         return new Dsf(channels, rate, data + 12, samples, block);
     }

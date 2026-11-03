@@ -61,7 +61,7 @@ internal sealed partial class Players
         var hw = HwParams(rec.Location);
         if (hw == null || hw.Value.Rate == 0) return;
         // DSD (item 256): the device open at the DSD rate over 16 (DoP) or over 32 (native words), not at a PCM rate.
-        var dsd = item.Sent.Dsd * 44100;
+        var dsd = item.Sent.Dsd * item.Sent.DsdBase;
         var ok = hw.Value.Rate == sink.Value.Rate && (dsd > 0 ? sink.Value.Rate * 16 == dsd || sink.Value.Rate * 32 == dsd : sink.Value.Rate == item.Sent.Rate);
         if (ok && dsd == 0) { using var c = Db.Open(); Register.MarkVerified(c, p.Id, hw.Value.Rate, null); }
         var bump = false;
@@ -191,7 +191,7 @@ internal sealed partial class Players
             Sent = p == null ? null : new SentInfo(Jv.T(p["transcode"]),
                 Jv.T(p["transcode"]) ? Jv.Num(p["rate"]) : t?.SampleRate ?? 0, Jv.T(p["transcode"]) ? Jv.Num(p["bits"]) : t?.Bits ?? 0,
                 Jv.T(p["upsampled"]) ? Jv.Num(p["upsampled"]) : 0, Jv.T(p["dsp"]), Jv.T(p["dsd"]) ? Jv.Num(p["dsd"]) : 0,
-                Jv.T(p["ext"]) ? Jv.Str(p["ext"]) : "", Jv.T(p["mime"]) ? Jv.Str(p["mime"]) : "") { Gain = Jv.T(p["gain"]) ? Jv.Num(p["gain"]) : 0, Lowpass = Jv.T(p["lowpass"]) ? Jv.Num(p["lowpass"]) : 0, Shape = p["shape"] as string }
+                Jv.T(p["ext"]) ? Jv.Str(p["ext"]) : "", Jv.T(p["mime"]) ? Jv.Str(p["mime"]) : "") { Gain = Jv.T(p["gain"]) ? Jv.Num(p["gain"]) : 0, Lowpass = Jv.T(p["lowpass"]) ? Jv.Num(p["lowpass"]) : 0, Shape = p["shape"] as string, DsdBase = Jv.Num(p["dsdBase"]) == 48000 ? 48000 : 44100 }
         };
     }
 

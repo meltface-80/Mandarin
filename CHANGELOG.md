@@ -34,6 +34,7 @@
 - Improved - PCM as DSD is made as it plays: a track goes as DSD from its first play, sent while it is made, where it went as PCM until made ahead; Output says how fast this server makes it, and whether that keeps up
 - Improved - Min phase and Gentle are made as they play too, from a track's first play; Whole track is gone (a device set to it has the standard filter)
 - Improved - a track upsampled or made DSD as it plays gets the processor: playback keeps all the cores but one while it is made, or as many as Settings → Library Scanner → Processor → Cores for upsampling and DSD says (Auto, 1, 2 or 3)
+- Improved - PCM as DSD keeps a 48 kHz-family track (48, 96, 192 kHz) in its own family: 96 kHz goes ×8 to 768 kHz and DSD256 at 12.288 MHz, nothing resampled, where it went down to 88.2 kHz first; on a device that takes PCM at the rate DoP carries it on (768 kHz for DSD256), else as before
 
 - `259-dsd-on-demand` (item 259): **PCM as DSD, and the shaped filters, made as they play.** A track made DSD from
   PCM had to be made whole, ahead (items 243, 254): its filter was one as long as the track (237, PGGB's way), so
@@ -74,6 +75,18 @@
   the cores are split. The Processor line says "(making as it plays)" while it lasts; the app the same (Scanner.kt
   cpuLine, makingChoices). Tests: CpuTests (the split while making, Auto and as set), PowerCsharpTests (the route, its
   refusals, kept), ScannerTest (the line and the choices), scanner-page.test.js (the choices drawn, one tapped and kept).
+
+- `261-dsd-48k-family` (item 261): **48 kHz's family made DSD in its own family.** PCM as DSD made a 96 kHz track
+  DSD256 by taking it down to 88.2 kHz with SoX, then ×8 to 705.6 kHz and DSD256 at 11.2896 MHz (Now playing: "To 44.1
+  kHz's family, 96 → 88.2 kHz"), as items 242 and 243 had it. Now a track of 48 kHz's family goes ×2^n to 768 kHz as it
+  is and is made DSD of 48 kHz's family, 3.072, 6.144 or 12.288 MHz (DsdChain.InRateFor: two, three or four doublings
+  from 768 kHz, as from 705.6 kHz; the modulator already shaped to its own rate), where the device takes PCM at the
+  rate DoP carries that DSD on (192, 384 or 768 kHz: DsdPlan.BaseFor, the plan's `dsdBase`); a device that doesn't has
+  it as before. Its cache file is its own (`-dsd256x48`); the signal path says "×8 to 768 kHz" and "12.288 MHz"; the
+  audio engine reads a DSF of 48 kHz's family and sends it to a DAC on the server as DoP (its native DSD is 44.1 kHz's).
+  Tests: DsdPlanTests (the plan where the device takes 768 kHz and not where it doesn't, the key, the job and the DSF
+  made: 12.288 MHz, 96000 × 128 bits), DsdModulatorTests (the chain from 768 kHz at 3.072 and 12.288 MHz, its length,
+  level and noise), UsbDsdTests (3.072 MHz to the DAC as DoP at 192 kHz, every bit).
 
 - `258-ir-per-rate` (item 258): **room correction, one response a rate.** A device's DSP held one impulse response,
   made at one rate and resampled to every track's. A measurement is made at a rate, and REW or Dirac give one a rate,

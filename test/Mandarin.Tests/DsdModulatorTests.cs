@@ -77,6 +77,23 @@ public sealed partial class DsdModulatorTests
     }
 
     [Test]
+    public async Task From_768_kHz_the_chain_makes_48_kHzs_family_of_DSD_as_cleanly()
+    {
+        // Item 261: 3.072 MHz and 12.288 MHz, from 768 kHz, two and four doublings, as 705.6 kHz's are.
+        var lo = await Run(new { fn = "dsdmod", chain = 3072000, amp = 1, seconds = 1 });
+        Assert.Equal(768000.0, lo.Num("frames"));
+        Assert.Equal(lo.Num("frames")!.Value * 4, lo.Num("samples"));
+        Assert.Equal(-6.02, lo.Num("tone_db")!.Value, 2);
+        Assert.True(lo.Num("noise_db") < -124, $"in the band: {lo.Num("noise_db")} dB");
+        Assert.Equal(0.0, lo.Num("resets"));
+        var hi = await Run(new { fn = "dsdmod", chain = 12288000, amp = 1, seconds = 0.5 });
+        Assert.Equal(hi.Num("frames")!.Value * 16, hi.Num("samples"));
+        Assert.Equal(-6.02, hi.Num("tone_db")!.Value, 2);
+        Assert.True(hi.Num("noise_db") < -190, $"in the band: {hi.Num("noise_db")} dB");
+        Assert.Equal(0.0, hi.Num("resets"));
+    }
+
+    [Test]
     public async Task A_track_made_DSD64_is_a_DSF_ffmpeg_reads_at_the_sources_level_6_dB_down()
     {
         Needs.Server(); Needs.Ffmpeg();

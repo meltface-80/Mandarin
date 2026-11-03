@@ -25,8 +25,11 @@ internal sealed class DsdChain
     /* What full-scale PCM is in the modulation: SACD's 50%. */
     public const double Level = 0.5;
 
-    /* The rate the chain starts from. */
+    /* The rate the chain starts from: sixteen times 44.1 kHz. */
     public const int InRate = 705600;
+
+    /* The rate a chain to [dsdRate] starts from: 705.6 kHz for 44.1 kHz's family (2.8224 MHz and its doubles), 768 kHz for 48 kHz's (3.072 MHz and its: item 261). */
+    public static int InRateFor(int dsdRate) => dsdRate % 48000 == 0 ? 768000 : InRate;
 
     private const int Half = 16;   // each doubling's delay, in its output samples; its filter has 2 * Half + 1 taps
 
@@ -62,7 +65,7 @@ internal sealed class DsdChain
     }
 
     /*
-     * A chain to [dsdRate] (2822400, 5644800 or 11289600), the modulator shaped by [ntf]; given [sink], its modulator on
+     * A chain to [dsdRate] (2822400, 5644800 or 11289600; 3072000, 6144000 or 12288000 from 768 kHz), the modulator shaped by [ntf]; given [sink], its modulator on
      * a thread of its own, the bits handed to [sink] there, in order (Push(x), Finish(frames)).
      */
     public DsdChain(int dsdRate, DsdNtf ntf, Action<ReadOnlySpan<byte>>? sink = null)
@@ -73,7 +76,7 @@ internal sealed class DsdChain
             toModulator = new(boundedCapacity: 4);
             modulating = Task.Factory.StartNew(() => { foreach (var x in toModulator.GetConsumingEnumerable()) Modulate(x, sink); }, TaskCreationOptions.LongRunning);
         }
-        stages = dsdRate switch { 2822400 => 2, 5644800 => 3, 11289600 => 4, _ => throw new ArgumentOutOfRangeException(nameof(dsdRate)) };
+        stages = (dsdRate / InRateFor(dsdRate), dsdRate % InRateFor(dsdRate)) switch { (4, 0) => 2, (8, 0) => 3, (16, 0) => 4, _ => throw new ArgumentOutOfRangeException(nameof(dsdRate)) };
         work = [.. Enumerable.Range(0, stages + 1).Select(_ => new double[H + (1 << 16)])];
         mod = new DsdModulator(ntf);
         skip = Half * ((1L << stages) - 1);
@@ -82,7 +85,7 @@ internal sealed class DsdChain
     public int Factor => 1 << stages;
     public DsdModulator Modulator => mod;
 
-    /* [x] (705.6 kHz, ±1 full scale) through the chain; whole bytes of bits handed to [bits] as they are made. */
+    /* [x] (705.6 or 768 kHz, ±1 full scale) through the chain; whole bytes of bits handed to [bits] as they are made. */
     public void Push(ReadOnlySpan<double> x, Action<ReadOnlySpan<byte>> bits)
     {
         Through(x);
