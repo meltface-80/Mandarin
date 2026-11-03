@@ -23,6 +23,19 @@
 - New - Now playing's signal path: what goes out, how it was made and what is being made, centred under the album; a tap shows every step from the file to the room
 - New - two more upsampling filters (Settings → Audio Devices → a device → Output → Filter): Minimum phase, whose ringing comes only after a sound starts, and Gentle, which rolls off earlier and rings for half as long; made ahead as Whole track is, and used for PCM as DSD too
 - Fixed - Output's Filter button for minimum phase read "Minimum p…" on a phone; it says Min phase
+- Fixed - with PCM as DSD, a track that starts before its DSD is ready is still made, after the tracks to come, so it plays as DSD next time; Now playing says why it has the standard filter meanwhile
+
+- `254-dsd-plays` (item 254): **PCM as DSD that plays as DSD, and says so.** A FiiO SR11 at Max, Min phase and DSD256
+  (3 November) never seemed to play DSD256, and Now playing said "Standard filter" under a filter set to minimum phase.
+  The log showed why. A track that starts before its DSF is made goes as PCM, and its making was then dropped for ten
+  minutes so that the tracks after it came first. Nothing took it up again, so Now playing's "DSD256 next play" was
+  never true. Its sheet even read "for this track's next play: next play". It is now put after the tracks still to
+  come (WholeJobs.Skip); one under way is stopped and made again in its turn. Meanwhile the PCM standing in for it
+  says why its filter is the standard one: "Standard filter · until the DSD256 (minimum phase) is made". The Being
+  made step says "waiting its turn", "being made now", or "made: this track plays as DSD next time". A stream's log
+  line says WAV where it is sent as WAV ("as WAV: FLAC stops at 655.35 kHz → FLAC 24/705.6 kHz" before). The
+  renderer test sees Long 1 made after Long 2, and the stand-in's words with a device set to minimum phase; with the
+  old code, Long 1 is never made and the line is "Standard filter".
 
 - `253-whole-play-flac-header` (item 253, a test's): **"one play, one file" held to the file, not to its header.**
   WholeTrackPlayTests compared each read of the standard filter's file, byte for byte, with the first. When the first

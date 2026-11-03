@@ -23,10 +23,11 @@ internal static partial class WholeJobs
     private static readonly HashSet<long> Failed = [];
     private static string? makingName;
     private static bool running;
-    // The making under way, and those dropped (Skip, Only), until when: not made again before then.
+    // The making under way; those dropped by another play (Only), until when: not made again before then; and those
+    // stopped under way to be made later (Skip), whose run ends without a file.
     private static (string Key, Process Proc)? current;
     private static readonly Dictionary<string, DateTime> Skipped = [];
-    private static readonly TimeSpan Dropped = TimeSpan.FromMinutes(10);
+    private static readonly HashSet<string> Halted = [];
     // A pause between a making taken from the queue and its start: the tests' own, to hold that moment open (246).
     private static readonly int Wait = int.TryParse(Environment.GetEnvironmentVariable("MANDARIN_MAKE_WAIT_MS"), out var w) && w > 0 ? w : 0;
 
@@ -79,20 +80,25 @@ internal static partial class WholeJobs
     }
 
     /*
-     * Track [t]'s making by [p] dropped, waiting, about to start or under way (one sent as PCM this time, item 243),
-     * and not taken up again for [Dropped]: the tracks after it, still to come, are made first. A play queues its
-     * tracks to be made before it starts the first (Items.PlayTracks), so the first's may be on its way already (246).
+     * Track [t]'s making by [p] put after the tracks still to come, waiting, about to start or under way (one sent as
+     * PCM this time, item 243): they are made first, then it, for its next play (item 254; dropped for ten minutes
+     * before, Now playing's "next play" was never so). One under way is stopped and begun again in its turn. A play
+     * queues its tracks to be made before it starts the first (Items.PlayTracks), so the first's may be on its way (246).
      */
     public static void Skip(ConvTrack t, ConvPlan p)
     {
         var key = Transcoder.KeyFor(t, p);
         lock (Queue)
         {
-            var now = DateTime.UtcNow;
-            foreach (var old in Skipped.Where(s => s.Value <= now).Select(s => s.Key).ToList()) Skipped.Remove(old);
-            Skipped[key] = now + Dropped;
-            Queue.RemoveAll(q => q.Key == key);
-            if (current is { } c && c.Key == key) Stop(c.Proc);
+            var waiting = Queue.RemoveAll(q => q.Key == key) > 0;
+            var under = Making.Contains(key);
+            if (!waiting && !under) return;   // made already, or never asked for
+            if (under)
+            {
+                Halted.Add(key);
+                if (current is { } c && c.Key == key) Stop(c.Proc);
+            }
+            Queue.Add((key, t, p));
         }
     }
 
@@ -158,15 +164,16 @@ internal static partial class WholeJobs
     // One track made: the job handed to `mandarin-server upsample`, its file moved into place once whole.
     private static async Task Make(string key, ConvTrack t, ConvPlan p)
     {
-        lock (Queue) { if (WasSkipped(key)) return; }   // dropped on its way here
+        lock (Queue) { if (WasSkipped(key) || Halted.Remove(key)) return; }   // dropped or put back on its way here
         var final = Transcoder.FinalPath(key);
+        if (File.Exists(final)) return;   // made while it waited
         var part = final + ".part";
         var job = p.DsdUp != 0 ? DsdPlan.Job(t.Path, p, part, Transcoder.Soxr, MaxOutBits()) : Job(t.Path, p, part);
         var psi = new ProcessStartInfo(Environment.ProcessPath ?? "mandarin-server") { UseShellExecute = false, RedirectStandardInput = true, RedirectStandardOutput = true, RedirectStandardError = true };
         psi.ArgumentList.Add("upsample");
         Cpu.Place(psi, CpuKind.Ahead);
         using var proc = Process.Start(psi)!;
-        lock (Queue) { current = (key, proc); if (WasSkipped(key)) Stop(proc); }
+        lock (Queue) { current = (key, proc); if (WasSkipped(key) || Halted.Contains(key)) Stop(proc); }
         Cpu.Adopt(proc, CpuKind.Ahead);
         try { await proc.StandardInput.WriteLineAsync(job.ToJsonString()); proc.StandardInput.Close(); }
         catch (IOException) { /* stopped before it read its job (Skip); its exit says so */ }
@@ -177,7 +184,7 @@ internal static partial class WholeJobs
         lock (Queue)
         {
             current = null;
-            if (WasSkipped(key))
+            if (Halted.Remove(key) | WasSkipped(key))
             {
                 try { File.Delete(part); } catch (IOException) { /* never made */ }
                 return;
