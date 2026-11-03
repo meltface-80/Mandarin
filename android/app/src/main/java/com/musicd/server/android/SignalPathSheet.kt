@@ -33,6 +33,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
 import com.musicd.server.client.Contract
+import com.musicd.server.client.Palette
 import com.musicd.server.client.Signal
 
 /**
