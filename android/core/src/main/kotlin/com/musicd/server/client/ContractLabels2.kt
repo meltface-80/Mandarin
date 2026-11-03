@@ -111,6 +111,7 @@ internal object ContractLabels2 {
         "settings-scanner.dir" to listOf("{folder}"),
         "settings-scanner.browse-choose" to listOf("Keep the pack in “{folder}”"),
         "settings-scanner.cleanup" to listOf("Remove {albums}"),
+        "settings-scanner.making" to listOf("Auto", "1", "2", "3"),
         "settings-scanner.album" to listOf("{album}"),
         "settings-scanner.accept" to listOf("Accept"),
         "settings-scanner.reject" to listOf("Reject"),

@@ -9,6 +9,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
@@ -186,6 +187,17 @@ internal fun SettingsScanner(client: () -> ServerClient?, onBack: () -> Unit) {
             Block {
                 ScanTitle("Processor", CPU_INFO, info = { info = it })
                 ScanProgress(Scanner.cpuLine(k.cpu))
+                // The cores a track made as it plays has (item 260).
+                val choices = Scanner.makingChoices(k.cpu)
+                if (choices.isNotEmpty()) ScanRow("Cores for upsampling and DSD", null) {
+                    Box(Modifier.widthIn(max = 220.dp)) {
+                        Seg(choices, Scanner.makingCurrent(k.cpu), key = { i, ch -> Modifier.parity("settings-scanner.making", Contract.label("settings-scanner.making", i)).clickable(enabled = !k.busy) {
+                            val c = client() ?: return@clickable
+                            val made = ServerWrites.write { c.post("/api/cpu", JSONObject().put("making_cores", if (ch.value == "auto") "auto" else ch.value.toInt())) }
+                            scope.launch { ServerWrites.await(made).onSuccess { k.cpu = it; k.err = "" }.onFailure { k.err = com.musicd.server.client.Failure.said(it, "Couldn't reach the server") } }
+                        } })
+                    }
+                }
                 ScanNote(Scanner.cpuNote(k.cpu))
             }
             ScanLists(k, client, scope, context)
@@ -342,4 +354,4 @@ private const val IDENTIFY_INFO = "Each album is matched first by what its files
 private const val ITUNES_INFO = "An album MusicBrainz can’t place is looked up in Apple’s iTunes catalogue too — by barcode first, then by name; no account or key, a request every few seconds. Applied at 85 % alike or better, as a MusicBrainz match is; anything less is left for you. The album keeps the year its files carry, since Apple’s date is often a reissue’s."
 private const val MEASURE_INFO = "Tracks without ReplayGain tags are measured on the server — EBU R128 loudness and true peak — so Volume Levelling (Settings → Audio Devices → a device) can level them too. It keeps to the schedule above: album by album, newest first, each once identification has looked at it, on the cores playback doesn’t keep. An album’s gain is worked out once all of its tracks are known. Qobuz and Tidal tracks aren’t measured. Your files are never changed."
 private const val CLEANUP_INFO = "Albums the library still lists but can’t play: ones whose files are gone from the server (a folder the scanner found missing, empty or unreadable, kept in case it comes back), and Qobuz albums no longer in your favourites, purchases or playlists — every Qobuz album while you’re signed out. Nothing goes until you press. Plays stay in history; an album’s edits, heart and Listen later go with it."
-private const val CPU_INFO = "Playback keeps cores of its own: one, or two while DSP is in use. Scanning, measuring ReplayGain and the phone’s downloads run on the other cores, at the lowest priority, so playback comes first. Set PLAYBACK_CORES to 1 or 2 to fix how many playback keeps, or 0 to share every core."
+private const val CPU_INFO = "Playback keeps cores of its own: one, or two while DSP is in use. While a track is upsampled or made DSD as it plays, and for half a minute after, playback keeps all the cores but one, or as many as Cores for upsampling and DSD says. Scanning, measuring ReplayGain and the phone’s downloads run on the other cores, at the lowest priority, so playback comes first. Set PLAYBACK_CORES to 1 or 2 to fix how many playback keeps, or 0 to share every core."
