@@ -31,7 +31,8 @@
   that plays as PCM though the device is set to DSD (now_playing.signal, SignalPath.cs). Each step says what was
   actually done to the stream the device is reading, never what the settings would do next: lossless (nothing changed),
   enhanced (on purpose), lossy, or pending. A tap on the lines opens the Signal path sheet, on the page and in the app
-  (SignalPathSheet.kt), each step with its dot; a room or a phone shows its badge's words the same way.
+  (SignalPathSheet.kt), each step with its dot. A phone or a Sonos room, whose way is known only as its badge, shows
+  the badge as before.
 
 - `246-dsd-album-stops` (item 246): **an album with PCM as DSD plays on, and only what's playing is made.** On 3
   November an album played on a FiiO SR11 set to Whole track and DSD256 stopped at the end of its first track. The

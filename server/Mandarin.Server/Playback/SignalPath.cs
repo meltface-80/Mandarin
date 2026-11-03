@@ -13,17 +13,12 @@ namespace Mandarin.Server.Playback;
 
 internal static class SignalPath
 {
-    /* The lines and the steps for zone [z] in state [st], playing [t], its badge [format]; null with nothing to say. */
-    public static JsonObject? Of(ZoneInfo z, ZoneState st, PlayTrack? t, (string Kind, string Text)? format)
-    {
-        if (z.IsUpnp && st.Sent != null && t != null) return Renderer(z, st, st.Sent, t);
-        if (format is not { } f) return null;
-        // A room or a phone: the badge is all that is known of the way; the file and the badge's words.
-        var steps = new JsonArray();
-        if (t != null) steps.Add(Source(t));
-        steps.Add(Step("output", "Output", f.Text, f.Kind == "lossy" ? "lossy" : "lossless"));
-        return Path([f.Text], steps);
-    }
+    /*
+     * The lines and the steps for zone [z] in state [st], playing [t]; null where there is nothing more to say than the
+     * badge (a phone, a Sonos room: the badge is all that is known of the way there), the page and the app then drawing it.
+     */
+    public static JsonObject? Of(ZoneInfo z, ZoneState st, PlayTrack? t) =>
+        z.IsUpnp && st.Sent != null && t != null ? Renderer(z, st, st.Sent, t) : null;
 
     private static JsonObject Renderer(ZoneInfo z, ZoneState st, SentInfo s, PlayTrack t)
     {
