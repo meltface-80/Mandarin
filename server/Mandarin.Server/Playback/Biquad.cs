@@ -230,7 +230,7 @@ internal static class Biquad
     public static string Fingerprint(object? dsp, object? fs)
     {
         // With a convolution (item 252) its file too; without one, the name as it always was.
-        var s = Js.Json(Jv.Get(dsp, "convolution") is JsObj conv
+        var s = Js.Json(Jv.T(dsp) && Jv.Get(dsp, "convolution") is JsObj conv
             ? Jv.Obj(("b", BandsOf(dsp)), ("h", Headroom(dsp, fs)), ("c", Jv.Get(conv, "file")))
             : Jv.Obj(("b", BandsOf(dsp)), ("h", Headroom(dsp, fs)))) ?? "";
         uint h1 = 0x811c9dc5, h2 = 0x01000193;
