@@ -14,8 +14,9 @@ internal static class DsdRules
      * { ntf: [order, rate, hinf] } → { peak, on_circle, predicted_db }: the design itself.
      * { rate, order, hinf, amp, hz, signal: "tone" | "tones" | "noise", seconds } → { noise_db, tone_db, resets, most }:
      *   the modulator alone, the signal made at the DSD rate (amp the peak, of ±1).
-     * { chain: rate, amp, hz, seconds } → { noise_db, tone_db, samples, frames, resets }: 705.6 kHz PCM through the
-     *   whole chain (DsdChain.cs: SACD's level, the doublings), its length and its noise.
+     * { chain: rate, amp, hz, seconds, order } → { noise_db, tone_db, samples, frames, resets, ms }: 705.6 kHz PCM
+     *   through the whole chain (DsdChain.cs: SACD's level, the doublings) by the modulator of [order] (DsdOut.cs: 7
+     *   unless said, item 249), its length, its noise, and the milliseconds it took.
      */
     public static JsObj Run(JsObj job)
     {
@@ -26,7 +27,10 @@ internal static class DsdRules
             var onCircle = ntf.Zeros.All(z => Math.Abs(z.Magnitude - 1) < 1e-12);
             return new JsObj { ["peak"] = ntf.Peak(), ["on_circle"] = onCircle, ["sections"] = (double)ntf.Sections.Count };
         }
-        if (job["chain"] is double cr) return Chain((int)cr, Num(job, "amp", 1), Num(job, "hz", 997), Num(job, "seconds", 1));
+        if (job["chain"] is double cr) return Chain((int)cr, Num(job, "amp", 1), Num(job, "hz", 997), Num(job, "seconds", 1), (int)Num(job, "order", 7));
+        if (job["paths"] is true) return Paths((int)Num(job, "rate", 2822400), Num(job, "seconds", 1));
+        if (job["halfband"] is true) return HalfBand();
+        if (job["make"] is double md) return Make((int)md, (int)Num(job, "from", 44100), Num(job, "seconds", 10), job["compare"] is true);
         var dsd = (int)Num(job, "rate", 2822400);
         var mod = new DsdModulator(new DsdNtf((int)Num(job, "order", 7), dsd / 2.0 / 20000, Num(job, "hinf", 1.4)));
         var n = Pow2(dsd * Num(job, "seconds", 1));
@@ -77,10 +81,81 @@ internal static class DsdRules
         return x;
     }
 
-    // A 705.6 kHz tone through the chain to [rate]: the noise and the tone in the band, and the length made.
-    private static JsObj Chain(int rate, double amp, double hz, double seconds)
+    // One doubling (its odd taps only, in pairs: item 251) against the whole filter laid on the input with zeros between
+    // its samples, every tap: the most they differ, and the sum of the taps (a doubling's gain, 2).
+    private static JsObj HalfBand()
     {
-        var ntf = new DsdNtf(7, rate / 2.0 / 20000, 1.4);
+        var rnd = new Random(251);
+        var x = new double[4096];
+        for (var i = 0; i < x.Length; i++) x[i] = rnd.NextDouble() * 2 - 1;
+        var y = DsdChain.DoubleOnce(x);
+        var h = DsdChain.Taps();
+        double worst = 0;
+        for (var k = 0; k < y.Length; k++)
+        {
+            // The input stuffed with zeros (x[m] at 2m) through h: y[k] = Σ h[j] u[k - j], the delay the doubling's own.
+            double sum = 0;
+            for (var j = 0; j < h.Length; j++)
+            {
+                var at = k - j;
+                if (at >= 0 && at % 2 == 0 && at / 2 < x.Length) sum += h[j] * x[at / 2];
+            }
+            worst = Math.Max(worst, Math.Abs(sum - y[k]));
+        }
+        return new JsObj { ["worst"] = worst, ["gain"] = h.Sum() };
+    }
+
+    // The seventh order's own path (DsdModulator.Run4) against the loops it stands for (item 251): the same signal, music
+    // like (tones and noise at SACD's level), through both; whether every bit is the same, and the time each took.
+    private static JsObj Paths(int dsd, double seconds)
+    {
+        var n = Pow2(dsd * seconds);
+        var x = Signal("tones", n, dsd, 0.5, 997);
+        var noise = Signal("noise", n, dsd, 0.1, 997);
+        for (var i = 0; i < n; i++) x[i] += noise[i];
+        byte[] fast = new byte[n / 8], slow = new byte[n / 8];
+        var ntf = new DsdNtf(7, dsd / 2.0 / 20000, 1.4);
+        var t0 = System.Diagnostics.Stopwatch.StartNew();
+        new DsdModulator(ntf).Run(x, fast);
+        var fastMs = t0.Elapsed.TotalMilliseconds;
+        t0.Restart();
+        new DsdModulator(ntf) { Generic = true }.Run(x, slow);
+        return new JsObj { ["same"] = fast.AsSpan().SequenceEqual(slow), ["fast_ms"] = fastMs, ["generic_ms"] = t0.Elapsed.TotalMilliseconds };
+    }
+
+    // [seconds] of tones at [from] made DSD at [dsd] as a track is (DsdOut.Make), into a file thrown away after: the time
+    // it took, and the time the whole-track step alone takes (item 251), in ms; the rest is the doublings and modulators.
+    // With [compare], made too with the modulators in turn rather than beside the doublings: whether the files are the
+    // same, byte for byte, and the time that took.
+    private static JsObj Make(int dsd, int from, double seconds, bool compare)
+    {
+        var frames = (long)(seconds * from);
+        double[] left = new double[frames], right = new double[frames];
+        for (long i = 0; i < frames; i++) { left[i] = 0.4 * Math.Sin(2 * Math.PI * 997 * i / from) + 0.1 * Math.Sin(2 * Math.PI * 15000 * i / from); right[i] = -left[i]; }
+        var path = Path.Combine(Path.GetTempPath(), "mandarin-dsdmake-" + Guid.NewGuid().ToString("N") + ".dsf");
+        try
+        {
+            var t0 = System.Diagnostics.Stopwatch.StartNew();
+            var (r, resets) = DsdOut.Make(left, right, from, dsd, 28, path);
+            var total = t0.Elapsed.TotalMilliseconds;
+            t0.Restart();
+            WholeTrack.Run(left, right, from, WholeTrack.Options.For(DsdChain.InRate / from, null, 28), (_, _, _, _, _) => { });
+            var o = new JsObj { ["ms"] = total, ["whole_ms"] = t0.Elapsed.TotalMilliseconds, ["bytes"] = (double)new FileInfo(path).Length, ["resets"] = (double)resets, ["frames"] = (double)r.Frames };
+            if (!compare) return o;
+            t0.Restart();
+            DsdOut.Make(left, right, from, dsd, 28, path + ".seq", pipelined: false);
+            o["sequential_ms"] = t0.Elapsed.TotalMilliseconds;
+            o["same"] = File.ReadAllBytes(path).AsSpan().SequenceEqual(File.ReadAllBytes(path + ".seq"));
+            return o;
+        }
+        finally { File.Delete(path); File.Delete(path + ".seq"); }
+    }
+
+    // A 705.6 kHz tone through the chain to [rate]: the noise and the tone in the band, and the length made.
+    private static JsObj Chain(int rate, double amp, double hz, double seconds, int order)
+    {
+        var took = System.Diagnostics.Stopwatch.StartNew();
+        var ntf = new DsdNtf(order, rate / 2.0 / 20000, 1.4);
         var chain = new DsdChain(rate, ntf);
         var frames = (long)(seconds * DsdChain.InRate);
         var bits = new List<byte>();
@@ -98,13 +173,16 @@ internal static class DsdRules
             chain.Push(x, b => bits.AddRange(b.ToArray()));
         }
         chain.Finish(frames, b => bits.AddRange(b.ToArray()));
+        var ms = took.Elapsed.TotalMilliseconds;
         var samples = (long)bits.Count * 8;
         var n = 1 << (int)Math.Floor(Math.Log2(samples));
         var (noise, tone) = Measure([.. bits], n, rate, hz);
         return new JsObj
         {
             ["noise_db"] = noise, ["tone_db"] = tone, ["samples"] = (double)samples, ["frames"] = (double)frames,
-            ["resets"] = (double)chain.Modulator.Resets,
+            ["resets"] = (double)chain.Modulator.Resets, ["ms"] = ms,
+            ["doubling_ms"] = chain.DoublingTicks * 1000.0 / System.Diagnostics.Stopwatch.Frequency,
+            ["modulator_ms"] = chain.ModulatorTicks * 1000.0 / System.Diagnostics.Stopwatch.Frequency,
         };
     }
 
