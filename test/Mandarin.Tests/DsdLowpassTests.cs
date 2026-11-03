@@ -103,7 +103,7 @@ public sealed partial class DsdLowpassTests
             var (toneA, toneB) = (Rms(a, below), Rms(b, below));
             Assert.True(Math.Abs(toneA - toneB) < 0.05, $"below 15 kHz: {toneA:F3} dB as it was, {toneB:F3} dB low-passed");
             // As long as it was: no tail, so gapless play stays gapless.
-            Assert.Equal(Frames(plain.Body), Frames(cut.Body));
+            Assert.Equal(Frames(a), Frames(b));
         }
         finally { Directory.Delete(dir, true); }
     }
@@ -121,8 +121,14 @@ public sealed partial class DsdLowpassTests
         return v == "-inf" ? -400 : double.Parse(v, CultureInfo.InvariantCulture);
     }
 
-    // A FLAC's STREAMINFO frame count (36 bits from byte 21's low half).
-    private static long Frames(byte[] f) => ((long)(f[21] & 0x0F) << 32) | ((long)f[22] << 24) | ((long)f[23] << 16) | ((long)f[24] << 8) | f[25];
+    // A FLAC's frames, decoded and counted: not STREAMINFO's count, which ffmpeg writes at the end of an encode, so a
+    // stream read while it was made says 0 (item 253's cause, met here on a busy run on 3 November).
+    private static long Frames(string file)
+    {
+        var (code, pcm, err) = FfmpegOut.Run(["-hide_banner", "-loglevel", "error", "-i", file, "-f", "s32le", "-c:a", "pcm_s32le", "-"]);
+        Assert.True(code == 0, err);
+        return pcm.Length / 8;   // two channels of four bytes
+    }
 
     /*
      * A DSD64 DSF of a 1 kHz tone at half scale, both channels, made by a sigma-delta modulator (four integrators): its

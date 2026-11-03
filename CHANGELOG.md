@@ -36,7 +36,8 @@
   made step says "waiting its turn", "being made now", or "made: this track plays as DSD next time". A stream's log
   line says WAV where it is sent as WAV ("as WAV: FLAC stops at 655.35 kHz → FLAC 24/705.6 kHz" before). The
   renderer test sees Long 1 made after Long 2, and the stand-in's words with a device set to minimum phase; with the
-  old code, Long 1 is never made and the line is "Standard filter".
+  old code, Long 1 is never made and the line is "Standard filter". DsdLowpassTests counts a stream's frames by
+  decoding it, not from STREAMINFO, which a stream read while it is made has as 0 (253's cause; met on a busy run).
 
 - `251-dsd-faster` (item 251): **DSD made three times faster.** A 220 s track at DSD256 took 456 s on the owner's server.
   Measured here, 60 s at DSD256 took 38.9 s: the whole-track step 6 s; the doublings 60% and the modulator 25% of the
