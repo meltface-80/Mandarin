@@ -32,6 +32,9 @@ internal sealed class Player(string id)
     public (double? Value, bool Muted) Volume = (null, false);
     public bool ExpectStop, NoSetNext, Subscribing;
     public int Strikes, Jumping;      // Jumping: jumps under way (Jump), whose renderer may still say the track before
+    // What the renderer is told, told one thing at a time (Players.Jump.cs, item 264); JumpGen: the jumps asked for.
+    public readonly SemaphoreSlim Commands = new(1, 1);
+    public int JumpGen;
     public int NamedEarly = -1;       // the track a renderer named the next of early (item 233), logged once for it
     // Heard: the state the room shows is the device's own, read from it (or a jump of ours): not one carried over an
     // outage or a restart, whose stop is no end of a track (item 184); lost with any call it didn't answer, and won back
@@ -245,10 +248,16 @@ internal sealed partial class Players
             ("mode", s["mode"] is string mode && mode is "original" or "x2" or "x4" or "max" ? mode : "original"),
             ("bits", s["bits"] is double b && b is 24 or 32 ? (object)b : "auto"),
             ("dsp", dsp), ("id", r.Id));
+        OutputInto(target, s);
+        return target;
+    }
+
+    /* A device's Output settings [s] into its stream [target]: the filter, DSD as PCM's low-pass, PCM as DSD (a phone's too: item 265). */
+    public static void OutputInto(JsObj target, JsObj s)
+    {
         if (Upsample.Shape.OfFilter(s["filter"]) != null) target["filter"] = s["filter"];   // minimum phase, gentle (items 248, 259); standard by its absence
         if (DsdLowpass.Of(s["dsd_lowpass"]) is { } cut) target["dsd_lowpass"] = cut;   // DSD as PCM, low-passed (item 241)
         if (Upsample.DsdPlan.Of(s["dsd_out"]) is { } up) target["dsd_out"] = (double)up;   // PCM as DSD (item 243)
-        return target;
     }
 
     /* The settings changed (output, DSP): what follows in the queue is planned again; the track playing carries on as it was given. */

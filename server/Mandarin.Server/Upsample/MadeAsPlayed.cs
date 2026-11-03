@@ -151,8 +151,8 @@ internal static class MadeAsPlayed
         return (proc, proc.StandardError.ReadToEndAsync());
     }
 
-    /* What was being made, or waited to be, for a play other than the one of [keep] (their keys): stopped (item 246). */
-    public static void Only(IEnumerable<string> keep)
+    /* What was being made, or waited to be, for a play other than the one of [keep] (their keys): stopped (item 246); [why] said. */
+    public static void Only(IEnumerable<string> keep, string why = "another play")
     {
         var k = keep.ToHashSet();
         if (k.Count == 0) return;
@@ -165,7 +165,7 @@ internal static class MadeAsPlayed
             if (proc != null) Stop(proc);
             n++;
         }
-        if (n > 0) Server.Log($"[upsample] {n} track(s) no longer made: another play");
+        if (n > 0) Server.Log($"[upsample] {n} track(s) no longer made: {why}");
     }
 
     /* The last making's speed at DSD[n] (0: PCM in a shape), × real time; null before the first. */

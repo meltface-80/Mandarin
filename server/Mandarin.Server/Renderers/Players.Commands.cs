@@ -99,12 +99,15 @@ internal sealed partial class Players
             if (withdraw) { try { await RendererOf(p).SetNextUri("", ""); } catch (RendererError) { /* nothing to withdraw */ } }
             return;
         }
-        lock (gate) { if (p.Next is { Sent: true } nx && nx.Uri == it.Uri) return; }
+        int gen;
+        lock (gate) { if (p.Next is { Sent: true } nx && nx.Uri == it.Uri) return; gen = p.JumpGen; }
         if (!Ready(it)) return;
         try
         {
-            await RendererOf(p).SetNextUri(it.Uri, it.Meta);
-            lock (gate) p.Next = (n, it.Uri, true);
+            // In its turn with what else the renderer is told (item 264); a jump meanwhile, and the next poll arms what follows it.
+            var told = false;
+            await Serially(p, async () => { lock (gate) if (gen != p.JumpGen) return; await RendererOf(p).SetNextUri(it.Uri, it.Meta); told = true; });
+            if (told) lock (gate) p.Next = (n, it.Uri, true);
         }
         catch (RendererError e)
         {
@@ -115,38 +118,6 @@ internal sealed partial class Players
                 Log($"[renderers] {RendererOf(p).Name}: no SetNextAVTransportURI ({e.Message}); tracks are started by hand");
             }
         }
-    }
-
-    private async Task Jump(Player p, int index, double seconds = 0)
-    {
-        UpnpItem it;
-        lock (gate)
-        {
-            if (index < 0 || index >= p.Queue.Count) throw new HubError(500, "Nothing to play");
-            p.Verifying = null;         // the device asked again what it plays, for the same track played again too
-            it = p.Queue[index];
-            p.ExpectStop = false;
-            p.Next = null;              // SetAVTransportURI clears a renderer's next
-            p.Heard = true;             // started by us: a stop now is this track's
-            p.Index = index; p.NamedEarly = -1; p.EndedOn = -1;
-            p.LoadingSince = Hub.Now();
-            p.Jumping++;
-            if (p.Shuffle) p.Played.Add(it);
-        }
-        var r = RendererOf(p);
-        Optimistic(p.Id, st =>
-        {
-            st.State = "loading"; st.TrackNumber = index + 1; st.QueueLength = p.Queue.Count; st.OnQueue = true;
-            st.TrackUri = it.Uri; st.TrackId = it.TrackId; st.Title = it.Title; st.Artist = it.Artist; st.Album = it.Album; st.ArtUri = it.ArtUri;
-            st.Duration = it.Duration; st.Position = seconds; st.Sent = it.Sent; st.Unreachable = false; st.Verified = null;
-        });
-        try
-        {
-            await r.SetUri(it.Uri, it.Meta);
-            await r.Play();
-            if (seconds > 0) { try { await r.SeekTime(seconds); } catch (RendererError) { /* from the start */ } }
-        }
-        finally { lock (gate) { p.Jumping--; p.JumpedAt = Hub.Now(); } }
     }
 
     private void Fail(Player p, string message)
@@ -243,16 +214,16 @@ internal sealed partial class Players
             case "play":
                 if (p.Index < 0 && p.Queue.Count > 0) { await Jump(p, 0); break; }
                 if (st.State == "stopped" && p.Index >= 0 && p.Index < p.Queue.Count) { await Jump(p, p.Index); break; }
-                await r.Play();
+                await Serially(p, r.Play);
                 Optimistic(id, s => { s.State = "playing"; s.Position = Hub.PositionNow(st); });
                 break;
             case "pause":
-                await r.Pause();
+                await Serially(p, r.Pause);
                 Optimistic(id, s => { s.State = "paused"; s.Position = Hub.PositionNow(st); });
                 break;
             case "stop":
                 p.ExpectStop = true;
-                await r.Stop();
+                await Serially(p, r.Stop);
                 Optimistic(id, s => { s.State = "stopped"; s.Position = 0; });
                 break;
             case "next":
@@ -265,7 +236,7 @@ internal sealed partial class Players
             }
             case "previous":
                 // Back to the start of this track first, as every player does.
-                if (Hub.PositionNow(st) > 5 || p.Index <= 0) { await r.SeekTime(0); Optimistic(id, s => s.Position = 0); }
+                if (Hub.PositionNow(st) > 5 || p.Index <= 0) { await Serially(p, () => r.SeekTime(0)); Optimistic(id, s => s.Position = 0); }
                 else await Jump(p, p.Index - 1);
                 break;
             case "playpause":
@@ -282,7 +253,7 @@ internal sealed partial class Players
         ZoneState st;
         lock (zm.Gate) st = zm.State.GetValueOrDefault(id) ?? new ZoneState();
         var target = Math.Max(0, how == "relative" ? Hub.PositionNow(st) + seconds : seconds);
-        await RendererOf(p).SeekTime(target);
+        await Serially(p, () => RendererOf(p).SeekTime(target));
         Optimistic(id, s => s.Position = target);
         PokeAfter(p);
     }

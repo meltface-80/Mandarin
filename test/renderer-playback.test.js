@@ -214,6 +214,25 @@ test("a renderer is a zone", { skip, timeout: 150000 }, async (t) => {
       assert.equal(q.items.length, 3, "the whole album still to come from Long 1");
     });
 
+    // Item 264: on a renderer slow to answer what it is told to play (a FiiO SR11 fetches a track before it answers),
+    // Next, Next, Back tapped quickly were three track changes told over one another, and the SR11 stopped answering.
+    // Now each is told in its turn, and one asked for while another was waiting is passed over: two told, not three,
+    // and the room on the track the taps end on.
+    await t.test("taps in a row on a slow renderer are told one at a time, to where they end", async () => {
+      await api("play-from-here", { zone_or_output_id: WIIM, queue_item_id: 1 });
+      await until(async () => { const z = await state(WIIM); return z.state === "playing" && z.now_playing && z.now_playing.line1 === "Long 1"; });
+      wiim.slow = { SetAVTransportURI: 1500 };
+      const from = wiim.actions.length;
+      try {
+        const taps = [];
+        for (const command of ["next", "next", "previous"]) { taps.push(api("control", { zone_or_output_id: WIIM, command })); await sleep(150); }
+        await Promise.all(taps);
+      } finally { wiim.slow = {}; }
+      await until(async () => { const z = await state(WIIM); return z.state === "playing" && z.now_playing && z.now_playing.line1 === "Long 2"; });
+      assert.equal(wiim.actions.slice(from).filter(a => a === "SetAVTransportURI").length, 2, wiim.actions.slice(from).join(" "));
+      assert.match(wiim.meta, /Long 2/, "told Long 2 last");
+    });
+
     await t.test("what is playing moves between a renderer and a Sonos room, rebuilt for each", async () => {
       await api("play", { offset: cd.offset, zone_or_output_id: WIIM, kind: "play_now" });
       await until(() => wiim.state === "PLAYING");
@@ -493,6 +512,18 @@ test("a renderer is a zone", { skip, timeout: 150000 }, async (t) => {
       const before = ctx.logs.length;
       await api("play", { offset: long.offset, zone_or_output_id: DAC, kind: "play_now" });
       await until(() => ctx.logs.slice(before).some(l => /track\(s\) no longer made: another play/.test(l)), 15000);
+      // Skipped from while it waits to be made (item 264): what was being made for Song 1 (stopped part made above)
+      // stops, and Song 2, waiting its turn behind it, is made in its place.
+      // (The device's clock held meanwhile: its tracks are seconds long, and it would play past Song 2 as it is made.)
+      const skip = ctx.logs.length;
+      await api("play", { offset: cd.offset, zone_or_output_id: DAC, kind: "play_now" });
+      dac.hold();
+      try {
+        await api("control", { zone_or_output_id: DAC, command: "next" });
+        await until(() => ctx.logs.slice(skip).some(l => /1 track\(s\) no longer made: skipped from/.test(l)), 15000);
+        await until(() => ctx.logs.slice(skip).some(l => /02 Song 2\.flac: DSD64 from PCM.*made as it played/.test(l)), 30000);
+      } finally { dac.release(); }
+      assert.ok(!ctx.logs.slice(skip).some(l => /01 Song 1\.flac: DSD64 from PCM.*made as it played/.test(l)), "Song 1 not made");
       await api("control", { zone_or_output_id: DAC, command: "stop" });
       await api("audio-devices/" + DAC, { output: { dsd_out: "off" }, enabled: false }, "PATCH");
     });
