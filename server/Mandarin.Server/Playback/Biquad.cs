@@ -157,8 +157,12 @@ internal static class Biquad
         if (!Jv.T(dsp)) return 0;
         if (Jv.Get(dsp, "headroom") is double h && double.IsFinite(h)) return Math.Min(0, h);
         var bands = BandsOf(dsp);
-        if (bands.Count == 0) return 0;
-        var needed = -(PeakDb(bands, RateOr48k(fs)) + HeadroomMargin);
+        // A convolution's response (item 252): what it lifts most added to what the bands lift most, never a gain.
+        var conv = Jv.Get(dsp, "convolution") is JsObj;
+        if (bands.Count == 0 && !conv) return 0;
+        var peak = (bands.Count > 0 ? PeakDb(bands, RateOr48k(fs)) : 0) + Convolution.Peak(dsp);
+        var needed = -(peak + HeadroomMargin);
+        if (conv) needed = Math.Min(0, needed);
         var hp = Jv.Get(dsp, "headphone");
         if (Jv.T(hp) && Jv.Get(hp, "preamp") is double own && own <= needed) return own;
         return Js.Round(needed * 10) / 10;
@@ -206,6 +210,8 @@ internal static class Biquad
             if (bands.Count > MaxBands) throw new BandError("the PEQ has at most " + MaxBands + " bands");
             out_["peq"] = Jv.Obj(("bands", bands));
         }
+        // A room or headphone correction's response (item 252), said only where there is one.
+        if (Convolution.Normalise(Jv.Get(cur, "convolution")) is { } cv) out_["convolution"] = cv;
         if (Jv.Get(cur, "headroom") is double hr)
         {
             if (!(hr >= -30 && hr <= 0)) throw new BandError("headroom must be 0 to −30 dB");
@@ -215,7 +221,7 @@ internal static class Biquad
     }
 
     /* Does this setting change the sound at all? */
-    public static bool Active(object? dsp) => Jv.T(dsp) && Jv.T(Jv.Get(dsp, "enabled")) && BandsOf(dsp).Count > 0;
+    public static bool Active(object? dsp) => Jv.T(dsp) && Jv.T(Jv.Get(dsp, "enabled")) && (BandsOf(dsp).Count > 0 || Convolution.Of(dsp) != null);
 
     /*
      * A short stable name for what a setting does, for cache files: FNV-1a,
@@ -223,7 +229,10 @@ internal static class Biquad
      */
     public static string Fingerprint(object? dsp, object? fs)
     {
-        var s = Js.Json(Jv.Obj(("b", BandsOf(dsp)), ("h", Headroom(dsp, fs)))) ?? "";
+        // With a convolution (item 252) its file too; without one, the name as it always was.
+        var s = Js.Json(Jv.T(dsp) && Jv.Get(dsp, "convolution") is JsObj conv
+            ? Jv.Obj(("b", BandsOf(dsp)), ("h", Headroom(dsp, fs)), ("c", Jv.Get(conv, "file")))
+            : Jv.Obj(("b", BandsOf(dsp)), ("h", Headroom(dsp, fs)))) ?? "";
         uint h1 = 0x811c9dc5, h2 = 0x01000193;
         for (var i = 0; i < s.Length; i++)
         {

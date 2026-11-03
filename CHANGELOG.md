@@ -24,6 +24,8 @@
 - New - two more upsampling filters (Settings → Audio Devices → a device → Output → Filter): Minimum phase, whose ringing comes only after a sound starts, and Gentle, which rolls off earlier and rings for half as long; made ahead as Whole track is, and used for PCM as DSD too
 - Fixed - Output's Filter button for minimum phase read "Minimum p…" on a phone; it says Min phase
 - Improved - PCM as DSD is made about three times faster: a track at DSD256 in about a quarter of its own length here, where it took longer than the track itself
+- Fixed - with PCM as DSD, a track that starts before its DSD is ready is still made, after the tracks to come, so it plays as DSD next time; Now playing says why it has the standard filter meanwhile, and Output's Filter says it is the filter the DSD is made with
+- New - room and headphone correction: load an impulse response (a WAV from REW, Dirac or a headphone measurement) on a streamer's or DAC's DSP and everything it plays runs through it (Settings → Audio Devices → a device → DSP → Room correction)
 - Improved - Mandarin's DSD modulator holds past SACD's highest level (+3.1 dB, 71% modulation) with room to spare, where it held only to 62%
 
 - `255-modulator-headroom` (item 255): **the modulator holds to SACD's highest level.** SACD's reference is 50%
@@ -34,6 +36,41 @@
   with no reset to 75% or more. The noise in the band is a little higher, still below what any DAC resolves: −126 dB
   at DSD64 (was −139), −161 dB at DSD128, −204 dB at DSD256 (was −228). Tests hold each rate to no reset at 71.4% and
   75%, on a tone, on three tones and on noise; with the gain of 1.4 they fail.
+
+- `252-convolution` (item 252): **room correction from an impulse response.** A device's DSP (a renderer, or a sound
+  device on the server) gains Room correction: Load a response… takes a WAV (16, 24 or 32-bit PCM, or 32 or 64-bit
+  float; one channel or two; up to 10 seconds and 32 MB), checks it, measures the most it lifts anything from 20 Hz to
+  20 kHz, keeps it beside the database by its hash and saves its facts with the DSP setting (POST and DELETE
+  /api/audio-devices/:id/impulse; Playback/Convolution.cs, ImpulseRoutes.cs). Played, the track runs through it with
+  ffmpeg's afir in 64-bit float at the track's own rate, before it is upsampled, as it is streamed and in a whole track
+  made ahead alike; a one-channel response is used on both sides. A response made at another rate is resampled to the
+  track's, its level put back (a resampled response's gain moves by the ratio of the rates; left alone it lost 1.8 dB)
+  and a few samples of silence laid before it so its start isn't cut; within 0.0004 dB of exact. The auto headroom
+  takes what the response lifts as it does the bands'. The page and the app show what is loaded (name, rate,
+  channels, length, the most it lifts) with Load another… and Remove; a phone's DSP has no room correction. A test
+  loads and measures responses, refuses a non-WAV and takes one off, and plays a track through a response of −1 to
+  see it come out turned over, streamed and made ahead. Two things met on the way: the DSP's fingerprint threw for a
+  device with no DSP setting at all (the C#-against-Node comparison caught it), and 254's minimum-phase test used
+  70 s of its file's 150 on the long album's makings; it plays the short album now (14 s), and still fails on the
+  old Now playing words.
+
+- `254-dsd-plays` (item 254): **PCM as DSD that plays as DSD, and says so.** A FiiO SR11 at Max, Min phase and DSD256
+  (3 November) never seemed to play DSD256, and Now playing said "Standard filter" under a filter set to minimum phase.
+  The log showed why. A track that starts before its DSF is made goes as PCM, and its making was then dropped for ten
+  minutes so that the tracks after it came first. Nothing took it up again, so Now playing's "DSD256 next play" was
+  never true. Its sheet even read "for this track's next play: next play". It is now put after the tracks still to
+  come (WholeJobs.Skip); one under way is stopped and made again in its turn. Meanwhile the PCM standing in for it
+  says why its filter is the standard one: "Standard filter · until the DSD256 (minimum phase) is made". The Being
+  made step says "waiting its turn", "being made now", or "made: this track plays as DSD next time". A stream's log
+  line says WAV where it is sent as WAV ("as WAV: FLAC stops at 655.35 kHz → FLAC 24/705.6 kHz" before). The
+  renderer test sees Long 1 made after Long 2, and the stand-in's words with a device set to minimum phase; with the
+  old code, Long 1 is never made and the line is "Standard filter". DsdLowpassTests counts a stream's frames by
+  decoding it, not from STREAMINFO, which a stream read while it is made has as 0 (253's cause; met on a busy run).
+  Output's Filter, with PCM as DSD on, said "a track not yet made plays with the standard filter" and showed the
+  makings twice, under it and under PCM as DSD. Its note now says it is the filter each track is made DSD with
+  (minimum phase, gentle, or the whole track's linear one) and that a track playing first goes as PCM with the
+  standard filter; the makings are shown once, under PCM as DSD (page and app; device-filter-note-page.test.js,
+  AudioDevicesTest).
 
 - `251-dsd-faster` (item 251): **DSD made three times faster.** A 220 s track at DSD256 took 456 s on the owner's server.
   Measured here, 60 s at DSD256 took 38.9 s: the whole-track step 6 s; the doublings 60% and the modulator 25% of the

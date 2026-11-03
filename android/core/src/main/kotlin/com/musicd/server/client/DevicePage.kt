@@ -122,7 +122,7 @@ class DevicePage(val j: JSONObject) {
     val filter: String get() = output.optString("filter", "standard")
     val showFilter: Boolean get() = mode != "original" || output.has("dsd_out")
     val filters: List<SegChoice> get() = listOf(SegChoice("standard", "Standard"), SegChoice("whole", "Whole track"), SegChoice("minphase", "Min phase"), SegChoice("gentle", "Gentle"))
-    val filterNote: String get() = when (filter) {
+    val filterNote: String get() = if (dsdOut != 0) dsdFilterNote(dsdOut, filter) else when (filter) {
         "whole" -> "One filter as long as the track, made ahead of playing (some 30 seconds a track); a track not yet made plays with the standard filter. Tracks from the library, ×2 to ×16."
         "minphase" -> "Whole track’s filter made minimum phase: all its ringing after a sound starts, none before. Made ahead as Whole track is; a track not yet made plays with the standard filter."
         "gentle" -> "Whole track’s filter rolling off from 90% of the band (19.8 kHz for a CD), twice as gently: its ringing half as long, the very top a little down (−6 dB at 21 kHz). Made ahead as Whole track is."
@@ -142,7 +142,8 @@ class DevicePage(val j: JSONObject) {
         else "Nothing goes above ${maxRate / 1000} kHz (${rateWord(maxRate / 48000 * 44100)} kHz for music in 44.1’s family), upsampled or not."
 
     /** How the making goes (item 239): the tracks made and kept, the one being made, those waiting; null unless made ahead. */
-    val wholeLine: String? get() = if (filter != "standard") wholeStatus else null
+    /** How the making goes, under the filter; with PCM as DSD on, under that instead (they are its makings, item 254). */
+    val wholeLine: String? get() = if (filter != "standard" && dsdOut == 0) wholeStatus else null
     private val wholeStatus: String? get() {
         val w = output.optJSONObject("whole") ?: return null
         val made = w.optInt("made")
@@ -199,6 +200,14 @@ class DevicePage(val j: JSONObject) {
     /** DSP: on a renderer, a sound device of the server's, or a phone, where the server sends it. */
     val showDsp: Boolean get() = (kind == "upnp" || kind == "local" || kind == "phone") && dsp != null
     val dspOn: Boolean get() = dsp?.optBoolean("enabled") == true
+    /** Room correction (item 252): the impulse response loaded for a renderer or a sound device here, or null; and its words, as the page's. */
+    val convolution: JSONObject? get() = dsp?.optJSONObject("convolution")
+    val showRoomCorrection: Boolean get() = showDsp && kind != "phone"
+    val irName: String get() = convolution?.optString("name").orEmpty().ifEmpty { "Impulse response" }
+    val irMeta: String? get() = convolution?.let { c ->
+        "${rateWord(c.optInt("rate"))} kHz · ${if (c.optInt("channels") == 2) "2 channels" else "1 channel"} · ${jsNum(c.optDouble("seconds"))} s · lifts at most ${dbWord(c.optDouble("peak_db"))}"
+    }
+    val irLoad: String get() = if (convolution != null) "Load another…" else "Load a response…"
     val dspInfo: String get() = if (kind == "phone") "The app runs the headphone profile and the bands on everything this phone plays — the server's stream, Opus away from home, downloads — in 64-bit float, out through Bluetooth, USB or the speaker as float."
         else "Every track is decoded to 64-bit float, the headroom taken, upsampled if set, the bands run, then dithered to " + (if (flac32 && has32 && outBits != "24") "32" else "24") + " bits. Off, the device gets the file as stored (or the conversion the Output settings ask for)."
     val dspNote: String get() = if (dspOn) "On. A headphone profile and up to ten bands, on everything it plays." else if (kind == "phone") "Off. The app plays what it is given as it is." else "Off. The device gets the file as stored."
@@ -225,8 +234,18 @@ class DevicePage(val j: JSONObject) {
         /** 0 to −12 dB, −5 the default. */
         val UNKNOWNS = (0 downTo -12).map { Choice("$it", "$it dB" + if (it == -5) " (Default)" else "") }
 
+        /** The filter's note with PCM as DSD[n] on (item 254): the one each track is made DSD with, and the PCM meanwhile. */
+        fun dsdFilterNote(n: Int, filter: String): String = "With PCM as DSD$n on, this is the filter each track is made DSD$n with: " +
+            (when (filter) { "minphase" -> "minimum phase, all its ringing after a sound starts"; "gentle" -> "gentle, rolling off from 90% of the band"; else -> "one as long as the track, linear phase" }) +
+            ". A track that plays before its DSD$n is made goes as PCM, with the standard filter."
         /** A rate in kHz as the page writes it: 44.1, 48, 176.4. */
         fun rateWord(hz: Int): String = (hz / 1000.0).let { if (it == Math.floor(it)) it.toLong().toString() else it.toString() }
+        /** A number as the page writes it (String(n)): 1, not 1.0. */
+        fun jsNum(v: Double): String = if (v == Math.floor(v) && !v.isInfinite()) v.toLong().toString() else v.toString()
+        /** dB as the page's fmtDb: its sign (a true minus), one decimal. */
+        fun dbWord(v: Double): String = (if (v > 0) "+" else if (v < 0) "−" else "") + String.format(java.util.Locale.ROOT, "%.1f", Math.abs(v)) + " dB"
+        /** Room correction's words with none loaded. */
+        const val IR_NONE = "None. An impulse response (a WAV from REW, Dirac or a headphone measurement) corrects the room or the headphones; it runs on everything this device plays, before the bands."
         private fun when_(ms: Long, at: (Long) -> String) = if (ms > 0) at(ms) else "—"
         private fun JSONArray?.strings(): List<String> = if (this == null) emptyList() else (0 until length()).map { optString(it) }
         fun forgetAsk(name: String) = "Forget “$name”?\n\nIts name and settings go. If it turns up again it starts afresh."

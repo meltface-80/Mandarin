@@ -164,7 +164,7 @@ internal static partial class Library
             // Settings → Updates (v0.8.48, UpdateRoutes.cs); the app's logging's server side (item 121, DiagnosticsRoutes.cs).
             if (await UpdateRoute(ctx) || await DiagnosticsRoute(ctx)) return;
             // Audio Devices: the writes (v0.8.48, DeviceRoutes.cs); the list, a device's page, Look again and Forget (v0.8.49, DeviceRoutes.Read.cs) once this server holds playback.
-            if (await DeviceRoute(ctx) || await DeviceReadRoute(ctx)) return;
+            if (await DeviceRoute(ctx) || await ImpulseRoute(ctx) || await DeviceReadRoute(ctx)) return;
             // /api/status, Clean up and the wall display's content (v0.8.48, HousekeepingRoutes.cs).
             if (await HousekeepingRoute(ctx)) return;
             // Rescan, Reindex and the music folders (v0.8.34, ScanRoutes.cs), once the scans are made here.

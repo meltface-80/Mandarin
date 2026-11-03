@@ -118,8 +118,9 @@ internal static partial class Transcoder
     public static List<string> Args(string src, ConvPlan p, string dest) => Args(src, p, dest, Ff.Value.Soxr);
 
     /* The same with soxr said (whether ffmpeg has libsoxr), as the tests ask it. */
-    public static List<string> Args(string src, ConvPlan p, string dest, bool soxr) =>
-        Playback.HighRates.Args(Playback.DsdLowpass.Args(StreamPlans.FfmpegArgs(src, p.ToJs(), dest, soxr).Select(Jv.Str).ToList(), p.Lowpass, soxr), p.Wav, p.Bits);
+    public static List<string> Args(string src, ConvPlan p, string dest, bool soxr, bool convolve = true) =>
+        Playback.Convolution.Args(Playback.HighRates.Args(Playback.DsdLowpass.Args(StreamPlans.FfmpegArgs(src, p.ToJs(), dest, soxr).Select(Jv.Str).ToList(), p.Lowpass, soxr), p.Wav, p.Bits),
+            convolve && p.Dsp != null ? Playback.Convolution.Of(Jv.Get(p.Dsp, "dsp")) : null, p.InRate, soxr);   // a room or headphone correction, at the track's rate (item 252)
 
     /* Start (or join) a conversion now. */
     public static ConvJob Start(ConvTrack t, ConvPlan p, bool background = false)
@@ -180,7 +181,7 @@ internal static partial class Transcoder
                 if (pieces != null) _ = Services.Catalogue.FeedDash(proc.StandardInput, pieces);
                 else proc.StandardInput.Close();
                 proc.BeginErrorReadLine();
-                Server.Log($"[stream] {Path.GetFileName(t.Path)}: {plan.Reason} → FLAC {plan.Bits}/{(plan.Rate / 1000.0).ToString(CultureInfo.InvariantCulture)} kHz{(plan.Copy ? " (as it comes)" : "")}");
+                Server.Log($"[stream] {Path.GetFileName(t.Path)}: {plan.Reason} → {(plan.Wav ? "WAV" : "FLAC")} {plan.Bits}/{(plan.Rate / 1000.0).ToString(CultureInfo.InvariantCulture)} kHz{(plan.Copy ? " (as it comes)" : "")}");
                 // A reader waiting for more is woken as the .part grows.
                 _ = Task.Run(async () =>
                 {

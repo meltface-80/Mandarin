@@ -28,6 +28,10 @@ const FILTER_NOTE = {
   minphase: "Whole track’s filter made minimum phase: all its ringing after a sound starts, none before. Made ahead as Whole track is; a track not yet made plays with the standard filter.",
   gentle: "Whole track’s filter rolling off from 90% of the band (19.8 kHz for a CD), twice as gently: its ringing half as long, the very top a little down (−6 dB at 21 kHz). Made ahead as Whole track is."
 };
+// The filter with PCM as DSD on (item 254): the one each track is made DSD with, and the PCM that stands in meanwhile.
+const DSD_FILTER_NOTE = (n, f) => "With PCM as DSD" + n + " on, this is the filter each track is made DSD" + n + " with: " +
+  (f === "minphase" ? "minimum phase, all its ringing after a sound starts" : f === "gentle" ? "gentle, rolling off from 90% of the band" : "one as long as the track, linear phase") +
+  ". A track that plays before its DSD" + n + " is made goes as PCM, with the standard filter.";
 // DSD sent as PCM (item 241): what the low-pass does.
 const DSD_LOWPASS_NOTE = (cut) => cut
   ? "DSD this device is sent as PCM has the modulator’s noise above " + (cut / 1000) + " kHz taken off; below it, as recorded. DSD it takes as DSD goes as it is."
@@ -43,6 +47,10 @@ const wholeLine = (w) => {
   if (w.waiting) parts.push(w.waiting + " waiting");
   return parts.join(" · ");
 };
+// The Filter's note and how its making goes (item 254): with PCM as DSD on, the filter is the DSD's and the makings
+// are said under PCM as DSD, not twice.
+const filterNotes = (o) => [o.dsd_out ? DSD_FILTER_NOTE(o.dsd_out, o.filter) : FILTER_NOTE[o.filter || "standard"],
+  !o.dsd_out && o.filter && o.filter !== "standard" && o.whole ? wholeLine(o.whole) : null];
 const ask = (q) => window.__confirmDialog ? window.__confirmDialog(q) : Promise.resolve(confirm(q));
 const deviceToast = (m, kind) => { if (window.__showToast) window.__showToast(m, kind); };
 const svg = (paths) => '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + paths + "</svg>";
@@ -69,11 +77,11 @@ function dspOf(d) {
   if (dspDraft && dspDraft.id === d.id) return dspDraft;
   const cur = d.dsp || { enabled: false, peq: null, headroom: "auto" };
   dspDraft = { id: d.id, dirty: false, bands: ((cur.peq && cur.peq.bands) || []).map(b => Object.assign({}, b)), headroom: cur.headroom == null ? "auto" : cur.headroom,
-    headphone: cur.headphone || null };
+    headphone: cur.headphone || null, convolution: cur.convolution || null };
   return dspDraft;
 }
 function dspSetting(draft, enabled) {
-  return { enabled, headphone: draft.headphone, peq: { bands: draft.bands }, headroom: draft.headroom };
+  return { enabled, headphone: draft.headphone, peq: { bands: draft.bands }, headroom: draft.headroom, convolution: draft.convolution || undefined };
 }
 // Every band the draft runs: the headphone profile's, then the PEQ's.
 const allBands = dr => (dr.headphone && dr.headphone.bands ? dr.headphone.bands : []).concat(dr.bands);
@@ -314,8 +322,8 @@ function renderDetail(keepInput) {
         '<div class="settings-note"' + ' data-parity="settings-device.note"' + '>' + (cap ? "Nothing goes above " + (cap / 1000) + " kHz (" + (cap / 48000 * 44.1) + " kHz for music in 44.1’s family), upsampled or not." : "As high as the device takes.") + "</div></div>" : "") +
       (o.mode !== "original" || o.dsd_out ? '<div class="cap-group"><span class="cap-label"' + ' data-parity="settings-device.cap-label"' + '>Filter</span>' +
         seg("filter", [{ v: "standard", label: "Standard" }, { v: "whole", label: "Whole track" }, { v: "minphase", label: "Min phase" }, { v: "gentle", label: "Gentle" }], o.filter || "standard") +
-        '<div class="settings-note"' + ' data-parity="settings-device.note"' + '>' + FILTER_NOTE[o.filter || "standard"] + "</div>" +
-        (o.filter && o.filter !== "standard" && o.whole ? '<div class="settings-note"' + ' data-parity="settings-device.note"' + '>' + esc(wholeLine(o.whole)) + "</div>" : "") + "</div>" : "") +
+        '<div class="settings-note"' + ' data-parity="settings-device.note"' + '>' + filterNotes(o)[0] + "</div>" +
+        (filterNotes(o)[1] ? '<div class="settings-note"' + ' data-parity="settings-device.note"' + '>' + esc(filterNotes(o)[1]) + "</div>" : "") + "</div>" : "") +
       (has32 ? '<div class="cap-group"><span class="cap-label"' + ' data-parity="settings-device.cap-label"' + '>Bit depth</span>' +
         seg("bits", [{ v: "auto", label: "Auto" }, { v: 24, label: "24" }, { v: 32, label: "32", off: !o.flac32 }], o.bits) +
         "" +

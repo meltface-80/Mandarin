@@ -125,8 +125,11 @@
     if (!dsp) return 0;
     if (typeof dsp.headroom === "number" && Number.isFinite(dsp.headroom)) return Math.min(0, dsp.headroom);
     const bands = bandsOf(dsp);
-    if (!bands.length) return 0;
-    const needed = -(peakDb(bands, fs || 48000) + HEADROOM_MARGIN);
+    // A convolution's response (item 252): what it lifts most added to what the bands lift most, never a gain.
+    const conv = dsp.convolution && typeof dsp.convolution === "object" ? dsp.convolution : null;
+    if (!bands.length && !conv) return 0;
+    let needed = -((bands.length ? peakDb(bands, fs || 48000) : 0) + (conv ? Number(conv.peak_db) || 0 : 0) + HEADROOM_MARGIN);
+    if (conv) needed = Math.min(0, needed);
     const own = dsp.headphone && typeof dsp.headphone.preamp === "number" ? dsp.headphone.preamp : null;
     if (own != null && own <= needed) return own;
     return Math.round(needed * 10) / 10;

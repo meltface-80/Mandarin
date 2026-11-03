@@ -23,10 +23,11 @@ internal static partial class WholeJobs
     private static readonly HashSet<long> Failed = [];
     private static string? makingName;
     private static bool running;
-    // The making under way, and those dropped (Skip, Only), until when: not made again before then.
+    // The making under way; those dropped by another play (Only), until when: not made again before then; and those
+    // stopped under way to be made later (Skip), whose run ends without a file.
     private static (string Key, Process Proc)? current;
     private static readonly Dictionary<string, DateTime> Skipped = [];
-    private static readonly TimeSpan Dropped = TimeSpan.FromMinutes(10);
+    private static readonly HashSet<string> Halted = [];
     // A pause between a making taken from the queue and its start: the tests' own, to hold that moment open (246).
     private static readonly int Wait = int.TryParse(Environment.GetEnvironmentVariable("MANDARIN_MAKE_WAIT_MS"), out var w) && w > 0 ? w : 0;
 
@@ -79,20 +80,25 @@ internal static partial class WholeJobs
     }
 
     /*
-     * Track [t]'s making by [p] dropped, waiting, about to start or under way (one sent as PCM this time, item 243),
-     * and not taken up again for [Dropped]: the tracks after it, still to come, are made first. A play queues its
-     * tracks to be made before it starts the first (Items.PlayTracks), so the first's may be on its way already (246).
+     * Track [t]'s making by [p] put after the tracks still to come, waiting, about to start or under way (one sent as
+     * PCM this time, item 243): they are made first, then it, for its next play (item 254; dropped for ten minutes
+     * before, Now playing's "next play" was never so). One under way is stopped and begun again in its turn. A play
+     * queues its tracks to be made before it starts the first (Items.PlayTracks), so the first's may be on its way (246).
      */
     public static void Skip(ConvTrack t, ConvPlan p)
     {
         var key = Transcoder.KeyFor(t, p);
         lock (Queue)
         {
-            var now = DateTime.UtcNow;
-            foreach (var old in Skipped.Where(s => s.Value <= now).Select(s => s.Key).ToList()) Skipped.Remove(old);
-            Skipped[key] = now + Dropped;
-            Queue.RemoveAll(q => q.Key == key);
-            if (current is { } c && c.Key == key) Stop(c.Proc);
+            var waiting = Queue.RemoveAll(q => q.Key == key) > 0;
+            var under = Making.Contains(key);
+            if (!waiting && !under) return;   // made already, or never asked for
+            if (under)
+            {
+                Halted.Add(key);
+                if (current is { } c && c.Key == key) Stop(c.Proc);
+            }
+            Queue.Add((key, t, p));
         }
     }
 
@@ -158,15 +164,16 @@ internal static partial class WholeJobs
     // One track made: the job handed to `mandarin-server upsample`, its file moved into place once whole.
     private static async Task Make(string key, ConvTrack t, ConvPlan p)
     {
-        lock (Queue) { if (WasSkipped(key)) return; }   // dropped on its way here
+        lock (Queue) { if (WasSkipped(key) || Halted.Remove(key)) return; }   // dropped or put back on its way here
         var final = Transcoder.FinalPath(key);
+        if (File.Exists(final)) return;   // made while it waited
         var part = final + ".part";
         var job = p.DsdUp != 0 ? DsdPlan.Job(t.Path, p, part, Transcoder.Soxr, MaxOutBits()) : Job(t.Path, p, part);
         var psi = new ProcessStartInfo(Environment.ProcessPath ?? "mandarin-server") { UseShellExecute = false, RedirectStandardInput = true, RedirectStandardOutput = true, RedirectStandardError = true };
         psi.ArgumentList.Add("upsample");
         Cpu.Place(psi, CpuKind.Ahead);
         using var proc = Process.Start(psi)!;
-        lock (Queue) { current = (key, proc); if (WasSkipped(key)) Stop(proc); }
+        lock (Queue) { current = (key, proc); if (WasSkipped(key) || Halted.Contains(key)) Stop(proc); }
         Cpu.Adopt(proc, CpuKind.Ahead);
         try { await proc.StandardInput.WriteLineAsync(job.ToJsonString()); proc.StandardInput.Close(); }
         catch (IOException) { /* stopped before it read its job (Skip); its exit says so */ }
@@ -177,7 +184,7 @@ internal static partial class WholeJobs
         lock (Queue)
         {
             current = null;
-            if (WasSkipped(key))
+            if (Halted.Remove(key) | WasSkipped(key))
             {
                 try { File.Delete(part); } catch (IOException) { /* never made */ }
                 return;
@@ -209,22 +216,26 @@ internal static partial class WholeJobs
         var inRate = (long)p.InRate;
         if (inRate <= 0 || p.Rate % inRate != 0) throw new InvalidOperationException($"no rate of the track's own to upsample from ({p.InRate} Hz to {p.Rate} Hz)");
         var decode = new JsonArray("-hide_banner", "-nostdin", "-loglevel", "error", "-i", src, "-map", "0:a:0", "-vn");
-        if (p.Gain != 0) { decode.Add("-af"); decode.Add($"volume=volume={Jv.Str(p.Gain)}dB:precision=double"); }
+        // The gain, and a room or headphone correction (item 252) at the track's own rate, before it is upsampled; the
+        // encode below then leaves the correction out.
+        var conv = p.Dsp != null ? Playback.Convolution.Of(Jv.Get(p.Dsp, "dsp")) : null;
+        var pre = p.Gain != 0 ? $"volume=volume={Jv.Str(p.Gain)}dB:precision=double" : conv != null ? "anull" : null;
+        if (pre != null) { decode.Add("-af"); decode.Add(conv != null ? Playback.Convolution.Graph(pre, conv, inRate, Transcoder.Soxr) : pre); }
         foreach (var a in new[] { "-ac", "2", "-ar", inRate.ToString(System.Globalization.CultureInfo.InvariantCulture), "-f", "f64le", "-c:a", "pcm_f64le", "pipe:1" }) decode.Add(a);
         // The conversion's own arguments, from 64-bit float at the plan's rate on standard input (nothing to resample,
         // no gain twice), the source's tags beside it.
-        var conv = Transcoder.Args(src, p with { Gain = 0, Whole = false, InRate = p.Rate }, dest);
+        var convArgs = Transcoder.Args(src, p with { Gain = 0, Whole = false, InRate = p.Rate }, dest, Transcoder.Soxr, convolve: false);
         var rate = p.Rate.ToString(System.Globalization.CultureInfo.InvariantCulture);
         var encode = new JsonArray();
-        for (var i = 0; i < conv.Count; i++)
+        for (var i = 0; i < convArgs.Count; i++)
         {
-            if (conv[i] == "-i" && i + 1 < conv.Count && conv[i + 1] == src)
+            if (convArgs[i] == "-i" && i + 1 < convArgs.Count && convArgs[i + 1] == src)
             {
                 foreach (var a in new[] { "-f", "f64le", "-ar", rate, "-ac", "2", "-i", "pipe:0", "-i", src }) encode.Add(a);
                 i++;
             }
-            else if (conv[i] == "-map_metadata" && i + 1 < conv.Count) { encode.Add("-map_metadata"); encode.Add("1"); i++; }
-            else encode.Add(conv[i]);
+            else if (convArgs[i] == "-map_metadata" && i + 1 < convArgs.Count) { encode.Add("-map_metadata"); encode.Add("1"); i++; }
+            else encode.Add(convArgs[i]);
         }
         return new JsonObject
         {
