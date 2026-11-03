@@ -17,6 +17,18 @@
 - Fixed - whole-track upsampling works for an album or a queue played on a streamer; every track planned from a queue failed ("whole track failed: see the log")
 - Fixed - Now playing shows a track's real length on a streamer that misreads it (419 hours for an upsampled ×16 track on a FiiO SR11)
 - New - DSD sent to a device as PCM can have the DSD modulator's ultrasonic noise taken off above 30 or 50 kHz (Settings → Audio Devices → a device → Output → DSD as PCM)
+- New - Mandarin can make DSD from PCM: a seventh-order modulator, its noise from 20 Hz to 20 kHz some 139 dB down at DSD64 (the engine; choosing it for a device follows)
+
+- `242-dsd-modulator` (item 242): **PCM made DSD.** The engine for DSD output (item 243): a one-bit delta-sigma
+  modulator of the seventh order in 64-bit floats (DsdModulator.cs), its noise transfer function of optimal zeros
+  (the roots of the Legendre polynomial, spread over the audio band) and a Butterworth high-pass's poles set for a gain
+  out of band of 1.4 (DsdNtf.cs). Measured on its own bits at SACD's level (full-scale PCM is half the modulation): the
+  noise from 20 Hz to 20 kHz is 139 dB below full scale at DSD64 and 228 dB at DSD256; the loop holds to 60%
+  modulation and on three tones and noise together, a guard starting it again (and counting) should it ever be
+  overloaded. A track reaches it upsampled whole to 705.6 kHz (item 237), then doubled to the DSD rate by half-band
+  filters (DsdChain.cs), each channel on a core of its own, and is written as a DSF (DsfWriter.cs) exactly as long as
+  the track; ffmpeg reads it back at the source's level, 6 dB down as SACD has it. `mandarin-server upsample` makes it
+  given `{ dsd, out }`. DSD256 takes about as long as the track on two cores; DSD64 a third of that.
 
 - `241-dsd-lowpass` (item 241): **DSD played as PCM, its modulator's noise above the band taken off.** DSD64
   carries its noise above the audio band, rising from some 20 kHz. A DSD-capable DAC is sent the file as it is and
