@@ -341,7 +341,7 @@ Sonos rooms are found on the network by themselves (`SONOS_HOSTS` if not). Pick 
 
 📡 **UPnP/DLNA renderers**
 
-WiiM, Chord Poly, streamers, AV receivers and TVs on your network, played like a Sonos room. Tracks join gaplessly on a renderer that supports it.
+WiiM, Chord Poly, streamers, AV receivers and TVs on your network, played like a Sonos room. Tracks join gaplessly on a renderer that supports it. An Android device with a USB DAC running [Mandarin USB](https://github.com/meltface-80/Android-USB-Driver) is one too, its DAC read whole: every rate, depth and DSD multiple it takes, and a ✓ when it is fed what was sent.
 
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 

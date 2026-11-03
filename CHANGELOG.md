@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- New - a Mandarin USB renderer (an Android device with a USB DAC, github.com/meltface-80/Android-USB-Driver) is read whole: every rate, depth and DSD multiple its DAC takes shows as advertised on its page, nothing to tick, and a track gets the ✓ when the DAC is fed what was sent
 - Fixed - away from home, the Android app only talks to its own server through its own Tailscale
 - Improved - the server re-reads the library far less often while its background jobs run
 - Fixed - away from home, the Android app no longer drops a working connection after its Tailscale restarts
