@@ -39,7 +39,10 @@
   takes what the response lifts as it does the bands'. The page and the app show what is loaded (name, rate,
   channels, length, the most it lifts) with Load another… and Remove; a phone's DSP has no room correction. A test
   loads and measures responses, refuses a non-WAV and takes one off, and plays a track through a response of −1 to
-  see it come out turned over, streamed and made ahead.
+  see it come out turned over, streamed and made ahead. Two things met on the way: the DSP's fingerprint threw for a
+  device with no DSP setting at all (the C#-against-Node comparison caught it), and 254's minimum-phase test used
+  70 s of its file's 150 on the long album's makings; it plays the short album now (14 s), and still fails on the
+  old Now playing words.
 
 - `254-dsd-plays` (item 254): **PCM as DSD that plays as DSD, and says so.** A FiiO SR11 at Max, Min phase and DSD256
   (3 November) never seemed to play DSD256, and Now playing said "Standard filter" under a filter set to minimum phase.
