@@ -38,6 +38,16 @@ class AudioDevicesTest {
         assertEquals("1 device shown again.\n\nThey are back on the list, switched off until you switch them on.", AudioDevices.hideSaid(0, 1))
     }
 
+    @Test fun `a phone's page has Output for its USB DAC only while one is in use (item 265)`() {
+        val dac = DevicePage(JSONObject("""{"kind":"phone","rates":[{"hz":44100,"on":true},{"hz":192000,"on":true}],"bits":[{"n":24,"on":true}],"dsd":[{"n":64,"on":true}],"output":{"mode":"x4","bits":"auto","dsd_out":64}}"""))
+        assertTrue(dac.showOutput)
+        assertTrue(dac.showDsdOut)
+        assertEquals("Through its USB DAC the phone is sent what Output below says; away from home, Opus 256 kbps.", dac.capNotes.first())
+        val none = DevicePage(JSONObject("""{"kind":"phone","rates":[],"bits":[],"dsd":[],"output":null}"""))
+        assertFalse(none.showOutput)
+        assertEquals("At home the phone plays the file as it is; away from home, Opus 256 kbps.", none.capNotes.first())
+    }
+
     @Test fun `a renderer's page, its words, chips, output and the changes they make`() {
         val d = DevicePage(JSONObject("""{"id":"w","kind":"upnp","name":"Lounge","network_name":"WiiM Pro","renamed":true,"model":"WiiM Pro","manufacturer":"Linkplay",
             "ip":"1.2.3.4","playable":true,"events":"live","online":false,"last_seen":5,"first_seen":0,"can_toggle":true,"enabled":true,"radio":true,"editable":true,

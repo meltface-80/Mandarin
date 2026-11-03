@@ -248,10 +248,16 @@ internal sealed partial class Players
             ("mode", s["mode"] is string mode && mode is "original" or "x2" or "x4" or "max" ? mode : "original"),
             ("bits", s["bits"] is double b && b is 24 or 32 ? (object)b : "auto"),
             ("dsp", dsp), ("id", r.Id));
+        OutputInto(target, s);
+        return target;
+    }
+
+    /* A device's Output settings [s] into its stream [target]: the filter, DSD as PCM's low-pass, PCM as DSD (a phone's too: item 265). */
+    public static void OutputInto(JsObj target, JsObj s)
+    {
         if (Upsample.Shape.OfFilter(s["filter"]) != null) target["filter"] = s["filter"];   // minimum phase, gentle (items 248, 259); standard by its absence
         if (DsdLowpass.Of(s["dsd_lowpass"]) is { } cut) target["dsd_lowpass"] = cut;   // DSD as PCM, low-passed (item 241)
         if (Upsample.DsdPlan.Of(s["dsd_out"]) is { } up) target["dsd_out"] = (double)up;   // PCM as DSD (item 243)
-        return target;
     }
 
     /* The settings changed (output, DSP): what follows in the queue is planned again; the track playing carries on as it was given. */

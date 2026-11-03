@@ -88,7 +88,7 @@ class DevicePage(val j: JSONObject) {
         if (kind == "upnp") add(if (takesDsd) "DSD files go to it as they are, at the DSD rates that are on; any other goes as PCM. If DSD doesn’t play, tap it off."
             else "It doesn’t say it takes DSD files, so DSD goes to it as PCM.")
         if (kind == "sonos") add("Sonos plays up to 24-bit/48 kHz. Mandarin’s 24/48 rule applies; nothing to set here.")
-        if (kind == "phone") add("At home the phone plays the file as it is; away from home, Opus 256 kbps.")
+        if (kind == "phone") add(if (showOutput) "Through its USB DAC the phone is sent what Output below says; away from home, Opus 256 kbps." else "At home the phone plays the file as it is; away from home, Opus 256 kbps.")
         // A Mac's (item 155) is found by Core Audio, Linux's by ALSA.
         if (kind == "local") add(if (j.optString("found_by").startsWith("This Mac")) "Mandarin sets the device to each track’s rate and holds it while it plays, so nothing else is mixed in; Core Audio carries up to 24 bits exactly. DSD goes as PCM."
             else "Mandarin sends the rates that are on; ALSA converts its 32-bit samples to the depth the device takes. DSD goes as PCM.")
@@ -108,7 +108,8 @@ class DevicePage(val j: JSONObject) {
     }
 
     /** Output: for a renderer or a sound device of the server's. */
-    val showOutput: Boolean get() = kind == "upnp" || kind == "local"
+    // A phone's with a USB DAC in use (item 265): for the DAC, as a renderer's.
+    val showOutput: Boolean get() = kind == "upnp" || kind == "local" || kind == "phone" && j.optJSONObject("output") != null
     private val output: JSONObject get() = j.optJSONObject("output") ?: JSONObject()
     val mode: String get() = output.optString("mode", "original")
     val outBits: String get() = output.opt("bits")?.toString() ?: "auto"

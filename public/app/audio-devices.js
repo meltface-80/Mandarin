@@ -274,7 +274,7 @@ function renderDetail(keepInput) {
     ? "DSD files go to it as they are, at the DSD rates that are on; any other goes as PCM. If DSD doesn’t play, tap it off."
     : "It doesn’t say it takes DSD files, so DSD goes to it as PCM.") + "</div>";
   if (d.kind === "sonos") html += '<div class="settings-note"' + ' data-parity="settings-device.note"' + '>Sonos plays up to 24-bit/48 kHz. Mandarin’s 24/48 rule applies; nothing to set here.</div>';
-  if (d.kind === "phone") html += '<div class="settings-note"' + ' data-parity="settings-device.note"' + '>At home the phone plays the file as it is; away from home, Opus 256 kbps.</div>';
+  if (d.kind === "phone") html += '<div class="settings-note"' + ' data-parity="settings-device.note"' + '>' + (d.output ? "Through its USB DAC the phone is sent what Output below says; away from home, Opus 256 kbps." : "At home the phone plays the file as it is; away from home, Opus 256 kbps.") + '</div>';
   // A Mac's (item 155) is found by Core Audio, Linux's by ALSA.
   if (d.kind === "local") html += '<div class="settings-note"' + ' data-parity="settings-device.note"' + '>' + (/^This Mac/.test(d.found_by || "")
     ? "Mandarin sets the device to each track’s rate and holds it while it plays, so nothing else is mixed in; Core Audio carries up to 24 bits exactly. DSD goes as PCM."
@@ -282,7 +282,8 @@ function renderDetail(keepInput) {
   if (d.profile && d.profile.notes) html += '<div class="settings-note"' + ' data-parity="settings-device.note"' + '>' + esc(d.profile.notes) + "</div>";
   html += "</div>";
 
-  if (d.kind === "upnp" || d.kind === "local") {
+  // A phone with a USB DAC in use (item 265): its Output, for the DAC, as a renderer's.
+  if (d.kind === "upnp" || d.kind === "local" || (d.kind === "phone" && d.output)) {
     const o = d.output || { mode: "original", bits: "auto", flac32: false };
     const seg = (name, opts, cur) => '<div class="seg" data-seg="' + name + '">' + opts.map(x =>
       '<button type="button"' + ({ mode: ' data-parity="settings-device.mode"', bits: ' data-parity="settings-device.depth"', filter: ' data-parity="settings-device.filter"', max_rate: ' data-parity="settings-device.maxrate"', dsd_lowpass: ' data-parity="settings-device.dsdlowpass"', dsd_out: ' data-parity="settings-device.dsdout"' })[name] + ' class="seg-btn' + (String(x.v) === String(cur) ? " is-on" : "") + '" data-seg-v="' + x.v + '"' + (x.off ? " disabled" : "") + ">" + esc(x.label) + "</button>").join("") + "</div>";

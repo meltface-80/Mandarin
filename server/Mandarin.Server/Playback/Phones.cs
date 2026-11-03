@@ -242,16 +242,43 @@ internal sealed partial class Phones
     /* The phones' command polls waiting now (/api/status's waits). */
     public int Waiting { get { lock (zm.Gate) return Map.Values.Sum(p => p.Waiters.Count); } }
 
-    /* The phone's USB DAC as a stream target: null (the Sonos rule) with no DAC in use. */
+    /*
+     * The phone's USB DAC as a stream target: null (the Sonos rule) with no DAC in use. Its Output settings (item 265)
+     * as a renderer's: upsampled, in a shape, to the highest rate allowed, or made DSD, sent as a DSF its USB driver
+     * gives the DAC natively or as DoP; but nothing made DSD while the phone's own DSP, which runs on PCM, is on.
+     */
     public JsObj? TargetFor(string uid)
     {
+        JsObj c;
+        string name;
         lock (zm.Gate)
         {
             var p = Map.GetValueOrDefault(uid);
-            if (p?.UsbCaps is not { } c) return null;
-            var bits = c["bits"] as List<object?> ?? [];
-            return Jv.Obj(("id", p.Uid), ("name", p.Name), ("rates", c["rates"]), ("maxBits", bits.Count > 0 ? bits.Max(b => Jv.Num(b)) : 24),
-                ("containers", PhoneContainers.Select(x => (object?)x).ToList()), ("mode", "original"), ("bits", "auto"), ("dsd", c["dsd"]), ("dsp", null));
+            if (p?.UsbCaps is not { } caps) return null;
+            (c, name) = (caps, p.Name);
+        }
+        DeviceRecord? r;
+        JsObj? dsp;
+        using (var db = Db.Open()) { r = Register.Get(db, uid); dsp = PlaybackRoutes.DspFor(db, uid); }
+        var s = r?.Settings ?? new JsObj();
+        var bits = c["bits"] as List<object?> ?? [];
+        var target = Jv.Obj(("id", uid), ("name", name), ("rates", RateCap.Limit(c["rates"] as List<object?> ?? [], RateCap.Of(s["max_rate"]))),
+            ("maxBits", bits.Count > 0 ? bits.Max(b => Jv.Num(b)) : 24), ("containers", PhoneContainers.Select(x => (object?)x).ToList()),
+            ("mode", s["mode"] is string mode && mode is "original" or "x2" or "x4" or "max" ? mode : "original"),
+            ("bits", s["bits"] is double b && b is 24 or 32 ? (object)b : "auto"), ("dsd", c["dsd"]),
+            ("dsdMimes", Jv.Obj(("dsf", "audio/x-dsf"), ("dff", null))), ("dsp", null));
+        Renderers.Players.OutputInto(target, s);
+        if (Biquad.Active(dsp)) target["dsd_out"] = null;
+        return target;
+    }
+
+    /* The DAC's [kind] ("rates", "bits", "dsd") as a device page shows a device's: each on, said by the DAC (item 265); null with none in use. */
+    public List<object?>? UsbChips(string uid, string kind)
+    {
+        lock (zm.Gate)
+        {
+            if (Map.GetValueOrDefault(uid)?.UsbCaps is not { } c) return null;
+            return (c[kind] as List<object?> ?? []).Select(v => (object?)Jv.Obj((kind == "rates" ? "hz" : "n", v), ("on", true), ("source", "usb"))).ToList();
         }
     }
 
