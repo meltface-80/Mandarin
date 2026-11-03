@@ -505,7 +505,8 @@ test("a renderer is a zone", { skip, timeout: 150000 }, async (t) => {
       // Its own DSF, put after Long 2's: waiting its turn, or being made once Long 2's is (never "next play: next play").
       assert.match(sp.steps.find(x => x.kind === "pending").detail, /^DSD64 for this track’s next play: (waiting its turn|being made now)$/);
       await api("control", { zone_or_output_id: DAC, command: "stop" });
-      await until(async () => { const o = (await api("audio-devices/" + DAC)).output; return o.whole && !o.whole.making && o.whole.waiting === 0; }, 60000);
+      // Its makings ended before the next test (three tracks in minimum phase: minutes, on a busy machine).
+      await until(async () => { const o = (await api("audio-devices/" + DAC)).output; return o.whole && !o.whole.making && o.whole.waiting === 0; }, 180000);
       await api("audio-devices/" + DAC, { caps: { user: { rates: null } }, output: { mode: "original", filter: "standard", dsd_out: "off" }, enabled: false }, "PATCH");
     });
 
