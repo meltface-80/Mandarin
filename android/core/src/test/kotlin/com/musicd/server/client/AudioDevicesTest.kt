@@ -78,6 +78,22 @@ class AudioDevicesTest {
         assertFalse(page("""{"mode":"original","bits":"auto","flac32":false,"filter":"whole"}""").showFilter)
     }
 
+    @Test fun `the highest rate offers the caps below the device's top and holds the example to it`() {
+        fun page(output: String) = DevicePage(JSONObject("""{"kind":"upnp","bits":[],"dsd":[],"output":$output,
+            "rates":[{"hz":44100,"on":true},{"hz":176400,"on":true},{"hz":352800,"on":true},{"hz":384000,"on":true}]}"""))
+        val auto = page("""{"mode":"max","bits":"auto","flac32":false}""")
+        assertTrue(auto.showMaxRate)
+        assertEquals("auto", auto.maxRateValue)
+        assertEquals(listOf("Auto", "96k", "192k"), auto.maxRates.map { it.label })
+        assertEquals("A 16-bit/44.1 kHz file plays as 24-bit/352.8 kHz FLAC.", auto.example)
+        assertEquals("""{"output":{"max_rate":192000}}""", auto.segment("max_rate", "192000").toString())
+        val capped = page("""{"mode":"max","bits":"auto","flac32":false,"max_rate":192000}""")
+        assertEquals("192000", capped.maxRateValue)
+        assertEquals("A 16-bit/44.1 kHz file plays as 24-bit/176.4 kHz FLAC (×4).", capped.example)
+        assertTrue(capped.maxRateNote.startsWith("Nothing goes above 192 kHz (176.4 kHz"))
+        assertFalse(DevicePage(JSONObject("""{"kind":"upnp","bits":[],"dsd":[],"rates":[{"hz":44100,"on":true},{"hz":96000,"on":true}]}""")).showMaxRate)
+    }
+
     @Test fun `a sound device's note says how it plays, a Mac's by Core Audio`() {
         val mac = DevicePage(JSONObject("""{"kind":"local","found_by":"This Mac (Core Audio)"}"""))
         assertTrue(mac.capNotes[0].startsWith("Mandarin sets the device to each track’s rate"))

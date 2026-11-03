@@ -12,6 +12,15 @@
 - New - Album of the Day beside Random Album is one you haven't played in a year or more (or never), stays all day, and has its own switch in Settings → Home Screen
 - Fixed - upsampling ×16 (705.6 and 768 kHz) plays: as WAV where the device takes WAV, else at the highest rate FLAC carries; it was silent
 - New - whole-track upsampling: a streamer or DAC set to upsample can use one filter as long as the track (Settings → Audio Devices → a device → Output → Filter), made ahead of playing
+- New - a highest rate for each streamer or DAC (Settings → Audio Devices → a device → Output → Highest rate): nothing goes above it, upsampled or not
+
+- `240-rate-limits` (item 240): **a highest rate for each device, set by its owner.** A device's rates are what it
+  reports or what its owner switched on, and Max upsampling went to the highest of them; to keep a FiiO SR11 below
+  ×16 its owner had to switch its top rates off. Output gains Highest rate: Auto, or 96, 192, 384 or 768 kHz (only
+  those below the device's own top). It is named by 48 kHz's family and holds 44.1 kHz's to the rate that matches
+  (88.2, 176.4, 352.8, 705.6 kHz). Nothing goes above it, upsampled or not: a file above it is converted down to it,
+  and Max stops there. The device's rates are left as they are (RateCap.cs, applied where the device's rates
+  become the plan's ceiling). The example under Output follows it.
 
 - `237-whole-track-upsampling` (item 237): **upsampling with one filter as long as the track.** A renderer or a
   sound device of the server's (not a Sonos room, not a phone) set to upsample gains a Filter under Output: Standard

@@ -214,6 +214,8 @@ internal sealed class Devices
             ("flac32", Transcoder.Flac32)) : null;
         // The whole-track filter (item 237), said only where it is set: standard is said by its absence.
         if (streamer && r.Settings["filter"] is "whole") ((JsObj)o["output"]!)["filter"] = "whole";
+        // The highest rate its owner allows (item 240), said only where it is set: Auto by its absence.
+        if (streamer && RateCap.Of(r.Settings["max_rate"]) is { } cap) ((JsObj)o["output"]!)["max_rate"] = cap;
         o["first_seen"] = r.FirstSeen; o["last_seen"] = r.LastSeen;
         o["profile"] = caps["profile"]; o["editable"] = caps["editable"];
         o["playable"] = r.Kind != "upnp" || Jv.T(caps["playable"]);

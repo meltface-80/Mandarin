@@ -285,7 +285,18 @@ test("a renderer is a zone", { skip, timeout: 150000 }, async (t) => {
       await api("play", { offset: cd.offset, zone_or_output_id: WIIM, kind: "play_now" });
       const f2 = await until(() => { const l = wiim.fetches.filter(x => x.done && x.body && x.body.length > 1000); const last = l[l.length - 1]; return last && /176400-24/.test(last.uri) && last; }, 15000);
       assert.deepEqual(probe(f2.body), { rate: 176400, channels: 2, bits: 24 });
-      await api("audio-devices/" + WIIM, { output: { mode: "original" } }, "PATCH");
+      // A highest rate of its owner's (item 240): Max held to 96 kHz's family, 88.2 for a CD; a cap there isn't, refused.
+      r = await api("audio-devices/" + WIIM, { output: { max_rate: 96000 } }, "PATCH");
+      assert.equal(r.status, 200, JSON.stringify(r));
+      assert.equal(r.output.max_rate, 96000);
+      assert.equal((await api("audio-devices/" + WIIM, { output: { max_rate: 100000 } }, "PATCH")).status, 400);
+      const before = wiim.fetches.length;
+      await api("play", { offset: cd.offset, zone_or_output_id: WIIM, kind: "play_now" });
+      const f3 = await until(() => wiim.fetches.slice(before).find(x => x.done && x.body && x.body.length > 1000), 15000);
+      assert.match(f3.uri, /\/stream\/t\d+\.88200-24\.flac\?s=/);
+      assert.deepEqual(probe(f3.body), { rate: 88200, channels: 2, bits: 24 });
+      r = await api("audio-devices/" + WIIM, { output: { max_rate: "auto", mode: "original" } }, "PATCH");
+      assert.equal(r.output.max_rate, undefined);
     });
 
     await t.test("DSP: on, a CD rip is decoded, filtered and sent as 24/44.1 FLAC; off, as it is", async () => {
