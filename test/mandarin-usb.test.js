@@ -91,7 +91,8 @@ test("a Mandarin USB renderer: its DAC read whole, and what it plays confirmed",
     await t.test("a hi-res album plays as it is, and the DAC being fed 24/96 confirms it: the ✓, and the rate verified", async () => {
       let r = await api("audio-devices/" + USB, { enabled: true }, "PATCH");
       assert.equal(r.status, 200, JSON.stringify(r));
-      const hires = (await api("library/albums?sort=album")).albums.find(a => a.title === "Hi Res");
+      // The library, once scanned: asked before, the albums aren't there yet.
+      const hires = await until(async () => ((await api("library/albums?sort=album")).albums || []).find(a => a.title === "Hi Res"), 20000);
       r = await api("play", { offset: hires.offset, zone_or_output_id: USB, kind: "play_now" });
       assert.equal(r.ok, true, JSON.stringify(r));
       await until(() => usb.state === "PLAYING");
