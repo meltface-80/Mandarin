@@ -227,7 +227,7 @@ internal static class Profiles
         o["profile"] = profileOut;
         o["rates"] = Rates.Select(hz => { var (on, source) = Pick(hz, "rates", FloorRates); return (object?)Chip("hz", hz, on, source); }).ToList();
         o["bits"] = Bits.Select(n => { var (on, source) = Pick(n, "bits", FloorBits); return (object?)Chip("n", n, on, source); }).ToList();
-        o["dsd"] = DsdChips(p, containers, user);
+        o["dsd"] = DsdChips(p, containers, user, Prop.Get(adv, "dsd"));
         o["containers"] = containers;
         o["editable"] = true;
         o["playable"] = Js.Truthy(Prop.Get(record, "playable"));
@@ -237,13 +237,15 @@ internal static class Profiles
     /*
      * DSD to a renderer (v0.6.0-RC3): the DSF or DFF file itself, for a device
      * that says it takes DSD files (GetProtocolInfo) — at the multiples its
-     * profile lists, or DSD64 for a device with no profile of its own. Yours,
-     * when you have set them. Anything else is played as PCM, as before.
+     * profile lists, or DSD64 for a device with no profile of its own; and
+     * the native DSD a USB DAC says it takes (item 256). Yours, when you have
+     * set them. Anything else is played as PCM, as before.
      */
-    private static List<object?> DsdChips(Profile p, object? containers, object? user)
+    private static List<object?> DsdChips(Profile p, object? containers, object? user, object? advertised)
     {
         var takes = Includes(containers, "dsd");
-        double[] own = p.Id == "generic" ? [64] : p.Dsd;
+        var said = (advertised as List<object?> ?? []).Select(Js.ToNumber).ToList();
+        double[] own = [.. (p.Id == "generic" ? new double[] { 64 } : p.Dsd).Union(said)];
         return Dsd.Select(n =>
         {
             if (!takes) return (object?)Chip("n", n, false, "off");
@@ -253,7 +255,7 @@ internal static class Profiles
                 return Chip("n", n, on, on ? "user" : "off");
             }
             var ok = own.Contains(n);
-            return Chip("n", n, ok, !ok ? "off" : p.Id == "generic" ? "advertised" : "profile");
+            return Chip("n", n, ok, !ok ? "off" : p.Id == "generic" || said.Contains(n) ? "advertised" : "profile");
         }).ToList();
     }
 

@@ -20,9 +20,9 @@ namespace Mandarin.Audio;
 internal enum PlayState { Stopped, Transitioning, Playing, Paused }
 
 // Where a track starts in the buffer, and its format.
-internal sealed record Mark(long Byte, string Uri, double Offset, int Rate, int Channels);
+internal sealed record Mark(long Byte, string Uri, double Offset, int Rate, int Channels, OutFormat Fmt = OutFormat.Pcm);
 
-internal sealed class Engine
+internal sealed partial class Engine
 {
     // The buffer. 64 MB is 3 minutes at 44.1 kHz, 21 s at 384 kHz (stereo,
     // 32-bit). HISTORY is kept behind the playback point so a device that
@@ -163,6 +163,7 @@ internal sealed class Engine
     // One track into the buffer. True when it was decoded to the end.
     private bool DecodeTrack(int gen, string uri, double offset)
     {
+        if (Dsd.IsDsf(uri)) return DecodeDsf(gen, uri, offset);   // DSD as DSD, never made PCM (item 256)
         var args = new List<string> { "-hide_banner", "-loglevel", "error", "-nostdin" };
         if (offset > 0) { args.Add("-ss"); args.Add(offset.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)); }
         args.AddRange(["-i", uri, "-map", "0:a:0", "-vn", "-ac", "2", "-c:a", "pcm_s32le", "-f", "wav", "pipe:1"]);
@@ -356,17 +357,17 @@ internal sealed class Engine
             if (mark == null || len <= 0) { Thread.Sleep(5); continue; }
             try
             {
-                if (sink.Rate != mark.Rate || sink.Channels != mark.Channels)
+                if (sink.Rate != mark.Rate || sink.Channels != mark.Channels || sink.Format != mark.Fmt)
                 {
                     // A new format: what the device holds plays out first.
                     if (sink.Rate != 0) sink.Drain();
-                    sink.Open(mark.Rate, mark.Channels);
-                    emit(Json.Obj("ev", "format", "rate", mark.Rate, "channels", mark.Channels));
+                    sink.Open(mark.Rate, mark.Channels, mark.Fmt);
+                    emit(Json.Obj("ev", "format", "rate", mark.Rate, "channels", mark.Channels, "format", Dsd.AlsaName(mark.Fmt) + (mark.Fmt == OutFormat.Dop ? " (DoP)" : "")));
                 }
                 int idx = (int)(from % Capacity);
                 int contiguous = Math.Min(len, Capacity - idx);
                 byte* src = basePtr + idx;
-                float g = gain;
+                float g = mark.Fmt == OutFormat.Pcm ? gain : 1f;   // DSD's bits are never scaled
                 if (g != 1f || contiguous < len)
                 {
                     // Scaled (or wrapping round the buffer's end): through the scratch.
@@ -473,30 +474,4 @@ internal sealed class Engine
     }
 
     private static string StripTag(string s) => s.StartsWith('[') && s.Contains(']') ? s[(s.IndexOf(']') + 1)..].Trim() : s;
-}
-
-internal static class Wav
-{
-    internal sealed record Format(int Channels, int Rate, int Bits, int Start);
-
-    // The decoder's WAV header: rate, channels, and where the samples start.
-    public static Format? Parse(ReadOnlySpan<byte> b)
-    {
-        if (b.Length < 12) return null;
-        if (!b[..4].SequenceEqual("RIFF"u8) || !b.Slice(8, 4).SequenceEqual("WAVE"u8)) throw new Exception("not WAV");
-        int at = 12;
-        Format? fmt = null;
-        while (at + 8 <= b.Length)
-        {
-            var id = b.Slice(at, 4);
-            uint size = BitConverter.ToUInt32(b.Slice(at + 4, 4));
-            if (id.SequenceEqual("data"u8)) return fmt == null ? null : fmt with { Start = at + 8 };
-            if (at + 8 + (long)size > b.Length) return null;
-            if (id.SequenceEqual("fmt "u8))
-                fmt = new Format(BitConverter.ToUInt16(b.Slice(at + 10, 2)), (int)BitConverter.ToUInt32(b.Slice(at + 12, 4)),
-                    BitConverter.ToUInt16(b.Slice(at + 22, 2)), 0);
-            at += 8 + (int)size + (int)(size & 1);
-        }
-        return null;
-    }
 }

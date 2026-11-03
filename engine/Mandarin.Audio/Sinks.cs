@@ -10,8 +10,10 @@ internal interface ISink : IDisposable
 {
     int Rate { get; }
     int Channels { get; }
+    // How the samples go: PCM, DoP, or native DSD (Dsd.cs, item 256).
+    OutFormat Format { get; }
     // Opens (or reopens) the device at this format.
-    void Open(int rate, int channels);
+    void Open(int rate, int channels, OutFormat format = OutFormat.Pcm);
     // Writes whole frames of 32-bit samples; returns the frames taken.
     // A device that ran dry is put right and counted (Xruns), not thrown.
     unsafe int Write(byte* data, int frames);
@@ -34,19 +36,28 @@ internal sealed class AlsaSink(string device, uint latencyUs) : ISink
     private IntPtr pcm = IntPtr.Zero;
     public int Rate { get; private set; }
     public int Channels { get; private set; }
+    public OutFormat Format { get; private set; }
     public long Xruns { get; private set; }
 
-    public void Open(int rate, int channels)
+    public void Open(int rate, int channels, OutFormat format = OutFormat.Pcm)
     {
         Close();
-        int err = Alsa.Open(out pcm, device, Alsa.StreamPlayback, 0);
+        // Native DSD to the device itself: ALSA's plug layer has no DSD to convert to (item 256).
+        var name = format is OutFormat.DsdU32Be or OutFormat.DsdU32Le && device.StartsWith("plughw:", StringComparison.Ordinal) ? device[4..] : device;
+        int err = Alsa.Open(out pcm, name, Alsa.StreamPlayback, 0);
         if (err < 0) { pcm = IntPtr.Zero; throw new DeviceException(Describe(err)); }
         // No resampling: a rate the device can't take is an error, never a
         // quiet conversion. The plug layer (plughw:) still hands a DAC that
         // takes 24 or 16 bits what it takes, at the same rate.
-        err = Alsa.SetParams(pcm, Alsa.FormatS32Le, Alsa.AccessRwInterleaved, (uint)channels, (uint)rate, 0, latencyUs);
-        if (err < 0) { Close(); throw new DeviceException("the device won't play " + rate / 1000.0 + " kHz: " + Alsa.StrError(err)); }
-        Rate = rate; Channels = channels;
+        int code = format == OutFormat.Pcm || format == OutFormat.Dop ? Alsa.FormatS32Le : Alsa.FormatValue(Dsd.AlsaName(format));
+        err = Alsa.SetParams(pcm, code, Alsa.AccessRwInterleaved, (uint)channels, (uint)rate, 0, latencyUs);
+        if (err < 0)
+        {
+            Close();
+            throw new DeviceException(format == OutFormat.Pcm ? "the device won't play " + rate / 1000.0 + " kHz: " + Alsa.StrError(err)
+                : $"the device won't play DSD{rate * (format == OutFormat.Dop ? 16 : 32) / 44100} as {(format == OutFormat.Dop ? "DoP" : "native DSD")}: " + Alsa.StrError(err));
+        }
+        Rate = rate; Channels = channels; Format = format;
     }
 
     public unsafe int Write(byte* data, int frames)
@@ -93,7 +104,7 @@ internal sealed class AlsaSink(string device, uint latencyUs) : ISink
     private void Close()
     {
         if (pcm != IntPtr.Zero) { Alsa.Close(pcm); pcm = IntPtr.Zero; }
-        Rate = 0; Channels = 0;
+        Rate = 0; Channels = 0; Format = OutFormat.Pcm;
     }
 
     public void Dispose() => Close();
@@ -118,14 +129,15 @@ internal sealed class FileSink(string path) : ISink
     private long framesSinceStart;
     public int Rate { get; private set; }
     public int Channels { get; private set; }
+    public OutFormat Format { get; private set; }
     public long Xruns => 0;
 
-    public void Open(int rate, int channels)
+    public void Open(int rate, int channels, OutFormat format = OutFormat.Pcm)
     {
         // Opened once for the whole run, as one long capture; a new format
         // carries on in the same file.
         file ??= new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.ReadWrite, 1 << 16);
-        Rate = rate; Channels = channels;
+        Rate = rate; Channels = channels; Format = format;
         clock.Restart(); framesSinceStart = 0;
     }
 

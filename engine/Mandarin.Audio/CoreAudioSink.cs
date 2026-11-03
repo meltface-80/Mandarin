@@ -19,11 +19,15 @@ internal sealed unsafe class CoreAudioSink(string name, uint latencyMs) : ISink
     private long deviceLatency;
     public int Rate { get; private set; }
     public int Channels { get; private set; }
+    // A Mac's device takes PCM, and DoP as PCM; native DSD is ALSA's (item 256).
+    public OutFormat Format { get; private set; }
     public long Xruns { get; private set; }
 
-    public void Open(int rate, int channels)
+    public void Open(int rate, int channels, OutFormat format = OutFormat.Pcm)
     {
+        if (format is OutFormat.DsdU32Be or OutFormat.DsdU32Le) throw new DeviceException("native DSD is played on Linux; on a Mac, DSD goes as DoP");
         Close();
+        Format = format;
         device = Find(name) ?? throw new DeviceException("the device isn't there any more");
         SetRate(rate);
         Hog(true);
