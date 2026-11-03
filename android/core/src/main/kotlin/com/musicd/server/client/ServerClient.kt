@@ -300,8 +300,10 @@ class ServerClient(
     fun upload(path: String, bytes: ByteArray, type: String): JSONObject = transport.upload(path, bytes, type, 60_000)
 
     /** A device's room correction (item 252): [bytes], a WAV named [name], loaded; or taken off. The device as it then is. */
-    fun loadImpulse(id: String, name: String, bytes: ByteArray): JSONObject = upload("/api/audio-devices/${enc(id)}/impulse?name=${enc(name)}", bytes, "audio/wav")
-    fun removeImpulse(id: String): JSONObject = send("DELETE", "/api/audio-devices/${enc(id)}/impulse")
+    fun loadImpulse(id: String, name: String, bytes: ByteArray): JSONObject =
+        upload("/api/audio-devices/${enc(id)}/impulse?name=${enc(name)}", bytes, if (name.endsWith(".zip", ignoreCase = true)) "application/zip" else "audio/wav")
+    /** The response at [rate] taken off (item 258); with none, all of them. */
+    fun removeImpulse(id: String, rate: Int? = null): JSONObject = send("DELETE", "/api/audio-devices/${enc(id)}/impulse" + (rate?.let { "?rate=$it" } ?: ""))
 
     /** A request with no body ([method]: DELETE), its answer. */
     private fun send(method: String, path: String): JSONObject = transport.json(method, path, null, timeoutMs)

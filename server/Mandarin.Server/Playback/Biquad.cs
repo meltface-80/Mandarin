@@ -158,7 +158,7 @@ internal static class Biquad
         if (Jv.Get(dsp, "headroom") is double h && double.IsFinite(h)) return Math.Min(0, h);
         var bands = BandsOf(dsp);
         // A convolution's response (item 252): what it lifts most added to what the bands lift most, never a gain.
-        var conv = Jv.Get(dsp, "convolution") is JsObj;
+        var conv = Convolution.Files(dsp) != null;
         if (bands.Count == 0 && !conv) return 0;
         var peak = (bands.Count > 0 ? PeakDb(bands, RateOr48k(fs)) : 0) + Convolution.Peak(dsp);
         var needed = -(peak + HeadroomMargin);
@@ -211,7 +211,7 @@ internal static class Biquad
             out_["peq"] = Jv.Obj(("bands", bands));
         }
         // A room or headphone correction's response (item 252), said only where there is one.
-        if (Convolution.Normalise(Jv.Get(cur, "convolution")) is { } cv) out_["convolution"] = cv;
+        if (Convolution.Normalise(Jv.Get(cur, "convolution")) is { } cv) out_["convolution"] = cv;   // one a rate (item 258)
         if (Jv.Get(cur, "headroom") is double hr)
         {
             if (!(hr >= -30 && hr <= 0)) throw new BandError("headroom must be 0 to −30 dB");
@@ -221,7 +221,7 @@ internal static class Biquad
     }
 
     /* Does this setting change the sound at all? */
-    public static bool Active(object? dsp) => Jv.T(dsp) && Jv.T(Jv.Get(dsp, "enabled")) && (BandsOf(dsp).Count > 0 || Convolution.Of(dsp) != null);
+    public static bool Active(object? dsp) => Jv.T(dsp) && Jv.T(Jv.Get(dsp, "enabled")) && (BandsOf(dsp).Count > 0 || Convolution.All(dsp).Count > 0);
 
     /*
      * A short stable name for what a setting does, for cache files: FNV-1a,
@@ -229,9 +229,9 @@ internal static class Biquad
      */
     public static string Fingerprint(object? dsp, object? fs)
     {
-        // With a convolution (item 252) its file too; without one, the name as it always was.
-        var s = Js.Json(Jv.T(dsp) && Jv.Get(dsp, "convolution") is JsObj conv
-            ? Jv.Obj(("b", BandsOf(dsp)), ("h", Headroom(dsp, fs)), ("c", Jv.Get(conv, "file")))
+        // With a convolution (items 252, 258) its files too, one as it was; without one, the name as it always was.
+        var s = Js.Json(Convolution.Files(dsp) is { } files
+            ? Jv.Obj(("b", BandsOf(dsp)), ("h", Headroom(dsp, fs)), ("c", files))
             : Jv.Obj(("b", BandsOf(dsp)), ("h", Headroom(dsp, fs)))) ?? "";
         uint h1 = 0x811c9dc5, h2 = 0x01000193;
         for (var i = 0; i < s.Length; i++)

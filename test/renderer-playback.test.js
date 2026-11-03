@@ -355,12 +355,21 @@ test("a renderer is a zone", { skip, timeout: 150000 }, async (t) => {
       assert.equal(r.dsp_info.headroom, -0.5);
       assert.equal((await api("audio-devices/" + WIIM, { dsp: { peq: { bands: [{ type: "wah", freq: 100 }] } } }, "PATCH")).status, 400);
       assert.equal((await api("audio-devices/RINCON_KITCHEN01400", { dsp: { enabled: true } }, "PATCH")).status, 400, "never a Sonos room");
+      // A room correction made at 48 kHz (items 252, 258): the CD's runs through it resampled, and its signal path says so.
+      const ir = Buffer.alloc(44 + 480 * 4);
+      ir.write("RIFF", 0); ir.writeUInt32LE(36 + 480 * 4, 4); ir.write("WAVEfmt ", 8); ir.writeUInt32LE(16, 16); ir.writeUInt16LE(3, 20); ir.writeUInt16LE(1, 22);
+      ir.writeUInt32LE(48000, 24); ir.writeUInt32LE(48000 * 4, 28); ir.writeUInt16LE(4, 32); ir.writeUInt16LE(32, 34); ir.write("data", 36); ir.writeUInt32LE(480 * 4, 40); ir.writeFloatLE(1, 44);
+      const irUrl = B + "/api/audio-devices/" + WIIM + "/impulse";
+      assert.equal((await fetch(irUrl + "?name=room48.wav", { method: "POST", headers: auth, body: ir })).status, 200);
       await api("play", { offset: cd.offset, zone_or_output_id: WIIM, kind: "play_now" });
       const f = await until(() => { const l = wiim.fetches.filter(x => x.done && x.body && x.body.length > 1000); const last = l[l.length - 1]; return last && /44100-24\.flac\?o=/.test(last.uri) && last; }, 15000);
       assert.match(f.uri, /\/stream\/t\d+\.44100-24\.flac\?o=UPNP_[^&]+&s=/);
       assert.deepEqual(probe(f.body), { rate: 44100, channels: 2, bits: 24 });
       const s = await until(async () => { const z = await state(WIIM); return z && z.now_playing && /DSP/.test(z.now_playing.format.text) && z; }, 15000);
       assert.match(s.now_playing.format.text, /^FLAC 24\/44\.1 · DSP/);
+      const room = s.now_playing.signal.steps.find(x => x.kind === "convolution");
+      assert.deepEqual(room && [room.title, room.detail, room.quality], ["Room correction", "room48.wav, made at 48 kHz, resampled to 44.1 kHz", "enhanced"]);
+      assert.equal((await fetch(irUrl, { method: "DELETE", headers: auth })).status, 200);
       // Off again: the file as it is from the next track on.
       r = await api("audio-devices/" + WIIM, { dsp: { enabled: false } }, "PATCH");
       assert.equal(r.dsp.enabled, false);

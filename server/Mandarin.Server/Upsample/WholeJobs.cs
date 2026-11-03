@@ -218,7 +218,7 @@ internal static partial class WholeJobs
         var decode = new JsonArray("-hide_banner", "-nostdin", "-loglevel", "error", "-i", src, "-map", "0:a:0", "-vn");
         // The gain, and a room or headphone correction (item 252) at the track's own rate, before it is upsampled; the
         // encode below then leaves the correction out.
-        var conv = p.Dsp != null ? Playback.Convolution.Of(Jv.Get(p.Dsp, "dsp")) : null;
+        var conv = p.Dsp != null ? Playback.Convolution.For(Jv.Get(p.Dsp, "dsp"), inRate) : null;   // the one at its rate (item 258)
         var pre = p.Gain != 0 ? $"volume=volume={Jv.Str(p.Gain)}dB:precision=double" : conv != null ? "anull" : null;
         if (pre != null) { decode.Add("-af"); decode.Add(conv != null ? Playback.Convolution.Graph(pre, conv, inRate, Transcoder.Soxr) : pre); }
         foreach (var a in new[] { "-ac", "2", "-ar", inRate.ToString(System.Globalization.CultureInfo.InvariantCulture), "-f", "f64le", "-c:a", "pcm_f64le", "pipe:1" }) decode.Add(a);

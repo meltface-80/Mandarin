@@ -170,22 +170,33 @@ function renderDsp(d) {
  * loaded as a WAV and run by the server on everything this device plays, at the track's own rate, before the bands.
  */
 function renderConvolution(c) {
+  // One response a rate (item 258); one kept as item 252 kept it, a set of one.
+  const set = Array.isArray(c) ? c : c ? [c] : [];
   let html = '<div class="cap-group"><span class="cap-label"' + ' data-parity="settings-device.cap-label"' + '>Room correction</span>';
-  if (c) {
-    html += '<div class="hp-current"><div class="hp-name"' + ' data-parity="settings-device.ir-name"' + ">" + esc(c.name || "Impulse response") + '</div><div class="hp-meta"' + ' data-parity="settings-device.ir-meta"' + ">" +
-      esc((c.rate / 1000) + " kHz · " + (c.channels === 2 ? "2 channels" : "1 channel") + " · " + c.seconds + " s · lifts at most " + fmtDb(c.peak_db)) + "</div></div>";
+  if (set.length) {
+    set.forEach(r => {
+      html += '<div class="hp-current ir-row"><div class="hp-name"' + ' data-parity="settings-device.ir-name"' + ">" + esc(r.name || "Impulse response") + '</div><div class="hp-meta"' + ' data-parity="settings-device.ir-meta"' + ">" +
+        esc(irMeta(r)) + '</div><button type="button" class="settings-update-btn"' + ' data-parity="settings-device.ir-remove"' + ' data-ir-remove data-ir-rate="' + esc(r.rate) + '">Remove</button></div>';
+    });
+    html += '<div class="settings-note"' + ' data-parity="settings-device.note"' + '>' + esc(IR_SET_NOTE) + "</div>";
   } else {
     html += '<div class="settings-note"' + ' data-parity="settings-device.note"' + '>None. An impulse response (a WAV from REW, Dirac or a headphone measurement) corrects the room or the headphones; it runs on everything this device plays, before the bands.</div>';
   }
-  html += '<div class="hp-actions"><button type="button" class="settings-update-btn"' + ' data-parity="settings-device.ir-load"' + ' data-ir-load>' + (c ? "Load another…" : "Load a response…") + "</button>" +
-    (c ? '<button type="button" class="settings-update-btn"' + ' data-parity="settings-device.ir-remove"' + ' data-ir-remove>Remove</button>' : "") +
-    '<input type="file" accept=".wav,audio/wav,audio/x-wav" hidden data-ir-file aria-label="Impulse response"></div></div>';
+  html += '<div class="hp-actions"><button type="button" class="settings-update-btn"' + ' data-parity="settings-device.ir-load"' + ' data-ir-load>' + (set.length ? "Load another…" : "Load a response…") + "</button>" +
+    '<input type="file" accept=".wav,.zip,audio/wav,audio/x-wav,application/zip" multiple hidden data-ir-file aria-label="Impulse responses"></div></div>';
   return html;
 }
+// A response's facts, as the app says them too (DevicePage.kt irMeta).
+function irMeta(r) {
+  return (r.rate / 1000) + " kHz · " + (r.channels === 2 ? "2 channels" : "1 channel") + " · " + r.seconds + " s · lifts at most " + fmtDb(r.peak_db);
+}
+// What a set of responses does (item 258).
+const IR_SET_NOTE = "One a rate: a track runs through the one made at its rate, else the nearest of its family (44.1 kHz's or 48 kHz's), resampled. Load several WAVs at once, or a zip of them.";
 function headroomNote(dr, peak, auto) {
   if (typeof dr.headroom === "number") return "Set by hand: " + fmtDb(dr.headroom) + " before the bands. Auto would take " + fmtDb(auto) + ".";
-  if (!allBands(dr).length && !dr.convolution) return "Auto: nothing to take yet.";
-  if (dr.convolution) return "Auto: " + fmtDb(auto) + " before the correction and the bands — together they lift at most " + fmtDb(peak + (Number(dr.convolution.peak_db) || 0)) + ", and half a dB is kept under it so nothing clips.";
+  const irs = Array.isArray(dr.convolution) ? dr.convolution : dr.convolution ? [dr.convolution] : [];
+  if (!allBands(dr).length && !irs.length) return "Auto: nothing to take yet.";
+  if (irs.length) return "Auto: " + fmtDb(auto) + " before the correction and the bands — together they lift at most " + fmtDb(peak + Math.max(...irs.map(r => Number(r.peak_db) || 0))) + ", and half a dB is kept under it so nothing clips.";
   const own = dr.headphone && typeof dr.headphone.preamp === "number" ? dr.headphone.preamp : null;
   if (own != null && own === auto) return "Auto: " + fmtDb(auto) + " — the headphone profile's own preamp, which covers the bands' peak of " + fmtDb(peak) + ".";
   return "Auto: " + fmtDb(auto) + " before the bands — their peak together is " + fmtDb(peak) + ", and half a dB is kept under it so nothing clips." +

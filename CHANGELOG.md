@@ -29,6 +29,24 @@
 - Improved - Mandarin's DSD modulator holds past SACD's highest level (+3.1 dB, 71% modulation) with room to spare, where it held only to 62%
 - Fixed - just after a scan, a page could show the albums from before it for a moment (the scan seemed to have ended before the server had read them)
 - New - DSD to a USB DAC on the server: native DSD where the DAC says it takes it (found from the DAC itself), DoP where you tick DSD for it; DSD files and PCM as DSD alike, never made PCM
+- New - room correction takes one impulse response a rate (several WAVs at once, or a zip of them): each track runs through the one made at its rate, else the nearest of its family, resampled
+- Fixed - room correction plays a response at its own level with ffmpeg 7 or later (a Mac's, from Homebrew), where one resampled to a track's rate came out quieter
+
+- `258-ir-per-rate` (item 258): **room correction, one response a rate.** A device's DSP held one impulse response,
+  made at one rate and resampled to every track's. A measurement is made at a rate, and REW or Dirac give one a rate,
+  so the DSP now keeps a set of them, one a rate (Playback/Convolution.cs): Load takes several WAVs at once, or a zip
+  of them (its WAVs only; one with none is refused), each checked and measured as before, and a response at a rate
+  already loaded takes its place; Remove takes off one rate's, or all. A track runs through the one made at its own
+  rate, else the nearest of its family (44.1 kHz's multiples or 48 kHz's), else the nearest of all, resampled; the
+  headroom covers the loudest of the set. The signal path says which ran ("room.wav, made at 48 kHz, resampled to
+  44.1 kHz"). A device that kept one, as item 252 kept it, has a set of one. Item 252's resampled response came out
+  a few hundred samples late (the resampler's lead); the track is now padded and trimmed by it, so it is on time.
+  And a response is now used at its own level whatever ffmpeg runs it (Playback/Convolution.cs): ffmpeg 7.0 on scales
+  one to a norm of 1 unless told not to (afir's irnorm, where 6.1 had gtype), which left a response resampled to the
+  track's rate some 9% too quiet on CI's ffmpeg, and would on a Mac's from Homebrew; each is told by what its help says.
+  The page and the app list the set, a row each with its Remove. Tests: a set loaded, replaced, zipped, refused and
+  taken off one rate at a time; a track played through its own rate's response and through its family's, resampled,
+  on time; the page's and the app's rows; the signal path's step.
 
 - `256-usb-dsd` (item 256): **DSD to a USB DAC on the server, as DSD.** The audio engine made every track 32-bit PCM
   through ffmpeg, DSD files too, and a sound device here listed no DSD, so PCM as DSD wasn't offered for it. A DAC's

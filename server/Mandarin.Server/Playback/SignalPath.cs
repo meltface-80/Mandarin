@@ -39,6 +39,13 @@ internal static class SignalPath
         }
         if (s.Dsp)
         {
+            // A room or headphone correction first (items 252, 258): the response this track ran through, and whether it was made at its rate.
+            if (Convolution.For(Renderers.Players.TargetFor(z.DeviceId ?? z.ZoneId)?["dsp"], t.SampleRate ?? 0) is { } conv)
+            {
+                var made = Jv.Num(conv["rate"]);
+                var at = made == (t.SampleRate ?? 0) ? $"made at {Khz(made)} kHz" : $"made at {Khz(made)} kHz, resampled to {Khz(t.SampleRate ?? 0)} kHz";
+                steps.Add(Step("convolution", "Room correction", $"{Jv.Str(conv["name"])}, {at}", "enhanced"));
+            }
             steps.Add(Step("dsp", "DSP", "The device’s equaliser, in 64-bit float", "enhanced"));
             extras.Add("DSP");
         }
