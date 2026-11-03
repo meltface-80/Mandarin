@@ -200,7 +200,9 @@ internal sealed class Devices
     {
         var online = Online(r);
         var caps = Profiles.Effective(RecordJs(r));
-        var streamer = r.Kind is "upnp" or "local";
+        // A phone with a USB DAC in use has a streamer's Output, for the DAC (item 265).
+        var usb = r.Kind == "phone" ? hub.Phones.UsbChips(r.Id, "rates") : null;
+        var streamer = r.Kind is "upnp" or "local" || usb != null;
         var o = Jv.Obj(
             ("id", r.Id), ("kind", r.Kind), ("family", r.Family),
             ("name", r.Name ?? r.NetworkName), ("network_name", r.NetworkName), ("renamed", r.Name != null),
@@ -235,6 +237,7 @@ internal sealed class Devices
         o["playable"] = r.Kind != "upnp" || Jv.T(caps["playable"]);
         if (r.Kind == "local") o["location"] = System.Text.RegularExpressions.Regex.Replace(r.Location, "^(alsa|coreaudio|file):", "");
         o["rates"] = caps["rates"]; o["bits"] = caps["bits"]; o["dsd"] = caps["dsd"]; o["containers"] = caps["containers"];
+        if (usb != null) { o["rates"] = usb; o["bits"] = hub.Phones.UsbChips(r.Id, "bits"); o["dsd"] = hub.Phones.UsbChips(r.Id, "dsd"); }
         o["levelling"] = Items.LevellingFor(c, r.Id);
         if (r.Kind != "sonos")
         {

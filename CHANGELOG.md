@@ -37,6 +37,7 @@
 - Improved - PCM as DSD keeps a 48 kHz-family track (48, 96, 192 kHz) in its own family: 96 kHz goes ×8 to 768 kHz and DSD256 at 12.288 MHz, nothing resampled, where it went down to 88.2 kHz first; on a device that takes PCM at the rate DoP carries it on (768 kHz for DSD256), else as before
 - Fixed - PCM as DSD, Min phase and Gentle are gapless: an album that runs on from track to track plays on without a pause or a click, the next track sent to the device while it is still being made and made as one stream with the track before
 - Fixed - Next, Back, Play and Pause on a streamer such as the FiiO SR11 no longer pile up and stop it answering: taps in a row are one jump to where they end, and a track skipped from is no longer made
+- New - a phone playing through a USB DAC has a streamer's Output (Settings → Audio Devices → this phone → Output): upsampled ×2, ×4 or to the most, in Standard, Min phase or Gentle, to the highest rate allowed, or PCM made DSD64, DSD128 or DSD256, made by the server and played by the app's USB driver, DSD natively or as DoP
 
 - `259-dsd-on-demand` (item 259): **PCM as DSD, and the shaped filters, made as they play.** A track made DSD from
   PCM had to be made whole, ahead (items 243, 254): its filter was one as long as the track (237, PGGB's way), so
@@ -133,6 +134,20 @@
   from"). A renderer's words for a call it didn't answer are its own ("not answering: timed out"), not a Sonos's.
   Tests: renderer-playback.test.js (Next, Next, Back on a renderer slow to answer SetAVTransportURI: two told, not
   three, and the room on Long 2; a skip while Song 1 waits to be made stops it, Song 2 made in its place).
+
+- `265-phone-usb-output` (item 265): **a phone's USB DAC has a streamer's Output.** The app's own USB driver plays a
+  DAC bit-perfect at the rate it is sent, and DSD natively or as DoP (Stage 9), but what it was sent was the file as
+  it is: no upsampling, no PCM made DSD, as a renderer has. Now a phone with a DAC in use (its usb_caps) has the
+  renderer's Output on its page, page and app alike: Mode, Highest rate, Filter, Bit depth, DSD as PCM, PCM as DSD,
+  from the DAC's own rates, depths and DSD (Phones.UsbChips); no Fixed volume (the phone's volume is its own: refused).
+  Its stream target takes them (Phones.TargetFor, Players.OutputInto for both), so the server makes what it plays as
+  it does for a renderer: upsampled in a shape as it plays, or a DSF made from PCM (with 262's gapless joins), which
+  the app's DsdExtractor reads by its header and its USB driver gives the DAC as it gives a DSD file. With the
+  phone's own DSP on, which runs on PCM, nothing is made DSD for it. A change of Output plans the phone's queue
+  again, as a DAC coming or going did. Away from home it is Opus as before. Tests: phone.test.js (the DAC reported:
+  Output and the DAC's rates and DSD on the phone's page; ×4 in minimum phase and then DSD128 each planning the queue
+  again, the DSF served DSD128; the phone's volume refused; back, and without a DAC no Output), AudioDevicesTest (the
+  app's page shows Output only while a DAC is in use, and says so).
 
 - `258-ir-per-rate` (item 258): **room correction, one response a rate.** A device's DSP held one impulse response,
   made at one rate and resampled to every track's. A measurement is made at a rate, and REW or Dirac give one a rate,

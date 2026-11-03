@@ -101,6 +101,16 @@ internal sealed partial class Phones
         }
     }
 
+    /* The phone's Output settings changed (item 265): its queue's addresses planned again for them. */
+    public async Task OutputChanged(string uid)
+    {
+        PhoneRec? p;
+        lock (zm.Gate) p = Map.GetValueOrDefault(uid);
+        if (p == null) return;
+        try { await Replan(p); }
+        catch (Exception e) when (e is HubError or JsError or Microsoft.Data.Sqlite.SqliteException) { zm.Log("[phones] replan: " + e.Message); }
+    }
+
     // ------------------------------------------------------------ zones
 
     public List<ZoneInfo> Zones()

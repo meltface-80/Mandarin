@@ -57,6 +57,7 @@ internal sealed partial class Hub
                 if (streamer) await Upnp.Replan(id);
                 if (r.Kind == "phone") { JsObj next; using (var c = Db.Open()) next = PlaybackRoutes.DspFor(c, id); Phones.DspChanged(id, next); }
             }
+            if (k == "output" && r.Kind == "phone") await Phones.OutputChanged(id);   // its USB DAC's (item 265)
             if (k == "levelling")
             {
                 if (streamer) await Upnp.Replan(id);
