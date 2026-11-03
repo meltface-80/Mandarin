@@ -11,6 +11,7 @@
 const ports = require("./ports");
 const test = require("node:test");
 const assert = require("node:assert");
+const fs = require("fs");
 const path = require("path");
 const { haveFfmpeg, makeLibrary, gen, probe, writeDsf } = require("./fixtures");
 const { FakeHousehold } = require("./fake-sonos");
@@ -297,6 +298,18 @@ test("a renderer is a zone", { skip, timeout: 150000 }, async (t) => {
       assert.deepEqual(probe(f3.body), { rate: 88200, channels: 2, bits: 24 });
       r = await api("audio-devices/" + WIIM, { output: { max_rate: "auto", mode: "original" } }, "PATCH");
       assert.equal(r.output.max_rate, undefined);
+      // Whole track, played from a queue (items 237, 244): the album's tracks made ahead upsampled whole, kept as their
+      // own files. Planned for the queue, every one of them failed ("the factor must be a power of two") on 3 November.
+      r = await api("audio-devices/" + WIIM, { output: { mode: "x2", filter: "whole" } }, "PATCH");
+      assert.equal(r.status, 200, JSON.stringify(r));
+      const said = ctx.logs.length;
+      await api("play", { offset: cd.offset, zone_or_output_id: WIIM, kind: "play_now" });
+      const made = path.join(lib.data, "transcode");
+      // All three of its tracks, the ones the WiiM hasn't asked for yet too: those only the queue makes ahead.
+      await until(() => fs.existsSync(made) && fs.readdirSync(made).filter(f => /-w\.flac$/.test(f)).length >= 3, 60000);
+      // Each made once, none failed on the way.
+      assert.deepEqual(ctx.logs.slice(said).filter(l => /\[upsample\] .*couldn't/.test(l)), []);
+      await api("audio-devices/" + WIIM, { output: { mode: "original", filter: "standard" } }, "PATCH");
     });
 
     await t.test("DSP: on, a CD rip is decoded, filtered and sent as 24/44.1 FLAC; off, as it is", async () => {

@@ -16,6 +16,9 @@ internal static class WholePlan
         var factor = (long)Jv.Num(plan["upsampled"]);
         if (factor < 2 || (factor & (factor - 1)) != 0) return plan;
         plan["whole"] = true;
+        // The track's own rate, which the job divides by: a plan made for a queue (Playback/Items.cs) carries none of its
+        // own, and without it every track planned so failed ("the factor must be a power of two", item 244).
+        plan["inRate"] = Jv.Num(plan["rate"]) / factor;
         plan["reason"] = Jv.Str(plan["reason"]) + " (whole track)";
         return plan;
     }
