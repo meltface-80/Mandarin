@@ -90,7 +90,8 @@ public sealed partial class DsdModulatorTests
             {
                 ["ffmpeg"] = "ffmpeg",
                 ["decode"] = new JsonArray("-hide_banner", "-nostdin", "-loglevel", "error", "-i", src, "-map", "0:a:0", "-vn", "-ac", "2", "-ar", "44100", "-f", "f64le", "-c:a", "pcm_f64le", "pipe:1"),
-                ["rate"] = 44100, ["factor"] = 16, ["dsd"] = 2822400, ["out"] = dsf, ["max_out_bits"] = 24,
+                // Its length said before it is made (item 259): the DSF's header written first, as it plays.
+                ["rate"] = 44100, ["factor"] = 16, ["dsd"] = 2822400, ["out"] = dsf, ["frames"] = 2L * 44100,
             };
             var said = await Upsample(job);
             Assert.True(said["error"] == null, (string?)said["error"]);
