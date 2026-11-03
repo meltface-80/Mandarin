@@ -65,7 +65,7 @@ test("a Mandarin USB renderer: its DAC read whole, and what it plays confirmed",
 
   try {
     await until(async () => { const l = (await api("audio-devices")).devices; return l.some(d => d.id === USB) && l.some(d => d.id === PLAIN); }, 20000);
-    const all = (await api("audio-devices/rescan")).devices;
+    const all = (await api("audio-devices/rescan", {})).devices;   // a POST: a round now
     const d = all.find(x => x.id === USB), p = all.find(x => x.id === PLAIN);
 
     await t.test("the DAC's capabilities come from the device: every rate, 32-bit, DSD to 256, all advertised", async () => {
