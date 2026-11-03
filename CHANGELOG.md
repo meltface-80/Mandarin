@@ -36,6 +36,7 @@
 - Improved - a track upsampled or made DSD as it plays gets the processor: playback keeps all the cores but one while it is made, or as many as Settings → Library Scanner → Processor → Cores for upsampling and DSD says (Auto, 1, 2 or 3)
 - Improved - PCM as DSD keeps a 48 kHz-family track (48, 96, 192 kHz) in its own family: 96 kHz goes ×8 to 768 kHz and DSD256 at 12.288 MHz, nothing resampled, where it went down to 88.2 kHz first; on a device that takes PCM at the rate DoP carries it on (768 kHz for DSD256), else as before
 - Fixed - PCM as DSD, Min phase and Gentle are gapless: an album that runs on from track to track plays on without a pause or a click, the next track sent to the device while it is still being made and made as one stream with the track before
+- Fixed - Next, Back, Play and Pause on a streamer such as the FiiO SR11 no longer pile up and stop it answering: taps in a row are one jump to where they end, and a track skipped from is no longer made
 
 - `259-dsd-on-demand` (item 259): **PCM as DSD, and the shaped filters, made as they play.** A track made DSD from
   PCM had to be made whole, ahead (items 243, 254): its filter was one as long as the track (237, PGGB's way), so
@@ -118,6 +119,20 @@
   of a block), renderer-playback.test.js (the device told of Long 2 before it was made, and Long 2 made on from Long 1).
   ShapePlanTests no longer compares the bytes ffmpeg writes into a FLAC's STREAMINFO once it has made the whole (its
   frame sizes, samples and MD5): a FLAC sent as it is made has them yet to come, and the test failed one run in six.
+
+- `264-transport-one-at-a-time` (item 264): **a renderer told one thing at a time.** On the owner's FiiO SR11, Next
+  and Back did little, and then Play and Pause stopped working: the SR11 answered nothing more ("not responding:
+  timed out", every command and every poll). Every tap was a jump of its own, each telling the renderer of a track and
+  to play it, all at once, and the app sent each tap as it came, some sixty in thirty seconds; and what was being made
+  as it played went on being made for the track skipped from, the track skipped to waiting its turn behind it while
+  the SR11 waited for its first bytes. Now (Renderers/Players.Jump.cs) a jump moves the queue's place at once (the next
+  tap goes on from there, Now playing says it), and what the renderer is told waits its turn on the player's own
+  queue, as Play, Pause, Stop, seeking and the next track's SetNextAVTransportURI do: a jump that comes to its turn
+  after a later one was asked for is passed over, so that taps in a row are one jump to where they end. And a jump
+  stops what was being made for any track but the one jumped to and the one after it (MadeAsPlayed.Only, "skipped
+  from"). A renderer's words for a call it didn't answer are its own ("not answering: timed out"), not a Sonos's.
+  Tests: renderer-playback.test.js (Next, Next, Back on a renderer slow to answer SetAVTransportURI: two told, not
+  three, and the room on Long 2; a skip while Song 1 waits to be made stops it, Song 2 made in its place).
 
 - `258-ir-per-rate` (item 258): **room correction, one response a rate.** A device's DSP held one impulse response,
   made at one rate and resampled to every track's. A measurement is made at a rate, and REW or Dirac give one a rate,
