@@ -238,7 +238,7 @@ internal static class Convolution
      * response at another rate has silence laid before it so its start isn't cut (at least [Lead] of its own samples,
      * a whole number at both rates), and the track as much later out of the convolution: so the track is given that
      * much silence at its end, and the convolution's first that many samples taken off (item 258; before, a track
-     * through a resampled response came out late by them).
+     * through a resampled response came out late by them). Where it comes out is measured with this ffmpeg (ConvolutionLead.cs).
      */
     public static string Graph(string graph, JsObj c, double inRate, bool soxr)
     {
@@ -252,8 +252,9 @@ internal static class Convolution
         if (own != track && own > 0 && track > 0)
         {
             var g = Gcd(own, track);
-            long steps = (Lead + own / g - 1) / (own / g), leadOwn = steps * (own / g), leadOut = steps * (track / g);
-            to = $",adelay=delays={leadOwn}S:all=1,aresample={(soxr ? "resampler=soxr:precision=33:" : "")}osr={rate},volume={Jv.Str((double)own / track)}:precision=double";
+            long steps = (Lead + own / g - 1) / (own / g), leadOwn = steps * (own / g);
+            var leadOut = ConvolutionLead.Out(own, track, soxr, leadOwn, steps * (track / g));
+            to = $",{ConvolutionLead.Chain(track, soxr, leadOwn)},volume={Jv.Str((double)own / track)}:precision=double";
             pad = $",apad=pad_len={leadOut}";
             trim = $",atrim=start_sample={leadOut},asetpts=PTS-STARTPTS";
         }
