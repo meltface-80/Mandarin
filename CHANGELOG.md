@@ -15,6 +15,7 @@
 - Improved - whole-track upsampling shows itself: Now playing says whether a track went out whole or with the standard filter and why, and the device's Output says how many tracks are made and which is being made
 - New - a highest rate for each streamer or DAC (Settings → Audio Devices → a device → Output → Highest rate): nothing goes above it, upsampled or not
 - Fixed - whole-track upsampling works for an album or a queue played on a streamer; every track planned from a queue failed ("whole track failed: see the log")
+- Fixed - Now playing shows a track's real length on a streamer that misreads it (419 hours for an upsampled ×16 track on a FiiO SR11)
 - New - DSD sent to a device as PCM can have the DSD modulator's ultrasonic noise taken off above 30 or 50 kHz (Settings → Audio Devices → a device → Output → DSD as PCM)
 
 - `241-dsd-lowpass` (item 241): **DSD played as PCM, its modulator's noise above the band taken off.** DSD64
@@ -29,6 +30,11 @@
   at a rate above the one it passes through (DsdLowpass.cs). The address carries it (`?lp=`), the cache keeps it
   apart (`-lp66150`), and Now playing's reason says "low-passed at 30 kHz". Mandarin makes no DSD itself: DSD
   that a device takes as DSD goes bit for bit, its noise the recording's own.
+
+- `245-length-of-an-open-wav` (item 245): **Now playing keeps a track's length when a device misreads it.** A
+  track sent as WAV above FLAC's rates (item 238) is written as it plays, its length left open in its header; the
+  FiiO SR11 read that as 419:57:09 and Now playing showed it. The length the device reports is still taken, unless it
+  is more than ten seconds from the track's own, when the track's own is shown (Players.Poll.cs).
 
 - `244-whole-track-from-the-queue` (item 244): **whole-track upsampling works from a queue.** On 3 November an
   album played on a FiiO SR11 set to Whole track showed "standard (whole track failed: see the log)", and the log
