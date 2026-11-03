@@ -10,7 +10,7 @@ internal object ContractLabels1 {
         "now-playing.tab-queue" to listOf("Queue"),
         "now-playing.artist" to listOf("{artist}"),
         "now-playing.album" to listOf("Open album: {album}"),
-        "now-playing.format" to listOf("Signal path"),
+        "now-playing.signal" to listOf("Signal path"),
         "now-playing.seek" to listOf("Seek"),
         "now-playing.shuffle" to listOf("Shuffle", "Shuffle on"),
         "now-playing.previous" to listOf("Previous track"),

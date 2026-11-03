@@ -620,12 +620,15 @@
             <div class="np-track" id="np-track" data-parity="now-playing.track">—</div>
             <div class="np-artist" id="np-artist" data-parity="now-playing.artist">—</div>
             <button class="np-album" id="np-album" data-parity="now-playing.album" type="button" aria-label="Open album detail"></button>
-            <!-- What the zone is hearing, centred: what goes out, how it was
-                 made, what is being made (item 247; an older server's badge:
-                 Lossless, a codec, the Opus logo). A tap opens the signal
-                 path, every step from the file to the room. Filled by
-                 paintNpFormat() and app/signal-path.js. -->
-            <button class="np-format hidden" id="np-format" data-parity="now-playing.format" type="button" aria-label="Signal path" aria-expanded="false" aria-controls="np-signal"></button>
+            <!-- What the zone is hearing: Lossless, a lossy file's codec, or
+                 (the Android app playing the server's Opus) the Opus logo and
+                 256kbps. Filled by paintNpFormat() in app.js. -->
+            <div class="np-format hidden" id="np-format" data-parity="now-playing.format"></div>
+            <!-- A device Mandarin streams to (item 247), in its badge's place:
+                 centred, what goes out, how it was made, what is being made.
+                 A tap opens the signal path, every step from the file to the
+                 room. Filled by app/signal-path.js. -->
+            <button class="np-signal-lines hidden" id="np-signal-lines" data-parity="now-playing.signal" type="button" aria-label="Signal path" aria-expanded="false" aria-controls="np-signal"></button>
             <div class="np-popover np-signal hidden" id="np-signal" role="dialog" aria-label="Signal path">
               <div class="np-popover-title" data-parity="now-playing.signal-title">Signal path</div>
               <ol class="np-signal-steps" id="np-signal-steps"></ol>

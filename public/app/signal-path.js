@@ -2,14 +2,17 @@
    being made for next time — and, a tap on them away, every step of the way from the file to the room, as the server
    says it (now_playing.signal: SignalPath.cs). Each step's dot says what it did to the sound: nothing (lossless), on
    purpose (enhanced), lost some (lossy), or not yet (pending). An older server's badge is drawn as it was. */
+const npSignalLines = document.getElementById("np-signal-lines");
 const npSignal = document.getElementById("np-signal");
 const npSignalSteps = document.getElementById("np-signal-steps");
 let lastNpSignal = null, npSignalData = null;
 
-// The signal's lines drawn under the album; false when there are none (an older server: its badge is drawn instead).
+// The signal's lines drawn under the album, in the badge's place; false when there are none (a phone, a Sonos room,
+// an older server: the badge is drawn instead).
 function paintNpSignal(np) {
   const s = np && np.signal;
-  if (!npFormat || !s || !Array.isArray(s.lines) || !s.lines.length) {
+  if (!npSignalLines || !s || !Array.isArray(s.lines) || !s.lines.length) {
+    if (npSignalLines) npSignalLines.classList.add("hidden");
     npSignalData = null; lastNpSignal = null; closeNpSignal();
     return false;
   }
@@ -18,15 +21,14 @@ function paintNpSignal(np) {
   if (sig === lastNpSignal) return true;
   lastNpSignal = sig;
   lastNpFormatSig = null;   // the badge, should it come back, is drawn afresh
-  npFormat.textContent = "";
-  npFormat.className = "np-format is-signal";
-  npFormat.removeAttribute("role");
-  npFormat.setAttribute("aria-label", "Signal path");
+  if (npFormat) npFormat.className = "np-format hidden";
+  npSignalLines.textContent = "";
+  npSignalLines.classList.remove("hidden");
   s.lines.forEach((line, i) => {
     const l = document.createElement("span");
     l.className = "np-signal-line" + (i === 0 ? " is-out" : "");
     l.textContent = line;
-    npFormat.appendChild(l);
+    npSignalLines.appendChild(l);
   });
   if (npSignal && !npSignal.classList.contains("hidden")) drawNpSignalSteps();
   return true;
@@ -59,16 +61,16 @@ function openNpSignal() {
   if (!npSignal || !npSignalData) return;
   drawNpSignalSteps();
   npSignal.classList.remove("hidden");
-  npFormat.setAttribute("aria-expanded", "true");
+  npSignalLines.setAttribute("aria-expanded", "true");
 }
 
 function closeNpSignal() {
   if (!npSignal || npSignal.classList.contains("hidden")) return;
   npSignal.classList.add("hidden");
-  if (npFormat) npFormat.setAttribute("aria-expanded", "false");
+  if (npSignalLines) npSignalLines.setAttribute("aria-expanded", "false");
 }
 
-if (npFormat) npFormat.addEventListener("click", (e) => {
+if (npSignalLines) npSignalLines.addEventListener("click", (e) => {
   e.stopPropagation();
   if (npSignal && npSignal.classList.contains("hidden")) openNpSignal(); else closeNpSignal();
 });

@@ -1,8 +1,8 @@
 "use strict";
 /*
  * Now playing's signal path on the page (item 247), in a browser: the server's lines drawn under the album, centred,
- * the first the brighter; a tap opens the sheet of every step, each with its dot; a tap outside closes it; an older
- * server's badge is drawn as it was, with nothing to open. The lines and steps themselves are the server's
+ * the first the brighter; a tap opens the sheet of every step, each with its dot; a tap outside closes it; a phone's,
+ * a Sonos room's or an older server's badge is drawn as it was, in the lines' place, with nothing to open. The lines and steps themselves are the server's
  * (test/renderer-playback.test.js holds them to what was sent).
  * Skipped where no Chromium or Chrome is found (test/browser-harness.js).
  */
@@ -40,8 +40,9 @@ test("Now playing's signal path: the lines centred, a tap for every step, an old
             { kind: "upsample", title: "Upsampling", detail: "×16 to 705.6 kHz · Standard filter", quality: "enhanced" },
             { kind: "pending", title: "Being made", detail: "DSD256 for this track’s next play: being made", quality: "pending" }
           ] } });
-        const f = $("np-format");
+        const f = $("np-signal-lines"), badge = $("np-format");
         out.lines = [...f.querySelectorAll(".np-signal-line")].map(x => x.textContent);
+        out.badgeHidden = badge.classList.contains("hidden");
         out.first = f.querySelector(".np-signal-line").classList.contains("is-out");
         out.label = f.getAttribute("aria-label");
         out.closed = $("np-signal").classList.contains("hidden");
@@ -52,17 +53,18 @@ test("Now playing's signal path: the lines centred, a tap for every step, an old
         out.title = document.querySelector('[data-parity="now-playing.signal-title"]').textContent;
         document.body.click();
         out.closedAgain = $("np-signal").classList.contains("hidden");
-        // An older server: its badge, one line of words, nothing to open.
+        // A phone, a Sonos room, an older server: its badge, in the lines' place, nothing to open.
         paintNpFormat({ format: { kind: "lossless", text: "Lossless" } });
-        out.badge = f.textContent;
-        out.badgeLines = f.querySelectorAll(".np-signal-line").length;
-        f.click();
+        out.badge = badge.classList.contains("hidden") ? null : badge.textContent;
+        out.linesGone = f.classList.contains("hidden");
+        badge.click();
         out.badgeOpens = !$("np-signal").classList.contains("hidden");
         return out;
       })()`);
     } finally { await b.close(); }
     assert.deepEqual(r.lines, ["WAV 24/705.6 kHz ↑×16", "Standard filter", "DSD256 being made"]);
     assert.equal(r.first, true, "the first line, what goes out, the brighter");
+    assert.equal(r.badgeHidden, true, "the lines in the badge's place");
     assert.equal(r.label, "Signal path");
     assert.equal(r.closed, true);
     assert.equal(r.open, true, "a tap opens the signal path");
@@ -74,7 +76,7 @@ test("Now playing's signal path: the lines centred, a tap for every step, an old
     ]);
     assert.equal(r.title, "Signal path");
     assert.equal(r.closedAgain, true, "a tap outside closes it");
-    assert.deepEqual([r.badge, r.badgeLines, r.badgeOpens], ["Lossless", 0, false]);
+    assert.deepEqual([r.badge, r.linesGone, r.badgeOpens], ["Lossless", true, false]);
   } finally {
     await srv.stop();
   }
