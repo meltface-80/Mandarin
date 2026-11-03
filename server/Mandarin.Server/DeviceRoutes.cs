@@ -120,7 +120,7 @@ internal static partial class Library
             if (TJs.Truthy(output) && TJs.IsObject(output))
             {
                 // A phone's for the USB DAC on it (item 265).
-                if (d.Kind is not ("upnp" or "local" or "phone")) throw new DeviceRefusal(400, "Only a renderer, a sound device on this computer or a phone has output settings");
+                if (d.Kind is not ("upnp" or "local" or "phone")) throw new DeviceRefusal(400, "Only a renderer or a sound device on this computer has output settings");
                 if (d.Kind == "phone" && Prop(output, "volume") is not Undef) throw new DeviceRefusal(400, "A phone's volume is set on the phone");
                 var patch = new JsObj();
                 var mode = Prop(output, "mode");
