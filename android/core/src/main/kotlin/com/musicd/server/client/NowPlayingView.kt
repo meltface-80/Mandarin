@@ -35,8 +35,13 @@ data class NowPlayingView(
     /** The phone's own album playing, its key ([NowAlbum.phoneKey]), when it is one. */
     val phoneAlbum: String? = null,
     /** The album playing, as the server names it (its id, or "phone:…" for the phone's own; item 207: the Shelf finds it by it). */
-    val albumId: String? = null
+    val albumId: String? = null,
+    /** Every step of its way to the room (item 247): the lines under the album, the Signal path sheet. */
+    val signal: Signal? = null
 ) {
+    /** The lines under the album, centred (item 247): the signal's, else the badge's words from an older server. */
+    val infoLines: List<String> get() = signal?.lines?.takeIf { it.isNotEmpty() } ?: listOfNotNull(formatText)
+
     /** Shuffle's state in the contract's labels: Shuffle, Shuffle on. */
     val shuffleState: Int get() = if (shuffle) 1 else 0
 
@@ -79,7 +84,7 @@ data class NowPlayingView(
                 canNext = z.nextAllowed, canPrevious = z.previousAllowed, answeredAtMs = answeredAtMs,
                 shuffle = z.shuffle, loop = z.loop, format = np.format,
                 volume = z.outputs.firstNotNullOfOrNull { it.scale }, muted = z.outputs.any { it.muted }, artists = np.artists, trackId = np.trackId,
-                phoneAlbum = NowAlbum.phoneKey(np.albumId), albumId = np.albumId
+                phoneAlbum = NowAlbum.phoneKey(np.albumId), albumId = np.albumId, signal = np.signal
             )
         }
 

@@ -12,7 +12,7 @@
   "screens": {
     "now-playing": {
       "page": "Now playing: the album view in its Now playing mode (#album-modal.np-mode), on its Now playing tab, a phone held upright",
-      "native": ["android/app/src/main/java/com/musicd/server/android/NowPlayingScreen.kt", "android/app/src/main/java/com/musicd/server/android/NowPlayingMenus.kt", "android/app/src/main/java/com/musicd/server/android/NowPlayingSeek.kt"],
+      "native": ["android/app/src/main/java/com/musicd/server/android/NowPlayingScreen.kt", "android/app/src/main/java/com/musicd/server/android/NowPlayingMenus.kt", "android/app/src/main/java/com/musicd/server/android/NowPlayingSeek.kt", "android/app/src/main/java/com/musicd/server/android/SignalPathSheet.kt"],
       "preview": false,
       "items": {
         "back": { "kind": "action", "label": "Back" },
@@ -24,7 +24,10 @@
         "track": { "kind": "shows" },
         "artist": { "kind": "action", "label": "{artist}", "each": true },
         "album": { "kind": "action", "label": "Open album: {album}" },
-        "format": { "kind": "shows", "when": "the track's format is known" },
+        "format": { "kind": "shows", "when": "the track's format is known, and no signal path is said" },
+        "signal": { "kind": "action", "label": "Signal path", "when": "a device Mandarin streams to is playing" },
+        "signal-title": { "kind": "shows", "in": "signal" },
+        "signal-step": { "kind": "shows", "each": true, "in": "signal" },
         "wave": { "kind": "shows", "when": "the track has a waveform" },
         "seek": { "kind": "action", "label": "Seek" },
         "position": { "kind": "shows" },

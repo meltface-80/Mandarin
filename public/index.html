@@ -624,6 +624,15 @@
                  (the Android app playing the server's Opus) the Opus logo and
                  256kbps. Filled by paintNpFormat() in app.js. -->
             <div class="np-format hidden" id="np-format" data-parity="now-playing.format"></div>
+            <!-- A device Mandarin streams to (item 247), in its badge's place:
+                 centred, what goes out, how it was made, what is being made.
+                 A tap opens the signal path, every step from the file to the
+                 room. Filled by app/signal-path.js. -->
+            <button class="np-signal-lines hidden" id="np-signal-lines" data-parity="now-playing.signal" type="button" aria-label="Signal path" aria-expanded="false" aria-controls="np-signal"></button>
+            <div class="np-popover np-signal hidden" id="np-signal" role="dialog" aria-label="Signal path">
+              <div class="np-popover-title" data-parity="now-playing.signal-title">Signal path</div>
+              <ol class="np-signal-steps" id="np-signal-steps"></ol>
+            </div>
 
             <div class="np-progress">
               <!-- Behind the seek input, not instead of it: the range is what

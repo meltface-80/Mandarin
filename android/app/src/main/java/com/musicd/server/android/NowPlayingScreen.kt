@@ -73,6 +73,7 @@ internal fun NowPlayingScreen(zoneId: String, client: () -> ServerClient?, onBac
     val answered = room.answered
     var queueTab by remember { mutableStateOf(false) }
     var volumeOpen by remember { mutableStateOf(false) }
+    var signalOpen by remember { mutableStateOf(false) }   // the signal path sheet (item 247)
     var sharing by remember { mutableStateOf(false) }   // its Share card open (item 75)
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -150,10 +151,9 @@ internal fun NowPlayingScreen(zoneId: String, client: () -> ServerClient?, onBac
                     // Its album found as the page finds it (item 111): by the playing track, else the library searched by its name.
                     scope.launch { findNowAlbum(client, zoneId, v.album, v.artist)?.let { onPage("album", it.toString()) } ?: Toast.makeText(context, NowAlbum.NOT_INDEXED, Toast.LENGTH_SHORT).show() } },
                     fontSize = 14.sp, lineHeight = 19.sp, color = dim, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                v.formatText?.let {
-                    Text(it, Modifier.parity("now-playing.format").padding(top = 8.dp).border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(6.dp))
-                        .padding(horizontal = 9.dp, vertical = 3.dp).lineBox(12.sp, 14.4.sp), fontSize = 12.sp, lineHeight = 14.4.sp, fontWeight = FontWeight.W600, letterSpacing = 0.02.em, color = dim)
-                }
+                // What the room is hearing, every step of the way (item 247): the lines centred, a tap for the signal path.
+                if (v.infoLines.isNotEmpty()) SignalLines(v.infoLines, v.signal?.let { { signalOpen = true } })
+                v.signal?.takeIf { signalOpen }?.let { SignalPathSheet(it, { signalOpen = false }) }
                 RoomSeekBar(room, v, client) { to -> act { it.seek(zoneId, to) } }
                 // The transport: shuffle and repeat smaller and dimmer until on, previous and next in brass, play/pause a brass disc.
                 Row(Modifier.fillMaxWidth().padding(top = 12.dp), horizontalArrangement = Arrangement.spacedBy(14.dp, Alignment.CenterHorizontally), verticalAlignment = Alignment.CenterVertically) {

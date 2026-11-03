@@ -28,7 +28,7 @@ internal static class NowPlaying
         var keys = s != null ? Tracks.ArtistKeys(s) : [];
         var length = st.Duration != 0 ? st.Duration : t != null && Math.Round(t.Duration, MidpointRounding.AwayFromZero) is var d && d != 0 ? d : (double?)null;
         var format = FormatOf(z, st, t);
-        return new JsonObject
+        var o = new JsonObject
         {
             ["line1"] = line1, ["line2"] = line2, ["line3"] = line3,
             ["artists"] = new JsonArray(Names.SplitArtists(line2).Select(name => (JsonNode)new JsonObject { ["name"] = name, ["linkable"] = keys.Contains(Names.Fold(name)) }).ToArray()),
@@ -38,8 +38,11 @@ internal static class NowPlaying
             // Not in Roon's shape: what the speaker is actually being sent, for the format line on Now playing.
             ["track_id"] = t?.Id,
             ["album_offset"] = st.AlbumOffset != null ? st.AlbumOffset : al != null ? al.Id : null,
-            ["format"] = format == null ? null : new JsonObject { ["kind"] = format.Value.Kind, ["text"] = format.Value.Text }
+            ["format"] = format == null ? null : new JsonObject { ["kind"] = format.Value.Kind, ["text"] = format.Value.Text },
         };
+        // Every step of the way, for Now playing's lines and its Signal path sheet (SignalPath.cs, item 247); a renderer's.
+        if (SignalPath.Of(z, st, t) is { } signal) o["signal"] = signal;
+        return o;
     }
 
     /*
