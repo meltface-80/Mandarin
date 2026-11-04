@@ -175,6 +175,9 @@ public sealed partial class ConversionsCsharpTests(ConversionsCsharpTests.Book b
         var kept = await File.ReadAllBytesAsync(file);
         Assert.True(kept.AsSpan().SequenceEqual(want), "the file the Node server's 32-bit plan makes, byte for byte");
         Assert.Equal(want.Length, r.Body.Length);
+        // And 32 bits it is (item 269): ffmpeg 6.1 on, asked without -strict experimental, wrote 24 and said nothing.
+        Assert.True(kept.Length > 42 && System.Text.Encoding.ASCII.GetString(kept, 0, 4) == "fLaC", "a FLAC");
+        Assert.Equal(32, (((kept[20] & 1) << 4) | (kept[21] >> 4)) + 1);
     }
 
     // The real ffmpeg's whole path, for a script that runs it.

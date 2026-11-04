@@ -41,6 +41,7 @@
 - Fixed - signed in to Tidal, a token that stops working is renewed once, however many requests find it stale at the same time
 - Improved - a device's DSP runs in the order set: volume levelling, then the headroom (more where levelling could take a track over full scale), then the DSP at the track's own rate, then upsampling; and PCM as DSD works with DSP on
 - Fixed - DSD256 made as it plays no longer falls behind the device on the next track of an album: the making carried on into it is given all of playback's cores again, and the server keeps two of its own, so the app and the device no longer time out
+- Improved - 32-bit output: the server image's ffmpeg is now 7.1 (Debian 13), and asked as it needs to be, it writes 32-bit FLAC for a renderer that takes it (Settings → Audio Devices → the device → Bit depth)
 
 - `259-dsd-on-demand` (item 259): **PCM as DSD, and the shaped filters, made as they play.** A track made DSD from
   PCM had to be made whole, ahead (items 243, 254): its filter was one as long as the track (237, PGGB's way), so
@@ -516,6 +517,18 @@
   up on after 90 seconds. It now steps toward the album by the shelf's own order, a few steps at most, and says if it
   never got there. Nothing changes in Mandarin.
 - New - a Mandarin USB renderer (an Android device with a USB DAC, github.com/meltface-80/Android-USB-Driver) is read whole: every rate, depth and DSD multiple its DAC takes shows as advertised on its page, nothing to tick, and a track gets the ✓ when the DAC is fed what was sent
+
+- `269-ffmpeg-32-bit-flac` (item 269): **32-bit FLAC.** A renderer that takes 32 bits was sent 24: the image's
+  ffmpeg, Debian 12's 5.1, can't write 32-bit FLAC, and the ffmpeg of 6.1 on writes it only when told
+  -strict experimental, else 24 bits without a word; the server asked without it, so its probe said no everywhere
+  (Transcoder.Writes32) and Bit depth's 32 stayed off. The image is now Debian 13's (trixie, ffmpeg 7.1 with libsoxr;
+  libicu76 for libicu72), and both the probe and every 32-bit FLAC conversion ask with -strict experimental
+  (Playback/HighRates.Args, beside WAV's own; a made-as-played track's encode is the same). A renderer set to Bit
+  depth Auto or 32 that takes 32 bits now gets 32-bit FLAC; one that can't read it is set to 24 on its page. A phone
+  stays at 24 (item 268). CI checks the image's ffmpeg writes 32-bit FLAC. Tests: ConversionsCsharpTests (the
+  32-bit file made end to end is 32 bits a sample, its STREAMINFO read; it was 24 behind an ffmpeg that writes 32);
+  the kept answers of the two 32-bit conversions and of the 32-bit cases of held_args carry the flag, every changed
+  answer checked to differ by it alone.
 
 - `267-making-leaves-the-server-two-cores` (item 267): **DSD256 made as it plays keeps up, and the server keeps two cores.** Since
   item 260 a track made as it plays kept all the cores but one, and the one left was all this server had: its own

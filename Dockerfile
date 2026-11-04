@@ -57,7 +57,7 @@ RUN set -e; cd server; \
       -p:EnableCompressionInSingleFile=true -o /out --nologo; \
     rm -f /out/*.pdb /out/*.dbg; ls -la /out
 
-FROM mirror.gcr.io/library/debian:bookworm-slim
+FROM mirror.gcr.io/library/debian:trixie-slim
 LABEL org.opencontainers.image.title="MusicD Server" \
       org.opencontainers.image.description="Your own music files, played to Sonos, with MusicD Remote's interface" \
       org.opencontainers.image.source="https://github.com/meltface-80/Mandarin" \
@@ -65,6 +65,8 @@ LABEL org.opencontainers.image.title="MusicD Server" \
 
 # ffmpeg converts anything above 24-bit/48 kHz (and formats Sonos cannot
 # read) to FLAC 24/48. Debian's build includes libsoxr, the better resampler.
+# Debian 13's (ffmpeg 7.1) writes 32-bit FLAC for a device that takes it;
+# Debian 12's (5.1) stopped at 24 (item 269).
 # tini reaps ffmpeg children and passes SIGTERM on, so a stop is immediate.
 # libicu: the C# server sorts names as the Node server did (server/).
 # taskset and ionice (util-linux, in the base image): playback's own cores and
@@ -73,7 +75,7 @@ LABEL org.opencontainers.image.title="MusicD Server" \
 # poppler-utils (v0.8.33): pdfinfo and pdftoppm, which draw the pages of an
 # album's booklet for the album page (server/Mandarin.Server/Booklets.cs).
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends ffmpeg tini ca-certificates libicu72 poppler-utils \
+    && apt-get install -y --no-install-recommends ffmpeg tini ca-certificates libicu76 poppler-utils \
     && rm -rf /var/lib/apt/lists/* \
     && taskset --version && ionice --version && nice --version \
     && pdftoppm -v && pdfinfo -v

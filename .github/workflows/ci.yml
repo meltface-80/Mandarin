@@ -166,6 +166,12 @@ jobs:
           test -n "$F"
           docker run --rm --entrypoint ffmpeg musicd-server:ci -hide_banner -nostats -nostdin -f lavfi -i sine=frequency=440:duration=3 \
             -map 0:a:0 -vn -af "$F" -f null - 2>&1 | tee /dev/stderr | grep -Eq "I: +-[0-9.]+ LUFS"
+          # The image's ffmpeg writes 32-bit FLAC, asked as the server asks it (item 269):
+          # STREAMINFO's bits a sample (bytes 20 and 21 of the file), 32.
+          docker run --rm --entrypoint ffmpeg musicd-server:ci -hide_banner -loglevel error -f lavfi -i anullsrc=r=44100:cl=stereo -t 0.2 \
+            -sample_fmt s32 -bits_per_raw_sample 32 -c:a flac -f flac -strict experimental - > /tmp/s32.flac
+          set -- $(od -An -tu1 -j20 -N2 /tmp/s32.flac)
+          test "$(( ((($1 & 1) << 4) | ($2 >> 4)) + 1 ))" = 32
           # The image's ffmpeg draws text with fontconfig's sans-serif (v0.8.34): an album
           # with no cover is drawn by the C# server with it (CoversDrawn.cs). The test jobs'
           # static ffmpeg has no drawtext, so there it is drawn without its title.
