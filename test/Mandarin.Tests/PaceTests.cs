@@ -35,10 +35,9 @@ public sealed class PaceTests
         var buf = new byte[1 << 16];
         long read = 0;
         while (read < 256 * 1024) read += await body.ReadAsync(buf);
-        await Task.Delay(3000);
-        var held = Part();
-        await Task.Delay(1500);
-        Assert.Equal(held, Part());
+        // Where it stops: the socket's buffers, which a busy machine fills slowly, take a few seconds to fill (item 277).
+        long held = -1;
+        await Session.Until(async () => { var before = Part(); await Task.Delay(1500); return before == (held = Part()); }, 30000, "the making held");
         Assert.True(held > 0 && held < length / 4, $"held at {held} of {length} bytes, {read} read");
         // Read on: made to its end, every byte of it sent.
         while (true) { var n = await body.ReadAsync(buf); if (n == 0) break; read += n; }

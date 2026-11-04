@@ -526,6 +526,7 @@
 - Fixed - seeking with the progress bar in a track upsampled as it plays (DSD, or ×16) plays from there at once, and Back or a seek on a streamer left stuck on its track sends the track again
 - Fixed - on a streamer such as the FiiO SR11, an album no longer skips a track: the next track showed in the last 15 s of a long one, and one shorter than that was passed over
 - Improved - a FiiO SR11 is known by its model: its page shows what it plays by USB to a DAC (to 768 kHz/32-bit, DSD64–256) without ticking, where it showed only 44.1 and 48 kHz
+- Fixed - the server's dev image no longer falls behind the test app while changes are merged one after another
 - New - the bit-perfect check: ask for it on a Mandarin USB renderer and the track is played again from its start while the phone records exactly what it feeds the DAC; the server compares every sample with what it sent and says bit-perfect, or what differed and where (PCM, DoP and native DSD)
 
 - `275-bit-perfect-check` (item 275, first part): **the bit-perfect check, end to end, on the server.** The
@@ -546,6 +547,22 @@
   middle; an underrun, frames lost, one sample changed, 1 dB down, another track, another rate; DSD as DoP and as
   native words both ways, a byte changed), `bitperfect-check.test.js` (a fake Mandarin USB renderer: bit-perfect,
   1 dB down, the next track recorded, an app that can't record).
+
+- `276-dev-image-not-starved` (item 276): **dev's server image kept up with the test app.** The image's run waits
+  some 25 minutes for CI on its commit before it builds, and each newer push to dev cancelled the run before it.
+  With pull requests merged faster than that (272, 273 and 274 here, #600 and #602 from the Android USB driver's
+  work), no image was published after 271: ghcr's :dev said 1.1.15-t47 while the test APK, built at once, was t50.
+  Now a run under way is never cut short: a newer push waits for it, and of those waiting only the newest runs
+  (`.github/workflows/docker-publish.yml`, `cancel-in-progress: false`), so :dev is at most one build behind and
+  an older run still never pushes over a newer one. Test: `publish-after-ci.test.js` (the image's run never cut
+  short on any branch, the test APK's as before).
+
+- `277-pace-test-race` (item 277): **the pacing test waits for the making to stop, however busy the machine.**
+  `PaceTests` read a track's first bytes, then took the making's file three seconds later and again 1.5 s after,
+  and wanted the two the same. On a busy runner the socket's buffers were still filling at three seconds, so the
+  server still read on and the making went on a little (6.43 MB, then 6.63 MB): the test failed once and passed
+  alone. It now waits, up to 30 s, until the file stops growing, and then holds it as before to well short of the
+  track (with the pacing broken, the making runs to the end and the test fails).
 
 - `274-fiio-sr11-profile` (item 274): **the FiiO SR11 known by its model.** A streamer on the network says what
   formats it takes (GetProtocolInfo: FLAC, WAV, DSF…) and almost never what rates or depths: UPnP has no way to
