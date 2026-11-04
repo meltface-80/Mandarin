@@ -47,6 +47,17 @@ internal sealed class Renderer
 
     public string? Error => player.Error;
 
+    /* A DAC plugged in while a track waited for one (Player.NoDac): played from its start, as the Android app does. */
+    public void DacCame()
+    {
+        lock (gate)
+        {
+            if (Current == null || stopped || player.Error != Player.NoDac) return;
+            Start(0);
+        }
+        Evented();
+    }
+
     public string TransportState()
     {
         lock (gate)

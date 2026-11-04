@@ -65,8 +65,13 @@ internal sealed partial class Bridge
         dacs = Dacs.Find(opts.Asound);
         var d = Dac;
         var nativeDsd = store.DsdMode == "native" ? d?.EngineDsd ?? "" : "";
-        if (opts.Device.Length > 0) player.Open(opts.Device, nativeDsd);
-        else if (d != null) player.Open(d.Location, nativeDsd);
+        // The DAC found, played to where it is (or, given --device, there: the tests' file); none, the engine closed.
+        if (d != null)
+        {
+            var was = player.IsOpen;
+            player.Open(opts.Device.Length > 0 ? opts.Device : d.Location, nativeDsd);
+            if (!was) renderer.DacCame();
+        }
         else player.Close();
         var caps = Sink() + "|" + DacJson()["dac"]?.ToJsonString();
         if (caps != lastCaps)
@@ -140,9 +145,20 @@ internal sealed partial class Bridge
         };
     }
 
-    /* Where this computer is on the home network: the first IPv4 address of an interface that is up and not loopback. */
+    /*
+     * Where this computer is on the home network: the address it would reach the world from (its default route,
+     * asked of the system by a UDP "connect", which sends nothing), so a Docker or VPN bridge (docker0, 172.17.x.x) is
+     * never the one said; with no route (a Pi on its own setup Wi-Fi), the first IPv4 address of an interface that is up.
+     */
     public static IPAddress? LanAddress()
     {
+        try
+        {
+            using var s = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
+            s.Connect(new IPEndPoint(IPAddress.Parse("192.0.2.1"), 9));
+            if (s.LocalEndPoint is IPEndPoint { Address: var a } && !IPAddress.Any.Equals(a) && !IPAddress.IsLoopback(a)) return a;
+        }
+        catch (SocketException) { /* no route: the interfaces, below */ }
         try
         {
             return NetworkInterface.GetAllNetworkInterfaces()

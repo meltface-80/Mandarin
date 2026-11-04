@@ -5,7 +5,7 @@
 //                   [--asound /proc/asound] [--device alsa:…|file:…] [--address IP]
 //   mandarin-bridge --version
 //
-// --device plays to a given device whatever DACs are found (the tests' file:…); --address is the address it says it
+// --device plays to a given device in place of the DAC found (the tests' file:…); --address is the address it says it
 // is at (else its first on the home network). Logs go to stderr.
 using System.Globalization;
 using System.Reflection;

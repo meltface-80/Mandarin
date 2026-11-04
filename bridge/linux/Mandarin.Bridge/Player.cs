@@ -57,11 +57,26 @@ internal sealed class Player(string engine, string ffmpeg, Action<string> log)
             try { p.StandardInput.WriteLine("{\"cmd\":\"quit\"}"); p.StandardInput.Flush(); if (!p.WaitForExit(2000)) p.Kill(true); }
             catch (Exception e) when (e is IOException or InvalidOperationException) { /* gone */ }
             p.Dispose();
-            State = "STOPPED"; Rate = 0; Format = "";
+            State = "STOPPED"; Rate = 0; Format = ""; device = "";
         }
     }
 
-    public void Play(string uri, double offset, bool paused = false) { Error = null; State = paused ? "PAUSED_PLAYBACK" : "TRANSITIONING"; Uri = uri; Seconds = offset; Send(new JsonObject { ["cmd"] = "play", ["uri"] = uri, ["offset"] = offset, ["paused"] = paused }); }
+    /* Why a track isn't played with no DAC to play it to (the Android app's word). */
+    public const string NoDac = "No USB DAC plugged in";
+
+    /* Whether the engine is open on a DAC. */
+    public bool IsOpen { get { lock (gate) return proc != null && !proc.HasExited; } }
+
+    public void Play(string uri, double offset, bool paused = false)
+    {
+        Uri = uri; Seconds = offset;
+        // No DAC: not played, and said (STOPPED, ERROR_OCCURRED), as the Android app says it; played when one is plugged in.
+        bool none;
+        lock (gate) none = device.Length == 0;
+        if (none) { Error = NoDac; State = "STOPPED"; Changed?.Invoke(); return; }
+        Error = null; State = paused ? "PAUSED_PLAYBACK" : "TRANSITIONING";
+        Send(new JsonObject { ["cmd"] = "play", ["uri"] = uri, ["offset"] = offset, ["paused"] = paused });
+    }
     public void Next(string uri) => Send(new JsonObject { ["cmd"] = "next", ["uri"] = uri });
     public void Pause() { State = "PAUSED_PLAYBACK"; Send(new JsonObject { ["cmd"] = "pause" }); }
     public void Resume() { State = "PLAYING"; Send(new JsonObject { ["cmd"] = "resume" }); }

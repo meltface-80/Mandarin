@@ -542,7 +542,10 @@
   `/dac.json`, so Mandarin finds it, reads its DAC whole and confirms what the DAC is fed as it does the phone's. It
   plays with Mandarin's own audio engine (`mandarin-audio`): each track at its own rate, untouched, gapless into the
   next given ahead, DSF as native DSD where the DAC takes it, else DoP. The DAC is read from `/proc/asound` (each
-  altset's format and rates); one plugged in or taken out is announced afresh. Its own page at `:49494/` shows the
+  altset's format and rates); one plugged in or taken out is announced afresh. Told to play with no DAC plugged
+  in, it says so (STOPPED, ERROR_OCCURRED, "No USB DAC plugged in"), as the Android app does, and plays the track
+  once one is (`test/bridge-no-dac.test.js`, shown failing with either half taken out). The address it says it is at
+  is the one it reaches the network by (its default route), never a Docker or VPN bridge's. Its own page at `:49494/` shows the
   DAC and the choice of it, what plays, its name, the DSD setting, who last played to it and the details to copy, and
   sets them. `install.sh` installs it with the engine and a systemd service; `bridge-linux.yml` builds both
   architectures and puts them on the `test-bridge` pre-release; CI builds it for the tests. The file-length gate
