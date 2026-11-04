@@ -24,6 +24,10 @@ class UsbView(val j: JSONObject) {
     val name: String get() = j.optJSONObject("device")?.let { d -> listOf(if (d.isNull("manufacturer")) "" else d.optString("manufacturer"), d.optString("name")).filter { it.isNotEmpty() }.joinToString(" ") }
         .orEmpty().ifEmpty { "USB audio device" }
 
+    /** Every USB audio device Android lists, as choices (its key, its name with its maker), and the one in use: a choice to offer when there is more than one. */
+    val devices: List<Choice> get() = j.optJSONArray("devices").let { a -> if (a == null) emptyList() else (0 until a.length()).map { i -> a.getJSONObject(i).let { d ->
+        Choice(d.optString("key"), listOf(if (d.isNull("manufacturer")) "" else d.optString("manufacturer"), d.optString("name")).filter { it.isNotEmpty() }.distinct().joinToString(" ") + (if (d.optBoolean("own")) " (this device’s own)" else "")) } } }
+    val chosenDevice: String get() = j.optJSONArray("devices").let { a -> if (a == null) "" else (0 until a.length()).map { a.getJSONObject(it) }.firstOrNull { it.optBoolean("chosen") }?.optString("key") ?: "" }
     val rates: List<Int> get() = info?.optJSONArray("rates").ints()
     val bits: List<Int> get() = info?.optJSONArray("bits").ints()
     /** USB Audio Class 1 or 2, its speed, how it keeps time. */
