@@ -344,6 +344,9 @@ class DacService : Service() {
         val s = UsbDriver.current
         o.put("now", if (s == null || !UsbDriver.active) JSONObject.NULL else JSONObject().put("rate", s.rate).put("bits", s.bits).put("kind", s.kind)
             .put("dsd", if (s.dsd) s.dsdMultiple else 0).put("transport", if (ready) renderer.stateNow() else "STOPPED")
+            // How the level is set and whether the samples reach the DAC untouched (item 287): the signal path says it as ours.
+            .put("volume", when { UsbDriver.fixed(this) -> "fixed"; s.info.volumeControl -> "dac"; else -> "software" })
+            .put("level", UsbDriver.level()).put("untouched", UsbDriver.softwareGain() == 1f)
             .put("stats", UsbDriver.stats() ?: JSONObject.NULL))
         return o
     }

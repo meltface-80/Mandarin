@@ -302,11 +302,13 @@ test("a renderer is a zone", { skip, timeout: 150000 }, async (t) => {
       // Its signal path (item 247): what goes out and how, centred; every step from the file to the device.
       const sp = s.now_playing.signal;
       assert.deepEqual(sp.lines, ["FLAC 24/88.2 kHz ↑×2 ✓", "Standard filter"]);
-      assert.deepEqual(sp.steps.map(x => x.kind), ["source", "upsample", "output", "verified"]);
+      assert.deepEqual(sp.steps.map(x => x.kind), ["source", "upsample", "output", "fed"]);
       assert.equal(sp.steps[0].detail, "FLAC 16/44.1 kHz");
       assert.equal(sp.steps[1].detail, "×2 to 88.2 kHz · Standard filter");
       assert.match(sp.steps[2].detail, /^FLAC 24\/88\.2 kHz, to Living Room WiiM$/);
-      assert.deepEqual(sp.steps.map(x => x.quality), ["lossless", "enhanced", "enhanced", "lossless"]);
+      // The WiiM's own word (item 287): the format it reports, nothing said of the samples it can't vouch for.
+      assert.deepEqual([sp.steps[3].title, sp.steps[3].detail], ["The device reports", "PCM 88.2 kHz, 24-bit — as its own API reports it"]);
+      assert.deepEqual(sp.steps.map(x => x.quality), ["lossless", "enhanced", "enhanced", "pending"]);
       const d = await api("audio-devices/" + WIIM);
       assert.equal(d.rates.find(x => x.hz === 88200).source, "verified");
       assert.ok(d.caps.verified.rates["88200"]);

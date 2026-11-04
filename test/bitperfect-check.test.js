@@ -65,11 +65,10 @@ test("a Mandarin Bridge renderer's DAC checked bit-perfect, end to end", { skip,
       await until(async () => { const z = (await api("zone-state?zone=" + zone)).zone; return z && z.state === "playing" && z.now_playing && z.now_playing.line1 === "Song 1"; });
     };
 
-    // Now playing's signal path offers it (item 275): a step with its button, on this device only.
+    // Now playing's signal path says only what is known (item 287): no check, no verdict on it.
     const step = async (zone) => { const z = (await api("zone-state?zone=" + zone)).zone; return ((z && z.now_playing && z.now_playing.signal && z.now_playing.signal.steps) || []).find(x => x.kind === "check"); };
     await playing(USB);
-    const offered = await until(() => step(USB));
-    assert.deepEqual([offered.title, offered.action, offered.button, offered.quality], ["Bit-perfect check", "bitperfect", "Check", "pending"]);
+    assert.equal(await step(USB), undefined);
 
     // Fed what it was sent: bit-perfect, every sample, the track played again from its start for it.
     const sets = usb.log.filter(a => a === "SetAVTransportURI").length;
@@ -80,10 +79,7 @@ test("a Mandarin Bridge renderer's DAC checked bit-perfect, end to end", { skip,
     assert.match(c.report.says, /^Bit-perfect/);
     assert.ok(usb.log.includes("capture"), "the device was asked to record");
     assert.ok(usb.log.filter(a => a === "SetAVTransportURI").length > sets, "the track sent again from its start");
-    // The step says so, and offers it again.
-    const said = await until(async () => { const s2 = await step(USB); return s2 && s2.title === "Bit-perfect to the DAC" && s2; });
-    assert.deepEqual([said.quality, said.button], ["lossless", "Check again"]);
-    assert.match(said.detail, /^Bit-perfect: every sample/);
+    assert.equal(await step(USB), undefined, "nor once it is done");
 
     // Fed it 1 dB down: not bit-perfect, by how much.
     usb.captureFilter = "volume=-1dB:precision=double";

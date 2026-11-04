@@ -74,11 +74,6 @@ class ServerClient(
         post("/api/seek", JSONObject().put("zone_or_output_id", zoneId).put("how", "absolute").put("seconds", seconds))
     }
 
-    /** The track playing in the room checked bit-perfect to its DAC (item 275); a refusal says why. */
-    fun bitPerfect(zoneId: String) {
-        post("/api/bitperfect", JSONObject().put("zone_or_output_id", zoneId))
-    }
-
     /** Shuffle and repeat ([loop]: disabled, loop, loop_one), as the page's buttons set them; null leaves one as it is. */
     fun zoneSettings(zoneId: String, shuffle: Boolean? = null, loop: String? = null) {
         val b = JSONObject().put("zone_or_output_id", zoneId)

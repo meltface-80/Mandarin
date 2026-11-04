@@ -540,6 +540,8 @@
 - Fixed - the Mac check no longer gives up on a busy day before GitHub has a Mac to run it on
 - Fixed - the bit-perfect check records the whole track on Mandarin Bridge: from its very start (the first seconds were lost to the moment before the track was played again) and with nothing missed between recordings (a moment was lost every 30 seconds); update Mandarin Bridge on the phone for it
 - Improved - a bit-perfect check's verdict says what wasn't recorded, if anything ("not recorded: 0:00–0:03 and 0:33–0:35"), and is kept: the track's step on Now playing still says it after another track or a restart, and another track's step names the last check
+- Fixed - Now playing's signal path says only what is known, and whose word it is: its last step is what the Mandarin Bridge (or Mandarin's audio engine, or the device's own API) reports feeding the DAC, the format, the samples in the DAC's words, and whether its volume touches them ("fixed volume: the samples untouched — as Mandarin Bridge reports it"); "bit-perfect" is no longer said on it, and the bit-perfect check is no longer on it (SQ-tool, in Settings, is to prove it)
+- Fixed - a 16-bit track fed to a DAC in 32-bit words, its samples unchanged, is confirmed with its ✓; a track whose samples the volume scales no longer is
 
 - `284-dff-as-dsd` (item 284): **A DFF played as DSD, as a DSF is.** The audio engine read only a DSF itself; a DFF
   went to ffmpeg, which made it PCM, so on a DAC on the server or on the Linux Bridge it was never DSD (the server
@@ -552,6 +554,21 @@
   (markers in turn, the DSD rate over 16) and as native DSD (big-endian words, the rate over 32), the 48 kHz family as
   DoP; a seek to 1.5 s plays on from that word, what lay between never sent; a DST one said, nothing sent. Shown
   failing with the DFF sent to ffmpeg, a DST one played, the seek ignored, and the chunk after the audio sent.
+- `287-signal-path-facts` (item 287): **The signal path tells only sourced facts.** It said "· bit-perfect" when the
+  server sent the file as it is, a claim about the DAC no one had measured, and "Confirmed by the device" by a rule
+  that never confirmed a 16-bit track fed in 32-bit words (the values unchanged) yet would have for samples the
+  phone's volume scaled. Each step is now a fact with its source: the file, what Mandarin did and sent ("· as it is"),
+  and last, what the device reports feeding its DAC (`Fed` on the zone's state, `SignalPath.Fed`): Mandarin Bridge's
+  `/dac.json` `now`, which now says its `volume` (fixed, dac, software), `level` and `untouched` (the Android app from
+  its driver's gain, the Linux one always fixed and untouched); Mandarin's audio engine's opened format and gain for a
+  DAC on the server; a WiiM's own API's format, nothing claimed of its samples. Lossless only where the device says
+  the samples go untouched in the format sent; lossy where it says otherwise; pending where it doesn't say. The ✓
+  needs the format sent and nothing done to the samples. The bit-perfect check's step and button are gone from Now
+  playing, the page's and the app's (`now-playing.signal-check` out of the contract); proof is SQ-tool's to give.
+  `test/signal-path-facts.test.js`: 16-bit in 32-bit words untouched (lossless, ✓), the volume in software (lossy,
+  no ✓), another rate (lossy), an older app (its format only, pending), and "bit-perfect" nowhere; shown failing with
+  "bit-perfect" said again, the device's word left out, scaled samples called untouched, 16-in-32 unconfirmed, and the
+  tick given despite scaling.
 - `286-bitperfect-whole-track` (item 286): **The bit-perfect check records the whole track, and keeps its verdict.** A
   check of a 3:39 track on a FiiO R7 said 95%: its report showed the first recording begun on the playback before the
   restart (16 ms of 2:01) and ended by it, so 0:00–0:04 went unrecorded, and a 1.3 s gap after every 30 s recording

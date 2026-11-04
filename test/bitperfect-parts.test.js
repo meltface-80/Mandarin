@@ -3,9 +3,8 @@
  * The bit-perfect check of a whole track (item 286): a Mandarin Bridge renderer whose app records in parts (/dac.json
  * says "capture_parts") is asked once for the whole track, from the stream played again from its start
  * ("after_flush"), in parts one after another; each part is fetched and let go, and the track is compared whole:
- * every sample, nothing unrecorded. Its verdict is kept: the step still says it once another track plays (the last
- * check named), and after the server restarts, both on the track's step and at /api/bitperfect. Parts that can't be
- * read are said to be, the check never left hanging.
+ * every sample, nothing unrecorded. Its verdict is kept after the server restarts, at /api/bitperfect. Parts that
+ * can't be read are said to be, the check never left hanging.
  */
 const ports = require("./ports");
 const test = require("node:test");
@@ -52,7 +51,6 @@ test("a whole track checked bit-perfect in parts, and its verdict kept", { skip,
   };
   const USB = idFor(usb.udn);
   const zone = async () => (await api("zone-state?zone=" + USB)).zone;
-  const step = async () => { const z = await zone(); return ((z && z.now_playing && z.now_playing.signal && z.now_playing.signal.steps) || []).find(x => x.kind === "check"); };
   const on = (title) => until(async () => { const z = await zone(); return z && z.state === "playing" && z.now_playing && z.now_playing.line1 === title; });
   try {
     await until(async () => (await api("status")).index_count === 3);
@@ -78,11 +76,6 @@ test("a whole track checked bit-perfect in parts, and its verdict kept", { skip,
     assert.deepEqual(c.report.unrecorded, []);
     assert.match(c.report.says, /^Bit-perfect: every sample of the track reached the DAC exactly as it was sent$/);
 
-    // Another track since: its step offers a check, and says how the last one went.
-    await on("Song 2");
-    const other = await until(async () => { const s = await step(); return s && s.title === "Bit-perfect check" && s; });
-    assert.match(other.detail, /Last checked: Song 1, bit-perfect/);
-
     // Parts that can't be read: said so, the check never left hanging at "comparing".
     usb.captureCorrupt = true;
     assert.equal((await api("play", { offset: one.offset, zone_or_output_id: USB, kind: "play_now" })).ok, true);
@@ -97,7 +90,7 @@ test("a whole track checked bit-perfect in parts, and its verdict kept", { skip,
     assert.equal((await api("bitperfect", { zone_or_output_id: USB })).status, 200);
     assert.equal((await until(async () => { const x = await api("bitperfect?zone=" + USB); return x.state === "done" || x.state === "failed" ? x : null; }, 60000)).report.verdict, "bit-perfect");
 
-    // The server restarted: the verdict kept, at /api/bitperfect and on the track's step when it plays again.
+    // The server restarted: the verdict kept, at /api/bitperfect.
     await srv.stop();
     srv = make();
     await srv.start();
@@ -105,11 +98,6 @@ test("a whole track checked bit-perfect in parts, and its verdict kept", { skip,
     await until(async () => (await api("zones")).zones.some(z => z.zone_id === USB));
     const kept = await api("bitperfect?zone=" + USB);
     assert.deepEqual([kept.state, kept.track, kept.report && kept.report.verdict], ["done", "Song 1", "bit-perfect"], JSON.stringify(kept));
-    assert.equal((await api("play", { offset: one.offset, zone_or_output_id: USB, kind: "play_now" })).ok, true);
-    await on("Song 1");
-    const again = await until(async () => { const s = await step(); return s && s.title === "Bit-perfect to the DAC" && s; });
-    assert.deepEqual([again.quality, again.button], ["lossless", "Check again"]);
-    assert.match(again.detail, /^Bit-perfect: every sample.*\(checked \d{1,2} \w{3}\)$/);
   } finally {
     await srv.stop();
     await usb.stop();

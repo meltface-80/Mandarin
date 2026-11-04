@@ -83,7 +83,12 @@ internal static class MandarinBridge
     public static JsObj? Reported(object? caps) =>
         Prop.Get(caps, "mandarin") is JsObj mu && mu["rates"] is List<object?> { Count: > 0 } ? mu : null;
 
-    public sealed record Now(double Rate, double Bits, double Dsd);
+    /*
+     * What the device is feeding the DAC: the rate, the bits of the words the DAC is opened at, the DSD multiple, the
+     * kind (pcm, dop, dsd); and since item 287 how its level is set ("fixed", "dac", "software"), the level, and whether
+     * the samples go to the DAC untouched (null from an app that doesn't say).
+     */
+    public sealed record Now(double Rate, double Bits, double Dsd, string Kind = "pcm", string? Volume = null, double Level = 0, bool? Untouched = null);
 
     /* What the device is feeding the DAC, from /dac.json's "now"; null while nothing plays. */
     public static Now? Playing(JsObj dac)
@@ -91,6 +96,8 @@ internal static class MandarinBridge
         if (dac["now"] is not JsObj n) return null;
         var rate = Jv.Num(n["rate"]); var bits = Jv.Num(n["bits"]); var dsd = Jv.Num(n["dsd"]);
         if (!(rate > 0)) return null;
-        return new Now(rate, double.IsNaN(bits) ? 0 : bits, double.IsNaN(dsd) ? 0 : dsd);
+        var level = Jv.Num(n["level"]);
+        return new Now(rate, double.IsNaN(bits) ? 0 : bits, double.IsNaN(dsd) ? 0 : dsd, n["kind"] is string k ? k : dsd > 0 ? "dsd" : "pcm",
+            n["volume"] as string, double.IsNaN(level) ? 0 : level, n["untouched"] is bool u ? u : null);
     }
 }

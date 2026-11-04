@@ -1022,8 +1022,9 @@ Raspberry Pi image to flash (`mandarin-bridge-pi-arm64.img.xz`: plug in the DAC,
 `http://mandarin-bridge.local:49494/`, or with no network yet its own *Mandarin Bridge Setup* Wi-Fi; see
 [bridge/pi/README.md](bridge/pi/README.md)). A small app, in `bridge/`: it makes an Android device (a FiiO R7, say) with a USB DAC on its port a
 UPnP renderer that Mandarin plays to, bit-perfect, through Mandarin's own USB driver, and keeps the device awake.
-Mandarin reads the DAC whole from it (every rate, depth and DSD multiple), confirms what it feeds the DAC, and can
-check a whole track bit-perfect to the DAC (Now playing → Signal path → Bit-perfect check). Its test build is the
+Mandarin reads the DAC whole from it (every rate, depth and DSD multiple), and Now playing's signal path says what
+it feeds the DAC, in its own words: the format, how the samples sit in the DAC's words, and whether its volume
+touches them. Its test build is the
 [test-bridge](https://github.com/meltface-80/Mandarin/releases/tag/test-bridge) pre-release; setting it
 up, building it and how it fits together are in [bridge/README.md](bridge/README.md). It installs over Mandarin USB,
 keeping its settings; the server knows an app not yet updated as the same renderer.
@@ -1137,13 +1138,11 @@ with **Fixed volume** on they are never scaled and the volume is the DAC's or am
 * **Docker:** add `--device /dev/snd` and `--privileged` to `docker run` (in `docker-compose.yml`,
   the commented `devices:` and `privileged:` lines), then re-create the container.
 * DSD files go to these devices as PCM.
-* **The bit-perfect check (item 275):** for a USB DAC, *Now playing → Signal path → Bit-perfect check*
-  plays the track again from its start and records what goes down the USB cable to the DAC, off the
-  kernel's usbmon, then compares every sample with what was sent: bit-perfect, or what differs and
-  where. It needs usbmon loaded on the computer the DAC is plugged into (`sudo modprobe usbmon`; to
-  keep it after a restart, `echo usbmon | sudo tee /etc/modules-load.d/usbmon.conf`) and the server
-  allowed to read `/dev/usbmonN` (root, or the container `--privileged`, as above). Without it, the
-  check says what is missing.
+* **What the DAC is fed:** Now playing's signal path ends with what the audio engine opened the
+  device at (PCM in 32-bit words, DoP or native DSD) and whether Mandarin's volume touches the
+  samples (fixed volume: untouched; otherwise the level it scales them by), said as the engine's
+  word. Whether every sample reaches the DAC is for a recording of what it was fed to prove, not
+  for the signal path to claim.
 * **Playback comes first (v0.8.13).** The decoder and the device each queue a minute of audio
   ahead. On Linux with three cores or more, playback keeps a core of its own, or two while DSP is in
   use (the last ones), and both servers run on the others; on four cores, one for playback and

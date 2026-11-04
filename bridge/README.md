@@ -75,7 +75,12 @@ The app says everything about the DAC at `/dac.json`, and Mandarin (on `dev`, un
 word, as Roon does a Roon Ready device: the rates, depths and DSD the DAC takes are on, nothing else is, and there is
 nothing to tick. Ticks made by hand before no longer override it; a tap on a chip still turns that one off. The volume
 follows the DAC: fixed where it has no USB volume control (or is set to Fixed here), Mandarin's slider where it has.
-Each track is confirmed with a ✓ on Now playing when the DAC is fed what was sent.
+What it feeds the DAC now is `/dac.json`'s `now`: the `rate`, the `bits` of the words the DAC is opened at, `kind`
+(`pcm`, `dop`, `dsd`) and the DSD multiple, and how its level is set (`volume`: `fixed`, `dac` for the DAC's own
+control, `software`; `level`; `untouched`: whether the samples reach the DAC unchanged). Now playing's signal path
+says exactly that, as the Bridge's word (item 287): "PCM 44.1 kHz, the 16-bit samples in 32-bit words, fixed volume:
+the samples untouched — as Mandarin Bridge reports it", and the track's ✓ where it is the format sent with nothing
+done to the samples.
 
 The depths are those the renderer takes: every one up to the DAC's widest format, so a DAC with 24- and 32-bit
 formats (an SMSL SU-1) is sent 16-bit tracks as they are, and the app gives them to the DAC at 32 bits (`dac_bits` says

@@ -28,7 +28,6 @@
         "signal": { "kind": "action", "label": "Signal path", "when": "a device Mandarin streams to is playing" },
         "signal-title": { "kind": "shows", "in": "signal" },
         "signal-step": { "kind": "shows", "each": true, "in": "signal" },
-        "signal-check": { "kind": "action", "label": "{button}", "when": "a Mandarin Bridge renderer whose app records what it feeds its DAC", "in": "signal" },
         "wave": { "kind": "shows", "when": "the track has a waveform" },
         "seek": { "kind": "action", "label": "Seek" },
         "position": { "kind": "shows" },
