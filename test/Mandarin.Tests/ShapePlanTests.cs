@@ -83,7 +83,7 @@ public sealed class ShapePlanTests
         Assert.Equal(keys[0] + "-gentlej", keys[2]);
         // The shape before the endings a file's kind is read from: a DSF's and a WAV's stay theirs.
         Assert.EndsWith("-minj-dsd256j", keys[3], StringComparison.Ordinal);
-        Assert.EndsWith("-minj-wav", keys[4], StringComparison.Ordinal);
+        Assert.EndsWith("-minjh-wav", keys[4], StringComparison.Ordinal);   // "h": its length in its header (item 270)
     }
 
     [Test]
