@@ -5,7 +5,7 @@
 //                   [--asound /proc/asound] [--device alsa:…|file:…] [--address IP] [--wifi [--nmcli PATH] [--setup-after 60]]
 //   mandarin-bridge --version
 //
-// --device plays to a given device whatever DACs are found (the tests' file:…); --address is the address it says it
+// --device plays to a given device in place of the DAC found (the tests' file:…); --address is the address it says it
 // is at (else its first on the home network); --wifi lets its page set the Wi-Fi, and opens a setup network where
 // there is none --setup-after seconds after it starts (Wifi.cs; the Raspberry Pi image's). Logs go to stderr.
 using System.Globalization;
