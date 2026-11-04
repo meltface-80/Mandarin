@@ -2,18 +2,19 @@
 // renderer that Mandarin plays to, played by Mandarin's own audio engine. Set up and watched from its own web page.
 //
 //   mandarin-bridge [--port 49494] [--data DIR] [--engine PATH] [--ffmpeg PATH]
-//                   [--asound /proc/asound] [--device alsa:…|file:…] [--address IP]
+//                   [--asound /proc/asound] [--device alsa:…|file:…] [--address IP] [--wifi [--nmcli PATH] [--setup-after 60]]
 //   mandarin-bridge --version
 //
 // --device plays to a given device whatever DACs are found (the tests' file:…); --address is the address it says it
-// is at (else its first on the home network). Logs go to stderr.
+// is at (else its first on the home network); --wifi lets its page set the Wi-Fi, and opens a setup network where
+// there is none --setup-after seconds after it starts (Wifi.cs; the Raspberry Pi image's). Logs go to stderr.
 using System.Globalization;
 using System.Reflection;
 
 namespace Mandarin.Bridge;
 
 /* How the Bridge was started. */
-internal sealed record Options(int Port, string Data, string Engine, string Ffmpeg, string Asound, string Device, string? Address);
+internal sealed record Options(int Port, string Data, string Engine, string Ffmpeg, string Asound, string Device, string? Address, string? Nmcli = null, int SetupAfter = 60);
 
 internal static class Program
 {
@@ -27,6 +28,8 @@ internal static class Program
         int port = 49494;
         string? data = null, engine = null, address = null;
         string ffmpeg = "ffmpeg", asound = "/proc/asound", device = "";
+        string? nmcli = null;
+        var setupAfter = 60;
         for (var i = 0; i < args.Length; i++)
         {
             string Next() => i + 1 < args.Length ? args[++i] : throw new ArgumentException(args[i] + " needs a value");
@@ -40,6 +43,9 @@ internal static class Program
                 case "--asound": asound = Next(); break;
                 case "--device": device = Next(); break;
                 case "--address": address = Next(); break;
+                case "--wifi": nmcli ??= "nmcli"; break;
+                case "--nmcli": nmcli = Next(); break;
+                case "--setup-after": setupAfter = int.Parse(Next(), CultureInfo.InvariantCulture); break;
                 default: Console.Error.WriteLine("unknown argument " + args[i]); return 2;
             }
         }
@@ -47,7 +53,7 @@ internal static class Program
         if (engine == null) { Console.Error.WriteLine("mandarin-audio (Mandarin's audio engine) isn't here: pass --engine"); return 3; }
         data ??= Environment.UserName == "root" ? "/var/lib/mandarin-bridge"
             : Path.Combine(Environment.GetEnvironmentVariable("XDG_CONFIG_HOME") is { Length: > 0 } x ? x : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".config"), "mandarin-bridge");
-        var bridge = new Bridge(new Options(port, data, engine, ffmpeg, asound, device, address), Log);
+        var bridge = new Bridge(new Options(port, data, engine, ffmpeg, asound, device, address, nmcli, setupAfter), Log);
         bridge.Start();
         using var done = new ManualResetEventSlim();
         AppDomain.CurrentDomain.ProcessExit += (_, _) => { bridge.Stop(); done.Set(); };

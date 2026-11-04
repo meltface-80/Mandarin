@@ -535,7 +535,19 @@
 - Fixed - a search typed while the page was still starting (Home painted from its last visit, the server not yet answered) was closed and its results thrown away the moment the page finished starting; it now stays
 - Improved - Mandarin USB, the phone app that plays through a USB DAC as a renderer, is Mandarin Bridge (bridge/, its test build the test-bridge pre-release); it installs over Mandarin USB with its settings, and the server knows an app not yet updated as the same renderer
 - New - Mandarin Bridge for Linux: a computer with a USB DAC (a Raspberry Pi beside the DAC, say) as a renderer Mandarin plays to bit-perfect, with Mandarin's own audio engine; installed with one line, it starts at boot and is set up from its own page at http://<it>:49494/
+- New - Mandarin Bridge for Raspberry Pi: an image to flash (Raspberry Pi OS Lite, 64-bit, the Bridge in it); plug in the DAC and power on, its page at http://mandarin-bridge.local:49494/, and with no network yet its own Wi-Fi, Mandarin Bridge Setup, to choose the home network from the page
 
+- `283-bridge-pi-image` (item 283): **Mandarin Bridge for Raspberry Pi.** An image to flash (`bridge/pi`): Raspberry Pi
+  OS Lite (64-bit) with the Bridge, the audio engine and ffmpeg, the Bridge started at boot, the Pi called
+  `mandarin-bridge`, made by `build-image.sh` on GitHub's ARM runner (`bridge-pi.yml`, which checks the Bridge and
+  ffmpeg run inside it and puts the image on the `test-bridge` pre-release). With no screen, its Wi-Fi is set from its
+  page (`Wifi.cs`, through NetworkManager, with `--wifi`, which the image runs it with): where it has no network a
+  minute after starting it opens its own, *Mandarin Bridge Setup*; the page lists the networks in reach and joins the
+  one chosen, the setup network closed first, and opens it again should the join fail. `test/bridge-wifi.test.js`,
+  against a stand-in for nmcli: the setup network opened, the networks listed strongest first (a colon in a name
+  read whole), a wrong password said and the setup network opened again, the right one joined and the setup network
+  kept closed, and no Wi-Fi without `--wifi`; shown failing with the setup network not closed before a join, the
+  colon not read, no setup network opened, and the setup network opened though on a network.
 - `282-bridge-linux` (item 282): **Mandarin Bridge for Linux.** The Android app's twin for a computer with no screen
   (`bridge/linux`, C# built ahead of time to one native program for x64 and arm64): the same UPnP MediaRenderer
   (SSDP, the description and SCPDs, AVTransport, RenderingControl and ConnectionManager, eventing) and the same

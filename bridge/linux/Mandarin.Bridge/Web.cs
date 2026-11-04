@@ -36,6 +36,10 @@ internal static class Web
           <div id="choose" hidden><label for="dacs">Play to</label><select id="dacs"></select></div>
           <label for="dsd">DSD</label><select id="dsd"><option value="native">Native where the DAC takes it, else DoP</option><option value="dop">DoP only</option><option value="pcm">None (Mandarin sends PCM)</option></select>
         </section>
+        <section id="wifi" hidden><h2>Wi-Fi</h2><div id="wifinow" class="dim"></div>
+          <label for="ssid">Network</label><select id="ssid"></select>
+          <label for="wpass">Password</label><input id="wpass" type="password" autocomplete="off">
+          <button id="join">Join</button><span class="saved" id="joined"></span></section>
         <section><h2>Name</h2><label for="newname">What Mandarin and other players call it</label><input id="newname" maxlength="64"><button id="save">Save</button><span class="saved" id="saved"></span></section>
         <section><h2>Details</h2><div class="dim" id="where"></div><button class="quiet" id="copy">Copy details</button><pre id="details"></pre></section>
         </main>
@@ -46,7 +50,7 @@ internal static class Web
           const r = await fetch("/api/settings", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
           const j = await r.json(); if (!r.ok) throw new Error(j.error || r.status); show(j); return j;
         }
-        function show(s) {
+        let show = function (s) {
           state = s;
           $("name").textContent = s.name; document.title = s.name + " — Mandarin Bridge";
           $("sub").textContent = "Mandarin Bridge " + s.version + (s.address ? " · " + s.address : "");
@@ -70,6 +74,25 @@ internal static class Web
         $("dacs").addEventListener("change", () => post({ dac: $("dacs").value }));
         $("dsd").addEventListener("change", () => post({ dsd_mode: $("dsd").value }));
         $("copy").addEventListener("click", () => { const t = JSON.stringify(state, null, 2); (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).catch(() => { const a = document.createElement("textarea"); a.value = t; document.body.append(a); a.select(); document.execCommand("copy"); a.remove(); }); });
+        let wifiAt = 0;
+        async function wifi(force) {
+          if (!state || !state.wifi || (!force && Date.now() - wifiAt < 10000)) return;
+          wifiAt = Date.now();
+          try {
+            const w = await (await fetch("/api/wifi", { cache: "no-store" })).json();
+            $("wifinow").textContent = w.setup ? "No network yet: this is its setup network (" + w.setup_name + "). Choose your home network." : w.network ? "On " + w.network : "Not on a Wi-Fi network";
+            const sel = $("ssid"), was = sel.value; sel.textContent = "";
+            for (const n of w.networks) { const o = document.createElement("option"); o.value = n.ssid; o.textContent = n.ssid + (n.secure ? " 🔒" : "") + " · " + n.signal + "%"; o.selected = n.ssid === (was || w.network); sel.append(o); }
+            if (w.error) $("joined").textContent = w.error;
+          } catch (e) { /* the setup network closing as it joins */ }
+        }
+        $("join").addEventListener("click", async () => {
+          $("joined").textContent = "Joining " + $("ssid").value + "… once it has, the page is at http://" + location.hostname.replace(/^10\.42\.0\.1$/, "mandarin-bridge.local") + ":49494/ on that network";
+          await fetch("/api/wifi", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ssid: $("ssid").value, password: $("wpass").value }) }).catch(() => {});
+          $("wpass").value = "";
+        });
+        const shown0 = show;
+        show = (s) => { shown0(s); $("wifi").hidden = !s.wifi; wifi(false); };
         tick(); setInterval(tick, 2000);
         </script>
         </body></html>
