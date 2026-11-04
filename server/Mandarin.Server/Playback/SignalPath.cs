@@ -91,6 +91,8 @@ internal static class SignalPath
             steps.Add(Step("verified", "Confirmed by the device", "It reports playing what it was sent", "lossless"));
             output += " ✓";
         }
+        // The bit-perfect check (item 275), where the device can record what it feeds its DAC: offered, under way, or its verdict.
+        if (Renderers.Players.CheckStep(z.DeviceId ?? z.ZoneId, st.TrackUri) is { } check) steps.Add(check);
         // A stream never made DSD although the device is set to it.
         if (svc != null && Renderers.Players.TargetFor(z.DeviceId ?? z.ZoneId)?["dsd_out"] is double up && up > 0)
         {
