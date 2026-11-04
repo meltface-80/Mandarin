@@ -1,0 +1,216 @@
+// Check.cs — the bit-perfect check, end to end (bug list item 275): what reached the DAC compared with what the
+// server sent it, frame by frame, for a whole track, on request.
+//
+// The track is played again from its start, and the device that feeds the DAC records what it feeds it: a Mandarin
+// USB renderer at its /capture (github.com/meltface-80/Android-USB-Driver: the very words the USB transfers carry, up
+// to two minutes at a time, so a longer track is recorded in turn, each recording asked for as the one before is
+// taken). Then what was sent is fetched from this server as the device fetched it (the cache's file, the file
+// itself, a DSF made as it played) and each recording is found in it and compared (Compare.cs). The report says
+// the verdict, how much of the track was compared, and where anything differed.
+using System.Text.Json.Nodes;
+
+namespace Mandarin.Server.BitPerfect;
+
+internal static class Check
+{
+    private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromMinutes(10) };
+
+    /* The most one recording of the device's holds (Mandarin USB's limit), in seconds. */
+    public const int Most = 120;
+
+    /* What is checked: the track's address on this server, its title, its length, and what was sent of it. */
+    public sealed record Track(string Uri, string Title, double Seconds, double Rate, double Bits, double Dsd, double DsdBase);
+
+    /* What the check is told of the room: the track played again from its start, and whether it is still on it. */
+    public sealed record Room(Func<Task> Restart, Func<bool> StillOn, string Name);
+
+    /* The check, as far as it has got: its state, what it says, and once done, its report. */
+    public sealed class Run
+    {
+        public volatile string State = "starting";
+        public volatile string Said = "Starting";
+        public JsonObject? Report;
+        public readonly CancellationTokenSource Stop = new();
+        public double Recorded;
+    }
+
+    /* [track] in [room], recorded by the Mandarin USB renderer at [device] (its base address), into [dir]. */
+    public static async Task Go(Run run, Track track, Room room, string device, string dir)
+    {
+        var ct = run.Stop.Token;
+        try
+        {
+            if (Directory.Exists(dir)) Directory.Delete(dir, true);
+            Directory.CreateDirectory(dir);
+            var parts = new List<(string Wav, JsonObject? Said)>();
+            run.Said = "Asking the device to record";
+            await Ask(device, Math.Min(Most, (int)Math.Ceiling(track.Seconds) + 2), ct);
+            run.Said = "Playing the track from its start";
+            await room.Restart();
+            while (true)
+            {
+                run.State = "recording";
+                run.Said = $"Recording what the DAC is fed ({Math.Round(run.Recorded)} s of {Math.Round(track.Seconds)} s)";
+                var st = await Wait(run, device, ct);
+                var n = parts.Count + 1;
+                var wav = Path.Combine(dir, $"part{n}.wav");
+                await Fetch(device + "/capture.wav", wav, ct);
+                JsonObject? said = null;
+                try { said = (JsonNode.Parse(await Http.GetStringAsync(device + "/capture.wav.json", ct)) as JsonObject)?["capture"] as JsonObject; }
+                catch (Exception e) when (e is HttpRequestException or System.Text.Json.JsonException) { /* a recording with no sidecar: PCM */ }
+                parts.Add((wav, said));
+                run.Recorded += Number(st["frames"]) / Math.Max(1, Number(st["rate"]));
+                if (run.Recorded + 1 >= track.Seconds || !room.StillOn() || (string?)st["state"] != "done") break;
+                await Ask(device, Math.Min(Most, (int)Math.Ceiling(track.Seconds - run.Recorded) + 2), ct);
+            }
+            run.State = "comparing";
+            run.Said = "Comparing what the DAC was fed with what was sent";
+            var sent = Path.Combine(dir, "sent");
+            await Fetch(track.Uri, sent, ct);
+            run.Report = Reported(track, room.Name, Sent(sent, track, dir), parts);
+            run.State = "done";
+            run.Said = (string?)run.Report["says"] ?? "Done";
+        }
+        catch (Exception e) when (e is HttpRequestException or IOException or OperationCanceledException or InvalidOperationException or TimeoutException)
+        {
+            run.State = "failed";
+            run.Said = ct.IsCancellationRequested ? "Stopped" : "The check couldn't finish: " + e.Message;
+            try { await Http.DeleteAsync(device + "/capture", CancellationToken.None); } catch (HttpRequestException) { /* gone */ }
+        }
+    }
+
+    /*
+     * `mandarin-server bitperfect`: a line of JSON on standard input, { sent: file, rate, bits?, dsd?, dsd_base?, seconds,
+     * title?, parts: [{ wav, said? }] }, compared as a check compares them; the report is a line of JSON on standard output.
+     */
+    public static int Command()
+    {
+        var job = JsonNode.Parse(Console.In.ReadLine() ?? "{}") as JsonObject ?? [];
+        var track = new Track("", (string?)job["title"] ?? "", Number(job["seconds"]), Number(job["rate"]), Number(job["bits"]), Number(job["dsd"]),
+            job["dsd_base"] is JsonValue ? Number(job["dsd_base"]) : 44100);
+        var dir = Directory.CreateTempSubdirectory("mandarin-bitperfect-").FullName;
+        try
+        {
+            var parts = (job["parts"] as JsonArray ?? []).OfType<JsonObject>().Select(x => ((string)x["wav"]!, x["said"] as JsonObject)).ToList();
+            Console.WriteLine(Reported(track, "", Sent((string)job["sent"]!, track, dir), parts).ToJsonString());
+            return 0;
+        }
+        finally { Directory.Delete(dir, true); }
+    }
+
+    private static double Number(JsonNode? n) => n is JsonValue v && v.TryGetValue<double>(out var d) ? d : 0;
+
+    // The device asked to record [seconds] from the next byte it takes.
+    private static async Task Ask(string device, int seconds, CancellationToken ct)
+    {
+        using var r = await Http.PostAsJsonAsync(device + "/capture", new { seconds }, ct);
+        if (!r.IsSuccessStatusCode) throw new InvalidOperationException($"the device wouldn't record (HTTP {(int)r.StatusCode}: {(await r.Content.ReadAsStringAsync(ct)).Trim()})");
+    }
+
+    // Until the device's recording is done (or failed): its last word.
+    private static async Task<JsonObject> Wait(Run run, string device, CancellationToken ct)
+    {
+        var armedSince = DateTime.UtcNow;
+        while (true)
+        {
+            await Task.Delay(1000, ct);
+            var st = JsonNode.Parse(await Http.GetStringAsync(device + "/capture", ct)) as JsonObject ?? [];
+            var state = (string?)st["state"];
+            if (state == "done") return st;
+            if (state == "failed") throw new InvalidOperationException("the device's recording failed: " + ((string?)st["reason"] ?? "no reason given"));
+            if (state == "armed" && DateTime.UtcNow - armedSince > TimeSpan.FromSeconds(30)) throw new TimeoutException("the device never started playing the track");
+            if (state is "idle") throw new InvalidOperationException("the device stopped recording");
+            if (state == "recording") run.Said = $"Recording what the DAC is fed ({Math.Round(run.Recorded + Number(st["frames"]) / Math.Max(1, Number(st["rate"])))} s)";
+        }
+    }
+
+    private static async Task Fetch(string url, string path, CancellationToken ct)
+    {
+        using var r = await Http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, ct);
+        r.EnsureSuccessStatusCode();
+        await using var o = File.Create(path);
+        await (await r.Content.ReadAsStreamAsync(ct)).CopyToAsync(o, ct);
+    }
+
+    // What was sent, as frames: a DSF read as it is, PCM decoded by ffmpeg to 32-bit words at its own rate.
+    private static Frames Sent(string path, Track track, string dir)
+    {
+        using (var f = File.OpenRead(path))
+        {
+            var magic = new byte[4];
+            if (f.Read(magic) == 4 && magic.AsSpan().SequenceEqual("DSD "u8)) return new DsfFrames(path, track.Dsd * track.DsdBase);
+        }
+        var raw = Path.Combine(dir, "sent.s32");
+        var psi = new System.Diagnostics.ProcessStartInfo(Transcoder.Bin) { UseShellExecute = false, RedirectStandardError = true };
+        foreach (var a in new[] { "-hide_banner", "-nostdin", "-loglevel", "error", "-y", "-i", path, "-map", "0:a:0", "-f", "s32le", "-c:a", "pcm_s32le", raw }) psi.ArgumentList.Add(a);
+        using var p = System.Diagnostics.Process.Start(psi)!;
+        var err = p.StandardError.ReadToEnd();
+        p.WaitForExit();
+        if (p.ExitCode != 0) throw new InvalidOperationException("what was sent couldn't be decoded: " + err.Trim());
+        return new PcmFrames(raw, 0, 4, track.Rate);
+    }
+
+    private static readonly string[] Worst = ["bit-perfect", "dropouts", "altered", "not-bit-perfect", "not-found", "resampled", "unread"];
+
+    // The report: each recording compared with what was sent, and the verdict of them all.
+    private static JsonObject Reported(Track track, string room, Frames sent, List<(string Wav, JsonObject? Said)> parts)
+    {
+        using var _ = sent;
+        var list = new JsonArray();
+        var verdict = "bit-perfect";
+        double compared = 0;
+        double? first = null, level = null;
+        var drops = new JsonArray();
+        JsonObject? fed = null;
+        foreach (var (wav, said) in parts)
+        {
+            fed ??= said;
+            var (got, why) = Recording.Open(wav, said);
+            Compare.Result r;
+            using (got) r = got == null ? Compare.Result.NotFound() with { Verdict = "unread" } : Compare.Of(sent, got);
+            if (Array.IndexOf(Worst, r.Verdict) > Array.IndexOf(Worst, verdict)) verdict = r.Verdict;
+            compared += r.Compared / sent.Rate;
+            first ??= r.FirstDifference;
+            level ??= r.LevelDb;
+            foreach (var d in r.Dropouts) drops.Add(new JsonObject { ["at"] = Math.Round(d.At, 3), ["kind"] = d.Kind });
+            list.Add(new JsonObject
+            {
+                ["verdict"] = r.Verdict, ["from"] = Math.Round(r.From, 3), ["to"] = Math.Round(r.To, 3), ["compared"] = r.Compared,
+                ["differing"] = r.Differing, ["first_difference"] = r.FirstDifference, ["level_db"] = r.LevelDb, ["why"] = why,
+                ["interruptions"] = said?["interruptions"]?.DeepClone(), ["usb"] = said?["usb"]?.DeepClone(),
+            });
+        }
+        var coverage = track.Seconds > 0 ? Math.Min(1, compared / track.Seconds) : 0;
+        return new JsonObject
+        {
+            ["verdict"] = verdict, ["says"] = Says(verdict, coverage, first, level, drops.Count),
+            ["track"] = new JsonObject { ["title"] = track.Title, ["uri"] = track.Uri, ["seconds"] = Math.Round(track.Seconds, 3) },
+            ["sent"] = new JsonObject { ["rate"] = track.Rate, ["bits"] = track.Bits, ["dsd"] = track.Dsd },
+            ["fed"] = fed == null ? null : new JsonObject
+            {
+                ["kind"] = fed["kind"]?.DeepClone(), ["rate"] = fed["rate"]?.DeepClone(), ["container_bits"] = fed["container_bits"]?.DeepClone(),
+                ["valid_bits"] = fed["valid_bits"]?.DeepClone(), ["device"] = fed["device"]?.DeepClone(),
+            },
+            ["room"] = room, ["compared_seconds"] = Math.Round(compared, 3), ["coverage"] = Math.Round(coverage, 4),
+            ["first_difference"] = first, ["level_db"] = level, ["dropouts"] = drops, ["parts"] = list,
+            ["at"] = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+        };
+    }
+
+    // The report in a sentence.
+    private static string Says(string verdict, double coverage, double? first, double? level, int drops)
+    {
+        var how = coverage >= 0.995 ? "every sample of the track" : $"{Math.Round(coverage * 100)}% of the track";
+        static string At(double? s) => s is { } v ? $"{(int)(v / 60)}:{(int)(v % 60):00}" : "?";
+        return verdict switch
+        {
+            "bit-perfect" => $"Bit-perfect: {how} reached the DAC exactly as it was sent",
+            "dropouts" => $"The samples reached the DAC as sent, but with {drops} dropout(s): the stream had gaps or jumps",
+            "altered" => $"Altered: most of the track reached the DAC as sent, but some of it differs (first at {At(first)})",
+            "not-bit-perfect" => $"Not bit-perfect: the samples differ throughout{(level is { } l ? $", the level {l.ToString("+0.##;-0.##;0", System.Globalization.CultureInfo.InvariantCulture)} dB" : "")}",
+            "resampled" => "Resampled: the DAC was fed another rate than was sent",
+            "not-found" => "What the DAC was fed isn't the track that was sent",
+            _ => "The device's recording couldn't be read",
+        };
+    }
+}
