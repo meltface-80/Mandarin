@@ -3,6 +3,7 @@
 ## Unreleased
 
 - Fixed - the Android app's USB driver is bit-perfect: every 16- and 24-bit sample reached the DAC one step off in its lowest bit (and a 16-bit slot's loudest ones), and a 32-bit stream (upsampled) lost its lowest 8 bits on the way through float; with the DSP off each sample now reaches the DAC as it is, a shallower one padded with zeros
+- New - the USB driver hands on exactly what it feeds the DAC (UsbDriver.tap), for a recording of it: Mandarin USB's capture, which the server's bit-perfect check reads
 - Improved - a Mandarin USB renderer (an Android device with a USB DAC) is set up by what it says of its DAC, as a Roon Ready device is: the rates, depths and DSD it takes are on and nothing else, with nothing to tick, and rates ticked by hand before no longer override it (a tap still turns one off); its volume is the DAC's, fixed where the DAC has no volume control of its own
 - Fixed - away from home, the Android app only talks to its own server through its own Tailscale
 - Improved - the server re-reads the library far less often while its background jobs run
