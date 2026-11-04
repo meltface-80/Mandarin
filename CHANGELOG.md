@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Improved - a Mandarin USB renderer (an Android device with a USB DAC) is set up by what it says of its DAC, as a Roon Ready device is: the rates, depths and DSD it takes are on and nothing else, with nothing to tick, and rates ticked by hand before no longer override it (a tap still turns one off); its volume is the DAC's, fixed where the DAC has no volume control of its own
 - Fixed - away from home, the Android app only talks to its own server through its own Tailscale
 - Improved - the server re-reads the library far less often while its background jobs run
 - Fixed - away from home, the Android app no longer drops a working connection after its Tailscale restarts

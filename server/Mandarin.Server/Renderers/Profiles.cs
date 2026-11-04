@@ -25,7 +25,7 @@ namespace Mandarin.Server.Renderers;
 
 using Js = Mandarin.Server.Tags.Js;
 
-internal static class Profiles
+internal static partial class Profiles
 {
     public static readonly double[] Rates = [44100, 48000, 88200, 96000, 176400, 192000, 352800, 384000, 705600, 768000];
     public static readonly double[] Bits = [16, 24, 32];
@@ -200,6 +200,8 @@ internal static class Profiles
         }
 
         var p = For(record);
+        // A Mandarin USB renderer that has said what its DAC takes: its word alone (Profiles.MandarinUsb.cs).
+        if (MandarinUsb.Reported(caps) is { } said) return DeviceSays(o, said, user, verified, containers, record);
         (bool On, string Source) Pick(double v, string key, double[] floor)
         {
             var own = key == "rates" ? p.Rates : key == "bits" ? p.Bits : p.Dsd;
