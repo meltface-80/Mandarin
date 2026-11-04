@@ -1,8 +1,8 @@
 // HighRates.cs — a rate above what FLAC carries (bug list item 238): 705.6 and 768 kHz, sixteen times 44.1 and 48.
 //
 // FLAC's frames name rates up to 655,350 Hz; above that the rate is only in the stream's header, and neither the
-// ffmpeg Mandarin's image has (Debian's 5.1: "705600 Hz not supported") nor the FLAC decoders most streamers carry
-// (libFLAC before 1.4) will have it. On 2 November every track planned for a FiiO SR11 at ×16 failed so, and the
+// ffmpeg Mandarin's image had (Debian bookworm's 5.1: "705600 Hz not supported"; trixie's 7.1 since) nor the FLAC
+// decoders most streamers carry (libFLAC before 1.4) will have it. On 2 November every track planned for a FiiO SR11 at ×16 failed so, and the
 // SR11 was given nothing while the screen counted on. So a plan above 655,350 Hz goes out as WAV where the device
 // takes WAV (streamed as it is made, its length unknown in its header, as a radio's is), and where it doesn't, at
 // the highest rate of its family that FLAC carries and the device takes: ×8 for a CD.
