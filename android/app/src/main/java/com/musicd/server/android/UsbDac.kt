@@ -115,16 +115,37 @@ object UsbDac {
         refresh(c)
     }
 
-    /** The audio device on the port, if any: one with an Audio Control interface. */
+    /** A device's key, as the choice of one is kept (Store.usbDevice): its vendor and product ids. */
+    fun key(d: UsbDevice): String = "${d.vendorId}:${d.productId}"
+
+    /** Every USB audio device Android lists (an Audio Control interface), in its order. */
+    fun devices(c: Context): List<UsbDevice> {
+        val um = c.getSystemService(Context.USB_SERVICE) as? UsbManager ?: return emptyList()
+        return um.deviceList.values.filter { d -> (0 until d.interfaceCount).any { i -> d.getInterface(i).let { it.interfaceClass == UsbConstants.USB_CLASS_AUDIO && it.interfaceSubclass == 1 } } }
+    }
+
+    /**
+     * The device's own DAC, where that sits on a USB bridge inside (a FiiO R7's,
+     * and other players'): it names the device's maker as its own, where the
+     * DAC plugged into the port names another.
+     */
+    private fun own(d: UsbDevice): Boolean {
+        val maker = (d.manufacturerName ?: "").trim()
+        val mine = Build.MANUFACTURER.trim()
+        return maker.isNotEmpty() && mine.isNotEmpty() && (maker.startsWith(mine, ignoreCase = true) || mine.startsWith(maker, ignoreCase = true))
+    }
+
+    /**
+     * The DAC on the port: the one chosen (Store.usbDevice) when it is there; else
+     * the first that isn't the device's own; else the first. Before, the first
+     * listed, which on a FiiO R7 was its own DAC, never the one plugged in.
+     */
     private fun find(c: Context): UsbDevice? {
-        val um = c.getSystemService(Context.USB_SERVICE) as? UsbManager ?: return null
-        for (d in um.deviceList.values) {
-            for (i in 0 until d.interfaceCount) {
-                val f = d.getInterface(i)
-                if (f.interfaceClass == UsbConstants.USB_CLASS_AUDIO && f.interfaceSubclass == 1) return d
-            }
-        }
-        return null
+        val all = devices(c)
+        if (all.isEmpty()) return null
+        val chosen = Store.usbDevice(c)
+        if (chosen != null) all.firstOrNull { key(it) == chosen }?.let { return it }
+        return all.firstOrNull { !own(it) } ?: all[0]
     }
 
     /** Look at the port again: found, permitted, read. */
@@ -181,8 +202,11 @@ object UsbDac {
             // "AudioQuest DragonFly" already names its maker: not twice.
             o.put("device", JSONObject().put("name", name)
                 .put("manufacturer", if (maker.isNotEmpty() && !name.startsWith(maker, ignoreCase = true)) maker else JSONObject.NULL)
-                .put("vendor_id", d.vendorId).put("product_id", d.productId))
+                .put("vendor_id", d.vendorId).put("product_id", d.productId).put("key", key(d)))
         }
+        // Every USB audio device there is, the one in use marked: more than one, and the page offers the choice (the device's own DAC among them).
+        o.put("devices", JSONArray().also { a -> for (x in devices(c)) a.put(JSONObject().put("key", key(x)).put("name", x.productName ?: "USB audio device")
+            .put("manufacturer", x.manufacturerName ?: JSONObject.NULL).put("own", own(x)).put("chosen", d != null && key(x) == key(d))) })
         info?.let { o.put("info", it.json()) }
         // The stream, when one is open (9.2): what the DAC is being fed, and how it is going.
         UsbDriver.current?.let { s -> o.put("stream", JSONObject().put("rate", s.rate).put("bits", s.bits).put("alt", s.stream.alt)

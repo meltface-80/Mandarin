@@ -545,6 +545,9 @@
   lists ran beside the test's search. Now a call refused with a token that has since been replaced is made again with
   the one kept, and only a call refused with the current one renews it (TidalApi.Renewed). Test: tidal.test.js (two
   calls refused with a stale token, the second's refusal held until the first has renewed it: renewed once).
+- Fixed - on a FiiO R7, and any player whose own DAC sits on a USB bridge inside, the Android app plays the DAC plugged into the port, not the device’s own; a choice of device is kept for the page (MusicdUsb.setDevice)
+- Improved - the image’s ffmpeg is 7.1 (Debian trixie): a streamer or DAC that takes 32 bits is sent 32-bit FLAC where a track is converted or upsampled (Settings → Audio Devices → a device → Output → Bits: Auto or 32), as before only on a Mac or a host with ffmpeg 7; the image’s 5.1 could not write it
+
 ## v1.1.14
 
 Tweaks - altered share card copy function, Android app copies it to the clipboard. Items 223 to 225.

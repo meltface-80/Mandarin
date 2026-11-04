@@ -25,6 +25,17 @@ class UsbViewTest {
         assertTrue(u.fixedNote.startsWith("Off. The volume slider and the phone’s volume buttons drive the DAC’s own control"))
     }
 
+    @Test fun `more than one USB audio device, the device's own among them — the choices, and the one in use`() {
+        val two = UsbView(JSONObject("""{"attached":true,"permission":true,"device":{"name":"SU-1","manufacturer":"SMSL","key":"1234:5678"},
+            "devices":[{"key":"10615:1","name":"FiiO R7","manufacturer":"FiiO","own":true,"chosen":false},{"key":"1234:5678","name":"SU-1","manufacturer":"SMSL","own":false,"chosen":true}]}"""))
+        assertEquals(listOf("10615:1", "1234:5678"), two.devices.map { it.value })
+        assertEquals(listOf("FiiO R7 (this device’s own)", "SMSL SU-1"), two.devices.map { it.words })
+        assertEquals("1234:5678", two.chosenDevice)
+        val one = UsbView(JSONObject("""{"attached":false,"permission":false}"""))
+        assertEquals(emptyList<Choice>(), one.devices)
+        assertEquals("", one.chosenDevice)
+    }
+
     @Test fun `nothing on the port, and one not yet allowed`() {
         val none = UsbView(JSONObject("""{"attached":false,"permission":false,"direct":false,"error":null,"dsd_native":[],"dsd_dop":[]}"""))
         assertFalse(none.attached)
