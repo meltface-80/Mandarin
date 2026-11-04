@@ -527,6 +527,13 @@
 - Fixed - on a streamer such as the FiiO SR11, an album no longer skips a track: the next track showed in the last 15 s of a long one, and one shorter than that was passed over
 - Improved - a FiiO SR11 is known by its model: its page shows what it plays by USB to a DAC (to 768 kHz/32-bit, DSD64–256) without ticking, where it showed only 44.1 and 48 kHz
 
+- `277-pace-test-race` (item 277): **the pacing test waits for the making to stop, however busy the machine.**
+  `PaceTests` read a track's first bytes, then took the making's file three seconds later and again 1.5 s after,
+  and wanted the two the same. On a busy runner the socket's buffers were still filling at three seconds, so the
+  server still read on and the making went on a little (6.43 MB, then 6.63 MB): the test failed once and passed
+  alone. It now waits, up to 30 s, until the file stops growing, and then holds it as before to well short of the
+  track (with the pacing broken, the making runs to the end and the test fails).
+
 - `274-fiio-sr11-profile` (item 274): **the FiiO SR11 known by its model.** A streamer on the network says what
   formats it takes (GetProtocolInfo: FLAC, WAV, DSF…) and almost never what rates or depths: UPnP has no way to
   ask. A DAC on the server's own USB says its rates itself (ALSA), a WiiM says what its decoder runs at, a
