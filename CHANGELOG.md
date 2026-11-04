@@ -534,7 +534,26 @@
 - New - the bit-perfect check for a USB DAC plugged into the server: Now playing → Signal path → Bit-perfect check plays the track again and records what goes down the USB cable to the DAC (the kernel's usbmon: `sudo modprobe usbmon`, the container privileged), then compares every sample with what was sent
 - Fixed - a search typed while the page was still starting (Home painted from its last visit, the server not yet answered) was closed and its results thrown away the moment the page finished starting; it now stays
 - Improved - Mandarin USB, the phone app that plays through a USB DAC as a renderer, is Mandarin Bridge (bridge/, its test build the test-bridge pre-release); it installs over Mandarin USB with its settings, and the server knows an app not yet updated as the same renderer
+- New - Mandarin Bridge for Linux: a computer with a USB DAC (a Raspberry Pi beside the DAC, say) as a renderer Mandarin plays to bit-perfect, with Mandarin's own audio engine; installed with one line, it starts at boot and is set up from its own page at http://<it>:49494/
 
+- `282-bridge-linux` (item 282): **Mandarin Bridge for Linux.** The Android app's twin for a computer with no screen
+  (`bridge/linux`, C# built ahead of time to one native program for x64 and arm64): the same UPnP MediaRenderer
+  (SSDP, the description and SCPDs, AVTransport, RenderingControl and ConnectionManager, eventing) and the same
+  `/dac.json`, so Mandarin finds it, reads its DAC whole and confirms what the DAC is fed as it does the phone's. It
+  plays with Mandarin's own audio engine (`mandarin-audio`): each track at its own rate, untouched, gapless into the
+  next given ahead, DSF as native DSD where the DAC takes it, else DoP. The DAC is read from `/proc/asound` (each
+  altset's format and rates); one plugged in or taken out is announced afresh. Told to play with no DAC plugged
+  in, it says so (STOPPED, ERROR_OCCURRED, "No USB DAC plugged in"), as the Android app does, and plays the track
+  once one is (`test/bridge-no-dac.test.js`, shown failing with either half taken out). The address it says it is at
+  is the one it reaches the network by (its default route), never a Docker or VPN bridge's. Its own page at `:49494/` shows the
+  DAC and the choice of it, what plays, its name, the DSD setting, who last played to it and the details to copy, and
+  sets them. `install.sh` installs it with the engine and a systemd service; `bridge-linux.yml` builds both
+  architectures and puts them on the `test-bridge` pre-release; CI builds it for the tests. The file-length gate
+  covers `bridge/**/*.cs`. `test/bridge-linux.test.js`: Mandarin's server finds it on a computer with a Mojo, reads
+  every rate and DSD to DSD256, plays an album to it, confirms the DAC is fed 96 kHz, finds half a second of the
+  track bit for bit in what the engine wrote, goes on to the next track gapless, and takes the name set on its page;
+  shown failing with the gain not 1, the rate said wrong, native DSD not read, the name not kept, and the next track
+  not given ahead.
 - `281-mandarin-bridge` (item 281): **Mandarin USB is Mandarin Bridge.** The renderer app is named for what it is
   to be, Mandarin's bridge to a USB DAC on a device of its own (on Android now; Linux and a Raspberry Pi image to
   come): `usb-renderer/` is `bridge/`, its workflows `bridge.yml` and `bridge-release.yml`, its APK

@@ -1,0 +1,74 @@
+name: Mandarin Bridge for Linux
+
+# Mandarin Bridge for Linux (bridge/linux, item 282): built for x64 and arm64 (a Raspberry Pi 3, 4, 5 or Zero 2 on a
+# 64-bit OS) with the audio engine it plays with, packaged with its systemd service and install.sh. A push to dev
+# puts the packages and install.sh on the rolling "test-bridge" pre-release beside the Android APK, never "latest";
+# nothing here makes a tag.
+on:
+  push:
+    branches: ["**"]
+    paths: &paths
+      - "bridge/linux/**"
+      - "engine/**"
+      - ".github/workflows/bridge-linux.yml"
+  pull_request:
+    paths: *paths
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: bridge-linux-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/dev' }}
+
+jobs:
+  build:
+    name: Mandarin Bridge for Linux (${{ matrix.arch }})
+    strategy:
+      matrix:
+        include:
+          - { runner: ubuntu-latest, arch: x64 }
+          - { runner: ubuntu-24.04-arm, arch: arm64 }
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: "10.0.x"
+      - name: Build and package
+        run: |
+          set -e
+          RID=linux-${{ matrix.arch }} ./engine/build.sh
+          RID=linux-${{ matrix.arch }} ./bridge/linux/build.sh
+          mkdir -p out/mandarin-bridge
+          cp bridge/linux/bin/mandarin-bridge engine/bin/mandarin-audio bridge/linux/mandarin-bridge.service bridge/linux/install.sh bridge/linux/README.md out/mandarin-bridge/
+          tar -C out -czf mandarin-bridge-linux-${{ matrix.arch }}.tar.gz mandarin-bridge
+          ./out/mandarin-bridge/mandarin-bridge --version
+      - uses: actions/upload-artifact@v7
+        with:
+          name: mandarin-bridge-linux-${{ matrix.arch }}
+          path: mandarin-bridge-linux-${{ matrix.arch }}.tar.gz
+
+  publish:
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          path: out
+          merge-multiple: true
+      - name: Publish to the "test-bridge" pre-release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -e
+          if ! gh release view test-bridge >/dev/null 2>&1; then
+            gh release create test-bridge --prerelease --latest=false --title "Mandarin Bridge — test build" \
+              --notes "Mandarin Bridge as dev is now. Not a numbered release." --target "${GITHUB_SHA}"
+          fi
+          gh release upload test-bridge out/mandarin-bridge-linux-x64.tar.gz out/mandarin-bridge-linux-arm64.tar.gz bridge/linux/install.sh --clobber

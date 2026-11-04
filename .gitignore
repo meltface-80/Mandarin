@@ -37,3 +37,7 @@ tools/lint/node_modules/
 test/StandIns/bin/
 test/StandIns/obj/
 tools/quality/out
+# Mandarin Bridge for Linux's build (bridge/linux, item 282)
+bridge/linux/bin/
+bridge/linux/Mandarin.Bridge/bin/
+bridge/linux/Mandarin.Bridge/obj/

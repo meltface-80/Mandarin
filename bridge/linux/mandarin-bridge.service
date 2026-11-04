@@ -1,0 +1,21 @@
+# Mandarin Bridge for Linux (bridge/linux, item 282): the USB DAC on this computer as a renderer Mandarin plays to.
+# Its page is at http://<this computer>:49494/. Installed by install.sh.
+[Unit]
+Description=Mandarin Bridge (a USB DAC as a renderer for Mandarin)
+After=network-online.target sound.target
+Wants=network-online.target
+
+[Service]
+ExecStart=/usr/lib/mandarin-bridge/mandarin-bridge --data /var/lib/mandarin-bridge --engine /usr/lib/mandarin-bridge/mandarin-audio
+Restart=always
+RestartSec=3
+# Its own user, allowed the sound devices and, for the audio engine's playback thread, a real-time priority.
+DynamicUser=yes
+SupplementaryGroups=audio
+StateDirectory=mandarin-bridge
+AmbientCapabilities=CAP_SYS_NICE
+LimitRTPRIO=95
+LimitMEMLOCK=infinity
+
+[Install]
+WantedBy=multi-user.target
