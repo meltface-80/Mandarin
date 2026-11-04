@@ -1,4 +1,4 @@
-"""Web API tests: the real server, with simulated players on a simulated loopback card."""
+"""Web API tests: the real server, handed its recordings as Mandarin hands them."""
 
 import json
 import os
@@ -38,16 +38,14 @@ class ServerTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.tmp = tempfile.mkdtemp(prefix="sq-server-test-")
-        cls.old_env = dict(os.environ)
-        cls.httpd, cls.base = fake_server.start(os.path.join(cls.tmp, "data"), proc_dir=cls.tmp, seconds=4.0)
+        cls.music = os.path.join(cls.tmp, "music")
+        cls.httpd, cls.base = fake_server.start(os.path.join(cls.tmp, "data"), music_dir=cls.music, seconds=4.0)
+        cls.app = cls.httpd.app
 
     @classmethod
     def tearDownClass(cls):
         cls.httpd.shutdown()
         cls.httpd.server_close()
-        cls.httpd.players.close()
-        os.environ.clear()
-        os.environ.update(cls.old_env)
         shutil.rmtree(cls.tmp, ignore_errors=True)
 
     def wait_test(self, tid, ready, timeout=120):
@@ -59,117 +57,94 @@ class ServerTest(unittest.TestCase):
             time.sleep(0.1)
         self.fail("timed out: %s" % json.dumps({k: t[k] for k in ("source", "captures", "results")}))
 
-    def record(self, tid, slot):
-        status, st, _ = call(self.base, "/api/tests/%s/record" % tid, "POST", {"slot": slot})
-        self.assertEqual(status, 200, st)
-        self.assertIn(st["state"], ("starting", "waiting"))
-        self.assertEqual((st["slot"], st["device"]), (slot, "loopback:1"))
-        status, err, _ = call(self.base, "/api/tests/%s/record" % tid, "POST", {"slot": slot})
-        self.assertEqual((status, err["error"]), (400, "a recording is already running: stop it first"))
-        keys = ["a"] if slot == "a" else ["b", "ab"]
-        return self.wait_test(tid, lambda t: all((t["results"].get(k) or {}).get("state") == "ready" for k in keys))
+    def recorded(self, tid, **kw):
+        self.assertEqual(fake_server.post_recording(self.base, self.app, tid, **kw), {"id": tid})
+        return self.wait_test(tid, lambda t: (t["results"].get("a") or {}).get("state") == "ready")
+
+    def song(self):
+        found = call(self.base, "/api/search?q=demo%2016")[1]
+        self.assertEqual([f["name"] for f in found], ["02 Demo Song (16-44).wav"])
+        status, r, _ = call(self.base, "/api/tests", "POST", {"path": found[0]["path"]})
+        self.assertEqual(status, 200, r)
+        t = self.wait_test(r["id"], lambda t: t["source"]["state"] != "preparing")
+        self.assertEqual(t["source"]["state"], "ready", t["source"])
+        return t
 
     def test_full_flow(self):
         status, state, _ = call(self.base, "/api/state")
         self.assertEqual(status, 200)
-        self.assertEqual(state["capture"]["use"], "loopback:1")
-        self.assertEqual(state["capture"]["loopback"]["play_to"], "hw:1,0")
-        self.assertEqual(state["capture"]["problems"], [])
+        self.assertEqual(sorted(state), ["busy", "free_bytes", "music", "version"])  # no recorder, no settings
         self.assertTrue(state["music"]["available"])
-        self.assertEqual(state["settings"]["players"], {"a": "Roon", "b": "Mandarin"})
 
         root = call(self.base, "/api/browse")[1]
         self.assertEqual(root["dirs"], ["SQ-tool Demo"])
         album = call(self.base, "/api/browse?path=SQ-tool%20Demo/Example%20Album")[1]
         self.assertEqual([f["name"] for f in album["files"]], ["01 Demo Song (24-96).wav", "02 Demo Song (16-44).wav"])
-        found = call(self.base, "/api/search?q=demo%2016")[1]
-        self.assertEqual([f["name"] for f in found], ["02 Demo Song (16-44).wav"])
 
-        status, r, _ = call(self.base, "/api/tests", "POST", {"path": found[0]["path"]})
-        self.assertEqual(status, 200, r)
-        tid = r["id"]
-        t = self.wait_test(tid, lambda t: t["source"]["state"] != "preparing")
-        self.assertEqual(t["source"]["state"], "ready", t["source"])
-        self.assertEqual((t["title"], t["artist"], t["source"]["rate"]), ("Demo Song (16-44)", "SQ-tool Demo", 44100))
+        t = self.song()
+        tid = t["id"]
+        self.assertEqual((t["title"], t["artist"], t["source"]["rate"], t["players"]), ("Demo Song (16-44)", "SQ-tool Demo", 44100, {"a": ""}))
         self.assertEqual(call(self.base, "/api/state?test=" + tid)[1]["test_rev"], t["rev"])
 
-        t = self.record(tid, "a")  # bit-perfect
+        t = self.recorded(tid)  # bit-perfect
         self.assertEqual((t["results"]["a"]["verdict"], t["results"]["a"]["short"]), ("IDENTICAL", "BIT-PERFECT"))
-        self.assertEqual(t["captures"]["a"]["player"], "RAATServer")
-        t = self.record(tid, "b")  # -0.5 dB with dither
-        self.assertEqual(t["captures"]["b"]["player"], "mandarin")
-        self.assertEqual(t["captures"]["b"]["format"], "S24_3LE")
-        self.assertEqual(t["results"]["b"]["verdict"], "DIFFERENT")
-        self.assertEqual(t["results"]["ab"]["verdict"], "DIFFERENT")
-        self.assertIn("level changed: -0.500 dB, -0.500 dB (by channel)", t["results"]["b"]["lines"])
-        st = call(self.base, "/api/state")[1]["recorder"]
-        self.assertEqual((st["state"], st["saved"], st["stop_reason"]), ("done", True, "reached the end of the song"))
-
+        self.assertEqual((t["players"]["a"], t["captures"]["a"]["player"], t["captures"]["a"]["method"]), ("FiiO R7 USB", "FiiO R7 USB", "mandarin"))
+        self.assertEqual(sorted(t["results"]), ["a"])
         listed = call(self.base, "/api/tests")[1]
-        self.assertEqual(listed[0]["id"], tid)
-        self.assertEqual(listed[0]["results"]["a"]["short"], "BIT-PERFECT")
+        self.assertEqual((listed[0]["id"], listed[0]["results"]["a"]["short"]), (tid, "BIT-PERFECT"))
 
-        # Spectrograms (PNG + their axis information in a header).
-        for which in ("source", "a", "b", "diff-a", "diff-b", "diff-ab"):
+        # Spectrograms (PNG + their axis information in a header): the song, what the DAC was fed, the difference.
+        for which in ("source", "a", "diff-a"):
             status, png, headers = call(self.base, "/api/tests/%s/spectrogram/%s.png?w=400&h=120&floor=-160" % (tid, which))
             self.assertEqual(status, 200, png)
             self.assertEqual(headers["Content-Type"], "image/png")
             self.assertTrue(png.startswith(b"\x89PNG"))
             info = json.loads(headers["X-Spectrogram"])
             self.assertEqual((info["width"], info["height"], info["db_low"], info["rate"]), (400, 120, -160, 44100))
-        status, err, _ = call(self.base, "/api/tests/%s/spectrogram/nope.png" % tid)
-        self.assertEqual(status, 404)
+        for gone in ("b", "diff-b", "diff-ab", "nope"):
+            self.assertEqual(call(self.base, "/api/tests/%s/spectrogram/%s.png" % (tid, gone))[0], 404, gone)
         status, err, _ = call(self.base, "/api/tests/%s/spectrogram/a.png?t0=x" % tid)
         self.assertEqual((status, err["error"]), (400, "t0 must be a number"))
 
-        # Downloads: the recordings and the differences.
+        # Downloads: the recording and the difference.
         status, wav, headers = call(self.base, "/api/tests/%s/audio/a.wav" % tid)
         self.assertIn("attachment", headers["Content-Disposition"])
-        self.assertIn("Roon.wav", headers["Content-Disposition"])
+        self.assertIn("FiiO R7 USB.wav", headers["Content-Disposition"])
         self.assertEqual(read_wav(bytes(wav)).label, "WAV PCM 32-bit")
         status, wav, headers = call(self.base, "/api/tests/%s/difference/a.wav" % tid)
         self.assertEqual(status, 200)
         diff = read_wav(bytes(wav))
         self.assertTrue(diff.is_float)
         self.assertFalse(diff.data.any())
-        wav = call(self.base, "/api/tests/%s/difference/ab.wav?matched=1" % tid)[1]
-        rms = float(np.sqrt(np.mean(read_wav(bytes(wav)).data.astype(np.float64) ** 2)))
-        self.assertLess(20 * np.log10(rms), -130)  # only the dither remains
+        self.assertEqual(call(self.base, "/api/tests/%s/difference/ab.wav" % tid)[0], 404)
 
-        status, t2, _ = call(self.base, "/api/tests/" + tid, "PATCH", {"players": {"b": "Mandarin 1.2"}})
-        self.assertEqual(t2["players"], {"a": "Roon", "b": "Mandarin 1.2"})
+        # Recorded again with the volume in software: not bit-perfect, and how not.
+        t = self.recorded(tid, zone="Kitchen", scaled=True)
+        self.assertEqual((t["players"]["a"], t["results"]["a"]["verdict"]), ("Kitchen", "DIFFERENT"))
+        self.assertIn("level changed: -0.500 dB, -0.500 dB (by channel)", t["results"]["a"]["lines"])
+        self.assertEqual(os.listdir(os.path.join(self.tmp, "data", "tmp")), [])  # the upload went to the test
+
         status, _, _ = call(self.base, "/api/tests/" + tid, "DELETE")
         self.assertEqual(status, 200)
         self.assertEqual(call(self.base, "/api/tests/" + tid)[0], 404)
         self.assertIsNone(call(self.base, "/api/state?test=" + tid)[1]["test_rev"])
 
-    def test_upload_and_stop(self):
-        with open(os.path.join(self.tmp, "music", "SQ-tool Demo", "Example Album", "02 Demo Song (16-44).wav"), "rb") as f:
-            song = f.read()
-        status, r, _ = call(self.base, "/api/tests/upload?filename=song.wav", "POST", data=song)
-        self.assertEqual(status, 200, r)
-        t = self.wait_test(r["id"], lambda t: t["source"]["state"] == "ready")
-        self.assertEqual(t["source"]["filename"], "song.wav")
-        self.assertEqual(os.listdir(os.path.join(self.tmp, "data", "tmp")), [])  # the upload was cleaned up
-
-        # A recording stopped before anything plays saves nothing.
-        self.httpd.players.delay = 30
-        try:
-            call(self.base, "/api/tests/%s/record" % r["id"], "POST", {"slot": "b"})
-            st = call(self.base, "/api/record/stop", "POST")[1]
-            deadline = time.time() + 10
-            while st["state"] not in ("done", "error") and time.time() < deadline:
-                time.sleep(0.05)
-                st = call(self.base, "/api/state")[1]["recorder"]
-            self.assertEqual((st["state"], st["saved"]), ("done", False))
-        finally:
-            self.httpd.players.delay = 0.8
-
-        status, bad, _ = call(self.base, "/api/tests/upload?filename=notes.txt", "POST", data=b"not audio at all")
+    def test_recordings_refused(self):
+        tid = self.song()["id"]
+        wav = fake_server.fed(self.app, tid)
+        status, err, _ = call(self.base, "/api/tests/%s/recording" % tid, "POST", data=wav)
+        self.assertEqual((status, err["error"]), (400, "name the zone recorded"))
+        status, err, _ = call(self.base, "/api/tests/20990101-000000-none/recording?zone=X", "POST", data=wav)
+        self.assertEqual(status, 404)
+        status, err, _ = call(self.base, "/api/tests/%s/recording?zone=X" % tid, "POST", data=b"")
+        self.assertEqual((status, err["error"]), (400, "send the recording as the request body (up to 4 GB)"))
+        # Not a WAV: the recording can't be analysed, and says so.
+        status, _, _ = call(self.base, "/api/tests/%s/recording?zone=X" % tid, "POST", data=b"not audio at all")
         self.assertEqual(status, 200)
-        t = self.wait_test(bad["id"], lambda t: t["source"]["state"] != "preparing")
-        self.assertEqual(t["source"]["state"], "error")
-        self.assertIn("could not read the song", t["source"]["message"])
+        t = self.wait_test(tid, lambda t: (t["captures"].get("a") or {}).get("state") == "error")
+        self.assertTrue(t["captures"]["a"]["message"])
+        self.assertEqual(os.listdir(os.path.join(self.tmp, "data", "tmp")), [])
+        call(self.base, "/api/tests/" + tid, "DELETE")
 
     def test_static_files_and_errors(self):
         status, html, headers = call(self.base, "/")
@@ -185,20 +160,17 @@ class ServerTest(unittest.TestCase):
         self.assertEqual((status, err["error"]), (400, "that is outside the music folder"))
         status, err, _ = call(self.base, "/api/tests", "POST", {"path": "SQ-tool Demo/missing.flac"})
         self.assertEqual(status, 404)
-        status, err, _ = call(self.base, "/api/settings", "POST", {"device": "spdif:9"})
-        self.assertEqual(status, 400)
-        status, s, _ = call(self.base, "/api/settings", "POST", {"players": {"a": "Roon"}, "idle_stop": 4})
-        self.assertEqual((status, s["idle_stop"]), (200, 4.0))
+        # What SQ-tool no longer does: record, its settings, an upload of a song Mandarin couldn't play.
+        for method, path in (("GET", "/api/settings"), ("POST", "/api/record/stop"), ("POST", "/api/loopback/load"), ("POST", "/api/tests/upload")):
+            self.assertEqual(call(self.base, path, method, data=b"x" if method == "POST" else None)[0], 404, path)
         import http.client
         conn = http.client.HTTPConnection(self.base[len("http://"):], timeout=10)
-        conn.putrequest("POST", "/api/settings")
+        conn.putrequest("POST", "/api/tests")
         conn.putheader("Content-Length", "-1")
         conn.endheaders()
         resp = conn.getresponse()
         self.assertEqual((resp.status, json.loads(resp.read())["error"]), (400, "bad request length"))
         conn.close()
-        status, r, _ = call(self.base, "/api/loopback/load", "POST")
-        self.assertEqual((status, r["message"]), (200, "the Loopback card is already there"))
 
 
 if __name__ == "__main__":

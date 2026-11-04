@@ -33,6 +33,13 @@ internal static partial class PlaybackRoutes
                 await hub.Control(id, command);
                 return await Send(req.Ctx, Ok.DeepClone().AsObject());
             }
+            case "/api/sq-tool/record":
+            {
+                // SQ-tool's test's song played on a zone and what its DAC is fed recorded (item 290); {stop: true} stops it.
+                if (Js.Truthy(b["stop"])) { SqToolRecord.Stop(); return await Send(req.Ctx, SqToolRecord.State()); }
+                var (status, said) = await SqToolRecord.Start(hub, Need(b["test"], "test required"), Need(b["zone_or_output_id"], "zone_or_output_id required"));
+                return status == 200 ? await Send(req.Ctx, said) : await Fail(req.Ctx, status, (string?)said["error"] ?? "");
+            }
             case "/api/bitperfect":
             {
                 // The track playing checked bit-perfect to the DAC, whole (item 275); {stop: true} stops a check.

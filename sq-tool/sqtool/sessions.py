@@ -1,14 +1,15 @@
-"""A test: one source song, what two players sent for it, and how it all compares.
+"""A test: one song, what Mandarin Bridge fed its DAC when Mandarin played it, and how the two compare.
 
 Layout of a test under <data>/tests/<id>/:
 
-    test.json              the source, the players, the captures and the results
+    test.json              the song, the zone it was played to, the recording and the result
     source.wav             the song, decoded at its own bit depth
-    a.wav, b.wav           what player A and player B sent (with .json capture details)
-    analysis_*.json        analysis and chart data for source, a and b
+    a.wav                  what the zone's DAC was fed, as Mandarin recorded it (with .json details)
+    analysis_*.json        analysis and chart data for the song and the recording
     cache/*.png            rendered spectrograms
 
-The comparisons ("results") are source-vs-a, source-vs-b and a-vs-b.
+The comparison ("results") is the song against the recording. Mandarin plays the song and records it
+(its /api/sq-tool/record), and hands the recording to SQ-tool (POST /api/tests/<id>/recording).
 """
 
 from __future__ import annotations
@@ -30,28 +31,23 @@ from typing import Callable, Iterator, List, Optional, Tuple
 
 import numpy as np
 
-from .alsa import (ACTIVE_STATES, Capture, CaptureError, CaptureStopped, find_loopback, find_usb_dac,
-                   list_cards, list_subs, process_info, usb_dacs)
 from .analysis import _chunks, analyze_file, compare, silence_bounds, to_float
 from .plots import exact_timeline, item_plots, null_plots
 from .report import comparison_lines, headline, short_verdict
-from .songend import SongEnd, envelope, song_index
 from .spectrogram import COLOUR_MAP, difference, fetch_from, render
-from .usbmon import UsbCapture, usbmon_state
 from .wavio import (ALSA_FORMATS, SIDECAR_SUFFIX, Audio, AudioFileError, float_wav_header, load_audio,
                     read_tags, read_wav, write_wav)
 
 NATIVE_EXTENSIONS = {".wav", ".wave", ".aif", ".aiff", ".aifc"}  # read by SQ-tool itself
 AUDIO_EXTENSIONS = NATIVE_EXTENSIONS | {".flac", ".m4a", ".alac", ".wv", ".ape"}
-SLOTS = ("a", "b")
+# The one recording of a test: what the zone's DAC was fed.
+SLOTS = ("a",)
 ITEMS = ("source",) + SLOTS
 # result key -> (reference, compared)
-PAIRS = {"a": ("source", "a"), "b": ("source", "b"), "ab": ("a", "b")}
+PAIRS = {"a": ("source", "a")}
 # spectrogram name -> (minuend, subtrahend, result key whose level matching applies)
-DIFFS = {"diff-a": ("a", "source", "a"), "diff-b": ("b", "source", "b"), "diff-ab": ("b", "a", "ab")}
-DEFAULT_SETTINGS = {"players": {"a": "Roon", "b": "Mandarin"}, "device": "auto", "idle_stop": 5}
+DIFFS = {"diff-a": ("a", "source", "a")}
 ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,150}$")
-DEVICE_RE = re.compile(r"^(auto|loopback(:\w+)?|usb(:\w+)?)$")
 INDEX_TTL = 300.0  # seconds before the music folder is scanned again for search
 AUDIO_CACHE_IDLE = 600.0  # decoded recordings unused this long are dropped from memory
 
@@ -155,7 +151,7 @@ def _first_sound(audio: Audio) -> Optional[int]:
 
 
 class Tests:
-    """All tests, the background worker that analyses them, and the settings."""
+    """All tests, and the background worker that analyses them."""
 
     def __init__(self, data_dir: str, music_dir: str, log: Callable[[str], None] = print):
         self.data_dir = os.path.abspath(data_dir)
@@ -177,35 +173,6 @@ class Tests:
         self._jobs: "queue.Queue" = queue.Queue()
         self.busy: Optional[str] = None  # what the worker is doing, for the status line
         threading.Thread(target=self._worker, name="analysis", daemon=True).start()
-
-    # -- settings ------------------------------------------------------------------
-
-    def settings(self) -> dict:
-        s = json.loads(json.dumps(DEFAULT_SETTINGS))
-        stored = _read_json(os.path.join(self.data_dir, "settings.json"))
-        s.update({k: v for k, v in stored.items() if k in s and k != "players"})
-        s["players"].update({k: v for k, v in (stored.get("players") or {}).items() if k in SLOTS and v})
-        return s
-
-    def save_settings(self, changes: dict) -> dict:
-        s = self.settings()
-        if isinstance(changes.get("players"), dict):
-            for k in SLOTS:
-                name = str(changes["players"].get(k) or "").strip()[:40]
-                if name:
-                    s["players"][k] = name
-        if "device" in changes:
-            device = str(changes["device"] or "auto").strip()
-            if not DEVICE_RE.match(device):
-                raise ValueError("unknown recording device %r" % device)
-            s["device"] = device
-        if "idle_stop" in changes:
-            try:
-                s["idle_stop"] = max(0.0, min(60.0, float(changes["idle_stop"] or 0)))
-            except (TypeError, ValueError):
-                raise ValueError("idle_stop must be a number of seconds")
-        _write_json(os.path.join(self.data_dir, "settings.json"), s)
-        return s
 
     # -- the music folder ----------------------------------------------------------------
 
@@ -299,22 +266,18 @@ class Tests:
         """Changes whenever the test does (for cheap polling)."""
         return os.stat(os.path.join(self._dir(tid), "test.json")).st_mtime_ns
 
-    def create(self, music_rel: Optional[str] = None, upload: Optional[str] = None,
-               filename: str = "") -> str:
-        """New test from a song in the music folder (or an uploaded file)."""
-        if music_rel:
-            src = self._music_path(music_rel)
-            if not os.path.isfile(src):
-                raise KeyError(music_rel)
-            filename = os.path.basename(src)
-            ext = os.path.splitext(filename)[1].lower()
-            if ext in AUDIO_EXTENSIONS and ext not in readable_formats():
-                raise ValueError("SQ-tool can't read %s files here: choose the FLAC, WAV or AIFF version "
-                                 "of the song" % ext)
-        elif upload is not None:
-            src = upload
-        else:
+    def create(self, music_rel: str) -> str:
+        """New test of a song in the music folder (Mandarin's, so that Mandarin can play it)."""
+        if not music_rel:
             raise ValueError("choose a song")
+        src = self._music_path(music_rel)
+        if not os.path.isfile(src):
+            raise KeyError(music_rel)
+        filename = os.path.basename(src)
+        ext = os.path.splitext(filename)[1].lower()
+        if ext in AUDIO_EXTENSIONS and ext not in readable_formats():
+            raise ValueError("SQ-tool can't read %s files here: choose the FLAC, WAV or AIFF version "
+                             "of the song" % ext)
         tags = read_tags(src)
         title = tags.get("title") or os.path.splitext(filename)[0]
         stamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
@@ -327,10 +290,10 @@ class Tests:
             os.makedirs(os.path.join(d, "cache"))
             test = {"id": tid, "created": _now(), "title": title, "artist": tags.get("artist"),
                     "album": tags.get("album"),
-                    "source": {"state": "preparing", "filename": filename, "music_path": music_rel or None},
-                    "players": dict(self.settings()["players"]), "captures": {}, "results": {}}
+                    "source": {"state": "preparing", "filename": filename, "music_path": music_rel},
+                    "players": {"a": ""}, "captures": {}, "results": {}}
             _write_json(os.path.join(d, "test.json"), test)
-        self._jobs.put(("source", tid, src, upload is not None))
+        self._jobs.put(("source", tid, src, False))
         return tid
 
     def list(self) -> List[dict]:
@@ -358,14 +321,6 @@ class Tests:
                          for w in ITEMS if os.path.exists(os.path.join(d, "analysis_%s.json" % w))}
         return t
 
-    def set_players(self, tid: str, players: dict) -> dict:
-        def fn(t):
-            for k in SLOTS:
-                name = str((players or {}).get(k) or "").strip()[:40]
-                if name:
-                    t["players"][k] = name
-        return self._update(tid, fn)
-
     def delete(self, tid: str) -> None:
         d = self._dir(tid)
         with self._lock:
@@ -386,21 +341,6 @@ class Tests:
         t = self._load(tid)
         who = "source" if which == "source" else t["players"][which]
         return _filename("%s - %s.wav" % (t.get("title") or tid, who))
-
-    def song_end_data(self, tid: str):
-        """(song, index, loudness envelope): what a recording needs to find where the song ends."""
-        song = self._audio(os.path.join(self._dir(tid), "source.wav"))
-        return song, song_index(song), self._song_envelope(tid, song)
-
-    def _song_envelope(self, tid: str, song: Audio) -> np.ndarray:
-        path = os.path.join(self._dir(tid), "song_end.npy")
-        if os.path.exists(path):
-            return np.load(path)
-        env = envelope(song).astype(np.float32)
-        with open(path + ".tmp", "wb") as f:
-            np.save(f, env)
-        os.replace(path + ".tmp", path)
-        return env
 
     # -- audio cache ---------------------------------------------------------------------
 
@@ -431,6 +371,16 @@ class Tests:
                 del self._audio_cache[k]
 
     # -- background work ---------------------------------------------------------------------
+
+    def add_recording(self, tid: str, wav_path: str, zone: str, details: Optional[dict] = None) -> None:
+        """What zone [zone]'s DAC was fed, as Mandarin recorded it (a WAV at [wav_path], in SQ-tool's tmp folder):
+        filed as the test's recording, with what Mandarin said of it, and analysed in the background."""
+        self._dir(tid)
+        cap = {"method": "mandarin", "player": {"name": zone}, "started": _now()}
+        cap.update({k: v for k, v in (details or {}).items() if k not in cap})
+        _write_json(wav_path + SIDECAR_SUFFIX, {"capture": cap})
+        self._update(tid, lambda t: t["players"].__setitem__("a", zone))
+        self.add_capture(tid, "a", wav_path)
 
     def add_capture(self, tid: str, slot: str, wav_path: str) -> None:
         """A finished recording for player `slot`: file it and analyse it in the background."""
@@ -511,7 +461,6 @@ class Tests:
                                 "resolution": analysis.get("resolution"),
                                 "longest_silence": round(longest_silence(audio), 3),
                                 "fingerprint": analysis["fingerprint"]})
-        self._song_envelope(tid, audio)
         self._update(tid, done)
         for slot in SLOTS:  # captures made before the source was ready
             if os.path.exists(os.path.join(d, "%s.wav" % slot)):
@@ -539,7 +488,7 @@ class Tests:
             t["captures"][slot] = {
                 "state": "ready", "format": cap.get("alsa_format"), "rate": audio.rate,
                 "channels": audio.channels, "seconds": round(audio.duration, 3),
-                "player": (cap.get("player") or {}).get("name"), "method": cap.get("method", "loopback"),
+                "player": (cap.get("player") or {}).get("name"), "method": cap.get("method", "mandarin"),
                 "recorded": cap.get("started"), "fingerprint": analysis["fingerprint"],
                 "resolution": analysis.get("resolution"), "stop_reason": cap.get("stop_reason"),
                 "period_size": cap.get("period_size"), "buffer_size": cap.get("buffer_size"),
@@ -625,13 +574,6 @@ class Tests:
                 place[slot] = [tuple(s) for s in al["steps"]]
             elif al.get("offset_seconds") is not None:
                 place[slot] = int(round(al["offset_seconds"] * audio[slot].rate))
-        al = (t["results"].get("ab") or {}).get("alignment") or {}
-        if al.get("steps") and len(al["steps"]) == 1:
-            ab = al["steps"][0][1]
-            if "a" in place and "b" in audio and "b" not in place and not isinstance(place["a"], int):
-                place["b"] = [(s, lag + ab) for s, lag in place["a"]]
-            elif "b" in place and "a" in audio and "a" not in place and not isinstance(place["b"], int):
-                place["a"] = [(s, lag - ab) for s, lag in place["b"]]
         for slot in SLOTS:
             if slot in audio and slot not in place:
                 place[slot] = 0
@@ -722,7 +664,7 @@ class Tests:
 
     def difference_wav(self, tid: str, key: str, matched: bool = False) -> Tuple[Iterator[bytes], int, str]:
         """A difference on the source's timeline as a 32-bit float WAV (exact unless `matched`)."""
-        name = {"a": "diff-a", "b": "diff-b", "ab": "diff-ab"}.get(key)
+        name = {"a": "diff-a"}.get(key)
         if name is None:
             raise KeyError(key)
         t, audio, place = self._placement(tid)
@@ -779,199 +721,3 @@ def _zoom(ref: Audio, cap: Audio, res: dict, half: int = 96) -> Optional[dict]:
     ch = int(np.argmax(np.abs(c - r).max(axis=0)))
     return {"start_seconds": s / ref.rate, "rate": ref.rate, "channel": ch + 1, "at_seconds": at / ref.rate,
             "why": why, "ref": [round(float(v), 9) for v in r[:, ch]], "cap": [round(float(v), 9) for v in c[:, ch]]}
-
-
-# --------------------------------------------------------------------------
-# Recording
-
-
-NO_LOOPBACK = ("no Loopback sound card found. On the server, run: sudo modprobe snd-aloop "
-               "(or start the container with -v /lib/modules:/lib/modules:ro so SQ-tool can load it)")
-
-
-def resolve_device(setting: str = "auto") -> str:
-    """The device a recording uses for the "Record from" setting: auto, loopback or usb[:card].
-
-    Automatic means the Loopback card or, failing that, a USB DAC if usbmon is there to record it.
-    """
-    kind, _, ref = (setting or "auto").partition(":")
-    if kind in ("auto", "loopback"):
-        loop = find_loopback(list_cards())
-        if loop:
-            return "loopback:%d" % loop.index
-        if kind == "loopback":
-            raise CaptureError(NO_LOOPBACK)
-    if kind in ("auto", "usb"):
-        dacs = usb_dacs()
-        if kind == "auto":
-            dacs = [d for d in dacs if usbmon_state(d.bus) == "ready"]
-        if dacs:
-            pick = [d for d in dacs if str(d.card.index) == ref] or dacs
-            return "usb:%d" % pick[0].card.index
-        if kind == "usb":
-            raise CaptureError("no USB DAC found. Is it connected and switched on?")
-    raise CaptureError(NO_LOOPBACK)
-
-
-class Recorder:
-    """Records one player at a time for a test, then hands the recording to Tests."""
-
-    def __init__(self, tests: Tests, log: Callable[[str], None] = print, arecord: Optional[str] = None):
-        self.tests = tests
-        self.log = log
-        self.arecord = arecord or os.environ.get("SQTOOL_ARECORD", "arecord")
-        self.capture = None
-        self.info: dict = {}
-        self.max_wait_audio = 600.0  # stop waiting for the music after 10 minutes
-        self._out_dir: Optional[str] = None
-        self._runner: Optional[threading.Thread] = None
-        self._lock = threading.Lock()
-
-    def _filing(self) -> bool:
-        """The recording has ended but is still being filed (or its error noted)."""
-        return self._runner is not None and self._runner.is_alive()
-
-    def active(self) -> bool:
-        if self.capture is None:
-            return False
-        return self._filing() or self.capture.state not in ("done", "error")
-
-    def start(self, tid: str, slot: str) -> dict:
-        if slot not in SLOTS:
-            raise ValueError("unknown player %r" % slot)
-        test = self.tests.get(tid)
-        src = test["source"]
-        if src.get("state") != "ready":
-            # Its length sets when the recording stops: wait for it.
-            raise ValueError("the song is still being analysed: try again in a moment"
-                             if src.get("state") == "preparing" else
-                             "the song could not be read, so there is nothing to compare with")
-        # (Outside the lock: for a long hi-res song this takes a moment the first time.)
-        song, index, env = self.tests.song_end_data(tid)
-        with self._lock:
-            if self.active():
-                raise CaptureError("a recording is already running: stop it first")
-            self._discard_unsaved()
-            settings = self.tests.settings()
-            device = resolve_device(settings.get("device") or "auto")
-            # Stop at the end of the song: its length after the music starts, with a margin for
-            # silence the player adds; and after a silence longer than any inside the song.
-            expected = src.get("duration")
-            limit = expected + 5.0 if expected else None
-            idle = float(settings.get("idle_stop", 5) or 0)
-            if idle and src.get("longest_silence"):
-                idle = max(idle, src["longest_silence"] + 2.0)
-            out_dir = os.path.join(self.tests.tmp, "rec-%s" % uuid.uuid4().hex[:8])
-            os.makedirs(out_dir)
-            self._out_dir = out_dir
-            kind, _, ref = device.partition(":")
-            # With the song's length known, its end is timed from the first sound: a player
-            # may send silence for a long time first (Squeezelite keeps its output open).
-            cap_seconds = None if limit else 1800.0
-
-            def song_end(params: dict, song=song, index=index, env=env):
-                """Follows the song in the stream, so the recording stops at its last sample."""
-                af = ALSA_FORMATS.get(params.get("format"))
-                if af is None:
-                    return None
-                return SongEnd(song, index, env, params["rate"], params["channels"], af.wav_bits, af.is_float)
-            if kind == "usb":
-                cap = UsbCapture(find_usb_dac(ref or None), out_dir, name=slot, idle_stop=idle,
-                                 max_seconds=cap_seconds, log=self.log, stop_after_audio=limit,
-                                 max_wait_audio=self.max_wait_audio, song_end=song_end)
-                cap.on_take = lambda path, meta, cap=cap: self._take(tid, slot, path, cap)
-            elif kind == "loopback":
-                ignore, ignoring = self._still_playing(test, slot, int(ref)) if ref.isdigit() else ([], None)
-                cap = Capture(os.path.join(out_dir, "%s.wav" % slot), card=ref or None, silence_stop=idle,
-                              arecord=self.arecord, log=self.log, handle_sigint=False,
-                              stop_after_audio=limit, duration=cap_seconds, wait=self.max_wait_audio,
-                              max_wait_audio=self.max_wait_audio, song_end=song_end, ignore=ignore)
-            else:
-                raise CaptureError("unknown recording device %r" % device)
-            self.capture = cap
-            self.info = {"test": tid, "slot": slot, "player": test["players"][slot], "device": device,
-                         "expected_seconds": expected, "saved": False, "error": None,
-                         "ignoring": ignoring if kind == "loopback" else None}
-            if kind == "usb":
-                cap.start()
-                self._runner = cap._thread
-            else:
-                self._runner = threading.Thread(target=self._run_loopback, args=(cap, tid, slot),
-                                                name="loopback-capture", daemon=True)
-                self._runner.start()
-        return self.status()
-
-    @staticmethod
-    def _still_playing(test: dict, slot: str, card: int):
-        """Streams the other player of this test still has open on the loopback card (it goes on
-        to the next track once its recording has stopped): ([(device, sub, owner pid)], name).
-
-        Only that program's streams, and only while they stay open: once one closes, what opens it
-        next is recorded."""
-        other = "b" if slot == "a" else "a"
-        prog = (test["captures"].get(other) or {}).get("player")
-        mine = (test["captures"].get(slot) or {}).get("player")
-        if not prog or prog == mine:
-            return [], None
-        found = []
-        for sub in list_subs(card, "p"):
-            st = sub.status()
-            if st and st["state"] in ACTIVE_STATES and process_info(st.get("owner_pid")).get("name") == prog:
-                found.append((sub.device, sub.sub, st.get("owner_pid")))
-        return found, (test["players"][other] if found else None)
-
-    def _take(self, tid: str, slot: str, path: str, cap) -> None:
-        if self.info.get("saved"):
-            return  # one recording per player: keep the first take
-        self.info["saved"] = True
-        try:
-            self.tests.add_capture(tid, slot, path)
-        except KeyError:
-            self.info["error"] = "the test was deleted"
-        cap.stop("recorded")
-
-    def _run_loopback(self, cap: Capture, tid: str, slot: str) -> None:
-        try:
-            cap.run()
-            self.info["saved"] = True
-            self.tests.add_capture(tid, slot, cap.out_path)
-        except CaptureStopped:
-            pass
-        except KeyError:
-            self.info["error"] = "the test was deleted"
-        except Exception as exc:
-            self.info["error"] = str(exc)
-            cap.message = str(exc)
-            cap.state = "error"
-            return
-        finally:
-            if not self.info.get("saved") or self.info.get("error"):
-                shutil.rmtree(os.path.dirname(cap.out_path), ignore_errors=True)
-        cap.state = "done"
-
-    def _discard_unsaved(self) -> None:
-        """Remove what the previous recording left behind if it saved nothing (stopped early, say)."""
-        if self._out_dir and not self.info.get("saved"):
-            shutil.rmtree(self._out_dir, ignore_errors=True)
-        self._out_dir = None
-
-    def stop(self, tid: Optional[str] = None) -> Optional[dict]:
-        """Stop the recording (only if it belongs to test `tid`, when given)."""
-        if self.capture is not None and (tid is None or self.info.get("test") == tid):
-            self.capture.stop()
-        return self.status()
-
-    def status(self) -> Optional[dict]:
-        cap = self.capture
-        if cap is None:
-            return None
-        st = cap.status()
-        if st["state"] in ("done", "error") and self._filing():
-            st["state"] = "stopping"
-        st.update(self.info)
-        if st.get("error") is None and cap.state == "error":
-            st["error"] = getattr(cap, "error", None) or cap.message
-        return st
-
-
-__all__ = ["Tests", "Recorder", "resolve_device", "clean"]

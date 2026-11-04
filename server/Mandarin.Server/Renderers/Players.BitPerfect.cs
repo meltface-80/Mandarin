@@ -22,23 +22,8 @@ internal sealed partial class Players
         if (checks.TryGetValue(id, out var was) && was.Run.State is "starting" or "recording" or "comparing") return (false, "A check is already under way");
         var rec = Record(id);
         var dir = Path.Combine(Server.DataDir, "bitperfect", string.Concat(id.Select(c => char.IsLetterOrDigit(c) ? c : '_')));
-        IRecorder recorder;
-        if (rec?.Location is { } loc && loc.StartsWith("alsa:", StringComparison.Ordinal))
-        {
-            // A DAC on this server: what goes down its USB cable, off the bus.
-            if (Usbmon.Of(loc) is not { } usb) return (false, "This sound device isn't a USB DAC: the check records what goes down a USB cable");
-            if (UsbRecorder.Why(usb) is { } why) return (false, "The USB bus can't be read: " + why);
-            recorder = new UsbRecorder(usb, dir, () => HwParams(loc));
-        }
-        else
-        {
-            if (rec?.Caps["mandarin"] is not JsObj mu || !Jv.T(mu["base"])) return (false, "Only a Mandarin Bridge renderer or a USB DAC on this server can record what its DAC is fed");
-            var device = Jv.Str(mu["base"]);
-            var dac = await MandarinBridge.Probe(device);
-            if (dac == null) return (false, "The device isn't answering");
-            if (dac["capture"] is not string capture || capture.Length == 0) return (false, "This device's app can't record what it feeds the DAC yet: update Mandarin Bridge");
-            recorder = new DeviceRecorder(CaptureBase(device, capture), Jv.T(dac["capture_parts"]));
-        }
+        var (recorder, cant) = await RecorderFor(id, dir);
+        if (recorder == null) return (false, cant);
         UpnpItem item;
         int index;
         lock (gate)
@@ -63,6 +48,31 @@ internal sealed partial class Players
         });
         return (true, run.Said);
     }
+
+    /*
+     * What records what room [id]'s DAC is fed, into [dir]: a DAC on this server off its USB bus, a Mandarin Bridge
+     * renderer at its /capture; else null, and why not. Asks nothing of the device but its /dac.json.
+     */
+    public async Task<(IRecorder? Recorder, string Why)> RecorderFor(string id, string dir)
+    {
+        var rec = Record(id);
+        if (rec?.Location is { } loc && loc.StartsWith("alsa:", StringComparison.Ordinal))
+        {
+            // A DAC on this server: what goes down its USB cable, off the bus.
+            if (Usbmon.Of(loc) is not { } usb) return (null, "This sound device isn't a USB DAC: what goes down a USB cable is what is recorded");
+            if (UsbRecorder.Why(usb) is { } why) return (null, "The USB bus can't be read: " + why);
+            return (new UsbRecorder(usb, dir, () => HwParams(loc)), "");
+        }
+        if (rec?.Caps["mandarin"] is not JsObj mu || !Jv.T(mu["base"])) return (null, "Only a Mandarin Bridge renderer or a USB DAC on this server can record what its DAC is fed");
+        var device = Jv.Str(mu["base"]);
+        var dac = await MandarinBridge.Probe(device);
+        if (dac == null) return (null, "The device isn't answering");
+        if (dac["capture"] is not string capture || capture.Length == 0) return (null, "This device's app can't record what it feeds the DAC yet: update Mandarin Bridge");
+        return (new DeviceRecorder(CaptureBase(device, capture), Jv.T(dac["capture_parts"])), "");
+    }
+
+    /* Room [id]'s name, as its device or the user named it. */
+    public string NameOf(string id) => Record(id) is { } rec ? rec.Name ?? rec.NetworkName ?? id : id;
 
     // Where the device's /capture is: [said] ("/capture", or a whole address) under the device's [device] address, less "/capture".
     private static string CaptureBase(string device, string said)

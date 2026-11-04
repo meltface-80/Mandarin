@@ -1,10 +1,9 @@
-"""Test sessions end to end: a song from the music folder, two simulated players on the loopback card."""
+"""Test sessions end to end: a song from the music folder, and what a zone's DAC was fed, as Mandarin records it."""
 
 import json
 import os
 import shutil
 import struct
-import subprocess
 import tempfile
 import time
 import unittest
@@ -12,10 +11,9 @@ import zlib
 
 import numpy as np
 
-from helpers import FAKE_ARECORD, FakeLoopback, alsa_bytes, music
+from helpers import music
 
-from sqtool.alsa import CaptureError
-from sqtool.sessions import Recorder, Tests, _steps, longest_silence, readable_formats, resolve_device
+from sqtool.sessions import Tests, _steps, readable_formats
 from sqtool.spectrogram import LUT
 from sqtool.wavio import Audio, info_chunk, read_wav, write_wav
 
@@ -39,20 +37,9 @@ def is_black(png: bytes) -> bool:
     return bool((png_pixels(png) == LUT[0]).all())
 
 
-def volume_with_dither(data, db=-0.5, seed=7):
-    """What a player with digital volume does: scale, add TPDF dither, round to 24 bits."""
-    rng = np.random.default_rng(seed)
-    x = data.astype(np.float64) * 10 ** (db / 20) / 256
-    x += rng.random(x.shape) - rng.random(x.shape)
-    return (np.round(x) * 256).astype(np.int32)
-
-
-def named_process(tmp, name):
-    """A process listed under `name`, standing in for a player program."""
-    exe = os.path.join(tmp, name)
-    if not os.path.exists(exe):
-        shutil.copy("/bin/sleep", exe)
-    return subprocess.Popen([exe, "1000"])
+def volume_in_software(data, db=-0.5):
+    """What a Bridge with its volume in software does: the samples scaled, at 32 bits."""
+    return np.round(data.astype(np.float64) * 10 ** (db / 20)).astype(np.int32)
 
 
 def wait_for(fn, timeout=60.0, what="condition"):
@@ -69,11 +56,6 @@ class SessionBase(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.tmp = tempfile.mkdtemp(prefix="sq-sessions-")
-        cls.fake = FakeLoopback(os.path.join(cls.tmp, "asound"))
-        cls.old_env = dict(os.environ)
-        os.environ.update({"SQTOOL_PROC_ASOUND": cls.fake.root,
-                           "FAKE_ARGS_LOG": os.path.join(cls.tmp, "arecord.log"),
-                           "FAKE_CLOSE_DIR": cls.fake.subdir(0, "p", 0)})
         cls.music_dir = os.path.join(cls.tmp, "music")
         album = os.path.join(cls.music_dir, "Artist", "Album")
         os.makedirs(album)
@@ -84,27 +66,31 @@ class SessionBase(unittest.TestCase):
         with open(os.path.join(album, "cover.jpg"), "wb") as f:
             f.write(b"\xff\xd8")
         cls.tests = Tests(os.path.join(cls.tmp, "data"), cls.music_dir, log=lambda m: None)
-        cls.rec = Recorder(cls.tests, log=lambda m: None, arecord=FAKE_ARECORD)
 
     @classmethod
     def tearDownClass(cls):
-        os.environ.clear()
-        os.environ.update(cls.old_env)
         shutil.rmtree(cls.tmp, ignore_errors=True)
 
     def new_test(self):
-        tid = self.tests.create(music_rel="Artist/Album/01 Song.wav")
+        tid = self.tests.create("Artist/Album/01 Song.wav")
         wait_for(lambda: self.tests.get(tid)["source"]["state"] in ("ready", "error"), what="the source")
         self.assertEqual(self.tests.get(tid)["source"]["state"], "ready", self.tests.get(tid)["source"])
         return tid
 
+    def recorded(self, tid, data, zone="FiiO R7 USB", rate=RATE, details=None):
+        """What zone [zone]'s DAC was fed, handed over as Mandarin hands it: a WAV in 32-bit words."""
+        d = tempfile.mkdtemp(dir=self.tests.tmp)
+        path = os.path.join(d, "recording.wav")
+        write_wav(path, Audio(data=data, rate=rate, bits=32))
+        self.tests.add_recording(tid, path, zone, details)
+
     def add(self, tid, slot, data, rate=RATE, bits=32, meta=None):
-        """File a recording as if the recorder had made it."""
+        """File a recording as it is (its samples as given)."""
         d = tempfile.mkdtemp(dir=self.tests.tmp)
         path = os.path.join(d, slot + ".wav")
         write_wav(path, Audio(data=data, rate=rate, bits=bits))
         with open(path + ".json", "w") as f:
-            json.dump({"capture": dict({"alsa_format": "S32_LE", "rate": rate, "channels": data.shape[1]},
+            json.dump({"capture": dict({"method": "mandarin", "rate": rate, "channels": data.shape[1]},
                                        **(meta or {}))}, f)
         self.tests.add_capture(tid, slot, path)
 
@@ -134,7 +120,7 @@ class MusicFolder(SessionBase):
         with self.assertRaises(KeyError):
             self.tests.browse("Nope")
         with self.assertRaises(ValueError):
-            self.tests.create(music_rel="../data/settings.json")
+            self.tests.create("../data/test.json")
 
     def test_formats_that_cannot_be_read_here(self):
         from unittest import mock
@@ -149,280 +135,90 @@ class MusicFolder(SessionBase):
                 self.assertEqual(readable_formats(), {".wav", ".wave", ".aif", ".aiff", ".aifc"})
                 self.assertFalse(self.tests.search("other")[0]["ok"])
                 with self.assertRaises(ValueError):
-                    self.tests.create(music_rel="Artist/Album/02 Other.m4a")
+                    self.tests.create("Artist/Album/02 Other.m4a")
         finally:
             os.unlink(path)
 
-    def test_settings(self):
-        s = self.tests.save_settings({"players": {"a": "Roon 2", "b": ""}, "idle_stop": "8"})
-        self.assertEqual(s["players"], {"a": "Roon 2", "b": "Mandarin"})
-        self.assertEqual(s["idle_stop"], 8.0)
-        with self.assertRaises(ValueError):
-            self.tests.save_settings({"device": "spdif:9"})
-        self.tests.save_settings({"players": {"a": "Roon"}, "idle_stop": 5})
 
-
-class Recording(SessionBase):
-    def record(self, tid, slot, data, fmt, lead_frames=0, sub=0, pid=None, meanwhile=None):
-        """Record `slot` while a simulated player plays `data` to the loopback card in format `fmt`
-        (`meanwhile` runs while the recording waits for it, which it must go on doing)."""
-        pcm = os.path.join(self.tmp, "%s.pcm" % slot)
-        payload = np.concatenate([np.zeros((lead_frames, data.shape[1]), np.int32), data])
-        with open(pcm, "wb") as f:
-            f.write(alsa_bytes(payload, fmt))
-        os.environ["FAKE_PCM"] = pcm
-        os.environ["FAKE_FRAME_BYTES"] = str({"S32_LE": 8, "S24_3LE": 6, "S16_LE": 4}[fmt])
-        st = self.rec.start(tid, slot)
-        self.assertEqual(st["device"], "loopback:1")
-        self.assertAlmostEqual(st["expected_seconds"], 5.0, places=3)
-        time.sleep(0.2)
-        self.assertEqual(self.rec.status()["state"], "waiting")
-        if meanwhile:
-            meanwhile()
-            time.sleep(0.3)
-            self.assertEqual(self.rec.status()["state"], "waiting")
-        self.fake.play(fmt, RATE, 2, sub=sub, pid=pid)
-        wait_for(lambda: not self.rec.active(), what="the recording")
-        st = self.rec.status()
-        self.assertTrue(st["saved"], st)
-        self.assertIsNone(st["error"])
-        return st
-
-    def test_roon_and_mandarin(self):
+class MandarinsRecording(SessionBase):
+    def test_bit_perfect_then_scaled(self):
         tid = self.new_test()
         t = self.tests.get(tid)
         self.assertEqual((t["title"], t["artist"], t["album"]), ("Song", "Artist", "Album"))
         self.assertEqual((t["source"]["rate"], t["source"]["bits"], t["source"]["label"]), (RATE, 16, "WAV PCM 16-bit"))
-        self.assertEqual(t["players"], {"a": "Roon", "b": "Mandarin"})
+        self.assertEqual(t["players"], {"a": ""})  # no zone yet: none recorded
 
-        # Roon: bit-perfect, 16-bit samples padded into 32-bit words, after 0.2 s of silence.
-        self.record(tid, "a", self.src, "S32_LE", lead_frames=int(0.2 * RATE))
+        # The Bridge, its samples untouched: the 16-bit song in 32-bit words (as the helper makes it), after 0.2 s of silence.
+        lead = int(0.2 * RATE)
+        padded = np.concatenate([np.zeros((lead, 2), np.int32), self.src])
+        self.recorded(tid, padded, details={"device": "Mandarin Bridge", "said": "the whole track, in 2 parts"})
         t = self.results(tid, ["a"])
+        self.assertEqual(t["players"], {"a": "FiiO R7 USB"})
         cap = t["captures"]["a"]
-        self.assertEqual((cap["format"], cap["rate"], cap["method"], cap["resolution"]), ("S32_LE", RATE, "loopback", 16))
-        self.assertEqual(cap["stop_reason"], "reached the end of the song")
+        self.assertEqual((cap["rate"], cap["method"], cap["player"], cap["resolution"]), (RATE, "mandarin", "FiiO R7 USB", 16))
         self.assertEqual(cap["fingerprint"], t["source"]["fingerprint"])
+        self.assertEqual(sorted(t["results"]), ["a"])  # the one comparison: the song and what its DAC was fed
         res = t["results"]["a"]
         self.assertEqual((res["verdict"], res["short"], res["match"]), ("IDENTICAL", "BIT-PERFECT", True))
-        self.assertEqual(res["alignment"]["steps"], [[0, int(0.2 * RATE)]])
+        self.assertEqual(res["alignment"]["steps"], [[0, lead]])
         self.assertIsNone(res["zoom"])
+        self.assertEqual(sorted(t["analysis"]), ["a", "source"])
+        with open(self.tests.audio_path(tid, "a") + ".json") as f:
+            side = json.load(f)["capture"]
+        self.assertEqual((side["device"], side["said"]), ("Mandarin Bridge", "the whole track, in 2 parts"))
 
-        # Mandarin: -0.5 dB of digital volume with dither, sent as packed 24-bit.
-        self.record(tid, "b", volume_with_dither(self.src), "S24_3LE")
-        t = self.results(tid, ["a", "b", "ab"])
-        self.assertEqual(t["captures"]["b"]["format"], "S24_3LE")
-        rb, rab = t["results"]["b"], t["results"]["ab"]
-        self.assertEqual((rb["verdict"], rb["match"]), ("DIFFERENT", False))
-        np.testing.assert_allclose(rb["gain_db"], [-0.5, -0.5], atol=0.005)
-        self.assertEqual(rab["verdict"], "DIFFERENT")
-        self.assertTrue(rb["plots"]["envelope"]["t"] and rb["plots"]["spectrum"]["freqs"])
-        self.assertTrue(rb["zoom"]["ref"] and rb["zoom"]["cap"])
-        self.assertEqual(sorted(t["analysis"]), ["a", "b", "source"])
-
-        # Spectrograms on the source's timeline: Roon's difference is digital silence.
+        # Spectrograms on the song's timeline: the difference is digital silence.
         png, info = self.tests.spectrogram(tid, "source", 0, 0, 600, 200)
         self.assertEqual(png_pixels(png).shape, (200, 600, 3))
         self.assertAlmostEqual(info["t1"], 5.0, places=2)
         self.assertFalse(is_black(png))
         self.assertTrue(is_black(self.tests.spectrogram(tid, "diff-a", 0, 0, 600, 200)[0]))
-        self.assertFalse(is_black(self.tests.spectrogram(tid, "diff-b", 0, 0, 600, 200)[0]))
-        self.assertFalse(is_black(self.tests.spectrogram(tid, "diff-ab", 1.0, 2.0, 300, 100, "linear", -180)[0]))
-        # Matching Mandarin's level leaves only the dither: far quieter than the raw difference.
-        raw = png_pixels(self.tests.spectrogram(tid, "diff-b", 0, 0, 600, 200)[0]).astype(int).sum()
-        matched = png_pixels(self.tests.spectrogram(tid, "diff-b", 0, 0, 600, 200, matched=True)[0]).astype(int).sum()
-        self.assertLess(matched, raw * 0.8)
-        cached = self.tests.spectrogram(tid, "source", 0, 0, 600, 200)
-        self.assertEqual(cached[0], png)
+        for gone in ("b", "diff-b", "diff-ab"):
+            with self.assertRaises(KeyError):
+                self.tests.spectrogram(tid, gone, 0, 0, 600, 200)
+        self.assertEqual(self.tests.spectrogram(tid, "source", 0, 0, 600, 200)[0], png)
 
-        # Difference files: silence for Roon, the volume change for Mandarin.
+        # The difference file: silence. The recording: the song, to its last sample.
         chunks, size, name = self.tests.difference_wav(tid, "a")
         wav = b"".join(chunks)
         self.assertEqual(len(wav), size)
-        self.assertEqual(name, "Song - Roon minus the source.wav")
+        self.assertEqual(name, "Song - FiiO R7 USB minus the source.wav")
         diff = read_wav(wav)
         self.assertEqual((diff.frames, diff.is_float), (len(self.src), True))
         self.assertFalse(diff.data.any())
-        diff_b = read_wav(b"".join(self.tests.difference_wav(tid, "ab")[0]))
-        self.assertTrue(diff_b.data.any())
-
-        roon = read_wav(self.tests.audio_path(tid, "a")).data
-        lead = int(0.2 * RATE)
-        self.assertEqual(len(roon), lead + len(self.src))  # ends with the song's last sample
-        self.assertTrue(np.array_equal(roon[lead:], self.src))
-        self.assertFalse(roon[:lead].any())
-        self.assertEqual(self.tests.audio_filename(tid, "b"), "Song - Mandarin.wav")
+        with self.assertRaises(KeyError):
+            self.tests.difference_wav(tid, "ab")
+        fed = read_wav(self.tests.audio_path(tid, "a")).data
+        self.assertTrue(np.array_equal(fed[lead:], self.src))
+        self.assertEqual(self.tests.audio_filename(tid, "a"), "Song - FiiO R7 USB.wav")
         listed = [x for x in self.tests.list() if x["id"] == tid][0]
-        self.assertEqual(listed["results"]["a"]["short"], "BIT-PERFECT")
-        self.tests.set_players(tid, {"a": "Roon 2.0"})
-        self.assertEqual(self.tests.get(tid)["players"]["a"], "Roon 2.0")
+        self.assertEqual((listed["players"], listed["results"]["a"]["short"]), ({"a": "FiiO R7 USB"}, "BIT-PERFECT"))
 
-        # Recording Roon again replaces its results.
-        self.record(tid, "a", self.src, "S16_LE")
-        t = self.results(tid, ["a", "ab"])
-        self.assertEqual((t["captures"]["a"]["format"], t["results"]["a"]["short"]), ("S16_LE", "BIT-PERFECT"))
+        # Recorded again, its volume in software: the result replaced, the samples scaled, said.
+        self.recorded(tid, volume_in_software(self.src), zone="Kitchen Bridge")
+        t = self.results(tid, ["a"])
+        res = t["results"]["a"]
+        self.assertEqual((t["players"]["a"], res["verdict"], res["match"]), ("Kitchen Bridge", "DIFFERENT", False))
+        np.testing.assert_allclose(res["gain_db"], [-0.5, -0.5], atol=0.005)
+        self.assertTrue(res["plots"]["envelope"]["t"] and res["plots"]["spectrum"]["freqs"])
+        self.assertTrue(res["zoom"]["ref"] and res["zoom"]["cap"])
+        self.assertFalse(is_black(self.tests.spectrogram(tid, "diff-a", 0, 0, 600, 200)[0]))
+        raw = png_pixels(self.tests.spectrogram(tid, "diff-a", 0, 0, 600, 200)[0]).astype(int).sum()
+        matched = png_pixels(self.tests.spectrogram(tid, "diff-a", 0, 0, 600, 200, matched=True)[0]).astype(int).sum()
+        self.assertLess(matched, raw * 0.8)  # the level matched, little is left
         self.assertEqual(os.listdir(self.tests.tmp), [])
 
         self.tests.delete(tid)
         with self.assertRaises(KeyError):
             self.tests.get(tid)
 
-    def test_silent_passage_does_not_end_the_recording(self):
-        # 6 s of digital silence inside the song: longer than the 5 s silence stop.
-        a = music(rate=RATE, seconds=1.0, lead=0.5, tail=0.0, bits=16, seed=2)
-        b = music(rate=RATE, seconds=1.0, lead=6.0, tail=0.5, bits=16, seed=3)
-        song = np.concatenate([a, b])
-        self.assertAlmostEqual(longest_silence(Audio(data=song, rate=RATE, bits=16)), 6.0, places=4)
-        path = os.path.join(self.music_dir, "Artist", "Album", "02 Gap.wav")
-        write_wav(path, Audio(data=song, rate=RATE, bits=16))
-        tid = self.tests.create(music_rel="Artist/Album/02 Gap.wav")
-        wait_for(lambda: self.tests.get(tid)["source"]["state"] == "ready", what="the source")
-        self.assertEqual(self.tests.get(tid)["source"]["longest_silence"], 6.0)
-        pcm = os.path.join(self.tmp, "gap.pcm")
-        with open(pcm, "wb") as f:
-            f.write(alsa_bytes(song, "S32_LE"))
-        os.environ.update({"FAKE_PCM": pcm, "FAKE_FRAME_BYTES": "8"})
-        self.rec.start(tid, "a")
-        time.sleep(0.2)
-        self.fake.play("S32_LE", RATE, 2)
-        wait_for(lambda: not self.rec.active(), what="the recording")
-        t = self.results(tid, ["a"])
-        self.assertEqual(t["captures"]["a"]["stop_reason"], "reached the end of the song")
-        self.assertEqual(t["results"]["a"]["verdict"], "IDENTICAL")
-        self.tests.delete(tid)
-
-    def test_stops_at_the_end_of_the_song_before_the_next_track(self):
-        # Players go straight on to the next track in their queue: the recording still ends with
-        # the song's last sample.
-        tid = self.new_test()
-        following = music(rate=RATE, seconds=3.0, lead=0.0, tail=0.0, bits=16, seed=11)
-        lead = int(0.2 * RATE)
-        roon, mandarin = named_process(self.tmp, "RAATServer"), named_process(self.tmp, "mandarin")
-        self.addCleanup(lambda: [p.kill() or p.wait() for p in (roon, mandarin)])
-        self.record(tid, "a", np.concatenate([self.src, following]), "S32_LE", lead_frames=lead, pid=roon.pid)
-        t = self.results(tid, ["a"])
-        cap, res = t["captures"]["a"], t["results"]["a"]
-        self.assertEqual(cap["stop_reason"], "reached the end of the song")
-        self.assertEqual(read_wav(self.tests.audio_path(tid, "a")).frames, lead + len(self.src))
-        self.assertEqual(t["analysis"]["a"]["capture"]["song_end"]["how"], "exact")
-        self.assertEqual(res["verdict"], "IDENTICAL")
-
-        # Roon goes on playing its next track (the simulated one never closes its output), and
-        # is paused. Mandarin plays on the next free substream: that is what gets recorded.
-        # It isn't bit-perfect (-0.5 dB with dither): found on the waveform, and stopped at the song's end.
-        self.assertEqual(self.fake.subdir(0, "p", 0)[-4:], "sub0")
-        pause_roon = lambda: self.fake.play("S32_LE", RATE, 2, state="PAUSED", sub=0, pid=roon.pid)  # noqa: E731
-        self.record(tid, "b", np.concatenate([volume_with_dither(self.src), volume_with_dither(following, seed=3)]),
-                    "S24_3LE", lead_frames=lead, sub=1, pid=mandarin.pid, meanwhile=pause_roon)
-        self.assertEqual(self.rec.status()["ignoring"], "Roon")
-        t = self.results(tid, ["b"])
-        self.assertEqual(t["captures"]["b"]["player"], "mandarin")
-        frames = read_wav(self.tests.audio_path(tid, "b")).frames
-        self.assertEqual(t["captures"]["b"]["stop_reason"], "reached the end of the song")
-        self.assertEqual(frames, lead + len(self.src))
-        self.assertEqual(t["analysis"]["b"]["capture"]["song_end"]["how"], "aligned")
-        self.assertEqual(t["results"]["b"]["verdict"], "DIFFERENT")
-        self.fake.close(sub=0)
-        self.fake.close(sub=1)
-        self.tests.delete(tid)
-
-    def test_output_open_and_silent_long_before_the_song(self):
-        # Squeezelite keeps its output open, sending silence, until a song starts: here for 45 s,
-        # longer than the song plus every margin. The song is still recorded whole.
-        tid = self.new_test()
-        self.record(tid, "a", self.src, "S32_LE", lead_frames=45 * RATE)
-        t = self.results(tid, ["a"])
-        self.assertEqual(t["results"]["a"]["verdict"], "IDENTICAL")
-        self.tests.delete(tid)
-
-    def silent_player(self, seconds, close):
-        pcm = os.path.join(self.tmp, "silence.pcm")
-        with open(pcm, "wb") as f:
-            f.write(b"\0" * (seconds * RATE * 8))
-        os.environ.update({"FAKE_PCM": pcm, "FAKE_FRAME_BYTES": "8"})
-        if not close:
-            os.environ.pop("FAKE_CLOSE_DIR")
-
-    def test_only_silence_arrives(self):
-        tid = self.new_test()
-        self.silent_player(3, close=True)
-        self.rec.max_wait_audio = 1
-        try:
-            self.rec.start(tid, "a")
-            time.sleep(0.2)
-            self.fake.play("S32_LE", RATE, 2)
-            wait_for(lambda: not self.rec.active(), what="the recording")
-        finally:
-            self.rec.max_wait_audio = 600
-            self.fake.close()  # stopped early, the simulated player never closed its output
-        st = self.rec.status()
-        self.assertEqual((st["state"], st["saved"]), ("error", False))
-        self.assertIn("only digital silence arrived (no music arrived within 1 s)", st["error"])
-        self.assertEqual(self.tests.get(tid)["captures"], {})
-        self.tests.delete(tid)
-
-    def test_cancel_while_the_output_is_silent(self):
-        tid = self.new_test()
-        self.silent_player(60, close=False)
-        try:
-            self.rec.start(tid, "a")
-            time.sleep(0.2)
-            self.fake.play("S32_LE", RATE, 2)
-            st = wait_for(lambda: self.rec.status().get("take") and self.rec.status(), what="the open output")
-            self.assertEqual(st["state"], "recording")
-            self.assertIsNone(st["take"]["music_seconds"])  # listening, but no music yet
-            self.rec.stop()
-            wait_for(lambda: not self.rec.active(), what="the stop")
-        finally:
-            os.environ["FAKE_CLOSE_DIR"] = self.fake.subdir(0, "p", 0)
-            self.fake.close()
-        st = self.rec.status()
-        self.assertEqual((st["state"], st["saved"], st["error"]), ("done", False, None))
-        self.assertEqual(self.tests.get(tid)["captures"], {})
-        self.tests.delete(tid)
-
-    def test_record_waits_for_the_song(self):
-        tid = self.new_test()
-        self.tests._update(tid, lambda t: t["source"].update(state="preparing"))
-        with self.assertRaises(ValueError):
-            self.rec.start(tid, "a")
-        self.tests._update(tid, lambda t: t["source"].update(state="error"))
-        with self.assertRaises(ValueError):
-            self.rec.start(tid, "a")
-        self.assertFalse(self.rec.active())
-        self.tests.delete(tid)
-
-    def test_stop_before_playback(self):
-        tid = self.new_test()
-        self.rec.start(tid, "a")
-        time.sleep(0.1)
-        self.rec.stop()
-        wait_for(lambda: not self.rec.active(), what="the stop")
-        st = self.rec.status()
-        self.assertEqual((st["state"], st["saved"]), ("done", False))
-        self.assertEqual(self.tests.get(tid)["captures"], {})
-
-
-class Devices(SessionBase):
-    def test_resolve_device(self):
-        self.assertEqual(resolve_device("auto"), "loopback:1")
-        self.assertEqual(resolve_device("loopback:7"), "loopback:1")  # the card number moved
-        self.assertEqual(resolve_device("usb"), "usb:2")
-        self.assertEqual(resolve_device("usb:2"), "usb:2")
-
-    def test_no_loopback_card(self):
-        # Automatic falls back to a USB DAC only when usbmon can record it (it can't here).
-        cards = os.path.join(self.fake.root, "cards")
-        with open(cards) as f:
-            original = f.read()
-        try:
-            with open(cards, "w") as f:
-                f.write("".join(line + "\n" for line in original.splitlines() if "Loopback" not in line))
-            with self.assertRaises(CaptureError):
-                resolve_device("auto")
-            self.assertEqual(resolve_device("usb"), "usb:2")  # chosen explicitly: tried anyway
-        finally:
-            with open(cards, "w") as f:
-                f.write(original)
+    def test_a_recording_for_a_test_not_there(self):
+        d = tempfile.mkdtemp(dir=self.tests.tmp)
+        path = os.path.join(d, "recording.wav")
+        write_wav(path, Audio(data=self.src, rate=RATE, bits=32))
+        with self.assertRaises(KeyError):
+            self.tests.add_recording("20990101-000000-none", path, "FiiO R7 USB")
+        shutil.rmtree(d)
 
 
 class Alignment(SessionBase):

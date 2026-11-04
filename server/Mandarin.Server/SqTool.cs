@@ -47,6 +47,12 @@ internal static class SqTool
         });
     }
 
+    /* SQ-tool's own address on this computer, started if it isn't (SqToolRecord.cs hands it recordings); null where it can't be. */
+    public static async Task<Uri?> Local() => await Started() ? new Uri($"http://127.0.0.1:{port}/") : null;
+
+    /* Why SQ-tool couldn't start, where it couldn't. */
+    public static string Why => why;
+
     // Running, or started now: false (and [why] says) where it can't be.
     private static async Task<bool> Started()
     {

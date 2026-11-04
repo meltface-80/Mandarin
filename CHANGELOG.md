@@ -543,6 +543,7 @@
 - Fixed - Now playing's signal path says only what is known, and whose word it is: its last step is what the Mandarin Bridge (or Mandarin's audio engine, or the device's own API) reports feeding the DAC, the format, the samples in the DAC's words, and whether its volume touches them ("fixed volume: the samples untouched — as Mandarin Bridge reports it"); "bit-perfect" is no longer said on it, and the bit-perfect check is no longer on it (SQ-tool, in Settings, is to prove it)
 - Fixed - a 16-bit track fed to a DAC in 32-bit words, its samples unchanged, is confirmed with its ✓; a track whose samples the volume scales no longer is
 - New - SQ-tool is in Mandarin: Settings → SQ-tool opens it, exactly as it is on its own (recordings, compare, its verdicts), with your music folder; Mandarin's Docker image carries the Python and numpy it needs (installed without Docker, add `python3` and `python3-numpy`)
+- New - SQ-tool is Mandarin's own bit-perfect test: choose a song and a zone, press Record, and Mandarin plays the song there and records exactly what the zone's DAC is fed (Mandarin Bridge on Android, or a USB DAC on the server); SQ-tool says whether it is bit-perfect, with its spectrograms and charts. Its Loopback recording, its second player and its settings are gone
 
 - `284-dff-as-dsd` (item 284): **A DFF played as DSD, as a DSF is.** The audio engine read only a DSF itself; a DFF
   went to ffmpeg, which made it PCM, so on a DAC on the server or on the Linux Bridge it was never DSD (the server
@@ -555,6 +556,24 @@
   (markers in turn, the DSD rate over 16) and as native DSD (big-endian words, the rate over 32), the 48 kHz family as
   DoP; a seek to 1.5 s plays on from that word, what lay between never sent; a DST one said, nothing sent. Shown
   failing with the DFF sent to ffmpeg, a DST one played, the seek ignored, and the chunk after the audio sent.
+- `290-sq-tool-for-mandarin` (item 290): **SQ-tool, Mandarin's own.** SQ-tool came as it was standalone: record two
+  players on a Loopback sound card (Roon, then Mandarin) and compare them. It is now the proof that a Mandarin zone's
+  DAC gets the file. A test is a song and one recording: on the test's page a zone is chosen (`/api/sq-tool/zones`:
+  each room, and why one can't be recorded) and Record asks Mandarin (`/api/sq-tool/record`, `SqToolRecord.cs`) to
+  play the song there alone, from its start, and record what the DAC is fed, the whole track: the recording of the
+  bit-perfect check (`Check.Recorded`, now shared, and `Players.RecorderFor`: a Mandarin Bridge's `/capture` in parts
+  joined into one, or a USB DAC on the server off its bus). Mandarin hands the recording to SQ-tool (its new
+  `POST /api/tests/<id>/recording`, the zone named), which compares it with the song as it always has, and draws its
+  verdict, spectrograms, charts, details and downloads for the one recording. The song is played as the library's
+  track at that path (one not in the library is said to be). Gone: SQ-tool's own recording (`alsa.py`, `usbmon.py`,
+  `songend.py`, the Recorder, `capture` and `status` on its command line, and their tests), its second player and the
+  comparison of two, its settings, the upload of a song, its Dockerfile, and from Mandarin's image `flac`,
+  `alsa-utils` and `kmod`. Its page says what it is for Mandarin (and its help, what can be recorded and what a
+  bit-perfect result needs). `test/sq-tool-record.test.js`: a fake Bridge recorded in parts: the zones (the Bridge can,
+  a Sonos room can't, and why), bit-perfect with the zone's name, a decibel down not bit-perfect and its level said,
+  and refused: a room that can't be recorded, a test not there, a song not in the library, a second recording at once;
+  shown failing with the song looked for by the wrong path and the zone's name not filed. SQ-tool's own tests:
+  Mandarin's recording handed over (bit-perfect in 32-bit words, scaled), the API's refusals, no `b` or `ab` left.
 - `288-sq-tool-in-mandarin` (item 288): **SQ-tool inside Mandarin.** SQ-tool, the recorder and comparer that proved
   the server bit-perfect to a USB DAC, was a program of its own to install. Its code moves into `sq-tool/` (from
   meltface-80/SQ-tool, its page reading its API relative to where it is served, nothing else changed) with its own
