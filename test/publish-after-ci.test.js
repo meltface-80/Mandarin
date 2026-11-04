@@ -86,7 +86,11 @@ test("a newer build's :dev image or test APK is never overwritten by an older ru
     // Per ref, with its own name: a called android.yml sees the caller's github.workflow, so not that.
     assert.equal(m[1], `${prefix}\${{ github.ref }}`, name);
     const cancels = what => holds(m[2], PUSHES[what]);
-    for (const what of ["dev", "branch", "pr"]) assert.equal(cancels(what), true, `${name}: a newer ${what} run cancels the older`);
+    // The image's run waits some 25 minutes for CI: cut short by each newer push, none finished while pull
+    // requests were merged faster than that, and :dev fell behind the test APK (item 276). It is never cut short;
+    // a newer push waits for it in the same group, so an older one still never pushes over it.
+    const image = name === "docker-publish.yml";
+    for (const what of ["dev", "branch", "pr"]) assert.equal(cancels(what), !image, `${name}: a newer ${what} run ${image ? "waits for" : "cancels"} the older`);
     for (const what of ["main", "tag"]) assert.equal(cancels(what), false, `${name}: a ${what} run is never cancelled mid-way`);
   }
 });

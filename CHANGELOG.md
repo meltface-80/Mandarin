@@ -526,6 +526,16 @@
 - Fixed - seeking with the progress bar in a track upsampled as it plays (DSD, or ×16) plays from there at once, and Back or a seek on a streamer left stuck on its track sends the track again
 - Fixed - on a streamer such as the FiiO SR11, an album no longer skips a track: the next track showed in the last 15 s of a long one, and one shorter than that was passed over
 - Improved - a FiiO SR11 is known by its model: its page shows what it plays by USB to a DAC (to 768 kHz/32-bit, DSD64–256) without ticking, where it showed only 44.1 and 48 kHz
+- Fixed - the server's dev image no longer falls behind the test app while changes are merged one after another
+
+- `276-dev-image-not-starved` (item 276): **dev's server image kept up with the test app.** The image's run waits
+  some 25 minutes for CI on its commit before it builds, and each newer push to dev cancelled the run before it.
+  With pull requests merged faster than that (272, 273 and 274 here, #600 and #602 from the Android USB driver's
+  work), no image was published after 271: ghcr's :dev said 1.1.15-t47 while the test APK, built at once, was t50.
+  Now a run under way is never cut short: a newer push waits for it, and of those waiting only the newest runs
+  (`.github/workflows/docker-publish.yml`, `cancel-in-progress: false`), so :dev is at most one build behind and
+  an older run still never pushes over a newer one. Test: `publish-after-ci.test.js` (the image's run never cut
+  short on any branch, the test APK's as before).
 
 - `274-fiio-sr11-profile` (item 274): **the FiiO SR11 known by its model.** A streamer on the network says what
   formats it takes (GetProtocolInfo: FLAC, WAV, DSF…) and almost never what rates or depths: UPnP has no way to
