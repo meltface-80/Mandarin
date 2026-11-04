@@ -1,12 +1,13 @@
 // Check.cs — the bit-perfect check, end to end (bug list item 275): what reached the DAC compared with what the
 // server sent it, frame by frame, for a whole track, on request.
 //
-// The track is played again from its start, and the device that feeds the DAC records what it feeds it: a Mandarin
+// The track is played again from its start, and what feeds the DAC records what it feeds it (Recorder.cs): a Mandarin
 // USB renderer at its /capture (github.com/meltface-80/Android-USB-Driver: the very words the USB transfers carry, up
-// to two minutes at a time, so a longer track is recorded in turn, each recording asked for as the one before is
-// taken). Then what was sent is fetched from this server as the device fetched it (the cache's file, the file
-// itself, a DSF made as it played) and each recording is found in it and compared (Compare.cs). The report says
-// the verdict, how much of the track was compared, and where anything differed.
+// to two minutes at a time, so a longer track is recorded in turn), or, for a DAC plugged into this server, the
+// kernel's usbmon on its USB bus (UsbRecorder.cs), the whole track at once. Then what was sent is fetched from this
+// server as the device fetched it (the cache's file, the file itself, a DSF made as it played) and each recording is
+// found in it and compared (Compare.cs). The report says the verdict, how much of the track was compared, and where
+// anything differed.
 using System.Text.Json.Nodes;
 
 namespace Mandarin.Server.BitPerfect;
@@ -37,54 +38,56 @@ internal static class Check
         public string Said { get => said; set { said = value; Changed?.Invoke(); } }
     }
 
-    /* [track] in [room], recorded by the Mandarin USB renderer at [device] (its base address), into [dir]. */
-    public static async Task Go(Run run, Track track, Room room, string device, string dir)
+    /* [track] in [room], recorded by [recorder] (a Mandarin USB renderer's, or this server's USB bus), into [dir]. */
+    public static async Task Go(Run run, Track track, Room room, IRecorder recorder, string dir)
     {
         var ct = run.Stop.Token;
+        var failed = true;
         try
         {
             if (Directory.Exists(dir)) Directory.Delete(dir, true);
             Directory.CreateDirectory(dir);
             var parts = new List<(string Wav, JsonObject? Said)>();
             run.Said = "Asking the device to record";
-            await Ask(device, Math.Min(Most, (int)Math.Ceiling(track.Seconds) + 2), ct);
+            await recorder.Ask(Math.Min(recorder.Most, (int)Math.Ceiling(track.Seconds) + 2), ct);
             run.Said = "Playing the track from its start";
             await room.Restart();
             while (true)
             {
                 run.State = "recording";
                 run.Said = $"Recording what the DAC is fed ({Math.Round(run.Recorded)} s of {Math.Round(track.Seconds)} s)";
-                var st = await Wait(run, device, ct);
-                var n = parts.Count + 1;
-                var wav = Path.Combine(dir, $"part{n}.wav");
-                await Fetch(device + "/capture.wav", wav, ct);
-                JsonObject? said = null;
-                try { said = (JsonNode.Parse(await Http.GetStringAsync(device + "/capture.wav.json", ct)) as JsonObject)?["capture"] as JsonObject; }
-                catch (Exception e) when (e is HttpRequestException or System.Text.Json.JsonException) { /* a recording with no sidecar: PCM */ }
-                parts.Add((wav, said));
-                run.Recorded += Number(st["frames"]) / Math.Max(1, Number(st["rate"]));
-                if (run.Recorded + 1 >= track.Seconds || !room.StillOn() || (string?)st["state"] != "done") break;
-                await Ask(device, Math.Min(Most, (int)Math.Ceiling(track.Seconds - run.Recorded) + 2), ct);
+                var (seconds, whole) = await recorder.Wait(run, run.Recorded, ct);
+                var wav = Path.Combine(dir, $"part{parts.Count + 1}.wav");
+                parts.Add((wav, await recorder.Take(wav, ct)));
+                run.Recorded += seconds;
+                if (run.Recorded + 1 >= track.Seconds || !room.StillOn() || !whole) break;
+                await recorder.Ask(Math.Min(recorder.Most, (int)Math.Ceiling(track.Seconds - run.Recorded) + 2), ct);
             }
+            await recorder.Stop(false);
             run.State = "comparing";
             run.Said = "Comparing what the DAC was fed with what was sent";
             var sent = Path.Combine(dir, "sent");
             await Fetch(track.Uri, sent, ct);
             run.Report = Reported(track, room.Name, Sent(sent, track, dir), parts);
+            failed = false;
+            // The recordings and what was sent go once compared (a long track's are large); the report is kept.
+            foreach (var f in Directory.GetFiles(dir)) File.Delete(f);
             run.State = "done";
             run.Said = (string?)run.Report["says"] ?? "Done";
         }
-        catch (Exception e) when (e is HttpRequestException or IOException or OperationCanceledException or InvalidOperationException or TimeoutException)
+        catch (Exception e) when (e is HttpRequestException or IOException or OperationCanceledException or InvalidOperationException or TimeoutException or UnauthorizedAccessException)
         {
             run.State = "failed";
             run.Said = ct.IsCancellationRequested ? "Stopped" : "The check couldn't finish: " + e.Message;
-            try { await Http.DeleteAsync(device + "/capture", CancellationToken.None); } catch (HttpRequestException) { /* gone */ }
         }
+        finally { if (failed) await recorder.Stop(true); }
     }
 
     /*
      * `mandarin-server bitperfect`: a line of JSON on standard input, { sent: file, rate, bits?, dsd?, dsd_base?, seconds,
-     * title?, parts: [{ wav, said? }] }, compared as a check compares them; the report is a line of JSON on standard output.
+     * title?, parts: [{ wav, said? } or { usbmon: file, bus, device, endpoint, rate, format, armed_at? }] }, compared as a
+     * check compares them (a usbmon capture, events as read(2) gives them, read as UsbRecorder reads its bus); the report
+     * is a line of JSON on standard output.
      */
     public static int Command()
     {
@@ -94,40 +97,28 @@ internal static class Check
         var dir = Directory.CreateTempSubdirectory("mandarin-bitperfect-").FullName;
         try
         {
-            var parts = (job["parts"] as JsonArray ?? []).OfType<JsonObject>().Select(x => ((string)x["wav"]!, x["said"] as JsonObject)).ToList();
+            var parts = (job["parts"] as JsonArray ?? []).OfType<JsonObject>()
+                .Select((x, i) => x["usbmon"] is JsonValue ? Captured(x, track, Path.Combine(dir, $"usbmon{i}.wav")) : ((string)x["wav"]!, x["said"] as JsonObject)).ToList();
             Console.WriteLine(Reported(track, "", Sent((string)job["sent"]!, track, dir), parts).ToJsonString());
             return 0;
         }
         finally { Directory.Delete(dir, true); }
     }
 
-    private static double Number(JsonNode? n) => n is JsonValue v && v.TryGetValue<double>(out var d) ? d : 0;
-
-    // The device asked to record [seconds] from the next byte it takes.
-    private static async Task Ask(string device, int seconds, CancellationToken ct)
+    // A usbmon capture's stream to the DAC [x] names, recorded as the bus would be into [wav].
+    private static (string, JsonObject?) Captured(JsonObject x, Track track, string wav)
     {
-        using var r = await Http.PostAsJsonAsync(device + "/capture", new { seconds }, ct);
-        if (!r.IsSuccessStatusCode) throw new InvalidOperationException($"the device wouldn't record (HTTP {(int)r.StatusCode}: {(await r.Content.ReadAsStringAsync(ct)).Trim()})");
+        var target = new Usbmon.Target((int)Number(x["bus"]), (int)Number(x["device"]), (int)Number(x["endpoint"]));
+        using var w = new Usbmon.Writer(wav, target, Number(x["armed_at"]), () => (Number(x["rate"]), (string?)x["format"] ?? "S32_LE")) { Seconds = (int)Math.Ceiling(track.Seconds) + 2 };
+        using (var s = File.OpenRead((string)x["usbmon"]!)) while (Usbmon.Read(s) is { } e && !w.Take(e)) { /* on to the next */ }
+        if (w.State == "failed") throw new InvalidOperationException(w.Why);
+        return (wav, w.Finish(0));
     }
 
-    // Until the device's recording is done (or failed): its last word.
-    private static async Task<JsonObject> Wait(Run run, string device, CancellationToken ct)
-    {
-        var armedSince = DateTime.UtcNow;
-        while (true)
-        {
-            await Task.Delay(1000, ct);
-            var st = JsonNode.Parse(await Http.GetStringAsync(device + "/capture", ct)) as JsonObject ?? [];
-            var state = (string?)st["state"];
-            if (state == "done") return st;
-            if (state == "failed") throw new InvalidOperationException("the device's recording failed: " + ((string?)st["reason"] ?? "no reason given"));
-            if (state == "armed" && DateTime.UtcNow - armedSince > TimeSpan.FromSeconds(30)) throw new TimeoutException("the device never started playing the track");
-            if (state is "idle") throw new InvalidOperationException("the device stopped recording");
-            if (state == "recording") run.Said = $"Recording what the DAC is fed ({Math.Round(run.Recorded + Number(st["frames"]) / Math.Max(1, Number(st["rate"])))} s)";
-        }
-    }
+    public static double Number(JsonNode? n) => n is JsonValue v && v.TryGetValue<double>(out var d) ? d : 0;
 
-    private static async Task Fetch(string url, string path, CancellationToken ct)
+    /* [url] fetched to [path]. */
+    public static async Task Fetch(string url, string path, CancellationToken ct)
     {
         using var r = await Http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, ct);
         r.EnsureSuccessStatusCode();

@@ -1130,6 +1130,13 @@ with **Fixed volume** on they are never scaled and the volume is the DAC's or am
 * **Docker:** add `--device /dev/snd` and `--privileged` to `docker run` (in `docker-compose.yml`,
   the commented `devices:` and `privileged:` lines), then re-create the container.
 * DSD files go to these devices as PCM.
+* **The bit-perfect check (item 275):** for a USB DAC, *Now playing → Signal path → Bit-perfect check*
+  plays the track again from its start and records what goes down the USB cable to the DAC, off the
+  kernel's usbmon, then compares every sample with what was sent: bit-perfect, or what differs and
+  where. It needs usbmon loaded on the computer the DAC is plugged into (`sudo modprobe usbmon`; to
+  keep it after a restart, `echo usbmon | sudo tee /etc/modules-load.d/usbmon.conf`) and the server
+  allowed to read `/dev/usbmonN` (root, or the container `--privileged`, as above). Without it, the
+  check says what is missing.
 * **Playback comes first (v0.8.13).** The decoder and the device each queue a minute of audio
   ahead. On Linux with three cores or more, playback keeps a core of its own, or two while DSP is in
   use (the last ones), and both servers run on the others; on four cores, one for playback and

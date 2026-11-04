@@ -531,7 +531,21 @@
 - New - the bit-perfect check on Now playing: Signal path → Bit-perfect check → Check, on a Mandarin USB renderer; the step says how far it has got, then its verdict
 - New - Mandarin USB, the phone app that plays through a USB DAC as a renderer, now lives in this repository (usb-renderer/): it builds from Mandarin's own driver, so the two are worked on together; its test build is the test-usb-renderer pre-release
 - Fixed - on the phone, an album whose tags are the same in more than one folder (Machine Head (1972), (Remastered 2012) and (2024 Remix), all tagged "Machine Head") is one album a folder, as it already was on the server; the discs of one album in folders of their own (CD1, Disc 2) are still one
+- New - the bit-perfect check for a USB DAC plugged into the server: Now playing → Signal path → Bit-perfect check plays the track again and records what goes down the USB cable to the DAC (the kernel's usbmon: `sudo modprobe usbmon`, the container privileged), then compares every sample with what was sent
 
+- `275-bit-perfect-usb-on-server` (item 275, third part): **the bit-perfect check of a USB DAC on the server.** The
+  check (BitPerfect/Check.cs) now takes what records the DAC's feed as a recorder (Recorder.cs): a Mandarin USB
+  renderer's /capture as before, or, for a sound device on the server that is a USB DAC, its USB bus, read through
+  the kernel's usbmon as SQ-tool reads it (Usbmon.cs, UsbRecorder.cs). The DAC is found on the bus from ALSA's own
+  files (the card's `usbbus`, its playback endpoint in `stream0`); every isochronous transfer to that endpoint is
+  written as it went down the cable into a WAV in the DAC's slot (S16, S24_3LE, S32, S24 in the low bytes of 32,
+  native DSD words either way round; DoP found by its markers), from the next stream begun after the check asked (the
+  old track's stop, or a start that sent only silence, waited out), the whole track in one recording, and compared
+  as Mandarin USB's are. What usbmon couldn't keep up with is said, and found as frames lost. The step is offered on
+  Now playing for a USB DAC on the server; asked where usbmon isn't loaded or can't be read, it says what to do. The
+  recordings go once compared. `mandarin-server bitperfect` reads a usbmon capture too, which is how it is tested
+  (UsbmonTests: each slot, another DAC's and the feedback endpoint's traffic on the bus, a transfer lost, no stream
+  begun).
 - `279-folder-is-an-album` (item 279): **a folder is an album on the phone too.** The phone keyed an album by its
   album artist and title alone, so Deep Purple's Machine Head in three folders — the 1972 original, the 2012
   remaster and the 2024 remix, each tagged "Machine Head" — was one album of 31 tracks, its quality the highest of

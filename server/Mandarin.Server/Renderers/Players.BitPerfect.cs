@@ -1,6 +1,7 @@
 // Players.BitPerfect.cs — the bit-perfect check of a renderer's room (bug list item 275, BitPerfect/Check.cs): asked
 // for the track playing, of a Mandarin USB renderer whose app records what it feeds its DAC (/dac.json says
-// "capture"). One at a time for each room; its progress and its report are the room's until the next.
+// "capture"), or of a USB DAC plugged into this server, recorded off its bus (BitPerfect/UsbRecorder.cs). One at a
+// time for each room; its progress and its report are the room's until the next.
 using System.Collections.Concurrent;
 using System.Text.Json.Nodes;
 using Mandarin.Server.BitPerfect;
@@ -19,11 +20,24 @@ internal sealed partial class Players
         var p = Get(id);
         if (checks.TryGetValue(id, out var was) && was.Run.State is "starting" or "recording" or "comparing") return (false, "A check is already under way");
         var rec = Record(id);
-        if (rec?.Caps["mandarin"] is not JsObj mu || !Jv.T(mu["base"])) return (false, "Only a Mandarin USB renderer can record what its DAC is fed (or a DAC on this server, soon)");
-        var device = Jv.Str(mu["base"]);
-        var dac = await MandarinUsb.Probe(device);
-        if (dac == null) return (false, "The device isn't answering");
-        if (dac["capture"] is not string capture || capture.Length == 0) return (false, "This device's app can't record what it feeds the DAC yet: update Mandarin USB");
+        var dir = Path.Combine(Server.DataDir, "bitperfect", string.Concat(id.Select(c => char.IsLetterOrDigit(c) ? c : '_')));
+        IRecorder recorder;
+        if (rec?.Location is { } loc && loc.StartsWith("alsa:", StringComparison.Ordinal))
+        {
+            // A DAC on this server: what goes down its USB cable, off the bus.
+            if (Usbmon.Of(loc) is not { } usb) return (false, "This sound device isn't a USB DAC: the check records what goes down a USB cable");
+            if (UsbRecorder.Why(usb) is { } why) return (false, "The USB bus can't be read: " + why);
+            recorder = new UsbRecorder(usb, dir, () => HwParams(loc));
+        }
+        else
+        {
+            if (rec?.Caps["mandarin"] is not JsObj mu || !Jv.T(mu["base"])) return (false, "Only a Mandarin USB renderer or a USB DAC on this server can record what its DAC is fed");
+            var device = Jv.Str(mu["base"]);
+            var dac = await MandarinUsb.Probe(device);
+            if (dac == null) return (false, "The device isn't answering");
+            if (dac["capture"] is not string capture || capture.Length == 0) return (false, "This device's app can't record what it feeds the DAC yet: update Mandarin USB");
+            recorder = new DeviceRecorder(CaptureBase(device, capture));
+        }
         UpnpItem item;
         int index;
         lock (gate)
@@ -34,14 +48,13 @@ internal sealed partial class Players
         }
         if (item.Sent == null || item.Duration <= 0) return (false, "What was sent of this track isn't known yet: let it play a moment");
         var track = new Check.Track(item.Uri, item.Title, item.Duration, item.Sent.Rate, item.Sent.Bits, item.Sent.Dsd, item.Sent.DsdBase);
-        var room = new Check.Room(() => Jump(p, index), () => { lock (gate) return p.Index == index && p.Queue.Count > index && p.Queue[index] == item; }, rec.Name ?? rec.NetworkName ?? id);
+        var room = new Check.Room(() => Jump(p, index), () => { lock (gate) return p.Index == index && p.Queue.Count > index && p.Queue[index] == item; }, rec?.Name ?? rec?.NetworkName ?? id);
         var run = new Check.Run();
         run.Changed = zm.Bump;
         checks[id] = (run, item.Title, item.Uri);
-        var dir = Path.Combine(Server.DataDir, "bitperfect", string.Concat(id.Select(c => char.IsLetterOrDigit(c) ? c : '_')));
         _ = Task.Run(async () =>
         {
-            await Check.Go(run, track, room, CaptureBase(device, capture), dir);
+            await Check.Go(run, track, room, recorder, dir);
             zm.Bump();
             if (run.Report != null) Log($"[bitperfect] {room.Name}, {item.Title}: {run.Report["says"]}");
             else Log($"[bitperfect] {room.Name}, {item.Title}: {run.Said}");
@@ -71,7 +84,7 @@ internal sealed partial class Players
     public static System.Text.Json.Nodes.JsonObject? CheckStep(string id, string uri)
     {
         var rec = Record(id);
-        if (rec?.Caps["mandarin"] is not JsObj mu || !Jv.T(mu["capture"])) return null;
+        if (!(rec?.Caps["mandarin"] is JsObj mu && Jv.T(mu["capture"])) && !UsbDac(rec?.Location)) return null;
         static System.Text.Json.Nodes.JsonObject Step(string title, string detail, string quality, string? button)
         {
             var o = new System.Text.Json.Nodes.JsonObject { ["kind"] = "check", ["title"] = title, ["detail"] = detail, ["quality"] = quality };
@@ -88,6 +101,18 @@ internal sealed partial class Players
             return Step(ok ? "Bit-perfect to the DAC" : "Not bit-perfect to the DAC", r.Said, ok ? "lossless" : "lossy", "Check again");
         }
         return Step("Bit-perfect check", r.Said, "pending", "Try again");
+    }
+
+    private static readonly ConcurrentDictionary<string, (DateTime At, bool Usb)> usbDacs = new();
+
+    // Whether the sound device at [location] is a USB DAC on this server (looked at once a minute: the step is asked for often).
+    private static bool UsbDac(string? location)
+    {
+        if (location == null || !location.StartsWith("alsa:", StringComparison.Ordinal)) return false;
+        if (usbDacs.TryGetValue(location, out var was) && DateTime.UtcNow - was.At < TimeSpan.FromMinutes(1)) return was.Usb;
+        var usb = Usbmon.Of(location) != null;
+        usbDacs[location] = (DateTime.UtcNow, usb);
+        return usb;
     }
 
     /* Room [id]'s check stopped. */

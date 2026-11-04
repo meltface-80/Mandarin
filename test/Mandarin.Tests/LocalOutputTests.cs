@@ -36,10 +36,11 @@ public sealed class LocalOutputTests
         W("card0/pcm0c/info", "name: ALC892 Analog\n");
         W("card1/pcm0p/info", "name: USB Audio\n");
         W("card1/usbid", "20b1:301f\n");
+        W("card1/usbbus", "003/007\n");
         W("card1/stream0", string.Join("\n",
             "Chord Electronics Ltd Chord Mojo at usb-0000:00:14.0-2, high speed : USB Audio", "",
             "Playback:", "  Status: Stop",
-            "  Interface 1", "    Altset 1", "    Format: S32_LE", "    Channels: 2", "    Bits: 32",
+            "  Interface 1", "    Altset 1", "    Format: S32_LE", "    Channels: 2", "    Endpoint: 0x01 (1 OUT) (ASYNC)", "    Bits: 32",
             "    Rates: 44100, 48000, 88200, 96000, 176400, 192000, 352800, 384000, 705600, 768000",
             "  Interface 1", "    Altset 2", "    Format: S24_3LE", "    Bits: 24", "    Rates: 44100, 48000, 96000", ""));
         W("card1/pcm0p/sub0/hw_params", "access: RW_INTERLEAVED\nformat: S32_LE\nsubformat: STD\nchannels: 2\nrate: 96000 (96000/1)\n");
@@ -117,6 +118,8 @@ public sealed class LocalOutputTests
         Assert.Matches("^LOCAL_[0-9a-f]{12}$", mojo.Str("id"));
         JsonAssert.Same("[]", devices[0]!["caps"]?["advertised"]?["rates"], "an internal card says nothing: 44.1 and 48 kHz until ticked");
         JsonAssert.Same("""{"rate":96000,"format":"S32_LE"}""", (await Local(new JsonObject { ["hw"] = new JsonArray(new JsonArray(mojo.Str("location"), root)) }))["hw"]![0]);
+        // Where it is on the USB bus, for the bit-perfect check's recording of it (item 275): bus 3, device 7, endpoint 1; the HDA card is on none.
+        JsonAssert.Same("""[{"bus":3,"device":7,"endpoint":1},null]""", (await Local(new JsonObject { ["usb"] = new JsonArray(new JsonArray(mojo.Str("location"), root), new JsonArray(devices[0]!.Str("location"), root)) }))["usb"]);
 
         // The chips: the Mojo's own rates are on as advertised; the HDA's are the floor.
         var chips = await Effective(With(JsonNode.Parse("""{"playable":true}""")!, mojo));
