@@ -7,6 +7,7 @@ import androidx.media3.common.MimeTypes
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.audio.AudioSink
 import androidx.media3.exoplayer.audio.ForwardingAudioSink
+import com.musicd.server.client.PcmWords
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 
@@ -60,9 +61,18 @@ class UsbAudioSink(private val inner: AudioSink, private val context: Context) :
     private var outFor: ByteBuffer? = null
     private var outPos = 0
 
+    private var words = false       // PCM carried as 32-bit words (DspSink, takesWords), not as float
+
     private fun wantUsb(f: Format): Boolean =
-        Store.usbDirect(context) && UsbDac.device() != null && f.sampleMimeType == MimeTypes.AUDIO_RAW && f.pcmEncoding == C.ENCODING_PCM_FLOAT &&
+        Store.usbDirect(context) && UsbDac.device() != null && f.sampleMimeType == MimeTypes.AUDIO_RAW &&
+            (f.pcmEncoding == C.ENCODING_PCM_FLOAT || f.pcmEncoding == C.ENCODING_PCM_32BIT) &&
             f.channelCount == 2 && UsbDriver.streamFor(UsbDac.info(), f.sampleRate) != null
+
+    /**
+     * Would this PCM go to the DAC? Then DspSink carries it as left-justified 32-bit words (PcmWords), not as float,
+     * so a 32-bit sample (an upsampled stream) reaches a 32-bit slot as it is: float holds 24 bits.
+     */
+    fun takesWords(f: Format): Boolean = wantUsb(f.buildUpon().setPcmEncoding(C.ENCODING_PCM_32BIT).build())
 
     override fun supportsFormat(format: Format): Boolean = getFormatSupport(format) != AudioSink.SINK_FORMAT_UNSUPPORTED
     override fun getFormatSupport(format: Format): Int = when {
@@ -110,7 +120,7 @@ class UsbAudioSink(private val inner: AudioSink, private val context: Context) :
             return
         }
         if (wantUsb(inputFormat) && UsbDriver.open(context, inputFormat.sampleRate)) {
-            usb = true; mode = "pcm"
+            usb = true; mode = "pcm"; words = inputFormat.pcmEncoding == C.ENCODING_PCM_32BIT
             rate = inputFormat.sampleRate; channels = inputFormat.channelCount
             subslot = UsbDriver.current?.subslot ?: 3
             startSet = false; drained = false; outFor = null
@@ -152,21 +162,19 @@ class UsbAudioSink(private val inner: AudioSink, private val context: Context) :
         out.clear()
     }
 
-    /** Float samples packed to the DAC's subslot, little-endian, left-justified. */
+    /**
+     * The samples packed to the DAC's subslot, little-endian, left-justified (PcmWords): 32-bit words as they come, or
+     * float as words at × 2³¹ — the scale DspSink made them with, so a 16- or 24-bit sample is its own word again.
+     */
     private fun pack(buffer: ByteBuffer) {
         val samples = buffer.remaining() / 4
         room(samples * subslot)
-        val src = buffer.duplicate().order(ByteOrder.nativeOrder())
+        val src = buffer.duplicate().order(if (words) ByteOrder.LITTLE_ENDIAN else ByteOrder.nativeOrder())
         // 1 (the usual: a DAC with its own volume control, or fixed volume) leaves the samples untouched.
-        val gain = UsbDriver.softwareGain()
+        val gain = UsbDriver.softwareGain().toDouble()
         for (i in 0 until samples) {
-            var v = src.getFloat() * gain
-            if (v > 1f) v = 1f else if (v < -1f) v = -1f
-            when (subslot) {
-                2 -> out.putShort(Math.round(v * 32767f).toShort())
-                3 -> { val x = Math.round(v * 8388607f); out.put((x and 0xff).toByte()); out.put(((x shr 8) and 0xff).toByte()); out.put(((x shr 16) and 0xff).toByte()) }
-                else -> { val x = (v.toDouble() * 2147483647.0).toLong().coerceIn(Int.MIN_VALUE.toLong(), Int.MAX_VALUE.toLong()).toInt(); out.putInt(x) }
-            }
+            val w = if (words) PcmWords.scaled(src.getInt(), gain) else PcmWords.of(src.getFloat().toDouble() * gain)
+            PcmWords.put(out, w, subslot)
         }
         out.flip()
     }
