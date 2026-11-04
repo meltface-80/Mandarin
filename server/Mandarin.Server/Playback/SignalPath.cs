@@ -118,7 +118,7 @@ internal static class SignalPath
     };
 
     /*
-     * The device's report as a step (item 287): the format the DAC is opened at, how the samples sit in its words, what
+     * The device's report as a step (item 287): the format the DAC is opened at, how the samples are sent at its depth, what
      * its volume does to them, and who says so. Lossless only where it says the samples go untouched in the format
      * sent; lossy where it says otherwise; pending where it says nothing of the samples.
      */
@@ -129,7 +129,10 @@ internal static class SignalPath
         else
         {
             var pcm = $"PCM {Khz(f.Rate)} kHz";
-            if (f.Bits > 0 && s.Bits > 0 && f.Bits > s.Bits) pcm += $", the {N(s.Bits)}-bit samples in {N(f.Bits)}-bit words";
+            // A DAC opened deeper than the track (16-bit samples to a 32-bit DAC), in plain words (item 289): padded
+            // where the device says the samples go untouched, else only that they are sent at its depth.
+            if (f.Bits > 0 && s.Bits > 0 && f.Bits > s.Bits)
+                pcm += f.Untouched == true ? $", the {N(s.Bits)}-bit samples padded to {N(f.Bits)} bits for the DAC" : $", the {N(s.Bits)}-bit samples sent as {N(f.Bits)}-bit";
             else if (f.Bits > 0) pcm += $", {N(f.Bits)}-bit";
             parts.Add(pcm);
         }

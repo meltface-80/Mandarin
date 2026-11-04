@@ -61,8 +61,9 @@ internal sealed class ZoneState
     public string? Verified { get; set; }     // "yes" | "no" | null
     // What the device reports feeding its DAC (item 287): the signal path's last step, said as reported, nothing inferred.
     public Fed? Fed { get; set; }
-    /* The format sent confirmed by the device, and nothing it reports doing to the samples: the badge's tick. */
-    public bool Confirmed => Verified == "yes" && Fed?.Untouched != false;
+    /* The format sent confirmed by the device, and the device saying the samples go untouched: the badge's tick. A
+       device that says nothing of the samples has none (item 289). */
+    public bool Confirmed => Verified == "yes" && Fed?.Untouched == true;
     // History's and the radio's marks, carried from one state to the next.
     public bool PlayedLogged, LowFired;
 

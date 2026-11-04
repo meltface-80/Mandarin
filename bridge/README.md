@@ -78,9 +78,9 @@ follows the DAC: fixed where it has no USB volume control (or is set to Fixed he
 What it feeds the DAC now is `/dac.json`'s `now`: the `rate`, the `bits` of the words the DAC is opened at, `kind`
 (`pcm`, `dop`, `dsd`) and the DSD multiple, and how its level is set (`volume`: `fixed`, `dac` for the DAC's own
 control, `software`; `level`; `untouched`: whether the samples reach the DAC unchanged). Now playing's signal path
-says exactly that, as the Bridge's word (item 287): "PCM 44.1 kHz, the 16-bit samples in 32-bit words, fixed volume:
-the samples untouched — as Mandarin Bridge reports it", and the track's ✓ where it is the format sent with nothing
-done to the samples.
+says exactly that, as the Bridge's word (item 287): "PCM 44.1 kHz, the 16-bit samples padded to 32 bits for the DAC,
+fixed volume: the samples untouched — as Mandarin Bridge reports it", and the track's ✓ only where it is the format
+sent and the Bridge says the samples go untouched (item 289); an older Bridge, which says nothing of them, has none.
 
 The depths are those the renderer takes: every one up to the DAC's widest format, so a DAC with 24- and 32-bit
 formats (an SMSL SU-1) is sent 16-bit tracks as they are, and the app gives them to the DAC at 32 bits (`dac_bits` says

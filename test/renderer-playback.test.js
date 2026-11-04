@@ -287,7 +287,7 @@ test("a renderer is a zone", { skip, timeout: 150000 }, async (t) => {
       await api("control", { zone_or_output_id: WIIM, command: "stop" });
     });
 
-    await t.test("Upsample ×2: a CD rip goes out as 24/88.2 in 64-bit float, and the WiiM confirms it", async () => {
+    await t.test("Upsample ×2: a CD rip goes out as 24/88.2 in 64-bit float, and the WiiM reports it", async () => {
       let r = await api("audio-devices/" + WIIM, { output: { mode: "x2" } }, "PATCH");
       assert.equal(r.status, 200, JSON.stringify(r));
       assert.equal(r.output.mode, "x2");
@@ -296,12 +296,13 @@ test("a renderer is a zone", { skip, timeout: 150000 }, async (t) => {
       const f = await until(() => { const l = wiim.fetches.filter(x => x.done && x.body && x.body.length > 1000); const last = l[l.length - 1]; return last && /88200-24/.test(last.uri) && last; }, 15000);
       assert.match(f.uri, /\/stream\/t\d+\.88200-24\.flac\?s=/);
       assert.deepEqual(probe(f.body), { rate: 88200, channels: 2, bits: 24 });
-      // The badge says what went, and — once the WiiM's own API agrees — its tick.
-      const s = await until(async () => { const z = await state(WIIM); return z && z.now_playing && /↑×2/.test(z.now_playing.format.text) && /✓/.test(z.now_playing.format.text) && z; }, 15000);
-      assert.equal(s.now_playing.format.text, "FLAC 24/88.2 ↑×2 ✓");
+      // The badge says what went, once the WiiM's own API has answered; no tick (item 289): its API says the format,
+      // nothing of what is done to the samples.
+      const s = await until(async () => { const z = await state(WIIM); const np = z && z.now_playing; return np && /↑×2/.test(np.format.text) && np.signal && np.signal.steps.some(x => x.kind === "fed") && z; }, 15000);
+      assert.equal(s.now_playing.format.text, "FLAC 24/88.2 ↑×2");
       // Its signal path (item 247): what goes out and how, centred; every step from the file to the device.
       const sp = s.now_playing.signal;
-      assert.deepEqual(sp.lines, ["FLAC 24/88.2 kHz ↑×2 ✓", "Standard filter"]);
+      assert.deepEqual(sp.lines, ["FLAC 24/88.2 kHz ↑×2", "Standard filter"]);
       assert.deepEqual(sp.steps.map(x => x.kind), ["source", "upsample", "output", "fed"]);
       assert.equal(sp.steps[0].detail, "FLAC 16/44.1 kHz");
       assert.equal(sp.steps[1].detail, "×2 to 88.2 kHz · Standard filter");

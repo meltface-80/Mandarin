@@ -4,7 +4,7 @@
  * playing as a UPnP renderer, that says what its DAC takes at /dac.json — every rate, depth and DSD multiple — and
  * what it is feeding the DAC. Found like any renderer (its description, its Sink), it is read there too
  * (Renderers/MandarinBridge.cs): the whole of the DAC on its page as advertised, nothing to tick; and a track played
- * to it gets the ✓ of a WiiM's when the DAC is fed what was sent.
+ * to it gets the ✓ when the DAC is fed what was sent and the app says the samples go untouched.
  */
 const ports = require("./ports");
 const test = require("node:test");
@@ -102,6 +102,8 @@ test("a Mandarin Bridge renderer: its DAC read whole, and what it plays confirme
       assert.equal(r.status, 200, JSON.stringify(r));
       // The library, once scanned: asked before, the albums aren't there yet.
       const hires = await until(async () => ((await api("library/albums?sort=album")).albums || []).find(a => a.title === "Hi Res"), 20000);
+      // The app says its volume is fixed and the samples go untouched (item 287): the tick is that word (item 289).
+      usb.nowExtra = { volume: "fixed", level: 100, untouched: true };
       r = await api("play", { offset: hires.offset, zone_or_output_id: USB, kind: "play_now" });
       assert.equal(r.ok, true, JSON.stringify(r));
       await until(() => usb.state === "PLAYING");
