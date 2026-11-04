@@ -532,7 +532,16 @@
 - New - Mandarin USB, the phone app that plays through a USB DAC as a renderer, now lives in this repository (usb-renderer/): it builds from Mandarin's own driver, so the two are worked on together; its test build is the test-usb-renderer pre-release
 - Fixed - on the phone, an album whose tags are the same in more than one folder (Machine Head (1972), (Remastered 2012) and (2024 Remix), all tagged "Machine Head") is one album a folder, as it already was on the server; the discs of one album in folders of their own (CD1, Disc 2) are still one
 - New - the bit-perfect check for a USB DAC plugged into the server: Now playing → Signal path → Bit-perfect check plays the track again and records what goes down the USB cable to the DAC (the kernel's usbmon: `sudo modprobe usbmon`, the container privileged), then compares every sample with what was sent
+- Fixed - a search typed while the page was still starting (Home painted from its last visit, the server not yet answered) was closed and its results thrown away the moment the page finished starting; it now stays
 
+- `280-page-tour-search-says-why` (item 280): **a search begun while the page starts is kept.** The page paints Home
+  from its last visit at once, then waits for the server and the rooms, and only then lands on Home (`bootstrap`'s
+  `showHome()`), which closed the search and emptied its results. A search typed in that moment was lost; on a loaded
+  machine the page tour's Search step was (its intermittent failure, at a desktop and at a phone). The landing now
+  keeps a search that is open (`showHome({ keepSearch: true })`), its results and its banner, and still reads Home's
+  rows; every other way back to Home clears it as before. `test/search-while-starting.test.js` holds the rooms' answer
+  back for 2.5 s and types meanwhile (shown failing with the landing as it was). The page tour's Search step now says,
+  should it fail, what the page showed and each call that cleared the search, with where from.
 - `275-bit-perfect-usb-on-server` (item 275, third part): **the bit-perfect check of a USB DAC on the server.** The
   check (BitPerfect/Check.cs) now takes what records the DAC's feed as a recorder (Recorder.cs): a Mandarin USB
   renderer's /capture as before, or, for a sound device on the server that is a USB DAC, its USB bus, read through

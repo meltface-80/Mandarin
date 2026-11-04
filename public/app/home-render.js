@@ -8,13 +8,18 @@ function keepHomeScroll() {
   if (m && homeView && !homeView.classList.contains("hidden")) homeScrollKept = m.scrollTop;
 }
 // Show the Home landing (hide the wall). The wall loads lazily when entered.
-function showHome() {
+// opts.keepSearch (the page's start, item 280): a search opened while the page
+// was still connecting stays, with its results; Home is where it lives.
+function showHome(opts) {
   const back = !!homeView && homeView.classList.contains("hidden");
+  const row = document.getElementById("search-row");
+  const searching = !!(opts && opts.keepSearch && row && row.classList.contains("open"));
+  const results = searching && !!(window.__searchActive && window.__searchActive());
   hideLibraryControls();
   unplayedWallActive = false;
   libraryWallActive = false;
   leavePlaylistScreens();
-  if (window.__clearSearchIfActive) window.__clearSearchIfActive();  // drop stale search results
+  if (!searching && window.__clearSearchIfActive) window.__clearSearchIfActive();  // drop stale search results
   if (window.__exitLabels) window.__exitLabels();   // leave the labels browser if active
   if (window.__exitArtists) window.__exitArtists();
   // Discard, don't restore: this function is establishing its own screen and
@@ -27,14 +32,14 @@ function showHome() {
     try { localStorage.removeItem("rra-filter"); } catch (e) { /* localStorage optional (private browsing) */ }
   }
   updateCountReadout(null, true);   // hide the wall's title / the genre breadcrumb
-  setBanner(null);            // drop any error/empty banner left by a wall view
+  if (!results) setBanner(null);   // drop any error/empty banner left by a wall view
   if (homeView) homeView.classList.remove("hidden");
-  if (homeSections) homeSections.classList.remove("hidden");  // in case a search hid them
-  grid.classList.add("hidden");
+  if (homeSections && !results) homeSections.classList.remove("hidden");  // in case a search hid them
+  if (!results) grid.classList.add("hidden");
   setTopbarNav(false, false, true);   // Home: search box, no Back/Refresh
   const m = document.querySelector("main");
   // Back from a screen opened from Home: where it was. Home tapped on Home: its top.
-  if (m) m.scrollTop = back && homeScrollKept !== null ? homeScrollKept : 0;
+  if (m && !results) m.scrollTop = back && homeScrollKept !== null ? homeScrollKept : 0;
   homeScrollKept = null;
   // The unplayed + random rows keep their tiles for 5 minutes: every Back tap
   // lands here, and rebuilding ~60 fresh-random tiles each time re-fetched
