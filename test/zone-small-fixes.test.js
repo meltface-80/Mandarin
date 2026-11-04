@@ -1,8 +1,8 @@
 "use strict";
 /*
- * Three small things about rooms and renderers (item 187). A renderer's ✓
- * (the device says it plays what it was sent) stays for the track, where it
- * vanished at the next read a second on. Moving what plays from a queue with
+ * Three small things about rooms and renderers (item 187). A renderer's word
+ * on what it plays (the device says the format it was sent; its ✓ until item
+ * 289) stays for the track, where it vanished at the next read a second on. Moving what plays from a queue with
  * something in it that isn't the library's starts at the same track, where
  * it started one on. And a volume nudged before the volume was read goes
  * from where the device is, not from nought.
@@ -28,7 +28,7 @@ async function until(fn, ms = 15000) {
   }
 }
 
-test("a renderer's ✓, a move from a queue with a stranger in it, a nudge of an unread volume", { skip, timeout: 150000 }, async (t) => {
+test("a renderer's word on what it plays, a move from a queue with a stranger in it, a nudge of an unread volume", { skip, timeout: 150000 }, async (t) => {
   const lib = makeLibrary();
   const house = new FakeHousehold();
   await house.start();
@@ -95,17 +95,19 @@ test("a renderer's ✓, a move from a queue with a stranger in it, a nudge of an
     assert.deepEqual(q.history.map(i => i.track).concat(q.items.map(i => i.title)), ["Song 1", "Song 2", "Song 3"]);
   });
 
-  await t.test("the renderer's ✓ stays for the track", async () => {
+  await t.test("the renderer's word on what it plays stays for the track", async () => {
     wiim.release();
     assert.equal((await api("play", { offset: one.offset, zone_or_output_id: WIIM, kind: "play_now" })).status, 200);
     await until(() => wiim.state === "PLAYING" && wiim.pos() >= 2.2, 10000);
     wiim.hold();
-    await until(async () => { const z = await state(WIIM); return /✓/.test(z.now_playing.format.text); }, 15000);
+    // The WiiM's own API's word: the format it plays, the last step of the signal path.
+    const fed = z => { const np = z && z.now_playing; return np && np.signal && np.signal.steps.find(x => x.kind === "fed"); };
+    const first = await until(async () => fed(await state(WIIM)), 15000);
+    assert.match(first.detail, /— as its own API reports it$/);
     // Read again, a few times over (it is read every second while looked at).
     for (let i = 0; i < 6; i++) {
       await sleep(500);
-      const z = await state(WIIM);
-      assert.match(z.now_playing.format.text, /✓/, "still verified at the read " + i);
+      assert.deepEqual(fed(await state(WIIM)), first, "still its word at the read " + i);
     }
   });
 });
