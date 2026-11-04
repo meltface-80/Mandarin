@@ -263,7 +263,9 @@ internal sealed partial class Phones
         var s = r?.Settings ?? new JsObj();
         var bits = c["bits"] as List<object?> ?? [];
         var target = Jv.Obj(("id", uid), ("name", name), ("rates", RateCap.Limit(c["rates"] as List<object?> ?? [], RateCap.Of(s["max_rate"]))),
-            ("maxBits", bits.Count > 0 ? bits.Max(b => Jv.Num(b)) : 24), ("containers", PhoneContainers.Select(x => (object?)x).ToList()),
+            // 24 bits at most (item 268): the app's player hands its USB driver floats, which it packs into the DAC's own
+            // slots (32-bit words for a DAC that takes them), and Android's FLAC decoder may not read 32-bit FLAC.
+            ("maxBits", Math.Min(24, bits.Count > 0 ? bits.Max(b => Jv.Num(b)) : 24)), ("containers", PhoneContainers.Select(x => (object?)x).ToList()),
             ("mode", s["mode"] is string mode && mode is "original" or "x2" or "x4" or "max" ? mode : "original"),
             ("bits", s["bits"] is double b && b is 24 or 32 ? (object)b : "auto"), ("dsd", c["dsd"]),
             ("dsdMimes", Jv.Obj(("dsf", "audio/x-dsf"), ("dff", null))), ("dsp", null));
