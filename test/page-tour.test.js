@@ -49,7 +49,12 @@ const SETTINGS = `(async () => { ${KIT}
       await sleep(350);   // what the page loads on opening, in
     }
   }
-  return { opened, missed };
+  // A row that is a page of its own (SQ-tool): opened beside the page, at its address.
+  const asked = [];
+  window.open = (url) => { asked.push(url); return null; };
+  window.__settingsShowView("home"); await sleep(150);
+  for (const b of document.querySelectorAll('.settings-view[data-view="home"] > .settings-nav > .settings-nav-item[data-open]')) b.click();
+  return { opened, missed, asked };
 })()`;
 
 /* A row's wall from its title on Home. */
@@ -146,6 +151,7 @@ for (const [layout, opts] of [["a desktop", { width: 1440, height: 900, mouse: t
 
     const s = await step("settings", SETTINGS);
     assert.deepEqual(s.missed, [], "every Settings and Setup page opens");
+    assert.deepEqual(s.asked, ["/sq-tool/"], "Settings → SQ-tool opens SQ-tool beside the page");
     for (const name of ["account", "folders", "playback", "setup", "backup", "system", "smartpicks", "display", "shelfset", "away"]) {
       assert.ok(s.opened.includes(name), name + " opened: " + s.opened.join(", "));
     }
