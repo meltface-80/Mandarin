@@ -41,6 +41,7 @@
 - Fixed - signed in to Tidal, a token that stops working is renewed once, however many requests find it stale at the same time
 - Improved - a device's DSP runs in the order set: volume levelling, then the headroom (more where levelling could take a track over full scale), then the DSP at the track's own rate, then upsampling; and PCM as DSD works with DSP on
 - Fixed - DSD256 made as it plays no longer falls behind the device on the next track of an album: the making carried on into it is given all of playback's cores again, and the server keeps two of its own, so the app and the device no longer time out
+- Fixed - a phone playing through a 32-bit USB DAC (the SMSL SU1) is sent 24 bits when upsampling, which the server can make and the phone can read; its driver still gives the DAC 32-bit words
 
 - `259-dsd-on-demand` (item 259): **PCM as DSD, and the shaped filters, made as they play.** A track made DSD from
   PCM had to be made whole, ahead (items 243, 254): its filter was one as long as the track (237, PGGB's way), so
@@ -516,6 +517,14 @@
   up on after 90 seconds. It now steps toward the album by the shelf's own order, a few steps at most, and says if it
   never got there. Nothing changes in Mandarin.
 - New - a Mandarin USB renderer (an Android device with a USB DAC, github.com/meltface-80/Android-USB-Driver) is read whole: every rate, depth and DSD multiple its DAC takes shows as advertised on its page, nothing to tick, and a track gets the ✓ when the DAC is fed what was sent
+
+- `268-phone-24-bit` (item 268): **a phone's 32-bit DAC sent 24 bits.** Since item 265 a phone's stream target
+  took the DAC's deepest depth as it was, and with Output upsampling a DAC that takes 32 bits (the owner's SMSL SU1 on
+  the FiiO R7) was planned 32-bit FLAC: a stream the server refuses where its ffmpeg doesn't write 32-bit FLAC (the
+  image's, bookworm's 5.1), and one Android's FLAC decoder may not read. A renderer's target was already held to what
+  ffmpeg writes. The phone's is now held to 24 bits (Phones.TargetFor): its player hands the USB driver floats, which
+  the driver packs into the DAC's own slots, 32-bit words for the SU1, so the DAC is fed 32 bits all the same. Tests:
+  phone.test.js (a DAC of 24 and 32 bits upsampled ×4: 24-bit FLAC, and made; before, 32-bit).
 
 - `267-making-leaves-the-server-two-cores` (item 267): **DSD256 made as it plays keeps up, and the server keeps two cores.** Since
   item 260 a track made as it plays kept all the cores but one, and the one left was all this server had: its own
