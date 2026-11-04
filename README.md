@@ -1015,8 +1015,10 @@ published app, nor the published app it.
 
 ### Mandarin Bridge: an Android device with a USB DAC as a renderer
 
-Mandarin Bridge (once Mandarin USB) is Mandarin's renderer for a USB DAC on another device; on Android now, on Linux
-and as a Raspberry Pi image to come. A small app, in `bridge/`: it makes an Android device (a FiiO R7, say) with a USB DAC on its port a
+Mandarin Bridge (once Mandarin USB) is Mandarin's renderer for a USB DAC on another device: on Android, and on Linux
+(a Raspberry Pi beside the DAC, say: `curl -fsSL https://github.com/meltface-80/Mandarin/releases/download/test-bridge/install.sh | sudo sh`,
+then set it up from its page at `http://<it>:49494/`; see [bridge/linux/README.md](bridge/linux/README.md)); a
+Raspberry Pi image to come. A small app, in `bridge/`: it makes an Android device (a FiiO R7, say) with a USB DAC on its port a
 UPnP renderer that Mandarin plays to, bit-perfect, through Mandarin's own USB driver, and keeps the device awake.
 Mandarin reads the DAC whole from it (every rate, depth and DSD multiple), confirms what it feeds the DAC, and can
 check a whole track bit-perfect to the DAC (Now playing → Signal path → Bit-perfect check). Its test build is the

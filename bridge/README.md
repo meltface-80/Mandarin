@@ -1,7 +1,8 @@
 # Mandarin Bridge
 
-Mandarin's renderer for a USB DAC on a device of its own (once called Mandarin USB, item 281). On Android now, in
-`android/`; on Linux and as a Raspberry Pi image to come, beside it.
+Mandarin's renderer for a USB DAC on a device of its own (once called Mandarin USB, item 281): on Android, in
+`android/` (this page); on Linux, in [`linux/`](linux/README.md) (a Raspberry Pi beside the DAC, say); a
+Raspberry Pi image to come.
 
 On Android, an app with one job: to be a UPnP renderer that plays through a USB DAC, bit-perfect, with
 [Mandarin](https://github.com/meltface-80/Mandarin)'s own USB Audio driver — and to keep the device it runs on awake

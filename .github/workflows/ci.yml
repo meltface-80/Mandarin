@@ -102,9 +102,12 @@ jobs:
         uses: actions/cache@v6
         with:
           path: ~/.nuget/packages
-          key: nuget-${{ runner.os }}-${{ hashFiles('server/Mandarin.Server/*.csproj', 'engine/Mandarin.Audio/*.csproj') }}
+          key: nuget-${{ runner.os }}-${{ hashFiles('server/Mandarin.Server/*.csproj', 'engine/Mandarin.Audio/*.csproj', 'bridge/linux/Mandarin.Bridge/*.csproj') }}
       - name: Build the audio engine
         run: ./engine/build.sh
+      # Mandarin Bridge for Linux (bridge/linux, item 282): played to end to end by test/bridge-linux.test.js.
+      - name: Build Mandarin Bridge for Linux
+        run: ./bridge/linux/build.sh
       # Mandarin's server in C# (server/, v0.8.1): the server the tests start
       # (test/server.js).
       - name: Build the C# server
