@@ -206,6 +206,8 @@ window.__settingsShowView = showView;
 if (sheet) {
   sheet.addEventListener("click", (e) => {
     const nav = e.target.closest(".settings-nav-item");
+    // SQ-tool (item 288) is a page of its own, at /sq-tool/: opened beside Mandarin, as it opens standalone.
+    if (nav && nav.getAttribute("data-pane") === "sqtool") { window.open("/sq-tool/", "_blank", "noopener"); return; }
     if (nav) { showView(nav.getAttribute("data-pane")); return; }
     if (e.target.closest("[data-settings-back]")) { stepBack(); return; }
   });

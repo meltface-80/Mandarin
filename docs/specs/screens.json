@@ -725,7 +725,7 @@
       }
     },
     "settings": {
-      "page": "Settings (the side menu's Settings): over the whole screen, ✕ and Settings at the head, a row a section (its icon and name: Account, Music Folders, Services, Audio Devices, Library Scanner, Setup, Backup & restore, Updates), the server's version and View on GitHub at the foot",
+      "page": "Settings (the side menu's Settings): over the whole screen, ✕ and Settings at the head, a row a section (its icon and name: Account, Music Folders, Services, Audio Devices, Library Scanner, Setup, Backup & restore, SQ-tool (its own page, opened beside Mandarin: item 288), Updates), the server's version and View on GitHub at the foot",
       "native": ["android/app/src/main/java/com/musicd/server/android/SettingsScreen.kt"],
       "preview": false,
       "items": {

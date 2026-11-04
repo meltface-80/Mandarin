@@ -40,6 +40,20 @@ jobs:
       - name: The gates' own tests
         run: node --test test/quality-gates.test.js test/parity-gate.test.js
 
+  # SQ-tool's own tests (sq-tool/, item 288): the recorder and comparer Mandarin serves at /sq-tool/,
+  # tested as it was standalone, Python 3 with numpy.
+  sqtool:
+    name: SQ-tool's own tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - name: numpy
+        run: python3 -m pip install --quiet numpy
+      - name: Tests (sq-tool/tests)
+        working-directory: sq-tool
+        run: python3 -m unittest discover -s tests
+
   # The suite, in parts that run at once (v0.8.49): the test files dealt out to
   # three jobs (node's --test-shard, each file in one of them), so the whole run
   # takes the time of a third of it rather than nine minutes end to end. Since
@@ -189,5 +203,8 @@ jobs:
           # and the API is closed until then.
           curl -fsL localhost:3500/ | grep -q "Create your account"
           test "$(curl -s -o /dev/null -w '%{http_code}' localhost:3500/api/status)" = "401"
+          # SQ-tool runs in the image (item 288): Python 3 with numpy, and its code where the server starts it.
+          docker exec smoke python3 -c "import numpy"
+          docker exec -w /app/sq-tool smoke python3 -m sqtool --help > /dev/null
           docker logs smoke
           docker rm -f smoke
