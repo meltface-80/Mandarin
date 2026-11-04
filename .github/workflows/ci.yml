@@ -128,6 +128,9 @@ jobs:
         run: ./server/build.sh
       - name: Syntax check of the page
         run: node --check public/app.js
+      # SQ-tool's numpy (item 288): Mandarin starts it in its tests (test/sq-tool.test.js), as the image does.
+      - name: numpy
+        run: python3 -m pip install --quiet numpy
       # Kept to a file as well: the tests that failed are said again at the end,
       # where a log read from its tail finds them, and their files run once more
       # on their own (.github/retry-failed.sh): a pass then is a warning on the

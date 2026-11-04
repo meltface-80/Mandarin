@@ -80,8 +80,10 @@ internal static class SqTool
             {
                 if (p.HasExited)
                 {
+                    p.WaitForExit(); // its last lines read in before they are looked at
+                    // Its own word for a missing numpy ("sq-tool needs numpy…"), or Python's ("No module named 'numpy'").
                     var last = string.Join(" ", said.Where(l => l.Contains("Error", StringComparison.Ordinal) || l.Contains("No module", StringComparison.Ordinal)).TakeLast(2));
-                    why = last.Contains("numpy", StringComparison.Ordinal) ? "Python 3 has no numpy" : $"it stopped as it started{(last.Length > 0 ? ": " + last : "")}";
+                    why = said.Any(l => l.Contains("numpy", StringComparison.Ordinal)) ? "Python 3 has no numpy" : $"it stopped as it started{(last.Length > 0 ? ": " + last : "")}";
                     proc = null;
                     return false;
                 }

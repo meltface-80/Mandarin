@@ -60,24 +60,40 @@ test("SQ-tool at /sq-tool/: its page, its API, behind the sign-in", { skip, time
   }
 });
 
-test("SQ-tool with no Python to run it: its page says it can't start, and why", { timeout: 60000 }, async () => {
+// Mandarin with SQ-tool run by [python] (a path): its /sq-tool/ page, asked signed in.
+async function pageWith(python) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "musicd-test-sqtool-"));
   const music = path.join(root, "music"), data = path.join(root, "data");
   fs.mkdirSync(music, { recursive: true });
   const PORT = ports.port(), B = "http://127.0.0.1:" + PORT;
   const { createServer } = require("./server");
-  const srv = createServer({ port: PORT, musicDir: music, dataDir: data, serverIp: "127.0.0.1", sonosHosts: [ports.host(0)], sqtoolPython: path.join(root, "no-python") });
+  const srv = createServer({ port: PORT, musicDir: music, dataDir: data, serverIp: "127.0.0.1", sonosHosts: [ports.host(0)], sqtoolPython: python(root) });
   await srv.start();
   try {
     const auth = { Authorization: "Bearer " + await signIn(B) };
     const r = await fetch(B + "/sq-tool/", { headers: auth });
-    assert.equal(r.status, 503);
-    const html = await r.text();
-    assert.match(html, /SQ-tool can't start/);
-    assert.match(html, /Python 3 isn(&#39;|')t installed here/);
-    assert.match(html, /python3-numpy/);
+    return { status: r.status, html: await r.text() };
   } finally {
     await srv.stop();
     fs.rmSync(root, { recursive: true, force: true });
   }
+}
+
+test("SQ-tool with no Python to run it: its page says it can't start, and why", { timeout: 60000 }, async () => {
+  const { status, html } = await pageWith(root => path.join(root, "no-python"));
+  assert.equal(status, 503);
+  assert.match(html, /SQ-tool can't start/);
+  assert.match(html, /Python 3 isn(&#39;|')t installed here/);
+  assert.match(html, /python3-numpy/);
+});
+
+test("SQ-tool with a Python that has no numpy: its page says so", { timeout: 60000 }, async () => {
+  // A Python that says what SQ-tool says without numpy (sqtool/__main__.py), and stops.
+  const { status, html } = await pageWith(root => {
+    const py = path.join(root, "python-without-numpy");
+    fs.writeFileSync(py, "#!/bin/sh\necho 'sq-tool needs numpy. Install it with:  sudo apt install python3-numpy' >&2\nexit 1\n", { mode: 0o755 });
+    return py;
+  });
+  assert.equal(status, 503);
+  assert.match(html, /Python 3 has no numpy/);
 });

@@ -566,9 +566,9 @@
   opens it in its own tab, as it looks on its own. The image gains `python3`, `python3-numpy`, `flac`, `alsa-utils`
   and `kmod` (what SQ-tool records and reads with), the smoke test checking numpy and SQ-tool there.
   `test/sq-tool.test.js`: `/sq-tool` sent to `/sq-tool/`, its page and script served, its music root Mandarin's, its
-  settings saved and read back from `<data>/sq-tool`, nothing of it reachable unsigned; with no Python, the page that
-  says so. Shown failing with it not served, the body chunked, no reason given, its API asked from the root, and it
-  ahead of the sign-in. Next (item 289): SQ-tool records a Mandarin zone's USB output itself, Mandarin Bridge's or
+  settings saved and read back from `<data>/sq-tool`, nothing of it reachable unsigned; with no Python, and with a
+  Python without numpy, the page that says so. Shown failing with it not served, the body chunked, no reason given,
+  its API asked from the root, it ahead of the sign-in, and its last words read before they had come in. Next (item 289): SQ-tool records a Mandarin zone's USB output itself, Mandarin Bridge's or
   the server's DAC, and its verdict is what the signal path may call bit-perfect.
 - `287-signal-path-facts` (item 287): **The signal path tells only sourced facts.** It said "· bit-perfect" when the
   server sent the file as it is, a claim about the DAC no one had measured, and "Confirmed by the device" by a rule
