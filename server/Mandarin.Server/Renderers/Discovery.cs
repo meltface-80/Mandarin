@@ -157,7 +157,7 @@ internal sealed class RendererDiscovery
                 if (dac != null)
                 {
                     MandarinUsb.Advertise(advertised, dac);
-                    rec.Caps!["mandarin"] = Jv.Obj(("base", baseUrl));
+                    rec.Caps!["mandarin"] = MandarinUsb.Said(baseUrl, dac);
                 }
             }
             lock (gate) cache[loc] = (Hub.Now(), rec);

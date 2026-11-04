@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Improved - a Mandarin USB renderer (an Android device with a USB DAC) is set up by what it says of its DAC, as a Roon Ready device is: the rates, depths and DSD it takes are on and nothing else, with nothing to tick, and rates ticked by hand before no longer override it (a tap still turns one off); its volume is the DAC's, fixed where the DAC has no volume control of its own
 - Fixed - away from home, the Android app only talks to its own server through its own Tailscale
 - Improved - the server re-reads the library far less often while its background jobs run
 - Fixed - away from home, the Android app no longer drops a working connection after its Tailscale restarts
@@ -520,6 +521,8 @@
   up on after 90 seconds. It now steps toward the album by the shelf's own order, a few steps at most, and says if it
   never got there. Nothing changes in Mandarin.
 - New - a Mandarin USB renderer (an Android device with a USB DAC, github.com/meltface-80/Android-USB-Driver) is read whole: every rate, depth and DSD multiple its DAC takes shows as advertised on its page, nothing to tick, and a track gets the ✓ when the DAC is fed what was sent
+- Fixed - seeking with the progress bar in a track upsampled as it plays (DSD, or ×16) plays from there at once, and Back or a seek on a streamer left stuck on its track sends the track again
+- Fixed - on a streamer such as the FiiO SR11, an album no longer skips a track: the next track showed in the last 15 s of a long one, and one shorter than that was passed over
 - Improved - a FiiO SR11 is known by its model: its page shows what it plays by USB to a DAC (to 768 kHz/32-bit, DSD64–256) without ticking, where it showed only 44.1 and 48 kHz
 
 - `274-fiio-sr11-profile` (item 274): **the FiiO SR11 known by its model.** A streamer on the network says what
@@ -532,6 +535,36 @@
   192 kHz and DSD64, to untick there (the SR11 doesn't say over UPnP which output it uses). What you have ticked
   stays as it is. Tests: `audio-devices.test.js` (the profile by maker and model, its chips on), the profiles'
   table in `renderers-csharp.json` with the new row.
+
+- `273-named-early-not-moved-on` (item 273): **a track no longer passed over on the FiiO SR11.** The SR11 names the
+  next track (the one SetNextAVTransportURI handed it) as soon as it is given it, all through the track before
+  (item 233). The server took the move as made once the track playing was in its last 15 s, so for those 15 s it
+  showed the next track at the first's position; and where the next track is shorter than where the first's clock
+  then stood, it found that track "still playing at its end" and started the one after it by hand. On the owner's
+  Old Sock, Angel (track 2, 3:53) came after a 5:43 track 1: "still playing at the end of track 2 (342 s of 233 s);
+  track 3 started by hand", and Angel never played. Now a renderer that has named the next track early all along
+  has moved on only when its position goes back to the start (5 s back, or a third of a short track, and under
+  15 s in); one that names it only at the change is believed at a track's end as before. Test:
+  `renderer-names-next.test.js` (a 40 s track before a 5 s one, the next named all along: the first on screen to
+  its end, and the second played, nothing started by hand).
+
+- `272-seek-while-made` (item 272): **a seek in a track made as it plays.** The FiiO SR11, playing PCM made DSD256
+  as it plays, seeks as in any file: it asks for the bytes where the time falls. Asked for bytes not yet made, the
+  server waited for the making to get there, at a little over twice real time from where it was: a minute and more
+  for a seek to the middle of a track. The SR11 gave up waiting and went silent; Back (a seek to the start) on that
+  stuck stream played nothing, and only the next track, sent anew, played. Now, as Roon begins its DSP again where
+  you seek, a device asking for bytes more than 3 s of music past what is made has the making stopped and begun
+  again from there (Upsample/Resume.cs): the track decoded from the frame that byte holds (a DSF's block, a WAV's
+  frame), the file written from that byte on, what was made before it kept, and nothing ever sent from the gap
+  between. Read again from the start (Back) and played on, the making is begun again where the first part ends,
+  5 s before the device gets there, and the file is whole again; one left with a gap when its making ends is not
+  kept, and the next play makes it whole. Only the newest of a file's readers moves the making. And Back, or a seek,
+  to a device still starting its track long after it was sent (TRANSITIONING for more than 8 s) or stopped on it
+  sends the track again, as the next track is sent, and seeks there after. `TailFollow` moved out of Transcoder.cs
+  into Transcoder.Follow.cs for room. Tests: `SeekMadeTests` (a DSD64 track sought to 75 s while 2 s is made: the
+  bytes in under 8 s, the sine at its phase there, then read whole from the start with every part of it the track;
+  a ×16 WAV sought to 30 s, likewise), `renderer-stuck.test.js` (a renderer stuck in TRANSITIONING: Back sends the
+  track again, a seek sends it and seeks).
 
 - `271-making-paced` (item 271): **the making paced as Roon paces its DSP.** A track made as it plays was made as
   fast as the processor allowed: DSD256 on the owner's server at about three times real time, every core given it

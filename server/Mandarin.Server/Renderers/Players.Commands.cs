@@ -237,8 +237,9 @@ internal sealed partial class Players
                 break;
             }
             case "previous":
-                // Back to the start of this track first, as every player does.
-                if (Hub.PositionNow(st) > 5 || p.Index <= 0) { await Serially(p, () => r.SeekTime(0)); Optimistic(id, s => s.Position = 0); }
+                // Back to the start of this track first, as every player does: sent again where the device is stuck (item 272).
+                if (Stuck(p, st)) await Jump(p, p.Index);
+                else if (Hub.PositionNow(st) > 5 || p.Index <= 0) { await Serially(p, () => r.SeekTime(0)); Optimistic(id, s => s.Position = 0); }
                 else await Jump(p, p.Index - 1);
                 break;
             case "playpause":
@@ -255,10 +256,16 @@ internal sealed partial class Players
         ZoneState st;
         lock (zm.Gate) st = zm.State.GetValueOrDefault(id) ?? new ZoneState();
         var target = Math.Max(0, how == "relative" ? Hub.PositionNow(st) + seconds : seconds);
-        await Serially(p, () => RendererOf(p).SeekTime(target));
+        if (Stuck(p, st)) await Jump(p, p.Index, target);
+        else await Serially(p, () => RendererOf(p).SeekTime(target));
         Optimistic(id, s => s.Position = target);
         PokeAfter(p);
     }
+
+    // A device left starting a track of the queue (still loading after eight seconds, or stopped on it): a seek in
+    // it does nothing (the FiiO SR11 left waiting for a seek that hadn't been made: item 272); the track is sent again.
+    private static bool Stuck(Player p, ZoneState st) =>
+        p.Index >= 0 && p.Index < p.Queue.Count && st.OnQueue && (st.State == "stopped" || st.State == "loading" && Hub.Now() - p.LoadingSince > 8000);
 
     public async Task PlayFromHere(string id, double position)
     {
