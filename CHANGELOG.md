@@ -42,6 +42,7 @@
 - Improved - a device's DSP runs in the order set: volume levelling, then the headroom (more where levelling could take a track over full scale), then the DSP at the track's own rate, then upsampling; and PCM as DSD works with DSP on
 - Fixed - DSD256 made as it plays no longer falls behind the device on the next track of an album: the making carried on into it is given all of playback's cores again, and the server keeps two of its own, so the app and the device no longer time out
 - Fixed - a phone playing through a 32-bit USB DAC (the SMSL SU1) is sent 24 bits when upsampling, which the server can make and the phone can read; its driver still gives the DAC 32-bit words
+- Fixed - ×16 (705.6 kHz) is gapless: each track's WAV says its own length, so a renderer such as the FiiO SR11 goes on to the next track at once instead of waiting at the end of each
 - Fixed - 32-bit FLAC is really 32 bits: the server asks ffmpeg for it as ffmpeg needs (-strict experimental), without which 6.1 and later wrote 24 bits and the server never offered 32
 
 - `259-dsd-on-demand` (item 259): **PCM as DSD, and the shaped filters, made as they play.** A track made DSD from
@@ -518,6 +519,20 @@
   up on after 90 seconds. It now steps toward the album by the shelf's own order, a few steps at most, and says if it
   never got there. Nothing changes in Mandarin.
 - New - a Mandarin USB renderer (an Android device with a USB DAC, github.com/meltface-80/Android-USB-Driver) is read whole: every rate, depth and DSD multiple its DAC takes shows as advertised on its page, nothing to tick, and a track gets the ✓ when the DAC is fed what was sent
+
+- `270-wav-length-known` (item 270): **×16 gapless: a WAV that says its length.** PCM above FLAC's rates goes as WAV
+  (×16 to 705.6 kHz, Playback/HighRates.cs), written by ffmpeg with -seekable 0 so a device can read it as it is made;
+  its header's sizes were left at 0xFFFFFFFF, 4 GB, even once whole, so the FiiO SR11, told every track ran some
+  17 minutes, didn't know where one ended and waited at the end of each before the next: the owner's ×16 albums
+  weren't gapless. Now a WAV made as it plays (minimum phase, gentle) is written by the making itself
+  (UpsampleCommand.Pcm, Upsample/WavHeader.cs): its header first, saying its length, the track's frames at its rate
+  ×16 as the making is held to (Joins.Frames, as a DSF's: item 262), ffmpeg making only the samples; and it is sent
+  with that length (Streams.cs). A WAV ffmpeg makes (the standard filter) has its sizes put right once whole
+  (Transcoder's Finish), as the next track is armed and every later play has it; the first of a play, sent as it is
+  made, still says none. One over 4 GB (17 minutes and more at 24/705.6) says 0xFFFFFFFF as before. A ×16 file made
+  before has a name of its own ("h"), so none is sent again. Tests: WavLengthTests (×16 in minimum phase: sent with
+  its length, its header saying the same, the track's frames ×16; before, no length and 4 GB; the standard filter's,
+  once whole, its sizes its own; before, 4 GB); ShapePlanTests (the name).
 
 - `268-phone-24-bit` (item 268): **a phone's 32-bit DAC sent 24 bits.** Since item 265 a phone's stream target
   took the DAC's deepest depth as it was, and with Output upsampling a DAC that takes 32 bits (the owner's SMSL SU1 on

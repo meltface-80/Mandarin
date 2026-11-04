@@ -233,7 +233,9 @@ internal static partial class Streams
         if (job.Done) { ctx.Response.StatusCode = 500; ctx.Response.Headers["X-Mandarin-Answered"] = "C#"; return true; }
         // A DSF from PCM goes with its length, its header's (item 262): the device can take it as the next track while it is made.
         var plan = ConvPlan.Of(p);
-        await Transcoder.TailFollow(ctx, job, Jv.Str(p["mime"]), plan.DsdUp != 0 ? Upsample.DsdPlan.FileBytes(id, plan, t.Duration) : -1);
+        // A WAV made as it plays, as a DSF, with its header's length (item 270).
+        var length = plan.DsdUp != 0 ? Upsample.DsdPlan.FileBytes(id, plan, t.Duration) : plan.Wav && Upsample.MadeAsPlayed.Takes(plan) ? Upsample.WavHeader.FileBytes(plan, t.Duration) : -1;
+        await Transcoder.TailFollow(ctx, job, Jv.Str(p["mime"]), length);
         return true;
     }
 
