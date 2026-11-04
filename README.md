@@ -1139,10 +1139,12 @@ with **Fixed volume** on they are never scaled and the volume is the DAC's or am
   the commented `devices:` and `privileged:` lines), then re-create the container.
 * DSD files go to these devices as PCM.
 * **What the DAC is fed:** Now playing's signal path ends with what the audio engine opened the
-  device at (PCM in 32-bit words, DoP or native DSD) and whether Mandarin's volume touches the
+  device at (PCM at 32 bits, DoP or native DSD) and whether Mandarin's volume touches the
   samples (fixed volume: untouched; otherwise the level it scales them by), said as the engine's
-  word. Whether every sample reaches the DAC is for a recording of what it was fed to prove, not
-  for the signal path to claim.
+  word. The ✓ is there only when the device says the samples go untouched in the format sent
+  (item 289): Mandarin Bridge and the audio engine say it; a WiiM's own API says only the format,
+  so it has none. Whether every sample reaches the DAC is for a recording of what it was fed to
+  prove, not for the signal path to claim.
 * **Playback comes first (v0.8.13).** The decoder and the device each queue a minute of audio
   ahead. On Linux with three cores or more, playback keeps a core of its own, or two while DSP is in
   use (the last ones), and both servers run on the others; on four cores, one for playback and

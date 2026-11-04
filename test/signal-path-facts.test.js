@@ -2,9 +2,10 @@
 /*
  * The signal path says only what is known, and whose word it is (item 287). Mandarin Bridge reports what it feeds its
  * DAC (/dac.json's "now"); the last step says exactly that, as the Bridge reports it:
- *   - 16-bit samples fed in 32-bit words, volume fixed, the samples untouched: lossless, and the badge's tick;
+ *   - 16-bit samples padded to the DAC's 32 bits, volume fixed, the samples untouched: lossless, and the badge's tick;
  *   - the volume in software, the samples scaled: lossy, no tick;
- *   - an older app that says nothing of its volume: the format it reports, nothing claimed of the samples (pending);
+ *   - an older app that says nothing of its volume: the format it reports, nothing claimed of the samples (pending),
+ *     and no tick (item 289);
  *   - another rate than was sent: said, lossy, no tick.
  * "Bit-perfect" is never said: the file sent as it is is "as it is", not a verdict on what reached the DAC.
  */
@@ -69,18 +70,18 @@ test("the signal path says what the DAC is fed, as the Bridge reports it, and no
       }, 20000);
     };
 
-    // 16-bit samples in 32-bit words, volume fixed, untouched: all of it said, lossless, ticked.
+    // 16-bit samples padded to 32 bits, volume fixed, untouched: all of it said, in plain words (item 289), lossless, ticked.
     let { fed, np } = await said(one, 0, "Song 1", { bits: 32, volume: "fixed", level: 100, untouched: true });
     assert.deepEqual([fed.title, fed.quality], ["The DAC is fed", "lossless"]);
-    assert.equal(fed.detail, "PCM 44.1 kHz, the 16-bit samples in 32-bit words, fixed volume: the samples untouched — as Mandarin Bridge reports it");
+    assert.equal(fed.detail, "PCM 44.1 kHz, the 16-bit samples padded to 32 bits for the DAC, fixed volume: the samples untouched — as Mandarin Bridge reports it");
     assert.match(np.format.text, /✓$/);
     assert.equal(np.signal.lines[0], "FLAC 16/44.1 kHz · as it is ✓");
-    for (const t of [np.format.text, ...np.signal.lines, ...np.signal.steps.map(x => x.title + " " + x.detail)]) assert.doesNotMatch(t, /bit-perfect/i, t);
+    for (const t of [np.format.text, ...np.signal.lines, ...np.signal.steps.map(x => x.title + " " + x.detail)]) assert.doesNotMatch(t, /bit-perfect|words/i, t);
 
     // The volume in software: the samples scaled, said; lossy; no tick.
     ({ fed, np } = await said(one, 1, "Song 2", { bits: 32, volume: "software", level: 44, untouched: false }));
     assert.equal(fed.quality, "lossy");
-    assert.equal(fed.detail, "PCM 44.1 kHz, the 16-bit samples in 32-bit words, volume 44% in software: the samples scaled — as Mandarin Bridge reports it");
+    assert.equal(fed.detail, "PCM 44.1 kHz, the 16-bit samples sent as 32-bit, volume 44% in software: the samples scaled — as Mandarin Bridge reports it");
     assert.doesNotMatch(np.format.text, /✓/);
 
     // Another rate than was sent: said so; lossy; no tick.
@@ -92,6 +93,14 @@ test("the signal path says what the DAC is fed, as the Bridge reports it, and no
     // An older app, saying nothing of its volume: its format only, nothing claimed of the samples.
     ({ fed, np } = await said(hi, 0, "Hi 1", {}));
     assert.deepEqual([fed.detail, fed.quality], ["PCM 96 kHz, 24-bit — as Mandarin Bridge reports it", "pending"]);
+    // Nothing said of the samples, no tick (item 289): the ✓ is the device's word that they go untouched.
+    assert.doesNotMatch(np.format.text, /✓/);
+    assert.doesNotMatch(np.signal.lines[0], /✓/);
+
+    // An older app with a 16-bit track to its 32-bit DAC (the R7's case): sent as 32-bit, nothing claimed, no tick.
+    ({ fed, np } = await said(one, 0, "Song 1", { bits: 32 }));
+    assert.deepEqual([fed.detail, fed.quality], ["PCM 44.1 kHz, the 16-bit samples sent as 32-bit — as Mandarin Bridge reports it", "pending"]);
+    assert.doesNotMatch(np.format.text, /✓/);
   } finally {
     await srv.stop();
     await usb.stop();

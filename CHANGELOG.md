@@ -542,6 +542,8 @@
 - Improved - a bit-perfect check's verdict says what wasn't recorded, if anything ("not recorded: 0:00–0:03 and 0:33–0:35"), and is kept: the track's step on Now playing still says it after another track or a restart, and another track's step names the last check
 - Fixed - Now playing's signal path says only what is known, and whose word it is: its last step is what the Mandarin Bridge (or Mandarin's audio engine, or the device's own API) reports feeding the DAC, the format, the samples in the DAC's words, and whether its volume touches them ("fixed volume: the samples untouched — as Mandarin Bridge reports it"); "bit-perfect" is no longer said on it, and the bit-perfect check is no longer on it (SQ-tool, in Settings, is to prove it)
 - Fixed - a 16-bit track fed to a DAC in 32-bit words, its samples unchanged, is confirmed with its ✓; a track whose samples the volume scales no longer is
+- Improved - the signal path says it plainly: "the 16-bit samples padded to 32 bits for the DAC" where it said "in 32-bit words"
+- Fixed - the ✓ is shown only when the device says the samples reach the DAC untouched: an older Mandarin Bridge, or a WiiM, whose own API says only the format, no longer has one
 
 - `284-dff-as-dsd` (item 284): **A DFF played as DSD, as a DSF is.** The audio engine read only a DSF itself; a DFF
   went to ffmpeg, which made it PCM, so on a DAC on the server or on the Linux Bridge it was never DSD (the server
@@ -554,6 +556,16 @@
   (markers in turn, the DSD rate over 16) and as native DSD (big-endian words, the rate over 32), the 48 kHz family as
   DoP; a seek to 1.5 s plays on from that word, what lay between never sent; a DST one said, nothing sent. Shown
   failing with the DFF sent to ffmpeg, a DST one played, the seek ignored, and the chunk after the audio sent.
+- `289-signal-path-plain-words` (item 289): **The signal path in plain words, and the ✓ only on the device's word.**
+  A 16-bit track to a 32-bit DAC read "the 16-bit samples in 32-bit words", jargon that left the owner asking what a
+  word was. It now says "padded to 32 bits for the DAC" where the device says the samples go untouched, and "sent as
+  32-bit" where it doesn't (scaled, or not said). And the ✓ (`ZoneState.Confirmed`) needed only that the device didn't
+  say the samples were changed, so an older Bridge (on an R7), saying nothing of them, still had one; it now needs the
+  device to say they go untouched (`Fed.Untouched == true`). A WiiM's own API says only the format, so it has none.
+  `test/signal-path-facts.test.js`: the plain words, "words" said nowhere, and an older app (a 16-bit track to its
+  32-bit DAC as on the R7, and 24-bit) with no tick; `renderer-playback`, `zone-small-fixes`: the WiiM's word kept for
+  the track, no tick; `mandarin-bridge`: the ✓ with the app saying the samples go untouched. Shown failing with the
+  tick on a device's silence and with "in 32-bit words" again.
 - `287-signal-path-facts` (item 287): **The signal path tells only sourced facts.** It said "· bit-perfect" when the
   server sent the file as it is, a claim about the DAC no one had measured, and "Confirmed by the device" by a rule
   that never confirmed a 16-bit track fed in 32-bit words (the values unchanged) yet would have for samples the
