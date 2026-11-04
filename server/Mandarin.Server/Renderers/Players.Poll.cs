@@ -213,7 +213,7 @@ internal sealed partial class Players
             var playing = p.Index >= 0 && p.Index < p.Queue.Count ? p.Queue[p.Index] : null;
             if (idx >= 0 && idx != p.Index && p.Jumping == 0 && asked > p.JumpedAt)
             {
-                if (playing != null && prev.TrackUri == playing.Uri && !MovedOn(prev.Position, rel, playing.Duration))
+                if (playing != null && prev.TrackUri == playing.Uri && !MovedOn(prev.Position, rel, playing.Duration, p.NamedEarly == p.Index))
                 {
                     if (p.NamedEarly != p.Index) { p.NamedEarly = p.Index; early = (idx, p.Index, playing.Duration); }
                 }
@@ -284,10 +284,13 @@ internal sealed partial class Players
      * [duration] s, was [before] s in at the last read and is [now] s in at this one. A FiiO SR11 names the track
      * SetNextAVTransportURI gave it as soon as it is given, a moment after Play now, while it goes on playing the first:
      * the server showed track 2 at once. Believed when the track playing had come to its end (its last 15 s, or a third
-     * of a short one) or the position has gone back to the start of another; else the track playing stands.
+     * of a short one) or the position has gone back to the start of another (5 s back, or a third of a short track);
+     * else the track playing stands. One that has named it [early] all along (item 273) has moved on only when the
+     * position goes back to the start: in its last 15 s the server showed the next track with the first's position,
+     * and past a short next track's end started the one after it by hand.
      */
-    internal static bool MovedOn(double before, double now, double duration) =>
-        duration <= 0 || now + 5 < before || before >= duration - Math.Min(15, duration / 3);
+    internal static bool MovedOn(double before, double now, double duration, bool early = false) =>
+        duration <= 0 || now + Math.Min(5, duration / 3) < before && (!early || now < 15) || !early && before >= duration - Math.Min(15, duration / 3);
 
     private static int IndexOfUri(Player p, string uri)
     {
