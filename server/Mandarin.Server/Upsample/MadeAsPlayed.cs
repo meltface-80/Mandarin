@@ -93,7 +93,7 @@ internal static class MadeAsPlayed
             // Made on into the start of the next track, and kept for its making: the modulators run on into it.
             if (join?.After != null) { spec["continue"] = true; next = Transcoder.KeyFor(new ConvTrack(join.AfterId, join.After, join.AfterMtime), p); }
         }
-        else spec = PcmJob(t.Path, p, job.Part, Joins.For(t.Id, (long)p.InRate, 0));
+        else spec = PcmJob(t.Path, p, job.Part, Joins.For(t.Id, (long)p.InRate, 0), seconds);
         // Playback, the most of it there is (item 260): its cores kept, all but two while it runs (item 267), and it put on them.
         Cpu.Making(true);
         try { return await Made(t, p, job, err, seconds, spec, next); }
@@ -200,9 +200,10 @@ internal static class MadeAsPlayed
      * The job for [src] by [p] into [dest]: ffmpeg decoding it to 64-bit float stereo at its own rate, levelled, the
      * headroom taken off and the DSP run on it there (a room or headphone correction and the bands: item 263, before
      * the upsampling, which had the bands after it), and ffmpeg making the file from 64-bit float at the plan's rate
-     * (the requantise alone, as a conversion's).
+     * (the requantise alone, as a conversion's). A WAV ([p] above FLAC's rates) is written by the making, behind a header
+     * of its length, [seconds] long at its rate as the track is held to (item 270: WavHeader.cs); ffmpeg makes its samples.
      */
-    public static JsonObject PcmJob(string src, ConvPlan p, string dest, Joins.Join? join = null)
+    public static JsonObject PcmJob(string src, ConvPlan p, string dest, Joins.Join? join = null, double seconds = 0)
     {
         var inRate = (long)p.InRate;
         if (inRate <= 0 || p.Rate % inRate != 0) throw new InvalidOperationException($"no rate of the track's own to upsample from ({p.InRate} Hz to {p.Rate} Hz)");
@@ -230,6 +231,14 @@ internal static class MadeAsPlayed
             ["ffmpeg"] = Transcoder.Bin, ["decode"] = decode, ["encode"] = encode,
             ["rate"] = inRate, ["factor"] = p.Rate / Math.Max(1, inRate), ["shape"] = p.Shape,
         };
+        if (p.Wav && seconds > 0 && encode.Count > 5 && (string?)encode[^5] == "-f" && (string?)encode[^4] == "wav")
+        {
+            // ffmpeg's -f wav -seekable 0 <file> (HighRates.Args) made its bare samples on its standard output.
+            for (var k = 0; k < 5; k++) encode.RemoveAt(encode.Count - 1);
+            foreach (var a in new[] { "-f", p.Bits == 16 ? "s16le" : p.Bits == 32 ? "s32le" : "s24le", "pipe:1" }) encode.Add(a);
+            o["wav"] = new JsonObject { ["out"] = dest, ["rate"] = p.Rate, ["bits"] = p.Bits };
+            o["frames"] = Joins.Frames(seconds, inRate);
+        }
         // Joined to its neighbours (item 262), but not through a room correction, whose own filter isn't carried across.
         if (conv == null) Joins.Into(o, join, decode, src, inRate);
         return o;

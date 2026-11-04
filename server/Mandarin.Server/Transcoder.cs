@@ -110,7 +110,7 @@ internal static partial class Transcoder
     /* The Transcoder's keyFor (lib/stream.js), as Playback/StreamPlans.cs writes it. */
     public static string KeyFor(ConvTrack t, ConvPlan p) => StreamPlans.KeyFor(Jv.Obj(("id", (double)t.Id), ("mtime", (double)t.Mtime)), p.ToJs()) + (p.Dsp != null ? "-o" : "") + (p.Lowpass != 0 ? "-lp" + p.Lowpass : "")
         // "-o": DSP in the order of item 263 (none made before it kept). A filter's shape (items 248, 259), before the endings FinalPath reads its kind of file from.
-        + (p.Shape != null ? "-" + p.Shape + Upsample.Joins.Mark : "")
+        + (p.Shape != null ? "-" + p.Shape + Upsample.Joins.Mark + (p.Wav ? "h" : "") : "")   // "h": a WAV's length in its header (item 270)
         + (p.Wav ? "-wav" : "") + (p.DsdUp != 0 ? Upsample.DsdPlan.Suffix(p.DsdUp, p.DsdBase) : "");
     public static string FinalPath(string key) => Path.Combine(dir, key + (key.EndsWith("-wav", StringComparison.Ordinal) ? ".wav" : Upsample.DsdPlan.IsDsf(key) ? ".dsf" : ".flac"));
 
@@ -145,7 +145,8 @@ internal static partial class Transcoder
         {
             if (code == 0 && File.Exists(job.Part))
             {
-                try { File.Move(job.Part, dest, overwrite: true); }
+                // A WAV's sizes, left open while it was written, put right now it is whole (item 270).
+                try { if (dest.EndsWith(".wav", StringComparison.Ordinal)) Upsample.WavHeader.Patch(job.Part); File.Move(job.Part, dest, overwrite: true); }
                 catch (IOException e) { job.Failed = true; err.Append(e.Message); }
             }
             else

@@ -163,7 +163,7 @@ internal static class UpsampleCommand
         var join = new Around(before, carry, after, cut);
         using var decode = Start(ffmpeg, Strings(job["decode"]), input: false, output: true);
         var decodeErr = decode.StandardError.ReadToEndAsync();
-        var r = Pcm(ffmpeg, Strings(job["encode"]), decode.StandardOutput.BaseStream, factor, kind, declared, join);
+        var r = Pcm(ffmpeg, Strings(job["encode"]), decode.StandardOutput.BaseStream, factor, kind, declared, join, job["wav"] as JsonObject);
         try { if (!decode.HasExited) decode.Kill(); } catch (InvalidOperationException) { /* ended */ }
         decode.WaitForExit();
         if (decode.ExitCode != 0 && r.Frames == 0) throw new InvalidOperationException("ffmpeg couldn't read the track: " + decodeErr.Result.Trim());
@@ -189,11 +189,13 @@ internal static class UpsampleCommand
     }
 
     // Made PCM by ffmpeg from the upsampled 64-bit float stereo, written to it as it comes: the track's own frames,
-    // its neighbours' ([around]) run through before and after it and not kept.
-    private static Result Pcm(string ffmpeg, List<string> args, Stream pcm, int factor, Shape.Kind kind, long frames, Around around)
+    // its neighbours' ([around]) run through before and after it and not kept. A [wav] (item 270): ffmpeg's bare samples
+    // written to its file here, behind a header of their length ([frames] at the input's rate, upsampled).
+    private static Result Pcm(string ffmpeg, List<string> args, Stream pcm, int factor, Shape.Kind kind, long frames, Around around, JsonObject? wav = null)
     {
-        using var p = Start(ffmpeg, args, input: true, output: false);
+        using var p = Start(ffmpeg, args, input: true, output: wav != null);
         var err = p.StandardError.ReadToEndAsync();
+        var written = wav == null ? Task.CompletedTask : Task.Run(() => WriteWav(p.StandardOutput.BaseStream, wav, around.Kept(frames) * factor));
         var into = p.StandardInput.BaseStream;
         var buf = new byte[16 * Chunk * factor];
         double peak = 0;
@@ -229,6 +231,7 @@ internal static class UpsampleCommand
         }
         finally { try { into.Close(); } catch (IOException) { /* ffmpeg gone: said below */ } }
         p.WaitForExit();
+        written.Wait();
         if (p.ExitCode != 0) throw new InvalidOperationException("ffmpeg couldn't write the file: " + err.Result.Trim());
         return new Result(read, peak, 0, 0);
     }
@@ -314,6 +317,16 @@ internal static class UpsampleCommand
     }
 
     private static List<string> Strings(JsonNode? n) => n is JsonArray a ? a.Select(x => (string)x!).ToList() : [];
+
+    // A WAV of [frames] stereo frames at the [wav] job's rate and depth: its header, then ffmpeg's samples as they come.
+    private static void WriteWav(Stream samples, JsonObject wav, long frames)
+    {
+        var bits = (int)wav["bits"]!;
+        using var f = new FileStream((string)wav["out"]!, FileMode.Create, FileAccess.Write, FileShare.Read, 1 << 16);
+        f.Write(WavHeader.For((int)wav["rate"]!, bits, frames * 2 * (bits / 8)));
+        var buf = new byte[1 << 16];
+        for (int n; (n = samples.Read(buf)) > 0;) { f.Write(buf, 0, n); f.Flush(); }
+    }
 
     private static Process Start(string ffmpeg, List<string> args, bool input, bool output)
     {
