@@ -109,7 +109,7 @@ internal static class UpsampleCommand
                 if (before == null && carry > 0) before = [new double[carry + Joins.History], new double[carry + Joins.History]];
                 if (before != null) { run.Skip(before[0].Length - carry); run.Push(before[0], before[1]); }
             }
-            var w = run!.Add((string)job["out"]!, carry + frames - cut);
+            var w = run!.Add((string)job["out"]!, carry + frames - cut, job["at"] is JsonValue at ? (long)at : -1);
             using (var decode = Start(ffmpeg, decodeArgs, input: false, output: true))
             {
                 var decodeErr = decode.StandardError.ReadToEndAsync();
@@ -322,8 +322,11 @@ internal static class UpsampleCommand
     private static void WriteWav(Stream samples, JsonObject wav, long frames)
     {
         var bits = (int)wav["bits"]!;
-        using var f = new FileStream((string)wav["out"]!, FileMode.Create, FileAccess.Write, FileShare.Read, 1 << 16);
-        f.Write(WavHeader.For((int)wav["rate"]!, bits, frames * 2 * (bits / 8)));
+        // Restarted part way into the file (item 272): from that byte on, its header already there.
+        var at = wav["at"] is JsonValue av ? (long)av : -1;
+        using var f = new FileStream((string)wav["out"]!, at >= 0 ? FileMode.OpenOrCreate : FileMode.Create, FileAccess.Write, FileShare.Read, 1 << 16);
+        if (at >= 0) f.Position = at;
+        else f.Write(WavHeader.For((int)wav["rate"]!, bits, frames * 2 * (bits / 8)));
         var buf = new byte[1 << 16];
         for (int n; (n = samples.Read(buf)) > 0;) { f.Write(buf, 0, n); f.Flush(); }
     }

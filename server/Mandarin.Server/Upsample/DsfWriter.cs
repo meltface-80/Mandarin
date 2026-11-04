@@ -16,12 +16,16 @@ internal sealed class DsfWriter : IDisposable
     private readonly List<byte>[] ch = [[], []];
 
     /* The size in bytes of a stereo DSF of [samples] a channel: its header and its whole blocks. */
-    public static long Size(long samples) => 28 + 52 + 12 + (samples / 8 + Block - 1) / Block * Block * 2;
+    public static long Size(long samples) => HeaderSize + (samples / 8 + Block - 1) / Block * Block * 2;
 
-    /* A stereo DSF at [rate] Hz of [samples] a channel, to [o]. */
-    public DsfWriter(Stream o, int rate, long samples)
+    /* The bytes before a DSF's first block: its header. */
+    public const int HeaderSize = 28 + 52 + 12;
+
+    /* A stereo DSF at [rate] Hz of [samples] a channel, to [o]; [header]: its header written first (not by a making restarted part way: item 272). */
+    public DsfWriter(Stream o, int rate, long samples, bool header = true)
     {
         this.o = o;
+        if (!header) return;
         var blocks = (samples / 8 + Block - 1) / Block;
         var data = blocks * Block * 2;
         using var w = new BinaryWriter(o, System.Text.Encoding.ASCII, leaveOpen: true);

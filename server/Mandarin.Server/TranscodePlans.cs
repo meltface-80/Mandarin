@@ -65,6 +65,10 @@ internal sealed class ConvJob
     public void Wake() => Interlocked.Exchange(ref more, new(TaskCreationOptions.RunContinuationsAsynchronously)).TrySetResult();
     // How far into the file its readers have asked for (item 271: a making is held only so far ahead of it, Upsample/Pace.cs).
     public long Wanted;
+    // Where a device seeks past what is made, the making begun again there (item 272: Upsample/Resume.cs); null where it can't be.
+    public Upsample.Resume? Resume;
+    // Its readers so far: each one's number, the last the newest.
+    public int Readers;
     public void Want(long pos)
     {
         for (var w = Interlocked.Read(ref Wanted); pos > w; w = Interlocked.Read(ref Wanted))
