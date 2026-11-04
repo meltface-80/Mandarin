@@ -37,8 +37,10 @@ internal sealed partial class Players
         var ok = rate == item.Sent.Rate && (bits == 0 || item.Sent.Bits == 0 || bits == item.Sent.Bits);
         // Kept before the badge's tick is shown, so a page that sees the tick finds the rate verified too.
         if (ok) { using var c = Db.Open(); Register.MarkVerified(c, p.Id, rate, bits != 0 ? bits : item.Sent.Bits); }
+        // Its own API's word: the format, nothing of its volume or the samples (item 287).
+        var fed = new Fed("its own API", "pcm", rate, bits, 0, null, 0, null, ok);
         var bump = false;
-        lock (zm.Gate) { if (zm.State.TryGetValue(p.Id, out var now) && now.TrackUri == item.Uri) { now.Verified = ok ? "yes" : "no"; bump = true; } }
+        lock (zm.Gate) { if (zm.State.TryGetValue(p.Id, out var now) && now.TrackUri == item.Uri) { now.Verified = ok ? "yes" : "no"; now.Fed = fed; bump = true; } }
         if (bump) zm.Bump();
         if (!ok)
         {
@@ -65,8 +67,15 @@ internal sealed partial class Players
         var dsd = item.Sent.Dsd * item.Sent.DsdBase;
         var ok = hw.Value.Rate == sink.Value.Rate && (dsd > 0 ? sink.Value.Rate * 16 == dsd || sink.Value.Rate * 32 == dsd : sink.Value.Rate == item.Sent.Rate);
         if (ok && dsd == 0) { using var c = Db.Open(); Register.MarkVerified(c, p.Id, hw.Value.Rate, null); }
+        // What the engine opened the device at (its format event) and what it does to the samples (its gain, item 287).
+        var engine = p.Renderer as Local.EngineOutput;
+        var format = engine?.Opened?.Format ?? "";
+        var kind = format.Contains("DoP", StringComparison.Ordinal) ? "dop" : format.StartsWith("DSD", StringComparison.Ordinal) ? "dsd" : "pcm";
+        var gain = engine?.GainNow ?? 1;
+        var fed = new Fed("Mandarin's audio engine", kind, hw.Value.Rate, format.Contains("32", StringComparison.Ordinal) ? 32 : 0, item.Sent.Dsd,
+            engine?.FixedVolume == true ? "fixed" : "software", engine?.Volume ?? 0, gain == 1, ok);
         var bump = false;
-        lock (zm.Gate) { if (zm.State.TryGetValue(p.Id, out var now) && now.TrackUri == item.Uri) { now.Verified = ok ? "yes" : "no"; bump = true; } }
+        lock (zm.Gate) { if (zm.State.TryGetValue(p.Id, out var now) && now.TrackUri == item.Uri) { now.Verified = ok ? "yes" : "no"; now.Fed = fed; bump = true; } }
         if (bump) zm.Bump();
         await Task.CompletedTask;
     }

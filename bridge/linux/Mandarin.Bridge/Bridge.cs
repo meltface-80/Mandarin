@@ -145,8 +145,13 @@ internal sealed partial class Bridge
         return new JsonObject
         {
             ["model"] = Scpd.Model, ["version"] = Program.Version, ["platform"] = "linux", ["name"] = store.Name, ["udn"] = store.Udn, ["dac"] = dac,
-            // The engine gives the DAC every PCM track in a 32-bit slot: the depth isn't said (0), the rate and DSD are.
-            ["now"] = now is { } n ? new JsonObject { ["rate"] = n.Rate, ["bits"] = 0, ["kind"] = n.Kind, ["dsd"] = n.Dsd, ["transport"] = renderer.TransportState() } : null,
+            // The engine gives the DAC every PCM track in 32-bit words, at its gain of 1 whatever the volume asked (the Bridge
+            // has no volume of its own: Player.cs): said as it is (item 287), the samples untouched.
+            ["now"] = now is { } n ? new JsonObject
+            {
+                ["rate"] = n.Rate, ["bits"] = n.Kind == "pcm" ? 32 : 0, ["kind"] = n.Kind, ["dsd"] = n.Dsd, ["transport"] = renderer.TransportState(),
+                ["volume"] = "fixed", ["level"] = 100, ["untouched"] = true,
+            } : null,
         };
     }
 

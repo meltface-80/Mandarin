@@ -7,6 +7,8 @@
 // modulator, the output, the device's own word on what it plays, and what is still to be made. Each step is what was
 // done to the stream the device is reading now: the plan it was sent by (SentInfo), never the plan the settings would
 // make next. A step is lossless (nothing changed), enhanced (changed on purpose), lossy, or pending (not yet so).
+// Every step is a fact with its source (item 287): what the file is, what Mandarin did and sent, and what the device
+// reports feeding its DAC, in its own words and named as its. Nothing is inferred: "bit-perfect" is never said here.
 using System.Text.Json.Nodes;
 
 namespace Mandarin.Server.Playback;
@@ -84,15 +86,11 @@ internal static class SignalPath
             }
             var exact = !s.Transcode;
             steps.Add(Step("output", "Output", $"{words}{(exact ? ", the file as it is" : "")}, to {z.DisplayName}", exact ? "lossless" : "enhanced"));
-            output = words + (s.Upsampled != 0 ? $" ↑×{N(s.Upsampled)}" : "") + (exact ? " · bit-perfect" : "");
+            output = words + (s.Upsampled != 0 ? $" ↑×{N(s.Upsampled)}" : "") + (exact ? " · as it is" : "");
         }
-        if (st.Verified == "yes")
-        {
-            steps.Add(Step("verified", "Confirmed by the device", "It reports playing what it was sent", "lossless"));
-            output += " ✓";
-        }
-        // The bit-perfect check (item 275), where the device can record what it feeds its DAC: offered, under way, or its verdict.
-        if (Renderers.Players.CheckStep(z.DeviceId ?? z.ZoneId, st.TrackUri) is { } check) steps.Add(check);
+        // What the device reports feeding its DAC, as it reports it (item 287).
+        if (st.Fed is { } fed) steps.Add(Fed(fed, s));
+        if (st.Confirmed) output += " ✓";
         // A stream never made DSD although the device is set to it.
         if (svc != null && Renderers.Players.TargetFor(z.DeviceId ?? z.ZoneId)?["dsd_out"] is double up && up > 0)
         {
@@ -118,6 +116,38 @@ internal static class SignalPath
         ["lines"] = new JsonArray(lines.Where(l => !string.IsNullOrEmpty(l)).Select(l => (JsonNode)JsonValue.Create(l)!).ToArray()),
         ["steps"] = steps,
     };
+
+    /*
+     * The device's report as a step (item 287): the format the DAC is opened at, how the samples sit in its words, what
+     * its volume does to them, and who says so. Lossless only where it says the samples go untouched in the format
+     * sent; lossy where it says otherwise; pending where it says nothing of the samples.
+     */
+    private static JsonObject Fed(Fed f, SentInfo s)
+    {
+        var parts = new List<string>();
+        if (f.Kind is "dsd" or "dop") parts.Add($"DSD{N(f.Dsd)} {(f.Kind == "dop" ? "as DoP" : "natively")}");
+        else
+        {
+            var pcm = $"PCM {Khz(f.Rate)} kHz";
+            if (f.Bits > 0 && s.Bits > 0 && f.Bits > s.Bits) pcm += $", the {N(s.Bits)}-bit samples in {N(f.Bits)}-bit words";
+            else if (f.Bits > 0) pcm += $", {N(f.Bits)}-bit";
+            parts.Add(pcm);
+        }
+        if (!f.Matches) parts.Add("not the format sent");
+        var vol = (f.Volume, f.Untouched) switch
+        {
+            ("fixed", true) => "fixed volume: the samples untouched",
+            ("dac", true) => "the DAC's own volume: the samples untouched",
+            (_, true) => "the samples untouched",
+            ("software", false) => $"volume {N(f.Level)}% in software: the samples scaled",
+            (_, false) => "the samples changed",
+            _ => null,
+        };
+        if (vol != null) parts.Add(vol);
+        var quality = !f.Matches || f.Untouched == false ? "lossy" : f.Untouched == true ? "lossless" : "pending";
+        var title = f.By == "its own API" ? "The device reports" : "The DAC is fed";
+        return Step("fed", title, string.Join(", ", parts) + $" — as {f.By} reports it", quality);
+    }
 
     private static JsonObject Step(string kind, string title, string detail, string quality) =>
         new() { ["kind"] = kind, ["title"] = title, ["detail"] = detail, ["quality"] = quality };

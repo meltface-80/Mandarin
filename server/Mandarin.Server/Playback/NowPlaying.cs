@@ -91,7 +91,7 @@ internal static class NowPlaying
         {
             var s = st.Sent;
             static string Khz(double hz) => hz != 0 ? Tags.Js.Num(hz / 1000) : "";
-            var tick = st.Verified == "yes" ? " ✓" : "";
+            var tick = st.Confirmed ? " ✓" : "";
             // DSD as it is: the file itself, at its multiple.
             if (!s.Transcode && s.Dsd != 0) return ("lossless", $"DSD{Tags.Js.Num(s.Dsd)}");
             // Made DSD from PCM (item 243): the DSF of the track's own PCM.

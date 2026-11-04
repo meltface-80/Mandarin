@@ -25,10 +25,13 @@ internal sealed partial class Players
         var now = MandarinBridge.Playing(dac);
         if (now == null) return;
         var dsd = item.Sent.Dsd;
-        var ok = dsd > 0 ? now.Dsd == dsd : now.Dsd == 0 && now.Rate == item.Sent.Rate && (now.Bits == 0 || item.Sent.Bits == 0 || now.Bits == item.Sent.Bits);
+        // The same format: the same rate and kind, in words at least as wide as the samples sent (16-bit samples in a
+        // 32-bit word keep their values, item 287; before, a 16-bit track to a 32-bit DAC was never confirmed).
+        var ok = dsd > 0 ? now.Dsd == dsd : now.Dsd == 0 && now.Rate == item.Sent.Rate && (now.Bits == 0 || item.Sent.Bits == 0 || now.Bits >= item.Sent.Bits);
+        var fed = new Fed("Mandarin Bridge", now.Kind, now.Rate, now.Bits, now.Dsd, now.Volume, now.Level, now.Untouched, ok);
         if (ok && dsd == 0) { using var c = Db.Open(); Register.MarkVerified(c, p.Id, now.Rate, now.Bits != 0 ? now.Bits : item.Sent.Bits); }
         var bump = false;
-        lock (zm.Gate) { if (zm.State.TryGetValue(p.Id, out var cur) && cur.TrackUri == item.Uri) { cur.Verified = ok ? "yes" : "no"; bump = true; } }
+        lock (zm.Gate) { if (zm.State.TryGetValue(p.Id, out var cur) && cur.TrackUri == item.Uri) { cur.Verified = ok ? "yes" : "no"; cur.Fed = fed; bump = true; } }
         if (bump) zm.Bump();
         if (!ok)
         {
