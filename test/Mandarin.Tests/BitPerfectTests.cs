@@ -15,7 +15,7 @@ public sealed class BitPerfectTests
     private const int Rate = 44100, Frames = 60000;
 
     // Noise, not a tone: a tone repeats, and a recording could be found at more than one place in it.
-    private static int[] Noise(int n, int seed)
+    internal static int[] Noise(int n, int seed)
     {
         var r = new Random(seed);
         var o = new int[n * 2];
@@ -24,7 +24,7 @@ public sealed class BitPerfectTests
     }
 
     // A stereo WAV of [samples] (24-bit values), each in a [width]-byte slot, left-justified; at [rate].
-    private static string Wav(string dir, string name, IReadOnlyList<int> samples, int width, int rate = Rate)
+    internal static string Wav(string dir, string name, IReadOnlyList<int> samples, int width, int rate = Rate)
     {
         var path = Path.Combine(dir, name);
         var data = new byte[samples.Count * width];
@@ -37,7 +37,7 @@ public sealed class BitPerfectTests
         return path;
     }
 
-    private static byte[] Header(int rate, int width, int bytes)
+    internal static byte[] Header(int rate, int width, int bytes)
     {
         var h = new byte[44];
         "RIFF"u8.CopyTo(h); BinaryPrimitives.WriteUInt32LittleEndian(h.AsSpan(4), (uint)(36 + bytes)); "WAVE"u8.CopyTo(h.AsSpan(8));
@@ -48,7 +48,7 @@ public sealed class BitPerfectTests
         return h;
     }
 
-    private static async Task<JsonObject> Check(object job)
+    internal static async Task<JsonObject> Check(object job)
     {
         var r = await ServerCommand.Run(["bitperfect"], stdin: System.Text.Json.JsonSerializer.Serialize(job) + "\n");
         Assert.True(r.Code == 0, r.Err + r.Out);
@@ -113,7 +113,7 @@ public sealed class BitPerfectTests
     }
 
     // A DSF of [bytes] a channel (random bits), at DSD64.
-    private static string Dsf(string dir, byte[][] ch)
+    internal static string Dsf(string dir, byte[][] ch)
     {
         var n = ch[0].Length;
         using var o = new BinaryWriter(File.Create(Path.Combine(dir, "sent.dsf")));
@@ -125,7 +125,7 @@ public sealed class BitPerfectTests
         return Path.Combine(dir, "sent.dsf");
     }
 
-    private static byte Turn(byte b) { byte o = 0; for (var i = 0; i < 8; i++) if ((b & (1 << i)) != 0) o |= (byte)(0x80 >> i); return o; }
+    internal static byte Turn(byte b) { byte o = 0; for (var i = 0; i < 8; i++) if ((b & (1 << i)) != 0) o |= (byte)(0x80 >> i); return o; }
 
     [Test]
     public async Task DSD_bit_perfect_as_DoP_and_as_native_words_either_way_round_and_a_changed_byte_told()
