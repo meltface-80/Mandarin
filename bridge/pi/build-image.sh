@@ -67,4 +67,6 @@ chroot "$R" ffmpeg -hide_banner -version | head -1
 
 if [ -f "$WORK/resolv.conf" ]; then cp --remove-destination "$WORK/resolv.conf" "$R/etc/resolv.conf"; fi
 sync
+# The image is the one who ran sudo's, so it can be compressed and moved without root.
+if [ -n "${SUDO_UID:-}" ]; then chown "$SUDO_UID:${SUDO_GID:-$SUDO_UID}" "$OUT"; fi
 echo "$OUT made"
