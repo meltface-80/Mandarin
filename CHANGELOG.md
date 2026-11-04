@@ -43,6 +43,7 @@
 - Fixed - DSD256 made as it plays no longer falls behind the device on the next track of an album: the making carried on into it is given all of playback's cores again, and the server keeps two of its own, so the app and the device no longer time out
 - Fixed - a phone playing through a 32-bit USB DAC (the SMSL SU1) is sent 24 bits when upsampling, which the server can make and the phone can read; its driver still gives the DAC 32-bit words
 - Fixed - ×16 (705.6 kHz) is gapless: each track's WAV says its own length, so a renderer such as the FiiO SR11 goes on to the next track at once instead of waiting at the end of each
+- Improved - a track made DSD (or ×16) as it plays is paced as Roon paces its DSP: made some 30 s ahead of what the device has read, not flat out to its end, so the processor is used a little all through the track instead of fully for the first third
 - Fixed - 32-bit FLAC is really 32 bits: the server asks ffmpeg for it as ffmpeg needs (-strict experimental), without which 6.1 and later wrote 24 bits and the server never offered 32
 
 - `259-dsd-on-demand` (item 259): **PCM as DSD, and the shaped filters, made as they play.** A track made DSD from
@@ -519,6 +520,23 @@
   up on after 90 seconds. It now steps toward the album by the shelf's own order, a few steps at most, and says if it
   never got there. Nothing changes in Mandarin.
 - New - a Mandarin USB renderer (an Android device with a USB DAC, github.com/meltface-80/Android-USB-Driver) is read whole: every rate, depth and DSD multiple its DAC takes shows as advertised on its page, nothing to tick, and a track gets the ✓ when the DAC is fed what was sent
+
+- `271-making-paced` (item 271): **the making paced as Roon paces its DSP.** A track made as it plays was made as
+  fast as the processor allowed: DSD256 on the owner's server at about three times real time, every core given it
+  full for the first third of the track, idle for the rest (htop beside Roon's: two cores near 100%, a third busy;
+  Roon a fraction of one). Roon processes as it plays, at playback's pace: its "processing speed", 1.6x there, is
+  how much faster it could go, 1.3x the least it should be, one core by default, two at most with its parallel
+  sigma-delta modulator; the work per second of music is much the same, spread over the whole track. Now a making
+  whose length is known before its first byte (a DSF from PCM, a WAV above FLAC's rates) is held some 30 s of music
+  ahead of what the devices reading it have asked for (Upsample/Pace.cs: SIGSTOP while that far ahead, SIGCONT once
+  they have read on to half of it, and at once when one asks for more than is made, as a seek forward does;
+  MANDARIN_MAKE_LEAD_S sets it, 0 for none). The next track is made that far as before, and waits for the device to
+  start on it; a ×16 WAV is armed as the next track once its making has begun, as a DSF is (its length is its
+  header's since item 270), or a paced one would never be whole in time. Its speed in the log and on Output is
+  counted by the time it worked, not the time it was held ("…, 41 s of it held ahead of the device"). ×2 to ×8 into
+  FLAC, made at five times real time and more, and armed only once whole, are made as before. Tests: PaceTests (a
+  minute's DSD64, its start read and then nothing: made only so far, and still while it waits; read on, made to its
+  end and sent whole; without the pacing, made on regardless).
 
 - `270-wav-length-known` (item 270): **×16 gapless: a WAV that says its length.** PCM above FLAC's rates goes as WAV
   (×16 to 705.6 kHz, Playback/HighRates.cs), written by ffmpeg with -seekable 0 so a device can read it as it is made;

@@ -63,4 +63,11 @@ internal sealed class ConvJob
     private TaskCompletionSource more = new(TaskCreationOptions.RunContinuationsAsynchronously);
     public Task More => Volatile.Read(ref more).Task;
     public void Wake() => Interlocked.Exchange(ref more, new(TaskCreationOptions.RunContinuationsAsynchronously)).TrySetResult();
+    // How far into the file its readers have asked for (item 271: a making is held only so far ahead of it, Upsample/Pace.cs).
+    public long Wanted;
+    public void Want(long pos)
+    {
+        for (var w = Interlocked.Read(ref Wanted); pos > w; w = Interlocked.Read(ref Wanted))
+            if (Interlocked.CompareExchange(ref Wanted, pos, w) == w) return;
+    }
 }

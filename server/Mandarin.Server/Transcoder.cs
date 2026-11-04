@@ -355,11 +355,11 @@ internal static partial class Transcoder
                     if (fs == null)
                     {
                         if (job.Done) { if (job.Failed) ctx.Abort(); return; }
-                        await Task.WhenAny(job.More, Task.Delay(100, aborted));
+                        job.Want(pos); await Task.WhenAny(job.More, Task.Delay(100, aborted));
                         continue;
                     }
                 }
-                var more = job.More;
+                var more = job.More; job.Want(pos);   // read so far (item 271)
                 if (pos > end) return;
                 var want = end == long.MaxValue ? buf.Length : (int)Math.Min(buf.Length, end - pos + 1);
                 int n = await fs.ReadAsync(buf.AsMemory(0, want), aborted);

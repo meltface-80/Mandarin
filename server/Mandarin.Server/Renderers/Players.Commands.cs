@@ -83,7 +83,8 @@ internal sealed partial class Players
         var ready = File.Exists(Transcoder.FinalPath(key));
         // Not yet: begun (a DSF from PCM, or PCM in a shape, in its turn after what is being made now: item 259).
         if (!ready && !Transcoder.Jobs.ContainsKey(key)) { if (Upsample.MadeAsPlayed.Takes(plan)) Transcoder.Start(t, plan); else Transcoder.Prefetch([(t, plan)]); }
-        return ready || plan.DsdUp != 0 && Upsample.MadeAsPlayed.Begun(key);
+        // A WAV made as it plays too, its length in its header (item 270), held ahead of the device as a DSF is (item 271).
+        return ready || (plan.DsdUp != 0 || plan.Wav) && Upsample.MadeAsPlayed.Takes(plan) && Upsample.MadeAsPlayed.Begun(key);
     }
 
     /* p.Next is what the device holds as its next URI. Whenever what SHOULD follow differs — the queue was edited, the mode changed — it is told again. */

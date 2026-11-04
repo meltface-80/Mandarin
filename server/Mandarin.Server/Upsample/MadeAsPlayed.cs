@@ -114,7 +114,11 @@ internal static class MadeAsPlayed
             if (next == null) proc.StandardInput.Close();
         }
         catch (IOException) { /* stopped before it read its job; its exit says so */ }
-        var said = await proc.StandardOutput.ReadLineAsync();
+        // Held as Roon holds its DSP, some way ahead of the device, where its length is known (item 271: Pace.cs).
+        var bytes = p.DsdUp != 0 ? DsdPlan.FileBytes(t.Id, p, seconds) : p.Wav ? WavHeader.FileBytes(p, seconds) : 0;
+        string? said;
+        double heldFor;
+        using (var hold = Pace.Hold(proc, job, bytes, seconds)) { said = await proc.StandardOutput.ReadLineAsync(); heldFor = hold.HeldSeconds; }
         var r = said is { Length: > 0 } ? JsonNode.Parse(said) as JsonObject : null;
         if (r == null || r["error"] != null || next == null || proc.HasExited)
         {
@@ -132,11 +136,12 @@ internal static class MadeAsPlayed
         }
         else Warm.Keep(proc, next, trace);
         var took = (double?)r["seconds"] ?? 0;
-        var speed = took > 0 && seconds > 0 ? seconds / took : 0;
+        // Its speed by the time it worked, not the time it was held.
+        var speed = took - heldFor > 0 && seconds > 0 ? seconds / (took - heldFor) : 0;
         if (speed > 0) Speeds[p.DsdUp] = speed;
         var held = (long?)r["held"] ?? 0;
         var what = p.DsdUp != 0 ? $"DSD{p.DsdUp} from PCM, {Shape.Words(p.Shape)} ({(long?)r["resets"] ?? 0} reset(s){(held > 0 ? $", {held} sample(s) over +2.9 dB held" : "")})" : $"×{p.Rate / Math.Max(1, (long)p.InRate)}, {Shape.Words(p.Shape)}";
-        Server.Log($"[upsample] {Path.GetFileName(t.Path)}: {what}, made as it played at {Math.Round(speed, 2).ToString(System.Globalization.CultureInfo.InvariantCulture)}× real time ({took} s){(warm != null ? ", on from the track before" : "")}");
+        Server.Log($"[upsample] {Path.GetFileName(t.Path)}: {what}, made as it played at {Math.Round(speed, 2).ToString(System.Globalization.CultureInfo.InvariantCulture)}× real time ({took} s{(heldFor >= 1 ? $", {Math.Round(heldFor)} s of it held ahead of the device" : "")}){(warm != null ? ", on from the track before" : "")}");
         return 0;
     }
 
@@ -183,7 +188,7 @@ internal static class MadeAsPlayed
 
     private static void Stop(Process proc)
     {
-        try { proc.Kill(true); } catch (InvalidOperationException) { /* ended already */ }
+        try { Pace.Release(proc.Id); proc.Kill(true); } catch (InvalidOperationException) { /* ended already */ }
     }
 
     // Track [id]'s length in seconds, as the library has it.
