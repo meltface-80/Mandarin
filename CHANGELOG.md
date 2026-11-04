@@ -538,6 +538,8 @@
 - New - Mandarin Bridge for Raspberry Pi: an image to flash (Raspberry Pi OS Lite, 64-bit, the Bridge in it); plug in the DAC and power on, its page at http://mandarin-bridge.local:49494/, and with no network yet its own Wi-Fi, Mandarin Bridge Setup, to choose the home network from the page
 - Fixed - a DFF file plays as DSD on a USB DAC plugged into the server or into Mandarin Bridge for Linux or a Raspberry Pi, natively or as DoP, as a DSF does; it reached the DAC as PCM before. A DST-compressed DFF is said rather than played
 - Fixed - the Mac check no longer gives up on a busy day before GitHub has a Mac to run it on
+- Fixed - the bit-perfect check records the whole track on Mandarin Bridge: from its very start (the first seconds were lost to the moment before the track was played again) and with nothing missed between recordings (a moment was lost every 30 seconds); update Mandarin Bridge on the phone for it
+- Improved - a bit-perfect check's verdict says what wasn't recorded, if anything ("not recorded: 0:00–0:03 and 0:33–0:35"), and is kept: the track's step on Now playing still says it after another track or a restart, and another track's step names the last check
 
 - `284-dff-as-dsd` (item 284): **A DFF played as DSD, as a DSF is.** The audio engine read only a DSF itself; a DFF
   went to ffmpeg, which made it PCM, so on a DAC on the server or on the Linux Bridge it was never DSD (the server
@@ -550,6 +552,22 @@
   (markers in turn, the DSD rate over 16) and as native DSD (big-endian words, the rate over 32), the 48 kHz family as
   DoP; a seek to 1.5 s plays on from that word, what lay between never sent; a DST one said, nothing sent. Shown
   failing with the DFF sent to ffmpeg, a DST one played, the seek ignored, and the chunk after the audio sent.
+- `286-bitperfect-whole-track` (item 286): **The bit-perfect check records the whole track, and keeps its verdict.** A
+  check of a 3:39 track on a FiiO R7 said 95%: its report showed the first recording begun on the playback before the
+  restart (16 ms of 2:01) and ended by it, so 0:00–0:04 went unrecorded, and a 1.3 s gap after every 30 s recording
+  while the server fetched it and asked for the next. Mandarin Bridge now records in parts on its own (`Capture.kt`,
+  asked with `part` and `after_flush`, `/dac.json` saying `capture_parts`): from the first byte after the restart's
+  flush (begun again should a second flush follow within its first second), each part begun on the byte after the
+  last's, fetched and let go (`DELETE /capture/N`) as it is done. The server (`Recorder.cs`) collects every part and,
+  where their sidecars' `first_frame` say they follow on, joins them into the one recording of the track
+  (`Parts.cs`), compared whole. An older app is asked as before. Whatever no recording covered is named after the
+  verdict and listed as `unrecorded`; each room's last check is kept beside the data (`Kept.cs`), so the track's step
+  says its verdict after another track or a restart (with the day), another track's step names the last check, and
+  `/api/bitperfect` has it. A recording that can't be read is said, never a check left at "comparing" (a WAV chunk
+  said to run past the file was read past it). `test/bitperfect-parts.test.js` (the fake Bridge recording in parts):
+  asked once, from the restart, every part fetched and let go, compared as one, every sample, kept after another
+  track and a restart, a corrupt part said; `BitPerfectGapsTests`: the unrecorded named. Each shown failing with its
+  part taken out.
 - `285-mac-ci-waits-for-a-runner` (item 285): **The Mac check waits for a Mac.** Its job's 15-minute limit counted
   the wait for one of GitHub's macOS runners too, so on a busy day (4 November, again and again) it was cancelled
   before it had one, no step run, and a pull request it should have checked went without. The job may now wait an

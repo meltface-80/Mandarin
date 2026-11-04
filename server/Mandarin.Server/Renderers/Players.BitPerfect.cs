@@ -1,7 +1,8 @@
 // Players.BitPerfect.cs — the bit-perfect check of a renderer's room (bug list item 275, BitPerfect/Check.cs): asked
 // for the track playing, of a Mandarin Bridge renderer whose app records what it feeds its DAC (/dac.json says
 // "capture"), or of a USB DAC plugged into this server, recorded off its bus (BitPerfect/UsbRecorder.cs). One at a
-// time for each room; its progress and its report are the room's until the next.
+// time for each room; its progress and its report are the room's until the next, kept beside the data (BitPerfect/Kept.cs,
+// item 286) so that the verdict outlasts the track and a restart.
 using System.Collections.Concurrent;
 using System.Text.Json.Nodes;
 using Mandarin.Server.BitPerfect;
@@ -36,7 +37,7 @@ internal sealed partial class Players
             var dac = await MandarinBridge.Probe(device);
             if (dac == null) return (false, "The device isn't answering");
             if (dac["capture"] is not string capture || capture.Length == 0) return (false, "This device's app can't record what it feeds the DAC yet: update Mandarin Bridge");
-            recorder = new DeviceRecorder(CaptureBase(device, capture));
+            recorder = new DeviceRecorder(CaptureBase(device, capture), Jv.T(dac["capture_parts"]));
         }
         UpnpItem item;
         int index;
@@ -56,6 +57,7 @@ internal sealed partial class Players
         {
             await Check.Go(run, track, room, recorder, dir);
             zm.Bump();
+            if (run.Report != null) Kept.Save(Server.DataDir, id, item.Title, item.Uri, run.Report);
             if (run.Report != null) Log($"[bitperfect] {room.Name}, {item.Title}: {run.Report["says"]}");
             else Log($"[bitperfect] {room.Name}, {item.Title}: {run.Said}");
         });
@@ -72,8 +74,10 @@ internal sealed partial class Players
     /* Room [id]'s check: where it is, and its report once done; null where none was asked for. */
     public JsonObject? BitPerfectOf(string id)
     {
-        if (!checks.TryGetValue(id, out var c)) return null;
-        return new JsonObject { ["state"] = c.Run.State, ["says"] = c.Run.Said, ["track"] = c.Title, ["report"] = c.Run.Report?.DeepClone() };
+        if (checks.TryGetValue(id, out var c)) return new JsonObject { ["state"] = c.Run.State, ["says"] = c.Run.Said, ["track"] = c.Title, ["report"] = c.Run.Report?.DeepClone() };
+        // None since the server started: the last one kept.
+        if (Kept.Of(Server.DataDir, id) is not { } k) return null;
+        return new JsonObject { ["state"] = "done", ["says"] = (string?)k.Report["says"], ["track"] = k.Title, ["report"] = k.Report.DeepClone() };
     }
 
     /*
@@ -91,16 +95,25 @@ internal sealed partial class Players
             if (button != null) { o["action"] = "bitperfect"; o["button"] = button; }
             return o;
         }
-        if (!checks.TryGetValue(id, out var c) || c.Uri != uri)
-            return Step("Bit-perfect check", "Plays the track again from its start and compares every sample the DAC is fed with what was sent", "pending", "Check");
-        var r = c.Run;
-        if (r.State is "starting" or "recording" or "comparing") return Step("Checking bit-perfect", r.Said, "pending", null);
-        if (r.Report is { } rep)
+        static System.Text.Json.Nodes.JsonObject Verdict(JsonObject rep, string said)
         {
             var ok = (string?)rep["verdict"] == "bit-perfect";
-            return Step(ok ? "Bit-perfect to the DAC" : "Not bit-perfect to the DAC", r.Said, ok ? "lossless" : "lossy", "Check again");
+            return Step(ok ? "Bit-perfect to the DAC" : "Not bit-perfect to the DAC", said, ok ? "lossless" : "lossy", "Check again");
         }
-        return Step("Bit-perfect check", r.Said, "pending", "Try again");
+        checks.TryGetValue(id, out var c);
+        if (c.Run is { } r && Kept.Same(c.Uri, uri))
+        {
+            if (r.State is "starting" or "recording" or "comparing") return Step("Checking bit-perfect", r.Said, "pending", null);
+            if (r.Report is { } rep) return Verdict(rep, r.Said);
+            return Step("Bit-perfect check", r.Said, "pending", "Try again");
+        }
+        // This track's verdict, kept from a check before (another track since, or a restart): when it was made, said.
+        var kept = Kept.Of(Server.DataDir, id);
+        if (kept != null && Kept.Same(kept.Uri, uri))
+            return Verdict(kept.Report, $"{(string?)kept.Report["says"]} (checked {Kept.When(kept.Report)})");
+        var offer = "Plays the track again from its start and compares every sample the DAC is fed with what was sent";
+        if (kept != null) offer += $". Last checked: {kept.Title}, {(((string?)kept.Report["verdict"]) == "bit-perfect" ? "bit-perfect" : "not bit-perfect")} ({Kept.When(kept.Report)})";
+        return Step("Bit-perfect check", offer, "pending", "Check");
     }
 
     private static readonly ConcurrentDictionary<string, (DateTime At, bool Usb)> usbDacs = new();

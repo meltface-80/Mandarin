@@ -23,19 +23,41 @@ internal interface IRecorder
 
     /* Recording stopped; [failed] where the check didn't finish. */
     Task Stop(bool failed);
+
+    /* Whether parts of this recording are still to come (a recording in parts): the check waits for them all. */
+    bool More => false;
 }
 
-/* A Mandarin Bridge renderer's /capture (github.com/meltface-80/Android-USB-Driver), at its base address [device]. */
-internal sealed class DeviceRecorder(string device) : IRecorder
+/*
+ * A Mandarin Bridge renderer's /capture (github.com/meltface-80/Android-USB-Driver), at its base address [device].
+ * Where its /dac.json says "capture_parts" ([parts], item 286), one recording runs the whole track: begun on the
+ * stream played again from its start ("after_flush", so its first second isn't lost to the recording before it), kept
+ * in parts of [Part] seconds one after another with not a byte between them, each fetched and let go as it is done.
+ * An older app records up to two minutes at a time, asked again after each, the moments between them unrecorded.
+ */
+internal sealed class DeviceRecorder(string device, bool parts = false) : IRecorder
 {
     private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromMinutes(10) };
 
-    public int Most => Check.Most;
+    /* The seconds in each part of a recording in parts. */
+    public const int Part = 60;
+
+    private bool asked;
+    private int next = 1;
+    private bool more;
+
+    public bool More => more;
+
+    public int Most => parts ? 24 * 3600 : Check.Most;
 
     public async Task Ask(int seconds, CancellationToken ct)
     {
-        using var r = await Http.PostAsJsonAsync(device + "/capture", new { seconds }, ct);
+        // In parts, one ask records the whole track: the asks after it are already under way.
+        if (parts && asked) return;
+        object body = parts ? new { seconds, part = Part, after_flush = true } : new { seconds };
+        using var r = await Http.PostAsJsonAsync(device + "/capture", body, ct);
         if (!r.IsSuccessStatusCode) throw new InvalidOperationException($"the device wouldn't record (HTTP {(int)r.StatusCode}: {(await r.Content.ReadAsStringAsync(ct)).Trim()})");
+        asked = true;
     }
 
     public async Task<(double Seconds, bool Whole)> Wait(Check.Run run, double before, CancellationToken ct)
@@ -46,25 +68,48 @@ internal sealed class DeviceRecorder(string device) : IRecorder
             await Task.Delay(1000, ct);
             var st = JsonNode.Parse(await Http.GetStringAsync(device + "/capture", ct)) as JsonObject ?? [];
             var state = (string?)st["state"];
-            var seconds = Check.Number(st["frames"]) / Math.Max(1, Check.Number(st["rate"]));
-            if (state == "done") return (seconds, true);
+            var rate = Math.Max(1, Check.Number(st["rate"]));
+            var seconds = Check.Number(st["frames"]) / rate;
+            if (parts)
+            {
+                var done = (st["parts"] as JsonArray ?? []).OfType<JsonObject>().ToList();
+                if (done.FirstOrDefault(x => Check.Number(x["n"]) == next) is { } part)
+                {
+                    // The last part, where the recording ended before it was asked to: not whole.
+                    var last = state == "done" && !done.Any(x => Check.Number(x["n"]) > next);
+                    more = !last;
+                    return (Check.Number(part["frames"]) / rate, !(last && (string?)st["reason"] != "done"));
+                }
+                if (state == "done") throw new InvalidOperationException("the device's recording ended early: " + ((string?)st["reason"] ?? "no reason given"));
+            }
+            else if (state == "done") return (seconds, true);
             if (state == "failed") throw new InvalidOperationException("the device's recording failed: " + ((string?)st["reason"] ?? "no reason given"));
             if (state == "armed" && DateTime.UtcNow - armedSince > TimeSpan.FromSeconds(30)) throw new TimeoutException("the device never started playing the track");
             if (state is "idle") throw new InvalidOperationException("the device stopped recording");
-            if (state == "recording") run.Said = $"Recording what the DAC is fed ({Math.Round(before + seconds)} s)";
+            if (state == "recording") run.Said = $"Recording what the DAC is fed ({Math.Round(parts ? seconds : before + seconds)} s)";
         }
     }
 
     public async Task<JsonObject?> Take(string wav, CancellationToken ct)
     {
-        await Check.Fetch(device + "/capture.wav", wav, ct);
-        try { return (JsonNode.Parse(await Http.GetStringAsync(device + "/capture.wav.json", ct)) as JsonObject)?["capture"] as JsonObject; }
-        catch (Exception e) when (e is HttpRequestException or System.Text.Json.JsonException) { return null; /* a recording with no sidecar: PCM */ }
+        var at = parts ? $"{device}/capture/{next}" : device + "/capture";
+        await Check.Fetch(at + ".wav", wav, ct);
+        JsonObject? said;
+        try { said = (JsonNode.Parse(await Http.GetStringAsync(at + ".wav.json", ct)) as JsonObject)?["capture"] as JsonObject; }
+        catch (Exception e) when (e is HttpRequestException or System.Text.Json.JsonException) { said = null; /* a recording with no sidecar: PCM */ }
+        if (parts)
+        {
+            // Fetched: the device lets the part go, so a long track never fills its storage.
+            try { using var _ = await Http.DeleteAsync(at, ct); } catch (HttpRequestException) { /* it goes when the next recording starts */ }
+            next++;
+        }
+        return said;
     }
 
     public async Task Stop(bool failed)
     {
-        if (!failed) return;
+        // In parts, a check that ends before the recording does (the track skipped) stops it, so the next can start.
+        if (!failed && !parts) return;
         try { await Http.DeleteAsync(device + "/capture", CancellationToken.None); } catch (HttpRequestException) { /* gone */ }
     }
 }

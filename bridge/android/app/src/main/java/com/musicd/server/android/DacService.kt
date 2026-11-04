@@ -340,6 +340,7 @@ class DacService : Service() {
         o.put("dac", dac)
         // A recording of what the DAC is fed, made when asked (Capture.kt): the server's bit-perfect check.
         o.put("capture", "/capture")
+        o.put("capture_parts", true)   // a whole track recorded in parts, from the restart (item 286)
         val s = UsbDriver.current
         o.put("now", if (s == null || !UsbDriver.active) JSONObject.NULL else JSONObject().put("rate", s.rate).put("bits", s.bits).put("kind", s.kind)
             .put("dsd", if (s.dsd) s.dsdMultiple else 0).put("transport", if (ready) renderer.stateNow() else "STOPPED")
@@ -394,7 +395,7 @@ class DacService : Service() {
             path.startsWith("/control/") && r.method == "POST" -> return control(r, path.removePrefix("/control/"))
             path.startsWith("/event/") && (r.method == "SUBSCRIBE" || r.method == "UNSUBSCRIBE") -> return events(r, path.removePrefix("/event/"))
             path == "/dac.json" && r.method == "GET" -> return HttpServer.Response.text(200, dacJson().toString(2), "application/json")
-            path == "/capture" || path.startsWith("/capture.") -> return captureRoute(r, path)
+            path == "/capture" || path.startsWith("/capture.") || path.startsWith("/capture/") -> return captureRoute(r, path)
             path == "/" && r.method == "GET" -> return HttpServer.Response.text(200, "${Store.friendlyName(this)} — ${Scpd.MODEL} ${BuildConfig.VERSION_NAME}\n${renderer.onMain { statusLine() }}\n\nUPnP MediaRenderer; the DAC at /dac.json.\n", "text/plain; charset=\"utf-8\"")
         }
         return HttpServer.Response.text(404, "")
@@ -406,15 +407,25 @@ class DacService : Service() {
         return when {
             path == "/capture" && r.method == "POST" -> {
                 if (UsbDac.info() == null) return HttpServer.Response.text(409, JSONObject().put("error", "no DAC on the port").toString(), json)
-                val asked = runCatching { JSONObject(String(r.body, Charsets.UTF_8)).optInt("seconds", 30) }.getOrDefault(30)
-                if (!capture.start(asked)) return HttpServer.Response.text(409, capture.status().put("error", "a capture is running").toString(), json)
+                val ask = runCatching { JSONObject(String(r.body, Charsets.UTF_8)) }.getOrDefault(JSONObject())
+                if (!capture.start(ask.optInt("seconds", 30), ask.optInt("part", 0), ask.optBoolean("after_flush", false))) return HttpServer.Response.text(409, capture.status().put("error", "a capture is running").toString(), json)
                 HttpServer.Response.text(202, capture.status().toString(), json)
             }
             path == "/capture" && r.method == "GET" -> HttpServer.Response.text(200, capture.status().toString(), json)
             path == "/capture" && r.method == "DELETE" -> { capture.stop(); HttpServer.Response.text(200, capture.status().toString(), json) }
             path == "/capture.wav" && r.method == "GET" && capture.wav.isFile -> HttpServer.Response.file(capture.wav, "audio/wav")
             path == "/capture.wav.json" && r.method == "GET" && capture.sidecar.isFile -> HttpServer.Response.file(capture.sidecar, json)
-            else -> HttpServer.Response.text(404, "")
+            // A recording in parts (item 286): part N, and once fetched, let go.
+            else -> {
+                val m = Regex("^/capture/(\\d+)(\\.wav(\\.json)?)?$").find(path) ?: return HttpServer.Response.text(404, "")
+                val n = m.groupValues[1].toInt()
+                when {
+                    r.method == "GET" && m.groupValues[2] == ".wav" && capture.partWav(n).isFile -> HttpServer.Response.file(capture.partWav(n), "audio/wav")
+                    r.method == "GET" && m.groupValues[2] == ".wav.json" && capture.partSidecar(n).isFile -> HttpServer.Response.file(capture.partSidecar(n), json)
+                    r.method == "DELETE" && m.groupValues[2].isEmpty() && capture.drop(n) -> HttpServer.Response.text(200, capture.status().toString(), json)
+                    else -> HttpServer.Response.text(404, "")
+                }
+            }
         }
     }
 

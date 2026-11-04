@@ -5,6 +5,9 @@
  * next track the device fetches; that fetch, decoded as the device's DAC would be fed it (32-bit slots), is the
  * recording, written as SQ-tool writes one, beside its sidecar. renderer.captureFilter (an ffmpeg -af, such as
  * "volume=-1dB") makes it something other than was sent; renderer.captureSkip, another track than the one played again.
+ * Asked with {part, after_flush} (item 286: dac.captureParts, as Capture.kt in parts), the recording is kept in parts
+ * of renderer.capturePart seconds (else [part]) one after another, sample for sample, at /capture/N.wav, each let go
+ * by DELETE /capture/N; the asks are kept in renderer.captureAsks. renderer.captureCorrupt: parts no WAV reader can read.
  */
 const fs = require("fs");
 const os = require("os");
@@ -20,7 +23,9 @@ function handle(r, req, res, u) {
     req.on("data", d => { body += d; });
     req.on("end", () => {
       if (c.state === "armed" || c.state === "recording") return json(409, { state: c.state });
-      Object.assign(c, { state: "armed", seconds: (JSON.parse(body || "{}").seconds) || 30, from: r.fetches.length, frames: 0, rate: 0 });
+      const ask = JSON.parse(body || "{}");
+      (r.captureAsks || (r.captureAsks = [])).push(ask);
+      Object.assign(c, { state: "armed", seconds: ask.seconds || 30, from: r.fetches.length, frames: 0, rate: 0, part: ask.part ? (r.capturePart || ask.part) : 0, parts: [] });
       r.log.push("capture");
       json(202, { state: c.state });
     });
@@ -32,7 +37,18 @@ function handle(r, req, res, u) {
       const f = r.fetches.slice(c.from).filter(x => x.done && x.body)[r.captureSkip || 0];
       if (f) record(r, c, f.body); else if (r.fetches.length > c.from) c.state = "recording";
     }
-    return json(200, { state: c.state, frames: c.frames, rate: c.rate, channels: 2, container_bits: 32, kind: "pcm" });
+    return json(200, { state: c.state, reason: c.state === "done" ? "done" : "", frames: c.frames, rate: c.rate, channels: 2, container_bits: 32, kind: "pcm",
+      parts: c.parts.map(n => ({ n, wav: `/capture/${n}.wav`, sidecar: `/capture/${n}.wav.json`, frames: c.partFrames[n] })) });
+  }
+  const part = /^\/capture\/(\d+)(\.wav(\.json)?)?$/.exec(u.pathname);
+  if (part) {
+    const n = Number(part[1]);
+    if (!c.parts || !c.parts.includes(n)) { res.writeHead(404); return res.end(); }
+    if (req.method === "DELETE" && !part[2]) { c.parts = c.parts.filter(x => x !== n); (r.captureDropped || (r.captureDropped = [])).push(n); return json(200, { state: c.state }); }
+    if (req.method === "GET" && part[2]) {
+      res.writeHead(200, { "Content-Type": part[3] ? "application/json" : "audio/wav" });
+      return res.end(fs.readFileSync(path.join(c.dir, `capture-${n}${part[2]}`)));
+    }
   }
   if (req.method === "GET" && (u.pathname === "/capture.wav" || u.pathname === "/capture.wav.json")) {
     if (c.state !== "done") { res.writeHead(404); return res.end(); }
@@ -56,10 +72,29 @@ function record(r, c, body) {
   if (ff.status !== 0) { c.state = "failed"; c.reason = ff.stderr; return; }
   const wav = fs.readFileSync(out);
   const rate = wav.readUInt32LE(24);
+  // ffmpeg's header is longer than 44 bytes (WAVE_FORMAT_EXTENSIBLE, a LIST): the samples start after "data".
+  const data0 = wav.indexOf("data", 12) + 8;
   c.rate = rate;
-  c.frames = Math.floor((wav.length - 44) / 8);
-  fs.writeFileSync(out + ".json", JSON.stringify({ tool: "fake Mandarin Bridge", capture: { method: "usb-driver", rate, channels: 2, container_bits: 32, valid_bits: 32,
-    dsd: false, kind: "pcm", dsd_setting: "pcm", frames: c.frames, seconds: c.frames / rate, interruptions: [], usb: { underruns: 0, errors: 0 } } }));
+  c.frames = Math.floor((wav.length - data0) / 8);
+  const sidecar = (frames, first) => JSON.stringify({ tool: "fake Mandarin Bridge", capture: { method: "usb-driver", rate, channels: 2, container_bits: 32, valid_bits: 32,
+    dsd: false, kind: "pcm", dsd_setting: "pcm", frames, seconds: frames / rate, first_frame: first || 0, interruptions: [], usb: { underruns: 0, errors: 0 } } });
+  fs.writeFileSync(out + ".json", sidecar(c.frames));
+  c.partFrames = {};
+  if (c.part) {
+    // In parts: the same samples cut every [part] seconds, each part's WAV beginning on the frame after the last's.
+    const per = c.part * rate;
+    for (let n = 1, at = 0; at < c.frames; n++, at += per) {
+      const frames = Math.min(per, c.frames - at);
+      const data = wav.subarray(data0 + at * 8, data0 + (at + frames) * 8);
+      const head = Buffer.from(wav.subarray(0, data0));
+      head.writeUInt32LE(head.length - 8 + data.length, 4); head.writeUInt32LE(data.length, data0 - 4);
+      // renderer.captureCorrupt: a part whose "fmt " chunk says it runs far past the file.
+      if (r.captureCorrupt) head.writeUInt32LE(0x7ffffff0, 16);
+      fs.writeFileSync(path.join(c.dir, `capture-${n}.wav`), Buffer.concat([head, data]));
+      fs.writeFileSync(path.join(c.dir, `capture-${n}.wav.json`), sidecar(frames, at));
+      c.parts.push(n); c.partFrames[n] = frames;
+    }
+  }
   c.state = "done";
 }
 
