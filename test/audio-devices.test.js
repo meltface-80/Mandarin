@@ -74,6 +74,12 @@ test("profiles: what a model takes, and the layers a chip comes from", { skip: n
   assert.equal(profileFor({ manufacturer: "Poly Inc", model: "Poly Headset" }).id, "generic");
   assert.equal(profileFor({ manufacturer: "Acme", model: "Streamer" }).id, "generic");
   assert.equal(profileFor({ family: "wiim" }).id, "wiim");
+  // Item 274: a FiiO SR11 is known by its model, its USB figures on from the start (it says only its formats).
+  assert.equal(profileFor({ manufacturer: "FiiO", model: "SR11" }).id, "fiio-sr11");
+  const sr11 = effective({ kind: "upnp", manufacturer: "FiiO", model: "SR11", playable: true, caps: { advertised: { containers: ["flac", "wav", "dsd"], rates: [] } } });
+  const lit = list => list.filter(x => x.on).map(x => x.hz || x.n);
+  assert.deepEqual([lit(sr11.rates).at(-1), lit(sr11.bits), lit(sr11.dsd)], [768000, [16, 24, 32], [64, 128, 256]]);
+  assert.equal(sr11.rates.find(r => r.hz === 705600).source, "profile");
 
   const wiim = effective({ kind: "upnp", manufacturer: "Linkplay", model: "WiiM Pro Plus", playable: true, caps: { advertised: { containers: ["flac", "wav"], rates: [44100, 48000] } } });
   const on = list => list.filter(x => x.on).map(x => x.hz || x.n);

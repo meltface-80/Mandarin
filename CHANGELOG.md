@@ -520,6 +520,18 @@
   up on after 90 seconds. It now steps toward the album by the shelf's own order, a few steps at most, and says if it
   never got there. Nothing changes in Mandarin.
 - New - a Mandarin USB renderer (an Android device with a USB DAC, github.com/meltface-80/Android-USB-Driver) is read whole: every rate, depth and DSD multiple its DAC takes shows as advertised on its page, nothing to tick, and a track gets the ✓ when the DAC is fed what was sent
+- Improved - a FiiO SR11 is known by its model: its page shows what it plays by USB to a DAC (to 768 kHz/32-bit, DSD64–256) without ticking, where it showed only 44.1 and 48 kHz
+
+- `274-fiio-sr11-profile` (item 274): **the FiiO SR11 known by its model.** A streamer on the network says what
+  formats it takes (GetProtocolInfo: FLAC, WAV, DSF…) and almost never what rates or depths: UPnP has no way to
+  ask. A DAC on the server's own USB says its rates itself (ALSA), a WiiM says what its decoder runs at, a
+  Mandarin USB renderer reads its DAC whole; every other renderer gets the rates of a profile of its model, or,
+  with none, only 44.1 and 48 kHz until they are ticked on its page. The SR11 had none, and showed 44.1/48 alone.
+  Now it has one (Renderers/Profiles.cs), FiiO's figures for its USB output to a DAC: PCM to 768 kHz/32-bit and
+  DSD64–256 as DoP, gapless by SetNextAVTransportURI; its note says its coaxial and optical outputs stop at
+  192 kHz and DSD64, to untick there (the SR11 doesn't say over UPnP which output it uses). What you have ticked
+  stays as it is. Tests: `audio-devices.test.js` (the profile by maker and model, its chips on), the profiles'
+  table in `renderers-csharp.json` with the new row.
 
 - `271-making-paced` (item 271): **the making paced as Roon paces its DSP.** A track made as it plays was made as
   fast as the processor allowed: DSD256 on the owner's server at about three times real time, every core given it

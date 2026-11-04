@@ -706,6 +706,40 @@
       "notes": "Feeds a Mojo 2: PCM to 768 kHz, DSD64–256 as DoP. Gapless over UPnP and 32-bit pass-through: to verify. Volume is Mojo 2's own."
      },
      {
+      "id": "fiio-sr11",
+      "label": "FiiO SR11",
+      "match": {
+       "model": "/sr11/i",
+       "manufacturer": "/fiio/i"
+      },
+      "rates": [
+       44100,
+       48000,
+       88200,
+       96000,
+       176400,
+       192000,
+       352800,
+       384000,
+       705600,
+       768000
+      ],
+      "bits": [
+       16,
+       24,
+       32
+      ],
+      "dsd": [
+       64,
+       128,
+       256
+      ],
+      "setNext": true,
+      "api": null,
+      "volume": "upnp",
+      "notes": "By USB to a DAC: PCM to 768 kHz/32-bit, DSD64–256 as DoP (FiiO's figures). By its coaxial or optical output: to 192 kHz and DSD64 — untick the rest."
+     },
+     {
       "id": "linkplay",
       "label": "LinkPlay player",
       "match": {
