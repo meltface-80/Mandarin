@@ -96,6 +96,11 @@ internal static partial class Profiles
         new("chord-poly", "Chord Poly", new(Model: Poly, Manufacturer: Words("chord"), ModelSource: @"/\bpoly\b/i", ManufacturerSource: "/chord/i"),
             UpTo(768000), [16, 24, 32], [64, 128, 256], null, "mpd", "fixed",
             "Feeds a Mojo 2: PCM to 768 kHz, DSD64–256 as DoP. Gapless over UPnP and 32-bit pass-through: to verify. Volume is Mojo 2's own."),
+        // FiiO's figures (item 274): by USB to a DAC, PCM to 768 kHz/32-bit and DSD64–256 as DoP; by its coaxial and
+        // optical outputs 192 kHz and DSD64, which its page says to untick. Over UPnP it doesn't say which it uses.
+        new("fiio-sr11", "FiiO SR11", new(Model: Words("sr11"), Manufacturer: Words("fiio"), ModelSource: "/sr11/i", ManufacturerSource: "/fiio/i"),
+            UpTo(768000), [16, 24, 32], [64, 128, 256], true, null, "upnp",
+            "By USB to a DAC: PCM to 768 kHz/32-bit, DSD64–256 as DoP (FiiO's figures). By its coaxial or optical output: to 192 kHz and DSD64 — untick the rest."),
         new("linkplay", "LinkPlay player", new(Any: Words("linkplay"), AnySource: "/linkplay/i"),
             UpTo(192000), [16, 24], None, true, "linkplay", "upnp"),
         new("generic", "UPnP renderer", null,
