@@ -1,12 +1,19 @@
-/* SQ-tool web interface: pick a song, record two players, compare. No dependencies. */
+/*
+ * SQ-tool, Mandarin's: is what a zone's DAC is fed exactly the file? Choose a song, choose a zone, Record: Mandarin
+ * plays the song there from its start and records exactly what the DAC is fed (Mandarin Bridge's /capture, or a USB
+ * DAC on Mandarin's server off its bus), hands the recording here, and SQ-tool compares it with the file, sample by
+ * sample, with spectrograms and charts. Served by Mandarin at /sq-tool/; its recording is Mandarin's, at
+ * /api/sq-tool/ (zones, record). No dependencies.
+ */
 (function () {
   "use strict";
 
   // Plain, muted colours that stay apart for every reader, colour-blind ones too.
-  var COLORS = { source: "#3987e5", a: "#199e70", b: "#d95926" };
+  var COLORS = { source: "#3987e5", a: "#199e70" };
   var DIFF = "#e8836b";
   var MUSIC = "#c9c6bd";  // the music beside what remains, on the difference charts
-  var ACTIVE = ["starting", "waiting", "recording", "stopping"];
+  // Mandarin's recording under way (its /api/sq-tool/record "state").
+  var ACTIVE = ["starting", "recording", "handing"];
   // The spectrogram colour map (matches sqtool/spectrogram.py; its name keeps pictures in other
   // colours out of the browser's cache).
   var MAP = "inferno";
@@ -14,11 +21,14 @@
     [221, 81, 58], [243, 120, 25], [252, 165, 10], [246, 215, 70], [252, 255, 164]];
   var S = {
     page: null, tid: null, state: null, test: null, rev: null, html: {}, charts: [], timer: null,
+    job: null, zones: null, zone: load("sq.zone", ""),
     browsePath: load("sq.browse", ""), searchSeq: 0,
     spec: { mode: "signals", scale: load("sq.scale", "log"), floor: load("sq.floor", { signals: -150, diffs: -180 }),
       matched: false, t0: 0, t1: 0, data: "", panels: [], info: {}, width: 0 }
   };
   var main = document.getElementById("main");
+  // Mandarin's own API, beside this page's (which is relative to /sq-tool/).
+  var MANDARIN = "/api/sq-tool/";
 
   // ---------------------------------------------------------------- helpers
 
@@ -96,11 +106,11 @@
   function fmtHz(f) { return f >= 1000 ? (f / 1000 >= 10 ? (f / 1000).toFixed(1) : (f / 1000).toFixed(2)) + " kHz" : f.toFixed(0) + " Hz"; }
   function fpColor(fp) { return fp ? "hsl(" + (parseInt(fp.slice(0, 6), 16) % 360) + " 32% 56%)" : "transparent"; }
   function swatch(color) { return '<span class="swatch" style="background:' + color + '"></span>'; }
-  function players() { var s = S.state && S.state.settings; return (s && s.players) || { a: "Roon", b: "Mandarin" }; }
-  function recActive(rec) { return rec && ACTIVE.indexOf(rec.state) >= 0; }
-  // Recording the music itself (not just a player's open, silent output).
-  function hearing(rec) { return !!(rec && rec.state === "recording" && rec.take && rec.take.music_seconds != null); }
-  function whoName(t, w) { return w === "source" ? "Original file" : t.players[w]; }
+  function recActive(job) { return !!(job && ACTIVE.indexOf(job.state) >= 0); }
+  // Recording the music itself, Mandarin says.
+  function hearing(job) { return !!(job && job.state === "recording"); }
+  function zoneName(t) { return (t.players && t.players.a) || "The zone"; }
+  function whoName(t, w) { return w === "source" ? "The file" : zoneName(t); }
   function plural(n, one, many) { return n + " " + (n === 1 ? one : many); }
 
   // ---------------------------------------------------------------- pages
@@ -127,18 +137,15 @@
   function showHome() {
     leavePage();
     S.page = "home"; S.tid = null;
-    var p = players();
     main.innerHTML =
-      '<div id="setup"></div>' +
-      '<section class="card hero"><h1>Do ' + esc(p.a) + " and " + esc(p.b) + " send your DAC exactly what is in the file?</h1>" +
-      "<p>SQ-tool records exactly what each player sends to its output and compares it, sample by sample, with the original file and with each other.</p>" +
-      "<ol><li>Choose a song from your music folder.</li>" +
-      "<li>Play it in <b>" + esc(p.a) + "</b> to the <b>Loopback</b> output. SQ-tool records it.</li>" +
-      "<li>Play it in <b>" + esc(p.b) + "</b> the same way.</li>" +
-      "<li>See whether each one is bit-perfect, and whether both would give your DAC the same data, with spectrograms and charts.</li></ol>" +
+      '<section class="card hero"><h1>Does your DAC get exactly what is in the file?</h1>' +
+      "<p>SQ-tool proves it, sample by sample. Mandarin plays a song to a zone and records exactly what the zone's DAC is fed; " +
+      "SQ-tool compares that recording with the file.</p>" +
+      "<ol><li>Choose a song from Mandarin's music folder.</li>" +
+      "<li>Choose the zone: a <b>Mandarin Bridge</b>, or a USB DAC on Mandarin's server. Press <b>Record</b>: Mandarin plays the song there from its start and records it.</li>" +
+      "<li>See whether it is bit-perfect, and where it isn't, with spectrograms and charts.</li></ol>" +
       '<a class="btn primary big" href="#/new">Start a new test</a></section>' +
       '<section class="card"><h2>Previous tests</h2><div id="tests" class="tests"><p class="muted">Loading…</p></div></section>';
-    renderSetup();
     api("api/tests").then(function (list) {
       if (S.page !== "home") return;
       $("#tests").innerHTML = list.length ? list.map(testItem).join("") : '<p class="empty">No tests yet.</p>';
@@ -146,45 +153,14 @@
   }
 
   function testItem(t) {
-    var chips = [];
-    ["a", "b"].forEach(function (k) {
-      var r = t.results[k];
-      if (r && r.verdict) chips.push('<span class="chip ' + verdictClass(r.verdict) + '">' + esc(t.players[k]) + ": " + esc(badgeText(r.verdict, k)) + "</span>");
-      else if (t.captures[k]) chips.push('<span class="chip">' + esc(t.players[k]) + ": recorded</span>");
-    });
-    var ab = t.results.ab;
-    if (ab && ab.verdict) chips.push('<span class="chip ' + verdictClass(ab.verdict) + '">' + esc(badgeText(ab.verdict, "ab")) + "</span>");
+    var r = t.results.a, zone = (t.players && t.players.a) || "";
+    var chip = r && r.verdict ? '<span class="chip ' + verdictClass(r.verdict) + '">' + esc(zone) + ": " + esc(badgeText(r.verdict)) + "</span>"
+      : t.captures.a ? '<span class="chip">' + esc(zone) + ": recorded</span>" : '<span class="chip">not recorded yet</span>';
     var src = t.source || {};
     return '<a class="test-item" href="#/test/' + encodeURIComponent(t.id) + '"><div><div class="name">' + esc(t.title) + "</div>" +
       '<div class="muted small">' + (t.artist ? esc(t.artist) + " · " : "") + esc(fmtTime(t.created)) +
       (src.rate ? " · " + fmtRate(src.rate) + (src.bits ? "/" + src.bits + "-bit" : "") : "") + "</div>" +
-      '<div class="chips">' + (chips.join("") || '<span class="chip">no recordings yet</span>') + '</div></div><span class="go">›</span></a>';
-  }
-
-  function renderSetup() {
-    var el = $("#setup");
-    if (!el || !S.state) return;
-    var cap = S.state.capture || {}, html = "", quiet = S.page === "test";
-    if ((cap.problems || []).length) {
-      html = '<div class="alert warn">' + cap.problems.map(function (p) { return "<p>" + esc(p) + "</p>"; }).join("");
-      if (!cap.loopback && cap.kind !== "usb") {
-        html += cap.can_load_loopback
-          ? '<p><button class="btn small" data-act="load-loopback">Load the Loopback driver now</button></p>'
-          : "<p>On the server, run:</p><pre class=\"cmd\">sudo modprobe snd-aloop</pre>";
-        html += "<p>Then restart Roon Server (and your other player) so they list the new Loopback output.</p>";
-      }
-      html += "</div>";
-    } else if (cap.use && !quiet) {
-      var lp = cap.loopback, now = "";
-      var playing = cap.use.indexOf("loopback") === 0 ? lp && lp.playing : null;
-      if (playing) now = " Playing now: " + esc(playing.format || "") + " · " + fmtRate(playing.rate) + (playing.player ? " from " + esc(playing.player) : "") + ".";
-      var where = cap.use.indexOf("loopback") === 0
-        ? "Players play to the <b>Loopback</b> output (" + esc(lp.play_to) + ")."
-        : "Recording from the USB DAC (" + esc((cap.dacs.filter(function (d) { return d.id === cap.use; })[0] || {}).name || cap.use) + ").";
-      html = '<div class="card setup"><span class="dot on"></span><span>Ready. ' + where + now +
-        ' <button class="linkbtn" data-act="help">How to set up the players</button></span></div>';
-    }
-    setHtml(el, html);
+      '<div class="chips">' + chip + '</div></div><span class="go">›</span></a>';
   }
 
   // ---------------------------------------------------------------- choosing the song
@@ -192,17 +168,10 @@
   function showNew() {
     leavePage();
     S.page = "new"; S.tid = null;
-    var p = players();
     main.innerHTML =
-      '<div id="setup"></div>' +
-      '<section class="card"><h1>Choose the song</h1><p class="muted">The same file ' + esc(p.a) + " and " + esc(p.b) +
-      " will play. SQ-tool compares what they send with it.</p>" +
-      '<input type="search" id="q" placeholder="Search your music folder" autocomplete="off" enterkeyhint="search" aria-label="Search your music folder">' +
-      '<div id="browser"><p class="muted">Loading…</p></div></section>' +
-      '<section class="card stack"><h2>Or upload the file</h2><p class="muted" style="margin:0">From this phone or tablet: FLAC, WAV or AIFF.</p>' +
-      '<input type="file" id="upload" accept=".flac,.wav,.wave,.aif,.aiff,.aifc,audio/*" hidden>' +
-      '<div><button class="btn" data-act="upload">Choose a file…</button></div><div id="upload-status"></div></section>';
-    renderSetup();
+      '<section class="card"><h1>Choose the song</h1><p class="muted">From Mandarin\'s music folder: Mandarin plays it, and SQ-tool compares what the DAC is fed with it.</p>' +
+      '<input type="search" id="q" placeholder="Search the music folder" autocomplete="off" enterkeyhint="search" aria-label="Search the music folder">' +
+      '<div id="browser"><p class="muted">Loading…</p></div></section>';
     browse(S.browsePath);
     var timer = null;
     $("#q").addEventListener("input", function (e) {
@@ -212,7 +181,6 @@
         if (S.page === "new") q ? search(q) : browse(S.browsePath);
       }, 300);
     });
-    $("#upload").addEventListener("change", function (e) { if (e.target.files[0]) upload(e.target.files[0]); });
   }
 
   function songButton(path, name, meta, ok) {
@@ -229,8 +197,7 @@
     api("api/browse?path=" + encodeURIComponent(path)).then(function (d) {
       if (seq !== S.searchSeq || S.page !== "new" || ($("#q") && $("#q").value.trim())) return;
       if (!d.available) {
-        $("#browser").innerHTML = '<div class="alert warn" style="margin-top:10px"><p>Your music folder is not connected to SQ-tool.</p>' +
-          "<p>Add it to the <code>docker run</code> command, for example <code>-v /path/to/your/music:/music:ro</code>, and start the container again. Or upload the file below.</p></div>";
+        $("#browser").innerHTML = '<div class="alert warn" style="margin-top:10px"><p>Mandarin\'s music folder isn\'t there (' + esc(d.root) + ").</p></div>";
         return;
       }
       S.browsePath = d.path;
@@ -274,23 +241,6 @@
     });
   }
 
-  function upload(file) {
-    var box = $("#upload-status");
-    box.innerHTML = '<p class="small">Uploading ' + esc(file.name) + ' (' + fmtBytes(file.size) + ')…</p><div class="upload-progress"><span></span></div>';
-    var xhr = new XMLHttpRequest();
-    xhr.open("POST", "api/tests/upload?filename=" + encodeURIComponent(file.name));
-    xhr.setRequestHeader("Content-Type", "application/octet-stream");
-    xhr.upload.onprogress = function (e) { if (e.lengthComputable) $(".upload-progress span", box).style.width = (100 * e.loaded / e.total).toFixed(1) + "%"; };
-    xhr.onload = function () {
-      var data = {};
-      try { data = JSON.parse(xhr.responseText); } catch (err) { /* not JSON */ }
-      if (xhr.status === 200 && data.id) location.hash = "#/test/" + encodeURIComponent(data.id);
-      else box.innerHTML = '<div class="alert bad">' + esc(data.error || "Upload failed (HTTP " + xhr.status + ")") + "</div>";
-    };
-    xhr.onerror = function () { box.innerHTML = '<div class="alert bad">Upload failed: the connection was lost.</div>'; };
-    xhr.send(file);
-  }
-
   // ---------------------------------------------------------------- a test
 
   function showTest(tid) {
@@ -300,7 +250,6 @@
     S.spec.data = "";
     S.page = "test"; S.tid = tid;
     main.innerHTML =
-      '<div id="setup"></div>' +
       '<section class="card" id="t-head"><span class="spinner"></span> Loading…</section>' +
       '<section class="card" id="t-steps" hidden></section>' +
       '<section class="card" id="t-results" hidden></section>' +
@@ -308,6 +257,7 @@
       '<section class="card" id="t-charts" hidden></section>' +
       '<section class="card" id="t-details" hidden></section>' +
       '<section class="card" id="t-downloads" hidden></section>';
+    loadZones();
     loadTest();
   }
 
@@ -322,6 +272,14 @@
       $("#t-head").innerHTML = '<div class="alert bad">' + esc(e.message === "not found" ? "This test does not exist (any more)." : e.message) +
         '</div><p><a class="btn" href="#/">Back to the start</a></p>';
     });
+  }
+
+  // The zones Mandarin can record, and why not where it can't (its /api/sq-tool/zones).
+  function loadZones() {
+    return api(MANDARIN + "zones").then(function (d) {
+      S.zones = d.zones || [];
+      if (S.test) renderSteps();
+    }).catch(function (e) { S.zones = { error: e.message }; if (S.test) renderSteps(); });
   }
 
   function renderTest() {
@@ -346,29 +304,26 @@
       '<button class="btn small" data-act="test-menu" aria-label="Test options">⋯</button></div>');
   }
 
-  // -- steps: the song, then each player
+  // -- steps: the song, then its recording on a zone
 
   function renderSteps() {
     var t = S.test, el = $("#t-steps");
     if (!t || !el) return;
     el.hidden = false;
-    var st = S.state || {}, rec = st.recorder, cap = st.capture || {};
-    var busyElsewhere = recActive(rec) && rec.test !== t.id;
+    var job = S.job, busyElsewhere = recActive(job) && job.test !== t.id;
     var src = t.source, html = '<div class="steps">';
     var srcDetail = src.state === "ready" ? "Analysed: " + esc(src.label) + " · " + fmtRate(src.rate) + " · " + fmtClock(src.duration)
       : src.state === "error" ? '<span style="color:var(--bad)">' + esc(src.message) + "</span>"
         : '<span class="spinner"></span> Reading and analysing the song…';
     html += step(1, src.state === "ready" ? "done" : src.state === "error" ? "" : "now", "The song", srcDetail, "");
-    var next = !t.captures.a ? "a" : !t.captures.b ? "b" : null;
-    ["a", "b"].forEach(function (slot, i) { html += playerStep(i + 2, slot, t, rec, cap, busyElsewhere, next === slot); });
-    html += "</div>";
+    html += recordStep(2, t, job, busyElsewhere) + "</div>";
     if (busyElsewhere) {
-      html += '<div class="alert info" style="margin-top:12px">Another test is recording right now. <a href="#/test/' +
-        encodeURIComponent(rec.test) + '">Go to it</a></div>';
+      html += '<div class="alert info" style="margin-top:12px">Another test is being recorded right now. <a href="#/test/' +
+        encodeURIComponent(job.test) + '">Go to it</a></div>';
     }
     setHtml(el, html);
-    updateLive(rec, t);
-    $("#rec-badge").hidden = !hearing(rec);
+    updateLive(job, t);
+    $("#rec-badge").hidden = !hearing(job);
   }
 
   function step(n, cls, what, detail, act, extra) {
@@ -376,73 +331,73 @@
       (detail ? '<div class="detail">' + detail + "</div>" : "") + (act ? '<div class="act">' + act + "</div>" : "") + (extra || "") + "</div></div>";
   }
 
-  function playerStep(n, slot, t, rec, capInfo, busyElsewhere, isNext) {
-    var name = t.players[slot], cap = t.captures[slot], res = t.results[slot];
-    var who = '<span class="row" style="gap:6px">' + swatch(COLORS[slot]) + esc(name) + "</span>";
-    var here = rec && rec.test === t.id && rec.slot === slot;
-    if (here && recActive(rec)) {
-      return step(n, hearing(rec) ? "recording" : "now", who, "", "", liveBox(rec, t, name));
+  // The zone picker: every room Mandarin has, those it can't record shown with why.
+  function zonePicker(disabled) {
+    if (!S.zones) return '<p class="muted small"><span class="spinner"></span> Asking Mandarin which zones can be recorded…</p>';
+    if (S.zones.error) return '<div class="alert bad">Mandarin didn\'t say which zones can be recorded: ' + esc(S.zones.error) + "</div>";
+    var can = S.zones.filter(function (z) { return z.can; });
+    if (!can.length) {
+      return '<div class="alert warn"><p>No zone can be recorded yet.</p>' + (S.zones.length ? "<ul>" + S.zones.map(function (z) {
+        return "<li><b>" + esc(z.name) + "</b>: " + esc(z.why) + "</li>";
+      }).join("") + "</ul>" : "") + '<p><button class="linkbtn" data-act="help">What can be recorded?</button></p></div>';
     }
+    if (!can.some(function (z) { return z.zone_id === S.zone; })) S.zone = can[0].zone_id;
+    return '<label class="field">Record on<select id="zone"' + (disabled ? " disabled" : "") + ">" + S.zones.map(function (z) {
+      return '<option value="' + esc(z.zone_id) + '"' + (z.zone_id === S.zone ? " selected" : "") + (z.can ? "" : " disabled") + ">" +
+        esc(z.name) + (z.can ? "" : " — " + esc(z.why)) + "</option>";
+    }).join("") + "</select></label>";
+  }
+
+  function recordStep(n, t, job, busyElsewhere) {
+    var cap = t.captures.a, res = t.results.a, here = job && job.test === t.id;
+    var who = cap ? '<span class="row" style="gap:6px">' + swatch(COLORS.a) + esc(zoneName(t)) + "</span>" : "Record it on a zone";
+    if (here && recActive(job)) return step(n, hearing(job) ? "recording" : "now", "Recording on " + esc(job.name), "", "", liveBox(job));
     var songReady = t.source.state === "ready";
-    var canRecord = !recActive(rec) && capInfo.use && songReady;
+    var canRecord = songReady && !recActive(job) && S.zones && !S.zones.error && S.zones.some(function (z) { return z.can; });
     var recBtn = function (label, big) {
-      return '<button class="btn ' + (big ? "rec big" : "small") + '" data-act="record" data-slot="' + slot + '"' + (canRecord ? "" : " disabled") + ">" +
+      return '<button class="btn ' + (big ? "rec big" : "small") + '" data-act="record"' + (canRecord ? "" : " disabled") + ">" +
         (big ? '<span class="recdot"></span>' : "") + esc(label) + "</button>";
     };
-    var failed = here && !rec.saved && rec.error ? '<div class="alert bad" style="margin-top:8px">' + esc(rec.error) + "</div>" : "";
+    var failed = here && job.state === "failed" ? '<div class="alert bad" style="margin-top:8px">' + esc(job.says) + "</div>" : "";
+    var picker = songReady && !busyElsewhere ? zonePicker(!canRecord) : "";
     if (cap && cap.state === "analysing") return step(n, "now", who, '<span class="spinner"></span> Analysing the recording…', "");
     if (cap && cap.state === "error") {
-      return step(n, "", who, '<span style="color:var(--bad)">' + esc(cap.message || "the recording could not be analysed") + "</span>", recBtn("Record " + name + " again", false));
+      return step(n, "", who, '<span style="color:var(--bad)">' + esc(cap.message || "the recording could not be analysed") + "</span>" + failed, picker + recBtn("Record again", false));
     }
     if (cap && cap.state === "ready") {
-      var badge = !res ? '<span class="badge wait">' + (t.source.state === "ready" ? '<span class="spinner"></span> comparing' : "waiting for the song") + "</span>"
+      var badge = !res ? '<span class="badge wait"><span class="spinner"></span> comparing</span>'
         : res.state === "comparing" ? '<span class="badge wait"><span class="spinner"></span> comparing</span>'
           : res.state === "error" ? '<span class="badge bad">error</span>'
-            : '<span class="badge ' + verdictClass(res.verdict) + '">' + esc(badgeText(res.verdict, slot)) + "</span>";
-      var detail = "Recorded " + fmtClock(cap.seconds) + " of " + esc(cap.format || "audio") + " · " + fmtRate(cap.rate) +
-        (cap.player ? " · sent by " + esc(cap.player) : "") + (cap.recorded ? " · " + esc(fmtTime(cap.recorded)) : "");
-      return step(n, "done", who + badge, detail, recBtn("Record again", false));
+            : '<span class="badge ' + verdictClass(res.verdict) + '">' + esc(badgeText(res.verdict)) + "</span>";
+      var detail = "Recorded " + fmtClock(cap.seconds) + " · " + fmtRate(cap.rate) + (cap.recorded ? " · " + esc(fmtTime(cap.recorded)) : "");
+      return step(n, "done", who + badge, detail + failed, picker + recBtn("Record again", false));
     }
-    var toUsb = capInfo.use && capInfo.use.indexOf("usb") === 0;
-    var hint = !isNext ? "" : !songReady ? "You can record as soon as the song has been analysed."
-      : "Press Record, then play the song in " + esc(name) + (toUsb ? " to your USB DAC." : " to the Loopback output.");
-    return step(n, isNext ? "now" : "", who, hint + failed, recBtn("Record " + name, isNext));
+    var hint = !songReady ? "You can record as soon as the song has been analysed."
+      : "Mandarin plays the song on this zone from its start, and records exactly what its DAC is fed, to the song's last sample.";
+    return step(n, songReady ? "now" : "", who, hint + failed, picker + recBtn("Record", true));
   }
 
-  function liveBox(rec, t, name) {
-    if (hearing(rec)) {
-      return '<div class="live-box rec" aria-live="polite"><div class="row spread"><span><span class="dot rec"></span><b>Recording ' + esc(name) +
-        '</b></span></div><div class="clock" id="live-clock"></div>' +
-        '<div class="progress" id="live-bar"' + (rec.expected_seconds ? "" : " hidden") + '><span></span></div>' +
-        '<div class="small muted" id="live-fmt"></div>' +
-        '<div class="small muted">It stops by itself at the song\'s last sample, even if ' + esc(name) + " goes on to the next track.</div>" +
-        '<div class="row"><button class="btn rec" data-act="stop">Stop now</button></div></div>';
+  function liveBox(job) {
+    var bar = '<div class="progress" id="live-bar"' + (job.seconds ? "" : " hidden") + '><span></span></div>';
+    if (hearing(job)) {
+      return '<div class="live-box rec" aria-live="polite"><div class="row spread"><span><span class="dot rec"></span><b>Recording what the DAC is fed</b></span></div>' +
+        '<div class="clock" id="live-clock"></div>' + bar + '<div class="small muted" id="live-says"></div>' +
+        '<div class="row"><button class="btn rec" data-act="stop">Stop</button></div></div>';
     }
-    if (rec.state === "stopping") return '<div class="live-box"><div class="row"><span class="spinner"></span> Finishing the recording…</div></div>';
-    var cap = (S.state && S.state.capture) || {}, lp = cap.loopback;
-    var where = cap.use && cap.use.indexOf("usb") === 0 ? "to your USB DAC" : "to the <b>Loopback</b> output" + (lp ? " (" + esc(lp.play_to) + ")" : "");
-    // A player can hold its output open and silent before the song starts (Squeezelite does).
-    var open = rec.state === "recording" ? '<div class="small muted">' + esc(name) + "'s output is open and silent: SQ-tool is listening.</div>" : "";
-    if (rec.ignoring && rec.state !== "recording") {
-      open += '<div class="small muted">' + esc(rec.ignoring) + " is still playing to the Loopback (it went on to its next track). SQ-tool leaves that alone and waits for " + esc(name) + ".</div>";
-    }
-    return '<div class="live-box" aria-live="polite"><div class="row"><span class="spinner"></span><b>Waiting for ' + esc(name) + "…</b></div>" +
-      "<div>Now play <b>“" + esc(t.title) + "”</b> in " + esc(name) + ", from the beginning, " + where + ". Recording starts by itself.</div>" + open +
-      '<div class="row"><button class="btn" data-act="stop">Cancel</button><button class="linkbtn" data-act="help">How do I set up ' + esc(name) + "?</button></div></div>";
+    return '<div class="live-box" aria-live="polite"><div class="row"><span class="spinner"></span><b id="live-says">' + esc(job.says) + "</b></div>" +
+      '<div class="row"><button class="btn" data-act="stop">Stop</button></div></div>';
   }
 
-  function updateLive(rec, t) {
+  function updateLive(job, t) {
     // The clock and progress change every second: update them in place, not by re-rendering.
+    if (!job || job.test !== t.id) return;
+    var says = $("#live-says");
+    if (says) says.textContent = job.says;
     var clock = $("#live-clock");
-    if (!clock || !hearing(rec)) return;
-    // Where in the song the player is, once SQ-tool has recognised it; until then, time since the music began.
-    var take = rec.take, secs = take.song_seconds != null ? Math.max(0, take.song_seconds) : take.music_seconds;
-    var exp = rec.expected_seconds;
-    clock.innerHTML = fmtClock(secs) + (exp ? " <small>/ " + fmtClock(exp) + "</small>" : "");
+    if (!clock || !hearing(job)) return;
+    clock.innerHTML = fmtClock(job.recorded) + (job.seconds ? " <small>/ " + fmtClock(job.seconds) + "</small>" : "");
     var bar = $("#live-bar span");
-    if (bar && exp) bar.style.width = Math.min(100, 100 * secs / exp).toFixed(1) + "%";
-    $("#live-fmt").textContent = (take.format || "") + " · " + fmtRate(take.rate) + " · " + (take.channels || "?") + " channels" +
-      (take.player && take.player.name ? " · sent by " + take.player.name : "");
+    if (bar && job.seconds) bar.style.width = Math.min(100, 100 * job.recorded / job.seconds).toFixed(1) + "%";
   }
 
   // -- verdicts
@@ -453,17 +408,16 @@
     return "bad";
   }
 
-  function badgeText(v, key) {
-    var pair = key === "ab";
+  function badgeText(v) {
     return ({
-      IDENTICAL: pair ? "SAME DATA" : "BIT-PERFECT",
-      PARTIAL: pair ? "SAME DATA" : "BIT-PERFECT",
+      IDENTICAL: "BIT-PERFECT",
+      PARTIAL: "BIT-PERFECT",
       GAPS: "DROPOUTS",
       ALTERED: "ALTERED",
-      DIFFERENT: pair ? "DIFFERENT DATA" : "NOT BIT-PERFECT",
-      RESAMPLED: pair ? "DIFFERENT RATES" : "RESAMPLED",
+      DIFFERENT: "NOT BIT-PERFECT",
+      RESAMPLED: "RESAMPLED",
       CHANNELS: "CHANNELS DIFFER",
-      "NO MATCH": pair ? "NO MATCH" : "SONG NOT FOUND",
+      "NO MATCH": "SONG NOT FOUND",
       "NO SIGNAL": "NO SIGNAL"
     })[v] || v;
   }
@@ -474,51 +428,30 @@
     return same ? fmtDb(g[0], 2) + " dB" : g.map(function (x) { return fmtDb(x, 2); }).join(" / ") + " dB";
   }
 
-  function plainText(t, key, r) {
-    var p = t.players, P = esc(key === "ab" ? "" : p[key]), A = esc(p.a), B = esc(p.b);
-    var v = r.verdict, out;
-    if (key !== "ab") {
-      out = {
-        IDENTICAL: "Every sample " + P + " sent is exactly the sample in the file.",
-        PARTIAL: "Every sample " + P + " sent matches the file, but part of the song is missing from the recording.",
-        GAPS: "The samples are unchanged, but the stream has " + plural(r.events || 0, "gap or jump", "gaps or jumps") + " (dropouts).",
-        ALTERED: "Parts of the stream differ from the file.",
-        DIFFERENT: P + " changed the samples.",
-        RESAMPLED: P + " sent " + fmtRate((t.captures[key] || {}).rate) + " instead of the file's " + fmtRate(t.source.rate) + ": it resampled the music.",
-        CHANNELS: P + " sent a different number of channels.",
-        "NO MATCH": "The song could not be found in what " + P + " sent. Did it play this file?",
-        "NO SIGNAL": "The file is digital silence."
-      }[v] || esc(r.headline);
-      if (v === "PARTIAL" && r.missing_start_seconds > 0 && !r.missing_start_silent) {
-        out += " The first " + fmtSecs(r.missing_start_seconds) + " was not recorded: recording starts a moment after " + P + " starts playing.";
-      }
-    } else {
-      var fa = (t.captures.a || {}).format, fb = (t.captures.b || {}).format;
-      out = {
-        IDENTICAL: A + " and " + B + " send exactly the same samples: your DAC would convert identical data.",
-        PARTIAL: "Where both recordings overlap, " + A + " and " + B + " send exactly the same samples.",
-        GAPS: "The samples are the same, but one of the streams has dropouts.",
-        ALTERED: "Parts of the two streams differ.",
-        DIFFERENT: A + " and " + B + " send different samples: your DAC would convert different data.",
-        RESAMPLED: "They send different sample rates (" + fmtRate((t.captures.a || {}).rate) + " and " + fmtRate((t.captures.b || {}).rate) + ").",
-        CHANNELS: "They send different numbers of channels.",
-        "NO MATCH": "The two recordings could not be lined up."
-      }[v] || esc(r.headline);
-      if ((v === "IDENTICAL" || v === "PARTIAL") && fa && fb && fa !== fb) {
-        out += " (They package the samples differently, " + esc(fa) + " and " + esc(fb) + ", but the values are the same.)";
-      }
+  function plainText(t, r) {
+    var P = esc(zoneName(t)), v = r.verdict;
+    var out = {
+      IDENTICAL: "Every sample " + P + "'s DAC was fed is exactly the sample in the file.",
+      PARTIAL: "Every sample " + P + "'s DAC was fed matches the file, but part of the song is missing from the recording.",
+      GAPS: "The samples are unchanged, but the stream has " + plural(r.events || 0, "gap or jump", "gaps or jumps") + " (dropouts).",
+      ALTERED: "Parts of what the DAC was fed differ from the file.",
+      DIFFERENT: "The samples were changed on the way to " + P + "'s DAC.",
+      RESAMPLED: P + "'s DAC was fed " + fmtRate((t.captures.a || {}).rate) + " instead of the file's " + fmtRate(t.source.rate) + ": the music was resampled.",
+      CHANNELS: P + "'s DAC was fed a different number of channels.",
+      "NO MATCH": "The song could not be found in what " + P + "'s DAC was fed. Did it play this file?",
+      "NO SIGNAL": "The file is digital silence."
+    }[v] || esc(r.headline);
+    if (v === "PARTIAL" && r.missing_start_seconds > 0 && !r.missing_start_silent) {
+      out += " The first " + fmtSecs(r.missing_start_seconds) + " was not recorded.";
     }
     return out;
   }
 
-  function verdictCard(t, key) {
-    var r = t.results[key], p = t.players;
-    var head = key === "ab"
-      ? '<div class="q">' + swatch(COLORS.a) + esc(p.a) + " vs " + swatch(COLORS.b) + esc(p.b) + "</div>"
-      : '<div class="q">' + swatch(COLORS[key]) + esc(p[key]) + " vs the original file</div>";
+  function verdictCard(t) {
+    var r = t.results.a;
+    var head = '<div class="q">' + swatch(COLORS.a) + "What " + esc(zoneName(t)) + "'s DAC was fed, against the file</div>";
     if (!r) {
-      var need = (key === "ab" ? ["a", "b"] : [key]).filter(function (k) { return !t.captures[k]; }).map(function (k) { return esc(p[k]); });
-      var wait = need.length ? "Record " + need.join(" and ") + " to see this" : t.source.state !== "ready" ? "Waiting for the song" : '<span class="spinner"></span> Comparing…';
+      var wait = !t.captures.a ? "Record it on a zone to see this" : t.source.state !== "ready" ? "Waiting for the song" : '<span class="spinner"></span> Comparing…';
       return '<div class="verdict-card">' + head + '<span class="badge wait">' + wait + "</span></div>";
     }
     if (r.state === "comparing") return '<div class="verdict-card">' + head + '<span class="badge wait"><span class="spinner"></span> Comparing…</span></div>';
@@ -530,10 +463,10 @@
       nums.push("after matching the level, what remains is " + Math.abs(r.null_db).toFixed(1) + " dB below the music (" + fmtDb(r.residual_rms_db) + " dBFS rms)");
     }
     var tl = r.plots && r.plots.timeline;
-    return '<div class="verdict-card ' + cls + '">' + head + '<span class="badge ' + cls + '">' + esc(badgeText(r.verdict, key)) + "</span>" +
-      "<div>" + plainText(t, key, r) + "</div>" +
+    return '<div class="verdict-card ' + cls + '">' + head + '<span class="badge ' + cls + '">' + esc(badgeText(r.verdict)) + "</span>" +
+      "<div>" + plainText(t, r) + "</div>" +
       (nums.length ? '<div class="small muted">' + esc(nums.join(" · ")) + "</div>" : "") +
-      (tl && tl.length && r.verdict !== "IDENTICAL" ? timelineHtml(tl, key === "ab" ? (t.captures.a || {}).seconds : t.source.duration) : "") +
+      (tl && tl.length && r.verdict !== "IDENTICAL" ? timelineHtml(tl, t.source.duration) : "") +
       ((r.lines || []).length ? "<details><summary>Details</summary><ul>" + r.lines.map(function (l) { return "<li>" + esc(l) + "</li>"; }).join("") + "</ul></details>" : "") +
       "</div>";
   }
@@ -548,28 +481,11 @@
   }
 
   function summaryText(t) {
-    var p = t.players, r = t.results;
-    var ready = function (x) { return x && x.state === "ready"; };
-    var good = function (x) { return ready(x) && (x.verdict === "IDENTICAL" || x.verdict === "PARTIAL"); };
-    var gaps = function (x) { return ready(x) && x.verdict === "GAPS"; };
-    var says = function (k) {  // what one player did with the file
-      return "<b>" + esc(p[k]) + "</b> " + (good(r[k]) ? "is bit-perfect" : gaps(r[k])
-        ? "sent the file's samples unchanged, but its stream had dropouts" : "is not bit-perfect");
-    };
-    if (ready(r.a) && ready(r.b)) {
-      if (good(r.a) && good(r.b)) {
-        return "Both players are bit-perfect: <b>" + esc(p.a) + "</b> and <b>" + esc(p.b) +
-          "</b> send your DAC exactly the samples in the file, so it converts identical data from both.";
-      }
-      var both = !ready(r.ab) ? "" : good(r.ab) ? " Yet both send the same samples as each other."
-        : gaps(r.ab) ? " Apart from the dropouts, both send the same samples."
-          : " Your DAC would receive different data from the two.";
-      return says("a") + "; " + says("b") + "." + both;
-    }
-    var one = ready(r.a) ? "a" : ready(r.b) ? "b" : null;
-    if (!one) return "";
-    var other = one === "a" ? "b" : "a";
-    return says(one) + "." + (t.captures[other] ? "" : " Now record <b>" + esc(p[other]) + "</b>.");
+    var r = t.results.a, P = "<b>" + esc(zoneName(t)) + "</b>";
+    if (!r || r.state !== "ready") return "";
+    if (r.verdict === "IDENTICAL" || r.verdict === "PARTIAL") return P + " is bit-perfect: its DAC is fed exactly the samples in the file.";
+    if (r.verdict === "GAPS") return P + "'s DAC was fed the file's samples unchanged, but the stream had dropouts.";
+    return P + " is not bit-perfect: its DAC is not fed exactly the samples in the file.";
   }
 
   function renderResults() {
@@ -577,35 +493,28 @@
     el.hidden = !Object.keys(t.captures).length;
     if (el.hidden) return;
     var summary = summaryText(t);
-    setHtml(el, "<h2>Results</h2>" + (summary ? '<p class="summary">' + summary + "</p>" : "") +
-      '<div class="verdicts">' + ["a", "b", "ab"].map(function (k) { return verdictCard(t, k); }).join("") + "</div>");
+    setHtml(el, "<h2>Result</h2>" + (summary ? '<p class="summary">' + summary + "</p>" : "") +
+      '<div class="verdicts">' + verdictCard(t) + "</div>");
   }
 
   // ---------------------------------------------------------------- spectrograms
 
   function specPanels(t) {
-    var p = t.players, mode = S.spec.mode, out = [];
-    var capReady = function (k) { return t.captures[k] && t.captures[k].state === "ready"; };
-    var resReady = function (k) { return t.results[k] && t.results[k].state === "ready"; };
-    if (mode === "signals") {
-      out.push({ which: "source", label: "Original file", color: COLORS.source, ok: true });
-      ["a", "b"].forEach(function (k) {
-        out.push({ which: k, label: p[k], color: COLORS[k], ok: capReady(k), wait: "Record " + p[k] + " to see what it sent", marks: k });
-      });
+    var z = zoneName(t), out = [];
+    var capReady = t.captures.a && t.captures.a.state === "ready", resReady = t.results.a && t.results.a.state === "ready";
+    if (S.spec.mode === "signals") {
+      out.push({ which: "source", label: "The file", color: COLORS.source, ok: true });
+      out.push({ which: "a", label: "What " + z + "'s DAC was fed", color: COLORS.a, ok: capReady, wait: "Record it on a zone to see what its DAC was fed", marks: "a" });
     } else {
-      out.push({ which: "diff-a", label: p.a + " − original", color: COLORS.a, ok: resReady("a"), wait: "Record " + p.a + " to see this difference", marks: "a" });
-      out.push({ which: "diff-b", label: p.b + " − original", color: COLORS.b, ok: resReady("b"), wait: "Record " + p.b + " to see this difference", marks: "b" });
-      out.push({ which: "diff-ab", label: p.b + " − " + p.a, color: DIFF, ok: resReady("ab"), wait: "Record both players to see this difference", marks: "ab" });
+      out.push({ which: "diff-a", label: z + " − the file", color: COLORS.a, ok: resReady, wait: "Record it on a zone to see the difference", marks: "a" });
     }
     return out;
   }
 
   function specData(t) {
     // Everything the images depend on: when it changes, they are fetched again.
-    var parts = [t.source.fingerprint];
-    ["a", "b"].forEach(function (k) { var c = t.captures[k] || {}; parts.push(c.state, c.recorded, c.fingerprint, c.seconds); });
-    ["a", "b", "ab"].forEach(function (k) { var r = t.results[k] || {}; parts.push(r.state, r.created, JSON.stringify(r.alignment || null)); });
-    return hash(JSON.stringify(parts));
+    var c = t.captures.a || {}, r = t.results.a || {};
+    return hash(JSON.stringify([t.source.fingerprint, c.state, c.recorded, c.fingerprint, c.seconds, r.state, r.created, JSON.stringify(r.alignment || null)]));
   }
 
   function renderSpec() {
@@ -617,7 +526,7 @@
     if (!el.__built) {
       el.__built = true;
       el.innerHTML = '<div class="card-head"><h2>Spectrogram</h2><div class="seg" role="group" aria-label="What to show">' +
-        '<button data-spec-mode="signals">What each one sent</button><button data-spec-mode="diffs">Differences</button></div></div>' +
+        '<button data-spec-mode="signals">The file and what the DAC was fed</button><button data-spec-mode="diffs">The difference</button></div></div>' +
         '<div class="toolbar">' +
         '<div class="seg" role="group" aria-label="Frequency scale"><button data-spec-scale="log">Log</button><button data-spec-scale="linear">Linear</button></div>' +
         '<select id="spec-floor" aria-label="Lowest level shown">' + [-100, -120, -150, -180, -210].map(function (v) {
@@ -766,28 +675,12 @@
     var bands = r && r.plots && r.plots.timeline;
     if (!bands || r.verdict === "IDENTICAL") { box.innerHTML = ""; return; }
     var toSong = function (x) { return x; };
-    if (p.marks === "ab") toSong = aToSong(t);  // these bands are on the first player's timeline
     var span = sp.t1 - sp.t0;
     box.innerHTML = bands.filter(function (b) { return b.kind !== "identical" && b.kind !== "ending"; }).map(function (b) {
       var a = toSong(b.start), e = Math.max(toSong(b.end), a);
       if (e < sp.t0 || a > sp.t1) return "";
       return '<span style="left:' + (100 * (a - sp.t0) / span).toFixed(3) + "%;width:" + (100 * (e - a) / span).toFixed(3) + '%"></span>';
     }).join("");
-  }
-
-  function aToSong(t) {
-    // Seconds in the first player's recording -> seconds in the song, following its alignment
-    // steps (a capture frame f lies in step k when f - lag_k falls inside that step).
-    var al = (t.results.a || {}).alignment || {}, rate = (t.captures.a || {}).rate || 1, steps = al.steps;
-    if (!steps || !steps.length) {
-      var off = al.offset_seconds || 0;
-      return function (x) { return x - off; };
-    }
-    return function (x) {
-      var f = x * rate, k = 0;
-      for (var i = 1; i < steps.length; i++) if (f - steps[i][1] >= steps[i][0]) k = i;
-      return (f - steps[k][1]) / rate;
-    };
   }
 
   function zoomTo(a, b) {
@@ -868,23 +761,23 @@
     var t = S.test, el = $("#t-charts"), an = t.analysis;
     el.hidden = t.source.state !== "ready";
     if (el.hidden) return;
-    var items = ["source", "a", "b"].filter(function (k) { return an[k] && an[k].plots && (k === "source" || (t.captures[k] || {}).state === "ready"); });
-    var pairs = ["a", "b", "ab"].filter(function (k) { var r = t.results[k]; return r && r.state === "ready" && r.plots && (r.plots.spectrum || r.plots.envelope); });
-    var zooms = ["a", "b", "ab"].filter(function (k) { var r = t.results[k]; return r && r.state === "ready" && r.zoom; });
+    var items = ["source", "a"].filter(function (k) { return an[k] && an[k].plots && (k === "source" || (t.captures[k] || {}).state === "ready"); });
+    var pairs = ["a"].filter(function (k) { var r = t.results[k]; return r && r.state === "ready" && r.plots && (r.plots.spectrum || r.plots.envelope); });
+    var zooms = ["a"].filter(function (k) { var r = t.results[k]; return r && r.state === "ready" && r.zoom; });
     var html = "<h2>Charts</h2><div class=\"grid2\">" +
       chartBlock("ch-spec", "Average spectrum", "The level of each frequency over the whole song. Identical data draws identical lines, one on top of the other.") +
       chartBlock("ch-env", "Level over time", "Loudness through the song, all lined up with it.") + "</div>";
     pairs.forEach(function (k) {
       var lab = pairLabel(t, k);
       html += '<h3 style="margin-top:18px">Difference: ' + esc(lab) + "</h3>" +
-        '<p class="muted small">After lining up the two recordings and matching their levels (' + esc(gainText(t.results[k].gain_db) || "no change") + "), this is what remains.</p>" +
+        '<p class="muted small">After lining up what the DAC was fed with the song and matching their levels (' + esc(gainText(t.results[k].gain_db) || "no change") + "), this is what remains.</p>" +
         '<div class="grid2">' + chartBlock("ch-dspec-" + k, "Spectrum of what remains", "") + chartBlock("ch-denv-" + k, "What remains over time", "") + "</div>";
     });
     zooms.forEach(function (k) {
       var z = t.results[k].zoom;
       html += '<div class="chart-block" style="margin-top:18px"><h3>Close-up of the waveforms: ' + esc(pairLabel(t, k)) + "</h3>" +
         '<p class="muted">Channel ' + z.channel + ", sample by sample, around " + fmtAt(z.at_seconds, 3) + " of the " +
-        (k === "ab" ? esc(t.players.a) + " recording" : "song") + (z.why === "largest" ? ", where they differ most." : ", where they first differ.") +
+        "song" + (z.why === "largest" ? ", where they differ most." : ", where they first differ.") +
         '</p><canvas class="chart" id="ch-zoom-' + k + '"></canvas><div class="legend" id="lg-zoom-' + k + '"></div></div>';
     });
     var bits = items.filter(function (k) { return an[k].plots.bits; });
@@ -921,7 +814,7 @@
       }
     });
     zooms.forEach(function (k) {
-      var z = t.results[k].zoom, ref = k === "ab" ? "a" : "source", cap = k === "ab" ? "b" : k;
+      var z = t.results[k].zoom, ref = "source", cap = k;
       var x = z.ref.map(function (_, i) { return 1000 * (z.start_seconds + i / z.rate - z.at_seconds); });
       var series = [{ label: whoName(t, ref), color: COLORS[ref], x: x, y: z.ref }, { label: whoName(t, cap), color: COLORS[cap], x: x, y: z.cap }];
       chart($("#ch-zoom-" + k), { series: series, xMin: x[0], xMax: x[x.length - 1], linear: true, yLabel: "sample value",
@@ -933,7 +826,7 @@
   }
 
   function pairLabel(t, k) {
-    return k === "ab" ? t.players.b + " − " + t.players.a : t.players[k] + " − original";
+    return zoneName(t) + " − the file";
   }
 
   function chartBlock(id, title, note) {
@@ -1062,12 +955,12 @@
 
   function renderDetails() {
     var t = S.test, el = $("#t-details"), an = t.analysis;
-    var cols = ["source", "a", "b"].filter(function (k) { return an[k] && (k === "source" || (t.captures[k] || {}).state === "ready"); });
+    var cols = ["source", "a"].filter(function (k) { return an[k] && (k === "source" || (t.captures[k] || {}).state === "ready"); });
     el.hidden = cols.length < 1 || t.source.state !== "ready";
     if (el.hidden) return;
     function cap(k) { return (an[k] && an[k].capture) || {}; }
     var rows = [
-      ["Format", function (k) { return k === "source" ? esc(an[k].label) : esc(cap(k).alsa_format || "–") + ' <span class="muted">(' + (an[k].bits) + "-bit words)</span>"; }],
+      ["Format", function (k) { return k === "source" ? esc(an[k].label) : "PCM, " + an[k].bits + "-bit samples"; }],
       ["Sample rate", function (k) { return fmtRate(an[k].rate); }, true],
       ["Channels", function (k) { return String(an[k].channels); }, true],
       ["Bits in use", function (k) {
@@ -1081,30 +974,8 @@
       ["Loudness (RMS)", function (k) { return (an[k].channel_stats || []).map(function (s) { return fmtDb(s.rms_db, 2); }).join(" / ") + " dBFS"; }, true],
       ["Clipped samples", function (k) { var n = (an[k].channel_stats || []).reduce(function (s, x) { return s + x.clipped; }, 0); return n ? fmtNum(n) : "none"; }, true],
       ["Fingerprint", function (k) { var f = an[k].fingerprint; return f ? swatch(fpColor(f)) + ' <span class="fp">' + esc(f.slice(0, 12)) + "</span>" : "–"; }, true],
-      ["Sent by", function (k) { return k === "source" ? "–" : esc((cap(k).player || {}).name || "–"); }],
-      ["Player buffer / period", function (k) {
-        var c = cap(k);
-        return c.buffer_size && c.rate ? (1000 * c.buffer_size / c.rate).toFixed(1) + " / " + (1000 * c.period_size / c.rate).toFixed(1) + " ms" : "–";
-      }],
-      ["Recording", function (k) {
-        if (k === "source") return "–";
-        var c = cap(k), notes = [];
-        if (c.capture_overruns) notes.push(c.capture_overruns + " overruns (SQ-tool lost data)");
-        if (c.player_xruns_seen) notes.push(c.player_xruns_seen + " player underruns");
-        if (c.usb) {
-          if (c.usb.usbmon_dropped) notes.push(c.usb.usbmon_dropped + " USB events lost");
-          if (c.usb.iso_errors) notes.push(c.usb.iso_errors + " USB packet errors");
-        }
-        if (c.interruptions && c.interruptions.length) notes.push(c.interruptions.length + " stream restarts");
-        return notes.length ? esc(notes.join(", ")) : "complete";
-      }],
-      ["Stopped because", function (k) { return k === "source" ? "–" : esc(cap(k).stop_reason || "–"); }],
-      ["CPU while recording", function (k) {
-        var u = an[k].cpu;
-        if (!u || u.system_percent == null) return "–";
-        var top = (u.top || [])[0];
-        return u.system_percent.toFixed(1) + "% of the machine" + (top ? " (busiest: " + esc(top.name) + " " + top.percent_of_one_cpu.toFixed(1) + "%)" : "");
-      }],
+      ["Recorded on", function (k) { return k === "source" ? "–" : esc((cap(k).player || {}).name || "–"); }],
+      ["Recorded by", function (k) { return k === "source" ? "–" : esc(cap(k).device || "Mandarin"); }],
       ["Recorded", function (k) { return k === "source" ? esc(t.source.filename) : esc(fmtTime(cap(k).started)); }]
     ];
     var html = '<h2>Details</h2><div class="table-wrap"><table class="cmp"><thead><tr><th></th>' + cols.map(function (k) {
@@ -1115,7 +986,7 @@
       return "<tr><td>" + r[0] + "</td>" + cells.map(function (x, i) {
         return '<td class="' + (r[2] && i > 0 && x[0] !== cells[0][0] ? "diff" : "") + '">' + x[1] + "</td>";
       }).join("") + "</tr>";
-    }).join("") + '</tbody></table></div><p class="muted small">Highlighted: differs from the original file. The same fingerprint means the same sample data.</p>';
+    }).join("") + '</tbody></table></div><p class="muted small">Highlighted: differs from the file. The same fingerprint means the same sample data.</p>';
     setHtml(el, html);
   }
 
@@ -1126,8 +997,8 @@
     var base = "api/tests/" + encodeURIComponent(t.id), links = [];
     var link = function (href, text) { links.push('<a class="btn small" href="' + href + '" download>' + text + "</a>"); };
     link(base + "/audio/source.wav", "⤓ The song (WAV)");
-    ["a", "b"].forEach(function (k) { if ((t.captures[k] || {}).state === "ready") link(base + "/audio/" + k + ".wav", "⤓ What " + esc(t.players[k]) + " sent (WAV)"); });
-    ["a", "b", "ab"].forEach(function (k) {
+    if ((t.captures.a || {}).state === "ready") link(base + "/audio/a.wav", "⤓ What " + esc(zoneName(t)) + "'s DAC was fed (WAV)");
+    ["a"].forEach(function (k) {
       var r = t.results[k];
       if (!r || r.state !== "ready" || r.verdict === "RESAMPLED" || r.verdict === "CHANNELS" || r.verdict === "NO MATCH") return;
       link(base + "/difference/" + k + ".wav", "⤓ Difference: " + esc(pairLabel(t, k)));
@@ -1151,74 +1022,29 @@
     document.body.style.overflow = "";
   }
 
-  function openSettings() {
-    var st = S.state || {}, s = st.settings || { players: players(), device: "auto", idle_stop: 5 }, cap = st.capture || {};
-    var opts = [["auto", "Automatic (the Loopback card)"]];
-    if (cap.loopback) opts.push(["loopback:" + cap.loopback.card, "Loopback card " + cap.loopback.play_to]);
-    (cap.dacs || []).forEach(function (d) { opts.push([d.id, "USB DAC: " + d.name + " (records the USB data, needs usbmon)"]); });
-    if (!opts.some(function (o) { return o[0] === s.device; })) opts.push([s.device, s.device]);
-    openSheet('<div class="stack"><h2 id="sheet-title">Settings</h2>' +
-      '<div class="card stack"><h3>The two players</h3>' +
-      '<label class="field">First player<input type="text" id="set-a" maxlength="40" value="' + esc(s.players.a) + '"></label>' +
-      '<label class="field">Second player<input type="text" id="set-b" maxlength="40" value="' + esc(s.players.b) + '"></label>' +
-      '<p class="muted small">Used for new tests. To rename the players of one test, use ⋯ on that test.</p></div>' +
-      '<div class="card stack"><h3>Recording</h3><label class="field">Record from<select id="set-device">' + opts.map(function (o) {
-        return '<option value="' + esc(o[0]) + '"' + (o[0] === s.device ? " selected" : "") + ">" + esc(o[1]) + "</option>";
-      }).join("") + "</select></label>" +
-      '<label class="field">Stop after this many seconds of digital silence<input type="number" id="set-idle" min="0" max="60" step="1" inputmode="numeric" value="' + esc(s.idle_stop) + '"></label>' +
-      '<p class="muted small">A recording also stops by itself at the end of the song, or when the player closes the output.</p></div>' +
-      '<button class="btn primary" id="set-save">Save</button>' +
-      '<p class="muted small">SQ-tool ' + esc(st.version || "") + " · " + fmtBytes(st.free_bytes) + " free for recordings.</p></div>");
-    $("#set-save").addEventListener("click", function () {
-      api("api/settings", { method: "POST", json: { players: { a: $("#set-a").value, b: $("#set-b").value }, device: $("#set-device").value, idle_stop: $("#set-idle").value } })
-        .then(function () { closeSheet(); toast("Saved"); return poll(); }).catch(function (e) { toast(e.message); });
-    });
-  }
-
   function openHelp() {
-    var cap = (S.state && S.state.capture) || {}, lp = cap.loopback;
-    var dev = lp ? lp.play_to : "hw:Loopback,0";
-    openSheet('<div class="stack"><h2 id="sheet-title">Setting up the players</h2>' +
-      '<div class="card stack"><h3>How it works</h3><p>Linux has a virtual sound card called <b>Loopback</b>. A player plays to it like to any DAC, and SQ-tool records exactly the samples it receives: what the player would send to your DAC. Nothing is changed in the players.</p>' +
-      (lp ? '<div class="alert ok">The Loopback card is ready: card ' + lp.card + ", play to <code>" + esc(dev) + "</code>.</div>"
-        : '<div class="alert warn"><p>The Loopback card is not loaded yet.</p>' + (cap.can_load_loopback ? '<p><button class="btn small" data-act="load-loopback">Load it now</button></p>' : "<p>On the server run:</p><pre class=\"cmd\">sudo modprobe snd-aloop</pre>") + "</div>") +
-      "</div>" +
-      '<div class="card stack"><h3>Roon</h3><ol class="lines">' +
-      "<li>In Roon, open <b>Settings → Audio</b>. Under your Roon Server, find <b>Loopback</b> and press <b>Enable</b> (if it is listed twice, either one works). Name the zone, for example “SQ-tool”.</li>" +
-      "<li>In its <b>Device Setup</b>, use the same settings as your DAC's zone, so the test shows what your DAC gets. For a pure bit-perfect check: <b>Volume control: Fixed volume</b>, and in the zone's <b>DSP Engine</b> everything off (volume leveling, headroom, sample rate conversion, EQ).</li>" +
-      "<li>Choose that zone, press Record in SQ-tool, then play the song from the start.</li>" +
-      "<li>Loopback not listed? Load the driver above, then restart Roon Server.</li></ol></div>" +
-      '<div class="card stack"><h3>Lyrion Music Server (Squeezelite)</h3>' +
-      "<p>Lyrion plays through a player such as Squeezelite. Run a second Squeezelite on the server that plays to the Loopback card:</p>" +
-      '<pre class="cmd">squeezelite -n SQ-tool -m 02:00:00:00:00:01 -o hw:CARD=Loopback,DEV=0 -s 127.0.0.1</pre>' +
-      '<ol class="lines"><li>It appears in Lyrion as the player “SQ-tool”. Give it the same settings as your DAC\'s player. For a pure bit-perfect check, in its <b>Audio</b> settings: <b>Volume Control: output level fixed at 100%</b>, <b>Replay Gain: off</b>, <b>Crossfade: no fade</b>, and <b>Bitrate Limiting: no limit</b>.</li>' +
-      "<li>Press Record in SQ-tool, then play the song to “SQ-tool” from the start. Squeezelite keeps its output open and silent while it is on: SQ-tool waits for the music and times the song from there.</li></ol></div>" +
-      '<div class="card stack"><h3>Mandarin and other players</h3><ol class="lines">' +
-      "<li>Choose the output device <b>Loopback</b> (<code>" + esc(dev) + "</code>) the same way you would choose your DAC.</li>" +
-      "<li>Use the settings you normally use with your DAC, then press Record in SQ-tool and play the song from the start.</li>" +
-      "<li>The two players of a test can have any names: change them in Settings, or with ⋯ on a test.</li></ol></div>" +
-      '<div class="card stack"><h3>For a fair comparison</h3><ul class="lines">' +
-      "<li>Play the same file in both players, from the beginning.</li>" +
-      "<li>Record the same player twice: the two recordings should be identical, which shows the measurement is consistent.</li>" +
-      "<li>If the levels differ even by a few tenths of a dB, that alone can make one player sound “better” in a sighted comparison.</li>" +
-      "<li>Identical data means your DAC converts the same numbers from both. Any remaining audible difference would come from elsewhere (electrical noise, timing, system load) or from the listening test itself: level-matched blind listening is the way to check.</li></ul></div></div>");
+    openSheet('<div class="stack"><h2 id="sheet-title">How SQ-tool works</h2>' +
+      '<div class="card stack"><h3>What it proves</h3><p>Mandarin plays the song to the zone from its start, and records exactly what the zone\'s DAC is fed, ' +
+      "every sample to the song's last: what goes into the DAC, after everything Mandarin and the device do. SQ-tool then compares it with the file, sample by sample. " +
+      "Bit-perfect means every one of them is the file's.</p></div>" +
+      '<div class="card stack"><h3>What can be recorded</h3><ul class="lines">' +
+      "<li><b>Mandarin Bridge</b> on an Android phone or tablet with a USB DAC: it records what its USB driver feeds the DAC. An older app can't: update Mandarin Bridge.</li>" +
+      "<li>A <b>USB DAC on Mandarin's server</b>: what goes down its USB cable, read off the USB bus (Docker: --privileged, and the usbmon driver loaded).</li>" +
+      "<li>Not yet: Mandarin Bridge for Linux or the Raspberry Pi, Sonos, or other streamers.</li></ul></div>" +
+      '<div class="card stack"><h3>For a bit-perfect result</h3><ul class="lines">' +
+      "<li>In Mandarin, the zone's <b>Output</b> as <b>Original</b>: upsampling, DSD from PCM, DSP and volume levelling change the samples on purpose.</li>" +
+      "<li><b>Fixed volume</b>, or the DAC's own volume: a volume in software scales the samples.</li>" +
+      "<li>A 16-bit song fed to a 32-bit DAC is still bit-perfect: its samples are padded with zeros, their values unchanged.</li></ul></div></div>");
   }
 
   function openTestMenu() {
     var t = S.test;
     if (!t) return;
-    openSheet('<div class="stack"><h2 id="sheet-title">This test</h2><div class="card stack">' +
-      '<label class="field">First player<input type="text" id="tm-a" maxlength="40" value="' + esc(t.players.a) + '"></label>' +
-      '<label class="field">Second player<input type="text" id="tm-b" maxlength="40" value="' + esc(t.players.b) + '"></label>' +
-      '<button class="btn primary" id="tm-save">Rename</button></div>' +
+    openSheet('<div class="stack"><h2 id="sheet-title">This test</h2>' +
       '<div class="card stack"><p class="small muted">Song file: ' + esc(t.source.music_path || t.source.filename) + "<br>Created " + esc(fmtTime(t.created)) + "</p>" +
       '<button class="btn danger" id="tm-delete">Delete this test</button></div></div>');
-    $("#tm-save").addEventListener("click", function () {
-      api("api/tests/" + encodeURIComponent(t.id), { method: "PATCH", json: { players: { a: $("#tm-a").value, b: $("#tm-b").value } } })
-        .then(function () { closeSheet(); return loadTest(); }).catch(function (e) { toast(e.message); });
-    });
     $("#tm-delete").addEventListener("click", function () {
-      if (!confirm("Delete this test and its recordings?")) return;
+      if (!confirm("Delete this test and its recording?")) return;
       api("api/tests/" + encodeURIComponent(t.id), { method: "DELETE" }).then(function () {
         closeSheet(); location.hash = "#/";
       }).catch(function (e) { toast(e.message); });
@@ -1237,38 +1063,27 @@
     else if (el.dataset.zoom) zoomCmd(el.dataset.zoom);
     else if (el.dataset.specMode) { S.spec.mode = el.dataset.specMode; renderSpec(); }
     else if (el.dataset.specScale) { S.spec.scale = el.dataset.specScale; save("sq.scale", S.spec.scale); loadSpec(); }
-    else if (act === "record") record(el.dataset.slot, el);
-    else if (act === "stop") api("api/record/stop", { method: "POST" }).then(poll).catch(function (err) { toast(err.message); });
-    else if (act === "upload") $("#upload").click();
+    else if (act === "record") record(el);
+    else if (act === "stop") api(MANDARIN + "record", { method: "POST", json: { stop: true } }).then(poll).catch(function (err) { toast(err.message); });
     else if (act === "help") openHelp();
     else if (act === "test-menu") openTestMenu();
-    else if (act === "load-loopback") loadLoopback(el);
   });
-  $("#btn-settings").addEventListener("click", openSettings);
+  document.addEventListener("change", function (e) {
+    if (e.target.id === "zone") { S.zone = e.target.value; save("sq.zone", S.zone); }
+  });
   $("#btn-help").addEventListener("click", openHelp);
   $("#rec-badge").addEventListener("click", function () {
-    var rec = S.state && S.state.recorder;
-    if (rec && rec.test) location.hash = "#/test/" + encodeURIComponent(rec.test);
+    if (S.job && S.job.test) location.hash = "#/test/" + encodeURIComponent(S.job.test);
   });
 
-  function record(slot, btn) {
+  // Mandarin asked to play the song on the chosen zone and record what its DAC is fed.
+  function record(btn) {
+    var zone = ($("#zone") || {}).value || S.zone;
+    if (!zone) { toast("Choose the zone"); return; }
     btn.disabled = true;
-    api("api/tests/" + encodeURIComponent(S.tid) + "/record", { method: "POST", json: { slot: slot } })
-      .then(poll).catch(function (err) { toast(err.message); btn.disabled = false; });
-  }
-
-  function loadLoopback(btn) {
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner"></span> Loading…';
-    api("api/loopback/load", { method: "POST" }).then(function (r) {
-      toast(r.message + ". Restart Roon Server so it lists the Loopback output.");
-      closeSheet();
-      return poll();
-    }).catch(function (err) {
-      toast(err.message);
-      btn.disabled = false;
-      btn.textContent = "Try again";
-    });
+    api(MANDARIN + "record", { method: "POST", json: { test: S.tid, zone_or_output_id: zone } })
+      .then(function (job) { S.job = job; renderSteps(); return poll(); })
+      .catch(function (err) { toast(err.message); btn.disabled = false; });
   }
 
   // ---------------------------------------------------------------- polling
@@ -1283,19 +1098,25 @@
   function pollDelay() {
     if (document.hidden) return 15000;
     var st = S.state;
-    if ((st && (recActive(st.recorder) || st.busy)) || pending(S.test)) return 1000;
+    if ((st && st.busy) || recActive(S.job) || pending(S.test)) return 1000;
     return 3000;
   }
 
   function poll() {
     clearTimeout(S.timer);
     var tid = S.page === "test" ? S.tid : null;
-    return api("api/state" + (tid ? "?test=" + encodeURIComponent(tid) : "")).then(function (st) {
+    var was = S.job;
+    // Mandarin's recording, where it is; then this page's own state.
+    return api(MANDARIN + "record").catch(function () { return null; }).then(function (job) {
+      S.job = job && job.state !== "none" ? job : null;
+      // A recording just over: the zones may have changed, and SQ-tool has the recording.
+      if (recActive(was) && !recActive(S.job) && S.page === "test") loadZones();
+      return api("api/state" + (tid ? "?test=" + encodeURIComponent(tid) : ""));
+    }).then(function (st) {
       S.state = st;
       $("#version").textContent = "SQ-tool " + st.version;
       $("#free").textContent = fmtBytes(st.free_bytes) + " free";
-      $("#rec-badge").hidden = !hearing(st.recorder);
-      renderSetup();
+      $("#rec-badge").hidden = !hearing(S.job);
       if (S.page === "test" && S.tid === tid) {
         if (st.test_rev === null) return;
         if (st.test_rev !== S.rev) return loadTest();

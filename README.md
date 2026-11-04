@@ -1162,11 +1162,26 @@ taken from the device's name, and a device that fails being reported and let go.
 
 ## SQ-tool
 
-SQ-tool records what a DAC is fed and compares it with the file, sample by sample: the proof, or
-not, that a player is bit-perfect. It is part of Mandarin (`sq-tool/`, item 288): **Settings →
-SQ-tool** opens it in its own tab, exactly as it is installed on its own, its recordings, compare
-and verdicts with your music folder. Mandarin starts it the first time it is opened, on a port of
-the computer only, behind your sign-in, with its data in the data folder's `sq-tool`.
+SQ-tool proves whether a zone's DAC gets exactly what is in the file, sample by sample. It is part of Mandarin
+(`sq-tool/`): **Settings → SQ-tool** opens it in its own tab.
+
+1. Choose a song from the music folder.
+2. Choose the zone and press **Record**. Mandarin plays the song there alone, from its start, and records exactly
+   what the zone's DAC is fed, to the song's last sample:
+   * a **Mandarin Bridge** on an Android device with a USB DAC: what its USB driver feeds the DAC (update the app
+     for it);
+   * a **USB DAC on Mandarin's server**: what goes down its USB cable, off the USB bus (Docker: `--privileged`, and
+     `sudo modprobe usbmon` on the host).
+   Mandarin Bridge for Linux and the Raspberry Pi can't be recorded yet; nor can Sonos or other streamers.
+3. The result: **bit-perfect** or not, and where not, how (the level, what remains, where in the song), with
+   spectrograms of the file, of what the DAC was fed and of the difference, charts, and the recordings to download.
+
+For a bit-perfect result the zone's **Output** is **Original** and its volume fixed (or the DAC's own): upsampling,
+DSD from PCM, DSP, volume levelling and a volume in software change the samples on purpose. A 16-bit song fed to a
+32-bit DAC is still bit-perfect: padded with zeros, its values unchanged.
+
+Mandarin starts SQ-tool the first time it is opened, on a port of the computer only, behind your sign-in, with its
+data in the data folder's `sq-tool`.
 
 * **Docker:** the image has what it needs (Python 3 and numpy).
 * **Installed without Docker:** add Python 3 and numpy (`sudo apt install python3 python3-numpy`
@@ -1174,7 +1189,6 @@ the computer only, behind your sign-in, with its data in the data folder's `sq-t
   missing. `SQTOOL_PYTHON` names another Python to run it with.
 * An update made from Settings brings it (from the first release that carries it), as a new image
   does; Python and numpy are the computer's to have.
-* Recording a Mandarin zone's USB output itself (Mandarin Bridge's, or a DAC on the server) follows.
 
 ## Away from home (Tailscale)
 

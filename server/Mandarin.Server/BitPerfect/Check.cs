@@ -45,30 +45,7 @@ internal static class Check
         var failed = true;
         try
         {
-            if (Directory.Exists(dir)) Directory.Delete(dir, true);
-            Directory.CreateDirectory(dir);
-            var parts = new List<(string Wav, JsonObject? Said)>();
-            run.Said = "Asking the device to record";
-            await recorder.Ask(Math.Min(recorder.Most, (int)Math.Ceiling(track.Seconds) + 2), ct);
-            run.Said = "Playing the track from its start";
-            await room.Restart();
-            while (true)
-            {
-                run.State = "recording";
-                run.Said = $"Recording what the DAC is fed ({Math.Round(run.Recorded)} s of {Math.Round(track.Seconds)} s)";
-                var (seconds, whole) = await recorder.Wait(run, run.Recorded, ct);
-                var wav = Path.Combine(dir, $"part{parts.Count + 1}.wav");
-                parts.Add((wav, await recorder.Take(wav, ct)));
-                run.Recorded += seconds;
-                if (!room.StillOn() || !whole) break;
-                // In parts, every one of them; else, the next recording asked for until the track is all recorded.
-                if (recorder.More) continue;
-                if (run.Recorded + 1 >= track.Seconds) break;
-                await recorder.Ask(Math.Min(recorder.Most, (int)Math.Ceiling(track.Seconds - run.Recorded) + 2), ct);
-            }
-            await recorder.Stop(false);
-            // A recording in parts that follow on: the one recording of the track they are (Parts.cs).
-            if (Parts.Join(parts, Path.Combine(dir, "whole.wav")) is { } joined) parts = [joined];
+            var parts = await Recorded(run, track.Seconds, room, recorder, dir, ct);
             run.State = "comparing";
             run.Said = "Comparing what the DAC was fed with what was sent";
             var sent = Path.Combine(dir, "sent");
@@ -88,6 +65,41 @@ internal static class Check
             run.Said = ct.IsCancellationRequested ? "Stopped" : "The check couldn't finish: " + e.Message;
         }
         finally { if (failed) await recorder.Stop(true); }
+    }
+
+    /*
+     * The track [seconds] long, played in [room] from its start, recorded whole by [recorder] into [dir] (emptied
+     * first): its recordings, one where they were parts that follow on (Parts.cs). The recorder is stopped once they
+     * are all in; where this throws, the caller stops it as failed. SQ-tool's recording of a zone (SqToolRecord.cs)
+     * is this, handed to SQ-tool.
+     */
+    public static async Task<List<(string Wav, JsonObject? Said)>> Recorded(Run run, double seconds, Room room, IRecorder recorder, string dir, CancellationToken ct)
+    {
+        if (Directory.Exists(dir)) Directory.Delete(dir, true);
+        Directory.CreateDirectory(dir);
+        var parts = new List<(string Wav, JsonObject? Said)>();
+        run.Said = "Asking the device to record";
+        await recorder.Ask(Math.Min(recorder.Most, (int)Math.Ceiling(seconds) + 2), ct);
+        run.Said = "Playing the track from its start";
+        await room.Restart();
+        while (true)
+        {
+            run.State = "recording";
+            run.Said = $"Recording what the DAC is fed ({Math.Round(run.Recorded)} s of {Math.Round(seconds)} s)";
+            var (took, whole) = await recorder.Wait(run, run.Recorded, ct);
+            var wav = Path.Combine(dir, $"part{parts.Count + 1}.wav");
+            parts.Add((wav, await recorder.Take(wav, ct)));
+            run.Recorded += took;
+            if (!room.StillOn() || !whole) break;
+            // In parts, every one of them; else, the next recording asked for until the track is all recorded.
+            if (recorder.More) continue;
+            if (run.Recorded + 1 >= seconds) break;
+            await recorder.Ask(Math.Min(recorder.Most, (int)Math.Ceiling(seconds - run.Recorded) + 2), ct);
+        }
+        await recorder.Stop(false);
+        // A recording in parts that follow on: the one recording of the track they are (Parts.cs).
+        if (Parts.Join(parts, Path.Combine(dir, "whole.wav")) is { } joined) parts = [joined];
+        return parts;
     }
 
     /*

@@ -1,34 +1,23 @@
 #!/usr/bin/env python3
-"""Run the web interface against a simulated loopback card and players (for tests and UI checks).
+"""Run the web interface with a music folder of two generated songs, and hand it recordings as Mandarin does.
 
-A music folder with two generated songs stands in for your library. Whenever a
-recording waits for a player, a simulated player "plays" the test's song to the
-loopback card, then goes on to a next track as real players do: the fake
-/proc/asound shows the stream and a fake arecord delivers it. The first player
-(Roon) is bit-perfect; the second (Mandarin) applies -0.5 dB of digital volume
-with dither and sends packed 24-bit samples. Each plays on its own substream.
+For tests and for looking at the page without Mandarin: post_recording() sends what a zone's DAC "was fed" to
+POST /api/tests/<id>/recording, as Mandarin does once it has played the song and recorded it (its
+/api/sq-tool/record): the song in 32-bit words after a moment of silence, as it is or its volume scaled.
 
-    python3 tests/fake_server.py --port 3400 --data /tmp/sq-data --speed 4
+    python3 tests/fake_server.py --port 3400 --data /tmp/sq-data
 """
 
 import argparse
 import os
-import shutil
-import subprocess
-import sys
 import tempfile
 import threading
 import time
+import urllib.request
 
 import numpy as np
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-
-from helpers import FAKE_ARECORD, FakeLoopback, alsa_bytes  # noqa: E402
-
-from sqtool.wavio import Audio, info_chunk, read_wav, write_wav  # noqa: E402
-
-FRAME_BYTES = {"S16_LE": 2, "S24_3LE": 3, "S24_LE": 4, "S32_LE": 4}
+from sqtool.wavio import Audio, info_chunk, read_wav, write_wav
 
 
 def demo_song(rate: int, bits: int, seconds: float = 20.0, seed: int = 3) -> np.ndarray:
@@ -84,77 +73,41 @@ def make_music(music_dir: str, seconds: float = 20.0) -> None:
             write_wav(path, Audio(data=demo_song(rate, bits, seconds), rate=rate, bits=bits), extra_chunks=[(b"LIST", tags)])
 
 
-def volume_with_dither(data: np.ndarray, db: float = -0.5, seed: int = 7) -> np.ndarray:
-    rng = np.random.default_rng(seed)
-    x = data.astype(np.float64) * 10 ** (db / 20) / 256
-    x += rng.random(x.shape) - rng.random(x.shape)
-    return (np.round(x) * 256).astype(np.int32)
+def volume_in_software(data: np.ndarray, db: float = -0.5) -> np.ndarray:
+    """What a Bridge with its volume in software feeds its DAC: the samples scaled, at 32 bits."""
+    return np.round(data.astype(np.float64) * 10 ** (db / 20)).astype(np.int32)
 
 
-class FakePlayers:
-    """Plays the test's song to the simulated loopback card whenever a recording waits for a player."""
-
-    def __init__(self, app, fake: FakeLoopback, tmp: str, speed: float = 0.0, delay: float = 0.8):
-        self.app, self.fake, self.tmp, self.speed, self.delay = app, fake, tmp, speed, delay
-        self.procs = {"a": self._named_process("RAATServer"), "b": self._named_process("mandarin")}
-        self.plays = 0
-        threading.Thread(target=self._run, name="fake-players", daemon=True).start()
-
-    def _named_process(self, name: str):
-        exe = os.path.join(self.tmp, name)
-        shutil.copy("/bin/sleep", exe)  # a process is listed under its program's file name
-        return subprocess.Popen([exe, "100000"])
-
-    def _run(self) -> None:
-        seen = None
-        while True:
-            time.sleep(0.05)
-            cap = self.app.recorder.capture
-            if cap is None or cap is seen or getattr(cap, "state", None) != "waiting":
-                continue
-            seen = cap
-            info = dict(self.app.recorder.info)
-            time.sleep(self.delay)
-            if cap.state == "waiting":
-                self.play(info["test"], info["slot"])
-
-    def play(self, tid: str, slot: str) -> None:
-        src = read_wav(self.app.tests.audio_path(tid, "source"))
-        following = demo_song(src.rate, 16, seconds=4.0, seed=99)[:, :src.channels]  # the next track
-        if slot == "a":
-            data, fmt = np.concatenate([src.data, following]), "S32_LE"
-        else:
-            data, fmt = volume_with_dither(np.concatenate([src.data, following])), "S24_3LE"
-        payload = np.concatenate([np.zeros((int(0.15 * src.rate), src.channels), np.int32), data])
-        path = os.path.join(self.tmp, "play-%s.pcm" % slot)
-        with open(path, "wb") as f:
-            f.write(alsa_bytes(payload, fmt))
-        sub = 0 if slot == "a" else 1
-        os.environ.update({"FAKE_PCM": path, "FAKE_FRAME_BYTES": str(FRAME_BYTES[fmt] * src.channels),
-                           "FAKE_SPEED": str(self.speed), "FAKE_SKIP_BYTES": "0",
-                           "FAKE_CLOSE_DIR": self.fake.subdir(0, "p", sub)})
-        self.plays += 1
-        self.fake.play(fmt, src.rate, src.channels, sub=sub, pid=self.procs[slot].pid)
-
-    def close(self) -> None:
-        for p in self.procs.values():
-            p.kill()
-            p.wait()
+def fed(app, tid: str, scaled: bool = False) -> bytes:
+    """What a zone's DAC is fed of test [tid]'s song, as a WAV: 0.15 s of silence, then the song."""
+    src = read_wav(app.tests.audio_path(tid, "source"))
+    data = volume_in_software(src.data) if scaled else src.data
+    payload = np.concatenate([np.zeros((int(0.15 * src.rate), src.channels), np.int32), data])
+    path = os.path.join(app.tests.data_dir, "fed-%s.wav" % tid)
+    write_wav(path, Audio(data=payload, rate=src.rate, bits=32))
+    with open(path, "rb") as f:
+        body = f.read()
+    os.unlink(path)
+    return body
 
 
-def start(data_dir: str, port: int = 0, proc_dir: str = None, music_dir: str = None, speed: float = 0.0,
-          seconds: float = 20.0):
-    """Start the server in a thread; returns (httpd, base URL). httpd.players is the FakePlayers."""
-    proc_dir = proc_dir or tempfile.mkdtemp(prefix="sq-proc-")
-    fake = FakeLoopback(os.path.join(proc_dir, "asound"))
-    music_dir = music_dir or os.path.join(proc_dir, "music")
+def post_recording(base: str, app, tid: str, zone: str = "FiiO R7 USB", scaled: bool = False) -> dict:
+    """The recording handed to SQ-tool as Mandarin hands it."""
+    import json
+    import urllib.parse
+    req = urllib.request.Request("%s/api/tests/%s/recording?zone=%s&device=%s" % (
+        base, tid, urllib.parse.quote(zone), urllib.parse.quote("Mandarin Bridge")),
+        data=fed(app, tid, scaled), method="POST", headers={"Content-Type": "audio/wav"})
+    with urllib.request.urlopen(req, timeout=60) as r:
+        return json.loads(r.read())
+
+
+def start(data_dir: str, port: int = 0, music_dir: str = None, seconds: float = 20.0):
+    """Start the server in a thread; returns (httpd, base URL)."""
+    music_dir = music_dir or os.path.join(tempfile.mkdtemp(prefix="sq-music-"), "music")
     make_music(music_dir, seconds)
-    os.environ.update({"SQTOOL_PROC_ASOUND": fake.root, "SQTOOL_ARECORD": FAKE_ARECORD,
-                       "FAKE_ARGS_LOG": os.path.join(proc_dir, "arecord.log"),
-                       "FAKE_CLOSE_DIR": fake.subdir(0, "p", 0)})
     from sqtool.server import make_server
     httpd = make_server(data_dir, music_dir, "127.0.0.1", port, log=lambda msg: None)
-    httpd.players = FakePlayers(httpd.app, fake, proc_dir, speed)
     threading.Thread(target=httpd.serve_forever, daemon=True).start()
     return httpd, "http://127.0.0.1:%d" % httpd.server_address[1]
 
@@ -163,13 +116,12 @@ if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--port", type=int, default=3400)
     ap.add_argument("--data", default=tempfile.mkdtemp(prefix="sq-data-"))
-    ap.add_argument("--speed", type=float, default=4.0, help="play this many times faster than real time")
     ap.add_argument("--seconds", type=float, default=20.0, help="length of the generated songs")
     args = ap.parse_args()
-    httpd, url = start(args.data, args.port, speed=args.speed, seconds=args.seconds)
-    print("fake SQ-tool server on %s (data in %s)" % (url, args.data), flush=True)
+    httpd, url = start(args.data, args.port, seconds=args.seconds)
+    print("SQ-tool on %s (data in %s)" % (url, args.data), flush=True)
     try:
         while True:
             time.sleep(3600)
     except KeyboardInterrupt:
-        httpd.players.close()
+        pass
