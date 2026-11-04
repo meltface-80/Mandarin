@@ -51,6 +51,28 @@ internal static class MandarinUsb
         advertised["containers"] = containers;
     }
 
+    /*
+     * What the device said of its DAC, kept with the device (caps.mandarin): where to ask, and — while a DAC is on its
+     * port — the rates, depths and DSD multiples it takes (those Mandarin knows) and how its volume goes: "fixed" for a
+     * DAC with no USB volume control or one set to fixed on the device, else "upnp" (Mandarin's slider drives it).
+     */
+    public static JsObj Said(string baseUrl, JsObj dac)
+    {
+        var d = dac["dac"] as JsObj ?? dac;
+        var o = Jv.Obj(("base", baseUrl));
+        var rates = Numbers(d["rates"], Profiles.Rates);
+        if (rates.Count == 0) return o;   // no DAC on the port (or not yet allowed): nothing said of one
+        o["rates"] = rates;
+        o["bits"] = Numbers(d["bits"], Profiles.Bits);
+        o["dsd"] = Numbers(d["dsd"], Profiles.Dsd);
+        o["volume"] = Jv.T(d["volume_control"]) && !Jv.T(d["fixed"]) ? "upnp" : "fixed";
+        return o;
+    }
+
+    /* The device's word on its DAC (Said), from a register row's caps: null where it has said none. */
+    public static JsObj? Reported(object? caps) =>
+        Prop.Get(caps, "mandarin") is JsObj mu && mu["rates"] is List<object?> { Count: > 0 } ? mu : null;
+
     public sealed record Now(double Rate, double Bits, double Dsd);
 
     /* What the device is feeding the DAC, from /dac.json's "now"; null while nothing plays. */
