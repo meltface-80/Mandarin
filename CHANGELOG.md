@@ -530,7 +530,16 @@
 - New - the bit-perfect check: ask for it on a Mandarin USB renderer and the track is played again from its start while the phone records exactly what it feeds the DAC; the server compares every sample with what it sent and says bit-perfect, or what differed and where (PCM, DoP and native DSD)
 - New - the bit-perfect check on Now playing: Signal path → Bit-perfect check → Check, on a Mandarin USB renderer; the step says how far it has got, then its verdict
 - New - Mandarin USB, the phone app that plays through a USB DAC as a renderer, now lives in this repository (usb-renderer/): it builds from Mandarin's own driver, so the two are worked on together; its test build is the test-usb-renderer pre-release
+- Fixed - on the phone, an album whose tags are the same in more than one folder (Machine Head (1972), (Remastered 2012) and (2024 Remix), all tagged "Machine Head") is one album a folder, as it already was on the server; the discs of one album in folders of their own (CD1, Disc 2) are still one
 
+- `279-folder-is-an-album` (item 279): **a folder is an album on the phone too.** The phone keyed an album by its
+  album artist and title alone, so Deep Purple's Machine Head in three folders — the 1972 original, the 2012
+  remaster and the 2024 remix, each tagged "Machine Head" — was one album of 31 tracks, its quality the highest of
+  them. Its albums are now keyed as the server's are (Scanner.cs: artist, title and folder), by core's
+  `PhoneAlbumKeys`: the same tags in two folders are two albums, and a disc folder ("CD1", "Disc 2", "Side 1", the
+  server's own rule) is its parent's, so an album's discs stay one. An album whose tags are in one folder only keeps
+  the key it had, so its cover, its links and what was saved of it stay. The server already kept two folders apart
+  (AlbumFoldersTests), and a streaming service's albums are each its own release; neither changes.
 - `278-usb-renderer-in-mandarin` (item 278): **Mandarin USB brought into Mandarin's repository.** The app that makes
   an Android device with a USB DAC a UPnP renderer played through Mandarin's own USB driver was its own repository
   (github.com/meltface-80/Android-USB-Driver, taken here at its main, f4d957a: the DAC said whole to Mandarin, and

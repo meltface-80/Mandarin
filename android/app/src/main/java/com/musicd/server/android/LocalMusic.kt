@@ -10,10 +10,10 @@ import android.util.Log
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import org.json.JSONArray
+import com.musicd.server.client.PhoneAlbumKeys
 import com.musicd.server.client.PhoneShelf
 import org.json.JSONObject
 import java.io.File
-import java.security.MessageDigest
 import java.util.concurrent.Executors
 import android.database.ContentObserver
 import android.os.Handler
@@ -37,9 +37,10 @@ import android.os.Looper
  * changed — a listing, the tags of unchanged files kept from last time — so
  * music added or taken away shows up or goes by itself.
  *
- * Albums are keyed by a hash of album artist and title, so a key is safe in
- * an address: the page knows an album as "phone:<key>" and its cover as
- * "phone-<key>".
+ * Albums are keyed by a hash of album artist, title and, where the same tags
+ * are in more than one, folder (core's PhoneAlbumKeys, item 279), so a key is
+ * safe in an address: the page knows an album as "phone:<key>" and its cover
+ * as "phone-<key>".
  */
 object LocalMusic {
 
@@ -355,12 +356,11 @@ object LocalMusic {
         // here; the index keeps only the track's fields.
         val byKey = LinkedHashMap<String, MutableList<Pair<Track, String>>>()
         val tagsOf = HashMap<String, TagsHolder>()
-        for ((t, folderId) in found) {
-            // The album's tags travel with the track (read once, kept in the index).
-            val tags = tagsOf.getOrPut(t.uri) { TagsHolder(t.album.ifEmpty { folderId.substringAfterLast('/').substringAfterLast(':') }, t.albumArtist, t.year) }
-            val key = keyOf(tags.albumArtist.ifEmpty { t.artist }, tags.album)
-            byKey.getOrPut(key) { ArrayList() } += t to folderId
-        }
+        // The album's tags travel with the track (read once, kept in the index); an untagged one is its folder's.
+        val held = found.map { (t, folderId) -> tagsOf.getOrPut(t.uri) { TagsHolder(t.album.ifEmpty { PhoneAlbumKeys.albumFolder(folderId).substringAfterLast('/').substringAfterLast(':') }, t.albumArtist, t.year) } }
+        // A folder is an album (item 279): the same tags in two folders are two albums.
+        val keys = PhoneAlbumKeys.keys(found.mapIndexed { i, (t, folderId) -> PhoneAlbumKeys.Entry(held[i].albumArtist.ifEmpty { t.artist }, held[i].album, folderId) })
+        found.forEachIndexed { i, tf -> byKey.getOrPut(keys[i]) { ArrayList() } += tf }
         val out = ArrayList<Album>()
         val artDir = artDir(c)
         val keep = HashSet<String>()
@@ -380,11 +380,7 @@ object LocalMusic {
 
     private class TagsHolder(val album: String, val albumArtist: String, val year: Int?)
 
-    private fun keyOf(artist: String, album: String): String {
-        val s = (artist.lowercase().trim() + "|" + album.lowercase().trim())
-        val d = MessageDigest.getInstance("SHA-1").digest(s.toByteArray())
-        return d.joinToString("") { "%02x".format(it) }.substring(0, 16)
-    }
+    private fun keyOf(artist: String, album: String): String = PhoneAlbumKeys.hash(artist.lowercase().trim(), album.lowercase().trim())
 
     /**
      * The cover: the first track's embedded picture, else a cover file beside it.
