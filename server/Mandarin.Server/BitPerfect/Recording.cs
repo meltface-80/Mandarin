@@ -1,7 +1,7 @@
 // Recording.cs — a recording of what a DAC was fed, as the bit-perfect check reads it (bug list item 275): a WAV as
 // SQ-tool writes a USB capture (WAVE_FORMAT_EXTENSIBLE, the container the DAC's slot, the samples as the DAC took
 // them) beside its sidecar (.wav.json), whose "capture" says what it holds: PCM, DoP (DSD framed in PCM), or native
-// DSD words, big-endian ("native") or little-endian ("native_le"). Mandarin USB writes them so (its /capture), and
+// DSD words, big-endian ("native") or little-endian ("native_le"). Mandarin Bridge writes them so (its /capture), and
 // so does this server's own recording of a DAC on its USB bus.
 using System.Buffers.Binary;
 using System.Text.Json.Nodes;

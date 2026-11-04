@@ -341,7 +341,7 @@ Sonos rooms are found on the network by themselves (`SONOS_HOSTS` if not). Pick 
 
 📡 **UPnP/DLNA renderers**
 
-WiiM, Chord Poly, streamers, AV receivers and TVs on your network, played like a Sonos room. Tracks join gaplessly on a renderer that supports it. An Android device with a USB DAC running [Mandarin USB](https://github.com/meltface-80/Android-USB-Driver) is one too, set up by its DAC's own word: every rate, depth and DSD multiple it takes, nothing to tick, its volume fixed where the DAC has no volume control, and a ✓ when it is fed what was sent.
+WiiM, Chord Poly, streamers, AV receivers and TVs on your network, played like a Sonos room. Tracks join gaplessly on a renderer that supports it. An Android device with a USB DAC running [Mandarin Bridge](https://github.com/meltface-80/Android-USB-Driver) is one too, set up by its DAC's own word: every rate, depth and DSD multiple it takes, nothing to tick, its volume fixed where the DAC has no volume control, and a ✓ when it is fed what was sent.
 
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 
@@ -1013,14 +1013,17 @@ the uninstall, so download them again. After that, never again.
 published app, nor the published app it.
 
 
-### Mandarin USB: an Android device with a USB DAC as a renderer
+### Mandarin Bridge: an Android device with a USB DAC as a renderer
 
-A second, small app, in `usb-renderer/`: it makes an Android device (a FiiO R7, say) with a USB DAC on its port a
+Mandarin Bridge (once Mandarin USB) is Mandarin's renderer for a USB DAC on another device; on Android now, on Linux
+and as a Raspberry Pi image to come. A small app, in `bridge/`: it makes an Android device (a FiiO R7, say) with a USB DAC on its port a
 UPnP renderer that Mandarin plays to, bit-perfect, through Mandarin's own USB driver, and keeps the device awake.
 Mandarin reads the DAC whole from it (every rate, depth and DSD multiple), confirms what it feeds the DAC, and can
 check a whole track bit-perfect to the DAC (Now playing → Signal path → Bit-perfect check). Its test build is the
-[test-usb-renderer](https://github.com/meltface-80/Mandarin/releases/tag/test-usb-renderer) pre-release; setting it
-up, building it and how it fits together are in [usb-renderer/README.md](usb-renderer/README.md).
+[test-bridge](https://github.com/meltface-80/Mandarin/releases/tag/test-bridge) pre-release; setting it
+up, building it and how it fits together are in [bridge/README.md](bridge/README.md). It installs over Mandarin USB,
+keeping its settings; the server knows an app not yet updated as the same renderer.
+
 ## Qobuz
 
 Mandarin streams from Qobuz with a Qobuz subscription (v0.6.23), the way the Lyrion Music

@@ -16,7 +16,7 @@ internal static class Check
 {
     private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromMinutes(10) };
 
-    /* The most one recording of the device's holds (Mandarin USB's limit), in seconds. */
+    /* The most one recording of the device's holds (Mandarin Bridge's limit), in seconds. */
     public const int Most = 120;
 
     /* What is checked: the track's address on this server, its title, its length, and what was sent of it. */
@@ -38,7 +38,7 @@ internal static class Check
         public string Said { get => said; set { said = value; Changed?.Invoke(); } }
     }
 
-    /* [track] in [room], recorded by [recorder] (a Mandarin USB renderer's, or this server's USB bus), into [dir]. */
+    /* [track] in [room], recorded by [recorder] (a Mandarin Bridge renderer's, or this server's USB bus), into [dir]. */
     public static async Task Go(Run run, Track track, Room room, IRecorder recorder, string dir)
     {
         var ct = run.Stop.Token;

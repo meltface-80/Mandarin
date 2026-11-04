@@ -1,6 +1,6 @@
 "use strict";
 /*
- * The bit-perfect check, end to end (item 275): a Mandarin USB renderer whose app records what it feeds its DAC
+ * The bit-perfect check, end to end (item 275): a Mandarin Bridge renderer whose app records what it feeds its DAC
  * (/dac.json says "capture"), the track playing on it checked on request. The track is played again from its start
  * while the device records, the recording fetched, and compared sample by sample with what the server sent it
  * (BitPerfect/Check.cs): bit-perfect when the device fed the DAC what it was sent; not, and by how much, when its
@@ -32,12 +32,12 @@ async function until(fn, ms = 20000) {
 const SINK = "http-get:*:audio/flac:*,http-get:*:audio/wav:*";
 const DAC = { device: "SMSL SU-1", rates: [44100, 48000, 96000, 192000], bits: [16, 24, 32], dsd: [], volume_control: false, fixed: true };
 
-test("a Mandarin USB renderer's DAC checked bit-perfect, end to end", { skip, timeout: 150000 }, async () => {
+test("a Mandarin Bridge renderer's DAC checked bit-perfect, end to end", { skip, timeout: 150000 }, async () => {
   const lib = makeLibrary();
   const house = new FakeHousehold();
   await house.start();
-  const usb = new FakeRenderer({ name: "FiiO R7 USB", manufacturer: "Mandarin", model: "Mandarin USB", sink: SINK, dac: Object.assign({ capture: true }, DAC) });
-  const old = new FakeRenderer({ name: "Older app", manufacturer: "Mandarin", model: "Mandarin USB", sink: SINK, dac: DAC });
+  const usb = new FakeRenderer({ name: "FiiO R7 USB", manufacturer: "Mandarin", model: "Mandarin Bridge", sink: SINK, dac: Object.assign({ capture: true }, DAC) });
+  const old = new FakeRenderer({ name: "Older app", manufacturer: "Mandarin", model: "Mandarin Bridge", sink: SINK, dac: DAC });
   await usb.start(); await old.start();
   const { createServer } = require("./server");
   const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [ports.host(0)],

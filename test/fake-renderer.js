@@ -37,7 +37,7 @@ const CM = "urn:schemas-upnp-org:service:ConnectionManager:1";
 class FakeRenderer {
   constructor({ name, manufacturer = "Acme", model = "Streamer", modelNumber = "1", udn, sink = SINK_WIIM,
                 linkplay = null, dac = null, nested = false, urlBase = false, noAvTransport = false, setNext = true, namesNext = false } = {}) {
-    // dac: a Mandarin USB renderer's /dac.json "dac" part ({ rates, bits, dsd, … }, Renderers/MandarinUsb.cs), served with what plays now.
+    // dac: a Mandarin Bridge renderer's /dac.json "dac" part ({ rates, bits, dsd, … }, Renderers/MandarinBridge.cs), served with what plays now.
     // namesNext: GetPositionInfo names the next URI as soon as it is set, while the first goes on playing (a FiiO SR11, item 233).
     Object.assign(this, { name, manufacturer, model, modelNumber, sink, linkplay, dac, nested, urlBase, noAvTransport, setNext, namesNext });
     this.udn = udn || ("uuid:" + require("crypto").randomUUID());
@@ -239,7 +239,7 @@ class FakeRenderer {
         res.writeHead(200, { "Content-Type": "text/xml" });
         return res.end(this.description());
       }
-      // Mandarin USB's recording of what it feeds the DAC, for the server's bit-perfect check (item 275): test/fake-capture.js.
+      // Mandarin Bridge's recording of what it feeds the DAC, for the server's bit-perfect check (item 275): test/fake-capture.js.
       if (this.dac && this.dac.capture && /^\/capture(\.wav(\.json)?)?$/.test(u.pathname)) return require("./fake-capture").handle(this, req, res, u);
       if (req.method === "GET" && u.pathname === "/dac.json") {
         if (!this.dac) { res.writeHead(404); return res.end(); }
@@ -249,7 +249,7 @@ class FakeRenderer {
         const dsd = last && /\.dsf\b|\.dff\b/.test(last.uri) ? (this.dac.dsd || [64])[0] : 0;
         const now = this.state === "PLAYING" && (info || dsd) ? { rate: dsd ? dsd * 44100 / 32 : info.rate, bits: dsd ? 32 : info.bits, dsd, kind: dsd ? "dsd" : "pcm", transport: this.state } : null;
         res.writeHead(200, { "Content-Type": "application/json" });
-        return res.end(JSON.stringify({ model: "Mandarin USB", version: "0.2.0", name: this.name, udn: this.udn, dac: Object.assign({ attached: true, permission: true }, this.dac), now,
+        return res.end(JSON.stringify({ model: "Mandarin Bridge", version: "0.2.0", name: this.name, udn: this.udn, dac: Object.assign({ attached: true, permission: true }, this.dac), now,
           capture: this.dac.capture ? "/capture" : undefined }));
       }
       if (req.method === "GET" && u.pathname === "/httpapi.asp") {

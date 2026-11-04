@@ -1,5 +1,5 @@
 // Players.BitPerfect.cs — the bit-perfect check of a renderer's room (bug list item 275, BitPerfect/Check.cs): asked
-// for the track playing, of a Mandarin USB renderer whose app records what it feeds its DAC (/dac.json says
+// for the track playing, of a Mandarin Bridge renderer whose app records what it feeds its DAC (/dac.json says
 // "capture"), or of a USB DAC plugged into this server, recorded off its bus (BitPerfect/UsbRecorder.cs). One at a
 // time for each room; its progress and its report are the room's until the next.
 using System.Collections.Concurrent;
@@ -31,11 +31,11 @@ internal sealed partial class Players
         }
         else
         {
-            if (rec?.Caps["mandarin"] is not JsObj mu || !Jv.T(mu["base"])) return (false, "Only a Mandarin USB renderer or a USB DAC on this server can record what its DAC is fed");
+            if (rec?.Caps["mandarin"] is not JsObj mu || !Jv.T(mu["base"])) return (false, "Only a Mandarin Bridge renderer or a USB DAC on this server can record what its DAC is fed");
             var device = Jv.Str(mu["base"]);
-            var dac = await MandarinUsb.Probe(device);
+            var dac = await MandarinBridge.Probe(device);
             if (dac == null) return (false, "The device isn't answering");
-            if (dac["capture"] is not string capture || capture.Length == 0) return (false, "This device's app can't record what it feeds the DAC yet: update Mandarin USB");
+            if (dac["capture"] is not string capture || capture.Length == 0) return (false, "This device's app can't record what it feeds the DAC yet: update Mandarin Bridge");
             recorder = new DeviceRecorder(CaptureBase(device, capture));
         }
         UpnpItem item;
