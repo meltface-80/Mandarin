@@ -75,7 +75,8 @@ internal static partial class Transcoder
     }
 
     /*
-     * Can this ffmpeg write 32-bit FLAC? (6.1 quietly caps the encoder at 24.)
+     * Can this ffmpeg write 32-bit FLAC? Asked as the conversions ask (HighRates.Args): 6.1 on writes 24 and says
+     * nothing unless told -strict experimental, and 5.1 (Debian 12's) can't (item 269).
      * A fifth of a second of silence is encoded and its STREAMINFO read back,
      * as lib/ffmpeg.js asks it.
      */
@@ -85,7 +86,7 @@ internal static partial class Transcoder
         {
             var psi = new ProcessStartInfo(bin) { RedirectStandardOutput = true, RedirectStandardError = true, UseShellExecute = false };
             foreach (var a in new[] { "-hide_banner", "-loglevel", "error", "-f", "lavfi", "-i", "anullsrc=r=44100:cl=stereo", "-t", "0.2",
-                "-sample_fmt", "s32", "-bits_per_raw_sample", "32", "-c:a", "flac", "-f", "flac", "-" }) psi.ArgumentList.Add(a);
+                "-sample_fmt", "s32", "-bits_per_raw_sample", "32", "-c:a", "flac", "-f", "flac", "-strict", "experimental", "-" }) psi.ArgumentList.Add(a);
             using var p = Process.Start(psi)!;
             using var ms = new MemoryStream();
             var copy = p.StandardOutput.BaseStream.CopyToAsync(ms);

@@ -54,13 +54,14 @@ internal static class HighRates
 
     /*
      * ffmpeg's arguments for [plan] (StreamPlans.FfmpegArgs's): for a WAV plan, PCM in a WAV whose length is left
-     * unknown in its header (-seekable 0), so a device reading it as it is written plays it to its end.
+     * unknown in its header (-seekable 0), so a device reading it as it is written plays it to its end. A FLAC of 32
+     * bits asked for as ffmpeg makes one (item 269): -strict experimental, without which 6.1 on writes 24 and says nothing.
      */
     public static List<string> Args(List<string> args, bool wav, int bits)
     {
-        if (!wav) return args;
         var at = args.IndexOf("-c:a");
         if (at < 0 || at + 1 >= args.Count || args[at + 1] != "flac") return args;
+        if (!wav) return bits == 32 ? [.. args.Take(args.Count - 1), "-strict", "experimental", args[^1]] : args;
         var codec = bits == 16 ? "pcm_s16le" : bits == 32 ? "pcm_s32le" : "pcm_s24le";
         var tail = args.Skip(at + 6).ToList();             // after -c:a flac -compression_level 5 -f flac: the file
         return [.. args.Take(at), "-c:a", codec, "-f", "wav", "-seekable", "0", .. tail];

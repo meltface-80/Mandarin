@@ -43,6 +43,7 @@
 - Fixed - DSD256 made as it plays no longer falls behind the device on the next track of an album: the making carried on into it is given all of playback's cores again, and the server keeps two of its own, so the app and the device no longer time out
 - Fixed - a phone playing through a 32-bit USB DAC (the SMSL SU1) is sent 24 bits when upsampling, which the server can make and the phone can read; its driver still gives the DAC 32-bit words
 - Fixed - ×16 (705.6 kHz) is gapless: each track's WAV says its own length, so a renderer such as the FiiO SR11 goes on to the next track at once instead of waiting at the end of each
+- Fixed - 32-bit FLAC is really 32 bits: the server asks ffmpeg for it as ffmpeg needs (-strict experimental), without which 6.1 and later wrote 24 bits and the server never offered 32
 
 - `259-dsd-on-demand` (item 259): **PCM as DSD, and the shaped filters, made as they play.** A track made DSD from
   PCM had to be made whole, ahead (items 243, 254): its filter was one as long as the track (237, PGGB's way), so
@@ -540,6 +541,18 @@
   ffmpeg writes. The phone's is now held to 24 bits (Phones.TargetFor): its player hands the USB driver floats, which
   the driver packs into the DAC's own slots, 32-bit words for the SU1, so the DAC is fed 32 bits all the same. Tests:
   phone.test.js (a DAC of 24 and 32 bits upsampled ×4: 24-bit FLAC, and made; before, 32-bit).
+- `269-ffmpeg-32-bit-flac` (item 269): **32-bit FLAC.** A renderer that takes 32 bits was sent 24: the image's
+  ffmpeg, Debian 12's 5.1, can't write 32-bit FLAC, and the ffmpeg of 6.1 on writes it only when told
+  -strict experimental, else 24 bits without a word; the server asked without it, so its probe said no everywhere
+  (Transcoder.Writes32) and Bit depth's 32 stayed off. The image is Debian 13's (trixie, ffmpeg 7.1, since PR #594), and
+  both the probe and every 32-bit FLAC conversion ask with -strict experimental
+  (Playback/HighRates.Args, beside WAV's own; a made-as-played track's encode is the same). A renderer set to Bit
+  depth Auto or 32 that takes 32 bits now gets 32-bit FLAC; one that can't read it is set to 24 on its page. A phone
+  stays at 24 (item 268). CI checks the image's ffmpeg writes 32-bit FLAC. Tests: ConversionsCsharpTests (the
+  32-bit file made end to end is 32 bits a sample, its STREAMINFO read; it was 24 behind an ffmpeg that writes 32;
+  the suites' own probe of ffmpeg asks as the server does);
+  the kept answers of the two 32-bit conversions and of the 32-bit cases of held_args carry the flag, every changed
+  answer checked to differ by it alone.
 
 - `267-making-leaves-the-server-two-cores` (item 267): **DSD256 made as it plays keeps up, and the server keeps two cores.** Since
   item 260 a track made as it plays kept all the cores but one, and the one left was all this server had: its own
