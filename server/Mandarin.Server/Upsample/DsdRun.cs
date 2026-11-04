@@ -12,7 +12,7 @@ namespace Mandarin.Server.Upsample;
 internal sealed class DsdRun
 {
     /* A file of the run: its bytes a channel, those written, and when both are. */
-    public sealed class Window(string path, long bytes, int rate)
+    public sealed class Window(string path, long bytes, int rate, long at = -1)
     {
         public readonly string Path = path;
         public readonly long Bytes = bytes;
@@ -22,8 +22,10 @@ internal sealed class DsdRun
         internal DsfWriter? Writer;
         internal void Open()
         {
-            File = new FileStream(Path, FileMode.Create, FileAccess.Write, FileShare.Read, 1 << 16);
-            Writer = new DsfWriter(File, rate, Bytes * 8);
+            // Restarted at a block part way into the file (item 272): written from there on, its header already there.
+            File = new FileStream(Path, at >= 0 ? FileMode.OpenOrCreate : FileMode.Create, FileAccess.Write, FileShare.Read, 1 << 16);
+            if (at >= 0) File.Position = at;
+            Writer = new DsfWriter(File, rate, Bytes * 8, header: at < 0);
         }
         internal void Close()
         {
@@ -84,10 +86,10 @@ internal sealed class DsdRun
     /* The bits of the first [frames] input frames not kept: what starts the filters and the modulators. */
     public void Skip(long frames) { lock (gate) skip[0] = skip[1] = frames * per / 8; }
 
-    /* The next file, [frames] input frames long, at [path]: its header written now, its bits from where the last ends. */
-    public Window Add(string path, long frames)
+    /* The next file, [frames] input frames long, at [path]: its header written now, its bits from where the last ends; or from byte [at] of it, a making restarted there. */
+    public Window Add(string path, long frames, long at = -1)
     {
-        var w = new Window(path, frames * per / 8, dsdRate);
+        var w = new Window(path, frames * per / 8, dsdRate, at);
         lock (gate)
         {
             w.Open();
