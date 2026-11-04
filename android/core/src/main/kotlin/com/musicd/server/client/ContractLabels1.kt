@@ -11,7 +11,6 @@ internal object ContractLabels1 {
         "now-playing.artist" to listOf("{artist}"),
         "now-playing.album" to listOf("Open album: {album}"),
         "now-playing.signal" to listOf("Signal path"),
-        "now-playing.signal-check" to listOf("{button}"),
         "now-playing.seek" to listOf("Seek"),
         "now-playing.shuffle" to listOf("Shuffle", "Shuffle on"),
         "now-playing.previous" to listOf("Previous track"),

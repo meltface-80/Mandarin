@@ -51,7 +51,7 @@ internal sealed partial class Players
         {
             st.State = "loading"; st.TrackNumber = index + 1; st.QueueLength = p.Queue.Count; st.OnQueue = true;
             st.TrackUri = it.Uri; st.TrackId = it.TrackId; st.Title = it.Title; st.Artist = it.Artist; st.Album = it.Album; st.ArtUri = it.ArtUri;
-            st.Duration = it.Duration; st.Position = seconds; st.Sent = it.Sent; st.Unreachable = false; st.Verified = null;
+            st.Duration = it.Duration; st.Position = seconds; st.Sent = it.Sent; st.Unreachable = false; st.Verified = null; st.Fed = null;
         });
         // Made no longer: what was being made for the track jumped from (or any but this and the next).
         if (keep.Count > 0) Upsample.MadeAsPlayed.Only(keep, "skipped from");

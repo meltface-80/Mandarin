@@ -247,7 +247,8 @@ class FakeRenderer {
         const last = [...this.fetches].reverse().find(f => f.body && f.body.length > 42);
         const info = last ? require("./fixtures").probe(last.body) : null;
         const dsd = last && /\.dsf\b|\.dff\b/.test(last.uri) ? (this.dac.dsd || [64])[0] : 0;
-        const now = this.state === "PLAYING" && (info || dsd) ? { rate: dsd ? dsd * 44100 / 32 : info.rate, bits: dsd ? 32 : info.bits, dsd, kind: dsd ? "dsd" : "pcm", transport: this.state } : null;
+        // renderer.nowExtra: more of what the app says it feeds its DAC (item 287: its words' bits, its volume, untouched).
+        const now = this.state === "PLAYING" && (info || dsd) ? Object.assign({ rate: dsd ? dsd * 44100 / 32 : info.rate, bits: dsd ? 32 : info.bits, dsd, kind: dsd ? "dsd" : "pcm", transport: this.state }, this.nowExtra || {}) : null;
         res.writeHead(200, { "Content-Type": "application/json" });
         return res.end(JSON.stringify({ model: "Mandarin Bridge", version: "0.2.0", name: this.name, udn: this.udn, dac: Object.assign({ attached: true, permission: true }, this.dac), now,
           capture: this.dac.capture ? "/capture" : undefined, capture_parts: this.dac.captureParts ? true : undefined }));

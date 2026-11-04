@@ -270,6 +270,7 @@ internal sealed partial class Players
         next.Sent = item?.Sent;
         // The device's word on what it plays holds for the track (item 187): it is asked once per track, a few seconds in.
         next.Verified = prev.TrackUri == next.TrackUri ? prev.Verified : null;
+        next.Fed = prev.TrackUri == next.TrackUri ? prev.Fed : null;
         next.At = Hub.Now(); next.Unreachable = false;
         zm.ApplyState(p.Id, prev, next);
         if (tstate == "playing" && item != null && !p.NoSetNext) _ = ArmNext(p).ContinueWith(_ => { }, TaskContinuationOptions.OnlyOnFaulted);

@@ -97,8 +97,11 @@ test("Mandarin Bridge for Linux: found, its DAC read whole, played to bit-perfec
     await until(async () => { const z = (await api("zone-state?zone=" + ID)).zone; return z && z.state === "playing" && z.now_playing && z.now_playing.line1 === "Hi 1"; });
     const now = await until(async () => { const j = await (await fetch(BR + "/dac.json")).json(); return j.now && j.now.rate === 96000 && j.now; });
     assert.equal(now.kind, "pcm");
-    // Mandarin's own check of what the DAC is fed (/dac.json's "now"): the track confirmed on Now playing.
-    await until(async () => { const np = (await api("zone-state?zone=" + ID)).zone.now_playing; return np && np.signal && np.signal.steps.some(x => x.kind === "verified"); }, 15000);
+    // What the DAC is fed, as the Bridge reports it (/dac.json's "now", item 287): the signal path's last step, in its words.
+    const fed = await until(async () => { const np = (await api("zone-state?zone=" + ID)).zone.now_playing; return np && np.signal && np.signal.steps.find(x => x.kind === "fed"); }, 15000);
+    assert.equal(fed.title, "The DAC is fed");
+    assert.match(fed.detail, /^PCM 96 kHz, the \d+-bit samples in 32-bit words, fixed volume: the samples untouched — as Mandarin Bridge reports it$/);
+    assert.equal(fed.quality, "lossless");
     const state = await (await fetch(BR + "/api/state")).json();
     assert.equal(state.track.title, "Hi 1");
     assert.match(state.status, /^Playing · 96 kHz/);

@@ -80,54 +80,6 @@ internal sealed partial class Players
         return new JsonObject { ["state"] = "done", ["says"] = (string?)k.Report["says"], ["track"] = k.Title, ["report"] = k.Report.DeepClone() };
     }
 
-    /*
-     * The check's step in room [id]'s signal path (Playback/SignalPath.cs) for the track at [uri]: offered where the
-     * device can record what it feeds its DAC; where a check of this track is under way, how far it has got; once done,
-     * its verdict. Null where the device can't record.
-     */
-    public static System.Text.Json.Nodes.JsonObject? CheckStep(string id, string uri)
-    {
-        var rec = Record(id);
-        if (!(rec?.Caps["mandarin"] is JsObj mu && Jv.T(mu["capture"])) && !UsbDac(rec?.Location)) return null;
-        static System.Text.Json.Nodes.JsonObject Step(string title, string detail, string quality, string? button)
-        {
-            var o = new System.Text.Json.Nodes.JsonObject { ["kind"] = "check", ["title"] = title, ["detail"] = detail, ["quality"] = quality };
-            if (button != null) { o["action"] = "bitperfect"; o["button"] = button; }
-            return o;
-        }
-        static System.Text.Json.Nodes.JsonObject Verdict(JsonObject rep, string said)
-        {
-            var ok = (string?)rep["verdict"] == "bit-perfect";
-            return Step(ok ? "Bit-perfect to the DAC" : "Not bit-perfect to the DAC", said, ok ? "lossless" : "lossy", "Check again");
-        }
-        checks.TryGetValue(id, out var c);
-        if (c.Run is { } r && Kept.Same(c.Uri, uri))
-        {
-            if (r.State is "starting" or "recording" or "comparing") return Step("Checking bit-perfect", r.Said, "pending", null);
-            if (r.Report is { } rep) return Verdict(rep, r.Said);
-            return Step("Bit-perfect check", r.Said, "pending", "Try again");
-        }
-        // This track's verdict, kept from a check before (another track since, or a restart): when it was made, said.
-        var kept = Kept.Of(Server.DataDir, id);
-        if (kept != null && Kept.Same(kept.Uri, uri))
-            return Verdict(kept.Report, $"{(string?)kept.Report["says"]} (checked {Kept.When(kept.Report)})");
-        var offer = "Plays the track again from its start and compares every sample the DAC is fed with what was sent";
-        if (kept != null) offer += $". Last checked: {kept.Title}, {(((string?)kept.Report["verdict"]) == "bit-perfect" ? "bit-perfect" : "not bit-perfect")} ({Kept.When(kept.Report)})";
-        return Step("Bit-perfect check", offer, "pending", "Check");
-    }
-
-    private static readonly ConcurrentDictionary<string, (DateTime At, bool Usb)> usbDacs = new();
-
-    // Whether the sound device at [location] is a USB DAC on this server (looked at once a minute: the step is asked for often).
-    private static bool UsbDac(string? location)
-    {
-        if (location == null || !location.StartsWith("alsa:", StringComparison.Ordinal)) return false;
-        if (usbDacs.TryGetValue(location, out var was) && DateTime.UtcNow - was.At < TimeSpan.FromMinutes(1)) return was.Usb;
-        var usb = Usbmon.Of(location) != null;
-        usbDacs[location] = (DateTime.UtcNow, usb);
-        return usb;
-    }
-
     /* Room [id]'s check stopped. */
     public void StopBitPerfect(string id)
     {

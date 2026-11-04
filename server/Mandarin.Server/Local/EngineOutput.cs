@@ -210,6 +210,10 @@ internal sealed class EngineOutput : IRenderer
     }
 
     private double Gain() { lock (gate) return fixedVolume() ? 1 : Amplitude(volume, muted); }
+
+    /* The gain the engine applies to the samples now (1: untouched), and whether the volume is fixed (item 287). */
+    public double GainNow => Gain();
+    public bool FixedVolume => fixedVolume();
     private void SendGain() => Send(new JsonObject { ["cmd"] = "gain", ["value"] = Gain() });
     private bool HasProc { get { lock (gate) return proc != null; } }
 
