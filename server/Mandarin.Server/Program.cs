@@ -184,6 +184,9 @@ Auth.UseBodyLimit(app);
 // account exists and the device has signed in.
 app.Use((ctx, next) => Auth.Gate(ctx, () => next(ctx)));
 
+// SQ-tool (SqTool.cs, item 288): its own page and server, at /sq-tool/, behind the gate.
+SqTool.Use(app, appDir, dataDir);
+
 // The page and its files (Pages.cs), behind the gate as before.
 Pages.Use(app, Path.Combine(appDir, "public"));
 // The library (Library.cs): read from the copy held here (Library.State.cs).

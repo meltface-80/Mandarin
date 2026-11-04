@@ -16,7 +16,10 @@ object SettingsLists {
     /** The Settings list, in the page's order. */
     val HOME = listOf(SettingsRow("account", "Account"), SettingsRow("folders", "Music Folders"), SettingsRow("streaming", "Services"),
         SettingsRow("playback", "Audio Devices"), SettingsRow("identify", "Library Scanner"), SettingsRow("setup", "Setup"),
-        SettingsRow("backup", "Backup & restore"), SettingsRow("system", "Updates"))
+        SettingsRow("backup", "Backup & restore"), SettingsRow("sqtool", "SQ-tool"), SettingsRow("system", "Updates"))
+
+    /** SQ-tool's address on the server (item 288): its own page, opened in the browser as it opens standalone. */
+    const val SQ_TOOL = "/sq-tool/"
 
     /** Setup's list, the app's Downloads before Away from home, as the page puts it in the app. */
     val SETUP = listOf(SettingsRow("smartpicks", "Smart Picks"), SettingsRow("labels", "Record labels"), SettingsRow("homescreen", "Home Screen"),

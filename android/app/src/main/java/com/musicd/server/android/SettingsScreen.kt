@@ -103,7 +103,12 @@ private fun SettingsHome(client: () -> ServerClient?, onClose: () -> Unit, open:
         SettingsHead(Modifier.parity("settings.close", Contract.label("settings.close")).clip(CircleShape).clickable(onClick = onClose), R.drawable.np_close,
             "Settings", Modifier.parity("settings.heading"), below = 14)
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 4.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            for (row in SettingsLists.HOME) SettingsNavRow(row, Modifier.parity("settings.item", Contract.label("settings.item", 0, row.title)).clip(RoundedCornerShape(10.dp)).clickable { open(row.pane) })
+            for (row in SettingsLists.HOME) SettingsNavRow(row, Modifier.parity("settings.item", Contract.label("settings.item", 0, row.title)).clip(RoundedCornerShape(10.dp)).clickable {
+                // SQ-tool (item 288): its own page on the server, in the browser, as the page opens it beside Mandarin.
+                val base = client()?.address?.baseUrl
+                if (row.pane == "sqtool") { if (base != null) runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(base + SettingsLists.SQ_TOOL))) } }
+                else open(row.pane)
+            })
         }
         // The foot: the version on the left, View on GitHub on the right, 14 over them.
         Row(Modifier.fillMaxWidth().padding(top = 14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
@@ -130,7 +135,7 @@ private fun SettingsNavRow(row: SettingsRow, modifier: Modifier) {
 }
 
 private val ICONS = mapOf("account" to R.drawable.st_account, "folders" to R.drawable.st_folders, "streaming" to R.drawable.st_services, "playback" to R.drawable.st_audio,
-    "identify" to R.drawable.st_scanner, "setup" to R.drawable.st_setup, "backup" to R.drawable.st_backup, "system" to R.drawable.st_updates,
+    "identify" to R.drawable.st_scanner, "setup" to R.drawable.st_setup, "backup" to R.drawable.st_backup, "sqtool" to R.drawable.st_audio, "system" to R.drawable.st_updates,
     "smartpicks" to R.drawable.st_smartpicks, "labels" to R.drawable.st_labels, "homescreen" to R.drawable.st_homescreen, "ui" to R.drawable.st_ui,
     "display" to R.drawable.st_display, "shelfset" to R.drawable.st_shelf, "sharecard" to R.drawable.st_sharecard, "downloads" to R.drawable.st_downloads,
     "away" to R.drawable.st_away, "metadata" to R.drawable.st_keys)
