@@ -24,6 +24,8 @@ internal sealed partial class Bridge
     private readonly Http http;
     private readonly Ssdp ssdp;
     private readonly Action<string> log;
+    private readonly Wifi? wifi;
+    private readonly DateTime started = DateTime.UtcNow;
     private volatile List<Dac> dacs = [];
     private string lastCaps = "";
     public (string From, DateTime At)? LastControl { get; private set; }
@@ -36,6 +38,7 @@ internal sealed partial class Bridge
         renderer = new Renderer(player, Sink, () => { }, log);
         http = new Http(opts.Port, Route, log);
         ssdp = new Ssdp(store.Udn, Location, log);
+        if (opts.Nmcli != null) wifi = new Wifi(opts.Nmcli, log);
     }
 
     /* The DAC played to: the one chosen, else the first found; null with none plugged in. */
@@ -88,9 +91,11 @@ internal sealed partial class Bridge
         var alive = DateTime.UtcNow;
         while (true)
         {
-            Thread.Sleep(5000);
+            Thread.Sleep(Math.Clamp(opts.SetupAfter * 1000, 1000, 5000));
             try { Look(); } catch (Exception e) when (e is IOException or UnauthorizedAccessException) { log("[bridge] " + e.Message); }
             if (DateTime.UtcNow - alive > TimeSpan.FromMinutes(10)) { alive = DateTime.UtcNow; ssdp.Alive(); }
+            // No network a while after starting (a Pi just flashed, or a network gone): the setup network, so its page can be reached.
+            if (wifi != null && !wifi.Hotspot && DateTime.UtcNow - started > TimeSpan.FromSeconds(opts.SetupAfter) && !wifi.Connected()) wifi.OpenSetup();
         }
     }
 

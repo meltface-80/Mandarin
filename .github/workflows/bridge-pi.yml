@@ -1,0 +1,63 @@
+name: Mandarin Bridge for Raspberry Pi
+
+# Mandarin Bridge's Raspberry Pi image (bridge/pi, item 283): Raspberry Pi OS Lite (64-bit) with the Bridge, the audio
+# engine and ffmpeg, the Bridge started at boot with its Wi-Fi setup on. Built on a 64-bit ARM runner (the image's
+# own programs run in it); a push to dev puts it on the rolling "test-bridge" pre-release, never "latest"; nothing
+# here makes a tag.
+on:
+  push:
+    branches: ["**"]
+    paths: &paths
+      - "bridge/pi/**"
+      - "bridge/linux/**"
+      - "engine/**"
+      - ".github/workflows/bridge-pi.yml"
+  pull_request:
+    paths: *paths
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: bridge-pi-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/dev' }}
+
+jobs:
+  image:
+    name: Raspberry Pi image
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: "10.0.x"
+      - name: Build the Bridge and the engine
+        run: |
+          set -e
+          RID=linux-arm64 ./engine/build.sh
+          RID=linux-arm64 ./bridge/linux/build.sh
+      - name: Make the image
+        run: |
+          set -e
+          sudo apt-get update -q && sudo apt-get install -y -q --no-install-recommends parted xz-utils e2fsprogs
+          sudo ./bridge/pi/build-image.sh mandarin-bridge-pi-arm64.img
+          xz -T0 -6 mandarin-bridge-pi-arm64.img
+          ls -la mandarin-bridge-pi-arm64.img.xz
+      - uses: actions/upload-artifact@v7
+        with:
+          name: mandarin-bridge-pi-arm64
+          path: mandarin-bridge-pi-arm64.img.xz
+          compression-level: 0
+      - name: Publish to the "test-bridge" pre-release
+        if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -e
+          if ! gh release view test-bridge >/dev/null 2>&1; then
+            gh release create test-bridge --prerelease --latest=false --title "Mandarin Bridge — test build" \
+              --notes "Mandarin Bridge as dev is now. Not a numbered release." --target "${GITHUB_SHA}"
+          fi
+          gh release upload test-bridge mandarin-bridge-pi-arm64.img.xz --clobber

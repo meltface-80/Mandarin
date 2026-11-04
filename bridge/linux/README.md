@@ -39,6 +39,7 @@ There is no screen, so the Bridge has a page of its own: `http://<the computer>:
 | `Renderer.cs` | AVTransport, RenderingControl and ConnectionManager over the engine |
 | `Ssdp.cs`, `Http.cs`, `Events.cs`, `Soap.cs`, `Scpd.cs`, `Xml.cs` | UPnP: discovery, HTTP, eventing, SOAP, the descriptions |
 | `Web.cs` | its page |
+| `Wifi.cs` | its Wi-Fi from its page, through NetworkManager, and a setup network where there is none (`--wifi`: the Pi image's) |
 | `Store.cs` | its name, its UPnP id, the DAC chosen and the DSD setting (`settings.json` in its data folder) |
 
 Build it with `./build.sh` (the .NET 10 SDK and clang), beside the engine (`engine/build.sh`); `RID=linux-arm64`

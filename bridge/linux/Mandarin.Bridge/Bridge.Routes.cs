@@ -26,6 +26,7 @@ internal sealed partial class Bridge
         if (p == "/" && r.Method is "GET" or "HEAD") return Http.Response.Text(200, Web.Page, "text/html; charset=\"utf-8\"");
         if (p == "/api/state" && r.Method == "GET") return Http.Response.Text(200, State().ToJsonString(), Json);
         if (p == "/api/settings" && r.Method == "POST") return Settings(r);
+        if (p == "/api/wifi" && wifi != null) return r.Method == "POST" ? Join(r) : Http.Response.Text(200, wifi.State().ToJsonString(), Json);
         return Http.Response.Text(404, "");
     }
 
@@ -77,6 +78,7 @@ internal sealed partial class Bridge
             })]),
             ["track"] = c == null ? null : new JsonObject { ["title"] = c.Didl.Title, ["artist"] = c.Didl.Artist, ["album"] = c.Didl.Album, ["art"] = c.Didl.ArtUri, ["state"] = renderer.TransportState() },
             ["joined"] = renderer.Joined,
+            ["wifi"] = wifi == null ? null : new JsonObject { ["setup"] = wifi.Hotspot, ["error"] = wifi.LastError },
             ["control"] = LastControl is { } lc ? new JsonObject { ["from"] = lc.From, ["seconds_ago"] = (int)(DateTime.UtcNow - lc.At).TotalSeconds } : null,
             ["dac_json"] = DacJson(),
         };
@@ -88,6 +90,16 @@ internal sealed partial class Bridge
         "dop" => $"DSD{n.Dsd} as DoP",
         _ => $"{n.Rate / 1000:0.#} kHz",
     };
+
+    // The home network joined (in the background: the page was reached over the setup network, which closes as it does).
+    private Http.Response Join(Http.Request r)
+    {
+        if (JsonNode.Parse(r.Text is { Length: > 0 } t ? t : "{}") is not JsonObject o || o["ssid"] is not JsonValue sv || !sv.TryGetValue<string>(out var ssid) || ssid.Length == 0)
+            return Http.Response.Text(400, "{\"error\":\"which network?\"}", Json);
+        var password = o["password"] is JsonValue pv && pv.TryGetValue<string>(out var pw) ? pw : "";
+        _ = Task.Run(() => { if (wifi!.Join(ssid, password)) ssdp.Alive(); });
+        return Http.Response.Text(202, new JsonObject { ["joining"] = ssid }.ToJsonString(), Json);
+    }
 
     // The web page's settings: the name on the network, the DAC played to, and how DSD goes. Each change announced at once.
     private Http.Response Settings(Http.Request r)
