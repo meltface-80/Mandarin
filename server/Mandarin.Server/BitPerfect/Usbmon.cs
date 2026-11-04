@@ -1,7 +1,7 @@
 // Usbmon.cs — what a USB DAC plugged into this server is fed, read from the kernel's usbmon (bug list item 275), as
 // SQ-tool reads it (github.com/meltface-80/SQ-tool, usbmon.py): every isochronous transfer the computer sends the
 // DAC's playback endpoint, its packets' bytes exactly as they went down the cable, written into a WAV in the DAC's
-// slot with its sidecar's "capture" (Recording.cs reads them as it reads Mandarin USB's).
+// slot with its sidecar's "capture" (Recording.cs reads them as it reads Mandarin Bridge's).
 //
 // usbmon's binary events (Documentation/usb/usbmon.rst), as read(2) gives them: a 48-byte header, then len_cap bytes,
 // for an isochronous transfer its packets' descriptors (16 bytes each: status, offset, length, padding) and then its

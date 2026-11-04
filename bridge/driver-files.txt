@@ -1,0 +1,15 @@
+# What Mandarin Bridge builds from Mandarin's own app, read where it lies in this repository (android/app), never
+# copied in: android/app/build.gradle.kts puts these beside the app's own sources at build time. One path a line,
+# from the repository's root; # starts a comment. Mandarin's :core module is the app's too, as a project
+# (android/settings.gradle.kts), not a file here.
+#
+# The USB audio driver: the DAC found and read, the stream, the sink ExoPlayer plays into, DSD (DSF/DFF read,
+# passed to the sink), the float sink the USB sink sits under, and the USB device filter. The native side,
+# usb_jni.cc, is read by android/app/src/main/cpp/CMakeLists.txt.
+android/app/src/main/java/com/musicd/server/android/UsbDac.kt
+android/app/src/main/java/com/musicd/server/android/UsbDriver.kt
+android/app/src/main/java/com/musicd/server/android/UsbAudioSink.kt
+android/app/src/main/java/com/musicd/server/android/DsdExtractor.kt
+android/app/src/main/java/com/musicd/server/android/DsdRenderer.kt
+android/app/src/main/java/com/musicd/server/android/DspSink.kt
+android/app/src/main/res/xml/usb_device_filter.xml

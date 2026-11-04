@@ -533,7 +533,17 @@
 - Fixed - on the phone, an album whose tags are the same in more than one folder (Machine Head (1972), (Remastered 2012) and (2024 Remix), all tagged "Machine Head") is one album a folder, as it already was on the server; the discs of one album in folders of their own (CD1, Disc 2) are still one
 - New - the bit-perfect check for a USB DAC plugged into the server: Now playing → Signal path → Bit-perfect check plays the track again and records what goes down the USB cable to the DAC (the kernel's usbmon: `sudo modprobe usbmon`, the container privileged), then compares every sample with what was sent
 - Fixed - a search typed while the page was still starting (Home painted from its last visit, the server not yet answered) was closed and its results thrown away the moment the page finished starting; it now stays
+- Improved - Mandarin USB, the phone app that plays through a USB DAC as a renderer, is Mandarin Bridge (bridge/, its test build the test-bridge pre-release); it installs over Mandarin USB with its settings, and the server knows an app not yet updated as the same renderer
 
+- `281-mandarin-bridge` (item 281): **Mandarin USB is Mandarin Bridge.** The renderer app is named for what it is
+  to be, Mandarin's bridge to a USB DAC on a device of its own (on Android now; Linux and a Raspberry Pi image to
+  come): `usb-renderer/` is `bridge/`, its workflows `bridge.yml` and `bridge-release.yml`, its APK
+  `Mandarin-Bridge-<version>.apk` on the `test-bridge` pre-release (the old `test-usb-renderer` one is no longer
+  updated), a version's tag `mandarin-bridge-v<version>`. The app says Mandarin Bridge on its screen and as its UPnP
+  model. Its package id, its settings, its native library and the server's profile id are as they were, so it
+  installs over Mandarin USB and keeps what was set. The server (Renderers/MandarinBridge.cs, once MandarinUsb.cs)
+  knows both names, so an app not yet updated is the same renderer (test/mandarin-bridge.test.js, shown failing with
+  the old name no longer known).
 - `280-page-tour-search-says-why` (item 280): **a search begun while the page starts is kept.** The page paints Home
   from its last visit at once, then waits for the server and the rooms, and only then lands on Home (`bootstrap`'s
   `showHome()`), which closed the search and emptied its results. A search typed in that moment was lost; on a loaded

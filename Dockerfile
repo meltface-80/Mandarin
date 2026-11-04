@@ -58,7 +58,7 @@ RUN set -e; cd server; \
     rm -f /out/*.pdb /out/*.dbg; ls -la /out
 
 # Debian trixie (13): its ffmpeg is 7.1, which writes 32-bit FLAC — a DAC that
-# takes 32 bits (an SMSL SU-1 on a Mandarin USB renderer) is sent it; bookworm's
+# takes 32 bits (an SMSL SU-1 on a Mandarin Bridge renderer) is sent it; bookworm's
 # 5.1 (and 6.1, which quietly caps the encoder at 24) could not, so 32-bit was
 # refused and converted tracks went out at 24. The AOT programs need glibc 2.34
 # or later: trixie's is 2.41.

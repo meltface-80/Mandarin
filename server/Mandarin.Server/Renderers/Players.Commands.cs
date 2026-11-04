@@ -18,7 +18,7 @@ internal sealed partial class Players
     {
         var rec = Record(p.Id);
         if (rec != null && rec.Kind == "local") { await VerifyLocal(p, rec, item); return; }
-        if (rec?.Caps["mandarin"] is JsObj mu && Jv.T(mu["base"])) { await VerifyMandarinUsb(p, rec, item, Jv.Str(mu["base"])); return; }
+        if (rec?.Caps["mandarin"] is JsObj mu && Jv.T(mu["base"])) { await VerifyMandarinBridge(p, rec, item, Jv.Str(mu["base"])); return; }
         var lp = rec?.Caps["linkplay"] as JsObj;
         if (lp == null || !Jv.T(lp["base"]) || item.Sent == null || item.Sent.Rate == 0 || item.Sent.Dsd != 0) return;
         var key = p.Index + ":" + item.Uri;

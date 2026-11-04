@@ -1,6 +1,6 @@
 "use strict";
 /*
- * A fake Mandarin USB renderer's /capture (github.com/meltface-80/Android-USB-Driver, its Capture.kt): a recording of
+ * A fake Mandarin Bridge renderer's /capture (github.com/meltface-80/Android-USB-Driver, its Capture.kt): a recording of
  * what it "feeds its DAC", for the server's bit-perfect check (item 275). POST /capture {seconds} arms one, from the
  * next track the device fetches; that fetch, decoded as the device's DAC would be fed it (32-bit slots), is the
  * recording, written as SQ-tool writes one, beside its sidecar. renderer.captureFilter (an ffmpeg -af, such as
@@ -58,7 +58,7 @@ function record(r, c, body) {
   const rate = wav.readUInt32LE(24);
   c.rate = rate;
   c.frames = Math.floor((wav.length - 44) / 8);
-  fs.writeFileSync(out + ".json", JSON.stringify({ tool: "fake Mandarin USB", capture: { method: "usb-driver", rate, channels: 2, container_bits: 32, valid_bits: 32,
+  fs.writeFileSync(out + ".json", JSON.stringify({ tool: "fake Mandarin Bridge", capture: { method: "usb-driver", rate, channels: 2, container_bits: 32, valid_bits: 32,
     dsd: false, kind: "pcm", dsd_setting: "pcm", frames: c.frames, seconds: c.frames / rate, interruptions: [], usb: { underruns: 0, errors: 0 } } }));
   c.state = "done";
 }

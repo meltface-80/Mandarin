@@ -205,8 +205,8 @@ internal static partial class Profiles
         }
 
         var p = For(record);
-        // A Mandarin USB renderer that has said what its DAC takes: its word alone (Profiles.MandarinUsb.cs).
-        if (MandarinUsb.Reported(caps) is { } said) return DeviceSays(o, said, user, verified, containers, record);
+        // A Mandarin Bridge renderer that has said what its DAC takes: its word alone (Profiles.MandarinBridge.cs).
+        if (MandarinBridge.Reported(caps) is { } said) return DeviceSays(o, said, user, verified, containers, record);
         (bool On, string Source) Pick(double v, string key, double[] floor)
         {
             var own = key == "rates" ? p.Rates : key == "bits" ? p.Bits : p.Dsd;

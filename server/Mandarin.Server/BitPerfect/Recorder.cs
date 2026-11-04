@@ -1,4 +1,4 @@
-// Recorder.cs — what records what a DAC is fed, for the bit-perfect check (bug list item 275): a Mandarin USB
+// Recorder.cs — what records what a DAC is fed, for the bit-perfect check (bug list item 275): a Mandarin Bridge
 // renderer at its /capture (DeviceRecorder, here), or this server's own USB bus where the DAC is plugged into the
 // server (UsbRecorder.cs, through the kernel's usbmon). Either is asked to record, waited for, and its recording taken
 // as a WAV with its sidecar's "capture" (Recording.cs reads them).
@@ -25,7 +25,7 @@ internal interface IRecorder
     Task Stop(bool failed);
 }
 
-/* A Mandarin USB renderer's /capture (github.com/meltface-80/Android-USB-Driver), at its base address [device]. */
+/* A Mandarin Bridge renderer's /capture (github.com/meltface-80/Android-USB-Driver), at its base address [device]. */
 internal sealed class DeviceRecorder(string device) : IRecorder
 {
     private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromMinutes(10) };

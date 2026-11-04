@@ -1,0 +1,43 @@
+name: Mandarin Bridge release
+
+# A version of Mandarin Bridge (bridge/, items 278 and 281), cut by hand: the tag mandarin-bridge-v<version> and a GitHub
+# release with the APK, never marked "latest" (Mandarin's own releases are, which its updater reads). Run it once
+# the version in bridge/android/app/build.gradle.kts and bridge/CHANGELOG.md is merged. Nothing else
+# makes a tag for it.
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'The version to release (as in bridge/android/app/build.gradle.kts, e.g. 0.2.0)'
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    uses: ./.github/workflows/bridge.yml
+    secrets: inherit
+
+  release:
+    needs: [build]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Check the version matches the build
+        run: |
+          v=$(grep -oP 'versionName = "\K[^"]+' bridge/android/app/build.gradle.kts)
+          [ "$v" = "${{ github.event.inputs.version }}" ] || { echo "::error::app/build.gradle.kts says $v, not ${{ github.event.inputs.version }}"; exit 1; }
+      - uses: actions/download-artifact@v8
+        with:
+          path: apk
+      - name: Tag and release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ github.event.inputs.version }}
+        run: |
+          set -e
+          apk=$(find apk -name 'Mandarin-Bridge-*.apk' | head -1)
+          notes=$(awk -v v="## v$VERSION" '$0==v{p=1;next} /^## /{if(p)exit} p' bridge/CHANGELOG.md)
+          gh release create "mandarin-bridge-v$VERSION" "$apk" --title "Mandarin Bridge v$VERSION" --target "$GITHUB_SHA" --latest=false \
+            --notes "${notes:-Mandarin Bridge v$VERSION}"$'\n\n'"Its driver Mandarin's own at ${GITHUB_SHA::7}."

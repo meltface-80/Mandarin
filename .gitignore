@@ -6,12 +6,12 @@ android/.gradle/
 android/build/
 android/*/build/
 android/local.properties
-# Mandarin USB's build (usb-renderer/android, item 278)
-usb-renderer/android/.gradle/
-usb-renderer/android/build/
-usb-renderer/android/*/build/
-usb-renderer/android/local.properties
-usb-renderer/android/.kotlin/
+# Mandarin Bridge's build (bridge/android, item 278)
+bridge/android/.gradle/
+bridge/android/build/
+bridge/android/*/build/
+bridge/android/local.properties
+bridge/android/.kotlin/
 *.apk
 !dist/*.apk
 # Built by CI from android/musicdnet

@@ -123,7 +123,7 @@ internal static class Register
         if (info.Openhome != null) caps["openhome"] = info.Openhome.Value;
         if (info.Events != null) caps["events"] = info.Events;
         if (info.Linkplay != null) caps["linkplay"] = info.Linkplay;
-        // A Mandarin USB renderer (Renderers/MandarinUsb.cs): where its DAC is asked about; gone when the device no longer says.
+        // A Mandarin Bridge renderer (Renderers/MandarinBridge.cs): where its DAC is asked about; gone when the device no longer says.
         if (info.Caps?["mandarin"] is JsObj mu) caps["mandarin"] = mu;
         var networkName = CleanName(info.NetworkName) is { Length: > 0 } nn ? nn : cur?.NetworkName is { Length: > 0 } cn ? cn : "Unnamed device";
         var kind = info.Kind.Length > 0 ? info.Kind : cur?.Kind is { Length: > 0 } ck ? ck : "upnp";
