@@ -153,7 +153,7 @@ internal fun NowPlayingScreen(zoneId: String, client: () -> ServerClient?, onBac
                     fontSize = 14.sp, lineHeight = 19.sp, color = dim, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 // What the room is hearing, every step of the way (item 247): the lines centred, a tap for the signal path.
                 if (v.infoLines.isNotEmpty()) SignalLines(v.infoLines, v.signal?.let { { signalOpen = true } })
-                v.signal?.takeIf { signalOpen }?.let { SignalPathSheet(it, { signalOpen = false }) }
+                v.signal?.takeIf { signalOpen }?.let { SignalPathSheet(it, { signalOpen = false }, onCheck = { checkBitPerfect(context, scope, client, zoneId) }) }
                 RoomSeekBar(room, v, client) { to -> act { it.seek(zoneId, to) } }
                 // The transport: shuffle and repeat smaller and dimmer until on, previous and next in brass, play/pause a brass disc.
                 Row(Modifier.fillMaxWidth().padding(top = 12.dp), horizontalArrangement = Arrangement.spacedBy(14.dp, Alignment.CenterHorizontally), verticalAlignment = Alignment.CenterVertically) {

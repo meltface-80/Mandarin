@@ -6,6 +6,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -16,6 +17,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -34,7 +36,9 @@ import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
 import com.musicd.server.client.Contract
 import com.musicd.server.client.Palette
+import com.musicd.server.client.ServerClient
 import com.musicd.server.client.Signal
+import kotlinx.coroutines.launch
 
 /**
  * Now playing's lines under the album (item 247), centred: what goes out, how it was made, what is being made for
@@ -67,7 +71,7 @@ private fun Lines(lines: List<String>) {
  * not yet (pending, a ring). A tap outside closes it. Drawn at the foot of Now playing, [inset] up.
  */
 @Composable
-internal fun SignalPathSheet(signal: Signal, onClose: () -> Unit, inset: androidx.compose.ui.unit.Dp = 24.dp) {
+internal fun SignalPathSheet(signal: Signal, onClose: () -> Unit, inset: androidx.compose.ui.unit.Dp = 24.dp, onCheck: (() -> Unit)? = null) {
     val insetPx = with(LocalDensity.current) { inset.roundToPx() }
     val at = remember(insetPx) { SheetAt(false, insetPx) }
     Popup(popupPositionProvider = at, onDismissRequest = onClose, properties = PopupProperties(focusable = true)) {
@@ -85,6 +89,10 @@ internal fun SignalPathSheet(signal: Signal, onClose: () -> Unit, inset: android
                     Column {
                         Text(step.title, fontSize = 14.sp, fontWeight = FontWeight.W600, color = MaterialTheme.colorScheme.onSurface)
                         Text(step.detail, fontSize = 13.sp, lineHeight = 17.5.sp, color = dim)
+                        // The bit-perfect check (item 275): asked for here, its progress and verdict the step's own words.
+                        if (step.action == "bitperfect" && step.button != null && onCheck != null)
+                            OutlinedButton(onCheck, Modifier.parity("now-playing.signal-check", Contract.label("now-playing.signal-check", 0, step.button)).padding(top = 6.dp),
+                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 2.dp)) { Text(step.button, fontSize = 13.sp) }
                     }
                 }
             }
@@ -98,4 +106,14 @@ private fun qualityColor(quality: String): Color = when (quality) {
     "enhanced" -> MaterialTheme.colorScheme.primary
     "lossy" -> paletteColor(Palette.DANGER)
     else -> paletteColor(Palette.TEXT_FAINT)
+}
+
+/** The bit-perfect check asked for in room [zoneId] (item 275): a refusal (an app that can't record yet) said in a toast. */
+internal fun checkBitPerfect(context: android.content.Context, scope: kotlinx.coroutines.CoroutineScope, client: () -> ServerClient?, zoneId: String) {
+    val c = client() ?: return
+    scope.launch(kotlinx.coroutines.Dispatchers.IO) {
+        runCatching { c.bitPerfect(zoneId) }.onFailure { e ->
+            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) { android.widget.Toast.makeText(context, e.message ?: "The check couldn't start", android.widget.Toast.LENGTH_LONG).show() }
+        }
+    }
 }

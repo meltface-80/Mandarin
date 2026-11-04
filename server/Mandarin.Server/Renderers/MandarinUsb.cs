@@ -60,6 +60,8 @@ internal static class MandarinUsb
     {
         var d = dac["dac"] as JsObj ?? dac;
         var o = Jv.Obj(("base", baseUrl));
+        // Where its app records what it feeds the DAC (/capture, item 275): the bit-perfect check is offered where it can.
+        if (dac["capture"] is string capture && capture.Length > 0) o["capture"] = capture;
         var rates = Numbers(d["rates"], Profiles.Rates);
         if (rates.Count == 0) return o;   // no DAC on the port (or not yet allowed): nothing said of one
         o["rates"] = rates;

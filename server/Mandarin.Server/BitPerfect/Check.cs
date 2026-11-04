@@ -28,10 +28,13 @@ internal static class Check
     public sealed class Run
     {
         public volatile string State = "starting";
-        public volatile string Said = "Starting";
         public JsonObject? Report;
         public readonly CancellationTokenSource Stop = new();
         public double Recorded;
+        // Told whenever it says something new: the room's state bumped, so Now playing shows it.
+        public Action? Changed;
+        private string said = "Starting";
+        public string Said { get => said; set { said = value; Changed?.Invoke(); } }
     }
 
     /* [track] in [room], recorded by the Mandarin USB renderer at [device] (its base address), into [dir]. */

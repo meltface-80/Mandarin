@@ -11,7 +11,7 @@ namespace Mandarin.Server.Renderers;
 
 internal sealed partial class Players
 {
-    private readonly ConcurrentDictionary<string, (Check.Run Run, string Title)> checks = new();
+    private static readonly ConcurrentDictionary<string, (Check.Run Run, string Title, string Uri)> checks = new();
 
     /* Room [id]'s check begun for the track playing; null and why not, where it can't be. */
     public async Task<(bool Ok, string Said)> CheckBitPerfect(string id)
@@ -36,7 +36,8 @@ internal sealed partial class Players
         var track = new Check.Track(item.Uri, item.Title, item.Duration, item.Sent.Rate, item.Sent.Bits, item.Sent.Dsd, item.Sent.DsdBase);
         var room = new Check.Room(() => Jump(p, index), () => { lock (gate) return p.Index == index && p.Queue.Count > index && p.Queue[index] == item; }, rec.Name ?? rec.NetworkName ?? id);
         var run = new Check.Run();
-        checks[id] = (run, item.Title);
+        run.Changed = zm.Bump;
+        checks[id] = (run, item.Title, item.Uri);
         var dir = Path.Combine(Server.DataDir, "bitperfect", string.Concat(id.Select(c => char.IsLetterOrDigit(c) ? c : '_')));
         _ = Task.Run(async () =>
         {
@@ -60,6 +61,33 @@ internal sealed partial class Players
     {
         if (!checks.TryGetValue(id, out var c)) return null;
         return new JsonObject { ["state"] = c.Run.State, ["says"] = c.Run.Said, ["track"] = c.Title, ["report"] = c.Run.Report?.DeepClone() };
+    }
+
+    /*
+     * The check's step in room [id]'s signal path (Playback/SignalPath.cs) for the track at [uri]: offered where the
+     * device can record what it feeds its DAC; where a check of this track is under way, how far it has got; once done,
+     * its verdict. Null where the device can't record.
+     */
+    public static System.Text.Json.Nodes.JsonObject? CheckStep(string id, string uri)
+    {
+        var rec = Record(id);
+        if (rec?.Caps["mandarin"] is not JsObj mu || !Jv.T(mu["capture"])) return null;
+        static System.Text.Json.Nodes.JsonObject Step(string title, string detail, string quality, string? button)
+        {
+            var o = new System.Text.Json.Nodes.JsonObject { ["kind"] = "check", ["title"] = title, ["detail"] = detail, ["quality"] = quality };
+            if (button != null) { o["action"] = "bitperfect"; o["button"] = button; }
+            return o;
+        }
+        if (!checks.TryGetValue(id, out var c) || c.Uri != uri)
+            return Step("Bit-perfect check", "Plays the track again from its start and compares every sample the DAC is fed with what was sent", "pending", "Check");
+        var r = c.Run;
+        if (r.State is "starting" or "recording" or "comparing") return Step("Checking bit-perfect", r.Said, "pending", null);
+        if (r.Report is { } rep)
+        {
+            var ok = (string?)rep["verdict"] == "bit-perfect";
+            return Step(ok ? "Bit-perfect to the DAC" : "Not bit-perfect to the DAC", r.Said, ok ? "lossless" : "lossy", "Check again");
+        }
+        return Step("Bit-perfect check", r.Said, "pending", "Try again");
     }
 
     /* Room [id]'s check stopped. */
