@@ -90,9 +90,10 @@ internal fun SignalPathSheet(signal: Signal, onClose: () -> Unit, inset: android
                         Text(step.title, fontSize = 14.sp, fontWeight = FontWeight.W600, color = MaterialTheme.colorScheme.onSurface)
                         Text(step.detail, fontSize = 13.sp, lineHeight = 17.5.sp, color = dim)
                         // The bit-perfect check (item 275): asked for here, its progress and verdict the step's own words.
-                        if (step.action == "bitperfect" && step.button != null && onCheck != null)
-                            OutlinedButton(onCheck, Modifier.parity("now-playing.signal-check", Contract.label("now-playing.signal-check", 0, step.button)).padding(top = 6.dp),
-                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 2.dp)) { Text(step.button, fontSize = 13.sp) }
+                        val button = step.button
+                        if (step.action == "bitperfect" && button != null && onCheck != null)
+                            OutlinedButton(onCheck, Modifier.parity("now-playing.signal-check", Contract.label("now-playing.signal-check", 0, button)).padding(top = 6.dp),
+                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 2.dp)) { Text(button, fontSize = 13.sp) }
                     }
                 }
             }
