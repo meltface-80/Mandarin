@@ -78,11 +78,16 @@ LABEL org.opencontainers.image.title="MusicD Server" \
 # so the image is never built without them.
 # poppler-utils (v0.8.33): pdfinfo and pdftoppm, which draw the pages of an
 # album's booklet for the album page (server/Mandarin.Server/Booklets.cs).
+# python3 and python3-numpy (item 288): SQ-tool, at /sq-tool/ (sq-tool/, SqTool.cs);
+# flac, alsa-utils and kmod for it as standalone: FLAC files, the Loopback card's
+# arecord, and modprobe to load snd-aloop.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends ffmpeg tini ca-certificates libicu76 poppler-utils \
+       python3 python3-numpy flac alsa-utils kmod \
     && rm -rf /var/lib/apt/lists/* \
     && taskset --version && ionice --version && nice --version \
     && pdftoppm -v && pdfinfo -v \
+    && python3 -c "import numpy" \
     && ffmpeg -version | head -1 && ffmpeg -hide_banner -buildconf | grep -q -- --enable-libsoxr
 
 # Tailscale built in: signed in once from Settings → Away from home (or with
@@ -96,6 +101,8 @@ COPY --from=audio /out/mandarin-audio /app/engine/bin/mandarin-audio
 COPY --from=server /out/mandarin-server /app/server/bin/mandarin-server
 COPY package.json ./
 COPY public ./public
+# SQ-tool (item 288): its code, as it runs standalone, started by the server at /sq-tool/.
+COPY sq-tool/sqtool ./sq-tool/sqtool
 
 ENV DOCKER=1 \
     PORT=3500 \

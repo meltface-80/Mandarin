@@ -68,7 +68,7 @@ class SettingsTest {
     }
 
     @Test fun `the lists in the page's order, and Settings' address`() {
-        assertEquals(listOf("account", "folders", "streaming", "playback", "identify", "setup", "backup", "system"), SettingsLists.HOME.map { it.pane })
+        assertEquals(listOf("account", "folders", "streaming", "playback", "identify", "setup", "backup", "sqtool", "system"), SettingsLists.HOME.map { it.pane })
         assertEquals("Downloads", SettingsLists.SETUP[7].title)
         assertEquals("API Keys", SettingsLists.SETUP.last().title)
         assertEquals("settings/home", ShellRoute.settings())

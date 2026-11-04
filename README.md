@@ -921,6 +921,7 @@ Everything is optional; pass any of it with `-e NAME=value`.
 | `TS_HOSTNAME` | `musicd` | The server's name on your tailnet. |
 | `TAILSCALE` | on | `off` leaves the built-in Tailscale out (Tailscale on the host still works). |
 | `LOCAL_AUDIO` | on | `0`: leave this computer's sound devices out of *Settings → Audio Devices*. See [Sound devices on the server](#sound-devices-on-the-server). |
+| `SQTOOL_PYTHON` | `python3` | The Python 3 (with numpy) that runs [SQ-tool](#sq-tool). |
 | `TAILSCALE_ADDRESS` | auto | The server's address away from home, if the one found on the host's `tailscale0` isn't the one to use — an IP, a MagicDNS name, or a full `https://` address. See [Away from home](#away-from-home-tailscale). |
 | `MUSICBRAINZ_URL` | musicbrainz.org | Another MusicBrainz web service (a mirror) for the identification scan, release days and an album write-up's year. |
 | `IDENTIFY` | on | `0` leaves the identification scan out entirely. |
@@ -1158,6 +1159,22 @@ with **Fixed volume** on they are never scaled and the volume is the DAC's or am
 
 From [Music Assistant](https://github.com/music-assistant)'s Local Audio Out: the volume curve, ids
 taken from the device's name, and a device that fails being reported and let go.
+
+## SQ-tool
+
+SQ-tool records what a DAC is fed and compares it with the file, sample by sample: the proof, or
+not, that a player is bit-perfect. It is part of Mandarin (`sq-tool/`, item 288): **Settings →
+SQ-tool** opens it in its own tab, exactly as it is installed on its own, its recordings, compare
+and verdicts with your music folder. Mandarin starts it the first time it is opened, on a port of
+the computer only, behind your sign-in, with its data in the data folder's `sq-tool`.
+
+* **Docker:** the image has what it needs (Python 3 and numpy).
+* **Installed without Docker:** add Python 3 and numpy (`sudo apt install python3 python3-numpy`
+  on Debian or Ubuntu, `brew install python numpy` on a Mac); until then its page says what is
+  missing. `SQTOOL_PYTHON` names another Python to run it with.
+* An update made from Settings brings it (from the first release that carries it), as a new image
+  does; Python and numpy are the computer's to have.
+* Recording a Mandarin zone's USB output itself (Mandarin Bridge's, or a DAC on the server) follows.
 
 ## Away from home (Tailscale)
 
