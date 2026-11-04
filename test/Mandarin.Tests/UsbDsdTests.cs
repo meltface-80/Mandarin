@@ -100,7 +100,7 @@ public sealed class UsbDsdTests
     private static byte Rev(byte b) { int r = 0; for (int i = 0; i < 8; i++) if ((b & (1 << i)) != 0) r |= 0x80 >> i; return (byte)r; }
 
     // The engine playing [dsf] to a file at the volume [volume], told the DAC takes [native]: the bytes and the format it opened at.
-    private static async Task<(byte[] Out, JsonNode? Sink)> Play(string bin, string dir, string dsf, string native, int bytes)
+    internal static async Task<(byte[] Out, JsonNode? Sink)> Play(string bin, string dir, string dsf, string native, int bytes)
     {
         var file = Path.Combine(dir, "out-" + Guid.NewGuid().ToString("N") + ".raw");
         var r = (await Score.Run(new
