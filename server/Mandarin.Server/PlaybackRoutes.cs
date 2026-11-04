@@ -17,11 +17,11 @@ internal static partial class PlaybackRoutes
     private static readonly string[] PhoneFields = ["zone", "zone_or_output_id", "output_id", "zone_id", "from", "to", "from_zone", "to_zone"];
     private static readonly string[] HomeOnly = ["/pause-all", "/mute-all", "/group-outputs", "/ungroup-outputs", "/transfer-zone"];
     private static readonly HashSet<string> Gets = ["/api/zones", "/api/outputs", "/api/shortcut/zones", "/api/zone-state", "/api/queue", "/api/radio",
-        "/api/album/now-playing", "/api/pick-unheard", "/api/shortcut/play-random", "/api/shortcut/play-unheard"];
+        "/api/album/now-playing", "/api/pick-unheard", "/api/shortcut/play-random", "/api/shortcut/play-unheard", "/api/bitperfect"];
     private static readonly HashSet<string> Posts = ["/api/control", "/api/seek", "/api/volume", "/api/zone-settings", "/api/pause-all", "/api/mute-all",
         "/api/group-outputs", "/api/ungroup-outputs", "/api/transfer-zone", "/api/play", "/api/play-track", "/api/play-multi", "/api/play-from-here",
         "/api/play-unheard", "/api/queue/remove", "/api/queue/clear", "/api/queue/move", "/api/queue/play-history-next", "/api/queue/history-multi",
-        "/api/radio", "/api/output/standby", "/api/output/convenience-switch"];
+        "/api/radio", "/api/output/standby", "/api/output/convenience-switch", "/api/bitperfect"];
 
     /* Playback requests holding a database connection now (/api/status's waits): a long poll's wait holds none. */
     private static int holding;
@@ -243,6 +243,13 @@ internal static partial class PlaybackRoutes
                 });
             }
             case "/api/zone-state": return await ZoneStateRoute(req);
+            case "/api/bitperfect":
+            {
+                // A room's bit-perfect check (item 275, BitPerfect/Check.cs): where it is, and its report.
+                var zone = req.Q("zone") ?? "";
+                var check = hub.IsUpnp(zone) ? hub.Upnp.BitPerfectOf(zone) : null;
+                return await Send(req.Ctx, check ?? new JsonObject { ["state"] = "none" });
+            }
             case "/api/queue": return await QueueRoute(req);
             default: return await Plays(req, p);
         }

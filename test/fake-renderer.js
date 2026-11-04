@@ -239,6 +239,8 @@ class FakeRenderer {
         res.writeHead(200, { "Content-Type": "text/xml" });
         return res.end(this.description());
       }
+      // Mandarin USB's recording of what it feeds the DAC, for the server's bit-perfect check (item 275): test/fake-capture.js.
+      if (this.dac && this.dac.capture && /^\/capture(\.wav(\.json)?)?$/.test(u.pathname)) return require("./fake-capture").handle(this, req, res, u);
       if (req.method === "GET" && u.pathname === "/dac.json") {
         if (!this.dac) { res.writeHead(404); return res.end(); }
         // What the DAC is being fed: read from the file the device fetched, as the app reads its own stream.
@@ -247,7 +249,8 @@ class FakeRenderer {
         const dsd = last && /\.dsf\b|\.dff\b/.test(last.uri) ? (this.dac.dsd || [64])[0] : 0;
         const now = this.state === "PLAYING" && (info || dsd) ? { rate: dsd ? dsd * 44100 / 32 : info.rate, bits: dsd ? 32 : info.bits, dsd, kind: dsd ? "dsd" : "pcm", transport: this.state } : null;
         res.writeHead(200, { "Content-Type": "application/json" });
-        return res.end(JSON.stringify({ model: "Mandarin USB", version: "0.2.0", name: this.name, udn: this.udn, dac: Object.assign({ attached: true, permission: true }, this.dac), now }));
+        return res.end(JSON.stringify({ model: "Mandarin USB", version: "0.2.0", name: this.name, udn: this.udn, dac: Object.assign({ attached: true, permission: true }, this.dac), now,
+          capture: this.dac.capture ? "/capture" : undefined }));
       }
       if (req.method === "GET" && u.pathname === "/httpapi.asp") {
         if (!this.linkplay) { res.writeHead(404); return res.end(); }

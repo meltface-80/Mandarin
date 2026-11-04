@@ -526,6 +526,26 @@
 - Fixed - seeking with the progress bar in a track upsampled as it plays (DSD, or ×16) plays from there at once, and Back or a seek on a streamer left stuck on its track sends the track again
 - Fixed - on a streamer such as the FiiO SR11, an album no longer skips a track: the next track showed in the last 15 s of a long one, and one shorter than that was passed over
 - Improved - a FiiO SR11 is known by its model: its page shows what it plays by USB to a DAC (to 768 kHz/32-bit, DSD64–256) without ticking, where it showed only 44.1 and 48 kHz
+- New - the bit-perfect check: ask for it on a Mandarin USB renderer and the track is played again from its start while the phone records exactly what it feeds the DAC; the server compares every sample with what it sent and says bit-perfect, or what differed and where (PCM, DoP and native DSD)
+
+- `275-bit-perfect-check` (item 275, first part): **the bit-perfect check, end to end, on the server.** The
+  owner's idea: SQ-tool's comparison (github.com/meltface-80/SQ-tool) inside Mandarin, the server doing it, as it
+  holds what it sent. `POST /api/bitperfect {zone_or_output_id}` on a Mandarin USB renderer whose app records what
+  it feeds its DAC (/dac.json's "capture", the Android USB driver's /capture): the device is asked to record, the
+  track is played again from its start, and each recording (two minutes at most, so a longer track is recorded in
+  turn) is fetched, with its sidecar. What was sent is then fetched from this server as the device fetched it (the
+  file, the cache's, a DSF made as it played) and each recording is found in it and walked with it frame by frame
+  (BitPerfect/Compare.cs): PCM as left-justified 32-bit words, so a 16-bit track in a 32-bit slot is the same
+  numbers; DSD as its bits in the order they play, from a DSF, DoP or native words big- or little-endian. The
+  verdict is SQ-tool's: bit-perfect, dropouts (an underrun's silence, frames lost or played again), altered,
+  not bit-perfect (by how many dB, where the level was changed), resampled, or not the track that was sent.
+  `GET /api/bitperfect?zone=` gives where it is and the report: how much of the track was compared, where it first
+  differed, the dropouts, the format the DAC was fed, the USB driver's underruns and flushes. `mandarin-server
+  bitperfect` compares files as the check does. Next: a DAC on this server's own USB recorded off the bus (usbmon),
+  and the check on Now playing. Tests: `BitPerfectTests` (PCM in 32- and 24-bit slots, from the start and from the
+  middle; an underrun, frames lost, one sample changed, 1 dB down, another track, another rate; DSD as DoP and as
+  native words both ways, a byte changed), `bitperfect-check.test.js` (a fake Mandarin USB renderer: bit-perfect,
+  1 dB down, the next track recorded, an app that can't record).
 
 - `274-fiio-sr11-profile` (item 274): **the FiiO SR11 known by its model.** A streamer on the network says what
   formats it takes (GetProtocolInfo: FLAC, WAV, DSF…) and almost never what rates or depths: UPnP has no way to
