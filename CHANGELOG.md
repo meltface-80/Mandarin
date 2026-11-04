@@ -520,6 +520,25 @@
   up on after 90 seconds. It now steps toward the album by the shelf's own order, a few steps at most, and says if it
   never got there. Nothing changes in Mandarin.
 - New - a Mandarin USB renderer (an Android device with a USB DAC, github.com/meltface-80/Android-USB-Driver) is read whole: every rate, depth and DSD multiple its DAC takes shows as advertised on its page, nothing to tick, and a track gets the ✓ when the DAC is fed what was sent
+- Fixed - seeking with the progress bar in a track upsampled as it plays (DSD, or ×16) plays from there at once, and Back or a seek on a streamer left stuck on its track sends the track again
+
+- `272-seek-while-made` (item 272): **a seek in a track made as it plays.** The FiiO SR11, playing PCM made DSD256
+  as it plays, seeks as in any file: it asks for the bytes where the time falls. Asked for bytes not yet made, the
+  server waited for the making to get there, at a little over twice real time from where it was: a minute and more
+  for a seek to the middle of a track. The SR11 gave up waiting and went silent; Back (a seek to the start) on that
+  stuck stream played nothing, and only the next track, sent anew, played. Now, as Roon begins its DSP again where
+  you seek, a device asking for bytes more than 3 s of music past what is made has the making stopped and begun
+  again from there (Upsample/Resume.cs): the track decoded from the frame that byte holds (a DSF's block, a WAV's
+  frame), the file written from that byte on, what was made before it kept, and nothing ever sent from the gap
+  between. Read again from the start (Back) and played on, the making is begun again where the first part ends,
+  5 s before the device gets there, and the file is whole again; one left with a gap when its making ends is not
+  kept, and the next play makes it whole. Only the newest of a file's readers moves the making. And Back, or a seek,
+  to a device still starting its track long after it was sent (TRANSITIONING for more than 8 s) or stopped on it
+  sends the track again, as the next track is sent, and seeks there after. `TailFollow` moved out of Transcoder.cs
+  into Transcoder.Follow.cs for room. Tests: `SeekMadeTests` (a DSD64 track sought to 75 s while 2 s is made: the
+  bytes in under 8 s, the sine at its phase there, then read whole from the start with every part of it the track;
+  a ×16 WAV sought to 30 s, likewise), `renderer-stuck.test.js` (a renderer stuck in TRANSITIONING: Back sends the
+  track again, a seek sends it and seeks).
 
 - `271-making-paced` (item 271): **the making paced as Roon paces its DSP.** A track made as it plays was made as
   fast as the processor allowed: DSD256 on the owner's server at about three times real time, every core given it
