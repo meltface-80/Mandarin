@@ -1,5 +1,6 @@
-// Engine.Dsd.cs — a DSF played to the device as DSD (bug list item 256): read here, not decoded by ffmpeg (which
-// would make it PCM), and handed on as native DSD where the DAC takes it at that rate, else as DoP (Dsd.cs).
+// Engine.Dsd.cs — a DSF (bug list item 256) or a DFF (item 284) played to the device as DSD: read here, not decoded by
+// ffmpeg (which would make it PCM), and handed on as native DSD where the DAC takes it at that rate, else as DoP
+// (Dsd.cs, Dff.cs).
 using System.Net.Http;
 
 namespace Mandarin.Audio;
@@ -17,6 +18,48 @@ internal sealed partial class Engine
 
     /* How the device is sent DSD at [dsdRate]: natively where it says it takes that rate (44.1 kHz's family), else DoP (48 kHz's always: item 261). */
     public OutFormat DsdFormat(int dsdRate) => NativeFormat != OutFormat.Pcm && dsdRate % 44100 == 0 && NativeDsd.Contains(dsdRate / 44100) ? NativeFormat : OutFormat.Dop;
+
+    // One DSF or DFF into the buffer from [offset] s: true when read to the end.
+    private bool DecodeDsd(int gen, string uri, double offset) => Dsd.IsDff(uri) ? DecodeDff(gen, uri, offset) : DecodeDsf(gen, uri, offset);
+
+    // One DFF into the buffer from [offset] s, as a DSF is: true when read to the end.
+    private bool DecodeDff(int gen, string uri, double offset)
+    {
+        using var input = OpenDsf(uri);
+        var dff = Dff.ReadHeader(input);
+        var fmt = DsdFormat(dff.Rate);
+        long perChannel = dff.Bytes / dff.Channels;
+        // A seek: from the whole word it falls in (4 bytes a channel, a frame sent either way).
+        long start = Math.Clamp((long)(offset * dff.Rate / 8) / 4 * 4, 0, perChannel / 4 * 4);
+        Skip(input, start * dff.Channels);
+        lock (gate)
+        {
+            if (gen != generation) return false;
+            marks.Add(new Mark(writeBytes, uri, (double)start * 8 / dff.Rate, Dsd.FrameRate(dff.Rate, fmt), dff.Channels, fmt));
+            Monitor.PulseAll(gate);
+        }
+        const int block = 4096;
+        var buf = new byte[block * dff.Channels];
+        var frames = new byte[block / Dsd.BytesPerFrame(fmt) * 4 * dff.Channels];
+        // Only the DSD chunk's own bytes: a chunk after it (ID3) is never played.
+        long left = (perChannel - start) * dff.Channels;
+        while (left > 0)
+        {
+            int want = (int)Math.Min(buf.Length, left);
+            int filled = 0;
+            while (filled < want)
+            {
+                int n = input.Read(buf, filled, want - filled);
+                if (n <= 0) break;
+                filled += n;
+            }
+            left -= filled;
+            int bytes = Dsd.Pack(fmt, buf, dff.Channels, block, filled / dff.Channels, frames, ref dopMarker, interleaved: true);
+            if (Put(gen, frames.AsSpan(0, bytes)) < 0) return false;
+            if (filled < want) break;
+        }
+        return true;
+    }
 
     // One DSF into the buffer from [offset] s: true when read to the end.
     private bool DecodeDsf(int gen, string uri, double offset)
@@ -72,7 +115,7 @@ internal sealed partial class Engine
         return true;
     }
 
-    // The DSF at [uri]: the server's stream (http) or a file here.
+    // The DSF or DFF at [uri]: the server's stream (http) or a file here.
     private static Stream OpenDsf(string uri) =>
         uri.StartsWith("http://", StringComparison.Ordinal) || uri.StartsWith("https://", StringComparison.Ordinal)
             ? Http.GetStreamAsync(uri).GetAwaiter().GetResult()
