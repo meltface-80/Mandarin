@@ -526,7 +526,8 @@
   (Playback/HighRates.Args, beside WAV's own; a made-as-played track's encode is the same). A renderer set to Bit
   depth Auto or 32 that takes 32 bits now gets 32-bit FLAC; one that can't read it is set to 24 on its page. A phone
   stays at 24 (item 268). CI checks the image's ffmpeg writes 32-bit FLAC. Tests: ConversionsCsharpTests (the
-  32-bit file made end to end is 32 bits a sample, its STREAMINFO read; it was 24 behind an ffmpeg that writes 32);
+  32-bit file made end to end is 32 bits a sample, its STREAMINFO read; it was 24 behind an ffmpeg that writes 32;
+  the suites' own probe of ffmpeg asks as the server does);
   the kept answers of the two 32-bit conversions and of the 32-bit cases of held_args carry the flag, every changed
   answer checked to differ by it alone.
 
