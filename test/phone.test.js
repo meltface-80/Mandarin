@@ -455,7 +455,8 @@ test("the phone is a zone", { skip, timeout: 60000 }, async (t) => {
     // PCM made DSD), the server making it as it does for a renderer, the app's USB driver playing what it is sent.
     await t.test("a USB DAC's Output: upsampled in a shape, or PCM made DSD, the queue planned again for it", async () => {
       const cd = albums.find(a => a.title === "Album One");
-      const caps = { rates: [44100, 48000, 88200, 96000, 176400, 192000], bits: [24], dsd: [64, 128] };
+      // A DAC that takes 32 bits, as the SMSL SU1 does (item 268).
+      const caps = { rates: [44100, 48000, 88200, 96000, 176400, 192000], bits: [24, 32], dsd: [64, 128] };
       await phone("POST", "/api/play", { offset: cd.offset, zone_or_output_id: zoneId, kind: "play_now" });
       seq = (await phone("GET", `/api/phone/commands?after=${seq}`)).seq;
       await phone("POST", "/api/phone/state", { index: 0, position: 1, duration: 60, state: "playing", volume: 40, usb_caps: caps });
@@ -474,7 +475,10 @@ test("the phone is a zone", { skip, timeout: 60000 }, async (t) => {
       let r = await other("PATCH", "/api/audio-devices/" + zoneId, { output: { mode: "x4", filter: "minphase" } });
       assert.equal(r.status, 200, JSON.stringify(r));
       let load = await loaded();
+      // 24 bits, all the same (item 268): the phone's player hands its driver floats, which it packs into the DAC's
+      // 32-bit words, and Android may not read a 32-bit FLAC; and it is a stream the server makes.
       assert.match(load.items[0].url, /\.176400-24\.flac\?(.*&)?f=min(&|$)/, load.items[0].url);
+      assert.equal((await fetch(new URL(load.items[0].url, B))).status, 200, "the stream made");
       // PCM as DSD128: a DSF, made as it plays, its header DSD128's.
       r = await other("PATCH", "/api/audio-devices/" + zoneId, { output: { dsd_out: 128 } });
       assert.equal(r.status, 200, JSON.stringify(r));

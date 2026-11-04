@@ -41,7 +41,8 @@
 - Fixed - signed in to Tidal, a token that stops working is renewed once, however many requests find it stale at the same time
 - Improved - a device's DSP runs in the order set: volume levelling, then the headroom (more where levelling could take a track over full scale), then the DSP at the track's own rate, then upsampling; and PCM as DSD works with DSP on
 - Fixed - DSD256 made as it plays no longer falls behind the device on the next track of an album: the making carried on into it is given all of playback's cores again, and the server keeps two of its own, so the app and the device no longer time out
-- Improved - 32-bit output: the server image's ffmpeg is now 7.1 (Debian 13), and asked as it needs to be, it writes 32-bit FLAC for a renderer that takes it (Settings → Audio Devices → the device → Bit depth)
+- Fixed - a phone playing through a 32-bit USB DAC (the SMSL SU1) is sent 24 bits when upsampling, which the server can make and the phone can read; its driver still gives the DAC 32-bit words
+- Fixed - 32-bit FLAC is really 32 bits: the server asks ffmpeg for it as ffmpeg needs (-strict experimental), without which 6.1 and later wrote 24 bits and the server never offered 32
 
 - `259-dsd-on-demand` (item 259): **PCM as DSD, and the shaped filters, made as they play.** A track made DSD from
   PCM had to be made whole, ahead (items 243, 254): its filter was one as long as the track (237, PGGB's way), so
@@ -518,11 +519,18 @@
   never got there. Nothing changes in Mandarin.
 - New - a Mandarin USB renderer (an Android device with a USB DAC, github.com/meltface-80/Android-USB-Driver) is read whole: every rate, depth and DSD multiple its DAC takes shows as advertised on its page, nothing to tick, and a track gets the ✓ when the DAC is fed what was sent
 
+- `268-phone-24-bit` (item 268): **a phone's 32-bit DAC sent 24 bits.** Since item 265 a phone's stream target
+  took the DAC's deepest depth as it was, and with Output upsampling a DAC that takes 32 bits (the owner's SMSL SU1 on
+  the FiiO R7) was planned 32-bit FLAC: a stream the server refuses where its ffmpeg doesn't write 32-bit FLAC (the
+  image's, bookworm's 5.1), and one Android's FLAC decoder may not read. A renderer's target was already held to what
+  ffmpeg writes. The phone's is now held to 24 bits (Phones.TargetFor): its player hands the USB driver floats, which
+  the driver packs into the DAC's own slots, 32-bit words for the SU1, so the DAC is fed 32 bits all the same. Tests:
+  phone.test.js (a DAC of 24 and 32 bits upsampled ×4: 24-bit FLAC, and made; before, 32-bit).
 - `269-ffmpeg-32-bit-flac` (item 269): **32-bit FLAC.** A renderer that takes 32 bits was sent 24: the image's
   ffmpeg, Debian 12's 5.1, can't write 32-bit FLAC, and the ffmpeg of 6.1 on writes it only when told
   -strict experimental, else 24 bits without a word; the server asked without it, so its probe said no everywhere
-  (Transcoder.Writes32) and Bit depth's 32 stayed off. The image is now Debian 13's (trixie, ffmpeg 7.1 with libsoxr;
-  libicu76 for libicu72), and both the probe and every 32-bit FLAC conversion ask with -strict experimental
+  (Transcoder.Writes32) and Bit depth's 32 stayed off. The image is Debian 13's (trixie, ffmpeg 7.1, since PR #594), and
+  both the probe and every 32-bit FLAC conversion ask with -strict experimental
   (Playback/HighRates.Args, beside WAV's own; a made-as-played track's encode is the same). A renderer set to Bit
   depth Auto or 32 that takes 32 bits now gets 32-bit FLAC; one that can't read it is set to 24 on its page. A phone
   stays at 24 (item 268). CI checks the image's ffmpeg writes 32-bit FLAC. Tests: ConversionsCsharpTests (the
@@ -559,6 +567,9 @@
   lists ran beside the test's search. Now a call refused with a token that has since been replaced is made again with
   the one kept, and only a call refused with the current one renews it (TidalApi.Renewed). Test: tidal.test.js (two
   calls refused with a stale token, the second's refusal held until the first has renewed it: renewed once).
+- Fixed - on a FiiO R7, and any player whose own DAC sits on a USB bridge inside, the Android app plays the DAC plugged into the port, not the device’s own; a choice of device is kept for the page (MusicdUsb.setDevice)
+- Improved - the image’s ffmpeg is 7.1 (Debian trixie): a streamer or DAC that takes 32 bits is sent 32-bit FLAC where a track is converted or upsampled (Settings → Audio Devices → a device → Output → Bits: Auto or 32), as before only on a Mac or a host with ffmpeg 7; the image’s 5.1 could not write it
+
 ## v1.1.14
 
 Tweaks - altered share card copy function, Android app copies it to the clipboard. Items 223 to 225.

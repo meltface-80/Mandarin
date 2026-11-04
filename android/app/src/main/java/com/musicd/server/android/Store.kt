@@ -131,6 +131,9 @@ object Store {
      */
     fun usbDsd(context: Context): String = prefs(context).getString("usb_dsd", "native") ?: "native"
     fun setUsbDsd(context: Context, mode: String) { prefs(context).edit().putString("usb_dsd", if (mode in listOf("native", "native_le", "dop", "pcm")) mode else "native").apply() }
+    /** The USB audio device to play through, by UsbDac.key (vendor:product), where there is more than one (a FiiO R7's own DAC is one); null for the driver's own choice. */
+    fun usbDevice(context: Context): String? = prefs(context).getString("usb_device", null)
+    fun setUsbDevice(context: Context, key: String?) { prefs(context).edit().apply { if (key.isNullOrBlank()) remove("usb_device") else putString("usb_device", key) }.apply() }
     /** The most the USB volume may be set to (0–100), so a DAC on headphones can never be driven to full. */
     fun usbLimit(context: Context): Int = prefs(context).getInt("usb_limit", 80).coerceIn(1, 100)
     fun setUsbLimit(context: Context, pct: Int) { prefs(context).edit().putInt("usb_limit", pct.coerceIn(1, 100)).apply() }
