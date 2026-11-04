@@ -537,6 +537,7 @@
 - New - Mandarin Bridge for Linux: a computer with a USB DAC (a Raspberry Pi beside the DAC, say) as a renderer Mandarin plays to bit-perfect, with Mandarin's own audio engine; installed with one line, it starts at boot and is set up from its own page at http://<it>:49494/
 - New - Mandarin Bridge for Raspberry Pi: an image to flash (Raspberry Pi OS Lite, 64-bit, the Bridge in it); plug in the DAC and power on, its page at http://mandarin-bridge.local:49494/, and with no network yet its own Wi-Fi, Mandarin Bridge Setup, to choose the home network from the page
 - Fixed - a DFF file plays as DSD on a USB DAC plugged into the server or into Mandarin Bridge for Linux or a Raspberry Pi, natively or as DoP, as a DSF does; it reached the DAC as PCM before. A DST-compressed DFF is said rather than played
+- Fixed - the Mac check no longer gives up on a busy day before GitHub has a Mac to run it on
 
 - `284-dff-as-dsd` (item 284): **A DFF played as DSD, as a DSF is.** The audio engine read only a DSF itself; a DFF
   went to ffmpeg, which made it PCM, so on a DAC on the server or on the Linux Bridge it was never DSD (the server
@@ -549,6 +550,11 @@
   (markers in turn, the DSD rate over 16) and as native DSD (big-endian words, the rate over 32), the 48 kHz family as
   DoP; a seek to 1.5 s plays on from that word, what lay between never sent; a DST one said, nothing sent. Shown
   failing with the DFF sent to ffmpeg, a DST one played, the seek ignored, and the chunk after the audio sent.
+- `285-mac-ci-waits-for-a-runner` (item 285): **The Mac check waits for a Mac.** Its job's 15-minute limit counted
+  the wait for one of GitHub's macOS runners too, so on a busy day (4 November, again and again) it was cancelled
+  before it had one, no step run, and a pull request it should have checked went without. The job may now wait an
+  hour and a half (`mac.yml`), and each step has a limit of its own, 5 to 15 minutes (a whole run takes about three),
+  so a hung step is still stopped soon, as the 15 minutes were there to do.
 - `283-bridge-pi-image` (item 283): **Mandarin Bridge for Raspberry Pi.** An image to flash (`bridge/pi`): Raspberry Pi
   OS Lite (64-bit) with the Bridge, the audio engine and ffmpeg, the Bridge started at boot, the Pi called
   `mandarin-bridge`, made by `build-image.sh` on GitHub's ARM runner (`bridge-pi.yml`, which checks the Bridge and

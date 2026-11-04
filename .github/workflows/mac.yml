@@ -22,21 +22,28 @@ jobs:
   smoke:
     name: Mandarin on a Mac
     runs-on: macos-latest
-    timeout-minutes: 15
+    # The job's own limit counts the wait for one of GitHub's few Macs too (item 285): at 15 minutes, a busy day
+    # cancelled it before it had a Mac, every step unrun. So the job may wait an hour and a half, and each step has
+    # a limit of its own (all of them run in about three minutes), so that a hung one is still stopped soon.
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v7
+        timeout-minutes: 5
       - name: Install ffmpeg
+        timeout-minutes: 10
         env:
           HOMEBREW_NO_AUTO_UPDATE: "1"
           HOMEBREW_NO_INSTALL_CLEANUP: "1"
         run: brew install ffmpeg
       - uses: actions/setup-dotnet@v6
+        timeout-minutes: 5
         with:
           dotnet-version: "10.0.x"
       # The audio engine (Native AOT, with Xcode's own toolchain), which plays a Mac's devices through
       # Core Audio (item 155): it says its version, lists the Mac's outputs (a line each, the runner may
       # have none), and a device that isn't there is said, not a crash.
       - name: Build and check the audio engine
+        timeout-minutes: 10
         run: |
           ./engine/build.sh
           engine/bin/mandarin-audio --devices | tee "$RUNNER_TEMP/devices"
@@ -46,6 +53,7 @@ jobs:
           grep -q '"ev":"hello"' <<<"$said"
       # Signed ad hoc as it is built (Apple silicon runs nothing unsigned).
       - name: Build the C# server
+        timeout-minutes: 15
         run: |
           ./server/build.sh
           codesign --verify server/bin/mandarin-server && echo "signed to run here"
@@ -53,6 +61,7 @@ jobs:
       # this build served as a release (its page bundle and the server with its sums), fetched, checked,
       # signed and placed; with a sum that doesn't match, nothing placed.
       - name: The installer fetches Mandarin
+        timeout-minutes: 5
         run: |
           set -e
           v=$(node -p "require('./package.json').version")
