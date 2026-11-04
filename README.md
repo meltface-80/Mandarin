@@ -1012,6 +1012,15 @@ the uninstall, so download them again. After that, never again.
 (`android/app/musicd-debug.keystore`) and named `…-shared-key.apk`. It can't update the
 published app, nor the published app it.
 
+
+### Mandarin USB: an Android device with a USB DAC as a renderer
+
+A second, small app, in `usb-renderer/`: it makes an Android device (a FiiO R7, say) with a USB DAC on its port a
+UPnP renderer that Mandarin plays to, bit-perfect, through Mandarin's own USB driver, and keeps the device awake.
+Mandarin reads the DAC whole from it (every rate, depth and DSD multiple), confirms what it feeds the DAC, and can
+check a whole track bit-perfect to the DAC (Now playing → Signal path → Bit-perfect check). Its test build is the
+[test-usb-renderer](https://github.com/meltface-80/Mandarin/releases/tag/test-usb-renderer) pre-release; setting it
+up, building it and how it fits together are in [usb-renderer/README.md](usb-renderer/README.md).
 ## Qobuz
 
 Mandarin streams from Qobuz with a Qobuz subscription (v0.6.23), the way the Lyrion Music
