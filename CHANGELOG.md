@@ -522,6 +522,19 @@
   never got there. Nothing changes in Mandarin.
 - New - a Mandarin USB renderer (an Android device with a USB DAC, github.com/meltface-80/Android-USB-Driver) is read whole: every rate, depth and DSD multiple its DAC takes shows as advertised on its page, nothing to tick, and a track gets the ✓ when the DAC is fed what was sent
 - Fixed - seeking with the progress bar in a track upsampled as it plays (DSD, or ×16) plays from there at once, and Back or a seek on a streamer left stuck on its track sends the track again
+- Fixed - on a streamer such as the FiiO SR11, an album no longer skips a track: the next track showed in the last 15 s of a long one, and one shorter than that was passed over
+
+- `273-named-early-not-moved-on` (item 273): **a track no longer passed over on the FiiO SR11.** The SR11 names the
+  next track (the one SetNextAVTransportURI handed it) as soon as it is given it, all through the track before
+  (item 233). The server took the move as made once the track playing was in its last 15 s, so for those 15 s it
+  showed the next track at the first's position; and where the next track is shorter than where the first's clock
+  then stood, it found that track "still playing at its end" and started the one after it by hand. On the owner's
+  Old Sock, Angel (track 2, 3:53) came after a 5:43 track 1: "still playing at the end of track 2 (342 s of 233 s);
+  track 3 started by hand", and Angel never played. Now a renderer that has named the next track early all along
+  has moved on only when its position goes back to the start (5 s back, or a third of a short track, and under
+  15 s in); one that names it only at the change is believed at a track's end as before. Test:
+  `renderer-names-next.test.js` (a 40 s track before a 5 s one, the next named all along: the first on screen to
+  its end, and the second played, nothing started by hand).
 
 - `272-seek-while-made` (item 272): **a seek in a track made as it plays.** The FiiO SR11, playing PCM made DSD256
   as it plays, seeks as in any file: it asks for the bytes where the time falls. Asked for bytes not yet made, the
