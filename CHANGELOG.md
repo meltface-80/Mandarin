@@ -537,6 +537,13 @@
   an older run still never pushes over a newer one. Test: `publish-after-ci.test.js` (the image's run never cut
   short on any branch, the test APK's as before).
 
+- `277-pace-test-race` (item 277): **the pacing test waits for the making to stop, however busy the machine.**
+  `PaceTests` read a track's first bytes, then took the making's file three seconds later and again 1.5 s after,
+  and wanted the two the same. On a busy runner the socket's buffers were still filling at three seconds, so the
+  server still read on and the making went on a little (6.43 MB, then 6.63 MB): the test failed once and passed
+  alone. It now waits, up to 30 s, until the file stops growing, and then holds it as before to well short of the
+  track (with the pacing broken, the making runs to the end and the test fails).
+
 - `274-fiio-sr11-profile` (item 274): **the FiiO SR11 known by its model.** A streamer on the network says what
   formats it takes (GetProtocolInfo: FLAC, WAV, DSF…) and almost never what rates or depths: UPnP has no way to
   ask. A DAC on the server's own USB says its rates itself (ALSA), a WiiM says what its decoder runs at, a
