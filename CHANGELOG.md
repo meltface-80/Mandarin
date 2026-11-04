@@ -529,6 +529,21 @@
 - Fixed - the server's dev image no longer falls behind the test app while changes are merged one after another
 - New - the bit-perfect check: ask for it on a Mandarin USB renderer and the track is played again from its start while the phone records exactly what it feeds the DAC; the server compares every sample with what it sent and says bit-perfect, or what differed and where (PCM, DoP and native DSD)
 - New - the bit-perfect check on Now playing: Signal path → Bit-perfect check → Check, on a Mandarin USB renderer; the step says how far it has got, then its verdict
+- New - Mandarin USB, the phone app that plays through a USB DAC as a renderer, now lives in this repository (usb-renderer/): it builds from Mandarin's own driver, so the two are worked on together; its test build is the test-usb-renderer pre-release
+
+- `278-usb-renderer-in-mandarin` (item 278): **Mandarin USB brought into Mandarin's repository.** The app that makes
+  an Android device with a USB DAC a UPnP renderer played through Mandarin's own USB driver was its own repository
+  (github.com/meltface-80/Android-USB-Driver, taken here at its main, f4d957a: the DAC said whole to Mandarin, and
+  the recording of what it feeds the DAC for the bit-perfect check), with Mandarin's driver files and :core copied
+  into it each night and a pull request opened when they changed. It is now `usb-renderer/`, and builds from
+  Mandarin's files where they are: the driver's sources and USB device filter (`usb-renderer/driver-files.txt`) put
+  beside its own at build time, `usb_jni.cc` compiled from Mandarin's app, and `:core` a project of its build. The
+  copy (`mandarin/`), its sync script and its nightly workflow are gone: a change to the driver is one pull request,
+  built for both apps (`.github/workflows/usb-renderer.yml`, run when its files, the driver's or :core change). A
+  push to dev puts its APK on the `test-usb-renderer` pre-release, never "latest"; a version is cut by hand with
+  `usb-renderer-release.yml` (the tag `mandarin-usb-v<version>`, never marked latest, so the server's updater still
+  reads Mandarin's own). Signed as before: Mandarin's release key where the secrets are set, else the committed
+  shared key. Its own history is in the old repository; its changelog is `usb-renderer/CHANGELOG.md`.
 
 - `275-bit-perfect-now-playing` (item 275, second part): **the bit-perfect check on Now playing.** Where the device
   can record what it feeds its DAC (a Mandarin USB renderer whose /dac.json says "capture", kept with the device as

@@ -5,6 +5,8 @@ data
 docs
 android/*
 !android/musicdnet
+# Mandarin USB, the phone app (item 278): built by its own workflow, never in the server's image.
+usb-renderer
 test
 *.md
 *.tar.gz
