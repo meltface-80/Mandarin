@@ -65,6 +65,7 @@ internal static class SqTool
                 psi.ArgumentList.Add(a);
             psi.Environment["PYTHONPATH"] = dir;
             psi.Environment["PYTHONUNBUFFERED"] = "1";
+            psi.Environment["PYTHONDONTWRITEBYTECODE"] = "1"; // nothing written into the install
             Process p;
             try { p = Process.Start(psi)!; }
             catch (System.ComponentModel.Win32Exception) { why = $"Python 3 isn't installed here ({Python} couldn't be run)"; return false; }

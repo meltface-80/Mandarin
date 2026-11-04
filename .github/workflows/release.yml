@@ -166,6 +166,8 @@ jobs:
           v=${{ steps.v.outputs.version }}
           mkdir -p out/musicd-server
           cp -r package.json public README.md CHANGELOG.md LICENSE out/musicd-server/
+          # SQ-tool's code (item 288), so an update made from Settings brings it as the image does.
+          mkdir -p out/musicd-server/sq-tool && cp -r sq-tool/sqtool out/musicd-server/sq-tool/
           tar -C out -czf "musicd-server-$v.tar.gz" musicd-server
           # This version's section of the changelog, without its heading.
           awk -v h="## v$v" '$0==h{on=1;next} /^## v/{if(on)exit} on' CHANGELOG.md > notes.md
