@@ -2259,6 +2259,8 @@ div.share-similar-act:hover { background: var(--bg-elev-2); border-color: var(--
 .np-signal-step.is-pending .np-signal-dot { background: transparent; border: 1px dashed var(--text-dim); }
 .np-signal-title { font-size: 14px; font-weight: 600; color: var(--text); }
 .np-signal-detail { font-size: 13px; color: var(--text-dim); line-height: 1.35; }
+.np-signal-action { margin-top: 6px; padding: 4px 12px; border-radius: 999px; border: 1px solid var(--accent); background: transparent; color: var(--accent); font-size: 13px; cursor: pointer; }
+.np-signal-action:disabled { opacity: 0.5; cursor: default; }
 /* The official Opus logo (Xiph.Org's, from the Opus source tree's
    doc/opus_logo.svg), its shapes used as a mask so it takes the badge's colour:
    the original's dark grey gradient disappears on this screen. */

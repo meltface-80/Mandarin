@@ -65,8 +65,13 @@ test("a Mandarin USB renderer's DAC checked bit-perfect, end to end", { skip, ti
       await until(async () => { const z = (await api("zone-state?zone=" + zone)).zone; return z && z.state === "playing" && z.now_playing && z.now_playing.line1 === "Song 1"; });
     };
 
-    // Fed what it was sent: bit-perfect, every sample, the track played again from its start for it.
+    // Now playing's signal path offers it (item 275): a step with its button, on this device only.
+    const step = async (zone) => { const z = (await api("zone-state?zone=" + zone)).zone; return ((z && z.now_playing && z.now_playing.signal && z.now_playing.signal.steps) || []).find(x => x.kind === "check"); };
     await playing(USB);
+    const offered = await until(() => step(USB));
+    assert.deepEqual([offered.title, offered.action, offered.button, offered.quality], ["Bit-perfect check", "bitperfect", "Check", "pending"]);
+
+    // Fed what it was sent: bit-perfect, every sample, the track played again from its start for it.
     const sets = usb.log.filter(a => a === "SetAVTransportURI").length;
     let c = await checked(USB);
     assert.equal(c.state, "done", JSON.stringify(c));
@@ -75,6 +80,10 @@ test("a Mandarin USB renderer's DAC checked bit-perfect, end to end", { skip, ti
     assert.match(c.report.says, /^Bit-perfect/);
     assert.ok(usb.log.includes("capture"), "the device was asked to record");
     assert.ok(usb.log.filter(a => a === "SetAVTransportURI").length > sets, "the track sent again from its start");
+    // The step says so, and offers it again.
+    const said = await until(async () => { const s2 = await step(USB); return s2 && s2.title === "Bit-perfect to the DAC" && s2; });
+    assert.deepEqual([said.quality, said.button], ["lossless", "Check again"]);
+    assert.match(said.detail, /^Bit-perfect: every sample/);
 
     // Fed it 1 dB down: not bit-perfect, by how much.
     usb.captureFilter = "volume=-1dB:precision=double";
@@ -90,8 +99,9 @@ test("a Mandarin USB renderer's DAC checked bit-perfect, end to end", { skip, ti
     assert.equal(c.report.verdict, "not-found", JSON.stringify(c.report));
     assert.match(c.report.says, /isn't the track that was sent/);
 
-    // An app that can't record: told so, nothing begun.
+    // An app that can't record: no step offered, and asked anyway, told so.
     await playing(OLD);
+    assert.equal(await step(OLD), undefined);
     const r = await api("bitperfect", { zone_or_output_id: OLD });
     assert.equal(r.status, 409);
     assert.match(r.error || "", /can't record what it feeds the DAC yet/);

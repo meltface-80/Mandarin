@@ -528,6 +528,17 @@
 - Improved - a FiiO SR11 is known by its model: its page shows what it plays by USB to a DAC (to 768 kHz/32-bit, DSD64–256) without ticking, where it showed only 44.1 and 48 kHz
 - Fixed - the server's dev image no longer falls behind the test app while changes are merged one after another
 - New - the bit-perfect check: ask for it on a Mandarin USB renderer and the track is played again from its start while the phone records exactly what it feeds the DAC; the server compares every sample with what it sent and says bit-perfect, or what differed and where (PCM, DoP and native DSD)
+- New - the bit-perfect check on Now playing: Signal path → Bit-perfect check → Check, on a Mandarin USB renderer; the step says how far it has got, then its verdict
+
+- `275-bit-perfect-now-playing` (item 275, second part): **the bit-perfect check on Now playing.** Where the device
+  can record what it feeds its DAC (a Mandarin USB renderer whose /dac.json says "capture", kept with the device as
+  it is found), the signal path has a step for it, in the page and the app alike: "Bit-perfect check", what it
+  does, and a Check button (a step may now carry an action: `action`, `button`). Asked for, the step says how far
+  the check has got (recording, so many seconds of the track; comparing), the room's state bumped as it goes, so
+  Now playing follows it; done, "Bit-perfect to the DAC" (green) or "Not bit-perfect to the DAC" (red) with the
+  report's sentence, and Check again. A device that can't record has no such step, and the check asked for anyway
+  is refused with why, said in a toast. Tests: `bitperfect-check.test.js` (the step offered on the device that
+  records and not on the other, and its verdict once done), `NowPlayingViewTest` (the step's button read).
 
 - `275-bit-perfect-check` (item 275, first part): **the bit-perfect check, end to end, on the server.** The
   owner's idea: SQ-tool's comparison (github.com/meltface-80/SQ-tool) inside Mandarin, the server doing it, as it

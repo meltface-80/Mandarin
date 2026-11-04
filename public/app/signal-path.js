@@ -52,9 +52,31 @@ function drawNpSignalSteps() {
     detail.className = "np-signal-detail";
     detail.textContent = step.detail || "";
     words.append(title, detail);
+    // A step that can be acted on: the bit-perfect check (item 275), asked for here, its progress and verdict said in the step.
+    if (step.action === "bitperfect" && step.button) words.append(npSignalCheck(step.button));
     li.append(dot, words);
     npSignalSteps.appendChild(li);
   }
+}
+
+// The bit-perfect check's button: the track played again from its start and checked; why not, said in a toast.
+function npSignalCheck(label) {
+  const b = document.createElement("button");
+  b.type = "button";
+  b.className = "np-signal-action";
+  b.textContent = label;
+  b.setAttribute("data-parity", "now-playing.signal-check");
+  b.addEventListener("click", async (e) => {
+    e.stopPropagation();
+    b.disabled = true;
+    try {
+      const r = await fetch("/api/bitperfect", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ zone_or_output_id: currentZone && currentZone.zone_id }) });
+      if (!r.ok) { const j = await r.json().catch(() => ({})); if (window.__showToast) window.__showToast(j.error || "The check couldn't start", "error"); b.disabled = false; }
+      setTimeout(fetchState, 300);
+    } catch (err) { b.disabled = false; }
+  });
+  return b;
 }
 
 function openNpSignal() {
