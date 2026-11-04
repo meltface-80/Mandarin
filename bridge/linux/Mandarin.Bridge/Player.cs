@@ -1,8 +1,9 @@
 // Player.cs — the Bridge's player: Mandarin's own audio engine (engine/, mandarin-audio), the program the server plays
 // a sound device on its own computer with. It decodes each track with ffmpeg into its buffer and writes it to the DAC
 // through ALSA, at the track's own rate, untouched (no mixer, no resampling, no gain), gapless into the next; DSF
-// goes as native DSD where the DAC takes it, else as DoP. It is told what to do on its stdin and says what happened
-// on its stdout, a JSON object a line (Program.cs of the engine lists them); started again should it go.
+// and DFF go as native DSD where the DAC takes it, else as DoP (item 284). It is told what to do on its stdin and
+// says what happened on its stdout, a JSON object a line (Program.cs of the engine lists them); started again should
+// it go.
 using System.Diagnostics;
 using System.Globalization;
 using System.Text.Json.Nodes;
