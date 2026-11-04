@@ -37,7 +37,9 @@ internal static class Recording
                 var bytes = size == uint.MaxValue || at + 8 + size > f.Length ? f.Length - at - 8 : size;
                 return new Wav(channels, rate, bits, at + 8, bytes);
             }
-            at += 8 + (int)Math.Min(size + (size & 1), int.MaxValue - 16);
+            // A chunk said to run past what was read: not a WAV this reads (item 286: never a check left hanging).
+            if (8L + size + (size & 1) > head.Length - at) return null;
+            at += 8 + (int)(size + (size & 1));
         }
         return null;
     }

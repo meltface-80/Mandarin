@@ -60,10 +60,15 @@ internal static class Check
                 var wav = Path.Combine(dir, $"part{parts.Count + 1}.wav");
                 parts.Add((wav, await recorder.Take(wav, ct)));
                 run.Recorded += seconds;
-                if (run.Recorded + 1 >= track.Seconds || !room.StillOn() || !whole) break;
+                if (!room.StillOn() || !whole) break;
+                // In parts, every one of them; else, the next recording asked for until the track is all recorded.
+                if (recorder.More) continue;
+                if (run.Recorded + 1 >= track.Seconds) break;
                 await recorder.Ask(Math.Min(recorder.Most, (int)Math.Ceiling(track.Seconds - run.Recorded) + 2), ct);
             }
             await recorder.Stop(false);
+            // A recording in parts that follow on: the one recording of the track they are (Parts.cs).
+            if (Parts.Join(parts, Path.Combine(dir, "whole.wav")) is { } joined) parts = [joined];
             run.State = "comparing";
             run.Said = "Comparing what the DAC was fed with what was sent";
             var sent = Path.Combine(dir, "sent");
@@ -75,7 +80,9 @@ internal static class Check
             run.State = "done";
             run.Said = (string?)run.Report["says"] ?? "Done";
         }
-        catch (Exception e) when (e is HttpRequestException or IOException or OperationCanceledException or InvalidOperationException or TimeoutException or UnauthorizedAccessException)
+        // A recording or a stream that can't be read, whatever the fault: said, never a check left "comparing" (item 286).
+        catch (Exception e) when (e is HttpRequestException or IOException or OperationCanceledException or InvalidOperationException or TimeoutException or UnauthorizedAccessException
+            or ArgumentException or IndexOutOfRangeException or OverflowException or FormatException or System.Text.Json.JsonException)
         {
             run.State = "failed";
             run.Said = ct.IsCancellationRequested ? "Stopped" : "The check couldn't finish: " + e.Message;
@@ -175,9 +182,11 @@ internal static class Check
             });
         }
         var coverage = track.Seconds > 0 ? Math.Min(1, compared / track.Seconds) : 0;
+        var unrecorded = Unrecorded(track.Seconds, list);
         return new JsonObject
         {
-            ["verdict"] = verdict, ["says"] = Says(verdict, coverage, first, level, drops.Count),
+            ["verdict"] = verdict, ["says"] = Says(verdict, coverage, first, level, drops.Count) + Missing(coverage, unrecorded),
+            ["unrecorded"] = new JsonArray([.. unrecorded.Select(g => (JsonNode)new JsonObject { ["from"] = Math.Round(g.From, 3), ["to"] = Math.Round(g.To, 3) })]),
             ["track"] = new JsonObject { ["title"] = track.Title, ["uri"] = track.Uri, ["seconds"] = Math.Round(track.Seconds, 3) },
             ["sent"] = new JsonObject { ["rate"] = track.Rate, ["bits"] = track.Bits, ["dsd"] = track.Dsd },
             ["fed"] = fed == null ? null : new JsonObject
@@ -189,6 +198,32 @@ internal static class Check
             ["first_difference"] = first, ["level_db"] = level, ["dropouts"] = drops, ["parts"] = list,
             ["at"] = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
         };
+    }
+
+    /* The parts of a [seconds]-long track no recording covered (item 286): the spans between those compared, longer than half a second. */
+    public static List<(double From, double To)> Unrecorded(double seconds, JsonArray parts)
+    {
+        static bool Compared(JsonNode? n) => n is JsonValue v && (v.TryGetValue<long>(out var l) ? l > 0 : v.TryGetValue<double>(out var d) && d > 0);
+        var spans = parts.OfType<JsonObject>().Where(p => Compared(p["compared"])).Select(p => (From: Number(p["from"]), To: Number(p["to"]))).OrderBy(x => x.From).ToList();
+        var gaps = new List<(double, double)>();
+        double at = 0;
+        foreach (var (from, to) in spans)
+        {
+            if (from - at > 0.5) gaps.Add((at, from));
+            at = Math.Max(at, to);
+        }
+        if (seconds - at > 0.5) gaps.Add((at, seconds));
+        return gaps;
+    }
+
+    // What wasn't recorded, said after the verdict where the track wasn't recorded whole.
+    private static string Missing(double coverage, List<(double From, double To)> gaps)
+    {
+        if (coverage >= 0.995 || gaps.Count == 0) return "";
+        static string T(double s) => $"{(int)(s / 60)}:{(int)(s % 60):00}";
+        var named = gaps.Take(3).Select(g => T(g.From) + "–" + T(g.To)).ToList();
+        var more = gaps.Count > 3 ? $" and {gaps.Count - 3} more" : "";
+        return "; not recorded: " + (named.Count > 1 && more.Length == 0 ? string.Join(", ", named[..^1]) + " and " + named[^1] : string.Join(", ", named) + more);
     }
 
     // The report in a sentence.
