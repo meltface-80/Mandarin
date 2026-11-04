@@ -173,12 +173,14 @@ internal static partial class Cpu
             int moved = own.Length > 0 ? PinProcess(Environment.ProcessId, own) : 0;
             if (next.On && moved > 0) Server.Log($"[cpu] {Span(next.Playback)} kept for playback, {Span(next.Background)} for this server and everything else");
             else if (next.On && first) Server.Log("[cpu] couldn't move this server off playback's cores; playback comes first by priority alone");
-            // A conversion running outside its cores now is moved to them.
+            // A conversion not on its cores now is moved to them: off cores taken from it, and onto cores given it (item 267:
+            // a making kept for the next track, moved to playback's one core while it waited, was left there when playback
+            // was given three again, and made DSD256 at one core's speed).
             foreach (var (pid, c) in Children)
             {
                 if (!OursStill(pid)) { Children.TryRemove(pid, out _); continue; }
                 var want = next.On ? CoresFor(c.Kind) : next.All;
-                if (want.Length == 0 || c.Cores.Length > 0 && c.Cores.All(x => want.Contains(x))) continue;
+                if (want.Length == 0 || c.Cores.Length > 0 && c.Cores.Order().SequenceEqual(want.Order())) continue;
                 if (PinProcess(pid, want) > 0) Children[pid] = (c.Kind, want);
             }
         }
@@ -260,7 +262,9 @@ internal static partial class Cpu
      * lib/cpu.js decide: the split from the machine and the settings. Playback
      * takes one core, or two with DSP, leaving the rest at least two where the
      * machine has four or more; while a track is made as it plays ([making],
-     * item 260), all but one, or the [makingCores] its owner set. The first of
+     * item 260), all but two where there are four or more (this server, which
+     * answers the devices and streams to them, kept two: item 267), else all
+     * but one; or the [makingCores] its owner set. The first of
      * playback's is the one it always has (the engine's playback thread is kept
      * to it). [env]: PLAYBACK_CORES and PLAYBACK_CORE as given. Linux with taskset only.
      */
@@ -275,7 +279,7 @@ internal static partial class Cpu
         bool fixedOk = fixedN is { } f0 && double.IsFinite(f0), askedOk = asked is { } a0 && double.IsFinite(a0);
         var chosen = fixedOk || askedOk;
         if (n < 2 || (n < 3 && !chosen)) return none;
-        var want = making ? (makingCores > 0 ? makingCores : n - 1) : fixedOk && fixedN!.Value > 0 ? fixedN.Value : dsp ? 2 : 1;
+        var want = making ? (makingCores > 0 ? makingCores : n >= 4 ? n - 2 : n - 1) : fixedOk && fixedN!.Value > 0 ? fixedN.Value : dsp ? 2 : 1;
         want = Math.Max(1, Math.Min(want, making || chosen || n < 4 ? n - 1 : n - 2));
         var playback = new List<int>();
         if (askedOk) { var av = asked!.Value; playback.Add(cores.Any(c => c == av) ? (int)av : cores[n - 1]); }

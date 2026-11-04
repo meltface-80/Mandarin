@@ -59,15 +59,18 @@ public sealed class CpuTests
     }
 
     [Test]
-    public async Task While_a_track_is_made_as_it_plays_playback_keeps_all_the_cores_but_one_or_as_many_as_set()
+    public async Task While_a_track_is_made_as_it_plays_playback_keeps_all_the_cores_but_two_this_servers_or_as_many_as_set()
     {
         // Item 260: the making was left on the background's cores beside the scans, the playback core idle.
-        JsonAssert.Same("[true,[1,2,3],[0],3]", JsonNode.Parse(await D(N(4), making: true)), "Auto: all but one");
-        JsonAssert.Same("[true,[1,2,3],[0],3]", JsonNode.Parse(await D(N(4), dsp: true, making: true)), "DSP too: still all but one");
+        // Item 267: this server, which answers the devices and streams to them, left one core, all of it timed out; Auto leaves it two.
+        JsonAssert.Same("[true,[2,3],[0,1],3]", JsonNode.Parse(await D(N(4), making: true)), "Auto: all but two");
+        JsonAssert.Same("[true,[2,3],[0,1],3]", JsonNode.Parse(await D(N(4), dsp: true, making: true)), "DSP too: still all but two");
+        JsonAssert.Same("[true,[1,2],[0],2]", JsonNode.Parse(await D(N(3), making: true)), "three cores: all but one");
+        JsonAssert.Same("[true,[1,2,3],[0],3]", JsonNode.Parse(await D(N(4), making: true, makingCores: 3)), "three, as set: all but one");
         JsonAssert.Same("[true,[2,3],[0,1],3]", JsonNode.Parse(await D(N(4), making: true, makingCores: 2)), "two, as set");
         JsonAssert.Same("[true,[3],[0,1,2],3]", JsonNode.Parse(await D(N(4), making: true, makingCores: 1)), "one, as set");
         JsonAssert.Same("[true,[1,2],[0],2]", JsonNode.Parse(await D(N(3), making: true, makingCores: 3)), "never every core");
-        JsonAssert.Same("[true,[1,2,3,4,5,6,7],[0],7]", JsonNode.Parse(await D(N(8), making: true)));
+        JsonAssert.Same("[true,[2,3,4,5,6,7],[0,1],7]", JsonNode.Parse(await D(N(8), making: true)));
         JsonAssert.Same("[true,[5,6,7],[0,1,2,3,4],7]", JsonNode.Parse(await D(N(8), making: true, makingCores: 3)));
         JsonAssert.Same("[true,[2,6,7],[0,1,3,4,5],2]", JsonNode.Parse(await D(N(8), making: true, makingCores: 3, env: new() { ["PLAYBACK_CORE"] = "2" })), "the chosen core first");
         Assert.True(JsonNode.Parse(await D(N(2), making: true))![0]!.GetValue<bool>() == false, "two cores: still shared");

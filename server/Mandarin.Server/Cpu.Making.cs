@@ -4,8 +4,11 @@
 // playback, and the most of it there is (DSD256 wants some four cores' worth on a small server). Until item 260 it ran
 // where this server runs, on the cores playback doesn't keep, beside the scans and the library's reading, the playback
 // core left idle. Now, while one is made and for [MakingHoldMs] after (the next track is made in its turn), playback
-// keeps all the cores but one, or as many as the owner set (Settings → Library Scanner → Processor: Auto, 1, 2 or 3),
-// and the making is put on them like any conversion a device waits for, moved with them when the split moves.
+// keeps all the cores but two (but one on a machine of two or three), or as many as the owner set (Settings → Library
+// Scanner → Processor: Auto, 1, 2 or 3), and the making is put on them like any conversion a device waits for, moved
+// with them when the split moves. Two, not one, are left (item 267): this server's own threads, which answer the app
+// and stream to the device, are on the cores playback doesn't keep, and on one, beside the library's re-reading, a
+// device waiting for its track and the app's every request timed out.
 using System.Globalization;
 
 namespace Mandarin.Server;
@@ -19,7 +22,7 @@ internal static partial class Cpu
     private static Timer? makingTimer;
     private static int makingCores = -1;   // the owner's setting, read once: 0 for Auto
 
-    /* The cores the owner gave a making (the setting "making_cores"): 0 for Auto (all but one), else 1, 2 or 3. */
+    /* The cores the owner gave a making (the setting "making_cores"): 0 for Auto (all but two, or one: Cpu.Decide), else 1, 2 or 3. */
     public static int MakingCores
     {
         get

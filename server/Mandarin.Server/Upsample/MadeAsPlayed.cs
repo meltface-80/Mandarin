@@ -3,7 +3,7 @@
 // Made whole and ahead (items 237, 243), a track's first play was always the standard filter's PCM, and DSD only the
 // next time. Now each is `mandarin-server upsample` (UpsampleCommand.cs) begun when the device asks for the track,
 // writing its file a block at a time, and the device is sent it as it grows (Transcoder.TailFollow), as a conversion
-// is: a DSF's header first, its length known from the track's. One is made at a time, on playback's cores, all but one
+// is: a DSF's header first, its length known from the track's. One is made at a time, on playback's cores, all but two
 // of them while it runs (Cpu.Making.cs, item 260): the next track asked for while one is made waits its turn. A new play stops what was being
 // made for the play before (Only). Each making's speed is kept, and Output says it: a DSF made slower than it plays
 // would run dry.
@@ -94,7 +94,7 @@ internal static class MadeAsPlayed
             if (join?.After != null) { spec["continue"] = true; next = Transcoder.KeyFor(new ConvTrack(join.AfterId, join.After, join.AfterMtime), p); }
         }
         else spec = PcmJob(t.Path, p, job.Part, Joins.For(t.Id, (long)p.InRate, 0));
-        // Playback, the most of it there is (item 260): its cores kept, all but one while it runs, and it put on them.
+        // Playback, the most of it there is (item 260): its cores kept, all but two while it runs (item 267), and it put on them.
         Cpu.Making(true);
         try { return await Made(t, p, job, err, seconds, spec, next); }
         finally { Cpu.Making(false); }
