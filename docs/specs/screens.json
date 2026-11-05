@@ -1168,8 +1168,8 @@
       }
     },
     "settings-device": {
-      "page": "Settings' Audio Devices, a device's page: Back, its name; on or off, Random album radio, a phone's Other devices can play here; its name to change (or the phone's own), About, Capabilities (rates, depths and DSD, each a chip, tapped on or off where it can be set; its formats), Output (the mode, the highest rate, the filter, the depth, DSD as PCM, PCM as DSD, Fixed volume), Volume levelling with its level and the unknown's adjustment, DSP (a headphone profile chosen from AutoEq or pasted, the bands' curve, each band's type, frequency, gain and Q, Add band, the headroom, Save), this phone's USB DAC (Allow, what it takes, USB direct, Fixed volume, the limit, DSD, Copy), Forget this device; their notes",
-      "native": ["android/app/src/main/java/com/musicd/server/android/SettingsDevice.kt", "android/app/src/main/java/com/musicd/server/android/SettingsDsp.kt", "android/app/src/main/java/com/musicd/server/android/SettingsUsb.kt", "android/app/src/main/java/com/musicd/server/android/SettingsRoomCorrection.kt"],
+      "page": "Settings' Audio Devices, a device's page: Back, its name; on or off, Random album radio, a phone's Other devices can play here; its name to change (or the phone's own), About, Capabilities (rates, depths and DSD, each a chip, tapped on or off where it can be set; its formats), Output (the mode, the highest rate, the filter for CD-rate sources and the one for hi-res sources, each opening the list of filters with what each does, the depth, DSD as PCM, PCM as DSD, Fixed volume), Volume levelling with its level and the unknown's adjustment, DSP (a headphone profile chosen from AutoEq or pasted, the bands' curve, each band's type, frequency, gain and Q, Add band, the headroom, Save), this phone's USB DAC (Allow, what it takes, USB direct, Fixed volume, the limit, DSD, Copy), Forget this device; their notes",
+      "native": ["android/app/src/main/java/com/musicd/server/android/SettingsDevice.kt", "android/app/src/main/java/com/musicd/server/android/SettingsFilters.kt", "android/app/src/main/java/com/musicd/server/android/SettingsDsp.kt", "android/app/src/main/java/com/musicd/server/android/SettingsUsb.kt", "android/app/src/main/java/com/musicd/server/android/SettingsRoomCorrection.kt"],
       "preview": false,
       "items": {
         "back": { "kind": "action", "label": "Back to Audio Devices" },
@@ -1192,7 +1192,11 @@
         "mode": { "kind": "action", "label": ["Original", "×2", "×4", "Max"], "each": true, "when": "a renderer or a sound device of the server's" },
         "depth": { "kind": "action", "label": ["Auto", "24", "32"], "each": true, "when": "one that takes 32 bits" },
         "maxrate": { "kind": "action", "label": ["Auto", "96k", "192k", "384k", "768k"], "each": true, "when": "one that takes above 96 kHz" },
-        "filter": { "kind": "action", "label": ["Standard", "Min phase", "Gentle"], "each": true, "when": "upsampling or PCM as DSD on" },
+        "filter": { "kind": "action", "label": "CD-rate sources", "when": "upsampling or PCM as DSD on" },
+        "filter-hires": { "kind": "action", "label": "Hi-res sources", "when": "upsampling or PCM as DSD on" },
+        "filter-sheet-title": { "kind": "shows", "in": "filter" },
+        "filter-choice": { "kind": "action", "label": ["Same as CD-rate sources", "Standard", "Minimum phase", "Gentle", "Gaussian", "Gaussian steep", "Gaussian hi-res"], "each": true, "in": "filter" },
+        "filter-close": { "kind": "action", "label": "Close", "in": "filter" },
         "dsdlowpass": { "kind": "action", "label": ["Off", "50 kHz", "30 kHz"], "each": true, "when": "a renderer or a sound device of the server's" },
         "dsdout": { "kind": "action", "label": ["Off", "DSD64", "DSD128", "DSD256"], "each": true, "when": "one that takes DSD" },
         "fixvol": { "kind": "action", "label": "Fixed volume", "when": "one whose volume can be fixed" },

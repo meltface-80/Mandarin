@@ -53,8 +53,8 @@ internal static class DsdPlan
         if (family == 48000) o["dsdBase"] = 48000.0;
         if (Jv.T(plan["gain"])) o["gain"] = plan["gain"];
         if (Jv.T(plan["dsp"])) o["dsp"] = plan["dsp"];   // its part at the track's rate (Playback/Dsp.cs), which names the file too
-        // Its way to 705.6 (or 768) kHz in the shape the device's filter asks (item 248): minimum phase or gentle; else standard.
-        if (Shape.OfFilter(Jv.Get(target, "filter")) is { } shape) o["shape"] = shape;
+        // Its way to 705.6 (or 768) kHz in the shape the device's filter asks (items 248, 298), the one for the track's rate.
+        if (Shape.ForTrack(target, rate) is { } shape) o["shape"] = shape;
         return o;
     }
 

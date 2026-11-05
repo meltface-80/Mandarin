@@ -117,17 +117,15 @@ class DevicePage(val j: JSONObject) {
     val has32: Boolean get() = bits.any { it.value == 32 && it.on }
     val modes: List<SegChoice> get() = listOf(SegChoice("original", "Original"), SegChoice("x2", "×2"), SegChoice("x4", "×4"), SegChoice("max", "Max"))
     /**
-     * The filter upsampling uses (items 248, 259): SoX's, or Mandarin's own in its minimum-phase or gentle shape, each
-     * made as it plays. Shown where it upsamples, or makes DSD from PCM.
+     * The filters upsampling uses (items 248, 259, 298): for CD-rate sources, and for hi-res ones (null: the same), each
+     * made as it plays (DeviceFilters.kt). Shown where it upsamples, or makes DSD from PCM.
      */
     val filter: String get() = output.optString("filter", "standard")
+    val filterHires: String? get() = (output.opt("filter_hires") as? String)?.takeIf { it.isNotEmpty() && it != "same" }
     val showFilter: Boolean get() = mode != "original" || output.has("dsd_out")
-    val filters: List<SegChoice> get() = listOf(SegChoice("standard", "Standard"), SegChoice("minphase", "Min phase"), SegChoice("gentle", "Gentle"))
-    val filterNote: String get() = if (dsdOut != 0) dsdFilterNote(dsdOut, filter) else when (filter) {
-        "minphase" -> "Minimum phase: all its ringing after a sound starts, none before. Mandarin’s own filter, made as it plays; tracks from the library, ×2 to ×16."
-        "gentle" -> "Rolling off from 90% of the band (19.8 kHz for a CD), twice as gently: its ringing half as long, the very top a little down (−6 dB at 21 kHz). Mandarin’s own filter, made as it plays."
-        else -> "SoX’s filter, made as it plays."
-    }
+    val filterRows: List<DeviceFilters.Row> get() = DeviceFilters.rows(filter, filterHires)
+    /** The notes under the filters; with PCM as DSD on, how fast it is made is said under PCM as DSD instead. */
+    val filterNotes: List<String> get() = DeviceFilters.notes(dsdOut, filter, filterHires, making)
     /** The highest rate its owner allows (item 240), by 48 kHz's family; 0 for Auto. 44.1 kHz's is held to the rate that matches. */
     val maxRate: Int get() = output.optInt("max_rate", 0)
     private fun capFor(hz: Int): Int = if (maxRate == 0) Int.MAX_VALUE else if (hz % 44100 == 0) maxRate / 48000 * 44100 else maxRate
@@ -141,8 +139,6 @@ class DevicePage(val j: JSONObject) {
     val maxRateNote: String get() = if (maxRate == 0) "As high as the device takes."
         else "Nothing goes above ${maxRate / 1000} kHz (${rateWord(maxRate / 48000 * 44100)} kHz for music in 44.1’s family), upsampled or not."
 
-    /** How fast the server made the last track as it played (item 259), under the filter; with PCM as DSD on, under that instead. */
-    val filterMakingLine: String? get() = if (filter != "standard" && dsdOut == 0) making else null
     private val making: String? get() = output.optString("making").takeIf { it.isNotEmpty() }
     /** DSD sent as PCM (item 241): its modulator's noise above the cut taken off; 0 for Off. */
     val dsdLowpass: Int get() = output.optInt("dsd_lowpass", 0)
@@ -230,9 +226,6 @@ class DevicePage(val j: JSONObject) {
         /** 0 to −12 dB, −5 the default. */
         val UNKNOWNS = (0 downTo -12).map { Choice("$it", "$it dB" + if (it == -5) " (Default)" else "") }
 
-        /** The filter's note with PCM as DSD[n] on (items 254, 259): the one each track is upsampled with on its way to DSD. */
-        fun dsdFilterNote(n: Int, filter: String): String = "With PCM as DSD$n on, this is the filter each track is upsampled with on its way to DSD$n: " +
-            (when (filter) { "minphase" -> "minimum phase, all its ringing after a sound starts"; "gentle" -> "gentle, rolling off from 90% of the band"; else -> "standard, linear phase" }) + "."
         /** A rate in kHz as the page writes it: 44.1, 48, 176.4. */
         fun rateWord(hz: Int): String = (hz / 1000.0).let { if (it == Math.floor(it)) it.toLong().toString() else it.toString() }
         /** A number as the page writes it (String(n)): 1, not 1.0. */

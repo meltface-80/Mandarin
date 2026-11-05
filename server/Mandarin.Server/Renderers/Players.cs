@@ -255,7 +255,8 @@ internal sealed partial class Players
     /* A device's Output settings [s] into its stream [target]: the filter, DSD as PCM's low-pass, PCM as DSD (a phone's too: item 265). */
     public static void OutputInto(JsObj target, JsObj s)
     {
-        if (Upsample.Shape.OfFilter(s["filter"]) != null) target["filter"] = s["filter"];   // minimum phase, gentle (items 248, 259); standard by its absence
+        if (Upsample.Shape.OfFilter(s["filter"]) != null) target["filter"] = s["filter"];   // minimum phase, gentle, Gaussian… (items 248, 259, 298); standard by its absence
+        if (s["filter_hires"] is string hires) target["filter_hires"] = hires;   // for 88.2 kHz and up (item 298); the filter's by its absence
         if (DsdLowpass.Of(s["dsd_lowpass"]) is { } cut) target["dsd_lowpass"] = cut;   // DSD as PCM, low-passed (item 241)
         if (Upsample.DsdPlan.Of(s["dsd_out"]) is { } up) target["dsd_out"] = (double)up;   // PCM as DSD (item 243)
     }

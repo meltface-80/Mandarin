@@ -129,12 +129,20 @@ internal static partial class Library
                     if (!Jv.OneOf(mode, "original", "x2", "x4", "max")) throw new DeviceRefusal(400, "mode must be original, x2, x4 or max");
                     patch["mode"] = mode;
                 }
-                // The upsampler (items 248, 259): the standard filter, minimum phase or gentle, each as it plays.
+                // The upsampler (items 248, 259, 298): its filter, each made as it plays; and one for hi-res sources, or the same.
+                var filters = string.Join(", ", Upsample.Shape.Filters);
                 var filter = Prop(output, "filter");
                 if (filter is not Undef)
                 {
-                    if (!Jv.OneOf(filter, "standard", "minphase", "gentle")) throw new DeviceRefusal(400, "filter must be standard, minphase or gentle");
+                    if (filter is not string f || Array.IndexOf(Upsample.Shape.Filters, f) < 0) throw new DeviceRefusal(400, "filter must be " + filters);
                     patch["filter"] = filter;
+                }
+                var hires = Prop(output, "filter_hires");
+                if (hires is not Undef)
+                {
+                    var same = TJs.StrictEq(hires, "same");
+                    if (!same && (hires is not string h || Array.IndexOf(Upsample.Shape.Filters, h) < 0)) throw new DeviceRefusal(400, "filter_hires must be same, " + filters);
+                    patch["filter_hires"] = same ? null : hires;
                 }
                 // DSD as PCM, low-passed (item 241): off, or the cut in Hz.
                 var lowpass = Prop(output, "dsd_lowpass");

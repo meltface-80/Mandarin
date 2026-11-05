@@ -7,7 +7,7 @@
 // filter's, and brought back; the outputs the block before can't reach are kept. The two channels go together, the
 // left the real part and the right the imaginary: the filter is real, so neither leaks into the other.
 //
-// The filter's three shapes (Shape.cs). Standard: flat to [Shape.StandardPass] of the input's Nyquist frequency, down
+// The filter's shapes (Shape.cs; the three Gaussian ones are Gaussian.cs's, item 298). Standard: flat to [Shape.StandardPass] of the input's Nyquist frequency, down
 // along a raised cosine to nothing at it, its phase linear: ringing either side of a transient. Gentle: the same from
 // [Shape.GentlePass], twice as wide a slope, the ringing half as long. Minimum phase: Standard's levels with the one
 // phase that puts all the ringing after a transient (by the cepstrum). Each is the ideal response's impulse under a
@@ -152,6 +152,8 @@ internal sealed class StreamUpsample
     public static double[] Taps(int factor, Shape.Kind kind)
     {
         var length = TapsIn * factor + 1;
+        // The Gaussian filters (item 298): their own design, as long as the rest.
+        if (kind is Shape.Kind.Gaussian or Shape.Kind.GaussianSteep or Shape.Kind.GaussianHires) return Gaussian.Taps(factor, kind, length);
         var half = (length - 1) / 2;
         var pass = kind == Shape.Kind.Gentle ? Shape.GentlePass : Shape.StandardPass;
         // In cycles a sample at the output's rate: the input's Nyquist frequency, the roll-off's middle and half-width.

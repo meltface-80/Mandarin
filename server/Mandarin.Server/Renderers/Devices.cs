@@ -216,12 +216,15 @@ internal sealed class Devices
             ("flac32", Transcoder.Flac32)) : null;
         // A filter other than the standard one (minimum phase, gentle: items 248, 259), said only where it is set (a
         // device left at Whole track, scrapped, is the standard filter's); made as it plays, and how fast that went.
-        if (streamer && Upsample.Shape.OfFilter(r.Settings["filter"]) != null)
+        var hires = r.Settings["filter_hires"] as string;   // the filter for hi-res sources (item 298), said where set
+        if (streamer && (Upsample.Shape.OfFilter(r.Settings["filter"]) != null || Upsample.Shape.OfFilter(hires) != null))
         {
             var output = (JsObj)o["output"]!;
-            output["filter"] = r.Settings["filter"];
+            if (Upsample.Shape.OfFilter(r.Settings["filter"]) != null) output["filter"] = r.Settings["filter"];
+            if (hires != null) output["filter_hires"] = hires;
             output["making"] = Upsample.MadeAsPlayed.Note(0);
         }
+        else if (streamer && hires != null) ((JsObj)o["output"]!)["filter_hires"] = hires;
         // The highest rate its owner allows (item 240), said only where it is set: Auto by its absence.
         if (streamer && RateCap.Of(r.Settings["max_rate"]) is { } cap) ((JsObj)o["output"]!)["max_rate"] = cap;
         // DSD as PCM, low-passed (item 241), said only where it is set: Off by its absence.

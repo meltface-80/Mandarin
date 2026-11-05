@@ -41,10 +41,12 @@ internal static class MadeAsPlayed
      */
     public static JsObj Mark(JsObj plan, object? target, string path)
     {
-        if (target == null || Shape.OfFilter(Jv.Get(target, "filter")) is not { } shape || !Jv.T(plan["upsampled"])) return plan;
+        if (target == null || !Jv.T(plan["upsampled"])) return plan;
         if (Playback.StreamPlans.ServiceOf(path) != null) return plan;
         var factor = (long)Jv.Num(plan["upsampled"]);
         if (!Power(factor)) return plan;
+        // The device's filter for the track's own rate (item 298): its filter for hi-res sources above 48 kHz, where set.
+        if (Shape.ForTrack(target, Jv.Num(plan["rate"]) / factor) is not { } shape) return plan;
         plan["shape"] = shape;
         // The track's own rate, which the job divides by: a plan made for a queue (Playback/Items.cs) carries none of its own.
         plan["inRate"] = Jv.Num(plan["rate"]) / factor;

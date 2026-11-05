@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- New - three Gaussian upsampling filters: Gaussian (smooth, very short ringing, the top of a CD a little down), Gaussian steep (flat almost to 22 kHz, every sample of the file kept) and Gaussian hi-res (for 88.2 kHz and up), each made as the track plays, PCM or on the way to DSD (item 298)
+- New - each device has a filter for CD-rate sources and one for hi-res sources (or the same): two rows in Settings → Audio Devices → Output, each opening the list of filters with what each does (item 298)
 - Fixed - Google Play Protect called Mandarin Bridge for Android harmful: it installed its own updates without asking. Now Update in Settings → Updates puts a notification on the device, whose tap downloads the update in the browser for you to install; Mandarin Bridge is 0.2.2 (item 297)
 - Improved - the menu is the first button of the bar along the foot, so it opens from every screen; Home's own menu button is gone (item 296)
 - Improved - Now playing keeps the bar along the foot, its cover smaller to make room (item 296)
