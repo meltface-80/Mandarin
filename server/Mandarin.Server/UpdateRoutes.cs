@@ -8,6 +8,7 @@
 //                             the page reads it); mac_node_only went with stage 7
 //   POST /api/update/check    GitHub asked now, then the same
 //   POST /api/update/apply    the update made: { ok, status }, or 409 { error, status }
+//   GET  /api/update/bridges, POST /api/update/bridges/apply: the Mandarin Bridges' (Admin/BridgeUpdates.cs, item 291)
 //
 // The job "update" (Jobs.cs).
 using Mandarin.Server.Tags;
@@ -21,8 +22,17 @@ internal static partial class Library
     {
         var p = ctx.Request.Path.Value ?? "";
         if (!p.StartsWith("/api/update/", StringComparison.Ordinal)) return false;
-        if (Jobs.Updater is not { } u || !Jobs.Holds("update")) return false;
         var m = ctx.Request.Method;
+        // The Mandarin Bridges' own updates (item 291, Admin/BridgeUpdates.cs): which can be updated, and one asked to.
+        if (HttpMethods.IsGet(m) && p == "/api/update/bridges") { await Http.Json(ctx, await Admin.BridgeUpdates.List()); return true; }
+        if (HttpMethods.IsPost(m) && p == "/api/update/bridges/apply")
+        {
+            var body = await System.Text.Json.Nodes.JsonNode.ParseAsync(ctx.Request.Body) as System.Text.Json.Nodes.JsonObject;
+            var (status, said) = await Admin.BridgeUpdates.Apply((string?)body?["id"] ?? "");
+            await Http.Json(ctx, said, status);
+            return true;
+        }
+        if (Jobs.Updater is not { } u || !Jobs.Holds("update")) return false;
         try
         {
             if ((HttpMethods.IsGet(m) || HttpMethods.IsHead(m)) && p == "/api/update/status") return await SendJs(ctx, u.Status());

@@ -25,6 +25,8 @@ internal sealed partial class Bridge
     private readonly Ssdp ssdp;
     private readonly Action<string> log;
     private readonly Wifi? wifi;
+    // Updated from Mandarin's Settings → Updates (item 291).
+    private readonly Update update;
     private readonly DateTime started = DateTime.UtcNow;
     private volatile List<Dac> dacs = [];
     private string lastCaps = "";
@@ -39,6 +41,7 @@ internal sealed partial class Bridge
         http = new Http(opts.Port, Route, log);
         ssdp = new Ssdp(store.Udn, Location, log);
         if (opts.Nmcli != null) wifi = new Wifi(opts.Nmcli, log);
+        update = new Update(opts.UpdateApi, opts.Data, log, Program.Restart);
     }
 
     /* The DAC played to: the one chosen, else the first found; null with none plugged in. */
@@ -145,6 +148,8 @@ internal sealed partial class Bridge
         return new JsonObject
         {
             ["model"] = Scpd.Model, ["version"] = Program.Version, ["platform"] = "linux", ["name"] = store.Name, ["udn"] = store.Udn, ["dac"] = dac,
+            // Which build it is, for which machine, and that Mandarin can update it (POST /update, item 291): where that is.
+            ["commit"] = Program.Commit, ["arch"] = Update.Arch, ["updates"] = true, ["update"] = update.State(), ["log"] = "/log",
             // The engine gives the DAC every PCM track in 32-bit words, at its gain of 1 whatever the volume asked (the Bridge
             // has no volume of its own: Player.cs): said as it is (item 287), the samples untouched.
             ["now"] = now is { } n ? new JsonObject

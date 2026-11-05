@@ -7,7 +7,9 @@ cd "$(dirname "$0")"
 RID=${RID:-linux-$(uname -m | sed 's/x86_64/x64/;s/aarch64/arm64/')}
 VERSION=${VERSION:-$(grep -m1 '"version"' ../../package.json | cut -d'"' -f4)}
 VERSION=${VERSION:-0.0.0}
-dotnet publish Mandarin.Bridge/Mandarin.Bridge.csproj -c Release -r "$RID" -p:Version="$VERSION" -o bin/"$RID" --nologo -v quiet
+# The commit it is built from, after the version's + (Program.Commit): which build it is (item 291).
+COMMIT=${COMMIT:-$(git rev-parse --short=7 HEAD 2>/dev/null || echo local)}
+dotnet publish Mandarin.Bridge/Mandarin.Bridge.csproj -c Release -r "$RID" -p:Version="$VERSION" -p:SourceRevisionId="$COMMIT" -o bin/"$RID" --nologo -v quiet
 cp bin/"$RID"/mandarin-bridge bin/mandarin-bridge
 rm -f bin/"$RID"/*.dbg
 if [ "$RID" = "linux-$(uname -m | sed 's/x86_64/x64/;s/aarch64/arm64/')" ]; then ./bin/mandarin-bridge --version; else echo "mandarin-bridge $VERSION ($RID)"; fi

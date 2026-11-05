@@ -17,6 +17,14 @@ It installs the Bridge and the audio engine in `/usr/lib/mandarin-bridge`, ffmpe
 systemd service that starts it at boot (`systemctl status mandarin-bridge`, `journalctl -u mandarin-bridge`).
 Then switch it on in Mandarin's *Settings → Audio Devices*.
 
+Updated from then on from Mandarin's *Settings → Updates* (item 291): a tap and the Bridge fetches its new build
+itself, checks it against the release's checksum, puts it in `/var/lib/mandarin-bridge/app` and starts again into it;
+an update that fails as it starts is let go and the installed one runs on. A Bridge installed before this needs this
+install once more, by hand.
+
+Its log goes to journald (`journalctl -u mandarin-bridge`) and its last 2,000 lines are kept in memory as well, at
+`GET /log` (`Kept.cs`): the Mandarin app's Save log (Settings → Setup → Logging) has them, gathered by the server.
+
 ## Its page
 
 There is no screen, so the Bridge has a page of its own: `http://<the computer>:49494/`. It shows:

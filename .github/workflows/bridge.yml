@@ -115,4 +115,6 @@ jobs:
               --notes "Mandarin Bridge as dev is now. Not a numbered release." --target "${GITHUB_SHA}"
           fi
           gh release edit test-bridge --prerelease --latest=false --notes "Mandarin Bridge from dev at ${GITHUB_SHA::7} ($APK), its driver Mandarin's own at the same commit. For testing only; not a release."
-          gh release upload test-bridge mandarin-bridge.apk --clobber
+          # Its build and checksum beside it (item 291): what Mandarin's Settings → Updates and the Bridge's own update read.
+          ./bridge/sidecar.sh mandarin-bridge.apk "$GITHUB_SHA" "$(grep -oP 'versionName = "\K[^"]+' bridge/android/app/build.gradle.kts)"
+          gh release upload test-bridge mandarin-bridge.apk mandarin-bridge.apk.json --clobber

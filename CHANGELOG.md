@@ -548,6 +548,8 @@
 - New - SQ-tool is Mandarin's own bit-perfect test: choose a song and a zone, press Record, and Mandarin plays the song there and records exactly what the zone's DAC is fed (Mandarin Bridge on Android, or a USB DAC on the server); SQ-tool says whether it is bit-perfect, with its spectrograms and charts. Its Loopback recording, its second player and its settings are gone
 - Fixed - SQ-tool's recording on a Mandarin Bridge (an Android one, such as the FiiO R7) no longer stops after 30 seconds with "the device's recording ended early": the Bridge is asked for the whole track, and hears it
 - Fixed - SQ-tool's clock runs while it records, where it stood at 0:00 until a minute had been recorded
+- New - every Mandarin Bridge (Android, Linux, Raspberry Pi) has a row on Settings → Updates, with its version and Update available when there's a newer build: a tap and it updates itself. On Android, the first time, the device asks you once; on Linux and the Pi it's hands off. A Bridge older than this needs one last update by hand
+- New - the app's Save log (Settings → Setup → Logging) has every Mandarin Bridge's log too, after the server's, each under its name, through the same privacy filter
 
 - `284-dff-as-dsd` (item 284): **A DFF played as DSD, as a DSF is.** The audio engine read only a DSF itself; a DFF
   went to ffmpeg, which made it PCM, so on a DAC on the server or on the Linux Bridge it was never DSD (the server
@@ -560,6 +562,35 @@
   (markers in turn, the DSD rate over 16) and as native DSD (big-endian words, the rate over 32), the 48 kHz family as
   DoP; a seek to 1.5 s plays on from that word, what lay between never sent; a DST one said, nothing sent. Shown
   failing with the DFF sent to ffmpeg, a DST one played, the seek ignored, and the chunk after the audio sent.
+- `291-bridge-updates` (item 291): **Mandarin Bridges updated from Mandarin.** A Bridge was updated on its device, by
+  hand. Each build published now has a sidecar (`bridge/sidecar.sh`: its commit, version and SHA-256), and each Bridge
+  says its commit in `/dac.json` (`commit`, `updates`, `update`; Android's from `BuildConfig.COMMIT`, Linux's after its
+  version's `+`, stamped by `build.sh`). Settings → Updates lists every Bridge Mandarin has seen (`GET
+  /api/update/bridges`, `Admin/BridgeUpdates.cs`), the build published for its machine (`test-bridge` for a test
+  build of Mandarin's, else the newest `mandarin-bridge-v…`), and Update available where the commits differ; a tap
+  (`POST /api/update/bridges/apply`) asks the Bridge to update itself to that release's tag. The Bridge fetches the
+  release from GitHub itself, never an address it is handed (its port has no sign-in), and checks the download
+  against the sidecar. Linux (`Update.cs`): unpacked into its data folder's `app/`, it stops, and started again the
+  program installed hands over to it (`Program.HandOver`; stopped, it stops the update too), letting one go that fails
+  as it starts. Android (`Updater.kt`): installed with the package installer, Android asking on the device the first
+  time (a notification to allow installs, one to confirm), silently on Android 12 and later after that;
+  `MY_PACKAGE_REPLACED` starts it again. The page's rows (`app/bridge-updates.js`) and the app's (`SettingsUpdates.kt`,
+  core's `BridgeUpdates`) say the same: Update available, Updating…, Finish on the device, Try the update again,
+  Update by hand once, Not answering, Nothing published, Up to date (`settings-system.bridge-update`).
+  `test/bridge-updates.test.js`: Mandarin Bridge for Linux and a GitHub of the test's own: listed with its build and
+  the one published, on the page's Updates, a download that isn't the release's refused, updated and started again
+  into the update, an update that fails as it starts let go, a tag that isn't a release's refused; `BridgeUpdatesTest`:
+  each row's words. Shown failing with the checksum unchecked, the hand-over left out, and the update left running
+  once the Bridge is stopped. And each Bridge's log is in Mandarin's: the app's Save log (Settings → Setup → Logging)
+  adds, after the server's, every Bridge's own (`GET /api/diagnostics/bridges`, `Admin/BridgeLogs.cs`), under its
+  name, platform, version and build, each line through `LogScrub` as the server's are. A Bridge answers its log at the
+  path its `/dac.json` names (`log`, only a path on the Bridge): Linux its last 2,000 lines kept in memory
+  (`Kept.cs`, as well as journald), Android its own lines of Android's log (`BridgeLog.kt`, `logcat --pid`); an older
+  Bridge, or one not answering, is said to be. `test/bridge-logs.test.js`: Mandarin Bridge for Linux's own lines, a
+  fake Android one's with an email and a token taken out, an older one and one gone said so, nothing unsigned; and
+  what an older app's `/dac.json` leaves out is nothing on Settings → Updates too (`BridgeUpdates.Said`), where it was
+  "undefined" (its platform, so the wrong build looked for, and its commit). Shown failing with the lines unscrubbed,
+  the Linux Bridge's lines not kept, its `log` not named, and a field not said read as "undefined".
 - `290-sq-tool-for-mandarin` (item 290): **SQ-tool, Mandarin's own.** SQ-tool came as it was standalone: record two
   players on a Loopback sound card (Roon, then Mandarin) and compare them. It is now the proof that a Mandarin zone's
   DAC gets the file. A test is a song and one recording: on the test's page a zone is chosen (`/api/sq-tool/zones`:

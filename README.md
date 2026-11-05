@@ -695,7 +695,7 @@ Off by default. Switched on, the Android app and the server log what happened, w
 
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 
-In the Android app, **Settings → Setup → Logging**. Use the app as you normally would for 24 hours, then tap **Save log** (it goes to Downloads/Mandarin) and send the file. Look through it first. Switching logging off deletes the log, the server's part too. Details under [Logs](#logs).
+In the Android app, **Settings → Setup → Logging**. Use the app as you normally would for 24 hours, then tap **Save log** (it goes to Downloads/Mandarin, the server's and the Mandarin Bridges' logs with it) and send the file. Look through it first. Switching logging off deletes the log, the server's part too. Details under [Logs](#logs).
 
 </details>
 
@@ -847,6 +847,20 @@ musicd-server`).
 The new program is checked and laid in beside the old before anything is swapped (v1.1.9): if
 something fails after the swap, the old one (kept as `mandarin-server.prev`) is put back, and a
 folder the release can't be written over is named before anything is changed.
+
+**The Mandarin Bridges** (item 291): every Bridge Mandarin knows, on Android, Linux or a Raspberry
+Pi, has a row of its own on Settings → **Updates**, its name and version, and **Update available**
+when a newer build is published for it. A tap asks the Bridge to update itself: it fetches the
+release from GitHub, checks it against the checksum published with it, and puts it in place.
+* **Linux and the Raspberry Pi:** in a few seconds, by itself. The new build goes in the Bridge's
+  data folder and the program installed hands over to it as it starts again; one that fails as it
+  starts is let go, and the installed one runs on.
+* **Android:** the first time, Android asks on the device. A notification asks you to let Mandarin
+  Bridge install apps, and then to tap **Update**. After that, on Android 12 and later, its updates
+  install by themselves, and the Bridge starts again on its own.
+* A Bridge older than this needs one last update by hand; its row says so.
+* A test build of Mandarin's follows the Bridges' test builds (the **test-bridge** pre-release),
+  and a numbered one follows their numbered releases.
 
 **Manually** — also the way to pick up changes to the image itself (ffmpeg, the audio engine,
 and the move to v0.9.0 from an image with Node.js in it):
@@ -1284,8 +1298,8 @@ through a subnet router arrive from a home address, and the server can't tell th
 
 Logging is in the Android app and the server, and is **off by default**: while it is off, nothing is
 collected. Switch it on in the app, **Settings → Setup → Logging**, when something isn't right. Use the
-app as you normally would for **24 hours**, then tap **Save log**: the app's log and the server's are
-saved together to **Downloads/Mandarin** on the phone, for you to send to the developer. **Clear log**
+app as you normally would for **24 hours**, then tap **Save log**: the app's log, the server's and each
+Mandarin Bridge's are saved together to **Downloads/Mandarin** on the phone, for you to send to the developer. **Clear log**
 empties it; switching logging off deletes it, the server's part too.
 
 The log is made without personal data, and you are told so on the same screen. Please look through it
@@ -1299,6 +1313,7 @@ before you send it: what you send is your choice.
 * **The phone's player:** playing or paused, the track's number in the queue, its position and the volume.
 * **The app:** its memory, crashes and freezes, and Android's own lines for Mandarin.
 * **The app's Tailscale:** whether it is running and the CPU time it has used, and when it is stopped, why, with its last lines (addresses taken out).
+* **The Mandarin Bridges:** every Bridge Mandarin knows (Android, Linux, a Raspberry Pi), under its name, version and build: its last lines as it logs them (the player, the DAC, a recording, an update), gathered by the server as you save and put through the same filter as the server's. A Bridge keeps them anyway (Android's own log, or its last 2,000 lines in memory); they leave it only when you save.
 * **The server:** each line it logs, with its own words, numbers, the names of errors and its own addresses; every other value is replaced with […].
 
 **What it leaves out**
