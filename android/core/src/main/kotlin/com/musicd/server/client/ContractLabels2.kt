@@ -163,6 +163,7 @@ internal object ContractLabels2 {
         "settings-device.filter-close" to listOf("Close"),
         "settings-device.dsdlowpass" to listOf("Off", "50 kHz", "30 kHz"),
         "settings-device.dsdout" to listOf("Off", "DSD64", "DSD128", "DSD256"),
+        "settings-device.album-stream" to listOf("Albums as one stream"),
         "settings-device.fixvol" to listOf("Fixed volume"),
         "settings-device.lv-mode" to listOf("Volume levelling"),
         "settings-device.lv-target" to listOf("Target volume level"),

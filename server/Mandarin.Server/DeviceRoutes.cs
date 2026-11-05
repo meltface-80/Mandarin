@@ -160,6 +160,13 @@ internal static partial class Library
                     if (!off && Upsample.DsdPlan.Of(dsdOut) == null) throw new DeviceRefusal(400, "dsd_out must be off, 64, 128 or 256");
                     patch["dsd_out"] = off ? null : dsdOut;
                 }
+                // An album as one stream (item 300): on or off.
+                var albumStream = Prop(output, "album_stream");
+                if (albumStream is not Undef)
+                {
+                    if (albumStream is not bool on) throw new DeviceRefusal(400, "album_stream must be true or false");
+                    patch["album_stream"] = on ? true : null;
+                }
                 // The highest rate sent (item 240): Auto, or a cap by 48 kHz's family.
                 var maxRate = Prop(output, "max_rate");
                 if (maxRate is not Undef)

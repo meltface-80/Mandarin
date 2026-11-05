@@ -210,6 +210,15 @@ internal fun DevicePane(id: String, client: () -> ServerClient?, onBack: () -> U
                     DeviceNote(d.dsdOutNote, Modifier.parity("settings-device.note"))
                     d.dsdOutLine?.let { DeviceNote(it, Modifier.parity("settings-device.note")) }
                 }
+                // An album as one stream (item 300), where Mandarin makes what it plays, as the filters are.
+                if (d.showFilter) CapGroup("Gapless", Modifier.parity("settings-device.cap-label")) {
+                    Box(Modifier.padding(top = 8.dp)) {
+                        SetupRow("Albums as one stream", Modifier.parity("settings-device.name"), null) {
+                            Toggle(d.albumStream, Modifier.parity("settings-device.album-stream", Contract.label("settings-device.album-stream")).clickable(enabled = !busy) { patch(d.albumStreamPatch(!d.albumStream)) })
+                        }
+                    }
+                    DeviceNote(d.albumStreamNote, Modifier.parity("settings-device.note"))
+                }
                 if (d.canFixVolume) {
                     Box(Modifier.padding(top = 14.dp)) {
                         SetupRow("Fixed volume", Modifier.parity("settings-device.name"), null) {

@@ -142,44 +142,8 @@ internal static partial class Transcoder
 
         var err = new StringBuilder();
         var dspOn = false;
-        void Finish(int code)
-        {
-            if (code == 0 && File.Exists(job.Part) && job.Resume?.Whole == false)
-            {
-                // Begun again part way (a device's seek: item 272), a gap left in it: not kept; the next play makes it whole.
-                try { File.Delete(job.Part); } catch (IOException) { /* gone */ }
-            }
-            else if (code == 0 && File.Exists(job.Part))
-            {
-                // A WAV's sizes, left open while it was written, put right now it is whole (item 270).
-                try { if (dest.EndsWith(".wav", StringComparison.Ordinal)) Upsample.WavHeader.Patch(job.Part); File.Move(job.Part, dest, overwrite: true); }
-                catch (IOException e) { job.Failed = true; err.Append(e.Message); }
-            }
-            else
-            {
-                job.Failed = true;
-                try { File.Delete(job.Part); } catch (IOException) { /* never made */ }
-            }
-            job.Done = true;
-            if (dspOn) { dspOn = false; DspEnded(); }
-            if (job.Failed) Server.Log($"[stream] transcode failed for {t.Path}: {err.ToString().Trim()[..Math.Min(300, err.ToString().Trim().Length)]}");
-            Jobs.TryRemove(key, out _);
-            job.Wake();
-            job.Finished.TrySetResult();
-            Prune();
-        }
-        // A reader waiting for more is woken as the .part grows.
-        void Watch() => _ = Task.Run(async () =>
-        {
-            long last = -1;
-            while (!job.Done)
-            {
-                await Task.Delay(100);
-                long len = 0;
-                try { len = new FileInfo(job.Part).Length; } catch (IOException) { /* not there yet */ }
-                if (len != last) { last = len; job.Wake(); }
-            }
-        });
+        void Finish(int code) => Ended(job, dest, t.Path, err, code, () => { if (dspOn) { dspOn = false; DspEnded(); } });
+        void Watch() => Watched(job);
         void Begin(string src, ConvPlan plan, List<string>? pieces)
         {
             // A DSF from PCM, or PCM in a shape (item 259): made by `mandarin-server upsample` as it plays.
@@ -257,6 +221,50 @@ internal static partial class Transcoder
         }
         finally { DspTelling.Release(); }
     }
+
+    /*
+     * [job] ended with [code]: its file kept where it was made whole (a WAV's sizes put right), else gone, and [src]'s
+     * failure said; [before] run first, then its readers woken and the cache kept under its ceiling.
+     */
+    private static void Ended(ConvJob job, string dest, string src, StringBuilder err, int code, Action? before = null)
+    {
+        if (code == 0 && File.Exists(job.Part) && job.Resume?.Whole == false)
+        {
+            // Begun again part way (a device's seek: item 272), a gap left in it: not kept; the next play makes it whole.
+            try { File.Delete(job.Part); } catch (IOException) { /* gone */ }
+        }
+        else if (code == 0 && File.Exists(job.Part))
+        {
+            // A WAV's sizes, left open while it was written, put right now it is whole (item 270).
+            try { if (dest.EndsWith(".wav", StringComparison.Ordinal)) Upsample.WavHeader.Patch(job.Part); File.Move(job.Part, dest, overwrite: true); }
+            catch (IOException e) { job.Failed = true; err.Append(e.Message); }
+        }
+        else
+        {
+            job.Failed = true;
+            try { File.Delete(job.Part); } catch (IOException) { /* never made */ }
+        }
+        job.Done = true;
+        before?.Invoke();
+        if (job.Failed) Server.Log($"[stream] transcode failed for {src}: {err.ToString().Trim()[..Math.Min(300, err.ToString().Trim().Length)]}");
+        Jobs.TryRemove(job.Key, out _);
+        job.Wake();
+        job.Finished.TrySetResult();
+        Prune();
+    }
+
+    // [job]'s readers waiting for more woken as its .part grows.
+    private static void Watched(ConvJob job) => _ = Task.Run(async () =>
+    {
+        long last = -1;
+        while (!job.Done)
+        {
+            await Task.Delay(100);
+            long len = 0;
+            try { len = new FileInfo(job.Part).Length; } catch (IOException) { /* not there yet */ }
+            if (len != last) { last = len; job.Wake(); }
+        }
+    });
 
     /* Queue conversions to be made in the background, in order. */
     public static void Prefetch(IEnumerable<(ConvTrack T, ConvPlan P)> items)

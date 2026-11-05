@@ -234,4 +234,4 @@ the rest of; a pattern is as the code writes it. What each answers is said besid
 | GET | `/login` | open | `Pages.cs` |
 | GET | `/server-info` | open | `Server.cs` |
 | GET | `/shelf` | signed in | `Pages.cs` |
-|  | `/stream/t([0-9]+)(?:\.(orig\|[0-9]+-[0-9]+w?\|d(?:64\|128\|256)))?\.([a-z0-9]+)` | signed in, or a signed address | `Streams.cs` |
+|  | `/stream/(?:t([0-9]+)\|a([0-9]+(?:_[0-9]+)+))(?:\.(orig\|[0-9]+-[0-9]+w?\|d(?:64\|128\|256)))?\.([a-z0-9]+)` | signed in, or a signed address | `Streams.cs` |

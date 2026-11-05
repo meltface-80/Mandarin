@@ -235,6 +235,8 @@ internal sealed class Devices
             ((JsObj)o["output"]!)["dsd_out"] = (double)up;
             ((JsObj)o["output"]!)["making"] = Upsample.MadeAsPlayed.Note(up);
         }
+        // An album as one stream (item 300), said only where it is on.
+        if (streamer && r.Settings["album_stream"] is true) ((JsObj)o["output"]!)["album_stream"] = true;
         o["first_seen"] = r.FirstSeen; o["last_seen"] = r.LastSeen;
         o["profile"] = caps["profile"]; o["editable"] = caps["editable"];
         o["playable"] = r.Kind != "upnp" || Jv.T(caps["playable"]);

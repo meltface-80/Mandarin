@@ -24,6 +24,7 @@ internal sealed class Player(string id)
     public int Index = -1;
     public (int Index, string Uri, bool Sent)? Next;
     public string? NamesBefore;   // what a device that names the track it was set to all along names (item 299); till the next SetAVTransportURI
+    public AlbumStream? Run;      // the album playing as one stream (item 300: Players.Albums.cs); till the next SetAVTransportURI
     // Shuffle's: the tracks played (the items themselves, so an edit of the queue moves them with it), and the track picked
     // to follow the one playing, kept while that one plays (item 183).
     public HashSet<UpnpItem> Played = [];
@@ -260,6 +261,7 @@ internal sealed partial class Players
         if (s["filter_hires"] is string hires) target["filter_hires"] = hires;   // for 88.2 kHz and up (item 298); the filter's by its absence
         if (DsdLowpass.Of(s["dsd_lowpass"]) is { } cut) target["dsd_lowpass"] = cut;   // DSD as PCM, low-passed (item 241)
         if (Upsample.DsdPlan.Of(s["dsd_out"]) is { } up) target["dsd_out"] = (double)up;   // PCM as DSD (item 243)
+        if (s["album_stream"] is true) target["album_stream"] = true;   // an album as one stream (item 300)
     }
 
     /* The settings changed (output, DSP): what follows in the queue is planned again; the track playing carries on as it was given. */
@@ -335,7 +337,7 @@ internal sealed partial class Players
     /* Its queue emptied, the renderer stopped, the room blank and kept so. */
     private async Task Emptied(Player p)
     {
-        lock (gate) { p.Queue = []; p.Index = -1; p.Next = null; p.Played = []; p.Successor = null; p.ExpectStop = true; }
+        lock (gate) { p.Queue = []; p.Index = -1; p.Next = null; p.Run = null; p.Played = []; p.Successor = null; p.ExpectStop = true; }
         try { await RendererOf(p).Stop(); } catch (RendererError) { /* already */ }
         lock (zm.Gate) zm.State[p.Id] = ZoneState.Blank(new Volume(p.Volume.Value, p.Volume.Muted));
         zm.Bump();

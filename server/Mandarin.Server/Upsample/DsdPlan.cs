@@ -95,6 +95,13 @@ internal static class DsdPlan
         return DsfWriter.Size(samples);
     }
 
+    /* A run's DSF size in bytes by [p], [seconds] long at the rate it is made from, nothing joined (AlbumRun.cs, item 300). */
+    public static long RunBytes(ConvPlan p, double seconds)
+    {
+        var from = FromRate((long)p.InRate, p.DsdBase);
+        return from == 0 ? 0 : DsfWriter.Size(Joins.Frames(seconds, from) * (DsdRate(p.DsdUp, p.DsdBase) / from));
+    }
+
     /*
      * The job for [src] by [p] into [dest] (UpsampleCommand.cs): ffmpeg decoding it to 64-bit float stereo at the
      * rate it is made from (Before: levelled, the DSP run on it, and SoX's resampler for 48 kHz's family made DSD of 44.1 kHz's), the DSF
