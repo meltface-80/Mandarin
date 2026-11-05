@@ -32,10 +32,19 @@ internal static class Check
         public JsonObject? Report;
         public readonly CancellationTokenSource Stop = new();
         public double Recorded;
+        // The seconds recorded so far, the part under way among them: what a clock shows while it records (item 292).
+        public double Recording;
         // Told whenever it says something new: the room's state bumped, so Now playing shows it.
         public Action? Changed;
         private string said = "Starting";
         public string Said { get => said; set { said = value; Changed?.Invoke(); } }
+
+        /* [seconds] recorded so far, said as [words] (its {0} the seconds, whole). */
+        public void Live(string words, double seconds)
+        {
+            Recording = seconds;
+            Said = string.Format(System.Globalization.CultureInfo.InvariantCulture, words, Math.Round(seconds));
+        }
     }
 
     /* [track] in [room], recorded by [recorder] (a Mandarin Bridge renderer's, or this server's USB bus), into [dir]. */

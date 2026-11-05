@@ -546,6 +546,8 @@
 - Improved - the signal path says it plainly: "the 16-bit samples padded to 32 bits for the DAC" where it said "in 32-bit words"
 - Fixed - the ✓ is shown only when the device says the samples reach the DAC untouched: an older Mandarin Bridge, or a WiiM, whose own API says only the format, no longer has one
 - New - SQ-tool is Mandarin's own bit-perfect test: choose a song and a zone, press Record, and Mandarin plays the song there and records exactly what the zone's DAC is fed (Mandarin Bridge on Android, or a USB DAC on the server); SQ-tool says whether it is bit-perfect, with its spectrograms and charts. Its Loopback recording, its second player and its settings are gone
+- Fixed - SQ-tool's recording on a Mandarin Bridge (an Android one, such as the FiiO R7) no longer stops after 30 seconds with "the device's recording ended early": the Bridge is asked for the whole track, and hears it
+- Fixed - SQ-tool's clock runs while it records, where it stood at 0:00 until a minute had been recorded
 
 - `284-dff-as-dsd` (item 284): **A DFF played as DSD, as a DSF is.** The audio engine read only a DSF itself; a DFF
   went to ffmpeg, which made it PCM, so on a DAC on the server or on the Linux Bridge it was never DSD (the server
@@ -576,6 +578,18 @@
   and refused: a room that can't be recorded, a test not there, a song not in the library, a second recording at once;
   shown failing with the song looked for by the wrong path and the zone's name not filed. SQ-tool's own tests:
   Mandarin's recording handed over (bit-perfect in 32-bit words, scaled), the API's refusals, no `b` or `ab` left.
+- `292-bridge-recording-asked-whole` (item 292): **A Bridge's recording asked so it hears it.** SQ-tool on the
+  FiiO R7 failed after half a minute: "the device's recording ended early: done". The server asked for the whole
+  track in parts with `PostAsJsonAsync`, which sends its body in chunks with no Content-Length; the Bridge's
+  `HttpServer.kt` reads a body by its Content-Length alone, so it heard no ask, and recorded its default, 30 seconds
+  in one piece, from that moment. The server waited for parts that never came. The ask now goes with its length
+  (`DeviceRecorder.Ask`), and the Bridge's answer is read: where it says it took no parts, the recording fails at once
+  saying so, not when its one piece ends. And SQ-tool's clock showed `recorded`, which rose only as each minute's part
+  was taken; it now shows the seconds the device has recorded (`Check.Run.Live`, the part under way among them).
+  `test/fake-capture.js` reads an ask as the Bridge does (by its length) and answers with what it took;
+  `sq-tool-record`: the clock at 2.5 s while held with no part done, and a device that takes the ask as one piece
+  said at once. Shown failing with the ask sent as before (`sq-tool-record`, `bitperfect-parts`: "ended early: done",
+  as on the R7), the clock on `recorded` alone, and the answer not read.
 - `289-signal-path-plain-words` (item 289): **The signal path in plain words, and the ✓ only on the device's word.**
   A 16-bit track to a 32-bit DAC read "the 16-bit samples in 32-bit words", jargon that left the owner asking what a
   word was. It now says "padded to 32 bits for the DAC" where the device says the samples go untouched, and "sent as

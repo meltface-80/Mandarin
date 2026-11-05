@@ -8,6 +8,10 @@
  * Asked with {part, after_flush} (item 286: dac.captureParts, as Capture.kt in parts), the recording is kept in parts
  * of renderer.capturePart seconds (else [part]) one after another, sample for sample, at /capture/N.wav, each let go
  * by DELETE /capture/N; the asks are kept in renderer.captureAsks. renderer.captureCorrupt: parts no WAV reader can read.
+ * The ask is read as the Bridge's HttpServer.kt reads a body: by its Content-Length, so one sent without it (chunked) is
+ * heard as no ask at all, 30 seconds in one piece; the answer says what it took (seconds, part_seconds), as Capture.kt's.
+ * renderer.captureWhole: an ask in parts taken as one piece, as an app that can't record in parts would.
+ * renderer.captureHold: held recording, [captureHold] seconds in and no part done, until it is cleared (item 292).
  */
 const fs = require("fs");
 const os = require("os");
@@ -23,15 +27,16 @@ function handle(r, req, res, u) {
     req.on("data", d => { body += d; });
     req.on("end", () => {
       if (c.state === "armed" || c.state === "recording") return json(409, { state: c.state });
-      const ask = JSON.parse(body || "{}");
+      const ask = req.headers["content-length"] ? JSON.parse(body || "{}") : {};
       (r.captureAsks || (r.captureAsks = [])).push(ask);
-      Object.assign(c, { state: "armed", seconds: ask.seconds || 30, from: r.fetches.length, frames: 0, rate: 0, part: ask.part ? (r.capturePart || ask.part) : 0, parts: [] });
+      Object.assign(c, { state: "armed", seconds: ask.seconds || 30, from: r.fetches.length, frames: 0, rate: 0, part: ask.part && !r.captureWhole ? (r.capturePart || ask.part) : 0, parts: [] });
       r.log.push("capture");
-      json(202, { state: c.state });
+      json(202, { state: c.state, seconds: c.seconds, part_seconds: c.part });
     });
     return;
   }
   if (req.method === "GET" && u.pathname === "/capture") {
+    if (r.captureHold && (c.state === "armed" || c.state === "recording")) return json(200, { state: "recording", reason: "", frames: r.captureHold * 44100, rate: 44100, parts: [] });
     if (c.state === "armed" || c.state === "recording") {
       // renderer.captureSkip: the nth track fetched after it was armed recorded instead (0: the first, the one played again).
       const f = r.fetches.slice(c.from).filter(x => x.done && x.body)[r.captureSkip || 0];

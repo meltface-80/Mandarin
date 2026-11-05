@@ -119,7 +119,7 @@ internal sealed partial class UsbRecorder(Usbmon.Target target, string dir, Func
             var seconds = w.Rate > 0 ? w.Frames / w.Rate : 0;
             if (w.State == "done") return (seconds, seconds + 1 >= w.Seconds);
             if (w.State == "armed" && DateTime.UtcNow - armedSince > TimeSpan.FromSeconds(30)) throw new TimeoutException("the DAC was never sent the track");
-            if (w.State == "recording") run.Said = $"Recording what the DAC is fed ({Math.Round(before + seconds)} s)";
+            if (w.State == "recording") run.Live("Recording what the DAC is fed ({0} s)", before + seconds);
         }
     }
 
