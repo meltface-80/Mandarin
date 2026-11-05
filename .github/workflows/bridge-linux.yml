@@ -48,7 +48,7 @@ jobs:
           tar -C out -czf mandarin-bridge-linux-${{ matrix.arch }}.tar.gz mandarin-bridge
           ./out/mandarin-bridge/mandarin-bridge --version
           # Its build and checksum beside it (item 291): what Mandarin's Settings → Updates and the Bridge's own update read.
-          ./bridge/sidecar.sh mandarin-bridge-linux-${{ matrix.arch }}.tar.gz "$GITHUB_SHA" "$(grep -m1 '"version"' package.json | cut -d'"' -f4)"
+          ./bridge/sidecar.sh mandarin-bridge-linux-${{ matrix.arch }}.tar.gz "$GITHUB_SHA" "$(grep -oP 'versionName = "\K[^"]+' bridge/android/app/build.gradle.kts)"
       - uses: actions/upload-artifact@v7
         with:
           name: mandarin-bridge-linux-${{ matrix.arch }}

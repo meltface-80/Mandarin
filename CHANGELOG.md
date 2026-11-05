@@ -549,6 +549,8 @@
 - Fixed - SQ-tool's recording on a Mandarin Bridge (an Android one, such as the FiiO R7) no longer stops after 30 seconds with "the device's recording ended early": the Bridge is asked for the whole track, and hears it
 - Fixed - SQ-tool's clock runs while it records, where it stood at 0:00 until a minute had been recorded
 - New - every Mandarin Bridge (Android, Linux, Raspberry Pi) has a row on Settings → Updates, with its version and Update available when there's a newer build: a tap and it updates itself. On Android, the first time, the device asks you once; on Linux and the Pi it's hands off. A Bridge older than this needs one last update by hand
+- Improved - a Mandarin Bridge's row on Settings → Updates has its own Check for update, as the server's and the app's: a tap looks for a newer build now, then says Update available or Up to date (it did nothing before, and a newly published build took up to a minute to show)
+- Improved - Mandarin Bridge is v0.2.1, on Android, Linux and the Raspberry Pi alike (the Linux and Pi Bridge said the server's version, 1.1.14)
 - New - the app's Save log (Settings → Setup → Logging) has every Mandarin Bridge's log too, after the server's, each under its name, through the same privacy filter
 
 - `284-dff-as-dsd` (item 284): **A DFF played as DSD, as a DSF is.** The audio engine read only a DSF itself; a DFF
@@ -562,6 +564,21 @@
   (markers in turn, the DSD rate over 16) and as native DSD (big-endian words, the rate over 32), the 48 kHz family as
   DoP; a seek to 1.5 s plays on from that word, what lay between never sent; a DST one said, nothing sent. Shown
   failing with the DFF sent to ffmpeg, a DST one played, the seek ignored, and the chunk after the audio sent.
+- `293-bridge-check-for-update` (item 293): **A Bridge's row checks, as the server's does.** A Bridge's button on
+  Settings → Updates said only how it stood: Up to date did nothing when tapped, and GitHub's answer was kept a
+  minute, so a newly published build showed late. Where nothing is to be done (Up to date, Nothing published) the
+  button now says Check for update, as the server's and the app's rows: a tap asks GitHub again (`GET
+  /api/update/bridges?fresh=1`, `BridgeUpdates.List(fresh)`), and the row becomes Update available, or says Up to
+  date or Nothing published for a few seconds, then Check for update again. Page (`app/bridge-updates.js`) and app
+  (`SettingsUpdates.kt`, core's `BridgeUpdates.answer`, `BridgeRow.checked`) the same; `settings-system.bridge-update`'s
+  label is Check for update. `bridge-updates`: on the page, Check for update, Up to date, then a newer build published
+  (the list still saying none, GitHub's answer kept) found by a tap; `BridgeUpdatesTest`: each row's words and what a
+  check of it says. Shown failing with the row's words as before, the page's check not asking afresh, and the server
+  ignoring `fresh`. And SQ-tool's recording says it is done (or failed) only once its folder is cleared: it said so
+  first, so a recording begun at once (Record again) could have the same folder taken from under it by the last one's
+  clearing: the next one's first step, emptying the folder, ran beside the last one's and found a file already gone
+  (`sq-tool-record` failed so once under the whole suite's load: "Could not find … part3.wav", before the device was
+  asked). And Mandarin Bridge is v0.2.1 (`versionName`, `versionCode` 3), the owner's number for the next Bridge update; the Linux Bridge (and the Pi's) takes its version from the same `versionName` (`build.sh`, the Linux workflow's sidecar), where it took the server's from `package.json`. `bridge-updates`: the Linux Bridge says the `versionName`, shown failing with the server's version.
 - `291-bridge-updates` (item 291): **Mandarin Bridges updated from Mandarin.** A Bridge was updated on its device, by
   hand. Each build published now has a sidecar (`bridge/sidecar.sh`: its commit, version and SHA-256), and each Bridge
   says its commit in `/dac.json` (`commit`, `updates`, `update`; Android's from `BuildConfig.COMMIT`, Linux's after its

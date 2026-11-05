@@ -68,9 +68,12 @@ internal fun SettingsUpdates(client: () -> ServerClient?, onBack: () -> Unit) {
     var serverBusy by remember { mutableStateOf(false) }
     var appBusy by remember { mutableStateOf(false) }
     var bridges by remember { mutableStateOf<List<BridgeRow>>(emptyList()) }
-    suspend fun lookBridges() {
+    var bridgeHeld by remember { mutableStateOf<String?>(null) }    // a Bridge whose check's answer is on its button
+    suspend fun lookBridges(fresh: Boolean = false) {
         val c = client() ?: return
-        bridges = BridgeUpdates.rows(withContext(Dispatchers.IO) { runCatching { c.getJson("/api/update/bridges") }.getOrNull() })
+        val rows = BridgeUpdates.rows(withContext(Dispatchers.IO) { runCatching { c.getJson("/api/update/bridges" + if (fresh) "?fresh=1" else "") }.getOrNull() })
+        // A check's answer stays on its button for its few seconds; the rest as they stand.
+        bridges = bridgeHeld?.let { held -> rows.map { r -> if (r.id == held) bridges.firstOrNull { it.id == held } ?: r else r } } ?: rows
     }
     // The Bridges as they stand, asked again in a few seconds while one updates, else every half minute the page is open.
     LaunchedEffect(Unit) {
@@ -85,6 +88,21 @@ internal fun SettingsUpdates(client: () -> ServerClient?, onBack: () -> Unit) {
         scope.launch {
             withContext(Dispatchers.IO) { runCatching { c.post("/api/update/bridges/apply", JSONObject().put("id", id)) } }
             delay(1_500)
+            lookBridges()
+        }
+    }
+    // Check for update on a Bridge's row (item 293): GitHub asked again, then its update, or what it found for a few seconds.
+    fun checkBridge(id: String) {
+        bridges = bridges.map { if (it.id == id) it.copy(words = UpdateCheck.CHECKING, busy = true, checked = null) else it }
+        scope.launch {
+            lookBridges(fresh = true)
+            val fresh = bridges.firstOrNull { it.id == id }
+            if (fresh?.canUpdate == true) return@launch
+            val words = BridgeUpdates.answer(fresh)
+            bridgeHeld = id
+            bridges = bridges.map { if (it.id == id) it.copy(words = words, busy = true, checked = null) else it }
+            delay(UpdateCheck.HOLD_MS)
+            bridgeHeld = null
             lookBridges()
         }
     }
@@ -141,7 +159,7 @@ internal fun SettingsUpdates(client: () -> ServerClient?, onBack: () -> Unit) {
                 UpdateRow(b.name, Modifier.padding(top = 12.dp)) {
                     UpdateButton(b.words, b.busy, Modifier.weight(1f, fill = false).padding(start = 16.dp)
                         .parity("settings-system.bridge-update", Contract.label("settings-system.bridge-update", 1, b.words))
-                        .clickable(enabled = b.canUpdate) { updateBridge(b.id) })
+                        .clickable(enabled = b.canUpdate || b.checked != null) { if (b.canUpdate) updateBridge(b.id) else checkBridge(b.id) })
                 }
             }
             for (part in UpdateCheck.whatsNew(server, app)) {

@@ -25,9 +25,13 @@ class BridgeUpdatesTest {
             .put(bridge("updates" to false, "available" to true))
             .put(bridge("reachable" to false, "version" to null))
             .put(bridge("latest" to null))))
-        assertEquals(listOf("Update available", "Up to date", "Updating…", "Finish on the device", "Try the update again", "Update by hand once", "Not answering", "Nothing published"),
+        assertEquals(listOf("Update available", "Check for update", "Updating…", "Finish on the device", "Try the update again", "Update by hand once", "Not answering", "Check for update"),
             rows.map { it.words })
         assertEquals(listOf(true, false, false, false, true, false, false, false), rows.map { it.canUpdate })
+        // Nothing to be done: Check for update, as the server's and the app's rows, and what a check of it says (item 293).
+        assertEquals(listOf(null, "Up to date", null, null, null, null, null, "Nothing published"), rows.map { it.checked })
+        assertEquals(listOf("Update available", "Up to date", "Not answering", "Nothing published", "Check failed"),
+            listOf(rows[0], rows[1], rows[6], rows[7], null).map { BridgeUpdates.answer(it) })
         assertEquals("FiiO R7 USB · Bridge v0.2.0", rows[0].name)
         assertEquals("FiiO R7 USB · Bridge", rows[6].name)
         assertTrue(BridgeUpdates.underWay(rows))

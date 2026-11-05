@@ -3,6 +3,7 @@
  * Mandarin Bridges on Settings → Updates (item 291, Admin/BridgeUpdates.cs, bridge/linux Update.cs), end to end with
  * Mandarin Bridge for Linux itself and a GitHub of the test's own:
  *   - the Bridge listed with its build, the build published for its machine (the release's sidecar), and an update;
+ *   - on the page, Check for update as the server's row: Up to date, then a newer build found at once (item 293);
  *   - Update: the Bridge fetches the release itself, checks the tarball against the sidecar's checksum, unpacks it
  *     and stops; started again (as systemd does), the program installed hands over to the update;
  *   - an update that fails as it starts let go, the program installed running on;
@@ -75,6 +76,7 @@ test("a Mandarin Bridge offered its update on Settings → Updates, and updated 
 
   // GitHub, as Mandarin and the Bridge ask it: a numbered release of the Bridge's, its tarball and the tarball's sidecar.
   let tar = good, sha = crypto.createHash("sha256").update(good).digest("hex");
+  let published = { commit: "fffffff", version: "9.9.9" };   // the build the release says it holds
   const asks = [];
   const gh = http.createServer((req, res) => {
     asks.push(req.url);
@@ -84,7 +86,7 @@ test("a Mandarin Bridge offered its update on Settings → Updates, and updated 
     if (req.url === "/repos/meltface-80/Mandarin/releases/tags/mandarin-bridge-v0.3.0") {
       return json({ tag_name: "mandarin-bridge-v0.3.0", assets: [`mandarin-bridge-${ARCH}.tar.gz`, `mandarin-bridge-${ARCH}.tar.gz.json`].map(n => ({ name: n, browser_download_url: at(n) })) });
     }
-    if (req.url === `/download/mandarin-bridge-${ARCH}.tar.gz.json`) return json({ commit: "fffffff", version: "9.9.9", sha256: sha });
+    if (req.url === `/download/mandarin-bridge-${ARCH}.tar.gz.json`) return json({ commit: published.commit, version: published.version, sha256: sha });
     if (req.url === `/download/mandarin-bridge-${ARCH}.tar.gz`) { res.writeHead(200); return res.end(tar); }
     res.writeHead(404); res.end();
   });
@@ -107,6 +109,9 @@ test("a Mandarin Bridge offered its update on Settings → Updates, and updated 
   const dac = await until(async () => (await fetch(BR + "/dac.json")).json(), 15000);
   const commit = spawnSync(BRIDGE, ["--version"]).stdout.toString().match(/\(([^)]+)\)/)[1];
   assert.deepEqual([dac.platform, dac.arch, dac.commit, dac.updates, dac.update.state], ["linux", ARCH, commit, true, "idle"], JSON.stringify(dac));
+  // One version for every Bridge: the Android app's versionName, not the server's (item 293).
+  const bridgeVersion = /versionName = "([^"]+)"/.exec(fs.readFileSync(path.join(ROOT, "bridge", "android", "app", "build.gradle.kts"), "utf8"))[1];
+  assert.equal(dac.version, bridgeVersion, "the Linux Bridge says the Bridge's version");
 
   const lib = makeLibrary();
   const house = new FakeHousehold();
@@ -125,33 +130,48 @@ test("a Mandarin Bridge offered its update on Settings → Updates, and updated 
   };
   const ID = idFor(dac.udn);
 
-  // Listed, with its build, the one published, and an update: whether or not it is a zone yet.
+  // Listed, with its build and the one published, the same: whether or not it is a zone yet, nothing to install.
+  published = { commit, version: dac.version };
   const row = (await until(async () => (await api("update/bridges")).bridges.find(b => b.id === ID), 20000));
   const list = await api("update/bridges");
   assert.equal(list.tag, "mandarin-bridge-v0.3.0", "a numbered Mandarin follows the numbered Bridge releases");
-  assert.deepEqual([row.platform, row.commit, row.reachable, row.updates, row.available, row.why], ["linux", commit, true, true, true, null], JSON.stringify(row));
-  assert.deepEqual(row.latest, { commit: "fffffff", version: "9.9.9" });
+  assert.deepEqual([row.platform, row.commit, row.reachable, row.updates, row.available, row.why], ["linux", commit, true, true, false, null], JSON.stringify(row));
+  assert.deepEqual(row.latest, published);
 
-  // On the page's Settings → Updates: its row under the server's, its name and version, Update available.
+  // A newer build published: GitHub's answer is kept a minute, so the list says nothing yet; asked afresh (Check for
+  // update, item 293), it is there, and the Bridge has an update.
+  const newer = () => { published = { commit: "fffffff", version: "9.9.9" }; };
   if (findBrowser()) {
+    // On the page's Settings → Updates: its row under the server's, its name and version, Check for update, as the
+    // server's row; a tap says Up to date, then, a newer build published, Update available.
     const b = await Browser.launch({ width: 412, height: 915 });
     try {
       const page = await b.page(B + "/", { cookies: [{ name: "musicd_session", value: token, url: B }] });
-      const rows = await page.eval(`(async () => {
+      const seen = () => page.eval(`[...document.querySelectorAll("#update-bridges .settings-row")].map(x =>
+        [x.querySelector('[data-parity="settings-system.name"]').textContent, x.querySelector('[data-parity="settings-system.bridge-update"]').textContent])`);
+      const tap = () => page.eval(`document.querySelector('#update-bridges [data-parity="settings-system.bridge-update"]').click()`);
+      await page.eval(`(async () => {
         const sleep = ms => new Promise(r => setTimeout(r, ms));
         for (let i = 0; i < 100 && !document.querySelector("#settings-toggle"); i++) await sleep(100);
         document.querySelector("#settings-toggle").click(); await sleep(300);
         document.querySelector('.settings-nav-item[data-pane="system"]').click();
-        for (let i = 0; i < 100; i++) {
-          const r = [...document.querySelectorAll("#update-bridges .settings-row")];
-          if (r.length) return r.map(x => [x.querySelector('[data-parity="settings-system.name"]').textContent, x.querySelector('[data-parity="settings-system.bridge-update"]').textContent]);
-          await sleep(100);
-        }
-        return null;
       })()`);
-      assert.deepEqual(rows, [[row.name + " · Bridge v" + dac.version, "Update available"]]);
+      const name = row.name + " · Bridge v" + dac.version;
+      assert.deepEqual(await until(async () => { const r = await seen(); return r.length && r; }), [[name, "Check for update"]]);
+      await tap();
+      assert.deepEqual(await until(async () => { const r = await seen(); return r[0][1] === "Up to date" && r; }, 10000), [[name, "Up to date"]]);
+      assert.deepEqual(await until(async () => { const r = await seen(); return r[0][1] === "Check for update" && r; }, 10000), [[name, "Check for update"]]);
+      newer();
+      assert.equal((await api("update/bridges")).bridges.find(b => b.id === ID).available, false, "GitHub's answer kept");
+      await tap();
+      assert.deepEqual(await until(async () => { const r = await seen(); return r[0][1] === "Update available" && r; }, 10000), [[name, "Update available"]]);
     } finally { await b.close(); }
+  } else {
+    newer();
+    assert.equal((await api("update/bridges")).bridges.find(b => b.id === ID).available, false, "GitHub's answer kept");
   }
+  const fresh = (await api("update/bridges?fresh=1")).bridges.find(b => b.id === ID);
+  assert.deepEqual([fresh.available, fresh.latest], [true, { commit: "fffffff", version: "9.9.9" }], JSON.stringify(fresh));
 
   // A download that isn't the release's build: refused, nothing put in place.
   sha = "0".repeat(64);

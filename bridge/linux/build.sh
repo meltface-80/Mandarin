@@ -5,7 +5,8 @@
 set -e
 cd "$(dirname "$0")"
 RID=${RID:-linux-$(uname -m | sed 's/x86_64/x64/;s/aarch64/arm64/')}
-VERSION=${VERSION:-$(grep -m1 '"version"' ../../package.json | cut -d'"' -f4)}
+# The Bridge's version, one for every Bridge: the Android app's versionName (item 293; it was the server's).
+VERSION=${VERSION:-$(sed -n 's/^ *versionName = "\([^"]*\)".*/\1/p' ../android/app/build.gradle.kts | head -1)}
 VERSION=${VERSION:-0.0.0}
 # The commit it is built from, after the version's + (Program.Commit): which build it is (item 291).
 COMMIT=${COMMIT:-$(git rev-parse --short=7 HEAD 2>/dev/null || echo local)}

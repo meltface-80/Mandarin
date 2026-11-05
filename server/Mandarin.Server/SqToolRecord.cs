@@ -103,6 +103,7 @@ internal static class SqToolRecord
         var run = j.Run;
         var ct = run.Stop.Token;
         var failed = true;
+        var said = "";
         var stream = new Regex($@"/stream/t{track.Id}(\.|\?|$)");
         var room = new Check.Room(async () => await Items.PlayTracks(hub, j.Zone, [track], "play_now"),
             () => stream.IsMatch(hub.StateOf(j.Zone)?.TrackUri ?? ""), j.Name);
@@ -114,20 +115,22 @@ internal static class SqToolRecord
             run.Said = "Handing the recording to SQ-tool";
             await Hand(sq, j, parts[0].Wav, recorder is UsbRecorder ? "Mandarin's server, off the USB bus" : "Mandarin Bridge", ct);
             failed = false;
-            run.State = "done";
-            run.Said = "Recorded: SQ-tool is comparing it with the song";
+            said = "Recorded: SQ-tool is comparing it with the song";
         }
         // A recording or a hand-over that fails, whatever the fault: said, never a recording left under way.
         catch (Exception e) when (e is HttpRequestException or IOException or OperationCanceledException or InvalidOperationException or TimeoutException
             or UnauthorizedAccessException or ArgumentException or IndexOutOfRangeException or OverflowException or FormatException or System.Text.Json.JsonException)
         {
-            run.State = "failed";
-            run.Said = ct.IsCancellationRequested ? "Stopped" : "The recording couldn't be made: " + e.Message;
+            said = ct.IsCancellationRequested ? "Stopped" : "The recording couldn't be made: " + e.Message;
         }
         finally
         {
             if (failed) await recorder.Stop(true);
             try { Directory.Delete(Dir, true); } catch (Exception e) when (e is IOException or UnauthorizedAccessException) { /* left for the next */ }
+            // Said once its folder is gone (item 293): until then it is under way, so the next recording, which empties
+            // the same folder and fills it, never has it taken from under it by this one's going.
+            run.Said = said.Length > 0 ? said : "The recording couldn't be made";
+            run.State = failed ? "failed" : "done";
         }
         Server.Log($"[sq-tool] {j.Name}, {track.Title}: {run.Said}");
     }

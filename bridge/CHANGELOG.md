@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Improved - Mandarin Bridge is 0.2.1, on Android, Linux and the Raspberry Pi alike: the Linux Bridge (and the Pi's) takes the same version as the app, where it said the server's
 - Improved - the app is Mandarin Bridge (it was Mandarin USB): the name on the screen and on the network, the APK (Mandarin-Bridge-<version>.apk) and its test build (the test-bridge pre-release); it installs over Mandarin USB and keeps its settings, and Mandarin knows an app not yet updated as the same renderer
 - New - a recording of exactly what the DAC is fed, on request (POST /capture, then /capture.wav and its sidecar): the evidence for Mandarin's bit-perfect check, written as SQ-tool writes a USB capture
 - Fixed - the driver from Mandarin's dev (its PR 602): every sample reaches the DAC as it is; a 24-bit sample went one step low in a 32-bit slot, and a 32-bit stream lost its lowest 8 bits

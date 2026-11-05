@@ -41,3 +41,7 @@ tools/quality/out
 bridge/linux/bin/
 bridge/linux/Mandarin.Bridge/bin/
 bridge/linux/Mandarin.Bridge/obj/
+
+# Python bytecode (tools/docs/*.py, sq-tool)
+__pycache__/
+*.pyc
