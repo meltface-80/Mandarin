@@ -11,7 +11,7 @@ using TJs = Mandarin.Server.Tags.Js;
 
 internal sealed partial class Phones
 {
-    [GeneratedRegex(@"/stream/t(\d+)(?:\.(?:orig|\d+-\d+))?\.[a-z0-9]+(?:\?|$)", RegexOptions.IgnoreCase)] private static partial Regex StreamUri();
+    [GeneratedRegex(@"/stream/t(\d+)(?:\.(?:orig|\d+-\d+|d\d+))?\.[a-z0-9]+(?:\?|$)", RegexOptions.IgnoreCase)] private static partial Regex StreamUri();
 
     /* trackIdFromUri (lib/server/playback.js): the track a stream address names, or null. */
     public static long? TrackIdFromUri(string? uri)

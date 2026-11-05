@@ -248,7 +248,7 @@ internal sealed partial class Players
             case "previous":
                 // Back to the start of this track first, as every player does: sent again where the device is stuck (item 272).
                 if (Stuck(p, st)) await Jump(p, p.Index);
-                else if (Hub.PositionNow(st) > 5 || p.Index <= 0) { await Serially(p, () => r.SeekTime(0)); Optimistic(id, s => s.Position = 0); }
+                else if (Hub.PositionNow(st) > 5 || p.Index <= 0) { await Serially(p, () => r.SeekTime(0)); p.SeekedAt = Hub.Now(); Optimistic(id, s => s.Position = 0); }
                 else await Jump(p, p.Index - 1);
                 break;
             case "playpause":
@@ -267,7 +267,7 @@ internal sealed partial class Players
         var target = Math.Max(0, how == "relative" ? Hub.PositionNow(st) + seconds : seconds);
         if (Stuck(p, st)) await Jump(p, p.Index, target);
         else await Serially(p, () => RendererOf(p).SeekTime(target));
-        Optimistic(id, s => s.Position = target);
+        p.SeekedAt = Hub.Now(); Optimistic(id, s => s.Position = target);
         PokeAfter(p);
     }
 
