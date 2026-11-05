@@ -19,6 +19,27 @@ const hideNote = document.getElementById("devices-hide-note");
 let hideMode = false;
 let picks = new Set();
 const esc = (v) => String(v == null ? "" : v).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+// The filter's notes by choice (items 248, 259): each made as it plays.
+const FILTER_NOTE = {
+  standard: "SoX’s filter, made as it plays.",
+  minphase: "Minimum phase: all its ringing after a sound starts, none before. Mandarin’s own filter, made as it plays; tracks from the library, ×2 to ×16.",
+  gentle: "Rolling off from 90% of the band (19.8 kHz for a CD), twice as gently: its ringing half as long, the very top a little down (−6 dB at 21 kHz). Mandarin’s own filter, made as it plays."
+};
+// The filter with PCM as DSD on (items 254, 259): the one each track is upsampled with on its way to DSD.
+const DSD_FILTER_NOTE = (n, f) => "With PCM as DSD" + n + " on, this is the filter each track is upsampled with on its way to DSD" + n + ": " +
+  (f === "minphase" ? "minimum phase, all its ringing after a sound starts" : f === "gentle" ? "gentle, rolling off from 90% of the band" : "standard, linear phase") + ".";
+// DSD sent as PCM (item 241): what the low-pass does.
+const DSD_LOWPASS_NOTE = (cut) => cut
+  ? "DSD this device is sent as PCM has the modulator’s noise above " + (cut / 1000) + " kHz taken off; below it, as recorded. DSD it takes as DSD goes as it is."
+  : "DSD this device is sent as PCM keeps the modulator’s noise up to the top of the rate it goes at. DSD it takes as DSD goes as it is.";
+// PCM made DSD (items 243, 259): what it does.
+const DSD_OUT_NOTE = (n) => n
+  ? "Each track of the library that isn’t DSD is made DSD" + n + " as it plays, by Mandarin’s seventh-order modulator, and sent as a DSF while it is made; Qobuz and Tidal go as PCM."
+  : "PCM goes to this device as PCM. Set, each track of the library that isn’t DSD is made DSD as it plays and sent as a DSF.";
+// The Filter's note and how fast its making goes (item 259): with PCM as DSD on, the filter is the DSD's and its speed
+// is said under PCM as DSD, not twice.
+const filterNotes = (o) => [o.dsd_out ? DSD_FILTER_NOTE(o.dsd_out, o.filter) : FILTER_NOTE[o.filter || "standard"] || FILTER_NOTE.standard,
+  !o.dsd_out && o.filter && o.filter !== "standard" && o.making ? o.making : null];
 const ask = (q) => window.__confirmDialog ? window.__confirmDialog(q) : Promise.resolve(confirm(q));
 const deviceToast = (m, kind) => { if (window.__showToast) window.__showToast(m, kind); };
 const svg = (paths) => '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + paths + "</svg>";
@@ -45,11 +66,11 @@ function dspOf(d) {
   if (dspDraft && dspDraft.id === d.id) return dspDraft;
   const cur = d.dsp || { enabled: false, peq: null, headroom: "auto" };
   dspDraft = { id: d.id, dirty: false, bands: ((cur.peq && cur.peq.bands) || []).map(b => Object.assign({}, b)), headroom: cur.headroom == null ? "auto" : cur.headroom,
-    headphone: cur.headphone || null };
+    headphone: cur.headphone || null, convolution: cur.convolution || null };
   return dspDraft;
 }
 function dspSetting(draft, enabled) {
-  return { enabled, headphone: draft.headphone, peq: { bands: draft.bands }, headroom: draft.headroom };
+  return { enabled, headphone: draft.headphone, peq: { bands: draft.bands }, headroom: draft.headroom, convolution: draft.convolution || undefined };
 }
 // Every band the draft runs: the headphone profile's, then the PEQ's.
 const allBands = dr => (dr.headphone && dr.headphone.bands ? dr.headphone.bands : []).concat(dr.bands);
@@ -253,7 +274,7 @@ function renderDetail(keepInput) {
     ? "DSD files go to it as they are, at the DSD rates that are on; any other goes as PCM. If DSD doesn’t play, tap it off."
     : "It doesn’t say it takes DSD files, so DSD goes to it as PCM.") + "</div>";
   if (d.kind === "sonos") html += '<div class="settings-note"' + ' data-parity="settings-device.note"' + '>Sonos plays up to 24-bit/48 kHz. Mandarin’s 24/48 rule applies; nothing to set here.</div>';
-  if (d.kind === "phone") html += '<div class="settings-note"' + ' data-parity="settings-device.note"' + '>At home the phone plays the file as it is; away from home, Opus 256 kbps.</div>';
+  if (d.kind === "phone") html += '<div class="settings-note"' + ' data-parity="settings-device.note"' + '>' + (d.output ? "Through its USB DAC the phone is sent what Output below says; away from home, Opus 256 kbps." : "At home the phone plays the file as it is; away from home, Opus 256 kbps.") + '</div>';
   // A Mac's (item 155) is found by Core Audio, Linux's by ALSA.
   if (d.kind === "local") html += '<div class="settings-note"' + ' data-parity="settings-device.note"' + '>' + (/^This Mac/.test(d.found_by || "")
     ? "Mandarin sets the device to each track’s rate and holds it while it plays, so nothing else is mixed in; Core Audio carries up to 24 bits exactly. DSD goes as PCM."
@@ -261,12 +282,20 @@ function renderDetail(keepInput) {
   if (d.profile && d.profile.notes) html += '<div class="settings-note"' + ' data-parity="settings-device.note"' + '>' + esc(d.profile.notes) + "</div>";
   html += "</div>";
 
-  if (d.kind === "upnp" || d.kind === "local") {
+  // A phone with a USB DAC in use (item 265): its Output, for the DAC, as a renderer's.
+  if (d.kind === "upnp" || d.kind === "local" || (d.kind === "phone" && d.output)) {
     const o = d.output || { mode: "original", bits: "auto", flac32: false };
     const seg = (name, opts, cur) => '<div class="seg" data-seg="' + name + '">' + opts.map(x =>
-      '<button type="button"' + (name === "mode" ? ' data-parity="settings-device.mode"' : ' data-parity="settings-device.depth"') + ' class="seg-btn' + (String(x.v) === String(cur) ? " is-on" : "") + '" data-seg-v="' + x.v + '"' + (x.off ? " disabled" : "") + ">" + esc(x.label) + "</button>").join("") + "</div>";
+      '<button type="button"' + ({ mode: ' data-parity="settings-device.mode"', bits: ' data-parity="settings-device.depth"', filter: ' data-parity="settings-device.filter"', max_rate: ' data-parity="settings-device.maxrate"', dsd_lowpass: ' data-parity="settings-device.dsdlowpass"', dsd_out: ' data-parity="settings-device.dsdout"' })[name] + ' class="seg-btn' + (String(x.v) === String(cur) ? " is-on" : "") + '" data-seg-v="' + x.v + '"' + (x.off ? " disabled" : "") + ">" + esc(x.label) + "</button>").join("") + "</div>";
     const has32 = d.bits.some(b => b.n === 32 && b.on);
-    const topOf = fam => { const on = d.rates.filter(r => r.on && (fam === 44100 ? r.hz % 44100 === 0 : r.hz % 44100 !== 0)).map(r => r.hz); return on.length ? Math.max(...on) : 0; };
+    const dsdOn = (d.dsd || []).filter(x => x.on).map(x => x.n);
+    // The highest rate its owner allows (item 240), by 48 kHz's family; 44.1 kHz's is held to the rate that matches.
+    const cap = o.max_rate || 0;
+    const capFor = hz => !cap ? Infinity : hz % 44100 === 0 ? cap / 48000 * 44100 : cap;
+    const topOf = fam => { const on = d.rates.filter(r => r.on && (fam === 44100 ? r.hz % 44100 === 0 : r.hz % 44100 !== 0) && r.hz <= capFor(r.hz)).map(r => r.hz); return on.length ? Math.max(...on) : 0; };
+    // The caps worth offering: those below the highest rate the device takes.
+    const top48 = Math.max(0, ...d.rates.filter(r => r.on).map(r => r.hz % 44100 === 0 ? r.hz / 44100 * 48000 : r.hz));
+    const caps = [96000, 192000, 384000, 768000].filter(c => c < top48 || c === cap);
     const outBits = (has32 && o.flac32 && o.bits !== 24) ? 32 : 24;
     const example = (() => {
       const top = topOf(44100);
@@ -278,11 +307,27 @@ function renderDetail(keepInput) {
     html += '<div class="settings-divider"></div><div class="settings-block"><div class="settings-block-title"' + ' data-parity="settings-device.title"' + '>Output' + settingsInfo("Original sends the file as stored wherever this device takes its rate, depth and format; above its ceiling, FLAC at the highest rate it takes. Upsampling stays in the file's family (44.1 → 88.2 → 176.4; 48 → 96 → 192), runs in 64-bit float, and goes out at " + (has32 && o.flac32 ? "24 or 32 bits" : "24 bits") + ".", "settings-device.info") + "</div>" +
       '<div class="cap-group"><span class="cap-label"' + ' data-parity="settings-device.cap-label"' + '>Mode</span>' +
       seg("mode", [{ v: "original", label: "Original" }, { v: "x2", label: "×2" }, { v: "x4", label: "×4" }, { v: "max", label: "Max" }], o.mode) + "</div>" +
+      (caps.length ? '<div class="cap-group"><span class="cap-label"' + ' data-parity="settings-device.cap-label"' + '>Highest rate</span>' +
+        seg("max_rate", [{ v: "auto", label: "Auto" }].concat(caps.map(c => ({ v: c, label: (c / 1000) + "k" }))), cap || "auto") +
+        '<div class="settings-note"' + ' data-parity="settings-device.note"' + '>' + (cap ? "Nothing goes above " + (cap / 1000) + " kHz (" + (cap / 48000 * 44.1) + " kHz for music in 44.1’s family), upsampled or not." : "As high as the device takes.") + "</div></div>" : "") +
+      (o.mode !== "original" || o.dsd_out ? '<div class="cap-group"><span class="cap-label"' + ' data-parity="settings-device.cap-label"' + '>Filter</span>' +
+        seg("filter", [{ v: "standard", label: "Standard" }, { v: "minphase", label: "Min phase" }, { v: "gentle", label: "Gentle" }], o.filter || "standard") +
+        '<div class="settings-note"' + ' data-parity="settings-device.note"' + '>' + filterNotes(o)[0] + "</div>" +
+        (filterNotes(o)[1] ? '<div class="settings-note"' + ' data-parity="settings-device.note"' + '>' + esc(filterNotes(o)[1]) + "</div>" : "") + "</div>" : "") +
       (has32 ? '<div class="cap-group"><span class="cap-label"' + ' data-parity="settings-device.cap-label"' + '>Bit depth</span>' +
         seg("bits", [{ v: "auto", label: "Auto" }, { v: 24, label: "24" }, { v: 32, label: "32", off: !o.flac32 }], o.bits) +
         "" +
         (!o.flac32 ? '<div class="settings-note"' + ' data-parity="settings-device.note"' + '>32-bit needs an ffmpeg that writes 32-bit FLAC; this one stops at 24.</div>' : "") + "</div>" : "") +
       '<div class="settings-note"' + ' data-parity="settings-device.note"' + '>' + esc(example) + "</div>" +
+      // DSD played as PCM, its modulator's noise above the band taken off (item 241).
+      '<div class="cap-group"><span class="cap-label"' + ' data-parity="settings-device.cap-label"' + '>DSD as PCM</span>' +
+        seg("dsd_lowpass", [{ v: "off", label: "Off" }, { v: 50000, label: "50 kHz" }, { v: 30000, label: "30 kHz" }], o.dsd_lowpass || "off") +
+        '<div class="settings-note"' + ' data-parity="settings-device.note"' + '>' + esc(DSD_LOWPASS_NOTE(o.dsd_lowpass)) + "</div></div>" +
+      // PCM made DSD as it plays, for a device that takes DSD (items 243, 259).
+      (dsdOn.length ? '<div class="cap-group"><span class="cap-label"' + ' data-parity="settings-device.cap-label"' + '>PCM as DSD</span>' +
+        seg("dsd_out", [{ v: "off", label: "Off" }].concat([64, 128, 256].map(n => ({ v: n, label: "DSD" + n, off: !dsdOn.includes(n) }))), o.dsd_out || "off") +
+        '<div class="settings-note"' + ' data-parity="settings-device.note"' + '>' + esc(DSD_OUT_NOTE(o.dsd_out)) + "</div>" +
+        (o.dsd_out && o.making ? '<div class="settings-note"' + ' data-parity="settings-device.note"' + '>' + esc(o.making) + "</div>" : "") + "</div>" : "") +
       (d.can_fix_volume ? '<div class="settings-row" style="margin-top:14px"><span class="settings-label"' + ' data-parity="settings-device.name"' + '>Fixed volume</span>' +
         '<label class="switch"' + ' data-parity="settings-device.fixvol"' + '><input type="checkbox" data-dev-fixvol' + (d.volume_fixed ? " checked" : "") + ' aria-label="Fixed volume">' +
         '<span class="switch-track"><span class="switch-thumb"></span></span></label></div>' +

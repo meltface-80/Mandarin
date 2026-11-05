@@ -4,7 +4,7 @@
 // where multicast is unreliable), then for each answer its description
 // (Description.cs), its ConnectionManager Sink list (ProtocolInfo.cs), and —
 // when it looks like LinkPlay firmware — the WiiM-style HTTP API for the name
-// its own app uses. Descriptions are cached by location, so a device already
+// its own app uses; a Mandarin Bridge renderer's own word on its DAC (MandarinBridge.cs). Descriptions are cached by location, so a device already
 // read costs nothing on later rounds unless its address changed; a renderer
 // seen lately that missed a round is asked directly, quietly.
 using Mandarin.Server.Playback;
@@ -146,6 +146,18 @@ internal sealed class RendererDiscovery
                     rec.Firmware = lp.Firmware;
                     rec.Linkplay = Jv.Obj(("base", lp.Base), ("project", lp.Project), ("hardware", lp.Hardware), ("uuid", lp.Uuid), ("deviceName", lp.DeviceName));
                     if (lp.DeviceName.Length > 0) rec.NetworkName = lp.DeviceName;
+                }
+            }
+            // A Mandarin Bridge renderer says what its DAC takes itself (MandarinBridge.cs): every rate, depth and DSD
+            // multiple into the advertised layer, and where to ask what it is playing (Players.Commands.cs Verify).
+            if (MandarinBridge.Is(manufacturer, modelName) && WebUrl.Parse(loc, null) is { } mu && mu.Host is { Length: > 0 } muHost)
+            {
+                var baseUrl = $"{mu.Scheme}://{muHost}{(mu.Port is { } mp ? ":" + mp.ToString(System.Globalization.CultureInfo.InvariantCulture) : "")}";
+                var dac = await MandarinBridge.Probe(baseUrl);
+                if (dac != null)
+                {
+                    MandarinBridge.Advertise(advertised, dac);
+                    rec.Caps!["mandarin"] = MandarinBridge.Said(baseUrl, dac);
                 }
             }
             lock (gate) cache[loc] = (Hub.Now(), rec);

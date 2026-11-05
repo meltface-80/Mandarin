@@ -50,7 +50,7 @@ internal static class StreamPlans
         Jv.EndsCI(path, ".wav") || Jv.EndsCI(path, ".wave") || Jv.EndsCI(path, ".aif") || Jv.EndsCI(path, ".aiff") || Jv.EndsCI(path, ".aifc");
     private static bool DsdFile(string path) => Jv.EndsCI(path, ".dsf") || Jv.EndsCI(path, ".dff");
     // /dsd|dsf|dff/i on the codec as it is, or a .dsf/.dff file.
-    private static bool IsDsd(object? t)
+    internal static bool IsDsd(object? t)
     {
         var codec = Jv.Str(Jv.Or(Jv.Get(t, "codec"), ""));
         return Jv.HasCI(codec, "dsd") || Jv.HasCI(codec, "dsf") || Jv.HasCI(codec, "dff") || DsdFile(PathText(t));
@@ -277,7 +277,7 @@ internal static class StreamPlans
     /* withDsp(p, target, inRate): the zone's DSP attached (when on), and the file's rate for the resample. */
     public static JsObj WithDsp(JsObj p, object? target, object? inRate)
     {
-        var part = Dsp.PlanPart(Jv.Get(target, "dsp"), p["rate"]);
+        var part = Dsp.PlanPart(Jv.Get(target, "dsp"), p["rate"], inRate);   // at the track's rate (item 263)
         if (part != null) { p["dsp"] = part; p["inRate"] = Jv.Or(inRate, 0.0); }
         return p;
     }
@@ -325,7 +325,7 @@ internal static class StreamPlans
         var rate = Jv.Get(p, "rate");
         var dsp = Jv.Get(p, "dsp");
         var graph = Jv.T(dsp)
-            ? string.Join(",", Dsp.Filters(Jv.Get(dsp, "dsp"), Jv.Get(p, "inRate"), rate, soxr).Append($"aresample=osr={Jv.Str(rate)}:{dither}"))
+            ? string.Join(",", Dsp.Filters(Jv.Get(dsp, "dsp"), Jv.Get(p, "inRate"), rate, soxr, Jv.Get(dsp, "headroom")).Append($"aresample=osr={Jv.Str(rate)}:{dither}"))
             : $"aresample={resampler}{internalFmt}osr={Jv.Str(rate)}:{dither}";
         // ReplayGain first, in 64-bit float, before anything else is done.
         var gain = Jv.Get(p, "gain");

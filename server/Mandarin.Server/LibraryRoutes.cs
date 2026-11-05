@@ -164,7 +164,7 @@ internal static partial class Library
             // Settings → Updates (v0.8.48, UpdateRoutes.cs); the app's logging's server side (item 121, DiagnosticsRoutes.cs).
             if (await UpdateRoute(ctx) || await DiagnosticsRoute(ctx)) return;
             // Audio Devices: the writes (v0.8.48, DeviceRoutes.cs); the list, a device's page, Look again and Forget (v0.8.49, DeviceRoutes.Read.cs) once this server holds playback.
-            if (await DeviceRoute(ctx) || await DeviceReadRoute(ctx)) return;
+            if (await DeviceRoute(ctx) || await ImpulseRoute(ctx) || await DeviceReadRoute(ctx)) return;
             // /api/status, Clean up and the wall display's content (v0.8.48, HousekeepingRoutes.cs).
             if (await HousekeepingRoute(ctx)) return;
             // Rescan, Reindex and the music folders (v0.8.34, ScanRoutes.cs), once the scans are made here.
@@ -202,15 +202,6 @@ internal static partial class Library
         Keep(ctx, bytes, tag, status);
         return Http.Send(ctx, bytes, Http.JsonType, status, tag);
     }
-    /*
-     * GET /api/library/mark (v0.8.43): which albums there are, as the
-     * X-Mandarin-Library header carries it on every answer. The page asks
-     * when nothing else has been asked for a while, so a scan's albums still
-     * reach a screen left alone.
-     */
-    private static Task<bool> Mark(HttpContext ctx, Snapshot s, LibState st) =>
-        Send(ctx, new JsonObject { ["albums"] = s.AlbumSet });
-
     private static Task<bool> NotReady(HttpContext ctx) => Send(ctx, new JsonObject { ["error"] = "The library is still being scanned" }, 503);
 
     // req.query.x as String() makes it: undefined when absent, "a,b" when repeated.

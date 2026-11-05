@@ -200,7 +200,9 @@ internal sealed class Devices
     {
         var online = Online(r);
         var caps = Profiles.Effective(RecordJs(r));
-        var streamer = r.Kind is "upnp" or "local";
+        // A phone with a USB DAC in use has a streamer's Output, for the DAC (item 265).
+        var usb = r.Kind == "phone" ? hub.Phones.UsbChips(r.Id, "rates") : null;
+        var streamer = r.Kind is "upnp" or "local" || usb != null;
         var o = Jv.Obj(
             ("id", r.Id), ("kind", r.Kind), ("family", r.Family),
             ("name", r.Name ?? r.NetworkName), ("network_name", r.NetworkName), ("renamed", r.Name != null),
@@ -212,11 +214,30 @@ internal sealed class Devices
             ("mode", r.Settings["mode"] is string mode && mode is "original" or "x2" or "x4" or "max" ? mode : "original"),
             ("bits", r.Settings["bits"] is double b && b is 24 or 32 ? (object)b : "auto"),
             ("flac32", Transcoder.Flac32)) : null;
+        // A filter other than the standard one (minimum phase, gentle: items 248, 259), said only where it is set (a
+        // device left at Whole track, scrapped, is the standard filter's); made as it plays, and how fast that went.
+        if (streamer && Upsample.Shape.OfFilter(r.Settings["filter"]) != null)
+        {
+            var output = (JsObj)o["output"]!;
+            output["filter"] = r.Settings["filter"];
+            output["making"] = Upsample.MadeAsPlayed.Note(0);
+        }
+        // The highest rate its owner allows (item 240), said only where it is set: Auto by its absence.
+        if (streamer && RateCap.Of(r.Settings["max_rate"]) is { } cap) ((JsObj)o["output"]!)["max_rate"] = cap;
+        // DSD as PCM, low-passed (item 241), said only where it is set: Off by its absence.
+        if (streamer && DsdLowpass.Of(r.Settings["dsd_lowpass"]) is { } cut) ((JsObj)o["output"]!)["dsd_lowpass"] = cut;
+        // PCM as DSD (item 243), said only where it is set, with how fast it was made as it played (259): Off by its absence.
+        if (streamer && Upsample.DsdPlan.Of(r.Settings["dsd_out"]) is { } up)
+        {
+            ((JsObj)o["output"]!)["dsd_out"] = (double)up;
+            ((JsObj)o["output"]!)["making"] = Upsample.MadeAsPlayed.Note(up);
+        }
         o["first_seen"] = r.FirstSeen; o["last_seen"] = r.LastSeen;
         o["profile"] = caps["profile"]; o["editable"] = caps["editable"];
         o["playable"] = r.Kind != "upnp" || Jv.T(caps["playable"]);
         if (r.Kind == "local") o["location"] = System.Text.RegularExpressions.Regex.Replace(r.Location, "^(alsa|coreaudio|file):", "");
         o["rates"] = caps["rates"]; o["bits"] = caps["bits"]; o["dsd"] = caps["dsd"]; o["containers"] = caps["containers"];
+        if (usb != null) { o["rates"] = usb; o["bits"] = hub.Phones.UsbChips(r.Id, "bits"); o["dsd"] = hub.Phones.UsbChips(r.Id, "dsd"); }
         o["levelling"] = Items.LevellingFor(c, r.Id);
         if (r.Kind != "sonos")
         {

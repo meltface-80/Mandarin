@@ -47,6 +47,7 @@ app/labels-albums.js
 app.js
 app/mini-transport.js
 app/mini-transport-render.js
+app/signal-path.js
 app/mini-transport-progress.js
 app/mini-transport-controls.js
 app/mini-transport-poll.js
@@ -75,6 +76,7 @@ app/service-browser-views.js
 app/service-browsers.js
 app/pitchfork.js
 app/check-update.js
+app/bridge-updates.js
 app/play-unheard.js
 app/artist-foot.js
 app/artist-about.js

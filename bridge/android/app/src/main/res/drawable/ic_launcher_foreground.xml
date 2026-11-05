@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <!-- The trident: a stem, a circle at its foot, a square and a ring on its branches. -->
+    <path android:fillColor="#FF17191C"
+        android:pathData="M54,22 L62,34 L56.5,34 L56.5,72 L51.5,72 L51.5,34 L46,34 Z" />
+    <path android:fillColor="#FF17191C"
+        android:pathData="M51.5,56 L40,48 L40,40 L34,40 L34,34 L46,34 L46,46 L51.5,50 Z" />
+    <path android:fillColor="#FF17191C"
+        android:pathData="M56.5,62 L68,54 L68,46 a4,4 0 1,1 6,0 L74,54 L74,57 L56.5,68 Z" />
+    <path android:fillColor="#FF17191C"
+        android:pathData="M54,72 m-7,0 a7,7 0 1,0 14,0 a7,7 0 1,0 -14,0" />
+    <path android:fillColor="#FFC9A45C"
+        android:pathData="M54,72 m-3.5,0 a3.5,3.5 0 1,0 7,0 a3.5,3.5 0 1,0 -7,0" />
+</vector>

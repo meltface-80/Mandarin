@@ -31,6 +31,8 @@ import androidx.compose.ui.unit.sp
 import com.musicd.server.client.Contract
 import com.musicd.server.client.Palette
 import com.musicd.server.client.ServerClient
+import com.musicd.server.client.BridgeRow
+import com.musicd.server.client.BridgeUpdates
 import com.musicd.server.client.UpdateCheck
 import com.musicd.server.client.UpdateFound
 import kotlinx.coroutines.Dispatchers
@@ -50,7 +52,8 @@ import kotlin.coroutines.resume
  * things stand for a few seconds. Opened, each says what was last found. Under both, what each update brings, its short
  * lines (core's UpdateCheck). The server's install is the update banner's (UpdateNow, item 111), which follows the
  * download, the unpacking and the restart: Settings closes onto Home, where the banner is drawn. This app's is handed to
- * Android's installer from here.
+ * Android's installer from here. Under them, each Mandarin Bridge Mandarin knows (item 291, core's BridgeUpdates): its
+ * name and version, and Update available where a newer build is published for it, a tap asking it to update itself.
  */
 
 /** Settings' Updates ([client]: the server's, [onBack]: one step back). */
@@ -64,6 +67,45 @@ internal fun SettingsUpdates(client: () -> ServerClient?, onBack: () -> Unit) {
     var appWords by remember { mutableStateOf(UpdateCheck.CHECK) }
     var serverBusy by remember { mutableStateOf(false) }
     var appBusy by remember { mutableStateOf(false) }
+    var bridges by remember { mutableStateOf<List<BridgeRow>>(emptyList()) }
+    var bridgeHeld by remember { mutableStateOf<String?>(null) }    // a Bridge whose check's answer is on its button
+    suspend fun lookBridges(fresh: Boolean = false) {
+        val c = client() ?: return
+        val rows = BridgeUpdates.rows(withContext(Dispatchers.IO) { runCatching { c.getJson("/api/update/bridges" + if (fresh) "?fresh=1" else "") }.getOrNull() })
+        // A check's answer stays on its button for its few seconds; the rest as they stand.
+        bridges = bridgeHeld?.let { held -> rows.map { r -> if (r.id == held) bridges.firstOrNull { it.id == held } ?: r else r } } ?: rows
+    }
+    // The Bridges as they stand, asked again in a few seconds while one updates, else every half minute the page is open.
+    LaunchedEffect(Unit) {
+        while (true) {
+            lookBridges()
+            delay(if (BridgeUpdates.underWay(bridges)) 3_000 else 30_000)
+        }
+    }
+    fun updateBridge(id: String) {
+        val c = client() ?: return
+        bridges = bridges.map { if (it.id == id) it.copy(words = BridgeUpdates.UPDATING, canUpdate = false, busy = true) else it }
+        scope.launch {
+            withContext(Dispatchers.IO) { runCatching { c.post("/api/update/bridges/apply", JSONObject().put("id", id)) } }
+            delay(1_500)
+            lookBridges()
+        }
+    }
+    // Check for update on a Bridge's row (item 293): GitHub asked again, then its update, or what it found for a few seconds.
+    fun checkBridge(id: String) {
+        bridges = bridges.map { if (it.id == id) it.copy(words = UpdateCheck.CHECKING, busy = true, checked = null) else it }
+        scope.launch {
+            lookBridges(fresh = true)
+            val fresh = bridges.firstOrNull { it.id == id }
+            if (fresh?.canUpdate == true) return@launch
+            val words = BridgeUpdates.answer(fresh)
+            bridgeHeld = id
+            bridges = bridges.map { if (it.id == id) it.copy(words = words, busy = true, checked = null) else it }
+            delay(UpdateCheck.HOLD_MS)
+            bridgeHeld = null
+            lookBridges()
+        }
+    }
     // As last seen: the server's status as its last check left it, this app's as last looked for (within the hour).
     LaunchedEffect(Unit) {
         client()?.let { c ->
@@ -112,6 +154,13 @@ internal fun SettingsUpdates(client: () -> ServerClient?, onBack: () -> Unit) {
                 UpdateButton(appWords, appBusy, Modifier.weight(1f, fill = false).padding(start = 16.dp)
                     .parity("settings-system.app-check", Contract.label("settings-system.app-check", 1, appWords))
                     .clickable(enabled = !appBusy) { if (appWords == UpdateCheck.AVAILABLE && app != null) installApp() else checkApp() })
+            }
+            for (b in bridges) {
+                UpdateRow(b.name, Modifier.padding(top = 12.dp)) {
+                    UpdateButton(b.words, b.busy, Modifier.weight(1f, fill = false).padding(start = 16.dp)
+                        .parity("settings-system.bridge-update", Contract.label("settings-system.bridge-update", 1, b.words))
+                        .clickable(enabled = b.canUpdate || b.checked != null) { if (b.canUpdate) updateBridge(b.id) else checkBridge(b.id) })
+                }
             }
             for (part in UpdateCheck.whatsNew(server, app)) {
                 Text(part.head, Modifier.parity("settings-system.notes-head").padding(top = 16.dp), color = paletteColor(Palette.TEXT), fontSize = 13.sp, lineHeight = 18.sp, fontWeight = FontWeight.W600)

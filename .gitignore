@@ -6,6 +6,12 @@ android/.gradle/
 android/build/
 android/*/build/
 android/local.properties
+# Mandarin Bridge's build (bridge/android, item 278)
+bridge/android/.gradle/
+bridge/android/build/
+bridge/android/*/build/
+bridge/android/local.properties
+bridge/android/.kotlin/
 *.apk
 !dist/*.apk
 # Built by CI from android/musicdnet
@@ -31,3 +37,11 @@ tools/lint/node_modules/
 test/StandIns/bin/
 test/StandIns/obj/
 tools/quality/out
+# Mandarin Bridge for Linux's build (bridge/linux, item 282)
+bridge/linux/bin/
+bridge/linux/Mandarin.Bridge/bin/
+bridge/linux/Mandarin.Bridge/obj/
+
+# Python bytecode (tools/docs/*.py, sq-tool)
+__pycache__/
+*.pyc

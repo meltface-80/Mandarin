@@ -38,8 +38,9 @@ async function bootstrap() {
         // localStorage above) means the user was mid-browse a filtered wall —
         // land back on it instead of silently discarding the filter, which is
         // what showHome() would otherwise do on its way to an unfiltered Home.
+        // A search begun while connecting (Home painted from its cache) is kept (item 280).
         if (activeFilter) showWall({ loadIfEmpty: true });
-        else showHome();
+        else showHome({ keepSearch: true });
 
         // Restore the album modal if it was open (not in the Shelf's frame: it opens what the Shelf asks, item 218)
         if (!document.documentElement.classList.contains("embed-album")) try {

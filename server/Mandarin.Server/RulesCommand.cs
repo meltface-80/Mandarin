@@ -7,6 +7,18 @@
 //      → { mounts: [{ path, type, waiting }], hints }
 //   { fn: "versions", pairs: [[a, b]], extracts: [[file, dest]], builds: [[informational, assembly]] }  Admin/Updater.cs, BuildVersion.cs
 //      → { cmp, extracted, built }
+//   { fn: "librarycopy", due: [[now, lastTold, behindSince, lastEnd, lastMs, quietMs, longestMs]] }  Library.Copy.cs
+//      → { due }: whether the background reading may start
+//   { fn: "watchmisses", steps: [[op, id, now]], rests: [times] }        Services/WatchMisses.cs
+//      → { steps: [first failure | resting | null], rests: [ms] }
+//   { fn: "daypick", albums: [[id, artist, [genre]]], plays: [[id, ts]], now, day }  DayPick.cs
+//      → { pick: id | null, why, pool }
+//   { fn: "logscrub", lines: [line], personal }                         LogScrub.cs
+//      → { lines: [as kept], personal: as kept }
+//   { fn: "upsample", rate, factor, seconds, tones, … }                 Upsample/UpsampleRules.cs
+//   { fn: "dsdmod", ntf | rate, order, hinf, amp, signal | chain, … }   Upsample/DsdRules.cs
+//      → { error_db, peak, gain, sections, frames, leak_db } (or { fft_db, round_trip_db } with fft: n)
+//   { fn: "joins", parts: [dsf], whole: dsf }                          Upsample/JoinRules.cs: tracks joined, against their whole
 //   { fn: "soapcall", calls: [{ url, service, action, args, wait }] }     Playback/SoapHttp.cs
 //      → { results: [{ out } | { error }] }, one after another, each [wait] ms after the last
 //   { fn: "labelnames", canonical, keys, not_labels, folders: [[dir, roots, depth]] }  Names.cs
@@ -15,7 +27,7 @@
 //      → { plays }
 //   { fn: "uris", uris }                                                  Playback/Phones.Commands.cs
 //      → { tracks }: the library track each stream address names, or null
-//   { fn: "cpu", decides: [{ linux, taskset, cores, env, dsp }], places: [{ kind, tools, raise, cores, env, bin, args }],
+//   { fn: "cpu", decides: [{ linux, taskset, cores, env, dsp, making, making_cores }], places: [{ kind, tools, raise, cores, env, bin, args }],
 //     expands, compacts }                                                  Cpu.cs, Cpu.Place.cs
 //      → { decides: [{ split, playback, background, core, slots }], places: [command line], expands, compacts }
 //   { fn: "auth", locals, uas, clients: [[remote, x-forwarded-for]], tailnet, aways: [{ port, set, own, ifaces }],
@@ -53,7 +65,7 @@ internal static class RulesCommand
     private static List<object?> Each(object? list, Func<object?, object?> f) => L(list).Select(f).ToList();
     private static JsObj O(object? v) => v as JsObj ?? new JsObj();
 
-    public static readonly string[] Fns = ["mounts", "versions", "soapcall", "labelnames", "phoneplays", "uris", "cpu", "auth", "register", "ssdp", "engine", "local", "scorecall", "itunes", "logos", "lastfm", "shelf", "mbpack", "addresses"];
+    public static readonly string[] Fns = ["mounts", "versions", "soapcall", "labelnames", "phoneplays", "uris", "cpu", "auth", "register", "ssdp", "engine", "local", "scorecall", "itunes", "logos", "lastfm", "shelf", "mbpack", "addresses", "librarycopy", "watchmisses", "logscrub", "daypick", "upsample", "dsdmod", "joins"];
 
     public static JsObj Run(string fn, JsObj job) => fn switch
     {
@@ -67,6 +79,13 @@ internal static class RulesCommand
         "logos" => Extras.LogosCommand.Run(job),
         "lastfm" => Extras.LastfmCommand.Run(job),
         "shelf" => ShelfFns(job),
+        "librarycopy" => new JsObj { ["due"] = Each(job["due"], d => Library.ReadDue(N(At(d, 0)), N(At(d, 1)), N(At(d, 2)), N(At(d, 3)), N(At(d, 4)), (int)N(At(d, 5)), (int)N(At(d, 6)))) },
+        "daypick" => DayPick.Rules(L(job["albums"]), L(job["plays"]), N(job["now"]), S(job["day"])),
+        "logscrub" => new JsObj { ["lines"] = Each(job["lines"], l => LogScrub.Line(S(l))), ["personal"] = Diagnostics.Hole(new Personal(S(job["personal"]))) },
+        "watchmisses" => new JsObj { ["steps"] = Services.WatchMisses.Steps(L(job["steps"])), ["rests"] = Each(job["rests"], t => Services.WatchMisses.RestMs((int)N(t))) },
+        "upsample" => Upsample.UpsampleRules.Run(job),
+        "dsdmod" => Upsample.DsdRules.Run(job),
+        "joins" => Upsample.JoinRules.Run(job),
         "register" => RegisterFns(job),
         "local" => LocalFns(job),
         "addresses" => AddressFns(job).GetAwaiter().GetResult(),
@@ -126,11 +145,12 @@ internal static class RulesCommand
         ["folders"] = Each(job["folders"], f => Names.LabelFromFolder(S(At(f, 0)), L(At(f, 1)).Select(S).ToList(), (int)N(At(f, 2))))
     };
 
-    /* A split decided as Cpu.Decide decides it, from a case's cores and its PLAYBACK_CORES / PLAYBACK_CORE. */
+    /* A split decided as Cpu.Decide decides it, from a case's cores, its PLAYBACK_CORES / PLAYBACK_CORE, its DSP and its making (item 260). */
     private static (bool Split, int[] Cores, int[] Playback, int[] Background, int? Core) Decided(object? c, bool taskset) =>
         Cpu.Decide(O(c)["linux"] is not false, taskset, L(O(c)["cores"]).Select(x => (int)N(x)).ToArray(),
             TJs.IsNullish(O(O(c)["env"])["PLAYBACK_CORES"]) ? null : S(O(O(c)["env"])["PLAYBACK_CORES"]),
-            TJs.IsNullish(O(O(c)["env"])["PLAYBACK_CORE"]) ? null : S(O(O(c)["env"])["PLAYBACK_CORE"]), TJs.Truthy(O(c)["dsp"]));
+            TJs.IsNullish(O(O(c)["env"])["PLAYBACK_CORE"]) ? null : S(O(O(c)["env"])["PLAYBACK_CORE"]), TJs.Truthy(O(c)["dsp"]),
+            TJs.Truthy(O(c)["making"]), TJs.IsNullish(O(c)["making_cores"]) ? 0 : (int)N(O(c)["making_cores"]));
 
     private static List<object?> Ints(IEnumerable<int> l) => l.Select(x => (object?)(double)x).ToList();
 
@@ -259,6 +279,7 @@ internal static class RulesCommand
         }
         if (job["mac"] is string mac) o["mac"] = Local.LocalDevices.ParseMac(mac, job["mac_engine"] as string).Select(SeenJson).ToList();
         o["hw"] = Each(job["hw"], h => Local.LocalDevices.HwParams(S(At(h, 0)), S(At(h, 1))) is { } p ? new JsObj { ["rate"] = p.Rate, ["format"] = p.Format } : null);
+        o["usb"] = Each(job["usb"], h => BitPerfect.Usbmon.Of(S(At(h, 0)), S(At(h, 1))) is { } t ? new JsObj { ["bus"] = (double)t.Bus, ["device"] = (double)t.Device, ["endpoint"] = (double)t.Endpoint } : null);
         o["ids"] = Each(job["ids"], k => Local.LocalDevices.IdOf(S(k)));
         o["amplitude"] = Each(job["amplitude"], a => Local.EngineOutput.Amplitude(N(At(a, 0)), TJs.Truthy(At(a, 1))));
         return o;

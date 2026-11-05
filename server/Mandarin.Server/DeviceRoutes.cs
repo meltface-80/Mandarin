@@ -119,13 +119,46 @@ internal static partial class Library
             var output = Prop(b, "output");
             if (TJs.Truthy(output) && TJs.IsObject(output))
             {
-                if (d.Kind is not ("upnp" or "local")) throw new DeviceRefusal(400, "Only a renderer or a sound device on this computer has output settings");
+                // A phone's for the USB DAC on it (item 265).
+                if (d.Kind is not ("upnp" or "local" or "phone")) throw new DeviceRefusal(400, "Only a renderer or a sound device on this computer has output settings");
+                if (d.Kind == "phone" && Prop(output, "volume") is not Undef) throw new DeviceRefusal(400, "A phone's volume is set on the phone");
                 var patch = new JsObj();
                 var mode = Prop(output, "mode");
                 if (mode is not Undef)
                 {
                     if (!Jv.OneOf(mode, "original", "x2", "x4", "max")) throw new DeviceRefusal(400, "mode must be original, x2, x4 or max");
                     patch["mode"] = mode;
+                }
+                // The upsampler (items 248, 259): the standard filter, minimum phase or gentle, each as it plays.
+                var filter = Prop(output, "filter");
+                if (filter is not Undef)
+                {
+                    if (!Jv.OneOf(filter, "standard", "minphase", "gentle")) throw new DeviceRefusal(400, "filter must be standard, minphase or gentle");
+                    patch["filter"] = filter;
+                }
+                // DSD as PCM, low-passed (item 241): off, or the cut in Hz.
+                var lowpass = Prop(output, "dsd_lowpass");
+                if (lowpass is not Undef)
+                {
+                    var off = TJs.StrictEq(lowpass, "off");
+                    if (!off && DsdLowpass.Of(lowpass) == null) throw new DeviceRefusal(400, "dsd_lowpass must be off, 30000 or 50000");
+                    patch["dsd_lowpass"] = off ? null : lowpass;
+                }
+                // PCM as DSD (item 243): off, or the multiple.
+                var dsdOut = Prop(output, "dsd_out");
+                if (dsdOut is not Undef)
+                {
+                    var off = TJs.StrictEq(dsdOut, "off");
+                    if (!off && Upsample.DsdPlan.Of(dsdOut) == null) throw new DeviceRefusal(400, "dsd_out must be off, 64, 128 or 256");
+                    patch["dsd_out"] = off ? null : dsdOut;
+                }
+                // The highest rate sent (item 240): Auto, or a cap by 48 kHz's family.
+                var maxRate = Prop(output, "max_rate");
+                if (maxRate is not Undef)
+                {
+                    var auto = TJs.StrictEq(maxRate, "auto");
+                    if (!auto && RateCap.Of(maxRate) == null) throw new DeviceRefusal(400, "max_rate must be auto, 96000, 192000, 384000 or 768000");
+                    patch["max_rate"] = auto ? null : maxRate;
                 }
                 var bits = Prop(output, "bits");
                 if (bits is not Undef)

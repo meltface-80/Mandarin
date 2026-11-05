@@ -36,8 +36,10 @@ const CM = "urn:schemas-upnp-org:service:ConnectionManager:1";
 
 class FakeRenderer {
   constructor({ name, manufacturer = "Acme", model = "Streamer", modelNumber = "1", udn, sink = SINK_WIIM,
-                linkplay = null, nested = false, urlBase = false, noAvTransport = false, setNext = true } = {}) {
-    Object.assign(this, { name, manufacturer, model, modelNumber, sink, linkplay, nested, urlBase, noAvTransport, setNext });
+                linkplay = null, dac = null, nested = false, urlBase = false, noAvTransport = false, setNext = true, namesNext = false } = {}) {
+    // dac: a Mandarin Bridge renderer's /dac.json "dac" part ({ rates, bits, dsd, … }, Renderers/MandarinBridge.cs), served with what plays now.
+    // namesNext: GetPositionInfo names the next URI as soon as it is set, while the first goes on playing (a FiiO SR11, item 233).
+    Object.assign(this, { name, manufacturer, model, modelNumber, sink, linkplay, dac, nested, urlBase, noAvTransport, setNext, namesNext });
     this.udn = udn || ("uuid:" + require("crypto").randomUUID());
     this.requests = [];
     this.log = [];              // AVTransport / RenderingControl actions, in order
@@ -46,7 +48,13 @@ class FakeRenderer {
     // transport
     this.state = "NO_MEDIA_PRESENT";
     this.uri = ""; this.meta = "";
+    // A length the device says of what it plays, whatever the track's is (a FiiO SR11 of a WAV whose length is open, item 245).
+    this.reportedDuration = null;
+    // At a track's end with nothing to follow, still PLAYING, its clock stopped at the end: a FiiO SR11 at the end of
+    // a WAV whose length is left open (item 246) waits there for more that never comes.
+    this.hangAtEnd = false; this.hung = false;
     this.nextUri = ""; this.nextMeta = "";
+    this.actions = []; this.slow = {};
     this.position = 0; this.at = Date.now();
     this.volume = 25; this.muted = false;
     this.endTimer = null;
@@ -95,7 +103,7 @@ class FakeRenderer {
 
   // ------------------------------------------------------------ transport
 
-  pos() { return this.state === "PLAYING" && !this.held ? this.position + (Date.now() - this.at) / 1000 : this.position; }
+  pos() { return this.state === "PLAYING" && !this.held && !this.hung ? this.position + (Date.now() - this.at) / 1000 : this.position; }
   /* Playing on, but the clock stopped: the track can't run out until
    * release(), however long the test takes (a restart of the server under
    * test, on a busy machine) — the tracks here are only a few seconds long. */
@@ -109,7 +117,7 @@ class FakeRenderer {
     this.held = false; this.at = Date.now();
     if (this.state === "PLAYING") this.armEnd();
   }
-  setPos(s) { this.position = s; this.at = Date.now(); }
+  setPos(s) { this.position = s; this.at = Date.now(); this.hung = false; }
   duration() {
     const it = XML.parseItems(this.meta || "")[0] || {};
     return it.duration || 3;
@@ -146,6 +154,9 @@ class FakeRenderer {
         this.fetchCurrent();
         this.armEnd();
         this.notify();
+      } else if (this.hangAtEnd) {
+        this.log.push("hung");
+        this.position = this.duration(); this.hung = true;
       } else {
         this.log.push("ended");
         this.state = "STOPPED";
@@ -174,7 +185,7 @@ class FakeRenderer {
       case "GetProtocolInfo": return { Source: "", Sink: this.sink };
       case "GetTransportInfo": return { CurrentTransportState: this.state, CurrentTransportStatus: "OK", CurrentSpeed: "1" };
       case "GetPositionInfo": return {
-        Track: this.uri ? "1" : "0", TrackDuration: XML.hms(this.uri ? this.duration() : 0), TrackMetaData: this.meta, TrackURI: this.uri,
+        Track: this.uri ? "1" : "0", TrackDuration: XML.hms(this.uri ? (this.reportedDuration ?? this.duration()) : 0), TrackMetaData: this.meta, TrackURI: this.namesNext && this.nextUri ? this.nextUri : this.uri,
         RelTime: XML.hms(this.pos()), AbsTime: "NOT_IMPLEMENTED", RelCount: "2147483647", AbsCount: "2147483647"
       };
       case "GetMediaInfo": return { NrTracks: this.uri ? "1" : "0", MediaDuration: XML.hms(this.duration()), CurrentURI: this.uri, CurrentURIMetaData: this.meta, NextURI: this.nextUri, NextURIMetaData: this.nextMeta, PlayMedium: "NETWORK", RecordMedium: "NOT_IMPLEMENTED", WriteStatus: "NOT_IMPLEMENTED" };
@@ -228,6 +239,26 @@ class FakeRenderer {
         res.writeHead(200, { "Content-Type": "text/xml" });
         return res.end(this.description());
       }
+      // Mandarin Bridge's recording of what it feeds the DAC, for the server's bit-perfect check (item 275): test/fake-capture.js.
+      if (this.dac && this.dac.capture && /^\/capture((\/\d+)?\.wav(\.json)?|\/\d+)?$/.test(u.pathname)) return require("./fake-capture").handle(this, req, res, u);
+      // A Bridge's own log (item 291, BridgeLog.kt): dac.log, its text, at /log, named in its /dac.json.
+      if (this.dac && typeof this.dac.log === "string" && req.method === "GET" && u.pathname === "/log") {
+        res.writeHead(200, { "Content-Type": "text/plain; charset=utf-8" });
+        return res.end(this.dac.log);
+      }
+      if (req.method === "GET" && u.pathname === "/dac.json") {
+        if (!this.dac) { res.writeHead(404); return res.end(); }
+        // What the DAC is being fed: read from the file the device fetched, as the app reads its own stream.
+        const last = [...this.fetches].reverse().find(f => f.body && f.body.length > 42);
+        const info = last ? require("./fixtures").probe(last.body) : null;
+        const dsd = last && /\.dsf\b|\.dff\b/.test(last.uri) ? (this.dac.dsd || [64])[0] : 0;
+        // renderer.nowExtra: more of what the app says it feeds its DAC (item 287: its words' bits, its volume, untouched).
+        const now = this.state === "PLAYING" && (info || dsd) ? Object.assign({ rate: dsd ? dsd * 44100 / 32 : info.rate, bits: dsd ? 32 : info.bits, dsd, kind: dsd ? "dsd" : "pcm", transport: this.state }, this.nowExtra || {}) : null;
+        res.writeHead(200, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ model: "Mandarin Bridge", version: "0.2.0", name: this.name, udn: this.udn, dac: Object.assign({ attached: true, permission: true }, this.dac), now,
+          capture: this.dac.capture ? "/capture" : undefined, capture_parts: this.dac.captureParts ? true : undefined,
+          log: typeof this.dac.log === "string" ? "/log" : undefined }));
+      }
       if (req.method === "GET" && u.pathname === "/httpapi.asp") {
         if (!this.linkplay) { res.writeHead(404); return res.end(); }
         const cmd = u.searchParams.get("command");
@@ -278,17 +309,24 @@ class FakeRenderer {
           const service = u.pathname.endsWith("ConnectionManager1") ? CM : u.pathname.endsWith("RenderingControl1") ? RC : AVT;
           res.setHeader("Content-Type", 'text/xml; charset="utf-8"');
           if ((service === AVT && this.noAvTransport) || !actionTag) { res.statusCode = 404; return res.end(); }
-          try {
-            const before = this.state + "|" + this.uri;
-            const out = this.handle(actionTag, args);
-            // A slow device (holdReads): what it had when asked, answered only when the test lets it (releaseReads).
-            if (this.readGate && /^Get(Position|Transport)Info$/.test(actionTag)) { this.readGate.push(() => res.end(envelope(actionTag, service, out))); return; }
-            res.end(envelope(actionTag, service, out));
-            if (this.state + "|" + this.uri !== before) this.notify();
-          } catch (code) {
-            res.statusCode = 500;
-            res.end(fault(typeof code === "number" ? code : 501));
-          }
+          // Every action told, in order (item 264).
+          this.actions.push(actionTag);
+          const answer = () => {
+            try {
+              const before = this.state + "|" + this.uri;
+              const out = this.handle(actionTag, args);
+              // A slow device (holdReads): what it had when asked, answered only when the test lets it (releaseReads).
+              if (this.readGate && /^Get(Position|Transport)Info$/.test(actionTag)) { this.readGate.push(() => res.end(envelope(actionTag, service, out))); return; }
+              res.end(envelope(actionTag, service, out));
+              if (this.state + "|" + this.uri !== before) this.notify();
+            } catch (code) {
+              res.statusCode = 500;
+              res.end(fault(typeof code === "number" ? code : 501));
+            }
+          };
+          // An action slow to answer (slow: { action: ms }: a FiiO SR11 fetches the track it is given before it answers).
+          if (this.slow[actionTag]) setTimeout(answer, this.slow[actionTag]);
+          else answer();
         });
         return;
       }

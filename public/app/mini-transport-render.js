@@ -191,6 +191,7 @@ let lastNpTitle = null;
 let lastNpFormatSig = null;
 function paintNpFormat(np) {
   if (!npFormat) return;
+  if (paintNpSignal(np)) return;   // every step of the way, where the server says it (app/signal-path.js, item 247)
   const f = np && np.format;
   const sig = f ? f.kind + "|" + (f.text || "") : "";
   if (sig === lastNpFormatSig) return;

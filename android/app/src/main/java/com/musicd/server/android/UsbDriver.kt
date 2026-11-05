@@ -284,12 +284,24 @@ object UsbDriver {
 
     fun play(): Boolean = onStream(false) { nativePlay(it.handle) }
     fun pause() = onStream(Unit) { nativePause(it.handle) }
-    fun write(buf: ByteBuffer, off: Int, len: Int): Int = onStream(-1) { nativeWrite(it.handle, buf, off, len) }
+    /**
+     * What the DAC is fed, handed on as it goes into the stream: every byte the ring took, in order, and each flush
+     * (bytes taken but thrown away unplayed: a seek, a stop). For a capture of exactly what the DAC was given —
+     * Mandarin USB's /capture, the server's bit-perfect check. Called on the writing thread, so it only copies.
+     */
+    interface Tap {
+        fun took(buf: ByteBuffer, off: Int, len: Int)
+        fun flushed()
+    }
+    @Volatile var tap: Tap? = null
+
+    fun write(buf: ByteBuffer, off: Int, len: Int): Int =
+        onStream(-1) { nativeWrite(it.handle, buf, off, len) }.also { n -> if (n > 0) tap?.took(buf, off, n) }
     fun free(): Int = onStream(0) { nativeFree(it.handle) }
     fun pending(): Long = onStream(0L) { nativePending(it.handle) }
     fun played(): Long = onStream(0L) { nativePlayed(it.handle) }
     fun drain() = onStream(Unit) { nativeDrain(it.handle) }
-    fun flush() = onStream(Unit) { nativeFlush(it.handle) }
+    fun flush() { onStream(Unit) { nativeFlush(it.handle) }; tap?.flushed() }
     fun dead(): Boolean = onStream(false) { nativeDead(it.handle) }
 
     @Synchronized

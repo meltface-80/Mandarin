@@ -31,6 +31,8 @@ internal class WallState(val view: String, val offline: Boolean = false) {
     var banner by mutableStateOf<Pair<String, Boolean>?>(null)
     /** The last page asked for failed, and is worth asking again (item 157: [AskAgain]). */
     var failed by mutableStateOf(false)
+    /** Behind the server's albums (item 232, [LibraryLive]): read again once it is at its top, or opened there again. */
+    var behind by mutableStateOf(false)
     /** No page yet, and more to come: the first asked for (again, after a failure) when the Library opens. */
     val needsFirst: Boolean get() = !done && albums.isEmpty()
 
@@ -67,6 +69,25 @@ internal class WallState(val view: String, val offline: Boolean = false) {
         }
     }
 
+    /** Read again from its first page (item 232), in place: the tiles there stay until the answer comes, and on a failure. */
+    suspend fun again(client: ServerClient) {
+        if (loading) return
+        loading = true
+        try {
+            val r = withContext(Dispatchers.IO) { runCatching { LibraryClient { client.getJson(it) }.albums(0, PAGE, view) } }
+            r.onSuccess { p ->
+                albums.clear()
+                albums.addAll(p.albums.distinctBy { it.offset })
+                total = p.total
+                done = p.albums.size < PAGE
+                loaded = true
+                failed = false
+                behind = false
+                banner = if (p.albums.isEmpty()) "Nothing matches this focus — try clearing a filter." to false else null
+            }
+        } finally { loading = false }
+    }
+
     companion object { const val PAGE = 60 }
 }
 
@@ -84,6 +105,9 @@ internal object LibraryWall {
         if (l != null && l.view == view && l.offline == offline) return l
         return WallState(view, offline).also { last = it }
     }
+
+    /** The server's albums moved (item 232, [LibraryLive]): the wall held is behind them. */
+    @Synchronized fun fallBehind() { last?.behind = true }
 
     /**
      * Album [offset]'s cover as its page has just read it ([imageKey], item 123): a tile showing another is put right in

@@ -17,14 +17,14 @@ jobs:
     steps:
       # The whole history: the screens contract's gaps list only shrinks, held
       # against where the branch left dev (tools/quality/parity.js).
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
           # Commits and trees, not every file's every version: the history carries each APK published,
           # gigabytes, which ran past the gates' 10 minutes (item 222). A file of an older commit is
           # fetched when it is read.
           filter: blob:none
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
           cache: npm
@@ -39,6 +39,20 @@ jobs:
           PARITY_REQUIRE_BASE: "1"
       - name: The gates' own tests
         run: node --test test/quality-gates.test.js test/parity-gate.test.js
+
+  # SQ-tool's own tests (sq-tool/, item 288): the recorder and comparer Mandarin serves at /sq-tool/,
+  # tested as it was standalone, Python 3 with numpy.
+  sqtool:
+    name: SQ-tool's own tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - name: numpy
+        run: python3 -m pip install --quiet numpy
+      - name: Tests (sq-tool/tests)
+        working-directory: sq-tool
+        run: python3 -m unittest discover -s tests
 
   # The suite, in parts that run at once (v0.8.49): the test files dealt out to
   # three jobs (node's --test-shard, each file in one of them), so the whole run
@@ -59,8 +73,8 @@ jobs:
           - { node-version: "22", shard: "2/3" }
           - { node-version: "22", shard: "3/3" }
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: ${{ matrix.node-version }}
           cache: npm
@@ -70,7 +84,7 @@ jobs:
       # third-party action (one broke when the build's readme changed shape).
       - name: Restore ffmpeg
         id: ffmpeg-cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/ffmpeg-static
           key: ffmpeg-static-amd64-release-v1
@@ -94,23 +108,29 @@ jobs:
       - run: npm ci --no-audit --no-fund
       # Mandarin's audio engine (engine/, C#): built ahead of time to one
       # native program, then tested with the rest (test/Mandarin.Tests/EngineTests.cs).
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: "10.0.x"
       # The packages the two builds restore, kept between runs (v0.8.49).
       - name: Restore the .NET packages
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.nuget/packages
-          key: nuget-${{ runner.os }}-${{ hashFiles('server/Mandarin.Server/*.csproj', 'engine/Mandarin.Audio/*.csproj') }}
+          key: nuget-${{ runner.os }}-${{ hashFiles('server/Mandarin.Server/*.csproj', 'engine/Mandarin.Audio/*.csproj', 'bridge/linux/Mandarin.Bridge/*.csproj') }}
       - name: Build the audio engine
         run: ./engine/build.sh
+      # Mandarin Bridge for Linux (bridge/linux, item 282): played to end to end by test/bridge-linux.test.js.
+      - name: Build Mandarin Bridge for Linux
+        run: ./bridge/linux/build.sh
       # Mandarin's server in C# (server/, v0.8.1): the server the tests start
       # (test/server.js).
       - name: Build the C# server
         run: ./server/build.sh
       - name: Syntax check of the page
         run: node --check public/app.js
+      # SQ-tool's numpy (item 288): Mandarin starts it in its tests (test/sq-tool.test.js), as the image does.
+      - name: numpy
+        run: python3 -m pip install --quiet numpy
       # Kept to a file as well: the tests that failed are said again at the end,
       # where a log read from its tail finds them, and their files run once more
       # on their own (.github/retry-failed.sh): a pass then is a warning on the
@@ -135,10 +155,10 @@ jobs:
     name: Build image
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: docker/setup-buildx-action@v3
+      - uses: actions/checkout@v7
+      - uses: docker/setup-buildx-action@v4
       - name: Build (no push)
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           push: false
@@ -166,6 +186,12 @@ jobs:
           test -n "$F"
           docker run --rm --entrypoint ffmpeg musicd-server:ci -hide_banner -nostats -nostdin -f lavfi -i sine=frequency=440:duration=3 \
             -map 0:a:0 -vn -af "$F" -f null - 2>&1 | tee /dev/stderr | grep -Eq "I: +-[0-9.]+ LUFS"
+          # The image's ffmpeg writes 32-bit FLAC, asked as the server asks it (item 269):
+          # STREAMINFO's bits a sample (bytes 20 and 21 of the file), 32.
+          docker run --rm --entrypoint ffmpeg musicd-server:ci -hide_banner -loglevel error -f lavfi -i anullsrc=r=44100:cl=stereo -t 0.2 \
+            -sample_fmt s32 -bits_per_raw_sample 32 -c:a flac -f flac -strict experimental - > /tmp/s32.flac
+          set -- $(od -An -tu1 -j20 -N2 /tmp/s32.flac)
+          test "$(( ((($1 & 1) << 4) | ($2 >> 4)) + 1 ))" = 32
           # The image's ffmpeg draws text with fontconfig's sans-serif (v0.8.34): an album
           # with no cover is drawn by the C# server with it (CoversDrawn.cs). The test jobs'
           # static ffmpeg has no drawtext, so there it is drawn without its title.
@@ -180,5 +206,8 @@ jobs:
           # and the API is closed until then.
           curl -fsL localhost:3500/ | grep -q "Create your account"
           test "$(curl -s -o /dev/null -w '%{http_code}' localhost:3500/api/status)" = "401"
+          # SQ-tool runs in the image (item 288): Python 3 with numpy, and its code where the server starts it.
+          docker exec smoke python3 -c "import numpy"
+          docker exec -w /app/sq-tool smoke python3 -m sqtool --help > /dev/null
           docker logs smoke
           docker rm -f smoke

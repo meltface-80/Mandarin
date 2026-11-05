@@ -5,7 +5,7 @@ Written by `node tools/api-map.js write` from the C# sources (`server/Mandarin.S
 where the code decides it away from the address (the handler says). "…" ends an address the route takes
 the rest of; a pattern is as the code writes it. What each answers is said beside its handler.
 
-217 routes.
+226 routes.
 
 | Method | Address | Who may ask | Answered in |
 |---|---|---|---|
@@ -44,12 +44,16 @@ the rest of; a pattern is as the code writes it. What each answers is said besid
 | POST | `/api/backup/restore` | signed in | `AdminRoutes.cs` |
 | POST | `/api/backup/restore/…` | signed in | `AdminRoutes.cs` |
 | POST | `/api/backup/save` | signed in | `AdminRoutes.cs` |
+| GET | `/api/bitperfect` | signed in | `PlaybackRoutes.cs` |
+| POST | `/api/bitperfect` | signed in | `PlaybackRoutes.cs` |
 | GET | `/api/booklet/page` | signed in | `LibraryRoutes.cs` |
 | POST | `/api/control` | signed in | `PlaybackRoutes.cs` |
 | GET | `/api/cpu` | signed in | `PowerRoutes.cs` |
+| POST | `/api/cpu` | signed in | `PowerRoutes.cs` |
 | GET | `/api/credits/status` | signed in | `LibraryRoutes.cs` |
 | GET | `/api/diagnostics` | signed in | `DiagnosticsRoutes.cs` |
 | POST | `/api/diagnostics` | signed in | `DiagnosticsRoutes.cs` |
+| GET | `/api/diagnostics/bridges` | signed in | `DiagnosticsRoutes.cs` |
 | POST | `/api/diagnostics/clear` | signed in | `DiagnosticsRoutes.cs` |
 | GET | `/api/diagnostics/log` | signed in | `DiagnosticsRoutes.cs` |
 | GET | `/api/display/content` | signed in | `HousekeepingRoutes.cs` |
@@ -191,6 +195,9 @@ the rest of; a pattern is as the code writes it. What each answers is said besid
 | GET | `/api/smart-playlists` | signed in | `LibraryRoutes.cs` |
 | POST | `/api/smart-playlists` | signed in | `LibraryRoutes.cs` |
 | POST | `/api/smart-playlists/delete` | signed in | `LibraryRoutes.cs` |
+| GET | `/api/sq-tool/record` | signed in | `PlaybackRoutes.cs` |
+| POST | `/api/sq-tool/record` | signed in | `PlaybackRoutes.cs` |
+| GET | `/api/sq-tool/zones` | signed in | `PlaybackRoutes.cs` |
 | GET | `/api/status` | signed in | `HousekeepingRoutes.cs` |
 | GET | `/api/system/power` | signed in | `PowerRoutes.cs` |
 | POST | `/api/system/restart` | signed in | `PowerRoutes.cs` |
@@ -203,6 +210,8 @@ the rest of; a pattern is as the code writes it. What each answers is said besid
 | POST | `/api/ungroup-outputs` | signed in | `PlaybackRoutes.cs` |
 |  | `/api/update/…` | signed in | `UpdateRoutes.cs` |
 | POST | `/api/update/apply` | signed in | `UpdateRoutes.cs` |
+| GET | `/api/update/bridges` | signed in | `UpdateRoutes.cs` |
+| POST | `/api/update/bridges/apply` | signed in | `UpdateRoutes.cs` |
 | POST | `/api/update/check` | signed in | `UpdateRoutes.cs` |
 | GET | `/api/update/status` | signed in | `UpdateRoutes.cs` |
 | GET | `/api/user-playlist` | signed in | `LibraryRoutes.cs` |
@@ -225,4 +234,4 @@ the rest of; a pattern is as the code writes it. What each answers is said besid
 | GET | `/login` | open | `Pages.cs` |
 | GET | `/server-info` | open | `Server.cs` |
 | GET | `/shelf` | signed in | `Pages.cs` |
-|  | `/stream/t([0-9]+)(?:\.(orig\|[0-9]+-[0-9]+))?\.([a-z0-9]+)` | signed in, or a signed address | `Streams.cs` |
+|  | `/stream/t([0-9]+)(?:\.(orig\|[0-9]+-[0-9]+w?\|d(?:64\|128\|256)))?\.([a-z0-9]+)` | signed in, or a signed address | `Streams.cs` |

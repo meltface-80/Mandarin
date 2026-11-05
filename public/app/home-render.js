@@ -8,13 +8,18 @@ function keepHomeScroll() {
   if (m && homeView && !homeView.classList.contains("hidden")) homeScrollKept = m.scrollTop;
 }
 // Show the Home landing (hide the wall). The wall loads lazily when entered.
-function showHome() {
+// opts.keepSearch (the page's start, item 280): a search opened while the page
+// was still connecting stays, with its results; Home is where it lives.
+function showHome(opts) {
   const back = !!homeView && homeView.classList.contains("hidden");
+  const row = document.getElementById("search-row");
+  const searching = !!(opts && opts.keepSearch && row && row.classList.contains("open"));
+  const results = searching && !!(window.__searchActive && window.__searchActive());
   hideLibraryControls();
   unplayedWallActive = false;
   libraryWallActive = false;
   leavePlaylistScreens();
-  if (window.__clearSearchIfActive) window.__clearSearchIfActive();  // drop stale search results
+  if (!searching && window.__clearSearchIfActive) window.__clearSearchIfActive();  // drop stale search results
   if (window.__exitLabels) window.__exitLabels();   // leave the labels browser if active
   if (window.__exitArtists) window.__exitArtists();
   // Discard, don't restore: this function is establishing its own screen and
@@ -27,14 +32,14 @@ function showHome() {
     try { localStorage.removeItem("rra-filter"); } catch (e) { /* localStorage optional (private browsing) */ }
   }
   updateCountReadout(null, true);   // hide the wall's title / the genre breadcrumb
-  setBanner(null);            // drop any error/empty banner left by a wall view
+  if (!results) setBanner(null);   // drop any error/empty banner left by a wall view
   if (homeView) homeView.classList.remove("hidden");
-  if (homeSections) homeSections.classList.remove("hidden");  // in case a search hid them
-  grid.classList.add("hidden");
+  if (homeSections && !results) homeSections.classList.remove("hidden");  // in case a search hid them
+  if (!results) grid.classList.add("hidden");
   setTopbarNav(false, false, true);   // Home: search box, no Back/Refresh
   const m = document.querySelector("main");
   // Back from a screen opened from Home: where it was. Home tapped on Home: its top.
-  if (m) m.scrollTop = back && homeScrollKept !== null ? homeScrollKept : 0;
+  if (m && !results) m.scrollTop = back && homeScrollKept !== null ? homeScrollKept : 0;
   homeScrollKept = null;
   // The unplayed + random rows keep their tiles for 5 minutes: every Back tap
   // lands here, and rebuilding ~60 fresh-random tiles each time re-fetched
@@ -254,8 +259,9 @@ function renderHomeUnplayed(albums) {
 }
 
 // The strip under the greeting (v0.6.1): Random Album, then Album of the
-// day when there is one (none once it has been played, until the next
-// 00:01). Random Album is kept, not rebuilt, so a disc that is spinning
+// day when there is one (kept all day since item 236, played or not: asked
+// with keep=1; it was gone once played, until the next 00:01). Random
+// Album is kept, not rebuilt, so a disc that is spinning
 // carries on spinning when Album of the day changes beside it.
 let shownAotd = null;
 function renderHomeToday(aotd) {
@@ -271,17 +277,18 @@ function renderHomeToday(aotd) {
  * Album of the day, in step on every device (v0.6.0-RC4): the server
  * chooses it at 00:01 and keeps it (v0.6.0-RC8), and is asked every minute
  * while Home is on screen, when you come back to the app or the tab, and
- * on every Home visit. Played anywhere, it goes everywhere; at 00:01 the
+ * on every Home visit. Kept all day, played or not (item 236); at 00:01 the
  * new one comes everywhere. It no longer depends on the Not-played row
  * (v0.6.1): switched off or empty, Album of the day still turns over.
  */
 async function refreshAotd() {
   if (!homeToday) return;
+  if (window.__uiPrefs && window.__uiPrefs.get("aotd") === "off") return;   // switched off (item 236): not asked for
   // Random Album needs no answer: it shows before one arrives.
   if (!homeToday.querySelector("#home-unheard-tile")) renderHomeToday(shownAotd);
   let aj;
   try {
-    const r = await fetch("/api/home/album-of-the-day", { cache: "no-store" });
+    const r = await fetch("/api/home/album-of-the-day?keep=1", { cache: "no-store" });
     if (!r.ok) return;   // the index building, or a server error: what is showing stays
     aj = await r.json();
   } catch (e) { return; }   // offline or restarting: what is showing stays
@@ -289,6 +296,7 @@ async function refreshAotd() {
   if ((next && next.offset) !== (shownAotd && shownAotd.offset)) renderHomeToday(next);
   saveHomeCache({ today: { aotd: next, day: todayKey() } });
 }
+window.__refreshAotd = refreshAotd;
 setInterval(() => {
   if (document.visibilityState !== "visible" || !homeView || homeView.classList.contains("hidden")) return;
   refreshAotd();

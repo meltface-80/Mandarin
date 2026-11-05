@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sq-tool"
+dynamic = ["version"]
+description = "Mandarin's bit-perfect tool: compare what a DAC was fed with the file, sample by sample"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.8"
+dependencies = ["numpy>=1.17"]
+
+[project.scripts]
+sq-tool = "sqtool.cli:main"
+
+[tool.setuptools]
+packages = ["sqtool"]
+
+[tool.setuptools.package-data]
+sqtool = ["web/*"]
+
+[tool.setuptools.dynamic]
+version = {attr = "sqtool.__version__"}

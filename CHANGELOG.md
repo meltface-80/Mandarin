@@ -1,5 +1,899 @@
 # Changelog
 
+## v1.2.0
+
+A big update: Mandarin Bridge on Android, Linux and the Raspberry Pi, updated and logged from Mandarin; SQ-tool, to prove a DAC gets exactly the file; the signal path in plain words; and a new website with a Downloads page. Items 226 to 294.
+
+- New - SQ-tool (Settings → SQ-tool): proves your DAC gets exactly the file. Mandarin plays a song to a zone, records what its DAC is fed and compares every sample, with spectrograms and charts
+- New - High-quality upsampling: ×2, ×4 or to the most a device takes, with Standard, Min phase or Gentle filters made as the track plays; PCM made DSD64, DSD128 or DSD256; a highest rate for each device; all gapless
+- New - Mandarin Bridge: an Android device, a Linux computer or a Raspberry Pi with a USB DAC is a bit-perfect room, updated from Settings → Updates, its log in Save log
+- New - the signal path on Now playing: every step from the file to the DAC, in plain words
+- New - room and headphone correction from an impulse response (REW, Dirac or a headphone measurement)
+- New - DSD to a USB DAC on the server, natively or as DoP; DFF files play as DSD
+- New - Album of the Day: one you haven't played in a year or more, all day, with its own switch
+- New - a new website, with a Downloads page
+- Fixed - the Android app's USB driver is bit-perfect, and on a FiiO R7 plays the DAC on its port
+- Fixed - streamers such as the FiiO SR11: the right track shown, none skipped, taps in a row no longer stall it
+- Fixed - new albums appear by themselves moments after they're copied
+- Fixed - away from home, the Android app keeps its connection after Tailscale restarts
+- Improved - a saved log says what went wrong, hiding only what is yours alone
+
+- `259-dsd-on-demand` (item 259): **PCM as DSD, and the shaped filters, made as they play.** A track made DSD from
+  PCM had to be made whole, ahead (items 243, 254): its filter was one as long as the track (237, PGGB's way), so
+  nothing of it could go until the end of it had been read, and its first play was always PCM, the standard filter's,
+  DSD only the next time (264 s for a 4:37 track on the owner's server). Now each is made as it plays, as HQPlayer does:
+  the upsampler is a filter of a fixed length, 2048 of the track's samples (46 ms at 44.1 kHz), run a block at a time by
+  overlap-save (Upsample/StreamUpsample.cs): Standard (flat to 95% of the band, linear phase, its delay taken off so
+  the output is the input's length times the factor), Gentle (from 90%) and Minimum phase (Standard's levels, the
+  cepstrum's phase); against the exact tones it is some 210 dB out, the same however the input comes in blocks. The
+  device asking for the track starts `mandarin-server upsample` (UpsampleCommand.cs, Upsample/MadeAsPlayed.cs): the
+  track decoded a block at a time, upsampled, each channel's doublings and modulator on threads of their own, the
+  DSF's header written first (its length from the track's) and each block after it as both channels have it; the
+  device is sent the file as it grows, as a conversion is, and it is kept, so the next play is the file whole. One is
+  made at a time, on every core; the next track is made in its turn and armed once whole; another play stops what was
+  being made for the one before. A peak past +2.9 dB over full scale, between the samples, is held there (70% of the
+  modulation, inside what the modulator holds): a track is no longer scaled to its own peak, which needed all of it
+  first. Here DSD256 is made at 5.8× real time (it was 4.2×), DSD64 at 11×; each making's speed is logged and Output
+  says it under PCM as DSD ("made the last at 1.4× real time, fast enough to keep up"; under 1.15× it says it is too
+  slow and that half the rate is half the work). Min phase and Gentle for PCM are made the same way, from the first
+  play; Standard for PCM is SoX's as before. Whole track is gone from the page, the app and the server (a device left
+  at it has the standard filter; the setting is refused), and with it the queue of makings, the PCM sent while a DSF
+  was made and Now playing's "being made" and "next play". Tests: the upsampler against the exact tones, its length,
+  its blocks, its shapes' ringing and levels; a DSF never made sent as it is made, its header right, then kept and sent
+  whole; a renderer's first play of an album as DSF from the first track, its signal path, its speed said, the next
+  armed whole, another play stopping what was made; Minimum phase for PCM from the first play; the page's and the
+  app's words.
+
+- `260-cpu-for-making` (item 260): **the making on playback's cores.** A track made as it plays (item 259) is
+  playback, but its `mandarin-server upsample` was started like any child of the server's and so ran where the server
+  runs: on the cores playback doesn't keep, beside the scans and the library's re-reads, while the core kept for
+  playback sat idle (htop on the owner's four-core server: cores 0 to 2 full, core 3 at 2%). Now, while one is made and
+  for 30 s after (`MANDARIN_CPU_MAKING_HOLD_MS`, so the next track's, begun in its turn, finds them kept), playback keeps
+  all the cores but one (Cpu.Making.cs; Cpu.Decide's `making`), and the making is placed on them and moved with them
+  when the split changes, as a conversion a device waits for is (MadeAsPlayed.cs: Cpu.Place, Adopt, Forget). Measured
+  here, DSD256 went 1.4× real time on one core, 3.4× on two, 4.6× on three. New setting, Settings → Library Scanner →
+  Processor → Cores for upsampling and DSD: Auto (all but one) or 1 to 3, never every core (`POST /api/cpu
+  { making_cores }`, kept as the setting `making_cores`; `GET /api/cpu` says `making` and `making_cores`); shown where
+  the cores are split. The Processor line says "(making as it plays)" while it lasts; the app the same (Scanner.kt
+  cpuLine, makingChoices). Tests: CpuTests (the split while making, Auto and as set), PowerCsharpTests (the route, its
+  refusals, kept), ScannerTest (the line and the choices), scanner-page.test.js (the choices drawn, one tapped and kept).
+
+- `261-dsd-48k-family` (item 261): **48 kHz's family made DSD in its own family.** PCM as DSD made a 96 kHz track
+  DSD256 by taking it down to 88.2 kHz with SoX, then ×8 to 705.6 kHz and DSD256 at 11.2896 MHz (Now playing: "To 44.1
+  kHz's family, 96 → 88.2 kHz"), as items 242 and 243 had it. Now a track of 48 kHz's family goes ×2^n to 768 kHz as it
+  is and is made DSD of 48 kHz's family, 3.072, 6.144 or 12.288 MHz (DsdChain.InRateFor: two, three or four doublings
+  from 768 kHz, as from 705.6 kHz; the modulator already shaped to its own rate), where the device takes PCM at the
+  rate DoP carries that DSD on (192, 384 or 768 kHz: DsdPlan.BaseFor, the plan's `dsdBase`); a device that doesn't has
+  it as before. Its cache file is its own (`-dsd256x48`); the signal path says "×8 to 768 kHz" and "12.288 MHz"; the
+  audio engine reads a DSF of 48 kHz's family and sends it to a DAC on the server as DoP (its native DSD is 44.1 kHz's).
+  Tests: DsdPlanTests (the plan where the device takes 768 kHz and not where it doesn't, the key, the job and the DSF
+  made: 12.288 MHz, 96000 × 128 bits), DsdModulatorTests (the chain from 768 kHz at 3.072 and 12.288 MHz, its length,
+  level and noise), UsbDsdTests (3.072 MHz to the DAC as DoP at 192 kHz, every bit).
+
+- `262-gapless-made-as-played` (item 262): **gapless, made as it plays.** With PCM as DSD (or Min phase or Gentle) an
+  album wasn't gapless. The next track was told to the device only once its file was whole, and as one is made at a
+  time it was begun only once the track before was made: on the owner's server, near the end of that track, so the
+  device came to the end with nothing to follow, stopped, and was started again by hand. And each track was made on
+  its own: its filter saw silence before its first sample and after its last, its modulator started from rest, its
+  DSF's last block was filled out with silence, so that an album that runs on (Dark Side of the Moon) dipped and
+  clicked at every join. Now:
+  - A DSF made as it plays is told to the device as soon as its making has begun (Players.Commands.cs Ready), and sent
+    with its length, its header's, known before the first bit is made, and its byte ranges as they are made
+    (Transcoder.TailFollow; DsdPlan.FileBytes): the device has it in hand long before the track before ends.
+  - A track is made joined to its album's tracks either side (Upsample/Joins.cs) where they are lossless files of the
+    library at its rate: the upsampler starts on the end of the track before and looks ahead to the start of the one
+    after, so that PCM upsampled in a shape is, joined, the very samples of the two made as one (to 1e-9).
+  - A DSF of a joined album ends on a whole block, the frames short of one left for the next file, which begins with
+    them (each block where the album's running sum of frames puts it): no padding is played at a join.
+  - The making of a DSF goes on into the start of the next track (16384 frames, past all the upsampler holds back)
+    and is kept (Upsample/Warm.cs, two minutes, `MANDARIN_MAKE_WARM_MS`); the next track's making, in its turn, is
+    handed to it where its file is the one it looked ahead to (its key the same, its gain too), and it goes on into
+    it, the upsampler and the modulators as they were (Upsample/DsdRun.cs: one stream, each file a window of it), so
+    that the two files are one stream: two modulators started apart make different noise, and the switch from one to
+    the other at a join was a click of its own (-43 dB here). The log says "on from the track before".
+  - Files made so are named apart from those made before ("j"), which are not mixed with them.
+  Tests: JoinTests (a signal cut in two at no block's frame: as DSD, the two files laid end to end against the whole
+  made at once, at the join no more than the modulators' noise elsewhere, where made alone they click; the first
+  file whole blocks; as PCM upsampled, the very samples), DsdPlanTests (Song 1's DSF sent with its length and a range
+  while it is made, to its last whole block; Song 2 made on from Song 1, its file beginning with Song 1's frames short
+  of a block), renderer-playback.test.js (the device told of Long 2 before it was made, and Long 2 made on from Long 1).
+  ShapePlanTests no longer compares the bytes ffmpeg writes into a FLAC's STREAMINFO once it has made the whole (its
+  frame sizes, samples and MD5): a FLAC sent as it is made has them yet to come, and the test failed one run in six.
+
+- `264-transport-one-at-a-time` (item 264): **a renderer told one thing at a time.** On the owner's FiiO SR11, Next
+  and Back did little, and then Play and Pause stopped working: the SR11 answered nothing more ("not responding:
+  timed out", every command and every poll). Every tap was a jump of its own, each telling the renderer of a track and
+  to play it, all at once, and the app sent each tap as it came, some sixty in thirty seconds; and what was being made
+  as it played went on being made for the track skipped from, the track skipped to waiting its turn behind it while
+  the SR11 waited for its first bytes. Now (Renderers/Players.Jump.cs) a jump moves the queue's place at once (the next
+  tap goes on from there, Now playing says it), and what the renderer is told waits its turn on the player's own
+  queue, as Play, Pause, Stop, seeking and the next track's SetNextAVTransportURI do: a jump that comes to its turn
+  after a later one was asked for is passed over, so that taps in a row are one jump to where they end. And a jump
+  stops what was being made for any track but the one jumped to and the one after it (MadeAsPlayed.Only, "skipped
+  from"). A renderer's words for a call it didn't answer are its own ("not answering: timed out"), not a Sonos's.
+  Tests: renderer-playback.test.js (Next, Next, Back on a renderer slow to answer SetAVTransportURI: two told, not
+  three, and the room on Long 2; a skip while Song 1 waits to be made stops it, Song 2 made in its place).
+
+- `263-processing-order` (item 263): **levelling, headroom, DSP, then upsampling.** The owner's order is 16/44.1 →
+  64-bit float → volume levelling → headroom (allowing for the levelling) → DSP → upsampling → out at the Output
+  settings. It was not quite that: a conversion to another rate ran the bands after the resample, at the rate sent
+  (705.6 or 768 kHz for a track upsampled ×16); a track upsampled as it plays had them after the upsampler; a
+  track turned up by levelling whose peak isn't known could go over full scale and the DSP then clip it; and PCM as
+  DSD was refused while DSP was on. Now the headroom and the bands, and a room correction, run at the track's own
+  rate in 64-bit float, after the gain and before any resample, upsampling or modulator (Dsp.Filters, Dsp.At;
+  MadeAsPlayed.PcmJob, whose encode is the requantise alone; DsdPlan.Before). A DSD file's DSP is still after its
+  resample, since DSD's own rate is no rate to run a filter at. The headroom allows for the levelling
+  (Playback/Levelled.cs). Levelling never takes a track whose peak is known over full scale, so for those the
+  headroom is the DSP's own, the same for every track: one that changed with each track's peak would undo the
+  levelling. A track turned up whose peak isn't known (tagged or measured) is taken as peaking at full scale, and its
+  headroom is the DSP's plus however much the gain could take it over. It is worked out where the file is made
+  (Transcoder.Start), so the file's name is still the one the device was promised. A headroom set by hand is used as
+  set. A device set to PCM as DSD is made DSD with its DSP on; the DSP part names the
+  DSF, and the stream route reads the zone's DSP for it (?o=). Every file made with DSP has a new name ("-o"), so none
+  made in the old order is served again. The signal path says the DSP runs at the track's rate, before anything is
+  upsampled. A phone's own DSP, which the app runs on the phone, still keeps the phone on PCM. Tests: DspOrderTests
+  (the bands before the resample, in the decode before the upsampler and nothing after it, a DSD job's bands at
+  96 kHz then SoX to 88.2 kHz; the headroom rule; a 200 Hz tone levelled up 6 dB and lifted 6 dB by a band has the
+  band's 6.5 dB taken off when its peak is known, and 6 dB more when it isn't). DspTests and the kept conversions and streams
+  answers are brought to the new order and names; every kept answer that changed is a DSP case.
+
+- `265-phone-usb-output` (item 265): **a phone's USB DAC has a streamer's Output.** The app's own USB driver plays a
+  DAC bit-perfect at the rate it is sent, and DSD natively or as DoP (Stage 9), but what it was sent was the file as
+  it is: no upsampling, no PCM made DSD, as a renderer has. Now a phone with a DAC in use (its usb_caps) has the
+  renderer's Output on its page, page and app alike: Mode, Highest rate, Filter, Bit depth, DSD as PCM, PCM as DSD,
+  from the DAC's own rates, depths and DSD (Phones.UsbChips); no Fixed volume (the phone's volume is its own: refused).
+  Its stream target takes them (Phones.TargetFor, Players.OutputInto for both), so the server makes what it plays as
+  it does for a renderer: upsampled in a shape as it plays, or a DSF made from PCM (with 262's gapless joins), which
+  the app's DsdExtractor reads by its header and its USB driver gives the DAC as it gives a DSD file. With the
+  phone's own DSP on, which runs on PCM, nothing is made DSD for it. A change of Output plans the phone's queue
+  again, as a DAC coming or going did. Away from home it is Opus as before. Tests: phone.test.js (the DAC reported:
+  Output and the DAC's rates and DSD on the phone's page; ×4 in minimum phase and then DSD128 each planning the queue
+  again, the DSF served DSD128; the phone's volume refused; back, and without a DAC no Output), AudioDevicesTest (the
+  app's page shows Output only while a DAC is in use, and says so).
+
+- `258-ir-per-rate` (item 258): **room correction, one response a rate.** A device's DSP held one impulse response,
+  made at one rate and resampled to every track's. A measurement is made at a rate, and REW or Dirac give one a rate,
+  so the DSP now keeps a set of them, one a rate (Playback/Convolution.cs): Load takes several WAVs at once, or a zip
+  of them (its WAVs only; one with none is refused), each checked and measured as before, and a response at a rate
+  already loaded takes its place; Remove takes off one rate's, or all. A track runs through the one made at its own
+  rate, else the nearest of its family (44.1 kHz's multiples or 48 kHz's), else the nearest of all, resampled; the
+  headroom covers the loudest of the set. The signal path says which ran ("room.wav, made at 48 kHz, resampled to
+  44.1 kHz"). A device that kept one, as item 252 kept it, has a set of one. Item 252's resampled response came out
+  a few hundred samples late (the resampler's lead); the track is now padded and trimmed by it, so it is on time.
+  And a response is now used at its own level whatever ffmpeg runs it (Playback/Convolution.cs): ffmpeg 7.0 on scales
+  one to a norm of 1 unless told not to (afir's irnorm, where 6.1 had gtype), which left a response resampled to the
+  track's rate some 9% too quiet on CI's ffmpeg, and would on a Mac's from Homebrew; each is told by what its help says.
+  The page and the app list the set, a row each with its Remove. Tests: a set loaded, replaced, zipped, refused and
+  taken off one rate at a time; a track played through its own rate's response and through its family's, resampled,
+  on time; the page's and the app's rows; the signal path's step.
+
+- `256-usb-dsd` (item 256): **DSD to a USB DAC on the server, as DSD.** The audio engine made every track 32-bit PCM
+  through ffmpeg, DSD files too, and a sound device here listed no DSD, so PCM as DSD wasn't offered for it. A DAC's
+  own descriptor, as the kernel lists it (/proc/asound/cardN/stream0), says what it takes, a format to each altset
+  with its rates (Local/UsbFormats.cs): its PCM rates are now those of its PCM altsets only (a DSD_U32 altset's
+  88.2 kHz is DSD64's words a second, not a PCM rate), and a DSD_U32_BE or DSD_U32_LE altset is the native DSD it
+  takes, on in its DSD chips as "advertised" with no tick. DoP can't be read from a descriptor (the DAC sees PCM),
+  so a DAC with no native DSD that takes the rate DoP needs (176.4 kHz for DSD64) is offered DSD, off until ticked.
+  The engine reads a DSF itself (engine/Mandarin.Audio/Dsd.cs, Engine.Dsd.cs) and hands the device its bits, each
+  byte turned round so the first bit goes first: natively in 32-bit words at the DSD rate over 32, the device opened
+  directly (hw:, ALSA's plug layer has no DSD), or as DoP, 16 bits a frame under the markers 0x05 and 0xFA in turn
+  at the rate over 16. No volume is put on DSD. The engine is told the native DSD at start (--dsd-native
+  DSD_U32_BE:64,128,256); anything else goes as DoP. The device's own word on what it plays (hw_params) confirms
+  DSD at those rates too. A Mac's devices take DoP only. UsbDsdTests reads a native DAC's descriptor and a DoP-only
+  one's, and plays a DSF as DoP and as native DSD to the tests' device, every byte of its audio as the file has
+  it; with the markers swapped or the DSD rates taken as PCM, they fail. Tested here against descriptors and the
+  bytes sent; a real DAC is the owner's to try.
+
+- `257-scan-end-status` (item 257): **a scan is under way until its albums are read.** /api/status said a scan had
+  ended a moment too soon now and then: the scan's own ticks, every half second, went on after it ended and before
+  it said its result, and the last could say "not running". A page that saw that asked for the albums before the
+  server had read them again and got the ones from before the scan (ScanEndTests, 5 runs in 113 on 3 November). What
+  the scan says is now under way until the server itself ends it, once the library is read (Scans.Mirror). A test
+  holds the moment open (the scan waits 1.5 s between its end and its result, MANDARIN_SCAN_END_WAIT_MS): before,
+  the albums answered 0 of 1; now 1.
+
+- `255-modulator-headroom` (item 255): **the modulator holds to SACD's highest level.** SACD's reference is 50%
+  modulation, and its signal may peak 3.1 dB above it, at 71.4%. Mandarin's seventh-order modulator, its gain out of
+  band 1.4, was measured stable only to about 62%: at 65% it was reset twice in half a second, at 71% hundreds of
+  times. It never went that high, each track being scaled so its true peaks fall at full scale (50%), but the margin
+  was 1.6 dB. Its gain out of band is now 1.3 at DSD64 and 1.25 at DSD128 and DSD256 (DsdOut.Hinf), each measured
+  with no reset to 75% or more. The noise in the band is a little higher, still below what any DAC resolves: −126 dB
+  at DSD64 (was −139), −161 dB at DSD128, −204 dB at DSD256 (was −228). Tests hold each rate to no reset at 71.4% and
+  75%, on a tone, on three tones and on noise; with the gain of 1.4 they fail.
+
+- `252-convolution` (item 252): **room correction from an impulse response.** A device's DSP (a renderer, or a sound
+  device on the server) gains Room correction: Load a response… takes a WAV (16, 24 or 32-bit PCM, or 32 or 64-bit
+  float; one channel or two; up to 10 seconds and 32 MB), checks it, measures the most it lifts anything from 20 Hz to
+  20 kHz, keeps it beside the database by its hash and saves its facts with the DSP setting (POST and DELETE
+  /api/audio-devices/:id/impulse; Playback/Convolution.cs, ImpulseRoutes.cs). Played, the track runs through it with
+  ffmpeg's afir in 64-bit float at the track's own rate, before it is upsampled, as it is streamed and in a whole track
+  made ahead alike; a one-channel response is used on both sides. A response made at another rate is resampled to the
+  track's, its level put back (a resampled response's gain moves by the ratio of the rates; left alone it lost 1.8 dB)
+  and a few samples of silence laid before it so its start isn't cut; within 0.0004 dB of exact. The auto headroom
+  takes what the response lifts as it does the bands'. The page and the app show what is loaded (name, rate,
+  channels, length, the most it lifts) with Load another… and Remove; a phone's DSP has no room correction. A test
+  loads and measures responses, refuses a non-WAV and takes one off, and plays a track through a response of −1 to
+  see it come out turned over, streamed and made ahead. Two things met on the way: the DSP's fingerprint threw for a
+  device with no DSP setting at all (the C#-against-Node comparison caught it), and 254's minimum-phase test used
+  70 s of its file's 150 on the long album's makings; it plays the short album now (14 s), and still fails on the
+  old Now playing words.
+
+- `254-dsd-plays` (item 254): **PCM as DSD that plays as DSD, and says so.** A FiiO SR11 at Max, Min phase and DSD256
+  (3 November) never seemed to play DSD256, and Now playing said "Standard filter" under a filter set to minimum phase.
+  The log showed why. A track that starts before its DSF is made goes as PCM, and its making was then dropped for ten
+  minutes so that the tracks after it came first. Nothing took it up again, so Now playing's "DSD256 next play" was
+  never true. Its sheet even read "for this track's next play: next play". It is now put after the tracks still to
+  come (WholeJobs.Skip); one under way is stopped and made again in its turn. Meanwhile the PCM standing in for it
+  says why its filter is the standard one: "Standard filter · until the DSD256 (minimum phase) is made". The Being
+  made step says "waiting its turn", "being made now", or "made: this track plays as DSD next time". A stream's log
+  line says WAV where it is sent as WAV ("as WAV: FLAC stops at 655.35 kHz → FLAC 24/705.6 kHz" before). The
+  renderer test sees Long 1 made after Long 2, and the stand-in's words with a device set to minimum phase; with the
+  old code, Long 1 is never made and the line is "Standard filter". DsdLowpassTests counts a stream's frames by
+  decoding it, not from STREAMINFO, which a stream read while it is made has as 0 (253's cause; met on a busy run).
+  Output's Filter, with PCM as DSD on, said "a track not yet made plays with the standard filter" and showed the
+  makings twice, under it and under PCM as DSD. Its note now says it is the filter each track is made DSD with
+  (minimum phase, gentle, or the whole track's linear one) and that a track playing first goes as PCM with the
+  standard filter; the makings are shown once, under PCM as DSD (page and app; device-filter-note-page.test.js,
+  AudioDevicesTest).
+
+- `251-dsd-faster` (item 251): **DSD made three times faster.** A 220 s track at DSD256 took 456 s on the owner's server.
+  Measured here, 60 s at DSD256 took 38.9 s: the whole-track step 6 s; the doublings 60% and the modulator 25% of the
+  rest. Each doubling is a half-band filter: its even taps are its centre and nothing else, and its odd taps are the same
+  either side. So an even output is now its input, delayed, and an odd one is 8 multiplications of paired taps, where
+  33 were done. Each doubling works in a buffer kept from push to push, where megabytes were made anew each time. The
+  seventh order's four sections run with their states in locals, the same arithmetic in the same order. Each channel's
+  modulator runs on a thread of its own beside its doublings, the writer taking both channels' bits under one lock. 60 s
+  at DSD256 now takes 11.6 to 12.7 s. Nothing in the file changes. A doubling matches the whole 33-tap filter to 7×10⁻¹⁶,
+  the seventh order's own path makes the same bits as the loops, and a pipelined track is the same file, byte for byte,
+  as one made in turn (DsdSpeedTests). Noise in the band is as before: −139 dB at DSD64, −229 dB at DSD256.
+
+- `253-whole-play-flac-header` (item 253, a test's): **"one play, one file" held to the file, not to its header.**
+  WholeTrackPlayTests compared each read of the standard filter's file, byte for byte, with the first. When the first
+  read came while the conversion was still being made (sent as written, Transcoder.TailFollow), it had STREAMINFO's body
+  as ffmpeg leaves it till the end: the frame sizes, the samples in all and the MD5, written last by seeking back.
+  Every later read then "differed" ("7 of 7 reads", "11 of 11", on busy runs), the audio the same. Measured: a copy
+  taken mid-encode differs from the finished file in bytes 13 to 41 only. Reads are now the same file when all but
+  STREAMINFO's body (bytes 8 to 41) is the same. A copy with that body cleared counts as the same file, and one audio
+  byte changed does not. With the server's hold broken, the test still fails ("1 of 6 reads").
+
+- `250-filter-label` (item 250): **the Filter's buttons fit a phone.** Four to a row, "Minimum phase" was cut to "Minimum
+  p…" in the app (seen on 3 November). It is "Min phase" on the button, on the page and in the app alike (the contract's
+  label); its note still says minimum phase in full. A test holds every Filter label to the length of "Whole track", the
+  longest that fits a quarter of the row.
+
+- `248-filter-shapes` (item 248): **Minimum phase and Gentle.** Output's Filter had Standard (SoX's, as it plays) and
+  Whole track (one transform as long as the track, linear phase, made ahead). It gains two shapes of the whole-track
+  filter, made the same way and kept as files of their own (Upsample/WholeShape.cs). Minimum phase has the same levels
+  as Whole track and the one phase that puts all its ringing after a transient, none before. It is worked out by the
+  cepstrum on the output's grid: the whole upsampling filter is made causal, not just the band at the input's samples,
+  which would still ring before a transient between them. A click shows nothing before it to some 180 dB down. The band
+  is flat to 10^-9 dB to 20 kHz, and a track done in sections matches the same done whole to 145 dB. Gentle is linear
+  phase, rolling off from 90% of the Nyquist frequency instead of 95%: −0.1 dB at 20 kHz and −6.7 dB at 21 kHz for a
+  CD, and its ringing a millisecond from a click 15 dB lower. The shape takes PCM made DSD to 705.6 kHz too, and the
+  Filter is offered with PCM as DSD on although the file is sent as it is. A stream's address says the shape (?f=min,
+  ?f=gentle). Its file is named for it, before the endings a file's kind is read from (-w-min.flac, -w-min-wav.wav,
+  -min-dsd256.dsf). A standard conversion and the PCM sent while a DSF is made carry no shape. Now playing and its
+  signal path name the filter ("Minimum-phase filter", "Standard filter · minimum phase being made"). The device's
+  Output counts the tracks made in any shape. HQPlayer's own filters are Signalyst's and closed; these are Mandarin's.
+
+- `247-signal-path` (item 247): **Now playing's signal path.** The line under the album said everything at once ("WAV
+  24/705.6 ↑×16 · standard (whole track being made) · DSD256 being made"). The server now says it as lines, centred
+  under the album (what goes out, with its upsampling; how it was made: the filter, the modulator, a low-pass, the
+  DSP, the ReplayGain; what is being made for next time), and as the steps from the file to the room: the source, the
+  ReplayGain, DSD's low-pass, the DSP, the move to 44.1 kHz's family, the upsampling and its filter, the modulator, the
+  output to the device by name, the device's own confirmation, what is still being made, and a Qobuz or Tidal stream
+  that plays as PCM though the device is set to DSD (now_playing.signal, SignalPath.cs). Each step says what was
+  actually done to the stream the device is reading, never what the settings would do next: lossless (nothing changed),
+  enhanced (on purpose), lossy, or pending. A tap on the lines opens the Signal path sheet, on the page and in the app
+  (SignalPathSheet.kt), each step with its dot. A phone or a Sonos room, whose way is known only as its badge, shows
+  the badge as before.
+
+- `246-dsd-album-stops` (item 246): **an album with PCM as DSD plays on, and only what's playing is made.** On 3
+  November an album played on a FiiO SR11 set to Whole track and DSD256 stopped at the end of its first track. The
+  log said why. A DSD256 track took 456 s to make for a track of 220 s, so the second was never ready; the PCM that
+  stood in for it was a whole track's, queued behind the DSFs and made half an hour later, so nothing was ever armed
+  next; and the SR11, at the end of a WAV whose length is left open, says PLAYING and waits, so it was never started
+  by hand either. The first track's DSF was made too, though it went as PCM: the play queued it before the track was
+  started, and its making was already on its way when it was dropped. Now: the PCM that stands in for a DSF is the
+  standard filter's (DsdPlan.cs); it is converted from 150 s before the end of the track playing, and armed in the
+  last 30 s if the DSF isn't made (Players.Dsd.cs); a making dropped is remembered, refused or stopped at whatever
+  stage it is (WholeJobs.cs); a new play drops what was being made for the one before (the Lorde album was still
+  being made upsampled whole after several others were played); and a renderer still PLAYING at a track's end, its
+  position standing there or run past it, with nothing to go on to, has the next started by hand (Players.End.cs).
+  The device's note says Qobuz and Tidal play as PCM, as they always did.
+
+- `243-dsd-output` (item 243): **PCM sent as DSD.** Output gains PCM as DSD (Off, DSD64, DSD128, DSD256), offered
+  where the device takes DSD and only at the multiples it takes. Set, each track of the library that isn't DSD is made
+  DSD ahead of playing by item 242's modulator and kept as a DSF beside the conversions (`-dsd64.dsf`), then sent as
+  it is in the device's own word for it (`/stream/t<id>.d64.dsf`, DsdPlan.cs). A track of 48 kHz's family is made
+  from the 44.1 kHz rate below its own (96 → 88.2 kHz) by SoX's resampler at its finest; the ReplayGain goes in
+  before the modulator; a DSP setting, a service's stream and DSD already DSD stay as they were. A DSF promised is a
+  DSF, so a track's queue entry carries its PCM beside it: a track started before its DSF is made goes as PCM (and the
+  tracks after it are made first); the next track is armed as its DSF once made, or as PCM in the last 30 s of the
+  one playing if it isn't (Players.Dsd.cs). Three tracks are made ahead, no more: a DSD256 track is a gigabyte of the
+  cache. Now playing says "DSD64 from PCM", or the PCM sent and "DSD64 being made"; the device's Output says how the
+  making goes. DSD64 takes about a third of a track's length to make, DSD256 about its length.
+
+- `242-dsd-modulator` (item 242): **PCM made DSD.** The engine for DSD output (item 243): a one-bit delta-sigma
+  modulator of the seventh order in 64-bit floats (DsdModulator.cs), its noise transfer function of optimal zeros
+  (the roots of the Legendre polynomial, spread over the audio band) and a Butterworth high-pass's poles set for a gain
+  out of band of 1.4 (DsdNtf.cs). Measured on its own bits at SACD's level (full-scale PCM is half the modulation): the
+  noise from 20 Hz to 20 kHz is 139 dB below full scale at DSD64 and 228 dB at DSD256; the loop holds to 60%
+  modulation and on three tones and noise together, a guard starting it again (and counting) should it ever be
+  overloaded. A track reaches it upsampled whole to 705.6 kHz (item 237), then doubled to the DSD rate by half-band
+  filters (DsdChain.cs), each channel on a core of its own, and is written as a DSF (DsfWriter.cs) exactly as long as
+  the track; ffmpeg reads it back at the source's level, 6 dB down as SACD has it. `mandarin-server upsample` makes it
+  given `{ dsd, out }`. DSD256 takes about as long as the track on two cores; DSD64 a third of that.
+
+- `241-dsd-lowpass` (item 241): **DSD played as PCM, its modulator's noise above the band taken off.** DSD64
+  carries its noise above the audio band, rising from some 20 kHz. A DSD-capable DAC is sent the file as it is and
+  filters it itself; a device that takes PCM was sent PCM decoded from it (ffmpeg's decoder, 352.8 kHz for DSD64)
+  and resampled to its rate, the modulator's noise passing through up to that rate's Nyquist frequency: at
+  176.4 kHz, from 20 to 88 kHz, some 40 dB below a half-scale tone at the top. Output gains DSD as PCM: Off (as
+  before), 50 kHz or 30 kHz. Set, the track goes through SoX's resampler twice, down to 110.25 or 66.15 kHz and
+  back up: a linear-phase low-pass as steep as the resampler (on a DSD64 tone, the noise above 33 kHz falls from
+  some −40 dB to the dither's floor near −144 dB), the band below untouched (within 0.001 dB to 24 kHz), with no
+  delay and no tail, so gapless play stays gapless. It applies only where it does something: DSD going out as PCM
+  at a rate above the one it passes through (DsdLowpass.cs). The address carries it (`?lp=`), the cache keeps it
+  apart (`-lp66150`), and Now playing's reason says "low-passed at 30 kHz". DSD that a device takes as DSD goes
+  bit for bit, its noise the recording's own.
+
+- `245-length-of-an-open-wav` (item 245): **Now playing keeps a track's length when a device misreads it.** A
+  track sent as WAV above FLAC's rates (item 238) is written as it plays, its length left open in its header; the
+  FiiO SR11 read that as 419:57:09 and Now playing showed it. The length the device reports is still taken, unless it
+  is more than ten seconds from the track's own, when the track's own is shown (Players.Poll.cs).
+
+- `244-whole-track-from-the-queue` (item 244): **whole-track upsampling works from a queue.** On 3 November an
+  album played on a FiiO SR11 set to Whole track showed "standard (whole track failed: see the log)", and the log
+  said why for every track: "the factor must be a power of two". A track's whole-track job divides the plan's rate by
+  the track's own; a plan made for a queue (what an album, a playlist or a radio plays) carried no rate of the
+  track's own, so the factor came out as the plan's rate itself (705,600) and every job failed, and failed again
+  each time the queue was looked at. Only a track asked for by its address alone, as the tests had it, carried the
+  rate. The plan now carries it wherever it is marked to be upsampled whole (WholePlan.cs), and a job without one
+  says so plainly. A renderer test now plays an album with Whole track on and holds the server to all its tracks
+  made ahead, none failed on the way (it failed so before the fix, exactly as on the SR11).
+
+- `240-rate-limits` (item 240): **a highest rate for each device, set by its owner.** A device's rates are what it
+  reports or what its owner switched on, and Max upsampling went to the highest of them; to keep a FiiO SR11 below
+  ×16 its owner had to switch its top rates off. Output gains Highest rate: Auto, or 96, 192, 384 or 768 kHz (only
+  those below the device's own top). It is named by 48 kHz's family and holds 44.1 kHz's to the rate that matches
+  (88.2, 176.4, 352.8, 705.6 kHz). Nothing goes above it, upsampled or not: a file above it is converted down to it,
+  and Max stops there. The device's rates are left as they are (RateCap.cs, applied where the device's rates
+  become the plan's ceiling). The example under Output follows it.
+
+- `239-whole-track-shown` (item 239): **whole-track upsampling shows itself.** Only the server's log said whether
+  a track went out upsampled whole. Now playing's badge now says it: "↑×16 · whole track" when the track's own file
+  went out; otherwise the standard filter's, and why: "whole track being made", "whole track next play", or "whole
+  track failed: see the log". A device's Output, set to Whole track, says how the making goes: the tracks made and
+  kept, the one being made, and how many are waiting. And one play keeps one file: a renderer reads a track in more
+  than one request (a range at a time, again after a seek), and a track whose own file was finished while it played
+  would have been handed that file part-way through. A track sent with the standard filter now keeps it until half
+  an hour has passed without a request for it (WholeServed.cs).
+
+- `237-whole-track-upsampling` (item 237): **upsampling with one filter as long as the track.** A renderer or a
+  sound device of the server's (not a Sonos room, not a phone) set to upsample gains a Filter under Output: Standard
+  (SoX as it plays, as before) or Whole track. Whole track takes the track to the frequency domain in one transform,
+  lays its spectrum into one two to sixteen times the size with nothing above the original band, and brings it back:
+  a linear-phase filter as long as the track, flat to 95% of the original Nyquist frequency and falling along a
+  raised cosine to nothing at it, its error some 190 dB down in the tests. A track too long for the machine's memory
+  in one transform (2^28 points from 12 GB) is done in overlapping sections that join without a trace. Where its
+  peaks between samples go over full scale, the whole track is scaled to −0.1 dBFS, one gain, never clipped. It
+  needs the whole track before it can give anything, so it is made ahead: in a process of its own
+  (`mandarin-server upsample`) on the cores playback doesn't keep, one at a time, the queue's next tracks first,
+  some 30 seconds for a six-minute track at ×16 on a four-core machine; a track asked for before it is made plays
+  with the standard filter, and from its own file once it is. It only uses the rates the device reports or that are
+  set for it, ×2, ×4, ×8 or ×16, for tracks of the library (a Qobuz or Tidal stream comes as it comes). The files
+  are kept with the other conversions and pruned with them (`TRANSCODE_CACHE_GB`); above FLAC's rates they are WAV
+  (item 238). The server's log says each one made, how long it took, and any gain it needed.
+
+- `238-high-rates-as-wav` (item 238): **upsampling to 705.6 and 768 kHz plays, as WAV.** A FiiO SR11 set to Max
+  (×16) showed tracks playing and played nothing: the owner's log held 215 conversions failed, "705600 Hz not
+  supported" and "768000 Hz not supported". FLAC's frames name rates up to 655,350 Hz; above that, neither the ffmpeg
+  in Mandarin's image (Debian's 5.1) nor the FLAC decoders most streamers carry will have it. A plan above 655,350 Hz
+  now goes out as WAV where the device lists WAV among its formats (the SR11 does): PCM at the depth chosen, its
+  length left open in its header so the device plays it as it is made (`-seekable 0`), cached as `.wav` beside the
+  `.flac` files and pruned with them. A device that doesn't take WAV gets the highest rate of its family that FLAC
+  carries (×8 from a CD) and is told why. Now playing says WAV for it. WAV at 705.6 kHz/24-bit is about 34 Mbps and
+  250 MB a minute in the conversion cache (`TRANSCODE_CACHE_GB`). The conversion's plan and job moved from
+  Transcoder.cs to TranscodePlans.cs for room.
+
+- `236-album-of-the-day` (item 236): **Album of the Day is chosen by the owner's rule, and stays all day.**
+  The tile beside Random Album (★ Today) was any album of the library, by the day's hash, so it was as likely to be
+  last night's as one not heard in years; and it went once played, leaving the space empty for the rest of the day.
+  It is now an album never played or last played more than twelve months ago, never one played lately. For a newer
+  listener, with less than twelve months of plays, it is also nothing like what has been heard lately: no album by an
+  artist, or in a genre, played in the last 30 days. Where that leaves nothing (a small library, nearly all of it
+  heard) the rule is eased a step at a time, the genres first, then the artists, then an album not played for 30
+  days (DayPick.cs). Home on the page and in the Android app asks with `keep=1`, and the day's album stays all day,
+  played or not; the plain answer is unchanged. A pick kept by the old rule is chosen again at once, and the server's
+  log says why the day's album was chosen. Settings → Home Screen gains an Album of the Day switch beside Greeting and
+  Random Album, on this device only as they are: off, its tile is gone (with Random Album off too, the strip) and it
+  isn't asked for at all; on again, it is asked for at once.
+
+- `235-log-keeps-more` (item 235): **the log kept for the app hides what is the owner's alone and keeps what helps.**
+  Since item 121 the server kept only its own words and numbers of each line, and the app hid every address, name,
+  title, file and quoted word too: on 2 November the server's log held 30,767 Qobuz watch failures and not one said
+  why. Asked, the owner set the rule: hide tokens, keys and passwords, their name and account logins, and internet
+  (WAN) and Tailscale addresses; home-network addresses (192.168.x.x and the like) are fine, and help tell the
+  players apart. The server's LogScrub and the app's LogRedact now hide just that: keys, tokens and passwords
+  (`token=[…]`, `Bearer […]`, a run of 32 or more letters and figures, a login in a web address), email addresses,
+  the Mandarin account's name and the Qobuz and Tidal logins (put into their lines as Personal), internet addresses
+  (`[wan]`), Tailscale's addresses and names (`[tailscale]`), and the user's own folder in a path (`/home/[user]`).
+  Home-network addresses, rooms' and devices' names and ids, titles, files and error messages stay. The app's
+  Logging note says so, and its hand-offs and room changes now name what they hand on.
+
+- `234-qobuz-watch-misses` (item 234): **a favourite the service won't give is rested, not asked for every two minutes.**
+  The watch brings in each Qobuz (or Tidal) favourite not yet in the library, every couple of minutes. One the service
+  wouldn't give (gone from its catalogue, or refused) failed every time and was asked for again on the next watch: on
+  2 November 125 Qobuz favourites failed every two minutes all day, a request each to Qobuz and a line each in the log,
+  30,767 lines. One that fails now rests: 30 minutes the first time, twice as long each time after, a day at most; once
+  read it is forgotten. Its first failure is said in the log once, with the error's name and the service's status, so
+  the cause can be seen; its later ones are not.
+
+- `233-renderer-names-next-early` (item 233): **Play now on a FiiO SR11 shows track 1, not track 2, while track 1
+  plays.** For gapless playback the server hands a streamer the next track (SetNextAVTransportURI) a moment after an
+  album starts, and reads back which track it plays. The SR11 names the next track as soon as it is given it, while
+  it goes on playing the first, and the server took that for the device having moved on: track 2 on screen at once,
+  then 3, and Play now again only sometimes put it right. A move to another track is now believed when the track
+  playing has come to its end, or the position has gone back to the start of another; the SR11's own move at the end
+  of a track is followed as before, gapless. The log says so once a track ("a renderer names track 2 1 s into track
+  1 of 245 s"), in words that survive the log's redaction.
+
+- `232-library-live` (item 232): **albums added show up by themselves in the Android app, and at once in the page.**
+  Copied into a watched folder, an album was read by the server's scan some 20 seconds after the copy went quiet, but
+  the app's Library wall kept the albums it had loaded for its sort for as long as the app ran: sorted by Recently
+  added, the new album only came by changing the sort and changing it back. The page has read its rows again since
+  v0.8.43 when the server's mark of which albums there are moves, but heard of a move only with another answer, or by
+  asking every ten seconds once it had heard nothing for twenty. The mark (/api/library/mark) can now be waited on:
+  asked with the mark a screen has, the server answers the moment a new copy holds other albums. The app follows it
+  while it is on screen: the Library wall near its top is read again in place, the new albums first under Recently
+  added (further down it stays put until scrolled back up), and Home's Library row while Home is showing. The page
+  waits on it too, in place of its ten-second asks. The 20-second quiet before a scan stays, so an album still being
+  copied isn't read half-way.
+
+- `231-actions-current-majors` (item 231): **the build's GitHub Actions moved to their current versions, on Node 24.**
+  Every run warned that checkout, setup-node, setup-dotnet, cache and the rest ran on Node 20, which GitHub has
+  retired and runs on Node 24 in its place until it stops altogether. All fifteen are now at their current major
+  (checkout v7, setup-node v7, setup-dotnet v6, setup-go v7, setup-java v6, cache v6, upload-artifact v7,
+  download-artifact v8, setup-android v4, the five Docker actions at build-push v7, login v4, metadata v6, buildx v4
+  and QEMU v4, and setup-gradle v6), each out for months and with nothing in its breaking changes that the workflows
+  use. setup-gradle keeps its open-source cache (`cache-provider: basic`): from v6 its default is a proprietary one.
+  Nothing changes in Mandarin.
+
+- `228-engine-probe-ping` (item 228): **away over MusicD's own Tailscale, the app's check of the way to the server
+  asks the server's ping.** It asked /api/health, which waits on a busy server (the library being read again); over
+  Tailscale's relay that took longer than the check's four seconds, so the app took a working tunnel for broken and
+  dropped its connections every quarter of a minute: on 29 October, two and a half minutes of "connection reset" after
+  the engine restarted, while the music's own requests were getting through. The check now asks /api/ping, which the
+  server answers at once, and /api/health only of a server from before it.
+
+- `227-library-reads-spaced` (item 227): **the server re-reads the whole library at most a tenth of the time while its
+  jobs go on.** A scan's steps, the release days and the credits each tell the library they changed something, and it
+  was read again as often as every couple of seconds in a storm of them: at 13,900 albums a reading took 2.4 s, and on
+  27 October it was read 83 times in an hour (your server's log). A reading in the background now also waits nine
+  times the last one's length after it (some 22 s at 2.4 s), so reading takes a tenth of the time at most. A change you
+  make yourself (an edit, a merge, a scan's end) is still seen at once.
+
+- `226-refuse-other-servers` (item 226): **away over MusicD's own Tailscale, the app sends nothing until its own
+  engine is forwarding.** The app reaches the server at 127.0.0.1:34500 on the phone, which its engine forwards; until
+  the engine held it, the port was anyone's. On 30 October another app's Tailscale held it (Rouen's, which had taken
+  the port from the code it came from), and the phone's player said hello to Rouen's server, refused forty times over
+  seven minutes. Every request now waits for the app's own engine to be forwarding, and goes nowhere meanwhile.
+
+- `230-golden-day-unpadded` (item 230): **a test of the answers the Android app reads no longer fails in the first
+  nine days of a month.** The album of the day's day is written as the server always has ("2026-11-2"); the test
+  took it as changing from run to run only when it had two figures each for the month and the day, so from the 1st to
+  the 9th (and from January to September) it said the answer had changed. It now takes one figure or two, as the Node
+  suite's own test of that day does. Nothing changes in Mandarin.
+
+- `229-shelf-test-steps-both-ways` (item 229): **a test of the Shelf's album view no longer hangs now and then.** It
+  stepped right along the shelf until Kind of Blue was in front; with the Jazz genre chosen the shelf holds three
+  albums, which don't wrap, and when it came to rest past Kind of Blue the loop never ended and the browser was given
+  up on after 90 seconds. It now steps toward the album by the shelf's own order, a few steps at most, and says if it
+  never got there. Nothing changes in Mandarin.
+
+- `284-dff-as-dsd` (item 284): **A DFF played as DSD, as a DSF is.** The audio engine read only a DSF itself; a DFF
+  went to ffmpeg, which made it PCM, so on a DAC on the server or on the Linux Bridge it was never DSD (the server
+  sends a DFF as it is). `Dff.cs` walks its chunks in the order they come (the server's stream is read once from its
+  start): `PROP` for the rate, the channels and the compression, the chunks of no use let go (padded to an even size),
+  then the `DSD ` chunk's bytes, a byte of each channel in turn, first bit first, packed by `Dsd.Pack` as a DSF's
+  blocks are but without turning the bytes round, and nothing past the chunk's end (an ID3 after it) sent. A seek goes
+  to the 4-byte word it falls in. A DST-compressed DFF, which the engine can't unpack, is said ("the DFF is
+  DST-compressed…"), not played as noise. `UsbDffTests`: every byte of a DFF's audio as the device got it, as DoP
+  (markers in turn, the DSD rate over 16) and as native DSD (big-endian words, the rate over 32), the 48 kHz family as
+  DoP; a seek to 1.5 s plays on from that word, what lay between never sent; a DST one said, nothing sent. Shown
+  failing with the DFF sent to ffmpeg, a DST one played, the seek ignored, and the chunk after the audio sent.
+- `293-bridge-check-for-update` (item 293): **A Bridge's row checks, as the server's does.** A Bridge's button on
+  Settings → Updates said only how it stood: Up to date did nothing when tapped, and GitHub's answer was kept a
+  minute, so a newly published build showed late. Where nothing is to be done (Up to date, Nothing published) the
+  button now says Check for update, as the server's and the app's rows: a tap asks GitHub again (`GET
+  /api/update/bridges?fresh=1`, `BridgeUpdates.List(fresh)`), and the row becomes Update available, or says Up to
+  date or Nothing published for a few seconds, then Check for update again. Page (`app/bridge-updates.js`) and app
+  (`SettingsUpdates.kt`, core's `BridgeUpdates.answer`, `BridgeRow.checked`) the same; `settings-system.bridge-update`'s
+  label is Check for update. `bridge-updates`: on the page, Check for update, Up to date, then a newer build published
+  (the list still saying none, GitHub's answer kept) found by a tap; `BridgeUpdatesTest`: each row's words and what a
+  check of it says. Shown failing with the row's words as before, the page's check not asking afresh, and the server
+  ignoring `fresh`. And SQ-tool's recording says it is done (or failed) only once its folder is cleared: it said so
+  first, so a recording begun at once (Record again) could have the same folder taken from under it by the last one's
+  clearing: the next one's first step, emptying the folder, ran beside the last one's and found a file already gone
+  (`sq-tool-record` failed so once under the whole suite's load: "Could not find … part3.wav", before the device was
+  asked). And Mandarin Bridge is v0.2.1 (`versionName`, `versionCode` 3), the owner's number for the next Bridge update; the Linux Bridge (and the Pi's) takes its version from the same `versionName` (`build.sh`, the Linux workflow's sidecar), where it took the server's from `package.json`. `bridge-updates`: the Linux Bridge says the `versionName`, shown failing with the server's version.
+- `291-bridge-updates` (item 291): **Mandarin Bridges updated from Mandarin.** A Bridge was updated on its device, by
+  hand. Each build published now has a sidecar (`bridge/sidecar.sh`: its commit, version and SHA-256), and each Bridge
+  says its commit in `/dac.json` (`commit`, `updates`, `update`; Android's from `BuildConfig.COMMIT`, Linux's after its
+  version's `+`, stamped by `build.sh`). Settings → Updates lists every Bridge Mandarin has seen (`GET
+  /api/update/bridges`, `Admin/BridgeUpdates.cs`), the build published for its machine (`test-bridge` for a test
+  build of Mandarin's, else the newest `mandarin-bridge-v…`), and Update available where the commits differ; a tap
+  (`POST /api/update/bridges/apply`) asks the Bridge to update itself to that release's tag. The Bridge fetches the
+  release from GitHub itself, never an address it is handed (its port has no sign-in), and checks the download
+  against the sidecar. Linux (`Update.cs`): unpacked into its data folder's `app/`, it stops, and started again the
+  program installed hands over to it (`Program.HandOver`; stopped, it stops the update too), letting one go that fails
+  as it starts. Android (`Updater.kt`): installed with the package installer, Android asking on the device the first
+  time (a notification to allow installs, one to confirm), silently on Android 12 and later after that;
+  `MY_PACKAGE_REPLACED` starts it again. The page's rows (`app/bridge-updates.js`) and the app's (`SettingsUpdates.kt`,
+  core's `BridgeUpdates`) say the same: Update available, Updating…, Finish on the device, Try the update again,
+  Update by hand once, Not answering, Nothing published, Up to date (`settings-system.bridge-update`).
+  `test/bridge-updates.test.js`: Mandarin Bridge for Linux and a GitHub of the test's own: listed with its build and
+  the one published, on the page's Updates, a download that isn't the release's refused, updated and started again
+  into the update, an update that fails as it starts let go, a tag that isn't a release's refused; `BridgeUpdatesTest`:
+  each row's words. Shown failing with the checksum unchecked, the hand-over left out, and the update left running
+  once the Bridge is stopped. And each Bridge's log is in Mandarin's: the app's Save log (Settings → Setup → Logging)
+  adds, after the server's, every Bridge's own (`GET /api/diagnostics/bridges`, `Admin/BridgeLogs.cs`), under its
+  name, platform, version and build, each line through `LogScrub` as the server's are. A Bridge answers its log at the
+  path its `/dac.json` names (`log`, only a path on the Bridge): Linux its last 2,000 lines kept in memory
+  (`Kept.cs`, as well as journald), Android its own lines of Android's log (`BridgeLog.kt`, `logcat --pid`); an older
+  Bridge, or one not answering, is said to be. `test/bridge-logs.test.js`: Mandarin Bridge for Linux's own lines, a
+  fake Android one's with an email and a token taken out, an older one and one gone said so, nothing unsigned; and
+  what an older app's `/dac.json` leaves out is nothing on Settings → Updates too (`BridgeUpdates.Said`), where it was
+  "undefined" (its platform, so the wrong build looked for, and its commit). Shown failing with the lines unscrubbed,
+  the Linux Bridge's lines not kept, its `log` not named, and a field not said read as "undefined".
+- `290-sq-tool-for-mandarin` (item 290): **SQ-tool, Mandarin's own.** SQ-tool came as it was standalone: record two
+  players on a Loopback sound card (Roon, then Mandarin) and compare them. It is now the proof that a Mandarin zone's
+  DAC gets the file. A test is a song and one recording: on the test's page a zone is chosen (`/api/sq-tool/zones`:
+  each room, and why one can't be recorded) and Record asks Mandarin (`/api/sq-tool/record`, `SqToolRecord.cs`) to
+  play the song there alone, from its start, and record what the DAC is fed, the whole track: the recording of the
+  bit-perfect check (`Check.Recorded`, now shared, and `Players.RecorderFor`: a Mandarin Bridge's `/capture` in parts
+  joined into one, or a USB DAC on the server off its bus). Mandarin hands the recording to SQ-tool (its new
+  `POST /api/tests/<id>/recording`, the zone named), which compares it with the song as it always has, and draws its
+  verdict, spectrograms, charts, details and downloads for the one recording. The song is played as the library's
+  track at that path (one not in the library is said to be). Gone: SQ-tool's own recording (`alsa.py`, `usbmon.py`,
+  `songend.py`, the Recorder, `capture` and `status` on its command line, and their tests), its second player and the
+  comparison of two, its settings, the upload of a song, its Dockerfile, and from Mandarin's image `flac`,
+  `alsa-utils` and `kmod`. Its page says what it is for Mandarin (and its help, what can be recorded and what a
+  bit-perfect result needs). `test/sq-tool-record.test.js`: a fake Bridge recorded in parts: the zones (the Bridge can,
+  a Sonos room can't, and why), bit-perfect with the zone's name, a decibel down not bit-perfect and its level said,
+  and refused: a room that can't be recorded, a test not there, a song not in the library, a second recording at once;
+  shown failing with the song looked for by the wrong path and the zone's name not filed. SQ-tool's own tests:
+  Mandarin's recording handed over (bit-perfect in 32-bit words, scaled), the API's refusals, no `b` or `ab` left.
+- `294-bridge-release-every-build` (item 294): **A numbered Bridge release with every Bridge's build.** The
+  Mandarin Bridge release workflow (`bridge-release.yml`) built and published the Android APK alone, so a numbered
+  Mandarin, which offers its Bridges the newest `mandarin-bridge-v…` release, had nothing for a Linux Bridge or a Pi
+  ("No build is published for this Bridge's machine"). It now builds them too (`bridge-linux.yml` and `bridge-pi.yml`,
+  the Pi's now callable), checks each was built, and as the version released, and publishes them beside the APK: the
+  Linux packages and their sidecars, an `install.sh` whose downloads come from that release, and the Pi image.
+  `test/bridge-release.test.js` reads the workflow as written and runs its release step with gh stood in for: every
+  build published, the install line on the numbered release, and none made where a build is missing or holds another
+  version. Shown failing with the workflow as it was.
+- `292-bridge-recording-asked-whole` (item 292): **A Bridge's recording asked so it hears it.** SQ-tool on the
+  FiiO R7 failed after half a minute: "the device's recording ended early: done". The server asked for the whole
+  track in parts with `PostAsJsonAsync`, which sends its body in chunks with no Content-Length; the Bridge's
+  `HttpServer.kt` reads a body by its Content-Length alone, so it heard no ask, and recorded its default, 30 seconds
+  in one piece, from that moment. The server waited for parts that never came. The ask now goes with its length
+  (`DeviceRecorder.Ask`), and the Bridge's answer is read: where it says it took no parts, the recording fails at once
+  saying so, not when its one piece ends. And SQ-tool's clock showed `recorded`, which rose only as each minute's part
+  was taken; it now shows the seconds the device has recorded (`Check.Run.Live`, the part under way among them).
+  `test/fake-capture.js` reads an ask as the Bridge does (by its length) and answers with what it took;
+  `sq-tool-record`: the clock at 2.5 s while held with no part done, and a device that takes the ask as one piece
+  said at once. Shown failing with the ask sent as before (`sq-tool-record`, `bitperfect-parts`: "ended early: done",
+  as on the R7), the clock on `recorded` alone, and the answer not read.
+- `289-signal-path-plain-words` (item 289): **The signal path in plain words, and the ✓ only on the device's word.**
+  A 16-bit track to a 32-bit DAC read "the 16-bit samples in 32-bit words", jargon that left the owner asking what a
+  word was. It now says "padded to 32 bits for the DAC" where the device says the samples go untouched, and "sent as
+  32-bit" where it doesn't (scaled, or not said). And the ✓ (`ZoneState.Confirmed`) needed only that the device didn't
+  say the samples were changed, so an older Bridge (on an R7), saying nothing of them, still had one; it now needs the
+  device to say they go untouched (`Fed.Untouched == true`). A WiiM's own API says only the format, so it has none.
+  `test/signal-path-facts.test.js`: the plain words, "words" said nowhere, and an older app (a 16-bit track to its
+  32-bit DAC as on the R7, and 24-bit) with no tick; `renderer-playback`, `zone-small-fixes`: the WiiM's word kept for
+  the track, no tick; `mandarin-bridge`: the ✓ with the app saying the samples go untouched. Shown failing with the
+  tick on a device's silence and with "in 32-bit words" again.
+- `288-sq-tool-in-mandarin` (item 288): **SQ-tool inside Mandarin.** SQ-tool, the recorder and comparer that proved
+  the server bit-perfect to a USB DAC, was a program of its own to install. Its code moves into `sq-tool/` (from
+  meltface-80/SQ-tool, its page reading its API relative to where it is served, nothing else changed) with its own
+  tests run in CI ("SQ-tool's own tests"). `SqTool.cs` starts it the first time `/sq-tool/` is opened, behind the
+  sign-in, on a port of the computer only (127.0.0.1) with Mandarin's music folder and its data in `<data>/sq-tool`,
+  and hands each request to it and its answer back as it comes (a WAV, a spectrogram, an upload, the length handed on
+  since Python's server reads a body by it); stopped with the server. Where it can't start, its page says why (no
+  Python 3, no numpy, its folder missing) and what to install. Settings → SQ-tool, on the page and in the Android app,
+  opens it in its own tab, as it looks on its own. The image gains `python3`, `python3-numpy`, `flac`, `alsa-utils`
+  and `kmod` (what SQ-tool records and reads with), the smoke test checking numpy and SQ-tool there.
+  `test/sq-tool.test.js`: `/sq-tool` sent to `/sq-tool/`, its page and script served, its music root Mandarin's, its
+  settings saved and read back from `<data>/sq-tool`, nothing of it reachable unsigned; with no Python, and with a
+  Python without numpy, the page that says so. Shown failing with it not served, the body chunked, no reason given,
+  its API asked from the root, it ahead of the sign-in, and its last words read before they had come in. Next (item 290): SQ-tool records a Mandarin zone's USB output itself, Mandarin Bridge's or
+  the server's DAC, and its verdict is what the signal path may call bit-perfect.
+- `287-signal-path-facts` (item 287): **The signal path tells only sourced facts.** It said "· bit-perfect" when the
+  server sent the file as it is, a claim about the DAC no one had measured, and "Confirmed by the device" by a rule
+  that never confirmed a 16-bit track fed in 32-bit words (the values unchanged) yet would have for samples the
+  phone's volume scaled. Each step is now a fact with its source: the file, what Mandarin did and sent ("· as it is"),
+  and last, what the device reports feeding its DAC (`Fed` on the zone's state, `SignalPath.Fed`): Mandarin Bridge's
+  `/dac.json` `now`, which now says its `volume` (fixed, dac, software), `level` and `untouched` (the Android app from
+  its driver's gain, the Linux one always fixed and untouched); Mandarin's audio engine's opened format and gain for a
+  DAC on the server; a WiiM's own API's format, nothing claimed of its samples. Lossless only where the device says
+  the samples go untouched in the format sent; lossy where it says otherwise; pending where it doesn't say. The ✓
+  needs the format sent and nothing done to the samples. The bit-perfect check's step and button are gone from Now
+  playing, the page's and the app's (`now-playing.signal-check` out of the contract); proof is SQ-tool's to give.
+  `test/signal-path-facts.test.js`: 16-bit in 32-bit words untouched (lossless, ✓), the volume in software (lossy,
+  no ✓), another rate (lossy), an older app (its format only, pending), and "bit-perfect" nowhere; shown failing with
+  "bit-perfect" said again, the device's word left out, scaled samples called untouched, 16-in-32 unconfirmed, and the
+  tick given despite scaling.
+- `286-bitperfect-whole-track` (item 286): **The bit-perfect check records the whole track, and keeps its verdict.** A
+  check of a 3:39 track on a FiiO R7 said 95%: its report showed the first recording begun on the playback before the
+  restart (16 ms of 2:01) and ended by it, so 0:00–0:04 went unrecorded, and a 1.3 s gap after every 30 s recording
+  while the server fetched it and asked for the next. Mandarin Bridge now records in parts on its own (`Capture.kt`,
+  asked with `part` and `after_flush`, `/dac.json` saying `capture_parts`): from the first byte after the restart's
+  flush (begun again should a second flush follow within its first second), each part begun on the byte after the
+  last's, fetched and let go (`DELETE /capture/N`) as it is done. The server (`Recorder.cs`) collects every part and,
+  where their sidecars' `first_frame` say they follow on, joins them into the one recording of the track
+  (`Parts.cs`), compared whole. An older app is asked as before. Whatever no recording covered is named after the
+  verdict and listed as `unrecorded`; each room's last check is kept beside the data (`Kept.cs`), so the track's step
+  says its verdict after another track or a restart (with the day), another track's step names the last check, and
+  `/api/bitperfect` has it. A recording that can't be read is said, never a check left at "comparing" (a WAV chunk
+  said to run past the file was read past it). `test/bitperfect-parts.test.js` (the fake Bridge recording in parts):
+  asked once, from the restart, every part fetched and let go, compared as one, every sample, kept after another
+  track and a restart, a corrupt part said; `BitPerfectGapsTests`: the unrecorded named. Each shown failing with its
+  part taken out.
+- `285-mac-ci-waits-for-a-runner` (item 285): **The Mac check waits for a Mac.** Its job's 15-minute limit counted
+  the wait for one of GitHub's macOS runners too, so on a busy day (4 November, again and again) it was cancelled
+  before it had one, no step run, and a pull request it should have checked went without. The job may now wait an
+  hour and a half (`mac.yml`), and each step has a limit of its own, 5 to 15 minutes (a whole run takes about three),
+  so a hung step is still stopped soon, as the 15 minutes were there to do.
+- `283-bridge-pi-image` (item 283): **Mandarin Bridge for Raspberry Pi.** An image to flash (`bridge/pi`): Raspberry Pi
+  OS Lite (64-bit) with the Bridge, the audio engine and ffmpeg, the Bridge started at boot, the Pi called
+  `mandarin-bridge`, made by `build-image.sh` on GitHub's ARM runner (`bridge-pi.yml`, which checks the Bridge and
+  ffmpeg run inside it and puts the image on the `test-bridge` pre-release). With no screen, its Wi-Fi is set from its
+  page (`Wifi.cs`, through NetworkManager, with `--wifi`, which the image runs it with): where it has no network a
+  minute after starting it opens its own, *Mandarin Bridge Setup*; the page lists the networks in reach and joins the
+  one chosen, the setup network closed first, and opens it again should the join fail. `test/bridge-wifi.test.js`,
+  against a stand-in for nmcli: the setup network opened, the networks listed strongest first (a colon in a name
+  read whole), a wrong password said and the setup network opened again, the right one joined and the setup network
+  kept closed, and no Wi-Fi without `--wifi`; shown failing with the setup network not closed before a join, the
+  colon not read, no setup network opened, and the setup network opened though on a network.
+- `282-bridge-linux` (item 282): **Mandarin Bridge for Linux.** The Android app's twin for a computer with no screen
+  (`bridge/linux`, C# built ahead of time to one native program for x64 and arm64): the same UPnP MediaRenderer
+  (SSDP, the description and SCPDs, AVTransport, RenderingControl and ConnectionManager, eventing) and the same
+  `/dac.json`, so Mandarin finds it, reads its DAC whole and confirms what the DAC is fed as it does the phone's. It
+  plays with Mandarin's own audio engine (`mandarin-audio`): each track at its own rate, untouched, gapless into the
+  next given ahead, DSF as native DSD where the DAC takes it, else DoP. The DAC is read from `/proc/asound` (each
+  altset's format and rates); one plugged in or taken out is announced afresh. Told to play with no DAC plugged
+  in, it says so (STOPPED, ERROR_OCCURRED, "No USB DAC plugged in"), as the Android app does, and plays the track
+  once one is (`test/bridge-no-dac.test.js`, shown failing with either half taken out). The address it says it is at
+  is the one it reaches the network by (its default route), never a Docker or VPN bridge's. Its own page at `:49494/` shows the
+  DAC and the choice of it, what plays, its name, the DSD setting, who last played to it and the details to copy, and
+  sets them. `install.sh` installs it with the engine and a systemd service; `bridge-linux.yml` builds both
+  architectures and puts them on the `test-bridge` pre-release; CI builds it for the tests. The file-length gate
+  covers `bridge/**/*.cs`. `test/bridge-linux.test.js`: Mandarin's server finds it on a computer with a Mojo, reads
+  every rate and DSD to DSD256, plays an album to it, confirms the DAC is fed 96 kHz, finds half a second of the
+  track bit for bit in what the engine wrote, goes on to the next track gapless, and takes the name set on its page;
+  shown failing with the gain not 1, the rate said wrong, native DSD not read, the name not kept, and the next track
+  not given ahead.
+- `281-mandarin-bridge` (item 281): **Mandarin USB is Mandarin Bridge.** The renderer app is named for what it is
+  to be, Mandarin's bridge to a USB DAC on a device of its own (on Android now; Linux and a Raspberry Pi image to
+  come): `usb-renderer/` is `bridge/`, its workflows `bridge.yml` and `bridge-release.yml`, its APK
+  `Mandarin-Bridge-<version>.apk` on the `test-bridge` pre-release (the old `test-usb-renderer` one is no longer
+  updated), a version's tag `mandarin-bridge-v<version>`. The app says Mandarin Bridge on its screen and as its UPnP
+  model. Its package id, its settings, its native library and the server's profile id are as they were, so it
+  installs over Mandarin USB and keeps what was set. The server (Renderers/MandarinBridge.cs, once MandarinUsb.cs)
+  knows both names, so an app not yet updated is the same renderer (test/mandarin-bridge.test.js, shown failing with
+  the old name no longer known).
+- `280-page-tour-search-says-why` (item 280): **a search begun while the page starts is kept.** The page paints Home
+  from its last visit at once, then waits for the server and the rooms, and only then lands on Home (`bootstrap`'s
+  `showHome()`), which closed the search and emptied its results. A search typed in that moment was lost; on a loaded
+  machine the page tour's Search step was (its intermittent failure, at a desktop and at a phone). The landing now
+  keeps a search that is open (`showHome({ keepSearch: true })`), its results and its banner, and still reads Home's
+  rows; every other way back to Home clears it as before. `test/search-while-starting.test.js` holds the rooms' answer
+  back for 2.5 s and types meanwhile (shown failing with the landing as it was). The page tour's Search step now says,
+  should it fail, what the page showed and each call that cleared the search, with where from.
+- `275-bit-perfect-usb-on-server` (item 275, third part): **the bit-perfect check of a USB DAC on the server.** The
+  check (BitPerfect/Check.cs) now takes what records the DAC's feed as a recorder (Recorder.cs): a Mandarin USB
+  renderer's /capture as before, or, for a sound device on the server that is a USB DAC, its USB bus, read through
+  the kernel's usbmon as SQ-tool reads it (Usbmon.cs, UsbRecorder.cs). The DAC is found on the bus from ALSA's own
+  files (the card's `usbbus`, its playback endpoint in `stream0`); every isochronous transfer to that endpoint is
+  written as it went down the cable into a WAV in the DAC's slot (S16, S24_3LE, S32, S24 in the low bytes of 32,
+  native DSD words either way round; DoP found by its markers), from the next stream begun after the check asked (the
+  old track's stop, or a start that sent only silence, waited out), the whole track in one recording, and compared
+  as Mandarin USB's are. What usbmon couldn't keep up with is said, and found as frames lost. The step is offered on
+  Now playing for a USB DAC on the server; asked where usbmon isn't loaded or can't be read, it says what to do. The
+  recordings go once compared. `mandarin-server bitperfect` reads a usbmon capture too, which is how it is tested
+  (UsbmonTests: each slot, another DAC's and the feedback endpoint's traffic on the bus, a transfer lost, no stream
+  begun).
+- `279-folder-is-an-album` (item 279): **a folder is an album on the phone too.** The phone keyed an album by its
+  album artist and title alone, so Deep Purple's Machine Head in three folders — the 1972 original, the 2012
+  remaster and the 2024 remix, each tagged "Machine Head" — was one album of 31 tracks, its quality the highest of
+  them. Its albums are now keyed as the server's are (Scanner.cs: artist, title and folder), by core's
+  `PhoneAlbumKeys`: the same tags in two folders are two albums, and a disc folder ("CD1", "Disc 2", "Side 1", the
+  server's own rule) is its parent's, so an album's discs stay one. An album whose tags are in one folder only keeps
+  the key it had, so its cover, its links and what was saved of it stay. The server already kept two folders apart
+  (AlbumFoldersTests), and a streaming service's albums are each its own release; neither changes.
+- `278-usb-renderer-in-mandarin` (item 278): **Mandarin USB brought into Mandarin's repository.** The app that makes
+  an Android device with a USB DAC a UPnP renderer played through Mandarin's own USB driver was its own repository
+  (github.com/meltface-80/Android-USB-Driver, taken here at its main, f4d957a: the DAC said whole to Mandarin, and
+  the recording of what it feeds the DAC for the bit-perfect check), with Mandarin's driver files and :core copied
+  into it each night and a pull request opened when they changed. It is now `usb-renderer/`, and builds from
+  Mandarin's files where they are: the driver's sources and USB device filter (`usb-renderer/driver-files.txt`) put
+  beside its own at build time, `usb_jni.cc` compiled from Mandarin's app, and `:core` a project of its build. The
+  copy (`mandarin/`), its sync script and its nightly workflow are gone: a change to the driver is one pull request,
+  built for both apps (`.github/workflows/usb-renderer.yml`, run when its files, the driver's or :core change). A
+  push to dev puts its APK on the `test-usb-renderer` pre-release, never "latest"; a version is cut by hand with
+  `usb-renderer-release.yml` (the tag `mandarin-usb-v<version>`, never marked latest, so the server's updater still
+  reads Mandarin's own). Signed as before: Mandarin's release key where the secrets are set, else the committed
+  shared key. Its own history is in the old repository; its changelog is `usb-renderer/CHANGELOG.md`.
+
+- `275-bit-perfect-now-playing` (item 275, second part): **the bit-perfect check on Now playing.** Where the device
+  can record what it feeds its DAC (a Mandarin USB renderer whose /dac.json says "capture", kept with the device as
+  it is found), the signal path has a step for it, in the page and the app alike: "Bit-perfect check", what it
+  does, and a Check button (a step may now carry an action: `action`, `button`). Asked for, the step says how far
+  the check has got (recording, so many seconds of the track; comparing), the room's state bumped as it goes, so
+  Now playing follows it; done, "Bit-perfect to the DAC" (green) or "Not bit-perfect to the DAC" (red) with the
+  report's sentence, and Check again. A device that can't record has no such step, and the check asked for anyway
+  is refused with why, said in a toast. Tests: `bitperfect-check.test.js` (the step offered on the device that
+  records and not on the other, and its verdict once done), `NowPlayingViewTest` (the step's button read).
+
+- `275-bit-perfect-check` (item 275, first part): **the bit-perfect check, end to end, on the server.** The
+  owner's idea: SQ-tool's comparison (github.com/meltface-80/SQ-tool) inside Mandarin, the server doing it, as it
+  holds what it sent. `POST /api/bitperfect {zone_or_output_id}` on a Mandarin USB renderer whose app records what
+  it feeds its DAC (/dac.json's "capture", the Android USB driver's /capture): the device is asked to record, the
+  track is played again from its start, and each recording (two minutes at most, so a longer track is recorded in
+  turn) is fetched, with its sidecar. What was sent is then fetched from this server as the device fetched it (the
+  file, the cache's, a DSF made as it played) and each recording is found in it and walked with it frame by frame
+  (BitPerfect/Compare.cs): PCM as left-justified 32-bit words, so a 16-bit track in a 32-bit slot is the same
+  numbers; DSD as its bits in the order they play, from a DSF, DoP or native words big- or little-endian. The
+  verdict is SQ-tool's: bit-perfect, dropouts (an underrun's silence, frames lost or played again), altered,
+  not bit-perfect (by how many dB, where the level was changed), resampled, or not the track that was sent.
+  `GET /api/bitperfect?zone=` gives where it is and the report: how much of the track was compared, where it first
+  differed, the dropouts, the format the DAC was fed, the USB driver's underruns and flushes. `mandarin-server
+  bitperfect` compares files as the check does. Next: a DAC on this server's own USB recorded off the bus (usbmon),
+  and the check on Now playing. Tests: `BitPerfectTests` (PCM in 32- and 24-bit slots, from the start and from the
+  middle; an underrun, frames lost, one sample changed, 1 dB down, another track, another rate; DSD as DoP and as
+  native words both ways, a byte changed), `bitperfect-check.test.js` (a fake Mandarin USB renderer: bit-perfect,
+  1 dB down, the next track recorded, an app that can't record).
+
+- `276-dev-image-not-starved` (item 276): **dev's server image kept up with the test app.** The image's run waits
+  some 25 minutes for CI on its commit before it builds, and each newer push to dev cancelled the run before it.
+  With pull requests merged faster than that (272, 273 and 274 here, #600 and #602 from the Android USB driver's
+  work), no image was published after 271: ghcr's :dev said 1.1.15-t47 while the test APK, built at once, was t50.
+  Now a run under way is never cut short: a newer push waits for it, and of those waiting only the newest runs
+  (`.github/workflows/docker-publish.yml`, `cancel-in-progress: false`), so :dev is at most one build behind and
+  an older run still never pushes over a newer one. Test: `publish-after-ci.test.js` (the image's run never cut
+  short on any branch, the test APK's as before).
+
+- `277-pace-test-race` (item 277): **the pacing test waits for the making to stop, however busy the machine.**
+  `PaceTests` read a track's first bytes, then took the making's file three seconds later and again 1.5 s after,
+  and wanted the two the same. On a busy runner the socket's buffers were still filling at three seconds, so the
+  server still read on and the making went on a little (6.43 MB, then 6.63 MB): the test failed once and passed
+  alone. It now waits, up to 30 s, until the file stops growing, and then holds it as before to well short of the
+  track (with the pacing broken, the making runs to the end and the test fails).
+
+- `274-fiio-sr11-profile` (item 274): **the FiiO SR11 known by its model.** A streamer on the network says what
+  formats it takes (GetProtocolInfo: FLAC, WAV, DSF…) and almost never what rates or depths: UPnP has no way to
+  ask. A DAC on the server's own USB says its rates itself (ALSA), a WiiM says what its decoder runs at, a
+  Mandarin USB renderer reads its DAC whole; every other renderer gets the rates of a profile of its model, or,
+  with none, only 44.1 and 48 kHz until they are ticked on its page. The SR11 had none, and showed 44.1/48 alone.
+  Now it has one (Renderers/Profiles.cs), FiiO's figures for its USB output to a DAC: PCM to 768 kHz/32-bit and
+  DSD64–256 as DoP, gapless by SetNextAVTransportURI; its note says its coaxial and optical outputs stop at
+  192 kHz and DSD64, to untick there (the SR11 doesn't say over UPnP which output it uses). What you have ticked
+  stays as it is. Tests: `audio-devices.test.js` (the profile by maker and model, its chips on), the profiles'
+  table in `renderers-csharp.json` with the new row.
+
+- `273-named-early-not-moved-on` (item 273): **a track no longer passed over on the FiiO SR11.** The SR11 names the
+  next track (the one SetNextAVTransportURI handed it) as soon as it is given it, all through the track before
+  (item 233). The server took the move as made once the track playing was in its last 15 s, so for those 15 s it
+  showed the next track at the first's position; and where the next track is shorter than where the first's clock
+  then stood, it found that track "still playing at its end" and started the one after it by hand. On the owner's
+  Old Sock, Angel (track 2, 3:53) came after a 5:43 track 1: "still playing at the end of track 2 (342 s of 233 s);
+  track 3 started by hand", and Angel never played. Now a renderer that has named the next track early all along
+  has moved on only when its position goes back to the start (5 s back, or a third of a short track, and under
+  15 s in); one that names it only at the change is believed at a track's end as before. Test:
+  `renderer-names-next.test.js` (a 40 s track before a 5 s one, the next named all along: the first on screen to
+  its end, and the second played, nothing started by hand).
+
+- `272-seek-while-made` (item 272): **a seek in a track made as it plays.** The FiiO SR11, playing PCM made DSD256
+  as it plays, seeks as in any file: it asks for the bytes where the time falls. Asked for bytes not yet made, the
+  server waited for the making to get there, at a little over twice real time from where it was: a minute and more
+  for a seek to the middle of a track. The SR11 gave up waiting and went silent; Back (a seek to the start) on that
+  stuck stream played nothing, and only the next track, sent anew, played. Now, as Roon begins its DSP again where
+  you seek, a device asking for bytes more than 3 s of music past what is made has the making stopped and begun
+  again from there (Upsample/Resume.cs): the track decoded from the frame that byte holds (a DSF's block, a WAV's
+  frame), the file written from that byte on, what was made before it kept, and nothing ever sent from the gap
+  between. Read again from the start (Back) and played on, the making is begun again where the first part ends,
+  5 s before the device gets there, and the file is whole again; one left with a gap when its making ends is not
+  kept, and the next play makes it whole. Only the newest of a file's readers moves the making. And Back, or a seek,
+  to a device still starting its track long after it was sent (TRANSITIONING for more than 8 s) or stopped on it
+  sends the track again, as the next track is sent, and seeks there after. `TailFollow` moved out of Transcoder.cs
+  into Transcoder.Follow.cs for room. Tests: `SeekMadeTests` (a DSD64 track sought to 75 s while 2 s is made: the
+  bytes in under 8 s, the sine at its phase there, then read whole from the start with every part of it the track;
+  a ×16 WAV sought to 30 s, likewise), `renderer-stuck.test.js` (a renderer stuck in TRANSITIONING: Back sends the
+  track again, a seek sends it and seeks).
+
+- `271-making-paced` (item 271): **the making paced as Roon paces its DSP.** A track made as it plays was made as
+  fast as the processor allowed: DSD256 on the owner's server at about three times real time, every core given it
+  full for the first third of the track, idle for the rest (htop beside Roon's: two cores near 100%, a third busy;
+  Roon a fraction of one). Roon processes as it plays, at playback's pace: its "processing speed", 1.6x there, is
+  how much faster it could go, 1.3x the least it should be, one core by default, two at most with its parallel
+  sigma-delta modulator; the work per second of music is much the same, spread over the whole track. Now a making
+  whose length is known before its first byte (a DSF from PCM, a WAV above FLAC's rates) is held some 30 s of music
+  ahead of what the devices reading it have asked for (Upsample/Pace.cs: SIGSTOP while that far ahead, SIGCONT once
+  they have read on to half of it, and at once when one asks for more than is made, as a seek forward does;
+  MANDARIN_MAKE_LEAD_S sets it, 0 for none). The next track is made that far as before, and waits for the device to
+  start on it; a ×16 WAV is armed as the next track once its making has begun, as a DSF is (its length is its
+  header's since item 270), or a paced one would never be whole in time. Its speed in the log and on Output is
+  counted by the time it worked, not the time it was held ("…, 41 s of it held ahead of the device"). ×2 to ×8 into
+  FLAC, made at five times real time and more, and armed only once whole, are made as before. Tests: PaceTests (a
+  minute's DSD64, its start read and then nothing: made only so far, and still while it waits; read on, made to its
+  end and sent whole; without the pacing, made on regardless).
+
+- `270-wav-length-known` (item 270): **×16 gapless: a WAV that says its length.** PCM above FLAC's rates goes as WAV
+  (×16 to 705.6 kHz, Playback/HighRates.cs), written by ffmpeg with -seekable 0 so a device can read it as it is made;
+  its header's sizes were left at 0xFFFFFFFF, 4 GB, even once whole, so the FiiO SR11, told every track ran some
+  17 minutes, didn't know where one ended and waited at the end of each before the next: the owner's ×16 albums
+  weren't gapless. Now a WAV made as it plays (minimum phase, gentle) is written by the making itself
+  (UpsampleCommand.Pcm, Upsample/WavHeader.cs): its header first, saying its length, the track's frames at its rate
+  ×16 as the making is held to (Joins.Frames, as a DSF's: item 262), ffmpeg making only the samples; and it is sent
+  with that length (Streams.cs). A WAV ffmpeg makes (the standard filter) has its sizes put right once whole
+  (Transcoder's Finish), as the next track is armed and every later play has it; the first of a play, sent as it is
+  made, still says none. One over 4 GB (17 minutes and more at 24/705.6) says 0xFFFFFFFF as before. A ×16 file made
+  before has a name of its own ("h"), so none is sent again. Tests: WavLengthTests (×16 in minimum phase: sent with
+  its length, its header saying the same, the track's frames ×16; before, no length and 4 GB; the standard filter's,
+  once whole, its sizes its own; before, 4 GB); ShapePlanTests (the name).
+
+- `268-phone-24-bit` (item 268): **a phone's 32-bit DAC sent 24 bits.** Since item 265 a phone's stream target
+  took the DAC's deepest depth as it was, and with Output upsampling a DAC that takes 32 bits (the owner's SMSL SU1 on
+  the FiiO R7) was planned 32-bit FLAC: a stream the server refuses where its ffmpeg doesn't write 32-bit FLAC (the
+  image's, bookworm's 5.1), and one Android's FLAC decoder may not read. A renderer's target was already held to what
+  ffmpeg writes. The phone's is now held to 24 bits (Phones.TargetFor): its player hands the USB driver floats, which
+  the driver packs into the DAC's own slots, 32-bit words for the SU1, so the DAC is fed 32 bits all the same. Tests:
+  phone.test.js (a DAC of 24 and 32 bits upsampled ×4: 24-bit FLAC, and made; before, 32-bit).
+- `269-ffmpeg-32-bit-flac` (item 269): **32-bit FLAC.** A renderer that takes 32 bits was sent 24: the image's
+  ffmpeg, Debian 12's 5.1, can't write 32-bit FLAC, and the ffmpeg of 6.1 on writes it only when told
+  -strict experimental, else 24 bits without a word; the server asked without it, so its probe said no everywhere
+  (Transcoder.Writes32) and Bit depth's 32 stayed off. The image is Debian 13's (trixie, ffmpeg 7.1, since PR #594), and
+  both the probe and every 32-bit FLAC conversion ask with -strict experimental
+  (Playback/HighRates.Args, beside WAV's own; a made-as-played track's encode is the same). A renderer set to Bit
+  depth Auto or 32 that takes 32 bits now gets 32-bit FLAC; one that can't read it is set to 24 on its page. A phone
+  stays at 24 (item 268). CI checks the image's ffmpeg writes 32-bit FLAC. Tests: ConversionsCsharpTests (the
+  32-bit file made end to end is 32 bits a sample, its STREAMINFO read; it was 24 behind an ffmpeg that writes 32;
+  the suites' own probe of ffmpeg asks as the server does);
+  the kept answers of the two 32-bit conversions and of the 32-bit cases of held_args carry the flag, every changed
+  answer checked to differ by it alone.
+
+- `267-making-leaves-the-server-two-cores` (item 267): **DSD256 made as it plays keeps up, and the server keeps two cores.** Since
+  item 260 a track made as it plays kept all the cores but one, and the one left was all this server had: its own
+  threads, which answer the app and stream each track to the device, are kept to the cores playback doesn't keep
+  (Cpu.cs, so that the library's reading and the scans keep off playback's), and they shared it with the library's
+  re-reading (4 to 8 s each). On the owner's four-core server, playing DSD256 to the FiiO SR11, the app's requests
+  timed out after 6 s in bursts (17 in a minute) and the SR11, which fetches its track before it answers, stopped
+  answering Play. Every burst fell while a making held cores 1 to 3 (the log of 3 November, 23:26). Now Auto keeps all
+  the cores but two where there are four or more (two of four, six of eight), and all but one on a machine of two or
+  three, as before; a number set by hand (Settings → Library Scanner → Cores for upsampling and DSD) is kept as set.
+  The page's and the app's words say so. And the making itself: one carried on into the next track of an album (item
+  262) waits for it, and the cores kept for making are given back 30 s after the last; when the next track's making
+  took it again, playback had its three cores back but the making stayed on the one it was moved to while it waited
+  (Cpu.Keep moved a process only off cores taken from it, never onto cores given it). Every DSD256 track made "on from
+  the track before" in the owner's log was made at 1.15 to 1.19× real time, one core's speed, the device fed barely
+  faster than it played; the first of each album, on three cores, at 2.9 to 3.3×; PCM ×16 and DSD128, which a core
+  makes at 5.6× and more, played as they should. Now a process is moved whenever its cores aren't the ones its kind
+  has. Tests: CpuTests (Auto, with and without DSP, on three, four and eight cores; three set by hand);
+  CpuAloneTests, for real on four cores (an album's first track made DSD256 and the making kept for the second, moved
+  to playback's one core while it waits, then onto the two kept for making once the second is asked for; before, left
+  on the one).
+
+- `266-tidal-refresh-once` (item 266): **a stale Tidal token renewed once.** Two calls refused at once with a token
+  that had stopped working both renewed it when the second's refusal came after the first's renewal had finished
+  (TidalApi.Refresh was one at a time, but only while one was under way): a renewal more than needed, and the test
+  of it ("a token that stops working is refreshed, unasked") failed when the server's own call for the featured
+  lists ran beside the test's search. Now a call refused with a token that has since been replaced is made again with
+  the one kept, and only a call refused with the current one renews it (TidalApi.Renewed). Test: tidal.test.js (two
+  calls refused with a stale token, the second's refusal held until the first has renewed it: renewed once).
+
 ## v1.1.14
 
 Tweaks - altered share card copy function, Android app copies it to the clipboard. Items 223 to 225.

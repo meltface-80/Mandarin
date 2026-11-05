@@ -30,7 +30,7 @@ const KIT = `
   const until = async (fn, ms = 10000) => { const t0 = Date.now(); while (!fn()) { if (Date.now() - t0 > ms) return false; await sleep(50); } return true; };
   const shown = (el) => !!el && !el.classList.contains("hidden") && getComputedStyle(el).display !== "none" && el.getClientRects().length > 0;
   const $ = (s) => document.querySelector(s);
-  await until(() => document.querySelector("#home-random .album, #home-today .album, #home-library .album"), 20000);`;
+  const homeInTime = await until(() => document.querySelector("#home-random .album, #home-today .album, #home-library .album"), 20000);`;
 
 /* Every page of Settings and of Setup: opened from its list, and open. */
 const SETTINGS = `(async () => { ${KIT}
@@ -49,7 +49,12 @@ const SETTINGS = `(async () => { ${KIT}
       await sleep(350);   // what the page loads on opening, in
     }
   }
-  return { opened, missed };
+  // A row that is a page of its own (SQ-tool): opened beside the page, at its address.
+  const asked = [];
+  window.open = (url) => { asked.push(url); return null; };
+  window.__settingsShowView("home"); await sleep(150);
+  for (const b of document.querySelectorAll('.settings-view[data-view="home"] > .settings-nav > .settings-nav-item[data-open]')) b.click();
+  return { opened, missed, asked };
 })()`;
 
 /* A row's wall from its title on Home. */
@@ -104,10 +109,22 @@ const PLAY = `(async () => { ${KIT}
   return out;
 })()`;
 const SEARCH = `(async () => { ${KIT}
+  // What happened to the search, said should it fail (item 280): each call that clears it or leaves Home, with where
+  // from, and what the results grid went through.
+  const log = [], t0 = performance.now(), at = () => Math.round(performance.now() - t0);
+  for (const f of ["__clearSearchIfActive", "__showHome", "__exitArtists", "__exitLabels", "__libraryChanged"]) {
+    const o = window[f];
+    if (typeof o === "function") window[f] = function (...a) { log.push(at() + " " + f + " < " + (new Error().stack || "").split("\\n").slice(2, 5).map(x => x.trim()).join(" < ")); return o.apply(this, a); };
+  }
+  const grid = $("#album-grid");
+  new MutationObserver(() => log.push(at() + " grid: " + grid.children.length + " tiles, " + grid.className)).observe(grid, { childList: true, attributes: true, attributeFilter: ["class"] });
   const out = {};
   $("#search-open").click(); await sleep(300);
   const input = $("#search-input"); input.value = "Album One"; input.dispatchEvent(new Event("input", { bubbles: true }));
   out.search = await until(() => [...document.querySelectorAll("#album-grid .album")].some(a => shown(a) && /Album One/.test(a.textContent)), 8000);
+  out.diag = { homeInTime, field: $("#search-row").className, value: input.value, active: !!(window.__searchActive && window.__searchActive()),
+    status: ($("#search-status") || {}).textContent, banner: ($("#banner") || {}).textContent, home: shown($("#home-view")),
+    tiles: [...grid.querySelectorAll(".album")].slice(0, 4).map(a => (shown(a) ? "" : "(hidden) ") + a.textContent.trim().slice(0, 40)), log: log.slice(-30) };
   document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })); await sleep(300);
   window.__showArtistAlbums("Artist A");
   out.artist = await until(() => window.__artistViewActive && window.__artistViewActive(), 8000);
@@ -134,6 +151,7 @@ for (const [layout, opts] of [["a desktop", { width: 1440, height: 900, mouse: t
 
     const s = await step("settings", SETTINGS);
     assert.deepEqual(s.missed, [], "every Settings and Setup page opens");
+    assert.deepEqual(s.asked, ["/sq-tool/"], "Settings → SQ-tool opens SQ-tool beside the page");
     for (const name of ["account", "folders", "playback", "setup", "backup", "system", "smartpicks", "display", "shelfset", "away"]) {
       assert.ok(s.opened.includes(name), name + " opened: " + s.opened.join(", "));
     }
@@ -161,7 +179,7 @@ for (const [layout, opts] of [["a desktop", { width: 1440, height: 900, mouse: t
     assert.equal(p.np, true, "Now playing opens: " + JSON.stringify(p.diag));
 
     const q = await step("search", SEARCH);
-    assert.deepEqual(q, { search: true, artist: true });
+    assert.deepEqual({ search: q.search, artist: q.artist }, { search: true, artist: true }, "search and an artist open: " + JSON.stringify(q.diag));
 
     assert.deepEqual(errors, [], "nothing thrown on any screen");
   });

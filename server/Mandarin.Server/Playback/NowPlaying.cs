@@ -28,7 +28,7 @@ internal static class NowPlaying
         var keys = s != null ? Tracks.ArtistKeys(s) : [];
         var length = st.Duration != 0 ? st.Duration : t != null && Math.Round(t.Duration, MidpointRounding.AwayFromZero) is var d && d != 0 ? d : (double?)null;
         var format = FormatOf(z, st, t);
-        return new JsonObject
+        var o = new JsonObject
         {
             ["line1"] = line1, ["line2"] = line2, ["line3"] = line3,
             ["artists"] = new JsonArray(Names.SplitArtists(line2).Select(name => (JsonNode)new JsonObject { ["name"] = name, ["linkable"] = keys.Contains(Names.Fold(name)) }).ToArray()),
@@ -38,8 +38,11 @@ internal static class NowPlaying
             // Not in Roon's shape: what the speaker is actually being sent, for the format line on Now playing.
             ["track_id"] = t?.Id,
             ["album_offset"] = st.AlbumOffset != null ? st.AlbumOffset : al != null ? al.Id : null,
-            ["format"] = format == null ? null : new JsonObject { ["kind"] = format.Value.Kind, ["text"] = format.Value.Text }
+            ["format"] = format == null ? null : new JsonObject { ["kind"] = format.Value.Kind, ["text"] = format.Value.Text },
         };
+        // Every step of the way, for Now playing's lines and its Signal path sheet (SignalPath.cs, item 247); a renderer's.
+        if (SignalPath.Of(z, st, t) is { } signal) o["signal"] = signal;
+        return o;
     }
 
     /*
@@ -88,10 +91,12 @@ internal static class NowPlaying
         {
             var s = st.Sent;
             static string Khz(double hz) => hz != 0 ? Tags.Js.Num(hz / 1000) : "";
-            var tick = st.Verified == "yes" ? " ✓" : "";
+            var tick = st.Confirmed ? " ✓" : "";
             // DSD as it is: the file itself, at its multiple.
             if (!s.Transcode && s.Dsd != 0) return ("lossless", $"DSD{Tags.Js.Num(s.Dsd)}");
-            if (s.Transcode) return ("lossless", $"FLAC {Tags.Js.Num(s.Bits)}/{Khz(s.Rate)}{(s.Upsampled != 0 ? $" ↑×{Tags.Js.Num(s.Upsampled)}" : "")}{(s.Dsp ? " · DSP" : "")}{tick}");
+            // Made DSD from PCM (item 243): the DSF of the track's own PCM.
+            if (s.Dsd != 0) return ("lossless", $"DSD{Tags.Js.Num(s.Dsd)} from PCM");
+            if (s.Transcode) return ("lossless", $"{(s.Mime == "audio/wav" ? "WAV" : "FLAC")} {Tags.Js.Num(s.Bits)}/{Khz(s.Rate)}{(s.Upsampled != 0 ? $" ↑×{Tags.Js.Num(s.Upsampled)}" : "")}{(s.Shape != null ? " · " + Upsample.Shape.Words(s.Shape) : "")}{(s.Dsp ? " · DSP" : "")}{tick}");
             var name = Library.FormatName(t.Container, false) ?? (t.Codec ?? "").ToUpperInvariant();
             if (t.Lossless) return ("lossless", string.Join(" ", new[] { name.Length > 0 ? name : "Lossless", s.Bits != 0 && s.Rate != 0 ? $"{Tags.Js.Num(s.Bits)}/{Khz(s.Rate)}" : "" }.Where(x => x.Length > 0)) + tick);
             return name.Length > 0 ? ("lossy", name) : null;

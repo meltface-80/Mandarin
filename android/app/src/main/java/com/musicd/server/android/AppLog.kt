@@ -25,7 +25,7 @@ import java.util.concurrent.TimeUnit
  * findings marked "!!"), each request to the server with how long it took, the way to the server found and lost, the
  * app's own lines of Android's log (the phone's player, the services, a crash), and now and then the server's health and
  * the phone's player; and the server keeps its own (Diagnostics.cs), fetched as the log is saved. Every line goes
- * through LogRedact before it is written: no address, name, title, search, file or key is kept. Kept in files/applog,
+ * through LogRedact before it is written: no key, password, email, internet or Tailscale address is kept (item 235). Kept in files/applog,
  * the last two files of [FILE_BYTES] each; switched off, deleted, and the server's with it.
  */
 internal object AppLog {
@@ -209,19 +209,23 @@ internal object AppLog {
     }
 
     /**
-     * The log saved to Downloads/Mandarin as mandarin-log-<when>.txt: the app's, then the server's (fetched now, each line
-     * through LogRedact again); its name, or null.
+     * The log saved to Downloads/Mandarin as mandarin-log-<when>.txt: the app's, then the server's, then every Mandarin
+     * Bridge's (item 291: the server gathers them), fetched now, each line through LogRedact again; its name, or null.
      */
     fun save(a: Activity, done: (String?) -> Unit) {
         line("APP", "log saved from Settings → Setup")
         io.execute {
             val d = dir
             val all = java.io.ByteArrayOutputStream()
-            all.write("Mandarin's log: the app's, then the server's. It is made without personal data; please look through it before you send it.\n\n— The app —\n".toByteArray())
+            all.write("Mandarin's log: the app's, the server's, then each Mandarin Bridge's. It leaves out passwords, keys, emails, account names and internet or Tailscale addresses; please look through it before you send it.\n\n— The app —\n".toByteArray())
             if (d != null) for (f in listOf(File(d, "previous.log"), File(d, "current.log"))) if (f.exists()) f.inputStream().use { it.copyTo(all) }
             val server = runCatching { Store.client(a)?.bytes("/api/diagnostics/log")?.toString(Charsets.UTF_8) }.getOrNull()
             all.write("\n— The server (times in UTC) —\n".toByteArray())
             all.write((server?.lines()?.joinToString("\n") { LogRedact.line(it) } ?: "(the server couldn't be reached: its log isn't here)").toByteArray())
+            // Every Mandarin Bridge's own log, gathered by the server (item 291), a heading for each.
+            val bridges = runCatching { Store.client(a)?.bytes("/api/diagnostics/bridges")?.toString(Charsets.UTF_8) }.getOrNull()
+            all.write("\n\n— The Mandarin Bridges (times in UTC) —\n".toByteArray())
+            all.write((bridges?.lines()?.joinToString("\n") { LogRedact.line(it) } ?: "(the server couldn't be reached: the Bridges' logs aren't here)").toByteArray())
             val name = "mandarin-log-" + SimpleDateFormat("yyyy-MM-dd-HHmmss", Locale.UK).format(Date()) + ".txt"
             val ok = ShareBridge(a).saveDownload(all.toByteArray(), name, "text/plain")
             a.runOnUiThread { done(if (ok) name else null) }

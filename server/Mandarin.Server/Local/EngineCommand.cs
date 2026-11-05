@@ -7,12 +7,12 @@
 //
 //   { find: true }                     AudioEngine.Find: { bin, version } or null (AUDIO_ENGINE as this process has it)
 //   { probe: bin }, { plays: location } AudioEngine.Probe, Plays
-//   { open: { location, bin, volume } } an output, the one the steps after it play
+//   { open: { location, bin, volume, dsd_native } } an output, the one the steps after it play
 //   { set: uri }, { next: uri }, { play: true }, { pause: true }, { seek: secs }, { halt: true }
 //   { kill: true }                     this process's engine killed (SIGKILL), as when it dies mid-track
 //   { until: { state | track | above | between: [a, b] | error | size: [file, n] }, ms }
 //                                      true once it holds (an error: its words), false when [ms] have gone
-//   { state: true }, { position: true }, { sink: true }, { next_uri: true }, { take_error: true }, { wait: ms }
+//   { state: true }, { position: true }, { sink: true }, { opened: true } (the format it last opened at, item 256), { next_uri: true }, { take_error: true }, { wait: ms }
 using System.Diagnostics;
 using Mandarin.Server.Tags;
 
@@ -52,7 +52,7 @@ internal static class EngineCommand
         if (st["open"] is JsObj op)
         {
             var made = new EngineOutput("Test", S(op["location"]), S(op["bin"]), Environment.GetEnvironmentVariable("FFMPEG_PATH") is { Length: > 0 } ff ? ff : "ffmpeg",
-                _ => { }, TJs.IsNullish(op["volume"]) ? 100 : N(op["volume"]), () => false, u => u);
+                _ => { }, TJs.IsNullish(op["volume"]) ? 100 : N(op["volume"]), () => false, u => u) { DsdNative = S(op["dsd_native"]) };
             opened(made);
             return null;
         }
@@ -68,6 +68,7 @@ internal static class EngineCommand
         if (st.Has("position")) return o.Seconds;
         if (st.Has("next_uri")) return o.NextUri;
         if (st.Has("sink")) return o.Sink is { } k ? new JsObj { ["rate"] = k.Rate, ["channels"] = k.Channels } : null;
+        if (st.Has("opened")) return o.Opened is { } f ? new JsObj { ["rate"] = f.Rate, ["format"] = f.Format } : null;
         if (st.Has("take_error")) return o.TakeError()?.Message;
         if (st["until"] is JsObj u)
         {

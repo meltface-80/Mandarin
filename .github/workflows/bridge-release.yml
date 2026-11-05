@@ -1,0 +1,67 @@
+name: Mandarin Bridge release
+
+# A version of Mandarin Bridge (bridge/, items 278 and 281), cut by hand: the tag mandarin-bridge-v<version> and a GitHub
+# release, never marked "latest" (Mandarin's own releases are, which its updater reads), with every Bridge's build
+# (item 294): the Android APK, Mandarin Bridge for Linux for x64 and arm64 with install.sh (fetching from this release),
+# and the Raspberry Pi image; beside each that Settings → Updates offers, its sidecar (bridge/sidecar.sh). Run it once
+# the version in bridge/android/app/build.gradle.kts and bridge/CHANGELOG.md is merged. Nothing else makes a tag for it.
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'The version to release (as in bridge/android/app/build.gradle.kts, e.g. 0.2.0)'
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    uses: ./.github/workflows/bridge.yml
+    secrets: inherit
+
+  linux:
+    uses: ./.github/workflows/bridge-linux.yml
+
+  pi:
+    uses: ./.github/workflows/bridge-pi.yml
+
+  release:
+    needs: [build, linux, pi]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Check the version matches the build
+        run: |
+          v=$(grep -oP 'versionName = "\K[^"]+' bridge/android/app/build.gradle.kts)
+          [ "$v" = "${{ github.event.inputs.version }}" ] || { echo "::error::app/build.gradle.kts says $v, not ${{ github.event.inputs.version }}"; exit 1; }
+      - uses: actions/download-artifact@v8
+        with:
+          path: out
+          merge-multiple: true
+      - name: Tag and release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ github.event.inputs.version }}
+        run: |
+          set -e
+          apk=$(find out -name 'Mandarin-Bridge-*.apk' | head -1)
+          [ -n "$apk" ] || { echo "::error::no APK was built"; exit 1; }
+          for f in mandarin-bridge-linux-x64.tar.gz mandarin-bridge-linux-arm64.tar.gz mandarin-bridge-pi-arm64.img.xz; do
+            [ -f "out/$f" ] || { echo "::error::$f was not built"; exit 1; }
+          done
+          # The Linux builds' sidecars name the version their build said; this release's must be the one released.
+          for a in x64 arm64; do
+            grep -q "\"version\": *\"$VERSION\"" "out/mandarin-bridge-linux-$a.tar.gz.json" || { echo "::error::linux-$a was built as another version"; cat "out/mandarin-bridge-linux-$a.tar.gz.json"; exit 1; }
+          done
+          # install.sh fetching from this release, not the rolling test build.
+          sed "s|releases/download/test-bridge|releases/download/mandarin-bridge-v$VERSION|g" bridge/linux/install.sh > install.sh
+          notes=$(awk -v v="## v$VERSION" '$0==v{p=1;next} /^## /{if(p)exit} p' bridge/CHANGELOG.md)
+          # Also as mandarin-bridge.apk with its build and checksum beside it (item 291): what Settings → Updates offers.
+          cp "$apk" mandarin-bridge.apk
+          ./bridge/sidecar.sh mandarin-bridge.apk "$GITHUB_SHA" "$VERSION"
+          gh release create "mandarin-bridge-v$VERSION" "$apk" mandarin-bridge.apk mandarin-bridge.apk.json \
+            out/mandarin-bridge-linux-x64.tar.gz out/mandarin-bridge-linux-x64.tar.gz.json \
+            out/mandarin-bridge-linux-arm64.tar.gz out/mandarin-bridge-linux-arm64.tar.gz.json install.sh \
+            out/mandarin-bridge-pi-arm64.img.xz --title "Mandarin Bridge v$VERSION" --target "$GITHUB_SHA" --latest=false \
+            --notes "${notes:-Mandarin Bridge v$VERSION}"$'\n\n'"Its driver Mandarin's own at ${GITHUB_SHA::7}."

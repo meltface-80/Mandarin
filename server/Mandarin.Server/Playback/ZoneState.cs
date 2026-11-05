@@ -15,6 +15,14 @@ internal sealed record Volume(double? Value, bool Muted);
 /* What a renderer or a sound device is being sent (players.js toItem's `sent`): the Now playing badge's words. */
 internal sealed record SentInfo(bool Transcode, double Rate, double Bits, double Upsampled, bool Dsp, double Dsd, string Ext, string Mime)
 {
+    // The ReplayGain in it (dB, 0: none) and DSD's low-pass (Hz, 0: none), for the signal path (item 247).
+    public double Gain { get; init; }
+    public double Lowpass { get; init; }
+    // The upsampling filter's shape ("min", "gentle"; null: standard), for Now playing (items 248, 259).
+    public string? Shape { get; init; }
+    // DSD's family: 44100, or 48000 for DSD made from a track of 48 kHz's at its own rate (item 261).
+    public double DsdBase { get; init; } = 44100;
+
     public JsonObject Json() => new()
     {
         ["transcode"] = Transcode, ["rate"] = Rate, ["bits"] = Bits, ["upsampled"] = Upsampled,
@@ -51,6 +59,11 @@ internal sealed class ZoneState
     // A renderer's (players.js): what it is sent, and whether the device confirmed it.
     public SentInfo? Sent { get; set; }
     public string? Verified { get; set; }     // "yes" | "no" | null
+    // What the device reports feeding its DAC (item 287): the signal path's last step, said as reported, nothing inferred.
+    public Fed? Fed { get; set; }
+    /* The format sent confirmed by the device, and the device saying the samples go untouched: the badge's tick. A
+       device that says nothing of the samples has none (item 289). */
+    public bool Confirmed => Verified == "yes" && Fed?.Untouched == true;
     // History's and the radio's marks, carried from one state to the next.
     public bool PlayedLogged, LowFired;
 
@@ -140,3 +153,12 @@ internal sealed class QueueView
     public List<QueueEntry> Items = [];
     public double Total, Current;
 }
+
+/*
+ * What a device reports feeding its DAC (item 287), from its own word: [By] who says it (Mandarin Bridge, Mandarin's
+ * audio engine, the device's own API); [Kind] pcm, dop or dsd; the [Rate] and the [Bits] of the words the DAC is
+ * opened at; for DSD its multiple; [Volume] how the level is set (fixed, dac, software) and its [Level]; [Untouched]
+ * whether it says the samples go to the DAC unchanged (null where it doesn't say); [Matches] whether that is the
+ * format sent (the same rate and kind, words wide enough for the samples).
+ */
+internal sealed record Fed(string By, string Kind, double Rate, double Bits, double Dsd, string? Volume, double Level, bool? Untouched, bool Matches);

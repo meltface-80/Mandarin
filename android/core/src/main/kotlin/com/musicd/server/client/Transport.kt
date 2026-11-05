@@ -18,6 +18,10 @@ interface Transport {
 
     /** The bytes at the server's [path] (a cover, the labels' scan log), or at a whole address elsewhere (a service's cover). */
     fun bytes(path: String, timeout: Int): ByteArray
+
+    /** [bytes] of [type] sent to the server's [path] (POST, item 252: a room correction's WAV): the JSON answer. Only over the network. */
+    fun upload(path: String, bytes: ByteArray, type: String, timeout: Int): JSONObject =
+        throw ServerClient.ServerException(503, "Only with the server")
 }
 
 /** The server, over HTTP at [baseUrl], signed in with [token]. Plain HttpURLConnection, no library. */
@@ -31,6 +35,20 @@ class HttpTransport(private val baseUrl: String, private val token: String?) : T
                 c.setRequestProperty("Content-Type", "application/json")
                 c.outputStream.use { it.write(body.toString().toByteArray(Charsets.UTF_8)) }
             }
+            return readJson(c)
+        } finally {
+            c.disconnect()
+        }
+    }
+
+    override fun upload(path: String, bytes: ByteArray, type: String, timeout: Int): JSONObject {
+        val c = open(baseUrl + path, timeout)
+        try {
+            c.requestMethod = "POST"
+            c.doOutput = true
+            c.setRequestProperty("Content-Type", type)
+            c.setFixedLengthStreamingMode(bytes.size)
+            c.outputStream.use { it.write(bytes) }
             return readJson(c)
         } finally {
             c.disconnect()
@@ -87,6 +105,7 @@ class HttpTransport(private val baseUrl: String, private val token: String?) : T
 class WayTransport(private val base: () -> String, private val token: String?, private val ready: () -> Unit = {}) : Transport {
     override fun json(method: String, path: String, body: JSONObject?, timeout: Int): JSONObject = now().json(method, path, body, timeout)
     override fun bytes(path: String, timeout: Int): ByteArray = now().bytes(path, timeout)
+    override fun upload(path: String, bytes: ByteArray, type: String, timeout: Int): JSONObject = now().upload(path, bytes, type, timeout)
     private fun now(): HttpTransport { ready(); return HttpTransport(base(), token) }
 }
 

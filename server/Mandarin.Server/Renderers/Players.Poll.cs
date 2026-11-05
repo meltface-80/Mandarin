@@ -202,18 +202,31 @@ internal sealed partial class Players
         UpnpItem? item;
         int index;
         bool heard, stale;
+        var rel = Didl.ToSeconds(pi["RelTime"]);
+        (int Named, int Playing, double Duration)? early = null;
         lock (gate)
         {
             var idx = uri.Length > 0 ? IndexOfUri(p, uri) : -1;
             // The renderer moved on by itself: SetNextAVTransportURI honoured. Not an answer from before a jump of ours
-            // was done (item 150): a slow one still names the track jumped from, and took the queue back to it.
-            if (idx >= 0 && idx != p.Index && p.Jumping == 0 && asked > p.JumpedAt) { p.Index = idx; p.Next = null; p.Strikes = 0; if (p.Shuffle) p.Played.Add(p.Queue[idx]); }
+            // was done (item 150): a slow one still names the track jumped from, and took the queue back to it. Nor one
+            // that names the next track as soon as it is given it (item 233), the one playing not yet at its end.
+            var playing = p.Index >= 0 && p.Index < p.Queue.Count ? p.Queue[p.Index] : null;
+            if (idx >= 0 && idx != p.Index && p.Jumping == 0 && asked > p.JumpedAt)
+            {
+                if (playing != null && prev.TrackUri == playing.Uri && !MovedOn(prev.Position, rel, playing.Duration, p.NamedEarly == p.Index))
+                {
+                    if (p.NamedEarly != p.Index) { p.NamedEarly = p.Index; early = (idx, p.Index, playing.Duration); }
+                }
+                else { p.Index = idx; p.Next = null; p.Strikes = 0; if (p.Shuffle) p.Played.Add(p.Queue[idx]); }
+            }
             item = p.Index >= 0 && p.Index < p.Queue.Count ? p.Queue[p.Index] : null;
             index = p.Index;
             heard = p.Heard;
             // Asked before a jump of ours was done: what it says of the transport is from before it too.
             stale = p.Jumping > 0 || asked <= p.JumpedAt;
         }
+        if (early is { } e)
+            Server.Log($"[renderers] a renderer names track {e.Named + 1} {Math.Round(rel)} s into track {e.Playing + 1} of {Math.Round(e.Duration)} s: track {e.Playing + 1} kept until it ends");
         // A stop from before a jump is the track jumped from stopping: the jump's own state stands until the next read.
         if (tstate == "stopped" && stale) return;
         // Stopped at the end of a track with more to play: the renderer does not take a next URI — start it by hand.
@@ -246,21 +259,39 @@ internal sealed partial class Players
         next.TrackId = item != null ? item.TrackId : Phones.TrackIdFromUri(uri);
         next.TrackNumber = item != null ? index + 1 : 0;
         lock (gate) { next.QueueLength = p.Queue.Count; next.OnQueue = p.Queue.Count > 0; next.Shuffle = p.Shuffle; next.Loop = p.Loop; }
-        next.Position = Didl.ToSeconds(pi["RelTime"]);
+        next.Position = rel;
         var dur = Didl.ToSeconds(pi["TrackDuration"]);
-        next.Duration = dur != 0 ? dur : item?.Duration ?? 0;
+        // The device's word on the length, unless it is far from the track's own: a WAV whose length is left open (item
+        // 238) the FiiO SR11 says is 419 hours long (item 245).
+        var known = item?.Duration ?? 0;
+        next.Duration = known > 0 && (dur == 0 || Math.Abs(dur - known) > 10) ? known : dur != 0 ? dur : known;
         next.Title = item?.Title ?? ""; next.Artist = item?.Artist ?? ""; next.Album = item?.Album ?? ""; next.ArtUri = item?.ArtUri ?? "";
         next.MediaUri = uri;
         next.Sent = item?.Sent;
         // The device's word on what it plays holds for the track (item 187): it is asked once per track, a few seconds in.
         next.Verified = prev.TrackUri == next.TrackUri ? prev.Verified : null;
+        next.Fed = prev.TrackUri == next.TrackUri ? prev.Fed : null;
         next.At = Hub.Now(); next.Unreachable = false;
         zm.ApplyState(p.Id, prev, next);
         if (tstate == "playing" && item != null && !p.NoSetNext) _ = ArmNext(p).ContinueWith(_ => { }, TaskContinuationOptions.OnlyOnFaulted);
+        if (tstate == "playing" && item != null && !stale) Overrun(p, item, index, rel);   // still PLAYING at its end (item 246)
         if (tstate == "playing" && item != null) _ = Verify(p, item).ContinueWith(_ => { }, TaskContinuationOptions.OnlyOnFaulted);
     }
 
     private static string Str(object? v) => Jv.T(v) ? Jv.Str(v) : "";
+
+    /*
+     * Whether a renderer naming another track than the one playing has moved on to it (item 233): the one playing, of
+     * [duration] s, was [before] s in at the last read and is [now] s in at this one. A FiiO SR11 names the track
+     * SetNextAVTransportURI gave it as soon as it is given, a moment after Play now, while it goes on playing the first:
+     * the server showed track 2 at once. Believed when the track playing had come to its end (its last 15 s, or a third
+     * of a short one) or the position has gone back to the start of another (5 s back, or a third of a short track);
+     * else the track playing stands. One that has named it [early] all along (item 273) has moved on only when the
+     * position goes back to the start: in its last 15 s the server showed the next track with the first's position,
+     * and past a short next track's end started the one after it by hand.
+     */
+    internal static bool MovedOn(double before, double now, double duration, bool early = false) =>
+        duration <= 0 || now + Math.Min(5, duration / 3) < before && (!early || now < 15) || !early && before >= duration - Math.Min(15, duration / 3);
 
     private static int IndexOfUri(Player p, string uri)
     {

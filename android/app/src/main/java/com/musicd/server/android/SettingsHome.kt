@@ -126,7 +126,12 @@ internal fun HomeScreenPane(client: () -> ServerClient?, onBack: () -> Unit) {
                     prefs = setPagePref(context, "random", if (prefs.random) "off" else "on")
                 })
             }
-            SetupNote("The greeting at the top of Home, and the Random Album button beside the Album of the day. On this device only.", Modifier.parity("settings-homescreen.note"))
+            SetupRow("Album of the Day", Modifier.parity("settings-homescreen.name"), null) {
+                Toggle(prefs.aotd, Modifier.parity("settings-homescreen.aotd", Contract.label("settings-homescreen.aotd")).clickable {
+                    prefs = setPagePref(context, "aotd", if (prefs.aotd) "off" else "on")
+                })
+            }
+            SetupNote("The greeting at the top of Home, and the Random Album and Album of the Day tiles under it. On this device only.", Modifier.parity("settings-homescreen.note"))
         }
         Block {
             SetupNote("Hold the handle to drag a row into a new position. A row switched off is not fetched at all — it does no work in the background.", Modifier.parity("settings-homescreen.note"))

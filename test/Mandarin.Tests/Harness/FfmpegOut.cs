@@ -23,7 +23,7 @@ public static class FfmpegOut
         try
         {
             var (code, b, _) = Run(["-hide_banner", "-loglevel", "error", "-f", "lavfi", "-i", "anullsrc=r=44100:cl=stereo", "-t", "0.2",
-                "-sample_fmt", "s32", "-bits_per_raw_sample", "32", "-c:a", "flac", "-f", "flac", "-"]);
+                "-sample_fmt", "s32", "-bits_per_raw_sample", "32", "-c:a", "flac", "-f", "flac", "-strict", "experimental", "-"]);
             if (code != 0 || b.Length <= 42 || System.Text.Encoding.ASCII.GetString(b, 0, 4) != "fLaC") return false;
             var si = b.AsSpan(8, 34);
             return ((((si[12] & 1) << 4) | (si[13] >> 4)) + 1) == 32;

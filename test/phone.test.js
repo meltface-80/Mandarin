@@ -451,6 +451,54 @@ test("the phone is a zone", { skip, timeout: 60000 }, async (t) => {
       seq = got.seq;
     });
 
+    // Item 265: the phone's USB DAC has a renderer's Output (upsampled in a shape, to the highest rate allowed, or
+    // PCM made DSD), the server making it as it does for a renderer, the app's USB driver playing what it is sent.
+    await t.test("a USB DAC's Output: upsampled in a shape, or PCM made DSD, the queue planned again for it", async () => {
+      const cd = albums.find(a => a.title === "Album One");
+      // A DAC that takes 32 bits, as the SMSL SU1 does (item 268).
+      const caps = { rates: [44100, 48000, 88200, 96000, 176400, 192000], bits: [24, 32], dsd: [64, 128] };
+      await phone("POST", "/api/play", { offset: cd.offset, zone_or_output_id: zoneId, kind: "play_now" });
+      seq = (await phone("GET", `/api/phone/commands?after=${seq}`)).seq;
+      await phone("POST", "/api/phone/state", { index: 0, position: 1, duration: 60, state: "playing", volume: 40, usb_caps: caps });
+      seq = (await phone("GET", `/api/phone/commands?after=${seq}`)).seq;
+      const loaded = async () => {
+        const g = await until(async () => { const x = await phone("GET", `/api/phone/commands?after=${seq}`); return x.commands.some(c => c.op === "load") && x; });
+        seq = g.seq;
+        return g.commands.find(c => c.op === "load");
+      };
+      // Its page: Output, and the DAC's rates and DSD to choose from.
+      const dev = await other("GET", "/api/audio-devices/" + zoneId);
+      assert.equal(dev.output && dev.output.mode, "original", JSON.stringify(dev.output));
+      assert.deepEqual(dev.rates.map(x => x.hz), caps.rates);
+      assert.deepEqual(dev.dsd.map(x => x.n), [64, 128]);
+      // ×4 in minimum phase: made as it plays, its address saying the shape.
+      let r = await other("PATCH", "/api/audio-devices/" + zoneId, { output: { mode: "x4", filter: "minphase" } });
+      assert.equal(r.status, 200, JSON.stringify(r));
+      let load = await loaded();
+      // 24 bits, all the same (item 268): the phone's player hands its driver floats, which it packs into the DAC's
+      // 32-bit words, and Android may not read a 32-bit FLAC; and it is a stream the server makes.
+      assert.match(load.items[0].url, /\.176400-24\.flac\?(.*&)?f=min(&|$)/, load.items[0].url);
+      assert.equal((await fetch(new URL(load.items[0].url, B))).status, 200, "the stream made");
+      // PCM as DSD128: a DSF, made as it plays, its header DSD128's.
+      r = await other("PATCH", "/api/audio-devices/" + zoneId, { output: { dsd_out: 128 } });
+      assert.equal(r.status, 200, JSON.stringify(r));
+      load = await loaded();
+      assert.match(load.items[0].url, /\.d128\.dsf\?/, load.items[0].url);
+      const dsf = Buffer.from(await (await fetch(new URL(load.items[0].url, B))).arrayBuffer());
+      assert.equal(dsf.toString("ascii", 0, 4), "DSD ");
+      assert.equal(dsf.readUInt32LE(56), 5644800, "DSD128");
+      // Its volume is the phone's own.
+      assert.equal((await other("PATCH", "/api/audio-devices/" + zoneId, { output: { volume: "fixed" } })).status, 400);
+      // Back as it was.
+      r = await other("PATCH", "/api/audio-devices/" + zoneId, { output: { mode: "original", filter: "standard", dsd_out: "off" } });
+      assert.equal(r.status, 200);
+      load = await loaded();
+      assert.match(load.items[0].url, /\.orig\.flac\?/, load.items[0].url);
+      await phone("POST", "/api/phone/state", { index: 0, position: 2, duration: 60, state: "paused", volume: 40, usb_caps: null });
+      seq = (await phone("GET", `/api/phone/commands?after=${seq}`)).seq;
+      assert.equal((await other("GET", "/api/audio-devices/" + zoneId)).output, null, "no DAC, no Output");
+    });
+
   } finally {
     await srv.stop();
     await house.stop();

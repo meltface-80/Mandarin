@@ -100,4 +100,65 @@ public sealed class HomeTopSwitchesTests
         Assert.Empty(page.Errors);
         Assert.Empty(again.Errors);
     }
+
+    // Album of the Day's own switch (item 236), as a person goes: on to begin with; off, its tile gone and Random Album
+    // left; kept after a reload, and on again puts it back.
+    private const string AotdOff = """
+        (async () => {
+          const sleep = ms => new Promise(r => setTimeout(r, ms));
+          const until = async (fn, ms = 15000) => { const t0 = Date.now(); while (!fn()) { if (Date.now() - t0 > ms) throw new Error("timed out"); await sleep(50); } };
+          const shown = el => !!el && getComputedStyle(el).display !== "none" && el.getBoundingClientRect().height > 0;
+          await until(() => document.querySelector("#home-unheard-tile") && document.querySelector("#home-today .home-aotd"));
+          const out = { before: shown(document.querySelector("#home-today .home-aotd")) };
+          const pane = p => document.querySelector('.settings-view[data-pane="' + p + '"]');
+          const open = p => !!pane(p) && !pane(p).classList.contains("hidden");
+          document.getElementById("settings-toggle").click(); await sleep(300);
+          document.querySelector('.settings-view[data-view="home"] .settings-nav-item[data-pane="setup"]').click();
+          await until(() => open("setup"));
+          document.querySelector('.settings-view[data-pane="setup"] .settings-nav-item[data-pane="homescreen"]').click();
+          await until(() => open("homescreen"));
+          const sw = document.getElementById("home-aotd-on");
+          out.on = sw.checked;
+          sw.click(); await sleep(100);
+          const x = document.getElementById("settings-close"); if (x) x.click(); else document.getElementById("settings-toggle").click();
+          await sleep(400);
+          out.after = [shown(document.querySelector("#home-today .home-aotd")), shown(document.getElementById("home-unheard-tile"))];
+          return out;
+        })()
+        """;
+
+    private const string AotdAgain = """
+        (async () => {
+          const sleep = ms => new Promise(r => setTimeout(r, ms));
+          const until = async (fn, ms = 15000) => { const t0 = Date.now(); while (!fn()) { if (Date.now() - t0 > ms) throw new Error("timed out"); await sleep(50); } };
+          const shown = el => !!el && getComputedStyle(el).display !== "none" && el.getBoundingClientRect().height > 0;
+          await until(() => document.querySelector("#home-unheard-tile"));
+          await sleep(1500);
+          const out = { off: [document.getElementById("home-aotd-on").checked, shown(document.querySelector("#home-today .home-aotd"))] };
+          window.__uiPrefs.set("aotd", "on");
+          await until(() => shown(document.querySelector("#home-today .home-aotd")), 20000);
+          out.back = true;
+          return out;
+        })()
+        """;
+
+    [Test]
+    public async Task Album_of_the_Day_switched_off_goes_and_stays_off()
+    {
+        await using var s = await Session.Started();
+        await Session.Until(async () => (await s.Api("status")).J.Num("index_count") == 3, 10000, "the three albums");
+        await using var b = await Browser.Launch(412, 915);
+        var page = await b.Page(s.Base + "/", [new { name = "musicd_session", value = s.Token, url = s.Base }], touch: true);
+        var r = (await page.Eval(AotdOff))!;
+        Assert.True(r["before"]!.GetValue<bool>(), "the Album of the Day there to begin with");
+        Assert.True(r["on"]!.GetValue<bool>(), "its switch on");
+        Assert.Equal("[false,true]", r["after"]!.ToJsonString());
+
+        var again = await b.Page(s.Base + "/", [new { name = "musicd_session", value = s.Token, url = s.Base }], touch: true);
+        var a = (await again.Eval(AotdAgain))!;
+        Assert.Equal("[false,false]", a["off"]!.ToJsonString());
+        Assert.True(a["back"]!.GetValue<bool>(), "on again: back");
+        Assert.Empty(page.Errors);
+        Assert.Empty(again.Errors);
+    }
 }

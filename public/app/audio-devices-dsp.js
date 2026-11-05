@@ -140,6 +140,33 @@ async function openDevice(id) {
   renderDetail();
   if (window.__settingsShowView) window.__settingsShowView("device");
 }
+// The impulse responses [files] sent for the device, each a WAV or a zip of them (item 258), or the one at [rate]
+// taken off: the device as the server then has it.
+async function sendImpulse(files, rate) {
+  if (!current) return;
+  busy = true;
+  try {
+    const base = "/api/audio-devices/" + encodeURIComponent(current.id) + "/impulse";
+    let j = null;
+    for (const file of files || []) {
+      const zip = /\.zip$/i.test(file.name);
+      const r = await fetch(base + "?name=" + encodeURIComponent(file.name), { method: "POST", headers: { "Content-Type": zip ? "application/zip" : "audio/wav" }, body: file });
+      j = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(file.name + ": " + (j.error || "HTTP " + r.status));
+    }
+    if (!files) {
+      const r = await fetch(base + (rate ? "?rate=" + encodeURIComponent(rate) : ""), { method: "DELETE" });
+      j = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(j.error || "HTTP " + r.status);
+    }
+    if (j) current = j;
+    err = ""; dspDraft = null;
+    deviceToast(files ? "Room correction loaded" : "Room correction removed");
+  } catch (e) { err = e.message; deviceToast(e.message, "error"); }
+  busy = false;
+  renderDetail();
+  load();
+}
 async function patch(payload) {
   if (!current) return;
   busy = true;
@@ -216,7 +243,7 @@ body.addEventListener("click", async (e) => {
   if (sb && !sb.disabled) {
     const name = sb.closest(".seg").getAttribute("data-seg");
     const raw = sb.getAttribute("data-seg-v");
-    const v = name === "bits" && raw !== "auto" ? Number(raw) : raw;
+    const v = (name === "bits" || name === "max_rate" || name === "dsd_lowpass" || name === "dsd_out") && raw !== "auto" && raw !== "off" ? Number(raw) : raw;
     return patch({ output: { [name]: v } });
   }
   const add = e.target.closest("[data-dsp-add]");
@@ -233,6 +260,10 @@ body.addEventListener("click", async (e) => {
   if (e.target.closest("[data-hp-choose]")) { const dr = dspOf(current); dr.hp = { mode: "search", q: "", results: [] }; renderDetail(); const q = body.querySelector("[data-hp-q]"); if (q) q.focus(); return; }
   if (e.target.closest("[data-hp-paste]")) { const dr = dspOf(current); dr.hp = { mode: "paste", name: "", text: "" }; renderDetail(); return; }
   if (e.target.closest("[data-hp-cancel]")) { const dr = dspOf(current); dr.hp = null; renderDetail(); return; }
+  // Room correction (item 252): a WAV picked and sent as it is; taken off.
+  if (e.target.closest("[data-ir-load]")) { const f = e.target.closest(".hp-actions").querySelector("[data-ir-file]"); if (f) f.click(); return; }
+  const irRemove = e.target.closest("[data-ir-remove]");
+  if (irRemove) { sendImpulse(null, irRemove.getAttribute("data-ir-rate")); return; }
   if (e.target.closest("[data-hp-remove]")) { const dr = dspOf(current); dr.headphone = null; dr.dirty = true; renderDetail(); return; }
   const pick = e.target.closest("[data-hp-pick]");
   if (pick) return hpPick(dspOf(current), pick.getAttribute("data-hp-pick"));
@@ -255,6 +286,8 @@ body.addEventListener("click", async (e) => {
   }
 });
 body.addEventListener("change", async (e) => {
+  const irf = e.target.closest("[data-ir-file]");   // a room correction's WAV chosen (item 252)
+  if (irf) { if (irf.files && irf.files.length) sendImpulse([...irf.files]); return; }
   const sw = e.target.closest("[data-dev-enable]");
   if (sw) return setEnabled(sw.getAttribute("data-dev-enable"), sw.checked, sw);
   const fv = e.target.closest("[data-dev-fixvol]");

@@ -24,11 +24,11 @@ function haveSoxr() {
   try { return /--enable-libsoxr/.test(spawnSync(FFMPEG, ["-version"], { encoding: "utf8" }).stdout || ""); } catch (e) { return false; }
 }
 
-/* Whether this ffmpeg writes 32-bit FLAC (6.1 quietly caps it at 24): a fifth of a second of silence, its STREAMINFO read back (lib/ffmpeg.js's rule, kept). */
+/* Whether this ffmpeg writes 32-bit FLAC, asked as the server asks (item 269: 6.1 on writes it only told -strict experimental, else 24 without a word): a fifth of a second of silence, its STREAMINFO read back. */
 function haveFlac32() {
   try {
     const r = spawnSync(FFMPEG, ["-hide_banner", "-loglevel", "error", "-f", "lavfi", "-i", "anullsrc=r=44100:cl=stereo", "-t", "0.2",
-      "-sample_fmt", "s32", "-bits_per_raw_sample", "32", "-c:a", "flac", "-f", "flac", "-"], { timeout: 10000, maxBuffer: 4 * 1024 * 1024 });
+      "-sample_fmt", "s32", "-bits_per_raw_sample", "32", "-c:a", "flac", "-f", "flac", "-strict", "experimental", "-"], { timeout: 10000, maxBuffer: 4 * 1024 * 1024 });
     const b = r.stdout;
     if (r.status !== 0 || !b || b.length <= 42 || b.toString("ascii", 0, 4) !== "fLaC") return false;
     const si = b.subarray(8, 8 + 34);

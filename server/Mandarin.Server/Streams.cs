@@ -34,7 +34,7 @@ using JsObj = Mandarin.Server.Tags.JsObj;
 
 internal static partial class Streams
 {
-    [GeneratedRegex(@"^/stream/t([0-9]+)(?:\.(orig|[0-9]+-[0-9]+))?\.([a-z0-9]+)\z", RegexOptions.IgnoreCase)]
+    [GeneratedRegex(@"^/stream/t([0-9]+)(?:\.(orig|[0-9]+-[0-9]+w?|d(?:64|128|256)))?\.([a-z0-9]+)\z", RegexOptions.IgnoreCase)]
     private static partial Regex Address();
     [GeneratedRegex(@"^audio/(x-)?(dsf|dff|dsd)\z")]
     private static partial Regex DsdMime();
@@ -106,9 +106,12 @@ internal static partial class Streams
         if (!long.TryParse(a.Groups[1].Value, out var id)) return Refuse(ctx, 404);
         // A rate and depth a streamer was promised: made with the high-quality settings (32 bits where ffmpeg writes them).
         long segRate = 0, segBits = 0;
-        if (seg.Length > 0 && seg != "orig")
+        // "d64", "d128", "d256": made DSD from PCM (Upsample/DsdPlan.cs, item 243).
+        var dsdUp = seg.Length > 1 && seg[0] is 'd' or 'D' ? int.Parse(seg[1..], CultureInfo.InvariantCulture) : 0;
+        if (seg.Length > 0 && seg != "orig" && dsdUp == 0)
         {
-            var rb = seg.Split('-');
+            // "w": the whole track in one transform, where it is made (Upsample/, item 237).
+            var rb = seg.TrimEnd('w', 'W').Split('-');
             if (!long.TryParse(rb[0], out segRate) || !long.TryParse(rb[1], out segBits)) return Refuse(ctx, 400);
             if (segRate < 8000 || segRate > 768000 || !(segBits is 16 or 24 || (segBits == 32 && Transcoder.Flac32))) return Refuse(ctx, 400);
         }
@@ -117,9 +120,9 @@ internal static partial class Streams
         var raw = ctx.Request.QueryString.HasValue ? ctx.Request.QueryString.Value![1..] : "";
         var gq = QueryOne(raw, "g");
         string? output = null;
-        if (segRate != 0)
+        if (segRate != 0 || dsdUp != 0)
         {
-            // An ?o= that isn't one plain value: no zone's DSP (String(o) names none).
+            // An ?o= that isn't one plain value: no zone's DSP (String(o) names none). A DSF from PCM too (item 263).
             if (QueryOne(raw, "o") is { } oq && oq.Here && oq.Value!.Length > 0) output = oq.Value;
         }
 
@@ -161,11 +164,21 @@ internal static partial class Streams
         {
             p = Jv.Obj(("transcode", true), ("hq", true), ("mime", "audio/flac"), ("ext", "flac"), ("rate", (double)segRate), ("bits", (double)segBits),
                 ("reason", "what the renderer was promised"));
+            // Promised as WAV (above FLAC's rates, Playback/HighRates.cs, item 238): made so.
+            if (a.Groups[3].Value.Equals("wav", StringComparison.OrdinalIgnoreCase)) { p["mime"] = "audio/wav"; p["ext"] = "wav"; p["wav"] = true; }
             if (output != null)
             {
                 using var c = Db.Open();
-                if (Dsp.PlanPart(DspFor(c, output), p["rate"]) is { } part) { p["dsp"] = part; p["inRate"] = (double)t.Rate; }
+                if (Dsp.PlanPart(DspFor(c, output), p["rate"], (double)t.Rate) is { } part) { p["dsp"] = part; p["inRate"] = (double)t.Rate; }
             }
+        }
+        else if (dsdUp != 0)
+        {
+            var asked = q["m"].Count == 1 ? q["m"].ToString() : "";
+            p = Jv.Obj(("transcode", true), ("hq", true), ("mime", DsdMime().IsMatch(asked) ? asked : "audio/x-dsf"), ("ext", "dsf"), ("rate", (double)t.Rate), ("bits", 1.0),
+                ("dsd", (double)dsdUp), ("dsdUp", (double)dsdUp), ("inRate", (double)t.Rate), ("reason", $"DSD{dsdUp} from PCM, made as it plays"));
+            if (gain is { } g0) p["gain"] = g0;   // in the PCM it is made from, as the plan had it (WithGain leaves DSD alone)
+            if (output != null) { using var c = Db.Open(); if (Dsp.PlanPart(DspFor(c, output), (double)t.Rate, (double)t.Rate) is { } part) p["dsp"] = part; }
         }
         else if (seg == "orig")
         {
@@ -202,10 +215,27 @@ internal static partial class Streams
         }
         // Made already: sent from the cache, marked as used. Not yet: made
         // now, and sent as it is made (v0.8.11; before, the Node server's).
-        var job = Transcoder.Start(new ConvTrack(id, t.Path, mtime), ConvPlan.Of(p));
+        var track = new ConvTrack(id, t.Path, mtime);
+        // ?f=: the filter's shape (items 248, 259), for a DSF from PCM or a library track upsampled by a power of two;
+        // that shape's file, made as it plays (Upsample/MadeAsPlayed.cs).
+        if (QueryOne(raw, "f") is { } fq && fq.Here && Upsample.Shape.Word(Upsample.Shape.Of(fq.Value)) is { } shape && svc == null
+            && (dsdUp != 0 || segRate != 0 && t.Rate > 0 && segRate % t.Rate == 0 && Upsample.MadeAsPlayed.Power(segRate / t.Rate)))
+        {
+            p["shape"] = shape;
+            if (dsdUp == 0) p["inRate"] = (double)t.Rate;
+        }
+        // DSD as PCM, low-passed through the rate asked (?lp=, Playback/DsdLowpass.cs, item 241): a DSD file, a promised rate above it.
+        if (segRate != 0 && svc == null && QueryOne(raw, "lp") is { } lq && lq.Here && long.TryParse(lq.Value, out var lpm) && DsdLowpass.IsMid(lpm) && segRate > lpm && StreamPlans.IsDsd(Row(t))) p["lowpass"] = (double)lpm;
+        // Made already: that file; else made now, and sent as it is made (a DSF from PCM too: item 259).
+        if (dsdUp != 0 && svc != null) return Refuse(ctx, 404);
+        var job = Transcoder.Start(track, ConvPlan.Of(p));
         if (job.Done && !job.Failed) return await SendFile(ctx, job.Final, Jv.Str(p["mime"]));
         if (job.Done) { ctx.Response.StatusCode = 500; ctx.Response.Headers["X-Mandarin-Answered"] = "C#"; return true; }
-        await Transcoder.TailFollow(ctx, job, Jv.Str(p["mime"]));
+        // A DSF from PCM goes with its length, its header's (item 262): the device can take it as the next track while it is made.
+        var plan = ConvPlan.Of(p);
+        // A WAV made as it plays, as a DSF, with its header's length (item 270).
+        var length = plan.DsdUp != 0 ? Upsample.DsdPlan.FileBytes(id, plan, t.Duration) : plan.Wav && Upsample.MadeAsPlayed.Takes(plan) ? Upsample.WavHeader.FileBytes(plan, t.Duration) : -1;
+        await Transcoder.TailFollow(ctx, job, Jv.Str(p["mime"]), length);
         return true;
     }
 

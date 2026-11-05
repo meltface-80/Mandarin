@@ -17,6 +17,8 @@ internal static partial class Library
         {
             if (get && p == "/api/diagnostics") return await Send(ctx, new JsonObject { ["on"] = Diagnostics.On, ["bytes"] = Diagnostics.Bytes() });
             if (get && p == "/api/diagnostics/log") return await SendText(ctx, Diagnostics.Text());
+            // Every Mandarin Bridge's own log, saved after the server's (item 291, Admin/BridgeLogs.cs).
+            if (get && p == "/api/diagnostics/bridges") return await SendText(ctx, await Admin.BridgeLogs.Text());
             if (HttpMethods.IsPost(m) && p == "/api/diagnostics/clear")
             {
                 Diagnostics.Clear();

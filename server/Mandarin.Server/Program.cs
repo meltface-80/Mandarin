@@ -52,6 +52,11 @@ if (args.Length >= 1 && args[0] == "tags")
 // `mandarin-server scan`: one library scan (Scan/ScanCommand.cs): its job on
 // standard input, what it says on standard output (the tests').
 if (args.Length >= 1 && args[0] == "scan") return Mandarin.Server.Scan.ScanCommand.Run();
+// `mandarin-server upsample`: one track upsampled whole (Upsample/UpsampleCommand.cs, item 237), its job a line of
+// JSON on standard input, in a process of its own so its memory is given back as it ends.
+if (args.Length >= 1 && args[0] == "upsample") return Mandarin.Server.Upsample.UpsampleCommand.Run();
+// `mandarin-server bitperfect`: what was sent compared with recordings of what a DAC was fed (BitPerfect/Check.cs).
+if (args.Length >= 1 && args[0] == "bitperfect") return Mandarin.Server.BitPerfect.Check.Command();
 // `mandarin-server db <data folder>`: the database made, or brought up to date
 // (Schema.cs, v0.8.48), as the server does it as it starts.
 if (args.Length == 2 && args[0] == "db") return Schema.Command(args[1]);
@@ -178,6 +183,9 @@ Auth.UseBodyLimit(app);
 // The gate (Auth.cs): nothing but the sign-in page and its parts until the
 // account exists and the device has signed in.
 app.Use((ctx, next) => Auth.Gate(ctx, () => next(ctx)));
+
+// SQ-tool (SqTool.cs, item 288): its own page and server, at /sq-tool/, behind the gate.
+SqTool.Use(app, appDir, dataDir);
 
 // The page and its files (Pages.cs), behind the gate as before.
 Pages.Use(app, Path.Combine(appDir, "public"));

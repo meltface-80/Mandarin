@@ -57,6 +57,14 @@ class ServerClient(
         return ZoneState.parse(getJson(q.toString(), timeout))
     }
 
+    /**
+     * Which albums there are, as the server marks them (bug list item 232, [AlbumsMark]). With [waitFor], the mark the
+     * app has, the server holds the request until the albums move (or ~20 s pass), as [zoneState]'s wait.
+     */
+    fun libraryMark(waitFor: String? = null): String =
+        if (waitFor == null) AlbumsMark.of(getJson("/api/library/mark"))
+        else AlbumsMark.of(getJson("/api/library/mark?wait_for=" + enc(waitFor) + "&timeout=20000", 30_000))
+
     fun control(zoneId: String, command: String) {
         post("/api/control", JSONObject().put("zone_or_output_id", zoneId).put("command", command))
     }
@@ -287,6 +295,15 @@ class ServerClient(
 
     /** A change as a PATCH, [body] as JSON (Settings → Audio Devices, item 89: the server takes a device's changes only so): its answer. */
     fun patch(path: String, body: JSONObject): JSONObject = transport.json("PATCH", path, body, timeoutMs)
+
+    /** [bytes] of [type] sent to [path] (item 252: a room correction's WAV, a minute allowed): the answer. */
+    fun upload(path: String, bytes: ByteArray, type: String): JSONObject = transport.upload(path, bytes, type, 60_000)
+
+    /** A device's room correction (item 252): [bytes], a WAV named [name], loaded; or taken off. The device as it then is. */
+    fun loadImpulse(id: String, name: String, bytes: ByteArray): JSONObject =
+        upload("/api/audio-devices/${enc(id)}/impulse?name=${enc(name)}", bytes, if (name.endsWith(".zip", ignoreCase = true)) "application/zip" else "audio/wav")
+    /** The response at [rate] taken off (item 258); with none, all of them. */
+    fun removeImpulse(id: String, rate: Int? = null): JSONObject = send("DELETE", "/api/audio-devices/${enc(id)}/impulse" + (rate?.let { "?rate=$it" } ?: ""))
 
     /** A request with no body ([method]: DELETE), its answer. */
     private fun send(method: String, path: String): JSONObject = transport.json(method, path, null, timeoutMs)

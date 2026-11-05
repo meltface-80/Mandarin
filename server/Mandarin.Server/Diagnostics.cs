@@ -1,27 +1,25 @@
 // Diagnostics.cs — the server's side of the Android app's logging (bug list item 121; the app's
 // Settings → Setup → Logging). Off unless switched on there; while on, each line the server logs is
-// kept as well, without anything that could be someone's personal data, for the app to fetch when the
-// log is saved. Off again, what was kept is deleted.
+// kept as well, without what is the owner's alone (item 235), for the app to fetch when the log is
+// saved. Off again, what was kept is deleted.
 //
-// What is kept of a line (LogLine.cs): the code's own words as they are; of the values put into them,
-// numbers, the names of errors (FileNotFoundException), the server's own addresses (/api/...) and the
-// streaming services' names; anything else (a name, an address, a file or folder, a message) as […].
-// A line handed over already made keeps only its tag ("[sonos]"). So no IP address, name, title, path
-// or account detail is ever kept.
+// What is kept of a line (LogLine.cs, LogScrub.cs, item 235): all of it but what is the owner's alone (keys, tokens
+// and passwords, email addresses, account names and logins, internet and Tailscale addresses, their own home folder).
+// Home-network addresses, rooms' and devices' names, titles and error messages stay, so a log says what went wrong.
 //
 //   GET  /api/diagnostics        { on, bytes }
 //   POST /api/diagnostics        { on }: switched on or off (off deletes what was kept)
 //   GET  /api/diagnostics/log    what was kept, a line each (times in UTC)
 //   POST /api/diagnostics/clear  what was kept deleted
+//   GET  /api/diagnostics/bridges  every Mandarin Bridge's own log, scrubbed as these lines are (Admin/BridgeLogs.cs)
 //
 // Kept in the data folder (diagnostics-on, diagnostics.log and .old, a megabyte each), so a restart
 // or an update doesn't lose them.
 using System.Globalization;
-using System.Text.RegularExpressions;
 
 namespace Mandarin.Server;
 
-internal static partial class Diagnostics
+internal static class Diagnostics
 {
     public const string Withheld = "[…]";
     private const long FileBytes = 1024 * 1024;
@@ -91,42 +89,14 @@ internal static partial class Diagnostics
         }
     }
 
-    /* A value put into a line, as kept: only what can't be anyone's personal data. */
+    /* A value put into a line, as kept (the whole line is scrubbed after, LogScrub.Line): an account's name or login as […]. */
     public static string Hole<T>(T value) => value switch
     {
         null => "",
+        Personal => Withheld,
         bool b => b ? "true" : "false",
-        sbyte or byte or short or ushort or int or uint or long or ulong or float or double or decimal => Convert.ToString(value, CultureInfo.InvariantCulture) ?? Withheld,
-        TimeSpan t => t.ToString("c", CultureInfo.InvariantCulture),
-        PathString p => Word(p.Value ?? ""),
-        string s => Word(s),
-        _ => Withheld
+        PathString p => p.Value ?? "",
+        IFormattable f => f.ToString(null, CultureInfo.InvariantCulture),
+        _ => value.ToString() ?? ""
     };
-
-    /* A word kept: an error's name, a streaming service's, or one of the server's addresses (without what follows a "?"). */
-    private static string Word(string s)
-    {
-        if (ErrorName().IsMatch(s) || s is "qobuz" or "tidal" or "lastfm") return s;
-        if (s.StartsWith("/api/", StringComparison.Ordinal) || s.StartsWith("/stream/", StringComparison.Ordinal))
-        {
-            var q = s.IndexOf('?');
-            var bare = q < 0 ? s : s[..q];
-            return SafePath().IsMatch(bare) ? bare : Withheld;
-        }
-        return Withheld;
-    }
-
-    /* A line handed over already made: only its tag kept ("[sonos] …"). */
-    public static string TagOnly(string line)
-    {
-        var m = Tag().Match(line);
-        return (m.Success ? m.Value + " " : "") + Withheld;
-    }
-
-    [GeneratedRegex(@"\A[A-Z][A-Za-z0-9]*(Exception|Error)\z")]
-    private static partial Regex ErrorName();
-    [GeneratedRegex(@"\A/[a-z0-9/_.-]*\z")]
-    private static partial Regex SafePath();
-    [GeneratedRegex(@"\A\[[a-z][a-z0-9 _.-]{0,23}\]")]
-    private static partial Regex Tag();
 }

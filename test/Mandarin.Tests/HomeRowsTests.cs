@@ -4,7 +4,7 @@ namespace Mandarin.Tests;
 
 /// <summary>
 /// Home's first row (v0.6.0-RC4): Album of the day is the same album for every device from 00:01, gone
-/// from all of them once played; "Not played in 6 months" offers nothing until Mandarin has six months
+/// from all of them once played (kept, said played, when asked with keep=1, item 236); "Not played in 6 months" offers nothing until Mandarin has six months
 /// of listening (test/home-rows.test.js, in C#).
 /// </summary>
 public sealed class HomeRowsTests
@@ -44,6 +44,10 @@ public sealed class HomeRowsTests
         Assert.Null(a3["album"]);
         Assert.True(a3.Bool("played"));
         Assert.Equal(a1.Str("day"), a3.Str("day"));
+        // As Home asks since item 236 (keep=1): kept all day, said played, so the space beside Random Album stays filled.
+        var kept = await Get("home/album-of-the-day?keep=1");
+        Assert.Equal(a1["album"].Num("offset"), kept["album"].Num("offset"));
+        Assert.True(kept.Bool("played"));
 
         // A day's listening isn't six months: still nothing, and when it will be.
         u = await Get("home/unplayed?months=6&count=30");

@@ -29,13 +29,17 @@ internal static class Items
     public static string StreamUrl(string secret, string baseUrl, PlayTrack t, JsObj p, JsObj? target)
     {
         var transcode = Jv.T(p["transcode"]);
-        var seg = target == null ? "" : transcode ? $".{TJs.Num(Jv.Num(p["rate"]))}-{TJs.Num(Jv.Num(p["bits"]))}" : ".orig";
+        var seg = target == null ? "" : Jv.T(p["dsdUp"]) ? $".d{TJs.Num(Jv.Num(p["dsdUp"]))}"   // made DSD from PCM (item 243)
+            : transcode ? $".{TJs.Num(Jv.Num(p["rate"]))}-{TJs.Num(Jv.Num(p["bits"]))}" : ".orig";
         var qs = new List<string>();
         // A conversion with DSP names its output (?o=), so the stream route runs that zone's setting as it stands when the device fetches.
         if (Jv.T(p["dsp"]) && target != null && Jv.T(target["id"])) qs.Add("o=" + AJs.EncodeURIComponent(Jv.Str(target["id"])));
         // DSD as it is, in the device's own word for it (audio/dsf…): the stream says the same as the DIDL.
         if (Jv.T(p["dsd"]) && target != null && !Jv.Same(p["mime"], StreamPlans.MimeForExt(p["ext"]))) qs.Add("m=" + AJs.EncodeURIComponent(Jv.Str(p["mime"])));
         if (Jv.T(p["gain"])) qs.Add("g=" + TJs.Num(Jv.Num(p["gain"])));
+        if (Jv.T(p["lowpass"])) qs.Add("lp=" + TJs.Num(Jv.Num(p["lowpass"])));   // DSD low-passed through this rate (item 241)
+        // A filter in a shape of its own (items 248, 259): its file is that shape's.
+        if (p["shape"] is string shape) qs.Add("f=" + shape);
         var q = qs.Count > 0 ? "?" + string.Join("&", qs) : "";
         return Signing.SignUrl(secret, $"{baseUrl}/stream/t{t.Id}{seg}.{Jv.Str(p["ext"])}{q}");
     }
@@ -46,8 +50,19 @@ internal static class Items
     /* item(t, target, { gain, phoneGain }): the URL, the DIDL and the plan, the track beside them. */
     public static PlayItem Item(Snapshot s, string secret, string baseUrl, PlayTrack t, JsObj? target, double? gain, double? phoneGain)
     {
+        var tj = t.ToJs();
+        var p = (JsObj)StreamPlans.PlanFor(tj, target, gain)!;
+        if (target != null) p = HighRates.Fit(p, target);   // above FLAC's rates: WAV, or the highest FLAC carries (item 238)
+        p = Upsample.MadeAsPlayed.Mark(p, target, t.Path);   // in the filter's shape, where the device asks one (items 248, 259)
+        p = DsdLowpass.Mark(p, target, tj);   // DSD as PCM, its modulator's noise above the band taken off (item 241)
+        // Made DSD from PCM (items 243, 259): the DSF, made as it plays.
+        return Build(s, secret, baseUrl, t, Upsample.DsdPlan.Mark(p, target, tj, t.Path), target, phoneGain);
+    }
+
+    // The item for [t] by the plan [p]: its address, its DIDL.
+    private static PlayItem Build(Snapshot s, string secret, string baseUrl, PlayTrack t, JsObj p, JsObj? target, double? phoneGain)
+    {
         var al = s.Find(t.AlbumId);
-        var p = (JsObj)StreamPlans.PlanFor(t.ToJs(), target, gain)!;
         var uri = StreamUrl(secret, baseUrl, t, p, target);
         var meta = Jv.Obj(
             ("itemId", $"musicd-t{t.Id}"),
@@ -63,7 +78,8 @@ internal static class Items
         if (target != null)
         {
             var transcode = Jv.T(p["transcode"]);
-            meta["sampleFrequency"] = transcode ? p["rate"] : (double)(t.SampleRate ?? 0);
+            var up = Jv.T(p["dsdUp"]) ? 44100 * Jv.Num(p["dsdUp"]) : 0;   // made DSD from PCM: its rate, one bit (item 243)
+            meta["sampleFrequency"] = up != 0 ? up : transcode ? p["rate"] : (double)(t.SampleRate ?? 0);
             meta["bitsPerSample"] = transcode ? p["bits"] : (double)(t.Bits ?? 0);
             meta["nrAudioChannels"] = transcode ? 2.0 : (double)(t.Channels is > 0 ? t.Channels.Value : 2);
         }
@@ -80,7 +96,7 @@ internal static class Items
             work.Add((new ConvTrack(it.Track.Id, it.Track.Path, Hub.TierOrMtime(it.Track)), ConvPlan.Of(it.Plan)));
             if (work.Count == 40) break;
         }
-        if (work.Count > 0) Transcoder.Prefetch(work);
+        if (work.Count > 0) Transcoder.Prefetch(work);   // a DSF from PCM, or PCM in a shape, is made as it plays instead
     }
 
     /* The device's Volume Levelling, from its row in audio_devices (devices.js levellingFor). */
@@ -137,8 +153,10 @@ internal static class Items
             var s = await Library.CurrentCopy() ?? throw new HubError(503, "The library is still being scanned");
             items = ItemsFor(c, s, hub, zoneId, tracks, shuffled);
         }
-        // The track that starts first is prepared first.
+        // The track that starts first is prepared first; what was being made for another play no longer is (246).
         var start = (int)Math.Max(0, startAt);
+        Upsample.MadeAsPlayed.Only(items.Where(it => it.Track != null && it.Plan != null && Jv.T(it.Plan["transcode"]))
+            .Select(it => Transcoder.KeyFor(new ConvTrack(it.Track!.Id, it.Track.Path, Hub.TierOrMtime(it.Track)), ConvPlan.Of(it.Plan!))));
         Prefetch(items.Skip(start).Concat(items.Take(start)));
         return await hub.Enqueue(zoneId, items, how, startAt, seconds);
     }

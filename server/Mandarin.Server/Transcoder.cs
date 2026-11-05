@@ -24,51 +24,8 @@ using System.Text;
 
 namespace Mandarin.Server;
 
-using JsObj = Mandarin.Server.Tags.JsObj;
 using Jv = Mandarin.Server.Playback.Jv;
 using StreamPlans = Mandarin.Server.Playback.StreamPlans;
-
-internal sealed record ConvTrack(long Id, string Path, long Mtime);
-internal sealed record ConvPlan(long Rate, int Bits, bool Hq, bool Exact, string Reason)
-{
-    // A ReplayGain in dB (0: none), and a zone's DSP: the plan's part (lib/dsp.js planPart) and the file's own rate (v0.8.40).
-    public double Gain { get; init; }
-    public JsObj? Dsp { get; init; }
-    public double InRate { get; init; }
-    // A Qobuz or Tidal stream already what was planned: its FLAC frames copied as they come (v0.8.47).
-    public bool Copy { get; init; }
-
-    /* The plan as lib/stream.js has it, for its name and ffmpeg's arguments. */
-    public JsObj ToJs()
-    {
-        var o = Jv.Obj(("transcode", true), ("rate", (double)Rate), ("bits", (double)Bits), ("reason", Reason));
-        if (Copy) o["copy"] = true;
-        if (Hq) o["hq"] = true;
-        if (Exact) o["exact"] = true;
-        if (Dsp != null) { o["dsp"] = Dsp; o["inRate"] = InRate; }
-        if (Gain != 0) o["gain"] = Gain;
-        return o;
-    }
-
-    /* A plan of lib/stream.js's (or Playback/StreamPlans.cs's) for a conversion. */
-    public static ConvPlan Of(JsObj p) => new((long)Jv.Num(p["rate"]), (int)Jv.Num(p["bits"]), Jv.T(p["hq"]), Jv.T(p["exact"]), Jv.Str(Jv.Or(p["reason"], "")))
-    {
-        Gain = Jv.T(p["gain"]) ? Jv.Num(p["gain"]) : 0,
-        Dsp = Jv.T(p["dsp"]) ? p["dsp"] as JsObj : null,
-        InRate = Jv.T(p["inRate"]) ? Jv.Num(p["inRate"]) : 0
-    };
-}
-
-internal sealed class ConvJob
-{
-    public required string Key, Part, Final;
-    public volatile bool Done, Failed;
-    public readonly TaskCompletionSource Finished = new(TaskCreationOptions.RunContinuationsAsynchronously);
-    // Woken whenever ffmpeg writes (a reader waits on it rather than polling fast).
-    private TaskCompletionSource more = new(TaskCreationOptions.RunContinuationsAsynchronously);
-    public Task More => Volatile.Read(ref more).Task;
-    public void Wake() => Interlocked.Exchange(ref more, new(TaskCreationOptions.RunContinuationsAsynchronously)).TrySetResult();
-}
 
 internal static partial class Transcoder
 {
@@ -118,7 +75,8 @@ internal static partial class Transcoder
     }
 
     /*
-     * Can this ffmpeg write 32-bit FLAC? (6.1 quietly caps the encoder at 24.)
+     * Can this ffmpeg write 32-bit FLAC? Asked as the conversions ask (HighRates.Args): 6.1 on writes 24 and says
+     * nothing unless told -strict experimental, and 5.1 (Debian 12's) can't (item 269).
      * A fifth of a second of silence is encoded and its STREAMINFO read back,
      * as lib/ffmpeg.js asks it.
      */
@@ -128,7 +86,7 @@ internal static partial class Transcoder
         {
             var psi = new ProcessStartInfo(bin) { RedirectStandardOutput = true, RedirectStandardError = true, UseShellExecute = false };
             foreach (var a in new[] { "-hide_banner", "-loglevel", "error", "-f", "lavfi", "-i", "anullsrc=r=44100:cl=stereo", "-t", "0.2",
-                "-sample_fmt", "s32", "-bits_per_raw_sample", "32", "-c:a", "flac", "-f", "flac", "-" }) psi.ArgumentList.Add(a);
+                "-sample_fmt", "s32", "-bits_per_raw_sample", "32", "-c:a", "flac", "-f", "flac", "-strict", "experimental", "-" }) psi.ArgumentList.Add(a);
             using var p = Process.Start(psi)!;
             using var ms = new MemoryStream();
             var copy = p.StandardOutput.BaseStream.CopyToAsync(ms);
@@ -151,15 +109,19 @@ internal static partial class Transcoder
     public static bool FfOk => Ff.Value.Ok;
 
     /* The Transcoder's keyFor (lib/stream.js), as Playback/StreamPlans.cs writes it. */
-    public static string KeyFor(ConvTrack t, ConvPlan p) => StreamPlans.KeyFor(Jv.Obj(("id", (double)t.Id), ("mtime", (double)t.Mtime)), p.ToJs());
-    public static string FinalPath(string key) => Path.Combine(dir, key + ".flac");
+    public static string KeyFor(ConvTrack t, ConvPlan p) => StreamPlans.KeyFor(Jv.Obj(("id", (double)t.Id), ("mtime", (double)t.Mtime)), p.ToJs()) + (p.Dsp != null ? "-o" : "") + (p.Lowpass != 0 ? "-lp" + p.Lowpass : "")
+        // "-o": DSP in the order of item 263 (none made before it kept). A filter's shape (items 248, 259), before the endings FinalPath reads its kind of file from.
+        + (p.Shape != null ? "-" + p.Shape + Upsample.Joins.Mark + (p.Wav ? "h" : "") : "")   // "h": a WAV's length in its header (item 270)
+        + (p.Wav ? "-wav" : "") + (p.DsdUp != 0 ? Upsample.DsdPlan.Suffix(p.DsdUp, p.DsdBase) : "");
+    public static string FinalPath(string key) => Path.Combine(dir, key + (key.EndsWith("-wav", StringComparison.Ordinal) ? ".wav" : Upsample.DsdPlan.IsDsf(key) ? ".dsf" : ".flac"));
 
     /* stream.js ffmpegArgs (Playback/StreamPlans.cs): the gain first, the DSP before the requantise. */
     public static List<string> Args(string src, ConvPlan p, string dest) => Args(src, p, dest, Ff.Value.Soxr);
 
     /* The same with soxr said (whether ffmpeg has libsoxr), as the tests ask it. */
-    public static List<string> Args(string src, ConvPlan p, string dest, bool soxr) =>
-        StreamPlans.FfmpegArgs(src, p.ToJs(), dest, soxr).Select(Jv.Str).ToList();
+    public static List<string> Args(string src, ConvPlan p, string dest, bool soxr, bool convolve = true) =>
+        Playback.Convolution.Args(Playback.HighRates.Args(Playback.DsdLowpass.Args(StreamPlans.FfmpegArgs(src, p.ToJs(), dest, soxr).Select(Jv.Str).ToList(), p.Lowpass, soxr), p.Wav, p.Bits),
+            convolve && p.Dsp != null ? Playback.Convolution.For(Jv.Get(p.Dsp, "dsp"), p.InRate) : null, p.InRate, soxr);   // a room or headphone correction, at the track's rate (item 252)
 
     /* Start (or join) a conversion now. */
     public static ConvJob Start(ConvTrack t, ConvPlan p, bool background = false)
@@ -182,9 +144,15 @@ internal static partial class Transcoder
         var dspOn = false;
         void Finish(int code)
         {
-            if (code == 0 && File.Exists(job.Part))
+            if (code == 0 && File.Exists(job.Part) && job.Resume?.Whole == false)
             {
-                try { File.Move(job.Part, dest, overwrite: true); }
+                // Begun again part way (a device's seek: item 272), a gap left in it: not kept; the next play makes it whole.
+                try { File.Delete(job.Part); } catch (IOException) { /* gone */ }
+            }
+            else if (code == 0 && File.Exists(job.Part))
+            {
+                // A WAV's sizes, left open while it was written, put right now it is whole (item 270).
+                try { if (dest.EndsWith(".wav", StringComparison.Ordinal)) Upsample.WavHeader.Patch(job.Part); File.Move(job.Part, dest, overwrite: true); }
                 catch (IOException e) { job.Failed = true; err.Append(e.Message); }
             }
             else
@@ -200,8 +168,28 @@ internal static partial class Transcoder
             job.Finished.TrySetResult();
             Prune();
         }
+        // A reader waiting for more is woken as the .part grows.
+        void Watch() => _ = Task.Run(async () =>
+        {
+            long last = -1;
+            while (!job.Done)
+            {
+                await Task.Delay(100);
+                long len = 0;
+                try { len = new FileInfo(job.Part).Length; } catch (IOException) { /* not there yet */ }
+                if (len != last) { last = len; job.Wake(); }
+            }
+        });
         void Begin(string src, ConvPlan plan, List<string>? pieces)
         {
+            // A DSF from PCM, or PCM in a shape (item 259): made by `mandarin-server upsample` as it plays.
+            if (pieces == null && Upsample.MadeAsPlayed.Takes(plan))
+            {
+                Server.Log($"[stream] {Path.GetFileName(t.Path)}: {plan.Reason} → {(plan.DsdUp != 0 ? $"DSF, DSD{plan.DsdUp}" : $"{(plan.Wav ? "WAV" : "FLAC")} {plan.Bits}/{(plan.Rate / 1000.0).ToString(CultureInfo.InvariantCulture)} kHz")}");
+                Upsample.MadeAsPlayed.Start(t, plan, job, Finish, err);
+                Watch();
+                return;
+            }
             try
             {
                 var psi = new ProcessStartInfo(Ff.Value.Bin) { UseShellExecute = false, RedirectStandardError = true, RedirectStandardInput = true };
@@ -220,19 +208,8 @@ internal static partial class Transcoder
                 if (pieces != null) _ = Services.Catalogue.FeedDash(proc.StandardInput, pieces);
                 else proc.StandardInput.Close();
                 proc.BeginErrorReadLine();
-                Server.Log($"[stream] {Path.GetFileName(t.Path)}: {plan.Reason} → FLAC {plan.Bits}/{(plan.Rate / 1000.0).ToString(CultureInfo.InvariantCulture)} kHz{(plan.Copy ? " (as it comes)" : "")}");
-                // A reader waiting for more is woken as the .part grows.
-                _ = Task.Run(async () =>
-                {
-                    long last = -1;
-                    while (!job.Done)
-                    {
-                        await Task.Delay(100);
-                        long len = 0;
-                        try { len = new FileInfo(job.Part).Length; } catch (IOException) { /* not there yet */ }
-                        if (len != last) { last = len; job.Wake(); }
-                    }
-                });
+                Server.Log($"[stream] {Path.GetFileName(t.Path)}: {plan.Reason} → {(plan.Wav ? "WAV" : "FLAC")} {plan.Bits}/{(plan.Rate / 1000.0).ToString(CultureInfo.InvariantCulture)} kHz{(plan.Copy ? " (as it comes)" : "")}");
+                Watch();
             }
             catch (Exception e)
             {
@@ -254,10 +231,10 @@ internal static partial class Transcoder
                     Finish(-1);
                     return;
                 }
-                Begin(from.Src, from.Plan, from.Pieces);
+                Begin(from.Src, Playback.Levelled.Into(t.Id, from.Plan), from.Pieces);
             });
         }
-        else Begin(t.Path, p, null);
+        else Begin(t.Path, Playback.Levelled.Into(t.Id, p), null);   // the headroom less what levelling leaves (item 263)
         return job;
     }
 
@@ -289,7 +266,8 @@ internal static partial class Transcoder
             foreach (var (t, p) in items)
             {
                 var key = KeyFor(t, p);
-                if (Jobs.ContainsKey(key) || File.Exists(FinalPath(key)) || Queue.Any(q => q.Key == key)) continue;
+                // A DSF from PCM, or PCM in a shape, is made as it plays, one at a time (Upsample/MadeAsPlayed.cs): never ahead.
+                if (Upsample.MadeAsPlayed.Takes(p) || Jobs.ContainsKey(key) || File.Exists(FinalPath(key)) || Queue.Any(q => q.Key == key)) continue;
                 Queue.Add((key, t, p));
             }
         }
@@ -320,11 +298,11 @@ internal static partial class Transcoder
     }
 
     /* Keep the cache under its ceiling, least recently used first. */
-    private static void Prune()
+    internal static void Prune()
     {
         try
         {
-            var files = new DirectoryInfo(dir).GetFiles("*.flac").OrderBy(f => f.LastWriteTimeUtc).ToList();
+            var files = new DirectoryInfo(dir).GetFiles().Where(f => f.Name.EndsWith(".flac", StringComparison.Ordinal) || f.Name.EndsWith(".wav", StringComparison.Ordinal) || f.Name.EndsWith(".dsf", StringComparison.Ordinal)).OrderBy(f => f.LastWriteTimeUtc).ToList();
             long total = files.Sum(f => f.Length);
             while (total > maxBytes && files.Count > 1)
             {
@@ -334,65 +312,5 @@ internal static partial class Transcoder
             }
         }
         catch (IOException) { /* no cache yet */ }
-    }
-
-    /*
-     * A file still being made: what there is, then the rest as it comes, until
-     * ffmpeg is done (stream.js tailFollow). No length is known yet, so it goes
-     * out chunked, the way an internet radio stream does, without ranges.
-     */
-    public static async Task TailFollow(HttpContext ctx, ConvJob job, string mime)
-    {
-        ctx.Response.StatusCode = 200;
-        ctx.Response.ContentType = mime;
-        ctx.Response.Headers.CacheControl = "no-store";
-        ctx.Response.Headers.AcceptRanges = "none";
-        ctx.Response.Headers["X-Mandarin-Answered"] = "C#";
-        if (HttpMethods.IsHead(ctx.Request.Method)) return;
-        var buf = new byte[256 * 1024];
-        long pos = 0;
-        var aborted = ctx.RequestAborted;
-        FileStream? fs = null;
-        try
-        {
-            while (!aborted.IsCancellationRequested)
-            {
-                if (fs == null)
-                {
-                    // The .part, or the finished file it was renamed to (the same bytes, at the same place).
-                    foreach (var f in new[] { job.Part, job.Final })
-                    {
-                        try { fs = new FileStream(f, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete); fs.Position = pos; break; }
-                        catch (IOException) { fs = null; }
-                    }
-                    if (fs == null)
-                    {
-                        if (job.Done) { if (job.Failed) ctx.Abort(); return; }
-                        await Task.WhenAny(job.More, Task.Delay(100, aborted));
-                        continue;
-                    }
-                }
-                var more = job.More;
-                int n = await fs.ReadAsync(buf, aborted);
-                if (n > 0)
-                {
-                    pos += n;
-                    await ctx.Response.Body.WriteAsync(buf.AsMemory(0, n), aborted);
-                    continue;
-                }
-                if (job.Done)
-                {
-                    // Finished while this was reading: anything written last is read before the end.
-                    n = await fs.ReadAsync(buf, aborted);
-                    if (n > 0) { pos += n; await ctx.Response.Body.WriteAsync(buf.AsMemory(0, n), aborted); continue; }
-                    if (job.Failed) ctx.Abort();
-                    return;
-                }
-                await ctx.Response.Body.FlushAsync(aborted);
-                await Task.WhenAny(more, Task.Delay(200, aborted));
-            }
-        }
-        catch (OperationCanceledException) { /* the device went away */ }
-        finally { fs?.Dispose(); }
     }
 }

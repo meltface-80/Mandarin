@@ -14,6 +14,7 @@ import android.webkit.JavascriptInterface
  *   MusicdUsb.setFixed(on)   fixed volume (the DAC at full) or the slider
  *   MusicdUsb.setLimit(pct)  the most the slider may set
  *   MusicdUsb.setDsdMode(m)  how DSD goes to the DAC: native, native_le, dop, pcm
+ *   MusicdUsb.setDevice(key) which USB audio device, where there is more than one ("" for the driver's own choice)
  *   MusicdUsb.diagnostics()  everything as text, for a report
  *
  * The app calls window.__musicdUsbChanged() when the port changes.
@@ -60,6 +61,15 @@ class UsbBridge(private val activity: Activity) {
     @JavascriptInterface
     fun setDsdMode(mode: String) {
         Store.setUsbDsd(activity, mode)
+        activity.runOnUiThread { PhonePlayerService.current?.usbChanged(true) }
+    }
+
+    /** Which USB audio device to play through (UsbDac.key), where Android lists more than one. */
+    @JavascriptInterface
+    fun setDevice(key: String) {
+        Store.setUsbDevice(activity, key)
+        UsbDriver.close()
+        UsbDac.refresh(activity)
         activity.runOnUiThread { PhonePlayerService.current?.usbChanged(true) }
     }
 

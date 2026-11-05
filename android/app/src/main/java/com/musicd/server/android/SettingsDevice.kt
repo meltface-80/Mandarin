@@ -191,11 +191,29 @@ internal fun DevicePane(id: String, client: () -> ServerClient?, onBack: () -> U
                 CapGroup("Mode", Modifier.parity("settings-device.cap-label")) {
                     Seg(d.modes, d.mode, key = { i, c -> Modifier.parity("settings-device.mode", Contract.label("settings-device.mode", i)).clickable(enabled = !busy) { patch(d.segment("mode", c.value)) } })
                 }
+                if (d.showMaxRate) CapGroup("Highest rate", Modifier.parity("settings-device.cap-label")) {
+                    Seg(d.maxRates, d.maxRateValue, key = { i, c -> Modifier.parity("settings-device.maxrate", Contract.label("settings-device.maxrate", i)).clickable(enabled = !busy) { patch(d.segment("max_rate", c.value)) } })
+                    DeviceNote(d.maxRateNote, Modifier.parity("settings-device.note"))
+                }
+                if (d.showFilter) CapGroup("Filter", Modifier.parity("settings-device.cap-label")) {
+                    Seg(d.filters, d.filter, key = { i, c -> Modifier.parity("settings-device.filter", Contract.label("settings-device.filter", i)).clickable(enabled = !busy) { patch(d.segment("filter", c.value)) } })
+                    DeviceNote(d.filterNote, Modifier.parity("settings-device.note"))
+                    d.filterMakingLine?.let { DeviceNote(it, Modifier.parity("settings-device.note")) }
+                }
                 if (d.has32) CapGroup("Bit depth", Modifier.parity("settings-device.cap-label")) {
                     Seg(d.depths, d.outBits, key = { i, c -> Modifier.parity("settings-device.depth", Contract.label("settings-device.depth", i)).clickable(enabled = !busy && !c.off) { patch(d.segment("bits", c.value)) } })
                     if (!d.flac32) DeviceNote("32-bit needs an ffmpeg that writes 32-bit FLAC; this one stops at 24.", Modifier.parity("settings-device.note"))
                 }
                 DeviceNote(d.example, Modifier.parity("settings-device.note"))
+                CapGroup("DSD as PCM", Modifier.parity("settings-device.cap-label")) {
+                    Seg(d.dsdLowpasses, d.dsdLowpassValue, key = { i, c -> Modifier.parity("settings-device.dsdlowpass", Contract.label("settings-device.dsdlowpass", i)).clickable(enabled = !busy) { patch(d.segment("dsd_lowpass", c.value)) } })
+                    DeviceNote(d.dsdLowpassNote, Modifier.parity("settings-device.note"))
+                }
+                if (d.showDsdOut) CapGroup("PCM as DSD", Modifier.parity("settings-device.cap-label")) {
+                    Seg(d.dsdOuts, d.dsdOutValue, key = { i, c -> Modifier.parity("settings-device.dsdout", Contract.label("settings-device.dsdout", i)).clickable(enabled = !busy && !c.off) { patch(d.segment("dsd_out", c.value)) } })
+                    DeviceNote(d.dsdOutNote, Modifier.parity("settings-device.note"))
+                    d.dsdOutLine?.let { DeviceNote(it, Modifier.parity("settings-device.note")) }
+                }
                 if (d.canFixVolume) {
                     Box(Modifier.padding(top = 14.dp)) {
                         SetupRow("Fixed volume", Modifier.parity("settings-device.name"), null) {
@@ -233,6 +251,7 @@ internal fun DevicePane(id: String, client: () -> ServerClient?, onBack: () -> U
             }
         }
         if (d.showDsp) DspBlock(d, client, busy, info) { body, said -> patch(body, said?.let { s -> { _: DevicePage -> s } }) }
+        if (d.showRoomCorrection) RoomCorrection(d, client, busy) { page = DevicePage(it) }   // item 252
         if (d.kind == "phone" && Store.phoneZone(context) == d.id) UsbBlock(info)
         if (!d.online) {
             SettingsDivider(18, 18)

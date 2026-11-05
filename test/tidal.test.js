@@ -246,6 +246,20 @@ test("Tidal: the device sign-in, the library, CD and hi-res (DASH) to a room, a 
       assert.equal(ctx.db.setting("tidal").token.access, tidal.access, "the new token kept");
     });
 
+    // Item 266: two calls refused at once with a token that has stopped working, the second's refusal coming after
+    // the first's refresh: the second is made again with the new token, not refreshed a second time.
+    await t.test("two calls refused with a stale token refresh it once", async () => {
+      tidal.expireAccess();
+      const before = tidal.refreshes;
+      tidal.slowRefusal = { has: "slowone", ms: 1000 };
+      try {
+        const [slow, quick] = await Promise.all([api("tidal/search?q=slowone"), (async () => { await sleep(100); return api("tidal/search?q=quickone"); })()]);
+        assert.equal(slow.status, 200, JSON.stringify(slow));
+        assert.equal(quick.status, 200, JSON.stringify(quick));
+      } finally { tidal.slowRefusal = null; }
+      assert.equal(tidal.refreshes - before, 1, "refreshed once");
+    });
+
     await t.test("the browser: search, the album's page, the favourite, Clean up", async () => {
       const s = await api("tidal/search?q=other");
       assert.equal(s.albums[0].favourited, false);

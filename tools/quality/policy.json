@@ -6,6 +6,7 @@
     "test/**/*.cs",
     "server/**/*.cs",
     "engine/**/*.cs",
+    "bridge/**/*.cs",
     "android/**/*.kt",
     "android/**/*.go"
   ],

@@ -624,6 +624,15 @@
                  (the Android app playing the server's Opus) the Opus logo and
                  256kbps. Filled by paintNpFormat() in app.js. -->
             <div class="np-format hidden" id="np-format" data-parity="now-playing.format"></div>
+            <!-- A device Mandarin streams to (item 247), in its badge's place:
+                 centred, what goes out, how it was made, what is being made.
+                 A tap opens the signal path, every step from the file to the
+                 room. Filled by app/signal-path.js. -->
+            <button class="np-signal-lines hidden" id="np-signal-lines" data-parity="now-playing.signal" type="button" aria-label="Signal path" aria-expanded="false" aria-controls="np-signal"></button>
+            <div class="np-popover np-signal hidden" id="np-signal" role="dialog" aria-label="Signal path">
+              <div class="np-popover-title" data-parity="now-playing.signal-title">Signal path</div>
+              <ol class="np-signal-steps" id="np-signal-steps"></ol>
+            </div>
 
             <div class="np-progress">
               <!-- Behind the seek input, not instead of it: the range is what
@@ -1217,6 +1226,14 @@
             </span>
             <span class="settings-nav-txt">
               <span class="settings-nav-title">Backup &amp; restore</span>
+            </span>
+          </button>
+          <button data-parity="settings.item" class="settings-nav-item" type="button" data-open="/sq-tool/">
+            <span class="settings-nav-ico" aria-hidden="true">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 12 6 12 9 4 15 20 18 12 22 12"/></svg>
+            </span>
+            <span class="settings-nav-txt">
+              <span class="settings-nav-title">SQ-tool</span>
             </span>
           </button>
           <button data-parity="settings.item" class="settings-nav-item" type="button" data-pane="system">
@@ -1866,7 +1883,14 @@
               <span class="switch-track"><span class="switch-thumb"></span></span>
             </label>
           </div>
-          <div class="settings-note" data-parity="settings-homescreen.note">The greeting at the top of Home, and the Random Album button beside the Album of the day. On this device only.</div>
+          <div class="settings-row">
+            <span class="settings-label" data-parity="settings-homescreen.name">Album of the Day</span>
+            <label class="switch" data-parity="settings-homescreen.aotd">
+              <input type="checkbox" id="home-aotd-on" aria-label="Album of the Day" checked>
+              <span class="switch-track"><span class="switch-thumb"></span></span>
+            </label>
+          </div>
+          <div class="settings-note" data-parity="settings-homescreen.note">The greeting at the top of Home, and the Random Album and Album of the Day tiles under it. On this device only.</div>
         </div>
 
         <div class="settings-block">
@@ -1984,6 +2008,8 @@
             <span id="update-server-name" class="settings-label" data-parity="settings-system.name">Server</span>
             <button id="check-update-btn" data-parity="settings-system.check" class="settings-update-btn" type="button">Check for update</button>
           </div>
+          <!-- The Mandarin Bridges, a row each (item 291, app/bridge-updates.js). -->
+          <div id="update-bridges" class="settings-bridges hidden"></div>
           <div id="settings-whats-new" class="settings-whats-new hidden"></div>
         </div>
       </div>

@@ -76,8 +76,17 @@ internal static class LocalDevices
         return Profiles.Bits.Where(out_.Contains).ToList();
     }
 
-    private static JsObj Advertised(List<double> rates, List<double> bits) =>
-        Jv.Obj(("advertised", Jv.Obj(("containers", new List<object?> { "flac" }), ("rates", rates.Cast<object?>().ToList()), ("bits", bits.Cast<object?>().ToList()))));
+    /*
+     * What a device says it takes. With [native] DSD (UsbFormats.cs, item 256) it takes DSD files: those multiples
+     * on, the format the engine opens it in kept; DSD that only DoP can carry, at the rates it takes, offered off.
+     */
+    private static JsObj Advertised(List<double> rates, List<double> bits, (string Format, List<double> Multiples)? native = null)
+    {
+        var adv = Jv.Obj(("containers", new List<object?> { "flac" }), ("rates", rates.Cast<object?>().ToList()), ("bits", bits.Cast<object?>().ToList()));
+        if (native != null || UsbFormats.DopMultiples(rates).Count > 0) ((List<object?>)adv["containers"]!).Add("dsd");
+        if (native is { } nat) { adv["dsd"] = nat.Multiples.Cast<object?>().ToList(); adv["dsd_format"] = nat.Format; }
+        return Jv.Obj(("advertised", adv));
+    }
 
     /* The ALSA playback devices this program can open. */
     public static LocalList ListLinux(string root = "/proc/asound", string dev = "/dev/snd")
@@ -108,7 +117,7 @@ internal static class LocalDevices
                 {
                     Id = IdOf($"alsa:{cardId}:{d}"), Kind = "local", Family = "local",
                     NetworkName = name, Manufacturer = maker, Model = usb ? "USB audio" : driver, Location = $"alsa:plughw:CARD={cardId},DEV={d}",
-                    Playable = true, Caps = Advertised(RatesIn(stream), BitsIn(stream))
+                    Playable = true, Caps = Advertised(UsbFormats.PcmRates(stream), BitsIn(stream), UsbFormats.Native(stream))
                 });
             }
         }

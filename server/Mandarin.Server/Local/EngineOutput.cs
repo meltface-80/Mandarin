@@ -49,6 +49,8 @@ internal sealed class EngineOutput : IRenderer
     public string Name { get; }
     /* { rate, channels } while the device is open; what was sent to it. */
     public (double Rate, double Channels)? Sink { get; private set; }
+    /* The format the engine last opened the device at, kept when it closes: its rate and sample format, "S32_LE", "S32_LE (DoP)" or "DSD_U32_BE" (item 256). */
+    public (double Rate, string Format)? Opened { get; private set; }
     public (double Rate, double Bits)? Sent { get; private set; }
     public double Volume { get { lock (gate) return volume; } }
 
@@ -57,6 +59,9 @@ internal sealed class EngineOutput : IRenderer
         Name = name; this.location = location; this.bin = bin; this.ffmpeg = ffmpeg; this.log = log;
         this.volume = volume; this.fixedVolume = fixedVolume; this.source = source;
     }
+
+    /* The DSD the DAC takes natively, for the engine ("DSD_U32_BE:64,128,256"; UsbFormats.cs, item 256): DoP for the rest. */
+    public string DsdNative { get; init; } = "";
 
     /* output.js amplitude(): the volume slider on an audio taper — 100% untouched, 50% −25 dB, 10% −45 dB, under 10% straight down to silence. */
     public static double Amplitude(double pct, bool muted)
@@ -78,6 +83,7 @@ internal sealed class EngineOutput : IRenderer
         psi.ArgumentList.Add("--device"); psi.ArgumentList.Add(location);
         psi.ArgumentList.Add("--ffmpeg"); psi.ArgumentList.Add(ffmpeg);
         if (Cpu.Core is { } core) { psi.ArgumentList.Add("--core"); psi.ArgumentList.Add(core.ToString(CultureInfo.InvariantCulture)); }
+        if (DsdNative.Length > 0) { psi.ArgumentList.Add("--dsd-native"); psi.ArgumentList.Add(DsdNative); }
         // The whole engine on playback's cores, the decoder it starts with it; its playback thread on the one core playback always has.
         Cpu.PlaceRealtime(psi);
         var p = new Proc();
@@ -169,6 +175,7 @@ internal sealed class EngineOutput : IRenderer
                 }
                 case "format":
                     Sink = (Num(ev["rate"]), Num(ev["channels"]));
+                    Opened = (Num(ev["rate"]), Str(ev["format"]));
                     Sent = (Num(ev["rate"]), 32);
                     break;
                 case "ended":
@@ -203,6 +210,10 @@ internal sealed class EngineOutput : IRenderer
     }
 
     private double Gain() { lock (gate) return fixedVolume() ? 1 : Amplitude(volume, muted); }
+
+    /* The gain the engine applies to the samples now (1: untouched), and whether the volume is fixed (item 287). */
+    public double GainNow => Gain();
+    public bool FixedVolume => fixedVolume();
     private void SendGain() => Send(new JsonObject { ["cmd"] = "gain", ["value"] = Gain() });
     private bool HasProc { get { lock (gate) return proc != null; } }
 

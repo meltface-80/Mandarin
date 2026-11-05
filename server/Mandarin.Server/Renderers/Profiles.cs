@@ -25,7 +25,7 @@ namespace Mandarin.Server.Renderers;
 
 using Js = Mandarin.Server.Tags.Js;
 
-internal static class Profiles
+internal static partial class Profiles
 {
     public static readonly double[] Rates = [44100, 48000, 88200, 96000, 176400, 192000, 352800, 384000, 705600, 768000];
     public static readonly double[] Bits = [16, 24, 32];
@@ -96,6 +96,11 @@ internal static class Profiles
         new("chord-poly", "Chord Poly", new(Model: Poly, Manufacturer: Words("chord"), ModelSource: @"/\bpoly\b/i", ManufacturerSource: "/chord/i"),
             UpTo(768000), [16, 24, 32], [64, 128, 256], null, "mpd", "fixed",
             "Feeds a Mojo 2: PCM to 768 kHz, DSD64–256 as DoP. Gapless over UPnP and 32-bit pass-through: to verify. Volume is Mojo 2's own."),
+        // FiiO's figures (item 274): by USB to a DAC, PCM to 768 kHz/32-bit and DSD64–256 as DoP; by its coaxial and
+        // optical outputs 192 kHz and DSD64, which its page says to untick. Over UPnP it doesn't say which it uses.
+        new("fiio-sr11", "FiiO SR11", new(Model: Words("sr11"), Manufacturer: Words("fiio"), ModelSource: "/sr11/i", ManufacturerSource: "/fiio/i"),
+            UpTo(768000), [16, 24, 32], [64, 128, 256], true, null, "upnp",
+            "By USB to a DAC: PCM to 768 kHz/32-bit, DSD64–256 as DoP (FiiO's figures). By its coaxial or optical output: to 192 kHz and DSD64 — untick the rest."),
         new("linkplay", "LinkPlay player", new(Any: Words("linkplay"), AnySource: "/linkplay/i"),
             UpTo(192000), [16, 24], None, true, "linkplay", "upnp"),
         new("generic", "UPnP renderer", null,
@@ -200,6 +205,8 @@ internal static class Profiles
         }
 
         var p = For(record);
+        // A Mandarin Bridge renderer that has said what its DAC takes: its word alone (Profiles.MandarinBridge.cs).
+        if (MandarinBridge.Reported(caps) is { } said) return DeviceSays(o, said, user, verified, containers, record);
         (bool On, string Source) Pick(double v, string key, double[] floor)
         {
             var own = key == "rates" ? p.Rates : key == "bits" ? p.Bits : p.Dsd;
@@ -227,7 +234,7 @@ internal static class Profiles
         o["profile"] = profileOut;
         o["rates"] = Rates.Select(hz => { var (on, source) = Pick(hz, "rates", FloorRates); return (object?)Chip("hz", hz, on, source); }).ToList();
         o["bits"] = Bits.Select(n => { var (on, source) = Pick(n, "bits", FloorBits); return (object?)Chip("n", n, on, source); }).ToList();
-        o["dsd"] = DsdChips(p, containers, user);
+        o["dsd"] = DsdChips(p, containers, user, Prop.Get(adv, "dsd"));
         o["containers"] = containers;
         o["editable"] = true;
         o["playable"] = Js.Truthy(Prop.Get(record, "playable"));
@@ -237,13 +244,15 @@ internal static class Profiles
     /*
      * DSD to a renderer (v0.6.0-RC3): the DSF or DFF file itself, for a device
      * that says it takes DSD files (GetProtocolInfo) — at the multiples its
-     * profile lists, or DSD64 for a device with no profile of its own. Yours,
-     * when you have set them. Anything else is played as PCM, as before.
+     * profile lists, or DSD64 for a device with no profile of its own; and
+     * the native DSD a USB DAC says it takes (item 256). Yours, when you have
+     * set them. Anything else is played as PCM, as before.
      */
-    private static List<object?> DsdChips(Profile p, object? containers, object? user)
+    private static List<object?> DsdChips(Profile p, object? containers, object? user, object? advertised)
     {
         var takes = Includes(containers, "dsd");
-        double[] own = p.Id == "generic" ? [64] : p.Dsd;
+        var said = (advertised as List<object?> ?? []).Select(Js.ToNumber).ToList();
+        double[] own = [.. (p.Id == "generic" ? new double[] { 64 } : p.Dsd).Union(said)];
         return Dsd.Select(n =>
         {
             if (!takes) return (object?)Chip("n", n, false, "off");
@@ -253,7 +262,7 @@ internal static class Profiles
                 return Chip("n", n, on, on ? "user" : "off");
             }
             var ok = own.Contains(n);
-            return Chip("n", n, ok, !ok ? "off" : p.Id == "generic" ? "advertised" : "profile");
+            return Chip("n", n, ok, !ok ? "off" : p.Id == "generic" || said.Contains(n) ? "advertised" : "profile");
         }).ToList();
     }
 

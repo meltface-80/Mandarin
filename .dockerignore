@@ -5,6 +5,8 @@ data
 docs
 android/*
 !android/musicdnet
+# Mandarin Bridge, the phone app (item 278): built by its own workflow, never in the server's image.
+bridge
 test
 *.md
 *.tar.gz
@@ -18,3 +20,5 @@ server/**/bin
 tools
 .githooks
 .claude
+# SQ-tool's own tests and standalone packaging (item 288): the image takes its sqtool/ alone.
+sq-tool/tests

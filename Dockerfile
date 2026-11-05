@@ -57,14 +57,20 @@ RUN set -e; cd server; \
       -p:EnableCompressionInSingleFile=true -o /out --nologo; \
     rm -f /out/*.pdb /out/*.dbg; ls -la /out
 
-FROM mirror.gcr.io/library/debian:bookworm-slim
+# Debian trixie (13): its ffmpeg is 7.1, which writes 32-bit FLAC — a DAC that
+# takes 32 bits (an SMSL SU-1 on a Mandarin Bridge renderer) is sent it; bookworm's
+# 5.1 (and 6.1, which quietly caps the encoder at 24) could not, so 32-bit was
+# refused and converted tracks went out at 24. The AOT programs need glibc 2.34
+# or later: trixie's is 2.41.
+FROM mirror.gcr.io/library/debian:trixie-slim
 LABEL org.opencontainers.image.title="MusicD Server" \
       org.opencontainers.image.description="Your own music files, played to Sonos, with MusicD Remote's interface" \
       org.opencontainers.image.source="https://github.com/meltface-80/Mandarin" \
       org.opencontainers.image.licenses="MIT"
 
 # ffmpeg converts anything above 24-bit/48 kHz (and formats Sonos cannot
-# read) to FLAC 24/48. Debian's build includes libsoxr, the better resampler.
+# read) to FLAC 24/48, and makes what streamers and DACs are sent, 32-bit
+# where they take it. Debian's build includes libsoxr, the better resampler.
 # tini reaps ffmpeg children and passes SIGTERM on, so a stop is immediate.
 # libicu: the C# server sorts names as the Node server did (server/).
 # taskset and ionice (util-linux, in the base image): playback's own cores and
@@ -72,11 +78,17 @@ LABEL org.opencontainers.image.title="MusicD Server" \
 # so the image is never built without them.
 # poppler-utils (v0.8.33): pdfinfo and pdftoppm, which draw the pages of an
 # album's booklet for the album page (server/Mandarin.Server/Booklets.cs).
+# python3 and python3-numpy (item 288): SQ-tool, at /sq-tool/ (sq-tool/, SqTool.cs);
+# it reads FLAC with the image's ffmpeg, and records nothing itself (item 290: Mandarin
+# records the zone and hands it the recording).
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends ffmpeg tini ca-certificates libicu72 poppler-utils \
+    && apt-get install -y --no-install-recommends ffmpeg tini ca-certificates libicu76 poppler-utils \
+       python3 python3-numpy \
     && rm -rf /var/lib/apt/lists/* \
     && taskset --version && ionice --version && nice --version \
-    && pdftoppm -v && pdfinfo -v
+    && pdftoppm -v && pdfinfo -v \
+    && python3 -c "import numpy" \
+    && ffmpeg -version | head -1 && ffmpeg -hide_banner -buildconf | grep -q -- --enable-libsoxr
 
 # Tailscale built in: signed in once from Settings → Away from home (or with
 # TS_AUTHKEY), the server is on your tailnet by itself (server/Mandarin.Server/Admin/Tailscale.cs).
@@ -89,6 +101,8 @@ COPY --from=audio /out/mandarin-audio /app/engine/bin/mandarin-audio
 COPY --from=server /out/mandarin-server /app/server/bin/mandarin-server
 COPY package.json ./
 COPY public ./public
+# SQ-tool (items 288, 290): its code, started by the server at /sq-tool/.
+COPY sq-tool/sqtool ./sq-tool/sqtool
 
 ENV DOCKER=1 \
     PORT=3500 \

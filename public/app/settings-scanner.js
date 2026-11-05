@@ -59,6 +59,12 @@ function scanLoad(opening) {
   });
 }
 let quiet = 0;
+// The cores a track made as it plays has (item 260): "auto", or 1 to 3.
+async function setMaking(v) {
+  if (scanBusy) return;
+  try { cpu = await scanApi("/api/cpu", { making_cores: v === "auto" ? "auto" : Number(v) }); scanErr = ""; } catch (e) { scanErr = e.message; }
+  render();
+}
 // The counts the lists were last asked for at: when the server's move, the lists are asked for again.
 const countsOf = (x) => x && x.progress ? [x.progress.checked, x.progress.applied, x.progress.proposed, x.progress.unidentified, x.progress.rejected].join() : "";
 const listsMoved = () => !lists || countsOf(st) !== listsAsked;

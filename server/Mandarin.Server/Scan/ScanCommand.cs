@@ -80,6 +80,8 @@ internal static class ScanCommand
             scanner.OnProgress = () => Send(Message("progress", ("state", scanner.State.ToJs())));
             tick = new Timer(_ => Send(Message("state", ("state", scanner.State.ToJs()))), null, 500, 500);
             var result = scanner.Scan(force);
+            // The tests' own pause (item 257): its ticks go on saying it ended, before its result is said.
+            if (int.TryParse(Environment.GetEnvironmentVariable("MANDARIN_SCAN_END_WAIT_MS"), out var wait) && wait > 0) Thread.Sleep(wait);
             StopTicking();
             Send(Message("result", ("result", result), ("state", scanner.State.ToJs())));
             return 0;

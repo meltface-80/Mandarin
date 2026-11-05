@@ -18,6 +18,7 @@ internal sealed partial class Players
     {
         var rec = Record(p.Id);
         if (rec != null && rec.Kind == "local") { await VerifyLocal(p, rec, item); return; }
+        if (rec?.Caps["mandarin"] is JsObj mu && Jv.T(mu["base"])) { await VerifyMandarinBridge(p, rec, item, Jv.Str(mu["base"])); return; }
         var lp = rec?.Caps["linkplay"] as JsObj;
         if (lp == null || !Jv.T(lp["base"]) || item.Sent == null || item.Sent.Rate == 0 || item.Sent.Dsd != 0) return;
         var key = p.Index + ":" + item.Uri;
@@ -36,8 +37,10 @@ internal sealed partial class Players
         var ok = rate == item.Sent.Rate && (bits == 0 || item.Sent.Bits == 0 || bits == item.Sent.Bits);
         // Kept before the badge's tick is shown, so a page that sees the tick finds the rate verified too.
         if (ok) { using var c = Db.Open(); Register.MarkVerified(c, p.Id, rate, bits != 0 ? bits : item.Sent.Bits); }
+        // Its own API's word: the format, nothing of its volume or the samples (item 287).
+        var fed = new Fed("its own API", "pcm", rate, bits, 0, null, 0, null, ok);
         var bump = false;
-        lock (zm.Gate) { if (zm.State.TryGetValue(p.Id, out var now) && now.TrackUri == item.Uri) { now.Verified = ok ? "yes" : "no"; bump = true; } }
+        lock (zm.Gate) { if (zm.State.TryGetValue(p.Id, out var now) && now.TrackUri == item.Uri) { now.Verified = ok ? "yes" : "no"; now.Fed = fed; bump = true; } }
         if (bump) zm.Bump();
         if (!ok)
         {
@@ -60,15 +63,25 @@ internal sealed partial class Players
         lock (gate) p.Verifying = key;
         var hw = HwParams(rec.Location);
         if (hw == null || hw.Value.Rate == 0) return;
-        var ok = hw.Value.Rate == sink.Value.Rate && sink.Value.Rate == item.Sent.Rate;
-        if (ok) { using var c = Db.Open(); Register.MarkVerified(c, p.Id, hw.Value.Rate, null); }
+        // DSD (item 256): the device open at the DSD rate over 16 (DoP) or over 32 (native words), not at a PCM rate.
+        var dsd = item.Sent.Dsd * item.Sent.DsdBase;
+        var ok = hw.Value.Rate == sink.Value.Rate && (dsd > 0 ? sink.Value.Rate * 16 == dsd || sink.Value.Rate * 32 == dsd : sink.Value.Rate == item.Sent.Rate);
+        if (ok && dsd == 0) { using var c = Db.Open(); Register.MarkVerified(c, p.Id, hw.Value.Rate, null); }
+        // What the engine opened the device at (its format event) and what it does to the samples (its gain, item 287).
+        var engine = p.Renderer as Local.EngineOutput;
+        var format = engine?.Opened?.Format ?? "";
+        var kind = format.Contains("DoP", StringComparison.Ordinal) ? "dop" : format.StartsWith("DSD", StringComparison.Ordinal) ? "dsd" : "pcm";
+        var gain = engine?.GainNow ?? 1;
+        var fed = new Fed("Mandarin's audio engine", kind, hw.Value.Rate, format.Contains("32", StringComparison.Ordinal) ? 32 : 0, item.Sent.Dsd,
+            engine?.FixedVolume == true ? "fixed" : "software", engine?.Volume ?? 0, gain == 1, ok);
         var bump = false;
-        lock (zm.Gate) { if (zm.State.TryGetValue(p.Id, out var now) && now.TrackUri == item.Uri) { now.Verified = ok ? "yes" : "no"; bump = true; } }
+        lock (zm.Gate) { if (zm.State.TryGetValue(p.Id, out var now) && now.TrackUri == item.Uri) { now.Verified = ok ? "yes" : "no"; now.Fed = fed; bump = true; } }
         if (bump) zm.Bump();
         await Task.CompletedTask;
     }
 
-    /* The next file must be complete before the renderer is told about it, so it always sees a length and byte ranges for it. */
+    /* The next file must be complete before the renderer is told about it, so it always sees a length and byte ranges for it;
+       a DSF made as it plays once its making has begun, sent with its header's length and ranges as made (item 262). */
     private static bool Ready(UpnpItem it)
     {
         if (it.Plan == null || !Jv.T(it.Plan["transcode"]) || it.Track == null) return true;
@@ -77,8 +90,10 @@ internal sealed partial class Players
         // stream.js status(track, plan): ready (the file is there), running (being made), else none — and then it is started.
         var key = Transcoder.KeyFor(t, plan);
         var ready = File.Exists(Transcoder.FinalPath(key));
-        if (!ready && !Transcoder.Jobs.ContainsKey(key)) Transcoder.Prefetch([(t, plan)]);
-        return ready;
+        // Not yet: begun (a DSF from PCM, or PCM in a shape, in its turn after what is being made now: item 259).
+        if (!ready && !Transcoder.Jobs.ContainsKey(key)) { if (Upsample.MadeAsPlayed.Takes(plan)) Transcoder.Start(t, plan); else Transcoder.Prefetch([(t, plan)]); }
+        // A WAV made as it plays too, its length in its header (item 270), held ahead of the device as a DSF is (item 271).
+        return ready || (plan.DsdUp != 0 || plan.Wav) && Upsample.MadeAsPlayed.Takes(plan) && Upsample.MadeAsPlayed.Begun(key);
     }
 
     /* p.Next is what the device holds as its next URI. Whenever what SHOULD follow differs — the queue was edited, the mode changed — it is told again. */
@@ -95,12 +110,15 @@ internal sealed partial class Players
             if (withdraw) { try { await RendererOf(p).SetNextUri("", ""); } catch (RendererError) { /* nothing to withdraw */ } }
             return;
         }
-        lock (gate) { if (p.Next is { Sent: true } nx && nx.Uri == it.Uri) return; }
+        int gen;
+        lock (gate) { if (p.Next is { Sent: true } nx && nx.Uri == it.Uri) return; gen = p.JumpGen; }
         if (!Ready(it)) return;
         try
         {
-            await RendererOf(p).SetNextUri(it.Uri, it.Meta);
-            lock (gate) p.Next = (n, it.Uri, true);
+            // In its turn with what else the renderer is told (item 264); a jump meanwhile, and the next poll arms what follows it.
+            var told = false;
+            await Serially(p, async () => { lock (gate) if (gen != p.JumpGen) return; await RendererOf(p).SetNextUri(it.Uri, it.Meta); told = true; });
+            if (told) lock (gate) p.Next = (n, it.Uri, true);
         }
         catch (RendererError e)
         {
@@ -111,38 +129,6 @@ internal sealed partial class Players
                 Log($"[renderers] {RendererOf(p).Name}: no SetNextAVTransportURI ({e.Message}); tracks are started by hand");
             }
         }
-    }
-
-    private async Task Jump(Player p, int index, double seconds = 0)
-    {
-        UpnpItem it;
-        lock (gate)
-        {
-            if (index < 0 || index >= p.Queue.Count) throw new HubError(500, "Nothing to play");
-            p.Verifying = null;         // the device asked again what it plays, for the same track played again too
-            it = p.Queue[index];
-            p.ExpectStop = false;
-            p.Next = null;              // SetAVTransportURI clears a renderer's next
-            p.Heard = true;             // started by us: a stop now is this track's
-            p.Index = index;
-            p.LoadingSince = Hub.Now();
-            p.Jumping++;
-            if (p.Shuffle) p.Played.Add(it);
-        }
-        var r = RendererOf(p);
-        Optimistic(p.Id, st =>
-        {
-            st.State = "loading"; st.TrackNumber = index + 1; st.QueueLength = p.Queue.Count; st.OnQueue = true;
-            st.TrackUri = it.Uri; st.TrackId = it.TrackId; st.Title = it.Title; st.Artist = it.Artist; st.Album = it.Album; st.ArtUri = it.ArtUri;
-            st.Duration = it.Duration; st.Position = seconds; st.Sent = it.Sent; st.Unreachable = false; st.Verified = null;
-        });
-        try
-        {
-            await r.SetUri(it.Uri, it.Meta);
-            await r.Play();
-            if (seconds > 0) { try { await r.SeekTime(seconds); } catch (RendererError) { /* from the start */ } }
-        }
-        finally { lock (gate) { p.Jumping--; p.JumpedAt = Hub.Now(); } }
     }
 
     private void Fail(Player p, string message)
@@ -188,7 +174,7 @@ internal sealed partial class Players
             Sent = p == null ? null : new SentInfo(Jv.T(p["transcode"]),
                 Jv.T(p["transcode"]) ? Jv.Num(p["rate"]) : t?.SampleRate ?? 0, Jv.T(p["transcode"]) ? Jv.Num(p["bits"]) : t?.Bits ?? 0,
                 Jv.T(p["upsampled"]) ? Jv.Num(p["upsampled"]) : 0, Jv.T(p["dsp"]), Jv.T(p["dsd"]) ? Jv.Num(p["dsd"]) : 0,
-                Jv.T(p["ext"]) ? Jv.Str(p["ext"]) : "", Jv.T(p["mime"]) ? Jv.Str(p["mime"]) : "")
+                Jv.T(p["ext"]) ? Jv.Str(p["ext"]) : "", Jv.T(p["mime"]) ? Jv.Str(p["mime"]) : "") { Gain = Jv.T(p["gain"]) ? Jv.Num(p["gain"]) : 0, Lowpass = Jv.T(p["lowpass"]) ? Jv.Num(p["lowpass"]) : 0, Shape = p["shape"] as string, DsdBase = Jv.Num(p["dsdBase"]) == 48000 ? 48000 : 44100 }
         };
     }
 
@@ -239,16 +225,16 @@ internal sealed partial class Players
             case "play":
                 if (p.Index < 0 && p.Queue.Count > 0) { await Jump(p, 0); break; }
                 if (st.State == "stopped" && p.Index >= 0 && p.Index < p.Queue.Count) { await Jump(p, p.Index); break; }
-                await r.Play();
+                await Serially(p, r.Play);
                 Optimistic(id, s => { s.State = "playing"; s.Position = Hub.PositionNow(st); });
                 break;
             case "pause":
-                await r.Pause();
+                await Serially(p, r.Pause);
                 Optimistic(id, s => { s.State = "paused"; s.Position = Hub.PositionNow(st); });
                 break;
             case "stop":
                 p.ExpectStop = true;
-                await r.Stop();
+                await Serially(p, r.Stop);
                 Optimistic(id, s => { s.State = "stopped"; s.Position = 0; });
                 break;
             case "next":
@@ -260,8 +246,9 @@ internal sealed partial class Players
                 break;
             }
             case "previous":
-                // Back to the start of this track first, as every player does.
-                if (Hub.PositionNow(st) > 5 || p.Index <= 0) { await r.SeekTime(0); Optimistic(id, s => s.Position = 0); }
+                // Back to the start of this track first, as every player does: sent again where the device is stuck (item 272).
+                if (Stuck(p, st)) await Jump(p, p.Index);
+                else if (Hub.PositionNow(st) > 5 || p.Index <= 0) { await Serially(p, () => r.SeekTime(0)); Optimistic(id, s => s.Position = 0); }
                 else await Jump(p, p.Index - 1);
                 break;
             case "playpause":
@@ -278,10 +265,16 @@ internal sealed partial class Players
         ZoneState st;
         lock (zm.Gate) st = zm.State.GetValueOrDefault(id) ?? new ZoneState();
         var target = Math.Max(0, how == "relative" ? Hub.PositionNow(st) + seconds : seconds);
-        await RendererOf(p).SeekTime(target);
+        if (Stuck(p, st)) await Jump(p, p.Index, target);
+        else await Serially(p, () => RendererOf(p).SeekTime(target));
         Optimistic(id, s => s.Position = target);
         PokeAfter(p);
     }
+
+    // A device left starting a track of the queue (still loading after eight seconds, or stopped on it): a seek in
+    // it does nothing (the FiiO SR11 left waiting for a seek that hadn't been made: item 272); the track is sent again.
+    private static bool Stuck(Player p, ZoneState st) =>
+        p.Index >= 0 && p.Index < p.Queue.Count && st.OnQueue && (st.State == "stopped" || st.State == "loading" && Hub.Now() - p.LoadingSince > 8000);
 
     public async Task PlayFromHere(string id, double position)
     {

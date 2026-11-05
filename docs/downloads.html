@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Downloads · Mandarin</title>
+<meta name="description" content="The newest version of each, straight to your device. Mandarin is the server and the Mandarin Remote app; Mandarin Bridge turns a device with a USB DAC into a room.">
+<link rel="icon" href="mandarin-icon.png">
+<link rel="stylesheet" href="site.css">
+</head>
+<body>
+
+<header class="pagehead">
+  <div class="wrap">
+    <a class="back" href="index.html">← Contents</a>
+    <a class="brand" href="index.html"><img src="mandarin-icon.png" alt=""><span>Mandarin</span></a>
+    <span class="spacer"></span>
+    
+  </div>
+</header>
+
+<main class="wrap page">
+  <h1>Downloads</h1>
+  <p class="lead">The newest version of each, straight to your device. Mandarin is the server and the Mandarin Remote app; Mandarin Bridge turns a device with a USB DAC into a room.</p>
+<h2 id="remote-app">Mandarin Remote: the Android app</h2>
+  <div class="dl-grid">
+    <div class="dl">
+      <span class="v">v1.2.0 · Android 8.0 or newer</span>
+      <h3>Mandarin Remote</h3>
+      <p>Mandarin's interface drawn natively, finding your server at home or away. Install it once; it updates itself
+         from then on (Settings → Updates).</p>
+      <a class="dl-btn" href="https://github.com/meltface-80/Mandarin/raw/main/dist/mandarin-android.apk">⬇ Download the app <small>(.apk)</small></a>
+    </div>
+    <div class="dl">
+      <span class="v">iPhone and iPad</span>
+      <h3>Add to Home Screen</h3>
+      <p>Nothing to download: open <code>http://&lt;server-ip&gt;:3500</code> in Safari and tap <b>Share → Add to Home
+         Screen</b>. It opens full screen, like an app.</p>
+      <a class="pill" href="apps.html">How, step by step →</a>
+    </div>
+  </div>
+  <p class="after-note" style="margin-top:12px">Installing from a download needs <b>Install unknown apps</b> allowed
+     for the browser or file manager you open it with. Coming from a build before v0.6.10? See
+     <a href="apps.html#android">On your phone</a>.</p>
+
+  <h2 id="server">Mandarin server</h2>
+  <div class="dl-grid">
+    <div class="dl">
+      <span class="v">v1.2.0 · Linux, Raspberry Pi 4/5, NAS</span>
+      <h3>Docker</h3>
+      <p>The easiest way on an always-on Linux machine. The install page builds the full command with your music
+         folders filled in.</p>
+      <div class="codebox"><button class="copy-btn" data-copy>Copy</button>
+<pre>docker pull ghcr.io/meltface-80/musicd-server:latest</pre>
+</div>
+      <a class="dl-btn" href="install.html#docker">Build the command →</a>
+    </div>
+    <div class="dl">
+      <span class="v">v1.2.0 · macOS 14 or newer</span>
+      <h3>Mac</h3>
+      <p>No Docker needed, Apple silicon or Intel. Paste this line into Terminal and answer what it asks.</p>
+      <div class="codebox"><button class="copy-btn" data-copy>Copy</button>
+<pre>/bin/bash -c &quot;$(curl -fsSL https://raw.githubusercontent.com/meltface-80/Mandarin/main/tools/mac/install.sh)&quot;</pre>
+</div>
+      <a class="dl-btn" href="install.html#mac">Step by step →</a>
+    </div>
+  </div>
+  <h3 class="sub">The server program on its own</h3>
+  <p class="after-note">The single server program for each kind of machine: what Settings → Updates fetches. Most people
+     never need these; Docker and the Mac installer are simpler.</p>
+  <div class="files">
+    <a class="file" href="https://github.com/meltface-80/Mandarin/releases/latest/download/mandarin-server-linux-x64.gz"><b>mandarin-server-linux-x64.gz</b><span>Linux on an Intel or AMD PC</span><i>⬇</i></a>
+    <a class="file" href="https://github.com/meltface-80/Mandarin/releases/latest/download/mandarin-server-linux-arm64.gz"><b>mandarin-server-linux-arm64.gz</b><span>Linux on ARM: a Raspberry Pi 4/5 (64-bit), most NAS boxes with an ARM chip</span><i>⬇</i></a>
+    <a class="file" href="https://github.com/meltface-80/Mandarin/releases/latest/download/mandarin-server-osx-arm64.gz"><b>mandarin-server-osx-arm64.gz</b><span>a Mac with Apple silicon</span><i>⬇</i></a>
+    <a class="file" href="https://github.com/meltface-80/Mandarin/releases/latest/download/mandarin-server-osx-x64.gz"><b>mandarin-server-osx-x64.gz</b><span>a Mac with an Intel chip</span><i>⬇</i></a>
+    <a class="file" href="https://github.com/meltface-80/Mandarin/releases/latest/download/mandarin-server.sha256"><b>mandarin-server.sha256</b><span>the checksums of the four above</span><i>⬇</i></a>
+  </div>
+
+  <h2 id="bridge">Mandarin Bridge</h2>
+  <p>A device with a USB DAC on its port as a room Mandarin plays to, bit-perfect. Install the one for your device; it
+     updates from Mandarin's Settings → Updates from then on. <a href="bridges.html">More about Mandarin Bridge →</a></p>
+  <div class="dl-grid">
+    <div class="dl">
+      <span class="v">v0.2.1 · Android 8.0 or newer</span>
+      <h3>Mandarin Bridge for Android</h3>
+      <p>For an Android device with a USB DAC on its port, such as a FiiO R7.</p>
+      <a class="dl-btn" href="https://github.com/meltface-80/Mandarin/releases/download/mandarin-bridge-v0.2.1/mandarin-bridge.apk">⬇ Download for Android <small>(.apk)</small></a>
+    </div>
+    <div class="dl">
+      <span class="v">v0.2.1 · Raspberry Pi 3, 4, 5, Zero 2 W</span>
+      <h3>Raspberry Pi image</h3>
+      <p>Flash it with Raspberry Pi Imager (<i>Choose OS → Use custom</i>), plug in the DAC and power on.</p>
+      <a class="dl-btn" href="https://github.com/meltface-80/Mandarin/releases/download/mandarin-bridge-v0.2.1/mandarin-bridge-pi-arm64.img.xz">⬇ Download the image <small>(.img.xz)</small></a>
+    </div>
+    <div class="dl">
+      <span class="v">v0.2.1 · 64-bit Debian, Ubuntu, Raspberry Pi OS</span>
+      <h3>Mandarin Bridge for Linux</h3>
+      <p>A computer beside the DAC (a mini PC, an old laptop, a Pi you already use). Run this line as root:</p>
+      <div class="codebox"><button class="copy-btn" data-copy>Copy</button>
+<pre>curl -fsSL https://github.com/meltface-80/Mandarin/releases/download/mandarin-bridge-v0.2.1/install.sh | sudo sh</pre>
+</div>
+      <div class="files" style="margin-top:4px">
+        <a class="file" href="https://github.com/meltface-80/Mandarin/releases/download/mandarin-bridge-v0.2.1/mandarin-bridge-linux-x64.tar.gz"><b>mandarin-bridge-linux-x64.tar.gz</b><span>Intel or AMD, for installing by hand</span><i>⬇</i></a>
+        <a class="file" href="https://github.com/meltface-80/Mandarin/releases/download/mandarin-bridge-v0.2.1/mandarin-bridge-linux-arm64.tar.gz"><b>mandarin-bridge-linux-arm64.tar.gz</b><span>ARM (64-bit), for installing by hand</span><i>⬇</i></a>
+      </div>
+    </div>
+  </div>
+
+  <h2 id="guides">Guides</h2>
+  <div class="files">
+    <a class="file" href="Mandarin-music-scanning-guide.pdf"><b>How Mandarin finds and names your music (PDF)</b><span>Adding, scanning, identifying and matching, in plain words</span><i>⬇</i></a>
+  </div>
+  <nav class="pager"><a class="back" href="index.html">← Back to contents</a><a class="pill" href="whats-new.html">Next: What's new in v1.2.0 →</a></nav>
+</main>
+
+<footer>
+  <p>Mandarin · MIT · © 2026 Lewis Menzies (Music Duck / Mandarin) ·
+     <a href="https://github.com/meltface-80/Mandarin">Source on GitHub</a><br>
+     Sonos is a trademark of Sonos, Inc.; WiiM of Linkplay Technology; Chord and Poly of Chord Electronics; FiiO of FiiO
+     Electronics. This is an independent project, affiliated with none of them.</p>
+</footer>
+<script src="site.js"></script>
+</body>
+</html>

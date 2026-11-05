@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Away from home · Mandarin</title>
+<meta name="description" content="Leave the house and the Android app keeps working over mobile data. No ports are opened on your router: the phone reaches the server over Tailscale, a private network between your own devices.">
+<link rel="icon" href="mandarin-icon.png">
+<link rel="stylesheet" href="site.css">
+</head>
+<body>
+
+<header class="pagehead">
+  <div class="wrap">
+    <a class="back" href="index.html">← Contents</a>
+    <a class="brand" href="index.html"><img src="mandarin-icon.png" alt=""><span>Mandarin</span></a>
+    <span class="spacer"></span>
+    <a class="pill solid" href="downloads.html">Downloads</a>
+  </div>
+</header>
+
+<main class="wrap page">
+  <h1>Away from home</h1>
+  <p class="lead">Leave the house and the Android app keeps working over mobile data. No ports are opened on your router: the phone reaches the server over Tailscale, a private network between your own devices.</p>
+<h2>Set up once — Tailscale is built in</h2>
+  <ol class="plain">
+    <li>On the server, open <b>Settings → Setup → Away from home</b> and tap <b>Sign in to Tailscale</b>. Sign in on
+        Tailscale's page (a free account is enough). The server joins your tailnet by itself as <b>musicd</b>.</li>
+    <li>On the phone, sign Mandarin's app in to the same account: <b>Settings → Setup → Away from home → This phone</b>.
+        The app carries its own Tailscale too — no Tailscale app needed.</li>
+    <li>Open Mandarin once at home: the app learns the server's tailnet address.</li>
+  </ol>
+  <p>From then on the app follows the phone's network: on your Wi-Fi it uses the server's home address; on mobile data it
+     goes over its own Tailscale, and the page, the queue and the music carry on without a reload.</p>
+
+  <h2>Away, only the phone plays</h2>
+  <p>Whatever reaches the server from outside your home network is offered one room: the phone asking, as <i>This
+     phone</i>. The Sonos rooms aren't listed, and nothing away can play to them. Tracks stream as <b>Opus 256 kbps</b> by
+     default (about a quarter of a CD-quality FLAC's data); <b>Settings → Setup → Downloads → Stream as</b> in the app can
+     send the original files instead. Albums you've downloaded play from the phone.</p>
+  <p>At home the app keeps its own Tailscale running only while the phone is playing, so walking out of the house doesn't
+     stop the music; with nothing playing it is stopped after two minutes.</p>
+  <div class="note"><b>For a server with no one at it,</b> pass an auth key instead: <code>-e TS_AUTHKEY=tskey-auth-…</code>
+     (see <a href="configuration.html">Settings for the server</a>). Don't advertise your home subnet from the server's
+     Tailscale: requests through a subnet router arrive from a home address, and the server can't tell they're away.</div>
+  <nav class="pager"><a class="back" href="index.html">← Back to contents</a><a class="pill" href="how-it-works.html">Next: How it works →</a></nav>
+</main>
+
+<footer>
+  <p>Mandarin · MIT · © 2026 Lewis Menzies (Music Duck / Mandarin) ·
+     <a href="https://github.com/meltface-80/Mandarin">Source on GitHub</a><br>
+     Sonos is a trademark of Sonos, Inc.; WiiM of Linkplay Technology; Chord and Poly of Chord Electronics; FiiO of FiiO
+     Electronics. This is an independent project, affiliated with none of them.</p>
+</footer>
+<script src="site.js"></script>
+</body>
+</html>

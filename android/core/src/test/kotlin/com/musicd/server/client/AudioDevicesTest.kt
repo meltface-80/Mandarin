@@ -38,6 +38,16 @@ class AudioDevicesTest {
         assertEquals("1 device shown again.\n\nThey are back on the list, switched off until you switch them on.", AudioDevices.hideSaid(0, 1))
     }
 
+    @Test fun `a phone's page has Output for its USB DAC only while one is in use (item 265)`() {
+        val dac = DevicePage(JSONObject("""{"kind":"phone","rates":[{"hz":44100,"on":true},{"hz":192000,"on":true}],"bits":[{"n":24,"on":true}],"dsd":[{"n":64,"on":true}],"output":{"mode":"x4","bits":"auto","dsd_out":64}}"""))
+        assertTrue(dac.showOutput)
+        assertTrue(dac.showDsdOut)
+        assertEquals("Through its USB DAC the phone is sent what Output below says; away from home, Opus 256 kbps.", dac.capNotes.first())
+        val none = DevicePage(JSONObject("""{"kind":"phone","rates":[],"bits":[],"dsd":[],"output":null}"""))
+        assertFalse(none.showOutput)
+        assertEquals("At home the phone plays the file as it is; away from home, Opus 256 kbps.", none.capNotes.first())
+    }
+
     @Test fun `a renderer's page, its words, chips, output and the changes they make`() {
         val d = DevicePage(JSONObject("""{"id":"w","kind":"upnp","name":"Lounge","network_name":"WiiM Pro","renamed":true,"model":"WiiM Pro","manufacturer":"Linkplay",
             "ip":"1.2.3.4","playable":true,"events":"live","online":false,"last_seen":5,"first_seen":0,"can_toggle":true,"enabled":true,"radio":true,"editable":true,
@@ -65,6 +75,85 @@ class AudioDevicesTest {
         assertTrue(d.capNotes[0].startsWith("DSD files go to it as they are"))
     }
 
+    @Test fun `the filter is offered while upsampling, standard, minimum phase or gentle, no whole track`() {
+        fun page(output: String) = DevicePage(JSONObject("""{"kind":"upnp","rates":[],"bits":[],"dsd":[],"output":$output}"""))
+        val standard = page("""{"mode":"x4","bits":"auto","flac32":false}""")
+        assertTrue(standard.showFilter)
+        assertEquals("standard", standard.filter)
+        // Whole track scrapped (item 259): three to choose from.
+        assertEquals(listOf("Standard", "Min phase", "Gentle"), standard.filters.map { it.label })
+        assertEquals("SoX’s filter, made as it plays.", standard.filterNote)
+        assertFalse(page("""{"mode":"original","bits":"auto","flac32":false}""").showFilter)
+    }
+
+    @Test fun `minimum phase and gentle are made as they play, how fast said, and offered with PCM as DSD too`() {
+        fun page(output: String) = DevicePage(JSONObject("""{"kind":"upnp","rates":[],"bits":[],"dsd":[],"output":$output}"""))
+        val min = page("""{"mode":"max","filter":"minphase","making":"Made as it plays: this server made the last at 3.2× real time, fast enough to keep up."}""")
+        assertEquals("Minimum phase: all its ringing after a sound starts, none before. Mandarin’s own filter, made as it plays; tracks from the library, ×2 to ×16.", min.filterNote)
+        assertEquals("Made as it plays: this server made the last at 3.2× real time, fast enough to keep up.", min.filterMakingLine)
+        val gentle = page("""{"mode":"x2","filter":"gentle"}""")
+        assertTrue(gentle.filterNote.startsWith("Rolling off from 90% of the band"))
+        assertNull(gentle.filterMakingLine)
+        assertEquals("""{"output":{"filter":"gentle"}}""", min.segment("filter", "gentle").toString())
+        // The file as it is, but made DSD from PCM: the filter takes it to 705.6 kHz on the way, so it is offered.
+        assertTrue(page("""{"mode":"original","dsd_out":256}""").showFilter)
+    }
+
+    @Test fun `with PCM as DSD on, the filter's note says it is the DSD's, its speed said once under PCM as DSD`() {
+        fun page(output: String) = DevicePage(JSONObject("""{"kind":"upnp","rates":[],"bits":[],"dsd":[],"output":$output}"""))
+        val sr11 = page("""{"mode":"max","filter":"minphase","dsd_out":256,"making":"Made as it plays: this server made the last at 1.1× real time, too slow to keep up; DSD128 is half the work."}""")
+        assertEquals("With PCM as DSD256 on, this is the filter each track is upsampled with on its way to DSD256: minimum phase, all its ringing after a sound starts.", sr11.filterNote)
+        assertNull(sr11.filterMakingLine)
+        assertEquals("Made as it plays: this server made the last at 1.1× real time, too slow to keep up; DSD128 is half the work.", sr11.dsdOutLine)
+        assertTrue(page("""{"mode":"original","filter":"standard","dsd_out":64}""").filterNote.endsWith("on its way to DSD64: standard, linear phase."))
+    }
+
+    @Test fun `the highest rate offers the caps below the device's top and holds the example to it`() {
+        fun page(output: String) = DevicePage(JSONObject("""{"kind":"upnp","bits":[],"dsd":[],"output":$output,
+            "rates":[{"hz":44100,"on":true},{"hz":176400,"on":true},{"hz":352800,"on":true},{"hz":384000,"on":true}]}"""))
+        val auto = page("""{"mode":"max","bits":"auto","flac32":false}""")
+        assertTrue(auto.showMaxRate)
+        assertEquals("auto", auto.maxRateValue)
+        assertEquals(listOf("Auto", "96k", "192k"), auto.maxRates.map { it.label })
+        assertEquals("A 16-bit/44.1 kHz file plays as 24-bit/352.8 kHz FLAC.", auto.example)
+        assertEquals("""{"output":{"max_rate":192000}}""", auto.segment("max_rate", "192000").toString())
+        val capped = page("""{"mode":"max","bits":"auto","flac32":false,"max_rate":192000}""")
+        assertEquals("192000", capped.maxRateValue)
+        assertEquals("A 16-bit/44.1 kHz file plays as 24-bit/176.4 kHz FLAC (×4).", capped.example)
+        assertTrue(capped.maxRateNote.startsWith("Nothing goes above 192 kHz (176.4 kHz"))
+        assertFalse(DevicePage(JSONObject("""{"kind":"upnp","bits":[],"dsd":[],"rates":[{"hz":44100,"on":true},{"hz":96000,"on":true}]}""")).showMaxRate)
+    }
+
+    @Test fun `DSD as PCM offers off and two cuts and sends the cut in Hz`() {
+        fun page(output: String) = DevicePage(JSONObject("""{"kind":"upnp","rates":[],"bits":[],"dsd":[],"output":$output}"""))
+        val off = page("""{"mode":"original"}""")
+        assertEquals("off", off.dsdLowpassValue)
+        assertEquals(listOf("Off", "50 kHz", "30 kHz"), off.dsdLowpasses.map { it.label })
+        assertEquals("""{"output":{"dsd_lowpass":30000}}""", off.segment("dsd_lowpass", "30000").toString())
+        assertEquals("""{"output":{"dsd_lowpass":"off"}}""", off.segment("dsd_lowpass", "off").toString())
+        val cut = page("""{"mode":"original","dsd_lowpass":30000}""")
+        assertEquals("30000", cut.dsdLowpassValue)
+        assertTrue(cut.dsdLowpassNote.contains("above 30 kHz taken off"))
+    }
+
+    @Test fun `PCM as DSD is offered where the device takes DSD, its multiples only, and sends the multiple`() {
+        fun page(dsd: String, output: String) = DevicePage(JSONObject("""{"kind":"upnp","rates":[],"bits":[],"dsd":$dsd,"output":$output}"""))
+        assertFalse(page("""[{"n":64,"on":false}]""", """{"mode":"original"}""").showDsdOut)
+        val off = page("""[{"n":64,"on":true},{"n":128,"on":true},{"n":256,"on":false}]""", """{"mode":"original"}""")
+        assertTrue(off.showDsdOut)
+        assertEquals("off", off.dsdOutValue)
+        assertEquals(listOf("Off", "DSD64", "DSD128", "DSD256"), off.dsdOuts.map { it.label })
+        assertEquals(listOf(false, false, false, true), off.dsdOuts.map { it.off })
+        assertNull(off.dsdOutLine)
+        assertEquals("""{"output":{"dsd_out":128}}""", off.segment("dsd_out", "128").toString())
+        assertEquals("""{"output":{"dsd_out":"off"}}""", off.segment("dsd_out", "off").toString())
+        val on = page("""[{"n":64,"on":true}]""", """{"mode":"original","dsd_out":64,"making":"Made as it plays. How fast this server makes DSD64 shows here after its first track."}""")
+        assertEquals("64", on.dsdOutValue)
+        assertEquals("Each track of the library that isn’t DSD is made DSD64 as it plays, by Mandarin’s seventh-order modulator, and sent as a DSF while it is made; Qobuz and Tidal go as PCM.", on.dsdOutNote)
+        assertEquals("Made as it plays. How fast this server makes DSD64 shows here after its first track.", on.dsdOutLine)
+        assertNull("its speed is said under PCM as DSD, not the filter", on.filterMakingLine)
+    }
+
     @Test fun `a sound device's note says how it plays, a Mac's by Core Audio`() {
         val mac = DevicePage(JSONObject("""{"kind":"local","found_by":"This Mac (Core Audio)"}"""))
         assertTrue(mac.capNotes[0].startsWith("Mandarin sets the device to each track’s rate"))
@@ -86,5 +175,23 @@ class AudioDevicesTest {
         assertEquals("-14 LUFS (Default)", DevicePage.TARGETS[0].words)
         assertEquals("-5 dB (Default)", DevicePage.UNKNOWNS[5].words)
         assertEquals("Volume levelling: Album", DevicePage.levelSaid("album"))
+    }
+
+    @Test fun `room correction is offered on a renderer's DSP, not a phone's, and lists what is loaded, one a rate, as the page does`() {
+        val none = DevicePage(JSONObject("""{"kind":"upnp","dsp":{"enabled":true}}"""))
+        assertTrue(none.showRoomCorrection)
+        assertEquals(emptyList<DevicePage.IrRow>(), none.irRows)
+        assertEquals("Load a response…", none.irLoad)
+        assertFalse(DevicePage(JSONObject("""{"kind":"phone","dsp":{}}""")).showRoomCorrection)
+        // One kept as item 252 kept it (a single response): a set of one.
+        val room = DevicePage(JSONObject("""{"kind":"local","dsp":{"convolution":{"file":"0123456789abcdef.wav","name":"room.wav","rate":44100,"channels":2,"seconds":0.5,"peak_db":-6}}}"""))
+        assertEquals(listOf(DevicePage.IrRow("room.wav", "44.1 kHz · 2 channels · 0.5 s · lifts at most −6.0 dB", 44100)), room.irRows)
+        assertEquals("Load another…", room.irLoad)
+        // A set, as the server keeps it (in order of rate): a row each, a bare one named for what it is.
+        val set = DevicePage(JSONObject("""{"kind":"upnp","dsp":{"convolution":[{"file":"a.wav","name":"room-44.wav","rate":44100,"channels":2,"seconds":0.5,"peak_db":-6},{"rate":48000,"channels":1,"seconds":2,"peak_db":3.25}]}}"""))
+        assertEquals(listOf(
+            DevicePage.IrRow("room-44.wav", "44.1 kHz · 2 channels · 0.5 s · lifts at most −6.0 dB", 44100),
+            DevicePage.IrRow("Impulse response", "48 kHz · 1 channel · 2 s · lifts at most +3.3 dB", 48000)), set.irRows)
+        assertEquals("Load another…", set.irLoad)
     }
 }

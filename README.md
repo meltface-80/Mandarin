@@ -7,12 +7,12 @@
 
 </div>
 
-# Mandarin — v1.1.14
+# Mandarin — v1.2.0
 
 **Your own music files, played to Sonos rooms, to UPnP/DLNA renderers (a WiiM, a Chord Poly,
 a streamer, an AV receiver) and to the Mandarin Android app.**
 
-**📖 Install guide & command builder: [meltface-80.github.io/Mandarin](https://meltface-80.github.io/Mandarin/)**
+**📖 Guides, downloads & the install command builder: [meltface-80.github.io/Mandarin](https://meltface-80.github.io/Mandarin/)** · **⬇ [Downloads](#downloads)**
 
 A server on a machine you own scans your music folders and plays them to the players in your
 house. You control it from a browser, an iPhone home-screen app or the Android app. No
@@ -26,10 +26,31 @@ Wikipedia, Deezer and others); your music files stay on your machine.
                                                    └──── audio: /stream/… ◀────────┘
 ```
 
-**New in v1.1.14** (since v1.1.13): Tweaks - altered share card copy function, Android app copies it to the clipboard. The [changelog](CHANGELOG.md) has each
-change.
-* **Updates:** the server and the Android app each have their own Check for update, and what an update
-  brings is listed under them in short lines.
+**New in v1.2.0** (since v1.1.14; Mandarin Bridge v0.2.1). The [changelog](CHANGELOG.md) has each change.
+* **SQ-tool**, in Settings: proves your DAC gets exactly the file, sample by sample. See [SQ-tool](#sq-tool).
+* **High-quality upsampling:** ×2, ×4 or to the most a device takes, with Standard, Min phase or Gentle filters made
+  as the track plays; PCM made DSD64–256; a highest rate per device; all gapless. See [Upsampling and output](#upsampling-and-output).
+* **Mandarin Bridge:** an Android device, a Linux computer or a Raspberry Pi with a USB DAC is a bit-perfect room,
+  updated from Settings → Updates. See [Mandarin Bridge](#mandarin-bridge).
+* **Also:** the [signal path](#signal-path) in plain words, room correction, DSD to a DAC on the server, and fixes for
+  the Android app's USB driver, FiiO streamers, new albums and away from home.
+
+## Downloads
+
+The newest of each, straight to your device. The server's install is a command, below.
+
+| What | Version | Download |
+| --- | --- | --- |
+| **Mandarin Remote**, the Android app (Android 8.0 or newer) | v1.2.0 | [mandarin-android.apk](https://github.com/meltface-80/Mandarin/raw/main/dist/mandarin-android.apk) |
+| **Mandarin server** with Docker (Linux, a Raspberry Pi 4/5, a NAS) | v1.2.0 | `docker pull ghcr.io/meltface-80/musicd-server:latest`, then [Install (Docker)](#install-docker) |
+| **Mandarin server** on a Mac (macOS 14 or newer) | v1.2.0 | the one line under [Install on a Mac](#install-on-a-mac) |
+| **Mandarin Bridge** for Android (a FiiO R7, say) | v0.2.1 | [mandarin-bridge.apk](https://github.com/meltface-80/Mandarin/releases/download/mandarin-bridge-v0.2.1/mandarin-bridge.apk) |
+| **Mandarin Bridge** for Raspberry Pi (3, 4, 5, Zero 2 W) | v0.2.1 | [mandarin-bridge-pi-arm64.img.xz](https://github.com/meltface-80/Mandarin/releases/download/mandarin-bridge-v0.2.1/mandarin-bridge-pi-arm64.img.xz) |
+| **Mandarin Bridge** for Linux (64-bit Debian, Ubuntu, Raspberry Pi OS) | v0.2.1 | `curl -fsSL https://github.com/meltface-80/Mandarin/releases/download/mandarin-bridge-v0.2.1/install.sh \| sudo sh`, or by hand: [x64](https://github.com/meltface-80/Mandarin/releases/download/mandarin-bridge-v0.2.1/mandarin-bridge-linux-x64.tar.gz) · [arm64](https://github.com/meltface-80/Mandarin/releases/download/mandarin-bridge-v0.2.1/mandarin-bridge-linux-arm64.tar.gz) |
+| The server program on its own, what Settings → Updates fetches | v1.2.0 | [linux-x64](https://github.com/meltface-80/Mandarin/releases/latest/download/mandarin-server-linux-x64.gz) · [linux-arm64](https://github.com/meltface-80/Mandarin/releases/latest/download/mandarin-server-linux-arm64.gz) · [osx-arm64](https://github.com/meltface-80/Mandarin/releases/latest/download/mandarin-server-osx-arm64.gz) · [osx-x64](https://github.com/meltface-80/Mandarin/releases/latest/download/mandarin-server-osx-x64.gz) · [sums](https://github.com/meltface-80/Mandarin/releases/latest/download/mandarin-server.sha256) |
+| **How Mandarin finds and names your music**, a guide in plain words | | [PDF](docs/Mandarin-music-scanning-guide.pdf) |
+
+On an iPhone or iPad there is nothing to download: see [iPhone and iPad](#iphone-and-ipad).
 
 ---
 
@@ -77,11 +98,11 @@ Choose where to play with the speaker button, then tap **Random Album**. Its dis
 
 📅 **Album of the day**
 
-One album, the same on every device, chosen by the server at 00:01. Once played from any device, it's gone until the next 00:01.
+One album you haven't played in a year or more (or never), the same on every device, chosen by the server at 00:01 and kept all day.
 
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 
-Nothing to set up: it sits beside Random Album on Home. 00:01 is in the server's time zone (`TZ` in the Docker command).
+Nothing to set up: it sits beside Random Album on Home, with its own switch in **Settings → Setup → Home Screen**. 00:01 is in the server's time zone (`TZ` in the Docker command).
 
 </details>
 
@@ -401,11 +422,11 @@ Open **Settings → Audio Devices**, tap the device, and set **Volume levelling*
 
 🎛️ **DSP**
 
-A parametric EQ of up to ten bands per renderer or phone, its curve drawn as you edit, plus headphone profiles from AutoEq or a pasted ParametricEQ.txt.
+A parametric EQ of up to ten bands per renderer or phone, headphone profiles from AutoEq, and room correction from an impulse response (a WAV from REW or Dirac).
 
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 
-Open **Settings → Audio Devices**, tap a renderer or the phone, and switch on **DSP**. Sonos rooms have no DSP here.
+Open **Settings → Audio Devices**, tap a renderer or the phone, and switch on **DSP**. **Room correction** takes one WAV, one for each rate, or a zip of them. Sonos rooms have no DSP here.
 
 </details>
 
@@ -507,7 +528,7 @@ Playlists you make, and Dynamic Playlists that follow a saved Library view. A pl
 
 ⸻
 
-🖼️ **Share card** — *new in v1.1.14*
+🖼️ **Share card**
 
 The album as a picture, the duck in its corner, links to hear and read about it, and three acts near what you play, two of them new to you.
 
@@ -537,7 +558,7 @@ Mandarin's interface drawn natively by the app, which finds the server home or a
 
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 
-Download [mandarin-android.apk](https://github.com/meltface-80/Mandarin/raw/main/dist/mandarin-android.apk) and install it (Android 8.0 or newer). Enter the port; it finds the server on your Wi-Fi.
+Download it from [Downloads](#downloads) and install it (Android 8.0 or newer). Enter the port; it finds the server on your Wi-Fi.
 
 </details>
 
@@ -562,6 +583,54 @@ The app's own USB Audio driver plays to a DAC on the phone's port at the file's 
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 
 Plug the DAC in. It shows on **This phone**'s page in **Settings → Audio Devices**; switch on **USB direct** there.
+
+</details>
+
+⸻
+
+🌉 **Mandarin Bridge** — *new in v1.2.0*
+
+A USB DAC on an Android device, a Linux computer or a Raspberry Pi, as a room Mandarin plays to bit-perfect, set up from the DAC itself: nothing to tick.
+
+<details><summary><b>ⓘ</b> How to set it up and use it</summary>
+
+Install it from [Downloads](#downloads): the Android app, the Linux install line, or the Raspberry Pi image to flash. Plug the DAC in, then switch the Bridge on in **Settings → Audio Devices**. Details under [Mandarin Bridge](#mandarin-bridge).
+
+</details>
+
+⸻
+
+📈 **Upsampling and output** — *new in v1.2.0*
+
+For each streamer or DAC: Original, or upsampled ×2, ×4 or Max with three filters, a highest rate, the bit depth, and PCM made DSD64, DSD128 or DSD256.
+
+<details><summary><b>ⓘ</b> How to set it up and use it</summary>
+
+Open **Settings → Audio Devices**, tap a streamer or DAC, and set **Output**: Mode, Filter, Highest rate, Bit depth, DSD as PCM and PCM as DSD. Upsampling and DSD are made as each track plays. Details under [Upsampling and output](#upsampling-and-output).
+
+</details>
+
+⸻
+
+🛤️ **Signal path** — *new in v1.2.0*
+
+Under the album on Now playing: what goes out and how it was made. A tap shows each step from the file to what the DAC is fed.
+
+<details><summary><b>ⓘ</b> How to set it up and use it</summary>
+
+Play to a room and look under the album on **Now playing**; tap it for every step. The ✓ shows only when the device itself says the samples reach the DAC untouched. Details under [Signal path](#signal-path).
+
+</details>
+
+⸻
+
+📊 **SQ-tool** — *new in v1.2.0*
+
+Proves a zone's DAC gets exactly what is in the file, sample by sample: Mandarin plays a song, records what the DAC is fed, and SQ-tool compares them.
+
+<details><summary><b>ⓘ</b> How to set it up and use it</summary>
+
+Open **Settings → SQ-tool**, choose a song and a zone (a Mandarin Bridge on Android, or a USB DAC on the server), and press **Record**. Details under [SQ-tool](#sq-tool).
 
 </details>
 
@@ -691,23 +760,23 @@ Sign in with your Tidal subscription on tidal.com: your favourite albums become 
 
 📝 **Logging**
 
-Off by default. Switched on, the Android app and the server log what happened, without personal data, for you to send to the developer when something goes wrong.
+Off by default. Switched on, the Android app, the server and the Mandarin Bridges log what happened, without personal data, for you to send to the developer.
 
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 
-In the Android app, **Settings → Setup → Logging**. Use the app as you normally would for 24 hours, then tap **Save log** (it goes to Downloads/Mandarin) and send the file. Look through it first. Switching logging off deletes the log, the server's part too. Details under [Logs](#logs).
+In the Android app, **Settings → Setup → Logging**. Use the app as you normally would for 24 hours, then tap **Save log** (it goes to Downloads/Mandarin, the server's and the Mandarin Bridges' logs with it) and send the file. Look through it first. Switching logging off deletes the log, the server's part too. Details under [Logs](#logs).
 
 </details>
 
 ⸻
 
-🔄 **Updates** — *new in v1.1.14*
+🔄 **Updates** — *new in v1.2.0*
 
-The server updates itself from GitHub and checks every 12 hours. The Android app has its own button beside the server's; what an update brings is listed under them.
+The server updates itself from GitHub and checks every 12 hours. The Android app and every Mandarin Bridge have their own Check for update beside the server's.
 
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 
-**Settings → Updates → Check for update** beside the server (and, in the Android app, beside the app); once it says **Update available**, tap it again. The server puts the new version in place and starts again in a few seconds; the app's goes to Android's installer.
+**Settings → Updates → Check for update** beside the server, the Android app (in the app) or a Bridge; once it says **Update available**, tap it again. The server starts again in a few seconds, the app's update goes to Android's installer, and a Bridge updates itself.
 
 </details>
 
@@ -833,7 +902,7 @@ docker build -t musicd-server:local .
 **In the app:** Settings → **Updates** → **Check for update** beside the server → **Update available**. The
 server downloads the new release from GitHub, swaps it in and restarts itself in a few seconds;
 a browser's page reloads on its own. In the Android app the app has its own **Check for update**
-beside it (v1.1.14), and what each update brings is listed under them. It also checks twice a day and shows a banner when a new
+beside it, and what each update brings is listed under them. It also checks twice a day and shows a banner when a new
 version is out. (From v0.1.3 on — an older container needs one update the manual way.)
 
 Since v0.9.0 Mandarin's server is one program, in C#, with no Node.js anywhere. An update from
@@ -847,6 +916,22 @@ musicd-server`).
 The new program is checked and laid in beside the old before anything is swapped (v1.1.9): if
 something fails after the swap, the old one (kept as `mandarin-server.prev`) is put back, and a
 folder the release can't be written over is named before anything is changed.
+
+**The Mandarin Bridges** (item 291): every Bridge Mandarin knows, on Android, Linux or a Raspberry
+Pi, has a row of its own on Settings → **Updates**, its name and version, and its own **Check for
+update**, as the server's and the app's rows: it asks GitHub now and becomes **Update available**
+when a newer build is published for it (the rows also find one by themselves within a minute or
+so). A tap on **Update available** asks the Bridge to update itself: it fetches the
+release from GitHub, checks it against the checksum published with it, and puts it in place.
+* **Linux and the Raspberry Pi:** in a few seconds, by itself. The new build goes in the Bridge's
+  data folder and the program installed hands over to it as it starts again; one that fails as it
+  starts is let go, and the installed one runs on.
+* **Android:** the first time, Android asks on the device. A notification asks you to let Mandarin
+  Bridge install apps, and then to tap **Update**. After that, on Android 12 and later, its updates
+  install by themselves, and the Bridge starts again on its own.
+* A Bridge from before v0.2.1 needs one last update by hand, from [Downloads](#downloads).
+* A test build of Mandarin's follows the Bridges' test builds (the **test-bridge** pre-release),
+  and a numbered one follows their numbered releases (Mandarin Bridge v0.2.1 with Mandarin v1.2.0).
 
 **Manually** — also the way to pick up changes to the image itself (ffmpeg, the audio engine,
 and the move to v0.9.0 from an image with Node.js in it):
@@ -921,6 +1006,7 @@ Everything is optional; pass any of it with `-e NAME=value`.
 | `TS_HOSTNAME` | `musicd` | The server's name on your tailnet. |
 | `TAILSCALE` | on | `off` leaves the built-in Tailscale out (Tailscale on the host still works). |
 | `LOCAL_AUDIO` | on | `0`: leave this computer's sound devices out of *Settings → Audio Devices*. See [Sound devices on the server](#sound-devices-on-the-server). |
+| `SQTOOL_PYTHON` | `python3` | The Python 3 (with numpy) that runs [SQ-tool](#sq-tool). |
 | `TAILSCALE_ADDRESS` | auto | The server's address away from home, if the one found on the host's `tailscale0` isn't the one to use — an IP, a MagicDNS name, or a full `https://` address. See [Away from home](#away-from-home-tailscale). |
 | `MUSICBRAINZ_URL` | musicbrainz.org | Another MusicBrainz web service (a mirror) for the identification scan, release days and an album write-up's year. |
 | `IDENTIFY` | on | `0` leaves the identification scan out entirely. |
@@ -993,7 +1079,7 @@ The app is in **[android/](android/)**, a native app (Kotlin and Jetpack Compose
 the server on your Wi-Fi, or type the address; then sign in, or create the account on a new
 server (or use it without one), in the app. With the sign-in switched off, it goes straight in. Its features are listed under [Features](#features).
 
-**Download: [mandarin-android.apk](https://github.com/meltface-80/Mandarin/raw/main/dist/mandarin-android.apk)**
+**Download it from [Downloads](#downloads)** (*mandarin-android.apk*, Mandarin Remote)
 — the newest build, published by GitHub Actions on every version merged to `main`. Sideload it
 on Android 8.0 or newer. The build itself is named `Mandarin-Android-<version>.apk` (since
 v0.9.7); this link keeps one name so it always points at the newest.
@@ -1003,7 +1089,7 @@ the project's own private key, and every update after it installs in place.
 
 **Coming from a build before v0.6.10?** Those were signed with a different, shared key, so
 Android refuses the update ("conflicts with an existing package"). Uninstall the app once,
-install [mandarin-android.apk](https://github.com/meltface-80/Mandarin/raw/main/dist/mandarin-android.apk),
+install the app from [Downloads](#downloads),
 open it, enter the server's address and sign in again. Albums downloaded to the phone go with
 the uninstall, so download them again. After that, never again.
 
@@ -1011,6 +1097,61 @@ the uninstall, so download them again. After that, never again.
 `MUSICD_KEYSTORE_PASSWORD` secrets, a build is signed with the shared key committed here
 (`android/app/musicd-debug.keystore`) and named `…-shared-key.apk`. It can't update the
 published app, nor the published app it.
+
+
+## Mandarin Bridge
+
+Mandarin Bridge (once Mandarin USB) is Mandarin's own player for a USB DAC: a device with the DAC on its USB port
+becomes a room Mandarin plays to, bit-perfect. Mandarin reads the DAC whole from it (every rate, depth and DSD
+multiple, nothing to tick), and Now playing's [signal path](#signal-path) says what it feeds the DAC, in its own
+words. Download each from [Downloads](#downloads) (v0.2.1); after that it updates from **Settings → Updates**
+([Updating](#updating)), and its log is in the app's Save log ([Logs](#logs)).
+
+* **Android** (a FiiO R7, say): Mandarin's own USB driver claims the DAC from Android and feeds it at each track's own
+  rate and depth, DSD natively or as DoP, and keeps the device awake. Install the APK, open it once, plug in the DAC
+  (tick *always*), then switch it on in **Settings → Audio Devices**. Setting it up, building it and how it fits
+  together: [bridge/README.md](bridge/README.md).
+* **Linux** (a computer beside the DAC): `curl -fsSL https://github.com/meltface-80/Mandarin/releases/download/mandarin-bridge-v0.2.1/install.sh | sudo sh`,
+  then switch it on in Mandarin; its own page is at `http://<it>:49494/`. See [bridge/linux/README.md](bridge/linux/README.md).
+* **Raspberry Pi** (3, 4, 5 or Zero 2 W): flash `mandarin-bridge-pi-arm64.img.xz` with Raspberry Pi Imager, plug in
+  the DAC and power on; its page is at `http://mandarin-bridge.local:49494/`, or with no network yet it opens its own
+  *Mandarin Bridge Setup* Wi-Fi. See [bridge/pi/README.md](bridge/pi/README.md).
+
+A Bridge installs over Mandarin USB, keeping its settings; the server knows an app not yet updated as the same
+renderer. Its test builds are on the [test-bridge](https://github.com/meltface-80/Mandarin/releases/tag/test-bridge)
+pre-release.
+
+## Upsampling and output
+
+Each streamer or DAC has its own **Output** (*Settings → Audio Devices → a device → Output*):
+
+* **Mode:** Original (each track at its own rate), or upsampled ×2, ×4 or Max (the highest rate the device takes in
+  the track's family), made on the server in 64-bit float.
+* **Filter:** Standard, **Min phase** (its ringing only after a sound starts) or **Gentle** (rolls off earlier and rings
+  for half as long), made as the track plays.
+* **Highest rate:** Auto (as high as the device takes), 96k, 192k or 384k: nothing goes above it, upsampled or not.
+  ×16 (705.6 and 768 kHz) goes as WAV where the device takes WAV.
+* **Bit depth:** Auto, 24 or 32, for a track converted or upsampled; on Auto a 16-bit/44.1 kHz file plays as it is.
+* **DSD as PCM:** for DSD sent to the device as PCM, the DSD modulator's ultrasonic noise taken off above 50 or 30 kHz.
+* **PCM as DSD:** for a device that takes DSD, the library's PCM made DSD64, DSD128 or DSD256 as it plays and sent as
+  DSF, gapless; a 48 kHz-family track stays in its own family. Output says how fast this server makes it.
+* **Fixed volume** and **Volume levelling**, then **DSP** (EQ, headphone profiles, room correction from an impulse
+  response), in this order: levelling, headroom, the DSP at the track's own rate, then upsampling.
+
+A track upsampled or made DSD as it plays gets the processor: playback keeps all the cores but one while it is made,
+or as many as *Settings → Library Scanner → Processor → Cores for upsampling and DSD* says. The phone has the same
+Output when it plays through a USB DAC. For a bit-perfect result, Output is **Original** and the volume fixed.
+
+## Signal path
+
+Under the album on Now playing: what goes out, and how it was made; a tap shows every step from the file to the
+room — **File** (the track as stored), **Output** (what Mandarin sends, and to which room) and **The DAC is fed** (what
+the device itself reports feeding its DAC). A 16-bit track to a 32-bit DAC reads, as the Bridge on a FiiO R7 says it,
+*"PCM 44.1 kHz, the 16-bit samples padded to 32 bits for the DAC, fixed volume: the samples untouched — as Mandarin
+Bridge reports it"*; where the device doesn't say the samples go untouched, *"sent as 32-bit"*. The ✓ is there only
+when the device says the samples reach the DAC untouched in the format sent: Mandarin Bridge and Mandarin's audio
+engine say it; a WiiM's own API says only the format, so it has none. Whether every sample reaches the DAC is for
+[SQ-tool](#sq-tool) to prove.
 
 ## Qobuz
 
@@ -1121,6 +1262,13 @@ with **Fixed volume** on they are never scaled and the volume is the DAC's or am
 * **Docker:** add `--device /dev/snd` and `--privileged` to `docker run` (in `docker-compose.yml`,
   the commented `devices:` and `privileged:` lines), then re-create the container.
 * DSD files go to these devices as PCM.
+* **What the DAC is fed:** Now playing's signal path ends with what the audio engine opened the
+  device at (PCM at 32 bits, DoP or native DSD) and whether Mandarin's volume touches the
+  samples (fixed volume: untouched; otherwise the level it scales them by), said as the engine's
+  word. The ✓ is there only when the device says the samples go untouched in the format sent
+  (item 289): Mandarin Bridge and the audio engine say it; a WiiM's own API says only the format,
+  so it has none. Whether every sample reaches the DAC is for a recording of what it was fed to
+  prove, not for the signal path to claim.
 * **Playback comes first (v0.8.13).** The decoder and the device each queue a minute of audio
   ahead. On Linux with three cores or more, playback keeps a core of its own, or two while DSP is in
   use (the last ones), and both servers run on the others; on four cores, one for playback and
@@ -1134,6 +1282,36 @@ with **Fixed volume** on they are never scaled and the volume is the DAC's or am
 
 From [Music Assistant](https://github.com/music-assistant)'s Local Audio Out: the volume curve, ids
 taken from the device's name, and a device that fails being reported and let go.
+
+## SQ-tool
+
+SQ-tool proves whether a zone's DAC gets exactly what is in the file, sample by sample. It is part of Mandarin
+(`sq-tool/`): **Settings → SQ-tool** opens it in its own tab.
+
+1. Choose a song from the music folder.
+2. Choose the zone and press **Record**. Mandarin plays the song there alone, from its start, and records exactly
+   what the zone's DAC is fed, to the song's last sample:
+   * a **Mandarin Bridge** on an Android device with a USB DAC: what its USB driver feeds the DAC (update the app
+     for it);
+   * a **USB DAC on Mandarin's server**: what goes down its USB cable, off the USB bus (Docker: `--privileged`, and
+     `sudo modprobe usbmon` on the host).
+   Mandarin Bridge for Linux and the Raspberry Pi can't be recorded yet; nor can Sonos or other streamers.
+3. The result: **bit-perfect** or not, and where not, how (the level, what remains, where in the song), with
+   spectrograms of the file, of what the DAC was fed and of the difference, charts, and the recordings to download.
+
+For a bit-perfect result the zone's **Output** is **Original** and its volume fixed (or the DAC's own): upsampling,
+DSD from PCM, DSP, volume levelling and a volume in software change the samples on purpose. A 16-bit song fed to a
+32-bit DAC is still bit-perfect: padded with zeros, its values unchanged.
+
+Mandarin starts SQ-tool the first time it is opened, on a port of the computer only, behind your sign-in, with its
+data in the data folder's `sq-tool`.
+
+* **Docker:** the image has what it needs (Python 3 and numpy).
+* **Installed without Docker:** add Python 3 and numpy (`sudo apt install python3 python3-numpy`
+  on Debian or Ubuntu, `brew install python numpy` on a Mac); until then its page says what is
+  missing. `SQTOOL_PYTHON` names another Python to run it with.
+* An update made from Settings brings it (from the first release that carries it), as a new image
+  does; Python and numpy are the computer's to have.
 
 ## Away from home (Tailscale)
 
@@ -1229,8 +1407,8 @@ through a subnet router arrive from a home address, and the server can't tell th
 
 Logging is in the Android app and the server, and is **off by default**: while it is off, nothing is
 collected. Switch it on in the app, **Settings → Setup → Logging**, when something isn't right. Use the
-app as you normally would for **24 hours**, then tap **Save log**: the app's log and the server's are
-saved together to **Downloads/Mandarin** on the phone, for you to send to the developer. **Clear log**
+app as you normally would for **24 hours**, then tap **Save log**: the app's log, the server's and each
+Mandarin Bridge's are saved together to **Downloads/Mandarin** on the phone, for you to send to the developer. **Clear log**
 empties it; switching logging off deletes it, the server's part too.
 
 The log is made without personal data, and you are told so on the same screen. Please look through it
@@ -1244,15 +1422,12 @@ before you send it: what you send is your choice.
 * **The phone's player:** playing or paused, the track's number in the queue, its position and the volume.
 * **The app:** its memory, crashes and freezes, and Android's own lines for Mandarin.
 * **The app's Tailscale:** whether it is running and the CPU time it has used, and when it is stopped, why, with its last lines (addresses taken out).
-* **The server:** each line it logs, with its own words, numbers, the names of errors and its own addresses; every other value is replaced with […].
+* **The Mandarin Bridges:** every Bridge Mandarin knows (Android, Linux, a Raspberry Pi), under its name, version and build: its last lines as it logs them (the player, the DAC, a recording, an update), gathered by the server as you save and put through the same filter as the server's. A Bridge keeps them anyway (Android's own log, or its last 2,000 lines in memory); they leave it only when you save.
+* **The server:** each line it logs, with what is yours alone taken out.
 
-**What it leaves out**
-
-* **Addresses:** no IP addresses (home, Tailscale or internet), web addresses, device hardware addresses or network names.
-* **People, rooms and devices:** no names of people, rooms or devices, no account names or emails, and no passwords, tokens or keys.
-* **What you play and search for:** no album, artist, track or playlist names, and no searches.
-* **Files and folders:** no paths or file names.
-* **Your phone:** only the app's version and Android's; not the phone's make or model.
+**What it leaves out:** what is yours alone. No passwords, keys or tokens; no email addresses, account names or
+logins; no internet or Tailscale addresses; not your own home folder's name in a path. It keeps what helps find a
+fault: home-network addresses, the names of rooms and devices, what was playing, error messages.
 
 The app keeps its log in its own storage (two files of 3 MB at most); the server keeps its part in its
 data folder (two files of 1 MB at most) while logging is on.

@@ -6,12 +6,13 @@
     "android/app/src/main/java/com/musicd/server/android/RoomFollow.kt": "a room followed, and a cover fetched, for the screens that show them; it draws nothing of its own",
     "android/app/src/main/java/com/musicd/server/android/Covers.kt": "the covers a wall's tiles show, kept once fetched; it draws nothing of its own",
     "android/app/src/main/java/com/musicd/server/android/AskAgain.kt": "a screen's failed load asked again when the server answers again; it draws nothing of its own",
+    "android/app/src/main/java/com/musicd/server/android/LibraryLive.kt": "the server's albums followed while the app is on screen, for the walls and Home's Library row to read theirs again; it draws nothing of its own",
     "android/app/src/main/java/com/musicd/server/android/AppLogUi.kt": "the app's log's watch on the screens (item 121, while logging is on): each move, what is shown, each tap; it draws nothing of its own"
   },
   "screens": {
     "now-playing": {
       "page": "Now playing: the album view in its Now playing mode (#album-modal.np-mode), on its Now playing tab, a phone held upright",
-      "native": ["android/app/src/main/java/com/musicd/server/android/NowPlayingScreen.kt", "android/app/src/main/java/com/musicd/server/android/NowPlayingMenus.kt", "android/app/src/main/java/com/musicd/server/android/NowPlayingSeek.kt"],
+      "native": ["android/app/src/main/java/com/musicd/server/android/NowPlayingScreen.kt", "android/app/src/main/java/com/musicd/server/android/NowPlayingMenus.kt", "android/app/src/main/java/com/musicd/server/android/NowPlayingSeek.kt", "android/app/src/main/java/com/musicd/server/android/SignalPathSheet.kt"],
       "preview": false,
       "items": {
         "back": { "kind": "action", "label": "Back" },
@@ -23,7 +24,10 @@
         "track": { "kind": "shows" },
         "artist": { "kind": "action", "label": "{artist}", "each": true },
         "album": { "kind": "action", "label": "Open album: {album}" },
-        "format": { "kind": "shows", "when": "the track's format is known" },
+        "format": { "kind": "shows", "when": "the track's format is known, and no signal path is said" },
+        "signal": { "kind": "action", "label": "Signal path", "when": "a device Mandarin streams to is playing" },
+        "signal-title": { "kind": "shows", "in": "signal" },
+        "signal-step": { "kind": "shows", "each": true, "in": "signal" },
         "wave": { "kind": "shows", "when": "the track has a waveform" },
         "seek": { "kind": "action", "label": "Seek" },
         "position": { "kind": "shows" },
@@ -720,7 +724,7 @@
       }
     },
     "settings": {
-      "page": "Settings (the side menu's Settings): over the whole screen, ✕ and Settings at the head, a row a section (its icon and name: Account, Music Folders, Services, Audio Devices, Library Scanner, Setup, Backup & restore, Updates), the server's version and View on GitHub at the foot",
+      "page": "Settings (the side menu's Settings): over the whole screen, ✕ and Settings at the head, a row a section (its icon and name: Account, Music Folders, Services, Audio Devices, Library Scanner, Setup, Backup & restore, SQ-tool (its own page, opened beside Mandarin: item 288), Updates), the server's version and View on GitHub at the foot",
       "native": ["android/app/src/main/java/com/musicd/server/android/SettingsScreen.kt"],
       "preview": false,
       "items": {
@@ -900,7 +904,7 @@
       }
     },
     "settings-homescreen": {
-      "page": "Settings' Home Screen (in Setup): Back, its title; the greeting and Random Album, each on or off; Home's rows in their order, each with the handle that drags it to a new place, its name (and why it can't be switched, where it can't) and its switch; their notes",
+      "page": "Settings' Home Screen (in Setup): Back, its title; the greeting, Random Album and Album of the Day, each on or off; Home's rows in their order, each with the handle that drags it to a new place, its name (and why it can't be switched, where it can't) and its switch; their notes",
       "native": ["android/app/src/main/java/com/musicd/server/android/SettingsHome.kt"],
       "preview": false,
       "items": {
@@ -909,6 +913,7 @@
         "name": { "kind": "shows", "each": true },
         "greeting": { "kind": "action", "label": "Greeting" },
         "random": { "kind": "action", "label": "Random Album" },
+        "aotd": { "kind": "action", "label": "Album of the Day" },
         "note": { "kind": "shows", "each": true },
         "grip": { "kind": "action", "label": "Move {row}", "each": true },
         "row-name": { "kind": "shows", "each": true },
@@ -1054,7 +1059,7 @@
       }
     },
     "settings-scanner": {
-      "page": "Settings' Library Scanner: Back, its title; the schedule (on or off, its start and end, what runs now); Identify albums and Ask iTunes too, each on or off; the MusicBrainz pack (Download, Update or Remove, its folder, Change… with the server's folders to choose from); identification's progress and Check again; Measure ReplayGain on or off and how far it has got; Clean up, each kind with its Remove; the processor; the proposed, unidentified, applied and declined albums, each with its actions and a barcode or link to match it by; each with its ⓘ and notes",
+      "page": "Settings' Library Scanner: Back, its title; the schedule (on or off, its start and end, what runs now); Identify albums and Ask iTunes too, each on or off; the MusicBrainz pack (Download, Update or Remove, its folder, Change… with the server's folders to choose from); identification's progress and Check again; Measure ReplayGain on or off and how far it has got; Clean up, each kind with its Remove; the processor, and the cores for upsampling and DSD (Auto, 1, 2 or 3); the proposed, unidentified, applied and declined albums, each with its actions and a barcode or link to match it by; each with its ⓘ and notes",
       "native": ["android/app/src/main/java/com/musicd/server/android/SettingsScanner.kt", "android/app/src/main/java/com/musicd/server/android/ScannerPack.kt", "android/app/src/main/java/com/musicd/server/android/ScannerLists.kt"],
       "preview": false,
       "items": {
@@ -1083,6 +1088,7 @@
         "dir": { "kind": "action", "label": "{folder}", "each": true, "when": "choosing the pack's folder" },
         "browse-choose": { "kind": "action", "label": "Keep the pack in “{folder}”", "when": "choosing the pack's folder" },
         "cleanup": { "kind": "action", "label": "Remove {albums}", "each": true, "when": "albums that could go" },
+        "making": { "kind": "action", "label": ["Auto", "1", "2", "3"], "each": true, "when": "the processor's cores split" },
         "album": { "kind": "action", "label": "{album}", "each": true, "when": "albums proposed, unidentified, applied or declined" },
         "accept": { "kind": "action", "label": "Accept", "each": true, "when": "albums proposed" },
         "reject": { "kind": "action", "label": "Reject", "each": true, "when": "albums proposed" },
@@ -1095,7 +1101,7 @@
       }
     },
     "settings-system": {
-      "page": "Settings' Updates: Back, its title; the server and, in the app, the app a row each (item 223): its name with its version, and its own Check for update, which looks for that one's update alone and becomes Update available once one is found (installing it on the next tap), or says how things stand; under both, what each update found brings, a heading and its short lines, once for a version both bring",
+      "page": "Settings' Updates: Back, its title; the server and, in the app, the app a row each (item 223), and each Mandarin Bridge Mandarin knows (item 291), its update asked of it from here: its name with its version, and its own Check for update, which looks for that one's update alone and becomes Update available once one is found (installing it on the next tap), or says how things stand; under both, what each update found brings, a heading and its short lines, once for a version both bring",
       "native": ["android/app/src/main/java/com/musicd/server/android/SettingsUpdates.kt"],
       "preview": false,
       "items": {
@@ -1104,6 +1110,7 @@
         "name": { "kind": "shows", "each": true },
         "check": { "kind": "action", "label": ["Check for update", "{state}"] },
         "app-check": { "kind": "action", "label": ["Check for update", "{state}"], "when": "in the Android app" },
+        "bridge-update": { "kind": "action", "label": ["Check for update", "{state}"], "each": true, "when": "a Mandarin Bridge Mandarin knows" },
         "notes-head": { "kind": "shows", "each": true, "when": "an update found with its notes" },
         "notes": { "kind": "shows", "each": true, "when": "an update found with its notes" }
       }
@@ -1161,8 +1168,8 @@
       }
     },
     "settings-device": {
-      "page": "Settings' Audio Devices, a device's page: Back, its name; on or off, Random album radio, a phone's Other devices can play here; its name to change (or the phone's own), About, Capabilities (rates, depths and DSD, each a chip, tapped on or off where it can be set; its formats), Output (the mode, the depth, Fixed volume), Volume levelling with its level and the unknown's adjustment, DSP (a headphone profile chosen from AutoEq or pasted, the bands' curve, each band's type, frequency, gain and Q, Add band, the headroom, Save), this phone's USB DAC (Allow, what it takes, USB direct, Fixed volume, the limit, DSD, Copy), Forget this device; their notes",
-      "native": ["android/app/src/main/java/com/musicd/server/android/SettingsDevice.kt", "android/app/src/main/java/com/musicd/server/android/SettingsDsp.kt", "android/app/src/main/java/com/musicd/server/android/SettingsUsb.kt"],
+      "page": "Settings' Audio Devices, a device's page: Back, its name; on or off, Random album radio, a phone's Other devices can play here; its name to change (or the phone's own), About, Capabilities (rates, depths and DSD, each a chip, tapped on or off where it can be set; its formats), Output (the mode, the highest rate, the filter, the depth, DSD as PCM, PCM as DSD, Fixed volume), Volume levelling with its level and the unknown's adjustment, DSP (a headphone profile chosen from AutoEq or pasted, the bands' curve, each band's type, frequency, gain and Q, Add band, the headroom, Save), this phone's USB DAC (Allow, what it takes, USB direct, Fixed volume, the limit, DSD, Copy), Forget this device; their notes",
+      "native": ["android/app/src/main/java/com/musicd/server/android/SettingsDevice.kt", "android/app/src/main/java/com/musicd/server/android/SettingsDsp.kt", "android/app/src/main/java/com/musicd/server/android/SettingsUsb.kt", "android/app/src/main/java/com/musicd/server/android/SettingsRoomCorrection.kt"],
       "preview": false,
       "items": {
         "back": { "kind": "action", "label": "Back to Audio Devices" },
@@ -1184,6 +1191,10 @@
         "legend": { "kind": "shows" },
         "mode": { "kind": "action", "label": ["Original", "×2", "×4", "Max"], "each": true, "when": "a renderer or a sound device of the server's" },
         "depth": { "kind": "action", "label": ["Auto", "24", "32"], "each": true, "when": "one that takes 32 bits" },
+        "maxrate": { "kind": "action", "label": ["Auto", "96k", "192k", "384k", "768k"], "each": true, "when": "one that takes above 96 kHz" },
+        "filter": { "kind": "action", "label": ["Standard", "Min phase", "Gentle"], "each": true, "when": "upsampling or PCM as DSD on" },
+        "dsdlowpass": { "kind": "action", "label": ["Off", "50 kHz", "30 kHz"], "each": true, "when": "a renderer or a sound device of the server's" },
+        "dsdout": { "kind": "action", "label": ["Off", "DSD64", "DSD128", "DSD256"], "each": true, "when": "one that takes DSD" },
         "fixvol": { "kind": "action", "label": "Fixed volume", "when": "one whose volume can be fixed" },
         "lv-mode": { "kind": "action", "label": "Volume levelling", "when": "levelling offered" },
         "lv-target": { "kind": "action", "label": "Target volume level", "when": "levelling on" },
@@ -1194,6 +1205,10 @@
         "hp-choose": { "kind": "action", "label": ["Choose from AutoEq…", "Change…"], "when": "DSP offered" },
         "hp-paste": { "kind": "action", "label": "Paste a profile…", "when": "DSP offered" },
         "hp-remove": { "kind": "action", "label": "Remove", "when": "a headphone profile in use" },
+        "ir-name": { "kind": "shows", "when": "a room correction loaded" },
+        "ir-meta": { "kind": "shows", "when": "a room correction loaded" },
+        "ir-load": { "kind": "action", "label": ["Load a response…", "Load another…"], "when": "a renderer or a sound device here, DSP offered" },
+        "ir-remove": { "kind": "action", "label": "Remove", "when": "a room correction loaded" },
         "hp-search": { "kind": "action", "label": "Headphone name", "when": "choosing from AutoEq" },
         "hp-result": { "kind": "action", "label": "{headphone}", "each": true, "when": "AutoEq's answer" },
         "hp-cancel": { "kind": "action", "label": "Cancel", "when": "choosing or pasting a profile" },

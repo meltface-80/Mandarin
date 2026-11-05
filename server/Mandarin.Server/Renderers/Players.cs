@@ -32,6 +32,10 @@ internal sealed class Player(string id)
     public (double? Value, bool Muted) Volume = (null, false);
     public bool ExpectStop, NoSetNext, Subscribing;
     public int Strikes, Jumping;      // Jumping: jumps under way (Jump), whose renderer may still say the track before
+    // What the renderer is told, told one thing at a time (Players.Jump.cs, item 264); JumpGen: the jumps asked for.
+    public readonly SemaphoreSlim Commands = new(1, 1);
+    public int JumpGen;
+    public int NamedEarly = -1;       // the track a renderer named the next of early (item 233), logged once for it
     // Heard: the state the room shows is the device's own, read from it (or a jump of ours): not one carried over an
     // outage or a restart, whose stop is no end of a track (item 184); lost with any call it didn't answer, and won back
     // only by a read asked after the last of those (UnansweredAt, item 195). Polling: a read under way; PollAgain:
@@ -41,6 +45,10 @@ internal sealed class Player(string id)
     public IRenderer? Renderer;
     public string Location = "";
     public double TouchedAt, LoadingSince, JumpedAt, UnansweredAt;
+    // A track that has run out with the renderer still PLAYING at its end (Players.End.cs, item 246): the track read,
+    // its position and since when it has stood there; the track moved on from by hand.
+    public int EndIndex = -1, EndedOn = -1;
+    public double EndRel, EndSince;
     public string? Verifying;
     public Timer? NotifyTimer;
     public (double At, JsObj Vars)? LastEvent;
@@ -79,7 +87,7 @@ internal sealed partial class Players
             if (eng == null) throw new HubError(409, $"{name} can't be played from this server: Mandarin's audio engine isn't here");
             // The stream is this server's own: fetched over loopback, whatever address it was given out at.
             var o = new EngineOutput(name, r.Location, eng.Bin, Transcoder.Bin, Log, LocalVolume(r), () => FixedVolume(Record(p.Id)),
-                u => System.Text.RegularExpressions.Regex.Replace(u, "^https?://[^/]+", $"http://127.0.0.1:{zm.Config.Port}"));
+                u => System.Text.RegularExpressions.Regex.Replace(u, "^https?://[^/]+", $"http://127.0.0.1:{zm.Config.Port}")) { DsdNative = UsbFormats.EngineArg(r.Caps) };
             p.Volume = (o.Volume, false);
             return o;
         };
@@ -220,9 +228,9 @@ internal sealed partial class Players
         if (!IsStreamer(r)) return null;
         var caps = Profiles.Effective(Devices.RecordJs(r!));
         static List<object?> On(object? list, string key) => (list as List<object?> ?? []).Where(x => Jv.T(Jv.Get(x, "on"))).Select(x => Jv.Get(x, key)).ToList();
-        var rates = On(caps["rates"], "hz");
-        var bits = On(caps["bits"], "n").Select(Jv.Num).ToList();
         var s = r!.Settings;
+        var rates = RateCap.Limit(On(caps["rates"], "hz"), RateCap.Of(s["max_rate"]));   // the owner's cap (item 240)
+        var bits = On(caps["bits"], "n").Select(Jv.Num).ToList();
         // 32-bit output only where this ffmpeg writes 32-bit FLAC.
         var most = bits.Count > 0 ? bits.Max() : 24;
         var maxBits = Math.Min(most, Transcoder.Flac32 ? 32 : 24);
@@ -230,15 +238,26 @@ internal sealed partial class Players
         var mimes = ((r.Caps["advertised"] as JsObj)?["mimes"] as List<object?> ?? []).Select(Jv.Str).ToList();
         static string? Find(List<string> l, string re) => l.FirstOrDefault(m => System.Text.RegularExpressions.Regex.IsMatch(m, re));
         var dsdMimes = Jv.Obj(
-            ("dsf", Find(mimes, "^audio/(x-)?dsf$") ?? Find(mimes, "^audio/(x-)?dsd$")),
+            // A sound device here is sent DSF, which the engine reads itself (item 256).
+            ("dsf", r.Kind == "local" ? "audio/x-dsf" : Find(mimes, "^audio/(x-)?dsf$") ?? Find(mimes, "^audio/(x-)?dsd$")),
             ("dff", Find(mimes, "^audio/(x-)?dff$") ?? Find(mimes, "^audio/(x-)?dsd$")));
         JsObj? dsp;
         using (var c = Db.Open()) dsp = PlaybackRoutes.DspFor(c, id);
-        return Jv.Obj(
+        var target = Jv.Obj(
             ("name", r.Name ?? r.NetworkName), ("rates", rates), ("maxBits", maxBits), ("containers", caps["containers"]), ("dsd", dsd), ("dsdMimes", dsdMimes),
             ("mode", s["mode"] is string mode && mode is "original" or "x2" or "x4" or "max" ? mode : "original"),
             ("bits", s["bits"] is double b && b is 24 or 32 ? (object)b : "auto"),
             ("dsp", dsp), ("id", r.Id));
+        OutputInto(target, s);
+        return target;
+    }
+
+    /* A device's Output settings [s] into its stream [target]: the filter, DSD as PCM's low-pass, PCM as DSD (a phone's too: item 265). */
+    public static void OutputInto(JsObj target, JsObj s)
+    {
+        if (Upsample.Shape.OfFilter(s["filter"]) != null) target["filter"] = s["filter"];   // minimum phase, gentle (items 248, 259); standard by its absence
+        if (DsdLowpass.Of(s["dsd_lowpass"]) is { } cut) target["dsd_lowpass"] = cut;   // DSD as PCM, low-passed (item 241)
+        if (Upsample.DsdPlan.Of(s["dsd_out"]) is { } up) target["dsd_out"] = (double)up;   // PCM as DSD (item 243)
     }
 
     /* The settings changed (output, DSP): what follows in the queue is planned again; the track playing carries on as it was given. */

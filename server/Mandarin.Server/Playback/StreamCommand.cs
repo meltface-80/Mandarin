@@ -2,11 +2,11 @@
 // `mandarin-server score` (Identify/ScoreCommand.cs), a line of JSON in and a
 // line out, so test/streams-csharp.test.js holds them to the Node server's:
 //
-//   { fn: "plans", native, ext_mime, family, renderer_mime, plan, repack, with_gain, with_dsp, args, keys, plan_for, service,
+//   { fn: "plans", native, ext_mime, family, renderer_mime, plan, fit, shaped, dsd_lowpass, dsd_up, dsd_job, pcm_job, repack, with_gain, with_dsp, args, keys, plan_for, service,
 //     held_mime, held_sonos, held_keys, held_args }   lib/stream.js, playback.js; Streams.cs, Transcoder.cs
 //   { fn: "gain", levelling, patch, ebur, combine, held_combine, album, info, gain_of, gains_for }   lib/loudness.js
 //   { fn: "dsp", coeffs, section_db, response, sweep, peak, bands_of, headroom, normalise_band, normalise, active,
-//     fingerprint, num, band_filter, filters, plan_part, held_autoeq }   public/biquad.js, lib/dsp.js; Extras/AutoEq.cs
+//     fingerprint, num, band_filter, filters, plan_part, levelled, held_autoeq }   public/biquad.js, lib/dsp.js; Extras/AutoEq.cs
 //   { fn: "sign", secret, sigs, urls, valid, targets, queries, decode }   lib/server/auth.js
 //   { fn: "radio", keys, runs: [{ saved, start, window, ops }] }   lib/radio-memory.js
 //   { fn: "math", sin, cos, log, log10, pow }   JsMath.cs itself, against this machine's Math
@@ -117,6 +117,21 @@ internal static class StreamCommand
             return StreamPlans.RendererMime(Arg(a, 0), c => containers.Exists(x => x is string s && s == c));
         });
         o["plan"] = Each(job["plan"], a => StreamPlans.Plan(Arg(a, 0), Arg(a, 1)));
+        o["fit"] = Each(job["fit"], a => HighRates.Fit(StreamPlans.Plan(Arg(a, 0), Arg(a, 1)), Arg(a, 1)));
+        // As a renderer's queue item is planned (Playback/Items.cs): fitted, then given the filter's shape (items 248, 259).
+        o["shaped"] = Each(job["shaped"], a => Upsample.MadeAsPlayed.Mark(HighRates.Fit(StreamPlans.Plan(Arg(a, 0), Arg(a, 1)), Arg(a, 1)), Arg(a, 1), Jv.Str(Jv.Get(Arg(a, 0), "path"))));
+        // A DSD track's plan for a device set to a low-pass (item 241): fitted, then marked, as Items.cs makes it.
+        // afir's options for a room correction from what an ffmpeg's help says it takes (item 258).
+        o["afir_options"] = Each(job["afir_options"], h => Convolution.Options(Js.Str(h)));
+        o["dsd_lowpass"] = Each(job["dsd_lowpass"], a => DsdLowpass.Mark(HighRates.Fit(StreamPlans.Plan(Arg(a, 0), Arg(a, 1)), Arg(a, 1)), Arg(a, 1), Arg(a, 0)));
+        // A track's plan for a device set to PCM as DSD (item 243): fitted, then marked, as Items.cs makes it; the job that
+        // makes it [src, plan, dest, soxr, seconds].
+        o["dsd_up"] = Each(job["dsd_up"], a => Upsample.DsdPlan.Mark(HighRates.Fit(StreamPlans.Plan(Arg(a, 0), Arg(a, 1)), Arg(a, 1)), Arg(a, 1), Arg(a, 0), Jv.Str(Jv.Get(Arg(a, 0), "path"))));
+        // [src, plan, dest, soxr, seconds, join?: [before, after, carry, cut]] (item 262).
+        o["dsd_job"] = Each(job["dsd_job"], a => Scan.JsJson.Parse(Upsample.DsdPlan.Job(Js.Str(Arg(a, 0)), ConvPlan.Of((JsObj)Arg(a, 1)!), Js.Str(Arg(a, 2)), Jv.T(Arg(a, 3)), Jv.Num(Jv.Or(Arg(a, 4), 0.0)),
+            Arg(a, 5) is List<object?> j ? new Upsample.Joins.Join(Arg(j, 0) as string, Arg(j, 1) as string, (long)Jv.Num(Jv.Or(Arg(j, 2), 0.0)), (long)Jv.Num(Jv.Or(Arg(j, 3), 0.0))) : null).ToJsonString()));
+        // [src, plan, dest]: a track upsampled as it plays, its decode and its encode (item 263).
+        o["pcm_job"] = Each(job["pcm_job"], a => Scan.JsJson.Parse(Upsample.MadeAsPlayed.PcmJob(Js.Str(Arg(a, 0)), ConvPlan.Of((JsObj)Arg(a, 1)!), Js.Str(Arg(a, 2))).ToJsonString()));
         o["repack"] = Each(job["repack"], a => StreamPlans.Repack(Arg(a, 0), Arg(a, 1)));
         o["with_gain"] = Each(job["with_gain"], a => StreamPlans.WithGain(Arg(a, 0), Arg(a, 1), Arg(a, 2), Arg(a, 3)));
         o["with_dsp"] = Each(job["with_dsp"], a => StreamPlans.WithDsp((JsObj)Arg(a, 0)!, Arg(a, 1), Arg(a, 2)));
@@ -133,11 +148,11 @@ internal static class StreamCommand
         o["held_keys"] = Each(job["held_keys"], a =>
         {
             var t = new ConvTrack((long)Jv.Num(Arg(a, 0)), "", (long)Jv.Num(Arg(a, 1)));
-            return Transcoder.KeyFor(t, new ConvPlan((long)Jv.Num(Arg(a, 2)), (int)Jv.Num(Arg(a, 3)), Jv.T(Arg(a, 4)), Jv.T(Arg(a, 5)), ""));
+            return Transcoder.KeyFor(t, new ConvPlan((long)Jv.Num(Arg(a, 2)), (int)Jv.Num(Arg(a, 3)), Jv.T(Arg(a, 4)), Jv.T(Arg(a, 5)), "") { Wav = Jv.T(Arg(a, 6)), Lowpass = (long)Jv.Num(Jv.Or(Arg(a, 8), 0.0)), DsdUp = (int)Jv.Num(Jv.Or(Arg(a, 9), 0.0)), Shape = Arg(a, 10) as string, DsdBase = Jv.Num(Jv.Or(Arg(a, 11), 0.0)) == 48000 ? 48000 : 44100 });
         });
         o["held_args"] = Each(job["held_args"], a =>
         {
-            var p = new ConvPlan((long)Jv.Num(Arg(a, 1)), (int)Jv.Num(Arg(a, 2)), Jv.T(Arg(a, 3)), Jv.T(Arg(a, 4)), "");
+            var p = new ConvPlan((long)Jv.Num(Arg(a, 1)), (int)Jv.Num(Arg(a, 2)), Jv.T(Arg(a, 3)), Jv.T(Arg(a, 4)), "") { Wav = Jv.T(Arg(a, 7)), Lowpass = (long)Jv.Num(Jv.Or(Arg(a, 8), 0.0)) };
             return Strs(Transcoder.Args(Js.Str(Arg(a, 0)), p, Js.Str(Arg(a, 5)), Jv.T(Arg(a, 6))));
         });
         return o;
@@ -205,8 +220,9 @@ internal static class StreamCommand
         o["fingerprint"] = Each(job["fingerprint"], a => Biquad.Fingerprint(Arg(a, 0), Arg(a, 1)));
         o["num"] = Each(job["num"], Dsp.Num);
         o["band_filter"] = Each(job["band_filter"], Dsp.BandFilter);
-        o["filters"] = Each(job["filters"], a => Strs(Dsp.Filters(Arg(a, 0), Arg(a, 1), Arg(a, 2), Jv.T(Arg(a, 3)))));
-        o["plan_part"] = Each(job["plan_part"], a => Dsp.PlanPart(Arg(a, 0), Arg(a, 1)));
+        o["filters"] = Each(job["filters"], a => Strs(Dsp.Filters(Arg(a, 0), Arg(a, 1), Arg(a, 2), Jv.T(Arg(a, 3)), Arg(a, 4))));
+        o["plan_part"] = Each(job["plan_part"], a => Dsp.PlanPart(Arg(a, 0), Arg(a, 1), Arg(a, 2)));
+        o["levelled"] = Each(job["levelled"], a => Levelled.Headroom(Jv.Num(Arg(a, 0)), Jv.Num(Arg(a, 1)), Jv.Num(Arg(a, 2))));   // [auto, peak, gain] (item 263)
         // AutoEq's typed twin of normaliseBand (Extras/AutoEq.cs).
         o["held_autoeq"] = Each(job["held_autoeq"], a =>
         {

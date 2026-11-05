@@ -25,6 +25,8 @@ services:
     # devices:
     #   - /dev/snd:/dev/snd
     # privileged: true
+    # The bit-perfect check of a USB DAC reads its USB bus too: load usbmon on this machine
+    # (sudo modprobe usbmon); privileged, the container sees /dev/usbmon* by itself.
     # Without a DAC: playback at a higher priority as well as on its own core.
     # cap_add:
     #   - SYS_NICE
