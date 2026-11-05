@@ -170,6 +170,13 @@ class DevicePage(val j: JSONObject) {
     /** The change a segment tapped makes (PATCH {output: {mode|filter|bits: …}}). */
     fun segment(name: String, v: String): JSONObject = JSONObject().put("output", JSONObject().put(name, if ((name == "bits" || name == "max_rate" || name == "dsd_lowpass" || name == "dsd_out") && v != "auto" && v != "off") v.toInt() else v))
 
+    /** An album as one stream (item 300): shown where Mandarin makes what it plays, as the filters are. */
+    val albumStream: Boolean get() = output.optBoolean("album_stream")
+    val albumStreamNote: String get() = if (albumStream) "An album’s tracks go to this device as one stream, start to end: gapless however it joins files. Mandarin shows each track as it plays; the device’s own app shows the album as one. A skip starts the stream again at that track."
+        else "Each track goes as a file of its own, the next handed over before it ends: gapless as far as this device joins them. Turn on where a device clicks, pauses or squeals between tracks."
+    /** The change the switch makes: PATCH {output: {album_stream}}. */
+    fun albumStreamPatch(on: Boolean): JSONObject = JSONObject().put("output", JSONObject().put("album_stream", on))
+
     val canFixVolume: Boolean get() = j.optBoolean("can_fix_volume")
     val volumeFixed: Boolean get() = j.optBoolean("volume_fixed")
     val fixedNote: String get() = if (kind == "local") (if (volumeFixed) "The audio goes to the device at full level, untouched; set the volume on the DAC or amplifier. Mandarin shows no slider for it."

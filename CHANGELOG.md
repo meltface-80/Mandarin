@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- New - Albums as one stream (Settings → Audio Devices → a device → Output → Gapless): an album's tracks go to the device as one stream, start to end, made in one (upsampled, or made DSD), so it plays gapless however it joins files; Mandarin still shows each track, and a skip or a seek starts the stream again there (item 300)
 - Fixed - a Chord Poly moving on by itself from one track made DSD to the next: Mandarin stayed on the first track, and near the end of the second started it again from the beginning. Mandarin now follows any device that goes on naming the first track (item 299)
 - New - three Gaussian upsampling filters: Gaussian (smooth, very short ringing, the top of a CD a little down), Gaussian steep (flat almost to 22 kHz, every sample of the file kept) and Gaussian hi-res (for 88.2 kHz and up), each made as the track plays, PCM or on the way to DSD (item 298)
 - New - each device has a filter for CD-rate sources and one for hi-res sources (or the same): two rows in Settings → Audio Devices → Output, each opening the list of filters with what each does (item 298)
