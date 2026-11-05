@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Improved - the menu is the first button of the bar along the foot, so it opens from every screen; Home's own menu button is gone (item 296)
+- Improved - Now playing keeps the bar along the foot, its cover smaller to make room (item 296)
+- Fixed - the favourite heart is a proper heart: both halves alike, one point at the foot (item 296)
 - Fixed - the Release workflow tests as CI does: it builds Mandarin Bridge for Linux and installs SQ-tool's numpy before its tests (item 295)
 
 ## v1.2.0

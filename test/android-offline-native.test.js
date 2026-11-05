@@ -36,9 +36,14 @@ test("the row along the foot and Home are the app's own offline", () => {
   assert.ok(!files.some(f => /TouchNav\([^)]*offline/.test(read(f))), "no row says offline");
   assert.match(read("NativeShell.kt"), /OfflineToastOver\(\)/);
   assert.match(read("OfflineToast.kt"), /val kind = OfflineNow\.kind\.value[\s\S]*if \(kind == null\) return/);
-  // The side menu from Home's top left (item 210: it was the row's first); the row's Shelf only while it is on, and never offline.
-  assert.match(read("HomeScreen.kt"), /parity\("home\.menu"[^\n]*\.clickable \{ NativeShell\.menuOpen\.value = true \}/);
-  assert.doesNotMatch(read("TouchNav.kt"), /nav\.menu/, "the menu is no longer the row's");
+  // The side menu the row's first (item 296: it was at Home's top left from item 210), opened over the screen showing,
+  // not Home first; Now playing has the row too. The row's Shelf only while it is on, and never offline.
+  assert.doesNotMatch(read("HomeScreen.kt"), /home\.menu/, "Home has no menu button of its own");
+  const row = read("TouchNav.kt");
+  assert.ok(row.indexOf('parity("nav.menu"') > 0 && row.indexOf('parity("nav.menu"') < row.indexOf('parity("nav.home"'), "Menu the row's first, before Home");
+  assert.match(body(read("ShellRoutes.kt"), "internal fun navTap("), /"menu" -> NativeShell\.menuOpen\.value = true(?![^\n]*toHome)/, "the menu over the screen showing");
+  assert.match(read("NowPlayingScreen.kt"), /TouchNav\("", onTap = onNav\)/, "Now playing's row");
+  assert.match(read("NativeShell.kt"), /NowPlayingScreen\([\s\S]*?onNav = \{ what -> navTap\(nav, what\) \}/, "Now playing's row works as every screen's");
   assert.match(read("TouchNav.kt"), /val shelf = NavShelf\.on\.value && !OfflineNow\.on[\s\S]*if \(shelf\) NavButton\(R\.drawable\.tn_shelf/);
   assert.match(read("NativeShell.kt"), /startDestination = ShellRoute\.HOME/);
   const nav = read("ShellRoutes.kt");
