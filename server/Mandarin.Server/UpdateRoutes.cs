@@ -24,7 +24,7 @@ internal static partial class Library
         if (!p.StartsWith("/api/update/", StringComparison.Ordinal)) return false;
         var m = ctx.Request.Method;
         // The Mandarin Bridges' own updates (item 291, Admin/BridgeUpdates.cs): which can be updated, and one asked to.
-        if (HttpMethods.IsGet(m) && p == "/api/update/bridges") { await Http.Json(ctx, await Admin.BridgeUpdates.List()); return true; }
+        if (HttpMethods.IsGet(m) && p == "/api/update/bridges") { await Http.Json(ctx, await Admin.BridgeUpdates.List(ctx.Request.Query["fresh"] == "1")); return true; }
         if (HttpMethods.IsPost(m) && p == "/api/update/bridges/apply")
         {
             var body = await System.Text.Json.Nodes.JsonNode.ParseAsync(ctx.Request.Body) as System.Text.Json.Nodes.JsonObject;

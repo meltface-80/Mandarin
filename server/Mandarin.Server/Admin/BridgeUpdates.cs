@@ -3,7 +3,8 @@
 // never updated by hand on the device again.
 //
 //   GET  /api/update/bridges         { tag, bridges: [{ id, name, platform, version, commit, reachable, updates,
-//                                      update, latest: { commit, version } | null, available, why }] }
+//                                      update, latest: { commit, version } | null, available, why }] }; with ?fresh=1
+//                                      (a tap on Check for update, item 293), GitHub asked again, not as kept
 //   POST /api/update/bridges/apply   { id }: the Bridge asked to update itself to the release (its POST /update {tag})
 //
 // Which release: a test build of Mandarin's follows "test-bridge" (dev's Bridges), a numbered one the newest
@@ -26,9 +27,11 @@ internal static class BridgeUpdates
     // Where GitHub's API is (UPDATE_API: the tests' own), as the server's updater has it.
     private static string Api => (Environment.GetEnvironmentVariable("UPDATE_API") is { Length: > 0 } a ? a : "https://api.github.com").TrimEnd('/');
 
-    /* Every Mandarin Bridge Mandarin has seen, what it says of itself, and the build published for it. */
-    public static async Task<JsonObject> List()
+    /* Every Mandarin Bridge Mandarin has seen, what it says of itself, and the build published for it; [fresh], asked
+       of GitHub now, not as it was kept. */
+    public static async Task<JsonObject> List(bool fresh = false)
     {
+        if (fresh) lock (asked) asked.Clear();
         var tag = await Tag();
         var rows = await Task.WhenAll(Bridges().Select(r => Row(r, tag)));
         return new JsonObject { ["tag"] = tag, ["bridges"] = new JsonArray([.. rows]) };

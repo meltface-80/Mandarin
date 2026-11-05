@@ -849,8 +849,10 @@ something fails after the swap, the old one (kept as `mandarin-server.prev`) is 
 folder the release can't be written over is named before anything is changed.
 
 **The Mandarin Bridges** (item 291): every Bridge Mandarin knows, on Android, Linux or a Raspberry
-Pi, has a row of its own on Settings → **Updates**, its name and version, and **Update available**
-when a newer build is published for it. A tap asks the Bridge to update itself: it fetches the
+Pi, has a row of its own on Settings → **Updates**, its name and version, and its own **Check for
+update**, as the server's and the app's rows: it asks GitHub now and becomes **Update available**
+when a newer build is published for it (the rows also find one by themselves within a minute or
+so). A tap on **Update available** asks the Bridge to update itself: it fetches the
 release from GitHub, checks it against the checksum published with it, and puts it in place.
 * **Linux and the Raspberry Pi:** in a few seconds, by itself. The new build goes in the Bridge's
   data folder and the program installed hands over to it as it starts again; one that fails as it
