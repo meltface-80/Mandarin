@@ -212,7 +212,7 @@ internal sealed partial class Players
             // An album as one stream (item 300): the track is where the device is in it, its position from that track's start.
             // Stopped, its position says nothing of where it was: the track it was last read in stands.
             if (tstate != "stopped" && InRun(p, uri, rel) is { } within) { p.Index = within.Index; rel = within.At; idx = within.Index; }
-            else if (p.Run != null && uri.Length > 0 && uri != p.Run.Uri) p.Run = null;   // on to what follows it: a track of its own
+            else if (p.Run is { } run && Left(p, run, idx)) p.Run = null;   // on to a track of its own (item 305)
             // The renderer moved on by itself: SetNextAVTransportURI honoured. Not an answer from before a jump of ours
             // was done (item 150): a slow one still names the track jumped from, and took the queue back to it. Nor one
             // that names the next track as soon as it is given it (item 233), the one playing not yet at its end.

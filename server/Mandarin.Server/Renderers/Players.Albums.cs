@@ -36,11 +36,17 @@ internal sealed partial class Players
         var first = p.Queue[index];
         if (Pattern(first) is not { } plan || first.Track is not { } t0) return null;
         var items = new List<UpnpItem> { first };
+        // A WAV (above FLAC's rates) only as long as its header can say (item 305): past 4 GB its sizes read unknown,
+        // and a Chord Poly played none of it. 12.7 minutes at 32/705.6, 17 at 24/705.6; the album goes as several runs.
+        var wav = ConvPlan.Of(first.Plan!) with { InRate = Jv.T(first.Plan!["inRate"]) ? Jv.Num(first.Plan!["inRate"]) : t0.SampleRate ?? 0 };
+        var length = first.Duration - seconds;
         for (var i = index + 1; i < p.Queue.Count; i++)
         {
             var it = p.Queue[i];
             if (it.Track is not { } t || t.AlbumId != t0.AlbumId || Pattern(it) != plan) break;
+            if (wav.Wav && Upsample.WavHeader.FileBytes(wav, length + it.Duration) >= uint.MaxValue) break;
             items.Add(it);
+            length += it.Duration;
         }
         if (items.Count < 2) return null;
         string secret;
@@ -71,7 +77,7 @@ internal sealed partial class Players
     /* The track [p]'s device is in, [rel] s into what it plays ([uri]), where that is its run: the track's place in the queue and how far into it; else null. */
     private static (int Index, double At)? InRun(Player p, string uri, double rel)
     {
-        if (p.Run is not { } run || uri != run.Uri) return null;
+        if (p.Run is not { } run || !Names(uri, run)) return null;
         var (item, at) = run.At(rel);
         // By its track, the queue's items made again when the settings change (Replan): from the one playing on.
         var from = Math.Max(0, p.Index);
@@ -79,6 +85,23 @@ internal sealed partial class Players
         if (i < 0) i = p.Queue.FindIndex(q => q.TrackId == item.TrackId);
         return i >= 0 ? (i, at) : null;
     }
+
+    /*
+     * Whether [uri], as a device names what it plays, is [run]'s (item 305): its own address, or that address as the
+     * device gives it back, its &s escaped or its characters percent-encoded.
+     */
+    internal static bool Names(string uri, AlbumStream run) =>
+        uri == run.Uri || uri.Length > 0 && Plain(uri) == Plain(run.Uri);
+
+    private static string Plain(string uri) => Uri.UnescapeDataString(uri.Replace("&amp;", "&", StringComparison.Ordinal));
+
+    /*
+     * Whether the device has gone on from [run] to another track of [p]'s queue ([index], -1 for none of it): a track
+     * of its own, outside the run. Nothing else drops the run (item 305): a slow device names the track it was playing
+     * before for a moment after the jump (item 150), and a Chord Poly so lost the run at its first read, and took the
+     * album a track at a time, the next started by hand at each one's end.
+     */
+    private static bool Left(Player p, AlbumStream run, int index) => index >= 0 && !run.Items.Contains(p.Queue[index]);
 
     /*
      * What is armed as [p]'s next: nothing while a run plays, so that the device names the run's URI from start to end

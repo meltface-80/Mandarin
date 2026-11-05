@@ -36,12 +36,17 @@ const CM = "urn:schemas-upnp-org:service:ConnectionManager:1";
 
 class FakeRenderer {
   constructor({ name, manufacturer = "Acme", model = "Streamer", modelNumber = "1", udn, sink = SINK_WIIM,
-                linkplay = null, dac = null, nested = false, urlBase = false, noAvTransport = false, setNext = true, namesNext = false, namesFirst = false } = {}) {
+                linkplay = null, dac = null, nested = false, urlBase = false, noAvTransport = false, setNext = true, namesNext = false, namesFirst = false,
+                slowToName = 0, escapesUri = false, fetches = true } = {}) {
     // dac: a Mandarin Bridge renderer's /dac.json "dac" part ({ rates, bits, dsd, … }, Renderers/MandarinBridge.cs), served with what plays now.
     // namesNext: GetPositionInfo names the next URI as soon as it is set, while the first goes on playing (a FiiO SR11, item 233).
     // namesFirst: GetPositionInfo and its events name the URI it was set to play all along, past the next it moved on to by
     // itself, its position from that one's start (a Chord Poly playing DSFs made of PCM, item 299).
-    Object.assign(this, { name, manufacturer, model, modelNumber, sink, linkplay, dac, nested, urlBase, noAvTransport, setNext, namesNext, namesFirst });
+    // slowToName: GetPositionInfo names the URI it played before for that many reads after a new one is set (item 150);
+    // escapesUri: it names its URI with its &s escaped (item 305); fetches: false, it never pulls what it is told to play.
+    Object.assign(this, { name, manufacturer, model, modelNumber, sink, linkplay, dac, nested, urlBase, noAvTransport, setNext, namesNext, namesFirst,
+      slowToName, escapesUri, pulls: fetches });
+    this.stale = 0; this.before = "";
     this.setUri = "";
     this.udn = udn || ("uuid:" + require("crypto").randomUUID());
     this.requests = [];
@@ -81,7 +86,10 @@ class FakeRenderer {
   }
 
   /* The URI the device says it plays: the one playing, or with namesFirst the one it was set to (item 299). */
-  named() { return this.namesFirst && this.setUri ? this.setUri : this.uri; }
+  named() {
+    const u = this.namesFirst && this.setUri ? this.setUri : this.uri;
+    return this.escapesUri ? u.replace(/&/g, "&amp;") : u;
+  }
 
   get location() { return `http://127.0.0.1:${this.port}/description.xml`; }
 
@@ -130,7 +138,7 @@ class FakeRenderer {
   }
 
   fetchCurrent() {
-    if (!this.uri) return;
+    if (!this.uri || !this.pulls) return;
     const entry = { uri: this.uri, status: 0, type: "", bytes: 0, chunks: [], done: false };
     this.fetches.push(entry);
     const req = http.get(this.uri, (res) => {
@@ -191,12 +199,13 @@ class FakeRenderer {
       case "GetProtocolInfo": return { Source: "", Sink: this.sink };
       case "GetTransportInfo": return { CurrentTransportState: this.state, CurrentTransportStatus: "OK", CurrentSpeed: "1" };
       case "GetPositionInfo": return {
-        Track: this.uri ? "1" : "0", TrackDuration: XML.hms(this.uri ? (this.reportedDuration ?? this.duration()) : 0), TrackMetaData: this.meta, TrackURI: this.namesNext && this.nextUri ? this.nextUri : this.named(),
+        Track: this.uri ? "1" : "0", TrackDuration: XML.hms(this.uri ? (this.reportedDuration ?? this.duration()) : 0), TrackMetaData: this.meta, TrackURI: this.stale > 0 && this.stale-- ? this.before : this.namesNext && this.nextUri ? this.nextUri : this.named(),
         RelTime: XML.hms(this.pos()), AbsTime: "NOT_IMPLEMENTED", RelCount: "2147483647", AbsCount: "2147483647"
       };
       case "GetMediaInfo": return { NrTracks: this.uri ? "1" : "0", MediaDuration: XML.hms(this.duration()), CurrentURI: this.uri, CurrentURIMetaData: this.meta, NextURI: this.nextUri, NextURIMetaData: this.nextMeta, PlayMedium: "NETWORK", RecordMedium: "NOT_IMPLEMENTED", WriteStatus: "NOT_IMPLEMENTED" };
       case "SetAVTransportURI":
         if (this.endTimer) { clearTimeout(this.endTimer); this.endTimer = null; }
+        this.before = this.uri; this.stale = this.slowToName;
         this.uri = this.setUri = a.CurrentURI; this.meta = a.CurrentURIMetaData || "";
         this.nextUri = ""; this.nextMeta = "";
         this.state = this.uri ? "STOPPED" : "NO_MEDIA_PRESENT";
