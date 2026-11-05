@@ -90,8 +90,15 @@ jobs:
           dotnet-version: "10.0.x"
       - name: Build the audio engine
         run: ./engine/build.sh
+      # Mandarin Bridge for Linux (item 282), played to end to end by test/bridge-linux.test.js, and
+      # SQ-tool's numpy (item 288), which Mandarin starts in test/sq-tool.test.js: as CI makes its runner
+      # ready (test/release-prepares.test.js); without them no v1.2.0 release got past its tests (item 295).
+      - name: Build Mandarin Bridge for Linux
+        run: ./bridge/linux/build.sh
       - name: Build the C# server
         run: ./server/build.sh
+      - name: numpy
+        run: python3 -m pip install --quiet numpy
 
       # As CI runs them (item 175): the tests that failed said again at the end
       # (.github/failed-tests.sh), and their files run once more on their own

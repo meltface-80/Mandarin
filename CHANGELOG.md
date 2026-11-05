@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Fixed - the Release workflow tests as CI does: it builds Mandarin Bridge for Linux and installs SQ-tool's numpy before its tests (item 295)
+
 ## v1.2.0
 
 A big update: Mandarin Bridge on Android, Linux and the Raspberry Pi, updated and logged from Mandarin; SQ-tool, to prove a DAC gets exactly the file; the signal path in plain words; and a new website with a Downloads page. Items 226 to 294.
