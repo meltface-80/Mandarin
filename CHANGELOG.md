@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Fixed - Google Play Protect called Mandarin Bridge for Android harmful: it installed its own updates without asking. Now Update in Settings → Updates puts a notification on the device, whose tap downloads the update in the browser for you to install; Mandarin Bridge is 0.2.2 (item 297)
 - Improved - the menu is the first button of the bar along the foot, so it opens from every screen; Home's own menu button is gone (item 296)
 - Improved - Now playing keeps the bar along the foot, its cover smaller to make room (item 296)
 - Fixed - the favourite heart is a proper heart: both halves alike, one point at the foot (item 296)
