@@ -36,7 +36,7 @@ internal sealed partial class Players
             p.Verifying = null;         // the device asked again what it plays, for the same track played again too
             it = p.Queue[index];
             p.ExpectStop = false;
-            p.Next = null;              // SetAVTransportURI clears a renderer's next
+            p.Next = null; p.NamesBefore = null;   // SetAVTransportURI clears a renderer's next, and what it names
             p.Heard = true;             // started by us: a stop now is this track's
             p.Index = index; p.NamedEarly = -1; p.EndedOn = -1;
             p.LoadingSince = Hub.Now();

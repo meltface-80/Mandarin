@@ -49,10 +49,11 @@ public sealed class JoinTests
         try
         {
             var (whole, a, b) = Tracks(dir);
-            foreach (var shape in new string?[] { null, "min" })
+            // Each filter at DSD64, and DSD256 in Gaussian steep (item 299: a Chord Poly's, ×16 to 705.6 kHz and doubled).
+            foreach (var (dsd, shape) in new (int, string?)[] { (64, null), (64, "min"), (64, "gauss"), (64, "gauss-steep"), (64, "gauss-hires"), (256, "gauss-steep") })
             {
-                var plan = J(new { transcode = true, hq = true, rate = Rate, bits = 1, dsdUp = 64, inRate = Rate, reason = "", shape });
-                var block = 512;    // DSD64 from 44.1 kHz: 4096 bytes a channel, 64 bits a frame
+                var plan = J(new { transcode = true, hq = true, rate = Rate, bits = 1, dsdUp = dsd, inRate = Rate, reason = "", shape });
+                var block = 4096 * 8 / dsd;    // a block's frames: 4096 bytes a channel, [dsd] bits a frame (DSD64: 512)
                 var cut = Cut % block;
                 object Job(string src, string dsf, double frames, object? join) => new object?[] { src, plan, dsf, true, frames / Rate, join };
                 var jobs = (await Score.Run(new JsonObject
@@ -86,10 +87,10 @@ public sealed class JoinTests
                 Assert.Equal((double)(Cut - cut), both[0].Num("frames"));
                 var joined = await Score.Run(new { fn = "joins", parts = new[] { Path.Combine(dir, "a.dsf"), Path.Combine(dir, "b.dsf") }, whole = Path.Combine(dir, "w.dsf") });
                 var alone = await Score.Run(new { fn = "joins", parts = new[] { Path.Combine(dir, "a0.dsf"), Path.Combine(dir, "b0.dsf") }, whole = Path.Combine(dir, "w.dsf") });
-                var what = shape ?? "standard";
+                var what = $"DSD{dsd} " + (shape ?? "standard");
                 // Every frame once: the first file whole blocks, the second the frames short of one, then its own.
-                JsonAssert.Same($"[{(Cut - cut) * 64},{(Whole - Cut + cut) * 64}]", joined["samples"]);
-                Assert.Equal((double)Whole * 64, joined.Num("whole"));
+                JsonAssert.Same($"[{(Cut - cut) * dsd},{(Whole - Cut + cut) * dsd}]", joined["samples"]);
+                Assert.Equal((double)Whole * dsd, joined.Num("whole"));
                 Assert.True(joined["blocks"]![0]!.GetValue<bool>(), "the first file ends on a whole block");
                 // Joined: at the join what there is anywhere else, the modulators' noise.
                 Assert.True(joined.Num("join_db") < -100, $"{what}: joined, at the join {joined.Num("join_db"):F1} dB (elsewhere {joined.Num("rest_db"):F1} dB)");

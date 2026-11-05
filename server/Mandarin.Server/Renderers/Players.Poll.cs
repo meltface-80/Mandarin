@@ -207,6 +207,8 @@ internal sealed partial class Players
         lock (gate)
         {
             var idx = uri.Length > 0 ? IndexOfUri(p, uri) : -1;
+            // A device that names the track it was set to all along (item 299): that is the one playing.
+            if (p.NamesBefore != null && uri == p.NamesBefore) idx = p.Index;
             // The renderer moved on by itself: SetNextAVTransportURI honoured. Not an answer from before a jump of ours
             // was done (item 150): a slow one still names the track jumped from, and took the queue back to it. Nor one
             // that names the next track as soon as it is given it (item 233), the one playing not yet at its end.
@@ -218,6 +220,15 @@ internal sealed partial class Players
                     if (p.NamedEarly != p.Index) { p.NamedEarly = p.Index; early = (idx, p.Index, playing.Duration); }
                 }
                 else { p.Index = idx; p.Next = null; p.Strikes = 0; if (p.Shuffle) p.Played.Add(p.Queue[idx]); }
+            }
+            // Moved on to the next it was given, still naming the track before (item 299): a Chord Poly from one DSF made
+            // of PCM to the next, its position back at the start just after the first's end. The room stayed on track 1,
+            // and past its length started track 2 by hand: the one playing, from its start.
+            else if (idx < 0 || idx == p.Index)
+            {
+                if (p.Next is { Sent: true } nx && nx.Index != p.Index && nx.Index >= 0 && nx.Index < p.Queue.Count && playing != null && p.Jumping == 0 && asked > p.JumpedAt
+                    && prev.TrackUri == playing.Uri && p.SeekedAt < prev.At && StartedOver(prev.Position, rel, playing.Duration))
+                { p.Index = nx.Index; p.Next = null; p.Strikes = 0; p.NamesBefore = uri; if (p.Shuffle) p.Played.Add(p.Queue[nx.Index]); }
             }
             item = p.Index >= 0 && p.Index < p.Queue.Count ? p.Queue[p.Index] : null;
             index = p.Index;
@@ -292,6 +303,14 @@ internal sealed partial class Players
      */
     internal static bool MovedOn(double before, double now, double duration, bool early = false) =>
         duration <= 0 || now + Math.Min(5, duration / 3) < before && (!early || now < 15) || !early && before >= duration - Math.Min(15, duration / 3);
+
+    /*
+     * Whether a renderer still naming the track playing, of [duration] s, has started the next it was given (item 299):
+     * [before] s in at the last read, in its last 15 s (or third of a short one) or past its end; [now] s in, back at
+     * a start (its first 15 s, or third), well short of where it was.
+     */
+    internal static bool StartedOver(double before, double now, double duration) =>
+        duration > 0 && before >= duration - Math.Min(15, duration / 3) && now < Math.Min(15, duration / 3) && now + Math.Min(5, duration / 3) < before;
 
     private static int IndexOfUri(Player p, string uri)
     {

@@ -23,6 +23,7 @@ internal sealed class Player(string id)
     public List<UpnpItem> Queue = [];
     public int Index = -1;
     public (int Index, string Uri, bool Sent)? Next;
+    public string? NamesBefore;   // what a device that names the track it was set to all along names (item 299); till the next SetAVTransportURI
     // Shuffle's: the tracks played (the items themselves, so an edit of the queue moves them with it), and the track picked
     // to follow the one playing, kept while that one plays (item 183).
     public HashSet<UpnpItem> Played = [];
@@ -44,7 +45,7 @@ internal sealed class Player(string id)
     public (double At, string Message)? LastError;
     public IRenderer? Renderer;
     public string Location = "";
-    public double TouchedAt, LoadingSince, JumpedAt, UnansweredAt;
+    public double TouchedAt, LoadingSince, JumpedAt, SeekedAt, UnansweredAt;   // SeekedAt: a seek asked of the device (item 299)
     // A track that has run out with the renderer still PLAYING at its end (Players.End.cs, item 246): the track read,
     // its position and since when it has stood there; the track moved on from by hand.
     public int EndIndex = -1, EndedOn = -1;
