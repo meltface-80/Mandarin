@@ -106,6 +106,8 @@ class UsbAudioSink(private val inner: AudioSink, private val context: Context) :
                 throw DsdUnplayable.make(if (!Store.usbDirect(context)) "USB direct is off" else if (UsbDac.device() == null) "no DAC on the port" else "the DAC doesn't take DSD${DsdExtractor.multiple(DsdRenderer.dsdRate(inputFormat))}", inputFormat)
             }
             val kind = if (plan.first == "dop") "dop" else "dsd"
+            // The next track as the one playing (item 304): its stream kept, nothing of the last dropped, the DoP marker going on.
+            if (mode == plan.first && keeps(kind, plan.second)) { drained = false; return }
             val probe = UsbDriver.streamFor(UsbDac.info(), plan.second, kind == "dsd") ?: throw DsdUnplayable.make("no stream", inputFormat)
             val sil = silence(kind, probe.channels * probe.subslot, probe.subslot)
             if (!UsbDriver.open(context, plan.second, kind, sil)) {
@@ -119,6 +121,12 @@ class UsbAudioSink(private val inner: AudioSink, private val context: Context) :
             if (playing) UsbDriver.play()
             return
         }
+        if (wantUsb(inputFormat) && mode == "pcm" && keeps("pcm", inputFormat.sampleRate)) {
+            // The next track at the rate playing (item 304): its stream kept, as Android's own sink keeps its track.
+            words = inputFormat.pcmEncoding == C.ENCODING_PCM_32BIT
+            drained = false
+            return
+        }
         if (wantUsb(inputFormat) && UsbDriver.open(context, inputFormat.sampleRate)) {
             usb = true; mode = "pcm"; words = inputFormat.pcmEncoding == C.ENCODING_PCM_32BIT
             rate = inputFormat.sampleRate; channels = inputFormat.channelCount
@@ -130,6 +138,17 @@ class UsbAudioSink(private val inner: AudioSink, private val context: Context) :
         }
         if (usb) { UsbDriver.close(); usb = false }
         inner.configure(inputFormat, specifiedBufferSize, outputChannels)
+    }
+
+    /**
+     * Whether the stream open on the DAC is the one a track of [kind] at [rate] would open (item 304): the same DAC, its
+     * rate and kind, alive. A track after another of the same kind goes on in it: opened again, the DAC was let go and
+     * taken back between the two (35 ms on a FiiO R7, the DAC locking again to DSD256), the last of the track before
+     * still in the ring dropped, and DoP's marker begun again on 0x05 whatever the last frame's was.
+     */
+    private fun keeps(kind: String, rate: Int): Boolean {
+        val c = UsbDriver.current ?: return false
+        return usb && c.kind == kind && c.rate == rate && c.device == UsbDac.device() && !UsbDriver.dead()
     }
 
     /** What the engine sends with nothing to play: DSD silence (0x69), or DoP frames of it under both markers. */
