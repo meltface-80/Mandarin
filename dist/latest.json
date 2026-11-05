@@ -1,8 +1,8 @@
 {
-  "version": "1.1.14",
-  "code": 340,
+  "version": "1.2.0",
+  "code": 341,
   "url": "https://github.com/meltface-80/Mandarin/raw/main/dist/mandarin-android.apk",
-  "sha256": "b8016f44f4fb7a6c2d49493578a7ff04b5d0aa40bc0e4337f167a2186bb70096",
-  "file": "Mandarin-Android-1.1.14.apk",
-  "notes": "• New - the server and the Android app each have their own Check for update button\n• Redesign - the update notes are a short list of what changed\n• Tweaks - altered share card copy function, Android app copies it to the clipboard"
+  "sha256": "f5d830f356fdc9b1c034baa348cba39e6e43eb1f048973c6ba474ce1649b75ef",
+  "file": "Mandarin-Android-1.2.0.apk",
+  "notes": "• New - SQ-tool (Settings → SQ-tool): proves your DAC gets exactly the file. Mandarin plays a song to a zone, records what its DAC is fed and compares every sample, with spectrograms and charts\n• New - High-quality upsampling: ×2, ×4 or to the most a device takes, with Standard, Min phase or Gentle filters made as the track plays; PCM made DSD64, DSD128 or DSD256; a highest rate for each device; all gapless\n• New - Mandarin Bridge: an Android device, a Linux computer or a Raspberry Pi with a USB DAC is a bit-perfect room, updated from Settings → Updates, its log in Save log\n• New - the signal path on Now playing: every step from the file to the DAC, in plain words\n• New - room and headphone correction from an impulse response (REW, Dirac or a headphone measurement)\n• New - DSD to a USB DAC on the server, natively or as DoP; DFF files play as DSD\n• New - Album of the Day: one you haven't played in a year or more, all day, with its own switch\n• New - a new website, with a Downloads page\n• Fixed - the Android app's USB driver is bit-perfect, and on a FiiO R7 plays the DAC on its port\n• Fixed - streamers such as the FiiO SR11: the right track shown, none skipped, taps in a row no longer stall it\n• Fixed - new albums appear by themselves moments after they're copied\n• Fixed - away from home, the Android app keeps its connection after Tailscale restarts\n• Improved - a saved log says what went wrong, hiding only what is yours alone"
 }
