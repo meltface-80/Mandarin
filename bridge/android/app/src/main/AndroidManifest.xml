@@ -18,8 +18,7 @@
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
     <!-- The player starts with the device, when asked to. -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
-    <!-- Updated from Mandarin's Settings → Updates (item 291, Updater.kt): it installs its own new version. -->
-    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+    <!-- Updated from Mandarin's Settings → Updates by the browser (item 297, Updater.kt): no permission to install apps. -->
 
     <!-- A DAC on the USB port, driven by the app itself. Required: the app is for nothing else. -->
     <uses-feature android:name="android.hardware.usb.host" android:required="true" />
@@ -67,10 +66,5 @@
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
             </intent-filter>
         </receiver>
-
-        <!-- The package installer's word on an update (Updater.kt). -->
-        <receiver
-            android:name=".UpdateReceiver"
-            android:exported="false" />
     </application>
 </manifest>

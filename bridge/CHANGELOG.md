@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.2.2
+
+- Fixed - Google Play Protect called the Android Bridge harmful: it could install its own update without asking. An update from Mandarin is a notification on the device now, whose tap downloads it in the browser, and Android's installer asks; the Bridge holds no permission to install apps (item 297)
+- Improved - Mandarin Bridge is 0.2.2, on Android, Linux and the Raspberry Pi alike
+
 ## v0.2.1
 
 - Improved - Mandarin Bridge is 0.2.1, on Android, Linux and the Raspberry Pi alike: the Linux Bridge (and the Pi's) takes the same version as the app, where it said the server's

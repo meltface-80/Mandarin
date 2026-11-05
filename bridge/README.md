@@ -166,11 +166,13 @@ Mandarin's Settings → Updates lists every Bridge (item 291) and offers each th
 published has a sidecar beside it, `<asset>.json` (`bridge/sidecar.sh`): its commit, its version and its SHA-256. The
 Bridge says its own commit in `/dac.json` (`commit`, with `updates: true` and `update`, where an update is). Asked
 with `POST /update {"tag": "test-bridge"}` (or `mandarin-bridge-v…`, never an address: the port has no sign-in), the
-Bridge fetches that release of Mandarin's from GitHub itself, checks `mandarin-bridge.apk` against its sidecar, and
-installs it with Android's package installer (`Updater.kt`). Android refuses an APK signed by another key. The first
-time, Android asks on the device: to let the Bridge install apps, then to confirm, each a notification. After that,
-on Android 12 and later, its updates install without a question, and `MY_PACKAGE_REPLACED` starts it again.
-Mandarin Bridge for Linux does the same with `mandarin-bridge-linux-<arch>.tar.gz` (`bridge/linux` `Update.cs`).
+Android Bridge shows a notification on the device (`Updater.kt`, item 297): a tap opens that release's
+`mandarin-bridge.apk` in the browser, which downloads it, and Android's installer installs it when you say so. The
+Bridge itself holds no permission to install apps and downloads nothing: from 0.2.0 it installed its own update,
+without a question on Android 12 and later, and Google Play Protect calls an app that can do that harmful. Android
+refuses an APK signed by another key, and `MY_PACKAGE_REPLACED` starts the Bridge again once it is installed.
+Mandarin Bridge for Linux fetches and checks its own update against the sidecar, with
+`mandarin-bridge-linux-<arch>.tar.gz` (`bridge/linux` `Update.cs`).
 
 Its log is in Mandarin's: when the Mandarin app's log is saved (Settings → Setup → Logging → Save log), the server
 asks every Bridge for its own at the path its `/dac.json` names (`log`: `GET /log`, this app's last 2,000 lines of
