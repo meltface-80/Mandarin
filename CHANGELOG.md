@@ -4,52 +4,19 @@
 
 A big update: Mandarin Bridge on Android, Linux and the Raspberry Pi, updated and logged from Mandarin; SQ-tool, to prove a DAC gets exactly the file; the signal path in plain words; and a new website with a Downloads page. Items 226 to 294.
 
-- Fixed - the Android app's USB driver is bit-perfect: every 16- and 24-bit sample reached the DAC one step off in its lowest bit (and a 16-bit slot's loudest ones), and a 32-bit stream (upsampled) lost its lowest 8 bits on the way through float; with the DSP off each sample now reaches the DAC as it is, a shallower one padded with zeros
-- New - the USB driver hands on exactly what it feeds the DAC (UsbDriver.tap), for a recording of it: Mandarin USB's capture, which the server's bit-perfect check reads
-- Improved - a Mandarin USB renderer (an Android device with a USB DAC) is set up by what it says of its DAC, as a Roon Ready device is: the rates, depths and DSD it takes are on and nothing else, with nothing to tick, and rates ticked by hand before no longer override it (a tap still turns one off); its volume is the DAC's, fixed where the DAC has no volume control of its own
-- Fixed - away from home, the Android app only talks to its own server through its own Tailscale
-- Improved - the server re-reads the library far less often while its background jobs run
-- Fixed - away from home, the Android app no longer drops a working connection after its Tailscale restarts
-- Fixed - albums added to your music folders appear in the Library and on Home by themselves, moments after they are copied
-- Fixed - playing an album on a streamer such as the FiiO SR11 no longer shows track 2 while track 1 plays
-- Fixed - a Qobuz or Tidal favourite the service won't give is no longer asked for every two minutes all day
-- Improved - a saved log now says what went wrong: it hides only passwords, keys, emails, account names and logins, and internet or Tailscale addresses
-- New - Album of the Day beside Random Album is one you haven't played in a year or more (or never), stays all day, and has its own switch in Settings → Home Screen
-- Fixed - upsampling ×16 (705.6 and 768 kHz) plays: as WAV where the device takes WAV, else at the highest rate FLAC carries; it was silent
-- New - whole-track upsampling: a streamer or DAC set to upsample can use one filter as long as the track (Settings → Audio Devices → a device → Output → Filter), made ahead of playing
-- Improved - whole-track upsampling shows itself: Now playing says whether a track went out whole or with the standard filter and why, and the device's Output says how many tracks are made and which is being made
-- New - a highest rate for each streamer or DAC (Settings → Audio Devices → a device → Output → Highest rate): nothing goes above it, upsampled or not
-- Fixed - whole-track upsampling works for an album or a queue played on a streamer; every track planned from a queue failed ("whole track failed: see the log")
-- Fixed - Now playing shows a track's real length on a streamer that misreads it (419 hours for an upsampled ×16 track on a FiiO SR11)
-- New - DSD sent to a device as PCM can have the DSD modulator's ultrasonic noise taken off above 30 or 50 kHz (Settings → Audio Devices → a device → Output → DSD as PCM)
-- New - Mandarin can make DSD from PCM: a seventh-order modulator, its noise from 20 Hz to 20 kHz some 139 dB down at DSD64 (the engine; choosing it for a device follows)
-- New - PCM as DSD: a streamer or DAC that takes DSD can have the library's PCM made DSD64, DSD128 or DSD256 ahead of playing and sent as DSF (Settings → Audio Devices → a device → Output → PCM as DSD)
-- Fixed - an album played with PCM as DSD on a FiiO SR11 stopped after its first track; and what was being made for an album no longer playing went on being made
-- New - Now playing's signal path: what goes out, how it was made and what is being made, centred under the album; a tap shows every step from the file to the room
-- New - two more upsampling filters (Settings → Audio Devices → a device → Output → Filter): Minimum phase, whose ringing comes only after a sound starts, and Gentle, which rolls off earlier and rings for half as long; made ahead as Whole track is, and used for PCM as DSD too
-- Fixed - Output's Filter button for minimum phase read "Minimum p…" on a phone; it says Min phase
-- Improved - PCM as DSD is made about three times faster: a track at DSD256 in about a quarter of its own length here, where it took longer than the track itself
-- Fixed - with PCM as DSD, a track that starts before its DSD is ready is still made, after the tracks to come, so it plays as DSD next time; Now playing says why it has the standard filter meanwhile, and Output's Filter says it is the filter the DSD is made with
-- New - room and headphone correction: load an impulse response (a WAV from REW, Dirac or a headphone measurement) on a streamer's or DAC's DSP and everything it plays runs through it (Settings → Audio Devices → a device → DSP → Room correction)
-- Improved - Mandarin's DSD modulator holds past SACD's highest level (+3.1 dB, 71% modulation) with room to spare, where it held only to 62%
-- Fixed - just after a scan, a page could show the albums from before it for a moment (the scan seemed to have ended before the server had read them)
-- New - DSD to a USB DAC on the server: native DSD where the DAC says it takes it (found from the DAC itself), DoP where you tick DSD for it; DSD files and PCM as DSD alike, never made PCM
-- New - room correction takes one impulse response a rate (several WAVs at once, or a zip of them): each track runs through the one made at its rate, else the nearest of its family, resampled
-- Fixed - room correction plays a response at its own level with ffmpeg 7 or later (a Mac's, from Homebrew), where one resampled to a track's rate came out quieter
-- Improved - PCM as DSD is made as it plays: a track goes as DSD from its first play, sent while it is made, where it went as PCM until made ahead; Output says how fast this server makes it, and whether that keeps up
-- Improved - Min phase and Gentle are made as they play too, from a track's first play; Whole track is gone (a device set to it has the standard filter)
-- Improved - a track upsampled or made DSD as it plays gets the processor: playback keeps all the cores but one while it is made, or as many as Settings → Library Scanner → Processor → Cores for upsampling and DSD says (Auto, 1, 2 or 3)
-- Improved - PCM as DSD keeps a 48 kHz-family track (48, 96, 192 kHz) in its own family: 96 kHz goes ×8 to 768 kHz and DSD256 at 12.288 MHz, nothing resampled, where it went down to 88.2 kHz first; on a device that takes PCM at the rate DoP carries it on (768 kHz for DSD256), else as before
-- Fixed - PCM as DSD, Min phase and Gentle are gapless: an album that runs on from track to track plays on without a pause or a click, the next track sent to the device while it is still being made and made as one stream with the track before
-- Fixed - Next, Back, Play and Pause on a streamer such as the FiiO SR11 no longer pile up and stop it answering: taps in a row are one jump to where they end, and a track skipped from is no longer made
-- New - a phone playing through a USB DAC has a streamer's Output (Settings → Audio Devices → this phone → Output): upsampled ×2, ×4 or to the most, in Standard, Min phase or Gentle, to the highest rate allowed, or PCM made DSD64, DSD128 or DSD256, made by the server and played by the app's USB driver, DSD natively or as DoP
-- Fixed - signed in to Tidal, a token that stops working is renewed once, however many requests find it stale at the same time
-- Improved - a device's DSP runs in the order set: volume levelling, then the headroom (more where levelling could take a track over full scale), then the DSP at the track's own rate, then upsampling; and PCM as DSD works with DSP on
-- Fixed - DSD256 made as it plays no longer falls behind the device on the next track of an album: the making carried on into it is given all of playback's cores again, and the server keeps two of its own, so the app and the device no longer time out
-- Fixed - a phone playing through a 32-bit USB DAC (the SMSL SU1) is sent 24 bits when upsampling, which the server can make and the phone can read; its driver still gives the DAC 32-bit words
-- Fixed - ×16 (705.6 kHz) is gapless: each track's WAV says its own length, so a renderer such as the FiiO SR11 goes on to the next track at once instead of waiting at the end of each
-- Improved - a track made DSD (or ×16) as it plays is paced as Roon paces its DSP: made some 30 s ahead of what the device has read, not flat out to its end, so the processor is used a little all through the track instead of fully for the first third
-- Fixed - 32-bit FLAC is really 32 bits: the server asks ffmpeg for it as ffmpeg needs (-strict experimental), without which 6.1 and later wrote 24 bits and the server never offered 32
+- New - SQ-tool (Settings → SQ-tool): proves your DAC gets exactly the file. Mandarin plays a song to a zone, records what its DAC is fed and compares every sample, with spectrograms and charts
+- New - High-quality upsampling: ×2, ×4 or to the most a device takes, with Standard, Min phase or Gentle filters made as the track plays; PCM made DSD64, DSD128 or DSD256; a highest rate for each device; all gapless
+- New - Mandarin Bridge: an Android device, a Linux computer or a Raspberry Pi with a USB DAC is a bit-perfect room, updated from Settings → Updates, its log in Save log
+- New - the signal path on Now playing: every step from the file to the DAC, in plain words
+- New - room and headphone correction from an impulse response (REW, Dirac or a headphone measurement)
+- New - DSD to a USB DAC on the server, natively or as DoP; DFF files play as DSD
+- New - Album of the Day: one you haven't played in a year or more, all day, with its own switch
+- New - a new website, with a Downloads page
+- Fixed - the Android app's USB driver is bit-perfect, and on a FiiO R7 plays the DAC on its port
+- Fixed - streamers such as the FiiO SR11: the right track shown, none skipped, taps in a row no longer stall it
+- Fixed - new albums appear by themselves moments after they're copied
+- Fixed - away from home, the Android app keeps its connection after Tailscale restarts
+- Improved - a saved log says what went wrong, hiding only what is yours alone
 
 - `259-dsd-on-demand` (item 259): **PCM as DSD, and the shaped filters, made as they play.** A track made DSD from
   PCM had to be made whole, ahead (items 243, 254): its filter was one as long as the track (237, PGGB's way), so
@@ -524,37 +491,6 @@ A big update: Mandarin Bridge on Android, Linux and the Raspberry Pi, updated an
   albums, which don't wrap, and when it came to rest past Kind of Blue the loop never ended and the browser was given
   up on after 90 seconds. It now steps toward the album by the shelf's own order, a few steps at most, and says if it
   never got there. Nothing changes in Mandarin.
-- New - a Mandarin USB renderer (an Android device with a USB DAC, github.com/meltface-80/Android-USB-Driver) is read whole: every rate, depth and DSD multiple its DAC takes shows as advertised on its page, nothing to tick, and a track gets the ✓ when the DAC is fed what was sent
-- Fixed - seeking with the progress bar in a track upsampled as it plays (DSD, or ×16) plays from there at once, and Back or a seek on a streamer left stuck on its track sends the track again
-- Fixed - on a streamer such as the FiiO SR11, an album no longer skips a track: the next track showed in the last 15 s of a long one, and one shorter than that was passed over
-- Improved - a FiiO SR11 is known by its model: its page shows what it plays by USB to a DAC (to 768 kHz/32-bit, DSD64–256) without ticking, where it showed only 44.1 and 48 kHz
-- Fixed - the server's dev image no longer falls behind the test app while changes are merged one after another
-- New - the bit-perfect check: ask for it on a Mandarin USB renderer and the track is played again from its start while the phone records exactly what it feeds the DAC; the server compares every sample with what it sent and says bit-perfect, or what differed and where (PCM, DoP and native DSD)
-- New - the bit-perfect check on Now playing: Signal path → Bit-perfect check → Check, on a Mandarin USB renderer; the step says how far it has got, then its verdict
-- New - Mandarin USB, the phone app that plays through a USB DAC as a renderer, now lives in this repository (usb-renderer/): it builds from Mandarin's own driver, so the two are worked on together; its test build is the test-usb-renderer pre-release
-- Fixed - on the phone, an album whose tags are the same in more than one folder (Machine Head (1972), (Remastered 2012) and (2024 Remix), all tagged "Machine Head") is one album a folder, as it already was on the server; the discs of one album in folders of their own (CD1, Disc 2) are still one
-- New - the bit-perfect check for a USB DAC plugged into the server: Now playing → Signal path → Bit-perfect check plays the track again and records what goes down the USB cable to the DAC (the kernel's usbmon: `sudo modprobe usbmon`, the container privileged), then compares every sample with what was sent
-- Fixed - a search typed while the page was still starting (Home painted from its last visit, the server not yet answered) was closed and its results thrown away the moment the page finished starting; it now stays
-- Improved - Mandarin USB, the phone app that plays through a USB DAC as a renderer, is Mandarin Bridge (bridge/, its test build the test-bridge pre-release); it installs over Mandarin USB with its settings, and the server knows an app not yet updated as the same renderer
-- New - Mandarin Bridge for Linux: a computer with a USB DAC (a Raspberry Pi beside the DAC, say) as a renderer Mandarin plays to bit-perfect, with Mandarin's own audio engine; installed with one line, it starts at boot and is set up from its own page at http://<it>:49494/
-- New - Mandarin Bridge for Raspberry Pi: an image to flash (Raspberry Pi OS Lite, 64-bit, the Bridge in it); plug in the DAC and power on, its page at http://mandarin-bridge.local:49494/, and with no network yet its own Wi-Fi, Mandarin Bridge Setup, to choose the home network from the page
-- Fixed - a DFF file plays as DSD on a USB DAC plugged into the server or into Mandarin Bridge for Linux or a Raspberry Pi, natively or as DoP, as a DSF does; it reached the DAC as PCM before. A DST-compressed DFF is said rather than played
-- Fixed - the Mac check no longer gives up on a busy day before GitHub has a Mac to run it on
-- Fixed - the bit-perfect check records the whole track on Mandarin Bridge: from its very start (the first seconds were lost to the moment before the track was played again) and with nothing missed between recordings (a moment was lost every 30 seconds); update Mandarin Bridge on the phone for it
-- Improved - a bit-perfect check's verdict says what wasn't recorded, if anything ("not recorded: 0:00–0:03 and 0:33–0:35"), and is kept: the track's step on Now playing still says it after another track or a restart, and another track's step names the last check
-- Fixed - Now playing's signal path says only what is known, and whose word it is: its last step is what the Mandarin Bridge (or Mandarin's audio engine, or the device's own API) reports feeding the DAC, the format, the samples in the DAC's words, and whether its volume touches them ("fixed volume: the samples untouched — as Mandarin Bridge reports it"); "bit-perfect" is no longer said on it, and the bit-perfect check is no longer on it (SQ-tool, in Settings, is to prove it)
-- Fixed - a 16-bit track fed to a DAC in 32-bit words, its samples unchanged, is confirmed with its ✓; a track whose samples the volume scales no longer is
-- New - SQ-tool is in Mandarin: Settings → SQ-tool opens it, exactly as it is on its own (recordings, compare, its verdicts), with your music folder; Mandarin's Docker image carries the Python and numpy it needs (installed without Docker, add `python3` and `python3-numpy`)
-- Improved - the signal path says it plainly: "the 16-bit samples padded to 32 bits for the DAC" where it said "in 32-bit words"
-- Fixed - the ✓ is shown only when the device says the samples reach the DAC untouched: an older Mandarin Bridge, or a WiiM, whose own API says only the format, no longer has one
-- New - SQ-tool is Mandarin's own bit-perfect test: choose a song and a zone, press Record, and Mandarin plays the song there and records exactly what the zone's DAC is fed (Mandarin Bridge on Android, or a USB DAC on the server); SQ-tool says whether it is bit-perfect, with its spectrograms and charts. Its Loopback recording, its second player and its settings are gone
-- Fixed - SQ-tool's recording on a Mandarin Bridge (an Android one, such as the FiiO R7) no longer stops after 30 seconds with "the device's recording ended early": the Bridge is asked for the whole track, and hears it
-- Fixed - SQ-tool's clock runs while it records, where it stood at 0:00 until a minute had been recorded
-- New - every Mandarin Bridge (Android, Linux, Raspberry Pi) has a row on Settings → Updates, with its version and Update available when there's a newer build: a tap and it updates itself. On Android, the first time, the device asks you once; on Linux and the Pi it's hands off. A Bridge older than this needs one last update by hand
-- Improved - a Mandarin Bridge's row on Settings → Updates has its own Check for update, as the server's and the app's: a tap looks for a newer build now, then says Update available or Up to date (it did nothing before, and a newly published build took up to a minute to show)
-- Improved - Mandarin Bridge is v0.2.1, on Android, Linux and the Raspberry Pi alike (the Linux and Pi Bridge said the server's version, 1.1.14)
-- Fixed - a numbered Mandarin Bridge release has every Bridge's build, not the Android one alone: Mandarin Bridge for Linux (x64 and arm64) with its install line, and the Raspberry Pi image, so a Linux Bridge or a Pi on a numbered Mandarin can be updated from Settings → Updates too
-- New - the app's Save log (Settings → Setup → Logging) has every Mandarin Bridge's log too, after the server's, each under its name, through the same privacy filter
 
 - `284-dff-as-dsd` (item 284): **A DFF played as DSD, as a DSF is.** The audio engine read only a DSF itself; a DFF
   went to ffmpeg, which made it PCM, so on a DAC on the server or on the Linux Bridge it was never DSD (the server
@@ -957,8 +893,6 @@ A big update: Mandarin Bridge on Android, Linux and the Raspberry Pi, updated an
   lists ran beside the test's search. Now a call refused with a token that has since been replaced is made again with
   the one kept, and only a call refused with the current one renews it (TidalApi.Renewed). Test: tidal.test.js (two
   calls refused with a stale token, the second's refusal held until the first has renewed it: renewed once).
-- Fixed - on a FiiO R7, and any player whose own DAC sits on a USB bridge inside, the Android app plays the DAC plugged into the port, not the device’s own; a choice of device is kept for the page (MusicdUsb.setDevice)
-- Improved - the image’s ffmpeg is 7.1 (Debian trixie): a streamer or DAC that takes 32 bits is sent 32-bit FLAC where a track is converted or upsampled (Settings → Audio Devices → a device → Output → Bits: Auto or 32), as before only on a Mac or a host with ffmpeg 7; the image’s 5.1 could not write it
 
 ## v1.1.14
 
