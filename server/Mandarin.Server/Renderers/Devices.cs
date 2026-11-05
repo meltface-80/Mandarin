@@ -234,6 +234,7 @@ internal sealed class Devices
         {
             ((JsObj)o["output"]!)["dsd_out"] = (double)up;
             ((JsObj)o["output"]!)["making"] = Upsample.MadeAsPlayed.Note(up);
+            if (Upsample.DsdOut.Of(r.Settings["dsd_mod"]) is { } mod) ((JsObj)o["output"]!)["dsd_mod"] = mod;   // its modulator (item 303): the seventh order by its absence
         }
         o["first_seen"] = r.FirstSeen; o["last_seen"] = r.LastSeen;
         o["profile"] = caps["profile"]; o["editable"] = caps["editable"];

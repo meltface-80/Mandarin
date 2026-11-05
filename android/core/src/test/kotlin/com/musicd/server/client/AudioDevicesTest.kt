@@ -159,7 +159,7 @@ class AudioDevicesTest {
         assertEquals("""{"output":{"dsd_out":"off"}}""", off.segment("dsd_out", "off").toString())
         val on = page("""[{"n":64,"on":true}]""", """{"mode":"original","dsd_out":64,"making":"Made as it plays. How fast this server makes DSD64 shows here after its first track."}""")
         assertEquals("64", on.dsdOutValue)
-        assertEquals("Each track of the library that isn’t DSD is made DSD64 as it plays, by Mandarin’s seventh-order modulator, and sent as a DSF while it is made; Qobuz and Tidal go as PCM.", on.dsdOutNote)
+        assertEquals("Each track of the library that isn’t DSD is made DSD64 as it plays, by the modulator below, and sent as a DSF while it is made; Qobuz and Tidal go as PCM.", on.dsdOutNote)
         assertEquals("Made as it plays. How fast this server makes DSD64 shows here after its first track.", on.dsdOutLine)
         assertEquals("its speed is said under PCM as DSD, not the filter", 1, on.filterNotes.size)
     }

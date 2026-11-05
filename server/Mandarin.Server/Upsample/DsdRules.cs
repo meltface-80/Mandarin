@@ -12,7 +12,7 @@ internal static class DsdRules
 {
     /*
      * { ntf: [order, rate, hinf] } → { peak, on_circle, predicted_db }: the design itself.
-     * { rate, order, hinf, amp, hz, signal: "tone" | "tones" | "noise", seconds } → { noise_db, tone_db, resets, most }:
+     * { rate, order, hinf, band (or mod: "7", "7w", "9"), amp, hz, signal: "tone" | "tones" | "noise", seconds } → { noise_db, tone_db, resets, most, noise_50k_db, noise_100k_db }:
      *   the modulator alone, the signal made at the DSD rate (amp the peak, of ±1).
      * { chain: rate, amp, hz, seconds, order } → { noise_db, tone_db, samples, frames, resets, ms }: 705.6 kHz PCM (768 kHz for 48 kHz's family)
      *   through the whole chain (DsdChain.cs: SACD's level, the doublings) by the modulator of [order] (DsdOut.cs: 7
@@ -27,20 +27,24 @@ internal static class DsdRules
             var onCircle = ntf.Zeros.All(z => Math.Abs(z.Magnitude - 1) < 1e-12);
             return new JsObj { ["peak"] = ntf.Peak(), ["on_circle"] = onCircle, ["sections"] = (double)ntf.Sections.Count };
         }
-        if (job["chain"] is double cr) return Chain((int)cr, Num(job, "amp", 1), Num(job, "hz", 997), Num(job, "seconds", 1), (int)Num(job, "order", 7));
+        if (job["chain"] is double cr) return Chain((int)cr, Num(job, "amp", 1), Num(job, "hz", 997), Num(job, "seconds", 1), (int)Num(job, "order", 7), job["mod"] as string);
         if (job["paths"] is true) return Paths((int)Num(job, "rate", 2822400), Num(job, "seconds", 1));
         if (job["halfband"] is true) return HalfBand();
         if (job["make"] is double md) return Make((int)md, (int)Num(job, "from", 44100), Num(job, "seconds", 10), job["compare"] is true);
         var dsd = (int)Num(job, "rate", 2822400);
-        var mod = new DsdModulator(new DsdNtf((int)Num(job, "order", 7), dsd / 2.0 / 20000, Num(job, "hinf", DsdOut.Hinf(dsd))));
+        // [band]: the edge the noise is held down to (20 kHz, or wider: item 303).
+        // [mod]: one of the modulators offered (DsdOut.cs, item 303), as it is made.
+        var mod = new DsdModulator(job["mod"] is string named ? DsdOut.Ntf(dsd, named)
+            : new DsdNtf((int)Num(job, "order", 7), dsd / 2.0 / Num(job, "band", 20000), Num(job, "hinf", DsdOut.Hinf(dsd))));
         var n = Pow2(dsd * Num(job, "seconds", 1));
         var amp = Num(job, "amp", 0.5);
         var hz = Num(job, "hz", 997);
         var x = Signal(job["signal"] as string ?? "tone", n, dsd, amp, hz);
         var bits = new byte[n / 8];
         mod.Run(x, bits);
-        var (noise, tone) = Measure(bits, n, dsd, hz);
-        return new JsObj { ["noise_db"] = noise, ["tone_db"] = tone, ["resets"] = (double)mod.Resets, ["most"] = mod.Most };
+        var (noise, tone) = Measure(bits, n, dsd, hz, out var above);
+        return new JsObj { ["noise_db"] = noise, ["tone_db"] = tone, ["resets"] = (double)mod.Resets, ["most"] = mod.Most,
+            ["noise_50k_db"] = above[0], ["noise_100k_db"] = above[1] };
     }
 
     private static double Num(JsObj j, string k, double or) => j[k] is double v ? v : or;
@@ -182,10 +186,10 @@ internal static class DsdRules
     }
 
     // A 705.6 kHz tone (768 kHz in 48 kHz's family) through the chain to [rate]: the noise and the tone in the band, and the length made.
-    private static JsObj Chain(int rate, double amp, double hz, double seconds, int order)
+    private static JsObj Chain(int rate, double amp, double hz, double seconds, int order, string? named = null)
     {
         var took = System.Diagnostics.Stopwatch.StartNew();
-        var ntf = new DsdNtf(order, rate / 2.0 / 20000, DsdOut.Hinf(rate));
+        var ntf = named != null ? DsdOut.Ntf(rate, named) : new DsdNtf(order, rate / 2.0 / 20000, DsdOut.Hinf(rate));
         var chain = new DsdChain(rate, ntf);
         var top = DsdChain.InRateFor(rate);
         var frames = (long)(seconds * top);
@@ -207,7 +211,7 @@ internal static class DsdRules
         var ms = took.Elapsed.TotalMilliseconds;
         var samples = (long)bits.Count * 8;
         var n = 1 << (int)Math.Floor(Math.Log2(samples));
-        var (noise, tone) = Measure([.. bits], n, rate, hz);
+        var (noise, tone) = Measure([.. bits], n, rate, hz, out _);
         return new JsObj
         {
             ["noise_db"] = noise, ["tone_db"] = tone, ["samples"] = (double)samples, ["frames"] = (double)frames,
@@ -218,8 +222,10 @@ internal static class DsdRules
     }
 
     // The in-band noise and the tone of the first [n] bits, in dB below a full-scale sine.
-    private static (double Noise, double Tone) Measure(byte[] bits, int n, int rate, double hz)
+    // The noise from 20 Hz to 20 kHz and the tone, in dB below a full-scale sine; [above], the noise from 20 to 50 kHz and from 50 to 100 kHz (item 303).
+    private static (double Noise, double Tone) Measure(byte[] bits, int n, int rate, double hz, out double[] above)
     {
+        double mid = 0, high = 0;
         var fft = new Fft((int)Math.Log2(n));
         double[] re = new double[n], im = new double[n];
         const double beta = 38;
@@ -241,7 +247,10 @@ internal static class DsdRules
             var p = (re[at] * re[at] + im[at] * im[at]) * 2 / (wsum * n);
             if (Math.Abs(f - hz) < 40 * df || Math.Abs(f - 7001) < 40 * df || Math.Abs(f - 18997) < 40 * df) { if (Math.Abs(f - hz) < 40 * df) tone += p; continue; }
             if (f >= 20 && f <= 20000) noise += p;
+            else if (f > 20000 && f <= 50000) mid += p;
+            else if (f > 50000 && f <= 100000) high += p;
         }
+        above = [Db(mid / 0.5), Db(high / 0.5)];
         return (Db(noise / 0.5), Db(tone / 0.5));
     }
 

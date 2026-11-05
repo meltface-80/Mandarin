@@ -103,7 +103,7 @@ internal static class UpsampleCommand
             else
             {
                 run?.Finish();
-                run = new DsdRun(factor, Shape.Of((string?)job["shape"]), dsdRate);
+                run = new DsdRun(factor, Shape.Of((string?)job["shape"]), dsdRate, (string?)job["mod"]);
                 // The one before's end, to start the filters and the modulators on (its carry silence where it can't be read).
                 var before = job["before"] is JsonArray ba ? Neighbour(ffmpeg, Strings(ba), carry + Joins.History, tail: true) : null;
                 if (before == null && carry > 0) before = [new double[carry + Joins.History], new double[carry + Joins.History]];
@@ -173,12 +173,12 @@ internal static class UpsampleCommand
     /*
      * [frames] of [pcm] (64-bit float stereo) upsampled by [factor] in [kind] and made DSD at [dsdRate] into [path]: the
      * header first, then each block of bits as both channels have them. [around]: its neighbours (item 262), run
-     * through before and after it and not kept.
+     * through before and after it and not kept. [mod]: the modulator (DsdOut.cs; null, the seventh order).
      */
-    public static Result Dsd(Stream pcm, int factor, Shape.Kind kind, int dsdRate, string path, long frames, Around? around = null)
+    public static Result Dsd(Stream pcm, int factor, Shape.Kind kind, int dsdRate, string path, long frames, Around? around = null, string? mod = null)
     {
         var a = around ?? Around.None;
-        var run = new DsdRun(factor, kind, dsdRate);
+        var run = new DsdRun(factor, kind, dsdRate, mod);
         if (a.Before != null) { run.Skip(a.Lead - a.Carry); run.Push(a.Before[0], a.Before[1]); }
         var w = run.Add(path, a.Kept(frames));
         Read(pcm, frames, run.Push);

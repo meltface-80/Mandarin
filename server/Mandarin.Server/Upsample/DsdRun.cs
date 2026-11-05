@@ -52,13 +52,13 @@ internal sealed class DsdRun
     public long Held { get; private set; }
     public long Resets => l.Modulator.Resets + r.Modulator.Resets;
 
-    /* A run upsampling by [factor] in [kind] and making DSD at [dsdRate]. */
-    public DsdRun(int factor, Shape.Kind kind, int dsdRate)
+    /* A run upsampling by [factor] in [kind] and making DSD at [dsdRate] by the modulator [mod] (DsdOut.cs; null: the seventh order). */
+    public DsdRun(int factor, Shape.Kind kind, int dsdRate, string? mod = null)
     {
         this.factor = factor;
         this.dsdRate = dsdRate;
         per = (long)factor * (dsdRate / DsdChain.InRateFor(dsdRate));
-        var ntf = DsdOut.Ntf(dsdRate);
+        var ntf = DsdOut.Ntf(dsdRate, mod);
         l = new DsdChain(dsdRate, ntf, x => { lock (gate) Bits(0, x); });
         r = new DsdChain(dsdRate, ntf, x => { lock (gate) Bits(1, x); });
         up = new StreamUpsample(factor, kind, (a, b, n) =>

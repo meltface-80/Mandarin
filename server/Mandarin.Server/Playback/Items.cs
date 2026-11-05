@@ -40,6 +40,7 @@ internal static class Items
         if (Jv.T(p["lowpass"])) qs.Add("lp=" + TJs.Num(Jv.Num(p["lowpass"])));   // DSD low-passed through this rate (item 241)
         // A filter in a shape of its own (items 248, 259): its file is that shape's.
         if (p["shape"] is string shape) qs.Add("f=" + shape);
+        if (p["mod"] is string mod) qs.Add("mod=" + mod);   // DSD by a modulator other than the seventh order's (item 303)
         var q = qs.Count > 0 ? "?" + string.Join("&", qs) : "";
         return Signing.SignUrl(secret, $"{baseUrl}/stream/t{t.Id}{seg}.{Jv.Str(p["ext"])}{q}");
     }

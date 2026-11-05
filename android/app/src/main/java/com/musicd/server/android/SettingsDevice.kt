@@ -210,6 +210,7 @@ internal fun DevicePane(id: String, client: () -> ServerClient?, onBack: () -> U
                     DeviceNote(d.dsdOutNote, Modifier.parity("settings-device.note"))
                     d.dsdOutLine?.let { DeviceNote(it, Modifier.parity("settings-device.note")) }
                 }
+                d.modRow?.let { r -> CapGroup("Modulator", Modifier.parity("settings-device.cap-label")) { ModulatorGroup(d, r, busy) { patch(it) } } }
                 if (d.canFixVolume) {
                     Box(Modifier.padding(top = 14.dp)) {
                         SetupRow("Fixed volume", Modifier.parity("settings-device.name"), null) {

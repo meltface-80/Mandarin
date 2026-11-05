@@ -112,6 +112,7 @@ internal static partial class Transcoder
     public static string KeyFor(ConvTrack t, ConvPlan p) => StreamPlans.KeyFor(Jv.Obj(("id", (double)t.Id), ("mtime", (double)t.Mtime)), p.ToJs()) + (p.Dsp != null ? "-o" : "") + (p.Lowpass != 0 ? "-lp" + p.Lowpass : "")
         // "-o": DSP in the order of item 263 (none made before it kept). A filter's shape (items 248, 259), before the endings FinalPath reads its kind of file from.
         + (p.Shape != null ? "-" + p.Shape + Upsample.Joins.Mark + (p.Wav ? "h" : "") : "")   // "h": a WAV's length in its header (item 270)
+        + (p.Mod != null ? "-m" + p.Mod : "")   // a modulator other than the seventh order's (item 303)
         + (p.Wav ? "-wav" : "") + (p.DsdUp != 0 ? Upsample.DsdPlan.Suffix(p.DsdUp, p.DsdBase) : "");
     public static string FinalPath(string key) => Path.Combine(dir, key + (key.EndsWith("-wav", StringComparison.Ordinal) ? ".wav" : Upsample.DsdPlan.IsDsf(key) ? ".dsf" : ".flac"));
 

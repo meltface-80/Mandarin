@@ -55,6 +55,8 @@ internal static class DsdPlan
         if (Jv.T(plan["dsp"])) o["dsp"] = plan["dsp"];   // its part at the track's rate (Playback/Dsp.cs), which names the file too
         // Its way to 705.6 (or 768) kHz in the shape the device's filter asks (items 248, 298), the one for the track's rate.
         if (Shape.ForTrack(target, rate) is { } shape) o["shape"] = shape;
+        // The modulator the device is set to, where it is made at DSD[n] (item 303); the seventh order by its absence.
+        if (DsdOut.Of(Jv.Get(target, "dsd_mod")) is { } mod && DsdOut.Offered(mod, n)) o["mod"] = mod;
         return o;
     }
 
@@ -114,7 +116,7 @@ internal static class DsdPlan
         var o = new JsonObject
         {
             ["ffmpeg"] = Transcoder.Bin, ["decode"] = decode, ["rate"] = from, ["factor"] = DsdChain.InRateFor(dsdRate) / from,
-            ["frames"] = Joins.Frames(seconds, from), ["dsd"] = dsdRate, ["out"] = dest, ["shape"] = p.Shape,
+            ["frames"] = Joins.Frames(seconds, from), ["dsd"] = dsdRate, ["out"] = dest, ["shape"] = p.Shape, ["mod"] = p.Mod,
         };
         Joins.Into(o, join, decode, src, from);
         return o;

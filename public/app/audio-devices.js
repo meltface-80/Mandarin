@@ -25,7 +25,7 @@ const DSD_LOWPASS_NOTE = (cut) => cut
   : "DSD this device is sent as PCM keeps the modulator’s noise up to the top of the rate it goes at. DSD it takes as DSD goes as it is.";
 // PCM made DSD (items 243, 259): what it does.
 const DSD_OUT_NOTE = (n) => n
-  ? "Each track of the library that isn’t DSD is made DSD" + n + " as it plays, by Mandarin’s seventh-order modulator, and sent as a DSF while it is made; Qobuz and Tidal go as PCM."
+  ? "Each track of the library that isn’t DSD is made DSD" + n + " as it plays, by the modulator below, and sent as a DSF while it is made; Qobuz and Tidal go as PCM."
   : "PCM goes to this device as PCM. Set, each track of the library that isn’t DSD is made DSD as it plays and sent as a DSF.";
 const ask = (q) => window.__confirmDialog ? window.__confirmDialog(q) : Promise.resolve(confirm(q));
 const deviceToast = (m, kind) => { if (window.__showToast) window.__showToast(m, kind); };
@@ -313,7 +313,8 @@ function renderDetail(keepInput) {
       (dsdOn.length ? '<div class="cap-group"><span class="cap-label"' + ' data-parity="settings-device.cap-label"' + '>PCM as DSD</span>' +
         seg("dsd_out", [{ v: "off", label: "Off" }].concat([64, 128, 256].map(n => ({ v: n, label: "DSD" + n, off: !dsdOn.includes(n) }))), o.dsd_out || "off") +
         '<div class="settings-note"' + ' data-parity="settings-device.note"' + '>' + esc(DSD_OUT_NOTE(o.dsd_out)) + "</div>" +
-        (o.dsd_out && o.making ? '<div class="settings-note"' + ' data-parity="settings-device.note"' + '>' + esc(o.making) + "</div>" : "") + "</div>" : "") +
+        (o.dsd_out && o.making ? '<div class="settings-note"' + ' data-parity="settings-device.note"' + '>' + esc(o.making) + "</div>" : "") + "</div>" +
+        (o.dsd_out ? modulatorGroup(o) : "") : "") +   // its modulator (item 303: app/device-modulators.js)
       (d.can_fix_volume ? '<div class="settings-row" style="margin-top:14px"><span class="settings-label"' + ' data-parity="settings-device.name"' + '>Fixed volume</span>' +
         '<label class="switch"' + ' data-parity="settings-device.fixvol"' + '><input type="checkbox" data-dev-fixvol' + (d.volume_fixed ? " checked" : "") + ' aria-label="Fixed volume">' +
         '<span class="switch-track"><span class="switch-thumb"></span></span></label></div>' +
