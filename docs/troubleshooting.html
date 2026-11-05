@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Troubleshooting · Mandarin</title>
+<meta name="description" content="<code>http://&lt;server-ip&gt;:3500/api/health</code> answers without signing in; <code>/api/status</code> (signed in) says what the server can see.">
+<link rel="icon" href="mandarin-icon.png">
+<link rel="stylesheet" href="site.css">
+</head>
+<body>
+
+<header class="pagehead">
+  <div class="wrap">
+    <a class="back" href="index.html">← Contents</a>
+    <a class="brand" href="index.html"><img src="mandarin-icon.png" alt=""><span>Mandarin</span></a>
+    <span class="spacer"></span>
+    <a class="pill solid" href="downloads.html">Downloads</a>
+  </div>
+</header>
+
+<main class="wrap page">
+  <h1>Troubleshooting</h1>
+  <p class="lead"><code>http://&lt;server-ip&gt;:3500/api/health</code> answers without signing in; <code>/api/status</code> (signed in) says what the server can see.</p>
+<div class="info-cards">
+    <div class="info-card">
+      <span class="sym">No rooms</span>
+      <h3>"No Sonos rooms found yet"</h3>
+      <p>Check the container is on host networking and on the same subnet as the speakers, then look at
+         <code>sonos.error</code> in <code>/api/status</code>. Setting <code>SONOS_HOSTS</code> to one speaker's IP skips
+         discovery.</p>
+    </div>
+    <div class="info-card">
+      <span class="sym">Silence</span>
+      <h3>A room skips every track</h3>
+      <p>The speakers can't reach the server. On a machine with several network interfaces set <code>SERVER_IP</code> to
+         its LAN address, and check nothing blocks the port.</p>
+    </div>
+    <div class="info-card">
+      <span class="sym">No albums</span>
+      <h3>The library is empty</h3>
+      <p><code>/api/status</code> shows <code>music_dir</code> and <code>index_count</code>. Check the
+         <code>-v …:/music:ro</code> mount and that the folder is readable. On a Mac, see Full Disk Access on
+         <a href="install.html#mac">Install</a>.</p>
+    </div>
+    <div class="info-card">
+      <span class="sym">Hi-res</span>
+      <h3>96 kHz files won't play</h3>
+      <p><code>/api/health</code> must say <code>"ffmpeg": true</code>. The Docker image includes it; a hand-run server needs
+         ffmpeg on the PATH.</p>
+    </div>
+    <div class="info-card">
+      <span class="sym">Sign-in</span>
+      <h3>Asked to sign in with the sign-in off</h3>
+      <p>Without a sign-in, a device must ask by a name used at home (an address, a bare name, or one ending .local, .lan,
+         .home.arpa or .ts.net), from your home network or tailnet. Behind a reverse proxy on the same machine, the proxy must
+         pass on who asked. See <a href="account.html">Your account</a>.</p>
+    </div>
+    <div class="info-card">
+      <span class="sym">Android</span>
+      <h3>&ldquo;Mandarin stopped in the background&rdquo;</h3>
+      <p>The app says so when Android ended it while you weren't using it, with Android's own words. If it comes back, switch
+         on <b>Settings &rarr; Setup &rarr; Logging</b> and send the saved log (<a href="logs.html">Logs</a>).</p>
+    </div>
+    <div class="info-card">
+      <span class="sym">Forgot it</span>
+      <h3>The password</h3>
+      <p><code>docker exec musicd-server /app/server/bin/mandarin-server reset-password</code>, then create the account
+         again from a device at home.</p>
+    </div>
+    <div class="info-card">
+      <span class="sym">Mandarin Bridge</span>
+      <h3>A Bridge isn't listed</h3>
+      <p>Open its page (<code>http://&lt;it&gt;:49494/</code>, or the Android app itself) to see that it runs and which DAC
+         it plays to, then <b>Look again</b> in <b>Settings → Audio Devices</b>. A Bridge found is off until you switch it
+         on there.</p>
+    </div>
+  </div>
+  <nav class="pager"><a class="back" href="index.html">← Back to contents</a></nav>
+</main>
+
+<footer>
+  <p>Mandarin · MIT · © 2026 Lewis Menzies (Music Duck / Mandarin) ·
+     <a href="https://github.com/meltface-80/Mandarin">Source on GitHub</a><br>
+     Sonos is a trademark of Sonos, Inc.; WiiM of Linkplay Technology; Chord and Poly of Chord Electronics; FiiO of FiiO
+     Electronics. This is an independent project, affiliated with none of them.</p>
+</footer>
+<script src="site.js"></script>
+</body>
+</html>

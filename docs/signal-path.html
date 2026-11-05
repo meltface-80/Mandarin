@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Signal path · Mandarin</title>
+<meta name="description" content="Under the album on Now playing: what goes out, and how. A tap shows every step from the file to what the DAC is fed.">
+<link rel="icon" href="mandarin-icon.png">
+<link rel="stylesheet" href="site.css">
+</head>
+<body>
+
+<header class="pagehead">
+  <div class="wrap">
+    <a class="back" href="index.html">← Contents</a>
+    <a class="brand" href="index.html"><img src="mandarin-icon.png" alt=""><span>Mandarin</span></a>
+    <span class="spacer"></span>
+    <a class="pill solid" href="downloads.html">Downloads</a>
+  </div>
+</header>
+
+<main class="wrap page">
+  <h1>Signal path</h1>
+  <p class="lead">Under the album on <b>Now playing</b>: what goes out, and how. A tap shows every step from the file to what the DAC is fed.</p>
+<div class="split">
+    <div>
+      <ol class="steps">
+        <li><b>File</b><span>The track as it is stored: its format, depth and rate, such as FLAC 16/44.1 kHz.</span></li>
+        <li><b>Output</b><span>What Mandarin sends, and to which room: the file as it is, or converted, upsampled or made
+            DSD, as that device's Output says.</span></li>
+        <li><b>The DAC is fed</b><span>What the device itself reports feeding its DAC: the format, how the samples sit in
+            the DAC's words, and whether its volume touches them — said as the device's own word.</span></li>
+      </ol>
+      <h2>Reading it</h2>
+      <p>In the picture, the FiiO R7's Bridge reports <i>“PCM 44.1 kHz, the 16-bit samples padded to 32 bits for the DAC,
+         fixed volume: the samples untouched — as Mandarin Bridge reports it”</i>.</p>
+      <ul class="plain">
+        <li><b>Padded to 32 bits for the DAC:</b> the DAC takes 32-bit words, so each 16-bit sample goes in one with zeros
+            below it; its value is unchanged. Where the device doesn't say the samples go untouched, it reads <i>sent as
+            32-bit</i> instead.</li>
+        <li><b>Fixed volume: the samples untouched:</b> the volume is the DAC's or the amplifier's, so Mandarin never
+            scales the samples. Otherwise the step says the level they are scaled by.</li>
+        <li><b>The ✓</b> beside the format shows only when the device itself says the samples reach the DAC untouched in
+            the format sent. Mandarin Bridge and Mandarin's audio engine (a DAC on the server) say it; a WiiM's own API
+            says only the format, so it has none.</li>
+      </ul>
+    </div>
+    <figure class="shot"><img src="img/signal-path.jpg" alt="Now playing with the signal path: File, Output, The DAC is fed" loading="lazy" decoding="async"><figcaption><b>Now playing</b> with its signal path open: the file, the output to FiiO R7 USB, and what its DAC is fed.</figcaption></figure>
+  </div>
+  <h2>Proof is SQ-tool's job</h2>
+  <p>The signal path says only what is known, and whose word it is. Whether every sample reaches the DAC is for a
+     recording of what it was fed to prove: that is <a href="sq-tool.html">SQ-tool</a>.</p>
+  <nav class="pager"><a class="back" href="index.html">← Back to contents</a><a class="pill" href="sq-tool.html">Next: SQ-tool →</a></nav>
+</main>
+
+<footer>
+  <p>Mandarin · MIT · © 2026 Lewis Menzies (Music Duck / Mandarin) ·
+     <a href="https://github.com/meltface-80/Mandarin">Source on GitHub</a><br>
+     Sonos is a trademark of Sonos, Inc.; WiiM of Linkplay Technology; Chord and Poly of Chord Electronics; FiiO of FiiO
+     Electronics. This is an independent project, affiliated with none of them.</p>
+</footer>
+<script src="site.js"></script>
+</body>
+</html>

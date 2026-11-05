@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How it works · Mandarin</title>
+<meta name="description" content="Mandarin is a server and an Android app. The server scans your library and plays it to Sonos rooms, UPnP/DLNA streamers, Mandarin Bridges and the Android app.">
+<link rel="icon" href="mandarin-icon.png">
+<link rel="stylesheet" href="site.css">
+</head>
+<body>
+
+<header class="pagehead">
+  <div class="wrap">
+    <a class="back" href="index.html">← Contents</a>
+    <a class="brand" href="index.html"><img src="mandarin-icon.png" alt=""><span>Mandarin</span></a>
+    <span class="spacer"></span>
+    <a class="pill solid" href="downloads.html">Downloads</a>
+  </div>
+</header>
+
+<main class="wrap page">
+  <h1>How it works</h1>
+  <p class="lead">Mandarin is a server and an Android app. The server scans your library and plays it to Sonos rooms, UPnP/DLNA streamers, Mandarin Bridges and the Android app.</p>
+<div class="flow" style="margin-top:6px">
+    <div class="node"><b>Your phone or browser</b><span>Mandarin's own interface</span></div>
+    <div class="arrow">&rarr;</div>
+    <div class="node mid"><b>Mandarin</b><span>library, queue, conversion</span></div>
+    <div class="arrow">&rarr;</div>
+    <div class="node"><b>Players</b><span>Sonos rooms, streamers, Bridges, the app</span></div>
+  </div>
+  <p class="flow-note">Tracks go into the speaker's own Sonos queue; a streamer is handed each next track ahead of time.
+     Each device fetches the audio from the server: the file itself when it can play it, converted to what it takes when
+     it can't.</p>
+  <ul class="plain">
+    <li><b>Library.</b> The music folders are walked and every audio file's tags are read into a database. Albums are
+        decided a folder at a time, so <code>CD1</code>/<code>CD2</code> folders become one album. Covers come from
+        <code>cover.jpg</code>/<code>folder.jpg</code> or the first track's picture; an album with none gets one drawn.
+        Rescans only re-read files whose size or date changed.</li>
+    <li><b>Album names.</b> The identification scan looks each album up by what its files carry (a release id, barcode,
+        catalogue number), then by name on MusicBrainz and iTunes, scoring each release against the tracks and their
+        lengths. Names are laid over the album, never written to your files.</li>
+    <li><b>Credits and artists.</b> In the background, who played, sang, wrote and made each album, and who each act is,
+        from MusicBrainz and Wikidata, with a picture from FanArt.tv, Wikidata or Deezer.</li>
+    <li><b>Streamers.</b> Found on the network, each one's description read for what it can play, and played through its
+        own transport, the next track handed over ahead of time (gapless where it supports it).</li>
+    <li><b>Sonos.</b> One speaker is found and the whole household is read from it; tracks go into the coordinator's own
+        Sonos queue, so the speaker moves between tracks by itself.</li>
+    <li><b>The interface.</b> Mandarin's own page, served by the server, in the browser and the iPhone home-screen app;
+        the Android app draws the same screens natively.</li>
+    <li><b>The server.</b> One program in C#, built to a single file: nothing else needed to run it.</li>
+  </ul>
+  <p style="margin-top:14px">For how your music is found and named, in plain words, there is a guide on
+     <a href="downloads.html#guides">Downloads</a>.</p>
+  <nav class="pager"><a class="back" href="index.html">← Back to contents</a><a class="pill" href="logs.html">Next: Logs →</a></nav>
+</main>
+
+<footer>
+  <p>Mandarin · MIT · © 2026 Lewis Menzies (Music Duck / Mandarin) ·
+     <a href="https://github.com/meltface-80/Mandarin">Source on GitHub</a><br>
+     Sonos is a trademark of Sonos, Inc.; WiiM of Linkplay Technology; Chord and Poly of Chord Electronics; FiiO of FiiO
+     Electronics. This is an independent project, affiliated with none of them.</p>
+</footer>
+<script src="site.js"></script>
+</body>
+</html>

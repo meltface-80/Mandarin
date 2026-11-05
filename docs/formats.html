@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>What each device is sent · Mandarin</title>
+<meta name="description" content="Each track goes the way the device can take it, and the Now playing badge says what was sent.">
+<link rel="icon" href="mandarin-icon.png">
+<link rel="stylesheet" href="site.css">
+</head>
+<body>
+
+<header class="pagehead">
+  <div class="wrap">
+    <a class="back" href="index.html">← Contents</a>
+    <a class="brand" href="index.html"><img src="mandarin-icon.png" alt=""><span>Mandarin</span></a>
+    <span class="spacer"></span>
+    <a class="pill solid" href="downloads.html">Downloads</a>
+  </div>
+</header>
+
+<main class="wrap page">
+  <h1>What each device is sent</h1>
+  <p class="lead">Each track goes the way the device can take it, and the Now playing badge says what was sent.</p>
+<div class="info-cards">
+    <div class="info-card">
+      <span class="sym">Sonos</span>
+      <h3>Up to 24-bit / 48 kHz</h3>
+      <p>Within that, the file as stored. Above it, or in a format Sonos can't read, FLAC at 24/48.</p>
+    </div>
+    <div class="info-card">
+      <span class="sym">UPnP / DLNA streamer</span>
+      <h3>Its own ceiling, read from the device</h3>
+      <p>Within it, the file as stored. Above it, FLAC at the highest rate the device takes in the file's family.
+         Upsampled ×2, ×4 or Max if you choose (<a href="upsampling.html">Upsampling and output</a>). DSD goes as the DSF
+         or DFF file itself to a device that says it takes DSD files, as PCM otherwise.</p>
+    </div>
+    <div class="info-card">
+      <span class="sym">Mandarin Bridge</span>
+      <h3>What its DAC takes</h3>
+      <p>Every rate, depth and DSD rate the DAC says it takes, read from the Bridge itself: the file as it is within them,
+         DSD natively or as DoP. <a href="bridges.html">Mandarin Bridge</a>.</p>
+    </div>
+    <div class="info-card">
+      <span class="sym">The Android app</span>
+      <h3>The phone's own output</h3>
+      <p>The file as stored within 24/48, FLAC 24/48 above it. Away from home, Opus 256 by default.</p>
+    </div>
+    <div class="info-card">
+      <span class="sym">USB DAC on the phone</span>
+      <h3>USB direct</h3>
+      <p>The file at its own rate and depth where the DAC takes it, DSD natively or as DoP, FLAC at the DAC's highest rate
+         otherwise.</p>
+    </div>
+    <div class="info-card">
+      <span class="sym">Everything else</span>
+      <h3>Formats nothing plays as they are</h3>
+      <p>APE, WavPack, WMA Lossless, 24-bit WAV, more than two channels: FLAC, in stereo.</p>
+    </div>
+  </div>
+  <p style="margin-top:18px">Conversion is ffmpeg with the SoX resampler and triangular dither. A converted track plays while
+     it is still being written, the next tracks in the queue are prepared ahead, and replays come from a cache (4 GB by
+     default).</p>
+  <nav class="pager"><a class="back" href="index.html">← Back to contents</a><a class="pill" href="away.html">Next: Away from home →</a></nav>
+</main>
+
+<footer>
+  <p>Mandarin · MIT · © 2026 Lewis Menzies (Music Duck / Mandarin) ·
+     <a href="https://github.com/meltface-80/Mandarin">Source on GitHub</a><br>
+     Sonos is a trademark of Sonos, Inc.; WiiM of Linkplay Technology; Chord and Poly of Chord Electronics; FiiO of FiiO
+     Electronics. This is an independent project, affiliated with none of them.</p>
+</footer>
+<script src="site.js"></script>
+</body>
+</html>

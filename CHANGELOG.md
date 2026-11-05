@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased
+## v1.2.0
+
+A big update: Mandarin Bridge on Android, Linux and the Raspberry Pi, updated and logged from Mandarin; SQ-tool, to prove a DAC gets exactly the file; the signal path in plain words; and a new website with a Downloads page. Items 226 to 294.
 
 - Fixed - the Android app's USB driver is bit-perfect: every 16- and 24-bit sample reached the DAC one step off in its lowest bit (and a 16-bit slot's loudest ones), and a 32-bit stream (upsampled) lost its lowest 8 bits on the way through float; with the DSP off each sample now reaches the DAC as it is, a shallower one padded with zeros
 - New - the USB driver hands on exactly what it feeds the DAC (UsbDriver.tap), for a recording of it: Mandarin USB's capture, which the server's bit-perfect check reads

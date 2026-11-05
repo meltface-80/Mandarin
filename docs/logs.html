@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Logs · Mandarin</title>
+<meta name="description" content="Logging is in the Android app, the server and the Mandarin Bridges, and is off by default: while it is off, nothing is collected.">
+<link rel="icon" href="mandarin-icon.png">
+<link rel="stylesheet" href="site.css">
+</head>
+<body>
+
+<header class="pagehead">
+  <div class="wrap">
+    <a class="back" href="index.html">← Contents</a>
+    <a class="brand" href="index.html"><img src="mandarin-icon.png" alt=""><span>Mandarin</span></a>
+    <span class="spacer"></span>
+    <a class="pill solid" href="downloads.html">Downloads</a>
+  </div>
+</header>
+
+<main class="wrap page">
+  <h1>Logs</h1>
+  <p class="lead">Logging is in the Android app, the server and the Mandarin Bridges, and is <b>off by default</b>: while it is off, nothing is collected.</p>
+<p>Switch it on in the app, <b>Settings → Setup → Logging</b>, when something isn't right. Use the app as you normally
+     would for <b>24 hours</b>, then tap <b>Save log</b>: the app's log, the server's and each Mandarin Bridge's are saved
+     together to <b>Downloads/Mandarin</b> on the phone, for you to send to the developer. <b>Clear log</b> empties it;
+     switching logging off deletes it, the server's part too.</p>
+  <p>The log is made without personal data, and the app says so on the same screen. Please look through it before you
+     send it: what you send is your choice.</p>
+  <div class="info-cards" style="margin-top:18px">
+    <div class="info-card">
+      <span class="sym">Captured</span>
+      <h3>What it captures</h3>
+      <ul>
+        <li><b>Screens:</b> each screen opened and how long after the tap, what is on screen, where each tap fell, and anything that doesn't flow.</li>
+        <li><b>Requests:</b> each request the app makes to the server: its address on the server, how long it took and whether it worked. The values in it are left out.</li>
+        <li><b>The way to the server:</b> home, away (Tailscale) or offline, and networks coming and going.</li>
+        <li><b>The phone's player:</b> playing or paused, the track's number in the queue, its position and the volume.</li>
+        <li><b>The app:</b> its memory, crashes and freezes, and Android's own lines for Mandarin.</li>
+        <li><b>The app's Tailscale:</b> whether it is running, the CPU time it has used, and why it was stopped.</li>
+        <li><b>The Mandarin Bridges:</b> every Bridge Mandarin knows, under its name, version and build: its last lines (the player, the DAC, a recording, an update), gathered as you save.</li>
+        <li><b>The server:</b> each line it logs, with what is yours alone taken out.</li>
+      </ul>
+    </div>
+    <div class="info-card">
+      <span class="sym">Left out</span>
+      <h3>What it leaves out</h3>
+      <ul>
+        <li><b>Passwords, keys and tokens.</b></li>
+        <li><b>Email addresses, account names and logins.</b></li>
+        <li><b>Internet and Tailscale addresses.</b></li>
+        <li><b>Your own home folder's name</b> in a path.</li>
+      </ul>
+      <p class="fine">It keeps what helps find a fault: home-network addresses, the names of rooms and devices, what was
+         playing, error messages.</p>
+    </div>
+  </div>
+  <p style="margin-top:18px">The app keeps its log in its own storage (two files of 3 MB at most); the server keeps its part
+     in its data folder (two files of 1 MB at most) while logging is on. A Bridge keeps its last lines anyway; they leave it
+     only when you save.</p>
+  <nav class="pager"><a class="back" href="index.html">← Back to contents</a><a class="pill" href="troubleshooting.html">Next: Troubleshooting →</a></nav>
+</main>
+
+<footer>
+  <p>Mandarin · MIT · © 2026 Lewis Menzies (Music Duck / Mandarin) ·
+     <a href="https://github.com/meltface-80/Mandarin">Source on GitHub</a><br>
+     Sonos is a trademark of Sonos, Inc.; WiiM of Linkplay Technology; Chord and Poly of Chord Electronics; FiiO of FiiO
+     Electronics. This is an independent project, affiliated with none of them.</p>
+</footer>
+<script src="site.js"></script>
+</body>
+</html>
