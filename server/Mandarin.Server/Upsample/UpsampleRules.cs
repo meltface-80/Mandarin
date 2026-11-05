@@ -19,6 +19,7 @@ internal static class UpsampleRules
     public static JsObj Run(JsObj job)
     {
         if (job["fft"] is double fn) return FftCheck((int)fn);
+        if (job["taps"] is true) return TapsMeasured(job);
         var rate = (int)TJs.ToNumber(job["rate"]);
         var factor = (int)TJs.ToNumber(job["factor"]);
         var kind = Shape.Of(job["shape"] as string);
@@ -116,6 +117,36 @@ internal static class UpsampleRules
         {
             ["pre_db"] = Db(pre / peak), ["post_db"] = Db(post / peak),
             ["pre_energy_db"] = 10 * Math.Log10(Math.Max(before, 1e-300) / all),
+        };
+    }
+
+    /*
+     * { taps: true, rate, factor, shape, at: [hz] } → { gains_db, pre_ms, keeps_db, length } (item 298): the filter itself,
+     * its response at each frequency (an exact DFT of its taps), how long before a click it rings above −120 dB of its
+     * peak, and how far from nothing its taps are at every [factor]th place but the middle (where a filter keeps the
+     * source's samples as they were, they are nothing).
+     */
+    private static JsObj TapsMeasured(JsObj job)
+    {
+        var rate = TJs.ToNumber(job["rate"]);
+        var factor = (int)TJs.ToNumber(job["factor"]);
+        var h = StreamUpsample.Taps(factor, Shape.Of(job["shape"] as string));
+        var mid = (h.Length - 1) / 2;
+        var outRate = rate * factor;
+        var gains = new List<object?>();
+        foreach (var f in job["at"] as List<object?> ?? [])
+        {
+            double re = 0, im = 0, w = 2 * Math.PI * TJs.ToNumber(f) / outRate;
+            for (var i = 0; i < h.Length; i++) { var (sn, cs) = Math.SinCos(w * (i - mid)); re += h[i] * cs; im -= h[i] * sn; }
+            gains.Add(Db(Math.Sqrt(re * re + im * im) / factor));
+        }
+        var peak = h.Max(Math.Abs);
+        var first = Array.FindIndex(h, v => Math.Abs(v) > 1e-6 * peak);
+        double keeps = 0;
+        for (var i = mid % factor; i < h.Length; i += factor) if (i != mid) keeps = Math.Max(keeps, Math.Abs(h[i]));
+        return new JsObj
+        {
+            ["gains_db"] = gains, ["pre_ms"] = (mid - first) / outRate * 1000, ["keeps_db"] = Db(keeps / Math.Abs(h[mid])), ["length"] = (double)h.Length,
         };
     }
 

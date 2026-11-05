@@ -90,6 +90,7 @@ app/android-downloads.js
 app/android-app-update.js
 app/android-title-size.js
 app/settings-folders.js
+app/device-filters.js
 app/audio-devices.js
 app/audio-devices-page.js
 app/audio-devices-dsp.js
