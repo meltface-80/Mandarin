@@ -14,7 +14,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 
-# (id, emoji, title, new in v1.1.14, what it is, how to set it up and use it)
+# (id, emoji, title, new in v1.2.0, what it is, how to set it up and use it)
 FEATURES = [
     # ---- Home and finding music
     ("home", "🏠", "Home", False,
@@ -37,10 +37,10 @@ FEATURES = [
      "Choose where to play with the speaker button, then tap **Random Album**. Its disc turns while "
      "an album is chosen; then tap **Play now**, **Play next** or **Queue**, or close it."),
     ("aotd", "📅", "Album of the day", False,
-     "One album, the same on every device, chosen by the server at 00:01. Once played from any "
-     "device, it's gone until the next 00:01.",
-     "Nothing to set up: it sits beside Random Album on Home. 00:01 is in the server's time zone "
-     "(`TZ` in the Docker command)."),
+     "One album you haven't played in a year or more (or never), the same on every device, chosen by the "
+     "server at 00:01 and kept all day.",
+     "Nothing to set up: it sits beside Random Album on Home, with its own switch in **Settings → Setup → "
+     "Home Screen**. 00:01 is in the server's time zone (`TZ` in the Docker command)."),
     ("unplayed", "⏳", "Not played in 6 months", False,
      "Albums you haven't played in six months. The row stays hidden until Mandarin has six months of "
      "your listening.",
@@ -196,10 +196,10 @@ FEATURES = [
      "Open **Settings → Audio Devices**, tap the device, and set **Volume levelling** (above DSP). "
      "Auto plays albums at album level and mixed tracks at track level."),
     ("dsp", "🎛️", "DSP", False,
-     "A parametric EQ of up to ten bands per renderer or phone, its curve drawn as you edit, plus "
-     "headphone profiles from AutoEq or a pasted ParametricEQ.txt.",
-     "Open **Settings → Audio Devices**, tap a renderer or the phone, and switch on **DSP**. Sonos "
-     "rooms have no DSP here."),
+     "A parametric EQ of up to ten bands per renderer or phone, headphone profiles from AutoEq, and room "
+     "correction from an impulse response (a WAV from REW or Dirac).",
+     "Open **Settings → Audio Devices**, tap a renderer or the phone, and switch on **DSP**. **Room "
+     "correction** takes one WAV, one for each rate, or a zip of them. Sonos rooms have no DSP here."),
     ("playfirst", "⚙️", "Playback first", False,
      "Playback keeps a processor core of its own, two while DSP is in use. Scanning, ReplayGain and "
      "downloads run on the other cores, at the lowest priority.",
@@ -240,7 +240,7 @@ FEATURES = [
      "shared as text and imported, matched against the other library's tracks.",
      "**☰ → Playlists**, **☰ → Dynamic Playlists** and **☰ → Import a playlist**. A playlist's "
      "**Share** gives the text to send."),
-    ("sharecard", "🖼️", "Share card", True,
+    ("sharecard", "🖼️", "Share card", False,
      "The album as a picture, the duck in its corner, links to hear and read about it, and three "
      "acts near what you play, two of them new to you.",
      "Tap the share button on an album's page. Choose the services in **Settings → Setup → Share "
@@ -256,8 +256,8 @@ FEATURES = [
     ("android", "📱", "The Android app", False,
      "Mandarin's interface drawn natively by the app, which finds the server home or away and asks again when it's "
      "back; lock-screen controls, volume keys, a widget, Android Auto, its updates.",
-     "Download [mandarin-android.apk](https://github.com/meltface-80/Mandarin/raw/main/dist/mandarin-android.apk) "
-     "and install it (Android 8.0 or newer). Enter the port; it finds the server on your Wi-Fi."),
+     "Download it from [Downloads](#downloads) and install it (Android 8.0 or newer). Enter the port; it "
+     "finds the server on your Wi-Fi."),
     ("phone", "🎧", "This phone", False,
      "The phone is a player of its own: speaker, headphones or Bluetooth, with queue, history and "
      "radio. At home, your other devices can play to it while the app runs.",
@@ -267,6 +267,29 @@ FEATURES = [
      "without Android's mixer; DSD natively or as DoP.",
      "Plug the DAC in. It shows on **This phone**'s page in **Settings → Audio Devices**; switch on "
      "**USB direct** there."),
+    ("bridge", "🌉", "Mandarin Bridge", True,
+     "A USB DAC on an Android device, a Linux computer or a Raspberry Pi, as a room Mandarin plays to "
+     "bit-perfect, set up from the DAC itself: nothing to tick.",
+     "Install it from [Downloads](#downloads): the Android app, the Linux install line, or the Raspberry Pi "
+     "image to flash. Plug the DAC in, then switch the Bridge on in **Settings → Audio Devices**. Details "
+     "under [Mandarin Bridge](#mandarin-bridge)."),
+    ("output", "📈", "Upsampling and output", True,
+     "For each streamer or DAC: Original, or upsampled ×2, ×4 or Max with three filters, a highest rate, "
+     "the bit depth, and PCM made DSD64, DSD128 or DSD256.",
+     "Open **Settings → Audio Devices**, tap a streamer or DAC, and set **Output**: Mode, Filter, Highest "
+     "rate, Bit depth, DSD as PCM and PCM as DSD. Upsampling and DSD are made as each track plays. Details "
+     "under [Upsampling and output](#upsampling-and-output)."),
+    ("signalpath", "🛤️", "Signal path", True,
+     "Under the album on Now playing: what goes out and how it was made. A tap shows each step from the "
+     "file to what the DAC is fed.",
+     "Play to a room and look under the album on **Now playing**; tap it for every step. The ✓ shows only "
+     "when the device itself says the samples reach the DAC untouched. Details under "
+     "[Signal path](#signal-path)."),
+    ("sqtool", "📊", "SQ-tool", True,
+     "Proves a zone's DAC gets exactly what is in the file, sample by sample: Mandarin plays a song, records "
+     "what the DAC is fed, and SQ-tool compares them.",
+     "Open **Settings → SQ-tool**, choose a song and a zone (a Mandarin Bridge on Android, or a USB DAC on "
+     "the server), and press **Record**. Details under [SQ-tool](#sq-tool)."),
     ("downloads", "⬇️", "Downloads", False,
      "Albums kept on the phone as the original files or Opus 256, played without the server. "
      "Smart Picks, the Album of the day and new albums can download by themselves.",
@@ -332,17 +355,18 @@ FEATURES = [
      "(a **✓** once added) and so to the library, as does **⋯ → Add to Tidal favourites** on its page. "
      "Details under [Tidal](#tidal)."),
     ("logging", "📝", "Logging", False,
-     "Off by default. Switched on, the Android app and the server log what happened, without personal "
-     "data, for you to send to the developer when something goes wrong.",
+     "Off by default. Switched on, the Android app, the server and the Mandarin Bridges log what happened, "
+     "without personal data, for you to send to the developer.",
      "In the Android app, **Settings → Setup → Logging**. Use the app as you normally would for 24 hours, "
-     "then tap **Save log** (it goes to Downloads/Mandarin) and send the file. Look through it first. "
+     "then tap **Save log** (it goes to Downloads/Mandarin, the server's and the Mandarin Bridges' logs with it) "
+     "and send the file. Look through it first. "
      "Switching logging off deletes the log, the server's part too. Details under [Logs](#logs)."),
     ("updates", "🔄", "Updates", True,
-     "The server updates itself from GitHub and checks every 12 hours. The Android app has its own "
-     "button beside the server's; what an update brings is listed under them.",
-     "**Settings → Updates → Check for update** beside the server (and, in the Android app, beside the "
-     "app); once it says **Update available**, tap it again. The server puts the new version in place "
-     "and starts again in a few seconds; the app's goes to Android's installer."),
+     "The server updates itself from GitHub and checks every 12 hours. The Android app and every Mandarin "
+     "Bridge have their own Check for update beside the server's.",
+     "**Settings → Updates → Check for update** beside the server, the Android app (in the app) or a "
+     "Bridge; once it says **Update available**, tap it again. The server starts again in a few seconds, "
+     "the app's update goes to Android's installer, and a Bridge updates itself."),
 ]
 
 MAX_WORDS = 30
@@ -365,7 +389,7 @@ def md_inline_to_html(s):
 def readme_block():
     lines = ["Every feature below has an **ⓘ**: open it for how to switch the feature on and use it.", ""]
     for i, (fid, em, title, new, what, how) in enumerate(FEATURES):
-        lines.append("%s **%s**%s" % (em, title, " — *new in v1.1.14*" if new else ""))
+        lines.append("%s **%s**%s" % (em, title, " — *new in v1.2.0*" if new else ""))
         lines.append("")
         lines.append(what)
         lines.append("")
@@ -383,8 +407,12 @@ def readme_block():
 
 def site_block():
     # Site links: README anchors become the README on GitHub.
+    pages = {"downloads": "downloads.html", "logs": "logs.html", "away-from-home-tailscale": "away.html",
+             "sq-tool": "sq-tool.html", "mandarin-bridge": "bridges.html", "upsampling-and-output": "upsampling.html",
+             "signal-path": "signal-path.html", "your-account": "account.html"}
+
     def site_how(how):
-        how = re.sub(r"\]\(#([^)]+)\)", r"](https://github.com/meltface-80/Mandarin#\1)", how)
+        how = re.sub(r"\]\(#([^)]+)\)", lambda m: "](%s)" % pages.get(m.group(1), "https://github.com/meltface-80/Mandarin#" + m.group(1)), how)
         how = how.replace("\n\n", " ")  # one paragraph on a card
         return md_inline_to_html(how)
     out = []
@@ -415,7 +443,7 @@ def main():
     ids = [f[0] for f in FEATURES]
     assert len(ids) == len(set(ids)), "duplicate ids"
     replace_between(ROOT / "README.md", "<!-- features:start -->", "<!-- features:end -->", "\n" + readme_block() + "\n")
-    replace_between(ROOT / "docs/index.html", "<!-- features:start -->", "      <!-- features:end -->", site_block())
+    replace_between(ROOT / "docs/features.html", "<!-- features:start -->", "      <!-- features:end -->", site_block())
     print("%d features; longest %d words" % (len(FEATURES), max(words(f[4]) for f in FEATURES)))
 
 

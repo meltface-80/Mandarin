@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Upsampling and output · Mandarin</title>
+<meta name="description" content="Each streamer or DAC has its own Output: play the file as it is, or upsample it, make it DSD, and choose how far it goes. Settings → Audio Devices → a device → Output.">
+<link rel="icon" href="mandarin-icon.png">
+<link rel="stylesheet" href="site.css">
+</head>
+<body>
+
+<header class="pagehead">
+  <div class="wrap">
+    <a class="back" href="index.html">← Contents</a>
+    <a class="brand" href="index.html"><img src="mandarin-icon.png" alt=""><span>Mandarin</span></a>
+    <span class="spacer"></span>
+    <a class="pill solid" href="downloads.html">Downloads</a>
+  </div>
+</header>
+
+<main class="wrap page">
+  <h1>Upsampling and output</h1>
+  <p class="lead">Each streamer or DAC has its own <b>Output</b>: play the file as it is, or upsample it, make it DSD, and choose how far it goes. Settings → Audio Devices → a device → Output.</p>
+<div class="split">
+    <div>
+      <dl class="settings">
+        <div><dt>Mode <span>Original · ×2 · ×4 · Max</span></dt>
+          <dd><b>Original</b> sends each track at its own rate. <b>×2</b> and <b>×4</b> upsample it (44.1 kHz to 88.2 or
+              176.4 kHz); <b>Max</b> goes to the highest rate the device takes in the track's family. Upsampling is made
+              on the server in 64-bit float.</dd></div>
+        <div><dt>Filter <span>Standard · Min phase · Gentle</span></dt>
+          <dd>How the upsampling is made. <b>Min phase</b> rings only after a sound starts; <b>Gentle</b> rolls off
+              earlier and rings for half as long. Both are made as the track plays, and are used for PCM as DSD too. It shows once Mode isn't <b>Original</b>, or PCM as DSD is on.</dd></div>
+        <div><dt>Highest rate <span>Auto · 96k · 192k · 384k</span></dt>
+          <dd>Nothing goes above it, upsampled or not. <b>Auto</b>: as high as the device takes. ×16 (705.6 and 768 kHz)
+              goes as WAV where the device takes WAV.</dd></div>
+        <div><dt>Bit depth <span>Auto · 24 · 32</span></dt>
+          <dd>The depth a converted or upsampled track is sent at. On <b>Auto</b>, a 16-bit/44.1 kHz file plays as it
+              is.</dd></div>
+        <div><dt>DSD as PCM <span>Off · 50 kHz · 30 kHz</span></dt>
+          <dd>For DSD sent to this device as PCM: take the DSD modulator's ultrasonic noise off above 50 or 30 kHz. Off
+              keeps it, up to the top of the rate it goes at. DSD the device takes as DSD goes as it is.</dd></div>
+        <div><dt>PCM as DSD <span>Off · DSD64 · DSD128 · DSD256</span></dt>
+          <dd>For a device that takes DSD: each track of the library that isn't DSD is made DSD as it plays and sent as a
+              DSF, gapless from track to track. A 48 kHz-family track stays in its own family. The Output says how fast this
+              server makes it, and whether that keeps up.</dd></div>
+        <div><dt>Fixed volume</dt>
+          <dd>The volume is set on the device itself (its knob, or a line out on fixed), so Mandarin shows no slider and never
+              scales the samples.</dd></div>
+        <div><dt>Volume levelling <span>Off · Track · Album · Auto</span></dt>
+          <dd>ReplayGain for this device, to a target from −14 to −25 LUFS. Auto plays albums at album level and mixed tracks
+              at track level.</dd></div>
+      </dl>
+    </div>
+    <figure class="shot"><img src="img/upsampling-output.jpg" alt="Output settings: Mode, Highest rate, Bit depth, DSD as PCM, PCM as DSD, Fixed volume, Volume levelling" loading="lazy" decoding="async"><figcaption>A Mandarin Bridge's <b>Output</b> in the Android app: Original, the highest rate on Auto, the bit depth on Auto, no DSD made, and fixed volume.</figcaption></figure>
+  </div>
+
+  <h2>DSP</h2>
+  <p>Below Output, a device's <b>DSP</b>: a parametric EQ of up to ten bands, headphone profiles from AutoEq, and room
+     correction from an impulse response (a WAV from REW, Dirac or a headphone measurement), one for each rate or a zip
+     of them. A device's DSP runs in this order: volume levelling, then the headroom, then the DSP at the track's own
+     rate, then upsampling.</p>
+
+  <h2>The processor</h2>
+  <p>A track upsampled or made DSD as it plays gets the processor: playback keeps all the cores but one while it is made,
+     or as many as <b>Settings → Library Scanner → Processor → Cores for upsampling and DSD</b> says (Auto, 1, 2 or 3).
+     It is made some 30 seconds ahead of what the device has read, not flat out to its end.</p>
+
+  <h2>For a bit-perfect result</h2>
+  <p>Set the device's <b>Output</b> to <b>Original</b> and its volume to fixed (or the DAC's own): upsampling, DSD from
+     PCM, DSP, volume levelling and a volume in software all change the samples, on purpose. The
+     <a href="signal-path.html">signal path</a> shows what was done, and <a href="sq-tool.html">SQ-tool</a> proves it.</p>
+
+  <h2>A phone with a USB DAC</h2>
+  <p>This phone has the same Output when it plays through a USB DAC (Settings → Audio Devices → This phone → Output): the
+     server makes the upsampled or DSD stream, and the app's USB driver plays it, DSD natively or as DoP.</p>
+  <nav class="pager"><a class="back" href="index.html">← Back to contents</a><a class="pill" href="signal-path.html">Next: Signal path →</a></nav>
+</main>
+
+<footer>
+  <p>Mandarin · MIT · © 2026 Lewis Menzies (Music Duck / Mandarin) ·
+     <a href="https://github.com/meltface-80/Mandarin">Source on GitHub</a><br>
+     Sonos is a trademark of Sonos, Inc.; WiiM of Linkplay Technology; Chord and Poly of Chord Electronics; FiiO of FiiO
+     Electronics. This is an independent project, affiliated with none of them.</p>
+</footer>
+<script src="site.js"></script>
+</body>
+</html>

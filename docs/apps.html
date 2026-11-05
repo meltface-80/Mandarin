@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>On your phone · Mandarin</title>
+<meta name="description" content="The same interface everywhere, because it comes from the server.">
+<link rel="icon" href="mandarin-icon.png">
+<link rel="stylesheet" href="site.css">
+</head>
+<body>
+
+<header class="pagehead">
+  <div class="wrap">
+    <a class="back" href="index.html">← Contents</a>
+    <a class="brand" href="index.html"><img src="mandarin-icon.png" alt=""><span>Mandarin</span></a>
+    <span class="spacer"></span>
+    <a class="pill solid" href="downloads.html">Downloads</a>
+  </div>
+</header>
+
+<main class="wrap page">
+  <h1>On your phone</h1>
+  <p class="lead">The same interface everywhere, because it comes from the server.</p>
+<div class="info-cards">
+    <div class="info-card" id="android">
+      <span class="sym">Android</span>
+      <h3>Mandarin Remote, the Android app</h3>
+      <p>Enter the port (3500 unless you changed it) and it finds the server on your Wi-Fi by itself, or type the
+         address; then sign in, create the account on a new server, or use it without one. On top of the interface it
+         adds lock-screen and notification controls, volume keys, a now-playing widget, a Quick Settings tile, a share
+         sheet, Android Auto, This phone as a room, downloads, a USB DAC driver, and Tailscale for away from home.</p>
+      <p class="fine"><a class="pill solid" href="downloads.html#remote-app">⬇ Get it from Downloads</a></p>
+      <p class="fine">Sideload it on Android 8.0 or newer; it updates itself from then on, from <b>Settings →
+         Updates</b>. <b>Installed before v0.6.10?</b> Those builds used a different signing key, so Android refuses
+         the update. Uninstall once, install the download and sign in again; downloaded albums need downloading again.
+         Updates install in place after that.</p>
+    </div>
+    <div class="info-card" id="iphone">
+      <span class="sym">iPhone &amp; iPad</span>
+      <h3>Add to Home Screen</h3>
+      <p>Open <code>http://&lt;server-ip&gt;:3500</code> in Safari, tap <b>Share &rarr; Add to Home Screen</b>. It
+         opens full screen like an app, with the same interface as the Android app.</p>
+    </div>
+  </div>
+  <p style="margin-top:18px">Out of the house, the Android app keeps playing over mobile data: see
+     <a href="away.html">Away from home</a>. The app's own features are on <a href="features.html">Features</a>.</p>
+  <nav class="pager"><a class="back" href="index.html">← Back to contents</a><a class="pill" href="account.html">Next: Your account →</a></nav>
+</main>
+
+<footer>
+  <p>Mandarin · MIT · © 2026 Lewis Menzies (Music Duck / Mandarin) ·
+     <a href="https://github.com/meltface-80/Mandarin">Source on GitHub</a><br>
+     Sonos is a trademark of Sonos, Inc.; WiiM of Linkplay Technology; Chord and Poly of Chord Electronics; FiiO of FiiO
+     Electronics. This is an independent project, affiliated with none of them.</p>
+</footer>
+<script src="site.js"></script>
+</body>
+</html>
