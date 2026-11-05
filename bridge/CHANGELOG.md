@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.2.3
+
+- Fixed - the Android Bridge let go of the DAC between two tracks and took it again (35 ms, the DAC locking again to DSD256), dropping the last of the track before and starting DoP's marker over: now a track that goes to the DAC as the one before did follows on in the same stream, gapless, as the Mandarin app's USB direct does too (item 304)
+- Improved - Mandarin Bridge is 0.2.3, on Android, Linux and the Raspberry Pi alike
+
 ## v0.2.2
 
 - Fixed - Google Play Protect called the Android Bridge harmful: it could install its own update without asking. An update from Mandarin is a notification on the device now, whose tap downloads it in the browser, and Android's installer asks; the Bridge holds no permission to install apps (item 297)

@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Fixed - Mandarin Bridge for Android, and the app's USB direct, let go of the DAC between two tracks and took it again, dropping the last moment of the track before and starting DoP's marker over: a track that goes to the DAC as the one before did now follows on in the same stream, gapless. Mandarin Bridge is 0.2.3 (item 304)
 - Fixed - a Chord Poly moving on by itself from one track made DSD to the next: Mandarin stayed on the first track, and near the end of the second started it again from the beginning. Mandarin now follows any device that goes on naming the first track (item 299)
 - New - three Gaussian upsampling filters: Gaussian (smooth, very short ringing, the top of a CD a little down), Gaussian steep (flat almost to 22 kHz, every sample of the file kept) and Gaussian hi-res (for 88.2 kHz and up), each made as the track plays, PCM or on the way to DSD (item 298)
 - New - each device has a filter for CD-rate sources and one for hi-res sources (or the same): two rows in Settings → Audio Devices → Output, each opening the list of filters with what each does (item 298)
