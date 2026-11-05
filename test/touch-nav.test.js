@@ -3,13 +3,13 @@
  * touch-nav.test.js — the touch layout (v0.9.6; public/touchnav.js, the
  * "touch layout" section of style.css), in a browser at a phone's and a
  * tablet's sizes, both ways round, and a desktop's:
- *   - along the foot: Home, Library, Artists, Shelf while it is switched on, and Search, in
+ *   - along the foot: Menu, Home, Library, Artists, Shelf while it is switched on, and Search, in
  *     that order, the mini player above them; on Home no top bar, the greeting at the top
- *     and the menu at the top left, where the side menu opens (item 210: it was the row's first);
+ *     (item 296: the menu the row's first again, on every screen; Home's top left from item 210);
  *   - Search opens the top bar again, the field across it, and the page
  *     moves down under it; the results are not under it;
  *   - Library opens the Library wall; Home, from an album's page, closes it
- *     and shows Home; Home's menu opens the side menu;
+ *     and shows Home; the row's Menu opens the side menu;
  *   - the grid screens have no strip: their buttons float where they were,
  *     their title is the page's heading; on the Library, Focus and Sort are
  *     up in ‹'s line on the right, its glass gone, and Search opens its
@@ -24,7 +24,7 @@
  *     progress a line along the top edge;
  *   - while a field has the keyboard, in the Android app (android.css) the
  *     row and the mini player give way; a browser's keyboard goes over them;
- *     Now playing has no row;
+ *     Now playing keeps the row (item 296), its screen ending above it;
  *   - a desktop (a mouse) keeps its top bar and never shows the row.
  */
 const ports = require("./ports");
@@ -58,10 +58,10 @@ const DRIVER = `(async () => {
   out.menuInBar = shown($("menu-toggle"));
   if (!out.nav) return out;   // a desktop: nothing more to see
 
-  // Home: the row in order, the mini player above it, no top bar; the menu at the top left, the greeting after it.
+  // Home: the row in order, the mini player above it, no top bar; Home's own menu button gone (item 296).
   const buttons = () => [...nav.querySelectorAll(".tnav-btn")].filter(shown);
   out.order = buttons().map(b => b.textContent.trim());
-  out.homeMenu = box($("home-menu"));
+  out.homeMenu = !!$("home-menu");
   // Shelf switched on (Settings → Setup → Shelf): it joins the row, before Search, the five evenly across; then off again.
   const shelfSwitch = $("shelf-toggle");
   shelfSwitch.checked = true; shelfSwitch.dispatchEvent(new Event("change"));
@@ -189,19 +189,21 @@ const DRIVER = `(async () => {
   $("tnav-home").click();
   await until(() => $("album-modal").classList.contains("hidden") && html.classList.contains("tn-home"), "Home, the album's page closed");
 
-  // Home's menu: the side menu.
-  $("home-menu").click();
+  // The row's Menu: the side menu.
+  $("tnav-menu").click();
   out.menu = !!(await until(() => { const m = document.getElementById("menu-overlay"); return m && !m.classList.contains("hidden") && shown(m); }, "the side menu"));
   document.querySelector("#menu-overlay [data-close], #menu-overlay .menu-backdrop")?.click();
 
-  // Now playing: no row.
+  // Now playing: the row along its foot (item 296), its screen ending above it.
   const m = $("album-modal"); m.classList.remove("hidden"); m.classList.add("np-mode", "tab-album"); await frame();
   out.npNav = shown(nav);
+  out.npRoom = parseFloat(getComputedStyle(m.querySelector(".modal-body")).paddingBottom);
+  out.npNavH = box(nav).h;
   m.classList.add("hidden"); m.classList.remove("np-mode", "tab-album");
   return out;
 })()`;
 
-test("the touch layout: Home, Library, Artists, Shelf when on and Search along the foot, the menu at Home's top left, on a phone and a tablet; a desktop as it was", { skip, timeout: 240000 }, async () => {
+test("the touch layout: Menu, Home, Library, Artists, Shelf when on and Search along the foot, on every screen and Now playing too, on a phone and a tablet; a desktop as it was", { skip, timeout: 240000 }, async () => {
   const lib = makeLibrary();
   const { createServer } = require("./server");
   const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false, identify: false });
@@ -224,10 +226,10 @@ test("the touch layout: Home, Library, Artists, Shelf when on and Search along t
         continue;
       }
       assert.equal(r.nav, true, size + ": the row is shown");
-      assert.equal(r.menuInBar, false, size + ": the menu is Home's, not the top bar's");
-      assert.deepEqual(r.order, ["Home", "Library", "Artists", "Search"], size + ": Shelf off, four");
-      assert.deepEqual(r.order5, ["Home", "Library", "Artists", "Shelf", "Search"], size + ": Shelf on, before Search");
-      assert.ok(r.homeMenu.l >= 0 && r.homeMenu.l <= 24 && r.homeMenu.t < 60 && r.homeMenu.w >= 40, `${size}: the menu at Home's top left, where the side menu opens (${JSON.stringify(r.homeMenu)})`);
+      assert.equal(r.menuInBar, false, size + ": the menu is the row's, not the top bar's");
+      assert.deepEqual(r.order, ["Menu", "Home", "Library", "Artists", "Search"], size + ": Shelf off, five, Menu first");
+      assert.deepEqual(r.order5, ["Menu", "Home", "Library", "Artists", "Shelf", "Search"], size + ": Shelf on, before Search");
+      assert.equal(r.homeMenu, false, size + ": Home has no menu button of its own");
       assert.ok(r.navBox.b === h && r.navBox.l === 0 && r.navBox.r === w, `${size}: along the foot, edge to edge (${JSON.stringify(r.navBox)})`);
       assert.ok(r.mini.b <= r.navBox.t, `${size}: the mini player above the row (${r.mini.b} over ${r.navBox.t})`);
       // A tablet, either way round (item 215, as the Android app has it): the mini player docked on the row, edge to
@@ -240,7 +242,7 @@ test("the touch layout: Home, Library, Artists, Shelf when on and Search along t
       assert.ok(r.greeting.t < 40, `${size}: the greeting at the top (${r.greeting.t})`);
       assert.ok(r.homeOn && r.homeOn !== r.libraryColour, size + ": Home lit on Home");
       assert.equal(r.offlineHidden, true, size + ": no Offline sign while online");
-      for (const [row, n] of [[r.row, "four"], [r.row5, "five"]]) {
+      for (const [row, n] of [[r.row, "five"], [r.row5, "six"]]) {
         const widths = row.map(x => x[1]), steps = row.slice(1).map((x, i) => x[0] - row[i][0]);
         assert.ok(Math.max(...widths) - Math.min(...widths) < 1 && Math.max(...steps) - Math.min(...steps) < 1 && Math.abs(row[0][0] + widths.reduce((a, x) => a + x, 0) - (w - row[0][0])) <= 2,
           `${size}: the ${n} buttons evenly across the row (${JSON.stringify(row)})`);
@@ -290,8 +292,9 @@ test("the touch layout: Home, Library, Artists, Shelf when on and Search along t
         `${size}: Sort on the right, in ‹'s line (${JSON.stringify([r.artistsBack, r.artistsSort])})`);
       assert.ok(!clear(r.artistsSearchStrip), size + ": Search finds an artist, the strip back under the field");
       assert.ok(r.navOverAlbum, size + ": the row over an album's page, Home tappable there");
-      assert.equal(r.menu, true, size + ": Home's menu opens the side menu");
-      assert.equal(r.npNav, false, size + ": Now playing has no row");
+      assert.equal(r.menu, true, size + ": the row's Menu opens the side menu");
+      assert.equal(r.npNav, true, size + ": Now playing keeps the row");
+      assert.ok(r.npRoom >= r.npNavH, `${size}: Now playing ends above the row (${r.npRoom}px kept for its ${r.npNavH})`);
     }
   } finally { await srv.stop(); }
 });

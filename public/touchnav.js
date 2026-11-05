@@ -1,9 +1,9 @@
 // @ts-check
 /*
  * touchnav.js — the touch layout's row along the foot of the screen (v0.9.6):
- * Home, Library, Artists (bug list item 130), Shelf while it is switched on and Search (item 210) under the
- * mini player, on a phone or a tablet in either orientation; and Home's own menu button, at its top left
- * (item 210: it was the row's first). A desktop (a mouse) never shows it: the
+ * Menu (item 296: on every screen, Now playing too; Home's top left from item 210), Home, Library, Artists (bug list
+ * item 130), Shelf while it is switched on and Search (item 210) under the mini player, on a phone or a tablet in either
+ * orientation. A desktop (a mouse) never shows it: the
  * layout is style.css's "touch layout" section, under the same media query
  * as the touch-sized mini player.
  *
@@ -18,7 +18,7 @@
  * field across it), tn-lib (the Library wall), tn-filter (the Library's
  * filter, or the Labels list's or the Artists wall's find, open: the top bar back for its
  * field), tn-labels (the Labels list), tn-artists (the Artists wall), tn-np (Now playing, which
- * has its own transport and no row), tn-offline (offline: the pill at the
+ * has its own transport and keeps the row: item 296), tn-offline (offline: the pill at the
  * top of the screen, #offline-toast, bug list item 134).
  *
  * Elsewhere (the grid screens) the top bar has no strip: its buttons float
@@ -84,7 +84,7 @@
     const b = byId(id);
     if (b) b.addEventListener("click", fn);
   }
-  on("home-menu", () => { const m = byId("menu-toggle"); if (m) m.click(); });
+  on("tnav-menu", () => { const m = byId("menu-toggle"); if (m) m.click(); });
   // The side menu's Shelf, as it opens it (app/menu-drawer.js): a page of its own, its "‹ Remote" back to this one.
   on("tnav-shelf", () => { const s = document.querySelector('#menu-overlay .menu-item[data-action="shelf"]'); if (s) /** @type {HTMLElement} */ (s).click(); });
   on("tnav-home", () => {

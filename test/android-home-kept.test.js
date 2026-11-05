@@ -46,6 +46,8 @@ test("the menu's items and the row's buttons go back to Home through the one ste
   assert.match(row, /"artists" -> overHome\(nav, ShellRoute\.artists\(/);
   assert.match(row, /"search" -> \{ SearchKept\.reset\(""\); overHome\(nav, ShellRoute\.search\(/);
   assert.match(row, /"shelf" -> overHome\(nav, ShellRoute\.shelf\(/, "the row's Shelf, as the side menu's (item 210)");
-  assert.match(row, /"menu" -> \{ toHome\(nav\); NativeShell\.menuOpen\.value = true \}/);
+  // The row's Menu opens the side menu over the screen showing (item 296: it is on every screen now, Now playing
+  // too); the item chosen then goes back to Home in the one step above (menuTap).
+  assert.match(row, /"menu" -> NativeShell\.menuOpen\.value = true(?![^\n]*toHome)/);
   assert.doesNotMatch(row, /popBackStack\(|nav\.navigate\(/);
 });

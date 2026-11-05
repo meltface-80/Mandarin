@@ -39,7 +39,7 @@ const TOLD = `(async () => { ${KIT}
   const app = window.MusicdApp;
   const last = () => app.told[app.told.length - 1];
   const out = { start: app.told.slice() };
-  $("#home-menu").click(); await until(() => shown($("#menu-overlay")));
+  $("#tnav-menu").click(); await until(() => shown($("#menu-overlay")));
   out.menu = last();
   $("#menu-overlay [data-menu-close]").click(); await until(() => !shown($("#menu-overlay")));
   out.menuClosed = last();

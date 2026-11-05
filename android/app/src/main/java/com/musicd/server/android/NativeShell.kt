@@ -202,7 +202,8 @@ private fun Shell(client: () -> ServerClient?) {
                     NativeShell.roomChosen(id)
                 },
                 // The album (found by NowAlbum) in its place; an artist over it.
-                onPage = { what, arg -> handOver(nav, what, arg) }
+                onPage = { what, arg -> handOver(nav, what, arg) },
+                onNav = { what -> navTap(nav, what) }   // the row along the foot (item 296)
             )
         }
         // The Library wall (N4, item 51): in the view kept; an album's page over it, Back returning here.
