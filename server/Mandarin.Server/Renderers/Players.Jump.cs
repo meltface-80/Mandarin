@@ -30,11 +30,14 @@ internal sealed partial class Players
         UpnpItem it;
         int gen;
         List<string> keep;
+        AlbumStream? run;
         lock (gate)
         {
             if (index < 0 || index >= p.Queue.Count) throw new HubError(500, "Nothing to play");
             p.Verifying = null;         // the device asked again what it plays, for the same track played again too
             it = p.Queue[index];
+            // An album as one stream, from this track (item 300: Players.Albums.cs), where the device plays them so.
+            p.Run = run = RunFrom(p, index, seconds);
             p.ExpectStop = false;
             p.Next = null; p.NamesBefore = null;   // SetAVTransportURI clears a renderer's next, and what it names
             p.Heard = true;             // started by us: a stop now is this track's
@@ -44,7 +47,7 @@ internal sealed partial class Players
             gen = ++p.JumpGen;
             if (p.Shuffle) p.Played.Add(it);
             var after = NextIndex(p);
-            keep = [.. new[] { it, after >= 0 ? p.Queue[after] : null }.Select(MadeKey).OfType<string>()];
+            keep = run?.Key is { } rk ? [rk] : [.. new[] { it, after >= 0 ? p.Queue[after] : null }.Select(MadeKey).OfType<string>()];
         }
         var r = RendererOf(p);
         Optimistic(p.Id, st =>
@@ -60,9 +63,10 @@ internal sealed partial class Players
         {
             // A later jump asked for while this one waited: it is the one told.
             lock (gate) if (gen != p.JumpGen) return;
-            await r.SetUri(it.Uri, it.Meta);
+            await r.SetUri(run?.Uri ?? it.Uri, run?.Meta ?? it.Meta);
             await r.Play();
-            if (seconds > 0) { try { await r.SeekTime(seconds); } catch (RendererError) { /* from the start */ } }
+            // A run begins where it is asked to: its ?ss= says it.
+            if (seconds > 0 && run == null) { try { await r.SeekTime(seconds); } catch (RendererError) { /* from the start */ } }
         }
         finally
         {

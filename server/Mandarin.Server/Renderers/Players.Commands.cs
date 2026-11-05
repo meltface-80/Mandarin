@@ -101,7 +101,7 @@ internal sealed partial class Players
     {
         int n;
         UpnpItem? it;
-        lock (gate) { n = NextIndex(p); it = n >= 0 ? p.Queue[n] : null; }
+        lock (gate) { n = AfterRun(p); it = n >= 0 ? p.Queue[n] : null; }   // after an album as one stream, what follows it (item 300)
         if (it == null)
         {
             // Nothing follows any more (the queue shrank): withdraw what was set.
@@ -247,7 +247,8 @@ internal sealed partial class Players
             }
             case "previous":
                 // Back to the start of this track first, as every player does: sent again where the device is stuck (item 272).
-                if (Stuck(p, st)) await Jump(p, p.Index);
+                // In an album as one stream (item 300), the track is begun again by its run's start there.
+                if (Stuck(p, st) || p.Run != null && (Hub.PositionNow(st) > 5 || p.Index <= 0)) await Jump(p, p.Index);
                 else if (Hub.PositionNow(st) > 5 || p.Index <= 0) { await Serially(p, () => r.SeekTime(0)); p.SeekedAt = Hub.Now(); Optimistic(id, s => s.Position = 0); }
                 else await Jump(p, p.Index - 1);
                 break;
@@ -265,7 +266,8 @@ internal sealed partial class Players
         ZoneState st;
         lock (zm.Gate) st = zm.State.GetValueOrDefault(id) ?? new ZoneState();
         var target = Math.Max(0, how == "relative" ? Hub.PositionNow(st) + seconds : seconds);
-        if (Stuck(p, st)) await Jump(p, p.Index, target);
+        // In an album as one stream (item 300), its run begun again at the track and the seconds into it.
+        if (Stuck(p, st) || p.Run != null) await Jump(p, p.Index, target);
         else await Serially(p, () => RendererOf(p).SeekTime(target));
         p.SeekedAt = Hub.Now(); Optimistic(id, s => s.Position = target);
         PokeAfter(p);

@@ -167,6 +167,13 @@ internal static partial class Library
                     if (dsdMod is not string dm || Array.IndexOf(Upsample.DsdOut.Mods, dm) < 0) throw new DeviceRefusal(400, "dsd_mod must be 7, 7w or 9");
                     patch["dsd_mod"] = dm == "7" ? null : dm;
                 }
+                // An album as one stream (item 300): on or off.
+                var albumStream = Prop(output, "album_stream");
+                if (albumStream is not Undef)
+                {
+                    if (albumStream is not bool on) throw new DeviceRefusal(400, "album_stream must be true or false");
+                    patch["album_stream"] = on ? true : null;
+                }
                 // The highest rate sent (item 240): Auto, or a cap by 48 kHz's family.
                 var maxRate = Prop(output, "max_rate");
                 if (maxRate is not Undef)

@@ -236,6 +236,8 @@ internal sealed class Devices
             ((JsObj)o["output"]!)["making"] = Upsample.MadeAsPlayed.Note(up);
             if (Upsample.DsdOut.Of(r.Settings["dsd_mod"]) is { } mod) ((JsObj)o["output"]!)["dsd_mod"] = mod;   // its modulator (item 303): the seventh order by its absence
         }
+        // An album as one stream (item 300), said only where it is on.
+        if (streamer && r.Settings["album_stream"] is true) ((JsObj)o["output"]!)["album_stream"] = true;
         o["first_seen"] = r.FirstSeen; o["last_seen"] = r.LastSeen;
         o["profile"] = caps["profile"]; o["editable"] = caps["editable"];
         o["playable"] = r.Kind != "upnp" || Jv.T(caps["playable"]);

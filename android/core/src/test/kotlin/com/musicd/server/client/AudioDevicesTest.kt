@@ -111,6 +111,17 @@ class AudioDevicesTest {
         assertTrue(page("""{"mode":"original","dsd_out":256}""").showFilter)
     }
 
+    @Test fun `an album as one stream is a switch where Mandarin makes what it plays, its note on and off`() {
+        fun page(output: String) = DevicePage(JSONObject("""{"kind":"upnp","rates":[],"bits":[],"dsd":[],"output":$output}"""))
+        val off = page("""{"mode":"x2"}""")
+        assertFalse(off.albumStream)
+        assertTrue(off.albumStreamNote.startsWith("Each track goes as a file of its own"))
+        assertEquals("""{"output":{"album_stream":true}}""", off.albumStreamPatch(true).toString())
+        val on = page("""{"mode":"x2","album_stream":true}""")
+        assertTrue(on.albumStream)
+        assertTrue(on.albumStreamNote.startsWith("An album’s tracks go to this device as one stream"))
+    }
+
     @Test fun `with PCM as DSD on, the filters' note says they are the DSD's, its speed said once under PCM as DSD`() {
         fun page(output: String) = DevicePage(JSONObject("""{"kind":"upnp","rates":[],"bits":[],"dsd":[],"output":$output}"""))
         val sr11 = page("""{"mode":"max","filter":"gaussian","filter_hires":"gaussian-hires","dsd_out":256,"making":"Made as it plays: this server made the last at 1.1× real time, too slow to keep up; DSD128 is half the work."}""")
