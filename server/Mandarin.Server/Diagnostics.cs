@@ -11,6 +11,7 @@
 //   POST /api/diagnostics        { on }: switched on or off (off deletes what was kept)
 //   GET  /api/diagnostics/log    what was kept, a line each (times in UTC)
 //   POST /api/diagnostics/clear  what was kept deleted
+//   GET  /api/diagnostics/bridges  every Mandarin Bridge's own log, scrubbed as these lines are (Admin/BridgeLogs.cs)
 //
 // Kept in the data folder (diagnostics-on, diagnostics.log and .old, a megabyte each), so a restart
 // or an update doesn't lose them.

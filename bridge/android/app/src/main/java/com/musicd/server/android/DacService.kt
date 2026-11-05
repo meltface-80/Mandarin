@@ -341,6 +341,8 @@ class DacService : Service() {
         // A recording of what the DAC is fed, made when asked (Capture.kt): the server's bit-perfect check.
         o.put("capture", "/capture")
         o.put("capture_parts", true)   // a whole track recorded in parts, from the restart (item 286)
+        // Which build it is, and that Mandarin can update it (POST /update, item 291): where that is.
+        o.put("platform", "android").put("commit", BuildConfig.COMMIT).put("updates", true).put("update", Updater.json()).put("log", "/log")
         val s = UsbDriver.current
         o.put("now", if (s == null || !UsbDriver.active) JSONObject.NULL else JSONObject().put("rate", s.rate).put("bits", s.bits).put("kind", s.kind)
             .put("dsd", if (s.dsd) s.dsdMultiple else 0).put("transport", if (ready) renderer.stateNow() else "STOPPED")
@@ -399,6 +401,15 @@ class DacService : Service() {
             path.startsWith("/event/") && (r.method == "SUBSCRIBE" || r.method == "UNSUBSCRIBE") -> return events(r, path.removePrefix("/event/"))
             path == "/dac.json" && r.method == "GET" -> return HttpServer.Response.text(200, dacJson().toString(2), "application/json")
             path == "/capture" || path.startsWith("/capture.") || path.startsWith("/capture/") -> return captureRoute(r, path)
+            // Updated from Mandarin's Settings → Updates (item 291, Updater.kt): to the release {tag}.
+            path == "/update" && r.method == "POST" -> {
+                val tag = runCatching { JSONObject(String(r.body, Charsets.UTF_8)).optString("tag") }.getOrDefault("")
+                val why = Updater.start(this, tag)
+                return if (why == null) HttpServer.Response.text(202, Updater.json().toString(), "application/json")
+                else HttpServer.Response.text(409, JSONObject().put("error", why).toString(), "application/json")
+            }
+            // Its log, for Mandarin's (item 291, BridgeLog.kt).
+            path == "/log" && r.method == "GET" -> return HttpServer.Response.text(200, BridgeLog.text(), "text/plain; charset=utf-8")
             path == "/" && r.method == "GET" -> return HttpServer.Response.text(200, "${Store.friendlyName(this)} — ${Scpd.MODEL} ${BuildConfig.VERSION_NAME}\n${renderer.onMain { statusLine() }}\n\nUPnP MediaRenderer; the DAC at /dac.json.\n", "text/plain; charset=\"utf-8\"")
         }
         return HttpServer.Response.text(404, "")

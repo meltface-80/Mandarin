@@ -39,5 +39,8 @@ jobs:
           set -e
           apk=$(find apk -name 'Mandarin-Bridge-*.apk' | head -1)
           notes=$(awk -v v="## v$VERSION" '$0==v{p=1;next} /^## /{if(p)exit} p' bridge/CHANGELOG.md)
-          gh release create "mandarin-bridge-v$VERSION" "$apk" --title "Mandarin Bridge v$VERSION" --target "$GITHUB_SHA" --latest=false \
+          # Also as mandarin-bridge.apk with its build and checksum beside it (item 291): what Settings → Updates offers.
+          cp "$apk" mandarin-bridge.apk
+          ./bridge/sidecar.sh mandarin-bridge.apk "$GITHUB_SHA" "$VERSION"
+          gh release create "mandarin-bridge-v$VERSION" "$apk" mandarin-bridge.apk mandarin-bridge.apk.json --title "Mandarin Bridge v$VERSION" --target "$GITHUB_SHA" --latest=false \
             --notes "${notes:-Mandarin Bridge v$VERSION}"$'\n\n'"Its driver Mandarin's own at ${GITHUB_SHA::7}."

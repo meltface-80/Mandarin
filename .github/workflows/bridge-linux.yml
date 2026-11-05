@@ -47,10 +47,14 @@ jobs:
           cp bridge/linux/bin/mandarin-bridge engine/bin/mandarin-audio bridge/linux/mandarin-bridge.service bridge/linux/install.sh bridge/linux/README.md out/mandarin-bridge/
           tar -C out -czf mandarin-bridge-linux-${{ matrix.arch }}.tar.gz mandarin-bridge
           ./out/mandarin-bridge/mandarin-bridge --version
+          # Its build and checksum beside it (item 291): what Mandarin's Settings → Updates and the Bridge's own update read.
+          ./bridge/sidecar.sh mandarin-bridge-linux-${{ matrix.arch }}.tar.gz "$GITHUB_SHA" "$(grep -m1 '"version"' package.json | cut -d'"' -f4)"
       - uses: actions/upload-artifact@v7
         with:
           name: mandarin-bridge-linux-${{ matrix.arch }}
-          path: mandarin-bridge-linux-${{ matrix.arch }}.tar.gz
+          path: |
+            mandarin-bridge-linux-${{ matrix.arch }}.tar.gz
+            mandarin-bridge-linux-${{ matrix.arch }}.tar.gz.json
 
   publish:
     needs: build
@@ -71,4 +75,5 @@ jobs:
             gh release create test-bridge --prerelease --latest=false --title "Mandarin Bridge — test build" \
               --notes "Mandarin Bridge as dev is now. Not a numbered release." --target "${GITHUB_SHA}"
           fi
-          gh release upload test-bridge out/mandarin-bridge-linux-x64.tar.gz out/mandarin-bridge-linux-arm64.tar.gz bridge/linux/install.sh --clobber
+          gh release upload test-bridge out/mandarin-bridge-linux-x64.tar.gz out/mandarin-bridge-linux-arm64.tar.gz \
+            out/mandarin-bridge-linux-x64.tar.gz.json out/mandarin-bridge-linux-arm64.tar.gz.json bridge/linux/install.sh --clobber

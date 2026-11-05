@@ -124,6 +124,7 @@ internal object ContractLabels2 {
         "settings-system.back" to listOf("Back to settings"),
         "settings-system.check" to listOf("Check for update", "{state}"),
         "settings-system.app-check" to listOf("Check for update", "{state}"),
+        "settings-system.bridge-update" to listOf("Update available", "{state}"),
         "settings-backup.back" to listOf("Back to settings"),
         "settings-backup.info" to listOf("About {setting}"),
         "settings-backup.part" to listOf("{part}"),

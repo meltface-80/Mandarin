@@ -5,7 +5,7 @@ Written by `node tools/api-map.js write` from the C# sources (`server/Mandarin.S
 where the code decides it away from the address (the handler says). "…" ends an address the route takes
 the rest of; a pattern is as the code writes it. What each answers is said beside its handler.
 
-223 routes.
+226 routes.
 
 | Method | Address | Who may ask | Answered in |
 |---|---|---|---|
@@ -53,6 +53,7 @@ the rest of; a pattern is as the code writes it. What each answers is said besid
 | GET | `/api/credits/status` | signed in | `LibraryRoutes.cs` |
 | GET | `/api/diagnostics` | signed in | `DiagnosticsRoutes.cs` |
 | POST | `/api/diagnostics` | signed in | `DiagnosticsRoutes.cs` |
+| GET | `/api/diagnostics/bridges` | signed in | `DiagnosticsRoutes.cs` |
 | POST | `/api/diagnostics/clear` | signed in | `DiagnosticsRoutes.cs` |
 | GET | `/api/diagnostics/log` | signed in | `DiagnosticsRoutes.cs` |
 | GET | `/api/display/content` | signed in | `HousekeepingRoutes.cs` |
@@ -209,6 +210,8 @@ the rest of; a pattern is as the code writes it. What each answers is said besid
 | POST | `/api/ungroup-outputs` | signed in | `PlaybackRoutes.cs` |
 |  | `/api/update/…` | signed in | `UpdateRoutes.cs` |
 | POST | `/api/update/apply` | signed in | `UpdateRoutes.cs` |
+| GET | `/api/update/bridges` | signed in | `UpdateRoutes.cs` |
+| POST | `/api/update/bridges/apply` | signed in | `UpdateRoutes.cs` |
 | POST | `/api/update/check` | signed in | `UpdateRoutes.cs` |
 | GET | `/api/update/status` | signed in | `UpdateRoutes.cs` |
 | GET | `/api/user-playlist` | signed in | `LibraryRoutes.cs` |

@@ -1,5 +1,6 @@
 // Bridge.Routes.cs — what the Bridge answers over HTTP: its description and the services' SCPDs, their control (SOAP)
-// and eventing (GENA), /dac.json for Mandarin, and its own web page (Web.cs) with what that page reads and sets.
+// and eventing (GENA), /dac.json for Mandarin, /update and /log (Update.cs, Kept.cs: item 291), and its own web page
+// (Web.cs) with what that page reads and sets.
 using System.Text.Json.Nodes;
 
 namespace Mandarin.Bridge;
@@ -27,7 +28,19 @@ internal sealed partial class Bridge
         if (p == "/api/state" && r.Method == "GET") return Http.Response.Text(200, State().ToJsonString(), Json);
         if (p == "/api/settings" && r.Method == "POST") return Settings(r);
         if (p == "/api/wifi" && wifi != null) return r.Method == "POST" ? Join(r) : Http.Response.Text(200, wifi.State().ToJsonString(), Json);
+        if (p == "/update" && r.Method == "POST") return Updated(r);
+        if (p == "/log" && r.Method == "GET") return Http.Response.Text(200, Kept.Text(), "text/plain; charset=utf-8");
         return Http.Response.Text(404, "");
+    }
+
+    // Updated to Mandarin's release {tag} (Update.cs): begun, or why not.
+    private Http.Response Updated(Http.Request r)
+    {
+        string tag;
+        try { tag = (string?)(JsonNode.Parse(r.Text) as JsonObject)?["tag"] ?? ""; }
+        catch (System.Text.Json.JsonException) { tag = ""; }
+        var (ok, why) = update.Start(tag);
+        return Http.Response.Text(ok ? 202 : 409, (ok ? update.State() : new JsonObject { ["error"] = why }).ToJsonString(), Json);
     }
 
     private Http.Response Control(Http.Request r, string service)
@@ -69,7 +82,7 @@ internal sealed partial class Bridge
         };
         return new JsonObject
         {
-            ["name"] = store.Name, ["version"] = Program.Version, ["address"] = BaseUrl(), ["status"] = line, ["dsd_mode"] = store.DsdMode,
+            ["name"] = store.Name, ["version"] = Program.Version + " (" + Program.Commit + ")", ["address"] = BaseUrl(), ["status"] = line, ["dsd_mode"] = store.DsdMode,
             ["dac"] = d?.Key, ["dacs"] = new JsonArray([.. dacs.Select(x => (JsonNode)new JsonObject
             {
                 ["key"] = x.Key, ["name"] = x.Name, ["maker"] = x.Maker,

@@ -43,6 +43,8 @@ android {
         ndk { abiFilters += "arm64-v8a" }
         externalNativeBuild { cmake { arguments += listOf("-DANDROID_STL=c++_static", "-DMANDARIN_CPP=${mandarin.resolve("cpp").absolutePath}") } }
         buildConfigField("String", "MANDARIN_VERSION", "\"$mandarinVersion at $commit\"")
+        // Which build it is (item 291): its commit, as the release's sidecar says the build published (bridge/sidecar.sh).
+        buildConfigField("String", "COMMIT", "\"$commit\"")
     }
 
     // The USB driver's native side (usbdevfs ioctls), from Mandarin's usb_jni.cc.
