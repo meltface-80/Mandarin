@@ -156,8 +156,9 @@ signed with Mandarin's release key where the repository has the `MUSICD_KEYSTORE
 `MUSICD_KEYSTORE_PASSWORD` secrets (as before), else with the key committed in `app/mandarin-bridge-debug.keystore`, so
 each build installs over the last. A numbered version is cut by hand: bump `versionName` and `versionCode` in
 `app/build.gradle.kts`, name the version in `bridge/CHANGELOG.md`, merge, then run the **Mandarin Bridge release**
-workflow with that version — it tags `mandarin-bridge-v<version>` and makes the release with the APK. Nothing tags on
-its own.
+workflow with that version — it tags `mandarin-bridge-v<version>` and makes the release with every Bridge's build
+(item 294): the APK, Mandarin Bridge for Linux (x64 and arm64) with an `install.sh` that fetches from that release,
+and the Raspberry Pi image, each that Mandarin offers with its sidecar beside it. Nothing tags on its own.
 
 ## Updated from Mandarin
 
