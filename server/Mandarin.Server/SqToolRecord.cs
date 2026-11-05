@@ -48,7 +48,7 @@ internal static class SqToolRecord
         return new JsonObject
         {
             ["state"] = j.Run.State, ["says"] = j.Run.Said, ["test"] = j.Test, ["zone"] = j.Zone, ["name"] = j.Name,
-            ["recorded"] = Math.Round(j.Run.Recorded, 1), ["seconds"] = Math.Round(j.Seconds, 1),
+            ["recorded"] = Math.Round(Math.Max(j.Run.Recorded, j.Run.Recording), 1), ["seconds"] = Math.Round(j.Seconds, 1),
         };
     }
 

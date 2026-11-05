@@ -54,9 +54,17 @@ internal sealed class DeviceRecorder(string device, bool parts = false) : IRecor
     {
         // In parts, one ask records the whole track: the asks after it are already under way.
         if (parts && asked) return;
-        object body = parts ? new { seconds, part = Part, after_flush = true } : new { seconds };
-        using var r = await Http.PostAsJsonAsync(device + "/capture", body, ct);
-        if (!r.IsSuccessStatusCode) throw new InvalidOperationException($"the device wouldn't record (HTTP {(int)r.StatusCode}: {(await r.Content.ReadAsStringAsync(ct)).Trim()})");
+        var body = new JsonObject { ["seconds"] = seconds };
+        if (parts) { body["part"] = Part; body["after_flush"] = true; }
+        // With its length (item 292): the Bridge reads a body by its Content-Length, so one sent in chunks is heard as
+        // no ask at all, and it records 30 seconds in one piece.
+        using var ask = new StringContent(body.ToJsonString(), System.Text.Encoding.UTF8, "application/json");
+        using var r = await Http.PostAsync(device + "/capture", ask, ct);
+        var said = await r.Content.ReadAsStringAsync(ct);
+        if (!r.IsSuccessStatusCode) throw new InvalidOperationException($"the device wouldn't record (HTTP {(int)r.StatusCode}: {said.Trim()})");
+        // What it says it took: in parts, as asked, or it says so now rather than when its one piece ends.
+        if (parts && (JsonNode.Parse(said) as JsonObject)?["part_seconds"] is JsonValue p && Check.Number(p) <= 0)
+            throw new InvalidOperationException("the device didn't take the recording as asked: it would record in one piece, not the whole track in parts");
         asked = true;
     }
 
@@ -86,7 +94,7 @@ internal sealed class DeviceRecorder(string device, bool parts = false) : IRecor
             if (state == "failed") throw new InvalidOperationException("the device's recording failed: " + ((string?)st["reason"] ?? "no reason given"));
             if (state == "armed" && DateTime.UtcNow - armedSince > TimeSpan.FromSeconds(30)) throw new TimeoutException("the device never started playing the track");
             if (state is "idle") throw new InvalidOperationException("the device stopped recording");
-            if (state == "recording") run.Said = $"Recording what the DAC is fed ({Math.Round(parts ? seconds : before + seconds)} s)";
+            if (state == "recording") run.Live("Recording what the DAC is fed ({0} s)", parts ? seconds : before + seconds);
         }
     }
 

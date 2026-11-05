@@ -98,6 +98,22 @@ test("SQ-tool has Mandarin record a zone's DAC, and compares it with the file", 
     assert.equal(side.device, "Mandarin Bridge");
     assert.ok(!fs.existsSync(path.join(lib.data, "sq-tool-recording")), "the recording went to SQ-tool, none left behind");
 
+    // While it records, its clock runs: the seconds the device has taken, before any part is done (item 292).
+    usb.captureHold = 2.5;
+    assert.equal((await call("/api/sq-tool/record", { test: tid, zone_or_output_id: USB })).status, 200);
+    const live = await until(async () => { const j = await call("/api/sq-tool/record"); return j.state === "recording" && j.recorded > 0 ? j : null; }, 30000);
+    assert.equal(live.recorded, 2.5, JSON.stringify(live));
+    usb.captureHold = 0;
+    t = await until(async () => { const j = await call("/api/sq-tool/record"); return j.state === "done" || j.state === "failed" ? j : null; }, 90000);
+    assert.equal(t.state, "done", JSON.stringify(t));
+
+    // A device that takes the ask as one piece, not the whole track in parts: said at once, not when its piece ends.
+    usb.captureWhole = true;
+    assert.equal((await call("/api/sq-tool/record", { test: tid, zone_or_output_id: USB })).status, 200);
+    const whole = await until(async () => { const j = await call("/api/sq-tool/record"); return j.state === "done" || j.state === "failed" ? j : null; }, 30000);
+    assert.deepEqual([whole.state, whole.says], ["failed", "The recording couldn't be made: the device didn't take the recording as asked: it would record in one piece, not the whole track in parts"]);
+    usb.captureWhole = false;
+
     // Its samples changed on the way to the DAC: recorded again, not bit-perfect, the level said.
     usb.captureFilter = "volume=-1dB";
     t = await recorded(tid, USB);
