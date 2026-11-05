@@ -27,17 +27,13 @@ Wikipedia, Deezer and others); your music files stay on your machine.
 ```
 
 **New in v1.2.0** (since v1.1.14; Mandarin Bridge v0.2.1). The [changelog](CHANGELOG.md) has each change.
-* **Mandarin Bridge:** a USB DAC on an Android device (once Mandarin USB), a Linux computer or a Raspberry Pi is a
-  room Mandarin plays to, bit-perfect, set up from the DAC itself. Every Bridge has its own row and **Check for
-  update** on Settings → Updates, and its log in the app's Save log. See [Mandarin Bridge](#mandarin-bridge).
-* **SQ-tool**, in Settings: proves a zone's DAC gets exactly what is in the file, sample by sample. See [SQ-tool](#sq-tool).
-* **The signal path** on Now playing: every step from the file to what the DAC is fed, in plain words; the ✓ only
-  where the device says the samples reach the DAC untouched. See [Signal path](#signal-path).
-* **Upsampling and output:** a highest rate per device, Min phase and Gentle filters, ×16 that plays, PCM made DSD64,
-  DSD128 or DSD256 as it plays (gapless), and DSD sent as PCM with its ultrasonic noise taken off. Room correction
-  from an impulse response. See [Upsampling and output](#upsampling-and-output).
-* **And more:** DSD and DFF to a DAC on the server; the Android app's USB driver bit-perfect; new albums appear by
-  themselves; Album of the Day kept all day with its own switch; FiiO SR11 fixes; logs that say what went wrong.
+* **SQ-tool**, in Settings: proves your DAC gets exactly the file, sample by sample. See [SQ-tool](#sq-tool).
+* **High-quality upsampling:** ×2, ×4 or to the most a device takes, with Standard, Min phase or Gentle filters made
+  as the track plays; PCM made DSD64–256; a highest rate per device; all gapless. See [Upsampling and output](#upsampling-and-output).
+* **Mandarin Bridge:** an Android device, a Linux computer or a Raspberry Pi with a USB DAC is a bit-perfect room,
+  updated from Settings → Updates. See [Mandarin Bridge](#mandarin-bridge).
+* **Also:** the [signal path](#signal-path) in plain words, room correction, DSD to a DAC on the server, and fixes for
+  the Android app's USB driver, FiiO streamers, new albums and away from home.
 
 ## Downloads
 
