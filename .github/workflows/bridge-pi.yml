@@ -15,6 +15,7 @@ on:
   pull_request:
     paths: *paths
   workflow_dispatch:
+  workflow_call:
 
 permissions:
   contents: write

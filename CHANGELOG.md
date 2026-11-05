@@ -551,6 +551,7 @@
 - New - every Mandarin Bridge (Android, Linux, Raspberry Pi) has a row on Settings → Updates, with its version and Update available when there's a newer build: a tap and it updates itself. On Android, the first time, the device asks you once; on Linux and the Pi it's hands off. A Bridge older than this needs one last update by hand
 - Improved - a Mandarin Bridge's row on Settings → Updates has its own Check for update, as the server's and the app's: a tap looks for a newer build now, then says Update available or Up to date (it did nothing before, and a newly published build took up to a minute to show)
 - Improved - Mandarin Bridge is v0.2.1, on Android, Linux and the Raspberry Pi alike (the Linux and Pi Bridge said the server's version, 1.1.14)
+- Fixed - a numbered Mandarin Bridge release has every Bridge's build, not the Android one alone: Mandarin Bridge for Linux (x64 and arm64) with its install line, and the Raspberry Pi image, so a Linux Bridge or a Pi on a numbered Mandarin can be updated from Settings → Updates too
 - New - the app's Save log (Settings → Setup → Logging) has every Mandarin Bridge's log too, after the server's, each under its name, through the same privacy filter
 
 - `284-dff-as-dsd` (item 284): **A DFF played as DSD, as a DSF is.** The audio engine read only a DSF itself; a DFF
@@ -626,6 +627,15 @@
   and refused: a room that can't be recorded, a test not there, a song not in the library, a second recording at once;
   shown failing with the song looked for by the wrong path and the zone's name not filed. SQ-tool's own tests:
   Mandarin's recording handed over (bit-perfect in 32-bit words, scaled), the API's refusals, no `b` or `ab` left.
+- `294-bridge-release-every-build` (item 294): **A numbered Bridge release with every Bridge's build.** The
+  Mandarin Bridge release workflow (`bridge-release.yml`) built and published the Android APK alone, so a numbered
+  Mandarin, which offers its Bridges the newest `mandarin-bridge-v…` release, had nothing for a Linux Bridge or a Pi
+  ("No build is published for this Bridge's machine"). It now builds them too (`bridge-linux.yml` and `bridge-pi.yml`,
+  the Pi's now callable), checks each was built, and as the version released, and publishes them beside the APK: the
+  Linux packages and their sidecars, an `install.sh` whose downloads come from that release, and the Pi image.
+  `test/bridge-release.test.js` reads the workflow as written and runs its release step with gh stood in for: every
+  build published, the install line on the numbered release, and none made where a build is missing or holds another
+  version. Shown failing with the workflow as it was.
 - `292-bridge-recording-asked-whole` (item 292): **A Bridge's recording asked so it hears it.** SQ-tool on the
   FiiO R7 failed after half a minute: "the device's recording ended early: done". The server asked for the whole
   track in parts with `PostAsJsonAsync`, which sends its body in chunks with no Content-Length; the Bridge's
