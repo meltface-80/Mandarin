@@ -151,9 +151,12 @@ class DevicePage(val j: JSONObject) {
     val dsdOutValue: String get() = if (dsdOut == 0) "off" else dsdOut.toString()
     val showDsdOut: Boolean get() = dsd.any { it.on }
     val dsdOuts: List<SegChoice> get() = listOf(SegChoice("off", "Off")) + listOf(64, 128, 256).map { n -> SegChoice("$n", "DSD$n", off = dsd.none { it.value == n && it.on }) }
-    val dsdOutNote: String get() = if (dsdOut != 0) "Each track of the library that isn’t DSD is made DSD$dsdOut as it plays, by Mandarin’s seventh-order modulator, and sent as a DSF while it is made; Qobuz and Tidal go as PCM."
+    val dsdOutNote: String get() = if (dsdOut != 0) "Each track of the library that isn’t DSD is made DSD$dsdOut as it plays, by the modulator below, and sent as a DSF while it is made; Qobuz and Tidal go as PCM."
         else "PCM goes to this device as PCM. Set, each track of the library that isn’t DSD is made DSD as it plays and sent as a DSF."
     val dsdOutLine: String? get() = if (dsdOut != 0) making else null
+    /** Its modulator (item 303): the setting ("7w", "9"; null, the seventh order), its row and the one in use; shown with PCM as DSD on. */
+    val dsdMod: String? get() = (output.opt("dsd_mod") as? String)?.takeIf { it.isNotEmpty() }
+    val modRow: DeviceModulators.Row? get() = if (showDsdOut && dsdOut != 0) DeviceModulators.row(dsdMod, dsdOut) else null
     val depths: List<SegChoice> get() = listOf(SegChoice("auto", "Auto"), SegChoice("24", "24"), SegChoice("32", "32", off = !flac32))
     val outputInfo: String get() = "Original sends the file as stored wherever this device takes its rate, depth and format; above its ceiling, FLAC at the highest rate it takes. Upsampling stays in the file's family (44.1 → 88.2 → 176.4; 48 → 96 → 192), runs in 64-bit float, and goes out at " +
         (if (has32 && flac32) "24 or 32 bits" else "24 bits") + "."

@@ -182,6 +182,7 @@ internal static partial class Streams
             p = Jv.Obj(("transcode", true), ("hq", true), ("mime", DsdMime().IsMatch(asked) ? asked : "audio/x-dsf"), ("ext", "dsf"), ("rate", (double)t.Rate), ("bits", 1.0),
                 ("dsd", (double)dsdUp), ("dsdUp", (double)dsdUp), ("inRate", (double)t.Rate), ("reason", $"DSD{dsdUp} from PCM, made as it plays"));
             if (gain is { } g0) p["gain"] = g0;   // in the PCM it is made from, as the plan had it (WithGain leaves DSD alone)
+            if (Upsample.DsdOut.Of(q["mod"].Count == 1 ? q["mod"].ToString() : null) is { } mod && Upsample.DsdOut.Offered(mod, dsdUp)) p["mod"] = mod;   // ?mod=: its modulator (item 303)
             if (output != null) { using var c = Db.Open(); if (Dsp.PlanPart(DspFor(c, output), (double)t.Rate, (double)t.Rate) is { } part) p["dsp"] = part; }
         }
         else if (seg == "orig")

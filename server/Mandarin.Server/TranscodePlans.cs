@@ -26,6 +26,8 @@ internal sealed record ConvPlan(long Rate, int Bits, bool Hq, bool Exact, string
     // The upsampling filter's shape where it isn't the standard one: "min", "gentle", or null (Upsample/Shape.cs, items 248, 259);
     // made as it plays (Upsample/MadeAsPlayed.cs).
     public string? Shape { get; init; }
+    // DSD from PCM by a modulator other than the seventh order's: "7w" or "9" (Upsample/DsdOut.cs, item 303).
+    public string? Mod { get; init; }
 
     /* The plan as lib/stream.js has it, for its name and ffmpeg's arguments. */
     public JsObj ToJs()
@@ -50,7 +52,8 @@ internal sealed record ConvPlan(long Rate, int Bits, bool Hq, bool Exact, string
         Lowpass = Jv.T(p["lowpass"]) ? (long)Jv.Num(p["lowpass"]) : 0,
         DsdUp = Jv.T(p["dsdUp"]) ? (int)Jv.Num(p["dsdUp"]) : 0,
         DsdBase = Jv.Num(p["dsdBase"]) == 48000 ? 48000 : 44100,
-        Shape = Upsample.Shape.Word(Upsample.Shape.Of(p["shape"] as string))
+        Shape = Upsample.Shape.Word(Upsample.Shape.Of(p["shape"] as string)),
+        Mod = Jv.T(p["dsdUp"]) ? Upsample.DsdOut.Of(p["mod"]) : null
     };
 }
 

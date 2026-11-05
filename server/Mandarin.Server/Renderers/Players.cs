@@ -261,6 +261,7 @@ internal sealed partial class Players
         if (s["filter_hires"] is string hires) target["filter_hires"] = hires;   // for 88.2 kHz and up (item 298); the filter's by its absence
         if (DsdLowpass.Of(s["dsd_lowpass"]) is { } cut) target["dsd_lowpass"] = cut;   // DSD as PCM, low-passed (item 241)
         if (Upsample.DsdPlan.Of(s["dsd_out"]) is { } up) target["dsd_out"] = (double)up;   // PCM as DSD (item 243)
+        if (Upsample.DsdOut.Of(s["dsd_mod"]) is { } mod) target["dsd_mod"] = mod;   // by this modulator (item 303); the seventh order by its absence
         if (s["album_stream"] is true) target["album_stream"] = true;   // an album as one stream (item 300)
     }
 

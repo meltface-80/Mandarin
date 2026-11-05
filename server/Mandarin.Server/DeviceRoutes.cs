@@ -160,6 +160,13 @@ internal static partial class Library
                     if (!off && Upsample.DsdPlan.Of(dsdOut) == null) throw new DeviceRefusal(400, "dsd_out must be off, 64, 128 or 256");
                     patch["dsd_out"] = off ? null : dsdOut;
                 }
+                // Its modulator (item 303): 7 (the seventh order), 7w or 9.
+                var dsdMod = Prop(output, "dsd_mod");
+                if (dsdMod is not Undef)
+                {
+                    if (dsdMod is not string dm || Array.IndexOf(Upsample.DsdOut.Mods, dm) < 0) throw new DeviceRefusal(400, "dsd_mod must be 7, 7w or 9");
+                    patch["dsd_mod"] = dm == "7" ? null : dm;
+                }
                 // An album as one stream (item 300): on or off.
                 var albumStream = Prop(output, "album_stream");
                 if (albumStream is not Undef)

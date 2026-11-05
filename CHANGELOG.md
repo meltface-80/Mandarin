@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- New - a choice of three DSD modulators for PCM made DSD (Settings → Audio Devices → a device → Output → Modulator): the 7th order (as before), the 7th order wide, which holds its noise down to 50 kHz (DSD128 and DSD256), and the 9th order, quieter in the audio band (DSD64 and DSD128); each measured and shown with its figures, and the signal path says which one made the track (item 303)
 - New - Albums as one stream (Settings → Audio Devices → a device → Output → Gapless): an album's tracks go to the device as one stream, start to end, made in one (upsampled, or made DSD), so it plays gapless however it joins files; Mandarin still shows each track, and a skip or a seek starts the stream again there (item 300)
 - Fixed - Mandarin Bridge for Android, and the app's USB direct, let go of the DAC between two tracks and took it again, dropping the last moment of the track before and starting DoP's marker over: a track that goes to the DAC as the one before did now follows on in the same stream, gapless. Mandarin Bridge is 0.2.3 (item 304)
 - Fixed - a Chord Poly moving on by itself from one track made DSD to the next: Mandarin stayed on the first track, and near the end of the second started it again from the beginning. Mandarin now follows any device that goes on naming the first track (item 299)

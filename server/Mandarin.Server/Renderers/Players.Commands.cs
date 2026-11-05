@@ -174,7 +174,7 @@ internal sealed partial class Players
             Sent = p == null ? null : new SentInfo(Jv.T(p["transcode"]),
                 Jv.T(p["transcode"]) ? Jv.Num(p["rate"]) : t?.SampleRate ?? 0, Jv.T(p["transcode"]) ? Jv.Num(p["bits"]) : t?.Bits ?? 0,
                 Jv.T(p["upsampled"]) ? Jv.Num(p["upsampled"]) : 0, Jv.T(p["dsp"]), Jv.T(p["dsd"]) ? Jv.Num(p["dsd"]) : 0,
-                Jv.T(p["ext"]) ? Jv.Str(p["ext"]) : "", Jv.T(p["mime"]) ? Jv.Str(p["mime"]) : "") { Gain = Jv.T(p["gain"]) ? Jv.Num(p["gain"]) : 0, Lowpass = Jv.T(p["lowpass"]) ? Jv.Num(p["lowpass"]) : 0, Shape = p["shape"] as string, DsdBase = Jv.Num(p["dsdBase"]) == 48000 ? 48000 : 44100 }
+                Jv.T(p["ext"]) ? Jv.Str(p["ext"]) : "", Jv.T(p["mime"]) ? Jv.Str(p["mime"]) : "") { Gain = Jv.T(p["gain"]) ? Jv.Num(p["gain"]) : 0, Lowpass = Jv.T(p["lowpass"]) ? Jv.Num(p["lowpass"]) : 0, Shape = p["shape"] as string, Mod = p["mod"] as string, DsdBase = Jv.Num(p["dsdBase"]) == 48000 ? 48000 : 44100 }
         };
     }
 

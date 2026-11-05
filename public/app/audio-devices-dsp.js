@@ -239,7 +239,7 @@ body.addEventListener("click", async (e) => {
   if (!current || busy) return;
   // The Filter's rows and list (item 298, app/device-filters.js); the tap stops here, its list gone from the page, so no
   // listener further up takes it for a tap outside Settings.
-  if (filterTap(e.target)) { e.stopPropagation(); return; }
+  if (filterTap(e.target) || modTap(e.target)) { e.stopPropagation(); return; }
   const c = e.target.closest("button.cap-chip");
   if (c) return toggleChip(c);
   const sb = e.target.closest(".seg-btn");

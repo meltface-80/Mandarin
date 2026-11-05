@@ -210,6 +210,7 @@ internal fun DevicePane(id: String, client: () -> ServerClient?, onBack: () -> U
                     DeviceNote(d.dsdOutNote, Modifier.parity("settings-device.note"))
                     d.dsdOutLine?.let { DeviceNote(it, Modifier.parity("settings-device.note")) }
                 }
+                d.modRow?.let { r -> CapGroup("Modulator", Modifier.parity("settings-device.cap-label")) { ModulatorGroup(d, r, busy) { patch(it) } } }
                 // An album as one stream (item 300), where Mandarin makes what it plays, as the filters are.
                 if (d.showFilter) CapGroup("Gapless", Modifier.parity("settings-device.cap-label")) {
                     Box(Modifier.padding(top = 8.dp)) {
