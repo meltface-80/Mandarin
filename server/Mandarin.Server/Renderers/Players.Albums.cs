@@ -36,17 +36,11 @@ internal sealed partial class Players
         var first = p.Queue[index];
         if (Pattern(first) is not { } plan || first.Track is not { } t0) return null;
         var items = new List<UpnpItem> { first };
-        // A WAV (above FLAC's rates) only as long as its header can say (item 305): past 4 GB its sizes read unknown,
-        // and a Chord Poly played none of it. 12.7 minutes at 32/705.6, 17 at 24/705.6; the album goes as several runs.
-        var wav = ConvPlan.Of(first.Plan!) with { InRate = Jv.T(first.Plan!["inRate"]) ? Jv.Num(first.Plan!["inRate"]) : t0.SampleRate ?? 0 };
-        var length = first.Duration - seconds;
         for (var i = index + 1; i < p.Queue.Count; i++)
         {
             var it = p.Queue[i];
             if (it.Track is not { } t || t.AlbumId != t0.AlbumId || Pattern(it) != plan) break;
-            if (wav.Wav && Upsample.WavHeader.FileBytes(wav, length + it.Duration) >= uint.MaxValue) break;
             items.Add(it);
-            length += it.Duration;
         }
         if (items.Count < 2) return null;
         string secret;
