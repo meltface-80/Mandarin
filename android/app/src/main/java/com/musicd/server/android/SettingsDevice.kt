@@ -217,7 +217,9 @@ internal fun DevicePane(id: String, client: () -> ServerClient?, onBack: () -> U
                     DeviceNote(d.playerNote, Modifier.parity("settings-device.note"))
                 }
                 // An album as one stream (item 300), where Mandarin makes what it plays, as the filters are; dimmed through its own player.
-                if (d.showFilter) Column(Modifier.alpha(if (d.ownPlayer) 0.45f else 1f)) { CapGroup("Gapless", Modifier.parity("settings-device.cap-label")) {
+                // A Squeezelite player (item 313): gapless from its own buffer, nothing to set.
+                if (d.slimGapless) CapGroup("Gapless", Modifier.parity("settings-device.cap-label")) { DeviceNote(d.slimGaplessNote, Modifier.parity("settings-device.note")) }
+                else if (d.showFilter) Column(Modifier.alpha(if (d.ownPlayer) 0.45f else 1f)) { CapGroup("Gapless", Modifier.parity("settings-device.cap-label")) {
                     Box(Modifier.padding(top = 8.dp)) {
                         SetupRow("Albums as one stream", Modifier.parity("settings-device.name"), null) {
                             Toggle(d.albumStream, Modifier.parity("settings-device.album-stream", Contract.label("settings-device.album-stream")).clickable(enabled = !busy) { patch(d.albumStreamPatch(!d.albumStream)) })

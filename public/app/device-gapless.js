@@ -17,3 +17,18 @@ function gaplessGroup(o) {
     '<span class="switch-track"><span class="switch-thumb"></span></span></label></div>' +
     '<div class="settings-note" data-parity="settings-device.note">' + esc(ALBUM_STREAM_NOTE(!!o.album_stream)) + "</div></div>";
 }
+
+/*
+ * A Squeezelite player's Gapless and DSD (item 313): it goes on into the next track from its own buffer, so there is
+ * nothing to set; at a change of rate it pauses as its own -r option says. The words are DevicePage.kt's too.
+ */
+const SLIM_GAPLESS_NOTE = "A Squeezelite player plays one track into the next from its own buffer: gapless as it is, nothing to set. Where the next track is at another rate, it pauses for as long as its -r option says (e.g. -r 44100-768000:500, half a second), so the DAC settles without a click.";
+const slimDsdNote = (takesDsd) => takesDsd
+  ? "DSD files go to it as DSF, at the DSD rates that are on; it sends them to the DAC as its own -D option says (DoP or native), or as PCM. Any other goes as PCM."
+  : "It doesn’t say it plays DSD, so DSD goes to it as PCM.";
+
+/** A Squeezelite player's Gapless group: its note alone. */
+function slimGapless() {
+  return '<div class="cap-group"><span class="cap-label" data-parity="settings-device.cap-label">Gapless</span>' +
+    '<div class="settings-note" data-parity="settings-device.note">' + esc(SLIM_GAPLESS_NOTE) + "</div></div>";
+}
