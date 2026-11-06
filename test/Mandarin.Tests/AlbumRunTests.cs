@@ -97,6 +97,14 @@ public sealed class AlbumRunTests
             Assert.Equal(Whole * 2L * 2 * 4, b.Length);
             Assert.True(a.AsSpan().SequenceEqual(b), "the run's samples are the whole's");
 
+            // As PCM ×16 to 705.6 kHz, above FLAC's rates: a WAV, its length said in its header (item 305: a Chord Poly
+            // played nothing of it), the same samples as the whole's WAV.
+            var wavAlone = await Bytes.Get($"{s.Base}/stream/t{whole}.705600-32.wav?f=gauss", s.H);
+            var wavOne = await Bytes.Get($"{s.Base}/stream/{run}.705600-32.wav?f=gauss", s.H);
+            Assert.Equal((200, 200), (wavAlone.Status, wavOne.Status));
+            Assert.Equal(wavAlone.Body.Length, wavOne.Body.Length);
+            Assert.True(wavAlone.Body.AsSpan().SequenceEqual(wavOne.Body), $"the run's WAV is the whole's ({wavOne.Body.Length} bytes)");
+
             // Begun 0.5 s into its first track: the rest of the run, to the frame.
             var later = await Bytes.Get($"{s.Base}/stream/{run}.88200-24.flac?f=gauss&ss=0.5", s.H);
             Assert.Equal(200, later.Status);

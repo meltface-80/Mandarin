@@ -6,6 +6,11 @@
 // SR11 was given nothing while the screen counted on. So a plan above 655,350 Hz goes out as WAV where the device
 // takes WAV (streamed as it is made, its length unknown in its header, as a radio's is), and where it doesn't, at
 // the highest rate of its family that FLAC carries and the device takes: ×8 for a CD.
+//
+// Item 305: a WAV says no more than 4 GB in its header (12.7 minutes at 32/705.6), and a Chord Poly played nothing of
+// an album sent as one. A device that takes FLAC is now sent FLAC at the rate itself, a stream with no length, as a
+// UPnP bridge of Roon's sends its continuous stream: the rate in the stream's header, which ffmpeg writes since 7.1
+// (the image's). WAV only for one that takes WAV and not FLAC.
 using Mandarin.Server.Tags;
 
 namespace Mandarin.Server.Playback;
@@ -21,7 +26,12 @@ internal static class HighRates
         var rate = Jv.Num(plan["rate"]);
         if (!Jv.T(plan["transcode"]) || !(rate > FlacMax)) return plan;
         var who = Jv.Str(Jv.Or(Jv.Get(target, "name"), "this device"));
-        if (TakesWav(target))
+        if (Takes(target, "flac"))
+        {
+            plan["reason"] = Jv.Str(plan["reason"]) + " (one FLAC stream, its rate above 655.35 kHz in its header)";
+            return plan;
+        }
+        if (Takes(target, "wav", "wave"))
         {
             plan["mime"] = "audio/wav"; plan["ext"] = "wav"; plan["wav"] = true;
             plan["reason"] = Jv.Str(plan["reason"]) + " (as WAV: FLAC stops at 655.35 kHz)";
@@ -38,19 +48,19 @@ internal static class HighRates
         if (source > 0 && top > source)
         {
             plan["upsampled"] = Math.Round(top / source);
-            plan["reason"] = $"upsampled ×{Jv.Str(Math.Round(top / source))} to {Jv.Str(top / 1000)} kHz for {who} (higher needs WAV, which it doesn't take)";
+            plan["reason"] = $"upsampled ×{Jv.Str(Math.Round(top / source))} to {Jv.Str(top / 1000)} kHz for {who} (higher needs FLAC or WAV, which it doesn't take)";
         }
         else
         {
             plan["upsampled"] = Undef.V;
-            plan["reason"] = $"FLAC at {Jv.Str(top / 1000)} kHz for {who} (higher needs WAV, which it doesn't take)";
+            plan["reason"] = $"FLAC at {Jv.Str(top / 1000)} kHz for {who} (higher needs FLAC or WAV, which it doesn't take)";
         }
         return plan;
     }
 
-    // The device's formats (what it says it plays) name WAV; none named, the usual ones, WAV among them.
-    private static bool TakesWav(object? target) =>
-        Jv.Get(target, "containers") is List<object?> { Count: > 0 } named ? named.Exists(c => c is string s && s is "wav" or "wave") : true;
+    // The device's formats (what it says it plays) name one of [kinds]; none named, the usual ones, FLAC and WAV among them.
+    private static bool Takes(object? target, params string[] kinds) =>
+        Jv.Get(target, "containers") is List<object?> { Count: > 0 } named ? named.Exists(c => c is string s && kinds.Contains(s)) : true;
 
     /*
      * ffmpeg's arguments for [plan] (StreamPlans.FfmpegArgs's): for a WAV plan, PCM in a WAV whose length is left

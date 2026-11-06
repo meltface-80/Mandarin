@@ -61,8 +61,8 @@ public sealed class ShapePlanTests
         // The file as it is, a Qobuz stream: the standard filter, as they come.
         Assert.Null(p[1].Str("shape"));
         Assert.Null(p[2].Str("shape"));
-        // ×16 above FLAC's rates: in its shape, and as WAV (item 238).
-        Assert.Equal((705600.0, "min", true), (p[3].Num("rate")!.Value, p[3].Str("shape"), p[3].Bool("wav") ?? false));
+        // ×16 above FLAC's frame rates: in its shape, as one FLAC stream (item 305; a WAV before, item 238).
+        Assert.Equal((705600.0, "min", "flac", false), (p[3].Num("rate")!.Value, p[3].Str("shape"), p[3].Str("ext"), p[3].Bool("wav") ?? false));
         // ×3 isn't a factor the filter takes: the standard one.
         Assert.Equal((132300.0, (string?)null), (p[4].Num("rate")!.Value, p[4].Str("shape")));
     }
