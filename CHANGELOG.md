@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Fixed - upsampling to PCM played nothing on a Chord Poly or a Mandarin Bridge on a FiiO R7: a device whose bit depth was Auto, and which listed 32 bits, was sent 32-bit FLAC, which neither could decode. Auto is now 24 bits; 32 goes out only where a device is set to 32 (item 308)
 - Fixed - Albums as one stream on a Chord Poly went a track at a time, with a long gap at each: the Poly named the track it had been playing for a moment after the album started, and Mandarin took that for the album stream having ended. It now stays one stream (item 305)
 - Fixed - PCM at 705.6 and 768 kHz played nothing on a Chord Poly, which can't decode FLAC at those rates: it goes as WAV again, as before. With Albums as one stream at those rates, an album goes as a few streams of under 4 GB each (12.7 minutes at 32-bit/705.6 kHz), the most a WAV can say (item 307)
 - New - a choice of three DSD modulators for PCM made DSD (Settings → Audio Devices → a device → Output → Modulator): the 7th order (as before), the 7th order wide, which holds its noise down to 50 kHz (DSD128 and DSD256), and the 9th order, quieter in the audio band (DSD64 and DSD128); each measured and shown with its figures, and the signal path says which one made the track (item 303)

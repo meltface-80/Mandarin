@@ -61,9 +61,6 @@
     "server/Mandarin.Server/Playback/JsMath.cs": {
       "lines": 615
     },
-    "server/Mandarin.Server/Playback/StreamPlans.cs": {
-      "lines": 401
-    },
     "server/Mandarin.Server/Playback/WebUrl.cs": {
       "lines": 767
     },

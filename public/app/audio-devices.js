@@ -284,7 +284,7 @@ function renderDetail(keepInput) {
     // The caps worth offering: those below the highest rate the device takes.
     const top48 = Math.max(0, ...d.rates.filter(r => r.on).map(r => r.hz % 44100 === 0 ? r.hz / 44100 * 48000 : r.hz));
     const caps = [96000, 192000, 384000, 768000].filter(c => c < top48 || c === cap);
-    const outBits = (has32 && o.flac32 && o.bits !== 24) ? 32 : 24;
+    const outBits = (has32 && o.flac32 && o.bits === 32) ? 32 : 24;   // Auto is 24 (item 308)
     const example = (() => {
       const top = topOf(44100);
       let rate = 44100;

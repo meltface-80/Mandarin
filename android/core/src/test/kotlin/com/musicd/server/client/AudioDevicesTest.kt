@@ -67,7 +67,7 @@ class AudioDevicesTest {
         assertEquals("""{"caps":{"user":{"rates":[44100]}}}""", d.tapped(d.rates[1]).toString())
         assertEquals("""{"caps":{"user":{"rates":[44100,88200,176400]}}}""", d.tapped(d.rates[2]).toString())
         assertEquals("""{"caps":{"user":{"dsd":[]}}}""", d.tapped(d.dsd[0]).toString())
-        assertEquals("A 16-bit/44.1 kHz file plays as 32-bit/88.2 kHz FLAC (×2).", d.example)
+        assertEquals("Auto is 24 bits (item 308)", "A 16-bit/44.1 kHz file plays as 24-bit/88.2 kHz FLAC (×2).", d.example)
         assertTrue(d.outputInfo.endsWith("goes out at 24 or 32 bits."))
         assertEquals("""{"output":{"bits":24}}""", d.segment("bits", "24").toString())
         assertFalse(d.depths[2].off)
