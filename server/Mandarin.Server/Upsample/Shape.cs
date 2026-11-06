@@ -8,13 +8,14 @@
 // (from 19.8 kHz for a CD, down 6 dB by 21 kHz). The Gaussian ones (item 298, Gaussian.cs) roll off along a Gaussian's
 // integral, so their ringing dies away along a Gaussian too, far sooner than a sinc's: Gaussian, for CD rates, down
 // 100 dB by the source's Nyquist; Gaussian steep, flat almost to it and half down at it, keeping every sample of the
-// source as it was; Gaussian hi-res, short and smooth, for sources of 88.2 kHz and up. StreamUpsample.cs runs them
-// all, a block at a time, as a track plays.
+// source as it was; Gaussian hi-res, short and smooth, for sources of 88.2 kHz and up. Long and very long (item 317)
+// are Standard's design made eight and thirty-two times as long: flat to 21.8 and 21.9 kHz for a CD and some 270 dB
+// down from 22.1 kHz, their ringing longer, at 22 kHz. StreamUpsample.cs runs them all, a block at a time, as a track plays.
 namespace Mandarin.Server.Upsample;
 
 internal static class Shape
 {
-    public enum Kind { Standard, Minimum, Gentle, Gaussian, GaussianSteep, GaussianHires }
+    public enum Kind { Standard, Minimum, Gentle, Gaussian, GaussianSteep, GaussianHires, Long, VeryLong }
 
     /* The fraction of the input's Nyquist frequency the standard filter's roll-off begins at, and the gentle one's. */
     public const double StandardPass = 0.95;
@@ -24,12 +25,13 @@ internal static class Shape
     public const double HiresAbove = 48000;
 
     /* The device filters (Settings → Audio Devices → Output) and the plan's word for each; standard has none. */
-    public static readonly string[] Filters = ["standard", "minphase", "gentle", "gaussian", "gaussian-steep", "gaussian-hires"];
+    public static readonly string[] Filters = ["standard", "minphase", "gentle", "gaussian", "gaussian-steep", "gaussian-hires", "long", "very-long"];
 
     /* A plan's "shape": "min", "gentle", "gauss", "gauss-steep", "gauss-hires"; anything else standard. */
     public static Kind Of(string? shape) => shape switch
     {
         "min" => Kind.Minimum, "gentle" => Kind.Gentle, "gauss" => Kind.Gaussian, "gauss-steep" => Kind.GaussianSteep, "gauss-hires" => Kind.GaussianHires,
+        "long" => Kind.Long, "vlong" => Kind.VeryLong,
         _ => Kind.Standard,
     };
 
@@ -37,6 +39,7 @@ internal static class Shape
     public static string? Word(Kind kind) => kind switch
     {
         Kind.Minimum => "min", Kind.Gentle => "gentle", Kind.Gaussian => "gauss", Kind.GaussianSteep => "gauss-steep", Kind.GaussianHires => "gauss-hires",
+        Kind.Long => "long", Kind.VeryLong => "vlong",
         _ => null,
     };
 
@@ -44,6 +47,7 @@ internal static class Shape
     public static string? OfFilter(object? filter) => filter switch
     {
         "minphase" => "min", "gentle" => "gentle", "gaussian" => "gauss", "gaussian-steep" => "gauss-steep", "gaussian-hires" => "gauss-hires",
+        "long" => "long", "very-long" => "vlong",
         _ => null,
     };
 
@@ -65,6 +69,8 @@ internal static class Shape
         Kind.Gaussian => "Gaussian filter",
         Kind.GaussianSteep => "Gaussian steep filter",
         Kind.GaussianHires => "Gaussian hi-res filter",
+        Kind.Long => "Long filter",
+        Kind.VeryLong => "Very long filter",
         _ => "Standard filter",
     };
 
@@ -76,6 +82,8 @@ internal static class Shape
         Kind.Gaussian => "Gaussian filter",
         Kind.GaussianSteep => "Gaussian steep filter",
         Kind.GaussianHires => "Gaussian hi-res filter",
+        Kind.Long => "long filter",
+        Kind.VeryLong => "very long filter",
         _ => "standard filter",
     };
 }

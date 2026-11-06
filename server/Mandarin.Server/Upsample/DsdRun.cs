@@ -126,6 +126,9 @@ internal sealed class DsdRun
         pushed += left.Length;
     }
 
+    /* What the upsampler holds of the frames pushed so far handed on to the chains now (StreamUpsample.Drain, item 317). */
+    public void Drain() => up.Drain();
+
     /* The end of the run: the filters and the chains flushed with silence, and every window closed. */
     public void Finish()
     {

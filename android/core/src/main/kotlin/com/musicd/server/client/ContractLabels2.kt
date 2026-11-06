@@ -159,7 +159,7 @@ internal object ContractLabels2 {
         "settings-device.maxrate" to listOf("Auto", "96k", "192k", "384k", "768k"),
         "settings-device.filter" to listOf("CD-rate sources"),
         "settings-device.filter-hires" to listOf("Hi-res sources"),
-        "settings-device.filter-choice" to listOf("Same as CD-rate sources", "Standard", "Minimum phase", "Gentle", "Gaussian", "Gaussian steep", "Gaussian hi-res"),
+        "settings-device.filter-choice" to listOf("Same as CD-rate sources", "Standard", "Minimum phase", "Gentle", "Gaussian", "Gaussian steep", "Gaussian hi-res", "Long", "Very long"),
         "settings-device.filter-close" to listOf("Close"),
         "settings-device.dsdlowpass" to listOf("Off", "50 kHz", "30 kHz"),
         "settings-device.dsdout" to listOf("Off", "DSD64", "DSD128", "DSD256"),

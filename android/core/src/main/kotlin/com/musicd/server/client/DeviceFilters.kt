@@ -18,6 +18,8 @@ object DeviceFilters {
         Filter("gaussian", "Gaussian", "A smooth roll-off: flat to 19.75 kHz for a CD (−0.5 dB at 20 kHz), 100 dB down by 22.05 kHz; 1.8 ms of ringing before a sound."),
         Filter("gaussian-steep", "Gaussian steep", "Flat to 21.8 kHz for a CD and half down at 22.05 kHz, every sample of the file kept as it is (not apodizing); 5.9 ms of ringing before a sound."),
         Filter("gaussian-hires", "Gaussian hi-res", "For 88.2 kHz and up: flat to 25.9 kHz from 96 kHz, 0.2 ms of ringing. For a CD it rolls off from 12 kHz."),
+        Filter("long", "Long", "Very steep: flat to 21.8 kHz for a CD, 270 dB down from 22.1 kHz. 262,145 taps at ×16; 28 ms of ringing either side of a sound, at 22 kHz."),
+        Filter("very-long", "Very long", "Steeper still: flat to 21.9 kHz for a CD, 284 dB down from 22.1 kHz. 1,048,577 taps at ×16; 47 ms of ringing either side, at 22 kHz. A track takes 0.6 s longer to start, and 400 MB while it plays."),
     )
     /** The hi-res list's first: the filter for CD-rate sources for every track. */
     val SAME = Filter("same", "Same as CD-rate sources", "The filter for CD-rate sources, for every track.")

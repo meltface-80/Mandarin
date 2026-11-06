@@ -83,8 +83,8 @@ class AudioDevicesTest {
         assertNull(standard.filterHires)
         assertEquals(listOf("CD-rate sources" to "Standard", "Hi-res sources" to "Same as CD-rate"), standard.filterRows.map { it.label to it.value })
         // Item 298: the three Gaussian filters after the three before them; the hi-res list leads with the same as CD-rate.
-        assertEquals(listOf("standard", "minphase", "gentle", "gaussian", "gaussian-steep", "gaussian-hires"), DeviceFilters.choices("filter").map { it.value })
-        assertEquals(listOf("Same as CD-rate sources", "Standard", "Minimum phase", "Gentle", "Gaussian", "Gaussian steep", "Gaussian hi-res"), DeviceFilters.choices("filter_hires").map { it.name })
+        assertEquals(listOf("standard", "minphase", "gentle", "gaussian", "gaussian-steep", "gaussian-hires", "long", "very-long"), DeviceFilters.choices("filter").map { it.value })
+        assertEquals(listOf("Same as CD-rate sources", "Standard", "Minimum phase", "Gentle", "Gaussian", "Gaussian steep", "Gaussian hi-res", "Long", "Very long"), DeviceFilters.choices("filter_hires").map { it.name })
         assertEquals("Each track is upsampled in the filter for its own rate: 44.1 and 48 kHz in the first, 88.2 kHz and up in the second.", standard.filterNotes.single())
         assertFalse(page("""{"mode":"original","bits":"auto","flac32":false}""").showFilter)
         // A device left at a filter gone is said as the standard one, as the server takes it.

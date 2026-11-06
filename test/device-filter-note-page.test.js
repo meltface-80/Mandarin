@@ -75,15 +75,15 @@ test("a device's Filter: two rows, each opening the list, a pick a PATCH of its 
       "Made as it plays: this server made the last at 1.4× real time, fast enough to keep up."]);
     assert.ok(r.hiresOnly, "a filter of Mandarin's own for hi-res sources: how fast it is made said");
     assert.equal(r.sox, null, "SoX's filter for both: nothing of Mandarin's own made");
-    assert.deepEqual(r.values, ["standard", "minphase", "gentle", "gaussian", "gaussian-steep", "gaussian-hires"]);
+    assert.deepEqual(r.values, ["standard", "minphase", "gentle", "gaussian", "gaussian-steep", "gaussian-hires", "long", "very-long"]);
     assert.equal(r.left, "Standard", "a device left at a filter gone is said as the standard one");
     assert.deepEqual(r.rows, [["CD-rate sources", "Gaussian"], ["Hi-res sources", "Same as CD-rate"]]);
     assert.equal(r.title, "Filter for hi-res sources");
-    assert.deepEqual(r.choices, ["Same as CD-rate sources", "Standard", "Minimum phase", "Gentle", "Gaussian", "Gaussian steep", "Gaussian hi-res"]);
+    assert.deepEqual(r.choices, ["Same as CD-rate sources", "Standard", "Minimum phase", "Gentle", "Gaussian", "Gaussian steep", "Gaussian hi-res", "Long", "Very long"]);
     assert.deepEqual(r.on, ["same"]);
     assert.equal(r.afterPick, false, "a pick closes the list");
     assert.deepEqual(r.cdOn, ["gaussian"]);
-    assert.equal(r.cdCount, 6, "the CD-rate list has no Same");
+    assert.equal(r.cdCount, 8, "the CD-rate list has no Same");
     assert.equal(r.afterClose, false, "a tap beside the list closes it");
     assert.equal(r.reached, 0, "no tap of the Filter's goes past the device's page");
     assert.deepEqual(r.sent, [{ output: { filter_hires: "gaussian-hires" } }], "the pick, and only the pick, sent");

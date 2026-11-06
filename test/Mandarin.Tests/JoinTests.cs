@@ -49,8 +49,8 @@ public sealed class JoinTests
         try
         {
             var (whole, a, b) = Tracks(dir);
-            // Each filter at DSD64, and DSD256 in Gaussian steep (item 299: a Chord Poly's, ×16 to 705.6 kHz and doubled).
-            foreach (var (dsd, shape) in new (int, string?)[] { (64, null), (64, "min"), (64, "gauss"), (64, "gauss-steep"), (64, "gauss-hires"), (256, "gauss-steep") })
+            // Each filter at DSD64, and DSD256 in Gaussian steep (item 299: a Chord Poly's, ×16 to 705.6 kHz and doubled); the long ones (item 317), their neighbours decoded for their length.
+            foreach (var (dsd, shape) in new (int, string?)[] { (64, null), (64, "min"), (64, "gauss"), (64, "gauss-steep"), (64, "gauss-hires"), (256, "gauss-steep"), (64, "long"), (64, "vlong") })
             {
                 var plan = J(new { transcode = true, hq = true, rate = Rate, bits = 1, dsdUp = dsd, inRate = Rate, reason = "", shape });
                 var block = 4096 * 8 / dsd;    // a block's frames: 4096 bytes a channel, [dsd] bits a frame (DSD64: 512)
