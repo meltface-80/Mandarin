@@ -50,7 +50,7 @@ internal static partial class Library
             {
                 var d = DeviceRead(c, id);
                 if (d == null) return await JsError(ctx, 404, "No such device");
-                if (d.Kind is not ("upnp" or "local")) return await JsError(ctx, 400, "Only a renderer or a sound device on this computer takes a convolution");
+                if (!Renderers.Players.StreamerKind(d.Kind)) return await JsError(ctx, 400, "Only a renderer or a sound device on this computer takes a convolution");
                 var merged = DeviceCopy(DeviceDsp(d) ?? Biquad.Normalise(null));
                 // Added to those there (one at a rate already there takes its place), or one rate or all taken off.
                 var had = Convolution.Normalise(merged["convolution"]) ?? [];

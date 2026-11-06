@@ -135,7 +135,7 @@ internal static partial class PlaybackRoutes
         var r = Register.Get(c, id);
         if (r == null || r.Kind == "phone") return true;
         var v = r.Settings["enabled"];
-        return r.Kind is "upnp" or "local" ? Tags.Js.StrictEq(v, true) : !Tags.Js.StrictEq(v, false);
+        return Renderers.Players.StreamerKind(r.Kind) ? Tags.Js.StrictEq(v, true) : !Tags.Js.StrictEq(v, false);
     }
     /* A phone others at home may see and play to: on unless switched off on its page. */
     private static bool Shared(SqliteConnection c, string id)
