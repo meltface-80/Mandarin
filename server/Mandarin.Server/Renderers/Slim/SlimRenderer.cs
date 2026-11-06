@@ -16,7 +16,16 @@ internal sealed class SlimRenderer(string id, string name, Func<string, SlimPlay
     public Task Play() { Player.Play(); return Task.CompletedTask; }
     public Task Pause() { Player.Pause(); return Task.CompletedTask; }
     public Task Stop() { Player.Stop(); return Task.CompletedTask; }
-    public Task SeekTime(double seconds) => throw new RendererError($"{Name} can't seek yet", double.NaN);
+    /* A seek: the track fetched again from there (SlimPlayer.SeekTime); DSD sent as it is can't be begun part-way. */
+    public Task SeekTime(double seconds)
+    {
+        var p = Player;
+        var path = Uri.TryCreate(p.Position.Uri, UriKind.Absolute, out var u) ? u.AbsolutePath : "";
+        if (path.EndsWith(".orig.dsf", StringComparison.OrdinalIgnoreCase) || path.EndsWith(".orig.dff", StringComparison.OrdinalIgnoreCase))
+            throw new RendererError($"{Name} can't seek in a DSD file sent as it is", double.NaN);
+        p.SeekTime(seconds);
+        return Task.CompletedTask;
+    }
     public Task SetUri(string uri, string meta = "") { Player.SetUri(uri); return Task.CompletedTask; }
     public Task SetNextUri(string uri, string meta = "") { Player.SetNextUri(uri); return Task.CompletedTask; }
 

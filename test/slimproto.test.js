@@ -103,6 +103,28 @@ test("a SlimProto player: found, a device, played track into track from its buff
   await until(async () => (await line1()) === "Slim 3", 15000, "Next to track 3");
   assert.ok(player.log.lastIndexOf("strm q") > s2, "Next stopped what it played");
 
+  // A seek: it can't seek within a stream, so the track is fetched again from there (item 313): the file as stored,
+  // copied from that point; the room's position from there on.
+  await api("seek", { zone_or_output_id: ID, how: "absolute", seconds: 1.5 });
+  await until(() => player.fetched.some(f => /[?&]ss=1\.5\b/.test(f.path) && f.bytes > 1000), 15000, "track 3 fetched again from 1.5 s");
+  const whole3 = player.fetched.find(f => f.path.includes(`/stream/t${ids[2]}.`) && !/ss=/.test(f.path)).bytes;
+  const from3 = player.fetched.find(f => /[?&]ss=1\.5\b/.test(f.path)).bytes;
+  assert.ok(from3 < whole3 * 0.8, `begun part-way, not the whole track again (${from3} of ${whole3} bytes)`);
+  const seekAt = player.log.findIndex(l => /^strm s .*[?&]ss=1\.5\b/.test(l));
+  assert.equal(player.log[seekAt - 1], "strm q", "what it played stopped first");
+  assert.match(player.log[seekAt], new RegExp(`/stream/t${ids[2]}\\.`), "the same track");
+  await until(async () => { const z = (await api("zone-state?zone=" + ID)).zone; return z.now_playing && z.now_playing.line1 === "Slim 3" && z.now_playing.seek_position >= 1; }, 15000, "its position from the seek's point");
+
+  // Upsampled (×2, made as it plays): begun there as a run of one track is.
+  assert.equal((await call("PATCH", "audio-devices/" + ID, { output: { mode: "x2" } })).status, 200);
+  assert.equal((await api("play", { offset: album.offset, zone_or_output_id: ID, kind: "play_now" })).status, 200);
+  await until(() => player.current() && /\.88200-24w?\.flac/.test(player.current()), 20000, "track 1 upsampled ×2");
+  await api("seek", { zone_or_output_id: ID, how: "absolute", seconds: 1 });
+  await until(() => player.fetched.some(f => /\.88200-24w?\.flac.*[?&]ss=1\b/.test(f.path) && f.bytes > 1000), 20000, "the upsampled track fetched again from 1 s");
+  const whole1 = player.fetched.find(f => /\.88200-24w?\.flac/.test(f.path) && !/ss=/.test(f.path)).bytes;
+  const from1 = player.fetched.find(f => /\.88200-24w?\.flac.*[?&]ss=1\b/.test(f.path)).bytes;
+  assert.ok(from1 < whole1 * 0.85, `the upsampling begun part-way (${from1} of ${whole1} bytes)`);
+
   // Gone: off the network.
   player.close();
   await until(async () => (await api("audio-devices")).devices.find(x => x.id === ID).online === false, 15000, "off once gone");

@@ -16,7 +16,12 @@ internal static partial class Profiles
     public const string DeviceSaysNote =
         "What the DAC on this device takes, as the Mandarin Bridge app on it says: nothing to tick. Tap one to keep Mandarin from sending it.";
 
-    private static JsObj DeviceSays(JsObj o, JsObj said, object? user, object? verified, object? containers, object? record)
+    /* A SlimProto player's: its hello's word (item 313). */
+    public const string SlimSaysNote =
+        "What this player says it plays, in its hello to Mandarin: nothing to tick. Tap one to keep Mandarin from sending it.";
+    private static readonly (string Id, string Label, string Notes, string Api) SlimSays = ("slimproto", "SlimProto player", SlimSaysNote, "slimproto");
+
+    private static JsObj DeviceSays(JsObj o, JsObj said, object? user, object? verified, object? containers, object? record, (string Id, string Label, string Notes, string Api)? who = null)
     {
         (bool On, string Source) Pick(double v, string key)
         {
@@ -28,12 +33,13 @@ internal static partial class Profiles
         }
 
         var profile = new JsObj();
-        profile["id"] = "mandarin-usb";
-        profile["label"] = MandarinBridge.Model;
-        profile["notes"] = DeviceSaysNote;
+        profile["id"] = who?.Id ?? "mandarin-usb";
+        profile["label"] = who?.Label ?? MandarinBridge.Model;
+        profile["notes"] = who?.Notes ?? DeviceSaysNote;
         profile["setNext"] = true;
-        profile["api"] = "mandarin-usb";
-        profile["volume"] = Jv.Same(said["volume"], "upnp") ? "upnp" : "fixed";
+        profile["api"] = who?.Api ?? "mandarin-usb";
+        // A SlimProto player's volume is its gain, Mandarin's slider (fixed where its page is set so).
+        profile["volume"] = who != null || Jv.Same(said["volume"], "upnp") ? "upnp" : "fixed";
         o["profile"] = profile;
         o["rates"] = Rates.Select(hz => { var (on, source) = Pick(hz, "rates"); return (object?)Chip("hz", hz, on, source); }).ToList();
         o["bits"] = Bits.Select(n => { var (on, source) = Pick(n, "bits"); return (object?)Chip("n", n, on, source); }).ToList();
