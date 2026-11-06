@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- New - the Linux Bridge (and the Pi's) says when the computer's kernel holds back a DAC's native DSD (item 323): it reads the DAC's USB descriptor, and where it says native DSD (as Mandarin Bridge for Android reads and plays it) and the kernel offers only PCM, so that DSD goes as DoP, its page, its log and /dac.json give the modprobe line that has the kernel offer it (`options snd-usb-audio vid=… pid=… quirk_flags=0x8000`, QUIRK_FLAG_DSD_RAW for that DAC alone)
 - New - the Bridge is played one continuous stream of PCM by Mandarin (item 322), as Roon plays a RAAT device: Mandarin decodes each track (and upsamples it, where its Output says) and sends the samples alone, one track on into the next while they are of one rate and depth, the format said in SlimProto's strm; the Bridge only plays what comes, its DAC never let go between tracks. Its hello says it takes it (ContinuousPcm=1); Mandarin tells it each track as it comes to it, for its screen, notification and page. A DSD track still comes as its file
 - New - a change of rate between two tracks (16/44.1 after 24/96, PCM after DSD) is given half a second of silence at the new rate before the music, so the DAC settles without a click; the same rate, nothing between them, as before (item 322)
 - Fixed - the Android Bridge was a new device to Mandarin each time its app was installed again (its identity made at random): it is now made from the device's Android ID, the same for the app on that device after a reinstall (item 321)

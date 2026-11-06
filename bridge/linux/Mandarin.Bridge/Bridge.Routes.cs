@@ -47,12 +47,13 @@ internal sealed partial class Bridge
         };
         return new JsonObject
         {
-            ["name"] = store.Name, ["version"] = Program.Version + " (" + Program.Commit + ")", ["address"] = BaseUrl(), ["status"] = line, ["dsd_mode"] = store.DsdMode,
+            ["name"] = store.Name, ["version"] = Program.Version + " (" + Program.Commit + ")", ["address"] = BaseUrl(), ["status"] = line, ["dsd_mode"] = store.DsdMode, ["dsd_fix"] = d?.KernelFix,
             ["dac"] = d?.Key, ["dacs"] = new JsonArray([.. dacs.Select(x => (JsonNode)new JsonObject
             {
                 ["key"] = x.Key, ["name"] = x.Name, ["maker"] = x.Maker,
                 ["takes"] = (x.Rates.Count > 0 ? $"{x.Rates.Min() / 1000.0:0.#}–{x.Rates.Max() / 1000.0:0.#} kHz" : "no PCM rates") + (x.Bits.Count > 0 ? $", up to {x.Bits.Max()}-bit" : "")
-                    + (x.Native.Count > 0 ? ", native DSD" + x.Native.Max() : x.Dop.Count > 0 ? ", DSD" + x.Dop.Max() + " as DoP" : ""),
+                    + (x.Native.Count > 0 ? ", native DSD" + x.Native.Max() : x.Dop.Count > 0 ? ", DSD" + x.Dop.Max() + " as DoP" : "")
+                    + (x.KernelFix != null ? " (native DSD held back by this computer's kernel)" : ""),
             })]),
             ["track"] = c == null ? null : new JsonObject { ["title"] = c.Title, ["artist"] = c.Artist, ["album"] = c.Album, ["state"] = slim.TransportState() },
             ["joined"] = slim.Joined,
