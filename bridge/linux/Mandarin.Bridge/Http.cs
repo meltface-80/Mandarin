@@ -1,7 +1,6 @@
-// Http.cs — the smallest HTTP/1.1 server a UPnP device needs (the Android app's HttpServer.kt): one request per
+// Http.cs — the smallest HTTP/1.1 server the Bridge needs (the Android app's HttpServer.kt): one request per
 // connection (closed after), the method, path and headers read, a body of the length the request states, and a
-// handler that answers with a status, headers and bytes. UPnP's own methods (SUBSCRIBE, UNSUBSCRIBE) come through like
-// any other, which is why no web framework is used.
+// handler that answers with a status, headers and bytes. Small enough that no web framework is used.
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -67,7 +66,7 @@ internal sealed class Http(int port, Func<Http.Request, Http.Response> handle, A
                 catch (Exception e) { log($"[http] {req.Method} {req.Path}: {e.Message}"); res = Response.Text(500, "<error>" + Xml.Escape(e.Message) + "</error>"); }
                 var head = new StringBuilder()
                     .Append("HTTP/1.1 ").Append(res.Status).Append(' ').Append(Reason(res.Status)).Append("\r\n")
-                    .Append("Server: Linux UPnP/1.0 MandarinBridge/").Append(Program.Version).Append("\r\n")
+                    .Append("Server: MandarinBridge/").Append(Program.Version).Append("\r\n")
                     .Append("Content-Type: ").Append(res.Type).Append("\r\n")
                     .Append("Content-Length: ").Append(res.Body.Length).Append("\r\n")
                     .Append("Connection: close\r\nEXT:\r\n");

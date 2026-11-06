@@ -20,7 +20,6 @@ const { spawn, spawnSync } = require("child_process");
 const ports = require("./ports");
 const { haveFfmpeg, makeLibrary, FFMPEG } = require("./fixtures");
 const { FakeHousehold } = require("./fake-sonos");
-const { idFor } = require("./fake-renderer");
 const { signIn } = require("./auth-helper");
 const { Browser, findBrowser } = require("./browser-harness");
 
@@ -29,7 +28,9 @@ const BRIDGE = path.join(ROOT, "bridge", "linux", "bin", "mandarin-bridge");
 const ENGINE = path.join(ROOT, "engine", "bin", "mandarin-audio");
 const built = fs.existsSync(BRIDGE) && fs.existsSync(ENGINE);
 const skip = !haveFfmpeg() ? "ffmpeg is not installed" : !built && !process.env.CI && "bridge/linux/build.sh and engine/build.sh not run";
-const PORT = ports.port(), BRIDGE_PORT = ports.port();
+const PORT = ports.port(), BRIDGE_PORT = ports.port(), SLIM = ports.port();
+// Its SlimProto id: six bytes from its UDN, locally administered (bridge/linux/Mandarin.Bridge/Slim.cs).
+const slimId = udn => { const h = crypto.createHash("sha256").update(udn).digest().subarray(0, 6); h[0] = (h[0] & 0xfc) | 0x02; return "SLIM_" + h.toString("hex").toUpperCase(); };
 const B = "http://127.0.0.1:" + PORT, BR = "http://127.0.0.1:" + BRIDGE_PORT;
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 async function until(fn, ms = 20000) {
@@ -99,7 +100,7 @@ test("a Mandarin Bridge offered its update on Settings → Updates, and updated 
   let said = "";
   const run = () => {
     const p = spawn(BRIDGE, ["--port", String(BRIDGE_PORT), "--data", data, "--asound", path.join(tmp, "asound"), "--device", "file:" + path.join(tmp, "dac.raw"),
-      "--address", "127.0.0.1", "--engine", ENGINE, "--ffmpeg", FFMPEG, "--update-api", API], { stdio: ["ignore", "ignore", "pipe"] });
+      "--address", "127.0.0.1", "--engine", ENGINE, "--ffmpeg", FFMPEG, "--update-api", API, "--server", "127.0.0.1:" + SLIM], { stdio: ["ignore", "ignore", "pipe"] });
     p.stderr.on("data", d => { said += d; });
     p.exited = new Promise(r => p.on("exit", code => r(code)));
     return p;
@@ -119,7 +120,7 @@ test("a Mandarin Bridge offered its update on Settings → Updates, and updated 
   t.after(() => house.stop());
   const { createServer } = require("./server");
   const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [ports.host(0)],
-    upnpHosts: [BR + "/description.xml"], upnpMulticast: false, updateApi: API });
+    upnpMulticast: false, updateApi: API, slimprotoPort: SLIM });
   await srv.start();
   t.after(() => srv.stop());
   const token = await signIn(B);
@@ -128,7 +129,7 @@ test("a Mandarin Bridge offered its update on Settings → Updates, and updated 
     const r = await fetch(B + "/api/" + p, body ? { method: "POST", headers: Object.assign({ "Content-Type": "application/json" }, auth), body: JSON.stringify(body) } : { headers: auth });
     return { status: r.status, ...await r.json().catch(() => ({})) };
   };
-  const ID = idFor(dac.udn);
+  const ID = slimId(dac.udn);
 
   // Listed, with its build and the one published, the same: whether or not it is a zone yet, nothing to install.
   published = { commit, version: dac.version };

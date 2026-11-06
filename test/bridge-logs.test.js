@@ -24,7 +24,7 @@ const BRIDGE = path.join(ROOT, "bridge", "linux", "bin", "mandarin-bridge");
 const ENGINE = path.join(ROOT, "engine", "bin", "mandarin-audio");
 const built = fs.existsSync(BRIDGE) && fs.existsSync(ENGINE);
 const skip = !haveFfmpeg() ? "ffmpeg is not installed" : !built && !process.env.CI && "bridge/linux/build.sh and engine/build.sh not run";
-const PORT = ports.port(), BRIDGE_PORT = ports.port();
+const PORT = ports.port(), BRIDGE_PORT = ports.port(), SLIM = ports.port();
 const B = "http://127.0.0.1:" + PORT, BR = "http://127.0.0.1:" + BRIDGE_PORT;
 const SINK = "http-get:*:audio/flac:*,http-get:*:audio/wav:*";
 const DAC = { device: "FiiO K11", rates: [44100, 96000], bits: [16, 24, 32], dsd: [], volume_control: false, fixed: true };
@@ -52,7 +52,7 @@ test("every Mandarin Bridge's own log, in Mandarin's", { skip, timeout: 120000 }
 
   // Mandarin Bridge for Linux, its log its own lines since it started.
   const linux = spawn(BRIDGE, ["--port", String(BRIDGE_PORT), "--data", path.join(tmp, "data"), "--asound", path.join(tmp, "asound"),
-    "--device", "file:" + path.join(tmp, "dac.raw"), "--address", "127.0.0.1", "--engine", ENGINE, "--ffmpeg", FFMPEG], { stdio: ["ignore", "ignore", "pipe"] });
+    "--device", "file:" + path.join(tmp, "dac.raw"), "--address", "127.0.0.1", "--engine", ENGINE, "--ffmpeg", FFMPEG, "--server", "127.0.0.1:" + SLIM], { stdio: ["ignore", "ignore", "pipe"] });
   linux.stderr.resume();
   t.after(() => linux.kill());
   const dac = await until(async () => (await fetch(BR + "/dac.json")).json(), 15000);
@@ -75,7 +75,7 @@ test("every Mandarin Bridge's own log, in Mandarin's", { skip, timeout: 120000 }
   t.after(() => house.stop());
   const { createServer } = require("./server");
   const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [ports.host(0)],
-    upnpHosts: [BR + "/description.xml", phone.location, older.location], upnpMulticast: false });
+    upnpHosts: [phone.location, older.location], upnpMulticast: false, slimprotoPort: SLIM });
   await srv.start();
   t.after(() => srv.stop());
   const auth = { Authorization: "Bearer " + await signIn(B) };

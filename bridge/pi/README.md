@@ -1,6 +1,6 @@
 # Mandarin Bridge for Raspberry Pi
 
-A Raspberry Pi beside the DAC, as a renderer Mandarin plays to bit-perfect: Raspberry Pi OS Lite (64-bit) with
+A Raspberry Pi beside the DAC, as a player Mandarin plays to bit-perfect (over SlimProto): Raspberry Pi OS Lite (64-bit) with
 [Mandarin Bridge for Linux](../linux/README.md), the audio engine it plays with and ffmpeg, the Bridge started at
 boot. For a Pi 3, 4, 5 or Zero 2 W.
 
