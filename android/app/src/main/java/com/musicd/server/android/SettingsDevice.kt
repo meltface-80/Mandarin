@@ -51,6 +51,7 @@ import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import com.musicd.server.client.CapChip
 import com.musicd.server.client.Contract
+import com.musicd.server.client.DeviceFilters
 import com.musicd.server.client.DevicePage
 import com.musicd.server.client.Palette
 import com.musicd.server.client.SegChoice
