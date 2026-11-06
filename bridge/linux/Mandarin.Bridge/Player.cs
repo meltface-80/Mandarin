@@ -26,6 +26,9 @@ internal sealed class Player(string engine, string ffmpeg, Action<string> log)
 
     /* Told whenever the engine says something new (the state, the track, the format). */
     public Action? Changed;
+    /* Told when a track's last sample is in the engine's buffer (its stream read: SlimProto's STMd), and when all it had is played. */
+    public Action<string>? Decoded;
+    public Action? Ended;
 
     /* The engine on [location] (alsa:plughw:…, or file:… in the tests), with the DAC's native DSD [nativeDsd] ("" for DoP only). */
     public void Open(string location, string nativeDsd)
@@ -109,7 +112,8 @@ internal sealed class Player(string engine, string ffmpeg, Action<string> log)
                     if (Num(ev["rate"]) > 0) Rate = Num(ev["rate"]);
                     break;
                 case "format": Rate = Num(ev["rate"]); Format = Str(ev["format"]); log($"[player] the DAC open at {Rate.ToString(CultureInfo.InvariantCulture)} Hz, {Format}"); break;
-                case "ended": State = "STOPPED"; Seconds = 0; Rate = 0; Format = ""; break;
+                case "decoded": Decoded?.Invoke(Str(ev["uri"])); continue;
+                case "ended": State = "STOPPED"; Seconds = 0; Rate = 0; Format = ""; Changed?.Invoke(); Ended?.Invoke(); continue;
                 case "error": Error = Str(ev["message"]); State = "STOPPED"; log("[player] " + Error); break;
                 case "xrun": log("[player] the DAC ran dry (xrun #" + Num(ev["count"]).ToString(CultureInfo.InvariantCulture) + ")"); break;
                 default: continue;

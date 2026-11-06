@@ -56,8 +56,8 @@ internal static class Web
           $("sub").textContent = "Mandarin Bridge " + s.version + (s.address ? " · " + s.address : "");
           $("status").textContent = s.status;
           const t = s.track; $("track").hidden = !t || !t.title;
-          if (t) { $("title").textContent = t.title || ""; $("artist").textContent = [t.artist, t.album].filter(Boolean).join(" — "); if (t.art) $("art").src = t.art; else $("art").removeAttribute("src"); }
-          $("control").textContent = s.control ? "Last played to from " + s.control.from + ", " + s.control.seconds_ago + " s ago" : "Nothing has played to it yet";
+          if (t) { $("title").textContent = t.title || ""; $("artist").textContent = [t.artist, t.album].filter(Boolean).join(" — "); $("art").hidden = !t.art; if (t.art) $("art").src = t.art; }
+          $("control").textContent = s.mandarin ? "Played by Mandarin at " + s.mandarin.at + ", over SlimProto: last heard " + s.mandarin.seconds_ago + " s ago" : "Looking for Mandarin on the network (SlimProto, port 3483)…";
           const cur = s.dacs.find(d => d.key === s.dac);
           $("dac").textContent = cur ? cur.name + (cur.maker ? " (" + cur.maker + ")" : "") + " · " + cur.takes : "No USB DAC plugged in";
           $("choose").hidden = s.dacs.length < 2;

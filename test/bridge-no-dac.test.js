@@ -1,8 +1,9 @@
 "use strict";
 /*
- * Mandarin Bridge for Linux with no DAC plugged in (item 282): told to play, it says why it can't, as the Android app
- * does (STOPPED, ERROR_OCCURRED, "No USB DAC plugged in" on its page), rather than loading for ever; and the track plays
- * by itself once a DAC is plugged in (its card in /proc/asound), from its start.
+ * Mandarin Bridge for Linux with no DAC plugged in (item 282): told to play (over SlimProto, item 316: a stand-in
+ * server here, test/fake-slim-server.js), it says it couldn't (STMn), as the Android app does, with "No USB DAC plugged
+ * in" on its page, rather than loading for ever; and the track plays by itself once a DAC is plugged in (its card in
+ * /proc/asound), from its start: begun (STMs).
  */
 const test = require("node:test");
 const assert = require("node:assert");
@@ -11,7 +12,9 @@ const os = require("os");
 const path = require("path");
 const { spawn } = require("child_process");
 const ports = require("./ports");
+const http = require("http");
 const { haveFfmpeg, gen, FFMPEG } = require("./fixtures");
+const { FakeSlimServer } = require("./fake-slim-server");
 
 const ROOT = path.join(__dirname, "..");
 const BRIDGE = path.join(ROOT, "bridge", "linux", "bin", "mandarin-bridge");
@@ -27,14 +30,6 @@ async function until(fn, ms = 15000) {
     await sleep(100);
   }
 }
-const AVT = "urn:schemas-upnp-org:service:AVTransport:1";
-const soap = async (base, action, args) => {
-  const body = `<?xml version="1.0"?><s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/"><s:Body><u:${action} xmlns:u="${AVT}"><InstanceID>0</InstanceID>` +
-    Object.entries(args || {}).map(([k, v]) => `<${k}>${v}</${k}>`).join("") + `</u:${action}></s:Body></s:Envelope>`;
-  return (await fetch(base + "/control/AVTransport", { method: "POST", headers: { "Content-Type": "text/xml", SOAPACTION: `"${AVT}#${action}"` }, body })).text();
-};
-const field = (xml, name) => (xml.match(new RegExp(`<${name}>([^<]*)</${name}>`)) || [])[1];
-
 test("no DAC: a play refused with its reason, then played once a DAC is plugged in", { skip, timeout: 60000 }, async (t) => {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "musicd-test-bridge-nodac-"));
   t.after(() => fs.rmSync(tmp, { recursive: true, force: true }));
@@ -43,18 +38,25 @@ test("no DAC: a play refused with its reason, then played once a DAC is plugged 
   const track = path.join(tmp, "tone.flac");
   gen(track, { seconds: 20 });
   const out = path.join(tmp, "dac.raw");
+  const files = http.createServer((req, res) => { res.writeHead(200, { "Content-Type": "audio/flac" }); fs.createReadStream(track).pipe(res); });
+  await new Promise(r => files.listen(0, "127.0.0.1", r));
+  t.after(() => files.close());
+  const mandarin = new FakeSlimServer();
+  await mandarin.start();
+  t.after(() => mandarin.close());
   const port = ports.port(), base = "http://127.0.0.1:" + port;
   const p = spawn(BRIDGE, ["--port", String(port), "--data", path.join(tmp, "data"), "--asound", asound, "--device", "file:" + out, "--address", "127.0.0.1",
-    "--engine", ENGINE, "--ffmpeg", FFMPEG], { stdio: ["ignore", "ignore", "pipe"] });
+    "--engine", ENGINE, "--ffmpeg", FFMPEG, "--server", "127.0.0.1:" + mandarin.port], { stdio: ["ignore", "ignore", "pipe"] });
   let said = "";
   p.stderr.on("data", d => { said += d; });
   t.after(() => p.kill());
   try {
     await until(async () => (await fetch(base + "/dac.json")).ok);
-    await soap(base, "SetAVTransportURI", { CurrentURI: track, CurrentURIMetaData: "" });
-    await soap(base, "Play", { Speed: "1" });
-    const info = await soap(base, "GetTransportInfo");
-    assert.deepEqual([field(info, "CurrentTransportState"), field(info, "CurrentTransportStatus")], ["STOPPED", "ERROR_OCCURRED"], info);
+    await until(() => mandarin.heard.some(h => h.op === "HELO"), 15000);
+    mandarin.strm("s", { port: files.address().port, path: "/tone.flac", autostart: "1" });
+    await until(() => mandarin.events().includes("STMn"));
+    assert.ok(!mandarin.events().includes("STMs"), "not begun");
+    assert.equal((await (await fetch(base + "/dac.json")).json()).now, null);
     assert.equal((await (await fetch(base + "/api/state")).json()).status, "No USB DAC plugged in");
     assert.ok(!fs.existsSync(out), "nothing played");
 
@@ -63,8 +65,8 @@ test("no DAC: a play refused with its reason, then played once a DAC is plugged 
     fs.mkdirSync(path.join(asound, "card1", "pcm0p"), { recursive: true });
     fs.writeFileSync(path.join(asound, "card1", "usbid"), "20b1:301f\n");
     fs.writeFileSync(path.join(asound, "card1", "stream0"), "Playback:\n  Interface 1\n    Altset 1\n    Format: S32_LE\n    Rates: 44100, 48000\n    Bits: 32\n");
-    await until(async () => field(await soap(base, "GetTransportInfo"), "CurrentTransportState") === "PLAYING", 20000);
-    assert.equal(field(await soap(base, "GetTransportInfo"), "CurrentTransportStatus"), "OK");
+    await until(() => mandarin.events().includes("STMs"), 20000);
+    await until(async () => /^Playing/.test((await (await fetch(base + "/api/state")).json()).status), 10000);
     await until(() => fs.existsSync(out) && fs.statSync(out).size > 44100 * 8);
   } catch (e) { console.log(said); throw e; }
 });

@@ -1,7 +1,7 @@
-# Mandarin Bridge for Linux (bridge/linux, item 282): the USB DAC on this computer as a renderer Mandarin plays to.
+# Mandarin Bridge for Linux (bridge/linux, item 282): the USB DAC on this computer as a player Mandarin plays to (SlimProto, item 316).
 # Its page is at http://<this computer>:49494/. Installed by install.sh.
 [Unit]
-Description=Mandarin Bridge (a USB DAC as a renderer for Mandarin)
+Description=Mandarin Bridge (a USB DAC as a player for Mandarin)
 After=network-online.target sound.target
 Wants=network-online.target
 

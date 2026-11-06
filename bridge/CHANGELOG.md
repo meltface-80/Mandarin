@@ -5,7 +5,8 @@
 - New - the Android Bridge is a SlimProto player (as Squeezelite is), where it was a UPnP renderer: it finds Mandarin on the network by itself (port 3483), connects, and plays what Mandarin sends it, one track on into the next, gapless, as before. Its hello tells Mandarin its DAC's highest rate and where its own page is, so Mandarin reads its DAC (/dac.json), offers its updates and reads its log as before (item 315)
 - Improved - Mandarin keeps what it knew of the Bridge as a UPnP renderer: the name you gave it, switched on or off, and its settings (item 315)
 - Improved - the screen says whether Mandarin has been found, at which address, and when it was last heard from; Restart the Bridge and the rest say "the Bridge" where they said "the renderer" (item 315)
-- Improved - UPnP is gone from the Android Bridge: no description, no SOAP control, no events, no SSDP. The Linux Bridge and the Raspberry Pi's follow (item 316)
+- Improved - UPnP is gone from the Android Bridge: no description, no SOAP control, no events, no SSDP (item 315)
+- New - the Linux Bridge, and the Raspberry Pi's, are SlimProto players too: they find Mandarin on the network by themselves, or are pointed at it (`--server <address>`), and play through Mandarin's audio engine as before, gapless, bit-perfect; Mandarin keeps the name and settings it had for them as UPnP renderers. Their page says which Mandarin plays them and when it was last heard from. UPnP is gone from them as well (item 316)
 - Improved - Mandarin Bridge is 0.3.0
 
 ## v0.2.3

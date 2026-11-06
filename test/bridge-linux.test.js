@@ -2,7 +2,8 @@
 /*
  * Mandarin Bridge for Linux (bridge/linux, item 282), end to end: the Bridge started on a computer whose one USB DAC
  * is a Mojo (its /proc/asound written here: PCM to 384 kHz in 32 bits, native DSD to DSD256), played to by
- * Mandarin's own server over UPnP. Mandarin finds it, reads its DAC whole from /dac.json (every rate, the depths,
+ * Mandarin's own server over SlimProto (item 316; UPnP before). It connects to Mandarin (pointed at it here, as
+ * --server; on a network it finds it by itself), Mandarin reads its DAC whole from /dac.json (every rate, the depths,
  * DSD), plays an album to it, and confirms what the DAC is fed; the audio engine under the Bridge writes the
  * samples (here, to a file in place of the DAC) exactly as the track's own. Its web page says what it plays, and a
  * name set there is the name Mandarin knows it by.
@@ -16,7 +17,7 @@ const { spawn, spawnSync } = require("child_process");
 const ports = require("./ports");
 const { haveFfmpeg, makeLibrary, FFMPEG } = require("./fixtures");
 const { FakeHousehold } = require("./fake-sonos");
-const { idFor } = require("./fake-renderer");
+const crypto = require("crypto");
 const { signIn } = require("./auth-helper");
 
 const ROOT = path.join(__dirname, "..");
@@ -24,7 +25,9 @@ const BRIDGE = path.join(ROOT, "bridge", "linux", "bin", "mandarin-bridge");
 const ENGINE = path.join(ROOT, "engine", "bin", "mandarin-audio");
 const built = fs.existsSync(BRIDGE) && fs.existsSync(ENGINE);
 const skip = !haveFfmpeg() ? "ffmpeg is not installed" : !built && !process.env.CI && "bridge/linux/build.sh and engine/build.sh not run";
-const PORT = ports.port(), BRIDGE_PORT = ports.port();
+const PORT = ports.port(), BRIDGE_PORT = ports.port(), SLIM = ports.port();
+// Its SlimProto id: six bytes from its UDN, locally administered (Slim.cs).
+const slimId = udn => { const h = crypto.createHash("sha256").update(udn).digest().subarray(0, 6); h[0] = (h[0] & 0xfc) | 0x02; return "SLIM_" + h.toString("hex").toUpperCase(); };
 const B = "http://127.0.0.1:" + PORT, BR = "http://127.0.0.1:" + BRIDGE_PORT;
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 async function until(fn, ms = 20000) {
@@ -56,7 +59,7 @@ test("Mandarin Bridge for Linux: found, its DAC read whole, played to bit-perfec
   asound(path.join(tmp, "asound"));
   const out = path.join(tmp, "dac.raw");
   const bridge = spawn(BRIDGE, ["--port", String(BRIDGE_PORT), "--data", path.join(tmp, "data"), "--asound", path.join(tmp, "asound"), "--device", "file:" + out,
-    "--address", "127.0.0.1", "--engine", ENGINE, "--ffmpeg", FFMPEG], { stdio: ["ignore", "ignore", "pipe"] });
+    "--address", "127.0.0.1", "--engine", ENGINE, "--ffmpeg", FFMPEG, "--server", "127.0.0.1:" + SLIM], { stdio: ["ignore", "ignore", "pipe"] });
   let said = "";
   bridge.stderr.on("data", d => { said += d; });
   t.after(() => bridge.kill());
@@ -73,7 +76,7 @@ test("Mandarin Bridge for Linux: found, its DAC read whole, played to bit-perfec
   t.after(() => house.stop());
   const { createServer } = require("./server");
   const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [ports.host(0)],
-    upnpHosts: [BR + "/description.xml"], upnpMulticast: false });
+    upnpMulticast: false, slimprotoPort: SLIM });
   await srv.start();
   t.after(() => srv.stop());
   const auth = { Authorization: "Bearer " + await signIn(B) };
@@ -81,11 +84,12 @@ test("Mandarin Bridge for Linux: found, its DAC read whole, played to bit-perfec
     const r = await fetch(B + "/api/" + p, body || method ? { method: method || "POST", headers: Object.assign({ "Content-Type": "application/json" }, auth), body: JSON.stringify(body || {}) } : { headers: auth });
     return { status: r.status, ...await r.json().catch(() => ({})) };
   };
-  const ID = idFor(dac.udn);
+  const ID = slimId(dac.udn);
   try {
     await until(async () => (await api("status")).index_count >= 3);
     const d = await until(async () => (await api("audio-devices")).devices.find(x => x.id === ID));
     assert.equal(d.model, "Mandarin Bridge");
+    assert.equal(d.kind, "slim", "played over SlimProto");
     assert.deepEqual(d.rates.filter(c => c.on).map(c => c.hz), dac.dac.rates);
     assert.deepEqual(d.dsd.filter(c => c.on).map(c => c.n), [64, 128, 256]);
     assert.equal((await api("audio-devices/" + ID, { enabled: true }, "PATCH")).status, 200);
@@ -124,7 +128,7 @@ test("Mandarin Bridge for Linux: found, its DAC read whole, played to bit-perfec
     // A name set on its page: the name Mandarin knows it by.
     const set = await (await fetch(BR + "/api/settings", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: "Study DAC" }) })).json();
     assert.equal(set.name, "Study DAC");
-    assert.match(await (await fetch(BR + "/description.xml")).text(), /<friendlyName>Study DAC<\/friendlyName>/);
-    await until(async () => (await api("audio-devices/rescan", {})).devices.find(x => x.id === ID && x.network_name === "Study DAC"), 20000);
+    assert.equal((await fetch(BR + "/description.xml")).status, 404, "no UPnP description any more");
+    await until(async () => (await api("audio-devices")).devices.find(x => x.id === ID && x.network_name === "Study DAC"), 20000);
   } catch (e) { console.log(said); throw e; }
 });
