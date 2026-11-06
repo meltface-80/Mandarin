@@ -30,7 +30,7 @@ import com.musicd.server.client.UsbView
 import kotlinx.coroutines.delay
 
 /**
- * The one screen: what the renderer and the DAC are doing, the USB settings
+ * The one screen: what the Bridge and the DAC are doing, the USB settings
  * Mandarin's driver has (fixed volume, the limit, how DSD goes), and what
  * keeps the device awake. Read afresh every second while shown.
  */
@@ -46,9 +46,8 @@ class MainActivity : ComponentActivity() {
         val artist: String?,
         val album: String?,
         val address: String?,
-        val lastControl: Pair<String, Long>?,
-        val lastSearch: Pair<String, Long>?,
-        val subscribers: Int,
+        val server: String?,
+        val lastHeard: Long,
         val awake: Boolean,
         val batteryExempt: Boolean,
         val usbNow: String?,
@@ -83,20 +82,19 @@ class MainActivity : ComponentActivity() {
 
     fun snapshot(): Snapshot {
         val s = DacService.current?.takeIf { it.ready }
-        val d = s?.renderer?.current?.didl
+        val d = s?.transport?.current
         val pm = getSystemService(PowerManager::class.java)
         return Snapshot(
             service = s,
             usb = UsbView(UsbDac.json(this)),
-            statusLine = s?.statusLine() ?: (DacService.current?.statusLine() ?: "The renderer isn't running"),
-            transport = s?.renderer?.transportState() ?: "NO_MEDIA_PRESENT",
+            statusLine = s?.statusLine() ?: (DacService.current?.statusLine() ?: "The Bridge isn't running"),
+            transport = s?.transport?.transportState() ?: "NO_MEDIA_PRESENT",
             title = d?.title?.takeIf { it.isNotBlank() },
             artist = d?.artist?.takeIf { it.isNotBlank() },
             album = d?.album?.takeIf { it.isNotBlank() },
             address = s?.baseUrl(),
-            lastControl = s?.lastControl,
-            lastSearch = s?.lastSearch,
-            subscribers = s?.renderer?.avt?.count() ?: 0,
+            server = s?.slim?.server?.hostAddress,
+            lastHeard = s?.slim?.lastHeard ?: 0L,
             awake = Awake.held(),
             batteryExempt = pm.isIgnoringBatteryOptimizations(packageName),
             usbNow = s?.usbNow(),
@@ -121,7 +119,7 @@ class MainActivity : ComponentActivity() {
         if (d != null && UsbDac.info() == null && askedUsb != d.deviceName) { askedUsb = d.deviceName; UsbDac.requestPermission(this) }
     }
 
-    /** The screen kept on while the app is in front (the device itself is kept awake by the renderer regardless). */
+    /** The screen kept on while the app is in front (the device itself is kept awake by the Bridge regardless). */
     fun keepScreen(on: Boolean) {
         if (on) window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON) else window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
     }
@@ -141,7 +139,7 @@ class MainActivity : ComponentActivity() {
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
         if ((keyCode == KeyEvent.KEYCODE_VOLUME_UP || keyCode == KeyEvent.KEYCODE_VOLUME_DOWN) && UsbDriver.controlsVolume) {
             UsbDriver.stepVolume(keyCode == KeyEvent.KEYCODE_VOLUME_UP)
-            DacService.current?.let { s -> s.main.post { if (s.ready) s.renderer.evented() } }
+            DacService.current?.let { s -> s.main.post { if (s.ready) s.slim.rehello() } }
             return true
         }
         return super.onKeyDown(keyCode, event)

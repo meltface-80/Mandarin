@@ -5,7 +5,7 @@ import android.os.Build
 import java.util.UUID
 
 /**
- * What the app remembers: the renderer's name and identity on the network,
+ * What the app remembers: the Bridge's name and identity on the network,
  * what keeps the device awake, and the USB settings Mandarin's driver reads.
  *
  * The USB functions are the ones Mandarin's UsbDriver, UsbDac and
@@ -17,12 +17,12 @@ object Store {
     private const val PREFS = "mandarin-usb"
     private fun prefs(c: Context) = c.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 
-    // ------------------------------------------------------------- renderer
+    // ------------------------------------------------------------- the Bridge
 
-    /** The port the renderer answers on (its description, control, events and dac.json). */
+    /** The port the Bridge answers on (dac.json, its updates, its log): told to Mandarin in its hello. */
     const val PORT = 49494
 
-    /** What the renderer is called on the network (UPnP friendlyName): what Mandarin's speaker list shows. */
+    /** What the Bridge is called on the network (its SlimProto name, setd): what Mandarin's speaker list shows. */
     fun friendlyName(c: Context): String = prefs(c).getString("friendly_name", null)?.takeIf { it.isNotBlank() } ?: defaultName()
     fun setFriendlyName(c: Context, name: String) { prefs(c).edit().putString("friendly_name", name.trim()).apply() }
 
@@ -32,7 +32,7 @@ object Store {
         return (if (model.startsWith(maker, ignoreCase = true)) model else "$maker $model") + " USB"
     }
 
-    /** The renderer's UDN ("uuid:…"), made once and kept: the id Mandarin knows the device by across restarts and addresses. */
+    /** The Bridge's UDN ("uuid:…"), made once and kept: its SlimProto MAC is made from it, the id Mandarin knows it by. */
     @Synchronized
     fun udn(c: Context): String {
         val p = prefs(c)

@@ -17,8 +17,8 @@ internal sealed class SlimRenderer(string id, string name, Func<string, SlimPlay
     public Task Pause() { Player.Pause(); return Task.CompletedTask; }
     public Task Stop() { Player.Stop(); return Task.CompletedTask; }
     public Task SeekTime(double seconds) => throw new RendererError($"{Name} can't seek yet", double.NaN);
-    public Task SetUri(string uri, string meta = "") { Player.SetUri(uri); return Task.CompletedTask; }
-    public Task SetNextUri(string uri, string meta = "") { Player.SetNextUri(uri); return Task.CompletedTask; }
+    public Task SetUri(string uri, string meta = "") { Player.SetUri(uri, meta); return Task.CompletedTask; }
+    public Task SetNextUri(string uri, string meta = "") { Player.SetNextUri(uri, meta); return Task.CompletedTask; }
 
     public Task<JsObj> GetTransportInfo() =>
         Task.FromResult(Jv.Obj(("CurrentTransportState", Player.State), ("CurrentTransportStatus", "OK"), ("CurrentSpeed", "1")));
