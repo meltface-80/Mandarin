@@ -106,7 +106,9 @@ internal static class DsdRules
             }
             worst = Math.Max(worst, Math.Abs(sum - y[k]));
         }
-        return new JsObj { ["worst"] = worst, ["gain"] = h.Sum() };
+        // Four outputs at a time (item 319) against one at a time: the same bits.
+        var same = y.AsSpan().SequenceEqual(DsdChain.DoubleOnce(x, scalar: true));
+        return new JsObj { ["worst"] = worst, ["gain"] = h.Sum(), ["scalar_same"] = same };
     }
 
     // The seventh order's own path (DsdModulator.Run4) against the loops it stands for (item 251): the same signal, music

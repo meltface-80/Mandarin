@@ -39,6 +39,7 @@ public sealed class DsdSpeedTests
     {
         var r = await Run(new { fn = "dsdmod", halfband = true });
         Assert.True(r.Num("worst") < 1e-14, $"against every tap: {r.Num("worst")}");
+        Assert.True(r.Bool("scalar_same") ?? false, "four outputs at a time (item 319): the same bits as one at a time");
         Assert.Equal(2.0, r.Num("gain")!.Value, 3);
     }
 }

@@ -18,6 +18,10 @@
 // likewise: nothing of megabytes is made anew, and nothing is cut from the front of a list. Given a [sink], the chain
 // runs its modulator on a thread of its own, fed through a short queue, so that the doublings of the next samples and
 // the modulation of these go on at once; the bits are the same, in the same order.
+using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.X86;
+
 namespace Mandarin.Server.Upsample;
 
 internal sealed class DsdChain
@@ -45,6 +49,8 @@ internal sealed class DsdChain
     private readonly System.Collections.Concurrent.BlockingCollection<double[]>? toModulator;
     private readonly Task? modulating;
     private readonly Action<ReadOnlySpan<byte>>? sink;
+    private readonly Action<double[]>? doubled;   // where the samples go in place of the modulator (DsdRun's pair, item 319)
+    private static readonly Action<ReadOnlySpan<byte>> NoBits = _ => { };
 
     static DsdChain()
     {
@@ -68,9 +74,18 @@ internal sealed class DsdChain
      * A chain to [dsdRate] (2822400, 5644800 or 11289600; 3072000, 6144000 or 12288000 from 768 kHz), the modulator shaped by [ntf]; given [sink], its modulator on
      * a thread of its own, the bits handed to [sink] there, in order (Push(x), Finish(frames)).
      */
-    public DsdChain(int dsdRate, DsdNtf ntf, Action<ReadOnlySpan<byte>>? sink = null)
+    public DsdChain(int dsdRate, DsdNtf ntf, Action<ReadOnlySpan<byte>>? sink = null) : this(dsdRate, ntf, sink, null) { }
+
+    /*
+     * A chain whose doubled samples, whole bytes' worth at a time, are handed to [doubled] in place of its modulator,
+     * which is left to be run beside the other channel's (DsdModulator.RunPair, item 319); Push(x), Finish(frames).
+     */
+    public DsdChain(int dsdRate, DsdNtf ntf, Action<double[]> doubled) : this(dsdRate, ntf, null, doubled) { }
+
+    private DsdChain(int dsdRate, DsdNtf ntf, Action<ReadOnlySpan<byte>>? sink, Action<double[]>? doubled)
     {
         this.sink = sink;
+        this.doubled = doubled;
         if (sink != null)
         {
             toModulator = new(boundedCapacity: 4);
@@ -93,10 +108,10 @@ internal sealed class DsdChain
     }
 
     /* [x] through the chain, its bits to the sink given at the start. */
-    public void Push(ReadOnlySpan<double> x) => Push(x, sink ?? throw new InvalidOperationException("a chain without a sink is given its bits' destination at each push"));
+    public void Push(ReadOnlySpan<double> x) => Push(x, sink ?? (doubled != null ? NoBits : throw new InvalidOperationException("a chain without a sink is given its bits' destination at each push")));
 
     /* The end, as Finish(frames, bits), to the sink given at the start; once its modulator has made the last bits. */
-    public void Finish(long frames) => Finish(frames, sink ?? throw new InvalidOperationException("a chain without a sink is given its bits' destination at the end"));
+    public void Finish(long frames) => Finish(frames, sink ?? (doubled != null ? NoBits : throw new InvalidOperationException("a chain without a sink is given its bits' destination at the end")));
 
     /*
      * The doublings' delay flushed out with silence, and the track's last bits made: [frames] at 705.6 kHz in all,
@@ -156,7 +171,9 @@ internal sealed class DsdChain
         Array.Copy(pending, count, pending, 0, waiting - count);
         waiting -= count;
         queued += count;
-        if (toModulator != null) toModulator.Add(x); else Modulate(x, bits);
+        if (doubled != null) { doubled(x); Emitted += x.Length; }
+        else if (toModulator != null) toModulator.Add(x);
+        else Modulate(x, bits);
     }
 
     // [x] made bits, handed to [bits].
@@ -179,12 +196,12 @@ internal sealed class DsdChain
     }
 
     /* [x] doubled once from silence, as a doubling does it (for the tests, item 251). */
-    internal static double[] DoubleOnce(double[] x)
+    internal static double[] DoubleOnce(double[] x, bool scalar = false)
     {
         var all = new double[H + x.Length];
         Array.Copy(x, 0, all, H, x.Length);
         var y = new double[H + 2 * x.Length];
-        Double(all, x.Length, y);
+        Double(all, x.Length, y, scalar);
         return y[H..];
     }
 
@@ -213,12 +230,42 @@ internal sealed class DsdChain
     }
 
     // The [len] inputs of [all] (after its H last ones) doubled into [y] after H: y[2m] the centre's input, x[m - Half / 2];
-    // y[2m + 1] the odd taps over x[m - i], paired either side of the centre.
-    private static void Double(double[] all, int len, double[] y)
+    // y[2m + 1] the odd taps over x[m - i], paired either side of the centre. Four outputs at a time where the processor
+    // has 256-bit vectors (item 319), each lane the same sums in the same order as one output alone: the same bits.
+    private static void Double(double[] all, int len, double[] y, bool scalar = false)
     {
         var odd = Odd;
         double c0 = odd[0], c1 = odd[1], c2 = odd[2], c3 = odd[3], c4 = odd[4], c5 = odd[5], c6 = odd[6], c7 = odd[7];
-        for (var m = 0; m < len; m++)
+        var m = 0;
+        if (!scalar && Vector256.IsHardwareAccelerated && len >= 4)
+        {
+            ref var x = ref MemoryMarshal.GetArrayDataReference(all);
+            ref var yy = ref MemoryMarshal.GetArrayDataReference(y);
+            Vector256<double> v0 = Vector256.Create(c0), v1 = Vector256.Create(c1), v2 = Vector256.Create(c2), v3 = Vector256.Create(c3),
+                v4 = Vector256.Create(c4), v5 = Vector256.Create(c5), v6 = Vector256.Create(c6), v7 = Vector256.Create(c7);
+            for (; m + 4 <= len; m += 4)
+            {
+                var at = (nuint)(H + m);
+                var o = v0 * (Vector256.LoadUnsafe(ref x, at - 0) + Vector256.LoadUnsafe(ref x, at - 15)) + v1 * (Vector256.LoadUnsafe(ref x, at - 1) + Vector256.LoadUnsafe(ref x, at - 14)) + v2 * (Vector256.LoadUnsafe(ref x, at - 2) + Vector256.LoadUnsafe(ref x, at - 13)) + v3 * (Vector256.LoadUnsafe(ref x, at - 3) + Vector256.LoadUnsafe(ref x, at - 12))
+                    + v4 * (Vector256.LoadUnsafe(ref x, at - 4) + Vector256.LoadUnsafe(ref x, at - 11)) + v5 * (Vector256.LoadUnsafe(ref x, at - 5) + Vector256.LoadUnsafe(ref x, at - 10)) + v6 * (Vector256.LoadUnsafe(ref x, at - 6) + Vector256.LoadUnsafe(ref x, at - 9)) + v7 * (Vector256.LoadUnsafe(ref x, at - 7) + Vector256.LoadUnsafe(ref x, at - 8));
+                var e = Vector256.LoadUnsafe(ref x, at - Half / 2);
+                var to = (nuint)(H + 2 * m);
+                if (Avx.IsSupported)
+                {
+                    // Even and odd interleaved: (e0, o0, e2, o2) and (e1, o1, e3, o3), their halves put in order.
+                    Vector256<double> lo = Avx.UnpackLow(e, o), hi = Avx.UnpackHigh(e, o);
+                    Avx.Permute2x128(lo, hi, 0x20).StoreUnsafe(ref yy, to);
+                    Avx.Permute2x128(lo, hi, 0x31).StoreUnsafe(ref yy, to + 4);
+                }
+                else
+                {
+                    var t = (int)to;
+                    y[t] = e[0]; y[t + 1] = o[0]; y[t + 2] = e[1]; y[t + 3] = o[1];
+                    y[t + 4] = e[2]; y[t + 5] = o[2]; y[t + 6] = e[3]; y[t + 7] = o[3];
+                }
+            }
+        }
+        for (; m < len; m++)
         {
             var at = H + m;      // x[m] in all
             var o = c0 * (all[at] + all[at - 15]) + c1 * (all[at - 1] + all[at - 14]) + c2 * (all[at - 2] + all[at - 13]) + c3 * (all[at - 3] + all[at - 12])

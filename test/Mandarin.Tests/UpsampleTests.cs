@@ -19,6 +19,7 @@ public sealed class UpsampleTests
     {
         var r = await Run(new { fn = "upsample", fft = 1024 });
         Assert.True(r.Num("fft_db") < -280, $"the FFT against the DFT: {r.Num("fft_db")} dB");
+        Assert.True(r.Bool("staged_same") ?? false, "four butterflies at a time (item 319): the same bits as one at a time");
         Assert.True(r.Num("round_trip_db") < -280, $"forward then inverse: {r.Num("round_trip_db")} dB");
     }
 
