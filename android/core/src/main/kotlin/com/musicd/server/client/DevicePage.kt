@@ -166,7 +166,7 @@ class DevicePage(val j: JSONObject) {
         val top = rates.filter { it.on && it.value % 44100 == 0 && it.value <= capFor(it.value) }.maxOfOrNull { it.value } ?: 0
         val rate = when (mode) { "x2" -> minOf(88200, if (top > 0) top else 44100); "x4" -> minOf(176400, if (top > 0) top else 44100); "max" -> if (top > 0) top else 44100; else -> 44100 }
         if (mode == "original" || rate <= 44100) return "A 16-bit/44.1 kHz file plays as it is."
-        val b = if (has32 && flac32 && outBits != "24") 32 else 24
+        val b = if (has32 && flac32 && outBits == "32") 32 else 24   // Auto is 24 (item 308)
         return "A 16-bit/44.1 kHz file plays as $b-bit/${rateWord(rate)} kHz FLAC" + (if (rate == 176400) " (×4)" else if (rate == 88200) " (×2)" else "") + "."
     }
 

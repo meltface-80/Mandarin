@@ -51,7 +51,7 @@ public sealed class StreamTests
             // A lossy file follows the same rules; DSD is PCM at the top of the 44.1 ladder ≤ 176.4.
             [J(new { path = "/m/a.mp3", codec = "MPEG 1 Layer 3", sampleRate = 44100 }), Mode("x2", wiim)], [dsf, Mode("max", wiim)],
             [dsf, dsdDac], [dff, dsdDac], [dsf, named], [dff, named], [With(dsf, new { sampleRate = 5644800 }), dsdDac],
-            [hi], [hi, low]);
+            [hi], [hi, low], [cd, Mode("max", poly, new { bits = 32 })]);
         Assert.False(p[0].Bool("transcode"));
         Assert.False(p[1].Bool("transcode"));
         Assert.Equal((176400, 24, null), Pick(p[2]));
@@ -61,9 +61,11 @@ public sealed class StreamTests
         Assert.Equal((176400, 24, 4), Pick(p[6]));
         Assert.True(Pick(p[7]) == (192000, 24, 2), "capped at the top of the 48 k family");
         Assert.True(p[8].Bool("transcode") == false, "already at the top: as it is");
-        Assert.Equal((705600, 32, 16), Pick(p[9]));
+        // Auto is 24 bits, however deep the device goes (item 308: a Poly and Android's FLAC decoder played no 32-bit FLAC); 32 only asked for.
+        Assert.Equal((705600, 24, 16), Pick(p[9]));
         Assert.Equal((705600, 24, 16), Pick(p[10]));
-        Assert.Equal((768000, 32, 16), Pick(p[11]));
+        Assert.Equal((768000, 24, 16), Pick(p[11]));
+        Assert.Equal((705600, 32, 16), Pick(p[21]));
         Assert.Equal((88200, 24, 2), Pick(p[12]));
         Assert.Equal((176400, 24, null), Pick(p[13]));
         Assert.Equal((false, "audio/x-dsf", "dsf", 64.0), (p[14].Bool("transcode") ?? true, p[14].Str("mime"), p[14].Str("ext"), p[14].Num("dsd") ?? 0));

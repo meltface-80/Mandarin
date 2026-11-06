@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Fixed - upsampling to PCM played nothing on a Chord Poly or a Mandarin Bridge on a FiiO R7: a device whose bit depth was Auto, and which listed 32 bits, was sent 32-bit FLAC, which neither could decode. Auto is now 24 bits; 32 goes out only where a device is set to 32 (item 308)
 - New - a device's own player (Settings → Audio Devices → a device → Output → Player): where a renderer has MPD beside it, as a Chord Poly does, Mandarin can hand MPD the queue instead of UPnP, and MPD plays one track into the next by itself, gapless, as it plays its own library; Mandarin follows it from what MPD says (item 306)
 - Fixed - Albums as one stream on a Chord Poly went a track at a time, with a long gap at each: the Poly named the track it had been playing for a moment after the album started, and Mandarin took that for the album stream having ended. It now stays one stream (item 305)
 - Fixed - PCM at 705.6 and 768 kHz played nothing on a Chord Poly, which can't decode FLAC at those rates: it goes as WAV again, as before. With Albums as one stream at those rates, an album goes as a few streams of under 4 GB each (12.7 minutes at 32-bit/705.6 kHz), the most a WAV can say (item 307)
