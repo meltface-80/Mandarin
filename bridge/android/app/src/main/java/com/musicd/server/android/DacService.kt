@@ -22,6 +22,7 @@ import androidx.media3.common.MimeTypes
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
+import androidx.media3.datasource.DataSource
 import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.exoplayer.DefaultLoadControl
@@ -172,7 +173,13 @@ class DacService : Service() {
             .setAllowCrossProtocolRedirects(true)
             .setConnectTimeoutMs(5_000)
             .setReadTimeoutMs(8_000)
-        val sources = DefaultDataSource.Factory(this, http)
+        // Mandarin's continuous PCM read with an hour's patience: it waits to be told the next track (item 322).
+        val patient = DefaultHttpDataSource.Factory()
+            .setUserAgent("MandarinBridge/${BuildConfig.VERSION_NAME}")
+            .setConnectTimeoutMs(5_000)
+            .setReadTimeoutMs(3_600_000)
+        val usual = DefaultDataSource.Factory(this, http)
+        val sources = DataSource.Factory { PatientDataSource(usual.createDataSource(), patient.createDataSource()) }
         // The playing track fetched well ahead (up to 5 minutes or 48 MB), so a Wi-Fi hiccup is never heard.
         val ahead = DefaultLoadControl.Builder()
             .setBufferDurationsMs(AHEAD_MS, AHEAD_MS, 1_500, 3_000)
@@ -200,8 +207,13 @@ class DacService : Service() {
         }
             .setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER)
             .setEnableAudioFloatOutput(true)
-        // DSF and DFF files are read by Mandarin's extractor; everything else by Media3's.
-        val extractors = ExtractorsFactory { arrayOf<Extractor>(DsdExtractor()) + DefaultExtractorsFactory().createExtractors() }
+        // DSF and DFF files are read by Mandarin's extractor; everything else by Media3's; Mandarin's continuous PCM
+        // (item 322), its format on its address, by RawPcmExtractor.
+        val extractors = object : ExtractorsFactory {
+            override fun createExtractors(): Array<Extractor> = arrayOf<Extractor>(DsdExtractor()) + DefaultExtractorsFactory().createExtractors()
+            override fun createExtractors(uri: android.net.Uri, responseHeaders: Map<String, List<String>>): Array<Extractor> =
+                RawPcmExtractor.of(uri)?.let { arrayOf<Extractor>(it) } ?: createExtractors()
+        }
         player = ExoPlayer.Builder(this, renderers)
             .setLoadControl(ahead)
             .setMediaSourceFactory(DefaultMediaSourceFactory(this, extractors).setDataSourceFactory(sources).setLoadErrorHandlingPolicy(retrying))

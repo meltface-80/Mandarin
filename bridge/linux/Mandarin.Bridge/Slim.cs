@@ -7,6 +7,9 @@
 // one plays, the next, gapless), 'q' stop, 'p' pause, 'u' go on, 't' how are you. It says what happens (STAT): STMs a
 // track begun, STMd its last sample decoded (Mandarin then gives the next), STMl buffered, waiting for Play, STMp,
 // STMr, STMu all played, STMn a track it couldn't play, STMt with how far in. Its volume is the DAC's: audg is let be.
+// Its hello says it takes Mandarin's continuous PCM (item 322): a strm s of PCM ('p') is a run, one stream of samples
+// alone, track on into track, its format said in the strm and handed to the engine on its address ("#pcm=s24le:96000:2",
+// the engine's RawPcm.cs); Mandarin tells it each track it comes to in the run (mtrk), for its page.
 //
 // A frame from the server: 2 bytes of length, four letters, the rest; one to it: four letters, 4 bytes of length.
 using System.Buffers.Binary;
@@ -169,6 +172,7 @@ internal sealed class Slim
         {
             case "strm": Strm(b); break;
             case "setd" when b.Length == 1 && b[0] == 0: Send("SETD", [0, .. Encoding.UTF8.GetBytes(name() + "\0")]); break;
+            case "mtrk": Told(Encoding.ASCII.GetString(b)); break;
             case "audg" or "aude" or "serv" or "setd": break;   // its volume is the DAC's
             default: log("[slimproto] unhandled " + op); break;
         }
@@ -199,6 +203,7 @@ internal sealed class Slim
         var ip = BinaryPrimitives.ReadUInt32BigEndian(b.AsSpan(20));
         var host = ip == 0 ? Server?.ToString() : new IPAddress(b.AsSpan(20, 4)).ToString();
         if (host == null || ItemOf($"http://{host}:{port}", Encoding.Latin1.GetString(b, 24, b.Length - 24)) is not { } item) return;
+        if (Raw(b) is { } raw) item = item with { Uri = item.Uri + raw };   // a run of Mandarin's PCM: what its samples are
         Stat("STMc");
         bool asNext;
         lock (gate)
@@ -220,8 +225,34 @@ internal sealed class Slim
     {
         var lines = request.Split("\r\n");
         if (lines[0].Split(' ') is not [_, var path, ..]) return null;
-        string Header(string h) => lines.FirstOrDefault(l => l.StartsWith(h + ":", StringComparison.OrdinalIgnoreCase)) is { } l ? Uri.UnescapeDataString(l[(h.Length + 1)..].Trim()) : "";
-        return new Item(origin + path, Header("X-Mandarin-Title"), Header("X-Mandarin-Artist"), Header("X-Mandarin-Album"));
+        return new Item(origin + path, Header(lines, "X-Mandarin-Title"), Header(lines, "X-Mandarin-Artist"), Header(lines, "X-Mandarin-Album"));
+    }
+
+    private static string Header(string[] lines, string h) =>
+        lines.FirstOrDefault(l => l.StartsWith(h + ":", StringComparison.OrdinalIgnoreCase)) is { } l ? Uri.UnescapeDataString(l[(h.Length + 1)..].Trim()) : "";
+
+    /* The rates a strm can name, each by its place as a character from '0' (the server's SlimFrames.cs). */
+    private static readonly int[] Rates = [11025, 22050, 32000, 44100, 48000, 8000, 12000, 16000, 24000, 96000, 88200, 176400, 192000, 352800, 384000, 0, 705600, 768000, 1411200, 1536000];
+
+    /* A strm s of PCM ('p', item 322): its samples' format as the engine is told it ("#pcm=s24le:96000:2"); null for any other stream. */
+    public static string? Raw(byte[] b)
+    {
+        if (b.Length < 7 || b[2] != 'p') return null;
+        int bits = b[3] switch { (byte)'1' => 16, (byte)'2' => 24, (byte)'3' => 32, _ => 0 }, r = b[4] - '0', channels = b[5] - '0';
+        if (bits == 0 || r < 0 || r >= Rates.Length || Rates[r] == 0 || channels is < 1 or > 8 || b[6] is not ((byte)'0' or (byte)'1')) return null;
+        return $"#pcm=s{bits}{(b[6] == '1' ? "le" : "be")}:{Rates[r]}:{channels}";
+    }
+
+    /* Mandarin told it the track it has come to in the run it plays (mtrk, item 322): what it is, for its page; gone on to it gapless. */
+    private void Told(string headers)
+    {
+        var lines = headers.Split("\r\n");
+        lock (gate)
+        {
+            if (Current is not { } c) return;
+            Current = c with { Title = Header(lines, "X-Mandarin-Title"), Artist = Header(lines, "X-Mandarin-Artist"), Album = Header(lines, "X-Mandarin-Album") };
+            Joined++;
+        }
     }
 
     /* A DAC plugged in while a track waited for one (Player.NoDac): played from its start, as the Android app does. */

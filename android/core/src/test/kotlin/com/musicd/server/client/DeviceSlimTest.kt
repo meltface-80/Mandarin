@@ -26,4 +26,11 @@ class DeviceSlimTest {
         assertTrue(slim.capNotes.any { it.startsWith("DSD files go to it as DSF") && it.contains("-D option") })
         assertFalse("a renderer keeps its switch", page("upnp").slimGapless)
     }
+
+    @Test fun `a Mandarin Bridge played continuous PCM has its own Gapless note`() {
+        val bridge = page("slim", ""","continuous_pcm":true""")
+        assertTrue(bridge.slimGapless)
+        assertTrue(bridge.slimGaplessNote.startsWith("Mandarin plays this Bridge one continuous stream of PCM"))
+        assertTrue(bridge.slimGaplessNote.contains("half a second of silence at the new rate"))
+    }
 }

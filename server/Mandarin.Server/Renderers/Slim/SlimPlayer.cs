@@ -3,7 +3,8 @@
 // started, to wait until Play; the next, started once the player has read the last of the one before (STMd) — it plays
 // into it from its own buffer, one stream on into the next, as Lyrion Music Server plays a Squeezebox gapless. It
 // says when the next has begun playing (STMs), when it is paused and goes on (STMp, STMr), when all it had is played
-// (STMu); how far into the track it is, in each STAT, asked for every second (strm 't').
+// (STMu); how far into the track it is, in each STAT, asked for every second (strm 't'). A Mandarin Bridge that takes
+// Mandarin's continuous PCM (ContinuousPcm=1 in its hello, item 322) is played by SlimRuns.cs instead.
 using System.Net.Sockets;
 using static Mandarin.Server.Renderers.Slim.SlimFrames;
 
@@ -23,6 +24,11 @@ internal sealed class SlimPlayer
     public Helo Helo { get; private set; }
     public string Ip { get; private set; }
     public bool Connected { get; private set; } = true;
+
+    /* Its transport where it takes Mandarin's continuous PCM (item 322: SlimRuns.cs), else null (a track's file at a time, here). */
+    public SlimRuns? Runs => Helo.Caps().Pairs.TryGetValue("ContinuousPcm", out var v) && v == "1"
+        ? runs ??= new SlimRuns(Id, Send, log, e => { lock (gate) lastError = $"{Name} {e}"; }, () => Playback.Hub.Current?.Upnp?.OnNotify(Id, new Tags.JsObj())) : null;
+    private SlimRuns? runs;
 
     /* Its name: as it was named (setd 0), else its model's. */
     public string Name => named is { Length: > 0 } n ? n : Helo.Caps().Pairs.TryGetValue("ModelName", out var m) && m.Length > 0 ? m : "Squeezelite";
@@ -78,6 +84,7 @@ internal sealed class SlimPlayer
             if (net != null && !ReferenceEquals(net.Socket, socket)) return false;
             Connected = false; net = null;
             heartbeat?.Dispose(); heartbeat = null;
+            runs?.Gone();
             if (state == "PLAYING") state = "STOPPED";
             return true;
         }
@@ -97,6 +104,7 @@ internal sealed class SlimPlayer
     /* What it says of itself. */
     public void Heard(Stat s)
     {
+        if (Runs is { } r) { r.Heard(s); return; }
         string? nextToSend = null;
         var sendUnpause = false;
         lock (gate)
@@ -132,6 +140,7 @@ internal sealed class SlimPlayer
     /* The track [uri] set: what it played stopped and forgotten, this one fetched, to wait until Play. */
     public void SetUri(string uri, string meta = "")
     {
+        if (Runs is { } r) { r.SetUri(uri, meta); return; }
         lock (gate) { said.Clear(); said[uri] = Headers(meta); }
         lock (gate) { current = streaming = uri; next = ""; streamRead = loaded = playWanted = false; state = "STOPPED"; elapsedMs = 0; elapsedAt = Environment.TickCount64; offset = 0; }
         Send(Strm('q'));
@@ -141,6 +150,7 @@ internal sealed class SlimPlayer
     /* The next after the one playing: started now where the one playing has been read to its end, else once it has. */
     public void SetNextUri(string uri, string meta = "")
     {
+        if (Runs is { } r) { r.SetNextUri(uri, meta); return; }
         bool now;
         lock (gate)
         {
@@ -154,6 +164,7 @@ internal sealed class SlimPlayer
 
     public void Play()
     {
+        if (Runs is { } r) { r.Play(); return; }
         bool unpause = false, again = false;
         string uri;
         lock (gate)
@@ -168,10 +179,11 @@ internal sealed class SlimPlayer
         else if (unpause) Send(Strm('u'));
     }
 
-    public void Pause() { Send(Strm('p')); lock (gate) if (state == "PLAYING") state = "PAUSED_PLAYBACK"; }
+    public void Pause() { if (Runs is { } r) { r.Pause(); return; } Send(Strm('p')); lock (gate) if (state == "PLAYING") state = "PAUSED_PLAYBACK"; }
 
     public void Stop()
     {
+        if (Runs is { } r) { r.Stop(); return; }
         Send(Strm('q'));
         lock (gate) { state = "STOPPED"; streaming = current; streamRead = loaded = playWanted = false; elapsedMs = 0; offset = 0; }
     }
@@ -180,6 +192,7 @@ internal sealed class SlimPlayer
        (?ss=, Streams.From.cs), playing on where it played, waiting where it was paused; the next after it kept. */
     public void SeekTime(double seconds)
     {
+        if (Runs is { } r) { r.SeekTime(seconds); return; }
         string uri;
         bool playing;
         lock (gate)
@@ -202,13 +215,14 @@ internal sealed class SlimPlayer
         uri + (uri.Contains('?', StringComparison.Ordinal) ? "&" : "?") + "ss=" + Math.Max(0, seconds).ToString("0.###", System.Globalization.CultureInfo.InvariantCulture);
 
     /* As AVTransport says it: PLAYING, PAUSED_PLAYBACK, STOPPED; NO_MEDIA_PRESENT with no track. */
-    public string State { get { lock (gate) return current.Length == 0 ? "NO_MEDIA_PRESENT" : state; } }
+    public string State { get { if (Runs is { } r) return r.State; lock (gate) return current.Length == 0 ? "NO_MEDIA_PRESENT" : state; } }
 
     /* The track playing, and how far into it (from its last STAT, on from there while it plays). */
     public (string Uri, double Seconds) Position
     {
         get
         {
+            if (Runs is { } r) return r.Position;
             lock (gate)
             {
                 var ms = (double)elapsedMs + (state == "PLAYING" ? Environment.TickCount64 - elapsedAt : 0);
@@ -229,15 +243,21 @@ internal sealed class SlimPlayer
     {
         string extra;
         lock (gate) extra = said.GetValueOrDefault(uri, "");
+        return Request(uri, FormatOf(new Uri(uri).AbsolutePath), extra, autostart);
+    }
+
+    /* strm s for the stream at [uri], of [format], its request carrying [headers]. */
+    internal static byte[] Request(string uri, Format format, string headers, char autostart)
+    {
         var u = new Uri(uri);
         var ip = System.Net.IPAddress.TryParse(u.Host, out var a) && a.AddressFamily == AddressFamily.InterNetwork
             ? System.Buffers.Binary.BinaryPrimitives.ReadUInt32BigEndian(a.GetAddressBytes()) : 0;
-        var request = $"GET {u.PathAndQuery} HTTP/1.0\r\nHost: {u.Authority}\r\n{extra}\r\n";
-        return Strm('s', FormatOf(u.AbsolutePath), request, (ushort)u.Port, ip, autostart: autostart);
+        var request = $"GET {u.PathAndQuery} HTTP/1.0\r\nHost: {u.Authority}\r\n{headers}\r\n";
+        return Strm('s', format, request, (ushort)u.Port, ip, autostart: autostart);
     }
 
     /* What a track is, from its DIDL-Lite, as request headers the player may show (percent-encoded: a header is ASCII). */
-    private static string Headers(string meta)
+    internal static string Headers(string meta)
     {
         if (meta.Length == 0) return "";
         static string? Tag(string xml, string name) =>

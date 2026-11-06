@@ -5,7 +5,7 @@ Written by `node tools/api-map.js write` from the C# sources (`server/Mandarin.S
 where the code decides it away from the address (the handler says). "…" ends an address the route takes
 the rest of; a pattern is as the code writes it. What each answers is said beside its handler.
 
-226 routes.
+227 routes.
 
 | Method | Address | Who may ask | Answered in |
 |---|---|---|---|
@@ -235,3 +235,4 @@ the rest of; a pattern is as the code writes it. What each answers is said besid
 | GET | `/server-info` | open | `Server.cs` |
 | GET | `/shelf` | signed in | `Pages.cs` |
 |  | `/stream/(?:t([0-9]+)\|a([0-9]+(?:_[0-9]+)+))(?:\.(orig\|[0-9]+-[0-9]+w?\|d(?:64\|128\|256)))?\.([a-z0-9]+)` | signed in, or a signed address | `Streams.cs` |
+|  | `/stream/slim/(SLIM_[0-9A-F]{12})/([0-9]{1,9})\.pcm` | signed in, or a signed address | `Renderers/Slim/SlimStream.cs` |

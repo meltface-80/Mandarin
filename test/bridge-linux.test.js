@@ -7,6 +7,10 @@
  * DSD), plays an album to it, and confirms what the DAC is fed; the audio engine under the Bridge writes the
  * samples (here, to a file in place of the DAC) exactly as the track's own. Its web page says what it plays, and a
  * name set there is the name Mandarin knows it by.
+ *
+ * Played as Mandarin's continuous PCM (item 322): the album at 24/96, then one at 16/44.1 queued after it, reach the
+ * DAC as one stream of samples a format, every track's whole and nothing between them; between the two albums, half
+ * a second of silence at 44.1 kHz, the DAC let settle at the new rate before the music.
  */
 const test = require("node:test");
 const assert = require("node:assert");
@@ -77,7 +81,7 @@ test("Mandarin Bridge for Linux: found, its DAC read whole, played to bit-perfec
   const { createServer } = require("./server");
   const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [ports.host(0)],
     upnpMulticast: false, slimprotoPort: SLIM });
-  await srv.start();
+  const { logs } = await srv.start();
   t.after(() => srv.stop());
   const auth = { Authorization: "Bearer " + await signIn(B) };
   const api = async (p, body, method) => {
@@ -96,8 +100,10 @@ test("Mandarin Bridge for Linux: found, its DAC read whole, played to bit-perfec
     await until(async () => (await api("zones")).zones.some(z => z.zone_id === ID));
 
     // An album played to it: 24/96, the engine fed it, the DAC said to be fed 96 kHz and the track confirmed.
-    const hi = (await api("library/albums?sort=album")).albums.find(a => a.title === "Hi Res");
+    const albums = (await api("library/albums?sort=album")).albums;
+    const hi = albums.find(a => a.title === "Hi Res"), cd = albums.find(a => a.title === "Album One");
     assert.equal((await api("play", { offset: hi.offset, zone_or_output_id: ID, kind: "play_now" })).ok, true);
+    assert.equal((await api("play", { offset: cd.offset, zone_or_output_id: ID, kind: "queue" })).ok, true);
     await until(async () => { const z = (await api("zone-state?zone=" + ID)).zone; return z && z.state === "playing" && z.now_playing && z.now_playing.line1 === "Hi 1"; });
     const now = await until(async () => { const j = await (await fetch(BR + "/dac.json")).json(); return j.now && j.now.rate === 96000 && j.now; });
     assert.equal(now.kind, "pcm");
@@ -130,5 +136,23 @@ test("Mandarin Bridge for Linux: found, its DAC read whole, played to bit-perfec
     assert.equal(set.name, "Study DAC");
     assert.equal((await fetch(BR + "/description.xml")).status, 404, "no UPnP description any more");
     await until(async () => (await api("audio-devices")).devices.find(x => x.id === ID && x.network_name === "Study DAC"), 20000);
+
+    // The whole of what the DAC was fed (item 322): Hi 1 and Hi 2 one on into the other, half a second of silence at
+    // 44.1 kHz, then Album One's three tracks one on into the next; each track's samples whole, in 32-bit words.
+    const pcm = f => spawnSync(FFMPEG, ["-v", "error", "-i", f, "-f", "s32le", "-c:a", "pcm_s32le", "-"], { maxBuffer: 1 << 27 }).stdout;
+    const tracks = [1, 2].map(i => path.join(lib.music, "Artist B", "Hi Res", `0${i} Hi ${i}.flac`));
+    const songs = [1, 2, 3].map(i => path.join(lib.music, "Artist A", "Album One", `0${i} Song ${i}.flac`));
+    const whole = Buffer.concat([...tracks.map(pcm), Buffer.alloc(44100 / 2 * 8), ...songs.map(pcm)]);
+    await until(async () => (await api("zone-state?zone=" + ID)).zone.state === "stopped" && fs.statSync(out).size >= whole.length, 40000);
+    const all = fs.readFileSync(out);
+    assert.equal(all.length, whole.length, "every track's samples, the silence between the albums, nothing else");
+    assert.ok(all.equals(whole), "one stream a format, bit for bit, half a second of silence where the rate changes");
+    // Made by Mandarin as runs of PCM (two, as a rule: one an album), each after the first given ahead, none begun again
+    // by a stop; the album at 44.1 kHz given ahead where the rate changed, and tracks one on into the next in a run.
+    const runs = logs.filter(l => /\[slimproto\] .*run \d/.test(l));
+    assert.match(runs.join("\n"), /run 1: PCM 24\/96 kHz/);
+    assert.match(runs.join("\n"), /run \d+ given ahead: PCM 16\/44\.1 kHz/);
+    assert.ok(runs.every(l => /run 1: PCM 24\/96|given ahead: PCM (24\/96|16\/44\.1) kHz|\((24\/96|16\/44\.1) kHz\) made to its end/.test(l)), runs.join("\n"));
+    assert.ok(runs.some(l => /made to its end, [2-9] track\(s\)/.test(l)), "tracks one on into the next in a run: " + runs.join("\n"));
   } catch (e) { console.log(said); throw e; }
 });

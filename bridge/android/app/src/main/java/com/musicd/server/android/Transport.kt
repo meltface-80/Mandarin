@@ -131,6 +131,13 @@ class Transport(private val main: Handler, private val player: ExoPlayer, privat
 
     fun pause() = onMain { if (current != null) player.pause(); changed() }
 
+    /** The track playing told afresh (Mandarin's continuous PCM, item 322: the run goes on into its next track): what it is, for the screen and notification. */
+    fun retitle(title: String, artist: String, album: String) = onMain {
+        val c = current ?: return@onMain
+        current = Item(c.uri, title, artist, album)
+        changed()
+    }
+
     /** Stopped, and what it played forgotten (SlimProto's strm q). */
     fun stop() = onMain {
         stopped = true; current = null; next = null

@@ -198,9 +198,11 @@ class DevicePage(val j: JSONObject) {
     val playerNote: String get() = if (ownPlayer) "Mandarin hands this device’s own player (MPD, found at $mpd) the queue, each track as Mandarin makes it, and it plays one into the next by itself: gapless, as it plays its own library. Mandarin follows where it is from what it says."
         else "Each track is handed over by UPnP, the next before it ends. This device also has its own player (MPD), which plays a queue one track into the next by itself."
     /** The change the switch makes: PATCH {output: {album_stream}}. */
-    /** A Squeezelite player's Gapless (item 313): its note alone, it goes on into the next track from its own buffer. */
+    /** A Squeezelite player's Gapless (item 313): its note alone, it goes on into the next track from its own buffer. A Mandarin Bridge played continuous PCM (item 322), its own. */
     val slimGapless: Boolean get() = kind == "slim"
-    val slimGaplessNote: String = "A Squeezelite player plays one track into the next from its own buffer: gapless as it is, nothing to set. Where the next track is at another rate, it pauses for as long as its -r option says (e.g. -r 44100-768000:500, half a second), so the DAC settles without a click."
+    val continuousPcm: Boolean get() = j.optBoolean("continuous_pcm")
+    val slimGaplessNote: String get() = if (continuousPcm) "Mandarin plays this Bridge one continuous stream of PCM, as Roon plays a RAAT device: each track decoded by Mandarin (and upsampled, as its Output says), one on into the next while they are of one rate and depth, the DAC never let go between them; nothing to set. Where the next track is at another rate, the DAC is given half a second of silence at the new rate first, so it settles without a click. DSD goes as its file."
+        else "A Squeezelite player plays one track into the next from its own buffer: gapless as it is, nothing to set. Where the next track is at another rate, it pauses for as long as its -r option says (e.g. -r 44100-768000:500, half a second), so the DAC settles without a click."
     fun albumStreamPatch(on: Boolean): JSONObject = JSONObject().put("output", JSONObject().put("album_stream", on))
 
     val canFixVolume: Boolean get() = j.optBoolean("can_fix_volume")

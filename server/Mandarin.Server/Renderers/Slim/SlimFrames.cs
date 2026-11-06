@@ -125,6 +125,10 @@ internal static class SlimFrames
         return Frame("audg", b);
     }
 
+    /* mtrk: a Mandarin Bridge playing Mandarin's continuous PCM told the track it has come to in it (item 322), as a
+       track's request says it ([headers]: X-Mandarin-Title and the rest), for its screen. */
+    public static byte[] Mtrk(string headers) => Frame("mtrk", Encoding.ASCII.GetBytes(headers));
+
     /* aude: its outputs on or off. */
     public static byte[] Aude(bool spdif, bool dac) => Frame("aude", [(byte)(spdif ? 1 : 0), (byte)(dac ? 1 : 0)]);
 

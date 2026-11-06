@@ -38,6 +38,10 @@ internal static class SlimDevices
         BridgeBase(p) != null && p.Helo.Caps().Pairs.TryGetValue("UDN", out var udn) && udn.StartsWith("uuid:", StringComparison.OrdinalIgnoreCase) && udn.Length > 5
             ? RendererDiscovery.IdFor(udn) : null;
 
+    /* Whether the player whose record keeps [caps] said in its hello that it takes Mandarin's continuous PCM (item 322: SlimRuns.cs). */
+    public static bool Continuous(JsObj caps) =>
+        caps["advertised"] is JsObj a && Jv.Str(a["raw"]).Split(',').Any(w => w.Trim().Equals("ContinuousPcm=1", StringComparison.OrdinalIgnoreCase));
+
     /* The formats a player's capabilities name, in the shape a renderer's GetProtocolInfo is kept in. */
     public static JsObj Advertised(IReadOnlyDictionary<string, string> pairs, IReadOnlyList<string> words)
     {

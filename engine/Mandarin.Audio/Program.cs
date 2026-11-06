@@ -1,7 +1,7 @@
 // Program.cs — mandarin-audio, Mandarin's audio engine (v0.8.0).
 //
 //   mandarin-audio --version
-//   mandarin-audio --device alsa:plughw:CARD=Mojo,DEV=0 [--ffmpeg PATH] [--core N] [--latency-ms 500] [--dsd-native DSD_U32_BE:64,128]
+//   mandarin-audio --device alsa:plughw:CARD=Mojo,DEV=0 [--ffmpeg PATH] [--core N] [--latency-ms 500] [--dsd-native DSD_U32_BE:64,128] [--settle-ms 500]
 //   mandarin-audio --device coreaudio:Topping E30      (a Mac's, by its name; item 155)
 //   mandarin-audio --device file:/tmp/out.raw          (the tests' device)
 //   mandarin-audio --devices                           (a Mac's output devices and their rates)
@@ -9,7 +9,7 @@
 // The server (lib/local/engine.js) starts one per sound device and talks to it
 // over stdin and stdout, one JSON object a line.
 //
-//   commands  {"cmd":"play","uri":"…","offset":12.5,"paused":false}
+//   commands  {"cmd":"play","uri":"…","offset":12.5,"paused":false}   a raw PCM stream's uri ends "#pcm=s24le:96000:2" (RawPcm.cs)
 //             {"cmd":"next","uri":"…"}        the track after, gapless ("" clears it)
 //             {"cmd":"pause"} {"cmd":"resume"} {"cmd":"stop"}
 //             {"cmd":"gain","value":0.5}      linear, 1 = untouched
@@ -43,7 +43,7 @@ internal static class Program
     private static int Main(string[] args)
     {
         string? device = null, ffmpeg = "ffmpeg", dsdNative = "";
-        int core = -1;
+        int core = -1, settleMs = 500;
         uint latencyMs = 500;
         for (int i = 0; i < args.Length; i++)
         {
@@ -58,6 +58,8 @@ internal static class Program
                 case "--latency-ms": latencyMs = uint.Parse(Arg(args, ref i), CultureInfo.InvariantCulture); break;
                 // The DSD the DAC takes natively (item 256): "DSD_U32_BE:64,128,256"; any other DSD goes as DoP.
                 case "--dsd-native": dsdNative = Arg(args, ref i); break;
+                // The silence a change of format is given, so the DAC settles at the new rate before the music (item 322).
+                case "--settle-ms": settleMs = int.Parse(Arg(args, ref i), CultureInfo.InvariantCulture); break;
                 default: Console.Error.WriteLine("unknown argument " + args[i]); return 2;
             }
         }
@@ -83,6 +85,7 @@ internal static class Program
         {
             NativeFormat = Dsd.NativeOf(native[0]),
             NativeDsd = native.Length > 1 ? [.. native[1].Split(',').Select(x => int.TryParse(x, NumberStyles.Integer, CultureInfo.InvariantCulture, out var n) ? n : 0).Where(n => n > 0)] : [],
+            SettleMs = Math.Max(0, settleMs),
         };
         Emit(Json.Obj("ev", "hello", "version", Version, "protocol", Protocol));
 
