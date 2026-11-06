@@ -57,8 +57,8 @@ test("a Mandarin Bridge over SlimProto: its DAC read from its own web port, in U
   assert.equal(dev.manufacturer, "Mandarin");
   assert.deepEqual(dev.rates.filter(r => r.on).map(r => r.hz), DAC.rates, "its DAC's rates, by its word");
   assert.equal(dev.profile.id, "mandarin-usb");
-  const updates = await api("update/bridges");
-  assert.ok(JSON.stringify(updates).includes("R7 Bridge"), "listed in Settings → Updates");
+  // Listed in Settings → Updates, under the name it gave (its answer to setd, which may come just after its hello).
+  await until(async () => JSON.stringify(await api("update/bridges")).includes("R7 Bridge"), 15000, "listed in Settings → Updates");
 
   // Played: each track's request says what it is.
   assert.equal((await call("PATCH", "audio-devices/" + ID, { enabled: true })).status, 200);

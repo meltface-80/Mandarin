@@ -25,19 +25,26 @@ internal sealed partial class Devices
 
     private void SlimSeen(SlimPlayer p) => _ = SlimSeenAsync(p);
 
+    // What a player is, written one at a time: its hello and its name come close together, and each is a write.
+    private readonly object slimWrites = new();
+
     private async Task SlimSeenAsync(SlimPlayer p)
     {
         try
         {
-            var info = SlimDevices.InfoOf(p);
-            // A Mandarin Bridge: its DAC, as its app says it (MandarinBridge.cs), where it answers.
-            if (p.Connected && SlimDevices.BridgeBase(p) is { } bridge && await MandarinBridge.Probe(bridge) is { } dac && info.Caps!["advertised"] is JsObj advertised)
+            // A Mandarin Bridge: its DAC, as its app says it (MandarinBridge.cs), where it answers. Asked first, unlocked.
+            var bridge = p.Connected ? SlimDevices.BridgeBase(p) : null;
+            var dac = bridge != null ? await MandarinBridge.Probe(bridge) : null;
+            lock (slimWrites)
             {
-                MandarinBridge.Advertise(advertised, dac);
-                info.Caps!["mandarin"] = MandarinBridge.Said(bridge, dac);
-            }
-            using (var c = Db.Open())
-            {
+                // What it is now (its name may have come while its DAC was asked), written once, after the write before.
+                var info = SlimDevices.InfoOf(p);
+                if (bridge != null && dac != null && info.Caps!["advertised"] is JsObj advertised)
+                {
+                    MandarinBridge.Advertise(advertised, dac);
+                    info.Caps!["mandarin"] = MandarinBridge.Said(bridge, dac);
+                }
+                using var c = Db.Open();
                 var fresh = Register.Get(c, p.Id) == null;
                 Register.Seen(c, info);
                 if (fresh && SlimDevices.UpnpIdOf(p) is { } was && Register.Get(c, was) is { } before) CarriedOver(c, p.Id, before);
