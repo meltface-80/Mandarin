@@ -93,6 +93,7 @@ app/settings-folders.js
 app/device-filters.js
 app/device-modulators.js
 app/device-gapless.js
+app/device-player.js
 app/audio-devices.js
 app/audio-devices-page.js
 app/audio-devices-dsp.js

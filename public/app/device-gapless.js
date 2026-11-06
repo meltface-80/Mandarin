@@ -10,7 +10,8 @@ const ALBUM_STREAM_NOTE = (on) => on
 
 /** The Gapless group for the device's Output [o]: its switch and its note. */
 function gaplessGroup(o) {
-  return '<div class="cap-group"><span class="cap-label" data-parity="settings-device.cap-label">Gapless</span>' +
+  // Dimmed through its own player (item 306): MPD plays one track into the next itself.
+  return '<div class="cap-group' + (o.player === "mpd" ? " is-dim" : "") + '"><span class="cap-label" data-parity="settings-device.cap-label">Gapless</span>' +
     '<div class="settings-row" style="margin-top:8px"><span class="settings-label" data-parity="settings-device.name">Albums as one stream</span>' +
     '<label class="switch" data-parity="settings-device.album-stream"><input type="checkbox" data-dev-albumstream' + (o.album_stream ? " checked" : "") + ' aria-label="Albums as one stream">' +
     '<span class="switch-track"><span class="switch-thumb"></span></span></label></div>' +

@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- New - a device's own player (Settings → Audio Devices → a device → Output → Player): where a renderer has MPD beside it, as a Chord Poly does, Mandarin can hand MPD the queue instead of UPnP, and MPD plays one track into the next by itself, gapless, as it plays its own library; Mandarin follows it from what MPD says (item 306)
 - Fixed - Albums as one stream on a Chord Poly went a track at a time, with a long gap at each: the Poly named the track it had been playing for a moment after the album started, and Mandarin took that for the album stream having ended. It now stays one stream (item 305)
 - Improved - PCM at 705.6 and 768 kHz goes as one continuous FLAC stream at the rate itself, as Roon's UPnP bridges send, instead of a WAV: a WAV can say no more than 4 GB (12.7 minutes at 32-bit/705.6 kHz), and the Poly played nothing of a whole album sent as one. A whole album at 705.6 kHz is now one stream, however long (item 305)
 - New - a choice of three DSD modulators for PCM made DSD (Settings → Audio Devices → a device → Output → Modulator): the 7th order (as before), the 7th order wide, which holds its noise down to 50 kHz (DSD128 and DSD256), and the 9th order, quieter in the audio band (DSD64 and DSD128); each measured and shown with its figures, and the signal path says which one made the track (item 303)

@@ -201,12 +201,17 @@ internal sealed partial class Players
         var r = Record(p.Id);
         lock (gate)
         {
-            var location = r?.Location ?? "";
+            // Its own player (MPD, item 306) where its Player is set to it and MPD was found beside it.
+            var mpd = r?.Kind == "upnp" && Jv.Same(r.Settings["player"], "mpd") && r.Caps["mpd"] is JsObj found && found["address"] is string a ? a : null;
+            var location = (r?.Location ?? "") + (mpd != null ? " mpd:" + mpd : "");
             if (p.Renderer == null || p.Location != location)
             {
                 p.Renderer?.Halt();
+                var name = r?.Name ?? r?.NetworkName ?? p.Id;
                 if (r?.Kind == "local") p.Renderer = LocalOutput(p, r);
-                else p.Renderer = new Renderer(p.Id, r?.Name ?? r?.NetworkName ?? p.Id, r?.Caps["services"] as JsObj, () => Unanswered(p));
+                else if (mpd != null && mpd.LastIndexOf(':') is var colon and > 0 && int.TryParse(mpd[(colon + 1)..], out var mpdPort))
+                    p.Renderer = new MpdRenderer(name, mpd[..colon], mpdPort, () => Unanswered(p));
+                else p.Renderer = new Renderer(p.Id, name, r?.Caps["services"] as JsObj, () => Unanswered(p));
                 p.Location = location;
             }
             return p.Renderer;
@@ -263,6 +268,7 @@ internal sealed partial class Players
         if (Upsample.DsdPlan.Of(s["dsd_out"]) is { } up) target["dsd_out"] = (double)up;   // PCM as DSD (item 243)
         if (Upsample.DsdOut.Of(s["dsd_mod"]) is { } mod) target["dsd_mod"] = mod;   // by this modulator (item 303); the seventh order by its absence
         if (s["album_stream"] is true) target["album_stream"] = true;   // an album as one stream (item 300)
+        if (Jv.Same(s["player"], "mpd")) target["player"] = "mpd";   // played through its own player (item 306)
     }
 
     /* The settings changed (output, DSP): what follows in the queue is planned again; the track playing carries on as it was given. */

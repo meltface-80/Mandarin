@@ -115,7 +115,9 @@ const ENV = {
   // The Python SQ-tool is run with (SqTool.cs, item 288): one that isn't there, to see it said.
   sqtoolPython: "SQTOOL_PYTHON",
   // Where GitHub's API is (Admin/Updater.cs, Admin/BridgeUpdates.cs): a test's own releases.
-  updateApi: "UPDATE_API"
+  updateApi: "UPDATE_API",
+  // The port a renderer's own player (MPD) is looked for at (Renderers/Mpd.cs, item 306): a test's fake one.
+  mpdPort: "MPD_PORT"
 };
 // On or off, as index.js read them ("0" is off).
 const FLAGS = { upnpMulticast: "UPNP_DISCOVERY", identify: "IDENTIFY", localAudio: "LOCAL_AUDIO" };

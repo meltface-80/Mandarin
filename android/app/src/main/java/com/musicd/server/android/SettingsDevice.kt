@@ -211,15 +211,20 @@ internal fun DevicePane(id: String, client: () -> ServerClient?, onBack: () -> U
                     d.dsdOutLine?.let { DeviceNote(it, Modifier.parity("settings-device.note")) }
                 }
                 d.modRow?.let { r -> CapGroup("Modulator", Modifier.parity("settings-device.cap-label")) { ModulatorGroup(d, r, busy) { patch(it) } } }
-                // An album as one stream (item 300), where Mandarin makes what it plays, as the filters are.
-                if (d.showFilter) CapGroup("Gapless", Modifier.parity("settings-device.cap-label")) {
+                // Its own player (item 306), where MPD was found beside it.
+                if (d.mpd != null) CapGroup("Player", Modifier.parity("settings-device.cap-label")) {
+                    Seg(d.players, d.playerValue, key = { i, c -> Modifier.parity("settings-device.player", Contract.label("settings-device.player", i)).clickable(enabled = !busy) { patch(d.segment("player", c.value)) } })
+                    DeviceNote(d.playerNote, Modifier.parity("settings-device.note"))
+                }
+                // An album as one stream (item 300), where Mandarin makes what it plays, as the filters are; dimmed through its own player.
+                if (d.showFilter) Column(Modifier.alpha(if (d.ownPlayer) 0.45f else 1f)) { CapGroup("Gapless", Modifier.parity("settings-device.cap-label")) {
                     Box(Modifier.padding(top = 8.dp)) {
                         SetupRow("Albums as one stream", Modifier.parity("settings-device.name"), null) {
                             Toggle(d.albumStream, Modifier.parity("settings-device.album-stream", Contract.label("settings-device.album-stream")).clickable(enabled = !busy) { patch(d.albumStreamPatch(!d.albumStream)) })
                         }
                     }
                     DeviceNote(d.albumStreamNote, Modifier.parity("settings-device.note"))
-                }
+                } }
                 if (d.canFixVolume) {
                     Box(Modifier.padding(top = 14.dp)) {
                         SetupRow("Fixed volume", Modifier.parity("settings-device.name"), null) {

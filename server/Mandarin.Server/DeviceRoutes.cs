@@ -174,6 +174,9 @@ internal static partial class Library
                     if (albumStream is not bool on) throw new DeviceRefusal(400, "album_stream must be true or false");
                     patch["album_stream"] = on ? true : null;
                 }
+                // Played through UPnP, or its own player (MPD, item 306).
+                if (Prop(output, "player") is var player and not Undef)
+                    patch["player"] = !Jv.OneOf(player, "upnp", "mpd") ? throw new DeviceRefusal(400, "player must be upnp or mpd") : Jv.Same(player, "mpd") ? player : null;
                 // The highest rate sent (item 240): Auto, or a cap by 48 kHz's family.
                 var maxRate = Prop(output, "max_rate");
                 if (maxRate is not Undef)
