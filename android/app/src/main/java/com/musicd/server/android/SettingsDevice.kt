@@ -51,7 +51,6 @@ import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import com.musicd.server.client.CapChip
 import com.musicd.server.client.Contract
-import com.musicd.server.client.DeviceFilters
 import com.musicd.server.client.DevicePage
 import com.musicd.server.client.Palette
 import com.musicd.server.client.SegChoice
@@ -189,34 +188,12 @@ internal fun DevicePane(id: String, client: () -> ServerClient?, onBack: () -> U
             SettingsDivider(18, 18)
             Block {
                 DeviceTitle("Output", Modifier.parity("settings-device.title"), Modifier.parity("settings-device.info", Contract.label("settings-device.info", 0, "Output")).clickable { info(d.outputInfo) })
-                CapGroup("Mode", Modifier.parity("settings-device.cap-label")) {
-                    Seg(d.modes, d.mode, key = { i, c -> Modifier.parity("settings-device.mode", Contract.label("settings-device.mode", i)).clickable(enabled = !busy) { patch(d.segment("mode", c.value)) } })
-                }
-                if (d.showMaxRate) CapGroup("Highest rate", Modifier.parity("settings-device.cap-label")) {
-                    Seg(d.maxRates, d.maxRateValue, key = { i, c -> Modifier.parity("settings-device.maxrate", Contract.label("settings-device.maxrate", i)).clickable(enabled = !busy) { patch(d.segment("max_rate", c.value)) } })
-                    DeviceNote(d.maxRateNote, Modifier.parity("settings-device.note"))
-                }
-                if (d.showFilter) CapGroup("Filter", Modifier.parity("settings-device.cap-label")) { FilterGroup(d, busy) { patch(it) } }
-                if (d.showFilter) CapGroup("Phase", Modifier.parity("settings-device.cap-label")) {   // item 318
-                    Seg(DeviceFilters.PHASES, d.phase, key = { i, c -> Modifier.parity("settings-device.phase", Contract.label("settings-device.phase", i)).clickable(enabled = !busy) { patch(d.segment("phase", c.value)) } })
-                    DeviceNote(DeviceFilters.PHASE_NOTE, Modifier.parity("settings-device.note"))
-                }
-                if (d.has32) CapGroup("Bit depth", Modifier.parity("settings-device.cap-label")) {
-                    Seg(d.depths, d.outBits, key = { i, c -> Modifier.parity("settings-device.depth", Contract.label("settings-device.depth", i)).clickable(enabled = !busy && !c.off) { patch(d.segment("bits", c.value)) } })
-                    if (!d.flac32) DeviceNote("32-bit needs an ffmpeg that writes 32-bit FLAC; this one stops at 24.", Modifier.parity("settings-device.note"))
-                }
-                d.ditherRow?.let { r -> DitherGroups(d, r, busy) { patch(it) } }   // the DAC's real bits and the dither (item 301)
-                DeviceNote(d.example, Modifier.parity("settings-device.note"))
+                // Its Output as recipes (item 320, SettingsRecipes.kt), the rows folded under Advanced.
+                RecipesAndAdvanced(d, busy) { patch(it) }
                 CapGroup("DSD as PCM", Modifier.parity("settings-device.cap-label")) {
                     Seg(d.dsdLowpasses, d.dsdLowpassValue, key = { i, c -> Modifier.parity("settings-device.dsdlowpass", Contract.label("settings-device.dsdlowpass", i)).clickable(enabled = !busy) { patch(d.segment("dsd_lowpass", c.value)) } })
                     DeviceNote(d.dsdLowpassNote, Modifier.parity("settings-device.note"))
                 }
-                if (d.showDsdOut) CapGroup("PCM as DSD", Modifier.parity("settings-device.cap-label")) {
-                    Seg(d.dsdOuts, d.dsdOutValue, key = { i, c -> Modifier.parity("settings-device.dsdout", Contract.label("settings-device.dsdout", i)).clickable(enabled = !busy && !c.off) { patch(d.segment("dsd_out", c.value)) } })
-                    DeviceNote(d.dsdOutNote, Modifier.parity("settings-device.note"))
-                    d.dsdOutLine?.let { DeviceNote(it, Modifier.parity("settings-device.note")) }
-                }
-                d.modRow?.let { r -> CapGroup("Modulator", Modifier.parity("settings-device.cap-label")) { ModulatorGroup(d, r, busy) { patch(it) } } }
                 // Its own player (item 306), where MPD was found beside it.
                 if (d.mpd != null) CapGroup("Player", Modifier.parity("settings-device.cap-label")) {
                     Seg(d.players, d.playerValue, key = { i, c -> Modifier.parity("settings-device.player", Contract.label("settings-device.player", i)).clickable(enabled = !busy) { patch(d.segment("player", c.value)) } })

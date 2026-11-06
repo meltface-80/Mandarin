@@ -294,8 +294,8 @@ function renderDetail(keepInput) {
       if (o.mode === "original" || rate <= 44100) return "A 16-bit/44.1 kHz file plays as it is.";
       return "A 16-bit/44.1 kHz file plays as " + outBits + "-bit/" + (rate / 1000) + " kHz FLAC" + (rate === 176400 ? " (×4)" : rate === 88200 ? " (×2)" : "") + ".";
     })();
-    html += '<div class="settings-divider"></div><div class="settings-block"><div class="settings-block-title"' + ' data-parity="settings-device.title"' + '>Output' + settingsInfo("Original sends the file as stored wherever this device takes its rate, depth and format; above its ceiling, FLAC at the highest rate it takes. Upsampling stays in the file's family (44.1 → 88.2 → 176.4; 48 → 96 → 192), runs in 64-bit float, and goes out at " + (has32 && o.flac32 ? "24 or 32 bits" : "24 bits") + ".", "settings-device.info") + "</div>" +
-      '<div class="cap-group"><span class="cap-label"' + ' data-parity="settings-device.cap-label"' + '>Mode</span>' +
+    // Every row of the Output, under Advanced below its recipes (item 320: app/device-recipes.js).
+    const adv = '<div class="cap-group"><span class="cap-label"' + ' data-parity="settings-device.cap-label"' + '>Mode</span>' +
       seg("mode", [{ v: "original", label: "Original" }, { v: "x2", label: "×2" }, { v: "x4", label: "×4" }, { v: "max", label: "Max" }], o.mode) + "</div>" +
       (caps.length ? '<div class="cap-group"><span class="cap-label"' + ' data-parity="settings-device.cap-label"' + '>Highest rate</span>' +
         seg("max_rate", [{ v: "auto", label: "Auto" }].concat(caps.map(c => ({ v: c, label: (c / 1000) + "k" }))), cap || "auto") +
@@ -309,16 +309,19 @@ function renderDetail(keepInput) {
       // When Mandarin makes the PCM: the DAC's real bits and the dither (item 301: app/device-dither.js).
       (o.mode !== "original" && !o.dsd_out ? ditherGroups(o, seg) : "") +
       '<div class="settings-note"' + ' data-parity="settings-device.note"' + '>' + esc(example) + "</div>" +
-      // DSD played as PCM, its modulator's noise above the band taken off (item 241).
-      '<div class="cap-group"><span class="cap-label"' + ' data-parity="settings-device.cap-label"' + '>DSD as PCM</span>' +
-        seg("dsd_lowpass", [{ v: "off", label: "Off" }, { v: 50000, label: "50 kHz" }, { v: 30000, label: "30 kHz" }], o.dsd_lowpass || "off") +
-        '<div class="settings-note"' + ' data-parity="settings-device.note"' + '>' + esc(DSD_LOWPASS_NOTE(o.dsd_lowpass)) + "</div></div>" +
       // PCM made DSD as it plays, for a device that takes DSD (items 243, 259).
       (dsdOn.length ? '<div class="cap-group"><span class="cap-label"' + ' data-parity="settings-device.cap-label"' + '>PCM as DSD</span>' +
         seg("dsd_out", [{ v: "off", label: "Off" }].concat([64, 128, 256].map(n => ({ v: n, label: "DSD" + n, off: !dsdOn.includes(n) }))), o.dsd_out || "off") +
         '<div class="settings-note"' + ' data-parity="settings-device.note"' + '>' + esc(DSD_OUT_NOTE(o.dsd_out)) + "</div>" +
         (o.dsd_out && o.making ? '<div class="settings-note"' + ' data-parity="settings-device.note"' + '>' + esc(o.making) + "</div>" : "") + "</div>" +
-        (o.dsd_out ? modulatorGroup(o) : "") : "") +   // its modulator (item 303: app/device-modulators.js)
+        (o.dsd_out ? modulatorGroup(o) : "") : "");   // its modulator (item 303: app/device-modulators.js)
+    html += '<div class="settings-divider"></div><div class="settings-block"><div class="settings-block-title"' + ' data-parity="settings-device.title"' + '>Output' + settingsInfo("Original sends the file as stored wherever this device takes its rate, depth and format; above its ceiling, FLAC at the highest rate it takes. Upsampling stays in the file's family (44.1 → 88.2 → 176.4; 48 → 96 → 192), runs in 64-bit float, and goes out at " + (has32 && o.flac32 ? "24 or 32 bits" : "24 bits") + ".", "settings-device.info") + "</div>" +
+      // Its Output as recipes (item 320), the rows folded under Advanced.
+      recipesGroup(d) + advancedFold(d, adv) +
+      // DSD played as PCM, its modulator's noise above the band taken off (item 241).
+      '<div class="cap-group"><span class="cap-label"' + ' data-parity="settings-device.cap-label"' + '>DSD as PCM</span>' +
+        seg("dsd_lowpass", [{ v: "off", label: "Off" }, { v: 50000, label: "50 kHz" }, { v: 30000, label: "30 kHz" }], o.dsd_lowpass || "off") +
+        '<div class="settings-note"' + ' data-parity="settings-device.note"' + '>' + esc(DSD_LOWPASS_NOTE(o.dsd_lowpass)) + "</div></div>" +
       // Its own player (item 306: app/device-player.js), where MPD was found beside it.
       (d.mpd ? playerGroup(d, o) : "") +
       // An album as one stream (item 300: app/device-gapless.js), where Mandarin makes what it plays; not through its own player.

@@ -12,7 +12,7 @@ object DeviceFilters {
     data class Filter(val value: String, val name: String, val note: String)
 
     val ALL: List<Filter> = listOf(
-        Filter("standard", "Standard", "Steep: flat to 21 kHz for a CD, 113 dB down at 22.1 kHz and 220 dB at 22.5 kHz. 8 ms of ringing either side of a sound."),
+        Filter("standard", "Standard", "Steep: flat to 21 kHz for a CD. SoX’s filter for PCM; Mandarin’s own on the way to DSD and in minimum phase: 113 dB down at 22.1 kHz and 220 dB at 22.5 kHz, 8 ms of ringing either side of a sound."),
         Filter("gentle", "Gentle", "Rolling off from 19.8 kHz for a CD: −6.7 dB at 21 kHz, 125 dB down at 22.1 kHz. 6 ms of ringing either side."),
         Filter("gaussian", "Gaussian", "A smooth roll-off: flat to 19.75 kHz for a CD (−0.5 dB at 20 kHz), 100 dB down by 22.05 kHz. 1.8 ms of ringing either side."),
         Filter("gaussian-steep", "Gaussian steep", "Flat to 21.8 kHz for a CD and half down at 22.05 kHz, every sample of the file kept as it is (linear phase only). 5.9 ms of ringing either side."),
