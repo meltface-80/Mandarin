@@ -163,10 +163,10 @@ internal sealed partial class Engine
     // One track into the buffer. True when it was decoded to the end.
     private bool DecodeTrack(int gen, string uri, double offset)
     {
-        if (Dsd.IsDsd(uri)) return DecodeDsd(gen, uri, offset);   // DSD as DSD, never made PCM (items 256, 284)
+        if (Dsd.IsDsd(uri) || RawPcm.Of(uri) != null) return DecodeHere(gen, uri, offset);   // DSD as DSD, never made PCM (items 256, 284); Mandarin's raw PCM (322)
         var args = new List<string> { "-hide_banner", "-loglevel", "error", "-nostdin" };
         if (offset > 0) { args.Add("-ss"); args.Add(offset.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)); }
-        args.AddRange([.. RawPcm.Input(uri), "-map", "0:a:0", "-vn", "-ac", "2", "-c:a", "pcm_s32le", "-f", "wav", "pipe:1"]);   // raw PCM said what it is (item 322)
+        args.AddRange(["-i", uri, "-map", "0:a:0", "-vn", "-ac", "2", "-c:a", "pcm_s32le", "-f", "wav", "pipe:1"]);
         var psi = new ProcessStartInfo(ffmpeg) { RedirectStandardOutput = true, RedirectStandardError = true, UseShellExecute = false };
         foreach (var a in args) psi.ArgumentList.Add(a);
         Process proc;

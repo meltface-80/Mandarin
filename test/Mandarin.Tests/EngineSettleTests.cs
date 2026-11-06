@@ -6,7 +6,8 @@ namespace Mandarin.Tests;
 /// <summary>
 /// Mandarin's audio engine with Mandarin's continuous PCM (item 322), as Mandarin Bridge for Linux plays it:
 ///   - a raw PCM stream, its format said after "#pcm=" in its address (no header to read it from), is played with
-///     every sample untouched, on into the next of the same format with nothing between them;
+///     every sample untouched, on into the next of the same format with nothing between them; and one held open (as
+///     Mandarin holds a run while it waits for the next track) plays as it comes, not once it ends;
 ///   - at a change of rate between two tracks (16/44.1 then 24/48) the device is given half a second of silence at the
 ///     new rate before the next track's first sample, so the DAC settles without a click; the same rate, none.
 /// Driven as EngineTests drives it (the server's driver, `mandarin-server score` { fn: "engine" }), onto a file.
@@ -70,6 +71,38 @@ public sealed class EngineSettleTests
         Assert.Null(r[6]);
         var got = await File.ReadAllBytesAsync(file);
         Assert.True(got.AsSpan().SequenceEqual([.. p1, .. p2]), $"both streams' samples untouched, nothing between them ({got.Length} bytes, {p1.Length + p2.Length} expected)");
+    }
+
+    [Test]
+    public async Task A_raw_stream_held_open_plays_as_it_comes_not_once_it_ends()
+    {
+        var bin = await Need();
+        var dir = Directory.CreateTempSubdirectory("engine-held-").FullName;
+        var (f1, p1) = Tone(dir, "a", 440, 1.0, 44100, "s16");
+        var raw = Ffmpeg("-loglevel", "error", "-i", f1, "-c:a", "pcm_s16le", "-f", "s16le", "-");
+        // As Mandarin holds a run open while it waits to be told the next track: a second of samples, then nothing, still open.
+        var listener = new System.Net.Sockets.TcpListener(System.Net.IPAddress.Loopback, 0);
+        listener.Start();
+        var port = ((System.Net.IPEndPoint)listener.LocalEndpoint).Port;
+        var serve = Task.Run(async () =>
+        {
+            using var c = await listener.AcceptTcpClientAsync();
+            var n = c.GetStream();
+            var head = new byte[4096];
+            _ = await n.ReadAsync(head);
+            await n.WriteAsync(System.Text.Encoding.ASCII.GetBytes("HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nConnection: close\r\n\r\n"));
+            await n.WriteAsync(raw);
+            await Task.Delay(8000);
+        });
+        var file = Path.Combine(dir, "out.raw");
+        var r = await Run([
+            new { open = new { location = "file:" + file, bin } }, new { set = $"http://127.0.0.1:{port}/run.pcm#pcm=s16le:44100:2" }, new { play = true },
+            new { until = new { size = new object[] { file, p1.Length / 2 } }, ms = 3000 }, new { state = true }, new { halt = true }]);
+        listener.Stop();
+        Assert.True(r[3]!.GetValue<bool>(), "half the second played within three, the stream still open");
+        Assert.Equal("PLAYING", (string?)r[4]);
+        var got = await File.ReadAllBytesAsync(file);
+        Assert.True(got.AsSpan(0, p1.Length / 2).SequenceEqual(p1.AsSpan(0, p1.Length / 2)), "its samples untouched");
     }
 
     [Test]

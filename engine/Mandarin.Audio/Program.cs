@@ -9,7 +9,7 @@
 // The server (lib/local/engine.js) starts one per sound device and talks to it
 // over stdin and stdout, one JSON object a line.
 //
-//   commands  {"cmd":"play","uri":"…","offset":12.5,"paused":false}   a raw PCM stream's uri ends "#pcm=s24le:96000:2" (RawPcm.cs)
+//   commands  {"cmd":"play","uri":"…","offset":12.5,"paused":false}   a raw PCM stream's uri ends "#pcm=s24le:96000:2" (RawPcm.cs, Engine.Raw.cs)
 //             {"cmd":"next","uri":"…"}        the track after, gapless ("" clears it)
 //             {"cmd":"pause"} {"cmd":"resume"} {"cmd":"stop"}
 //             {"cmd":"gain","value":0.5}      linear, 1 = untouched
