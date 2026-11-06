@@ -208,6 +208,8 @@ Images.Use(app, dataDir);
 Booklets.Init(dataDir);
 // Music files, as they are or converted (Streams.cs, Transcoder.cs).
 Streams.Use(app);
+// A Mandarin Bridge's continuous PCM (item 322: Renderers/Slim/SlimStream.cs), signed as a track is.
+Mandarin.Server.Renderers.Slim.SlimStream.Use(app);
 // The phone's downloads and its Opus away from home (Downloads.cs).
 Downloads.Use(app);
 // Routes are chosen only after that: the static files step aside for any

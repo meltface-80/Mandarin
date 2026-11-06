@@ -163,7 +163,7 @@ internal sealed partial class Engine
     // One track into the buffer. True when it was decoded to the end.
     private bool DecodeTrack(int gen, string uri, double offset)
     {
-        if (Dsd.IsDsd(uri)) return DecodeDsd(gen, uri, offset);   // DSD as DSD, never made PCM (items 256, 284)
+        if (Dsd.IsDsd(uri) || RawPcm.Of(uri) != null) return DecodeHere(gen, uri, offset);   // DSD as DSD, never made PCM (items 256, 284); Mandarin's raw PCM (322)
         var args = new List<string> { "-hide_banner", "-loglevel", "error", "-nostdin" };
         if (offset > 0) { args.Add("-ss"); args.Add(offset.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)); }
         args.AddRange(["-i", uri, "-map", "0:a:0", "-vn", "-ac", "2", "-c:a", "pcm_s32le", "-f", "wav", "pipe:1"]);
@@ -359,10 +359,12 @@ internal sealed partial class Engine
             {
                 if (sink.Rate != mark.Rate || sink.Channels != mark.Channels || sink.Format != mark.Fmt)
                 {
-                    // A new format: what the device holds plays out first.
-                    if (sink.Rate != 0) sink.Drain();
+                    // A new format: what the device holds plays out first, and from one to another the DAC is let settle (Engine.Settle.cs).
+                    var change = sink.Rate != 0;
+                    if (change) sink.Drain();
                     sink.Open(mark.Rate, mark.Channels, mark.Fmt);
                     emit(Json.Obj("ev", "format", "rate", mark.Rate, "channels", mark.Channels, "format", Dsd.AlsaName(mark.Fmt) + (mark.Fmt == OutFormat.Dop ? " (DoP)" : "")));
+                    if (change) Settle(mark, basePtr + from % Capacity);
                 }
                 int idx = (int)(from % Capacity);
                 int contiguous = Math.Min(len, Capacity - idx);
@@ -403,15 +405,6 @@ internal sealed partial class Engine
             catch (DeviceException e) { Fail(gen, e.Message); }
             catch (Exception e) { Fail(gen, "the device stopped: " + e.Message); }
         }
-    }
-
-    // Scaled below 1, rounded half up (as Math.round in the page's player).
-    private static unsafe void Scale(byte* p, int bytes, float g)
-    {
-        int* s = (int*)p;
-        int n = bytes / 4;
-        double gd = g;
-        for (int i = 0; i < n; i++) s[i] = (int)Math.Floor(s[i] * gd + 0.5);
     }
 
     private Mark? MarkAt(long b)

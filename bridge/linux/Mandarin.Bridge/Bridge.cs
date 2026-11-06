@@ -102,13 +102,14 @@ internal sealed partial class Bridge
         _ => [.. d.Native.Union(d.Dop).Order()],
     };
 
-    /* Its hello's capabilities: what it is, the DAC's highest rate, FLAC and PCM (DSD where the DAC takes it), its own web port and its UDN. */
+    /* Its hello's capabilities: what it is, the DAC's highest rate, FLAC and PCM (DSD where the DAC takes it), its own web port and its UDN;
+       and that it takes Mandarin's continuous PCM (item 322: Slim.cs). */
     public string Capabilities()
     {
         var d = Dac;
         var max = d is { Rates.Count: > 0 } ? d.Rates.Max() : 48000;
         var dsd = d != null && Dsd(d).Count > 0 ? ",dsf,dff" : "";
-        return $"Model=mandarinbridge,ModelName={Model},Firmware={Program.Version},MaxSampleRate={max},MandarinBridge={http.Port},UDN={store.Udn},flc,pcm,wav{dsd}";
+        return $"Model=mandarinbridge,ModelName={Model},Firmware={Program.Version},MaxSampleRate={max},MandarinBridge={http.Port},UDN={store.Udn},ContinuousPcm=1,flc,pcm,wav{dsd}";
     }
 
     /* /dac.json: the DAC, what it takes, and what it is being fed (the Android app's, the same words). */

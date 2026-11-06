@@ -221,6 +221,7 @@
     "volume_fixed": false,
     "can_fix_volume": true,
     "takes_flac": true,
+    "continuous_pcm": false,
     "zone_id": "UPNP_wiim-pro-plus-0000-test",
     "radio": false
    },
@@ -434,6 +435,7 @@
     "volume_fixed": false,
     "can_fix_volume": true,
     "takes_flac": true,
+    "continuous_pcm": false,
     "zone_id": "UPNP_wiim-pro-plus-0000-test",
     "radio": false
    },
@@ -677,6 +679,7 @@
     "volume_fixed": false,
     "can_fix_volume": true,
     "takes_flac": true,
+    "continuous_pcm": false,
     "zone_id": "UPNP_wiim-pro-plus-0000-test",
     "radio": false
    },
@@ -890,6 +893,7 @@
     "volume_fixed": false,
     "can_fix_volume": true,
     "takes_flac": true,
+    "continuous_pcm": false,
     "zone_id": "UPNP_wiim-pro-plus-0000-test",
     "radio": false
    },
@@ -1036,6 +1040,7 @@
     "volume_fixed": false,
     "can_fix_volume": false,
     "takes_flac": true,
+    "continuous_pcm": false,
     "zone_id": "RINCON_KITCHEN01400",
     "radio": false
    },
@@ -1263,6 +1268,7 @@
     "volume_fixed": false,
     "can_fix_volume": true,
     "takes_flac": true,
+    "continuous_pcm": false,
     "zone_id": "UPNP_wiim-pro-plus-0000-test",
     "radio": false
    },
@@ -1479,6 +1485,7 @@
     "volume_fixed": false,
     "can_fix_volume": true,
     "takes_flac": true,
+    "continuous_pcm": false,
     "zone_id": "UPNP_wiim-pro-plus-0000-test",
     "radio": false
    },
@@ -1628,6 +1635,7 @@
     "volume_fixed": false,
     "can_fix_volume": false,
     "takes_flac": true,
+    "continuous_pcm": false,
     "zone_id": "RINCON_KITCHEN01400",
     "radio": false
    },
@@ -1777,6 +1785,7 @@
     "volume_fixed": false,
     "can_fix_volume": false,
     "takes_flac": true,
+    "continuous_pcm": false,
     "zone_id": "RINCON_KITCHEN01400",
     "radio": false
    },
@@ -1938,6 +1947,7 @@
     "volume_fixed": false,
     "can_fix_volume": false,
     "takes_flac": true,
+    "continuous_pcm": false,
     "zone_id": "PHONE_test",
     "radio": false
    },
@@ -2099,6 +2109,7 @@
     "volume_fixed": false,
     "can_fix_volume": false,
     "takes_flac": true,
+    "continuous_pcm": false,
     "zone_id": "PHONE_test",
     "radio": false
    },
@@ -2261,6 +2272,7 @@
     "volume_fixed": false,
     "can_fix_volume": false,
     "takes_flac": true,
+    "continuous_pcm": false,
     "zone_id": "PHONE_test",
     "radio": false
    },
@@ -2423,6 +2435,7 @@
     "volume_fixed": false,
     "can_fix_volume": false,
     "takes_flac": true,
+    "continuous_pcm": false,
     "zone_id": "PHONE_test",
     "radio": false
    },
@@ -2657,6 +2670,7 @@
     "volume_fixed": true,
     "can_fix_volume": true,
     "takes_flac": true,
+    "continuous_pcm": false,
     "zone_id": "UPNP_wiim-pro-plus-0000-test",
     "radio": false
    },
@@ -2875,6 +2889,7 @@
     "volume_fixed": true,
     "can_fix_volume": true,
     "takes_flac": true,
+    "continuous_pcm": false,
     "zone_id": "UPNP_wiim-pro-plus-0000-test",
     "radio": false
    },
@@ -3153,6 +3168,7 @@
     "volume_fixed": true,
     "can_fix_volume": true,
     "takes_flac": true,
+    "continuous_pcm": false,
     "zone_id": "UPNP_wiim-pro-plus-0000-test",
     "radio": false
    },
@@ -3371,6 +3387,7 @@
     "volume_fixed": true,
     "can_fix_volume": true,
     "takes_flac": true,
+    "continuous_pcm": false,
     "zone_id": "UPNP_wiim-pro-plus-0000-test",
     "radio": false
    },
@@ -3589,6 +3606,7 @@
     "volume_fixed": false,
     "can_fix_volume": true,
     "takes_flac": true,
+    "continuous_pcm": false,
     "zone_id": "UPNP_wiim-pro-plus-0000-test",
     "radio": false
    },
@@ -3843,6 +3861,7 @@
     "volume_fixed": false,
     "can_fix_volume": true,
     "takes_flac": true,
+    "continuous_pcm": false,
     "zone_id": "UPNP_wiim-pro-plus-0000-test",
     "radio": false
    },
@@ -4097,6 +4116,7 @@
     "volume_fixed": false,
     "can_fix_volume": true,
     "takes_flac": true,
+    "continuous_pcm": false,
     "zone_id": "UPNP_wiim-pro-plus-0000-test",
     "radio": false
    },
@@ -4377,6 +4397,7 @@
     "volume_fixed": false,
     "can_fix_volume": true,
     "takes_flac": true,
+    "continuous_pcm": false,
     "zone_id": "UPNP_wiim-pro-plus-0000-test",
     "radio": false
    },
@@ -4563,6 +4584,7 @@
     "volume_fixed": false,
     "can_fix_volume": false,
     "takes_flac": true,
+    "continuous_pcm": false,
     "zone_id": "PHONE_test",
     "radio": false
    },
@@ -4897,6 +4919,7 @@
     "volume_fixed": false,
     "can_fix_volume": false,
     "takes_flac": true,
+    "continuous_pcm": false,
     "zone_id": "RINCON_KITCHEN01400",
     "radio": false
    },
@@ -5051,6 +5074,7 @@
     "volume_fixed": false,
     "can_fix_volume": false,
     "takes_flac": true,
+    "continuous_pcm": false,
     "zone_id": "RINCON_KITCHEN01400",
     "radio": false
    },
@@ -5336,6 +5360,7 @@
     "volume_fixed": false,
     "can_fix_volume": true,
     "takes_flac": true,
+    "continuous_pcm": false,
     "zone_id": "UPNP_wiim-pro-plus-0000-test",
     "radio": false
    },
@@ -5527,6 +5552,7 @@
     "volume_fixed": false,
     "can_fix_volume": false,
     "takes_flac": true,
+    "continuous_pcm": false,
     "zone_id": "PHONE_test",
     "radio": false
    },
@@ -5771,6 +5797,7 @@
     "volume_fixed": false,
     "can_fix_volume": false,
     "takes_flac": true,
+    "continuous_pcm": false,
     "zone_id": "RINCON_KITCHEN01400",
     "radio": false
    },
@@ -6066,6 +6093,7 @@
     "volume_fixed": false,
     "can_fix_volume": true,
     "takes_flac": true,
+    "continuous_pcm": false,
     "zone_id": "UPNP_wiim-pro-plus-0000-test",
     "radio": false
    },
@@ -6261,6 +6289,7 @@
     "volume_fixed": true,
     "can_fix_volume": true,
     "takes_flac": true,
+    "continuous_pcm": false,
     "zone_id": "UPNP_chord-poly-0000-test",
     "radio": false
    },
@@ -6554,6 +6583,7 @@
     "volume_fixed": false,
     "can_fix_volume": true,
     "takes_flac": true,
+    "continuous_pcm": false,
     "zone_id": "UPNP_wiim-pro-plus-0000-test",
     "radio": false
    },
@@ -6839,6 +6869,7 @@
     "volume_fixed": false,
     "can_fix_volume": true,
     "takes_flac": true,
+    "continuous_pcm": false,
     "zone_id": "UPNP_wiim-pro-plus-0000-test",
     "radio": false
    },
@@ -7229,6 +7260,7 @@
     "volume_fixed": false,
     "can_fix_volume": true,
     "takes_flac": true,
+    "continuous_pcm": false,
     "zone_id": "UPNP_wiim-pro-plus-0000-test",
     "radio": false
    },
@@ -7535,6 +7567,7 @@
     "volume_fixed": false,
     "can_fix_volume": true,
     "takes_flac": true,
+    "continuous_pcm": false,
     "zone_id": "UPNP_wiim-pro-plus-0000-test",
     "radio": false
    },
@@ -7820,6 +7853,7 @@
     "volume_fixed": false,
     "can_fix_volume": true,
     "takes_flac": true,
+    "continuous_pcm": false,
     "zone_id": "UPNP_wiim-pro-plus-0000-test",
     "radio": false
    },
@@ -7974,6 +8008,7 @@
     "volume_fixed": false,
     "can_fix_volume": false,
     "takes_flac": true,
+    "continuous_pcm": false,
     "zone_id": "RINCON_KITCHEN01400",
     "radio": false
    },
@@ -8259,6 +8294,7 @@
     "volume_fixed": false,
     "can_fix_volume": true,
     "takes_flac": true,
+    "continuous_pcm": false,
     "zone_id": "UPNP_wiim-pro-plus-0000-test",
     "radio": false
    },
@@ -8413,6 +8449,7 @@
     "volume_fixed": false,
     "can_fix_volume": false,
     "takes_flac": true,
+    "continuous_pcm": false,
     "zone_id": "RINCON_KITCHEN01400",
     "radio": true
    },
@@ -8567,6 +8604,7 @@
     "volume_fixed": false,
     "can_fix_volume": false,
     "takes_flac": true,
+    "continuous_pcm": false,
     "zone_id": "RINCON_KITCHEN01400",
     "radio": false
    },
@@ -8852,6 +8890,7 @@
     "volume_fixed": false,
     "can_fix_volume": true,
     "takes_flac": true,
+    "continuous_pcm": false,
     "zone_id": "UPNP_wiim-pro-plus-0000-test",
     "radio": false
    },
@@ -9137,6 +9176,7 @@
     "volume_fixed": false,
     "can_fix_volume": true,
     "takes_flac": true,
+    "continuous_pcm": false,
     "zone_id": "UPNP_wiim-pro-plus-0000-test",
     "radio": false
    },
@@ -9422,6 +9462,7 @@
     "volume_fixed": false,
     "can_fix_volume": true,
     "takes_flac": true,
+    "continuous_pcm": false,
     "zone_id": "UPNP_wiim-pro-plus-0000-test",
     "radio": false
    },
@@ -9591,6 +9632,7 @@
     "volume_fixed": false,
     "can_fix_volume": false,
     "takes_flac": true,
+    "continuous_pcm": false,
     "zone_id": "RINCON_KITCHEN01400",
     "radio": false
    },
@@ -9745,6 +9787,7 @@
     "volume_fixed": false,
     "can_fix_volume": false,
     "takes_flac": true,
+    "continuous_pcm": false,
     "zone_id": "RINCON_KITCHEN01400",
     "radio": false
    },

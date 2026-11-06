@@ -281,6 +281,7 @@ internal sealed partial class Devices
             o["volume_fixed"] = streamer && Players.FixedVolume(r);
             o["can_fix_volume"] = streamer && Jv.T(r.Caps["playable"]);
             o["takes_flac"] = r.Kind is not ("upnp" or SlimDevices.Kind) || Players.TakesFlac(r);
+            o["continuous_pcm"] = r.Kind == SlimDevices.Kind && SlimDevices.Continuous(r.Caps);   // a Mandarin Bridge played continuous PCM (item 322)
         }
         return o;
     }

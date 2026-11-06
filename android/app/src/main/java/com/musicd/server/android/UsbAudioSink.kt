@@ -29,6 +29,11 @@ import java.nio.ByteOrder
  * sixteenth of the DSD rate. A DSD track the DAC can't be given is an error
  * the player sees ([DsdUnplayable]); the service then has the server send
  * it as PCM.
+ *
+ * Where a track goes on into one of another format (16/44.1 then 24/96, PCM then DSD), the stream is opened again at
+ * the new one and given half a second of silence first (item 322), so the DAC settles at its new rate on nothing and
+ * the music's first moment is heard whole, with no click as it locks: zeros, DSD's idle pattern, or DoP's under its
+ * alternating markers. The position leaves the silence out.
  */
 @UnstableApi
 class UsbAudioSink(private val inner: AudioSink, private val context: Context) : ForwardingAudioSink(inner) {
@@ -62,6 +67,8 @@ class UsbAudioSink(private val inner: AudioSink, private val context: Context) :
     private var outPos = 0
 
     private var words = false       // PCM carried as 32-bit words (DspSink, takesWords), not as float
+    private var settle: ByteBuffer? = null   // the silence still to go ahead of the music, at a change of format
+    private var afterSilence = 0L            // the frames the DAC has taken once that silence is played
 
     private fun wantUsb(f: Format): Boolean =
         Store.usbDirect(context) && UsbDac.device() != null && f.sampleMimeType == MimeTypes.AUDIO_RAW &&
@@ -110,6 +117,7 @@ class UsbAudioSink(private val inner: AudioSink, private val context: Context) :
             if (mode == plan.first && keeps(kind, plan.second)) { drained = false; return }
             val probe = UsbDriver.streamFor(UsbDac.info(), plan.second, kind == "dsd") ?: throw DsdUnplayable.make("no stream", inputFormat)
             val sil = silence(kind, probe.channels * probe.subslot, probe.subslot)
+            val change = usb
             if (!UsbDriver.open(context, plan.second, kind, sil)) {
                 usb = false
                 throw DsdUnplayable.make(UsbDriver.lastError ?: "the stream couldn't be opened", inputFormat)
@@ -118,6 +126,7 @@ class UsbAudioSink(private val inner: AudioSink, private val context: Context) :
             subslot = UsbDriver.current?.subslot ?: 4
             dopMarker = 0x05
             startSet = false; drained = false; outFor = null
+            if (change) settleWith(sil)
             if (playing) UsbDriver.play()
             return
         }
@@ -127,11 +136,13 @@ class UsbAudioSink(private val inner: AudioSink, private val context: Context) :
             drained = false
             return
         }
+        val change = usb
         if (wantUsb(inputFormat) && UsbDriver.open(context, inputFormat.sampleRate)) {
             usb = true; mode = "pcm"; words = inputFormat.pcmEncoding == C.ENCODING_PCM_32BIT
             rate = inputFormat.sampleRate; channels = inputFormat.channelCount
             subslot = UsbDriver.current?.subslot ?: 3
             startSet = false; drained = false; outFor = null
+            if (change) settleWith(ByteArray(channels * subslot))
             if (playing) UsbDriver.play()
             // Android's track is left unconfigured: nothing goes to it.
             return
@@ -151,6 +162,20 @@ class UsbAudioSink(private val inner: AudioSink, private val context: Context) :
         return usb && c.kind == kind && c.rate == rate && c.device == UsbDac.device() && !UsbDriver.dead()
     }
 
+    /**
+     * Half a second of [frames] (a frame or two of silence, DoP's two under both markers, so it ends on 0xFA and the
+     * music's first frame carries 0x05) to go to the DAC, just opened at a new format, ahead of the music.
+     */
+    private fun settleWith(frames: ByteArray) {
+        val per = (channels * subslot).coerceAtLeast(1)
+        val count = (rate / 2) / (frames.size / per) * (frames.size / per)
+        val b = ByteBuffer.allocateDirect(count * per)
+        while (b.remaining() >= frames.size) b.put(frames)
+        b.flip()
+        settle = b
+        afterSilence = UsbDriver.played() + count
+    }
+
     /** What the engine sends with nothing to play: DSD silence (0x69), or DoP frames of it under both markers. */
     private fun silence(kind: String, frameBytes: Int, slot: Int): ByteArray {
         if (kind == "dsd") return ByteArray(frameBytes) { 0x69 }
@@ -166,7 +191,15 @@ class UsbAudioSink(private val inner: AudioSink, private val context: Context) :
     override fun handleBuffer(buffer: ByteBuffer, presentationTimeUs: Long, encodedAccessUnitCount: Int): Boolean {
         if (!usb) return inner.handleBuffer(buffer, presentationTimeUs, encodedAccessUnitCount)
         if (UsbDriver.dead() || !UsbDriver.active) throw AudioSink.WriteException(-1, Format.Builder().setSampleRate(rate).build(), true)
-        if (!startSet) { startUs = presentationTimeUs; playedAtStart = UsbDriver.played(); startSet = true; if (playing) UsbDriver.play() }
+        // The silence a change of format is given first, as the ring has room for it.
+        settle?.let { sil ->
+            val n = UsbDriver.write(sil, sil.position(), sil.remaining())
+            if (n < 0) throw AudioSink.WriteException(n, Format.Builder().setSampleRate(rate).build(), true)
+            sil.position(sil.position() + n)
+            if (sil.hasRemaining()) return false
+            settle = null
+        }
+        if (!startSet) { startUs = presentationTimeUs; playedAtStart = maxOf(UsbDriver.played(), afterSilence); startSet = true; if (playing) UsbDriver.play() }
         // The same buffer comes back until it is taken: packed once, written as the ring has room.
         if (outFor !== buffer) { if (mode == "pcm") pack(buffer) else packDsd(buffer); outFor = buffer; outPos = 0 }
         val n = UsbDriver.write(out, outPos, out.limit() - outPos)
@@ -265,11 +298,11 @@ class UsbAudioSink(private val inner: AudioSink, private val context: Context) :
         if (!usb) return inner.getCurrentPositionUs(sourceEnded)
         if (!startSet || rate <= 0) return AudioSink.CURRENT_POSITION_NOT_SET
         // Frames the DAC has taken at the stream's own rate: with DoP that is twice the renderer's frames.
-        val played = UsbDriver.played() - playedAtStart
+        val played = (UsbDriver.played() - playedAtStart).coerceAtLeast(0)
         return startUs + played * 1_000_000L / rate
     }
     override fun setVolume(volume: Float) { if (!usb) inner.setVolume(volume) }
-    override fun flush() { if (usb) { UsbDriver.flush(); startSet = false; drained = false; outFor = null } else inner.flush() }
-    override fun reset() { if (usb) { UsbDriver.flush(); startSet = false; drained = false; outFor = null } else inner.reset() }
+    override fun flush() { if (usb) { UsbDriver.flush(); startSet = false; drained = false; outFor = null; settle = null; afterSilence = 0 } else inner.flush() }
+    override fun reset() { if (usb) { UsbDriver.flush(); startSet = false; drained = false; outFor = null; settle = null; afterSilence = 0 } else inner.reset() }
     override fun release() { if (usb) { UsbDriver.close(); usb = false }; inner.release() }
 }

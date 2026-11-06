@@ -22,6 +22,9 @@ import java.security.MessageDigest
  * given while one plays, the next, gapless), 'q' stop, 'p' pause, 'u' go on, 't' how are you. It says what happens
  * (STAT): STMs a track begun, STMd its stream read (Mandarin then gives the next), STMl buffered, waiting for Play,
  * STMp, STMr, STMu all played, STMn a track it couldn't play, STMt with how far in. The volume is audg's gain.
+ * Its hello says it takes Mandarin's continuous PCM (item 322): a strm s of PCM ('p') is a run, one stream of samples
+ * alone, track on into track, its format said in the strm and put on its address for [RawPcmExtractor]
+ * ("#pcm=s24le:96000:2"); Mandarin tells it each track it comes to in the run (mtrk), for the screen and notification.
  *
  * A frame from the server: 2 bytes of length, four letters, the rest; one to it: four letters, 4 bytes of length.
  */
@@ -127,7 +130,7 @@ class Slim(private val service: DacService, private val transport: Transport) {
     private fun capabilities(): String {
         val rates = service.dacJson().optJSONObject("dac")?.optJSONArray("rates")
         val max = if (rates != null && rates.length() > 0) (0 until rates.length()).maxOf { rates.optInt(it) } else 192000
-        return "Model=mandarinbridge,ModelName=${Transport.MODEL},Firmware=${BuildConfig.VERSION_NAME},MaxSampleRate=$max,MandarinBridge=${Store.PORT},UDN=${Store.udn(service)},flc,pcm,wav,dsf,dff"
+        return "Model=mandarinbridge,ModelName=${Transport.MODEL},Firmware=${BuildConfig.VERSION_NAME},MaxSampleRate=$max,MandarinBridge=${Store.PORT},UDN=${Store.udn(service)},ContinuousPcm=1,flc,pcm,wav,dsf,dff"
     }
 
     /** Mandarin told again what it plays (a DAC plugged in or taken out, a new address): a hello again, where connected. */
@@ -159,6 +162,7 @@ class Slim(private val service: DacService, private val transport: Transport) {
             "audg" -> if (b.size >= 18) volume(ByteBuffer.wrap(b, 10, 4).int)
             "setd" -> if (b.isNotEmpty() && b[0] == 0.toByte() && b.size == 1)
                 send("SETD", byteArrayOf(0) + (Store.friendlyName(service) + "\u0000").toByteArray(Charsets.UTF_8))
+            "mtrk" -> told(String(b, Charsets.US_ASCII))
             "aude", "serv" -> {}
             else -> Log.i(TAG, "unhandled $op")
         }
@@ -178,7 +182,9 @@ class Slim(private val service: DacService, private val transport: Transport) {
                 val ip = bb.getInt(20)
                 val request = String(b, 24, b.size - 24, Charsets.ISO_8859_1)
                 val host = if (ip == 0) server?.hostAddress ?: return else InetAddress.getByAddress(ByteBuffer.allocate(4).putInt(ip).array()).hostAddress
-                val item = item("http://$host:$port", request) ?: return
+                val said = item("http://$host:$port", request) ?: return
+                // A run of Mandarin's PCM: what its samples are, on its address.
+                val item = raw(b)?.let { Transport.Item(said.uri + it, said.title, said.artist, said.album) } ?: said
                 stat("STMc")
                 // After a stop, or with nothing playing: the track itself; else the next, gapless after the one playing.
                 val asNext = onMain { !flushed && transport.current != null }
@@ -195,9 +201,25 @@ class Slim(private val service: DacService, private val transport: Transport) {
     private fun item(base: String, request: String): Transport.Item? {
         val lines = request.split("\r\n")
         val path = lines.firstOrNull()?.split(" ")?.getOrNull(1) ?: return null
-        fun header(name: String) = lines.firstOrNull { it.startsWith("$name:", ignoreCase = true) }?.substringAfter(':')?.trim()
-            ?.let { runCatching { URLDecoder.decode(it, "UTF-8") }.getOrDefault(it) } ?: ""
-        return Transport.Item(base + path, header("X-Mandarin-Title"), header("X-Mandarin-Artist"), header("X-Mandarin-Album"))
+        return Transport.Item(base + path, header(lines, "X-Mandarin-Title"), header(lines, "X-Mandarin-Artist"), header(lines, "X-Mandarin-Album"))
+    }
+
+    private fun header(lines: List<String>, name: String) = lines.firstOrNull { it.startsWith("$name:", ignoreCase = true) }?.substringAfter(':')?.trim()
+        ?.let { runCatching { URLDecoder.decode(it, "UTF-8") }.getOrDefault(it) } ?: ""
+
+    /** A strm s of PCM ('p', item 322): its samples' format as [RawPcmExtractor] reads it ("#pcm=s24le:96000:2"); null for any other stream. */
+    private fun raw(b: ByteArray): String? {
+        if (b.size < 7 || b[2] != 'p'.code.toByte()) return null
+        val bits = when (b[3].toInt().toChar()) { '1' -> 16; '2' -> 24; '3' -> 32; else -> return null }
+        val r = b[4] - '0'.code.toByte(); val channels = b[5] - '0'.code.toByte()
+        if (r < 0 || r >= RATES.size || RATES[r] == 0 || channels !in 1..8 || b[6] != '1'.code.toByte()) return null
+        return "#pcm=s${bits}le:${RATES[r]}:$channels"
+    }
+
+    /** Mandarin told it the track it has come to in the run it plays (mtrk, item 322): what it is, for the screen and notification. */
+    private fun told(headers: String) {
+        val lines = headers.split("\r\n")
+        transport.retitle(header(lines, "X-Mandarin-Title"), header(lines, "X-Mandarin-Artist"), header(lines, "X-Mandarin-Album"))
     }
 
     /** The volume Mandarin sets: its gain (16.16, 1 the whole), the DAC's own where it has one and isn't fixed. */
