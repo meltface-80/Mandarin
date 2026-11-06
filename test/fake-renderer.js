@@ -37,8 +37,11 @@ const CM = "urn:schemas-upnp-org:service:ConnectionManager:1";
 class FakeRenderer {
   constructor({ name, manufacturer = "Acme", model = "Streamer", modelNumber = "1", udn, sink = SINK_WIIM,
                 linkplay = null, dac = null, nested = false, urlBase = false, noAvTransport = false, setNext = true, namesNext = false, namesFirst = false,
-                slowToName = 0, escapesUri = false, fetches = true } = {}) {
+                slowToName = 0, escapesUri = false, fetches = true, dacMisses = 0, nowMisses = 0 } = {}) {
     // dac: a Mandarin Bridge renderer's /dac.json "dac" part ({ rates, bits, dsd, … }, Renderers/MandarinBridge.cs), served with what plays now.
+    // dacMisses: that many /dac.json asks, while it plays, left unanswered (503); nowMisses: that many said to play nothing
+    // (now: null), as an app busy or between tracks says (item 314).
+    this.dacMisses = dacMisses; this.nowMisses = nowMisses;
     // namesNext: GetPositionInfo names the next URI as soon as it is set, while the first goes on playing (a FiiO SR11, item 233).
     // namesFirst: GetPositionInfo and its events name the URI it was set to play all along, past the next it moved on to by
     // itself, its position from that one's start (a Chord Poly playing DSFs made of PCM, item 299).
@@ -268,7 +271,9 @@ class FakeRenderer {
         const info = last ? require("./fixtures").probe(last.body) : null;
         const dsd = last && /\.dsf\b|\.dff\b/.test(last.uri) ? (this.dac.dsd || [64])[0] : 0;
         // renderer.nowExtra: more of what the app says it feeds its DAC (item 287: its words' bits, its volume, untouched).
-        const now = this.state === "PLAYING" && (info || dsd) ? Object.assign({ rate: dsd ? dsd * 44100 / 32 : info.rate, bits: dsd ? 32 : info.bits, dsd, kind: dsd ? "dsd" : "pcm", transport: this.state }, this.nowExtra || {}) : null;
+        let now = this.state === "PLAYING" && (info || dsd) ? Object.assign({ rate: dsd ? dsd * 44100 / 32 : info.rate, bits: dsd ? 32 : info.bits, dsd, kind: dsd ? "dsd" : "pcm", transport: this.state }, this.nowExtra || {}) : null;
+        if (now && this.dacMisses > 0) { this.dacMisses--; res.writeHead(503); return res.end(); }
+        if (now && this.nowMisses > 0) { this.nowMisses--; now = null; }
         res.writeHead(200, { "Content-Type": "application/json" });
         return res.end(JSON.stringify({ model: "Mandarin Bridge", version: "0.2.0", name: this.name, udn: this.udn, dac: Object.assign({ attached: true, permission: true }, this.dac), now,
           capture: this.dac.capture ? "/capture" : undefined, capture_parts: this.dac.captureParts ? true : undefined,
