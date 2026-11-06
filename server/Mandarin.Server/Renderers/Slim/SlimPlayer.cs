@@ -29,6 +29,8 @@ internal sealed class SlimPlayer
 
     // What it is playing: the track playing, the stream it was last given (that track, or the next once given), the next.
     private string current = "", streaming = "", next = "";
+    // What each track is, as its request says it to the player (item 315): a Mandarin Bridge shows it on its screen.
+    private readonly Dictionary<string, string> said = new(StringComparer.Ordinal);
     private bool streamRead, loaded, playWanted;
     private string state = "STOPPED";
     private uint elapsedMs;
@@ -128,19 +130,21 @@ internal sealed class SlimPlayer
     }
 
     /* The track [uri] set: what it played stopped and forgotten, this one fetched, to wait until Play. */
-    public void SetUri(string uri)
+    public void SetUri(string uri, string meta = "")
     {
+        lock (gate) { said.Clear(); said[uri] = Headers(meta); }
         lock (gate) { current = streaming = uri; next = ""; streamRead = loaded = playWanted = false; state = "STOPPED"; elapsedMs = 0; elapsedAt = Environment.TickCount64; offset = 0; }
         Send(Strm('q'));
         if (uri.Length > 0) Send(StreamOf(uri, autostart: '0'));
     }
 
     /* The next after the one playing: started now where the one playing has been read to its end, else once it has. */
-    public void SetNextUri(string uri)
+    public void SetNextUri(string uri, string meta = "")
     {
         bool now;
         lock (gate)
         {
+            if (uri.Length > 0) said[uri] = Headers(meta);
             next = uri;
             now = uri.Length > 0 && streamRead && streaming == current && state != "STOPPED";
             if (now) { streaming = uri; streamRead = false; }
@@ -187,8 +191,10 @@ internal sealed class SlimPlayer
             streaming = current; streamRead = loaded = playWanted = false;
             elapsedMs = 0; elapsedAt = Environment.TickCount64;
         }
+        var from = From(uri, seconds);
+        lock (gate) said[from] = said.GetValueOrDefault(uri, "");   // what the track is, said of it from there too
         Send(Strm('q'));
-        Send(StreamOf(From(uri, seconds), autostart: playing ? '1' : '0'));
+        Send(StreamOf(from, autostart: playing ? '1' : '0'));
     }
 
     /* [uri] begun [seconds] in. */
@@ -219,13 +225,29 @@ internal sealed class SlimPlayer
 
     /* strm s for [uri]: its codec by its kind, fetched from where it is (the server it is connected to, where the
        address names no other), as an HTTP request. */
-    private static byte[] StreamOf(string uri, char autostart)
+    private byte[] StreamOf(string uri, char autostart)
     {
+        string extra;
+        lock (gate) extra = said.GetValueOrDefault(uri, "");
         var u = new Uri(uri);
         var ip = System.Net.IPAddress.TryParse(u.Host, out var a) && a.AddressFamily == AddressFamily.InterNetwork
             ? System.Buffers.Binary.BinaryPrimitives.ReadUInt32BigEndian(a.GetAddressBytes()) : 0;
-        var request = $"GET {u.PathAndQuery} HTTP/1.0\r\nHost: {u.Authority}\r\n\r\n";
+        var request = $"GET {u.PathAndQuery} HTTP/1.0\r\nHost: {u.Authority}\r\n{extra}\r\n";
         return Strm('s', FormatOf(u.AbsolutePath), request, (ushort)u.Port, ip, autostart: autostart);
+    }
+
+    /* What a track is, from its DIDL-Lite, as request headers the player may show (percent-encoded: a header is ASCII). */
+    private static string Headers(string meta)
+    {
+        if (meta.Length == 0) return "";
+        static string? Tag(string xml, string name) =>
+            System.Text.RegularExpressions.Regex.Match(xml, "<" + name + "(?:\\s[^>]*)?>([^<]*)</" + name + ">") is { Success: true } m ? System.Net.WebUtility.HtmlDecode(m.Groups[1].Value).Trim() : null;
+        var sb = new System.Text.StringBuilder();
+        void Add(string header, string? v) { if (!string.IsNullOrEmpty(v)) sb.Append(header).Append(": ").Append(Uri.EscapeDataString(v)).Append("\r\n"); }
+        Add("X-Mandarin-Title", Tag(meta, "dc:title"));
+        Add("X-Mandarin-Artist", Tag(meta, "upnp:artist") ?? Tag(meta, "dc:creator"));
+        Add("X-Mandarin-Album", Tag(meta, "upnp:album"));
+        return sb.ToString();
     }
 
     /* A track's codec, as strm names it: FLAC, DSD (a DSF or DFF the player reads itself), else whatever its header says. */

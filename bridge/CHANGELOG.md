@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.3.0
+
+- New - the Android Bridge is a SlimProto player (as Squeezelite is), where it was a UPnP renderer: it finds Mandarin on the network by itself (port 3483), connects, and plays what Mandarin sends it, one track on into the next, gapless, as before. Its hello tells Mandarin its DAC's highest rate and where its own page is, so Mandarin reads its DAC (/dac.json), offers its updates and reads its log as before (item 315)
+- Improved - Mandarin keeps what it knew of the Bridge as a UPnP renderer: the name you gave it, switched on or off, and its settings (item 315)
+- Improved - the screen says whether Mandarin has been found, at which address, and when it was last heard from; Restart the Bridge and the rest say "the Bridge" where they said "the renderer" (item 315)
+- Improved - UPnP is gone from the Android Bridge: no description, no SOAP control, no events, no SSDP. The Linux Bridge and the Raspberry Pi's follow (item 316)
+- Improved - Mandarin Bridge is 0.3.0
+
 ## v0.2.3
 
 - Fixed - the Android Bridge let go of the DAC between two tracks and took it again (35 ms, the DAC locking again to DSD256), dropping the last of the track before and starting DoP's marker over: now a track that goes to the DAC as the one before did follows on in the same stream, gapless, as the Mandarin app's USB direct does too (item 304)

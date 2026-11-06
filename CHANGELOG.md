@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- New - Mandarin Bridge for Android plays from Mandarin over SlimProto, where it was a UPnP renderer: it finds Mandarin by itself, and Mandarin reads its DAC from it as before (its rates, its ✓, its updates and its log in Settings → Updates). Each track Mandarin sends it says what it is, for the Bridge's screen and notification. A Bridge Mandarin knew as a UPnP renderer keeps its name, whether it was on, and its settings. Mandarin Bridge is 0.3.0 (item 315)
 - New - a Squeezelite player's page has Output, as a renderer's: upsampling (×2, ×4, Max), the filters, the bit depth, DSD as PCM, PCM as DSD and its modulator; its rates and DSD are its own word, from its hello. Gapless says it plays one track into the next from its own buffer, with nothing to set, and how its -r option pauses at a change of rate. About says it connected to Mandarin, over SlimProto (item 313)
 - New - seeking on a Squeezelite player: it can't seek within what it fetches, so the track is fetched again from that point; upsampled or made DSD it is made from there, as an album's stream is begun part-way (item 313)
 - Fixed - the ✓ on Now playing for a Mandarin Bridge could never come for a track: Mandarin asks the Bridge what it feeds its DAC once a track has played a couple of seconds, and where that one ask went unanswered, or the Bridge said it played nothing (busy, or between tracks), it never asked again for that track. It now asks again at the next read until it has the Bridge's word (item 314)

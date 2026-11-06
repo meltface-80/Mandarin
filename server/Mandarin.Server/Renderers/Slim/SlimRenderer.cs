@@ -26,8 +26,8 @@ internal sealed class SlimRenderer(string id, string name, Func<string, SlimPlay
         p.SeekTime(seconds);
         return Task.CompletedTask;
     }
-    public Task SetUri(string uri, string meta = "") { Player.SetUri(uri); return Task.CompletedTask; }
-    public Task SetNextUri(string uri, string meta = "") { Player.SetNextUri(uri); return Task.CompletedTask; }
+    public Task SetUri(string uri, string meta = "") { Player.SetUri(uri, meta); return Task.CompletedTask; }
+    public Task SetNextUri(string uri, string meta = "") { Player.SetNextUri(uri, meta); return Task.CompletedTask; }
 
     public Task<JsObj> GetTransportInfo() =>
         Task.FromResult(Jv.Obj(("CurrentTransportState", Player.State), ("CurrentTransportStatus", "OK"), ("CurrentSpeed", "1")));

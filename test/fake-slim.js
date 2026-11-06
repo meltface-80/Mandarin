@@ -17,6 +17,7 @@ class FakeSlim {
     Object.assign(this, { port, name, mac, caps, seconds });
     this.log = [];        // "strm s f 0 /stream/t1.flac", "strm u", "audg 19661", …
     this.fetched = [];    // { path, bytes }
+    this.requests = [];   // each strm s's HTTP request, whole
     this.gain = null;
     this.playing = null;  // { path, started, base } the stream being heard
     this.queued = [];     // streams read, waiting to be heard
@@ -104,6 +105,7 @@ class FakeSlim {
       const request = b.toString("ascii", 24);
       const path = request.split(" ")[1];
       this.log.push(`strm s ${format} ${autostart} ${path}`);
+      this.requests.push(request);   // the whole HTTP request it was given, its headers too (item 315)
       this.stat("STMc");
       this.fetch(port, path).then(bytes => {
         this.fetched.push({ path, bytes });

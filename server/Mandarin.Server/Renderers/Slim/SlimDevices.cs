@@ -20,12 +20,23 @@ internal static class SlimDevices
         return new SeenInfo
         {
             Id = p.Id, Kind = Kind, Family = "slimproto",
-            NetworkName = p.Name, Manufacturer = pairs.TryGetValue("Model", out var maker) ? maker : "SlimProto", Model = model,
+            NetworkName = p.Name, Manufacturer = BridgeBase(p) != null ? "Mandarin" : pairs.TryGetValue("Model", out var maker) ? maker : "SlimProto", Model = model,
             Firmware = pairs.TryGetValue("Firmware", out var fw) ? fw : "", Ip = p.Ip, Location = "slim:" + p.Id,
             Playable = true, Openhome = false, Services = new JsObj(), Events = new JsObj(),
             Caps = Jv.Obj(("advertised", Advertised(pairs, words))),
         };
     }
+
+    /* A Mandarin Bridge's own web service (/dac.json, /update, /log), at the port its hello names (MandarinBridge=…,
+       item 315); null for any other player. */
+    public static string? BridgeBase(SlimPlayer p) =>
+        p.Helo.Caps().Pairs.TryGetValue("MandarinBridge", out var port) && int.TryParse(port, out var n) && n is > 0 and < 65536
+            ? $"http://{p.Ip}:{n.ToString(System.Globalization.CultureInfo.InvariantCulture)}" : null;
+
+    /* The UPnP device a Mandarin Bridge was before it played over SlimProto (its UDN, in its hello); null for any other. */
+    public static string? UpnpIdOf(SlimPlayer p) =>
+        BridgeBase(p) != null && p.Helo.Caps().Pairs.TryGetValue("UDN", out var udn) && udn.StartsWith("uuid:", StringComparison.OrdinalIgnoreCase) && udn.Length > 5
+            ? RendererDiscovery.IdFor(udn) : null;
 
     /* The formats a player's capabilities name, in the shape a renderer's GetProtocolInfo is kept in. */
     public static JsObj Advertised(IReadOnlyDictionary<string, string> pairs, IReadOnlyList<string> words)
