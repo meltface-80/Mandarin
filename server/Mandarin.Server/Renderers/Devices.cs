@@ -264,7 +264,8 @@ internal sealed partial class Devices
             if (r.Kind != "local") o["location"] = r.Location;
             o["caps"] = r.Caps; o["settings"] = r.Settings;
             o["found_by"] = r.Kind == "sonos" ? "The Sonos household" : r.Kind == "phone" ? "The Mandarin app"
-                : r.Kind == "local" ? (r.Location.StartsWith("coreaudio:", StringComparison.Ordinal) ? "This Mac (Core Audio)" : "This computer (ALSA)") : "UPnP discovery";
+                : r.Kind == "local" ? (r.Location.StartsWith("coreaudio:", StringComparison.Ordinal) ? "This Mac (Core Audio)" : "This computer (ALSA)")
+                : r.Kind == SlimDevices.Kind ? "It connected to Mandarin" : "UPnP discovery";   // a SlimProto player finds Mandarin (item 313)
             var err = streamer ? hub.Upnp.ErrorOf(r.Id) : null;
             o["last_error"] = err is { } e ? Jv.Obj(("at", e.At), ("message", e.Message)) : null;
             o["openhome"] = Jv.T(r.Caps["openhome"]);
