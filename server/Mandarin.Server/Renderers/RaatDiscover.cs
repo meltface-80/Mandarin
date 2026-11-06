@@ -86,10 +86,12 @@ internal static class RaatDiscover
     private static async Task<JsonObject> Run(List<string> ids, IPEndPoint[] targets, TimeSpan window, bool listen)
     {
         var heard = new List<Heard>();
-        var tids = new HashSet<string>();
+        // Our queries' ids, in any case: Roon Server, where it runs here, sends a query it hears on again with its id in capitals.
+        var tids = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var asked = new List<string>();
         using var cts = new CancellationTokenSource(window);
         using var send = new UdpClient(new IPEndPoint(IPAddress.Any, 0));
+        var ourPort = ((IPEndPoint)send.Client.LocalEndPoint!).Port.ToString(System.Globalization.CultureInfo.InvariantCulture);
         send.EnableBroadcast = true;
         send.Client.SetSocketOption(SocketOptionLevel.IP, SocketOptionName.MulticastTimeToLive, 1);
         var listener = listen ? Listen() : null;
@@ -124,7 +126,8 @@ internal static class RaatDiscover
                 if (Sood.Parse(r.Buffer) is not { } m) continue;
                 bool ours;
                 lock (asked) ours = m["_tid"] is { } t && tids.Contains(t);
-                if (m.Type == 'Q' && ours) continue;   // our own query, heard back on the group
+                // Our own query heard back: on the group, or sent on by Roon Server with where to answer added (ours).
+                if (m.Type == 'Q' && (ours || m["_replyport"] == ourPort && m["_replyaddr"] is var at && (at == null || at.StartsWith("127.", StringComparison.Ordinal) || networks.Contains(at)))) continue;
                 lock (heard) heard.Add(new Heard(r.RemoteEndPoint, how, m));
                 // A query of another's asks for a service: asked for too (a Roon Core asking for its devices, say).
                 if (m.Type == 'Q' && m["query_service_id"] is { Length: > 0 } wanted) Ask(wanted);
@@ -178,7 +181,7 @@ internal static class RaatDiscover
         return new JsonObject { ["type"] = m.Type.ToString(), ["props"] = props };
     }
 
-    /* What was heard, one entry for each sender and type (its latest packet), answers to our query first. */
+    /* What was heard, each packet once from each sender (the same again not repeated), answers first. */
     private static JsonObject Result(List<Heard> heard, List<string> asked, HashSet<string> tids, List<string> via, bool listened)
     {
         var answers = new JsonArray();
@@ -186,7 +189,8 @@ internal static class RaatDiscover
         var seen = new HashSet<string>();
         foreach (var h in Enumerable.Reverse(heard))
         {
-            if (!seen.Add(h.From + " " + h.Message.Type + " " + h.Message["unique_id"])) continue;
+            // The same packet again from the same sender (an announcement repeated, each with its own id) shown once.
+            if (!seen.Add(h.From + " " + h.Message.Type + " " + string.Join("\n", h.Message.Props.Where(p => p.Key != "_tid").Select(p => p.Key + "=" + p.Value)))) continue;
             var o = Read(h.Message);
             o["from"] = h.From.ToString();
             o["how"] = h.How;

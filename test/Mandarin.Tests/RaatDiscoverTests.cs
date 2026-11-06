@@ -89,6 +89,12 @@ public sealed class RaatDiscoverTests
                 {
                     await device.SendAsync(Packet('R', ("name", "Core"), ("unique_id", "core-1"), ("service_id", Core), ("_tid", tid)), r.RemoteEndPoint);
                     await device.SendAsync(Packet('Q', ("query_service_id", "device-svc"), ("_tid", "the-core's")), r.RemoteEndPoint);
+                    // Our query sent on as Roon Server sends one on (item 311): its id in capitals, or none, and where
+                    // to answer, us; and one of another computer's that happens to name the same port.
+                    var back = r.RemoteEndPoint.Port.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                    await device.SendAsync(Packet('Q', ("_replyaddr", "127.0.0.1"), ("_tid", tid!.ToUpperInvariant()), ("query_service_id", Core), ("_replyport", back)), r.RemoteEndPoint);
+                    await device.SendAsync(Packet('Q', ("query_service_id", Core), ("_replyaddr", "127.0.0.1"), ("_replyport", back)), r.RemoteEndPoint);
+                    await device.SendAsync(Packet('Q', ("query_service_id", Core), ("_replyaddr", "198.51.100.7"), ("_replyport", back)), r.RemoteEndPoint);
                 }
                 else await device.SendAsync(Packet('R', ("name", "Poly"), ("unique_id", "poly-1"), ("service_id", "device-svc"), ("_tid", tid), ("tcp_port", null)), r.RemoteEndPoint);
             }
@@ -113,9 +119,10 @@ public sealed class RaatDiscoverTests
         Assert.Equal(("poly-1", "device-svc"), ((string?)poly["unique_id"], (string?)poly["service_id"]));
         Assert.True(poly.ContainsKey("tcp_port"));
         Assert.Null(poly["tcp_port"]);
+        // Others' queries shown; our own, sent back to us, not.
         var heard = o["others_heard"]!.AsArray();
-        Assert.Single(heard);
-        Assert.Equal(("Q", "device-svc", false), ((string?)heard[0]!["type"], (string?)heard[0]!["props"]!["query_service_id"], (bool)heard[0]!["answers_our_query"]!));
+        Assert.Equal([("device-svc", null), (Core, "198.51.100.7")], heard.Select(h => ((string?)h!["props"]!["query_service_id"], (string?)h!["props"]!["_replyaddr"])));
+        Assert.All(heard, h => Assert.False((bool)h!["answers_our_query"]!));
     }
 
     [Test]
