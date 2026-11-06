@@ -216,7 +216,7 @@ internal static partial class Streams
         else
         {
             if (!File.Exists(t.Path)) return Refuse(ctx, 404);
-            if (!Jv.T(p["transcode"])) return await SendFile(ctx, t.Path, Jv.Str(p["mime"]));
+            if (!Jv.T(p["transcode"])) return QueryOne(raw, "ss") is { Here: true } from ? await AnswerFrom(ctx, id, t, p, from, false) : await SendFile(ctx, t.Path, Jv.Str(p["mime"]));
         }
         // Made already: sent from the cache, marked as used. Not yet: made
         // now, and sent as it is made (v0.8.11; before, the Node server's).
@@ -234,6 +234,7 @@ internal static partial class Streams
         // Made already: that file; else made now, and sent as it is made (a DSF from PCM too: item 259).
         if (dsdUp != 0 && svc != null) return Refuse(ctx, 404);
         if (run != null) return svc != null ? Refuse(ctx, 404) : await AnswerRun(ctx, run, p, t.Rate, QueryOne(raw, "ss"));
+        if (QueryOne(raw, "ss") is { Here: true } begun) return await AnswerFrom(ctx, id, t, p, begun, svc != null);   // begun part-way (item 313)
         var job = Transcoder.Start(track, ConvPlan.Of(p));
         if (job.Done && !job.Failed) return await SendFile(ctx, job.Final, Jv.Str(p["mime"]));
         if (job.Done) { ctx.Response.StatusCode = 500; ctx.Response.Headers["X-Mandarin-Answered"] = "C#"; return true; }

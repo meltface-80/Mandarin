@@ -68,6 +68,11 @@ test("a Mandarin Bridge over SlimProto: its DAC read from its own web port, in U
   const req = await until(() => bridge.requests[0], 15000, "track 1 asked for");
   assert.match(req, /\r\nX-Mandarin-Title: Song%201\r\n/);
   assert.match(req, /\r\nX-Mandarin-Album: Album%20One\r\n/);
+  // A seek fetches the track again from there (item 313): what it is said of it again.
+  await until(async () => { const z = (await api("zone-state?zone=" + ID)).zone; return z && z.state === "playing"; }, 15000, "playing");
+  await api("seek", { zone_or_output_id: ID, how: "absolute", seconds: 1 });
+  const again = await until(() => bridge.requests.find(r => /[?&]ss=1\b/.test(r)), 15000, "the track asked for from 1 s in");
+  assert.match(again, /\r\nX-Mandarin-Title: Song%201\r\n/, "its title said after a seek");
 });
 
 test("a Bridge that was a UPnP renderer keeps its name and settings over SlimProto", { skip, timeout: 120000 }, async (t) => {

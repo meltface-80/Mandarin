@@ -21,9 +21,11 @@ internal sealed partial class Players
         if ((st?.Position ?? 0) < 2) return;
         lock (gate) p.Verifying = key;
         var dac = await MandarinBridge.Probe(baseUrl);
-        if (dac == null) { Unanswered(p); return; }
+        // Unanswered, or playing nothing it says (its app busy, between tracks): asked again at the next read (item 314),
+        // where before this track was never asked again and its ✓ never came.
+        if (dac == null) { lock (gate) if (p.Verifying == key) p.Verifying = null; Unanswered(p); return; }
         var now = MandarinBridge.Playing(dac);
-        if (now == null) return;
+        if (now == null) { lock (gate) if (p.Verifying == key) p.Verifying = null; return; }
         var dsd = item.Sent.Dsd;
         // The same format: the same rate and kind, in words at least as wide as the samples sent (16-bit samples in a
         // 32-bit word keep their values, item 287; before, a 16-bit track to a 32-bit DAC was never confirmed).

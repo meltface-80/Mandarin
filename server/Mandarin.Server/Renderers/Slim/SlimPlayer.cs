@@ -35,6 +35,7 @@ internal sealed class SlimPlayer
     private string state = "STOPPED";
     private uint elapsedMs;
     private long elapsedAt;
+    private double offset;   // where in the track its stream began: 0, or a seek's point (item 313)
     private double volume = 100;
     private bool muted;
     private string? lastError;
@@ -104,7 +105,7 @@ internal sealed class SlimPlayer
             switch (s.Event)
             {
                 case "STMs":   // a track has begun playing: the next, where it was given
-                    if (streaming != current && streaming.Length > 0) { current = streaming; if (next == current) next = ""; }
+                    if (streaming != current && streaming.Length > 0) { current = streaming; offset = 0; if (next == current) next = ""; }
                     state = "PLAYING";
                     break;
                 case "STMl":   // buffered enough to start: started, where Play was asked for
@@ -132,7 +133,7 @@ internal sealed class SlimPlayer
     public void SetUri(string uri, string meta = "")
     {
         lock (gate) { said.Clear(); said[uri] = Headers(meta); }
-        lock (gate) { current = streaming = uri; next = ""; streamRead = loaded = playWanted = false; state = "STOPPED"; elapsedMs = 0; elapsedAt = Environment.TickCount64; }
+        lock (gate) { current = streaming = uri; next = ""; streamRead = loaded = playWanted = false; state = "STOPPED"; elapsedMs = 0; elapsedAt = Environment.TickCount64; offset = 0; }
         Send(Strm('q'));
         if (uri.Length > 0) Send(StreamOf(uri, autostart: '0'));
     }
@@ -172,8 +173,33 @@ internal sealed class SlimPlayer
     public void Stop()
     {
         Send(Strm('q'));
-        lock (gate) { state = "STOPPED"; streaming = current; streamRead = loaded = playWanted = false; elapsedMs = 0; }
+        lock (gate) { state = "STOPPED"; streaming = current; streamRead = loaded = playWanted = false; elapsedMs = 0; offset = 0; }
     }
+
+    /* A seek (item 313): it can't seek within a stream, so the track playing is fetched again from [seconds] in
+       (?ss=, Streams.From.cs), playing on where it played, waiting where it was paused; the next after it kept. */
+    public void SeekTime(double seconds)
+    {
+        string uri;
+        bool playing;
+        lock (gate)
+        {
+            uri = current;
+            if (uri.Length == 0) return;
+            playing = state == "PLAYING";
+            offset = Math.Max(0, seconds);
+            streaming = current; streamRead = loaded = playWanted = false;
+            elapsedMs = 0; elapsedAt = Environment.TickCount64;
+        }
+        var from = From(uri, seconds);
+        lock (gate) said[from] = said.GetValueOrDefault(uri, "");   // what the track is, said of it from there too
+        Send(Strm('q'));
+        Send(StreamOf(from, autostart: playing ? '1' : '0'));
+    }
+
+    /* [uri] begun [seconds] in. */
+    public static string From(string uri, double seconds) =>
+        uri + (uri.Contains('?', StringComparison.Ordinal) ? "&" : "?") + "ss=" + Math.Max(0, seconds).ToString("0.###", System.Globalization.CultureInfo.InvariantCulture);
 
     /* As AVTransport says it: PLAYING, PAUSED_PLAYBACK, STOPPED; NO_MEDIA_PRESENT with no track. */
     public string State { get { lock (gate) return current.Length == 0 ? "NO_MEDIA_PRESENT" : state; } }
@@ -186,7 +212,7 @@ internal sealed class SlimPlayer
             lock (gate)
             {
                 var ms = (double)elapsedMs + (state == "PLAYING" ? Environment.TickCount64 - elapsedAt : 0);
-                return (current, Math.Max(0, ms) / 1000);
+                return (current, offset + Math.Max(0, ms) / 1000);
             }
         }
     }

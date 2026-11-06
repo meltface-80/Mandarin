@@ -200,7 +200,8 @@ function renderDetail(keepInput) {
       '<span class="switch-track"><span class="switch-thumb"></span></span></label></div>' +
       '<div class="settings-note"' + ' data-parity="settings-device.note"' + '>' + (d.enabled ? "Offered as a zone: in the zone picker and everywhere you play."
         : (d.kind === "upnp" ? "Not offered as a zone. A device found on the network stays off until you turn it on."
-          : d.kind === "local" ? "Not offered as a zone. A sound device on this computer stays off until you turn it on." : "Not offered as a zone.")) +
+          : d.kind === "local" ? "Not offered as a zone. A sound device on this computer stays off until you turn it on."
+          : d.kind === "slim" ? "Not offered as a zone. A Squeezelite player stays off until you turn it on." : "Not offered as a zone.")) +
       "</div></div><div class=\"settings-divider\"></div>";
   }
   // Random album radio, per zone: what plays when this device's queue runs out.
@@ -234,7 +235,7 @@ function renderDetail(keepInput) {
 
   const rows = [["Model", d.model], ["Made by", d.manufacturer], ["Firmware", d.firmware], ["Address", d.ip],
     ["Device", d.kind === "local" ? d.location : ""],
-    ["Found by", d.found_by], ["Standard", d.kind === "upnp" ? (d.openhome ? "UPnP AV + OpenHome" : "UPnP AV / DLNA") : ""],
+    ["Found by", d.found_by], ["Standard", d.kind === "upnp" ? (d.openhome ? "UPnP AV + OpenHome" : "UPnP AV / DLNA") : d.kind === "slim" ? "SlimProto (Squeezebox)" : ""],
     ["Updates", d.kind === "upnp" && d.playable ? (d.events === "live" ? "Sent by the device (events)" : "Read every few seconds") : ""],
     ["Last seen", d.online ? "Now" : fmtWhen(d.last_seen)], ["First seen", fmtWhen(d.first_seen)]].filter(r => r[1]);
   html += '<div class="settings-divider"></div><div class="settings-block"><div class="settings-block-title"' + ' data-parity="settings-device.title"' + '>About</div><div class="dev-about">' +
@@ -261,6 +262,7 @@ function renderDetail(keepInput) {
   if (d.kind === "upnp") html += '<div class="settings-note"' + ' data-parity="settings-device.note"' + '>' + (takesDsd
     ? "DSD files go to it as they are, at the DSD rates that are on; any other goes as PCM. If DSD doesn’t play, tap it off."
     : "It doesn’t say it takes DSD files, so DSD goes to it as PCM.") + "</div>";
+  if (d.kind === "slim") html += '<div class="settings-note"' + ' data-parity="settings-device.note"' + '>' + esc(slimDsdNote(takesDsd)) + "</div>";
   if (d.kind === "sonos") html += '<div class="settings-note"' + ' data-parity="settings-device.note"' + '>Sonos plays up to 24-bit/48 kHz. Mandarin’s 24/48 rule applies; nothing to set here.</div>';
   if (d.kind === "phone") html += '<div class="settings-note"' + ' data-parity="settings-device.note"' + '>' + (d.output ? "Through its USB DAC the phone is sent what Output below says; away from home, Opus 256 kbps." : "At home the phone plays the file as it is; away from home, Opus 256 kbps.") + '</div>';
   // A Mac's (item 155) is found by Core Audio, Linux's by ALSA.
@@ -271,7 +273,7 @@ function renderDetail(keepInput) {
   html += "</div>";
 
   // A phone with a USB DAC in use (item 265): its Output, for the DAC, as a renderer's.
-  if (d.kind === "upnp" || d.kind === "local" || (d.kind === "phone" && d.output)) {
+  if (d.kind === "upnp" || d.kind === "local" || d.kind === "slim" || (d.kind === "phone" && d.output)) {
     const o = d.output || { mode: "original", bits: "auto", flac32: false };
     const seg = (name, opts, cur) => '<div class="seg" data-seg="' + name + '">' + opts.map(x =>
       '<button type="button"' + ({ mode: ' data-parity="settings-device.mode"', bits: ' data-parity="settings-device.depth"', max_rate: ' data-parity="settings-device.maxrate"', dsd_lowpass: ' data-parity="settings-device.dsdlowpass"', dsd_out: ' data-parity="settings-device.dsdout"' })[name] + ' class="seg-btn' + (String(x.v) === String(cur) ? " is-on" : "") + '" data-seg-v="' + x.v + '"' + (x.off ? " disabled" : "") + ">" + esc(x.label) + "</button>").join("") + "</div>";
@@ -318,7 +320,7 @@ function renderDetail(keepInput) {
       // Its own player (item 306: app/device-player.js), where MPD was found beside it.
       (d.mpd ? playerGroup(d, o) : "") +
       // An album as one stream (item 300: app/device-gapless.js), where Mandarin makes what it plays; not through its own player.
-      (o.mode !== "original" || o.dsd_out ? gaplessGroup(o) : "") +
+      (d.kind === "slim" ? slimGapless() : o.mode !== "original" || o.dsd_out ? gaplessGroup(o) : "") +
       (d.can_fix_volume ? '<div class="settings-row" style="margin-top:14px"><span class="settings-label"' + ' data-parity="settings-device.name"' + '>Fixed volume</span>' +
         '<label class="switch"' + ' data-parity="settings-device.fixvol"' + '><input type="checkbox" data-dev-fixvol' + (d.volume_fixed ? " checked" : "") + ' aria-label="Fixed volume">' +
         '<span class="switch-track"><span class="switch-thumb"></span></span></label></div>' +
@@ -331,7 +333,7 @@ function renderDetail(keepInput) {
       "</div>";
   }
   if (d.levelling) html += renderLevelling(d);
-  if ((d.kind === "upnp" || d.kind === "local" || d.kind === "phone") && d.dsp) html += renderDsp(d);
+  if ((d.kind === "upnp" || d.kind === "local" || d.kind === "slim" || d.kind === "phone") && d.dsp) html += renderDsp(d);
   if (d.kind === "phone" && isThisPhone(d)) html += renderUsb();
   if (!d.online) {
     html += '<div class="settings-divider"></div><div class="settings-block"><div class="settings-row"><span class="settings-label"' + ' data-parity="settings-device.name"' + '>' + (d.kind === "local" ? "Not connected" : "Not on the network") + '</span>' +
