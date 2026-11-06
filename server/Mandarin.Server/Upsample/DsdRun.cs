@@ -41,6 +41,9 @@ internal sealed class DsdRun
     private readonly DsdChain l, r;
     private readonly System.Collections.Concurrent.BlockingCollection<(double[], double[])> toChains = new(boundedCapacity: 2);
     private readonly Task doubling;
+    private readonly List<double[]> doubledL = [], doubledR = [];
+    private readonly System.Collections.Concurrent.BlockingCollection<(double[], double[])> toModulators = new(boundedCapacity: 4);
+    private readonly Task modulating;
     private readonly object gate = new();
     private readonly List<Window> windows = [];
     private readonly int[] at = new int[2];          // each channel's window being filled
@@ -59,8 +62,18 @@ internal sealed class DsdRun
         this.dsdRate = dsdRate;
         per = (long)factor * (dsdRate / DsdChain.InRateFor(dsdRate));
         var ntf = DsdOut.Ntf(dsdRate, mod);
-        l = new DsdChain(dsdRate, ntf, x => { lock (gate) Bits(0, x); });
-        r = new DsdChain(dsdRate, ntf, x => { lock (gate) Bits(1, x); });
+        // The chains' doubled samples, paired and made bits by both channels' modulators at once on a thread of their own (item 319).
+        l = new DsdChain(dsdRate, ntf, x => doubledL.Add(x));
+        r = new DsdChain(dsdRate, ntf, x => doubledR.Add(x));
+        modulating = Task.Factory.StartNew(() =>
+        {
+            foreach (var (x, y) in toModulators.GetConsumingEnumerable())
+            {
+                byte[] bl = new byte[x.Length / 8], br = new byte[y.Length / 8];
+                DsdModulator.RunPair(l.Modulator, r.Modulator, x, y, bl, br);
+                lock (gate) { Bits(0, bl); Bits(1, br); }
+            }
+        }, TaskCreationOptions.LongRunning);
         up = new StreamUpsample(factor, kind, (a, b, n) =>
         {
             for (var i = 0; i < n; i++)
@@ -77,6 +90,7 @@ internal sealed class DsdRun
             foreach (var (x, y) in toChains.GetConsumingEnumerable())
             {
                 Parallel.Invoke(() => l.Push(x), () => r.Push(y));
+                Pair();
                 // What is made is in the file at once, for the device reading it as it grows.
                 lock (gate) foreach (var w in windows) if (!w.Done.Task.IsCompleted) w.File?.Flush();
             }
@@ -120,8 +134,19 @@ internal sealed class DsdRun
         doubling.Wait();
         var frames = pushed * factor;
         Parallel.Invoke(() => l.Finish(frames), () => r.Finish(frames));
+        Pair();
+        toModulators.CompleteAdding();
+        modulating.Wait();
         lock (gate)
             foreach (var w in windows) if (!w.Done.Task.IsCompleted) w.Close();
+    }
+
+    // What the two chains have doubled, a run each of the same length, on to the modulators.
+    private void Pair()
+    {
+        if (doubledL.Count != doubledR.Count) throw new InvalidOperationException("the channels' doublings are out of step");
+        for (var i = 0; i < doubledL.Count; i++) toModulators.Add((doubledL[i], doubledR[i]));
+        doubledL.Clear(); doubledR.Clear();
     }
 
     // Channel [c]'s next bytes: dropped while skipped, then into its window, then waiting for the next.
