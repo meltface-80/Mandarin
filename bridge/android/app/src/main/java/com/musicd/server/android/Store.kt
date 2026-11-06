@@ -2,6 +2,7 @@ package com.musicd.server.android
 
 import android.content.Context
 import android.os.Build
+import android.provider.Settings
 import java.util.UUID
 
 /**
@@ -32,15 +33,23 @@ object Store {
         return (if (model.startsWith(maker, ignoreCase = true)) model else "$maker $model") + " USB"
     }
 
-    /** The Bridge's UDN ("uuid:…"), made once and kept: its SlimProto MAC is made from it, the id Mandarin knows it by. */
+    /**
+     * The Bridge's UDN ("uuid:…"), made once and kept: its SlimProto MAC is made from it, the id Mandarin knows it by.
+     * Made from the device's Android ID (item 321), the same for this app on this device after it is installed again,
+     * where a random one was a new device to Mandarin each time; random only where the device gives none.
+     */
     @Synchronized
     fun udn(c: Context): String {
         val p = prefs(c)
         p.getString("udn", null)?.let { return it }
-        val u = "uuid:" + UUID.randomUUID().toString()
-        p.edit().putString("udn", u).apply()
+        val u = "uuid:" + udnFrom(Settings.Secure.getString(c.contentResolver, Settings.Secure.ANDROID_ID))
+        p.edit().putString("udn", u).commit()
         return u
     }
+
+    /** The UUID made from the device's Android ID [id]: the same for the same id; random where there is none. */
+    fun udnFrom(id: String?): String =
+        if (id.isNullOrBlank()) UUID.randomUUID().toString() else UUID.nameUUIDFromBytes("mandarin-bridge:$id".toByteArray()).toString()
 
     // ------------------------------------------------------------- the device
 

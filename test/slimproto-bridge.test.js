@@ -100,3 +100,40 @@ test("a Bridge that was a UPnP renderer keeps its name and settings over SlimPro
   assert.equal(dev.kind, "slim");
   await until(async () => (await call("GET", "zones")).zones.some(z => z.zone_id === ID), 20000, "switched on, as it was");
 });
+
+test("a Bridge installed again (a new UDN, so a new id) takes over the device it was: one Bridge, one device", { skip, timeout: 120000 }, async (t) => {
+  const web = http.createServer((req, res) => {
+    if (req.url === "/dac.json") { res.writeHead(200, { "Content-Type": "application/json" }); return res.end(JSON.stringify({ model: "Mandarin Bridge", version: "0.3.0", platform: "android", updates: true, log: "/log", dac: DAC, now: null })); }
+    res.writeHead(404); res.end();
+  });
+  await new Promise(r => web.listen(0, "127.0.0.1", r));
+  const lib = makeLibrary();
+  const P3 = ports.port(), S3 = ports.port(), B3 = "http://127.0.0.1:" + P3;
+  const { createServer } = require("./server");
+  const srv = createServer({ port: P3, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false, identify: false, slimprotoPort: S3 });
+  await srv.start();
+  const hello = (udn) => `Model=mandarinbridge,ModelName=Mandarin Bridge,Firmware=0.3.0,MaxSampleRate=192000,MandarinBridge=${web.address().port},UDN=${udn},flc,pcm`;
+  const first = new FakeSlim({ port: S3, name: "FiiO R7 USB", mac: "02:00:00:00:00:79", seconds: 3, caps: hello("uuid:00000000-0000-4000-8000-000000000079") });
+  const again = new FakeSlim({ port: S3, name: "QUALCOMM FiiO R7 USB", mac: "02:00:00:00:00:7a", seconds: 3, caps: hello("uuid:00000000-0000-4000-8000-00000000007a") });
+  t.after(async () => { first.close(); again.close(); await srv.stop(); web.close(); });
+  const token = await signIn(B3);
+  const call = async (method, p, body) => {
+    const r = await fetch(B3 + "/api/" + p, { method, headers: Object.assign({ Authorization: "Bearer " + token }, body ? { "Content-Type": "application/json" } : {}), body: body ? JSON.stringify(body) : undefined });
+    return Object.assign({ status: r.status }, await r.json().catch(() => ({})));
+  };
+  const WAS = "SLIM_020000000079", NOW = "SLIM_02000000007A";
+  const list = async () => (await call("GET", "audio-devices")).devices.map(d => d.id).filter(id => id === WAS || id === NOW);
+  await first.connect();
+  await until(async () => { const d = await call("GET", "audio-devices/" + WAS); return d.caps && d.caps.mandarin; }, 15000, "the Bridge as it was");
+  assert.equal((await call("PATCH", "audio-devices/" + WAS, { name: "Lounge DAC", enabled: true })).status, 200);
+  // Its app installed again: it goes, and comes back from the same address under a new id.
+  first.close();
+  await until(async () => !(await call("GET", "audio-devices")).devices.find(d => d.id === WAS).online, 15000, "gone");
+  await again.connect();
+  await until(async () => JSON.stringify(await list()) === JSON.stringify([NOW]), 15000, "the device it was forgotten");
+  const dev = await until(async () => { const d = (await call("GET", "audio-devices")).devices.find(x => x.id === NOW); return d && d.name === "Lounge DAC" && d; }, 15000, "its name kept");
+  assert.equal(dev.kind, "slim");
+  await until(async () => (await call("GET", "zones")).zones.some(z => z.zone_id === NOW), 20000, "switched on, as it was");
+  const rows = (await call("GET", "update/bridges")).bridges;
+  assert.deepEqual(rows.map(r => r.id), [NOW], "one row in Settings → Updates");
+});

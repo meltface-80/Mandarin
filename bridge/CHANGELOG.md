@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Fixed - the Android Bridge was a new device to Mandarin each time its app was installed again (its identity made at random): it is now made from the device's Android ID, the same for the app on that device after a reinstall (item 321)
+
 ## v0.3.0
 
 - New - the Android Bridge is a SlimProto player (as Squeezelite is), where it was a UPnP renderer: it finds Mandarin on the network by itself (port 3483), connects, and plays what Mandarin sends it, one track on into the next, gapless, as before. Its hello tells Mandarin its DAC's highest rate and where its own page is, so Mandarin reads its DAC (/dac.json), offers its updates and reads its log as before (item 315)
