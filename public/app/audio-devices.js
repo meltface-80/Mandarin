@@ -315,7 +315,9 @@ function renderDetail(keepInput) {
         '<div class="settings-note"' + ' data-parity="settings-device.note"' + '>' + esc(DSD_OUT_NOTE(o.dsd_out)) + "</div>" +
         (o.dsd_out && o.making ? '<div class="settings-note"' + ' data-parity="settings-device.note"' + '>' + esc(o.making) + "</div>" : "") + "</div>" +
         (o.dsd_out ? modulatorGroup(o) : "") : "") +   // its modulator (item 303: app/device-modulators.js)
-      // An album as one stream (item 300: app/device-gapless.js), where Mandarin makes what it plays.
+      // Its own player (item 306: app/device-player.js), where MPD was found beside it.
+      (d.mpd ? playerGroup(d, o) : "") +
+      // An album as one stream (item 300: app/device-gapless.js), where Mandarin makes what it plays; not through its own player.
       (o.mode !== "original" || o.dsd_out ? gaplessGroup(o) : "") +
       (d.can_fix_volume ? '<div class="settings-row" style="margin-top:14px"><span class="settings-label"' + ' data-parity="settings-device.name"' + '>Fixed volume</span>' +
         '<label class="switch"' + ' data-parity="settings-device.fixvol"' + '><input type="checkbox" data-dev-fixvol' + (d.volume_fixed ? " checked" : "") + ' aria-label="Fixed volume">' +

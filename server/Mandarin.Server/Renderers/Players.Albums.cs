@@ -32,7 +32,9 @@ internal sealed partial class Players
     /* The run of [p]'s queue from [index], begun [seconds] into it, where its device plays albums as one stream; else null. */
     private static AlbumStream? RunFrom(Player p, int index, double seconds)
     {
-        if (index < 0 || index >= p.Queue.Count || p.Shuffle || p.Loop == "loop_one" || !Jv.T(TargetFor(p.Id)?["album_stream"])) return null;
+        // Not through its own player (item 306): MPD plays one track into the next itself.
+        var target = TargetFor(p.Id);
+        if (index < 0 || index >= p.Queue.Count || p.Shuffle || p.Loop == "loop_one" || !Jv.T(target?["album_stream"]) || Jv.Same(target?["player"], "mpd")) return null;
         var first = p.Queue[index];
         if (Pattern(first) is not { } plan || first.Track is not { } t0) return null;
         var items = new List<UpnpItem> { first };

@@ -177,6 +177,13 @@ class DevicePage(val j: JSONObject) {
     val albumStream: Boolean get() = output.optBoolean("album_stream")
     val albumStreamNote: String get() = if (albumStream) "An album’s tracks go to this device as one stream, start to end: gapless however it joins files. Mandarin shows each track as it plays; the device’s own app shows the album as one. A skip starts the stream again at that track."
         else "Each track goes as a file of its own, the next handed over before it ends: gapless as far as this device joins them. Turn on where a device clicks, pauses or squeals between tracks."
+    /** Its own player (item 306): where MPD was found beside it (null: none), whether it is played through (UPnP by its absence). */
+    val mpd: String? get() = j.optString("mpd").takeIf { it.isNotEmpty() }
+    val ownPlayer: Boolean get() = output.optString("player") == "mpd"
+    val players: List<SegChoice> get() = listOf(SegChoice("upnp", "UPnP"), SegChoice("mpd", "Its own player"))
+    val playerValue: String get() = if (ownPlayer) "mpd" else "upnp"
+    val playerNote: String get() = if (ownPlayer) "Mandarin hands this device’s own player (MPD, found at $mpd) the queue, each track as Mandarin makes it, and it plays one into the next by itself: gapless, as it plays its own library. Mandarin follows where it is from what it says."
+        else "Each track is handed over by UPnP, the next before it ends. This device also has its own player (MPD), which plays a queue one track into the next by itself."
     /** The change the switch makes: PATCH {output: {album_stream}}. */
     fun albumStreamPatch(on: Boolean): JSONObject = JSONObject().put("output", JSONObject().put("album_stream", on))
 
