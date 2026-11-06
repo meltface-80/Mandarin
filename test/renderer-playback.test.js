@@ -335,7 +335,7 @@ test("a renderer is a zone", { skip, timeout: 150000 }, async (t) => {
       // Minimum phase (items 248, 259): made as it plays, the address saying the shape, a file of its own.
       r = await api("audio-devices/" + WIIM, { output: { mode: "x2", filter: "minphase" } }, "PATCH");
       assert.equal(r.status, 200, JSON.stringify(r));
-      assert.equal(r.output.filter, "minphase");
+      assert.deepEqual([r.output.filter, r.output.phase], [undefined, "minimum"], "the standard filter in Phase minimum (item 318)");
       const said = ctx.logs.length;
       const asked = wiim.fetches.length;
       await api("play", { offset: cd.offset, zone_or_output_id: WIIM, kind: "play_now" });

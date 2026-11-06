@@ -100,7 +100,8 @@ public sealed class ShapePlanTests
         // Whole track is gone: refused.
         Assert.Equal(400, (await Patch(new { filter = "whole" })).Status);
         var set = await Patch(new { mode = "x2", filter = "minphase" });
-        Assert.Equal((200, "minphase"), (set.Status, set.J["output"].Str("filter")));
+        // "minphase" is the standard filter in Phase minimum (item 318).
+        Assert.Equal((200, (string?)null, "minimum"), (set.Status, set.J["output"].Str("filter"), set.J["output"].Str("phase")));
         Assert.StartsWith("Made as it plays", set.J["output"].Str("making"), StringComparison.Ordinal);
         // Asked for in minimum phase and with the standard filter: each sent whole, each its own file.
         var made = Path.Combine(s.Lib.Data, "transcode");

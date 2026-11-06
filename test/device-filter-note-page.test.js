@@ -1,7 +1,7 @@
 "use strict";
 /*
  * A device's Filter, on the page (items 254, 259, 298): two rows, CD-rate sources and hi-res sources, each opening the
- * list of filters (the three Gaussian ones after Standard, Minimum phase and Gentle; the hi-res list led by the same as
+ * list of filters (the three Gaussian ones after Standard and Gentle, the long ones last; the hi-res list led by the same as
  * CD-rate), the one in use ticked; a tap is a PATCH of that row's setting and the list closes, as a tap beside it does,
  * the tap going no further than the device's page.
  * With PCM as DSD on, the note says the filters are the DSD's, and how fast the server made the last track is said once,
@@ -36,7 +36,15 @@ test("a device's Filter: two rows, each opening the list, a pick a PATCH of its 
         const out = {
           sr11: filterNotes({ mode: "max", filter: "gaussian", filter_hires: "gaussian-hires", dsd_out: 256, making }),
           pcm: filterNotes({ mode: "max", filter: "gaussian", making }),
-          hiresOnly: filterNotes({ mode: "max", filter: "standard", filter_hires: "minphase", making })[1],
+          hiresOnly: filterNotes({ mode: "max", filter: "standard", filter_hires: "gentle", making })[1],
+          minimum: filterNotes({ mode: "max", filter: "standard", phase: "minimum", making })[1],
+          phase: (() => {
+            const seg = (name, opts, cur) => '<div class="seg" data-seg="' + name + '">' + opts.map(x => '<button class="seg-btn' + (x.v === cur ? " is-on" : "") + '" data-seg-v="' + x.v + '">' + x.label + "</button>").join("") + "</div>";
+            const d = document.createElement("div");
+            d.innerHTML = phaseGroup({ phase: "minimum" }, seg) + phaseGroup({}, seg);
+            return { labels: [...d.querySelectorAll('.seg[data-seg="phase"]')[0].querySelectorAll(".seg-btn")].map(e => e.textContent),
+              on: [...d.querySelectorAll('.seg[data-seg="phase"] .is-on')].map(e => e.getAttribute("data-seg-v")), note: d.querySelector(".settings-note").textContent };
+          })(),
           sox: filterNotes({ mode: "max", filter: "standard", filter_hires: "standard", making })[1],
           values: DEVICE_FILTERS.map(f => f[0]),
           left: filterName("whole")
@@ -74,16 +82,20 @@ test("a device's Filter: two rows, each opening the list, a pick a PATCH of its 
     assert.deepEqual(r.pcm, ["Each track is upsampled in the filter for its own rate: 44.1 and 48 kHz in the first, 88.2 kHz and up in the second.",
       "Made as it plays: this server made the last at 1.4× real time, fast enough to keep up."]);
     assert.ok(r.hiresOnly, "a filter of Mandarin's own for hi-res sources: how fast it is made said");
+    assert.ok(r.minimum, "the standard filter in minimum phase (item 318), Mandarin's own: how fast it is made said");
+    assert.deepEqual(r.phase.labels, ["Linear", "Minimum"]);
+    assert.deepEqual(r.phase.on, ["minimum", "linear"], "the device's Phase on; linear by its absence");
+    assert.match(r.phase.note, /^For both filters\..*Gaussian steep is made in linear phase only\.$/);
     assert.equal(r.sox, null, "SoX's filter for both: nothing of Mandarin's own made");
-    assert.deepEqual(r.values, ["standard", "minphase", "gentle", "gaussian", "gaussian-steep", "gaussian-hires", "long", "very-long"]);
+    assert.deepEqual(r.values, ["standard", "gentle", "gaussian", "gaussian-steep", "gaussian-hires", "long", "very-long"]);
     assert.equal(r.left, "Standard", "a device left at a filter gone is said as the standard one");
     assert.deepEqual(r.rows, [["CD-rate sources", "Gaussian"], ["Hi-res sources", "Same as CD-rate"]]);
     assert.equal(r.title, "Filter for hi-res sources");
-    assert.deepEqual(r.choices, ["Same as CD-rate sources", "Standard", "Minimum phase", "Gentle", "Gaussian", "Gaussian steep", "Gaussian hi-res", "Long", "Very long"]);
+    assert.deepEqual(r.choices, ["Same as CD-rate sources", "Standard", "Gentle", "Gaussian", "Gaussian steep", "Gaussian hi-res", "Long", "Very long"]);
     assert.deepEqual(r.on, ["same"]);
     assert.equal(r.afterPick, false, "a pick closes the list");
     assert.deepEqual(r.cdOn, ["gaussian"]);
-    assert.equal(r.cdCount, 8, "the CD-rate list has no Same");
+    assert.equal(r.cdCount, 7, "the CD-rate list has no Same");
     assert.equal(r.afterClose, false, "a tap beside the list closes it");
     assert.equal(r.reached, 0, "no tap of the Filter's goes past the device's page");
     assert.deepEqual(r.sent, [{ output: { filter_hires: "gaussian-hires" } }], "the pick, and only the pick, sent");

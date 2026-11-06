@@ -83,8 +83,8 @@ class AudioDevicesTest {
         assertNull(standard.filterHires)
         assertEquals(listOf("CD-rate sources" to "Standard", "Hi-res sources" to "Same as CD-rate"), standard.filterRows.map { it.label to it.value })
         // Item 298: the three Gaussian filters after the three before them; the hi-res list leads with the same as CD-rate.
-        assertEquals(listOf("standard", "minphase", "gentle", "gaussian", "gaussian-steep", "gaussian-hires", "long", "very-long"), DeviceFilters.choices("filter").map { it.value })
-        assertEquals(listOf("Same as CD-rate sources", "Standard", "Minimum phase", "Gentle", "Gaussian", "Gaussian steep", "Gaussian hi-res", "Long", "Very long"), DeviceFilters.choices("filter_hires").map { it.name })
+        assertEquals(listOf("standard", "gentle", "gaussian", "gaussian-steep", "gaussian-hires", "long", "very-long"), DeviceFilters.choices("filter").map { it.value })
+        assertEquals(listOf("Same as CD-rate sources", "Standard", "Gentle", "Gaussian", "Gaussian steep", "Gaussian hi-res", "Long", "Very long"), DeviceFilters.choices("filter_hires").map { it.name })
         assertEquals("Each track is upsampled in the filter for its own rate: 44.1 and 48 kHz in the first, 88.2 kHz and up in the second.", standard.filterNotes.single())
         assertFalse(page("""{"mode":"original","bits":"auto","flac32":false}""").showFilter)
         // A device left at a filter gone is said as the standard one, as the server takes it.
@@ -104,7 +104,14 @@ class AudioDevicesTest {
         assertEquals("""{"output":{"filter":"gaussian-steep"}}""", DeviceFilters.pick("filter", "gaussian-steep").toString())
         assertEquals(making, g.filterNotes[1])
         // Standard for CD-rate sources and a filter of Mandarin's own for hi-res: its speed said too.
-        assertEquals(making, page("""{"mode":"x2","filter_hires":"minphase","making":"$making"}""").filterNotes[1])
+        assertEquals(making, page("""{"mode":"x2","filter_hires":"gentle","making":"$making"}""").filterNotes[1])
+        // The standard filter in minimum phase (item 318): Mandarin's own, its speed said; and its Phase.
+        val m = page("""{"mode":"x2","phase":"minimum","making":"$making"}""")
+        assertEquals(making, m.filterNotes[1])
+        assertEquals("minimum", m.phase)
+        assertEquals("linear", page("""{"mode":"x2"}""").phase)
+        assertEquals("""{"output":{"phase":"minimum"}}""", m.segment("phase", "minimum").toString())
+        assertEquals(Contract.labels["settings-device.phase"], DeviceFilters.PHASES.map { it.label })
         // The standard one everywhere: SoX's, nothing of Mandarin's own made.
         assertEquals(1, page("""{"mode":"x2","filter_hires":"standard","making":"$making"}""").filterNotes.size)
         // The file as it is, but made DSD from PCM: the filters take it to 705.6 kHz on the way, so they are offered.

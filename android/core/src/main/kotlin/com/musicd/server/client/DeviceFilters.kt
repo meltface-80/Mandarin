@@ -12,15 +12,18 @@ object DeviceFilters {
     data class Filter(val value: String, val name: String, val note: String)
 
     val ALL: List<Filter> = listOf(
-        Filter("standard", "Standard", "Linear phase, steep: flat to 21 kHz for a CD. SoX’s filter for PCM; Mandarin’s own on the way to DSD."),
-        Filter("minphase", "Minimum phase", "Standard’s response with all its ringing after a sound, none before. Mandarin’s own, made as it plays."),
-        Filter("gentle", "Gentle", "Linear phase, rolling off from 19.8 kHz for a CD: its ringing half as long; −6 dB at 21 kHz."),
-        Filter("gaussian", "Gaussian", "A smooth roll-off: flat to 19.75 kHz for a CD (−0.5 dB at 20 kHz), 100 dB down by 22.05 kHz; 1.8 ms of ringing before a sound."),
-        Filter("gaussian-steep", "Gaussian steep", "Flat to 21.8 kHz for a CD and half down at 22.05 kHz, every sample of the file kept as it is (not apodizing); 5.9 ms of ringing before a sound."),
+        Filter("standard", "Standard", "Steep: flat to 21 kHz for a CD, 113 dB down at 22.1 kHz and 220 dB at 22.5 kHz. 8 ms of ringing either side of a sound."),
+        Filter("gentle", "Gentle", "Rolling off from 19.8 kHz for a CD: −6.7 dB at 21 kHz, 125 dB down at 22.1 kHz. 6 ms of ringing either side."),
+        Filter("gaussian", "Gaussian", "A smooth roll-off: flat to 19.75 kHz for a CD (−0.5 dB at 20 kHz), 100 dB down by 22.05 kHz. 1.8 ms of ringing either side."),
+        Filter("gaussian-steep", "Gaussian steep", "Flat to 21.8 kHz for a CD and half down at 22.05 kHz, every sample of the file kept as it is (linear phase only). 5.9 ms of ringing either side."),
         Filter("gaussian-hires", "Gaussian hi-res", "For 88.2 kHz and up: flat to 25.9 kHz from 96 kHz, 0.2 ms of ringing. For a CD it rolls off from 12 kHz."),
         Filter("long", "Long", "Very steep: flat to 21.8 kHz for a CD, 270 dB down from 22.1 kHz. 262,145 taps at ×16; 28 ms of ringing either side of a sound, at 22 kHz."),
         Filter("very-long", "Very long", "Steeper still: flat to 21.9 kHz for a CD, 284 dB down from 22.1 kHz. 1,048,577 taps at ×16; 47 ms of ringing either side, at 22 kHz. A track takes 0.6 s longer to start, and 400 MB while it plays."),
     )
+    /** Its Phase (item 318), for both filters: linear by its absence, or minimum. */
+    val PHASES: List<SegChoice> = listOf(SegChoice("linear", "Linear"), SegChoice("minimum", "Minimum"))
+    const val PHASE_NOTE = "For both filters. Linear: the ringing falls evenly before and after a sound. Minimum: the same levels at every frequency, all the ringing after the sound (0.15 ms before it at most). Gaussian steep is made in linear phase only."
+
     /** The hi-res list's first: the filter for CD-rate sources for every track. */
     val SAME = Filter("same", "Same as CD-rate sources", "The filter for CD-rate sources, for every track.")
 
@@ -47,9 +50,9 @@ object DeviceFilters {
      * The notes under the rows: what the two are, and how fast the making goes (item 259) where a filter of Mandarin's
      * own is set; with PCM as DSD[dsdOut] on, the note says they are the DSD's, its speed said under PCM as DSD instead.
      */
-    fun notes(dsdOut: Int, filter: String, hires: String?, making: String?): List<String> = listOfNotNull(
+    fun notes(dsdOut: Int, filter: String, hires: String?, making: String?, minimum: Boolean = false): List<String> = listOfNotNull(
         if (dsdOut != 0) "With PCM as DSD$dsdOut on, these are the filters each track is upsampled with on its way to DSD$dsdOut: by its own rate, the first or the second."
         else "Each track is upsampled in the filter for its own rate: 44.1 and 48 kHz in the first, 88.2 kHz and up in the second.",
-        if (dsdOut == 0 && (filter != "standard" || (hires != null && hires != "standard"))) making else null,
+        if (dsdOut == 0 && (filter != "standard" || (hires != null && hires != "standard") || minimum)) making else null,
     )
 }

@@ -267,6 +267,7 @@ internal sealed partial class Players
     {
         if (Upsample.Shape.OfFilter(s["filter"]) != null) target["filter"] = s["filter"];   // minimum phase, gentle, Gaussian… (items 248, 259, 298); standard by its absence
         if (s["filter_hires"] is string hires) target["filter_hires"] = hires;   // for 88.2 kHz and up (item 298); the filter's by its absence
+        if (Upsample.Shape.MinimumOf(s)) target["phase"] = "minimum";   // both filters in minimum phase (item 318); linear by its absence
         if (DsdLowpass.Of(s["dsd_lowpass"]) is { } cut) target["dsd_lowpass"] = cut;   // DSD as PCM, low-passed (item 241)
         if (Upsample.DsdPlan.Of(s["dsd_out"]) is { } up) target["dsd_out"] = (double)up;   // PCM as DSD (item 243)
         if (Upsample.DsdOut.Of(s["dsd_mod"]) is { } mod) target["dsd_mod"] = mod;   // by this modulator (item 303); the seventh order by its absence
