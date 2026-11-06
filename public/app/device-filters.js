@@ -12,7 +12,10 @@ const DEVICE_FILTERS = [
   ["gentle", "Gentle", "Linear phase, rolling off from 19.8 kHz for a CD: its ringing half as long; −6 dB at 21 kHz."],
   ["gaussian", "Gaussian", "A smooth roll-off: flat to 19.75 kHz for a CD (−0.5 dB at 20 kHz), 100 dB down by 22.05 kHz; 1.8 ms of ringing before a sound."],
   ["gaussian-steep", "Gaussian steep", "Flat to 21.8 kHz for a CD and half down at 22.05 kHz, every sample of the file kept as it is (not apodizing); 5.9 ms of ringing before a sound."],
-  ["gaussian-hires", "Gaussian hi-res", "For 88.2 kHz and up: flat to 25.9 kHz from 96 kHz, 0.2 ms of ringing. For a CD it rolls off from 12 kHz."]
+  ["gaussian-hires", "Gaussian hi-res", "For 88.2 kHz and up: flat to 25.9 kHz from 96 kHz, 0.2 ms of ringing. For a CD it rolls off from 12 kHz."],
+  // The long ones (item 317), measured: Upsample/StreamUpsample.cs, LongFilterTests.
+  ["long", "Long", "Very steep: flat to 21.8 kHz for a CD, 270 dB down from 22.1 kHz. 262,145 taps at ×16; 28 ms of ringing either side of a sound, at 22 kHz."],
+  ["very-long", "Very long", "Steeper still: flat to 21.9 kHz for a CD, 284 dB down from 22.1 kHz. 1,048,577 taps at ×16; 47 ms of ringing either side, at 22 kHz. A track takes 0.6 s longer to start, and 400 MB while it plays."]
 ];
 const FILTER_SAME = ["same", "Same as CD-rate sources", "The filter for CD-rate sources, for every track."];
 const filterName = v => (DEVICE_FILTERS.find(f => f[0] === v) || DEVICE_FILTERS[0])[1];

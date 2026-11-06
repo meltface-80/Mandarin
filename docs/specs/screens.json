@@ -1195,7 +1195,7 @@
         "filter": { "kind": "action", "label": "CD-rate sources", "when": "upsampling or PCM as DSD on" },
         "filter-hires": { "kind": "action", "label": "Hi-res sources", "when": "upsampling or PCM as DSD on" },
         "filter-sheet-title": { "kind": "shows", "in": "filter" },
-        "filter-choice": { "kind": "action", "label": ["Same as CD-rate sources", "Standard", "Minimum phase", "Gentle", "Gaussian", "Gaussian steep", "Gaussian hi-res"], "each": true, "in": "filter" },
+        "filter-choice": { "kind": "action", "label": ["Same as CD-rate sources", "Standard", "Minimum phase", "Gentle", "Gaussian", "Gaussian steep", "Gaussian hi-res", "Long", "Very long"], "each": true, "in": "filter" },
         "filter-close": { "kind": "action", "label": "Close", "in": "filter" },
         "dsdlowpass": { "kind": "action", "label": ["Off", "50 kHz", "30 kHz"], "each": true, "when": "a renderer or a sound device of the server's" },
         "dsdout": { "kind": "action", "label": ["Off", "DSD64", "DSD128", "DSD256"], "each": true, "when": "one that takes DSD" },

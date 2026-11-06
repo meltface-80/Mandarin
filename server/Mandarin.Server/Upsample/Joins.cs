@@ -23,14 +23,15 @@ internal static class Joins
     /* What a made file's name says it was made so: those made before (each on its own) are not mixed with those after. */
     public const string Mark = "j";
 
-    /* The frames of a neighbour each making starts on, and of the next one it looks ahead to: twice the filter's length. */
-    public const int History = 2 * StreamUpsample.TapsIn;
+    /* The frames of a neighbour each making in [kind] starts on, and of the next one it looks ahead to: twice the filter's length (item 317: the long ones' theirs). */
+    public static int History(Shape.Kind kind) => 2 * StreamUpsample.TapsFor(kind);
 
     /*
-     * The frames of the next track a making that goes on into it takes in before its own file is done: past all the
-     * upsampler holds back (a block of 6144 frames and the filter's half, 1024) and the most a file leaves for the next.
+     * The frames of the next track a making in [kind] that goes on into it takes in before its own file is done: past
+     * all the upsampler holds back (a block of three times the filter's length and its half) and the most a file leaves
+     * for the next (4096): eight times the filter's length, 16384 frames for the standard one.
      */
-    public const int Ahead = 16384;
+    public static int Ahead(Shape.Kind kind) => 8 * StreamUpsample.TapsFor(kind);
 
     /*
      * A track's neighbours as its making uses them: their files (null: none joined), the frames it starts with from
@@ -100,8 +101,9 @@ internal static class Joins
     public static void Into(System.Text.Json.Nodes.JsonObject job, Join? join, System.Text.Json.Nodes.JsonArray decode, string src, long rate)
     {
         if (join == null) return;
-        if (join.Before != null) { job["before"] = Decode(decode, src, join.Before, join.Carry + History, rate, tail: true); job["carry"] = join.Carry; }
-        if (join.After != null) { job["after"] = Decode(decode, src, join.After, Ahead, rate, tail: false); job["cut"] = join.Cut; }
+        var kind = Shape.Of((string?)job["shape"]);   // the job's filter: its length is what the neighbours are decoded for
+        if (join.Before != null) { job["before"] = Decode(decode, src, join.Before, join.Carry + History(kind), rate, tail: true); job["carry"] = join.Carry; }
+        if (join.After != null) { job["after"] = Decode(decode, src, join.After, Ahead(kind), rate, tail: false); job["cut"] = join.Cut; }
     }
 
     /* A neighbour's decode of its start ([args], as Decode makes it) as its own decode is: without the length it was held to. */

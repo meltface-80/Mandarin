@@ -86,6 +86,7 @@ internal static class UpsampleCommand
         DsdRun? run = null;
         string? expect = null;   // the decode the run has the start of
         long ahead = 0;          // and how many of its frames
+        int history = 0, lookAhead = 0;   // the neighbours' frames the run's filter is fed (Joins.History, Joins.Ahead: item 317)
         while (job != null)
         {
             var started = Stopwatch.StartNew();
@@ -103,10 +104,13 @@ internal static class UpsampleCommand
             else
             {
                 run?.Finish();
-                run = new DsdRun(factor, Shape.Of((string?)job["shape"]), dsdRate, (string?)job["mod"]);
+                var kind = Shape.Of((string?)job["shape"]);
+                history = Joins.History(kind);
+                lookAhead = Joins.Ahead(kind);
+                run = new DsdRun(factor, kind, dsdRate, (string?)job["mod"]);
                 // The one before's end, to start the filters and the modulators on (its carry silence where it can't be read).
-                var before = job["before"] is JsonArray ba ? Neighbour(ffmpeg, Strings(ba), carry + Joins.History, tail: true) : null;
-                if (before == null && carry > 0) before = [new double[carry + Joins.History], new double[carry + Joins.History]];
+                var before = job["before"] is JsonArray ba ? Neighbour(ffmpeg, Strings(ba), carry + history, tail: true) : null;
+                if (before == null && carry > 0) before = [new double[carry + history], new double[carry + history]];
                 if (before != null) { run.Skip(before[0].Length - carry); run.Push(before[0], before[1]); }
             }
             var w = run!.Add((string)job["out"]!, carry + frames - cut, job["at"] is JsonValue at ? (long)at : -1);
@@ -120,10 +124,13 @@ internal static class UpsampleCommand
             }
             var go = job["continue"] is JsonValue gv && (bool)gv && job["after"] is JsonArray;
             var afterArgs = job["after"] is JsonArray aa ? Strings(aa) : null;
-            var head = afterArgs != null ? Neighbour(ffmpeg, afterArgs, go ? Joins.Ahead : Joins.History, tail: false) : null;
+            var head = afterArgs != null ? Neighbour(ffmpeg, afterArgs, go ? lookAhead : history, tail: false) : null;
             if (head != null) run.Push(head[0], head[1]);
             if (go && head != null)
             {
+                // Its file done from what is in, not waiting for the upsampler's block to fill (item 317: a long
+                // filter's is seconds long, and a next track can be shorter than it).
+                run.Drain();
                 w.Done.Task.Wait();
                 Said(new Result(carry + frames - cut, run.Peak, run.Held, run.Resets), started);
                 // What it looked ahead to, as its own decode will read it: the same arguments, but from its start.
@@ -152,14 +159,15 @@ internal static class UpsampleCommand
         var rate = (int)job["rate"]!;
         var factor = (int)job["factor"]!;
         var kind = Shape.Of((string?)job["shape"]);
+        var history = Joins.History(kind);
         long declared = job["frames"] is JsonValue fv ? (long)fv : 0;
         var carry = job["carry"] is JsonValue cv ? (long)cv : 0;
         var cut = job["cut"] is JsonValue kv ? (long)kv : 0;
         // The neighbours' frames, decoded first (a second or so of each): the last of the one before, the first of the one after.
-        var before = job["before"] is JsonArray ba ? Neighbour(ffmpeg, Strings(ba), carry + Joins.History, tail: true) : null;
-        var after = job["after"] is JsonArray aa ? Neighbour(ffmpeg, Strings(aa), Joins.History, tail: false) : null;
+        var before = job["before"] is JsonArray ba ? Neighbour(ffmpeg, Strings(ba), carry + history, tail: true) : null;
+        var after = job["after"] is JsonArray aa ? Neighbour(ffmpeg, Strings(aa), history, tail: false) : null;
         // The one before unread: its carry silence, so that the file is the length its neighbours count on.
-        if (before == null && carry > 0) before = [new double[carry + Joins.History], new double[carry + Joins.History]];
+        if (before == null && carry > 0) before = [new double[carry + history], new double[carry + history]];
         var join = new Around(before, carry, after, cut);
         using var decode = Start(ffmpeg, Strings(job["decode"]), input: false, output: true);
         var decodeErr = decode.StandardError.ReadToEndAsync();

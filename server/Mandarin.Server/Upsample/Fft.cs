@@ -10,7 +10,7 @@
 // step multiplied together: at 2^29 points a few hundred kilobytes, not the four gigabytes a full table would take,
 // and as exact (each entry is Math.SinCos's, the product one rounding more).
 //
-// Up to 2^20 points (the upsampler's blocks, item 319) the twiddles are also kept stage by stage, each stage's in the
+// Up to 2^22 points (the upsampler's blocks, items 319 and 317) the twiddles are also kept stage by stage, each stage's in the
 // order its butterflies take them, so that four butterflies are done at once in 256-bit vectors: the same twiddles
 // and the same sums, the same bits, in a third of the time.
 using System.Runtime.InteropServices;
@@ -25,7 +25,7 @@ internal sealed class Fft
     private readonly int fineBits;
     private readonly double[] fineRe, fineIm, coarseRe, coarseIm;
     private readonly double[]? stageRe, stageIm;   // each stage's twiddles in turn: the stage of half h at h - 1
-    private const int StagedUpTo = 20;
+    private const int StagedUpTo = 22;
 
     /* A transform of 2^[log2] points (1 to 30); [staged] false, its butterflies one at a time however long (for the tests). */
     public Fft(int log2, bool staged = true)
