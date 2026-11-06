@@ -115,6 +115,8 @@ class DevicePage(val j: JSONObject) {
     // A phone's with a USB DAC in use (item 265): for the DAC, as a renderer's.
     val showOutput: Boolean get() = kind == "upnp" || kind == "local" || kind == "slim" || kind == "phone" && j.optJSONObject("output") != null
     private val output: JSONObject get() = j.optJSONObject("output") ?: JSONObject()
+    /** Its Output as recipes (item 320), the one in use marked. */
+    val recipes: List<DeviceRecipes.Recipe> get() = DeviceRecipes.of(j)
     val mode: String get() = output.optString("mode", "original")
     val outBits: String get() = output.opt("bits")?.toString() ?: "auto"
     val flac32: Boolean get() = output.optBoolean("flac32")

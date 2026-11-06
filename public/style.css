@@ -5308,6 +5308,21 @@ button.cap-chip:active { transform: scale(.96); }
 .filter-choice-tick { flex: 0 0 auto; color: var(--accent-text); }
 .filter-choice.is-off { opacity: .45; cursor: default; }
 .cap-group.is-dim { opacity: .45; }
+/* A device's Output as recipes (item 320, app/device-recipes.js): a card each, the one in use with its words; the rows under Advanced. */
+.recipe-card {
+  display: block; width: 100%; margin-top: 8px; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--border);
+  background: var(--bg-elev); color: var(--text); font: inherit; text-align: left; cursor: pointer;
+}
+.recipe-card.is-on { border-color: var(--accent-text); }
+.recipe-card-name { display: block; font-size: 15px; font-weight: 600; }
+.recipe-card.is-on .recipe-card-name { color: var(--accent-text); }
+.recipe-card-words { display: block; margin-top: 4px; font-size: 13px; line-height: 18px; color: var(--text-dim); }
+.recipe-advanced { margin-top: 14px; }
+.recipe-advanced-head { display: flex; align-items: baseline; gap: 10px; padding: 10px 0; cursor: pointer; list-style: none; font-size: 12px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: var(--accent-text); }
+.recipe-advanced-head::-webkit-details-marker { display: none; }
+.recipe-advanced-head::after { content: "›"; margin-left: auto; font-size: 18px; letter-spacing: 0; color: var(--text-dim); transition: transform .15s; }
+.recipe-advanced[open] > .recipe-advanced-head::after { transform: rotate(90deg); }
+.recipe-advanced-sub { font-size: 12.5px; font-weight: 400; letter-spacing: 0; text-transform: none; color: var(--text-dim); }
 
 /* DSP (Settings → Audio Devices → a device): the response curve, a row per
    band, the headroom, Save. */

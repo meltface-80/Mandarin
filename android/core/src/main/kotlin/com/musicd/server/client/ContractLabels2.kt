@@ -171,6 +171,8 @@ internal object ContractLabels2 {
         "settings-device.dither" to listOf("Dither"),
         "settings-device.dither-choice" to listOf("Flat", "Shaped, 3rd order", "Shaped, 5th order"),
         "settings-device.dither-close" to listOf("Close"),
+        "settings-device.recipe" to listOf("{recipe}"),
+        "settings-device.advanced" to listOf("Advanced"),
         "settings-device.album-stream" to listOf("Albums as one stream"),
         "settings-device.player" to listOf("UPnP", "Its own player"),
         "settings-device.fixvol" to listOf("Fixed volume"),

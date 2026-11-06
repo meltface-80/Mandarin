@@ -240,6 +240,7 @@ body.addEventListener("click", async (e) => {
   // The Filter's rows and list (item 298, app/device-filters.js); the tap stops here, its list gone from the page, so no
   // listener further up takes it for a tap outside Settings.
   if (filterTap(e.target) || modTap(e.target) || ditherTap(e.target)) { e.stopPropagation(); return; }
+  if (recipeTap(e.target, current)) return;   // a recipe card, or Advanced opened (item 320: app/device-recipes.js)
   const c = e.target.closest("button.cap-chip");
   if (c) return toggleChip(c);
   const sb = e.target.closest(".seg-btn");

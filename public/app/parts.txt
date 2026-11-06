@@ -95,6 +95,7 @@ app/device-modulators.js
 app/device-dither.js
 app/device-gapless.js
 app/device-player.js
+app/device-recipes.js
 app/audio-devices.js
 app/audio-devices-page.js
 app/audio-devices-dsp.js
