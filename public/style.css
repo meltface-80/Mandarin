@@ -5307,6 +5307,7 @@ button.cap-chip:active { transform: scale(.96); }
 .filter-choice-note { display: block; margin-top: 3px; font-size: 13px; line-height: 18px; color: var(--text-dim); }
 .filter-choice-tick { flex: 0 0 auto; color: var(--accent-text); }
 .filter-choice.is-off { opacity: .45; cursor: default; }
+.cap-group.is-dim { opacity: .45; }
 
 /* DSP (Settings → Audio Devices → a device): the response curve, a row per
    band, the headroom, Save. */

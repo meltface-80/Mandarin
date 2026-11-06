@@ -238,6 +238,8 @@ internal sealed class Devices
         }
         // An album as one stream (item 300), said only where it is on.
         if (streamer && r.Settings["album_stream"] is true) ((JsObj)o["output"]!)["album_stream"] = true;
+        // Its own player (MPD, item 306): where it was found, and whether it is played through (UPnP by its absence).
+        if (streamer && r.Caps["mpd"] is JsObj found && found["address"] is string mpd) { o["mpd"] = mpd; if (Jv.Same(r.Settings["player"], "mpd")) ((JsObj)o["output"]!)["player"] = "mpd"; }
         o["first_seen"] = r.FirstSeen; o["last_seen"] = r.LastSeen;
         o["profile"] = caps["profile"]; o["editable"] = caps["editable"];
         o["playable"] = r.Kind != "upnp" || Jv.T(caps["playable"]);

@@ -167,6 +167,7 @@ internal object ContractLabels2 {
         "settings-device.modulator-choice" to listOf("7th order", "7th order wide", "9th order"),
         "settings-device.modulator-close" to listOf("Close"),
         "settings-device.album-stream" to listOf("Albums as one stream"),
+        "settings-device.player" to listOf("UPnP", "Its own player"),
         "settings-device.fixvol" to listOf("Fixed volume"),
         "settings-device.lv-mode" to listOf("Volume levelling"),
         "settings-device.lv-target" to listOf("Target volume level"),

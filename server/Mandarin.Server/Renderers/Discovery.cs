@@ -160,6 +160,9 @@ internal sealed class RendererDiscovery
                     rec.Caps!["mandarin"] = MandarinBridge.Said(baseUrl, dac);
                 }
             }
+            // Its own player, where it is MPD beside it (item 306: a Chord Poly's): played through when its Player is set so.
+            if (await Mpd.Probe(host, Mpd.Port) is { } mpdVersion)
+                rec.Caps!["mpd"] = Jv.Obj(("address", host + ":" + Mpd.Port.ToString(System.Globalization.CultureInfo.InvariantCulture)), ("version", mpdVersion));
             lock (gate) cache[loc] = (Hub.Now(), rec);
             return rec;
         }
