@@ -270,6 +270,8 @@ internal sealed partial class Players
         if (DsdLowpass.Of(s["dsd_lowpass"]) is { } cut) target["dsd_lowpass"] = cut;   // DSD as PCM, low-passed (item 241)
         if (Upsample.DsdPlan.Of(s["dsd_out"]) is { } up) target["dsd_out"] = (double)up;   // PCM as DSD (item 243)
         if (Upsample.DsdOut.Of(s["dsd_mod"]) is { } mod) target["dsd_mod"] = mod;   // by this modulator (item 303); the seventh order by its absence
+        if (Upsample.Dither.Of(s["dither"]) is { } dn) target["dither"] = dn;   // Mandarin's own dither, shaped (item 301); flat by its absence
+        if (Upsample.Dither.BitsOf(s["real_bits"]) is var rb and > 0) target["real_bits"] = (double)rb;   // the DAC's real bits (item 301); as sent by its absence
         if (s["album_stream"] is true) target["album_stream"] = true;   // an album as one stream (item 300)
         if (Jv.Same(s["player"], "mpd")) target["player"] = "mpd";   // played through its own player (item 306)
     }

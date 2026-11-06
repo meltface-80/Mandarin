@@ -229,6 +229,14 @@ internal static partial class Streams
             p["shape"] = shape;
             if (dsdUp == 0) p["inRate"] = (double)t.Rate;
         }
+        // ?dn=, ?rb=: Mandarin's own dither (Upsample/Dither.cs, item 301), shaped and at the DAC's real bits, for a library track upsampled
+        // by a power of two; made as it plays, as a shape is (with the standard filter, Mandarin's own).
+        if (dsdUp == 0 && svc == null && segRate != 0 && t.Rate > 0 && segRate % t.Rate == 0 && Upsample.MadeAsPlayed.Power(segRate / t.Rate))
+        {
+            if (QueryOne(raw, "dn") is { Here: true } dq && Upsample.Dither.At(Upsample.Dither.Of(dq.Value), segRate) is { } dn) p["dither"] = dn;
+            if (QueryOne(raw, "rb") is { Here: true } rq && int.TryParse(rq.Value, out var rbits) && Upsample.Dither.BitsOf(rbits) is var rb and > 0 && rb < (int)Jv.Num(p["bits"])) p["real_bits"] = (double)rb;
+            if (Jv.T(p["dither"]) || Jv.T(p["real_bits"])) p["inRate"] = (double)t.Rate;
+        }
         // DSD as PCM, low-passed through the rate asked (?lp=, Playback/DsdLowpass.cs, item 241): a DSD file, a promised rate above it.
         if (segRate != 0 && svc == null && QueryOne(raw, "lp") is { } lq && lq.Here && long.TryParse(lq.Value, out var lpm) && DsdLowpass.IsMid(lpm) && segRate > lpm && StreamPlans.IsDsd(Row(t))) p["lowpass"] = (double)lpm;
         // Made already: that file; else made now, and sent as it is made (a DSF from PCM too: item 259).

@@ -83,6 +83,13 @@ internal static class SignalPath
                 var filter = Upsample.Shape.Name(s.Shape);
                 steps.Add(Step("upsample", "Upsampling", $"×{N(s.Upsampled)} to {Khz(s.Rate)} kHz · {filter}", "enhanced"));
                 how = filter;
+                // Mandarin's own dither (item 301), where the device asks it: how the last bit is rounded, and at which.
+                if (s.Dither != null || s.RealBits > 0)
+                {
+                    var dw = Upsample.Dither.Words(s.Dither, Upsample.Dither.Depth((int)s.Bits, s.RealBits));
+                    steps.Add(Step("dither", "Dither", char.ToUpperInvariant(dw[0]) + dw[1..] + (s.RealBits > 0 && s.RealBits < s.Bits ? $", in {N(s.Bits)}-bit words" : "") + ", Mandarin’s own", "enhanced"));
+                    how += " · dither " + dw;
+                }
             }
             var exact = !s.Transcode;
             steps.Add(Step("output", "Output", $"{words}{(exact ? ", the file as it is" : "")}, to {z.DisplayName}", exact ? "lossless" : "enhanced"));

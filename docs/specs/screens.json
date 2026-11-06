@@ -1168,8 +1168,8 @@
       }
     },
     "settings-device": {
-      "page": "Settings' Audio Devices, a device's page: Back, its name; on or off, Random album radio, a phone's Other devices can play here; its name to change (or the phone's own), About, Capabilities (rates, depths and DSD, each a chip, tapped on or off where it can be set; its formats), Output (the mode, the highest rate, the filter for CD-rate sources and the one for hi-res sources, each opening the list of filters with what each does, the depth, DSD as PCM, PCM as DSD, its Modulator (opening the list of modulators with what each measured), its Player (UPnP or its own player, where MPD is found beside it), Albums as one stream, Fixed volume), Volume levelling with its level and the unknown's adjustment, DSP (a headphone profile chosen from AutoEq or pasted, the bands' curve, each band's type, frequency, gain and Q, Add band, the headroom, Save), this phone's USB DAC (Allow, what it takes, USB direct, Fixed volume, the limit, DSD, Copy), Forget this device; their notes",
-      "native": ["android/app/src/main/java/com/musicd/server/android/SettingsDevice.kt", "android/app/src/main/java/com/musicd/server/android/SettingsFilters.kt", "android/app/src/main/java/com/musicd/server/android/SettingsModulator.kt", "android/app/src/main/java/com/musicd/server/android/SettingsDsp.kt", "android/app/src/main/java/com/musicd/server/android/SettingsUsb.kt", "android/app/src/main/java/com/musicd/server/android/SettingsRoomCorrection.kt"],
+      "page": "Settings' Audio Devices, a device's page: Back, its name; on or off, Random album radio, a phone's Other devices can play here; its name to change (or the phone's own), About, Capabilities (rates, depths and DSD, each a chip, tapped on or off where it can be set; its formats), Output (the mode, the highest rate, the filter for CD-rate sources and the one for hi-res sources, each opening the list of filters with what each does, the depth, DSD as PCM, PCM as DSD, its Modulator (opening the list of modulators with what each measured), when upsampled the DAC’s real bits and the Dither (opening the list of dithers with what each measured), its Player (UPnP or its own player, where MPD is found beside it), Albums as one stream, Fixed volume), Volume levelling with its level and the unknown's adjustment, DSP (a headphone profile chosen from AutoEq or pasted, the bands' curve, each band's type, frequency, gain and Q, Add band, the headroom, Save), this phone's USB DAC (Allow, what it takes, USB direct, Fixed volume, the limit, DSD, Copy), Forget this device; their notes",
+      "native": ["android/app/src/main/java/com/musicd/server/android/SettingsDevice.kt", "android/app/src/main/java/com/musicd/server/android/SettingsFilters.kt", "android/app/src/main/java/com/musicd/server/android/SettingsModulator.kt", "android/app/src/main/java/com/musicd/server/android/SettingsDither.kt", "android/app/src/main/java/com/musicd/server/android/SettingsDsp.kt", "android/app/src/main/java/com/musicd/server/android/SettingsUsb.kt", "android/app/src/main/java/com/musicd/server/android/SettingsRoomCorrection.kt"],
       "preview": false,
       "items": {
         "back": { "kind": "action", "label": "Back to Audio Devices" },
@@ -1203,6 +1203,11 @@
         "modulator-sheet-title": { "kind": "shows", "in": "modulator" },
         "modulator-choice": { "kind": "action", "label": ["7th order", "7th order wide", "9th order"], "each": true, "in": "modulator" },
         "modulator-close": { "kind": "action", "label": "Close", "in": "modulator" },
+        "realbits": { "kind": "action", "label": ["As sent", "23", "22", "21", "20"], "each": true, "when": "upsampled, not made DSD" },
+        "dither": { "kind": "action", "label": "Dither", "when": "upsampled, not made DSD" },
+        "dither-sheet-title": { "kind": "shows", "in": "dither" },
+        "dither-choice": { "kind": "action", "label": ["Flat", "Shaped, 3rd order", "Shaped, 5th order"], "each": true, "in": "dither" },
+        "dither-close": { "kind": "action", "label": "Close", "in": "dither" },
         "album-stream": { "kind": "action", "label": "Albums as one stream", "when": "upsampling or PCM as DSD on" },
         "player": { "kind": "action", "label": ["UPnP", "Its own player"], "each": true, "when": "a renderer with its own player (MPD) found beside it" },
         "fixvol": { "kind": "action", "label": "Fixed volume", "when": "one whose volume can be fixed" },

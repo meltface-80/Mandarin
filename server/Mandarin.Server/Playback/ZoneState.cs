@@ -22,6 +22,9 @@ internal sealed record SentInfo(bool Transcode, double Rate, double Bits, double
     public string? Shape { get; init; }
     // DSD's modulator where it isn't the seventh order's ("7w", "9": Upsample/DsdOut.cs, item 303).
     public string? Mod { get; init; }
+    // Mandarin's own dither (Upsample/Dither.cs, item 301): shaped ("ns3", "ns5"; flat by its absence), the DAC's real bits (0: as sent).
+    public string? Dither { get; init; }
+    public int RealBits { get; init; }
     // DSD's family: 44100, or 48000 for DSD made from a track of 48 kHz's at its own rate (item 261).
     public double DsdBase { get; init; } = 44100;
 

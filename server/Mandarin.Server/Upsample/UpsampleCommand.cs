@@ -163,7 +163,7 @@ internal static class UpsampleCommand
         var join = new Around(before, carry, after, cut);
         using var decode = Start(ffmpeg, Strings(job["decode"]), input: false, output: true);
         var decodeErr = decode.StandardError.ReadToEndAsync();
-        var r = Pcm(ffmpeg, Strings(job["encode"]), decode.StandardOutput.BaseStream, factor, kind, declared, join, job["wav"] as JsonObject);
+        var r = Pcm(ffmpeg, Strings(job["encode"]), decode.StandardOutput.BaseStream, factor, kind, declared, join, job["wav"] as JsonObject, Quantisers(job["dither"] as JsonObject));
         try { if (!decode.HasExited) decode.Kill(); } catch (InvalidOperationException) { /* ended */ }
         decode.WaitForExit();
         if (decode.ExitCode != 0 && r.Frames == 0) throw new InvalidOperationException("ffmpeg couldn't read the track: " + decodeErr.Result.Trim());
@@ -191,13 +191,19 @@ internal static class UpsampleCommand
     // Made PCM by ffmpeg from the upsampled 64-bit float stereo, written to it as it comes: the track's own frames,
     // its neighbours' ([around]) run through before and after it and not kept. A [wav] (item 270): ffmpeg's bare samples
     // written to its file here, behind a header of their length ([frames] at the input's rate, upsampled).
-    private static Result Pcm(string ffmpeg, List<string> args, Stream pcm, int factor, Shape.Kind kind, long frames, Around around, JsonObject? wav = null)
+    // Mandarin's own dither (item 301), where the job asks it: the two channels' quantisers; null for ffmpeg's.
+    private static (Dither.Channel L, Dither.Channel R)? Quantisers(JsonObject? d) =>
+        d == null ? null : Dither.For((long)d["rate"]!, (int)d["bits"]!, (string?)d["shape"], d["real"] is JsonValue r ? (int)r : 0);
+
+    private static Result Pcm(string ffmpeg, List<string> args, Stream pcm, int factor, Shape.Kind kind, long frames, Around around, JsonObject? wav = null,
+        (Dither.Channel L, Dither.Channel R)? q = null)
     {
+        var size = q == null ? 16 : 8;   // a frame's bytes: two 64-bit floats, or two 32-bit words on the dither's grid
         using var p = Start(ffmpeg, args, input: true, output: wav != null);
         var err = p.StandardError.ReadToEndAsync();
         var written = wav == null ? Task.CompletedTask : Task.Run(() => WriteWav(p.StandardOutput.BaseStream, wav, around.Kept(frames) * factor));
         var into = p.StandardInput.BaseStream;
-        var buf = new byte[16 * Chunk * factor];
+        var buf = new byte[size * Chunk * factor];
         double peak = 0;
         // Its length, where none is said, known once it is read: until then everything after the one before's is kept.
         var keepFrom = (around.Lead - around.Carry) * factor;
@@ -209,14 +215,22 @@ internal static class UpsampleCommand
             var to = (int)Math.Clamp(keepTo - made, 0, n);
             made += n;
             if (to <= from) return;
-            if (buf.Length < (to - from) * 16) buf = new byte[(to - from) * 16];
+            if (buf.Length < (to - from) * size) buf = new byte[(to - from) * size];
             for (var i = from; i < to; i++)
             {
                 peak = Math.Max(peak, Math.Max(Math.Abs(a[i]), Math.Abs(b[i])));
-                BinaryPrimitives.WriteDoubleLittleEndian(buf.AsSpan((i - from) * 16), a[i]);
-                BinaryPrimitives.WriteDoubleLittleEndian(buf.AsSpan((i - from) * 16 + 8), b[i]);
+                if (q is var (ql, qr))
+                {
+                    BinaryPrimitives.WriteInt32LittleEndian(buf.AsSpan((i - from) * 8), Dither.Word(ql.Next(a[i])));
+                    BinaryPrimitives.WriteInt32LittleEndian(buf.AsSpan((i - from) * 8 + 4), Dither.Word(qr.Next(b[i])));
+                }
+                else
+                {
+                    BinaryPrimitives.WriteDoubleLittleEndian(buf.AsSpan((i - from) * 16), a[i]);
+                    BinaryPrimitives.WriteDoubleLittleEndian(buf.AsSpan((i - from) * 16 + 8), b[i]);
+                }
             }
-            into.Write(buf, 0, (to - from) * 16);
+            into.Write(buf, 0, (to - from) * size);
         });
         long read;
         try
@@ -233,7 +247,7 @@ internal static class UpsampleCommand
         p.WaitForExit();
         written.Wait();
         if (p.ExitCode != 0) throw new InvalidOperationException("ffmpeg couldn't write the file: " + err.Result.Trim());
-        return new Result(read, peak, 0, 0);
+        return new Result(read, peak, q is var (hl, hr) ? hl.Held + hr.Held : 0, 0);
     }
 
     // The decoded track into [up] a block at a time: [frames] of it where that is said (made up with silence, or cut

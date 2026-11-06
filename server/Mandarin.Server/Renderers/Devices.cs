@@ -240,6 +240,9 @@ internal sealed partial class Devices
             ((JsObj)o["output"]!)["making"] = Upsample.MadeAsPlayed.Note(up);
             if (Upsample.DsdOut.Of(r.Settings["dsd_mod"]) is { } mod) ((JsObj)o["output"]!)["dsd_mod"] = mod;   // its modulator (item 303): the seventh order by its absence
         }
+        // Its dither and the DAC's real bits (item 301), said only where set: flat, and as sent, by their absence.
+        if (streamer && Upsample.Dither.Of(r.Settings["dither"]) is { } dn) ((JsObj)o["output"]!)["dither"] = dn;
+        if (streamer && Upsample.Dither.BitsOf(r.Settings["real_bits"]) is var rb and > 0) ((JsObj)o["output"]!)["real_bits"] = (double)rb;
         // An album as one stream (item 300), said only where it is on.
         if (streamer && r.Settings["album_stream"] is true) ((JsObj)o["output"]!)["album_stream"] = true;
         // Its own player (MPD, item 306): where it was found, and whether it is played through (UPnP by its absence).

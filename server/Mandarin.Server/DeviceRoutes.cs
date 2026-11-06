@@ -167,6 +167,7 @@ internal static partial class Library
                     if (dsdMod is not string dm || Array.IndexOf(Upsample.DsdOut.Mods, dm) < 0) throw new DeviceRefusal(400, "dsd_mod must be 7, 7w or 9");
                     patch["dsd_mod"] = dm == "7" ? null : dm;
                 }
+                DitherInto(output, patch);   // its dither and the DAC's real bits (item 301): DeviceRoutes.Dither.cs
                 // An album as one stream (item 300): on or off.
                 var albumStream = Prop(output, "album_stream");
                 if (albumStream is not Undef)

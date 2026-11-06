@@ -239,14 +239,14 @@ body.addEventListener("click", async (e) => {
   if (!current || busy) return;
   // The Filter's rows and list (item 298, app/device-filters.js); the tap stops here, its list gone from the page, so no
   // listener further up takes it for a tap outside Settings.
-  if (filterTap(e.target) || modTap(e.target)) { e.stopPropagation(); return; }
+  if (filterTap(e.target) || modTap(e.target) || ditherTap(e.target)) { e.stopPropagation(); return; }
   const c = e.target.closest("button.cap-chip");
   if (c) return toggleChip(c);
   const sb = e.target.closest(".seg-btn");
   if (sb && !sb.disabled) {
     const name = sb.closest(".seg").getAttribute("data-seg");
     const raw = sb.getAttribute("data-seg-v");
-    const v = (name === "bits" || name === "max_rate" || name === "dsd_lowpass" || name === "dsd_out") && raw !== "auto" && raw !== "off" ? Number(raw) : raw;
+    const v = (name === "bits" || name === "max_rate" || name === "dsd_lowpass" || name === "dsd_out" || name === "real_bits") && raw !== "auto" && raw !== "off" && raw !== "sent" ? Number(raw) : raw;
     return patch({ output: { [name]: v } });
   }
   const add = e.target.closest("[data-dsp-add]");
