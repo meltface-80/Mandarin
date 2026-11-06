@@ -31,7 +31,7 @@ internal sealed class StreamUpsample
     public const int TapsIn = 2048;
 
     /* The filter of [kind]'s length in the input's samples: the long ones' their own (item 317), the rest [TapsIn]. */
-    public static int TapsFor(Shape.Kind kind) => kind switch { Shape.Kind.Long => 8 * TapsIn, Shape.Kind.VeryLong => 32 * TapsIn, _ => TapsIn };
+    public static int TapsFor(Shape.Kind kind) => Shape.Linear(kind) switch { Shape.Kind.Long => 8 * TapsIn, Shape.Kind.VeryLong => 32 * TapsIn, _ => TapsIn };
 
     // The long ones' roll-off (item 317): from 0.99 and 0.995 of the source's Nyquist frequency, under a Kaiser window of β 18.
     private const double LongPass = 0.99, VeryLongPass = 0.995, LongBeta = 18;
@@ -178,12 +178,21 @@ internal sealed class StreamUpsample
         // Output bin k (its place j in the transform's order) takes input bin k mod nIn (its place in the input's).
         var map = new int[nOut];
         for (var k = 0; k < nOut; k++) map[fo.BitReverse(k)] = (int)fi.BitReverse(k % nIn);
-        return new Filter(re, im, map, kind == Shape.Kind.Minimum ? 0 : (length - 1) / 2, nIn, nOut);
+        return new Filter(re, im, map, Shape.IsMinimum(kind) ? 0 : (length - 1) / 2, nIn, nOut);
     }
 
     /* The filter's taps at the output's rate: [TapsIn] × [factor] + 1, their sum [factor] (a doubling's zeros put back). */
     public static double[] Taps(int factor, Shape.Kind kind)
     {
+        // Minimum phase on any filter but the standard one (item 318): its linear filter's levels, the phase that puts
+        // the ringing after; the standard one's, made below as it always was.
+        if (Shape.IsMinimum(kind) && kind != Shape.Kind.Minimum)
+        {
+            var m = MinimumPhase(Taps(factor, Shape.Linear(kind)));
+            var total = m.Sum();
+            for (var i = 0; i < m.Length; i++) m[i] *= factor / total;
+            return m;
+        }
         var length = TapsFor(kind) * factor + 1;
         // The Gaussian filters (item 298): their own design, as long as the rest.
         if (kind is Shape.Kind.Gaussian or Shape.Kind.GaussianSteep or Shape.Kind.GaussianHires) return Gaussian.Taps(factor, kind, length);

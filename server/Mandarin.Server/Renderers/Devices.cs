@@ -220,12 +220,16 @@ internal sealed partial class Devices
             ("flac32", Transcoder.Flac32)) : null;
         // A filter other than the standard one (minimum phase, gentle: items 248, 259), said only where it is set (a
         // device left at Whole track, scrapped, is the standard filter's); made as it plays, and how fast that went.
-        var hires = r.Settings["filter_hires"] as string;   // the filter for hi-res sources (item 298), said where set
-        if (streamer && (Upsample.Shape.OfFilter(r.Settings["filter"]) != null || Upsample.Shape.OfFilter(hires) != null))
+        // "minphase" from before Phase was its own choice (item 318) said as what it is now: the standard filter, Phase minimum.
+        var hires = r.Settings["filter_hires"] is "minphase" ? "standard" : r.Settings["filter_hires"] as string;   // the filter for hi-res sources (item 298), said where set
+        var filter = r.Settings["filter"] is "minphase" ? null : r.Settings["filter"];
+        var minimum = Upsample.Shape.MinimumOf(r.Settings);
+        if (streamer && (Upsample.Shape.OfFilter(filter, minimum) != null || Upsample.Shape.OfFilter(hires, minimum) != null))
         {
             var output = (JsObj)o["output"]!;
-            if (Upsample.Shape.OfFilter(r.Settings["filter"]) != null) output["filter"] = r.Settings["filter"];
+            if (Upsample.Shape.OfFilter(filter) != null) output["filter"] = filter;
             if (hires != null) output["filter_hires"] = hires;
+            if (minimum) output["phase"] = "minimum";
             output["making"] = Upsample.MadeAsPlayed.Note(0);
         }
         else if (streamer && hires != null) ((JsObj)o["output"]!)["filter_hires"] = hires;

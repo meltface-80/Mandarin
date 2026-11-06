@@ -122,7 +122,7 @@ internal static class UpsampleRules
     }
 
     /*
-     * { taps: true, rate, factor, shape, at: [hz] } → { gains_db, pre_ms, keeps_db, length } (item 298): the filter itself,
+     * { taps: true, rate, factor, shape, at: [hz] } → { gains_db, pre_ms, keeps_db, length, before_ms, after_ms } (items 298, 318): the filter itself,
      * its response at each frequency (an exact DFT of its taps), how long before a click it rings above −120 dB of its
      * peak, and how far from nothing its taps are at every [factor]th place but the middle (where a filter keeps the
      * source's samples as they were, they are nothing).
@@ -143,11 +143,15 @@ internal static class UpsampleRules
         }
         var peak = h.Max(Math.Abs);
         var first = Array.FindIndex(h, v => Math.Abs(v) > 1e-6 * peak);
+        // Its ringing from its peak, before and after, to 120 dB down (item 318: a minimum-phase filter's peak is near its start).
+        var top = Array.FindIndex(h, v => Math.Abs(v) == peak);
+        var last = Array.FindLastIndex(h, v => Math.Abs(v) > 1e-6 * peak);
         double keeps = 0;
         for (var i = mid % factor; i < h.Length; i += factor) if (i != mid) keeps = Math.Max(keeps, Math.Abs(h[i]));
         return new JsObj
         {
             ["gains_db"] = gains, ["pre_ms"] = (mid - first) / outRate * 1000, ["keeps_db"] = Db(keeps / Math.Abs(h[mid])), ["length"] = (double)h.Length,
+            ["before_ms"] = (top - first) / outRate * 1000, ["after_ms"] = (last - top) / outRate * 1000,
         };
     }
 

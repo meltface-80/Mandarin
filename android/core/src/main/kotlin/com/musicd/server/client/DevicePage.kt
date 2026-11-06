@@ -127,9 +127,11 @@ class DevicePage(val j: JSONObject) {
     val filter: String get() = output.optString("filter", "standard")
     val filterHires: String? get() = (output.opt("filter_hires") as? String)?.takeIf { it.isNotEmpty() && it != "same" }
     val showFilter: Boolean get() = mode != "original" || output.has("dsd_out")
+    /** Its Phase (item 318), for both filters: "linear" by its absence, or "minimum". */
+    val phase: String get() = if (output.optString("phase") == "minimum") "minimum" else "linear"
     val filterRows: List<DeviceFilters.Row> get() = DeviceFilters.rows(filter, filterHires)
     /** The notes under the filters; with PCM as DSD on, how fast it is made is said under PCM as DSD instead. */
-    val filterNotes: List<String> get() = DeviceFilters.notes(dsdOut, filter, filterHires, making)
+    val filterNotes: List<String> get() = DeviceFilters.notes(dsdOut, filter, filterHires, making, phase == "minimum")
     /** The highest rate its owner allows (item 240), by 48 kHz's family; 0 for Auto. 44.1 kHz's is held to the rate that matches. */
     val maxRate: Int get() = output.optInt("max_rate", 0)
     private fun capFor(hz: Int): Int = if (maxRate == 0) Int.MAX_VALUE else if (hz % 44100 == 0) maxRate / 48000 * 44100 else maxRate
