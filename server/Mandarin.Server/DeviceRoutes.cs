@@ -120,7 +120,7 @@ internal static partial class Library
             if (TJs.Truthy(output) && TJs.IsObject(output))
             {
                 // A phone's for the USB DAC on it (item 265).
-                if (d.Kind is not ("upnp" or "local" or "phone")) throw new DeviceRefusal(400, "Only a renderer or a sound device on this computer has output settings");
+                if (!Renderers.Players.StreamerKind(d.Kind) && d.Kind != "phone") throw new DeviceRefusal(400, "Only a renderer or a sound device on this computer has output settings");
                 if (d.Kind == "phone" && Prop(output, "volume") is not Undef) throw new DeviceRefusal(400, "A phone's volume is set on the phone");
                 var patch = new JsObj();
                 var mode = Prop(output, "mode");
@@ -251,7 +251,7 @@ internal static partial class Library
                         clean[k] = list.Select(x => (object?)Jv.Num(x)).ToList();
                     }
                 }
-                if (d.Kind is not ("upnp" or "local")) throw new DeviceRefusal(400, "What a Sonos room or a phone plays is fixed");
+                if (!Renderers.Players.StreamerKind(d.Kind)) throw new DeviceRefusal(400, "What a Sonos room or a phone plays is fixed");
                 DeviceUserCaps(c, d, clean);
                 changed.Add("caps");
             }
@@ -387,7 +387,7 @@ internal static partial class Library
     {
         if (d.Kind == "phone") return true;
         var v = d.Settings["enabled"];
-        return d.Kind is "upnp" or "local" ? TJs.StrictEq(v, true) : !TJs.StrictEq(v, false);
+        return Renderers.Players.StreamerKind(d.Kind) ? TJs.StrictEq(v, true) : !TJs.StrictEq(v, false);
     }
 
     /* dspFor(id): the DSP as Biquad.normalise keeps it; null for a Sonos room or a setting that doesn't read. */

@@ -157,8 +157,10 @@ internal sealed partial class Players
 
     // ------------------------------------------------------------ the register
 
-    public static bool IsUpnpId(string? id) => id != null && (id.StartsWith("UPNP_", StringComparison.Ordinal) || id.StartsWith(LocalPrefix, StringComparison.Ordinal));
-    public static bool IsStreamer(DeviceRecord? r) => r != null && r.Kind is "upnp" or "local";
+    public static bool IsUpnpId(string? id) => id != null && (id.StartsWith("UPNP_", StringComparison.Ordinal) || id.StartsWith(LocalPrefix, StringComparison.Ordinal) || id.StartsWith("SLIM_", StringComparison.Ordinal));
+    /* A kind the server keeps the queue for: a UPnP renderer, a sound device here, a SlimProto player (item 312). */
+    public static bool StreamerKind(string? kind) => kind is "upnp" or "local" or Slim.SlimDevices.Kind;
+    public static bool IsStreamer(DeviceRecord? r) => r != null && StreamerKind(r.Kind);
     public static DeviceRecord? Record(string id) { using var c = Db.Open(); return Register.Get(c, id); }
     public static bool TakesFlac(DeviceRecord r)
     {
@@ -209,6 +211,7 @@ internal sealed partial class Players
                 p.Renderer?.Halt();
                 var name = r?.Name ?? r?.NetworkName ?? p.Id;
                 if (r?.Kind == "local") p.Renderer = LocalOutput(p, r);
+                else if (r?.Kind == Slim.SlimDevices.Kind) p.Renderer = new Slim.SlimRenderer(p.Id, name, id => zm.Devices.Slim?.Get(id));
                 else if (mpd != null && mpd.LastIndexOf(':') is var colon and > 0 && int.TryParse(mpd[(colon + 1)..], out var mpdPort))
                     p.Renderer = new MpdRenderer(name, mpd[..colon], mpdPort, () => Unanswered(p));
                 else p.Renderer = new Renderer(p.Id, name, r?.Caps["services"] as JsObj, () => Unanswered(p));

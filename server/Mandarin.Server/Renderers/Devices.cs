@@ -9,13 +9,14 @@
 // capabilities in layers (Profiles.cs). Here too: whether a device is on, on
 // the network, playing, and the device as its page shows it.
 using Mandarin.Server.Local;
+using Mandarin.Server.Renderers.Slim;
 using Mandarin.Server.Playback;
 using Mandarin.Server.Tags;
 using Microsoft.Data.Sqlite;
 
 namespace Mandarin.Server.Renderers;
 
-internal sealed class Devices
+internal sealed partial class Devices
 {
     private const int ScanMs = 60000, LocalMs = 30000;
     private readonly Hub hub;
@@ -52,6 +53,7 @@ internal sealed class Devices
     {
         hub.Loop("scan", ScanMs, Scan, 2000);
         hub.Loop("local", LocalMs, ScanLocal, 500);
+        StartSlim();   // SlimProto players: Squeezelite, a Squeezebox, a Mandarin Bridge (item 312)
         // A renderer that says it has come, and a sound device plugged in, are read now, not at the next round.
         if (hub.Config.UpnpMulticast) announcements = SsdpListen.Start(hub.Config.ServerIp, Wanted, loc => { Discovery.Heard(loc); roundSoon.Ask(); }, hub.Log);
         if (hub.Config.LocalDevices == null && Directory.Exists("/dev/snd"))
@@ -72,6 +74,7 @@ internal sealed class Devices
     {
         announcements?.Dispose();
         plugged?.Dispose();
+        Slim?.Dispose();
     }
 
     /* A round in a moment, one however often it's asked for meanwhile (a device's burst of announcements, a DAC's several device files). */
@@ -169,7 +172,7 @@ internal sealed class Devices
     {
         if (r == null || r.Kind == "phone") return true;
         var v = r.Settings["enabled"];
-        return r.Kind is "upnp" or "local" ? v is true : v is not false;
+        return Players.StreamerKind(r.Kind) ? v is true : v is not false;
     }
     public static bool Shared(DeviceRecord? r) => r == null || r.Kind != "phone" || r.Settings["shared"] is not false;
     public static bool Hidden(DeviceRecord? r) => r?.Settings["hidden"] is true;
@@ -178,6 +181,7 @@ internal sealed class Devices
     {
         if (r.Kind == "sonos") return hub.Sonos.Member(r.Id) is { Invisible: false } m && m.Ip.Length > 0;
         if (r.Kind == "phone") return hub.Phones.Has(r.Id);
+        if (r.Kind == SlimDevices.Kind) return Slim?.Get(r.Id) != null;   // connected
         return Hub.Now() - r.LastSeen < offlineMs;
     }
 
@@ -202,7 +206,7 @@ internal sealed class Devices
         var caps = Profiles.Effective(RecordJs(r));
         // A phone with a USB DAC in use has a streamer's Output, for the DAC (item 265).
         var usb = r.Kind == "phone" ? hub.Phones.UsbChips(r.Id, "rates") : null;
-        var streamer = r.Kind is "upnp" or "local" || usb != null;
+        var streamer = Players.StreamerKind(r.Kind) || usb != null;
         var o = Jv.Obj(
             ("id", r.Id), ("kind", r.Kind), ("family", r.Family),
             ("name", r.Name ?? r.NetworkName), ("network_name", r.NetworkName), ("renamed", r.Name != null),
@@ -268,7 +272,7 @@ internal sealed class Devices
             // Volume: set on the device itself, or Mandarin's slider. Renderers only; never a Sonos room.
             o["volume_fixed"] = streamer && Players.FixedVolume(r);
             o["can_fix_volume"] = streamer && Jv.T(r.Caps["playable"]);
-            o["takes_flac"] = r.Kind != "upnp" || Players.TakesFlac(r);
+            o["takes_flac"] = r.Kind is not ("upnp" or SlimDevices.Kind) || Players.TakesFlac(r);
         }
         return o;
     }

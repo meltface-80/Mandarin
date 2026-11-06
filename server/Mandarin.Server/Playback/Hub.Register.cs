@@ -44,7 +44,7 @@ internal sealed partial class Hub
         DeviceRecord? r;
         using (var c = Db.Open()) r = Register.Get(c, id);
         if (r == null) return;
-        var streamer = r.Kind is "upnp" or "local";
+        var streamer = Renderers.Players.StreamerKind(r.Kind);
         var bump = false;
         foreach (var k in keys)
         {
