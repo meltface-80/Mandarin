@@ -62,11 +62,13 @@ internal static class BridgeUpdates
 
     private const string TooOld = "This Bridge's app can't be updated from here: update it by hand this once";
 
-    /* Every Mandarin Bridge Mandarin has seen (BridgeLogs.cs reads their logs). */
+    /* Every Mandarin Bridge Mandarin has seen (BridgeLogs.cs reads their logs), once each: devices at the same address are
+       the one Bridge, as it was before its app was installed again (item 321), and the one seen last is it. */
     public static List<DeviceRecord> Bridges()
     {
         using var c = Db.Open();
-        return [.. Register.All(c).Where(r => r.Caps["mandarin"] is JsObj mu && Jv.T(mu["base"]))];
+        return [.. Register.All(c).Where(r => r.Caps["mandarin"] is JsObj mu && Jv.T(mu["base"]))
+            .GroupBy(r => Base(r).ToLowerInvariant()).Select(g => g.MaxBy(r => r.LastSeen)!)];
     }
 
     /* What a Bridge's /dac.json says of [v]: "" where it says nothing (an older app's), never "undefined". */

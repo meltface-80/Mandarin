@@ -3,7 +3,8 @@
 // — on the network while it is connected. A Mandarin Bridge says where its own web service is in its hello (item 315):
 // its DAC read from there (/dac.json) as a UPnP Bridge's was, so its rates are its DAC's, its ✓ is its word, and it
 // is updated and its log read from Settings → Updates as before. Met first over SlimProto, a Bridge that was a UPnP
-// renderer (before 0.3.0) keeps what it was given then: its name and its settings, from the device its UDN names.
+// renderer (before 0.3.0) keeps what it was given then: its name and its settings, from the device its UDN names. A
+// Bridge whose app was installed again (a new UDN, so a new id) takes over the device it was (item 321).
 using Mandarin.Server.Playback;
 using Mandarin.Server.Renderers.Slim;
 using Mandarin.Server.Tags;
@@ -48,10 +49,28 @@ internal sealed partial class Devices
                 var fresh = Register.Get(c, p.Id) == null;
                 Register.Seen(c, info);
                 if (fresh && SlimDevices.UpnpIdOf(p) is { } was && Register.Get(c, was) is { } before) CarriedOver(c, p.Id, before);
+                if (bridge != null && dac != null) Earlier(c, p.Id, bridge);
             }
             hub.Bump();
         }
         catch (Exception e) when (e is SqliteException or IOException) { hub.Log($"[slimproto] {p.Name}: {e.Message}"); }
+    }
+
+    /* The same Bridge as it was before (item 321): a device gone from the network whose own web service was where this
+       one's is now, its app since installed again and so another device to Mandarin. What it was given is kept on
+       this one (where nothing is yet), the newest first, and it is forgotten: one Bridge, one device. */
+    private void Earlier(SqliteConnection c, string id, string bridge)
+    {
+        var earlier = Register.All(c).Where(r => r.Id != id && !Online(r) && r.Caps["mandarin"] is JsObj mu
+            && string.Equals(Jv.Str(mu["base"]).TrimEnd('/'), bridge.TrimEnd('/'), StringComparison.OrdinalIgnoreCase)).OrderByDescending(r => r.LastSeen).ToList();
+        foreach (var r in earlier)
+        {
+            if (Register.Get(c, id) is { Name: null, Settings.Count: 0 }) CarriedOver(c, id, r);
+            Register.Forget(c, r.Id);
+            Discovery.Forget(r.Id);
+            hub.Upnp.Drop(r.Id);
+            hub.Log($"[slimproto] {id}: {r.Id}, this Bridge before it was installed again, forgotten");
+        }
     }
 
     /* What a Bridge was given as a UPnP renderer, kept on it now: the name it was given and its settings. */
