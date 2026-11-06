@@ -200,6 +200,7 @@ internal fun DevicePane(id: String, client: () -> ServerClient?, onBack: () -> U
                     Seg(d.depths, d.outBits, key = { i, c -> Modifier.parity("settings-device.depth", Contract.label("settings-device.depth", i)).clickable(enabled = !busy && !c.off) { patch(d.segment("bits", c.value)) } })
                     if (!d.flac32) DeviceNote("32-bit needs an ffmpeg that writes 32-bit FLAC; this one stops at 24.", Modifier.parity("settings-device.note"))
                 }
+                d.ditherRow?.let { r -> DitherGroups(d, r, busy) { patch(it) } }   // the DAC's real bits and the dither (item 301)
                 DeviceNote(d.example, Modifier.parity("settings-device.note"))
                 CapGroup("DSD as PCM", Modifier.parity("settings-device.cap-label")) {
                     Seg(d.dsdLowpasses, d.dsdLowpassValue, key = { i, c -> Modifier.parity("settings-device.dsdlowpass", Contract.label("settings-device.dsdlowpass", i)).clickable(enabled = !busy) { patch(d.segment("dsd_lowpass", c.value)) } })

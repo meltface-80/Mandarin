@@ -41,6 +41,8 @@ internal static class Items
         // A filter in a shape of its own (items 248, 259): its file is that shape's.
         if (p["shape"] is string shape) qs.Add("f=" + shape);
         if (p["mod"] is string mod) qs.Add("mod=" + mod);   // DSD by a modulator other than the seventh order's (item 303)
+        if (p["dither"] is string dn) qs.Add("dn=" + dn);   // Mandarin's own dither, shaped (item 301)
+        if (Jv.T(p["real_bits"])) qs.Add("rb=" + TJs.Num(Jv.Num(p["real_bits"])));   // at the DAC's real bits (item 301)
         var q = qs.Count > 0 ? "?" + string.Join("&", qs) : "";
         return Signing.SignUrl(secret, $"{baseUrl}/stream/t{t.Id}{seg}.{Jv.Str(p["ext"])}{q}");
     }

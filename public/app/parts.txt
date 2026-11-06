@@ -92,6 +92,7 @@ app/android-title-size.js
 app/settings-folders.js
 app/device-filters.js
 app/device-modulators.js
+app/device-dither.js
 app/device-gapless.js
 app/device-player.js
 app/audio-devices.js

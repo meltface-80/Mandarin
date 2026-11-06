@@ -276,7 +276,7 @@ function renderDetail(keepInput) {
   if (d.kind === "upnp" || d.kind === "local" || d.kind === "slim" || (d.kind === "phone" && d.output)) {
     const o = d.output || { mode: "original", bits: "auto", flac32: false };
     const seg = (name, opts, cur) => '<div class="seg" data-seg="' + name + '">' + opts.map(x =>
-      '<button type="button"' + ({ mode: ' data-parity="settings-device.mode"', bits: ' data-parity="settings-device.depth"', max_rate: ' data-parity="settings-device.maxrate"', dsd_lowpass: ' data-parity="settings-device.dsdlowpass"', dsd_out: ' data-parity="settings-device.dsdout"' })[name] + ' class="seg-btn' + (String(x.v) === String(cur) ? " is-on" : "") + '" data-seg-v="' + x.v + '"' + (x.off ? " disabled" : "") + ">" + esc(x.label) + "</button>").join("") + "</div>";
+      '<button type="button"' + ({ mode: ' data-parity="settings-device.mode"', bits: ' data-parity="settings-device.depth"', max_rate: ' data-parity="settings-device.maxrate"', dsd_lowpass: ' data-parity="settings-device.dsdlowpass"', dsd_out: ' data-parity="settings-device.dsdout"', real_bits: ' data-parity="settings-device.realbits"' })[name] + ' class="seg-btn' + (String(x.v) === String(cur) ? " is-on" : "") + '" data-seg-v="' + x.v + '"' + (x.off ? " disabled" : "") + ">" + esc(x.label) + "</button>").join("") + "</div>";
     const has32 = d.bits.some(b => b.n === 32 && b.on);
     const dsdOn = (d.dsd || []).filter(x => x.on).map(x => x.n);
     // The highest rate its owner allows (item 240), by 48 kHz's family; 44.1 kHz's is held to the rate that matches.
@@ -306,6 +306,8 @@ function renderDetail(keepInput) {
         seg("bits", [{ v: "auto", label: "Auto" }, { v: 24, label: "24" }, { v: 32, label: "32", off: !o.flac32 }], o.bits) +
         "" +
         (!o.flac32 ? '<div class="settings-note"' + ' data-parity="settings-device.note"' + '>32-bit needs an ffmpeg that writes 32-bit FLAC; this one stops at 24.</div>' : "") + "</div>" : "") +
+      // When Mandarin makes the PCM: the DAC's real bits and the dither (item 301: app/device-dither.js).
+      (o.mode !== "original" && !o.dsd_out ? ditherGroups(o, seg) : "") +
       '<div class="settings-note"' + ' data-parity="settings-device.note"' + '>' + esc(example) + "</div>" +
       // DSD played as PCM, its modulator's noise above the band taken off (item 241).
       '<div class="cap-group"><span class="cap-label"' + ' data-parity="settings-device.cap-label"' + '>DSD as PCM</span>' +

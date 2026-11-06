@@ -28,8 +28,8 @@ internal static class MadeAsPlayed
     /* Whether track [key]'s making has begun (its file being written, a DSF's header first), not only waiting its turn. */
     public static bool Begun(string key) => Under.TryGetValue(key, out var p) && p != null;
 
-    /* Whether [p] is made so: a DSF from PCM, or PCM upsampled in a shape; else ffmpeg makes it. */
-    public static bool Takes(ConvPlan p) => p.DsdUp != 0 || p.Shape != null;
+    /* Whether [p] is made so: a DSF from PCM, or PCM upsampled in a shape or with Mandarin's own dither; else ffmpeg makes it. */
+    public static bool Takes(ConvPlan p) => p.DsdUp != 0 || p.Shape != null || p.Dither != null || p.RealBits > 0;
 
     /* Whether [factor] is one the filter takes: 2, 4, 8 or 16. */
     public static bool Power(long factor) => factor is 2 or 4 or 8 or 16;
@@ -46,11 +46,17 @@ internal static class MadeAsPlayed
         var factor = (long)Jv.Num(plan["upsampled"]);
         if (!Power(factor)) return plan;
         // The device's filter for the track's own rate (item 298): its filter for hi-res sources above 48 kHz, where set.
-        if (Shape.ForTrack(target, Jv.Num(plan["rate"]) / factor) is not { } shape) return plan;
-        plan["shape"] = shape;
+        var shape = Shape.ForTrack(target, Jv.Num(plan["rate"]) / factor);
+        // Its dither (item 301): shaped where the rate leaves room for it, and the DAC's real bits where under the word's.
+        var dither = Dither.At(Dither.Of(Jv.Get(target, "dither")), (long)Jv.Num(plan["rate"]));
+        var real = Dither.BitsOf(Jv.Get(target, "real_bits")) is var rb && rb < (int)Jv.Num(plan["bits"]) ? rb : 0;
+        if (shape == null && dither == null && real == 0) return plan;
+        if (shape != null) plan["shape"] = shape;
+        if (dither != null) plan["dither"] = dither;
+        if (real > 0) plan["real_bits"] = (double)real;
         // The track's own rate, which the job divides by: a plan made for a queue (Playback/Items.cs) carries none of its own.
         plan["inRate"] = Jv.Num(plan["rate"]) / factor;
-        plan["reason"] = Jv.Str(plan["reason"]) + $" ({Shape.Words(shape)})";
+        if (shape != null) plan["reason"] = Jv.Str(plan["reason"]) + $" ({Shape.Words(shape)})";
         return plan;
     }
 
@@ -261,14 +267,15 @@ internal static class MadeAsPlayed
         foreach (var a in new[] { "-ac", "2", "-ar", inRate.ToString(System.Globalization.CultureInfo.InvariantCulture), "-f", "f64le", "-c:a", "pcm_f64le", "pipe:1" }) decode.Add(a);
         // The conversion's own arguments, from 64-bit float at the plan's rate on standard input (nothing to resample,
         // no gain or DSP twice), the source's tags beside it.
-        var convArgs = Transcoder.Args(src, p with { Gain = 0, Shape = null, InRate = p.Rate, Dsp = null }, dest, Transcoder.Soxr, convolve: false);
+        var own = p.Dither != null || p.RealBits > 0;   // Mandarin's own dither (item 301): ffmpeg's none, its samples as they come
+        var convArgs = Transcoder.Args(src, p with { Gain = 0, Shape = null, InRate = p.Rate, Dsp = null, Exact = p.Exact || own }, dest, Transcoder.Soxr, convolve: false);
         var rate = p.Rate.ToString(System.Globalization.CultureInfo.InvariantCulture);
         var encode = new JsonArray();
         for (var i = 0; i < convArgs.Count; i++)
         {
             if (convArgs[i] == "-i" && i + 1 < convArgs.Count && convArgs[i + 1] == src)
             {
-                foreach (var a in new[] { "-f", "f64le", "-ar", rate, "-ac", "2", "-i", "pipe:0", "-i", src }) encode.Add(a);
+                foreach (var a in new[] { "-f", own ? "s32le" : "f64le", "-ar", rate, "-ac", "2", "-i", "pipe:0", "-i", src }) encode.Add(a);
                 i++;
             }
             else if (convArgs[i] == "-map_metadata" && i + 1 < convArgs.Count) { encode.Add("-map_metadata"); encode.Add("1"); i++; }
@@ -279,6 +286,7 @@ internal static class MadeAsPlayed
             ["ffmpeg"] = Transcoder.Bin, ["decode"] = decode, ["encode"] = encode,
             ["rate"] = inRate, ["factor"] = p.Rate / Math.Max(1, inRate), ["shape"] = p.Shape,
         };
+        if (own) o["dither"] = new JsonObject { ["shape"] = p.Dither, ["real"] = p.RealBits, ["bits"] = p.Bits, ["rate"] = p.Rate };
         if (p.Wav && seconds > 0 && encode.Count > 5 && (string?)encode[^5] == "-f" && (string?)encode[^4] == "wav")
         {
             // ffmpeg's -f wav -seekable 0 <file> (HighRates.Args) made its bare samples on its standard output.
