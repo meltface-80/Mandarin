@@ -50,11 +50,11 @@ internal object AppLog {
     @Volatile var lastTap = 0L
     @Volatile var shownLast = "start"
 
-    /** With the app's process (MusicDApp): collecting if switched on. */
+    /** With the app's process (MusicDApp): collecting unless switched off (item 334: on by default), the server told so. */
     fun start(c: Context) {
         app = c.applicationContext
         dir = File(c.filesDir, "applog")
-        if (Store.logging(c)) begin()
+        if (Store.logging(c)) { begin(); tellServer(c, true) }
     }
 
     /** Switched on or off in Settings → Setup: off deletes the log, the server's too. */

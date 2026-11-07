@@ -1,7 +1,8 @@
 // Diagnostics.cs — the server's side of the Android app's logging (bug list item 121; the app's
-// Settings → Setup → Logging). Off unless switched on there; while on, each line the server logs is
-// kept as well, without what is the owner's alone (item 235), for the app to fetch when the log is
-// saved. Off again, what was kept is deleted.
+// Settings → Setup → Logging). On unless switched off there (item 334: it was off unless switched on,
+// and a fault seen once was gone before anyone thought to log it); while on, each line the server logs
+// is kept as well, without what is the owner's alone (item 235), for the app to fetch when the log is
+// saved. Switched off, what was kept is deleted, and it stays off.
 //
 // What is kept of a line (LogLine.cs, LogScrub.cs, item 235): all of it but what is the owner's alone (keys, tokens
 // and passwords, email addresses, account names and logins, internet and Tailscale addresses, their own home folder).
@@ -13,8 +14,8 @@
 //   POST /api/diagnostics/clear  what was kept deleted
 //   GET  /api/diagnostics/bridges  every Mandarin Bridge's own log, scrubbed as these lines are (Admin/BridgeLogs.cs)
 //
-// Kept in the data folder (diagnostics-on, diagnostics.log and .old, a megabyte each), so a restart
-// or an update doesn't lose them.
+// Kept in the data folder (diagnostics-off where it is switched off, diagnostics.log and .old, a
+// megabyte each), so a restart or an update doesn't lose them or the choice.
 using System.Globalization;
 
 namespace Mandarin.Server;
@@ -26,11 +27,11 @@ internal static class Diagnostics
     private static readonly object gate = new();
     private static bool? on;
 
-    private static string Flag => Path.Combine(Server.DataDir, "diagnostics-on");
+    private static string Flag => Path.Combine(Server.DataDir, "diagnostics-off");
     private static string File1 => Path.Combine(Server.DataDir, "diagnostics.log");
     private static string File0 => Path.Combine(Server.DataDir, "diagnostics.old");
 
-    /* Switched on (read from the data folder once it is known). */
+    /* Switched on: unless it was switched off (read from the data folder once it is known). */
     public static bool On
     {
         get
@@ -39,7 +40,7 @@ internal static class Diagnostics
             if (Server.DataDir.Length == 0) return false;
             lock (gate)
             {
-                on ??= File.Exists(Flag);
+                on ??= !File.Exists(Flag);
                 return on.Value;
             }
         }
@@ -50,8 +51,8 @@ internal static class Diagnostics
     {
         lock (gate)
         {
-            if (to) File.WriteAllText(Flag, "");
-            else { File.Delete(Flag); DeleteKept(); }
+            if (to) File.Delete(Flag);
+            else { File.WriteAllText(Flag, ""); DeleteKept(); }
             on = to;
         }
         if (to) Record("[diagnostics] on");
