@@ -8,7 +8,8 @@
  */
 const http = require("http");
 
-function credit(name) { return [{ name, artist: { name } }]; }
+// The act's own id and MusicBrainz's word for it, where a release says them (artistId, artistNote: item 333).
+function credit(name, id, note) { return [{ name, artist: Object.assign({ name }, id ? { id } : {}, note ? { disambiguation: note } : {}) }]; }
 
 /* A release from a short description: { id, title, artist, date, tracks: [[title, seconds], …],
  * group: { title, date } (the release group, when it differs), disambiguation, barcode,
@@ -18,7 +19,7 @@ function release(d) {
   return {
     id: d.id, title: d.title, date: d.date || "", country: d.country || "XW", disambiguation: d.disambiguation || "",
     barcode: d.barcode || "", isrcs: d.isrcs || [],
-    "artist-credit": credit(d.artist),
+    "artist-credit": credit(d.artist, d.artistId, d.artistNote),
     "label-info": d.label ? [{ "catalog-number": d.catno || "1", label: { id: d.label + "-id", name: d.label } }] : [],
     "release-group": { id: g.id || d.id + "-rg", title: g.title || d.title, "first-release-date": g.date || d.date || "", "primary-type": "Album" },
     media: [{ position: 1, format: "CD", "track-count": d.tracks.length,
