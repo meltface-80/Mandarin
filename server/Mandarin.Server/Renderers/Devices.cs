@@ -111,10 +111,15 @@ internal sealed partial class Devices
         lock (gate)
         {
             if (scanning != null) return scanning;
-            scanning = Round();
-            return scanning;
+            var round = Round();
+            scanning = Running(round);
+            return round;
         }
     }
+
+    // [round] kept as under way only while it is: one over before it was kept (its finally already run, as a Linux
+    // server's local round is with nothing to list) would be kept for ever, and no round would run again (item 329).
+    private static Task? Running(Task round) => round.IsCompleted ? null : round;
 
     private async Task Round()
     {
@@ -142,8 +147,9 @@ internal sealed partial class Devices
         lock (gate)
         {
             if (scanningLocal != null) return scanningLocal;
-            scanningLocal = LocalRound();
-            return scanningLocal;
+            var round = LocalRound();
+            scanningLocal = Running(round);
+            return round;
         }
     }
 
