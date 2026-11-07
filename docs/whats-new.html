@@ -23,7 +23,7 @@
   <h1>What's new in v1.2.1</h1>
   <p class="lead">Mandarin v1.2.1 and Mandarin Bridge v0.3.0, since v1.2.0.</p>
 <div class="newlist info-cards">
-    <div class="info-card"><h3>Mandarin Bridge, played as Roon plays a RAAT device</h3><p>One continuous stream of PCM over SlimProto, made by Mandarin: each track decoded (and upsampled, as its Output says), one on into the next, the DAC never let go between them. Where the rate changes, the DAC is given half a second of silence first, so it settles without a click. <a href="bridges.html">Mandarin Bridge →</a></p></div>
+    <div class="info-card"><h3>Mandarin Bridge</h3><p>Updated: over SlimProto, Mandarin now sends Mandarin Bridge a continuous stream of PCM (DSD still goes as DSD). <a href="bridges.html">Mandarin Bridge →</a></p></div>
     <div class="info-card"><h3>More upsampling, for less</h3><p>Gaussian, Long and Very long filters, minimum phase for each, a filter for CD-rate and one for hi-res sources, shaped dither at the DAC's real bits, three DSD modulators, and Output as recipes, made with far less of the processor. <a href="upsampling.html">Upsampling and output →</a></p></div>
   </div>
 
@@ -34,7 +34,7 @@
     <li><b>A renderer's own player:</b> where MPD is beside it, as on a Chord Poly, Mandarin can hand MPD the whole queue.</li>
     <li><b>Native DSD on Linux:</b> Mandarin Bridge for Linux says when the computer's kernel holds back a DAC's native DSD, and the one line that frees it. <a href="troubleshooting.html">More →</a></li>
     <li><b>A Linux server leaves its USB DAC to Mandarin Bridge for Linux,</b> installed beside it: the server no longer opens the computer's sound cards, and the container needs no <code>--device /dev/snd</code>. A Mac's own outputs play as before.</li>
-    <li>The bar along the foot on every screen, Now playing too; <code>raat-discover</code> lists the Roon Ready devices on your network.</li>
+    <li>The bar along the foot on every screen, Now playing too.</li>
   </ul>
 
   <h2>Fixed</h2>

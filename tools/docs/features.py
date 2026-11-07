@@ -278,8 +278,8 @@ FEATURES = [
      "Plug the DAC in. It shows on **This phone**'s page in **Settings → Audio Devices**; switch on "
      "**USB direct** there."),
     ("bridge", "🌉", "Mandarin Bridge", True,
-     "A USB DAC on an Android device, a Linux computer or a Raspberry Pi, played one continuous stream of PCM "
-     "over SlimProto, as Roon plays a RAAT device.",
+     "A USB DAC on an Android device, a Linux computer or a Raspberry Pi, as a room Mandarin plays to: "
+     "over SlimProto, a continuous stream of PCM.",
      "Install it from [Downloads](#downloads): the Android app, the Linux install line, or the Raspberry Pi "
      "image to flash. It finds Mandarin by itself; plug the DAC in, then switch the Bridge on in "
      "**Settings → Audio Devices**. Details under [Mandarin Bridge](#mandarin-bridge)."),

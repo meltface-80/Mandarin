@@ -23,14 +23,12 @@ function gaplessGroup(o) {
  * nothing to set; at a change of rate it pauses as its own -r option says. The words are DevicePage.kt's too.
  */
 const SLIM_GAPLESS_NOTE = "A Squeezelite player plays one track into the next from its own buffer: gapless as it is, nothing to set. Where the next track is at another rate, it pauses for as long as its -r option says (e.g. -r 44100-768000:500, half a second), so the DAC settles without a click.";
-/* A Mandarin Bridge played Mandarin's continuous PCM (item 322, its device's continuous_pcm): its own note. */
-const BRIDGE_GAPLESS_NOTE = "Mandarin plays this Bridge one continuous stream of PCM, as Roon plays a RAAT device: each track decoded by Mandarin (and upsampled, as its Output says), one on into the next while they are of one rate and depth, the DAC never let go between them; nothing to set. Where the next track is at another rate, the DAC is given half a second of silence at the new rate first, so it settles without a click. DSD goes as its file.";
 const slimDsdNote = (takesDsd) => takesDsd
   ? "DSD files go to it as DSF, at the DSD rates that are on; it sends them to the DAC as its own -D option says (DoP or native), or as PCM. Any other goes as PCM."
   : "It doesn’t say it plays DSD, so DSD goes to it as PCM.";
 
-/** A Squeezelite player's Gapless group, or a Mandarin Bridge's played continuous PCM ([pcm]): its note alone. */
-function slimGapless(pcm) {
+/** A Squeezelite player's Gapless group: its note alone. A Mandarin Bridge played continuous PCM has none (item 326). */
+function slimGapless() {
   return '<div class="cap-group"><span class="cap-label" data-parity="settings-device.cap-label">Gapless</span>' +
-    '<div class="settings-note" data-parity="settings-device.note">' + esc(pcm ? BRIDGE_GAPLESS_NOTE : SLIM_GAPLESS_NOTE) + "</div></div>";
+    '<div class="settings-note" data-parity="settings-device.note">' + esc(SLIM_GAPLESS_NOTE) + "</div></div>";
 }

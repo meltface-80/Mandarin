@@ -71,7 +71,7 @@ own Android app on it.
 ## What Mandarin sees of the DAC
 
 The app says everything about the DAC at `/dac.json`, and Mandarin (on `dev`, unreleased) takes the device at its
-word, as Roon does a Roon Ready device: the rates, depths and DSD the DAC takes are on, nothing else is, and there is
+word: the rates, depths and DSD the DAC takes are on, nothing else is, and there is
 nothing to tick. Ticks made by hand before no longer override it; a tap on a chip still turns that one off. The volume
 follows the DAC: fixed where it has no USB volume control (or is set to Fixed here), Mandarin's slider where it has.
 What it feeds the DAC now is `/dac.json`'s `now`: the `rate`, the `bits` of the words the DAC is opened at, `kind`

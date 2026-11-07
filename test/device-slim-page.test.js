@@ -4,7 +4,7 @@
  * stand-in, test/fake-slim.js) connected and opened in Settings → Audio Devices. Found by connecting to Mandarin,
  * its Standard SlimProto; its rates as it said them in its hello, with no "assumed" note; its Output, as a
  * renderer's; Gapless its note alone; DSD as DSF, to its own -D. A Mandarin Bridge played Mandarin's continuous PCM
- * (item 322, its hello's ContinuousPcm=1) has a Gapless note of its own. The app's words are DevicePage.kt's (DeviceSlimTest).
+ * (item 322, its hello's ContinuousPcm=1) has no Gapless group (item 326). The app's words are DevicePage.kt's (DeviceSlimTest).
  * Skipped where no Chromium or Chrome is found (test/browser-harness.js).
  */
 const ports = require("./ports");
@@ -73,8 +73,7 @@ test("a Squeezelite player's page: found by connecting, SlimProto, its own rates
   assert.match(r.text, /DSD files go to it as DSF.*-D option/);
   assert.match(r.gapless || "", /plays one track into the next from its own buffer/);
   assert.equal(r.gaplessSwitch, false, "no Albums as one stream: it is gapless as it is");
-  // A Mandarin Bridge played continuous PCM: its own note, no switch.
-  assert.match(rb.gapless || "", /Mandarin plays this Bridge one continuous stream of PCM.*half a second of silence at the new rate/);
-  assert.doesNotMatch(rb.gapless || "", /-r option/);
-  assert.equal(rb.gaplessSwitch, false);
+  // A Mandarin Bridge played continuous PCM: no Gapless group at all (item 326).
+  assert.equal(rb.gapless, undefined, "no Gapless for the Bridge: " + rb.gapless);
+  assert.ok(rb.mode, "its Output all the same");
 });
