@@ -66,6 +66,8 @@ test("acts of one name told apart by their MusicBrainz matches, with no file tou
   await until(async () => (await get("identify")).progress.checked === 3, 60000, "the identification scan");
   const wallOf = async () => (await get("artists?limit=50")).artists.filter(a => a.name === "Airbag");
   assert.equal((await wallOf()).length, 1, "one Airbag before: nothing tells them apart");
+  const editsFile = () => { try { return fs.readFileSync(path.join(root, "data", "album-edits.json"), "utf8"); } catch (e) { return null; } };
+  const editsBefore = editsFile();
   const asked = mb.requests.length;
   const now = Date.now();
   for (const [title, rel, artist] of [["Disconnected", 1, "Airbag"], ["Libre", 2, "Airbag"], ["Alone", 3, "Solo Act"]]) {
@@ -89,4 +91,6 @@ test("acts of one name told apart by their MusicBrainz matches, with no file tou
   assert.deepEqual([JSON.parse(kept).artist_mbid, JSON.parse(kept).artist_note], [ARGENTINA, "Argentine rock band"]);
   await new Promise(r => setTimeout(r, 1500));
   assert.equal(mb.requests.slice(asked).filter(r => r.startsWith("/ws/2/release/1111")).length, 2, "never asked again");
+  // Filing an album under its act is no edit (item 335): the album edits' backup is never written again for it.
+  assert.equal(editsFile(), editsBefore, "album-edits.json not written again: no edit was made");
 });
