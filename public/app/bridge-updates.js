@@ -8,8 +8,10 @@
 // Admin/BridgeUpdates.cs), else how it stands; where nothing is to be done,
 // Check for update, as the server's row (item 293): a tap asks GitHub again
 // (?fresh=1) and says what it found for a few seconds. While one updates, the
-// rows are asked for again until it is done. The Android app's rows are its
-// own (SettingsUpdates.kt, core's BridgeUpdates.kt), worded the same.
+// rows are asked for again until it is done. Where its update failed or waits
+// on the device, what the Bridge said is under its row (item 327). The Android
+// app's rows are its own (SettingsUpdates.kt, core's BridgeUpdates.kt), worded
+// the same.
 (function initBridgeUpdates() {
   const box = document.getElementById("update-bridges");
   if (!box) return;
@@ -47,7 +49,6 @@
     btn.textContent = held && held.id === b.id ? held.words : w;
     btn.classList.toggle("is-update-ready", tap);
     btn.disabled = !(tap || w === CHECK) || !!(held && held.id === b.id);
-    if (b.update && b.update.says && (w === ON_DEVICE || w === RETRY)) btn.title = b.update.says;
     btn.addEventListener("click", async () => {
       if (!tap) return check(b, btn);
       btn.disabled = true; btn.textContent = UPDATING; btn.classList.remove("is-update-ready");
@@ -72,10 +73,20 @@
     setTimeout(() => { held = null; look(); }, 4000);
   }
 
+  // What Bridge [b] said of its update, under its row, where it failed or waits on the device; else null.
+  function why(b) {
+    const w = words(b), says = b.update && b.update.says;
+    if (!says || (w !== RETRY && w !== ON_DEVICE)) return null;
+    const p = document.createElement("p");
+    p.className = "settings-bridge-why"; p.setAttribute("data-parity", "settings-system.bridge-why");
+    p.textContent = says;
+    return p;
+  }
+
   function draw(list) {
     box.textContent = "";
     box.classList.toggle("hidden", !list.length);
-    list.forEach(b => box.appendChild(row(b)));
+    list.forEach(b => { box.appendChild(row(b)); const w = why(b); if (w) box.appendChild(w); });
   }
 
   // The rows as the server says they stand ([fresh]: GitHub asked again); asked again in a few seconds while one is under way.

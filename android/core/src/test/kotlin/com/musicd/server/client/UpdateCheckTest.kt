@@ -63,4 +63,16 @@ class UpdateCheckTest {
         assertNull(UpdateCheck.current(null))
         assertEquals("Android app v1.1.13", UpdateCheck.appName("1.1.13"))
     }
+
+    @Test fun `a row's button keeps its words on one line up to half the row, the name wrapping in the rest`() {
+        // Both fit: each its own width.
+        assertEquals(120 to 110, UpdateCheck.rowWidths(328, 120, 110, 60))
+        // A long name ("Mandarin Bridge (DietPi) · Bridge v0.3.0") beside Try the update again: the button whole, the
+        // name the rest, never the button a letter wide (item 327).
+        assertEquals(178 to 170, UpdateCheck.rowWidths(348, 300, 170, 89))
+        // A button wider than half the row: half, its words wrapping inside it; never under its longest word.
+        assertEquals(164 to 164, UpdateCheck.rowWidths(328, 300, 260, 89))
+        assertEquals(28 to 300, UpdateCheck.rowWidths(328, 300, 400, 300))
+        assertEquals(0 to 300, UpdateCheck.rowWidths(200, 300, 400, 300))
+    }
 }

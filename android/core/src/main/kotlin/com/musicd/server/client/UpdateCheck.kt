@@ -67,5 +67,14 @@ object UpdateCheck {
     fun serverName(version: String?): String = "Server" + if (!version.isNullOrEmpty()) " v$version" else ""
     fun appName(version: String): String = "Android app" + if (version.isNotEmpty()) " v$version" else ""
 
+    /**
+     * A row's widths (item 327), [room] wide: its button's words on one line ([button] wide) where they take no more than
+     * half the row, else half, never under its longest word ([least]); the name ([name] wide) the rest, wrapping inside it.
+     */
+    fun rowWidths(room: Int, name: Int, button: Int, least: Int): Pair<Int, Int> {
+        val b = minOf(button, maxOf(least, room / 2)).coerceAtLeast(0)
+        return minOf(name, (room - b).coerceAtLeast(0)) to b
+    }
+
     private fun has(j: JSONObject, k: String) = !j.isNull(k) && j.optString(k).isNotEmpty()
 }

@@ -943,7 +943,8 @@ release from GitHub, checks it against the checksum published with it, and puts 
 * **Android:** **Update** puts a notification on the device; its tap downloads the update in the browser,
   and Android's installer asks you to install it. The Bridge holds no permission to install apps itself
   (Google Play Protect called that harmful, v0.2.2).
-* A Bridge from before v0.2.1 needs one last update by hand, from [Downloads](#downloads).
+* An Android Bridge from before v0.2.1, or a Linux or Raspberry Pi Bridge from before v0.3.0, needs one last update by hand, from [Downloads](#downloads)
+  (a Linux or Pi Bridge before v0.3.0 asked GitHub in a way it refuses, and its update failed).
 * A test build of Mandarin's follows the Bridges' test builds (the **test-bridge** pre-release),
   and a numbered one follows their numbered releases (Mandarin Bridge v0.3.0 with Mandarin v1.2.1).
 
