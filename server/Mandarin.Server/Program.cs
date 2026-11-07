@@ -63,10 +63,6 @@ if (args.Length == 2 && args[0] == "db") return Schema.Command(args[1]);
 // `mandarin-server score`: the identification scan's scorer asked directly, a
 // line of JSON in and one out (Identify/ScoreCommand.cs), for the tests.
 if (args.Length >= 1 && args[0] == "score") return Mandarin.Server.Identify.ScoreCommand.Run();
-// `mandarin-server raat-discover`: the Roon Ready devices on the network and what each says of itself, read only
-// (Renderers/RaatDiscover.cs, item 309); `sood-parse`, its packets read, for the tests.
-if (args.Length >= 1 && args[0] == "raat-discover") return await Mandarin.Server.Renderers.RaatDiscover.Command(args);
-if (args.Length >= 1 && args[0] == "sood-parse") return Mandarin.Server.Renderers.RaatDiscover.ParseCommand();
 // `mandarin-server waveform <file> [seconds]`: a file's waveform as /api/waveform keeps it (Waveforms.cs).
 if (args.Length >= 2 && args[0] == "waveform")
 {
