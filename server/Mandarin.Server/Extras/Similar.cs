@@ -1,14 +1,9 @@
-// Similar.cs — acts worth hearing next, given the one that is playing
-// (v0.8.20): lib/similar.js and lib/played-artists.js, rule for rule. Pure:
-// every function takes Deezer's answers (as JSON.parse reads them) and
-// returns a decision; the fetching is Taste.cs's.
-//
-// Deezer's related acts for the playing act are the pool; each is scored by
-// Deezer's rank and by how near it sits to what you play (the taste graph,
-// built daily from the related lists of your most-played acts). Three are
-// drawn — two not heard of, one you know with a record you don't own — the
-// draw weighted by the square of the score.
-using System.Globalization;
+// Similar.cs — the taste graph and an act's similar acts (v0.8.20): lib/similar.js
+// and lib/played-artists.js, rule for rule. Pure: every function takes Deezer's
+// answers (as JSON.parse reads them) and returns a decision; the fetching is
+// Taste.cs's. The taste graph, built daily from the related lists of your
+// most-played acts, says how near an act sits to what you play. The share card's
+// three suggestions it once drew went with item 336.
 using System.Text;
 using System.Text.RegularExpressions;
 using Mandarin.Server.Identify;
@@ -18,42 +13,11 @@ namespace Mandarin.Server.Extras;
 
 using Js = Mandarin.Server.Tags.Js;
 
-/* An act as the scoring sees it (rankActs' rows). */
-internal sealed class Act
-{
-    public string Id = "", Name = "";
-    public double Rank;
-    public double? Fans;
-    public object? Picture;
-    public double Score;
-    public string? Known;
-    public bool Near;
-    public List<string> Via = [];
-
-    public JsObj PoolJson()
-    {
-        var o = new JsObj();
-        o["id"] = Id;
-        o["name"] = Name;
-        o["rank"] = Rank;
-        o["fans"] = Fans;
-        o["picture"] = Picture;
-        return o;
-    }
-    public static Act FromPool(JsObj o) => new()
-    {
-        Id = Js.Str(o["id"]), Name = Js.Str(o["name"]), Rank = Js.ToNumber(o["rank"]),
-        Fans = o["fans"] is double f ? f : null, Picture = o["picture"] is Undef ? null : o["picture"]
-    };
-}
-
 internal sealed record Seed(string Name, double Days, double Last);
 
 internal static partial class Similar
 {
     public const int Wanted = 3, SearchRows = 10, Candidates = 3;
-    public const int RelatedRows = 20, Pool = 8, Unknown = 2, ShownKeep = 30;
-    public const double MinFans = 1000;
 
     [GeneratedRegex("[^a-z0-9]+")] private static partial Regex NotWord();
     [GeneratedRegex("[\\t\\n\\v\\f\\r \\u00a0\\u1680\\u2000-\\u200a\\u2028\\u2029\\u202f\\u205f\\u3000\\ufeff]+")] private static partial Regex Spaces();
@@ -125,39 +89,6 @@ internal static partial class Similar
         return outList;
     }
 
-    [GeneratedRegex("^([0-9]{4})")] private static partial Regex Year4();
-
-    /* The year from Deezer's "YYYY-MM-DD", or null ("0000-00-00", or a year after next). */
-    public static double? YearOf(object? releaseDate)
-    {
-        var m = Year4().Match(Js.Trim(Js.IsNullish(releaseDate) ? "" : Js.Str(releaseDate)));
-        if (!m.Success) return null;
-        var y = double.Parse(m.Groups[1].Value, CultureInfo.InvariantCulture);
-        if (y < 1900 || y > DateTime.Now.Year + 1) return null;
-        return y;
-    }
-
-    /* Related acts with what the scoring needs: rank, followers, picture. */
-    public static List<Act> ReadDeezerPool(object? json, int limit = 0)
-    {
-        var data = Data(json);
-        var outList = new List<Act>();
-        if (data == null) return outList;
-        var seen = new HashSet<string>();
-        foreach (var a0 in data)
-        {
-            if (a0 is not JsObj a) continue;
-            var id = IdOf(a);
-            var name = NameOf(a);
-            if (string.IsNullOrEmpty(id) || name.Length == 0 || !seen.Add(id)) continue;
-            double? fans = null;
-            if (!Js.IsNullish(a["nb_fan"])) { var f = Js.ToNumber(a["nb_fan"]); fans = double.IsNaN(f) ? 0 : f; }
-            outList.Add(new Act { Id = id, Name = name, Rank = outList.Count, Fans = fans, Picture = PictureOf(a) });
-            if (outList.Count >= (limit > 0 ? limit : RelatedRows)) break;
-        }
-        return outList;
-    }
-
     public sealed class Near
     {
         public double Score;
@@ -191,145 +122,6 @@ internal static partial class Similar
         foreach (var k in order) if (g[k].Score > max) max = g[k].Score;
         if (max > 0) foreach (var k in order) g[k].Score /= max;
         return g;
-    }
-
-    /* Score the pool for one share. */
-    public static List<Act> RankActs(List<Act> pool, string? playing, Dictionary<string, Near> taste, Func<string, string?> known, HashSet<string> heavy, HashSet<string> shown)
-    {
-        var n = Math.Max(1, pool.Count);
-        var outList = new List<Act>();
-        foreach (var act in pool)
-        {
-            var key = Normalize(act.Name);
-            if (key.Length == 0 || key == Normalize(playing ?? "")) continue;
-            if (heavy.Contains(key)) continue;
-            taste.TryGetValue(key, out var t);
-            var score = 0.3 * (1 - act.Rank / n) + (t != null ? Math.Sqrt(t.Score) : 0);
-            if (act.Fans != null && act.Fans < MinFans) score *= 0.5;
-            if (shown.Contains(act.Id)) score *= 0.5;
-            outList.Add(new Act
-            {
-                Id = act.Id, Name = act.Name, Rank = act.Rank, Fans = act.Fans, Picture = act.Picture,
-                Score = score, Known = known(act.Name), Near = t != null, Via = t != null ? t.Via.Take(2).ToList() : []
-            });
-        }
-        return Library.Sorted(outList, (a, b) => Lookups.Sgn(b.Score - a.Score));
-    }
-
-    /* A weighted draw: probability rises with the square of the score. */
-    public static int Draw(List<Act> list, Func<double> rnd)
-    {
-        double total = 0;
-        var w = list.Select(x => { var m = Math.Max(0.01, x.Score); var v = m * m; total += v; return v; }).ToList();
-        var r = rnd() * total;
-        for (var i = 0; i < list.Count; i++) { r -= w[i]; if (r <= 0) return i; }
-        return list.Count - 1;
-    }
-
-    /* Three acts from the ranking: two not heard of, one you know, filled from the rest. */
-    public static List<Act> Choose(List<Act> ranked, Func<double>? rnd = null, int want = Wanted)
-    {
-        rnd ??= Random.Shared.NextDouble;
-        static List<Act> ByNear(IEnumerable<Act> list) { var l = list.ToList(); return l.Where(a => a.Near).Concat(l.Where(a => !a.Near)).ToList(); }
-        var unknown = ByNear(ranked.Where(a => a.Known == null)).Take(Pool).ToList();
-        var familiar = ranked.Where(a => a.Known != null).Take(Pool).ToList();
-        var picks = new List<Act>();
-        bool Take(List<Act> from)
-        {
-            if (from.Count == 0) return false;
-            var near = from.Any(a => a.Near) ? from.Where(a => a.Near).ToList() : from;
-            var pick = near[Draw(near, rnd)];
-            from.RemoveAt(from.IndexOf(pick));
-            picks.Add(pick);
-            return true;
-        }
-        for (var i = 0; i < Unknown && picks.Count < want; i++) if (!Take(unknown)) break;
-        if (picks.Count < want) Take(familiar);
-        while (picks.Count < want && (Take(unknown) || Take(familiar))) { }
-        return picks;
-    }
-
-    /* Why an act is on the row, in a few words. */
-    public static string ReasonFor(Act act, string? playing)
-    {
-        if (act.Known == "library") return "In your library — a record you don't have";
-        if (act.Known == "played") return "Something you've played — a record you don't have";
-        var via = act.Via.Where(v => Normalize(v) != Normalize(playing ?? "")).ToList();
-        if (via.Count >= 2) return $"Near {via[0]} and {via[1]}, which you play";
-        if (via.Count == 1) return $"Near {via[0]}, which you play";
-        return !string.IsNullOrEmpty(playing) ? $"Near {playing}" : "";
-    }
-
-    /* An act's best-known record from their top tracks: the album most of those tracks are from. */
-    public static JsObj? ReadDeezerTop(object? json)
-    {
-        var data = Data(json);
-        if (data == null) return null;
-        var tally = new List<(string Id, string Title, object? Cover, int N)>();
-        foreach (var t0 in data)
-        {
-            if (t0 is not JsObj t || t["album"] is not JsObj al || Js.IsNullish(al["id"])) continue;
-            var id = Js.Str(al["id"]);
-            var i = tally.FindIndex(x => x.Id == id);
-            if (i < 0) tally.Add((id, al["title"] is string s ? Js.Trim(s) : "", Js.Truthy(al["cover_medium"]) ? al["cover_medium"] : Js.Truthy(al["cover"]) ? al["cover"] : null, 1));
-            else tally[i] = (tally[i].Id, tally[i].Title, tally[i].Cover, tally[i].N + 1);
-        }
-        (string Id, string Title, object? Cover, int N)? best = null;
-        foreach (var e in tally) if (e.Title.Length > 0 && (best == null || e.N > best.Value.N)) best = e;
-        if (best == null) return null;
-        var o = new JsObj();
-        o["id"] = best.Value.Id;
-        o["title"] = best.Value.Title;
-        o["cover"] = best.Value.Cover;
-        o["n"] = (double)best.Value.N;
-        return o;
-    }
-
-    /* Every full album from an artist's listing, newest first. */
-    public static List<object?> ReadDeezerAlbumList(object? json)
-    {
-        var data = Data(json);
-        var outList = new List<JsObj>();
-        if (data == null) return [];
-        foreach (var a0 in data)
-        {
-            if (a0 is not JsObj album || Js.IsNullish(album["id"])) continue;
-            if (Js.Lower(Js.Str(Js.Truthy(album["record_type"]) ? album["record_type"] : "")) != "album") continue;
-            var title = album["title"] is string s ? Js.Trim(s) : "";
-            if (title.Length == 0) continue;
-            var o = new JsObj();
-            o["id"] = Js.Str(album["id"]);
-            o["title"] = title;
-            o["year"] = YearOf(album["release_date"]);
-            o["cover"] = Js.Truthy(album["cover_medium"]) ? album["cover_medium"] : Js.Truthy(album["cover"]) ? album["cover"] : null;
-            outList.Add(o);
-        }
-        double Y(JsObj o) => o["year"] is double y ? y : 0;
-        return Library.Sorted(outList, (a, b) => Lookups.Sgn(Y(b) - Y(a))).Select(x => (object?)x).ToList();
-    }
-
-    /* The record to name for an act: their best-known, or for an act you know the newest you don't own. */
-    public static JsObj? RecordFor(Act act, JsObj? top, List<object?> albums, IEnumerable<string> ownedTitles)
-    {
-        var owned = new HashSet<string>(ownedTitles.Select(t => Normalize(t)));
-        JsObj? WithYear(JsObj? a)
-        {
-            if (a == null) return null;
-            var hit = albums.OfType<JsObj>().FirstOrDefault(x => Js.StrictEq(x["id"], a["id"]));
-            var o = new JsObj();
-            o["title"] = a["title"];
-            o["year"] = !Js.IsNullish(a["year"]) ? a["year"] : hit != null ? hit["year"] : null;
-            o["cover"] = Js.Truthy(a["cover"]) ? a["cover"] : hit != null ? hit["cover"] : null;
-            return o;
-        }
-        if (act.Known != null)
-        {
-            var fresh = albums.OfType<JsObj>().FirstOrDefault(a => !Js.IsNullish(a["year"]) && !owned.Contains(Normalize(a["title"])));
-            if (fresh != null) return WithYear(fresh);
-            if (top != null && !owned.Contains(Normalize(top["title"]))) return WithYear(top);
-            return null;
-        }
-        return WithYear(top) ?? WithYear(albums.Count > 0 ? albums[0] as JsObj : null);
     }
 
     // ------------------------------------------------------------ played-artists.js

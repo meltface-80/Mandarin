@@ -107,7 +107,7 @@ test("Settings on a tablet or desktop: the list at the side menu's width, each p
     assert.equal(desk.list.w, desk.menu, size.width + "px: the list is the side menu's width");
     // Wall Display one of Setup's pages, with Shelf beside it (v1.0.2).
     assert.deepEqual(desk.order, ["Account", "Music Folders", "Services", "Audio Devices", "Library Scanner", "Setup", "Backup & restore", "SQ-tool", "Updates"]);
-    assert.deepEqual(desk.setup_order, ["Smart Picks", "Record labels", "Home Screen", "UI Settings", "Wall Display", "Shelf", "Share Card", "Away from home", "API Keys"]);
+    assert.deepEqual(desk.setup_order, ["Smart Picks", "Record labels", "Home Screen", "UI Settings", "Wall Display", "Shelf", "Away from home", "API Keys"]);
     assert.equal(desk.back_from_ui, true, "Back from UI Settings is Setup");
     assert.equal(desk.back_from_homescreen, true);
     assert.equal(desk.back_from_display, true, "Back from Wall Display is Setup");

@@ -26,6 +26,8 @@ test("the card's buttons in the app: Copy image and Download, no Share…", () =
   assert.match(sheet, /br\.copyImage\(b, ShareCard\.fileName\(title, artist\)\)/);
   assert.match(sheet, /copied = "Copied!"/);
   assert.match(sheet, /err = "Couldn’t copy the card"/);
+  // Nothing under the card but the hint (item 336): no links, no acts, no default service.
+  assert.doesNotMatch(sheet, /ShareLinks\(|ShareActs\(|similarActs|qobuzLink|shareService/);
 });
 
 test("copied as a picture: the PNG through the app's FileProvider, its address on Android's clipboard", () => {

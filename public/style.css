@@ -1608,18 +1608,7 @@ body.settings-open main { overflow-y: hidden; }
 .share-actions a:active { transform: scale(.97); }
 .share-actions svg { width: 18px; height: 18px; }
 
-/* The links row under the share card: services and review sites, as chips.
-   A GRID with equal columns and one shared height, not a wrap of inline
-   buttons — so the row reads as a row. Which also means no chip's label may
-   come from the record: a credit like "Stan Getz / Cal Tjader / Alan Jay
-   Lerner / Frederick Loewe" made a chip six lines deep in the app this is
-   ported from, and every chip beside it became a circle. lib/share-links.js
-   keeps the labels constant, and its test holds them there. */
-/* The Services / Reviews toggle lists. Rows are built by app.js from the
-   server's table, so this only has to space them. */
-/* A heading inside a settings pane, for a page holding more than one list.
-   Share Card carries Services and Reviews together; without a label the two
-   toggle lists read as one long one. */
+/* A heading inside a settings pane, for a page holding more than one list. */
 .settings-block-title {
   margin: 0 0 10px; font-size: 13px; font-weight: 700;
   letter-spacing: .06em; text-transform: uppercase; color: var(--text-faint);
@@ -1631,110 +1620,6 @@ body.settings-open main { overflow-y: hidden; }
 /* A settings row that follows a list it belongs to, rather than starting a
    block of its own. */
 .settings-row-top { margin-top: 14px; }
-
-.share-toggle-list { display: flex; flex-direction: column; gap: 14px; }
-
-/* "If you like this" — three acts and one record each, under the links.
-   A LIST, not a grid of sleeves: Deezer names the record but its cover is the
-   act's press shot as often as the sleeve, and a wrong picture under an album
-   title is worse than no picture. Text only, so there is nothing to be wrong. */
-.share-similar { width: 100%; margin-top: 16px; }
-.share-similar-title {
-  margin: 0 0 8px; font-size: 13px; font-weight: 700;
-  letter-spacing: .06em; text-transform: uppercase; color: var(--text-faint);
-}
-.share-similar-list { display: flex; flex-direction: column; gap: 6px; }
-.share-similar-act {
-  display: flex; align-items: baseline; gap: 8px;
-  width: 100%; min-height: 44px; padding: 8px 10px;
-  border-radius: 10px;
-  border: 1px solid var(--border); background: var(--bg-elev-2);
-  color: var(--text); text-decoration: none; text-align: left;
-  font: inherit; cursor: pointer;
-}
-.share-similar-act:hover  { background: var(--bg-elev); border-color: var(--text-faint); }
-.share-similar-act:active { transform: scale(.995); }
-/* A plain <div> row — nothing to link to — is not a control and must not
-   pretend to be one. */
-div.share-similar-act { cursor: default; }
-div.share-similar-act:hover { background: var(--bg-elev-2); border-color: var(--border); }
-/* One line per row. The act's name keeps its whole self — it is the thing
-   being suggested — and the record beside it gives way, because a truncated
-   album title still reads as an album title while a wrapped name makes one row
-   taller than its neighbours for no gain. */
-.share-similar-name {
-  flex: 0 0 auto;
-  font-size: 14px; font-weight: 600; white-space: nowrap;
-}
-.share-similar-rec {
-  flex: 1 1 auto; min-width: 0;
-  font-size: 12.5px; color: var(--text-dim);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-/* What a tap DOES, said before it is tapped: "this adds to your queue" and
-   "this leaves the app" must not look the same. */
-.share-similar-tag {
-  margin-left: auto; flex: 0 0 auto;
-  font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
-  padding: 3px 8px; border-radius: 999px;
-  background: var(--bg-elev); color: var(--text-dim);
-}
-/* Why this act is on the row (v0.7.6): a second line under the first, the
-   row's full width — "Near X and Y, which you play". */
-#share-similar-list .share-similar-act { flex-wrap: wrap; }
-/* The record gives way (basis 0) so the tag stays on the first line. */
-#share-similar-list .share-similar-rec { flex-basis: 0; }
-.share-similar-why {
-  flex: 1 0 100%; order: 9;
-  font-size: 11.5px; color: var(--text-faint);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.share-similar-act.is-library .share-similar-tag { background: var(--accent); color: var(--on-accent, #fff); }
-
-/* The default service carries a tick. Held, not tapped — see holdToPrefer. */
-.share-link.is-default { border-color: var(--accent); }
-.share-link.is-default::after {
-  content: "\2713";
-  margin-left: 6px; font-weight: 700; color: var(--accent-text);
-}
-
-.share-links {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
-  /* Every row the same height, not just every chip within a row. Grid rows
-     size independently, so "Amazon Music" wrapping to two lines made its row
-     taller than the ones above and below it and the block read as ragged. */
-  grid-auto-rows: 1fr;
-  gap: 8px;
-  width: 100%;
-  margin-top: 12px;
-}
-.share-link {
-  display: flex; align-items: center; justify-content: center;
-  min-height: 44px; padding: 8px 10px;
-  border-radius: 10px;
-  border: 1px solid var(--border); background: var(--bg-elev-2);
-  color: var(--text); text-decoration: none;
-  font-size: 13px; font-weight: 600; line-height: 1.2; text-align: center;
-  /* A long constant like "Wikipedia artist" still has to fit a quarter of a
-     phone; it wraps to two lines inside the shared height rather than widening
-     its column. */
-  overflow-wrap: anywhere;
-}
-.share-link:hover  { background: var(--bg-elev); border-color: var(--text-faint); }
-.share-link:active { transform: scale(.985); }
-/* EVERY CHIP LOOKS THE SAME. The review half was hollow for a while — same
-   text, no fill, on the theory that a place to read about a record is quieter
-   than a place to play it. On the DARK palettes that read as intended; on the
-   light ones --bg-elev-2 is barely off the panel it sits on, so the fill was
-   carrying the whole chip and removing it left five labels floating with no
-   button under them at all. Reported from a phone, and the screenshots make it
-   plain.
-   The lesson is not "transparent was too subtle" — it is that a variant
-   defined by REMOVING the thing that gives an element its edges has no floor,
-   because how visible it stays depends entirely on how far apart two theme
-   tokens happen to be. `.is-review` stays as a hook for grouping and for the
-   tests; it no longer changes how anything looks. */
 
 .share-hint { color: var(--text-faint); font-size: 13px; margin: 10px 4px 0; }
 .share-err  { color: var(--danger);     font-size: 13px; margin: 10px 4px 0; }

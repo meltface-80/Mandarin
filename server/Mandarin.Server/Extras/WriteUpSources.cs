@@ -286,15 +286,4 @@ internal sealed class WriteUpSources(string? mbBase, string? wikipediaBase, stri
         return PitchforkLists.Match(await latest, await best, q, limit);
     }
     private static async Task<List<JsObj>> Quiet2(Task<List<JsObj>> t) { try { return await t; } catch (Exception) { return []; } }
-
-    // ------------------------------------------------------------ the Qobuz app's link
-
-    /* The id of the album on Qobuz's own search page for this storefront, or null. */
-    public async Task<string?> QobuzAlbumId(string store, string artist, string album)
-    {
-        var query = ShareLinks.SearchQuery(ShareLinks.PrimaryArtist(artist), album);
-        if (query == null) return null;
-        var html = await Lookups.Text($"{Qobuz}/{store}/search/albums/{query}", Browser, 12000);
-        return WriteUps.PickAlbumId(html, store, ShareLinks.PrimaryArtist(artist), album);
-    }
 }

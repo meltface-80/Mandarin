@@ -515,39 +515,4 @@ internal static partial class WriteUps
         outObj["urls"] = urls;
         return outObj;
     }
-
-    // ------------------------------------------------------------ the Qobuz app's link
-
-    private static readonly Regex QobuzHref = Rx(@"href=""/([a-z]{2}-[a-z]{2})/album/([a-z0-9-]+)/([A-Za-z0-9]+)""");
-    private static readonly Regex NotCanon = Rx("[^a-z0-9]+");
-
-    /* Letters and digits only, accents folded: "AC/DC" and "ac-dc" agree. */
-    public static string Canon(object? s)
-    {
-        var t = ScanNames.Nfkd(Js.Lower(Js.IsNullish(s) ? "" : Js.Str(s)));
-        var sb = new StringBuilder(t.Length);
-        foreach (var c in t) if (c < 0x300 || c > 0x36F) sb.Append(c);
-        return NotCanon.Replace(sb.ToString(), "");
-    }
-
-    /* The id of the search result that is recognisably the record asked for, or null. */
-    public static string? PickAlbumId(object? html, string store, object? artist, object? album)
-    {
-        var wantAlbum = Canon(album);
-        if (wantAlbum.Length == 0) return null;
-        var wantArtist = Canon(S(artist));
-        var exact = wantAlbum + wantArtist;
-        string? loose = null;
-        foreach (Match m in QobuzHref.Matches(S(html)))
-        {
-            if (m.Groups[1].Value != store) continue;
-            var slug = Canon(m.Groups[2].Value);
-            var id = m.Groups[3].Value;
-            if (slug == exact) return id;
-            if (loose == null && wantArtist.Length > 0 && slug.StartsWith(wantAlbum, StringComparison.Ordinal) && slug.Contains(wantArtist, StringComparison.Ordinal)) loose = id;
-        }
-        return loose;
-    }
-
-    public static string? DeepLink(string? id) => !string.IsNullOrEmpty(id) ? "https://open.qobuz.com/album/" + id : null;
 }

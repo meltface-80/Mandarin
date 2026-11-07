@@ -949,17 +949,6 @@
         </div>
       </div>
       <div class="share-actions" id="share-actions"></div>
-      <!-- Where to hear it, and where to read about it. Built from
-           /api/album/extras' links block (lib/share-links.js) — the same round
-           trip the card already makes, so the chips arrive with it. -->
-      <nav class="share-links hidden" id="share-links" aria-label="Find this album"></nav>
-      <!-- Acts worth hearing next. Asked for separately and AFTER the card is
-           on screen, because it costs up to five Deezer calls and the card
-           must not wait on it. -->
-      <section class="share-similar hidden" id="share-similar" aria-label="If you like this">
-        <h3 class="share-similar-title" data-parity="share-card.similar-title">If you like this</h3>
-        <div class="share-similar-list" id="share-similar-list"></div>
-      </section>
       <p class="share-hint" id="share-hint" data-parity="share-card.hint"></p>
       <p class="share-err"  id="share-err" data-parity="share-card.err"></p>
     </div>
@@ -1318,14 +1307,6 @@
               <span class="settings-nav-title">Shelf</span>
             </span>
           </button>
-          <button data-parity="settings-setup.item" class="settings-nav-item" type="button" data-pane="sharecard">
-            <span class="settings-nav-ico" aria-hidden="true">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
-            </span>
-            <span class="settings-nav-txt">
-              <span class="settings-nav-title">Share Card</span>
-            </span>
-          </button>
           <button data-parity="settings-setup.item" class="settings-nav-item" type="button" data-pane="away">
             <span class="settings-nav-ico" aria-hidden="true">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a14 14 0 0 1 0 18a14 14 0 0 1 0-18z"/></svg>
@@ -1641,59 +1622,6 @@
         </div>
       </div>
 
-      <!-- Share Card — the links under the card, grouped in one place -->
-      <div class="settings-view settings-pane hidden" data-view="pane" data-pane="sharecard" data-parent="setup">
-        <div class="settings-pane-head">
-          <button class="settings-back" type="button" data-settings-back aria-label="Back to settings" data-parity="settings-sharecard.back">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
-          </button>
-          <h2 data-parity="settings-sharecard.heading">Share Card</h2>
-        </div>
-
-        <div class="settings-block">
-          <h3 class="settings-block-title" data-parity="settings-sharecard.title">On the card</h3>
-          <div class="settings-row">
-            <span class="settings-label" data-parity="settings-sharecard.name">Review</span>
-            <label class="switch" data-parity="settings-sharecard.review">
-              <input type="checkbox" id="share-card-review" aria-label="Show the review on the share card" checked>
-              <span class="switch-track"><span class="switch-thumb"></span></span>
-            </label>
-          </div>
-          <div class="settings-note" id="share-card-review-note" data-parity="settings-sharecard.note">On. The card carries the write-up about the album under the cover.</div>
-        </div>
-
-        <div class="settings-block">
-          <h3 class="settings-block-title" data-parity="settings-sharecard.title">Services</h3>
-          <!-- Filled from /api/settings/share-links: the list of what CAN be
-               linked to lives in lib/share-links.js, so this screen and the
-               chips can never disagree about which services exist. -->
-          <div id="share-services-list" class="share-toggle-list"></div>
-          <div class="settings-row settings-row-top">
-            <span class="settings-label" data-parity="settings-sharecard.name">Default <button data-parity="settings-sharecard.info" class="settings-info-btn" data-info="Where a suggestion goes when the record is not in your library. You can also set it by holding a service button under the share card. This is per device, so a phone and a tablet can differ." aria-label="Info">&#9432;</button></span>
-            <div class="settings-select-wrap">
-              <select id="share-default-service" data-parity="settings-sharecard.default" class="settings-select" aria-label="Default service"></select>
-              <svg data-parity="settings-sharecard.caret" class="settings-caret" width="16" height="16" viewBox="0 0 24 24" fill="none"
-                   stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <polyline points="6 9 12 15 18 9"/>
-              </svg>
-            </div>
-          </div>
-          <p class="settings-note" id="share-services-note" data-parity="settings-sharecard.note">
-            Each one opens a search for the album on that service. Nothing is
-            looked up until you tap a link. A suggestion that IS in your library
-            queues it instead.
-          </p>
-        </div>
-
-        <div class="settings-block">
-          <h3 class="settings-block-title" data-parity="settings-sharecard.title">Reviews</h3>
-          <div id="share-reviews-list" class="share-toggle-list"></div>
-          <p class="settings-note" data-parity="settings-sharecard.note">
-            Pitchfork and Wikipedia link to the actual page when it has already
-            been found for the card, and to a search when it has not.
-          </p>
-        </div>
-      </div>
 
       <!-- Wall display: one of Setup's pages (v1.0.2). -->
       <div class="settings-view settings-pane hidden" data-view="pane" data-pane="display" data-parent="setup">

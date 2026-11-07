@@ -106,7 +106,7 @@ internal sealed partial class Taste(string? deezerBase, Action<string> log)
         return rows;
     }
 
-    private static string Split(object? artist) => ShareLinks.PrimaryArtist(artist);
+    private static string Split(object? artist) => Names.PrimaryArtist(artist);
 
     // ------------------------------------------------------------ the taste graph
 
@@ -170,61 +170,6 @@ internal sealed partial class Taste(string? deezerBase, Action<string> log)
         var graph = Similar.TasteGraph(seeds, n => rel.TryGetValue(n, out var l) ? l : null, NowMs);
         built = new Built(DayKey(), graph, all.Select(s => Similar.Normalize(s.Name)).ToHashSet(), heavy);
         if (seeds.Count > 0) log($"[taste] {graph.Count} acts near the {seeds.Count} you play");
-    }
-
-    // ------------------------------------------------------------ the share card's acts
-
-    private readonly Dictionary<string, List<object?>> poolMemo = [];
-    private readonly List<string> poolOrder = [];
-
-    /* Deezer's related acts for the act playing, with what the scoring needs: kept a day. */
-    public async Task<List<object?>> SimilarPool(string primary)
-    {
-        var key = Similar.Normalize(primary);
-        List<object?>? pool;
-        lock (poolMemo) pool = poolMemo.TryGetValue(key, out var m) ? m : null;
-        if (pool != null) return pool;
-        var hit = CacheGet("similar-pool", key, Day);
-        if (Js.Truthy(hit)) return hit as List<object?> ?? [];
-        pool = [];
-        try
-        {
-            var search = await Deezer("search/artist?limit=" + Similar.SearchRows + "&q=" + Lookups.Encode(primary));
-            foreach (var cand in Similar.ReadDeezerArtists(search, primary).Take(Similar.Candidates))
-            {
-                pool = Similar.ReadDeezerPool(await Deezer("artist/" + Lookups.Encode(cand.Id) + "/related?limit=" + Similar.RelatedRows)).Select(a => (object?)a.PoolJson()).ToList();
-                if (pool.Count > 0) break;
-            }
-            CachePut("similar-pool", key, pool);
-        }
-        // Deezer away: nothing this time, and asked again next time (not remembered as nothing).
-        catch (Exception) { return []; }
-        lock (poolMemo)
-        {
-            if (!poolMemo.ContainsKey(key)) poolOrder.Add(key);
-            poolMemo[key] = pool;
-            if (poolOrder.Count > 200) { poolMemo.Remove(poolOrder[0]); poolOrder.RemoveAt(0); }
-        }
-        return pool;
-    }
-
-    /* An act's best-known record and its albums: kept a week. */
-    public async Task<(JsObj? Top, List<object?> Albums)> ActRecords(Act act)
-    {
-        if (CacheGet("similar-act", act.Id, 7 * Day) is JsObj hit && Js.Truthy(hit))
-            return (hit["top"] as JsObj, hit["albums"] as List<object?> ?? []);
-        JsObj? top = null;
-        List<object?> albums = [];
-        try { top = Similar.ReadDeezerTop(await Deezer("artist/" + Lookups.Encode(act.Id) + "/top?limit=10")); } catch (Exception) { top = null; }
-        try { albums = Similar.ReadDeezerAlbumList(await Deezer("artist/" + Lookups.Encode(act.Id) + "/albums?limit=50")); } catch (Exception) { albums = []; }
-        if (top != null || albums.Count > 0)
-        {
-            var v = new JsObj();
-            v["top"] = top;
-            v["albums"] = albums;
-            CachePut("similar-act", act.Id, v);
-        }
-        return (top, albums);
     }
 
     // ------------------------------------------------------------ Smart Picks

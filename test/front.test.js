@@ -252,7 +252,7 @@ test("v0.8.20: record labels, release days and the taste work answered by C#", {
     const token = await signIn(B);
     const H = { Authorization: "Bearer " + token };
     for (const p of ["/api/filters/labels", "/api/label-albums?label=Parlophone", "/api/labels-scan-status", "/api/labels-scan-log", "/api/settings/labels",
-      "/api/settings/label-folder-depth", "/api/settings/fanart-key", "/api/settings/discogs-token", "/api/smart-picks", "/api/similar?artist=Artist%20A"]) {
+      "/api/settings/label-folder-depth", "/api/settings/fanart-key", "/api/settings/discogs-token", "/api/smart-picks"]) {
       const r = await fetch(B + p, { headers: H });
       assert.deepEqual([r.status, r.headers.get("x-mandarin-answered")], [200, "C#"], p);
     }
@@ -261,7 +261,7 @@ test("v0.8.20: record labels, release days and the taste work answered by C#", {
   } finally { await srv.stop(); }
 });
 
-test("v0.8.21: write-ups, Pitchfork, the Qobuz link, the share card's settings and playlist sharing answered by C#", { skip, timeout: 60000 }, async () => {
+test("v0.8.21: write-ups, Pitchfork and playlist sharing answered by C#", { skip, timeout: 60000 }, async () => {
   const lib = makeLibrary();
   const port = ports.port(), B = "http://127.0.0.1:" + port;
   // Every source a closed port on loopback: asked, and failing at once.
@@ -275,7 +275,7 @@ test("v0.8.21: write-ups, Pitchfork, the Qobuz link, the share card's settings a
     for (let i = 0; i < 150; i++) { if ((await (await fetch(B + "/api/status", { headers: H })).json()).index_count >= 3) break; await new Promise(r => setTimeout(r, 100)); }
     for (const p of ["/api/album/extras?fast=1&title=Album%20One&artist=Artist%20A", "/api/album/extras?title=Album%20One&artist=Artist%20A", "/api/artist-bio?artist=Artist%20A",
       "/api/pitchfork/review?url=" + encodeURIComponent("https://pitchfork.com/reviews/albums/x/") + "&album=Album%20One",
-      "/api/settings/share-links", "/api/qobuz-link?album=Album%20One&artist=Artist%20A", "/api/search/external?q=album&parts=pitchfork"]) {
+      "/api/search/external?q=album&parts=pitchfork"]) {
       const r = await fetch(B + p, { headers: H });
       assert.deepEqual([r.status, r.headers.get("x-mandarin-answered")], [200, "C#"], p);
     }
@@ -286,8 +286,6 @@ test("v0.8.21: write-ups, Pitchfork, the Qobuz link, the share card's settings a
     }
     let r = await fetch(B + "/api/search/external?q=album", { headers: H });
     assert.equal(r.headers.get("x-mandarin-answered"), "C#", "the search's services: C#'s too since v0.8.47");
-    r = await fetch(B + "/api/settings/share-links", { method: "POST", headers: J, body: JSON.stringify({ card_review: false }) });
-    assert.deepEqual([r.status, r.headers.get("x-mandarin-answered"), (await r.json()).card], [200, "C#", { review: false }], "the share card's settings, kept by C#");
     r = await fetch(B + "/api/share/encode", { method: "POST", headers: J, body: JSON.stringify({ name: "Mine", tracks: [{ title: "Song 1", artist: "Artist A", album: "Album One" }] }) });
     assert.deepEqual([r.status, r.headers.get("x-mandarin-answered")], [200, "C#"], "a playlist shared as text, by C#");
     const { blob } = await r.json();

@@ -362,7 +362,7 @@ internal fun AlbumScreen(offset: Long, zoneId: String, lit: String, client: () -
             }
             // Its editor (item 74), over the page; the page read again, and the walls told, once it changed the album.
             // Its Share card (item 75), centred above the mini player and the row, as the page keeps room for them.
-            if (sharing) album?.let { ShareSheet(it.album.title, it.album.subtitle, it.album.imageKey, zone, 144.dp, client) { sharing = false } }
+            if (sharing) album?.let { ShareSheet(it.album.title, it.album.subtitle, it.album.imageKey, 144.dp, client) { sharing = false } }
             if (editing) album?.let { AlbumEditSheet(offset, it.album.title, it.album.subtitle, client, onClose = { editing = false }, onChanged = { loads++ }) }
         }
     }

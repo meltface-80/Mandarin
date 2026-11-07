@@ -23,10 +23,10 @@ object SettingsLists {
 
     /** Setup's list, the app's Downloads before Away from home, as the page puts it in the app. */
     val SETUP = listOf(SettingsRow("smartpicks", "Smart Picks"), SettingsRow("labels", "Record labels"), SettingsRow("homescreen", "Home Screen"),
-        SettingsRow("ui", "UI Settings"), SettingsRow("display", "Wall Display"), SettingsRow("shelfset", "Shelf"), SettingsRow("sharecard", "Share Card"),
+        SettingsRow("ui", "UI Settings"), SettingsRow("display", "Wall Display"), SettingsRow("shelfset", "Shelf"),
         SettingsRow("downloads", "Downloads"), SettingsRow("away", "Away from home"), SettingsRow("metadata", "API Keys"))
 
-    const val SETUP_DESC = "Smart Picks, record labels, the Home screen, the look, the wall display and Shelf, sharing, away from home, API keys"
+    const val SETUP_DESC = "Smart Picks, record labels, the Home screen, the look, the wall display and Shelf, away from home, API keys"
     const val REPO = "https://github.com/meltface-80/Mandarin"
 
     /**
