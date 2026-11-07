@@ -4,7 +4,8 @@
  * Mandarin Bridge for Linux, installed beside it, where the server used to open the computer's sound cards itself
  * (ALSA) and compete with the Bridge for the DAC. A sound card the server had in its register from before is
  * forgotten at its next look round, with a word in its log, and none is listed: Audio Devices says how a DAC there is
- * played (the page's and the app's words, AudioDevicesTest).
+ * played (the page's and the app's words, AudioDevicesTest). A look round over at once is not kept as under way: the
+ * next one looks again (item 329).
  */
 const ports = require("./ports");
 const test = require("node:test");
@@ -22,13 +23,17 @@ test("a Linux server's own sound cards: none listed, one kept from before forgot
   const ctx = await srv.start();
   t.after(() => srv.stop());
   const auth = { Authorization: "Bearer " + await signIn(B) };
+  const rescan = async () => (await fetch(B + "/api/audio-devices/rescan", { method: "POST", headers: auth })).json();
+  // The server's first look round, as it makes one soon after it starts, done before the card is in its register: the
+  // next must look again (item 329: a round over at once, as a Linux server's is with no sound card of its own to
+  // list, was kept as under way, and no round ran after it).
+  assert.equal((await rescan()).ok, true);
   // The DAC the server played itself before: in its register, switched on.
   const now = Date.now();
   ctx.db.raw.prepare("INSERT INTO audio_devices (id, kind, family, network_name, manufacturer, model, location, caps, settings, first_seen, last_seen) VALUES (?, 'local', 'local', 'Chord Mojo', 'Chord Electronics Ltd', 'USB audio', 'alsa:plughw:CARD=Mojo,DEV=0', '{}', '{\"enabled\":true}', ?, ?)")
     .run("LOCAL_0123456789ab", now, now);
-  // A look round already under way when it was put in (the server's first, on a busy machine) is joined, not begun
-  // again, and answers without it: asked again until a round has seen it.
-  const rescan = async () => (await fetch(B + "/api/audio-devices/rescan", { method: "POST", headers: auth })).json();
+  // A look round under way when it was put in (the network still searched) is joined, not begun again, and answers
+  // without it: asked again until a round has seen it.
   let r = await rescan();
   for (let i = 0; i < 10 && r.ok && r.devices.some(d => d.id === "LOCAL_0123456789ab"); i++) r = await rescan();
   assert.equal(r.ok, true);
