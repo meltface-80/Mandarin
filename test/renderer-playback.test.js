@@ -523,9 +523,12 @@ test("a renderer is a zone", { skip, timeout: 150000 }, async (t) => {
       try {
         await api("control", { zone_or_output_id: DAC, command: "next" });
         await until(() => ctx.logs.slice(skip).some(l => /1 track\(s\) no longer made: skipped from/.test(l)), 15000);
+        // Said as stopped on purpose, never as a failure (item 332): the stream's own line names why.
+        await until(() => ctx.logs.slice(skip).some(l => /\[stream\] .*01 Song 1\.flac: no longer made: skipped from$/.test(l)), 15000);
         await until(() => ctx.logs.slice(skip).some(l => /02 Song 2\.flac: DSD64 from PCM.*made as it played/.test(l)), 30000);
       } finally { dac.release(); }
       assert.ok(!ctx.logs.slice(skip).some(l => /01 Song 1\.flac: DSD64 from PCM.*made as it played/.test(l)), "Song 1 not made");
+      assert.deepEqual(ctx.logs.slice(before).filter(l => /transcode failed/.test(l)), [], "a making stopped on purpose is no failure (item 332)");
       await api("control", { zone_or_output_id: DAC, command: "stop" });
       await api("audio-devices/" + DAC, { output: { dsd_out: "off" }, enabled: false }, "PATCH");
     });

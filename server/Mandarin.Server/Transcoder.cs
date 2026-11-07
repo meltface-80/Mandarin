@@ -248,7 +248,9 @@ internal static partial class Transcoder
         }
         job.Done = true;
         before?.Invoke();
-        if (job.Failed) Server.Log($"[stream] transcode failed for {src}: {err.ToString().Trim()[..Math.Min(300, err.ToString().Trim().Length)]}");
+        // A making stopped on purpose (another play, skipped from: items 246, 264) said as that, never as a failure (item 332).
+        if (job.Failed) Server.Log(Upsample.MadeAsPlayed.StoppedOnPurpose(err.ToString().Trim()) is { } stopped ? $"[stream] {src}: {stopped}"
+            : $"[stream] transcode failed for {src}: {err.ToString().Trim()[..Math.Min(300, err.ToString().Trim().Length)]}");
         Jobs.TryRemove(job.Key, out _);
         job.Wake();
         job.Finished.TrySetResult();
