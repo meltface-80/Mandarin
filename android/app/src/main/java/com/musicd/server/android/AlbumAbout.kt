@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import com.musicd.server.client.Album
+import com.musicd.server.client.ArtistAct
 import com.musicd.server.client.AlbumSummary
 import com.musicd.server.client.Contract
 import com.musicd.server.client.LibraryClient
@@ -62,7 +63,7 @@ internal class AlbumMore(val lead: String, val by: List<AlbumSummary>, val appea
 internal fun loadMore(lib: LibraryClient, a: Album): AlbumMore? {
     val lead = (a.artists.firstOrNull() ?: a.album.subtitle).trim()
     if (lead.isEmpty()) return null
-    val own = runCatching { lib.artistAlbums(lead) }.getOrNull()
+    val own = runCatching { lib.artistAlbums(ArtistAct.of(lead, a.album.artistId)) }.getOrNull()   // its own act's, where acts share the name (item 330)
     val byTitle = compareBy<AlbumSummary> { it.title }
     val by = own?.primary?.filter { it.offset != a.album.offset }?.sortedWith(byTitle).orEmpty()
     val appears = own?.featured?.filter { it.offset != a.album.offset }?.sortedWith(byTitle).orEmpty()

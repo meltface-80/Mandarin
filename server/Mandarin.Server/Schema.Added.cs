@@ -5,6 +5,10 @@
 //   - devices.joined (bug list item 172): a device made without a password,
 //     while the sign-in was off (Auth.Open.cs). It is good on the home network
 //     and the tailnet only; a device made by signing in is good everywhere.
+//   - tracks.mb_artist, albums.mb_artist and albums.artist_id (item 330): the
+//     MusicBrainz id of an album's artist, from its files' tags or its match,
+//     and the library's artist it is (ArtistRows.cs, its own table), so two acts
+//     of the same name are two artists. Every track is read once more for it.
 using Microsoft.Data.Sqlite;
 
 namespace Mandarin.Server;
@@ -14,6 +18,7 @@ internal static partial class Schema
     private static readonly (string Table, string Column, string Type)[] AddedLater =
     [
         ("devices", "joined", "INTEGER NOT NULL DEFAULT 0"),
+        ("tracks", "mb_artist", "TEXT"), ("albums", "mb_artist", "TEXT"), ("albums", "artist_id", "INTEGER"),
     ];
 
     // Every column added after its table first shipped.
@@ -32,6 +37,9 @@ internal static partial class Schema
     {
         // The classical fields (item 48): every track read once more for them at the next scan.
         if (table == "tracks" && col == "composer") Exec(c, "UPDATE tracks SET tags_v = 1 WHERE tags_v > 1");
+        // The artist's MusicBrainz id (item 330): every track read once more for it, and the artists' own table.
+        if (table == "tracks" && col == "mb_artist") Exec(c, "UPDATE tracks SET tags_v = 1 WHERE tags_v > 1");
+        if (table == "albums" && col == "artist_id") ArtistRows.Ensure(c);
         // With no account, no device was made by signing in: every one there is was made without a password (item 161).
         if (table == "devices" && col == "joined" && Scalar(c, "SELECT 1 FROM account") == null) Exec(c, "UPDATE devices SET joined = 1");
     }

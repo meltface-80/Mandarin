@@ -319,7 +319,8 @@ async function fetchAlbumMore(album, lead) {
   resetMoreSections.abort = ctl;
   const opt = ctl ? { signal: ctl.signal } : {};
   const byTitle = (a, b) => String(a.title || "").localeCompare(String(b.title || ""));
-  const library = fetch("/api/artist-albums?" + new URLSearchParams({ artist: lead }), opt)
+  // Its own act's albums where acts share the name (item 330).
+  const library = fetch("/api/artist-albums?" + new URLSearchParams(album.artist_id != null ? { artist: lead, artist_id: String(album.artist_id) } : { artist: lead }), opt)
     .then(json).then((j) => {
       if (!j || !mine()) return;
       // Not the album being looked at — by its id, so another pressing of

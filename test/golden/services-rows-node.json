@@ -94,7 +94,11 @@
     "mb_album": null,
     "mb_album:type": "null",
     "mb_group": null,
-    "mb_group:type": "null"
+    "mb_group:type": "null",
+    "mb_artist": null,
+    "artist_id": null,
+    "mb_artist:type": "null",
+    "artist_id:type": "null"
    },
    "tracks": [
     {
@@ -177,7 +181,9 @@
      "movement_no": null,
      "movement_no:type": "null",
      "performers": null,
-     "performers:type": "null"
+     "performers:type": "null",
+     "mb_artist": null,
+     "mb_artist:type": "null"
     },
     {
      "path": "qobuz://track/5002",
@@ -259,7 +265,9 @@
      "movement_no": null,
      "movement_no:type": "null",
      "performers": null,
-     "performers:type": "null"
+     "performers:type": "null",
+     "mb_artist": null,
+     "mb_artist:type": "null"
     }
    ],
    "cover": "ffd8ffd9",
@@ -320,7 +328,11 @@
     "mb_album": null,
     "mb_album:type": "null",
     "mb_group": null,
-    "mb_group:type": "null"
+    "mb_group:type": "null",
+    "mb_artist": null,
+    "artist_id": null,
+    "mb_artist:type": "null",
+    "artist_id:type": "null"
    },
    "tracks": [
     {
@@ -403,7 +415,9 @@
      "movement_no": null,
      "movement_no:type": "null",
      "performers": null,
-     "performers:type": "null"
+     "performers:type": "null",
+     "mb_artist": null,
+     "mb_artist:type": "null"
     }
    ],
    "cover": "ffd8ffd9",
@@ -464,7 +478,11 @@
     "mb_album": null,
     "mb_album:type": "null",
     "mb_group": null,
-    "mb_group:type": "null"
+    "mb_group:type": "null",
+    "mb_artist": null,
+    "artist_id": null,
+    "mb_artist:type": "null",
+    "artist_id:type": "null"
    },
    "tracks": [
     {
@@ -547,7 +565,9 @@
      "movement_no": null,
      "movement_no:type": "null",
      "performers": null,
-     "performers:type": "null"
+     "performers:type": "null",
+     "mb_artist": null,
+     "mb_artist:type": "null"
     }
    ],
    "cover": "ffd8ffd9",
@@ -608,7 +628,11 @@
     "mb_album": null,
     "mb_album:type": "null",
     "mb_group": null,
-    "mb_group:type": "null"
+    "mb_group:type": "null",
+    "mb_artist": null,
+    "artist_id": null,
+    "mb_artist:type": "null",
+    "artist_id:type": "null"
    },
    "tracks": [
     {
@@ -691,7 +715,9 @@
      "movement_no": null,
      "movement_no:type": "null",
      "performers": null,
-     "performers:type": "null"
+     "performers:type": "null",
+     "mb_artist": null,
+     "mb_artist:type": "null"
     },
     {
      "path": "qobuz://track/5102",
@@ -773,7 +799,9 @@
      "movement_no": null,
      "movement_no:type": "null",
      "performers": null,
-     "performers:type": "null"
+     "performers:type": "null",
+     "mb_artist": null,
+     "mb_artist:type": "null"
     }
    ],
    "cover": "ffd8ffd9",
@@ -834,7 +862,11 @@
     "mb_album": null,
     "mb_album:type": "null",
     "mb_group": null,
-    "mb_group:type": "null"
+    "mb_group:type": "null",
+    "mb_artist": null,
+    "artist_id": null,
+    "mb_artist:type": "null",
+    "artist_id:type": "null"
    },
    "tracks": [
     {
@@ -917,7 +949,9 @@
      "movement_no": null,
      "movement_no:type": "null",
      "performers": null,
-     "performers:type": "null"
+     "performers:type": "null",
+     "mb_artist": null,
+     "mb_artist:type": "null"
     }
    ],
    "cover": "ffd8ffd9",
@@ -978,7 +1012,11 @@
     "mb_album": null,
     "mb_album:type": "null",
     "mb_group": null,
-    "mb_group:type": "null"
+    "mb_group:type": "null",
+    "mb_artist": null,
+    "artist_id": null,
+    "mb_artist:type": "null",
+    "artist_id:type": "null"
    },
    "tracks": [
     {
@@ -1061,7 +1099,9 @@
      "movement_no": null,
      "movement_no:type": "null",
      "performers": null,
-     "performers:type": "null"
+     "performers:type": "null",
+     "mb_artist": null,
+     "mb_artist:type": "null"
     },
     {
      "path": "tidal://track/8002",
@@ -1143,7 +1183,9 @@
      "movement_no": null,
      "movement_no:type": "null",
      "performers": null,
-     "performers:type": "null"
+     "performers:type": "null",
+     "mb_artist": null,
+     "mb_artist:type": "null"
     }
    ],
    "cover": "ffd8ffd9",
@@ -1204,7 +1246,11 @@
     "mb_album": null,
     "mb_album:type": "null",
     "mb_group": null,
-    "mb_group:type": "null"
+    "mb_group:type": "null",
+    "mb_artist": null,
+    "artist_id": null,
+    "mb_artist:type": "null",
+    "artist_id:type": "null"
    },
    "tracks": [
     {
@@ -1287,7 +1333,9 @@
      "movement_no": null,
      "movement_no:type": "null",
      "performers": null,
-     "performers:type": "null"
+     "performers:type": "null",
+     "mb_artist": null,
+     "mb_artist:type": "null"
     }
    ],
    "cover": "ffd8ffd9",
@@ -1398,7 +1446,11 @@
     "mb_album": null,
     "mb_album:type": "null",
     "mb_group": null,
-    "mb_group:type": "null"
+    "mb_group:type": "null",
+    "mb_artist": null,
+    "artist_id": null,
+    "mb_artist:type": "null",
+    "artist_id:type": "null"
    },
    "tracks": [
     {
@@ -1481,7 +1533,9 @@
      "movement_no": null,
      "movement_no:type": "null",
      "performers": null,
-     "performers:type": "null"
+     "performers:type": "null",
+     "mb_artist": null,
+     "mb_artist:type": "null"
     },
     {
      "path": "qobuz://track/5102",
@@ -1563,7 +1617,9 @@
      "movement_no": null,
      "movement_no:type": "null",
      "performers": null,
-     "performers:type": "null"
+     "performers:type": "null",
+     "mb_artist": null,
+     "mb_artist:type": "null"
     }
    ],
    "kept": [
@@ -1635,7 +1691,11 @@
     "mb_album": null,
     "mb_album:type": "null",
     "mb_group": null,
-    "mb_group:type": "null"
+    "mb_group:type": "null",
+    "mb_artist": null,
+    "artist_id": null,
+    "mb_artist:type": "null",
+    "artist_id:type": "null"
    },
    "tracks": [
     {
@@ -1718,7 +1778,9 @@
      "movement_no": null,
      "movement_no:type": "null",
      "performers": null,
-     "performers:type": "null"
+     "performers:type": "null",
+     "mb_artist": null,
+     "mb_artist:type": "null"
     }
    ],
    "kept": [

@@ -40,6 +40,7 @@
      "album_ids",
      "album_matches",
      "albums",
+     "artists",
      "audio_devices",
      "cache",
      "devices",
@@ -80,7 +81,7 @@
   "the first scan: table albums": {
    "n": 23,
    "per": 32,
-   "sums": "8330198a"
+   "sums": "89b30375"
   },
   "the first scan: table audio_devices": {
    "n": 0,
@@ -335,7 +336,7 @@
   "the first scan: table tracks": {
    "n": 26,
    "per": 32,
-   "sums": "8c580fb6"
+   "sums": "3a11ebd0"
   },
   "nothing changed: the result, what was said, the state": {
    "n": 3,
@@ -377,6 +378,7 @@
      "album_ids",
      "album_matches",
      "albums",
+     "artists",
      "audio_devices",
      "cache",
      "devices",
@@ -457,7 +459,7 @@
   "nothing changed: table albums": {
    "n": 23,
    "per": 32,
-   "sums": "8330198a"
+   "sums": "89b30375"
   },
   "nothing changed: table audio_devices": {
    "n": 0,
@@ -749,7 +751,7 @@
   "nothing changed: table tracks": {
    "n": 26,
    "per": 32,
-   "sums": "8c580fb6"
+   "sums": "3a11ebd0"
   },
   "files changed, renamed, gone and new: the result, what was said, the state": {
    "n": 3,
@@ -791,6 +793,7 @@
      "album_ids",
      "album_matches",
      "albums",
+     "artists",
      "audio_devices",
      "cache",
      "devices",
@@ -878,7 +881,7 @@
   "files changed, renamed, gone and new: table albums": {
    "n": 22,
    "per": 32,
-   "sums": "ea5159f3"
+   "sums": "7840844b"
   },
   "files changed, renamed, gone and new: table audio_devices": {
    "n": 0,
@@ -1157,7 +1160,7 @@
   "files changed, renamed, gone and new: table tracks": {
    "n": 26,
    "per": 32,
-   "sums": "d6a7452c"
+   "sums": "c493d2ac"
   },
   "most of a folder gone at once: the result, what was said, the state": {
    "n": 3,
@@ -1208,6 +1211,7 @@
      "album_ids",
      "album_matches",
      "albums",
+     "artists",
      "audio_devices",
      "cache",
      "devices",
@@ -1295,7 +1299,7 @@
   "most of a folder gone at once: table albums": {
    "n": 22,
    "per": 32,
-   "sums": "ea5159f3"
+   "sums": "7840844b"
   },
   "most of a folder gone at once: table audio_devices": {
    "n": 0,
@@ -1574,7 +1578,7 @@
   "most of a folder gone at once: table tracks": {
    "n": 26,
    "per": 32,
-   "sums": "d6a7452c"
+   "sums": "c493d2ac"
   },
   "a drive not mounted: the result, what was said, the state": {
    "n": 3,
@@ -1633,6 +1637,7 @@
      "album_ids",
      "album_matches",
      "albums",
+     "artists",
      "audio_devices",
      "cache",
      "devices",
@@ -1720,7 +1725,7 @@
   "a drive not mounted: table albums": {
    "n": 22,
    "per": 32,
-   "sums": "ea5159f3"
+   "sums": "7840844b"
   },
   "a drive not mounted: table audio_devices": {
    "n": 0,
@@ -1999,7 +2004,7 @@
   "a drive not mounted: table tracks": {
    "n": 26,
    "per": 32,
-   "sums": "d6a7452c"
+   "sums": "c493d2ac"
   },
   "a folder that can't be read: the result, what was said, the state": {
    "n": 3,
@@ -2058,6 +2063,7 @@
      "album_ids",
      "album_matches",
      "albums",
+     "artists",
      "audio_devices",
      "cache",
      "devices",
@@ -2145,7 +2151,7 @@
   "a folder that can't be read: table albums": {
    "n": 22,
    "per": 32,
-   "sums": "ea5159f3"
+   "sums": "7840844b"
   },
   "a folder that can't be read: table audio_devices": {
    "n": 0,
@@ -2424,7 +2430,7 @@
   "a folder that can't be read: table tracks": {
    "n": 26,
    "per": 32,
-   "sums": "d6a7452c"
+   "sums": "c493d2ac"
   },
   "a forced rescan: the result, what was said, the state": {
    "n": 3,
@@ -2475,6 +2481,7 @@
      "album_ids",
      "album_matches",
      "albums",
+     "artists",
      "audio_devices",
      "cache",
      "devices",
@@ -2562,7 +2569,7 @@
   "a forced rescan: table albums": {
    "n": 22,
    "per": 32,
-   "sums": "ea5159f3"
+   "sums": "7840844b"
   },
   "a forced rescan: table audio_devices": {
    "n": 0,
@@ -2841,7 +2848,7 @@
   "a forced rescan: table tracks": {
    "n": 26,
    "per": 32,
-   "sums": "d6a7452c"
+   "sums": "c493d2ac"
   },
   "the regroup: the result, what was said, the state": {
    "n": 3,
@@ -2883,6 +2890,7 @@
      "album_ids",
      "album_matches",
      "albums",
+     "artists",
      "audio_devices",
      "cache",
      "devices",
@@ -2970,7 +2978,7 @@
   "the regroup: table albums": {
    "n": 22,
    "per": 32,
-   "sums": "ea5159f3"
+   "sums": "7840844b"
   },
   "the regroup: table audio_devices": {
    "n": 0,
@@ -3249,7 +3257,7 @@
   "the regroup: table tracks": {
    "n": 26,
    "per": 32,
-   "sums": "d6a7452c"
+   "sums": "c493d2ac"
   },
   "no music folder: the result, what was said, the state": {
    "n": 3,
@@ -3282,6 +3290,7 @@
      "album_ids",
      "album_matches",
      "albums",
+     "artists",
      "audio_devices",
      "cache",
      "devices",
@@ -3369,7 +3378,7 @@
   "no music folder: table albums": {
    "n": 22,
    "per": 32,
-   "sums": "ea5159f3"
+   "sums": "7840844b"
   },
   "no music folder: table audio_devices": {
    "n": 0,
@@ -3648,7 +3657,1888 @@
   "no music folder: table tracks": {
    "n": 26,
    "per": 32,
-   "sums": "d6a7452c"
+   "sums": "c493d2ac"
+  },
+  "the first scan: table artists": {
+   "n": 17,
+   "all": [
+    [
+     1,
+     "integer",
+     null,
+     "null",
+     "Ünïcode 😀",
+     "text",
+     "unicode",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     2,
+     "integer",
+     null,
+     "null",
+     "Yes",
+     "text",
+     "yes",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     3,
+     "integer",
+     null,
+     "null",
+     "Wave",
+     "text",
+     "wave",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     4,
+     "integer",
+     null,
+     "null",
+     "The Beatles",
+     "text",
+     "beatles",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     5,
+     "integer",
+     null,
+     "null",
+     "Unknown Artist",
+     "text",
+     "unknown artist",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     6,
+     "integer",
+     null,
+     "null",
+     "M",
+     "text",
+     "m",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     7,
+     "integer",
+     null,
+     "null",
+     "Mp4",
+     "text",
+     "mp4",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     8,
+     "integer",
+     null,
+     "null",
+     "Loop",
+     "text",
+     "loop",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     9,
+     "integer",
+     null,
+     "null",
+     "ΣΩΣ",
+     "text",
+     "σως",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     10,
+     "integer",
+     null,
+     "null",
+     "Various Artists",
+     "text",
+     "various artists",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     11,
+     "integer",
+     null,
+     "null",
+     "Björk",
+     "text",
+     "bjork",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     12,
+     "integer",
+     null,
+     "null",
+     "Artist B",
+     "text",
+     "artist b",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     13,
+     "integer",
+     null,
+     "null",
+     "Artist A",
+     "text",
+     "artist a",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     14,
+     "integer",
+     null,
+     "null",
+     "Art",
+     "text",
+     "art",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     15,
+     "integer",
+     null,
+     "null",
+     "X",
+     "text",
+     "x",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     16,
+     "integer",
+     null,
+     "null",
+     "A Tribe Called Quest",
+     "text",
+     "a tribe called quest",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     17,
+     "integer",
+     null,
+     "null",
+     "808 State",
+     "text",
+     "808 state",
+     "text",
+     null,
+     "null"
+    ]
+   ]
+  },
+  "nothing changed: table artists": {
+   "n": 17,
+   "all": [
+    [
+     1,
+     "integer",
+     null,
+     "null",
+     "Ünïcode 😀",
+     "text",
+     "unicode",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     2,
+     "integer",
+     null,
+     "null",
+     "Yes",
+     "text",
+     "yes",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     3,
+     "integer",
+     null,
+     "null",
+     "Wave",
+     "text",
+     "wave",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     4,
+     "integer",
+     null,
+     "null",
+     "The Beatles",
+     "text",
+     "beatles",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     5,
+     "integer",
+     null,
+     "null",
+     "Unknown Artist",
+     "text",
+     "unknown artist",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     6,
+     "integer",
+     null,
+     "null",
+     "M",
+     "text",
+     "m",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     7,
+     "integer",
+     null,
+     "null",
+     "Mp4",
+     "text",
+     "mp4",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     8,
+     "integer",
+     null,
+     "null",
+     "Loop",
+     "text",
+     "loop",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     9,
+     "integer",
+     null,
+     "null",
+     "ΣΩΣ",
+     "text",
+     "σως",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     10,
+     "integer",
+     null,
+     "null",
+     "Various Artists",
+     "text",
+     "various artists",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     11,
+     "integer",
+     null,
+     "null",
+     "Björk",
+     "text",
+     "bjork",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     12,
+     "integer",
+     null,
+     "null",
+     "Artist B",
+     "text",
+     "artist b",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     13,
+     "integer",
+     null,
+     "null",
+     "Artist A",
+     "text",
+     "artist a",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     14,
+     "integer",
+     null,
+     "null",
+     "Art",
+     "text",
+     "art",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     15,
+     "integer",
+     null,
+     "null",
+     "X",
+     "text",
+     "x",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     16,
+     "integer",
+     null,
+     "null",
+     "A Tribe Called Quest",
+     "text",
+     "a tribe called quest",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     17,
+     "integer",
+     null,
+     "null",
+     "808 State",
+     "text",
+     "808 state",
+     "text",
+     null,
+     "null"
+    ]
+   ]
+  },
+  "files changed, renamed, gone and new: table artists": {
+   "n": 17,
+   "all": [
+    [
+     1,
+     "integer",
+     null,
+     "null",
+     "Ünïcode 😀",
+     "text",
+     "unicode",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     2,
+     "integer",
+     null,
+     "null",
+     "Yes",
+     "text",
+     "yes",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     3,
+     "integer",
+     null,
+     "null",
+     "Wave",
+     "text",
+     "wave",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     4,
+     "integer",
+     null,
+     "null",
+     "The Beatles",
+     "text",
+     "beatles",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     5,
+     "integer",
+     null,
+     "null",
+     "Unknown Artist",
+     "text",
+     "unknown artist",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     6,
+     "integer",
+     null,
+     "null",
+     "M",
+     "text",
+     "m",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     7,
+     "integer",
+     null,
+     "null",
+     "Mp4",
+     "text",
+     "mp4",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     8,
+     "integer",
+     null,
+     "null",
+     "Loop",
+     "text",
+     "loop",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     9,
+     "integer",
+     null,
+     "null",
+     "ΣΩΣ",
+     "text",
+     "σως",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     10,
+     "integer",
+     null,
+     "null",
+     "Various Artists",
+     "text",
+     "various artists",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     11,
+     "integer",
+     null,
+     "null",
+     "Björk",
+     "text",
+     "bjork",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     12,
+     "integer",
+     null,
+     "null",
+     "Artist B",
+     "text",
+     "artist b",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     13,
+     "integer",
+     null,
+     "null",
+     "Artist A",
+     "text",
+     "artist a",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     14,
+     "integer",
+     null,
+     "null",
+     "Art",
+     "text",
+     "art",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     15,
+     "integer",
+     null,
+     "null",
+     "X",
+     "text",
+     "x",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     16,
+     "integer",
+     null,
+     "null",
+     "A Tribe Called Quest",
+     "text",
+     "a tribe called quest",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     17,
+     "integer",
+     null,
+     "null",
+     "808 State",
+     "text",
+     "808 state",
+     "text",
+     null,
+     "null"
+    ]
+   ]
+  },
+  "most of a folder gone at once: table artists": {
+   "n": 17,
+   "all": [
+    [
+     1,
+     "integer",
+     null,
+     "null",
+     "Ünïcode 😀",
+     "text",
+     "unicode",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     2,
+     "integer",
+     null,
+     "null",
+     "Yes",
+     "text",
+     "yes",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     3,
+     "integer",
+     null,
+     "null",
+     "Wave",
+     "text",
+     "wave",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     4,
+     "integer",
+     null,
+     "null",
+     "The Beatles",
+     "text",
+     "beatles",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     5,
+     "integer",
+     null,
+     "null",
+     "Unknown Artist",
+     "text",
+     "unknown artist",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     6,
+     "integer",
+     null,
+     "null",
+     "M",
+     "text",
+     "m",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     7,
+     "integer",
+     null,
+     "null",
+     "Mp4",
+     "text",
+     "mp4",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     8,
+     "integer",
+     null,
+     "null",
+     "Loop",
+     "text",
+     "loop",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     9,
+     "integer",
+     null,
+     "null",
+     "ΣΩΣ",
+     "text",
+     "σως",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     10,
+     "integer",
+     null,
+     "null",
+     "Various Artists",
+     "text",
+     "various artists",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     11,
+     "integer",
+     null,
+     "null",
+     "Björk",
+     "text",
+     "bjork",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     12,
+     "integer",
+     null,
+     "null",
+     "Artist B",
+     "text",
+     "artist b",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     13,
+     "integer",
+     null,
+     "null",
+     "Artist A",
+     "text",
+     "artist a",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     14,
+     "integer",
+     null,
+     "null",
+     "Art",
+     "text",
+     "art",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     15,
+     "integer",
+     null,
+     "null",
+     "X",
+     "text",
+     "x",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     16,
+     "integer",
+     null,
+     "null",
+     "A Tribe Called Quest",
+     "text",
+     "a tribe called quest",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     17,
+     "integer",
+     null,
+     "null",
+     "808 State",
+     "text",
+     "808 state",
+     "text",
+     null,
+     "null"
+    ]
+   ]
+  },
+  "a drive not mounted: table artists": {
+   "n": 17,
+   "all": [
+    [
+     1,
+     "integer",
+     null,
+     "null",
+     "Ünïcode 😀",
+     "text",
+     "unicode",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     2,
+     "integer",
+     null,
+     "null",
+     "Yes",
+     "text",
+     "yes",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     3,
+     "integer",
+     null,
+     "null",
+     "Wave",
+     "text",
+     "wave",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     4,
+     "integer",
+     null,
+     "null",
+     "The Beatles",
+     "text",
+     "beatles",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     5,
+     "integer",
+     null,
+     "null",
+     "Unknown Artist",
+     "text",
+     "unknown artist",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     6,
+     "integer",
+     null,
+     "null",
+     "M",
+     "text",
+     "m",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     7,
+     "integer",
+     null,
+     "null",
+     "Mp4",
+     "text",
+     "mp4",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     8,
+     "integer",
+     null,
+     "null",
+     "Loop",
+     "text",
+     "loop",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     9,
+     "integer",
+     null,
+     "null",
+     "ΣΩΣ",
+     "text",
+     "σως",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     10,
+     "integer",
+     null,
+     "null",
+     "Various Artists",
+     "text",
+     "various artists",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     11,
+     "integer",
+     null,
+     "null",
+     "Björk",
+     "text",
+     "bjork",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     12,
+     "integer",
+     null,
+     "null",
+     "Artist B",
+     "text",
+     "artist b",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     13,
+     "integer",
+     null,
+     "null",
+     "Artist A",
+     "text",
+     "artist a",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     14,
+     "integer",
+     null,
+     "null",
+     "Art",
+     "text",
+     "art",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     15,
+     "integer",
+     null,
+     "null",
+     "X",
+     "text",
+     "x",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     16,
+     "integer",
+     null,
+     "null",
+     "A Tribe Called Quest",
+     "text",
+     "a tribe called quest",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     17,
+     "integer",
+     null,
+     "null",
+     "808 State",
+     "text",
+     "808 state",
+     "text",
+     null,
+     "null"
+    ]
+   ]
+  },
+  "a folder that can't be read: table artists": {
+   "n": 17,
+   "all": [
+    [
+     1,
+     "integer",
+     null,
+     "null",
+     "Ünïcode 😀",
+     "text",
+     "unicode",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     2,
+     "integer",
+     null,
+     "null",
+     "Yes",
+     "text",
+     "yes",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     3,
+     "integer",
+     null,
+     "null",
+     "Wave",
+     "text",
+     "wave",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     4,
+     "integer",
+     null,
+     "null",
+     "The Beatles",
+     "text",
+     "beatles",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     5,
+     "integer",
+     null,
+     "null",
+     "Unknown Artist",
+     "text",
+     "unknown artist",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     6,
+     "integer",
+     null,
+     "null",
+     "M",
+     "text",
+     "m",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     7,
+     "integer",
+     null,
+     "null",
+     "Mp4",
+     "text",
+     "mp4",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     8,
+     "integer",
+     null,
+     "null",
+     "Loop",
+     "text",
+     "loop",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     9,
+     "integer",
+     null,
+     "null",
+     "ΣΩΣ",
+     "text",
+     "σως",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     10,
+     "integer",
+     null,
+     "null",
+     "Various Artists",
+     "text",
+     "various artists",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     11,
+     "integer",
+     null,
+     "null",
+     "Björk",
+     "text",
+     "bjork",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     12,
+     "integer",
+     null,
+     "null",
+     "Artist B",
+     "text",
+     "artist b",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     13,
+     "integer",
+     null,
+     "null",
+     "Artist A",
+     "text",
+     "artist a",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     14,
+     "integer",
+     null,
+     "null",
+     "Art",
+     "text",
+     "art",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     15,
+     "integer",
+     null,
+     "null",
+     "X",
+     "text",
+     "x",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     16,
+     "integer",
+     null,
+     "null",
+     "A Tribe Called Quest",
+     "text",
+     "a tribe called quest",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     17,
+     "integer",
+     null,
+     "null",
+     "808 State",
+     "text",
+     "808 state",
+     "text",
+     null,
+     "null"
+    ]
+   ]
+  },
+  "a forced rescan: table artists": {
+   "n": 17,
+   "all": [
+    [
+     1,
+     "integer",
+     null,
+     "null",
+     "Ünïcode 😀",
+     "text",
+     "unicode",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     2,
+     "integer",
+     null,
+     "null",
+     "Yes",
+     "text",
+     "yes",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     3,
+     "integer",
+     null,
+     "null",
+     "Wave",
+     "text",
+     "wave",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     4,
+     "integer",
+     null,
+     "null",
+     "The Beatles",
+     "text",
+     "beatles",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     5,
+     "integer",
+     null,
+     "null",
+     "Unknown Artist",
+     "text",
+     "unknown artist",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     6,
+     "integer",
+     null,
+     "null",
+     "M",
+     "text",
+     "m",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     7,
+     "integer",
+     null,
+     "null",
+     "Mp4",
+     "text",
+     "mp4",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     8,
+     "integer",
+     null,
+     "null",
+     "Loop",
+     "text",
+     "loop",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     9,
+     "integer",
+     null,
+     "null",
+     "ΣΩΣ",
+     "text",
+     "σως",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     10,
+     "integer",
+     null,
+     "null",
+     "Various Artists",
+     "text",
+     "various artists",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     11,
+     "integer",
+     null,
+     "null",
+     "Björk",
+     "text",
+     "bjork",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     12,
+     "integer",
+     null,
+     "null",
+     "Artist B",
+     "text",
+     "artist b",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     13,
+     "integer",
+     null,
+     "null",
+     "Artist A",
+     "text",
+     "artist a",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     14,
+     "integer",
+     null,
+     "null",
+     "Art",
+     "text",
+     "art",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     15,
+     "integer",
+     null,
+     "null",
+     "X",
+     "text",
+     "x",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     16,
+     "integer",
+     null,
+     "null",
+     "A Tribe Called Quest",
+     "text",
+     "a tribe called quest",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     17,
+     "integer",
+     null,
+     "null",
+     "808 State",
+     "text",
+     "808 state",
+     "text",
+     null,
+     "null"
+    ]
+   ]
+  },
+  "the regroup: table artists": {
+   "n": 17,
+   "all": [
+    [
+     1,
+     "integer",
+     null,
+     "null",
+     "Ünïcode 😀",
+     "text",
+     "unicode",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     2,
+     "integer",
+     null,
+     "null",
+     "Yes",
+     "text",
+     "yes",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     3,
+     "integer",
+     null,
+     "null",
+     "Wave",
+     "text",
+     "wave",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     4,
+     "integer",
+     null,
+     "null",
+     "The Beatles",
+     "text",
+     "beatles",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     5,
+     "integer",
+     null,
+     "null",
+     "Unknown Artist",
+     "text",
+     "unknown artist",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     6,
+     "integer",
+     null,
+     "null",
+     "M",
+     "text",
+     "m",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     7,
+     "integer",
+     null,
+     "null",
+     "Mp4",
+     "text",
+     "mp4",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     8,
+     "integer",
+     null,
+     "null",
+     "Loop",
+     "text",
+     "loop",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     9,
+     "integer",
+     null,
+     "null",
+     "ΣΩΣ",
+     "text",
+     "σως",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     10,
+     "integer",
+     null,
+     "null",
+     "Various Artists",
+     "text",
+     "various artists",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     11,
+     "integer",
+     null,
+     "null",
+     "Björk",
+     "text",
+     "bjork",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     12,
+     "integer",
+     null,
+     "null",
+     "Artist B",
+     "text",
+     "artist b",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     13,
+     "integer",
+     null,
+     "null",
+     "Artist A",
+     "text",
+     "artist a",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     14,
+     "integer",
+     null,
+     "null",
+     "Art",
+     "text",
+     "art",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     15,
+     "integer",
+     null,
+     "null",
+     "X",
+     "text",
+     "x",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     16,
+     "integer",
+     null,
+     "null",
+     "A Tribe Called Quest",
+     "text",
+     "a tribe called quest",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     17,
+     "integer",
+     null,
+     "null",
+     "808 State",
+     "text",
+     "808 state",
+     "text",
+     null,
+     "null"
+    ]
+   ]
+  },
+  "no music folder: table artists": {
+   "n": 17,
+   "all": [
+    [
+     1,
+     "integer",
+     null,
+     "null",
+     "Ünïcode 😀",
+     "text",
+     "unicode",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     2,
+     "integer",
+     null,
+     "null",
+     "Yes",
+     "text",
+     "yes",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     3,
+     "integer",
+     null,
+     "null",
+     "Wave",
+     "text",
+     "wave",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     4,
+     "integer",
+     null,
+     "null",
+     "The Beatles",
+     "text",
+     "beatles",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     5,
+     "integer",
+     null,
+     "null",
+     "Unknown Artist",
+     "text",
+     "unknown artist",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     6,
+     "integer",
+     null,
+     "null",
+     "M",
+     "text",
+     "m",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     7,
+     "integer",
+     null,
+     "null",
+     "Mp4",
+     "text",
+     "mp4",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     8,
+     "integer",
+     null,
+     "null",
+     "Loop",
+     "text",
+     "loop",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     9,
+     "integer",
+     null,
+     "null",
+     "ΣΩΣ",
+     "text",
+     "σως",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     10,
+     "integer",
+     null,
+     "null",
+     "Various Artists",
+     "text",
+     "various artists",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     11,
+     "integer",
+     null,
+     "null",
+     "Björk",
+     "text",
+     "bjork",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     12,
+     "integer",
+     null,
+     "null",
+     "Artist B",
+     "text",
+     "artist b",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     13,
+     "integer",
+     null,
+     "null",
+     "Artist A",
+     "text",
+     "artist a",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     14,
+     "integer",
+     null,
+     "null",
+     "Art",
+     "text",
+     "art",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     15,
+     "integer",
+     null,
+     "null",
+     "X",
+     "text",
+     "x",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     16,
+     "integer",
+     null,
+     "null",
+     "A Tribe Called Quest",
+     "text",
+     "a tribe called quest",
+     "text",
+     null,
+     "null"
+    ],
+    [
+     17,
+     "integer",
+     null,
+     "null",
+     "808 State",
+     "text",
+     "808 state",
+     "text",
+     null,
+     "null"
+    ]
+   ]
   }
  },
  "inputs": {}
