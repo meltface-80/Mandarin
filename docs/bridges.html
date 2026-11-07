@@ -43,16 +43,27 @@
          power on.</p>
     </div>
   </div>
-  <p style="margin-top:16px"><a class="pill solid" href="downloads.html#bridge">⬇ Get Mandarin Bridge v0.2.1</a></p>
+  <p style="margin-top:16px"><a class="pill solid" href="downloads.html#bridge">⬇ Get Mandarin Bridge v0.3.0</a></p>
+
+  <h2>How Mandarin plays it</h2>
+  <p>As Roon plays a RAAT device, over SlimProto: the Bridge finds Mandarin on the network by itself (port 3483), and
+     Mandarin sends it one continuous stream of PCM. Mandarin decodes each track itself, upsampled or processed as the
+     Bridge's <a href="upsampling.html">Output</a> says, and sends the samples alone, one track on into the next in the
+     same stream while they are of one rate and depth: the Bridge only plays what comes, and its DAC is never let go
+     between tracks. Where the next track is of another rate (16/44.1 after 24/96), the next begins a stream of its own,
+     given ahead, and the Bridge gives its DAC half a second of silence at the new rate first, so it settles without a
+     click. DSD goes as its file, natively or as DoP. Mandarin follows the track heard from where the Bridge is in its
+     stream, and tells the Bridge each track as it comes, for its screen and notification.</p>
+  <p>A Bridge that was a UPnP renderer before v0.3.0 keeps the name and settings Mandarin had for it; one whose app is
+     installed again is the device it was.</p>
 
   <h2>Set up on Android (a FiiO R7)</h2>
   <ol class="plain">
     <li>Install Mandarin Bridge from <a href="downloads.html#bridge">Downloads</a>. Installing needs <b>Install unknown
         apps</b> allowed for the browser or file manager you open it with.</li>
-    <li>Open Mandarin Bridge once. It starts the renderer, and keeps it running.</li>
+    <li>Open Mandarin Bridge once. It starts, finds Mandarin on the network, and keeps running.</li>
     <li>Plug the DAC into the USB port. Android asks once whether the app may use it; tick <b>always</b>.</li>
-    <li>Optional, under <b>Keep awake</b>: turn off battery optimisation, and keep <b>Start the renderer when the device
-        starts</b> on.</li>
+    <li>Optional, under <b>Keep awake</b>: turn off battery optimisation, and keep it starting when the device starts.</li>
     <li>In Mandarin, <b>Settings → Audio Devices</b>: the Bridge is listed by its name; switch it on. There is nothing to
         tick: the rates, depths and DSD come from the DAC itself. Pick it as the speaker and play.</li>
   </ol>
@@ -62,12 +73,23 @@
   <h2>Set up on Linux</h2>
   <p>As root, on the computer the DAC is plugged into:</p>
   <div class="codebox"><button class="copy-btn" data-copy>Copy</button>
-<pre>curl -fsSL https://github.com/meltface-80/Mandarin/releases/download/mandarin-bridge-v0.2.1/install.sh | sudo sh</pre>
+<pre>curl -fsSL https://github.com/meltface-80/Mandarin/releases/download/mandarin-bridge-v0.3.0/install.sh | sudo sh</pre>
 </div>
   <p>It installs the Bridge and the audio engine, ffmpeg where it isn't there, and a service that starts it at boot.
      Then switch it on in Mandarin's <b>Settings → Audio Devices</b>. Its page,
      <code>http://&lt;the computer&gt;:49494/</code>, shows the DAC it plays to (and a choice where more than one is
-     plugged in), what plays and how the DAC is fed, its name on the network, and how DSD goes.</p>
+     plugged in), what plays and how the DAC is fed, its name on the network, and how DSD goes. On the computer
+     Mandarin runs on, it is how a USB DAC there is played: the server opens no sound device of its own on Linux.</p>
+  <p id="native-dsd"><b>Native DSD, and the kernel.</b> On Linux, native DSD is the kernel's to offer: its USB audio
+     driver lists a DAC's native DSD only where its own list knows the DAC's maker, and any other DAC is given DSD as
+     DoP, even where it takes DSD natively (as Mandarin Bridge for Android plays it). The Bridge reads the DAC's own USB
+     descriptor, and where it says native DSD and the kernel offers none, its page and its log give the one line that
+     has the kernel offer it, for that DAC alone, such as:</p>
+  <div class="codebox"><button class="copy-btn" data-copy>Copy</button>
+<pre>echo "options snd-usb-audio vid=0x2622 pid=0x0041 quirk_flags=0x8000" | sudo tee /etc/modprobe.d/mandarin-dsd.conf</pre>
+</div>
+  <p>(with your DAC's own <code>vid</code> and <code>pid</code>, as the page gives them); then unplug the DAC and plug it
+     in again, or restart. To undo it, delete the file and replug.</p>
 
   <h2>Set up on a Raspberry Pi</h2>
   <ol class="plain">
@@ -85,13 +107,13 @@
     <div>
       <p>Every Bridge Mandarin knows has a row of its own on <b>Settings → Updates</b>, its name and version, and its own
          <b>Check for update</b>, as the server's and the app's: it looks for a newer build now and becomes <b>Update
-         available</b> when there is one. A tap asks the Bridge to update itself: it fetches the build from GitHub, checks
-         it against the checksum published with it, and puts it in place.</p>
+         available</b> when there is one. A tap asks the Bridge to update: on Linux and the Pi it fetches the build from
+         GitHub, checks it against the checksum published with it, and puts it in place.</p>
       <ul class="plain">
         <li><b>Linux and the Raspberry Pi:</b> in a few seconds, by itself. One that fails as it starts is let go, and the
             one installed runs on.</li>
-        <li><b>Android:</b> the first time, Android asks on the device: to let Mandarin Bridge install apps, and then to
-            tap <b>Update</b>. After that, on Android 12 and later, its updates install by themselves.</li>
+        <li><b>Android:</b> a notification on the device; its tap downloads the update in the browser, and Android's
+            installer asks you to install it. The Bridge holds no permission to install apps itself.</li>
         <li>A Bridge from before v0.2.1 needs one last update by hand, from <a href="downloads.html#bridge">Downloads</a>;
             its row says so.</li>
       </ul>

@@ -37,7 +37,6 @@
     <label>Port<input id="b-port" value="3500" inputmode="numeric"></label>
     <label>A speaker's IP (optional)<input id="b-sonos" placeholder="only if rooms aren't found" spellcheck="false"></label>
     <label>MusicBrainz pack folder (optional)<input id="b-pack" placeholder="e.g. /mnt/ssd/mandarin" spellcheck="false"></label>
-    <label class="check"><input id="b-dac" type="checkbox"> A USB DAC or speakers plugged into this machine (Settings → Audio Devices)</label>
   </div>
 
   <div class="tabs">
@@ -57,9 +56,9 @@
       host networking, so this needs a Linux host. On a Mac, install it without Docker: see <a href="#mac">below</a>.
     </div>
     <div class="note">
-      <b>A USB DAC on this machine</b> needs both <code>--device /dev/snd</code> (the devices handed to the container)
-      and <code>--privileged</code> (the container may open them &mdash; on most hosts it otherwise can&#39;t). Tick
-      the box above to add them. A container already running is re-created with them by the same command.
+      <b>A USB DAC on this machine</b> is played by <a href="bridges.html">Mandarin Bridge for Linux</a>, installed on the
+      machine beside the container (one line); the container opens no sound device of its own, so it needs no
+      <code>--device /dev/snd</code> or <code>--privileged</code> for sound.
     </div>
     <div class="note">
       <b>Keep the musicd-server-data volume.</b> It holds the library database, play history, playlists, settings and

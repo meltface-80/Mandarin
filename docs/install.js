@@ -75,7 +75,6 @@
     var port = ($("b-port").value.trim().match(/^\d{2,5}$/) || ["3500"])[0];
     var sonos = $("b-sonos").value.trim();
     var pack = $("b-pack").value.trim();
-    var dac = $("b-dac").checked;
     var ports = document.querySelectorAll(".port");
     for (var i = 0; i < ports.length; i++) ports[i].textContent = port;
     var K = function (t) { return '<span class="k">' + t + "</span>"; };
@@ -95,7 +94,6 @@
         "  " + K("-v") + " musicd-server-data:/app/data \\\n" +
         ms.map(function (m) { return "  " + K("-v") + " " + esc(q(m.src + ":" + m.dst + ":ro")) + " \\\n"; }).join("") +
         (pack ? "  " + K("-v") + " " + esc(q(pack + ":/packs")) + " \\\n" : "") +
-        (dac ? "  " + K("--device") + " /dev/snd \\\n  " + K("--privileged") + " \\\n" : "") +
         "  ghcr.io/meltface-80/musicd-server:latest";
     } else {
       out = C("# docker-compose.yml — then: docker compose up -d") + "\n" +
@@ -104,7 +102,6 @@
         "    environment:\n      TZ: " + esc(tz) + "\n" +
         (port !== "3500" ? '      PORT: "' + port + '"\n' : "") +
         (sonos ? '      SONOS_HOSTS: "' + esc(sonos) + '"\n' : "") +
-        (dac ? "    devices:\n      - /dev/snd:/dev/snd\n    privileged: true\n" : "") +
         "    volumes:\n      - musicd-server-data:/app/data\n" +
         ms.map(function (m) { return '      - "' + esc(m.src.replace(/"/g, '\\"')) + ":" + m.dst + ':ro"\n'; }).join("") +
         (pack ? '      - "' + esc(pack.replace(/"/g, '\\"')) + ':/packs"\n' : "") + "\n" +
@@ -114,7 +111,6 @@
   }
 
   ["b-tz", "b-port", "b-sonos", "b-pack"].forEach(function (id) { $(id).addEventListener("input", build); });
-  $("b-dac").addEventListener("change", build);
   $("b-add").addEventListener("click", function () { addFolder("", true); });
   addFolder(DEFAULT_FOLDER, false);
   var tabs = document.querySelectorAll(".tabs button");
