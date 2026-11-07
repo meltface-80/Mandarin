@@ -5,9 +5,11 @@ import org.json.JSONObject
 /**
  * A Mandarin Bridge's row on Settings → Updates: its [id], its [name] with its version, its button's [words], whether a
  * tap updates it, and [checked]: where its button says Check for update (item 293), what a check that finds nothing to
- * install says (Up to date, Nothing published); null where a tap doesn't check.
+ * install says (Up to date, Nothing published); null where a tap doesn't check. [why]: where its update failed or waits on
+ * the device, what the Bridge said of it (item 327), shown under its row; null otherwise.
  */
-data class BridgeRow(val id: String, val name: String, val words: String, val canUpdate: Boolean, val busy: Boolean, val checked: String? = null)
+data class BridgeRow(val id: String, val name: String, val words: String, val canUpdate: Boolean, val busy: Boolean, val checked: String? = null,
+    val why: String? = null)
 
 /**
  * The Mandarin Bridges on Settings → Updates (item 291; the page's bridge-updates.js): every one Mandarin knows (the
@@ -32,7 +34,8 @@ object BridgeUpdates {
 
     /** One Bridge's row from [b], as the server says it stands. */
     fun row(b: JSONObject): BridgeRow {
-        val state = b.optJSONObject("update")?.optString("state").orEmpty()
+        val update = b.optJSONObject("update")
+        val state = update?.optString("state").orEmpty()
         val available = b.optBoolean("available")
         val words = when {
             state == "downloading" || state == "installing" || state == "restarting" -> UPDATING
@@ -46,8 +49,10 @@ object BridgeUpdates {
         }
         val version = if (b.isNull("version")) "" else b.optString("version")
         val settled = words == UpdateCheck.UP_TO_DATE || words == NONE
+        val says = if (update == null || update.isNull("says")) "" else update.optString("says")
         return BridgeRow(b.optString("id"), name(b.optString("name"), version), if (settled) UpdateCheck.CHECK else words,
-            words == UpdateCheck.AVAILABLE || words == RETRY, words == UPDATING, if (settled) words else null)
+            words == UpdateCheck.AVAILABLE || words == RETRY, words == UPDATING, if (settled) words else null,
+            says.takeIf { it.isNotEmpty() && (words == RETRY || words == ON_DEVICE) })
     }
 
     /** What a check of a Bridge says, [fresh] its row as GitHub was asked again: its update, or how it stands; Check failed where it is gone. */

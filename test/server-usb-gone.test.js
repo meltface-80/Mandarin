@@ -26,7 +26,11 @@ test("a Linux server's own sound cards: none listed, one kept from before forgot
   const now = Date.now();
   ctx.db.raw.prepare("INSERT INTO audio_devices (id, kind, family, network_name, manufacturer, model, location, caps, settings, first_seen, last_seen) VALUES (?, 'local', 'local', 'Chord Mojo', 'Chord Electronics Ltd', 'USB audio', 'alsa:plughw:CARD=Mojo,DEV=0', '{}', '{\"enabled\":true}', ?, ?)")
     .run("LOCAL_0123456789ab", now, now);
-  const r = await (await fetch(B + "/api/audio-devices/rescan", { method: "POST", headers: auth })).json();
+  // A look round already under way when it was put in (the server's first, on a busy machine) is joined, not begun
+  // again, and answers without it: asked again until a round has seen it.
+  const rescan = async () => (await fetch(B + "/api/audio-devices/rescan", { method: "POST", headers: auth })).json();
+  let r = await rescan();
+  for (let i = 0; i < 10 && r.ok && r.devices.some(d => d.id === "LOCAL_0123456789ab"); i++) r = await rescan();
   assert.equal(r.ok, true);
   assert.ok(!r.devices.some(d => d.id === "LOCAL_0123456789ab"), "the sound card kept from before, forgotten");
   assert.equal(ctx.db.raw.prepare("SELECT COUNT(*) AS n FROM audio_devices WHERE kind = 'local'").get().n, 0, "none in the register");

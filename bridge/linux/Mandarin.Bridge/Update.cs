@@ -3,7 +3,8 @@
 // release of Mandarin's from GitHub itself, the tarball for this machine (mandarin-bridge-linux-<arch>.tar.gz) and its
 // sidecar (.json: the build and its SHA-256), checks the one against the other, and unpacks it into its data folder
 // (app/). Then it stops, and systemd starts it again: the program installed hands over to the one in app/ (Program.cs),
-// and goes back to itself where that one fails as it starts.
+// and goes back to itself where that one fails as it starts. Every request says what it is (a User-Agent): GitHub
+// refuses one that doesn't (item 327).
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
@@ -15,7 +16,7 @@ namespace Mandarin.Bridge;
 internal sealed partial class Update(string api, string data, Action<string> log, Action restart)
 {
     public const string Repo = "meltface-80/Mandarin";
-    private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromMinutes(10) };
+    private static readonly HttpClient Http = Client();
     private readonly object gate = new();
     private string state = "idle", said = "", to = "";
 
@@ -48,6 +49,28 @@ internal sealed partial class Update(string api, string data, Action<string> log
     }
 
     private void Say(string s, string w) { lock (gate) (state, said) = (s, w); }
+
+    // GitHub asked as Mandarin Bridge: a request with no User-Agent is refused (403).
+    private static HttpClient Client()
+    {
+        var http = new HttpClient { Timeout = TimeSpan.FromMinutes(10) };
+        http.DefaultRequestHeaders.UserAgent.ParseAdd("mandarin-bridge");
+        return http;
+    }
+
+    // Why [e] stopped the update, in words (this build has none of .NET's own: UseSystemResourceKeys).
+    private static string Why(Exception e) => e switch
+    {
+        HttpRequestException { StatusCode: { } code } => $"GitHub answered {(int)code} ({code})",
+        HttpRequestException h => "GitHub couldn't be reached" + (h.HttpRequestError is HttpRequestError.Unknown ? "" : $" ({h.HttpRequestError})"),
+        TaskCanceledException => "GitHub took too long to answer",
+        System.Text.Json.JsonException => "GitHub's answer wasn't the release",
+        UnauthorizedAccessException => "its data folder can't be written to",
+        HttpIOException => "the download broke off",
+        IOException => "its data folder couldn't be written to",
+        System.ComponentModel.Win32Exception => "tar couldn't be run",
+        _ => e.Message,
+    };
 
     private async Task Go(string tag)
     {
@@ -90,8 +113,8 @@ internal sealed partial class Update(string api, string data, Action<string> log
             or TaskCanceledException or System.Text.Json.JsonException or System.ComponentModel.Win32Exception)
         {
             try { if (Directory.Exists(tmp)) Directory.Delete(tmp, true); } catch (IOException) { /* left for the next */ }
-            Say("failed", "The update couldn't be installed: " + e.Message);
-            log("update failed: " + e.Message);
+            Say("failed", "The update couldn't be installed: " + Why(e));
+            log("update failed: " + Why(e));
         }
     }
 

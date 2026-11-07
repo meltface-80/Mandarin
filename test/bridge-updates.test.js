@@ -79,8 +79,12 @@ test("a Mandarin Bridge offered its update on Settings → Updates, and updated 
   let tar = good, sha = crypto.createHash("sha256").update(good).digest("hex");
   let published = { commit: "fffffff", version: "9.9.9" };   // the build the release says it holds
   const asks = [];
+  let away = false;   // GitHub refusing every ask, as it does at its limit
   const gh = http.createServer((req, res) => {
     asks.push(req.url);
+    // As GitHub: a request that doesn't say what it is (no User-Agent) refused (item 327).
+    if (!req.headers["user-agent"]) { res.writeHead(403, { "Content-Type": "text/plain" }); return res.end("Request forbidden by administrative rules. Please make sure your request has a User-Agent header"); }
+    if (away && req.headers["user-agent"].startsWith("mandarin-bridge")) { res.writeHead(503); return res.end(); }
     const json = o => { res.writeHead(200, { "Content-Type": "application/json" }); res.end(JSON.stringify(o)); };
     const at = n => `http://127.0.0.1:${gh.address().port}/download/${n}`;
     if (req.url.startsWith("/repos/meltface-80/Mandarin/releases?")) return json([{ tag_name: "v1.1.14" }, { tag_name: "mandarin-bridge-v0.3.0" }]);
@@ -173,6 +177,37 @@ test("a Mandarin Bridge offered its update on Settings → Updates, and updated 
   }
   const fresh = (await api("update/bridges?fresh=1")).bridges.find(b => b.id === ID);
   assert.deepEqual([fresh.available, fresh.latest], [true, { commit: "fffffff", version: "9.9.9" }], JSON.stringify(fresh));
+
+  // GitHub refusing the Bridge: it says so, in words.
+  away = true;
+  assert.equal((await api("update/bridges/apply", { id: ID })).status, 200);
+  const refused = await until(async () => { const d = await (await fetch(BR + "/dac.json")).json(); return d.update.state === "failed" && d.update; });
+  assert.equal(refused.says, "The update couldn't be installed: GitHub answered 503 (ServiceUnavailable)");
+  if (findBrowser()) {
+    // On the page: Try the update again, and under the row what the Bridge said. A Bridge's long name, as on a phone
+    // (412 wide), wraps beside the button, the button's words left on one line (item 327: they were a letter a line).
+    const b = await Browser.launch({ width: 412, height: 915 });
+    try {
+      const page = await b.page(B + "/", { cookies: [{ name: "musicd_session", value: token, url: B }] });
+      await page.eval(`(async () => {
+        const sleep = ms => new Promise(r => setTimeout(r, ms));
+        for (let i = 0; i < 100 && !document.querySelector("#settings-toggle"); i++) await sleep(100);
+        document.querySelector("#settings-toggle").click(); await sleep(300);
+        document.querySelector('.settings-nav-item[data-pane="system"]').click();
+      })()`);
+      const seen = await until(async () => { const r = await page.eval(`(() => {
+        const btn = document.querySelector('#update-bridges [data-parity="settings-system.bridge-update"]');
+        const why = document.querySelector('#update-bridges [data-parity="settings-system.bridge-why"]');
+        if (!btn || !why) return null;
+        document.querySelector('#update-bridges [data-parity="settings-system.name"]').textContent = "Mandarin Bridge (DietPi) · Bridge v0.3.0";
+        const text = document.createRange(); text.selectNodeContents(btn);
+        return { words: btn.textContent, why: why.textContent, lines: text.getClientRects().length };
+      })()`); return r; }, 10000);
+      assert.deepEqual([seen.words, seen.why], ["Try the update again", refused.says]);
+      assert.equal(seen.lines, 1, "the button's words on one line beside a long name");
+    } finally { await b.close(); }
+  }
+  away = false;
 
   // A download that isn't the release's build: refused, nothing put in place.
   sha = "0".repeat(64);

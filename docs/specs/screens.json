@@ -1101,7 +1101,7 @@
       }
     },
     "settings-system": {
-      "page": "Settings' Updates: Back, its title; the server and, in the app, the app a row each (item 223), and each Mandarin Bridge Mandarin knows (item 291), its update asked of it from here: its name with its version, and its own Check for update, which looks for that one's update alone and becomes Update available once one is found (installing it on the next tap), or says how things stand; under both, what each update found brings, a heading and its short lines, once for a version both bring",
+      "page": "Settings' Updates: Back, its title; the server and, in the app, the app a row each (item 223), and each Mandarin Bridge Mandarin knows (item 291), its update asked of it from here: its name with its version, and its own Check for update, which looks for that one's update alone and becomes Update available once one is found (installing it on the next tap), or says how things stand, and under a Bridge whose update failed or waits on the device, what it said (item 327); under both, what each update found brings, a heading and its short lines, once for a version both bring",
       "native": ["android/app/src/main/java/com/musicd/server/android/SettingsUpdates.kt"],
       "preview": false,
       "items": {
@@ -1111,6 +1111,7 @@
         "check": { "kind": "action", "label": ["Check for update", "{state}"] },
         "app-check": { "kind": "action", "label": ["Check for update", "{state}"], "when": "in the Android app" },
         "bridge-update": { "kind": "action", "label": ["Check for update", "{state}"], "each": true, "when": "a Mandarin Bridge Mandarin knows" },
+        "bridge-why": { "kind": "shows", "each": true, "when": "a Mandarin Bridge whose update failed or waits on the device: what it said of it" },
         "notes-head": { "kind": "shows", "each": true, "when": "an update found with its notes" },
         "notes": { "kind": "shows", "each": true, "when": "an update found with its notes" }
       }

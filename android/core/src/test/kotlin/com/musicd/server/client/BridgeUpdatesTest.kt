@@ -20,8 +20,8 @@ class BridgeUpdatesTest {
             .put(bridge("available" to true))
             .put(bridge())
             .put(bridge("update" to JSONObject().put("state", "installing"), "available" to true))
-            .put(bridge("update" to JSONObject().put("state", "needs-you")))
-            .put(bridge("update" to JSONObject().put("state", "failed"), "available" to true))
+            .put(bridge("update" to JSONObject().put("state", "needs-you").put("says", "Tap Install on the R7")))
+            .put(bridge("update" to JSONObject().put("state", "failed").put("says", "The update couldn't be installed: GitHub answered 403 (Forbidden)"), "available" to true))
             .put(bridge("updates" to false, "available" to true))
             .put(bridge("reachable" to false, "version" to null))
             .put(bridge("latest" to null))))
@@ -32,6 +32,9 @@ class BridgeUpdatesTest {
         assertEquals(listOf(null, "Up to date", null, null, null, null, null, "Nothing published"), rows.map { it.checked })
         assertEquals(listOf("Update available", "Up to date", "Not answering", "Nothing published", "Check failed"),
             listOf(rows[0], rows[1], rows[6], rows[7], null).map { BridgeUpdates.answer(it) })
+        // Its update failed, or waits on the device: what the Bridge said, under its row (item 327); else nothing.
+        assertEquals(listOf(null, null, null, "Tap Install on the R7", "The update couldn't be installed: GitHub answered 403 (Forbidden)", null, null, null),
+            rows.map { it.why })
         assertEquals("FiiO R7 USB · Bridge v0.2.0", rows[0].name)
         assertEquals("FiiO R7 USB · Bridge", rows[6].name)
         assertTrue(BridgeUpdates.underWay(rows))

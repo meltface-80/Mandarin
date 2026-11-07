@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.3.1
+
+- Fixed - the Linux Bridge (and the Pi's) couldn't be updated from Mandarin's Settings → Updates: it asked GitHub without a User-Agent, which GitHub refuses. It now names itself, and an update that fails says why in words (item 327). A Bridge installed before this is installed again by hand once
+- Improved - Mandarin Bridge is 0.3.1
+
 ## v0.3.0
 
 - Fixed - the Linux Bridge (and the Pi's) sent DSD as DoP to a DAC that Linux offers native DSD: Linux 6.x lists a raw-DSD altset as "Format: SPECIAL DSD_U32_BE", and the Bridge read only the line's first word; it now reads every format the line names, native DSD up to DSD512 (item 325)

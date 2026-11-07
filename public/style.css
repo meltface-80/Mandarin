@@ -3258,6 +3258,12 @@ input.vol-range::-moz-range-thumb {
   color: var(--accent-text); border-color: var(--accent); font-weight: 600;
 }
 .settings-update-btn.is-update-ready:hover:not(:disabled) { color: var(--accent-text); }
+/* Settings → Updates (item 327): a row's button its words on one line up to
+   half the row, never under its longest word; the name, a Bridge's long one
+   included, wraps in the rest. Under a Bridge whose update failed or waits on
+   the device, what it said. As the Android app's UpdateRow. */
+.settings-pane[data-pane="system"] .settings-row > .settings-update-btn { flex: 0 0 auto; max-width: 50%; min-width: min-content; }
+.settings-bridge-why { margin: 4px 0 0; font-size: 12px; line-height: 17px; color: var(--text-dim); overflow-wrap: anywhere; }
 .settings-token-row {
   display: flex; gap: 8px; align-items: center; margin-top: 6px;
 }

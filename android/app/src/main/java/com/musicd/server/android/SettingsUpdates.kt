@@ -3,10 +3,8 @@ package com.musicd.server.android
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -24,8 +22,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.musicd.server.client.Contract
@@ -146,18 +146,18 @@ internal fun SettingsUpdates(client: () -> ServerClient?, onBack: () -> Unit) {
             "Updates", Modifier.parity("settings-system.heading"))
         Block {
             UpdateRow(UpdateCheck.serverName(serverVersion)) {
-                UpdateButton(serverWords, serverBusy, Modifier.weight(1f, fill = false).padding(start = 16.dp)
+                UpdateButton(serverWords, serverBusy, Modifier.padding(start = 16.dp)
                     .parity("settings-system.check", Contract.label("settings-system.check", 1, serverWords))
                     .clickable(enabled = !serverBusy) { if (serverWords == UpdateCheck.AVAILABLE && server != null) installServer() else checkServer() })
             }
             UpdateRow(UpdateCheck.appName(BuildConfig.VERSION_NAME), Modifier.padding(top = 12.dp)) {
-                UpdateButton(appWords, appBusy, Modifier.weight(1f, fill = false).padding(start = 16.dp)
+                UpdateButton(appWords, appBusy, Modifier.padding(start = 16.dp)
                     .parity("settings-system.app-check", Contract.label("settings-system.app-check", 1, appWords))
                     .clickable(enabled = !appBusy) { if (appWords == UpdateCheck.AVAILABLE && app != null) installApp() else checkApp() })
             }
             for (b in bridges) {
-                UpdateRow(b.name, Modifier.padding(top = 12.dp)) {
-                    UpdateButton(b.words, b.busy, Modifier.weight(1f, fill = false).padding(start = 16.dp)
+                UpdateRow(b.name, Modifier.padding(top = 12.dp), b.why) {
+                    UpdateButton(b.words, b.busy, Modifier.padding(start = 16.dp)
                         .parity("settings-system.bridge-update", Contract.label("settings-system.bridge-update", 1, b.words))
                         .clickable(enabled = b.canUpdate || b.checked != null) { if (b.canUpdate) updateBridge(b.id) else checkBridge(b.id) })
                 }
@@ -178,15 +178,31 @@ private suspend fun appStatus(force: Boolean): JSONObject? {
 }
 
 /**
- * A row: its [name] (the server's or this app's, with its version) and its [button].
- * Not SetupRow: its control is measured first and takes what it wants, so a long answer left the name a letter wide, one
- * letter a line (item 178). As the page's flex row: the name its own width, the button the rest, its words wrapping inside it.
+ * A row: its [name] (the server's, this app's or a Bridge's, with its version) and its [button]; under them, a Bridge's
+ * [why] where its update failed or waits on the device (item 327: there is no hovering over a button here to read it).
+ * Not a Row: there, what is measured first takes what it wants, and a long answer left the name a letter wide (item 178),
+ * a long name the button (item 327). As UpdateCheck.rowWidths: the button its words on one line up to half the row, the
+ * name the rest, each wrapping inside its own width, never under its longest word.
  */
 @Composable
-private fun UpdateRow(name: String, modifier: Modifier = Modifier, button: @Composable RowScope.() -> Unit) {
-    Row(modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-        Text(name, Modifier.parity("settings-system.name").heightIn(min = 22.dp), color = paletteColor(Palette.TEXT), fontSize = 16.sp, lineHeight = 22.sp)
-        button()
+private fun UpdateRow(name: String, modifier: Modifier = Modifier, why: String? = null, button: @Composable () -> Unit) {
+    Column(modifier.fillMaxWidth()) {
+        Layout({
+            Text(name, Modifier.parity("settings-system.name").heightIn(min = 22.dp), color = paletteColor(Palette.TEXT), fontSize = 16.sp, lineHeight = 22.sp)
+            button()
+        }, Modifier.fillMaxWidth()) { parts, c ->
+            val (label, btn) = parts
+            val (nameWidth, buttonWidth) = UpdateCheck.rowWidths(c.maxWidth, label.maxIntrinsicWidth(Constraints.Infinity),
+                btn.maxIntrinsicWidth(Constraints.Infinity), btn.minIntrinsicWidth(Constraints.Infinity))
+            val l = label.measure(Constraints(maxWidth = nameWidth))
+            val b = btn.measure(Constraints(maxWidth = buttonWidth))
+            val h = maxOf(l.height, b.height)
+            layout(c.maxWidth, h) {
+                l.placeRelative(0, (h - l.height) / 2)
+                b.placeRelative(c.maxWidth - b.width, (h - b.height) / 2)
+            }
+        }
+        if (why != null) Text(why, Modifier.parity("settings-system.bridge-why").padding(top = 4.dp), color = paletteColor(Palette.TEXT_DIM), fontSize = 12.sp, lineHeight = 17.sp)
     }
 }
 
