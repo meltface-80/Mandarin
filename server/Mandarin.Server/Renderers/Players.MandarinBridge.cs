@@ -1,5 +1,5 @@
 // Players.MandarinBridge.cs — a Mandarin Bridge renderer's own word on what it plays (MandarinBridge.cs): the
-// verification Players.Commands.cs's Verify hands over for one, as it hands a sound device's to VerifyLocal.
+// verification Players.Commands.cs's Verify hands over for one.
 using Mandarin.Server.Playback;
 
 namespace Mandarin.Server.Renderers;

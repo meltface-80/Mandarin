@@ -273,15 +273,7 @@ internal static class RulesCommand
     private static JsObj LocalFns(JsObj job)
     {
         var o = new JsObj();
-        if (job["linux"] is List<object?> lx)
-        {
-            var list = Local.LocalDevices.ListLinux(S(At(lx, 0)), S(At(lx, 1)));
-            o["devices"] = list.Devices.Select(SeenJson).ToList();
-            o["hidden"] = (double)list.Hidden;
-        }
         if (job["mac"] is string mac) o["mac"] = Local.LocalDevices.ParseMac(mac, job["mac_engine"] as string).Select(SeenJson).ToList();
-        o["hw"] = Each(job["hw"], h => Local.LocalDevices.HwParams(S(At(h, 0)), S(At(h, 1))) is { } p ? new JsObj { ["rate"] = p.Rate, ["format"] = p.Format } : null);
-        o["usb"] = Each(job["usb"], h => BitPerfect.Usbmon.Of(S(At(h, 0)), S(At(h, 1))) is { } t ? new JsObj { ["bus"] = (double)t.Bus, ["device"] = (double)t.Device, ["endpoint"] = (double)t.Endpoint } : null);
         o["ids"] = Each(job["ids"], k => Local.LocalDevices.IdOf(S(k)));
         o["amplitude"] = Each(job["amplitude"], a => Local.EngineOutput.Amplitude(N(At(a, 0)), TJs.Truthy(At(a, 1))));
         return o;

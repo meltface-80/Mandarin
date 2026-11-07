@@ -1,10 +1,11 @@
 # MusicD Server — your own music files, played to Sonos.
 #
-# Four stages: MusicD's own Tailscale engine (Go, the same program as the
-# Android app's) is built for the image's platform; Mandarin's audio engine
-# (C#, engine/) likewise; Mandarin's server (C#, server/) likewise; and the
-# image that runs carries only ffmpeg, poppler, the three programs and the
-# page (public/). No Node.js since v0.9.0.
+# Three stages: MusicD's own Tailscale engine (Go, the same program as the
+# Android app's) is built for the image's platform; Mandarin's server (C#,
+# server/) likewise; and the image that runs carries only ffmpeg, poppler,
+# the two programs and the page (public/). No Node.js since v0.9.0. No audio
+# engine since item 324: the server plays no sound device of its own on
+# Linux; a USB DAC beside it is Mandarin Bridge for Linux's.
 # Docker Hub's official images are pulled through Google's mirror of them
 # (mirror.gcr.io/library/…, v0.8.26): the same images, without Docker Hub's
 # limit on anonymous pulls, which GitHub's shared runners kept hitting
@@ -18,28 +19,6 @@ RUN go mod download
 COPY android/musicdnet/*.go ./
 RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH:-amd64} \
     go build -trimpath -ldflags "-s -w -X main.version=server" -o /out/musicdnet .
-
-# Mandarin's audio engine (v0.8.0): one native program, no .NET in the image.
-# Built ahead of time (Native AOT) for the builder's own platform; for the
-# other one (arm64, built on an amd64 runner) as one self-contained file,
-# which needs no cross toolchain and runs the same. Either needs glibc 2.34
-# at most, which the image's Debian has.
-FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:10.0-noble-aot AS audio
-ARG TARGETARCH
-ARG BUILDARCH
-WORKDIR /src
-COPY package.json ./
-COPY engine/Mandarin.Audio/*.csproj engine/Mandarin.Audio/*.cs ./engine/
-RUN set -e; cd engine; \
-    V=$(grep -m1 '"version"' ../package.json | cut -d'"' -f4); \
-    RID=linux-$([ "${TARGETARCH:-amd64}" = arm64 ] && echo arm64 || echo x64); \
-    if [ "${TARGETARCH:-amd64}" = "${BUILDARCH:-amd64}" ]; then \
-      dotnet publish -c Release -r $RID -p:Version=$V -o /out --nologo; \
-    else \
-      dotnet publish -c Release -r $RID -p:Version=$V -p:PublishAot=false -p:SelfContained=true \
-        -p:PublishSingleFile=true -p:PublishTrimmed=true -p:EnableCompressionInSingleFile=true -o /out --nologo; \
-    fi; \
-    rm -f /out/*.dbg /out/*.pdb; ls -la /out
 
 # Mandarin's server in C# (v0.8.1; the whole server since v0.9.0). One
 # self-contained file: no .NET in the image.
@@ -95,8 +74,6 @@ RUN apt-get update \
 COPY --from=tsnet /out/musicdnet /usr/local/bin/musicdnet
 
 WORKDIR /app
-# Mandarin's audio engine: sound devices on this computer (server/Mandarin.Server/Local/AudioEngine.cs).
-COPY --from=audio /out/mandarin-audio /app/engine/bin/mandarin-audio
 # Mandarin's server in C# (server/), and the page it serves.
 COPY --from=server /out/mandarin-server /app/server/bin/mandarin-server
 COPY package.json ./
