@@ -30,6 +30,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.Saver
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -59,6 +61,9 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.text.NumberFormat
 
+/** The wall's view kept as its query string, as the page hands it over. */
+private val VIEW_SAVER = Saver<LibraryView, String>(save = { it.query() }, restore = { LibraryView.parse(it) })
+
 /**
  * The Library wall, natively (stage N4 of old/plan-android-native.md; bug list items 51 and 52; a
  * preview: Settings → Setup → UI Settings), drawn as the page's (docs/specs/screens.json, library;
@@ -76,18 +81,20 @@ internal fun LibraryScreen(viewQuery: String, prefs: WallPrefs, zoneId: String, 
                            onView: (String) -> Unit, onNowPlaying: (String) -> Unit, onRoom: (String) -> Unit, onNav: (String) -> Unit, onPage: (String, String?) -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    var view by remember { mutableStateOf(LibraryView.parse(viewQuery)) }
+    // The view, the filter and the room held through an album's page or Now playing over the wall (item 339): plain
+    // remember is dropped when the screen is left, and the wall came back in the view it was opened with.
+    var view by rememberSaveable(stateSaver = VIEW_SAVER) { mutableStateOf(LibraryView.parse(viewQuery)) }
     val offline = OfflineNow.on
     val wall = remember(view, offline) { LibraryWall.state(view.query(), offline) }
-    var zone by remember { mutableStateOf(zoneId) }
+    var zone by rememberSaveable { mutableStateOf(zoneId) }
     val room = followRoom(zone, client)
     var focusOpen by remember { mutableStateOf(false) }
     val smartSheets = rememberSmartSheets()
     var sortOpen by remember { mutableStateOf(false) }
     var facets by remember { mutableStateOf<Facets?>(null) }
     // A view that comes with a name filter shows it in its field, to see and clear (item 338).
-    var filtering by remember { mutableStateOf(view.prefix.isNotEmpty()) }
-    var typed by remember { mutableStateOf(view.prefix) }
+    var filtering by rememberSaveable { mutableStateOf(view.prefix.isNotEmpty()) }
+    var typed by rememberSaveable { mutableStateOf(view.prefix) }
     var selecting by remember { mutableStateOf(false) }
     var picks by remember { mutableStateOf<List<AlbumSummary>>(emptyList()) }
     val (cols, coverPx) = wallColumns(prefs)
