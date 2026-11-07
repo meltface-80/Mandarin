@@ -19,6 +19,8 @@ internal static class UpsampleRules
     public static JsObj Run(JsObj job)
     {
         if (job["fft"] is double fn) return FftCheck((int)fn);
+        if (job["taps"] is true) return TapsMeasured(job);
+        if (job["speed"] is true) return Speed(job);
         var rate = (int)TJs.ToNumber(job["rate"]);
         var factor = (int)TJs.ToNumber(job["factor"]);
         var kind = Shape.Of(job["shape"] as string);
@@ -119,6 +121,40 @@ internal static class UpsampleRules
         };
     }
 
+    /*
+     * { taps: true, rate, factor, shape, at: [hz] } → { gains_db, pre_ms, keeps_db, length, before_ms, after_ms } (items 298, 318): the filter itself,
+     * its response at each frequency (an exact DFT of its taps), how long before a click it rings above −120 dB of its
+     * peak, and how far from nothing its taps are at every [factor]th place but the middle (where a filter keeps the
+     * source's samples as they were, they are nothing).
+     */
+    private static JsObj TapsMeasured(JsObj job)
+    {
+        var rate = TJs.ToNumber(job["rate"]);
+        var factor = (int)TJs.ToNumber(job["factor"]);
+        var h = StreamUpsample.Taps(factor, Shape.Of(job["shape"] as string));
+        var mid = (h.Length - 1) / 2;
+        var outRate = rate * factor;
+        var gains = new List<object?>();
+        foreach (var f in job["at"] as List<object?> ?? [])
+        {
+            double re = 0, im = 0, w = 2 * Math.PI * TJs.ToNumber(f) / outRate;
+            for (var i = 0; i < h.Length; i++) { var (sn, cs) = Math.SinCos(w * (i - mid)); re += h[i] * cs; im -= h[i] * sn; }
+            gains.Add(Db(Math.Sqrt(re * re + im * im) / factor));
+        }
+        var peak = h.Max(Math.Abs);
+        var first = Array.FindIndex(h, v => Math.Abs(v) > 1e-6 * peak);
+        // Its ringing from its peak, before and after, to 120 dB down (item 318: a minimum-phase filter's peak is near its start).
+        var top = Array.FindIndex(h, v => Math.Abs(v) == peak);
+        var last = Array.FindLastIndex(h, v => Math.Abs(v) > 1e-6 * peak);
+        double keeps = 0;
+        for (var i = mid % factor; i < h.Length; i += factor) if (i != mid) keeps = Math.Max(keeps, Math.Abs(h[i]));
+        return new JsObj
+        {
+            ["gains_db"] = gains, ["pre_ms"] = (mid - first) / outRate * 1000, ["keeps_db"] = Db(keeps / Math.Abs(h[mid])), ["length"] = (double)h.Length,
+            ["before_ms"] = (top - first) / outRate * 1000, ["after_ms"] = (last - top) / outRate * 1000,
+        };
+    }
+
     // Up and down over [fade] frames at each end (a Hann half), so the tones start and stop without a click.
     private static double Envelope(long i, long n, long fade)
     {
@@ -154,6 +190,36 @@ internal static class UpsampleRules
         fft.Inverse(re, im);
         double back = 0;
         for (var i = 0; i < n; i++) back = Math.Max(back, Math.Max(Math.Abs(re[i] - r0[i]), Math.Abs(im[i] - i0[i])));
-        return new JsObj { ["fft_db"] = Db(worst / n), ["round_trip_db"] = Db(back) };
+        // Four butterflies at a time (item 319) against one at a time: the same bits, forward and back.
+        double[] sr2 = (double[])r0.Clone(), si2 = (double[])i0.Clone(), ur = (double[])r0.Clone(), ui = (double[])i0.Clone();
+        var one = new Fft(bits, staged: false);
+        fft.Forward(sr2, si2); one.Forward(ur, ui);
+        var same = sr2.AsSpan().SequenceEqual(ur) && si2.AsSpan().SequenceEqual(ui);
+        fft.Inverse(sr2, si2); one.Inverse(ur, ui);
+        same = same && sr2.AsSpan().SequenceEqual(ur) && si2.AsSpan().SequenceEqual(ui);
+        return new JsObj { ["fft_db"] = Db(worst / n), ["round_trip_db"] = Db(back), ["staged_same"] = same };
+    }
+
+    /*
+     * { speed: true, rate, factor, shape?, seconds } → { ms, realtime }: [seconds] of stereo noise upsampled as a track
+     * is (StreamUpsample.cs, in blocks of 8192 frames), how long it took and how many times real time that is (item 319).
+     */
+    private static JsObj Speed(JsObj job)
+    {
+        var rate = (int)TJs.ToNumber(job["rate"]);
+        var factor = (int)TJs.ToNumber(job["factor"]);
+        var seconds = TJs.ToNumber(job["seconds"]);
+        var rnd = new Random(319);
+        const int block = 8192;
+        var l = new double[block]; var r = new double[block];
+        for (var i = 0; i < block; i++) { l[i] = rnd.NextDouble() - 0.5; r[i] = rnd.NextDouble() - 0.5; }
+        double sink = 0;
+        var up = new StreamUpsample(factor, Shape.Of(job["shape"] as string), (a, b, n) => sink += a[0] + b[n - 1]);
+        var frames = (long)(seconds * rate);
+        var took = System.Diagnostics.Stopwatch.StartNew();
+        for (long at = 0; at < frames; at += block) up.Push(l, r);
+        up.Finish();
+        var ms = took.Elapsed.TotalMilliseconds;
+        return new JsObj { ["ms"] = ms, ["realtime"] = seconds * 1000 / ms, ["sink"] = sink };
     }
 }

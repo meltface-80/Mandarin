@@ -40,6 +40,7 @@ class DevicePage(val j: JSONObject) {
     val onNote: String get() = if (enabled) "Offered as a zone: in the zone picker and everywhere you play." else when (kind) {
         "upnp" -> "Not offered as a zone. A device found on the network stays off until you turn it on."
         "local" -> "Not offered as a zone. A sound device on this computer stays off until you turn it on."
+        "slim" -> "Not offered as a zone. A Squeezelite player stays off until you turn it on."
         else -> "Not offered as a zone."
     }
 
@@ -61,7 +62,7 @@ class DevicePage(val j: JSONObject) {
     fun about(at: (Long) -> String): List<Pair<String, String>> = listOf(
         "Model" to j.optString("model"), "Made by" to j.optString("manufacturer"), "Firmware" to j.optString("firmware"), "Address" to j.optString("ip"),
         "Device" to (if (kind == "local") j.optString("location") else ""), "Found by" to j.optString("found_by"),
-        "Standard" to (if (kind == "upnp") (if (j.optBoolean("openhome")) "UPnP AV + OpenHome" else "UPnP AV / DLNA") else ""),
+        "Standard" to (if (kind == "upnp") (if (j.optBoolean("openhome")) "UPnP AV + OpenHome" else "UPnP AV / DLNA") else if (kind == "slim") "SlimProto (Squeezebox)" else ""),
         "Updates" to (if (kind == "upnp" && j.optBoolean("playable")) (if (j.optString("events") == "live") "Sent by the device (events)" else "Read every few seconds") else ""),
         "Last seen" to (if (online) "Now" else when_(j.optLong("last_seen"), at)), "First seen" to when_(j.optLong("first_seen"), at),
     ).filter { it.second.isNotEmpty() }
@@ -87,6 +88,9 @@ class DevicePage(val j: JSONObject) {
     val capNotes: List<String> get() = buildList {
         if (kind == "upnp") add(if (takesDsd) "DSD files go to it as they are, at the DSD rates that are on; any other goes as PCM. If DSD doesn’t play, tap it off."
             else "It doesn’t say it takes DSD files, so DSD goes to it as PCM.")
+        // A Squeezelite player (item 313): DSD as DSF, to the DAC as its own -D option says.
+        if (kind == "slim") add(if (takesDsd) "DSD files go to it as DSF, at the DSD rates that are on; it sends them to the DAC as its own -D option says (DoP or native), or as PCM. Any other goes as PCM."
+            else "It doesn’t say it plays DSD, so DSD goes to it as PCM.")
         if (kind == "sonos") add("Sonos plays up to 24-bit/48 kHz. Mandarin’s 24/48 rule applies; nothing to set here.")
         if (kind == "phone") add(if (showOutput) "Through its USB DAC the phone is sent what Output below says; away from home, Opus 256 kbps." else "At home the phone plays the file as it is; away from home, Opus 256 kbps.")
         // A Mac's (item 155) is found by Core Audio, Linux's by ALSA.
@@ -109,25 +113,27 @@ class DevicePage(val j: JSONObject) {
 
     /** Output: for a renderer or a sound device of the server's. */
     // A phone's with a USB DAC in use (item 265): for the DAC, as a renderer's.
-    val showOutput: Boolean get() = kind == "upnp" || kind == "local" || kind == "phone" && j.optJSONObject("output") != null
+    val showOutput: Boolean get() = kind == "upnp" || kind == "local" || kind == "slim" || kind == "phone" && j.optJSONObject("output") != null
     private val output: JSONObject get() = j.optJSONObject("output") ?: JSONObject()
+    /** Its Output as recipes (item 320), the one in use marked. */
+    val recipes: List<DeviceRecipes.Recipe> get() = DeviceRecipes.of(j)
     val mode: String get() = output.optString("mode", "original")
     val outBits: String get() = output.opt("bits")?.toString() ?: "auto"
     val flac32: Boolean get() = output.optBoolean("flac32")
     val has32: Boolean get() = bits.any { it.value == 32 && it.on }
     val modes: List<SegChoice> get() = listOf(SegChoice("original", "Original"), SegChoice("x2", "×2"), SegChoice("x4", "×4"), SegChoice("max", "Max"))
     /**
-     * The filter upsampling uses (items 248, 259): SoX's, or Mandarin's own in its minimum-phase or gentle shape, each
-     * made as it plays. Shown where it upsamples, or makes DSD from PCM.
+     * The filters upsampling uses (items 248, 259, 298): for CD-rate sources, and for hi-res ones (null: the same), each
+     * made as it plays (DeviceFilters.kt). Shown where it upsamples, or makes DSD from PCM.
      */
     val filter: String get() = output.optString("filter", "standard")
+    val filterHires: String? get() = (output.opt("filter_hires") as? String)?.takeIf { it.isNotEmpty() && it != "same" }
     val showFilter: Boolean get() = mode != "original" || output.has("dsd_out")
-    val filters: List<SegChoice> get() = listOf(SegChoice("standard", "Standard"), SegChoice("minphase", "Min phase"), SegChoice("gentle", "Gentle"))
-    val filterNote: String get() = if (dsdOut != 0) dsdFilterNote(dsdOut, filter) else when (filter) {
-        "minphase" -> "Minimum phase: all its ringing after a sound starts, none before. Mandarin’s own filter, made as it plays; tracks from the library, ×2 to ×16."
-        "gentle" -> "Rolling off from 90% of the band (19.8 kHz for a CD), twice as gently: its ringing half as long, the very top a little down (−6 dB at 21 kHz). Mandarin’s own filter, made as it plays."
-        else -> "SoX’s filter, made as it plays."
-    }
+    /** Its Phase (item 318), for both filters: "linear" by its absence, or "minimum". */
+    val phase: String get() = if (output.optString("phase") == "minimum") "minimum" else "linear"
+    val filterRows: List<DeviceFilters.Row> get() = DeviceFilters.rows(filter, filterHires)
+    /** The notes under the filters; with PCM as DSD on, how fast it is made is said under PCM as DSD instead. */
+    val filterNotes: List<String> get() = DeviceFilters.notes(dsdOut, filter, filterHires, making, phase == "minimum")
     /** The highest rate its owner allows (item 240), by 48 kHz's family; 0 for Auto. 44.1 kHz's is held to the rate that matches. */
     val maxRate: Int get() = output.optInt("max_rate", 0)
     private fun capFor(hz: Int): Int = if (maxRate == 0) Int.MAX_VALUE else if (hz % 44100 == 0) maxRate / 48000 * 44100 else maxRate
@@ -141,8 +147,6 @@ class DevicePage(val j: JSONObject) {
     val maxRateNote: String get() = if (maxRate == 0) "As high as the device takes."
         else "Nothing goes above ${maxRate / 1000} kHz (${rateWord(maxRate / 48000 * 44100)} kHz for music in 44.1’s family), upsampled or not."
 
-    /** How fast the server made the last track as it played (item 259), under the filter; with PCM as DSD on, under that instead. */
-    val filterMakingLine: String? get() = if (filter != "standard" && dsdOut == 0) making else null
     private val making: String? get() = output.optString("making").takeIf { it.isNotEmpty() }
     /** DSD sent as PCM (item 241): its modulator's noise above the cut taken off; 0 for Off. */
     val dsdLowpass: Int get() = output.optInt("dsd_lowpass", 0)
@@ -155,9 +159,17 @@ class DevicePage(val j: JSONObject) {
     val dsdOutValue: String get() = if (dsdOut == 0) "off" else dsdOut.toString()
     val showDsdOut: Boolean get() = dsd.any { it.on }
     val dsdOuts: List<SegChoice> get() = listOf(SegChoice("off", "Off")) + listOf(64, 128, 256).map { n -> SegChoice("$n", "DSD$n", off = dsd.none { it.value == n && it.on }) }
-    val dsdOutNote: String get() = if (dsdOut != 0) "Each track of the library that isn’t DSD is made DSD$dsdOut as it plays, by Mandarin’s seventh-order modulator, and sent as a DSF while it is made; Qobuz and Tidal go as PCM."
+    val dsdOutNote: String get() = if (dsdOut != 0) "Each track of the library that isn’t DSD is made DSD$dsdOut as it plays, by the modulator below, and sent as a DSF while it is made; Qobuz and Tidal go as PCM."
         else "PCM goes to this device as PCM. Set, each track of the library that isn’t DSD is made DSD as it plays and sent as a DSF."
     val dsdOutLine: String? get() = if (dsdOut != 0) making else null
+    /** Its modulator (item 303): the setting ("7w", "9"; null, the seventh order), its row and the one in use; shown with PCM as DSD on. */
+    val dsdMod: String? get() = (output.opt("dsd_mod") as? String)?.takeIf { it.isNotEmpty() }
+    /** Its dither (item 301): the setting ("ns3", "ns5"; null flat), the DAC's real bits (0: as sent); shown where Mandarin makes the PCM. */
+    val dither: String? get() = (output.opt("dither") as? String)?.takeIf { it.isNotEmpty() }
+    val realBits: Int get() = output.optInt("real_bits", 0)
+    val realBitsValue: String get() = if (realBits > 0) realBits.toString() else "sent"
+    val ditherRow: DeviceDither.Row? get() = if (mode != "original" && dsdOut == 0) DeviceDither.row(dither, realBits) else null
+    val modRow: DeviceModulators.Row? get() = if (showDsdOut && dsdOut != 0) DeviceModulators.row(dsdMod, dsdOut) else null
     val depths: List<SegChoice> get() = listOf(SegChoice("auto", "Auto"), SegChoice("24", "24"), SegChoice("32", "32", off = !flac32))
     val outputInfo: String get() = "Original sends the file as stored wherever this device takes its rate, depth and format; above its ceiling, FLAC at the highest rate it takes. Upsampling stays in the file's family (44.1 → 88.2 → 176.4; 48 → 96 → 192), runs in 64-bit float, and goes out at " +
         (if (has32 && flac32) "24 or 32 bits" else "24 bits") + "."
@@ -167,12 +179,30 @@ class DevicePage(val j: JSONObject) {
         val top = rates.filter { it.on && it.value % 44100 == 0 && it.value <= capFor(it.value) }.maxOfOrNull { it.value } ?: 0
         val rate = when (mode) { "x2" -> minOf(88200, if (top > 0) top else 44100); "x4" -> minOf(176400, if (top > 0) top else 44100); "max" -> if (top > 0) top else 44100; else -> 44100 }
         if (mode == "original" || rate <= 44100) return "A 16-bit/44.1 kHz file plays as it is."
-        val b = if (has32 && flac32 && outBits != "24") 32 else 24
+        val b = if (has32 && flac32 && outBits == "32") 32 else 24   // Auto is 24 (item 308)
         return "A 16-bit/44.1 kHz file plays as $b-bit/${rateWord(rate)} kHz FLAC" + (if (rate == 176400) " (×4)" else if (rate == 88200) " (×2)" else "") + "."
     }
 
     /** The change a segment tapped makes (PATCH {output: {mode|filter|bits: …}}). */
     fun segment(name: String, v: String): JSONObject = JSONObject().put("output", JSONObject().put(name, if ((name == "bits" || name == "max_rate" || name == "dsd_lowpass" || name == "dsd_out") && v != "auto" && v != "off") v.toInt() else v))
+
+    /** An album as one stream (item 300): shown where Mandarin makes what it plays, as the filters are. */
+    val albumStream: Boolean get() = output.optBoolean("album_stream")
+    val albumStreamNote: String get() = if (albumStream) "An album’s tracks go to this device as one stream, start to end: gapless however it joins files. Mandarin shows each track as it plays; the device’s own app shows the album as one. A skip starts the stream again at that track."
+        else "Each track goes as a file of its own, the next handed over before it ends: gapless as far as this device joins them. Turn on where a device clicks, pauses or squeals between tracks."
+    /** Its own player (item 306): where MPD was found beside it (null: none), whether it is played through (UPnP by its absence). */
+    val mpd: String? get() = j.optString("mpd").takeIf { it.isNotEmpty() }
+    val ownPlayer: Boolean get() = output.optString("player") == "mpd"
+    val players: List<SegChoice> get() = listOf(SegChoice("upnp", "UPnP"), SegChoice("mpd", "Its own player"))
+    val playerValue: String get() = if (ownPlayer) "mpd" else "upnp"
+    val playerNote: String get() = if (ownPlayer) "Mandarin hands this device’s own player (MPD, found at $mpd) the queue, each track as Mandarin makes it, and it plays one into the next by itself: gapless, as it plays its own library. Mandarin follows where it is from what it says."
+        else "Each track is handed over by UPnP, the next before it ends. This device also has its own player (MPD), which plays a queue one track into the next by itself."
+    /** The change the switch makes: PATCH {output: {album_stream}}. */
+    /** A Squeezelite player's Gapless (item 313): its note alone, it goes on into the next track from its own buffer. A Mandarin Bridge played continuous PCM has none (item 326). */
+    val continuousPcm: Boolean get() = j.optBoolean("continuous_pcm")
+    val slimGapless: Boolean get() = kind == "slim" && !continuousPcm
+    val slimGaplessNote: String = "A Squeezelite player plays one track into the next from its own buffer: gapless as it is, nothing to set. Where the next track is at another rate, it pauses for as long as its -r option says (e.g. -r 44100-768000:500, half a second), so the DAC settles without a click."
+    fun albumStreamPatch(on: Boolean): JSONObject = JSONObject().put("output", JSONObject().put("album_stream", on))
 
     val canFixVolume: Boolean get() = j.optBoolean("can_fix_volume")
     val volumeFixed: Boolean get() = j.optBoolean("volume_fixed")
@@ -190,7 +220,7 @@ class DevicePage(val j: JSONObject) {
 
     val dsp: JSONObject? get() = j.optJSONObject("dsp")
     /** DSP: on a renderer, a sound device of the server's, or a phone, where the server sends it. */
-    val showDsp: Boolean get() = (kind == "upnp" || kind == "local" || kind == "phone") && dsp != null
+    val showDsp: Boolean get() = (kind == "upnp" || kind == "local" || kind == "slim" || kind == "phone") && dsp != null
     val dspOn: Boolean get() = dsp?.optBoolean("enabled") == true
     /** One impulse response of a device's room correction (items 252, 258): its name, its facts as the page says them, and its rate. */
     data class IrRow(val name: String, val meta: String, val rate: Int)
@@ -230,9 +260,6 @@ class DevicePage(val j: JSONObject) {
         /** 0 to −12 dB, −5 the default. */
         val UNKNOWNS = (0 downTo -12).map { Choice("$it", "$it dB" + if (it == -5) " (Default)" else "") }
 
-        /** The filter's note with PCM as DSD[n] on (items 254, 259): the one each track is upsampled with on its way to DSD. */
-        fun dsdFilterNote(n: Int, filter: String): String = "With PCM as DSD$n on, this is the filter each track is upsampled with on its way to DSD$n: " +
-            (when (filter) { "minphase" -> "minimum phase, all its ringing after a sound starts"; "gentle" -> "gentle, rolling off from 90% of the band"; else -> "standard, linear phase" }) + "."
         /** A rate in kHz as the page writes it: 44.1, 48, 176.4. */
         fun rateWord(hz: Int): String = (hz / 1000.0).let { if (it == Math.floor(it)) it.toLong().toString() else it.toString() }
         /** A number as the page writes it (String(n)): 1, not 1.0. */

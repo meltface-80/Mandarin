@@ -23,6 +23,8 @@ internal sealed class Player(string id)
     public List<UpnpItem> Queue = [];
     public int Index = -1;
     public (int Index, string Uri, bool Sent)? Next;
+    public string? NamesBefore;   // what a device that names the track it was set to all along names (item 299); till the next SetAVTransportURI
+    public AlbumStream? Run;      // the album playing as one stream (item 300: Players.Albums.cs); till the next SetAVTransportURI
     // Shuffle's: the tracks played (the items themselves, so an edit of the queue moves them with it), and the track picked
     // to follow the one playing, kept while that one plays (item 183).
     public HashSet<UpnpItem> Played = [];
@@ -44,7 +46,7 @@ internal sealed class Player(string id)
     public (double At, string Message)? LastError;
     public IRenderer? Renderer;
     public string Location = "";
-    public double TouchedAt, LoadingSince, JumpedAt, UnansweredAt;
+    public double TouchedAt, LoadingSince, JumpedAt, SeekedAt, UnansweredAt;   // SeekedAt: a seek asked of the device (item 299)
     // A track that has run out with the renderer still PLAYING at its end (Players.End.cs, item 246): the track read,
     // its position and since when it has stood there; the track moved on from by hand.
     public int EndIndex = -1, EndedOn = -1;
@@ -74,7 +76,6 @@ internal sealed partial class Players
     private bool stopped;
     /* A sound device on this computer, played by the engine (Local/EngineOutput.cs): made here when the kind is "local"; what ALSA has it open at. */
     public Func<Player, DeviceRecord, IRenderer> LocalOutput { get; set; }
-    public Func<string, (double Rate, string Format)?> HwParams { get; set; } = loc => LocalDevices.HwParams(loc);
 
     public Players(Hub hub)
     {
@@ -155,8 +156,10 @@ internal sealed partial class Players
 
     // ------------------------------------------------------------ the register
 
-    public static bool IsUpnpId(string? id) => id != null && (id.StartsWith("UPNP_", StringComparison.Ordinal) || id.StartsWith(LocalPrefix, StringComparison.Ordinal));
-    public static bool IsStreamer(DeviceRecord? r) => r != null && r.Kind is "upnp" or "local";
+    public static bool IsUpnpId(string? id) => id != null && (id.StartsWith("UPNP_", StringComparison.Ordinal) || id.StartsWith(LocalPrefix, StringComparison.Ordinal) || id.StartsWith("SLIM_", StringComparison.Ordinal));
+    /* A kind the server keeps the queue for: a UPnP renderer, a sound device here, a SlimProto player (item 312). */
+    public static bool StreamerKind(string? kind) => kind is "upnp" or "local" or Slim.SlimDevices.Kind;
+    public static bool IsStreamer(DeviceRecord? r) => r != null && StreamerKind(r.Kind);
     public static DeviceRecord? Record(string id) { using var c = Db.Open(); return Register.Get(c, id); }
     public static bool TakesFlac(DeviceRecord r)
     {
@@ -199,12 +202,18 @@ internal sealed partial class Players
         var r = Record(p.Id);
         lock (gate)
         {
-            var location = r?.Location ?? "";
+            // Its own player (MPD, item 306) where its Player is set to it and MPD was found beside it.
+            var mpd = r?.Kind == "upnp" && Jv.Same(r.Settings["player"], "mpd") && r.Caps["mpd"] is JsObj found && found["address"] is string a ? a : null;
+            var location = (r?.Location ?? "") + (mpd != null ? " mpd:" + mpd : "");
             if (p.Renderer == null || p.Location != location)
             {
                 p.Renderer?.Halt();
+                var name = r?.Name ?? r?.NetworkName ?? p.Id;
                 if (r?.Kind == "local") p.Renderer = LocalOutput(p, r);
-                else p.Renderer = new Renderer(p.Id, r?.Name ?? r?.NetworkName ?? p.Id, r?.Caps["services"] as JsObj, () => Unanswered(p));
+                else if (r?.Kind == Slim.SlimDevices.Kind) p.Renderer = new Slim.SlimRenderer(p.Id, name, id => zm.Devices.Slim?.Get(id));
+                else if (mpd != null && mpd.LastIndexOf(':') is var colon and > 0 && int.TryParse(mpd[(colon + 1)..], out var mpdPort))
+                    p.Renderer = new MpdRenderer(name, mpd[..colon], mpdPort, () => Unanswered(p));
+                else p.Renderer = new Renderer(p.Id, name, r?.Caps["services"] as JsObj, () => Unanswered(p));
                 p.Location = location;
             }
             return p.Renderer;
@@ -255,9 +264,16 @@ internal sealed partial class Players
     /* A device's Output settings [s] into its stream [target]: the filter, DSD as PCM's low-pass, PCM as DSD (a phone's too: item 265). */
     public static void OutputInto(JsObj target, JsObj s)
     {
-        if (Upsample.Shape.OfFilter(s["filter"]) != null) target["filter"] = s["filter"];   // minimum phase, gentle (items 248, 259); standard by its absence
+        if (Upsample.Shape.OfFilter(s["filter"]) != null) target["filter"] = s["filter"];   // minimum phase, gentle, Gaussian… (items 248, 259, 298); standard by its absence
+        if (s["filter_hires"] is string hires) target["filter_hires"] = hires;   // for 88.2 kHz and up (item 298); the filter's by its absence
+        if (Upsample.Shape.MinimumOf(s)) target["phase"] = "minimum";   // both filters in minimum phase (item 318); linear by its absence
         if (DsdLowpass.Of(s["dsd_lowpass"]) is { } cut) target["dsd_lowpass"] = cut;   // DSD as PCM, low-passed (item 241)
         if (Upsample.DsdPlan.Of(s["dsd_out"]) is { } up) target["dsd_out"] = (double)up;   // PCM as DSD (item 243)
+        if (Upsample.DsdOut.Of(s["dsd_mod"]) is { } mod) target["dsd_mod"] = mod;   // by this modulator (item 303); the seventh order by its absence
+        if (Upsample.Dither.Of(s["dither"]) is { } dn) target["dither"] = dn;   // Mandarin's own dither, shaped (item 301); flat by its absence
+        if (Upsample.Dither.BitsOf(s["real_bits"]) is var rb and > 0) target["real_bits"] = (double)rb;   // the DAC's real bits (item 301); as sent by its absence
+        if (s["album_stream"] is true) target["album_stream"] = true;   // an album as one stream (item 300)
+        if (Jv.Same(s["player"], "mpd")) target["player"] = "mpd";   // played through its own player (item 306)
     }
 
     /* The settings changed (output, DSP): what follows in the queue is planned again; the track playing carries on as it was given. */
@@ -333,7 +349,7 @@ internal sealed partial class Players
     /* Its queue emptied, the renderer stopped, the room blank and kept so. */
     private async Task Emptied(Player p)
     {
-        lock (gate) { p.Queue = []; p.Index = -1; p.Next = null; p.Played = []; p.Successor = null; p.ExpectStop = true; }
+        lock (gate) { p.Queue = []; p.Index = -1; p.Next = null; p.Run = null; p.Played = []; p.Successor = null; p.ExpectStop = true; }
         try { await RendererOf(p).Stop(); } catch (RendererError) { /* already */ }
         lock (zm.Gate) zm.State[p.Id] = ZoneState.Blank(new Volume(p.Volume.Value, p.Volume.Muted));
         zm.Bump();

@@ -1,7 +1,7 @@
 // Written by tools/quality/parity.js from docs/specs/screens.json (npm run parity -- write); never by hand.
 package com.musicd.server.client
 
-/** The screens contract's labels, part 1 of 2 (Contract.kt joins them). */
+/** The screens contract's labels, part 1 of 3 (Contract.kt joins them). */
 internal object ContractLabels1 {
     val labels: Map<String, List<String>> = mapOf(
         "now-playing.back" to listOf("Back"),
@@ -64,6 +64,7 @@ internal object ContractLabels1 {
         "mini-player.volume-down" to listOf("Volume down"),
         "mini-player.volume-up" to listOf("Volume up"),
         "booklet.close" to listOf("Close booklet"),
+        "nav.menu" to listOf("Menu"),
         "nav.home" to listOf("Home"),
         "nav.library" to listOf("Library"),
         "nav.artists" to listOf("Artists"),
@@ -126,7 +127,6 @@ internal object ContractLabels1 {
         "home.notice-button" to listOf("Forget {folder}", "Remove the missing ones"),
         "home.update-now" to listOf("Update", "Roll back"),
         "home.update-later" to listOf("Dismiss"),
-        "home.menu" to listOf("Menu"),
         "home.random-album" to listOf("Random Album"),
         "home.downloads-title" to listOf("Downloaded albums"),
         "home.phone-title" to listOf("Music on device"),

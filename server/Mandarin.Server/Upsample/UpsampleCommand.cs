@@ -86,6 +86,7 @@ internal static class UpsampleCommand
         DsdRun? run = null;
         string? expect = null;   // the decode the run has the start of
         long ahead = 0;          // and how many of its frames
+        int history = 0, lookAhead = 0;   // the neighbours' frames the run's filter is fed (Joins.History, Joins.Ahead: item 317)
         while (job != null)
         {
             var started = Stopwatch.StartNew();
@@ -103,10 +104,13 @@ internal static class UpsampleCommand
             else
             {
                 run?.Finish();
-                run = new DsdRun(factor, Shape.Of((string?)job["shape"]), dsdRate);
+                var kind = Shape.Of((string?)job["shape"]);
+                history = Joins.History(kind);
+                lookAhead = Joins.Ahead(kind);
+                run = new DsdRun(factor, kind, dsdRate, (string?)job["mod"]);
                 // The one before's end, to start the filters and the modulators on (its carry silence where it can't be read).
-                var before = job["before"] is JsonArray ba ? Neighbour(ffmpeg, Strings(ba), carry + Joins.History, tail: true) : null;
-                if (before == null && carry > 0) before = [new double[carry + Joins.History], new double[carry + Joins.History]];
+                var before = job["before"] is JsonArray ba ? Neighbour(ffmpeg, Strings(ba), carry + history, tail: true) : null;
+                if (before == null && carry > 0) before = [new double[carry + history], new double[carry + history]];
                 if (before != null) { run.Skip(before[0].Length - carry); run.Push(before[0], before[1]); }
             }
             var w = run!.Add((string)job["out"]!, carry + frames - cut, job["at"] is JsonValue at ? (long)at : -1);
@@ -120,10 +124,13 @@ internal static class UpsampleCommand
             }
             var go = job["continue"] is JsonValue gv && (bool)gv && job["after"] is JsonArray;
             var afterArgs = job["after"] is JsonArray aa ? Strings(aa) : null;
-            var head = afterArgs != null ? Neighbour(ffmpeg, afterArgs, go ? Joins.Ahead : Joins.History, tail: false) : null;
+            var head = afterArgs != null ? Neighbour(ffmpeg, afterArgs, go ? lookAhead : history, tail: false) : null;
             if (head != null) run.Push(head[0], head[1]);
             if (go && head != null)
             {
+                // Its file done from what is in, not waiting for the upsampler's block to fill (item 317: a long
+                // filter's is seconds long, and a next track can be shorter than it).
+                run.Drain();
                 w.Done.Task.Wait();
                 Said(new Result(carry + frames - cut, run.Peak, run.Held, run.Resets), started);
                 // What it looked ahead to, as its own decode will read it: the same arguments, but from its start.
@@ -152,18 +159,19 @@ internal static class UpsampleCommand
         var rate = (int)job["rate"]!;
         var factor = (int)job["factor"]!;
         var kind = Shape.Of((string?)job["shape"]);
+        var history = Joins.History(kind);
         long declared = job["frames"] is JsonValue fv ? (long)fv : 0;
         var carry = job["carry"] is JsonValue cv ? (long)cv : 0;
         var cut = job["cut"] is JsonValue kv ? (long)kv : 0;
         // The neighbours' frames, decoded first (a second or so of each): the last of the one before, the first of the one after.
-        var before = job["before"] is JsonArray ba ? Neighbour(ffmpeg, Strings(ba), carry + Joins.History, tail: true) : null;
-        var after = job["after"] is JsonArray aa ? Neighbour(ffmpeg, Strings(aa), Joins.History, tail: false) : null;
+        var before = job["before"] is JsonArray ba ? Neighbour(ffmpeg, Strings(ba), carry + history, tail: true) : null;
+        var after = job["after"] is JsonArray aa ? Neighbour(ffmpeg, Strings(aa), history, tail: false) : null;
         // The one before unread: its carry silence, so that the file is the length its neighbours count on.
-        if (before == null && carry > 0) before = [new double[carry + Joins.History], new double[carry + Joins.History]];
+        if (before == null && carry > 0) before = [new double[carry + history], new double[carry + history]];
         var join = new Around(before, carry, after, cut);
         using var decode = Start(ffmpeg, Strings(job["decode"]), input: false, output: true);
         var decodeErr = decode.StandardError.ReadToEndAsync();
-        var r = Pcm(ffmpeg, Strings(job["encode"]), decode.StandardOutput.BaseStream, factor, kind, declared, join, job["wav"] as JsonObject);
+        var r = Pcm(ffmpeg, Strings(job["encode"]), decode.StandardOutput.BaseStream, factor, kind, declared, join, job["wav"] as JsonObject, Quantisers(job["dither"] as JsonObject));
         try { if (!decode.HasExited) decode.Kill(); } catch (InvalidOperationException) { /* ended */ }
         decode.WaitForExit();
         if (decode.ExitCode != 0 && r.Frames == 0) throw new InvalidOperationException("ffmpeg couldn't read the track: " + decodeErr.Result.Trim());
@@ -173,12 +181,12 @@ internal static class UpsampleCommand
     /*
      * [frames] of [pcm] (64-bit float stereo) upsampled by [factor] in [kind] and made DSD at [dsdRate] into [path]: the
      * header first, then each block of bits as both channels have them. [around]: its neighbours (item 262), run
-     * through before and after it and not kept.
+     * through before and after it and not kept. [mod]: the modulator (DsdOut.cs; null, the seventh order).
      */
-    public static Result Dsd(Stream pcm, int factor, Shape.Kind kind, int dsdRate, string path, long frames, Around? around = null)
+    public static Result Dsd(Stream pcm, int factor, Shape.Kind kind, int dsdRate, string path, long frames, Around? around = null, string? mod = null)
     {
         var a = around ?? Around.None;
-        var run = new DsdRun(factor, kind, dsdRate);
+        var run = new DsdRun(factor, kind, dsdRate, mod);
         if (a.Before != null) { run.Skip(a.Lead - a.Carry); run.Push(a.Before[0], a.Before[1]); }
         var w = run.Add(path, a.Kept(frames));
         Read(pcm, frames, run.Push);
@@ -191,13 +199,19 @@ internal static class UpsampleCommand
     // Made PCM by ffmpeg from the upsampled 64-bit float stereo, written to it as it comes: the track's own frames,
     // its neighbours' ([around]) run through before and after it and not kept. A [wav] (item 270): ffmpeg's bare samples
     // written to its file here, behind a header of their length ([frames] at the input's rate, upsampled).
-    private static Result Pcm(string ffmpeg, List<string> args, Stream pcm, int factor, Shape.Kind kind, long frames, Around around, JsonObject? wav = null)
+    // Mandarin's own dither (item 301), where the job asks it: the two channels' quantisers; null for ffmpeg's.
+    private static (Dither.Channel L, Dither.Channel R)? Quantisers(JsonObject? d) =>
+        d == null ? null : Dither.For((long)d["rate"]!, (int)d["bits"]!, (string?)d["shape"], d["real"] is JsonValue r ? (int)r : 0);
+
+    private static Result Pcm(string ffmpeg, List<string> args, Stream pcm, int factor, Shape.Kind kind, long frames, Around around, JsonObject? wav = null,
+        (Dither.Channel L, Dither.Channel R)? q = null)
     {
+        var size = q == null ? 16 : 8;   // a frame's bytes: two 64-bit floats, or two 32-bit words on the dither's grid
         using var p = Start(ffmpeg, args, input: true, output: wav != null);
         var err = p.StandardError.ReadToEndAsync();
         var written = wav == null ? Task.CompletedTask : Task.Run(() => WriteWav(p.StandardOutput.BaseStream, wav, around.Kept(frames) * factor));
         var into = p.StandardInput.BaseStream;
-        var buf = new byte[16 * Chunk * factor];
+        var buf = new byte[size * Chunk * factor];
         double peak = 0;
         // Its length, where none is said, known once it is read: until then everything after the one before's is kept.
         var keepFrom = (around.Lead - around.Carry) * factor;
@@ -209,14 +223,22 @@ internal static class UpsampleCommand
             var to = (int)Math.Clamp(keepTo - made, 0, n);
             made += n;
             if (to <= from) return;
-            if (buf.Length < (to - from) * 16) buf = new byte[(to - from) * 16];
+            if (buf.Length < (to - from) * size) buf = new byte[(to - from) * size];
             for (var i = from; i < to; i++)
             {
                 peak = Math.Max(peak, Math.Max(Math.Abs(a[i]), Math.Abs(b[i])));
-                BinaryPrimitives.WriteDoubleLittleEndian(buf.AsSpan((i - from) * 16), a[i]);
-                BinaryPrimitives.WriteDoubleLittleEndian(buf.AsSpan((i - from) * 16 + 8), b[i]);
+                if (q is var (ql, qr))
+                {
+                    BinaryPrimitives.WriteInt32LittleEndian(buf.AsSpan((i - from) * 8), Dither.Word(ql.Next(a[i])));
+                    BinaryPrimitives.WriteInt32LittleEndian(buf.AsSpan((i - from) * 8 + 4), Dither.Word(qr.Next(b[i])));
+                }
+                else
+                {
+                    BinaryPrimitives.WriteDoubleLittleEndian(buf.AsSpan((i - from) * 16), a[i]);
+                    BinaryPrimitives.WriteDoubleLittleEndian(buf.AsSpan((i - from) * 16 + 8), b[i]);
+                }
             }
-            into.Write(buf, 0, (to - from) * 16);
+            into.Write(buf, 0, (to - from) * size);
         });
         long read;
         try
@@ -233,7 +255,7 @@ internal static class UpsampleCommand
         p.WaitForExit();
         written.Wait();
         if (p.ExitCode != 0) throw new InvalidOperationException("ffmpeg couldn't write the file: " + err.Result.Trim());
-        return new Result(read, peak, 0, 0);
+        return new Result(read, peak, q is var (hl, hr) ? hl.Held + hr.Held : 0, 0);
     }
 
     // The decoded track into [up] a block at a time: [frames] of it where that is said (made up with silence, or cut

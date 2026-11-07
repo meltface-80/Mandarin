@@ -7,11 +7,16 @@
 // filter's, and brought back; the outputs the block before can't reach are kept. The two channels go together, the
 // left the real part and the right the imaginary: the filter is real, so neither leaks into the other.
 //
-// The filter's three shapes (Shape.cs). Standard: flat to [Shape.StandardPass] of the input's Nyquist frequency, down
+// The filter's shapes (Shape.cs; the three Gaussian ones are Gaussian.cs's, item 298). Standard: flat to [Shape.StandardPass] of the input's Nyquist frequency, down
 // along a raised cosine to nothing at it, its phase linear: ringing either side of a transient. Gentle: the same from
 // [Shape.GentlePass], twice as wide a slope, the ringing half as long. Minimum phase: Standard's levels with the one
 // phase that puts all the ringing after a transient (by the cepstrum). Each is the ideal response's impulse under a
 // Kaiser window (β 12: some 120 dB down beyond the band), worked out once for each factor and kept.
+//
+// Long and very long (item 317): Standard's design, 16384 and 65536 of the input's samples long, rolling off from
+// 0.99 and 0.995 of its Nyquist frequency under a Kaiser window of β 18: flat to 21.8 and 21.9 kHz for a CD, 270 and
+// 284 dB down from 22.1 kHz. Their blocks are as much longer, so they run no slower; their filters take longer to
+// make at a track's start (0.15 and 0.6 s at ×16) and more memory while it plays.
 //
 // The linear filters delay the signal by half their length; that much is dropped from the start and made up at the
 // end with silence, so the output is exactly [factor] times the input's length and in time with it. The minimum-phase
@@ -24,6 +29,12 @@ internal sealed class StreamUpsample
 {
     /* The filter's length in the input's samples. */
     public const int TapsIn = 2048;
+
+    /* The filter of [kind]'s length in the input's samples: the long ones' their own (item 317), the rest [TapsIn]. */
+    public static int TapsFor(Shape.Kind kind) => Shape.Linear(kind) switch { Shape.Kind.Long => 8 * TapsIn, Shape.Kind.VeryLong => 32 * TapsIn, _ => TapsIn };
+
+    // The long ones' roll-off (item 317): from 0.99 and 0.995 of the source's Nyquist frequency, under a Kaiser window of β 18.
+    private const double LongPass = 0.99, VeryLongPass = 0.995, LongBeta = 18;
 
     private const double KaiserBeta = 12;
 
@@ -39,6 +50,7 @@ internal sealed class StreamUpsample
     private readonly double[] xre, xim, yre, yim;
     private readonly double[] outL, outR;
     private int filled;
+    private int done;                            // the current block's outputs handed on already (by a Drain)
     private long frames, emitted, drop;
     private readonly Action<double[], double[], int> output;
 
@@ -51,7 +63,7 @@ internal sealed class StreamUpsample
         f = Filters.GetOrAdd((factor, kind), k => Design(k.Factor, k.Kind));
         fin = new Fft(Log2(f.NIn));
         fout = new Fft(Log2(f.NOut));
-        keep = TapsIn;
+        keep = TapsFor(kind);
         fresh = f.NIn - keep;
         left = new double[f.NIn]; right = new double[f.NIn];
         xre = new double[f.NIn]; xim = new double[f.NIn];
@@ -93,7 +105,7 @@ internal sealed class StreamUpsample
     }
 
     // One block through the filter; its outputs handed on (no more than [limit] in all).
-    private void Block(long limit = long.MaxValue)
+    private void Block(long limit = long.MaxValue, bool partial = false)
     {
         left.CopyTo(xre, 0);
         right.CopyTo(xim, 0);
@@ -108,23 +120,44 @@ internal sealed class StreamUpsample
             yim[j] = a * d + b * c;
         }
         fout.Inverse(yre, yim);
-        // The outputs of the new frames: those after the block before's.
+        // The outputs of the new frames: those after the block before's, and after those a Drain handed on already.
+        // Each is worked out from its input and those before it, so those of the frames in are exact however few are.
         var from = keep * factor;
-        var count = fresh * factor;
-        var skip = (int)Math.Min(drop, count);
-        drop -= skip;
-        var n = (int)Math.Min(count - skip, limit - emitted);
-        if (n > 0)
+        var upTo = (partial ? filled : fresh) * factor;
+        if (upTo > done)
         {
-            Array.Copy(yre, from + skip, outL, 0, n);
-            Array.Copy(yim, from + skip, outR, 0, n);
-            emitted += n;
-            output(outL, outR, n);
+            var count = upTo - done;
+            var skip = (int)Math.Min(drop, count);
+            drop -= skip;
+            var n = (int)Math.Min(count - skip, limit - emitted);
+            if (n > 0)
+            {
+                Array.Copy(yre, from + done + skip, outL, 0, n);
+                Array.Copy(yim, from + done + skip, outR, 0, n);
+                emitted += n;
+                output(outL, outR, n);
+            }
+            done = upTo;
         }
+        if (partial) return;
         // The last [keep] frames go to the front for the next block.
         Array.Copy(left, fresh, left, 0, keep);
         Array.Copy(right, fresh, right, 0, keep);
         filled = 0;
+        done = 0;
+    }
+
+    /*
+     * The outputs of the frames taken so far handed on now, the block not yet full (item 317): a making that goes on
+     * into the next track can finish its own file with no more of the next than the filter's half, however long the
+     * filter's blocks. The block is worked out with silence where its frames are still to come, and again once they are.
+     */
+    public void Drain()
+    {
+        if (filled == 0 || done >= filled * factor) return;
+        Array.Clear(left, keep + filled, fresh - filled);
+        Array.Clear(right, keep + filled, fresh - filled);
+        Block(partial: true);
     }
 
     private static int Log2(int n) => System.Numerics.BitOperations.Log2((uint)n);
@@ -145,15 +178,27 @@ internal sealed class StreamUpsample
         // Output bin k (its place j in the transform's order) takes input bin k mod nIn (its place in the input's).
         var map = new int[nOut];
         for (var k = 0; k < nOut; k++) map[fo.BitReverse(k)] = (int)fi.BitReverse(k % nIn);
-        return new Filter(re, im, map, kind == Shape.Kind.Minimum ? 0 : (length - 1) / 2, nIn, nOut);
+        return new Filter(re, im, map, Shape.IsMinimum(kind) ? 0 : (length - 1) / 2, nIn, nOut);
     }
 
     /* The filter's taps at the output's rate: [TapsIn] × [factor] + 1, their sum [factor] (a doubling's zeros put back). */
     public static double[] Taps(int factor, Shape.Kind kind)
     {
-        var length = TapsIn * factor + 1;
+        // Minimum phase on any filter but the standard one (item 318): its linear filter's levels, the phase that puts
+        // the ringing after; the standard one's, made below as it always was.
+        if (Shape.IsMinimum(kind) && kind != Shape.Kind.Minimum)
+        {
+            var m = MinimumPhase(Taps(factor, Shape.Linear(kind)));
+            var total = m.Sum();
+            for (var i = 0; i < m.Length; i++) m[i] *= factor / total;
+            return m;
+        }
+        var length = TapsFor(kind) * factor + 1;
+        // The Gaussian filters (item 298): their own design, as long as the rest.
+        if (kind is Shape.Kind.Gaussian or Shape.Kind.GaussianSteep or Shape.Kind.GaussianHires) return Gaussian.Taps(factor, kind, length);
         var half = (length - 1) / 2;
-        var pass = kind == Shape.Kind.Gentle ? Shape.GentlePass : Shape.StandardPass;
+        var pass = kind switch { Shape.Kind.Gentle => Shape.GentlePass, Shape.Kind.Long => LongPass, Shape.Kind.VeryLong => VeryLongPass, _ => Shape.StandardPass };
+        var beta = kind is Shape.Kind.Long or Shape.Kind.VeryLong ? LongBeta : KaiserBeta;
         // In cycles a sample at the output's rate: the input's Nyquist frequency, the roll-off's middle and half-width.
         var nyq = 0.5 / factor;
         var c = (1 + pass) / 2 * nyq;
@@ -167,7 +212,7 @@ internal sealed class StreamUpsample
             var q = 4 * w * t;
             var rc = Math.Abs(1 - q * q) < 1e-12 ? Math.PI / 4 : Math.Cos(2 * Math.PI * w * t) / (1 - q * q);
             var r = t / half;
-            h[n] = 2 * c * sinc * rc * I0(KaiserBeta * Math.Sqrt(Math.Max(0, 1 - r * r))) / I0(KaiserBeta);
+            h[n] = 2 * c * sinc * rc * I0(beta * Math.Sqrt(Math.Max(0, 1 - r * r))) / I0(beta);
         }
         if (kind == Shape.Kind.Minimum) h = MinimumPhase(h);
         var sum = h.Sum();

@@ -196,7 +196,7 @@ document.addEventListener("keydown", (e) => {
 
 // items: [{ label, onClick, danger, title }]. Returns the wrapper to append.
 const HEART_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
-  '<path d="M12 20.5s-7.5-4.6-9.3-9.1C1.4 8.1 3.4 5 6.6 5c1.9 0 3.4 1 4.4 2.5C12 6 13.5 5 15.4 5c3.2 0 5.2 3.1 3.9 6.4-1.8 4.5-9.3 9.1-9.3 9.1z"/></svg>';
+  '<path d="M12 20.5S4.5 15.9 2.7 11.4C1.4 8.1 3.4 5 6.6 5c2.1 0 4.1 1 5.4 2.5C13.3 6 15.3 5 17.4 5c3.2 0 5.2 3.1 3.9 6.4C19.5 15.9 12 20.5 12 20.5z"/></svg>';
 // The heart on an album's page: hollow, red once tapped, kept on the server.
 // A streamed album's favourite on its service (Qobuz v0.6.23, Tidal
 // v0.6.24), in the ⋯ menu — Add to Qobuz favourites, or Remove from —

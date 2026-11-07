@@ -6,6 +6,9 @@
 // SR11 was given nothing while the screen counted on. So a plan above 655,350 Hz goes out as WAV where the device
 // takes WAV (streamed as it is made, its length unknown in its header, as a radio's is), and where it doesn't, at
 // the highest rate of its family that FLAC carries and the device takes: ×8 for a CD.
+//
+// FLAC at the rate itself, the rate in the stream's header only, was tried (item 305): ffmpeg 7.1 writes it, but a
+// Chord Poly played nothing of it and started the track again 18 s in, so WAV it stays (item 307).
 using Mandarin.Server.Tags;
 
 namespace Mandarin.Server.Playback;

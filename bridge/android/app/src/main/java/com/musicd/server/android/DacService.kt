@@ -22,6 +22,7 @@ import androidx.media3.common.MimeTypes
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
+import androidx.media3.datasource.DataSource
 import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.exoplayer.DefaultLoadControl
@@ -45,8 +46,8 @@ import java.io.File
 import java.net.InetAddress
 
 /**
- * The renderer: this device as a UPnP MediaRenderer on the network, playing
- * what it is sent through Mandarin's USB driver and nothing else.
+ * The Bridge: this device as a SlimProto player of Mandarin's (Slim.kt, item 315; before, a UPnP MediaRenderer),
+ * playing what it is sent through Mandarin's USB driver and nothing else.
  *
  * ExoPlayer plays each URI with Mandarin's sinks under it — [DspSink] turning
  * every decode into float (the DSP off, no gain: untouched), [UsbAudioSink]
@@ -56,12 +57,8 @@ import java.net.InetAddress
  * refuses ([UsbOnly]): the track stops with ERROR_OCCURRED and a reason on
  * the screen, and plays on by itself when a DAC is plugged in.
  *
- * What the DAC takes is what the renderer advertises ([sink]): a raw-PCM
- * entry per rate, so a control point that reads rates from ProtocolInfo
- * (Mandarin does) has them all, the containers Mandarin sends, and DSD where
- * the DAC takes it. Everything, with what plays now, is at /dac.json too.
- * A DAC plugged in or taken out changes the description's address, so a
- * control point that caches descriptions by address reads it afresh.
+ * What the DAC takes, with what plays now, is at /dac.json, which Mandarin reads (its port is in the Bridge's
+ * SlimProto hello); a DAC plugged in or taken out, Mandarin is told by a hello again.
  *
  * A foreground service from its start to its stop, holding the device awake
  * ([Awake]) the whole time.
@@ -86,7 +83,7 @@ class DacService : Service() {
             "audio/mpeg", "audio/mp4", "audio/x-m4a", "audio/aac", "audio/ogg", "audio/opus")
         private val DSD_MIMES = listOf("audio/x-dsf", "audio/x-dff", "audio/dsd", "audio/x-dsd")
 
-        /** The running renderer, for the screen to read. */
+        /** The running Bridge, for the screen to read. */
         @Volatile var current: DacService? = null
             private set
 
@@ -102,10 +99,11 @@ class DacService : Service() {
     internal val main = Handler(Looper.getMainLooper())
     lateinit var player: ExoPlayer
         private set
-    lateinit var renderer: Renderer
+    lateinit var transport: Transport
+        private set
+    lateinit var slim: Slim
         private set
     private var http: HttpServer? = null
-    private var ssdp: Ssdp? = null
     @Volatile private var usbSink: UsbAudioSink? = null
     @Volatile internal var running = false
     private var retries = 0
@@ -114,16 +112,10 @@ class DacService : Service() {
         private set
     /** What the DAC is fed, recorded when Mandarin asks (/capture): the evidence for its bit-perfect check. */
     private val capture by lazy { Capture(File(cacheDir, "capture"), ::captureAbout) }
-    /** The address the renderer is at, or null off the network. */
+    /** The address the Bridge is at, or null off the network. */
     @Volatile var address: InetAddress? = null
         private set
-    /** Who last asked something of the renderer (a control point's address), and when. */
-    @Volatile var lastControl: Pair<String, Long>? = null
-        private set
-    @Volatile var lastSearch: Pair<String, Long>? = null
-        private set
-
-    val ready: Boolean get() = ::player.isInitialized && ::renderer.isInitialized
+    val ready: Boolean get() = ::player.isInitialized && ::transport.isInitialized && ::slim.isInitialized
     /** Playing through the USB driver right now: "rate/bits" the DAC is fed ("dsd64", "dop64"), else null. */
     fun usbNow(): String? = if (usbSink?.usb == true && UsbDriver.active) UsbDriver.describe() else null
     fun baseUrl(): String? = address?.let { "http://${it.hostAddress}:${Store.PORT}" }
@@ -141,8 +133,9 @@ class DacService : Service() {
         UsbDac.listen(onUsb)
         UsbDac.start(this)
         buildPlayer()
-        renderer = Renderer(main, player, ::sink) { foreground(notification()) }
-        player.addListener(renderer.listener)
+        transport = Transport(main, player) { foreground(notification()); if (::slim.isInitialized) slim.changed() }
+        player.addListener(transport.listener)
+        slim = Slim(this, transport)
         startNetwork()
         main.postDelayed(heartbeat, 10_000)
         Log.i(TAG, "started")
@@ -150,7 +143,7 @@ class DacService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (ready) when (intent?.action) {
-            ACTION_TOGGLE -> if (player.isPlaying) player.pause() else if (renderer.current != null) { if (player.playbackState == Player.STATE_IDLE) player.prepare(); player.play() }
+            ACTION_TOGGLE -> if (player.isPlaying) player.pause() else if (transport.current != null) { if (player.playbackState == Player.STATE_IDLE) player.prepare(); player.play() }
             ACTION_STOP -> { stopSelf(); return START_NOT_STICKY }
         }
         return START_STICKY
@@ -161,7 +154,7 @@ class DacService : Service() {
         running = false
         UsbDac.unlisten(onUsb)
         main.removeCallbacksAndMessages(null)
-        runCatching { ssdp?.stop() }
+        runCatching { if (::slim.isInitialized) slim.stop() }
         runCatching { http?.stop() }
         runCatching { player.release() }
         runCatching { capture.stop() }
@@ -180,7 +173,13 @@ class DacService : Service() {
             .setAllowCrossProtocolRedirects(true)
             .setConnectTimeoutMs(5_000)
             .setReadTimeoutMs(8_000)
-        val sources = DefaultDataSource.Factory(this, http)
+        // Mandarin's continuous PCM read with an hour's patience: it waits to be told the next track (item 322).
+        val patient = DefaultHttpDataSource.Factory()
+            .setUserAgent("MandarinBridge/${BuildConfig.VERSION_NAME}")
+            .setConnectTimeoutMs(5_000)
+            .setReadTimeoutMs(3_600_000)
+        val usual = DefaultDataSource.Factory(this, http)
+        val sources = DataSource.Factory { PatientDataSource(usual.createDataSource(), patient.createDataSource()) }
         // The playing track fetched well ahead (up to 5 minutes or 48 MB), so a Wi-Fi hiccup is never heard.
         val ahead = DefaultLoadControl.Builder()
             .setBufferDurationsMs(AHEAD_MS, AHEAD_MS, 1_500, 3_000)
@@ -208,8 +207,13 @@ class DacService : Service() {
         }
             .setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER)
             .setEnableAudioFloatOutput(true)
-        // DSF and DFF files are read by Mandarin's extractor; everything else by Media3's.
-        val extractors = ExtractorsFactory { arrayOf<Extractor>(DsdExtractor()) + DefaultExtractorsFactory().createExtractors() }
+        // DSF and DFF files are read by Mandarin's extractor; everything else by Media3's; Mandarin's continuous PCM
+        // (item 322), its format on its address, by RawPcmExtractor.
+        val extractors = object : ExtractorsFactory {
+            override fun createExtractors(): Array<Extractor> = arrayOf<Extractor>(DsdExtractor()) + DefaultExtractorsFactory().createExtractors()
+            override fun createExtractors(uri: android.net.Uri, responseHeaders: Map<String, List<String>>): Array<Extractor> =
+                RawPcmExtractor.of(uri)?.let { arrayOf<Extractor>(it) } ?: createExtractors()
+        }
         player = ExoPlayer.Builder(this, renderers)
             .setLoadControl(ahead)
             .setMediaSourceFactory(DefaultMediaSourceFactory(this, extractors).setDataSourceFactory(sources).setLoadErrorHandlingPolicy(retrying))
@@ -254,8 +258,8 @@ class DacService : Service() {
             }
             else -> null
         }
-        if (why != null) { playerError = why; renderer.failed(why); return }
-        if (retries >= 4) { playerError = "Playback stopped: ${error.errorCodeName}"; renderer.failed(playerError!!); return }
+        if (why != null) { playerError = why; transport.failed(why); return }
+        if (retries >= 4) { playerError = "Playback stopped: ${error.errorCodeName}"; transport.failed(playerError!!); return }
         // The network, most likely: tried again from where it was, a few times.
         val wasPlaying = player.playWhenReady
         retries++
@@ -271,18 +275,16 @@ class DacService : Service() {
     private val onUsb: () -> Unit = { main.post { usbChanged() } }
 
     /**
-     * The DAC came or went, or a USB setting changed: what it takes is
-     * advertised afresh (a new description address, an SSDP announcement),
+     * The DAC came or went, or a USB setting changed: Mandarin told afresh what it takes (a hello again, Slim.kt),
      * and a track stopped for want of a DAC is started again from where it is.
      */
     fun usbChanged() {
         if (!ready) return
-        renderer.evented()
-        ssdp?.alive()
+        slim.rehello()
         foreground(notification())
-        if (UsbDac.device() == null) { if (renderer.current != null) { player.stop(); UsbDriver.close() }; return }
+        if (UsbDac.device() == null) { if (transport.current != null) { player.stop(); UsbDriver.close() }; return }
         if (UsbDac.info() == null) return
-        if (renderer.current != null && (playerError != null || player.playerError != null)) {
+        if (transport.current != null && (playerError != null || player.playerError != null)) {
             val pos = player.currentPosition
             player.stop()
             player.seekTo(0, pos)
@@ -290,11 +292,11 @@ class DacService : Service() {
             retries = 0
             player.prepare()
             player.playWhenReady = true
-            renderer.resumed()
+            transport.resumed()
         }
     }
 
-    /** The DAC as the renderer advertises it: the PCM rates it takes, the depths, and the DSD it can be given the way the setting says. */
+    /** The DAC as the Bridge advertises it: the PCM rates it takes, the depths, and the DSD it can be given the way the setting says. */
     class Caps(val rates: List<Int>, val bits: List<Int>, val dsd: List<Int>, val native: List<Int>, val dop: List<Int>)
 
     fun caps(): Caps? {
@@ -329,7 +331,7 @@ class DacService : Service() {
         val c = caps()
         val d = UsbDac.device()
         val info = UsbDac.info()
-        val o = JSONObject().put("model", Scpd.MODEL).put("version", BuildConfig.VERSION_NAME).put("mandarin", BuildConfig.MANDARIN_VERSION)
+        val o = JSONObject().put("model", Transport.MODEL).put("version", BuildConfig.VERSION_NAME).put("mandarin", BuildConfig.MANDARIN_VERSION)
             .put("name", Store.friendlyName(this)).put("udn", Store.udn(this))
         val dac = JSONObject().put("attached", d != null).put("permission", info != null)
         if (d != null) dac.put("device", d.productName ?: "USB audio device").put("manufacturer", d.manufacturerName ?: JSONObject.NULL).put("vendor_id", d.vendorId).put("product_id", d.productId)
@@ -345,7 +347,7 @@ class DacService : Service() {
         o.put("platform", "android").put("commit", BuildConfig.COMMIT).put("updates", true).put("update", Updater.json()).put("log", "/log")
         val s = UsbDriver.current
         o.put("now", if (s == null || !UsbDriver.active) JSONObject.NULL else JSONObject().put("rate", s.rate).put("bits", s.bits).put("kind", s.kind)
-            .put("dsd", if (s.dsd) s.dsdMultiple else 0).put("transport", if (ready) renderer.stateNow() else "STOPPED")
+            .put("dsd", if (s.dsd) s.dsdMultiple else 0).put("transport", if (ready) transport.stateNow() else "STOPPED")
             // How the level is set and whether the samples reach the DAC untouched (item 287): the signal path says it as ours.
             .put("volume", when { UsbDriver.fixed(this) -> "fixed"; s.info.volumeControl -> "dac"; else -> "software" })
             .put("level", UsbDriver.level()).put("untouched", UsbDriver.softwareGain() == 1f)
@@ -354,7 +356,7 @@ class DacService : Service() {
     }
 
     /**
-     * The depths the renderer takes (/dac.json's "bits", what Mandarin may send it): every one up to the DAC's widest
+     * The depths the Bridge takes (/dac.json's "bits", what Mandarin may send it): every one up to the DAC's widest
      * format, a shallower sample going to the DAC in that format. The DAC's own formats are "dac_bits".
      */
     private fun takenBits(dacBits: List<Int>): List<Int> {
@@ -364,41 +366,18 @@ class DacService : Service() {
 
     // ------------------------------------------------------------ the network
 
-    /**
-     * The description's address: the hash of everything said of the DAC in it (the sink, and /dac.json's word on the
-     * DAC: depths, DSD, volume control, fixed), so any change of DAC or of how it is given is a new address — read
-     * again at once by a control point that caches by it (Mandarin does) when the announcement says so.
-     */
-    private fun location(): String? = baseUrl()?.let {
-        val dac = dacJson().optJSONObject("dac")?.toString() ?: ""
-        "$it/description.xml?caps=" + Integer.toHexString((sink() + "|" + dac).hashCode())
-    }
 
     private fun startNetwork() {
         address = Net.lanAddress()
         try {
             http = HttpServer(Store.PORT, ::route).also { it.start() }
         } catch (e: Exception) { Log.w(TAG, "http", e); playerError = "Couldn't open port ${Store.PORT}: ${e.message}" }
-        try {
-            ssdp = Ssdp(Store.udn(this), ::location) { address?.let { Net.interfaceOf(it) } }.also { it.start() }
-        } catch (e: Exception) { Log.w(TAG, "ssdp", e) }
+        slim.start()   // finds Mandarin and is played by it (Slim.kt)
     }
 
     private fun route(r: HttpServer.Request): HttpServer.Response {
         val path = r.path
         when {
-            path == "/description.xml" && (r.method == "GET" || r.method == "HEAD") -> {
-                lastSearch = Pair(r.from, System.currentTimeMillis())
-                return HttpServer.Response.text(200, Scpd.description(Store.friendlyName(this), Store.udn(this), Build.MODEL))
-            }
-            path.startsWith("/scpd/") && r.method == "GET" -> return when (path) {
-                "/scpd/AVTransport.xml" -> HttpServer.Response.text(200, Scpd.avTransport)
-                "/scpd/RenderingControl.xml" -> HttpServer.Response.text(200, Scpd.renderingControl)
-                "/scpd/ConnectionManager.xml" -> HttpServer.Response.text(200, Scpd.connectionManager)
-                else -> HttpServer.Response.text(404, "")
-            }
-            path.startsWith("/control/") && r.method == "POST" -> return control(r, path.removePrefix("/control/"))
-            path.startsWith("/event/") && (r.method == "SUBSCRIBE" || r.method == "UNSUBSCRIBE") -> return events(r, path.removePrefix("/event/"))
             path == "/dac.json" && r.method == "GET" -> return HttpServer.Response.text(200, dacJson().toString(2), "application/json")
             path == "/capture" || path.startsWith("/capture.") || path.startsWith("/capture/") -> return captureRoute(r, path)
             // Updated from Mandarin's Settings → Updates (item 291, Updater.kt): to the release {tag}.
@@ -410,7 +389,7 @@ class DacService : Service() {
             }
             // Its log, for Mandarin's (item 291, BridgeLog.kt).
             path == "/log" && r.method == "GET" -> return HttpServer.Response.text(200, BridgeLog.text(), "text/plain; charset=utf-8")
-            path == "/" && r.method == "GET" -> return HttpServer.Response.text(200, "${Store.friendlyName(this)} — ${Scpd.MODEL} ${BuildConfig.VERSION_NAME}\n${renderer.onMain { statusLine() }}\n\nUPnP MediaRenderer; the DAC at /dac.json.\n", "text/plain; charset=\"utf-8\"")
+            path == "/" && r.method == "GET" -> return HttpServer.Response.text(200, "${Store.friendlyName(this)} — ${Transport.MODEL} ${BuildConfig.VERSION_NAME}\n${transport.onMain { statusLine() }}\n\nA SlimProto player of Mandarin's; the DAC at /dac.json.\n", "text/plain; charset=\"utf-8\"")
         }
         return HttpServer.Response.text(404, "")
     }
@@ -445,44 +424,18 @@ class DacService : Service() {
 
     /** What a capture says of where it was made, as it starts: the DAC, the DSD setting, the track and where in it. */
     private fun captureAbout(): JSONObject {
-        val track = renderer.onMain { JSONObject().put("uri", renderer.current?.uri ?: JSONObject.NULL).put("position_ms", player.currentPosition) }
+        val track = transport.onMain { JSONObject().put("uri", transport.current?.uri ?: JSONObject.NULL).put("position_ms", player.currentPosition) }
         return JSONObject().put("device", dacJson().optJSONObject("dac") ?: JSONObject()).put("dsd_setting", Store.usbDsd(this)).put("track", track)
-    }
-
-    private fun control(r: HttpServer.Request, service: String): HttpServer.Response {
-        lastControl = Pair(r.from, System.currentTimeMillis())
-        val type = when (service) { "AVTransport" -> Scpd.AVT; "RenderingControl" -> Scpd.RCS; "ConnectionManager" -> Scpd.CMS; else -> return HttpServer.Response.text(404, "") }
-        val action = try { Xml.parseSoap(String(r.body, Charsets.UTF_8)) } catch (e: Exception) { null }
-            ?: return HttpServer.Response.text(400, Soap.fault(402, "Invalid Args"))
-        return try {
-            val out = renderer.handle(service, action)
-            HttpServer.Response.text(200, Soap.response(type, action.name, out))
-        } catch (e: Soap.Fault) {
-            HttpServer.Response.text(500, Soap.fault(e.code, e.description))
-        } catch (e: Exception) {
-            Log.w(TAG, "${action.name}", e)
-            HttpServer.Response.text(500, Soap.fault(501, e.message ?: "Action Failed"))
-        }
-    }
-
-    private fun events(r: HttpServer.Request, service: String): HttpServer.Response {
-        val ev = when (service) { "AVTransport" -> renderer.avt; "RenderingControl" -> renderer.rcs; "ConnectionManager" -> renderer.cms; else -> return HttpServer.Response.text(404, "") }
-        val sid = r.header("sid")
-        if (r.method == "UNSUBSCRIBE") return HttpServer.Response.text(if (sid != null && ev.unsubscribe(sid)) 200 else 412, "")
-        val initial = { when (service) { "AVTransport" -> renderer.avtInitial(); "RenderingControl" -> renderer.rcsInitial(); else -> renderer.cmsInitial() } }
-        val got = ev.subscribe(sid, r.header("callback"), r.header("timeout"), initial) ?: return HttpServer.Response.text(412, "")
-        return HttpServer.Response(200, ByteArray(0), "text/xml; charset=\"utf-8\"", mapOf("SID" to got.first, "TIMEOUT" to "Second-${got.second}"))
     }
 
     // ------------------------------------------------------------ notification
 
     private val heartbeat = object : Runnable {
         override fun run() {
-            if (ready) renderer.evented()
             foreground(notification())
-            // The address may have come (Wi-Fi joined after the start) or changed: the announcement says where.
+            // The address may have come (Wi-Fi joined after the start) or changed: Mandarin is told in a hello again.
             val a = Net.lanAddress()
-            if (a != null && a != address) { address = a; ssdp?.alive() }
+            if (a != null && a != address) { address = a; if (ready) slim.rehello() }
             if (running) main.postDelayed(this, 10_000)
         }
     }
@@ -499,20 +452,21 @@ class DacService : Service() {
         }.onFailure { Log.w(TAG, "foreground", it) }
     }
 
-    /** One line on what the renderer is doing, for the notification and the screen. */
+    /** One line on what the Bridge is doing, for the notification and the screen. */
     fun statusLine(): String {
         val dac = UsbDac.info()?.name
         return when {
-            address == null -> "No network: the renderer can't be found"
+            address == null -> "No network: Mandarin can't be reached"
             playerError != null -> playerError!!
             UsbDac.device() == null -> "No DAC on the USB port"
             UsbDac.info() == null -> "Allow the app to use the DAC"
             !ready -> "Starting…"
-            else -> when (renderer.transportState()) {
+            slim.server == null -> "Looking for Mandarin on the network…" + (dac?.let { " · $it" } ?: "")
+            else -> when (transport.transportState()) {
                 "PLAYING" -> "Playing" + (usbNow()?.let { " · USB $it" } ?: "") + (dac?.let { " · $it" } ?: "")
                 "TRANSITIONING" -> "Loading…"
                 "PAUSED_PLAYBACK" -> "Paused" + (dac?.let { " · $it" } ?: "")
-                else -> "Ready" + (dac?.let { " · $it" } ?: "") + " · “${Store.friendlyName(this)}” at ${address?.hostAddress}"
+                else -> "Ready" + (dac?.let { " · $it" } ?: "") + " · “${Store.friendlyName(this)}”, played by Mandarin at ${slim.server?.hostAddress}"
             }
         }
     }
@@ -520,7 +474,7 @@ class DacService : Service() {
     private fun notification(): Notification {
         if (!ready) return Notification.Builder(this, CHANNEL).setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(getString(R.string.app_name)).setContentText("Starting…").setOngoing(true).build()
-        val d = renderer.current?.didl
+        val d = transport.current
         val title = d?.title?.takeIf { it.isNotBlank() } ?: getString(R.string.app_name)
         val sub = listOfNotNull(d?.artist?.takeIf { it.isNotBlank() }, d?.album?.takeIf { it.isNotBlank() }).joinToString(" — ")
         val open = PendingIntent.getActivity(this, 0, Intent(this, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
@@ -537,7 +491,7 @@ class DacService : Service() {
             .setOnlyAlertOnce(true)
             .setVisibility(Notification.VISIBILITY_PUBLIC)
             .addAction(act(ACTION_TOGGLE, if (player.isPlaying) "Pause" else "Play", 1))
-            .addAction(act(ACTION_STOP, "Stop renderer", 3))
+            .addAction(act(ACTION_STOP, "Stop the Bridge", 3))
             .build()
     }
 }

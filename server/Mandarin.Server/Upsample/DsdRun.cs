@@ -41,6 +41,9 @@ internal sealed class DsdRun
     private readonly DsdChain l, r;
     private readonly System.Collections.Concurrent.BlockingCollection<(double[], double[])> toChains = new(boundedCapacity: 2);
     private readonly Task doubling;
+    private readonly List<double[]> doubledL = [], doubledR = [];
+    private readonly System.Collections.Concurrent.BlockingCollection<(double[], double[])> toModulators = new(boundedCapacity: 4);
+    private readonly Task modulating;
     private readonly object gate = new();
     private readonly List<Window> windows = [];
     private readonly int[] at = new int[2];          // each channel's window being filled
@@ -52,15 +55,25 @@ internal sealed class DsdRun
     public long Held { get; private set; }
     public long Resets => l.Modulator.Resets + r.Modulator.Resets;
 
-    /* A run upsampling by [factor] in [kind] and making DSD at [dsdRate]. */
-    public DsdRun(int factor, Shape.Kind kind, int dsdRate)
+    /* A run upsampling by [factor] in [kind] and making DSD at [dsdRate] by the modulator [mod] (DsdOut.cs; null: the seventh order). */
+    public DsdRun(int factor, Shape.Kind kind, int dsdRate, string? mod = null)
     {
         this.factor = factor;
         this.dsdRate = dsdRate;
         per = (long)factor * (dsdRate / DsdChain.InRateFor(dsdRate));
-        var ntf = DsdOut.Ntf(dsdRate);
-        l = new DsdChain(dsdRate, ntf, x => { lock (gate) Bits(0, x); });
-        r = new DsdChain(dsdRate, ntf, x => { lock (gate) Bits(1, x); });
+        var ntf = DsdOut.Ntf(dsdRate, mod);
+        // The chains' doubled samples, paired and made bits by both channels' modulators at once on a thread of their own (item 319).
+        l = new DsdChain(dsdRate, ntf, x => doubledL.Add(x));
+        r = new DsdChain(dsdRate, ntf, x => doubledR.Add(x));
+        modulating = Task.Factory.StartNew(() =>
+        {
+            foreach (var (x, y) in toModulators.GetConsumingEnumerable())
+            {
+                byte[] bl = new byte[x.Length / 8], br = new byte[y.Length / 8];
+                DsdModulator.RunPair(l.Modulator, r.Modulator, x, y, bl, br);
+                lock (gate) { Bits(0, bl); Bits(1, br); }
+            }
+        }, TaskCreationOptions.LongRunning);
         up = new StreamUpsample(factor, kind, (a, b, n) =>
         {
             for (var i = 0; i < n; i++)
@@ -77,6 +90,7 @@ internal sealed class DsdRun
             foreach (var (x, y) in toChains.GetConsumingEnumerable())
             {
                 Parallel.Invoke(() => l.Push(x), () => r.Push(y));
+                Pair();
                 // What is made is in the file at once, for the device reading it as it grows.
                 lock (gate) foreach (var w in windows) if (!w.Done.Task.IsCompleted) w.File?.Flush();
             }
@@ -112,6 +126,9 @@ internal sealed class DsdRun
         pushed += left.Length;
     }
 
+    /* What the upsampler holds of the frames pushed so far handed on to the chains now (StreamUpsample.Drain, item 317). */
+    public void Drain() => up.Drain();
+
     /* The end of the run: the filters and the chains flushed with silence, and every window closed. */
     public void Finish()
     {
@@ -120,8 +137,19 @@ internal sealed class DsdRun
         doubling.Wait();
         var frames = pushed * factor;
         Parallel.Invoke(() => l.Finish(frames), () => r.Finish(frames));
+        Pair();
+        toModulators.CompleteAdding();
+        modulating.Wait();
         lock (gate)
             foreach (var w in windows) if (!w.Done.Task.IsCompleted) w.Close();
+    }
+
+    // What the two chains have doubled, a run each of the same length, on to the modulators.
+    private void Pair()
+    {
+        if (doubledL.Count != doubledR.Count) throw new InvalidOperationException("the channels' doublings are out of step");
+        for (var i = 0; i < doubledL.Count; i++) toModulators.Add((doubledL[i], doubledR[i]));
+        doubledL.Clear(); doubledR.Clear();
     }
 
     // Channel [c]'s next bytes: dropped while skipped, then into its window, then waiting for the next.

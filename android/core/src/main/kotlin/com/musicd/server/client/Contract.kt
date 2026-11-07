@@ -6,7 +6,7 @@ package com.musicd.server.client
  * native control is called, aloud too, one per state, as the page calls it.
  */
 object Contract {
-    val labels: Map<String, List<String>> = ContractLabels1.labels + ContractLabels2.labels
+    val labels: Map<String, List<String>> = ContractLabels1.labels + ContractLabels2.labels + ContractLabels3.labels
 
     private val blank = Regex("\\{[^}]+\\}")
 

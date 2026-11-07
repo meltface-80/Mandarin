@@ -2,9 +2,8 @@
 // server sent it, frame by frame, for a whole track, on request.
 //
 // The track is played again from its start, and what feeds the DAC records what it feeds it (Recorder.cs): a Mandarin
-// USB renderer at its /capture (github.com/meltface-80/Android-USB-Driver: the very words the USB transfers carry, up
-// to two minutes at a time, so a longer track is recorded in turn), or, for a DAC plugged into this server, the
-// kernel's usbmon on its USB bus (UsbRecorder.cs), the whole track at once. Then what was sent is fetched from this
+// Bridge at its /capture (the very words the USB transfers carry, up to two minutes at a time, so a longer track is
+// recorded in turn; a DAC on this server is a Mandarin Bridge's, item 324). Then what was sent is fetched from this
 // server as the device fetched it (the cache's file, the file itself, a DSF made as it played) and each recording is
 // found in it and compared (Compare.cs). The report says the verdict, how much of the track was compared, and where
 // anything differed.
@@ -113,9 +112,8 @@ internal static class Check
 
     /*
      * `mandarin-server bitperfect`: a line of JSON on standard input, { sent: file, rate, bits?, dsd?, dsd_base?, seconds,
-     * title?, parts: [{ wav, said? } or { usbmon: file, bus, device, endpoint, rate, format, armed_at? }] }, compared as a
-     * check compares them (a usbmon capture, events as read(2) gives them, read as UsbRecorder reads its bus); the report
-     * is a line of JSON on standard output.
+     * title?, parts: [{ wav, said? }] }, compared as a check compares them; the report is a line of JSON on standard
+     * output.
      */
     public static int Command()
     {
@@ -126,21 +124,11 @@ internal static class Check
         try
         {
             var parts = (job["parts"] as JsonArray ?? []).OfType<JsonObject>()
-                .Select((x, i) => x["usbmon"] is JsonValue ? Captured(x, track, Path.Combine(dir, $"usbmon{i}.wav")) : ((string)x["wav"]!, x["said"] as JsonObject)).ToList();
+                .Select(x => ((string)x["wav"]!, x["said"] as JsonObject)).ToList();
             Console.WriteLine(Reported(track, "", Sent((string)job["sent"]!, track, dir), parts).ToJsonString());
             return 0;
         }
         finally { Directory.Delete(dir, true); }
-    }
-
-    // A usbmon capture's stream to the DAC [x] names, recorded as the bus would be into [wav].
-    private static (string, JsonObject?) Captured(JsonObject x, Track track, string wav)
-    {
-        var target = new Usbmon.Target((int)Number(x["bus"]), (int)Number(x["device"]), (int)Number(x["endpoint"]));
-        using var w = new Usbmon.Writer(wav, target, Number(x["armed_at"]), () => (Number(x["rate"]), (string?)x["format"] ?? "S32_LE")) { Seconds = (int)Math.Ceiling(track.Seconds) + 2 };
-        using (var s = File.OpenRead((string)x["usbmon"]!)) while (Usbmon.Read(s) is { } e && !w.Take(e)) { /* on to the next */ }
-        if (w.State == "failed") throw new InvalidOperationException(w.Why);
-        return (wav, w.Finish(0));
     }
 
     public static double Number(JsonNode? n) => n is JsonValue v && v.TryGetValue<double>(out var d) ? d : 0;

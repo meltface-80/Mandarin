@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <!--
-    Mandarin Bridge for Linux (item 282): a computer with a USB DAC (a Raspberry Pi, say) as a UPnP renderer that
+    Mandarin Bridge for Linux (item 282): a computer with a USB DAC (a Raspberry Pi, say) as a SlimProto player that
     Mandarin plays to, bit-perfect, through Mandarin's own audio engine. Built ahead of time to one native program
     (Native AOT), so it needs no .NET where it runs. See bridge/linux/README.md.
   -->

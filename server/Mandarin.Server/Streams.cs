@@ -34,7 +34,8 @@ using JsObj = Mandarin.Server.Tags.JsObj;
 
 internal static partial class Streams
 {
-    [GeneratedRegex(@"^/stream/t([0-9]+)(?:\.(orig|[0-9]+-[0-9]+w?|d(?:64|128|256)))?\.([a-z0-9]+)\z", RegexOptions.IgnoreCase)]
+    // t<id>: a track; a<id>_<id>…: an album's tracks as one stream (item 300: Streams.Runs.cs).
+    [GeneratedRegex(@"^/stream/(?:t([0-9]+)|a([0-9]+(?:_[0-9]+)+))(?:\.(orig|[0-9]+-[0-9]+w?|d(?:64|128|256)))?\.([a-z0-9]+)\z", RegexOptions.IgnoreCase)]
     private static partial Regex Address();
     [GeneratedRegex(@"^audio/(x-)?(dsf|dff|dsd)\z")]
     private static partial Regex DsdMime();
@@ -102,8 +103,11 @@ internal static partial class Streams
         if (!a.Success) return false;
         var q = ctx.Request.Query;
         var opus = q["q"].ToString() == "opus";
-        var seg = a.Groups[2].Value;
-        if (!long.TryParse(a.Groups[1].Value, out var id)) return Refuse(ctx, 404);
+        var seg = a.Groups[3].Value;
+        var run = a.Groups[2].Success ? a.Groups[2].Value : null;
+        // A run's first track names its plan; the run is one only made by Mandarin (an upsampling or a DSF), never the file as stored.
+        if (run != null && seg is "" or "orig") return Refuse(ctx, 400);
+        if (!long.TryParse(run != null ? run.Split('_')[0] : a.Groups[1].Value, out var id)) return Refuse(ctx, 404);
         // A rate and depth a streamer was promised: made with the high-quality settings (32 bits where ffmpeg writes them).
         long segRate = 0, segBits = 0;
         // "d64", "d128", "d256": made DSD from PCM (Upsample/DsdPlan.cs, item 243).
@@ -165,7 +169,7 @@ internal static partial class Streams
             p = Jv.Obj(("transcode", true), ("hq", true), ("mime", "audio/flac"), ("ext", "flac"), ("rate", (double)segRate), ("bits", (double)segBits),
                 ("reason", "what the renderer was promised"));
             // Promised as WAV (above FLAC's rates, Playback/HighRates.cs, item 238): made so.
-            if (a.Groups[3].Value.Equals("wav", StringComparison.OrdinalIgnoreCase)) { p["mime"] = "audio/wav"; p["ext"] = "wav"; p["wav"] = true; }
+            if (a.Groups[4].Value.Equals("wav", StringComparison.OrdinalIgnoreCase)) { p["mime"] = "audio/wav"; p["ext"] = "wav"; p["wav"] = true; }
             if (output != null)
             {
                 using var c = Db.Open();
@@ -178,13 +182,14 @@ internal static partial class Streams
             p = Jv.Obj(("transcode", true), ("hq", true), ("mime", DsdMime().IsMatch(asked) ? asked : "audio/x-dsf"), ("ext", "dsf"), ("rate", (double)t.Rate), ("bits", 1.0),
                 ("dsd", (double)dsdUp), ("dsdUp", (double)dsdUp), ("inRate", (double)t.Rate), ("reason", $"DSD{dsdUp} from PCM, made as it plays"));
             if (gain is { } g0) p["gain"] = g0;   // in the PCM it is made from, as the plan had it (WithGain leaves DSD alone)
+            if (Upsample.DsdOut.Of(q["mod"].Count == 1 ? q["mod"].ToString() : null) is { } mod && Upsample.DsdOut.Offered(mod, dsdUp)) p["mod"] = mod;   // ?mod=: its modulator (item 303)
             if (output != null) { using var c = Db.Open(); if (Dsp.PlanPart(DspFor(c, output), (double)t.Rate, (double)t.Rate) is { } part) p["dsp"] = part; }
         }
         else if (seg == "orig")
         {
-            var mime = MimeForExt(a.Groups[3].Value);
+            var mime = MimeForExt(a.Groups[4].Value);
             var asked = q["m"].Count == 1 ? q["m"].ToString() : "";
-            if (DsdMime().IsMatch(asked) && a.Groups[3].Value.ToLowerInvariant() is "dsf" or "dff") mime = asked;
+            if (DsdMime().IsMatch(asked) && a.Groups[4].Value.ToLowerInvariant() is "dsf" or "dff") mime = asked;
             p = Jv.Obj(("transcode", false), ("mime", mime));
         }
         else p = (JsObj)StreamPlans.PlanFor(Row(t), null, null)!;
@@ -211,7 +216,7 @@ internal static partial class Streams
         else
         {
             if (!File.Exists(t.Path)) return Refuse(ctx, 404);
-            if (!Jv.T(p["transcode"])) return await SendFile(ctx, t.Path, Jv.Str(p["mime"]));
+            if (!Jv.T(p["transcode"])) return QueryOne(raw, "ss") is { Here: true } from ? await AnswerFrom(ctx, id, t, p, from, false) : await SendFile(ctx, t.Path, Jv.Str(p["mime"]));
         }
         // Made already: sent from the cache, marked as used. Not yet: made
         // now, and sent as it is made (v0.8.11; before, the Node server's).
@@ -224,10 +229,20 @@ internal static partial class Streams
             p["shape"] = shape;
             if (dsdUp == 0) p["inRate"] = (double)t.Rate;
         }
+        // ?dn=, ?rb=: Mandarin's own dither (Upsample/Dither.cs, item 301), shaped and at the DAC's real bits, for a library track upsampled
+        // by a power of two; made as it plays, as a shape is (with the standard filter, Mandarin's own).
+        if (dsdUp == 0 && svc == null && segRate != 0 && t.Rate > 0 && segRate % t.Rate == 0 && Upsample.MadeAsPlayed.Power(segRate / t.Rate))
+        {
+            if (QueryOne(raw, "dn") is { Here: true } dq && Upsample.Dither.At(Upsample.Dither.Of(dq.Value), segRate) is { } dn) p["dither"] = dn;
+            if (QueryOne(raw, "rb") is { Here: true } rq && int.TryParse(rq.Value, out var rbits) && Upsample.Dither.BitsOf(rbits) is var rb and > 0 && rb < (int)Jv.Num(p["bits"])) p["real_bits"] = (double)rb;
+            if (Jv.T(p["dither"]) || Jv.T(p["real_bits"])) p["inRate"] = (double)t.Rate;
+        }
         // DSD as PCM, low-passed through the rate asked (?lp=, Playback/DsdLowpass.cs, item 241): a DSD file, a promised rate above it.
         if (segRate != 0 && svc == null && QueryOne(raw, "lp") is { } lq && lq.Here && long.TryParse(lq.Value, out var lpm) && DsdLowpass.IsMid(lpm) && segRate > lpm && StreamPlans.IsDsd(Row(t))) p["lowpass"] = (double)lpm;
         // Made already: that file; else made now, and sent as it is made (a DSF from PCM too: item 259).
         if (dsdUp != 0 && svc != null) return Refuse(ctx, 404);
+        if (run != null) return svc != null ? Refuse(ctx, 404) : await AnswerRun(ctx, run, p, t.Rate, QueryOne(raw, "ss"));
+        if (QueryOne(raw, "ss") is { Here: true } begun) return await AnswerFrom(ctx, id, t, p, begun, svc != null);   // begun part-way (item 313)
         var job = Transcoder.Start(track, ConvPlan.Of(p));
         if (job.Done && !job.Failed) return await SendFile(ctx, job.Final, Jv.Str(p["mime"]));
         if (job.Done) { ctx.Response.StatusCode = 500; ctx.Response.Headers["X-Mandarin-Answered"] = "C#"; return true; }

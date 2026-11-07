@@ -1,14 +1,15 @@
 # Mandarin Bridge
 
-Mandarin's renderer for a USB DAC on a device of its own (once called Mandarin USB, item 281): on Android, in
+Mandarin's player for a USB DAC on a device of its own (once called Mandarin USB, item 281): on Android, in
 `android/` (this page); on Linux, in [`linux/`](linux/README.md); and as a Raspberry Pi image, in [`pi/`](pi/README.md): flash it, plug in
 the DAC, set it up from its own page.
 
-On Android, an app with one job: to be a UPnP renderer that plays through a USB DAC, bit-perfect, with
+On Android, an app with one job: to be a SlimProto player (as Squeezelite is; a UPnP renderer before 0.3.0) that plays
+through a USB DAC, bit-perfect, with
 [Mandarin](https://github.com/meltface-80/Mandarin)'s own USB Audio driver — and to keep the device it runs on awake
 while it does.
 
-Made for a FiiO R7 feeding a small DAC over USB. Mandarin finds the renderer on the network by itself, reads what the
+Made for a FiiO R7 feeding a small DAC over USB. The Bridge finds Mandarin on the network by itself, Mandarin reads what the
 DAC takes, and sends each track accordingly: 16/44.1 as it is, hi-res as it is, DSD as the DSF or DFF file itself, or
 upsampled on the server as far as DSD256 when the device's output settings say so. The app hands it to the DAC
 untouched: no mixer, no resampling, no DSP, no volume levelling.
@@ -19,26 +20,24 @@ so a change to the driver is one pull request that both apps build against.
 
 ## What it does
 
-* **A UPnP MediaRenderer.** Nothing to sign in to: the app announces itself (SSDP), Mandarin lists it in Settings →
-  Audio Devices under the name you give it ("FiiO R7 USB"), and plays to it over AVTransport like a WiiM or a Chord
-  Poly, the queue kept on the server, the next track handed over ahead (SetNextAVTransportURI) so tracks join
-  gapless, changes sent back as UPnP events. Any other UPnP control point can play to it too.
-* **What the DAC takes, advertised.** The renderer's ProtocolInfo lists a raw-PCM entry for every sample rate the DAC
-  takes (`audio/L16;rate=…`, `audio/L24;rate=…`), the containers Mandarin sends (FLAC, WAV, AIFF, MP3, AAC, ALAC,
-  Ogg, Opus), and the DSD types where the DAC takes DSD natively or as DoP. Mandarin reads the rates from those
-  entries; `/dac.json` on the renderer says everything — rates, depths, DSD multiples natively and as DoP, the
-  volume control, and what is being fed right now — for Mandarin to read in full (see below). When a DAC is plugged
-  in or taken out, the description's address changes and the renderer announces itself again, so a control point that
-  caches descriptions reads the new one.
+* **A SlimProto player of Mandarin's.** Nothing to sign in to: the app finds Mandarin on the network (a broadcast to
+  port 3483), connects, and says hello with what it is, its DAC's highest rate, where its own page is and its UDN.
+  Mandarin lists it in Settings → Audio Devices under the name you give it ("FiiO R7 USB") and plays to it: each
+  track a stream (`strm`), the next given once the one playing has been read, so tracks join gapless; what happens
+  said back (STAT). Mandarin does all the work — upsampling, DSD made from PCM — and sends what the DAC is to play.
+  A Bridge Mandarin knew as a UPnP renderer keeps its name and settings.
+* **What the DAC takes, said.** `/dac.json` on the Bridge says everything — rates, depths, DSD multiples natively
+  and as DoP, the volume control, and what is being fed right now — for Mandarin to read in full (see below). When a
+  DAC is plugged in or taken out, the Bridge says hello again and Mandarin reads it afresh.
 * **Bit-perfect out of the USB port.** Mandarin's USB Audio Class 1 and 2 driver (`UsbDriver`, `UsbDac`,
   `UsbAudioSink`, `usb_jni.cc`) claims the DAC from Android, sets its clock to the track's rate, and feeds it PCM at
   its own depth, paced by the DAC's feedback. DSD goes natively on the DAC's DSD alternate setting or as DoP.
 * **USB or nothing.** Where Mandarin's app falls back to Android's mixer (no DAC on the port, a format the DAC
-  hasn't), this one stops with ERROR_OCCURRED and says why on its screen, then plays on by itself when a DAC is
+  hasn't), this one stops, tells Mandarin it couldn't play the track, and says why on its screen, then plays on by itself when a DAC is
   plugged in.
-* **Never asleep.** The renderer is a foreground service holding a CPU wake lock, a high-performance Wi-Fi lock and
+* **Never asleep.** The Bridge is a foreground service holding a CPU wake lock, a high-performance Wi-Fi lock and
   a multicast lock from its start to its stop, so the R7 never dozes between tracks or overnight. The screen may go
-  off; the device stays up. Optional: keep the screen on while the app is in front, start the renderer with the
+  off; the device stays up. Optional: keep the screen on while the app is in front, start the Bridge with the
   device, and a one-tap request to take the app out of Android's battery optimisation.
 * **The DAC's page.** What the DAC says about itself (class, rates, depths, native DSD, volume control, the clock
   now), what it is being fed and how (feedback, underruns), the DSD mode (native, native with words reversed, DoP,
@@ -51,12 +50,12 @@ so a change to the driver is one pull request that both apps build against.
    `mandarin-bridge-v…` release, or the rolling **test-bridge** pre-release's `mandarin-bridge.apk`, which is `dev` as
    it is now. Sideloading needs
    "Install unknown apps" for the browser or file manager you fetch it with.
-2. Open Mandarin Bridge once. It starts the renderer, and keeps it running.
+2. Open Mandarin Bridge once. It starts the Bridge, and keeps it running.
 3. Plug the DAC into the R7's USB port. Android asks once whether the app may use it; tick "always" so it doesn't ask
    again. The DAC's page fills in.
-4. Optional, under Keep awake: **Turn off** battery optimisation, and keep **Start the renderer when the device
+4. Optional, under Keep awake: **Turn off** battery optimisation, and keep **Start the Bridge when the device
    starts** on. In the R7's own settings, set the screen timeout as you like it.
-5. In Mandarin, **Settings → Audio Devices**: the renderer is listed by its name; switch it on. There is nothing to
+5. In Mandarin, **Settings → Audio Devices**: the Bridge is listed by its name; switch it on. There is nothing to
    tick: the rates, depths and DSD come from the DAC itself (below). Choose Original or upsampled output, then pick it
    as the speaker and play.
 
@@ -72,7 +71,7 @@ own Android app on it.
 ## What Mandarin sees of the DAC
 
 The app says everything about the DAC at `/dac.json`, and Mandarin (on `dev`, unreleased) takes the device at its
-word, as Roon does a Roon Ready device: the rates, depths and DSD the DAC takes are on, nothing else is, and there is
+word: the rates, depths and DSD the DAC takes are on, nothing else is, and there is
 nothing to tick. Ticks made by hand before no longer override it; a tap on a chip still turns that one off. The volume
 follows the DAC: fixed where it has no USB volume control (or is set to Fixed here), Mandarin's slider where it has.
 What it feeds the DAC now is `/dac.json`'s `now`: the `rate`, the `bits` of the words the DAC is opened at, `kind`
@@ -82,7 +81,7 @@ says exactly that, as the Bridge's word (item 287): "PCM 44.1 kHz, the 16-bit sa
 fixed volume: the samples untouched — as Mandarin Bridge reports it", and the track's ✓ only where it is the format
 sent and the Bridge says the samples go untouched (item 289); an older Bridge, which says nothing of them, has none.
 
-The depths are those the renderer takes: every one up to the DAC's widest format, so a DAC with 24- and 32-bit
+The depths are those the Bridge takes: every one up to the DAC's widest format, so a DAC with 24- and 32-bit
 formats (an SMSL SU-1) is sent 16-bit tracks as they are, and the app gives them to the DAC at 32 bits (`dac_bits` says
 the DAC's own formats). Anything said of the DAC changing — another DAC plugged in, DSD mode, fixed volume — changes
 the description's address and is announced at once, so Mandarin reads it again within moments.
@@ -166,11 +165,13 @@ Mandarin's Settings → Updates lists every Bridge (item 291) and offers each th
 published has a sidecar beside it, `<asset>.json` (`bridge/sidecar.sh`): its commit, its version and its SHA-256. The
 Bridge says its own commit in `/dac.json` (`commit`, with `updates: true` and `update`, where an update is). Asked
 with `POST /update {"tag": "test-bridge"}` (or `mandarin-bridge-v…`, never an address: the port has no sign-in), the
-Bridge fetches that release of Mandarin's from GitHub itself, checks `mandarin-bridge.apk` against its sidecar, and
-installs it with Android's package installer (`Updater.kt`). Android refuses an APK signed by another key. The first
-time, Android asks on the device: to let the Bridge install apps, then to confirm, each a notification. After that,
-on Android 12 and later, its updates install without a question, and `MY_PACKAGE_REPLACED` starts it again.
-Mandarin Bridge for Linux does the same with `mandarin-bridge-linux-<arch>.tar.gz` (`bridge/linux` `Update.cs`).
+Android Bridge shows a notification on the device (`Updater.kt`, item 297): a tap opens that release's
+`mandarin-bridge.apk` in the browser, which downloads it, and Android's installer installs it when you say so. The
+Bridge itself holds no permission to install apps and downloads nothing: from 0.2.0 it installed its own update,
+without a question on Android 12 and later, and Google Play Protect calls an app that can do that harmful. Android
+refuses an APK signed by another key, and `MY_PACKAGE_REPLACED` starts the Bridge again once it is installed.
+Mandarin Bridge for Linux fetches and checks its own update against the sidecar, with
+`mandarin-bridge-linux-<arch>.tar.gz` (`bridge/linux` `Update.cs`).
 
 Its log is in Mandarin's: when the Mandarin app's log is saved (Settings → Setup → Logging → Save log), the server
 asks every Bridge for its own at the path its `/dac.json` names (`log`: `GET /log`, this app's last 2,000 lines of
@@ -179,20 +180,19 @@ Android's log, `BridgeLog.kt`), puts each line through the same filter as its ow
 ## How it fits together
 
 ```
-Mandarin (or any control point)          Mandarin Bridge on the R7
-  SSDP M-SEARCH ───────────────────────▶ Ssdp: answers; NOTIFY alive on start, every 10 min, on a DAC change
-  GET /description.xml?caps=… ─────────▶ HttpServer → Scpd: the device, three services
-  ConnectionManager.GetProtocolInfo ───▶ DacService.sink(): L16/L24 per rate, containers, DSD mimes
+Mandarin                                 Mandarin Bridge on the R7
+  UDP 3483 'e' ◀──────────────────────── Slim: finds Mandarin (answered 'E'), connects to TCP 3483
+  ◀── HELO: its id, MaxSampleRate, MandarinBridge=<port>, UDN, flc, pcm, dsf, dff
   GET /dac.json ───────────────────────▶ DacService.dacJson(): rates, bits, DSD native/DoP, volume, what plays now
-  AVTransport.SetAVTransportURI/Play ──▶ Renderer → ExoPlayer: DsdExtractor/DsdRenderer, decoders → DspSink (float)
-  SetNextAVTransportURI (gapless)                                → UsbAudioSink → UsbDriver → usb_jni.cc → the DAC
-  RenderingControl.SetVolume ──────────▶ the DAC's USB volume control (or fixed)   ↳ UsbOnly refuses what the DAC can't take
-  SUBSCRIBE /event/… ◀── NOTIFY ────── Events: LastChange (TransportState, URIs, Volume) to each subscriber
+  strm s (the track; the next, gapless) ▶ Slim → Transport → ExoPlayer: DsdExtractor/DsdRenderer, decoders → DspSink
+  strm p / u / q / t, audg ────────────▶ pause, go on, stop, how are you; audg the DAC's USB volume (or fixed)
+  ◀── STAT: STMs begun, STMd read, STMl ready, STMp/STMr, STMu all played, STMn couldn't  → UsbAudioSink → UsbDriver → the DAC
 ```
 
-`DacService` hosts it all: the player with Mandarin's sinks, the renderer, the HTTP and SSDP servers, the wake locks
-and the notification. `Renderer` is the transport; `Events` the eventing; `MainActivity` the one screen;
-`BootReceiver` starts the renderer with the device.
+`DacService` hosts it all: the player with Mandarin's sinks, the transport, the SlimProto client, the HTTP server
+(`/dac.json`, `/update`, `/log`, `/capture`), the wake locks and the notification. `Transport` is what plays; `Slim`
+what Mandarin says and what is said back; `MainActivity` the one screen; `BootReceiver` starts the Bridge with the
+device.
 
 ## License
 

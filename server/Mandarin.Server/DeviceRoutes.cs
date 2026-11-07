@@ -120,7 +120,7 @@ internal static partial class Library
             if (TJs.Truthy(output) && TJs.IsObject(output))
             {
                 // A phone's for the USB DAC on it (item 265).
-                if (d.Kind is not ("upnp" or "local" or "phone")) throw new DeviceRefusal(400, "Only a renderer or a sound device on this computer has output settings");
+                if (!Renderers.Players.StreamerKind(d.Kind) && d.Kind != "phone") throw new DeviceRefusal(400, "Only a renderer or a sound device on this computer has output settings");
                 if (d.Kind == "phone" && Prop(output, "volume") is not Undef) throw new DeviceRefusal(400, "A phone's volume is set on the phone");
                 var patch = new JsObj();
                 var mode = Prop(output, "mode");
@@ -129,12 +129,20 @@ internal static partial class Library
                     if (!Jv.OneOf(mode, "original", "x2", "x4", "max")) throw new DeviceRefusal(400, "mode must be original, x2, x4 or max");
                     patch["mode"] = mode;
                 }
-                // The upsampler (items 248, 259): the standard filter, minimum phase or gentle, each as it plays.
+                // The upsampler (items 248, 259, 298): its filter, each made as it plays; and one for hi-res sources, or the same.
+                var filters = string.Join(", ", Upsample.Shape.Filters);
                 var filter = Prop(output, "filter");
                 if (filter is not Undef)
                 {
-                    if (!Jv.OneOf(filter, "standard", "minphase", "gentle")) throw new DeviceRefusal(400, "filter must be standard, minphase or gentle");
+                    if (filter is not string f || Array.IndexOf(Upsample.Shape.Filters, f) < 0) throw new DeviceRefusal(400, "filter must be " + filters);
                     patch["filter"] = filter;
+                }
+                var hires = Prop(output, "filter_hires");
+                if (hires is not Undef)
+                {
+                    var same = TJs.StrictEq(hires, "same");
+                    if (!same && (hires is not string h || Array.IndexOf(Upsample.Shape.Filters, h) < 0)) throw new DeviceRefusal(400, "filter_hires must be same, " + filters);
+                    patch["filter_hires"] = same ? null : hires;
                 }
                 // DSD as PCM, low-passed (item 241): off, or the cut in Hz.
                 var lowpass = Prop(output, "dsd_lowpass");
@@ -152,6 +160,24 @@ internal static partial class Library
                     if (!off && Upsample.DsdPlan.Of(dsdOut) == null) throw new DeviceRefusal(400, "dsd_out must be off, 64, 128 or 256");
                     patch["dsd_out"] = off ? null : dsdOut;
                 }
+                // Its modulator (item 303): 7 (the seventh order), 7w or 9.
+                var dsdMod = Prop(output, "dsd_mod");
+                if (dsdMod is not Undef)
+                {
+                    if (dsdMod is not string dm || Array.IndexOf(Upsample.DsdOut.Mods, dm) < 0) throw new DeviceRefusal(400, "dsd_mod must be 7, 7w or 9");
+                    patch["dsd_mod"] = dm == "7" ? null : dm;
+                }
+                DitherInto(output, patch); PhaseInto(output, patch, d.Settings);   // its dither and real bits (item 301), its Phase (item 318)
+                // An album as one stream (item 300): on or off.
+                var albumStream = Prop(output, "album_stream");
+                if (albumStream is not Undef)
+                {
+                    if (albumStream is not bool on) throw new DeviceRefusal(400, "album_stream must be true or false");
+                    patch["album_stream"] = on ? true : null;
+                }
+                // Played through UPnP, or its own player (MPD, item 306).
+                if (Prop(output, "player") is var player and not Undef)
+                    patch["player"] = !Jv.OneOf(player, "upnp", "mpd") ? throw new DeviceRefusal(400, "player must be upnp or mpd") : Jv.Same(player, "mpd") ? player : null;
                 // The highest rate sent (item 240): Auto, or a cap by 48 kHz's family.
                 var maxRate = Prop(output, "max_rate");
                 if (maxRate is not Undef)
@@ -226,7 +252,7 @@ internal static partial class Library
                         clean[k] = list.Select(x => (object?)Jv.Num(x)).ToList();
                     }
                 }
-                if (d.Kind is not ("upnp" or "local")) throw new DeviceRefusal(400, "What a Sonos room or a phone plays is fixed");
+                if (!Renderers.Players.StreamerKind(d.Kind)) throw new DeviceRefusal(400, "What a Sonos room or a phone plays is fixed");
                 DeviceUserCaps(c, d, clean);
                 changed.Add("caps");
             }
@@ -362,7 +388,7 @@ internal static partial class Library
     {
         if (d.Kind == "phone") return true;
         var v = d.Settings["enabled"];
-        return d.Kind is "upnp" or "local" ? TJs.StrictEq(v, true) : !TJs.StrictEq(v, false);
+        return Renderers.Players.StreamerKind(d.Kind) ? TJs.StrictEq(v, true) : !TJs.StrictEq(v, false);
     }
 
     /* dspFor(id): the DSP as Biquad.normalise keeps it; null for a Sonos room or a setting that doesn't read. */

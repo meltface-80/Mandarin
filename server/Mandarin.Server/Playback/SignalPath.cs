@@ -69,10 +69,10 @@ internal static class SignalPath
             var top = Upsample.DsdChain.InRateFor(Upsample.DsdPlan.DsdRate((int)s.Dsd, family));
             if (from != (t.SampleRate ?? 0)) steps.Add(Step("resample", "To 44.1 kHz’s family", $"{Khz(t.SampleRate ?? 0)} → {Khz(from)} kHz, by SoX at its finest", "enhanced"));
             steps.Add(Step("upsample", "Upsampling", $"×{N(top / Math.Max(1, from))} to {Khz(top)} kHz · {Upsample.Shape.Name(s.Shape).ToLowerInvariant()}", "enhanced"));
-            steps.Add(Step("modulator", "DSD modulator", $"Seventh order, its noise shaped out of the audio band; doubled to DSD{N(s.Dsd)} ({Mhz(s.Dsd, family)} MHz)", "enhanced"));
+            steps.Add(Step("modulator", "DSD modulator", $"{Upsample.DsdOut.Line(s.Mod)}; doubled to DSD{N(s.Dsd)} ({Mhz(s.Dsd, family)} MHz)", "enhanced"));
             steps.Add(Step("output", "Output", $"DSF, DSD{N(s.Dsd)}, made as it plays, to {z.DisplayName}", "enhanced"));
             output = $"DSD{N(s.Dsd)} · {Mhz(s.Dsd, family)} MHz";
-            how = $"From PCM · {Upsample.Shape.Words(s.Shape)} ×{N(top / Math.Max(1, from))} · 7th-order modulator";
+            how = $"From PCM · {Upsample.Shape.Words(s.Shape)} ×{N(top / Math.Max(1, from))} · {Upsample.DsdOut.Words(s.Mod)}";
         }
         else
         {
@@ -83,6 +83,13 @@ internal static class SignalPath
                 var filter = Upsample.Shape.Name(s.Shape);
                 steps.Add(Step("upsample", "Upsampling", $"×{N(s.Upsampled)} to {Khz(s.Rate)} kHz · {filter}", "enhanced"));
                 how = filter;
+                // Mandarin's own dither (item 301), where the device asks it: how the last bit is rounded, and at which.
+                if (s.Dither != null || s.RealBits > 0)
+                {
+                    var dw = Upsample.Dither.Words(s.Dither, Upsample.Dither.Depth((int)s.Bits, s.RealBits));
+                    steps.Add(Step("dither", "Dither", char.ToUpperInvariant(dw[0]) + dw[1..] + (s.RealBits > 0 && s.RealBits < s.Bits ? $", in {N(s.Bits)}-bit words" : "") + ", Mandarin’s own", "enhanced"));
+                    how += " · dither " + dw;
+                }
             }
             var exact = !s.Transcode;
             steps.Add(Step("output", "Output", $"{words}{(exact ? ", the file as it is" : "")}, to {z.DisplayName}", exact ? "lossless" : "enhanced"));

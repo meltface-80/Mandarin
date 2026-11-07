@@ -27,10 +27,11 @@ import com.musicd.server.client.Contract
 
 /**
  * The touch layout's row along the foot of the screen, natively
- * (docs/specs/screens.json, nav; style.css, `.touch-nav`): Home, Library, Artists (item 130), Shelf while it is switched
- * on and not offline, and Search (item 210: Menu went to Home's top left, HomeScreen.kt), each an equal share of the
- * row, four or five, the one the page is on ([lit]: "home", "library", "artists", "search") in brass. Each tap is the
- * page's own button's ([onTap], by name), so there is one way to do each thing. Offline is said at the top of the
+ * (docs/specs/screens.json, nav; style.css, `.touch-nav`): Menu (item 296: the side menu over whichever screen is
+ * showing, Now playing too; it was at Home's top left from item 210), Home, Library, Artists (item 130), Shelf while it
+ * is switched on and not offline, and Search, each an equal share of the row, five or six, the one the page is on
+ * ([lit]: "home", "library", "artists", "search") in brass. Each tap is the page's own button's ([onTap], by name), so
+ * there is one way to do each thing. Offline is said at the top of the
  * screen now (OfflineToast.kt, item 134), not in the row.
  */
 @Composable
@@ -39,6 +40,7 @@ internal fun TouchNav(lit: String, onTap: (String) -> Unit, modifier: Modifier =
     Column(modifier.fillMaxWidth().background(MaterialTheme.colorScheme.background)) {
         HorizontalDivider(color = MaterialTheme.colorScheme.outline)
         Row(Modifier.fillMaxWidth().height(58.dp).padding(horizontal = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+            NavButton(R.drawable.tn_menu, Contract.label("nav.menu"), false, Modifier.weight(1f).parity("nav.menu", Contract.label("nav.menu")).clickable { onTap("menu") })
             NavButton(R.drawable.tn_home, Contract.label("nav.home"), lit == "home", Modifier.weight(1f).parity("nav.home", Contract.label("nav.home")).clickable { onTap("home") })
             NavButton(R.drawable.tn_library, Contract.label("nav.library"), lit == "library", Modifier.weight(1f).parity("nav.library", Contract.label("nav.library")).clickable { onTap("library") })
             NavButton(R.drawable.tn_artists, Contract.label("nav.artists"), lit == "artists", Modifier.weight(1f).parity("nav.artists", Contract.label("nav.artists")).clickable { onTap("artists") })

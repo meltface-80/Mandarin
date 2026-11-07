@@ -6,7 +6,7 @@ import java.net.Inet4Address
 import java.net.InetAddress
 import java.net.NetworkInterface
 
-/** The network the renderer lives on: its own address, and leave to hear multicast. */
+/** The network the Bridge lives on: its own address, and leave to hear multicast. */
 object Net {
     private var multicast: WifiManager.MulticastLock? = null
 
@@ -27,7 +27,7 @@ object Net {
     fun holdMulticast(c: Context) {
         if (multicast != null) return
         val wm = c.applicationContext.getSystemService(Context.WIFI_SERVICE) as? WifiManager ?: return
-        multicast = wm.createMulticastLock("MandarinBridge:ssdp").apply { setReferenceCounted(false); acquire() }
+        multicast = wm.createMulticastLock("MandarinBridge:slimproto").apply { setReferenceCounted(false); acquire() }
     }
 
     @Synchronized

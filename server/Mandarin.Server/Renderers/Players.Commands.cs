@@ -17,7 +17,7 @@ internal sealed partial class Players
     private async Task Verify(Player p, UpnpItem item)
     {
         var rec = Record(p.Id);
-        if (rec != null && rec.Kind == "local") { await VerifyLocal(p, rec, item); return; }
+        if (rec != null && rec.Kind == "local") return;   // a Mac's sound device: nothing reads back what it is fed (Linux's were ALSA's, item 324)
         if (rec?.Caps["mandarin"] is JsObj mu && Jv.T(mu["base"])) { await VerifyMandarinBridge(p, rec, item, Jv.Str(mu["base"])); return; }
         var lp = rec?.Caps["linkplay"] as JsObj;
         if (lp == null || !Jv.T(lp["base"]) || item.Sent == null || item.Sent.Rate == 0 || item.Sent.Dsd != 0) return;
@@ -50,36 +50,6 @@ internal sealed partial class Players
         }
     }
 
-    /* A sound device on Linux: ALSA says the rate the device is open at (/proc/asound/…/hw_params); the same as the engine's and as sent, and it is confirmed. */
-    private async Task VerifyLocal(Player p, DeviceRecord rec, UpnpItem item)
-    {
-        var sink = (p.Renderer as Local.EngineOutput)?.Sink;
-        if (item.Sent == null || item.Sent.Rate == 0 || sink == null) return;
-        var key = p.Index + ":" + item.Uri;
-        lock (gate) { if (p.Verifying == key) return; }
-        ZoneState? st;
-        lock (zm.Gate) st = zm.State.GetValueOrDefault(p.Id);
-        if ((st?.Position ?? 0) < 2) return;
-        lock (gate) p.Verifying = key;
-        var hw = HwParams(rec.Location);
-        if (hw == null || hw.Value.Rate == 0) return;
-        // DSD (item 256): the device open at the DSD rate over 16 (DoP) or over 32 (native words), not at a PCM rate.
-        var dsd = item.Sent.Dsd * item.Sent.DsdBase;
-        var ok = hw.Value.Rate == sink.Value.Rate && (dsd > 0 ? sink.Value.Rate * 16 == dsd || sink.Value.Rate * 32 == dsd : sink.Value.Rate == item.Sent.Rate);
-        if (ok && dsd == 0) { using var c = Db.Open(); Register.MarkVerified(c, p.Id, hw.Value.Rate, null); }
-        // What the engine opened the device at (its format event) and what it does to the samples (its gain, item 287).
-        var engine = p.Renderer as Local.EngineOutput;
-        var format = engine?.Opened?.Format ?? "";
-        var kind = format.Contains("DoP", StringComparison.Ordinal) ? "dop" : format.StartsWith("DSD", StringComparison.Ordinal) ? "dsd" : "pcm";
-        var gain = engine?.GainNow ?? 1;
-        var fed = new Fed("Mandarin's audio engine", kind, hw.Value.Rate, format.Contains("32", StringComparison.Ordinal) ? 32 : 0, item.Sent.Dsd,
-            engine?.FixedVolume == true ? "fixed" : "software", engine?.Volume ?? 0, gain == 1, ok);
-        var bump = false;
-        lock (zm.Gate) { if (zm.State.TryGetValue(p.Id, out var now) && now.TrackUri == item.Uri) { now.Verified = ok ? "yes" : "no"; now.Fed = fed; bump = true; } }
-        if (bump) zm.Bump();
-        await Task.CompletedTask;
-    }
-
     /* The next file must be complete before the renderer is told about it, so it always sees a length and byte ranges for it;
        a DSF made as it plays once its making has begun, sent with its header's length and ranges as made (item 262). */
     private static bool Ready(UpnpItem it)
@@ -101,7 +71,7 @@ internal sealed partial class Players
     {
         int n;
         UpnpItem? it;
-        lock (gate) { n = NextIndex(p); it = n >= 0 ? p.Queue[n] : null; }
+        lock (gate) { n = AfterRun(p); it = n >= 0 ? p.Queue[n] : null; }   // after an album as one stream, what follows it (item 300)
         if (it == null)
         {
             // Nothing follows any more (the queue shrank): withdraw what was set.
@@ -174,7 +144,7 @@ internal sealed partial class Players
             Sent = p == null ? null : new SentInfo(Jv.T(p["transcode"]),
                 Jv.T(p["transcode"]) ? Jv.Num(p["rate"]) : t?.SampleRate ?? 0, Jv.T(p["transcode"]) ? Jv.Num(p["bits"]) : t?.Bits ?? 0,
                 Jv.T(p["upsampled"]) ? Jv.Num(p["upsampled"]) : 0, Jv.T(p["dsp"]), Jv.T(p["dsd"]) ? Jv.Num(p["dsd"]) : 0,
-                Jv.T(p["ext"]) ? Jv.Str(p["ext"]) : "", Jv.T(p["mime"]) ? Jv.Str(p["mime"]) : "") { Gain = Jv.T(p["gain"]) ? Jv.Num(p["gain"]) : 0, Lowpass = Jv.T(p["lowpass"]) ? Jv.Num(p["lowpass"]) : 0, Shape = p["shape"] as string, DsdBase = Jv.Num(p["dsdBase"]) == 48000 ? 48000 : 44100 }
+                Jv.T(p["ext"]) ? Jv.Str(p["ext"]) : "", Jv.T(p["mime"]) ? Jv.Str(p["mime"]) : "") { Gain = Jv.T(p["gain"]) ? Jv.Num(p["gain"]) : 0, Lowpass = Jv.T(p["lowpass"]) ? Jv.Num(p["lowpass"]) : 0, Shape = p["shape"] as string, Mod = p["mod"] as string, Dither = Upsample.Dither.Of(p["dither"]), RealBits = Upsample.Dither.BitsOf(p["real_bits"]), DsdBase = Jv.Num(p["dsdBase"]) == 48000 ? 48000 : 44100 }
         };
     }
 
@@ -247,8 +217,9 @@ internal sealed partial class Players
             }
             case "previous":
                 // Back to the start of this track first, as every player does: sent again where the device is stuck (item 272).
-                if (Stuck(p, st)) await Jump(p, p.Index);
-                else if (Hub.PositionNow(st) > 5 || p.Index <= 0) { await Serially(p, () => r.SeekTime(0)); Optimistic(id, s => s.Position = 0); }
+                // In an album as one stream (item 300), the track is begun again by its run's start there.
+                if (Stuck(p, st) || p.Run != null && (Hub.PositionNow(st) > 5 || p.Index <= 0)) await Jump(p, p.Index);
+                else if (Hub.PositionNow(st) > 5 || p.Index <= 0) { await Serially(p, () => r.SeekTime(0)); p.SeekedAt = Hub.Now(); Optimistic(id, s => s.Position = 0); }
                 else await Jump(p, p.Index - 1);
                 break;
             case "playpause":
@@ -265,9 +236,10 @@ internal sealed partial class Players
         ZoneState st;
         lock (zm.Gate) st = zm.State.GetValueOrDefault(id) ?? new ZoneState();
         var target = Math.Max(0, how == "relative" ? Hub.PositionNow(st) + seconds : seconds);
-        if (Stuck(p, st)) await Jump(p, p.Index, target);
+        // In an album as one stream (item 300), its run begun again at the track and the seconds into it.
+        if (Stuck(p, st) || p.Run != null) await Jump(p, p.Index, target);
         else await Serially(p, () => RendererOf(p).SeekTime(target));
-        Optimistic(id, s => s.Position = target);
+        p.SeekedAt = Hub.Now(); Optimistic(id, s => s.Position = target);
         PokeAfter(p);
     }
 

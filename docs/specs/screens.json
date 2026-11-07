@@ -11,7 +11,7 @@
   },
   "screens": {
     "now-playing": {
-      "page": "Now playing: the album view in its Now playing mode (#album-modal.np-mode), on its Now playing tab, a phone held upright",
+      "page": "Now playing: the album view in its Now playing mode (#album-modal.np-mode), on its Now playing tab, the row along the foot under it (item 296: its cover smaller by the row), a phone held upright",
       "native": ["android/app/src/main/java/com/musicd/server/android/NowPlayingScreen.kt", "android/app/src/main/java/com/musicd/server/android/NowPlayingMenus.kt", "android/app/src/main/java/com/musicd/server/android/NowPlayingSeek.kt", "android/app/src/main/java/com/musicd/server/android/SignalPathSheet.kt"],
       "preview": false,
       "items": {
@@ -141,9 +141,10 @@
       }
     },
     "nav": {
-      "page": "the touch layout's row along the foot of the screen (#touch-nav, touchnav.js): Home, Library, Artists, Shelf while it is switched on, and Search under the mini player, evenly across it whether four or five (item 210: Menu went to Home's top left), a phone held upright (offline is said at the top of the screen: offline-sign)",
+      "page": "the touch layout's row along the foot of the screen (#touch-nav, touchnav.js): Menu, Home, Library, Artists, Shelf while it is switched on, and Search under the mini player, evenly across it whether five or six (item 296: Menu the row's first again, on every screen and Now playing too; it was at Home's top left from item 210), a phone held upright (offline is said at the top of the screen: offline-sign)",
       "native": ["android/app/src/main/java/com/musicd/server/android/TouchNav.kt"],
       "items": {
+        "menu": { "kind": "action", "label": "Menu" },
         "home": { "kind": "action", "label": "Home" },
         "library": { "kind": "action", "label": "Library" },
         "artists": { "kind": "action", "label": "Artists" },
@@ -283,7 +284,7 @@
       }
     },
     "home": {
-      "page": "Home (#home-view; the top bar is hidden in the touch layout: the menu at Home's top left, where the side menu opens (item 210), the row along the foot has its Search): the menu and the greeting beside it, the strip under it (Random Album, Album of the day), then the rows in the owner's order, each a heading that opens its wall over its albums, Smart Picks' cards, the label of the week, the genre cards; in the Android app, Downloaded albums and Music on device too; the mini player and the row along the foot are their own screens; a phone held upright",
+      "page": "Home (#home-view; the top bar is hidden in the touch layout: the row along the foot has its Menu and Search, item 296): the greeting, the strip under it (Random Album, Album of the day), then the rows in the owner's order, each a heading that opens its wall over its albums, Smart Picks' cards, the label of the week, the genre cards; in the Android app, Downloaded albums and Music on device too; the mini player and the row along the foot are their own screens; a phone held upright",
       "native": ["android/app/src/main/java/com/musicd/server/android/HomeScreen.kt", "android/app/src/main/java/com/musicd/server/android/HomeRows.kt", "android/app/src/main/java/com/musicd/server/android/HomeTiles.kt", "android/app/src/main/java/com/musicd/server/android/AlbumTile.kt", "android/app/src/main/java/com/musicd/server/android/NoticeBanners.kt"],
       "preview": false,
       "items": {
@@ -293,7 +294,6 @@
         "update-now": { "kind": "action", "label": ["Update", "Roll back"], "when": "an update offered" },
         "update-later": { "kind": "action", "label": "Dismiss", "when": "an update offered" },
         "update-notes": { "kind": "shows", "when": "the offered update's notes" },
-        "menu": { "kind": "action", "label": "Menu" },
         "greeting-date": { "kind": "shows", "when": "the greeting is on (Settings → Home Screen)" },
         "greeting": { "kind": "shows", "when": "the greeting is on" },
         "random-album": { "kind": "action", "label": "Random Album", "when": "Random Album is on (Settings → Home Screen)" },
@@ -1101,7 +1101,7 @@
       }
     },
     "settings-system": {
-      "page": "Settings' Updates: Back, its title; the server and, in the app, the app a row each (item 223), and each Mandarin Bridge Mandarin knows (item 291), its update asked of it from here: its name with its version, and its own Check for update, which looks for that one's update alone and becomes Update available once one is found (installing it on the next tap), or says how things stand; under both, what each update found brings, a heading and its short lines, once for a version both bring",
+      "page": "Settings' Updates: Back, its title; the server and, in the app, the app a row each (item 223), and each Mandarin Bridge Mandarin knows (item 291), its update asked of it from here: its name with its version, and its own Check for update, which looks for that one's update alone and becomes Update available once one is found (installing it on the next tap), or says how things stand, and under a Bridge whose update failed or waits on the device, what it said (item 327); under both, what each update found brings, a heading and its short lines, once for a version both bring",
       "native": ["android/app/src/main/java/com/musicd/server/android/SettingsUpdates.kt"],
       "preview": false,
       "items": {
@@ -1111,6 +1111,7 @@
         "check": { "kind": "action", "label": ["Check for update", "{state}"] },
         "app-check": { "kind": "action", "label": ["Check for update", "{state}"], "when": "in the Android app" },
         "bridge-update": { "kind": "action", "label": ["Check for update", "{state}"], "each": true, "when": "a Mandarin Bridge Mandarin knows" },
+        "bridge-why": { "kind": "shows", "each": true, "when": "a Mandarin Bridge whose update failed or waits on the device: what it said of it" },
         "notes-head": { "kind": "shows", "each": true, "when": "an update found with its notes" },
         "notes": { "kind": "shows", "each": true, "when": "an update found with its notes" }
       }
@@ -1168,8 +1169,8 @@
       }
     },
     "settings-device": {
-      "page": "Settings' Audio Devices, a device's page: Back, its name; on or off, Random album radio, a phone's Other devices can play here; its name to change (or the phone's own), About, Capabilities (rates, depths and DSD, each a chip, tapped on or off where it can be set; its formats), Output (the mode, the highest rate, the filter, the depth, DSD as PCM, PCM as DSD, Fixed volume), Volume levelling with its level and the unknown's adjustment, DSP (a headphone profile chosen from AutoEq or pasted, the bands' curve, each band's type, frequency, gain and Q, Add band, the headroom, Save), this phone's USB DAC (Allow, what it takes, USB direct, Fixed volume, the limit, DSD, Copy), Forget this device; their notes",
-      "native": ["android/app/src/main/java/com/musicd/server/android/SettingsDevice.kt", "android/app/src/main/java/com/musicd/server/android/SettingsDsp.kt", "android/app/src/main/java/com/musicd/server/android/SettingsUsb.kt", "android/app/src/main/java/com/musicd/server/android/SettingsRoomCorrection.kt"],
+      "page": "Settings' Audio Devices, a device's page: Back, its name; on or off, Random album radio, a phone's Other devices can play here; its name to change (or the phone's own), About, Capabilities (rates, depths and DSD, each a chip, tapped on or off where it can be set; its formats), Output (Sound: its recipes, each a card, the one in use with what it does for the device, Custom opening Advanced; Advanced, a fold, with the mode, the highest rate, the filter for CD-rate sources and the one for hi-res sources, each opening the list of filters with what each does, the depth, DSD as PCM, PCM as DSD, its Modulator (opening the list of modulators with what each measured), when upsampled the DAC’s real bits and the Dither (opening the list of dithers with what each measured), then outside the fold: its Player (UPnP or its own player, where MPD is found beside it), Albums as one stream, Fixed volume), Volume levelling with its level and the unknown's adjustment, DSP (a headphone profile chosen from AutoEq or pasted, the bands' curve, each band's type, frequency, gain and Q, Add band, the headroom, Save), this phone's USB DAC (Allow, what it takes, USB direct, Fixed volume, the limit, DSD, Copy), Forget this device; their notes",
+      "native": ["android/app/src/main/java/com/musicd/server/android/SettingsDevice.kt", "android/app/src/main/java/com/musicd/server/android/SettingsFilters.kt", "android/app/src/main/java/com/musicd/server/android/SettingsModulator.kt", "android/app/src/main/java/com/musicd/server/android/SettingsDither.kt", "android/app/src/main/java/com/musicd/server/android/SettingsRecipes.kt", "android/app/src/main/java/com/musicd/server/android/SettingsDsp.kt", "android/app/src/main/java/com/musicd/server/android/SettingsUsb.kt", "android/app/src/main/java/com/musicd/server/android/SettingsRoomCorrection.kt"],
       "preview": false,
       "items": {
         "back": { "kind": "action", "label": "Back to Audio Devices" },
@@ -1192,9 +1193,27 @@
         "mode": { "kind": "action", "label": ["Original", "×2", "×4", "Max"], "each": true, "when": "a renderer or a sound device of the server's" },
         "depth": { "kind": "action", "label": ["Auto", "24", "32"], "each": true, "when": "one that takes 32 bits" },
         "maxrate": { "kind": "action", "label": ["Auto", "96k", "192k", "384k", "768k"], "each": true, "when": "one that takes above 96 kHz" },
-        "filter": { "kind": "action", "label": ["Standard", "Min phase", "Gentle"], "each": true, "when": "upsampling or PCM as DSD on" },
+        "filter": { "kind": "action", "label": "CD-rate sources", "when": "upsampling or PCM as DSD on" },
+        "filter-hires": { "kind": "action", "label": "Hi-res sources", "when": "upsampling or PCM as DSD on" },
+        "filter-sheet-title": { "kind": "shows", "in": "filter" },
+        "filter-choice": { "kind": "action", "label": ["Same as CD-rate sources", "Standard", "Gentle", "Gaussian", "Gaussian steep", "Gaussian hi-res", "Long", "Very long"], "each": true, "in": "filter" },
+        "filter-close": { "kind": "action", "label": "Close", "in": "filter" },
         "dsdlowpass": { "kind": "action", "label": ["Off", "50 kHz", "30 kHz"], "each": true, "when": "a renderer or a sound device of the server's" },
         "dsdout": { "kind": "action", "label": ["Off", "DSD64", "DSD128", "DSD256"], "each": true, "when": "one that takes DSD" },
+        "modulator": { "kind": "action", "label": "Modulator", "when": "PCM as DSD on" },
+        "modulator-sheet-title": { "kind": "shows", "in": "modulator" },
+        "modulator-choice": { "kind": "action", "label": ["7th order", "7th order wide", "9th order"], "each": true, "in": "modulator" },
+        "modulator-close": { "kind": "action", "label": "Close", "in": "modulator" },
+        "realbits": { "kind": "action", "label": ["As sent", "23", "22", "21", "20"], "each": true, "when": "upsampled, not made DSD" },
+        "phase": { "kind": "action", "label": ["Linear", "Minimum"], "each": true, "when": "it upsamples, or makes DSD from PCM" },
+        "dither": { "kind": "action", "label": "Dither", "when": "upsampled, not made DSD" },
+        "dither-sheet-title": { "kind": "shows", "in": "dither" },
+        "dither-choice": { "kind": "action", "label": ["Flat", "Shaped, 3rd order", "Shaped, 5th order"], "each": true, "in": "dither" },
+        "dither-close": { "kind": "action", "label": "Close", "in": "dither" },
+        "recipe": { "kind": "action", "label": "{recipe}", "each": true, "when": "a renderer or a sound device of the server's" },
+        "advanced": { "kind": "action", "label": "Advanced", "when": "a renderer or a sound device of the server's" },
+        "album-stream": { "kind": "action", "label": "Albums as one stream", "when": "upsampling or PCM as DSD on" },
+        "player": { "kind": "action", "label": ["UPnP", "Its own player"], "each": true, "when": "a renderer with its own player (MPD) found beside it" },
         "fixvol": { "kind": "action", "label": "Fixed volume", "when": "one whose volume can be fixed" },
         "lv-mode": { "kind": "action", "label": "Volume levelling", "when": "levelling offered" },
         "lv-target": { "kind": "action", "label": "Target volume level", "when": "levelling on" },

@@ -50,7 +50,8 @@ async function start({ port, musicDir, dataDir, env = {}, bin = BIN, timeoutMs =
   const key = crypto.randomBytes(24).toString("hex");
   const e = Object.assign({}, process.env, {
     PORT: String(port), MUSIC_DIR: musicDir, DATA_DIR: dataDir, SERVER_IP: "127.0.0.1", MANDARIN_APP_DIR: ROOT,
-    MANDARIN_FRONT_KEY: key, IDENTIFY: "0", LOCAL_AUDIO: "0", UPDATE_CHECK: "false", UPNP_DISCOVERY: "0", ITUNES_URL: "http://127.0.0.1:9"
+    MANDARIN_FRONT_KEY: key, IDENTIFY: "0", LOCAL_AUDIO: "0", UPDATE_CHECK: "false", UPNP_DISCOVERY: "0", ITUNES_URL: "http://127.0.0.1:9",
+    SLIMPROTO_PORT: "0"   // SlimProto off unless a test asks (item 312): servers side by side would contend for 3483
   }, process.env.ALLOW_NETWORK ? {} : { MANDARIN_LOOPBACK_ONLY: "1" }, env);
   // The program is its own file (Updater.cs BinPath): never the suite's, told by the environment.
   delete e.MANDARIN_SERVER_BIN;
@@ -115,7 +116,10 @@ const ENV = {
   // The Python SQ-tool is run with (SqTool.cs, item 288): one that isn't there, to see it said.
   sqtoolPython: "SQTOOL_PYTHON",
   // Where GitHub's API is (Admin/Updater.cs, Admin/BridgeUpdates.cs): a test's own releases.
-  updateApi: "UPDATE_API"
+  updateApi: "UPDATE_API",
+  // The port a renderer's own player (MPD) is looked for at (Renderers/Mpd.cs, item 306): a test's fake one.
+  mpdPort: "MPD_PORT",
+  slimprotoPort: "SLIMPROTO_PORT"
 };
 // On or off, as index.js read them ("0" is off).
 const FLAGS = { upnpMulticast: "UPNP_DISCOVERY", identify: "IDENTIFY", localAudio: "LOCAL_AUDIO" };

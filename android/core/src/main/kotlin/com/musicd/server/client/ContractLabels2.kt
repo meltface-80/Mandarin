@@ -1,7 +1,7 @@
 // Written by tools/quality/parity.js from docs/specs/screens.json (npm run parity -- write); never by hand.
 package com.musicd.server.client
 
-/** The screens contract's labels, part 2 of 2 (Contract.kt joins them). */
+/** The screens contract's labels, part 2 of 3 (Contract.kt joins them). */
 internal object ContractLabels2 {
     val labels: Map<String, List<String>> = mapOf(
         "settings-labels.back" to listOf("Back to settings"),
@@ -157,9 +157,24 @@ internal object ContractLabels2 {
         "settings-device.mode" to listOf("Original", "×2", "×4", "Max"),
         "settings-device.depth" to listOf("Auto", "24", "32"),
         "settings-device.maxrate" to listOf("Auto", "96k", "192k", "384k", "768k"),
-        "settings-device.filter" to listOf("Standard", "Min phase", "Gentle"),
+        "settings-device.filter" to listOf("CD-rate sources"),
+        "settings-device.filter-hires" to listOf("Hi-res sources"),
+        "settings-device.filter-choice" to listOf("Same as CD-rate sources", "Standard", "Gentle", "Gaussian", "Gaussian steep", "Gaussian hi-res", "Long", "Very long"),
+        "settings-device.filter-close" to listOf("Close"),
         "settings-device.dsdlowpass" to listOf("Off", "50 kHz", "30 kHz"),
         "settings-device.dsdout" to listOf("Off", "DSD64", "DSD128", "DSD256"),
+        "settings-device.modulator" to listOf("Modulator"),
+        "settings-device.modulator-choice" to listOf("7th order", "7th order wide", "9th order"),
+        "settings-device.modulator-close" to listOf("Close"),
+        "settings-device.realbits" to listOf("As sent", "23", "22", "21", "20"),
+        "settings-device.phase" to listOf("Linear", "Minimum"),
+        "settings-device.dither" to listOf("Dither"),
+        "settings-device.dither-choice" to listOf("Flat", "Shaped, 3rd order", "Shaped, 5th order"),
+        "settings-device.dither-close" to listOf("Close"),
+        "settings-device.recipe" to listOf("{recipe}"),
+        "settings-device.advanced" to listOf("Advanced"),
+        "settings-device.album-stream" to listOf("Albums as one stream"),
+        "settings-device.player" to listOf("UPnP", "Its own player"),
         "settings-device.fixvol" to listOf("Fixed volume"),
         "settings-device.lv-mode" to listOf("Volume levelling"),
         "settings-device.lv-target" to listOf("Target volume level"),
@@ -280,28 +295,5 @@ internal object ContractLabels2 {
         "shelf.queue-play" to listOf("Play from here"),
         "shelf.help-never" to listOf("Don’t show again"),
         "shelf.help-ok" to listOf("Dismiss"),
-        "shelf-choices.reset" to listOf("Reset shelf"),
-        "shelf-choices.chip-remove" to listOf("Remove {choice}"),
-        "shelf-choices.tab-genre" to listOf("Genres", "Genres {count}"),
-        "shelf-choices.tab-artist" to listOf("Artists", "Artists {count}"),
-        "shelf-choices.tab-year" to listOf("Years", "Years {count}"),
-        "shelf-choices.tab-label" to listOf("Labels", "Labels {count}"),
-        "shelf-choices.tab-type" to listOf("Types", "Types {count}"),
-        "shelf-choices.tab-format" to listOf("Formats", "Formats {count}"),
-        "shelf-choices.tab-favourite" to listOf("Favourites", "Favourites {count}"),
-        "shelf-choices.tab-order" to listOf("Order", "Order {count}"),
-        "shelf-choices.clear" to listOf("Clear all"),
-        "shelf-choices.genre-sort" to listOf("Most albums first", "A to Z", "Z to A"),
-        "shelf-choices.genre" to listOf("{genre}"),
-        "shelf-choices.letter" to listOf("Artists under {letter}"),
-        "shelf-choices.decade" to listOf("The {decade}s", "Albums with no year"),
-        "shelf-choices.label" to listOf("{label}"),
-        "shelf-choices.type" to listOf("{type}"),
-        "shelf-choices.format" to listOf("{format}"),
-        "shelf-choices.favourite" to listOf("Favourites"),
-        "shelf-choices.order" to listOf("{order}"),
-        "shelf-choices.reshuffle" to listOf("Shuffle again"),
-        "shelf-choices.spin" to listOf("Spin the shelf"),
-        "shelf-choices.done" to listOf("Show {count} albums", "Show {count} album", "Show the shelf"),
     )
 }

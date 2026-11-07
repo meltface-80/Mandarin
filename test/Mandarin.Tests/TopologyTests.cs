@@ -47,5 +47,9 @@ public sealed class TopologyTests
     public async Task A_queued_URL_says_which_library_track_it_is()
     {
         JsonAssert.Same("[42,null]", (await Score.Run(new { fn = "uris", uris = new[] { "http://10.0.0.2:3500/stream/t42.flac", "x-sonos-spotify:abc" } }))["tracks"]);
+        // Each kind the server sends: as it is, converted, upsampled, and made DSD of PCM (item 299), its query whatever the device made of it.
+        JsonAssert.Same("[42,43,44,45]", (await Score.Run(new { fn = "uris", uris = new[] { "http://10.0.0.2:3500/stream/t42.orig.flac",
+            "http://10.0.0.2:3500/stream/t43.96000-24.flac", "http://10.0.0.2:3500/stream/t44.705600-32.wav?f=gauss-steep&amp;sig=x",
+            "http://10.0.0.2:3500/stream/t45.d256.dsf?f=gauss-steep&amp;sig=x" } }))["tracks"]);
     }
 }

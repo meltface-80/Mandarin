@@ -9,13 +9,14 @@
 // capabilities in layers (Profiles.cs). Here too: whether a device is on, on
 // the network, playing, and the device as its page shows it.
 using Mandarin.Server.Local;
+using Mandarin.Server.Renderers.Slim;
 using Mandarin.Server.Playback;
 using Mandarin.Server.Tags;
 using Microsoft.Data.Sqlite;
 
 namespace Mandarin.Server.Renderers;
 
-internal sealed class Devices
+internal sealed partial class Devices
 {
     private const int ScanMs = 60000, LocalMs = 30000;
     private readonly Hub hub;
@@ -52,6 +53,7 @@ internal sealed class Devices
     {
         hub.Loop("scan", ScanMs, Scan, 2000);
         hub.Loop("local", LocalMs, ScanLocal, 500);
+        StartSlim();   // SlimProto players: Squeezelite, a Squeezebox, a Mandarin Bridge (item 312)
         // A renderer that says it has come, and a sound device plugged in, are read now, not at the next round.
         if (hub.Config.UpnpMulticast) announcements = SsdpListen.Start(hub.Config.ServerIp, Wanted, loc => { Discovery.Heard(loc); roundSoon.Ask(); }, hub.Log);
         if (hub.Config.LocalDevices == null && Directory.Exists("/dev/snd"))
@@ -72,6 +74,7 @@ internal sealed class Devices
     {
         announcements?.Dispose();
         plugged?.Dispose();
+        Slim?.Dispose();
     }
 
     /* A round in a moment, one however often it's asked for meanwhile (a device's burst of announcements, a DAC's several device files). */
@@ -108,10 +111,15 @@ internal sealed class Devices
         lock (gate)
         {
             if (scanning != null) return scanning;
-            scanning = Round();
-            return scanning;
+            var round = Round();
+            scanning = Running(round);
+            return round;
         }
     }
+
+    // [round] kept as under way only while it is: one over before it was kept (its finally already run, as a Linux
+    // server's local round is with nothing to list) would be kept for ever, and no round would run again (item 329).
+    private static Task? Running(Task round) => round.IsCompleted ? null : round;
 
     private async Task Round()
     {
@@ -139,8 +147,9 @@ internal sealed class Devices
         lock (gate)
         {
             if (scanningLocal != null) return scanningLocal;
-            scanningLocal = LocalRound();
-            return scanningLocal;
+            var round = LocalRound();
+            scanningLocal = Running(round);
+            return round;
         }
     }
 
@@ -151,11 +160,23 @@ internal sealed class Devices
             var r = await localList();
             // A Mac's are offered as Linux's are: the engine plays them through Core Audio (item 155).
             var offered = r.Devices;
-            using (var c = Db.Open()) foreach (var rec in offered) Register.Seen(c, rec);
+            var forgot = 0;
+            using (var c = Db.Open())
+            {
+                foreach (var rec in offered) Register.Seen(c, rec);
+                // This computer's sound cards, as the server played them on Linux before item 324: forgotten, a Mandarin Bridge's to play now.
+                foreach (var gone in Register.All(c).Where(x => x.Kind == "local" && (x.Location ?? "").StartsWith("alsa:", StringComparison.Ordinal) && !offered.Any(o => o.Id == x.Id)).ToList())
+                {
+                    Register.Forget(c, gone.Id);
+                    hub.Upnp.Drop(gone.Id);
+                    forgot++;
+                    hub.Log($"[local] {gone.Name ?? gone.NetworkName}: this computer's sound card, forgotten: Mandarin no longer plays it itself; Mandarin Bridge for Linux, beside it, does");
+                }
+            }
             var before = Jv.Num(Local["count"]);
             Local = Jv.Obj(("platform", r.Platform.Length > 0 ? r.Platform : Local["platform"]), ("hidden", (double)r.Hidden), ("count", (double)offered.Count),
                 ("docker", Local["docker"]), ("off", r.Off));
-            if (offered.Count > 0 || before > 0) hub.Bump();
+            if (offered.Count > 0 || before > 0 || forgot > 0) hub.Bump();
         }
         finally { lock (gate) scanningLocal = null; }
     }
@@ -169,7 +190,7 @@ internal sealed class Devices
     {
         if (r == null || r.Kind == "phone") return true;
         var v = r.Settings["enabled"];
-        return r.Kind is "upnp" or "local" ? v is true : v is not false;
+        return Players.StreamerKind(r.Kind) ? v is true : v is not false;
     }
     public static bool Shared(DeviceRecord? r) => r == null || r.Kind != "phone" || r.Settings["shared"] is not false;
     public static bool Hidden(DeviceRecord? r) => r?.Settings["hidden"] is true;
@@ -178,6 +199,7 @@ internal sealed class Devices
     {
         if (r.Kind == "sonos") return hub.Sonos.Member(r.Id) is { Invisible: false } m && m.Ip.Length > 0;
         if (r.Kind == "phone") return hub.Phones.Has(r.Id);
+        if (r.Kind == SlimDevices.Kind) return Slim?.Get(r.Id) != null;   // connected
         return Hub.Now() - r.LastSeen < offlineMs;
     }
 
@@ -202,7 +224,7 @@ internal sealed class Devices
         var caps = Profiles.Effective(RecordJs(r));
         // A phone with a USB DAC in use has a streamer's Output, for the DAC (item 265).
         var usb = r.Kind == "phone" ? hub.Phones.UsbChips(r.Id, "rates") : null;
-        var streamer = r.Kind is "upnp" or "local" || usb != null;
+        var streamer = Players.StreamerKind(r.Kind) || usb != null;
         var o = Jv.Obj(
             ("id", r.Id), ("kind", r.Kind), ("family", r.Family),
             ("name", r.Name ?? r.NetworkName), ("network_name", r.NetworkName), ("renamed", r.Name != null),
@@ -216,12 +238,19 @@ internal sealed class Devices
             ("flac32", Transcoder.Flac32)) : null;
         // A filter other than the standard one (minimum phase, gentle: items 248, 259), said only where it is set (a
         // device left at Whole track, scrapped, is the standard filter's); made as it plays, and how fast that went.
-        if (streamer && Upsample.Shape.OfFilter(r.Settings["filter"]) != null)
+        // "minphase" from before Phase was its own choice (item 318) said as what it is now: the standard filter, Phase minimum.
+        var hires = r.Settings["filter_hires"] is "minphase" ? "standard" : r.Settings["filter_hires"] as string;   // the filter for hi-res sources (item 298), said where set
+        var filter = r.Settings["filter"] is "minphase" ? null : r.Settings["filter"];
+        var minimum = Upsample.Shape.MinimumOf(r.Settings);
+        if (streamer && (Upsample.Shape.OfFilter(filter, minimum) != null || Upsample.Shape.OfFilter(hires, minimum) != null))
         {
             var output = (JsObj)o["output"]!;
-            output["filter"] = r.Settings["filter"];
+            if (Upsample.Shape.OfFilter(filter) != null) output["filter"] = filter;
+            if (hires != null) output["filter_hires"] = hires;
+            if (minimum) output["phase"] = "minimum";
             output["making"] = Upsample.MadeAsPlayed.Note(0);
         }
+        else if (streamer && hires != null) ((JsObj)o["output"]!)["filter_hires"] = hires;
         // The highest rate its owner allows (item 240), said only where it is set: Auto by its absence.
         if (streamer && RateCap.Of(r.Settings["max_rate"]) is { } cap) ((JsObj)o["output"]!)["max_rate"] = cap;
         // DSD as PCM, low-passed (item 241), said only where it is set: Off by its absence.
@@ -231,7 +260,15 @@ internal sealed class Devices
         {
             ((JsObj)o["output"]!)["dsd_out"] = (double)up;
             ((JsObj)o["output"]!)["making"] = Upsample.MadeAsPlayed.Note(up);
+            if (Upsample.DsdOut.Of(r.Settings["dsd_mod"]) is { } mod) ((JsObj)o["output"]!)["dsd_mod"] = mod;   // its modulator (item 303): the seventh order by its absence
         }
+        // Its dither and the DAC's real bits (item 301), said only where set: flat, and as sent, by their absence.
+        if (streamer && Upsample.Dither.Of(r.Settings["dither"]) is { } dn) ((JsObj)o["output"]!)["dither"] = dn;
+        if (streamer && Upsample.Dither.BitsOf(r.Settings["real_bits"]) is var rb and > 0) ((JsObj)o["output"]!)["real_bits"] = (double)rb;
+        // An album as one stream (item 300), said only where it is on.
+        if (streamer && r.Settings["album_stream"] is true) ((JsObj)o["output"]!)["album_stream"] = true;
+        // Its own player (MPD, item 306): where it was found, and whether it is played through (UPnP by its absence).
+        if (streamer && r.Caps["mpd"] is JsObj found && found["address"] is string mpd) { o["mpd"] = mpd; if (Jv.Same(r.Settings["player"], "mpd")) ((JsObj)o["output"]!)["player"] = "mpd"; }
         o["first_seen"] = r.FirstSeen; o["last_seen"] = r.LastSeen;
         o["profile"] = caps["profile"]; o["editable"] = caps["editable"];
         o["playable"] = r.Kind != "upnp" || Jv.T(caps["playable"]);
@@ -252,7 +289,8 @@ internal sealed class Devices
             if (r.Kind != "local") o["location"] = r.Location;
             o["caps"] = r.Caps; o["settings"] = r.Settings;
             o["found_by"] = r.Kind == "sonos" ? "The Sonos household" : r.Kind == "phone" ? "The Mandarin app"
-                : r.Kind == "local" ? (r.Location.StartsWith("coreaudio:", StringComparison.Ordinal) ? "This Mac (Core Audio)" : "This computer (ALSA)") : "UPnP discovery";
+                : r.Kind == "local" ? (r.Location.StartsWith("coreaudio:", StringComparison.Ordinal) ? "This Mac (Core Audio)" : "This computer (ALSA)")
+                : r.Kind == SlimDevices.Kind ? "It connected to Mandarin" : "UPnP discovery";   // a SlimProto player finds Mandarin (item 313)
             var err = streamer ? hub.Upnp.ErrorOf(r.Id) : null;
             o["last_error"] = err is { } e ? Jv.Obj(("at", e.At), ("message", e.Message)) : null;
             o["openhome"] = Jv.T(r.Caps["openhome"]);
@@ -260,7 +298,8 @@ internal sealed class Devices
             // Volume: set on the device itself, or Mandarin's slider. Renderers only; never a Sonos room.
             o["volume_fixed"] = streamer && Players.FixedVolume(r);
             o["can_fix_volume"] = streamer && Jv.T(r.Caps["playable"]);
-            o["takes_flac"] = r.Kind != "upnp" || Players.TakesFlac(r);
+            o["takes_flac"] = r.Kind is not ("upnp" or SlimDevices.Kind) || Players.TakesFlac(r);
+            o["continuous_pcm"] = r.Kind == SlimDevices.Kind && SlimDevices.Continuous(r.Caps);   // a Mandarin Bridge played continuous PCM (item 322)
         }
         return o;
     }

@@ -188,32 +188,28 @@ internal fun DevicePane(id: String, client: () -> ServerClient?, onBack: () -> U
             SettingsDivider(18, 18)
             Block {
                 DeviceTitle("Output", Modifier.parity("settings-device.title"), Modifier.parity("settings-device.info", Contract.label("settings-device.info", 0, "Output")).clickable { info(d.outputInfo) })
-                CapGroup("Mode", Modifier.parity("settings-device.cap-label")) {
-                    Seg(d.modes, d.mode, key = { i, c -> Modifier.parity("settings-device.mode", Contract.label("settings-device.mode", i)).clickable(enabled = !busy) { patch(d.segment("mode", c.value)) } })
-                }
-                if (d.showMaxRate) CapGroup("Highest rate", Modifier.parity("settings-device.cap-label")) {
-                    Seg(d.maxRates, d.maxRateValue, key = { i, c -> Modifier.parity("settings-device.maxrate", Contract.label("settings-device.maxrate", i)).clickable(enabled = !busy) { patch(d.segment("max_rate", c.value)) } })
-                    DeviceNote(d.maxRateNote, Modifier.parity("settings-device.note"))
-                }
-                if (d.showFilter) CapGroup("Filter", Modifier.parity("settings-device.cap-label")) {
-                    Seg(d.filters, d.filter, key = { i, c -> Modifier.parity("settings-device.filter", Contract.label("settings-device.filter", i)).clickable(enabled = !busy) { patch(d.segment("filter", c.value)) } })
-                    DeviceNote(d.filterNote, Modifier.parity("settings-device.note"))
-                    d.filterMakingLine?.let { DeviceNote(it, Modifier.parity("settings-device.note")) }
-                }
-                if (d.has32) CapGroup("Bit depth", Modifier.parity("settings-device.cap-label")) {
-                    Seg(d.depths, d.outBits, key = { i, c -> Modifier.parity("settings-device.depth", Contract.label("settings-device.depth", i)).clickable(enabled = !busy && !c.off) { patch(d.segment("bits", c.value)) } })
-                    if (!d.flac32) DeviceNote("32-bit needs an ffmpeg that writes 32-bit FLAC; this one stops at 24.", Modifier.parity("settings-device.note"))
-                }
-                DeviceNote(d.example, Modifier.parity("settings-device.note"))
+                // Its Output as recipes (item 320, SettingsRecipes.kt), the rows folded under Advanced.
+                RecipesAndAdvanced(d, busy) { patch(it) }
                 CapGroup("DSD as PCM", Modifier.parity("settings-device.cap-label")) {
                     Seg(d.dsdLowpasses, d.dsdLowpassValue, key = { i, c -> Modifier.parity("settings-device.dsdlowpass", Contract.label("settings-device.dsdlowpass", i)).clickable(enabled = !busy) { patch(d.segment("dsd_lowpass", c.value)) } })
                     DeviceNote(d.dsdLowpassNote, Modifier.parity("settings-device.note"))
                 }
-                if (d.showDsdOut) CapGroup("PCM as DSD", Modifier.parity("settings-device.cap-label")) {
-                    Seg(d.dsdOuts, d.dsdOutValue, key = { i, c -> Modifier.parity("settings-device.dsdout", Contract.label("settings-device.dsdout", i)).clickable(enabled = !busy && !c.off) { patch(d.segment("dsd_out", c.value)) } })
-                    DeviceNote(d.dsdOutNote, Modifier.parity("settings-device.note"))
-                    d.dsdOutLine?.let { DeviceNote(it, Modifier.parity("settings-device.note")) }
+                // Its own player (item 306), where MPD was found beside it.
+                if (d.mpd != null) CapGroup("Player", Modifier.parity("settings-device.cap-label")) {
+                    Seg(d.players, d.playerValue, key = { i, c -> Modifier.parity("settings-device.player", Contract.label("settings-device.player", i)).clickable(enabled = !busy) { patch(d.segment("player", c.value)) } })
+                    DeviceNote(d.playerNote, Modifier.parity("settings-device.note"))
                 }
+                // An album as one stream (item 300), where Mandarin makes what it plays, as the filters are; dimmed through its own player.
+                // A Squeezelite player (item 313): gapless from its own buffer, nothing to set.
+                if (d.slimGapless) CapGroup("Gapless", Modifier.parity("settings-device.cap-label")) { DeviceNote(d.slimGaplessNote, Modifier.parity("settings-device.note")) }
+                else if (d.showFilter) Column(Modifier.alpha(if (d.ownPlayer) 0.45f else 1f)) { CapGroup("Gapless", Modifier.parity("settings-device.cap-label")) {
+                    Box(Modifier.padding(top = 8.dp)) {
+                        SetupRow("Albums as one stream", Modifier.parity("settings-device.name"), null) {
+                            Toggle(d.albumStream, Modifier.parity("settings-device.album-stream", Contract.label("settings-device.album-stream")).clickable(enabled = !busy) { patch(d.albumStreamPatch(!d.albumStream)) })
+                        }
+                    }
+                    DeviceNote(d.albumStreamNote, Modifier.parity("settings-device.note"))
+                } }
                 if (d.canFixVolume) {
                     Box(Modifier.padding(top = 14.dp)) {
                         SetupRow("Fixed volume", Modifier.parity("settings-device.name"), null) {

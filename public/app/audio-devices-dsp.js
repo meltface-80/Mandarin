@@ -237,13 +237,17 @@ if (rescan) {
 }
 body.addEventListener("click", async (e) => {
   if (!current || busy) return;
+  // The Filter's rows and list (item 298, app/device-filters.js); the tap stops here, its list gone from the page, so no
+  // listener further up takes it for a tap outside Settings.
+  if (filterTap(e.target) || modTap(e.target) || ditherTap(e.target)) { e.stopPropagation(); return; }
+  if (recipeTap(e.target, current)) return;   // a recipe card, or Advanced opened (item 320: app/device-recipes.js)
   const c = e.target.closest("button.cap-chip");
   if (c) return toggleChip(c);
   const sb = e.target.closest(".seg-btn");
   if (sb && !sb.disabled) {
     const name = sb.closest(".seg").getAttribute("data-seg");
     const raw = sb.getAttribute("data-seg-v");
-    const v = (name === "bits" || name === "max_rate" || name === "dsd_lowpass" || name === "dsd_out") && raw !== "auto" && raw !== "off" ? Number(raw) : raw;
+    const v = (name === "bits" || name === "max_rate" || name === "dsd_lowpass" || name === "dsd_out" || name === "real_bits") && raw !== "auto" && raw !== "off" && raw !== "sent" ? Number(raw) : raw;
     return patch({ output: { [name]: v } });
   }
   const add = e.target.closest("[data-dsp-add]");
@@ -290,6 +294,8 @@ body.addEventListener("change", async (e) => {
   if (irf) { if (irf.files && irf.files.length) sendImpulse([...irf.files]); return; }
   const sw = e.target.closest("[data-dev-enable]");
   if (sw) return setEnabled(sw.getAttribute("data-dev-enable"), sw.checked, sw);
+  const as = e.target.closest("[data-dev-albumstream]");
+  if (as) return patch({ output: { album_stream: as.checked } });   // an album as one stream (item 300)
   const fv = e.target.closest("[data-dev-fixvol]");
   if (fv) return patch({ output: { volume: fv.checked ? "fixed" : "upnp" } });
   const ud = e.target.closest("[data-usb-direct]");

@@ -20,14 +20,9 @@ services:
       # EXCLUDE_ZONES: "Bathroom"
       # TRANSCODE_CACHE_GB: "4"
       # PLAYBACK_CORES: "1"             # cores kept for playback: 1 or 2 (default: 1, 2 while DSP is in use); 0 shares all
-    # A USB DAC or speakers on this machine, for Settings → Audio Devices
-    # (privileged: the container may open the devices, which it otherwise can't):
-    # devices:
-    #   - /dev/snd:/dev/snd
-    # privileged: true
-    # The bit-perfect check of a USB DAC reads its USB bus too: load usbmon on this machine
-    # (sudo modprobe usbmon); privileged, the container sees /dev/usbmon* by itself.
-    # Without a DAC: playback at a higher priority as well as on its own core.
+    # A USB DAC on this machine: install Mandarin Bridge for Linux beside the container (the Downloads
+    # page); it plays the DAC as a room of its own. The container itself opens no sound device.
+    # Playback at a higher priority as well as on its own core:
     # cap_add:
     #   - SYS_NICE
     volumes:

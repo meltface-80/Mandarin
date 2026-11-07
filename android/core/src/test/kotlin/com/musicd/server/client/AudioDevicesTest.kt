@@ -24,7 +24,9 @@ class AudioDevicesTest {
         assertEquals("Offline", l.rows[1].state)
         assertEquals("hidden", l.rows[2].sub)
         assertEquals("Idle", l.rows[2].state)
-        assertTrue(l.localNote.startsWith("To play through a USB DAC"))
+        assertTrue(l.localNote.startsWith("To play through a USB DAC plugged into the computer Mandarin runs on, install Mandarin Bridge for Linux"))
+        assertEquals("a Bridge listed: nothing said", "", AudioDevices.parse(JSONObject("""{"devices":[{"id":"s","kind":"slim"}],"local":{"platform":"linux","count":0}}""")).localNote)
+        assertEquals("a Mac's own devices: nothing said", "", AudioDevices.parse(JSONObject("""{"devices":[],"local":{"platform":"darwin","count":0}}""")).localNote)
         assertEquals("", AudioDevices.parse(JSONObject("""{"away":true,"local":{"platform":"linux","docker":true}}""")).localNote)
         assertEquals("1 device hidden", AudioDevices.hiddenCount(1))
         assertEquals("3 devices hidden", AudioDevices.hiddenCount(3))
@@ -67,7 +69,7 @@ class AudioDevicesTest {
         assertEquals("""{"caps":{"user":{"rates":[44100]}}}""", d.tapped(d.rates[1]).toString())
         assertEquals("""{"caps":{"user":{"rates":[44100,88200,176400]}}}""", d.tapped(d.rates[2]).toString())
         assertEquals("""{"caps":{"user":{"dsd":[]}}}""", d.tapped(d.dsd[0]).toString())
-        assertEquals("A 16-bit/44.1 kHz file plays as 32-bit/88.2 kHz FLAC (×2).", d.example)
+        assertEquals("Auto is 24 bits (item 308)", "A 16-bit/44.1 kHz file plays as 24-bit/88.2 kHz FLAC (×2).", d.example)
         assertTrue(d.outputInfo.endsWith("goes out at 24 or 32 bits."))
         assertEquals("""{"output":{"bits":24}}""", d.segment("bits", "24").toString())
         assertFalse(d.depths[2].off)
@@ -75,37 +77,65 @@ class AudioDevicesTest {
         assertTrue(d.capNotes[0].startsWith("DSD files go to it as they are"))
     }
 
-    @Test fun `the filter is offered while upsampling, standard, minimum phase or gentle, no whole track`() {
+    @Test fun `the filters are offered while upsampling, two rows, CD-rate and hi-res sources, six filters`() {
         fun page(output: String) = DevicePage(JSONObject("""{"kind":"upnp","rates":[],"bits":[],"dsd":[],"output":$output}"""))
         val standard = page("""{"mode":"x4","bits":"auto","flac32":false}""")
         assertTrue(standard.showFilter)
         assertEquals("standard", standard.filter)
-        // Whole track scrapped (item 259): three to choose from.
-        assertEquals(listOf("Standard", "Min phase", "Gentle"), standard.filters.map { it.label })
-        assertEquals("SoX’s filter, made as it plays.", standard.filterNote)
+        assertNull(standard.filterHires)
+        assertEquals(listOf("CD-rate sources" to "Standard", "Hi-res sources" to "Same as CD-rate"), standard.filterRows.map { it.label to it.value })
+        // Item 298: the three Gaussian filters after the three before them; the hi-res list leads with the same as CD-rate.
+        assertEquals(listOf("standard", "gentle", "gaussian", "gaussian-steep", "gaussian-hires", "long", "very-long"), DeviceFilters.choices("filter").map { it.value })
+        assertEquals(listOf("Same as CD-rate sources", "Standard", "Gentle", "Gaussian", "Gaussian steep", "Gaussian hi-res", "Long", "Very long"), DeviceFilters.choices("filter_hires").map { it.name })
+        assertEquals("Each track is upsampled in the filter for its own rate: 44.1 and 48 kHz in the first, 88.2 kHz and up in the second.", standard.filterNotes.single())
         assertFalse(page("""{"mode":"original","bits":"auto","flac32":false}""").showFilter)
+        // A device left at a filter gone is said as the standard one, as the server takes it.
+        assertEquals("Standard", page("""{"mode":"max","filter":"whole"}""").filterRows[0].value)
     }
 
-    @Test fun `minimum phase and gentle are made as they play, how fast said, and offered with PCM as DSD too`() {
+    @Test fun `a filter picked is a PATCH of its row, the one in use ticked, how fast it is made said under them`() {
         fun page(output: String) = DevicePage(JSONObject("""{"kind":"upnp","rates":[],"bits":[],"dsd":[],"output":$output}"""))
-        val min = page("""{"mode":"max","filter":"minphase","making":"Made as it plays: this server made the last at 3.2× real time, fast enough to keep up."}""")
-        assertEquals("Minimum phase: all its ringing after a sound starts, none before. Mandarin’s own filter, made as it plays; tracks from the library, ×2 to ×16.", min.filterNote)
-        assertEquals("Made as it plays: this server made the last at 3.2× real time, fast enough to keep up.", min.filterMakingLine)
-        val gentle = page("""{"mode":"x2","filter":"gentle"}""")
-        assertTrue(gentle.filterNote.startsWith("Rolling off from 90% of the band"))
-        assertNull(gentle.filterMakingLine)
-        assertEquals("""{"output":{"filter":"gentle"}}""", min.segment("filter", "gentle").toString())
-        // The file as it is, but made DSD from PCM: the filter takes it to 705.6 kHz on the way, so it is offered.
+        val making = "Made as it plays: this server made the last at 3.2× real time, fast enough to keep up."
+        val g = page("""{"mode":"max","filter":"gaussian","filter_hires":"gaussian-hires","making":"$making"}""")
+        assertEquals(listOf("Gaussian", "Gaussian hi-res"), g.filterRows.map { it.value })
+        assertEquals("gaussian", DeviceFilters.current("filter", g.filter, g.filterHires))
+        assertEquals("gaussian-hires", DeviceFilters.current("filter_hires", g.filter, g.filterHires))
+        assertEquals("same", DeviceFilters.current("filter_hires", "gaussian", null))
+        assertEquals("Filter for hi-res sources", DeviceFilters.title("filter_hires"))
+        assertEquals("""{"output":{"filter_hires":"same"}}""", DeviceFilters.pick("filter_hires", "same").toString())
+        assertEquals("""{"output":{"filter":"gaussian-steep"}}""", DeviceFilters.pick("filter", "gaussian-steep").toString())
+        assertEquals(making, g.filterNotes[1])
+        // Standard for CD-rate sources and a filter of Mandarin's own for hi-res: its speed said too.
+        assertEquals(making, page("""{"mode":"x2","filter_hires":"gentle","making":"$making"}""").filterNotes[1])
+        // The standard filter in minimum phase (item 318): Mandarin's own, its speed said; and its Phase.
+        val m = page("""{"mode":"x2","phase":"minimum","making":"$making"}""")
+        assertEquals(making, m.filterNotes[1])
+        assertEquals("minimum", m.phase)
+        assertEquals("linear", page("""{"mode":"x2"}""").phase)
+        assertEquals("""{"output":{"phase":"minimum"}}""", m.segment("phase", "minimum").toString())
+        assertEquals(Contract.labels["settings-device.phase"], DeviceFilters.PHASES.map { it.label })
+        // The standard one everywhere: SoX's, nothing of Mandarin's own made.
+        assertEquals(1, page("""{"mode":"x2","filter_hires":"standard","making":"$making"}""").filterNotes.size)
+        // The file as it is, but made DSD from PCM: the filters take it to 705.6 kHz on the way, so they are offered.
         assertTrue(page("""{"mode":"original","dsd_out":256}""").showFilter)
     }
 
-    @Test fun `with PCM as DSD on, the filter's note says it is the DSD's, its speed said once under PCM as DSD`() {
+    @Test fun `an album as one stream is a switch where Mandarin makes what it plays, its note on and off`() {
         fun page(output: String) = DevicePage(JSONObject("""{"kind":"upnp","rates":[],"bits":[],"dsd":[],"output":$output}"""))
-        val sr11 = page("""{"mode":"max","filter":"minphase","dsd_out":256,"making":"Made as it plays: this server made the last at 1.1× real time, too slow to keep up; DSD128 is half the work."}""")
-        assertEquals("With PCM as DSD256 on, this is the filter each track is upsampled with on its way to DSD256: minimum phase, all its ringing after a sound starts.", sr11.filterNote)
-        assertNull(sr11.filterMakingLine)
+        val off = page("""{"mode":"x2"}""")
+        assertFalse(off.albumStream)
+        assertTrue(off.albumStreamNote.startsWith("Each track goes as a file of its own"))
+        assertEquals("""{"output":{"album_stream":true}}""", off.albumStreamPatch(true).toString())
+        val on = page("""{"mode":"x2","album_stream":true}""")
+        assertTrue(on.albumStream)
+        assertTrue(on.albumStreamNote.startsWith("An album’s tracks go to this device as one stream"))
+    }
+
+    @Test fun `with PCM as DSD on, the filters' note says they are the DSD's, its speed said once under PCM as DSD`() {
+        fun page(output: String) = DevicePage(JSONObject("""{"kind":"upnp","rates":[],"bits":[],"dsd":[],"output":$output}"""))
+        val sr11 = page("""{"mode":"max","filter":"gaussian","filter_hires":"gaussian-hires","dsd_out":256,"making":"Made as it plays: this server made the last at 1.1× real time, too slow to keep up; DSD128 is half the work."}""")
+        assertEquals(listOf("With PCM as DSD256 on, these are the filters each track is upsampled with on its way to DSD256: by its own rate, the first or the second."), sr11.filterNotes)
         assertEquals("Made as it plays: this server made the last at 1.1× real time, too slow to keep up; DSD128 is half the work.", sr11.dsdOutLine)
-        assertTrue(page("""{"mode":"original","filter":"standard","dsd_out":64}""").filterNote.endsWith("on its way to DSD64: standard, linear phase."))
     }
 
     @Test fun `the highest rate offers the caps below the device's top and holds the example to it`() {
@@ -149,9 +179,9 @@ class AudioDevicesTest {
         assertEquals("""{"output":{"dsd_out":"off"}}""", off.segment("dsd_out", "off").toString())
         val on = page("""[{"n":64,"on":true}]""", """{"mode":"original","dsd_out":64,"making":"Made as it plays. How fast this server makes DSD64 shows here after its first track."}""")
         assertEquals("64", on.dsdOutValue)
-        assertEquals("Each track of the library that isn’t DSD is made DSD64 as it plays, by Mandarin’s seventh-order modulator, and sent as a DSF while it is made; Qobuz and Tidal go as PCM.", on.dsdOutNote)
+        assertEquals("Each track of the library that isn’t DSD is made DSD64 as it plays, by the modulator below, and sent as a DSF while it is made; Qobuz and Tidal go as PCM.", on.dsdOutNote)
         assertEquals("Made as it plays. How fast this server makes DSD64 shows here after its first track.", on.dsdOutLine)
-        assertNull("its speed is said under PCM as DSD, not the filter", on.filterMakingLine)
+        assertEquals("its speed is said under PCM as DSD, not the filter", 1, on.filterNotes.size)
     }
 
     @Test fun `a sound device's note says how it plays, a Mac's by Core Audio`() {

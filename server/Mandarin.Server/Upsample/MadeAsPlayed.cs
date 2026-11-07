@@ -28,8 +28,8 @@ internal static class MadeAsPlayed
     /* Whether track [key]'s making has begun (its file being written, a DSF's header first), not only waiting its turn. */
     public static bool Begun(string key) => Under.TryGetValue(key, out var p) && p != null;
 
-    /* Whether [p] is made so: a DSF from PCM, or PCM upsampled in a shape; else ffmpeg makes it. */
-    public static bool Takes(ConvPlan p) => p.DsdUp != 0 || p.Shape != null;
+    /* Whether [p] is made so: a DSF from PCM, or PCM upsampled in a shape or with Mandarin's own dither; else ffmpeg makes it. */
+    public static bool Takes(ConvPlan p) => p.DsdUp != 0 || p.Shape != null || p.Dither != null || p.RealBits > 0;
 
     /* Whether [factor] is one the filter takes: 2, 4, 8 or 16. */
     public static bool Power(long factor) => factor is 2 or 4 or 8 or 16;
@@ -41,14 +41,22 @@ internal static class MadeAsPlayed
      */
     public static JsObj Mark(JsObj plan, object? target, string path)
     {
-        if (target == null || Shape.OfFilter(Jv.Get(target, "filter")) is not { } shape || !Jv.T(plan["upsampled"])) return plan;
+        if (target == null || !Jv.T(plan["upsampled"])) return plan;
         if (Playback.StreamPlans.ServiceOf(path) != null) return plan;
         var factor = (long)Jv.Num(plan["upsampled"]);
         if (!Power(factor)) return plan;
-        plan["shape"] = shape;
+        // The device's filter for the track's own rate (item 298): its filter for hi-res sources above 48 kHz, where set.
+        var shape = Shape.ForTrack(target, Jv.Num(plan["rate"]) / factor);
+        // Its dither (item 301): shaped where the rate leaves room for it, and the DAC's real bits where under the word's.
+        var dither = Dither.At(Dither.Of(Jv.Get(target, "dither")), (long)Jv.Num(plan["rate"]));
+        var real = Dither.BitsOf(Jv.Get(target, "real_bits")) is var rb && rb < (int)Jv.Num(plan["bits"]) ? rb : 0;
+        if (shape == null && dither == null && real == 0) return plan;
+        if (shape != null) plan["shape"] = shape;
+        if (dither != null) plan["dither"] = dither;
+        if (real > 0) plan["real_bits"] = (double)real;
         // The track's own rate, which the job divides by: a plan made for a queue (Playback/Items.cs) carries none of its own.
         plan["inRate"] = Jv.Num(plan["rate"]) / factor;
-        plan["reason"] = Jv.Str(plan["reason"]) + $" ({Shape.Words(shape)})";
+        if (shape != null) plan["reason"] = Jv.Str(plan["reason"]) + $" ({Shape.Words(shape)})";
         return plan;
     }
 
@@ -56,7 +64,13 @@ internal static class MadeAsPlayed
      * [job]'s file for track [t] by [p] begun: once those before it are made, `mandarin-server upsample` writes it to
      * [job].Part; [finish] is given its exit code, [err] what it said went wrong.
      */
-    public static void Start(ConvTrack t, ConvPlan p, ConvJob job, Action<int> finish, StringBuilder err)
+    public static void Start(ConvTrack t, ConvPlan p, ConvJob job, Action<int> finish, StringBuilder err) => Begin(job, finish, err, () => Run(t, p, job, err));
+
+    /* [run]'s file by [p] begun (AlbumRun.cs, item 300), as a track's is: the album's tracks made as one, into [job].Part. */
+    public static void StartRun(AlbumRun run, ConvPlan p, ConvJob job, Action<int> finish, StringBuilder err) => Begin(job, finish, err, () => RunAlbum(run, p, job, err));
+
+    // [make] given its turn, one making at a time; [finish] told how it ended.
+    private static void Begin(ConvJob job, Action<int> finish, StringBuilder err, Func<Task<int>> make)
     {
         Under[job.Key] = null;
         _ = Task.Run(async () =>
@@ -67,7 +81,7 @@ internal static class MadeAsPlayed
             {
                 if (Wait > 0) await Task.Delay(Wait);
                 if (Stopped.TryRemove(job.Key, out _)) { err.Append("another play"); return; }
-                code = await Run(t, p, job, err);
+                code = await make();
             }
             catch (Exception e) { err.Append(e.Message); }
             finally
@@ -103,19 +117,32 @@ internal static class MadeAsPlayed
         if (job.Resume != null) job.Resume.Track = Path.GetFileName(t.Path);
         // Playback, the most of it there is (item 260): its cores kept, all but two while it runs (item 267), and it put on them.
         Cpu.Making(true);
-        try { return await Made(t, p, job, err, seconds, spec, next); }
+        // Held as Roon holds its DSP, some way ahead of the device, where its length is known (item 271: Pace.cs).
+        var bytes = p.DsdUp != 0 ? DsdPlan.FileBytes(t.Id, p, seconds) : p.Wav ? WavHeader.FileBytes(p, seconds) : 0;
+        try { return await Made(t, p, job, err, seconds, spec, next, bytes); }
         finally { Cpu.Making(false); }
     }
 
-    private static async Task<int> Made(ConvTrack t, ConvPlan p, ConvJob job, StringBuilder err, double seconds, JsonObject spec, string? next)
+    // An album's run (item 300): its tracks read one after the other, made as one track is, its list gone after.
+    private static async Task<int> RunAlbum(AlbumRun run, ConvPlan p, ConvJob job, StringBuilder err)
+    {
+        var list = run.List(job.Final);
+        Cpu.Making(true);
+        try { return await Made(run.Tracks[0], p, job, err, run.Total, run.Job(p, job.Part, list), null, run.Bytes(p), $", an album's {run.Tracks.Count} track(s) as one"); }
+        finally
+        {
+            Cpu.Making(false);
+            try { File.Delete(list); } catch (IOException) { /* gone */ }
+        }
+    }
+
+    private static async Task<int> Made(ConvTrack t, ConvPlan p, ConvJob job, StringBuilder err, double seconds, JsonObject spec, string? next, long bytes, string run = "")
     {
         // The making that went on into this track's start, where there is one waiting for it; else one of its own.
         var warm = Warm.Take(job.Key);
         var (proc, trace) = warm ?? Spawn();
         var resume = job.Resume;
         var whole = spec;   // each restart's from the track's own job
-        // Held as Roon holds its DSP, some way ahead of the device, where its length is known (item 271: Pace.cs).
-        var bytes = p.DsdUp != 0 ? DsdPlan.FileBytes(t.Id, p, seconds) : p.Wav ? WavHeader.FileBytes(p, seconds) : 0;
         string? said;
         double heldFor = 0;
         while (true)
@@ -163,7 +190,7 @@ internal static class MadeAsPlayed
         if (speed > 0 && resume?.Restarted != true) Speeds[p.DsdUp] = speed;
         var held = (long?)r["held"] ?? 0;
         var what = p.DsdUp != 0 ? $"DSD{p.DsdUp} from PCM, {Shape.Words(p.Shape)} ({(long?)r["resets"] ?? 0} reset(s){(held > 0 ? $", {held} sample(s) over +2.9 dB held" : "")})" : $"×{p.Rate / Math.Max(1, (long)p.InRate)}, {Shape.Words(p.Shape)}";
-        Server.Log($"[upsample] {Path.GetFileName(t.Path)}: {what}, made as it played at {Math.Round(speed, 2).ToString(System.Globalization.CultureInfo.InvariantCulture)}× real time ({took} s{(heldFor >= 1 ? $", {Math.Round(heldFor)} s of it held ahead of the device" : "")}){(warm != null ? ", on from the track before" : "")}");
+        Server.Log($"[upsample] {Path.GetFileName(t.Path)}: {what}, made as it played at {Math.Round(speed, 2).ToString(System.Globalization.CultureInfo.InvariantCulture)}× real time ({took} s{(heldFor >= 1 ? $", {Math.Round(heldFor)} s of it held ahead of the device" : "")}){(warm != null ? ", on from the track before" : "")}{run}");
         return 0;
     }
 
@@ -240,14 +267,15 @@ internal static class MadeAsPlayed
         foreach (var a in new[] { "-ac", "2", "-ar", inRate.ToString(System.Globalization.CultureInfo.InvariantCulture), "-f", "f64le", "-c:a", "pcm_f64le", "pipe:1" }) decode.Add(a);
         // The conversion's own arguments, from 64-bit float at the plan's rate on standard input (nothing to resample,
         // no gain or DSP twice), the source's tags beside it.
-        var convArgs = Transcoder.Args(src, p with { Gain = 0, Shape = null, InRate = p.Rate, Dsp = null }, dest, Transcoder.Soxr, convolve: false);
+        var own = p.Dither != null || p.RealBits > 0;   // Mandarin's own dither (item 301): ffmpeg's none, its samples as they come
+        var convArgs = Transcoder.Args(src, p with { Gain = 0, Shape = null, InRate = p.Rate, Dsp = null, Exact = p.Exact || own }, dest, Transcoder.Soxr, convolve: false);
         var rate = p.Rate.ToString(System.Globalization.CultureInfo.InvariantCulture);
         var encode = new JsonArray();
         for (var i = 0; i < convArgs.Count; i++)
         {
             if (convArgs[i] == "-i" && i + 1 < convArgs.Count && convArgs[i + 1] == src)
             {
-                foreach (var a in new[] { "-f", "f64le", "-ar", rate, "-ac", "2", "-i", "pipe:0", "-i", src }) encode.Add(a);
+                foreach (var a in new[] { "-f", own ? "s32le" : "f64le", "-ar", rate, "-ac", "2", "-i", "pipe:0", "-i", src }) encode.Add(a);
                 i++;
             }
             else if (convArgs[i] == "-map_metadata" && i + 1 < convArgs.Count) { encode.Add("-map_metadata"); encode.Add("1"); i++; }
@@ -258,6 +286,7 @@ internal static class MadeAsPlayed
             ["ffmpeg"] = Transcoder.Bin, ["decode"] = decode, ["encode"] = encode,
             ["rate"] = inRate, ["factor"] = p.Rate / Math.Max(1, inRate), ["shape"] = p.Shape,
         };
+        if (own) o["dither"] = new JsonObject { ["shape"] = p.Dither, ["real"] = p.RealBits, ["bits"] = p.Bits, ["rate"] = p.Rate };
         if (p.Wav && seconds > 0 && encode.Count > 5 && (string?)encode[^5] == "-f" && (string?)encode[^4] == "wav")
         {
             // ffmpeg's -f wav -seekable 0 <file> (HighRates.Args) made its bare samples on its standard output.

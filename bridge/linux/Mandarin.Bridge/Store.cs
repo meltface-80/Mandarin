@@ -1,6 +1,6 @@
-// Store.cs — what the Bridge keeps (the Android app's Store.kt): its name on the network, its UPnP id (made once,
-// kept for good, so Mandarin knows it after a restart), the DAC chosen where more than one is plugged in, and how
-// DSD goes (native where it can, DoP only, or none). One JSON file in its data folder.
+// Store.cs — what the Bridge keeps (the Android app's Store.kt): its name on the network, its UDN (made once, kept
+// for good: its SlimProto id is made from it, so Mandarin knows it after a restart), the DAC chosen where more than one
+// is plugged in, and how DSD goes (native where it can, DoP only, or none). One JSON file in its data folder.
 using System.Text.Json.Nodes;
 
 namespace Mandarin.Bridge;

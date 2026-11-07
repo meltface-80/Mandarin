@@ -170,10 +170,11 @@ jobs:
           docker run -d --name smoke -p 3500:3500 -v /tmp/music:/music:ro musicd-server:ci
           for i in $(seq 1 30); do curl -fs localhost:3500/api/health && break; sleep 1; done
           curl -fs localhost:3500/api/health | tee /dev/stderr | grep -q '"ffmpeg":true'
-          # The audio engine is in the image, at the server's version.
           V=$(node -p "require('./package.json').version")
-          curl -fs localhost:3500/api/health | grep -q "\"audio_engine\":\"$V\""
-          docker run --rm --entrypoint /app/engine/bin/mandarin-audio musicd-server:ci --version
+          # No audio engine in the image (item 324): a Linux server plays no sound device of its own;
+          # a USB DAC beside it is Mandarin Bridge for Linux's, which brings its own.
+          curl -fs localhost:3500/api/health | grep -q '"audio_engine":null'
+          if docker run --rm --entrypoint sh musicd-server:ci -c 'test -e /app/engine'; then echo "the audio engine is still in the image"; exit 1; fi
           # The C# server says its version, as an update checks a new one before putting it in place (v0.8.25).
           test "$(docker run --rm --entrypoint /app/server/bin/mandarin-server musicd-server:ci --version)" = "$V"
           # The image's health check is the C# server asking itself (v0.8.50): 0 with the server

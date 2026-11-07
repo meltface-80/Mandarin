@@ -89,6 +89,13 @@ if (args.Length == 1 && args[0] == "config")
 }
 // `mandarin-server reset-password`: the account removed and every device signed out (Auth.Reset.cs, v0.8.50).
 if (args.Length == 1 && args[0] == "reset-password") return Auth.ResetPasswordCommand(dataDir);
+// The server is started with nothing after its name; anything else is a command it doesn't have (or one given wrongly),
+// said so, rather than a second server started beside the one running, its jobs and Tailscale with it (item 310).
+if (args.Length > 0)
+{
+    Console.Error.WriteLine($"mandarin-server: no command \"{string.Join(' ', args)}\" in Mandarin {version}. Its commands: --version, --health, config, reset-password, db, scan, tags, waveform, bitperfect");
+    return 2;
+}
 Db.File = Path.Combine(dataDir, "musicd.db");
 Server.DataDir = dataDir;
 string appDir = Environment.GetEnvironmentVariable("MANDARIN_APP_DIR") ?? Server.FindAppDir();
@@ -197,6 +204,8 @@ Images.Use(app, dataDir);
 Booklets.Init(dataDir);
 // Music files, as they are or converted (Streams.cs, Transcoder.cs).
 Streams.Use(app);
+// A Mandarin Bridge's continuous PCM (item 322: Renderers/Slim/SlimStream.cs), signed as a track is.
+Mandarin.Server.Renderers.Slim.SlimStream.Use(app);
 // The phone's downloads and its Opus away from home (Downloads.cs).
 Downloads.Use(app);
 // Routes are chosen only after that: the static files step aside for any

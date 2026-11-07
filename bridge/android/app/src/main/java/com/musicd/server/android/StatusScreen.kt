@@ -56,16 +56,16 @@ internal fun StatusScreen(activity: MainActivity, s: MainActivity.Snapshot, cras
             Row { TextButton({ copy(activity, "Mandarin Bridge crash", crash) }) { Text("Copy details") }; TextButton({ crashShown = false }) { Text("Close") } }
         }
 
-        Section("Renderer")
-        Line("Mandarin finds it on the network by itself: Settings → Audio Devices lists “${Store.friendlyName(activity)}”. Switch it on there, pick it as the speaker, and play.")
-        Line(s.address?.let { "At $it (UPnP MediaRenderer). The DAC’s capabilities, as read: $it/dac.json" } ?: "No network address yet.")
-        s.lastSearch?.let { (who, at) -> Line("Description last read by $who, ${ago(at)}.") }
-        s.lastControl?.let { (who, at) -> Line("Last command from $who, ${ago(at)}." + (if (s.subscribers > 0) " Events go to ${s.subscribers} subscriber" + (if (s.subscribers == 1) "" else "s") + "." else "")) }
+        Section("The Bridge")
+        Line("It finds Mandarin on the network by itself: Settings → Audio Devices lists “${Store.friendlyName(activity)}”. Switch it on there, pick it as the speaker, and play.")
+        Line(s.server?.let { "Played by Mandarin at $it, over SlimProto." } ?: "Looking for Mandarin on the network (SlimProto, port 3483)…")
+        Line(s.address?.let { "At $it. The DAC’s capabilities, as read: $it/dac.json" } ?: "No network address yet.")
+        if (s.lastHeard > 0) Line("Last heard from Mandarin ${ago(s.lastHeard)}.")
         var name by remember { mutableStateOf(Store.friendlyName(activity)) }
         OutlinedTextField(name, { name = it }, Modifier.fillMaxWidth().padding(top = 8.dp), label = { Text("Name on the network") }, singleLine = true)
         Row(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             OutlinedButton({ Store.setFriendlyName(activity, name); DacService.stop(activity); DacService.start(activity); again() }, enabled = name.isNotBlank() && name.trim() != Store.friendlyName(activity)) { Text("Rename") }
-            OutlinedButton({ DacService.stop(activity); DacService.start(activity); again() }) { Text("Restart renderer") }
+            OutlinedButton({ DacService.stop(activity); DacService.start(activity); again() }) { Text("Restart the Bridge") }
         }
 
         Section("USB DAC")
@@ -122,11 +122,11 @@ internal fun StatusScreen(activity: MainActivity, s: MainActivity.Snapshot, cras
         }
 
         Section("Keep awake")
-        Line(if (s.awake) "The device is held awake: the CPU and Wi-Fi never doze while the renderer runs." else "The renderer isn't running, so nothing holds the device awake.")
+        Line(if (s.awake) "The device is held awake: the CPU and Wi-Fi never doze while the Bridge runs." else "The Bridge isn't running, so nothing holds the device awake.")
         ToggleRow("Keep the screen on while this app is in front", Store.keepScreenOn(activity)) { Store.setKeepScreenOn(activity, it); activity.keepScreen(it); again() }
-        ToggleRow("Start the renderer when the device starts", Store.startOnBoot(activity)) { Store.setStartOnBoot(activity, it); again() }
+        ToggleRow("Start the Bridge when the device starts", Store.startOnBoot(activity)) { Store.setStartOnBoot(activity, it); again() }
         Row(Modifier.padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text(if (s.batteryExempt) "Battery optimisation is off for this app." else "Battery optimisation is on: Android may still stop the renderer after hours idle.", Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
+            Text(if (s.batteryExempt) "Battery optimisation is off for this app." else "Battery optimisation is on: Android may still stop the Bridge after hours idle.", Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
             if (!s.batteryExempt) TextButton({ activity.askBatteryExemption() }) { Text("Turn off") }
         }
         Note("On a FiiO R7 also set Settings → Display → Screen timeout as you like it: the screen may go off, the device stays awake.")
@@ -142,8 +142,8 @@ private fun ago(at: Long): String {
     return when { s < 5 -> "just now"; s < 60 -> "$s s ago"; s < 3600 -> "${s / 60} min ago"; else -> "${s / 3600} h ago" }
 }
 
-/** A USB setting changed: the renderer's volume variables evented. */
-private fun evented() { DacService.current?.let { d -> d.main.post { if (d.ready) d.renderer.evented() } } }
+/** A USB setting changed: Mandarin told again what it plays (a hello). */
+private fun evented() { DacService.current?.let { d -> d.main.post { if (d.ready) d.slim.rehello() } } }
 
 @Composable private fun Section(title: String) {
     HorizontalDivider(Modifier.padding(top = 20.dp, bottom = 12.dp))

@@ -57,7 +57,7 @@ public sealed class ServerProcess
         {
             ["PORT"] = port.ToString(System.Globalization.CultureInfo.InvariantCulture), ["MUSIC_DIR"] = musicDir, ["DATA_DIR"] = dataDir,
             ["SERVER_IP"] = "127.0.0.1", ["MANDARIN_APP_DIR"] = Root, ["MANDARIN_FRONT_KEY"] = key, ["IDENTIFY"] = "0", ["LOCAL_AUDIO"] = "0",
-            ["UPDATE_CHECK"] = "false", ["UPNP_DISCOVERY"] = "0", ["ITUNES_URL"] = "http://127.0.0.1:9", ["TAGCHECK"] = "0"
+            ["UPDATE_CHECK"] = "false", ["UPNP_DISCOVERY"] = "0", ["ITUNES_URL"] = "http://127.0.0.1:9", ["TAGCHECK"] = "0", ["SLIMPROTO_PORT"] = "0"
         };
         if (Environment.GetEnvironmentVariable("ALLOW_NETWORK") is not { Length: > 0 }) e["MANDARIN_LOOPBACK_ONLY"] = "1";
         foreach (var (k, v) in env ?? new Dictionary<string, string>()) e[k] = v;

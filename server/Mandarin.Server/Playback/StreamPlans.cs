@@ -158,13 +158,12 @@ internal static class StreamPlans
 
     private static double? Top(List<double> list) => list.Count > 0 ? list[^1] : null;
 
-    /* The depth after processing: 24, or 32 where the device takes it and its setting allows. */
+    /* The depth after processing: 24, or 32 where the device takes it and is set to 32 (Auto is 24, item 308: a Poly and Android's FLAC decoder played no 32-bit FLAC). */
     private static (double MaxBits, double Processed) Depths(object? target)
     {
         var mb = Jv.Num(Jv.Get(target, "maxBits"));
         var maxBits = mb is 16 or 24 or 32 ? mb : 24;
-        var bitsSetting = Jv.Get(target, "bits");
-        var want32 = maxBits >= 32 && (Jv.Same(bitsSetting, 32.0) || Jv.Same(bitsSetting, "auto") || Jv.Nullish(bitsSetting));
+        var want32 = maxBits >= 32 && Jv.Same(Jv.Get(target, "bits"), 32.0);
         return (maxBits, want32 ? 32 : Math.Min(maxBits, 24));
     }
 
