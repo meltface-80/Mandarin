@@ -186,12 +186,12 @@ test("MusicD Server end to end", { skip }, async (t) => {
       assert.equal(img.status, 200);
       assert.equal(img.headers.get("content-type"), "image/jpeg");
     });
-    await t.test("the share card's review can be switched off", async () => {
-      assert.equal((await api("settings/share-links")).card.review, true);
-      assert.equal((await api("album/extras?fast=1&title=Album%20One&artist=Artist%20A")).card.review, true);
-      assert.equal((await api("settings/share-links", { card_review: false })).card.review, false);
-      assert.equal((await api("album/extras?fast=1&title=Album%20One&artist=Artist%20A")).card.review, false);
-      assert.equal((await api("settings/share-links", { card_review: true })).card.review, true);
+    await t.test("the share card always has its review: no settings for it, no links (item 336)", async () => {
+      const x = await api("album/extras?fast=1&title=Album%20One&artist=Artist%20A");
+      assert.equal(x.status, 200);
+      assert.deepEqual([x.card, x.links], [undefined, undefined]);
+      assert.equal((await api("settings/share-links")).status, 404);
+      assert.equal((await api("settings/share-links", { card_review: false })).status, 404);
     });
     await t.test("labels are off until switched on (test/labels.test.js has the rest)", async () => {
       // The fixture's Album One is tagged LABEL=Parlophone; off, none of it surfaces.

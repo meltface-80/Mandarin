@@ -115,7 +115,7 @@ internal fun NowPlayingScreen(zoneId: String, client: () -> ServerClient?, onBac
                 // The volume sheet, at the foot of the screen as the page's is (24px up), over whichever tab is on.
                 VolumeSheet(volumeOpen, { volumeOpen = false }, zoneId, view?.volume, ::act, above = false, inset = 24.dp)
                 // The Share card of what plays, natively (item 75): the mini player is hidden here, so no room is kept for it.
-                if (sharing) view?.let { ShareSheet(it.album, it.artist, it.imageKey, zoneId, 0.dp, client) { sharing = false } }
+                if (sharing) view?.let { ShareSheet(it.album, it.artist, it.imageKey, 0.dp, client) { sharing = false } }
                 if (queueTab) {
                     QueueScreen(zoneId, client, changed = view?.answeredAtMs, modifier = Modifier.weight(1f).padding(horizontal = 18.dp))
                     return@Column

@@ -71,33 +71,6 @@ object SetupSettings {
     fun hourSaid(hour: Int): String = "Smart Picks will build at " + (if (hour < 10) "0$hour" else "$hour") + ":00"
 }
 
-/** A service or a review site the share card can link to, and whether it is on. */
-data class LinkToggle(val id: String, val name: String, val on: Boolean)
-
-/** What the share card links to (/api/settings/share-links): the services and the review sites, each on or off, and whether the card carries the review. */
-data class ShareLinkSettings(val services: List<LinkToggle>, val reviews: List<LinkToggle>, val cardReview: Boolean) {
-    /** The services switched on: the default's choices. */
-    val onServices: List<LinkToggle> get() = services.filter { it.on }
-
-    companion object {
-        fun parse(j: JSONObject): ShareLinkSettings {
-            fun group(o: JSONObject?): List<LinkToggle> {
-                val on = o?.optJSONArray("enabled")?.let { a -> (0 until a.length()).map { a.optString(it) }.toSet() } ?: emptySet()
-                val all = o?.optJSONArray("all") ?: return emptyList()
-                return (0 until all.length()).mapNotNull { all.optJSONObject(it) }.map { x ->
-                    // The chip's words where it has them, as the row it controls reads ("AllMusic artist").
-                    val words = x.optString("chip").takeIf { it.isNotEmpty() && !x.isNull("chip") } ?: x.optString("name")
-                    LinkToggle(x.optString("id"), words, x.optString("id") in on)
-                }
-            }
-            return ShareLinkSettings(group(j.optJSONObject("services")), group(j.optJSONObject("reviews")), !(j.optJSONObject("card")?.let { it.has("review") && it.opt("review") == false } ?: false))
-        }
-
-        /** What is said under the card's Review switch. */
-        fun reviewNote(on: Boolean): String = if (on) "On. The card carries the write-up about the album under the cover." else "Off. The card shows the cover, title, artist and year — no write-up."
-    }
-}
-
 /** The server's built-in Tailscale (/api/tailscale), as Away from home shows it. */
 data class AwayState(val available: Boolean, val enabled: Boolean, val state: String, val serving: Boolean, val online: Boolean?, val health: List<String>,
                      val dnsName: String, val address: String, val hostname: String, val authUrl: String, val error: String) {

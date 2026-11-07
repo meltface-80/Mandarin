@@ -137,7 +137,7 @@ private fun SettingsNavRow(row: SettingsRow, modifier: Modifier) {
 private val ICONS = mapOf("account" to R.drawable.st_account, "folders" to R.drawable.st_folders, "streaming" to R.drawable.st_services, "playback" to R.drawable.st_audio,
     "identify" to R.drawable.st_scanner, "setup" to R.drawable.st_setup, "backup" to R.drawable.st_backup, "sqtool" to R.drawable.st_audio, "system" to R.drawable.st_updates,
     "smartpicks" to R.drawable.st_smartpicks, "labels" to R.drawable.st_labels, "homescreen" to R.drawable.st_homescreen, "ui" to R.drawable.st_ui,
-    "display" to R.drawable.st_display, "shelfset" to R.drawable.st_shelf, "sharecard" to R.drawable.st_sharecard, "downloads" to R.drawable.st_downloads,
+    "display" to R.drawable.st_display, "shelfset" to R.drawable.st_shelf, "downloads" to R.drawable.st_downloads,
     "away" to R.drawable.st_away, "metadata" to R.drawable.st_keys)
 
 /**

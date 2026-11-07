@@ -73,11 +73,6 @@ window.__musicdNative = function (what, arg) {
   }
   // A page of Settings the app's own Settings doesn't draw (item 76): the page's, alone.
   if (what === "settings-pane") return !!(arg && window.__openSettingsPane && window.__openSettingsPane(arg));
-  // The native share card's default service, held on its chip (item 75): kept where the page's chips keep it.
-  if (what === "share-service") {
-    try { localStorage.setItem("musicd-share-service", String(arg || "")); } catch (e) { /* storage blocked: the app keeps it this visit */ }
-    return true;
-  }
   if (what === "artist") {
     if (!arg || !window.__showArtistAlbums) return false;
     window.__showArtistAlbums(arg, {});

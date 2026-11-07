@@ -4,12 +4,11 @@
 const shareOverlay   = document.getElementById("share-overlay");
 const frame     = document.getElementById("share-frame");
 const actions   = document.getElementById("share-actions");
-const linksEl   = document.getElementById("share-links");
-const similarEl = document.getElementById("share-similar");
-const similarLs = document.getElementById("share-similar-list");
 const hintEl    = document.getElementById("share-hint");
 const errEl     = document.getElementById("share-err");
 const modalBtn  = document.getElementById("modal-share-btn");
+// Which open of the sheet is current: what a superseded open would paint is dropped.
+let shareSeq = 0;
 
 // Bounded (v0.6.1): a font that never arrived held the card up for ever.
 async function ensureFont() {
@@ -28,16 +27,13 @@ async function ensureFont() {
 
 function closeShare() {
   // Anything still in flight for the record that was on screen is no longer
-  // wanted: without this a card or a suggestions row can arrive after the
-  // sheet has been shut and paint into it.
+  // wanted: without this a card can arrive after the sheet has been shut and
+  // paint into it.
   shareSeq++;
   shareOverlay.classList.add("hidden");
   frame.innerHTML =
     `<div class="share-placeholder"><div class="share-spinner"></div><div>Generating card…</div></div>`;
   actions.innerHTML = "";
-  if (linksEl) { linksEl.innerHTML = ""; linksEl.classList.add("hidden"); }
-  if (similarEl && similarLs) { similarLs.innerHTML = ""; similarEl.classList.add("hidden"); }
-  lastActs = [];
   hintEl.textContent = "";
   errEl.textContent  = "";
 }
@@ -50,19 +46,17 @@ document.addEventListener("keydown", (e) => {
 
 // What the card shows, from an /api/album/extras answer (or none).
 function cardFields(j) {
-  const f = { releaseRaw: "", reviewText: "", reviewSource: "", links: null, score: null, bestNew: false };
+  const f = { releaseRaw: "", reviewText: "", reviewSource: "", score: null, bestNew: false };
   if (j) {
-    if (j.links) f.links = j.links;
     if (j.year) f.releaseRaw = j.year;
     if (j.album && j.album.year && !f.releaseRaw) f.releaseRaw = String(j.album.year);
     // Pitchfork's number and their Best New Music flag — never their
     // prose, which the server nulls before it leaves fetchAlbumBios.
     if (j.album && j.album.score != null) f.score = j.album.score;
     if (j.album && j.album.isBestNewMusic) f.bestNew = true;
+    // The review, always, where one is found (item 336: there is no switch for it).
     const desc = j.album && j.album.description;
-    // Settings → Share Card → Review switched off: a card without it.
-    const wantReview = !(j.card && j.card.review === false);
-    if (desc && wantReview) {
+    if (desc) {
       // Card height grows to fit, so show most of the review — capped
       // (~10 sentences / 1400 chars) against a very long article.
       let t = String(desc).trim();
@@ -144,26 +138,14 @@ async function openShare(input) {
   /*
    * WHICH OPEN THIS IS. Stamped here, at the top, and not where each
    * asynchronous piece is issued — because two opens can finish their awaits
-   * OUT OF ORDER and the later stamp then belongs to the earlier record.
-   *
-   * Found by the test rather than by reading: open, close, open again, and
-   * the suggestions row came back showing acts for the first record under
-   * the second one's card. The stamp used to be taken where the suggestion
-   * fetch was issued (`++similarSeq` at the end of open), so whichever open
-   * got there first owned the newest number — and the first open is not
-   * always the first to get there. ensureFont() alone is enough to reorder
-   * them: it really loads the font once and resolves instantly afterwards.
-   *
-   * Everything this open paints is now gated on still being the current one,
-   * the card included — a superseded open painting its card over the live
-   * one is the same bug wearing a different hat.
+   * OUT OF ORDER (ensureFont() alone reorders them: it loads the font once
+   * and resolves at once afterwards), and the later stamp then belongs to the
+   * earlier record. Everything this open paints is gated on still being the
+   * current one: a superseded open painting its card over the live one.
    */
   const mySeq = ++shareSeq;
 
   actions.innerHTML = "";
-  if (linksEl) { linksEl.innerHTML = ""; linksEl.classList.add("hidden"); }
-  if (similarEl && similarLs) { similarLs.innerHTML = ""; similarEl.classList.add("hidden"); }
-  lastActs = [];
   hintEl.textContent = "";
   errEl.textContent  = "";
   frame.innerHTML =
@@ -172,13 +154,11 @@ async function openShare(input) {
   fitShareReserve();
 
   try {
-    // THE CARD FIRST, THEN THE SUGGESTIONS. The card is drawn from what is
-    // already to hand — the record is the one on screen, so title, artist
-    // and cover are known, and the server's cache (fast=1: no lookups)
-    // almost always has the year and the review. The full lookup runs
-    // alongside; only if it brings something the card lacked (a review
-    // found for the first time) is the card drawn again. The three acts
-    // (loadSimilar, below) are asked for only once the card is on screen.
+    // THE CARD AT ONCE. It is drawn from what is already to hand — the record
+    // is the one on screen, so title, artist and cover are known, and the
+    // server's cache (fast=1: no lookups) almost always has the year and the
+    // review. The full lookup runs alongside; only if it brings something the
+    // card lacked (a review found for the first time) is the card drawn again.
     //
     // The cover as the page already has it: the same address as the album
     // page's and Now playing's picture, which the server sends immutable,
@@ -196,23 +176,10 @@ async function openShare(input) {
     const first = cardFields(quick);
     await paintCard(first, coverUrl, title, artist, mySeq);
     if (mySeq !== shareSeq) return;
-    renderLinks(first.links);
-    // The card's own Qobuz chip lands on the download store for exactly the
-    // same reason the suggestions did, so it gets the same upgrade.
-    upgradeQobuzChip(title, artist, mySeq);
-    // AFTER the card, and deliberately not awaited: this costs up to five
-    // Deezer calls and the card must not wait behind it. A generation stamp
-    // rather than a plain flag, because the sheet can be reopened on another
-    // record while this is still out — and three acts for the previous album
-    // under the new one's card is worse than none at all.
-    loadSimilar(artist, mySeq);
 
     const later = cardFields(await full);
     if (mySeq !== shareSeq) return;
-    if (later.signature !== first.signature) {
-      await paintCard(later, coverUrl, title, artist, mySeq).catch(() => {});
-      if (mySeq === shareSeq && later.links) renderLinks(later.links);
-    }
+    if (later.signature !== first.signature) await paintCard(later, coverUrl, title, artist, mySeq).catch(() => {});
   } catch (e) {
     if (mySeq !== shareSeq) return;   // a superseded open's failure is not news
     frame.innerHTML = `<div class="share-placeholder">Could not generate the card.</div>`;
@@ -220,15 +187,3 @@ async function openShare(input) {
   }
 }
 window.__openShareCard = openShare;
-/*
- * The row builder and the Qobuz upgrade, published for the Discover screen.
- *
- * They live in THIS closure because everything they depend on does — the
- * default-service preference, the chips that set it, the share sequence that
- * orphans a superseded open. Discover is in the main closure (it needs the
- * wall, the banner and the grid), so the two halves reach each other the way
- * every other pair in this file does: one named window.__ export rather than
- * a second copy of the rules about where a tap goes.
- */
-window.__goRow = goRow;
-window.__upgradeQobuzLinks = upgradeQobuzLinks;

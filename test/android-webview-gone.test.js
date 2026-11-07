@@ -43,7 +43,7 @@ test("what the screens handed to the page is the app's own", () => {
   const hand = read(APP + "ShellHand.kt");
   assert.match(hand, /"nav" -> NativeShell\.nav\?\.let \{ navTap\(it, arg\.orEmpty\(\)\) \}/);
   assert.match(hand, /"library-view" -> NativeShell\.keepLibraryView\(arg\.orEmpty\(\)\)/);
-  assert.match(hand, /"share-service" -> NativeShell\.keep\("shareService", arg\)/);
+  assert.doesNotMatch(hand, /share-service|shareService/, "no share card service to keep (item 336)");
   assert.match(hand, /"zone", "group-settled" -> NativeShell\.keepZone\(arg\)/);
   const shell = read(APP + "NativeShell.kt");
   assert.match(shell, /fun roomChosen\(id: String\) \{ RoomAsk\.chosen\(zone, id\); keepZone\(id\) \}/);

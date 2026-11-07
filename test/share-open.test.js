@@ -1,7 +1,8 @@
 "use strict";
 /*
  * Opening the share card (v0.7.6): the card is drawn from what the page
- * already has, and only then are the three acts asked for.
+ * already has; nothing is asked for under it since its suggestions and links
+ * went (item 336).
  *
  * What used to make a card slow, each caught here so it stays gone:
  *  - the cover at a size nothing else used (1000 → the server's 1200 px
@@ -59,9 +60,8 @@ const DRIVER = `(async () => {
   const { img, at } = await Promise.race([landed, sleep(30000).then(() => ({ img: null, at: 0 }))]);
   out.card_at = at;
   out.card_ms = Math.round(out.card_at - t0);
-  await until(() => out.requests.some(r => r.url.startsWith("/api/similar")), 8000);
   // A window for whatever else the card asks for to be asked.
-  await sleep(500);
+  await sleep(1000);
   // Only what was asked for once the share was: a request started before it
   // and answered after isn't the card's.
   out.requests = out.requests.filter(r => r.at >= t0);
@@ -69,7 +69,7 @@ const DRIVER = `(async () => {
   return out;
 })()`;
 
-test("the share card is drawn from the page's own cover and tile, and the suggestions are asked for after it", { skip, timeout: 120000 }, async () => {
+test("the share card is drawn from the page's own cover and tile, and asks for nothing more", { skip, timeout: 120000 }, async () => {
   const lib = makeLibrary();
   const house = new FakeHousehold();
   await house.start();
@@ -104,10 +104,8 @@ test("the share card is drawn from the page's own cover and tile, and the sugges
     // The server rendered nothing new for it: only the 800 px step is on disk.
     const sizes = fs.readdirSync(path.join(lib.data, "art")).filter(f => f.startsWith(cd.image_key)).map(f => f.split("@")[1]);
     assert.ok(!sizes.includes("1200.jpg"), "no 1200 px render for the card: " + sizes.join(" "));
-    // Then, and only then, the three acts.
-    const similar = r.requests.find(x => x.url.startsWith("/api/similar"));
-    assert.ok(similar, "the suggestions were asked for: " + urls.join(" "));
-    assert.ok(similar.at >= r.card_at - 1, `the suggestions were asked for after the card was on screen (card at ${Math.round(r.card_at)}, asked at ${Math.round(similar.at)})`);
+    // No suggestions under it, no links, no settings for it (item 336).
+    assert.ok(!urls.some(u => /^\/api\/(similar|qobuz-link|settings\/share-links)/.test(u)), "nothing asked for under the card: " + urls.join(" "));
   } finally { await srv.stop(); await house.stop(); }
 });
 

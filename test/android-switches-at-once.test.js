@@ -42,7 +42,7 @@ test("the Scanner's switches and Measure ReplayGain move as they are tapped; bac
 });
 
 test("Built-in Tailscale moves as it is tapped; back if refused", () => {
-  const src = read("SettingsShareAway.kt");
+  const src = read("SettingsAway.kt");
   assert.match(src, /val before = st\s+if \(what == "enable"\) st = before\?\.copy\(enabled = body\.optBoolean\("on"\)\)/);
   assert.match(src, /\.onFailure \{ st = before; err = /);
 });

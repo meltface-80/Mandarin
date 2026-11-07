@@ -7,7 +7,7 @@ namespace Mandarin.Tests;
 /// pages and answers (Extras/WriteUps*.cs) held to the Node server's, case for case — text (entities,
 /// HTML, the name guards, slugs, titles), Qobuz's search and album page, Wikipedia's extracts and its
 /// album and artist rules, Pitchfork's review pages, lists and feed, the three sources made one, and
-/// MusicBrainz's year and the Qobuz app's link. The jobs its JavaScript made from a seeded generator are
+/// MusicBrainz's year. The jobs its JavaScript made from a seeded generator are
 /// kept as they were sent (test/golden/writeups-csharp.jobs.json.gz), the Node server's answers to them
 /// beside them (writeups-csharp.json) (test/writeups-csharp.test.js, in C#).
 /// </summary>
@@ -106,11 +106,10 @@ public sealed class WriteupsCsharpTests(WriteupsCsharpTests.Book book) : IClassF
     }
 
     [Test]
-    public async Task MusicBrainzs_year_and_the_Qobuz_apps_link()
+    public async Task MusicBrainzs_year()
     {
+        // The job as it was kept, with the Qobuz app's link's cases (gone with item 336), whose answers no longer come.
         var (job, got) = await Ask("years", "canon", "album_ids");
         Same("year", job["years"], got["year"]);
-        Same("canon", job["canon"], got["canon"]);
-        Same("album_id", job["album_ids"], got["album_id"]);
     }
 }

@@ -20,7 +20,6 @@ internal static class ExtrasCommand
     private static List<object?> L(object? v) => v as List<object?> ?? [];
     private static JsObj O(object? v) => v as JsObj ?? new JsObj();
     private static string? S(object? v) => v as string;
-    private static List<string>? Ids(object? v) => v is List<object?> l ? l.OfType<string>().ToList() : null;
 
     public static JsObj Run(string fn, JsObj job) => fn switch
     {
@@ -191,8 +190,6 @@ internal static class ExtrasCommand
         o["item_out"] = Each(job["items"], x => PitchforkLists.ItemOut(O(x)));
         o["newest"] = Each(job["sorts"], l => Items(PitchforkLists.NewestFirst(L(l).Select(O))));
         o["match"] = Each(job["matches"], a => Items(PitchforkLists.Match(L(Arg(a, 0)).Select(O).ToList(), L(Arg(a, 1)).Select(O).ToList(), Arg(a, 2), (int)Js.ToNumber(Arg(a, 3)))));
-        o["canon"] = Each(job["canon"], x => WriteUps.Canon(x));
-        o["album_id"] = Each(job["album_ids"], a => WriteUps.PickAlbumId(Arg(a, 0), Str(Arg(a, 1)), Arg(a, 2), Arg(a, 3)));
         return o;
     }
 
@@ -203,50 +200,12 @@ internal static class ExtrasCommand
         {
             var c = O(c0);
             var x = new JsObj();
-            x["primary"] = ShareLinks.PrimaryArtist(c["artist"]);
-            x["query"] = ShareLinks.SearchQuery(c["artist"], c["album"]);
-            x["storefront"] = ShareLinks.QobuzStorefront(c["locale"]);
-            x["locale"] = ShareLinks.LocaleFromAcceptLanguage(S(c["accept"]));
-            x["services"] = ShareLinks.ServiceLinks(c["artist"], c["album"], S(c["locale"]), Ids(c["enabled"]));
-            x["reviews"] = ShareLinks.ReviewLinks(c["artist"], c["album"], Ids(c["reviews"]), S(c["wikipedia"]), S(c["pitchfork"]), S(c["wikipedia_artist"]));
-            x["services_kept"] = ShareLinks.SanitiseIds(c["ids"], ShareLinks.KnownServiceIds()).Select(i => (object?)i).ToList();
-            x["reviews_kept"] = ShareLinks.SanitiseIds(c["ids"], ShareLinks.KnownReviewIds()).Select(i => (object?)i).ToList();
+            x["primary"] = Names.PrimaryArtist(c["artist"]);   // the first credited act: all that is left of the share card's links (item 336)
             return (object?)x;
         }).ToList();
         return o;
     }
 
-    /* An act as rankActs returns it: the pool's fields, then what the ranking adds. */
-    private static JsObj ActJson(Act a)
-    {
-        var o = a.PoolJson();
-        o["score"] = a.Score;
-        o["known"] = a.Known;
-        o["near"] = a.Near;
-        o["via"] = a.Via.Select(v => (object?)v).ToList();
-        return o;
-    }
-    private static Act ActOf(object? v)
-    {
-        var o = O(v);
-        var a = Act.FromPool(o);
-        a.Score = o.Has("score") ? Js.ToNumber(o["score"]) : 0;
-        a.Known = o["known"] as string;
-        a.Near = Js.Truthy(o["near"]);
-        a.Via = L(o["via"]).OfType<string>().ToList();
-        return a;
-    }
-    private static Dictionary<string, Similar.Near> GraphOf(object? entries)
-    {
-        var g = new Dictionary<string, Similar.Near>();
-        foreach (var e0 in L(entries))
-        {
-            var e = L(e0);
-            var v = O(e.Count > 1 ? e[1] : null);
-            g[Js.Str(e[0])] = new Similar.Near { Score = Js.ToNumber(v["score"]), Via = L(v["via"]).OfType<string>().ToList() };
-        }
-        return g;
-    }
     private static List<object?> GraphJson(Dictionary<string, Similar.Near> g) => g.Select(kv =>
     {
         var v = new JsObj();
@@ -286,10 +245,6 @@ internal static class ExtrasCommand
                 return (object?)x;
             }).ToList();
         }).ToList();
-        o["pools"] = L(job["pools"]).Select(j => (object?)Similar.ReadDeezerPool(j).Select(a => (object?)a.PoolJson()).ToList()).ToList();
-        o["years"] = L(job["years"]).Select(y => (object?)Similar.YearOf(y)).ToList();
-        o["tops"] = L(job["tops"]).Select(j => (object?)Similar.ReadDeezerTop(j)).ToList();
-        o["album_lists"] = L(job["album_lists"]).Select(j => (object?)Similar.ReadDeezerAlbumList(j)).ToList();
         o["tastes"] = L(job["tastes"]).Select(t0 =>
         {
             var t = O(t0);
@@ -297,34 +252,11 @@ internal static class ExtrasCommand
             var rel = O(t["related"]);
             return (object?)GraphJson(Similar.TasteGraph(seeds, n => rel.Has(n) ? rel[n] as List<object?> : null, Js.ToNumber(t["now"])));
         }).ToList();
-        o["ranks"] = L(job["ranks"]).Select(r0 =>
-        {
-            var r = O(r0);
-            var known = O(r["known"]);
-            var ranked = Similar.RankActs(L(r["pool"]).Select(p => Act.FromPool(O(p))).ToList(), S(r["playing"]), GraphOf(r["taste"]),
-                n => known.Has(n) ? known[n] as string : null,
-                L(r["heavy"]).OfType<string>().ToHashSet(), L(r["shown"]).OfType<string>().ToHashSet());
-            return (object?)ranked.Select(a => (object?)ActJson(a)).ToList();
-        }).ToList();
-        o["chooses"] = L(job["chooses"]).Select(c0 =>
-        {
-            var c = O(c0);
-            var rnd = L(c["rnd"]).Select(Js.ToNumber).ToList();
-            var i = 0;
-            var picks = Similar.Choose(L(c["ranked"]).Select(ActOf).ToList(), () => rnd[i++ % rnd.Count]);
-            return (object?)picks.Select(a => (object?)a.Id).ToList();
-        }).ToList();
-        o["reasons"] = L(job["reasons"]).Select(c0 => { var c = O(c0); return (object?)Similar.ReasonFor(ActOf(c["act"]), S(c["playing"])); }).ToList();
-        o["records"] = L(job["records"]).Select(c0 =>
-        {
-            var c = O(c0);
-            return (object?)Similar.RecordFor(ActOf(c["act"]), c["top"] as JsObj, L(c["albums"]), L(c["owned"]).Select(x => Js.Str(x)));
-        }).ToList();
         o["played"] = L(job["played"]).Select(c0 =>
         {
             var c = O(c0);
             var rows = L(c["rows"]).Select(r0 => { var r = O(r0); return (r["artist"], r["ts"]); });
-            return (object?)Similar.PlayedArtists(rows, ShareLinks.PrimaryArtist, (int)Js.ToNumber(c["limit"])).Select(s =>
+            return (object?)Similar.PlayedArtists(rows, Names.PrimaryArtist, (int)Js.ToNumber(c["limit"])).Select(s =>
             {
                 var x = new JsObj();
                 x["name"] = s.Name;

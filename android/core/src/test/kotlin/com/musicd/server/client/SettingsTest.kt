@@ -69,7 +69,8 @@ class SettingsTest {
 
     @Test fun `the lists in the page's order, and Settings' address`() {
         assertEquals(listOf("account", "folders", "streaming", "playback", "identify", "setup", "backup", "sqtool", "system"), SettingsLists.HOME.map { it.pane })
-        assertEquals("Downloads", SettingsLists.SETUP[7].title)
+        assertEquals("Downloads", SettingsLists.SETUP[6].title)
+        assertEquals("no Share Card page (item 336)", false, SettingsLists.SETUP.any { it.pane == "sharecard" })
         assertEquals("API Keys", SettingsLists.SETUP.last().title)
         assertEquals("settings/home", ShellRoute.settings())
         assertEquals("settings/metadata", ShellRoute.settings("metadata"))

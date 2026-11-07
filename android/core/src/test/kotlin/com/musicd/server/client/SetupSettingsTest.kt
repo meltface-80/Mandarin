@@ -41,17 +41,6 @@ class SetupSettingsTest {
         assertEquals("every choice is one the prefs take", SetupSettings.TILE.map { it.value }, SetupSettings.TILE.map { SetupSettings.uiValue(WallPrefs.parse("""{"tile":"${it.value}"}"""), "tile") })
     }
 
-    @Test fun `what the share card links to, each on or off, and its review`() {
-        val l = ShareLinkSettings.parse(JSONObject("""{"services":{"all":[{"id":"qobuz","name":"Qobuz"},{"id":"spotify","name":"Spotify"}],"enabled":["qobuz"]},
-            "reviews":{"all":[{"id":"allmusic-artist","name":"AllMusic","chip":"AllMusic artist"}],"enabled":[]},"card":{"review":false}}"""))
-        assertEquals(listOf(LinkToggle("qobuz", "Qobuz", true), LinkToggle("spotify", "Spotify", false)), l.services)
-        assertEquals("the chip's words", "AllMusic artist", l.reviews[0].name)
-        assertEquals(listOf("qobuz"), l.onServices.map { it.id })
-        assertEquals(false, l.cardReview)
-        assertEquals(true, ShareLinkSettings.parse(JSONObject("{}")).cardReview)
-        assertEquals("Off. The card shows the cover, title, artist and year — no write-up.", ShareLinkSettings.reviewNote(false))
-    }
-
     @Test fun `the server's Tailscale in words`() {
         val run = AwayState.parse(JSONObject("""{"available":true,"enabled":true,"state":"Running","serving":true,"online":true,"health":[],"dns_name":"mandarin.tail.ts.net","address":"http://100.1.2.3:8080","hostname":"mandarin"}"""))
         assertEquals("Connected", run.status)
