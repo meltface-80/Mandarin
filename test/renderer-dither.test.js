@@ -73,10 +73,11 @@ test("a device's dither: shaped at 20 real bits, the made FLAC on the 20-bit gri
   assert.match(f.uri, /[?&]rb=20(&|$)/, f.uri);
   assert.deepEqual(probe(f.body), { rate: 88200, channels: 2, bits: 24 });
   assert.equal(zeroBits(f.body), 4, "every sample on the 20-bit grid");
-  const sp = await until(async () => { const z = (await api("zone-state?zone=" + W)).zone; const s = z && z.now_playing && z.now_playing.signal; return s && s.steps.some(x => x.kind === "dither") && s; }, 15000, "the signal path's dither");
-  const step = sp.steps.find(x => x.kind === "dither");
-  assert.deepEqual([step.title, step.detail], ["Dither", "Shaped (5th order) at 20 bits, in 24-bit words, Mandarin’s own"]);
-  assert.deepEqual(sp.steps.map(x => x.kind).slice(0, 3), ["source", "upsample", "dither"]);
+  // The dither in the one line for what goes out (item 331).
+  const sp = await until(async () => { const z = (await api("zone-state?zone=" + W)).zone; const s = z && z.now_playing && z.now_playing.signal; return s && s.steps.some(x => x.kind === "upsample" && /dither/.test(x.detail)) && s; }, 15000, "the signal path's dither");
+  const step = sp.steps.find(x => x.kind === "upsample");
+  assert.deepEqual([step.title, step.detail], ["Upsampling", "Standard ×2 · 24/88.2 kHz · dither shaped (5th order) at 20 bits in 24-bit words"]);
+  assert.deepEqual(sp.steps.map(x => x.kind).slice(0, 3), ["source", "float", "upsample"]);
 
   // As sent and flat: nothing asked, ffmpeg's own dither at 24 bits, every bit used.
   r = await call("PATCH", "audio-devices/" + W, { output: { dither: "flat", real_bits: "sent" } });

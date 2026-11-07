@@ -1,7 +1,7 @@
 "use strict";
 /*
  * A device's Phase, end to end (item 318, server Upsample/Shape.cs): Gaussian in minimum phase is asked of the
- * stream as f=gauss-min and Now playing says "Gaussian filter, minimum phase"; Gaussian steep stays linear (it keeps
+ * stream as f=gauss-min and Now playing says "Gaussian, minimum phase ×2 · 24/88.2 kHz"; Gaussian steep stays linear (it keeps
  * every sample only so); "minphase" from before is the standard filter with Phase minimum, its stream f=min as
  * before; Phase linear clears it, and the standard filter is SoX's again. A Phase there isn't, refused.
  */
@@ -60,14 +60,14 @@ test("a device's Phase: minimum for its filters, Gaussian steep kept linear, min
   let p = await play({ filter: "gaussian", phase: "minimum" });
   assert.deepEqual([p.out.filter, p.out.phase], ["gaussian", "minimum"]);
   assert.match(p.uri, /[?&]f=gauss-min(&|$)/, p.uri);
-  assert.equal(p.filter, "Gaussian filter, minimum phase");
+  assert.equal(p.filter, "Gaussian, minimum phase ×2 · 24/88.2 kHz");
   p = await play({ filter: "gaussian-steep" });
   assert.match(p.uri, /[?&]f=gauss-steep(&|$)/, "Gaussian steep, linear only: " + p.uri);
   // "minphase" from before: the standard filter, Phase minimum.
   p = await play({ filter: "minphase", phase: undefined });
   assert.deepEqual([p.out.filter, p.out.phase], [undefined, "minimum"]);
   assert.match(p.uri, /[?&]f=min(&|$)/, p.uri);
-  assert.equal(p.filter, "Minimum-phase filter");
+  assert.equal(p.filter, "Minimum-phase ×2 · 24/88.2 kHz");
   // Phase linear: the standard filter, SoX's, nothing asked of the stream.
   const r = await call("PATCH", "audio-devices/" + W, { output: { phase: "linear" } });
   assert.equal(r.status, 200, JSON.stringify(r));
