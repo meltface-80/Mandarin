@@ -151,7 +151,7 @@ internal static partial class Library
         var (own, featured) = ArtistAlbumsOf(s, name, ActOf(ctx));
         // Who they are: the act the library's albums are by (item 340), not whoever MusicBrainz finds first by the name.
         var (mbid, titles, storeKey) = ActAsked(ctx, key, own);
-        var info = CreditFinder.Current is { } f ? await f.ArtistNow(name, ArtistWaitMs, mbid, titles, storeKey) : CreditStore.Artist(storeKey);
+        var (info, pending) = CreditFinder.Current is { } f ? await f.ArtistNow(name, ArtistWaitMs, mbid, titles, storeKey) : (CreditStore.Artist(storeKey), false);
         var photos = CreditStore.Photos();
         var acts = LibraryActs(s);
         var about = info?.About ?? new JsonObject();
@@ -172,6 +172,8 @@ internal static partial class Library
             ["ended"] = about["ended"]?.DeepClone(), ["area"] = about["area"]?.DeepClone(), ["links"] = about["links"]?.DeepClone() ?? new JsonObject(),
             ["members"] = Stints(MainMembers(about["members"], about), photos, acts), ["member_of"] = Stints(about["member_of"], photos, acts),
             ["band_albums"] = bandAlbums, ["credited_on"] = on, ["in_library"] = acts.Contains(key), ["genres"] = GenresOf(own.Count > 0 ? own : featured),
+            // Being looked up as the act the albums are by (item 341): asked again in a few seconds for who they are.
+            ["pending"] = pending,
         });
     }
 

@@ -25,10 +25,17 @@ public sealed class ArtistActLookupTests
         $$"""{ "id": "{{id}}", "name": "Airbag", "type": "Group", "disambiguation": "", "life-span": { "begin": "{{begin}}", "ended": false }, "area": { "name": "{{area}}" }, "relations": [] }""";
 
     // MusicBrainz: the Spanish band first for the name; the Norwegian band's for Identity and Disconnected.
-    private static async Task<(FakeServer Mb, List<string> Asked)> Musicbrainz()
+    private static async Task<(FakeServer Mb, List<string> Asked)> Musicbrainz(int slowNorwayMs = 0)
     {
         var asked = new List<string>();
-        var mb = await FakeServer.Start(ctx =>
+        var mb = await FakeServer.Start(async ctx =>
+        {
+            if (slowNorwayMs > 0 && (ctx.Request.Path.Value ?? "") == "/artist/" + Norway) await Task.Delay(slowNorwayMs);
+            await Answer(ctx);
+        });
+        return (mb, asked);
+
+        Task Answer(HttpContext ctx)
         {
             var path = ctx.Request.Path.Value ?? "";
             var q = Uri.UnescapeDataString(ctx.Request.QueryString.Value ?? "");
@@ -43,8 +50,7 @@ public sealed class ArtistActLookupTests
                 return Json(ctx, $$"""{ "release-groups": [{ "id": "rg", "title": "x", "artist-credit": [{ "name": "Airbag", "artist": { "id": "{{id}}", "name": "Airbag" } }] }] }""");
             }
             return Task.FromResult(ctx.Response.StatusCode = 404);
-        });
-        return (mb, asked);
+        }
     }
 
     private static void Album(Fixtures.Library lib, string title, int year, string? act)
@@ -85,6 +91,32 @@ public sealed class ArtistActLookupTests
         var n = Acts();
         Assert.Equal(Norway, (await s.GetJ("/api/artist?name=Airbag")).Str("mbid"));
         Assert.Equal(n, Acts());
+    }
+
+    [Test]
+    public async Task While_the_act_is_looked_up_again_the_other_act_is_never_said_and_the_page_is_told_to_ask_again()
+    {
+        Needs.Server(); Needs.Ffmpeg();
+        var (mb, _) = await Musicbrainz(slowNorwayMs: 4000);
+        await using var _mb = mb;
+        await using var deezer = await FakeServer.Start(ctx => Json(ctx, """{ "data": [] }"""));
+        var lib = Fixtures.MakeLibrary();
+        Album(lib, "Identity", 2004, Norway);
+        Album(lib, "Disconnected", 2016, Norway);
+        await using var s = await LibraryServer.Start(lib, new Dictionary<string, object?> { ["mbBaseUrl"] = mb.Base, ["deezerBaseUrl"] = deezer.Base, ["wikidataBaseUrl"] = deezer.Base });
+        await Session.Until(async () => (await s.Albums()).Count(a => a.Str("title") is "Identity" or "Disconnected") == 2, 30000, "the library");
+        await Session.Until(async () => (await s.GetJ("/api/artist?name=Airbag")).Str("mbid") == Norway, 30000, "Airbag kept");
+        // Kept as the Spanish band (the owner's library), the Norwegian band's entry slow to come.
+        s.Server.Exec($$"""UPDATE artist_info SET mbid = '{{Spain}}', about = '{"v":2,"area":"Spain","begin":"1998"}' WHERE key = 'airbag'""");
+
+        var first = await s.GetJ("/api/artist?name=Airbag");
+        Assert.True(first.Bool("pending"), "still looking: the page is told to ask again");
+        Assert.NotEqual("Spain", first.Str("area"));
+        Assert.NotEqual(Spain, first.Str("mbid"));
+        JsonNode? page = null;
+        await Session.Until(async () => { page = await s.GetJ("/api/artist?name=Airbag"); return page.Str("mbid") == Norway; }, 30000, "the Norwegian band");
+        Assert.False(page.Bool("pending"));
+        Assert.Equal("Norway", page.Str("area"));
     }
 
     [Test]

@@ -19,7 +19,9 @@ data class ArtistAbout(
     val links: Map<String, String>, val members: List<Stint>, val memberOf: List<Stint>, val creditedOn: List<Credited>,
     val bandAlbums: List<BandAlbums> = emptyList(),
     /** Their genres, as their own albums are tagged, the most used first (item 139). */
-    val genres: List<String> = emptyList()
+    val genres: List<String> = emptyList(),
+    /** Being looked up as the act the albums are by (item 341): asked again in a few seconds. */
+    val pending: Boolean = false
 ) {
     /** One of a person's bands and its albums in the library from their years in it (item 133). */
     data class BandAlbums(val band: String, val albums: List<AlbumSummary>)
@@ -75,7 +77,7 @@ data class ArtistAbout(
                 creditedOn = j.optJSONArray("credited_on").items { Credited(AlbumSummary.parse(it), it.optJSONArray("roles").strings()) },
                 bandAlbums = j.optJSONArray("band_albums").items { BandAlbums(it.optString("band", ""), it.optJSONArray("albums").items(AlbumSummary::parse)) }
                     .filter { it.band.isNotEmpty() && it.albums.isNotEmpty() },
-                genres = j.optJSONArray("genres").strings()
+                genres = j.optJSONArray("genres").strings(), pending = j.optBoolean("pending", false)
             )
         }
     }

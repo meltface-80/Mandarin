@@ -56,5 +56,8 @@ class ArtistAboutTest {
         assertFalse(unknown.known)
         assertNull(unknown.facts)
         assertTrue(unknown.linkList.isEmpty())
+        // Still being looked up as the act its albums are by (item 341): asked again; said or not, it is not pending.
+        assertFalse(unknown.pending)
+        assertTrue(ArtistAbout.parse(JSONObject("""{"name":"Airbag","known":false,"pending":true}""")).pending)
     }
 }
