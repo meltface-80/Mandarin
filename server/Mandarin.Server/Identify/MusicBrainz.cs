@@ -86,6 +86,10 @@ internal sealed partial class MusicBrainz(string? baseUrl, string version) : IRe
         c["group_mbid"] = Js.Truthy(rg["id"]) ? rg["id"] : null;
         c["title"] = Js.Truthy(rg["title"]) ? rg["title"] : S(rel["title"]);
         c["artist"] = CreditName(rel["artist-credit"]);
+        // The lead act's own id and MusicBrainz's word to tell it from others of its name (item 330, Artists.cs).
+        var lead = L(rel["artist-credit"]).Select(x => O(x)["artist"]).OfType<JsObj>().FirstOrDefault();
+        c["artist_mbid"] = lead != null && Js.Truthy(lead["id"]) ? lead["id"] : null;
+        c["artist_note"] = lead != null && Js.Truthy(lead["disambiguation"]) ? lead["disambiguation"] : null;
         c["year"] = YearOf(first);
         c["date"] = first.Length > 0 ? first : null;
         c["release_title"] = S(rel["title"]);

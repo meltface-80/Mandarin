@@ -290,6 +290,7 @@ internal static partial class Library
         if (al.Year != null) o["year"] = al.Year;
         if (al.Discs > 1) o["discs"] = al.Discs;
         if (al.Box != null) o["box"] = new JsonObject { ["name"] = al.Box.Name, ["disc"] = al.Box.Disc, ["of"] = al.Box.Of };
+        if (al.ActNote != null) { o["artist_id"] = al.ActId ?? 0; if (al.ActNote.Length > 0) o["artist_note"] = al.ActNote; }   // its act, where acts share its name (item 330)
         if (extra != null) foreach (var (k, v) in extra.ToList()) { extra.Remove(k); o[k] = v; }
         return o;
     }

@@ -40,7 +40,10 @@ data class AlbumSummary(
     val box: Box? = null,
     /** A streamed album's id on its service, and whether it is one of your favourites there (null: not signed in, or unknown). */
     val serviceId: String? = null,
-    val serviceFavourite: Boolean? = null
+    val serviceFavourite: Boolean? = null,
+    /** Its act where acts share its artist's name (item 330): the act's id (0: the one MusicBrainz says nothing of) and the word that tells it apart. */
+    val artistId: Long? = null,
+    val artistNote: String? = null
 ) {
     /** The service's name as the page writes it ("Qobuz", "Tidal"); null for the library's own files. */
     val serviceName: String? get() = when (source) { "qobuz" -> "Qobuz"; "tidal" -> "Tidal"; else -> null }
@@ -60,7 +63,8 @@ data class AlbumSummary(
             hires = j.optBoolean("hires", false),
             box = j.optJSONObject("box")?.let { Box(it.optString("name", ""), it.optInt("disc", 0), it.optInt("of", 0)) },
             serviceId = j.str("service_id"),
-            serviceFavourite = if (j.opt("service_favourite") is Boolean) j.getBoolean("service_favourite") else null
+            serviceFavourite = if (j.opt("service_favourite") is Boolean) j.getBoolean("service_favourite") else null,
+            artistId = if (j.has("artist_id")) j.optLong("artist_id") else null, artistNote = j.str("artist_note")
         )
     }
 }
@@ -221,21 +225,23 @@ data class Album(
 }
 
 /** An artist as the Artists list shows them (/api/artists): [photoKey] their own picture once the server has found one (item 129). */
-data class Artist(val name: String, val albumCount: Int, val imageKey: String?, val photoKey: String? = null)
+/** An act on the Artists wall; [artistId] and [note] where acts share its name (item 330): which act, and the word that tells it apart. */
+data class Artist(val name: String, val albumCount: Int, val imageKey: String?, val photoKey: String? = null, val artistId: Long? = null, val note: String? = null)
 
 data class ArtistPage(val artists: List<Artist>, val offset: Int, val total: Int) {
     companion object {
         fun parse(j: JSONObject) = ArtistPage(
-            j.optJSONArray("artists").items { Artist(it.getString("name"), it.optInt("albumCount", 0), it.str("image_key"), it.str("photo_key")) },
+            j.optJSONArray("artists").items { Artist(it.getString("name"), it.optInt("albumCount", 0), it.str("image_key"), it.str("photo_key"),
+                if (it.has("artist_id")) it.optLong("artist_id") else null, it.str("note")) },
             j.optInt("offset", 0), j.optInt("total", 0)
         )
     }
 }
 
 /** An artist's albums (/api/artist-albums): their own, and those they are on. */
-data class ArtistAlbums(val artist: String, val primary: List<AlbumSummary>, val featured: List<AlbumSummary>) {
+data class ArtistAlbums(val artist: String, val primary: List<AlbumSummary>, val featured: List<AlbumSummary>, val note: String? = null) {
     companion object {
-        fun parse(j: JSONObject) = ArtistAlbums(j.optString("artist", ""), j.optJSONArray("primary").items(AlbumSummary::parse), j.optJSONArray("featured").items(AlbumSummary::parse))
+        fun parse(j: JSONObject) = ArtistAlbums(j.optString("artist", ""), j.optJSONArray("primary").items(AlbumSummary::parse), j.optJSONArray("featured").items(AlbumSummary::parse), j.str("note"))
     }
 }
 

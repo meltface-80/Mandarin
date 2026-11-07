@@ -106,10 +106,10 @@ async function run(q) {
       const row = document.createElement("div"); row.className = "search-chip-row";
       for (const ar of artists) {
         const btn = document.createElement("button"); btn.className = "search-chip"; btn.dataset.parity = "search.artist";
-        btn.textContent = ar.name;
+        btn.textContent = ar.note ? ar.name + " · " + ar.note : ar.name;   // acts that share a name, told apart (item 330)
         btn.addEventListener("click", () => {
           stopSearch();
-          window.__showArtistAlbums && window.__showArtistAlbums(ar.name);
+          window.__showArtistAlbums && window.__showArtistAlbums(ar.name, ar.artist_id != null ? { artistId: ar.artist_id, note: ar.note } : undefined);
         });
         row.appendChild(btn);
       }

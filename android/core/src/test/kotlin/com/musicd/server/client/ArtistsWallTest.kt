@@ -39,4 +39,28 @@ class ArtistsWallTest {
         assertEquals("No artist matches “zz”", ArtistsWall.none(" zz "))
         assertEquals("artists?zone=z%201", ShellRoute.artists("z 1"))
     }
+
+    @Test fun `two acts of one name, each told apart and each opened alone`() {
+        // Airbag from Norway and from Argentina (item 330): two tiles, each its act's id and word.
+        val p = ArtistPage.parse(JSONObject("""{"artists":[
+            {"name":"Airbag","albumCount":2,"image_key":"al-1-a","artist_id":7,"note":"Norwegian progressive rock band"},
+            {"name":"Airbag","albumCount":1,"image_key":"al-2-b","artist_id":9,"note":"2011"},
+            {"name":"Yes","albumCount":1,"image_key":"al-3-c"}],"offset":0,"total":3}"""))
+        assertEquals(listOf(7L, 9L, null), p.artists.map { it.artistId })
+        assertEquals(listOf("2 albums · Norwegian progressive rock band", "1 album · 2011", "1 album"), p.artists.map(ArtistsWall::subtitle))
+        // Opened with its act; a plain name is every act of it, as ever.
+        val opened = p.artists.map { ArtistAct.of(it.name, it.artistId) }
+        assertEquals(listOf("Airbag" to 7L, "Airbag" to 9L, "Yes" to null), opened.map(ArtistAct::parse))
+        assertEquals("Yes", opened[2])
+        var asked = ""
+        val lib = LibraryClient { asked = it; JSONObject("""{"artist":"Airbag","primary":[],"featured":[],"note":"2011"}""") }
+        assertEquals("2011", lib.artistAlbums(opened[1]).note)
+        assertEquals("/api/artist-albums?artist=Airbag&artist_id=9", asked)
+        lib.artistAlbums("Yes")
+        assertEquals("/api/artist-albums?artist=Yes", asked)
+        // An album says whose it is, for its page's link to its artist.
+        val al = AlbumSummary.parse(JSONObject("""{"offset":4,"title":"Libre","subtitle":"Airbag","artist_id":9,"artist_note":"2011"}"""))
+        assertEquals(9L to "2011", al.artistId to al.artistNote)
+        assertNull(AlbumSummary.parse(JSONObject("""{"offset":5,"title":"Close to the Edge","subtitle":"Yes"}""")).artistId)
+    }
 }

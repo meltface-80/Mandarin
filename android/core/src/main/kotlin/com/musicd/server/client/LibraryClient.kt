@@ -30,7 +30,11 @@ class LibraryClient(private val get: (String) -> JSONObject) {
     /** A page of the Artists wall (item 130), as [ArtistsWall.path] asks for it. */
     fun artistsWall(path: String): ArtistPage = ArtistPage.parse(get(path))
 
-    fun artistAlbums(artist: String): ArtistAlbums = ArtistAlbums.parse(get("/api/artist-albums?artist=" + enc(artist)))
+    /** An artist's albums; [artist] as ArtistAct.of names one act of a name others share (item 330), that act's alone. */
+    fun artistAlbums(artist: String): ArtistAlbums {
+        val (name, act) = ArtistAct.parse(artist)
+        return ArtistAlbums.parse(get("/api/artist-albums?artist=" + enc(name) + (if (act != null) "&artist_id=$act" else "")))
+    }
 
     /** The album's booklets, the PDFs in its folder (only an album of your own files has any). */
     fun booklets(offset: Long): List<Booklet> = Booklet.list(get("/api/album/booklets?offset=$offset"))

@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Fixed - two acts of the same name (Airbag from Norway and Airbag from Argentina) were one artist, their albums run together on the Artists wall, the artist's page and "More by". Every album is now filed under an artist of its own in the library (an `artists` table, each act its own id, the same name allowed on many), told by the act's MusicBrainz id: from the files' tags (MusicBrainz Album Artist Id, else Artist Id, as Picard writes them in FLAC, MP3, M4A and the rest), else from the album's applied MusicBrainz match. Acts that share a name are each their own artist on the wall, in search and on their page, each told apart by MusicBrainz's word for it (from a match) or its albums' years; an album's link to its artist and its "More by" open its own act, on the page and in the app. A name only one act has stays one artist, its tagged and untagged albums together. The next scan reads every file's tags once more for the id (item 330)
+
 ## v1.2.1
 
 Mandarin Bridge sent a continuous stream of PCM over SlimProto, made by Mandarin, the DAC never let go between tracks and given half a second of silence where the rate changes; Squeezelite players too. New upsampling filters (Gaussian, Long and Very long, minimum phase for each), shaped dither at the DAC's real bits, three DSD modulators and Output as recipes, with far less of the processor; albums as one stream, a renderer's own player (MPD); the Linux Bridge says when the kernel holds back a DAC's native DSD, and a Linux server leaves its USB DAC to Mandarin Bridge for Linux. Mandarin Bridge v0.3.1. Items 295 to 329.

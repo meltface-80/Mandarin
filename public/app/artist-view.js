@@ -98,7 +98,8 @@
     const fromAlbum = (how && how.fromAlbum) || null;
     if (window.__leavePlaylistScreens) window.__leavePlaylistScreens();
     if (!artistName) return;
-    if (typeof nativeArtistOpened === "function" && nativeArtistOpened(artistName)) return;   // the Android app's own page (item 52)
+    // The Android app's own page (item 52); one act of a name others share as the app names it (ArtistAct, item 330).
+    if (typeof nativeArtistOpened === "function" && nativeArtistOpened(how && how.artistId != null ? artistName + "\u001F" + how.artistId : artistName)) return;
     // Drop any active/pending search (incl. the delayed external-sources fetch)
     // — reachable from the album-modal artist link with a search still live,
     // which would otherwise append external rows under this view's grid. The
@@ -191,7 +192,8 @@
     let j = { primary: [], featured: [] }, failed = null;
     try {
       // As last answered when that was recent (artist-foot.js, item 140): a page opened again is drawn at once.
-      const url = "/api/artist-albums?artist=" + encodeURIComponent(artistName);
+      // One act of a name others share (item 330): its albums alone.
+      const url = "/api/artist-albums?artist=" + encodeURIComponent(artistName) + (how && how.artistId != null ? "&artist_id=" + encodeURIComponent(how.artistId) : "");
       const got = window.__artistJson ? await window.__artistJson(url) : await fetch(url).then(r => { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); });
       j = { ...got, primary: got.primary || [], featured: got.featured || [] };
     } catch (e) { failed = e; }
@@ -199,7 +201,8 @@
     try {
       const total = j.primary.length + j.featured.length + mine.length;
 
-      setTitle(total + " album" + (total !== 1 ? "s" : "") + " · " + artistName);
+      const note = (how && how.note) || j.note;
+      setTitle(total + " album" + (total !== 1 ? "s" : "") + " · " + artistName + (note ? " (" + note + ")" : ""));
 
       if (!total) {
         if (failed) throw failed;

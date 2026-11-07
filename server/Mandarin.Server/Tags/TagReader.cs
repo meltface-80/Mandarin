@@ -293,13 +293,7 @@ internal static partial class TagReader
             var n = Js.ParseFloat(Tag(k));
             return double.IsFinite(n) ? Js.Round((n / 256 + 5) * 100) / 100 : null;
         }
-        r["isrc"] = Clean(Or(() => First(c["isrc"]), () => Tag("ISRC"), () => Tag("TSRC")));
-        r["barcode"] = Digits(Or(() => First(c["barcode"]), () => Tag("BARCODE"), () => Tag("UPC"), () => Tag("EAN")));
-        r["catno"] = Clean(Or(() => First(c["catalognumber"]), () => Tag("CATALOGNUMBER"), () => Tag("LABELNO"), () => Tag("CATALOG")));
-        r["country"] = Clean(Or(() => c["releasecountry"], () => Tag("RELEASECOUNTRY")));
-        r["mb_album"] = Clean(c["musicbrainz_albumid"]);
-        r["mb_group"] = Clean(c["musicbrainz_releasegroupid"]);
-        r["mb_recording"] = Clean(c["musicbrainz_recordingid"]);
+        Ids(r, c, Tag);   // the ISRC, barcode, catalogue number, country and MusicBrainz's ids, the artist's too (TagReader.Ids.cs)
         r["rg_track_gain"] = Db(c["replaygain_track_gain"]) ?? R128("R128_TRACK_GAIN");
         r["rg_track_peak"] = PeakOf(c["replaygain_track_peak"]);
         r["rg_album_gain"] = Db(c["replaygain_album_gain"]) ?? R128("R128_ALBUM_GAIN"); r["rg_album_peak"] = PeakOf(c["replaygain_album_peak"]);
