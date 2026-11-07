@@ -29,13 +29,17 @@ internal sealed partial class Identifier
         await Library.Tell(new System.Text.Json.Nodes.JsonObject { ["artists"] = true });
     }
 
+    /* A MusicBrainz release's id ("itunes:…" is one of iTunes's, none of MusicBrainz's to ask of it). */
+    private static bool IsRelease(string? mbid) => mbid is { Length: 36 } && Guid.TryParse(mbid, out _);
+
     /* The next album whose applied match doesn't yet say its act's id, asked at most once each; null where none is left. */
     private static Album? NextUntold(Snapshot lib)
     {
         HashSet<string> untold;
         using (var c = Db.Open())
-            untold = Rows(c, @"SELECT key FROM album_matches WHERE status = 'applied' AND mbid IS NOT NULL AND candidate IS NOT NULL
-                               AND candidate NOT LIKE '%""artist_mbid"":%'").Select(r => Js.Str(r[0])).ToHashSet(StringComparer.Ordinal);
+            untold = Rows(c, @"SELECT key, mbid FROM album_matches WHERE status = 'applied' AND mbid IS NOT NULL AND candidate IS NOT NULL
+                               AND candidate NOT LIKE '%""artist_mbid"":%'")
+                .Where(r => IsRelease(r[1] as string)).Select(r => Js.Str(r[0])).ToHashSet(StringComparer.Ordinal);   // never an iTunes match's (item 341)
         if (untold.Count == 0) return null;
         return lib.Albums.Where(a => a.ArtistNames.Length > 0 && untold.Contains(a.Key))
             .GroupBy(a => a.ArtistNames[0].N, StringComparer.Ordinal)
@@ -49,8 +53,11 @@ internal sealed partial class Identifier
     {
         MatchRow? row;
         using (var c = Db.Open()) row = Row(c, al.Key);
-        if (row?.Mbid is not string mbid || mbid.Length == 0) return;
-        var rel = await Mb.Mb.Release(mbid);   // the web's: the pack keeps the act's name alone
+        if (row?.Mbid is not string mbid || !IsRelease(mbid)) return;
+        JsObj? rel;
+        try { rel = await Mb.Mb.Release(mbid); }   // the web's: the pack keeps the act's name alone
+        // Refused or not known for this release alone (400, 404): kept as asked, not taken for MusicBrainz away (item 341).
+        catch (LookupError e) when (e.Status is >= 400 and < 500 and not 429) { rel = null; }
         await Writing(async () =>
         {
             await Task.CompletedTask;

@@ -4,7 +4,9 @@
  * MusicBrainz id, identified before item 330 (their applied match keeps the release, not the act's id): each match's
  * release is asked of MusicBrainz once, the act's id and MusicBrainz's word for it kept, and the album filed under that
  * act, so the two Airbags are two artists on the Artists wall with no file touched. A name with one album is never
- * asked: it can't be two acts.
+ * asked: it can't be two acts. A match that isn't MusicBrainz's (one of iTunes's, "itunes:…") is never asked of it, and one
+ * MusicBrainz refuses or doesn't know is asked once, not again at every turn (item 341: each refusal counted as
+ * MusicBrainz not answering, and identification stopped ten minutes at a time, over and over).
  */
 const ports = require("./ports");
 const test = require("node:test");
@@ -44,6 +46,8 @@ test("acts of one name told apart by their MusicBrainz matches, with no file tou
   album(music, "Airbag", "Disconnected", 2016);
   album(music, "Airbag", "Libre", 2011);
   album(music, "Solo Act", "Alone", 2001);
+  album(music, "Duo", "One", 2000);
+  album(music, "Duo", "Two", 2002);
   // MusicBrainz's releases, under titles a search won't find: only their ids reach them, as a match keeps them.
   const mb = await new FakeMusicBrainz([
     { id: "11111111-0000-4000-8000-000000000001", title: "Release Norway", artist: "Airbag", artistId: NORWAY, artistNote: "Norwegian progressive rock band", tracks: [["a", 1], ["b", 1]] },
@@ -59,20 +63,21 @@ test("acts of one name told apart by their MusicBrainz matches, with no file tou
   t.after(() => srv.stop());
   const H = { Authorization: "Bearer " + await signIn(B), "Content-Type": "application/json" };
   const get = async p => (await fetch(B + "/api/" + p, { headers: H })).json();
-  await until(async () => (await get("status")).index_count === 3, 60000, "the library");
+  await until(async () => (await get("status")).index_count === 5, 60000, "the library");
   await fetch(B + "/api/identify/settings", { method: "POST", headers: H, body: JSON.stringify({ schedule: false }) });
   // Identified before item 330, as the scan found them: unidentified now (the search finds nothing), then each given
   // the match it had then, the release alone in it.
-  await until(async () => (await get("identify")).progress.checked === 3, 60000, "the identification scan");
+  await until(async () => (await get("identify")).progress.checked === 5, 60000, "the identification scan");
   const wallOf = async () => (await get("artists?limit=50")).artists.filter(a => a.name === "Airbag");
   assert.equal((await wallOf()).length, 1, "one Airbag before: nothing tells them apart");
   const editsFile = () => { try { return fs.readFileSync(path.join(root, "data", "album-edits.json"), "utf8"); } catch (e) { return null; } };
   const editsBefore = editsFile();
   const asked = mb.requests.length;
   const now = Date.now();
-  for (const [title, rel, artist] of [["Disconnected", 1, "Airbag"], ["Libre", 2, "Airbag"], ["Alone", 3, "Solo Act"]]) {
+  const UNKNOWN = "33333333-0000-4000-8000-000000000009";
+  for (const [title, rel, artist] of [["Disconnected", 1, "Airbag"], ["Libre", 2, "Airbag"], ["Alone", 3, "Solo Act"], ["One", "itunes:999", "Duo"], ["Two", UNKNOWN, "Duo"]]) {
     const key = ctx.db.raw.prepare("SELECT key FROM albums WHERE title = ?").get(title).key;
-    const mbid = "11111111-0000-4000-8000-00000000000" + rel;
+    const mbid = typeof rel === "string" ? rel : "11111111-0000-4000-8000-00000000000" + rel;
     ctx.db.raw.prepare(`INSERT INTO album_matches(key, mbid, distance, status, candidate, checked_at, applied_at) VALUES(?, ?, 0.01, 'applied', ?, ?, ?)
       ON CONFLICT(key) DO UPDATE SET mbid = excluded.mbid, status = 'applied', candidate = excluded.candidate, applied_at = excluded.applied_at`)
       .run(key, mbid, JSON.stringify({ mbid, title, artist, tracks: [] }), now, now);
@@ -91,6 +96,14 @@ test("acts of one name told apart by their MusicBrainz matches, with no file tou
   assert.deepEqual([JSON.parse(kept).artist_mbid, JSON.parse(kept).artist_note], [ARGENTINA, "Argentine rock band"]);
   await new Promise(r => setTimeout(r, 1500));
   assert.equal(mb.requests.slice(asked).filter(r => r.startsWith("/ws/2/release/1111")).length, 2, "never asked again");
+  // An iTunes match never asked of MusicBrainz; one it doesn't know asked once, kept as asked, and nothing paused (item 341).
+  const told = () => JSON.parse(ctx.db.raw.prepare("SELECT candidate FROM album_matches WHERE mbid = ?").get(UNKNOWN).candidate);
+  await until(() => "artist_mbid" in told(), 30000, "the unknown release kept as asked");
+  assert.equal(told().artist_mbid, null);
+  await new Promise(r => setTimeout(r, 1500));
+  assert.equal(mb.requests.slice(asked).filter(r => r.startsWith("/ws/2/release/" + UNKNOWN)).length, 1, "asked once, not at every turn");
+  assert.deepEqual(mb.requests.slice(asked).filter(r => r.startsWith("/ws/2/release/itunes")), [], "an iTunes match is not MusicBrainz's to ask");
+  assert.equal((await get("identify")).reason === "unreachable", false, "MusicBrainz not taken for away");
   // Filing an album under its act is no edit (item 335): the album edits' backup is never written again for it.
   assert.equal(editsFile(), editsBefore, "album-edits.json not written again: no edit was made");
 });
