@@ -85,8 +85,9 @@ internal fun LibraryScreen(viewQuery: String, prefs: WallPrefs, zoneId: String, 
     val smartSheets = rememberSmartSheets()
     var sortOpen by remember { mutableStateOf(false) }
     var facets by remember { mutableStateOf<Facets?>(null) }
-    var filtering by remember { mutableStateOf(false) }
-    var typed by remember { mutableStateOf("") }
+    // A view that comes with a name filter shows it in its field, to see and clear (item 338).
+    var filtering by remember { mutableStateOf(view.prefix.isNotEmpty()) }
+    var typed by remember { mutableStateOf(view.prefix) }
     var selecting by remember { mutableStateOf(false) }
     var picks by remember { mutableStateOf<List<AlbumSummary>>(emptyList()) }
     val (cols, coverPx) = wallColumns(prefs)
