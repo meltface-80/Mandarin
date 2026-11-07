@@ -1,7 +1,8 @@
 // Dac.cs — the USB DACs on this computer, as the kernel lists them (/proc/asound): each USB sound card with a playback
 // device, what it takes read from its stream0 (each altset's format and rates, as the server's Local/UsbFormats.cs
 // reads them), and where the audio engine opens it (alsa:plughw:CARD=<id>,DEV=<n>). Native DSD is DSD_U32 words
-// (the engine's), DoP the PCM rates DoP needs, in a slot of 24 bits or more.
+// (the engine's), DoP the PCM rates DoP needs, in a slot of 24 bits or more. A Format line can name more than one
+// format: Linux 6.x lists a DAC's raw-DSD altset as "Format: SPECIAL DSD_U32_BE" (item 325), and its DSD_U32 is read.
 //
 // Native DSD is the kernel's to offer (item 323): a DAC whose USB descriptor says it takes DSD as raw data (a UAC2
 // streaming format with its RAW_DATA bit, as Mandarin's Android driver reads it, and plays natively) is listed with
@@ -37,8 +38,18 @@ internal static partial class Dacs
     [GeneratedRegex(@"^\s*([0-9]+)\s+\[(\S+)\s*\]:\s*(\S+)\s+-\s+(.*)$")]
     private static partial Regex CardLine();
 
-    [GeneratedRegex(@"^\s*Format:\s*(\S+)", RegexOptions.Multiline)]
+    [GeneratedRegex(@"^\s*Format:\s*([^\n]+)", RegexOptions.Multiline)]
     private static partial Regex FormatLine();
+
+    /* An altset's format, from its Format line's list: its native DSD where it names one (Linux 6.x lists a raw-DSD
+       altset as "SPECIAL DSD_U32_BE", SPECIAL the kernel's word for it, item 325), else its first PCM format. */
+    public static string FormatOf(string list)
+    {
+        var names = list.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        return names.FirstOrDefault(n => n.StartsWith("DSD_U32", StringComparison.Ordinal))
+            ?? names.FirstOrDefault(n => n.StartsWith("DSD_", StringComparison.Ordinal))
+            ?? names.FirstOrDefault(n => n != "SPECIAL") ?? "";
+    }
 
     [GeneratedRegex(@"Rates:\s*([^\n]+)")]
     private static partial Regex RatesLine();
@@ -90,7 +101,7 @@ internal static partial class Dacs
         for (var k = 0; k < formats.Count; k++)
         {
             var block = playback[formats[k].Index..(k + 1 < formats.Count ? formats[k + 1].Index : playback.Length)];
-            var format = formats[k].Groups[1].Value;
+            var format = FormatOf(formats[k].Groups[1].Value);
             var rates = RatesLine().Match(block) is { Success: true } r
                 ? r.Groups[1].Value.Split(',').Select(x => int.TryParse(x.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var n) ? n : 0).Where(n => n > 0).ToList() : [];
             if (format.StartsWith("DSD_U32", StringComparison.Ordinal))
