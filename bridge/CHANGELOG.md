@@ -1,8 +1,12 @@
 # Changelog
 
-## v0.3.0
+## v0.3.1
 
 - Fixed - the Linux Bridge (and the Pi's) couldn't be updated from Mandarin's Settings → Updates: it asked GitHub without a User-Agent, which GitHub refuses. It now names itself, and an update that fails says why in words (item 327). A Bridge installed before this is installed again by hand once
+- Improved - Mandarin Bridge is 0.3.1
+
+## v0.3.0
+
 - Fixed - the Linux Bridge (and the Pi's) sent DSD as DoP to a DAC that Linux offers native DSD: Linux 6.x lists a raw-DSD altset as "Format: SPECIAL DSD_U32_BE", and the Bridge read only the line's first word; it now reads every format the line names, native DSD up to DSD512 (item 325)
 - New - the Linux Bridge (and the Pi's) says when the computer's kernel holds back a DAC's native DSD (item 323): it reads the DAC's USB descriptor, and where it says native DSD (as Mandarin Bridge for Android reads and plays it) and the kernel offers only PCM, so that DSD goes as DoP, its page, its log and /dac.json give the modprobe line that has the kernel offer it (`options snd-usb-audio vid=… pid=… quirk_flags=0x8000`, QUIRK_FLAG_DSD_RAW for that DAC alone)
 - New - the Bridge is played one continuous stream of PCM by Mandarin over SlimProto (item 322): Mandarin decodes each track (and upsamples it, where its Output says) and sends the samples alone, one track on into the next while they are of one rate and depth, the format said in SlimProto's strm; the Bridge only plays what comes, its DAC never let go between tracks. Its hello says it takes it (ContinuousPcm=1); Mandarin tells it each track as it comes to it, for its screen, notification and page. A DSD track still comes as its file

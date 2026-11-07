@@ -24,7 +24,7 @@ and settings there.
 Updated from then on from Mandarin's *Settings → Updates* (item 291): a tap and the Bridge fetches its new build
 itself, checks it against the release's checksum, puts it in `/var/lib/mandarin-bridge/app` and starts again into it;
 an update that fails as it starts is let go and the installed one runs on; one that can't be fetched or checked says
-why on the Bridge's row there. A Bridge from before v0.3.0 needs this install once more, by hand: it asked GitHub
+why on the Bridge's row there. A Bridge from before v0.3.1 needs this install once more, by hand: it asked GitHub
 without a User-Agent, which GitHub refuses (item 327).
 
 Its log goes to journald (`journalctl -u mandarin-bridge`) and its last 2,000 lines are kept in memory as well, at

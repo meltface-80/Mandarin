@@ -26,7 +26,7 @@ Wikipedia, Deezer and others); your music files stay on your machine.
                                                    └──── audio: /stream/… ◀────────┘
 ```
 
-**New in v1.2.1** (since v1.2.0; Mandarin Bridge v0.3.0). The [changelog](CHANGELOG.md) has each change.
+**New in v1.2.1** (since v1.2.0; Mandarin Bridge v0.3.1). The [changelog](CHANGELOG.md) has each change.
 * **Mandarin Bridge** — Updated: over SlimProto, Mandarin now sends Mandarin Bridge a continuous stream of PCM (DSD still goes as DSD). See [Mandarin Bridge](#mandarin-bridge).
 * **Squeezelite players** (and Squeezebox-compatible hardware) play from Mandarin over SlimProto, with Output and seeking.
 * **More upsampling:** Gaussian, Long and Very long filters, minimum phase for each, shaped dither at the DAC's real
@@ -46,9 +46,9 @@ The newest of each, straight to your device. The server's install is a command, 
 | **Mandarin Remote**, the Android app (Android 8.0 or newer) | v1.2.1 | [mandarin-android.apk](https://github.com/meltface-80/Mandarin/raw/main/dist/mandarin-android.apk) |
 | **Mandarin server** with Docker (Linux, a Raspberry Pi 4/5, a NAS) | v1.2.1 | `docker pull ghcr.io/meltface-80/musicd-server:latest`, then [Install (Docker)](#install-docker) |
 | **Mandarin server** on a Mac (macOS 14 or newer) | v1.2.1 | the one line under [Install on a Mac](#install-on-a-mac) |
-| **Mandarin Bridge** for Android (a FiiO R7, say) | v0.3.0 | [mandarin-bridge.apk](https://github.com/meltface-80/Mandarin/releases/download/mandarin-bridge-v0.3.0/mandarin-bridge.apk) |
-| **Mandarin Bridge** for Raspberry Pi (3, 4, 5, Zero 2 W) | v0.3.0 | [mandarin-bridge-pi-arm64.img.xz](https://github.com/meltface-80/Mandarin/releases/download/mandarin-bridge-v0.3.0/mandarin-bridge-pi-arm64.img.xz) |
-| **Mandarin Bridge** for Linux (64-bit Debian, Ubuntu, Raspberry Pi OS) | v0.3.0 | `curl -fsSL https://github.com/meltface-80/Mandarin/releases/download/mandarin-bridge-v0.3.0/install.sh \| sudo sh`, or by hand: [x64](https://github.com/meltface-80/Mandarin/releases/download/mandarin-bridge-v0.3.0/mandarin-bridge-linux-x64.tar.gz) · [arm64](https://github.com/meltface-80/Mandarin/releases/download/mandarin-bridge-v0.3.0/mandarin-bridge-linux-arm64.tar.gz) |
+| **Mandarin Bridge** for Android (a FiiO R7, say) | v0.3.1 | [mandarin-bridge.apk](https://github.com/meltface-80/Mandarin/releases/download/mandarin-bridge-v0.3.1/mandarin-bridge.apk) |
+| **Mandarin Bridge** for Raspberry Pi (3, 4, 5, Zero 2 W) | v0.3.1 | [mandarin-bridge-pi-arm64.img.xz](https://github.com/meltface-80/Mandarin/releases/download/mandarin-bridge-v0.3.1/mandarin-bridge-pi-arm64.img.xz) |
+| **Mandarin Bridge** for Linux (64-bit Debian, Ubuntu, Raspberry Pi OS) | v0.3.1 | `curl -fsSL https://github.com/meltface-80/Mandarin/releases/download/mandarin-bridge-v0.3.1/install.sh \| sudo sh`, or by hand: [x64](https://github.com/meltface-80/Mandarin/releases/download/mandarin-bridge-v0.3.1/mandarin-bridge-linux-x64.tar.gz) · [arm64](https://github.com/meltface-80/Mandarin/releases/download/mandarin-bridge-v0.3.1/mandarin-bridge-linux-arm64.tar.gz) |
 | The server program on its own, what Settings → Updates fetches | v1.2.1 | [linux-x64](https://github.com/meltface-80/Mandarin/releases/latest/download/mandarin-server-linux-x64.gz) · [linux-arm64](https://github.com/meltface-80/Mandarin/releases/latest/download/mandarin-server-linux-arm64.gz) · [osx-arm64](https://github.com/meltface-80/Mandarin/releases/latest/download/mandarin-server-osx-arm64.gz) · [osx-x64](https://github.com/meltface-80/Mandarin/releases/latest/download/mandarin-server-osx-x64.gz) · [sums](https://github.com/meltface-80/Mandarin/releases/latest/download/mandarin-server.sha256) |
 | **How Mandarin finds and names your music**, a guide in plain words | | [PDF](docs/Mandarin-music-scanning-guide.pdf) |
 
@@ -879,7 +879,7 @@ through the read-only `-v /mnt:/mnt:ro,rslave` mount can't be used for the pack.
 Linux on the machine itself, beside the container, and the DAC is a room of its own in **Settings → Audio Devices**:
 
 ```bash
-curl -fsSL https://github.com/meltface-80/Mandarin/releases/download/mandarin-bridge-v0.3.0/install.sh | sudo sh
+curl -fsSL https://github.com/meltface-80/Mandarin/releases/download/mandarin-bridge-v0.3.1/install.sh | sudo sh
 ```
 
 See [Mandarin Bridge](#mandarin-bridge). A container made with `--device /dev/snd` and `--privileged` for sound
@@ -943,10 +943,10 @@ release from GitHub, checks it against the checksum published with it, and puts 
 * **Android:** **Update** puts a notification on the device; its tap downloads the update in the browser,
   and Android's installer asks you to install it. The Bridge holds no permission to install apps itself
   (Google Play Protect called that harmful, v0.2.2).
-* An Android Bridge from before v0.2.1, or a Linux or Raspberry Pi Bridge from before v0.3.0, needs one last update by hand, from [Downloads](#downloads)
-  (a Linux or Pi Bridge before v0.3.0 asked GitHub in a way it refuses, and its update failed).
+* An Android Bridge from before v0.2.1, or a Linux or Raspberry Pi Bridge from before v0.3.1, needs one last update by hand, from [Downloads](#downloads)
+  (a Linux or Pi Bridge before v0.3.1 asked GitHub in a way it refuses, and its update failed).
 * A test build of Mandarin's follows the Bridges' test builds (the **test-bridge** pre-release),
-  and a numbered one follows their numbered releases (Mandarin Bridge v0.3.0 with Mandarin v1.2.1).
+  and a numbered one follows their numbered releases (Mandarin Bridge v0.3.1 with Mandarin v1.2.1).
 
 **Manually** — also the way to pick up changes to the image itself (ffmpeg, the audio engine gone from it in
 v1.2.1, and the move to v0.9.0 from an image with Node.js in it):
@@ -1120,7 +1120,7 @@ Mandarin Bridge (once Mandarin USB) is Mandarin's own player for a USB DAC: a de
 becomes a room Mandarin plays to, bit-perfect. It finds Mandarin on the network by itself (SlimProto, port 3483; a
 Linux one can be pointed at it with `--server`), and Mandarin reads the DAC whole from it (every rate, depth and DSD
 multiple, nothing to tick); Now playing's [signal path](#signal-path) says what it feeds the DAC, in its own words.
-Download each from [Downloads](#downloads) (v0.3.0); after that it updates from **Settings → Updates**
+Download each from [Downloads](#downloads) (v0.3.1); after that it updates from **Settings → Updates**
 ([Updating](#updating)), and its log is in the app's Save log ([Logs](#logs)).
 
 **Updated: over SlimProto, Mandarin now sends Mandarin Bridge a continuous stream of PCM (DSD still goes as DSD).**
@@ -1129,7 +1129,7 @@ Download each from [Downloads](#downloads) (v0.3.0); after that it updates from 
   rate and depth, DSD natively or as DoP, and keeps the device awake. Install the APK, open it once, plug in the DAC
   (tick *always*), then switch it on in **Settings → Audio Devices**. Setting it up, building it and how it fits
   together: [bridge/README.md](bridge/README.md).
-* **Linux** (a computer beside the DAC, the one Mandarin runs on included): `curl -fsSL https://github.com/meltface-80/Mandarin/releases/download/mandarin-bridge-v0.3.0/install.sh | sudo sh`,
+* **Linux** (a computer beside the DAC, the one Mandarin runs on included): `curl -fsSL https://github.com/meltface-80/Mandarin/releases/download/mandarin-bridge-v0.3.1/install.sh | sudo sh`,
   then switch it on in Mandarin; its own page is at `http://<it>:49494/`. Native DSD on Linux is the kernel's to
   offer: where the DAC says it takes DSD natively and the kernel offers it only DoP, the Bridge's page and log give the
   one line that frees it (an `snd-usb-audio` option in `/etc/modprobe.d`, then replug). See
