@@ -324,7 +324,7 @@ function renderDetail(keepInput) {
       // Its own player (item 306: app/device-player.js), where MPD was found beside it.
       (d.mpd ? playerGroup(d, o) : "") +
       // An album as one stream (item 300: app/device-gapless.js), where Mandarin makes what it plays; not through its own player.
-      (d.kind === "slim" ? slimGapless(d.continuous_pcm) : o.mode !== "original" || o.dsd_out ? gaplessGroup(o) : "") +
+      (d.kind === "slim" ? (d.continuous_pcm ? "" : slimGapless()) : o.mode !== "original" || o.dsd_out ? gaplessGroup(o) : "") +
       (d.can_fix_volume ? '<div class="settings-row" style="margin-top:14px"><span class="settings-label"' + ' data-parity="settings-device.name"' + '>Fixed volume</span>' +
         '<label class="switch"' + ' data-parity="settings-device.fixvol"' + '><input type="checkbox" data-dev-fixvol' + (d.volume_fixed ? " checked" : "") + ' aria-label="Fixed volume">' +
         '<span class="switch-track"><span class="switch-thumb"></span></span></label></div>' +

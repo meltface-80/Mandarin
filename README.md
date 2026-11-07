@@ -27,17 +27,15 @@ Wikipedia, Deezer and others); your music files stay on your machine.
 ```
 
 **New in v1.2.1** (since v1.2.0; Mandarin Bridge v0.3.0). The [changelog](CHANGELOG.md) has each change.
-* **Mandarin Bridge, played as Roon plays a RAAT device:** one continuous stream of PCM over SlimProto, made by
-  Mandarin; the DAC is never let go between tracks, and is given half a second of silence where the rate changes.
-  See [Mandarin Bridge](#mandarin-bridge).
+* **Mandarin Bridge** — Updated: over SlimProto, Mandarin now sends Mandarin Bridge a continuous stream of PCM (DSD still goes as DSD). See [Mandarin Bridge](#mandarin-bridge).
 * **Squeezelite players** (and Squeezebox-compatible hardware) play from Mandarin over SlimProto, with Output and seeking.
 * **More upsampling:** Gaussian, Long and Very long filters, minimum phase for each, shaped dither at the DAC's real
   bits, three DSD modulators, Output as recipes, all with far less of the processor. See [Upsampling and output](#upsampling-and-output).
 * **Gapless your way:** albums as one stream, and a renderer's own player (MPD, as a Chord Poly has).
 * **A Linux server leaves its USB DAC to Mandarin Bridge for Linux,** which says when the kernel holds back a DAC's
   native DSD, and how to free it. See [Sound devices on the server](#sound-devices-on-the-server).
-* **Also:** the bar along the foot on every screen, `raat-discover`, and fixes for the Chord Poly, a Bridge's ✓ and
-  a Bridge installed again.
+* **Also:** the bar along the foot on every screen, and fixes for the Chord Poly, a Bridge's ✓ and a Bridge
+  installed again.
 
 ## Downloads
 
@@ -606,7 +604,7 @@ Plug the DAC in. It shows on **This phone**'s page in **Settings → Audio Devic
 
 🌉 **Mandarin Bridge** — *new in v1.2.1*
 
-A USB DAC on an Android device, a Linux computer or a Raspberry Pi, played one continuous stream of PCM over SlimProto, as Roon plays a RAAT device.
+A USB DAC on an Android device, a Linux computer or a Raspberry Pi, as a room Mandarin plays to: over SlimProto, a continuous stream of PCM.
 
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 
@@ -808,10 +806,8 @@ Each track goes the way the device can take it. The Now playing badge says what 
   stored; above it, FLAC at the highest rate the device takes in the file's family; upsampled
   ×2, ×4 or to the device's maximum if you choose. DSD goes as the DSF or DFF file itself to a
   device that says it takes DSD files (DSD rates switchable on its page), as PCM otherwise.
-* **A Mandarin Bridge** (Android, Linux, a Raspberry Pi): one continuous stream of PCM, made by Mandarin:
-  each track decoded (and upsampled, as its Output says), one on into the next while they are of one rate
-  and depth; at a change of rate a stream of its own, the DAC given half a second of silence first. DSD
-  goes as the DSF or DFF itself, natively or as DoP.
+* **A Mandarin Bridge** (Android, Linux, a Raspberry Pi): a continuous stream of PCM, over SlimProto; DSD
+  as the DSF or DFF itself, natively or as DoP.
 * **A Squeezelite player:** each track's file (FLAC, or upsampled; DSD as DSF where it takes it), one on
   into the next from its own buffer.
 * **The Android app** on the phone's own output: the file as stored within 24/48, FLAC 24/48
@@ -1126,14 +1122,7 @@ multiple, nothing to tick); Now playing's [signal path](#signal-path) says what 
 Download each from [Downloads](#downloads) (v0.3.0); after that it updates from **Settings → Updates**
 ([Updating](#updating)), and its log is in the app's Save log ([Logs](#logs)).
 
-**Played as Roon plays a RAAT device (v0.3.0).** Mandarin decodes each track itself, upsampled or processed as the
-Bridge's Output says, and sends the Bridge the samples alone, one continuous stream of PCM: one track on into the next
-in the same stream while they are of one rate and depth, so the Bridge only plays what comes and its DAC is never let
-go between tracks. Where the next track is of another rate (16/44.1 after 24/96), the stream ends with the last sample
-of the one before and the next begins a stream of its own, given ahead; the Bridge gives its DAC half a second of
-silence at the new rate first, so it settles without a click. DSD goes as its file, natively or as DoP. Mandarin
-follows the track heard from where the Bridge is in its stream, and tells the Bridge each track as it comes, for its
-screen, notification and page.
+**Updated: over SlimProto, Mandarin now sends Mandarin Bridge a continuous stream of PCM (DSD still goes as DSD).**
 
 * **Android** (a FiiO R7, say): Mandarin's own USB driver claims the DAC from Android and feeds it at each track's own
   rate and depth, DSD natively or as DoP, and keeps the device awake. Install the APK, open it once, plug in the DAC
@@ -1292,8 +1281,7 @@ Mandarin behaves the same.
 
 **On Linux, Docker included, Mandarin plays no sound device of its own (v1.2.1).** A USB DAC on the computer Mandarin
 runs on is played by [Mandarin Bridge](#mandarin-bridge) for Linux, installed beside it with one line, and the DAC is
-a room of its own in *Settings → Audio Devices*: one continuous stream of PCM, the DAC kept between tracks, native DSD
-where the kernel offers it. The server used to open the computer's sound cards itself (ALSA), kept losing the DAC
+a room of its own in *Settings → Audio Devices*. The server used to open the computer's sound cards itself (ALSA), kept losing the DAC
 and competed with the Bridge for it. A card it had in Audio Devices is forgotten by itself, the container needs no
 `--device /dev/snd` or `--privileged` for sound, and the image no longer carries the audio engine.
 

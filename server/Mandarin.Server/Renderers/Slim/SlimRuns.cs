@@ -1,5 +1,5 @@
-// SlimRuns.cs — a Mandarin Bridge played one continuous stream of PCM (item 322), as Roon plays a RAAT device, over
-// SlimProto. A Squeezelite is given each track's file to fetch and decode (SlimPlayer.cs); a Bridge whose hello says
+// SlimRuns.cs — a Mandarin Bridge played one continuous stream of PCM (item 322), over SlimProto. A Squeezelite is
+// given each track's file to fetch and decode (SlimPlayer.cs); a Bridge whose hello says
 // ContinuousPcm=1 is given PCM made here instead: a run, one stream (SlimStream.cs), the queue's tracks decoded (and
 // upsampled, or whatever its Output asks) one on into the next while they are of one format, so the Bridge only plays
 // what comes and its DAC is never let go between them. Where the next track is of another rate or depth, the run

@@ -45,15 +45,7 @@
   </div>
   <p style="margin-top:16px"><a class="pill solid" href="downloads.html#bridge">⬇ Get Mandarin Bridge v0.3.0</a></p>
 
-  <h2>How Mandarin plays it</h2>
-  <p>As Roon plays a RAAT device, over SlimProto: the Bridge finds Mandarin on the network by itself (port 3483), and
-     Mandarin sends it one continuous stream of PCM. Mandarin decodes each track itself, upsampled or processed as the
-     Bridge's <a href="upsampling.html">Output</a> says, and sends the samples alone, one track on into the next in the
-     same stream while they are of one rate and depth: the Bridge only plays what comes, and its DAC is never let go
-     between tracks. Where the next track is of another rate (16/44.1 after 24/96), the next begins a stream of its own,
-     given ahead, and the Bridge gives its DAC half a second of silence at the new rate first, so it settles without a
-     click. DSD goes as its file, natively or as DoP. Mandarin follows the track heard from where the Bridge is in its
-     stream, and tells the Bridge each track as it comes, for its screen and notification.</p>
+  <p style="margin-top:16px"><b>Updated: over SlimProto, Mandarin now sends Mandarin Bridge a continuous stream of PCM (DSD still goes as DSD).</b></p>
   <p>A Bridge that was a UPnP renderer before v0.3.0 keeps the name and settings Mandarin had for it; one whose app is
      installed again is the device it was.</p>
 
