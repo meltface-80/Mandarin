@@ -26,7 +26,7 @@ internal sealed partial class Bridge
     private readonly Update update;
     private readonly DateTime started = DateTime.UtcNow;
     private volatile List<Dac> dacs = [];
-    private string lastCaps = "";
+    private string lastCaps = "", toldFix = "";
 
     public Bridge(Options opts, Action<string> log)
     {
@@ -63,8 +63,10 @@ internal sealed partial class Bridge
     // The DACs looked at again (every few seconds): one plugged in or taken out, the engine opened on the one now played to, and the change said.
     private void Look()
     {
-        dacs = Dacs.Find(opts.Asound);
+        dacs = Dacs.Find(opts.Asound, opts.Sys);
         var d = Dac;
+        // Its native DSD held back by the kernel (item 323): said once for each DAC, with the line that offers it.
+        if (d?.KernelFix is { } fix && fix != toldFix) { toldFix = fix; log($"[bridge] {d.Name} takes DSD natively (its USB descriptor says so), but this computer's kernel offers it only as DoP. To have it natively: echo \"{fix}\" | sudo tee /etc/modprobe.d/mandarin-dsd.conf, then unplug the DAC and plug it in again (or restart)"); }
         var nativeDsd = store.DsdMode == "native" ? d?.EngineDsd ?? "" : "";
         // The DAC found, played to where it is (or, given --device, there: the tests' file); none, the engine closed.
         if (d != null)
@@ -129,6 +131,9 @@ internal sealed partial class Bridge
             dac["dsd"] = new JsonArray([.. Dsd(d).Select(m => (JsonNode)m)]);
             dac["dsd_native"] = new JsonArray([.. d.Native.Select(m => (JsonNode)m)]);
             dac["dsd_dop"] = new JsonArray([.. d.Dop.Select(m => (JsonNode)m)]);
+            // Its USB descriptor's word on raw DSD, and where the kernel holds it back, the line that offers it (item 323).
+            dac["dsd_raw"] = d.RawDsd;
+            dac["dsd_kernel_fix"] = d.KernelFix;
         }
         var now = player.Now();
         return new JsonObject

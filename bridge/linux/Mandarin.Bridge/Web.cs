@@ -34,6 +34,7 @@ internal static class Web
         <section><h2>Now</h2><div class="status" id="status">…</div><div class="track" id="track" hidden><img id="art" alt=""><div><div id="title"></div><div class="dim" id="artist"></div></div></div><div class="dim" id="control"></div></section>
         <section><h2>DAC</h2><div id="dac">…</div>
           <div id="choose" hidden><label for="dacs">Play to</label><select id="dacs"></select></div>
+          <p class="dim" id="dsdfix" hidden>This DAC takes DSD natively (its USB descriptor says so), but this computer's kernel offers it only as DoP. To have it natively, run this, then unplug the DAC and plug it in again (or restart):<br><code id="fixline"></code></p>
           <label for="dsd">DSD</label><select id="dsd"><option value="native">Native where the DAC takes it, else DoP</option><option value="dop">DoP only</option><option value="pcm">None (Mandarin sends PCM)</option></select>
         </section>
         <section id="wifi" hidden><h2>Wi-Fi</h2><div id="wifinow" class="dim"></div>
@@ -64,6 +65,7 @@ internal static class Web
           const sel = $("dacs"); sel.textContent = "";
           for (const d of s.dacs) { const o = document.createElement("option"); o.value = d.key; o.textContent = d.name + " · " + d.takes; o.selected = d.key === s.dac; sel.append(o); }
           $("dsd").value = s.dsd_mode;
+          $("dsdfix").hidden = !s.dsd_fix; if (s.dsd_fix) $("fixline").textContent = 'echo "' + s.dsd_fix + '" | sudo tee /etc/modprobe.d/mandarin-dsd.conf';
           if (!editing) $("newname").value = s.name;
           $("where").textContent = "Mandarin finds it on the network by itself; its DAC is also at " + (s.address || "") + "/dac.json";
           $("details").textContent = JSON.stringify(s.dac_json, null, 2);

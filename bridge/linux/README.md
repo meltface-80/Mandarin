@@ -40,13 +40,29 @@ There is no screen, so the Bridge has a page of its own: `http://<the computer>:
 - the Mandarin it is played by, and when it last heard from it;
 - the details to copy should something be wrong.
 
+## Native DSD, and the kernel
+
+Native DSD on Linux is the kernel's to offer. Linux's USB audio driver lists a DAC's native DSD (`DSD_U32_BE`) only
+where its quirk table knows that DAC's maker; any other DAC is offered PCM alone, and its DSD goes as DoP, even where
+the DAC itself says it takes DSD natively (its USB descriptor's raw-data format, which Mandarin Bridge for Android
+reads and plays natively). The Bridge reads the descriptor too: where it says native DSD and the kernel offers none,
+its page, `/dac.json` (`dsd_kernel_fix`) and its log give the line that has the kernel offer it, for that DAC alone:
+
+```
+echo "options snd-usb-audio vid=0x2622 pid=0x0041 quirk_flags=0x8000" | sudo tee /etc/modprobe.d/mandarin-dsd.conf
+```
+
+(its own `vid` and `pid`, as `lsusb` shows them), then unplug the DAC and plug it in again, or restart. `quirk_flags`
+bit 15 is the driver's generic raw DSD (`QUIRK_FLAG_DSD_RAW`, Linux 5.15 and later); set for one DAC, it replaces
+what the driver's own table gives that DAC. To undo it, delete the file and replug.
+
 ## How it fits together
 
 | File | What it does |
 |---|---|
-| `Program.cs` | the command line (`--port`, `--data`, `--engine`, `--ffmpeg`, `--asound`, `--device`, `--address`, `--server`) |
+| `Program.cs` | the command line (`--port`, `--data`, `--engine`, `--ffmpeg`, `--asound`, `--device`, `--address`, `--server`, `--sys`) |
 | `Bridge.cs`, `Bridge.Routes.cs` | the DAC chosen, `/dac.json`, its hello's capabilities, the HTTP routes, the page's state and settings |
-| `Dac.cs` | the USB DACs the kernel lists (`/proc/asound`): each altset's format and rates |
+| `Dac.cs` | the USB DACs the kernel lists (`/proc/asound`): each altset's format and rates; its USB descriptor (sysfs) read for raw DSD the kernel holds back |
 | `Player.cs` | the audio engine, driven over its stdin and stdout |
 | `Slim.cs` | SlimProto: Mandarin found, connected to, and what its `strm` says played through the engine; what happens said back (STAT) |
 | `Http.cs`, `Xml.cs` | its web service: `/dac.json`, `/update`, `/log`, its page |
