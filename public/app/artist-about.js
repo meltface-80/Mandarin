@@ -138,7 +138,10 @@
 
     // Who they are: the server may look them up there and then, for a few seconds.
     // One act of a shared name: looked up as that act (item 340).
-    json("/api/artist?name=" + encodeURIComponent(name) + (actId != null ? "&artist_id=" + encodeURIComponent(actId) : "")).then((/** @type {any} */ a) => {
+    // Asked again in a few seconds while the server is still looking them up as the act their albums are by (item 341).
+    const about = (/** @type {number} */ n) => json("/api/artist?name=" + encodeURIComponent(name) + (actId != null ? "&artist_id=" + encodeURIComponent(actId) : ""))
+      .then((/** @type {any} */ a) => a && a.pending && n < 4 && alive() ? new Promise(r => setTimeout(r, 3000)).then(() => about(n + 1)) : a);
+    about(0).then((/** @type {any} */ a) => {
       if (!a || !alive()) return;
       if (a.photo_key) picture("/api/image/" + encodeURIComponent(a.photo_key) + "?size=600", true);
       const said = facts(a);

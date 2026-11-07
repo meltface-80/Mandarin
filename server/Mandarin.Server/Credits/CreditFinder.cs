@@ -252,26 +252,39 @@ internal sealed class CreditFinder(MusicBrainz mb, string? deezerBase, string? w
      * MusicBrainz credits with the library's [titles]; one kept for the name that is another act is looked up again.
      * [storeKey]: where it is kept (the name's key; the act's own where acts share the name).
      */
-    public async Task<StoredArtist?> ArtistNow(string name, int waitMs, string? mbid = null, IReadOnlyList<string>? titles = null, string? storeKey = null)
+    public async Task<(StoredArtist? Info, bool Pending)> ArtistNow(string name, int waitMs, string? mbid = null, IReadOnlyList<string>? titles = null, string? storeKey = null)
     {
         var key = storeKey ?? Names.ArtistKey(name);
         var kept = CreditStore.Artist(key);
-        if (failed.TryGetValue(key, out var at) && NowMs() - at < FailedMs) return kept;
+        if (failed.TryGetValue(key, out var at) && NowMs() - at < FailedMs) return (kept, false);
         var current = kept != null && (int?)kept.About["v"] >= CreditStore.AboutVersion;
-        // Kept, of this act (or no act to go by): as kept. Kept as read before (CreditStore.AboutVersion): looked up again.
-        if (current && mbid != null && kept!.Mbid == mbid) return kept;
-        if (current && mbid == null && (titles == null || titles.Count == 0)) return kept;
-        await Task.WhenAny(LookingUp(key, name, mbid, titles), Task.Delay(waitMs));
-        return CreditStore.Artist(key) ?? kept;
+        // The act to go by: the library's, else the one the titles found before (asked of MusicBrainz below where not yet).
+        var (asked, found) = mbid != null ? (true, mbid) : titles is { Count: > 0 } t ? KeptActByAlbums(name, t) : (true, null);
+        var act = mbid ?? found;
+        // Kept, of this act (or of none to go by): as kept. Kept as read before (CreditStore.AboutVersion): looked up again.
+        if (current && asked && (act == null || kept!.Mbid == act)) return (kept, false);
+        var lookup = LookingUp(key, name, mbid, titles);
+        var done = await Task.WhenAny(lookup, Task.Delay(waitMs)) == lookup;
+        var now = CreditStore.Artist(key) ?? kept;
+        // Still looking: what is kept for another act is not said meanwhile (item 341), and the page asks again.
+        if (!done && act != null && now?.Mbid != act) return (null, true);
+        return (now, !done);
     }
+
+    /* What the albums' titles found before (kept a month): whether they were asked, and the act (null: none found). */
+    private static (bool Asked, string? Act) KeptActByAlbums(string name, IReadOnlyList<string> titles) =>
+        Extras.Taste.CacheGet("act-by-albums", ActKey(name, titles), 30.0 * Day) is var hit and not Undef ? (true, hit as string) : (false, null);
+
+    private static string ActKey(string name, IReadOnlyList<string> titles) =>
+        Names.ArtistKey(name) + "|" + string.Join("|", titles.Where(t => t.Length > 0).Distinct(StringComparer.Ordinal).Take(3).Select(Names.Fold));
 
     /* The act MusicBrainz credits with the most of [titles] (three at most) under [name]; null where none; kept a month. */
     private async Task<string?> ActByAlbums(string name, IReadOnlyList<string> titles)
     {
         var asked = titles.Where(t => t.Length > 0).Distinct(StringComparer.Ordinal).Take(3).ToList();
         if (asked.Count == 0) return null;
-        var cacheKey = Names.ArtistKey(name) + "|" + string.Join("|", asked.Select(Names.Fold));
-        if (Extras.Taste.CacheGet("act-by-albums", cacheKey, 30.0 * Day) is var hit and not Undef) return hit as string;
+        var cacheKey = ActKey(name, titles);
+        if (KeptActByAlbums(name, titles) is (true, var kept)) return kept;
         var votes = new List<string>();
         foreach (var t in asked)
         {

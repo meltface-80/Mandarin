@@ -78,9 +78,19 @@ internal fun ArtistScreen(asked: String, prefs: WallPrefs, zoneId: String, clien
     var asks by remember { mutableStateOf(0) }
     AskAgain(failed != null && albums == null) { asks++ }
     LaunchedEffect(asked, asks) {
-        if (kept?.albums != null && ArtistPages.kept.fresh(key)) return@LaunchedEffect   // as it was, and recent: nothing to ask
         val c = client() ?: return@LaunchedEffect
         val lib = LibraryClient { c.getJson(it) }
+        // Who they are, asked at every visit (item 341): the server may have found since that they are another act than
+        // it said; asked again in a few seconds while it is still looking.
+        suspend fun whoTheyAre() {
+            repeat(5) { n ->
+                if (n > 0) delay(3000)
+                val got = withContext(Dispatchers.IO) { runCatching { lib.artistAbout(asked) }.getOrNull() } ?: return
+                about = got; keep { it.copy(about = got) }   // still looking and not known: not the other act's meanwhile
+                if (!got.pending) return
+            }
+        }
+        if (kept?.albums != null && ArtistPages.kept.fresh(key)) { whoTheyAre(); return@LaunchedEffect }   // the rest as it was, and recent
         // Asked again a few times when the server isn't reached (a dropped connection, the server restarting; item 133).
         var got = withContext(Dispatchers.IO) { runCatching { lib.artistAlbums(asked) } }
         var tries = 0
@@ -96,7 +106,7 @@ internal fun ArtistScreen(asked: String, prefs: WallPrefs, zoneId: String, clien
         val a = albums
         val pin = (a?.primary?.firstOrNull() ?: a?.featured?.firstOrNull())?.title ?: ""
         coroutineScope {
-            launch { withContext(Dispatchers.IO) { runCatching { lib.artistAbout(asked) }.getOrNull() }?.let { got -> about = got; keep { it.copy(about = got) } } }
+            launch { whoTheyAre() }
             launch { withContext(Dispatchers.IO) { runCatching { lib.artistSimilar(name) }.getOrNull() }?.let { got -> similar = got; keep { it.copy(similar = got) } } }   // item 137
             launch {   // item 140
                 withContext(Dispatchers.IO) { runCatching { lib.artistSimilarAlbums(name) }.getOrNull() }?.takeIf { it.error == null }?.albums?.let { got -> similarAlbums = got; keep { it.copy(similarAlbums = got) } }
