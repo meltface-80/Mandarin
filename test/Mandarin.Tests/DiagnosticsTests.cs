@@ -1,10 +1,10 @@
 namespace Mandarin.Tests;
 
 /// <summary>
-/// The server's side of the Android app's logging (bug list item 121, Diagnostics.cs): nothing kept
-/// until it is switched on; then each line the server logs, without what is the owner's alone (their account's
-/// name, keys, internet and Tailscale addresses: LogScrubTests) but with what helps (a home-network address, a
-/// device's name, item 235); off again, deleted.
+/// The server's side of the Android app's logging (bug list item 121, Diagnostics.cs): on unless switched off
+/// (item 334), each line the server logs kept without what is the owner's alone (their account's name, keys,
+/// internet and Tailscale addresses: LogScrubTests) but with what helps (a home-network address, a device's name,
+/// item 235); switched off, deleted and nothing kept; on again, kept again.
 /// </summary>
 public sealed class DiagnosticsTests
 {
@@ -18,7 +18,9 @@ public sealed class DiagnosticsTests
     public async Task The_servers_log_kept_for_the_app_holds_what_helps_and_not_the_owners_own()
     {
         await using var s = await Session.Started();
-        Assert.False((await s.Api("diagnostics")).J["on"]!.GetValue<bool>(), "off unless switched on");
+        Assert.True((await s.Api("diagnostics")).J["on"]!.GetValue<bool>(), "on unless switched off (item 334)");
+        // Switched off: nothing kept.
+        Assert.False((await s.Api("diagnostics", new { on = false })).J["on"]!.GetValue<bool>());
         await WrongPassword(s);
         Assert.Equal("", (await s.Api("diagnostics/log")).Text);
 

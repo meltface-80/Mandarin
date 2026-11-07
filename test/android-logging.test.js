@@ -1,7 +1,7 @@
 "use strict";
 /*
- * Logging in the Android app (bug list item 121): Settings → Setup → Logging, under API Keys. Off unless switched on,
- * and off nothing is collected; on, the user is told to use the app as usual for 24 hours and then save the log, which
+ * Logging in the Android app (bug list item 121): Settings → Setup → Logging, under API Keys. On unless switched off
+ * (item 334), and off nothing is collected; on, the user is told to use the app as usual for 24 hours and then save the log, which
  * holds the app's lines and the server's, without what is the owner's alone (core LogRedact, the server's LogScrub,
  * item 235), the user told so and to look through it before sending it. Switched off, it is deleted, the server's part too.
  */
@@ -13,13 +13,13 @@ const path = require("path");
 const APP = path.join(__dirname, "..", "android/app/src/main/java/com/musicd/server/android");
 const read = f => fs.readFileSync(path.join(APP, f), "utf8");
 
-test("the switch is under API Keys in Setup, off unless switched on", () => {
+test("the switch is under API Keys in Setup, on unless switched off (item 334)", () => {
   const screen = read("SettingsScreen.kt");
   const list = screen.indexOf("for (row in SettingsLists.SETUP)");
   assert.ok(list > 0 && screen.indexOf("LoggingBlock()", list) > list, "the Logging block after Setup's rows");
   const core = fs.readFileSync(path.join(__dirname, "..", "android/core/src/main/kotlin/com/musicd/server/client/Settings.kt"), "utf8");
   assert.match(core, /SettingsRow\("metadata", "API Keys"\)\)/, "API Keys the last of the rows");
-  assert.match(read("Store.kt"), /fun logging\(context: Context\): Boolean = prefs\(context\)\.getBoolean\("logging", false\)/);
+  assert.match(read("Store.kt"), /fun logging\(context: Context\): Boolean = prefs\(context\)\.getBoolean\("logging", true\)/);
 });
 
 test("on, the user is told to use the app for 24 hours, and what the log leaves out, but that it is theirs to check", () => {
@@ -36,7 +36,7 @@ test("off, nothing is collected; on, every line without personal data", () => {
   const log = read("AppLog.kt");
   assert.match(log, /fun line\(cat: String, msg: String, anomaly: Boolean = false\) \{\s+if \(!on\) return/);
   assert.match(log, /\$\{LogRedact\.line\(msg\)\}/, "each line through LogRedact");
-  assert.match(log, /if \(Store\.logging\(c\)\) begin\(\)/, "started only if switched on");
+  assert.match(log, /if \(Store\.logging\(c\)\) \{ begin\(\); tellServer\(c, true\) \}/, "started unless switched off, the server told");
   assert.match(log, /if \(!on\) return ask\(\)/, "requests not timed while off");
   assert.match(log, /fun switch\(c: Context, to: Boolean\) \{[\s\S]*else \{ on = false; logcat\?\.destroy\(\); logcat = null; deleteFiles\(\) \}\s+tellServer\(c, to\)/, "off deletes it, the server told");
   // Android's log: only the app's own tags, and a crash's.
