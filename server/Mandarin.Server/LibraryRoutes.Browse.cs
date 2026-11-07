@@ -180,7 +180,10 @@ internal static partial class Library
         JsonNode Act(string n)
         {
             var o = WithAct(new JsonObject { ["name"] = m[n].Name, ["albumCount"] = m[n].Count, ["image_key"] = m[n].Image }, n, m[n].First);
-            if (Credits.CreditRules.PhotoKey(photos.GetValueOrDefault(Names.ArtistKey(m[n].Name))) is { } photo) o["photo_key"] = photo;
+            // An act of a shared name: its own picture (item 340), never the name's, which may be the other act's.
+            var key = Names.ArtistKey(m[n].Name);
+            if (m[n].First.ActNote != null) key += "#" + (m[n].First.ActId ?? 0).ToString(CultureInfo.InvariantCulture);
+            if (Credits.CreditRules.PhotoKey(photos.GetValueOrDefault(key)) is { } photo) o["photo_key"] = photo;
             return o;
         }
         return Send(ctx, new JsonObject
