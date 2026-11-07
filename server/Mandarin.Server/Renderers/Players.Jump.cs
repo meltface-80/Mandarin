@@ -57,7 +57,7 @@ internal sealed partial class Players
             st.Duration = it.Duration; st.Position = seconds; st.Sent = it.Sent; st.Unreachable = false; st.Verified = null; st.Fed = null;
         });
         // Made no longer: what was being made for the track jumped from (or any but this and the next).
-        if (keep.Count > 0) Upsample.MadeAsPlayed.Only(keep, "skipped from");
+        if (keep.Count > 0) Upsample.MadeAsPlayed.Only([.. keep, .. StillWanted(p.Id)], "skipped from");   // never another room's (item 337)
         await p.Commands.WaitAsync();
         try
         {

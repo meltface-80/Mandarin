@@ -496,6 +496,12 @@ test("a renderer is a zone", { skip, timeout: 150000 }, async (t) => {
       // Its signal path (item 247): ×16 to 705.6 kHz, the modulator, the DSF; nothing still to be made.
       assert.deepEqual(dz.now_playing.signal.lines, ["DSD64 · 2.8224 MHz", "Standard ×16 · 7th-order · DSD64"]);
       assert.deepEqual(dz.now_playing.signal.steps.map(x => x.kind), ["source", "float", "upsample"]);
+      // Another album queued while this one is made (item 337): nothing stopped, Long 1 made on to its end. It was cut
+      // mid-track, the queue's tracks kept and the one playing not, and its room fell silent.
+      const queuedAt = ctx.logs.length;
+      assert.equal((await api("play", { offset: cd.offset, zone_or_output_id: DAC, kind: "queue" })).status, 200);
+      await new Promise(r => setTimeout(r, 1500));
+      assert.deepEqual(ctx.logs.slice(queuedAt).filter(l => /no longer made/.test(l)), [], "a queued album stops nothing");
       // How fast it was made: in the log, and under PCM as DSD.
       await until(() => ctx.logs.slice(said).some(l => /Long 1\.flac: DSD64 from PCM, standard filter \(0 reset\(s\)\), made as it played at [\d.]+× real time/.test(l)), 60000);
       await until(async () => /^Made as it plays: this server made the last at [\d.]+× real time/.test((await api("audio-devices/" + DAC)).output.making), 10000);
