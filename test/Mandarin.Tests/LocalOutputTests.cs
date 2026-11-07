@@ -19,38 +19,6 @@ public sealed class LocalOutputTests
     private static async Task<JsonNode> Effective(JsonNode record) =>
         (await Score.Run(new JsonObject { ["fn"] = "profiles", ["records"] = new JsonArray(new JsonObject { ["record"] = record.DeepClone() }) }))["effective"]![0]!;
 
-    private static (string Root, string Dev) FakeAsound()
-    {
-        var root = Directory.CreateTempSubdirectory("asound-").FullName;
-        var dev = Path.Combine(root, "dev");
-        void W(string f, string t) { var p = Path.Combine(root, f); Directory.CreateDirectory(Path.GetDirectoryName(p)!); File.WriteAllText(p, t); }
-        W("cards", string.Join("\n",
-            " 0 [PCH            ]: HDA-Intel - HDA Intel PCH",
-            "                      HDA Intel PCH at 0xf7f10000 irq 32",
-            " 1 [Mojo           ]: USB-Audio - Chord Mojo",
-            "                      Chord Electronics Ltd Chord Mojo at usb-0000:00:14.0-2, high speed",
-            " 2 [Hidden         ]: USB-Audio - Hidden DAC",
-            "                      Someone Hidden DAC at usb-0000:00:14.0-3, full speed", ""));
-        W("card0/pcm0p/info", "card: 0\ndevice: 0\nname: ALC892 Analog\n");
-        W("card0/pcm3p/info", "card: 0\ndevice: 3\nname: HDMI 0\n");
-        W("card0/pcm0c/info", "name: ALC892 Analog\n");
-        W("card1/pcm0p/info", "name: USB Audio\n");
-        W("card1/usbid", "20b1:301f\n");
-        W("card1/usbbus", "003/007\n");
-        W("card1/stream0", string.Join("\n",
-            "Chord Electronics Ltd Chord Mojo at usb-0000:00:14.0-2, high speed : USB Audio", "",
-            "Playback:", "  Status: Stop",
-            "  Interface 1", "    Altset 1", "    Format: S32_LE", "    Channels: 2", "    Endpoint: 0x01 (1 OUT) (ASYNC)", "    Bits: 32",
-            "    Rates: 44100, 48000, 88200, 96000, 176400, 192000, 352800, 384000, 705600, 768000",
-            "  Interface 1", "    Altset 2", "    Format: S24_3LE", "    Bits: 24", "    Rates: 44100, 48000, 96000", ""));
-        W("card1/pcm0p/sub0/hw_params", "access: RW_INTERLEAVED\nformat: S32_LE\nsubformat: STD\nchannels: 2\nrate: 96000 (96000/1)\n");
-        W("card2/pcm0p/info", "name: USB Audio\n");
-        Directory.CreateDirectory(dev);
-        foreach (var n in new[] { "pcmC0D0p", "pcmC0D3p", "pcmC1D0p" }) File.WriteAllText(Path.Combine(dev, n), "");
-        return (root, dev);
-    }
-
-    // A record with fields laid over it (Object.assign).
     private static JsonObject With(JsonNode a, object over)
     {
         var o = (JsonObject)a.DeepClone();
@@ -96,38 +64,6 @@ public sealed class LocalOutputTests
         }))["mac"]!.AsArray();
         Assert.Equal("48000", string.Join(",", mac[0]!["caps"]!["advertised"]!["rates"]!.AsArray().Select(r => r!.ToString())));
         Assert.Equal("44100,48000,88200,96000,176400,192000,352800,384000", string.Join(",", mac[1]!["caps"]!["advertised"]!["rates"]!.AsArray().Select(r => r!.ToString())));
-    }
-
-    [Test]
-    public async Task This_computers_sound_devices_ALSA_cards()
-    {
-        Needs.Server();
-        var (root, dev) = FakeAsound();
-        var found = await Local(new JsonObject { ["linux"] = new JsonArray(root, dev) });
-        Assert.True(found.Num("hidden") == 1, "a card /dev/snd doesn't let us open is counted, not listed");
-        var devices = found["devices"]!.AsArray();
-        Assert.Equal(["HDA Intel PCH (ALC892 Analog)", "HDA Intel PCH (HDMI 0)", "Chord Mojo"], devices.Select(d => d.Str("network_name")));
-        var mojo = devices[2]!;
-        Assert.Equal("local", mojo.Str("kind"));
-        Assert.Equal("alsa:plughw:CARD=Mojo,DEV=0", mojo.Str("location"));
-        Assert.Equal("Chord Electronics Ltd", mojo.Str("manufacturer"));
-        Assert.Equal("USB audio", mojo.Str("model"));
-        JsonAssert.Same("[44100, 48000, 88200, 96000, 176400, 192000, 352800, 384000, 705600, 768000]", mojo["caps"]?["advertised"]?["rates"]);
-        JsonAssert.Same("[24, 32]", mojo["caps"]?["advertised"]?["bits"]);
-        Assert.True(mojo.Str("id") == (await Local(new JsonObject { ["linux"] = new JsonArray(root, dev) }))["devices"]![2].Str("id"), "the same id every time");
-        Assert.Matches("^LOCAL_[0-9a-f]{12}$", mojo.Str("id"));
-        JsonAssert.Same("[]", devices[0]!["caps"]?["advertised"]?["rates"], "an internal card says nothing: 44.1 and 48 kHz until ticked");
-        JsonAssert.Same("""{"rate":96000,"format":"S32_LE"}""", (await Local(new JsonObject { ["hw"] = new JsonArray(new JsonArray(mojo.Str("location"), root)) }))["hw"]![0]);
-        // Where it is on the USB bus, for the bit-perfect check's recording of it (item 275): bus 3, device 7, endpoint 1; the HDA card is on none.
-        JsonAssert.Same("""[{"bus":3,"device":7,"endpoint":1},null]""", (await Local(new JsonObject { ["usb"] = new JsonArray(new JsonArray(mojo.Str("location"), root), new JsonArray(devices[0]!.Str("location"), root)) }))["usb"]);
-
-        // The chips: the Mojo's own rates are on as advertised; the HDA's are the floor.
-        var chips = await Effective(With(JsonNode.Parse("""{"playable":true}""")!, mojo));
-        Assert.Equal("local", chips["profile"].Str("id"));
-        Assert.All(chips["rates"].Items(), r => Assert.True(r.Bool("on") == true && r.Str("source") == "advertised"));
-        Assert.Equal([16.0, 24, 32], chips["bits"].Items().Where(b => b.Bool("on") == true).Select(b => b.Num("n") ?? 0));
-        var hda = await Effective(With(JsonNode.Parse("""{"playable":true}""")!, devices[0]!));
-        Assert.Equal([44100.0, 48000], hda["rates"].Items().Where(r => r.Bool("on") == true).Select(r => r.Num("hz") ?? 0));
     }
 
     [Test]

@@ -76,7 +76,6 @@ internal sealed partial class Players
     private bool stopped;
     /* A sound device on this computer, played by the engine (Local/EngineOutput.cs): made here when the kind is "local"; what ALSA has it open at. */
     public Func<Player, DeviceRecord, IRenderer> LocalOutput { get; set; }
-    public Func<string, (double Rate, string Format)?> HwParams { get; set; } = loc => LocalDevices.HwParams(loc);
 
     public Players(Hub hub)
     {

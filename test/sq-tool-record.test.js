@@ -123,7 +123,7 @@ test("SQ-tool has Mandarin record a zone's DAC, and compares it with the file", 
 
     // Refused, and why.
     let r = await call("/api/sq-tool/record", { test: tid, zone_or_output_id: sonos.zone_id });
-    assert.deepEqual([r.status, r.error], [400, "Only Mandarin Bridge, or a USB DAC on Mandarin's server, can record what its DAC is fed"]);
+    assert.deepEqual([r.status, r.error], [400, "Only Mandarin Bridge can record what its DAC is fed"]);
     r = await call("/api/sq-tool/record", { test: "20990101-000000-none", zone_or_output_id: USB });
     assert.deepEqual([r.status, r.error], [404, "SQ-tool has no such test"]);
     // A song in the music folder that isn't in Mandarin's library: Mandarin can't play it.

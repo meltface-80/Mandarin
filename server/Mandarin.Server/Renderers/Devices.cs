@@ -154,11 +154,23 @@ internal sealed partial class Devices
             var r = await localList();
             // A Mac's are offered as Linux's are: the engine plays them through Core Audio (item 155).
             var offered = r.Devices;
-            using (var c = Db.Open()) foreach (var rec in offered) Register.Seen(c, rec);
+            var forgot = 0;
+            using (var c = Db.Open())
+            {
+                foreach (var rec in offered) Register.Seen(c, rec);
+                // This computer's sound cards, as the server played them on Linux before item 324: forgotten, a Mandarin Bridge's to play now.
+                foreach (var gone in Register.All(c).Where(x => x.Kind == "local" && (x.Location ?? "").StartsWith("alsa:", StringComparison.Ordinal) && !offered.Any(o => o.Id == x.Id)).ToList())
+                {
+                    Register.Forget(c, gone.Id);
+                    hub.Upnp.Drop(gone.Id);
+                    forgot++;
+                    hub.Log($"[local] {gone.Name ?? gone.NetworkName}: this computer's sound card, forgotten: Mandarin no longer plays it itself; Mandarin Bridge for Linux, beside it, does");
+                }
+            }
             var before = Jv.Num(Local["count"]);
             Local = Jv.Obj(("platform", r.Platform.Length > 0 ? r.Platform : Local["platform"]), ("hidden", (double)r.Hidden), ("count", (double)offered.Count),
                 ("docker", Local["docker"]), ("off", r.Off));
-            if (offered.Count > 0 || before > 0) hub.Bump();
+            if (offered.Count > 0 || before > 0 || forgot > 0) hub.Bump();
         }
         finally { lock (gate) scanningLocal = null; }
     }

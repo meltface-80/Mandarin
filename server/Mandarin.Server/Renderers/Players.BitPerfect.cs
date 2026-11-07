@@ -1,6 +1,6 @@
 // Players.BitPerfect.cs — the bit-perfect check of a renderer's room (bug list item 275, BitPerfect/Check.cs): asked
-// for the track playing, of a Mandarin Bridge renderer whose app records what it feeds its DAC (/dac.json says
-// "capture"), or of a USB DAC plugged into this server, recorded off its bus (BitPerfect/UsbRecorder.cs). One at a
+// for the track playing, of a Mandarin Bridge whose app records what it feeds its DAC (/dac.json says "capture"; a
+// USB DAC on this server is a Mandarin Bridge's now, item 324: its own recording, as any Bridge's). One at a
 // time for each room; its progress and its report are the room's until the next, kept beside the data (BitPerfect/Kept.cs,
 // item 286) so that the verdict outlasts the track and a restart.
 using System.Collections.Concurrent;
@@ -22,7 +22,7 @@ internal sealed partial class Players
         if (checks.TryGetValue(id, out var was) && was.Run.State is "starting" or "recording" or "comparing") return (false, "A check is already under way");
         var rec = Record(id);
         var dir = Path.Combine(Server.DataDir, "bitperfect", string.Concat(id.Select(c => char.IsLetterOrDigit(c) ? c : '_')));
-        var (recorder, cant) = await RecorderFor(id, dir);
+        var (recorder, cant) = await RecorderFor(id);
         if (recorder == null) return (false, cant);
         UpnpItem item;
         int index;
@@ -50,20 +50,13 @@ internal sealed partial class Players
     }
 
     /*
-     * What records what room [id]'s DAC is fed, into [dir]: a DAC on this server off its USB bus, a Mandarin Bridge
-     * renderer at its /capture; else null, and why not. Asks nothing of the device but its /dac.json.
+     * What records what room [id]'s DAC is fed: a Mandarin Bridge at its /capture; else null, and why
+     * not. Asks nothing of the device but its /dac.json.
      */
-    public async Task<(IRecorder? Recorder, string Why)> RecorderFor(string id, string dir)
+    public async Task<(IRecorder? Recorder, string Why)> RecorderFor(string id)
     {
         var rec = Record(id);
-        if (rec?.Location is { } loc && loc.StartsWith("alsa:", StringComparison.Ordinal))
-        {
-            // A DAC on this server: what goes down its USB cable, off the bus.
-            if (Usbmon.Of(loc) is not { } usb) return (null, "This sound device isn't a USB DAC: what goes down a USB cable is what is recorded");
-            if (UsbRecorder.Why(usb) is { } why) return (null, "The USB bus can't be read: " + why);
-            return (new UsbRecorder(usb, dir, () => HwParams(loc)), "");
-        }
-        if (rec?.Caps["mandarin"] is not JsObj mu || !Jv.T(mu["base"])) return (null, "Only a Mandarin Bridge renderer or a USB DAC on this server can record what its DAC is fed");
+        if (rec?.Caps["mandarin"] is not JsObj mu || !Jv.T(mu["base"])) return (null, "Only a Mandarin Bridge can record what its DAC is fed: for a USB DAC on Mandarin's own computer, install Mandarin Bridge for Linux beside it");
         var device = Jv.Str(mu["base"]);
         var dac = await MandarinBridge.Probe(device);
         if (dac == null) return (null, "The device isn't answering");

@@ -1,7 +1,6 @@
-// Recorder.cs — what records what a DAC is fed, for the bit-perfect check (bug list item 275): a Mandarin Bridge
-// renderer at its /capture (DeviceRecorder, here), or this server's own USB bus where the DAC is plugged into the
-// server (UsbRecorder.cs, through the kernel's usbmon). Either is asked to record, waited for, and its recording taken
-// as a WAV with its sidecar's "capture" (Recording.cs reads them).
+// Recorder.cs — what records what a DAC is fed, for the bit-perfect check (bug list item 275): a Mandarin Bridge at its
+// /capture (DeviceRecorder, here; a DAC on this server is a Mandarin Bridge's, item 324). It is asked to record,
+// waited for, and its recording taken as a WAV with its sidecar's "capture" (Recording.cs reads them).
 using System.Text.Json.Nodes;
 
 namespace Mandarin.Server.BitPerfect;

@@ -92,10 +92,9 @@ function renderList() {
   // can't be searched from there, so Look again goes.
   if (rescan) rescan.classList.toggle("hidden", away);
   if (away && !devices.length) { list.innerHTML = '<div class="settings-note"' + ' data-parity="settings-audio.note"' + '>Away from home, this phone is the only player — and it shows here once the app has started playing.</div>'; return; }
-  // Sound devices on the server's computer that it can't open (v0.6.18).
-  const localNote = away || !local || local.off ? ""
-    : local.platform !== "linux" || local.count || !(local.hidden || local.docker) ? "" : local.docker ? "To play through a USB DAC or speakers plugged into the computer Mandarin runs on, start its container with --device /dev/snd and --privileged."
-      : "This computer has sound devices Mandarin isn’t allowed to open: add the user Mandarin runs as to the audio group.";
+  // A USB DAC on the server's own computer (item 324): a Linux server plays none itself; Mandarin Bridge for Linux does, beside it.
+  const localNote = away || !local || local.off || local.platform !== "linux" || devices.some(d => d.kind === "slim") ? ""
+    : "To play through a USB DAC plugged into the computer Mandarin runs on, install Mandarin Bridge for Linux beside it (Downloads): it plays the DAC as a room of its own.";
   if (!devices.length) { list.innerHTML = '<div class="settings-note"' + ' data-parity="settings-audio.note"' + ">" + esc(err || "Nothing found yet — the network is being searched.") + "</div>" + (localNote ? '<div class="settings-note"' + ' data-parity="settings-audio.note"' + ">" + localNote + "</div>" : ""); paintHideTools(); return; }
   let html = "";
   const shown = devices.filter(d => !d.hidden);

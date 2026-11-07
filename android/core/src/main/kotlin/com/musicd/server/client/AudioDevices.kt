@@ -55,19 +55,17 @@ object AudioDevices {
     fun row(d: JSONObject) = DeviceRow(d.optString("id"), d.optString("name"), d.optString("kind"), sub(d), stateWord(d.optString("state"), d.optBoolean("online")),
         d.optString("state") == "playing", d.optBoolean("online"), d.optBoolean("can_toggle"), d.optBoolean("enabled"), d.optBoolean("hidden"))
 
-    /** The sound devices on the server's own computer it isn't allowed to open, and how to let it (v0.6.18); none otherwise. */
-    fun localNote(local: JSONObject?, away: Boolean): String {
-        if (away || local == null || local.optBoolean("off")) return ""
-        if (local.optString("platform") != "linux" || local.optInt("count") > 0 || !(local.optBoolean("hidden") || local.optBoolean("docker"))) return ""
-        return if (local.optBoolean("docker")) "To play through a USB DAC or speakers plugged into the computer Mandarin runs on, start its container with --device /dev/snd and --privileged."
-        else "This computer has sound devices Mandarin isn’t allowed to open: add the user Mandarin runs as to the audio group."
+    /** A USB DAC on the server's own computer (item 324): a Linux server plays none itself; Mandarin Bridge for Linux does, beside it. Said until a Bridge ([slim]) is listed. */
+    fun localNote(local: JSONObject?, away: Boolean, slim: Boolean = false): String {
+        if (away || local == null || local.optBoolean("off") || local.optString("platform") != "linux" || slim) return ""
+        return "To play through a USB DAC plugged into the computer Mandarin runs on, install Mandarin Bridge for Linux beside it (Downloads): it plays the DAC as a room of its own."
     }
 
     fun parse(j: JSONObject): DeviceList {
         val a = j.optJSONArray("devices")
         val rows = if (a == null) emptyList() else (0 until a.length()).mapNotNull { a.optJSONObject(it)?.let(::row) }
         val away = j.optBoolean("away")
-        return DeviceList(rows, away, localNote(j.optJSONObject("local"), away), "")
+        return DeviceList(rows, away, localNote(j.optJSONObject("local"), away, rows.any { it.kind == "slim" }), "")
     }
 
     /** Under the rows: how many are hidden. */

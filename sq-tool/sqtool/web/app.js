@@ -1029,7 +1029,6 @@
       "Bit-perfect means every one of them is the file's.</p></div>" +
       '<div class="card stack"><h3>What can be recorded</h3><ul class="lines">' +
       "<li><b>Mandarin Bridge</b> on an Android phone or tablet with a USB DAC: it records what its USB driver feeds the DAC. An older app can't: update Mandarin Bridge.</li>" +
-      "<li>A <b>USB DAC on Mandarin's server</b>: what goes down its USB cable, read off the USB bus (Docker: --privileged, and the usbmon driver loaded).</li>" +
       "<li>Not yet: Mandarin Bridge for Linux or the Raspberry Pi, Sonos, or other streamers.</li></ul></div>" +
       '<div class="card stack"><h3>For a bit-perfect result</h3><ul class="lines">' +
       "<li>In Mandarin, the zone's <b>Output</b> as <b>Original</b>: upsampling, DSD from PCM, DSP and volume levelling change the samples on purpose.</li>" +

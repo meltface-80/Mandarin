@@ -17,7 +17,7 @@ internal sealed partial class Players
     private async Task Verify(Player p, UpnpItem item)
     {
         var rec = Record(p.Id);
-        if (rec != null && rec.Kind == "local") { await VerifyLocal(p, rec, item); return; }
+        if (rec != null && rec.Kind == "local") return;   // a Mac's sound device: nothing reads back what it is fed (Linux's were ALSA's, item 324)
         if (rec?.Caps["mandarin"] is JsObj mu && Jv.T(mu["base"])) { await VerifyMandarinBridge(p, rec, item, Jv.Str(mu["base"])); return; }
         var lp = rec?.Caps["linkplay"] as JsObj;
         if (lp == null || !Jv.T(lp["base"]) || item.Sent == null || item.Sent.Rate == 0 || item.Sent.Dsd != 0) return;
@@ -48,36 +48,6 @@ internal sealed partial class Players
             lock (gate) p.LastError = (Hub.Now(), msg);
             Log($"[renderers] {rec!.Name ?? rec.NetworkName}: {msg}");
         }
-    }
-
-    /* A sound device on Linux: ALSA says the rate the device is open at (/proc/asound/…/hw_params); the same as the engine's and as sent, and it is confirmed. */
-    private async Task VerifyLocal(Player p, DeviceRecord rec, UpnpItem item)
-    {
-        var sink = (p.Renderer as Local.EngineOutput)?.Sink;
-        if (item.Sent == null || item.Sent.Rate == 0 || sink == null) return;
-        var key = p.Index + ":" + item.Uri;
-        lock (gate) { if (p.Verifying == key) return; }
-        ZoneState? st;
-        lock (zm.Gate) st = zm.State.GetValueOrDefault(p.Id);
-        if ((st?.Position ?? 0) < 2) return;
-        lock (gate) p.Verifying = key;
-        var hw = HwParams(rec.Location);
-        if (hw == null || hw.Value.Rate == 0) return;
-        // DSD (item 256): the device open at the DSD rate over 16 (DoP) or over 32 (native words), not at a PCM rate.
-        var dsd = item.Sent.Dsd * item.Sent.DsdBase;
-        var ok = hw.Value.Rate == sink.Value.Rate && (dsd > 0 ? sink.Value.Rate * 16 == dsd || sink.Value.Rate * 32 == dsd : sink.Value.Rate == item.Sent.Rate);
-        if (ok && dsd == 0) { using var c = Db.Open(); Register.MarkVerified(c, p.Id, hw.Value.Rate, null); }
-        // What the engine opened the device at (its format event) and what it does to the samples (its gain, item 287).
-        var engine = p.Renderer as Local.EngineOutput;
-        var format = engine?.Opened?.Format ?? "";
-        var kind = format.Contains("DoP", StringComparison.Ordinal) ? "dop" : format.StartsWith("DSD", StringComparison.Ordinal) ? "dsd" : "pcm";
-        var gain = engine?.GainNow ?? 1;
-        var fed = new Fed("Mandarin's audio engine", kind, hw.Value.Rate, format.Contains("32", StringComparison.Ordinal) ? 32 : 0, item.Sent.Dsd,
-            engine?.FixedVolume == true ? "fixed" : "software", engine?.Volume ?? 0, gain == 1, ok);
-        var bump = false;
-        lock (zm.Gate) { if (zm.State.TryGetValue(p.Id, out var now) && now.TrackUri == item.Uri) { now.Verified = ok ? "yes" : "no"; now.Fed = fed; bump = true; } }
-        if (bump) zm.Bump();
-        await Task.CompletedTask;
     }
 
     /* The next file must be complete before the renderer is told about it, so it always sees a length and byte ranges for it;

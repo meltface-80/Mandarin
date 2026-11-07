@@ -32,8 +32,8 @@ internal static class SqToolRecord
         var list = new JsonArray();
         foreach (var z in hub.Zones().Where(z => !z.IsPhone))
         {
-            var why = hub.IsUpnp(z.ZoneId) ? (await hub.Upnp.RecorderFor(z.ZoneId, Dir)).Why
-                : "Only Mandarin Bridge, or a USB DAC on Mandarin's server, can record what its DAC is fed";
+            var why = hub.IsUpnp(z.ZoneId) ? (await hub.Upnp.RecorderFor(z.ZoneId)).Why
+                : "Only Mandarin Bridge can record what its DAC is fed";
             list.Add(new JsonObject { ["zone_id"] = z.ZoneId, ["name"] = z.DisplayName, ["can"] = why.Length == 0, ["why"] = why.Length == 0 ? null : why });
         }
         return new JsonObject { ["zones"] = list };
@@ -62,7 +62,7 @@ internal static class SqToolRecord
     public static async Task<(int Status, JsonObject Body)> Start(Hub hub, string test, string zone)
     {
         lock (gate) if (job?.Run.State is "starting" or "recording" or "handing") return (409, Err("A recording is already under way"));
-        if (!hub.IsUpnp(zone)) return (400, Err("Only Mandarin Bridge, or a USB DAC on Mandarin's server, can record what its DAC is fed"));
+        if (!hub.IsUpnp(zone)) return (400, Err("Only Mandarin Bridge can record what its DAC is fed"));
         if (await SqTool.Local() is not { } sq) return (503, Err("SQ-tool isn't running: " + SqTool.Why));
         JsonObject? t;
         using (var r = await Http.GetAsync(new Uri(sq, "api/tests/" + Uri.EscapeDataString(test))))
@@ -71,7 +71,7 @@ internal static class SqToolRecord
         if (t["source"] is not JsonObject src || (string?)src["state"] != "ready") return (409, Err("SQ-tool hasn't read the song yet"));
         if (await Track((string?)src["music_path"] ?? "") is not { } track)
             return (404, Err("This song isn't in Mandarin's library, so Mandarin can't play it: choose one Mandarin has scanned"));
-        var (recorder, why) = await hub.Upnp.RecorderFor(zone, Dir);
+        var (recorder, why) = await hub.Upnp.RecorderFor(zone);
         if (recorder == null) return (409, Err(why));
         var j = new Job(test, zone, hub.Upnp.NameOf(zone), track.Duration);
         lock (gate)
@@ -113,7 +113,7 @@ internal static class SqToolRecord
             if (parts.Count != 1) throw new InvalidOperationException("its parts don't follow on, so they aren't one recording of the track");
             run.State = "handing";
             run.Said = "Handing the recording to SQ-tool";
-            await Hand(sq, j, parts[0].Wav, recorder is UsbRecorder ? "Mandarin's server, off the USB bus" : "Mandarin Bridge", ct);
+            await Hand(sq, j, parts[0].Wav, "Mandarin Bridge", ct);
             failed = false;
             said = "Recorded: SQ-tool is comparing it with the song";
         }
