@@ -74,7 +74,11 @@ class LibraryClient(private val get: (String) -> JSONObject) {
     /** An artist's biography, one of their albums naming them ([album]); null when there is none. */
     fun artistBio(artist: String, album: String): ArtistBio? = ArtistBio.parse(get("/api/artist-bio?artist=" + enc(artist) + "&album=" + enc(album)))
     /** Who an act is (bug list item 131): picture, facts, links, members or bands, albums credited on. */
-    fun artistAbout(artist: String): ArtistAbout = ArtistAbout.parse(get("/api/artist?name=" + enc(artist)))
+    fun artistAbout(artist: String): ArtistAbout {
+        // [artist] as ArtistAct.of names it: one act of a shared name is looked up as that act (item 340).
+        val (name, act) = ArtistAct.parse(artist)
+        return ArtistAbout.parse(get("/api/artist?name=" + enc(name) + (if (act != null) "&artist_id=$act" else "")))
+    }
     /** An act's similar acts for its page (bug list item 137). */
     fun artistSimilar(artist: String): ArtistSimilar = ArtistSimilar.parse(get("/api/artist/similar?name=" + enc(artist)))
     /** An act's similar albums for the foot of its page (item 140): Last.fm's with a key, else the library's by the acts Deezer relates. */

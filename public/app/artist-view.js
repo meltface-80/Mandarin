@@ -212,7 +212,7 @@
         none.textContent = `No albums found for "${artistName}"`;
         grid.replaceChildren(none);
         // Who they are all the same: a band's member opened from its page may have nothing of their own here.
-        renderHead(artistName, "", new Set(), 0, [], []);
+        renderHead(artistName, "", new Set(), 0, [], [], how && how.artistId != null ? how.artistId : null);
         return;
       }
 
@@ -254,7 +254,7 @@
       // album titles pins their identity for the lookup (see /api/artist-bio).
       const bioAlbum = (j.primary[0] && j.primary[0].title) ||
                        (j.featured[0] && j.featured[0].title) || (mine[0] && mine[0].title) || "";
-      renderHead(artistName, bioAlbum, new Set(j.primary.concat(j.featured).map(a => a.offset)), total, j.primary, j.featured);
+      renderHead(artistName, bioAlbum, new Set(j.primary.concat(j.featured).map(a => a.offset)), total, j.primary, j.featured, how && how.artistId != null ? how.artistId : null);
       if (failed) throw failed;   // the phone's albums are up; the server's absence is still said
     } catch (e) {
       if (countBar) {
@@ -271,12 +271,12 @@
   // after the albums, so the grid is never held up by other services; a
   // view or artist switched before the answers come draws nothing.
   let bioSeq = 0;
-  function renderHead(artistName, pin, shown, total, own, featured) {
+  function renderHead(artistName, pin, shown, total, own, featured, actId) {
     const seq = bioSeq;   // generation is bumped by showArtistAlbums/exitArtistView, not here
     const alive = () => seq === bioSeq && artistViewActive;
     // Their bands' albums count with their own in the heading (item 133).
     const onCount = (more) => { if (!alive()) return; const n = total + more; setTitle(n + " album" + (n !== 1 ? "s" : "") + " · " + artistName); };
-    if (window.__renderArtistHead) window.__renderArtistHead(artistName, pin, grid, alive, shown, onCount, own, featured);
+    if (window.__renderArtistHead) window.__renderArtistHead(artistName, pin, grid, alive, shown, onCount, own, featured, actId);
   }
 
   window.__showArtistAlbums = showArtistAlbums;

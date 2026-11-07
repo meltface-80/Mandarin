@@ -288,6 +288,11 @@ internal static partial class CreditRules
         L(search["artists"]).Select(O).FirstOrDefault(x => Extras.WriteUps.NamesEqualLoose(x["name"], name)
             || L(x["aliases"]).Select(O).Any(al => Extras.WriteUps.NamesEqualLoose(al["name"], name))) is { } act ? N(act["id"]) : null;
 
+    /* The act a release-group search credits under [name] (item 340): the first group's first credited act of that name; null where none. */
+    public static string? ActOfReleaseGroups(JsObj search, string name) =>
+        L(search["release-groups"]).Select(O).SelectMany(g => L(g["artist-credit"]).Select(O)).Select(c => O(c["artist"]))
+            .FirstOrDefault(a => Extras.WriteUps.NamesEqualLoose(a["name"], name) && N(a["id"]) != null) is { } act ? N(act["id"]) : null;
+
     // ---------------------------------------------------------------- pictures
 
     public const string CommonsFilePath = "https://commons.wikimedia.org/wiki/Special:FilePath/";

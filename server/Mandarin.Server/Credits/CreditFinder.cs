@@ -74,14 +74,24 @@ internal sealed class CreditFinder(MusicBrainz mb, string? deezerBase, string? w
             if (!ReferenceEquals(s, lookedIn)) { looked = null; lookedIn = s; }
             var done = Looked();
             if (s.Albums.FirstOrDefault(a => !done.ContainsKey(a.Id) && !a.Transient && a.Service == null) is { } al) await LookAtAlbum(al);
-            if (NextArtist(s) is { } act) await LookUp(act.Name, act.Mbid);
+            if (NextArtist(s) is { } act)
+            {
+                // An act of the library's: the one its albums are by (item 340), not whoever the name finds first.
+                var mbid = act.Mbid;
+                if (mbid == null && act.Albums is { Count: > 0 } own)
+                {
+                    var (filed, titles) = Library.ActOfAlbums(own);
+                    mbid = filed ?? await ActByAlbums(act.Name, titles);
+                }
+                await LookUp(act.Name, mbid);
+            }
         }
         catch (Exception e) when (e is LookupError or Microsoft.Data.Sqlite.SqliteException or IOException) { log($"[credits] {e.Message}"); }
         finally { Interlocked.Exchange(ref ticking, 0); }
     }
 
     /* The next act to look up: an album artist of the library's, else a name credited with a MusicBrainz id. */
-    private (string Name, string? Mbid)? NextArtist(Snapshot s)
+    private (string Name, string? Mbid, List<Album>? Albums)? NextArtist(Snapshot s)
     {
         var seen = Known();
         foreach (var al in s.Albums)
@@ -90,11 +100,13 @@ internal sealed class CreditFinder(MusicBrainz mb, string? deezerBase, string? w
             foreach (var (name, _) in al.ArtistNames)
             {
                 var key = Names.ArtistKey(name);
-                if (key.Length > 0 && !seen.ContainsKey(key)) return (name, actIds.TryGetValue(key, out var id) ? id : null);
+                if (key.Length > 0 && !seen.ContainsKey(key))
+                    return (name, actIds.TryGetValue(key, out var id) ? id : null,
+                        s.Albums.Where(a => !a.Compilation && a.ArtistNames.Length > 0 && Names.ArtistKey(a.ArtistNames[0].Name) == key).ToList());
             }
         }
         foreach (var (key, name, mbid) in CreditStore.CreditedUnknown(20))
-            if (!seen.ContainsKey(key)) return (name, mbid);
+            if (!seen.ContainsKey(key)) return (name, mbid, null);
         return null;
     }
 
@@ -197,16 +209,16 @@ internal sealed class CreditFinder(MusicBrainz mb, string? deezerBase, string? w
     }
 
     /* An act looked up and kept: its MusicBrainz entry (by [mbid], or found by name), its facts and picture. */
-    public async Task LookUp(string name, string? mbid)
+    public async Task LookUp(string name, string? mbid, string? storeKey = null)
     {
-        var key = Names.ArtistKey(name);
+        var key = storeKey ?? Names.ArtistKey(name);
         if (key.Length == 0) return;
         Known()[key] = 0;
         ArtistFacts? facts = null;
         string? photo, source;
         try
         {
-            mbid ??= actIds.TryGetValue(key, out var id) ? id : await Find(name);
+            mbid ??= actIds.TryGetValue(Names.ArtistKey(name), out var id) ? id : await Find(name);
             if (mbid != null && await mb.Get("artist/" + mbid, ("inc", "artist-rels+url-rels")) is JsObj a) facts = CreditRules.ArtistOf(a);
             // Wikidata's entry, once: its picture, and its official site over MusicBrainz's (kept up better; item 133).
             (JsObj, string)? wd = null;
@@ -236,27 +248,62 @@ internal sealed class CreditFinder(MusicBrainz mb, string? deezerBase, string? w
     /*
      * For a route: an act as kept, looked up first when it hasn't been (for [waitMs] at most, the lookup going on
      * behind for the next visit). One whose lookup failed in the last hour is answered as kept, not waited on again.
+     * The act is the library's where it knows it (item 340): [mbid], what its albums' tags or matches say, else the act
+     * MusicBrainz credits with the library's [titles]; one kept for the name that is another act is looked up again.
+     * [storeKey]: where it is kept (the name's key; the act's own where acts share the name).
      */
-    public async Task<StoredArtist?> ArtistNow(string name, int waitMs)
+    public async Task<StoredArtist?> ArtistNow(string name, int waitMs, string? mbid = null, IReadOnlyList<string>? titles = null, string? storeKey = null)
     {
-        var key = Names.ArtistKey(name);
+        var key = storeKey ?? Names.ArtistKey(name);
         var kept = CreditStore.Artist(key);
-        // Kept as read before (CreditStore.AboutVersion): looked up again, the old facts meanwhile and if that fails.
-        if (kept != null && (int?)kept.About["v"] >= CreditStore.AboutVersion) return kept;
         if (failed.TryGetValue(key, out var at) && NowMs() - at < FailedMs) return kept;
-        await Task.WhenAny(LookingUp(key, name), Task.Delay(waitMs));
+        var current = kept != null && (int?)kept.About["v"] >= CreditStore.AboutVersion;
+        // Kept, of this act (or no act to go by): as kept. Kept as read before (CreditStore.AboutVersion): looked up again.
+        if (current && mbid != null && kept!.Mbid == mbid) return kept;
+        if (current && mbid == null && (titles == null || titles.Count == 0)) return kept;
+        await Task.WhenAny(LookingUp(key, name, mbid, titles), Task.Delay(waitMs));
         return CreditStore.Artist(key) ?? kept;
     }
 
+    /* The act MusicBrainz credits with the most of [titles] (three at most) under [name]; null where none; kept a month. */
+    private async Task<string?> ActByAlbums(string name, IReadOnlyList<string> titles)
+    {
+        var asked = titles.Where(t => t.Length > 0).Distinct(StringComparer.Ordinal).Take(3).ToList();
+        if (asked.Count == 0) return null;
+        var cacheKey = Names.ArtistKey(name) + "|" + string.Join("|", asked.Select(Names.Fold));
+        if (Extras.Taste.CacheGet("act-by-albums", cacheKey, 30.0 * Day) is var hit and not Undef) return hit as string;
+        var votes = new List<string>();
+        foreach (var t in asked)
+        {
+            var q = $"releasegroup:\"{Lucene(t)}\" AND artist:\"{Lucene(name)}\"";
+            // MusicBrainz not answering: none found this time (not kept), the act looked up by its name as before.
+            try { if (await mb.Get("release-group/", ("query", q), ("limit", 5)) is JsObj found && CreditRules.ActOfReleaseGroups(found, name) is { } id) votes.Add(id); }
+            catch (LookupError) { return null; }
+        }
+        var act = votes.GroupBy(v => v, StringComparer.Ordinal).OrderByDescending(g => g.Count()).Select(g => g.Key).FirstOrDefault();
+        Extras.Taste.CachePut("act-by-albums", cacheKey, act);
+        return act;
+    }
+
+    private static string Lucene(string s) => s.Replace("\\", " ", StringComparison.Ordinal).Replace("\"", " ", StringComparison.Ordinal);
+
     /* An act's lookup, one at a time however many pages ask; anything it throws said, not the page's. */
-    private Task LookingUp(string key, string name)
+    private Task LookingUp(string key, string name, string? mbid = null, IReadOnlyList<string>? titles = null)
     {
         var mine = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var running = lookingUp.GetOrAdd(key, mine.Task);
         if (running != mine.Task) return running;
         _ = Task.Run(async () =>
         {
-            try { await LookUp(name, null); }
+            try
+            {
+                // The act the library's albums are by, where it says (item 340); as kept when that is the one kept.
+                // The release's own id for it first (no search), then its albums' titles.
+                var act = mbid ?? (actIds.TryGetValue(Names.ArtistKey(name), out var own) ? own : null) ?? (titles != null ? await ActByAlbums(name, titles) : null);
+                var kept = CreditStore.Artist(key);
+                if (kept != null && (int?)kept.About["v"] >= CreditStore.AboutVersion && (act == null || kept.Mbid == act)) return;
+                await LookUp(name, act, key);
+            }
             catch (Exception e) { log($"[credits] {name}: {e.GetType().Name}: {e.Message}"); }
             finally { lookingUp.TryRemove(key, out _); mine.TrySetResult(); }
         });

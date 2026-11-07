@@ -111,18 +111,50 @@ internal static partial class Library
         .GroupBy(g => Names.Fold(g), StringComparer.Ordinal).OrderByDescending(g => g.Count()).ThenBy(g => g.Key, StringComparer.Ordinal).Take(5)
         .Select(g => (JsonNode?)g.First()).ToArray());
 
-    /* GET /api/artist?name= */
+    /*
+     * The act an artist's page is of (item 340): its MusicBrainz id where the library knows it (the act asked for with
+     * ?artist_id=, else the one id its albums are filed under), else its album titles to find it by; and where what is
+     * known of it is kept: the name's key, or the act's own where acts share the name.
+     */
+    private static (string? Mbid, IReadOnlyList<string> Titles, string StoreKey) ActAsked(HttpContext ctx, string key, List<Album> own)
+    {
+        var (given, id) = ActOf(ctx);
+        var shared = own.Any(al => al.ActNote != null);
+        // Every act of a shared name asked at once: nothing to tell them by, as kept for the name.
+        if (shared && !given) return (null, [], key);
+        var (mbid, titles) = ActOfAlbums(own, given ? id : null);
+        return (mbid, titles, shared ? key + "#" + (id ?? 0).ToString(System.Globalization.CultureInfo.InvariantCulture) : key);
+    }
+
+    /*
+     * The act [own] albums are by (item 340): act [act]'s MusicBrainz id where one is asked for, else the one id they
+     * are filed under (their tags', or their matches'); and their titles, oldest first, to find it by where there is none.
+     */
+    public static (string? Mbid, IReadOnlyList<string> Titles) ActOfAlbums(IReadOnlyList<Album> own, long? act = null)
+    {
+        Dictionary<long, (string? Mbid, string? Note)> rows;
+        try { using var c = Db.Open(); rows = ArtistRows.All(c); }
+        catch (Microsoft.Data.Sqlite.SqliteException) { rows = []; }
+        string? Of(long? a) => a is long x && rows.TryGetValue(x, out var r) ? r.Mbid : null;
+        var ids = own.Select(al => Of(al.ArtistId)).OfType<string>().Distinct(StringComparer.Ordinal).ToList();
+        var mbid = act != null ? Of(act) : ids.Count == 1 ? ids[0] : null;
+        return (mbid, own.Where(al => !al.Compilation).OrderBy(al => al.Year ?? 9999).Select(al => al.Title).ToList());
+    }
+
+    /* GET /api/artist?name=[&artist_id=] */
     private static async Task<bool> ArtistRoute(HttpContext ctx, Snapshot s, LibState st)
     {
         var name = Names.JsTrim(Q(ctx, "name") ?? "");
         if (name.Length == 0) return await Send(ctx, new JsonObject { ["error"] = "name required" }, 400);
         var key = Names.ArtistKey(name);
-        var info = CreditFinder.Current is { } f ? await f.ArtistNow(name, ArtistWaitMs) : CreditStore.Artist(key);
+        // Their bands' albums first, so an album is under its band rather than again under "credited on".
+        var (own, featured) = ArtistAlbumsOf(s, name, ActOf(ctx));
+        // Who they are: the act the library's albums are by (item 340), not whoever MusicBrainz finds first by the name.
+        var (mbid, titles, storeKey) = ActAsked(ctx, key, own);
+        var info = CreditFinder.Current is { } f ? await f.ArtistNow(name, ArtistWaitMs, mbid, titles, storeKey) : CreditStore.Artist(storeKey);
         var photos = CreditStore.Photos();
         var acts = LibraryActs(s);
         var about = info?.About ?? new JsonObject();
-        // Their bands' albums first, so an album is under its band rather than again under "credited on".
-        var (own, featured) = ArtistAlbumsOf(s, name);
         var shown = own.Concat(featured).Select(al => al.Id).ToHashSet();
         var bandAlbums = BandAlbums(s, about["member_of"], shown);
         var on = new JsonArray();

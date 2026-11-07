@@ -96,7 +96,7 @@ internal fun ArtistScreen(asked: String, prefs: WallPrefs, zoneId: String, clien
         val a = albums
         val pin = (a?.primary?.firstOrNull() ?: a?.featured?.firstOrNull())?.title ?: ""
         coroutineScope {
-            launch { withContext(Dispatchers.IO) { runCatching { lib.artistAbout(name) }.getOrNull() }?.let { got -> about = got; keep { it.copy(about = got) } } }
+            launch { withContext(Dispatchers.IO) { runCatching { lib.artistAbout(asked) }.getOrNull() }?.let { got -> about = got; keep { it.copy(about = got) } } }
             launch { withContext(Dispatchers.IO) { runCatching { lib.artistSimilar(name) }.getOrNull() }?.let { got -> similar = got; keep { it.copy(similar = got) } } }   // item 137
             launch {   // item 140
                 withContext(Dispatchers.IO) { runCatching { lib.artistSimilarAlbums(name) }.getOrNull() }?.takeIf { it.error == null }?.albums?.let { got -> similarAlbums = got; keep { it.copy(similarAlbums = got) } }
