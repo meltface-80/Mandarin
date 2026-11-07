@@ -10,7 +10,9 @@
  *
  * The spines are proved in the picture itself: the fronts painted green and the spines red, the shelf held halfway
  * between two albums on a tablet and on a phone, a screenshot taken, and the row across the covers found in it. No
- * red may show between the two turning covers. The browser half is skipped where no Chromium or Chrome is found.
+ * red may show between the two turning covers. The album view is measured once its unfolding is over, never a fixed
+ * while after it opened (item 343: a quick album or a busy machine had it measured mid-way, smaller than the screen).
+ * The browser half is skipped where no Chromium or Chrome is found.
  */
 const ports = require("./ports");
 const test = require("node:test");
@@ -150,7 +152,9 @@ test("Shelf: spines never through a turning case; one line along each spine; the
         pe("pointerdown", m.left + m.width / 2, m.top + m.height / 2, id); pe("pointerup", m.left + m.width / 2, m.top + m.height / 2, id);
         // the library's album view in its frame (item 218), its album up with its tracks
         const fd = () => { const f = document.querySelector("#open iframe"); return f && f.contentDocument; };
-        await until(() => viewOpen() && fd() && fd().querySelector("#album-modal:not(.hidden) #modal-tracks li.t-row"), 20000); await sleep(600); };
+        await until(() => viewOpen() && fd() && fd().querySelector("#album-modal:not(.hidden) #modal-tracks li.t-row"), 20000);
+        // its unfolding over (item 343): measured mid-way, a quick album or a busy machine left it smaller than the screen
+        await until(() => $("#open").getAnimations().length === 0, 10000); await sleep(100); };
       const goTo = async (title) => { for (let k = 0; k < 12 && S().title !== title; k++) { stage.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true })); await until(() => S().mode === "idle"); } };
     `;
 
