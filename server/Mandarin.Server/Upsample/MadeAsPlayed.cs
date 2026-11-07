@@ -21,6 +21,12 @@ internal static class MadeAsPlayed
     private static readonly SemaphoreSlim One = new(1, 1);
     private static readonly ConcurrentDictionary<string, Process?> Under = new();   // waiting (null) or being made
     private static readonly ConcurrentDictionary<string, bool> Stopped = new();
+    // Why each was stopped on purpose (another play, skipped from…: items 246, 264), for its log (item 332).
+    private static readonly ConcurrentDictionary<string, string> Why = new();
+    private const string StoppedSaid = "no longer made: ";
+
+    /* What a making's error [err] says where it was stopped on purpose ("no longer made: another play"); null where it failed. */
+    public static string? StoppedOnPurpose(string err) => err.StartsWith(StoppedSaid, StringComparison.Ordinal) ? err : null;
     private static readonly ConcurrentDictionary<int, double> Speeds = new();      // DSD's multiple (0: PCM) → × real time
     // A pause between a making's turn and its start: the tests' own, to hold that moment open (items 246, 259).
     private static readonly int Wait = int.TryParse(Environment.GetEnvironmentVariable("MANDARIN_MAKE_WAIT_MS"), out var w) && w > 0 ? w : 0;
@@ -80,7 +86,7 @@ internal static class MadeAsPlayed
             try
             {
                 if (Wait > 0) await Task.Delay(Wait);
-                if (Stopped.TryRemove(job.Key, out _)) { err.Append("another play"); return; }
+                if (Stopped.TryRemove(job.Key, out _)) { err.Append(StoppedSaid + (Why.TryRemove(job.Key, out var w) ? w : "another play")); return; }
                 code = await make();
             }
             catch (Exception e) { err.Append(e.Message); }
@@ -88,6 +94,8 @@ internal static class MadeAsPlayed
             {
                 Under.TryRemove(job.Key, out _);
                 Stopped.TryRemove(job.Key, out _);
+                // Stopped part made, on purpose: said so, not as a failure (item 332).
+                if (Why.TryRemove(job.Key, out var why) && code != 0 && StoppedOnPurpose(err.ToString()) == null) { err.Clear(); err.Append(StoppedSaid + why); }
                 One.Release();
                 finish(code);
             }
@@ -216,6 +224,7 @@ internal static class MadeAsPlayed
         {
             if (k.Contains(key)) continue;
             Stopped[key] = true;
+            Why[key] = why;
             if (proc != null) Stop(proc);
             n++;
         }
