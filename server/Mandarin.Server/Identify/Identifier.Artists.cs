@@ -4,7 +4,9 @@
 // Each such applied match is asked of MusicBrainz once, its release looked up again on the web (the pack keeps no act's
 // id), the act's id and MusicBrainz's word for it kept in the match, and the album filed under that act at once. The
 // names with the most albums go first: a name with one album is never two acts. It takes turns with identifying new
-// albums, and waits whenever they would (the hours allowed, MusicBrainz not answering).
+// albums, and waits whenever they would (the hours allowed, MusicBrainz not answering). The library is read again once a
+// minute at most while albums are filed, and once the last is (item 335: it was read again, and the album edits'
+// backup written, for every album, every few seconds through a whole library).
 using Mandarin.Server.Scan;
 using Mandarin.Server.Tags;
 
@@ -15,6 +17,17 @@ using Js = Mandarin.Server.Tags.Js;
 internal sealed partial class Identifier
 {
     private int artistTurn;
+    private bool artistsFiled;
+    private double artistsToldAt;
+
+    /* Albums filed since the library was last read again: read again now where a minute has gone by, or [done] (the last filed). */
+    private async Task ArtistsTold(bool done)
+    {
+        if (!artistsFiled || (!done && Now - artistsToldAt < 60_000)) return;
+        artistsFiled = false;
+        artistsToldAt = Now;
+        await Library.Tell(new System.Text.Json.Nodes.JsonObject { ["artists"] = true });
+    }
 
     /* The next album whose applied match doesn't yet say its act's id, asked at most once each; null where none is left. */
     private static Album? NextUntold(Snapshot lib)
@@ -56,7 +69,8 @@ internal sealed partial class Identifier
             var act = ArtistRows.For(c, null, name, id, note);
             Exec(c, null, "UPDATE albums SET mb_artist = $1, artist_id = $2 WHERE key = $3", id, act, al.Key);
             log($"[identify] {al.Artist} — {al.Title}: filed under its act ({id}{(note != null ? ", " + note : "")})");
-            return true;   // the library read again: the album under its act
+            artistsFiled = true;
+            return false;   // no edit: the library read again by ArtistsTold, a minute at a time
         });
     }
 }
