@@ -21,6 +21,13 @@ class LibraryViewTest {
         assertEquals("the seed only with Random", "sort=random&dir=asc&seed=42", LibraryView.parse("sort=random&seed=42").query())
     }
 
+    @Test fun `the view is kept without its name filter, the rest as it was`() {
+        assertEquals("sort=year&dir=desc&genre=Rock&played=6", LibraryView.kept("sort=year&dir=desc&genre=Rock&played=6&prefix=airbag"))
+        assertEquals("a filter alone: the default view", "sort=album&dir=asc", LibraryView.kept("prefix=airbag"))
+        assertEquals("nothing kept: nothing", "", LibraryView.kept(""))
+        assertEquals("", LibraryView.kept(null))
+    }
+
     @Test fun `Home's Library row asks with the order alone, never the Focus nor the name filter`() {
         val v = LibraryView.parse("sort=year&dir=desc&genre=Rock&genre=!Jazz&played=never&prefix=Th")
         assertEquals("sort=year&dir=desc", v.sortQuery())

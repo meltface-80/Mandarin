@@ -17,6 +17,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.musicd.server.client.LibraryView
 import com.musicd.server.client.ScreenPrefs
 import com.musicd.server.client.ServerClient
 import com.musicd.server.client.ShellRoute
@@ -85,13 +86,13 @@ internal object NativeShell {
     /** The screen settings as a whole ([json]): kept, the Library's view and Home following them. */
     fun keepAll(json: String) {
         prefs = json
-        libraryView = runCatching { JSONObject(json).optString(ScreenPrefs.VIEW) }.getOrDefault("")
+        libraryView = LibraryView.kept(runCatching { JSONObject(json).optString(ScreenPrefs.VIEW) }.getOrDefault(""))
         store?.let { Store.setHomePrefs(it, json) }
         homeArgs.value = json to homeArgs.value.second
     }
 
     /** The Library's view changed (its wall, a Dynamic Playlist's Show albums): Home's Library row follows, and the next start. */
-    fun keepLibraryView(q: String) { if (q != libraryView) keep(ScreenPrefs.VIEW, q.ifEmpty { null }) }
+    fun keepLibraryView(q: String) { val k = LibraryView.kept(q); if (k != libraryView) keep(ScreenPrefs.VIEW, k.ifEmpty { null }) }   // never the name filter (item 338)
 
     /** The room the screens play in, chosen or grouped: kept for the next start. */
     fun keepZone(id: String?) {
@@ -134,7 +135,7 @@ internal object NativeShell {
     fun attach(activity: ComponentActivity): ComposeView {
         store = activity.applicationContext
         prefs = Store.homePrefs(activity)
-        libraryView = runCatching { JSONObject(prefs ?: "{}").optString(ScreenPrefs.VIEW) }.getOrDefault("")
+        libraryView = LibraryView.kept(runCatching { JSONObject(prefs ?: "{}").optString(ScreenPrefs.VIEW) }.getOrDefault(""))
         zone = Store.playRoom(activity)
         homeArgs.value = prefs.orEmpty() to zone
         return ComposeView(activity).apply {
