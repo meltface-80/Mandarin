@@ -213,6 +213,9 @@ internal static class MadeAsPlayed
         return (proc, proc.StandardError.ReadToEndAsync());
     }
 
+    /* An album run's key ("a<tracks>-<its first track's key>", AlbumRun.KeyFor): its first track's key; null for a track's own. */
+    private static string? RunOf(string key) => key.StartsWith('a') && key.IndexOf('-') is var d and > 0 ? key[(d + 1)..] : null;
+
     /* What was being made, or waited to be, for a play other than the one of [keep] (their keys): stopped (item 246); [why] said. */
     public static void Only(IEnumerable<string> keep, string why = "another play")
     {
@@ -222,7 +225,7 @@ internal static class MadeAsPlayed
         var n = 0;
         foreach (var (key, proc) in Under)
         {
-            if (k.Contains(key)) continue;
+            if (k.Contains(key) || RunOf(key) is { } first && k.Contains(first)) continue;   // an album's run, kept by its first track (item 337)
             Stopped[key] = true;
             Why[key] = why;
             if (proc != null) Stop(proc);
