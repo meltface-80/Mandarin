@@ -14,7 +14,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 
-# (id, emoji, title, new in v1.2.0, what it is, how to set it up and use it)
+# (id, emoji, title, new in v1.2.1, what it is, how to set it up and use it)
 FEATURES = [
     # ---- Home and finding music
     ("home", "🏠", "Home", False,
@@ -22,15 +22,15 @@ FEATURES = [
      "Recently played, Smart Picks, Label of the week, Random albums, Library and Browse by genre.",
      "Open **☰ → Home**. Tap a row's title for all of it. To reorder rows or hide one, open "
      "**Settings → Setup → Home Screen**, hold a row's grip and drag it, or switch it off."),
-    ("touch", "👆", "Phones and tablets", False,
-     "On a touchscreen: a row at the foot (Home, Library, Artists, Shelf, Search), the mini player "
-     "docked on it on a tablet, and the menu at Home's top left.",
+    ("touch", "👆", "Phones and tablets", True,
+     "On a touchscreen: a bar at the foot on every screen, Now playing too (Menu, Home, Library, Artists, "
+     "Shelf, Search), and the mini player docked on it on a tablet.",
      "Nothing to set up: a phone or tablet gets it in the browser, the iPhone home-screen app and the "
-     "Android app; a computer with a mouse keeps the top bar. Shelf is in the row while it is switched "
-     "on (**Settings → Setup → Shelf**). **☰** at Home's top left opens the side menu. Tap Home or "
-     "Library again to go back to the top; Search opens its field across the screen. A phone's mini "
-     "player floats over the row; a tablet's is docked on it, edge to edge. In the Android app a phone is "
-     "held upright; a tablet, and a foldable opened, turns and is laid out as a tablet."),
+     "Android app; a computer with a mouse keeps the top bar. Shelf is in the bar while it is switched "
+     "on (**Settings → Setup → Shelf**). **☰**, the bar's first button, opens the side menu from any screen. "
+     "Tap Home or Library again to go back to the top; Search opens its field across the screen. A phone's "
+     "mini player floats over the bar; a tablet's is docked on it, edge to edge. In the Android app a phone "
+     "is held upright; a tablet, and a foldable opened, turns and is laid out as a tablet."),
     ("random-album", "🎲", "Random Album", False,
      "The first tile under the greeting chooses an album you haven't played in 12 months (until "
      "Mandarin has 12 months of history, any album) and offers it to play.",
@@ -169,17 +169,25 @@ FEATURES = [
      "ungrouping rooms. Sonos plays up to 24-bit / 48 kHz; Mandarin converts anything above.",
      "Sonos rooms are found on the network by themselves (`SONOS_HOSTS` if not). Pick one with the "
      "speaker button; **Group zones…** in the same list groups them."),
-    ("upnp", "📡", "UPnP/DLNA renderers", False,
-     "WiiM, Chord Poly, streamers, AV receivers and TVs on your network, played like a Sonos room. "
-     "Tracks join gaplessly on a renderer that supports it.",
+    ("upnp", "📡", "UPnP/DLNA renderers", True,
+     "WiiM, Chord Poly, streamers, AV receivers and TVs on your network, played like a Sonos room, gapless; "
+     "one with MPD beside it can be handed the whole queue.",
      "A renderer found on the network is off until you switch it on in **Settings → Audio Devices**. "
-     "Then pick it with the speaker button. **Look again** searches the network now."),
+     "Then pick it with the speaker button. **Look again** searches the network now. Where MPD is found "
+     "beside it (a Chord Poly), **Output → Player → Its own player** hands MPD the queue, and "
+     "**Output → Gapless → Albums as one stream** sends an album as one stream however the device joins files."),
+    ("slim", "🎶", "Squeezelite players", True,
+     "Squeezelite players and Squeezebox-compatible hardware play from Mandarin over SlimProto, one track on "
+     "into the next from their own buffer, with Output's upsampling and seeking.",
+     "Start Squeezelite on the network: it finds Mandarin by itself on port 3483, or point it at it "
+     "(`squeezelite -s <server-ip>`). It shows in **Settings → Audio Devices** under its own name; switch it "
+     "on. To pause at a change of rate, start it with a rate list and a delay (`-r 44100-768000:500`)."),
     ("localout", "🖥️", "Sound devices on the server", False,
-     "A USB DAC, speakers or HDMI on the computer Mandarin runs on, played like a Sonos room. "
-     "Tracks at the same rate join with nothing between them.",
-     "Plug it in, then switch it on in **Settings → Audio Devices**. In Docker, add `--device /dev/snd` and `--privileged`; "
-     "on a Mac, nothing to add: it plays through Core Audio at each track's own rate. "
-     "Details under [Sound devices on the server](#sound-devices-on-the-server)."),
+     "A Mac's own speakers, headphones or USB DAC, played like a Sonos room through Core Audio. On Linux a "
+     "USB DAC beside the server is Mandarin Bridge's.",
+     "On a Mac, plug it in and switch it on in **Settings → Audio Devices**: it plays at each track's own "
+     "rate. On Linux, install [Mandarin Bridge](#mandarin-bridge) for Linux beside the server: it plays the "
+     "DAC as a room of its own. Details under [Sound devices on the server](#sound-devices-on-the-server)."),
     ("devices", "🎚️", "Audio Devices", False,
      "Every room, renderer and phone with the rates, depths and formats it takes, your own name "
      "for it, and a switch. Renderers play Original or upsampled ×2, ×4 or Max.",
@@ -187,9 +195,11 @@ FEATURES = [
      "list and Now playing show. **Output** is on a renderer's page. **Hide / unhide** takes devices "
      "you don't use off the list; tap it again and tick one under Hidden to bring it back."),
     ("dsd", "💎", "DSD", False,
-     "A renderer that says it takes DSD files is sent the DSF or DFF itself; others get PCM. A USB "
-     "DAC on the phone gets DSD natively or as DoP.",
-     "On a renderer's page in **Settings → Audio Devices**, switch the DSD rates it takes on or off."),
+     "A device that takes DSD is sent the DSF or DFF itself, natively or as DoP; PCM can be made DSD64–256 "
+     "with a choice of three modulators.",
+     "On a device's page in **Settings → Audio Devices**, switch the DSD rates it takes on or off; "
+     "**Output → PCM as DSD** and **Modulator** make PCM DSD. On Linux, a Mandarin Bridge's own page says "
+     "when the computer's kernel holds back a DAC's native DSD, and the line that frees it."),
     ("levelling", "🔊", "Volume Levelling", False,
      "ReplayGain per device: Off, Track, Album or Auto, a target from −14 to −25 LUFS, and a level "
      "for tracks with no loudness information.",
@@ -268,28 +278,29 @@ FEATURES = [
      "Plug the DAC in. It shows on **This phone**'s page in **Settings → Audio Devices**; switch on "
      "**USB direct** there."),
     ("bridge", "🌉", "Mandarin Bridge", True,
-     "A USB DAC on an Android device, a Linux computer or a Raspberry Pi, as a room Mandarin plays to "
-     "bit-perfect, set up from the DAC itself: nothing to tick.",
+     "A USB DAC on an Android device, a Linux computer or a Raspberry Pi, played one continuous stream of PCM "
+     "over SlimProto, as Roon plays a RAAT device.",
      "Install it from [Downloads](#downloads): the Android app, the Linux install line, or the Raspberry Pi "
-     "image to flash. Plug the DAC in, then switch the Bridge on in **Settings → Audio Devices**. Details "
-     "under [Mandarin Bridge](#mandarin-bridge)."),
+     "image to flash. It finds Mandarin by itself; plug the DAC in, then switch the Bridge on in "
+     "**Settings → Audio Devices**. Details under [Mandarin Bridge](#mandarin-bridge)."),
     ("output", "📈", "Upsampling and output", True,
-     "For each streamer or DAC: Original, or upsampled ×2, ×4 or Max with three filters, a highest rate, "
-     "the bit depth, and PCM made DSD64, DSD128 or DSD256.",
-     "Open **Settings → Audio Devices**, tap a streamer or DAC, and set **Output**: Mode, Filter, Highest "
-     "rate, Bit depth, DSD as PCM and PCM as DSD. Upsampling and DSD are made as each track plays. Details "
-     "under [Upsampling and output](#upsampling-and-output)."),
-    ("signalpath", "🛤️", "Signal path", True,
+     "For each streamer or DAC: Bit-perfect or upsampled recipes, ×2, ×4 or Max with Standard, Gaussian or "
+     "long filters in either phase, shaped dither, and PCM made DSD.",
+     "Open **Settings → Audio Devices**, tap a streamer or DAC, and choose a recipe under **Sound**, or open "
+     "**Advanced** for each row: Mode, a filter for CD-rate and one for hi-res sources, Phase, Highest rate, "
+     "Bit depth, the DAC's real bits and Dither, DSD as PCM, PCM as DSD and its Modulator, Gapless. All made "
+     "as each track plays. Details under [Upsampling and output](#upsampling-and-output)."),
+    ("signalpath", "🛤️", "Signal path", False,
      "Under the album on Now playing: what goes out and how it was made. A tap shows each step from the "
      "file to what the DAC is fed.",
      "Play to a room and look under the album on **Now playing**; tap it for every step. The ✓ shows only "
      "when the device itself says the samples reach the DAC untouched. Details under "
      "[Signal path](#signal-path)."),
-    ("sqtool", "📊", "SQ-tool", True,
+    ("sqtool", "📊", "SQ-tool", False,
      "Proves a zone's DAC gets exactly what is in the file, sample by sample: Mandarin plays a song, records "
      "what the DAC is fed, and SQ-tool compares them.",
-     "Open **Settings → SQ-tool**, choose a song and a zone (a Mandarin Bridge on Android, or a USB DAC on "
-     "the server), and press **Record**. Details under [SQ-tool](#sq-tool)."),
+     "Open **Settings → SQ-tool**, choose a song and a zone (a Mandarin Bridge on Android), and press "
+     "**Record**. Details under [SQ-tool](#sq-tool)."),
     ("downloads", "⬇️", "Downloads", False,
      "Albums kept on the phone as the original files or Opus 256, played without the server. "
      "Smart Picks, the Album of the day and new albums can download by themselves.",
@@ -361,12 +372,13 @@ FEATURES = [
      "then tap **Save log** (it goes to Downloads/Mandarin, the server's and the Mandarin Bridges' logs with it) "
      "and send the file. Look through it first. "
      "Switching logging off deletes the log, the server's part too. Details under [Logs](#logs)."),
-    ("updates", "🔄", "Updates", True,
+    ("updates", "🔄", "Updates", False,
      "The server updates itself from GitHub and checks every 12 hours. The Android app and every Mandarin "
      "Bridge have their own Check for update beside the server's.",
      "**Settings → Updates → Check for update** beside the server, the Android app (in the app) or a "
      "Bridge; once it says **Update available**, tap it again. The server starts again in a few seconds, "
-     "the app's update goes to Android's installer, and a Bridge updates itself."),
+     "the app's update goes to Android's installer, a Linux or Raspberry Pi Bridge updates itself, and an "
+     "Android Bridge shows a notification whose tap downloads the update in its browser."),
 ]
 
 MAX_WORDS = 30
@@ -389,7 +401,7 @@ def md_inline_to_html(s):
 def readme_block():
     lines = ["Every feature below has an **ⓘ**: open it for how to switch the feature on and use it.", ""]
     for i, (fid, em, title, new, what, how) in enumerate(FEATURES):
-        lines.append("%s **%s**%s" % (em, title, " — *new in v1.2.0*" if new else ""))
+        lines.append("%s **%s**%s" % (em, title, " — *new in v1.2.1*" if new else ""))
         lines.append("")
         lines.append(what)
         lines.append("")

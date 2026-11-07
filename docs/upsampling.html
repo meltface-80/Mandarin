@@ -21,7 +21,12 @@
 
 <main class="wrap page">
   <h1>Upsampling and output</h1>
-  <p class="lead">Each streamer or DAC has its own <b>Output</b>: play the file as it is, or upsample it, make it DSD, and choose how far it goes. Settings → Audio Devices → a device → Output.</p>
+  <p class="lead">Each streamer, DAC, Mandarin Bridge or Squeezelite player has its own <b>Output</b>: play the file as it is, or upsample it, make it DSD, and choose how far it goes. Settings → Audio Devices → a device → Output.</p>
+  <p>It opens with <b>Sound</b>, its settings as recipes: <b>Bit-perfect</b>; where the device takes more than 48 kHz,
+     <b>Upsampled</b> with the Standard filter, with the Gaussian ones, with them in minimum phase, and with the Very long
+     filter and shaped dither; where it takes DSD, <b>DSD</b> at its highest multiple with the 7th-order modulator. Each
+     says what it does for that device, the one in use marked; a tap sets what it names. <b>Custom</b>, or any row
+     changed, opens <b>Advanced</b>, every row of the Output below.</p>
 <div class="split">
     <div>
       <dl class="settings">
@@ -29,15 +34,28 @@
           <dd><b>Original</b> sends each track at its own rate. <b>×2</b> and <b>×4</b> upsample it (44.1 kHz to 88.2 or
               176.4 kHz); <b>Max</b> goes to the highest rate the device takes in the track's family. Upsampling is made
               on the server in 64-bit float.</dd></div>
-        <div><dt>Filter <span>Standard · Min phase · Gentle</span></dt>
-          <dd>How the upsampling is made. <b>Min phase</b> rings only after a sound starts; <b>Gentle</b> rolls off
-              earlier and rings for half as long. Both are made as the track plays, and are used for PCM as DSD too. It shows once Mode isn't <b>Original</b>, or PCM as DSD is on.</dd></div>
+        <div><dt>Filters <span>CD-rate · hi-res</span></dt>
+          <dd>One filter for CD-rate sources and one for hi-res ones (or the same), each from the list:
+              <b>Standard</b> (SoX's for PCM, Mandarin's own on the way to DSD), <b>Gentle</b> (rolls off earlier, rings for
+              half as long), <b>Gaussian</b> (smooth, very short ringing, the top of a CD a little down), <b>Gaussian
+              steep</b> (flat almost to 22 kHz, every sample of the file kept), <b>Gaussian hi-res</b> (for 88.2 kHz and
+              up), and <b>Long</b> and <b>Very long</b>: the standard filter made 8 and 32 times as long, flat to 21.8 and
+              21.9 kHz for a CD and 270 and 284 dB down from 22.1 kHz, a track taking 0.15 and 0.6 s longer to start (Very
+              long some 400 MB while it plays). Made as the track plays, and used for PCM as DSD too.</dd></div>
+        <div><dt>Phase <span>Linear · Minimum</span></dt>
+          <dd>For both filters. In minimum phase a filter keeps its levels at every frequency and puts its ringing after
+              a sound (0.15 ms before it at most, where the linear filters ring 0.2 to 47 ms before). Gaussian steep keeps
+              every sample of the file only in linear phase.</dd></div>
         <div><dt>Highest rate <span>Auto · 96k · 192k · 384k</span></dt>
           <dd>Nothing goes above it, upsampled or not. <b>Auto</b>: as high as the device takes. ×16 (705.6 and 768 kHz)
               goes as WAV where the device takes WAV.</dd></div>
         <div><dt>Bit depth <span>Auto · 24 · 32</span></dt>
-          <dd>The depth a converted or upsampled track is sent at. On <b>Auto</b>, a 16-bit/44.1 kHz file plays as it
-              is.</dd></div>
+          <dd>The depth a converted or upsampled track is sent at: <b>Auto</b> is 24 (32-bit FLAC only where a device is
+              set to 32). On Auto a 16-bit/44.1 kHz file plays as it is.</dd></div>
+        <div><dt>Real bits and Dither <span>As sent · 23–20 · Flat · Shaped 3rd · Shaped 5th</span></dt>
+          <dd>Where Mandarin makes the PCM (upsampled, not made DSD): the bits the DAC resolves above its own noise, the
+              dither put in at that bit, and how: <b>Flat</b> (the default), or <b>Shaped</b> of the 3rd or 5th order, its
+              noise moved above the audio band (made at 88.2 kHz and up).</dd></div>
         <div><dt>DSD as PCM <span>Off · 50 kHz · 30 kHz</span></dt>
           <dd>For DSD sent to this device as PCM: take the DSD modulator's ultrasonic noise off above 50 or 30 kHz. Off
               keeps it, up to the top of the rate it goes at. DSD the device takes as DSD goes as it is.</dd></div>
@@ -45,6 +63,15 @@
           <dd>For a device that takes DSD: each track of the library that isn't DSD is made DSD as it plays and sent as a
               DSF, gapless from track to track. A 48 kHz-family track stays in its own family. The Output says how fast this
               server makes it, and whether that keeps up.</dd></div>
+        <div><dt>Modulator <span>7th order · 7th order wide · 9th order</span></dt>
+          <dd>How PCM is made DSD: the 7th order; the 7th order wide, which holds its noise down to 50 kHz (DSD128 and
+              DSD256); or the 9th order, quieter in the audio band (DSD64 and DSD128).</dd></div>
+        <div><dt>Player <span>UPnP · Its own player</span></dt>
+          <dd>Where a renderer has MPD beside it, as a Chord Poly does: Mandarin can hand MPD the queue, and MPD plays one
+              track into the next by itself, as it plays its own library.</dd></div>
+        <div><dt>Gapless <span>Albums as one stream</span></dt>
+          <dd>An album's tracks go to the device as one stream, start to end, gapless however it joins files. A Mandarin
+              Bridge is played one continuous stream anyway, and a Squeezelite player joins tracks from its own buffer.</dd></div>
         <div><dt>Fixed volume</dt>
           <dd>The volume is set on the device itself (its knob, or a line out on fixed), so Mandarin shows no slider and never
               scales the samples.</dd></div>
@@ -63,12 +90,14 @@
      rate, then upsampling.</p>
 
   <h2>The processor</h2>
-  <p>A track upsampled or made DSD as it plays gets the processor: playback keeps all the cores but one while it is made,
+  <p>Upsampling and making DSD take far less of the processor than they did, with the same output: PCM as DSD256 takes
+     37% of one core per second of music where it took 68%, and upsampling ×16 runs 1.5 times as fast (measured on a
+     2.1 GHz Xeon). A track upsampled or made DSD as it plays gets the processor: playback keeps all the cores but one while it is made,
      or as many as <b>Settings → Library Scanner → Processor → Cores for upsampling and DSD</b> says (Auto, 1, 2 or 3).
      It is made some 30 seconds ahead of what the device has read, not flat out to its end.</p>
 
   <h2>For a bit-perfect result</h2>
-  <p>Set the device's <b>Output</b> to <b>Original</b> and its volume to fixed (or the DAC's own): upsampling, DSD from
+  <p>Choose <b>Bit-perfect</b> under the device's <b>Output</b> (Mode <b>Original</b>) and set its volume to fixed (or the DAC's own): upsampling, DSD from
      PCM, DSP, volume levelling and a volume in software all change the samples, on purpose. The
      <a href="signal-path.html">signal path</a> shows what was done, and <a href="sq-tool.html">SQ-tool</a> proves it.</p>
 

@@ -7,7 +7,7 @@
 
 </div>
 
-# Mandarin — v1.2.0
+# Mandarin — v1.2.1
 
 **Your own music files, played to Sonos rooms, to UPnP/DLNA renderers (a WiiM, a Chord Poly,
 a streamer, an AV receiver) and to the Mandarin Android app.**
@@ -26,14 +26,18 @@ Wikipedia, Deezer and others); your music files stay on your machine.
                                                    └──── audio: /stream/… ◀────────┘
 ```
 
-**New in v1.2.0** (since v1.1.14; Mandarin Bridge v0.2.1). The [changelog](CHANGELOG.md) has each change.
-* **SQ-tool**, in Settings: proves your DAC gets exactly the file, sample by sample. See [SQ-tool](#sq-tool).
-* **High-quality upsampling:** ×2, ×4 or to the most a device takes, with Standard, Min phase or Gentle filters made
-  as the track plays; PCM made DSD64–256; a highest rate per device; all gapless. See [Upsampling and output](#upsampling-and-output).
-* **Mandarin Bridge:** an Android device, a Linux computer or a Raspberry Pi with a USB DAC is a bit-perfect room,
-  updated from Settings → Updates. See [Mandarin Bridge](#mandarin-bridge).
-* **Also:** the [signal path](#signal-path) in plain words, room correction, DSD to a DAC on the server, and fixes for
-  the Android app's USB driver, FiiO streamers, new albums and away from home.
+**New in v1.2.1** (since v1.2.0; Mandarin Bridge v0.3.0). The [changelog](CHANGELOG.md) has each change.
+* **Mandarin Bridge, played as Roon plays a RAAT device:** one continuous stream of PCM over SlimProto, made by
+  Mandarin; the DAC is never let go between tracks, and is given half a second of silence where the rate changes.
+  See [Mandarin Bridge](#mandarin-bridge).
+* **Squeezelite players** (and Squeezebox-compatible hardware) play from Mandarin over SlimProto, with Output and seeking.
+* **More upsampling:** Gaussian, Long and Very long filters, minimum phase for each, shaped dither at the DAC's real
+  bits, three DSD modulators, Output as recipes, all with far less of the processor. See [Upsampling and output](#upsampling-and-output).
+* **Gapless your way:** albums as one stream, and a renderer's own player (MPD, as a Chord Poly has).
+* **A Linux server leaves its USB DAC to Mandarin Bridge for Linux,** which says when the kernel holds back a DAC's
+  native DSD, and how to free it. See [Sound devices on the server](#sound-devices-on-the-server).
+* **Also:** the bar along the foot on every screen, `raat-discover`, and fixes for the Chord Poly, a Bridge's ✓ and
+  a Bridge installed again.
 
 ## Downloads
 
@@ -41,13 +45,13 @@ The newest of each, straight to your device. The server's install is a command, 
 
 | What | Version | Download |
 | --- | --- | --- |
-| **Mandarin Remote**, the Android app (Android 8.0 or newer) | v1.2.0 | [mandarin-android.apk](https://github.com/meltface-80/Mandarin/raw/main/dist/mandarin-android.apk) |
-| **Mandarin server** with Docker (Linux, a Raspberry Pi 4/5, a NAS) | v1.2.0 | `docker pull ghcr.io/meltface-80/musicd-server:latest`, then [Install (Docker)](#install-docker) |
-| **Mandarin server** on a Mac (macOS 14 or newer) | v1.2.0 | the one line under [Install on a Mac](#install-on-a-mac) |
-| **Mandarin Bridge** for Android (a FiiO R7, say) | v0.2.1 | [mandarin-bridge.apk](https://github.com/meltface-80/Mandarin/releases/download/mandarin-bridge-v0.2.1/mandarin-bridge.apk) |
-| **Mandarin Bridge** for Raspberry Pi (3, 4, 5, Zero 2 W) | v0.2.1 | [mandarin-bridge-pi-arm64.img.xz](https://github.com/meltface-80/Mandarin/releases/download/mandarin-bridge-v0.2.1/mandarin-bridge-pi-arm64.img.xz) |
-| **Mandarin Bridge** for Linux (64-bit Debian, Ubuntu, Raspberry Pi OS) | v0.2.1 | `curl -fsSL https://github.com/meltface-80/Mandarin/releases/download/mandarin-bridge-v0.2.1/install.sh \| sudo sh`, or by hand: [x64](https://github.com/meltface-80/Mandarin/releases/download/mandarin-bridge-v0.2.1/mandarin-bridge-linux-x64.tar.gz) · [arm64](https://github.com/meltface-80/Mandarin/releases/download/mandarin-bridge-v0.2.1/mandarin-bridge-linux-arm64.tar.gz) |
-| The server program on its own, what Settings → Updates fetches | v1.2.0 | [linux-x64](https://github.com/meltface-80/Mandarin/releases/latest/download/mandarin-server-linux-x64.gz) · [linux-arm64](https://github.com/meltface-80/Mandarin/releases/latest/download/mandarin-server-linux-arm64.gz) · [osx-arm64](https://github.com/meltface-80/Mandarin/releases/latest/download/mandarin-server-osx-arm64.gz) · [osx-x64](https://github.com/meltface-80/Mandarin/releases/latest/download/mandarin-server-osx-x64.gz) · [sums](https://github.com/meltface-80/Mandarin/releases/latest/download/mandarin-server.sha256) |
+| **Mandarin Remote**, the Android app (Android 8.0 or newer) | v1.2.1 | [mandarin-android.apk](https://github.com/meltface-80/Mandarin/raw/main/dist/mandarin-android.apk) |
+| **Mandarin server** with Docker (Linux, a Raspberry Pi 4/5, a NAS) | v1.2.1 | `docker pull ghcr.io/meltface-80/musicd-server:latest`, then [Install (Docker)](#install-docker) |
+| **Mandarin server** on a Mac (macOS 14 or newer) | v1.2.1 | the one line under [Install on a Mac](#install-on-a-mac) |
+| **Mandarin Bridge** for Android (a FiiO R7, say) | v0.3.0 | [mandarin-bridge.apk](https://github.com/meltface-80/Mandarin/releases/download/mandarin-bridge-v0.3.0/mandarin-bridge.apk) |
+| **Mandarin Bridge** for Raspberry Pi (3, 4, 5, Zero 2 W) | v0.3.0 | [mandarin-bridge-pi-arm64.img.xz](https://github.com/meltface-80/Mandarin/releases/download/mandarin-bridge-v0.3.0/mandarin-bridge-pi-arm64.img.xz) |
+| **Mandarin Bridge** for Linux (64-bit Debian, Ubuntu, Raspberry Pi OS) | v0.3.0 | `curl -fsSL https://github.com/meltface-80/Mandarin/releases/download/mandarin-bridge-v0.3.0/install.sh \| sudo sh`, or by hand: [x64](https://github.com/meltface-80/Mandarin/releases/download/mandarin-bridge-v0.3.0/mandarin-bridge-linux-x64.tar.gz) · [arm64](https://github.com/meltface-80/Mandarin/releases/download/mandarin-bridge-v0.3.0/mandarin-bridge-linux-arm64.tar.gz) |
+| The server program on its own, what Settings → Updates fetches | v1.2.1 | [linux-x64](https://github.com/meltface-80/Mandarin/releases/latest/download/mandarin-server-linux-x64.gz) · [linux-arm64](https://github.com/meltface-80/Mandarin/releases/latest/download/mandarin-server-linux-arm64.gz) · [osx-arm64](https://github.com/meltface-80/Mandarin/releases/latest/download/mandarin-server-osx-arm64.gz) · [osx-x64](https://github.com/meltface-80/Mandarin/releases/latest/download/mandarin-server-osx-x64.gz) · [sums](https://github.com/meltface-80/Mandarin/releases/latest/download/mandarin-server.sha256) |
 | **How Mandarin finds and names your music**, a guide in plain words | | [PDF](docs/Mandarin-music-scanning-guide.pdf) |
 
 On an iPhone or iPad there is nothing to download: see [iPhone and iPad](#iphone-and-ipad).
@@ -72,13 +76,13 @@ Open **☰ → Home**. Tap a row's title for all of it. To reorder rows or hide 
 
 ⸻
 
-👆 **Phones and tablets**
+👆 **Phones and tablets** — *new in v1.2.1*
 
-On a touchscreen: a row at the foot (Home, Library, Artists, Shelf, Search), the mini player docked on it on a tablet, and the menu at Home's top left.
+On a touchscreen: a bar at the foot on every screen, Now playing too (Menu, Home, Library, Artists, Shelf, Search), and the mini player docked on it on a tablet.
 
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 
-Nothing to set up: a phone or tablet gets it in the browser, the iPhone home-screen app and the Android app; a computer with a mouse keeps the top bar. Shelf is in the row while it is switched on (**Settings → Setup → Shelf**). **☰** at Home's top left opens the side menu. Tap Home or Library again to go back to the top; Search opens its field across the screen. A phone's mini player floats over the row; a tablet's is docked on it, edge to edge. In the Android app a phone is held upright; a tablet, and a foldable opened, turns and is laid out as a tablet.
+Nothing to set up: a phone or tablet gets it in the browser, the iPhone home-screen app and the Android app; a computer with a mouse keeps the top bar. Shelf is in the bar while it is switched on (**Settings → Setup → Shelf**). **☰**, the bar's first button, opens the side menu from any screen. Tap Home or Library again to go back to the top; Search opens its field across the screen. A phone's mini player floats over the bar; a tablet's is docked on it, edge to edge. In the Android app a phone is held upright; a tablet, and a foldable opened, turns and is laid out as a tablet.
 
 </details>
 
@@ -360,13 +364,25 @@ Sonos rooms are found on the network by themselves (`SONOS_HOSTS` if not). Pick 
 
 ⸻
 
-📡 **UPnP/DLNA renderers**
+📡 **UPnP/DLNA renderers** — *new in v1.2.1*
 
-WiiM, Chord Poly, streamers, AV receivers and TVs on your network, played like a Sonos room. Tracks join gaplessly on a renderer that supports it.
+WiiM, Chord Poly, streamers, AV receivers and TVs on your network, played like a Sonos room, gapless; one with MPD beside it can be handed the whole queue.
 
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 
-A renderer found on the network is off until you switch it on in **Settings → Audio Devices**. Then pick it with the speaker button. **Look again** searches the network now.
+A renderer found on the network is off until you switch it on in **Settings → Audio Devices**. Then pick it with the speaker button. **Look again** searches the network now. Where MPD is found beside it (a Chord Poly), **Output → Player → Its own player** hands MPD the queue, and **Output → Gapless → Albums as one stream** sends an album as one stream however the device joins files.
+
+</details>
+
+⸻
+
+🎶 **Squeezelite players** — *new in v1.2.1*
+
+Squeezelite players and Squeezebox-compatible hardware play from Mandarin over SlimProto, one track on into the next from their own buffer, with Output's upsampling and seeking.
+
+<details><summary><b>ⓘ</b> How to set it up and use it</summary>
+
+Start Squeezelite on the network: it finds Mandarin by itself on port 3483, or point it at it (`squeezelite -s <server-ip>`). It shows in **Settings → Audio Devices** under its own name; switch it on. To pause at a change of rate, start it with a rate list and a delay (`-r 44100-768000:500`).
 
 </details>
 
@@ -374,11 +390,11 @@ A renderer found on the network is off until you switch it on in **Settings → 
 
 🖥️ **Sound devices on the server**
 
-A USB DAC, speakers or HDMI on the computer Mandarin runs on, played like a Sonos room. Tracks at the same rate join with nothing between them.
+A Mac's own speakers, headphones or USB DAC, played like a Sonos room through Core Audio. On Linux a USB DAC beside the server is Mandarin Bridge's.
 
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 
-Plug it in, then switch it on in **Settings → Audio Devices**. In Docker, add `--device /dev/snd` and `--privileged`; on a Mac, nothing to add: it plays through Core Audio at each track's own rate. Details under [Sound devices on the server](#sound-devices-on-the-server).
+On a Mac, plug it in and switch it on in **Settings → Audio Devices**: it plays at each track's own rate. On Linux, install [Mandarin Bridge](#mandarin-bridge) for Linux beside the server: it plays the DAC as a room of its own. Details under [Sound devices on the server](#sound-devices-on-the-server).
 
 </details>
 
@@ -398,11 +414,11 @@ Open **Settings → Audio Devices** and tap a device. The name you give it is wh
 
 💎 **DSD**
 
-A renderer that says it takes DSD files is sent the DSF or DFF itself; others get PCM. A USB DAC on the phone gets DSD natively or as DoP.
+A device that takes DSD is sent the DSF or DFF itself, natively or as DoP; PCM can be made DSD64–256 with a choice of three modulators.
 
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 
-On a renderer's page in **Settings → Audio Devices**, switch the DSD rates it takes on or off.
+On a device's page in **Settings → Audio Devices**, switch the DSD rates it takes on or off; **Output → PCM as DSD** and **Modulator** make PCM DSD. On Linux, a Mandarin Bridge's own page says when the computer's kernel holds back a DAC's native DSD, and the line that frees it.
 
 </details>
 
@@ -588,31 +604,31 @@ Plug the DAC in. It shows on **This phone**'s page in **Settings → Audio Devic
 
 ⸻
 
-🌉 **Mandarin Bridge** — *new in v1.2.0*
+🌉 **Mandarin Bridge** — *new in v1.2.1*
 
-A USB DAC on an Android device, a Linux computer or a Raspberry Pi, as a room Mandarin plays to bit-perfect, set up from the DAC itself: nothing to tick.
+A USB DAC on an Android device, a Linux computer or a Raspberry Pi, played one continuous stream of PCM over SlimProto, as Roon plays a RAAT device.
 
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 
-Install it from [Downloads](#downloads): the Android app, the Linux install line, or the Raspberry Pi image to flash. Plug the DAC in, then switch the Bridge on in **Settings → Audio Devices**. Details under [Mandarin Bridge](#mandarin-bridge).
+Install it from [Downloads](#downloads): the Android app, the Linux install line, or the Raspberry Pi image to flash. It finds Mandarin by itself; plug the DAC in, then switch the Bridge on in **Settings → Audio Devices**. Details under [Mandarin Bridge](#mandarin-bridge).
 
 </details>
 
 ⸻
 
-📈 **Upsampling and output** — *new in v1.2.0*
+📈 **Upsampling and output** — *new in v1.2.1*
 
-For each streamer or DAC: Original, or upsampled ×2, ×4 or Max with three filters, a highest rate, the bit depth, and PCM made DSD64, DSD128 or DSD256.
+For each streamer or DAC: Bit-perfect or upsampled recipes, ×2, ×4 or Max with Standard, Gaussian or long filters in either phase, shaped dither, and PCM made DSD.
 
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 
-Open **Settings → Audio Devices**, tap a streamer or DAC, and set **Output**: Mode, Filter, Highest rate, Bit depth, DSD as PCM and PCM as DSD. Upsampling and DSD are made as each track plays. Details under [Upsampling and output](#upsampling-and-output).
+Open **Settings → Audio Devices**, tap a streamer or DAC, and choose a recipe under **Sound**, or open **Advanced** for each row: Mode, a filter for CD-rate and one for hi-res sources, Phase, Highest rate, Bit depth, the DAC's real bits and Dither, DSD as PCM, PCM as DSD and its Modulator, Gapless. All made as each track plays. Details under [Upsampling and output](#upsampling-and-output).
 
 </details>
 
 ⸻
 
-🛤️ **Signal path** — *new in v1.2.0*
+🛤️ **Signal path**
 
 Under the album on Now playing: what goes out and how it was made. A tap shows each step from the file to what the DAC is fed.
 
@@ -624,13 +640,13 @@ Play to a room and look under the album on **Now playing**; tap it for every ste
 
 ⸻
 
-📊 **SQ-tool** — *new in v1.2.0*
+📊 **SQ-tool**
 
 Proves a zone's DAC gets exactly what is in the file, sample by sample: Mandarin plays a song, records what the DAC is fed, and SQ-tool compares them.
 
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 
-Open **Settings → SQ-tool**, choose a song and a zone (a Mandarin Bridge on Android, or a USB DAC on the server), and press **Record**. Details under [SQ-tool](#sq-tool).
+Open **Settings → SQ-tool**, choose a song and a zone (a Mandarin Bridge on Android), and press **Record**. Details under [SQ-tool](#sq-tool).
 
 </details>
 
@@ -770,13 +786,13 @@ In the Android app, **Settings → Setup → Logging**. Use the app as you norma
 
 ⸻
 
-🔄 **Updates** — *new in v1.2.0*
+🔄 **Updates**
 
 The server updates itself from GitHub and checks every 12 hours. The Android app and every Mandarin Bridge have their own Check for update beside the server's.
 
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 
-**Settings → Updates → Check for update** beside the server, the Android app (in the app) or a Bridge; once it says **Update available**, tap it again. The server starts again in a few seconds, the app's update goes to Android's installer, and a Bridge updates itself.
+**Settings → Updates → Check for update** beside the server, the Android app (in the app) or a Bridge; once it says **Update available**, tap it again. The server starts again in a few seconds, the app's update goes to Android's installer, a Linux or Raspberry Pi Bridge updates itself, and an Android Bridge shows a notification whose tap downloads the update in its browser.
 
 </details>
 
@@ -792,6 +808,12 @@ Each track goes the way the device can take it. The Now playing badge says what 
   stored; above it, FLAC at the highest rate the device takes in the file's family; upsampled
   ×2, ×4 or to the device's maximum if you choose. DSD goes as the DSF or DFF file itself to a
   device that says it takes DSD files (DSD rates switchable on its page), as PCM otherwise.
+* **A Mandarin Bridge** (Android, Linux, a Raspberry Pi): one continuous stream of PCM, made by Mandarin:
+  each track decoded (and upsampled, as its Output says), one on into the next while they are of one rate
+  and depth; at a change of rate a stream of its own, the DAC given half a second of silence first. DSD
+  goes as the DSF or DFF itself, natively or as DoP.
+* **A Squeezelite player:** each track's file (FLAC, or upsampled; DSD as DSF where it takes it), one on
+  into the next from its own buffer.
 * **The Android app** on the phone's own output: the file as stored within 24/48, FLAC 24/48
   above it; away from home, Opus 256 by default.
 * **A USB DAC on the phone**, with USB direct on: the file at its own rate and depth where the
@@ -857,19 +879,15 @@ then choose `/packs` under **Folder** on that page. Keep the line in every futur
 (an update included): without it `/packs` isn't there, and the page says so. A folder reached
 through the read-only `-v /mnt:/mnt:ro,rslave` mount can't be used for the pack.
 
-**A USB DAC or speakers on this machine (optional).** To play through sound devices plugged into
-the machine Docker runs on, add these two lines to the command above:
+**A USB DAC on this machine.** The container opens no sound device (since v1.2.1): install Mandarin Bridge for
+Linux on the machine itself, beside the container, and the DAC is a room of its own in **Settings → Audio Devices**:
 
 ```bash
-  --device /dev/snd \
-  --privileged \
+curl -fsSL https://github.com/meltface-80/Mandarin/releases/download/mandarin-bridge-v0.3.0/install.sh | sudo sh
 ```
 
-`--device /dev/snd` hands the sound devices to the container; `--privileged` lets the container
-open them, which on most hosts it otherwise can't (the device nodes belong to the host's `audio`
-group), and lets playback run at a higher priority. They then appear in **Settings → Audio Devices**. A container already running needs
-re-creating with the lines (stop, rm, the `docker run` again — the data volume carries everything
-over). See [Sound devices on the server](#sound-devices-on-the-server).
+See [Mandarin Bridge](#mandarin-bridge). A container made with `--device /dev/snd` and `--privileged` for sound
+doesn't need them any more.
 
 **Music folders, chosen in the app.** Mount your drives or shares into the
 container once — e.g. `-v /mnt:/mnt:ro,rslave` — then add any folders inside them in
@@ -926,15 +944,15 @@ release from GitHub, checks it against the checksum published with it, and puts 
 * **Linux and the Raspberry Pi:** in a few seconds, by itself. The new build goes in the Bridge's
   data folder and the program installed hands over to it as it starts again; one that fails as it
   starts is let go, and the installed one runs on.
-* **Android:** the first time, Android asks on the device. A notification asks you to let Mandarin
-  Bridge install apps, and then to tap **Update**. After that, on Android 12 and later, its updates
-  install by themselves, and the Bridge starts again on its own.
+* **Android:** **Update** puts a notification on the device; its tap downloads the update in the browser,
+  and Android's installer asks you to install it. The Bridge holds no permission to install apps itself
+  (Google Play Protect called that harmful, v0.2.2).
 * A Bridge from before v0.2.1 needs one last update by hand, from [Downloads](#downloads).
 * A test build of Mandarin's follows the Bridges' test builds (the **test-bridge** pre-release),
-  and a numbered one follows their numbered releases (Mandarin Bridge v0.2.1 with Mandarin v1.2.0).
+  and a numbered one follows their numbered releases (Mandarin Bridge v0.3.0 with Mandarin v1.2.1).
 
-**Manually** — also the way to pick up changes to the image itself (ffmpeg, the audio engine,
-and the move to v0.9.0 from an image with Node.js in it):
+**Manually** — also the way to pick up changes to the image itself (ffmpeg, the audio engine gone from it in
+v1.2.1, and the move to v0.9.0 from an image with Node.js in it):
 
 ```bash
 docker pull ghcr.io/meltface-80/musicd-server:latest
@@ -1005,7 +1023,7 @@ Everything is optional; pass any of it with `-e NAME=value`.
 | `TS_AUTHKEY` | — | Sign the server's built-in Tailscale in with an auth key instead of from *Settings → Setup → Away from home*. |
 | `TS_HOSTNAME` | `musicd` | The server's name on your tailnet. |
 | `TAILSCALE` | on | `off` leaves the built-in Tailscale out (Tailscale on the host still works). |
-| `LOCAL_AUDIO` | on | `0`: leave this computer's sound devices out of *Settings → Audio Devices*. See [Sound devices on the server](#sound-devices-on-the-server). |
+| `LOCAL_AUDIO` | on | `0`: leave a Mac's own sound devices out of *Settings → Audio Devices* (a Linux server lists none). See [Sound devices on the server](#sound-devices-on-the-server). |
 | `SQTOOL_PYTHON` | `python3` | The Python 3 (with numpy) that runs [SQ-tool](#sq-tool). |
 | `TAILSCALE_ADDRESS` | auto | The server's address away from home, if the one found on the host's `tailscale0` isn't the one to use — an IP, a MagicDNS name, or a full `https://` address. See [Away from home](#away-from-home-tailscale). |
 | `MUSICBRAINZ_URL` | musicbrainz.org | Another MusicBrainz web service (a mirror) for the identification scan, release days and an album write-up's year. |
@@ -1102,45 +1120,80 @@ published app, nor the published app it.
 ## Mandarin Bridge
 
 Mandarin Bridge (once Mandarin USB) is Mandarin's own player for a USB DAC: a device with the DAC on its USB port
-becomes a room Mandarin plays to, bit-perfect. Mandarin reads the DAC whole from it (every rate, depth and DSD
-multiple, nothing to tick), and Now playing's [signal path](#signal-path) says what it feeds the DAC, in its own
-words. Download each from [Downloads](#downloads) (v0.2.1); after that it updates from **Settings → Updates**
+becomes a room Mandarin plays to, bit-perfect. It finds Mandarin on the network by itself (SlimProto, port 3483; a
+Linux one can be pointed at it with `--server`), and Mandarin reads the DAC whole from it (every rate, depth and DSD
+multiple, nothing to tick); Now playing's [signal path](#signal-path) says what it feeds the DAC, in its own words.
+Download each from [Downloads](#downloads) (v0.3.0); after that it updates from **Settings → Updates**
 ([Updating](#updating)), and its log is in the app's Save log ([Logs](#logs)).
+
+**Played as Roon plays a RAAT device (v0.3.0).** Mandarin decodes each track itself, upsampled or processed as the
+Bridge's Output says, and sends the Bridge the samples alone, one continuous stream of PCM: one track on into the next
+in the same stream while they are of one rate and depth, so the Bridge only plays what comes and its DAC is never let
+go between tracks. Where the next track is of another rate (16/44.1 after 24/96), the stream ends with the last sample
+of the one before and the next begins a stream of its own, given ahead; the Bridge gives its DAC half a second of
+silence at the new rate first, so it settles without a click. DSD goes as its file, natively or as DoP. Mandarin
+follows the track heard from where the Bridge is in its stream, and tells the Bridge each track as it comes, for its
+screen, notification and page.
 
 * **Android** (a FiiO R7, say): Mandarin's own USB driver claims the DAC from Android and feeds it at each track's own
   rate and depth, DSD natively or as DoP, and keeps the device awake. Install the APK, open it once, plug in the DAC
   (tick *always*), then switch it on in **Settings → Audio Devices**. Setting it up, building it and how it fits
   together: [bridge/README.md](bridge/README.md).
-* **Linux** (a computer beside the DAC): `curl -fsSL https://github.com/meltface-80/Mandarin/releases/download/mandarin-bridge-v0.2.1/install.sh | sudo sh`,
-  then switch it on in Mandarin; its own page is at `http://<it>:49494/`. See [bridge/linux/README.md](bridge/linux/README.md).
+* **Linux** (a computer beside the DAC, the one Mandarin runs on included): `curl -fsSL https://github.com/meltface-80/Mandarin/releases/download/mandarin-bridge-v0.3.0/install.sh | sudo sh`,
+  then switch it on in Mandarin; its own page is at `http://<it>:49494/`. Native DSD on Linux is the kernel's to
+  offer: where the DAC says it takes DSD natively and the kernel offers it only DoP, the Bridge's page and log give the
+  one line that frees it (an `snd-usb-audio` option in `/etc/modprobe.d`, then replug). See
+  [bridge/linux/README.md](bridge/linux/README.md).
 * **Raspberry Pi** (3, 4, 5 or Zero 2 W): flash `mandarin-bridge-pi-arm64.img.xz` with Raspberry Pi Imager, plug in
   the DAC and power on; its page is at `http://mandarin-bridge.local:49494/`, or with no network yet it opens its own
   *Mandarin Bridge Setup* Wi-Fi. See [bridge/pi/README.md](bridge/pi/README.md).
 
-A Bridge installs over Mandarin USB, keeping its settings; the server knows an app not yet updated as the same
-renderer. Its test builds are on the [test-bridge](https://github.com/meltface-80/Mandarin/releases/tag/test-bridge)
-pre-release.
+A Bridge that was a UPnP renderer (before v0.3.0) keeps the name and settings Mandarin had for it, and one whose app
+is installed again is the device it was. Its test builds are on the
+[test-bridge](https://github.com/meltface-80/Mandarin/releases/tag/test-bridge) pre-release.
 
 ## Upsampling and output
 
-Each streamer or DAC has its own **Output** (*Settings → Audio Devices → a device → Output*):
+Each streamer, DAC, Mandarin Bridge or Squeezelite player has its own **Output** (*Settings → Audio Devices → a
+device → Output*). It opens with **Sound**, its settings as recipes: **Bit-perfect**; where the device takes more than
+48 kHz, **Upsampled** with the Standard filter, with the Gaussian ones, with them in minimum phase, and with the Very
+long filter and shaped dither; where it takes DSD, **DSD** at its highest multiple with the 7th-order modulator. Each
+says what it does for that device; a tap sets what it names. **Custom**, or any row changed, opens **Advanced**:
 
 * **Mode:** Original (each track at its own rate), or upsampled ×2, ×4 or Max (the highest rate the device takes in
-  the track's family), made on the server in 64-bit float.
-* **Filter:** Standard, **Min phase** (its ringing only after a sound starts) or **Gentle** (rolls off earlier and rings
-  for half as long), made as the track plays.
+  the track's family), made on the server in 64-bit float as the track plays.
+* **Filters:** one for CD-rate sources and one for hi-res sources (or the same): **Standard** (SoX's for PCM,
+  Mandarin's own on the way to DSD), **Gentle**, **Gaussian** (smooth, very short ringing, the top of a CD a little
+  down), **Gaussian steep** (flat almost to 22 kHz, every sample of the file kept), **Gaussian hi-res** (for 88.2 kHz
+  and up), and **Long** and **Very long** (the standard filter made 8 and 32 times as long: flat to 21.8 and 21.9 kHz
+  for a CD and 270 and 284 dB down from 22.1 kHz; a track takes 0.15 and 0.6 s longer to start, and Very long takes
+  some 400 MB while it plays).
+* **Phase:** Linear or Minimum, for both filters: in minimum phase a filter keeps its levels at every frequency and
+  puts its ringing after a sound (Gaussian steep keeps every sample of the file only in linear phase).
 * **Highest rate:** Auto (as high as the device takes), 96k, 192k or 384k: nothing goes above it, upsampled or not.
   ×16 (705.6 and 768 kHz) goes as WAV where the device takes WAV.
-* **Bit depth:** Auto, 24 or 32, for a track converted or upsampled; on Auto a 16-bit/44.1 kHz file plays as it is.
+* **Bit depth:** Auto (24), 24 or 32, for a track converted or upsampled; 32-bit FLAC only where a device is set to 32.
+* **Real bits** and **Dither**, where Mandarin makes the PCM: the bits the DAC resolves above its own noise (as sent,
+  or 23 to 20) and Flat (the default) or Shaped dither of the 3rd or 5th order, its noise moved above the audio band
+  (made at 88.2 kHz and up).
 * **DSD as PCM:** for DSD sent to the device as PCM, the DSD modulator's ultrasonic noise taken off above 50 or 30 kHz.
-* **PCM as DSD:** for a device that takes DSD, the library's PCM made DSD64, DSD128 or DSD256 as it plays and sent as
-  DSF, gapless; a 48 kHz-family track stays in its own family. Output says how fast this server makes it.
+* **PCM as DSD** and its **Modulator:** for a device that takes DSD, the library's PCM made DSD64, DSD128 or DSD256 as
+  it plays and sent as DSF, gapless; the 7th order, the 7th order wide (its noise held down to 50 kHz, DSD128 and
+  DSD256) or the 9th order (quieter in the audio band, DSD64 and DSD128). A 48 kHz-family track stays in its own
+  family. Output says how fast this server makes it.
+* **Player:** where a renderer has MPD beside it, as a Chord Poly does, UPnP or **its own player**, handed the queue
+  to play one track into the next by itself.
+* **Gapless:** **Albums as one stream** sends an album's tracks as one stream, start to end, gapless however the
+  device joins files. A Mandarin Bridge is played one continuous stream anyway, and a Squeezelite player joins tracks
+  from its own buffer, so neither has the switch.
 * **Fixed volume** and **Volume levelling**, then **DSP** (EQ, headphone profiles, room correction from an impulse
   response), in this order: levelling, headroom, the DSP at the track's own rate, then upsampling.
 
-A track upsampled or made DSD as it plays gets the processor: playback keeps all the cores but one while it is made,
-or as many as *Settings → Library Scanner → Processor → Cores for upsampling and DSD* says. The phone has the same
-Output when it plays through a USB DAC. For a bit-perfect result, Output is **Original** and the volume fixed.
+Upsampling and making DSD take far less of the processor than they did, with the same output: PCM as DSD256 takes
+37% of one core per second of music where it took 68% (measured on a 2.1 GHz Xeon). A track upsampled or made DSD as
+it plays gets the processor: playback keeps all the cores but one while it is made, or as many as *Settings → Library
+Scanner → Processor → Cores for upsampling and DSD* says. The phone has the same Output when it plays through a USB
+DAC. For a bit-perfect result, Output is **Bit-perfect** (Mode Original) and the volume fixed.
 
 ## Signal path
 
@@ -1237,51 +1290,35 @@ Mandarin behaves the same.
 
 ## Sound devices on the server
 
-A USB DAC, the speakers or HDMI on the computer Mandarin runs on can be played to like a Sonos
-room (v0.6.18).
+**On Linux, Docker included, Mandarin plays no sound device of its own (v1.2.1).** A USB DAC on the computer Mandarin
+runs on is played by [Mandarin Bridge](#mandarin-bridge) for Linux, installed beside it with one line, and the DAC is
+a room of its own in *Settings → Audio Devices*: one continuous stream of PCM, the DAC kept between tracks, native DSD
+where the kernel offers it. The server used to open the computer's sound cards itself (ALSA), kept losing the DAC
+and competed with the Bridge for it. A card it had in Audio Devices is forgotten by itself, the container needs no
+`--device /dev/snd` or `--privileged` for sound, and the image no longer carries the audio engine.
 
-1. Plug the DAC in. Within 30 seconds (or after **Look again**) it is listed in
-   *Settings → Audio Devices*, off. Switch it on; it is then in the speaker list.
-2. On its page: the rates it takes (a USB DAC on Linux lists its own; tap to change), **Output**
-   (Original, ×2, ×4, Max), **Fixed volume**, **Volume levelling** and **DSP**, as for a renderer.
+**On a Mac**, the Mac's own outputs (its speakers, headphones, a USB DAC) can be played to like a Sonos room:
 
-How it plays (v0.8.0, Linux): **Mandarin's audio engine** (`engine/`, a native program written
-in C#) holds the device open. ffmpeg decodes each track straight into the engine's own buffer, up
-to a few minutes ahead, and a thread of the engine's own writes it to the device through ALSA. The
-next track at the same rate goes into the open device with nothing between them; a track at another
-rate reopens it. Where the device is in a track is read from ALSA itself. The image carries the
-engine; an install updated from Settings downloads it once. `AUDIO_ENGINE=0` plays as before
-v0.8.0: ffmpeg decodes each track and a second ffmpeg holds the device open. Mandarin's slider scales the samples on a curve of 50 dB (100% leaves them untouched);
-with **Fixed volume** on they are never scaled and the volume is the DAC's or amplifier's.
+1. Plug the DAC in. Within 30 seconds (or after **Look again**) it is listed in *Settings → Audio Devices*, off.
+   Switch it on; it is then in the speaker list.
+2. On its page: the rates it takes, **Output**, **Fixed volume**, **Volume levelling** and **DSP**, as for a renderer.
 
-* **Linux:** ALSA, opened as `plughw:CARD=<name>,DEV=<n>`, so a DAC on another USB port is the
-  same device. ALSA converts the 32-bit samples to the depth the device takes. While a track
-  plays, ALSA's own report of the rate is compared with what was sent; a match is marked ✓.
-  The user Mandarin runs as must be in the `audio` group. A device another program (PipeWire,
-  PulseAudio) holds is reported as in use.
-* **Docker:** add `--device /dev/snd` and `--privileged` to `docker run` (in `docker-compose.yml`,
-  the commented `devices:` and `privileged:` lines), then re-create the container.
-* DSD files go to these devices as PCM.
-* **What the DAC is fed:** Now playing's signal path ends with what the audio engine opened the
-  device at (PCM at 32 bits, DoP or native DSD) and whether Mandarin's volume touches the
-  samples (fixed volume: untouched; otherwise the level it scales them by), said as the engine's
-  word. The ✓ is there only when the device says the samples go untouched in the format sent
-  (item 289): Mandarin Bridge and the audio engine say it; a WiiM's own API says only the format,
-  so it has none. Whether every sample reaches the DAC is for a recording of what it was fed to
-  prove, not for the signal path to claim.
-* **Playback comes first (v0.8.13).** The decoder and the device each queue a minute of audio
-  ahead. On Linux with three cores or more, playback keeps a core of its own, or two while DSP is in
-  use (the last ones), and both servers run on the others; on four cores, one for playback and
-  three for the rest, or two and two. Scanning, measuring ReplayGain, the tag reader check and the
-  phone's downloads run at the lowest priority, their disk reads last; conversions made ahead of
-  play run just below playback. *Settings → Library Scanner → Processor* shows the split.
-  `PLAYBACK_CORES=1` or `2` fixes how many cores playback keeps, `0` shares every core;
-  `PLAYBACK_CORE=<n>` picks the core. With `--privileged`, `--cap-add SYS_NICE` (or as root) the
-  engine and its decoder also run at a higher priority, and the engine's playback thread at a
-  real-time one. An ALSA underrun, should one happen, is logged with what the feed was waiting for.
+How it plays: **Mandarin's audio engine** (`engine/`, a native program written in C#, downloaded once) holds the
+device open through Core Audio, at each track's own rate. ffmpeg decodes each track straight into the engine's own
+buffer, a few minutes ahead. The next track at the same rate goes into the open device with nothing between them; a
+track at another rate reopens it, after half a second of silence at the new rate so the DAC settles. Mandarin's slider
+scales the samples on a curve of 50 dB (100% leaves them untouched); with **Fixed volume** on they are never scaled
+and the volume is the DAC's or amplifier's.
 
-From [Music Assistant](https://github.com/music-assistant)'s Local Audio Out: the volume curve, ids
-taken from the device's name, and a device that fails being reported and let go.
+**Playback comes first (v0.8.13).** On Linux with three cores or more, playback (what Mandarin makes as a track plays:
+its conversion, upsampling or DSD) keeps a core of its own, or two while DSP is in use (the last ones), and the server
+runs on the others. Scanning, measuring ReplayGain, the tag reader check and the phone's downloads run at the lowest
+priority, their disk reads last; conversions made ahead of play run just below playback. *Settings → Library Scanner
+→ Processor* shows the split. `PLAYBACK_CORES=1` or `2` fixes how many cores playback keeps, `0` shares every core;
+`PLAYBACK_CORE=<n>` picks the core.
+
+From [Music Assistant](https://github.com/music-assistant)'s Local Audio Out: the volume curve, ids taken from the
+device's name, and a device that fails being reported and let go.
 
 ## SQ-tool
 
@@ -1293,8 +1330,6 @@ SQ-tool proves whether a zone's DAC gets exactly what is in the file, sample by 
    what the zone's DAC is fed, to the song's last sample:
    * a **Mandarin Bridge** on an Android device with a USB DAC: what its USB driver feeds the DAC (update the app
      for it);
-   * a **USB DAC on Mandarin's server**: what goes down its USB cable, off the USB bus (Docker: `--privileged`, and
-     `sudo modprobe usbmon` on the host).
    Mandarin Bridge for Linux and the Raspberry Pi can't be recorded yet; nor can Sonos or other streamers.
 3. The result: **bit-perfect** or not, and where not, how (the level, what remains, where in the song), with
    spectrograms of the file, of what the DAC was fed and of the difference, charts, and the recordings to download.
@@ -1441,12 +1476,18 @@ data folder (two files of 1 MB at most) while logging is on.
 * **No albums.** `/api/status` shows `music_dir` and `index_count`. Check the `/music` mount
   and that the container can read it.
 * **Hi-res tracks don't play.** `http://<server>:3500/api/health` must say `"ffmpeg": true`.
+* **DSD goes as DoP from Mandarin Bridge for Linux, natively from Android.** Linux's USB audio driver offers a DAC
+  native DSD only where its own list knows the DAC's maker. The Bridge's page (`http://<it>:49494/`) and log say
+  when the kernel holds it back, with the one line for `/etc/modprobe.d` that frees it; then unplug the DAC and plug
+  it in again. See [bridge/linux/README.md](bridge/linux/README.md).
+* **A click as the rate changes between tracks.** A Mandarin Bridge gives the DAC half a second of silence at a
+  change of rate; Squeezelite pauses for as long as its `-r` option says (e.g. `-r 44100-768000:500`).
 
 ## Development
 
 ```bash
 ./server/build.sh   # the server (.NET 10 SDK) into server/bin/mandarin-server
-./engine/build.sh   # the audio engine (.NET 10 SDK and clang), for sound devices on the server
+./engine/build.sh   # the audio engine (.NET 10 SDK and clang), for Mandarin Bridge for Linux and a Mac's sound devices
 MUSIC_DIR=~/Music PORT=3500 server/bin/mandarin-server
 
 npm ci              # the tests' own packages (Node.js 22: the tests are JavaScript, node:test)

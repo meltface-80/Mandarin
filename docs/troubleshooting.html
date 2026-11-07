@@ -69,6 +69,20 @@
          again from a device at home.</p>
     </div>
     <div class="info-card">
+      <span class="sym">DSD</span>
+      <h3>DoP from a Linux Bridge, native DSD from Android</h3>
+      <p>Linux's USB audio driver offers a DAC native DSD only where its own list knows the DAC's maker; any other is given
+         DSD as DoP. The Bridge's page (<code>http://&lt;it&gt;:49494/</code>) and log say when the kernel holds it back,
+         with the one line for <code>/etc/modprobe.d</code> that frees it; then unplug the DAC and plug it in again. See
+         <a href="bridges.html#native-dsd">Mandarin Bridge</a>.</p>
+    </div>
+    <div class="info-card">
+      <span class="sym">A click</span>
+      <h3>A click as the rate changes</h3>
+      <p>A Mandarin Bridge gives its DAC half a second of silence at a change of rate between tracks. A Squeezelite player
+         pauses for as long as its <code>-r</code> option says: start it with <code>-r 44100-768000:500</code>.</p>
+    </div>
+    <div class="info-card">
       <span class="sym">Mandarin Bridge</span>
       <h3>A Bridge isn't listed</h3>
       <p>Open its page (<code>http://&lt;it&gt;:49494/</code>, or the Android app itself) to see that it runs and which DAC
