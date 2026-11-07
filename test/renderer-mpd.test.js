@@ -57,7 +57,7 @@ test("a renderer's own player (MPD): found beside it, played through, one track 
   assert.equal(dev.output.player, undefined, "UPnP by its absence");
   assert.equal((await call("PATCH", "audio-devices/" + ID, { enabled: true, output: { mode: "x2", player: "mpd" } })).status, 200);
   assert.equal((await api("audio-devices/" + ID)).output.player, "mpd");
-  assert.equal((await call("PATCH", "audio-devices/" + ID, { output: { player: "raat" } })).status, 400, "upnp or mpd only");
+  assert.equal((await call("PATCH", "audio-devices/" + ID, { output: { player: "not-a-player" } })).status, 400, "upnp or mpd only");
   await until(async () => (await api("zones")).zones.some(z => z.zone_id === ID), 20000, "the room");
   const album = (await api("library/albums?sort=album")).albums.find(a => a.title === "Own Player");
   const ids = (await api("album?offset=" + album.offset)).tracks.map(x => x.track_id);

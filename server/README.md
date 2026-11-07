@@ -51,9 +51,7 @@ It takes Mandarin's port (`PORT`, 3500) and answers everything itself, set up fr
 - **Subcommands:** `--version`, `--health` (the image's health check), `config`,
   `reset-password` (the account removed and every device signed out), `db <data folder>`, `scan`,
   `tags <file>…`, `waveform <file>`, `score` (the rules asked directly, for the tests),
-  `--srp-vector <file>`, `raat-discover [--seconds N] [--service-id ID]… [--to HOST[:PORT]] [--json]`
-  (the Roon Ready devices and Roon Cores on the network, and what each says of itself: one SOOD query,
-  read only, `Renderers/RaatDiscover.cs`), `sood-parse` (its packets read, for the tests).
+  `--srp-vector <file>`.
 
 ## How each part moved (v0.8.1 to v0.9.0)
 
