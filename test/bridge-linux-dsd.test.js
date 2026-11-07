@@ -7,6 +7,10 @@
  * the descriptor too (sysfs), and where it says raw DSD and ALSA lists none, says so: in /dac.json, on its page, in
  * its log, with the modprobe line that has the kernel offer it (QUIRK_FLAG_DSD_RAW, for that DAC alone). A DAC whose
  * descriptor says no such thing, or that the kernel offers natively, is said nothing of.
+ *
+ * Linux 6.x lists a raw-DSD altset as "Format: SPECIAL DSD_U32_BE" (item 325): the owner's SMSL SU-1 on DietPi
+ * (kernel 6.12, its stream0 as the kernel wrote it), its native DSD read from it, up to DSD512, where the Bridge took
+ * only the line's first word and sent DSD as DoP.
  */
 const test = require("node:test");
 const assert = require("node:assert");
@@ -103,4 +107,26 @@ test("a DAC whose descriptor says nothing of raw DSD, and one the kernel offers 
   assert.equal(native.dac.dsd_raw, true);
   assert.equal(native.dac.dsd_kernel_fix, null, "nothing held back");
   assert.doesNotMatch(native.said(), /takes DSD natively/);
+});
+
+// The owner's SMSL SU-1 on DietPi (kernel 6.12.115+deb13.1): its stream0's playback altsets as the kernel wrote them.
+const SU1 = [
+  "    Altset 1", "    Format: S32_LE", "    Channels: 2", "    Endpoint: 0x01 (1 OUT) (ASYNC)",
+  "    Rates: 44100, 48000, 88200, 96000, 176400, 192000, 352800, 384000, 705600, 768000", "    Data packet interval: 125 us", "    Bits: 32",
+  "    Channel map: FL FR", "    Sync Endpoint: 0x81 (1 IN)", "    Sync EP Interface: 1", "    Sync EP Altset: 1", "    Implicit Feedback Mode: No",
+  "  Interface 1", "    Altset 2", "    Format: S32_LE", "    Channels: 2", "    Endpoint: 0x01 (1 OUT) (ASYNC)",
+  "    Rates: 44100, 48000, 88200, 96000, 176400, 192000, 352800, 384000, 705600, 768000", "    Data packet interval: 125 us", "    Bits: 24",
+  "    Channel map: FL FR", "    Sync Endpoint: 0x81 (1 IN)", "    Sync EP Interface: 1", "    Sync EP Altset: 2", "    Implicit Feedback Mode: No",
+  "  Interface 1", "    Altset 3", "    Format: SPECIAL DSD_U32_BE", "    Channels: 2", "    Endpoint: 0x01 (1 OUT) (ASYNC)",
+  "    Rates: 44100, 48000, 88200, 96000, 176400, 192000, 352800, 384000, 705600, 768000", "    Data packet interval: 125 us", "    Bits: 32",
+  "    DSD raw: DOP=0, bitrev=0", "    Channel map: FL FR", "    Sync Endpoint: 0x81 (1 IN)", "    Sync EP Interface: 1", "    Sync EP Altset: 3", "    Implicit Feedback Mode: No"];
+
+test("Linux 6.x's \"Format: SPECIAL DSD_U32_BE\" (the owner's SMSL SU-1 on DietPi): native DSD to DSD512, nothing held back", { skip, timeout: 60000 }, async (t) => {
+  const b = await bridgeOn(t, { card: "AUDIO", usbid: "152a:85dd", name: "SMSL USB AUDIO", stream: SU1, desc: descriptors([1, 1, 0x80000000]) });
+  assert.deepEqual([b.dac.dsd_native, b.dac.dsd_dop, b.dac.dsd], [[64, 128, 256, 512], [64, 128, 256], [64, 128, 256, 512]], JSON.stringify(b.dac));
+  assert.deepEqual(b.dac.rates, [44100, 48000, 88200, 96000, 176400, 192000, 352800, 384000, 705600, 768000]);
+  assert.deepEqual(b.dac.dac_bits, [24, 32]);
+  assert.equal(b.dac.dsd_kernel_fix, null, "the kernel offers it: no line to add");
+  assert.match(b.state.dacs[0].takes, /, native DSD512$/);
+  await until(() => /\[player\] the engine on .*, native DSD DSD_U32_BE:64,128,256,512/.test(b.said()), 5000);
 });
