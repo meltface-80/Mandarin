@@ -169,6 +169,8 @@ class DevicePage(val j: JSONObject) {
     val realBits: Int get() = output.optInt("real_bits", 0)
     val realBitsValue: String get() = if (realBits > 0) realBits.toString() else "sent"
     val ditherRow: DeviceDither.Row? get() = if (mode != "original" && dsdOut == 0) DeviceDither.row(dither, realBits) else null
+    /** Headroom when upsampling (item 348): "auto" or "off", offered where Mandarin upsamples or makes DSD; null where it doesn't. */
+    val headroom: String? get() = if (mode != "original" || dsdOut != 0) (if (output.optString("headroom") == "off") "off" else "auto") else null
     val modRow: DeviceModulators.Row? get() = if (showDsdOut && dsdOut != 0) DeviceModulators.row(dsdMod, dsdOut) else null
     val depths: List<SegChoice> get() = listOf(SegChoice("auto", "Auto"), SegChoice("24", "24"), SegChoice("32", "32", off = !flac32))
     val outputInfo: String get() = "Original sends the file as stored wherever this device takes its rate, depth and format; above its ceiling, FLAC at the highest rate it takes. Upsampling stays in the file's family (44.1 → 88.2 → 176.4; 48 → 96 → 192), runs in 64-bit float, and goes out at " +

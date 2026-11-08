@@ -36,10 +36,17 @@ internal static class SignalPath
         // works them there (UpsampleCommand.cs, MadeAsPlayed.cs, DsdPlan.cs); a stream it only passes on, never.
         if ((s.Dsd != 0 && s.Transcode) || s.Upsampled != 0 || s.Dsp)
             steps.Add(Step("float", "Bit depth conversion", t.Bits is > 0 ? $"{t.Bits}-bit to 64-bit float" : "To 64-bit float", "enhanced"));
-        if (s.Gain != 0)
+        // The gain sent is the levelling's and the headroom's for the upsampling (item 348): each its own step.
+        var level = Math.Round((s.Gain - s.Headroom) * 10) / 10;
+        if (level != 0)
         {
-            steps.Add(Step("gain", "Volume levelling", $"{Db(s.Gain)} · ReplayGain", "enhanced"));
-            extras.Add($"ReplayGain {Db(s.Gain)}");
+            steps.Add(Step("gain", "Volume levelling", $"{Db(level)} · ReplayGain", "enhanced"));
+            extras.Add($"ReplayGain {Db(level)}");
+        }
+        if (s.Headroom != 0)
+        {
+            steps.Add(Step("headroom", "Headroom", $"{Db(s.Headroom)}, so that its peaks between samples aren’t clipped when it is upsampled", "enhanced"));
+            extras.Add($"Headroom {Db(s.Headroom)}");
         }
         if (s.Lowpass != 0)
         {
@@ -109,6 +116,14 @@ internal static class SignalPath
             making = $"{Service(svc)} plays as PCM, not DSD";
         }
         if (extras.Count > 0) how = how == null ? string.Join(" · ", extras) : how + " · " + string.Join(" · ", extras);
+        // Clipped where it is made (item 348: Upsample/Headroom.cs): its upsampling's step and line said so, in red.
+        var clip = Upsample.Headroom.Of(Hub.Current?.Upnp?.MakingOf(z.ZoneId));
+        if (clip is { Samples: > 0 } && steps.OfType<JsonObject>().FirstOrDefault(x => (string?)x["kind"] == "upsample") is { } upStep)
+        {
+            upStep["quality"] = "lossy";
+            upStep["detail"] = $"{(string?)upStep["detail"]} · clipped: {N(clip.Samples)} sample{(clip.Samples == 1 ? "" : "s")} over full scale, peaks {Db(Math.Round(20 * Math.Log10(Math.Max(clip.Peak, 1e-9)), 1))}";
+            return Path([output, how, making], steps, how);
+        }
         return Path([output, how, making], steps);
     }
 
@@ -140,11 +155,14 @@ internal static class SignalPath
         return Step("source", "Source", $"{(svc != null ? Service(svc) + " · " : "")}{name}{bits}{rate}{chans}".Trim(), t.Lossless ? "lossless" : "lossy");
     }
 
-    private static JsonObject Path(string?[] lines, JsonArray steps) => new()
+    /* The lines and the steps; [alert]: the line to show in red (its upsampling clipped: item 348), its place among the lines said. */
+    private static JsonObject Path(string?[] lines, JsonArray steps, string? alert = null)
     {
-        ["lines"] = new JsonArray(lines.Where(l => !string.IsNullOrEmpty(l)).Select(l => (JsonNode)JsonValue.Create(l)!).ToArray()),
-        ["steps"] = steps,
-    };
+        var said = lines.Where(l => !string.IsNullOrEmpty(l)).ToList();
+        var o = new JsonObject { ["lines"] = new JsonArray(said.Select(l => (JsonNode)JsonValue.Create(l)!).ToArray()), ["steps"] = steps };
+        if (alert != null && said.IndexOf(alert) is var i and >= 0) o["alert"] = i;
+        return o;
+    }
 
     /*
      * The device's report as a step (item 287): the format the DAC is opened at, how the samples are sent at its depth, what

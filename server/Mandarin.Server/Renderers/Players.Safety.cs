@@ -19,7 +19,7 @@ namespace Mandarin.Server.Renderers;
 internal sealed partial class Players
 {
     /* The Output settings kept and put back: what is made and sent; never the volume, the player or an album as one stream. */
-    internal static readonly string[] OutputKeys = ["mode", "bits", "max_rate", "filter", "filter_hires", "phase", "dsd_lowpass", "dsd_out", "dsd_mod", "dither", "real_bits"];
+    internal static readonly string[] OutputKeys = ["mode", "bits", "max_rate", "filter", "filter_hires", "phase", "dsd_lowpass", "dsd_out", "dsd_mod", "dither", "real_bits", "headroom"];
     /* The device settings: the Output that last played well; those that failed, the last few; and the last put back, to say. */
     public const string GoodSetting = "output_good", FailedSetting = "output_failed", PutBackSetting = "output_put_back";
     /* What a device that couldn't play what it was sent says (SlimProto's STMn). */

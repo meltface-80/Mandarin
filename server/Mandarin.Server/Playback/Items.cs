@@ -58,8 +58,8 @@ internal static class Items
         if (target != null) p = HighRates.Fit(p, target);   // above FLAC's rates: WAV, or the highest FLAC carries (item 238)
         p = Upsample.MadeAsPlayed.Mark(p, target, t.Path);   // in the filter's shape, where the device asks one (items 248, 259)
         p = DsdLowpass.Mark(p, target, tj);   // DSD as PCM, its modulator's noise above the band taken off (item 241)
-        // Made DSD from PCM (items 243, 259): the DSF, made as it plays.
-        return Build(s, secret, baseUrl, t, Upsample.DsdPlan.Mark(p, target, tj, t.Path), target, phoneGain);
+        // Made DSD from PCM (items 243, 259): the DSF, made as it plays; turned down where its upsampling would clip (item 348).
+        return Build(s, secret, baseUrl, t, Upsample.Headroom.Into(Upsample.DsdPlan.Mark(p, target, tj, t.Path), t.Id, target), target, phoneGain);
     }
 
     // The item for [t] by the plan [p]: its address, its DIDL.

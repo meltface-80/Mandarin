@@ -64,6 +64,15 @@ internal fun DitherGroups(d: DevicePage, r: DeviceDither.Row, busy: Boolean, pat
     CapGroup("Dither", Modifier.parity("settings-device.cap-label")) { DitherRow(d, r, busy, patch) }
 }
 
+/** Headroom when upsampling (item 348), set to [v] ("auto" or "off"), as the page's headroomGroup. */
+@Composable
+internal fun HeadroomGroup(v: String, busy: Boolean, patch: (JSONObject) -> Unit) {
+    CapGroup(DeviceDither.HEADROOM_TITLE, Modifier.parity("settings-device.cap-label")) {
+        Seg(DeviceDither.HEADROOM, v, key = { i, c -> Modifier.parity("settings-device.upsample-headroom", Contract.label("settings-device.upsample-headroom", i)).clickable(enabled = !busy) { patch(DeviceDither.pickHeadroom(c.value)) } })
+        DeviceNote(DeviceDither.headroomNote(v == "off"), Modifier.parity("settings-device.note"))
+    }
+}
+
 @Composable
 private fun ColumnScope.DitherRow(d: DevicePage, r: DeviceDither.Row, busy: Boolean, patch: (JSONObject) -> Unit) {
     var open by remember { mutableStateOf(false) }

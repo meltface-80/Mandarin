@@ -1,6 +1,7 @@
 // DeviceRoutes.Dither.cs — a device's dither and its DAC's real bits written (bug list item 301, Upsample/Dither.cs),
 // beside the rest of its Output (DeviceRoutes.cs): flat, ns3 or ns5, flat kept as its absence; 20 to 23 bits, or
-// "sent", kept as its absence.
+// "sent", kept as its absence. And its Headroom when upsampling (item 348, Upsample/Headroom.cs): auto, kept as its
+// absence, or off.
 using Mandarin.Server.Playback;
 using Mandarin.Server.Tags;
 
@@ -22,6 +23,12 @@ internal static partial class Library
         {
             if (!Jv.Same(realBits, "sent") && Upsample.Dither.BitsOf(realBits) == 0) throw new DeviceRefusal(400, "real_bits must be sent or 20 to 23");
             patch["real_bits"] = Jv.Same(realBits, "sent") ? null : (double)Upsample.Dither.BitsOf(realBits);
+        }
+        var headroom = Prop(output, "headroom");
+        if (headroom is not Undef)
+        {
+            if (!Jv.OneOf(headroom, "auto", "off")) throw new DeviceRefusal(400, "headroom must be auto or off");
+            patch["headroom"] = Jv.Same(headroom, "off") ? "off" : null;
         }
     }
 }

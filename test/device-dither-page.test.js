@@ -4,7 +4,8 @@
  * the real bits (as sent, 23 to 20) and one row saying the dither in use and at which bit, opening the list of the
  * three (Flat, Shaped 3rd order, Shaped 5th order), the one in use ticked, each with what it measured. A pick is a
  * PATCH of dither and the list closes, the tap going no further than the device's page. The app's words are
- * DeviceDither.kt's (DeviceDitherTest).
+ * DeviceDither.kt's (DeviceDitherTest). And Headroom when upsampling (item 348): Auto, or Off, each saying what it
+ * does; and Now playing's line the server names in red (its upsampling clipped).
  * Skipped where no Chromium or Chrome is found (test/browser-harness.js).
  */
 const ports = require("./ports");
@@ -56,6 +57,10 @@ test("a device's Dither: the real bits and one row where Mandarin makes the PCM,
         document.removeEventListener("click", up);
         out.reached = reached;
         out.sent = sent;
+        const hr = (o) => { body.innerHTML = headroomGroup(o, seg); return [body.querySelector('.seg[data-seg="headroom"] .is-on').textContent, body.querySelector(".settings-note").textContent]; };
+        out.headroom = { auto: hr({ mode: "x2" }), off: hr({ mode: "x2", headroom: "off" }), choices: [...body.querySelectorAll('.seg[data-seg="headroom"] .seg-btn')].map(e => e.textContent) };
+        paintNpSignal({ signal: { lines: ["FLAC 24/88.2 kHz ↑×2", "Gaussian ×2 · 24/88.2 kHz"], steps: [], alert: 1 } });
+        out.red = [...document.querySelectorAll("#np-signal-lines .np-signal-line")].map(e => e.classList.contains("is-alert"));
         return out;
       })()`);
     } finally { await b.close(); }
@@ -72,5 +77,11 @@ test("a device's Dither: the real bits and one row where Mandarin makes the PCM,
     assert.equal(r.afterPick, false, "a pick closes the list");
     assert.equal(r.reached, 0, "no tap of the Dither's goes past the device's page");
     assert.deepEqual(r.sent, [{ output: { dither: "ns5" } }], "the pick, and only the pick, sent");
+    assert.deepEqual(r.headroom.choices, ["Auto", "Off"]);
+    assert.equal(r.headroom.auto[0], "Auto", "Auto by its absence");
+    assert.match(r.headroom.auto[1], /^A track whose peaks between its samples would go over full scale/);
+    assert.equal(r.headroom.off[0], "Off");
+    assert.match(r.headroom.off[1], /^Nothing is turned down/);
+    assert.deepEqual(r.red, [false, true], "the upsampling's line in red, the server naming it");
   } finally { await srv.stop(); }
 });
