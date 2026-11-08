@@ -11,7 +11,7 @@ for n in 1 2 3; do
   ./gradlew "$@" 2>&1 | tee "$log"
   status=${PIPESTATUS[0]}
   [ "$status" -eq 0 ] && exit 0
-  if ! grep -qE "response code: 5[0-9][0-9]|status code 5[0-9][0-9]|Could not (GET|HEAD|download)|Connection reset|Read timed out|connect timed out|Remote host terminated the handshake" "$log"; then
+  if ! grep -qE "response code: 5[0-9][0-9]|status code 5[0-9][0-9]|Could not (GET|HEAD|download)|Connection reset|Read timed out|connect timed out|Remote host terminated the handshake|Each download failed" "$log"; then
     exit "$status"
   fi
   [ "$n" -eq 3 ] && break
