@@ -95,16 +95,19 @@ internal static partial class Server
 
 /*
  * Who sent a request. Home is told from away by the caller's address, as the
- * Node server told it (lib/server/auth.js, clientIp): from this machine the
- * last X-Forwarded-For is believed, as a proxy here (the built-in Tailscale,
- * `tailscale serve`) speaks for the device behind it; else the connection's
- * own address, so no device can claim to be at home by sending the header.
- * A proxy here that names the caller another way (X-Real-IP, Forwarded's
- * for=) is believed too, and one that names none but is plainly a proxy
- * (X-Forwarded-Host) leaves the caller unknown: never this machine, so never
- * home (item 172: nginx with only X-Real-IP made the internet home).
+ * Node server told it (lib/server/auth.js, clientIp). A proxy speaks for the
+ * device behind it only where it is trusted (item 362, Caller.Proxies.cs): the
+ * built-in Tailscale, on the port of its own it is given, and the proxies the
+ * owner names (TRUSTED_PROXIES: nginx, `tailscale serve`); there its last
+ * X-Forwarded-For is believed, else its X-Real-IP or Forwarded's for=, and one
+ * that names none (X-Forwarded-Host alone) leaves the caller unknown (item
+ * 172: nginx with only X-Real-IP made the internet home). Anything else is the
+ * connection's own address, and a request from this machine that names a
+ * caller through no trusted proxy is unknown: never this machine, so never
+ * home. Before item 362 every request from this machine was believed, so a raw
+ * forward or a tunnel passing the client's own header on let it claim home.
  */
-internal static class Caller
+internal static partial class Caller
 {
     /* What a proxy that doesn't say who asked is given: no address, so neither home nor the tailnet. */
     public const string Unknown = "unknown";
@@ -113,7 +116,7 @@ internal static class Caller
     {
         var remote = ctx.Connection.RemoteIpAddress;
         string bare = Bare(remote);
-        if (IsLoopback(remote))
+        if (!Trusted(ctx)) return IsLoopback(remote) && NamesCaller(ctx.Request.Headers) ? Untrusted(bare) : bare;
         {
             var h = ctx.Request.Headers;
             var fwd = h["X-Forwarded-For"].ToString()

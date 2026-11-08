@@ -307,7 +307,7 @@ internal sealed partial class Tailscale(string imageBin, string dir, int port, s
             lock (gate) { was = last?["state"]; last = st; }
             if (Js.StrictEq(st["state"], "Running") && !Js.Truthy(st["serving"]))
             {
-                await Call("POST", $"/serve?port={port}&upstream={Uri.EscapeDataString("http://127.0.0.1:" + port)}", null, 10000);
+                await Call("POST", $"/serve?port={port}&upstream={Uri.EscapeDataString("http://127.0.0.1:" + (Caller.EnginePort > 0 ? Caller.EnginePort : port))}", null, 10000);   // its own port (item 362)
                 var now = await Call("GET", "/status", null, 4000);
                 lock (gate) last = now;
                 restarts = 0;
