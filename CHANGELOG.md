@@ -4,6 +4,19 @@
 
 Two acts of one name are two artists (Airbag from Norway and Airbag from Argentina), told apart by MusicBrainz's ids in the files or Mandarin's own matches, each with its own page, picture and facts; the signal path in as few steps as it can be, with Now playing's short line; the share card the card alone, its review always and bigger; logging on by default. Fixes: a queued album stopped the one playing; the Android Library wall's filter and sort; the Library Scanner stopped by iTunes matches. Items 330 to 343.
 
+- New - Two acts of one name are two artists (Airbag from Norway and Airbag from Argentina), told apart by the MusicBrainz artist ID in their files or Mandarin's own matches, each with its own page, picture and facts
+- New - The signal path in as few steps as it can be, and Now playing's line under the title is its short version ("Gaussian steep ×16 · 7th-order · DSD256")
+- Changed - The share card is the card alone: its review always on it, and bigger; its links, suggestions and settings are gone
+- Changed - Logging is on by default, in the server and the Android app
+- Fixed - Queuing an album, or Play next, stopped the one playing where Mandarin made it as it played (DSD from PCM, upsampling)
+- Fixed - The Android app's Library came back filtered to an old search, and lost a sort chosen there
+- Fixed - The Library Scanner kept stopping ("MusicBrainz isn't answering") over albums iTunes had matched
+- Fixed - An artist's page showed another act of the same name, and the app kept showing it after the server had found the right one
+- Fixed - A track stopped on purpose was logged as failed
+
+### Every change
+
+- Improved - a release's notes, on GitHub and under Settings → Updates, are its summary and one short line for each change, where they were every entry of the changelog in full: a version's section opens with them, and "### Every change" heads the entries (item 344)
 - Fixed - a test of the Shelf's album view failed now and then on a busy machine ("the view ends at the bar"): it measured the view a fixed 0.6 s after the album was up, and the view unfolds out of its case for 0.7 s, so a quick album or a slow moment measured it mid-way. It is measured once its unfolding is over (item 343)
 - Fixed - an artist's page could keep saying who another act of the same name was after the server had found the right one (Airbag from Norway still "Band · Spain · since 1998" while the Artists wall had their picture): the app kept a page for fifteen minutes and asked nothing of it again in that time, and the server, while it looked the act up again, answered with the other act's entry. Who they are is now asked at every visit, and asked again every few seconds while the server is still looking, in the app and on the page; meanwhile the server no longer says the other act (item 342)
 - Fixed - the Library Scanner kept saying "MusicBrainz isn't answering; trying again in a few minutes" and stopped identifying ten minutes at a time, over and over: the lookup of each match's act (item 333) asked MusicBrainz for matches iTunes had made ("Ask iTunes too", an id MusicBrainz has no release for), MusicBrainz refused each (HTTP 400), and three refusals in a row were taken for MusicBrainz being away; nothing kept them as asked, so the same albums were asked again at every turn. A match of iTunes's is not asked of MusicBrainz, and a release MusicBrainz refuses or doesn't know is kept as asked, once, and never taken for MusicBrainz away (item 341)
