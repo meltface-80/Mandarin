@@ -119,7 +119,9 @@ const ENV = {
   updateApi: "UPDATE_API",
   // The port a renderer's own player (MPD) is looked for at (Renderers/Mpd.cs, item 306): a test's fake one.
   mpdPort: "MPD_PORT",
-  slimprotoPort: "SLIMPROTO_PORT"
+  slimprotoPort: "SLIMPROTO_PORT",
+  // The hosts on this network a picture from elsewhere may come from (Covers.Reach.cs, item 353): a test's own site.
+  artHosts: "ART_HOSTS"
 };
 // On or off, as index.js read them ("0" is off).
 const FLAGS = { upnpMulticast: "UPNP_DISCOVERY", identify: "IDENTIFY", localAudio: "LOCAL_AUDIO" };

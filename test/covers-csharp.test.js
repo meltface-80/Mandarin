@@ -8,7 +8,8 @@
  *     a gradient to a darker one, the words where ffmpeg can draw text (no
  *     drawtext: CI's static build, some Homebrew builds — then without them,
  *     v0.8.50);
- *   - a picture from elsewhere ("u-" and its address): fetched and drawn;
+ *   - a picture from elsewhere ("u-" and its address): fetched and drawn; never from this machine or its network
+ *     (item 353), but for the speakers' own addresses and the hosts named in ART_HOSTS, each redirect checked too;
  *     one that can't be had is a 404, as the Node server answered it;
  *   - a speaker asking by its own address (v0.8.48, stage 5 part 5): let
  *     through and sent; anyone else unsigned turned away at the gate.
@@ -53,8 +54,13 @@ test("the covers sharp drew, drawn by the C# server", { skip, timeout: 120000 },
     asked++;
     if (req.url === "/station.png") { res.writeHead(200, { "Content-Type": "image/png" }); return res.end(png); }
     if (req.url === "/moved") { res.writeHead(302, { Location: "/station.png" }); return res.end(); }
+    if (req.url === "/inside") { res.writeHead(302, { Location: `http://${inside.host}:${inside.address().port}/station.png` }); return res.end(); }
     res.writeHead(404); res.end();
   });
+  // The same picture on two more of this machine's addresses (item 353): one no one named, one a speaker's.
+  const serve = (host) => new Promise(r => { const s = http.createServer((req, res) => { s.asked++; res.writeHead(200, { "Content-Type": "image/png" }); res.end(png); }); s.asked = 0; s.host = host; s.listen(0, host, () => r(s)); });
+  const inside = await serve(ports.host(ports.HOSTS - 1)), speaker = await serve(ports.host(0));   // the last: no room of the household's
+  t.after(() => { inside.close(); speaker.close(); });
   await new Promise(r => site.listen(0, "127.0.0.1", r));
   t.after(() => site.close());
   const at = (p) => `http://127.0.0.1:${site.address().port}${p}`;
@@ -64,7 +70,7 @@ test("the covers sharp drew, drawn by the C# server", { skip, timeout: 120000 },
   const house = new FakeHousehold();
   await house.start();
   t.after(() => house.stop());
-  const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [ports.host(0)], upnpMulticast: false, identify: false });
+  const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [ports.host(0)], upnpMulticast: false, identify: false, artHosts: ["127.0.0.1"] });
   await srv.start();
   t.after(() => srv.stop());
   const H = { headers: { Authorization: "Bearer " + await signIn(B) } };
@@ -109,6 +115,21 @@ test("the covers sharp drew, drawn by the C# server", { skip, timeout: 120000 },
     const n = asked;
     assert.equal((await fetch(`${B}/api/image/${keyOf(at("/moved"))}?size=300`, H)).status, 200);
     assert.equal(asked, n, "kept: not fetched again");
+  });
+
+  await t.test("never from this machine or its network (item 353): only the hosts named, the speakers', each redirect checked", async () => {
+    const own = (s) => `http://${s.host}:${s.address().port}/station.png`;
+    // An address on this machine no one named, and a cloud's metadata address: not fetched, a 404 as one that can't be had.
+    for (const url of [own(inside), "http://169.254.169.254/latest/meta-data/", "http://[::1]:9/x.png", "http://10.0.0.1:9/x.png"]) {
+      const r = await fetch(`${B}/api/image/${keyOf(url)}?size=300`, H);
+      assert.equal(r.status, 404, url);
+    }
+    // A host it may fetch from sending it on to one it may not: refused at the redirect.
+    assert.equal((await fetch(`${B}/api/image/${keyOf(at("/inside"))}?size=300`, H)).status, 404, "the redirect checked");
+    assert.equal(inside.asked, 0, "the address no one named never asked");
+    // A speaker's own address (a track queued from the Sonos app has its cover there): fetched.
+    assert.equal((await fetch(`${B}/api/image/${keyOf(own(speaker))}?size=300`, H)).status, 200, "a speaker's cover");
+    assert.equal(speaker.asked, 1);
   });
 
   await t.test("one that can't be had, or isn't an address: a 404, as the Node server answered", async () => {

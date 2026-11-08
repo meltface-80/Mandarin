@@ -123,6 +123,7 @@ Auth.KeepSeen();
 ThreadPool.GetMinThreads(out var minWorkers, out var minIo);
 ThreadPool.SetMinThreads(Math.Max(minWorkers, 64), Math.Max(minIo, 64));
 Library.InitAlone(frontKey, ownConfig["server_ip"]?.GetValue<string>(), port);
+Covers.TrustHosts(ownConfig["art_hosts"]);   // pictures from elsewhere: never this network, but for these (item 353)
 Transcoder.Init(dataDir);
 Downloads.Init(dataDir);
 Server.Log($"[server] Mandarin's server {version} (C#) on port {port}");
