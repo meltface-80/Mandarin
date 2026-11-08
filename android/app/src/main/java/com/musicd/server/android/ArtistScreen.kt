@@ -114,6 +114,17 @@ internal fun ArtistScreen(asked: String, prefs: WallPrefs, zoneId: String, clien
             if (a != null) launch { withContext(Dispatchers.IO) { runCatching { lib.artistBio(name, pin) }.getOrNull() }?.let { got -> bio = got; keep { it.copy(bio = got) } } }
         }
     }
+    // The library changed while the page is open (item 357, LibraryLive): its albums and who they are asked again in
+    // place, an album deleted from the folders gone from the page, one added there.
+    val movesSeen = remember(asked) { LibraryLive.moves }
+    LaunchedEffect(asked, LibraryLive.moves) {
+        if (LibraryLive.moves == movesSeen) return@LaunchedEffect
+        val c = client() ?: return@LaunchedEffect
+        val lib = LibraryClient { c.getJson(it) }
+        withContext(Dispatchers.IO) { runCatching { lib.artistAlbums(asked) }.getOrNull() }
+            ?.let { got -> albums = got; ArtistPages.kept.put(key, (ArtistPages.kept.get(key) ?: ArtistPage()).copy(albums = got)) }
+        withContext(Dispatchers.IO) { runCatching { lib.artistAbout(asked) }.getOrNull() }?.let { got -> about = got; keep { it.copy(about = got) } }
+    }
     // Their bands' albums from their years in them (item 133), then those they are credited on beyond all of these,
     // each saying as what (item 131).
     val bands = about?.bandAlbums.orEmpty()
