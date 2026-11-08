@@ -212,7 +212,8 @@ jobs:
           docker exec -w /app/sq-tool smoke python3 -m sqtool --help > /dev/null
           # Not as root (item 354): the server that answered above runs as 1000:1000, its data, program and page its
           # own (an update writes them), unless PUID says otherwise; PUID=0 keeps it root.
-          S=$(docker exec smoke sh -c 'for p in /proc/[0-9]*; do [ $p = /proc/$$ ] && continue; grep -qa mandarin-server $p/cmdline 2>/dev/null && stat -c %u:%g $p && break; done')
+          # The process that is the server (its program first on its command line; tini, which stays root, names it after).
+          S=$(docker exec smoke sh -c 'for p in /proc/[0-9]*; do [ "$(tr "\\0" "\\n" < $p/cmdline 2>/dev/null | head -1)" = /app/server/bin/mandarin-server ] && stat -c %u:%g $p && break; done')
           test "$S" = "1000:1000" || { echo "the server runs as $S"; exit 1; }
           test "$(docker exec smoke stat -c %u:%g /app/data /app/server/bin /app/public | sort -u)" = "1000:1000"
           test "$(docker run --rm -e PUID=1234 -e PGID=100 musicd-server:ci sh -c 'echo $(id -u):$(id -g)')" = "1234:100"
