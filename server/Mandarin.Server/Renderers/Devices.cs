@@ -262,6 +262,7 @@ internal sealed partial class Devices
             ((JsObj)o["output"]!)["making"] = Upsample.MadeAsPlayed.Note(up);
             if (Upsample.DsdOut.Of(r.Settings["dsd_mod"]) is { } mod) ((JsObj)o["output"]!)["dsd_mod"] = mod;   // its modulator (item 303): the seventh order by its absence
         }
+        if (streamer && Upsample.Headroom.Off(r.Settings)) ((JsObj)o["output"]!)["headroom"] = "off";   // no headroom when upsampling (item 348): auto by its absence
         // Chosen again, an Output that failed before says so (item 346: Players.Safety.cs).
         if (streamer && Players.FailedBefore(r.Settings, Players.OutputOf(r.Settings)) is { } before)
             ((JsObj)o["output"]!)["making"] = (((JsObj)o["output"]!)["making"] is string m ? m + " " : "") + before;

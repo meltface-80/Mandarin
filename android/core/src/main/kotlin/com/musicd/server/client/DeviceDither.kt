@@ -38,4 +38,13 @@ object DeviceDither {
 
     /** The change real bits picked make: PATCH {output: {real_bits: 20}} (or "sent"). */
     fun pickBits(v: String): JSONObject = JSONObject().put("output", JSONObject().put("real_bits", v.toIntOrNull() ?: v))
+
+    /** Headroom when upsampling (item 348, the page's headroomGroup): Auto or Off, and what each does. */
+    const val HEADROOM_TITLE = "Headroom when upsampling"
+    val HEADROOM: List<SegChoice> = listOf(SegChoice("auto", "Auto"), SegChoice("off", "Off"))
+    fun headroomNote(off: Boolean): String = if (off) "Nothing is turned down: a track mastered to full scale may be clipped where it is upsampled. Now playing’s line turns red when it is."
+        else "A track whose peaks between its samples would go over full scale when it is upsampled is turned down by just enough, and half a dB more: from its true peak, as the loudness scan or an upsampling of it measured it. Tracks that don’t need it keep their level; DSD has 2.9 dB of room of its own."
+
+    /** The change a headroom picked makes: PATCH {output: {headroom: "auto" | "off"}}. */
+    fun pickHeadroom(v: String): JSONObject = JSONObject().put("output", JSONObject().put("headroom", v))
 }

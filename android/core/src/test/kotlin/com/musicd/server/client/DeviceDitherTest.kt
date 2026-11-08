@@ -26,4 +26,20 @@ class DeviceDitherTest {
         assertEquals(Contract.labels["settings-device.dither-choice"], DeviceDither.ALL.map { it.name })
         assertEquals(Contract.labels["settings-device.realbits"], DeviceDither.REAL_BITS.map { it.label })
     }
+
+    @Test fun `Headroom when upsampling is offered where Mandarin upsamples or makes DSD, Auto by its absence (item 348)`() {
+        assertNull("not upsampled: no row", page("""{"mode":"original"}""").headroom)
+        assertEquals("auto", page("""{"mode":"x2"}""").headroom)
+        assertEquals("auto", page("""{"mode":"original","dsd_out":256}""").headroom)
+        assertEquals("off", page("""{"mode":"max","headroom":"off"}""").headroom)
+        assertEquals("""{"output":{"headroom":"off"}}""", DeviceDither.pickHeadroom("off").toString())
+        assertEquals(Contract.labels["settings-device.upsample-headroom"], DeviceDither.HEADROOM.map { it.label })
+    }
+
+    @Test fun `the signal's line in red is the one the server names, where it is one of the lines (item 348)`() {
+        val red = Signal.of(JSONObject("""{"lines":["FLAC 24/88.2 kHz ↑×2","Gaussian ×2 · 24/88.2 kHz"],"steps":[],"alert":1}"""))!!
+        assertEquals(1, red.alert)
+        assertNull(Signal.of(JSONObject("""{"lines":["FLAC 24/88.2 kHz ↑×2"],"steps":[]}"""))!!.alert)
+        assertNull("no such line", Signal.of(JSONObject("""{"lines":["FLAC"],"steps":[],"alert":3}"""))!!.alert)
+    }
 }

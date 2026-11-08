@@ -41,22 +41,23 @@ import com.musicd.server.client.Signal
  * next time; the first brighter. A tap on them opens the signal path when the server said one.
  */
 @Composable
-internal fun SignalLines(lines: List<String>, onOpen: (() -> Unit)?) {
+internal fun SignalLines(lines: List<String>, onOpen: (() -> Unit)?, alert: Int? = null) {
     val look = Modifier.padding(top = 8.dp).clip(RoundedCornerShape(6.dp))
     // A device Mandarin streams to: the lines open its signal path. Else they are the badge's words, nothing to open.
     if (onOpen != null) Column(Modifier.parity("now-playing.signal", Contract.label("now-playing.signal")).then(look).clickable { onOpen() }.padding(horizontal = 6.dp, vertical = 2.dp),
-        horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)) { Lines(lines) }
+        horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)) { Lines(lines, alert) }
     else Column(Modifier.parity("now-playing.format").then(look).padding(horizontal = 6.dp, vertical = 2.dp),
-        horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)) { Lines(lines) }
+        horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)) { Lines(lines, alert) }
 }
 
 // The lines themselves, the first, what goes out, the brighter.
 @Composable
-private fun Lines(lines: List<String>) {
+private fun Lines(lines: List<String>, alert: Int? = null) {
     val dim = MaterialTheme.colorScheme.onSurfaceVariant
     val text = MaterialTheme.colorScheme.onSurface
     lines.forEachIndexed { i, line ->
-        Text(line, fontSize = if (i == 0) 13.sp else 12.sp, fontWeight = if (i == 0) FontWeight.W600 else FontWeight.W500, color = if (i == 0) text else dim,
+        // [alert]: its upsampling clipped (item 348), in red.
+        Text(line, fontSize = if (i == 0) 13.sp else 12.sp, fontWeight = if (i == 0) FontWeight.W600 else FontWeight.W500, color = if (i == alert) paletteColor(Palette.DANGER) else if (i == 0) text else dim,
             textAlign = TextAlign.Center, maxLines = 2, overflow = TextOverflow.Ellipsis)
     }
 }

@@ -2130,6 +2130,7 @@ body.settings-open main { overflow-y: hidden; }
 }
 .np-signal-lines.hidden { display: none; }
 .np-signal-line { font-size: 12px; font-weight: 500; color: var(--text-dim); }
+.np-signal-line.is-alert { color: var(--danger); }
 .np-signal-line.is-out { font-size: 13px; font-weight: 600; color: var(--text); }
 .np-signal {
   position: fixed; left: 0; right: 0; bottom: calc(24px + env(safe-area-inset-bottom));

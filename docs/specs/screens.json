@@ -1190,6 +1190,7 @@
         "modulator-choice": { "kind": "action", "label": ["7th order", "7th order wide", "9th order"], "each": true, "in": "modulator" },
         "modulator-close": { "kind": "action", "label": "Close", "in": "modulator" },
         "realbits": { "kind": "action", "label": ["As sent", "23", "22", "21", "20"], "each": true, "when": "upsampled, not made DSD" },
+        "upsample-headroom": { "kind": "action", "label": ["Auto", "Off"], "each": true, "when": "it upsamples, or makes DSD from PCM (item 348)" },
         "phase": { "kind": "action", "label": ["Linear", "Minimum"], "each": true, "when": "it upsamples, or makes DSD from PCM" },
         "dither": { "kind": "action", "label": "Dither", "when": "upsampled, not made DSD" },
         "dither-sheet-title": { "kind": "shows", "in": "dither" },

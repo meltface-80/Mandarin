@@ -161,6 +161,7 @@ internal object ContractLabels2 {
         "settings-device.modulator-choice" to listOf("7th order", "7th order wide", "9th order"),
         "settings-device.modulator-close" to listOf("Close"),
         "settings-device.realbits" to listOf("As sent", "23", "22", "21", "20"),
+        "settings-device.upsample-headroom" to listOf("Auto", "Off"),
         "settings-device.phase" to listOf("Linear", "Minimum"),
         "settings-device.dither" to listOf("Dither"),
         "settings-device.dither-choice" to listOf("Flat", "Shaped, 3rd order", "Shaped, 5th order"),

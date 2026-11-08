@@ -165,7 +165,7 @@ internal static class MadeAsPlayed
                 if (next == null) proc.StandardInput.Close();
             }
             catch (IOException) { /* stopped before it read its job; its exit says so */ }
-            using (var hold = Pace.Hold(proc, job, bytes, seconds)) { said = await proc.StandardOutput.ReadLineAsync(); heldFor += hold.HeldSeconds; }
+            using (var hold = Pace.Hold(proc, job, bytes, seconds)) { said = await Said(proc, job.Key); heldFor += hold.HeldSeconds; }
             // A device sought past what was made: begun again from there (item 272: Resume.cs).
             if (resume == null || !resume.Again(out var at)) break;
             Stop(proc);
@@ -197,10 +197,25 @@ internal static class MadeAsPlayed
         // Its speed by the time it worked, not the time it was held.
         var speed = took - heldFor > 0 && seconds > 0 ? seconds / (took - heldFor) : 0;
         if (speed > 0 && resume?.Restarted != true) { Speeds[p.DsdUp] = speed; KeepingUp.Finished(job.Key, speed); }
+        // What it clipped, and its peak kept as the track's own for Headroom when upsampling (item 348).
+        var clipped = (long?)r["clipped"] ?? 0;
+        Headroom.Finished(job.Key, clipped, (double?)r["peak"] ?? 0);
+        if (resume?.Restarted != true && warm == null) Headroom.Measured(t.Id, p, (double?)r["peak"] ?? 0);   // a run's peak is its whole run's
         var held = (long?)r["held"] ?? 0;
         var what = p.DsdUp != 0 ? $"DSD{p.DsdUp} from PCM, {Shape.Words(p.Shape)} ({(long?)r["resets"] ?? 0} reset(s){(held > 0 ? $", {held} sample(s) over +2.9 dB held" : "")})" : $"×{p.Rate / Math.Max(1, (long)p.InRate)}, {Shape.Words(p.Shape)}";
-        Server.Log($"[upsample] {Path.GetFileName(t.Path)}: {what}, made as it played at {Math.Round(speed, 2).ToString(System.Globalization.CultureInfo.InvariantCulture)}× real time ({took} s{(heldFor >= 1 ? $", {Math.Round(heldFor)} s of it held ahead of the device" : "")}){(warm != null ? ", on from the track before" : "")}{run}");
+        Server.Log($"[upsample] {Path.GetFileName(t.Path)}: {what}, made as it played at {Math.Round(speed, 2).ToString(System.Globalization.CultureInfo.InvariantCulture)}× real time ({took} s{(heldFor >= 1 ? $", {Math.Round(heldFor)} s of it held ahead of the device" : "")}){(warm != null ? ", on from the track before" : "")}{(clipped > 0 ? $", {clipped} sample(s) clipped" : "")}{run}");
         return 0;
+    }
+
+    /* What the making says it did, its line of JSON; what it says as it goes (what it has clipped: item 348) kept for [key] meanwhile. */
+    private static async Task<string?> Said(Process proc, string key)
+    {
+        while (true)
+        {
+            var line = await proc.StandardOutput.ReadLineAsync();
+            if (line == null || !line.StartsWith("{\"progress\"", StringComparison.Ordinal)) return line;
+            if (JsonNode.Parse(line) is JsonObject o) Headroom.Saw(key, (long?)o["clipped"] ?? 0, (double?)o["peak"] ?? 0);
+        }
     }
 
     // `mandarin-server upsample`, on playback's cores; what it says wrong read beside it.

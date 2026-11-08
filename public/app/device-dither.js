@@ -4,7 +4,8 @@
  * dither put in at that bit), and the dither, a row opening its list over the device's page, each with what it
  * measured. Shaped is made at 88.2 kHz and up; below, flat. The words are the Android app's too (core
  * DeviceDither.kt). Loaded after app/device-filters.js, whose list it opens (its taps, its close and its pick: the pick
- * sends {output: {dither}}).
+ * sends {output: {dither}}). And Headroom when upsampling (item 348: the server's Upsample/Headroom.cs), Auto or Off,
+ * wherever Mandarin upsamples or makes DSD.
  */
 // Each dither: its value, its name, what it measured (a 997 Hz tone at half scale, at 705.6 kHz and 20 bits).
 const DEVICE_DITHERS = [
@@ -51,4 +52,15 @@ function ditherTap(t) {
   if (!t.closest("[data-dither-row]")) return false;
   openDitherSheet();
   return true;
+}
+
+const HEADROOM_NOTE = (off) => off
+  ? "Nothing is turned down: a track mastered to full scale may be clipped where it is upsampled. Now playing’s line turns red when it is."
+  : "A track whose peaks between its samples would go over full scale when it is upsampled is turned down by just enough, and half a dB more: from its true peak, as the loudness scan or an upsampling of it measured it. Tracks that don’t need it keep their level; DSD has 2.9 dB of room of its own.";
+
+/** Headroom when upsampling, for the device's Output [o] where Mandarin upsamples or makes DSD (item 348). */
+function headroomGroup(o, seg) {
+  return '<div class="cap-group"><span class="cap-label" data-parity="settings-device.cap-label">Headroom when upsampling</span>' +
+    seg("headroom", [{ v: "auto", label: "Auto" }, { v: "off", label: "Off" }], o.headroom === "off" ? "off" : "auto") +
+    '<div class="settings-note" data-parity="settings-device.note">' + esc(HEADROOM_NOTE(o.headroom === "off")) + "</div></div>";
 }
