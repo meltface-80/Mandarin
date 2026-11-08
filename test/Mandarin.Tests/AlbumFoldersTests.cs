@@ -4,7 +4,7 @@ namespace Mandarin.Tests;
 
 /// <summary>
 /// An album is its folder (v0.6.0-RC8): two copies of a record in two folders are two albums, whatever
-/// their tags say; disc folders ("Disc 1", "CD2", "DISC 1"…) inside one album's folder are one album. A
+/// their tags say (since item 345 two versions of one album, the lists showing one); disc folders ("Disc 1", "CD2", "DISC 1"…) inside one album's folder are one album. A
 /// library scanned by an older version is put right on the first start, with favourites and edits kept
 /// (test/album-folders.test.js, in C#).
 /// </summary>
@@ -41,8 +41,11 @@ public sealed class AlbumFoldersTests
                 tags: new Dictionary<string, object> { ["title"] = $"Disc {i + 1} opener", ["artist"] = "Band", ["album"] = "Box Set", ["track"] = 1, ["disc"] = i + 1 });
         await using var s = await LibraryServer.Start(lib);
         var albums = await s.Albums();
-        var rams = albums.Where(a => a.Str("title") == "Random Access Memories").ToList();
-        Assert.True(rams.Count == 2, "never merged with the other folder's copy");
+        // Two versions of one album since item 345: one tile, the other copy among its versions, each its own album.
+        var tile = albums.Single(a => a.Str("title") == "Random Access Memories");
+        Assert.Equal(2, tile.Num("versions"));
+        var rams = (await s.Album(Id(tile)))["versions"].Items().Select(v => v!).ToList();
+        Assert.True(rams.Count == 2 && Id(rams[0]) is var first && !first.Equals(Id(rams[1])), "never merged with the other folder's copy");
         var counts = new List<int>();
         foreach (var a in rams) counts.Add((await TracksOf(s, Id(a))).Count);
         Assert.Equal([3, 4], counts.Order());

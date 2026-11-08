@@ -118,7 +118,7 @@ internal static class History
         var since = Hub.Now() - months * 30 * Day;
         if (first == null || first > since) return ([], 0, true);
         var heard = Tracks.PlayedAlbumIdsSince(c, since);
-        var pool = s.Albums.Where(al => !heard.Contains(al.Id)).ToList();
+        var pool = s.Shown.Where(al => !heard.Contains(al.Id)).ToList();
         var want = Math.Min(count, pool.Count);
         var picked = new List<Album>();
         var seen = new HashSet<int>();
@@ -162,8 +162,8 @@ internal static class History
                 var s = await Library.CurrentCopy();
                 if (s == null || s.Count == 0) return null;
                 var recent = Tracks.PlayedAlbumIdsSince(c, Hub.Now() - 60 * Day);
-                var i = Memory().Pick(s.Albums, a => RadioMemory.RadioKey(AlbumJs(a)), a => recent.Contains(a.Id), Random.Shared.NextDouble);
-                al = i < 0 ? null : s.Albums[i];
+                var i = Memory().Pick(s.Shown, a => RadioMemory.RadioKey(AlbumJs(a)), a => recent.Contains(a.Id), Random.Shared.NextDouble);
+                al = i < 0 ? null : s.Shown[i];
             }
             if (al == null) return null;
             await Items.PlayAlbum(hub, zoneId, al.Id, "queue");

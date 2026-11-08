@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- New - versions of one album are one album: the original Metallic 'KO and its 2015 remaster were two tiles with nothing to tell them apart. Albums of one MusicBrainz release group (their tags', or their applied match's), else of one act and one title once its version words are off ("(2015 Remaster)"), are versions of one album; never two of different release groups, nor one title from different years with no edition between them (Peter Gabriel's four "Peter Gabriel"); a compilation, a box set's disc and a Qobuz or Tidal album each their own. The lists (the Library wall, an artist's page, search, Home's rows, labels, Smart Picks, Random Album Radio) show the main version alone, "2 versions" under its artist; the main is the highest resolution (the newest release where two are alike), or the one chosen on the album's page, kept across scans. The album's page lists every version, each saying what tells it apart ("2015 Remaster · 24/96", "Original · 16/44.1"), a tap opening it, and Make this the main version; on the page and in the app (item 345)
+
 ## v1.2.2
 
 Two acts of one name are two artists (Airbag from Norway and Airbag from Argentina), told apart by MusicBrainz's ids in the files or Mandarin's own matches, each with its own page, picture and facts; the signal path in as few steps as it can be, with Now playing's short line; the share card the card alone, its review always and bigger; logging on by default. Fixes: a queued album stopped the one playing; the Android Library wall's filter and sort; the Library Scanner stopped by iTunes matches. Items 330 to 343.

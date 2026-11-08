@@ -142,7 +142,7 @@ internal static class Tracks
     }
 
     /* library.random(1).albums[0]: one album drawn at random, or null for an empty library. */
-    public static Album? Random(Snapshot s) => s.Albums.Count == 0 ? null : s.Albums[System.Random.Shared.Next(s.Albums.Count)];
+    public static Album? Random(Snapshot s) => s.Shown.Count == 0 ? null : s.Shown[System.Random.Shared.Next(s.Shown.Count)];
 
     // ------------------------------------------------------------ plays
 

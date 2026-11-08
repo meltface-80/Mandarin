@@ -147,6 +147,8 @@ class ServerClient(
 
     /** The heart on an album, or off. */
     fun favourite(offset: Long, on: Boolean) { post("/api/favourites", JSONObject().put("offset", offset).put("on", on)) }
+    /** That version the main of its album, the one the lists show (item 345). */
+    fun mainVersion(offset: Long) { post("/api/album/versions/main", JSONObject().put("offset", offset)) }
 
     /** An album onto Listen later, or off it. */
     fun listenLater(offset: Long, on: Boolean) { listenLater(listOf(offset), on) }

@@ -5725,6 +5725,23 @@ button.cap-chip:active { transform: scale(.96); }
   border: 1px solid var(--border); border-radius: 999px; padding: 5px 11px; cursor: pointer;
 }
 .modal-box-disc:hover { border-color: var(--accent); }
+/* An album's versions (item 345): how many under its head, each a pill (the one open marked), and Make main. */
+.modal-versions { margin-top: 10px; text-align: center; }
+.modal-versions-head { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--text-faint, var(--text-dim)); }
+.modal-versions-list { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin-top: 8px; }
+.modal-version {
+  font: inherit; font-size: 12px; color: var(--text); background: transparent;
+  border: 1px solid var(--border); border-radius: 999px; padding: 5px 11px; cursor: pointer;
+}
+.modal-version:hover { border-color: var(--accent); }
+.modal-version.is-current { border-color: var(--accent); color: var(--accent-text, var(--accent)); cursor: default; }
+.modal-version-main {
+  font: inherit; font-size: 12px; margin-top: 8px; color: var(--accent-text, var(--accent)); background: transparent;
+  border: 0; padding: 4px 8px; cursor: pointer; text-decoration: underline;
+}
+.modal-version-main:disabled { cursor: default; text-decoration: none; opacity: .7; }
+/* The tile's "2 versions" under its artist. */
+.album-versions { font-size: 12px; color: var(--text-faint, var(--text-dim)); margin-top: 1px; }
 .ae-folder-box { display: block; margin-top: 4px; color: var(--text); }
 
 /* The labels' #–Z / Z–# button: a pill wide enough for its text (v0.6.5),

@@ -150,6 +150,8 @@ async function fetchAlbumDetail(album) {
     } else if (box) box.remove();
   }
 
+  renderVersions(j, headEnd);   // its album's versions (item 345, album-versions.js)
+
   // Build action buttons in preferred order
   const order  = ["play_now", "queue", "play_next", "shuffle", "radio"];
   // Each one's key in the screens contract (docs/specs/screens.json).
