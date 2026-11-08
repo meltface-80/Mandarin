@@ -219,5 +219,11 @@ jobs:
           test "$(docker exec smoke stat -c %u:%g /app/data /app/server/bin /app/public | sort -u)" = "1000:1000"
           test "$(docker run --rm -e PUID=1234 -e PGID=100 musicd-server:ci sh -c 'echo $(id -u):$(id -g)')" = "1234:100"
           test "$(docker run --rm -e PUID=0 musicd-server:ci id -u)" = 0
+          # A data folder that is the user's already, with what a root server wrote inside it root's (item 374: the
+          # built-in Tailscale's state, which it then couldn't open): all of it handed over at start.
+          docker run --rm -v olddata:/app/data --entrypoint sh musicd-server:ci -c \
+            'mkdir -p /app/data/tailscale && touch /app/data/tailscale/tailscaled.state && chown 1000:1000 /app/data'
+          test "$(docker run --rm -v olddata:/app/data musicd-server:ci stat -c %u:%g /app/data/tailscale /app/data/tailscale/tailscaled.state | sort -u)" = "1000:1000"
+          docker volume rm olddata
           docker logs smoke
           docker rm -f smoke
