@@ -309,7 +309,7 @@ internal fun AlbumScreen(offset: Long, zoneId: String, lit: String, client: () -
                 if (a.versions.size > 1) albumVersions(a, client, onOpen = { v -> shown = v.album.offset },
                     onPlay = { v -> play("") { it.playAlbum(v.album.offset, v.album.title, v.album.subtitle, zone, "play_now") } }, onMain = { v -> makeMain(v.album.offset) })
             }
-            fun LazyListScope.trackItems(a: Album) {
+            fun LazyListScope.trackItems(a: Album, head: Boolean = true) {
                 val playingId = room.view?.takeIf { it.album == a.album.title }?.trackId
                 val onPick = { i: Int -> val p = picks; picks = if (p == null) listOf(i) else if (i in p) (p - i).ifEmpty { null } else p + i }
                 val onPlay = { i: Int, kind: String, said: String -> if (phone != null) playPhone(i, kind) else play("$said: ${a.tracks[i].title}") { it.playTrack(shown, i, a.tracks[i].title, a.album.title, a.album.subtitle, zone, kind) } }
@@ -317,7 +317,7 @@ internal fun AlbumScreen(offset: Long, zoneId: String, lit: String, client: () -
                 if (a.classical) albumWorks(a, playingId, room.view?.playing == true, picks, onPick, onPlay, onPlayWork = { w, kind, said ->
                     play("$said: ${w.title}") { c -> playWork(c, a, shown, w, kind, zone) }
                 })
-                else albumTracks(a, playingId, room.view?.playing == true, picks, onPick, onPlay)
+                else albumTracks(a, playingId, room.view?.playing == true, picks, onPick, onPlay, head)
             }
             val a = album
             // The foot keeps room for the mini player and the row, as the page's does (in the Shelf its bar, under it); the head starts below the corner discs.
@@ -347,11 +347,11 @@ internal fun AlbumScreen(offset: Long, zoneId: String, lit: String, client: () -
                     actionItem(a)
                     stickyHeader { AlbumTabRow(tab, a.versions.size) { tab = it } }
                     when (tab) {
-                        "credits" -> { credited(this); if (credits?.credits.isNullOrEmpty()) item { Text(AlbumVersion.NO_CREDITS, Modifier.parity("album.tab-empty").padding(vertical = 24.dp), color = dim) } }
+                        "credits" -> { albumCredits(credits, client, onArtist = { onPage("artist", it) }, head = false); if (credits?.credits.isNullOrEmpty()) item { Text(AlbumVersion.NO_CREDITS, Modifier.parity("album.tab-empty").padding(vertical = 24.dp), color = dim) } }
                         "about" -> { aboutHead(a, extras, onPage); albumAbout(extras?.review, more, client, onAlbum = { id -> onAlbum(id, zone) }, onArtist = { onPage("artist", it) }, onUrl = ::openUrl) }
                         "versions" -> albumVersions(a, client, onOpen = { v -> shown = v.album.offset; tab = "tracks" },
                             onPlay = { v -> play("") { it.playAlbum(v.album.offset, v.album.title, v.album.subtitle, zone, "play_now") } }, onMain = { v -> makeMain(v.album.offset) })
-                        else -> trackItems(a)
+                        else -> trackItems(a, head = false)
                     }
                 }
             }

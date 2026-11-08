@@ -5772,6 +5772,8 @@ button.cap-chip:active { transform: scale(.96); }
   }
   /* The ⋯ menu opens over the tabs, never under them. */
   .modal:not(.np-mode) .modal-actions { position: relative; z-index: 3; }
+  /* Under the tabs, which say them, no Tracks or Credits heading again (item 355). */
+  .modal:not(.np-mode) .tracks-head, .modal:not(.np-mode) #album-credits > .section-label { display: none; }
   .album-tab {
     font: inherit; font-size: 13px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
     color: var(--text-faint); background: transparent; border: 0; padding: 12px 0 10px; cursor: pointer;

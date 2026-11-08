@@ -1346,7 +1346,7 @@
         "playlist": { "kind": "action", "label": "Add to playlist", "in": "more" },
         "edit": { "kind": "action", "label": "Edit album", "in": "more", "when": "an album of your own files" },
         "download": { "kind": "action", "label": ["Download to this phone", "Remove from this phone", "Downloading… {…}"], "in": "more", "when": "in the Android app" },
-        "tracks-head": { "kind": "shows" },
+        "tracks-head": { "kind": "shows", "when": "a tablet or a wide screen: on a phone held upright the Tracks tab says it (item 355)" },
         "disc-head": { "kind": "shows", "each": true, "when": "the album is set out as works on more than one disc" },
         "work": { "kind": "action", "label": "{work}", "each": true, "when": "the album is set out as works (its works from the tags or the titles): the work's row, its movements under it as track rows" },
         "work-play": { "kind": "action", "label": "Play {work}", "each": true, "when": "the album is set out as works" },

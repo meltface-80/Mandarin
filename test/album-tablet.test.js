@@ -16,6 +16,7 @@
  *   - on a phone held upright (item 349): the cover centred on top, the date,
  *     rate and length centred under it, the title across the page, then the
  *     tabs (Tracks, Credits, About), the tracks the one open, the review About's;
+ *     no Tracks or Credits heading under the tabs that say them (item 355);
  *   - a tablet held sideways (item 214): the album in three columns, the
  *     cover, its head and its buttons on the left, the tracks on the right;
  *     still the whole ⋯ menu on screen, every item tapped.
@@ -88,6 +89,8 @@ const DRIVER = `(async () => {
   out.head = ["modal-title", "modal-subtitle", "modal-date", "modal-facts"].map(id => Object.assign(box($(id)), { text: $(id).textContent.replace(/\\s+/g, " ").trim() }));
   out.headArt = box(document.querySelector("#album-modal .modal-art"));
   out.tracksHead = document.querySelector(".tracks-head").textContent.trim();
+  // Which of the Tracks and Credits headings are drawn (item 355): on a phone the tabs say them.
+  out.heads = [".tracks-head", "#album-credits > .section-label"].map(s => getComputedStyle(document.querySelector(s)).display !== "none");
   out.label = $("album-about-facts").textContent.trim();
   out.tabs = [...document.querySelectorAll("#album-tabs .album-tab")].filter(t => getComputedStyle(t).display !== "none" && t.getBoundingClientRect().height > 0).map(t => t.textContent.trim());
   // Scrolled so the button row is near the top of the panel.
@@ -152,6 +155,7 @@ test("the album view on a tablet and a phone: a 160px sleeve, the title beside i
         assert.ok(r.tracks.t > title.b, `${size}: the tracks under the head (${r.tracks.t})`);
         assert.ok(r.bio.b - r.bio.t === 0, `${size}: the review About's, not shown on Tracks (${JSON.stringify(r.bio)})`);
         assert.equal(r.tracksHead, "Tracks", size + ": the Tracks line");
+        assert.deepEqual(r.heads, [false, false], size + ": no Tracks or Credits heading under the tabs that say them (item 355)");
         assert.equal(r.hscroll, false, size + ": no sideways scroll");
         continue;
       }
@@ -171,6 +175,7 @@ test("the album view on a tablet and a phone: a 160px sleeve, the title beside i
       assert.ok(r.headArt.b - facts.b >= 0 && r.headArt.b - facts.b <= 6, `${size}: the last line at the sleeve's foot (${facts.b}, ${r.headArt.b})`);
       assert.ok(title.b - title.t < 40 && artist.b - artist.t < 26 && date.b - date.t < 26, size + ": the title and each line one line high");
       assert.equal(r.tracksHead, "Tracks", size + ": the Tracks line, the total gone from it");
+      assert.deepEqual(r.heads, [true, true], size + ": the Tracks and Credits headings, there being no tabs");
       assert.ok(r.panel.l <= 0 && r.panel.t <= 0 && r.panel.r >= r.viewport[0] && r.panel.b >= r.viewport[1], `${size}: the album view fills the screen, not a card (${JSON.stringify(r.panel)})`);
       if (tablet) {
         assert.ok(r.bio.l >= r.tracks.r && r.bio.t < r.tracks.b, `${size}: About this album beside the tracks (tracks ${JSON.stringify(r.tracks)}, review ${JSON.stringify(r.bio)})`);
