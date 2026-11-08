@@ -43,6 +43,18 @@ class TimedCacheTest {
         assertFalse("its time from when it was first put", c.fresh("x"))
     }
 
+    @Test fun `the library changed, everything asked afresh but still drawn as it was (item 357)`() {
+        var t = 0L
+        val c = TimedCache<String, String>(capacity = 4, ttlMs = 900_000) { t }
+        c.put("Dua Lipa", "page with the tour album"); c.put("Iron Maiden", "page")
+        t = 5_000
+        c.stale()
+        assertFalse("asked afresh", c.fresh("Dua Lipa")); assertFalse(c.fresh("Iron Maiden"))
+        assertEquals("drawn as it was until then", "page with the tour album", c.get("Dua Lipa"))
+        c.put("Dua Lipa", "page")
+        assertTrue("fresh again once asked", c.fresh("Dua Lipa"))
+    }
+
     @Test fun `cleared, nothing is kept`() {
         val c = TimedCache<String, Int>(capacity = 4, ttlMs = 60_000, now = { 0L })
         c.put("a", 1); c.put("b", 2)
