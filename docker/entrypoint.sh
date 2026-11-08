@@ -7,7 +7,10 @@
 # that user already, and runs as it.
 #
 # The server writes its data (/app/data) and, when it updates itself, its program and page (/app/server, /app/public,
-# /app/sq-tool): each handed over when its owner isn't the user, so an install from before 354 keeps its library.
+# /app/sq-tool): each handed over when anything in it isn't the user's, so an install from before 354 keeps its library.
+# Anything, not just the folder (item 374): a data folder mounted from the host is often the host user's already while
+# what the root server wrote inside it (the built-in Tailscale's state, the library) is root's, which the server, no
+# longer root, then can't open.
 # It keeps one of root's rights, a port under 1024 (PORT=80, say), and a second where the container was given it
 # (cap_add SYS_NICE): playback started at a higher priority. SSDP's port, 1900, needs neither.
 set -e
@@ -18,7 +21,7 @@ if [ "$(id -u)" != 0 ] || [ "$uid" = 0 ]; then exec "$@"; fi
 
 for d in /app/data /app/server /app/public /app/sq-tool /app/package.json; do
   [ -e "$d" ] || continue
-  if [ "$(stat -c %u:%g "$d")" != "$uid:$gid" ]; then
+  if [ -n "$(find "$d" \( \! -user "$uid" -o \! -group "$gid" \) -print -quit 2>/dev/null)" ]; then
     echo "entrypoint: $d handed to $uid:$gid" >&2
     chown -R "$uid:$gid" "$d"
   fi
