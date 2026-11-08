@@ -14,7 +14,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 
-# (id, emoji, title, new in v1.2.1, what it is, how to set it up and use it)
+# (id, emoji, title, new in v1.2.2, what it is, how to set it up and use it)
 FEATURES = [
     # ---- Home and finding music
     ("home", "🏠", "Home", False,
@@ -22,7 +22,7 @@ FEATURES = [
      "Recently played, Smart Picks, Label of the week, Random albums, Library and Browse by genre.",
      "Open **☰ → Home**. Tap a row's title for all of it. To reorder rows or hide one, open "
      "**Settings → Setup → Home Screen**, hold a row's grip and drag it, or switch it off."),
-    ("touch", "👆", "Phones and tablets", True,
+    ("touch", "👆", "Phones and tablets", False,
      "On a touchscreen: a bar at the foot on every screen, Now playing too (Menu, Home, Library, Artists, "
      "Shelf, Search), and the mini player docked on it on a tablet.",
      "Nothing to set up: a phone or tablet gets it in the browser, the iPhone home-screen app and the "
@@ -89,15 +89,20 @@ FEATURES = [
      "Last.fm key, similar artists and albums. Ones in your library open here.",
      "Open any album. For the Last.fm rows, get a free key at last.fm/api/account/create and paste "
      "it in **Settings → Setup → API Keys** (or set `LASTFM_KEY`). Read-only: nothing is scrobbled."),
-    ("artists", "🎤", "Artists", False,
-     "Every act in your library as a round picture with their name and album count, in the "
-     "album wall's columns, sorted A to Z, by most albums or at random.",
+    ("artists", "🎤", "Artists", True,
+     "Every act as a round picture with their name and album count, sorted A to Z, by most albums or "
+     "at random. Two acts of one name are two artists.",
      "On a phone or tablet, tap **Artists** in the row at the foot of the screen. **Sort** is at the "
-     "top right; **Search** in the row finds an artist by part of the name. Tap one for their page."),
-    ("artist", "🧑‍🎤", "Artist pages", False,
+     "top right; **Search** in the row finds an artist by part of the name. Tap one for their page. Two "
+     "acts of the same name (Airbag from Norway, Airbag from Argentina) are told apart by the MusicBrainz "
+     "artist ID in their files' tags (as Picard writes it), else by Mandarin's own MusicBrainz matches "
+     "(**Settings → Library Scanner**), each with its own page, picture and a word to tell them apart."),
+    ("artist", "🧑‍🎤", "Artist pages", True,
      "Who they are, then their discography, the albums they appear on, similar artists and similar "
      "albums. Members fold under a heading. One artist however a sleeve credits them.",
-     "Tap an artist's name on an album's page, on the Artists wall or in Search. Facts come from "
+     "Tap an artist's name on an album's page, on the Artists wall or in Search. Who they are is the act "
+     "your albums are by: its MusicBrainz ID from your files or matches, else the act MusicBrainz lists "
+     "for your album titles, never just the first of the name. Facts come from "
      "MusicBrainz, Wikidata and Wikipedia, pictures from FanArt.tv (with a key), Wikidata or Deezer, "
      "similar artists and albums from Last.fm (with a key) or Deezer. Tap **Members** to unfold a band's "
      "line-up. A member's page shows their bands' albums from their years in them; a tap on a member, a band or a similar artist opens theirs. Tap a genre "
@@ -169,14 +174,14 @@ FEATURES = [
      "ungrouping rooms. Sonos plays up to 24-bit / 48 kHz; Mandarin converts anything above.",
      "Sonos rooms are found on the network by themselves (`SONOS_HOSTS` if not). Pick one with the "
      "speaker button; **Group zones…** in the same list groups them."),
-    ("upnp", "📡", "UPnP/DLNA renderers", True,
+    ("upnp", "📡", "UPnP/DLNA renderers", False,
      "WiiM, Chord Poly, streamers, AV receivers and TVs on your network, played like a Sonos room, gapless; "
      "one with MPD beside it can be handed the whole queue.",
      "A renderer found on the network is off until you switch it on in **Settings → Audio Devices**. "
      "Then pick it with the speaker button. **Look again** searches the network now. Where MPD is found "
      "beside it (a Chord Poly), **Output → Player → Its own player** hands MPD the queue, and "
      "**Output → Gapless → Albums as one stream** sends an album as one stream however the device joins files."),
-    ("slim", "🎶", "Squeezelite players", True,
+    ("slim", "🎶", "Squeezelite players", False,
      "Squeezelite players and Squeezebox-compatible hardware play from Mandarin over SlimProto, one track on "
      "into the next from their own buffer, with Output's upsampling and seeking.",
      "Start Squeezelite on the network: it finds Mandarin by itself on port 3483, or point it at it "
@@ -250,12 +255,12 @@ FEATURES = [
      "shared as text and imported, matched against the other library's tracks.",
      "**☰ → Playlists**, **☰ → Dynamic Playlists** and **☰ → Import a playlist**. A playlist's "
      "**Share** gives the text to send."),
-    ("sharecard", "🖼️", "Share card", False,
-     "The album as a picture, the duck in its corner, links to hear and read about it, and three "
-     "acts near what you play, two of them new to you.",
-     "Tap the share button on an album's page. Choose the services in **Settings → Setup → Share "
-     "Card**. In the Android app, **Copy image** puts the card on the clipboard, to paste into a forum "
-     "or a message, and **Download** saves it to Pictures/Mandarin."),
+    ("sharecard", "🖼️", "Share card", True,
+     "The album as a picture: its cover, release, title and artist, its review with whose words they are, "
+     "Pitchfork's score where there is one, and the duck in its corner.",
+     "Tap the share button on an album's page or Now playing; there is nothing to set up. In the Android "
+     "app, **Copy image** puts the card on the clipboard, to paste into a forum or a message, and "
+     "**Download** saves it to Pictures/Mandarin; in a browser, **Share…** or **Download**."),
     ("wall", "📺", "Wall display", False,
      "A full-screen now playing page for a TV or tablet; on a big TV its reviews and covers are drawn large "
      "enough to read from across the room.",
@@ -277,23 +282,24 @@ FEATURES = [
      "without Android's mixer; DSD natively or as DoP.",
      "Plug the DAC in. It shows on **This phone**'s page in **Settings → Audio Devices**; switch on "
      "**USB direct** there."),
-    ("bridge", "🌉", "Mandarin Bridge", True,
+    ("bridge", "🌉", "Mandarin Bridge", False,
      "A USB DAC on an Android device, a Linux computer or a Raspberry Pi, as a room Mandarin plays to: "
      "over SlimProto, a continuous stream of PCM.",
      "Install it from [Downloads](#downloads): the Android app, the Linux install line, or the Raspberry Pi "
      "image to flash. It finds Mandarin by itself; plug the DAC in, then switch the Bridge on in "
      "**Settings → Audio Devices**. Details under [Mandarin Bridge](#mandarin-bridge)."),
-    ("output", "📈", "Upsampling and output", True,
+    ("output", "📈", "Upsampling and output", False,
      "For each streamer or DAC: Bit-perfect or upsampled recipes, ×2, ×4 or Max with Standard, Gaussian or "
      "long filters in either phase, shaped dither, and PCM made DSD.",
      "Open **Settings → Audio Devices**, tap a streamer or DAC, and choose a recipe under **Sound**, or open "
      "**Advanced** for each row: Mode, a filter for CD-rate and one for hi-res sources, Phase, Highest rate, "
      "Bit depth, the DAC's real bits and Dither, DSD as PCM, PCM as DSD and its Modulator, Gapless. All made "
      "as each track plays. Details under [Upsampling and output](#upsampling-and-output)."),
-    ("signalpath", "🛤️", "Signal path", False,
-     "Under the album on Now playing: what goes out and how it was made. A tap shows each step from the "
-     "file to what the DAC is fed.",
-     "Play to a room and look under the album on **Now playing**; tap it for every step. The ✓ shows only "
+    ("signalpath", "🛤️", "Signal path", True,
+     "Under the album on Now playing, one short line of what goes out (Gaussian steep ×16 · 7th-order · "
+     "DSD256). A tap shows each step to the DAC.",
+     "Play to a room and look under the album on **Now playing**; tap it for every step: Source, Bit depth "
+     "conversion, Volume levelling where it is on, Output, and the device's own word. The ✓ shows only "
      "when the device itself says the samples reach the DAC untouched. Details under "
      "[Signal path](#signal-path)."),
     ("sqtool", "📊", "SQ-tool", False,
@@ -365,13 +371,13 @@ FEATURES = [
      "Then **☰ → Tidal** to search and play; **+** on a cover adds an album to your Tidal favourites "
      "(a **✓** once added) and so to the library, as does **⋯ → Add to Tidal favourites** on its page. "
      "Details under [Tidal](#tidal)."),
-    ("logging", "📝", "Logging", False,
-     "Off by default. Switched on, the Android app, the server and the Mandarin Bridges log what happened, "
-     "without personal data, for you to send to the developer.",
+    ("logging", "📝", "Logging", True,
+     "On by default. The Android app, the server and the Mandarin Bridges log what happened, without "
+     "personal data, for you to send to the developer.",
      "In the Android app, **Settings → Setup → Logging**. Use the app as you normally would for 24 hours, "
      "then tap **Save log** (it goes to Downloads/Mandarin, the server's and the Mandarin Bridges' logs with it) "
      "and send the file. Look through it first. "
-     "Switching logging off deletes the log, the server's part too. Details under [Logs](#logs)."),
+     "Switching logging off deletes the log, the server's part too, and it stays off. Details under [Logs](#logs)."),
     ("updates", "🔄", "Updates", False,
      "The server updates itself from GitHub and checks every 12 hours. The Android app and every Mandarin "
      "Bridge have their own Check for update beside the server's.",
@@ -401,7 +407,7 @@ def md_inline_to_html(s):
 def readme_block():
     lines = ["Every feature below has an **ⓘ**: open it for how to switch the feature on and use it.", ""]
     for i, (fid, em, title, new, what, how) in enumerate(FEATURES):
-        lines.append("%s **%s**%s" % (em, title, " — *new in v1.2.1*" if new else ""))
+        lines.append("%s **%s**%s" % (em, title, " — *new in v1.2.2*" if new else ""))
         lines.append("")
         lines.append(what)
         lines.append("")

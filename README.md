@@ -7,7 +7,7 @@
 
 </div>
 
-# Mandarin — v1.2.1
+# Mandarin — v1.2.2
 
 **Your own music files, played to Sonos rooms, to UPnP/DLNA renderers (a WiiM, a Chord Poly,
 a streamer, an AV receiver) and to the Mandarin Android app.**
@@ -26,16 +26,16 @@ Wikipedia, Deezer and others); your music files stay on your machine.
                                                    └──── audio: /stream/… ◀────────┘
 ```
 
-**New in v1.2.1** (since v1.2.0; Mandarin Bridge v0.3.1). The [changelog](CHANGELOG.md) has each change.
-* **Mandarin Bridge** — Updated: over SlimProto, Mandarin now sends Mandarin Bridge a continuous stream of PCM (DSD still goes as DSD). See [Mandarin Bridge](#mandarin-bridge).
-* **Squeezelite players** (and Squeezebox-compatible hardware) play from Mandarin over SlimProto, with Output and seeking.
-* **More upsampling:** Gaussian, Long and Very long filters, minimum phase for each, shaped dither at the DAC's real
-  bits, three DSD modulators, Output as recipes, all with far less of the processor. See [Upsampling and output](#upsampling-and-output).
-* **Gapless your way:** albums as one stream, and a renderer's own player (MPD, as a Chord Poly has).
-* **A Linux server leaves its USB DAC to Mandarin Bridge for Linux,** which says when the kernel holds back a DAC's
-  native DSD, and how to free it. See [Sound devices on the server](#sound-devices-on-the-server).
-* **Also:** the bar along the foot on every screen, and fixes for the Chord Poly, a Bridge's ✓ and a Bridge
-  installed again.
+**New in v1.2.2** (since v1.2.1; Mandarin Bridge v0.3.1 still). The [changelog](CHANGELOG.md) has each change.
+* **Two acts of one name are two artists** (Airbag from Norway and Airbag from Argentina): told apart by the MusicBrainz
+  artist ID in their files, else by Mandarin's own MusicBrainz matches, each with its own page, picture and facts.
+* **The signal path in as few steps as it can be,** and Now playing's line under the title the short version of it
+  (*Gaussian steep ×16 · 7th-order · DSD256*). See [Signal path](#signal-path).
+* **The share card is the card alone:** its review always on it, and bigger; its links, suggestions and settings gone.
+* **Logging is on by default,** so a fault seen once is already in the log. See [Logs](#logs).
+* **Fixed:** queuing an album stopped the one playing (made as it played, as DSD from PCM); the Android app's Library
+  came back filtered to an old search and lost its sort; the Library Scanner stopped again and again ("MusicBrainz
+  isn't answering") over albums iTunes had matched; an artist's page showed another act of the same name.
 
 ## Downloads
 
@@ -43,13 +43,13 @@ The newest of each, straight to your device. The server's install is a command, 
 
 | What | Version | Download |
 | --- | --- | --- |
-| **Mandarin Remote**, the Android app (Android 8.0 or newer) | v1.2.1 | [mandarin-android.apk](https://github.com/meltface-80/Mandarin/raw/main/dist/mandarin-android.apk) |
-| **Mandarin server** with Docker (Linux, a Raspberry Pi 4/5, a NAS) | v1.2.1 | `docker pull ghcr.io/meltface-80/musicd-server:latest`, then [Install (Docker)](#install-docker) |
-| **Mandarin server** on a Mac (macOS 14 or newer) | v1.2.1 | the one line under [Install on a Mac](#install-on-a-mac) |
+| **Mandarin Remote**, the Android app (Android 8.0 or newer) | v1.2.2 | [mandarin-android.apk](https://github.com/meltface-80/Mandarin/raw/main/dist/mandarin-android.apk) |
+| **Mandarin server** with Docker (Linux, a Raspberry Pi 4/5, a NAS) | v1.2.2 | `docker pull ghcr.io/meltface-80/musicd-server:latest`, then [Install (Docker)](#install-docker) |
+| **Mandarin server** on a Mac (macOS 14 or newer) | v1.2.2 | the one line under [Install on a Mac](#install-on-a-mac) |
 | **Mandarin Bridge** for Android (a FiiO R7, say) | v0.3.1 | [mandarin-bridge.apk](https://github.com/meltface-80/Mandarin/releases/download/mandarin-bridge-v0.3.1/mandarin-bridge.apk) |
 | **Mandarin Bridge** for Raspberry Pi (3, 4, 5, Zero 2 W) | v0.3.1 | [mandarin-bridge-pi-arm64.img.xz](https://github.com/meltface-80/Mandarin/releases/download/mandarin-bridge-v0.3.1/mandarin-bridge-pi-arm64.img.xz) |
 | **Mandarin Bridge** for Linux (64-bit Debian, Ubuntu, Raspberry Pi OS) | v0.3.1 | `curl -fsSL https://github.com/meltface-80/Mandarin/releases/download/mandarin-bridge-v0.3.1/install.sh \| sudo sh`, or by hand: [x64](https://github.com/meltface-80/Mandarin/releases/download/mandarin-bridge-v0.3.1/mandarin-bridge-linux-x64.tar.gz) · [arm64](https://github.com/meltface-80/Mandarin/releases/download/mandarin-bridge-v0.3.1/mandarin-bridge-linux-arm64.tar.gz) |
-| The server program on its own, what Settings → Updates fetches | v1.2.1 | [linux-x64](https://github.com/meltface-80/Mandarin/releases/latest/download/mandarin-server-linux-x64.gz) · [linux-arm64](https://github.com/meltface-80/Mandarin/releases/latest/download/mandarin-server-linux-arm64.gz) · [osx-arm64](https://github.com/meltface-80/Mandarin/releases/latest/download/mandarin-server-osx-arm64.gz) · [osx-x64](https://github.com/meltface-80/Mandarin/releases/latest/download/mandarin-server-osx-x64.gz) · [sums](https://github.com/meltface-80/Mandarin/releases/latest/download/mandarin-server.sha256) |
+| The server program on its own, what Settings → Updates fetches | v1.2.2 | [linux-x64](https://github.com/meltface-80/Mandarin/releases/latest/download/mandarin-server-linux-x64.gz) · [linux-arm64](https://github.com/meltface-80/Mandarin/releases/latest/download/mandarin-server-linux-arm64.gz) · [osx-arm64](https://github.com/meltface-80/Mandarin/releases/latest/download/mandarin-server-osx-arm64.gz) · [osx-x64](https://github.com/meltface-80/Mandarin/releases/latest/download/mandarin-server-osx-x64.gz) · [sums](https://github.com/meltface-80/Mandarin/releases/latest/download/mandarin-server.sha256) |
 | **How Mandarin finds and names your music**, a guide in plain words | | [PDF](docs/Mandarin-music-scanning-guide.pdf) |
 
 On an iPhone or iPad there is nothing to download: see [iPhone and iPad](#iphone-and-ipad).
@@ -74,7 +74,7 @@ Open **☰ → Home**. Tap a row's title for all of it. To reorder rows or hide 
 
 ⸻
 
-👆 **Phones and tablets** — *new in v1.2.1*
+👆 **Phones and tablets**
 
 On a touchscreen: a bar at the foot on every screen, Now playing too (Menu, Home, Library, Artists, Shelf, Search), and the mini player docked on it on a tablet.
 
@@ -182,25 +182,25 @@ Open any album. For the Last.fm rows, get a free key at last.fm/api/account/crea
 
 ⸻
 
-🎤 **Artists**
+🎤 **Artists** — *new in v1.2.2*
 
-Every act in your library as a round picture with their name and album count, in the album wall's columns, sorted A to Z, by most albums or at random.
+Every act as a round picture with their name and album count, sorted A to Z, by most albums or at random. Two acts of one name are two artists.
 
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 
-On a phone or tablet, tap **Artists** in the row at the foot of the screen. **Sort** is at the top right; **Search** in the row finds an artist by part of the name. Tap one for their page.
+On a phone or tablet, tap **Artists** in the row at the foot of the screen. **Sort** is at the top right; **Search** in the row finds an artist by part of the name. Tap one for their page. Two acts of the same name (Airbag from Norway, Airbag from Argentina) are told apart by the MusicBrainz artist ID in their files' tags (as Picard writes it), else by Mandarin's own MusicBrainz matches (**Settings → Library Scanner**), each with its own page, picture and a word to tell them apart.
 
 </details>
 
 ⸻
 
-🧑‍🎤 **Artist pages**
+🧑‍🎤 **Artist pages** — *new in v1.2.2*
 
 Who they are, then their discography, the albums they appear on, similar artists and similar albums. Members fold under a heading. One artist however a sleeve credits them.
 
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 
-Tap an artist's name on an album's page, on the Artists wall or in Search. Facts come from MusicBrainz, Wikidata and Wikipedia, pictures from FanArt.tv (with a key), Wikidata or Deezer, similar artists and albums from Last.fm (with a key) or Deezer. Tap **Members** to unfold a band's line-up. A member's page shows their bands' albums from their years in them; a tap on a member, a band or a similar artist opens theirs. Tap a genre for its albums.
+Tap an artist's name on an album's page, on the Artists wall or in Search. Who they are is the act your albums are by: its MusicBrainz ID from your files or matches, else the act MusicBrainz lists for your album titles, never just the first of the name. Facts come from MusicBrainz, Wikidata and Wikipedia, pictures from FanArt.tv (with a key), Wikidata or Deezer, similar artists and albums from Last.fm (with a key) or Deezer. Tap **Members** to unfold a band's line-up. A member's page shows their bands' albums from their years in them; a tap on a member, a band or a similar artist opens theirs. Tap a genre for its albums.
 
 </details>
 
@@ -362,7 +362,7 @@ Sonos rooms are found on the network by themselves (`SONOS_HOSTS` if not). Pick 
 
 ⸻
 
-📡 **UPnP/DLNA renderers** — *new in v1.2.1*
+📡 **UPnP/DLNA renderers**
 
 WiiM, Chord Poly, streamers, AV receivers and TVs on your network, played like a Sonos room, gapless; one with MPD beside it can be handed the whole queue.
 
@@ -374,7 +374,7 @@ A renderer found on the network is off until you switch it on in **Settings → 
 
 ⸻
 
-🎶 **Squeezelite players** — *new in v1.2.1*
+🎶 **Squeezelite players**
 
 Squeezelite players and Squeezebox-compatible hardware play from Mandarin over SlimProto, one track on into the next from their own buffer, with Output's upsampling and seeking.
 
@@ -542,13 +542,13 @@ Playlists you make, and Dynamic Playlists that follow a saved Library view. A pl
 
 ⸻
 
-🖼️ **Share card**
+🖼️ **Share card** — *new in v1.2.2*
 
-The album as a picture, the duck in its corner, links to hear and read about it, and three acts near what you play, two of them new to you.
+The album as a picture: its cover, release, title and artist, its review with whose words they are, Pitchfork's score where there is one, and the duck in its corner.
 
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 
-Tap the share button on an album's page. Choose the services in **Settings → Setup → Share Card**. In the Android app, **Copy image** puts the card on the clipboard, to paste into a forum or a message, and **Download** saves it to Pictures/Mandarin.
+Tap the share button on an album's page or Now playing; there is nothing to set up. In the Android app, **Copy image** puts the card on the clipboard, to paste into a forum or a message, and **Download** saves it to Pictures/Mandarin; in a browser, **Share…** or **Download**.
 
 </details>
 
@@ -602,7 +602,7 @@ Plug the DAC in. It shows on **This phone**'s page in **Settings → Audio Devic
 
 ⸻
 
-🌉 **Mandarin Bridge** — *new in v1.2.1*
+🌉 **Mandarin Bridge**
 
 A USB DAC on an Android device, a Linux computer or a Raspberry Pi, as a room Mandarin plays to: over SlimProto, a continuous stream of PCM.
 
@@ -614,7 +614,7 @@ Install it from [Downloads](#downloads): the Android app, the Linux install line
 
 ⸻
 
-📈 **Upsampling and output** — *new in v1.2.1*
+📈 **Upsampling and output**
 
 For each streamer or DAC: Bit-perfect or upsampled recipes, ×2, ×4 or Max with Standard, Gaussian or long filters in either phase, shaped dither, and PCM made DSD.
 
@@ -626,13 +626,13 @@ Open **Settings → Audio Devices**, tap a streamer or DAC, and choose a recipe 
 
 ⸻
 
-🛤️ **Signal path**
+🛤️ **Signal path** — *new in v1.2.2*
 
-Under the album on Now playing: what goes out and how it was made. A tap shows each step from the file to what the DAC is fed.
+Under the album on Now playing, one short line of what goes out (Gaussian steep ×16 · 7th-order · DSD256). A tap shows each step to the DAC.
 
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 
-Play to a room and look under the album on **Now playing**; tap it for every step. The ✓ shows only when the device itself says the samples reach the DAC untouched. Details under [Signal path](#signal-path).
+Play to a room and look under the album on **Now playing**; tap it for every step: Source, Bit depth conversion, Volume levelling where it is on, Output, and the device's own word. The ✓ shows only when the device itself says the samples reach the DAC untouched. Details under [Signal path](#signal-path).
 
 </details>
 
@@ -772,13 +772,13 @@ Sign in with your Tidal subscription on tidal.com: your favourite albums become 
 
 ⸻
 
-📝 **Logging**
+📝 **Logging** — *new in v1.2.2*
 
-Off by default. Switched on, the Android app, the server and the Mandarin Bridges log what happened, without personal data, for you to send to the developer.
+On by default. The Android app, the server and the Mandarin Bridges log what happened, without personal data, for you to send to the developer.
 
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 
-In the Android app, **Settings → Setup → Logging**. Use the app as you normally would for 24 hours, then tap **Save log** (it goes to Downloads/Mandarin, the server's and the Mandarin Bridges' logs with it) and send the file. Look through it first. Switching logging off deletes the log, the server's part too. Details under [Logs](#logs).
+In the Android app, **Settings → Setup → Logging**. Use the app as you normally would for 24 hours, then tap **Save log** (it goes to Downloads/Mandarin, the server's and the Mandarin Bridges' logs with it) and send the file. Look through it first. Switching logging off deletes the log, the server's part too, and it stays off. Details under [Logs](#logs).
 
 </details>
 
@@ -946,7 +946,7 @@ release from GitHub, checks it against the checksum published with it, and puts 
 * An Android Bridge from before v0.2.1, or a Linux or Raspberry Pi Bridge from before v0.3.1, needs one last update by hand, from [Downloads](#downloads)
   (a Linux or Pi Bridge before v0.3.1 asked GitHub in a way it refuses, and its update failed).
 * A test build of Mandarin's follows the Bridges' test builds (the **test-bridge** pre-release),
-  and a numbered one follows their numbered releases (Mandarin Bridge v0.3.1 with Mandarin v1.2.1).
+  and a numbered one follows their numbered releases (Mandarin Bridge v0.3.1 with Mandarin v1.2.2).
 
 **Manually** — also the way to pick up changes to the image itself (ffmpeg, the audio engine gone from it in
 v1.2.1, and the move to v0.9.0 from an image with Node.js in it):
@@ -1031,7 +1031,7 @@ Everything is optional; pass any of it with `-e NAME=value`.
 | `LASTFM_KEY` | — | A Last.fm API key for similar artists and albums on album and artist pages, until one is saved in *Settings → Setup → API Keys* (which then wins). |
 | `DEBUG` | — | Log every API call. |
 
-Settings for the FanArt.tv key (artist photos, on artist pages and the wall display), waveform, share-card services, Smart Picks,
+Settings for the FanArt.tv key (artist photos, on artist pages and the wall display), waveform, Smart Picks,
 the wall display and the Home rows are in the app's Settings and are saved in the data volume.
 
 ## Your account
@@ -1187,9 +1187,12 @@ DAC. For a bit-perfect result, Output is **Bit-perfect** (Mode Original) and the
 
 ## Signal path
 
-Under the album on Now playing: what goes out, and how it was made; a tap shows every step from the file to the
-room — **File** (the track as stored), **Output** (what Mandarin sends, and to which room) and **The DAC is fed** (what
-the device itself reports feeding its DAC). A 16-bit track to a 32-bit DAC reads, as the Bridge on a FiiO R7 says it,
+Under the album on Now playing, one short line of what goes out (*Gaussian steep ×16 · 7th-order · DSD256*,
+*Long ×2 · 24/88.2 kHz*); a tap shows every step from the file to the room, in as few as it can be — **Source**
+(*FLAC 16-bit 44.1 kHz 2ch*), **Bit depth conversion** where Mandarin works the samples (*16-bit to 64-bit float*),
+**Volume levelling** where it is on (*−7.3 dB · ReplayGain*), **Output** (the filter, the modulator and what goes out,
+in one line, with the dither where Mandarin makes it) and **The DAC is fed** (what the device itself reports feeding
+its DAC). A 16-bit track to a 32-bit DAC reads, as the Bridge on a FiiO R7 says it,
 *"PCM 44.1 kHz, the 16-bit samples padded to 32 bits for the DAC, fixed volume: the samples untouched — as Mandarin
 Bridge reports it"*; where the device doesn't say the samples go untouched, *"sent as 32-bit"*. The ✓ is there only
 when the device says the samples reach the DAC untouched in the format sent: Mandarin Bridge and Mandarin's audio
@@ -1399,8 +1402,10 @@ through a subnet router arrive from a home address, and the server can't tell th
   pace, the server reads who played, sang, wrote and made each album from its tags and its
   MusicBrainz release, and who each act is (members, years, place, links) from MusicBrainz and
   Wikidata, with a picture from FanArt.tv, Wikidata or Deezer. A page asked for before it gets
-  there is looked up there and then. Names found to share a MusicBrainz id are one artist, written as
-  MusicBrainz names them. Kept in the database; your files are not changed.
+  there is looked up there and then, as the act its albums are by: the MusicBrainz id in their tags or
+  matches, else the act MusicBrainz lists for their titles. Names found to share a MusicBrainz id are one
+  artist, written as MusicBrainz names them; two acts of one name with their own ids are two (each album
+  filed under its act in the `artists` table). Kept in the database; your files are not changed.
 * **Renderers.** `server/Mandarin.Server/Playback/` finds UPnP/DLNA renderers by SSDP, reads each one's
   description and what it advertises it can play (plus a WiiM's own API), keeps a register
   of every device with your names and settings, and plays to them through AVTransport —
@@ -1429,9 +1434,10 @@ through a subnet router arrive from a home address, and the server can't tell th
 
 ## Logs
 
-Logging is in the Android app and the server, and is **off by default**: while it is off, nothing is
-collected. Switch it on in the app, **Settings → Setup → Logging**, when something isn't right. Use the
-app as you normally would for **24 hours**, then tap **Save log**: the app's log, the server's and each
+Logging is in the Android app and the server, and is **on by default** (since v1.2.2), so a fault seen once is
+already in the log. Switch it off in the app, **Settings → Setup → Logging**; off, nothing is collected, and it
+stays off across restarts and updates. When something isn't right, use the app as you normally would, then tap
+**Save log**: the app's log, the server's and each
 Mandarin Bridge's are saved together to **Downloads/Mandarin** on the phone, for you to send to the developer. **Clear log**
 empties it; switching logging off deletes it, the server's part too.
 
