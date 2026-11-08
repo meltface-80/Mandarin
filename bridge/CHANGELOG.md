@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.3.4
+
+- Fixed - the Linux Bridge (and the Pi's) took an update the checksum beside it agreed with, which whoever could replace the release could replace with it (the security audit's ninth finding). Each Linux build is now signed with Mandarin's release key, its signature in the sidecar, and once a Bridge carries the key's public half it installs only a build signed with it, saying so where one isn't (item 371)
+- Improved - Mandarin Bridge is 0.3.4
+
 ## v0.3.3
 
 - Fixed - an update that couldn't make a secure connection to GitHub said only "GitHub couldn't be reached (SecureConnectionError)". It now says why: GitHub's certificate not valid on the computer's date, its clock wrong (a Raspberry Pi has no clock of its own, and one that hasn't set its time sees GitHub's certificate as not valid yet), with where to set it to sync; the computer's certificates missing or out of date, with the line that installs them again; or the answer not GitHub's (item 359)

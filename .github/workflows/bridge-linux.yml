@@ -39,6 +39,9 @@ jobs:
         with:
           dotnet-version: "10.0.x"
       - name: Build and package
+        env:
+          # The tarball signed with Mandarin's release key (item 371, .github/sign.sh), its signature in the sidecar.
+          RELEASE_SIGNING_KEY: ${{ secrets.RELEASE_SIGNING_KEY }}
         run: |
           set -e
           RID=linux-${{ matrix.arch }} ./engine/build.sh

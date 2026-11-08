@@ -127,6 +127,7 @@ internal sealed partial class Update(string api, string data, Action<string> log
             string got;
             await using (var f = File.OpenRead(tgz)) got = Convert.ToHexStringLower(await SHA256.HashDataAsync(f));
             if (got != sha) throw new InvalidOperationException("the download isn't the build the release says (its checksum differs)");
+            Signed(side, tgz);
             Say("installing", "Installing the update");
             Run("tar", "-xzf", tgz, "-C", tmp);
             var unpacked = Path.Combine(tmp, "mandarin-bridge");
@@ -150,6 +151,18 @@ internal sealed partial class Update(string api, string data, Action<string> log
             Say("failed", "The update couldn't be installed: " + Why(e));
             log("update failed: " + Why(e));
         }
+    }
+
+    // The download signed with Mandarin's release key, where one is built in (item 371): the sidecar's "sig", base64 of
+    // the key's signature of the tarball. A checksum alone can be replaced with the tarball by whoever can write to the
+    // release; a signature can't be made without the key, which isn't there.
+    private static void Signed(JsonObject? side, string tgz)
+    {
+        if (ReleaseKey.Current is not { } key) return;
+        var sig = (string?)side?["sig"] ?? throw new InvalidOperationException("the release's build isn't signed");
+        byte[] der;
+        try { der = Convert.FromBase64String(sig); } catch (FormatException) { throw new InvalidOperationException("the release's signature can't be read"); }
+        if (!ReleaseKey.Verify(key, File.ReadAllBytes(tgz), der)) throw new InvalidOperationException("the download isn't signed with Mandarin's release key");
     }
 
     // [file] run with [args], its output; it throws where it fails.

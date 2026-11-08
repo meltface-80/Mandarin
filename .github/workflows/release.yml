@@ -10,6 +10,7 @@
 # for (mandarin-server-linux-x64.gz, mandarin-server-linux-arm64.gz, and their
 # SHA-256 sums in mandarin-server.sha256): an install updated from Settings
 # fetches the one for its machine (server/Mandarin.Server/Admin/Updater.cs).
+# Each signed with Mandarin's release key where there is one (item 371, .github/sign.sh): <file>.sig beside it.
 # A Mac's too (mandarin-server-osx-arm64.gz, -osx-x64.gz: v0.8.29 to v1.0.2,
 # and again from item 153), added by the mac job once the Mac's tests pass.
 # From v0.8.31 nothing is released until CI has passed on the same commit,
@@ -155,6 +156,9 @@ jobs:
       # arm64 cross-built here as the image does, each checked to say its version.
       - name: Build the C# server for in-app updates
         if: steps.v.outputs.csharp == 'false'
+        env:
+          # Each signed with Mandarin's release key (item 371): <file>.sig beside it, which the updater checks.
+          RELEASE_SIGNING_KEY: ${{ secrets.RELEASE_SIGNING_KEY }}
         run: |
           set -e
           v=${{ steps.v.outputs.version }}
@@ -165,6 +169,7 @@ jobs:
           done
           test "$(server/bin/linux-x64/mandarin-server --version)" = "$v"
           (cd out/csharp && sha256sum mandarin-server-*.gz > mandarin-server.sha256 && cat mandarin-server.sha256)
+          .github/sign.sh out/csharp/mandarin-server-*.gz
           ls -la out/csharp
 
       - name: Build the update bundle and notes
@@ -229,6 +234,7 @@ jobs:
       - name: Build and add the Mac's C# server
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_SIGNING_KEY: ${{ secrets.RELEASE_SIGNING_KEY }}
         run: |
           set -e
           v=$(node -p "require('./package.json').version")
@@ -248,4 +254,5 @@ jobs:
           gh release download "v$v" -p mandarin-server.sha256 -D out/sums
           grep -v ' mandarin-server-osx-' out/sums/mandarin-server.sha256 > out/mac/mandarin-server.sha256 || true
           (cd out/mac && shasum -a 256 mandarin-server-osx-*.gz >> mandarin-server.sha256 && cat mandarin-server.sha256)
+          .github/sign.sh out/mac/mandarin-server-osx-*.gz   # each its own signature (item 371): Linux's left as they are
           gh release upload "v$v" out/mac/* --clobber
