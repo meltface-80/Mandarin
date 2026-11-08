@@ -377,6 +377,8 @@ class DacService : Service() {
 
     private fun route(r: HttpServer.Request): HttpServer.Response {
         val path = r.path
+        // Only JSON, and never from another site, may change it (item 352: Guard.kt).
+        Guard.refused(r)?.let { return HttpServer.Response.text(403, JSONObject().put("error", it).toString(), "application/json") }
         when {
             path == "/dac.json" && r.method == "GET" -> return HttpServer.Response.text(200, dacJson().toString(2), "application/json")
             path == "/capture" || path.startsWith("/capture.") || path.startsWith("/capture/") -> return captureRoute(r, path)

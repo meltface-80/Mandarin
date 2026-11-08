@@ -87,9 +87,9 @@ test("a Mandarin Bridge offered its update on Settings → Updates, and updated 
     if (away && req.headers["user-agent"].startsWith("mandarin-bridge")) { res.writeHead(503); return res.end(); }
     const json = o => { res.writeHead(200, { "Content-Type": "application/json" }); res.end(JSON.stringify(o)); };
     const at = n => `http://127.0.0.1:${gh.address().port}/download/${n}`;
-    if (req.url.startsWith("/repos/meltface-80/Mandarin/releases?")) return json([{ tag_name: "v1.1.14" }, { tag_name: "mandarin-bridge-v0.3.0" }]);
-    if (req.url === "/repos/meltface-80/Mandarin/releases/tags/mandarin-bridge-v0.3.0") {
-      return json({ tag_name: "mandarin-bridge-v0.3.0", assets: [`mandarin-bridge-${ARCH}.tar.gz`, `mandarin-bridge-${ARCH}.tar.gz.json`].map(n => ({ name: n, browser_download_url: at(n) })) });
+    if (req.url.startsWith("/repos/meltface-80/Mandarin/releases?")) return json([{ tag_name: "v1.1.14" }, { tag_name: "mandarin-bridge-v9.0.0" }]);
+    if (req.url === "/repos/meltface-80/Mandarin/releases/tags/mandarin-bridge-v9.0.0") {
+      return json({ tag_name: "mandarin-bridge-v9.0.0", assets: [`mandarin-bridge-${ARCH}.tar.gz`, `mandarin-bridge-${ARCH}.tar.gz.json`].map(n => ({ name: n, browser_download_url: at(n) })) });
     }
     if (req.url === `/download/mandarin-bridge-${ARCH}.tar.gz.json`) return json({ commit: published.commit, version: published.version, sha256: sha });
     if (req.url === `/download/mandarin-bridge-${ARCH}.tar.gz`) { res.writeHead(200); return res.end(tar); }
@@ -139,7 +139,7 @@ test("a Mandarin Bridge offered its update on Settings → Updates, and updated 
   published = { commit, version: dac.version };
   const row = (await until(async () => (await api("update/bridges")).bridges.find(b => b.id === ID), 20000));
   const list = await api("update/bridges");
-  assert.equal(list.tag, "mandarin-bridge-v0.3.0", "a numbered Mandarin follows the numbered Bridge releases");
+  assert.equal(list.tag, "mandarin-bridge-v9.0.0", "a numbered Mandarin follows the numbered Bridge releases");
   assert.deepEqual([row.platform, row.commit, row.reachable, row.updates, row.available, row.why], ["linux", commit, true, true, false, null], JSON.stringify(row));
   assert.deepEqual(row.latest, published);
 
@@ -242,8 +242,14 @@ test("a Mandarin Bridge offered its update on Settings → Updates, and updated 
   await until(() => /stopped as it started \(exit 3\); let go/.test(said), 5000);
   assert.ok(!fs.existsSync(path.join(data, "app")), "the update that failed is gone");
 
-  // Refused: a tag that isn't a Bridge release's (never an address).
-  const bad = await fetch(BR + "/update", { method: "POST", body: JSON.stringify({ tag: "http://example.com/evil.tar.gz" }) });
+  // Refused: a tag that isn't a Bridge release's (never an address); a release older than this one (item 352); and
+  // anything but JSON, as a web page's plain form would send it.
+  const upd = (tag, type = "application/json") => fetch(BR + "/update", { method: "POST", headers: { "Content-Type": type }, body: JSON.stringify({ tag }) });
+  const bad = await upd("http://example.com/evil.tar.gz");
   assert.equal(bad.status, 409);
   assert.match((await bad.json()).error, /not a release of Mandarin Bridge's/);
+  const older = await upd("mandarin-bridge-v0.0.1");
+  assert.equal(older.status, 409);
+  assert.match((await older.json()).error, /^mandarin-bridge-v0\.0\.1 is older than this Bridge \(\d+\.\d+\.\d+\)$/);
+  assert.equal((await upd("test-bridge", "text/plain")).status, 403, "a plain form's POST refused");
 });

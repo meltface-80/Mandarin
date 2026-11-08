@@ -131,8 +131,17 @@ test("Mandarin Bridge for Linux: found, its DAC read whole, played to bit-perfec
     await until(async () => (await api("zone-state?zone=" + ID)).zone.now_playing.line1 === "Hi 2", 10000);
     assert.ok((await (await fetch(BR + "/api/state")).json()).joined >= 1, "the engine went on to Hi 2 by itself");
 
-    // A name set on its page: the name Mandarin knows it by.
-    const set = await (await fetch(BR + "/api/settings", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: "Study DAC" }) })).json();
+    // Its port has no sign-in, so nothing but JSON from its own page or from Mandarin changes it (item 352): a web page
+    // elsewhere could send a plain form's POST without the browser asking first, or name itself as another site.
+    const post = (headers, name) => fetch(BR + "/api/settings", { method: "POST", headers, body: JSON.stringify({ name }) });
+    const plain = await post({ "Content-Type": "text/plain" }, "Owned");
+    assert.equal(plain.status, 403, "a plain form's POST refused");
+    assert.match((await plain.json()).error, /only JSON/);
+    const foreign = await post({ "Content-Type": "application/json", Origin: "http://evil.example" }, "Owned");
+    assert.equal(foreign.status, 403, "JSON from another site refused");
+    assert.notEqual((await (await fetch(BR + "/api/state")).json()).name, "Owned", "neither changed its name");
+    // A name set on its page (its own Origin): the name Mandarin knows it by.
+    const set = await (await post({ "Content-Type": "application/json", Origin: BR }, "Study DAC")).json();
     assert.equal(set.name, "Study DAC");
     assert.equal((await fetch(BR + "/description.xml")).status, 404, "no UPnP description any more");
     await until(async () => (await api("audio-devices")).devices.find(x => x.id === ID && x.network_name === "Study DAC"), 20000);
