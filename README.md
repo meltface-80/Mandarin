@@ -1357,6 +1357,12 @@ Leave the house and the Android app keeps working over mobile data: the phone is
 the only thing it plays to. No ports are opened on your router — the phone reaches the server
 over [Tailscale](https://tailscale.com), a private network between your own devices.
 
+**Use Tailscale, not a port forward.** Mandarin speaks plain http, as a server at home has no
+certificate: safe at home, and over Tailscale, whose own link is encrypted. A port forwarded on
+your router is neither — what the app sends, its sign-in included, would cross the internet
+unencrypted. The server's log says so whenever a plain-http request arrives from outside your home
+network.
+
 **Away, only the phone plays.** Whatever reaches the server from outside your home network —
 Tailscale included — is offered one room: the phone asking, as *This phone*. The Sonos rooms
 aren't listed, and nothing away can play to them, pause, group or mute them, or reach another
