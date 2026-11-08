@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.3.3
+
+- Fixed - an update that couldn't make a secure connection to GitHub said only "GitHub couldn't be reached (SecureConnectionError)". It now says why: GitHub's certificate not valid on the computer's date, its clock wrong (a Raspberry Pi has no clock of its own, and one that hasn't set its time sees GitHub's certificate as not valid yet), with where to set it to sync; the computer's certificates missing or out of date, with the line that installs them again; or the answer not GitHub's (item 359)
+- Improved - Mandarin Bridge is 0.3.3
+
 ## v0.3.2
 
 - Fixed - the Bridge's port took changes from anything: it has no sign-in (a Pi just flashed has no Mandarin to sign in to), and it read any request's body as JSON, so a web page open in a browser on the home network could, with a plain form's POST and without the browser asking first, rename it, change its DAC or DSD mode, move a Raspberry Pi to another Wi-Fi network, start a recording of what the DAC is fed, or have a Linux or Pi Bridge install an older release. Now a change is taken only as JSON (application/json), which a page on another site can't send without the browser asking first, and the Bridge never says yes, and never from another site where the browser names where it comes from. Mandarin and the Bridge's own page send both already (item 352)
