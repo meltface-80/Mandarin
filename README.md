@@ -1027,6 +1027,7 @@ Everything is optional; pass any of it with `-e NAME=value`.
 | `TRANSCODE_CONCURRENCY` | `2` | How many tracks are converted at once. |
 | `PLAYBACK_CORES` | auto | Processor cores kept for playback alone: one, or two while DSP is in use. `1` or `2` fixes the number; `0` shares every core. *Settings → Library Scanner → Processor* shows the split. |
 | `MUSIC_DIR` | `/music` | Where the library is mounted inside the container. |
+| `TRUSTED_PROXIES` | — | Reverse proxies whose word on who asked is believed (addresses or ranges, comma-separated): `127.0.0.1` for an nginx, Caddy or `tailscale serve` on the same machine. The built-in Tailscale needs nothing here. |
 | `PUID` / `PGID` | `1000` | The user and group the server runs as inside the container: give your music's owner if it is readable by that user only. `PUID=0` runs it as root. |
 | `TS_AUTHKEY` | — | Sign the server's built-in Tailscale in with an auth key instead of from *Settings → Setup → Away from home*. |
 | `TS_HOSTNAME` | `musicd` | The server's name on your tailnet. |
@@ -1071,9 +1072,12 @@ at home — its address, a bare name, or one ending .local, .lan, .home.arpa or 
 web site can't reach it through a name of its own (v1.1.9). Anything but a read must come from
 Mandarin's own page or the Android app: a page of another site open in a browser at home can't
 restart the server, change a setting or restore a backup. A device let in without a password works
-only from home and your tailnet, never from the internet. Behind a reverse proxy on the same
-machine, the proxy must say who asked (`X-Forwarded-For`, `X-Real-IP` or `Forwarded`); one that
-names nobody is taken as the internet, never home.
+only from home and your tailnet, never from the internet. Behind a reverse proxy (an nginx, Caddy or
+`tailscale serve` on the same machine, or one elsewhere on your network), name it in `TRUSTED_PROXIES`
+(`-e TRUSTED_PROXIES=127.0.0.1` for one on the same machine) and have it say who asked
+(`X-Forwarded-For`, `X-Real-IP` or `Forwarded`). Mandarin believes only the proxies named and its own
+built-in Tailscale: a request that names a caller through anything else, or a named proxy that names
+nobody, is taken as the internet, never home, and the log says so.
 
 The password never crosses the network, even on plain http: devices prove they know it with
 SRP (the scheme Apple uses for HomeKit pairing), and the server proves it knows the account
