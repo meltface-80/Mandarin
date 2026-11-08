@@ -110,6 +110,9 @@ internal fun MoreMenu(a: Album, later: Boolean, onLater: () -> Unit, onPlay: (St
                 onClick = { open = false; onLater() })
             DropdownMenuItem(text = { Text(Contract.label("album.playlist"), fontSize = 15.sp, lineHeight = 21.sp) }, contentPadding = PaddingValues(10.dp), modifier = Modifier.parity("album.playlist", Contract.label("album.playlist")),
                 onClick = { open = false; PlaylistAddAsk.ask(PlaylistAdd.albums(listOf(a.album))) })
+            // Share card (item 373): here, with no button of its own at the corner.
+            DropdownMenuItem(text = { Text(Contract.label("album.share"), fontSize = 15.sp, lineHeight = 21.sp) }, contentPadding = PaddingValues(10.dp), modifier = Modifier.parity("album.share", Contract.label("album.share")),
+                onClick = { open = false; onPage("share", null) })
             if (onMain != null) DropdownMenuItem(text = { Text(Contract.label("album.version-main"), fontSize = 15.sp, lineHeight = 21.sp, color = MaterialTheme.colorScheme.primary) }, contentPadding = PaddingValues(10.dp),
                 modifier = Modifier.parity("album.version-main", Contract.label("album.version-main")), onClick = { open = false; onMain() })
             if (a.album.source == null || a.album.source == "local") DropdownMenuItem(text = { Text(Contract.label("album.edit"), fontSize = 15.sp, lineHeight = 21.sp) }, contentPadding = PaddingValues(10.dp),

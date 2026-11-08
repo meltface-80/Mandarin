@@ -283,7 +283,7 @@ internal fun AlbumScreen(offset: Long, zoneId: String, lit: String, client: () -
                         val bridge = (context as? Activity)?.let { DownloadsBridge(it) }
                         MoreMenu(a, later, onLater = { later = !later; val on = later; mark { it.listenLater(shown, on) } },
                             onMain = a.versions.firstOrNull { it.current }?.takeIf { !it.main && phone == null }?.let { v -> { makeMain(v.album.offset) } },
-                            onPlay = { kind, said -> if (phone != null) playPhone(-1, kind) else play(said) { it.playAlbum(shown, a.album.title, a.album.subtitle, zone, kind) } }, onPage = { what, arg -> if (what == "album-edit") editing = true else onPage(what, arg) },
+                            onPlay = { kind, said -> if (phone != null) playPhone(-1, kind) else play(said) { it.playAlbum(shown, a.album.title, a.album.subtitle, zone, kind) } }, onPage = { what, arg -> if (what == "album-edit") editing = true else if (what == "share") sharing = true else onPage(what, arg) },
                             download = dlLabel?.takeIf { bridge != null },
                             onDownload = {
                                 val b = bridge ?: return@MoreMenu
@@ -345,7 +345,7 @@ internal fun AlbumScreen(offset: Long, zoneId: String, lit: String, client: () -
                         if (booklets.isNotEmpty()) BookletButton(booklets, disc, Modifier.align(Alignment.BottomEnd)) { onBooklet(offset, it) }
                     }) { discs -> onStepTo(discs.items[discs.index].offset, zone, discs) } }
                     actionItem(a)
-                    phoneTabs(list, tab, a.versions.size) { tab = it }
+                    phoneTabs(tab, a.versions.size) { tab = it }
                     when (tab) {
                         "credits" -> { albumCredits(credits, client, onArtist = { onPage("artist", it) }, head = false); if (credits?.credits.isNullOrEmpty()) item { Text(AlbumVersion.NO_CREDITS, Modifier.parity("album.tab-empty").padding(vertical = 24.dp), color = dim) } }
                         "about" -> { aboutHead(a, extras, onPage); albumAbout(extras?.review, more, client, onAlbum = { id -> onAlbum(id, zone) }, onArtist = { onPage("artist", it) }, onUrl = ::openUrl) }
@@ -355,12 +355,12 @@ internal fun AlbumScreen(offset: Long, zoneId: String, lit: String, client: () -
                     }
                 }
             }
-            // The corner discs, over the glow: Back, and Share.
+            // Back at the corner, over the glow (item 373: Share is in the ⋯, and no previous and next of its own).
             FilledIconButton(onClick = onBack, colors = disc, modifier = Modifier.parity("album.back", Contract.label("album.back")).padding(start = 12.dp, top = 12.dp).size(40.dp).align(Alignment.TopStart)) {
                 Icon(painterResource(R.drawable.np_back), contentDescription = null, modifier = Modifier.size(22.dp))
             }
             Row(Modifier.align(Alignment.TopEnd).padding(end = 12.dp, top = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                // Selecting tracks, their menu takes previous and next's place, as on the page.
+                // Selecting tracks, their menu at the corner, as on the page.
                 val p = picks
                 val a = album
                 if (p != null && a != null) SelectMenu(p, onAct = { act ->
@@ -380,11 +380,6 @@ internal fun AlbumScreen(offset: Long, zoneId: String, lit: String, client: () -
                         }
                     }
                 })
-                else list?.let { NavDiscs(it, disc) { at -> onStepTo(it.items[at].offset, zone, it.copy(index = at)) } }
-                FilledIconButton(onClick = { sharing = true }, enabled = album != null, colors = disc,
-                    modifier = Modifier.parity("album.share", Contract.label("album.share")).size(40.dp)) {
-                    Icon(painterResource(R.drawable.np_share), contentDescription = null, modifier = Modifier.size(20.dp))
-                }
             }
             if (chrome) Column(Modifier.align(Alignment.BottomCenter)) {
                 MiniPlayer(zone, room, client, onOpen = { onNowPlaying(zone) }, onRoom = { id -> zone = id; onRoom(id) }, onPage = onPage)

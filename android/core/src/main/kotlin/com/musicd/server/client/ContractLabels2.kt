@@ -217,8 +217,6 @@ internal object ContractLabels2 {
         "playlist-share.done" to listOf("Done"),
         "album.back" to listOf("Back", "Close"),
         "album.share" to listOf("Share card"),
-        "album.previous" to listOf("Previous album", "Previous album: {album}"),
-        "album.next" to listOf("Next album", "Next album: {album}"),
         "album.booklet" to listOf("Booklet", "{…} booklets"),
         "album.booklet-pick" to listOf("{booklet}"),
         "album.artist" to listOf("{artist}"),

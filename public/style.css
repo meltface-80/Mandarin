@@ -5752,6 +5752,9 @@ button.cap-chip:active { transform: scale(.96); }
 /* Another version shown (item 349): its tracks and facts fade across, nothing else moves. */
 .modal .track-list, .modal .modal-facts { transition: opacity .18s ease; }
 .modal.is-switching .track-list, .modal.is-switching .modal-facts { opacity: .35; }
+/* An album's page has no Share button nor previous and next of its own (item 373): Share card is in its ⋯; Now playing
+   keeps its Share. */
+.modal:not(.np-mode) #modal-share-btn, .modal:not(.np-mode) .modal-nav-btn { display: none; }
 /* The album's tabs (item 349, album-tabs.js): a phone's; from 720px up everything shows at once. */
 .album-tabs { display: none; }
 .tab-empty { display: none; padding: 24px 0; color: var(--text-dim); }
@@ -5767,12 +5770,12 @@ button.cap-chip:active { transform: scale(.96); }
   .modal:not(.np-mode) #modal-title { order: 2; flex-basis: 100%; margin: 10px 0 0; font-family: var(--font-display); font-weight: 400; font-size: 30px; line-height: 1.13; }
   .modal:not(.np-mode) .modal-subtitle { order: 3; flex-basis: 100%; margin-top: 6px; font-size: 17px; }
   .modal:not(.np-mode) .modal-head > :not(#modal-date, .modal-facts, #modal-title, .modal-subtitle) { order: 4; flex-basis: 100%; }
+  /* Centred, held at the top as the page scrolls, never a bar behind them (items 358, 373), clear of Back at the corner. */
   .modal:not(.np-mode) .album-tabs {
-    display: flex; gap: 22px; position: sticky; top: 0; z-index: 2; margin-top: 18px;
-    background: transparent; border-bottom: 1px solid var(--border); transition: background-color .15s;
+    display: flex; justify-content: center; gap: 18px; position: sticky; top: 0; z-index: 2; margin-top: 18px;
+    padding: 0 44px; background: transparent; border-bottom: 1px solid var(--border);
+    overflow-x: auto; scrollbar-width: none;
   }
-  /* Filled only while held at the top, over the tracks scrolling under it; in its place, no bar over the glow (item 358). */
-  .modal:not(.np-mode) .album-tabs.is-held { background: var(--bg); }
   /* The ⋯ menu opens over the tabs, never under them. */
   .modal:not(.np-mode) .modal-actions { position: relative; z-index: 3; }
   /* Under the tabs, which say them, no Tracks or Credits heading again (item 355). */
