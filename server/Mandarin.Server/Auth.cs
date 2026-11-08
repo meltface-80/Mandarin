@@ -31,7 +31,7 @@ internal static partial class Auth
     private const long ReauthMs = 5 * 60 * 1000;
     private const int MinIterations = 1000;
 
-    private static readonly HashSet<string> Open = ["/api/health", "/login", "/login.html", "/login.js", "/srp.js", "/manifest.json",
+    private static readonly HashSet<string> Open = ["/api/health", "/login", "/login.html", "/login.js", "/login-theme.js", "/srp.js", "/manifest.json",
         "/favicon.ico", "/apple-touch-icon.png", "/server-info"];
     private static bool IsOpen(string p) => Open.Contains(p) || p.StartsWith("/api/auth/", StringComparison.Ordinal) || p.StartsWith("/icons/", StringComparison.Ordinal);
     private static bool IsMedia(string p) => p.StartsWith("/stream/", StringComparison.Ordinal) || p.StartsWith("/api/image/", StringComparison.Ordinal);
