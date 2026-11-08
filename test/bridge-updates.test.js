@@ -77,6 +77,11 @@ test("a Mandarin Bridge offered its update on Settings → Updates, and updated 
 
   // GitHub, as Mandarin and the Bridge ask it: a numbered release of the Bridge's, its tarball and the tarball's sidecar.
   let tar = good, sha = crypto.createHash("sha256").update(good).digest("hex");
+  // The release key (item 371): the Bridge given its public half (UPDATE_KEY), the sidecar the signature of the tarball.
+  const releaseKey = crypto.generateKeyPairSync("ec", { namedCurve: "prime256v1" }), otherKey = crypto.generateKeyPairSync("ec", { namedCurve: "prime256v1" });
+  const signWith = (/** @type {crypto.KeyObject} */ k) => crypto.sign("sha256", good, k).toString("base64");
+  /** @type {string | undefined} */
+  let sig = signWith(releaseKey.privateKey);
   let published = { commit: "fffffff", version: "9.9.9" };   // the build the release says it holds
   const asks = [];
   let away = false;   // GitHub refusing every ask, as it does at its limit
@@ -91,7 +96,7 @@ test("a Mandarin Bridge offered its update on Settings → Updates, and updated 
     if (req.url === "/repos/meltface-80/Mandarin/releases/tags/mandarin-bridge-v9.0.0") {
       return json({ tag_name: "mandarin-bridge-v9.0.0", assets: [`mandarin-bridge-${ARCH}.tar.gz`, `mandarin-bridge-${ARCH}.tar.gz.json`].map(n => ({ name: n, browser_download_url: at(n) })) });
     }
-    if (req.url === `/download/mandarin-bridge-${ARCH}.tar.gz.json`) return json({ commit: published.commit, version: published.version, sha256: sha });
+    if (req.url === `/download/mandarin-bridge-${ARCH}.tar.gz.json`) return json({ commit: published.commit, version: published.version, sha256: sha, ...(sig ? { sig } : {}) });
     if (req.url === `/download/mandarin-bridge-${ARCH}.tar.gz`) { res.writeHead(200); return res.end(tar); }
     res.writeHead(404); res.end();
   });
@@ -104,7 +109,8 @@ test("a Mandarin Bridge offered its update on Settings → Updates, and updated 
   let said = "";
   const run = () => {
     const p = spawn(BRIDGE, ["--port", String(BRIDGE_PORT), "--data", data, "--asound", path.join(tmp, "asound"), "--device", "file:" + path.join(tmp, "dac.raw"),
-      "--address", "127.0.0.1", "--engine", ENGINE, "--ffmpeg", FFMPEG, "--update-api", API, "--server", "127.0.0.1:" + SLIM], { stdio: ["ignore", "ignore", "pipe"] });
+      "--address", "127.0.0.1", "--engine", ENGINE, "--ffmpeg", FFMPEG, "--update-api", API, "--server", "127.0.0.1:" + SLIM],
+      { stdio: ["ignore", "ignore", "pipe"], env: { ...process.env, UPDATE_KEY: releaseKey.publicKey.export({ type: "spki", format: "der" }).toString("base64") } });
     p.stderr.on("data", d => { said += d; });
     p.exited = new Promise(r => p.on("exit", code => r(code)));
     return p;
@@ -216,6 +222,16 @@ test("a Mandarin Bridge offered its update on Settings → Updates, and updated 
   assert.match(failed.says, /checksum differs/);
   assert.ok(!fs.existsSync(path.join(data, "app")), "nothing put in place");
   sha = crypto.createHash("sha256").update(good).digest("hex");
+
+  // Its checksum right, but not signed, or signed with a key that isn't the release key (item 371): refused likewise.
+  for (const [why, s2, says] of [["no signature", undefined, /isn't signed/], ["another key's", signWith(otherKey.privateKey), /isn't signed with Mandarin's release key/]]) {
+    sig = s2;
+    assert.equal((await api("update/bridges/apply", { id: ID })).status, 200, why);
+    const no = await until(async () => { const d = await (await fetch(BR + "/dac.json")).json(); return d.update.state === "failed" && d.update; });
+    assert.match(no.says, says, why);
+    assert.ok(!fs.existsSync(path.join(data, "app")), why + ": nothing put in place");
+  }
+  sig = signWith(releaseKey.privateKey);
 
   // Update: fetched, checked, unpacked; the Bridge stops, and started again runs the update.
   const r = await api("update/bridges/apply", { id: ID });

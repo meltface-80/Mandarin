@@ -451,17 +451,12 @@ internal sealed partial class Updater
         try
         {
             await Download(Js.Str(sums["browser_download_url"]), sumsFile);
-            string? sum = null;
-            foreach (var l in File.ReadAllText(sumsFile).Split('\n'))
-            {
-                var parts = SumLine().Split(Js.Trim(l));
-                if (parts.Length >= 2 && parts[1] == name) { sum = parts[0]; break; }
-            }
-            if (sum == null || !Hex64().IsMatch(sum)) throw new UpdateError($"no sum for {name}");
+            var sum = SumFor(File.ReadAllText(sumsFile), name) ?? throw new UpdateError($"no sum for {name}");
             await Download(Js.Str(gz["browser_download_url"]), dl);
             string got;
             await using (var f = File.OpenRead(dl)) got = Convert.ToHexStringLower(await SHA256.HashDataAsync(f));
             if (!got.Equals(sum, StringComparison.OrdinalIgnoreCase)) throw new UpdateError($"{name} doesn't match its sum");
+            await CheckSigned(assets, name, dl, v);   // and signed, where the release key is built in (item 371)
             await using (var src = File.OpenRead(dl))
             await using (var gunzip = new GZipStream(src, CompressionMode.Decompress))
             await using (var dst = File.Create(next))
@@ -485,8 +480,6 @@ internal sealed partial class Updater
         }
     }
 
-    [GeneratedRegex(@"\s+\*?")] private static partial Regex SumLine();
-    [GeneratedRegex(@"^[0-9a-f]{64}$", RegexOptions.IgnoreCase)] private static partial Regex Hex64();
 
     /* A program run to its end: its exit code (-1 if it couldn't be started), its output, and why it couldn't start. */
     private static (int Code, string Out, string? Error) Run(string bin, string[] args, int timeoutMs, params (string, string)[] env)

@@ -62,9 +62,13 @@ public sealed partial class UpdateAloneTests
             assets = new[] { new { name = "musicd-server-9.9.9.tar.gz", browser_download_url = fake.Gh + "/dl/musicd-server-9.9.9.tar.gz" } } }));
     }
 
+    // The release key the server is given (UPDATE_KEY, item 371), and another no release is signed with.
+    private static readonly ECDsa Key = ECDsa.Create(ECCurve.NamedCurves.nistP256), Other = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+
     // The release of 9.9.9 the program is fetched from: a stand-in that says 9.9.9 (or says), and started
-    // writes down how (to marker) and leaves with 3; its sum right unless badSum.
-    private static byte[] Program(Fake fake, string marker, bool withProgram = true, string says = "9.9.9", bool badSum = false)
+    // writes down how (to marker) and leaves with 3; its sum right unless badSum; signed with Key, with Other
+    // (sig "other"), or not at all (sig "none").
+    private static byte[] Program(Fake fake, string marker, bool withProgram = true, string says = "9.9.9", bool badSum = false, string sig = "key")
     {
         var prog = Encoding.UTF8.GetBytes($"#!/bin/sh\nif [ \"$1\" = \"--version\" ]; then echo {says}; exit 0; fi\necho \"$0|$#|$*\" > \"{marker}\"\nexit 3\n");
         using var ms = new MemoryStream();
@@ -74,7 +78,9 @@ public sealed partial class UpdateAloneTests
         fake.Files["/dl/" + name] = gz;
         var sum = Convert.ToHexStringLower(SHA256.HashData(badSum ? "other"u8.ToArray() : gz));
         fake.Files["/dl/mandarin-server.sha256"] = Encoding.UTF8.GetBytes($"{sum}  {name}\n{new string('0', 64)}  mandarin-server-other.gz\n");
-        fake.Tag = JsonNode.Parse(Http.Json(new { tag_name = "v9.9.9", assets = (withProgram ? new[] { name, "mandarin-server.sha256" } : []).Select(n => new { name = n, browser_download_url = fake.Gh + "/dl/" + n }) }));
+        fake.Files["/dl/" + name + ".sig"] = (sig == "other" ? Other : Key).SignData(gz, HashAlgorithmName.SHA256, DSASignatureFormat.Rfc3279DerSequence);
+        var assets = withProgram ? new[] { name, "mandarin-server.sha256" }.Concat(sig == "none" ? [] : [name + ".sig"]) : [];
+        fake.Tag = JsonNode.Parse(Http.Json(new { tag_name = "v9.9.9", assets = assets.Select(n => new { name = n, browser_download_url = fake.Gh + "/dl/" + n }) }));
         return prog;
     }
 
@@ -119,7 +125,8 @@ public sealed partial class UpdateAloneTests
         var lib = Fixtures.MakeLibrary();
         Directory.CreateDirectory(lib.Data);
         await File.WriteAllTextAsync(Path.Combine(lib.Data, "keep.txt"), "mine");
-        var srv = await ServerProcess.Start(Ports.Port(), lib.Music, lib.Data, new Dictionary<string, string> { ["MANDARIN_APP_DIR"] = app, ["UPDATE_API"] = gh.Base, ["UPDATE_REPO"] = "me/musicd" }, bin);
+        var srv = await ServerProcess.Start(Ports.Port(), lib.Music, lib.Data, new Dictionary<string, string> { ["MANDARIN_APP_DIR"] = app, ["UPDATE_API"] = gh.Base, ["UPDATE_REPO"] = "me/musicd",
+            ["UPDATE_KEY"] = Convert.ToBase64String(Key.ExportSubjectPublicKeyInfo()) }, bin);
         try
         {
             var h = new Dictionary<string, string> { ["Authorization"] = "Bearer " + await Session.SignIn(srv.Base) };
@@ -186,9 +193,13 @@ public sealed partial class UpdateAloneTests
             Program(fake, marker, withProgram: false);
             Refused(await Api("apply", true), $"the C# server 9.9.9 couldn't be fetched (release v9.9.9 carries no mandarin-server-{Build}.gz); nothing was changed");
             // One whose sum is wrong, and one that says another version: likewise.
-            foreach (var (why, badSum, says, said) in new[] { ("a wrong sum", true, "9.9.9", $"mandarin-server-{Build}.gz doesn't match its sum"), ("the wrong version", false, "1.0.0", "the new program says 1.0.0, not 9.9.9") })
+            // Item 371: one with no signature, and one signed with a key that isn't the release key: likewise.
+            foreach (var (why, badSum, says, said, sig) in new[] { ("a wrong sum", true, "9.9.9", $"mandarin-server-{Build}.gz doesn't match its sum", "key"),
+                ("the wrong version", false, "1.0.0", "the new program says 1.0.0, not 9.9.9", "key"),
+                ("no signature", false, "9.9.9", $"release v9.9.9 carries no signature for mandarin-server-{Build}.gz", "none"),
+                ("another key's signature", false, "9.9.9", $"mandarin-server-{Build}.gz isn't signed with Mandarin's release key", "other") })
             {
-                Program(fake, marker, says: says, badSum: badSum);
+                Program(fake, marker, says: says, badSum: badSum, sig: sig);
                 r = await Api("apply", true);
                 Refused(r, $"the C# server 9.9.9 couldn't be fetched ({said}); nothing was changed", why);
                 Assert.Equal("9.9.9", r.Body["status"]?["apply"].Str("version"));
