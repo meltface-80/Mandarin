@@ -70,9 +70,6 @@
     "server/Mandarin.Server/Scan/Scanner.cs": {
       "lines": 983
     },
-    "server/Mandarin.Server/Scans.cs": {
-      "lines": 492
-    },
     "server/Mandarin.Server/Schema.cs": {
       "lines": 601
     },

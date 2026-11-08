@@ -74,6 +74,82 @@ public sealed partial class WatchTests
         Assert.True(Scans() == before, "a folder removed from the library is let go");
     }
 
+    [Test]
+    public async Task A_long_copy_is_read_while_it_goes_on_not_only_once_it_ends()
+    {
+        // Item 356: a file every 100 ms for four seconds, never quiet for the quiet time. Before, each change began the
+        // wait again, so nothing was read until the copy ended; now it is read no later than the longest wait after its first change.
+        var root = Directory.CreateTempSubdirectory("musicd-watch-").FullName;
+        var a = Path.Combine(root, "a"); Directory.CreateDirectory(a);
+        await using var s = await LibraryServer.Start(new Fixtures.Library(root, a, Path.Combine(root, "data")), env: new Dictionary<string, string>
+        {
+            ["MANDARIN_WATCH_QUIET_MS"] = "1500", ["MANDARIN_WATCH_GAP_MS"] = Gap.ToString(System.Globalization.CultureInfo.InvariantCulture)
+        });
+        int Scans() => s.Server.Logs.Count(l => ScanRe().IsMatch(l));
+        s.Server.SetSetting("music_folders", new[] { a });
+        await s.Scan();
+        // Heard at all, and that scan let finish.
+        var probe = Path.Combine(a, "probe");
+        for (int i = 0; i < 100 && Scans() == 0; i++) { await File.WriteAllTextAsync(probe, i.ToString(System.Globalization.CultureInfo.InvariantCulture)); await Task.Delay(100); }
+        await Until(() => Scans() >= 1);
+        await Task.Delay(Settled);
+        int @base = Scans();
+        for (int i = 0; i < 40; i++)
+        {
+            var album = Path.Combine(a, "Artist", "Album " + (i / 10));
+            Directory.CreateDirectory(album);
+            await File.WriteAllTextAsync(Path.Combine(album, $"{i % 10:00}.flac"), "x");
+            await Task.Delay(100);
+        }
+        int during = Scans() - @base;
+        Assert.True(during >= 3, $"read while the copy went on ({during} scans in four seconds)");
+        // Once it ends, the last of it read (a scan or two more: one may have been under way as it ended), then quiet:
+        // no reading on and on.
+        await Task.Delay(1500 + Gap + Settled);
+        int after = Scans();
+        Assert.True(after - (@base + during) <= 2, $"a scan or two more for the last of it ({after - @base - during})");
+        await Task.Delay(Settled);
+        Assert.Equal(after, Scans());
+    }
+
+    [Test]
+    public async Task A_folder_whose_changes_cant_be_heard_is_looked_at_an_album_added_and_one_removed_noticed()
+    {
+        // Item 356: a network share's changes made from another machine are never told; its folders' times are looked at
+        // instead (here every 200 ms, with the notifications turned off as a share has none).
+        var root = Directory.CreateTempSubdirectory("musicd-watch-").FullName;
+        var a = Path.Combine(root, "a"); Directory.CreateDirectory(a);
+        await using var s = await LibraryServer.Start(new Fixtures.Library(root, a, Path.Combine(root, "data")), env: new Dictionary<string, string>
+        {
+            ["MANDARIN_WATCH_QUIET_MS"] = Quiet.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            ["MANDARIN_WATCH_GAP_MS"] = Gap.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            ["MANDARIN_WATCH_POLL_MS"] = "200", ["MANDARIN_WATCH_NOTIFY"] = "0"
+        });
+        int Scans() => s.Server.Logs.Count(l => ScanRe().IsMatch(l));
+        s.Server.SetSetting("music_folders", new[] { a });
+        await s.Scan();
+        await Until(() => s.Server.Logs.Any(l => l.Contains("[watch] looking at " + a + " every", StringComparison.Ordinal)));
+        Assert.True(s.Server.Logs.Any(l => l.Contains("[watch] looking at " + a + " every", StringComparison.Ordinal)), "the folder is looked at");
+        Assert.DoesNotContain(s.Server.Logs, l => l.TrimEnd().EndsWith("[watch] watching " + a, StringComparison.Ordinal));
+        await Task.Delay(Settled);
+        int @base = Scans();
+        // An album copied in: a folder's time moves.
+        var album = Path.Combine(a, "Artist", "Album");
+        Directory.CreateDirectory(album);
+        await File.WriteAllTextAsync(Path.Combine(album, "01.flac"), "x");
+        await Until(() => Scans() >= @base + 1);
+        Assert.True(Scans() >= @base + 1, "the album added was noticed");
+        await Task.Delay(Settled);
+        @base = Scans();
+        // Nothing moved: nothing read.
+        await Task.Delay(Settled);
+        Assert.Equal(@base, Scans());
+        // The album deleted.
+        Directory.Delete(Path.Combine(a, "Artist"), true);
+        await Until(() => Scans() >= @base + 1);
+        Assert.True(Scans() >= @base + 1, "the album removed was noticed");
+    }
+
     [GeneratedRegex(@"\[watch\] \d+ changes? in the music folders")]
     private static partial Regex ScanRe();
 }
