@@ -75,7 +75,14 @@
       <b>The MusicBrainz pack on another drive?</b> The pack (Settings &rarr; Library Scanner) is 2&nbsp;GB, kept in
       the data volume unless you choose a folder. To keep it on another drive, give its host folder above: it is
       mounted as <code>/packs</code>, writable (no <code>:ro</code>), and you choose <code>/packs</code> under Folder in
-      the app. Leave the line in every time you re-run the command.
+      the app. The server must be able to write to it: own it by user 1000 (<code>sudo chown 1000:1000</code> the
+      folder), or set <code>PUID</code>/<code>PGID</code> to its owner. Leave the line in every time you re-run the command.
+    </div>
+    <div class="note">
+      <b>Not as root.</b> The server runs as user and group 1000 inside the container, the first user on most Linux
+      machines, and takes over its data volume on its first start. It only reads your music: music anyone on the
+      machine can read plays as before. If yours is readable by one user only, add <code>-e PUID=&lt;uid&gt;
+      -e PGID=&lt;gid&gt;</code> for that user (<code>id</code> on the host gives them); <code>PUID=0</code> keeps it root.
     </div>
   </div>
 
