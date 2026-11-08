@@ -89,8 +89,9 @@ internal static partial class ShelfFacts
         return box == null ? q : box + " " + q;
     }
 
-    // Words that make a trailing part an edition. Whole words, any case. "Live" is a kind, not a version.
-    [GeneratedRegex(@"\b(deluxe|edition|editions|remaster|remastered|remasters|remastering|expanded|anniversary|limited|special|collector'?s|bonus|reissue|reissued|version|mono|stereo|legacy|centenary|definitive|super|box\s+set|hi-?res|24[- ]?bit|bit|mqa|sacd|vinyl)\b", RegexOptions.IgnoreCase)]
+    // Words that make a trailing part an edition. Whole words, any case. "Live" is a kind, not a version. "Extended" too
+    // (item 361): Radical Optimism (Extended), [Extended] and - Extended, versions of Radical Optimism.
+    [GeneratedRegex(@"\b(deluxe|edition|editions|remaster|remastered|remasters|remastering|expanded|extended|anniversary|limited|special|collector'?s|bonus|reissue|reissued|version|mono|stereo|legacy|centenary|definitive|super|box\s+set|hi-?res|24[- ]?bit|bit|mqa|sacd|vinyl)\b", RegexOptions.IgnoreCase)]
     private static partial Regex VersionWords();
     [GeneratedRegex(@"\s*(?:\(([^()]*)\)|\[([^\[\]]*)\])\s*$")] private static partial Regex Bracketed();
     [GeneratedRegex(@"\s+[-–—]\s+([^-–—]+)$")] private static partial Regex Dashed();

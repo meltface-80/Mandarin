@@ -69,6 +69,16 @@ test("the shelf's list: genres commonest first, each album's genres as places in
 // Item 206 (Rouen's Shelf of v1.9.67 to v1.9.69-t1): each album's label as a place in a list of labels, commonest
 // first; its catalogue number; the kinds of release it is, from the identification's match or the compilation flag;
 // the format of its files or its service; and the version its title ends with.
+// The words that make a title's end an edition (item 361): Extended as well, however it is written, and Limited Edition
+// and Remastered as they were; a word that isn't one leaves the title whole.
+test("an edition at a title's end: Extended, Limited Edition, Remastered", { skip: rules }, () => {
+  const titles = ["Radical Optimism (Extended)", "Radical Optimism [Extended]", "Radical Optimism - Extended", "Born to Run (Limited Edition)",
+    "Hounds of Love (Remastered)", "Radical Optimism (Extended) [Remastered]", "Music for the Masses (Instrumental)"];
+  const [shelf] = score({ fn: "shelf", shelves: [titles.map((title, i) => ({ id: i + 1, title, artist: "A", sortArtist: "a", genres: [], image_key: "al-" + i + "-0" }))] }).shelves;
+  assert.deepEqual(shelf.albums.map(a => a.v), [["Radical Optimism", "Extended"], ["Radical Optimism", "Extended"], ["Radical Optimism", "Extended"],
+    ["Born to Run", "Limited Edition"], ["Hounds of Love", "Remastered"], ["Radical Optimism", "Extended · Remastered"], null]);
+});
+
 test("the shelf's list: labels, catalogue numbers, kinds, formats and versions", { skip: rules }, () => {
   const al = (id, title, label, more) => Object.assign({ id, title, artist: "A", sortArtist: "a", genres: [], image_key: "al-" + id + "-0", label }, more);
   const [shelf, plain, numbered, typed, flac, mp3] = score({ fn: "shelf", shelves: [[
