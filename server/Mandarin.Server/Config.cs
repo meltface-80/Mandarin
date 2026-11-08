@@ -58,7 +58,8 @@ internal static class Config
             ["upnp_hosts"] = Strings(List(env("UPNP_HOSTS"))), ["upnp_multicast"] = env("UPNP_DISCOVERY") != "0", ["upnp_offline_ms"] = null,
             ["local_audio"] = env("LOCAL_AUDIO") != "0", ["local_devices"] = null,
             ["qobuz_url"] = S("QOBUZ_URL"), ["tidal_url"] = S("TIDAL_URL"), ["tidal_images_url"] = S("TIDAL_IMAGES_URL"), ["tidal_auth_url"] = S("TIDAL_AUTH_URL"),
-            ["service_sync_delay_ms"] = null, ["service_watch_ms"] = null
+            ["service_sync_delay_ms"] = null, ["service_watch_ms"] = null,
+            ["art_hosts"] = Strings(List(env("ART_HOSTS"))),   // the hosts on this network a picture may come from (item 353: Covers.Reach.cs)
         };
         if (S("MANDARIN_CONFIG") is { } over)
         {

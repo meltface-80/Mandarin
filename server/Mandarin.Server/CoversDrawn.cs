@@ -152,6 +152,8 @@ internal static partial class Covers
         AllowAutoRedirect = false,
         AutomaticDecompression = DecompressionMethods.None,
         ConnectTimeout = TimeSpan.FromSeconds(8),
+        // Never this machine or its network, each redirect's address checked as it is reached (item 353: Covers.Reach.cs).
+        ConnectCallback = Reach,
     }) { Timeout = Timeout.InfiniteTimeSpan };
 
     /* A "u-" key's address (artwork.js source): null when it isn't one. */
