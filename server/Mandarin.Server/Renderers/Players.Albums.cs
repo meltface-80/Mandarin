@@ -57,7 +57,7 @@ internal sealed partial class Players
         var unsigned = SigParam().Replace(TrackPath().Replace(first.Uri, "/stream/a" + string.Join("_", items.Select(x => x.Track!.Id.ToString(CultureInfo.InvariantCulture))), 1), "");
         if (unsigned.Contains('&') && !unsigned.Contains('?')) unsigned = unsigned[..unsigned.IndexOf('&')] + "?" + unsigned[(unsigned.IndexOf('&') + 1)..];
         if (seconds > 0) unsigned += (unsigned.Contains('?') ? "&" : "?") + "ss=" + Math.Round(seconds, 3).ToString(CultureInfo.InvariantCulture);
-        var uri = Signing.SignUrl(secret, unsigned);
+        var uri = Signing.SignExpiring(secret, unsigned);
         var starts = new List<double>();
         var at = -seconds;
         foreach (var it in items) { starts.Add(at); at += it.Duration; }

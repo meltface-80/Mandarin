@@ -76,7 +76,7 @@ internal static class Images
     {
         if (Db.Setting(c, "authSecret") is not { } sv || Js.Str(sv) is not { Length: > 0 } secret) return false;
         var raw = ctx.Features.Get<Microsoft.AspNetCore.Http.Features.IHttpRequestFeature>()?.RawTarget;
-        return Playback.Signing.Gate(secret, raw) == true;
+        return Playback.Signing.Signed(secret, raw, c, DateTimeOffset.UtcNow.ToUnixTimeSeconds());   // until its expiry (item 368)
     }
 
     /* auth.js speakerIps(): a request from one of the speakers' own addresses, as the hub knows them (v0.8.49). */

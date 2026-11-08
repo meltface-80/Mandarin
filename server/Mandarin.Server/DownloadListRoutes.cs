@@ -28,7 +28,7 @@ internal static partial class Library
     private static string? SignUrl(SqliteConnection c, string url)
     {
         if (Db.Setting(c, "authSecret") is not { } sv || Js.Str(sv) is not { Length: > 0 } secret) return null;
-        return Playback.Signing.SignUrl(secret, url);
+        return Playback.Signing.SignExpiring(secret, url);   // good for 30 days (item 368)
     }
     private static string? ArtUrl(SqliteConnection c, LibState st, Album al) =>
         SignUrl(c, $"{st.BaseUrl}/api/image/{Js.EncodeURIComponent(al.ImageKey)}?size=1200");

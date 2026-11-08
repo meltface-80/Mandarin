@@ -40,7 +40,7 @@ internal static partial class SlimStream
         var u = new Uri(trackUri);
         string secret;
         using (var c = Db.Open()) secret = Db.Setting(c, "authSecret") is { } sv && Mandarin.Server.Js.Str(sv) is { Length: > 0 } s ? s : "";   // as Hub.Secret reads it
-        return Signing.SignUrl(secret, $"{u.Scheme}://{u.Authority}/stream/slim/{playerId}/{serial.ToString(CultureInfo.InvariantCulture)}.pcm");
+        return Signing.SignExpiring(secret, $"{u.Scheme}://{u.Authority}/stream/slim/{playerId}/{serial.ToString(CultureInfo.InvariantCulture)}.pcm");
     }
 
     /* [run] made into [body]: its tracks, then each set to follow while of its format, until it ends or is let go. */

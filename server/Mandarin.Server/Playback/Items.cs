@@ -44,11 +44,11 @@ internal static class Items
         if (p["dither"] is string dn) qs.Add("dn=" + dn);   // Mandarin's own dither, shaped (item 301)
         if (Jv.T(p["real_bits"])) qs.Add("rb=" + TJs.Num(Jv.Num(p["real_bits"])));   // at the DAC's real bits (item 301)
         var q = qs.Count > 0 ? "?" + string.Join("&", qs) : "";
-        return Signing.SignUrl(secret, $"{baseUrl}/stream/t{t.Id}{seg}.{Jv.Str(p["ext"])}{q}");
+        return Signing.SignExpiring(secret, $"{baseUrl}/stream/t{t.Id}{seg}.{Jv.Str(p["ext"])}{q}");   // good for 30 days (item 368)
     }
 
     public static string ArtUrl(string secret, string baseUrl, Album al) =>
-        Signing.SignUrl(secret, $"{baseUrl}/api/image/{AJs.EncodeURIComponent(al.ImageKey)}?size=600");
+        Signing.SignExpiring(secret, $"{baseUrl}/api/image/{AJs.EncodeURIComponent(al.ImageKey)}?size=600");
 
     /* item(t, target, { gain, phoneGain }): the URL, the DIDL and the plan, the track beside them. */
     public static PlayItem Item(Snapshot s, string secret, string baseUrl, PlayTrack t, JsObj? target, double? gain, double? phoneGain)
