@@ -1,5 +1,6 @@
 package com.musicd.server.android
 
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -17,6 +18,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.DropdownMenu
@@ -27,6 +29,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -129,12 +132,31 @@ internal fun CentredCover(cover: ImageBitmap?, a: Album, width: Dp, badges: @Com
     }
 }
 
-/** The tabs' row: its words tracked out, the one open in the text's colour over a brass bar; Versions with how many. */
+/** The tabs, held at the top of [list] as the page scrolls: their row filled only while held there, over the tracks
+    scrolling under it; in their place, over the cover's glow, no bar behind them (item 358). */
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
+internal fun LazyListScope.phoneTabs(list: LazyListState, tab: String, versions: Int, onTab: (String) -> Unit) {
+    stickyHeader(key = TABS_KEY) {
+        // Held: the first item drawn is the tabs or one under them, and the page is scrolled at all (read as it changes,
+        // not at every frame of a scroll).
+        val held by remember(list) { derivedStateOf {
+            val at = list.layoutInfo.visibleItemsInfo.firstOrNull { it.key == TABS_KEY }?.index
+            at != null && list.firstVisibleItemIndex >= at && list.canScrollBackward
+        } }
+        AlbumTabRow(tab, versions, held = held, onTab = onTab)
+    }
+}
+
+private const val TABS_KEY = "album.tabs"
+
+/** The tabs' row: its words tracked out, the one open in the text's colour over a brass bar; Versions with how many;
+    filled with the page's colour only while [held] at the top. */
 @Composable
-internal fun AlbumTabRow(tab: String, versions: Int, onTab: (String) -> Unit) {
+internal fun AlbumTabRow(tab: String, versions: Int, held: Boolean = true, onTab: (String) -> Unit) {
     val faint = paletteColor(Palette.TEXT_FAINT)
     val brass = MaterialTheme.colorScheme.primary
-    Column(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.background)) {
+    val fill by animateColorAsState(if (held) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.background.copy(alpha = 0f), label = "tabs-fill")
+    Column(Modifier.fillMaxWidth().background(fill)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(22.dp)) {
             ALBUM_TABS.forEachIndexed { i, t ->
                 if (t == "versions" && versions < 2) return@forEachIndexed

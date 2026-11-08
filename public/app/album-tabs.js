@@ -28,6 +28,26 @@ function setVersionsTab(n) {
   if (n < 2 && document.getElementById("album-modal").dataset.albumTab === "versions") setAlbumTab("tracks");
 }
 
+/** How far under the buttons' row (Play Now, Queue) the tabs sit in their own place, measured with the page at its top. */
+let tabsRestGap = NaN;
+
+/* Whether the tabs are held at the top of the page as it scrolls (item 358): their row is filled only then. Held: further
+   under the buttons' row than in their own place, the page scrolled on and the buttons gone up past them. */
+function markTabsHeld() {
+  const above = albumTabsEl && albumTabsEl.previousElementSibling;
+  const body = albumTabsEl && albumTabsEl.closest(".modal-body");
+  if (!albumTabsEl || !above || !body) return;
+  const gap = albumTabsEl.getBoundingClientRect().top - above.getBoundingClientRect().bottom;
+  if (body.scrollTop <= 0) tabsRestGap = gap;
+  albumTabsEl.classList.toggle("is-held", body.scrollTop > 0 && gap > (Number.isNaN(tabsRestGap) ? 18 : tabsRestGap) + 0.5);
+}
+
+if (albumTabsEl) {
+  const body = albumTabsEl.closest(".modal-body");
+  if (body) body.addEventListener("scroll", markTabsHeld, { passive: true });
+  requestAnimationFrame(markTabsHeld);
+}
+
 if (albumTabsEl) albumTabsEl.addEventListener("click", (e) => {
   const b = /** @type {HTMLElement|null} */ (/** @type {HTMLElement} */ (e.target).closest(".album-tab"));
   if (b) setAlbumTab(b.getAttribute("data-album-tab") || "tracks");

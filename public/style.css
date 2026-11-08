@@ -5768,8 +5768,10 @@ button.cap-chip:active { transform: scale(.96); }
   .modal:not(.np-mode) .modal-head > :not(#modal-date, .modal-facts, #modal-title, .modal-subtitle) { order: 4; flex-basis: 100%; }
   .modal:not(.np-mode) .album-tabs {
     display: flex; gap: 22px; position: sticky; top: 0; z-index: 2; margin-top: 18px;
-    background: var(--bg); border-bottom: 1px solid var(--border);
+    background: transparent; border-bottom: 1px solid var(--border); transition: background-color .15s;
   }
+  /* Filled only while held at the top, over the tracks scrolling under it; in its place, no bar over the glow (item 358). */
+  .modal:not(.np-mode) .album-tabs.is-held { background: var(--bg); }
   /* The ⋯ menu opens over the tabs, never under them. */
   .modal:not(.np-mode) .modal-actions { position: relative; z-index: 3; }
   /* Under the tabs, which say them, no Tracks or Credits heading again (item 355). */
