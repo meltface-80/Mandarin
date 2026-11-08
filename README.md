@@ -1070,7 +1070,9 @@ With the sign-in off, a device comes in without one only when it asks for the se
 at home — its address, a bare name, or one ending .local, .lan, .home.arpa or .ts.net — so another
 web site can't reach it through a name of its own (v1.1.9). Anything but a read must come from
 Mandarin's own page or the Android app: a page of another site open in a browser at home can't
-restart the server, change a setting or restore a backup. A device let in without a password works
+restart the server, change a setting or restore a backup. The same goes for a browser that is signed
+in: its changes are taken only from Mandarin's own page, never from a page on another site or on
+another port of the same machine. A device let in without a password works
 only from home and your tailnet, never from the internet. Behind a reverse proxy on the same
 machine, the proxy must say who asked (`X-Forwarded-For`, `X-Real-IP` or `Forwarded`); one that
 names nobody is taken as the internet, never home.
