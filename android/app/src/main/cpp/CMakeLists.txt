@@ -7,8 +7,20 @@ project(mandarinNative C CXX)
 set(CMAKE_CXX_STANDARD 11)
 
 include(FetchContent)
+# Where libopus comes from, tried in turn (item 351): the copy CI fetched and cached ahead of the build (OPUS_TARBALL,
+# .github/workflows/android.yml), else its GitHub release, else Xiph's own downloads. Whichever it is, its SHA-256 must be
+# this one, so no copy but libopus 1.5.2's own is ever built. GitHub's release downloads failed for hours on
+# 8 Nov 2026, and with them every APK, this the last thing the build fetched from there.
+# (A file and addresses can't share CMake's list: the file, where there is one, alone.)
+if(DEFINED ENV{OPUS_TARBALL} AND EXISTS "$ENV{OPUS_TARBALL}")
+  set(OPUS_URLS "$ENV{OPUS_TARBALL}")
+else()
+  set(OPUS_URLS
+    https://github.com/xiph/opus/releases/download/v1.5.2/opus-1.5.2.tar.gz
+    https://downloads.xiph.org/releases/opus/opus-1.5.2.tar.gz)
+endif()
 FetchContent_Declare(opus
-  URL https://github.com/xiph/opus/releases/download/v1.5.2/opus-1.5.2.tar.gz
+  URL ${OPUS_URLS}
   URL_HASH SHA256=65c1d2f78b9f2fb20082c38cbe47c951ad5839345876e46941612ee87f9a7ce1)
 # A decoder only: no docs, tests or programs, and no float-free build — the
 # whole point is opus_multistream_decode_float.
