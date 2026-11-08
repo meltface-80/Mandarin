@@ -34,14 +34,16 @@ public sealed class SecurityTests
             var r = await Http.Get(s.Base + p, h);
             return (r.Status, r.Header("content-security-policy"), r.Header("x-frame-options"), r.Header("x-content-type-options"), r.Header("referrer-policy"));
         }
-        var framedHere = (200, "frame-ancestors 'self'", "SAMEORIGIN", "nosniff", "same-origin");
+        // Scripts the server's own files alone (item 366): script-src 'self', no plugins, no other base.
+        const string scripts = "script-src 'self'; object-src 'none'; base-uri 'self'";
+        var framedHere = (200, "frame-ancestors 'self'; " + scripts, "SAMEORIGIN", "nosniff", "same-origin");
         // The page and the pages that act: at their routes, as files, as a deep link, and the app's own form.
         foreach (var (p, h) in new (string, IDictionary<string, string>?)[] { ("/", s.H), ("/index.html", s.H), ("/library", s.H), ("/album/12", s.H), ("/library", app),
             ("/login", null), ("/login.html", null), ("/shelf", s.H), ("/shelf.html", s.H) })
             Assert.True(await Guards(p, h) == framedHere, p + (h == app ? " (the app's)" : "") + ": " + await Guards(p, h));
         // The wall display: shown, never acted on, so it may be framed.
         foreach (var p in new[] { "/display", "/display.html" })
-            Assert.True(await Guards(p, s.H) == (200, null, null, "nosniff", "same-origin"), p);
+            Assert.True(await Guards(p, s.H) == (200, scripts, null, "nosniff", "same-origin"), p + ": " + await Guards(p, s.H));
         // The page's script and style: their type as named.
         foreach (var p in new[] { "/app.js", "/style.css" })
         {

@@ -12,10 +12,7 @@
   <link rel="icon" href="/icons/favicon.ico?v=brassduck">
   <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png?v=brassduck">
   <title>Mandarin — sign in</title>
-  <script>
-    // The app's own light/dark choice, if this device has made one.
-    try { if (/light/.test(localStorage.getItem("rra-theme-v2") || "")) document.documentElement.dataset.theme = "light"; } catch (e) {}
-  </script>
+  <script src="/login-theme.js"></script>
   <style>
     :root { --bg: #1d2125; --card: #252a2f; --field: #2c3238; --border: #353b42; --text: #e9eaec; --dim: #959aa1;
             --accent: #4cb7e6; --on-accent: #0d1418; --err: #e06c6c; color-scheme: dark; }
