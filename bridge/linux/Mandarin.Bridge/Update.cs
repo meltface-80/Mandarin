@@ -4,10 +4,14 @@
 // sidecar (.json: the build and its SHA-256), checks the one against the other, and unpacks it into its data folder
 // (app/). Then it stops, and systemd starts it again: the program installed hands over to the one in app/ (Program.cs),
 // and goes back to itself where that one fails as it starts. Every request says what it is (a User-Agent): GitHub
-// refuses one that doesn't (item 327).
+// refuses one that doesn't (item 327). A secure connection refused says why (item 359): this computer's clock wrong
+// (a Raspberry Pi has no clock of its own, and GitHub's certificate isn't valid on a date years ago), its certificates
+// missing or out of date, or the answer not GitHub's; before, it said only "SecureConnectionError".
 using System.Diagnostics;
+using System.Net.Security;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
+using System.Security.Cryptography.X509Certificates;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 
@@ -52,18 +56,45 @@ internal sealed partial class Update(string api, string data, Action<string> log
 
     private void Say(string s, string w) { lock (gate) (state, said) = (s, w); }
 
-    // GitHub asked as Mandarin Bridge: a request with no User-Agent is refused (403).
+    // Why the last secure connection's certificate was refused, in words; null where it wasn't.
+    private static volatile string? refused;
+
+    // GitHub asked as Mandarin Bridge: a request with no User-Agent is refused (403). Its certificate checked as .NET
+    // checks it, why it is refused kept to be said.
     private static HttpClient Client()
     {
-        var http = new HttpClient { Timeout = TimeSpan.FromMinutes(10) };
+        var handler = new SocketsHttpHandler
+        {
+            SslOptions = new SslClientAuthenticationOptions
+            {
+                RemoteCertificateValidationCallback = (_, _, chain, errors) => { refused = Refused(errors, chain, DateTime.Now); return errors == SslPolicyErrors.None; }
+            }
+        };
+        var http = new HttpClient(handler) { Timeout = TimeSpan.FromMinutes(10) };
         http.DefaultRequestHeaders.UserAgent.ParseAdd("mandarin-bridge");
         return http;
+    }
+
+    /* Why a certificate with [errors] (its [chain] as built) is refused, in words, on this computer's date [now]; null
+       where it isn't. */
+    internal static string? Refused(SslPolicyErrors errors, X509Chain? chain, DateTime now)
+    {
+        if (errors == SslPolicyErrors.None) return null;
+        var status = chain?.ChainStatus.Aggregate(X509ChainStatusFlags.NoError, (a, s) => a | s.Status) ?? X509ChainStatusFlags.NoError;
+        if ((status & X509ChainStatusFlags.NotTimeValid) != 0)
+            return $"GitHub's certificate isn't valid on this computer's date ({now:d MMMM yyyy, HH:mm}): its clock is wrong. Set it to sync the time (on DietPi, dietpi-config → Advanced Options → Time sync mode)";
+        if ((errors & SslPolicyErrors.RemoteCertificateNameMismatch) != 0)
+            return "the answer wasn't GitHub's (its certificate is another site's): something on the network answered in its place";
+        if ((status & (X509ChainStatusFlags.UntrustedRoot | X509ChainStatusFlags.PartialChain)) != 0 || (errors & SslPolicyErrors.RemoteCertificateNotAvailable) != 0)
+            return "this computer doesn't trust GitHub's certificate: its certificates are missing or out of date (sudo apt install --reinstall ca-certificates)";
+        return "GitHub's certificate was refused (" + (status != X509ChainStatusFlags.NoError ? status.ToString() : errors.ToString()) + ")";
     }
 
     // Why [e] stopped the update, in words (this build has none of .NET's own: UseSystemResourceKeys).
     private static string Why(Exception e) => e switch
     {
         HttpRequestException { StatusCode: { } code } => $"GitHub answered {(int)code} ({code})",
+        HttpRequestException { HttpRequestError: HttpRequestError.SecureConnectionError } when refused is { } why => why,
         HttpRequestException h => "GitHub couldn't be reached" + (h.HttpRequestError is HttpRequestError.Unknown ? "" : $" ({h.HttpRequestError})"),
         TaskCanceledException => "GitHub took too long to answer",
         System.Text.Json.JsonException => "GitHub's answer wasn't the release",
@@ -77,6 +108,7 @@ internal sealed partial class Update(string api, string data, Action<string> log
     private async Task Go(string tag)
     {
         var tmp = Path.Combine(data, "app.new");
+        refused = null;
         try
         {
             var rel = JsonNode.Parse(await Http.GetStringAsync($"{api.TrimEnd('/')}/repos/{Repo}/releases/tags/{tag}")) as JsonObject;
