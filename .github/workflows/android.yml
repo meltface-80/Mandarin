@@ -53,8 +53,11 @@ jobs:
       - uses: gradle/actions/setup-gradle@v6
         with:
           cache-provider: basic
+          # dev keeps Gradle's cache as main does (item 350): its builds take the wrapper and the libraries from it,
+          # not from downloads that can fail (by default only the default branch writes it).
+          cache-read-only: ${{ github.ref != 'refs/heads/main' && github.ref != 'refs/heads/dev' }}
       - name: Run the core test suite
-        run: ./gradlew :core:test --no-daemon --stacktrace
+        run: ../.github/gradle-retry.sh :core:test --no-daemon --stacktrace   # a failed download tried again (item 350)
       - name: Upload test report
         if: always()
         uses: actions/upload-artifact@v7
@@ -135,6 +138,9 @@ jobs:
       - uses: gradle/actions/setup-gradle@v6
         with:
           cache-provider: basic
+          # dev keeps Gradle's cache as main does (item 350): its builds take the wrapper and the libraries from it,
+          # not from downloads that can fail (by default only the default branch writes it).
+          cache-read-only: ${{ github.ref != 'refs/heads/main' && github.ref != 'refs/heads/dev' }}
 
       # The signing key comes from repository secrets — the same two as
       # Android Random Remote (MUSICD_KEYSTORE_BASE64, MUSICD_KEYSTORE_PASSWORD).
@@ -164,7 +170,7 @@ jobs:
         # Always the release build (v0.6.10): optimised and not debuggable.
         # Without the secrets it's signed with the committed key, the same
         # as every build before it, so it installs over them in place.
-        run: ./gradlew :app:assembleRelease --no-daemon --stacktrace
+        run: ../.github/gradle-retry.sh :app:assembleRelease --no-daemon --stacktrace   # a failed download tried again (item 350)
 
       - name: Name the APK after the version
         id: name

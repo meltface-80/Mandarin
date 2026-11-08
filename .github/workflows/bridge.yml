@@ -58,6 +58,7 @@ jobs:
       - uses: gradle/actions/setup-gradle@v6
         with:
           cache-provider: basic
+          cache-read-only: ${{ github.ref != 'refs/heads/main' && github.ref != 'refs/heads/dev' }}   # dev keeps the cache too (item 350)
 
       # The same signing secrets as Mandarin's app (MUSICD_KEYSTORE_BASE64, MUSICD_KEYSTORE_PASSWORD), as in the
       # app's own repository before it moved here; without them, the key committed in bridge/android/app
@@ -81,7 +82,7 @@ jobs:
           MUSICD_KEYSTORE: ${{ steps.signing.outputs.path }}
           MUSICD_KEYSTORE_PASSWORD: ${{ secrets.MUSICD_KEYSTORE_PASSWORD }}
           MUSICD_KEY_ALIAS: musicd
-        run: ./gradlew :app:assembleRelease --no-daemon --stacktrace
+        run: ../../.github/gradle-retry.sh :app:assembleRelease --no-daemon --stacktrace   # a failed download tried again (item 350)
 
       - name: Name the APK after the version
         id: name
