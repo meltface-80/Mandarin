@@ -123,7 +123,8 @@ Auth.KeepSeen();
 ThreadPool.GetMinThreads(out var minWorkers, out var minIo);
 ThreadPool.SetMinThreads(Math.Max(minWorkers, 64), Math.Max(minIo, 64));
 Library.InitAlone(frontKey, ownConfig["server_ip"]?.GetValue<string>(), port);
-Covers.TrustHosts(ownConfig["art_hosts"]);   // pictures from elsewhere: never this network, but for these (item 353)
+Covers.TrustHosts(ownConfig["art_hosts"]);
+Caller.Trust(ownConfig["trusted_proxies"]);   // proxies believed on who asked: these, and the Tailscale engine on its own port (item 362)   // pictures from elsewhere: never this network, but for these (item 353)
 Transcoder.Init(dataDir);
 Downloads.Init(dataDir);
 Server.Log($"[server] Mandarin's server {version} (C#) on port {port}");
@@ -147,6 +148,9 @@ builder.WebHost.ConfigureKestrel(k =>
     // where Kestrel would otherwise refuse anything past ASCII.
     k.ResponseHeaderEncodingSelector = name => name.Equals("X-Mandarin-Backup", StringComparison.OrdinalIgnoreCase) ? System.Text.Encoding.Latin1 : null;
     k.Listen(IPAddress.Any, port);
+    // The built-in Tailscale engine's own port, on this machine alone: only its word on who asked is believed there (item 362).
+    using (var probe = new System.Net.Sockets.TcpListener(IPAddress.Loopback, 0)) { probe.Start(); Caller.EnginePort = ((IPEndPoint)probe.LocalEndpoint).Port; probe.Stop(); }
+    k.Listen(IPAddress.Loopback, Caller.EnginePort);
 });
 // gzip, as the Node server's compression() did for everything it answered:
 // only text (never audio, never a stream of events).
@@ -229,7 +233,7 @@ Server.StopApp = app.Services.GetRequiredService<IHostApplicationLifetime>().Sto
 app.Services.GetRequiredService<IHostApplicationLifetime>().ApplicationStopping.Register(Jobs.Stop);
 app.Services.GetRequiredService<IHostApplicationLifetime>().ApplicationStopping.Register(Auth.WriteSeen);
 await app.StartAsync();
-Server.Log($"[server] listening on port {port}");
+Server.Log($"[server] listening on port {port} (and on 127.0.0.1:{Caller.EnginePort} for the built-in Tailscale alone)");
 await app.WaitForShutdownAsync();
 // Restart from Settings, or an update put in place (Admin/Updater.cs): this
 // program started again in this process; if that can't be done, stopped with

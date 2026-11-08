@@ -60,6 +60,8 @@ public sealed class ServerProcess
             ["UPDATE_CHECK"] = "false", ["UPNP_DISCOVERY"] = "0", ["ITUNES_URL"] = "http://127.0.0.1:9", ["TAGCHECK"] = "0", ["SLIMPROTO_PORT"] = "0"
         };
         if (Environment.GetEnvironmentVariable("ALLOW_NETWORK") is not { Length: > 0 }) e["MANDARIN_LOOPBACK_ONLY"] = "1";
+        // Loopback a trusted proxy (item 362), so a test may say who asked with X-Forwarded-For; a test's own TRUSTED_PROXIES ("" for none) over it.
+        e["TRUSTED_PROXIES"] = "127.0.0.1,::1";
         foreach (var (k, v) in env ?? new Dictionary<string, string>()) e[k] = v;
         foreach (var (k, v) in e) psi.Environment[k] = v;
         // The program is its own file (Updater.cs BinPath): never the suite's, told by the environment.

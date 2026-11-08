@@ -33,6 +33,7 @@
       <tr><td>SERVER_IP</td><td>auto</td><td>The address speakers fetch audio from. Auto picks the machine's LAN address; set it to pin one.</td></tr>
       <tr><td>INCLUDE_ZONES</td><td>—</td><td>Offer only these rooms, e.g. <code>Kitchen,Study</code>.</td></tr>
       <tr><td>EXCLUDE_ZONES</td><td>—</td><td>Offer every room except these.</td></tr>
+      <tr><td>TRUSTED_PROXIES</td><td>—</td><td>Reverse proxies whose word on who asked is believed: <code>127.0.0.1</code> for an nginx, Caddy or <code>tailscale serve</code> on the same machine. The built-in Tailscale needs nothing here.</td></tr>
       <tr><td>PUID / PGID</td><td>1000</td><td>The user and group the server runs as inside the container: give your music's owner if it is readable by that user only. <code>PUID=0</code> runs it as root.</td></tr>
       <tr><td>SCAN_INTERVAL_HOURS</td><td>6</td><td>How often the music folders are re-checked in full. Between those, albums added or deleted are noticed as it happens (a network share's folders looked at every 30 seconds), and a long copy shows album by album.</td></tr>
       <tr><td>TRANSCODE_CACHE_GB</td><td>4</td><td>Disk kept for converted tracks. With upsampling on, 16 is a better number.</td></tr>

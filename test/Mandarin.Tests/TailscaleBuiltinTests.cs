@@ -99,7 +99,10 @@ public sealed class TailscaleBuiltinTests
         Assert.Equal("Running", st.Str("state"));
         Assert.Equal("http://100.90.1.2:" + port, st.Str("address"));
         Assert.Equal("musicd.tail1.ts.net", st.Str("dns_name"));
-        Assert.Matches($@"POST /serve\?port={port}&upstream=http%3A%2F%2F127\.0\.0\.1%3A{port}", eng.Calls());
+        // Forwarded to a port of its own on this machine (item 362): only there is its word on who asked believed.
+        var own = System.Text.RegularExpressions.Regex.Match(string.Join("\n", srv.Logs), @"on 127\.0\.0\.1:(\d+) for the built-in Tailscale alone").Groups[1].Value;
+        Assert.True(own.Length > 0 && own != port.ToString(System.Globalization.CultureInfo.InvariantCulture), "the engine's own port, said as it starts: " + own);
+        Assert.Matches($@"POST /serve\?port={port}&upstream=http%3A%2F%2F127\.0\.0\.1%3A{own}", eng.Calls());
         // The key goes through the API, never the engine's environment.
         Assert.Contains("\"AuthKey\":\"tskey-auth-test\"", eng.Calls(), StringComparison.Ordinal);
         Assert.EndsWith("\nok", eng.Args(), StringComparison.Ordinal);

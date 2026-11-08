@@ -17,14 +17,14 @@ jobs:
     steps:
       # The whole history: the screens contract's gaps list only shrinks, held
       # against where the branch left dev (tools/quality/parity.js).
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
         with:
           fetch-depth: 0
           # Commits and trees, not every file's every version: the history carries each APK published,
           # gigabytes, which ran past the gates' 10 minutes (item 222). A file of an older commit is
           # fetched when it is read.
           filter: blob:none
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1  # v7
         with:
           node-version: "22"
           cache: npm
@@ -47,7 +47,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
       - name: numpy
         run: python3 -m pip install --quiet numpy
       - name: Tests (sq-tool/tests)
@@ -73,8 +73,8 @@ jobs:
           - { node-version: "22", shard: "2/3" }
           - { node-version: "22", shard: "3/3" }
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1  # v7
         with:
           node-version: ${{ matrix.node-version }}
           cache: npm
@@ -84,7 +84,7 @@ jobs:
       # third-party action (one broke when the build's readme changed shape).
       - name: Restore ffmpeg
         id: ffmpeg-cache
-        uses: actions/cache@v6
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6
         with:
           path: ~/ffmpeg-static
           key: ffmpeg-static-amd64-release-v1
@@ -108,12 +108,12 @@ jobs:
       - run: npm ci --no-audit --no-fund
       # Mandarin's audio engine (engine/, C#): built ahead of time to one
       # native program, then tested with the rest (test/Mandarin.Tests/EngineTests.cs).
-      - uses: actions/setup-dotnet@v6
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73  # v6
         with:
           dotnet-version: "10.0.x"
       # The packages the two builds restore, kept between runs (v0.8.49).
       - name: Restore the .NET packages
-        uses: actions/cache@v6
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6
         with:
           path: ~/.nuget/packages
           key: nuget-${{ runner.os }}-${{ hashFiles('server/Mandarin.Server/*.csproj', 'engine/Mandarin.Audio/*.csproj', 'bridge/linux/Mandarin.Bridge/*.csproj') }}
@@ -155,10 +155,10 @@ jobs:
     name: Build image
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: docker/setup-buildx-action@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069  # v4
       - name: Build (no push)
-        uses: docker/build-push-action@v7
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc  # v7
         with:
           context: .
           push: false

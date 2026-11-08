@@ -368,7 +368,7 @@
       }
     },
     "search": {
-      "page": "the search (the row's Search on Home, or the glass): the field across the top bar with its ✕ and the count beside it; in Home's rows' place, the library's artists and labels as chips and its albums as tiles, each under its small heading, then Qobuz's and Tidal's artists and albums and Pitchfork's reviews as each answers, the last words' kept dim until replaced; the banner where nothing matches; the mini player and the row along the foot are their own screens",
+      "page": "the search (the row's Search on Home, or the glass): the field across the top bar with its ✕, the count under it (item 372); in Home's rows' place, the library's artists and labels as chips and its albums as tiles, each under its small heading, then Qobuz's and Tidal's artists and albums and Pitchfork's reviews as each answers, the last words' kept dim until replaced; the banner where nothing matches; the mini player and the row along the foot are their own screens",
       "native": ["android/app/src/main/java/com/musicd/server/android/SearchScreen.kt", "android/app/src/main/java/com/musicd/server/android/SearchRows.kt", "android/app/src/main/java/com/musicd/server/android/AlbumTile.kt", "android/app/src/main/java/com/musicd/server/android/WallGrid.kt"],
       "preview": false,
       "items": {
