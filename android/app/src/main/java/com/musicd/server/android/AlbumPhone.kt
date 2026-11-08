@@ -8,12 +8,14 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -137,14 +139,15 @@ internal fun AlbumTabRow(tab: String, versions: Int, onTab: (String) -> Unit) {
             ALBUM_TABS.forEachIndexed { i, t ->
                 if (t == "versions" && versions < 2) return@forEachIndexed
                 val on = t == tab
-                Column(Modifier.parity("album.tab", Contract.label("album.tab", i)).clickable { onTab(t) }.padding(top = 12.dp)) {
+                // As wide as its words, its bar under them as wide (item 355: a bar filling the row took the row, the tabs after it squeezed into a letter a line).
+                Column(Modifier.parity("album.tab", Contract.label("album.tab", i)).width(IntrinsicSize.Max).clickable { onTab(t) }.padding(top = 12.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         Text(Contract.label("album.tab", i).uppercase(), color = if (on) paletteColor(Palette.MODAL_TEXT) else faint, fontSize = 13.sp,
                             fontWeight = FontWeight.Bold, letterSpacing = 0.06.em)
                         if (t == "versions") Text("$versions", Modifier.clip(RoundedCornerShape(999.dp)).background(paletteColor(Palette.ACCENT_SOFT)).padding(horizontal = 7.dp, vertical = 1.dp),
                             color = brass, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                     }
-                    Box(Modifier.padding(top = 10.dp).height(2.dp).let { if (on) it.fillMaxWidth().background(brass) else it })
+                    Box(Modifier.padding(top = 10.dp).height(2.dp).fillMaxWidth().background(if (on) brass else androidx.compose.ui.graphics.Color.Transparent))
                 }
             }
         }

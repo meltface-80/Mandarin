@@ -42,14 +42,16 @@ import com.musicd.server.client.ServerClient
  * the name, and their parts with which tracks when not all. Eight at first, More for the rest; a tap opens their
  * page ([onArtist]). Not there when nothing is known.
  */
-internal fun LazyListScope.albumCredits(credits: AlbumCredits?, client: () -> ServerClient?, onArtist: (String) -> Unit) {
+internal fun LazyListScope.albumCredits(credits: AlbumCredits?, client: () -> ServerClient?, onArtist: (String) -> Unit, head: Boolean = true) {
     val list = credits?.credits?.takeIf { it.isNotEmpty() } ?: return
     item {
         var open by remember { mutableStateOf(false) }
-        Column(Modifier.parity("album.credits").fillMaxWidth().padding(top = 36.dp)) {
-            // The section's head, as the page's section-label: small capitals tracked out over a hairline.
-            Text("Credits".uppercase(), Modifier.padding(bottom = 8.dp), color = paletteColor(Palette.TEXT_FAINT), fontSize = 11.sp, fontWeight = FontWeight.W600, letterSpacing = 0.16.em)
-            HorizontalDivider(Modifier.padding(bottom = 6.dp), color = MaterialTheme.colorScheme.outline)
+        Column(Modifier.parity("album.credits").fillMaxWidth().padding(top = if (head) 36.dp else 12.dp)) {
+            // The section's head, as the page's section-label: small capitals tracked out over a hairline; under a phone's Credits tab, which says it, none (item 355).
+            if (head) {
+                Text("Credits".uppercase(), Modifier.padding(bottom = 8.dp), color = paletteColor(Palette.TEXT_FAINT), fontSize = 11.sp, fontWeight = FontWeight.W600, letterSpacing = 0.16.em)
+                HorizontalDivider(Modifier.padding(bottom = 6.dp), color = MaterialTheme.colorScheme.outline)
+            }
             for (c in if (open) list else list.take(AlbumCredits.SHOWN)) CreditRow(c, client, onArtist)
             if (list.size > AlbumCredits.SHOWN) TextButton(onClick = { open = !open }, modifier = Modifier.parity("album.credits-more", Contract.label("album.credits-more", if (open) 1 else 0))) {
                 Text(Contract.label("album.credits-more", if (open) 1 else 0), color = MaterialTheme.colorScheme.secondary, fontSize = 13.sp, fontWeight = FontWeight.W500)
