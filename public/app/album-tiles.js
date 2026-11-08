@@ -246,7 +246,7 @@ function loadArt(container, key, size, onGiveUp) {
 function keyLibraryTile(tile) {
   tile.dataset.parity = "library.album";
   const parts = { ".album-art-wrap": "library.album-art", ".album-quality": "library.album-quality", ".album-source": "library.album-source",
-                  ".album-discs": "library.album-discs", ".album-title": "library.album-title", ".album-artist": "library.album-artist" };
+                  ".album-discs": "library.album-discs", ".album-title": "library.album-title", ".album-artist": "library.album-artist", ".album-versions": "library.album-versions" };
   for (const [sel, key] of Object.entries(parts)) { const el = tile.querySelector(sel); if (el) el.dataset.parity = key; }
   return tile;
 }
@@ -255,14 +255,14 @@ function keyLibraryTile(tile) {
 function keyWallTile(tile) {
   tile.dataset.parity = "wall.album";
   const parts = { ".album-art-wrap": "wall.album-art", ".album-quality": "wall.album-quality", ".album-source": "wall.album-source",
-                  ".album-discs": "wall.album-discs", ".album-title": "wall.album-title", ".album-artist": "wall.album-artist" };
+                  ".album-discs": "wall.album-discs", ".album-title": "wall.album-title", ".album-artist": "wall.album-artist", ".album-versions": "wall.album-versions" };
   for (const [sel, key] of Object.entries(parts)) { const el = tile.querySelector(sel); if (el) el.dataset.parity = key; }
   return tile;
 }
 function keyArtistTile(tile) {
   tile.dataset.parity = "artist.album";
   const parts = { ".album-art-wrap": "artist.album-art", ".album-quality": "artist.album-quality", ".album-source": "artist.album-source",
-                  ".album-discs": "artist.album-discs", ".album-title": "artist.album-title", ".album-artist": "artist.album-artist" };
+                  ".album-discs": "artist.album-discs", ".album-title": "artist.album-title", ".album-artist": "artist.album-artist", ".album-versions": "artist.album-versions" };
   for (const [sel, key] of Object.entries(parts)) { const el = tile.querySelector(sel); if (el) el.dataset.parity = key; }
   return tile;
 }
@@ -280,7 +280,7 @@ function keyPlaylistsTile(tile) {
 function keySearchTile(tile) {
   tile.dataset.parity = "search.album";
   const parts = { ".album-art-wrap": "search.album-art", ".album-quality": "search.album-quality", ".album-source": "search.album-source",
-                  ".album-discs": "search.album-discs", ".album-title": "search.album-title", ".album-artist": "search.album-artist" };
+                  ".album-discs": "search.album-discs", ".album-title": "search.album-title", ".album-artist": "search.album-artist", ".album-versions": "search.album-versions" };
   for (const [sel, key] of Object.entries(parts)) { const el = tile.querySelector(sel); if (el) el.dataset.parity = key; }
   return tile;
 }
@@ -288,7 +288,7 @@ function keySearchTile(tile) {
 function keyHomeTile(tile) {
   tile.dataset.parity = "home.album";
   const parts = { ".album-art-wrap": "home.album-art", ".album-quality": "home.album-quality", ".album-source": "home.album-source",
-                  ".album-discs": "home.album-discs", ".album-title": "home.album-title", ".album-artist": "home.album-artist" };
+                  ".album-discs": "home.album-discs", ".album-title": "home.album-title", ".album-artist": "home.album-artist", ".album-versions": "home.album-versions" };
   for (const [sel, key] of Object.entries(parts)) { const el = tile.querySelector(sel); if (el) el.dataset.parity = key; }
   return tile;
 }
@@ -358,6 +358,7 @@ function buildAlbumTile(a, onClick, opts) {
   meta.innerHTML = `<div class="album-title"></div><div class="album-artist"></div>`;
   meta.querySelector(".album-title").textContent  = a.title    || "Untitled";
   meta.querySelector(".album-artist").textContent = a.subtitle || "";
+  const versions = versionsMark(a); if (versions) meta.appendChild(versions);   // one of its album's versions (item 345)
 
   btn.appendChild(artWrap);
   btn.appendChild(meta);

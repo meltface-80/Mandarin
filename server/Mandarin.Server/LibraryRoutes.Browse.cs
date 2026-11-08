@@ -91,7 +91,7 @@ internal static partial class Library
         var qj = q.Replace(" ", "");
         var single = qj.Length <= 1;
         var hits = new List<(Album Al, int Score)>();
-        foreach (var al in s.Albums) { var sc = ScoreAlbum(al, q, qt, qj, single); if (sc > 0) hits.Add((al, sc)); }
+        foreach (var al in s.Shown) { var sc = ScoreAlbum(al, q, qt, qj, single); if (sc > 0) hits.Add((al, sc)); }
         hits = Sorted(hits, (a, b) => Or(b.Score - a.Score, () => Or(Lc(a.Al.NTitle, b.Al.NTitle), () => Kc(a.Al.NArtistKey, b.Al.NArtistKey))));
         return hits.Take(limit).ToList();
     }
@@ -129,7 +129,7 @@ internal static partial class Library
         {
             var seen = new Dictionary<string, (string Name, string N, int Count, Album First)>();
             var order = new List<string>();
-            foreach (var al in s.Albums)
+            foreach (var al in s.Shown)
                 for (var i = 0; i < al.ArtistNames.Length; i++)
                 {
                     var (name, n) = al.ArtistNames[i];
@@ -152,7 +152,7 @@ internal static partial class Library
         var seed = ToUint32(IntOr(Q(ctx, "seed"), 1));
         var m = new Dictionary<string, (string Name, int Count, string Image, string SortName, Album First)>();
         var order = new List<string>();
-        foreach (var al in s.Albums)
+        foreach (var al in s.Shown)
         {
             if (al.Compilation) continue;
             for (var i = 0; i < al.ArtistNames.Length; i++)
@@ -236,7 +236,7 @@ internal static partial class Library
         var featured = new List<Album>();
         if (q.Length > 0)
         {
-            foreach (var al in s.Albums)
+            foreach (var al in s.Shown)
             {
                 var whole = Names.ArtistKey(al.Artist);
                 var names = al.ArtistNames.Select(x => Names.ArtistKey(x.Name)).ToList();
@@ -248,7 +248,7 @@ internal static partial class Library
             using var c = Db.Open();
             foreach (var r in Rows(c, "SELECT DISTINCT album_id FROM tracks WHERE lower(artist) IN (lower($1), lower($2), lower($3)) LIMIT 200",
                          artist, ThePrefix().Replace(artist, "", 1), TheStart().IsMatch(artist) ? artist : "The " + artist))
-                if (s.ById.TryGetValue((long)r[0]!, out var al) && !primary.Contains(al) && !featured.Contains(al) && !(act.Given && Names.ArtistKey(al.ArtistNames.FirstOrDefault().Name) == q && !ByAct(al, act.Id))) featured.Add(al);
+                if (s.ById.TryGetValue((long)r[0]!, out var al) && Listed(al) && !primary.Contains(al) && !featured.Contains(al) && !(act.Given && Names.ArtistKey(al.ArtistNames.FirstOrDefault().Name) == q && !ByAct(al, act.Id))) featured.Add(al);
             int ByYear(Album a, Album b) => Or(Math.Sign((a.Year ?? 9999) - (b.Year ?? 9999)), () => Kc(a.SortTitleKey, b.SortTitleKey));
             primary = Sorted(primary, ByYear);
             featured = Sorted(featured, ByYear);
@@ -262,7 +262,7 @@ internal static partial class Library
     {
         var m = new Dictionary<string, int>();
         var order = new List<string>();
-        foreach (var al in s.Albums)
+        foreach (var al in s.Shown)
             foreach (var g in al.Genres)
                 if (m.TryGetValue(g, out var n)) m[g] = n + 1; else { m[g] = 1; order.Add(g); }
         return Sorted(order, (a, b) => m[b] - m[a]).Select(g => (g, m[g])).ToList();
@@ -277,7 +277,7 @@ internal static partial class Library
         if (st.Building) return NotReady(ctx);
         var m = new Dictionary<long, int>();
         var order = new List<long>();
-        foreach (var al in s.Albums)
+        foreach (var al in s.Shown)
         {
             if (al.Year == null) continue;
             var d = (long)Math.Floor(al.Year.Value / 10.0) * 10;

@@ -279,7 +279,7 @@ internal sealed partial class Taste(string? deezerBase, Action<string> log)
             {
                 if (picks.Count >= 5) break;
                 var q = Names.Fold(a0 is JsObj a && !Js.IsNullish(a["name"]) ? Js.Str(a["name"]) : "");
-                var owned = s.Albums.Where(al => Eligible(al) && !used.Contains(al.Id) && (al.NArtist == q || al.ArtistNames.Any(n => n.N == q))).ToList();
+                var owned = s.Shown.Where(al => Eligible(al) && !used.Contains(al.Id) && (al.NArtist == q || al.ArtistNames.Any(n => n.N == q))).ToList();
                 if (owned.Count == 0) continue;
                 var al = owned[(int)(Library.Seeded(day + string.Join(",", owned.Select(x => x.Id.ToString(CultureInfo.InvariantCulture))), 7) % (uint)owned.Count)];
                 used.Add(al.Id);
@@ -297,7 +297,7 @@ internal sealed partial class Taste(string? deezerBase, Action<string> log)
                 while (r.Read()) count[Convert.ToInt64(r.GetValue(0), CultureInfo.InvariantCulture)] = Convert.ToDouble(r.GetValue(1), CultureInfo.InvariantCulture);
             }
             double N(Album al) => count.TryGetValue(al.Id, out var n) ? n : 0;
-            var pool = Library.Sorted(s.Albums.Where(al => Eligible(al) && !used.Contains(al.Id)), (a, b) =>
+            var pool = Library.Sorted(s.Shown.Where(al => Eligible(al) && !used.Contains(al.Id)), (a, b) =>
             {
                 var d = Lookups.Sgn(N(a) - N(b));
                 return d != 0 ? d : Math.Sign((long)Library.Seeded(day + a.NTitle, 3) - Library.Seeded(day + b.NTitle, 3));
@@ -359,7 +359,7 @@ internal sealed partial class Taste(string? deezerBase, Action<string> log)
             p["offset"] = (double)al.Id;
             p["library_title"] = al.Title;
             p["library_subtitle"] = al.Artist;
-            p["image_key"] = al.ImageKey;
+            p["image_key"] = al.ImageKey; if (al.Versions != null) { p["versions"] = (double)al.Versions.Count; p["version"] = al.VersionLabel; }   // its versions (item 345)
             picks.Add(p);
         }
         o["picks"] = picks;

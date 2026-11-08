@@ -224,6 +224,8 @@ internal object ContractLabels2 {
         "album.composer" to listOf("{composer}"),
         "album.label" to listOf("{label}"),
         "album.box-disc" to listOf("Disc {…}"),
+        "album.version" to listOf("{version}"),
+        "album.version-main" to listOf("Make this the main version", "Saving…", "The main version", "Couldn't save that — try again"),
         "album.favourite" to listOf("Add to favourites", "Remove from favourites"),
         "album.play-now" to listOf("Play Now"),
         "album.queue" to listOf("Queue"),

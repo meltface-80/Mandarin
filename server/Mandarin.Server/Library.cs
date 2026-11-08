@@ -22,7 +22,7 @@ using Microsoft.Data.Sqlite;
 
 namespace Mandarin.Server;
 
-internal sealed class Album
+internal sealed partial class Album
 {
     public long Id;
     public string Title = "", Artist = "", ImageKey = "", Key = "";
@@ -415,8 +415,8 @@ internal static partial class Library
             al.LabelKey = !string.IsNullOrEmpty(name) ? Names.LabelKey(name) : null;
             al.LabelSource = !string.IsNullOrEmpty(name) ? source : null;
         }
+        Acts(c, s); Versions(c, s);   // acts that share a name, told apart (item 330); one album's versions (item 345)
         s.LabelGroups = BuildLabelGroups(s);
-        Acts(c, s);   // acts that share a name, told apart (item 330)
         s.AlbumSet = AlbumSetOf(s.Albums);
         return s;
     }

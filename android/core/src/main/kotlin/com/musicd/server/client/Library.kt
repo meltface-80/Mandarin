@@ -43,7 +43,10 @@ data class AlbumSummary(
     val serviceFavourite: Boolean? = null,
     /** Its act where acts share its artist's name (item 330): the act's id (0: the one MusicBrainz says nothing of) and the word that tells it apart. */
     val artistId: Long? = null,
-    val artistNote: String? = null
+    val artistNote: String? = null,
+    /** One of several versions of its album (item 345): how many there are, and what tells this one apart ("2015 Remaster · 24/96"). */
+    val versions: Int? = null,
+    val version: String? = null
 ) {
     /** The service's name as the page writes it ("Qobuz", "Tidal"); null for the library's own files. */
     val serviceName: String? get() = when (source) { "qobuz" -> "Qobuz"; "tidal" -> "Tidal"; else -> null }
@@ -64,7 +67,8 @@ data class AlbumSummary(
             box = j.optJSONObject("box")?.let { Box(it.optString("name", ""), it.optInt("disc", 0), it.optInt("of", 0)) },
             serviceId = j.str("service_id"),
             serviceFavourite = if (j.opt("service_favourite") is Boolean) j.getBoolean("service_favourite") else null,
-            artistId = if (j.has("artist_id")) j.optLong("artist_id") else null, artistNote = j.str("artist_note")
+            artistId = if (j.has("artist_id")) j.optLong("artist_id") else null, artistNote = j.str("artist_note"),
+            versions = j.int("versions"), version = j.str("version")
         )
     }
 }
@@ -196,7 +200,9 @@ data class Album(
     val works: List<Work> = emptyList(),
     val composers: List<String> = emptyList(),
     val conductor: String? = null,
-    val performers: List<String> = emptyList()
+    val performers: List<String> = emptyList(),
+    /** Its album's versions, the main first, this one among them (item 345); empty where it is the only one. */
+    val versions: List<AlbumVersion> = emptyList()
 ) {
     /** Set out as works: at least one of them named (an album with none is the plain list). */
     val classical: Boolean get() = works.any { it.title != null }
@@ -218,7 +224,8 @@ data class Album(
                 works = j.optJSONArray("works").items(Work::parse),
                 composers = a.optJSONArray("composers").strings(),
                 conductor = a.str("conductor"),
-                performers = a.optJSONArray("performers").strings()
+                performers = a.optJSONArray("performers").strings(),
+                versions = j.optJSONArray("versions").items(AlbumVersion::parse)
             )
         }
     }

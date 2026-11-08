@@ -81,7 +81,7 @@ internal static partial class Library
         if (st.Building) return NotReady(ctx);
         var defs = FacetDefs(s);
         var counts = defs.Select(_ => (Order: new List<string>(), N: new Dictionary<string, int>())).ToList();
-        foreach (var al in s.Albums)
+        foreach (var al in s.Shown)
             for (int i = 0; i < defs.Count; i++)
                 foreach (var v in defs[i].Values(al))
                 {
@@ -111,7 +111,7 @@ internal static partial class Library
                 }).ToArray())
             });
         }
-        int CountWith(string id) { var d = defs.First(x => x.Id == id); return s.Albums.Count(al => d.Values(al).Count > 0); }
+        int CountWith(string id) { var d = defs.First(x => x.Id == id); return s.Shown.Count(al => d.Values(al).Count > 0); }
         bool hasPlays = false;
         try { using var c = Db.Open(); hasPlays = Rows(c, "SELECT 1 FROM plays LIMIT 1").Count > 0; } catch (SqliteException) { /* no table yet */ }
         return Send(ctx, new JsonObject
@@ -156,7 +156,7 @@ internal static partial class Library
         var usesPlays = played != "any" || sort == "plays" || sort == "lastplayed";
         if (!usesPlays && prefix.Length == 0) lock (s.ViewCache) if (s.ViewCache.TryGetValue(sig, out var hit)) return hit;
 
-        IEnumerable<Album> list = s.Albums;
+        IEnumerable<Album> list = s.Shown;
         foreach (var (def, sel) in picked) list = list.Where(al => FacetMatch(sel, def.Values(al))).ToList();
         if (prefix.Length > 0)
             list = list.Where(al => al.SortTitle.StartsWith(prefix, StringComparison.Ordinal) || al.NTitle.StartsWith(prefix, StringComparison.Ordinal) ||
@@ -223,15 +223,15 @@ internal static partial class Library
         var fvalue = Names.JsTrim(Q(ctx, "filter_value") ?? "");
         bool filtered = ftype.Length > 0 && fvalue.Length > 0 && ftype is "genre" or "tag" or "decade";
         long? seed = Q(ctx, "seed") is { } sq ? PInt(sq) : null;
-        List<Album> pool = s.Albums;
+        List<Album> pool = s.Shown;
         if (filtered)
         {
             var v = Names.Fold(fvalue);
-            if (ftype == "genre") pool = s.Albums.Where(al => al.Genres.Any(g => Names.Fold(g) == v)).ToList();
+            if (ftype == "genre") pool = s.Shown.Where(al => al.Genres.Any(g => Names.Fold(g) == v)).ToList();
             else if (ftype == "decade")
             {
                 var dd = PInt(fvalue);
-                pool = dd is long dec ? s.Albums.Where(al => al.Year != null && al.Year >= dec && al.Year < dec + 10).ToList() : [];
+                pool = dd is long dec ? s.Shown.Where(al => al.Year != null && al.Year >= dec && al.Year < dec + 10).ToList() : [];
             }
             else pool = [];
         }
@@ -369,6 +369,7 @@ internal static partial class Library
             ["declared_tracks"] = tracks.Count
         };
         if (works.AnyWork) answer["works"] = Works.Json(works);
+        if (al.Versions != null) answer["versions"] = VersionsJson(s, al);   // its album's versions, the main first (item 345)
         return await Send(ctx, answer);
     }
 }

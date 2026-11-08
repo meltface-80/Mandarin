@@ -235,7 +235,10 @@ internal fun AlbumScreen(offset: Long, zoneId: String, lit: String, client: () -
                             }
                             DateLine(extras, onPage)
                             FactsLine(a)
-                            HeadNotes(a) { discs -> onStepTo(discs.items[discs.index].offset, zone, discs) }
+                            HeadNotes(a, onMain = { o, done ->
+                                val c = client()
+                                if (c == null) done(false) else scope.launch { val ok = withContext(Dispatchers.IO) { runCatching { c.mainVersion(o) }.isSuccess }; done(ok); if (ok) loads++ }
+                            }) { discs -> onStepTo(discs.items[discs.index].offset, zone, discs) }
                         }
                     }
                 }

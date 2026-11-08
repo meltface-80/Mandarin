@@ -226,7 +226,7 @@ async function openSmartPlaylist(sp) {
     for (const a of albums) {
       const tile = buildAlbumTile(a);
       tile.dataset.parity = "smart-playlist.album";
-      for (const [sel, key] of [[".album-art-wrap", "smart-playlist.album-art"], [".album-title", "smart-playlist.album-title"], [".album-artist", "smart-playlist.album-artist"]]) { const el = tile.querySelector(sel); if (el) el.dataset.parity = key; }
+      for (const [sel, key] of [[".album-art-wrap", "smart-playlist.album-art"], [".album-title", "smart-playlist.album-title"], [".album-artist", "smart-playlist.album-artist"], [".album-versions", "smart-playlist.album-versions"]]) { const el = tile.querySelector(sel); if (el) el.dataset.parity = key; }
       frag.appendChild(tile);
     }
     albumGrid.appendChild(frag);

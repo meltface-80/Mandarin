@@ -102,6 +102,7 @@ internal static partial class Library
         ["/api/playlist/play"] = NoSuchPlaylist,
         ["/api/playlist/play-track"] = NoSuchPlaylist,
         ["/api/favourites"] = SaveFavourite,
+        ["/api/album/versions/main"] = SaveMainVersion,
         ["/api/listen-later"] = SaveLater,
         ["/api/labels/merge"] = MergeLabels,
         ["/api/settings/labels"] = SaveLabelsOn,
@@ -287,6 +288,7 @@ internal static partial class Library
         if (al.Discs > 1) o["discs"] = al.Discs;
         if (al.Box != null) o["box"] = new JsonObject { ["name"] = al.Box.Name, ["disc"] = al.Box.Disc, ["of"] = al.Box.Of };
         if (al.ActNote != null) { o["artist_id"] = al.ActId ?? 0; if (al.ActNote.Length > 0) o["artist_note"] = al.ActNote; }   // its act, where acts share its name (item 330)
+        if (al.Versions != null) { o["versions"] = al.Versions.Count; o["version"] = al.VersionLabel; }   // one of its album's versions (item 345)
         if (extra != null) foreach (var (k, v) in extra.ToList()) { extra.Remove(k); o[k] = v; }
         return o;
     }

@@ -10,7 +10,7 @@ internal static partial class Library
         var order = new List<LabelGroup>();
         foreach (var al in s.Albums)
         {
-            if (string.IsNullOrEmpty(al.LabelKey)) continue;
+            if (string.IsNullOrEmpty(al.LabelKey) || !Listed(al)) continue;   // a version the lists don't show (item 345)
             var key = s.MergedKey(al.LabelKey);
             if (!m.TryGetValue(key, out var g)) { m[key] = g = new LabelGroup { Key = key }; order.Add(g); }
             g.Albums.Add(al);
