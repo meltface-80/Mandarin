@@ -39,6 +39,7 @@ internal static partial class Signing
         var q = rest.IndexOf('?');
         var pathOnly = q >= 0 ? rest[..q] : rest;
         var e = until.ToString(CultureInfo.InvariantCulture);
+        Handed.Note(pathOnly, until);   // what a speaker may ask for by its own address (item 369)
         return url + (url.Contains('?') ? "&" : "?") + "s=" + SigUntil(secret, pathOnly, e) + "." + e;
     }
 

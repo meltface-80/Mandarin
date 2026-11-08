@@ -160,7 +160,7 @@ test("MusicD Server behind its account", { timeout: 60000 }, async (t) => {
   }
 });
 
-test("a queue made before the update keeps playing: speakers need no signature", { timeout: 30000 }, async () => {
+test("a speaker unsigned: a cover it was never handed is turned away, as from anyone (item 369; what it was handed: speaker-handed.test.js)", { timeout: 30000 }, async () => {
   const http = require("http");
   const { FakeHousehold } = require("./fake-sonos");
   const house = new FakeHousehold();
@@ -179,7 +179,7 @@ test("a queue made before the update keeps playing: speakers need no signature",
     // The household read by the hub (v0.8.49; /api/health counts its rooms).
     const known = async () => (await (await fetch(`http://127.0.0.1:${port}/api/health`)).json()).rooms >= 2;
     for (let i = 0; i < 50 && !(await known()); i++) await new Promise(r => setTimeout(r, 200));
-    assert.notEqual(await from(ports.host(1)), 401, "a speaker gets through unsigned");
+    assert.equal(await from(ports.host(1)), 401, "a speaker unsigned, for what it was never handed: turned away (item 369)");
     assert.equal(await from(ports.host(3)), 401, "anything else needs to sign in");
   } finally {
     await srv.stop();
