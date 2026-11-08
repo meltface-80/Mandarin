@@ -61,16 +61,23 @@ jobs:
           cache-read-only: ${{ github.ref != 'refs/heads/main' && github.ref != 'refs/heads/dev' }}   # dev keeps the cache too (item 350)
 
       # The same signing secrets as Mandarin's app (MUSICD_KEYSTORE_BASE64, MUSICD_KEYSTORE_PASSWORD), as in the
-      # app's own repository before it moved here; without them, the key committed in bridge/android/app
-      # (mandarin-bridge-debug.keystore), the same every build, so each one installs over the last.
+      # app's own repository before it moved here; without them a build that may be published fails (item 364),
+      # and only a pull request's, never published, is signed with the key committed in bridge/android/app.
       - name: Restore the signing key
         id: signing
         env:
           KEYSTORE_BASE64: ${{ secrets.MUSICD_KEYSTORE_BASE64 }}
         run: |
           if [ -z "$KEYSTORE_BASE64" ]; then
+            # Never published signed with the committed debug key (item 364, the security audit's tenth finding): anyone
+            # can sign with it, and a phone would take such an APK as an update. Only a pull request's build, which is
+            # never published (a fork's or Dependabot's, given no secrets), may use it.
+            if [ "$GITHUB_EVENT_NAME" != "pull_request" ]; then
+              echo "::error::MUSICD_KEYSTORE_BASE64 is not set: a build that may be published is never signed with the committed debug key."
+              exit 1
+            fi
             echo "have_key=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::MUSICD_KEYSTORE_BASE64 is not set: signed with the committed debug key (updates install in place)."
+            echo "::notice::MUSICD_KEYSTORE_BASE64 is not set: a pull request's build, signed with the committed debug key and never published."
             exit 0
           fi
           printf '%s' "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
