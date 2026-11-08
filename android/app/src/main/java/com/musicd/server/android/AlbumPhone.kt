@@ -1,6 +1,7 @@
 package com.musicd.server.android
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -18,8 +19,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -29,6 +30,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.State
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -36,6 +39,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.layout.ContentScale
@@ -131,21 +136,57 @@ internal fun CentredCover(cover: ImageBitmap?, a: Album, width: Dp, badges: @Com
     }
 }
 
-/** The tabs, held at the top of the page as it scrolls (items 358, 373), with nothing behind them. */
-@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
-internal fun LazyListScope.phoneTabs(tab: String, versions: Int, onTab: (String) -> Unit) {
-    stickyHeader(key = "album.tabs") { AlbumTabRow(tab, versions, onTab = onTab) }
+/** The tabs in their place in the page, under Play Now and Queue; HeldTabs holds them at the top as it scrolls (item 375). */
+internal fun LazyListScope.phoneTabs(tab: String, versions: Int, scroll: ScrollState, onTab: (String) -> Unit) {
+    item(key = TABS_KEY) { AlbumTabRow(tab, versions, scroll, onTab) }
+}
+
+private const val TABS_KEY = "album.tabs"
+
+/** Where the line under the tabs is, in pixels from the list's top, while they are held there; null while they are in
+    their place, scrolled down to or not yet reached. */
+@Composable
+internal fun rememberHeldTabs(list: LazyListState): State<Int?> {
+    val seen = remember(list) { intArrayOf(-1, 0) }   // the tabs' place in the list and their height, as last laid out
+    return remember(list) {
+        derivedStateOf {
+            val info = list.layoutInfo
+            val t = info.visibleItemsInfo.firstOrNull { it.key == TABS_KEY }
+            if (t != null) { seen[0] = t.index; seen[1] = t.size }
+            when {
+                t != null -> t.size.takeIf { t.offset <= info.viewportStartOffset && list.canScrollBackward }
+                seen[0] >= 0 && list.firstVisibleItemIndex > seen[0] -> seen[1]
+                else -> null
+            }
+        }
+    }
+}
+
+/** The page cut off at the line under the tabs while they are held (item 375): what scrolls up past it isn't drawn, so
+    the tracks never show through the tabs, and above the line, the whole width, is the page's own background and the
+    cover's glow, not a bar painted over them. */
+internal fun Modifier.clipUnderTabs(line: State<Int?>): Modifier = drawWithContent {
+    val l = line.value
+    if (l == null) drawContent() else clipRect(top = l.toFloat()) { this@drawWithContent.drawContent() }
+}
+
+/** The tabs held at the top of the page, over the line it is cut off at: the same row as in its place, scrolled sideways
+    as it is, there only while held. */
+@Composable
+internal fun HeldTabs(line: State<Int?>, tab: String, versions: Int, scroll: ScrollState, onTab: (String) -> Unit) {
+    if (line.value == null) return
+    Box(Modifier.fillMaxWidth().padding(horizontal = 18.dp)) { AlbumTabRow(tab, versions, scroll, onTab) }
 }
 
 /** The tabs' row: its words tracked out, the one open in the text's colour over a brass bar; Versions with how many.
     Centred, with room at each side for Back at the corner (item 373), never a bar behind them; across the row a step
     sideways where a narrow phone hasn't room for them all. */
 @Composable
-internal fun AlbumTabRow(tab: String, versions: Int, onTab: (String) -> Unit) {
+internal fun AlbumTabRow(tab: String, versions: Int, scroll: ScrollState, onTab: (String) -> Unit) {
     val faint = paletteColor(Palette.TEXT_FAINT)
     val brass = MaterialTheme.colorScheme.primary
     Column(Modifier.fillMaxWidth()) {
-        Row(Modifier.fillMaxWidth().padding(horizontal = 44.dp).horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(18.dp, Alignment.CenterHorizontally)) {
+        Row(Modifier.fillMaxWidth().padding(horizontal = 44.dp).horizontalScroll(scroll), horizontalArrangement = Arrangement.spacedBy(18.dp, Alignment.CenterHorizontally)) {
             ALBUM_TABS.forEachIndexed { i, t ->
                 if (t == "versions" && versions < 2) return@forEachIndexed
                 val on = t == tab
