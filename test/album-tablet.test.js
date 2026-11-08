@@ -16,7 +16,8 @@
  *   - on a phone held upright (item 349): the cover centred on top, the date,
  *     rate and length centred under it, the title across the page, then the
  *     tabs (Tracks, Credits, About), the tracks the one open, the review About's;
- *     no Tracks or Credits heading under the tabs that say them (item 355);
+ *     no Tracks or Credits heading under the tabs that say them (item 355); no bar behind the tabs in their place,
+ *     their row filled only while held at the top as the page scrolls (item 358);
  *   - a tablet held sideways (item 214): the album in three columns, the
  *     cover, its head and its buttons on the left, the tracks on the right;
  *     still the whole ⋯ menu on screen, every item tapped.
@@ -93,6 +94,16 @@ const DRIVER = `(async () => {
   out.heads = [".tracks-head", "#album-credits > .section-label"].map(s => getComputedStyle(document.querySelector(s)).display !== "none");
   out.label = $("album-about-facts").textContent.trim();
   out.tabs = [...document.querySelectorAll("#album-tabs .album-tab")].filter(t => getComputedStyle(t).display !== "none" && t.getBoundingClientRect().height > 0).map(t => t.textContent.trim());
+  // The tabs' row filled only while held at the top as the page scrolls (item 358): in its place, nothing behind it.
+  const tabsEl = $("album-tabs");
+  out.tabsRest = getComputedStyle(tabsEl).backgroundColor;
+  // Long enough to scroll the tabs to the top (the fixture's tracks aren't): rows added under the tracks for this alone.
+  const extra = [...Array(20)].map(() => ol.appendChild(row.cloneNode(true)));
+  body.scrollTop = tabsEl.offsetTop + 400; await sleep(300);
+  out.tabsHeld = [getComputedStyle(tabsEl).backgroundColor, getComputedStyle(document.body).backgroundColor, Math.round(tabsEl.getBoundingClientRect().top - $("modal-actions").getBoundingClientRect().bottom)];
+  body.scrollTop = 0; await sleep(300);
+  extra.forEach(e => e.remove());
+  out.tabsBack = getComputedStyle(tabsEl).backgroundColor;
   // Scrolled so the button row is near the top of the panel.
   const rowTop = $("modal-actions").getBoundingClientRect().top - body.getBoundingClientRect().top;
   body.scrollTop = Math.max(0, rowTop - 60); await new Promise(r => requestAnimationFrame(r));
@@ -152,6 +163,10 @@ test("the album view on a tablet and a phone: a 160px sleeve, the title beside i
         assert.ok(Math.abs((date.l + facts.r) / 2 - mid) < 3, `${size}: that line centred (${date.l}–${facts.r})`);
         assert.ok(title.t >= facts.b && title.l < r.art.l && artist.t >= title.b - 1, `${size}: the title across the page under them, the artists under it (${JSON.stringify([title, artist])})`);
         assert.deepEqual(r.tabs, ["Tracks", "Credits", "About"], size + ": the tabs, no Versions for an album of one");
+        assert.equal(r.tabsRest, "rgba(0, 0, 0, 0)", size + ": no bar behind the tabs in their place (item 358)");
+        assert.ok(r.tabsHeld[2] > 30, size + ": scrolled, the tabs held at the top, the buttons gone up past them (" + r.tabsHeld[2] + ")");
+        assert.equal(r.tabsHeld[0], r.tabsHeld[1], size + ": held at the top, filled with the page's colour over the tracks");
+        assert.equal(r.tabsBack, "rgba(0, 0, 0, 0)", size + ": back in their place, no bar again");
         assert.ok(r.tracks.t > title.b, `${size}: the tracks under the head (${r.tracks.t})`);
         assert.ok(r.bio.b - r.bio.t === 0, `${size}: the review About's, not shown on Tracks (${JSON.stringify(r.bio)})`);
         assert.equal(r.tracksHead, "Tracks", size + ": the Tracks line");
@@ -234,4 +249,15 @@ test("the album's ⋯ → Add to playlist: the whole album into a playlist you c
     const after = (await api("user-playlists")).playlists.find(p => p.name === "Mix").track_total;
     assert.equal(after, before + 3, "Album One's three tracks added to Mix");
   } finally { await srv.stop(); }
+});
+
+test("the app's album tabs: no bar behind them in their place, filled only while held at the top (item 358)", () => {
+  const fs = require("fs"), path = require("path");
+  const phone = fs.readFileSync(path.join(__dirname, "..", "android/app/src/main/java/com/musicd/server/android/AlbumPhone.kt"), "utf8");
+  const screen = fs.readFileSync(path.join(__dirname, "..", "android/app/src/main/java/com/musicd/server/android/AlbumScreen.kt"), "utf8");
+  assert.match(phone, /val fill by animateColorAsState\(if \(held\) MaterialTheme\.colorScheme\.background else MaterialTheme\.colorScheme\.background\.copy\(alpha = 0f\)/);
+  assert.match(phone, /Column\(Modifier\.fillMaxWidth\(\)\.background\(fill\)\)/);
+  assert.doesNotMatch(phone, /Column\(Modifier\.fillMaxWidth\(\)\.background\(MaterialTheme\.colorScheme\.background\)\)/, "never always filled");
+  assert.match(phone, /list\.firstVisibleItemIndex >= at && list\.canScrollBackward/);
+  assert.match(screen, /state = list, contentPadding = pad\)[\s\S]*phoneTabs\(list, tab, a\.versions\.size\)/);
 });

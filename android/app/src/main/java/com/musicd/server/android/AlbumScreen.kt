@@ -338,14 +338,14 @@ internal fun AlbumScreen(offset: Long, zoneId: String, lit: String, client: () -
             }
             // A phone held upright (item 349): the head, then the tabs, held at the top as the page scrolls, and the one open.
             else BoxWithConstraints(Modifier.fillMaxSize()) {
-                val width = minOf(maxWidth * 0.67f, 300.dp)
-                LazyColumn(Modifier.fillMaxSize().padding(horizontal = 18.dp), contentPadding = pad) {
-                    item { PhoneHead(a, cover, width, extras, onPage, badges = {
+                val list = androidx.compose.foundation.lazy.rememberLazyListState()
+                LazyColumn(Modifier.fillMaxSize().padding(horizontal = 18.dp), state = list, contentPadding = pad) {
+                    item { PhoneHead(a, cover, minOf(maxWidth * 0.67f, 300.dp), extras, onPage, badges = {
                         SourceBadge(a.album.source, Modifier.align(Alignment.BottomStart))
                         if (booklets.isNotEmpty()) BookletButton(booklets, disc, Modifier.align(Alignment.BottomEnd)) { onBooklet(offset, it) }
                     }) { discs -> onStepTo(discs.items[discs.index].offset, zone, discs) } }
                     actionItem(a)
-                    stickyHeader { AlbumTabRow(tab, a.versions.size) { tab = it } }
+                    phoneTabs(list, tab, a.versions.size) { tab = it }
                     when (tab) {
                         "credits" -> { albumCredits(credits, client, onArtist = { onPage("artist", it) }, head = false); if (credits?.credits.isNullOrEmpty()) item { Text(AlbumVersion.NO_CREDITS, Modifier.parity("album.tab-empty").padding(vertical = 24.dp), color = dim) } }
                         "about" -> { aboutHead(a, extras, onPage); albumAbout(extras?.review, more, client, onAlbum = { id -> onAlbum(id, zone) }, onArtist = { onPage("artist", it) }, onUrl = ::openUrl) }
