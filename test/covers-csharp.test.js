@@ -11,8 +11,8 @@
  *   - a picture from elsewhere ("u-" and its address): fetched and drawn; never from this machine or its network
  *     (item 353), but for the speakers' own addresses and the hosts named in ART_HOSTS, each redirect checked too;
  *     one that can't be had is a 404, as the Node server answered it;
- *   - a speaker asking by its own address (v0.8.48, stage 5 part 5): let
- *     through and sent; anyone else unsigned turned away at the gate.
+ *   - a speaker asking by its own address (v0.8.48, stage 5 part 5): only for what it was handed (item 369,
+ *     speaker-handed.test.js), so a cover it never was is turned away at the gate, as anyone unsigned is.
  */
 const ports = require("./ports");
 const test = require("node:test");
@@ -145,7 +145,7 @@ test("the covers sharp drew, drawn by the C# server", { skip, timeout: 120000 },
     }
   });
 
-  await t.test("a speaker asking by its own address: let through and sent here; anyone else unsigned turned away at the gate", async () => {
+  await t.test("a speaker asking by its own address for a cover it was never handed: turned away at the gate, as anyone unsigned is (item 369)", async () => {
     // The rooms found, their addresses the hub's.
     for (let i = 0; i < 300; i++) { if ((await (await fetch(B + "/api/zones", H)).json()).zones.length >= 2) break; await new Promise(r => setTimeout(r, 100)); }
     const withCover = albums.find(a => a.title === "Album One");
@@ -157,10 +157,10 @@ test("the covers sharp drew, drawn by the C# server", { skip, timeout: 120000 },
         res.on("end", () => resolve({ status: res.statusCode, by: res.headers["x-mandarin-answered"] || null, type: res.headers["content-type"], body: Buffer.concat(chunks) }));
       }).on("error", reject);
     });
-    // No token, no signature: from a speaker's address, sent; from any other, the gate's refusal (auth.js gate, Auth.Media.cs).
+    // No token, no signature: from a speaker's address, only what it was handed (speaker-handed.test.js), which this
+    // cover never was; from any other, the gate's refusal (auth.js gate, Auth.Media.cs).
     const speaker = await ask(ports.host(0));
-    assert.deepEqual([speaker.status, speaker.by, speaker.type], [200, "C#", "image/jpeg"]);
-    assert.equal(dims(speaker.body), "300,300");
+    assert.deepEqual([speaker.status, speaker.by, JSON.parse(speaker.body.toString()).sign_in_required], [401, "C#", true], "a speaker, never handed it: turned away");
     const stranger = await ask("127.0.0.1");
     assert.deepEqual([stranger.status, stranger.by, JSON.parse(stranger.body.toString()).sign_in_required], [401, "C#", true], "not a speaker: turned away");
   });
