@@ -76,9 +76,9 @@
    * [onCount] is told how many albums of their bands came, for the heading's count. [ownAlbums] and [featured] their
    * albums and those they appear on, for Play and Shuffle (item 138).
    * @param {string} name @param {string} pin @param {HTMLElement} grid @param {() => boolean} alive @param {Set<number>} shown
-   * @param {((n: number) => void)=} onCount @param {any[]=} ownAlbums @param {any[]=} featured
+   * @param {((n: number) => void)=} onCount @param {any[]=} ownAlbums @param {any[]=} featured @param {(number|string|null)=} actId
    */
-  function renderArtistHead(name, pin, grid, alive, shown, onCount, ownAlbums, featured) {
+  function renderArtistHead(name, pin, grid, alive, shown, onCount, ownAlbums, featured, actId) {
     const head = document.createElement("div");
     head.className = "artist-bio-head";
     const top = document.createElement("div");
@@ -137,7 +137,11 @@
     };
 
     // Who they are: the server may look them up there and then, for a few seconds.
-    json("/api/artist?name=" + encodeURIComponent(name)).then((/** @type {any} */ a) => {
+    // One act of a shared name: looked up as that act (item 340).
+    // Asked again in a few seconds while the server is still looking them up as the act their albums are by (item 341).
+    const about = (/** @type {number} */ n) => json("/api/artist?name=" + encodeURIComponent(name) + (actId != null ? "&artist_id=" + encodeURIComponent(actId) : ""))
+      .then((/** @type {any} */ a) => a && a.pending && n < 4 && alive() ? new Promise(r => setTimeout(r, 3000)).then(() => about(n + 1)) : a);
+    about(0).then((/** @type {any} */ a) => {
       if (!a || !alive()) return;
       if (a.photo_key) picture("/api/image/" + encodeURIComponent(a.photo_key) + "?size=600", true);
       const said = facts(a);

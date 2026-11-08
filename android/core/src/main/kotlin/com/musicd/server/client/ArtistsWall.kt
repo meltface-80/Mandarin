@@ -30,7 +30,7 @@ object ArtistsWall {
     fun art(a: Artist): String? = a.photoKey ?: a.imageKey
 
     /** Under a name: how many albums. */
-    fun subtitle(a: Artist): String = if (a.albumCount == 1) "1 album" else "${a.albumCount} albums"
+    fun subtitle(a: Artist): String = (if (a.albumCount == 1) "1 album" else "${a.albumCount} albums") + (a.note?.let { " · $it" } ?: "")
 
     /** The heading: "Artists", and how many once the first page has said ("Artists · 312"). */
     fun heading(total: Int?): String = if (total == null) "Artists" else "Artists · $total"
@@ -40,4 +40,23 @@ object ArtistsWall {
 
     /** Whether more can be read after [have] of [total]. */
     fun more(have: Int, total: Int): Boolean = have < total
+}
+
+/**
+ * One act of a name others share (item 330: Airbag from Norway, Airbag from Argentina), as an artist's page is opened
+ * with it: the name and the act's id together in the one string every "open this artist" passes, so an act opened from
+ * the Artists wall or from its own album's page is that act alone; a plain name is every act of it, as ever.
+ */
+object ArtistAct {
+    private const val SEP = '\u001F'
+
+    /** [name], and act [id] where acts share it. */
+    fun of(name: String, id: Long?): String = if (id == null) name else "$name$SEP$id"
+
+    /** The name, and the act it names (null: every act of the name). */
+    fun parse(s: String): Pair<String, Long?> {
+        val at = s.lastIndexOf(SEP)
+        if (at < 0) return s to null
+        return s.substring(0, at) to s.substring(at + 1).toLongOrNull()
+    }
 }

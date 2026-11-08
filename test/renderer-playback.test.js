@@ -302,11 +302,10 @@ test("a renderer is a zone", { skip, timeout: 150000 }, async (t) => {
       assert.equal(s.now_playing.format.text, "FLAC 24/88.2 ↑×2");
       // Its signal path (item 247): what goes out and how, centred; every step from the file to the device.
       const sp = s.now_playing.signal;
-      assert.deepEqual(sp.lines, ["FLAC 24/88.2 kHz ↑×2", "Standard filter"]);
-      assert.deepEqual(sp.steps.map(x => x.kind), ["source", "upsample", "output", "fed"]);
-      assert.equal(sp.steps[0].detail, "FLAC 16/44.1 kHz");
-      assert.equal(sp.steps[1].detail, "×2 to 88.2 kHz · Standard filter");
-      assert.match(sp.steps[2].detail, /^FLAC 24\/88\.2 kHz, to Living Room WiiM$/);
+      // As few steps as can be (item 331): the source, the bit depth Mandarin works it at, one line for what goes out.
+      assert.deepEqual(sp.lines, ["FLAC 24/88.2 kHz ↑×2", "Standard ×2 · 24/88.2 kHz"]);
+      assert.deepEqual(sp.steps.map(x => x.kind), ["source", "float", "upsample", "fed"]);
+      assert.deepEqual(sp.steps.slice(0, 3).map(x => [x.title, x.detail]), [["Source", "FLAC 16-bit 44.1 kHz 2ch"], ["Bit depth conversion", "16-bit to 64-bit float"], ["Upsampling", "Standard ×2 · 24/88.2 kHz"]]);
       // The WiiM's own word (item 287): the format it reports, nothing said of the samples it can't vouch for.
       assert.deepEqual([sp.steps[3].title, sp.steps[3].detail], ["The device reports", "PCM 88.2 kHz, 24-bit — as its own API reports it"]);
       assert.deepEqual(sp.steps.map(x => x.quality), ["lossless", "enhanced", "enhanced", "pending"]);
@@ -344,7 +343,7 @@ test("a renderer is a zone", { skip, timeout: 150000 }, async (t) => {
       assert.match(f4.uri, /\.88200-24\.flac\?(.*&)?f=min(&|$)/);
       assert.deepEqual(probe(f4.body), { rate: 88200, channels: 2, bits: 24 });
       const np = await until(async () => { const z = await state(WIIM); return z && z.now_playing && z.now_playing.signal && z.now_playing; }, 15000);
-      assert.equal(np.signal.lines[1], "Minimum-phase filter");
+      assert.equal(np.signal.lines[1], "Minimum-phase ×2 · 24/88.2 kHz");
       // The next made in its turn, then armed whole: its file too, and none failed on the way.
       const made = path.join(lib.data, "transcode");
       await until(() => fs.existsSync(made) && fs.readdirSync(made).filter(f => /-minj\.flac$/.test(f)).length >= 2, 60000);
@@ -495,8 +494,14 @@ test("a renderer is a zone", { skip, timeout: 150000 }, async (t) => {
       assert.equal(Number(f.body.readBigInt64LE(64)), (30 * 44100 - (30 * 44100) % 512) * 64);
       const dz = await until(async () => { const z = await state(DAC); return z && z.now_playing && z.now_playing.format && z.now_playing.format.text === "DSD64 from PCM" && z; }, 15000);
       // Its signal path (item 247): ×16 to 705.6 kHz, the modulator, the DSF; nothing still to be made.
-      assert.deepEqual(dz.now_playing.signal.lines, ["DSD64 · 2.8224 MHz", "From PCM · standard filter ×16 · 7th-order modulator"]);
-      assert.deepEqual(dz.now_playing.signal.steps.map(x => x.kind), ["source", "upsample", "modulator", "output"]);
+      assert.deepEqual(dz.now_playing.signal.lines, ["DSD64 · 2.8224 MHz", "Standard ×16 · 7th-order · DSD64"]);
+      assert.deepEqual(dz.now_playing.signal.steps.map(x => x.kind), ["source", "float", "upsample"]);
+      // Another album queued while this one is made (item 337): nothing stopped, Long 1 made on to its end. It was cut
+      // mid-track, the queue's tracks kept and the one playing not, and its room fell silent.
+      const queuedAt = ctx.logs.length;
+      assert.equal((await api("play", { offset: cd.offset, zone_or_output_id: DAC, kind: "queue" })).status, 200);
+      await new Promise(r => setTimeout(r, 1500));
+      assert.deepEqual(ctx.logs.slice(queuedAt).filter(l => /no longer made/.test(l)), [], "a queued album stops nothing");
       // How fast it was made: in the log, and under PCM as DSD.
       await until(() => ctx.logs.slice(said).some(l => /Long 1\.flac: DSD64 from PCM, standard filter \(0 reset\(s\)\), made as it played at [\d.]+× real time/.test(l)), 60000);
       await until(async () => /^Made as it plays: this server made the last at [\d.]+× real time/.test((await api("audio-devices/" + DAC)).output.making), 10000);
@@ -524,9 +529,12 @@ test("a renderer is a zone", { skip, timeout: 150000 }, async (t) => {
       try {
         await api("control", { zone_or_output_id: DAC, command: "next" });
         await until(() => ctx.logs.slice(skip).some(l => /1 track\(s\) no longer made: skipped from/.test(l)), 15000);
+        // Said as stopped on purpose, never as a failure (item 332): the stream's own line names why.
+        await until(() => ctx.logs.slice(skip).some(l => /\[stream\] .*01 Song 1\.flac: no longer made: skipped from$/.test(l)), 15000);
         await until(() => ctx.logs.slice(skip).some(l => /02 Song 2\.flac: DSD64 from PCM.*made as it played/.test(l)), 30000);
       } finally { dac.release(); }
       assert.ok(!ctx.logs.slice(skip).some(l => /01 Song 1\.flac: DSD64 from PCM.*made as it played/.test(l)), "Song 1 not made");
+      assert.deepEqual(ctx.logs.slice(before).filter(l => /transcode failed/.test(l)), [], "a making stopped on purpose is no failure (item 332)");
       await api("control", { zone_or_output_id: DAC, command: "stop" });
       await api("audio-devices/" + DAC, { output: { dsd_out: "off" }, enabled: false }, "PATCH");
     });

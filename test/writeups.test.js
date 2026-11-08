@@ -1,12 +1,11 @@
 "use strict";
 /*
- * A record's write-up and links, end to end: an album's extras (the year, the
+ * A record's write-up, end to end: an album's extras (the year, the
  * day asked for there and then, Pitchfork's score with Wikipedia's words, the
- * artist's story, Qobuz's label and year, where to hear it and read about it),
- * an artist's story, Pitchfork's lists (Best New Music from its page, Latest
- * from the RSS feed when the page can't be read) and a review's match in the
- * library, the link that opens the Qobuz app, the Pitchfork part of the
- * search, and the share card's settings. Wikipedia, Qobuz's site, Pitchfork
+ * artist's story, Qobuz's label and year), an artist's story, Pitchfork's
+ * lists (Best New Music from its page, Latest from the RSS feed when the page
+ * can't be read) and a review's match in the library, and the Pitchfork part
+ * of the search. Wikipedia, Qobuz's site, Pitchfork
  * and MusicBrainz are fakes on loopback. Made by the C# server since v0.8.21.
  */
 const ports = require("./ports");
@@ -23,7 +22,7 @@ const ALBUM_TEXT = "Album One is the debut studio album by English band Artist A
 const ARTIST_TEXT = "Artist A are an English rock band formed in London in 1990.";
 const PF_BODY = "<p>Artist A made a record in a single week of 1996, with a borrowed four-track and a great deal of nerve.</p>";
 
-test("a record's write-up and links: the same from either server", { skip: !haveFfmpeg() && "ffmpeg is not installed", timeout: 90000 }, async () => {
+test("a record's write-up: the same from either server", { skip: !haveFfmpeg() && "ffmpeg is not installed", timeout: 90000 }, async () => {
   const lib = makeLibrary();
   const mb = new FakeMusicBrainz([
     { id: "r1", title: "Album One", artist: "Artist A", date: "1997", tracks: [["Song 1", 2]] },
@@ -50,13 +49,11 @@ test("a record's write-up and links: the same from either server", { skip: !have
       { contentType: "review", url: "https://pitchfork.com/reviews/albums/artist-a-album-one/", ratingValue: { score: "8.4", isBestNewReissue: true },
         source: { hed: "*Album One*" }, subHed: { name: " Artist A " }, image: { sources: { sm: { url: "https://media/sm.jpg" } } }, pubDate: "2026-10-05T10:00:00.000Z" }
     ] } }) + ";</script></html>",
-    // Qobuz's site: the search, the album's page, and the search the app's link is read from.
+    // Qobuz's site: the search and the album's page.
     "/us-en/search?q=Album%20One%20Artist%20A": `<html><a href="/us-en/album/greatest-hits-somebody/zz1">x</a><a href="/us-en/album/album-one-artist-a/abc123">Album One</a></html>`,
     "/us-en/album/album-one-artist-a/abc123": `<html><h2>Album Review: Artist A - Album One</h2><div>Artist A – Album One <p>The first record from the band, ` +
       `made in a single week with a borrowed four-track and a great deal of nerve.</p></div>\n&copy; John Smith /TiVo\nAbout the album ` +
       `<p>Released on 03/01/97 by <a href="/label/parlophone">Parlophone</a></p></html>`,
-    "/gb-en/search/albums/Artist%20A%20Album%20One": `<html><a href="/fr-fr/album/album-one-artist-a/fr1"></a><a href="/gb-en/album/album-one-remastered-artist-a/rm2"></a>` +
-      `<a href="/gb-en/album/album-one-artist-a/0886abc"></a></html>`,
     // Wikipedia: the album's article, the act's, and the search that ties them.
     [wiki.search("Album One Artist A album")]: wiki.hits("Album One (Artist A album)", "Artist A (band)"),
     [wiki.extract("Album One (Artist A album)")]: wiki.page("Album One (Artist A album)", ALBUM_TEXT),
@@ -79,23 +76,11 @@ test("a record's write-up and links: the same from either server", { skip: !have
     for (let i = 0; i < 150 && (await (await fetch(B + "/api/status", { headers: { Authorization: "Bearer " + token } })).json()).index_count !== 3; i++) await new Promise(res => setTimeout(res, 100));
 
     // An album's extras: Pitchfork's score and link, Wikipedia's words (Pitchfork's are never shown), Qobuz's year.
-    const services = q => ["qobuz", "spotify", "apple", "amazon", "deezer", "bandcamp"].map(id => ({ id, name: { qobuz: "Qobuz", spotify: "Spotify", apple: "Apple Music",
-      amazon: "Amazon Music", deezer: "Deezer", bandcamp: "Bandcamp" }[id], url: { qobuz: `https://www.qobuz.com/us-en/search/?q=${q}`, spotify: `https://open.spotify.com/search/${q}`,
-      apple: `https://music.apple.com/search?term=${q}`, amazon: `https://music.amazon.com/search/${q}`, deezer: `https://www.deezer.com/search/${q}`, bandcamp: `https://bandcamp.com/search?q=${q}&item_type=a` }[id] }));
     const expected = {
       year: "1997", release_date: "1997",
       album: { description: ALBUM_TEXT, description_source: "Wikipedia", description_url: wikiAlbumUrl, year: "1997", label: null,
         url: pfUrl, source: "Pitchfork", score: 8.4, isBestNewMusic: true },
-      artist: { name: "Artist A (band)", description: ARTIST_TEXT, url: wikiArtistUrl, source: "Wikipedia" },
-      card: { review: true },
-      links: {
-        services: services("Artist%20A%20Album%20One"),
-        reviews: [
-          { id: "wikipedia", name: "Wikipedia", chip: "Wikipedia", kind: "album", url: wikiAlbumUrl },
-          { id: "pitchfork", name: "Pitchfork", chip: "Pitchfork", kind: "album", url: pfUrl },
-          { id: "allmusic", name: "AllMusic", chip: "AllMusic", kind: "album", url: "https://www.allmusic.com/search/albums/Artist%20A%20Album%20One" }
-        ]
-      }
+      artist: { name: "Artist A (band)", description: ARTIST_TEXT, url: wikiArtistUrl, source: "Wikipedia" }
     };
     let x = await ask("album/extras?title=Album%20One&artist=Artist%20A");
     assert.deepStrictEqual(x.body, expected);
@@ -140,27 +125,5 @@ test("a record's write-up and links: the same from either server", { skip: !have
     assert.deepStrictEqual(x.body, { review: null, match: null }, "the artist's, but not the record");
     assert.deepStrictEqual((await ask("pitchfork/review?url=" + encodeURIComponent("https://example.com/reviews/albums/x/"))).body, { error: "Not a Pitchfork album-review URL" });
     assert.deepStrictEqual((await ask("pitchfork/review?url=nope")).body, { error: "Invalid url" });
-
-    // The Qobuz app's link: the exact record on the storefront the language says, not the remaster or another store's.
-    x = await ask("qobuz-link?album=Album%20One&artist=Artist%20A", { headers: { "Accept-Language": "en-GB,en;q=0.8" } });
-    assert.deepStrictEqual(x.body, { url: "https://open.qobuz.com/album/0886abc" });
-    assert.equal(x.headers.get("cache-control"), "public, max-age=604800");
-    const before = web.calls.length;
-    await ask("qobuz-link?album=Album%20One&artist=Artist%20A", { headers: { "Accept-Language": "en-GB" } });
-    assert.equal(web.calls.length, before, "remembered");
-    assert.deepStrictEqual((await ask("qobuz-link?album=Unknown&artist=Nobody")).body, { url: null });
-    assert.equal((await ask("qobuz-link?artist=x")).status, 400);
-
-    // The share card's settings: what's shown under the card, and whether the card carries the write-up.
-    const J = { "Content-Type": "application/json" };
-    x = await ask("settings/share-links", { method: "POST", headers: J, body: JSON.stringify({ services: ["qobuz", "nope", "bandcamp"], card_review: false }) });
-    assert.deepStrictEqual(x.body, { ok: true, services: ["qobuz", "bandcamp"], reviews: ["wikipedia", "pitchfork", "allmusic"], card: { review: false } });
-    x = await ask("album/extras?fast=1&title=Album%20One&artist=Artist%20A");
-    assert.deepStrictEqual([x.body.card, x.body.links.services.map(s => s.id)], [{ review: false }, ["qobuz", "bandcamp"]]);
-    x = await ask("settings/share-links");
-    assert.deepStrictEqual(x.body.services.enabled, ["qobuz", "bandcamp"]);
-    assert.equal(x.body.reviews.all.length, 5);
-    assert.deepStrictEqual(x.body.reviews.all[3], { id: "wikipedia-artist", name: "Wikipedia", kind: "artist", chip: "Wikipedia artist", onByDefault: false });
-    assert.equal((await ask("settings/share-links", { method: "POST", headers: J, body: "{}" })).status, 400);
   } finally { await srv.stop(); await Promise.all([mb.stop(), web.stop()]); }
 });

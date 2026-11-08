@@ -3,32 +3,32 @@
   "a new database": {
    "n": 2,
    "per": 32,
-   "sums": "726eef9f"
+   "sums": "77d4dd70"
   },
   "a new database, asked again": {
    "n": 1,
    "per": 32,
-   "sums": "79ca73da"
+   "sums": "f3015693"
   },
   "one from before the columns added since": {
    "n": 1,
    "per": 32,
-   "sums": "b8369454"
+   "sums": "e519c704"
   },
   "one made by something else": {
    "n": 4,
    "per": 32,
-   "sums": "009b9ead"
+   "sums": "0ef189e3"
   },
   "one from a newer version": {
    "n": 1,
    "per": 32,
-   "sums": "e1c56f84"
+   "sums": "b2f3603e"
   },
   "the album edits read back": {
    "n": 2,
    "per": 32,
-   "sums": "4b36a87b"
+   "sums": "40658d18"
   },
   "the album edits written": {
    "n": 1,
@@ -64,7 +64,7 @@
   "an unreadable album-edits.json": {
    "n": 1,
    "per": 32,
-   "sums": "79ca73da"
+   "sums": "f3015693"
   }
  },
  "inputs": {}

@@ -95,7 +95,8 @@ object Store {
     fun setMenuKept(context: Context, kept: String) { prefs(context).edit().putString("menu_kept", kept).apply() }
 
     /** Logging (Settings → Setup, item 121): off unless switched on. */
-    fun logging(context: Context): Boolean = prefs(context).getBoolean("logging", false)
+    /** Settings → Setup → Logging: on unless switched off (item 334). */
+    fun logging(context: Context): Boolean = prefs(context).getBoolean("logging", true)
     fun setLogging(context: Context, on: Boolean) { prefs(context).edit().putBoolean("logging", on).apply() }
 
     /** Native Home (bug list item 57, a preview): the same switch's neighbour in UI Settings. */

@@ -8,7 +8,7 @@ import org.junit.Test
 
 /** This phone's screen settings kept by the app, and a backup's page part under the page's own names (item 111). */
 class ScreenPrefsTest {
-    private val prefs = """{"layout":"list","text":"1.25","greeting":"off","labelOrder":"random","labelMin":"3","shareService":"qobuz",
+    private val prefs = """{"layout":"list","text":"1.25","greeting":"off","labelOrder":"random","labelMin":"3","appOnly":"kept",
         "view":"sort=year&dir=desc&genre=Jazz","rra-filter":"x"}"""
 
     @Test fun `a backup under the page's names`() {
@@ -20,7 +20,7 @@ class ScreenPrefsTest {
         assertEquals("3", p.getString("rra-label-min"))
         assertEquals("RINCON_1", p.getString("rra-zone"))
         assertEquals("x", p.getString("rra-filter"))
-        assertFalse(p.has("shareService"))
+        assertFalse("what the app alone keeps is not in a backup", p.has("appOnly"))
         val view = JSONObject(p.getString("rra-library-view"))
         assertEquals("year", view.getString("sort"))
         assertEquals(2, view.getInt("v"))
@@ -37,7 +37,7 @@ class ScreenPrefsTest {
         assertFalse(j.has("text"))
         assertFalse(j.has("rra-filter"))
         assertEquals("1", j.getString("rra-np-reduced"))
-        assertEquals("qobuz", j.getString("shareService"))
+        assertEquals("what the app alone keeps, kept", "kept", j.getString("appOnly"))
         assertEquals("sort=artist&dir=desc&label=ECM", j.getString("view"))
         assertEquals("list", WallPrefs.parse(ScreenPrefs.backup(prefs, null).let { ScreenPrefs.restore(it, null).first }).layout)
     }

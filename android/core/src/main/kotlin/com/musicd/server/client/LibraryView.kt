@@ -98,6 +98,13 @@ data class LibraryView(
         }
 
         /** The view a query string names (the page's, or the app's own); what it doesn't say is the default. */
+        /**
+         * [query] as it is kept for the next visit and the next start: without the name filter, which is a momentary
+         * narrowing (the page's libView keeps no prefix either); restored, it looked like a library that had lost most of
+         * its albums, with no field to clear it (item 338).
+         */
+        fun kept(query: String?): String = if (query.isNullOrEmpty()) "" else parse(query).copy(prefix = "").query()
+
         fun parse(query: String?): LibraryView {
             var v = LibraryView()
             val facets = HashMap<String, MutableList<String>>()

@@ -5,28 +5,15 @@ using static Mandarin.Tests.JsGen;
 namespace Mandarin.Tests;
 
 /// <summary>
-/// The extras' rules (the share card's links, Smart Picks' suggestions, release days, the labels'
-/// names and logos) held to the Node server's modules: generated cases, seeded, asked of
-/// `mandarin-server score`, each answer the Node server's as kept (test/golden/extras-csharp.json). A
-/// year after this one is "&lt;next year&gt;" wherever an answer holds a year: the limit moves with the
-/// clock, both sides alike (test/extras-csharp.test.js, in C#; the suggestions in
-/// ExtrasCsharpTests.Similar.cs).
+/// The extras' rules (the first credited act, Deezer's artists and related acts, the taste graph, release
+/// days, the labels' names and logos) held to the Node server's modules: generated cases, seeded, asked of
+/// `mandarin-server score`, each answer the Node server's as kept (test/golden/extras-csharp.json)
+/// (test/extras-csharp.test.js, in C#; Deezer's and the taste graph's in ExtrasCsharpTests.Similar.cs).
 /// </summary>
 public sealed partial class ExtrasCsharpTests(ExtrasCsharpTests.Book book) : IClassFixture<ExtrasCsharpTests.Book>
 {
     /// <summary>test/golden/extras-csharp.json, every kept answer asked for by the class's end.</summary>
     public sealed class Book() : KeptBook("extras-csharp");
-
-    private static readonly int Next = DateTime.Now.Year + 1;
-
-    // A year after this one as "<next year>", wherever an answer holds a year.
-    private static JsonNode? Rel(JsonNode? v) => v switch
-    {
-        JsonArray a => new JsonArray([.. a.Select(Rel)]),
-        JsonObject o => new JsonObject(o.Select(kv => KeyValuePair.Create(kv.Key,
-            kv.Key == "year" && kv.Value is JsonValue y && y.TryGetValue<double>(out var n) && n == Next ? JsonValue.Create("<next year>") : Rel(kv.Value)))),
-        _ => v?.DeepClone()
-    };
 
     private static Task<JsonNode> Csharp(JsonObject job) => Golden.Score(job);
 
@@ -50,32 +37,14 @@ public sealed partial class ExtrasCsharpTests(ExtrasCsharpTests.Book book) : ICl
     private static JsonArray Arr(IEnumerable<object?> items) => new([.. items.Select(Node)]);
 
     [Test]
-    public async Task The_share_cards_links_the_first_act_the_query_the_storefront_the_language_each_service_and_review()
+    public async Task The_first_credited_act()
     {
         Needs.Server();
-        // Not a lone surrogate: encodeURIComponent throws on one (the C# server writes U+FFFD).
-        object?[] artists = [.. Names.Where(n => !HasLoneSurrogate((string)n!)), .. Values];
-        object?[] albums = ["Kid A", "Kid A / Amnesiac", "Back\\Slash", "OK Computer: OKNOTOK", "  ", "", "Ünïcode 😀", "Rock & Roll!", "100% (Live)", null, Undefined, 7];
-        object?[] locales = ["en-GB", "en-gb", "EN-us", "fr", "de_CH", "pt-BR", "es-419", "zh-Hant-TW", "xx", "ja", "nb-NO", "", "  ", "-", "_gb", null, Undefined, 5];
-        object?[] accepts = ["fr-CH, fr;q=0.9, en;q=0.8, de;q=0.7, *;q=0.5", "da, en-gb;q=0.8, en;q=0.7", "en;q=abc", "*", "en-US;q=1.0;foo=bar", ";q=0.5",
-            "de;q=0.5, fr;q=0.5", "es;Q = 0.9 , it", "en;q=1.5", "nl;q=0", "  ", "", null, Undefined, "en;q=1e3", "en;q=.5, de;q=0.6", "x;q=0.1.2"];
-        object?[] enabled = [null, Undefined, Array.Empty<object>(), new object[] { "qobuz", "apple" }, new object[] { "nope", "bandcamp", 5 }, new object[] { "deezer" }];
-        object?[] reviews = [null, Undefined, Array.Empty<object>(), new object[] { "wikipedia-artist", "allmusic-artist" }, new object[] { "pitchfork", "nope" }, new object[] { "wikipedia", "allmusic", "wikipedia-artist" }];
-        object?[] ids = [null, Undefined, Array.Empty<object>(), "qobuz", new object[] { "qobuz", 5, "wikipedia", "allmusic-artist", "qobuz" }, new object[] { "bandcamp", "spotify", "pitchfork" }];
-        var r = Rng(7);
-        var cases = new JsonArray();
-        for (int i = 0; i < 1500; i++)
-        {
-            // The object literal's fields in order, each pick drawn as JavaScript draws them.
-            var artist = Pick(r, artists); var album = Pick(r, albums); var locale = Pick(r, locales); var accept = Pick(r, accepts);
-            var en = Pick(r, enabled); var rv = Pick(r, reviews);
-            var wikipedia = Pick(r, [null, "", "https://en.wikipedia.org/wiki/Kid_A"]); var pitchfork = Pick(r, [null, "https://pitchfork.com/reviews/albums/x"]);
-            var wikiArtist = Pick(r, [null, "https://en.wikipedia.org/wiki/Radiohead"]); var id = Pick(r, ids);
-            cases.Add(Obj(("artist", artist), ("album", album), ("locale", locale), ("accept", accept), ("enabled", en), ("reviews", rv),
-                ("wikipedia", wikipedia), ("pitchfork", pitchfork), ("wikipedia_artist", wikiArtist), ("ids", id)));
-        }
+        // All that is left of the share card's links (item 336): the first act a credit names, as the taste graph and the
+        // played acts take it. Not a lone surrogate, as before.
+        var cases = new JsonArray([.. Names.Where(n => !HasLoneSurrogate((string)n!)).Concat(Values).Select(a => (JsonNode?)Obj(("artist", a)))]);
         var got = (await Csharp(new JsonObject { ["fn"] = "share", ["cases"] = cases.DeepClone() }))["share"];
-        Same("share links", cases, got);
+        Same("the first credited act", cases, got);
     }
 
     [Test]

@@ -79,20 +79,27 @@ internal sealed partial class Identifier
             }
             if (!Js.Truthy(stNow["active"])) return;
             var next = Next(lib);
-            if (next == null) return;
+            void Failed(Exception e)
+            {
+                // MusicBrainz down or unreachable: leave it ten minutes rather than knock every few seconds.
+                if (++failures >= 3)
+                {
+                    pausedUntil = Now + 10 * 60 * 1000;
+                    failures = 0;
+                    log($"[identify] MusicBrainz isn't answering ({e.Message}); trying again in ten minutes");
+                }
+            }
+            // The act's id for an album identified before item 330 (item 333): every other turn, or while nothing new waits.
+            if ((next == null || (++artistTurn & 1) == 0) && NextUntold(lib) is { } untold)
+            {
+                Run(untold, async () => { try { await TellArtist(untold); failures = 0; await ArtistsTold(done: false); } catch (Exception e) { Failed(e); } });
+                return;
+            }
+            if (next == null) { await ArtistsTold(done: true); return; }   // nothing left to file: the library read again for the last
             Run(next, async () =>
             {
                 try { await Identify(next); failures = 0; }
-                catch (Exception e)
-                {
-                    // MusicBrainz down or unreachable: leave it ten minutes rather than knock every few seconds.
-                    if (++failures >= 3)
-                    {
-                        pausedUntil = Now + 10 * 60 * 1000;
-                        failures = 0;
-                        log($"[identify] MusicBrainz isn't answering ({e.Message}); trying again in ten minutes");
-                    }
-                }
+                catch (Exception e) { Failed(e); }
             });
         }
         catch (Exception e) { log($"[identify] {e.GetType().Name}: {e.Message}"); }

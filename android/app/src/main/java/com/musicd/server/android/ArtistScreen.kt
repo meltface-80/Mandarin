@@ -28,6 +28,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.musicd.server.client.AlbumSummary
+import com.musicd.server.client.ArtistAct
 import com.musicd.server.client.PlaylistAdd
 import com.musicd.server.client.Retry
 import com.musicd.server.client.Failure
@@ -52,21 +53,22 @@ import kotlinx.coroutines.withContext
  * opened again is drawn at once from what it last had (ArtistPages), and asked for afresh once that is old.
  */
 @Composable
-internal fun ArtistScreen(name: String, prefs: WallPrefs, zoneId: String, client: () -> ServerClient?, onBack: () -> Unit, onAlbum: (Long, String, NavList) -> Unit,
+internal fun ArtistScreen(asked: String, prefs: WallPrefs, zoneId: String, client: () -> ServerClient?, onBack: () -> Unit, onAlbum: (Long, String, NavList) -> Unit,
                           onArtist: (String) -> Unit, onNowPlaying: (String) -> Unit, onRoom: (String) -> Unit, onNav: (String) -> Unit, onPage: (String, String?) -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var zone by remember { mutableStateOf(zoneId) }
     val room = followRoom(zone, client)
-    val key = ArtistPages.key(name)
-    val kept = remember(name) { ArtistPages.kept.get(key) }
-    var albums by remember(name) { mutableStateOf(kept?.albums) }
-    var bio by remember(name) { mutableStateOf(kept?.bio) }
-    var about by remember(name) { mutableStateOf(kept?.about) }
-    var similar by remember(name) { mutableStateOf(kept?.similar) }
-    var similarAlbums by remember(name) { mutableStateOf(kept?.similarAlbums.orEmpty()) }
+    val name = ArtistAct.parse(asked).first   // one act of a name others share, its own page (item 330)
+    val key = ArtistPages.key(asked)
+    val kept = remember(asked) { ArtistPages.kept.get(key) }
+    var albums by remember(asked) { mutableStateOf(kept?.albums) }
+    var bio by remember(asked) { mutableStateOf(kept?.bio) }
+    var about by remember(asked) { mutableStateOf(kept?.about) }
+    var similar by remember(asked) { mutableStateOf(kept?.similar) }
+    var similarAlbums by remember(asked) { mutableStateOf(kept?.similarAlbums.orEmpty()) }
     fun keep(change: (ArtistPage) -> ArtistPage) = ArtistPages.kept.update(key, ArtistPage(), change)
-    var failed by remember(name) { mutableStateOf<String?>(null) }
+    var failed by remember(asked) { mutableStateOf<String?>(null) }
     var selecting by remember { mutableStateOf(false) }
     var picks by remember { mutableStateOf<List<AlbumSummary>>(emptyList()) }
     val (cols, coverPx) = wallColumns(prefs)
@@ -75,16 +77,26 @@ internal fun ArtistScreen(name: String, prefs: WallPrefs, zoneId: String, client
     // Still failed after the few tries below, asked again when the server answers again or in a while (item 157).
     var asks by remember { mutableStateOf(0) }
     AskAgain(failed != null && albums == null) { asks++ }
-    LaunchedEffect(name, asks) {
-        if (kept?.albums != null && ArtistPages.kept.fresh(key)) return@LaunchedEffect   // as it was, and recent: nothing to ask
+    LaunchedEffect(asked, asks) {
         val c = client() ?: return@LaunchedEffect
         val lib = LibraryClient { c.getJson(it) }
+        // Who they are, asked at every visit (item 341): the server may have found since that they are another act than
+        // it said; asked again in a few seconds while it is still looking.
+        suspend fun whoTheyAre() {
+            repeat(5) { n ->
+                if (n > 0) delay(3000)
+                val got = withContext(Dispatchers.IO) { runCatching { lib.artistAbout(asked) }.getOrNull() } ?: return
+                about = got; keep { it.copy(about = got) }   // still looking and not known: not the other act's meanwhile
+                if (!got.pending) return
+            }
+        }
+        if (kept?.albums != null && ArtistPages.kept.fresh(key)) { whoTheyAre(); return@LaunchedEffect }   // the rest as it was, and recent
         // Asked again a few times when the server isn't reached (a dropped connection, the server restarting; item 133).
-        var got = withContext(Dispatchers.IO) { runCatching { lib.artistAlbums(name) } }
+        var got = withContext(Dispatchers.IO) { runCatching { lib.artistAlbums(asked) } }
         var tries = 0
         while (got.isFailure && tries < 3 && got.exceptionOrNull()?.let(Failure::unreachable) == true) {
             delay(Retry.ms(++tries))
-            got = withContext(Dispatchers.IO) { runCatching { lib.artistAlbums(name) } }
+            got = withContext(Dispatchers.IO) { runCatching { lib.artistAlbums(asked) } }
         }
         // Asked afresh: kept from now, the rest of what was kept drawn until its answer replaces it.
         got.onSuccess { albums = it; failed = null; ArtistPages.kept.put(key, (ArtistPages.kept.get(key) ?: ArtistPage()).copy(albums = it)) }
@@ -94,7 +106,7 @@ internal fun ArtistScreen(name: String, prefs: WallPrefs, zoneId: String, client
         val a = albums
         val pin = (a?.primary?.firstOrNull() ?: a?.featured?.firstOrNull())?.title ?: ""
         coroutineScope {
-            launch { withContext(Dispatchers.IO) { runCatching { lib.artistAbout(name) }.getOrNull() }?.let { got -> about = got; keep { it.copy(about = got) } } }
+            launch { whoTheyAre() }
             launch { withContext(Dispatchers.IO) { runCatching { lib.artistSimilar(name) }.getOrNull() }?.let { got -> similar = got; keep { it.copy(similar = got) } } }   // item 137
             launch {   // item 140
                 withContext(Dispatchers.IO) { runCatching { lib.artistSimilarAlbums(name) }.getOrNull() }?.takeIf { it.error == null }?.albums?.let { got -> similarAlbums = got; keep { it.copy(similarAlbums = got) } }
@@ -153,7 +165,7 @@ internal fun ArtistScreen(name: String, prefs: WallPrefs, zoneId: String, client
             foot = { ArtistFoot(similar, similarAlbums, client, onArtist, onAlbum = ::openSimilar, onUrl = ::openUrl) }) {
             // The name at once; the count when the albums come. An error as the page has it, in red under the heading.
             val n = (a?.primary?.size ?: 0) + (a?.featured?.size ?: 0) + bands.sumOf { it.albums.size }
-            WallHead(if (a == null) name else "$n album" + (if (n == 1) "" else "s") + " · $name", prefs, failed?.let { "Error: $it" to true })
+            WallHead(if (a == null) name else "$n album" + (if (n == 1) "" else "s") + " · $name" + (a.note?.let { " ($it)" } ?: ""), prefs, failed?.let { "Error: $it" to true })
             if (about != null || bio != null || playable.isNotEmpty())
                 ArtistHero(about, bio, client, onArtist, onPlay = if (playable.isNotEmpty()) ::playArtist else null, onGenre = { onPage("genre", it) },
                     kept = kept?.portrait, onPortrait = { p -> keep { it.copy(portrait = p) } })

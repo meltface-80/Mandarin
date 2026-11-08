@@ -54,8 +54,7 @@ app/mini-transport-poll.js
 app/topbar-height.js
 app/settings-info.js
 app/share-card.js
-app/share-card-links.js
-app/share-card-suggestions.js
+app/share-card-actions.js
 app/mini-player-move.js
 app/album-beside-mini.js
 app/album-wide.js

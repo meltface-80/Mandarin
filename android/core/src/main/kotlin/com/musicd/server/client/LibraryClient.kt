@@ -30,7 +30,11 @@ class LibraryClient(private val get: (String) -> JSONObject) {
     /** A page of the Artists wall (item 130), as [ArtistsWall.path] asks for it. */
     fun artistsWall(path: String): ArtistPage = ArtistPage.parse(get(path))
 
-    fun artistAlbums(artist: String): ArtistAlbums = ArtistAlbums.parse(get("/api/artist-albums?artist=" + enc(artist)))
+    /** An artist's albums; [artist] as ArtistAct.of names one act of a name others share (item 330), that act's alone. */
+    fun artistAlbums(artist: String): ArtistAlbums {
+        val (name, act) = ArtistAct.parse(artist)
+        return ArtistAlbums.parse(get("/api/artist-albums?artist=" + enc(name) + (if (act != null) "&artist_id=$act" else "")))
+    }
 
     /** The album's booklets, the PDFs in its folder (only an album of your own files has any). */
     fun booklets(offset: Long): List<Booklet> = Booklet.list(get("/api/album/booklets?offset=$offset"))
@@ -70,7 +74,11 @@ class LibraryClient(private val get: (String) -> JSONObject) {
     /** An artist's biography, one of their albums naming them ([album]); null when there is none. */
     fun artistBio(artist: String, album: String): ArtistBio? = ArtistBio.parse(get("/api/artist-bio?artist=" + enc(artist) + "&album=" + enc(album)))
     /** Who an act is (bug list item 131): picture, facts, links, members or bands, albums credited on. */
-    fun artistAbout(artist: String): ArtistAbout = ArtistAbout.parse(get("/api/artist?name=" + enc(artist)))
+    fun artistAbout(artist: String): ArtistAbout {
+        // [artist] as ArtistAct.of names it: one act of a shared name is looked up as that act (item 340).
+        val (name, act) = ArtistAct.parse(artist)
+        return ArtistAbout.parse(get("/api/artist?name=" + enc(name) + (if (act != null) "&artist_id=$act" else "")))
+    }
     /** An act's similar acts for its page (bug list item 137). */
     fun artistSimilar(artist: String): ArtistSimilar = ArtistSimilar.parse(get("/api/artist/similar?name=" + enc(artist)))
     /** An act's similar albums for the foot of its page (item 140): Last.fm's with a key, else the library's by the acts Deezer relates. */
@@ -112,14 +120,9 @@ class LibraryClient(private val get: (String) -> JSONObject) {
     fun pitchforkReviews(type: String): List<PitchforkHit> = PitchforkHit.list(get("/api/pitchfork/reviews?type=" + enc(type)))
     fun pitchforkMatch(r: PitchforkHit): Long? = PitchforkHit.match(get("/api/pitchfork/review?url=" + enc(r.url) + "&album=" + enc(r.album) + "&artist=" + enc(r.artist)))
 
-    /**
-     * The share card (item 75): what it says and the places under it (the extras, [fast]: the server's cache alone, no
-     * lookups); the acts suggested under it; a Qobuz album's own address for a record, which opens the app (none: not found).
-     */
+    /** The share card (item 75): what it says (the extras, [fast]: the server's cache alone, no lookups). */
     fun shareCard(title: String, artist: String, fast: Boolean): CardFields =
         CardFields.parse(get("/api/album/extras?title=" + enc(title) + "&artist=" + enc(artist) + if (fast) "&fast=1" else ""))
-    fun similarActs(artist: String): List<SimilarAct> = SimilarAct.list(get("/api/similar?artist=" + enc(artist)))
-    fun qobuzLink(album: String, artist: String): String? = get("/api/qobuz-link?album=" + enc(album) + "&artist=" + enc(artist)).optString("url").takeIf { it.startsWith("http") }
 
     private fun enc(s: String) = URLEncoder.encode(s, "UTF-8").replace("+", "%20")
 }

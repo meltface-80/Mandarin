@@ -35,7 +35,7 @@ internal static partial class Library
             }
         }
     }
-    private static readonly Memo500 ExtrasMemo = new(), BioMemo = new(), QobuzLinkMemo = new();
+    private static readonly Memo500 ExtrasMemo = new(), BioMemo = new();
 
     private static string Fold2(string title, string artist) => Names.Fold(title) + "||" + Names.Fold(artist);
     private static async Task<T?> Quietly<T>(Task<T?> t) where T : class { try { return await t; } catch (Exception) { return null; } }
@@ -62,11 +62,8 @@ internal static partial class Library
     }
 
     /* Whether the share card carries the write-up (Settings → Share Card): on unless switched off. */
-    private static bool CardReview() => !TJs.StrictEq(Labels.Setting("shareCardReview"), false);
 
     private static object? Field(object? o, string k) => o is JsObj j ? j[k] : Undef.V;
-    private static string? UrlField(object? urls, string k) { var v = Field(urls, k); return TJs.Truthy(v) ? TJs.Str(v) : null; }
-    private static string? AcceptLanguage(HttpContext ctx) => ctx.Request.Headers.AcceptLanguage.Count > 0 ? ctx.Request.Headers.AcceptLanguage.ToString() : null;
 
     /* GET /api/album/extras?title=&artist=[&day=1][&fast=1] */
     private static async Task<bool> AlbumExtras(HttpContext ctx, Snapshot s, LibState st)
@@ -112,23 +109,11 @@ internal static partial class Library
             nb["album"] = only;
             bios = nb;
         }
-        List<string> services, reviews;
-        using (var c = Db.Open()) { services = ShareLinks.EnabledServices(c); reviews = ShareLinks.EnabledReviews(c); }
-        var locale = ShareLinks.LocaleFromAcceptLanguage(AcceptLanguage(ctx));
-        var urls = TJs.Truthy(bios) ? Field(bios, "urls") : null;
         var o = new JsObj();
         o["year"] = year;
         o["release_date"] = dayNow ?? (al != null && !string.IsNullOrEmpty(al.Date) ? al.Date : year);
         o["album"] = TJs.Truthy(bios) ? Field(bios, "album") : null;
         o["artist"] = TJs.Truthy(bios) ? Field(bios, "artist") : null;
-        var card = new JsObj();
-        card["review"] = CardReview();
-        o["card"] = card;
-        var links = new JsObj();
-        links["services"] = ShareLinks.ServiceLinks(artist, title, locale, services);
-        links["reviews"] = ShareLinks.ReviewLinks(artist, title, reviews,
-            TJs.Truthy(urls) ? UrlField(urls, "wikipediaAlbum") : null, TJs.Truthy(urls) ? UrlField(urls, "pitchfork") : null, TJs.Truthy(urls) ? UrlField(urls, "wikipediaArtist") : null);
-        o["links"] = links;
         return await SendJs(ctx, o);
     }
 
@@ -211,83 +196,6 @@ internal static partial class Library
     }
 
     // ------------------------------------------------------------ the share card
-
-    private static JsObj ShareSettingsJson(List<string> services, List<string> reviews)
-    {
-        var o = new JsObj();
-        var sv = new JsObj();
-        sv["all"] = ShareLinks.Services.Select(x => { var j = new JsObj(); j["id"] = x.Id; j["name"] = x.Name; return (object?)j; }).ToList();
-        sv["enabled"] = services.Select(x => (object?)x).ToList();
-        var rv = new JsObj();
-        rv["all"] = ShareLinks.Reviews.Select(x =>
-        {
-            var j = new JsObj();
-            j["id"] = x.Id; j["name"] = x.Name; j["kind"] = x.Kind; j["chip"] = x.Chip; j["onByDefault"] = x.OnByDefault;
-            return (object?)j;
-        }).ToList();
-        rv["enabled"] = reviews.Select(x => (object?)x).ToList();
-        o["services"] = sv;
-        o["reviews"] = rv;
-        var card = new JsObj();
-        card["review"] = CardReview();
-        o["card"] = card;
-        return o;
-    }
-
-    /* GET /api/settings/share-links: what can be shown under the card, what is, and whether the card carries the write-up. */
-    private static Task<bool> ShareSettings(HttpContext ctx, Snapshot s, LibState st)
-    {
-        using var c = Db.Open();
-        return SendJs(ctx, ShareSettingsJson(ShareLinks.EnabledServices(c), ShareLinks.EnabledReviews(c)));
-    }
-
-    /* POST /api/settings/share-links { services?, reviews?, card_review? } */
-    private static async Task<bool> SaveShareSettings(HttpContext ctx, Snapshot s, LibState st)
-    {
-        var b0 = await Auth.Body(ctx);
-        if (b0 == null) return true;
-        var b = FromNode(b0) as JsObj ?? new JsObj();
-        var touched = false;
-        if (b["services"] is List<object?>) { Labels.SetSetting("shareServices", ShareLinks.SanitiseIds(b["services"], ShareLinks.KnownServiceIds()).Select(x => (object?)x).ToList()); touched = true; }
-        if (b["reviews"] is List<object?>) { Labels.SetSetting("shareReviews", ShareLinks.SanitiseIds(b["reviews"], ShareLinks.KnownReviewIds()).Select(x => (object?)x).ToList()); touched = true; }
-        if (b["card_review"] is bool cr) { Labels.SetSetting("shareCardReview", cr); touched = true; }
-        if (!touched) return await JsError(ctx, 400, "services, reviews and/or card_review required");
-        using var c = Db.Open();
-        var o = new JsObj();
-        o["ok"] = true;
-        var full = ShareSettingsJson(ShareLinks.EnabledServices(c), ShareLinks.EnabledReviews(c));
-        o["services"] = Field(full["services"], "enabled");
-        o["reviews"] = Field(full["reviews"], "enabled");
-        o["card"] = full["card"];
-        return await SendJs(ctx, o);
-    }
-
-    /* GET /api/qobuz-link?album=&artist=: the link that opens the Qobuz app on this record (an id off Qobuz's own search page), or null. */
-    private static async Task<bool> QobuzLink(HttpContext ctx, Snapshot s, LibState st)
-    {
-        if (HeldWriteUps is not { } w) return false;
-        var album = TJs.Trim(Q(ctx, "album") ?? "");
-        var artist = TJs.Trim(Q(ctx, "artist") ?? "");
-        if (album.Length == 0) return await JsError(ctx, 400, "album query parameter required");
-        var store = ShareLinks.QobuzStorefront(ShareLinks.LocaleFromAcceptLanguage(AcceptLanguage(ctx)));
-        var key = store + "|" + Similar.Normalize(artist) + "|" + Similar.Normalize(album);
-        string id;
-        if (QobuzLinkMemo.TryGet(key, out var known)) id = known as string ?? "";
-        else
-        {
-            try
-            {
-                id = await w.QobuzAlbumId(store, artist, album) ?? "";
-                QobuzLinkMemo.Set(key, id);
-            }
-            // Qobuz away: no link this time, and asked again next time.
-            catch (Exception) { id = ""; }
-        }
-        ctx.Response.Headers.CacheControl = "public, max-age=604800";
-        var o = new JsObj();
-        o["url"] = WriteUps.DeepLink(id.Length > 0 ? id : null);
-        return await SendJs(ctx, o);
-    }
 
     /*
      * GET /api/search/external?q=&parts=: Pitchfork's reviews the words find,

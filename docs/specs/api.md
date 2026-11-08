@@ -5,7 +5,7 @@ Written by `node tools/api-map.js write` from the C# sources (`server/Mandarin.S
 where the code decides it away from the address (the handler says). "…" ends an address the route takes
 the rest of; a pattern is as the code writes it. What each answers is said beside its handler.
 
-227 routes.
+223 routes.
 
 | Method | Address | Who may ask | Answered in |
 |---|---|---|---|
@@ -141,7 +141,6 @@ the rest of; a pattern is as the code writes it. What each answers is said besid
 | POST | `/api/playlist/play` | signed in | `LibraryRoutes.cs` |
 | POST | `/api/playlist/play-track` | signed in | `LibraryRoutes.cs` |
 | GET | `/api/playlists` | signed in | `LibraryRoutes.cs` |
-| GET | `/api/qobuz-link` | signed in | `LibraryRoutes.cs` |
 | GET | `/api/queue` | signed in | `PlaybackRoutes.cs` |
 | POST | `/api/queue/clear` | signed in | `PlaybackRoutes.cs` |
 | POST | `/api/queue/history-multi` | signed in | `PlaybackRoutes.cs` |
@@ -172,8 +171,6 @@ the rest of; a pattern is as the code writes it. What each answers is said besid
 | POST | `/api/settings/labels` | signed in | `LibraryRoutes.cs` |
 | GET | `/api/settings/lastfm-key` | signed in | `LibraryRoutes.cs` |
 | POST | `/api/settings/lastfm-key` | signed in | `LibraryRoutes.cs` |
-| GET | `/api/settings/share-links` | signed in | `LibraryRoutes.cs` |
-| POST | `/api/settings/share-links` | signed in | `LibraryRoutes.cs` |
 | GET | `/api/settings/shelf` | signed in | `LibraryRoutes.cs` |
 | POST | `/api/settings/shelf` | signed in | `LibraryRoutes.cs` |
 | GET | `/api/settings/smart-picks` | signed in | `LibraryRoutes.cs` |
@@ -186,7 +183,6 @@ the rest of; a pattern is as the code writes it. What each answers is said besid
 | GET | `/api/shortcut/play-random` | signed in | `PlaybackRoutes.cs` |
 | GET | `/api/shortcut/play-unheard` | signed in | `PlaybackRoutes.cs` |
 | GET | `/api/shortcut/zones` | signed in | `PlaybackRoutes.cs` |
-| GET | `/api/similar` | signed in | `LibraryRoutes.cs` |
 | GET | `/api/smart-picks` | signed in | `LibraryRoutes.cs` |
 | POST | `/api/smart-picks/block` | signed in | `LibraryRoutes.cs` |
 | POST | `/api/smart-picks/rebuild` | signed in | `LibraryRoutes.cs` |

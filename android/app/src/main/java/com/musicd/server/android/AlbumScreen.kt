@@ -63,6 +63,7 @@ import com.musicd.server.client.Album
 import com.musicd.server.client.AlbumCredits
 import com.musicd.server.client.PlaylistAdd
 import com.musicd.server.client.AlbumExtras
+import com.musicd.server.client.ArtistAct
 import com.musicd.server.client.Booklet
 import com.musicd.server.client.Contract
 import com.musicd.server.client.Failure
@@ -228,7 +229,7 @@ internal fun AlbumScreen(offset: Long, zoneId: String, lit: String, client: () -
                             else Row {
                                 (a.artists.ifEmpty { listOf(a.album.subtitle) }).forEachIndexed { i, name ->
                                     if (i > 0) Text(" · ", Modifier.parity("album.artist"), color = dim, fontSize = 15.sp, lineHeight = 21.sp)
-                                    Text(name, Modifier.parity("album.artist", Contract.label("album.artist", 0, name)).clickable { onPage("artist", name) },
+                                    Text(name, Modifier.parity("album.artist", Contract.label("album.artist", 0, name)).clickable { onPage("artist", if (i == 0) ArtistAct.of(name, a.album.artistId) else name) },
                                         color = MaterialTheme.colorScheme.secondary, fontSize = 15.sp, lineHeight = 21.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                 }
                             }
@@ -361,7 +362,7 @@ internal fun AlbumScreen(offset: Long, zoneId: String, lit: String, client: () -
             }
             // Its editor (item 74), over the page; the page read again, and the walls told, once it changed the album.
             // Its Share card (item 75), centred above the mini player and the row, as the page keeps room for them.
-            if (sharing) album?.let { ShareSheet(it.album.title, it.album.subtitle, it.album.imageKey, zone, 144.dp, client) { sharing = false } }
+            if (sharing) album?.let { ShareSheet(it.album.title, it.album.subtitle, it.album.imageKey, 144.dp, client) { sharing = false } }
             if (editing) album?.let { AlbumEditSheet(offset, it.album.title, it.album.subtitle, client, onClose = { editing = false }, onChanged = { loads++ }) }
         }
     }

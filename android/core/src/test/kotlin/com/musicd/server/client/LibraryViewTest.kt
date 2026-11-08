@@ -21,6 +21,13 @@ class LibraryViewTest {
         assertEquals("the seed only with Random", "sort=random&dir=asc&seed=42", LibraryView.parse("sort=random&seed=42").query())
     }
 
+    @Test fun `the view is kept without its name filter, the rest as it was`() {
+        assertEquals("sort=year&dir=desc&genre=Rock&played=6", LibraryView.kept("sort=year&dir=desc&genre=Rock&played=6&prefix=airbag"))
+        assertEquals("a filter alone: the default view", "sort=album&dir=asc", LibraryView.kept("prefix=airbag"))
+        assertEquals("nothing kept: nothing", "", LibraryView.kept(""))
+        assertEquals("", LibraryView.kept(null))
+    }
+
     @Test fun `Home's Library row asks with the order alone, never the Focus nor the name filter`() {
         val v = LibraryView.parse("sort=year&dir=desc&genre=Rock&genre=!Jazz&played=never&prefix=Th")
         assertEquals("sort=year&dir=desc", v.sortQuery())
@@ -76,6 +83,10 @@ class LibraryViewTest {
         client.facets(); client.favourites(); client.listenLater(); client.history(60); client.unplayed(6, 96); client.randomAlbums(24); client.artistBio("Artist A", "Album One")
         assertEquals(listOf("/api/library/facets", "/api/favourites", "/api/listen-later", "/api/home/history?count=60", "/api/home/unplayed?months=6&count=96",
             "/api/random-albums?count=24", "/api/artist-bio?artist=Artist%20A&album=Album%20One"), asked)
+        // Who they are: one act of a shared name asked as that act (item 340), a plain name as ever.
+        asked.clear()
+        runCatching { client.artistAbout(ArtistAct.of("Airbag", 7)) }; runCatching { client.artistAbout("Airbag") }
+        assertEquals(listOf("/api/artist?name=Airbag&artist_id=7", "/api/artist?name=Airbag"), asked)
     }
 
     @Test fun `Home's rows ask the first thirty of a list, a wall the whole of it`() {

@@ -74,7 +74,7 @@ import org.json.JSONObject
  */
 
 /** One of Setup's pages the app draws here ([pane], the page's name for it). */
-internal val SETUP_PANES = setOf("smartpicks", "labels", "ui", "display", "shelfset", "sharecard", "away", "homescreen")
+internal val SETUP_PANES = setOf("smartpicks", "labels", "ui", "display", "shelfset", "away", "homescreen")
 
 @Composable
 internal fun SettingsSetupPane(pane: String, client: () -> ServerClient?, onBack: () -> Unit) {
@@ -88,12 +88,11 @@ internal fun SettingsSetupPane(pane: String, client: () -> ServerClient?, onBack
             "labels" -> LabelsPane(client, onBack, showInfo)
             "ui" -> UiPane(onBack, showInfo)
             "display" -> DisplayPane(client, onBack, showInfo)
-            "sharecard" -> ShareCardPane(client, onBack, showInfo)
             "away" -> AwayPane(client, onBack, showInfo)
             "homescreen" -> HomeScreenPane(client, onBack)
             else -> ShelfPane(client, onBack, showInfo)
         }
-        info?.let { InfoTip(it, Modifier.parity("settings-picks.info settings-labels.info settings-ui.info settings-display.info settings-shelf.info settings-sharecard.info settings-away.info")) }
+        info?.let { InfoTip(it, Modifier.parity("settings-picks.info settings-labels.info settings-ui.info settings-display.info settings-shelf.info settings-away.info")) }
     }
 }
 

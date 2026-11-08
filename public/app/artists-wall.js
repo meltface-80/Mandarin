@@ -86,10 +86,11 @@
     meta.className = "album-meta";
     const name = document.createElement("div"); name.className = "album-title"; name.textContent = a.name; name.dataset.parity = "artists.artist-name";
     const sub = document.createElement("div"); sub.className = "album-artist"; sub.dataset.parity = "artists.artist-subtitle";
-    sub.textContent = a.albumCount === 1 ? "1 album" : a.albumCount + " albums";
+    // Acts that share a name, each told apart (item 330): MusicBrainz's word for it, or its albums' years.
+    sub.textContent = (a.albumCount === 1 ? "1 album" : a.albumCount + " albums") + (a.note ? " · " + a.note : "");
     meta.appendChild(name); meta.appendChild(sub);
     btn.appendChild(art); btn.appendChild(meta);
-    btn.addEventListener("click", () => { if (w.__showArtistAlbums) w.__showArtistAlbums(a.name); });
+    btn.addEventListener("click", () => { if (w.__showArtistAlbums) w.__showArtistAlbums(a.name, a.artist_id != null ? { artistId: a.artist_id, note: a.note } : undefined); });
     return btn;
   }
 

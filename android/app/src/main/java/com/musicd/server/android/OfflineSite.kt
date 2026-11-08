@@ -20,7 +20,7 @@ object OfflineSite {
     /** Settings and lists the screens ask for; kept as the server last answered. */
     val CACHED_API = listOf(
         "/api/settings/home-rows", "/api/settings/waveform", "/api/settings/smart-picks",
-        "/api/settings/discover", "/api/settings/labels", "/api/settings/share-links",
+        "/api/settings/discover", "/api/settings/labels",
         "/api/settings/display", "/api/settings/label-folder-depth", "/api/settings/fanart-key",
         "/api/settings/discogs-token", "/api/settings/qobuz",
         "/api/update/status", "/api/filters/tags",

@@ -46,7 +46,7 @@ test("the long filters: a CD rip upsampled ×2 in Long and Very long, its URL as
   const cd = (await api("library/albums?sort=album")).albums.find(a => a.title === "Album One");   // 16/44.1 FLAC, 3 s tracks
   assert.equal((await call("PATCH", "audio-devices/" + W, { enabled: true, output: { mode: "x2", bits: 24, filter: "longest" } })).status, 400, "a filter there isn't");
   await until(async () => (await api("zones")).zones.some(x => x.zone_id === W), 20000);
-  for (const [filter, shape, name] of [["long", "long", "Long filter"], ["very-long", "vlong", "Very long filter"]]) {
+  for (const [filter, shape, name] of [["long", "long", "Long"], ["very-long", "vlong", "Very long"]]) {
     const r = await call("PATCH", "audio-devices/" + W, { enabled: true, output: { mode: "x2", bits: 24, filter } });
     assert.equal(r.status, 200, JSON.stringify(r));
     assert.equal(r.output.filter, filter);
@@ -59,7 +59,8 @@ test("the long filters: a CD rip upsampled ×2 in Long and Very long, its URL as
     // As long as the track: 3 s at 88.2 kHz, every frame.
     const pcm = execFileSync(FFMPEG, ["-v", "error", "-i", "pipe:0", "-f", "s32le", "-"], { input: f.body, maxBuffer: 1 << 28 });
     assert.equal(pcm.length / 8, 3 * 88200, filter + ": its length");
-    const sp = await until(async () => { const z = (await api("zone-state?zone=" + W)).zone; const s = z && z.now_playing && z.now_playing.signal; return s && s.lines[1] === name && s; }, 15000, filter + ": the signal path");
-    assert.equal(sp.steps.find(x => x.kind === "upsample").detail, "×2 to 88.2 kHz · " + name);
+    const sp = await until(async () => { const z = (await api("zone-state?zone=" + W)).zone; const s = z && z.now_playing && z.now_playing.signal; return s && s.lines[1] === name + " ×2 · 24/88.2 kHz" && s; }, 15000, filter + ": the signal path");
+    // One short line for what goes out (item 331): the filter, how far, the format; Now playing's line the same.
+    assert.equal(sp.steps.find(x => x.kind === "upsample").detail, name + " ×2 · 24/88.2 kHz");
   }
 });

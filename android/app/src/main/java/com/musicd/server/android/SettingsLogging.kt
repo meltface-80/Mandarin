@@ -18,7 +18,7 @@ import com.musicd.server.client.Contract
 
 /*
  * Settings → Setup → Logging (bug list item 121), under API Keys: the app's log, and the server's, for sending to the
- * developer when something is wrong. Off unless switched on, and off nothing is collected; on, the user is told to use
+ * developer when something is wrong. On unless switched off (item 334), and off nothing is collected; on, the user is told to use
  * the app as usual for a day before saving it, and what it leaves out (item 235), but that it is theirs to look
  * through before sending. Saved to Downloads/Mandarin; switched off, deleted (AppLog).
  */

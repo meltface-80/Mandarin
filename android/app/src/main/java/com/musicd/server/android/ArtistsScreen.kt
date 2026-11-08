@@ -53,6 +53,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import com.musicd.server.client.Artist
+import com.musicd.server.client.ArtistAct
 import com.musicd.server.client.ArtistsWall
 import com.musicd.server.client.Contract
 import com.musicd.server.client.LibraryClient
@@ -114,7 +115,7 @@ internal fun ArtistsScreen(prefs: WallPrefs, zoneId: String, client: () -> Serve
             }
             items(artists.size, key = { "a" + it + artists[it].name }) { i ->
                 val a = artists[i]
-                ArtistTile(Modifier.parity("artists.artist", Contract.label("artists.artist", 0, a.name)).clickable { onArtist(a.name) }, a, prefs, client)
+                ArtistTile(Modifier.parity("artists.artist", Contract.label("artists.artist", 0, a.name)).clickable { onArtist(ArtistAct.of(a.name, a.artistId)) }, a, prefs, client)
             }
             if (find.isNotBlank() && total == 0) item("none", span = { GridItemSpan(maxLineSpan) }) {
                 Text(ArtistsWall.none(find), Modifier.parity("artists.none").fillMaxWidth().padding(vertical = 24.dp), color = MaterialTheme.colorScheme.onSurfaceVariant,

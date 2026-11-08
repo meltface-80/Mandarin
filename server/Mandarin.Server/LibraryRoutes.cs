@@ -63,7 +63,6 @@ internal static partial class Library
         ["/api/settings/label-folder-depth"] = LabelFolderDepth,
         ["/api/settings/fanart-key"] = KeyState,
         ["/api/settings/discogs-token"] = KeyState,
-        ["/api/similar"] = SimilarActs,
         ["/api/smart-picks"] = SmartPicks,
         ["/api/album/extras"] = AlbumExtras,
         ["/api/album/more"] = AlbumMore,
@@ -78,8 +77,6 @@ internal static partial class Library
         ["/api/credits/status"] = CreditsStatus,
         ["/api/pitchfork/reviews"] = PitchforkReviews,
         ["/api/pitchfork/review"] = PitchforkReviewMatch,
-        ["/api/settings/share-links"] = ShareSettings,
-        ["/api/qobuz-link"] = QobuzLink,
         ["/api/search/external"] = SearchExternal,
         ["/api/filters/tags"] = TagFilters,
         ["/api/album/edit"] = AlbumEditState,
@@ -128,7 +125,6 @@ internal static partial class Library
         ["/api/settings/discogs-token"] = SaveKey,
         ["/api/smart-picks/rebuild"] = RebuildSmartPicks,
         ["/api/smart-picks/block"] = BlockSmartPicksArtist,
-        ["/api/settings/share-links"] = SaveShareSettings,
         ["/api/share/encode"] = ShareEncode,
         ["/api/share/import"] = ShareImport,
         ["/api/smart-playlists"] = SaveSmartPlaylist,
@@ -290,6 +286,7 @@ internal static partial class Library
         if (al.Year != null) o["year"] = al.Year;
         if (al.Discs > 1) o["discs"] = al.Discs;
         if (al.Box != null) o["box"] = new JsonObject { ["name"] = al.Box.Name, ["disc"] = al.Box.Disc, ["of"] = al.Box.Of };
+        if (al.ActNote != null) { o["artist_id"] = al.ActId ?? 0; if (al.ActNote.Length > 0) o["artist_note"] = al.ActNote; }   // its act, where acts share its name (item 330)
         if (extra != null) foreach (var (k, v) in extra.ToList()) { extra.Remove(k); o[k] = v; }
         return o;
     }

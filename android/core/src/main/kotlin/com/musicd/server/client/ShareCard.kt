@@ -1,70 +1,36 @@
 package com.musicd.server.client
 
-import org.json.JSONArray
 import org.json.JSONObject
 
 /*
- * The share card, typed (the group B of old/plan-android-native.md, B4; bug list item 75): what the card says
- * (from /api/album/extras, as share-card.js's cardFields reads it), where its record can be heard or read about (the
- * links under it), the acts suggested under them (/api/similar), and the card's layout, measured as sharecard.js
- * measures it before it draws: the height is a result of the words, so everything is wrapped first.
+ * The share card, typed (the group B of old/plan-android-native.md, B4; bug list item 75): what the card says (from
+ * /api/album/extras, as share-card.js's cardFields reads it), and the card's layout, measured as sharecard.js measures
+ * it before it draws: the height is a result of the words, so everything is wrapped first. The links and the acts
+ * suggested under it went with item 336; the card always carries its review.
  */
 
-/** A place to hear the record (a service: [review] false) or to read about it, with the words on its chip. */
-data class ShareLink(val id: String, val name: String, val chip: String?, val url: String, val review: Boolean) {
-    /** The chip's words, as the page writes them. */
-    val words: String get() = chip ?: name.ifEmpty { id }
-}
-
-/** What the card shows, and where its record is: the release (raw), the review and whose words they are, Pitchfork's score and flag. */
-data class CardFields(val releaseRaw: String, val reviewText: String, val reviewSource: String, val score: Double?, val bestNew: Boolean,
-                      val services: List<ShareLink>, val reviews: List<ShareLink>) {
+/** What the card shows: the release (raw), the review and whose words they are, Pitchfork's score and flag. */
+data class CardFields(val releaseRaw: String, val reviewText: String, val reviewSource: String, val score: Double?, val bestNew: Boolean) {
     /** What decides whether the card must be drawn again once the full answer comes. */
     val signature: String get() = listOf(releaseRaw, reviewText, reviewSource, score?.let(::num).orEmpty(), bestNew.toString()).joinToString("|")
-    /** The chips in the row's order: the services, then the reviews. */
-    val links: List<ShareLink> get() = services + reviews
 
     companion object {
-        val NONE = CardFields("", "", "", null, false, emptyList(), emptyList())
+        val NONE = CardFields("", "", "", null, false)
 
-        /** From an extras answer (none: the card with title and artist only); a review switched off in Settings left out. */
+        /** From an extras answer (none: the card with title and artist only); the review always, where there is one (item 336). */
         fun parse(j: JSONObject?): CardFields {
             if (j == null) return NONE
             val a = j.optJSONObject("album")
             val release = text(j, "year") ?: a?.let { text(it, "year") }.orEmpty()
             val score = a?.takeIf { it.has("score") && !it.isNull("score") }?.optDouble("score")?.takeIf { !it.isNaN() }
-            val wantReview = !(j.optJSONObject("card")?.let { it.has("review") && it.opt("review") == false } ?: false)
-            val desc = a?.let { text(it, "description") }
-            val review = if (desc != null && wantReview) ShareCard.trimReview(desc) else ""
+            val review = a?.let { text(it, "description") }?.let(ShareCard::trimReview).orEmpty()
             val source = if (review.isNotEmpty()) a?.let { text(it, "description_source") }.orEmpty() else ""
-            val links = j.optJSONObject("links")
-            return CardFields(release, review, source, score, a?.optBoolean("isBestNewMusic") ?: false,
-                ShareCard.links(links?.optJSONArray("services"), false), ShareCard.links(links?.optJSONArray("reviews"), true))
+            return CardFields(release, review, source, score, a?.optBoolean("isBestNewMusic") ?: false)
         }
     }
 }
 
-/** An act worth hearing next ("If you like this"): one record of theirs, why it is suggested, and where it is. */
-data class SimilarAct(val name: String, val album: String, val year: String, val reason: String, val inLibrary: Boolean, val offset: Long?,
-                      val libraryTitle: String, val librarySubtitle: String, val services: List<ShareLink>) {
-    /** The quiet line beside the name: the record, and its year. */
-    val sub: String get() = if (album.isEmpty()) "" else if (year.isNotEmpty()) "$album · $year" else album
-    /** Queued from the library (its offset known), rather than found on a service. */
-    val queues: Boolean get() = inLibrary && offset != null
-    /** Where a tap goes when it isn't in the library: the default service of those it is on, or none. */
-    fun service(preferred: String?): ShareLink? = services.firstOrNull { it.id == ShareCard.preferred(preferred, services.map { s -> s.id }) }
-
-    companion object {
-        fun list(j: JSONObject?): List<SimilarAct> = objs(j?.optJSONArray("acts")).mapNotNull {
-            val name = text(it, "name") ?: return@mapNotNull null
-            SimilarAct(name, text(it, "album").orEmpty(), text(it, "year").orEmpty(), text(it, "reason").orEmpty(), it.optBoolean("in_library"),
-                it.takeIf { o -> o.opt("offset") is Number }?.optLong("offset"), text(it, "library_title").orEmpty(), text(it, "library_subtitle").orEmpty(),
-                ShareCard.links(it.optJSONArray("services"), false))
-        }
-    }
-}
-
-/** The card's rules beside its drawing: the review trimmed, the default service, the file's name, the hint. */
+/** The card's rules beside its drawing: the review trimmed, the file's name, the hint. */
 object ShareCard {
     const val GENERATING = "Generating card…"
     const val FAILED = "Could not generate the card."
@@ -82,18 +48,9 @@ object ShareCard {
         return t
     }
 
-    /** The default service: the one chosen ([stored]) while it is still on, else the first that is, else Qobuz. */
-    fun preferred(stored: String?, available: List<String>): String =
-        if (!stored.isNullOrEmpty() && (available.isEmpty() || stored in available)) stored else available.firstOrNull() ?: "qobuz"
-
     /** The saved card's name: the artist and the title, anything but letters and digits made "_". */
     fun fileName(title: String, artist: String): String =
         artist.ifEmpty { "artist" }.replace(Regex("[^a-zA-Z0-9]+"), "_") + "-" + title.ifEmpty { "card" }.replace(Regex("[^a-zA-Z0-9]+"), "_") + ".png"
-
-    internal fun links(a: JSONArray?, review: Boolean): List<ShareLink> = objs(a).mapNotNull {
-        val url = text(it, "url") ?: return@mapNotNull null
-        ShareLink(it.optString("id"), text(it, "name").orEmpty(), text(it, "chip"), url, review)
-    }
 }
 
 /**
@@ -105,7 +62,7 @@ object ShareCard {
 object CardLayout {
     const val CARD_W = 1200
     const val MIN_CARD_H = 600
-    const val MAX_CARD_H = 1800
+    const val MAX_CARD_H = 2100   // 1800 until the review was a fifth bigger (item 336)
     const val INSET = 48
     const val PANE_W = CARD_W - INSET * 2
     const val PANE_R = 28
@@ -124,9 +81,9 @@ object CardLayout {
     const val SCORE_SIZE = 30
     const val BNM_H = 26
     const val BNM_SIZE = 15
-    const val DESC_SIZE = 26
-    const val DESC_LH = 38
-    const val DESC_MAX = 22
+    const val DESC_SIZE = 31   // a fifth bigger than it was (item 336), as the page's sharecard.js
+    const val DESC_LH = 46
+    const val DESC_MAX = 27
     const val RULE_GAP = 30
     const val SRC_SIZE = 20
     const val SRC_H = SRC_SIZE + 4
@@ -229,4 +186,3 @@ private fun text(j: JSONObject, key: String): String? {
     return s.ifEmpty { null }
 }
 
-private fun objs(a: JSONArray?): List<JSONObject> = if (a == null) emptyList() else (0 until a.length()).mapNotNull { a.optJSONObject(it) }

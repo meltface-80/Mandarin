@@ -150,7 +150,9 @@ function setModalArtist(subtitle, names) {
     : subtitle.split(/ \/ | feat\.? | featuring | ft\.? /i).map(s => s.trim()).filter(Boolean);
   // Album credits are always linkable: the credit came from a library album,
   // so at minimum that album is on the artist's screen.
-  renderArtistLinks(box, parts.map(name => ({ name, linkable: true })), {
+  // The album's own act, where acts share its lead name (item 330): its page, not every act of the name.
+  const act = currentAlbum && currentAlbum.artist_id != null ? { artistId: currentAlbum.artist_id, note: currentAlbum.artist_note } : null;
+  renderArtistLinks(box, parts.map((name, i) => ({ name, linkable: true, act: i === 0 ? act : null })), {
     separator: validated ? " · " : " / ",
     linkClass: "modal-artist-link",
     sepClass:  "modal-subtitle-year",
@@ -206,7 +208,7 @@ function renderArtistLinks(box, parts, opts) {
       // The artist view PARKS the labels browser itself (see showArtistAlbums)
       // so its Back can restore it — tearing it down here would lose the open
       // label and leave the restored grid without its labels bar.
-      window.__showArtistAlbums && window.__showArtistAlbums(part.name, { fromAlbum });
+      window.__showArtistAlbums && window.__showArtistAlbums(part.name, { fromAlbum, ...(part.act || {}) });
     });
     box.appendChild(btn);
   });

@@ -9,6 +9,10 @@
 // make next. A step is lossless (nothing changed), enhanced (changed on purpose), lossy, or pending (not yet so).
 // Every step is a fact with its source (item 287): what the file is, what Mandarin did and sent, and what the device
 // reports feeding its DAC, in its own words and named as its. Nothing is inferred: "bit-perfect" is never said here.
+// Since item 331 the steps are as few as they can be, as HQPlayer shows its own: the source; the bit depth Mandarin
+// works the samples at, where it works them (64-bit float, the upsampling's and the modulator's and the DSP's); the
+// volume levelling where it is on; then what goes out in one short line ("Gaussian steep ×16 · 7th-order · DSD256"),
+// the line Now playing shows too; and the device's own word on what its DAC is fed.
 using System.Text.Json.Nodes;
 
 namespace Mandarin.Server.Playback;
@@ -28,9 +32,13 @@ internal static class SignalPath
         string? how = null, making = null;
         var extras = new List<string>();
         var svc = StreamPlans.ServiceOf(t.Path);
+        // Where Mandarin works the samples (upsampling, DSD made from PCM, the DSP), it decodes them to 64-bit float and
+        // works them there (UpsampleCommand.cs, MadeAsPlayed.cs, DsdPlan.cs); a stream it only passes on, never.
+        if ((s.Dsd != 0 && s.Transcode) || s.Upsampled != 0 || s.Dsp)
+            steps.Add(Step("float", "Bit depth conversion", t.Bits is > 0 ? $"{t.Bits}-bit to 64-bit float" : "To 64-bit float", "enhanced"));
         if (s.Gain != 0)
         {
-            steps.Add(Step("gain", "Volume levelling", $"ReplayGain {Db(s.Gain)}", "enhanced"));
+            steps.Add(Step("gain", "Volume levelling", $"{Db(s.Gain)} · ReplayGain", "enhanced"));
             extras.Add($"ReplayGain {Db(s.Gain)}");
         }
         if (s.Lowpass != 0)
@@ -58,7 +66,7 @@ internal static class SignalPath
         {
             // DSD as it is: the file itself.
             output = $"DSD{N(s.Dsd)}";
-            steps.Add(Step("output", "Output", $"DSD{N(s.Dsd)} ({Mhz(s.Dsd)} MHz), the file as it is, to {z.DisplayName}", "lossless"));
+            steps.Add(Step("output", "Output", $"DSD{N(s.Dsd)} ({Mhz(s.Dsd)} MHz), the file as it is", "lossless"));
             how = "As recorded";
         }
         else if (s.Dsd != 0)
@@ -68,31 +76,25 @@ internal static class SignalPath
             var from = Upsample.DsdPlan.FromRate(t.SampleRate ?? 0, family);
             var top = Upsample.DsdChain.InRateFor(Upsample.DsdPlan.DsdRate((int)s.Dsd, family));
             if (from != (t.SampleRate ?? 0)) steps.Add(Step("resample", "To 44.1 kHz’s family", $"{Khz(t.SampleRate ?? 0)} → {Khz(from)} kHz, by SoX at its finest", "enhanced"));
-            steps.Add(Step("upsample", "Upsampling", $"×{N(top / Math.Max(1, from))} to {Khz(top)} kHz · {Upsample.Shape.Name(s.Shape).ToLowerInvariant()}", "enhanced"));
-            steps.Add(Step("modulator", "DSD modulator", $"{Upsample.DsdOut.Line(s.Mod)}; doubled to DSD{N(s.Dsd)} ({Mhz(s.Dsd, family)} MHz)", "enhanced"));
-            steps.Add(Step("output", "Output", $"DSF, DSD{N(s.Dsd)}, made as it plays, to {z.DisplayName}", "enhanced"));
+            // The filter, how far, the modulator and what goes out, in a line (item 331).
+            how = $"{Filter(s.Shape)} ×{N(top / Math.Max(1, from))} · {Modulator(s.Mod)} · DSD{N(s.Dsd)}";
+            steps.Add(Step("upsample", "Upsampling", how, "enhanced"));
             output = $"DSD{N(s.Dsd)} · {Mhz(s.Dsd, family)} MHz";
-            how = $"From PCM · {Upsample.Shape.Words(s.Shape)} ×{N(top / Math.Max(1, from))} · {Upsample.DsdOut.Words(s.Mod)}";
         }
         else
         {
             var words = s.Transcode ? $"{(s.Mime == "audio/wav" ? "WAV" : "FLAC")} {N(s.Bits)}/{Khz(s.Rate)} kHz"
                 : $"{Library.FormatName(t.Container, false) ?? (t.Codec ?? "").ToUpperInvariant()} {N(s.Bits)}/{Khz(s.Rate)} kHz";
+            var exact = !s.Transcode;
             if (s.Upsampled != 0)
             {
-                var filter = Upsample.Shape.Name(s.Shape);
-                steps.Add(Step("upsample", "Upsampling", $"×{N(s.Upsampled)} to {Khz(s.Rate)} kHz · {filter}", "enhanced"));
-                how = filter;
-                // Mandarin's own dither (item 301), where the device asks it: how the last bit is rounded, and at which.
+                // The filter, how far and what goes out, in a line (item 331); Mandarin's own dither (item 301), where the device asks it.
+                how = $"{Filter(s.Shape)} ×{N(s.Upsampled)} · {N(s.Bits)}/{Khz(s.Rate)} kHz";
                 if (s.Dither != null || s.RealBits > 0)
-                {
-                    var dw = Upsample.Dither.Words(s.Dither, Upsample.Dither.Depth((int)s.Bits, s.RealBits));
-                    steps.Add(Step("dither", "Dither", char.ToUpperInvariant(dw[0]) + dw[1..] + (s.RealBits > 0 && s.RealBits < s.Bits ? $", in {N(s.Bits)}-bit words" : "") + ", Mandarin’s own", "enhanced"));
-                    how += " · dither " + dw;
-                }
+                    how += " · dither " + Upsample.Dither.Words(s.Dither, Upsample.Dither.Depth((int)s.Bits, s.RealBits)) + (s.RealBits > 0 && s.RealBits < s.Bits ? $" in {N(s.Bits)}-bit words" : "");
+                steps.Add(Step("upsample", "Upsampling", how, "enhanced"));
             }
-            var exact = !s.Transcode;
-            steps.Add(Step("output", "Output", $"{words}{(exact ? ", the file as it is" : "")}, to {z.DisplayName}", exact ? "lossless" : "enhanced"));
+            else steps.Add(Step("output", "Output", $"{words}{(exact ? ", the file as it is" : "")}", exact ? "lossless" : "enhanced"));
             output = words + (s.Upsampled != 0 ? $" ↑×{N(s.Upsampled)}" : "") + (exact ? " · as it is" : "");
         }
         // What the device reports feeding its DAC, as it reports it (item 287).
@@ -112,10 +114,10 @@ internal static class SignalPath
     {
         var svc = StreamPlans.ServiceOf(t.Path);
         var name = Library.FormatName(t.Container, t.Lossless) ?? (t.Codec ?? "").ToUpperInvariant();
-        var rate = t.SampleRate is > 0 ? $"/{Khz(t.SampleRate.Value)} kHz" : "";
-        var bits = t.Bits is > 0 ? $" {t.Bits}" : "";
-        var chans = t.Channels is > 2 ? $" · {t.Channels} channels" : "";
-        return Step("source", svc != null ? $"{Service(svc)} stream" : "File", $"{name}{bits}{rate}{chans}".Trim(), t.Lossless ? "lossless" : "lossy");
+        var rate = t.SampleRate is > 0 ? $" {Khz(t.SampleRate.Value)} kHz" : "";
+        var bits = t.Bits is > 0 ? $" {t.Bits}-bit" : "";
+        var chans = t.Channels is > 0 ? $" {t.Channels}ch" : "";
+        return Step("source", "Source", $"{(svc != null ? Service(svc) + " · " : "")}{name}{bits}{rate}{chans}".Trim(), t.Lossless ? "lossless" : "lossy");
     }
 
     private static JsonObject Path(string?[] lines, JsonArray steps) => new()
@@ -161,6 +163,10 @@ internal static class SignalPath
 
     private static JsonObject Step(string kind, string title, string detail, string quality) =>
         new() { ["kind"] = kind, ["title"] = title, ["detail"] = detail, ["quality"] = quality };
+
+    /* A filter by its name alone ("Gaussian steep", "Long, minimum phase", "Standard"), and a modulator by its order. */
+    private static string Filter(string? shape) => Upsample.Shape.Name(shape).Replace(" filter", "", StringComparison.Ordinal);
+    private static string Modulator(string? mod) => mod == "9" ? "9th-order" : "7th-order";
 
     private static string Service(string id) => id == "qobuz" ? "Qobuz" : id == "tidal" ? "Tidal" : id;
     private static string N(double v) => Tags.Js.Num(v);

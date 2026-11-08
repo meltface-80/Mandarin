@@ -156,10 +156,14 @@ internal static class Items
             var s = await Library.CurrentCopy() ?? throw new HubError(503, "The library is still being scanned");
             items = ItemsFor(c, s, hub, zoneId, tracks, shuffled);
         }
-        // The track that starts first is prepared first; what was being made for another play no longer is (246).
+        // The track that starts first is prepared first; what was being made for this room's play before no longer is
+        // (246): only where this play replaces its queue, and never what another room plays or has queued (item 337: a
+        // queued album stopped the one playing, its stream cut mid-track).
         var start = (int)Math.Max(0, startAt);
-        Upsample.MadeAsPlayed.Only(items.Where(it => it.Track != null && it.Plan != null && Jv.T(it.Plan["transcode"]))
-            .Select(it => Transcoder.KeyFor(new ConvTrack(it.Track!.Id, it.Track.Path, Hub.TierOrMtime(it.Track)), ConvPlan.Of(it.Plan!))));
+        if (how == "play_now")
+            Upsample.MadeAsPlayed.Only(items.Where(it => it.Track != null && it.Plan != null && Jv.T(it.Plan["transcode"]))
+                .Select(it => Transcoder.KeyFor(new ConvTrack(it.Track!.Id, it.Track.Path, Hub.TierOrMtime(it.Track)), ConvPlan.Of(it.Plan!)))
+                .Concat(hub.Upnp?.StillWanted(zoneId) ?? []));
         Prefetch(items.Skip(start).Concat(items.Take(start)));
         return await hub.Enqueue(zoneId, items, how, startAt, seconds);
     }

@@ -127,17 +127,19 @@ internal static partial class Library
         var artists = new JsonArray();
         if (q.Length > 0)
         {
-            var seen = new Dictionary<string, (string Name, int Count)>();
+            var seen = new Dictionary<string, (string Name, string N, int Count, Album First)>();
             var order = new List<string>();
             foreach (var al in s.Albums)
-                foreach (var (name, n) in al.ArtistNames)
+                for (var i = 0; i < al.ArtistNames.Length; i++)
                 {
+                    var (name, n) = al.ArtistNames[i];
                     if (!n.Contains(q, StringComparison.Ordinal)) continue;
-                    if (seen.TryGetValue(n, out var e)) seen[n] = (e.Name, e.Count + 1);
-                    else { seen[n] = (name, 1); order.Add(n); }
+                    var k = i == 0 ? ActKey(al) : n;   // acts that share a name, each its own (item 330)
+                    if (seen.TryGetValue(k, out var e)) seen[k] = (e.Name, e.N, e.Count + 1, e.First);
+                    else { seen[k] = (name, n, 1, al); order.Add(k); }
                 }
-            foreach (var n in Sorted(order, (a, b) => Or((a.StartsWith(q, StringComparison.Ordinal) ? 0 : 1) - (b.StartsWith(q, StringComparison.Ordinal) ? 0 : 1), () => seen[b].Count - seen[a].Count)).Take(8))
-                artists.Add(new JsonObject { ["name"] = seen[n].Name, ["n"] = n, ["count"] = seen[n].Count, ["albumCount"] = seen[n].Count });
+            foreach (var k in Sorted(order, (a, b) => Or((seen[a].N.StartsWith(q, StringComparison.Ordinal) ? 0 : 1) - (seen[b].N.StartsWith(q, StringComparison.Ordinal) ? 0 : 1), () => seen[b].Count - seen[a].Count)).Take(8))
+                artists.Add(WithAct(new JsonObject { ["name"] = seen[k].Name, ["n"] = seen[k].N, ["count"] = seen[k].Count, ["albumCount"] = seen[k].Count }, k, seen[k].First));
         }
         return Send(ctx, new JsonObject { ["query"] = raw, ["count"] = results.Count, ["indexed"] = s.Count, ["results"] = results, ["labels"] = labels, ["artists"] = artists });
     }
@@ -148,20 +150,22 @@ internal static partial class Library
     {
         var sort = Q(ctx, "sort") is { Length: > 0 } so ? so : "az";
         var seed = ToUint32(IntOr(Q(ctx, "seed"), 1));
-        var m = new Dictionary<string, (string Name, int Count, string Image, string SortName)>();
+        var m = new Dictionary<string, (string Name, int Count, string Image, string SortName, Album First)>();
         var order = new List<string>();
         foreach (var al in s.Albums)
         {
             if (al.Compilation) continue;
-            foreach (var (name, n) in al.ArtistNames)
+            for (var i = 0; i < al.ArtistNames.Length; i++)
             {
-                if (m.TryGetValue(n, out var e)) m[n] = (e.Name, e.Count + 1, e.Image, e.SortName);
-                else { m[n] = (name, 1, al.ImageKey, Names.SortName(name)); order.Add(n); }
+                var (name, n) = al.ArtistNames[i];
+                var k = i == 0 ? ActKey(al) : n;   // acts that share a name, each its own (item 330)
+                if (m.TryGetValue(k, out var e)) m[k] = (e.Name, e.Count + 1, e.Image, e.SortName, e.First);
+                else { m[k] = (name, 1, al.ImageKey, Names.SortName(name), al); order.Add(k); }
             }
         }
         // Found by a part of the name (the Artists wall's find, bug list item 130): accents, case and punctuation aside.
         var find = Names.Fold(Q(ctx, "q") ?? "");
-        if (find.Length > 0) order = order.Where(n => n.Contains(find, StringComparison.Ordinal)).ToList();
+        if (find.Length > 0) order = order.Where(n => n.Split('#')[0].Contains(find, StringComparison.Ordinal)).ToList();
         var keys = sort == "random" ? null : order.ToDictionary(n => n, n => SortKey(m[n].SortName));
         var list = sort switch
         {
@@ -175,8 +179,11 @@ internal static partial class Library
         var photos = Credits.CreditStore.Photos();
         JsonNode Act(string n)
         {
-            var o = new JsonObject { ["name"] = m[n].Name, ["albumCount"] = m[n].Count, ["image_key"] = m[n].Image };
-            if (Credits.CreditRules.PhotoKey(photos.GetValueOrDefault(Names.ArtistKey(m[n].Name))) is { } photo) o["photo_key"] = photo;
+            var o = WithAct(new JsonObject { ["name"] = m[n].Name, ["albumCount"] = m[n].Count, ["image_key"] = m[n].Image }, n, m[n].First);
+            // An act of a shared name: its own picture (item 340), never the name's, which may be the other act's.
+            var key = Names.ArtistKey(m[n].Name);
+            if (m[n].First.ActNote != null) key += "#" + (m[n].First.ActId ?? 0).ToString(CultureInfo.InvariantCulture);
+            if (Credits.CreditRules.PhotoKey(photos.GetValueOrDefault(key)) is { } photo) o["photo_key"] = photo;
             return o;
         }
         return Send(ctx, new JsonObject
@@ -192,8 +199,11 @@ internal static partial class Library
     {
         var artist = Names.JsTrim(Q(ctx, "artist") ?? "");
         if (artist.Length == 0) return Send(ctx, new JsonObject { ["error"] = "artist required" }, 400);
-        var (primary, featured) = ArtistAlbumsOf(s, artist);
-        return Send(ctx, new JsonObject { ["artist"] = artist, ["primary"] = AlbumList(s, primary), ["featured"] = AlbumList(s, featured) });
+        var act = ActOf(ctx);
+        var (primary, featured) = ArtistAlbumsOf(s, artist, act);
+        var o = new JsonObject { ["artist"] = artist, ["primary"] = AlbumList(s, primary), ["featured"] = AlbumList(s, featured) };
+        if (act.Given && primary.FirstOrDefault(al => al.ActNote != null) is { } one) WithAct(o, ActKey(one), one);
+        return Send(ctx, o);
     }
 
     /* The Shelf's album view's "More by <artist>" (item 206; Rouen's /api/album/more): the album's lead artist's other
@@ -205,7 +215,7 @@ internal static partial class Library
         var credit = Names.JsTrim(Q(ctx, "artist") ?? "");
         if (credit.Length == 0) return Send(ctx, new JsonObject { ["error"] = "artist required" }, 400);
         var artist = Names.SplitArtists(credit).FirstOrDefault(n => n.Length > 0) ?? credit;
-        var (primary, featured) = ArtistAlbumsOf(s, artist);
+        var (primary, featured) = ArtistAlbumsOf(s, artist, ActOf(ctx));
         var tN = Names.Fold(title);
         var cN = Names.Fold(credit);
         var skipped = false;
@@ -219,7 +229,7 @@ internal static partial class Library
     }
 
     /* library.artistAlbums(name): the albums credited to the act first, then those it is on (Last.fm's tiles too, LastfmRoutes.cs). */
-    private static (List<Album> Primary, List<Album> Featured) ArtistAlbumsOf(Snapshot s, string artist)
+    private static (List<Album> Primary, List<Album> Featured) ArtistAlbumsOf(Snapshot s, string artist, (bool Given, long? Id) act = default)
     {
         var q = Names.ArtistKey(artist);
         var primary = new List<Album>();
@@ -231,13 +241,14 @@ internal static partial class Library
                 var whole = Names.ArtistKey(al.Artist);
                 var names = al.ArtistNames.Select(x => Names.ArtistKey(x.Name)).ToList();
                 if (whole != q && !names.Contains(q)) continue;
+                if ((whole == q || names[0] == q) && act.Given && !ByAct(al, act.Id)) continue;   // another act of the name (item 330)
                 if (whole == q || names[0] == q) primary.Add(al); else featured.Add(al);
             }
             // A track credit on an album credited to someone else.
             using var c = Db.Open();
             foreach (var r in Rows(c, "SELECT DISTINCT album_id FROM tracks WHERE lower(artist) IN (lower($1), lower($2), lower($3)) LIMIT 200",
                          artist, ThePrefix().Replace(artist, "", 1), TheStart().IsMatch(artist) ? artist : "The " + artist))
-                if (s.ById.TryGetValue((long)r[0]!, out var al) && !primary.Contains(al) && !featured.Contains(al)) featured.Add(al);
+                if (s.ById.TryGetValue((long)r[0]!, out var al) && !primary.Contains(al) && !featured.Contains(al) && !(act.Given && Names.ArtistKey(al.ArtistNames.FirstOrDefault().Name) == q && !ByAct(al, act.Id))) featured.Add(al);
             int ByYear(Album a, Album b) => Or(Math.Sign((a.Year ?? 9999) - (b.Year ?? 9999)), () => Kc(a.SortTitleKey, b.SortTitleKey));
             primary = Sorted(primary, ByYear);
             featured = Sorted(featured, ByYear);

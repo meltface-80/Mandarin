@@ -4,7 +4,7 @@ import org.json.JSONObject
 
 /**
  * This phone's screen settings, kept by the app as one JSON object now there is no page to keep them (bug list item 111):
- * the UI Settings ([WallPrefs]'s names), the Library's view ("view", its query string) and the share card's service; and
+ * the UI Settings ([WallPrefs]'s names) and the Library's view ("view", its query string); and
  * the "page" part of a backup made from them under the page's own names (public/app/settings-backup.js, PAGE_KEYS), so a
  * backup made in the app restores in a browser and one made in a browser restores here. The page's keys the app has no
  * use for are carried through as they came.
@@ -45,7 +45,7 @@ object ScreenPrefs {
 
     /**
      * A backup's "page" part ([page]) put back over [json], as the page's applyPage puts it back: each setting it holds set,
-     * each it doesn't taken out (the share card's service, not in a backup, kept). The new JSON, and the room it names (null: none).
+     * each it doesn't taken out (anything else kept here, not in a backup, kept). The new JSON, and the room it names (null: none).
      */
     fun restore(page: JSONObject, json: String?): Pair<String, String?> {
         val j = read(json)

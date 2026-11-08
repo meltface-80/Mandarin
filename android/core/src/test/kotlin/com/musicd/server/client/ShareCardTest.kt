@@ -41,11 +41,11 @@ class ShareCardTest {
         val review = ShareCard.trimReview("Alpha beta gamma delta. ".repeat(80))
         val l = CardLayout.measure(font, "White Sky", "Peter Green", "", review, "Wikipedia")
         val desc = l.desc!!
-        assertEquals(38, desc.lh)
+        assertEquals("a fifth bigger than 26 on 38 (item 336)", 46, desc.lh)
         assertFalse("not cut", desc.lines.last().endsWith("…") && !review.endsWith("…"))
         assertEquals(review.split(Regex("\\s+")).size, desc.lines.sumOf { it.split(" ").size })
         assertEquals("Wikipedia", l.srcText)
-        assertEquals(424 + 30 + 1 + 30 + desc.lines.size * 38 + 26 + 24, l.contentH)
+        assertEquals(424 + 30 + 1 + 30 + desc.lines.size * 46 + 26 + 24, l.contentH)
         assertEquals(l.contentH + 80 + 96, l.cardH)
         assertEquals(88 + 424 + 30, l.ruleY)
         assertEquals("no review, no source", "", CardLayout.measure(font, "T", "A", "", "", "Wikipedia").srcText)
@@ -66,43 +66,22 @@ class ShareCardTest {
         assertTrue(t.endsWith("word…"))
     }
 
-    @Test fun `what the card says, from the extras answer, and a review switched off is left out`() {
-        val j = JSONObject("""{"year":2006,"album":{"score":8,"isBestNewMusic":true,"description":"Good. Very good.","description_source":"Wikipedia"},
-            "links":{"services":[{"id":"qobuz","name":"Qobuz","url":"https://q"},{"id":"spotify","name":"Spotify","url":null}],
-            "reviews":[{"id":"wikipedia","name":"Wikipedia","chip":"Wiki","url":"https://w"}]}}""")
+    @Test fun `what the card says, from the extras answer, the review always where there is one (item 336)`() {
+        val j = JSONObject("""{"year":2006,"album":{"score":8,"isBestNewMusic":true,"description":"Good. Very good.","description_source":"Wikipedia"}}""")
         val f = CardFields.parse(j)
         assertEquals("2006", f.releaseRaw)
         assertEquals("Good. Very good.", f.reviewText)
         assertEquals("Wikipedia", f.reviewSource)
         assertEquals(8.0, f.score!!, 0.0)
         assertTrue(f.bestNew)
-        assertEquals("a chip without an address dropped", listOf("Qobuz", "Wiki"), f.links.map { it.words })
-        assertTrue(f.links[1].review)
         assertEquals("2006|Good. Very good.|Wikipedia|8|true", f.signature)
-        val off = CardFields.parse(JSONObject(j.toString()).put("card", JSONObject().put("review", false)))
-        assertEquals("", off.reviewText)
-        assertEquals("", off.reviewSource)
+        val once = CardFields.parse(JSONObject(j.toString()).put("card", JSONObject().put("review", false)))
+        assertEquals("a review once switched off in Settings is on the card now", "Good. Very good.", once.reviewText)
+        assertEquals("Wikipedia", once.reviewSource)
+        val none = CardFields.parse(JSONObject("""{"year":2006,"album":{"description_source":"Wikipedia"}}"""))
+        assertEquals("no review: no one's words", listOf("", ""), listOf(none.reviewText, none.reviewSource))
         assertEquals(CardFields.NONE, CardFields.parse(null))
-    }
-
-    @Test fun `the acts suggested, queued from the library, or sent to the default service while it is on`() {
-        val acts = SimilarAct.list(JSONObject("""{"acts":[
-            {"name":"Fleetwood Mac","album":"Then Play On","year":1969,"reason":"Near Peter Green","in_library":true,"offset":12,"library_title":"Then Play On","library_subtitle":"Fleetwood Mac","services":[]},
-            {"name":"John Mayall","album":"Blues Breakers","in_library":false,"services":[{"id":"qobuz","name":"Qobuz","url":"https://q"},{"id":"deezer","name":"Deezer","url":"https://d"}]},
-            {"name":"Nobody","services":[]},{"album":"no name"}]}"""))
-        assertEquals(3, acts.size)
-        assertTrue(acts[0].queues)
-        assertEquals("Then Play On · 1969", acts[0].sub)
-        assertEquals("Blues Breakers", acts[1].sub)
-        assertEquals("", acts[2].sub)
-        assertEquals("deezer", acts[1].service("deezer")?.id)
-        assertEquals("a default switched off: the first that is on", "qobuz", acts[1].service("spotify")?.id)
-        assertNull(acts[2].service("qobuz"))
-        assertEquals("qobuz", ShareCard.preferred(null, emptyList()))
         assertEquals("Peter_Green-White_Sky.png", ShareCard.fileName("White Sky", "Peter Green"))
-        assertEquals("the page's default, handed over with its prefs", "deezer", WallPrefs.parse("""{"shareService":"deezer"}""").shareService)
-        assertNull(WallPrefs.parse("""{"shareService":null}""").shareService)
-        assertNull(WallPrefs.parse("{}").shareService)
     }
 
     @Test fun `a phone album's cover is read from the phone, a library album's from the server (item 197)`() {

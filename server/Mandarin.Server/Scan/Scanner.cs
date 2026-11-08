@@ -537,64 +537,6 @@ internal sealed partial class Scanner(SqliteConnection db, string root, IReadOnl
         throw new JsError("JSON.parse(...) is not iterable");
     }
 
-    /* Recompute an album's derived columns from its tracks. */
-    private void RefreshAlbum(double id, Dictionary<string, List<string>>? imagesByDir)
-    {
-        var tracks = All("SELECT * FROM tracks WHERE album_id = $id ORDER BY COALESCE(disc_no,1), COALESCE(track_no, 9999), path", ("$id", id));
-        if (tracks.Count == 0) return;
-        var now = NowMs();
-        var years = Count(tracks.Select(t => t["year"]));
-        var labels = Count(tracks.Select(t => t["label"]));
-        var genres = new List<object?>();
-        foreach (var t in tracks) foreach (var g in GenresOf(t)) if (!genres.Any(x => Same(x, g))) genres.Add(g);
-        var dirs = Count(tracks.Select(t => (object?)NodePath.Dirname(Js.Str(t["path"]))));
-        var dir = dirs.Count > 0 ? Js.Str(dirs[0]) : "";
-        if (ScanNames.DiscDir().IsMatch(NodePath.Basename(dir))) dir = NodePath.Dirname(dir);
-        // Folder art: the album's own folder, then each disc folder.
-        string? art = null;
-        foreach (var d in new[] { dir }.Concat(dirs.Select(x => Js.Str(x))))
-        {
-            var list = imagesByDir != null && imagesByDir.TryGetValue(d, out var imgs) ? imgs : ListImages(d);
-            art = PickArt(list);
-            if (art != null) break;
-        }
-        var lossy = tracks.Any(t => !Js.Truthy(t["lossless"]));
-        var maxRate = JsMax(tracks.Select(t => Js.Truthy(t["sample_rate"]) ? t["sample_rate"] : 0.0));
-        var maxBits = JsMax(tracks.Select(t => Js.Truthy(t["bits"]) ? t["bits"] : 0.0));
-        var containers = Count(tracks.Select(t => t["container"]));
-        var duration = 0.0;
-        foreach (var t in tracks) duration += Js.Truthy(t["duration"]) ? Js.ToNumber(t["duration"]) : 0;
-        var addedAt = JsMin(tracks.Select(t => t["mtime"]));
-        object? First(List<object?> l) => l.Count > 0 ? l[0] : null;
-        Exec(@"UPDATE albums SET year=$year, date=$date, label=$label, genres=$genres, dir=$dir, art_path=$art_path, art_embedded=$art_embedded,
-                 art_hash=$art_hash, track_count=$track_count, duration=$duration, max_rate=$max_rate, max_bits=$max_bits,
-                 lossless=$lossless, container=$container, added_at=$added_at,
-                 barcode=$barcode, catno=$catno, country=$country, mb_album=$mb_album, mb_group=$mb_group, updated_at=$now WHERE id=$id",
-            ("$id", id),
-            ("$year", First(years)),
-            ("$date", AlbumDateOf(tracks.Select(t => t["date"]), First(years))),
-            ("$label", First(labels)),
-            ("$genres", Js.Json(genres.Take(8).ToList())),
-            ("$dir", dir),
-            ("$art_path", art),
-            ("$art_embedded", art != null ? null : tracks[0]["path"]),
-            ("$art_hash", art != null ? ArtHash(art) : ArtHash(Js.Str(tracks[0]["path"]))),
-            ("$track_count", (double)tracks.Count),
-            ("$duration", duration),
-            ("$max_rate", OrNull(maxRate)),
-            ("$max_bits", OrNull(maxBits)),
-            ("$lossless", lossy ? 0.0 : 1.0),
-            ("$container", First(containers)),
-            ("$added_at", addedAt == 0 || double.IsNaN(addedAt) ? now : addedAt),
-            // The release's identifiers: what most of its tracks say.
-            ("$barcode", First(Count(tracks.Select(t => t["barcode"])))),
-            ("$catno", First(Count(tracks.Select(t => t["catno"])))),
-            ("$country", First(Count(tracks.Select(t => t["country"])))),
-            ("$mb_album", First(Count(tracks.Select(t => t["mb_album"])))),
-            ("$mb_group", First(Count(tracks.Select(t => t["mb_group"])))),
-            ("$now", now));
-    }
-
     /* Tracks under dir out of the library ([which]: only those it says) (scanner.js removeUnder, v0.8.34). */
     public int RemoveUnder(string dir, Func<string, bool>? which = null)
     {
@@ -851,7 +793,7 @@ internal sealed partial class Scanner(SqliteConnection db, string root, IReadOnl
                             ("$lossless", r["lossless"]), ("$year", r["year"]), ("$date", Or(r["date"])), ("$label", r["label"]),
                             ("$genres", Js.Json(Js.Truthy(r["genres"]) ? r["genres"] : new List<object?>())),
                             ("$tags_v", TagsV), ("$isrc", Or(r["isrc"])), ("$barcode", Or(r["barcode"])), ("$catno", Or(r["catno"])), ("$country", Or(r["country"])),
-                            ("$mb_album", Or(r["mb_album"])), ("$mb_group", Or(r["mb_group"])), ("$mb_recording", Or(r["mb_recording"])),
+                            ("$mb_album", Or(r["mb_album"])), ("$mb_group", Or(r["mb_group"])), ("$mb_recording", Or(r["mb_recording"])), ("$mb_artist", Or(r["mb_artist"])),
                             ("$rg_track_gain", Nul(r["rg_track_gain"])), ("$rg_track_peak", Nul(r["rg_track_peak"])),
                             ("$rg_album_gain", Nul(r["rg_album_gain"])), ("$rg_album_peak", Nul(r["rg_album_peak"])),
                             ("$names_from", Or(r["names_from"])), ("$composer", Or(r["composer"])), ("$conductor", Or(r["conductor"])), ("$work", Or(r["work"])), ("$movement", Or(r["movement"])), ("$movement_no", Nul(r["movement_no"])), ("$performers", Or(r["performers"])));
@@ -981,7 +923,7 @@ internal sealed partial class Scanner(SqliteConnection db, string root, IReadOnl
         foreach (var (d, reason, n) in offline) log($"[scan] {d} {words[reason]} — kept its {Js.Num(n)} tracks as they were");
         // A few hundred albums a transaction: the server's own writes wait for one batch, not the whole reindex.
         foreach (var batch in touched.Items.Chunk(300)) Transaction(() => { foreach (var id in batch) RefreshAlbum(id, imagesByDir); });
-        Transaction(DropEmptyAlbums);
+        Transaction(() => { DropEmptyAlbums(); FileUnfiled(); ArtistRows.Prune(db, tx); });   // albums under their artists, those no album is by forgotten (item 330)
 
         var albums = Js.ToNumber(Get("SELECT COUNT(*) AS n FROM albums")!["n"]);
         var tracksN = Js.ToNumber(Get("SELECT COUNT(*) AS n FROM tracks")!["n"]);
@@ -1022,11 +964,11 @@ internal sealed partial class Scanner(SqliteConnection db, string root, IReadOnl
 
     private const string UpsertTrack = @"INSERT INTO tracks(album_id, path, mtime, size, title, artist, album_artist, album, track_no, disc_no, duration,
           codec, container, sample_rate, bits, channels, lossless, year, date, label, genres,
-          tags_v, isrc, barcode, catno, country, mb_album, mb_group, mb_recording,
+          tags_v, isrc, barcode, catno, country, mb_album, mb_group, mb_recording, mb_artist,
           rg_track_gain, rg_track_peak, rg_album_gain, rg_album_peak, names_from, composer, conductor, work, movement, movement_no, performers)
         VALUES($album_id, $path, $mtime, $size, $title, $artist, $album_artist, $album, $track_no, $disc_no, $duration,
           $codec, $container, $sample_rate, $bits, $channels, $lossless, $year, $date, $label, $genres,
-          $tags_v, $isrc, $barcode, $catno, $country, $mb_album, $mb_group, $mb_recording,
+          $tags_v, $isrc, $barcode, $catno, $country, $mb_album, $mb_group, $mb_recording, $mb_artist,
           $rg_track_gain, $rg_track_peak, $rg_album_gain, $rg_album_peak, $names_from, $composer, $conductor, $work, $movement, $movement_no, $performers)
         ON CONFLICT(path) DO UPDATE SET album_id=excluded.album_id, mtime=excluded.mtime, size=excluded.size,
           title=excluded.title, artist=excluded.artist, album_artist=excluded.album_artist, album=excluded.album,
@@ -1034,7 +976,7 @@ internal sealed partial class Scanner(SqliteConnection db, string root, IReadOnl
           container=excluded.container, sample_rate=excluded.sample_rate, bits=excluded.bits, channels=excluded.channels,
           lossless=excluded.lossless, year=excluded.year, date=excluded.date, label=excluded.label, genres=excluded.genres,
           tags_v=excluded.tags_v, isrc=excluded.isrc, barcode=excluded.barcode, catno=excluded.catno, country=excluded.country,
-          mb_album=excluded.mb_album, mb_group=excluded.mb_group, mb_recording=excluded.mb_recording,
+          mb_album=excluded.mb_album, mb_group=excluded.mb_group, mb_recording=excluded.mb_recording, mb_artist=excluded.mb_artist,
           rg_track_gain=excluded.rg_track_gain, rg_track_peak=excluded.rg_track_peak,
           rg_album_gain=excluded.rg_album_gain, rg_album_peak=excluded.rg_album_peak, names_from=excluded.names_from, composer=excluded.composer,
           conductor=excluded.conductor, work=excluded.work, movement=excluded.movement, movement_no=excluded.movement_no, performers=excluded.performers";

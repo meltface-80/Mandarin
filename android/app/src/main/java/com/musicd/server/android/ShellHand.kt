@@ -23,7 +23,6 @@ internal fun handOn(what: String, arg: String?) {
     when (what) {
         "nav" -> NativeShell.nav?.let { navTap(it, arg.orEmpty()) }
         "library-view" -> NativeShell.keepLibraryView(arg.orEmpty())
-        "share-service" -> NativeShell.keep("shareService", arg)
         "zone", "group-settled" -> NativeShell.keepZone(arg)
         "update" -> UpdateNow.tap(arg == "now")
     }

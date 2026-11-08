@@ -244,7 +244,7 @@ internal static partial class Library
         var al = t is { } tt ? s.Find(tt.AlbumId) : null;
         var artist = al is { Artist.Length: > 0 } ? al.Artist : t is { Artist.Length: > 0 } ? t.Value.Artist : Js.Truthy(st["artist"]) ? Js.Str(st["artist"]) : "";
         var album = al is { Title.Length: > 0 } ? al.Title : Js.Truthy(st["album"]) ? Js.Str(st["album"]) : "";
-        var primary = ShareLinks.PrimaryArtist(artist);
+        var primary = Names.PrimaryArtist(artist);
         var photosTask = ArtistPhotos(primary);
         var extrasTask = album.Length > 0 ? AlbumExtrasOf(w, album, artist) : null;
         var photos = await photosTask;
