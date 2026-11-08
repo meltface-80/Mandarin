@@ -22,7 +22,11 @@
     if (mark && m !== mark) {
       // Gathered: a scan adds folder after folder.
       clearTimeout(timer);
-      timer = setTimeout(() => { if (window.__libraryChanged) window.__libraryChanged({ live: true }); }, 1000);
+      timer = setTimeout(() => {
+        // Artists' pages kept asked afresh (item 357): a deleted album's tile isn't drawn from a page kept before.
+        if (window.__artistKeptStale) window.__artistKeptStale();
+        if (window.__libraryChanged) window.__libraryChanged({ live: true });
+      }, 1000);
     }
     mark = m;
     // Only once the server has shown it carries the mark (an older one, or the
