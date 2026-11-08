@@ -32,11 +32,18 @@ internal static partial class Auth
     /* Whether the sign-in is off: the setting, false until it is switched off. */
     public static bool OpenMode(SqliteConnection c) => Db.Setting(c, OpenKey) is JsonValue v && v.TryGetValue<bool>(out var b) && b;
 
-    /* Tailscale's addresses (100.64.0.0/10, fd7a:115c:a1e0::/48): the owner's own network away from home. */
+    /* The owner's own network away from home: Tailscale's addresses (100.64.0.0/10, fd7a:115c:a1e0::/48), and where the
+       built-in engine says which are the owner's own nodes, only those (item 370: Admin/Tailscale.Own.cs). */
     public static bool IsTailnet(string ip)
     {
         var a = ip ?? "";
         if (a.StartsWith("::ffff:", StringComparison.Ordinal)) a = a[7..];
+        if (!InTailnetRange(a)) return false;
+        return Jobs.Tailscale?.OwnIps() is not { } own || own.Contains(a.ToLowerInvariant());
+    }
+
+    private static bool InTailnetRange(string a)
+    {
         if (a.StartsWith("fd7a:115c:a1e0:", StringComparison.OrdinalIgnoreCase)) return true;
         var parts = a.Split('.');
         if (parts.Length != 4 || !parts.All(p => p.Length is > 0 and <= 3 && p.All(char.IsAsciiDigit))) return false;

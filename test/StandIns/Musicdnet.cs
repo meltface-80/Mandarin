@@ -18,6 +18,15 @@ namespace Mandarin.StandIns;
 /// </summary>
 public static class Musicdnet
 {
+    // With TS_STUB_OWN (addresses, comma-separated), the owner's own nodes said as the engine says them (item 370); without
+    // it, an engine from before, which says none.
+    private static JsonObject Own(JsonObject st)
+    {
+        if (Environment.GetEnvironmentVariable("TS_STUB_OWN") is { Length: > 0 } own)
+            st["own_ips"] = new JsonArray(own.Split(',').Select(a => (JsonNode?)JsonValue.Create(a.Trim())).ToArray());
+        return st;
+    }
+
     /// <summary>Served until stdin closes.</summary>
     public static async Task<int> Run(string script, string[] args)
     {
@@ -47,7 +56,7 @@ public static class Musicdnet
                     case "/start":
                         var asked = string.IsNullOrEmpty(body) ? new JsonObject() : JsonNode.Parse(body)!.AsObject();
                         st = asked["AuthKey"] is JsonValue key && key.ToString().Length > 0
-                            ? new JsonObject { ["state"] = "Running", ["ips"] = new JsonArray("100.90.1.2", "fd7a:115c:a1e0::1"), ["dns_name"] = "musicd.tail1.ts.net.", ["serving"] = "" }
+                            ? Own(new JsonObject { ["state"] = "Running", ["ips"] = new JsonArray("100.90.1.2", "fd7a:115c:a1e0::1"), ["dns_name"] = "musicd.tail1.ts.net.", ["serving"] = "" })
                             : new JsonObject { ["state"] = "NeedsLogin", ["auth_url"] = "https://login.tailscale.com/a/abc123", ["ips"] = new JsonArray(), ["serving"] = "" };
                         reply = st.DeepClone();
                         break;

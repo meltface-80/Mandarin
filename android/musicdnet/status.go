@@ -3,7 +3,11 @@
 // engine's own CPU time (item 202).
 package main
 
-import "context"
+import (
+	"context"
+
+	"tailscale.com/ipn/ipnstate"
+)
 
 type statusJSON struct {
 	State   string   `json:"state"`
@@ -23,6 +27,30 @@ type statusJSON struct {
 	// CPU: this process's CPU time so far, in seconds (user and system), for the
 	// app's snapshots: Android ended the app for the engine's CPU once (item 202).
 	CPU float64 `json:"cpu_s"`
+	// OwnIPs: the tailnet addresses of the nodes signed in as this node's own user, this one among them (item 370):
+	// what MusicD Server takes for the owner's tailnet, rather than all of 100.64.0.0/10, which is carrier-grade NAT
+	// too and holds nodes shared in from other people's tailnets.
+	OwnIPs []string `json:"own_ips"`
+}
+
+// ownIPs: the addresses of [st]'s nodes that are its own user's (shared-in nodes and tagged ones are another user's).
+func ownIPs(st *ipnstate.Status) []string {
+	out := []string{}
+	if st == nil || st.Self == nil {
+		return out
+	}
+	for _, ip := range st.Self.TailscaleIPs {
+		out = append(out, ip.String())
+	}
+	for _, p := range st.Peer {
+		if p == nil || p.UserID != st.Self.UserID {
+			continue
+		}
+		for _, ip := range p.TailscaleIPs {
+			out = append(out, ip.String())
+		}
+	}
+	return out
 }
 
 func (e *engine) status(ctx context.Context) statusJSON {
@@ -62,5 +90,6 @@ func (e *engine) status(ctx context.Context) statusJSON {
 		out.Online = st.Self.Online
 	}
 	out.Health = append([]string{}, st.Health...)
+	out.OwnIPs = ownIPs(st)
 	return out
 }

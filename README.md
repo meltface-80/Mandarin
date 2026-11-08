@@ -1060,8 +1060,9 @@ Mandarin has **one account**, kept on the server itself — nothing online — o
 
 **Ask for a sign-in** (*Settings → Account*, on the page and in the Android app) switches the
 sign-in on or off. An install that had an account before v1.1.8 keeps asking until you switch it
-off. Off, anything on your home network or on your own Tailscale network (100.64.0.0/10) comes
-straight in: a TV showing the shelf or the wall needs nothing typed. Each browser and app is still
+off. Off, anything on your home network or on your own Tailscale network comes straight in (with
+the built-in Tailscale, only your own devices on it: not one shared in from someone else's tailnet,
+nor an address your internet provider gives from the same range): a TV showing the shelf or the wall needs nothing typed. Each browser and app is still
 a device of its own, listed in *Settings → Account*. From anywhere else (a port forwarded to the
 internet) a sign-in is still needed, and with no account there is none to give. Switching it on
 with no account asks you to create the account first; devices already in stay in until you sign
