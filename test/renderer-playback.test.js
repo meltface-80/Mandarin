@@ -495,7 +495,9 @@ test("a renderer is a zone", { skip, timeout: 150000 }, async (t) => {
       const dz = await until(async () => { const z = await state(DAC); return z && z.now_playing && z.now_playing.format && z.now_playing.format.text === "DSD64 from PCM" && z; }, 15000);
       // Its signal path (item 247): ×16 to 705.6 kHz, the modulator, the DSF; nothing still to be made.
       assert.deepEqual(dz.now_playing.signal.lines, ["DSD64 · 2.8224 MHz", "Standard ×16 · 7th-order · DSD64"]);
-      assert.deepEqual(dz.now_playing.signal.steps.map(x => x.kind), ["source", "float", "upsample"]);
+      // And how fast it was made (item 346): the whole DSF read, its making done.
+      assert.deepEqual(dz.now_playing.signal.steps.map(x => x.kind), ["source", "float", "upsample", "keeping"]);
+      assert.match(dz.now_playing.signal.steps[3].detail, /^Made at [\d.]+× real time, the whole track ready$/);
       // Another album queued while this one is made (item 337): nothing stopped, Long 1 made on to its end. It was cut
       // mid-track, the queue's tracks kept and the one playing not, and its room fell silent.
       const queuedAt = ctx.logs.length;

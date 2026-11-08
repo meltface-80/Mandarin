@@ -133,6 +133,7 @@ internal static class Items
     {
         var target = hub.TargetFor(zoneId);
         var phone = hub.Phones.IsPhoneId(zoneId);
+        var output = phone ? null : Renderers.Players.OutputNow(zoneId);   // what it was planned by (item 346)
         var shuffle = shuffled ?? hub.StateOf(zoneId)?.Shuffle == true;
         var levelling = LevellingFor(c, zoneId);
         var gains = Gain.GainsFor(tracks.Select(t => (object?)t.ToJs()).ToList(), shuffle, levelling, id => Measured(c, id), id => AlbumRows(c, id));
@@ -142,7 +143,9 @@ internal static class Items
         for (int i = 0; i < tracks.Count; i++)
         {
             double? g = gains[i] is double d ? d : null;
-            out_.Add(Item(s, secret, baseUrl, tracks[i], target, phone ? null : g, phone ? g : null));
+            var item = Item(s, secret, baseUrl, tracks[i], target, phone ? null : g, phone ? g : null);
+            item.Output = output;
+            out_.Add(item);
         }
         return out_;
     }

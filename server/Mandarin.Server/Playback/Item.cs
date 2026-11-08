@@ -17,6 +17,7 @@ internal sealed class PlayItem
     public double? Gain;              // for the phone to apply (null: none)
     public PhoneItem? Phone;          // a phone's queue entry, moving elsewhere (phones.js itemsFor)
     public UpnpItem? Upnp { get; set; }   // a renderer's queue entry (players.js), part 3
+    public JsObj? Output;             // the device's Output it was planned by (item 346: Players.Safety.cs); null for a phone
 }
 
 /* A phone's queue entry (phones.js toItem). */
@@ -59,4 +60,5 @@ internal sealed class UpnpItem
     public string ArtUri { get; set; } = "";
     public double Duration { get; set; }
     public SentInfo? Sent { get; set; }
+    public JsObj? Output { get; set; }   // the device's Output it was planned by (item 346)
 }

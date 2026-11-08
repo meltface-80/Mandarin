@@ -7,14 +7,16 @@
  * end, as Squeezelite's buffer goes on into it (STMs as it begins). Each stream plays [seconds] long, in real time.
  * It reports as Squeezelite does: STMf flushed, STMl buffered, STMd the stream read, STMs a track begun, STMp, STMr,
  * STMu all played, STMt to the server's 't', with how far into the track it is. log: every command, in order.
+ * [refuse]: the streams it can't play (item 346), which it says so of (STMn) and fetches nothing of. [early]: it begins
+ * a stream once its first bytes are in, as a player's buffer does, not once the whole of it is read.
  */
 const net = require("net");
 const dgram = require("dgram");
 
 class FakeSlim {
-  /** @param {{ port: number, name?: string, mac?: string, caps?: string, seconds?: number }} o */
-  constructor({ port, name = "Fake Slim", mac = "02:00:00:00:00:31", caps = "Model=squeezelite,ModelName=SqueezeLite,MaxSampleRate=192000,dsf,dff,flc,pcm,mp3", seconds = 2 }) {
-    Object.assign(this, { port, name, mac, caps, seconds });
+  /** @param {{ port: number, name?: string, mac?: string, caps?: string, seconds?: number, refuse?: RegExp, early?: boolean }} o */
+  constructor({ port, name = "Fake Slim", mac = "02:00:00:00:00:31", caps = "Model=squeezelite,ModelName=SqueezeLite,MaxSampleRate=192000,dsf,dff,flc,pcm,mp3", seconds = 2, refuse = null, early = false }) {
+    Object.assign(this, { port, name, mac, caps, seconds, refuse, early });
     this.log = [];        // "strm s f 0 /stream/t1.flac", "strm u", "audg 19661", …
     this.fetched = [];    // { path, bytes }
     this.requests = [];   // each strm s's HTTP request, whole
@@ -106,20 +108,31 @@ class FakeSlim {
       const path = request.split(" ")[1];
       this.log.push(`strm s ${format} ${autostart} ${path}`);
       this.requests.push(request);   // the whole HTTP request it was given, its headers too (item 315)
+      if (this.refuse && this.refuse.test(path)) { this.stat("STMn"); return; }   // one it can't play (item 346)
       this.stat("STMc");
-      this.fetch(port, path).then(bytes => {
-        this.fetched.push({ path, bytes });
-        this.stat("STMd");                       // the stream read to its end
-        const s = { path, base: 0, started: 0 };
+      const s = { path, base: 0, started: 0 };
+      const buffered = () => {
         if (this.playing) this.queued.push(s);   // follows the one heard, from the buffer
         else if (autostart === "0") { this.waiting = s; this.stat("STMl"); }
         else this.begin(s);
+      };
+      this.fetch(port, path, this.early ? buffered : null).then(bytes => {
+        this.fetched.push({ path, bytes });
+        this.stat("STMd");                       // the stream read to its end
+        if (!this.early) buffered();
       });
     }
   }
 
-  fetch(port, path) {
-    return fetch("http://127.0.0.1:" + port + path).then(r => r.arrayBuffer()).then(a => a.byteLength).catch(() => 0);
+  /* The stream fetched whole: its length; [first] called once its first bytes are in. */
+  async fetch(port, path, first = null) {
+    try {
+      const r = await fetch("http://127.0.0.1:" + port + path);
+      if (!first) return (await r.arrayBuffer()).byteLength;
+      let n = 0;
+      for await (const c of r.body) { if (n === 0) first(); n += c.length; }
+      return n;
+    } catch (e) { return 0; }
   }
 
   begin(s) { this.playing = s; this.paused = false; s.started = Date.now(); this.stat("STMs"); this.schedule(); }

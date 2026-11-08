@@ -97,6 +97,8 @@ internal static class SignalPath
             else steps.Add(Step("output", "Output", $"{words}{(exact ? ", the file as it is" : "")}", exact ? "lossless" : "enhanced"));
             output = words + (s.Upsampled != 0 ? $" ↑×{N(s.Upsampled)}" : "") + (exact ? " · as it is" : "");
         }
+        // How fast what it is sent is being made, as it plays (item 346: Upsample/KeepingUp.cs).
+        if (Keeping(z) is var (step, behind) && step != null) { steps.Add(step); if (behind != null) making = behind; }
         // What the device reports feeding its DAC, as it reports it (item 287).
         if (st.Fed is { } fed) steps.Add(Fed(fed, s));
         if (st.Confirmed) output += " ✓";
@@ -108,6 +110,24 @@ internal static class SignalPath
         }
         if (extras.Count > 0) how = how == null ? string.Join(" · ", extras) : how + " · " + string.Join(" · ", extras);
         return Path([output, how, making], steps);
+    }
+
+    /*
+     * Zone [z]'s making as a step (item 346), as Roon says its processing speed: how fast it is going over the last few
+     * seconds it worked, or went over the whole track; and, where it is slower than real time, the line that says so.
+     */
+    private static (JsonObject? Step, string? Behind) Keeping(ZoneInfo z)
+    {
+        var key = Hub.Current?.Upnp?.MakingOf(z.ZoneId);
+        if (key == null) return (null, null);
+        var k = Upsample.KeepingUp.Of(key);
+        if (k == null)
+            return Upsample.MadeAsPlayed.Begun(key) ? (Step("keeping", "Processing", "Being made as it plays", "pending"), null) : (null, null);
+        var x = Upsample.KeepingUp.Words(k.Times);
+        if (k.Done) return (Step("keeping", "Processing", $"Made at {x}, the whole track ready", "enhanced"), null);
+        if (k.Times >= Upsample.KeepingUp.Room) return (Step("keeping", "Processing", $"Keeping up at {x}", "enhanced"), null);
+        if (k.Times >= 1) return (Step("keeping", "Processing", $"Only just keeping up, at {x}", "pending"), null);
+        return (Step("keeping", "Processing", $"Falling behind, at {x}: slower than it plays", "lossy"), $"Falling behind: made at {x}");
     }
 
     private static JsonObject Source(PlayTrack t)
