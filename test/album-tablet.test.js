@@ -104,6 +104,10 @@ const DRIVER = `(async () => {
   body.scrollTop = 0; await sleep(300);
   extra.forEach(e => e.remove());
   out.tabsBack = getComputedStyle(tabsEl).backgroundColor;
+  // Centred, clear of Back (item 373): the shown tabs' extent, the first's left edge, and Back's right.
+  { const shownTabs = [...tabsEl.querySelectorAll(".album-tab")].filter(x => x.getBoundingClientRect().width > 0).map(x => x.getBoundingClientRect());
+    if (shownTabs.length) out.tabsBox = { l: shownTabs[0].left, r: shownTabs[shownTabs.length - 1].right, first: shownTabs[0].left };
+    out.backR = $("modal-close-btn").getBoundingClientRect().right; }
   // Scrolled so the button row is near the top of the panel.
   const rowTop = $("modal-actions").getBoundingClientRect().top - body.getBoundingClientRect().top;
   body.scrollTop = Math.max(0, rowTop - 60); await new Promise(r => requestAnimationFrame(r));
@@ -165,8 +169,10 @@ test("the album view on a tablet and a phone: a 160px sleeve, the title beside i
         assert.deepEqual(r.tabs, ["Tracks", "Credits", "About"], size + ": the tabs, no Versions for an album of one");
         assert.equal(r.tabsRest, "rgba(0, 0, 0, 0)", size + ": no bar behind the tabs in their place (item 358)");
         assert.ok(r.tabsHeld[2] > 30, size + ": scrolled, the tabs held at the top, the buttons gone up past them (" + r.tabsHeld[2] + ")");
-        assert.equal(r.tabsHeld[0], r.tabsHeld[1], size + ": held at the top, filled with the page's colour over the tracks");
-        assert.equal(r.tabsBack, "rgba(0, 0, 0, 0)", size + ": back in their place, no bar again");
+        assert.equal(r.tabsHeld[0], "rgba(0, 0, 0, 0)", size + ": held at the top, still no bar behind them (item 373)");
+        assert.equal(r.tabsBack, "rgba(0, 0, 0, 0)", size + ": back in their place, no bar");
+        assert.ok(Math.abs((r.tabsBox.l + r.tabsBox.r) / 2 - r.viewport[0] / 2) < 2, size + ": the tabs centred (item 373): " + JSON.stringify(r.tabsBox));
+        assert.ok(r.tabsBox.first >= r.backR, size + ": the first tab clear of Back at the corner (" + r.tabsBox.first + " from " + r.backR + ")");
         assert.ok(r.tracks.t > title.b, `${size}: the tracks under the head (${r.tracks.t})`);
         assert.ok(r.bio.b - r.bio.t === 0, `${size}: the review About's, not shown on Tracks (${JSON.stringify(r.bio)})`);
         assert.equal(r.tracksHead, "Tracks", size + ": the Tracks line");
@@ -251,13 +257,17 @@ test("the album's ⋯ → Add to playlist: the whole album into a playlist you c
   } finally { await srv.stop(); }
 });
 
-test("the app's album tabs: no bar behind them in their place, filled only while held at the top (item 358)", () => {
+test("the app's album tabs: centred, clear of Back, never a bar behind them (items 358, 373)", () => {
   const fs = require("fs"), path = require("path");
   const phone = fs.readFileSync(path.join(__dirname, "..", "android/app/src/main/java/com/musicd/server/android/AlbumPhone.kt"), "utf8");
   const screen = fs.readFileSync(path.join(__dirname, "..", "android/app/src/main/java/com/musicd/server/android/AlbumScreen.kt"), "utf8");
-  assert.match(phone, /val fill by animateColorAsState\(if \(held\) MaterialTheme\.colorScheme\.background else MaterialTheme\.colorScheme\.background\.copy\(alpha = 0f\)/);
-  assert.match(phone, /Column\(Modifier\.fillMaxWidth\(\)\.background\(fill\)\)/);
-  assert.doesNotMatch(phone, /Column\(Modifier\.fillMaxWidth\(\)\.background\(MaterialTheme\.colorScheme\.background\)\)/, "never always filled");
-  assert.match(phone, /list\.firstVisibleItemIndex >= at && list\.canScrollBackward/);
-  assert.match(screen, /state = list, contentPadding = pad\)[\s\S]*phoneTabs\(list, tab, a\.versions\.size\)/);
+  const row = phone.slice(phone.indexOf("internal fun AlbumTabRow("), phone.indexOf("ALBUM_TABS.forEachIndexed"));
+  assert.doesNotMatch(row, /\.background\(/, "never a bar behind them, held or not");
+  assert.match(row, /padding\(horizontal = 44\.dp\)/, "room at each side for Back at the corner");
+  assert.match(row, /Arrangement\.spacedBy\(18\.dp, Alignment\.CenterHorizontally\)/, "centred");
+  assert.match(phone, /stickyHeader\(key = "album\.tabs"\) \{ AlbumTabRow\(tab, versions, onTab = onTab\) \}/, "held at the top as the page scrolls");
+  assert.match(screen, /phoneTabs\(tab, a\.versions\.size\)/);
+  // No Share, previous or next at the corner (item 373): Share card in the ⋯.
+  assert.doesNotMatch(screen, /NavDiscs|parity\("album\.share"/);
+  assert.match(fs.readFileSync(path.join(__dirname, "..", "android/app/src/main/java/com/musicd/server/android/AlbumHeadParts.kt"), "utf8"), /parity\("album\.share", Contract\.label\("album\.share"\)\)[\s\S]{0,40}onClick = \{ open = false; onPage\("share", null\) \}/);
 });

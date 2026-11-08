@@ -211,6 +211,7 @@ async function fetchAlbumDetail(album, opts) {
         .concat(serviceMenuItem(j))
         .concat(laterMenuItem(album, j))
         .concat(playlistMenuItem(album))
+        .concat([{ label: "Share card", key: "album.share", onClick: () => window.__openShareCard({ title: album.title || "", artist: album.subtitle || "", image_key: album.image_key }) }])   // item 373: no button of its own
         .concat(versionMainItem(j))
         .concat(album.source && album.source !== "local" ? [] : [{ label: "Edit album", key: "album.edit", onClick: () => openAlbumEditor(album) }])
         .concat(downloadMenuItem(album)),

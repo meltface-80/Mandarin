@@ -1305,9 +1305,7 @@
       "preview": false,
       "items": {
         "back": { "kind": "action", "label": ["Back", "Close"] },
-        "share": { "kind": "action", "label": "Share card" },
-        "previous": { "kind": "action", "label": ["Previous album", "Previous album: {album}"], "when": "opened from a row or a list" },
-        "next": { "kind": "action", "label": ["Next album", "Next album: {album}"], "when": "opened from a row or a list" },
+        "share": { "kind": "action", "label": "Share card", "in": "more" },
         "glow": { "kind": "shows" },
         "cover": { "kind": "shows" },
         "source": { "kind": "shows", "when": "a library with a streaming service in it" },
