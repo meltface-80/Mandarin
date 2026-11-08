@@ -135,7 +135,7 @@ internal sealed partial class Players
         string Or(object? a, string? b) => Jv.T(a) ? Jv.Str(a) : b ?? "";
         return new UpnpItem
         {
-            Uri = it.Uri, Meta = it.Meta, Track = t, Plan = p,
+            Uri = it.Uri, Meta = it.Meta, Track = t, Plan = p, Output = it.Output,
             TrackId = t?.Id ?? Phones.TrackIdFromUri(it.Uri),
             Title = Or(m["title"], t?.Title), Artist = Or(m["artist"], t?.Artist), Album = Or(m["album"], t?.Album),
             ArtUri = Or(m["artUri"], ""),

@@ -262,6 +262,9 @@ internal sealed partial class Devices
             ((JsObj)o["output"]!)["making"] = Upsample.MadeAsPlayed.Note(up);
             if (Upsample.DsdOut.Of(r.Settings["dsd_mod"]) is { } mod) ((JsObj)o["output"]!)["dsd_mod"] = mod;   // its modulator (item 303): the seventh order by its absence
         }
+        // Chosen again, an Output that failed before says so (item 346: Players.Safety.cs).
+        if (streamer && Players.FailedBefore(r.Settings, Players.OutputOf(r.Settings)) is { } before)
+            ((JsObj)o["output"]!)["making"] = (((JsObj)o["output"]!)["making"] is string m ? m + " " : "") + before;
         // Its dither and the DAC's real bits (item 301), said only where set: flat, and as sent, by their absence.
         if (streamer && Upsample.Dither.Of(r.Settings["dither"]) is { } dn) ((JsObj)o["output"]!)["dither"] = dn;
         if (streamer && Upsample.Dither.BitsOf(r.Settings["real_bits"]) is var rb and > 0) ((JsObj)o["output"]!)["real_bits"] = (double)rb;
@@ -292,7 +295,7 @@ internal sealed partial class Devices
                 : r.Kind == "local" ? (r.Location.StartsWith("coreaudio:", StringComparison.Ordinal) ? "This Mac (Core Audio)" : "This computer (ALSA)")
                 : r.Kind == SlimDevices.Kind ? "It connected to Mandarin" : "UPnP discovery";   // a SlimProto player finds Mandarin (item 313)
             var err = streamer ? hub.Upnp.ErrorOf(r.Id) : null;
-            o["last_error"] = err is { } e ? Jv.Obj(("at", e.At), ("message", e.Message)) : null;
+            o["last_error"] = err is { } e ? Jv.Obj(("at", e.At), ("message", e.Message)) : r.Settings[Players.PutBackSetting] is JsObj back ? back : null;   // its Output put back (item 346)
             o["openhome"] = Jv.T(r.Caps["openhome"]);
             o["events"] = r.Kind == "upnp" ? hub.Upnp.EventsOf(r.Id) : null;
             // Volume: set on the device itself, or Mandarin's slider. Renderers only; never a Sonos room.

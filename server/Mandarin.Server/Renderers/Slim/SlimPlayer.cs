@@ -129,7 +129,7 @@ internal sealed class SlimPlayer
                 case "STMu":   // all it had is played: the end, where nothing more was given
                     if (streamRead && streaming == current) state = "STOPPED";
                     break;
-                case "STMn": lastError = $"{Name} couldn't play the track"; state = "STOPPED"; break;
+                case "STMn": lastError = $"{Name} {Players.CouldNotPlay}"; state = "STOPPED"; break;
             }
             if (nextToSend != null) { streaming = nextToSend; streamRead = false; }
         }

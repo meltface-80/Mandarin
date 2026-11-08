@@ -184,7 +184,7 @@ internal sealed partial class Players
             return;
         }
         // A sound device on this computer says what went wrong itself.
-        if (r.TakeError() is { } failed) { Fail(p, failed.Message); return; }
+        if (r.TakeError() is { } failed) { if (!await CantPlay(p, failed.Message)) Fail(p, failed.Message); return; }   // its Output put back, where it can be (item 346)
         if (withVolume && !FixedVolume(rec))
         {
             try { var v = r.GetVolume(); var m = r.GetMute(); await Task.WhenAll(v, m); lock (gate) p.Volume = (v.Result, m.Result); }
@@ -290,6 +290,7 @@ internal sealed partial class Players
         zm.ApplyState(p.Id, prev, next);
         if (tstate == "playing" && item != null && !p.NoSetNext) _ = ArmNext(p).ContinueWith(_ => { }, TaskContinuationOptions.OnlyOnFaulted);
         if (tstate == "playing" && item != null && !stale) Overrun(p, item, index, rel);   // still PLAYING at its end (item 246)
+        if (tstate == "playing" && item != null && !stale) Watch(p, item, rel);   // its Output kept, or put back (item 346: Players.Safety.cs)
         if (tstate == "playing" && item != null) _ = Verify(p, item).ContinueWith(_ => { }, TaskContinuationOptions.OnlyOnFaulted);
     }
 

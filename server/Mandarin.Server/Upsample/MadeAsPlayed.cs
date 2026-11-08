@@ -176,6 +176,7 @@ internal static class MadeAsPlayed
             spec = resume.From(whole, at);
             (proc, trace) = Spawn();
         }
+        KeepingUp.Finished(job.Key, 0);   // made, or stopped: no longer going (item 346)
         var r = said is { Length: > 0 } ? JsonNode.Parse(said) as JsonObject : null;
         if (r == null || r["error"] != null || next == null || proc.HasExited)
         {
@@ -195,7 +196,7 @@ internal static class MadeAsPlayed
         var took = (double?)r["seconds"] ?? 0;
         // Its speed by the time it worked, not the time it was held.
         var speed = took - heldFor > 0 && seconds > 0 ? seconds / (took - heldFor) : 0;
-        if (speed > 0 && resume?.Restarted != true) Speeds[p.DsdUp] = speed;
+        if (speed > 0 && resume?.Restarted != true) { Speeds[p.DsdUp] = speed; KeepingUp.Finished(job.Key, speed); }
         var held = (long?)r["held"] ?? 0;
         var what = p.DsdUp != 0 ? $"DSD{p.DsdUp} from PCM, {Shape.Words(p.Shape)} ({(long?)r["resets"] ?? 0} reset(s){(held > 0 ? $", {held} sample(s) over +2.9 dB held" : "")})" : $"×{p.Rate / Math.Max(1, (long)p.InRate)}, {Shape.Words(p.Shape)}";
         Server.Log($"[upsample] {Path.GetFileName(t.Path)}: {what}, made as it played at {Math.Round(speed, 2).ToString(System.Globalization.CultureInfo.InvariantCulture)}× real time ({took} s{(heldFor >= 1 ? $", {Math.Round(heldFor)} s of it held ahead of the device" : "")}){(warm != null ? ", on from the track before" : "")}{run}");

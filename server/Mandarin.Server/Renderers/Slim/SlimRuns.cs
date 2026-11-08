@@ -177,7 +177,7 @@ internal sealed class SlimRuns(string playerId, Action<byte[]> send, Action<stri
                         state = "STOPPED";
                     }
                     break;
-                case "STMn": error("couldn't play the track"); state = "STOPPED"; break;
+                case "STMn": error(Players.CouldNotPlay); state = "STOPPED"; break;
             }
             // Gone on to the next track within its run: the Bridge told what it is, for its screen.
             if (playing is { Pcm: not null } p && At(p, Elapsed()) is var (e, i) && i != heard)
