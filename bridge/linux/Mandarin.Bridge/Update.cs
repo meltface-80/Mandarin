@@ -39,6 +39,8 @@ internal sealed partial class Update(string api, string data, Action<string> log
     public (bool Ok, string Why) Start(string tag)
     {
         if (!Tag().IsMatch(tag)) return (false, "not a release of Mandarin Bridge's: " + tag);
+        // Never backwards (item 352): an older release may lack what a newer one fixed.
+        if (Guard.Older(tag, Program.Version)) return (false, $"{tag} is older than this Bridge ({Program.Version})");
         lock (gate)
         {
             if (state is "downloading" or "installing" or "restarting") return (false, "an update is already under way");
