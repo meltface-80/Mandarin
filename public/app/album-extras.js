@@ -1,19 +1,19 @@
 /* The page's core (app.js until v1.0.5), 27 of 33: an album's extras drawn, and what plays where. */
 function renderExtras(extras, album) {
-  // 1. The release date on a line of its own under the artists (bug list
-  // item 28: beside the sleeve a phone has no room for both on one), the
-  // label and the score after it. Asked again after an edit, the previous
-  // answer's go first, so it never reads "1997 · 1999". The date is the one
-  // the Release date sort orders this album by, to the day wherever one is
-  // known; the year is the fallback.
+  // 1. The release date on the album's facts line (bug list item 28; item 349: centred under the cover on a phone),
+  // and its label and score at the head of About (#album-about-facts). Asked again after an edit, the previous
+  // answer's go first, so it never reads "1997 · 1999". The date is the one the Release date sort orders this album
+  // by, to the day wherever one is known; the year is the fallback.
   const dateLine = document.getElementById("modal-date");
   dateLine.innerHTML = "";
+  const aboutFacts = document.getElementById("album-about-facts");
+  aboutFacts.innerHTML = "";
   const sepBefore = () => {
-    if (!dateLine.childNodes.length) return;
+    if (!aboutFacts.childNodes.length) return;
     const sep = document.createElement("span");
     sep.className = "modal-subtitle-year";
     sep.textContent = " · ";
-    dateLine.appendChild(sep);
+    aboutFacts.appendChild(sep);
   };
   const yearToShow = formatReleaseDate(extras.release_date) || extras.year ||
     (extras.album && extras.album.year ? String(extras.album.year) : "");
@@ -34,7 +34,7 @@ function renderExtras(extras, album) {
       closeModal();
       if (window.__showLabelAlbums) window.__showLabelAlbums(extras.album.label, false, back);
     });
-    dateLine.appendChild(labelBtn);
+    aboutFacts.appendChild(labelBtn);
   }
   if (extras.album && typeof extras.album.score === "number" && !isNaN(extras.album.score)) {
     sepBefore();
@@ -43,14 +43,15 @@ function renderExtras(extras, album) {
     chip.textContent = extras.album.score % 1 === 0
       ? extras.album.score + ".0"
       : String(extras.album.score);
-    dateLine.appendChild(chip);
+    aboutFacts.appendChild(chip);
     if (extras.album.isBestNewMusic) {
       const bnm = document.createElement("span");
       bnm.className = "bnm-badge";
       bnm.textContent = "BNM";
-      dateLine.appendChild(bnm);
+      aboutFacts.appendChild(bnm);
     }
   }
+  aboutFacts.classList.toggle("hidden", !aboutFacts.childNodes.length);
 
   // 2. Album bio section (description + source link; year/label now in subtitle)
   if (extras.album && (extras.album.description || (extras.album.url && extras.album.source))) {

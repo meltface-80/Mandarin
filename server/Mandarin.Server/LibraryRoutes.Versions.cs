@@ -7,10 +7,27 @@ namespace Mandarin.Server;
 
 internal static partial class Library
 {
-    /* [al]'s versions as its page lists them, the main first, this one marked (an album of one has none to list). */
-    private static JsonArray VersionsJson(Snapshot s, Album al) => new([.. (al.Versions ?? [])
-        .Select(id => s.ById.TryGetValue(id, out var v) ? v : null).OfType<Album>()
-        .Select(v => (JsonNode)AlbumJson(s, v, new JsonObject { ["label"] = v.VersionLabel, ["main"] = v.Id == al.MainVersion, ["current"] = v.Id == al.Id, ["release_year"] = v.ReleaseYear }))]);
+    /*
+     * [al]'s versions as its page lists them, the main first, this one marked (an album of one has none to list): each
+     * with what tells it apart, its edition alone, its tracks and length (its row on the Versions tab, item 349).
+     */
+    private static JsonArray VersionsJson(Snapshot s, Album al)
+    {
+        var list = (al.Versions ?? []).Select(id => s.ById.TryGetValue(id, out var v) ? v : null).OfType<Album>().ToList();
+        var seconds = new Dictionary<long, double>();
+        try
+        {
+            using var c = Db.Open();
+            foreach (var r in Rows(c, $"SELECT album_id, sum(duration) FROM tracks WHERE album_id IN ({string.Join(",", list.Select(v => v.Id))}) GROUP BY album_id"))
+                if (r[0] is long id && r[1] is double or long) seconds[id] = Convert.ToDouble(r[1], System.Globalization.CultureInfo.InvariantCulture);
+        }
+        catch (Microsoft.Data.Sqlite.SqliteException) { /* its length unsaid */ }
+        return new([.. list.Select(v => (JsonNode)AlbumJson(s, v, new JsonObject
+        {
+            ["label"] = v.VersionLabel, ["edition"] = v.VersionEdition, ["main"] = v.Id == al.MainVersion, ["current"] = v.Id == al.Id, ["release_year"] = v.ReleaseYear,
+            ["tracks"] = v.TrackCount, ["seconds"] = seconds.TryGetValue(v.Id, out var sec) ? Math.Round(sec) : null,
+        }))]);
+    }
 
     /* POST /api/album/versions/main { offset }: that version the main of its album, the one the lists show. */
     private static async Task<bool> SaveMainVersion(HttpContext ctx, Snapshot s, LibState st)

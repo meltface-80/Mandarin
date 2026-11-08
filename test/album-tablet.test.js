@@ -10,9 +10,12 @@
  *     where the panel clips it: reported from an iPad);
  *   - scrolled so the row is near the top, it still opens downwards;
  *   - the head a line each beside the sleeve (item 28): the title, the
- *     artists, the date and its label, then the rate and the album's length;
+ *     artists, the date, then the rate and the album's length; its label at
+ *     the head of About (item 349);
  *   - from 720px up About this album sits beside the tracks;
- *   - on a phone one column, the review after the tracks;
+ *   - on a phone held upright (item 349): the cover centred on top, the date,
+ *     rate and length centred under it, the title across the page, then the
+ *     tabs (Tracks, Credits, About), the tracks the one open, the review About's;
  *   - a tablet held sideways (item 214): the album in three columns, the
  *     cover, its head and its buttons on the left, the tracks on the right;
  *     still the whole ⋯ menu on screen, every item tapped.
@@ -85,6 +88,8 @@ const DRIVER = `(async () => {
   out.head = ["modal-title", "modal-subtitle", "modal-date", "modal-facts"].map(id => Object.assign(box($(id)), { text: $(id).textContent.replace(/\\s+/g, " ").trim() }));
   out.headArt = box(document.querySelector("#album-modal .modal-art"));
   out.tracksHead = document.querySelector(".tracks-head").textContent.trim();
+  out.label = $("album-about-facts").textContent.trim();
+  out.tabs = [...document.querySelectorAll("#album-tabs .album-tab")].filter(t => getComputedStyle(t).display !== "none" && t.getBoundingClientRect().height > 0).map(t => t.textContent.trim());
   // Scrolled so the button row is near the top of the panel.
   const rowTop = $("modal-actions").getBoundingClientRect().top - body.getBoundingClientRect().top;
   body.scrollTop = Math.max(0, rowTop - 60); await new Promise(r => requestAnimationFrame(r));
@@ -126,8 +131,30 @@ test("the album view on a tablet and a phone: a 160px sleeve, the title beside i
         assert.equal(r.hscroll, false, size + ": no sideways scroll");
         continue;
       }
-      assert.equal(r.rest.down, true, size + ": at rest it opens downwards, the row near the top");
+      // A tablet's row is near the top, so the menu opens downwards; a phone's sits under the cover now (item 349),
+      // and it opens whichever way has the room, clear of the mini player: every item tapped either way (above).
+      if (tablet) assert.equal(r.rest.down, true, size + ": at rest it opens downwards, the row near the top");
       assert.ok(r.rest.menu.t >= r.share.b, `${size}: the menu (${r.rest.menu.t}) stays clear of Share (${r.share.b})`);
+      assert.equal(r.label, "RCA", size + ": its label at the head of About (item 349)");
+      if (!tablet) {
+        // A phone held upright (item 349): the cover centred on top, two thirds of the page; the date, rate and length
+        // centred under it; the title across the page under them; the tabs, the tracks the one open, the review About's.
+        const [title, artist, date, facts] = r.head;
+        const mid = r.viewport[0] / 2;
+        assert.ok(Math.abs(r.art.r - r.art.l - Math.min(r.viewport[0] * 0.67, 300)) < 2, `${size}: the cover two thirds of the page (${r.art.r - r.art.l})`);
+        assert.ok(Math.abs((r.art.l + r.art.r) / 2 - mid) < 2, `${size}: the cover centred (${JSON.stringify(r.art)})`);
+        assert.match(date.text, /^\S.*2006$/, size + ": the date alone");
+        assert.equal(facts.text, "16/44.1 " + r.total, size + ": the rate and the length (the dots between them drawn by style.css)");
+        assert.ok(date.t >= r.art.b && Math.abs(date.t - facts.t) < 6, `${size}: the date and the facts on one line under the cover (${JSON.stringify([date, facts])})`);
+        assert.ok(Math.abs((date.l + facts.r) / 2 - mid) < 3, `${size}: that line centred (${date.l}–${facts.r})`);
+        assert.ok(title.t >= facts.b && title.l < r.art.l && artist.t >= title.b - 1, `${size}: the title across the page under them, the artists under it (${JSON.stringify([title, artist])})`);
+        assert.deepEqual(r.tabs, ["Tracks", "Credits", "About"], size + ": the tabs, no Versions for an album of one");
+        assert.ok(r.tracks.t > title.b, `${size}: the tracks under the head (${r.tracks.t})`);
+        assert.ok(r.bio.b - r.bio.t === 0, `${size}: the review About's, not shown on Tracks (${JSON.stringify(r.bio)})`);
+        assert.equal(r.tracksHead, "Tracks", size + ": the Tracks line");
+        assert.equal(r.hscroll, false, size + ": no sideways scroll");
+        continue;
+      }
       // The sleeve: 160px, the title and the artist line beside it, the tracks under it.
       assert.ok(Math.abs(r.art.r - r.art.l - 160) < 1, `${size}: the cover a 160px sleeve (${r.art.r - r.art.l})`);
       assert.ok(r.title.l > r.art.r && r.title.t < r.art.b, `${size}: the title beside the sleeve (title ${JSON.stringify(r.title)}, art ${JSON.stringify(r.art)})`);
@@ -137,7 +164,7 @@ test("the album view on a tablet and a phone: a 160px sleeve, the title beside i
       assert.match(r.total, /^\d+:\d\d$/, size + ": the album's total time is shown: " + r.total);
       const [title, artist, date, facts] = r.head;
       assert.equal(artist.text, "Artist A", size + ": the artists");
-      assert.match(date.text, /^\S.*2006 · RCA$/, size + ": the date, its label after it");
+      assert.match(date.text, /^\S.*2006$/, size + ": the date; its label About's (item 349)");
       assert.equal(facts.text, "16/44.1 " + r.total, size + ": the rate and the length");
       for (let i = 1; i < r.head.length; i++) assert.ok(r.head[i].t >= r.head[i - 1].b - 1, `${size}: a line each, in order (${JSON.stringify(r.head)})`);
       for (const line of r.head) assert.ok(line.l > r.headArt.r, `${size}: beside the sleeve (${JSON.stringify(line)})`);
@@ -153,8 +180,6 @@ test("the album view on a tablet and a phone: a 160px sleeve, the title beside i
           assert.ok(r.scrolled.hit.every(Boolean), `${size}: scrolled, every item can still be tapped (${r.scrolled.hit.join(",")})`);
           assert.equal(r.scrolled.down, true, size + ": scrolled with no room above, it opens downwards");
         }
-      } else {
-        assert.ok(r.bio.t > r.tracks.b, "a phone: the review after the tracks, as before");
       }
     }
   } finally { await srv.stop(); }

@@ -35,6 +35,7 @@ app/album-editor.js
 app/album-editor-match.js
 app/album-detail.js
 app/album-versions.js
+app/album-tabs.js
 app/album-tracks.js
 app/album-works.js
 app/album-extras.js

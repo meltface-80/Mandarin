@@ -5726,21 +5726,72 @@ button.cap-chip:active { transform: scale(.96); }
   border: 1px solid var(--border); border-radius: 999px; padding: 5px 11px; cursor: pointer;
 }
 .modal-box-disc:hover { border-color: var(--accent); }
-/* An album's versions (item 345): how many under its head, each a pill (the one open marked), and Make main. */
-.modal-versions { margin-top: 10px; text-align: center; }
-.modal-versions-head { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--text-faint, var(--text-dim)); }
-.modal-versions-list { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin-top: 8px; }
-.modal-version {
-  font: inherit; font-size: 12px; color: var(--text); background: transparent;
-  border: 1px solid var(--border); border-radius: 999px; padding: 5px 11px; cursor: pointer;
+/* An album's versions (items 345, 349, album-versions.js): a row each, its cover, its edition, its rate, its tracks,
+   length and year, the main one's and the one open's tags, its ⋯; the one open washed in brass. */
+.album-versions-pane { margin-bottom: 18px; }
+.album-versions-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; padding: 16px 0 6px; }
+.album-versions-count { font-size: 20px; font-weight: 700; color: var(--text); }
+.album-versions-note { font-size: 12px; color: var(--text-dim); }
+.album-version-row {
+  position: relative; display: flex; gap: 14px; align-items: flex-start; padding: 14px 4px;
+  border-bottom: 1px solid var(--panel-hairline); cursor: pointer;
+  transition: background-color .2s ease;
 }
-.modal-version:hover { border-color: var(--accent); }
-.modal-version.is-current { border-color: var(--accent); color: var(--accent-text, var(--accent)); cursor: default; }
-.modal-version-main {
-  font: inherit; font-size: 12px; margin-top: 8px; color: var(--accent-text, var(--accent)); background: transparent;
-  border: 0; padding: 4px 8px; cursor: pointer; text-decoration: underline;
+.album-version-row:hover { background: rgba(255,255,255,.03); }
+.album-version-row.is-current { cursor: default; background: var(--accent-soft); }
+.album-version-art { flex: none; width: 88px; height: 88px; border-radius: 7px; object-fit: cover; background: var(--bg-elev-2); }
+.album-version-words { flex: 1; min-width: 0; }
+.album-version-name { font-size: 16px; font-weight: 700; line-height: 1.25; color: var(--text); }
+.album-version-format { margin-top: 4px; font-size: 14px; font-weight: 600; color: var(--text); }
+.album-version-facts { margin-top: 3px; font-size: 13px; color: var(--text-dim); }
+.album-version-tags { display: flex; gap: 6px; margin-top: 8px; }
+.album-version-tag { font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; border-radius: 999px; padding: 2px 8px; }
+.album-version-tag.is-main { background: var(--accent); color: var(--on-accent); }
+.album-version-tag.is-viewing { border: 1px solid var(--accent); color: var(--accent-text, var(--accent)); }
+/* Another version shown (item 349): its tracks and facts fade across, nothing else moves. */
+.modal .track-list, .modal .modal-facts { transition: opacity .18s ease; }
+.modal.is-switching .track-list, .modal.is-switching .modal-facts { opacity: .35; }
+/* The album's tabs (item 349, album-tabs.js): a phone's; from 720px up everything shows at once. */
+.album-tabs { display: none; }
+.tab-empty { display: none; padding: 24px 0; color: var(--text-dim); }
+@media (max-width: 719px) {
+  /* The cover on top, centred; the date, rate and length centred under it; the title across the page in Young Serif. */
+  .modal:not(.np-mode) .modal-body { grid-template-columns: minmax(0, 1fr); grid-template-areas: "art" "head" "pane" "genres" "aside"; }
+  .modal:not(.np-mode) .modal-art { --sleeve: min(67vw, 300px); justify-self: center; width: var(--sleeve); min-height: var(--sleeve); }
+  .modal:not(.np-mode) .modal-head { flex-direction: row; flex-wrap: wrap; justify-content: center; align-items: center; column-gap: 10px; margin-top: 18px; }
+  .modal:not(.np-mode) #modal-date { order: 0; margin: 0; }
+  .modal:not(.np-mode) .modal-facts { order: 1; margin: 0; column-gap: 10px; }
+  .modal:not(.np-mode) #modal-date:not(:empty) + .modal-facts::before { content: "·"; }
+  .modal:not(.np-mode) #modal-quality:not(.hidden) + .modal-total:not(:empty)::before { content: "·"; margin-right: 10px; }
+  .modal:not(.np-mode) #modal-title { order: 2; flex-basis: 100%; margin: 10px 0 0; font-family: var(--font-display); font-weight: 400; font-size: 30px; line-height: 1.13; }
+  .modal:not(.np-mode) .modal-subtitle { order: 3; flex-basis: 100%; margin-top: 6px; font-size: 17px; }
+  .modal:not(.np-mode) .modal-head > :not(#modal-date, .modal-facts, #modal-title, .modal-subtitle) { order: 4; flex-basis: 100%; }
+  .modal:not(.np-mode) .album-tabs {
+    display: flex; gap: 22px; position: sticky; top: 0; z-index: 2; margin-top: 18px;
+    background: var(--bg); border-bottom: 1px solid var(--border);
+  }
+  /* The ⋯ menu opens over the tabs, never under them. */
+  .modal:not(.np-mode) .modal-actions { position: relative; z-index: 3; }
+  .album-tab {
+    font: inherit; font-size: 13px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+    color: var(--text-faint); background: transparent; border: 0; padding: 12px 0 10px; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 6px; border-bottom: 2px solid transparent; margin-bottom: -1px;
+  }
+  .album-tab.is-on { color: var(--text); border-bottom-color: var(--accent); }
+  .album-tab-count { font-size: 11px; letter-spacing: 0; color: var(--accent-text, var(--accent)); background: var(--accent-soft); border-radius: 999px; padding: 1px 7px; }
+  .album-tab-count:empty { display: none; }
+  /* The tab open shows; the rest wait. */
+  .modal:not(.np-mode):not([data-album-tab]) :is(#modal-genres, .modal-aside),
+  .modal:not(.np-mode)[data-album-tab="tracks"] :is(#modal-genres, .modal-aside),
+  .modal:not(.np-mode)[data-album-tab="credits"] :is(#modal-genres, .track-list-wrap),
+  .modal:not(.np-mode)[data-album-tab="credits"] .modal-aside > :not(#album-credits, #album-tab-empty),
+  .modal:not(.np-mode)[data-album-tab="about"] .track-list-wrap,
+  .modal:not(.np-mode)[data-album-tab="about"] .modal-aside > :is(#album-credits, #album-versions-pane, #album-tab-empty),
+  .modal:not(.np-mode)[data-album-tab="versions"] :is(#modal-genres, .track-list-wrap),
+  .modal:not(.np-mode)[data-album-tab="versions"] .modal-aside > :not(#album-versions-pane) { display: none !important; }
+  .modal:not(.np-mode)[data-album-tab="credits"] .modal-aside:has(#album-credits.hidden) #album-tab-empty { display: block; }
+  .modal:not(.np-mode)[data-album-tab="about"] #modal-genres { margin-top: 18px; }
 }
-.modal-version-main:disabled { cursor: default; text-decoration: none; opacity: .7; }
 /* The tile's "2 versions" under its artist. */
 .album-versions { font-size: 12px; color: var(--text-faint, var(--text-dim)); margin-top: 1px; }
 .ae-folder-box { display: block; margin-top: 4px; color: var(--text); }
