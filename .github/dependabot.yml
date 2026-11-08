@@ -1,0 +1,12 @@
+# The workflows' actions are pinned to commits (item 365, tested by test/actions-pinned.test.js): Dependabot proposes each
+# new version as a pull request into dev, its commit and its version comment together.
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    target-branch: "dev"
+    schedule:
+      interval: "weekly"
+    groups:
+      actions:
+        patterns: ["*"]

@@ -27,7 +27,7 @@ jobs:
     # a limit of its own (all of them run in about three minutes), so that a hung one is still stopped soon.
     timeout-minutes: 90
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
         timeout-minutes: 5
       - name: Install ffmpeg
         timeout-minutes: 10
@@ -35,7 +35,7 @@ jobs:
           HOMEBREW_NO_AUTO_UPDATE: "1"
           HOMEBREW_NO_INSTALL_CLEANUP: "1"
         run: brew install ffmpeg
-      - uses: actions/setup-dotnet@v6
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73  # v6
         timeout-minutes: 5
         with:
           dotnet-version: "10.0.x"
