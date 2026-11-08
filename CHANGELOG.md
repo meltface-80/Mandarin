@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased
+## v1.2.2
+
+Two acts of one name are two artists (Airbag from Norway and Airbag from Argentina), told apart by MusicBrainz's ids in the files or Mandarin's own matches, each with its own page, picture and facts; the signal path in as few steps as it can be, with Now playing's short line; the share card the card alone, its review always and bigger; logging on by default. Fixes: a queued album stopped the one playing; the Android Library wall's filter and sort; the Library Scanner stopped by iTunes matches. Items 330 to 343.
 
 - Fixed - a test of the Shelf's album view failed now and then on a busy machine ("the view ends at the bar"): it measured the view a fixed 0.6 s after the album was up, and the view unfolds out of its case for 0.7 s, so a quick album or a slow moment measured it mid-way. It is measured once its unfolding is over (item 343)
 - Fixed - an artist's page could keep saying who another act of the same name was after the server had found the right one (Airbag from Norway still "Band · Spain · since 1998" while the Artists wall had their picture): the app kept a page for fifteen minutes and asked nothing of it again in that time, and the server, while it looked the act up again, answered with the other act's entry. Who they are is now asked at every visit, and asked again every few seconds while the server is still looking, in the app and on the page; meanwhile the server no longer says the other act (item 342)

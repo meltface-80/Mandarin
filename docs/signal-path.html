@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Signal path · Mandarin</title>
-<meta name="description" content="Under the album on Now playing: what goes out, and how. A tap shows every step from the file to what the DAC is fed.">
+<meta name="description" content="Under the album on Now playing, one short line of what goes out. A tap shows every step from the file to what the DAC is fed.">
 <link rel="icon" href="mandarin-icon.png">
 <link rel="stylesheet" href="site.css">
 </head>
@@ -21,13 +21,17 @@
 
 <main class="wrap page">
   <h1>Signal path</h1>
-  <p class="lead">Under the album on <b>Now playing</b>: what goes out, and how. A tap shows every step from the file to what the DAC is fed.</p>
+  <p class="lead">Under the album on <b>Now playing</b>, one short line of what goes out, such as <i>Gaussian steep ×16 · 7th-order · DSD256</i>. A tap shows every step from the file to what the DAC is fed, in as few as it can be.</p>
 <div class="split">
     <div>
       <ol class="steps">
-        <li><b>File</b><span>The track as it is stored: its format, depth and rate, such as FLAC 16/44.1 kHz.</span></li>
-        <li><b>Output</b><span>What Mandarin sends, and to which room: the file as it is, or converted, upsampled or made
-            DSD, as that device's Output says.</span></li>
+        <li><b>Source</b><span>The track as it is stored, such as <i>FLAC 16-bit 44.1 kHz 2ch</i>.</span></li>
+        <li><b>Bit depth conversion</b><span>Where Mandarin works the samples (upsampling, DSD made from PCM, the DSP): they
+            are decoded to 64-bit float and worked there, <i>16-bit to 64-bit float</i>. A stream only passed on has none.</span></li>
+        <li><b>Volume levelling</b><span>Where it is on: the level and how it was found, <i>−7.3 dB · ReplayGain</i>.</span></li>
+        <li><b>Output</b><span>What goes out, in one line: the filter, the modulator and the format, such as <i>Gaussian
+            steep ×16 · 7th-order · DSD256</i> or <i>Long ×2 · 24/88.2 kHz</i>, with the dither where Mandarin makes it.
+            Now playing's line under the title is this same line.</span></li>
         <li><b>The DAC is fed</b><span>What the device itself reports feeding its DAC: the format, how the samples sit in
             the DAC's words, and whether its volume touches them — said as the device's own word.</span></li>
       </ol>
@@ -45,7 +49,7 @@
             says only the format, so it has none.</li>
       </ul>
     </div>
-    <figure class="shot"><img src="img/signal-path.jpg" alt="Now playing with the signal path: File, Output, The DAC is fed" loading="lazy" decoding="async"><figcaption><b>Now playing</b> with its signal path open: the file, the output to FiiO R7 USB, and what its DAC is fed.</figcaption></figure>
+    <figure class="shot"><img src="img/signal-path.jpg" alt="Now playing with the signal path: Source, Output, The DAC is fed" loading="lazy" decoding="async"><figcaption><b>Now playing</b> with its signal path open: the file, the output to FiiO R7 USB, and what its DAC is fed.</figcaption></figure>
   </div>
   <h2>Proof is SQ-tool's job</h2>
   <p>The signal path says only what is known, and whose word it is. Whether every sample reaches the DAC is for a
