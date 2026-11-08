@@ -863,6 +863,13 @@ few minutes and albums appear as it goes.
 > playlists, settings and the artwork and transcode caches. Point every future `docker run`
 > at the same name.
 
+> **The server doesn't run as root** (since item 354). It runs as user and group 1000 —
+> the first user on most Linux machines — and on its first start takes over its data volume
+> (from an install that ran as root, that one start can take a minute). It only reads your
+> music, so music anyone on the machine can read plays as before. If yours is readable by one
+> user only, run the server as that user: `-e PUID=<their uid> -e PGID=<their gid>` (`id`
+> on the host gives them). `-e PUID=0` keeps it root, as before.
+
 **The MusicBrainz pack on another drive (optional).** The pack (Settings → Library Scanner) is
 2 GB, kept in the data volume unless you choose a folder. To keep it on another drive, add a
 writable mount — no `:ro` — to the command above, e.g.:
@@ -871,7 +878,9 @@ writable mount — no `:ro` — to the command above, e.g.:
   -v /mnt/dietpi_userdata/1tb/mandarin:/packs \
 ```
 
-then choose `/packs` under **Folder** on that page. Keep the line in every future `docker run`
+then choose `/packs` under **Folder** on that page. The server must be able to write to that folder:
+own it by user 1000 (`sudo chown 1000:1000 /mnt/dietpi_userdata/1tb/mandarin`), or set `PUID`/`PGID` to its owner.
+Keep the line in every future `docker run`
 (an update included): without it `/packs` isn't there, and the page says so. A folder reached
 through the read-only `-v /mnt:/mnt:ro,rslave` mount can't be used for the pack.
 
@@ -1018,6 +1027,7 @@ Everything is optional; pass any of it with `-e NAME=value`.
 | `TRANSCODE_CONCURRENCY` | `2` | How many tracks are converted at once. |
 | `PLAYBACK_CORES` | auto | Processor cores kept for playback alone: one, or two while DSP is in use. `1` or `2` fixes the number; `0` shares every core. *Settings → Library Scanner → Processor* shows the split. |
 | `MUSIC_DIR` | `/music` | Where the library is mounted inside the container. |
+| `PUID` / `PGID` | `1000` | The user and group the server runs as inside the container: give your music's owner if it is readable by that user only. `PUID=0` runs it as root. |
 | `TS_AUTHKEY` | — | Sign the server's built-in Tailscale in with an auth key instead of from *Settings → Setup → Away from home*. |
 | `TS_HOSTNAME` | `musicd` | The server's name on your tailnet. |
 | `TAILSCALE` | on | `off` leaves the built-in Tailscale out (Tailscale on the host still works). |

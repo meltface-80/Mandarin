@@ -99,8 +99,13 @@ EXPOSE 3500
 HEALTHCHECK --interval=60s --timeout=5s --start-period=30s --retries=3 \
     CMD ["/app/server/bin/mandarin-server", "--health"]
 
+# Not as root (item 354): docker/entrypoint.sh hands the data, the program and the
+# page to PUID:PGID (1000:1000 unless set; PUID=0 stays root) and runs the server as
+# that user, keeping only the right to a port under 1024 and, given it, SYS_NICE.
+COPY docker/entrypoint.sh /app/entrypoint.sh
+
 # The C# server takes the port. When Settings → Check for updates installs a
 # new release, it puts the new program and page in place and starts again in
 # the same process — the container keeps running throughout.
-ENTRYPOINT ["/usr/bin/tini", "--"]
+ENTRYPOINT ["/usr/bin/tini", "--", "/app/entrypoint.sh"]
 CMD ["/app/server/bin/mandarin-server"]
