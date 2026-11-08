@@ -39,14 +39,15 @@ function shortNotes(text) {
 }
 
 /**
- * [version]'s section of a changelog ([changelog], its text): the lines under "## v<version>" up to the next version's.
+ * [version]'s section of a changelog ([changelog], its text): the lines under "## v<version>" up to the next version's,
+ * or to its own "### Every change" (item 344: the summary and the short lines above it, every entry under it).
  * @param {string} changelog @param {string} version @returns {string}
  */
 function section(changelog, version) {
   const lines = String(changelog).split("\n");
   const start = lines.findIndex(l => l.trim() === `## v${version}`);
   if (start < 0) return "";
-  const end = lines.findIndex((l, i) => i > start && /^## /.test(l));
+  const end = lines.findIndex((l, i) => i > start && /^###? /.test(l));
   return lines.slice(start + 1, end < 0 ? undefined : end).join("\n");
 }
 
