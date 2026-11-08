@@ -58,6 +58,7 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.musicd.server.client.Contract
@@ -264,7 +265,7 @@ internal fun SearchScreen(prefs: WallPrefs, zoneId: String, client: () -> Server
 /**
  * The top bar with the field across it (the touch layout's .tn-search .topbar, the hifi palette): the ground's veil with
  * its hairline under it, the field 40 tall in brass while it has the keyboard (the glass, the words, ✕), and the count
- * beside it once there is one.
+ * under it once there is one (item 372: beside it, it took the field's width as it grew).
  */
 @Composable
 private fun FieldBar(typed: String, status: String, onTyped: (String) -> Unit, onTyping: (Boolean) -> Unit, onSearch: () -> Unit, onClear: () -> Unit) {
@@ -293,9 +294,10 @@ private fun FieldBar(typed: String, status: String, onTyped: (String) -> Unit, o
                     ClearCross(MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
-            if (status.isNotEmpty()) Text(status, Modifier.parity("search.status").padding(start = 10.dp), color = paletteColor(Palette.TEXT_FAINT), fontSize = 12.sp, lineHeight = 17.sp,
-                maxLines = 1, style = LocalTextStyle.current.copy(fontFeatureSettings = "tnum"))
         }
+        // The count under the field (item 372), never beside it: the field keeps its width whatever the count says.
+        if (status.isNotEmpty()) Text(status, Modifier.parity("search.status").padding(start = 28.dp, end = 14.dp, bottom = 8.dp), color = paletteColor(Palette.TEXT_FAINT),
+            fontSize = 12.sp, lineHeight = 16.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, style = LocalTextStyle.current.copy(fontFeatureSettings = "tnum"))
         HorizontalDivider(color = MaterialTheme.colorScheme.outline)
     }
 }

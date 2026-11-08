@@ -375,15 +375,16 @@ a.action-btn:active,
 }
 .search-clear:hover  { color: var(--text); }
 .search-clear:active { transform: scale(.94); }
+/* The count under the field (item 372), never beside it: the field keeps its width whatever the count says. It hangs
+   in the gap between the top bar and the results' first heading, taking no room from either. */
+.search-row { position: relative; }
 .search-status {
-  flex: 0 0 auto;
-  font-size: 12px; color: var(--text-faint);
-  font-variant-numeric: tabular-nums; white-space: nowrap;
+  position: absolute; left: 16px; right: 16px; top: calc(100% + 3px);
+  font-size: 12px; line-height: 16px; color: var(--text-faint);
+  font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  pointer-events: none;
 }
-@media (max-width: 520px) {
-  /* On the narrowest screens the count sits under the field to save width */
-  .search-status:empty { display: none; }
-}
+.search-status:empty { display: none; }
 
 /* ------------------------------------------------------------------ */
 /*  Search result sections (Artists / Labels / Albums headers + chips) */
