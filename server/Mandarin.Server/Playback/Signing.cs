@@ -20,7 +20,7 @@ using System.Text;
 
 namespace Mandarin.Server.Playback;
 
-internal static class Signing
+internal static partial class Signing
 {
     /* sig(p) */
     public static string Sig(string secret, string path)
