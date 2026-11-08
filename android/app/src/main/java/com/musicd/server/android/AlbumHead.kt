@@ -34,13 +34,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import com.musicd.server.client.Album
-import com.musicd.server.client.AlbumVersion
 import com.musicd.server.client.Booklet
 import com.musicd.server.client.Contract
 import com.musicd.server.client.NavList
@@ -74,13 +71,12 @@ internal fun ComposerLines(a: Album, onPage: (String, String?) -> Unit) {
 }
 
 /**
- * The notes at the foot of the head, each only when it has something to say; a disc's tap opens it among the box's discs
- * ([onDisc]), as a version's opens it among its album's versions; [onMain] makes the one open the main version, saying
- * whether it was saved (item 345).
+ * The notes at the foot of the head, each only when it has something to say; a disc's tap opens it among the box's
+ * discs ([onDisc]). An album's versions are its Versions tab's (item 349: AlbumPhone.kt).
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-internal fun HeadNotes(a: Album, onMain: (Long, (Boolean) -> Unit) -> Unit = { _, _ -> }, onDisc: (NavList) -> Unit) {
+internal fun HeadNotes(a: Album, onDisc: (NavList) -> Unit) {
     val faint = paletteColor(Palette.TEXT_FAINT)
     val dim = MaterialTheme.colorScheme.onSurfaceVariant
     if (a.namesFromFolders) Text("Names from its folders — the files carry no tags", Modifier.parity("album.names-note").fillMaxWidth().padding(top = 4.dp),
@@ -102,36 +98,6 @@ internal fun HeadNotes(a: Album, onMain: (Long, (Boolean) -> Unit) -> Unit = { _
                 }
             }
         }
-    }
-    if (a.versions.size > 1) Versions(a, onMain, onDisc)
-}
-
-/** Its album's versions (item 345, as the page's album-versions.js): how many, a pill each (the one open ringed), and Make main. */
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun Versions(a: Album, onMain: (Long, (Boolean) -> Unit) -> Unit, onOpen: (NavList) -> Unit) {
-    val list = a.versions
-    val brass = MaterialTheme.colorScheme.primary
-    var said by remember(a.album.offset) { mutableStateOf(AlbumVersion.MAKE_MAIN) }
-    Column(Modifier.parity("album.versions").fillMaxWidth().padding(top = 10.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(AlbumVersion.head(list.size).uppercase(), color = paletteColor(Palette.TEXT_FAINT), fontSize = 12.sp, fontWeight = FontWeight.W700, letterSpacing = 0.06.em)
-        FlowRow(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            list.forEachIndexed { i, v ->
-                val pill = RoundedCornerShape(999.dp)
-                Text(v.words, color = if (v.current) brass else paletteColor(Palette.MODAL_TEXT), fontSize = 12.sp,
-                    modifier = Modifier.parity("album.version", Contract.label("album.version", 0, v.words)).clip(pill)
-                        .border(1.dp, if (v.current) brass else MaterialTheme.colorScheme.outline, pill)
-                        .clickable(enabled = !v.current) { onOpen(NavList(list.map { com.musicd.server.client.NavItem(it.album.offset, it.album.title) }, i)) }
-                        .padding(horizontal = 11.dp, vertical = 5.dp))
-            }
-        }
-        val cur = list.firstOrNull { it.current }
-        if (cur != null && !cur.main) Text(said, color = brass, fontSize = 12.sp, textDecoration = if (said == AlbumVersion.MAKE_MAIN || said == AlbumVersion.FAILED) TextDecoration.Underline else null,
-            modifier = Modifier.parity("album.version-main", Contract.label("album.version-main", listOf(AlbumVersion.MAKE_MAIN, AlbumVersion.SAVING, AlbumVersion.IS_MAIN, AlbumVersion.FAILED).indexOf(said).coerceAtLeast(0)))
-                .padding(top = 8.dp).clickable(enabled = said == AlbumVersion.MAKE_MAIN || said == AlbumVersion.FAILED) {
-                    said = AlbumVersion.SAVING
-                    onMain(cur.album.offset) { ok -> said = if (ok) AlbumVersion.IS_MAIN else AlbumVersion.FAILED }
-                }.padding(horizontal = 8.dp, vertical = 4.dp))
     }
 }
 

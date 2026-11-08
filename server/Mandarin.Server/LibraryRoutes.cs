@@ -288,7 +288,7 @@ internal static partial class Library
         if (al.Discs > 1) o["discs"] = al.Discs;
         if (al.Box != null) o["box"] = new JsonObject { ["name"] = al.Box.Name, ["disc"] = al.Box.Disc, ["of"] = al.Box.Of };
         if (al.ActNote != null) { o["artist_id"] = al.ActId ?? 0; if (al.ActNote.Length > 0) o["artist_note"] = al.ActNote; }   // its act, where acts share its name (item 330)
-        if (al.Versions != null) { o["versions"] = al.Versions.Count; o["version"] = al.VersionLabel; }   // one of its album's versions (item 345)
+        if (al.Versions != null) { o["versions"] = al.Versions.Count; o["version"] = al.VersionLabel; o["base_title"] = ShelfFacts.SplitVersion(al.Title)?.Base ?? al.Title; }   // one of its versions (items 345, 349: its page's title, whichever is shown)
         if (extra != null) foreach (var (k, v) in extra.ToList()) { extra.Remove(k); o[k] = v; }
         return o;
     }

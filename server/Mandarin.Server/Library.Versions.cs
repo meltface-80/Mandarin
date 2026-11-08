@@ -21,6 +21,8 @@ internal sealed partial class Album
     public List<long>? Versions;
     /* What tells this version from the others ("2015 Remaster · 24/96"); null where it is the only one. */
     public string? VersionLabel;
+    /* Its own words of it without its format ("2015 Remaster", "Original", "12 tracks": item 349); null where it is the only one. */
+    public string? VersionEdition;
     /* Its own release's year, where its match says (a remaster's, where Year is the original's). */
     public long? ReleaseYear;
 }
@@ -51,7 +53,7 @@ internal static partial class Library
         }
         catch (SqliteException) { s.Shown = s.Albums; return; }   // a database from before the columns
         var chosen = MainVersionKeys(c);
-        foreach (var al in s.Albums) { al.MainVersion = null; al.Versions = null; al.VersionLabel = null; al.ReleaseYear = facts.TryGetValue(al.Id, out var f) ? f.Year : null; }
+        foreach (var al in s.Albums) { al.MainVersion = null; al.Versions = null; al.VersionLabel = null; al.VersionEdition = null; al.ReleaseYear = facts.TryGetValue(al.Id, out var f) ? f.Year : null; }
 
         var pool = s.Albums.Where(al => !al.Compilation && !al.Transient && al.Service == null && al.Box == null && al.ArtistNames.Length > 0).ToList();
         string? Group(Album al) => facts.TryGetValue(al.Id, out var f) ? f.Group : null;
@@ -86,7 +88,10 @@ internal static partial class Library
             {
                 al.MainVersion = main.Id;
                 al.Versions = order;
-                var what = Own(al) ?? (bare.Count == 1 ? "Original" : null);
+                // Neither edition nor year between them: its tracks, where those differ (item 349: two "24/96" else).
+                var counts = bare.Select(b => b.TrackCount).Distinct().Count();
+                var what = Own(al) ?? (bare.Count == 1 ? "Original" : counts > 1 && al.TrackCount is double n ? n.ToString("0", CultureInfo.InvariantCulture) + " tracks" : null);
+                al.VersionEdition = what;
                 var format = QualityOf(al).Quality;
                 al.VersionLabel = string.Join(" · ", new[] { what, format }.Where(x => !string.IsNullOrEmpty(x)));
             }

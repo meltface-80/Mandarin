@@ -27,4 +27,16 @@ class AlbumVersionsTest {
         assertTrue(Album.parse(JSONObject("""{"album":{"offset":1,"title":"x"}}""")).versions.isEmpty())
         assertEquals("Make this the main version", AlbumVersion.MAKE_MAIN)
     }
+
+    @Test fun `a version's row says its edition, its rate, its tracks, length and year, and the page keeps its title (item 349)`() {
+        val a = Album.parse(JSONObject("""{"album":{"offset":3,"title":"Metallic 'KO (2015 Remaster)","base_title":"Metallic 'KO","versions":2},
+            "versions":[{"offset":7,"title":"Metallic 'KO (2015 Remaster)","quality":"24/96","edition":"2015 Remaster","tracks":12,"seconds":2625,"release_year":2015,"label":"2015 Remaster · 24/96","main":true,"current":true},
+                        {"offset":3,"title":"Metallic 'KO","quality":"16/44.1","year":1976,"edition":null,"tracks":1,"seconds":null,"label":"16/44.1","main":false,"current":false}]}"""))
+        assertEquals("Metallic 'KO", a.album.baseTitle)
+        val (main, other) = a.versions
+        assertEquals(listOf("2015 Remaster", "24-bit / 96 kHz", "12 tracks · 43:45 · 2015"), listOf(main.name, main.format, main.facts))
+        assertEquals(listOf("Metallic 'KO", "16-bit / 44.1 kHz", "1 track · 1976"), listOf(other.name, other.format, other.facts))
+        assertEquals(listOf("Tracks", "Credits", "About", "Versions"), Contract.labels["album.tab"])
+        assertEquals(listOf("Version actions"), Contract.labels["album.version-more"])
+    }
 }

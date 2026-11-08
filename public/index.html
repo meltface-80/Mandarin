@@ -532,6 +532,12 @@
              sleeve's row; after the tracks on a phone (style.css places it
              with the grid). Not on Now playing. -->
         <div class="modal-aside" id="modal-aside">
+          <!-- Its versions (items 345, 349, album-versions.js): the Versions tab on a phone; from 720px up, first here. -->
+          <div class="album-versions-pane hidden" id="album-versions-pane" data-parity="album.versions"></div>
+          <!-- The Credits tab with none known (item 349). -->
+          <div class="tab-empty" id="album-tab-empty" data-parity="album.tab-empty">No credits known for this album yet</div>
+          <!-- About's head (item 349): the album's genres on a phone (moved here by style.css's order), its label and its score. -->
+          <div class="about-facts hidden" id="album-about-facts" data-parity="album.about-facts"></div>
           <!-- Credits (bug list item 132, album-credits.js): who played, sang,
                wrote and made it, each opening their page; eight at first. -->
           <div class="credits-section hidden" id="album-credits" data-parity="album.credits">
@@ -746,6 +752,13 @@
 
           <div class="modal-actions" id="modal-actions">
             <!-- buttons injected -->
+          </div>
+          <!-- Its tabs (item 349, album-tabs.js): a phone held upright; from 720px up everything shows at once. -->
+          <div class="album-tabs" id="album-tabs" role="tablist">
+            <button type="button" class="album-tab is-on" role="tab" data-album-tab="tracks" data-parity="album.tab" aria-selected="true">Tracks</button>
+            <button type="button" class="album-tab" role="tab" data-album-tab="credits" data-parity="album.tab" aria-selected="false">Credits</button>
+            <button type="button" class="album-tab" role="tab" data-album-tab="about" data-parity="album.tab" aria-selected="false">About</button>
+            <button type="button" class="album-tab hidden" role="tab" data-album-tab="versions" data-parity="album.tab" aria-selected="false">Versions <span class="album-tab-count"></span></button>
           </div>
 
           <div class="track-list-wrap">

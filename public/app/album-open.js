@@ -76,7 +76,7 @@ function openAlbum(album, opts) {
   modalTracks.innerHTML  = "";
   { const tt = document.getElementById("modal-total"); if (tt) tt.textContent = ""; }
   { const mg = document.getElementById("modal-genres"); if (mg) { mg.textContent = ""; mg.classList.add("hidden"); } }
-  { const dl = document.getElementById("modal-date"); if (dl) dl.innerHTML = ""; }
+  { const dl = document.getElementById("modal-date"); if (dl) dl.innerHTML = ""; const af = document.getElementById("album-about-facts"); if (af) { af.innerHTML = ""; af.classList.add("hidden"); } }
 
   // Reset bio sections, and the sections under them (cleared before any
   // answer for this album can arrive)

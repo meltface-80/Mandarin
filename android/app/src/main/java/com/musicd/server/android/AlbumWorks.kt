@@ -39,7 +39,9 @@ import com.musicd.server.client.Contract
 import com.musicd.server.client.Movement
 import com.musicd.server.client.NowPlayingView
 import com.musicd.server.client.Palette
+import com.musicd.server.client.ServerClient
 import com.musicd.server.client.Work
+import org.json.JSONObject
 
 /**
  * A classical album's tracks as works and movements (docs/specs/screens.json,
@@ -131,4 +133,12 @@ private fun WorkRow(w: Work, movements: List<Movement>, several: Boolean, onPlay
         }
         if (!open) HorizontalDivider(color = MaterialTheme.colorScheme.outline)
     }
+}
+
+/** Work [w] of [a] (at [offset]) played in [zone] as a selection of its tracks would be: Play next last to first (item 49). Off the main thread. */
+internal fun playWork(c: ServerClient, a: Album, offset: Long, w: Work, kind: String, zone: String): JSONObject? {
+    val order = w.movements.map { it.track }.filter { it in a.tracks.indices }.let { if (kind == "play_next") it.reversed() else it }
+    var last: JSONObject? = null
+    order.forEachIndexed { n, i -> last = c.playTrack(offset, i, a.tracks[i].title, a.album.title, a.album.subtitle, zone, if (kind == "play_next" || n == 0) kind else "queue") }
+    return last
 }
