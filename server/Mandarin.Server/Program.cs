@@ -194,6 +194,7 @@ UpnpEventRoutes.Use(app);
 Auth.UseBodyLimit(app);
 // The gate (Auth.cs): nothing but the sign-in page and its parts until the
 // account exists and the device has signed in.
+app.Use((ctx, next) => { Auth.SayPlain(ctx); return next(ctx); });   // plain http from outside the home network, said (item 367)
 app.Use((ctx, next) => Auth.Gate(ctx, () => next(ctx)));
 
 // SQ-tool (SqTool.cs, item 288): its own page and server, at /sq-tool/, behind the gate.
