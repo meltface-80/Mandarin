@@ -65,14 +65,16 @@ const ShareCard = (() => {
    * a budget the layout is expected to spend up to.
    */
   const MAX_CARD_H = 2100;   // 1800 until the review was a fifth bigger (item 336)
-  const INSET     = 48;    // gap from the card edge to the glass pane
+  // The glass pane is the whole card (item 387): no rim of the softened cover round it, no corners or edge of its own,
+  // the room that rim took given to the cover and the review. It was inset 48px, its corners 28.
+  const INSET     = 0;
   const PANE_X    = INSET;
   const PANE_Y    = INSET;
   const PANE_W    = CARD_W - INSET * 2;
-  const PANE_R    = 28;    // pane corner radius
-  const PANE_PAD  = 40;    // gap from the pane edge to its contents
-  const ART_W     = 424;   // the sharp cover, inside the pane
-  const ART_H     = 424;
+  const PANE_R    = 0;
+  const PANE_PAD  = 56;    // gap from the card's edge to its contents (40 inside a pane inset 48)
+  const ART_W     = 464;   // the sharp cover (424 before item 387)
+  const ART_H     = 464;
   const ART_R     = 18;
   const ART_X     = PANE_X + PANE_PAD;
   const DIVIDER   = 44;    // gap between the cover and the text column
@@ -90,7 +92,7 @@ const ShareCard = (() => {
   // glass, never on the border — when a logoUrl is supplied. Its corners are
   // in the pane's own proportion.
   const LOGO_D    = 96;
-  const LOGO_PAD  = 24;
+  const LOGO_PAD  = 32;
 
   // The dark the card is built on, and the pane drawn over the softened cover.
   // The score badge sits INSIDE the cover's top-right corner, so the surface
@@ -105,8 +107,9 @@ const ShareCard = (() => {
   const BNM_SIZE    = 15;
   // Bigger than it was: at full pane width 22px read as small print, and 26 a
   // fifth bigger again, 31px, at the owner's word (item 336).
-  const DESC_SIZE   = 31;
-  const DESC_LH     = 46;
+  // 33px over the wider column the full-card pane gives (item 387).
+  const DESC_SIZE   = 33;
+  const DESC_LH     = 49;
   /*
    * How many lines of review the card will carry, and the number that actually
    * decides it — MAX_CARD_H is only a backstop.
@@ -134,7 +137,6 @@ const ShareCard = (() => {
 
   const GROUND    = '#12151a';
   const PANE_FILL = 'rgba(18,21,26,.5)';
-  const PANE_EDGE = 'rgba(255,255,255,.14)';
 
   // A rounded rectangle path. roundRect() is still missing in enough shipping
   // browsers to be worth not depending on.
@@ -356,9 +358,7 @@ const ShareCard = (() => {
     roundRectPath(ctx, PANE_X, PANE_Y, PANE_W, PANE_H, PANE_R);
     ctx.fillStyle = PANE_FILL;
     ctx.fill();
-    ctx.lineWidth = 1;
-    ctx.strokeStyle = PANE_EDGE;
-    ctx.stroke();
+    // No edge: the pane is the card (item 387), and its edge would be a line round it.
     ctx.restore();
 
     // --- The sharp cover, inside the pane ---

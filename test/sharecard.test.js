@@ -2,7 +2,8 @@
 /*
  * The share card (public/sharecard.js), drawn in a browser: the duck as a
  * rounded-square brass tile inside the pane's bottom-right corner (v0.7.5)
- * — on the glass, not on the card's border — and nothing there without a logo.
+ * — on the glass, not on the card's border — and nothing there without a logo;
+ * the glass the whole card (item 387), no rim of the softened cover round it.
  */
 const test = require("node:test");
 const assert = require("node:assert");
@@ -37,10 +38,12 @@ test("the share card carries the duck tile inside its bottom-right corner", { sk
         const c = document.createElement("canvas"); c.width = img.width; c.height = img.height;
         const ctx = c.getContext("2d"); ctx.drawImage(img, 0, 0);
         const px = (x, y) => [...ctx.getImageData(x, y, 1, 1).data].slice(0, 3);
-        // The tile: 96 px, 24 px in from the pane's bottom-right (the pane is 48 px in from the card's edge).
-        const cx = img.width - 48 - 24 - 48, cy = img.height - 48 - 24 - 48;
+        // The tile: 96 px, 32 px in from the card's bottom-right (the pane is the whole card, item 387).
+        const cx = img.width - 32 - 48, cy = img.height - 32 - 48;
         // Its ground near the top-left, clear of the drawing; the duck's bill; the outline at the left edge; the corner cut off.
-        return { w: img.width, h: img.height, ground: px(cx - 34, cy - 34), duck: px(cx - 18, cy + 12), edge: px(cx - 47, cy), corner: px(cx - 47, cy - 47), outside: px(cx + 56, cy + 56), border: px(img.width - 20, img.height - 20) };
+        return { w: img.width, h: img.height, ground: px(cx - 34, cy - 34), duck: px(cx - 18, cy + 12), edge: px(cx - 47, cy), corner: px(cx - 47, cy - 47), outside: px(cx - 56, cy - 56), border: px(img.width - 10, img.height - 10),
+          // At one height, beside the card's left edge and in the glass above the cover: the same shade, no rim.
+          rim: px(6, 60), glass: px(300, 60), cornerPx: px(2, 2) };
       };
       return { with: await draw("/icons/duck-tile.png"), without: await draw(null) };
     })()`);
@@ -57,5 +60,9 @@ test("the share card carries the duck tile inside its bottom-right corner", { sk
     assert.ok(!dark(r.with.outside), "just outside the tile is the pane, not the tile: " + r.with.outside);
     assert.ok(!dark(r.with.border), "nothing on the card's border: " + r.with.border);
     assert.ok(!dark(r.without.ground), "no logo given, no tile: " + r.without.ground);
+    // The glass reaches the card's edges (item 387): at its edge the same shade as inside it, no lighter rim of the cover.
+    const near = (a, b) => a.every((v, i) => Math.abs(v - b[i]) <= 4);
+    assert.ok(near(r.without.rim, r.without.glass), `the card's edge as shaded as the glass: ${r.without.rim} by ${r.without.glass}`);
+    assert.ok(near(r.without.cornerPx, r.without.glass), `its corner too, no rounded pane corner: ${r.without.cornerPx} by ${r.without.glass}`);
   } finally { await b.close(); srv.close(); }
 });

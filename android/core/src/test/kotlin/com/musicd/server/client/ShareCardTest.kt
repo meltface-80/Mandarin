@@ -20,9 +20,11 @@ class ShareCardTest {
         assertEquals(68, l.title.lh)
         assertEquals(listOf("by Peter Green"), l.artist.lines)
         assertNull(l.desc)
-        assertEquals("the cover is the taller column", 424, l.headerH)
-        assertEquals(48 + 40 + (424 - 424) / 2, l.artY)
-        assertEquals(88 + Math.round((424 - l.headerTextH) / 2.0).toInt(), l.textY)
+        assertEquals("the cover is the taller column", 464, l.headerH)
+        // The pane the whole card (item 387): the 464px cover centred in the 600, 68 from the top.
+        assertEquals("no inset", 0, CardLayout.INSET)
+        assertEquals((600 - 464) / 2, l.artY)
+        assertEquals(68 + Math.round((464 - l.headerTextH) / 2.0).toInt(), l.textY)
     }
 
     @Test fun `a long title steps down in size before it is cut, and only the smallest size is cut with an ellipsis`() {
@@ -41,13 +43,14 @@ class ShareCardTest {
         val review = ShareCard.trimReview("Alpha beta gamma delta. ".repeat(80))
         val l = CardLayout.measure(font, "White Sky", "Peter Green", "", review, "Wikipedia")
         val desc = l.desc!!
-        assertEquals("a fifth bigger than 26 on 38 (item 336)", 46, desc.lh)
+        assertEquals("33 on 49 since the pane is the whole card (item 387); 31 on 46 before", 49, desc.lh)
+        assertEquals(33, desc.size)
         assertFalse("not cut", desc.lines.last().endsWith("…") && !review.endsWith("…"))
         assertEquals(review.split(Regex("\\s+")).size, desc.lines.sumOf { it.split(" ").size })
         assertEquals("Wikipedia", l.srcText)
-        assertEquals(424 + 30 + 1 + 30 + desc.lines.size * 46 + 26 + 24, l.contentH)
-        assertEquals(l.contentH + 80 + 96, l.cardH)
-        assertEquals(88 + 424 + 30, l.ruleY)
+        assertEquals(464 + 30 + 1 + 30 + desc.lines.size * 49 + 26 + 24, l.contentH)
+        assertEquals("its contents 56 from the card's edges, no pane inset", l.contentH + 56 * 2, l.cardH)
+        assertEquals(56 + 464 + 30, l.ruleY)
         assertEquals("no review, no source", "", CardLayout.measure(font, "T", "A", "", "", "Wikipedia").srcText)
     }
 
