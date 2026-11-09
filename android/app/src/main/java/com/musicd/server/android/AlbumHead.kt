@@ -28,7 +28,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
@@ -70,7 +69,10 @@ internal fun ComposerLines(a: Album, onPage: (String, String?) -> Unit) {
     Text(who.ifEmpty { listOf(a.album.subtitle) }.joinToString(" · "), Modifier.parity("album.performers").padding(top = 2.dp), color = dim, fontSize = 14.sp)
 }
 
-/** The notes at the foot of the head, each only when it has something to say; a disc's tap opens it among the box's discs ([onDisc]). */
+/**
+ * The notes at the foot of the head, each only when it has something to say; a disc's tap opens it among the box's
+ * discs ([onDisc]). An album's versions are its Versions tab's (item 349: AlbumPhone.kt).
+ */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun HeadNotes(a: Album, onDisc: (NavList) -> Unit) {
@@ -120,22 +122,5 @@ internal fun SourceBadge(source: String?, modifier: Modifier = Modifier) {
     val icon = when (source) { "qobuz" -> R.drawable.src_qobuz; "tidal" -> R.drawable.src_tidal; else -> return }
     Box(modifier.parity("album.source").padding(8.dp).size(28.dp).clip(RoundedCornerShape(8.dp)).background(Color(0x9E0A0E14)), contentAlignment = Alignment.Center) {
         Icon(painterResource(icon), contentDescription = null, tint = Color.White.copy(alpha = 0.92f), modifier = Modifier.size(16.dp))
-    }
-}
-
-/** Previous and next: the album before and after this one in [nav], brass discs beside Share, each dimmed at the list's end; a tap opens it ([onStep], with its place). */
-@Composable
-internal fun NavDiscs(nav: NavList, colors: IconButtonColors, onStep: (Int) -> Unit) {
-    val prev = nav.items.getOrNull(nav.index - 1)
-    val next = nav.items.getOrNull(nav.index + 1)
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        FilledIconButton(onClick = { onStep(nav.index - 1) }, enabled = prev != null, colors = colors, shape = CircleShape,
-            modifier = Modifier.parity("album.previous", if (prev == null) Contract.label("album.previous") else Contract.label("album.previous", 1, prev.title)).size(40.dp).alpha(if (prev == null) 0.35f else 1f)) {
-            Icon(painterResource(R.drawable.np_back), contentDescription = null, modifier = Modifier.size(22.dp))
-        }
-        FilledIconButton(onClick = { onStep(nav.index + 1) }, enabled = next != null, colors = colors, shape = CircleShape,
-            modifier = Modifier.parity("album.next", if (next == null) Contract.label("album.next") else Contract.label("album.next", 1, next.title)).size(40.dp).alpha(if (next == null) 0.35f else 1f)) {
-            Icon(painterResource(R.drawable.np_forward), contentDescription = null, modifier = Modifier.size(22.dp))
-        }
     }
 }

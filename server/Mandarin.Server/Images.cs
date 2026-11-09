@@ -76,12 +76,14 @@ internal static class Images
     {
         if (Db.Setting(c, "authSecret") is not { } sv || Js.Str(sv) is not { Length: > 0 } secret) return false;
         var raw = ctx.Features.Get<Microsoft.AspNetCore.Http.Features.IHttpRequestFeature>()?.RawTarget;
-        return Playback.Signing.Gate(secret, raw) == true;
+        return Playback.Signing.Signed(secret, raw, c, DateTimeOffset.UtcNow.ToUnixTimeSeconds());   // until its expiry (item 368)
     }
 
-    /* auth.js speakerIps(): a request from one of the speakers' own addresses, as the hub knows them (v0.8.49). */
+    /* auth.js speakerIps(): a request from one of the speakers' own addresses, as the hub knows them (v0.8.49), for an
+       address this server handed out and still good (item 369: not every stream and cover). */
     public static Task<bool> FromSpeaker(HttpContext ctx) =>
-        Task.FromResult(Playback.Hub.Current is { } hub && hub.SpeakerHosts.Contains(Auth.ClientIp(ctx)));
+        Task.FromResult(Playback.Hub.Current is { } hub && hub.SpeakerHosts.Contains(Auth.ClientIp(ctx))
+            && Playback.Handed.Has(ctx.Features.Get<Microsoft.AspNetCore.Http.Features.IHttpRequestFeature>()?.RawTarget ?? ctx.Request.Path.Value, DateTimeOffset.UtcNow.ToUnixTimeSeconds()));
 
     private static async Task<bool> Answer(HttpContext ctx, string key)
     {

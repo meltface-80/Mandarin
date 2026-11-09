@@ -96,6 +96,7 @@ internal fun OutputRows(d: DevicePage, busy: Boolean, patch: (JSONObject) -> Uni
         if (!d.flac32) DeviceNote("32-bit needs an ffmpeg that writes 32-bit FLAC; this one stops at 24.", Modifier.parity("settings-device.note"))
     }
     d.ditherRow?.let { r -> DitherGroups(d, r, busy) { patch(it) } }   // the DAC's real bits and the dither (item 301)
+    d.headroom?.let { h -> HeadroomGroup(h, busy) { patch(it) } }   // and its headroom when upsampling (item 348)
     DeviceNote(d.example, Modifier.parity("settings-device.note"))
     if (d.showDsdOut) CapGroup("PCM as DSD", Modifier.parity("settings-device.cap-label")) {
         Seg(d.dsdOuts, d.dsdOutValue, key = { i, c -> Modifier.parity("settings-device.dsdout", Contract.label("settings-device.dsdout", i)).clickable(enabled = !busy && !c.off) { patch(d.segment("dsd_out", c.value)) } })

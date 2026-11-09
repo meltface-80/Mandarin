@@ -40,7 +40,7 @@ internal static partial class Library
         foreach (var r in Rows(c, "SELECT album_id, MAX(ts) AS ts FROM plays WHERE album_id IS NOT NULL GROUP BY album_id"))
             if (r[0] is long id && Long(r[1]) is long at) last[id] = at;
         var firstRow = Rows(c, "SELECT MIN(ts) AS ts FROM plays");
-        var (pick, why, pool) = DayPick.Choose(s.Albums, last, firstRow.Count > 0 ? Long(firstRow[0][0]) : null, Now, st.Day);
+        var (pick, why, pool) = DayPick.Choose(s.Shown, last, firstRow.Count > 0 ? Long(firstRow[0][0]) : null, Now, st.Day);
         if (pick == null) return null;
         using var cmd = c.CreateCommand();
         cmd.CommandText = "INSERT INTO settings(key, value) VALUES($k, $v) ON CONFLICT(key) DO UPDATE SET value = excluded.value";
@@ -103,7 +103,7 @@ internal static partial class Library
             return Send(ctx, new JsonObject { ["albums"] = new JsonArray(), ["total"] = 0, ["months"] = months, ["no_history"] = true,
                 ["ready_at"] = first != null ? first + months * 30 * Day : null });
         var heard = new HashSet<long>(Rows(c, "SELECT DISTINCT album_id FROM plays WHERE ts >= $1 AND album_id IS NOT NULL", since).Select(r => (long)r[0]!));
-        var pool = s.Albums.Where(al => !heard.Contains(al.Id)).ToList();
+        var pool = s.Shown.Where(al => !heard.Contains(al.Id)).ToList();
         var chosen = new List<Album>();
         var seen = new HashSet<long>();
         int want = Math.Min(count, pool.Count);

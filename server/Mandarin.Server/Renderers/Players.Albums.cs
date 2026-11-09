@@ -57,7 +57,7 @@ internal sealed partial class Players
         var unsigned = SigParam().Replace(TrackPath().Replace(first.Uri, "/stream/a" + string.Join("_", items.Select(x => x.Track!.Id.ToString(CultureInfo.InvariantCulture))), 1), "");
         if (unsigned.Contains('&') && !unsigned.Contains('?')) unsigned = unsigned[..unsigned.IndexOf('&')] + "?" + unsigned[(unsigned.IndexOf('&') + 1)..];
         if (seconds > 0) unsigned += (unsigned.Contains('?') ? "&" : "?") + "ss=" + Math.Round(seconds, 3).ToString(CultureInfo.InvariantCulture);
-        var uri = Signing.SignUrl(secret, unsigned);
+        var uri = Signing.SignExpiring(secret, unsigned);
         var starts = new List<double>();
         var at = -seconds;
         foreach (var it in items) { starts.Add(at); at += it.Duration; }
@@ -68,13 +68,17 @@ internal sealed partial class Players
         return new AlbumStream(items, uri, meta, starts, key);
     }
 
-    // [it]'s plan as its address says it (all but its track and signature), where Mandarin makes it so a run can be made of it; else null.
+    // [it]'s plan as its address says it (all but its track and signature), and its track's own rate, where Mandarin makes
+    // it so a run can be made of it; else null. The rate as well (item 360): a run is one stream of one rate (the stream
+    // route refuses one that isn't), and an address may not say it: DSD256 from PCM is .d256 from 44.1 kHz and from 48,
+    // 705.6 kHz is "max" from 44.1 and from 88.2. Joined, an album that mixed them was refused whole, and not one of its
+    // tracks played.
     private static string? Pattern(UpnpItem it)
     {
         if (it.Plan == null || it.Track is not { Lossless: true } t || t.Path.Contains("://", StringComparison.Ordinal) || !Jv.T(it.Plan["transcode"])) return null;
         var plan = ConvPlan.Of(it.Plan) with { InRate = Jv.T(it.Plan["inRate"]) ? Jv.Num(it.Plan["inRate"]) : t.SampleRate ?? 0 };
         if (!Upsample.AlbumRun.Takes(plan) || !TrackPath().IsMatch(it.Uri)) return null;
-        return SigParam().Replace(TrackPath().Replace(it.Uri, "/stream/t", 1), "");
+        return SigParam().Replace(TrackPath().Replace(it.Uri, "/stream/t", 1), "") + " @" + (t.SampleRate ?? 0).ToString(CultureInfo.InvariantCulture);
     }
 
     /* The track [p]'s device is in, [rel] s into what it plays ([uri]), where that is its run: the track's place in the queue and how far into it; else null. */

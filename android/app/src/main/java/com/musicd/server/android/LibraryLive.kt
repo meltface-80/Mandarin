@@ -27,9 +27,10 @@ internal object LibraryLive {
         private set
     private val mark = AlbumsMark()
 
-    /** The albums moved: the wall held behind, and the screens told. */
+    /** The albums moved: the wall held behind, the artists' pages kept asked afresh when next open (item 357), and the screens told. */
     fun moved() {
         LibraryWall.fallBehind()
+        ArtistPages.kept.stale()
         moves++
     }
 

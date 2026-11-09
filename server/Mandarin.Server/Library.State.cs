@@ -123,7 +123,7 @@ internal static partial class Library
     {
         var keys = what.Select(kv => kv.Key).ToList();
         var scan = what["scan"] as JsonObject;
-        var reload = keys.Any(k => k is "edits" or "merges" or "labels" or "lookups" or "days" or "services" or "artists")
+        var reload = keys.Any(k => k is "edits" or "merges" or "labels" or "lookups" or "days" or "services" or "artists" or "versions")
             || (scan != null && (Js.Truthy(scan["progress"]) || Js.Truthy(scan["done"])));
         if (Js.Truthy(what["marks"])) Interlocked.Increment(ref marks);
         // An album edit made or dropped: album-edits.json written again (db.backupEdits), so a database that has to start over gets it back.

@@ -7,8 +7,7 @@
 //     cores playback doesn't keep, at the lowest priority, its reads last;
 //   - when: half a second after the work is taken over, then every
 //     SCAN_INTERVAL_HOURS (six), and whenever the music folders change on
-//     disk — the changes gathered until they have been quiet for twenty
-//     seconds, and not more than once a minute (watch.js);
+//     disk (Watcher.cs: heard, or looked at where they can't be heard);
 //   - Rescan, Reindex and the music folders' routes (ScanRoutes.cs).
 //
 // The library is told how a scan is going (Library.Told, { scan }): its state
@@ -25,7 +24,6 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using System.Text.RegularExpressions;
 using Mandarin.Server.Scan;
 using Microsoft.Data.Sqlite;
 
@@ -75,8 +73,9 @@ internal static partial class Scans
         var period = TimeSpan.FromMilliseconds(Math.Min(scanHours * 3600 * 1000, uint.MaxValue - 1d));
         first = new Timer(_ => Kick(), null, 500, Timeout.Infinite);
         every = new Timer(_ => Kick(), null, period, period);
-        watcher = new Watcher(Roots, FromWatcher, Server.Log,
-            Ms("MANDARIN_WATCH_QUIET_MS", 20000), Ms("MANDARIN_WATCH_GAP_MS", 60000));
+        var gap = Ms("MANDARIN_WATCH_GAP_MS", Watcher.GapMs);
+        watcher = new Watcher(Roots, FromWatcher, Server.Log, Ms("MANDARIN_WATCH_QUIET_MS", Watcher.QuietMs), gap,
+            Ms("MANDARIN_WATCH_MAX_MS", gap), Math.Max(100, Ms("MANDARIN_WATCH_POLL_MS", Watcher.PollMs)), Environment.GetEnvironmentVariable("MANDARIN_WATCH_NOTIFY") != "0");
         watcher.Refresh();
         Server.Log($"[scan] the library scans are made here (every {scanHours.ToString(System.Globalization.CultureInfo.InvariantCulture)} h, and when the music folders change)");
     }
@@ -356,137 +355,3 @@ internal static partial class Scans
 
 internal sealed class ScanError(string message) : Exception(message);
 
-/*
- * The music folders watched for changes as they happen (lib/library/watch.js):
- * each folder with the file system's own notifications (inotify; FSEvents on a Mac), recursively; a scan starts once
- * they have been quiet for [quietMs] (and at most once every [minGapMs]). The
- * scan is the ordinary one, so a flood of events costs one scan. What the file
- * system doesn't report (a change on a network share made from another
- * machine) still waits for the timer or Rescan library.
- */
-internal sealed partial class Watcher(Func<List<string>> roots, Func<Task> onChange, Action<string> log, int quietMs = 20000, int minGapMs = 60000)
-{
-    private readonly object gate = new();
-    private readonly Dictionary<string, FileSystemWatcher> watchers = new(StringComparer.Ordinal);
-    private Timer? timer;
-    private long lastRun;
-    private int pending;
-    private bool running, unsupported, stopped;
-    private (string Dir, string Name)? last;
-
-    [GeneratedRegex(@"(^|/)(\.|@eaDir|#recycle|\.Trash)")]
-    private static partial Regex Ignored();
-
-    private static long Now() => DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-
-    /* Every music folder that exists watched; folders gone let go. */
-    public void Refresh()
-    {
-        List<string> want;
-        try { want = roots().Where(d => PosixFs.TryStat(d, follow: true, out var st) && st.IsDirectory).ToList(); }
-        catch (Exception e) when (e is IOException or SqliteException) { return; }
-        lock (gate)
-        {
-            if (stopped) return;
-            foreach (var (dir, w) in watchers.ToList())
-            {
-                if (want.Contains(dir)) continue;
-                w.Dispose();
-                watchers.Remove(dir);
-            }
-            foreach (var dir in want) if (!watchers.ContainsKey(dir)) Add(dir);
-        }
-    }
-
-    private void Add(string dir)
-    {
-        FileSystemWatcher w;
-        try
-        {
-            w = new FileSystemWatcher(dir) { IncludeSubdirectories = true, InternalBufferSize = 64 * 1024 };
-            w.Created += (_, e) => Saw(dir, e.Name);
-            w.Changed += (_, e) => Saw(dir, e.Name);
-            w.Deleted += (_, e) => Saw(dir, e.Name);
-            w.Renamed += (_, e) => Saw(dir, e.Name);
-            w.Error += (_, e) =>
-            {
-                // Too many changes at once for the buffer: some were missed, so read anyway.
-                if (e.GetException() is InternalBufferOverflowException) { Saw(dir, null); return; }
-                log($"[watch] {dir}: {e.GetException().Message}");
-                lock (gate) { if (watchers.Remove(dir)) w.Dispose(); }
-            };
-            w.EnableRaisingEvents = true;
-        }
-        catch (Exception e) when (e is IOException or ArgumentException or PlatformNotSupportedException or UnauthorizedAccessException)
-        {
-            // Not offered everywhere (a file system without notifications, too many folders for the
-            // system's limit): the timer and Rescan library remain.
-            if (!unsupported) { unsupported = true; log($"[watch] not watching {dir}: {e.Message}"); }
-            return;
-        }
-        watchers[dir] = w;
-        log($"[watch] watching {dir}");
-    }
-
-    private void Saw(string dir, string? name)
-    {
-        var rel = name ?? "";
-        if (rel.Length > 0 && Ignored().IsMatch(rel)) return;
-        lock (gate)
-        {
-            if (stopped) return;
-            // Partial files being written (a copy under way) still count: the scan waits for quiet.
-            pending++;
-            last = (dir, rel);
-            Arm();
-        }
-    }
-
-    private void Arm()
-    {
-        timer?.Dispose();
-        var wait = Math.Max(quietMs, minGapMs - (Now() - lastRun));
-        timer = new Timer(_ => Fire(), null, wait, Timeout.Infinite);
-    }
-
-    private void Fire()
-    {
-        int n;
-        (string Dir, string Name)? l;
-        lock (gate)
-        {
-            timer?.Dispose();
-            timer = null;
-            if (stopped) return;
-            if (running) { Arm(); return; }
-            n = pending;
-            pending = 0;
-            lastRun = Now();
-            running = true;
-            l = last;
-        }
-        log($"[watch] {n} change{(n == 1 ? "" : "s")} in the music folders{(l is { Name.Length: > 0 } x ? $" (last: {NodePath.Join(x.Dir, x.Name)})" : "")}: reading");
-        _ = Task.Run(async () =>
-        {
-            try { await onChange(); }
-            catch (Exception e) { log("[watch] " + e.Message); }
-            lock (gate)
-            {
-                running = false;
-                if (pending > 0 && !stopped) Arm();
-            }
-        });
-    }
-
-    public void Stop()
-    {
-        lock (gate)
-        {
-            stopped = true;
-            timer?.Dispose();
-            timer = null;
-            foreach (var w in watchers.Values) w.Dispose();
-            watchers.Clear();
-        }
-    }
-}

@@ -41,6 +41,8 @@ object Updater {
     /** The release [tag] offered on the device, its notification shown: null, or why it can't be. */
     @Synchronized fun start(c: Context, tag: String): String? {
         if (!TAG.matches(tag)) return "not a release of Mandarin Bridge's: $tag"
+        // Never backwards (item 352): an older release may lack what a newer one fixed.
+        if (Guard.older(tag, BuildConfig.VERSION_NAME)) return "$tag is older than this Bridge (${BuildConfig.VERSION_NAME})"
         notify(c.applicationContext, "Update Mandarin Bridge", "Tap to download the update, then install it.",
             Intent(Intent.ACTION_VIEW, Uri.parse(download(tag))))
         state = "needs-you"

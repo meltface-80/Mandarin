@@ -70,7 +70,7 @@ const steady = (v) => JSON.parse(JSON.stringify(v === undefined ? null : v, (k, 
   if (k === "size" && typeof x === "number" && fileSizes.has(x)) return fileSizes.get(x);
   if (k === "id" && typeof x === "string" && /^[0-9a-f]{12}$/.test(x)) return "<new id>";
   if (k === "sig" && typeof x === "string") return "<sig>";
-  if (typeof x === "string") return x.replace(/\bal-(\d+)-[0-9a-f]{10}\b/g, "al-$1-<art>").replace(/([?&])s=[A-Za-z0-9_-]{22}(?=$|&|")/g, "$1s=<sig>").replace(/127\.0\.0\.1:\d+/g, "127.0.0.1:<port>");
+  if (typeof x === "string") return x.replace(/\bal-(\d+)-[0-9a-f]{10}\b/g, "al-$1-<art>").replace(/([?&])s=[A-Za-z0-9_-]{22}(\.\d+)?(?=$|&|")/g, "$1s=<sig>").replace(/127\.0\.0\.1:\d+/g, "127.0.0.1:<port>");
   return x;
 }));
 

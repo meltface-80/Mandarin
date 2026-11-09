@@ -27,6 +27,9 @@ class TimedCache<K, V>(private val capacity: Int, private val ttlMs: Long, priva
         if (k == null) put(key, change(empty)) else map[key] = Kept(change(k.value), k.at)
     }
 
+    /** Everything kept past its time, but kept (item 357: the library changed): drawn at once as it was, and asked afresh. */
+    @Synchronized fun stale() { val at = now() - ttlMs; map.replaceAll { _, k -> Kept(k.value, at) } }
+
     /** Lets everything go (item 157: what the phone answered offline isn't kept for the server's). */
     @Synchronized fun clear() = map.clear()
 }

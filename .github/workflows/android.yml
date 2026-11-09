@@ -43,21 +43,24 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-java@v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad  # v6
         with:
           distribution: temurin
           java-version: '17'
       # setup-gradle's own caching, open source (MIT) on actions/cache: from v6 its
       # default is a proprietary cache library, which this repository doesn't need.
-      - uses: gradle/actions/setup-gradle@v6
+      - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c  # v6
         with:
           cache-provider: basic
+          # dev keeps Gradle's cache as main does (item 350): its builds take the wrapper and the libraries from it,
+          # not from downloads that can fail (by default only the default branch writes it).
+          cache-read-only: ${{ github.ref != 'refs/heads/main' && github.ref != 'refs/heads/dev' }}
       - name: Run the core test suite
-        run: ./gradlew :core:test --no-daemon --stacktrace
+        run: ../.github/gradle-retry.sh :core:test --no-daemon --stacktrace   # a failed download tried again (item 350)
       - name: Upload test report
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7
         with:
           name: core-test-report
           path: android/core/build/reports/tests/test
@@ -72,8 +75,8 @@ jobs:
       run:
         working-directory: android/musicdnet
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-go@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e  # v7
         with:
           go-version-file: android/musicdnet/go.mod
           cache-dependency-path: android/musicdnet/go.sum
@@ -87,7 +90,7 @@ jobs:
     # The build, then the wait for CI before publishing to dist/ or the test build (an hour at most).
     timeout-minutes: 80
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
         with:
           # The history and the tags, for a test build's number (below).
           fetch-depth: 0
@@ -106,7 +109,7 @@ jobs:
           v=$(node tools/test-version.js)
           sed -i "s/versionName = \"[^\"]*\"/versionName = \"$v\"/" android/app/build.gradle.kts
           grep -n 'versionName' android/app/build.gradle.kts
-      - uses: actions/setup-java@v6
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad  # v6
         with:
           distribution: temurin
           java-version: '17'
@@ -115,10 +118,10 @@ jobs:
       # The NDK and CMake build the app's native code (Media3's Opus decoder
       # over libopus, android/app/src/main/cpp); the versions match
       # android/app/build.gradle.kts.
-      - uses: android-actions/setup-android@v4
+      - uses: android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd  # v4
         with:
           packages: 'platform-tools platforms;android-36 build-tools;36.0.0 ndk;27.2.12479018 cmake;3.22.1'
-      - uses: actions/setup-go@v7
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e  # v7
         with:
           go-version-file: android/musicdnet/go.mod
           cache-dependency-path: android/musicdnet/go.sum
@@ -132,28 +135,60 @@ jobs:
             -ldflags="-s -w -X main.version=$version" \
             -o ../app/src/main/jniLibs/arm64-v8a/libmusicdnet.so .
           ls -la ../app/src/main/jniLibs/arm64-v8a/
-      - uses: gradle/actions/setup-gradle@v6
+      - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c  # v6
         with:
           cache-provider: basic
+          # dev keeps Gradle's cache as main does (item 350): its builds take the wrapper and the libraries from it,
+          # not from downloads that can fail (by default only the default branch writes it).
+          cache-read-only: ${{ github.ref != 'refs/heads/main' && github.ref != 'refs/heads/dev' }}
 
       # The signing key comes from repository secrets — the same two as
       # Android Random Remote (MUSICD_KEYSTORE_BASE64, MUSICD_KEYSTORE_PASSWORD).
-      # Without them the (release) APK is signed with the key committed in
-      # android/app (musicd-debug.keystore) — the same key every build, so each
-      # one updates the last in place.
+      # Without them a build that may be published fails (item 364); only a pull
+      # request's, never published, is signed with the key committed in android/app.
       - name: Restore the signing key
         id: signing
         env:
           KEYSTORE_BASE64: ${{ secrets.MUSICD_KEYSTORE_BASE64 }}
         run: |
           if [ -z "$KEYSTORE_BASE64" ]; then
+            # Never published signed with the committed debug key (item 364, the security audit's tenth finding): anyone
+            # can sign with it, and a phone would take such an APK as an update. Only a pull request's build, which is
+            # never published (a fork's or Dependabot's, given no secrets), may use it.
+            if [ "$GITHUB_EVENT_NAME" != "pull_request" ]; then
+              echo "::error::MUSICD_KEYSTORE_BASE64 is not set: a build that may be published is never signed with the committed debug key."
+              exit 1
+            fi
             echo "have_key=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::MUSICD_KEYSTORE_BASE64 is not set: signed with the committed debug key (updates install in place)."
+            echo "::notice::MUSICD_KEYSTORE_BASE64 is not set: a pull request's build, signed with the committed debug key and never published."
             exit 0
           fi
           printf '%s' "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/musicd-release.jks"
           echo "path=$RUNNER_TEMP/musicd-release.jks" >> "$GITHUB_OUTPUT"
           echo "have_key=true" >> "$GITHUB_OUTPUT"
+
+      # libopus for the app's native code (item 351), fetched once and kept: its GitHub release with curl's own
+      # retries, else Xiph's downloads, its SHA-256 checked here and again by CMake (app/src/main/cpp/CMakeLists.txt),
+      # which builds from it rather than downloading it itself.
+      - name: Keep libopus's source
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830  # v4
+        with:
+          path: ${{ runner.temp }}/opus
+          key: opus-1.5.2-65c1d2f7
+      - name: Fetch libopus's source
+        working-directory: .
+        run: |
+          mkdir -p "$RUNNER_TEMP/opus"
+          f="$RUNNER_TEMP/opus/opus-1.5.2.tar.gz"
+          sum=65c1d2f78b9f2fb20082c38cbe47c951ad5839345876e46941612ee87f9a7ce1
+          if ! echo "$sum  $f" | sha256sum -c --quiet >/dev/null 2>&1; then
+            rm -f "$f"
+            for url in https://github.com/xiph/opus/releases/download/v1.5.2/opus-1.5.2.tar.gz https://downloads.xiph.org/releases/opus/opus-1.5.2.tar.gz; do
+              curl -fsSL --retry 5 --retry-all-errors --retry-delay 10 -o "$f" "$url" && echo "$sum  $f" | sha256sum -c --quiet && break
+              echo "::warning::libopus from $url didn't come, or wasn't libopus 1.5.2's"; rm -f "$f"
+            done
+          fi
+          if [ -f "$f" ]; then echo "OPUS_TARBALL=$f" >> "$GITHUB_ENV"; else echo "::warning::libopus couldn't be fetched ahead: CMake fetches it itself"; fi
 
       - name: Assemble
         env:
@@ -164,7 +199,7 @@ jobs:
         # Always the release build (v0.6.10): optimised and not debuggable.
         # Without the secrets it's signed with the committed key, the same
         # as every build before it, so it installs over them in place.
-        run: ./gradlew :app:assembleRelease --no-daemon --stacktrace
+        run: ../.github/gradle-retry.sh :app:assembleRelease --no-daemon --stacktrace   # a failed download tried again (item 350)
 
       - name: Name the APK after the version
         id: name
@@ -180,7 +215,7 @@ jobs:
           cp "$apk" "$out"
           echo "apk=$out" >> "$GITHUB_OUTPUT"
 
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7
         with:
           name: ${{ steps.name.outputs.apk }}
           path: android/${{ steps.name.outputs.apk }}

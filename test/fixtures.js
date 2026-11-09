@@ -36,11 +36,13 @@ function haveFlac32() {
   } catch (e) { return false; }
 }
 
-function gen(out, { seconds = 3, freq = 440, rate = 44100, fmt = "s16", codecArgs = [], tags = {} }) {
+// [expr]: the samples as an expression of t (ffmpeg's aevalsrc, "left|right": two of them, so that nothing is taken off
+// making mono stereo) in the sine's place: a track built to clip (item 348).
+function gen(out, { seconds = 3, freq = 440, rate = 44100, fmt = "s16", codecArgs = [], tags = {}, expr = null }) {
   fs.mkdirSync(path.dirname(out), { recursive: true });
   const meta = Object.entries(tags).flatMap(([k, v]) => ["-metadata", `${k}=${v}`]);
   const r = spawnSync(FFMPEG, ["-hide_banner", "-loglevel", "error", "-y",
-    "-f", "lavfi", "-i", `sine=frequency=${freq}:duration=${seconds}:sample_rate=${rate}`,
+    "-f", "lavfi", "-i", expr ? `aevalsrc=${expr}:d=${seconds}:s=${rate}` : `sine=frequency=${freq}:duration=${seconds}:sample_rate=${rate}`,
     "-ac", "2", "-ar", String(rate), ...(fmt ? ["-sample_fmt", fmt] : []), ...codecArgs, ...meta, out]);
   if (r.status !== 0) throw new Error("ffmpeg: " + r.stderr);
 }

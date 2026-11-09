@@ -31,7 +31,7 @@ internal static partial class Auth
     private const long ReauthMs = 5 * 60 * 1000;
     private const int MinIterations = 1000;
 
-    private static readonly HashSet<string> Open = ["/api/health", "/login", "/login.html", "/login.js", "/srp.js", "/manifest.json",
+    private static readonly HashSet<string> Open = ["/api/health", "/login", "/login.html", "/login.js", "/login-theme.js", "/srp.js", "/manifest.json",
         "/favicon.ico", "/apple-touch-icon.png", "/server-info"];
     private static bool IsOpen(string p) => Open.Contains(p) || p.StartsWith("/api/auth/", StringComparison.Ordinal) || p.StartsWith("/icons/", StringComparison.Ordinal);
     private static bool IsMedia(string p) => p.StartsWith("/stream/", StringComparison.Ordinal) || p.StartsWith("/api/image/", StringComparison.Ordinal);
@@ -79,7 +79,7 @@ internal static partial class Auth
     private static string? TokenOf(HttpContext ctx)
     {
         var h = ctx.Request.Headers.Authorization.ToString();
-        if (h.StartsWith("Bearer", StringComparison.OrdinalIgnoreCase) && h.Length > 6 && char.IsWhiteSpace(h[6])) return h[6..].Trim();
+        if (Bearer(h)) return h[6..].Trim();
         return ParseCookies(ctx.Request.Headers.Cookie.ToString()).GetValueOrDefault(Cookie);
     }
 
@@ -114,19 +114,6 @@ internal static partial class Auth
         }
         ctx.Items["device"] = dev;
         return dev;
-    }
-
-    // "iPhone · Safari" from a browser's user agent — enough to tell devices apart.
-    public static string DeviceNameFromUA(string ua)
-    {
-        string s = ua ?? "";
-        bool has(string x) => s.Contains(x, StringComparison.Ordinal);
-        string os = has("iPhone") ? "iPhone" : has("iPad") ? "iPad" : has("Android") ? "Android"
-            : has("Macintosh") ? "Mac" : has("Windows") ? "Windows" : has("CrOS") ? "Chromebook"
-            : has("Linux") ? "Linux" : "Browser";
-        string br = has("Edg/") ? "Edge" : has("Firefox/") ? "Firefox" : (has("CriOS") || has("Chrome/")) ? "Chrome"
-            : has("Safari/") ? "Safari" : "";
-        return br.Length > 0 ? $"{os} · {br}" : os;
     }
 
     private static string CleanName(string? s, string fallback)
@@ -202,6 +189,8 @@ internal static partial class Auth
         if (IsOpen(p) || p.StartsWith("/upnp/event", StringComparison.Ordinal) || (IsMedia(p) && await MediaAllowed(ctx))) { await next(); return; }
         Account? acct; Device? dev; bool open;
         using (var c = Db.Open()) { acct = GetAccount(c); dev = DeviceOf(ctx, c); open = dev == null && OpenIn(ctx, c); }
+        // A browser's change with its cookie from anything but the server's own page (item 363): turned away.
+        if (dev != null && CookieFromElsewhere(ctx) is { } elsewhere) { await Error(ctx, 403, elsewhere); return; }
         if (dev != null || open) { ctx.Items[SignedIn] = true; await next(); return; }
         bool page = ctx.Request.Method == "GET" && !p.StartsWith("/api/", StringComparison.Ordinal) && !IsMedia(p)
             && !System.Text.RegularExpressions.Regex.IsMatch(p, @"\.(js|css|png|jpe?g|svg|ico|woff2?|json|map)$", System.Text.RegularExpressions.RegexOptions.IgnoreCase);

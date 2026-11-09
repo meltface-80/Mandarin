@@ -46,6 +46,29 @@ public sealed class TailscaleBuiltinTests
     private static async Task<JsonNode> Tailscale(TestServer srv, Dictionary<string, string> h) => (await Http.Get(srv.Base + "/api/tailscale", h)).J;
 
     [Test]
+    public async Task With_the_sign_in_off_the_tailnet_is_the_owners_own_nodes_as_the_engine_says_them()
+    {
+        // Item 370: 100.64.0.0/10 is carrier-grade NAT too, and holds nodes shared in from other people's tailnets. The
+        // engine says which addresses are the owner's own nodes; while it does, only those come in with the sign-in off.
+        async Task<(bool Own, bool Other)> Here(Dictionary<string, string> env)
+        {
+            var eng = StubEngine();
+            var (srv, h, _) = await Server(eng.Bin, env);
+            await using var _srv = srv;
+            await Session.Until(async () => Truthy((await Tailscale(srv, h))["serving"]), 10000, "serving");
+            Assert.Equal(200, (await Http.Post(srv.Base + "/api/auth/open", new { open = true }, h)).Status);
+            async Task<bool> OpenHere(string ip) => (await Http.Get(srv.Base + "/api/auth/status", new Dictionary<string, string> { ["X-Forwarded-For"] = ip })).J.Bool("open_here") == true;
+            return (await OpenHere("100.101.102.103"), await OpenHere("100.64.5.5"));
+        }
+        var said = await Here(new() { ["TS_AUTHKEY"] = "tskey-auth-test", ["TS_STUB_OWN"] = "100.90.1.2,100.101.102.103,fd7a:115c:a1e0::1" });
+        Assert.True(said.Own, "one of the owner's own nodes: let in with the sign-in off");
+        Assert.False(said.Other, "another address of Tailscale's range (a shared-in node, carrier-grade NAT): not the tailnet");
+        // An engine from before, which says none: the range, as before.
+        var before = await Here(new() { ["TS_AUTHKEY"] = "tskey-auth-test" });
+        Assert.True(before.Own && before.Other, "no word from the engine: Tailscale's range, as before");
+    }
+
+    [Test]
     public async Task Signing_the_server_in_to_Tailscale_from_Settings()
     {
         var eng = StubEngine();
@@ -99,7 +122,10 @@ public sealed class TailscaleBuiltinTests
         Assert.Equal("Running", st.Str("state"));
         Assert.Equal("http://100.90.1.2:" + port, st.Str("address"));
         Assert.Equal("musicd.tail1.ts.net", st.Str("dns_name"));
-        Assert.Matches($@"POST /serve\?port={port}&upstream=http%3A%2F%2F127\.0\.0\.1%3A{port}", eng.Calls());
+        // Forwarded to a port of its own on this machine (item 362): only there is its word on who asked believed.
+        var own = System.Text.RegularExpressions.Regex.Match(string.Join("\n", srv.Logs), @"on 127\.0\.0\.1:(\d+) for the built-in Tailscale alone").Groups[1].Value;
+        Assert.True(own.Length > 0 && own != port.ToString(System.Globalization.CultureInfo.InvariantCulture), "the engine's own port, said as it starts: " + own);
+        Assert.Matches($@"POST /serve\?port={port}&upstream=http%3A%2F%2F127\.0\.0\.1%3A{own}", eng.Calls());
         // The key goes through the API, never the engine's environment.
         Assert.Contains("\"AuthKey\":\"tskey-auth-test\"", eng.Calls(), StringComparison.Ordinal);
         Assert.EndsWith("\nok", eng.Args(), StringComparison.Ordinal);

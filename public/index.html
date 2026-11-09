@@ -478,7 +478,7 @@
           <line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/>
         </svg>
       </button>
-      <button class="modal-share icon-btn" id="modal-share-btn" data-parity="now-playing.share queue.share album.share" aria-label="Share card">
+      <button class="modal-share icon-btn" id="modal-share-btn" data-parity="now-playing.share queue.share" aria-label="Share card">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
              stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <polyline points="16 6 12 2 8 6"/>
@@ -493,13 +493,13 @@
            sleeve, bug list item 24: the cover is too small to carry them).
            Hidden when there is no list. -->
       <div class="modal-nav hidden" id="modal-nav">
-        <button class="modal-nav-btn icon-btn" id="modal-prev" data-parity="album.previous" aria-label="Previous album" title="Previous album">
+        <button class="modal-nav-btn icon-btn" id="modal-prev" aria-label="Previous album" title="Previous album">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
            stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <polyline points="15 18 9 12 15 6"/>
           </svg>
         </button>
-        <button class="modal-nav-btn icon-btn" id="modal-next" data-parity="album.next" aria-label="Next album" title="Next album">
+        <button class="modal-nav-btn icon-btn" id="modal-next" aria-label="Next album" title="Next album">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
            stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <polyline points="9 18 15 12 9 6"/>
@@ -532,6 +532,12 @@
              sleeve's row; after the tracks on a phone (style.css places it
              with the grid). Not on Now playing. -->
         <div class="modal-aside" id="modal-aside">
+          <!-- Its versions (items 345, 349, album-versions.js): the Versions tab on a phone; from 720px up, first here. -->
+          <div class="album-versions-pane hidden" id="album-versions-pane" data-parity="album.versions"></div>
+          <!-- The Credits tab with none known (item 349). -->
+          <div class="tab-empty" id="album-tab-empty" data-parity="album.tab-empty">No credits known for this album yet</div>
+          <!-- About's head (item 349): the album's genres on a phone (moved here by style.css's order), its label and its score. -->
+          <div class="about-facts hidden" id="album-about-facts" data-parity="album.about-facts"></div>
           <!-- Credits (bug list item 132, album-credits.js): who played, sang,
                wrote and made it, each opening their page; eight at first. -->
           <div class="credits-section hidden" id="album-credits" data-parity="album.credits">
@@ -746,6 +752,13 @@
 
           <div class="modal-actions" id="modal-actions">
             <!-- buttons injected -->
+          </div>
+          <!-- Its tabs (item 349, album-tabs.js): a phone held upright; from 720px up everything shows at once. -->
+          <div class="album-tabs" id="album-tabs" role="tablist">
+            <button type="button" class="album-tab is-on" role="tab" data-album-tab="tracks" data-parity="album.tab" aria-selected="true">Tracks</button>
+            <button type="button" class="album-tab" role="tab" data-album-tab="credits" data-parity="album.tab" aria-selected="false">Credits</button>
+            <button type="button" class="album-tab" role="tab" data-album-tab="about" data-parity="album.tab" aria-selected="false">About</button>
+            <button type="button" class="album-tab hidden" role="tab" data-album-tab="versions" data-parity="album.tab" aria-selected="false">Versions <span class="album-tab-count"></span></button>
           </div>
 
           <div class="track-list-wrap">

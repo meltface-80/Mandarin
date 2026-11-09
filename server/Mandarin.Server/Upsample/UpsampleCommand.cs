@@ -15,7 +15,9 @@
 // of the one before, then the track, then the first of the one after, and the file holds only the track's frames:
 // [carry] of the one before's last first, then its own but its last [cut], which the next file begins with.
 //
-// What it did is one line of JSON on standard output: { frames, seconds, peak, held, resets }, or { error }.
+// What it did is one line of JSON on standard output: { frames, seconds, peak, held, resets, clipped }, or { error };
+// before it, as it goes, a line { progress: true, clipped, peak } whenever more samples are found clipped, a second
+// apart at most (item 348): Now playing turns its line red while the track is still being made.
 using System.Buffers.Binary;
 using System.Diagnostics;
 using System.Text.Json.Nodes;
@@ -66,12 +68,35 @@ internal static class UpsampleCommand
 
     private static void Said(Result r, Stopwatch started)
     {
-        Console.WriteLine(new JsonObject
+        lock (told)
         {
-            ["frames"] = r.Frames, ["peak"] = r.Peak, ["held"] = r.Held, ["resets"] = r.Resets,
-            ["seconds"] = Math.Round(started.Elapsed.TotalSeconds, 2),
-        }.ToJsonString());
-        Console.Out.Flush();
+            Console.WriteLine(new JsonObject
+            {
+                ["frames"] = r.Frames, ["peak"] = r.Peak, ["held"] = r.Held, ["resets"] = r.Resets, ["clipped"] = r.Clipped,
+                ["seconds"] = Math.Round(started.Elapsed.TotalSeconds, 2),
+            }.ToJsonString());
+            Console.Out.Flush();
+            toldClipped = 0;
+        }
+    }
+
+    // The samples said clipped so far of the job being made, and when (item 348).
+    private static readonly object told = new();
+    private static long toldClipped, toldAt;
+
+    /* [clipped] samples clipped so far of the job being made, its peak [peak]: said where more than last said, a second apart at most. */
+    private static void Tell(long clipped, double peak)
+    {
+        if (clipped <= Interlocked.Read(ref toldClipped)) return;
+        var now = Environment.TickCount64;
+        lock (told)
+        {
+            if (clipped <= toldClipped || toldClipped > 0 && now - toldAt < 1000) return;
+            toldClipped = clipped;
+            toldAt = now;
+            Console.WriteLine(new JsonObject { ["progress"] = true, ["clipped"] = clipped, ["peak"] = peak }.ToJsonString());
+            Console.Out.Flush();
+        }
     }
 
     /*
@@ -114,10 +139,11 @@ internal static class UpsampleCommand
                 if (before != null) { run.Skip(before[0].Length - carry); run.Push(before[0], before[1]); }
             }
             var w = run!.Add((string)job["out"]!, carry + frames - cut, job["at"] is JsonValue at ? (long)at : -1);
+            var heldFrom = run.Held;   // this job's held samples: the run's since it began (item 348)
             using (var decode = Start(ffmpeg, decodeArgs, input: false, output: true))
             {
                 var decodeErr = decode.StandardError.ReadToEndAsync();
-                var read = Read(decode.StandardOutput.BaseStream, frames, run.Push, skip);
+                var read = Read(decode.StandardOutput.BaseStream, frames, (l, r) => { run.Push(l, r); Tell(run.Held - heldFrom, run.Peak); }, skip);
                 try { if (!decode.HasExited) decode.Kill(); } catch (InvalidOperationException) { /* ended */ }
                 decode.WaitForExit();
                 if (decode.ExitCode != 0 && read == 0) throw new InvalidOperationException("ffmpeg couldn't read the track: " + decodeErr.Result.Trim());
@@ -132,7 +158,7 @@ internal static class UpsampleCommand
                 // filter's is seconds long, and a next track can be shorter than it).
                 run.Drain();
                 w.Done.Task.Wait();
-                Said(new Result(carry + frames - cut, run.Peak, run.Held, run.Resets), started);
+                Said(new Result(carry + frames - cut, run.Peak, run.Held, run.Resets) { Clipped = run.Held - heldFrom }, started);
                 // What it looked ahead to, as its own decode will read it: the same arguments, but from its start.
                 expect = string.Join("\u0001", Joins.Whole(afterArgs!));
                 ahead = head[0].Length;
@@ -144,14 +170,18 @@ internal static class UpsampleCommand
             {
                 run.Finish();
                 w.Done.Task.Wait();
-                Said(new Result(carry + frames - cut, run.Peak, run.Held, run.Resets), started);
+                Said(new Result(carry + frames - cut, run.Peak, run.Held, run.Resets) { Clipped = run.Held - heldFrom }, started);
                 job = null;
             }
         }
     }
 
     /* What a making did: the frames at the input's rate, the peak at 705.6 kHz (or the plan's rate), the samples held, the modulators' resets. */
-    public sealed record Result(long Frames, double Peak, long Held, long Resets);
+    public sealed record Result(long Frames, double Peak, long Held, long Resets)
+    {
+        /* The samples clipped (item 348): PCM's over full scale, which its word can't hold; DSD's held at Most. */
+        public long Clipped { get; init; }
+    }
 
     private static Result Make(JsonObject job)
     {
@@ -193,7 +223,7 @@ internal static class UpsampleCommand
         if (a.After != null) run.Push(a.After[0], a.After[1]);
         run.Finish();
         w.Done.Task.Wait();
-        return new Result(a.Kept(frames), run.Peak, run.Held, run.Resets);
+        return new Result(a.Kept(frames), run.Peak, run.Held, run.Resets) { Clipped = run.Held };
     }
 
     // Made PCM by ffmpeg from the upsampled 64-bit float stereo, written to it as it comes: the track's own frames,
@@ -213,6 +243,7 @@ internal static class UpsampleCommand
         var into = p.StandardInput.BaseStream;
         var buf = new byte[size * Chunk * factor];
         double peak = 0;
+        long clipped = 0;   // over full scale: what the word can't hold (item 348)
         // Its length, where none is said, known once it is read: until then everything after the one before's is kept.
         var keepFrom = (around.Lead - around.Carry) * factor;
         var keepTo = frames > 0 ? keepFrom + around.Kept(frames) * factor : long.MaxValue;
@@ -227,6 +258,8 @@ internal static class UpsampleCommand
             for (var i = from; i < to; i++)
             {
                 peak = Math.Max(peak, Math.Max(Math.Abs(a[i]), Math.Abs(b[i])));
+                if (Math.Abs(a[i]) > 1) clipped++;
+                if (Math.Abs(b[i]) > 1) clipped++;
                 if (q is var (ql, qr))
                 {
                     BinaryPrimitives.WriteInt32LittleEndian(buf.AsSpan((i - from) * 8), Dither.Word(ql.Next(a[i])));
@@ -239,6 +272,7 @@ internal static class UpsampleCommand
                 }
             }
             into.Write(buf, 0, (to - from) * size);
+            Tell(clipped, peak);
         });
         long read;
         try
@@ -255,7 +289,7 @@ internal static class UpsampleCommand
         p.WaitForExit();
         written.Wait();
         if (p.ExitCode != 0) throw new InvalidOperationException("ffmpeg couldn't write the file: " + err.Result.Trim());
-        return new Result(read, peak, q is var (hl, hr) ? hl.Held + hr.Held : 0, 0);
+        return new Result(read, peak, q is var (hl, hr) ? hl.Held + hr.Held : 0, 0) { Clipped = clipped };
     }
 
     // The decoded track into [up] a block at a time: [frames] of it where that is said (made up with silence, or cut

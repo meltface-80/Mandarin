@@ -109,11 +109,16 @@ internal static partial class Pages
         var h = r.Headers;
         h["X-Content-Type-Options"] = "nosniff";
         h["Referrer-Policy"] = "same-origin";
-        if (name.EndsWith(".html", StringComparison.OrdinalIgnoreCase) && !name.StartsWith("display", StringComparison.OrdinalIgnoreCase))
+        if (!name.EndsWith(".html", StringComparison.OrdinalIgnoreCase)) return;
+        // Scripts only the server's own files (item 366, the security audit's thirteenth finding): a title or a tag that
+        // ever slipped past the page's escaping as markup couldn't run as script; no plugins, no other base for addresses.
+        const string scripts = "script-src 'self'; object-src 'none'; base-uri 'self'";
+        if (!name.StartsWith("display", StringComparison.OrdinalIgnoreCase))
         {
-            h["Content-Security-Policy"] = "frame-ancestors 'self'";
+            h["Content-Security-Policy"] = "frame-ancestors 'self'; " + scripts;
             h["X-Frame-Options"] = "SAMEORIGIN";
         }
+        else h["Content-Security-Policy"] = scripts;
     }
 
     /*

@@ -44,6 +44,7 @@ internal sealed class Player(string id)
     // another asked for meanwhile, made once it has answered.
     public bool Heard, Polling, PollAgain, PollAgainVolume;
     public (double At, string Message)? LastError;
+    public string? GoodOutput, PutBackFor;   // the Output last kept as good, the stream last put back from (item 346: Players.Safety.cs)
     public IRenderer? Renderer;
     public string Location = "";
     public double TouchedAt, LoadingSince, JumpedAt, SeekedAt, UnansweredAt;   // SeekedAt: a seek asked of the device (item 299)
@@ -273,6 +274,7 @@ internal sealed partial class Players
         if (Upsample.Dither.Of(s["dither"]) is { } dn) target["dither"] = dn;   // Mandarin's own dither, shaped (item 301); flat by its absence
         if (Upsample.Dither.BitsOf(s["real_bits"]) is var rb and > 0) target["real_bits"] = (double)rb;   // the DAC's real bits (item 301); as sent by its absence
         if (s["album_stream"] is true) target["album_stream"] = true;   // an album as one stream (item 300)
+        if (Upsample.Headroom.Off(s)) target["headroom"] = "off";   // no headroom when upsampling (item 348); auto by its absence
         if (Jv.Same(s["player"], "mpd")) target["player"] = "mpd";   // played through its own player (item 306)
     }
 

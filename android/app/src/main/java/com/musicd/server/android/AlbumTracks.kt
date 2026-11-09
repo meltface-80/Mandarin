@@ -70,8 +70,8 @@ private val DISC_PART = Regex("^Disc \\d+$")
  * row or the circle picks or unpicks it. A classical album's list is
  * AlbumWorks.kt's, which draws its movements with [TrackRow] too.
  */
-internal fun LazyListScope.albumTracks(a: Album, playingId: Long?, playing: Boolean, picks: List<Int>?, onPick: (Int) -> Unit, onPlay: (Int, String, String) -> Unit) {
-    tracksHead("Tracks")
+internal fun LazyListScope.albumTracks(a: Album, playingId: Long?, playing: Boolean, picks: List<Int>?, onPick: (Int) -> Unit, onPlay: (Int, String, String) -> Unit, head: Boolean = true) {
+    if (head) tracksHead("Tracks")   // under a phone's Tracks tab, which says it, none (item 355)
     itemsIndexed(a.tracks) { i, t -> TrackRow(i, t, t.title, false, false, playingId, playing, picks, onPick, onPlay) }
 }
 

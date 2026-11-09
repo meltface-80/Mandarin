@@ -199,7 +199,7 @@ internal static partial class Library
                     if (!Jv.OneOf(volume, "fixed", "upnp")) throw new DeviceRefusal(400, "volume must be fixed or upnp");
                     patch["volume"] = volume;
                 }
-                DeviceSettings(c, d, patch);
+                patch[Renderers.Players.PutBackSetting] = null; DeviceSettings(c, d, patch);   // and its Output put back (item 346) seen to
                 changed.Add("output");
             }
             var dsp = Prop(b, "dsp");

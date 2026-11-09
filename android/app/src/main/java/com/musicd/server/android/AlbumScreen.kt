@@ -7,12 +7,14 @@ import android.os.Build
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -39,6 +41,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -61,6 +64,7 @@ import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import com.musicd.server.client.Album
 import com.musicd.server.client.AlbumCredits
+import com.musicd.server.client.AlbumVersion
 import com.musicd.server.client.PlaylistAdd
 import com.musicd.server.client.AlbumExtras
 import com.musicd.server.client.ArtistAct
@@ -103,6 +107,7 @@ import org.json.JSONObject
  * invokePhone plays one, picked tracks too; the rest of its buttons are the page's, as the page has them for one (Download
  * not offered).
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 internal fun AlbumScreen(offset: Long, zoneId: String, lit: String, client: () -> ServerClient?, list: NavList?, onStepTo: (Long, String, NavList) -> Unit,
                          onBack: () -> Unit, onPage: (String, String?) -> Unit, onBooklet: (Long, Booklet) -> Unit,
@@ -111,6 +116,10 @@ internal fun AlbumScreen(offset: Long, zoneId: String, lit: String, client: () -
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var zone by remember(offset) { mutableStateOf(zoneId) }
+    // The version shown (item 349): the one opened, or one chosen on its Versions tab, shown in its place; the tab open.
+    var shown by remember(offset) { mutableLongStateOf(offset) }
+    var tab by remember(offset) { mutableStateOf("tracks") }
+    var refresh by remember(offset) { mutableIntStateOf(0) }
     var album by remember(offset) { mutableStateOf<Album?>(null) }
     var extras by remember(offset) { mutableStateOf<AlbumExtras?>(null) }
     var more by remember(offset) { mutableStateOf<AlbumMore?>(null) }
@@ -150,7 +159,7 @@ internal fun AlbumScreen(offset: Long, zoneId: String, lit: String, client: () -
         }
         val c = client() ?: return@LaunchedEffect
         val lib = LibraryClient { c.getJson(it) }
-        val got = withContext(Dispatchers.IO) { runCatching { lib.album(offset) } }
+        val got = withContext(Dispatchers.IO) { runCatching { lib.album(shown) } }
             .onSuccess { album = it; favourite = it.album.favourite; later = it.album.later; serviceFav = it.album.serviceFavourite; LibraryWall.coverIs(offset, it.album.imageKey) }
             .onFailure { failed = Failure.said(it, "Couldn't load the album") + if (Failure.worthAgain(it)) ". Trying again…" else "" }
         again = album == null && got.exceptionOrNull()?.let(Failure::worthAgain) == true
@@ -168,6 +177,18 @@ internal fun AlbumScreen(offset: Long, zoneId: String, lit: String, client: () -
     fun openUrl(url: String) { runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) } }
     val cover = if (phone != null) rememberTileCover(album?.album?.imageKey, 640, client) else rememberCover(album?.album?.imageKey, 640, client)
     fun toast(text: String) = Toast.makeText(context, text, Toast.LENGTH_SHORT).show()
+    // Another version chosen (item 349), or its versions changed: it alone read, the rest of the page as it was.
+    VersionSwitch(album, shown, refresh, phone != null, client, onShown = { album = it; favourite = it.album.favourite; later = it.album.later; serviceFav = it.album.serviceFavourite; picks = null }) { said, back -> toast(said); shown = back }
+    // Make this the main version (item 349: in ⋯, and on its row): said as it goes, its versions read again.
+    fun makeMain(at: Long) {
+        val c = client() ?: return
+        toast(AlbumVersion.SAVING)
+        scope.launch {
+            val ok = withContext(Dispatchers.IO) { runCatching { c.mainVersion(at) }.isSuccess }
+            toast(if (ok) AlbumVersion.IS_MAIN else AlbumVersion.FAILED)
+            if (ok) refresh++
+        }
+    }
     // The phone's own album, track [index] (-1, the whole album) played on this phone, said as the page's invokePhone says it.
     fun playPhone(index: Int, kind: String) {
         val key = phone ?: return
@@ -209,7 +230,7 @@ internal fun AlbumScreen(offset: Long, zoneId: String, lit: String, client: () -
                 }
             }
             // The head and its buttons, and the tracks: the one column's, or the left and right columns' on a tablet held sideways.
-            fun LazyListScope.headItems(a: Album) {
+            fun LazyListScope.sleeveItems(a: Album) {
                 item {
                     // The sleeve, and its head beside it, a line each, at its foot.
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(18.dp)) {
@@ -241,68 +262,62 @@ internal fun AlbumScreen(offset: Long, zoneId: String, lit: String, client: () -
                 }
                 // Its genres (item 139), a row under the sleeve, as the page's #modal-genres: the head stays at the sleeve's foot.
                 if (a.genres.isNotEmpty()) item { GenreChips(a.genres, "album", center = false, modifier = Modifier.fillMaxWidth().padding(top = 14.dp)) { onPage("genre", it) } }
+            }
+            fun LazyListScope.actionItem(a: Album) {
                 item {
-                    // The heart, Play Now and Queue in brass, and ⋯, each the page's 42 tall (.modal-actions: 11 of padding round a 13px word), the heart
-                    // and ⋯ 40 wide; 20 under the sleeve, 22 over the tracks. Outlined buttons for the rings: a plain button's border lay outside
-                    // its 48 touch target and drew the ring 48 wide (bug list item 54).
+                    // Play Now and Queue in brass, the heart and ⋯ (item 349's order), 42 tall, rings as outlined buttons (bug list item 54).
                     Row(Modifier.fillMaxWidth().padding(top = 20.dp, bottom = 22.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         val stadium = RoundedCornerShape(999.dp)
-                        OutlinedIconButton(onClick = { favourite = !favourite; val on = favourite; mark { it.favourite(offset, on) } }, shape = stadium, border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+                        val pill = ButtonDefaults.buttonColors(containerColor = brass, contentColor = MaterialTheme.colorScheme.onPrimary)
+                        Button(onClick = { if (phone != null) playPhone(-1, "play_now") else play("") { it.playAlbum(shown, a.album.title, a.album.subtitle, zone, "play_now") } }, colors = pill, contentPadding = PaddingValues(horizontal = 8.dp),
+                            modifier = Modifier.parity("album.play-now", Contract.label("album.play-now")).weight(1f).height(42.dp)) { Text(Contract.label("album.play-now"), fontSize = 13.sp, lineHeight = 18.sp, fontWeight = FontWeight.Bold, maxLines = 1) }
+                        Button(onClick = { if (phone != null) playPhone(-1, "queue") else play("Queued") { it.playAlbum(shown, a.album.title, a.album.subtitle, zone, "queue") } }, colors = pill, contentPadding = PaddingValues(horizontal = 8.dp),
+                            modifier = Modifier.parity("album.queue", Contract.label("album.queue")).weight(1f).height(42.dp)) { Text(Contract.label("album.queue"), fontSize = 13.sp, lineHeight = 18.sp, fontWeight = FontWeight.Bold, maxLines = 1) }
+                        OutlinedIconButton(onClick = { favourite = !favourite; val on = favourite; mark { it.favourite(shown, on) } }, shape = stadium, border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
                             colors = IconButtonDefaults.outlinedIconButtonColors(contentColor = if (favourite) paletteColor(Palette.HEART) else dim),
                             modifier = Modifier.parity("album.favourite", Contract.label("album.favourite", if (favourite) 1 else 0)).size(40.dp, 42.dp)) {
                             Icon(painterResource(if (favourite) R.drawable.np_heart_on else R.drawable.np_heart), contentDescription = null, modifier = Modifier.size(22.dp))
                         }
-                        val pill = ButtonDefaults.buttonColors(containerColor = brass, contentColor = MaterialTheme.colorScheme.onPrimary)
-                        Button(onClick = { if (phone != null) playPhone(-1, "play_now") else play("") { it.playAlbum(offset, a.album.title, a.album.subtitle, zone, "play_now") } }, colors = pill, contentPadding = PaddingValues(horizontal = 8.dp),
-                            modifier = Modifier.parity("album.play-now", Contract.label("album.play-now")).weight(1f).height(42.dp)) { Text(Contract.label("album.play-now"), fontSize = 13.sp, lineHeight = 18.sp, fontWeight = FontWeight.Bold, maxLines = 1) }
-                        Button(onClick = { if (phone != null) playPhone(-1, "queue") else play("Queued") { it.playAlbum(offset, a.album.title, a.album.subtitle, zone, "queue") } }, colors = pill, contentPadding = PaddingValues(horizontal = 8.dp),
-                            modifier = Modifier.parity("album.queue", Contract.label("album.queue")).weight(1f).height(42.dp)) { Text(Contract.label("album.queue"), fontSize = 13.sp, lineHeight = 18.sp, fontWeight = FontWeight.Bold, maxLines = 1) }
-                        // Download to this phone: as the page's bridge words it from the store's state; the app's own dialogs do the rest.
                         val dlState = download.optString("state", "none")
-                        val dlLabel = if (phone != null || (a.album.source != null && a.album.source != "local")) null
-                            else if (dlState == "done") Contract.label("album.download", 1)
-                            else if (dlState == "downloading" || dlState == "queued" || dlState == "waiting") Contract.label("album.download", 2, "${download.optInt("done", 0)}/${download.optInt("total", 0).takeIf { it > 0 } ?: "?"}")
-                            else Contract.label("album.download", 0)
+                        val dlLabel = downloadWords(download, phone == null && (a.album.source == null || a.album.source == "local"))
                         val bridge = (context as? Activity)?.let { DownloadsBridge(it) }
-                        MoreMenu(a, later, onLater = { later = !later; val on = later; mark { it.listenLater(offset, on) } },
-                            onPlay = { kind, said -> if (phone != null) playPhone(-1, kind) else play(said) { it.playAlbum(offset, a.album.title, a.album.subtitle, zone, kind) } }, onPage = { what, arg -> if (what == "album-edit") editing = true else onPage(what, arg) },
+                        MoreMenu(a, later, onLater = { later = !later; val on = later; mark { it.listenLater(shown, on) } },
+                            onMain = a.versions.firstOrNull { it.current }?.takeIf { !it.main && phone == null }?.let { v -> { makeMain(v.album.offset) } },
+                            onPlay = { kind, said -> if (phone != null) playPhone(-1, kind) else play(said) { it.playAlbum(shown, a.album.title, a.album.subtitle, zone, kind) } }, onPage = { what, arg -> if (what == "album-edit") editing = true else if (what == "share") sharing = true else onPage(what, arg) },
                             download = dlLabel?.takeIf { bridge != null },
                             onDownload = {
                                 val b = bridge ?: return@MoreMenu
-                                when (dlState) { "done" -> b.remove(offset.toInt()); "downloading", "queued", "waiting" -> b.open(); else -> b.download(offset.toInt(), a.album.title, a.album.subtitle) }
+                                when (dlState) { "done" -> b.remove(shown.toInt()); "downloading", "queued", "waiting" -> b.open(); else -> b.download(shown.toInt(), a.album.title, a.album.subtitle) }
                             },
                             serviceFavourite = serviceFav, onServiceFavourite = { on ->
                                 val c = client() ?: return@MoreMenu
-                                val name = a.album.serviceName ?: return@MoreMenu
-                                val source = a.album.source ?: return@MoreMenu
-                                val id = a.album.serviceId ?: return@MoreMenu
                                 scope.launch {
-                                    val r = withContext(Dispatchers.IO) { runCatching { c.serviceFavourite(source, id, on) } }
-                                    val err = r.exceptionOrNull()?.message ?: r.getOrNull()?.optString("error", "")?.ifEmpty { null }
-                                    if (err != null) { toast(err); return@launch }
-                                    serviceFav = on
-                                    toast(if (on) "Added to your $name favourites" else "Removed from your $name favourites")
+                                    val (said, ok) = withContext(Dispatchers.IO) { setServiceFavourite(c, a, on) } ?: return@launch
+                                    toast(said)
+                                    if (ok) serviceFav = on
                                     // Removed, the album is no longer in the library: its page closes (the walls read it afresh as they open).
-                                    if (!on) onPage("library-changed", offset.toString())
+                                    if (ok && !on) onPage("library-changed", offset.toString())
                                 }
                             })
                     }
                 }
             }
-            fun LazyListScope.trackItems(a: Album) {
+            fun LazyListScope.headItems(a: Album) {
+                sleeveItems(a)
+                actionItem(a)
+                // A tablet's: its versions under the head, as a phone's Versions tab lists them (item 349).
+                if (a.versions.size > 1) albumVersions(a, client, onOpen = { v -> shown = v.album.offset },
+                    onPlay = { v -> play("") { it.playAlbum(v.album.offset, v.album.title, v.album.subtitle, zone, "play_now") } }, onMain = { v -> makeMain(v.album.offset) })
+            }
+            fun LazyListScope.trackItems(a: Album, head: Boolean = true) {
                 val playingId = room.view?.takeIf { it.album == a.album.title }?.trackId
                 val onPick = { i: Int -> val p = picks; picks = if (p == null) listOf(i) else if (i in p) (p - i).ifEmpty { null } else p + i }
-                val onPlay = { i: Int, kind: String, said: String -> if (phone != null) playPhone(i, kind) else play("$said: ${a.tracks[i].title}") { it.playTrack(offset, i, a.tracks[i].title, a.album.title, a.album.subtitle, zone, kind) } }
+                val onPlay = { i: Int, kind: String, said: String -> if (phone != null) playPhone(i, kind) else play("$said: ${a.tracks[i].title}") { it.playTrack(shown, i, a.tracks[i].title, a.album.title, a.album.subtitle, zone, kind) } }
                 // A classical album's works and movements (item 49), else the plain list; a work plays as a selection of its tracks would (Play next last to first).
                 if (a.classical) albumWorks(a, playingId, room.view?.playing == true, picks, onPick, onPlay, onPlayWork = { w, kind, said ->
-                    play("$said: ${w.title}") { c ->
-                        val order = w.movements.map { it.track }.filter { it in a.tracks.indices }.let { if (kind == "play_next") it.reversed() else it }
-                        var last: JSONObject? = null
-                        order.forEachIndexed { n, i -> last = c.playTrack(offset, i, a.tracks[i].title, a.album.title, a.album.subtitle, zone, if (kind == "play_next" || n == 0) kind else "queue") }
-                        last
-                    }
+                    play("$said: ${w.title}") { c -> playWork(c, a, shown, w, kind, zone) }
                 })
-                else albumTracks(a, playingId, room.view?.playing == true, picks, onPick, onPlay)
+                else albumTracks(a, playingId, room.view?.playing == true, picks, onPick, onPlay, head)
             }
             val a = album
             // The foot keeps room for the mini player and the row, as the page's does (in the Shelf its bar, under it); the head starts below the corner discs.
@@ -321,22 +336,40 @@ internal fun AlbumScreen(offset: Long, zoneId: String, lit: String, client: () -
                 AlbumWordsColumn(a, extras?.review, client, ::openUrl, Modifier.weight(0.33f).fillMaxHeight().padding(top = 64.dp, bottom = foot))
                 LazyColumn(Modifier.weight(0.37f).fillMaxHeight(), contentPadding = pad) { trackItems(a) }
             }
-            else LazyColumn(Modifier.fillMaxSize().padding(horizontal = 18.dp), contentPadding = pad) {
-                headItems(a); trackItems(a); credited(this)
-                albumAbout(extras?.review, more, client, onAlbum = { id -> onAlbum(id, zone) }, onArtist = { onPage("artist", it) }, onUrl = ::openUrl)
+            // A phone held upright (item 349): the head, then the tabs, held at the top as the page scrolls, and the one open.
+            else BoxWithConstraints(Modifier.fillMaxSize()) {
+                val list = androidx.compose.foundation.lazy.rememberLazyListState()
+                val tabsScroll = androidx.compose.foundation.rememberScrollState()
+                val held = rememberHeldTabs(list)
+                LazyColumn(Modifier.fillMaxSize().clipUnderTabs(held).padding(horizontal = 18.dp), state = list, contentPadding = pad) {
+                    item { PhoneHead(a, cover, minOf(maxWidth * 0.67f, 300.dp), extras, onPage, badges = {
+                        SourceBadge(a.album.source, Modifier.align(Alignment.BottomStart))
+                        if (booklets.isNotEmpty()) BookletButton(booklets, disc, Modifier.align(Alignment.BottomEnd)) { onBooklet(offset, it) }
+                    }) { discs -> onStepTo(discs.items[discs.index].offset, zone, discs) } }
+                    actionItem(a)
+                    phoneTabs(tab, a.versions.size, tabsScroll) { tab = it }
+                    when (tab) {
+                        "credits" -> { albumCredits(credits, client, onArtist = { onPage("artist", it) }, head = false); if (credits?.credits.isNullOrEmpty()) item { Text(AlbumVersion.NO_CREDITS, Modifier.parity("album.tab-empty").padding(vertical = 24.dp), color = dim) } }
+                        "about" -> { aboutHead(a, extras, onPage); albumAbout(extras?.review, more, client, onAlbum = { id -> onAlbum(id, zone) }, onArtist = { onPage("artist", it) }, onUrl = ::openUrl) }
+                        "versions" -> albumVersions(a, client, onOpen = { v -> shown = v.album.offset; tab = "tracks" },
+                            onPlay = { v -> play("") { it.playAlbum(v.album.offset, v.album.title, v.album.subtitle, zone, "play_now") } }, onMain = { v -> makeMain(v.album.offset) })
+                        else -> trackItems(a, head = false)
+                    }
+                }
+                HeldTabs(held, tab, a.versions.size, tabsScroll) { tab = it }
             }
-            // The corner discs, over the glow: Back, and Share.
+            // Back at the corner, over the glow (item 373: Share is in the ⋯, and no previous and next of its own).
             FilledIconButton(onClick = onBack, colors = disc, modifier = Modifier.parity("album.back", Contract.label("album.back")).padding(start = 12.dp, top = 12.dp).size(40.dp).align(Alignment.TopStart)) {
                 Icon(painterResource(R.drawable.np_back), contentDescription = null, modifier = Modifier.size(22.dp))
             }
             Row(Modifier.align(Alignment.TopEnd).padding(end = 12.dp, top = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                // Selecting tracks, their menu takes previous and next's place, as on the page.
+                // Selecting tracks, their menu at the corner, as on the page.
                 val p = picks
                 val a = album
                 if (p != null && a != null) SelectMenu(p, onAct = { act ->
                     when (act) {
                         "clear" -> picks = null
-                        "later" -> { later = true; mark { it.listenLater(offset, true) }; toast("Added to Listen later"); picks = null }
+                        "later" -> { later = true; mark { it.listenLater(shown, true) }; toast("Added to Listen later"); picks = null }
                         "playlist" -> { PlaylistAddAsk.ask(PlaylistAdd.tracks(a, p)); picks = null }
                         // The phone's own: each to its player, in order (Play next last to first), as the page's playTracks.
                         else -> if (phone != null) {
@@ -350,11 +383,6 @@ internal fun AlbumScreen(offset: Long, zoneId: String, lit: String, client: () -
                         }
                     }
                 })
-                else list?.let { NavDiscs(it, disc) { at -> onStepTo(it.items[at].offset, zone, it.copy(index = at)) } }
-                FilledIconButton(onClick = { sharing = true }, enabled = album != null, colors = disc,
-                    modifier = Modifier.parity("album.share", Contract.label("album.share")).size(40.dp)) {
-                    Icon(painterResource(R.drawable.np_share), contentDescription = null, modifier = Modifier.size(20.dp))
-                }
             }
             if (chrome) Column(Modifier.align(Alignment.BottomCenter)) {
                 MiniPlayer(zone, room, client, onOpen = { onNowPlaying(zone) }, onRoom = { id -> zone = id; onRoom(id) }, onPage = onPage)
@@ -363,7 +391,7 @@ internal fun AlbumScreen(offset: Long, zoneId: String, lit: String, client: () -
             // Its editor (item 74), over the page; the page read again, and the walls told, once it changed the album.
             // Its Share card (item 75), centred above the mini player and the row, as the page keeps room for them.
             if (sharing) album?.let { ShareSheet(it.album.title, it.album.subtitle, it.album.imageKey, 144.dp, client) { sharing = false } }
-            if (editing) album?.let { AlbumEditSheet(offset, it.album.title, it.album.subtitle, client, onClose = { editing = false }, onChanged = { loads++ }) }
+            if (editing) album?.let { AlbumEditSheet(shown, it.album.title, it.album.subtitle, client, onClose = { editing = false }, onChanged = { loads++ }) }
         }
     }
 }

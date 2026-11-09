@@ -1,5 +1,8 @@
-/* The page's core (app.js until v1.0.5), 25 of 33: an album's detail, read and drawn. */
-async function fetchAlbumDetail(album) {
+/* The page's core (app.js until v1.0.5), 25 of 33: an album's detail, read and drawn. [opts.version]: another of its
+   versions shown in its place (item 349, album-versions.js): what is the album's own (its write-ups, credits, the rows
+   under it, its date) not asked for again, its tabs left as they are. */
+async function fetchAlbumDetail(album, opts) {
+  const version = !!(opts && opts.version);
   // Send the album's identity so the server can detect a stale offset
   // (library changed since the tile rendered) and relocate — or 409 —
   // instead of returning whatever album now sits at that position.
@@ -23,6 +26,7 @@ async function fetchAlbumDetail(album) {
   if (typeof j.offset === "number" && j.offset >= 0) album.offset = j.offset;
   // Its booklets, by that id (v0.8.33): the book on the cover when it has any.
   loadBooklets(album);
+  if (!version) setAlbumTab("tracks");
 
   // The offset is the album's permanent id on this server, so what comes
   // back IS this album — and its title, artist, year and cover are the
@@ -31,11 +35,21 @@ async function fetchAlbumDetail(album) {
   // update); take the server's word and bring the page up to date, rather
   // than keeping the old names on screen.
   if (j.album && j.album.title) {
-    modalTitle.textContent = j.album.title;
+    // One of several versions: its title without its version's words, whichever is shown (item 349).
+    modalTitle.textContent = j.album.base_title || j.album.title;
+    if (version) {
+      album.title = j.album.title; album.subtitle = j.album.subtitle; album.quality = j.album.quality; album.hires = j.album.hires; setModalSource(album);
+      // Its own cover, where it has one of its own.
+      if (j.album.image_key && j.album.image_key !== album.image_key) {
+        album.image_key = j.album.image_key;
+        modalImg.src = `/api/image/${encodeURIComponent(album.image_key)}?size=800`;
+        setModalAmbient(modalImg.src);
+      }
+    }
     const stale = album.title !== j.album.title || album.subtitle !== j.album.subtitle ||
                   (j.album.image_key && album.image_key !== j.album.image_key) ||
                   (j.album.year && album.year !== j.album.year);
-    if (stale) {
+    if (stale && !version) {
       album.title = j.album.title;
       album.subtitle = j.album.subtitle;
       if (j.album.year) album.year = j.album.year;
@@ -62,14 +76,16 @@ async function fetchAlbumDetail(album) {
   }
   // A classical album (item 49): its composers in the artists' place, and who performs it under them.
   setClassicalHead(j);
-  // Below the review: more by the album's lead artist (the name its first
-  // artist link shows), what they appear on, and Last.fm's suggestions.
-  fetchAlbumMore(album, (Array.isArray(j.artists) && j.artists[0]) || album.subtitle || "")
-    .catch(() => { /* extras: the album page stands without them */ });
-  // Over them, who played, wrote and made it (item 132).
-  if (window.__albumCredits) window.__albumCredits(album);
-  // About its artist, for the album view's middle column on a wide screen (item 214).
-  if (window.__albumArtistBio) window.__albumArtistBio((Array.isArray(j.artists) && j.artists[0]) || album.subtitle || "", album.title || "");
+  if (!version) {
+    // Below the review: more by the album's lead artist (the name its first
+    // artist link shows), what they appear on, and Last.fm's suggestions.
+    fetchAlbumMore(album, (Array.isArray(j.artists) && j.artists[0]) || album.subtitle || "")
+      .catch(() => { /* extras: the album page stands without them */ });
+    // Over them, who played, wrote and made it (item 132).
+    if (window.__albumCredits) window.__albumCredits(album);
+    // About its artist, for the album view's middle column on a wide screen (item 214).
+    if (window.__albumArtistBio) window.__albumArtistBio((Array.isArray(j.artists) && j.artists[0]) || album.subtitle || "", album.title || "");
+  }
   // The notes below go at the foot of the album's head, after its date and
   // its rate and length (bug list item 28), not between its lines.
   const headEnd = document.getElementById("modal-facts") || modalSub;
@@ -150,6 +166,8 @@ async function fetchAlbumDetail(album) {
     } else if (box) box.remove();
   }
 
+  renderVersions(j);   // its album's versions (items 345, 349: album-versions.js)
+
   // Build action buttons in preferred order
   const order  = ["play_now", "queue", "play_next", "shuffle", "radio"];
   // Each one's key in the screens contract (docs/specs/screens.json).
@@ -172,8 +190,6 @@ async function fetchAlbumDetail(album) {
   // wrapping, and on a phone the labels start clipping.
   const ROW_ACTIONS = 2;
   modalActs.innerHTML = "";
-  // The heart, first: the same size as the ⋯ button at the other end.
-  modalActs.appendChild(buildFavButton(album, j.album, "album.favourite"));
   const available = order.filter(k => map.has(k));
   let first = true;
   for (const k of available.slice(0, ROW_ACTIONS)) {
@@ -186,6 +202,8 @@ async function fetchAlbumDetail(album) {
     modalActs.appendChild(btn);
     first = false;
   }
+  // The heart after Play Now and Queue (item 349), the same size as the ⋯ button after it.
+  modalActs.appendChild(buildFavButton(album, j.album, "album.favourite"));
   const overflow = available.slice(ROW_ACTIONS);
   if (overflow.length) {
     const more = buildOverflowMenu(
@@ -193,6 +211,8 @@ async function fetchAlbumDetail(album) {
         .concat(serviceMenuItem(j))
         .concat(laterMenuItem(album, j))
         .concat(playlistMenuItem(album))
+        .concat([{ label: "Share card", key: "album.share", onClick: () => window.__openShareCard({ title: album.title || "", artist: album.subtitle || "", image_key: album.image_key }) }])   // item 373: no button of its own
+        .concat(versionMainItem(j))
         .concat(album.source && album.source !== "local" ? [] : [{ label: "Edit album", key: "album.edit", onClick: () => openAlbumEditor(album) }])
         .concat(downloadMenuItem(album)),
       { label: "More actions", key: "album.more" });

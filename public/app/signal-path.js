@@ -26,7 +26,7 @@ function paintNpSignal(np) {
   npSignalLines.classList.remove("hidden");
   s.lines.forEach((line, i) => {
     const l = document.createElement("span");
-    l.className = "np-signal-line" + (i === 0 ? " is-out" : "");
+    l.className = "np-signal-line" + (i === 0 ? " is-out" : "") + (i === s.alert ? " is-alert" : "");   // its upsampling clipped (item 348)
     l.textContent = line;
     npSignalLines.appendChild(l);
   });

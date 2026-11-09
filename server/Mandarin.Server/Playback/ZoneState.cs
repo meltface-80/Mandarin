@@ -27,6 +27,8 @@ internal sealed record SentInfo(bool Transcode, double Rate, double Bits, double
     public int RealBits { get; init; }
     // DSD's family: 44100, or 48000 for DSD made from a track of 48 kHz's at its own rate (item 261).
     public double DsdBase { get; init; } = 44100;
+    // Its turn-down for its upsampling (dB ≤ 0; in Gain too), for the signal path (item 348: Upsample/Headroom.cs).
+    public double Headroom { get; init; }
 
     public JsonObject Json() => new()
     {

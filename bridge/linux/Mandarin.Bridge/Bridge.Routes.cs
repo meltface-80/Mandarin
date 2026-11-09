@@ -12,6 +12,8 @@ internal sealed partial class Bridge
     private Http.Response Route(Http.Request r)
     {
         var p = r.Path;
+        // Only JSON, and only from its own page or no page at all, may change it (item 352: Guard.cs).
+        if (Guard.Refused(r) is { } refused) return Http.Response.Text(403, new JsonObject { ["error"] = refused }.ToJsonString(), Json);
         if (p == "/dac.json" && r.Method == "GET") return Http.Response.Text(200, DacJson().ToJsonString(new System.Text.Json.JsonSerializerOptions { WriteIndented = true }), Json);
         if (p == "/" && r.Method is "GET" or "HEAD") return Http.Response.Text(200, Web.Page, "text/html; charset=\"utf-8\"");
         if (p == "/api/state" && r.Method == "GET") return Http.Response.Text(200, State().ToJsonString(), Json);

@@ -119,7 +119,10 @@ const ENV = {
   updateApi: "UPDATE_API",
   // The port a renderer's own player (MPD) is looked for at (Renderers/Mpd.cs, item 306): a test's fake one.
   mpdPort: "MPD_PORT",
-  slimprotoPort: "SLIMPROTO_PORT"
+  slimprotoPort: "SLIMPROTO_PORT",
+  // The hosts on this network a picture from elsewhere may come from (Covers.Reach.cs, item 353): a test's own site.
+  artHosts: "ART_HOSTS",
+  trustedProxies: "TRUSTED_PROXIES"
 };
 // On or off, as index.js read them ("0" is off).
 const FLAGS = { upnpMulticast: "UPNP_DISCOVERY", identify: "IDENTIFY", localAudio: "LOCAL_AUDIO" };
@@ -149,7 +152,9 @@ const JOBS = ["identify", "mbpack", "loudness", "labels", "days", "taste", "tail
  * @param {Record<string, any>} overrides
  */
 function createServer(overrides = {}) {
-  const env = {};
+  // Loopback a trusted proxy (item 362), so a test may say who asked with X-Forwarded-For as a proxy here would:
+  // trustedProxies: "" for the server as it is installed, believing only the Tailscale engine's own port.
+  const env = { TRUSTED_PROXIES: "127.0.0.1,::1" };
   const cfg = {};
   for (const [k, v] of Object.entries(overrides)) {
     if (v === undefined) continue;

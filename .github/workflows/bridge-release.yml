@@ -22,6 +22,7 @@ jobs:
 
   linux:
     uses: ./.github/workflows/bridge-linux.yml
+    secrets: inherit   # RELEASE_SIGNING_KEY: its tarballs signed (item 371)
 
   pi:
     uses: ./.github/workflows/bridge-pi.yml
@@ -30,12 +31,12 @@ jobs:
     needs: [build, linux, pi]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
       - name: Check the version matches the build
         run: |
           v=$(grep -oP 'versionName = "\K[^"]+' bridge/android/app/build.gradle.kts)
           [ "$v" = "${{ github.event.inputs.version }}" ] || { echo "::error::app/build.gradle.kts says $v, not ${{ github.event.inputs.version }}"; exit 1; }
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333  # v8
         with:
           path: out
           merge-multiple: true

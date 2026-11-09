@@ -44,11 +44,11 @@ internal static class Items
         if (p["dither"] is string dn) qs.Add("dn=" + dn);   // Mandarin's own dither, shaped (item 301)
         if (Jv.T(p["real_bits"])) qs.Add("rb=" + TJs.Num(Jv.Num(p["real_bits"])));   // at the DAC's real bits (item 301)
         var q = qs.Count > 0 ? "?" + string.Join("&", qs) : "";
-        return Signing.SignUrl(secret, $"{baseUrl}/stream/t{t.Id}{seg}.{Jv.Str(p["ext"])}{q}");
+        return Signing.SignExpiring(secret, $"{baseUrl}/stream/t{t.Id}{seg}.{Jv.Str(p["ext"])}{q}");   // good for 30 days (item 368)
     }
 
     public static string ArtUrl(string secret, string baseUrl, Album al) =>
-        Signing.SignUrl(secret, $"{baseUrl}/api/image/{AJs.EncodeURIComponent(al.ImageKey)}?size=600");
+        Signing.SignExpiring(secret, $"{baseUrl}/api/image/{AJs.EncodeURIComponent(al.ImageKey)}?size=600");
 
     /* item(t, target, { gain, phoneGain }): the URL, the DIDL and the plan, the track beside them. */
     public static PlayItem Item(Snapshot s, string secret, string baseUrl, PlayTrack t, JsObj? target, double? gain, double? phoneGain)
@@ -58,8 +58,8 @@ internal static class Items
         if (target != null) p = HighRates.Fit(p, target);   // above FLAC's rates: WAV, or the highest FLAC carries (item 238)
         p = Upsample.MadeAsPlayed.Mark(p, target, t.Path);   // in the filter's shape, where the device asks one (items 248, 259)
         p = DsdLowpass.Mark(p, target, tj);   // DSD as PCM, its modulator's noise above the band taken off (item 241)
-        // Made DSD from PCM (items 243, 259): the DSF, made as it plays.
-        return Build(s, secret, baseUrl, t, Upsample.DsdPlan.Mark(p, target, tj, t.Path), target, phoneGain);
+        // Made DSD from PCM (items 243, 259): the DSF, made as it plays; turned down where its upsampling would clip (item 348).
+        return Build(s, secret, baseUrl, t, Upsample.Headroom.Into(Upsample.DsdPlan.Mark(p, target, tj, t.Path), t.Id, target), target, phoneGain);
     }
 
     // The item for [t] by the plan [p]: its address, its DIDL.
@@ -133,6 +133,7 @@ internal static class Items
     {
         var target = hub.TargetFor(zoneId);
         var phone = hub.Phones.IsPhoneId(zoneId);
+        var output = phone ? null : Renderers.Players.OutputNow(zoneId);   // what it was planned by (item 346)
         var shuffle = shuffled ?? hub.StateOf(zoneId)?.Shuffle == true;
         var levelling = LevellingFor(c, zoneId);
         var gains = Gain.GainsFor(tracks.Select(t => (object?)t.ToJs()).ToList(), shuffle, levelling, id => Measured(c, id), id => AlbumRows(c, id));
@@ -142,7 +143,9 @@ internal static class Items
         for (int i = 0; i < tracks.Count; i++)
         {
             double? g = gains[i] is double d ? d : null;
-            out_.Add(Item(s, secret, baseUrl, tracks[i], target, phone ? null : g, phone ? g : null));
+            var item = Item(s, secret, baseUrl, tracks[i], target, phone ? null : g, phone ? g : null);
+            item.Output = output;
+            out_.Add(item);
         }
         return out_;
     }

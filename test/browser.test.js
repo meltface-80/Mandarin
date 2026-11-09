@@ -6,10 +6,11 @@
  *   - Home: Random Album and Album of the day under the greeting; "Not
  *     played in 6 months" hidden while it has nothing (v0.6.1);
  *   - the album view: × from 720px up, ‹ below, the cover below the corner
- *     buttons with previous/next on its centre line;
+ *     button; no Share, previous or next of its own (item 373: Share card is
+ *     in its ⋯);
  *   - Now playing over an album: its corner button (×  on a desktop, ‹
  *     elsewhere), Escape and a click outside the reduced card all return to
- *     that album with its previous/next; with nothing under it, it closes;
+ *     that album; with nothing under it, it closes;
  *   - Now playing reduced on a large screen, and the choice remembered;
  *   - the share card's × a brass disc; every ⓘ named for screen readers.
  * Skipped where no Chromium or Chrome is found (test/browser-harness.js).
@@ -155,16 +156,10 @@ test("the page in a browser: Home, the album view and Now playing at three sizes
       assert.equal(phone.close_label, "Back"); assert.equal(phone.x, false); assert.equal(phone.chevron, true);
     });
 
-    await t.test("the sleeve starts below the corner buttons; previous and next beside Share, above it", () => {
+    await t.test("the sleeve starts below the corner button; no Share, previous or next on an album's page (item 373)", () => {
       for (const r of [desk, phone, tablet]) {
         assert.ok(r.art.top >= r.close.bottom + 8, `cover at ${r.art.top}, the corner button ends at ${r.close.bottom}`);
-        for (const k of ["prev", "next"]) {
-          assert.equal(r[k].shown, true, k);
-          assert.ok(r[k].bottom <= r.art.top, `${k} ends at ${r[k].bottom}, the sleeve starts at ${r.art.top}`);
-          assert.ok(Math.abs(r[k].mid - r.share.mid) <= 1, `${k} on Share's line (${r[k].mid}, Share ${r.share.mid})`);
-          assert.ok(r[k].right <= r.share.left, `${k} (${r[k].right}) left of Share (${r.share.left})`);
-        }
-        assert.ok(r.prev.right <= r.next.left, "previous, then next");
+        for (const k of ["prev", "next", "share"]) assert.equal(r[k].shown, false, k + ": not on an album's page");
       }
     });
 
@@ -177,14 +172,14 @@ test("the page in a browser: Home, the album view and Now playing at three sizes
       }
     });
 
-    await t.test("Back, Escape and a click outside the reduced card return to the album, previous/next intact", () => {
+    await t.test("Back, Escape and a click outside the reduced card return to the album, as it was", () => {
       for (const r of [desk, phone, tablet]) {
         for (const k of ["after_back", "after_escape"]) {
-          assert.deepEqual(r[k], { hidden: false, np: false, title: r.title, prev: true, next: true }, k);
+          assert.deepEqual(r[k], { hidden: false, np: false, title: r.title, prev: false, next: false }, k);
         }
         assert.equal(r.plain_closes, true, "with nothing under it, Back just closes");
       }
-      assert.deepEqual(desk.after_backdrop, { hidden: false, np: false, title: desk.title, prev: true, next: true });
+      assert.deepEqual(desk.after_backdrop, { hidden: false, np: false, title: desk.title, prev: false, next: false });
     });
 
     await t.test("Now playing reduces to the album card's size on a large screen, and remembers", () => {

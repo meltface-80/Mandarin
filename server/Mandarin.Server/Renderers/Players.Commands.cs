@@ -135,7 +135,7 @@ internal sealed partial class Players
         string Or(object? a, string? b) => Jv.T(a) ? Jv.Str(a) : b ?? "";
         return new UpnpItem
         {
-            Uri = it.Uri, Meta = it.Meta, Track = t, Plan = p,
+            Uri = it.Uri, Meta = it.Meta, Track = t, Plan = p, Output = it.Output,
             TrackId = t?.Id ?? Phones.TrackIdFromUri(it.Uri),
             Title = Or(m["title"], t?.Title), Artist = Or(m["artist"], t?.Artist), Album = Or(m["album"], t?.Album),
             ArtUri = Or(m["artUri"], ""),
@@ -144,7 +144,7 @@ internal sealed partial class Players
             Sent = p == null ? null : new SentInfo(Jv.T(p["transcode"]),
                 Jv.T(p["transcode"]) ? Jv.Num(p["rate"]) : t?.SampleRate ?? 0, Jv.T(p["transcode"]) ? Jv.Num(p["bits"]) : t?.Bits ?? 0,
                 Jv.T(p["upsampled"]) ? Jv.Num(p["upsampled"]) : 0, Jv.T(p["dsp"]), Jv.T(p["dsd"]) ? Jv.Num(p["dsd"]) : 0,
-                Jv.T(p["ext"]) ? Jv.Str(p["ext"]) : "", Jv.T(p["mime"]) ? Jv.Str(p["mime"]) : "") { Gain = Jv.T(p["gain"]) ? Jv.Num(p["gain"]) : 0, Lowpass = Jv.T(p["lowpass"]) ? Jv.Num(p["lowpass"]) : 0, Shape = p["shape"] as string, Mod = p["mod"] as string, Dither = Upsample.Dither.Of(p["dither"]), RealBits = Upsample.Dither.BitsOf(p["real_bits"]), DsdBase = Jv.Num(p["dsdBase"]) == 48000 ? 48000 : 44100 }
+                Jv.T(p["ext"]) ? Jv.Str(p["ext"]) : "", Jv.T(p["mime"]) ? Jv.Str(p["mime"]) : "") { Gain = Jv.T(p["gain"]) ? Jv.Num(p["gain"]) : 0, Lowpass = Jv.T(p["lowpass"]) ? Jv.Num(p["lowpass"]) : 0, Shape = p["shape"] as string, Mod = p["mod"] as string, Dither = Upsample.Dither.Of(p["dither"]), RealBits = Upsample.Dither.BitsOf(p["real_bits"]), DsdBase = Jv.Num(p["dsdBase"]) == 48000 ? 48000 : 44100, Headroom = Jv.T(p["headroom"]) ? Jv.Num(p["headroom"]) : 0 }
         };
     }
 

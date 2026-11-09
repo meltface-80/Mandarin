@@ -171,11 +171,14 @@ test("away, only this phone plays", { skip, timeout: 90000 }, async (t) => {
       assert.equal((await browserAway("GET", "/api/library/albums?sort=album")).albums.length, 3);
     });
 
-    await t.test("only a proxy on this machine is believed about where a request comes from", async () => {
-      // From loopback with no header: home. A remote client can't set it —
-      // its own address is used, and loopback is the only proxy trusted.
-      const { clients } = score({ fn: "auth", clients: [["127.0.0.1", TAILNET], ["::ffff:127.0.0.1", "1.2.3.4, " + TAILNET], ["192.168.1.5", "10.0.0.1"], ["::ffff:100.100.1.1", "192.168.1.9"]] });
-      assert.deepEqual(clients, [TAILNET, TAILNET, "192.168.1.5", "100.100.1.1"]);
+    await t.test("only a trusted proxy is believed about where a request comes from (item 362)", async () => {
+      // The Tailscale engine on its own port (here 4711), and the proxies named: their last X-Forwarded-For. A request
+      // from this machine naming a caller through anything else: unknown, never home. A remote client can't set it.
+      const { clients } = score({ fn: "auth", engine_port: 4711, trusted: ["192.168.1.2"], clients: [["127.0.0.1", TAILNET, 4711], ["::ffff:127.0.0.1", "1.2.3.4, " + TAILNET, 4711],
+        ["127.0.0.1", TAILNET, 3500], ["127.0.0.1", null, 3500], ["192.168.1.5", "10.0.0.1"], ["::ffff:100.100.1.1", "192.168.1.9"], ["192.168.1.2", "192.168.1.9"]] });
+      assert.deepEqual(clients, [TAILNET, TAILNET, "unknown", "127.0.0.1", "192.168.1.5", "100.100.1.1", "192.168.1.9"]);
+      const named = score({ fn: "auth", trusted: ["127.0.0.1"], clients: [["127.0.0.1", TAILNET, 3500]] }).clients;
+      assert.deepEqual(named, [TAILNET], "loopback named: an nginx here believed");
     });
   } finally {
     await srv.stop();

@@ -1,5 +1,21 @@
 # Changelog
 
+## v0.3.4
+
+- Fixed - the Linux Bridge (and the Pi's) took an update the checksum beside it agreed with, which whoever could replace the release could replace with it (the security audit's ninth finding). Each Linux build is now signed with Mandarin's release key, its signature in the sidecar, and once a Bridge carries the key's public half it installs only a build signed with it, saying so where one isn't (item 371)
+- Improved - Mandarin Bridge is 0.3.4
+
+## v0.3.3
+
+- Fixed - an update that couldn't make a secure connection to GitHub said only "GitHub couldn't be reached (SecureConnectionError)". It now says why: GitHub's certificate not valid on the computer's date, its clock wrong (a Raspberry Pi has no clock of its own, and one that hasn't set its time sees GitHub's certificate as not valid yet), with where to set it to sync; the computer's certificates missing or out of date, with the line that installs them again; or the answer not GitHub's (item 359)
+- Improved - Mandarin Bridge is 0.3.3
+
+## v0.3.2
+
+- Fixed - the Bridge's port took changes from anything: it has no sign-in (a Pi just flashed has no Mandarin to sign in to), and it read any request's body as JSON, so a web page open in a browser on the home network could, with a plain form's POST and without the browser asking first, rename it, change its DAC or DSD mode, move a Raspberry Pi to another Wi-Fi network, start a recording of what the DAC is fed, or have a Linux or Pi Bridge install an older release. Now a change is taken only as JSON (application/json), which a page on another site can't send without the browser asking first, and the Bridge never says yes, and never from another site where the browser names where it comes from. Mandarin and the Bridge's own page send both already (item 352)
+- Fixed - an update is never to a release older than the one running, on Android, Linux and the Pi: an older one may lack what a newer one fixed (item 352)
+- Improved - Mandarin Bridge is 0.3.2
+
 ## v0.3.1
 
 - Fixed - the Linux Bridge (and the Pi's) couldn't be updated from Mandarin's Settings → Updates: it asked GitHub without a User-Agent, which GitHub refuses. It now names itself, and an update that fails says why in words (item 327). A Bridge installed before this is installed again by hand once

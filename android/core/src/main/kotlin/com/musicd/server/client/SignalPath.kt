@@ -12,7 +12,7 @@ data class SignalStep(val kind: String, val title: String, val detail: String, v
  * Every step of a track's way from its file to the room, as the server says it (now_playing.signal, item 247):
  * Now playing's lines (what goes out, how it was made, what is being made) and its Signal path sheet's steps.
  */
-data class Signal(val lines: List<String>, val steps: List<SignalStep>) {
+data class Signal(val lines: List<String>, val steps: List<SignalStep>, val alert: Int? = null) {
     companion object {
         /** The server's signal, or null from an older server or with nothing to say. */
         fun of(o: JSONObject?): Signal? {
@@ -24,7 +24,9 @@ data class Signal(val lines: List<String>, val steps: List<SignalStep>) {
                         s.optString("action", "").takeIf { it.isNotEmpty() && it != "null" }, s.optString("button", "").takeIf { it.isNotEmpty() && it != "null" })
                 }
             }.orEmpty()
-            return if (lines.isEmpty() && steps.isEmpty()) null else Signal(lines, steps)
+            // The line to show in red: its upsampling clipped (item 348).
+            val alert = if (o.has("alert")) o.optInt("alert", -1).takeIf { it in lines.indices } else null
+            return if (lines.isEmpty() && steps.isEmpty()) null else Signal(lines, steps, alert)
         }
     }
 }

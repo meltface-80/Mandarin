@@ -277,6 +277,14 @@ function placeOverflowMenu(menu, btn) {
       break;
     }
   }
+  // The mini player and the touch row lie over the foot of the page: no room for the menu under them (item 349: an
+  // album's button row sits lower on a phone now, and its last item went under the mini player).
+  for (const id of ["mini-transport", "touch-nav"]) {
+    const el = document.getElementById(id);
+    if (!el || el.classList.contains("hidden") || getComputedStyle(el).display === "none") continue;
+    const r = el.getBoundingClientRect();
+    if (r.height > 0 && r.top > b.bottom && r.top < bottom) bottom = r.top;
+  }
   const up = m.bottom <= b.top + 1;
   const roomAbove = b.top - top - 6, roomBelow = bottom - b.bottom - 6;
   if (up && m.height > roomAbove && roomBelow > roomAbove) menu.classList.add("opens-down");

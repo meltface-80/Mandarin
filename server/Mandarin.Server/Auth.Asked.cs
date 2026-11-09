@@ -35,13 +35,30 @@ internal static partial class Auth
     {
         var names = AskedFor(ctx);
         if (!names.All(HomeName)) return "Open Mandarin by its address, or by its name on your network";
-        var m = ctx.Request.Method;
-        if (HttpMethods.IsGet(m) || HttpMethods.IsHead(m)) return null;
-        var site = ctx.Request.Headers["Sec-Fetch-Site"].ToString();
-        if (site.Length > 0) return site is "same-origin" or "none" ? null : FromElsewhere;
-        var origin = ctx.Request.Headers.Origin.ToString();
-        return origin.Length == 0 || names.Any(n => SameOrigin(origin, n)) ? null : FromElsewhere;
+        return FromOwnPage(ctx, names) ? null : FromElsewhere;
     }
+
+    /* Whether a request is a read, or sent by the server's own page or an app: Sec-Fetch-Site same-origin or none, or, where
+       a browser doesn't send it (plain http to an address, the Android app, curl), no Origin or the server's own. */
+    private static bool FromOwnPage(HttpContext ctx, List<string> names)
+    {
+        var m = ctx.Request.Method;
+        if (HttpMethods.IsGet(m) || HttpMethods.IsHead(m) || HttpMethods.IsOptions(m)) return true;
+        var site = ctx.Request.Headers["Sec-Fetch-Site"].ToString();
+        if (site.Length > 0) return site is "same-origin" or "none";
+        var origin = ctx.Request.Headers.Origin.ToString();
+        return origin.Length == 0 || names.Any(n => SameOrigin(origin, n));
+    }
+
+    /*
+     * Why a signed-in browser's request is turned away, or null (item 363, the security audit's fifth finding): its cookie
+     * is SameSite=Lax, which another site never carries, but a page on another port of the same host is the same site,
+     * and a form there could post with it (a body-less POST, such as Rescan, needs no JSON). A change sent with the cookie
+     * must come from the server's own page, as one let in by the sign-in off must; an app's Bearer token is never a
+     * browser's, and is let be.
+     */
+    public static string? CookieFromElsewhere(HttpContext ctx) =>
+        TokenFromCookie(ctx) && !FromOwnPage(ctx, AskedFor(ctx)) ? FromElsewhere : null;
 
     private const string FromElsewhere = "Mandarin's own page or app only: this came from another site";
 
@@ -80,4 +97,10 @@ internal static partial class Auth
         return string.Equals(u.Authority, h, StringComparison.OrdinalIgnoreCase)
             || string.Equals($"{u.Host}:{u.Port}", h, StringComparison.OrdinalIgnoreCase);
     }
+
+
+    private static bool Bearer(string h) => h.StartsWith("Bearer", StringComparison.OrdinalIgnoreCase) && h.Length > 6 && char.IsWhiteSpace(h[6]);
+
+    /* Whether the request's device is named by the browser's cookie, not an app's Bearer token. */
+    private static bool TokenFromCookie(HttpContext ctx) => !Bearer(ctx.Request.Headers.Authorization.ToString());
 }

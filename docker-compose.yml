@@ -20,6 +20,8 @@ services:
       # EXCLUDE_ZONES: "Bathroom"
       # TRANSCODE_CACHE_GB: "4"
       # PLAYBACK_CORES: "1"             # cores kept for playback: 1 or 2 (default: 1, 2 while DSP is in use); 0 shares all
+      # PUID: "1000"                    # the user and group the server runs as (not root, since item 354): your
+      # PGID: "1000"                    #   music's owner if only it can read it; PUID "0" keeps it root
     # A USB DAC on this machine: install Mandarin Bridge for Linux beside the container (the Downloads
     # page); it plays the DAC as a room of its own. The container itself opens no sound device.
     # Playback at a higher priority as well as on its own core:

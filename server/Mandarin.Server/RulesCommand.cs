@@ -179,19 +179,29 @@ internal static class RulesCommand
     };
 
     /* A request from [remote], with what a proxy said it came from. */
-    private static HttpContext RequestFrom(object? remote, object? forwarded)
+    private static HttpContext RequestFrom(object? remote, object? forwarded, object? localPort = null)
     {
         var ctx = new DefaultHttpContext();
         ctx.Connection.RemoteIpAddress = System.Net.IPAddress.Parse(S(remote));
         if (!TJs.IsNullish(forwarded)) ctx.Request.Headers["X-Forwarded-For"] = S(forwarded);
+        if (!TJs.IsNullish(localPort)) ctx.Connection.LocalPort = (int)N(localPort);   // the port it came in on (item 362: the engine's own)
         return ctx;
+    }
+
+    // The proxies believed for a job's clients (item 362): the engine's port and those named, as the server is told them.
+    private static JsObj ClientsOf(JsObj job)
+    {
+        Caller.Hush();
+        Caller.EnginePort = TJs.IsNullish(job["engine_port"]) ? 0 : (int)N(job["engine_port"]);
+        Caller.Trust(new System.Text.Json.Nodes.JsonArray(L(job["trusted"]).Select(x => (System.Text.Json.Nodes.JsonNode?)S(x)).ToArray()));
+        return new JsObj { ["clients"] = Each(job["clients"], c => Auth.ClientIp(RequestFrom(At(c, 0), At(c, 1), At(c, 2)))) };
     }
 
     private static JsObj AuthFns(JsObj job) => new()
     {
         ["locals"] = Each(job["locals"], ip => Auth.IsLocal(S(ip))),
         ["names"] = Each(job["uas"], ua => Auth.DeviceNameFromUA(S(ua))),
-        ["clients"] = Each(job["clients"], c => Auth.ClientIp(RequestFrom(At(c, 0), At(c, 1)))),
+        ["clients"] = ClientsOf(job)["clients"],
         ["tailnet"] = Each(job["tailnet"], ip => Playback.Topology.IsCgnat(S(ip))),
         ["aways"] = Each(job["aways"], c => PlaybackRoutes.AwayAddress((int)N(O(c)["port"]), TJs.IsNullish(O(c)["set"]) ? null : S(O(c)["set"]),
             TJs.IsNullish(O(c)["own"]) ? null : S(O(c)["own"]), O(c)["ifaces"] ?? new JsObj())),

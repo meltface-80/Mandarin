@@ -102,6 +102,13 @@
     }).catch(() => { /* decorative */ });
   }
 
+  /** The library changed (item 357, library-mark.js): an artist's albums and who they are asked afresh when their page
+      next opens, an album deleted from the folders no longer on it; what other services said of them is kept. */
+  function artistKeptStale() {
+    for (const url of [...kept.keys()]) if (url.startsWith("/api/artist-albums?") || url.startsWith("/api/artist?")) kept.delete(url);
+  }
+
   w.__artistJson = artistJson;
+  w.__artistKeptStale = artistKeptStale;
   w.__renderArtistFoot = renderArtistFoot;
 })();
