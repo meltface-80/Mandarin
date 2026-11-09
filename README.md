@@ -7,7 +7,7 @@
 
 </div>
 
-# Mandarin — v1.2.3
+# Mandarin — v1.2.5
 
 **Your own music files, played to Sonos rooms, to UPnP/DLNA renderers (a WiiM, a Chord Poly,
 a streamer, an AV receiver) and to the Mandarin Android app.**
@@ -26,7 +26,7 @@ Wikipedia, Deezer and others); your music files stay on your machine.
                                                    └──── audio: /stream/… ◀────────┘
 ```
 
-**New in v1.2.3** (since v1.2.2; Mandarin Bridge v0.3.4). The [changelog](CHANGELOG.md) has each change.
+**New in v1.2.5** (since v1.2.2; Mandarin Bridge v0.3.4). The [changelog](CHANGELOG.md) has each change.
 * **Versions of one album are one album:** an original and its remaster are one tile, *2 versions* under it, the
   highest resolution its main (or the one you choose); the album's page lists each with what tells it apart.
 * **An album's page on a phone, redesigned:** the cover on top, the title across the page, then tabs (Tracks,
@@ -43,7 +43,8 @@ Wikipedia, Deezer and others); your music files stay on your machine.
   take changes only as JSON from their own pages; scripts only from Mandarin's own pages; with the sign-in off, only
   your own Tailscale devices count as home; releases can be signed and updates checked against the key. Reach Mandarin
   away from home through Tailscale, never a port forward.
-* **Fixed:** an album of mixed sample rates silent with Albums as one stream on; an album deleted from the folders
+* **Fixed:** Settings → Updates couldn't update the server in Docker once it ran as a user (it does again, here and
+  from now on); an album of mixed sample rates silent with Albums as one stream on; an album deleted from the folders
   still on its artist's page; the built-in Tailscale not starting after the change to a non-root container; the
   Android album tabs squashed into letters; Search's count changing the width of its field.
 
@@ -53,13 +54,13 @@ The newest of each, straight to your device. The server's install is a command, 
 
 | What | Version | Download |
 | --- | --- | --- |
-| **Mandarin Remote**, the Android app (Android 8.0 or newer) | v1.2.3 | [mandarin-android.apk](https://github.com/meltface-80/Mandarin/raw/main/dist/mandarin-android.apk) |
-| **Mandarin server** with Docker (Linux, a Raspberry Pi 4/5, a NAS) | v1.2.3 | `docker pull ghcr.io/meltface-80/musicd-server:latest`, then [Install (Docker)](#install-docker) |
-| **Mandarin server** on a Mac (macOS 14 or newer) | v1.2.3 | the one line under [Install on a Mac](#install-on-a-mac) |
+| **Mandarin Remote**, the Android app (Android 8.0 or newer) | v1.2.5 | [mandarin-android.apk](https://github.com/meltface-80/Mandarin/raw/main/dist/mandarin-android.apk) |
+| **Mandarin server** with Docker (Linux, a Raspberry Pi 4/5, a NAS) | v1.2.5 | `docker pull ghcr.io/meltface-80/musicd-server:latest`, then [Install (Docker)](#install-docker) |
+| **Mandarin server** on a Mac (macOS 14 or newer) | v1.2.5 | the one line under [Install on a Mac](#install-on-a-mac) |
 | **Mandarin Bridge** for Android (a FiiO R7, say) | v0.3.4 | [mandarin-bridge.apk](https://github.com/meltface-80/Mandarin/releases/download/mandarin-bridge-v0.3.4/mandarin-bridge.apk) |
 | **Mandarin Bridge** for Raspberry Pi (3, 4, 5, Zero 2 W) | v0.3.4 | [mandarin-bridge-pi-arm64.img.xz](https://github.com/meltface-80/Mandarin/releases/download/mandarin-bridge-v0.3.4/mandarin-bridge-pi-arm64.img.xz) |
 | **Mandarin Bridge** for Linux (64-bit Debian, Ubuntu, Raspberry Pi OS) | v0.3.4 | `curl -fsSL https://github.com/meltface-80/Mandarin/releases/download/mandarin-bridge-v0.3.4/install.sh \| sudo sh`, or by hand: [x64](https://github.com/meltface-80/Mandarin/releases/download/mandarin-bridge-v0.3.4/mandarin-bridge-linux-x64.tar.gz) · [arm64](https://github.com/meltface-80/Mandarin/releases/download/mandarin-bridge-v0.3.4/mandarin-bridge-linux-arm64.tar.gz) |
-| The server program on its own, what Settings → Updates fetches | v1.2.3 | [linux-x64](https://github.com/meltface-80/Mandarin/releases/latest/download/mandarin-server-linux-x64.gz) · [linux-arm64](https://github.com/meltface-80/Mandarin/releases/latest/download/mandarin-server-linux-arm64.gz) · [osx-arm64](https://github.com/meltface-80/Mandarin/releases/latest/download/mandarin-server-osx-arm64.gz) · [osx-x64](https://github.com/meltface-80/Mandarin/releases/latest/download/mandarin-server-osx-x64.gz) · [sums](https://github.com/meltface-80/Mandarin/releases/latest/download/mandarin-server.sha256) |
+| The server program on its own, what Settings → Updates fetches | v1.2.5 | [linux-x64](https://github.com/meltface-80/Mandarin/releases/latest/download/mandarin-server-linux-x64.gz) · [linux-arm64](https://github.com/meltface-80/Mandarin/releases/latest/download/mandarin-server-linux-arm64.gz) · [osx-arm64](https://github.com/meltface-80/Mandarin/releases/latest/download/mandarin-server-osx-arm64.gz) · [osx-x64](https://github.com/meltface-80/Mandarin/releases/latest/download/mandarin-server-osx-x64.gz) · [sums](https://github.com/meltface-80/Mandarin/releases/latest/download/mandarin-server.sha256) |
 | **How Mandarin finds and names your music**, a guide in plain words | | [PDF](docs/Mandarin-music-scanning-guide.pdf) |
 
 On an iPhone or iPad there is nothing to download: see [iPhone and iPad](#iphone-and-ipad).
@@ -168,7 +169,7 @@ Tap the magnifying glass in the top bar (in the row at the foot of a phone's or 
 
 ⸻
 
-💿 **Album pages** — *new in v1.2.3*
+💿 **Album pages** — *new in v1.2.5*
 
 Tracks, year and label, write-ups from Wikipedia and Qobuz, Pitchfork's score, and every version of the album (an original and its remaster) as one album, the best its main.
 
@@ -252,7 +253,7 @@ On an album, tap **⋯ → Edit album**.
 
 ⸻
 
-🗂️ **Music folders** — *new in v1.2.3*
+🗂️ **Music folders** — *new in v1.2.5*
 
 Any folders the server can see, added and removed in the app. Changes show by themselves: an album as it is copied in, a network share's within half a minute.
 
@@ -624,7 +625,7 @@ Install it from [Downloads](#downloads): the Android app, the Linux install line
 
 ⸻
 
-📈 **Upsampling and output** — *new in v1.2.3*
+📈 **Upsampling and output** — *new in v1.2.5*
 
 For each streamer or DAC: Bit-perfect or upsampled recipes, filters in either phase, shaped dither, PCM made DSD, Headroom against clipping, and a safety net when the server falls behind.
 
@@ -941,7 +942,7 @@ version is out. (From v0.1.3 on — an older container needs one update the manu
 Since v0.9.0 Mandarin's server is one program, in C#, with no Node.js anywhere. An update from
 the app fetches that program of the new version for your machine (x64 or ARM64) from the
 release, checks it against the release's sums (and, once Mandarin's release key is built in, its
-signature, v1.2.3: a release replaced along with its sums is refused), puts it and the new page in place, and starts
+signature, v1.2.5: a release replaced along with its sums is refused), puts it and the new page in place, and starts
 again in the same container — a few seconds. If it can't start again in place, it stops and
 Docker's restart policy (`--restart unless-stopped`, as above, or `restart: unless-stopped` in
 `docker-compose.yml`) starts the container again; without one, start it yourself (`docker start
@@ -967,7 +968,7 @@ is built in, its signature (the server's updates are checked the same way), and 
 * An Android Bridge from before v0.2.1, or a Linux or Raspberry Pi Bridge from before v0.3.1, needs one last update by hand, from [Downloads](#downloads)
   (a Linux or Pi Bridge before v0.3.1 asked GitHub in a way it refuses, and its update failed).
 * A test build of Mandarin's follows the Bridges' test builds (the **test-bridge** pre-release),
-  and a numbered one follows their numbered releases (Mandarin Bridge v0.3.4 with Mandarin v1.2.3).
+  and a numbered one follows their numbered releases (Mandarin Bridge v0.3.4 with Mandarin v1.2.5).
 
 **Manually** — also the way to pick up changes to the image itself (ffmpeg, the audio engine gone from it in
 v1.2.1, and the move to v0.9.0 from an image with Node.js in it):
@@ -1204,7 +1205,7 @@ says what it does for that device; a tap sets what it names. **Custom**, or any 
 * **Gapless:** **Albums as one stream** sends an album's tracks as one stream, start to end, gapless however the
   device joins files. A Mandarin Bridge is played one continuous stream anyway, and a Squeezelite player joins tracks
   from its own buffer, so neither has the switch.
-* **Headroom when upsampling** (v1.2.3): **Auto** (the default) or Off. A track mastered to full scale has peaks
+* **Headroom when upsampling** (v1.2.5): **Auto** (the default) or Off. A track mastered to full scale has peaks
   between its samples above it, which upsampling would clip; Auto turns a track Mandarin upsamples, or makes DSD of,
   down by what its true peak needs after levelling, and half a dB more (DSD's own room allowed for), and leaves a
   track that doesn't need it at its level. Each making counts the samples it clips: Now playing's upsampling line
@@ -1212,7 +1213,7 @@ says what it does for that device; a tap sets what it names. **Custom**, or any 
 * **Fixed volume** and **Volume levelling**, then **DSP** (EQ, headphone profiles, room correction from an impulse
   response), in this order: levelling, headroom, the DSP at the track's own rate, then upsampling.
 
-**Keeping up, and a safety net** (v1.2.3). A track made as it plays says in its signal path how fast it is made
+**Keeping up, and a safety net** (v1.2.5). A track made as it plays says in its signal path how fast it is made
 (*Processing · Keeping up at 4.2× real time*, *Made at 6.1× real time, the whole track ready*); slower than real time,
 Now playing says it is falling behind. Each device keeps the Output that last played well. An Output this server
 can't make in time (slower than real time over ten seconds), or that the device can't play, is put back to that one,

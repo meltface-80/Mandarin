@@ -53,3 +53,16 @@ for (const workflow of ["android.yml", "bridge.yml"]) {
     assert.match(keyed.out, /path=.*\.jks/);
   });
 }
+
+// Dependabot's branches (item 376): a push of one is given no secrets and isn't a pull request, so it would fail for the
+// missing key (red on every update it proposes); its pull request builds the same commit with the debug key instead.
+for (const workflow of ["android.yml", "bridge.yml"]) {
+  test(`${workflow}: Dependabot's pushes left to its pull request`, () => {
+    const yml = fs.readFileSync(path.join(ROOT, ".github", "workflows", workflow), "utf8");
+    const push = /\n {2}push:\n(?: {4}#.*\n)* {4}branches: \[([^\]]*)\]/.exec(yml);
+    assert.ok(push, "a push trigger with branches");
+    assert.ok(push[1].includes('"!dependabot/**"'), "Dependabot's branches left out of the push trigger: " + push[1]);
+    assert.ok(push[1].includes('"**"'), "every other branch still built on push");
+    assert.match(yml, /\n {2}pull_request:\n/, "pull requests, Dependabot's among them, still built");
+  });
+}

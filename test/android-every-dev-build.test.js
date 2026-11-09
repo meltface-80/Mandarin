@@ -30,7 +30,8 @@ test("a push to dev builds the APK whatever it changed", () => {
 
 test("android.yml leaves dev to android-dev.yml, so a dev push builds the APK once", () => {
   const push = pushOf(onBlock(read("android.yml")));
-  assert.match(push, /branches: \["\*\*", "!dev"\]/);
+  // Every branch but dev (and Dependabot's, item 376, built by its pull request).
+  assert.match(push, /branches: \["\*\*", "!dev"(, "!dependabot\/\*\*")?\]/);
 });
 
 test("the server's image is built on every push to dev, with the same test number as the APK", () => {

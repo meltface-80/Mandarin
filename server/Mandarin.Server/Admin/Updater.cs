@@ -176,8 +176,8 @@ internal sealed partial class Updater
         }
     }
 
-    /* downloadFile: to [dest]; redirects followed, six at most; the token to api.github.com alone. */
-    private async Task Download(string url, string dest, int redirectsLeft = 6)
+    /* downloadFile, once (Download tries again): to [dest]; redirects followed, six at most; the token to api.github.com alone. */
+    private async Task DownloadOnce(string url, string dest, int redirectsLeft = 6)
     {
         var u = new Uri(url);
         Lookups.Allowed(url);
@@ -196,7 +196,7 @@ internal sealed partial class Updater
             if (code is 301 or 302 or 303 or 307 or 308 && res.Headers.Location is { } loc)
             {
                 if (redirectsLeft <= 0) throw new UpdateError("too many redirects");
-                await Download(new Uri(u, loc).ToString(), dest, redirectsLeft - 1);
+                await DownloadOnce(new Uri(u, loc).ToString(), dest, redirectsLeft - 1);
                 return;
             }
             if (code != 200) throw new UpdateError("download HTTP " + code);
@@ -338,7 +338,7 @@ internal sealed partial class Updater
             if (Busy.Contains(phase) || phase == "checking") return;
             phase = "checking"; applyError = null; applyVersion = null;
         }
-        var upd = Path.Combine(dir, ".update");
+        var upd = StagingDir();   // the install's .update, or a temporary folder where it can't be made (item 378)
         var dlFile = Path.Combine(upd, "download.tgz");
         var exRoot = Path.Combine(upd, "extract");
         string? applying = null;
@@ -423,19 +423,6 @@ internal sealed partial class Updater
 
     /* applyStaged: the staged build laid over the install dir (never the data, node_modules, .git…). */
     public static void ApplyStaged(string stagedDir, string targetDir) => CopyOverlay(stagedDir, targetDir);
-
-    // copyOverlay: src over dest, recursively, the names in Skip left alone.
-    private static void CopyOverlay(string src, string dest)
-    {
-        foreach (var name in Directory.GetFileSystemEntries(src).Select(Path.GetFileName).OfType<string>().Order(StringComparer.Ordinal))
-        {
-            if (Skip.Contains(name)) continue;
-            var s = Path.Combine(src, name);
-            var d = Path.Combine(dest, name);
-            if (Directory.Exists(s)) { Directory.CreateDirectory(d); CopyOverlay(s, d); }
-            else File.Copy(s, d, overwrite: true);
-        }
-    }
 
     /* fetchProgram: the program for this machine from release v<v>, checked, put beside [bin] as <bin>.new. */
     private async Task<string> FetchProgram(string bin, string v, bool mac)

@@ -44,6 +44,7 @@ public sealed partial class UpdateAloneTests
             }
             if (u == "/repos/me/musicd/releases/latest") { await (fake.Latest != null ? Send(200, Encoding.UTF8.GetBytes(fake.Latest.ToJsonString())) : Send(fake.LatestStatus, "{}"u8.ToArray())); return; }
             if (u == "/repos/me/musicd/releases/tags/v9.9.9") { await (fake.Tag != null ? Send(200, Encoding.UTF8.GetBytes(fake.Tag.ToJsonString())) : Send(404, "{}"u8.ToArray())); return; }
+            if (fake.Flaky.Remove(u)) { await Send(502, "Bad Gateway"u8.ToArray(), "text/plain"); return; }
             if (fake.Files.TryGetValue(u, out var f)) { await Send(200, f, "application/octet-stream"); return; }
             await Send(404, "{}"u8.ToArray());
         });
@@ -161,5 +162,61 @@ public sealed partial class UpdateAloneTests
             Assert.True(i.Srv.Exited == null, "still running");
         }
         finally { File.SetUnixFileMode(pages, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute); }
+    }
+
+    [Test]
+    public async Task An_install_whose_own_folder_is_root_s_is_updated_its_papers_left_out()
+    {
+        // Item 378: the Docker image's /app is root's, the server's not (item 354); its pages, package.json and program
+        // are the server's. The update is unpacked elsewhere, laid in where the server's files are, and its README left
+        // out; before, "Access to the path '/app/.update' is denied" and nothing.
+        Needs.Server(); Needs.Ffmpeg();
+        if (Build == null || OperatingSystem.IsWindows()) { Assert.Skip("no C# server is built for this machine"); return; }
+        var probe = Directory.CreateTempSubdirectory("musicd-ro-").FullName;
+        File.SetUnixFileMode(probe, UnixFileMode.UserRead | UnixFileMode.UserExecute);
+        var privileged = true;
+        try { File.WriteAllText(Path.Combine(probe, "x"), ""); } catch (UnauthorizedAccessException) { privileged = false; }
+        if (privileged) Assert.Skip("this user writes to any folder (root)");
+
+        var fake = new Fake();
+        await using var i = await Install(fake, () => false);
+        Directory.CreateDirectory(i.Tmp);
+        Bundle(fake, i.Tmp);
+        var prog = Program(fake, i.Marker);
+        File.SetUnixFileMode(i.App, UnixFileMode.UserRead | UnixFileMode.UserExecute);
+        try
+        {
+            var r = await i.Api("apply", true);
+            Assert.True(r.Status == 200, r.Status + " " + r.Body.ToJsonString());
+            await i.Srv.Proc.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(30));
+            Assert.True((await File.ReadAllBytesAsync(i.Bin)).AsSpan().SequenceEqual(prog), "the new program in place");
+            Assert.True((string?)JsonNode.Parse(await File.ReadAllTextAsync(Path.Combine(i.App, "package.json")))!["version"] == "9.9.9", "its package.json laid in");
+            Assert.True(File.Exists(Path.Combine(i.App, "public", "new.js")), "its pages laid in");
+            Assert.False(File.Exists(Path.Combine(i.App, "README.md")), "its README left out: the folder can't take it");
+            Assert.False(Directory.Exists(Path.Combine(i.App, ".update")), "nothing unpacked in the install");
+        }
+        finally { File.SetUnixFileMode(i.App, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute); }
+    }
+
+    [Test]
+    public async Task A_download_GitHub_fails_for_a_moment_is_tried_again()
+    {
+        // Item 380: GitHub's download service answered 504 for a file that was there, and the update stopped at once.
+        Needs.Server(); Needs.Ffmpeg();
+        if (Build == null || OperatingSystem.IsWindows()) { Assert.Skip("no C# server is built for this machine"); return; }
+        var fake = new Fake();
+        await using var i = await Install(fake, () => false);
+        Directory.CreateDirectory(i.Tmp);
+        Bundle(fake, i.Tmp);
+        var prog = Program(fake, i.Marker);
+        // The bundle, the sums and the program each fail once with a 502.
+        foreach (var f in fake.Files.Keys.Where(k => k.EndsWith(".tar.gz") || k.EndsWith(".sha256") || k.EndsWith($"{Build}.gz"))) fake.Flaky.Add(f);
+        Assert.True(fake.Flaky.Count == 3, string.Join(", ", fake.Flaky));
+        var r = await i.Api("apply", true);
+        Assert.True(r.Status == 200, r.Status + " " + r.Body.ToJsonString());
+        Assert.Empty(fake.Flaky);
+        await i.Srv.Proc.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(30));
+        Assert.True((await File.ReadAllBytesAsync(i.Bin)).AsSpan().SequenceEqual(prog), "the new program in place");
+        Assert.True(i.Srv.Logs.Any(l => l.Contains("download HTTP 502; trying again")), "said in the log");
     }
 }
