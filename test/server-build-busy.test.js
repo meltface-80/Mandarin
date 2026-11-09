@@ -24,7 +24,8 @@ test("build.sh puts the program in place while one is still running from it", { 
   // The one running: a copy of sleep, started from bin/mandarin-server.
   fs.copyFileSync(spawnSync("sh", ["-c", "command -v sleep"], { encoding: "utf8" }).stdout.trim(), path.join(dir, "bin", "mandarin-server"));
   fs.chmodSync(path.join(dir, "bin", "mandarin-server"), 0o755);
-  const running = spawn(path.join(dir, "bin", "mandarin-server"), ["30"], { stdio: "ignore" });
+  // Started as "sleep": where sleep is one program of many (uutils' coreutils, Ubuntu's), it is told which by its name.
+  const running = spawn(path.join(dir, "bin", "mandarin-server"), ["30"], { stdio: "ignore", argv0: "sleep" });
   try {
     await new Promise(r => setTimeout(r, 200));
     fs.writeFileSync(path.join(dir, "bin", "linux-x64", "mandarin-server"), "the new program\n", { mode: 0o755 });
