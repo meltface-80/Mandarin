@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Fixed - every update Dependabot proposed (item 365) showed a red APK check: its branch's push built the app and Mandarin Bridge as a build that may be published, which since item 364 fails without the signing key, and a push of Dependabot's is given none. Its branches are now built by their pull request alone, which uses the debug key as any pull request does (item 376)
+
 ## v1.2.3
 
 Versions of one album are one album, the highest resolution its main; an album's page on a phone redesigned, its tabs held at the top; clipping shown when upsampling, with Headroom to prevent it; how fast a track is made, and a safety net that puts back an Output the server can't keep up with; the music folders followed as they change, network shares included. Every finding of a security audit fixed: the Docker image runs as a user, not root; forwarding headers trusted only from named proxies; covers never fetched from your network; links handed to devices expire; the Bridges' ports guarded; signed releases. Mandarin Bridge 0.3.4. Items 345 to 375.

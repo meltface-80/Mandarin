@@ -8,7 +8,8 @@ name: Mandarin Bridge
 # here makes a tag.
 on:
   push:
-    branches: ["**"]
+    # Not Dependabot's branches (item 376): its pull request builds them, and a push of its has no signing key.
+    branches: ["**", "!dependabot/**"]
     paths: &paths
       - "bridge/**"
       - "android/core/**"

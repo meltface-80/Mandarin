@@ -12,7 +12,8 @@ name: Android
 # branches and main build here when the app, the page or this file changes.
 on:
   push:
-    branches: ["**", "!dev"]
+    # Not Dependabot's branches (item 376): its pull request builds them, and a push of its has no signing key.
+    branches: ["**", "!dev", "!dependabot/**"]
     paths: ["android/**", "public/**", ".github/workflows/android.yml"]
   pull_request:
     paths: ["android/**", "public/**", ".github/workflows/android.yml"]
