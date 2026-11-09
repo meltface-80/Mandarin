@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.3.5
+
+- Fixed - the Linux Bridge (and the Pi's) couldn't update where .NET's secure connection to GitHub failed before GitHub's certificate was seen: a DietPi's said "GitHub couldn't be reached (SecureConnectionError)" every time, though curl on the same computer (the install line's) fetched GitHub's releases. It now says what .NET said, and fetches with curl instead; the download is checked against its checksum (and signature) as before. A certificate refused (a wrong clock, missing certificates, an answer not GitHub's) is still said in words, and never fetched around (item 385)
+- Fixed - installed again by hand, a Linux Bridge could go on running an older update it had fetched itself (kept in its data folder, run in place of the program installed). install.sh now clears it, and the Bridge never hands over to an update older than itself (item 385)
+- Improved - Mandarin Bridge is 0.3.5
+
 ## v0.3.4
 
 - Fixed - the Linux Bridge (and the Pi's) took an update the checksum beside it agreed with, which whoever could replace the release could replace with it (the security audit's ninth finding). Each Linux build is now signed with Mandarin's release key, its signature in the sidecar, and once a Bridge carries the key's public half it installs only a build signed with it, saying so where one isn't (item 371)

@@ -149,6 +149,15 @@ test("a Mandarin Bridge offered its update on Settings → Updates, and updated 
   assert.deepEqual([row.platform, row.commit, row.reachable, row.updates, row.available, row.why], ["linux", commit, true, true, false, null], JSON.stringify(row));
   assert.deepEqual(row.latest, published);
 
+  // The same version built from another commit (dev's test build of it beside the release, item 384): no update for a
+  // numbered Mandarin, which offered it over and over and had the Bridge fetch what it runs; asked anyway, refused here.
+  published = { commit: "ddddddd", version: dac.version };
+  const same = (await api("update/bridges?fresh=1")).bridges.find(b => b.id === ID);
+  assert.deepEqual([same.available, same.latest], [false, published], JSON.stringify(same));
+  const notNewer = await api("update/bridges/apply", { id: ID });
+  assert.equal(notNewer.status, 409, JSON.stringify(notNewer));
+  assert.match(notNewer.error, /already on/);
+
   // A newer build published: GitHub's answer is kept a minute, so the list says nothing yet; asked afresh (Check for
   // update, item 293), it is there, and the Bridge has an update.
   const newer = () => { published = { commit: "fffffff", version: "9.9.9" }; };

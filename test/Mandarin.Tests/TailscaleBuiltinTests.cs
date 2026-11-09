@@ -126,6 +126,12 @@ public sealed class TailscaleBuiltinTests
         var own = System.Text.RegularExpressions.Regex.Match(string.Join("\n", srv.Logs), @"on 127\.0\.0\.1:(\d+) for the built-in Tailscale alone").Groups[1].Value;
         Assert.True(own.Length > 0 && own != port.ToString(System.Globalization.CultureInfo.InvariantCulture), "the engine's own port, said as it starts: " + own);
         Assert.Matches($@"POST /serve\?port={port}&upstream=http%3A%2F%2F127\.0\.0\.1%3A{own}", eng.Calls());
+        // Chosen before the engine is started (item 383): the engine is told it once and keeps it, so one that joined
+        // before the server's ports were open was forwarded to the main port, where its word isn't believed.
+        var logs = srv.Logs.ToList();
+        var started = logs.FindIndex(l => l.Contains("built-in Tailscale started", StringComparison.Ordinal));
+        var chosen = logs.FindIndex(l => l.Contains($"the built-in Tailscale's own 127.0.0.1:{own}", StringComparison.Ordinal));
+        Assert.True(chosen >= 0 && chosen < started, $"the engine's port said before the engine starts (said at {chosen}, started at {started})");
         // The key goes through the API, never the engine's environment.
         Assert.Contains("\"AuthKey\":\"tskey-auth-test\"", eng.Calls(), StringComparison.Ordinal);
         Assert.EndsWith("\nok", eng.Args(), StringComparison.Ordinal);

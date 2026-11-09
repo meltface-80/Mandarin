@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- Fixed - devices on your tailnet were taken as the internet, never home, through the built-in Tailscale: the engine joined before the server had chosen the port of its own (item 362), was sent to the main port, where its word on who asked isn't believed, and kept that for as long as the server ran. The log said "a request from 127.0.0.1 named who asked through a proxy that isn't trusted" at every start. The port is now chosen before the engine starts, and said on the server's first line (item 383)
+- Fixed - Settings → Updates offered a Mandarin Bridge the version it already ran, over and over ("Try the update again"): a Bridge from dev's test build and the release of the same version are built from different commits, and the commits alone were compared. A Bridge is now offered a newer version, or, following dev's test builds, a newer build of its version; asked to update to anything else, Mandarin says it is already on the newest (item 384)
+- Fixed - Mandarin Bridge 0.3.5 for Linux and the Pi: an update whose secure connection to GitHub fails before GitHub's certificate is seen says what .NET said, and is fetched with curl instead, checked as before; installed again by hand, a Bridge no longer goes on running an older update it fetched itself (item 385)
+- Fixed - the container stopped, and was started again over and over, where it couldn't hand a folder to the user the server runs as (a data folder on an SMB share, or on NFS with root_squash): it now says so and starts. And the server kept only PGID's group, so music readable through another group (a NAS's "media", say), which the server read as root, it couldn't: it now keeps the groups that own the music folder and the folders directly in it, never root's (item 386)
+
 ## v1.2.5
 
 Versions of one album are one album, the highest resolution its main; an album's page on a phone redesigned, its tabs held at the top; clipping shown when upsampling, with Headroom to prevent it; how fast a track is made, and a safety net that puts back an Output the server can't keep up with; the music folders followed as they change, network shares included. Every finding of a security audit fixed: the Docker image runs as a user, not root; forwarding headers trusted only from named proxies; covers never fetched from your network; links handed to devices expire; the Bridges' ports guarded; signed releases. Mandarin Bridge 0.3.4. Settings → Updates works in Docker again with the server running as a user. Items 345 to 382; 1.2.3 is folded in, and there was no 1.2.4.
