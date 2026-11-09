@@ -21,13 +21,13 @@ test("build.sh puts the program in place while one is still running from it", { 
   const put = lines.slice(from, lines.findIndex((l, i) => i >= from && !/^(cp|mv) /.test(l))).join("\n");
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "server-build-busy-"));
   fs.mkdirSync(path.join(dir, "bin", "linux-x64"), { recursive: true });
-  // The one running: a copy of sleep, started from bin/mandarin-server.
-  fs.copyFileSync(spawnSync("sh", ["-c", "command -v sleep"], { encoding: "utf8" }).stdout.trim(), path.join(dir, "bin", "mandarin-server"));
+  // The one running: a copy of this Node, one program whatever its name (Ubuntu's sleep is one of many, told by name),
+  // started from bin/mandarin-server and waiting.
+  fs.copyFileSync(process.execPath, path.join(dir, "bin", "mandarin-server"));
   fs.chmodSync(path.join(dir, "bin", "mandarin-server"), 0o755);
-  // Started as "sleep": where sleep is one program of many (uutils' coreutils, Ubuntu's), it is told which by its name.
-  const running = spawn(path.join(dir, "bin", "mandarin-server"), ["30"], { stdio: "ignore", argv0: "sleep" });
+  const running = spawn(path.join(dir, "bin", "mandarin-server"), ["-e", "setTimeout(() => {}, 30000)"], { stdio: "ignore" });
   try {
-    await new Promise(r => setTimeout(r, 200));
+    await new Promise(r => setTimeout(r, 500));
     fs.writeFileSync(path.join(dir, "bin", "linux-x64", "mandarin-server"), "the new program\n", { mode: 0o755 });
     const r = spawnSync("sh", ["-e", "-c", "RID=linux-x64\n" + put], { cwd: dir, encoding: "utf8" });
     assert.equal(r.status, 0, "put in place: " + r.stderr);
