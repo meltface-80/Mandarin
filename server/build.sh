@@ -12,6 +12,10 @@ VERSION=${VERSION:-0.0.0}
 dotnet publish Mandarin.Server/Mandarin.Server.csproj -c Release -r "$RID" -p:Version="$VERSION" \
   -p:SelfContained=true -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true \
   -o bin/"$RID" --nologo -v quiet
-cp bin/"$RID"/mandarin-server bin/mandarin-server
+# Put in place by a rename, never copied over (item 382): a server still running from this file (one a test left behind)
+# makes cp fail with "Text file busy", as it stopped the v1.2.5 release's build; a rename replaces it, the running one
+# keeping the file it started from.
+cp bin/"$RID"/mandarin-server bin/mandarin-server.new
+mv -f bin/mandarin-server.new bin/mandarin-server
 rm -f bin/"$RID"/*.pdb bin/"$RID"/*.dbg
 echo "mandarin-server $VERSION ($RID)"
