@@ -14,7 +14,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 
-# (id, emoji, title, new in v1.2.2, what it is, how to set it up and use it)
+# (id, emoji, title, new in v1.2.3, what it is, how to set it up and use it)
 FEATURES = [
     # ---- Home and finding music
     ("home", "🏠", "Home", False,
@@ -73,12 +73,16 @@ FEATURES = [
      "and type. Labels show when Record labels is on. Signed in "
      "to Qobuz or Tidal (Settings → Services), the service's artists and albums follow the library's, "
      "from the Library wall's filter too; tap a cover for the album's page, an artist for their page."),
-    ("album", "💿", "Album pages", False,
-     "Tracks, year and label, write-ups from Wikipedia and Qobuz, and Pitchfork's score where it "
-     "reviewed the album. Step to the previous or next album of the row you came from.",
+    ("album", "💿", "Album pages", True,
+     "Tracks, year and label, write-ups from Wikipedia and Qobuz, Pitchfork's score, and every version of "
+     "the album (an original and its remaster) as one album, the best its main.",
      "Tap any album. **Play Now** and **Queue** are on the page; **⋯** has Play Next, Shuffle, Radio, "
-     "Listen later, Edit album and (in the Android app) Download. Swipe sideways, tap **‹ ›** or "
-     "press ← → for the previous or next album. The track playing has a small disc turning beside "
+     "Listen later, Share card, Make this the main version, Edit album and (in the Android app) Download. "
+     "On a phone, **Tracks**, **Credits**, **About** and **Versions** are tabs, held at the top as the page "
+     "scrolls; Versions lists each version with its edition and rate, a tap showing it in place. Versions "
+     "are told by MusicBrainz's release group, else one act and title with its version words off; a list "
+     "shows the main one with *2 versions* under it. On a computer, swipe sideways or press ← → for the "
+     "previous or next album. The track playing has a small disc turning beside "
      "its number. A classical album is set out as its works and movements, its composers and "
      "performers in its head. On a computer, a TV or a tablet held sideways the page fills the screen in "
      "three columns, in the browser and in the Android app on a tablet: the cover, its credits and more "
@@ -89,7 +93,7 @@ FEATURES = [
      "Last.fm key, similar artists and albums. Ones in your library open here.",
      "Open any album. For the Last.fm rows, get a free key at last.fm/api/account/create and paste "
      "it in **Settings → Setup → API Keys** (or set `LASTFM_KEY`). Read-only: nothing is scrobbled."),
-    ("artists", "🎤", "Artists", True,
+    ("artists", "🎤", "Artists", False,
      "Every act as a round picture with their name and album count, sorted A to Z, by most albums or "
      "at random. Two acts of one name are two artists.",
      "On a phone or tablet, tap **Artists** in the row at the foot of the screen. **Sort** is at the "
@@ -97,7 +101,7 @@ FEATURES = [
      "acts of the same name (Airbag from Norway, Airbag from Argentina) are told apart by the MusicBrainz "
      "artist ID in their files' tags (as Picard writes it), else by Mandarin's own MusicBrainz matches "
      "(**Settings → Library Scanner**), each with its own page, picture and a word to tell them apart."),
-    ("artist", "🧑‍🎤", "Artist pages", True,
+    ("artist", "🧑‍🎤", "Artist pages", False,
      "Who they are, then their discography, the albums they appear on, similar artists and similar "
      "albums. Members fold under a heading. One artist however a sleeve credits them.",
      "Tap an artist's name on an album's page, on the Artists wall or in Search. Who they are is the act "
@@ -122,11 +126,13 @@ FEATURES = [
      "database; your music files are not changed.",
      "On an album, tap **⋯ → Edit album**."),
     # ---- The library behind it
-    ("folders", "🗂️", "Music folders", False,
-     "Any number of folders the server can see, added and removed in the app. Changes show by "
-     "themselves where the file system reports them, otherwise at the next scan.",
+    ("folders", "🗂️", "Music folders", True,
+     "Any folders the server can see, added and removed in the app. Changes show by themselves: an album "
+     "as it is copied in, a network share's within half a minute.",
      "Open **Settings → Music Folders** and add a folder from the list of drives and folders the "
-     "server can see. A full scan runs every 6 hours (`SCAN_INTERVAL_HOURS`); "
+     "server can see. Changes are read about five seconds after they stop, and at least every 30 seconds "
+     "while a copy goes on; a network share, a FUSE folder (mergerfs, rclone) or one past the system's limit "
+     "is looked at every 30 seconds instead. A full scan runs every 6 hours (`SCAN_INTERVAL_HOURS`); "
      "**☰ → Rescan library** runs one now, then brings Qobuz and Tidal up to date, in that order, "
      "where you are signed in with the import on."),
     ("folder-albums", "💽", "One album per folder", False,
@@ -255,7 +261,7 @@ FEATURES = [
      "shared as text and imported, matched against the other library's tracks.",
      "**☰ → Playlists**, **☰ → Dynamic Playlists** and **☰ → Import a playlist**. A playlist's "
      "**Share** gives the text to send."),
-    ("sharecard", "🖼️", "Share card", True,
+    ("sharecard", "🖼️", "Share card", False,
      "The album as a picture: its cover, release, title and artist, its review with whose words they are, "
      "Pitchfork's score where there is one, and the duck in its corner.",
      "Tap the share button on an album's page or Now playing; there is nothing to set up. In the Android "
@@ -288,18 +294,21 @@ FEATURES = [
      "Install it from [Downloads](#downloads): the Android app, the Linux install line, or the Raspberry Pi "
      "image to flash. It finds Mandarin by itself; plug the DAC in, then switch the Bridge on in "
      "**Settings → Audio Devices**. Details under [Mandarin Bridge](#mandarin-bridge)."),
-    ("output", "📈", "Upsampling and output", False,
-     "For each streamer or DAC: Bit-perfect or upsampled recipes, ×2, ×4 or Max with Standard, Gaussian or "
-     "long filters in either phase, shaped dither, and PCM made DSD.",
+    ("output", "📈", "Upsampling and output", True,
+     "For each streamer or DAC: Bit-perfect or upsampled recipes, filters in either phase, shaped dither, PCM "
+     "made DSD, Headroom against clipping, and a safety net when the server falls behind.",
      "Open **Settings → Audio Devices**, tap a streamer or DAC, and choose a recipe under **Sound**, or open "
      "**Advanced** for each row: Mode, a filter for CD-rate and one for hi-res sources, Phase, Highest rate, "
-     "Bit depth, the DAC's real bits and Dither, DSD as PCM, PCM as DSD and its Modulator, Gapless. All made "
-     "as each track plays. Details under [Upsampling and output](#upsampling-and-output)."),
-    ("signalpath", "🛤️", "Signal path", True,
+     "Bit depth, the DAC's real bits and Dither, DSD as PCM, PCM as DSD and its Modulator, **Headroom when "
+     "upsampling** (Auto), Gapless. All made as each track plays; an Output the server can't make in time, or "
+     "the device can't play, is put back to the last that played well, and the device's page says so. "
+     "Details under [Upsampling and output](#upsampling-and-output)."),
+    ("signalpath", "🛤️", "Signal path", False,
      "Under the album on Now playing, one short line of what goes out (Gaussian steep ×16 · 7th-order · "
      "DSD256). A tap shows each step to the DAC.",
      "Play to a room and look under the album on **Now playing**; tap it for every step: Source, Bit depth "
-     "conversion, Volume levelling where it is on, Output, and the device's own word. The ✓ shows only "
+     "conversion, Volume levelling where it is on, Headroom, Output with how fast it is made (*Keeping up at "
+     "4.2× real time*), and the device's own word; the line turns red where samples were clipped. The ✓ shows only "
      "when the device itself says the samples reach the DAC untouched. Details under "
      "[Signal path](#signal-path)."),
     ("sqtool", "📊", "SQ-tool", False,
@@ -371,7 +380,7 @@ FEATURES = [
      "Then **☰ → Tidal** to search and play; **+** on a cover adds an album to your Tidal favourites "
      "(a **✓** once added) and so to the library, as does **⋯ → Add to Tidal favourites** on its page. "
      "Details under [Tidal](#tidal)."),
-    ("logging", "📝", "Logging", True,
+    ("logging", "📝", "Logging", False,
      "On by default. The Android app, the server and the Mandarin Bridges log what happened, without "
      "personal data, for you to send to the developer.",
      "In the Android app, **Settings → Setup → Logging**. Use the app as you normally would for 24 hours, "
@@ -407,7 +416,7 @@ def md_inline_to_html(s):
 def readme_block():
     lines = ["Every feature below has an **ⓘ**: open it for how to switch the feature on and use it.", ""]
     for i, (fid, em, title, new, what, how) in enumerate(FEATURES):
-        lines.append("%s **%s**%s" % (em, title, " — *new in v1.2.2*" if new else ""))
+        lines.append("%s **%s**%s" % (em, title, " — *new in v1.2.3*" if new else ""))
         lines.append("")
         lines.append(what)
         lines.append("")

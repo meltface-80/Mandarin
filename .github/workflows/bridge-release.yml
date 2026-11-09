@@ -22,6 +22,7 @@ jobs:
 
   linux:
     uses: ./.github/workflows/bridge-linux.yml
+    secrets: inherit   # RELEASE_SIGNING_KEY: its tarballs signed (item 371)
 
   pi:
     uses: ./.github/workflows/bridge-pi.yml
