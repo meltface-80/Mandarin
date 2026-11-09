@@ -44,6 +44,7 @@ public sealed partial class UpdateAloneTests
             }
             if (u == "/repos/me/musicd/releases/latest") { await (fake.Latest != null ? Send(200, Encoding.UTF8.GetBytes(fake.Latest.ToJsonString())) : Send(fake.LatestStatus, "{}"u8.ToArray())); return; }
             if (u == "/repos/me/musicd/releases/tags/v9.9.9") { await (fake.Tag != null ? Send(200, Encoding.UTF8.GetBytes(fake.Tag.ToJsonString())) : Send(404, "{}"u8.ToArray())); return; }
+            if (fake.Flaky.Remove(u)) { await Send(502, "Bad Gateway"u8.ToArray(), "text/plain"); return; }
             if (fake.Files.TryGetValue(u, out var f)) { await Send(200, f, "application/octet-stream"); return; }
             await Send(404, "{}"u8.ToArray());
         });
@@ -195,5 +196,27 @@ public sealed partial class UpdateAloneTests
             Assert.False(Directory.Exists(Path.Combine(i.App, ".update")), "nothing unpacked in the install");
         }
         finally { File.SetUnixFileMode(i.App, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute); }
+    }
+
+    [Test]
+    public async Task A_download_GitHub_fails_for_a_moment_is_tried_again()
+    {
+        // Item 380: GitHub's download service answered 504 for a file that was there, and the update stopped at once.
+        Needs.Server(); Needs.Ffmpeg();
+        if (Build == null || OperatingSystem.IsWindows()) { Assert.Skip("no C# server is built for this machine"); return; }
+        var fake = new Fake();
+        await using var i = await Install(fake, () => false);
+        Directory.CreateDirectory(i.Tmp);
+        Bundle(fake, i.Tmp);
+        var prog = Program(fake, i.Marker);
+        // The bundle, the sums and the program each fail once with a 502.
+        foreach (var f in fake.Files.Keys.Where(k => k.EndsWith(".tar.gz") || k.EndsWith(".sha256") || k.EndsWith($"{Build}.gz"))) fake.Flaky.Add(f);
+        Assert.True(fake.Flaky.Count == 3, string.Join(", ", fake.Flaky));
+        var r = await i.Api("apply", true);
+        Assert.True(r.Status == 200, r.Status + " " + r.Body.ToJsonString());
+        Assert.Empty(fake.Flaky);
+        await i.Srv.Proc.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(30));
+        Assert.True((await File.ReadAllBytesAsync(i.Bin)).AsSpan().SequenceEqual(prog), "the new program in place");
+        Assert.True(i.Srv.Logs.Any(l => l.Contains("download HTTP 502; trying again")), "said in the log");
     }
 }
