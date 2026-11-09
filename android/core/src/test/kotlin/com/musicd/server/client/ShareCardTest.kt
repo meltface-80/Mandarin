@@ -28,7 +28,9 @@ class ShareCardTest {
     }
 
     @Test fun `a long title steps down in size before it is cut, and only the smallest size is cut with an ellipsis`() {
-        val mid = CardLayout.fit(font, "word ".repeat(20).trim(), CardLayout.TEXT_W, 4, 700, listOf(56, 48, 42, 36, 31, 27), 68.0 / 56)
+        // In the 580px column (item 387): 26 three-letter words take five lines at 48 and four at 42.
+        assertEquals(580, CardLayout.TEXT_W)
+        val mid = CardLayout.fit(font, "abc ".repeat(26).trim(), CardLayout.TEXT_W, 4, 700, listOf(56, 48, 42, 36, 31, 27), 68.0 / 56)
         assertEquals("four lines first fit at 42", 42, mid.size)
         assertEquals(4, mid.lines.size)
         assertFalse(mid.lines.last().endsWith("…"))

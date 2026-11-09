@@ -79,7 +79,7 @@ const ShareCard = (() => {
   const ART_X     = PANE_X + PANE_PAD;
   const DIVIDER   = 44;    // gap between the cover and the text column
   const TEXT_X    = ART_X + ART_W + DIVIDER;
-  const TEXT_PAD_R = 44;
+  const TEXT_PAD_R = PANE_PAD;   // as far from the card's right edge as the cover from its left (item 387; 44)
   const TEXT_W    = PANE_X + PANE_W - TEXT_PAD_R - TEXT_X;
   // The description's column: the pane's FULL content width, which is roughly
   // double what it had beside the cover.

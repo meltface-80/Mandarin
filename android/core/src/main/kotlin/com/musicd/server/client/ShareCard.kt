@@ -71,7 +71,7 @@ object CardLayout {
     const val ART_R = 18
     const val ART_X = INSET + PANE_PAD
     const val TEXT_X = ART_X + ART + 44
-    const val TEXT_W = INSET + PANE_W - 44 - TEXT_X
+    const val TEXT_W = INSET + PANE_W - PANE_PAD - TEXT_X   // as far from the right edge as the cover from the left (item 387; 44)
     const val CONTENT_W = PANE_W - PANE_PAD * 2
     const val LOGO_D = 96
     const val LOGO_PAD = 32
