@@ -176,8 +176,8 @@ internal sealed partial class Updater
         }
     }
 
-    /* downloadFile: to [dest]; redirects followed, six at most; the token to api.github.com alone. */
-    private async Task Download(string url, string dest, int redirectsLeft = 6)
+    /* downloadFile, once (Download tries again): to [dest]; redirects followed, six at most; the token to api.github.com alone. */
+    private async Task DownloadOnce(string url, string dest, int redirectsLeft = 6)
     {
         var u = new Uri(url);
         Lookups.Allowed(url);
@@ -196,7 +196,7 @@ internal sealed partial class Updater
             if (code is 301 or 302 or 303 or 307 or 308 && res.Headers.Location is { } loc)
             {
                 if (redirectsLeft <= 0) throw new UpdateError("too many redirects");
-                await Download(new Uri(u, loc).ToString(), dest, redirectsLeft - 1);
+                await DownloadOnce(new Uri(u, loc).ToString(), dest, redirectsLeft - 1);
                 return;
             }
             if (code != 200) throw new UpdateError("download HTTP " + code);

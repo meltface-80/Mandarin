@@ -5,6 +5,35 @@
 # wrapper and Maven Central some of Kotlin's jars, answered 504 for hours and every dev APK failed before it was
 # built). A build that fails on its own, a compile error or a failing task, is not tried again.
 set -uo pipefail
+
+# Gradle itself fetched first by curl (item 381): the wrapper's own download tries once, and on 9 Nov 2026 GitHub's
+# release service answered it 504 for every try the three above made, many minutes on end, while curl, trying again for
+# up to ten minutes, got it. It is put where the wrapper looks for it (its folder named by the MD5 of the distribution's
+# address, in base 36, as the wrapper's PathAssembler names it), and the wrapper checks it against distributionSha256Sum
+# as it unpacks it. Where it is there already, or curl can't get it either, the wrapper is left to fetch it as before.
+prefetch() {
+  local props=gradle/wrapper/gradle-wrapper.properties url name hash dir
+  [ -f "$props" ] || return 0
+  url=$(sed -n 's/^distributionUrl=//p' "$props" | sed 's/\\:/:/g')
+  [ -n "$url" ] || return 0
+  name=$(basename "$url" .zip)
+  hash=$(python3 -c 'import hashlib,sys
+n=int(hashlib.md5(sys.argv[1].encode()).hexdigest(),16); d="0123456789abcdefghijklmnopqrstuvwxyz"; s=""
+while n: n,r=divmod(n,36); s=d[r]+s
+print(s or "0")' "$url")
+  dir="${GRADLE_USER_HOME:-$HOME/.gradle}/wrapper/dists/$name/$hash"
+  [ -f "$dir/$name.zip" ] && return 0
+  mkdir -p "$dir"
+  if curl -fsSL --retry 12 --retry-all-errors --retry-delay "${GRADLE_PREFETCH_DELAY_S:-15}" --retry-max-time 600 -o "$dir/$name.zip.part" "$url"; then
+    mv "$dir/$name.zip.part" "$dir/$name.zip"
+    echo "Gradle fetched ahead: $dir/$name.zip"
+  else
+    rm -f "$dir/$name.zip.part"
+    echo "::warning::Gradle couldn't be fetched ahead by curl; the wrapper fetches it itself"
+  fi
+}
+[ -n "${GRADLE_PREFETCH_OFF:-}" ] || prefetch
+
 log=$(mktemp)
 status=1
 for n in 1 2 3; do

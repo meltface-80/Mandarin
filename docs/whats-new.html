@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>What's new in v1.2.3 · Mandarin</title>
-<meta name="description" content="Mandarin v1.2.3, since v1.2.2.">
+<title>What's new in v1.2.5 · Mandarin</title>
+<meta name="description" content="Mandarin v1.2.5, since v1.2.2.">
 <link rel="icon" href="mandarin-icon.png">
 <link rel="stylesheet" href="site.css">
 </head>
@@ -20,8 +20,8 @@
 </header>
 
 <main class="wrap page">
-  <h1>What's new in v1.2.3</h1>
-  <p class="lead">Mandarin v1.2.3, since v1.2.2, with Mandarin Bridge v0.3.4.</p>
+  <h1>What's new in v1.2.5</h1>
+  <p class="lead">Mandarin v1.2.5, since v1.2.2, with Mandarin Bridge v0.3.4.</p>
 <div class="newlist info-cards">
     <div class="info-card"><h3>Versions of one album, one album</h3><p>An original and its remaster are one tile, <i>2 versions</i> under it. Versions are told by MusicBrainz's release group, else one act and one title with its version words off (<i>2015 Remaster</i>). The main is the highest resolution, or the one you choose with <b>Make this the main version</b>; the album's page lists every version with what tells it apart, a tap showing it in place. <a href="features.html">Features →</a></p></div>
     <div class="info-card"><h3>An album's page on a phone, redesigned</h3><p>The cover on top, the date, rate and length under it, the title across the page; then <b>Tracks</b>, <b>Credits</b>, <b>About</b> and <b>Versions</b> as tabs, centred, held at the top as the page scrolls with the page cut off cleanly under them. Share card is in <b>⋯</b>. In the browser and the Android app.</p></div>
@@ -52,6 +52,7 @@
 
   <h2>Fixed</h2>
   <ul class="plain">
+    <li><b>Settings → Updates</b> couldn't update the server in Docker once it ran as a user (<i>Access to the path '/app/.update' is denied</i>): it unpacks elsewhere and lays in only what is the server's own.</li>
     <li>An album that mixes sample rates played nothing with <b>Albums as one stream</b> on, when its Output made DSD or upsampled to the highest rate.</li>
     <li>An album deleted from the music folders stayed on its artist's page, in the app and the browser.</li>
     <li>The built-in Tailscale wouldn't start after the update to a non-root container (<i>permission denied</i> on its state).</li>

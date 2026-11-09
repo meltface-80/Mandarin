@@ -31,6 +31,8 @@ public sealed partial class UpdateAloneTests
         public int LatestStatus = 404;
         public JsonNode? Tag;
         public readonly Dictionary<string, byte[]> Files = [];
+        // Files answered 502 the first time they are asked for, as GitHub's download service does now and then (item 380).
+        public readonly HashSet<string> Flaky = [];
         public string Gh = "";
     }
 

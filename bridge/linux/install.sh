@@ -14,7 +14,14 @@ TMP=$(mktemp -d)
 trap 'rm -rf "$TMP"' EXIT
 if [ -n "$1" ]; then cp "$1" "$TMP/bridge.tar.gz"; else
   echo "Downloading Mandarin Bridge for linux-$ARCH…"
-  curl -fsSL "$RELEASES/mandarin-bridge-linux-$ARCH.tar.gz" -o "$TMP/bridge.tar.gz"
+  # Tried again (item 380): GitHub's download service answers 502 or 504 now and then for a file that is there.
+  n=0
+  until curl -fsSL --connect-timeout 20 "$RELEASES/mandarin-bridge-linux-$ARCH.tar.gz" -o "$TMP/bridge.tar.gz"; do
+    n=$((n + 1))
+    [ "$n" -lt 5 ] || { echo "Mandarin Bridge couldn't be downloaded from GitHub (5 tries); try again in a few minutes." >&2; exit 1; }
+    echo "GitHub didn't send it; trying again ($n of 4)…"
+    sleep $((n * 3))
+  done
 fi
 tar -xzf "$TMP/bridge.tar.gz" -C "$TMP"
 command -v ffmpeg >/dev/null 2>&1 || { echo "Installing ffmpeg…"; apt-get update -q && apt-get install -y -q --no-install-recommends ffmpeg; }
