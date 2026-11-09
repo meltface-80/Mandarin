@@ -3,6 +3,7 @@
 ## Unreleased
 
 - Fixed - every update Dependabot proposed (item 365) showed a red APK check: its branch's push built the app and Mandarin Bridge as a build that may be published, which since item 364 fails without the signing key, and a push of Dependabot's is given none. Its branches are now built by their pull request alone, which uses the debug key as any pull request does (item 376)
+- Changed - the Android and Bridge workflows use actions/setup-java 6.2.0 and actions/cache 6.1.0, the cache the version the other workflows already used: Dependabot's update (#723), closed while its checks were red over item 376, applied here (item 377)
 
 ## v1.2.3
 
