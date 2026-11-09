@@ -22,6 +22,14 @@ on:
     tags:
       - 'v*.*.*'
   workflow_dispatch:
+    inputs:
+      # A version released already, its builds made again from this commit and put in place of the ones it has, and its
+      # notes made again (item 379): a fix folded into a version without a new number. Which release is latest is left
+      # as it is. A tag pushed never replaces anything.
+      replace:
+        description: "Replace this version's builds and notes (released already) with ones made from this commit"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -120,6 +128,7 @@ jobs:
         id: v
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPLACE: ${{ github.event.inputs.replace }}
         run: |
           version=$(node -p "require('./package.json').version")
           if [ "$GITHUB_REF_TYPE" = "tag" ] && [ "$GITHUB_REF_NAME" != "v$version" ]; then
@@ -127,7 +136,13 @@ jobs:
             exit 1
           fi
           echo "version=$version" >> "$GITHUB_OUTPUT"
-          if gh release view "v$version" >/dev/null 2>&1; then
+          if gh release view "v$version" >/dev/null 2>&1 && [ "$REPLACE" = "true" ]; then
+            echo "v$version is released; its builds and notes are made again from this commit and put in their place"
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "replace=true" >> "$GITHUB_OUTPUT"
+            echo "bundle=false" >> "$GITHUB_OUTPUT"
+            echo "csharp=false" >> "$GITHUB_OUTPUT"
+          elif gh release view "v$version" >/dev/null 2>&1; then
             echo "v$version is already released"
             echo "exists=true" >> "$GITHUB_OUTPUT"
             # A release made by hand has no update bundle: the updater would
@@ -213,6 +228,15 @@ jobs:
           v=${{ steps.v.outputs.version }}
           gh release upload "v$v" out/csharp/* --clobber
 
+      # A release replaced (item 379): its notes made again too, from this commit's changelog; latest left as it is.
+      - name: Replace the notes of a release replaced
+        if: steps.v.outputs.replace == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          v=${{ steps.v.outputs.version }}
+          gh release edit "v$v" --notes-file notes.md
+
   # A Mac's builds (item 153): osx-arm64 and osx-x64, built on a Mac and signed
   # ad hoc there (macOS runs nothing unsigned), added to the release with their
   # sums beside Linux's. Only these wait for the Mac's tests (mac.yml): Linux's
@@ -235,11 +259,12 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE_SIGNING_KEY: ${{ secrets.RELEASE_SIGNING_KEY }}
+          REPLACE: ${{ github.event.inputs.replace }}
         run: |
           set -e
           v=$(node -p "require('./package.json').version")
           names=$(gh release view "v$v" --json assets -q '.assets[].name')
-          if grep -qx "mandarin-server-osx-arm64.gz" <<<"$names" && grep -qx "mandarin-server-osx-x64.gz" <<<"$names"; then
+          if [ "$REPLACE" != "true" ] && grep -qx "mandarin-server-osx-arm64.gz" <<<"$names" && grep -qx "mandarin-server-osx-x64.gz" <<<"$names"; then
             echo "v$v has the Mac's builds already"; exit 0
           fi
           mkdir -p out/mac
