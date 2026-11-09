@@ -162,4 +162,38 @@ public sealed partial class UpdateAloneTests
         }
         finally { File.SetUnixFileMode(pages, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute); }
     }
+
+    [Test]
+    public async Task An_install_whose_own_folder_is_root_s_is_updated_its_papers_left_out()
+    {
+        // Item 378: the Docker image's /app is root's, the server's not (item 354); its pages, package.json and program
+        // are the server's. The update is unpacked elsewhere, laid in where the server's files are, and its README left
+        // out; before, "Access to the path '/app/.update' is denied" and nothing.
+        Needs.Server(); Needs.Ffmpeg();
+        if (Build == null || OperatingSystem.IsWindows()) { Assert.Skip("no C# server is built for this machine"); return; }
+        var probe = Directory.CreateTempSubdirectory("musicd-ro-").FullName;
+        File.SetUnixFileMode(probe, UnixFileMode.UserRead | UnixFileMode.UserExecute);
+        var privileged = true;
+        try { File.WriteAllText(Path.Combine(probe, "x"), ""); } catch (UnauthorizedAccessException) { privileged = false; }
+        if (privileged) Assert.Skip("this user writes to any folder (root)");
+
+        var fake = new Fake();
+        await using var i = await Install(fake, () => false);
+        Directory.CreateDirectory(i.Tmp);
+        Bundle(fake, i.Tmp);
+        var prog = Program(fake, i.Marker);
+        File.SetUnixFileMode(i.App, UnixFileMode.UserRead | UnixFileMode.UserExecute);
+        try
+        {
+            var r = await i.Api("apply", true);
+            Assert.True(r.Status == 200, r.Status + " " + r.Body.ToJsonString());
+            await i.Srv.Proc.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(30));
+            Assert.True((await File.ReadAllBytesAsync(i.Bin)).AsSpan().SequenceEqual(prog), "the new program in place");
+            Assert.True((string?)JsonNode.Parse(await File.ReadAllTextAsync(Path.Combine(i.App, "package.json")))!["version"] == "9.9.9", "its package.json laid in");
+            Assert.True(File.Exists(Path.Combine(i.App, "public", "new.js")), "its pages laid in");
+            Assert.False(File.Exists(Path.Combine(i.App, "README.md")), "its README left out: the folder can't take it");
+            Assert.False(Directory.Exists(Path.Combine(i.App, ".update")), "nothing unpacked in the install");
+        }
+        finally { File.SetUnixFileMode(i.App, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute); }
+    }
 }

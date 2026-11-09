@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Fixed - Settings → Updates couldn't update the server in Docker: "Couldn't start update: Access to the path '/app/.update' is denied". Since the server stopped running as root (item 354) it can't write the image's /app folder itself, only its own files in it, and the update unpacked itself there, and would have laid the README, changelog and licence there too. It now unpacks in a temporary folder where the install's folder can't be written, lays in what the server's files are (its pages, package.json, SQ-tool, its program) and leaves those three papers out. /app itself stays root's: the image's entrypoint, run as root, is there (item 378)
 - Fixed - every update Dependabot proposed (item 365) showed a red APK check: its branch's push built the app and Mandarin Bridge as a build that may be published, which since item 364 fails without the signing key, and a push of Dependabot's is given none. Its branches are now built by their pull request alone, which uses the debug key as any pull request does (item 376)
 - Changed - the Android and Bridge workflows use actions/setup-java 6.2.0 and actions/cache 6.1.0, the cache the version the other workflows already used: Dependabot's update (#723), closed while its checks were red over item 376, applied here (item 377)
 
