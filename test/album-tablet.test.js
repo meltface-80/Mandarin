@@ -101,9 +101,13 @@ const DRIVER = `(async () => {
   const extra = [...Array(20)].map(() => ol.appendChild(row.cloneNode(true)));
   body.scrollTop = tabsEl.offsetTop + 400; await sleep(300);
   out.tabsHeld = [getComputedStyle(tabsEl).backgroundColor, getComputedStyle(document.body).backgroundColor, Math.round(tabsEl.getBoundingClientRect().top - $("modal-actions").getBoundingClientRect().bottom)];
+  // Held, what scrolls past is cut off at the line under the tabs (item 375): the tracks' cut where the line crosses them.
+  { const wrap = document.querySelector(".track-list-wrap"), t = tabsEl.getBoundingClientRect();
+    out.cutHeld = { clip: wrap.style.clipPath, want: Math.ceil(t.bottom - wrap.getBoundingClientRect().top), head: $("modal-actions").style.clipPath, tabs: tabsEl.style.clipPath }; }
   body.scrollTop = 0; await sleep(300);
   extra.forEach(e => e.remove());
   out.tabsBack = getComputedStyle(tabsEl).backgroundColor;
+  out.cutBack = [...document.querySelectorAll("#album-modal .modal-body *")].filter(e => e.style.clipPath).map(e => e.id || e.className);
   // Centred, clear of Back (item 373): the shown tabs' extent, the first's left edge, and Back's right.
   { const shownTabs = [...tabsEl.querySelectorAll(".album-tab")].filter(x => x.getBoundingClientRect().width > 0).map(x => x.getBoundingClientRect());
     if (shownTabs.length) out.tabsBox = { l: shownTabs[0].left, r: shownTabs[shownTabs.length - 1].right, first: shownTabs[0].left };
@@ -171,6 +175,10 @@ test("the album view on a tablet and a phone: a 160px sleeve, the title beside i
         assert.ok(r.tabsHeld[2] > 30, size + ": scrolled, the tabs held at the top, the buttons gone up past them (" + r.tabsHeld[2] + ")");
         assert.equal(r.tabsHeld[0], "rgba(0, 0, 0, 0)", size + ": held at the top, still no bar behind them (item 373)");
         assert.equal(r.tabsBack, "rgba(0, 0, 0, 0)", size + ": back in their place, no bar");
+        assert.equal(r.cutHeld.clip, `inset(${r.cutHeld.want}px 0px 0px)`, size + ": held, the tracks cut off at the line under the tabs (item 375): " + JSON.stringify(r.cutHeld));
+        assert.match(r.cutHeld.head, /^inset\(\d+px 0px 0px\)$/, size + ": and the buttons gone up past it");
+        assert.equal(r.cutHeld.tabs, "", size + ": the tabs themselves never cut");
+        assert.deepEqual(r.cutBack, [], size + ": back in their place, nothing cut");
         assert.ok(Math.abs((r.tabsBox.l + r.tabsBox.r) / 2 - r.viewport[0] / 2) < 2, size + ": the tabs centred (item 373): " + JSON.stringify(r.tabsBox));
         assert.ok(r.tabsBox.first >= r.backR, size + ": the first tab clear of Back at the corner (" + r.tabsBox.first + " from " + r.backR + ")");
         assert.ok(r.tracks.t > title.b, `${size}: the tracks under the head (${r.tracks.t})`);
@@ -257,7 +265,7 @@ test("the album's ⋯ → Add to playlist: the whole album into a playlist you c
   } finally { await srv.stop(); }
 });
 
-test("the app's album tabs: centred, clear of Back, never a bar behind them (items 358, 373)", () => {
+test("the app's album tabs: centred, clear of Back, never a bar behind them; held, the page cut off under them (items 358, 373, 375)", () => {
   const fs = require("fs"), path = require("path");
   const phone = fs.readFileSync(path.join(__dirname, "..", "android/app/src/main/java/com/musicd/server/android/AlbumPhone.kt"), "utf8");
   const screen = fs.readFileSync(path.join(__dirname, "..", "android/app/src/main/java/com/musicd/server/android/AlbumScreen.kt"), "utf8");
@@ -265,8 +273,14 @@ test("the app's album tabs: centred, clear of Back, never a bar behind them (ite
   assert.doesNotMatch(row, /\.background\(/, "never a bar behind them, held or not");
   assert.match(row, /padding\(horizontal = 44\.dp\)/, "room at each side for Back at the corner");
   assert.match(row, /Arrangement\.spacedBy\(18\.dp, Alignment\.CenterHorizontally\)/, "centred");
-  assert.match(phone, /stickyHeader\(key = "album\.tabs"\) \{ AlbumTabRow\(tab, versions, onTab = onTab\) \}/, "held at the top as the page scrolls");
-  assert.match(screen, /phoneTabs\(tab, a\.versions\.size\)/);
+  // Held at the top (item 375): the same row laid over the page there, the page cut off at the line under it, the whole
+  // width, so above it is the page's own background and glow, never a bar, and the tracks never show through.
+  assert.doesNotMatch(phone, /stickyHeader/, "not held by the list, which would draw the tracks behind them");
+  assert.match(phone, /item\(key = TABS_KEY\) \{ AlbumTabRow\(tab, versions, scroll, onTab\) \}/, "in their place in the page");
+  assert.match(phone, /clipRect\(top = l\.toFloat\(\)\) \{ this@drawWithContent\.drawContent\(\) \}/, "the page cut off at the line");
+  assert.match(phone, /t\.offset <= info\.viewportStartOffset && list\.canScrollBackward/, "held once the tabs reach the top");
+  assert.match(screen, /LazyColumn\(Modifier\.fillMaxSize\(\)\.clipUnderTabs\(held\)\.padding\(horizontal = 18\.dp\)/, "cut the whole width, before the page's side padding");
+  assert.match(screen, /phoneTabs\(tab, a\.versions\.size, tabsScroll\)[\s\S]*HeldTabs\(held, tab, a\.versions\.size, tabsScroll\)/, "the held row over the page, after it");
   // No Share, previous or next at the corner (item 373): Share card in the ⋯.
   assert.doesNotMatch(screen, /NavDiscs|parity\("album\.share"/);
   assert.match(fs.readFileSync(path.join(__dirname, "..", "android/app/src/main/java/com/musicd/server/android/AlbumHeadParts.kt"), "utf8"), /parity\("album\.share", Contract\.label\("album\.share"\)\)[\s\S]{0,40}onClick = \{ open = false; onPage\("share", null\) \}/);
