@@ -36,7 +36,7 @@ internal sealed partial class Bridge
         http = new Http(opts.Port, Route, log);
         slim = new Slim(player, Capabilities, () => store.Name, store.Udn, opts.Server, log);
         if (opts.Nmcli != null) wifi = new Wifi(opts.Nmcli, log);
-        update = new Update(opts.UpdateApi, opts.Data, log, Program.Restart);
+        update = new Update(opts.UpdateApi, opts.Data, log, Program.Restart, opts.Curl);
     }
 
     /* The DAC played to: the one chosen, else the first found; null with none plugged in. */

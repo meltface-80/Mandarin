@@ -28,6 +28,10 @@ command -v ffmpeg >/dev/null 2>&1 || { echo "Installing ffmpeg…"; apt-get upda
 mkdir -p /usr/lib/mandarin-bridge
 install -m 755 "$TMP/mandarin-bridge/mandarin-bridge" "$TMP/mandarin-bridge/mandarin-audio" /usr/lib/mandarin-bridge/
 install -m 644 "$TMP/mandarin-bridge/mandarin-bridge.service" /etc/systemd/system/mandarin-bridge.service
+# An update the Bridge fetched itself (its data folder's app/, run in place of the program installed) gives way to the
+# program installed now (item 385): left there, the Bridge went on running it. Its data folder is systemd's, under
+# /var/lib/private where it runs as a DynamicUser.
+rm -rf /var/lib/mandarin-bridge/app /var/lib/private/mandarin-bridge/app
 systemctl daemon-reload
 systemctl enable mandarin-bridge >/dev/null 2>&1
 systemctl restart mandarin-bridge

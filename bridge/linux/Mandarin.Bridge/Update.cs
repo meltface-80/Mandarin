@@ -6,7 +6,10 @@
 // and goes back to itself where that one fails as it starts. Every request says what it is (a User-Agent): GitHub
 // refuses one that doesn't (item 327). A secure connection refused says why (item 359): this computer's clock wrong
 // (a Raspberry Pi has no clock of its own, and GitHub's certificate isn't valid on a date years ago), its certificates
-// missing or out of date, or the answer not GitHub's; before, it said only "SecureConnectionError".
+// missing or out of date, or the answer not GitHub's; before, it said only "SecureConnectionError". One that fails before
+// any certificate is seen (item 385: a DietPi's, every time, where curl on the same computer fetched GitHub's releases)
+// says what .NET said, and is fetched with curl instead: curl checks GitHub's certificate against this computer's own,
+// and the download is checked against its checksum (and signature) as any other.
 using System.Diagnostics;
 using System.Net.Security;
 using System.Runtime.InteropServices;
@@ -17,12 +20,13 @@ using System.Text.RegularExpressions;
 
 namespace Mandarin.Bridge;
 
-internal sealed partial class Update(string api, string data, Action<string> log, Action restart)
+internal sealed partial class Update(string api, string data, Action<string> log, Action restart, string curl = "curl")
 {
     public const string Repo = "meltface-80/Mandarin";
     private static readonly HttpClient Http = Client();
     private readonly object gate = new();
     private string state = "idle", said = "", to = "";
+    private bool viaCurl;   // this update's fetches made by curl, .NET having failed to connect securely
 
     [GeneratedRegex(@"^(test-bridge|mandarin-bridge-v\d+\.\d+\.\d+(-[A-Za-z0-9.]+)?)$")]
     private static partial Regex Tag();
@@ -95,6 +99,7 @@ internal sealed partial class Update(string api, string data, Action<string> log
     {
         HttpRequestException { StatusCode: { } code } => $"GitHub answered {(int)code} ({code})",
         HttpRequestException { HttpRequestError: HttpRequestError.SecureConnectionError } when refused is { } why => why,
+        HttpRequestException { HttpRequestError: HttpRequestError.SecureConnectionError } h => $"a secure connection to GitHub couldn't be made ({Cause(h)})",
         HttpRequestException h => "GitHub couldn't be reached" + (h.HttpRequestError is HttpRequestError.Unknown ? "" : $" ({h.HttpRequestError})"),
         TaskCanceledException => "GitHub took too long to answer",
         System.Text.Json.JsonException => "GitHub's answer wasn't the release",
@@ -109,13 +114,14 @@ internal sealed partial class Update(string api, string data, Action<string> log
     {
         var tmp = Path.Combine(data, "app.new");
         refused = null;
+        viaCurl = false;
         try
         {
-            var rel = JsonNode.Parse(await Http.GetStringAsync($"{api.TrimEnd('/')}/repos/{Repo}/releases/tags/{tag}")) as JsonObject;
+            var rel = JsonNode.Parse(await Text($"{api.TrimEnd('/')}/repos/{Repo}/releases/tags/{tag}")) as JsonObject;
             var name = $"mandarin-bridge-{Arch}.tar.gz";
             string Url(string n) => (rel?["assets"] as JsonArray ?? []).OfType<JsonObject>().FirstOrDefault(a => (string?)a["name"] == n)?["browser_download_url"]?.ToString()
                 ?? throw new InvalidOperationException($"the release {tag} has no {n}");
-            var side = JsonNode.Parse(await Http.GetStringAsync(Url(name + ".json"))) as JsonObject;
+            var side = JsonNode.Parse(await Text(Url(name + ".json"))) as JsonObject;
             var sha = ((string?)side?["sha256"] ?? "").ToLowerInvariant();
             var build = (string?)side?["commit"] ?? "";
             if (sha.Length != 64) throw new InvalidOperationException("the release says no checksum for its build");
@@ -123,7 +129,7 @@ internal sealed partial class Update(string api, string data, Action<string> log
             if (Directory.Exists(tmp)) Directory.Delete(tmp, true);
             Directory.CreateDirectory(tmp);
             var tgz = Path.Combine(tmp, name);
-            await using (var f = File.Create(tgz)) await (await Http.GetStreamAsync(Url(name))).CopyToAsync(f);
+            await Save(Url(name), tgz);
             string got;
             await using (var f = File.OpenRead(tgz)) got = Convert.ToHexStringLower(await SHA256.HashDataAsync(f));
             if (got != sha) throw new InvalidOperationException("the download isn't the build the release says (its checksum differs)");
@@ -165,15 +171,75 @@ internal sealed partial class Update(string api, string data, Action<string> log
         if (!ReleaseKey.Verify(key, File.ReadAllBytes(tgz), der)) throw new InvalidOperationException("the download isn't signed with Mandarin's release key");
     }
 
+    // [url]'s answer as text: by .NET, or by curl where .NET can't connect securely (item 385).
+    private async Task<string> Text(string url)
+    {
+        if (!viaCurl)
+            try { return await Http.GetStringAsync(url); }
+            catch (HttpRequestException e) when (ByCurl(e)) { /* below */ }
+        var file = Path.Combine(data, "fetched.json");
+        try { Curl(url, file); return await File.ReadAllTextAsync(file); }
+        finally { File.Delete(file); }
+    }
+
+    // [url] saved to [file], likewise.
+    private async Task Save(string url, string file)
+    {
+        if (!viaCurl)
+            try
+            {
+                await using var f = File.Create(file);
+                await (await Http.GetStreamAsync(url)).CopyToAsync(f);
+                return;
+            }
+            catch (HttpRequestException e) when (ByCurl(e)) { /* below */ }
+        Curl(url, file);
+    }
+
+    // Whether [e] is a secure connection that failed before GitHub's certificate was seen (one refused says why, and is
+    // never fetched around), with curl here to fetch it instead: what .NET said is logged, once an update.
+    private bool ByCurl(HttpRequestException e)
+    {
+        if (e.HttpRequestError != HttpRequestError.SecureConnectionError || refused != null || !CurlHere()) return false;
+        viaCurl = true;
+        log($"update: couldn't make a secure connection to GitHub ({Cause(e)}); fetched with curl instead");
+        return true;
+    }
+
+    private bool CurlHere() => curl.Contains('/') ? File.Exists(curl)
+        : (Environment.GetEnvironmentVariable("PATH") ?? "").Split(':').Any(d => d.Length > 0 && File.Exists(Path.Combine(d, curl)));
+
+    // As the install line fetches: GitHub's download service answers 502 now and then (item 380), so tried again.
+    private void Curl(string url, string file) =>
+        RunFor(TimeSpan.FromMinutes(10), curl, "-fsSL", "--retry", "3", "--connect-timeout", "20", "-A", "mandarin-bridge", "-o", file, url);
+
+    /* What .NET said of [e], the innermost of it last: the reason a secure connection failed. */
+    internal static string Cause(HttpRequestException e)
+    {
+        var said = new List<string>();
+        for (var x = e.InnerException; x != null; x = x.InnerException)
+            if (x.Message.Trim() is { Length: > 0 } m && $"{x.GetType().Name} {m}" is var one && !said.Contains(one)) said.Add(one);
+        return said.Count > 0 ? string.Join(": ", said) : e.HttpRequestError.ToString();
+    }
+
+    /* The version the program at [path] says it is ("mandarin-bridge 0.3.5 (abc1234)"), or null where it says none. */
+    public static string? VersionOf(string path)
+    {
+        try { return Run(path, "--version") is var v && v.StartsWith("mandarin-bridge ", StringComparison.Ordinal) ? v.Split(' ')[1].Trim() : null; }
+        catch (Exception e) when (e is InvalidOperationException or System.ComponentModel.Win32Exception) { return null; }
+    }
+
     // [file] run with [args], its output; it throws where it fails.
-    private static string Run(string file, params string[] args)
+    private static string Run(string file, params string[] args) => RunFor(TimeSpan.FromSeconds(60), file, args);
+
+    private static string RunFor(TimeSpan wait, string file, params string[] args)
     {
         var psi = new ProcessStartInfo(file) { UseShellExecute = false, RedirectStandardOutput = true, RedirectStandardError = true };
         foreach (var a in args) psi.ArgumentList.Add(a);
         using var p = Process.Start(psi) ?? throw new InvalidOperationException(file + " couldn't be run");
         var output = p.StandardOutput.ReadToEndAsync();
         var err = p.StandardError.ReadToEndAsync();
-        if (!p.WaitForExit(60_000)) { p.Kill(); throw new InvalidOperationException(file + " didn't finish"); }
+        if (!p.WaitForExit(wait)) { p.Kill(); throw new InvalidOperationException(file + " didn't finish"); }
         if (p.ExitCode != 0) throw new InvalidOperationException($"{Path.GetFileName(file)} failed: {err.Result.Trim()}");
         return output.Result;
     }

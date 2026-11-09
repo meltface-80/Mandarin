@@ -1,6 +1,6 @@
 // BridgeUpdates.cs — the Mandarin Bridges on Settings → Updates (item 291): every one Mandarin knows (Android, Linux, a
-// Raspberry Pi), its build, and the build published for it, an Update for each where they differ, so that a Bridge is
-// never updated by hand on the device again.
+// Raspberry Pi), its build, and the build published for it, an Update for each where the one published is newer (item
+// 384), so that a Bridge is never updated by hand on the device again.
 //
 //   GET  /api/update/bridges         { tag, bridges: [{ id, name, platform, version, commit, reachable, updates,
 //                                      update, latest: { commit, version } | null, available, why }] }; with ?fresh=1
@@ -42,9 +42,11 @@ internal static class BridgeUpdates
     {
         if (Bridges().FirstOrDefault(r => r.Id == id) is not { } rec) return (404, Err("No such Mandarin Bridge"));
         if (await Tag() is not { } tag) return (409, Err("No release of Mandarin Bridge is published yet"));
-        var dac = await MandarinBridge.Probe(Base(rec));
-        if (dac == null) return (409, Err("The Bridge isn't answering"));
-        if (!Jv.T(dac["updates"])) return (409, Err(TooOld));
+        var row = await Row(rec, tag);
+        if ((bool?)row["reachable"] != true) return (409, Err("The Bridge isn't answering"));
+        if ((bool?)row["updates"] != true) return (409, Err(TooOld));
+        // Only an update (item 384): asked for the build it runs, or an older one, the Bridge fetched it again for nothing.
+        if ((bool?)row["available"] != true) return (409, Err($"This Bridge is already on {(string?)row["version"]}, the newest published"));
         using var req = new HttpRequestMessage(HttpMethod.Post, Base(rec) + "/update") { Content = new StringContent(new JsonObject { ["tag"] = tag }.ToJsonString(), System.Text.Encoding.UTF8, "application/json") };
         try
         {
@@ -86,7 +88,7 @@ internal static class BridgeUpdates
         var updates = dac != null && Jv.T(dac["updates"]);
         JsonObject? latest = null;
         if (dac != null && tag != null) latest = await Published(tag, platform == "android" ? "mandarin-bridge.apk" : $"mandarin-bridge-{Said(dac["arch"])}.tar.gz");
-        var available = updates && latest != null && (string?)latest["commit"] is { Length: > 0 } c && c != commit;
+        var available = updates && latest != null && Offered(tag!, dac == null ? null : Said(dac["version"]), commit, latest);
         var why = dac == null ? "The Bridge isn't answering" : !updates ? TooOld : tag == null ? "No release of Mandarin Bridge is published yet"
             : latest == null ? "No build is published for this Bridge's machine" : null;
         return new JsonObject
@@ -96,6 +98,18 @@ internal static class BridgeUpdates
             ["update"] = dac?["update"] is JsObj u && Tags.Js.Json(u) is { } text ? JsonNode.Parse(text) : null,
             ["latest"] = latest, ["available"] = available, ["why"] = why,
         };
+    }
+
+    /* Whether [latest], published in release [tag], is an update for a Bridge running [version] built from [commit]
+       (item 384): a newer version; on "test-bridge" (dev's Bridges, every build of one version) another build of the
+       same version too. The release of the version a Bridge runs is no update, though its commit differs from the test
+       build it came from: offered, it was offered over and over. Where either says no version, the commits alone. */
+    internal static bool Offered(string tag, string? version, string? commit, JsonObject latest)
+    {
+        if ((string?)latest["commit"] is not { Length: > 0 } c || c == commit) return false;
+        if ((string?)latest["version"] is not { Length: > 0 } v || string.IsNullOrEmpty(version)) return true;
+        var cmp = Updater.CmpVer(v, version);
+        return cmp > 0 || (cmp == 0 && tag == "test-bridge");
     }
 
     // The release Mandarin's Bridges follow: "test-bridge" for a test build of Mandarin's, else the newest numbered one.
