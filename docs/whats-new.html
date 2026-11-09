@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>What's new in v1.2.2 · Mandarin</title>
-<meta name="description" content="Mandarin v1.2.2, since v1.2.1.">
+<title>What's new in v1.2.3 · Mandarin</title>
+<meta name="description" content="Mandarin v1.2.3, since v1.2.2.">
 <link rel="icon" href="mandarin-icon.png">
 <link rel="stylesheet" href="site.css">
 </head>
@@ -20,32 +20,49 @@
 </header>
 
 <main class="wrap page">
-  <h1>What's new in v1.2.2</h1>
-  <p class="lead">Mandarin v1.2.2, since v1.2.1. Mandarin Bridge stays at v0.3.1.</p>
+  <h1>What's new in v1.2.3</h1>
+  <p class="lead">Mandarin v1.2.3, since v1.2.2, with Mandarin Bridge v0.3.4.</p>
 <div class="newlist info-cards">
-    <div class="info-card"><h3>Two acts of one name, two artists</h3><p>Airbag from Norway and Airbag from Argentina are no longer one artist with both bands' albums. Each album is filed under its act, by the MusicBrainz artist ID in its files (as Picard writes it), else by Mandarin's own MusicBrainz matches; each act has its own tile, page, picture and facts, and a word to tell them apart. <a href="features.html">Features →</a></p></div>
-    <div class="info-card"><h3>A shorter signal path</h3><p>Source, Bit depth conversion, Volume levelling where it is on, then what goes out in one line, <i>Gaussian steep ×16 · 7th-order · DSD256</i>; Now playing's line under the title is that same line. <a href="signal-path.html">Signal path →</a></p></div>
+    <div class="info-card"><h3>Versions of one album, one album</h3><p>An original and its remaster are one tile, <i>2 versions</i> under it. Versions are told by MusicBrainz's release group, else one act and one title with its version words off (<i>2015 Remaster</i>). The main is the highest resolution, or the one you choose with <b>Make this the main version</b>; the album's page lists every version with what tells it apart, a tap showing it in place. <a href="features.html">Features →</a></p></div>
+    <div class="info-card"><h3>An album's page on a phone, redesigned</h3><p>The cover on top, the date, rate and length under it, the title across the page; then <b>Tracks</b>, <b>Credits</b>, <b>About</b> and <b>Versions</b> as tabs, centred, held at the top as the page scrolls with the page cut off cleanly under them. Share card is in <b>⋯</b>. In the browser and the Android app.</p></div>
+    <div class="info-card"><h3>Clipping shown, and Headroom when upsampling</h3><p>A track mastered to full scale clips between its samples when upsampled. Mandarin now counts every clipped sample and turns Now playing's line red; <b>Headroom when upsampling</b> (Auto) turns a track down by just what its true peak needs. <a href="upsampling.html">Upsampling →</a></p></div>
+    <div class="info-card"><h3>Keeping up, and a safety net</h3><p>The signal path says how fast a track is being made (<i>Keeping up at 4.2× real time</i>). An Output the server can't make in time, or the device can't play, is put back to the last one that played well, the track carrying on. <a href="signal-path.html">Signal path →</a></p></div>
   </div>
 
   <h2>Changed</h2>
   <ul class="plain">
-    <li><b>The share card is the card alone:</b> its review is always on it, a fifth bigger, with whose words they are. The links under it, <i>If you like this</i> and Settings → Setup → Share Card are gone.</li>
-    <li><b>Logging is on by default,</b> in the server and the Android app, so a fault seen once is already in the log. Switched off, it stays off. <a href="logs.html">Logs →</a></li>
-    <li>A track Mandarin stops making on purpose is logged as stopped, with why, not as failed.</li>
+    <li><b>The music folders are followed as they change:</b> an album shows as it is copied in, a deletion within seconds, and a network share's or a mergerfs folder's changes within half a minute, where they waited for the six-hourly scan.</li>
+    <li>Search's count (<i>1 artist, 60+ albums</i>) is under the search field, which keeps its width.</li>
+    <li><i>Extended</i> ends an edition's title, as Deluxe and Remastered do: <i>Radical Optimism (Extended)</i> is a version of <i>Radical Optimism</i>.</li>
+  </ul>
+
+  <h2>Security</h2>
+  <p>A security audit of this version found fourteen things to put right; every one is fixed.</p>
+  <ul class="plain">
+    <li><b>The Docker image runs the server as a user, not root</b> (1000 by default; <code>PUID</code> and <code>PGID</code> change it). Your data is handed over at the first start. <a href="install.html">Install →</a></li>
+    <li><b>Who sent a request</b> is believed from forwarding headers only from the proxies named in <code>TRUSTED_PROXIES</code> and the built-in Tailscale. A reverse proxy on the same machine needs <code>TRUSTED_PROXIES=127.0.0.1</code>. <a href="configuration.html">Configuration →</a></li>
+    <li><b>Covers from elsewhere</b> are never fetched from the server's own machine or your network (but the Sonos speakers and hosts named in <code>ART_HOSTS</code>).</li>
+    <li><b>Addresses handed to speakers and players expire</b> after 30 days, and a speaker asking without one gets only what it was handed.</li>
+    <li><b>Mandarin Bridge's port</b> takes changes only as JSON, never from another site, and never updates backwards. A page on another port of the server's machine can't use your browser's sign-in either.</li>
+    <li><b>Scripts run only from Mandarin's own pages</b> (a Content-Security-Policy).</li>
+    <li>With the sign-in off, <b>only your own Tailscale devices count as home</b>, not all of Tailscale's address range.</li>
+    <li><b>Releases can be signed</b>, and the server's and the Linux Bridge's updates checked against Mandarin's release key.</li>
+    <li>Away from home, use Tailscale, never a port forward: the log now says when plain http arrives from outside. The workflows' actions are pinned, and a build that can be published needs the real signing key. <a href="away.html">Away from home →</a></li>
   </ul>
 
   <h2>Fixed</h2>
   <ul class="plain">
-    <li>Queuing an album, or Play next, while another played stopped the one playing where Mandarin made it as it played (DSD from PCM, upsampling, an album as one stream).</li>
-    <li>The Android app's Library came back filtered to the last name typed, with no field to clear it, and lost a sort chosen there once an album had been opened over it.</li>
-    <li>The Library Scanner kept saying <i>MusicBrainz isn't answering</i> and stopped ten minutes at a time: it asked MusicBrainz about albums iTunes had matched.</li>
-    <li>An artist's page showed another act of the same name (Airbag from Norway as <i>Spain · since 1998</i>), and the app kept showing it for a while after the server had found the right one.</li>
-    <li>Filing albums under their acts read the whole library again, and wrote the album edits' backup, for every album.</li>
+    <li>An album that mixes sample rates played nothing with <b>Albums as one stream</b> on, when its Output made DSD or upsampled to the highest rate.</li>
+    <li>An album deleted from the music folders stayed on its artist's page, in the app and the browser.</li>
+    <li>The built-in Tailscale wouldn't start after the update to a non-root container (<i>permission denied</i> on its state).</li>
+    <li>The Android app's album tabs were squashed into a column of letters, and the headings under them said the tabs again.</li>
+    <li>Mandarin Bridge's update said only <i>SecureConnectionError</i> when GitHub's certificate was refused; it now says why (a wrong clock, missing certificates).</li>
   </ul>
 
-  <div class="note" style="margin-top:22px"><b>Updating:</b> the server from <b>Settings → Updates</b>; the Android app
-     beside it. Mandarin Bridge has no update this time. The first scan after updating reads every file's tags once more
-     for its artist's MusicBrainz ID. Every change is listed in the
+  <div class="note" style="margin-top:22px"><b>Updating:</b> the server from <b>Settings → Updates</b> (in Docker,
+     <code>docker pull</code> as before: the container now runs as user 1000 and hands its data over at the first
+     start); the Android app beside it; each Mandarin Bridge from its own row. A reverse proxy on the server's machine
+     needs <code>TRUSTED_PROXIES=127.0.0.1</code>. Every change is listed in the
      <a href="https://github.com/meltface-80/Mandarin/blob/main/CHANGELOG.md">changelog</a>.</div>
   <nav class="pager"><a class="back" href="index.html">← Back to contents</a><a class="pill" href="install.html">Next: Install the server →</a></nav>
 </main>

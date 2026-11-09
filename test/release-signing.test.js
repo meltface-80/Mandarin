@@ -132,6 +132,8 @@ test("the release workflows sign with the secret: the server's builds, Linux's a
     assert.match(s, /RELEASE_SIGNING_KEY: \$\{\{ secrets\.RELEASE_SIGNING_KEY \}\}/, name + ": the secret given");
     assert.ok(s.includes(signs), name + ": signs");
   }
+  // A Bridge release builds its Linux tarballs with the secret too (a called workflow has none unless given it).
+  assert.match(read(".github/workflows/bridge-release.yml"), /linux:\n\s+uses: \.\/\.github\/workflows\/bridge-linux\.yml\n\s+secrets: inherit/);
   // The server's signatures uploaded with its builds (out/csharp/*, out/mac/*).
   assert.ok(release.includes('gh release create "v$v" "musicd-server-$v.tar.gz" out/csharp/*') && release.includes("gh release upload \"v$v\" out/mac/* --clobber"));
 });

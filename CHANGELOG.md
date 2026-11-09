@@ -1,6 +1,28 @@
 # Changelog
 
-## Unreleased
+## v1.2.3
+
+Versions of one album are one album, the highest resolution its main; an album's page on a phone redesigned, its tabs held at the top; clipping shown when upsampling, with Headroom to prevent it; how fast a track is made, and a safety net that puts back an Output the server can't keep up with; the music folders followed as they change, network shares included. Every finding of a security audit fixed: the Docker image runs as a user, not root; forwarding headers trusted only from named proxies; covers never fetched from your network; links handed to devices expire; the Bridges' ports guarded; signed releases. Mandarin Bridge 0.3.4. Items 345 to 375.
+
+- New - Versions of one album are one album (an original and its remaster), "2 versions" under the tile, the highest resolution the main or the one you choose; the album's page lists every version
+- New - Clipping when upsampling is counted and shown in red on Now playing, and Headroom when upsampling (Auto) turns a track down by just what its peaks need
+- New - The signal path says how fast a track is made ("Keeping up at 4.2× real time"), and an Output the server can't make in time, or the device can't play, is put back to the last that played well
+- Changed - An album's page on a phone: the cover on top, the title across the page, tabs for Tracks, Credits, About and Versions held at the top with the page cut off under them, Share card in ⋯, no previous and next buttons
+- Changed - The music folders are followed as they change: an album shows as it is copied in, and a network share's or mergerfs folder's changes within half a minute
+- Changed - Search's count is under the search field, which keeps its width; "Extended" ends an edition's title
+- Fixed - Security: The Docker image runs the server as user 1000, not root (PUID and PGID), its data handed over at the first start
+- Fixed - Security: Forwarding headers are believed only from TRUSTED_PROXIES and the built-in Tailscale; a reverse proxy on the same machine needs TRUSTED_PROXIES=127.0.0.1
+- Fixed - Security: Covers from elsewhere are never fetched from the server's machine or your network (ART_HOSTS names exceptions)
+- Fixed - Security: Addresses handed to devices expire after 30 days, and a speaker gets only what it was handed
+- Fixed - Security: Mandarin Bridge's port takes changes only as JSON from its own pages and never updates backwards; a page on another port can't use the browser's sign-in
+- Fixed - Security: Scripts run only from Mandarin's own pages; with the sign-in off only your own Tailscale devices count as home; releases can be signed and updates checked against the key; plain http from outside is logged
+- Fixed - An album of mixed sample rates played nothing with Albums as one stream on
+- Fixed - An album deleted from the music folders stayed on its artist's page
+- Fixed - The built-in Tailscale wouldn't start after the change to a non-root container
+- Fixed - The Android app's album tabs were squashed into a column of letters
+- Fixed - Mandarin Bridge's update said only "SecureConnectionError"; it now says why
+
+### Every change
 
 - Fixed - the built-in Tailscale wouldn't start after the update that stopped running the server as root (item 354): "failed to migrate existing TPM-sealed state file ... permission denied". A data folder that was the user's already (one mounted from the host, say) was taken as handed over, though what the root server had written inside it, the Tailscale state among it, was still root's, and the server could no longer open it. At start the whole data folder (and the program and page) is now handed over whenever anything in it isn't the user's; nothing to do but update (item 374)
 - Fixed - a speaker could have any track or cover without a signature (the security audit's eighth finding): a request from one of the speakers' own addresses was let have every stream and every cover, so a speaker not to be trusted could copy the whole library. A speaker asking unsigned now gets only the addresses this server handed out (a track queued on it, its cover) while they are good, kept across a restart so a queue made before it still plays; signed addresses are as before (item 369)

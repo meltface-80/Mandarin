@@ -83,6 +83,19 @@
     <figure class="shot"><img src="img/upsampling-output.jpg" alt="Output settings: Mode, Highest rate, Bit depth, DSD as PCM, PCM as DSD, Fixed volume, Volume levelling" loading="lazy" decoding="async"><figcaption>A Mandarin Bridge's <b>Output</b> in the Android app: Original, the highest rate on Auto, the bit depth on Auto, no DSD made, and fixed volume.</figcaption></figure>
   </div>
 
+  <h2>Headroom, and clipping shown</h2>
+  <p>A track mastered to full scale has peaks between its samples above it, which upsampling would clip. Each making
+     counts the samples it clips: Now playing's upsampling line turns red, and the signal path says how many and how far
+     over. <b>Headroom when upsampling</b>, in a device's Output, is <b>Auto</b> by default: a track Mandarin upsamples,
+     or makes DSD of, is turned down by what its true peak needs after levelling, and half a dB more (DSD's own room
+     allowed for); a track that doesn't need it keeps its level. <b>Off</b> leaves every track as it is.</p>
+
+  <h2>Keeping up, and a safety net</h2>
+  <p>A track made as it plays says in its signal path how fast it is made (<i>Keeping up at 4.2× real time</i>); slower
+     than real time, Now playing says it is falling behind. Each device keeps the Output that last played well: an
+     Output this server can't make in time, or that the device can't play, is put back to that one, the track playing
+     on from where it was, and the device's page says what happened. Never for a Qobuz or Tidal stream.</p>
+
   <h2>DSP</h2>
   <p>Below Output, a device's <b>DSP</b>: a parametric EQ of up to ten bands, headphone profiles from AutoEq, and room
      correction from an impulse response (a WAV from REW, Dirac or a headphone measurement), one for each rate or a zip
