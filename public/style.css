@@ -2861,17 +2861,10 @@ input.vol-range::-moz-range-thumb {
 }
 .artist-bio-src  { font-size: 12px; color: var(--text-faint); }
 /* Who they are (bug list item 131, artist-about.js): the portrait, then what
-   they are, where from and when, and their links as pills, all centred over
-   the biography; a band's members or a person's bands in a row of round
+   they are, where from and when, all centred over the tabs (no links); a band's members or a person's bands in a row of round
    pictures that scrolls sideways, under the head. */
 .artist-hero { display: flex; flex-direction: column; align-items: center; width: 100%; max-width: 680px; }
 .artist-facts { font-size: 13.5px; line-height: 1.4; font-weight: 500; color: var(--text-dim); text-align: center; margin-bottom: 10px; }
-.artist-links { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-bottom: 14px; }
-.artist-link {
-  display: inline-block; padding: 5px 12px; border: 1px solid var(--border); border-radius: 20px;
-  font-size: 12.5px; line-height: 17px; color: var(--text); text-decoration: none; white-space: nowrap;
-}
-.artist-link:hover { border-color: var(--accent-text); }
 /* Genres as small chips (bug list item 139): an album's a row under the sleeve, an artist's under their facts; each opens its wall. */
 .genre-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 .genre-chips.hidden { display: none; }
@@ -2882,7 +2875,7 @@ input.vol-range::-moz-range-thumb {
 }
 .genre-chip:hover { color: var(--accent-text); border-color: var(--accent-text); }
 .np-mode #modal-genres { display: none; }
-/* Play and Shuffle (bug list item 138): the brass pill and the outlined one, side by side under the links. */
+/* Play and Shuffle (bug list item 138): the brass pill and the outlined one, side by side under the genres. */
 .artist-play { display: flex; justify-content: center; gap: 10px; margin: 0 0 16px; }
 .artist-play.hidden { display: none; }
 .artist-play-btn, .artist-shuffle-btn {
@@ -2939,6 +2932,31 @@ input.vol-range::-moz-range-thumb {
 }
 .artist-similar-album-artist { margin-top: 2px; font-size: 12px; line-height: 16px; color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .artist-similar-album-site { font-size: 10px; letter-spacing: .04em; color: var(--accent-text); }
+/* An artist's page in tabs (artist-tabs.js): Overview, Discography and About under who they are,
+   as an album's page has its tabs (.album-tab); the one open shows, the rest wait. Every artist's page the same. */
+.artist-tabs {
+  grid-column: 1 / -1; display: flex; justify-content: center; gap: 18px; margin: -12px 0 6px;
+  border-bottom: 1px solid var(--border); overflow-x: auto; scrollbar-width: none;
+}
+.artist-tabs::-webkit-scrollbar { display: none; }
+.artist-tab {
+  font: inherit; font-size: 13px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; white-space: nowrap;
+  color: var(--text-faint); background: transparent; border: 0; padding: 12px 0 10px; cursor: pointer;
+  border-bottom: 2px solid transparent; margin-bottom: -1px;
+}
+.artist-tab.is-on { color: var(--text); border-bottom-color: var(--accent); }
+.artist-overview, .artist-about { grid-column: 1 / -1; min-width: 0; }
+.artist-overview-head { display: flex; align-items: baseline; justify-content: space-between; padding-right: 14px; }
+.artist-see-all {
+  background: none; border: 0; font: inherit; font-size: 13px; font-weight: 600; color: var(--accent-text);
+  cursor: pointer; padding: 12px 0 8px;
+}
+.artist-about { justify-self: center; width: 100%; max-width: 680px; padding-top: 12px; }
+.artist-about .artist-bio-body { margin-bottom: 14px; }
+.artist-about-empty { padding: 24px 0; text-align: center; color: var(--text-dim); font-size: 14px; }
+#album-grid[data-artist-tab="overview"] :is(.artist-disc, .artist-about),
+#album-grid[data-artist-tab="discography"] :is(.artist-overview, .artist-about, .artist-tail),
+#album-grid[data-artist-tab="about"] :is(.artist-disc, .artist-overview, .artist-tail, .artist-view-empty) { display: none !important; }
 /* Qobuz artist screen: bio sits under the compact avatar+name row, so its
    footer stays inline/left rather than centred. */
 .qobuz-artist-bio { margin-top: 10px; }

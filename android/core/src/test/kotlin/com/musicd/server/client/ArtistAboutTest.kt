@@ -7,11 +7,10 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/** Who an act is on their page (item 131): the facts line, their links, members and bands, the albums credited on. */
+/** Who an act is on their page (item 131): the facts line, members and bands, the albums credited on (no links). */
 class ArtistAboutTest {
     private val band = ArtistAbout.parse(JSONObject("""{"name":"The Smiths","key":"smiths","known":true,"mbid":"40f5d9e4","type":"Group",
         "photo_key":"u-aHR0cHM6Ly9leGFtcGxlLmNvbS9zLmpwZw","begin":"1982","end":"1987-08","ended":true,"area":"Manchester",
-        "links":{"discogs":"https://www.discogs.com/artist/1","official":"https://officialsmiths.co.uk","wikidata":"https://www.wikidata.org/wiki/Q1"},
         "members":[{"name":"Johnny Marr","begin":"1982","end":"1987","ended":true,"roles":["guitar","keyboard"],"photo_key":null,"in_library":true},
                    {"name":"Craig Gannon","begin":"1986","end":null,"ended":true,"roles":[],"photo_key":null,"in_library":false}],
         "member_of":[],"credited_on":[{"offset":7,"title":"Hatful of Hollow","subtitle":"The Smiths","roles":["performer"]},
@@ -31,12 +30,6 @@ class ArtistAboutTest {
         assertNull(band.copy(type = null, area = null, begin = null, end = null).facts)
     }
 
-    @Test fun `their links named in the page's order, no MusicBrainz pill`() {
-        assertEquals(listOf("Official site", "Wikidata", "Discogs"), band.linkList.map { it.first })
-        assertEquals("https://officialsmiths.co.uk", band.linkList[0].second)
-        assertEquals(listOf("Official site"), band.copy(mbid = null, links = mapOf("official" to "x", "myspace" to "y")).linkList.map { it.first })
-    }
-
     @Test fun `members with what they played and when, and albums credited on beyond their own`() {
         assertTrue(band.known)
         assertEquals(listOf("Johnny Marr", "Craig Gannon"), band.members.map { it.name })
@@ -52,10 +45,9 @@ class ArtistAboutTest {
         assertEquals(listOf("Meat Is Murder"), band.bandAlbums[0].albums.map { it.title })
         // Their genres, the most used first (item 139).
         assertEquals(listOf("Indie Rock", "Jangle Pop"), band.genres)
-        val unknown = ArtistAbout.parse(JSONObject("""{"name":"Nobody","known":false,"links":{},"members":[],"member_of":[],"credited_on":[]}"""))
+        val unknown = ArtistAbout.parse(JSONObject("""{"name":"Nobody","known":false,"members":[],"member_of":[],"credited_on":[]}"""))
         assertFalse(unknown.known)
         assertNull(unknown.facts)
-        assertTrue(unknown.linkList.isEmpty())
         // Still being looked up as the act its albums are by (item 341): asked again; said or not, it is not pending.
         assertFalse(unknown.pending)
         assertTrue(ArtistAbout.parse(JSONObject("""{"name":"Airbag","known":false,"pending":true}""")).pending)
