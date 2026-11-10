@@ -174,7 +174,7 @@ internal sealed partial class QobuzCatalogue : Catalogue
         var bits = NumOr(P(a, "maximum_bit_depth"), 0);
         var art = P(a, "artist");
         var label = P(a, "label");
-        var genre = P(a, "genre");
+        object? genre = P(a, "genre") is var g && Js.Truthy(g) && Js.Truthy(P(g, "name")) ? GenreNames.English(Js.Str(P(g, "name"))) : null;   // in English
         var date = Or(Or(P(a, "release_date_original"), P(a, "release_date_stream")), "");
         return Obj(
             ("id", Js.Str(P(a, "id"))), ("title", Or(P(a, "title"), "")), ("version", Or(P(a, "version"), "")), ("artist", MainArtist(a)),
@@ -183,8 +183,8 @@ internal sealed partial class QobuzCatalogue : Catalogue
             ("year", Or(Slice(date, 4), "")),
             ("date", date),
             ("label", Js.Truthy(label) && Js.Truthy(P(label, "name")) ? P(label, "name") : ""),
-            ("genre", Js.Truthy(genre) && Js.Truthy(P(genre, "name")) ? P(genre, "name") : ""),
-            ("genres", Js.Truthy(genre) && Js.Truthy(P(genre, "name")) ? new List<object?> { P(genre, "name") } : new List<object?>()),
+            ("genre", genre ?? ""),
+            ("genres", genre != null ? new List<object?> { genre } : new List<object?>()),
             ("upc", Or(P(a, "upc"), null)),
             ("rate", NumOr(Js.Round(rate * 1000), 44100)), ("bits", bits == 0 ? 16 : bits),
             ("tracks_count", NumOr(P(a, "tracks_count"), 0)), ("duration", NumOr(P(a, "duration"), 0)),
