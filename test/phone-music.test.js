@@ -33,7 +33,7 @@ const DRIVER = `(async () => {
   const sleep = ms => new Promise(r => setTimeout(r, ms));
   const $ = id => document.getElementById(id);
   const until = async (f, ms = 8000) => { const t0 = Date.now(); for (;;) { const v = f(); if (v) return v; if (Date.now() - t0 > ms) return null; await sleep(50); } };
-  const titles = () => [...document.querySelectorAll("#album-grid .album .album-title")].map(e => e.textContent);
+  const titles = () => [...document.querySelectorAll("#album-grid > .album .album-title")].map(e => e.textContent);
   const out = {};
   await until(() => document.querySelector("#home-view .album"));
   // The wall, from the Home row's heading.
@@ -101,12 +101,12 @@ const DRIVER = `(async () => {
   out.phone_only = titles();
   out.phone_only_heads = [...document.querySelectorAll("#album-grid .artist-section-header.artist-disc")].map(e => e.textContent);
   // Overview's row: the phone's albums too, so an artist only on the phone has something there.
-  await until(() => document.querySelectorAll(".artist-overview-album").length === 2);
-  out.phone_only_cards = [...document.querySelectorAll(".artist-overview-album")].map(b => b.getAttribute("aria-label"));
+  await until(() => document.querySelectorAll(".artist-overview-row .album").length === 2);
+  out.phone_only_cards = [...document.querySelectorAll(".artist-overview-row .album .album-title")].map(b => b.textContent);
   // At home with a room chosen: a mixed selection sends the server's album to
   // the room and leaves the phone's out, with a word.
   window.__showArtistAlbums("Artist A");
-  await until(() => document.querySelectorAll("#album-grid .album").length === 2);
+  await until(() => document.querySelectorAll("#album-grid > .album").length === 2);
   const sel = $("zone-select");
   // The room is listed once the page has heard of it (zones are read at start and every 15 s).
   const kitchen = await until(() => [...sel.options].find(o => o.textContent.trim() === "Kitchen"), 20000);
@@ -114,7 +114,7 @@ const DRIVER = `(async () => {
   await until(() => localStorage.getItem("rra-zone") === kitchen.value);
   window.__playLocalCalls = [];
   window.__enterAlbumSelectMode();
-  for (const t of document.querySelectorAll("#album-grid .album")) t.click();
+  for (const t of document.querySelectorAll("#album-grid > .album")) t.click();
   document.querySelector('[data-sel-act="queue"]').click();
   await until(() => $("toast").textContent.includes("Unable"), 8000);
   out.mixed_toast = $("toast").textContent;

@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -14,7 +16,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -28,45 +29,46 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
+import com.musicd.server.client.AlbumSummary
 import com.musicd.server.client.ArtistSimilar
 import com.musicd.server.client.Contract
 import com.musicd.server.client.Palette
 import com.musicd.server.client.ServerClient
 import com.musicd.server.client.SimilarAlbum
+import com.musicd.server.client.WallPrefs
 
 /**
- * The foot of an artist's page, under all their albums (bug list item 140; the page's artist-about.js, .artist-similar):
- * similar artists (item 137), a row of round pictures each opening their page, then similar albums, a row of covers
- * each opening the album (the library's) or its Last.fm page. A row with nothing in it isn't there.
+ * The foot of Overview (bug list item 140; the page's artist-foot.js, .artist-similar): similar artists (item 137), a
+ * row of round pictures each opening their page, then similar albums, Home's row of the page's album tiles (TileArt,
+ * AlbumTile's type) each opening the album (the library's) or its Last.fm page. A row with nothing in it isn't there.
+ * Each heading as Discography's, its content 16 under it.
  */
 @Composable
-internal fun ArtistFoot(similar: ArtistSimilar?, albums: List<SimilarAlbum>, client: () -> ServerClient?, onArtist: (String) -> Unit,
+internal fun ArtistFoot(similar: ArtistSimilar?, albums: List<SimilarAlbum>, prefs: WallPrefs, coverPx: Int, client: () -> ServerClient?, onArtist: (String) -> Unit,
                         onAlbum: (Int) -> Unit, onUrl: (String) -> Unit) {
     val acts = similar?.artists.orEmpty()
     if (acts.isEmpty() && albums.isEmpty()) return
-    Column(Modifier.fillMaxWidth().padding(top = 18.dp, bottom = 10.dp)) {
+    Column(Modifier.fillMaxWidth().padding(top = 6.dp, bottom = 10.dp)) {
         if (acts.isNotEmpty()) {
             FootTitle("Similar artists")
-            LazyRow(horizontalArrangement = Arrangement.spacedBy(14.dp), contentPadding = PaddingValues(end = 14.dp)) {
+            LazyRow(Modifier.padding(top = 12.dp), horizontalArrangement = Arrangement.spacedBy(14.dp), contentPadding = PaddingValues(end = 14.dp)) {
                 items(acts.size) { i -> SimilarAct(acts[i], client, onArtist) }
             }
         }
         if (albums.isNotEmpty()) {
             FootTitle("Similar albums")
-            LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp), contentPadding = PaddingValues(end = 14.dp)) {
-                items(albums.size) { i ->
-                    val al = albums[i]
-                    SimilarAlbumTile(al, client) { if (al.album != null) onAlbum(i) else al.url?.let(onUrl) }
-                }
+            Spacer(Modifier.height(12.dp))
+            ArtistRow(albums.size, key = { it }) { i ->
+                val al = albums[i]
+                SimilarAlbumTile(al, prefs, coverPx, client) { if (al.album != null) onAlbum(i) else al.url?.let(onUrl) }
             }
         }
     }
 }
 
-/** A section's small heading in capitals, as the members' (.artist-section-header). */
+/** A section's small heading, as every heading of the page (ArtistSectionTitle). */
 @Composable
-private fun FootTitle(title: String) =
-    Text(title.uppercase(), Modifier.parity("artist.section").padding(top = 12.dp, bottom = 8.dp), color = paletteColor(Palette.TEXT_FAINT), fontSize = 13.sp, lineHeight = 18.sp, fontWeight = FontWeight.W600, letterSpacing = 0.06.em)
+private fun FootTitle(title: String) = ArtistSectionTitle(title)
 
 /** A similar act: their picture (or first letter) in a circle over the name. */
 @Composable
@@ -82,16 +84,23 @@ private fun SimilarAct(a: ArtistSimilar.Act, client: () -> ServerClient?, onArti
     }
 }
 
-/** A similar album: its cover, the title and who by; "Last.fm ↗" under one the library hasn't. */
+/**
+ * A similar album as the page's album tile (the page's buildAlbumTile): the tile's cover and badges (TileArt), the title
+ * in two lines and who by in one at UI Settings' size, Home's width; "Last.fm ↗" under one the library hasn't.
+ */
 @Composable
-private fun SimilarAlbumTile(al: SimilarAlbum, client: () -> ServerClient?, onTap: () -> Unit) {
-    val title = al.album?.title ?: al.title
-    Column(Modifier.parity("artist.similar-album", Contract.label("artist.similar-album", 0, title)).width(128.dp).clickable(onClick = onTap)) {
-        Box(Modifier.parity("artist.similar-album-art").fillMaxWidth().aspectRatio(1f).clip(RoundedCornerShape(6.dp)).background(paletteColor(Palette.BG_ELEV_2))) {
-            rememberCover(al.album?.imageKey ?: al.imageKey, 300, client)?.let { Image(it, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize()) }
-        }
-        Text(title, Modifier.parity("artist.similar-album-title").padding(top = 8.dp), color = paletteColor(Palette.MODAL_TEXT), fontSize = 13.sp, fontWeight = FontWeight.W500, lineHeight = 17.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
-        Text(al.artist, Modifier.parity("artist.similar-album-artist").padding(top = 2.dp), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp, lineHeight = 16.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        if (al.album == null && al.url != null) Text("Last.fm ↗", Modifier.parity("artist.similar-album-artist").padding(top = 2.dp), color = MaterialTheme.colorScheme.secondary, fontSize = 10.sp, letterSpacing = 0.04.em)
+private fun SimilarAlbumTile(al: SimilarAlbum, prefs: WallPrefs, coverPx: Int, client: () -> ServerClient?, onTap: () -> Unit) {
+    val a = al.album ?: AlbumSummary(offset = -1, title = al.title, subtitle = al.artist, imageKey = al.imageKey, quality = null, year = null, discs = null, source = null)
+    val cover = rememberTileCover(a.imageKey, coverPx, client)
+    val title = (12 * prefs.text).sp; val titleLine = (15 * prefs.text).sp
+    val artist = (10.5 * prefs.text).sp; val artistLine = (13.65 * prefs.text).sp
+    Column(Modifier.parity("artist.similar-album", Contract.label("artist.similar-album", 0, a.title)).width((144 * prefs.tile).dp).clickable(onClick = onTap)) {
+        Box(Modifier.parity("artist.similar-album-art").fillMaxWidth().aspectRatio(1f)) { TileArt(a, cover, false, Modifier.fillMaxSize(), today = null, dl = null) }
+        Text(a.title.ifEmpty { "Untitled" }, Modifier.parity("artist.similar-album-title").padding(top = 11.dp).lineBox(title, titleLine), color = MaterialTheme.colorScheme.onSurface,
+            fontSize = title, lineHeight = titleLine, fontWeight = FontWeight.W600, maxLines = 2, overflow = TextOverflow.Ellipsis)
+        val by = al.artist.ifEmpty { a.subtitle }
+        if (by.isNotEmpty()) Text(by, Modifier.parity("artist.similar-album-artist").padding(top = 1.dp).lineBox(artist, artistLine), color = MaterialTheme.colorScheme.onSurfaceVariant,
+            fontSize = artist, lineHeight = artistLine, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        if (al.album == null && al.url != null) Text("Last.fm ↗", Modifier.parity("artist.similar-album-artist").padding(top = 1.dp), color = MaterialTheme.colorScheme.secondary, fontSize = 10.sp, letterSpacing = 0.04.em)
     }
 }

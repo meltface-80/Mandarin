@@ -111,7 +111,7 @@ internal fun AlbumRow(a: AlbumSummary, prefs: WallPrefs, coverPx: Int, client: (
 
 /** The cover square: [cover] once fetched, "♪" where the album has none; the badges on it; [selected], the page's ring and tick; [today] ★ Today top left, [dl] a download's state bottom left over a dimmed cover. */
 @Composable
-private fun TileArt(a: AlbumSummary, cover: ImageBitmap?, selected: Boolean, modifier: Modifier, today: String?, dl: String?) {
+internal fun TileArt(a: AlbumSummary, cover: ImageBitmap?, selected: Boolean, modifier: Modifier, today: String?, dl: String?) {
     val badge = Color(0x9E0A0E14)   // the page's rgba(10, 14, 20, .62)
     val onBadge = Color.White.copy(alpha = 0.92f)
     // The hifi palette's sleeve: corners of 12 and a faint white ring just inside the edge, no shadow (style.css, [data-palette="hifi"] .album-art-wrap).

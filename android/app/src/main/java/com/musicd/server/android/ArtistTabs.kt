@@ -20,7 +20,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -37,6 +36,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -50,11 +50,14 @@ import com.musicd.server.client.ArtistBio
 import com.musicd.server.client.Contract
 import com.musicd.server.client.Palette
 import com.musicd.server.client.ServerClient
+import com.musicd.server.client.WallPrefs
 
 /*
  * An artist's page in tabs (the page's artist-tabs.js): Overview, Discography and About under who
  * they are (ArtistHero), as an album's page has its tabs (AlbumTabRow); every artist's page the same. Overview: their
- * albums in a row that scrolls sideways, See all opening Discography, then similar artists and albums (ArtistFoot).
+ * albums as the grid's own tiles (AlbumTile) in Home's row (ArtistRow), See all opening Discography, then similar
+ * artists and albums (ArtistFoot). Each section's heading sits as Discography's (BlockTitle in its grid): 30 under the
+ * tabs' line, its content 16 under the heading.
  * Discography: the album grid (ArtistScreen's blocks). About: the biography, asked for only when the tab is first
  * opened, and a band's members or a person's bands.
  */
@@ -82,38 +85,39 @@ internal fun ArtistTabRow(tab: String, onTab: (String) -> Unit) {
     }
 }
 
-/** A section's small heading in capitals (.artist-section-header). */
+/** A section's small heading in capitals, as Discography's (BlockTitle: the page's .artist-section-header, 12 over it, 4 under). */
 @Composable
 internal fun ArtistSectionTitle(title: String, modifier: Modifier = Modifier) =
-    Text(title.uppercase(), modifier.parity("artist.section").padding(top = 12.dp, bottom = 8.dp), color = paletteColor(Palette.TEXT_FAINT), fontSize = 13.sp,
+    Text(title.uppercase(), modifier.parity("artist.section").padding(top = 12.dp, bottom = 4.dp), color = paletteColor(Palette.TEXT_FAINT), fontSize = 13.sp,
         lineHeight = 18.sp, fontWeight = FontWeight.W600, letterSpacing = 0.06.em)
 
-/** Overview's row: [albums] under "Albums" with See all ([onSeeAll]: Discography); a tap on one opens it ([onOpen], its place). */
+/**
+ * A row of the page's album tiles ([count] of them, [tile] each), Home's (Carousel): 16 apart, scrolling sideways across
+ * the whole screen, its first tile at the page's gutter; the page's 14 each side given back for it to bleed into.
+ */
 @Composable
-internal fun OverviewAlbums(albums: List<AlbumSummary>, client: () -> ServerClient?, onOpen: (Int) -> Unit, onSeeAll: () -> Unit) {
-    if (albums.isEmpty()) return
-    Column(Modifier.fillMaxWidth().padding(bottom = 4.dp)) {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            ArtistSectionTitle("Albums", Modifier.weight(1f))
-            Text(Contract.label("artist.see-all"), Modifier.parity("artist.see-all", Contract.label("artist.see-all")).clickable(onClick = onSeeAll).padding(top = 12.dp, bottom = 8.dp, start = 12.dp, end = 14.dp),
-                color = MaterialTheme.colorScheme.secondary, fontSize = 13.sp, lineHeight = 18.sp, fontWeight = FontWeight.W600)
-        }
-        LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp), contentPadding = PaddingValues(end = 14.dp)) {
-            items(albums.size, key = { albums[it].offset }) { i -> OverviewAlbum(albums[i], client) { onOpen(i) } }
-        }
+internal fun ArtistRow(count: Int, key: (Int) -> Any, tile: @Composable (Int) -> Unit) {
+    val bleed = 14.dp
+    LazyRow(Modifier.fillMaxWidth().layout { measurable, constraints ->
+        val extra = (bleed * 2).roundToPx()
+        val p = measurable.measure(constraints.copy(minWidth = constraints.maxWidth + extra, maxWidth = constraints.maxWidth + extra))
+        layout(constraints.maxWidth, p.height) { p.place(-extra / 2, 0) }
+    }, contentPadding = PaddingValues(horizontal = bleed), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+        items(count, key = key) { i -> tile(i) }
     }
 }
 
-/** One of their albums in Overview's row: its cover, the title and the year. */
+/** Overview's row: [albums] under "Albums" with See all ([onSeeAll]: Discography), each the grid's tile at Home's width; a tap opens it ([onOpen], its place). */
 @Composable
-private fun OverviewAlbum(al: AlbumSummary, client: () -> ServerClient?, onTap: () -> Unit) {
-    Column(Modifier.parity("artist.overview-album", Contract.label("artist.overview-album", 0, al.title)).width(128.dp).clickable(onClick = onTap)) {
-        Box(Modifier.parity("artist.overview-album-art").fillMaxWidth().aspectRatio(1f).clip(RoundedCornerShape(6.dp)).background(paletteColor(Palette.BG_ELEV_2))) {
-            rememberCover(al.imageKey, 300, client)?.let { Image(it, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize()) }
+internal fun OverviewAlbums(albums: List<AlbumSummary>, prefs: WallPrefs, coverPx: Int, client: () -> ServerClient?, onOpen: (Int) -> Unit, onSeeAll: () -> Unit) {
+    if (albums.isEmpty()) return
+    Column(Modifier.fillMaxWidth().padding(top = 12.dp, bottom = 10.dp)) {   // the grid's 12 between the tabs and Discography's first heading
+        Row(Modifier.fillMaxWidth().padding(bottom = 12.dp), verticalAlignment = Alignment.CenterVertically) {   // and between that heading and its tiles
+            ArtistSectionTitle("Albums", Modifier.weight(1f))
+            Text(Contract.label("artist.see-all"), Modifier.parity("artist.see-all", Contract.label("artist.see-all")).clickable(onClick = onSeeAll).padding(top = 12.dp, bottom = 4.dp, start = 12.dp),
+                color = MaterialTheme.colorScheme.secondary, fontSize = 13.sp, lineHeight = 18.sp, fontWeight = FontWeight.W600)
         }
-        Text(al.title, Modifier.parity("artist.overview-album-title").padding(top = 8.dp), color = paletteColor(Palette.MODAL_TEXT), fontSize = 13.sp, fontWeight = FontWeight.W500,
-            lineHeight = 17.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
-        al.year?.let { Text("$it", Modifier.parity("artist.overview-album-year").padding(top = 2.dp), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp, lineHeight = 16.sp, maxLines = 1) }
+        ArtistRow(albums.size, key = { albums[it].offset }) { i -> Box(Modifier.width((144 * prefs.tile).dp)) { AlbumTile(albums[i], prefs, coverPx, client) { onOpen(i) } } }
     }
 }
 
@@ -157,12 +161,12 @@ private fun BioText(bio: ArtistBio) {
 private fun Stints(title: String, list: List<ArtistAbout.Stint>, client: () -> ServerClient?, onArtist: (String) -> Unit) {
     var open by rememberSaveable(title) { mutableStateOf(true) }
     Column(Modifier.fillMaxWidth().padding(bottom = 10.dp)) {
-        Row(Modifier.parity("artist.stints-toggle", Contract.label("artist.stints-toggle", 0, title)).clickable { open = !open }.padding(top = 12.dp, bottom = 8.dp, end = 12.dp),
+        Row(Modifier.parity("artist.stints-toggle", Contract.label("artist.stints-toggle", 0, title)).clickable { open = !open }.padding(top = 12.dp, bottom = 4.dp, end = 12.dp),
             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             Text("${title.uppercase()} · ${list.size}", color = paletteColor(Palette.TEXT_FAINT), fontSize = 13.sp, lineHeight = 18.sp, fontWeight = FontWeight.W600, letterSpacing = 0.06.em)
             Icon(painterResource(R.drawable.dl_chevron), contentDescription = null, tint = paletteColor(Palette.TEXT_FAINT), modifier = Modifier.size(16.dp).rotate(if (open) 270f else 90f))
         }
-        if (open) LazyRow(horizontalArrangement = Arrangement.spacedBy(14.dp), contentPadding = PaddingValues(end = 14.dp)) {
+        if (open) LazyRow(Modifier.padding(top = 12.dp), horizontalArrangement = Arrangement.spacedBy(14.dp), contentPadding = PaddingValues(end = 14.dp)) {
             items(list.size) { i -> StintTile(list[i], client, onArtist) }
         }
     }

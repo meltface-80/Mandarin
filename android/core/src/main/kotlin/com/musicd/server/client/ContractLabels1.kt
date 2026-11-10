@@ -111,7 +111,6 @@ internal object ContractLabels1 {
         "artist.shuffle" to listOf("Shuffle"),
         "artist.tab" to listOf("Overview", "Discography", "About"),
         "artist.see-all" to listOf("See all"),
-        "artist.overview-album" to listOf("{album}"),
         "artist.bio-more" to listOf("Show more", "Show less"),
         "artist.stints-toggle" to listOf("{section}"),
         "artist.member" to listOf("{member}"),

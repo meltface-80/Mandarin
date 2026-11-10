@@ -19,6 +19,14 @@ public sealed class ArtistPageTests
           const $$ = s => [...document.querySelectorAll(s)];
           const seen = s => $$(s).filter(e => e.getClientRects().length > 0);
           const tab = t => document.querySelector('.artist-tab[data-artist-tab="' + t + '"]');
+          // The first section's heading and tile as drawn: where under the tabs' line, and how the tile looks.
+          const look = () => {
+            const line = document.querySelector(".artist-tabs").getBoundingClientRect().bottom;
+            const h = seen("#album-grid .artist-section-header")[0].getBoundingClientRect();
+            const t = seen("#album-grid .album")[0], art = t.querySelector(".album-art-wrap");
+            return { heading: Math.round(h.top - line), tile: Math.round(t.getBoundingClientRect().top - h.bottom), radius: getComputedStyle(art).borderTopLeftRadius,
+                     title: getComputedStyle(t.querySelector(".album-title")).fontSize, quality: !!t.querySelector(".album-quality") };
+          };
           await until(() => document.querySelector("#home-view .album"));
           await sleep(400);
           const asked = [];
@@ -32,13 +40,13 @@ public sealed class ArtistPageTests
             links: $$(".artist-link, .artist-links").length,
             tabs: $$(".artist-tab").map(b => b.textContent),
             open: grid.dataset.artistTab,
-            overview: { cards: seen(".artist-overview-album").map(b => b.getAttribute("aria-label")), tiles: seen("#album-grid .album").length,
+            overview: { cards: seen(".artist-overview-row .album .album-title").map(b => b.textContent), tiles: seen("#album-grid > .album").length, look: look(),
                         stints: seen(".artist-stint").length, foot: seen(".artist-tail").length },
             footLast: grid.lastElementChild.classList.contains("artist-tail"),
           };
           document.querySelector(".artist-see-all").click();
-          out.discography = { open: grid.dataset.artistTab, on: tab("discography").getAttribute("aria-selected"), tiles: seen("#album-grid .album:not(.skeleton)").length,
-                              sections: seen("#album-grid .artist-section-header").map(h => h.textContent), cards: seen(".artist-overview-album").length, foot: seen(".artist-tail").length };
+          out.discography = { open: grid.dataset.artistTab, on: tab("discography").getAttribute("aria-selected"), tiles: seen("#album-grid > .album:not(.skeleton)").length,
+                              sections: seen("#album-grid .artist-section-header").map(h => h.textContent), cards: seen(".artist-overview-row .album").length, foot: seen(".artist-tail").length, look: look() };
           tab("about").click();
           out.about = { tiles: seen("#album-grid .album").length, sections: seen("#album-grid .artist-section-header").map(h => h.textContent),
                         members: seen(".artist-stint").map(b => [b.getAttribute("aria-label"), (b.querySelector(".artist-stint-line") || {}).textContent || ""]),
@@ -112,6 +120,9 @@ public sealed class ArtistPageTests
         Assert.Equal(["Albums"], r["discography"]!["sections"]!.AsArray().Select(h => (string?)h));
         Assert.Equal(0.0, r["discography"]!["cards"]!.GetValue<double>());
         Assert.Equal(0.0, r["discography"]!["foot"]!.GetValue<double>());
+        // Overview's row is the grid's own tile (corners, badges, type), its heading and tiles placed as Discography's.
+        Assert.Equal(r["discography"]!["look"]!.ToJsonString(), r["overview"]!["look"]!.ToJsonString());
+        Assert.True(r["overview"]!["look"]!["quality"]!.GetValue<bool>(), "the tile's quality badge on Overview's row too");
         // About: the members, open under their heading; those in the band now (item 133: Natalie Merchant left in 2019).
         Assert.Equal(0.0, r["about"]!["tiles"]!.GetValue<double>());
         Assert.Equal(["Members · 1"], r["about"]!["sections"]!.AsArray().Select(h => (string?)h));
