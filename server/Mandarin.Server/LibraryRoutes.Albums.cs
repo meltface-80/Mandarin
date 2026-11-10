@@ -148,7 +148,9 @@ internal static partial class Library
         var seed = IntOr(Q(ctx, "seed"), 1);
         var played = Q(ctx, "played") is { Length: > 0 } pl ? pl : "any";
         var defs = FacetDefs(s);
-        var picked = defs.Select(def => (Def: def, Sel: (Values(ctx, def.Id) ?? []).Where(v => v.Length > 0).ToList())).Where(x => x.Sel.Count > 0).ToList();
+        // A genre asked for by its French name (a wall kept from before they were in English) is its English one.
+        var picked = defs.Select(def => (Def: def, Sel: (Values(ctx, def.Id) ?? []).Where(v => v.Length > 0).Select(v => def.Id == "genre" ? GenreNames.English(v) : v).ToList()))
+            .Where(x => x.Sel.Count > 0).ToList();
         var prefix = Names.Fold(Q(ctx, "prefix") ?? "");
         if (prefix.Length > 40) prefix = prefix[..40];
         var sig = string.Join("|", new[] { sort, desc ? "1" : "0", seed.ToString(CultureInfo.InvariantCulture), played, prefix }
@@ -226,7 +228,7 @@ internal static partial class Library
         List<Album> pool = s.Shown;
         if (filtered)
         {
-            var v = Names.Fold(fvalue);
+            var v = Names.Fold(ftype == "genre" ? GenreNames.English(fvalue) : fvalue);
             if (ftype == "genre") pool = s.Shown.Where(al => al.Genres.Any(g => Names.Fold(g) == v)).ToList();
             else if (ftype == "decade")
             {
