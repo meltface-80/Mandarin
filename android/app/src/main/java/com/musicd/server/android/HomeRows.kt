@@ -131,8 +131,10 @@ internal object HomeKept {
             scope.launch { plainRow("library", lib) { it.albums(0, 30, order).albums } }
             scope.launch { val got = withContext(Dispatchers.IO) { runCatching { lib.playlists() }.getOrNull() }; if (got != null) { playlists.clear(); playlists.addAll(got) } }
             scope.launch { val got = withContext(Dispatchers.IO) { runCatching { lib.smartPicks().picks }.getOrNull() }; if (got != null && (got.isNotEmpty() || picks.isEmpty())) { picks.clear(); picks.addAll(got) } }
-            if (!lotwLoaded) scope.launch { lotw(lib) }
-            if (!genresLoaded) scope.launch { genres(lib) }
+            // Read again when the other rows are (not only once an app's run, as they were): what the server says of them
+            // changes, its genres in English since it said them in French; the cards shown stay until the answer comes.
+            if (!lotwLoaded || !ttlFresh) scope.launch { lotw(lib) }
+            if (!genresLoaded || !ttlFresh) scope.launch { genres(lib) }
             scope.launch { loadDownloads(context, client) }
         }
     }
