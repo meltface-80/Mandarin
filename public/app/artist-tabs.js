@@ -4,7 +4,8 @@
 // one open showing and the rest waiting (style.css hides them by the grid's
 // data-artist-tab). Overview: their albums in a row that scrolls sideways,
 // See all opening Discography, then similar artists and albums
-// (artist-foot.js). Discography: every album of theirs, those they appear on,
+// (artist-foot.js), the row Home's (.home-carousel) and its tiles the album
+// tiles of the grid and of Home, badges and all. Discography: every album of theirs, those they appear on,
 // their bands' and those they are credited on, the grid as before. About: the
 // biography, asked for only when the tab is first opened, and a band's members
 // or a person's bands. Every artist's page the same, whatever is known of them.
@@ -19,26 +20,6 @@
     const hdr = document.createElement("div");
     hdr.className = "artist-section-header"; hdr.dataset.parity = "artist.section"; hdr.textContent = text;
     return hdr;
-  }
-
-  /** One of their albums in Overview's row: its cover, the title and the year; a tap opens it. @param {any} al */
-  function albumCard(al) {
-    const btn = document.createElement("button");
-    btn.type = "button"; btn.className = "artist-similar-album artist-overview-album"; btn.dataset.parity = "artist.overview-album";
-    btn.setAttribute("aria-label", al.title || "");
-    const art = document.createElement("div");
-    art.className = "artist-similar-album-art"; art.dataset.parity = "artist.overview-album-art";
-    if (al.image_key) loadArt(art, al.image_key, 300, (img) => { img.remove(); });
-    const t = document.createElement("div");
-    t.className = "artist-similar-album-title"; t.dataset.parity = "artist.overview-album-title"; t.textContent = al.title || "";
-    btn.append(art, t);
-    if (al.year) {
-      const y = document.createElement("div");
-      y.className = "artist-similar-album-artist"; y.dataset.parity = "artist.overview-album-year"; y.textContent = String(al.year);
-      btn.appendChild(y);
-    }
-    btn.addEventListener("click", () => openAlbum(al));
-    return btn;
   }
 
   /**
@@ -83,9 +64,11 @@
       all.type = "button"; all.className = "artist-see-all"; all.dataset.parity = "artist.see-all"; all.textContent = "See all";
       all.addEventListener("click", () => { setTab("discography"); row.scrollIntoView({ block: "start", behavior: "smooth" }); });
       top.append(header("Albums"), all);
+      // Home's row of the grid's own tiles: the same cover, badges, title and artist as Discography's; a tap opens one,
+      // selecting is Discography's (as the app's row).
       const cards = document.createElement("div");
-      cards.className = "artist-stint-row";
-      cards.append(...list.map(albumCard));
+      cards.className = "home-carousel home-carousel-1row artist-overview-row";
+      cards.append(...list.map(al => w.__keyArtistTile(buildAlbumTile(al, null, { selectable: false }))));
       albums.replaceChildren(top, cards);
       albums.classList.remove("hidden");
     }
