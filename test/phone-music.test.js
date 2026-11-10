@@ -92,14 +92,17 @@ const DRIVER = `(async () => {
   }
   // The artist view: the server's album by Artist A and the phone's, together.
   window.__showArtistAlbums("Artist A");
-  await until(() => document.querySelectorAll("#album-grid .artist-section-header").length >= 2 && titles().length >= 2);
-  out.artist_heads = [...document.querySelectorAll("#album-grid .artist-section-header")].map(e => e.textContent);
+  await until(() => document.querySelectorAll("#album-grid .artist-section-header.artist-disc").length >= 2 && titles().length >= 2);
+  out.artist_heads = [...document.querySelectorAll("#album-grid .artist-section-header.artist-disc")].map(e => e.textContent);
   out.artist_tiles = titles();
   // An artist only on the phone.
   window.__showArtistAlbums("Dave Clarkson");
   await until(() => titles().length === 2);
   out.phone_only = titles();
-  out.phone_only_heads = [...document.querySelectorAll("#album-grid .artist-section-header")].map(e => e.textContent);
+  out.phone_only_heads = [...document.querySelectorAll("#album-grid .artist-section-header.artist-disc")].map(e => e.textContent);
+  // Overview's row: the phone's albums too, so an artist only on the phone has something there.
+  await until(() => document.querySelectorAll(".artist-overview-album").length === 2);
+  out.phone_only_cards = [...document.querySelectorAll(".artist-overview-album")].map(b => b.getAttribute("aria-label"));
   // At home with a room chosen: a mixed selection sends the server's album to
   // the room and leaves the phone's out, with a word.
   window.__showArtistAlbums("Artist A");
@@ -155,10 +158,11 @@ test("Music on device: Focus and Sort on the wall; an artist's page shows the se
     assert.equal(r.select_left, 0, "the selection is cleared");
     assert.deepEqual(r.play_next, [["p3", -1, "play_next"], ["p1", -1, "play_next"]], "Play next: sent last to first, since the app puts each straight after the playing track");
     assert.deepEqual(r.play_now, [["p1", -1, "play_now"], ["p3", -1, "queue"]], "Play now: the first now, the rest after it");
-    assert.deepEqual(r.artist_heads, ["Discography", "On this phone"]);
+    assert.deepEqual(r.artist_heads, ["Albums", "On this phone"], "Discography's headings");
     assert.deepEqual(r.artist_tiles, ["Album One", "Zebra Crossing"], "the server's album and the phone's, under their headings");
     assert.deepEqual(r.phone_only.slice().sort(), ["Abandoned Locations", "Shore Ghosts"], "an artist only on the phone is found too");
     assert.deepEqual(r.phone_only_heads, [], "no heading when the phone is all there is");
+    assert.deepEqual(r.phone_only_cards.slice().sort(), ["Abandoned Locations", "Shore Ghosts"], "Overview's row has the phone's albums");
     assert.match(r.mixed_toast, /Queued 1 album → Kitchen · Unable to add music on this phone to queue/, r.mixed_toast);
     assert.deepEqual(r.mixed_play_local, [], "the phone's album is left out, not played on the phone beside the room");
     assert.equal(house.room("Kitchen").queue.length, 3, "Album One's three tracks reached the room");

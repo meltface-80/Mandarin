@@ -80,6 +80,7 @@ app/check-update.js
 app/bridge-updates.js
 app/play-unheard.js
 app/artist-foot.js
+app/artist-tabs.js
 app/artist-about.js
 app/artist-view.js
 app/artists-wall.js

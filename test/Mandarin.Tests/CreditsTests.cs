@@ -281,7 +281,7 @@ public sealed class CreditsTests
         Assert.False(band["members"]![0].Bool("in_library"));
         Assert.True(band.Bool("in_library"));
         Assert.DoesNotContain(Asked(), a => a.StartsWith("/artist/?", StringComparison.Ordinal));
-        Assert.Equal("https://www.maniacs.com/", band["links"].Str("official"));
+        Assert.Null(band["links"]);   // no links on an artist's page
 
         // A member: credited on the album, with the roles there.
         var jerome = await s.GetJ("/api/artist?name=" + Uri.EscapeDataString("Jerome Augustyniak"));

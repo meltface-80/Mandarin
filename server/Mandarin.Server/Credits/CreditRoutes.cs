@@ -2,7 +2,7 @@
 // album page, the artists' wall and an artist's page ask (bug list item 129):
 //
 //   GET /api/album/credits?offset=<album id>  who played, sang, wrote and made it
-//   GET /api/artist?name=                     an act: picture, facts, links, members or bands, albums credited on
+//   GET /api/artist?name=                     an act: picture, facts, members or bands, albums credited on
 //   GET /api/credits/status                   how far the finding has come
 //
 // What hasn't been found yet is found there and then (CreditFinder.cs), for a
@@ -169,7 +169,7 @@ internal static partial class Library
             ["name"] = info?.Name ?? name, ["key"] = key, ["known"] = info != null, ["mbid"] = info?.Mbid, ["type"] = info?.Type,
             ["photo_key"] = CreditRules.PhotoKey(info?.Photo), ["photo_source"] = info?.PhotoSource,
             ["disambiguation"] = about["disambiguation"]?.DeepClone(), ["begin"] = about["begin"]?.DeepClone(), ["end"] = about["end"]?.DeepClone(),
-            ["ended"] = about["ended"]?.DeepClone(), ["area"] = about["area"]?.DeepClone(), ["links"] = about["links"]?.DeepClone() ?? new JsonObject(),
+            ["ended"] = about["ended"]?.DeepClone(), ["area"] = about["area"]?.DeepClone(),   // no links (the owner never used them)
             ["members"] = Stints(MainMembers(about["members"], about), photos, acts), ["member_of"] = Stints(about["member_of"], photos, acts),
             ["band_albums"] = bandAlbums, ["credited_on"] = on, ["in_library"] = acts.Contains(key), ["genres"] = GenresOf(own.Count > 0 ? own : featured),
             // Being looked up as the act the albums are by (item 341): asked again in a few seconds for who they are.
