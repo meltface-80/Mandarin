@@ -192,7 +192,7 @@ internal fun ArtistScreen(asked: String, prefs: WallPrefs, zoneId: String, clien
     Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         AlbumGrid(blocks, prefs, cols, coverPx, client, loaded = albums != null || failed != null, picks.map { it.offset }.toSet(), grid, list,
             onOpen = ::open, onLongPress = { i -> if (!selecting) { selecting = true; pick(i) } },
-            foot = if (tab != "overview") null else @Composable { ArtistFoot(similar, similarAlbums, client, onArtist, onAlbum = ::openSimilar, onUrl = ::openUrl) }) {
+            foot = { if (tab == "overview") ArtistFoot(similar, similarAlbums, client, onArtist, onAlbum = ::openSimilar, onUrl = ::openUrl) }) {
             // The name at once; the count when the albums come. An error as the page has it, in red under the heading.
             val n = (a?.primary?.size ?: 0) + (a?.featured?.size ?: 0) + bands.sumOf { it.albums.size }
             WallHead(if (a == null) name else "$n album" + (if (n == 1) "" else "s") + " · $name" + (a.note?.let { " ($it)" } ?: ""), prefs, failed?.let { "Error: $it" to true })
