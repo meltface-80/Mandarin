@@ -16,7 +16,8 @@ public sealed class GenreNamesTests
         await using var none = await FakeServer.Start(ctx => Task.FromResult(ctx.Response.StatusCode = 404));
         var lib = Fixtures.MakeLibrary();
         var albums = new[] { ("Plastic", "Électronique", 300), ("Wires", "Electronic", 350), ("Rooms", "Musique de chambre", 400), ("Odd", "Krautrock", 450),
-            ("Strings", "ŒUVRES ORCHESTRALES", 500), ("Score", "Bandes originales de films", 550), ("Night", "Trip hop", 600) };
+            ("Strings", "ŒUVRES ORCHESTRALES", 500), ("Score", "Bandes originales de films", 550), ("Night", "Trip hop", 600),
+            ("Loud", "Alternatif et indé", 650), ("Quiet", "Alternative & Indie", 700) };
         foreach (var (album, genre, freq) in albums)
             Fixtures.Gen(Path.Combine(lib.Music, "The Chips", album, "01.flac"), seconds: 1, freq: freq, tags: new Dictionary<string, object>
             {
@@ -34,18 +35,25 @@ public sealed class GenreNamesTests
         Assert.Contains(("Chamber Music", "1 album"), genres);
         Assert.Contains(("Orchestral Music", "1 album"), genres);   // whatever its case and accents
         Assert.Contains(("Film Soundtracks", "1 album"), genres);
+        Assert.Contains(("Alternative & Indie", "2 albums"), genres);
         // English already, or not known: as it is.
         Assert.Contains(("Krautrock", "1 album"), genres);
         Assert.Contains(("Trip hop", "1 album"), genres);
-        Assert.DoesNotContain(genres, g => g.Item1 is "Électronique" or "Musique de chambre" or "ŒUVRES ORCHESTRALES" or "Bandes originales de films");
+        Assert.DoesNotContain(genres, g => g.Item1 is "Électronique" or "Musique de chambre" or "ŒUVRES ORCHESTRALES" or "Bandes originales de films" or "Alternatif et indé");
+        // Home's Browse by genre (its cards are these genres and these groups): no French there either.
+        var groups = (await Get("home/genre-groups")).ToJsonString();
+        Assert.DoesNotContain("Alternatif", groups);
+        Assert.DoesNotContain("lectronique", groups);
 
         // An album's page and the artist's page say them in English.
         var plastic = (await Get("library/albums?count=50"))["albums"].Items().First(a => a.Str("title") == "Plastic");
         var page = await Get("album?offset=" + plastic.Num("offset"));
         Assert.Equal(["Electronic"], page["album"]!["genres"].Items().Select(g => g?.GetValue<string>()));
         var artist = await Get("artist?name=" + Uri.EscapeDataString("The Chips"));
-        Assert.Equal("Electronic", artist["genres"]![0]!.GetValue<string>());
-        Assert.DoesNotContain(artist["genres"].Items(), g => g?.GetValue<string>() == "Électronique");
+        var theirs = artist["genres"].Items().Select(g => g?.GetValue<string>()).ToList();
+        Assert.Contains("Electronic", theirs);
+        Assert.Contains("Alternative & Indie", theirs);
+        Assert.DoesNotContain(theirs, g => g is "Électronique" or "Alternatif et indé");
 
         // The genre's wall, asked for in English or by the French name a wall kept from before has: both albums.
         string[] Titles(JsonNode j) => [.. j["albums"].Items().Select(a => a.Str("title") ?? "").Order(StringComparer.Ordinal)];
