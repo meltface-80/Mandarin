@@ -40,12 +40,12 @@ import com.musicd.server.client.WallPrefs
 /**
  * The foot of Overview (bug list item 140; the page's artist-foot.js, .artist-similar): similar artists (item 137), a
  * row of round pictures each opening their page, then similar albums, Home's row of the page's album tiles (TileArt,
- * AlbumTile's type) each opening the album (the library's) or its Last.fm page. A row with nothing in it isn't there.
+ * AlbumTile's type) each opening the album, the library's alone (the server's). A row with nothing in it isn't there.
  * Each heading as Discography's, its content 16 under it.
  */
 @Composable
 internal fun ArtistFoot(similar: ArtistSimilar?, albums: List<SimilarAlbum>, prefs: WallPrefs, coverPx: Int, client: () -> ServerClient?, onArtist: (String) -> Unit,
-                        onAlbum: (Int) -> Unit, onUrl: (String) -> Unit) {
+                        onAlbum: (Int) -> Unit) {
     val acts = similar?.artists.orEmpty()
     if (acts.isEmpty() && albums.isEmpty()) return
     Column(Modifier.fillMaxWidth().padding(top = 6.dp, bottom = 10.dp)) {
@@ -60,7 +60,7 @@ internal fun ArtistFoot(similar: ArtistSimilar?, albums: List<SimilarAlbum>, pre
             Spacer(Modifier.height(12.dp))
             ArtistRow(albums.size, key = { it }) { i ->
                 val al = albums[i]
-                SimilarAlbumTile(al, prefs, coverPx, client) { if (al.album != null) onAlbum(i) else al.url?.let(onUrl) }
+                SimilarAlbumTile(al, prefs, coverPx, client) { onAlbum(i) }
             }
         }
     }
@@ -85,8 +85,8 @@ private fun SimilarAct(a: ArtistSimilar.Act, client: () -> ServerClient?, onArti
 }
 
 /**
- * A similar album as the page's album tile (the page's buildAlbumTile): the tile's cover and badges (TileArt), the title
- * in two lines and who by in one at UI Settings' size, Home's width; "Last.fm ↗" under one the library hasn't.
+ * A similar album, the library's (the server sends no other), as the page's album tile (the page's buildAlbumTile): the
+ * tile's cover and badges (TileArt), the title in two lines and who by in one at UI Settings' size, Home's width.
  */
 @Composable
 private fun SimilarAlbumTile(al: SimilarAlbum, prefs: WallPrefs, coverPx: Int, client: () -> ServerClient?, onTap: () -> Unit) {
@@ -101,6 +101,5 @@ private fun SimilarAlbumTile(al: SimilarAlbum, prefs: WallPrefs, coverPx: Int, c
         val by = al.artist.ifEmpty { a.subtitle }
         if (by.isNotEmpty()) Text(by, Modifier.parity("artist.similar-album-artist").padding(top = 1.dp).lineBox(artist, artistLine), color = MaterialTheme.colorScheme.onSurfaceVariant,
             fontSize = artist, lineHeight = artistLine, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        if (al.album == null && al.url != null) Text("Last.fm ↗", Modifier.parity("artist.similar-album-artist").padding(top = 1.dp), color = MaterialTheme.colorScheme.secondary, fontSize = 10.sp, letterSpacing = 0.04.em)
     }
 }

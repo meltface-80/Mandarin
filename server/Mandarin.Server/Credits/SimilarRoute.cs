@@ -10,9 +10,10 @@
 // from Last.fm, whose pictures of acts are a blank star now. Every one opens
 // its page here, in the library or not, as a band's members do.
 //
-// Similar albums: with a Last.fm key, Last.fm's (each similar act's top album,
-// as an album's page has them, the library's own where it has it); without
-// one, the library's albums by the acts Deezer relates, one each. The shape
+// Similar albums: the library's alone (the owner's call: none that leave the
+// app). With a Last.fm key, Last.fm's (each similar act's top album, as an
+// album's page has them) that the library has; without one, or none of
+// those, the library's albums by the acts Deezer relates, one each. The shape
 // is /api/lastfm/similar-albums', so the clients read both alike.
 using System.Text.Json.Nodes;
 using Mandarin.Server.Credits;
@@ -73,11 +74,12 @@ internal static partial class Library
                 var (_, found) = await fm.SimilarAlbums(name, 9, () => !ctx.RequestAborted.IsCancellationRequested);
                 foreach (var al in found)
                 {
-                    var own = LastfmInLibrary(s, al.Title, al.Artist);
+                    // The library's alone: one it hasn't would leave the app for Last.fm's page.
+                    if (LastfmInLibrary(s, al.Title, al.Artist) is not { } own) continue;
                     albums.Add(new JsonObject
                     {
                         ["title"] = al.Title, ["artist"] = al.Artist, ["url"] = al.Url, ["image"] = al.Image,
-                        ["image_key"] = Picture(al.Image), ["album"] = own != null ? AlbumJson(s, own) : null,
+                        ["image_key"] = Picture(al.Image), ["album"] = AlbumJson(s, own),
                     });
                 }
                 source = "Last.fm";

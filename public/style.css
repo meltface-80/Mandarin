@@ -2920,7 +2920,6 @@ input.vol-range::-moz-range-thumb {
 .artist-stints-folded .artist-stint-row { display: none; }
 .artist-tail { grid-column: 1 / -1; min-width: 0; padding-top: 18px; }
 .artist-tail .hidden { display: none; }
-.artist-similar-album-site { font-size: 10px; letter-spacing: .04em; color: var(--accent-text); }
 /* Overview's rows of album tiles (their albums, similar albums): Home's row (.home-carousel), its gutter main's. */
 .artist-overview, .artist-tail { --home-gutter: 14px; }
 @media (min-width: 768px)  { .artist-overview, .artist-tail { --home-gutter: 18px; } }

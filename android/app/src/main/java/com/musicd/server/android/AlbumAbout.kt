@@ -108,13 +108,13 @@ internal fun LazyListScope.albumAbout(review: Review?, more: AlbumMore?, client:
     val m = more ?: return
     if (m.by.isNotEmpty()) item {
         MoreSection("More by ${m.lead}", m.by.size, Modifier.parity("album.more-by"), moreKey = "album.more-by-more") { shown ->
-            Grid(m.by.take(shown)) { a -> AlbumTile(a.title, a.subtitle, a.imageKey, false, client,
+            Grid(m.by.take(shown)) { a -> AlbumTile(a.title, a.subtitle, a.imageKey, client,
                 Modifier.parity("album.more-by-album", Contract.label("album.more-by-album", 0, a.title)).clickable { onAlbum(a.offset) }) }
         }
     }
     if (m.appears.isNotEmpty()) item {
         MoreSection("${m.lead} appears on", m.appears.size, Modifier.parity("album.appears-on"), moreKey = "album.appears-on-more") { shown ->
-            Grid(m.appears.take(shown)) { a -> AlbumTile(a.title, a.subtitle, a.imageKey, false, client,
+            Grid(m.appears.take(shown)) { a -> AlbumTile(a.title, a.subtitle, a.imageKey, client,
                 Modifier.parity("album.appears-on-album", Contract.label("album.appears-on-album", 0, a.title)).clickable { onAlbum(a.offset) }) }
         }
     }
@@ -134,12 +134,13 @@ internal fun LazyListScope.albumAbout(review: Review?, more: AlbumMore?, client:
                 Modifier.parity("album.similar-artist", Contract.label("album.similar-artist", 0, a.name)).clickable { if (a.inLibrary) onArtist(a.name) else a.url?.let(onUrl) }) }
         }
     }
-    if (m.albums.isNotEmpty()) item {
-        MoreSection("Similar albums", m.albums.size, Modifier.parity("album.similar-albums"), moreKey = "album.similar-albums-more") { shown ->
-            Grid(m.albums.take(shown)) { al ->
-                val own = al.album
-                AlbumTile(own?.title ?: al.title, own?.subtitle ?: al.artist, own?.imageKey ?: al.imageKey, own == null, client,
-                    Modifier.parity("album.similar-album", Contract.label("album.similar-album", 0, own?.title ?: al.title)).clickable { if (own != null) onAlbum(own.offset) else al.url?.let(onUrl) })
+    // The library's alone (the server sends no other; one it hasn't left the app for Last.fm's page).
+    val ownSimilar = m.albums.mapNotNull { it.album }
+    if (ownSimilar.isNotEmpty()) item {
+        MoreSection("Similar albums", ownSimilar.size, Modifier.parity("album.similar-albums"), moreKey = "album.similar-albums-more") { shown ->
+            Grid(ownSimilar.take(shown)) { own ->
+                AlbumTile(own.title, own.subtitle, own.imageKey, client,
+                    Modifier.parity("album.similar-album", Contract.label("album.similar-album", 0, own.title)).clickable { onAlbum(own.offset) })
             }
         }
     }
@@ -186,9 +187,9 @@ private fun <T> Grid(items: List<T>, tile: @Composable (T) -> Unit) {
     }
 }
 
-/** An album as the page's tile: its cover, title and artist; "Last.fm ↗" under one that leaves the app. */
+/** An album of the library's as the page's tile: its cover, title and artist. */
 @Composable
-private fun AlbumTile(title: String, artist: String, imageKey: String?, external: Boolean, client: () -> ServerClient?, modifier: Modifier) {
+private fun AlbumTile(title: String, artist: String, imageKey: String?, client: () -> ServerClient?, modifier: Modifier) {
     val cover = rememberCover(imageKey, 300, client)
     Column(modifier) {
         Box(Modifier.fillMaxWidth().aspectRatio(1f).clip(RoundedCornerShape(6.dp)).background(paletteColor(Palette.BG_ELEV_2))) {
@@ -196,7 +197,6 @@ private fun AlbumTile(title: String, artist: String, imageKey: String?, external
         }
         Text(title, Modifier.padding(top = 8.dp), color = paletteColor(Palette.MODAL_TEXT), fontSize = 14.sp, fontWeight = FontWeight.W500, lineHeight = 18.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
         Text(artist, Modifier.padding(top = 2.dp), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp, lineHeight = 17.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        if (external) Text("Last.fm ↗", Modifier.padding(top = 2.dp), color = MaterialTheme.colorScheme.secondary, fontSize = 10.sp, letterSpacing = 0.04.em)
     }
 }
 
