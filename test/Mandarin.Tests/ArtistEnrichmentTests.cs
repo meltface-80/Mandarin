@@ -117,7 +117,7 @@ public sealed class ArtistEnrichmentTests
         var maiden = await Artist("Iron Maiden");
         Assert.True(maiden.Bool("known"));
         Assert.Equal(["Steve Harris", "Janick Gers"], Names(maiden["members"]));
-        Assert.Null(maiden["links"].Str("official"));
+        Assert.Null(maiden["links"]);   // the page has no links; the ended one passed over is the job's test above
 
         var gers = await Artist("Janick Gers");
         Assert.Equal(["Iron Maiden"], Names(gers["member_of"]));

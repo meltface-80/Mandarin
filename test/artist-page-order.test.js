@@ -69,7 +69,7 @@ test("an artist's page: the discography under the head, the foot last, and drawn
       r = await page.eval(DRIVER);
       assert.deepEqual(page.errors, []);
     } finally { await b.close(); }
-    assert.equal(r.sections[0], "Discography", "their own albums first, under Discography: " + r.sections.join(", "));
+    assert.equal(r.sections[0], "Albums", "their own albums first, under Albums (Discography's): " + r.sections.join(", "));
     assert.ok(r.headFirst, "who they are over everything");
     assert.ok(r.footLast, "similar artists and albums last in the grid");
     assert.equal(r.asked, 1);

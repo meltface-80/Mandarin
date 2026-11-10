@@ -73,7 +73,7 @@ class LibraryClient(private val get: (String) -> JSONObject) {
 
     /** An artist's biography, one of their albums naming them ([album]); null when there is none. */
     fun artistBio(artist: String, album: String): ArtistBio? = ArtistBio.parse(get("/api/artist-bio?artist=" + enc(artist) + "&album=" + enc(album)))
-    /** Who an act is (bug list item 131): picture, facts, links, members or bands, albums credited on. */
+    /** Who an act is (bug list item 131): picture, facts, members or bands, albums credited on. */
     fun artistAbout(artist: String): ArtistAbout {
         // [artist] as ArtistAct.of names it: one act of a shared name is looked up as that act (item 340).
         val (name, act) = ArtistAct.parse(artist)

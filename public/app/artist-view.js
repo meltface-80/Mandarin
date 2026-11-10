@@ -32,6 +32,7 @@
     if (!artistViewActive) return;
     artistViewActive = false;
     bioSeq++;   // any in-flight bio must not prepend into the restored screen
+    delete grid.dataset.artistTab;   // the grid no longer an artist's page in tabs
     if (saved && opts && opts.restore === false) {
       saved = null;
       grid.innerHTML = "";
@@ -179,8 +180,9 @@
     if (topbarRefresh) topbarRefresh.classList.add("hidden");
     if (topbarSearch)  topbarSearch.classList.add("hidden");
 
-    // The name at once; the count when the albums come.
+    // The name at once; the count when the albums come. Overview open: Discography's tiles wait.
     setTitle(artistName);
+    grid.dataset.artistTab = "overview";
     if (countBar) { countBar.innerHTML = ""; countBar.classList.add("hidden"); }
     grid.innerHTML = "";
 
@@ -212,38 +214,38 @@
         none.textContent = `No albums found for "${artistName}"`;
         grid.replaceChildren(none);
         // Who they are all the same: a band's member opened from its page may have nothing of their own here.
-        renderHead(artistName, "", new Set(), 0, [], [], how && how.artistId != null ? how.artistId : null);
+        renderHead(artistName, "", new Set(), 0, [], [], how && how.artistId != null ? how.artistId : null, []);
         return;
       }
 
       const frag = document.createDocumentFragment();
       const header = (text) => {
         const hdr = document.createElement("div");
-        hdr.className = "artist-section-header"; hdr.dataset.parity = "artist.section";
+        hdr.className = "artist-section-header artist-disc"; hdr.dataset.parity = "artist.section";
         hdr.textContent = text;
         frag.appendChild(hdr);
       };
 
-      // Their discography, then what they appear on (item 140: the owner's order), their bands' and credits after.
+      // Their albums, then what they appear on (item 140: the owner's order), their bands' and credits after: Discography's.
       if (j.primary.length) {
-        header("Discography");
+        header("Albums");
         for (const a of j.primary) {
-          frag.appendChild(window.__keyArtistTile(window.__buildAlbumTile(a)));
+          frag.appendChild(disc(window.__keyArtistTile(window.__buildAlbumTile(a))));
         }
       }
 
       if (mine.length) {
         if (j.primary.length || j.featured.length) header("On this phone");
-        for (const a of mine) frag.appendChild(window.__keyArtistTile(window.__buildAlbumTile(a)));
+        for (const a of mine) frag.appendChild(disc(window.__keyArtistTile(window.__buildAlbumTile(a))));
       }
 
       if (j.featured.length) {
         const hdr = document.createElement("div");
-        hdr.className = "artist-section-header"; hdr.dataset.parity = "artist.section";
+        hdr.className = "artist-section-header artist-disc"; hdr.dataset.parity = "artist.section";
         hdr.textContent = "Appears on";
         frag.appendChild(hdr);
         for (const a of j.featured) {
-          frag.appendChild(window.__keyArtistTile(window.__buildAlbumTile(a)));
+          frag.appendChild(disc(window.__keyArtistTile(window.__buildAlbumTile(a))));
         }
       }
 
@@ -254,7 +256,7 @@
       // album titles pins their identity for the lookup (see /api/artist-bio).
       const bioAlbum = (j.primary[0] && j.primary[0].title) ||
                        (j.featured[0] && j.featured[0].title) || (mine[0] && mine[0].title) || "";
-      renderHead(artistName, bioAlbum, new Set(j.primary.concat(j.featured).map(a => a.offset)), total, j.primary, j.featured, how && how.artistId != null ? how.artistId : null);
+      renderHead(artistName, bioAlbum, new Set(j.primary.concat(j.featured).map(a => a.offset)), total, j.primary, j.featured, how && how.artistId != null ? how.artistId : null, mine);
       if (failed) throw failed;   // the phone's albums are up; the server's absence is still said
     } catch (e) {
       if (countBar) {
@@ -267,16 +269,19 @@
     }
   }
 
+  /** A tile, Discography's (style.css shows it on that tab alone). @param {HTMLElement} el */
+  function disc(el) { el.classList.add("artist-disc"); return el; }
+
   // Who they are, at the head of the page (artist-about.js, bug list item 131):
   // after the albums, so the grid is never held up by other services; a
   // view or artist switched before the answers come draws nothing.
   let bioSeq = 0;
-  function renderHead(artistName, pin, shown, total, own, featured, actId) {
+  function renderHead(artistName, pin, shown, total, own, featured, actId, phone) {
     const seq = bioSeq;   // generation is bumped by showArtistAlbums/exitArtistView, not here
     const alive = () => seq === bioSeq && artistViewActive;
     // Their bands' albums count with their own in the heading (item 133).
     const onCount = (more) => { if (!alive()) return; const n = total + more; setTitle(n + " album" + (n !== 1 ? "s" : "") + " · " + artistName); };
-    if (window.__renderArtistHead) window.__renderArtistHead(artistName, pin, grid, alive, shown, onCount, own, featured, actId);
+    if (window.__renderArtistHead) window.__renderArtistHead(artistName, pin, grid, alive, shown, onCount, own, featured, actId, phone);
   }
 
   window.__showArtistAlbums = showArtistAlbums;
