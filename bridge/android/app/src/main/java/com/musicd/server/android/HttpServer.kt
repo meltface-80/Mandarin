@@ -83,6 +83,9 @@ class HttpServer(private val port: Int, private val handle: (Request) -> Respons
                 // A connection opened and left: nothing to answer.
             } catch (e: IOException) {
                 Log.i(TAG, "connection: ${e.message}")
+            } catch (e: RuntimeException) {
+                // Whatever one request does wrong ends its connection, never the Bridge.
+                Log.w(TAG, "connection: $e")
             }
         }
     }
@@ -111,7 +114,11 @@ class HttpServer(private val port: Int, private val handle: (Request) -> Respons
             val i = l.indexOf(':')
             if (i > 0) headers[l.substring(0, i).trim().lowercase()] = l.substring(i + 1).trim()
         }
-        val length = headers["content-length"]?.toIntOrNull() ?: 0
+        // A length that isn't one (negative, or not a number) is refused, never an array sized by it (any computer on
+        // the network sending Content-Length: -1 stopped the Bridge each time).
+        val given = headers["content-length"]
+        val length = if (given == null) 0 else given.toIntOrNull() ?: throw IOException("bad Content-Length: $given")
+        if (length < 0) throw IOException("bad Content-Length: $given")
         if (length > BODY_MAX) throw IOException("body too long")
         val body = ByteArray(length)
         var got = 0

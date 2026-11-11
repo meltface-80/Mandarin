@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.3.6
+
+- Fixed - a Raspberry Pi just set up on Wi-Fi from its page could join the home network and then open its setup network again over it ("Mandarin Bridge Setup" back, the Pi gone from the home network) when NetworkManager took a few seconds joining: the setup network is now opened only where the Pi is still on no network
+- Fixed - a Pi whose home network went for a minute (a router restarted) opened its setup network and stayed on it until someone joined the home network again from its page. It now closes it now and then for NetworkManager to join the home network it knows, and stays on it once it is back
+- Fixed - security: a web page reaching a Bridge under its own site's name (DNS rebinding) passed its check of where a change comes from, the name and the page alike its own; a browser's change is now taken only under a name a home uses (an address, a bare name, .local, .lan, the tailnet's), as Mandarin's server takes one. Both Bridges
+- Fixed - the Android Bridge stopped whenever any computer on the network sent it a request with a negative length; such a request is refused, and anything one request does wrong ends only that request
+- Improved - Mandarin Bridge is 0.3.6
+
 ## v0.3.5
 
 - Fixed - the Linux Bridge (and the Pi's) couldn't update where .NET's secure connection to GitHub failed before GitHub's certificate was seen: a DietPi's said "GitHub couldn't be reached (SecureConnectionError)" every time, though curl on the same computer (the install line's) fetched GitHub's releases. It now says what .NET said, and fetches with curl instead; the download is checked against its checksum (and signature) as before. A certificate refused (a wrong clock, missing certificates, an answer not GitHub's) is still said in words, and never fetched around (item 385)

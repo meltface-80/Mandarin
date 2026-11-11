@@ -14,6 +14,9 @@ internal sealed class Wifi(string nmcli, Action<string> log)
     public const string SetupName = "Mandarin Bridge Setup", SetupPassword = "mandarin-setup", SetupConnection = "mandarin-setup";
     private readonly object gate = new();
     public bool Hotspot { get; private set; }
+    // Since when the computer has been on no network (null: it is on one), and when the setup network last opened.
+    private DateTime? offSince;
+    private DateTime openedAt;
     public string? LastError { get; private set; }
 
     // nmcli [args], its output; null where it failed (and why, in LastError).
@@ -77,11 +80,42 @@ internal sealed class Wifi(string nmcli, Action<string> log)
     {
         lock (gate)
         {
-            if (Hotspot) return;
-            if (Run("device", "wifi", "hotspot", "con-name", SetupConnection, "ssid", SetupName, "password", SetupPassword) != null) { Hotspot = true; log($"[wifi] no network: \"{SetupName}\" open (password {SetupPassword}); the page at http://10.42.0.1:49494/"); }
+            // Joined meanwhile (a join from the page holds the gate while nmcli connects): never over the home network.
+            if (Hotspot || Connected()) return;
+            if (Run("device", "wifi", "hotspot", "con-name", SetupConnection, "ssid", SetupName, "password", SetupPassword) != null) { Hotspot = true; openedAt = DateTime.UtcNow; log($"[wifi] no network: \"{SetupName}\" open (password {SetupPassword}); the page at http://10.42.0.1:49494/"); }
             else log("[wifi] the setup network couldn't open: " + LastError);
         }
     }
+
+    /*
+     * The heartbeat's look (Bridge.cs), every few seconds: on no network for [setupAfter] seconds, the setup network
+     * opened; open for a while where the computer knows a home network (one lost, not a Pi just flashed: a router
+     * restarted, a blip), closed again now and then so NetworkManager can join it, and opened again if it can't.
+     */
+    public void Watch(int setupAfter)
+    {
+        var now = DateTime.UtcNow;
+        if (!Hotspot)
+        {
+            if (Connected()) { offSince = null; return; }
+            offSince ??= now;
+            if (now - offSince.Value >= TimeSpan.FromSeconds(setupAfter)) OpenSetup();
+            return;
+        }
+        if (now - openedAt < TimeSpan.FromSeconds(Math.Max(setupAfter * 5, 10)) || !KnowsHome()) return;
+        lock (gate)
+        {
+            if (!Hotspot) return;
+            Run("connection", "down", SetupConnection);
+            Hotspot = false;
+            offSince = DateTime.UtcNow;
+        }
+        log("[wifi] the setup network closed a moment: the home network tried again");
+    }
+
+    /* Whether NetworkManager keeps a Wi-Fi network of the home's (any but the setup network's) to join by itself. */
+    private bool KnowsHome() =>
+        (Run("-t", "-f", "NAME,TYPE", "connection", "show") ?? "").Split('\n').Any(l => Fields(l) is [var name, var type, ..] && name != SetupConnection && type.Contains("wireless", StringComparison.Ordinal));
 
     /* The home network [ssid] joined with [password], the setup network closed first; false (and why) where it didn't join. */
     public bool Join(string ssid, string password)

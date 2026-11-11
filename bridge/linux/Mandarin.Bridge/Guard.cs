@@ -20,8 +20,26 @@ internal static class Guard
         if (string.IsNullOrEmpty(origin)) return null;   // not a browser's page: Mandarin's server, curl
         if (!Uri.TryCreate(origin, UriKind.Absolute, out var o)) return "from another site";
         var host = r.Header("host") ?? "";
+        // A site's page pointing its own name at the Bridge (DNS rebinding) is its own origin there: a browser's ask is
+        // taken only under a name a home uses, as Mandarin's server takes one (item 172).
+        if (!HomeName(host)) return "asked for under another site's name";
         var own = o.IsDefaultPort ? o.Host : o.Host + ":" + o.Port;
         return own.Equals(host, StringComparison.OrdinalIgnoreCase) || o.Host.Equals(host, StringComparison.OrdinalIgnoreCase) && o.IsDefaultPort ? null : "from another site";
+    }
+
+    private static readonly string[] HomeSuffixes = [".local", ".lan", ".home", ".home.arpa", ".internal", ".localdomain", ".localhost", ".ts.net"];
+
+    /* Whether [host] (a Host header, its port and all) is a name a home uses: an address, localhost, a bare name, or
+       one under a home's suffix (Mandarin's server's Auth.HomeName); never a site's. */
+    public static bool HomeName(string host)
+    {
+        var h = host.Trim().ToLowerInvariant();
+        if (h.StartsWith('[')) return true;   // an IPv6 address
+        if (h.LastIndexOf(':') is var colon and > 0) h = h[..colon];
+        h = h.TrimEnd('.');
+        if (h.Length == 0) return false;
+        if (System.Net.IPAddress.TryParse(h, out _) || !h.Contains('.')) return true;
+        return HomeSuffixes.Any(s => h.EndsWith(s, StringComparison.Ordinal));
     }
 
     /* Whether release [tag] ("mandarin-bridge-v0.3.2") is older than [running] ("0.3.2"); test-bridge, and a version not read, never are. */
