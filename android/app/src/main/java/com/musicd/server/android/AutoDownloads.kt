@@ -85,7 +85,7 @@ class AutoDownloads(context: Context, params: WorkerParameters) : Worker(context
         }
         // Let go of what dropped off the lists (only what this downloaded).
         for ((album, _) in DownloadStore.albums(c)) {
-            if (album.auto && album.id !in keep) DownloadStore.remove(c, album.id)
+            if (album.auto && album.id !in keep) DownloadStore.removeWhenFree(c, album.id)
         }
         // And fetch what's new.
         for ((id, names) in keep) {

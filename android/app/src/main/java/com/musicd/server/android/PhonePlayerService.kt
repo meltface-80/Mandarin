@@ -680,7 +680,7 @@ class PhonePlayerService : MediaLibraryService() {
         if (!want) UsbDriver.close()
         player.seekTo(idx, pos)
         player.prepare()
-        player.playWhenReady = playing
+        player.playWhenReady = playing && !(wasUsb && UsbDac.device() == null)   // the DAC pulled out: paused, never on through the loudspeaker
         reportSoon()
         // The sink opens the stream on the next buffer; the session learns of the volume's new home shortly after.
         main.postDelayed({ sessionPlayer?.deviceChanged() }, 1500)
