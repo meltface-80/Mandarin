@@ -19,6 +19,22 @@ internal static partial class Library
             if (get && p == "/api/diagnostics/log") return await SendText(ctx, Diagnostics.Text());
             // Every Mandarin Bridge's own log, saved after the server's (item 291, Admin/BridgeLogs.cs).
             if (get && p == "/api/diagnostics/bridges") return await SendText(ctx, await Admin.BridgeLogs.Text());
+            // Every log in one zip, and the page's own errors (DiagnosticsMore.cs, item 389).
+            if (get && p == "/api/diagnostics/zip")
+            {
+                ctx.Response.ContentType = "application/zip";
+                ctx.Response.Headers.ContentDisposition = $"attachment; filename=\"mandarin-logs-{DateTime.UtcNow:yyyyMMdd-HHmm}.zip\"";
+                await DiagnosticsMore.Zip(ctx.Response.Body);
+                return true;
+            }
+            if (HttpMethods.IsPost(m) && p == "/api/diagnostics/page")
+            {
+                System.Text.Json.Nodes.JsonNode? body;
+                try { body = await System.Text.Json.Nodes.JsonNode.ParseAsync(ctx.Request.Body); }
+                catch (System.Text.Json.JsonException) { return await JsError(ctx, 400, "Not JSON"); }
+                var kept = DiagnosticsMore.Page(body, Auth.DeviceNameFromUA(ctx.Request.Headers.UserAgent.ToString()));
+                return await Send(ctx, new JsonObject { ["kept"] = kept });
+            }
             if (HttpMethods.IsPost(m) && p == "/api/diagnostics/clear")
             {
                 Diagnostics.Clear();
