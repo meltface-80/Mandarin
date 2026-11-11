@@ -5,7 +5,7 @@ Written by `node tools/api-map.js write` from the C# sources (`server/Mandarin.S
 where the code decides it away from the address (the handler says). "…" ends an address the route takes
 the rest of; a pattern is as the code writes it. What each answers is said beside its handler.
 
-224 routes.
+229 routes.
 
 | Method | Address | Who may ask | Answered in |
 |---|---|---|---|
@@ -101,6 +101,9 @@ the rest of; a pattern is as the code writes it. What each answers is said besid
 | POST | `/api/labels/merge` | signed in | `LibraryRoutes.cs` |
 | POST | `/api/labels/rescan` | signed in | `LibraryRoutes.cs` |
 | POST | `/api/labels/rescan-force` | signed in | `LibraryRoutes.cs` |
+| POST | `/api/lastfm/connect` | signed in | `LibraryRoutes.cs` |
+| POST | `/api/lastfm/disconnect` | signed in | `LibraryRoutes.cs` |
+| GET | `/api/lastfm/scrobbling` | signed in | `LibraryRoutes.cs` |
 | GET | `/api/lastfm/similar-albums` | signed in | `LibraryRoutes.cs` |
 | GET | `/api/lastfm/similar-artists` | signed in | `LibraryRoutes.cs` |
 | GET | `/api/library-stats` | signed in | `LibraryRoutes.cs` |
@@ -172,6 +175,8 @@ the rest of; a pattern is as the code writes it. What each answers is said besid
 | POST | `/api/settings/labels` | signed in | `LibraryRoutes.cs` |
 | GET | `/api/settings/lastfm-key` | signed in | `LibraryRoutes.cs` |
 | POST | `/api/settings/lastfm-key` | signed in | `LibraryRoutes.cs` |
+| GET | `/api/settings/lastfm-secret` | signed in | `LibraryRoutes.cs` |
+| POST | `/api/settings/lastfm-secret` | signed in | `LibraryRoutes.cs` |
 | GET | `/api/settings/shelf` | signed in | `LibraryRoutes.cs` |
 | POST | `/api/settings/shelf` | signed in | `LibraryRoutes.cs` |
 | GET | `/api/settings/smart-picks` | signed in | `LibraryRoutes.cs` |

@@ -1558,13 +1558,35 @@
 
         <div class="settings-block">
           <div class="settings-row">
-            <span class="settings-label" data-parity="settings-keys.name">Last.fm key <button data-parity="settings-keys.info" class="settings-info-btn" data-info="A free API key from last.fm/api/account/create (any application name will do). The album view then shows the artist&#39;s similar artists and similar albums from Last.fm, under the review: the ones in your library open here, the others on Last.fm. Read-only: nothing is ever sent to Last.fm but the artist&#39;s name, and nothing is scrobbled." aria-label="Info">ⓘ</button></span>
+            <span class="settings-label" data-parity="settings-keys.name">Last.fm key <button data-parity="settings-keys.info" class="settings-info-btn" data-info="A free API key from last.fm/api/account/create (any application name will do). Artist and album pages then show similar artists and albums from Last.fm. With its shared secret below and your account connected, what you play is scrobbled to Last.fm." aria-label="Info">ⓘ</button></span>
           </div>
           <div class="settings-token-row">
             <span class="token-field"><input id="lastfm-key-input" type="text" aria-label="Last.fm key" data-parity="settings-keys.field" class="settings-token-input" placeholder="Paste Last.fm API key…" autocomplete="off" spellcheck="false"><span id="lastfm-key-check" class="token-check hidden" role="img" data-parity="settings-keys.check"></span></span>
             <button id="lastfm-key-save" class="settings-update-btn" type="button" data-parity="settings-keys.save">Save</button>
           </div>
           <div id="lastfm-key-status" class="settings-token-status" data-parity="settings-keys.status"></div>
+        </div>
+
+        <div class="settings-divider"></div>
+
+        <div class="settings-block">
+          <div class="settings-row">
+            <span class="settings-label" data-parity="settings-keys.name">Last.fm shared secret <button data-parity="settings-keys.info" class="settings-info-btn" data-info="The shared secret Last.fm shows beside your API key (last.fm/api/accounts). It signs scrobbling: with it saved, Connect to Last.fm below and allow Mandarin there, and every room, Bridge and this phone scrobble what they play." aria-label="Info">ⓘ</button></span>
+          </div>
+          <div class="settings-token-row">
+            <span class="token-field"><input id="lastfm-secret-input" type="text" aria-label="Last.fm shared secret" data-parity="settings-keys.field" class="settings-token-input" placeholder="Paste Last.fm shared secret…" autocomplete="off" spellcheck="false"><span id="lastfm-secret-check" class="token-check hidden" role="img" data-parity="settings-keys.check"></span></span>
+            <button id="lastfm-secret-save" class="settings-update-btn" type="button" data-parity="settings-keys.save">Save</button>
+          </div>
+          <div id="lastfm-secret-status" class="settings-token-status" data-parity="settings-keys.status"></div>
+        </div>
+
+        <!-- Scrobbling to Last.fm (settings-lastfm.js): the account connected, or Connect to approve Mandarin on Last.fm's page. -->
+        <div class="settings-block">
+          <div class="settings-row">
+            <span class="settings-label" data-parity="settings-keys.name">Scrobbling</span>
+            <button id="lastfm-scrobble-btn" class="settings-update-btn" type="button" data-parity="settings-keys.scrobble">Connect to Last.fm</button>
+          </div>
+          <div id="lastfm-scrobble-status" class="settings-token-status" data-parity="settings-keys.scrobble-status"></div>
         </div>
       </div>
 

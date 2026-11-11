@@ -778,7 +778,7 @@
       }
     },
     "settings-keys": {
-      "page": "Settings' API Keys (in Setup): Back, API Keys; Discogs, FanArt.tv and Last.fm, each with its ⓘ, the box to paste the key into (its ✓ or ✕ once checked), Save, and what the server says of the key",
+      "page": "Settings' API Keys (in Setup): Back, API Keys; Discogs, FanArt.tv, Last.fm and Last.fm's shared secret, each with its ⓘ, the box to paste the key into (its ✓ or ✕ once checked), Save, and what the server says of the key; then Scrobbling: what it is (the account connected, a sign-in waiting, plays waiting to go) and Connect to Last.fm or Disconnect",
       "native": ["android/app/src/main/java/com/musicd/server/android/SettingsPanes.kt"],
       "preview": false,
       "items": {
@@ -789,7 +789,9 @@
         "field": { "kind": "action", "label": "{key}", "each": true },
         "check": { "kind": "shows", "each": true, "when": "the key checked by its service" },
         "save": { "kind": "action", "label": "Save", "each": true },
-        "status": { "kind": "shows", "each": true }
+        "status": { "kind": "shows", "each": true },
+        "scrobble": { "kind": "action", "label": ["Connect to Last.fm", "Disconnect"], "when": "Scrobbling: Connect while no account is connected (Last.fm's page to allow Mandarin on), Disconnect while one is" },
+        "scrobble-status": { "kind": "shows", "when": "Scrobbling: the account, a sign-in waiting on Last.fm, plays waiting to go, what went wrong" }
       }
     },
     "settings-picks": {

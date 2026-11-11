@@ -282,7 +282,7 @@ function keyStatusText(j) {
 }
 
 // One API key's box, status line and Save: Discogs' token and FanArt.tv's key.
-function wireKey({ route, field, inputId, saveId, statusId, checkId, service, noun }) {
+function wireKey({ route, field, inputId, saveId, statusId, checkId, service, noun, onSaved }) {
   const input  = document.getElementById(inputId);
   const save   = document.getElementById(saveId);
   const status = document.getElementById(statusId);
@@ -314,6 +314,7 @@ function wireKey({ route, field, inputId, saveId, statusId, checkId, service, no
         paint(j);
         if (j.check === "invalid") settingsToast("Saved, but " + service + " refused this " + noun, "error");
         else settingsToast(service + " " + noun + " saved" + (j.check === "ok" ? " — checked and working" : ""), "ok");
+        if (onSaved) onSaved();
       } else {
         settingsToast(j.error || "Failed to save " + noun, "error");
       }
@@ -330,4 +331,7 @@ const loadDiscogsToken = wireKey({ route: "discogs-token", field: "token", input
 const loadFanartKey = wireKey({ route: "fanart-key", field: "key", inputId: "fanart-key-input", saveId: "fanart-key-save",
   statusId: "fanart-key-status", checkId: "fanart-key-check", service: "FanArt.tv", noun: "key" });
 const loadLastfmKey = wireKey({ route: "lastfm-key", field: "key", inputId: "lastfm-key-input", saveId: "lastfm-key-save",
-  statusId: "lastfm-key-status", checkId: "lastfm-key-check", service: "Last.fm", noun: "key" });
+  statusId: "lastfm-key-status", checkId: "lastfm-key-check", service: "Last.fm", noun: "key", onSaved: () => loadScrobbling() });
+// Scrobbling's (settings-lastfm.js): saving it again leaves the account to connect again.
+const loadLastfmSecret = wireKey({ route: "lastfm-secret", field: "secret", inputId: "lastfm-secret-input", saveId: "lastfm-secret-save",
+  statusId: "lastfm-secret-status", checkId: "lastfm-secret-check", service: "Last.fm", noun: "shared secret", onSaved: () => loadScrobbling() });

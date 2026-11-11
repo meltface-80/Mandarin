@@ -36,8 +36,8 @@ internal static partial class Backup
         "shareCardReview", "shareReviews", "shareServices", "shelfEnabled", "smartPicksEnabled", "smartPicksHour", "waveformEnabled"];
     public static readonly string[] CollectionKeys = ["userPlaylists", "smartPlaylists"];
     public static readonly string[] CollectionTables = ["favourites", "listen_later", "label_merges", "album_edits", "track_edits", "album_matches"];
-    // The Qobuz and Tidal sign-ins travel with the keys: tokens, never a password.
-    public static readonly string[] KeyKeys = ["discogsToken", "fanartKey", "lastfmKey", "qobuz", "qobuzSettings", "tidal", "tidalSettings"];
+    // The Qobuz, Tidal and Last.fm sign-ins travel with the keys: tokens, never a password.
+    public static readonly string[] KeyKeys = ["discogsToken", "fanartKey", "lastfmKey", "lastfmSecret", "lastfmSession", "qobuz", "qobuzSettings", "tidal", "tidalSettings"];
     // Kept from the server being restored, whatever the database brought.
     private static readonly string[] KeepTables = ["account", "devices"];
     // Whether a sign-in is asked for (openAccess) is today's too: a restore never opens the server (item 172).

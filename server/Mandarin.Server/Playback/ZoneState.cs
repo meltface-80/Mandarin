@@ -72,7 +72,7 @@ internal sealed class ZoneState
        device that says nothing of the samples has none (item 289). */
     public bool Confirmed => Verified == "yes" && Fed?.Untouched == true;
     // History's and the radio's marks, carried from one state to the next.
-    public bool PlayedLogged, LowFired;
+    public bool PlayedLogged, LowFired, Scrobbled, Announced;   // Last.fm's: its point passed, its now playing said (Scrobbles.cs)
 
     /* blankState(volume): nothing playing. */
     public static ZoneState Blank(Volume? volume = null) => new() { At = Hub.Now(), VolumeValue = volume ?? new Volume(null, false) };
