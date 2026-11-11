@@ -3,10 +3,11 @@
 // Made whole and ahead (items 237, 243), a track's first play was always the standard filter's PCM, and DSD only the
 // next time. Now each is `mandarin-server upsample` (UpsampleCommand.cs) begun when the device asks for the track,
 // writing its file a block at a time, and the device is sent it as it grows (Transcoder.TailFollow), as a conversion
-// is: a DSF's header first, its length known from the track's. One is made at a time, on playback's cores, all but two
-// of them while it runs (Cpu.Making.cs, item 260): the next track asked for while one is made waits its turn. A new play stops what was being
-// made for the play before (Only). Each making's speed is kept, and Output says it: a DSF made slower than it plays
-// would run dry.
+// is: a DSF's header first, its length known from the track's. One runs at a time, on playback's cores, all but two
+// of them while it runs (Cpu.Making.cs, item 260): the next track asked for while one is made waits its turn, and a
+// making held ahead of its device (Pace.cs) gives its turn to another room's (Turns.cs, audit H2). A new play stops
+// what was being made for the play before (Only). Each making's speed is kept, and Output says it: a DSF made slower
+// than it plays would run dry.
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Text;
@@ -18,7 +19,6 @@ namespace Mandarin.Server.Upsample;
 
 internal static class MadeAsPlayed
 {
-    private static readonly SemaphoreSlim One = new(1, 1);
     private static readonly ConcurrentDictionary<string, Process?> Under = new();   // waiting (null) or being made
     private static readonly ConcurrentDictionary<string, bool> Stopped = new();
     // Why each was stopped on purpose (another play, skipped from…: items 246, 264), for its log (item 332).
@@ -75,14 +75,14 @@ internal static class MadeAsPlayed
     /* [run]'s file by [p] begun (AlbumRun.cs, item 300), as a track's is: the album's tracks made as one, into [job].Part. */
     public static void StartRun(AlbumRun run, ConvPlan p, ConvJob job, Action<int> finish, StringBuilder err) => Begin(job, finish, err, () => RunAlbum(run, p, job, err));
 
-    // [make] given its turn, one making at a time; [finish] told how it ended.
+    // [make] given its turn, one making running at a time (Turns.cs); [finish] told how it ended.
     private static void Begin(ConvJob job, Action<int> finish, StringBuilder err, Func<Task<int>> make)
     {
         Under[job.Key] = null;
         _ = Task.Run(async () =>
         {
             var code = -1;
-            await One.WaitAsync();
+            await Turns.Wait(job);
             try
             {
                 if (Wait > 0) await Task.Delay(Wait);
@@ -96,7 +96,7 @@ internal static class MadeAsPlayed
                 Stopped.TryRemove(job.Key, out _);
                 // Stopped part made, on purpose: said so, not as a failure (item 332).
                 if (Why.TryRemove(job.Key, out var why) && code != 0 && StoppedOnPurpose(err.ToString()) == null) { err.Clear(); err.Append(StoppedSaid + why); }
-                One.Release();
+                Turns.Release(job);
                 finish(code);
             }
         });
@@ -113,7 +113,7 @@ internal static class MadeAsPlayed
             var join = DsdPlan.BlockFrames(p) is > 0 and var b ? Joins.For(t.Id, (long)p.InRate, b) : null;
             spec = DsdPlan.Job(t.Path, p, job.Part, Transcoder.Soxr, seconds, join);
             // Made on into the start of the next track, and kept for its making: the modulators run on into it.
-            if (join?.After != null) { spec["continue"] = true; next = Transcoder.KeyFor(new ConvTrack(join.AfterId, join.After, join.AfterMtime), p); }
+            if (join?.After != null) { spec["continue"] = true; next = Transcoder.KeyFor(new ConvTrack(join.AfterId, join.After, join.AfterMtime), p); Turns.Continues(job, next); }
             job.Resume = Resume.ForDsf(job, p, t.Id, seconds, join?.Before != null ? join.Carry : 0);
         }
         else

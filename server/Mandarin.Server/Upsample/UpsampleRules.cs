@@ -18,6 +18,7 @@ internal static class UpsampleRules
      */
     public static JsObj Run(JsObj job)
     {
+        if (job["turns"] is List<object?> turns) return Turns.Rules(turns);   // which making runs (audit H2)
         if (job["fft"] is double fn) return FftCheck((int)fn);
         if (job["taps"] is true) return TapsMeasured(job);
         if (job["speed"] is true) return Speed(job);

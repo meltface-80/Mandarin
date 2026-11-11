@@ -51,8 +51,9 @@ internal sealed partial class Players
     }
 
     /* The next file must be complete before the renderer is told about it, so it always sees a length and byte ranges for it;
-       a DSF made as it plays once its making has begun, sent with its header's length and ranges as made (item 262). */
-    private static bool Ready(UpnpItem it)
+       a DSF made as it plays once its making has begun, sent with its header's length and ranges as made (item 262);
+       its making after that of [after], the room's track playing ("" where none is made as it plays: Upsample/Turns.cs). */
+    private static bool Ready(UpnpItem it, string after)
     {
         if (it.Plan == null || !Jv.T(it.Plan["transcode"]) || it.Track == null) return true;
         var t = new ConvTrack(it.Track.Id, it.Track.Path, Hub.TierOrMtime(it.Track));
@@ -61,7 +62,7 @@ internal sealed partial class Players
         var key = Transcoder.KeyFor(t, plan);
         var ready = File.Exists(Transcoder.FinalPath(key));
         // Not yet: begun (a DSF from PCM, or PCM in a shape, in its turn after what is being made now: item 259).
-        if (!ready && !Transcoder.Jobs.ContainsKey(key)) { if (Upsample.MadeAsPlayed.Takes(plan)) Transcoder.Start(t, plan); else Transcoder.Prefetch([(t, plan)]); }
+        if (!ready && !Transcoder.Jobs.ContainsKey(key)) { if (Upsample.MadeAsPlayed.Takes(plan)) { Upsample.Turns.Follows(key, after); Transcoder.Start(t, plan); } else Transcoder.Prefetch([(t, plan)]); }
         // A WAV made as it plays too, its length in its header (item 270), held ahead of the device as a DSF is (item 271).
         return ready || (plan.DsdUp != 0 || plan.Wav) && Upsample.MadeAsPlayed.Takes(plan) && Upsample.MadeAsPlayed.Begun(key);
     }
@@ -81,8 +82,9 @@ internal sealed partial class Players
             return;
         }
         int gen;
-        lock (gate) { if (p.Next is { Sent: true } nx && nx.Uri == it.Uri) return; gen = p.JumpGen; }
-        if (!Ready(it)) return;
+        string after;
+        lock (gate) { if (p.Next is { Sent: true } nx && nx.Uri == it.Uri) return; gen = p.JumpGen; after = p.Index >= 0 && p.Index < p.Queue.Count ? MadeKey(p.Queue[p.Index]) ?? "" : ""; }
+        if (!Ready(it, after)) return;
         try
         {
             // In its turn with what else the renderer is told (item 264); a jump meanwhile, and the next poll arms what follows it.
