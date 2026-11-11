@@ -20,68 +20,63 @@ import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
 /**
- * The app's log (bug list item 121; the log build's, item 116, made a setting): off unless switched on in Settings →
- * Setup → Logging, and then nothing is collected at all. On, it keeps what the app's screens did and when (UiTrace's
- * findings marked "!!"), each request to the server with how long it took, the way to the server found and lost, the
+ * The app's log (bug list item 121; the log build's, item 116): always on, as Mandarin's server and Bridges keep theirs
+ * (item 389; before, it could be switched off in Settings → Setup → Logging, which deleted it). It keeps what the app's screens did and when (UiTrace's
+ * findings marked WARN), each request to the server with how long it took, the way to the server found and lost, the
  * app's own lines of Android's log (the phone's player, the services, a crash), and now and then the server's health and
  * the phone's player; and the server keeps its own (Diagnostics.cs), fetched as the log is saved. Every line goes
  * through LogRedact before it is written: no key, password, email, internet or Tailscale address is kept (item 235). Kept in files/applog,
- * the last two files of [FILE_BYTES] each; switched off, deleted, and the server's with it.
+ * the last two files of [FILE_BYTES] each. Each line is dated in UTC with its level, as the server's are
+ * ("2026-11-11 21:14:03.123 UTC  WARN   [NET] …"), and Android's own lines are kept as logcat writes them, in UTC with the
+ * year; and the new lines are sent to the server now and then (POST /api/diagnostics/app), which keeps them in
+ * Logs/Apps/<this phone's name>.txt beside every other log.
  */
 internal object AppLog {
     private const val FILE_BYTES = 3L * 1024 * 1024
     /** The app's own tags in Android's log, the only ones read (with a crash's). */
     private val TAGS = listOf("Away", "TailscaleEngine", "PhonePlayer", "NowPlaying", "MainActivity", "Downloads", "AutoDownloads", "AppUpdate",
-        "AppBackup", "LocalMusic", "OfflineSite", "ShareBridge", "StreamCache", "UsbDac", "UsbDriver")
+        "AppBackup", "LocalMusic", "OfflineSite", "ShareBridge", "StreamCache", "UsbDac", "UsbDriver", "HomeWifi", "RandomAlbumTile", "NowPlayingWidget")
     private val io = Executors.newSingleThreadExecutor { r -> Thread(r, "applog").apply { isDaemon = true } }
-    private val stamp = SimpleDateFormat("MM-dd HH:mm:ss.SSS", Locale.UK)
+    private val stamp = SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", Locale.UK).apply { timeZone = java.util.TimeZone.getTimeZone("UTC") }
+    /** Lines written since the last sent to the server, oldest first: at most [UNSENT] kept for it. */
+    private val unsent = ArrayDeque<String>()
+    private const val UNSENT = 5000
+    private const val SEND_CHARS = 400_000
     @Volatile private var dir: File? = null
     @Volatile private var app: Context? = null
     @Volatile private var logcat: Process? = null
     /** The Tailscale engine's CPU time at the last snapshot (item 202). */
     @Volatile private var lastEngineCpu: Double? = null
     private var out: FileWriter? = null
-    /** Switched on (Settings → Setup → Logging); off, nothing is collected. */
+    /** Collecting: from the app's start, always (item 389). */
     @Volatile var on = false
         private set
-    /** The screens' watch (findings marked "!!"). Main thread only. */
+    /** The screens' watch (findings marked WARN). Main thread only. */
     val trace = UiTrace()
     /** The last tap, for how long a move took after it; what was shown last, for the taps' lines. */
     @Volatile var lastTap = 0L
     @Volatile var shownLast = "start"
 
-    /** With the app's process (MusicDApp): collecting unless switched off (item 334: on by default), the server told so. */
+    /** With the app's process (MusicDApp): collecting, always (item 389). */
     fun start(c: Context) {
         app = c.applicationContext
         dir = File(c.filesDir, "applog")
-        if (Store.logging(c)) { begin(); tellServer(c, true) }
-    }
-
-    /** Switched on or off in Settings → Setup: off deletes the log, the server's too. */
-    fun switch(c: Context, to: Boolean) {
-        Store.setLogging(c, to)
-        if (to) begin() else { on = false; logcat?.destroy(); logcat = null; deleteFiles() }
-        tellServer(c, to)
+        begin()
     }
 
     private fun begin() {
         if (on) return
         dir?.mkdirs()
         on = true
-        line("APP", "logging on: Mandarin ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE}), Android ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})")
+        line("APP", "the app started: Mandarin ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE}), Android ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})")
         Thread({ readLogcat() }, "applog-logcat").apply { isDaemon = true; start() }
     }
 
-    /** The server's own log switched on or off with the app's (when it can be reached; asked again with each snapshot). */
-    private fun tellServer(c: Context, to: Boolean) {
-        Thread({ runCatching { Store.client(c.applicationContext)?.post("/api/diagnostics", JSONObject().put("on", to)) } }, "applog-server").apply { isDaemon = true; start() }
-    }
-
-    /** A line of [cat], without personal data; [anomaly] marks it "!!" so it is found in the file at once. Nothing while off. */
+    /** A line of [cat], without personal data; [anomaly] makes it a WARN, so it is found in the file at once. */
     fun line(cat: String, msg: String, anomaly: Boolean = false) {
         if (!on) return
         val at = System.currentTimeMillis()
-        val text = "${synchronized(stamp) { stamp.format(Date(at)) }} ${if (anomaly) "!!" else "  "} ${cat.padEnd(6)} ${LogRedact.line(msg)}\n"
+        val text = "${synchronized(stamp) { stamp.format(Date(at)) }} UTC  ${if (anomaly) "WARN " else "INFO "}  [$cat] ${LogRedact.line(msg)}\n"
         io.execute { write(text) }
     }
 
@@ -90,7 +85,7 @@ internal object AppLog {
         val d = dir ?: return
         if (!on) return
         val safe = text.lines().joinToString("\n") { LogRedact.line(it) }
-        runCatching { FileWriter(File(d, "current.log"), true).use { it.write("${synchronized(stamp) { stamp.format(Date()) }} !! APP    $safe\n") } }
+        runCatching { FileWriter(File(d, "current.log"), true).use { it.write("${synchronized(stamp) { stamp.format(Date()) }} UTC  ERROR  [APP] $safe\n") } }
     }
 
     /** UiTrace's findings, each an anomaly. */
@@ -114,15 +109,31 @@ internal object AppLog {
             w.write(text)
             w.flush()
         }
+        synchronized(unsent) { unsent.addLast(text); while (unsent.size > UNSENT) unsent.removeFirst() }
+    }
+
+    /** The lines written since the last sent, sent to the server (its Logs/Apps); kept to try again where it can't be reached. Off the main thread. */
+    fun send(c: Context) {
+        val client = Store.client(c.applicationContext) ?: return
+        if (OfflineNow.on) return
+        val batch = StringBuilder()
+        var taken = 0
+        synchronized(unsent) {
+            for (l in unsent) { if (batch.length + l.length > SEND_CHARS) break; batch.append(l); taken++ }
+        }
+        if (taken == 0) return
+        runCatching { client.post("/api/diagnostics/app", JSONObject().put("text", batch.toString())) }
+            .onSuccess { synchronized(unsent) { repeat(minOf(taken, unsent.size)) { unsent.removeFirst() } } }
     }
 
     /** The app's own lines of Android's log (its tags, Info and above, and a crash's), each without personal data, while on. */
     private fun readLogcat() {
         runCatching {
             val filter = TAGS.map { "$it:I" } + listOf("AndroidRuntime:E", "*:S")
-            val p = ProcessBuilder(listOf("logcat", "-v", "threadtime", "--pid=${android.os.Process.myPid()}", "-T", "1") + filter).redirectErrorStream(true).start()
+            val p = ProcessBuilder(listOf("logcat", "-v", "threadtime", "-v", "UTC", "-v", "year", "--pid=${android.os.Process.myPid()}", "-T", "1") + filter).redirectErrorStream(true).start()
             logcat = p
-            p.inputStream.bufferedReader().forEachLine { l -> if (on && l.isNotBlank()) { val s = LogRedact.line(l); io.execute { write("                       LOGCAT $s\n") } } }
+            // As logcat writes it ("2026-11-11 21:14:03.123  4242  4250 W Tag: …", in UTC), so the lines sort among the rest.
+            p.inputStream.bufferedReader().forEachLine { l -> if (on && l.isNotBlank() && !l.startsWith("-----")) { val s = LogRedact.line(l); io.execute { write("$s\n") } } }
         }.onFailure { line("APP", "Android's log can't be read: ${it.javaClass.simpleName}", anomaly = true) }
     }
 
@@ -185,7 +196,8 @@ internal object AppLog {
                         ", data kept ${s.optBoolean("data_persistent", true)}, offline ${s.optBoolean("offline")}")
                 }
                 runCatching { c2.zones() }.onSuccess { z -> line("SNAP", "rooms: ${z.zones.size}, the last " + (if (z.lastZone?.startsWith("PHONE_") == true) "this phone" else if (z.lastZone == null) "none" else "a room of the server's")) }
-                runCatching { if (!c2.getJson("/api/diagnostics").optBoolean("on")) c2.post("/api/diagnostics", JSONObject().put("on", true)) }
+                // What was logged since, sent to the server, beside every other log (item 389).
+                send(app)
             }
             PhonePlayerService.current?.offlineState()?.let { p ->
                 line("SNAP", "phone player: ${p.state}, track ${p.index} of ${p.items.size}, at ${p.position} of ${p.duration}, volume ${p.volume}, revision ${p.revision}")
@@ -204,7 +216,7 @@ internal object AppLog {
         val d = dir ?: return "Nothing logged yet"
         val files = listOf(File(d, "previous.log"), File(d, "current.log")).filter { it.exists() }
         val bytes = files.sumOf { it.length() }
-        val from = files.firstOrNull()?.let { f -> f.useLines { it.firstOrNull()?.take(18) } }
+        val from = files.firstOrNull()?.let { f -> f.useLines { it.firstOrNull()?.take(16) } }
         return if (bytes == 0L) "Nothing logged yet" else "${(bytes + 1023) / 1024} KB logged" + (from?.let { ", since $it" } ?: "")
     }
 
@@ -215,6 +227,7 @@ internal object AppLog {
     fun save(a: Activity, done: (String?) -> Unit) {
         line("APP", "log saved from Settings → Setup")
         io.execute {
+            send(a)
             val d = dir
             val all = java.io.ByteArrayOutputStream()
             all.write("Mandarin's log: the app's, the server's, then each Mandarin Bridge's. It leaves out passwords, keys, emails, account names and internet or Tailscale addresses; please look through it before you send it.\n\n— The app —\n".toByteArray())
@@ -232,7 +245,7 @@ internal object AppLog {
         }
     }
 
-    /** The log emptied, the server's too; collecting goes on. */
+    /** The log emptied, the server's too; collecting goes on (it can't be switched off, item 389). */
     fun clear(c: Context) {
         io.execute { deleteFiles() }
         Thread({ runCatching { Store.client(c.applicationContext)?.post("/api/diagnostics/clear", JSONObject()) } }, "applog-server").apply { isDaemon = true; start() }

@@ -123,4 +123,31 @@ public sealed class DiagnosticsTests
         using var server = new StreamReader(zip.GetEntry("MandarinServer_log.txt")!.Open());
         Assert.Contains("[auth] signed in", server.ReadToEnd());
     }
+
+    [Test]
+    public async Task The_apps_log_is_kept_under_the_phones_name()
+    {
+        await using var s = await Session.Started();
+        var text = "2026-11-11 21:14:03.123 UTC  WARN   [NET] server GET /api/zones → HTTP 500 after 40 ms\n" +
+                   "2026-11-11 21:14:04.000  4242  4250 W PhonePlayer: underrun, token=abcdef0123456789\n";
+        Assert.Equal(2, (await s.Api("diagnostics/app", new { text })).J["kept"]!.GetValue<int>());
+        // The phone's name is the device the sign-in made ("test"); what is the owner's alone taken out again.
+        var kept = File.ReadAllText(Path.Combine(Logs(s), "Apps", "test.txt"));
+        Assert.StartsWith("# The Mandarin app on test: its log", kept);
+        Assert.Contains("[NET] server GET /api/zones → HTTP 500 after 40 ms\n", kept);
+        Assert.Contains("PhonePlayer: underrun, token=[…]\n", kept);
+        Assert.DoesNotContain("abcdef0123456789", kept);
+        // Sent again later: added, the heading once.
+        await s.Api("diagnostics/app", new { text = "2026-11-11 21:20:00.000 UTC  INFO   [APP] later\n" });
+        kept = File.ReadAllText(Path.Combine(Logs(s), "Apps", "test.txt"));
+        Assert.Single(Regex.Matches(kept, "^# ", RegexOptions.Multiline));
+        Assert.EndsWith("[APP] later\n", kept);
+        // Too much at once: refused, nothing kept.
+        Assert.Equal(413, (await s.Api("diagnostics/app", new { text = new string('x', 600_000) })).Status);
+        // In the zip, with the rest.
+        using var req = new HttpRequestMessage(HttpMethod.Get, s.Base + "/api/diagnostics/zip");
+        req.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", s.Token);
+        using var zip = new System.IO.Compression.ZipArchive(new MemoryStream(await (await Http.Client.SendAsync(req)).Content.ReadAsByteArrayAsync()));
+        Assert.Contains("Apps/test.txt", zip.Entries.Select(e => e.FullName));
+    }
 }

@@ -245,7 +245,6 @@ internal object ContractLabels1 {
         "settings.repo" to listOf("View on GitHub"),
         "settings-setup.back" to listOf("Back to settings"),
         "settings-setup.item" to listOf("{page}"),
-        "settings-setup.logging" to listOf("Logging"),
         "settings-setup.log-save" to listOf("Save log"),
         "settings-setup.log-clear" to listOf("Clear log"),
         "settings-logs.back" to listOf("Back to settings"),

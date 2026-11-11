@@ -6,6 +6,8 @@
 //                               promise refused), kept in Logs/Web/MandarinWeb_log.txt as "[browser name] text",
 //                               scrubbed as the server's own lines; at most 20 lines a request and 600 a minute in all,
 //                               each 2,000 characters at most, so a page in a loop can't fill the disk
+//   POST /api/diagnostics/app   { text }: the Android app's newest log lines (its AppLog), each scrubbed again, added to
+//                               Logs/Apps/<the phone's name>.txt (512K characters a request at most), rolled at 4 MB into .01 to .03
 using System.Globalization;
 using System.IO.Compression;
 using System.Text;
@@ -15,7 +17,8 @@ namespace Mandarin.Server;
 
 internal static class DiagnosticsMore
 {
-    public const int LinesPerRequest = 20, LinesPerMinute = 600, LineChars = 2000, WebFiles = 3;
+    public const int LinesPerRequest = 20, LinesPerMinute = 600, LineChars = 2000, WebFiles = 3, AppFiles = 3, AppBytes = 512 * 1024;
+    private const long AppFileBytes = 4L * 1024 * 1024;
     private const long WebFileBytes = 2L * 1024 * 1024;
     private static readonly object gate = new();
     private static DateTime minute = DateTime.MinValue;
@@ -75,6 +78,39 @@ internal static class DiagnosticsMore
                 for (var n = WebFiles - 1; n >= 0; n--)
                     if (File.Exists(At(n))) File.Move(At(n), At(n + 1), true);
             }
+            File.AppendAllText(file, b.ToString());
+        }
+        return kept;
+    }
+
+    /* The app's lines in [text], sent by the phone named [device]: how many were kept. */
+    public static int App(string text, string device)
+    {
+        if (Diagnostics.Dir.Length == 0) return 0;
+        if (text.Length > AppBytes) text = text[^AppBytes..];
+        var b = new StringBuilder();
+        var kept = 0;
+        foreach (var raw in text.Split('\n'))
+        {
+            var l = raw.TrimEnd('\r');
+            if (l.Length == 0) continue;
+            b.Append(LogScrub.Line(l.Length > LineChars ? l[..LineChars] + "…" : l)).Append('\n');
+            kept++;
+        }
+        if (kept == 0) return 0;
+        lock (gate)
+        {
+            var dir = Path.Combine(Diagnostics.Dir, "Apps");
+            Directory.CreateDirectory(dir);
+            var file = Path.Combine(dir, Admin.BridgeLogsKept.FileName(device) + ".txt");
+            if (File.Exists(file) && new FileInfo(file).Length > AppFileBytes)
+            {
+                string At(int n) => n == 0 ? file : file[..^4] + $".{n:00}.txt";
+                File.Delete(At(AppFiles));
+                for (var n = AppFiles - 1; n >= 0; n--)
+                    if (File.Exists(At(n))) File.Move(At(n), At(n + 1), true);
+            }
+            if (!File.Exists(file)) b.Insert(0, $"# The Mandarin app on {LogScrub.Line(device)}: its log, as it sends it (times in UTC)\n");
             File.AppendAllText(file, b.ToString());
         }
         return kept;
