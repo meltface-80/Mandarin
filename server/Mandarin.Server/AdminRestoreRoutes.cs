@@ -18,7 +18,7 @@ internal static partial class Library
         var upload = TmpFile(".tar.gz");
         try
         {
-            await using (var w = File.Create(upload)) await ctx.Request.Body.CopyToAsync(w);
+            await using (var w = Private(upload)) await ctx.Request.Body.CopyToAsync(w);
             var q = Values(ctx, "parts");
             object? parts = q == null ? Undef.V : q.Count == 1 ? q[0] : q.Select(x => (object?)x).ToList();
             return await Finish(ctx, ts, await RestoreFile(upload, Backup.PartsOf(parts), ctx, ts, PassphraseSent(ctx)));
