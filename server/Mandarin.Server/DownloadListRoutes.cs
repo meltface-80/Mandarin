@@ -261,7 +261,7 @@ internal static partial class Library
             var given_ts = TJs.ToNumber(pj != null ? pj["ts"] : Undef.V);
             var ts = Math.Min(now, Math.Max(now - 90 * 86400000.0, given_ts is var g && g != 0 && !double.IsNaN(g) ? g : now));
             // Sent again (the answer lost to a network change before the phone heard it): kept once, scrobbled once.
-            if (given_ts > 0 && Recorded(c, tx, t.Value.Id, "PHONE_" + dev.Id, ts == Math.Floor(ts) ? (object)(long)ts : ts)) continue;
+            if (given_ts > 0 && al != null && Recorded(c, tx, al.Id, t.Value.Id, "PHONE_" + dev.Id, ts == Math.Floor(ts) ? (object)(long)ts : ts)) continue;
             using var cmd = c.CreateCommand();
             cmd.Transaction = tx;
             cmd.CommandText = "INSERT INTO plays(album_id, track_id, title, artist, album, zone, ts) VALUES($a, $t, $ti, $ar, $al, $z, $ts)";
@@ -286,12 +286,12 @@ internal static partial class Library
     }
 
     /* Whether this play (the track, the phone, the moment) is in the history already. */
-    private static bool Recorded(SqliteConnection c, SqliteTransaction tx, long track, string zone, object ts)
+    private static bool Recorded(SqliteConnection c, SqliteTransaction tx, long album, long track, string zone, object ts)
     {
         using var q = c.CreateCommand();
         q.Transaction = tx;
-        q.CommandText = "SELECT 1 FROM plays WHERE track_id = $t AND zone = $z AND ts = $ts LIMIT 1";
-        q.Parameters.AddWithValue("$t", track); q.Parameters.AddWithValue("$z", zone); q.Parameters.AddWithValue("$ts", ts);
+        q.CommandText = "SELECT 1 FROM plays WHERE album_id = $a AND ts = $ts AND track_id = $t AND zone = $z LIMIT 1";   // by album, as every query of the plays reads (PlayHistoryIndexTests)
+        q.Parameters.AddWithValue("$a", album); q.Parameters.AddWithValue("$t", track); q.Parameters.AddWithValue("$z", zone); q.Parameters.AddWithValue("$ts", ts);
         return q.ExecuteScalar() != null;
     }
 
