@@ -1,5 +1,30 @@
 # Changelog
 
+## v0.3.8
+
+- Improved - security: the Linux Bridge (and the Pi's) installs an update only when it is signed with Mandarin's release key, now that there is one; an update replaced on GitHub, its checksum with it, is refused. A Bridge before 0.3.8 takes its update to 0.3.8 as before, and every one after it is checked (item 371)
+- Improved - Mandarin Bridge is 0.3.8
+
+## v0.3.7
+
+- Fixed - a next track that couldn't be opened or read (a file gone, a stream refused) stopped the track playing there and then, with what was buffered of it: the next is read while this one plays, and its failure cut this one off. The track playing now plays out to its end, and the next's failure is said after it. The Linux Bridge and the Pi's
+- Fixed - a DAC unplugged, or the network gone, was said to Mandarin as a track the DAC couldn't play, and Mandarin put the room's Output back to the last that played well. Each Bridge now says whether the track or the DAC failed: Mandarin keeps the Output for a DAC gone. Both Bridges
+- Improved - Mandarin Bridge is 0.3.7
+
+## v0.3.6
+
+- Fixed - a Raspberry Pi just set up on Wi-Fi from its page could join the home network and then open its setup network again over it ("Mandarin Bridge Setup" back, the Pi gone from the home network) when NetworkManager took a few seconds joining: the setup network is now opened only where the Pi is still on no network
+- Fixed - a Pi whose home network went for a minute (a router restarted) opened its setup network and stayed on it until someone joined the home network again from its page. It now closes it now and then for NetworkManager to join the home network it knows, and stays on it once it is back
+- Fixed - security: a web page reaching a Bridge under its own site's name (DNS rebinding) passed its check of where a change comes from, the name and the page alike its own; a browser's change is now taken only under a name a home uses (an address, a bare name, .local, .lan, the tailnet's), as Mandarin's server takes one. Both Bridges
+- Fixed - the Android Bridge stopped whenever any computer on the network sent it a request with a negative length; such a request is refused, and anything one request does wrong ends only that request
+- Improved - Mandarin Bridge is 0.3.6
+
+## v0.3.5
+
+- Fixed - the Linux Bridge (and the Pi's) couldn't update where .NET's secure connection to GitHub failed before GitHub's certificate was seen: a DietPi's said "GitHub couldn't be reached (SecureConnectionError)" every time, though curl on the same computer (the install line's) fetched GitHub's releases. It now says what .NET said, and fetches with curl instead; the download is checked against its checksum (and signature) as before. A certificate refused (a wrong clock, missing certificates, an answer not GitHub's) is still said in words, and never fetched around (item 385)
+- Fixed - installed again by hand, a Linux Bridge could go on running an older update it had fetched itself (kept in its data folder, run in place of the program installed). install.sh now clears it, and the Bridge never hands over to an update older than itself (item 385)
+- Improved - Mandarin Bridge is 0.3.5
+
 ## v0.3.4
 
 - Fixed - the Linux Bridge (and the Pi's) took an update the checksum beside it agreed with, which whoever could replace the release could replace with it (the security audit's ninth finding). Each Linux build is now signed with Mandarin's release key, its signature in the sidecar, and once a Bridge carries the key's public half it installs only a build signed with it, saying so where one isn't (item 371)

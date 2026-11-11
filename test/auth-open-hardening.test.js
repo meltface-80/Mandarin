@@ -90,18 +90,18 @@ test("the sign-in off: what another site or another name can't do", { skip, time
       assert.equal((await ask("GET", "/api/auth/status", from(HOME))).json.open, true, "still open");
       // Nor made a device of its own, nor anything behind the gate.
       assert.equal((await ask("POST", "/api/auth/join", crossSite(HOME), "")).status, 403);
-      assert.equal((await ask("POST", "/api/smart-playlists/delete", crossSite(TAILNET), "{}")).status, 403);
-      assert.equal((await ask("POST", "/api/smart-playlists/delete", crossSite(HOME, { "Sec-Fetch-Site": "same-site" }), "{}")).status, 403);
+      assert.equal((await ask("POST", "/api/settings/display", crossSite(TAILNET), "{}")).status, 403);
+      assert.equal((await ask("POST", "/api/settings/display", crossSite(HOME, { "Sec-Fetch-Site": "same-site" }), "{}")).status, 403);
       // An older browser that says nothing of where the page was, but names its origin.
       const old = from(HOME, { "Content-Type": "text/plain", Origin: "http://evil.example" });
-      assert.equal((await ask("POST", "/api/smart-playlists/delete", old, "{}")).status, 403);
-      assert.equal((await ask("POST", "/api/smart-playlists/delete", from(HOME, { Origin: "null" }), "{}")).status, 403);
+      assert.equal((await ask("POST", "/api/settings/display", old, "{}")).status, 403);
+      assert.equal((await ask("POST", "/api/settings/display", from(HOME, { Origin: "null" }), "{}")).status, 403);
     });
 
     await t.test("the server's own page, an address typed in, and the app: let in as before", async () => {
       const page = { "Sec-Fetch-Site": "same-origin", Origin: "http://" + HERE };
       for (const h of [json(HOME, page), json(HOME, { "Sec-Fetch-Site": "none" }), json(TAILNET), json(HOME, { Origin: "http://" + HERE })]) {
-        const r = await ask("POST", "/api/smart-playlists/delete", h, JSON.stringify({ id: "none" }));
+        const r = await ask("POST", "/api/settings/display", h, JSON.stringify({ id: "none" }));
         assert.ok(r.status !== 401 && r.status !== 403, JSON.stringify(h) + " → " + r.status);
       }
       // The Android app joins with no Origin and no Sec-Fetch-Site.
@@ -132,6 +132,28 @@ test("the sign-in off: what another site or another name can't do", { skip, time
       for (const Host of ["evil.example", "music.example.com", "ts.net.evil.example", "local.evil.example", "1.2.3.4.nip.io"])
         assert.equal((await ask("GET", "/api/status", from(HOME, { Host }))).status, 403, Host);
     });
+  } finally {
+    await srv.stop();
+  }
+});
+
+test("the account can't be made from another site's page, or under another site's name (DNS rebinding)", { skip, timeout: 60000 }, async () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "musicd-open-setup-"));
+  const srv = await startServer(path.join(tmp, "data"));
+  try {
+    const body = JSON.stringify({ username: "owner", salt: "ab".repeat(16), verifier: "0f".repeat(64), iterations: 1000, want_token: true });
+    const rebound = json(HOME, { Host: "evil.example:" + PORT, Origin: "http://evil.example:" + PORT, "Sec-Fetch-Site": "same-origin" });
+    const otherSite = json(HOME, { Origin: "http://evil.example", "Sec-Fetch-Site": "cross-site" });
+    for (const h of [rebound, otherSite]) {
+      const r = await ask("POST", "/api/auth/setup", h, body);
+      assert.equal(r.status, 403, h.Host);
+      assert.equal(r.json.token, undefined);
+    }
+    assert.equal((await ask("GET", "/api/auth/status", from(HOME))).json.setup_required, true, "no account made");
+    // From the server's own page, under its own name: made.
+    const made = await ask("POST", "/api/auth/setup", json(HOME, { "Sec-Fetch-Site": "same-origin", Origin: "http://" + HERE }), body);
+    assert.equal(made.status, 200);
+    assert.ok(made.json.token);
   } finally {
     await srv.stop();
   }

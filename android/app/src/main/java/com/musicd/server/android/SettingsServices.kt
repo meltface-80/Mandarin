@@ -171,7 +171,7 @@ private fun ServiceBlock(service: String, client: () -> ServerClient?, info: (St
             Toggle(a.import, Modifier.parity("settings-services.import", Contract.label("settings-services.import", if (tidal) 1 else 0)).clickable {
                 val on = !a.import
                 account = a.copy(import = on)
-                // The walls, Home and Playlists read afresh as each opens: the albums are in or out.
+                // The walls and Home read afresh as each opens: the albums are in or out.
                 change("", JSONObject().put("import", on)) { j -> show(j); HomeKept.reset() }
             })
         }

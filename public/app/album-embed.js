@@ -10,7 +10,7 @@
   "use strict";
   const w = /** @type {any} */ (window);
   const q = new URLSearchParams(location.search);
-  const embedded = q.get("embed") === "album" && window.parent !== window;
+  const embedded = EMBED;   // embed-flag.js, which also marks the page (.embed-album)
 
   /** Once the page is up (app.js's startup: the server answered, the rooms read). @param {() => void} fn */
   function whenReady(fn) {
@@ -30,7 +30,6 @@
   if (!embedded) return;
 
   // ---- The album view alone, in the Shelf's frame ----
-  document.documentElement.classList.add("embed-album");
   const modal = document.getElementById("album-modal");
   /** @param {any} msg */
   const tell = (msg) => window.parent.postMessage(msg, location.origin);

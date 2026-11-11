@@ -154,8 +154,16 @@ function makeScanLogLink() {
   return wrap;
 }
 
+// The list read again in [ms] ([quiet]: without its spinner): one waiting at a time. Each failure, scan tick and return
+// to the list set one of its own, and they stacked, the list asked again and again.
+let relistTimer = null;
+function relistLabels(ms, quiet) {
+  clearTimeout(relistTimer);
+  relistTimer = setTimeout(() => { if (mode === "list") showLabelsList(quiet); }, ms);
+}
+
 async function showLabelsList(isRepoll = false) {
-  if (window.__leavePlaylistScreens) window.__leavePlaylistScreens();
+  if (window.__leaveSmartPicks) window.__leaveSmartPicks();
   if (!isRepoll) {
     if (window.__clearSearchIfActive) window.__clearSearchIfActive();  // drop stale search results
     exitAlbumSelectMode(); closeLabelLogoSheet(); currentLabelName = null; currentLabelLogoUrl = null;
@@ -192,7 +200,7 @@ async function showLabelsList(isRepoll = false) {
         setBanner(msg, false);
         updateScanBar(j.scanning ? (j.progress || 0) : null);
         // Re-poll every 4 s while the scan is running
-        setTimeout(() => { if (mode === "list") showLabelsList(true); }, 4000);
+        relistLabels(4000, true);
       } else {
         setBanner(j.lookups
           ? "No labels found yet — the background scan is looking them up. This can take a few minutes for large libraries."
@@ -210,7 +218,7 @@ async function showLabelsList(isRepoll = false) {
             await fetch("/api/labels/rescan", { method: "POST",
               headers: { "Content-Type": "application/json" }, body: "{}" });
             _lastLabelCount = -1;
-            setTimeout(() => { if (mode === "list") showLabelsList(false); }, 1000);
+            relistLabels(1000, false);
           } catch (e) { rescanBtn.disabled = false; rescanBtn.textContent = "Rescan now"; }
         });
         grid.appendChild(rescanBtn);
@@ -248,13 +256,13 @@ async function showLabelsList(isRepoll = false) {
     }
     // Keep polling while the scan is running
     if (j.scanning) {
-      setTimeout(() => { if (mode === "list") showLabelsList(true); }, 5000);
+      relistLabels(5000, true);
     }
   } catch (e) {
     if (!isRepoll) grid.innerHTML = "";
     setBanner("Couldn't load labels: " + e.message, true);
     // Retry after 10 s so a transient network error doesn't stop updates permanently.
-    setTimeout(() => { if (mode === "list") showLabelsList(true); }, 10000);
+    relistLabels(10000, true);
   }
 }
 

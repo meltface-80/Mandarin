@@ -3,11 +3,11 @@
 // cover's fingerprint (Scan/Scanner.cs, AlbumEditRoutes.cs), a kept cover's
 // file name (Services/Rows.cs), a sound device's id (Local/LocalDevices.cs),
 // which keys found the label logos (Extras/LabelLogos.cs), a drawn cover's
-// colour (CoversDrawn.cs), and the request signature Qobuz's API asks for
-// (Services/QobuzApi.cs). The analyzers call both hashes weak, and they are
+// colour (CoversDrawn.cs), and the request signatures Qobuz's API and
+// Last.fm's ask for (Services/QobuzApi.cs, Extras/LastfmAccount.cs). The analyzers call both hashes weak, and they are
 // for anything that must hold against an attacker; none of these must, and
 // each has to stay as it is: the ids and fingerprints are stored, and Qobuz
-// checks its signature. What protects something uses SHA-256 or better
+// and Last.fm check their signatures. What protects something uses SHA-256 or better
 // (Auth.cs, Admin/Backup.Seal.cs), and the analyzers refuse any other use of
 // these two (.editorconfig).
 using System.Diagnostics.CodeAnalysis;

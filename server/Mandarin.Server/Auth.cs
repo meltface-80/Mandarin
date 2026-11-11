@@ -232,7 +232,7 @@ internal static partial class Auth
             if (b == null) return;
             using var c = Db.Open();
             if (GetAccount(c) != null) { await Error(ctx, 409, "The account already exists — sign in instead"); return; }
-            if (!IsLocal(ClientIp(ctx))) { await Error(ctx, 403, "Create the account from a device on your home network"); return; }
+            if (!IsLocal(ClientIp(ctx))) { await Error(ctx, 403, "Create the account from a device on your home network"); return; } if (NotAsHome(ctx) is { } why) { await Error(ctx, 403, why); return; }   // never another site's page, nor under its name (item 172)
             var username = Srp.NormUser(Js.Str(b["username"]));
             var iterations = Js.ParseInt(b["iterations"]);
             if (username.Length == 0 || username.Length > 64 || username.Any(ch => ch <= '\u001f')) { await Error(ctx, 400, "Choose a username"); return; }

@@ -34,7 +34,7 @@
       <tr><td>INCLUDE_ZONES</td><td>—</td><td>Offer only these rooms, e.g. <code>Kitchen,Study</code>.</td></tr>
       <tr><td>EXCLUDE_ZONES</td><td>—</td><td>Offer every room except these.</td></tr>
       <tr><td>TRUSTED_PROXIES</td><td>—</td><td>Reverse proxies whose word on who asked is believed: <code>127.0.0.1</code> for an nginx, Caddy or <code>tailscale serve</code> on the same machine. The built-in Tailscale needs nothing here.</td></tr>
-      <tr><td>PUID / PGID</td><td>1000</td><td>The user and group the server runs as inside the container: give your music's owner if it is readable by that user only. <code>PUID=0</code> runs it as root.</td></tr>
+      <tr><td>PUID / PGID</td><td>1000</td><td>The user and group the server runs as inside the container: give your music's owner if it is readable by that user only. It keeps the groups that own the music folder and the folders directly in it (never root's), so music readable by a group plays too. <code>PUID=0</code> runs it as root.</td></tr>
       <tr><td>SCAN_INTERVAL_HOURS</td><td>6</td><td>How often the music folders are re-checked in full. Between those, albums added or deleted are noticed as it happens (a network share's folders looked at every 30 seconds), and a long copy shows album by album.</td></tr>
       <tr><td>TRANSCODE_CACHE_GB</td><td>4</td><td>Disk kept for converted tracks. With upsampling on, 16 is a better number.</td></tr>
       <tr><td>TRANSCODE_CONCURRENCY</td><td>2</td><td>How many tracks are converted at once.</td></tr>
@@ -51,7 +51,7 @@
       <tr><td>MBPACK_DIR</td><td>data folder</td><td>Where the MusicBrainz pack is kept; overrides the folder chosen in Settings → Library Scanner.</td></tr>
       <tr><td>ITUNES_COUNTRY</td><td>US</td><td>The Apple store the identification scan's iTunes lookups use (<code>GB</code>, <code>DE</code>&hellip;).</td></tr>
       <tr><td>AUTOEQ_URL</td><td>GitHub</td><td>Where AutoEq's headphone profiles are read from (a device's DSP).</td></tr>
-      <tr><td>LASTFM_KEY</td><td>—</td><td>A Last.fm key for similar artists and albums, until one is saved in Settings → Setup → API Keys.</td></tr>
+      <tr><td>LASTFM_KEY</td><td>—</td><td>A Last.fm key for similar artists and albums, until one is saved in Settings → Setup → API Keys. Scrobbling also needs the key's shared secret, saved there.</td></tr>
       <tr><td>DEBUG</td><td>—</td><td>Log every API call.</td></tr>
     </table>
   </div>

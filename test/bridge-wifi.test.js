@@ -3,7 +3,10 @@
  * Mandarin Bridge's Wi-Fi, set from its own page (item 283, the Raspberry Pi image's): a computer just flashed, on no
  * network, opens a setup network of its own a moment after it starts; the page lists the networks in reach (strongest
  * first, a name holding a colon read whole) and joins the one chosen, the setup network closed first. A wrong password
- * is said, and the setup network opens again; the right one joins, and the setup network stays closed. Played here
+ * is said, and the setup network opens again; the right one joins, and the setup network stays closed, though nmcli
+ * takes a while joining (the setup network opened again over the network just joined, the Pi lost to the home). A
+ * network lost later (a router restarted): the setup network, closed now and then for the home network, joined again
+ * once it is back. Played here
  * against a stand-in for NetworkManager's nmcli that keeps what it was asked. Without --wifi the page has no Wi-Fi.
  */
 const test = require("node:test");
@@ -37,8 +40,9 @@ case "$*" in
   "-t -f ACTIVE,SSID device wifi") [ -s "$NM/on" ] && echo "yes:$(cat "$NM/on")"; echo "no:Neighbours" ;;
   "-t -f SSID,SIGNAL,SECURITY device wifi list") printf 'Home:60:WPA2\\nCafe\\\\:Guest:40:\\nHome:82:WPA2\\nNeighbours:20:WPA1 WPA2\\n' ;;
   "device wifi hotspot"*) echo "Device 'wlan0' successfully activated" ;;
-  "connection down mandarin-setup") echo "Connection deactivated" ;;
-  "device wifi connect Home password secret") echo Home > "$NM/on"; echo "Device 'wlan0' successfully activated" ;;
+  "connection down mandarin-setup") [ -e "$NM/back" ] && [ -s "$NM/known" ] && cat "$NM/known" > "$NM/on"; echo "Connection deactivated" ;;
+  "-t -f NAME,TYPE connection show") echo "mandarin-setup:802-11-wireless"; [ -s "$NM/known" ] && echo "$(cat "$NM/known"):802-11-wireless"; echo "lo:loopback" ;;
+  "device wifi connect Home password secret") sleep 3; echo Home > "$NM/on"; echo Home > "$NM/known"; echo "Device 'wlan0' successfully activated" ;;
   "device wifi connect"*) echo "Error: Connection activation failed: Secrets were required, but not provided." >&2; exit 4 ;;
   *) echo "unknown: $*" >&2; exit 2 ;;
 esac
@@ -57,12 +61,12 @@ function start(t, args) {
   p.stderr.on("data", d => { said += d; });
   t.after(() => p.kill());
   const asked = () => { try { return fs.readFileSync(path.join(nm, "log"), "utf8").split("\n").filter(Boolean); } catch (e) { return []; } };
-  return { base: "http://127.0.0.1:" + port, asked, said: () => said };
+  return { base: "http://127.0.0.1:" + port, asked, said: () => said, nm };
 }
 
 const json = async (u, body) => (await fetch(u, body ? { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) } : {})).json();
 
-test("the Bridge's Wi-Fi from its page: a setup network where there is none, the home network joined", { skip, timeout: 90000 }, async (t) => {
+test("the Bridge's Wi-Fi from its page: a setup network where there is none, the home network joined", { skip, timeout: 120000 }, async (t) => {
   const b = start(t, ["--wifi", "--nmcli", "NMCLI", "--setup-after", "1"]);
   const hotspots = () => b.asked().filter(l => l.startsWith("device wifi hotspot")).length;
   try {
@@ -89,6 +93,18 @@ test("the Bridge's Wi-Fi from its page: a setup network where there is none, the
     await until(async () => (await json(b.base + "/api/wifi")).network === "Home");
     await sleep(2500);
     assert.equal(hotspots(), 2, "no setup network once on the home network");
+    assert.equal((await json(b.base + "/api/state")).wifi.setup, false);
+
+    // The home network lost (a router restarted): the setup network after a while, the home network tried again
+    // now and then, and joined once it is back; the setup network closed for good then.
+    fs.rmSync(path.join(b.nm, "on"));
+    await until(() => hotspots() === 3);
+    fs.writeFileSync(path.join(b.nm, "back"), "");
+    await until(async () => (await json(b.base + "/api/wifi")).network === "Home", 30000);
+    assert.match(b.said(), /the home network tried again/);
+    const settled = hotspots();
+    await sleep(2500);
+    assert.equal(hotspots(), settled, "no setup network once the home network is back");
     assert.equal((await json(b.base + "/api/state")).wifi.setup, false);
   } catch (e) { console.log(b.said()); throw e; }
 });

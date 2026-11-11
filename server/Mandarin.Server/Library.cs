@@ -305,7 +305,7 @@ internal static partial class Library
             var lossless = Truthy(F(r, "lossless"));
             var key = (string)F(r, "key")!;
             List<string> genres;
-            try { genres = (JsonNode.Parse(Text(F(r, "genres")) ?? "[]") as JsonArray)?.Select(g => JsString(g) ?? "null").ToList() ?? []; }
+            try { genres = (JsonNode.Parse(Text(F(r, "genres")) ?? "[]") as JsonArray)?.Select(g => GenreNames.English(JsString(g) ?? "null")).ToList() ?? []; }
             catch (JsonException) { genres = []; }
             all.Add(new Album
             {

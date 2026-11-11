@@ -34,6 +34,14 @@ public sealed partial class UpdateAloneTests
         // Files answered 502 the first time they are asked for, as GitHub's download service does now and then (item 380).
         public readonly HashSet<string> Flaky = [];
         public string Gh = "";
+
+        // The release of 9.9.9 as /releases/tags/v9.9.9 answers it: one release, as GitHub's, with the bundle's files (Latest's) and the program's (Tag's).
+        public JsonNode? Release()
+        {
+            if (Latest == null && Tag == null) return null;
+            var assets = new JsonArray([.. new[] { Latest, Tag }.SelectMany(r => r?["assets"]?.AsArray() ?? []).Select(a => a?.DeepClone())]);
+            return new JsonObject { ["tag_name"] = "v9.9.9", ["assets"] = assets };
+        }
     }
 
     private static void Run(string file, params string[] args)
@@ -46,8 +54,9 @@ public sealed partial class UpdateAloneTests
         Assert.True(p.ExitCode == 0, file + ": " + err);
     }
 
-    // The release's bundle (musicd-server/ at the top), without a Node server in it: package.json, a page, a file of its own.
-    private static void Bundle(Fake fake, string tmp, string name = "musicd-server", bool withPackage = true)
+    // The release's bundle (musicd-server/ at the top), without a Node server in it: package.json, a page, a file of its own;
+    // signed with Key, with Other (sig "other"), or not at all (sig "none"; the audit's I-H3).
+    private static void Bundle(Fake fake, string tmp, string name = "musicd-server", bool withPackage = true, string sig = "key")
     {
         var dir = Directory.CreateDirectory(Path.Combine(tmp, "bundle-" + Guid.NewGuid().ToString("N")[..8])).FullName;
         var top = Path.Combine(dir, "musicd-server");
@@ -59,9 +68,12 @@ public sealed partial class UpdateAloneTests
         if (withPackage) File.WriteAllText(Path.Combine(top, "package.json"), p.ToJsonString(new() { WriteIndented = true }));
         var output = Path.Combine(dir, "musicd-server-9.9.9.tar.gz");
         Run("tar", "-C", dir, "-czf", output, "musicd-server");
-        fake.Files["/dl/musicd-server-9.9.9.tar.gz"] = File.ReadAllBytes(output);
+        var tgz = File.ReadAllBytes(output);
+        fake.Files["/dl/musicd-server-9.9.9.tar.gz"] = tgz;
+        fake.Files["/dl/musicd-server-9.9.9.tar.gz.sig"] = (sig == "other" ? Other : Key).SignData(tgz, HashAlgorithmName.SHA256, DSASignatureFormat.Rfc3279DerSequence);
+        var assets = new[] { "musicd-server-9.9.9.tar.gz" }.Concat(sig == "none" ? [] : ["musicd-server-9.9.9.tar.gz.sig"]);
         fake.Latest = JsonNode.Parse(Http.Json(new { tag_name = "v9.9.9", html_url = fake.Gh + "/r", body = "Notes for 9.9.9",
-            assets = new[] { new { name = "musicd-server-9.9.9.tar.gz", browser_download_url = fake.Gh + "/dl/musicd-server-9.9.9.tar.gz" } } }));
+            assets = assets.Select(n => new { name = n, browser_download_url = fake.Gh + "/dl/" + n }) }));
     }
 
     // The release key the server is given (UPDATE_KEY, item 371), and another no release is signed with.
@@ -104,7 +116,7 @@ public sealed partial class UpdateAloneTests
             var u = ctx.Request.Path.Value ?? "";
             async Task Send(int code, byte[] body, string type = "application/json") { ctx.Response.StatusCode = code; ctx.Response.ContentType = type; await ctx.Response.Body.WriteAsync(body); }
             if (u == "/repos/me/musicd/releases/latest") { await (fake.Latest != null ? Send(200, Encoding.UTF8.GetBytes(fake.Latest.ToJsonString())) : Send(fake.LatestStatus, "{}"u8.ToArray())); return; }
-            if (u == "/repos/me/musicd/releases/tags/v9.9.9") { await (fake.Tag != null ? Send(200, Encoding.UTF8.GetBytes(fake.Tag.ToJsonString())) : Send(404, "{}"u8.ToArray())); return; }
+            if (u == "/repos/me/musicd/releases/tags/v9.9.9") { await (fake.Release() is { } rel ? Send(200, Encoding.UTF8.GetBytes(rel.ToJsonString())) : Send(404, "{}"u8.ToArray())); return; }
             if (fake.Files.TryGetValue(u, out var f)) { await Send(200, f, "application/octet-stream"); return; }
             await Send(404, "{}"u8.ToArray());
         });
@@ -146,13 +158,12 @@ public sealed partial class UpdateAloneTests
             var version = Version;
 
             var st = await Api("status");
-            Assert.True((st.By, st.Body.Str("current"), st.Body.Bool("viaLauncher"), st.Body["csharp"] == null, st.Body.AsObject().ContainsKey("mac_node_only")) == ("C#", version, false, true, false),
-                "its own, with no launcher and no Node server to match");
-            var keys = new[] { "current", "latest", "latestTag", "available", "isDowngrade", "html_url", "notes", "source", "checkedAt", "checking", "error", "apply", "is_docker" };
+            Assert.True((st.By, st.Body.Str("current"), st.Body.AsObject().ContainsKey("mac_node_only")) == ("C#", version, false), "its own");
+            var keys = new[] { "current", "latest", "latestTag", "available", "html_url", "notes", "source", "checkedAt", "checking", "error", "apply", "is_docker" };
             var picked = new JsonObject(keys.Select(k => KeyValuePair.Create(k, st.Body[k]?.DeepClone())));
             JsonAssert.Same(Http.Json(new
             {
-                current = version, latest = (string?)null, latestTag = (string?)null, available = false, isDowngrade = false, html_url = (string?)null, notes = (string?)null, source = (string?)null,
+                current = version, latest = (string?)null, latestTag = (string?)null, available = false, html_url = (string?)null, notes = (string?)null, source = (string?)null,
                 checkedAt = 0, checking = false, error = (string?)null, apply = new { phase = "idle", error = (string?)null, version = (string?)null }, is_docker = false
             }), picked, "nothing known yet, as lib/updater.js started");
 
@@ -207,6 +218,28 @@ public sealed partial class UpdateAloneTests
                 Assert.Equal("9.9.9", r.Body["status"]?["apply"].Str("version"));
                 Assert.True(Directory.GetFileSystemEntries(Path.GetDirectoryName(bin)!).Select(Path.GetFileName).SequenceEqual(["mandarin-server"]), why + ": nothing left beside the program");
             }
+            // The audit's I-H3: the program right, but a bundle with no signature, one signed with a key that isn't the release
+            // key, or a release without its bundle (GitHub's source tarball, signed by no one, offered instead): refused, nothing unpacked.
+            foreach (var (why, sig, said) in new[] { ("an unsigned bundle", "none","release v9.9.9 carries no signature for musicd-server-9.9.9.tar.gz"),
+                ("a bundle another key signed", "other", "musicd-server-9.9.9.tar.gz isn't signed with Mandarin's release key"),
+                ("the source tarball", "source", "release v9.9.9 carries no musicd-server-9.9.9.tar.gz") })
+            {
+                Bundle(fake, tmp, sig: sig == "source" ? "key" : sig);
+                Program(fake, marker);
+                if (sig == "source")
+                {
+                    fake.Files["/dl/source"] = fake.Files["/dl/musicd-server-9.9.9.tar.gz"];
+                    fake.Latest!["assets"] = new JsonArray();
+                    fake.Latest["tarball_url"] = gh.Base + "/dl/source";
+                }
+                r = await Api("apply", true);
+                Refused(r, said, why);
+                Assert.Equal("9.9.9", r.Body["status"]?["apply"].Str("version"));
+                Assert.False(Directory.Exists(Path.Combine(app, ".update", "extract")), why + ": nothing unpacked");
+                Assert.True((string?)JsonNode.Parse(await File.ReadAllTextAsync(Path.Combine(app, "package.json")))!["version"] == version, why + ": the install as it was");
+                Assert.True(srv.Exited == null, why + ": still running");
+            }
+            Bundle(fake, tmp);
             Assert.True((await File.ReadAllBytesAsync(bin)).AsSpan().SequenceEqual(was), "the program as it was");
             Assert.True((string?)JsonNode.Parse(await File.ReadAllTextAsync(Path.Combine(app, "package.json")))!["version"] == version, "the install as it was");
             Assert.True(srv.Exited == null, "still running");

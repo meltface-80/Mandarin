@@ -19,8 +19,8 @@
 // A streamed album's page (GET /api/album) is LibraryRoutes.cs's, with its
 // service's favourite and why it is here (ServiceFields, below).
 //
-// From v0.8.45 (stage 4.3) the import, the favourites' watch and the service
-// playlists (Services/Import.cs, the job "import"):
+// From v0.8.45 (stage 4.3) the import and the favourites' watch
+// (Services/Import.cs, the job "import"):
 //
 //   GET  /api/settings/<s>          the account's state and settings, the import's (signed in)
 //   POST /api/settings/<s>          { quality?, import? } (signed in): the switch on, the import made
@@ -247,7 +247,7 @@ internal static partial class Library
             if (Scans.Running) return await Send(ctx, new JsonObject { ["error"] = ScanUnderWay }, 409);
             if (!Scans.WhileNoScan(() => removed = svc.CleanUp())) return await Send(ctx, new JsonObject { ["error"] = ScanUnderWay }, 409);
         }
-        // Nothing written (the transaction undone): why, as the Node server's route answered it (its playlists not a list, the database held).
+        // Nothing written (the transaction undone): why, as the Node server's route answered it (the database held).
         catch (Exception e) when (e is SqliteException or Tags.JsError or InvalidOperationException && !ctx.Response.HasStarted) { return await Server.Failed(ctx, svc.Id, e); }
         if (removed > 0) await svc.Changed();
         return await Send(ctx, new JsonObject { ["ok"] = true, ["kind"] = kind, ["removed"] = removed, ["count"] = await CountNow() });
@@ -400,7 +400,7 @@ internal static partial class Library
 
     /*
      * The quality and the import's switch (POST /api/settings/<s>): written,
-     * the switch's albums and playlists in or out of the library at once, and
+     * the switch's albums in or out of the library at once, and
      * switched on while signed in, brought up to date (the import started, so
      * the state answered says so). A quality not offered is refused before
      * anything is written.
@@ -464,28 +464,5 @@ internal static partial class Library
             return await JsError(ctx, 500, Catalogue.Said(e));
         }
         return await SendJs(ctx, o);
-    }
-
-    /*
-     * A service playlist's tracks as the Node server's import makes them
-     * (streaming.js importPlaylists, Services/Import.cs): each record's album
-     * as the library has it now, the track found on it by its path; one that
-     * isn't there left out.
-     */
-    internal static List<object?> ServicePlaylistTracks(SqliteConnection c, Snapshot s, IEnumerable<(long AlbumId, string Path)> items)
-    {
-        var tracks = new List<object?>();
-        var read = new Dictionary<long, List<TrackRow>>();
-        foreach (var (albumId, p) in items)
-        {
-            if (s.Find(albumId) is not { } al) continue;
-            if (!read.TryGetValue(al.Id, out var rows)) read[al.Id] = rows = Tracks(c, s, al);
-            var i = rows.FindIndex(t => t.Path == p);
-            if (i < 0) continue;
-            var t = rows[i];
-            tracks.Add(Jso(("album_offset", (double)al.Id), ("album_title", al.Title), ("album_subtitle", al.Artist), ("track_index", (double)i),
-                ("title", t.Title), ("subtitle", t.Artist.Length > 0 ? t.Artist : al.Artist), ("image_key", al.ImageKey), ("track_no", t.No is long n ? (double)n : null)));
-        }
-        return tracks;
     }
 }

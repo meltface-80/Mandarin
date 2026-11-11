@@ -18,7 +18,7 @@ const { Browser, findBrowser } = require("./browser-harness");
 const skip = (!haveFfmpeg() && "ffmpeg is not installed") || (!findBrowser() && !process.env.CI && "no Chromium or Chrome (set CHROME_PATH)");
 const PORT = ports.port();
 const B = "http://127.0.0.1:" + PORT;
-const PORT2 = ports.port(), B2 = "http://127.0.0.1:" + PORT2; // the Playlists test's own, so the two never share a port
+const PORT2 = ports.port(), B2 = "http://127.0.0.1:" + PORT2; // the second test's own, so the two never share a port
 
 const DRIVER = `(async () => {
   const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -110,9 +110,9 @@ test("the side menu: items hug their words, Offline keeps it open, an item or th
   } finally { await srv.stop(); }
 });
 
-// Playlists (v0.6.24): Import is a pill in the top-right corner of the
-// screen, above the grid. And the Random albums wall is titled (v0.6.24).
-test("Playlists: Import sits in the top-right corner; the Random albums wall has its title", { skip, timeout: 120000 }, async () => {
+// The Random albums wall is titled (v0.6.24), and the menu button is Home's
+// alone: every other screen shows ‹ in its place.
+test("the Random albums wall has its title; the menu button is Home's alone", { skip, timeout: 120000 }, async () => {
   const lib = makeLibrary();
   const { createServer } = require("./server");
   const srv = createServer({ port: PORT2, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false, identify: false });
@@ -130,25 +130,11 @@ test("Playlists: Import sits in the top-right corner; the Random albums wall has
         const until = async (f, ms = 5000) => { const t0 = Date.now(); while (!f()) { if (Date.now() - t0 > ms) return false; await sleep(25); } return true; };
         const $ = id => document.getElementById(id);
         const shown = id => !$(id).classList.contains("hidden");
-        document.getElementById("menu-toggle").click();
-        // The menu open and its drawer done sliding in, then a frame (as above).
-        const overlay = document.getElementById("menu-overlay"), drawer = overlay.querySelector(".menu-drawer");
-        for (let i = 0; i < 300 && (overlay.classList.contains("hidden") || drawer.getAnimations().some(a => a.playState !== "finished")); i++) await sleep(16);
-        await new Promise(r => requestAnimationFrame(r));
-        document.querySelector('#menu-overlay .menu-item[data-action="playlists"]').click();
-        await until(() => document.querySelector("#content-count .playlists-import"));
-        const btn = document.querySelector("#content-count .playlists-import");
-        if (!btn) return { shown: false };
-        const r = btn.getBoundingClientRect(), bar = document.getElementById("content-count").getBoundingClientRect();
-        const top = document.querySelector(".topbar").getBoundingClientRect();
-        const out = { shown: true, text: btn.textContent, height: r.height, right_gap: Math.round(bar.right - r.right), left_gap: Math.round(r.left - bar.left), below_bar: r.top >= top.bottom - 1 };
-        // Home, then the Random albums wall from its row's heading: titled; Home again: no title.
+        const out = {};
+        // The Random albums wall from its row's heading: titled; Home again: no title.
         const menuShown = () => shown("menu-toggle"), backShown = () => shown("topbar-back");
         const onHome = () => shown("home-view") && menuShown() && !backShown();
-        document.getElementById("topbar-back").click(); await until(onHome);
-        // Back on Home, Import goes with the Playlists screen (v0.8.9: it stayed).
-        const importLeft = () => { const pc = document.getElementById("content-count"); return !!(pc && !pc.classList.contains("hidden") && pc.querySelector(".playlists-import")); };
-        out.import_on_home = importLeft();
+        await until(onHome);
         document.getElementById("home-random-title").click();
         const count = document.getElementById("album-count");
         await until(() => !count.classList.contains("hidden") && count.textContent);
@@ -159,28 +145,17 @@ test("Playlists: Import sits in the top-right corner; the Random albums wall has
         out.home_buttons = [menuShown(), backShown()];
         const screens = {};
         for (const [name, open] of [["random", () => $("home-random-title").click()], ["library", () => $("home-library-title").click()],
-                                    ["later", () => window.__showListenLater()], ["playlists", () => window.__showPlaylists()], ["wall", () => window.__showWall()]]) {
+                                    ["later", () => window.__showListenLater()], ["picks", () => window.__showSmartPicks()], ["wall", () => window.__showWall()]]) {
           open(); await until(() => backShown() && !shown("home-view"));
           screens[name] = [menuShown(), backShown()];
           $("topbar-back").click(); await until(onHome);
         }
         out.screens = screens;
-        window.__showPlaylists(); await until(() => document.querySelector("#content-count .playlists-import"));
-        window.__showHome(); await until(onHome);
-        out.import_on_home_again = importLeft();
         out.home_after = [menuShown(), backShown()];
         return out;
       })()`);
       assert.deepEqual(page.errors, []);
     } finally { await b.close(); }
-    assert.equal(r.shown, true, "the Import pill is on the Playlists screen");
-    assert.equal(r.text, "Import");
-    assert.equal(r.height, 32);
-    assert.ok(r.right_gap <= 16, "it hugs the right edge: " + r.right_gap + " px");
-    assert.ok(r.left_gap > 100, "not the left: " + r.left_gap + " px");
-    assert.equal(r.below_bar, true, "just under the top bar");
-    assert.equal(r.import_on_home, false, "Import leaves with the Playlists screen (‹ to Home)");
-    assert.equal(r.import_on_home_again, false, "and when Home is opened from the Playlists screen");
     assert.equal(r.random_title, "Random albums", "the Random albums wall is titled");
     assert.equal(r.home_title_hidden, true, "and Home is not");
     assert.deepEqual(r.home_buttons, [true, false], "Home: the menu button, no ‹");

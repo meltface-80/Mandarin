@@ -93,10 +93,6 @@ class NowPlayingViewTest {
         assertEquals(listOf("WAV 24/705.6 ↑×16"), old.infoLines)
         assertEquals(null, old.signal)
         assertEquals("nothing said: none", null, Signal.of(JSONObject("""{"lines": [], "steps": []}""")))
-        // The bit-perfect check's step (item 275): its button, and none on a step that can't be acted on.
-        val check = Signal.of(JSONObject("""{"lines": ["x"], "steps": [{"kind": "check", "title": "Bit-perfect check", "detail": "d", "quality": "pending",
-            "action": "bitperfect", "button": "Check"}, {"kind": "source", "title": "File", "detail": "FLAC", "quality": "lossless", "action": null}]}"""))!!
-        assertEquals(listOf("bitperfect" to "Check", null to null), check.steps.map { it.action to it.button })
     }
 
     @Test fun `shuffle, repeat and the format, as the page's buttons and badge have them`() {

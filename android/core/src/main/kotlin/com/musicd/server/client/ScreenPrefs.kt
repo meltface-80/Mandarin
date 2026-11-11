@@ -36,7 +36,7 @@ object ScreenPrefs {
         val out = JSONObject()
         for ((name, key) in KEYS) j.optString(name).takeIf { it.isNotEmpty() && !j.isNull(name) }?.let { out.put(key, it) }
         j.optString(VIEW).takeIf { it.isNotEmpty() }?.let { q ->
-            out.put(VIEW_KEY, SmartEdit.viewJson(LibraryView.parse(q)).put("v", VIEW_VERSION).put("prefix", "").toString())
+            out.put(VIEW_KEY, LibraryView.parse(q).json().put("v", VIEW_VERSION).put("prefix", "").toString())
         }
         if (!zone.isNullOrEmpty()) out.put(ZONE, zone)
         for (key in PAGE_ONLY) j.optString(key).takeIf { it.isNotEmpty() && !j.isNull(key) }?.let { out.put(key, it) }
@@ -51,7 +51,7 @@ object ScreenPrefs {
         val j = read(json)
         for ((name, key) in KEYS) if (page.has(key)) j.put(name, page.optString(key)) else j.remove(name)
         val view = page.optString(VIEW_KEY).takeIf { it.isNotEmpty() }?.let { runCatching { JSONObject(it) }.getOrNull() }
-        if (view != null) j.put(VIEW, SmartEdit.viewOf(view).query()) else j.remove(VIEW)
+        if (view != null) j.put(VIEW, LibraryView.ofJson(view).query()) else j.remove(VIEW)
         for (key in PAGE_ONLY) if (page.has(key)) j.put(key, page.optString(key)) else j.remove(key)
         return j.toString() to page.optString(ZONE).takeIf { it.isNotEmpty() && !page.isNull(ZONE) }
     }

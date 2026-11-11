@@ -1,7 +1,7 @@
 // Hub.cs — every kind of player as one list of zones (lib/sonos/zones.js's
 // ZoneManager, v0.8.49, stage 6 of old/csharp-migration.md): one state
 // per zone, one revision the long polls wait on, the hooks history and the
-// radio hang off (a track started, one played long enough to count, the queue
+// radio hang off (a track played long enough to count, the queue
 // near its end), and the queues the server keeps itself put back after a
 // restart. Sonos rooms (SonosZones, part 2), phones (Phones.cs) and UPnP
 // renderers (Hub.Upnp.cs, part 3) each answer the same methods; this class holds what they
@@ -83,8 +83,9 @@ internal sealed partial class Hub
     public readonly Action<string> Log;
     private readonly double startedAt;
     public bool Stopped;
-    // The hooks (zones.js's "track", "played" and "queue-low" events).
-    public event Action<string, ZoneState>? OnTrack, OnPlayed, OnQueueLow;
+    // The hooks (zones.js's "played" and "queue-low" events); Last.fm's (Scrobbles.cs): "now playing" once a
+    // track is heard playing, named, and "scrobble" at Last.fm's own point.
+    public event Action<string, ZoneState>? OnPlayed, OnQueueLow, OnNowPlaying, OnScrobble;
 
     public Hub(HubConfig config, Action<string> log)
     {
@@ -113,6 +114,7 @@ internal sealed partial class Hub
         var hub = new Hub(config, log) { Store = new QueueStore(log) };
         Current = hub;
         History.Wire(hub);
+        Scrobbles.Wire(hub);
         await hub.RestoreQueues();
         hub.StartSonos();
         hub.Devices.Start();
@@ -186,12 +188,12 @@ internal sealed partial class Hub
 
     /*
      * A zone's new state — from a Sonos poll or a phone's report — and what
-     * follows from it: a bump when anything visible changed, "track" when a new
-     * one starts, "played" once it has been heard, "queue-low" near the end.
+     * follows from it: a bump when anything visible changed, "played" once it
+     * has been heard, "queue-low" near the end.
      */
     public void ApplyState(string uid, ZoneState prev, ZoneState next)
     {
-        bool changed, lowFired = false, played = false, track = false;
+        bool changed, lowFired = false, played = false, scrobble = false, announce = false;
         lock (Gate)
         {
             State[uid] = next;
@@ -213,18 +215,33 @@ internal sealed partial class Hub
             {
                 next.PlayedLogged = false;
                 next.LowFired = false;
-                if (next.TrackUri.Length > 0) track = true;
+                next.Scrobbled = false;
+                next.Announced = false;
             }
             else
             {
                 next.PlayedLogged = prev.PlayedLogged;
                 next.LowFired = prev.LowFired;
+                next.Scrobbled = prev.Scrobbled;
+                next.Announced = prev.Announced;
             }
             if (next.State == "playing" && !next.PlayedLogged && next.TrackUri.Length > 0 &&
                 next.Position >= Math.Min(30, Math.Max(5, (next.Duration > 0 ? next.Duration : 60) / 2)))
             {
                 next.PlayedLogged = true;
                 played = true;
+            }
+            // Last.fm's now playing: the track heard playing, its name known (a play asked for has none until the player says).
+            if (next.State == "playing" && !next.Announced && next.TrackUri.Length > 0 && (next.TrackId != null || next.Title.Length > 0))
+            {
+                next.Announced = true;
+                announce = true;
+            }
+            // Last.fm's point: a track over 30 s, played half way or for four minutes, whichever is sooner.
+            if (next.State == "playing" && !next.Scrobbled && next.TrackUri.Length > 0 && next.Duration > 30 && next.Position >= Math.Min(240, next.Duration / 2))
+            {
+                next.Scrobbled = true;
+                scrobble = true;
             }
             // On the last track of the queue with the end in sight: time to top up.
             if (next.OnQueue && next.State == "playing" && next.Loop == "disabled" && !next.LowFired &&
@@ -238,8 +255,9 @@ internal sealed partial class Hub
         if (changed) Bump();
         // A Sonos queue kept here whose length changed (added to here or from the Sonos app): read again now.
         if (prev.QueueLength != next.QueueLength && next.OnQueue && !Phones.IsPhoneId(uid) && !IsUpnp(uid)) QueueChanged(uid);
-        if (track) OnTrack?.Invoke(uid, next);
         if (played) OnPlayed?.Invoke(uid, next);
+        if (announce) OnNowPlaying?.Invoke(uid, next);
+        if (scrobble) OnScrobble?.Invoke(uid, next);
         if (lowFired) OnQueueLow?.Invoke(uid, next);
     }
 

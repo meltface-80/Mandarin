@@ -410,9 +410,9 @@ object DownloadStore {
     fun remove(c: Context, id: Int) {
         DownloadWorker.cancel(c, id)
         dirOf(c, id)?.let { com.musicd.server.client.DownloadDirs.remove(it) }   // never written back by its download (item 191)
-        index = null
-        changed()
+        index = null; changed()
     }
+    fun removeWhenFree(c: Context, id: Int) { DownloadWorker.cancel(c, id); dirOf(c, id)?.let { deleteWhenFree(c, it) }; index = null; changed() }   // the automatic downloads' let-go: once nothing plays from it
 
     /**
      * Albums off the phone in the background, then [done] (on that thread).

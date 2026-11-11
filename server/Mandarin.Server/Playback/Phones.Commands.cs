@@ -88,8 +88,7 @@ internal sealed partial class Phones
         lock (zm.Gate)
         {
             if (!zm.State.TryGetValue(uid, out var st)) return;
-            patch(st);
-            st.At = Hub.Now();
+            zm.State[uid] = st.Patched(patch);   // a new state: the one kept is never changed in place (ZoneState.Patched)
         }
         zm.Bump();
     }
@@ -184,9 +183,7 @@ internal sealed partial class Phones
     /* Optimistic, already under the gate: the bump is the caller's. */
     private void OptimisticLocked(string uid, Action<ZoneState> patch)
     {
-        if (!zm.State.TryGetValue(uid, out var s)) return;
-        patch(s);
-        s.At = Hub.Now();
+        if (zm.State.TryGetValue(uid, out var s)) zm.State[uid] = s.Patched(patch);
     }
 
     public void Control(string uid, string command)

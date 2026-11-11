@@ -37,14 +37,14 @@ class AlbumExtrasTest {
 
     @Test fun `the notes under the head, and the list an album was opened from`() {
         val a = Album.parse(JSONObject("""{"album": {"offset": 3, "title": "Disc 2", "subtitle": "Artist A", "box": {"name": "The Box", "disc": 2, "of": 3},
-            "service_why": {"name": "Qobuz", "kept": "purchase", "since": 1709596800000, "held": false}},
+            "service_why": {"name": "Qobuz", "kept": "purchase", "since": 1709596800000}},
             "names_from_folders": true, "box_albums": [{"offset": 9, "title": "Disc 3", "subtitle": "Artist A", "box": {"name": "The Box", "disc": 3, "of": 3}},
             {"offset": 1, "title": "Disc 1", "subtitle": "Artist A", "box": {"name": "The Box", "disc": 1, "of": 3}}]}"""))
         assertTrue(a.namesFromFolders)
         assertEquals("From The Box · disc 2 of 3", a.album.box!!.text)
         assertEquals("the discs in order, this one among them", listOf(1L, 3L, 9L), a.boxDiscs.map { it.offset })
         assertEquals("In your library as a Qobuz purchase since 5 Mar 2024", a.serviceWhy!!.text(Locale.UK))
-        assertEquals("Here for a Tidal playlist or favourite track — not in your favourites", ServiceWhy.parse(JSONObject("""{"name": "Tidal", "kept": false, "held": true}""")).text(Locale.UK))
+        assertEquals("Played from Tidal — not in your favourites", ServiceWhy.parse(JSONObject("""{"name": "Tidal", "kept": false}""")).text(Locale.UK))
         assertEquals("Played from Tidal — not in your favourites · not out until 20 November 2026", ServiceWhy.parse(JSONObject("""{"name": "Tidal", "kept": null, "releases": "2026-11-20"}""")).text(Locale.UK))
         assertEquals("In your library as a Qobuz favourite", ServiceWhy.parse(JSONObject("""{"name": "Qobuz", "kept": true}""")).text(Locale.UK))
         val nav = NavList.parse("""{"items": [{"offset": 3, "title": "Album One"}, {"title": "no offset"}, {"offset": 7, "title": "Album Two"}], "index": 1}""")!!

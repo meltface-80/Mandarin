@@ -73,7 +73,7 @@ class LibraryClient(private val get: (String) -> JSONObject) {
 
     /** An artist's biography, one of their albums naming them ([album]); null when there is none. */
     fun artistBio(artist: String, album: String): ArtistBio? = ArtistBio.parse(get("/api/artist-bio?artist=" + enc(artist) + "&album=" + enc(album)))
-    /** Who an act is (bug list item 131): picture, facts, links, members or bands, albums credited on. */
+    /** Who an act is (bug list item 131): picture, facts, members or bands, albums credited on. */
     fun artistAbout(artist: String): ArtistAbout {
         // [artist] as ArtistAct.of names it: one act of a shared name is looked up as that act (item 340).
         val (name, act) = ArtistAct.parse(artist)
@@ -88,22 +88,12 @@ class LibraryClient(private val get: (String) -> JSONObject) {
 
     fun albumOfTheDay(): AlbumOfTheDay = AlbumOfTheDay.parse(get("/api/home/album-of-the-day?keep=1"))
 
-    /** Home's other rows (item 57): today's Smart Picks; the genres and their groups, as the Browse by genre cards; the label of the week; the playlists' tiles. */
+    /** Home's other rows (item 57): today's Smart Picks; the genres and their groups, as the Browse by genre cards; and the label of the week. */
     fun smartPicks(): SmartPicks = SmartPicks.parse(get("/api/smart-picks"))
     fun genres(): List<Genre> = Genre.list(get("/api/filters/genres"))
     fun genreGroups(): GenreGroups = GenreGroups.parse(get("/api/home/genre-groups"))
     fun genreCards(): List<GenreCard> = GenreCard.build(genres(), genreGroups())
     fun labelOfTheWeek(): LabelOfTheWeek = LabelOfTheWeek.parse(get("/api/home/label-of-the-week"))
-    fun playlists(): List<PlaylistTile> = PlaylistTile.mine(get("/api/user-playlists")) + PlaylistTile.smart(get("/api/smart-playlists"))
-    /** Your playlists, the last changed first (the Playlists screen, item 65), and one of them with its tracks. */
-    fun userPlaylists(): List<PlaylistTile> = PlaylistTile.mine(get("/api/user-playlists"))
-    fun userPlaylist(id: String): UserPlaylist = UserPlaylist.parse(get("/api/user-playlist?id=" + enc(id)))
-
-    /** The Dynamic Playlists (item 66); a tracks one's tracks from album [offset] on; an albums one's albums ([max] at most, else its own size). */
-    fun smartPlaylists(): List<SmartPlaylist> = SmartPlaylist.list(get("/api/smart-playlists"))
-    fun smartTracks(id: String, offset: Int, zoneId: String): SmartTracks =
-        SmartTracks.parse(get("/api/smart-playlist?id=" + enc(id) + "&offset=$offset" + (if (zoneId.isEmpty()) "" else "&zone=" + enc(zoneId))))
-    fun smartAlbums(id: String, max: Int? = null): SmartAlbums = SmartAlbums.parse(get("/api/smart-playlist/albums?id=" + enc(id) + (if (max == null) "" else "&max=$max")))
 
     /** Random Album's choice, to be offered (Play now, Play next, Queue). */
     fun pickUnheard(): PickedAlbum = PickedAlbum.parse(get("/api/pick-unheard"))

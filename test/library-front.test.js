@@ -58,7 +58,7 @@ function library() {
 /* Each fixture's length, and each album's, said as the track or album it is (a download list names them; ffmpeg's versions make them a few bytes apart). */
 const fileSizes = new Map();
 /*
- * What changes from one run to the next made the same: the day, an id made new (a dynamic playlist's), a cover's
+ * What changes from one run to the next made the same: the day, a cover's
  * key (its hash the files' own, made afresh each run) and what follows from it — a speaker's signature, Shelf's
  * signature of the list — the port, a file's length, and Mandarin's version where an answer says it (Shelf's,
  * recorded as 0.8.50 and named here as the version this checkout is).
@@ -276,66 +276,6 @@ test("the library in C# answers as the Node server did", { skip, timeout: 180000
     assert.deepEqual(r.rows.slice(0, 4).map(x => x.id), ["downloads", "phone", "random", "history"], "the app's rows at the top, then as given");
     assert.equal((await fetch(B + "/api/settings/home-rows", { method: "POST", headers: JH, body: JSON.stringify({ rows: [{ id: "x" }] }) })).status, 400);
     for (const p of ["/api/settings/display", "/api/settings/smart-picks", "/api/settings/home-rows"]) await same(p, "after saving: ");
-    // Dynamic playlists (saved Library views): made, then read; their ids new each time.
-    const mk = b => post("/api/smart-playlists", b).then(x => x.playlist);
-    const a1 = await mk({ name: "Jazz", view: { genre: ["Jazz"], sort: "year", dir: "desc" }, limit: 3 });
-    const a2 = await mk({ name: " Shuffled ", view: { sort: "random", seed: 9, decade: "1960", genre: ["!Pop", 7, null, {}] }, order: "random", mode: "tracks" });
-    await mk({ name: "All", view: "nonsense", limit: "9999" });
-    const lists = await same("/api/smart-playlists");
-    assert.deepEqual(lists.playlists.map(x => x.name), ["Jazz", "Shuffled", "All"], "made");
-    for (const [n, sp] of [[1, a1], [2, a2]]) {
-      for (const q of ["", "&offset=1&count=1", "&count=99"]) await same("/api/smart-playlist?id=" + sp.id + q, "", "/api/smart-playlist?id=<" + n + ">" + q);
-      for (const q of ["", "&max=1", "&max=0"]) await same("/api/smart-playlist/albums?id=" + sp.id + q, "", "/api/smart-playlist/albums?id=<" + n + ">" + q);
-    }
-    await same("/api/smart-playlist?id=nope");
-    await same("/api/smart-playlist/albums");
-    // Your own playlists (v0.8.8): each change made from the same saved state; the answer and what was saved
-    // the Node server's (new ids and times aside).
-    const one = await getJ("/api/album?offset=" + ids[0]);
-    const start = [
-      { id: "p1", name: "Kept", tracks: [{ album_offset: ids[0], album_title: one.album.title, album_subtitle: one.album.subtitle, track_index: 0, title: one.tracks[0].title, subtitle: "", image_key: one.album.image_key, track_no: 1 }], created_at: 1, updated_at: 2, extra: "kept as is" },
-      { id: "q1", name: "From Qobuz", service: "qobuz", tracks: [], created_at: 1, updated_at: 1 },
-      { id: "p2", name: "Empty", tracks: [], created_at: 1, updated_at: 3 }
-    ];
-    const norm = v => JSON.parse(JSON.stringify(v), (k, x) => (k === "created_at" || k === "updated_at") && x > 1e12 ? "now"
-      : k === "id" && typeof x === "string" && /^[0-9a-f]{12}$/.test(x) ? "new" : x);
-    const made = async (base, p, body) => {
-      ctx.db.setSetting("userPlaylists", start);
-      const x = await fetch(base + p, { method: "POST", headers: JH, body: JSON.stringify(body) });
-      return { by: x.headers.get("x-mandarin-answered"), status: x.status, body: steady(norm(await x.json())), saved: steady(norm(ctx.db.setting("userPlaylists", null))) };
-    };
-    const both = async (p, body) => {
-      const mine = await made(B, p, body);
-      assert.equal(mine.by, "C#", p + " answered by C#");
-      const want = await rec.want("your playlists: " + p + " " + JSON.stringify(body).slice(0, 120));
-      assert.deepStrictEqual({ status: mine.status, body: mine.body, saved: mine.saved }, want, p + " " + JSON.stringify(body).slice(0, 120));
-      return mine;
-    };
-    ctx.db.setSetting("userPlaylists", start);
-    for (const p of ["/api/user-playlists", "/api/user-playlist?id=p1", "/api/user-playlist?id=q1", "/api/user-playlist?id=nope", "/api/playlists", "/api/playlist?id=x"]) await same(p);
-    await both("/api/user-playlists", { name: "  Late   Night  " });
-    await both("/api/user-playlists", { name: "" });
-    await both("/api/user-playlists", { id: "p2", name: "Renamed" });
-    await both("/api/user-playlists", { id: "nope", name: "X" });
-    await both("/api/user-playlists/delete", { id: "p1" });
-    await both("/api/user-playlists/delete", { id: "q1" });
-    const t0 = one.tracks[0], t1 = one.tracks[1] || one.tracks[0];
-    await both("/api/user-playlists/add", { id: "p1", tracks: [
-      { album_offset: ids[0], album_title: one.album.title, track_index: 0, title: "  " + t0.title + "  " },
-      { album_offset: ids[0], title: t1.title },
-      { album_offset: ids[0], track_index: 0, title: "not on it" },
-      { album_title: one.album.title, album_subtitle: one.album.subtitle, title: t0.title },
-      { album_title: "Nothing Like It", title: "x" },
-      { album_offset: "999999", track_index: 0 }, null, 5, "x", {}, []
-    ] });
-    await both("/api/user-playlists/add", { name: "Made by adding", tracks: [{ album_offset: ids[1], track_index: 0, title: "" }] });
-    await both("/api/user-playlists/add", { id: "nope", tracks: [{}] });
-    await both("/api/user-playlists/add", { tracks: [{}] });
-    await both("/api/user-playlists/add", { id: "p1", tracks: [] });
-    await both("/api/user-playlists/add-albums", { id: "p2", albums: [{ offset: ids[2] }, { offset: ids[3], title: "x" }, { offset: 999999, title: "Gone" }, 5, null, {}] });
-    await both("/api/user-playlists/add-albums", { name: "Albums", albums: ids.slice(0, 3).map(offset => ({ offset })) });
-    await both("/api/user-playlists/add-albums", { id: "p1", albums: [] });
-    ctx.db.setSetting("userPlaylists", []);
     const fav = await same("/api/favourites");
     assert.deepEqual(fav.albums.map(a => a.offset), [ids[0], ids[2]], "hearts, newest first");
     const s = await same("/api/search?q=columbia");

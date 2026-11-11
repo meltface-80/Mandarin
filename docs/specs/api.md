@@ -5,7 +5,7 @@ Written by `node tools/api-map.js write` from the C# sources (`server/Mandarin.S
 where the code decides it away from the address (the handler says). "…" ends an address the route takes
 the rest of; a pattern is as the code writes it. What each answers is said beside its handler.
 
-224 routes.
+211 routes.
 
 | Method | Address | Who may ask | Answered in |
 |---|---|---|---|
@@ -101,6 +101,9 @@ the rest of; a pattern is as the code writes it. What each answers is said besid
 | POST | `/api/labels/merge` | signed in | `LibraryRoutes.cs` |
 | POST | `/api/labels/rescan` | signed in | `LibraryRoutes.cs` |
 | POST | `/api/labels/rescan-force` | signed in | `LibraryRoutes.cs` |
+| POST | `/api/lastfm/connect` | signed in | `LibraryRoutes.cs` |
+| POST | `/api/lastfm/disconnect` | signed in | `LibraryRoutes.cs` |
+| GET | `/api/lastfm/scrobbling` | signed in | `LibraryRoutes.cs` |
 | GET | `/api/lastfm/similar-albums` | signed in | `LibraryRoutes.cs` |
 | GET | `/api/lastfm/similar-artists` | signed in | `LibraryRoutes.cs` |
 | GET | `/api/library-stats` | signed in | `LibraryRoutes.cs` |
@@ -137,11 +140,6 @@ the rest of; a pattern is as the code writes it. What each answers is said besid
 | POST | `/api/play-multi` | signed in | `PlaybackRoutes.cs` |
 | POST | `/api/play-track` | signed in | `PlaybackRoutes.cs` |
 | POST | `/api/play-unheard` | signed in | `PlaybackRoutes.cs` |
-| GET | `/api/playlist` | signed in | `LibraryRoutes.cs` |
-| GET | `/api/playlist/art` | signed in | `LibraryRoutes.cs` |
-| POST | `/api/playlist/play` | signed in | `LibraryRoutes.cs` |
-| POST | `/api/playlist/play-track` | signed in | `LibraryRoutes.cs` |
-| GET | `/api/playlists` | signed in | `LibraryRoutes.cs` |
 | GET | `/api/queue` | signed in | `PlaybackRoutes.cs` |
 | POST | `/api/queue/clear` | signed in | `PlaybackRoutes.cs` |
 | POST | `/api/queue/history-multi` | signed in | `PlaybackRoutes.cs` |
@@ -172,14 +170,14 @@ the rest of; a pattern is as the code writes it. What each answers is said besid
 | POST | `/api/settings/labels` | signed in | `LibraryRoutes.cs` |
 | GET | `/api/settings/lastfm-key` | signed in | `LibraryRoutes.cs` |
 | POST | `/api/settings/lastfm-key` | signed in | `LibraryRoutes.cs` |
+| GET | `/api/settings/lastfm-secret` | signed in | `LibraryRoutes.cs` |
+| POST | `/api/settings/lastfm-secret` | signed in | `LibraryRoutes.cs` |
 | GET | `/api/settings/shelf` | signed in | `LibraryRoutes.cs` |
 | POST | `/api/settings/shelf` | signed in | `LibraryRoutes.cs` |
 | GET | `/api/settings/smart-picks` | signed in | `LibraryRoutes.cs` |
 | POST | `/api/settings/smart-picks` | signed in | `LibraryRoutes.cs` |
 | GET | `/api/settings/waveform` | signed in | `LibraryRoutes.cs` |
 | POST | `/api/settings/waveform` | signed in | `LibraryRoutes.cs` |
-| POST | `/api/share/encode` | signed in | `LibraryRoutes.cs` |
-| POST | `/api/share/import` | signed in | `LibraryRoutes.cs` |
 | GET | `/api/shelf/albums` | signed in | `LibraryRoutes.cs` |
 | GET | `/api/shortcut/play-random` | signed in | `PlaybackRoutes.cs` |
 | GET | `/api/shortcut/play-unheard` | signed in | `PlaybackRoutes.cs` |
@@ -187,11 +185,6 @@ the rest of; a pattern is as the code writes it. What each answers is said besid
 | GET | `/api/smart-picks` | signed in | `LibraryRoutes.cs` |
 | POST | `/api/smart-picks/block` | signed in | `LibraryRoutes.cs` |
 | POST | `/api/smart-picks/rebuild` | signed in | `LibraryRoutes.cs` |
-| GET | `/api/smart-playlist` | signed in | `LibraryRoutes.cs` |
-| GET | `/api/smart-playlist/albums` | signed in | `LibraryRoutes.cs` |
-| GET | `/api/smart-playlists` | signed in | `LibraryRoutes.cs` |
-| POST | `/api/smart-playlists` | signed in | `LibraryRoutes.cs` |
-| POST | `/api/smart-playlists/delete` | signed in | `LibraryRoutes.cs` |
 | GET | `/api/sq-tool/record` | signed in | `PlaybackRoutes.cs` |
 | POST | `/api/sq-tool/record` | signed in | `PlaybackRoutes.cs` |
 | GET | `/api/sq-tool/zones` | signed in | `PlaybackRoutes.cs` |
@@ -211,12 +204,6 @@ the rest of; a pattern is as the code writes it. What each answers is said besid
 | POST | `/api/update/bridges/apply` | signed in | `UpdateRoutes.cs` |
 | POST | `/api/update/check` | signed in | `UpdateRoutes.cs` |
 | GET | `/api/update/status` | signed in | `UpdateRoutes.cs` |
-| GET | `/api/user-playlist` | signed in | `LibraryRoutes.cs` |
-| GET | `/api/user-playlists` | signed in | `LibraryRoutes.cs` |
-| POST | `/api/user-playlists` | signed in | `LibraryRoutes.cs` |
-| POST | `/api/user-playlists/add` | signed in | `LibraryRoutes.cs` |
-| POST | `/api/user-playlists/add-albums` | signed in | `LibraryRoutes.cs` |
-| POST | `/api/user-playlists/delete` | signed in | `LibraryRoutes.cs` |
 | POST | `/api/volume` | signed in | `PlaybackRoutes.cs` |
 | GET | `/api/waveform` | signed in | `LibraryRoutes.cs` |
 | POST | `/api/zone-settings` | signed in | `PlaybackRoutes.cs` |

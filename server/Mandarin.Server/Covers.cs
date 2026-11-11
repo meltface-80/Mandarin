@@ -189,8 +189,8 @@ internal static partial class Covers
         var key = al.ImageKey;
         var entry = Sources.GetOrAdd(key, k => (now, new Lazy<Task<byte[]?>>(() => Find(al).ContinueWith(t =>
         {
-            // A very big one is shared only by the asks already waiting for it.
-            if (t.IsCompletedSuccessfully && t.Result is { Length: > 8 << 20 }) Sources.TryRemove(k, out var _);
+            // A very big one is shared only by the asks already waiting for it; one that couldn't be told (null: its drive away) isn't kept.
+            if (t.IsCompletedSuccessfully && t.Result is null or { Length: > 8 << 20 }) Sources.TryRemove(k, out var _);
             return t;
         }, TaskScheduler.Default).Unwrap())));
         // Not many kept: a cover is megabytes.
@@ -235,7 +235,7 @@ internal static partial class Covers
             {
                 var info = new FileInfo(artPath);
                 if (info.Exists && info.Length <= MaxSource) return await File.ReadAllBytesAsync(artPath);
-                if (info.Exists) return null;
+                if (info.Exists) return null; if (!Directory.Exists(Path.GetDirectoryName(artPath))) sure = false;   // its folder gone: a drive away, not a cover gone
             }
             catch (Exception e) when (e is IOException or UnauthorizedAccessException) { /* moved: try embedded */ }
         }
@@ -274,7 +274,7 @@ internal static partial class Covers
     /* Picture, and whether ffprobe could tell at all (Read false: it couldn't). */
     private static async Task<(bool Read, int? At)> PictureOf(string track)
     {
-        if (!File.Exists(track)) return (true, null);
+        if (!File.Exists(track)) return (false, null);   // not there now (a drive not mounted yet): can't tell, never "no cover" — a placeholder drawn then was kept for good
         var (code, json, _) = await Run(Ffprobe,
             ["-v", "error", "-show_entries", "stream=index,codec_type:stream_disposition=attached_pic:stream_tags", "-of", "json", track],
             null, 1 << 20, TimeSpan.FromSeconds(20));

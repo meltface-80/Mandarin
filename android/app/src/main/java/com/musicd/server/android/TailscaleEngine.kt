@@ -194,9 +194,6 @@ object TailscaleEngine {
         if (json("POST", "/forward?target=$target&port=$PORT").optInt("_status") < 400) readyFor = target
     }
 
-    /** The address the app uses away when the engine carries it. */
-    fun forwardAddress(): String = "127.0.0.1:$PORT"
-
     fun alive() = process?.isAlive == true
 
     /** The engine's CPU time so far, in seconds (its own rusage, /status's cpu_s; item 202); null when it isn't running or doesn't say. */

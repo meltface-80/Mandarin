@@ -17,8 +17,8 @@
  *   - Tidal's token about to expire, or refused: refreshed by the C# server
  *     (v0.8.47), the write made once, the Node server never asked;
  *   - Clean up, signed in and signed out;
- *   - the month's prune: albums a month old, unplayed, neither kept nor held,
- *     go; the others stay.
+ *   - the month's prune: albums a month old, unplayed and not kept, go; the
+ *     others stay.
  *
  * test/qobuz.test.js and test/tidal.test.js are the services' own.
  *
@@ -28,7 +28,10 @@
  * (MANDARIN_FRONT=1, while index.js was still there); every run since starts
  * the program alone and holds it to the recording. An album and a track are
  * named there by their key and path, not the ids SQLite gave them that run;
- * the data folder and the fakes' ports by name.
+ * the data folder and the fakes' ports by name. It was recorded while a
+ * service's playlists still held their albums in the library (taken out of
+ * Mandarin since): an album the Node server's run left for a playlist goes
+ * here (HELD, below), and an album page's word on it ("held") is left out.
  */
 const ports = require("./ports");
 const test = require("node:test");
@@ -109,8 +112,11 @@ test("Qobuz's and Tidal's library rows, written by the C# server as the Node ser
   };
   const get = (p) => call(B, p);
   const post = (p, body) => call(B, p, body || {});
-  /* The Node server's answer to the same request, as recorded under a name with no ids in it. */
-  const theirs = (label) => rec.want(label);
+  /* The Node server's answer to the same request, as recorded under a name with no ids in it; an album page's "held" left out. */
+  const theirs = (label) => {
+    const v = rec.want(label);
+    return v && typeof v.text === "string" ? Object.assign({}, v, { text: v.text.replace(/,"held":(true|false)/g, "") }) : v;
+  };
   const step = (p, body) => named(p).replace(/offset=(\d+)/, (m, id) => "offset=<" + keyOf(id) + ">") + (body ? " " + JSON.stringify(body) : "");
   // The same request of each: answered by C#, and the Node server's own the same, word for word.
   const same = async (p, body) => {
@@ -157,7 +163,7 @@ test("Qobuz's and Tidal's library rows, written by the C# server as the Node ser
     const a = albumRow(key);
     if (a && a.art_path) for (const f of [a.art_path, a.art_path + ".url"]) fs.rmSync(f, { force: true });
     raw.prepare("DELETE FROM albums WHERE key = ?").run(key);
-    for (const ns of ["qobuz-kept", "tidal-kept", "qobuz-held", "tidal-held"]) raw.prepare("DELETE FROM cache WHERE ns = ? AND key = ?").run(ns, key);
+    for (const ns of ["qobuz-kept", "tidal-kept"]) raw.prepare("DELETE FROM cache WHERE ns = ? AND key = ?").run(ns, key);
     return ctx.library.reload();
   };
 
@@ -301,7 +307,6 @@ test("Qobuz's and Tidal's library rows, written by the C# server as the Node ser
     await post("qobuz/favorite", { album_id: "q100" });
     raw.prepare("INSERT INTO plays(album_id, track_id, title, artist, album, zone, ts) VALUES(?, NULL, 'Q One', 'Q Artist', 'Q Album', 'x', ?)").run(albumRow("qobuz:q100").id, Date.now() - DAY);
     await post("qobuz/open", { album_id: "q300" });
-    raw.prepare("INSERT INTO cache(ns, key, value, ts) VALUES('qobuz-held', 'qobuz:q300', '1', ?)").run(Date.now());
     await ctx.library.reload();
     const fav = await page("qobuz:q100");
     assert.deepEqual(Object.keys(fav).slice(-3), ["service_favourite", "qobuz_favourite", "service_why"], "in the Node server's order: " + Object.keys(fav).join(", "));
@@ -309,7 +314,8 @@ test("Qobuz's and Tidal's library rows, written by the C# server as the Node ser
     assert.equal(fav.service_why.kept, "favourite");
     assert.ok(fav.service_why.last_played > 0, "when it was last played");
     const soon = await page("qobuz:q300");
-    assert.deepEqual([soon.service_favourite, soon.service_why.kept, soon.service_why.held, soon.service_why.releases], [false, null, true, "2099-01-01"]);
+    assert.deepEqual([soon.service_favourite, soon.service_why.kept, soon.service_why.releases], [false, null, "2099-01-01"]);
+    assert.equal("held" in soon.service_why, false, "no playlist holds an album");
     const td = await page("tidal:2001");
     assert.equal(td.tidal_favourite, false);
     // A row from before v0.7.3: kept, reason unknown.
@@ -406,11 +412,11 @@ test("Qobuz's and Tidal's library rows, written by the C# server as the Node ser
   });
 
   await t.test("Clean up, signed in and signed out, as the Node server's", async () => {
-    // Signed in: the transient albums go, with their edits, hearts and Listen later; kept and held ones stay.
+    // Signed in: the transient albums go, with their edits, hearts and Listen later; kept ones stay. q300 and q600,
+    // held by a playlist in the Node server's run (its mark there), go too: no playlist holds an album now.
     const setUp = async () => {
       for (const id of ["q150", "q170", "q200", "q400", "q500", "q600"]) { await forget("qobuz:" + id); await post("qobuz/open", { album_id: id }); }
       await post("qobuz/favorite", { album_id: "q500" });
-      raw.prepare("INSERT INTO cache(ns, key, value, ts) VALUES('qobuz-held', 'qobuz:q600', '1', 0) ON CONFLICT(ns, key) DO NOTHING").run();
       raw.prepare("INSERT INTO favourites(key, added_at) VALUES('qobuz:q400', 1) ON CONFLICT(key) DO NOTHING").run();
       raw.prepare("INSERT INTO listen_later(key, added_at) VALUES('qobuz:q400', 1) ON CONFLICT(key) DO NOTHING").run();
       raw.prepare("INSERT INTO album_edits(key, title, updated_at) VALUES('qobuz:q400', 'Mine', 1) ON CONFLICT(key) DO NOTHING").run();
@@ -427,12 +433,14 @@ test("Qobuz's and Tidal's library rows, written by the C# server as the Node ser
     assert.deepEqual(Object.keys(c.j), ["ok", "kind", "removed", "count"]);
     assert.deepEqual([c.j.ok, c.j.kind, c.j.removed], [true, "qobuz", stale]);
     const afterC = left();
-    assert.ok(!afterC.includes("qobuz:q400") && afterC.includes("qobuz:q500") && afterC.includes("qobuz:q600"), afterC.join(", "));
+    assert.ok(!afterC.includes("qobuz:q400") && afterC.includes("qobuz:q500") && !afterC.includes("qobuz:q600"), afterC.join(", "));
     assert.deepEqual(edits(), [0, 0, 0, 0], "its edits, heart and Listen later gone");
     assert.equal(c.j.count, (await get("library-stats")).j.albums, "the library's count after");
     const n = await rec.want("Clean up, signed in");
-    assert.equal(c.text, n.text, "the same answer");
-    assert.deepEqual(afterC, n.left, "the same albums left");
+    const HELD = ["qobuz:q300", "qobuz:q600"];
+    const nj = JSON.parse(n.text);
+    assert.equal(c.text, JSON.stringify(Object.assign(nj, { removed: nj.removed + HELD.length })), "the Node server's answer, its held albums gone too (off the walls, so the count the same)");
+    assert.deepEqual(afterC, n.left.filter(k => !HELD.includes(k)), "the same albums left, but those it held");
     // Nothing stale: nothing removed, the Node server not told.
     assert.equal((await same("library/cleanup", { kind: "qobuz" })).j.removed, 0);
     // The music folders' kind, and one it refuses: the C# server's too (v0.8.48), word for word
@@ -440,11 +448,9 @@ test("Qobuz's and Tidal's library rows, written by the C# server as the Node ser
     const files = await same("library/cleanup", { kind: "files" });
     assert.deepEqual([files.status, files.j.ok, files.j.kind, files.j.removed], [200, true, "files", 0], files.text);
     assert.equal((await same("library/cleanup", { kind: "nope" })).status, 400);
-    // Signed out of Tidal: every Tidal album goes, the kept and held marks, and Tidal's playlists.
-    const lists = [{ id: "mine", name: "Mine", tracks: [] }, { id: "tidal-pl-x", name: "Long drive", service: "tidal", tracks: [] }, { id: "qobuz-pl-1", name: "Road trip", qobuz: true, tracks: [] }, { id: "", name: "Nameless" }];
+    // Signed out of Tidal: every Tidal album goes, and the kept marks.
     const signedOut = () => {
-      raw.prepare("INSERT INTO cache(ns, key, value, ts) VALUES('tidal-held', 'tidal:2002', '1', 0) ON CONFLICT(ns, key) DO NOTHING").run();
-      ctx.db.setSetting("userPlaylists", lists);
+      raw.prepare("INSERT INTO cache(ns, key, value, ts) VALUES('tidal-kept', 'tidal:2002', '1', 0) ON CONFLICT(ns, key) DO NOTHING").run();
       return ctx.library.reload();
     };
     const tidalAccount = ctx.db.setting("tidal");
@@ -456,13 +462,11 @@ test("Qobuz's and Tidal's library rows, written by the C# server as the Node ser
     const so = await post("library/cleanup", { kind: "tidal" });
     assert.deepEqual([so.status, so.by, so.j.removed], [200, "C#", had.length], so.text);
     assert.deepEqual(tidalRows(), []);
-    assert.equal(raw.prepare("SELECT COUNT(*) AS n FROM cache WHERE ns LIKE 'tidal-%'").get().n, 0, "the kept and held marks gone");
-    const playlists = raw.prepare("SELECT value FROM settings WHERE key = 'userPlaylists'").get().value;
-    assert.equal(playlists, JSON.stringify(lists.filter(x => x.id && x.name && x.service !== "tidal")), "Tidal's playlists gone, the rest as they were");
+    assert.equal(raw.prepare("SELECT COUNT(*) AS n FROM cache WHERE ns LIKE 'tidal-%'").get().n, 0, "the kept marks gone");
     // The Node server's, from the same start (the rows written again as they were).
     const sn = await rec.want("Clean up, signed out");
-    assert.deepEqual([so.text, playlists], [sn.text, sn.playlists], "the same answer, the same playlists left");
-    // Signed out with nothing left: the marks and playlists still go, nothing removed.
+    assert.equal(so.text, sn.text, "the same answer");
+    // Signed out with nothing left: the marks still go, nothing removed.
     await signedOut();
     const empty = await same("library/cleanup", { kind: "tidal" });
     assert.equal(empty.j.removed, 0);
@@ -471,7 +475,7 @@ test("Qobuz's and Tidal's library rows, written by the C# server as the Node ser
     await ctx.library.reload();
   });
 
-  await t.test("the month's prune: a month unplayed, neither kept nor held, goes; the rest stays", async () => {
+  await t.test("the month's prune: a month unplayed and not kept goes; the rest stays", async () => {
     const K = { "X-Mandarin-Front-Key": ctx.frontKey };
     assert.equal((await fetch(B + "/internal/jobs/prune", { method: "POST" })).status, 404, "not without the key");
     const old = Date.now() - 40 * DAY;
@@ -483,24 +487,24 @@ test("Qobuz's and Tidal's library rows, written by the C# server as the Node ser
       for (const id of ["q400", "q500", "q600", "q700", "q800", "q900"]) await post("qobuz/open", { album_id: id });
       const idOf = (id) => albumRow("qobuz:" + id).id;
       // q400: a month old, never played: goes. q500: played ten days ago: stays. q600: kept: stays.
-      // q700: held: stays. q800: read today: stays. q900: last played forty days ago: goes.
+      // q700: held by a playlist in the Node server's run, where it stayed: goes. q800: read today: stays. q900: last
+      // played forty days ago: goes.
       for (const id of ["q400", "q500", "q600", "q700", "q900"]) raw.prepare("UPDATE albums SET updated_at = ? WHERE key = ?").run(old, "qobuz:" + id);
       raw.prepare("INSERT INTO plays(album_id, title, ts) VALUES(?, 'x', ?)").run(idOf("q500"), Date.now() - 10 * DAY);
       raw.prepare("INSERT INTO plays(album_id, title, ts) VALUES(?, 'x', ?)").run(idOf("q900"), old);
       raw.prepare("INSERT INTO cache(ns, key, value, ts) VALUES('qobuz-kept', 'qobuz:q600', ?, 0)").run(JSON.stringify({ why: "favourite", at: 1 }));
-      raw.prepare("INSERT INTO cache(ns, key, value, ts) VALUES('qobuz-held', 'qobuz:q700', '1', 0)").run();
       await ctx.library.reload();
       return idOf("q400");
     };
     const left = () => raw.prepare("SELECT key FROM albums WHERE key LIKE 'qobuz:%' ORDER BY key").all().map(r => r.key);
     const gone = await setUp();
     const r = await fetch(B + "/internal/jobs/prune", { method: "POST", headers: K });
-    assert.deepEqual([r.status, await r.json()], [200, { ok: true, removed: { qobuz: 2, tidal: 0 } }]);
+    assert.deepEqual([r.status, await r.json()], [200, { ok: true, removed: { qobuz: 3, tidal: 0 } }]);
     const mine = left();
-    assert.deepEqual(mine, ["qobuz:q500", "qobuz:q600", "qobuz:q700", "qobuz:q800"]);
+    assert.deepEqual(mine, ["qobuz:q500", "qobuz:q600", "qobuz:q800"]);
     assert.equal(raw.prepare("SELECT COUNT(*) AS n FROM tracks WHERE album_id = ?").get(gone).n, 0, "its tracks with it");
     const theirPrune = await rec.want("the month's prune");
-    assert.deepEqual([2, mine], [theirPrune.removed, theirPrune.left], "the Node server's own: the same albums left");
+    assert.deepEqual([3, mine], [theirPrune.removed + 1, theirPrune.left.filter(k => k !== "qobuz:q700")], "the Node server's own, the album it held gone too: the same albums left");
     // Nothing more to prune.
     assert.deepEqual(await (await fetch(B + "/internal/jobs/prune", { method: "POST", headers: K })).json(), { ok: true, removed: { qobuz: 0, tidal: 0 } });
     rec.done();

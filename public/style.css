@@ -461,7 +461,7 @@ a.action-btn:active,
 /* ------------------------------------------------------------------ */
 .update-toast {
   display: none;
-  /* No flex:0 0 auto — it is inside <main> now (see .docker-banner), where a
+  /* No flex:0 0 auto — it is inside <main> now, where a
      flex-child property does nothing. */
   flex-direction: column;
   border-radius: 12px; margin-bottom: 14px;
@@ -1013,10 +1013,10 @@ main { padding-top: calc(var(--topbar-h) + 14px); }
 .action-btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 6px;
   flex: 1 1 0; min-width: 0;
-  /*  ONE height for every .action-btn in the app. It used to render at 37px on
-      the playlist screens, 40px in the album modal, 38px on a track row and
-      38px in the label merge sheet — the same class, four heights, because
-      each container re-declared its own padding.  */
+  /*  ONE height for every .action-btn in the app. It used to render at 40px
+      in the album modal, 38px on a track row and 38px in the label merge
+      sheet — the same class, several heights, because each container
+      re-declared its own padding.  */
   min-height: var(--ctl-h);
   padding: 0 8px;
   font-size: 13px; font-weight: 500;
@@ -1618,9 +1618,6 @@ body.settings-open main { overflow-y: hidden; }
 /* A gap between the rows. Without one, consecutive switches touch: each row
    is exactly its switch's height, so five that are all ON merge into a single
    unbroken column of colour and stop reading as five controls. */
-/* A settings row that follows a list it belongs to, rather than starting a
-   block of its own. */
-.settings-row-top { margin-top: 14px; }
 
 .share-hint { color: var(--text-faint); font-size: 13px; margin: 10px 4px 0; }
 .share-err  { color: var(--danger);     font-size: 13px; margin: 10px 4px 0; }
@@ -2146,8 +2143,6 @@ body.settings-open main { overflow-y: hidden; }
 .np-signal-step.is-pending .np-signal-dot { background: transparent; border: 1px dashed var(--text-dim); }
 .np-signal-title { font-size: 14px; font-weight: 600; color: var(--text); }
 .np-signal-detail { font-size: 13px; color: var(--text-dim); line-height: 1.35; }
-.np-signal-action { margin-top: 6px; padding: 4px 12px; border-radius: 999px; border: 1px solid var(--accent); background: transparent; color: var(--accent); font-size: 13px; cursor: pointer; }
-.np-signal-action:disabled { opacity: 0.5; cursor: default; }
 /* The official Opus logo (Xiph.Org's, from the Opus source tree's
    doc/opus_logo.svg), its shapes used as a mask so it takes the badge's colour:
    the original's dark grey gradient disappears on this screen. */
@@ -2550,45 +2545,6 @@ input.vol-range::-moz-range-thumb {
   border-bottom: 1px solid var(--border);
 }
 
-.filter-pills::-webkit-scrollbar { display: none; }
-
-.filter-pill:hover  { color: var(--text); background: var(--bg-elev-2); }
-.filter-pill:active { transform: scale(.97); }
-.filter-pill.is-active {
-  background: var(--accent);
-  color: #fff;
-  border-color: transparent;
-}
-.filter-pill.is-active:hover { background: var(--accent); color: var(--on-accent); }
-
-/* Loading state for the grid while a filter is gathering matches */
-.album-grid.is-loading {
-  opacity: .55;
-  pointer-events: none;
-  transition: opacity .2s ease;
-}
-.filter-bar.is-loading .filter-pill.is-active::after {
-  content: "";
-  display: inline-block;
-  width: 12px; height: 12px;
-  margin-left: 8px;
-  border: 2px solid rgba(255,255,255,.45);
-  border-top-color: #fff;
-  border-radius: 50%;
-  animation: pill-spin .8s linear infinite;
-  vertical-align: -2px;
-}
-@keyframes pill-spin { to { transform: rotate(360deg); } }
-
-/* "No matches" empty state */
-.empty-message {
-  grid-column: 1 / -1;
-  padding: 40px 16px;
-  text-align: center;
-  color: var(--text-faint);
-  font-size: 14px;
-}
-
 /* ------------------------------------------------------------------ */
 /*  Filter funnel: active state on the icon button                     */
 /* ------------------------------------------------------------------ */
@@ -2599,71 +2555,8 @@ input.vol-range::-moz-range-thumb {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Active-filter chip strip (sits below the topbar when filter is on) */
+/*  Filter rows                                                        */
 /* ------------------------------------------------------------------ */
-.active-filter-bar {
-  display: flex; align-items: center; gap: 10px;
-  margin: 0 0 16px;
-  padding: 0;
-}
-.active-filter-bar.hidden { display: none; }
-.active-filter-label {
-  font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: .14em;
-  color: var(--text-faint);
-}
-
-.active-filter-clear {
-  display: inline-flex; align-items: center; justify-content: center;
-  width: 22px; height: 22px;
-  border-radius: 50%;
-  background: rgba(255,255,255,.18);
-  border: 0;
-  color: #fff;
-  font-size: 16px;
-  line-height: 1;
-  cursor: pointer;
-  padding: 0 0 2px 0;
-}
-.active-filter-clear:hover { background: rgba(255,255,255,.3); }
-
-/* ------------------------------------------------------------------ */
-/*  Filter dropdown panel                                              */
-/* ------------------------------------------------------------------ */
-.filter-panel {
-  position: fixed;
-  top: calc(60px + env(safe-area-inset-top));
-  right: 14px;
-  z-index: 80;
-  width: min(360px, calc(100vw - 28px));
-  max-height: calc(100vh - 80px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
-  background: var(--bg-elev);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  box-shadow: 0 18px 48px rgba(0,0,0,.4);
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  animation: filter-in .14s ease-out;
-}
-.filter-panel.hidden { display: none; }
-@keyframes filter-in {
-  from { opacity: 0; transform: translateY(-4px) scale(.98); }
-  to   { opacity: 1; transform: none; }
-}
-.filter-panel-inner {
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-  padding: 6px;
-}
-.filter-section-label {
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: .16em;
-  color: var(--text-faint);
-  margin: 14px 10px 6px;
-}
 .filter-row {
   display: flex; align-items: center; justify-content: space-between;
   gap: 10px;
@@ -2689,7 +2582,6 @@ input.vol-range::-moz-range-thumb {
   font-variant-numeric: tabular-nums;
 }
 .filter-row.is-active .count { color: rgba(255,255,255,.7); }
-.filter-row.is-all { font-weight: 600; }
 
 /* Filter bottom sheet (All / Genre / Tag) */
 .filter-sheet { max-height: 80vh; overflow-y: auto; -webkit-overflow-scrolling: touch; }
@@ -2802,7 +2694,6 @@ input.vol-range::-moz-range-thumb {
   #tidal-overlay .settings-head .icon-btn svg,
   #pitchfork-overlay .settings-head .icon-btn svg { width: 18px; height: 18px; }
 }
-.settings-sub { font-size: 13px; color: var(--text-faint); }
 .settings-block { padding: 4px 0; }
 .settings-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
 .settings-label { font-size: 16px; color: var(--text); }
@@ -2817,14 +2708,6 @@ input.vol-range::-moz-range-thumb {
 .modal-subtitle-year { color: var(--text-dim); }
 
 /* Artist albums view */
-.artist-view-back {
-  min-height: var(--tap-min);
-  background: none; border: 1px solid var(--border); border-radius: 8px;
-  color: var(--text-dim); font-size: 13px; padding: 5px 12px;
-  cursor: pointer; margin-right: 10px; transition: color .15s, background .15s;
-  flex-shrink: 0;
-}
-.artist-view-back:hover { color: var(--text); background: var(--bg-elev); }
 .count-text { font-size: 13px; color: var(--text-dim); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .artist-section-header {
   grid-column: 1 / -1;
@@ -2861,17 +2744,10 @@ input.vol-range::-moz-range-thumb {
 }
 .artist-bio-src  { font-size: 12px; color: var(--text-faint); }
 /* Who they are (bug list item 131, artist-about.js): the portrait, then what
-   they are, where from and when, and their links as pills, all centred over
-   the biography; a band's members or a person's bands in a row of round
+   they are, where from and when, all centred over the tabs (no links); a band's members or a person's bands in a row of round
    pictures that scrolls sideways, under the head. */
 .artist-hero { display: flex; flex-direction: column; align-items: center; width: 100%; max-width: 680px; }
 .artist-facts { font-size: 13.5px; line-height: 1.4; font-weight: 500; color: var(--text-dim); text-align: center; margin-bottom: 10px; }
-.artist-links { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-bottom: 14px; }
-.artist-link {
-  display: inline-block; padding: 5px 12px; border: 1px solid var(--border); border-radius: 20px;
-  font-size: 12.5px; line-height: 17px; color: var(--text); text-decoration: none; white-space: nowrap;
-}
-.artist-link:hover { border-color: var(--accent-text); }
 /* Genres as small chips (bug list item 139): an album's a row under the sleeve, an artist's under their facts; each opens its wall. */
 .genre-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 .genre-chips.hidden { display: none; }
@@ -2882,7 +2758,7 @@ input.vol-range::-moz-range-thumb {
 }
 .genre-chip:hover { color: var(--accent-text); border-color: var(--accent-text); }
 .np-mode #modal-genres { display: none; }
-/* Play and Shuffle (bug list item 138): the brass pill and the outlined one, side by side under the links. */
+/* Play and Shuffle (bug list item 138): the brass pill and the outlined one, side by side under the genres. */
 .artist-play { display: flex; justify-content: center; gap: 10px; margin: 0 0 16px; }
 .artist-play.hidden { display: none; }
 .artist-play-btn, .artist-shuffle-btn {
@@ -2892,7 +2768,9 @@ input.vol-range::-moz-range-thumb {
 .artist-play-btn { background: var(--accent); color: var(--on-accent); border: 0; font-weight: 700; }
 .artist-shuffle-btn { background: transparent; color: var(--text); border: 1px solid var(--border); font-weight: 600; }
 .artist-stints { grid-column: 1 / -1; min-width: 0; padding-bottom: 10px; }
-.artist-stints .artist-section-header { padding-bottom: 8px; }
+/* Every section of the page as Discography's grid has it: the heading, then its content 12 under it. */
+.artist-stints .artist-section-header { padding-bottom: 4px; }
+.artist-stint-row, .artist-overview-row { margin-top: 12px; }
 .artist-stint-row {
   display: flex; gap: 14px; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none;
   padding-right: 14px;
@@ -2925,20 +2803,35 @@ input.vol-range::-moz-range-thumb {
 .artist-stints-folded .artist-stint-row { display: none; }
 .artist-tail { grid-column: 1 / -1; min-width: 0; padding-top: 18px; }
 .artist-tail .hidden { display: none; }
-.artist-similar-album {
-  flex: 0 0 128px; width: 128px; display: flex; flex-direction: column; align-items: stretch;
-  background: none; border: 0; padding: 0; color: inherit; font: inherit; cursor: pointer; text-align: left;
+/* Overview's rows of album tiles (their albums, similar albums): Home's row (.home-carousel), its gutter main's. */
+.artist-overview, .artist-tail { --home-gutter: 14px; }
+@media (min-width: 768px)  { .artist-overview, .artist-tail { --home-gutter: 18px; } }
+@media (min-width: 1200px) { .artist-overview, .artist-tail { --home-gutter: 22px; } }
+/* An artist's page in tabs (artist-tabs.js): Overview, Discography and About under who they are,
+   as an album's page has its tabs (.album-tab); the one open shows, the rest wait. Every artist's page the same. */
+.artist-tabs {
+  grid-column: 1 / -1; display: flex; justify-content: center; gap: 18px; margin: -12px 0 6px;
+  border-bottom: 1px solid var(--border); overflow-x: auto; scrollbar-width: none;
 }
-.artist-similar-album-art {
-  position: relative; width: 128px; height: 128px; border-radius: 6px; overflow: hidden; background: var(--bg-elev-2);
+.artist-tabs::-webkit-scrollbar { display: none; }
+.artist-tab {
+  font: inherit; font-size: 13px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; white-space: nowrap;
+  color: var(--text-faint); background: transparent; border: 0; padding: 12px 0 10px; cursor: pointer;
+  border-bottom: 2px solid transparent; margin-bottom: -1px;
 }
-.artist-similar-album-art img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-.artist-similar-album-title {
-  margin-top: 8px; font-size: 13px; line-height: 17px; font-weight: 500; color: var(--text);
-  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+.artist-tab.is-on { color: var(--text); border-bottom-color: var(--accent); }
+.artist-overview, .artist-about { grid-column: 1 / -1; min-width: 0; }
+.artist-overview-head { display: flex; align-items: center; justify-content: space-between; }
+.artist-see-all {
+  background: none; border: 0; font: inherit; font-size: 13px; font-weight: 600; color: var(--accent-text);
+  cursor: pointer; padding: 12px 0 4px;
 }
-.artist-similar-album-artist { margin-top: 2px; font-size: 12px; line-height: 16px; color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.artist-similar-album-site { font-size: 10px; letter-spacing: .04em; color: var(--accent-text); }
+.artist-about { justify-self: center; width: 100%; max-width: 680px; padding-top: 12px; }
+.artist-about .artist-bio-body { margin-bottom: 14px; }
+.artist-about-empty { padding: 24px 0; text-align: center; color: var(--text-dim); font-size: 14px; }
+#album-grid[data-artist-tab="overview"] :is(.artist-disc, .artist-about),
+#album-grid[data-artist-tab="discography"] :is(.artist-overview, .artist-about, .artist-tail),
+#album-grid[data-artist-tab="about"] :is(.artist-disc, .artist-overview, .artist-tail, .artist-view-empty) { display: none !important; }
 /* Qobuz artist screen: bio sits under the compact avatar+name row, so its
    footer stays inline/left rather than centred. */
 .qobuz-artist-bio { margin-top: 10px; }
@@ -2948,15 +2841,6 @@ input.vol-range::-moz-range-thumb {
   font-size: 14px; color: var(--text-dim);
 }
 .content-count.hidden { display: none; }
-/* Import, in the top-right corner of the Playlists screen: a brass pill, the
-   size of the Library's Focus and Sort. */
-.playlists-import {
-  display: inline-flex; align-items: center; height: 32px; padding: 0 14px; border-radius: 999px;
-  margin-left: auto;
-  background: var(--accent); color: var(--on-accent); border: 1px solid var(--accent);
-  font-family: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer;
-}
-.playlists-import:hover { filter: brightness(1.08); }
 
 .settings-info-btn {
   /*  Was 18x14 — the smallest tap target in the app by a wide margin. The glyph
@@ -3172,42 +3056,6 @@ input.vol-range::-moz-range-thumb {
    control above it exists, rather than what it is called. */
 .settings-note { font-size: 12px; color: var(--text-faint); margin-top: 6px; line-height: 1.45; }
 
-/* Import: tracks matched under a different album than the share named. Not a
-   warning — the track WAS found — but not silent either, because it is a
-   substitution the user is entitled to see. */
-.share-sub-note { color: var(--text-dim); }
-.import-substituted li { color: var(--text-faint); }
-
-/* ------------------------------------------------------------------ */
-/*  Docker migration banner                                            */
-/* ------------------------------------------------------------------ */
-/* Inside <main> as of v1.7.88, not a flex child of .app. The top bar overlays
-   the scroller now, so anything left in the shell's flow would sit underneath
-   it — moving the two notices into the scroller means the bar has exactly one
-   thing to sit over and the reserve lives in one place. They take main's
-   padding rather than bleeding edge to edge, so a radius makes that read as
-   intended rather than as a band that failed to reach the sides. */
-.docker-banner {
-  background: #7c5500; color: #fff; padding: 16px 20px;
-  font-size: 14px; line-height: 1.6;
-  border-radius: 12px; margin-bottom: 14px;
-}
-.docker-banner.hidden { display: none; }
-.docker-banner-body { max-width: 900px; margin: 0 auto; }
-.docker-banner-body strong { font-weight: 700; }
-.docker-banner-pre {
-  margin: 12px 0; padding: 12px 14px;
-  background: rgba(0,0,0,0.35); border-radius: 8px;
-  font-family: monospace; font-size: 12px; white-space: pre-wrap; word-break: break-all;
-  color: #e8e8e8;
-}
-.docker-banner-dismiss {
-  margin-top: 10px; padding: 7px 18px; border-radius: 8px; border: none;
-  background: rgba(255,255,255,0.2); color: #fff; font-size: 13px; font-weight: 600;
-  cursor: pointer; transition: background .15s ease;
-}
-.docker-banner-dismiss:hover { background: rgba(255,255,255,0.3); }
-
 /* ------------------------------------------------------------------ */
 /*  Confirm dialog                                                     */
 /* ------------------------------------------------------------------ */
@@ -3232,12 +3080,6 @@ input.vol-range::-moz-range-thumb {
 }
 .confirm-btn:active { transform: scale(.97); }
 .confirm-primary { background: var(--accent); color: var(--on-accent); border-color: transparent; }
-.prompt-input {
-  display: block; width: 100%; box-sizing: border-box; margin: 0 0 16px;
-  height: 46px; padding: 0 14px; border-radius: 12px; font-size: 16px; font-family: inherit;   /* the page's face, not the input's own (item 94) */
-  background: var(--bg-elev-2); color: var(--text); border: 1px solid var(--border);
-}
-.prompt-input:focus { outline: none; border-color: var(--accent); }
 
 /* ------------------------------------------------------------------ */
 /*  Toggle switch (settings)                                           */
@@ -3350,76 +3192,6 @@ input.vol-range::-moz-range-thumb {
 }
 .group-row.is-on .group-note { color: inherit; opacity: .8; }
 
-/* Smart-playlist rows reuse .dev-row; the name is the tappable part. */
-.smart-open {
-  flex: 1 1 auto; min-width: 0;
-  background: transparent; border: 0; padding: 0;
-  text-align: left; cursor: pointer; color: inherit; font: inherit;
-}
-.smart-open:hover .dev-name { color: var(--accent-text); }
-
-/* Playlist tiles: a 2x2 mosaic of the first few tracks' covers, as Roon draws
-   them. The wrap already sizes and clips the tile, so the grid just fills it.
-   Three covers leave the last cell empty rather than stretching one to fit. */
-.album-art-mosaic {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  grid-template-rows: 1fr 1fr;
-  gap: 1px;
-}
-/* The base .album-art-wrap img rule (100%/cover) already sizes each one to its
-   grid cell, so nothing more is needed here. */
-/* Two covers read better as halves than as a half-empty 2x2. */
-.album-art-mosaic[data-mosaic="2"] { grid-template-rows: 1fr; }
-
-/* --- Roon playlist detail (read + play) ----------------------------------- */
-/* Rendered into the shared grid container, so it must span every column
-   rather than sitting in one cell. */
-.playlist-detail { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 14px; }
-.playlist-back { align-self: flex-start; }
-.playlist-head { display: flex; flex-direction: column; gap: 4px; }
-.playlist-title {
-  margin: 0; font-size: calc(22px * var(--ui-title, 1)); font-weight: 700; color: var(--text);
-  border-bottom: 1px solid var(--panel-hairline); padding-bottom: 8px;
-}
-.playlist-sub { font-size: 14px; color: var(--text-dim); }
-.playlist-actions { display: flex; gap: 10px; flex-wrap: wrap; }
-.playlist-empty { font-size: 14px; color: var(--text-faint); }
-/* A playlist that cannot run because the feature behind its query is switched
-   off. Danger-coloured because it is the reason nothing is on screen, not a
-   quiet aside — and given room to wrap, since it names the setting to change. */
-.playlist-empty.is-unavailable {
-  color: var(--danger); line-height: 1.45; max-width: 46em; white-space: normal;
-}
-/* An albums playlist shows a wall of tiles, sized by .album-grid exactly as
-   every other wall is. It sits inside .playlist-detail's flex column, so it
-   must NOT inherit the grid-column span that container needed for itself. */
-.playlist-albums { grid-column: auto; }
-.playlist-tracks { list-style: none; margin: 0; padding: 0; }
-.playlist-tracks .track-row {
-  padding: 11px 2px; border-bottom: 1px solid var(--border); cursor: pointer;
-}
-.playlist-tracks .track-row:last-child { border-bottom: 0; }
-.playlist-tracks .track-row:hover { background: var(--bg-elev); }
-.playlist-tracks .track-title { color: var(--text); font-size: 15px; }
-.playlist-tracks .track-artist { color: var(--text-dim); font-size: 13px; margin-top: 2px; }
-.playlist-more { align-self: flex-start; }
-.playlist-more.hidden { display: none; }
-
-/* Track rows that carry the artwork of the album they came from. */
-.track-row-art { display: flex; align-items: center; gap: 12px; }
-.track-art {
-  flex: 0 0 auto; width: 44px; height: 44px; border-radius: 4px;
-  overflow: hidden; background: var(--bg-elev-2);
-}
-.track-art img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.track-art.no-image { background: var(--bg-elev-2); }
-.track-text { min-width: 0; flex: 1 1 auto; }
-.track-row-art .track-title,
-.track-row-art .track-artist {
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
-
 /* --- Device power sheet (Roon standby / convenience switch) --------------- */
 /* A row here is NOT a button: the name is static and the actions inside it are
    the controls, so it must not be a <button> containing buttons. */
@@ -3494,21 +3266,6 @@ input.vol-range::-moz-range-thumb {
 /* ------------------------------------------------------------------ */
 /*  Label select / merge UI                                            */
 /* ------------------------------------------------------------------ */
-
-/* "Done" button in topbar — only shown when in select mode (album or label) */
-.label-select-toggle {
-  display: inline-flex; align-items: center; gap: 5px;
-  height: 38px; padding: 0 12px;
-  background: var(--bg-elev); color: var(--text-dim);
-  border: 1px solid var(--border); border-radius: 8px;
-  font-size: 13px; font-weight: 500; cursor: pointer;
-  white-space: nowrap;
-}
-.label-select-toggle.hidden { display: none; }
-.label-select-toggle:hover { color: var(--text); background: var(--bg-elev-2); }
-.label-select-toggle.is-active {
-  background: var(--accent-soft); color: var(--accent-text); border-color: var(--accent);
-}
 
 /* Selected tile states — applies to both label tiles and regular album tiles */
 .album.is-selected .album-art-wrap,
@@ -3909,7 +3666,6 @@ input.vol-range::-moz-range-thumb {
   font-size: 22px; letter-spacing: .18em; color: var(--text);
   padding: 4px 10px; border-radius: 8px; background: var(--bg-elev);
 }
-.tidal-auth-wait { font-size: 12px; color: var(--text-faint); text-align: center; }
 
 /* ------------------------------------------------------------------ */
 /*  Old-Safari (<15) square-tile fallback                              */
@@ -4150,8 +3906,7 @@ input.vol-range::-moz-range-thumb {
    Rendered into the shared #album-grid container, so it must span every column
    rather than sitting in one cell — without this the whole screen renders at
    1/3 of the viewport on a phone and 1/9 on desktop (~110px), inside which the
-   96px art block and the two pill buttons cannot fit. Same rule, and the same
-   reason, as .playlist-detail above. */
+   96px art block and the two pill buttons cannot fit. */
 .pick-list { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 14px; }
 .pick-card-full {
   flex-direction: row; align-items: flex-start; gap: 14px;
@@ -4680,7 +4435,7 @@ input.vol-range::-moz-range-thumb {
    .sel-menu above so there is one dropdown look in the app.
 
    It always sits in a row of .action-btn pills — Play now and Queue, on the
-   album view and all three playlist screens — and (from MusicD Remote v1.8.60) it is sized
+   album view — and (from MusicD Remote v1.8.60) it is sized
    and finished AS one of them: the row's height here, and the pills' own
    finish, which it shares by selector with .action-btn (up with that rule,
    including the album view's outlined variant) rather than by copy. It used
@@ -4710,8 +4465,8 @@ input.vol-range::-moz-range-thumb {
    the tracks below for the menu to open over (it opened upwards over the
    cover until the sleeve, bug list item 24). */
 /* Turned round when its own way has no room (v0.7.8, app.js): the album
-   view scrolled so the button row is near the top, or a playlist's menu at
-   the foot of the screen. Three classes: they beat both rules above. */
+   view scrolled so the button row is near the top. Three classes: they beat
+   both rules above. */
 .overflow-wrap .overflow-menu.opens-down { top: calc(100% + 6px); bottom: auto; }
 .overflow-wrap .overflow-menu.opens-up   { top: auto; bottom: calc(100% + 6px); }
 
@@ -4736,24 +4491,6 @@ input.vol-range::-moz-range-thumb {
   margin-left: 0;
 }
 .sel-menu-wrap.in-modal .sel-menu { right: 0; }
-
-/* Import report + the add-to-playlist picker rows. */
-/* A <label> wrapping a hidden <input type=file> — the only way to style a file
-   picker consistently, and it keeps the whole control tappable. */
-/* flex, not block: .action-btn's centring is a flex one, and block left the words at the top of the pill (item 94). */
-.import-file { display: flex; width: 100%; margin-top: 10px; text-align: center; cursor: pointer; }
-.visually-hidden {
-  position: absolute; width: 1px; height: 1px;
-  margin: -1px; padding: 0; border: 0;
-  clip: rect(0 0 0 0); clip-path: inset(50%); overflow: hidden; white-space: nowrap;
-}
-.import-result { margin-top: 12px; }
-.import-missing {
-  margin: 6px 0 12px; padding-left: 18px;
-  color: var(--text-dim); font-size: 0.86rem; line-height: 1.5;
-}
-.import-save { width: 100%; margin-top: 8px; }
-.sheet-row { display: block; width: 100%; margin-bottom: 8px; text-align: left; }
 
 /* Random Album, the first tile of the strip under the greeting. Borrows
    .album wholesale so it sizes with the carousel on every screen; only the
@@ -4782,25 +4519,6 @@ input.vol-range::-moz-range-thumb {
    so the disc jumped to another angle on the tap and again when it stopped.
    playUnheard ramps this one's playbackRate instead (v0.6.1). */
 @keyframes unheard-spin { to { transform: rotate(360deg); } }
-/* Share sheet — the blob is the payload, so it gets the room and the monospace
-   face; everything above it is the honest accounting of what went in. */
-.share-sum { font-weight: 600; margin: 4px 0 6px; }
-/* Each reason the file is less than the whole playlist gets its own line —
-   run together in one sentence, the important half went unread. */
-.share-warn {
-  color: var(--danger); font-size: 0.86rem; line-height: 1.4; margin-bottom: 6px;
-}
-.share-note { color: var(--text-dim); font-size: 0.86rem; margin: 10px 0; }
-.share-blob {
-  width: 100%; box-sizing: border-box; resize: vertical;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 0.78rem; line-height: 1.35;
-  padding: 8px; border-radius: 8px;
-  border: 1px solid var(--border);
-  background: var(--bg-elev); color: var(--text);
-  /* Long unbroken base64 must wrap, or the sheet scrolls sideways. */
-  word-break: break-all; white-space: pre-wrap;
-}
 /* Sort rows — ARC's layout: a fixed arrow column, then the label. The arrow
    is present only on the selected row, and tapping that row flips it. */
 .lib-sort-row {

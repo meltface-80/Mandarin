@@ -56,6 +56,19 @@ test("sign.sh: each file signed with the key, checked by its public half", () =>
       assert.ok(crypto.verify("sha256", fs.readFileSync(path.join(dir, n)), k.publicKey, sig), n + ": its signature, by the key");
       assert.ok(!crypto.verify("sha256", Buffer.from("something else"), k.publicKey, sig), n + ": of that file alone");
     }
+    // The key as a phone's copy can paste it: its lines joined by spaces, CRs, four dashes, the public half after it.
+    const lines = k.pem.trim().split("\n");
+    for (const pasted of [lines.join(" "), lines.join("\r\n") + "\r\n", k.pem.replace(/^-----/, "----") + "\n" + k.pub, lines.join("")]) {
+      fs.rmSync(path.join(dir, "a.gz.sig"));
+      const p = run(".github/sign.sh", [path.join(dir, "a.gz")], { RELEASE_SIGNING_KEY: pasted, RELEASE_KEY_PUB: k.pub });
+      assert.equal(p.status, 0, p.stderr);
+      assert.ok(crypto.verify("sha256", fs.readFileSync(path.join(dir, "a.gz")), k.publicKey, fs.readFileSync(path.join(dir, "a.gz.sig"))), "signed from a key pasted as " + JSON.stringify(pasted.slice(0, 40)));
+    }
+    // Not a key at all: said what it looked like, never what it holds.
+    const bad = run(".github/sign.sh", [path.join(dir, "a.gz")], { RELEASE_SIGNING_KEY: "-----BEGIN EC PRIVATE KEY-----\nabc", RELEASE_KEY_PUB: k.pub });
+    assert.notEqual(bad.status, 0);
+    assert.match(bad.stderr, /2 line\(s\), BEGIN line yes, END line no, 3 characters/);
+    assert.doesNotMatch(bad.stderr, /abc/);
     // Before the programs carry a key: signed all the same, ready for when they do.
     fs.rmSync(path.join(dir, "a.gz.sig"));
     assert.equal(run(".github/sign.sh", [path.join(dir, "a.gz")], { RELEASE_SIGNING_KEY: k.pem, RELEASE_KEY_PUB: "" }).status, 0);
@@ -122,11 +135,12 @@ test("release-key.sh: a key made here, its public half printed, which sign.sh th
   } finally { fs.rmSync(dir, { recursive: true, force: true }); }
 });
 
-test("the release workflows sign with the secret: the server's builds, Linux's and the Mac's, and the Bridge's tarballs", () => {
+test("the release workflows sign with the secret: the server's builds, Linux's and the Mac's, its update bundle, and the Bridge's tarballs", () => {
   const release = read(".github/workflows/release.yml"), linux = read(".github/workflows/bridge-linux.yml");
   const step = (/** @type {string} */ yml, /** @type {string} */ name) => { const i = yml.indexOf("- name: " + name); assert.ok(i >= 0, name); const j = yml.indexOf("\n      - ", i + 1); return yml.slice(i, j < 0 ? undefined : j); };
   for (const [yml, name, signs] of [[release, "Build the C# server for in-app updates", ".github/sign.sh out/csharp/mandarin-server-*.gz"],
     [release, "Build and add the Mac's C# server", ".github/sign.sh out/mac/mandarin-server-osx-*.gz"],
+    [release, "Build the update bundle and notes", '.github/sign.sh "musicd-server-$v.tar.gz"'],
     [linux, "Build and package", "./bridge/sidecar.sh mandarin-bridge-linux-"]]) {
     const s = step(yml, name);
     assert.match(s, /RELEASE_SIGNING_KEY: \$\{\{ secrets\.RELEASE_SIGNING_KEY \}\}/, name + ": the secret given");
@@ -135,5 +149,9 @@ test("the release workflows sign with the secret: the server's builds, Linux's a
   // A Bridge release builds its Linux tarballs with the secret too (a called workflow has none unless given it).
   assert.match(read(".github/workflows/bridge-release.yml"), /linux:\n\s+uses: \.\/\.github\/workflows\/bridge-linux\.yml\n\s+secrets: inherit/);
   // The server's signatures uploaded with its builds (out/csharp/*, out/mac/*).
-  assert.ok(release.includes('gh release create "v$v" "musicd-server-$v.tar.gz" out/csharp/*') && release.includes("gh release upload \"v$v\" out/mac/* --clobber"));
+  assert.ok(release.includes('gh release create "v$v" "musicd-server-$v.tar.gz" "musicd-server-$v.tar.gz.sig" out/csharp/*') && release.includes("gh release upload \"v$v\" out/mac/* --clobber"));
+  // The bundle's signature beside it (the audit's I-H3), added with it to a release made by hand, and a release whose
+  // bundle has none given both again: an install that checks it would refuse the bundle without it.
+  assert.ok(step(release, "Add the update bundle to a release made by hand").includes('gh release upload "v$v" "musicd-server-$v.tar.gz" "musicd-server-$v.tar.gz.sig" --clobber'));
+  assert.ok(step(release, "Is this version released yet?").includes('grep -qx "musicd-server-$version.tar.gz.sig"'), "a bundle without its signature made again");
 });

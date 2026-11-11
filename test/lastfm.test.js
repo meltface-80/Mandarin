@@ -305,13 +305,11 @@ test("Last.fm's routes, and the album view's sections under the review", { skip:
       assert.equal(muse.image_key, "u-" + Buffer.from(MUSE_ART).toString("base64url"), "Last.fm's picture, through this server");
     });
 
-    await t.test("similar albums: the library's own when it has it — by title and a credited name — else Last.fm's page", async () => {
+    await t.test("similar albums: the library's own alone — found by title and a credited name — none that leave for Last.fm", async () => {
       const j = await get("/api/lastfm/similar-albums?artist=Radiohead");
       assert.equal(j.enabled, true);
-      assert.deepEqual(j.albums.map(a => a.title), ["The Eraser", "Origin of Symmetry"], "Atoms for Peace, unknown to Last.fm, costs its own entry only");
+      assert.deepEqual(j.albums.map(a => a.title), ["The Eraser"], "Muse's Origin of Symmetry, not in the library, isn't one; Atoms for Peace, unknown to Last.fm, costs its own entry only");
       assert.equal(j.albums[0].album.offset, id("The Eraser"));
-      assert.equal(j.albums[1].album, null);
-      assert.equal(j.albums[1].url, "https://www.last.fm/music/Muse/Origin+of+Symmetry");
       const calls = (await fake.calls()).length;
       await get("/api/lastfm/similar-albums?artist=Radiohead");
       assert.equal((await fake.calls()).length, calls, "remembered: the second view asks Last.fm nothing");
@@ -364,7 +362,7 @@ test("Last.fm's routes, and the album view's sections under the review", { skip:
         assert.equal(r.appears.title, "Radiohead appears on");
         assert.deepEqual(r.appears.tiles.map(x => x.text), ["Duets"]);
         assert.deepEqual(r.artists.tiles.map(x => [x.text, x.ext]), [["Thom Yorke", false], ["Atoms for Peace", true], ["Muse", true]]);
-        assert.deepEqual(r.albums.tiles.map(x => [x.text, x.ext]), [["The Eraser", false], ["Origin of Symmetry", true]]);
+        assert.deepEqual(r.albums.tiles.map(x => [x.text, x.ext]), [["The Eraser", false]], "the library's alone");
         assert.equal(r.site, "https://www.last.fm/music/Radiohead");
         assert.equal(r.cols, 3, "three across");
         assert.deepEqual(r.order, ["album-more-by", "album-more-appears", "album-lastfm-artists", "album-lastfm-albums"], "under the review (none here), in this order");

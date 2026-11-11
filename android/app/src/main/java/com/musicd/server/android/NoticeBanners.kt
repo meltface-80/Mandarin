@@ -138,7 +138,7 @@ internal fun NoticeBanners(zoom: Double, client: () -> ServerClient?, onPage: (S
                         // Busy (downloading, restarting): no Update or Later to tap, as the page's are let alone then.
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             u.now?.let { word ->
-                                Box(Modifier.parity("home.update-now", Contract.label("home.update-now", if (word == "Roll back") 1 else 0)).height(36.dp).clip(CircleShape)
+                                Box(Modifier.parity("home.update-now", Contract.label("home.update-now")).height(36.dp).clip(CircleShape)
                                     .background(MaterialTheme.colorScheme.primary).clickable { onPage("update", "now") }.padding(horizontal = 14.dp), contentAlignment = Alignment.Center) {
                                     Text(word, color = MaterialTheme.colorScheme.onPrimary, fontSize = 14.sp, lineHeight = 19.sp, fontWeight = FontWeight.W600, maxLines = 1)
                                 }

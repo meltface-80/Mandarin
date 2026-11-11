@@ -3,11 +3,12 @@ using Microsoft.AspNetCore.Http;
 namespace Mandarin.Tests;
 
 /// <summary>
-/// An artist's page rebuilt (bug list item 131; public/app/artist-about.js): over their albums, what they are, where
-/// from and when, their links (no MusicBrainz pill, item 133), and a band's members now, each with what they played and when, a tap opening the member's
-/// own page. Item 140: the members folded under their heading until it is tapped, then the discography, the foot last in
-/// the grid; and the page opened again drawn from what it last had, the server not asked for its albums again.
-/// MusicBrainz stood in for (CreditsTests' band), the page in a browser at a phone's size.
+/// An artist's page rebuilt (bug list item 131; public/app/artist-about.js), now in tabs (artist-tabs.js):
+/// over the tabs, what they are, where from and when, and no links; Overview open as the page opens, their albums in
+/// a row (See all opening Discography) and similar artists and albums last; Discography the album grid; About a band's
+/// members now, each with what they played and when, open under their heading (a tap folds them), a tap on one opening
+/// the member's own page. And the page opened again drawn from what it last had, the server not asked for its albums
+/// again. MusicBrainz stood in for (CreditsTests' band), the page in a browser at a phone's size.
 /// </summary>
 public sealed class ArtistPageTests
 {
@@ -16,6 +17,16 @@ public sealed class ArtistPageTests
           const sleep = ms => new Promise(r => setTimeout(r, ms));
           const until = async (fn, ms = 20000) => { const t0 = Date.now(); while (!fn()) { if (Date.now() - t0 > ms) throw new Error("timed out"); await sleep(50); } };
           const $$ = s => [...document.querySelectorAll(s)];
+          const seen = s => $$(s).filter(e => e.getClientRects().length > 0);
+          const tab = t => document.querySelector('.artist-tab[data-artist-tab="' + t + '"]');
+          // The first section's heading and tile as drawn: where under the tabs' line, and how the tile looks.
+          const look = () => {
+            const line = document.querySelector(".artist-tabs").getBoundingClientRect().bottom;
+            const h = seen("#album-grid .artist-section-header")[0].getBoundingClientRect();
+            const t = seen("#album-grid .album")[0], art = t.querySelector(".album-art-wrap");
+            return { heading: Math.round(h.top - line), tile: Math.round(t.getBoundingClientRect().top - h.bottom), radius: getComputedStyle(art).borderTopLeftRadius,
+                     title: getComputedStyle(t.querySelector(".album-title")).fontSize, quality: !!t.querySelector(".album-quality") };
+          };
           await until(() => document.querySelector("#home-view .album"));
           await sleep(400);
           const asked = [];
@@ -23,26 +34,32 @@ public sealed class ArtistPageTests
           window.fetch = (u, o) => { asked.push(String(u)); return fetch0(u, o); };
           window.__showArtistAlbums("Ten Thousand Maniacs");
           await until(() => document.querySelector(".artist-facts") && document.querySelector(".artist-stint"));
-          const row = () => getComputedStyle(document.querySelector(".artist-stint-row")).display;
           const grid = document.getElementById("album-grid");
           const out = {
             facts: document.querySelector(".artist-facts").textContent,
-            links: $$(".artist-link").map(a => [a.textContent, a.getAttribute("href"), a.target]),
-            sections: $$("#album-grid .artist-section-header").map(h => h.textContent),
-            members: $$(".artist-stint").map(b => [b.getAttribute("aria-label"), (b.querySelector(".artist-stint-line") || {}).textContent || ""]),
-            row: getComputedStyle(document.querySelector(".artist-stint-row")).overflowX,
-            round: getComputedStyle(document.querySelector(".artist-stint-art")).borderTopLeftRadius,
-            tiles: $$("#album-grid .album:not(.skeleton)").length,
-            folded: row(),
+            links: $$(".artist-link, .artist-links").length,
+            tabs: $$(".artist-tab").map(b => b.textContent),
+            open: grid.dataset.artistTab,
+            overview: { cards: seen(".artist-overview-row .album .album-title").map(b => b.textContent), tiles: seen("#album-grid > .album").length, look: look(),
+                        stints: seen(".artist-stint").length, foot: seen(".artist-tail").length },
             footLast: grid.lastElementChild.classList.contains("artist-tail"),
-            membersFirst: grid.children[1].classList.contains("artist-stints"),
           };
+          document.querySelector(".artist-see-all").click();
+          out.discography = { open: grid.dataset.artistTab, on: tab("discography").getAttribute("aria-selected"), tiles: seen("#album-grid > .album:not(.skeleton)").length,
+                              sections: seen("#album-grid .artist-section-header").map(h => h.textContent), cards: seen(".artist-overview-row .album").length, foot: seen(".artist-tail").length, look: look() };
+          tab("about").click();
+          out.about = { tiles: seen("#album-grid .album").length, sections: seen("#album-grid .artist-section-header").map(h => h.textContent),
+                        members: seen(".artist-stint").map(b => [b.getAttribute("aria-label"), (b.querySelector(".artist-stint-line") || {}).textContent || ""]),
+                        row: getComputedStyle(document.querySelector(".artist-stint-row")).overflowX,
+                        round: getComputedStyle(document.querySelector(".artist-stint-art")).borderTopLeftRadius };
           const toggle = document.querySelector(".artist-stints-toggle");
           toggle.click();
-          out.opened = [row(), toggle.getAttribute("aria-expanded")];
-          $$(".artist-stint").find(b => b.getAttribute("aria-label") === "Jerome Augustyniak").click();
+          out.folded = [seen(".artist-about .artist-stint").length, toggle.getAttribute("aria-expanded")];
+          toggle.click();
+          seen(".artist-stint").find(b => b.getAttribute("aria-label") === "Jerome Augustyniak").click();
           await until(() => /Jerome Augustyniak/.test(document.getElementById("album-count").textContent));
           out.memberTitle = document.getElementById("album-count").textContent;
+          out.memberOpen = grid.dataset.artistTab;
           // Back to the band's page: drawn from what it had, its albums not asked for again.
           const before = asked.filter(u => u.startsWith("/api/artist-albums?artist=Ten")).length;
           document.getElementById("topbar-back").click();
@@ -62,7 +79,7 @@ public sealed class ArtistPageTests
     }
 
     [Test]
-    public async Task Who_a_band_is_over_its_albums_its_links_and_its_members_each_opening_their_own_page()
+    public async Task Who_a_band_is_over_its_tabs_its_albums_on_Overview_and_Discography_its_members_on_About()
     {
         Needs.Server(); Needs.Ffmpeg();
         await using var mb = await FakeServer.Start(ctx =>
@@ -87,23 +104,37 @@ public sealed class ArtistPageTests
         var r = (await page.Eval(Look))!;
 
         Assert.Equal("Band · United States · since 1981", (string?)r["facts"]);
-        // No MusicBrainz pill (item 133); MusicBrainz's site where Wikidata has none.
-        Assert.Equal(["Official site", "Wikidata"], r["links"]!.AsArray().Select(l => (string?)l![0]));
-        Assert.Equal("https://www.maniacs.com/", (string?)r["links"]![0]![1]);
-        Assert.True(r["links"]!.AsArray().All(l => (string?)l![2] == "_blank"), "each link opens beside the page");
-        Assert.Equal(["Members · 1", "Discography"], r["sections"]!.AsArray().Select(h => (string?)h));
-        Assert.Equal("none", (string?)r["folded"]);
-        Assert.Equal(["flex", "true"], r["opened"]!.AsArray().Select(x => (string?)x));
-        Assert.True(r["membersFirst"]!.GetValue<bool>(), "the members straight under the head");
+        Assert.Equal(0.0, r["links"]!.GetValue<double>());   // no links
+        Assert.Equal(["Overview", "Discography", "About"], r["tabs"]!.AsArray().Select(t => (string?)t));
+        Assert.Equal("overview", (string?)r["open"]);
+        // Overview: their albums in a row, the grid's tiles and the members waiting, similar artists and albums last.
+        Assert.Equal(["In My Tribe"], r["overview"]!["cards"]!.AsArray().Select(c => (string?)c));
+        Assert.Equal(0.0, r["overview"]!["tiles"]!.GetValue<double>());
+        Assert.Equal(0.0, r["overview"]!["stints"]!.GetValue<double>());
+        Assert.Equal(1.0, r["overview"]!["foot"]!.GetValue<double>());
         Assert.True(r["footLast"]!.GetValue<bool>(), "similar artists and albums last in the grid");
-        // Those in the band now (item 133): Natalie Merchant left in 2019.
-        Assert.Single(r["members"]!.AsArray());
-        Assert.Equal("Jerome Augustyniak", (string?)r["members"]![0]![0]);
-        Assert.Equal("Drums · since 1981", (string?)r["members"]![0]![1]);
-        Assert.Equal("auto", (string?)r["row"]);
-        Assert.Equal("50%", (string?)r["round"]);
-        Assert.Equal(1.0, r["tiles"]!.GetValue<double>());
+        // See all: Discography, the album grid alone.
+        Assert.Equal("discography", (string?)r["discography"]!["open"]);
+        Assert.Equal("true", (string?)r["discography"]!["on"]);
+        Assert.Equal(1.0, r["discography"]!["tiles"]!.GetValue<double>());
+        Assert.Equal(["Albums"], r["discography"]!["sections"]!.AsArray().Select(h => (string?)h));
+        Assert.Equal(0.0, r["discography"]!["cards"]!.GetValue<double>());
+        Assert.Equal(0.0, r["discography"]!["foot"]!.GetValue<double>());
+        // Overview's row is the grid's own tile (corners, badges, type), its heading and tiles placed as Discography's.
+        Assert.Equal(r["discography"]!["look"]!.ToJsonString(), r["overview"]!["look"]!.ToJsonString());
+        Assert.True(r["overview"]!["look"]!["quality"]!.GetValue<bool>(), "the tile's quality badge on Overview's row too");
+        // About: the members, open under their heading; those in the band now (item 133: Natalie Merchant left in 2019).
+        Assert.Equal(0.0, r["about"]!["tiles"]!.GetValue<double>());
+        Assert.Equal(["Members · 1"], r["about"]!["sections"]!.AsArray().Select(h => (string?)h));
+        Assert.Single(r["about"]!["members"]!.AsArray());
+        Assert.Equal("Jerome Augustyniak", (string?)r["about"]!["members"]![0]![0]);
+        Assert.Equal("Drums · since 1981", (string?)r["about"]!["members"]![0]![1]);
+        Assert.Equal("auto", (string?)r["about"]!["row"]);
+        Assert.Equal("50%", (string?)r["about"]!["round"]);
+        Assert.Equal(0.0, r["folded"]![0]!.GetValue<double>());
+        Assert.Equal("false", (string?)r["folded"]![1]);
         Assert.Contains("Jerome Augustyniak", (string?)r["memberTitle"]);
+        Assert.Equal("overview", (string?)r["memberOpen"]);   // every artist's page opens on Overview
         Assert.Equal(0.0, r["askedAgain"]!.GetValue<double>());
         Assert.Contains("Ten Thousand Maniacs", (string?)r["againTitle"]);
         Assert.Empty(page.Errors);

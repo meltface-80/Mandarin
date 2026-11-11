@@ -19,9 +19,6 @@ internal static class SlimFrames
     /* [hz] as strm names it, or null where it can't. */
     public static char? RateCode(int hz) => hz > 0 && Array.IndexOf(Rates, hz) is var i and >= 0 ? (char)('0' + i) : null;
 
-    /* The rate a strm's character names (0 for none). */
-    public static int RateOf(char code) => code - '0' is var i && i >= 0 && i < Rates.Length ? Rates[i] : 0;
-
     /* A player's hello: what kind it is, its MAC (its identity), and what it can play, its capabilities as it wrote them. */
     public sealed record Helo(byte DeviceId, byte Revision, string Mac, bool Reconnect, ulong BytesReceived, string Capabilities)
     {
@@ -53,6 +50,12 @@ internal static class SlimFrames
     /* A player's status: the event it reports (STMs a track started, STMd the last of its stream read, STMu run out, STMt
        the answer to the server's every few seconds, …), how far into the track it is playing, and what it has buffered. */
     public sealed record Stat(string Event, ulong BytesReceived, uint StreamBufferFullness, uint OutputBufferFullness, uint ElapsedMs, uint Jiffies, uint ServerTimestamp, ushort Error);
+
+    /* A STMn's error, as Mandarin's Bridges say it (0.3.7): 1, the DAC stopped or isn't there; anything else (a player
+       that says none, as Squeezelite), the track couldn't be played, and the Output that made it may be put back
+       (Players.Safety.cs). An unplugged DAC used to be taken for an Output the device can't play, and the owner's put back. */
+    public const ushort DeviceStopped = 1;
+    public static string Failed(ushort error) => error == DeviceStopped ? "stopped: the DAC isn't there or stopped" : Players.CouldNotPlay;
 
     /* [payload] of a STAT read, or null where it is too short to be one. */
     public static Stat? ReadStat(ReadOnlySpan<byte> payload)

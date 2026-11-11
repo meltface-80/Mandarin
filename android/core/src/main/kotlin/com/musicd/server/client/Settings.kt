@@ -29,20 +29,11 @@ object SettingsLists {
     const val SETUP_DESC = "Smart Picks, record labels, the Home screen, the look, the wall display and Shelf, away from home, API keys"
     const val REPO = "https://github.com/meltface-80/Mandarin"
 
-    /**
-     * The version at the list's foot, from /api/update/status: "Mandarin v1.0 (Build 17)", and its C# server's when that
-     * is another (being brought up to date, or to be pulled again); null when there is none to say.
-     */
+    /** The version at the list's foot, from /api/update/status: "Mandarin v1.0 (Build 17)"; null when there is none to say. */
     fun version(j: JSONObject?): String? {
         val current = j?.optString("current").orEmpty().takeIf { it.isNotEmpty() && !j!!.isNull("current") } ?: return null
         val parts = current.split(".")
-        var t = if (parts.size >= 3) "Mandarin v${parts[0]}.${parts[1]} (Build ${parts[2]})" else "Mandarin v$current"
-        val cs = j?.optJSONObject("csharp")
-        if (cs != null && cs.optString("version").isNotEmpty() && cs.has("matched") && !cs.optBoolean("matched", true)) {
-            t += if (cs.optString("phase") in setOf("asking", "fetching", "downloading", "restarting")) " · bringing its C# server up to date"
-                else " · C# server v" + cs.optString("version") + if (j.optBoolean("is_docker")) " (pull the image again to update it)" else ""
-        }
-        return t
+        return if (parts.size >= 3) "Mandarin v${parts[0]}.${parts[1]} (Build ${parts[2]})" else "Mandarin v$current"
     }
 }
 
@@ -127,14 +118,16 @@ data class ApiKeySpec(val route: String, val field: String, val name: String, va
     fun saved(k: ApiKey): String = if (k.bad) "Saved, but $service refused this $noun" else "$service $noun saved" + if (k.ok) " — checked and working" else ""
 
     companion object {
-        const val DESC = "Discogs token — record label logos and label lookups; FanArt.tv key — artist photos on the wall display and label logos; Last.fm key — similar artists and albums in the album view. All optional."
+        const val DESC = "Discogs token — record label logos and label lookups; FanArt.tv key — artist photos on the wall display and label logos; Last.fm key — similar artists and albums, and with its shared secret, scrobbling. All optional."
         val ALL = listOf(
             ApiKeySpec("discogs-token", "token", "Discogs token", "Paste personal access token…", "Discogs", "token",
                 "A personal access token from discogs.com/settings/developers. Finds record label logos, and the label of albums whose files carry none. Not required, but recommended."),
             ApiKeySpec("fanart-key", "key", "FanArt.tv key", "Paste FanArt.tv API key…", "FanArt.tv", "key",
                 "A free API key from fanart.tv. Artist photos on the wall display, and record label logos where Discogs has none. Get one at fanart.tv/get-an-api-key — free registration required."),
-            ApiKeySpec("lastfm-key", "key", "Last.fm key", "Paste Last.fm API key…", "Last.fm", "key",
-                "A free API key from last.fm/api/account/create (any application name will do). The album view then shows the artist's similar artists and similar albums from Last.fm, under the review: the ones in your library open here, the others on Last.fm. Read-only: nothing is ever sent to Last.fm but the artist's name, and nothing is scrobbled."))
+            ApiKeySpec("lastfm-key", "key", "Last.fm key", "Paste Last.fm API key…", "Last.fm", "key", LASTFM_KEY_INFO),
+            ApiKeySpec("lastfm-secret", "secret", "Last.fm shared secret", "Paste Last.fm shared secret…", "Last.fm", "shared secret", LASTFM_SECRET_INFO))
+        const val LASTFM_KEY_INFO = "A free API key from last.fm/api/account/create (any application name will do). Artist and album pages then show similar artists and albums from Last.fm. With its shared secret below and your account connected, what you play is scrobbled to Last.fm."
+        const val LASTFM_SECRET_INFO = "The shared secret Last.fm shows beside your API key (last.fm/api/accounts). It signs scrobbling: with it saved, Connect to Last.fm below and allow Mandarin there, and every room, Bridge and this phone scrobble what they play."
     }
 }
 

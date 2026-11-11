@@ -3,7 +3,7 @@
 // album's page: back to that page, not to the list of all labels (v0.6.24).
 let _labelsReturn = null;
 async function showLabelAlbums(name, fromLabelsList = false, returnTo = null) {
-  if (window.__leavePlaylistScreens) window.__leavePlaylistScreens();
+  if (window.__leaveSmartPicks) window.__leaveSmartPicks();
   if (window.__exitArtists) window.__exitArtists();
   if (window.__clearSearchIfActive) window.__clearSearchIfActive();  // drop stale search results
   _labelsReturn = returnTo && returnTo.album ? returnTo : null;
@@ -87,8 +87,6 @@ if (labelsBack) labelsBack.addEventListener("click", () => showLabelsList());
     showLabelsList();
   }, true);
 }
-
-window.__exitLabelSelectMode = exitLabelSelectMode;
 
 if (labelMergeBtn) {
   labelMergeBtn.addEventListener("click", async () => {
@@ -222,7 +220,6 @@ if (selMenu) {
       else exitAlbumSelectMode();
       return;
     }
-    if (act === "add") { addSelectionToPlaylist(); return; }
     if (act === "later") {
       if (selMenuKind === "tracks") { if (currentAlbum) setListenLater(currentAlbum.offset, true); exitTrackSelectMode(); }
       else { setListenLater(albumSelected.map(a => a.offset), true); exitAlbumSelectMode(); }
@@ -268,16 +265,14 @@ window.__applyHomeLayout = (rows) => {
 // Reflect the opt-in features into the side menu.
 //
 // A menu entry for a feature that is switched off leads to a screen that can
-// only ever be empty — the Labels browser with no scan behind it, Smart Picks
-// with no build. Hiding the entry is part of "off", not decoration.
+// only ever be empty — the Labels browser with no scan behind it. Hiding the
+// entry is part of "off", not decoration.
 //
-// Exported because the settings pane flips these switches and the menu lives
+// Exported because the settings pane flips the switch and the menu lives
 // elsewhere; both call this rather than reaching into each other's DOM.
-// A key absent from `state` leaves that entry alone, so one failed lookup
-// cannot hide the other feature's entry.
+// A key absent from `state` leaves the entry alone.
 window.__applyFeatureMenu = (state) => {
   const labelsItem = document.getElementById("menu-item-labels");
-  const picksItem  = document.getElementById("menu-item-picks");
   if (labelsItem && typeof state.labels === "boolean") {
     labelsItem.classList.toggle("hidden", !state.labels);
     // The same switch decides whether the Library Focus vocabulary still
@@ -285,21 +280,16 @@ window.__applyFeatureMenu = (state) => {
     // sheet from the first paint, not from the first time it is opened.
     if (window.__setLabelsFacetAvailable) window.__setLabelsFacetAvailable(state.labels);
   }
-  if (picksItem && typeof state.picks === "boolean") {
-    picksItem.classList.toggle("hidden", !state.picks);
-  }
 };
 
-// Ask at boot. Two independent calls, so an older server or a transient
-// error on one endpoint does not decide the other entry's visibility.
-// The three side by side (v0.6.10), not one after another.
+// Asked at boot.
 async function applyFeatureMenuFromServer() {
   const state = {};
-  const ask = async (url) => { try { const r = await fetch(url); return r.ok ? !!(await r.json()).enabled : null; } catch (e) { return null; } };
-  const [labels, picks] = await Promise.all([ask("/api/settings/labels"), ask("/api/settings/smart-picks")]);
-  // A failed lookup leaves the entry as the markup has it.
-  if (labels !== null) state.labels = labels;
-  if (picks !== null) state.picks = picks;
+  try {
+    const r = await fetch("/api/settings/labels");
+    // A failed lookup leaves the entry as the markup has it.
+    if (r.ok) state.labels = !!(await r.json()).enabled;
+  } catch (e) { /* as the markup has it */ }
   window.__applyFeatureMenu(state);
 }
 
@@ -330,8 +320,9 @@ window.__libraryChanged = (opts) => {
   }
   const gone = opts && opts.gone != null ? String(opts.gone) : null;
   if (gone) for (const el of document.querySelectorAll('.album[data-offset="' + gone + '"]')) el.remove();
+  if (gone) libWin.drop(gone);   // out of the Library wall's albums too, drawn or not (library-window.js)
   homeRowsLoadedAt = 0; homeUnplayedLoaded = false; homeFavouritesLoaded = false; homeLaterLoaded = false;
-  homeHistoryLoaded = false; homeLibraryKey = ""; homePlaylistsLoaded = false;
+  homeHistoryLoaded = false; homeLibraryKey = "";
   if (homeView && !homeView.classList.contains("hidden")) { refreshHomeRows(); return; }
   if (window.__searchActive && window.__searchActive()) return;
   if (window.__artistViewActive && window.__artistViewActive()) return;
@@ -347,7 +338,7 @@ window.__libraryChanged = (opts) => {
 // wall by the time it is looked at. Not more than once a half-minute.
 let servicesWatchedAt = 0;
 window.__watchServices = async () => {
-  if (window.__musicdOffline || Date.now() - servicesWatchedAt < 30000) return;
+  if (EMBED || window.__musicdOffline || Date.now() - servicesWatchedAt < 30000) return;   // EMBED: the Shelf's frame
   servicesWatchedAt = Date.now();
   try {
     const r = await fetch("/api/services/watch", { method: "POST" });

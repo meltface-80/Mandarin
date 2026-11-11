@@ -4,8 +4,8 @@
 //
 // GitHub is asked for the latest release (or, with none published, the highest
 // version among the tags), its version compared with this one's, and on
-// request the release's bundle downloaded, unpacked with the system's tar,
-// checked (package.json, the package's name), then — before anything is laid
+// request the release's bundle downloaded, its signature checked (Updater.Bundle.cs),
+// unpacked with the system's tar, checked (package.json, the package's name), then — before anything is laid
 // in — this program of the new version fetched for this machine, checked
 // against the release's SHA-256 sums and asked its version, and put beside
 // the running one. Then the bundle's files are laid over the install (never
@@ -214,7 +214,7 @@ internal sealed partial class Updater
 
     // ------------------------------------------------------------------ status
 
-    /* getStatus(), with what api-playlists.js lays over it: is_docker, and csharp (null: the Node server's word on this program's update, gone with it). */
+    /* getStatus(), with what api-playlists.js lays over it: is_docker. */
     public JsObj Status()
     {
         lock (gate)
@@ -228,17 +228,14 @@ internal sealed partial class Updater
             o["latest"] = latest;
             o["latestTag"] = latestTag;
             o["available"] = available;
-            o["isDowngrade"] = false;
             o["html_url"] = htmlUrl;
             o["notes"] = notes;
             o["source"] = source;
             o["checkedAt"] = checkedAt;
             o["checking"] = checking;
             o["error"] = error;
-            o["viaLauncher"] = false;
             o["apply"] = apply;
             o["is_docker"] = Environment.GetEnvironmentVariable("DOCKER") == "1";
-            o["csharp"] = null;
             return o;
         }
     }
@@ -360,13 +357,12 @@ internal sealed partial class Updater
             applying = target;
             Directory.CreateDirectory(upd);
             try { Directory.Delete(exRoot, true); } catch (IOException) { /* none yet */ } catch (UnauthorizedAccessException) { /* left to the copy */ }
-            Directory.CreateDirectory(exRoot);
 
             Phase("downloading", target);
-            Debug("downloading " + url);
-            await Download(url, dlFile);
+            var assets = await FetchBundle(target, url, dlFile);   // signed, before anything unpacks it (Updater.Bundle.cs)
 
             Phase("extracting", target);
+            Directory.CreateDirectory(exRoot);
             if (!Extract(dlFile, exRoot)) throw new UpdateError("extraction failed (is `tar` installed and on PATH?)");
             var top = TopLevelDir(exRoot);
             var staged = top != null ? Path.Combine(exRoot, top) : exRoot;
@@ -380,7 +376,7 @@ internal sealed partial class Updater
             // this program of the new version. It throws if it can't be had, and
             // the update stops here with nothing changed. Swapped in last (item 180).
             Phase("preparing", target);
-            LayIn(staged, await Prepare(staged, target), target);
+            LayIn(staged, await Prepare(staged, target, assets), target);
             try { Directory.Delete(upd, true); } catch (Exception e) when (e is IOException or UnauthorizedAccessException) { /* left behind */ }
             Phase("restarting", target);
             Debug("applied in place; this program starts again from the new file");
@@ -424,13 +420,11 @@ internal sealed partial class Updater
     /* applyStaged: the staged build laid over the install dir (never the data, node_modules, .git…). */
     public static void ApplyStaged(string stagedDir, string targetDir) => CopyOverlay(stagedDir, targetDir);
 
-    /* fetchProgram: the program for this machine from release v<v>, checked, put beside [bin] as <bin>.new. */
-    private async Task<string> FetchProgram(string bin, string v, bool mac)
+    /* fetchProgram: the program for this machine from release v<v> ([assets]: its files, where the bundle's were read), checked, put beside [bin] as <bin>.new. */
+    private async Task<string> FetchProgram(string bin, string v, bool mac, List<JsObj>? assets)
     {
         var name = $"mandarin-server-{Build()}.gz";
-        var r = await GetJson($"/repos/{owner}/{repo}/releases/tags/v{v}");
-        if (r.Status != 200 || r.Json is not JsObj rel) throw new UpdateError($"release v{v} not found (HTTP {r.Status})");
-        var assets = (rel["assets"] as List<object?> ?? []).OfType<JsObj>().ToList();
+        assets ??= await ReleaseAssets(v);
         var gz = assets.FirstOrDefault(a => Js.StrictEq(a["name"], name));
         var sums = assets.FirstOrDefault(a => Js.StrictEq(a["name"], Sums));
         if (gz == null || sums == null) throw new UpdateError($"release v{v} carries no {name}");

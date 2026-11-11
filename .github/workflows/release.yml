@@ -10,7 +10,8 @@
 # for (mandarin-server-linux-x64.gz, mandarin-server-linux-arm64.gz, and their
 # SHA-256 sums in mandarin-server.sha256): an install updated from Settings
 # fetches the one for its machine (server/Mandarin.Server/Admin/Updater.cs).
-# Each signed with Mandarin's release key where there is one (item 371, .github/sign.sh): <file>.sig beside it.
+# Each signed with Mandarin's release key where there is one (item 371, .github/sign.sh): <file>.sig beside it;
+# the bundle too (the audit's I-H3), which the updater checks before it unpacks it.
 # A Mac's too (mandarin-server-osx-arm64.gz, -osx-x64.gz: v0.8.29 to v1.0.2,
 # and again from item 153), added by the mac job once the Mac's tests pass.
 # From v0.8.31 nothing is released until CI has passed on the same commit,
@@ -69,19 +70,19 @@ jobs:
       - name: Install ffmpeg
         run: |
           set -e
-          if [ ! -x ~/ffmpeg-static/ffmpeg ]; then
+          # A cached binary that doesn't run is fetched again, not passed on.
+          if ! ~/ffmpeg-static/ffmpeg -version >/dev/null 2>&1; then
             mkdir -p ~/ffmpeg-static
             curl -sSL --retry 5 --retry-all-errors --retry-delay 5 --max-time 300 -o /tmp/ffmpeg.tar.xz https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz
             tar -xJf /tmp/ffmpeg.tar.xz --strip-components=1 -C ~/ffmpeg-static --wildcards '*/ffmpeg' '*/ffprobe'
           fi
           echo "$HOME/ffmpeg-static" >> "$GITHUB_PATH"
-          ~/ffmpeg-static/ffmpeg -version | head -1
+          v=$(~/ffmpeg-static/ffmpeg -version)
+          echo "${v%%$'\n'*}"
       # pdftoppm, for the booklet tests (test/booklets-csharp.test.js), as CI installs it.
       - name: Install poppler
-        timeout-minutes: 5
-        run: |
-          command -v pdftoppm >/dev/null || { sudo apt-get update -q && sudo apt-get install -y -q --no-install-recommends poppler-utils; }
-          pdftoppm -v
+        timeout-minutes: 15
+        run: .github/install-poppler.sh   # other mirrors where Ubuntu's own are out
 
       # The audio engine and the C# server, built as CI builds them: on CI the
       # tests that need them fail rather than skip (test/Mandarin.Tests/EngineTests.cs,
@@ -130,12 +131,14 @@ jobs:
           if gh release view "v$version" >/dev/null 2>&1; then
             echo "v$version is already released"
             echo "exists=true" >> "$GITHUB_OUTPUT"
-            # A release made by hand has no update bundle: the updater would
-            # fall back to the whole source tarball, APK and all.
-            if gh release view "v$version" --json assets -q '.assets[].name' | grep -qx "musicd-server-$version.tar.gz"; then
+            # A release made by hand has no update bundle, and one made before
+            # the audit's I-H3 no signature for it: an install that checks it
+            # (Admin/Updater.Bundle.cs) would refuse the update. Both made again.
+            names=$(gh release view "v$version" --json assets -q '.assets[].name')
+            if grep -qx "musicd-server-$version.tar.gz" <<<"$names" && grep -qx "musicd-server-$version.tar.gz.sig" <<<"$names"; then
               echo "bundle=true" >> "$GITHUB_OUTPUT"
             else
-              echo "v$version has no musicd-server-$version.tar.gz; it will be added"
+              echo "v$version has no musicd-server-$version.tar.gz with its signature; they will be added"
               echo "bundle=false" >> "$GITHUB_OUTPUT"
             fi
             # Nor, made before v0.8.25 or by hand, the C# server for an update to fetch.
@@ -174,13 +177,19 @@ jobs:
 
       - name: Build the update bundle and notes
         if: steps.v.outputs.bundle == 'false'
+        env:
+          # Signed as the program is (the audit's I-H3): the page, package.json and SQ-tool's Python are the server's
+          # code too, and the updater checks <bundle>.sig before it unpacks anything.
+          RELEASE_SIGNING_KEY: ${{ secrets.RELEASE_SIGNING_KEY }}
         run: |
+          set -e
           v=${{ steps.v.outputs.version }}
           mkdir -p out/musicd-server
           cp -r package.json public README.md CHANGELOG.md LICENSE out/musicd-server/
           # SQ-tool's code (item 288), so an update made from Settings brings it as the image does.
           mkdir -p out/musicd-server/sq-tool && cp -r sq-tool/sqtool out/musicd-server/sq-tool/
           tar -C out -czf "musicd-server-$v.tar.gz" musicd-server
+          .github/sign.sh "musicd-server-$v.tar.gz"
           # This version's section of the changelog, without its heading: its summary and short lines, up to its own
           # "### Every change" (item 344), then where every change is.
           awk -v h="## v$v" '$0==h{on=1;next} /^###? /{if(on)exit} on' CHANGELOG.md > notes.md
@@ -194,7 +203,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           v=${{ steps.v.outputs.version }}
-          gh release create "v$v" "musicd-server-$v.tar.gz" out/csharp/* \
+          gh release create "v$v" "musicd-server-$v.tar.gz" "musicd-server-$v.tar.gz.sig" out/csharp/* \
             --target "$GITHUB_SHA" --title "Mandarin Server & Remote v$v" --notes-file notes.md --latest
 
       - name: Add the update bundle to a release made by hand
@@ -203,7 +212,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           v=${{ steps.v.outputs.version }}
-          gh release upload "v$v" "musicd-server-$v.tar.gz" --clobber
+          gh release upload "v$v" "musicd-server-$v.tar.gz" "musicd-server-$v.tar.gz.sig" --clobber
 
       - name: Add the C# server to a release without it
         if: steps.v.outputs.exists == 'true' && steps.v.outputs.csharp == 'false'

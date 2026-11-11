@@ -26,12 +26,9 @@ class UpdateBannerTest {
             UpdateBanner.offer(server, j("""{"available":true,"latest":"1.4.1","current":"1.3.0"}"""), "")!!.banner.text)
     }
 
-    @Test fun `the server alone, its app following, or a roll back`() {
+    @Test fun `the server alone, or its app following`() {
         assertEquals("v1.4.0 available (you have v1.3.0) · the app's v1.4.0 follows in a few minutes", UpdateBanner.offer(server, appNone, "")!!.banner.text)
         assertEquals("v1.4.0 available (you have v1.3.0)", UpdateBanner.offer(server, null, "")!!.banner.text)
-        val back = UpdateBanner.offer(j("""{"available":true,"latest":"1.2.0","current":"1.3.0","isDowngrade":true}"""), null, "")!!
-        assertEquals("Rollback to v1.2.0 available (you have v1.3.0)", back.banner.text)
-        assertEquals("Roll back", back.banner.now)
     }
 
     @Test fun `the app alone, nothing, or put away by Later`() {

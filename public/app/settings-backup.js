@@ -28,7 +28,7 @@
   const HINT = {
     settings: "Only the ones you changed",
     devices: "Sonos rooms, renderers and phones: names, output, DSP, levelling",
-    collection: "Playlists, favourites, Listen later, album edits",
+    collection: "Favourites, Listen later, album edits",
     keys: "Discogs, FanArt.tv, the Qobuz and Tidal sign-ins, and the server's Tailscale identity",
     database: "Everything Mandarin knows, play history included",
     page: "Text sizes, layout, the chosen room",
@@ -197,13 +197,6 @@
   });
 
   // The Android app: Android's "save as", then the server's backup into the file.
-  window.__backupFileChosen = () => { noteEl.textContent = "Backing up…"; };
-  window.__backupFileDone = (json) => {
-    toFile.disabled = false;
-    let j = {}; try { j = JSON.parse(json); } catch (e) { /* none */ }
-    if (j.ok) { noteEl.textContent = "Backed up: " + fmtBytes(j.bytes || 0) + ", " + fmtDate(j.created || Date.now()) + "."; renderList(); }
-    else { noteEl.textContent = ""; if (!j.cancelled) toast(j.error || "Backup failed", "error"); }
-  };
   toFile.addEventListener("click", () => {
     if (!APP) return;
     const want = ticked(partsEl);
@@ -215,10 +208,6 @@
     APP.toFile(JSON.stringify(req));
   });
 
-  window.__backupRestoreDone = (json) => {
-    let j = {}; try { j = JSON.parse(json); } catch (e) { /* none */ }
-    finishRestore(j);
-  };
   fromFile.addEventListener("click", () => {
     if (!APP) return;
     let panel = pane.querySelector(".backup-file-restore");

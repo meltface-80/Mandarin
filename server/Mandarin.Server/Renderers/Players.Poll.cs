@@ -281,7 +281,6 @@ internal sealed partial class Players
         var known = item?.Duration ?? 0;
         next.Duration = known > 0 && (dur == 0 || Math.Abs(dur - known) > 10 || p.Run != null) ? known : dur != 0 ? dur : known;   // a run's is the album's
         next.Title = item?.Title ?? ""; next.Artist = item?.Artist ?? ""; next.Album = item?.Album ?? ""; next.ArtUri = item?.ArtUri ?? "";
-        next.MediaUri = uri;
         next.Sent = item?.Sent;
         // The device's word on what it plays holds for the track (item 187): it is asked once per track, a few seconds in.
         next.Verified = prev.TrackUri == next.TrackUri ? prev.Verified : null;

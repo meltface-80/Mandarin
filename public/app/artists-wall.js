@@ -138,7 +138,7 @@
   }, { passive: true });
 
   function showArtists() {
-    if (w.__leavePlaylistScreens) w.__leavePlaylistScreens();
+    if (w.__leaveSmartPicks) w.__leaveSmartPicks();
     if (w.__clearSearchIfActive) w.__clearSearchIfActive();
     if (w.__exitArtistView) w.__exitArtistView({ restore: false });
     if (w.__exitLabels) w.__exitLabels();

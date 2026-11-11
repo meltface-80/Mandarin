@@ -6,11 +6,12 @@ name: Mandarin Bridge for Linux
 # nothing here makes a tag.
 on:
   push:
-    branches: ["**"]
+    branches: ["**", "!dependabot/**"]   # a dependabot push has no secrets: its build could not be signed
     paths: &paths
       - "bridge/linux/**"
       - "engine/**"
       - ".github/workflows/bridge-linux.yml"
+      - ".github/sign.sh"   # what signs its tarball
   pull_request:
     paths: *paths
   workflow_dispatch:

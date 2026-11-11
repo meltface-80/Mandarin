@@ -23,6 +23,9 @@ internal sealed class Player(string engine, string ffmpeg, Action<string> log)
     public double Rate { get; private set; }
     public string Format { get; private set; } = "";
     public string? Error { get; private set; }
+    // Whether the error is the track's (it couldn't be read or made) rather than the DAC's (gone, stopped): Mandarin puts
+    // back an Output only for the first (SlimFrames.Failed).
+    public bool TrackFailed { get; private set; }
 
     /* Told whenever the engine says something new (the state, the track, the format). */
     public Action? Changed;
@@ -77,7 +80,7 @@ internal sealed class Player(string engine, string ffmpeg, Action<string> log)
         // No DAC: not played, and said (STOPPED, ERROR_OCCURRED), as the Android app says it; played when one is plugged in.
         bool none;
         lock (gate) none = device.Length == 0;
-        if (none) { Error = NoDac; State = "STOPPED"; Changed?.Invoke(); return; }
+        if (none) { Error = NoDac; TrackFailed = false; State = "STOPPED"; Changed?.Invoke(); return; }
         Error = null; State = paused ? "PAUSED_PLAYBACK" : "TRANSITIONING";
         Send(new JsonObject { ["cmd"] = "play", ["uri"] = uri, ["offset"] = offset, ["paused"] = paused });
     }
@@ -114,7 +117,7 @@ internal sealed class Player(string engine, string ffmpeg, Action<string> log)
                 case "format": Rate = Num(ev["rate"]); Format = Str(ev["format"]); log($"[player] the DAC open at {Rate.ToString(CultureInfo.InvariantCulture)} Hz, {Format}"); break;
                 case "decoded": Decoded?.Invoke(Str(ev["uri"])); continue;
                 case "ended": State = "STOPPED"; Seconds = 0; Rate = 0; Format = ""; Changed?.Invoke(); Ended?.Invoke(); continue;
-                case "error": Error = Str(ev["message"]); State = "STOPPED"; log("[player] " + Error); break;
+                case "error": Error = Str(ev["message"]); TrackFailed = Str(ev["kind"]) == "track"; State = "STOPPED"; log("[player] " + Error); break;
                 case "xrun": log("[player] the DAC ran dry (xrun #" + Num(ev["count"]).ToString(CultureInfo.InvariantCulture) + ")"); break;
                 default: continue;
             }

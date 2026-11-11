@@ -10,7 +10,7 @@
   const btnNow   = document.getElementById("update-now");
   const btnLater = document.getElementById("update-later");
   const notesEl  = document.getElementById("update-notes");
-  if (!toast || !btnNow) return;
+  if (!toast || !btnNow || EMBED) return;   // not in the Shelf's frame (embed-flag.js)
 
   const PHASE = {
     checking:   "Preparing\u2026",
@@ -25,7 +25,7 @@
   const RESTARTED_KEY = "rra-update-restarted";
   const appUpd = window.__musicdAppUpd;
   let applying = false;
-  let pollTimer = null;
+  let pollTimer = null, giveUp = null;
   // What the banner is offering right now.
   let offer = { server: false, app: false, sig: "" };
   // The app's update, held back while the server's runs (v0.7.3): installing
@@ -86,7 +86,7 @@
         : "Server v" + s.latest + " and app v" + a.latest + " available";
     }
     if (app) return "App v" + a.latest + " available (you have v" + a.current + ")";
-    let line = (s.isDowngrade ? "Rollback to v" : "v") + s.latest + " available (you have v" + s.current + ")";
+    let line = "v" + s.latest + " available (you have v" + s.current + ")";
     // In the Android app, the server ahead of the app with no newer app on
     // GitHub yet: its build follows the release by a few minutes.
     if (a && a.current && verNewer(s.latest, a.current) && !(a.latest && verNewer(a.latest, a.current))) line += " · the app's v" + s.latest + " follows in a few minutes";
@@ -126,7 +126,7 @@
       toast.classList.remove("is-error");
       show(offerText(s, a, server, app));
       showNotes(server ? s.notes : null);
-      btnNow.querySelector("span").textContent = server && s.isDowngrade && !app ? "Roll back" : "Update";
+      btnNow.querySelector("span").textContent = "Update";
     } else {
       hide();
     }
@@ -134,6 +134,7 @@
 
   function startPoll(targetVer) {
     if (pollTimer) clearInterval(pollTimer);
+    clearTimeout(giveUp);   // an earlier try's three minutes are not this one's
     let wasDown = false;
     pollTimer = setInterval(async () => {
       try {
@@ -166,9 +167,11 @@
         show(PHASE.restarting);
       }
     }, 1500);
-    setTimeout(() => {
+    giveUp = setTimeout(() => {
       if (pollTimer && applying) {
         clearInterval(pollTimer);
+        // Update can be tapped again: before, the page stayed "applying" until it was reloaded.
+        applying = false; actions.classList.remove("busy"); btnNow.disabled = false;
         show("Update is taking a while \u2014 if the app doesn't come back on its own, restart the container (docker restart musicd-server).");
       }
     }, 180000);

@@ -180,6 +180,14 @@ internal static partial class Library
         return manifest;
     }
 
+    /* A file made readable by the server's own user alone (a backup holds the services' keys): never another's on the machine. */
+    internal static FileStream Private(string file)
+    {
+        var o = new FileStreamOptions { Mode = FileMode.Create, Access = FileAccess.ReadWrite };
+        if (!OperatingSystem.IsWindows()) o.UnixCreateMode = UnixFileMode.UserRead | UnixFileMode.UserWrite;
+        return new FileStream(file, o);
+    }
+
     /* A backup kept on the server: its record. */
     private static async Task<JsObj> SaveHere(Dictionary<string, bool> include, object? app, object? page, HttpContext ctx, Admin.Tailscale ts, string kind, object? label, string? passphrase = null)
     {
@@ -187,7 +195,7 @@ internal static partial class Library
         var id = store.NewId(kind);
         var file = store.PathFor(id);
         JsObj manifest;
-        await using (var f = File.Create(file)) manifest = await Build(f, include, app, page, null, ctx, ts, passphrase);
+        await using (var f = Private(file)) manifest = await Build(f, include, app, page, null, ctx, ts, passphrase);
         var meta = new JsObj();
         meta["id"] = id;
         meta["kind"] = kind;

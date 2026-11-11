@@ -5,7 +5,7 @@
   var tab = "run";
   var $ = function (id) { return document.getElementById(id); };
   function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
-  function q(s) { return /^[A-Za-z0-9_\/.:+-]+$/.test(s) ? s : "'" + String(s).replace(/'/g, "'\\''") + "'"; }
+  function q(s) { return /^[A-Za-z0-9_\/.:,+-]+$/.test(s) ? s : "'" + String(s).replace(/'/g, "'\\''") + "'"; }
 
   // ---- music folders: one or more host paths, each mounted under /music ----
   var DEFAULT_FOLDER = "/mnt/dietpi_userdata/Music";
@@ -92,7 +92,7 @@
         (port !== "3500" ? "  " + K("-e") + " PORT=" + port + " \\\n" : "") +
         (sonos ? "  " + K("-e") + " SONOS_HOSTS=" + esc(q(sonos)) + " \\\n" : "") +
         "  " + K("-v") + " musicd-server-data:/app/data \\\n" +
-        ms.map(function (m) { return "  " + K("-v") + " " + esc(q(m.src + ":" + m.dst + ":ro")) + " \\\n"; }).join("") +
+        ms.map(function (m) { return "  " + K("-v") + " " + esc(q(m.src + ":" + m.dst + ":ro,rslave")) + " \\\n"; }).join("") +
         (pack ? "  " + K("-v") + " " + esc(q(pack + ":/packs")) + " \\\n" : "") +
         "  ghcr.io/meltface-80/musicd-server:latest";
     } else {
@@ -103,7 +103,7 @@
         (port !== "3500" ? '      PORT: "' + port + '"\n' : "") +
         (sonos ? '      SONOS_HOSTS: "' + esc(sonos) + '"\n' : "") +
         "    volumes:\n      - musicd-server-data:/app/data\n" +
-        ms.map(function (m) { return '      - "' + esc(m.src.replace(/"/g, '\\"')) + ":" + m.dst + ':ro"\n'; }).join("") +
+        ms.map(function (m) { return '      - "' + esc(m.src.replace(/"/g, '\\"')) + ":" + m.dst + ':ro,rslave"\n'; }).join("") +
         (pack ? '      - "' + esc(pack.replace(/"/g, '\\"')) + ':/packs"\n' : "") + "\n" +
         "volumes:\n  musicd-server-data:\n    name: musicd-server-data";
     }

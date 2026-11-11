@@ -12,19 +12,23 @@ package com.musicd.server.android
 
 /** Idle: the loops end and the service asks to stop; the player and the session stay for whoever has them bound. */
 internal fun PhonePlayerService.dormant() {
-    if (!running) return
+    if (!turns.live) return
     AppLog.line("APP", "the phone player stops: off screen, not playing for five minutes (dormant while Android keeps it bound)")
-    running = false
+    turns.end()   // the long poll out can't be ended from here: its turn is over, so what it brings back is dropped (A-M2)
     connected = false
     worker?.interrupt(); worker = null
     stopSelf()
 }
 
-/** Needed again: the long poll and the heartbeat start, as at the service's start; nothing while it runs or once it is destroyed. */
+/**
+ * Needed again: the long poll and the heartbeat start, as at the service's start; nothing while it runs or once it is
+ * destroyed. After a 401 its turn is over too, so signing in again (a start) wakes it (A-M1). One heartbeat, never two.
+ */
 internal fun PhonePlayerService.wake() {
-    if (running || PhonePlayerService.current !== this) return
-    running = true
-    worker = Thread({ loop() }, "phone-commands").apply { isDaemon = true; start() }
+    if (turns.live || PhonePlayerService.current !== this) return
+    val gen = turns.begin()
+    worker = Thread({ loop(gen) }, "phone-commands").apply { isDaemon = true; start() }
+    main.removeCallbacks(heartbeat)
     main.postDelayed(heartbeat, 10_000)
     AppLog.line("APP", "the phone player wakes")
 }

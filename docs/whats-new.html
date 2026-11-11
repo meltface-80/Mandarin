@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>What's new in v1.2.5 · Mandarin</title>
-<meta name="description" content="Mandarin v1.2.5, since v1.2.2.">
+<title>What's new in v1.3.0 · Mandarin</title>
+<meta name="description" content="Mandarin v1.3.0, since v1.2.5.">
 <link rel="icon" href="mandarin-icon.png">
 <link rel="stylesheet" href="site.css">
 </head>
@@ -20,8 +20,28 @@
 </header>
 
 <main class="wrap page">
-  <h1>What's new in v1.2.5</h1>
-  <p class="lead">Mandarin v1.2.5, since v1.2.2, with Mandarin Bridge v0.3.4.</p>
+  <h1>What's new in v1.3.0</h1>
+  <p class="lead">Mandarin v1.3.0, since v1.2.5, with Mandarin Bridge v0.3.8. An update following a code review:
+     several under-the-hood fixes and improvements.</p>
+<div class="newlist info-cards">
+    <div class="info-card"><h3>Last.fm scrobbling</h3><p>Everything played, in every room, on a Mandarin Bridge or the phone, is scrobbled to your Last.fm account. Save your Last.fm key's <b>shared secret</b> beside the key in <b>Settings → Setup → API Keys</b>, tap <b>Connect to Last.fm</b> and allow Mandarin on Last.fm's page. <a href="features.html">Features →</a></p></div>
+    <div class="info-card"><h3>An artist's page in tabs</h3><p><b>Overview</b>, <b>Discography</b> and <b>About</b>, as an album's page has, with no links out to the web. Similar albums are your own library's alone, and genres are in English everywhere (<i>Électronique</i> is <i>Electronic</i>).</p></div>
+  </div>
+
+  <ul class="plain">
+    <li><b>Removed:</b> Playlists and Dynamic Playlists, with Qobuz's and Tidal's playlists and favourite tracks brought in as playlists (favourite albums still are).</li>
+    <li><b>Fixed:</b> plays, scrobbles and covers kept right through skips, drives mounted late and a DAC unplugged; a USB DAC pulled out of the phone pauses it, as headphones do; Mandarin Bridge 0.3.8.</li>
+    <li><b>Improved:</b> security, speed and reliability across the server, the page, the app and Mandarin Bridge. Releases are signed, and the server and Mandarin Bridge install only a signed update.</li>
+  </ul>
+
+  <div class="note" style="margin-top:22px"><b>Updating:</b> the server from <b>Settings → Updates</b>, the Android app
+     beside it, each Mandarin Bridge from its own row. In Docker, end the <code>/music</code> line in
+     <code>:ro,rslave</code> (as <code>docker-compose.yml</code> now does) so a drive mounted after the container starts
+     shows up in it. Every change is listed in the
+     <a href="https://github.com/meltface-80/Mandarin/blob/main/CHANGELOG.md">changelog</a>.</div>
+
+  <h2>Before: v1.2.5</h2>
+  <p>Mandarin v1.2.5, since v1.2.2, with Mandarin Bridge v0.3.4.</p>
 <div class="newlist info-cards">
     <div class="info-card"><h3>Versions of one album, one album</h3><p>An original and its remaster are one tile, <i>2 versions</i> under it. Versions are told by MusicBrainz's release group, else one act and one title with its version words off (<i>2015 Remaster</i>). The main is the highest resolution, or the one you choose with <b>Make this the main version</b>; the album's page lists every version with what tells it apart, a tap showing it in place. <a href="features.html">Features →</a></p></div>
     <div class="info-card"><h3>An album's page on a phone, redesigned</h3><p>The cover on top, the date, rate and length under it, the title across the page; then <b>Tracks</b>, <b>Credits</b>, <b>About</b> and <b>Versions</b> as tabs, centred, held at the top as the page scrolls with the page cut off cleanly under them. Share card is in <b>⋯</b>. In the browser and the Android app.</p></div>
@@ -60,7 +80,7 @@
     <li>Mandarin Bridge's update said only <i>SecureConnectionError</i> when GitHub's certificate was refused; it now says why (a wrong clock, missing certificates).</li>
   </ul>
 
-  <div class="note" style="margin-top:22px"><b>Updating:</b> the server from <b>Settings → Updates</b> (in Docker,
+  <div class="note" style="margin-top:22px"><b>Updating to v1.2.5:</b> the server from <b>Settings → Updates</b> (in Docker,
      <code>docker pull</code> as before: the container now runs as user 1000 and hands its data over at the first
      start); the Android app beside it; each Mandarin Bridge from its own row. A reverse proxy on the server's machine
      needs <code>TRUSTED_PROXIES=127.0.0.1</code>. Every change is listed in the

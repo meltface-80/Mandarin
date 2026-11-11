@@ -5,7 +5,7 @@
       "lines": 505
     },
     "android/app/src/main/java/com/musicd/server/android/LocalMusic.kt": {
-      "lines": 438
+      "lines": 435
     },
     "android/app/src/main/java/com/musicd/server/android/NowPlayingService.kt": {
       "lines": 437
@@ -14,10 +14,10 @@
       "lines": 1440
     },
     "engine/Mandarin.Audio/Engine.cs": {
-      "lines": 470
+      "lines": 456
     },
     "public/display.js": {
-      "lines": 644
+      "lines": 643
     },
     "public/sharecard.js": {
       "lines": 578
@@ -29,7 +29,7 @@
       "lines": 433
     },
     "server/Mandarin.Server/Admin/Updater.cs": {
-      "lines": 502
+      "lines": 496
     },
     "server/Mandarin.Server/Auth.cs": {
       "lines": 430
@@ -39,9 +39,6 @@
     },
     "server/Mandarin.Server/Extras/LabelLogos.cs": {
       "lines": 430
-    },
-    "server/Mandarin.Server/Extras/ShareBlob.cs": {
-      "lines": 512
     },
     "server/Mandarin.Server/Extras/Taste.cs": {
       "lines": 419
@@ -68,22 +65,22 @@
       "lines": 634
     },
     "server/Mandarin.Server/Scan/Scanner.cs": {
-      "lines": 983
+      "lines": 980
     },
     "server/Mandarin.Server/Schema.cs": {
       "lines": 601
     },
     "server/Mandarin.Server/ServiceRoutes.cs": {
-      "lines": 491
+      "lines": 468
     },
     "server/Mandarin.Server/Services/Catalogue.cs": {
       "lines": 506
     },
     "server/Mandarin.Server/Services/Import.cs": {
-      "lines": 693
+      "lines": 545
     },
     "server/Mandarin.Server/Services/Rows.cs": {
-      "lines": 533
+      "lines": 488
     },
     "server/Mandarin.Server/Services/ServiceStreams.cs": {
       "lines": 431
@@ -92,7 +89,7 @@
       "lines": 3132
     },
     "server/Mandarin.Server/Tags/Collector.cs": {
-      "lines": 620
+      "lines": 619
     },
     "server/Mandarin.Server/Tags/Formats.cs": {
       "lines": 813
@@ -101,7 +98,7 @@
       "lines": 730
     },
     "server/Mandarin.Server/Tags/Mp4.cs": {
-      "lines": 632
+      "lines": 631
     },
     "server/Mandarin.Server/Tags/TagReader.cs": {
       "lines": 534

@@ -104,8 +104,8 @@ async function fetchAlbumDetail(album, opts) {
     } else if (note) note.remove();
   }
   // A streamed album, signed in (v0.7.3): why it is in the library — a
-  // favourite or a purchase on the service, and since when; held by a
-  // playlist or favourite track; or only played — and, for one not out
+  // favourite or a purchase on the service, and since when; or only
+  // played — and, for one not out
   // yet, its release date. So an album that appeared unasked explains
   // itself on its page.
   {
@@ -122,7 +122,6 @@ async function fetchAlbumDetail(album, opts) {
       const when = w.since ? " since " + new Date(w.since).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" }) : "";
       let text = w.kept === "purchase" ? "In your library as a " + w.name + " purchase" + when
         : w.kept ? "In your library as a " + w.name + " favourite" + when
-        : w.held ? "Here for a " + w.name + " playlist or favourite track — not in your favourites"
         : "Played from " + w.name + " — not in your favourites";
       if (w.releases) text += " · not out until " + formatReleaseDate(w.releases);
       why.textContent = text;
@@ -185,9 +184,9 @@ async function fetchAlbumDetail(album, opts) {
   }
 
   // Play Now and Queue stay on the row; Next / Shuffle / Radio go behind the
-  // overflow menu. Five pills hit the same wall the playlist screens did —
-  // .action-btn is `flex: 1 1 0`, so they shrink together instead of
-  // wrapping, and on a phone the labels start clipping.
+  // overflow menu. Five pills on one row — .action-btn is `flex: 1 1 0`, so
+  // they shrink together instead of wrapping, and on a phone the labels start
+  // clipping.
   const ROW_ACTIONS = 2;
   modalActs.innerHTML = "";
   const available = order.filter(k => map.has(k));
@@ -210,7 +209,6 @@ async function fetchAlbumDetail(album, opts) {
       overflow.map(k => ({ label: labels[k], key: keys[k], onClick: (b) => invoke(k, b) }))
         .concat(serviceMenuItem(j))
         .concat(laterMenuItem(album, j))
-        .concat(playlistMenuItem(album))
         .concat([{ label: "Share card", key: "album.share", onClick: () => window.__openShareCard({ title: album.title || "", artist: album.subtitle || "", image_key: album.image_key }) }])   // item 373: no button of its own
         .concat(versionMainItem(j))
         .concat(album.source && album.source !== "local" ? [] : [{ label: "Edit album", key: "album.edit", onClick: () => openAlbumEditor(album) }])

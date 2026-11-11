@@ -20,9 +20,9 @@ async function bootstrap() {
   // The layout is server-persisted, so it is the same on every device. Read
   // it before the first paint; on failure the table's own default order
   // stands, which is a working Home rather than a blank one.
-  await loadHomeLayout();
-  applyFeatureMenuFromServer();
-  const painted = !activeFilter && hydrateHomeFromCache();
+  // Not in the Shelf's frame (embed-flag.js): there the page is its album view alone, no Home, no menu.
+  if (!EMBED) { await loadHomeLayout(); applyFeatureMenuFromServer(); }
+  const painted = !EMBED && !activeFilter && hydrateHomeFromCache();
   if (!painted) setBanner("Connecting to Mandarin…");
   for (let i = 0; i < 30; i++) {
     try {
@@ -39,11 +39,12 @@ async function bootstrap() {
         // land back on it instead of silently discarding the filter, which is
         // what showHome() would otherwise do on its way to an unfiltered Home.
         // A search begun while connecting (Home painted from its cache) is kept (item 280).
-        if (activeFilter) showWall({ loadIfEmpty: true });
+        if (EMBED) { /* the Shelf's frame: the album view alone, the album the Shelf asks for (album-embed.js) */ }
+        else if (activeFilter) showWall({ loadIfEmpty: true });
         else showHome({ keepSearch: true });
 
         // Restore the album modal if it was open (not in the Shelf's frame: it opens what the Shelf asks, item 218)
-        if (!document.documentElement.classList.contains("embed-album")) try {
+        if (!EMBED) try {
           const m = sessionStorage.getItem("rra-modal");
           if (m) {
             const parsed = JSON.parse(m);
@@ -58,6 +59,8 @@ async function bootstrap() {
         // Up: what waits for the page to be ready goes (album-embed.js).
         window.__musicdReady = true;
         window.dispatchEvent(new Event("musicd-ready"));
+        // The Shelf's frame: its rooms read the once, above; the Shelf sends its own room (album-embed.js).
+        if (EMBED) return;
 
         // Every 15 s while on screen (v0.8.36: not while hidden), and at once on coming back.
         setInterval(() => { if (!document.hidden) loadZones(); }, 15000);

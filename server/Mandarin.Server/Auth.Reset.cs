@@ -5,7 +5,7 @@
 //     docker exec musicd-server /app/server/bin/mandarin-server reset-password
 //
 // It removes the account and signs every device out. Nothing else changes:
-// the library, the edits, playlists and history all stay. Then open Mandarin
+// the library, the edits, favourites and history all stay. Then open Mandarin
 // from a device on the home network and create the account again. The
 // running server needs no restart: its gate reads the database on each
 // request.

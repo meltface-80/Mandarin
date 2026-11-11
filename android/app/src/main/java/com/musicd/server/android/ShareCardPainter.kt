@@ -71,7 +71,7 @@ internal class ShareCardPainter(context: Context) {
         // The pane.
         val pane = RectF(INSET.toFloat(), INSET.toFloat(), (INSET + PANE_W).toFloat(), (INSET + l.paneH).toFloat())
         c.drawRoundRect(pane, CardLayout.PANE_R.toFloat(), CardLayout.PANE_R.toFloat(), Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0x8012151A.toInt() })
-        c.drawRoundRect(pane, CardLayout.PANE_R.toFloat(), CardLayout.PANE_R.toFloat(), stroke(0x24FFFFFF))
+        // No edge: the pane is the card (item 387), and its edge would be a line round it.
         // The sharp cover, clipped to its corners, and its hairline.
         val art = RectF(ART_X.toFloat(), l.artY.toFloat(), (ART_X + ART).toFloat(), (l.artY + ART).toFloat())
         c.save()

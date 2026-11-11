@@ -115,5 +115,4 @@
     shown = now;
   }).observe(bar, { attributes: true, attributeFilter: ["class"] });
   place();
-  window.__miniPlayerPos = () => pos;
 })();

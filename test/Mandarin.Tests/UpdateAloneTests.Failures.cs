@@ -25,7 +25,7 @@ public sealed partial class UpdateAloneTests
         public async ValueTask DisposeAsync() { await Srv.Stop(); await Gh.DisposeAsync(); }
     }
 
-    private static async Task<Installed> Install(Fake fake, Func<bool> cut)
+    private static async Task<Installed> Install(Fake fake, Func<bool> cut, Dictionary<string, string>? env = null)
     {
         var gh = await FakeServer.Start(async ctx =>
         {
@@ -43,7 +43,7 @@ public sealed partial class UpdateAloneTests
                 return;
             }
             if (u == "/repos/me/musicd/releases/latest") { await (fake.Latest != null ? Send(200, Encoding.UTF8.GetBytes(fake.Latest.ToJsonString())) : Send(fake.LatestStatus, "{}"u8.ToArray())); return; }
-            if (u == "/repos/me/musicd/releases/tags/v9.9.9") { await (fake.Tag != null ? Send(200, Encoding.UTF8.GetBytes(fake.Tag.ToJsonString())) : Send(404, "{}"u8.ToArray())); return; }
+            if (u == "/repos/me/musicd/releases/tags/v9.9.9") { await (fake.Release() is { } rel ? Send(200, Encoding.UTF8.GetBytes(rel.ToJsonString())) : Send(404, "{}"u8.ToArray())); return; }
             if (fake.Flaky.Remove(u)) { await Send(502, "Bad Gateway"u8.ToArray(), "text/plain"); return; }
             if (fake.Files.TryGetValue(u, out var f)) { await Send(200, f, "application/octet-stream"); return; }
             await Send(404, "{}"u8.ToArray());
@@ -58,7 +58,10 @@ public sealed partial class UpdateAloneTests
         Directory.CreateDirectory(Path.GetDirectoryName(bin)!);
         File.Copy(ServerProcess.Bin, bin);
         var lib = Fixtures.MakeLibrary();
-        var srv = await ServerProcess.Start(Ports.Port(), lib.Music, lib.Data, new Dictionary<string, string> { ["MANDARIN_APP_DIR"] = app, ["UPDATE_API"] = gh.Base, ["UPDATE_REPO"] = "me/musicd" }, bin);
+        var given = new Dictionary<string, string> { ["MANDARIN_APP_DIR"] = app, ["UPDATE_API"] = gh.Base, ["UPDATE_REPO"] = "me/musicd",
+            ["UPDATE_KEY"] = Convert.ToBase64String(Key.ExportSubjectPublicKeyInfo()) };   // the releases here signed with the tests' key, not Mandarin's
+        foreach (var (k, v) in env ?? []) given[k] = v;
+        var srv = await ServerProcess.Start(Ports.Port(), lib.Music, lib.Data, given, bin);
         var h = new Dictionary<string, string> { ["Authorization"] = "Bearer " + await Session.SignIn(srv.Base) };
         return new Installed(srv, gh, app, bin, Path.Combine(dir, "started"), Path.Combine(dir, "tmp"), h);
     }
@@ -196,6 +199,32 @@ public sealed partial class UpdateAloneTests
             Assert.False(Directory.Exists(Path.Combine(i.App, ".update")), "nothing unpacked in the install");
         }
         finally { File.SetUnixFileMode(i.App, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute); }
+    }
+
+    [Test]
+    public async Task With_its_program_left_alone_a_bundle_the_release_key_did_not_sign_is_refused_all_the_same()
+    {
+        // The audit's I-H3: MANDARIN_SERVER_UPDATE=0 leaves the program as it is, so no program is fetched or checked; the
+        // bundle (the page, package.json, SQ-tool's Python the server runs) is checked for itself, before it is unpacked.
+        Needs.Server(); Needs.Ffmpeg();
+        if (Build == null) Assert.Skip("no C# server is built for this machine");
+        var fake = new Fake();
+        await using var i = await Install(fake, () => false, new() { ["MANDARIN_SERVER_UPDATE"] = "0" });
+        Directory.CreateDirectory(i.Tmp);
+        var was = await File.ReadAllBytesAsync(i.Bin);
+        foreach (var (sig, said) in new[] { ("none","release v9.9.9 carries no signature for musicd-server-9.9.9.tar.gz"),
+            ("other", "musicd-server-9.9.9.tar.gz isn't signed with Mandarin's release key") })
+        {
+            Bundle(fake, i.Tmp, sig: sig);
+            var r = await i.Api("apply", true);
+            Assert.True(r.Status == 409, sig + ": " + r.Status + " " + r.Body.ToJsonString());
+            Assert.Equal(said, r.Body.Str("error"));
+            Assert.True((string?)JsonNode.Parse(await File.ReadAllTextAsync(Path.Combine(i.App, "package.json")))!["version"] != "9.9.9", sig + ": nothing of the bundle laid in");
+            Assert.False(File.Exists(Path.Combine(i.App, "public", "new.js")), sig + ": its pages not laid in");
+            Assert.False(Directory.Exists(Path.Combine(i.App, ".update", "extract")), sig + ": nothing unpacked");
+            Assert.True((await File.ReadAllBytesAsync(i.Bin)).AsSpan().SequenceEqual(was), sig + ": the program as it was");
+            Assert.True(i.Srv.Exited == null, sig + ": still running");
+        }
     }
 
     [Test]

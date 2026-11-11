@@ -108,7 +108,7 @@ function paintQobuz(j) {
     // Off (v0.7.10): none of the service's albums in the library, and
     // nothing to update until it is on again.
     if (qobuzImportNow) qobuzImportNow.classList.toggle("hidden", j.import === false);
-    qobuzImportSt.textContent = j.import === false ? "Off: your Qobuz albums and playlists are not in the library. Switch on to show them."
+    qobuzImportSt.textContent = j.import === false ? "Off: your Qobuz albums are not in the library. Switch on to show them."
       : j.importing ? "Bringing your Qobuz favourites and purchases into the library…"
       : li ? (li.albums + " Qobuz album" + (li.albums === 1 ? "" : "s") + " in the library · updated " + new Date(li.at).toLocaleString([], { dateStyle: "medium", timeStyle: "short" }) +
              (li.failed ? " · " + li.failed + " couldn't be read" : ""))
@@ -124,9 +124,9 @@ async function loadQobuzStatus() {
     paintQobuz(await r.json());
   } catch (_) { /* display-only status — stale on failure is fine */ }
 }
-window.__qobuzStatus = loadQobuzStatus;
 
 if (qobuzSignin) {
+  let importTick = null;
   const go = async () => {
     const username = qobuzUser ? qobuzUser.value.trim() : "", password = qobuzPass ? qobuzPass.value : "";
     if (!username || !password) { settingsToast("Your Qobuz email and password", "error"); return; }
@@ -139,8 +139,14 @@ if (qobuzSignin) {
       if (qobuzPass) qobuzPass.value = "";
       settingsToast("Signed in to Qobuz", "ok");
       paintQobuz(j);
-      // The import's progress, while it runs.
-      const tick = setInterval(async () => { await loadQobuzStatus(); if (!(await (await fetch("/api/settings/qobuz")).json()).importing) clearInterval(tick); }, 4000);
+      // The import's progress, while it runs: one look at a time, never stacked by a second sign-in or a slow
+      // answer, and over when the server can't be asked (an interval ran on for good after a failed fetch).
+      clearTimeout(importTick);
+      const watch = async () => {
+        try { await loadQobuzStatus(); if ((await (await fetch("/api/settings/qobuz")).json()).importing) importTick = setTimeout(watch, 4000); }
+        catch (_) { /* the server not there a moment: the status is read again when Settings opens */ }
+      };
+      importTick = setTimeout(watch, 4000);
     } catch (e) {
       if (qobuzStatus) qobuzStatus.textContent = "";
       settingsToast(e.message, "error");
@@ -159,7 +165,7 @@ if (qobuzImport) qobuzImport.addEventListener("change", async () => {
   try {
     const r = await fetch("/api/settings/qobuz", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ import: qobuzImport.checked }) });
     paintQobuz(await r.json());
-    // The walls, Home and Playlists drawn again: the albums are in or out at once.
+    // The walls and Home drawn again: the albums are in or out at once.
     if (typeof window.__libraryChanged === "function") window.__libraryChanged();
   } catch (e) { settingsToast(e.message, "error"); }
 });
@@ -186,7 +192,7 @@ if (qobuzDisconnect) {
     finally { qobuzDisconnect.disabled = false; }
   });
 }
-loadQobuzStatus();
+if (!EMBED) loadQobuzStatus();   // not in the Shelf's frame (embed-flag.js)
 
 // ----- Tidal (v0.6.24): Settings → Services -------------------------------
 // Signed in on tidal.com: Mandarin shows a link and a code, and asks the
@@ -229,10 +235,9 @@ function paintTidal(j) {
     // Off (v0.7.10): none of the service's albums in the library, and
     // nothing to update until it is on again.
     if (tidalImportNow) tidalImportNow.classList.toggle("hidden", j.import === false);
-    tidalImportSt.textContent = j.import === false ? "Off: your Tidal albums and playlists are not in the library. Switch on to show them."
+    tidalImportSt.textContent = j.import === false ? "Off: your Tidal albums are not in the library. Switch on to show them."
       : j.importing ? "Bringing your Tidal favourites into the library…"
-      : li ? (li.albums + " Tidal album" + (li.albums === 1 ? "" : "s") + " in the library · updated " + new Date(li.at).toLocaleString([], { dateStyle: "medium", timeStyle: "short" }) +
-        (li.playlists ? " · " + li.playlists + " playlist" + (li.playlists === 1 ? "" : "s") : ""))
+      : li ? (li.albums + " Tidal album" + (li.albums === 1 ? "" : "s") + " in the library · updated " + new Date(li.at).toLocaleString([], { dateStyle: "medium", timeStyle: "short" }))
       : (j.import !== false ? "The library is brought up to date shortly after signing in." : "Only what you play from the Tidal browser is known here.");
   }
   if (tidalTopbarBtn) tidalTopbarBtn.classList.toggle("hidden", !on);
@@ -248,7 +253,6 @@ async function loadTidalStatus() {
     paintTidal(await r.json());
   } catch (e) { /* the page shows the last state */ }
 }
-window.__tidalStatus = loadTidalStatus;
 if (tidalSignin) tidalSignin.addEventListener("click", async () => {
   tidalSignin.disabled = true;
   try {
@@ -274,7 +278,7 @@ if (tidalImport) tidalImport.addEventListener("change", async () => {
   try {
     const r = await fetch("/api/settings/tidal", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ import: tidalImport.checked }) });
     paintTidal(await r.json());
-    // The walls, Home and Playlists drawn again: the albums are in or out at once.
+    // The walls and Home drawn again: the albums are in or out at once.
     if (typeof window.__libraryChanged === "function") window.__libraryChanged();
   } catch (e) { settingsToast(e.message, "error"); }
 });
@@ -299,4 +303,4 @@ if (tidalDisconnect) tidalDisconnect.addEventListener("click", async () => {
   } catch (e) { settingsToast(e.message, "error"); }
   finally { tidalDisconnect.disabled = false; }
 });
-loadTidalStatus();
+if (!EMBED) loadTidalStatus();   // not in the Shelf's frame (embed-flag.js)

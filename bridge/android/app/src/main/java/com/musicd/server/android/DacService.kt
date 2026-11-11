@@ -248,17 +248,19 @@ class DacService : Service() {
     private fun afterError(error: PlaybackException) {
         Log.i(TAG, "playback stopped: ${error.errorCodeName}: ${error.cause?.message}")
         val causes = generateSequence<Throwable>(error) { it.cause }.toList()
+        var format = false   // the track's format the DAC can't take: Mandarin may put back the Output that made it
         val why = when {
             // A DSD track the DAC couldn't be given as DSD: not a format for this DAC; the control point is told by the stop.
-            causes.any { UsbAudioSink.DsdUnplayable.matches(it) } -> "The DAC couldn't take this DSD: " + (causes.first { UsbAudioSink.DsdUnplayable.matches(it) }.message ?: "").removePrefix("DSD: ")
+            causes.any { UsbAudioSink.DsdUnplayable.matches(it) } -> { format = true; "The DAC couldn't take this DSD: " + (causes.first { UsbAudioSink.DsdUnplayable.matches(it) }.message ?: "").removePrefix("DSD: ") }
             causes.any { it is AudioSink.ConfigurationException && it.message == NO_USB } -> when {
                 UsbDac.device() == null -> "No DAC on the USB port"
                 UsbDac.info() == null -> "Allow the app to use the DAC"
-                else -> UsbDriver.lastError ?: "The DAC doesn't take this track's format"
+                else -> { format = UsbDriver.lastError == null; UsbDriver.lastError ?: "The DAC doesn't take this track's format" }
             }
             else -> null
         }
-        if (why != null) { playerError = why; transport.failed(why); return }
+        // The DAC gone or the network down are not the track's: Mandarin keeps the Output (Slim.kt's STMn error 1).
+        if (why != null) { playerError = why; transport.failed(why, track = format); return }
         if (retries >= 4) { playerError = "Playback stopped: ${error.errorCodeName}"; transport.failed(playerError!!); return }
         // The network, most likely: tried again from where it was, a few times.
         val wasPlaying = player.playWhenReady

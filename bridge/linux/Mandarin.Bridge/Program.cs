@@ -4,11 +4,12 @@
 //
 //   mandarin-bridge [--port 49494] [--data DIR] [--engine PATH] [--ffmpeg PATH]
 //                   [--asound /proc/asound] [--device alsa:…|file:…] [--address IP] [--wifi [--nmcli PATH] [--setup-after 60]]
-//                   [--update-api https://api.github.com] [--server IP[:PORT]] [--sys /sys]
+//                   [--update-api https://api.github.com] [--curl PATH] [--server IP[:PORT]] [--sys /sys]
 //   mandarin-bridge --version
 //
 // Updated from Mandarin (item 291, Update.cs): the update is in DIR/app, and the program installed hands over to it as
-// it starts (back to itself where it fails as it starts). --update-api is where Mandarin's releases are asked for.
+// it starts (back to itself where it fails as it starts, never to one older than itself). --update-api is where
+// Mandarin's releases are asked for; --curl, the curl it fetches with where .NET can't connect securely (item 385).
 //
 // --device plays to a given device in place of the DAC found (the tests' file:…); --address is the address it says it
 // is at (else its first on the home network); --wifi lets its page set the Wi-Fi, and opens a setup network where
@@ -21,7 +22,7 @@ namespace Mandarin.Bridge;
 
 /* How the Bridge was started. */
 internal sealed record Options(int Port, string Data, string Engine, string Ffmpeg, string Asound, string Device, string? Address, string? Nmcli = null, int SetupAfter = 60,
-    string UpdateApi = "https://api.github.com", string? Server = null, string Sys = "/sys");
+    string UpdateApi = "https://api.github.com", string? Server = null, string Sys = "/sys", string Curl = "curl");
 
 internal static class Program
 {
@@ -47,6 +48,7 @@ internal static class Program
         string? nmcli = null, server = null;
         var setupAfter = 60;
         var updateApi = "https://api.github.com";
+        var curl = "curl";
         for (var i = 0; i < args.Length; i++)
         {
             string Next() => i + 1 < args.Length ? args[++i] : throw new ArgumentException(args[i] + " needs a value");
@@ -64,6 +66,7 @@ internal static class Program
                 case "--nmcli": nmcli = Next(); break;
                 case "--setup-after": setupAfter = int.Parse(Next(), CultureInfo.InvariantCulture); break;
                 case "--update-api": updateApi = Next(); break;
+                case "--curl": curl = Next(); break;
                 case "--server": server = Next(); break;
                 case "--sys": sys = Next(); break;   // where each DAC's USB descriptor is read (the tests' own, item 323)
                 default: Console.Error.WriteLine("unknown argument " + args[i]); return 2;
@@ -75,7 +78,7 @@ internal static class Program
         if (HandOver(args, data) is { } code) return code;
         engine ??= FindEngine();
         if (engine == null) { Console.Error.WriteLine("mandarin-audio (Mandarin's audio engine) isn't here: pass --engine"); return 3; }
-        var bridge = new Bridge(new Options(port, data, engine, ffmpeg, asound, device, address, nmcli, setupAfter, updateApi, server, sys), Log);
+        var bridge = new Bridge(new Options(port, data, engine, ffmpeg, asound, device, address, nmcli, setupAfter, updateApi, server, sys, curl), Log);
         bridge.Start();
         AppDomain.CurrentDomain.ProcessExit += (_, _) => { bridge.Stop(); done.Set(); };
         Console.CancelKeyPress += (_, e) => { e.Cancel = true; done.Set(); };
@@ -97,6 +100,13 @@ internal static class Program
         var next = Path.Combine(app, "mandarin-bridge");
         var self = Environment.ProcessPath ?? "";
         if (Environment.GetEnvironmentVariable("MANDARIN_BRIDGE_UPDATED") == "1" || !File.Exists(next) || Path.GetFullPath(self) == Path.GetFullPath(next)) return null;
+        // Never one older than this (item 385): installed again by hand, a newer Bridge ran an older update left here.
+        if (Update.VersionOf(next) is { } held && Guard.Older("mandarin-bridge-v" + held, Version))
+        {
+            Log($"update: app/ holds {held}, older than this Bridge ({Version}); let go");
+            try { Directory.Delete(app, true); } catch (IOException) { /* left: tried again next time */ }
+            return null;
+        }
         var psi = new System.Diagnostics.ProcessStartInfo(next) { UseShellExecute = false };
         for (var i = 0; i < args.Length; i++)
         {

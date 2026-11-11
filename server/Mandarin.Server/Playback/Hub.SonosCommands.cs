@@ -20,7 +20,12 @@ internal sealed partial class Hub
         var g = SonosGroupOf(zoneId);
         if (g == null) return;
         await Task.Delay(250);
+        // Never beside a poll of the same room (Hub.Sonos.cs reading): two reads from one state both took the track
+        // for a new one, its play and scrobble made twice. One running already reads the result; else the next poll.
+        var id = g.Value.Coordinator.Uid;
+        lock (Gate) if (!reading.Add(id)) return;
         try { await PollGroup(g.Value); } catch (UPnPError) { /* the next poll */ }
+        finally { lock (Gate) reading.Remove(id); }
     }
     private void Poke(string zoneId) => _ = PokeAfter(zoneId).ContinueWith(_ => { }, TaskContinuationOptions.OnlyOnFaulted);
 

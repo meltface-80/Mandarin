@@ -1,27 +1,26 @@
-/* The page's core (app.js until v1.0.5), 13 of 33: the Library's Focus sheet. */
-async function openLibFocusSheet(editTarget) {
-  // Snapshot BEFORE the edited view is applied, so abandoning the sheet can
-  // put the user's own Library view back exactly as it was.
-  const viewBefore = editTarget ? currentLibViewSnapshot() : null;
-  // Lives outside the view: two playlists can share a query and differ here,
-  // which is also why the server applies it by slicing rather than inside
-  // libraryView(), whose cache is keyed on the query alone.
-  let editLimit = (editTarget && editTarget.limit) || 100;
-  // Same reasoning as the limit: two playlists can share a query and differ
-  // in what order it comes out in, so this lives beside the view rather than
-  // inside it.
-  let editOrder = (editTarget && editTarget.order) || SMART_ORDER_DEFAULT;
-  if (editTarget) applyViewToLibView(editTarget.view);
+/* The page's core (app.js until v1.0.5), 13 of 33: the Library's Focus and Sort sheets. */
+// The Library's view as it stands: what the Focus sheet compares against to
+// see whether anything changed. Derived from LIB_FACET_IDS rather than listed
+// again, so a facet added to that array is compared at once.
+const LIB_VIEW_KEYS = ["sort", "dir", "seed", "played"].concat(LIB_FACET_IDS);
+function currentLibViewSnapshot() {
+  const out = {};
+  for (const k of LIB_VIEW_KEYS) {
+    out[k] = Array.isArray(libView[k]) ? libView[k].slice() : libView[k];
+  }
+  return out;
+}
+
+async function openLibFocusSheet() {
   // The Library's view as the sheet found it: Show albums or Clear all that
   // leave it so (nothing chosen, or nothing to clear) close the sheet over
   // the wall as it was, where it was scrolled to (v1.0.7). Applying it anyway
   // loaded the wall afresh from its first album, the user's place lost.
   const openedWith = JSON.stringify(currentLibViewSnapshot());
   const showIfChanged = () => {
-    if (!editTarget && JSON.stringify(currentLibViewSnapshot()) === openedWith) return;
+    if (JSON.stringify(currentLibViewSnapshot()) === openedWith) return;
     applyLibView();
   };
-  let committed = false;
   // Re-read every time the sheet opens. Caching these for the life of the
   // page meant a rescan changed the library and the Focus sheet went on
   // reporting the old counts until a full reload — which reads as the rescan
@@ -48,18 +47,14 @@ async function openLibFocusSheet(editTarget) {
     // categories — some of them hundreds of labels long — every one expanded
     // is a sheet nobody can find the bottom of. Collapsed by default unless
     // something in it is selected, so what's ON is always visible.
-    // `openByDefault` is for sections that aren't filters at all — the
-    // playlist's own Order and size. They have no "active count" to open
-    // them, and collapsing the two controls this screen exists to set would
-    // hide them behind a tap for no gain.
-    const section = (id, label, activeCount, openByDefault) => {
+    const section = (id, label, activeCount) => {
       // Default open when something in here is ON, and REMEMBER that, because
       // a chip tap repaints the whole body: clearing the last filter in a
       // category would otherwise drop its active count to zero and collapse
       // the section under the user's finger, taking the other chips with it.
       // Once open, a section stays open until the header is tapped or the
       // sheet is closed.
-      if (openSections[id] === undefined && (activeCount > 0 || openByDefault)) {
+      if (openSections[id] === undefined && activeCount > 0) {
         openSections[id] = true;
       }
       const expanded = openSections[id] === undefined ? false : openSections[id];
@@ -135,40 +130,6 @@ async function openLibFocusSheet(editTarget) {
     const renderFocusBody = () => {
       body.innerHTML = "";
 
-      // The playlist's OWN properties lead, ahead of every filter. Order and
-      // size are decisions about the playlist rather than about which albums
-      // match, and burying them under ten collapsed facets meant scrolling
-      // past the whole sheet to reach the two controls this screen exists to
-      // set. Open by default for the same reason.
-      if (editTarget) {
-        const ord = section("order", "Order", 0, true);
-        if (ord) {
-          for (const o of SMART_ORDERS) {
-            chip(ord.chips, o.label, editOrder === o.id ? "on" : "off",
-                 () => { editOrder = o.id; });
-          }
-          note(ord.section,
-            (editTarget.mode === "tracks"
-              ? "Album order plays each record straight through, in the sort you " +
-                "chose. Random shuffles the albums AND the tracks inside them."
-              : "Album order queues the albums in the sort you chose. Random " +
-                "shuffles which albums, and what order they play in.") +
-            " The shuffle is fixed per playlist, so it stays put while you scroll " +
-            "rather than reshuffling under you.");
-        }
-
-        const lim = section("limit", "Playlist size", 0, true);
-        if (lim) {
-          for (const n of SMART_LIMITS) {
-            chip(lim.chips, String(n), editLimit === n ? "on" : "off", () => { editLimit = n; });
-          }
-          note(lim.section,
-            "How many albums this playlist actually plays. A query can match your " +
-            "whole library, but a Sonos queue holds 1,000 tracks — 400 albums " +
-            "is thousands of tracks and takes minutes.");
-        }
-      }
-
       // Listening first — it is the one facet that is always available,
       // because it runs on this extension's own play history rather than on
       // anything harvested.
@@ -196,10 +157,10 @@ async function openLibFocusSheet(editTarget) {
         }
         // Anything SELECTED that the server didn't send back gets a chip of
         // its own. Genre and Label are truncated to the commonest values, so a
-        // saved playlist — or a filter set before the library changed — can
-        // easily name one that isn't in the list. Without this the filter is
-        // active, invisible, and clearable only by Clear all, which would
-        // take every other filter with it.
+        // filter set before the library changed can easily name one that
+        // isn't in the list. Without this the filter is active, invisible, and
+        // clearable only by Clear all, which would take every other filter
+        // with it.
         const listed = facet.values.map(v => v.value);
         for (const raw of sel) {
           const value = raw.charAt(0) === "!" ? raw.slice(1) : raw;
@@ -239,35 +200,96 @@ async function openLibFocusSheet(editTarget) {
     clear.type = "button"; clear.className = "action-btn"; clear.dataset.parity = "library.focus-clear";
     clear.textContent = "Clear all";
     clear.addEventListener("click", () => {
-      committed = true;
       Object.assign(libView, libEmptyFacets());
       libView.played = "any";
       close(); showIfChanged();
     });
-    const save = document.createElement("button");
-    save.type = "button"; save.className = "action-btn"; save.dataset.parity = "library.focus-save";
-    save.textContent = "Save as…";
-    save.addEventListener("click", () => {
-      committed = true;
-      close();
-      // Carry the chosen size into the save — the sheet is the only place it
-      // can be set, so it has to travel with the thing being saved. `mode`
-      // rides along on editTarget from the create sheet (or from the record
-      // being edited); Save-as from the Library bar has no editTarget and
-      // takes the server default.
-      saveSmartPlaylistPrompt(editTarget
-        ? Object.assign({}, editTarget, { limit: editLimit, order: editOrder })
-        : null);
-    });
     const show = document.createElement("button");
     show.type = "button"; show.className = "action-btn primary"; show.dataset.parity = "library.focus-show";
     show.textContent = "Show albums";
-    show.addEventListener("click", () => { committed = true; close(); showIfChanged(); });
-    foot.appendChild(clear); foot.appendChild(save); foot.appendChild(show);
-  }, () => {
-    // Abandoned (X or backdrop) while editing a saved playlist — put the
-    // user's own Library view back. Never persisted in the first place, so
-    // there is nothing on disk to undo.
-    if (editTarget && !committed && viewBefore) applyViewToLibView(viewBefore);
+    show.addEventListener("click", () => { close(); showIfChanged(); });
+    foot.appendChild(clear); foot.appendChild(show);
+  });
+}
+
+// Roon ARC's sort popover, in this app's bottom-sheet language: a plain list
+// of fields, and the SELECTED one carries an arrow. Tapping the selected row
+// flips that arrow instead of re-selecting; tapping any other row switches to
+// it at its own default direction. There is no separate direction row and no
+// sentence to read — the arrow is the whole affordance.
+function openLibSortSheet() {
+  openLibSheet("Sort by", (body, close) => {
+    const paint = () => {
+      // Reversing in place replaces the row that was just activated — keep
+      // focus on its replacement so the row can be pressed again without
+      // tabbing back to it. Rows are rebuilt in a fixed order, so position
+      // identifies the replacement.
+      const rows = body.querySelectorAll(".lib-sort-row");
+      const focused = Array.prototype.indexOf.call(rows, document.activeElement);
+      body.innerHTML = "";
+      for (const opt of LIB_SORT_OPTIONS) {
+        const on = libView.sort === opt.id;
+        const row = document.createElement("button");
+        row.type = "button";
+        row.className = "lib-sort-row" + (on ? " is-on" : ""); row.dataset.parity = "library.sort-row";
+
+        // The arrow occupies a fixed column on every row, filled only on the
+        // selected one, so the labels stay on a single left edge.
+        const arrow = document.createElement("span");
+        arrow.className = "lib-sort-arrow";
+        arrow.setAttribute("aria-hidden", "true");
+        arrow.textContent = (on && libSortHasDir(opt.id))
+          ? (libView.dir === "desc" ? "↓" : "↑") : "";
+        row.appendChild(arrow);
+
+        const text = document.createElement("span");
+        text.className = "lib-sort-text";
+        const main = document.createElement("span");
+        main.className = "lib-sort-label";
+        main.textContent = opt.label;
+        text.appendChild(main);
+        if (opt.note) {
+          const sub = document.createElement("span");
+          sub.className = "lib-sort-note";
+          sub.textContent = opt.note;
+          text.appendChild(sub);
+        }
+        row.appendChild(text);
+
+        if (on && libSortHasDir(opt.id)) {
+          row.setAttribute("aria-label", opt.label + " — " + libDirLabel() + ", tap to reverse");
+        }
+        row.addEventListener("click", () => {
+          if (on) {
+            // Already selected: this tap means "reverse", exactly as in ARC.
+            // Random is the one row with nothing to reverse — re-tapping it
+            // reshuffles instead, which is the only useful thing it can do.
+            if (libSortHasDir(opt.id)) {
+              libView.dir = libView.dir === "desc" ? "asc" : "desc";
+            } else {
+              libView.seed = libNextSeed(libView.seed);
+              close();
+            }
+          } else {
+            libView.sort = opt.id;
+            libView.dir = libSortDefaultDir(opt.id);
+            // Switching TO Random re-rolls: without this the first shuffle on
+            // a fresh install always runs on the default seed, so "random"
+            // gives every device the identical order until ⟳ is tapped.
+            if (!libSortHasDir(opt.id)) libView.seed = libNextSeed(libView.seed);
+            close();
+          }
+          // Repaint before applying so a reverse-in-place shows its new arrow
+          // immediately; the wall reloads behind the open sheet.
+          if (document.body.contains(body)) paint();
+          applyLibView();
+        });
+        body.appendChild(row);
+      }
+      // Focus back on the row in the same place (v0.7.9: worked out above
+      // and then never applied, so a keyboard user lost their place).
+      if (focused >= 0) { const again = body.querySelectorAll(".lib-sort-row")[focused]; if (again) again.focus(); }
+    };
+    paint();
   });
 }

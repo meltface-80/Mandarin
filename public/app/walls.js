@@ -138,9 +138,9 @@ const LIB_SORT_OPTIONS = [
   { id: "artist",     label: "Artist",       dir: "asc",
     asc: "A → Z", desc: "Z → A" },
   // "Release date": the server orders by the day wherever the tags (or
-  // MusicBrainz) state one (the id stays "year" — saved views and smart
-  // playlists store it). An album known only by its year sorts after that
-  // year's dated albums newest-first, and before them oldest-first.
+  // MusicBrainz) state one (the id stays "year" — saved views store it). An
+  // album known only by its year sorts after that year's dated albums
+  // newest-first, and before them oldest-first.
   { id: "year",       label: "Release date", dir: "desc",
     asc: "Oldest first", desc: "Newest first",
     note: "from dates collected during scanning" },
@@ -188,7 +188,8 @@ const LIB_VIEW_KEY = "rra-library-view";
 // the migrated blob is written straight back, lose the preference for good.
 const LIB_VIEW_VERSION = 2;
 const LIB_V1_INVERTED_SORTS = ["plays", "lastplayed"];
-const libWall = { offset: 0, loading: false, done: false, seq: 0, total: 0 };
+// `items`: the albums the pages have brought, in order; the tiles near the view are drawn from them (library-window.js).
+const libWall = { offset: 0, loading: false, done: false, seq: 0, total: 0, items: [] };
 // Every multi-select Focus facet, in the order the sheet lays them out. This
 // list is the client's half of libFacetDefs() on the server; the SERVER is
 // what decides which of them actually have values, and the sheet renders
@@ -292,7 +293,7 @@ const libFocusCount = () =>
   (libView.played !== "any" ? 1 : 0);
 // Chip state, encoding Roon's tap-again-to-invert: a value prefixed with "!"
 // is EXCLUDED. Kept inside the value so the whole selection stays a plain
-// string array that saved playlists and the query string round-trip unchanged.
+// string array that the saved view and the query string round-trip unchanged.
 const facetState = (sel, value) =>
   sel.indexOf(value) > -1 ? "on" : (sel.indexOf("!" + value) > -1 ? "not" : "off");
 // off → on → not → off, which is Roon's cycle (green, then red, then clear).
@@ -303,96 +304,3 @@ function facetCycle(sel, value) {
   else             { sel.push(value); }
   return sel;
 }
-// Any view that takes over the shared grid without going through showHome/
-// showWall (labels browser, label deep-link, artist view) must call this so
-// the wall's infinite scroll can't append library tiles into that view.
-// Returns whether the wall WAS active, so a view that only borrows the grid
-// (the artist view, which restores it on Back) can re-arm paging afterwards.
-// ----- Roon playlists (read + play) --------------------------------------
-//
-// Reached from the side menu, not a Home row: listing playlists is a Roon
-// browse walk, and a Home row would pay for it on every Home load.
-//
-// A playlist is identified across requests by (offset, title) — never an
-// item_key, which is session-scoped server-side. The title is what makes a
-// drifted offset safe, so every call carries it.
-// ONE playlist screen. From the user's side a playlist is a playlist; that
-// some come from Roon and some are stored here is our problem, not something
-// to make them navigate around. Stored ones lead, because they are the ones
-// this app can actually change — imports, and anything added from a
-// selection — and finding a fresh import buried under the Roon list would
-// read as the import having failed.
-//
-// The two sources are fetched together but tolerated separately: Roon being
-// unreachable must not hide playlists that live on this disk, and vice versa.
-async function showPlaylists() {
-  enterFullWall("Playlists");
-  playlistsActive = true;
-  const mySeq = ++playlistSeq;
-  grid.innerHTML = "";
-  // Import, at the top of the screen (v0.6.24; it was a side-menu item).
-  { const pc = document.getElementById("content-count");
-    if (pc) {
-      pc.innerHTML = "";
-      const b = document.createElement("button");
-      b.type = "button"; b.className = "playlists-import"; b.textContent = "Import"; b.dataset.parity = "playlists.import";
-      b.setAttribute("aria-label", "Import a playlist");
-      b.addEventListener("click", () => { if (window.__openImportSheet) window.__openImportSheet(); });
-      pc.appendChild(b);
-      pc.classList.remove("hidden");
-    } }
-
-  // `null` means "this source did not answer", which is distinct from a
-  // source that answered with an empty list — one is a warning, the other is
-  // just an empty shelf.
-  const read = async (url) => {
-    try {
-      const r = await fetch(url, { cache: "no-store" });
-      if (!r.ok) return null;
-      return await r.json();
-    } catch (e) { return null; }
-  };
-  const [roon, mine] = await Promise.all([
-    read("/api/playlists"), read("/api/user-playlists"),
-  ]);
-  // Re-check after the await: a late response must not paint into a screen
-  // the user has since navigated away from.
-  if (!playlistsActive || mySeq !== playlistSeq) return;
-
-  const roonList = (roon && roon.playlists) || [];
-  const myList   = (mine && mine.playlists) || [];
-  grid.innerHTML = "";
-
-  if (!roonList.length && !myList.length) {
-    setBanner(roon === null
-      ? "Couldn't read playlists from the server."
-      : "No playlists yet — import one, or select tracks and use Add to playlist.",
-      roon === null);
-    return;
-  }
-  setBanner(roon === null
-    ? "Couldn't reach the server's playlists." : null, roon === null);
-
-  const frag = document.createDocumentFragment();
-  for (const p of myList) {
-    const n = p.track_total;
-    frag.appendChild(keyPlaylistsTile(buildAlbumTile({
-      title: p.name,
-      subtitle: `${n} track${n === 1 ? "" : "s"}`,
-      image_key: null,
-      // Stored tracks carry their album's art, so the mosaic costs nothing.
-      art_keys: p.art_keys || []
-    }, () => openUserPlaylist(p), { selectable: false })));
-  }
-
-  const tiles = new Map();
-  for (const p of roonList) {
-    const tile = buildAlbumTile(p, () => openPlaylist(p), { selectable: false });
-    tiles.set(p.title, tile);
-    frag.appendChild(tile);
-  }
-  grid.appendChild(frag);
-  // Only Roon's need a mosaic walk; the stored ones already have their keys.
-  if (roonList.length) fillPlaylistMosaics(roonList, tiles, mySeq);
-}
-window.__showPlaylists = showPlaylists;

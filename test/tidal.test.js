@@ -1,11 +1,11 @@
 "use strict";
 /*
  * Tidal (v0.6.24), against a fake on loopback (test/fake-tidal.js): signing
- * in on "tidal.com" with a link and a code, the favourites and playlists
- * into the library, a CD album played to a Sonos room from one address, a
- * hi-res album from MPEG-DASH through the server (24/48 to the room, the
- * rows corrected to what Tidal streams), a token refreshed when it stops
- * working, the browser, and signing out.
+ * in on "tidal.com" with a link and a code, the favourites into the library
+ * (its playlists and favourite tracks not), a CD album played to a Sonos
+ * room from one address, a hi-res album from MPEG-DASH through the server
+ * (24/48 to the room, the rows corrected to what Tidal streams), a token
+ * refreshed when it stops working, the browser, and signing out.
  */
 const ports = require("./ports");
 const test = require("node:test");
@@ -88,7 +88,7 @@ test("Tidal: the device sign-in, the library, CD and hi-res (DASH) to a room, a 
       assert.equal(kept.user.countryCode, "GB");
     });
 
-    await t.test("favourites, playlists and favourite tracks into the library", async () => {
+    await t.test("favourites into the library, nothing of the playlists or favourite tracks", async () => {
       // Off until switched on (v0.7.10): signing in brought nothing in.
       const st = await api("settings/tidal");
       assert.equal(st.import, false, "the switch starts off");
@@ -98,20 +98,16 @@ test("Tidal: the device sign-in, the library, CD and hi-res (DASH) to a room, a 
       assert.equal((await api("settings/tidal", { import: true })).import, true);
       const r = await until(async () => { const s = await api("settings/tidal"); return !s.importing && s.last_import && s; });
       assert.equal(r.last_import.albums, 2);
-      assert.equal(r.last_import.playlists, 2);
+      assert.equal("playlists" in r.last_import, false, JSON.stringify(r.last_import));
       const albums = (await api("library/albums?sort=album")).albums;
       const t1 = albums.find(a => a.title === "T Album"), t2 = albums.find(a => a.title === "T Hi-Res");
       assert.ok(t1 && t2, "both on the walls: " + albums.map(a => a.title).join(", "));
       assert.equal(t1.source, "tidal");
       assert.equal(t1.quality, "16/44.1");
       assert.equal(t2.hires, true);
-      assert.equal(albums.length, 5, "beside the three of your own (a playlist's album stays off the walls)");
-      const pls = (await api("user-playlists")).playlists;
-      const drive = pls.find(x => x.name === "Long drive"), favt = pls.find(x => x.name === "Tidal favourite tracks");
-      assert.ok(drive && favt, pls.map(x => x.name).join(", "));
-      assert.equal(drive.service, "tidal");
-      assert.deepEqual((await api("user-playlist?id=" + drive.id)).tracks.map(x => x.title), ["T Song 2", "T Other 1"]);
-      assert.deepEqual((await api("user-playlist?id=" + favt.id)).tracks.map(x => x.title), ["T Hi 2"]);
+      assert.equal(albums.length, 5, "beside the three of your own");
+      assert.equal(ctx.db.raw.prepare("SELECT 1 FROM albums WHERE key = 'tidal:2003'").get(), undefined, "a playlist's album not brought in");
+      assert.equal(ctx.db.setting("userPlaylists", null), null, "no playlist made");
       const cu = await api("library/cleanup");
       assert.deepEqual(cu.tidal, { albums: 0, signed_in: true });
       const page = await api("album?offset=" + t1.offset);
@@ -274,7 +270,7 @@ test("Tidal: the device sign-in, the library, CD and hi-res (DASH) to a room, a 
       assert.equal(o.ok, true, JSON.stringify(o));
       assert.equal((await api("album?offset=" + o.offset)).album.title, "T Other");
       assert.equal((await api("library/albums?sort=album")).albums.some(a => a.title === "T Other"), false, "transient: not on the walls");
-      assert.equal((await api("library/cleanup")).tidal.albums, 0, "a playlist's album is wanted, not stale");
+      assert.equal((await api("library/cleanup")).tidal.albums, 1, "opened, not kept: stale (no playlist holds it)");
       assert.equal((await api("tidal/state?album_id=2003")).favourite, false);
       await api("tidal/favorite", { album_id: "2003" });
       assert.ok(tidal.favourites.has("2003"), "on Tidal itself");
@@ -296,27 +292,20 @@ test("Tidal: the device sign-in, the library, CD and hi-res (DASH) to a room, a 
       assert.ok(Array.isArray(ext.tidal_artists), "and Tidal's artists");
     });
 
-    await t.test("the import switched off: the favourites and playlists leave the library; on again, they are back", async () => {
+    await t.test("the import switched off: the favourites leave the library; on again, they are back", async () => {
       const before = (await api("library/albums?sort=album")).albums.filter(a => a.source === "tidal");
       assert.ok(before.length >= 1, "Tidal albums on the walls to begin with");
-      const lists = (await api("user-playlists")).playlists.filter(x => x.service === "tidal").length;
-      assert.ok(lists >= 1, "Tidal playlists to begin with");
       const off = await api("settings/tidal", { import: false });
       assert.equal(off.import, false);
       assert.equal((await api("library/albums?sort=album")).albums.filter(a => a.source === "tidal").length, 0, "off: none on the walls, straight away");
-      assert.ok(!(await api("user-playlists")).playlists.some(x => x.service === "tidal"), "the Tidal playlists went with them");
-      // A playlist of your own made meanwhile: the hidden Tidal ones are kept through the save.
-      const mine = await api("user-playlists", { name: "Mine while off" });
-      assert.equal(mine.ok, true, "a playlist of your own: " + JSON.stringify(mine));
       assert.equal((await api("settings/tidal/import", {})).status, 409, "Update library now brings nothing in while off");
       // A rescan doesn't bring them back while the switch is off.
       await api("library/rescan", {});
       await until(async () => !(await api("status")).library_importing);
       assert.equal((await api("library/albums?sort=album")).albums.filter(a => a.source === "tidal").length, 0, "still off after a rescan");
-      // On again: back straight away, the playlists with them.
+      // On again: back straight away.
       await api("settings/tidal", { import: true });
       assert.equal((await api("library/albums?sort=album")).albums.filter(a => a.source === "tidal").length, before.length, "on: all back at once");
-      assert.equal((await api("user-playlists")).playlists.filter(x => x.service === "tidal").length, lists, "and the Tidal playlists");
       await until(async () => !(await api("settings/tidal")).importing, 30000);
     });
 
@@ -325,7 +314,6 @@ test("Tidal: the device sign-in, the library, CD and hi-res (DASH) to a room, a 
       assert.equal(r.connected, false);
       assert.equal(ctx.db.setting("tidal"), null);
       assert.equal((await api("library/albums?sort=album")).albums.some(a => a.source === "tidal"), false);
-      assert.equal((await api("user-playlists")).playlists.some(x => x.service === "tidal"), false);
       const t1 = ctx.db.raw.prepare("SELECT id FROM albums WHERE key = 'tidal:2001'").get();
       assert.ok(t1, "the rows stay");
       const s = await fetch(B + "/stream/t" + ctx.db.raw.prepare("SELECT id FROM tracks WHERE album_id = ? ORDER BY disc_no, track_no").get(t1.id).id + ".flac", { headers: H });

@@ -198,7 +198,7 @@ function stopPolling() {
 // A new room: the waiting ask is for the old one, so start again at once.
 function restartPolling() { if (!pollTimer) return; stopPolling(); startPolling(); }
 document.addEventListener("visibilitychange", () => {
-  if (document.hidden) { stopPolling(); return; }
+  if (document.hidden || EMBED) { stopPolling(); return; }   // the Shelf's frame: no mini player, the Shelf polls
   // Discard the elapsed time accumulated while hidden before anything paints.
   // The poll stops when the page is hidden but the clock does not, so after a
   // long background the first tick would compute a position minutes ahead,
@@ -227,4 +227,4 @@ if (barZoneSel) barZoneSel.addEventListener("change", restartPolling);
 
 // Boot — restore last known state instantly, then let the poll loop refresh it.
 restoreTransportState();
-startPolling();
+if (!EMBED) startPolling();   // not in the Shelf's frame (embed-flag.js): its mini player out of sight, the Shelf polls

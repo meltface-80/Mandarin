@@ -114,7 +114,7 @@ class LibraryTest {
         assertTrue(day.album!!.title in client.albums().albums.map { it.title })
     }
 
-    @Test fun `Home's other rows, Smart Picks, the genre cards, the label of the week, the playlists, Random Album's choice`() {
+    @Test fun `Home's other rows, Smart Picks, the genre cards, the label of the week, Random Album's choice`() {
         val sp = client.smartPicks()
         assertTrue(sp.enabled); assertTrue(sp.serviceReady); assertFalse(sp.building); assertNull(sp.error)
         // The least played of the library, a compilation left out; each one the library's, so it opens as an album.
@@ -134,7 +134,6 @@ class LibraryTest {
         assertEquals(WallFilter("genre", "Rock"), client.genreCards()[1].filter())
         val lotw = client.labelOfTheWeek()
         assertNull("no label of three albums", lotw.label); assertTrue(lotw.albums.isEmpty())
-        assertTrue(client.playlists().isEmpty())
         assertTrue(client.favourites().albums.isEmpty()); assertTrue(client.listenLater().albums.isEmpty())
         assertEquals("Album One", client.pickUnheard().album.title)
     }
@@ -156,16 +155,6 @@ class LibraryTest {
         assertEquals(listOf("Genre 1", "Genre 2"), GenreCard.build(genres.take(3), GenreGroups(null, emptyList(), emptyList())).map { it.label })
         assertEquals(listOf("Genre 1", "Pop/Rock"), GenreCard.build(listOf(genres[0], genres[15]), GenreGroups(null, emptyList(), emptyList())).map { it.label })
         assertNull(WallFilter.parse(""))
-    }
-
-    @Test fun `a playlist's tile, its second line as the page writes it, yours the last changed first`() {
-        val mine = PlaylistTile.mine(JSONObject("""{"playlists":[{"id":"a","name":"Old","track_total":1,"updated_at":5,"art_keys":["k1"]},{"id":"b","name":"New","track_total":12,"updated_at":9,"art_keys":[]}]}"""))
-        assertEquals(listOf("New", "Old"), mine.map { it.name })
-        assertEquals(listOf("12 tracks", "1 track"), mine.map { it.subtitle })
-        assertEquals(listOf("k1"), mine[1].artKeys)
-        val smart = PlaylistTile.smart(JSONObject("""{"playlists":[{"id":"s","name":"Dyn","count":1,"matched":40,"art_keys":["x","y"]}]}"""))
-        assertEquals("Dynamic · 1 album", smart[0].subtitle)
-        assertTrue(smart[0].smart)
     }
 
     @Test fun `Music on device's view, its sorts, its Focus on the phone's own facets, kept as JSON`() {
@@ -199,7 +188,7 @@ class LibraryTest {
     @Test fun `every answer recorded is one the client asks for`() {
         client.albums(); client.album(client.albums().albums.first { it.title == "Album One" }.offset); client.artists()
         client.artistAlbums("Artist A"); client.search("album"); client.homeRows(); client.recentlyPlayed(); client.notPlayed(); client.albumOfTheDay()
-        client.smartPicks(); client.genreCards(); client.labelOfTheWeek(); client.playlists(); client.favourites(); client.listenLater(); client.pickUnheard()
+        client.smartPicks(); client.genreCards(); client.labelOfTheWeek(); client.favourites(); client.listenLater(); client.pickUnheard()
         val recorded = golden.keySet().map { golden.getJSONObject(it).getString("path") }.toSet()
         assertEquals(recorded, asked.toSet())
     }

@@ -175,7 +175,6 @@
         "focus-note": { "kind": "shows", "each": true, "in": "focus", "when": "its section open, and the facet doesn't cover the library" },
         "focus-help": { "kind": "shows", "in": "focus" },
         "focus-clear": { "kind": "action", "label": "Clear all", "in": "focus" },
-        "focus-save": { "kind": "action", "label": "Save as…", "in": "focus" },
         "focus-show": { "kind": "action", "label": "Show albums", "in": "focus" },
         "sort": { "kind": "action", "label": "Sort — {sort}" },
         "sort-title": { "kind": "shows", "in": "sort" },
@@ -200,7 +199,6 @@
         "select-play-now": { "kind": "action", "label": "Play now", "in": "select-menu" },
         "select-play-next": { "kind": "action", "label": "Play next", "in": "select-menu" },
         "select-queue": { "kind": "action", "label": "Add to end of queue", "in": "select-menu" },
-        "select-playlist": { "kind": "action", "label": "Add to playlist…", "in": "select-menu" },
         "select-later": { "kind": "action", "label": "Listen later", "in": "select-menu" },
         "select-clear": { "kind": "action", "label": "Clear selection", "in": "select-menu" }
       }
@@ -230,14 +228,13 @@
         "select-play-now": { "kind": "action", "label": "Play now", "in": "select-menu" },
         "select-play-next": { "kind": "action", "label": "Play next", "in": "select-menu" },
         "select-queue": { "kind": "action", "label": "Add to end of queue", "in": "select-menu" },
-        "select-playlist": { "kind": "action", "label": "Add to playlist…", "in": "select-menu" },
         "select-later": { "kind": "action", "label": "Listen later", "in": "select-menu" },
         "select-clear": { "kind": "action", "label": "Clear selection", "in": "select-menu" }
       }
     },
     "artist": {
-      "page": "an artist's page (their name tapped on an album, on Now playing or on the Artists wall; rebuilt in bug list item 131): the count and the name as the heading, the bar's Back; who they are over their albums (their picture, what they are, where from and when, their links, the biography, a band's members or a person's bands, each opening their own page); their albums, those they appear on, their bands' albums from their years in them (\"With {band}\") and those they are credited on (as what, beside the album's artist); the mini player and the row are their own screens",
-      "native": ["android/app/src/main/java/com/musicd/server/android/ArtistScreen.kt", "android/app/src/main/java/com/musicd/server/android/ArtistHero.kt", "android/app/src/main/java/com/musicd/server/android/AlbumTile.kt", "android/app/src/main/java/com/musicd/server/android/WallGrid.kt", "android/app/src/main/java/com/musicd/server/android/WallSelect.kt", "android/app/src/main/java/com/musicd/server/android/GenreChips.kt", "android/app/src/main/java/com/musicd/server/android/ArtistFoot.kt"],
+      "page": "an artist's page (their name tapped on an album, on Now playing or on the Artists wall; rebuilt in bug list item 131, now in tabs): the count and the name as the heading, the bar's Back; who they are over the tabs (their picture, what they are, where from and when, their genres, Play and Shuffle; no links); then Overview, Discography and About, every artist's page the same. Overview: their albums as album tiles in Home's row, scrolling sideways, with See all, then similar artists and albums. Discography: their albums, those they appear on, their bands' albums from their years in them (\"With {band}\") and those they are credited on (as what, beside the album's artist). About: the biography, asked for only when it is opened, and a band's members or a person's bands, each opening their own page. The mini player and the row are their own screens",
+      "native": ["android/app/src/main/java/com/musicd/server/android/ArtistScreen.kt", "android/app/src/main/java/com/musicd/server/android/ArtistHero.kt", "android/app/src/main/java/com/musicd/server/android/ArtistTabs.kt", "android/app/src/main/java/com/musicd/server/android/AlbumTile.kt", "android/app/src/main/java/com/musicd/server/android/WallGrid.kt", "android/app/src/main/java/com/musicd/server/android/WallSelect.kt", "android/app/src/main/java/com/musicd/server/android/GenreChips.kt", "android/app/src/main/java/com/musicd/server/android/ArtistFoot.kt"],
       "preview": false,
       "items": {
         "back": { "kind": "action", "label": "Back to Home" },
@@ -249,12 +246,14 @@
         "genre": { "kind": "action", "label": "{genre}", "each": true, "when": "their albums are tagged with genres (bug list item 139)" },
         "play": { "kind": "action", "label": "Play", "when": "the library has albums of theirs or their bands' (bug list item 138)" },
         "shuffle": { "kind": "action", "label": "Shuffle", "when": "the library has albums of theirs or their bands'" },
-        "link": { "kind": "action", "label": "{link}", "each": true, "when": "the server has found their links (no MusicBrainz pill, item 133)" },
-        "bio": { "kind": "shows", "when": "there is a biography" },
-        "bio-more": { "kind": "action", "label": ["Show more", "Show less"], "when": "the biography is longer than its clip" },
-        "bio-source": { "kind": "shows", "when": "there is a biography" },
-        "section": { "kind": "shows", "each": true, "when": "more than one kind of album, their members or bands known, or similar acts" },
-        "stints-toggle": { "kind": "action", "label": "{section}", "each": true, "when": "a band's members or a person's bands are known: folded under their heading until tapped (bug list item 140)" },
+        "tab": { "kind": "action", "label": ["Overview", "Discography", "About"], "each": true, "when": "under who they are, Overview open as the page opens" },
+        "see-all": { "kind": "action", "label": "See all", "when": "Overview, the library has albums of theirs: it opens Discography" },
+        "bio": { "kind": "shows", "when": "About: there is a biography" },
+        "bio-more": { "kind": "action", "label": ["Show more", "Show less"], "when": "About: the biography is longer than its clip" },
+        "bio-source": { "kind": "shows", "when": "About: there is a biography" },
+        "about-empty": { "kind": "shows", "when": "About: no biography, and no members or bands known" },
+        "section": { "kind": "shows", "each": true, "when": "Overview's albums and similar acts; Discography's kinds of album; About's members or bands" },
+        "stints-toggle": { "kind": "action", "label": "{section}", "each": true, "when": "About: a band's members or a person's bands are known, open under their heading, a tap folding them (bug list item 140)" },
         "member": { "kind": "action", "label": "{member}", "each": true, "when": "a band's members (those in it now, or a band that ended its last line-up; item 133) or a person's bands are known" },
         "member-art": { "kind": "shows", "each": true, "when": "a band's members or a person's bands are known" },
         "member-name": { "kind": "shows", "each": true, "when": "a band's members or a person's bands are known" },
@@ -262,16 +261,16 @@
         "similar": { "kind": "action", "label": "{artist}", "each": true, "when": "Last.fm (with a key) or Deezer knows acts like them (bug list item 137)" },
         "similar-art": { "kind": "shows", "each": true, "when": "Last.fm (with a key) or Deezer knows acts like them" },
         "similar-name": { "kind": "shows", "each": true, "when": "Last.fm (with a key) or Deezer knows acts like them" },
-        "similar-album": { "kind": "action", "label": "{album}", "each": true, "when": "similar albums: Last.fm's with a key, else the library's by the acts Deezer relates (bug list item 140)" },
+        "similar-album": { "kind": "action", "label": "{album}", "each": true, "when": "similar albums the library has: Last.fm's with a key, else the library's by the acts Deezer relates (bug list item 140); none that leave the app" },
         "similar-album-art": { "kind": "shows", "each": true, "when": "similar albums are known" },
         "similar-album-title": { "kind": "shows", "each": true, "when": "similar albums are known" },
         "similar-album-artist": { "kind": "shows", "each": true, "when": "similar albums are known" },
-        "album": { "kind": "action", "label": ["{album} by {artist}", "{album}"], "each": true },
-        "album-art": { "kind": "shows", "each": true },
+        "album": { "kind": "action", "label": ["{album} by {artist}", "{album}"], "each": true, "when": "Overview's row (their albums and their bands', else those they appear on) and Discography: the same album tile" },
+        "album-art": { "kind": "shows", "each": true, "when": "Overview's row and Discography" },
         "album-quality": { "kind": "shows", "each": true, "when": "the server knows the files' rate" },
         "album-source": { "kind": "shows", "each": true, "when": "a Qobuz or Tidal album" },
         "album-discs": { "kind": "shows", "each": true, "when": "more than one disc" },
-        "album-title": { "kind": "shows", "each": true },
+        "album-title": { "kind": "shows", "each": true, "when": "Overview's row and Discography" },
         "album-artist": { "kind": "shows", "each": true, "when": "the album names an artist" },
         "album-versions": { "kind": "shows", "each": true, "when": "one of several versions of an album (item 345)" },
         "select-hint": { "kind": "shows", "when": "selecting albums (a long press on one) with none picked yet" },
@@ -281,7 +280,6 @@
         "select-play-now": { "kind": "action", "label": "Play now", "in": "select-menu" },
         "select-play-next": { "kind": "action", "label": "Play next", "in": "select-menu" },
         "select-queue": { "kind": "action", "label": "Add to end of queue", "in": "select-menu" },
-        "select-playlist": { "kind": "action", "label": "Add to playlist…", "in": "select-menu" },
         "select-later": { "kind": "action", "label": "Listen later", "in": "select-menu" },
         "select-clear": { "kind": "action", "label": "Clear selection", "in": "select-menu" }
       }
@@ -294,7 +292,7 @@
         "notice": { "kind": "shows", "when": "the server has something to say: an empty library, no rooms, a music folder gone, the data not kept" },
         "notice-button": { "kind": "action", "label": ["Forget {folder}", "Remove the missing ones"], "each": true, "when": "a music folder gone" },
         "update": { "kind": "shows", "when": "an update for the server or the app is offered, or one is under way" },
-        "update-now": { "kind": "action", "label": ["Update", "Roll back"], "when": "an update offered" },
+        "update-now": { "kind": "action", "label": "Update", "when": "an update offered" },
         "update-later": { "kind": "action", "label": "Dismiss", "when": "an update offered" },
         "update-notes": { "kind": "shows", "when": "the offered update's notes" },
         "greeting-date": { "kind": "shows", "when": "the greeting is on (Settings → Home Screen)" },
@@ -305,7 +303,6 @@
         "phone-title": { "kind": "action", "label": "Music on device", "when": "the Android app, with a folder of music on the phone" },
         "unplayed-title": { "kind": "action", "label": "Not played in 6 months", "when": "the row has albums" },
         "later-title": { "kind": "action", "label": "Listen later", "when": "the row has albums" },
-        "playlists-title": { "kind": "action", "label": "Playlists", "when": "there are playlists" },
         "favourites-title": { "kind": "action", "label": "Favourites", "when": "the row has albums" },
         "history-title": { "kind": "action", "label": "Recently played", "when": "the row has albums" },
         "picks-title": { "kind": "action", "label": "Smart Picks", "when": "today's picks are made" },
@@ -323,10 +320,6 @@
         "album-artist": { "kind": "shows", "each": true, "when": "the album names an artist" },
         "album-versions": { "kind": "shows", "each": true, "when": "one of several versions of an album (item 345)" },
         "dl-badge": { "kind": "shows", "each": true, "when": "the Android app: an album on its way to the phone, or on a card that is out" },
-        "playlist": { "kind": "action", "label": ["{playlist} by {count}", "{playlist}"], "each": true, "when": "there are playlists" },
-        "playlist-art": { "kind": "shows", "each": true, "when": "there are playlists" },
-        "playlist-title": { "kind": "shows", "each": true, "when": "there are playlists" },
-        "playlist-subtitle": { "kind": "shows", "each": true, "when": "there are playlists" },
         "pick": { "kind": "action", "label": "{artist} — {album}", "each": true, "when": "today's picks are made" },
         "pick-art": { "kind": "shows", "each": true, "when": "today's picks are made" },
         "pick-artist": { "kind": "shows", "each": true, "when": "today's picks are made" },
@@ -402,90 +395,8 @@
         "review-score": { "kind": "shows", "each": true, "when": "the review has a score" }
       }
     },
-    "playlists": {
-      "page": "the Playlists screen (the side menu's Playlists, or Home's Playlists heading): the heading and the bar's Back, Import in the top-right corner, each of your playlists as a tile with its covers' mosaic, its name and how many tracks; the banner when there are none; the mini player and the row are their own screens",
-      "native": ["android/app/src/main/java/com/musicd/server/android/PlaylistsScreen.kt", "android/app/src/main/java/com/musicd/server/android/WallGrid.kt"],
-      "preview": false,
-      "items": {
-        "back": { "kind": "action", "label": "Back to Home" },
-        "title": { "kind": "shows" },
-        "import": { "kind": "action", "label": "Import a playlist" },
-        "banner": { "kind": "shows", "when": "no playlists yet, or they couldn't be read" },
-        "playlist": { "kind": "action", "label": "{playlist}", "each": true, "when": "you have playlists" },
-        "playlist-art": { "kind": "shows", "each": true, "when": "you have playlists" },
-        "playlist-title": { "kind": "shows", "each": true, "when": "you have playlists" },
-        "playlist-subtitle": { "kind": "shows", "each": true, "when": "you have playlists" }
-      }
-    },
-    "playlist": {
-      "page": "one of your playlists (its tile on the Playlists screen or on Home): ← Playlists, its name over how many tracks, Play now, Queue and ⋯ (Share, Delete), then its tracks, each with its album's cover, a tap playing it; the mini player and the row are their own screens",
-      "native": ["android/app/src/main/java/com/musicd/server/android/PlaylistScreen.kt", "android/app/src/main/java/com/musicd/server/android/WallGrid.kt"],
-      "preview": false,
-      "items": {
-        "home": { "kind": "action", "label": "Back to Home" },
-        "back": { "kind": "action", "label": "Back to Playlists" },
-        "title": { "kind": "shows" },
-        "subtitle": { "kind": "shows" },
-        "play-now": { "kind": "action", "label": "Play now" },
-        "queue": { "kind": "action", "label": "Queue" },
-        "more": { "kind": "action", "label": "More actions" },
-        "more-title": { "kind": "shows", "in": "more" },
-        "share": { "kind": "action", "label": "Share", "in": "more" },
-        "delete": { "kind": "action", "label": "Delete", "in": "more" },
-        "track": { "kind": "action", "label": "{track}", "each": true, "when": "the playlist has tracks" },
-        "track-art": { "kind": "shows", "each": true, "when": "the playlist has tracks" },
-        "track-title": { "kind": "shows", "each": true, "when": "the playlist has tracks" },
-        "track-artist": { "kind": "shows", "each": true, "when": "the playlist has tracks" },
-        "empty": { "kind": "shows", "when": "nothing in it yet" },
-        "banner": { "kind": "shows", "when": "the playlist couldn't be read" }
-      }
-    },
-    "smart-playlists": {
-      "page": "the Dynamic Playlists screen (the side menu's Dynamic Playlists): the heading and the bar's Back, New Dynamic Playlist as the first tile, then each saved one as a tile with its covers' mosaic, its name and its view in a line; the banner when there are none; the mini player and the row are their own screens",
-      "native": ["android/app/src/main/java/com/musicd/server/android/SmartPlaylistsScreen.kt", "android/app/src/main/java/com/musicd/server/android/WallGrid.kt"],
-      "preview": false,
-      "items": {
-        "back": { "kind": "action", "label": "Back to Home" },
-        "title": { "kind": "shows" },
-        "banner": { "kind": "shows", "when": "none saved yet, or they couldn't be read" },
-        "new": { "kind": "action", "label": "Create a Dynamic Playlist" },
-        "playlist": { "kind": "action", "label": "{playlist}", "each": true, "when": "one is saved" },
-        "playlist-art": { "kind": "shows", "each": true, "when": "one is saved" },
-        "playlist-title": { "kind": "shows", "each": true, "when": "one is saved" },
-        "playlist-subtitle": { "kind": "shows", "each": true, "when": "one is saved" }
-      }
-    },
-    "smart-playlist": {
-      "page": "a Dynamic Playlist (its tile): ← Dynamic Playlists, its name over what it is made of, its order and its view, Play now, Queue and ⋯ (Share, Edit, Delete), then its albums as tiles, or its tracks numbered with their covers a few albums at a time with Load more, and the line saying how many; the mini player and the row are their own screens",
-      "native": ["android/app/src/main/java/com/musicd/server/android/SmartPlaylistScreen.kt", "android/app/src/main/java/com/musicd/server/android/WallGrid.kt", "android/app/src/main/java/com/musicd/server/android/AlbumTile.kt"],
-      "preview": false,
-      "items": {
-        "home": { "kind": "action", "label": "Back to Home" },
-        "back": { "kind": "action", "label": "Back to Dynamic Playlists" },
-        "title": { "kind": "shows" },
-        "subtitle": { "kind": "shows" },
-        "play-now": { "kind": "action", "label": "Play now" },
-        "queue": { "kind": "action", "label": "Queue" },
-        "more": { "kind": "action", "label": "More actions" },
-        "more-title": { "kind": "shows", "in": "more" },
-        "share": { "kind": "action", "label": "Share", "in": "more" },
-        "edit": { "kind": "action", "label": "Edit", "in": "more" },
-        "delete": { "kind": "action", "label": "Delete", "in": "more" },
-        "album": { "kind": "action", "label": ["{album} by {artist}", "{album}"], "each": true, "when": "made of albums" },
-        "album-art": { "kind": "shows", "each": true, "when": "made of albums" },
-        "album-title": { "kind": "shows", "each": true, "when": "made of albums" },
-        "album-artist": { "kind": "shows", "each": true, "when": "made of albums" },
-        "album-versions": { "kind": "shows", "each": true, "when": "one of several versions of an album (item 345)" },
-        "track": { "kind": "action", "label": "{track}", "each": true, "when": "made of tracks" },
-        "track-art": { "kind": "shows", "each": true, "when": "made of tracks" },
-        "track-title": { "kind": "shows", "each": true, "when": "made of tracks" },
-        "track-artist": { "kind": "shows", "each": true, "when": "made of tracks" },
-        "status": { "kind": "shows" },
-        "load-more": { "kind": "action", "label": "Load more", "when": "made of tracks, more albums to read" }
-      }
-    },
     "menu": {
-      "page": "the side menu (#menu-overlay, the row's Menu): the drawer from the left over a dimmed screen, Mandarin's mark and name with the power button (Restart, Shut down), the Offline mode switch in the app, then Pitchfork, Labels, Qobuz, Tidal, Shelf, Listen later, Dynamic Playlists, Playlists, Rescan library with how old the library is, and Settings; a tap beside it closes it",
+      "page": "the side menu (#menu-overlay, the row's Menu): the drawer from the left over a dimmed screen, Mandarin's mark and name with the power button (Restart, Shut down), the Offline mode switch in the app, then Pitchfork, Labels, Qobuz, Tidal, Shelf, Listen later, Rescan library with how old the library is, and Settings; a tap beside it closes it",
       "native": ["android/app/src/main/java/com/musicd/server/android/MenuDrawer.kt"],
       "preview": false,
       "items": {
@@ -503,8 +414,6 @@
         "tidal": { "kind": "action", "label": "Tidal", "when": "signed in to Tidal" },
         "shelf": { "kind": "action", "label": "Shelf", "when": "online" },
         "later": { "kind": "action", "label": "Listen later" },
-        "smart-playlists": { "kind": "action", "label": "Dynamic Playlists" },
-        "playlists": { "kind": "action", "label": "Playlists" },
         "rescan": { "kind": "action", "label": "Rescan library" },
         "rescan-sub": { "kind": "shows", "when": "the server has said how old the library is" },
         "settings": { "kind": "action", "label": "Settings" }
@@ -776,7 +685,7 @@
       }
     },
     "settings-keys": {
-      "page": "Settings' API Keys (in Setup): Back, API Keys; Discogs, FanArt.tv and Last.fm, each with its ⓘ, the box to paste the key into (its ✓ or ✕ once checked), Save, and what the server says of the key",
+      "page": "Settings' API Keys (in Setup): Back, API Keys; Discogs, FanArt.tv, Last.fm and Last.fm's shared secret, each with its ⓘ, the box to paste the key into (its ✓ or ✕ once checked), Save, and what the server says of the key; then Scrobbling: what it is (the account connected, a sign-in waiting, plays waiting to go) and Connect to Last.fm or Disconnect",
       "native": ["android/app/src/main/java/com/musicd/server/android/SettingsPanes.kt"],
       "preview": false,
       "items": {
@@ -787,7 +696,9 @@
         "field": { "kind": "action", "label": "{key}", "each": true },
         "check": { "kind": "shows", "each": true, "when": "the key checked by its service" },
         "save": { "kind": "action", "label": "Save", "each": true },
-        "status": { "kind": "shows", "each": true }
+        "status": { "kind": "shows", "each": true },
+        "scrobble": { "kind": "action", "label": ["Connect to Last.fm", "Disconnect"], "when": "Scrobbling: Connect while no account is connected (Last.fm's page to allow Mandarin on), Disconnect while one is" },
+        "scrobble-status": { "kind": "shows", "when": "Scrobbling: the account, a sign-in waiting on Last.fm, plays waiting to go, what went wrong" }
       }
     },
     "settings-picks": {
@@ -929,28 +840,6 @@
         "update": { "kind": "action", "label": ["Update library now", "…"], "each": true, "when": "signed in to the service, with its favourites in the library" },
         "signout": { "kind": "action", "label": "Sign out", "each": true, "when": "signed in to the service" },
         "import-status": { "kind": "shows", "each": true, "when": "signed in to the service" }
-      }
-    },
-    "add-to-playlist": {
-      "page": "Add to playlist (an album's ⋯, tracks picked on its page, or albums picked on a wall or an artist's page): the page's sheet up from the foot, how many tracks or albums are being added, ✕, a new playlist named first, then each of your playlists with how many tracks it holds",
-      "native": ["android/app/src/main/java/com/musicd/server/android/AddToPlaylist.kt"],
-      "preview": false,
-      "items": {
-        "title": { "kind": "shows" },
-        "close": { "kind": "action", "label": "Close" },
-        "new": { "kind": "action", "label": "＋ New playlist…" },
-        "playlist": { "kind": "action", "label": "{playlist} · {tracks}", "each": true, "when": "playlists made here" }
-      }
-    },
-    "prompt": {
-      "page": "the page's name prompt (#prompt-overlay), as a new playlist asks it: what is being named, the name (a suggestion in it), Cancel and Save",
-      "native": ["android/app/src/main/java/com/musicd/server/android/NamePrompt.kt"],
-      "preview": false,
-      "items": {
-        "message": { "kind": "shows" },
-        "field": { "kind": "action", "label": "Name" },
-        "cancel": { "kind": "action", "label": "Cancel" },
-        "save": { "kind": "action", "label": ["Save", "{word}"] }
       }
     },
     "settings-folders": {
@@ -1240,56 +1129,6 @@
         "forget": { "kind": "action", "label": "Forget this device", "when": "not on the network" }
       }
     },
-    "smart-new": {
-      "page": "New Dynamic Playlist (the Dynamic Playlists wall's New): the page's sheet up from the foot, its title and ✕; what the playlist should be made of, Albums or Tracks, each with what it means; the note under them. A choice opens the Focus sheet with the playlist's own Order and Playlist size leading it",
-      "native": ["android/app/src/main/java/com/musicd/server/android/SmartSheets.kt"],
-      "preview": false,
-      "items": {
-        "title": { "kind": "shows" },
-        "close": { "kind": "action", "label": "Close" },
-        "intro": { "kind": "shows" },
-        "mode": { "kind": "action", "label": ["Albums", "Tracks"], "each": true },
-        "note": { "kind": "shows" }
-      }
-    },
-    "playlist-import": {
-      "page": "Import a playlist (the native Playlists' Import): the page's sheet up from the foot, what to paste and why, the box to paste a shared playlist into, Choose a file…, and what came of it: how many of its tracks the library has, those it couldn't match and those found on another album, Save as a playlist; Import and Close",
-      "native": ["android/app/src/main/java/com/musicd/server/android/PlaylistImportSheet.kt"],
-      "preview": false,
-      "items": {
-        "title": { "kind": "shows" },
-        "close": { "kind": "action", "label": "Close" },
-        "note": { "kind": "shows" },
-        "blob": { "kind": "action", "label": "Shared playlist" },
-        "file": { "kind": "action", "label": "Choose a file…" },
-        "result": { "kind": "shows" },
-        "sum": { "kind": "shows", "when": "a playlist read" },
-        "warn": { "kind": "shows", "each": true, "when": "a playlist read that was cut short, or with tracks the library can't match" },
-        "missing": { "kind": "shows", "each": true, "when": "tracks the library can't match" },
-        "sub-note": { "kind": "shows", "when": "tracks found on another album than the playlist named" },
-        "substituted": { "kind": "shows", "when": "tracks found on another album than the playlist named" },
-        "searching": { "kind": "shows", "when": "the library's albums being searched for the rest" },
-        "save": { "kind": "action", "label": ["Save {tracks} as a playlist", "Searching your library…", "Saved"], "when": "a playlist read with tracks the library has" },
-        "import": { "kind": "action", "label": "Import" },
-        "done": { "kind": "action", "label": "Close" }
-      }
-    },
-    "playlist-share": {
-      "page": "Share a playlist (a playlist's ⋯ → Share, and a Dynamic Playlist's): the page's sheet up from the foot, how many tracks, what was left out and why, what sharing means, the shared playlist as text; Copy, Download and Done",
-      "native": ["android/app/src/main/java/com/musicd/server/android/PlaylistShareSheet.kt"],
-      "preview": false,
-      "items": {
-        "title": { "kind": "shows" },
-        "close": { "kind": "action", "label": "Close" },
-        "sum": { "kind": "shows" },
-        "warn": { "kind": "shows", "each": true, "when": "reading stopped early, the albums or the tracks capped, entries without a title, or a file too big to paste" },
-        "note": { "kind": "shows" },
-        "blob": { "kind": "action", "label": "The share file's text" },
-        "copy": { "kind": "action", "label": "Copy" },
-        "download": { "kind": "action", "label": "Download" },
-        "done": { "kind": "action", "label": "Done" }
-      }
-    },
     "power-cover": {
       "page": "the screen over everything while the server is away after Restart or Shut down from the side menu's power button (#power-cover, power.js): what is happening, and how it comes back",
       "native": ["android/app/src/main/java/com/musicd/server/android/PowerOver.kt"],
@@ -1341,7 +1180,6 @@
         "radio": { "kind": "action", "label": "Radio", "in": "more", "when": "the room offers it" },
         "service-favourite": { "kind": "action", "label": "{…} favourites", "in": "more", "when": "a streamed album, signed in" },
         "later": { "kind": "action", "label": ["Listen later", "Remove from Listen later"], "in": "more" },
-        "playlist": { "kind": "action", "label": "Add to playlist", "in": "more" },
         "edit": { "kind": "action", "label": "Edit album", "in": "more", "when": "an album of your own files" },
         "download": { "kind": "action", "label": ["Download to this phone", "Remove from this phone", "Downloading… {…}"], "in": "more", "when": "in the Android app" },
         "tracks-head": { "kind": "shows", "when": "a tablet or a wide screen: on a phone held upright the Tracks tab says it (item 355)" },
@@ -1365,7 +1203,6 @@
         "select-play-now": { "kind": "action", "label": "Play now", "when": "selecting tracks" },
         "select-play-next": { "kind": "action", "label": "Play next", "when": "selecting tracks" },
         "select-queue": { "kind": "action", "label": "Add to end of queue", "when": "selecting tracks" },
-        "select-playlist": { "kind": "action", "label": "Add to playlist…", "when": "selecting tracks" },
         "select-later": { "kind": "action", "label": "Listen later", "when": "selecting tracks" },
         "select-clear": { "kind": "action", "label": "Clear selection", "when": "selecting tracks" },
         "genre": { "kind": "action", "label": "{genre}", "each": true, "when": "its files carry a genre (bug list item 139)" },
@@ -1390,8 +1227,8 @@
         "similar-artist": { "kind": "action", "label": "{artist}", "each": true, "when": "Last.fm knows the artist" },
         "similar-artists-more": { "kind": "action", "label": ["More", "Less"], "when": "more than three" },
         "similar-artists-site": { "kind": "action", "label": "Last.fm ↗", "when": "Last.fm knows the artist" },
-        "similar-albums": { "kind": "shows", "when": "Last.fm knows the album (a key in Settings)" },
-        "similar-album": { "kind": "action", "label": "{album}", "each": true, "when": "Last.fm knows the album" },
+        "similar-albums": { "kind": "shows", "when": "Last.fm knows the album (a key in Settings) and the library has albums like it; none that leave the app" },
+        "similar-album": { "kind": "action", "label": "{album}", "each": true, "when": "Last.fm knows the album and the library has it" },
         "similar-albums-more": { "kind": "action", "label": ["More", "Less"], "when": "more than three" }
       }
     },

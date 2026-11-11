@@ -127,7 +127,11 @@ Covers.TrustHosts(ownConfig["art_hosts"]);
 Caller.Trust(ownConfig["trusted_proxies"]);   // proxies believed on who asked: these, and the Tailscale engine on its own port (item 362)   // pictures from elsewhere: never this network, but for these (item 353)
 Transcoder.Init(dataDir);
 Downloads.Init(dataDir);
-Server.Log($"[server] Mandarin's server {version} (C#) on port {port}");
+// The built-in Tailscale engine's own port, on this machine alone (item 362), chosen before the background work starts
+// the engine (item 383): the engine is told it once and keeps it, so chosen later, an engine that had joined first was
+// sent to the main port, where its word on who asked isn't believed, and every tailnet device was taken as the internet.
+using (var probe = new System.Net.Sockets.TcpListener(IPAddress.Loopback, 0)) { probe.Start(); Caller.EnginePort = ((IPEndPoint)probe.LocalEndpoint).Port; probe.Stop(); }
+Server.Log($"[server] Mandarin's server {version} (C#) on port {port} (the built-in Tailscale's own 127.0.0.1:{Caller.EnginePort})");
 // The background work (Jobs.cs) before anything is answered.
 await Jobs.StartAlone(ownConfig, dataDir, port, version);
 // No settings files, so nothing to watch: by default ASP.NET watches its
@@ -148,8 +152,7 @@ builder.WebHost.ConfigureKestrel(k =>
     // where Kestrel would otherwise refuse anything past ASCII.
     k.ResponseHeaderEncodingSelector = name => name.Equals("X-Mandarin-Backup", StringComparison.OrdinalIgnoreCase) ? System.Text.Encoding.Latin1 : null;
     k.Listen(IPAddress.Any, port);
-    // The built-in Tailscale engine's own port, on this machine alone: only its word on who asked is believed there (item 362).
-    using (var probe = new System.Net.Sockets.TcpListener(IPAddress.Loopback, 0)) { probe.Start(); Caller.EnginePort = ((IPEndPoint)probe.LocalEndpoint).Port; probe.Stop(); }
+    // The built-in Tailscale engine's own port (chosen above): only its word on who asked is believed there (item 362).
     k.Listen(IPAddress.Loopback, Caller.EnginePort);
 });
 // gzip, as the Node server's compression() did for everything it answered:

@@ -30,7 +30,7 @@ public sealed class HttpBodyTests
         };
         // Each way a route read one: the settings' and playback's (Auth.Body), the library's (JsBody), the
         // services' and a device's (put back for a route after them), and no route's (Pages.NotThere).
-        var routes = new[] { ("POST", "/api/settings/display"), ("POST", "/api/control"), ("POST", "/api/share/encode"),
+        var routes = new[] { ("POST", "/api/settings/display"), ("POST", "/api/control"), ("POST", "/api/diagnostics"),
             ("POST", "/api/library/cleanup"), ("PATCH", "/api/audio-devices/nobody"), ("POST", "/api/nothing") };
         foreach (var (method, p) in routes)
         {
@@ -75,7 +75,7 @@ public sealed class HttpBodyTests
         await using var s = await Session.Started();
         // "text/plain; x=json" is a type a page on any site may send here without asking first (CORS's
         // safelist): read as JSON, a cross-site form could have written through every route (item 173).
-        var routes = new[] { ("POST", "/api/settings/display"), ("POST", "/api/control"), ("POST", "/api/share/encode"),
+        var routes = new[] { ("POST", "/api/settings/display"), ("POST", "/api/control"), ("POST", "/api/diagnostics"),
             ("POST", "/api/library/cleanup"), ("PATCH", "/api/audio-devices/nobody"), ("POST", "/api/nothing") };
         var json = new[] { "application/json", "Application/JSON; charset=utf-8", "application/vnd.api+json", "application/merge-patch+json; charset=utf-8" };
         var notJson = new[] { "text/plain; x=json", "text/plain; charset=json", "text/json", "application/jsonx", "application/x-json-stream", "multipart/form-data; boundary=json" };

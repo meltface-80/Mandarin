@@ -21,8 +21,13 @@ const path = require("path");
 const ROOT = path.join(__dirname, "..");
 const BIN = process.env.MANDARIN_SERVER_BIN || path.join(ROOT, "server", "bin", "mandarin-server");
 
-/** Whether the program is built: a test skips with this reason when it isn't. */
-const built = () => fs.existsSync(BIN) ? false : "the C# server isn't built (server/build.sh): " + BIN;
+/** Whether the program is built: a test skips with this reason when it isn't; on CI, which builds it first, this throws instead, so the file fails. */
+const built = () => {
+  if (fs.existsSync(BIN)) return false;
+  const why = "the C# server isn't built (server/build.sh): " + BIN;
+  if (process.env.CI) throw new Error(why + " (CI builds it before the tests)");
+  return why;
+};
 
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 

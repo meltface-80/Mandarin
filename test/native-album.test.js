@@ -5,8 +5,8 @@
  * bridge (MusicdApp) says whether it draws the page itself (always, since
  * item 47; an app from before says no): then an album tapped asks the app for
  * its own page of that album, in the room chosen; otherwise the page's opens,
- * as it always has. What the native page hands back (its Share card, Add to
- * playlist, Edit album, a label) the page opens as its own album page does.
+ * as it always has. What the native page hands back (its Share card, Edit
+ * album, a label) the page opens as its own album page does.
  * The app is stood in for by its bridge. Skipped where no Chromium or Chrome
  * is found.
  */
@@ -51,14 +51,11 @@ const SERVICE = (offset) => `(async () => { ${KIT}
 /* What the native album page hands back, each asked for by name with the album's offset (or a label's name). */
 const HANDOFF = (offset) => `(async () => { ${KIT}
   const visible = sel => [...document.querySelectorAll(sel)].some(shown);
-  const sheet = () => [...document.querySelectorAll(".lib-sheet h3")].filter(h => shown(h.closest(".lib-sheet"))).map(h => h.textContent);
-  const out = { bad: [window.__musicdNative("album-share", "x"), window.__musicdNative("album-edit", "-1"), window.__musicdNative("label")] };
+  const out = { bad: [window.__musicdNative("album-share", "x"), window.__musicdNative("album-edit", "-1"), window.__musicdNative("label"),
+                      window.__musicdNative("album-playlist", "${offset}")] };
   out.share = window.__musicdNative("album-share", "${offset}");
   out.shareShown = await until(() => shown($("#share-overlay")), 8000);
   $(".share-backdrop").click(); await until(() => !shown($("#share-overlay")), 5000);
-  out.playlist = window.__musicdNative("album-playlist", "${offset}");
-  out.playlistSheet = (await until(() => sheet().length, 8000)) && sheet();
-  document.querySelector(".lib-sheet .icon-btn[aria-label=Close]").click(); await until(() => !sheet().length, 5000);
   out.edit = window.__musicdNative("album-edit", "${offset}");
   out.editShown = await until(() => visible("#album-edit-overlay"), 8000);
   return out;
@@ -89,12 +86,10 @@ test("the app's native album page: an album tap handed over, and what it hands b
     assert.equal(r.opened[0][0], one.offset, "Album One");
   });
 
-  await t.test("handed back: Share card, Add to playlist, Edit album, as the page's album page opens them", async () => {
+  await t.test("handed back: Share card, Edit album, as the page's album page opens them; Add to playlist no more", async () => {
     const r = await run(HANDOFF(one.offset), bridge(true));
-    assert.deepEqual(r.bad, [false, false, false], "nothing it can't find");
+    assert.deepEqual(r.bad, [false, false, false, false], "nothing it can't find, nor Add to playlist (gone with playlists)");
     assert.deepEqual([r.share, r.shareShown], [true, true], "Share card");
-    assert.equal(r.playlist, true);
-    assert.ok(Array.isArray(r.playlistSheet) && r.playlistSheet.length === 1, "the playlist sheet: " + JSON.stringify(r.playlistSheet));
     assert.deepEqual([r.edit, r.editShown], [true, true], "the album editor");
   });
 

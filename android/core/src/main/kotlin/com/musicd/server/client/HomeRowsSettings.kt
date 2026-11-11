@@ -17,7 +17,7 @@ object HomeRowsSettings {
     /** Each row's name, the app's own two first, as the page's HOME_ROWS has them in the app. */
     val TITLES: Map<String, String> = linkedMapOf(
         "phone" to "Music on device", "downloads" to "Downloaded albums", "unplayed" to "Not played in 6 months", "later" to "Listen later",
-        "playlists" to "Playlists", "favourites" to "Favourites", "history" to "Recently played", "picks" to "Smart Picks",
+        "favourites" to "Favourites", "history" to "Recently played", "picks" to "Smart Picks",
         "lotw" to "Label of the week", "random" to "Random albums", "library" to "Library", "genres" to "Browse by genre")
 
     /** What Downloaded albums says while albums are on the phone: it stays on until they are removed. */

@@ -38,10 +38,9 @@ let npWaveReq = 0;          // generation, so a slow answer cannot land late
 function npWaveIdentity() {
   const np = (currentZone && currentZone.now_playing) || null;
   if (!np) return null;
-  const t3 = np.three_line || {};
-  const track  = t3.line1 || np.line1 || "";
-  const artist = t3.line2 || np.line2 || "";
-  const album  = t3.line3 || np.line3 || "";
+  const track  = np.line1 || "";
+  const artist = np.line2 || "";
+  const album  = np.line3 || "";
   return track ? { track, artist, album, key: track + " " + album } : null;
 }
 

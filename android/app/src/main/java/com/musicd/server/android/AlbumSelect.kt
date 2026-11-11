@@ -40,8 +40,8 @@ import com.musicd.server.client.ServerClient
  * track the first pick; then each row's circle, or the row itself, picks or
  * unpicks. The ⋯ with the count, top right in place of previous and next,
  * opens what to do with them: play now, play next, add to the end of the
- * queue (each in the album's order, as the page sends them), add to a
- * playlist (the page's sheet), Listen later (the album), or clear.
+ * queue (each in the album's order, as the page sends them), Listen later
+ * (the album), or clear.
  */
 
 /** The ⋯ with the count, and its menu; [picks] are the tracks' places in order of picking. */
@@ -67,8 +67,6 @@ internal fun SelectMenu(picks: List<Int>, onAct: (String) -> Unit, modifier: Mod
                 modifier = Modifier.parity("album.select-play-next", Contract.label("album.select-play-next")))
             DropdownMenuItem(text = { Text(Contract.label("album.select-queue"), fontSize = 15.sp) }, onClick = { open = false; onAct("queue") },
                 modifier = Modifier.parity("album.select-queue", Contract.label("album.select-queue")))
-            DropdownMenuItem(text = { Text(Contract.label("album.select-playlist"), fontSize = 15.sp) }, onClick = { open = false; onAct("playlist") },
-                modifier = Modifier.parity("album.select-playlist", Contract.label("album.select-playlist")))
             DropdownMenuItem(text = { Text(Contract.label("album.select-later"), fontSize = 15.sp) }, onClick = { open = false; onAct("later") },
                 modifier = Modifier.parity("album.select-later", Contract.label("album.select-later")))
             DropdownMenuItem(text = { Text(Contract.label("album.select-clear"), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 15.sp) }, onClick = { open = false; onAct("clear") },

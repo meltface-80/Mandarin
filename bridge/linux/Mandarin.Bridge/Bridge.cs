@@ -24,7 +24,6 @@ internal sealed partial class Bridge
     private readonly Wifi? wifi;
     // Updated from Mandarin's Settings → Updates (item 291).
     private readonly Update update;
-    private readonly DateTime started = DateTime.UtcNow;
     private volatile List<Dac> dacs = [];
     private string lastCaps = "", toldFix = "";
 
@@ -36,7 +35,7 @@ internal sealed partial class Bridge
         http = new Http(opts.Port, Route, log);
         slim = new Slim(player, Capabilities, () => store.Name, store.Udn, opts.Server, log);
         if (opts.Nmcli != null) wifi = new Wifi(opts.Nmcli, log);
-        update = new Update(opts.UpdateApi, opts.Data, log, Program.Restart);
+        update = new Update(opts.UpdateApi, opts.Data, log, Program.Restart, opts.Curl);
     }
 
     /* The DAC played to: the one chosen, else the first found; null with none plugged in. */
@@ -91,8 +90,8 @@ internal sealed partial class Bridge
         {
             Thread.Sleep(Math.Clamp(opts.SetupAfter * 1000, 1000, 5000));
             try { Look(); } catch (Exception e) when (e is IOException or UnauthorizedAccessException) { log("[bridge] " + e.Message); }
-            // No network a while after starting (a Pi just flashed, or a network gone): the setup network, so its page can be reached.
-            if (wifi != null && !wifi.Hotspot && DateTime.UtcNow - started > TimeSpan.FromSeconds(opts.SetupAfter) && !wifi.Connected()) wifi.OpenSetup();
+            // No network a while (a Pi just flashed, or a network gone): the setup network, so its page can be reached; the home network tried again.
+            wifi?.Watch(opts.SetupAfter);
         }
     }
 

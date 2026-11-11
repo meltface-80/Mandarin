@@ -83,4 +83,22 @@ public sealed class HomeRowsTests
         Assert.Equal(a1.Str("day"), a4.Str("day"));
         Assert.True(a1.Str("day") == srv2.Setting("album_of_the_day").Str("day"), "the same day's choice, kept across the restart");
     }
+
+    [Test]
+    public async Task A_saved_layout_naming_the_playlists_row_is_read_without_it()
+    {
+        await using var s = await Session.Started();
+        // Saved before the playlists were taken out: their row passed over, the rest as saved.
+        s.Server.SetSetting("homeRows", new object[] { new { id = "playlists", on = true }, new { id = "later", on = false } });
+        var r = await s.Api("settings/home-rows");
+        Assert.Equal(200, r.Status);
+        var ids = r.J["rows"].Items().Select(x => x.Str("id")).ToList();
+        Assert.DoesNotContain("playlists", ids);
+        Assert.False(r.J["rows"].Items().First(x => x.Str("id") == "later").Bool("on"), "the rest as saved");
+        // Sent by a page or an app that still has it: the same.
+        var saved = await s.Api("settings/home-rows", new { rows = new object[] { new { id = "playlists", on = true }, new { id = "unplayed", on = false } } });
+        Assert.Equal(200, saved.Status);
+        Assert.DoesNotContain("playlists", saved.J["rows"].Items().Select(x => x.Str("id")));
+        Assert.Equal(400, (await s.Api("settings/home-rows", new { rows = new object[] { new { id = "playlists", on = true } } })).Status);
+    }
 }

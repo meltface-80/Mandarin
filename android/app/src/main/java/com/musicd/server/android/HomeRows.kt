@@ -16,7 +16,6 @@ import com.musicd.server.client.HomeRowsSettings
 import com.musicd.server.client.LibraryClient
 import com.musicd.server.client.LibraryView
 import com.musicd.server.client.Pick
-import com.musicd.server.client.PlaylistTile
 import com.musicd.server.client.ServerClient
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -60,7 +59,6 @@ internal object HomeKept {
     val layout = mutableStateListOf<HomeRow>()
     val rows: Map<String, RowKept> = listOf("unplayed", "later", "favourites", "history", "random", "library", "lotw", "downloads", "phone").associateWith { RowKept() }
     val picks = mutableStateListOf<Pick>()
-    val playlists = mutableStateListOf<PlaylistTile>()
     var lotwName by mutableStateOf<String?>(null)
     val genres = mutableStateListOf<GenreCard>()
     var genresNote by mutableStateOf<String?>(null)
@@ -90,13 +88,13 @@ internal object HomeKept {
     /** Everything kept forgotten, for the rows to be read afresh: the app gone offline, or back online (item 109). */
     fun reset() {
         rows.values.forEach { it.albums.clear(); it.note = null; it.at = 0 }
-        picks.clear(); playlists.clear(); genres.clear(); genresNote = null; lotwName = null; aotd = null
+        picks.clear(); genres.clear(); genresNote = null; lotwName = null; aotd = null
         phoneKeys.clear(); downloads.clear(); serverAlbums.clear()
         rowsAt = 0; unplayedLoaded = false; genresLoaded = false; lotwLoaded = false
     }
 
     /** Whether a row hides itself when it has nothing to show (the page's rowHidesWhenEmpty). */
-    fun hidesWhenEmpty(id: String) = id in setOf("unplayed", "history", "picks", "lotw", "favourites", "later", "playlists", "phone")
+    fun hidesWhenEmpty(id: String) = id in setOf("unplayed", "history", "picks", "lotw", "favourites", "later", "phone")
 
     /** Whether [row] is on: the Downloads row is on while anything is downloaded, whatever the switch said. */
     fun on(row: HomeRow): Boolean = row.unavailable == null && (row.on || (row.id == "downloads" && rows["downloads"]!!.albums.isNotEmpty()))
@@ -129,10 +127,11 @@ internal object HomeKept {
             // The Library row in the Library's order alone: its Focus and name filter narrow the wall, never the row (the page's libSortKey).
             val order = LibraryView.parse(libraryView).sortQuery()
             scope.launch { plainRow("library", lib) { it.albums(0, 30, order).albums } }
-            scope.launch { val got = withContext(Dispatchers.IO) { runCatching { lib.playlists() }.getOrNull() }; if (got != null) { playlists.clear(); playlists.addAll(got) } }
             scope.launch { val got = withContext(Dispatchers.IO) { runCatching { lib.smartPicks().picks }.getOrNull() }; if (got != null && (got.isNotEmpty() || picks.isEmpty())) { picks.clear(); picks.addAll(got) } }
-            if (!lotwLoaded) scope.launch { lotw(lib) }
-            if (!genresLoaded) scope.launch { genres(lib) }
+            // Read again when the other rows are (not only once an app's run, as they were): what the server says of them
+            // changes, its genres in English since it said them in French; the cards shown stay until the answer comes.
+            if (!lotwLoaded || !ttlFresh) scope.launch { lotw(lib) }
+            if (!genresLoaded || !ttlFresh) scope.launch { genres(lib) }
             scope.launch { loadDownloads(context, client) }
         }
     }

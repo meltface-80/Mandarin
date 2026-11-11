@@ -4,15 +4,14 @@ import android.app.Activity
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
-import android.util.Base64
 import android.util.Log
 import android.webkit.JavascriptInterface
 import androidx.core.content.FileProvider
 import java.io.File
 
 /**
- * Where a share card, a playlist's file or a copied link goes from the app's own share sheets (ShareSheet,
- * PlaylistShareSheet): the clipboard (the card as a picture, item 224), Pictures/Mandarin or Download/Mandarin. Once the page's way to them too,
+ * Where a share card, a saved file or a copied link goes from the app's own share sheet (ShareSheet) and
+ * the app's log: the clipboard (the card as a picture, item 224), Pictures/Mandarin or Download/Mandarin. Once the page's way to them too,
  * from its WebView (window.MusicDShare), until that went (bug list item 111).
  */
 class ShareBridge(private val activity: Activity) {
@@ -22,13 +21,6 @@ class ShareBridge(private val activity: Activity) {
 
         /** Cleared on every share so the cache cannot grow without bound. */
         private const val SHARE_DIR = "shared"
-    }
-
-    private fun decode(base64: String): ByteArray? = try {
-        Base64.decode(base64, Base64.DEFAULT)
-    } catch (e: Exception) {
-        Log.w(TAG, "the page sent something that is not base64", e)
-        null
     }
 
     @JavascriptInterface
@@ -42,15 +34,9 @@ class ShareBridge(private val activity: Activity) {
     }
 
     /**
-     * The card's Download, in the app (v0.6.0-RC4): saved to the phone's
-     * Pictures/Mandarin, where the gallery shows it. A download link does
-     * nothing in a WebView. Android 10 on needs no permission for this; before
-     * that, the storage permission the app already asks for.
+     * [bytes] saved to the phone's Pictures/Mandarin as [fileName] (the native card's Download: item 75), where the
+     * gallery shows it. Android 10 on needs no permission for this; before that, the storage permission the app asks for.
      */
-    @JavascriptInterface
-    fun saveImage(base64: String, fileName: String, mime: String): Boolean = decode(base64)?.let { save(it, fileName, mime) } ?: false
-
-    /** [bytes] saved to the phone's Pictures/Mandarin as [fileName] (the page's Download, and the native card's: item 75). */
     fun save(bytes: ByteArray, fileName: String, mime: String): Boolean {
         val name = safeName(fileName)
         val type = mime.ifEmpty { "image/png" }
@@ -82,8 +68,8 @@ class ShareBridge(private val activity: Activity) {
     }
 
     /**
-     * [bytes] saved to the phone's Download/Mandarin as [fileName] (a playlist shared, the native sheet's Download; item 94):
-     * where the phone's Files app and every other app's file picker find it, Import's Choose a file… among them.
+     * [bytes] saved to the phone's Download/Mandarin as [fileName] (the app's log saved; item 94):
+     * where the phone's Files app and every other app's file picker find it.
      */
     fun saveDownload(bytes: ByteArray, fileName: String, mime: String): Boolean {
         val name = safeName(fileName)

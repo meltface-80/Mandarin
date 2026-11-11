@@ -12,8 +12,7 @@ import com.musicd.server.client.WallPrefs
 
 /*
  * The native screens' routes past NativeShell.kt's own (it draws nothing; nor does
- * this): the search (item 61), your playlists and one of them (item 65), the Dynamic
- * Playlists and one of them (item 66), Settings (item 76), each over
+ * this): the search (item 61), Settings (item 76), each over
  * the screen that opened it, Back returning there.
  */
 internal fun NavGraphBuilder.moreRoutes(nav: NavHostController, client: () -> ServerClient?) {
@@ -92,52 +91,6 @@ internal fun NavGraphBuilder.moreRoutes(nav: NavHostController, client: () -> Se
             onPage = { what, arg -> handOver(nav, what, arg) }
         )
     }
-    composable(ShellRoute.PLAYLISTS, arguments = listOf(navArgument(ShellRoute.ZONE) { type = NavType.StringType; defaultValue = "" })) { entry ->
-        val zone = entry.arguments?.getString(ShellRoute.ZONE).orEmpty()
-        PlaylistsScreen(WallPrefs.parse(NativeShell.prefs), zone, client,
-            onBack = { nav.popBackStack() },
-            onPlaylist = { id -> nav.navigate(ShellRoute.playlist(id, zone)) },
-            onNowPlaying = { id -> nav.navigate(ShellRoute.nowPlaying(id)) { launchSingleTop = true } },
-            onRoom = NativeShell::roomChosen,
-            onNav = { what -> navTap(nav, what) },
-            onPage = { what, arg -> handOver(nav, what, arg) }
-        )
-    }
-    composable(ShellRoute.PLAYLIST, arguments = listOf(navArgument(ShellRoute.ID) { type = NavType.StringType }, navArgument(ShellRoute.ZONE) { type = NavType.StringType; defaultValue = "" })) { entry ->
-        val zone = entry.arguments?.getString(ShellRoute.ZONE).orEmpty()
-        PlaylistScreen(entry.arguments?.getString(ShellRoute.ID).orEmpty(), zone, client,
-            // ← Playlists: the Playlists screen under it, or opened in its place when this came from Home or the page.
-            onBack = { if (!nav.popBackStack(ShellRoute.PLAYLISTS, false)) inPlace(nav, ShellRoute.playlists(zone)) },
-            onHome = { navTap(nav, "home") },
-            onNowPlaying = { id -> nav.navigate(ShellRoute.nowPlaying(id)) { launchSingleTop = true } },
-            onRoom = NativeShell::roomChosen,
-            onNav = { what -> navTap(nav, what) },
-            onPage = { what, arg -> handOver(nav, what, arg) }
-        )
-    }
-    composable(ShellRoute.SMART_PLAYLISTS, arguments = listOf(navArgument(ShellRoute.ZONE) { type = NavType.StringType; defaultValue = "" })) { entry ->
-        val zone = entry.arguments?.getString(ShellRoute.ZONE).orEmpty()
-        SmartPlaylistsScreen(WallPrefs.parse(NativeShell.prefs), zone, client,
-            onBack = { nav.popBackStack() },
-            onPlaylist = { id -> nav.navigate(ShellRoute.smartPlaylist(id, zone)) },
-            onNowPlaying = { id -> nav.navigate(ShellRoute.nowPlaying(id)) { launchSingleTop = true } },
-            onRoom = NativeShell::roomChosen,
-            onNav = { what -> navTap(nav, what) },
-            onPage = { what, arg -> smartPage(nav, NativeShell.prefs, zone, what, arg) }
-        )
-    }
-    composable(ShellRoute.SMART_PLAYLIST, arguments = listOf(navArgument(ShellRoute.ID) { type = NavType.StringType }, navArgument(ShellRoute.ZONE) { type = NavType.StringType; defaultValue = "" })) { entry ->
-        val zone = entry.arguments?.getString(ShellRoute.ZONE).orEmpty()
-        SmartPlaylistScreen(entry.arguments?.getString(ShellRoute.ID).orEmpty(), WallPrefs.parse(NativeShell.prefs), zone, client,
-            onBack = { if (!nav.popBackStack(ShellRoute.SMART_PLAYLISTS, false)) inPlace(nav, ShellRoute.smartPlaylists(zone)) },
-            onHome = { navTap(nav, "home") },
-            onAlbum = { offset, z, list -> nav.navigate(ShellRoute.album(offset, z, "", AlbumLists.put(list), list.index)) },
-            onNowPlaying = { id -> nav.navigate(ShellRoute.nowPlaying(id)) { launchSingleTop = true } },
-            onRoom = NativeShell::roomChosen,
-            onNav = { what -> navTap(nav, what) },
-            onPage = { what, arg -> smartPage(nav, NativeShell.prefs, zone, what, arg) }
-        )
-    }
     // One of the phone's own albums (item 108): the album page, read from the phone and played on it.
     composable(ShellRoute.PHONE_ALBUM, arguments = listOf(navArgument(ShellRoute.KEY) { type = NavType.StringType }, navArgument(ShellRoute.ZONE) { type = NavType.StringType; defaultValue = "" })) { entry ->
         AlbumScreen(-1L, entry.arguments?.getString(ShellRoute.ZONE).orEmpty(), "", client, list = null, onStepTo = { _, _, _ -> },
@@ -169,7 +122,7 @@ internal fun handOver(nav: NavHostController, what: String, arg: String?) {
 /**
  * Every screen over Home closed, Home itself kept: it is the first route, every other screen opens over it, and Back
  * on the next screen comes back to it (bug list item 115: the menu's items popped Home itself when opened from Home,
- * so Settings, Playlists and the rest had nothing under them, and their ✕ and ‹ did nothing). A stack without Home
+ * so Settings and the rest had nothing under them, and their ✕ and ‹ did nothing). A stack without Home
  * gets it back.
  */
 internal fun toHome(nav: NavHostController) {
@@ -208,14 +161,4 @@ internal fun overHome(nav: NavHostController, route: String) {
 internal fun inPlace(nav: NavHostController, route: String) {
     val here = nav.currentBackStackEntry?.destination?.id
     nav.navigate(route) { if (here != null) popUpTo(here) { inclusive = true } }
-}
-
-/**
- * A Dynamic Playlist's screens hand over: Show albums (or Clear all) from a playlist's Focus opens the Library wall in
- * that view, which Home's Library row follows (the page's applyLibView; item 95); the rest as anywhere.
- */
-private fun smartPage(nav: NavHostController, prefs: String?, zone: String, what: String, arg: String?) {
-    if (what != "library-show" || arg == null) { handOver(nav, what, arg); return }
-    NativeShell.keepLibraryView(arg)
-    nav.navigate(ShellRoute.library(arg, prefs.orEmpty(), zone))
 }

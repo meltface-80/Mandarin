@@ -30,8 +30,9 @@ services:
     volumes:
       # KEEP THIS VOLUME — library database, play history, settings and caches.
       - musicd-server-data:/app/data
-      # Your music, read-only.
-      - /your/path/to/Music:/music:ro
+      # Your music, read-only. rslave: a drive the machine mounts in it after the
+      # container starts (a slow USB disk at boot) shows up here too.
+      - /your/path/to/Music:/music:ro,rslave
       # Your drives and shares, to choose more folders from in Settings → Music
       # Folders. rslave: shares the machine mounts later (DietPi's Drive Manager,
       # x-systemd.automount) show up here too.
