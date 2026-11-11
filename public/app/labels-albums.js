@@ -320,6 +320,7 @@ window.__libraryChanged = (opts) => {
   }
   const gone = opts && opts.gone != null ? String(opts.gone) : null;
   if (gone) for (const el of document.querySelectorAll('.album[data-offset="' + gone + '"]')) el.remove();
+  if (gone) libWin.drop(gone);   // out of the Library wall's albums too, drawn or not (library-window.js)
   homeRowsLoadedAt = 0; homeUnplayedLoaded = false; homeFavouritesLoaded = false; homeLaterLoaded = false;
   homeHistoryLoaded = false; homeLibraryKey = "";
   if (homeView && !homeView.classList.contains("hidden")) { refreshHomeRows(); return; }

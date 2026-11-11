@@ -230,6 +230,9 @@ const albumNav = {
   pending: null,   // set by a tile's click, read once by openAlbum
   current: null,   // { items: [{ album, open }], index }
   from(btn) {
+    // A Library wall tile: the wall's albums, drawn or not (library-window.js).
+    const wall = libWin.beside(btn);
+    if (wall !== undefined) { this.pending = wall; return; }
     const parent = btn.parentElement;
     if (!parent) { this.pending = null; return; }
     const tiles = [...parent.children].filter(el => el.__isAlbum && el.__album);

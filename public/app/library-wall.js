@@ -47,9 +47,23 @@ window.__restoreLibraryWall = (was) => {
   // closed field — so read the wall again, unfiltered, rather than show them.
   const dropped = libPrefixDropped;
   libPrefixDropped = false;
-  if (was) { if (dropped) applyLibView(); else renderLibraryControls(); }
+  // Back from an artist's page: the tiles and spacers came back as they were; drawn again
+  // in case the screen changed meanwhile (library-window.js).
+  if (was) { if (dropped) applyLibView(); else { renderLibraryControls(); libWin.later(); } }
 };
 window.__libraryWallSeq = () => libWall.seq;
+
+// The wall's tiles, drawn a window at a time from libWall.items (library-window.js).
+const libWin = libraryWindow({
+  grid,
+  scroller: document.querySelector("main"),
+  items: () => libWall.items,
+  live: () => libraryWallActive && !labelsActive,
+  tile: (a) => keyLibraryTile(homeTile(a)),   // filter:null → offsets resolve; keyed as the contract's
+  picked: (a) => albumSelected.some(x => x.offset === a.offset),
+  opener: (a) => () => openAlbum(a, { source: "home", filter: null }),   // as homeTile opens it
+  ext: () => libWall.ext || null,
+});
 
 async function fetchLibraryPage(mySeq, firstPage) {
   if (libWall.loading) return;   // a page is already in flight for this view
@@ -72,10 +86,10 @@ async function fetchLibraryPage(mySeq, firstPage) {
     // and a view change during it would otherwise get tiles appended into it.
     if (!libraryWallActive || mySeq !== libWall.seq) return;
     const albums = (j && j.albums) || [];
-    if (firstPage) { grid.innerHTML = ""; setBanner(null); libWall.ext = null; }
-    const frag = document.createDocumentFragment();
-    for (const a of albums) frag.appendChild(keyLibraryTile(homeTile(a)));   // filter:null → offsets resolve; keyed as the contract's
-    grid.appendChild(frag);
+    if (firstPage) { grid.innerHTML = ""; setBanner(null); libWall.ext = null; libWall.items = []; libWin.reset(); }
+    // The albums kept; the tiles near the view drawn from them (library-window.js).
+    for (const a of albums) libWall.items.push(a);
+    libWin.draw();
     // The letters typed asked of Qobuz and Tidal too (v0.6.24): their
     // artists and albums under the library's rows, kept at the end as
     // more pages come, gone with the filter.
