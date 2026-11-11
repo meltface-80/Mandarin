@@ -1,7 +1,5 @@
 package com.musicd.server.android
 
-import android.content.Intent
-import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
@@ -181,18 +179,17 @@ internal fun ArtistScreen(asked: String, prefs: WallPrefs, zoneId: String, clien
         if (a.featured.isNotEmpty()) GridBlock("Appears on", a.featured) else null
     ) + bands.map { GridBlock("With ${it.band}", it.albums) } + listOfNotNull(if (credited.isNotEmpty()) GridBlock("Credited on", credited) else null)
 
-    // A similar album of the library's opens with those of the library's as its list; one it hasn't, its Last.fm page.
+    // A similar album (the library's alone) opens with the others as its list.
     fun openSimilar(i: Int) {
         val al = similarAlbums.getOrNull(i)?.album ?: return
         val own = similarAlbums.mapNotNull { it.album }
         onAlbum(al.offset, zone, NavList(own.map { NavItem(it.offset, it.title) }, own.indexOfFirst { it.offset == al.offset }))
     }
-    fun openUrl(url: String) { runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) } }
 
     Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         AlbumGrid(blocks, prefs, cols, coverPx, client, loaded = albums != null || failed != null, picks.map { it.offset }.toSet(), grid, list,
             onOpen = ::open, onLongPress = { i -> if (!selecting) { selecting = true; pick(i) } },
-            foot = { if (tab == "overview") ArtistFoot(similar, similarAlbums, prefs, coverPx, client, onArtist, onAlbum = ::openSimilar, onUrl = ::openUrl) }) {
+            foot = { if (tab == "overview") ArtistFoot(similar, similarAlbums, prefs, coverPx, client, onArtist, onAlbum = ::openSimilar) }) {
             // The name at once; the count when the albums come. An error as the page has it, in red under the heading.
             val n = (a?.primary?.size ?: 0) + (a?.featured?.size ?: 0) + bands.sumOf { it.albums.size }
             WallHead(if (a == null) name else "$n album" + (if (n == 1) "" else "s") + " · $name" + (a.note?.let { " ($it)" } ?: ""), prefs, failed?.let { "Error: $it" to true })

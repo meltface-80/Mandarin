@@ -74,7 +74,8 @@ public sealed class ArtistAnswersAtOnceTests
         var path = "lastfm/similar-albums?artist=" + Uri.EscapeDataString("Artist A");
 
         var first = (await s.Api(path)).J;
-        Assert.Equal(["Hi Res", "Elsewhere"], Titles(first));
+        // The library's alone: "Elsewhere", which it hasn't, isn't one (it left the app for Last.fm's page).
+        Assert.Equal(["Hi Res"], Titles(first));
         Assert.Equal("Hi Res", first["albums"]![0]!["album"].Str("title"));
         var asked = Volatile.Read(ref calls);
         Assert.Equal(3, asked);

@@ -264,7 +264,7 @@
         "similar": { "kind": "action", "label": "{artist}", "each": true, "when": "Last.fm (with a key) or Deezer knows acts like them (bug list item 137)" },
         "similar-art": { "kind": "shows", "each": true, "when": "Last.fm (with a key) or Deezer knows acts like them" },
         "similar-name": { "kind": "shows", "each": true, "when": "Last.fm (with a key) or Deezer knows acts like them" },
-        "similar-album": { "kind": "action", "label": "{album}", "each": true, "when": "similar albums: Last.fm's with a key, else the library's by the acts Deezer relates (bug list item 140)" },
+        "similar-album": { "kind": "action", "label": "{album}", "each": true, "when": "similar albums the library has: Last.fm's with a key, else the library's by the acts Deezer relates (bug list item 140); none that leave the app" },
         "similar-album-art": { "kind": "shows", "each": true, "when": "similar albums are known" },
         "similar-album-title": { "kind": "shows", "each": true, "when": "similar albums are known" },
         "similar-album-artist": { "kind": "shows", "each": true, "when": "similar albums are known" },
@@ -1392,8 +1392,8 @@
         "similar-artist": { "kind": "action", "label": "{artist}", "each": true, "when": "Last.fm knows the artist" },
         "similar-artists-more": { "kind": "action", "label": ["More", "Less"], "when": "more than three" },
         "similar-artists-site": { "kind": "action", "label": "Last.fm ↗", "when": "Last.fm knows the artist" },
-        "similar-albums": { "kind": "shows", "when": "Last.fm knows the album (a key in Settings)" },
-        "similar-album": { "kind": "action", "label": "{album}", "each": true, "when": "Last.fm knows the album" },
+        "similar-albums": { "kind": "shows", "when": "Last.fm knows the album (a key in Settings) and the library has albums like it; none that leave the app" },
+        "similar-album": { "kind": "action", "label": "{album}", "each": true, "when": "Last.fm knows the album and the library has it" },
         "similar-albums-more": { "kind": "action", "label": ["More", "Less"], "when": "more than three" }
       }
     },
