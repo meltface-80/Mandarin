@@ -6,7 +6,7 @@ name: Mandarin Bridge for Raspberry Pi
 # here makes a tag.
 on:
   push:
-    branches: ["**"]
+    branches: ["**", "!dependabot/**"]   # a dependabot push has no secrets: its build could not be signed
     paths: &paths
       - "bridge/pi/**"
       - "bridge/linux/**"

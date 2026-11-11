@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.3.8
+
+- Improved - security: the Linux Bridge (and the Pi's) installs an update only when it is signed with Mandarin's release key, now that there is one; an update replaced on GitHub, its checksum with it, is refused. A Bridge before 0.3.8 takes its update to 0.3.8 as before, and every one after it is checked (item 371)
+- Improved - Mandarin Bridge is 0.3.8
+
 ## v0.3.7
 
 - Fixed - a next track that couldn't be opened or read (a file gone, a stream refused) stopped the track playing there and then, with what was buffered of it: the next is read while this one plays, and its failure cut this one off. The track playing now plays out to its end, and the next's failure is said after it. The Linux Bridge and the Pi's

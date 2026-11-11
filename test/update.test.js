@@ -95,9 +95,12 @@ test("Check for updates installs the newer release and restarts into it, library
   execFileSync("tar", ["-C", path.join(tmp, "bundle"), "-czf", tarball, "musicd-server"]);
   const name = `mandarin-server-${build}.gz`;
   const gz = zlib.gzipSync(fs.readFileSync(next));
+  // Signed as release.yml signs one (item 371), with the tests' own key: the server carries Mandarin's, and is given this one.
+  const releaseKey = crypto.generateKeyPairSync("ec", { namedCurve: "prime256v1" });
   const files = {
     "/dl/bundle": fs.readFileSync(tarball),
     ["/dl/" + name]: gz,
+    ["/dl/" + name + ".sig"]: crypto.sign("sha256", gz, releaseKey.privateKey),
     "/dl/mandarin-server.sha256": `${crypto.createHash("sha256").update(gz).digest("hex")}  ${name}\n`
   };
   const gh = http.createServer((req, res) => {
@@ -108,7 +111,7 @@ test("Check for updates installs the newer release and restarts into it, library
         assets: [{ name: `musicd-server-${NEXT}.tar.gz`, browser_download_url: base + "/dl/bundle" }] });
     }
     if (req.url === `/repos/me/musicd/releases/tags/v${NEXT}`) {
-      return json({ tag_name: "v" + NEXT, assets: [name, "mandarin-server.sha256"].map(n => ({ name: n, browser_download_url: base + "/dl/" + n })) });
+      return json({ tag_name: "v" + NEXT, assets: [name, "mandarin-server.sha256", name + ".sig"].map(n => ({ name: n, browser_download_url: base + "/dl/" + n })) });
     }
     if (files[req.url]) { res.setHeader("Content-Type", "application/octet-stream"); return res.end(files[req.url]); }
     res.statusCode = 404; res.end("{}");
@@ -118,7 +121,8 @@ test("Check for updates installs the newer release and restarts into it, library
 
   const port = ports.port();
   const srv = await start({ port, musicDir: lib.music, dataDir: data, bin: i.bin,
-    env: { MANDARIN_APP_DIR: i.app, SONOS_HOSTS: ports.host(4), UPDATE_REPO: "me/musicd", UPDATE_API: `http://127.0.0.1:${gh.address().port}` } });
+    env: { MANDARIN_APP_DIR: i.app, SONOS_HOSTS: ports.host(4), UPDATE_REPO: "me/musicd", UPDATE_API: `http://127.0.0.1:${gh.address().port}`,
+      UPDATE_KEY: releaseKey.publicKey.export({ type: "spki", format: "der" }).toString("base64") } });
   t.after(() => srv.stop());
   let auth = {};
   const api = async (p, post) => {
