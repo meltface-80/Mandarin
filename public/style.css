@@ -6224,3 +6224,9 @@ html.native-over.native-over-settings #settings-overlay:not(.hidden) { visibilit
 .modal.album-wide .aw-mid .bio-text { font-size: 15px; line-height: 1.6; }
 /* About the artist is the three columns' alone. */
 .modal:not(.album-wide) #album-artist-bio { display: none; }
+/* Settings → Logs (item 389, app/settings-logs.js): the server's newest lines, as written. */
+.logs-lines { margin: 12px 0 0; max-height: 60vh; overflow: auto; white-space: pre-wrap; word-break: break-word; font: 12px/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: var(--text-dim, var(--text)); }
+.logs-lines .lv-WARN { color: #d9a441; }
+.logs-lines .lv-ERROR { color: #e5615b; }
+#logs-download { text-decoration: none; display: inline-flex; align-items: center; }
+#logs-filter { flex: 1 1 auto; min-width: 0; }

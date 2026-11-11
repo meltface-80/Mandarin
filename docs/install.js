@@ -88,6 +88,7 @@
         "  " + K("--name") + " musicd-server \\\n" +
         "  " + K("--network") + " host \\\n" +
         "  " + K("--restart") + " unless-stopped \\\n" +
+        "  " + K("--log-opt") + " max-size=10m " + K("--log-opt") + " max-file=3 \\\n" +
         "  " + K("-e") + " TZ=" + esc(q(tz)) + " \\\n" +
         (port !== "3500" ? "  " + K("-e") + " PORT=" + port + " \\\n" : "") +
         (sonos ? "  " + K("-e") + " SONOS_HOSTS=" + esc(q(sonos)) + " \\\n" : "") +
@@ -99,6 +100,7 @@
       out = C("# docker-compose.yml — then: docker compose up -d") + "\n" +
         "services:\n  musicd-server:\n    image: ghcr.io/meltface-80/musicd-server:latest\n" +
         "    container_name: musicd-server\n    restart: unless-stopped\n    network_mode: host\n" +
+        "    logging:\n      driver: json-file\n      options:\n        max-size: \"10m\"\n        max-file: \"3\"\n" +
         "    environment:\n      TZ: " + esc(tz) + "\n" +
         (port !== "3500" ? '      PORT: "' + port + '"\n' : "") +
         (sonos ? '      SONOS_HOSTS: "' + esc(sonos) + '"\n' : "") +

@@ -85,4 +85,42 @@ public sealed class DiagnosticsTests
         // Why, and where: the exception's own words and the server's frames of its stack.
         Assert.True(log.Contains("JsonReaderException: 'not json' is an invalid JSON literal") && log.Contains("at Mandarin.Server."), log);
     }
+
+    [Test]
+    public async Task The_pages_errors_are_kept_scrubbed_and_held_to_a_few()
+    {
+        await using var s = await Session.Started();
+        var h = new Dictionary<string, string>(s.H) { ["User-Agent"] = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36" };
+        var lines = Enumerable.Range(0, 30).Select(i => new { level = "ERROR", text = $"[page] TypeError: x is undefined #{i} for owner@example.com" }).ToArray();
+        var r = await Http.Post(s.Base + "/api/diagnostics/page", new { lines }, h);
+        Assert.Equal(20, r.J["kept"]!.GetValue<int>());   // at most 20 a request
+        var web = File.ReadAllText(Path.Combine(Logs(s), "Web", "MandarinWeb_log.txt"));
+        Assert.Matches(new Regex(@"^\d{4}-\d\d-\d\d \d\d:\d\d:\d\d\.\d{3} UTC  ERROR  \[Mac · Chrome\] \[page\] TypeError: x is undefined #0 for \[email\]$", RegexOptions.Multiline), web);
+        Assert.DoesNotContain("owner@example.com", web);
+        Assert.DoesNotContain("#20 ", web);
+        // Not signed in: nothing kept.
+        Assert.Equal(401, (await Http.Post(s.Base + "/api/diagnostics/page", new { lines }, null)).Status);
+    }
+
+    [Test]
+    public async Task Every_log_comes_down_as_one_zip()
+    {
+        await using var s = await Session.Started();
+        await Http.Post(s.Base + "/api/diagnostics/page", new { lines = new[] { new { level = "ERROR", text = "[page] a page's error" } } }, s.H);
+        var r = await Http.Send(HttpMethod.Get, s.Base + "/api/diagnostics/zip", null, s.H);
+        Assert.Equal(200, r.Status);
+        Assert.Equal("application/zip", r.ContentHeaders.ContentType?.MediaType);
+        using var req = new HttpRequestMessage(HttpMethod.Get, s.Base + "/api/diagnostics/zip");
+        req.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", s.Token);
+        var bytes = await (await Http.Client.SendAsync(req)).Content.ReadAsByteArrayAsync();
+        using var zip = new System.IO.Compression.ZipArchive(new MemoryStream(bytes));
+        var names = zip.Entries.Select(e => e.FullName).ToArray();
+        Assert.Contains("about.txt", names);
+        Assert.Contains("MandarinServer_log.txt", names);
+        Assert.Contains("Web/MandarinWeb_log.txt", names);
+        using var about = new StreamReader(zip.GetEntry("about.txt")!.Open());
+        Assert.Contains("# Mandarin Server ", about.ReadToEnd());
+        using var server = new StreamReader(zip.GetEntry("MandarinServer_log.txt")!.Open());
+        Assert.Contains("[auth] signed in", server.ReadToEnd());
+    }
 }
