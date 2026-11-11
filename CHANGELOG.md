@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Changed - CI: poppler, which the booklet tests need, is fetched from other mirrors of Ubuntu's archive when the runner's own don't answer (11 Nov 2026 they were out for hours, and every run failed before a test ran); nothing is skipped without it
 - Fixed - the app: a USB DAC pulled out while playing went on playing through the phone's loudspeaker a few seconds later (on a train, say); it now pauses, as a track does when headphones come out. The automatic downloads let yesterday's album of the day go even while it was playing, and playback stopped; it now goes once nothing plays from it. And plays the phone made offline, sent again when the answer was lost to a network change, were written to the history and scrobbled to Last.fm twice; each is now kept once
 - Fixed - a DAC unplugged from a Mandarin Bridge (or its network gone) was said as a track the device couldn't play, so Mandarin put the room's Output back to the last that played well (your DSD256 back to Original, say). The Bridges now say whether the track or the DAC failed: a DAC gone stops the room saying so, the Output kept; only a track the device can't take puts it back
 - Fixed - Mandarin Bridge 0.3.7: a next track that couldn't be opened or read (a file gone, a stream refused) stopped the track playing there and then, through a Mandarin Bridge or a Mac's own device: the next is read while this one plays, and its failure cut this one off with what was buffered of it. Now the track playing plays out to its end, and the next's failure is said after it
