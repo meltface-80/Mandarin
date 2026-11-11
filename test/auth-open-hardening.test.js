@@ -137,6 +137,28 @@ test("the sign-in off: what another site or another name can't do", { skip, time
   }
 });
 
+test("the account can't be made from another site's page, or under another site's name (DNS rebinding)", { skip, timeout: 60000 }, async () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "musicd-open-setup-"));
+  const srv = await startServer(path.join(tmp, "data"));
+  try {
+    const body = JSON.stringify({ username: "owner", salt: "ab".repeat(16), verifier: "0f".repeat(64), iterations: 1000, want_token: true });
+    const rebound = json(HOME, { Host: "evil.example:" + PORT, Origin: "http://evil.example:" + PORT, "Sec-Fetch-Site": "same-origin" });
+    const otherSite = json(HOME, { Origin: "http://evil.example", "Sec-Fetch-Site": "cross-site" });
+    for (const h of [rebound, otherSite]) {
+      const r = await ask("POST", "/api/auth/setup", h, body);
+      assert.equal(r.status, 403, h.Host);
+      assert.equal(r.json.token, undefined);
+    }
+    assert.equal((await ask("GET", "/api/auth/status", from(HOME))).json.setup_required, true, "no account made");
+    // From the server's own page, under its own name: made.
+    const made = await ask("POST", "/api/auth/setup", json(HOME, { "Sec-Fetch-Site": "same-origin", Origin: "http://" + HERE }), body);
+    assert.equal(made.status, 200);
+    assert.ok(made.json.token);
+  } finally {
+    await srv.stop();
+  }
+});
+
 test("a device made without a password works at home and over the tailnet, not from the internet", { skip, timeout: 60000 }, async () => {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "musicd-open-joined-"));
   const srv = await startServer(path.join(tmp, "data"));
