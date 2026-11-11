@@ -24,6 +24,7 @@ function stopSearch() {
   if (abort) { try { abort.abort(); } catch (e) { /* already settled */ } abort = null; }
   clearTimeout(retryTimer);
   clearTimeout(extTimer);
+  clearTimeout(debounceTimer);             // a query typed a moment before never fires into the wall opened since
   if (extAbort) { try { extAbort.abort(); } catch (e) { /* already settled */ } extAbort = null; }
   extWrap = null; extWrapSeq = -1;         // release the rendered external sections
   setStatus("");

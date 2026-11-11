@@ -215,6 +215,8 @@ function openBooklet(album, b) {
   bookletViewer.querySelector(".booklet-title").textContent = b.name;
   bookletViewer.setAttribute("aria-label", b.name);
   bookletViewer.classList.remove("hidden");
+  // Opened again while open (another booklet): the last one's observer let go, as closing does.
+  if (bookletViewer.__seen) { bookletViewer.__seen.disconnect(); bookletViewer.__seen = null; }
   pages.innerHTML = "";
   pages.scrollTop = 0;
   // Drawn as wide as it's shown, on this screen's pixels (the server keeps a few widths).

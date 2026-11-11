@@ -25,7 +25,7 @@
   const RESTARTED_KEY = "rra-update-restarted";
   const appUpd = window.__musicdAppUpd;
   let applying = false;
-  let pollTimer = null;
+  let pollTimer = null, giveUp = null;
   // What the banner is offering right now.
   let offer = { server: false, app: false, sig: "" };
   // The app's update, held back while the server's runs (v0.7.3): installing
@@ -134,6 +134,7 @@
 
   function startPoll(targetVer) {
     if (pollTimer) clearInterval(pollTimer);
+    clearTimeout(giveUp);   // an earlier try's three minutes are not this one's
     let wasDown = false;
     pollTimer = setInterval(async () => {
       try {
@@ -166,9 +167,11 @@
         show(PHASE.restarting);
       }
     }, 1500);
-    setTimeout(() => {
+    giveUp = setTimeout(() => {
       if (pollTimer && applying) {
         clearInterval(pollTimer);
+        // Update can be tapped again: before, the page stayed "applying" until it was reloaded.
+        applying = false; actions.classList.remove("busy"); btnNow.disabled = false;
         show("Update is taking a while \u2014 if the app doesn't come back on its own, restart the container (docker restart musicd-server).");
       }
     }, 180000);
