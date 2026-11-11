@@ -31,6 +31,7 @@ import java.security.MessageDigest
 class Slim(private val service: DacService, private val transport: Transport) {
     companion object {
         private const val TAG = "Slim"
+        private const val DEVICE_STOPPED = 1   // a STMn's error: the DAC or the network, not the track (Mandarin's SlimFrames.Failed)
         const val PORT = 3483
         private val RATES = intArrayOf(11025, 22050, 32000, 44100, 48000, 8000, 12000, 16000, 24000, 96000, 88200, 176400, 192000, 352800, 384000, 0, 705600, 768000, 1411200, 1536000)
     }
@@ -146,13 +147,14 @@ class Slim(private val service: DacService, private val transport: Transport) {
     }
 
     /** A STAT: [event], with how far into the track it is. */
-    private fun stat(event: String, timestamp: Int = 0) {
+    private fun stat(event: String, timestamp: Int = 0, error: Int = 0) {
         val ms = runCatching { transport.onMain { transport.positionMs() } }.getOrDefault(0L)
         val b = ByteBuffer.allocate(53)
         b.put(event.toByteArray(Charsets.US_ASCII))
         b.position(37); b.putInt((ms / 1000).toInt())
         b.position(43); b.putInt(ms.toInt())
         b.position(47); b.putInt(timestamp)
+        b.position(51); b.putShort(error.toShort())
         send("STAT", b.array())
     }
 
@@ -245,6 +247,7 @@ class Slim(private val service: DacService, private val transport: Transport) {
         if (waiting && !sentLoaded && transport.readyToStart()) { sentLoaded = true; Thread { stat("STMl") }.start() }
         if (!sentEnded && transport.ended()) { sentEnded = true; Thread { stat("STMu") }.start() }
         val e = transport.error
-        if (e != null && e != erred) { erred = e; Thread { stat("STMn") }.start() }
+        // STMn with its error (Mandarin's SlimFrames.Failed): 1 the DAC or the network, none the track's format.
+        if (e != null && e != erred) { erred = e; val code = if (transport.trackFailed) 0 else DEVICE_STOPPED; Thread { stat("STMn", error = code) }.start() }
     }
 }

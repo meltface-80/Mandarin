@@ -14,9 +14,9 @@ const net = require("net");
 const dgram = require("dgram");
 
 class FakeSlim {
-  /** @param {{ port: number, name?: string, mac?: string, caps?: string, seconds?: number, refuse?: RegExp, early?: boolean }} o */
-  constructor({ port, name = "Fake Slim", mac = "02:00:00:00:00:31", caps = "Model=squeezelite,ModelName=SqueezeLite,MaxSampleRate=192000,dsf,dff,flc,pcm,mp3", seconds = 2, refuse = null, early = false }) {
-    Object.assign(this, { port, name, mac, caps, seconds, refuse, early });
+  /** @param {{ port: number, name?: string, mac?: string, caps?: string, seconds?: number, refuse?: RegExp, refuseError?: number, early?: boolean }} o */
+  constructor({ port, name = "Fake Slim", mac = "02:00:00:00:00:31", caps = "Model=squeezelite,ModelName=SqueezeLite,MaxSampleRate=192000,dsf,dff,flc,pcm,mp3", seconds = 2, refuse = null, refuseError = 0, early = false }) {
+    Object.assign(this, { port, name, mac, caps, seconds, refuse, refuseError, early });
     this.log = [];        // "strm s f 0 /stream/t1.flac", "strm u", "audg 19661", …
     this.fetched = [];    // { path, bytes }
     this.requests = [];   // each strm s's HTTP request, whole
@@ -75,9 +75,11 @@ class FakeSlim {
 
   elapsedMs() { const p = this.playing; return p ? p.base + (this.paused || !p.started ? 0 : Date.now() - p.started) : 0; }
 
-  stat(event) {
+  /* [error]: a STMn's, as Mandarin's Bridges say it (1, the DAC stopped or isn't there; 0, the track). */
+  stat(event, error = 0) {
     const b = Buffer.alloc(53);
     b.write(event, 0, "ascii");
+    b.writeUInt16BE(error, 51);
     b.writeUInt32BE(this.elapsedMs(), 43);
     b.writeUInt32BE(Math.floor(this.elapsedMs() / 1000), 37);
     this.send("STAT", b);
@@ -108,7 +110,7 @@ class FakeSlim {
       const path = request.split(" ")[1];
       this.log.push(`strm s ${format} ${autostart} ${path}`);
       this.requests.push(request);   // the whole HTTP request it was given, its headers too (item 315)
-      if (this.refuse && this.refuse.test(path)) { this.stat("STMn"); return; }   // one it can't play (item 346)
+      if (this.refuse && this.refuse.test(path)) { this.stat("STMn", this.refuseError); return; }   // one it can't play (item 346)
       this.stat("STMc");
       const s = { path, base: 0, started: 0 };
       const buffered = () => {

@@ -56,6 +56,9 @@ test("no DAC: a play refused with its reason, then played once a DAC is plugged 
     mandarin.strm("s", { port: files.address().port, path: "/tone.flac", autostart: "1" });
     await until(() => mandarin.events().includes("STMn"));
     assert.ok(!mandarin.events().includes("STMs"), "not begun");
+    // Said as the DAC's, not the track's (error 1, Mandarin's SlimFrames.Failed): the Output isn't put back for it.
+    const n = mandarin.heard.find(h => h.event === "STMn");
+    assert.equal(n.body.length >= 53 ? n.body.readUInt16BE(51) : 0, 1, "the STMn says the DAC");
     assert.equal((await (await fetch(base + "/dac.json")).json()).now, null);
     assert.equal((await (await fetch(base + "/api/state")).json()).status, "No USB DAC plugged in");
     assert.ok(!fs.existsSync(out), "nothing played");

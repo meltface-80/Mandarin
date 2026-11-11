@@ -58,7 +58,9 @@ class Transport(private val main: Handler, private val player: ExoPlayer, privat
     }
 
     /** A track that couldn't be played: STOPPED, with the reason (DacService says what it was). */
-    fun failed(why: String) { error = why; stopped = true; changed() }
+    /** Whether [error] is the track's (its format, a DSD the DAC can't take) rather than the DAC's or the network's. */
+    @Volatile var trackFailed = false
+    fun failed(why: String, track: Boolean = false) { error = why; trackFailed = track; stopped = true; changed() }
     /** The track started again by the service (a DAC plugged in): playing, the error gone. */
     fun resumed() { error = null; stopped = false; changed() }
 

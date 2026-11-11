@@ -153,7 +153,9 @@ internal sealed class Slim
     }
 
     /* A STAT: [ev], with how far into the track it is. */
-    private void Stat(string ev, uint timestamp = 0)
+    private const ushort DeviceStopped = 1;
+
+    private void Stat(string ev, uint timestamp = 0, ushort error = 0)
     {
         double seconds;
         lock (gate) seconds = Current != null && player.Uri == Current.Uri && !flushed ? player.Seconds : 0;
@@ -163,6 +165,7 @@ internal sealed class Slim
         BinaryPrimitives.WriteUInt32BigEndian(b.AsSpan(37), ms / 1000);
         BinaryPrimitives.WriteUInt32BigEndian(b.AsSpan(43), ms);
         BinaryPrimitives.WriteUInt32BigEndian(b.AsSpan(47), timestamp);
+        BinaryPrimitives.WriteUInt16BigEndian(b.AsSpan(51), error);
         Send("STAT", b);
     }
 
@@ -289,9 +292,10 @@ internal sealed class Slim
             // Paused or gone on by itself (its page): Mandarin follows.
             var nowPaused = player.State == "PAUSED_PLAYBACK" && startedUri != null;
             if (nowPaused != paused && startedUri != null) { paused = nowPaused; say.Add(nowPaused ? "STMp" : "STMr"); }
-            if (player.Error is { } e && e != erred && c != null) { erred = e; say.Add("STMn"); }
+            if (player.Error is { } e && e != erred && c != null) { erred = e; say.Add(player.TrackFailed ? "STMn" : "STMn!"); }
         }
-        foreach (var ev in say) Stat(ev);
+        // STMn with its error (Mandarin's SlimFrames.Failed): 1 the DAC, none the track.
+        foreach (var ev in say) if (ev == "STMn!") Stat("STMn", error: DeviceStopped); else Stat(ev);
     }
 
     // A track's last sample is in the engine's buffer: its stream read, said once it has begun (the next then comes).

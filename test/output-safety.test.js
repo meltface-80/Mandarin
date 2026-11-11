@@ -37,14 +37,14 @@ function album(music, title, seconds, n = 2) {
 }
 
 /* A server with SlimProto on, and a fake player of it switched on; what the tests call it by. */
-async function rig(t, { refuse = null, seconds = 3, early = false, albums }) {
+async function rig(t, { refuse = null, refuseError = 0, seconds = 3, early = false, albums }) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "musicd-test-safety-"));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   const music = path.join(root, "music");
   for (const [title, secs] of albums) album(music, title, secs);
   const SLIM = ports.port();
   const srv = await start({ port: ports.port(), musicDir: music, dataDir: path.join(root, "data"), env: { SLIMPROTO_PORT: String(SLIM) } });
-  const player = new FakeSlim({ port: SLIM, name: "Den Pi", seconds, refuse, early });
+  const player = new FakeSlim({ port: SLIM, name: "Den Pi", seconds, refuse, refuseError, early });
   t.after(async () => { player.close(); await srv.stop(); });
   const token = await signIn(srv.base);
   const call = async (method, p, body) => {
@@ -89,6 +89,20 @@ test("a device that can't play what its Output makes: put back to the Output tha
   const again = await call("PATCH", "audio-devices/" + ID, { output: { dsd_out: 64 } });
   assert.match(again.output.making, /Last time DSD64, 7th-order modulator couldn't be played by the device, and the Output was put back\.$/);
   assert.equal((await device()).last_error, null);
+});
+
+test("a DAC unplugged (the Bridge's STMn says the DAC): the Output kept, the room stopped saying why", { skip, timeout: 120000 }, async (t) => {
+  // Every failure used to be said as "couldn't play the track", so an unplugged DAC put the owner's Output back.
+  const { player, call, ID, device, play } = await rig(t, { refuse: /\.dsf\b/, refuseError: 1, albums: [["Plain", 3], ["Deep", 3]] });
+  await play("Plain");
+  await until(async () => (await device()).settings.output_good, 20000, "the Output kept as good");
+  assert.equal((await call("PATCH", "audio-devices/" + ID, { output: { dsd_out: 64 } })).status, 200);
+  const ids = await play("Deep");
+  await until(() => player.log.some(l => l.startsWith("strm s ") && l.includes(`/stream/t${ids[0]}.d64.dsf`)), 20000, "DSD64 sent");
+  const d = await until(async () => { const x = await device(); return x.last_error && x; }, 20000, "the failure said");
+  assert.match(d.last_error.message, /the DAC isn't there or stopped/);
+  assert.equal(d.output.dsd_out, 64, "the Output as the owner set it");
+  assert.equal(d.settings.output_failed, undefined);
 });
 
 test("a making slower than it plays: its speed said as it goes, then the Output put back and the track played on from there", { skip, timeout: 150000 }, async (t) => {

@@ -149,7 +149,7 @@ internal sealed partial class Engine
         }
         catch (Exception e)
         {
-            if (any) NextFailed(gen, e.Message); else Fail(gen, e.Message);
+            if (any) NextFailed(gen, e.Message); else Fail(gen, e.Message, "track");
         }
     }
 
@@ -341,7 +341,7 @@ internal sealed partial class Engine
                     {
                         state = PlayState.Stopped;
                         endBytes = -1; marks.Clear(); writeBytes = readBytes = playedBytes = 0;
-                        emit(failedNext is { } why ? Json.Obj("ev", "error", "message", why) : Json.Obj("ev", "ended")); failedNext = null;
+                        emit(failedNext is { } why ? Json.Obj("ev", "error", "message", why, "kind", "track") : Json.Obj("ev", "ended")); failedNext = null;
                     }
                 }
                 Report(true);
@@ -400,7 +400,7 @@ internal sealed partial class Engine
         }
     }
 
-    private void Fail(int gen, string message)
+    private void Fail(int gen, string message, string kind = "device")   // kind: "track" (it couldn't be read), "device" (the DAC)
     {
         lock (gate)
         {
@@ -412,7 +412,7 @@ internal sealed partial class Engine
             Monitor.PulseAll(gate);
         }
         try { sink.Drop(); } catch { /* the device went with it */ }
-        emit(Json.Obj("ev", "error", "message", message));
+        emit(Json.Obj("ev", "error", "message", message, "kind", kind));
         Report(true);
     }
 
