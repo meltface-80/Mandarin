@@ -1,5 +1,5 @@
-// DiagnosticsRoutes.cs — the routes of the server's side of the Android app's logging (bug list
-// item 121, Diagnostics.cs): switched on and off, read and cleared by the app.
+// DiagnosticsRoutes.cs — the routes of the server's log (Diagnostics.cs): read and cleared by the app and the page.
+// It can't be switched off (item 389): an app from before that asks is told it is on.
 using System.Text.Json.Nodes;
 
 namespace Mandarin.Server;
@@ -28,7 +28,7 @@ internal static partial class Library
             {
                 var (b, answered) = await JsBody(ctx);
                 if (answered) return true;
-                Diagnostics.Switch(Prop(b, "on") is true);
+                if (Prop(b, "on") is not true) Server.Log("[diagnostics] asked to switch the log off: it stays on");
                 return await Send(ctx, new JsonObject { ["on"] = Diagnostics.On });
             }
         }
