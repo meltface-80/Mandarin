@@ -7,7 +7,7 @@
 
 </div>
 
-# Mandarin — v1.2.5
+# Mandarin — v1.3.0
 
 **Your own music files, played to Sonos rooms, to UPnP/DLNA renderers (a WiiM, a Chord Poly,
 a streamer, an AV receiver) and to the Mandarin Android app.**
@@ -26,27 +26,20 @@ Wikipedia, Deezer and others); your music files stay on your machine.
                                                    └──── audio: /stream/… ◀────────┘
 ```
 
-**New in v1.2.5** (since v1.2.2; Mandarin Bridge v0.3.4). The [changelog](CHANGELOG.md) has each change.
-* **Versions of one album are one album:** an original and its remaster are one tile, *2 versions* under it, the
-  highest resolution its main (or the one you choose); the album's page lists each with what tells it apart.
-* **An album's page on a phone, redesigned:** the cover on top, the title across the page, then tabs (Tracks,
-  Credits, About, Versions) held at the top as it scrolls, the page cut off cleanly under them; Share card in **⋯**.
-* **Clipping shown, and Headroom when upsampling:** a track whose peaks clip when upsampled turns its line red on Now
-  playing; Headroom (Auto) turns down just what a track needs. See [Upsampling and output](#upsampling-and-output).
-* **Keeping up, and a safety net:** the signal path says how fast a track is made (*Keeping up at 4.2× real time*);
-  an Output the server can't make in time, or the device can't play, is put back to the last that played well.
-* **The music folders followed as they change:** an album shows as it is copied in, a deletion within seconds, and a
-  network share's or mergerfs folder's changes within half a minute, where they waited for the next scan.
-* **Security:** every finding of an audit of this version fixed. The Docker image runs the server as a user, not root
-  (`PUID`/`PGID`); forwarding headers believed only from `TRUSTED_PROXIES`; covers never fetched from your network;
-  addresses handed to devices expire after 30 days, and a speaker gets only what it was handed; the Bridges' ports
-  take changes only as JSON from their own pages; scripts only from Mandarin's own pages; with the sign-in off, only
-  your own Tailscale devices count as home; releases can be signed and updates checked against the key. Reach Mandarin
-  away from home through Tailscale, never a port forward.
-* **Fixed:** Settings → Updates couldn't update the server in Docker once it ran as a user (it does again, here and
-  from now on); an album of mixed sample rates silent with Albums as one stream on; an album deleted from the folders
-  still on its artist's page; the built-in Tailscale not starting after the change to a non-root container; the
-  Android album tabs squashed into letters; Search's count changing the width of its field.
+**New in v1.3.0** (since v1.2.5; Mandarin Bridge v0.3.8). An update following a code review: several
+under-the-hood fixes and improvements. The [changelog](CHANGELOG.md) has each change.
+* **Last.fm scrobbling:** save your Last.fm key's shared secret beside the key (Settings → Setup → API Keys) and tap
+  **Connect to Last.fm**; everything played, in every room, on a Mandarin Bridge or the phone, is scrobbled.
+* **An artist's page in tabs:** Overview, Discography and About, as an album's page has, with no links out to the web.
+* **Genres in English everywhere** (a Qobuz album's *Électronique* is *Electronic*), and **similar albums from your
+  own library** only.
+* **Removed:** Playlists and Dynamic Playlists, with Home's Playlists row and Qobuz's and Tidal's playlists and
+  favourite tracks brought in as playlists (favourite albums still are).
+* **Fixed:** plays, scrobbles and covers kept right through skips, drives mounted late and a DAC unplugged; a USB DAC
+  pulled out of the phone pauses it, as headphones do; a drive mounted after the server starts is read as it appears
+  (docker-compose.yml's `/music` line now ends in `rslave`).
+* **Improved:** security, speed and reliability across the server, the page, the app and Mandarin Bridge; releases
+  are signed, and the server and Mandarin Bridge install only a signed update.
 
 ## Downloads
 
@@ -54,13 +47,13 @@ The newest of each, straight to your device. The server's install is a command, 
 
 | What | Version | Download |
 | --- | --- | --- |
-| **Mandarin Remote**, the Android app (Android 8.0 or newer) | v1.2.5 | [mandarin-android.apk](https://github.com/meltface-80/Mandarin/raw/main/dist/mandarin-android.apk) |
-| **Mandarin server** with Docker (Linux, a Raspberry Pi 4/5, a NAS) | v1.2.5 | `docker pull ghcr.io/meltface-80/musicd-server:latest`, then [Install (Docker)](#install-docker) |
-| **Mandarin server** on a Mac (macOS 14 or newer) | v1.2.5 | the one line under [Install on a Mac](#install-on-a-mac) |
+| **Mandarin Remote**, the Android app (Android 8.0 or newer) | v1.3.0 | [mandarin-android.apk](https://github.com/meltface-80/Mandarin/raw/main/dist/mandarin-android.apk) |
+| **Mandarin server** with Docker (Linux, a Raspberry Pi 4/5, a NAS) | v1.3.0 | `docker pull ghcr.io/meltface-80/musicd-server:latest`, then [Install (Docker)](#install-docker) |
+| **Mandarin server** on a Mac (macOS 14 or newer) | v1.3.0 | the one line under [Install on a Mac](#install-on-a-mac) |
 | **Mandarin Bridge** for Android (a FiiO R7, say) | v0.3.8 | [mandarin-bridge.apk](https://github.com/meltface-80/Mandarin/releases/download/mandarin-bridge-v0.3.8/mandarin-bridge.apk) |
 | **Mandarin Bridge** for Raspberry Pi (3, 4, 5, Zero 2 W) | v0.3.8 | [mandarin-bridge-pi-arm64.img.xz](https://github.com/meltface-80/Mandarin/releases/download/mandarin-bridge-v0.3.8/mandarin-bridge-pi-arm64.img.xz) |
 | **Mandarin Bridge** for Linux (64-bit Debian, Ubuntu, Raspberry Pi OS) | v0.3.8 | `curl -fsSL https://github.com/meltface-80/Mandarin/releases/download/mandarin-bridge-v0.3.8/install.sh \| sudo sh`, or by hand: [x64](https://github.com/meltface-80/Mandarin/releases/download/mandarin-bridge-v0.3.8/mandarin-bridge-linux-x64.tar.gz) · [arm64](https://github.com/meltface-80/Mandarin/releases/download/mandarin-bridge-v0.3.8/mandarin-bridge-linux-arm64.tar.gz) |
-| The server program on its own, what Settings → Updates fetches | v1.2.5 | [linux-x64](https://github.com/meltface-80/Mandarin/releases/latest/download/mandarin-server-linux-x64.gz) · [linux-arm64](https://github.com/meltface-80/Mandarin/releases/latest/download/mandarin-server-linux-arm64.gz) · [osx-arm64](https://github.com/meltface-80/Mandarin/releases/latest/download/mandarin-server-osx-arm64.gz) · [osx-x64](https://github.com/meltface-80/Mandarin/releases/latest/download/mandarin-server-osx-x64.gz) · [sums](https://github.com/meltface-80/Mandarin/releases/latest/download/mandarin-server.sha256) |
+| The server program on its own, what Settings → Updates fetches | v1.3.0 | [linux-x64](https://github.com/meltface-80/Mandarin/releases/latest/download/mandarin-server-linux-x64.gz) · [linux-arm64](https://github.com/meltface-80/Mandarin/releases/latest/download/mandarin-server-linux-arm64.gz) · [osx-arm64](https://github.com/meltface-80/Mandarin/releases/latest/download/mandarin-server-osx-arm64.gz) · [osx-x64](https://github.com/meltface-80/Mandarin/releases/latest/download/mandarin-server-osx-x64.gz) · [sums](https://github.com/meltface-80/Mandarin/releases/latest/download/mandarin-server.sha256) |
 | **How Mandarin finds and names your music**, a guide in plain words | | [PDF](docs/Mandarin-music-scanning-guide.pdf) |
 
 On an iPhone or iPad there is nothing to download: see [iPhone and iPad](#iphone-and-ipad).
@@ -75,7 +68,7 @@ Every feature below has an **ⓘ**: open it for how to switch the feature on and
 
 🏠 **Home**
 
-Rows of albums under a greeting: Not played in 6 months, Listen later, Playlists, Favourites, Recently played, Smart Picks, Label of the week, Random albums, Library and Browse by genre.
+Rows of albums under a greeting: Not played in 6 months, Listen later, Favourites, Recently played, Smart Picks, Label of the week, Random albums, Library and Browse by genre.
 
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 
@@ -169,7 +162,7 @@ Tap the magnifying glass in the top bar (in the row at the foot of a phone's or 
 
 ⸻
 
-💿 **Album pages** — *new in v1.2.5*
+💿 **Album pages**
 
 Tracks, year and label, write-ups from Wikipedia and Qobuz, Pitchfork's score, and every version of the album (an original and its remaster) as one album, the best its main.
 
@@ -181,13 +174,13 @@ Tap any album. **Play Now** and **Queue** are on the page; **⋯** has Play Next
 
 ⸻
 
-🧭 **More by, and similar**
+🧭 **More by, and similar** — *new in v1.3.0*
 
-Under an album's review: the artist's other albums, the albums they appear on, and, with a Last.fm key, similar artists and albums. Ones in your library open here.
+Under an album's review: the artist's other albums, the albums they appear on, and, with a Last.fm key, similar artists and similar albums from your own library.
 
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 
-Open any album. For the Last.fm rows, get a free key at last.fm/api/account/create and paste it in **Settings → Setup → API Keys** (or set `LASTFM_KEY`). Read-only: nothing is scrobbled.
+Open any album. For the Last.fm rows, get a free key at last.fm/api/account/create and paste it in **Settings → Setup → API Keys** (or set `LASTFM_KEY`). Only albums you have are shown, each opening here; to scrobble too, see Last.fm scrobbling.
 
 </details>
 
@@ -205,13 +198,13 @@ On a phone or tablet, tap **Artists** in the row at the foot of the screen. **So
 
 ⸻
 
-🧑‍🎤 **Artist pages**
+🧑‍🎤 **Artist pages** — *new in v1.3.0*
 
-Who they are, then their discography, the albums they appear on, similar artists and similar albums. Members fold under a heading. One artist however a sleeve credits them.
+In tabs, as an album's page: Overview (their albums, similar artists, similar albums you have), Discography and About (biography, members or bands). One artist however a sleeve credits them.
 
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 
-Tap an artist's name on an album's page, on the Artists wall or in Search. Who they are is the act your albums are by: its MusicBrainz ID from your files or matches, else the act MusicBrainz lists for your album titles, never just the first of the name. Facts come from MusicBrainz, Wikidata and Wikipedia, pictures from FanArt.tv (with a key), Wikidata or Deezer, similar artists and albums from Last.fm (with a key) or Deezer. Tap **Members** to unfold a band's line-up. A member's page shows their bands' albums from their years in them; a tap on a member, a band or a similar artist opens theirs. Tap a genre for its albums.
+Tap an artist's name on an album's page, on the Artists wall or in Search. Their picture, genres, **Play** and **Shuffle** are on top; **See all** on Overview opens Discography. Who they are is the act your albums are by: its MusicBrainz ID from your files or matches, else the act MusicBrainz lists for your album titles, never just the first of the name. Facts come from MusicBrainz, Wikidata and Wikipedia, pictures from FanArt.tv (with a key), Wikidata or Deezer, similar artists and albums from Last.fm (with a key) or Deezer; the page has no links out to the web. A member's page shows their bands' albums from their years in them; a tap on a member, a band or a similar artist opens theirs. Tap a genre for its albums.
 
 </details>
 
@@ -229,13 +222,13 @@ Nothing to set up: the server looks albums up in the background, a second at a t
 
 ⸻
 
-🎸 **Genres on pages**
+🎸 **Genres on pages** — *new in v1.3.0*
 
-An album's genres as small chips under its cover, and an artist's, the most used across their albums. A tap opens that genre's albums.
+An album's genres as small chips under its cover, and an artist's, the most used across their albums, in English everywhere. A tap opens that genre's albums.
 
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 
-Nothing to set up: they come from your files' genre tags. A genre written two ways (*Indie Rock*, *indie rock*) is one, spelled as most of your albums spell it.
+Nothing to set up: they come from your files' genre tags. A genre written two ways (*Indie Rock*, *indie rock*) is one, spelled as most of your albums spell it; a Qobuz album's French genre (*Électronique*) shows in English (*Electronic*). Your files are not changed.
 
 </details>
 
@@ -253,13 +246,13 @@ On an album, tap **⋯ → Edit album**.
 
 ⸻
 
-🗂️ **Music folders** — *new in v1.2.5*
+🗂️ **Music folders**
 
 Any folders the server can see, added and removed in the app. Changes show by themselves: an album as it is copied in, a network share's within half a minute.
 
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 
-Open **Settings → Music Folders** and add a folder from the list of drives and folders the server can see. Changes are read about five seconds after they stop, and at least every 30 seconds while a copy goes on; a network share, a FUSE folder (mergerfs, rclone) or one past the system's limit is looked at every 30 seconds instead. A full scan runs every 6 hours (`SCAN_INTERVAL_HOURS`); **☰ → Rescan library** runs one now, then brings Qobuz and Tidal up to date, in that order, where you are signed in with the import on.
+Open **Settings → Music Folders** and add a folder from the list of drives and folders the server can see. Changes are read about five seconds after they stop, and at least every 30 seconds while a copy goes on; a network share, a FUSE folder (mergerfs, rclone) or one past the system's limit is looked at every 30 seconds instead. A drive mounted inside a music folder after the server starts (a slow USB disk at boot) is read as it appears; one not mounted keeps its tracks and covers until it is back. A full scan runs every 6 hours (`SCAN_INTERVAL_HOURS`); **☰ → Rescan library** runs one now, then brings Qobuz and Tidal up to date, in that order, where you are signed in with the import on.
 
 </details>
 
@@ -356,6 +349,18 @@ When a device's queue is running out, a random album goes on the end: never one 
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 
 Open **Settings → Audio Devices**, tap the device and switch on **Random album radio**. **⋯ → Radio** on an album plays it and switches radio on for that device.
+
+</details>
+
+⸻
+
+📮 **Last.fm scrobbling** — *new in v1.3.0*
+
+Everything played, in every room, on a Mandarin Bridge or the phone, is scrobbled to your Last.fm account and shown there as now playing.
+
+<details><summary><b>ⓘ</b> How to set it up and use it</summary>
+
+Get a free key at last.fm/api/account/create and save it with its **shared secret** in **Settings → Setup → API Keys**, then tap **Connect to Last.fm** and allow Mandarin on Last.fm's page. A track is scrobbled at Last.fm's own point (half way or four minutes in); plays made offline or while Last.fm is down are sent when it is back. **Disconnect** stops it.
 
 </details>
 
@@ -541,18 +546,6 @@ On an album, **⋯ → Listen later**, or select several on a wall. Open the lis
 
 ⸻
 
-🎵 **Playlists**
-
-Playlists you make, and Dynamic Playlists that follow a saved Library view. A playlist can be shared as text and imported, matched against the other library's tracks.
-
-<details><summary><b>ⓘ</b> How to set it up and use it</summary>
-
-**☰ → Playlists**, **☰ → Dynamic Playlists** and **☰ → Import a playlist**. A playlist's **Share** gives the text to send.
-
-</details>
-
-⸻
-
 🖼️ **Share card**
 
 The album as a picture: its cover, release, title and artist, its review with whose words they are, Pitchfork's score where there is one, and the duck in its corner.
@@ -607,7 +600,7 @@ The app's own USB Audio driver plays to a DAC on the phone's port at the file's 
 
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 
-Plug the DAC in. It shows on **This phone**'s page in **Settings → Audio Devices**; switch on **USB direct** there.
+Plug the DAC in. It shows on **This phone**'s page in **Settings → Audio Devices**; switch on **USB direct** there. Pull it out while playing and the phone pauses, as when headphones come out.
 
 </details>
 
@@ -625,7 +618,7 @@ Install it from [Downloads](#downloads): the Android app, the Linux install line
 
 ⸻
 
-📈 **Upsampling and output** — *new in v1.2.5*
+📈 **Upsampling and output**
 
 For each streamer or DAC: Bit-perfect or upsampled recipes, filters in either phase, shaped dither, PCM made DSD, Headroom against clipping, and a safety net when the server falls behind.
 
@@ -753,7 +746,7 @@ Back up settings, players, collection, API keys (with the Tailscale identity) an
 
 Open **Settings → Backup & restore**, tick what to include, then **Back up to the server** (or, in the app, **Back up to a file on this phone**). To restore, pick a backup (or the file), tick the parts and tap **Restore**. Mandarin keeps a backup of how things were first, then restarts.
 
-**What a backup holds.** The API keys part (and the whole database) holds your Discogs, FanArt.tv and Last.fm keys, the Qobuz and Tidal sign-ins (tokens, never a password) and the server's Tailscale identity. Without a passphrase they are in the file as they are, so keep the file as you would keep them. Type a **passphrase** (8 characters or more) before backing up and they are sealed (AES-256-GCM; v0.9.0): restoring them asks for it, and nothing opens them without it. Everything else in a sealed backup restores without it. A backup never holds your password or other devices' sign-ins.
+**What a backup holds.** The API keys part (and the whole database) holds your Discogs, FanArt.tv and Last.fm keys and the Last.fm sign-in, the Qobuz and Tidal sign-ins (tokens, never a password) and the server's Tailscale identity. Without a passphrase they are in the file as they are, so keep the file as you would keep them. Type a **passphrase** (8 characters or more) before backing up and they are sealed (AES-256-GCM; v0.9.0): restoring them asks for it, and nothing opens them without it. Everything else in a sealed backup restores without it. A backup never holds your password or other devices' sign-ins.
 
 </details>
 
@@ -801,7 +794,7 @@ The server updates itself from GitHub and checks every 12 hours. The Android app
 
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 
-**Settings → Updates → Check for update** beside the server, the Android app (in the app) or a Bridge; once it says **Update available**, tap it again. The server starts again in a few seconds, the app's update goes to Android's installer, a Linux or Raspberry Pi Bridge updates itself, and an Android Bridge shows a notification whose tap downloads the update in its browser.
+**Settings → Updates → Check for update** beside the server, the Android app (in the app) or a Bridge; once it says **Update available**, tap it again. The server starts again in a few seconds, the app's update goes to Android's installer, a Linux or Raspberry Pi Bridge updates itself, and an Android Bridge shows a notification whose tap downloads the update in its browser. The server and the Bridges install only an update signed with Mandarin's release key.
 
 </details>
 
@@ -857,10 +850,13 @@ docker run -d \
   --restart unless-stopped \
   -e TZ=Europe/London \
   -v musicd-server-data:/app/data \
-  -v /your/path/to/Music:/music:ro \
+  -v /your/path/to/Music:/music:ro,rslave \
   -v /mnt:/mnt:ro,rslave \
   ghcr.io/meltface-80/musicd-server:latest
 ```
+
+`rslave` lets a drive the machine mounts after the container starts (a slow USB disk at boot, a share mounted
+later) show up inside it, its music and covers read as it appears.
 
 Open **`http://<server-ip>:3500`**. The first scan runs straight away; a big library takes a
 few minutes and albums appear as it goes.
@@ -871,7 +867,7 @@ few minutes and albums appear as it goes.
 > Linux host. On a Mac, install it without Docker: see [Install on a Mac](#install-on-a-mac).
 
 > **Keep the `musicd-server-data` volume.** It holds the library database, play history,
-> playlists, settings and the artwork and transcode caches. Point every future `docker run`
+> settings and the artwork and transcode caches. Point every future `docker run`
 > at the same name.
 
 > **The server doesn't run as root** (since item 354). It runs as user and group 1000 —
@@ -941,8 +937,9 @@ version is out. (From v0.1.3 on — an older container needs one update the manu
 
 Since v0.9.0 Mandarin's server is one program, in C#, with no Node.js anywhere. An update from
 the app fetches that program of the new version for your machine (x64 or ARM64) from the
-release, checks it against the release's sums (and, once Mandarin's release key is built in, its
-signature, v1.2.5: a release replaced along with its sums is refused), puts it and the new page in place, and starts
+release, checks it against the release's sums and its signature with Mandarin's release key (v1.3.0: a release
+replaced along with its sums is refused; an install from before takes its update to v1.3.0 as before, and every
+update after it is checked), puts it and the new page in place, and starts
 again in the same container — a few seconds. If it can't start again in place, it stops and
 Docker's restart policy (`--restart unless-stopped`, as above, or `restart: unless-stopped` in
 `docker-compose.yml`) starts the container again; without one, start it yourself (`docker start
@@ -957,8 +954,8 @@ Pi, has a row of its own on Settings → **Updates**, its name and version, and 
 update**, as the server's and the app's rows: it asks GitHub now and becomes **Update available**
 when a newer build is published for it (the rows also find one by themselves within a minute or
 so). A tap on **Update available** asks the Bridge to update itself: it fetches the
-release from GitHub, checks it against the checksum published with it and, once Mandarin's release key
-is built in, its signature (the server's updates are checked the same way), and puts it in place.
+release from GitHub, checks it against the checksum published with it and its signature with Mandarin's
+release key (from Mandarin Bridge v0.3.8; the server's updates are checked the same way), and puts it in place.
 * **Linux and the Raspberry Pi:** in a few seconds, by itself. The new build goes in the Bridge's
   data folder and the program installed hands over to it as it starts again; one that fails as it
   starts is let go, and the installed one runs on.
@@ -968,7 +965,7 @@ is built in, its signature (the server's updates are checked the same way), and 
 * An Android Bridge from before v0.2.1, or a Linux or Raspberry Pi Bridge from before v0.3.1, needs one last update by hand, from [Downloads](#downloads)
   (a Linux or Pi Bridge before v0.3.1 asked GitHub in a way it refuses, and its update failed).
 * A test build of Mandarin's follows the Bridges' test builds (the **test-bridge** pre-release),
-  and a numbered one follows their numbered releases (Mandarin Bridge v0.3.4 with Mandarin v1.2.5).
+  and a numbered one follows their numbered releases (Mandarin Bridge v0.3.8 with Mandarin v1.3.0).
 
 **Manually** — also the way to pick up changes to the image itself (ffmpeg, the audio engine gone from it in
 v1.2.1, and the move to v0.9.0 from an image with Node.js in it):
@@ -1015,7 +1012,7 @@ log in. On a phone, open the address Terminal shows at the end (`http://<mac-ip>
 * **Shut down and start again:** the **power button** at the top right of the side menu (☰) →
   **Shut down** stops Mandarin; double-click **Mandarin** on the desktop (or in your Applications
   folder) to start it again. It also starts when you log in.
-* **Your data** (library, history, playlists, settings) is kept in `~/Mandarin/data`.
+* **Your data** (library, history, settings) is kept in `~/Mandarin/data`.
 * **No albums?** macOS may be keeping Mandarin out of the folder. In System Settings → Privacy &
   Security → **Full Disk Access**, click **+**, press Command-Shift-G, paste
   `~/Mandarin/server/bin/mandarin-server`, and click **Open**.
@@ -1053,7 +1050,7 @@ Everything is optional; pass any of it with `-e NAME=value`.
 | `MBPACK_DIR` | data folder | Where the MusicBrainz pack is kept (Settings → Library Scanner); overrides the folder chosen there. |
 | `ITUNES_COUNTRY` | US | The Apple store the identification scan's iTunes lookups use (`GB`, `DE`…). |
 | `AUTOEQ_URL` | GitHub | Where AutoEq's results are read from for headphone profiles (Settings → Audio Devices → a device → DSP). |
-| `LASTFM_KEY` | — | A Last.fm API key for similar artists and albums on album and artist pages, until one is saved in *Settings → Setup → API Keys* (which then wins). |
+| `LASTFM_KEY` | — | A Last.fm API key for similar artists and albums on album and artist pages, until one is saved in *Settings → Setup → API Keys* (which then wins). Scrobbling also needs the key's shared secret, saved there. |
 | `DEBUG` | — | Log every API call. |
 
 Settings for the FanArt.tv key (artist photos, on artist pages and the wall display), waveform, Smart Picks,
@@ -1106,7 +1103,7 @@ Five wrong passwords from one address in 15 minutes lock it out for 15 minutes (
 docker exec musicd-server /app/server/bin/mandarin-server reset-password
 ```
 
-It removes the account and signs every device out; your library, edits, playlists and history
+It removes the account and signs every device out; your library, edits and history
 stay. Then create the account again from a device at home.
 
 Sonos speakers can't sign in: the addresses they're given carry a signature, and the speakers'
@@ -1249,30 +1246,26 @@ in line with Qobuz's terms of service; those who use it do so at their own risk.
 * **A subscriber signs in** (*Settings → Services → Qobuz*). Mandarin keeps the sign-in token, never
   the password. Qobuz decides what the account may stream.
 * **Your favourites and purchases are albums here** — every one, brought up to date shortly after
-  signing in, every six hours, and when you add a favourite: on the walls, in search, Smart Picks,
-  Listen later and playlists, with a Qobuz mark on the cover. *Favourites and purchases in the
+  signing in, every six hours, and when you add a favourite: on the walls, in search, Smart Picks
+  and Listen later, with a Qobuz mark on the cover. *Favourites and purchases in the
   library* on the Services page switches this off.
 * **Favourites follow both ways, by themselves** (v0.7.3). Remove an album from your Qobuz
   favourites here and it is gone from Qobuz and off the walls within the moment; add one and it
   is on them. A favourite added or removed in the Qobuz app follows here on the next look: the
   server checks every two minutes, and the page checks when you come back to Home or the Library
-  wall. An album's page says why it is in the library — a favourite or a purchase since a date, a
-  playlist's, or only played — and its release date when it is not out yet.
+  wall. An album's page says why it is in the library — a favourite or a purchase since a date, or
+  only played — and its release date when it is not out yet.
 * **The Qobuz browser** (*☰ → Qobuz*): search, new releases, best sellers, most streamed, press
   awards, editor's picks, an artist's albums, as the album grid the rest of Mandarin draws, each
   cover with its **+** for your Qobuz favourites. Tapping an album opens its page here, the same
   page as any album: Play now, Play next, Queue, or from a track, to the zone chosen. An album
   played without being kept is known here for a month (its page, Now playing, history) and stays
   off the walls.
-* **Your Qobuz playlists and favourite tracks are playlists here**: each playlist by its Qobuz name,
-  and *Qobuz favourite tracks*, on the Playlists screen, brought up to date with the library. The
-  albums their tracks come from are known (the tracks play, Now playing has the cover) but stay
-  off the walls unless they're favourites.
-* **Signed out, it all steps aside**: Qobuz albums and playlists leave the walls and the Playlists
-  screen while their rows stay, so signing in puts everything straight back. **Clean up** on the
-  Library Scanner page removes what's no longer wanted — Qobuz albums not in your favourites,
-  purchases or playlists (all of them while signed out), and, separately, albums whose files are
-  gone from the server — after showing you the counts; plays stay in history.
+* **Signed out, it all steps aside**: Qobuz albums leave the walls while their rows stay, so signing
+  in puts everything straight back. **Clean up** on the Library Scanner page removes what's no
+  longer wanted — Qobuz albums not in your favourites or purchases (all of them while signed out),
+  and, separately, albums whose files are gone from the server — after showing you the counts;
+  plays stay in history.
 * **Two favourites, kept apart.** The **+** on a Qobuz album's cover in the browser (a **✓** once
   added), and **Add to Qobuz favourites** / **Remove from Qobuz favourites** in the ⋯ menu on the
   album's page here, are your *Qobuz* favourite, and that is what puts the album in the library.
@@ -1295,7 +1288,7 @@ requests; Qobuz leaves that plugin be because of how it behaves, and Mandarin be
 
 Mandarin streams from Tidal with a Tidal subscription (v0.6.24), the way the Lyrion Music
 Server's Tidal plugin does — the same API, the same credentials, the same rules — and Tidal
-albums live in Mandarin exactly as Qobuz albums do (above): the walls, the browser, playlists,
+albums live in Mandarin exactly as Qobuz albums do (above): the walls, the browser,
 Clean up, the two favourites, the server's transcode cache, nothing downloaded. Experimental, in
 line with Tidal's terms of service; those who use it do so at their own risk.
 
@@ -1303,10 +1296,9 @@ line with Tidal's terms of service; those who use it do so at their own risk.
   Mandarin shows a link and a code, you sign in there on any device, and Mandarin notices by
   itself. It keeps the sign-in token, renewed as Tidal requires, never a password.
 * **Your favourite albums are albums here**, every one, with a Tidal mark on the cover;
-  *Favourites in the library* on the Services page switches this off. **Your Tidal playlists and
-  favourite tracks are playlists here**, as with Qobuz. **Favourites follow both ways, by
-  themselves** (v0.7.3), as with Qobuz: removed here, gone from Tidal and the walls at once;
-  changed in the Tidal app, here on the next look (two minutes, or when you come back to Home).
+  *Favourites in the library* on the Services page switches this off. **Favourites follow both
+  ways, by themselves** (v0.7.3), as with Qobuz: removed here, gone from Tidal and the walls at
+  once; changed in the Tidal app, here on the next look (two minutes, or when you come back to Home).
 * **The Tidal browser** (*☰ → Tidal*): search, new releases, recommended, top, rising, an
   artist's albums, as the album grid, each cover with its **+** for your Tidal favourites; an
   album opens on its page here. The ⋯ menu on a Tidal album's page has **Add to Tidal
