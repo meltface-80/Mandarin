@@ -27,12 +27,15 @@ internal static class OfflineDrives
     {
         var mounted = Mounted(mountinfo);
         var kept = new SortedSet<string>(StringComparer.Ordinal);
-        if (Db.Setting(db, "musicMounts") is JsonArray a)
+        var was = Db.Setting(db, "musicMounts");
+        if (was is JsonArray a)
             foreach (var n in a) if (n is JsonValue v && v.TryGetValue<string>(out var s) && s.Length > 0) kept.Add(s);
         foreach (var m in mounted) if (roots.Any(r => m != r && NodePath.IsInside(m, r))) kept.Add(m);
         // Taken away on purpose: no longer a folder at all, or no longer under a watched one.
         kept.RemoveWhere(m => !PosixFs.Exists(m) || !roots.Any(r => m != r && NodePath.IsInside(m, r)));
-        Put(db, "musicMounts", new JsonArray([.. kept.Select(m => (JsonNode)m)]));
+        // Written only where it changed: nothing remembered and none before, no setting at all.
+        var now = new JsonArray([.. kept.Select(m => (JsonNode)m)]);
+        if (was is null ? kept.Count > 0 : was.ToJsonString() != now.ToJsonString()) Put(db, "musicMounts", now);
         using (var again = db.CreateCommand())
         {
             again.CommandText = "DELETE FROM track_loudness WHERE error = $e";
