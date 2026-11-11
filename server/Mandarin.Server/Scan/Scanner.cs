@@ -862,26 +862,23 @@ internal sealed partial class Scanner(SqliteConnection db, string root, IReadOnl
         var knownIn = new List<(string Group, int N)>();
         var knownInAt = new Dictionary<string, int>(StringComparer.Ordinal);
         double removed = 0;
-        var musicRoot = NodePath.Resolve(root);
+        var (musicRoot, unmounted, foldersRead) = (NodePath.Resolve(root), OfflineDrives.Now(db, roots), OfflineDrives.FoldersRead(db));
         foreach (var (p, r) in known.Entries)
         {
             // A streamed track (lib/services) has no file: never the scanner's to remove.
             if (p.Contains("://", StringComparison.Ordinal)) continue;
             var rootOf = RootOf(p);
             // In no watched folder: gone. Folders removed in Settings take their tracks with them there.
-            if (rootOf == null) { if (!seen.Contains(p)) Gone(null, r); continue; }
+            if (rootOf == null) { if (!seen.Contains(p) && foldersRead) Gone(null, r); continue; }
             var rel = NodePath.Relative(rootOf, p).Split('/');
             var group = rel.Length > 1 ? NodePath.Join(rootOf, rel[0]) : rootOf;
             if (knownInAt.TryGetValue(group, out var ki)) knownIn[ki] = (group, knownIn[ki].N + 1);
             else { knownInAt[group] = knownIn.Count; knownIn.Add((group, 1)); }
             if (seen.Contains(p)) continue;
             if (!present.Contains(rootOf) || IsEmptyDir(rootOf)) { Keep(rootOf, Exists(rootOf) ? "empty" : "missing"); continue; }
-            // In the music folder the server was started with, each folder in it is usually a drive mounted there: one missing or empty is kept the same way.
-            if (group != rootOf && rootOf == musicRoot && !seenTops.Contains(group) && (!Exists(group) || IsEmptyDir(group)))
-            {
-                Keep(group, Exists(group) ? "empty" : "missing");
-                continue;
-            }
+            // A drive under a watched folder not mounted now (OfflineDrives), and in the music folder the server was started with, a folder in it missing or empty (usually a drive mounted there): kept the same way.
+            if (OfflineDrives.Above(p, unmounted) is { } drive) { Keep(drive, "empty"); continue; }
+            if (group != rootOf && rootOf == musicRoot && !seenTops.Contains(group) && (!Exists(group) || IsEmptyDir(group))) { Keep(group, Exists(group) ? "empty" : "missing"); continue; }
             var d = p;
             var verdict = "keep";
             for (; ; )
