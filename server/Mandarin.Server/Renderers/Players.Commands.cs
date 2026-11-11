@@ -116,9 +116,7 @@ internal sealed partial class Players
         lock (zm.Gate)
         {
             var st = zm.State.GetValueOrDefault(id) ?? ZoneState.Blank();
-            patch(st);
-            st.At = Hub.Now();
-            zm.State[id] = st;
+            zm.State[id] = st.Patched(patch);   // a new state: the one kept is never changed in place (ZoneState.Patched)
         }
         zm.Bump();
     }
