@@ -1,5 +1,8 @@
 package com.musicd.server.android
 
+import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -51,4 +54,11 @@ internal fun BoxScope.OfflineToastOver() {
             Text(Contract.label("offline-sign.sign"), color = MaterialTheme.colorScheme.onSurface, fontSize = 12.5.sp, lineHeight = 17.sp, fontWeight = FontWeight.W600, maxLines = 1)
         }
     }
+}
+
+/** The activity under a composable's context (a dialog's or a sheet's own window wraps it). */
+internal fun Context.activity(): Activity? {
+    var c: Context? = this
+    while (c is ContextWrapper) { if (c is Activity) return c; c = c.baseContext }
+    return null
 }
