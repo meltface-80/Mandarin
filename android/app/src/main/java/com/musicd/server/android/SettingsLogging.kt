@@ -18,55 +18,44 @@ import com.musicd.server.client.Contract
 
 /*
  * Settings → Setup → Logging (bug list item 121), under API Keys: the app's log, and the server's, for sending to the
- * developer when something is wrong. On unless switched off (item 334), and off nothing is collected; on, the user is told to use
- * the app as usual for a day before saving it, and what it leaves out (item 235), but that it is theirs to look
- * through before sending. Saved to Downloads/Mandarin; switched off, deleted (AppLog).
+ * developer when something is wrong. Always on (item 389), as the server's and the Bridges' are: there is no switch.
+ * The user is told what it leaves out (item 235), and that it is theirs to look through before sending. Saved to
+ * Downloads/Mandarin; the app sends its lines to the server now and then too, where Download all logs has them (AppLog).
  */
 
-/** What the log leaves out, said under the switch whether it is on or off. */
+/** What the log leaves out. */
 internal const val LOG_PRIVACY = "The log leaves out what is yours alone: no passwords, keys or tokens, no email addresses, no " +
     "account names or logins, no internet or Tailscale addresses. It keeps what helps find a fault: home-network addresses, " +
     "the names of rooms and devices, what was playing, error messages. Before you send it, " +
     "please look through it: what you send is your choice."
 
-/** What to do once it is on. */
-internal const val LOG_ON = "Logging is on. Use the app as you normally would for 24 hours, then tap Save log: the log is saved " +
-    "to Downloads/Mandarin on this phone, for you to send to the developer. Switching logging off deletes it, the server's " +
-    "part too."
-
-internal const val LOG_OFF = "Off: nothing is logged."
+/** What it is, and what to do with it. */
+internal const val LOG_ON = "Mandarin keeps a log always: this app's, the server's and every Mandarin Bridge's. When something " +
+    "goes wrong, tap Save log: it is saved to Downloads/Mandarin on this phone, for you to send to the developer. This app's " +
+    "lines are kept on your server too, beside the others. Nothing is sent anywhere else."
 
 /** The Logging block of Setup's list. */
 @Composable
 internal fun LoggingBlock() {
     val context = LocalContext.current
-    var on by remember { mutableStateOf(AppLog.on) }
     var about by remember { mutableStateOf(AppLog.about()) }
     SettingsDivider()
     Block {
-        SetupRow("Logging", Modifier, null) {
-            Toggle(on, Modifier.parity("settings-setup.logging", Contract.label("settings-setup.logging")).clickable {
-                on = !on
-                AppLog.switch(context, on)
-                about = if (on) AppLog.about() else ""
+        SetupRow("Logging", Modifier.parity("settings-setup.logging"), null) {}
+        SetupNote(LOG_ON + "\n\n" + LOG_PRIVACY, Modifier.parity("settings-setup.logging-note"))
+        SetupNote(about, Modifier.parity("settings-setup.log-about"))
+        Row(Modifier.padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            SetupButton(Contract.label("settings-setup.log-save"), busy = false, Modifier.parity("settings-setup.log-save", Contract.label("settings-setup.log-save")).clickable {
+                val a = context as? Activity ?: return@clickable
+                AppLog.save(a) { name ->
+                    Toast.makeText(a, if (name != null) "Log saved to Downloads/Mandarin/$name" else "Couldn't save the log", Toast.LENGTH_LONG).show()
+                    about = AppLog.about()
+                }
             })
-        }
-        SetupNote((if (on) LOG_ON else LOG_OFF) + "\n\n" + LOG_PRIVACY, Modifier.parity("settings-setup.logging-note"))
-        if (on) {
-            SetupNote(about, Modifier.parity("settings-setup.log-about"))
-            Row(Modifier.padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                SetupButton(Contract.label("settings-setup.log-save"), busy = false, Modifier.parity("settings-setup.log-save", Contract.label("settings-setup.log-save")).clickable {
-                    val a = context as? Activity ?: return@clickable
-                    AppLog.save(a) { name ->
-                        Toast.makeText(a, if (name != null) "Log saved to Downloads/Mandarin/$name" else "Couldn't save the log", Toast.LENGTH_LONG).show()
-                        about = AppLog.about()
-                    }
-                })
-                SetupButton(Contract.label("settings-setup.log-clear"), busy = false, Modifier.parity("settings-setup.log-clear", Contract.label("settings-setup.log-clear")).clickable {
-                    AppLog.clear(context)
-                    about = "Cleared"
-                })
-            }
+            SetupButton(Contract.label("settings-setup.log-clear"), busy = false, Modifier.parity("settings-setup.log-clear", Contract.label("settings-setup.log-clear")).clickable {
+                AppLog.clear(context)
+                about = "Cleared"
+            })
         }
     }
 }

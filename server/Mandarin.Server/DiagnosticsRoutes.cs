@@ -35,6 +35,17 @@ internal static partial class Library
                 var kept = DiagnosticsMore.Page(body, Auth.DeviceNameFromUA(ctx.Request.Headers.UserAgent.ToString()));
                 return await Send(ctx, new JsonObject { ["kept"] = kept });
             }
+            // The Android app's own log, sent now and then (item 389): kept as Logs/Apps/<the phone's name>.txt.
+            if (HttpMethods.IsPost(m) && p == "/api/diagnostics/app")
+            {
+                System.Text.Json.Nodes.JsonNode? body;
+                try { body = await System.Text.Json.Nodes.JsonNode.ParseAsync(ctx.Request.Body); }
+                catch (System.Text.Json.JsonException) { return await JsError(ctx, 400, "Not JSON"); }
+                var text = (body?["text"] as System.Text.Json.Nodes.JsonValue)?.TryGetValue<string>(out var t) == true ? t : "";
+                if (text.Length > DiagnosticsMore.AppBytes) return await JsError(ctx, 413, "Too much at once");
+                var who = ctx.Items["device"] is Device d && d.Name.Length > 0 ? d.Name : Auth.DeviceNameFromUA(ctx.Request.Headers.UserAgent.ToString());
+                return await Send(ctx, new JsonObject { ["kept"] = DiagnosticsMore.App(text, who) });
+            }
             if (HttpMethods.IsPost(m) && p == "/api/diagnostics/clear")
             {
                 Diagnostics.Clear();

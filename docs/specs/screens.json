@@ -656,7 +656,7 @@
         "heading": { "kind": "shows" },
         "item": { "kind": "action", "label": "{page}", "each": true },
         "logs": { "kind": "action", "label": "Logs", "only": "page", "why": "the browser's own page of Mandarin's logs (item 389): in the app, Setup → Logging saves the same logs" },
-        "logging": { "kind": "action", "label": "Logging", "only": "app", "why": "the Android app's logging (bug list item 121): the app's and the server's log, for sending to the developer; a browser has no log to send" },
+        "logging": { "kind": "shows", "only": "app", "why": "the Android app's logging (bug list item 121): the app's and the server's log, for sending to the developer; a browser has no log to send" },
         "logging-note": { "kind": "shows", "only": "app", "why": "the Android app's logging (bug list item 121): the app's and the server's log, for sending to the developer; a browser has no log to send" },
         "log-about": { "kind": "shows", "only": "app", "why": "the Android app's logging (bug list item 121): the app's and the server's log, for sending to the developer; a browser has no log to send" },
         "log-save": { "kind": "action", "label": "Save log", "only": "app", "why": "the Android app's logging (bug list item 121): the app's and the server's log, for sending to the developer; a browser has no log to send" },
