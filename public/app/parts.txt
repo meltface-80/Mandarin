@@ -22,6 +22,7 @@ app/library-focus.js
 app/zone-grouping.js
 app/device-power.js
 app/album-tiles.js
+app/album-tile-press.js
 app/album-grid.js
 app/album-modal.js
 app/album-open.js
