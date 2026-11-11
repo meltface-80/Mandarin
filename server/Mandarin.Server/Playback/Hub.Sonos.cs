@@ -166,8 +166,6 @@ internal sealed partial class Hub
             ArtUri = Jv.T(meta["artUri"]) ? Absolutise(Str(meta["artUri"]), c.BaseUrl) : "",
             StreamContent = Str(meta["streamContent"]),
             Shuffle = shuffle, Loop = loop,
-            PlayMode = playMode.Length > 0 ? playMode : "NORMAL",
-            MediaUri = currentUri,
             At = Now(), Unreachable = false
         };
         ApplyState(c.Uid, prev, next);

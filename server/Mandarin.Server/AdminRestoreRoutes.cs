@@ -21,7 +21,7 @@ internal static partial class Library
             await using (var w = Private(upload)) await ctx.Request.Body.CopyToAsync(w);
             var q = Values(ctx, "parts");
             object? parts = q == null ? Undef.V : q.Count == 1 ? q[0] : q.Select(x => (object?)x).ToList();
-            return await Finish(ctx, ts, await RestoreFile(upload, Backup.PartsOf(parts), ctx, ts, PassphraseSent(ctx)));
+            return await Finish(ctx, await RestoreFile(upload, Backup.PartsOf(parts), ctx, ts, PassphraseSent(ctx)));
         }
         catch (Exception e)
         {
@@ -37,7 +37,7 @@ internal static partial class Library
         if (answered) return true;
         if (Backups.File(id) is not { } f) return await JsError(ctx, 404, "No such backup");
         if (Interlocked.Exchange(ref backupBusy, 1) == 1) return await JsError(ctx, 409, "A backup or restore is already running");
-        try { return await Finish(ctx, ts, await RestoreFile(f, Backup.PartsOf(Prop(b, "include")), ctx, ts, Prop(b, "passphrase") is string { Length: > 0 } pass ? pass : null)); }
+        try { return await Finish(ctx, await RestoreFile(f, Backup.PartsOf(Prop(b, "include")), ctx, ts, Prop(b, "passphrase") is string { Length: > 0 } pass ? pass : null)); }
         catch (Exception e)
         {
             Server.Log($"[backup] restore: {e.Message}");
@@ -133,8 +133,8 @@ internal static partial class Library
         finally { Rm(dbFile); }
     }
 
-    /* The answer, then (when anything of the server's came back) the Node server started again; Tailscale too, here. */
-    private static async Task<bool> Finish(HttpContext ctx, Admin.Tailscale ts, JsObj o)
+    /* The answer, then (when anything of the server's came back) this server started again, Tailscale with it (Jobs.Setup). */
+    private static async Task<bool> Finish(HttpContext ctx, JsObj o)
     {
         await SendJs(ctx, o);
         if (TJs.Truthy(o["restarting"]))
@@ -144,7 +144,6 @@ internal static partial class Library
             {
                 await Task.Delay(500);
                 await Jobs.Restart();
-                if (((List<object?>)o["restored"]!).Contains("tailscale")) await ts.Start();
             });
         }
         return true;

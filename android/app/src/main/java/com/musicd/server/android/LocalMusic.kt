@@ -411,9 +411,6 @@ object LocalMusic {
     internal fun quality(a: Album): String? = PhoneShelf.quality(PhoneData.phone(a))
     internal fun hires(a: Album): Boolean = PhoneShelf.hires(PhoneData.phone(a))
 
-    /** The album's page, as the server shapes one. */
-    fun albumPage(a: Album): JSONObject = PhoneShelf.phonePage(PhoneData.phone(a))
-
     fun mediaItems(c: Context, key: String): List<MediaItem> {
         val a = album(key) ?: return emptyList()
         val art = art(c, key)?.let { Uri.fromFile(it) }

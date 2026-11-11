@@ -61,7 +61,6 @@ class PhoneShelf(private val downloads: List<ShelfAlbum>, private val music: Pho
         "/api/home/label-of-the-week" -> Answer.ok(JSONObject().put("label", JSONObject.NULL).put("albums", JSONArray()))
         "/api/home/genre-groups" -> Answer.ok(JSONObject().put("parent", JSONObject.NULL).put("pop", JSONArray()).put("rockmetal", JSONArray()).put("flat", true))
         "/api/smart-picks" -> Answer.ok(JSONObject().put("day", "").put("enabled", false).put("service_ready", false).put("building", false).put("picks", JSONArray()))
-        "/api/discover" -> Answer.ok(JSONObject().put("enabled", false).put("albums", JSONArray()))
         "/api/library/facets" -> Answer.ok(JSONObject().put("facets", JSONArray()))
         "/api/filters/genres" -> Answer.ok(JSONObject().put("genres", JSONArray()))
         "/api/filters/decades" -> Answer.ok(JSONObject().put("decades", JSONArray()))
@@ -78,9 +77,6 @@ class PhoneShelf(private val downloads: List<ShelfAlbum>, private val music: Pho
         }
         "/api/album" -> album(q["offset"] ?: "")
         "/api/album/extras" -> Answer.ok(JSONObject())
-        // The phone's own music: the page's "On this phone".
-        "/api/phone-music/albums" -> Answer.ok(JSONObject().put("albums", JSONArray().apply { music.albums.forEach { put(phoneJson(it)) } })
-            .put("folder", music.folder ?: JSONObject.NULL).put("scanning", music.scanning).put("scanned_at", music.scannedAt))
         else -> null
     }
 
@@ -120,9 +116,9 @@ class PhoneShelf(private val downloads: List<ShelfAlbum>, private val music: Pho
     companion object {
         /** The paths [get] answers, so a caller reads the phone's library only for those. */
         val PATHS = setOf("/api/library/albums", "/api/random-albums", "/api/pick-unheard", "/api/home/unplayed", "/api/home/history",
-            "/api/home/album-of-the-day", "/api/home/label-of-the-week", "/api/home/genre-groups", "/api/smart-picks", "/api/discover",
+            "/api/home/album-of-the-day", "/api/home/label-of-the-week", "/api/home/genre-groups", "/api/smart-picks",
             "/api/library/facets", "/api/filters/genres", "/api/filters/decades", "/api/radio",
-            "/api/search", "/api/artist-albums", "/api/album", "/api/album/extras", "/api/phone-music/albums")
+            "/api/search", "/api/artist-albums", "/api/album", "/api/album/extras")
 
         private val ACTIONS = listOf("play_now" to "Play Now", "queue" to "Queue", "play_next" to "Play Next", "shuffle" to "Shuffle")
         private fun actions() = JSONArray(ACTIONS.map { JSONObject().put("kind", it.first).put("title", it.second) })

@@ -152,7 +152,7 @@ internal static class Lookups
         finally { MbLock.Release(); }
     }
 
-    /* GET /internal/mb/slot from the Node server (loopback, the front key): answered when its request may go. */
+    /* GET /internal/mb/slot, a test hook (loopback, the front key): answered when its request may go. */
     public static void UseInternal(WebApplication app)
     {
         app.Use(async (ctx, next) =>

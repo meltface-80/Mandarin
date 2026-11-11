@@ -108,12 +108,6 @@ object ShelfPlaying {
     /** The kind each chosen track is sent as: Play now plays the first and queues the rest behind it. */
     fun kindFor(kind: String, sentBefore: Int): String = if (kind == "play_now" && sentBefore > 0) "queue" else kind
 
-    /** What the shelf says when an album has gone to [zone]: Playing it, it plays next, it added to the queue. */
-    fun albumSaid(kind: String, title: String, zone: String): String {
-        val where = if (zone.isNotEmpty()) " in $zone" else ""
-        return when (kind) { "play_now" -> "Playing $title$where"; "play_next" -> "$title plays next$where"; else -> "$title added to the queue$where" }
-    }
-
     /** What it says when [sent] of [of] chosen tracks have gone ([why]: what stopped the rest). */
     fun tracksSaid(kind: String, sent: Int, of: Int, zone: String, why: String): String {
         val where = if (zone.isNotEmpty()) " in $zone" else ""
@@ -126,9 +120,6 @@ object ShelfPlaying {
         if (sent < of) msg += " — ${of - sent} didn’t go. $why"
         return msg
     }
-
-    /** How many tracks are chosen, as the buttons under the cover say it. */
-    fun chosenSaid(n: Int): String = if (n == 1) "1 track chosen" else "$n tracks chosen"
 
     /** A length as the queue writes it: 4:05, 1:02:03. */
     fun clock(secs: Int): String {

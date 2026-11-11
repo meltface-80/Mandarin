@@ -86,7 +86,7 @@
         : "Server v" + s.latest + " and app v" + a.latest + " available";
     }
     if (app) return "App v" + a.latest + " available (you have v" + a.current + ")";
-    let line = (s.isDowngrade ? "Rollback to v" : "v") + s.latest + " available (you have v" + s.current + ")";
+    let line = "v" + s.latest + " available (you have v" + s.current + ")";
     // In the Android app, the server ahead of the app with no newer app on
     // GitHub yet: its build follows the release by a few minutes.
     if (a && a.current && verNewer(s.latest, a.current) && !(a.latest && verNewer(a.latest, a.current))) line += " · the app's v" + s.latest + " follows in a few minutes";
@@ -126,7 +126,7 @@
       toast.classList.remove("is-error");
       show(offerText(s, a, server, app));
       showNotes(server ? s.notes : null);
-      btnNow.querySelector("span").textContent = server && s.isDowngrade && !app ? "Roll back" : "Update";
+      btnNow.querySelector("span").textContent = "Update";
     } else {
       hide();
     }

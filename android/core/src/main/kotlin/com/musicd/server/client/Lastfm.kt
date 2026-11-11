@@ -31,15 +31,15 @@ data class SimilarArtists(val enabled: Boolean, val error: String?, val url: Str
     }
 }
 
-/** A similar album: the library's own ([album]) when it has it, else its Last.fm page. */
-data class SimilarAlbum(val title: String, val artist: String, val url: String?, val imageKey: String?, val album: AlbumSummary?)
+/** A similar album: the library's own ([album]) when it has it, else its title, artist and cover ([imageKey]). */
+data class SimilarAlbum(val title: String, val artist: String, val imageKey: String?, val album: AlbumSummary?)
 
 data class SimilarAlbums(val enabled: Boolean, val error: String?, val albums: List<SimilarAlbum>) {
     companion object {
         fun parse(j: JSONObject) = SimilarAlbums(
             enabled = j.optBoolean("enabled", false), error = j.str("error"),
             albums = j.optJSONArray("albums").items {
-                SimilarAlbum(it.optString("title", ""), it.optString("artist", ""), it.str("url"), it.str("image_key"), it.optJSONObject("album")?.let(AlbumSummary::parse))
+                SimilarAlbum(it.optString("title", ""), it.optString("artist", ""), it.str("image_key"), it.optJSONObject("album")?.let(AlbumSummary::parse))
             }
         )
     }

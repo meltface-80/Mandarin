@@ -102,5 +102,4 @@
 
   look();
   document.querySelectorAll('.settings-nav-item[data-pane="system"]').forEach(b => b.addEventListener("click", () => look()));
-  window.__bridgeUpdatesLook = look;
 })();

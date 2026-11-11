@@ -18,7 +18,7 @@ object SettingsKept {
         "/api/identify?lists=0", "/api/loudness", "/api/library/cleanup", "/api/tailscale", "/api/update/status"
     )
     private val SETTINGS = setOf(
-        "waveform", "smart-picks", "labels", "label-folder-depth", "display", "shelf", "share-links", "home-rows", "qobuz", "tidal"
+        "waveform", "smart-picks", "labels", "label-folder-depth", "display", "shelf", "home-rows", "qobuz", "tidal"
     )
     private const val SETTING = "/api/settings/"
     private const val DEVICE = "/api/audio-devices/"

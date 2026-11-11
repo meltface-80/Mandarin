@@ -29,12 +29,6 @@ internal sealed record SentInfo(bool Transcode, double Rate, double Bits, double
     public double DsdBase { get; init; } = 44100;
     // Its turn-down for its upsampling (dB ≤ 0; in Gain too), for the signal path (item 348: Upsample/Headroom.cs).
     public double Headroom { get; init; }
-
-    public JsonObject Json() => new()
-    {
-        ["transcode"] = Transcode, ["rate"] = Rate, ["bits"] = Bits, ["upsampled"] = Upsampled,
-        ["dsp"] = Dsp, ["dsd"] = Dsd, ["ext"] = Ext, ["mime"] = Mime
-    };
 }
 
 internal sealed class ZoneState
@@ -50,8 +44,6 @@ internal sealed class ZoneState
     public string Title = "", Artist = "", Album = "", ArtUri = "", StreamContent = "";
     public bool Shuffle;
     public string Loop = "disabled";          // disabled | loop | loop_one
-    public string PlayMode = "NORMAL";
-    public string MediaUri = "";
     public double At;                         // ms, when read
     public bool Unreachable;
     public Volume? VolumeValue;

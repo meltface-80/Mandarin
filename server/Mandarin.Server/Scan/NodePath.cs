@@ -6,8 +6,6 @@ namespace Mandarin.Server.Scan;
 
 internal static class NodePath
 {
-    public const char Sep = '/';
-
     private static string NormalizeString(string path, bool allowAboveRoot)
     {
         var res = "";

@@ -29,20 +29,11 @@ object SettingsLists {
     const val SETUP_DESC = "Smart Picks, record labels, the Home screen, the look, the wall display and Shelf, away from home, API keys"
     const val REPO = "https://github.com/meltface-80/Mandarin"
 
-    /**
-     * The version at the list's foot, from /api/update/status: "Mandarin v1.0 (Build 17)", and its C# server's when that
-     * is another (being brought up to date, or to be pulled again); null when there is none to say.
-     */
+    /** The version at the list's foot, from /api/update/status: "Mandarin v1.0 (Build 17)"; null when there is none to say. */
     fun version(j: JSONObject?): String? {
         val current = j?.optString("current").orEmpty().takeIf { it.isNotEmpty() && !j!!.isNull("current") } ?: return null
         val parts = current.split(".")
-        var t = if (parts.size >= 3) "Mandarin v${parts[0]}.${parts[1]} (Build ${parts[2]})" else "Mandarin v$current"
-        val cs = j?.optJSONObject("csharp")
-        if (cs != null && cs.optString("version").isNotEmpty() && cs.has("matched") && !cs.optBoolean("matched", true)) {
-            t += if (cs.optString("phase") in setOf("asking", "fetching", "downloading", "restarting")) " · bringing its C# server up to date"
-                else " · C# server v" + cs.optString("version") + if (j.optBoolean("is_docker")) " (pull the image again to update it)" else ""
-        }
-        return t
+        return if (parts.size >= 3) "Mandarin v${parts[0]}.${parts[1]} (Build ${parts[2]})" else "Mandarin v$current"
     }
 }
 

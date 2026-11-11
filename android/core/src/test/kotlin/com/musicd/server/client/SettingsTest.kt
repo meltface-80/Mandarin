@@ -9,14 +9,9 @@ import org.junit.Test
 
 /** Settings as the server answers and the page says it (item 76): the version, the account's devices, the API keys. */
 class SettingsTest {
-    @Test fun `the version at the list's foot, and its C# server's when that is another`() {
+    @Test fun `the version at the list's foot`() {
         assertEquals("Mandarin v1.0 (Build 17)", SettingsLists.version(JSONObject("""{"current":"1.0.17"}""")))
         assertEquals("Mandarin v2", SettingsLists.version(JSONObject("""{"current":"2"}""")))
-        assertEquals("Mandarin v1.0 (Build 17) · bringing its C# server up to date",
-            SettingsLists.version(JSONObject("""{"current":"1.0.17","csharp":{"version":"1.0.16","matched":false,"phase":"fetching"}}""")))
-        assertEquals("Mandarin v1.0 (Build 17) · C# server v1.0.16 (pull the image again to update it)",
-            SettingsLists.version(JSONObject("""{"current":"1.0.17","is_docker":true,"csharp":{"version":"1.0.16","matched":false,"phase":"failed"}}""")))
-        assertEquals("the same: nothing more", "Mandarin v1.0 (Build 17)", SettingsLists.version(JSONObject("""{"current":"1.0.17","csharp":{"version":"1.0.17","matched":true}}""")))
         assertNull(SettingsLists.version(JSONObject("{}")))
         assertNull(SettingsLists.version(null))
     }

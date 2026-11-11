@@ -6,11 +6,10 @@
 // count doesn't match its size each stop the file being read.
 namespace Mandarin.Server.Tags;
 
-internal sealed class Mp4Atom(string name, long length, bool extended, Mp4Atom? parent, long payloadLength)
+internal sealed class Mp4Atom(string name, long length, Mp4Atom? parent, long payloadLength)
 {
     public readonly string Name = name;
     public readonly long Length = length; // 0: to the end
-    public readonly bool Extended = extended;
     public readonly Mp4Atom? Parent = parent;
     public readonly long PayloadLength = payloadLength;
 }
@@ -81,7 +80,7 @@ internal sealed class Mp4Parser(Collector md, Tokenizer tok)
         if ((extended || length != 0) && length < headerLength) throw new JsError($"Invalid atom size: {length}");
         var len = length == 0 ? remaining : length;
         if (len > remaining) throw new JsError("Atom size exceeds remaining bytes");
-        var atom = new Mp4Atom(name, length, extended, parent, len - headerLength);
+        var atom = new Mp4Atom(name, length, parent, len - headerLength);
         ReadData(atom, handler, atom.PayloadLength);
         return atom;
     }

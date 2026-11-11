@@ -115,7 +115,6 @@ if (window.visualViewport) {
   window.visualViewport.addEventListener("resize", pinAfterSettle, { passive: true });
   window.visualViewport.addEventListener("scroll", pinWindow, { passive: true });
 }
-window.__pinWindow = pinWindow;
 
 const grid       = document.getElementById("album-grid");
 const refreshBtn = document.getElementById("refresh-btn");

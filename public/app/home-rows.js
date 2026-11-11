@@ -97,7 +97,6 @@ async function setListenLater(offsets, on) {
     return true;
   } catch (e) { showToast(e.message, "error"); return false; }
 }
-window.__setListenLater = setListenLater;
 
 async function loadHomeHistory() {
   if (!homeHistory) return;

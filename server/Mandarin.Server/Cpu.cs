@@ -291,23 +291,13 @@ internal static partial class Cpu
 
     private static bool DspActive() => Volatile.Read(ref dspRunning) > 0 || Environment.TickCount64 < Volatile.Read(ref dspUntil);
 
-    /* The split decided from now on, and again whenever it changes; Stop: left as it is. */
+    /* The split decided from now on, and again whenever it changes. */
     public static void StartDeciding()
     {
         lock (Deciding_)
         {
             deciding = true;
             Recompute();
-        }
-    }
-    public static void StopDeciding()
-    {
-        lock (Deciding_)
-        {
-            if (!deciding) return;
-            deciding = false;
-            holdTimer?.Dispose(); holdTimer = null;
-            Volatile.Write(ref sig, "");   // the next split kept to afresh
         }
     }
 
