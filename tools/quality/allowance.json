@@ -5,7 +5,7 @@
       "lines": 505
     },
     "android/app/src/main/java/com/musicd/server/android/LocalMusic.kt": {
-      "lines": 438
+      "lines": 435
     },
     "android/app/src/main/java/com/musicd/server/android/NowPlayingService.kt": {
       "lines": 437
@@ -17,7 +17,7 @@
       "lines": 456
     },
     "public/display.js": {
-      "lines": 644
+      "lines": 643
     },
     "public/sharecard.js": {
       "lines": 578
@@ -29,7 +29,7 @@
       "lines": 433
     },
     "server/Mandarin.Server/Admin/Updater.cs": {
-      "lines": 502
+      "lines": 499
     },
     "server/Mandarin.Server/Auth.cs": {
       "lines": 430
@@ -89,7 +89,7 @@
       "lines": 3132
     },
     "server/Mandarin.Server/Tags/Collector.cs": {
-      "lines": 620
+      "lines": 619
     },
     "server/Mandarin.Server/Tags/Formats.cs": {
       "lines": 813
@@ -98,7 +98,7 @@
       "lines": 730
     },
     "server/Mandarin.Server/Tags/Mp4.cs": {
-      "lines": 632
+      "lines": 631
     },
     "server/Mandarin.Server/Tags/TagReader.cs": {
       "lines": 534

@@ -19,9 +19,6 @@ internal static class SlimFrames
     /* [hz] as strm names it, or null where it can't. */
     public static char? RateCode(int hz) => hz > 0 && Array.IndexOf(Rates, hz) is var i and >= 0 ? (char)('0' + i) : null;
 
-    /* The rate a strm's character names (0 for none). */
-    public static int RateOf(char code) => code - '0' is var i && i >= 0 && i < Rates.Length ? Rates[i] : 0;
-
     /* A player's hello: what kind it is, its MAC (its identity), and what it can play, its capabilities as it wrote them. */
     public sealed record Helo(byte DeviceId, byte Revision, string Mac, bool Reconnect, ulong BytesReceived, string Capabilities)
     {

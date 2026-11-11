@@ -184,7 +184,6 @@ object UsbDac {
         um.requestPermission(d, pi)
     }
 
-    fun hasDevice(): Boolean = device != null
     fun device(): UsbDevice? = device
     fun info(): Info? = info
 

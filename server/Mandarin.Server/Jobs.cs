@@ -47,12 +47,12 @@ internal static partial class Jobs
     public static Services.QobuzCatalogue? Qobuz { get; private set; }
     public static Services.TidalCatalogue? Tidal { get; private set; }
 
-    private static volatile HashSet<string> handed = [];
+    private static volatile bool started;
 
     /* The work is set up and running (Setup). */
     public static bool Held => Identify != null;
-    /* One part of it (Names), this server's. */
-    public static bool Holds(string job) => Held && handed.Contains(job);
+    /* One part of it (Names), started: every part is this server's since v0.9.0. */
+    public static bool Holds(string job) => started && Names.Contains(job);
 
     private static string? Text(JsonNode? n) => n is JsonValue v && v.TryGetValue<string>(out var s) && s.Length > 0 ? s : null;
     private static int Int(JsonNode? n, int d) => n is JsonValue v && v.TryGetValue<double>(out var x) && x > 0 ? (int)x : d;
@@ -76,11 +76,11 @@ internal static partial class Jobs
             }
         }
         catch (Microsoft.Data.Sqlite.SqliteException) { /* as none known */ }
-        return Setup(cfg, Names.ToHashSet(), dataDir, frontPort, version);
+        return Setup(cfg, dataDir, frontPort, version);
     }
 
-    /* The work set up from [cfg] (the environment's) and started: [jobs] of it this server's. */
-    private static async Task Setup(JsonObject cfg, HashSet<string> jobs, string dataDir, int frontPort, string version)
+    /* The work set up from [cfg] (the environment's) and started, every part of it. */
+    private static async Task Setup(JsonObject cfg, string dataDir, int frontPort, string version)
     {
         void Log(string s) => Server.Log(s);
         Packs = new PackStore(dataDir, Text(cfg["mbpack_dir"]), Text(cfg["mbpack_url"]), Log);
@@ -129,10 +129,10 @@ internal static partial class Jobs
         // The in-app update (v0.8.48): where GitHub is asked.
         Updater?.Stop();
         Updater = new Admin.Updater(cfg, Environment.GetEnvironmentVariable("MANDARIN_APP_DIR") ?? Server.FindAppDir(), version, Log);
-        handed = jobs;
-        if (handed.Contains("update")) Updater.Start();
+        started = true;
+        Updater.Start();
         // The processor split (v0.8.48): decided here.
-        if (handed.Contains("cpu")) Cpu.StartDeciding(); else Cpu.StopDeciding();
+        Cpu.StartDeciding();
         if (cfg["identify"] is JsonValue on && on.TryGetValue<bool>(out var yes) && yes) Identify.Start();
         Packs.Start();
         Loudness.Start();
@@ -142,15 +142,15 @@ internal static partial class Jobs
             credits.Start(Int(cfg["credits_tick_ms"], 2000));
         // The tiles' covers drawn ahead after a scan: likewise (covers_ahead: true).
         Covers.AheadOn = !Lookups.LoopbackOnly || (cfg["covers_ahead"] is JsonValue ca && ca.TryGetValue<bool>(out var caOn) && caOn);
-        if (handed.Contains("tailscale")) _ = Tailscale.Start();
-        if (handed.Contains("scan")) Scans.Start(cfg, dataDir);
+        _ = Tailscale.Start();
+        Scans.Start(cfg, dataDir);
         // Playback whole (v0.8.49, stage 6): the hub.
-        if (handed.Contains("playback")) await Playback.Hub.Start(Playback.HubConfig.Of(cfg, dataDir, frontPort), Log); else Playback.Hub.Stop();
+        await Playback.Hub.Start(Playback.HubConfig.Of(cfg, dataDir, frontPort), Log);
         // The month's prune of the services' albums only ever played from the browser (v0.8.44): daily.
         Services.Prune.Start();
         // Their import and the favourites' watch (v0.8.45): on the Node server's timers.
         Services.Import.Start(cfg);
-        Server.Log("[jobs] made here: " + string.Join(", ", Names.Where(handed.Contains)));
+        Server.Log("[jobs] made here: " + string.Join(", ", Names));
         // A library scan that ended before the work was set up: what follows it, made now.
         _ = Task.Run(async () =>
         {

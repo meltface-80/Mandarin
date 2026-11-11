@@ -37,9 +37,8 @@ object UpdateBanner {
         val app = a != null && a.optBoolean("available") && has(a, "latest") && !a.optBoolean("installing")
         val sig = (if (server) "s" + s!!.optString("latest") else "") + (if (app) "a" + a!!.optString("latest") else "")
         if (!(server || app) || sig == dismissed) return null
-        val word = if (server && s!!.optBoolean("isDowngrade") && !app) "Roll back" else "Update"
         val notes = if (server && has(s!!, "notes")) s.optString("notes") else ""
-        return Offer(server, app, sig, UpdateOffer(offerText(s, a, server, app), notes, word, true, false))
+        return Offer(server, app, sig, UpdateOffer(offerText(s, a, server, app), notes, "Update", true, false))
     }
 
     /** The banner's line for what's on offer: the server, this app, or both. */
@@ -48,7 +47,7 @@ object UpdateBanner {
         val al = a?.optString("latest").orEmpty(); val ac = a?.optString("current").orEmpty()
         if (server && app) return if (sl == al) "v$sl available for the server and this app (you have v$sc)" else "Server v$sl and app v$al available"
         if (app) return "App v$al available (you have v$ac)"
-        var line = (if (s?.optBoolean("isDowngrade") == true) "Rollback to v" else "v") + "$sl available (you have v$sc)"
+        var line = "v$sl available (you have v$sc)"
         // The server ahead of the app with no newer app on GitHub yet: its build follows the release by a few minutes.
         if (ac.isNotEmpty() && newer(sl, ac) && !(a != null && has(a, "latest") && newer(al, ac))) line += " · the app's v$sl follows in a few minutes"
         return line

@@ -124,7 +124,6 @@ async function loadQobuzStatus() {
     paintQobuz(await r.json());
   } catch (_) { /* display-only status — stale on failure is fine */ }
 }
-window.__qobuzStatus = loadQobuzStatus;
 
 if (qobuzSignin) {
   const go = async () => {
@@ -247,7 +246,6 @@ async function loadTidalStatus() {
     paintTidal(await r.json());
   } catch (e) { /* the page shows the last state */ }
 }
-window.__tidalStatus = loadTidalStatus;
 if (tidalSignin) tidalSignin.addEventListener("click", async () => {
   tidalSignin.disabled = true;
   try {

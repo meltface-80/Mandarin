@@ -37,7 +37,6 @@ internal sealed class Collector
     public object? Fmt(string key) => Format.TryGetValue(key, out var v) ? v : Undef.V;
     public void SetFormat(string key, object? value) => Format[key] = value;
     public void SetAudioOnly() { SetFormat("hasAudio", true); SetFormat("hasVideo", false); }
-    public bool HasAny() => Native.Count > 0;
 
     public List<(string Id, object? Value)>? NativeOf(string type)
     {

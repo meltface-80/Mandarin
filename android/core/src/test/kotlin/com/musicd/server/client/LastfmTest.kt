@@ -27,6 +27,6 @@ class LastfmTest {
             {"title": "Far Away", "artist": "Artist Z", "url": "https://last.fm/y", "image_key": null, "album": null}]}"""))
         assertEquals(2, s.albums.size)
         assertEquals(7L, s.albums[0].album!!.offset)
-        assertNull(s.albums[1].album); assertEquals("https://last.fm/y", s.albums[1].url)
+        assertNull(s.albums[1].album); assertEquals("Far Away", s.albums[1].title)
     }
 }

@@ -122,7 +122,7 @@ internal object ContractLabels1 {
         "artist.select-later" to listOf("Listen later"),
         "artist.select-clear" to listOf("Clear selection"),
         "home.notice-button" to listOf("Forget {folder}", "Remove the missing ones"),
-        "home.update-now" to listOf("Update", "Roll back"),
+        "home.update-now" to listOf("Update"),
         "home.update-later" to listOf("Dismiss"),
         "home.random-album" to listOf("Random Album"),
         "home.downloads-title" to listOf("Downloaded albums"),

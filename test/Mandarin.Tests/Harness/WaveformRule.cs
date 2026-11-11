@@ -3,7 +3,7 @@ using System.Diagnostics;
 namespace Mandarin.Tests;
 
 /// <summary>
-/// What a track's waveform is, as the Node server drew it (test/waveform-rule.js, in C#; lib/waveform.js
+/// What a track's waveform is, as the Node server drew it (lib/waveform.js
 /// until v0.8.50), so the C# server's waveforms are still held to it: the first audio stream decoded by
 /// ffmpeg to 16-bit stereo at 44.1 kHz, the level (RMS) of every 10 ms, those levels brought to 4000
 /// buckets (RMS of the levels in each, or the nearest level when there are fewer), and scaled so the

@@ -229,7 +229,7 @@ jobs:
       # waited for nothing, so a commit whose tests failed still reached the
       # phone, where dev's image waited for CI).
       - name: Wait for CI to pass
-        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev' || startsWith(github.ref, 'refs/heads/claude/v0.8'))
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev')
         working-directory: .
         env:
           GH_TOKEN: ${{ github.token }}
@@ -245,7 +245,7 @@ jobs:
       # replaced, no tag or release made. That one file only (item 128): a copy
       # under each version's name piled up, 46 of them; the notes say the version.
       - name: Publish a test branch's APK
-        if: github.event_name == 'push' && (startsWith(github.ref, 'refs/heads/claude/v0.8') || github.ref == 'refs/heads/dev')
+        if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
         working-directory: .
         env:
           GH_TOKEN: ${{ github.token }}

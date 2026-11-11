@@ -138,7 +138,7 @@ test("Check for updates installs the newer release and restarts into it, library
     body: JSON.stringify({ offset: one.offset, title: "Album One (fixed)", year: "1999" }) });
   assert.equal(edit.status, 200);
   const st = await api("update/check", true);
-  assert.deepEqual([st.available, st.latest, st.viaLauncher, st.notes], [true, NEXT, false, "• New - faster starts"]);
+  assert.deepEqual([st.available, st.latest, st.notes], [true, NEXT, "• New - faster starts"]);
   // What the page reads when Settings opens (v0.9.1, the audit's T1): what the check found, kept.
   assert.deepEqual(await api("update/status"), st);
 

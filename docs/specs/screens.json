@@ -292,7 +292,7 @@
         "notice": { "kind": "shows", "when": "the server has something to say: an empty library, no rooms, a music folder gone, the data not kept" },
         "notice-button": { "kind": "action", "label": ["Forget {folder}", "Remove the missing ones"], "each": true, "when": "a music folder gone" },
         "update": { "kind": "shows", "when": "an update for the server or the app is offered, or one is under way" },
-        "update-now": { "kind": "action", "label": ["Update", "Roll back"], "when": "an update offered" },
+        "update-now": { "kind": "action", "label": "Update", "when": "an update offered" },
         "update-later": { "kind": "action", "label": "Dismiss", "when": "an update offered" },
         "update-notes": { "kind": "shows", "when": "the offered update's notes" },
         "greeting-date": { "kind": "shows", "when": "the greeting is on (Settings → Home Screen)" },

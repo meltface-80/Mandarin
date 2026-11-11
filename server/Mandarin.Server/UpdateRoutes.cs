@@ -3,9 +3,8 @@
 // same shapes:
 //
 //   GET  /api/update/status   what the updater knows (Admin/Updater.cs getStatus),
-//                             with is_docker, viaLauncher (false) and csharp (null:
-//                             the Node server's word on this program's update, as
-//                             the page reads it); mac_node_only went with stage 7
+//                             with is_docker; viaLauncher, isDowngrade, csharp and
+//                             mac_node_only went with the Node server
 //   POST /api/update/check    GitHub asked now, then the same
 //   POST /api/update/apply    the update made: { ok, status }, or 409 { error, status }
 //   GET  /api/update/bridges, POST /api/update/bridges/apply: the Mandarin Bridges' (Admin/BridgeUpdates.cs, item 291)

@@ -193,10 +193,9 @@
 
   function waveIdentity() {
     if (!np) return null;
-    const t3 = np.three_line || {};
-    const track = t3.line1 || np.line1 || "";
-    const album = t3.line3 || np.line3 || "";
-    return track ? { track, album, artist: t3.line2 || np.line2 || "",
+    const track = np.line1 || "";
+    const album = np.line3 || "";
+    return track ? { track, album, artist: np.line2 || "",
                      key: track + " " + album } : null;
   }
 

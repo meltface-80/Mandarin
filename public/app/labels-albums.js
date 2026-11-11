@@ -88,8 +88,6 @@ if (labelsBack) labelsBack.addEventListener("click", () => showLabelsList());
   }, true);
 }
 
-window.__exitLabelSelectMode = exitLabelSelectMode;
-
 if (labelMergeBtn) {
   labelMergeBtn.addEventListener("click", async () => {
     if (labelsSelected.length < 2) return;
@@ -267,16 +265,14 @@ window.__applyHomeLayout = (rows) => {
 // Reflect the opt-in features into the side menu.
 //
 // A menu entry for a feature that is switched off leads to a screen that can
-// only ever be empty — the Labels browser with no scan behind it, Smart Picks
-// with no build. Hiding the entry is part of "off", not decoration.
+// only ever be empty — the Labels browser with no scan behind it. Hiding the
+// entry is part of "off", not decoration.
 //
-// Exported because the settings pane flips these switches and the menu lives
+// Exported because the settings pane flips the switch and the menu lives
 // elsewhere; both call this rather than reaching into each other's DOM.
-// A key absent from `state` leaves that entry alone, so one failed lookup
-// cannot hide the other feature's entry.
+// A key absent from `state` leaves the entry alone.
 window.__applyFeatureMenu = (state) => {
   const labelsItem = document.getElementById("menu-item-labels");
-  const picksItem  = document.getElementById("menu-item-picks");
   if (labelsItem && typeof state.labels === "boolean") {
     labelsItem.classList.toggle("hidden", !state.labels);
     // The same switch decides whether the Library Focus vocabulary still
@@ -284,21 +280,16 @@ window.__applyFeatureMenu = (state) => {
     // sheet from the first paint, not from the first time it is opened.
     if (window.__setLabelsFacetAvailable) window.__setLabelsFacetAvailable(state.labels);
   }
-  if (picksItem && typeof state.picks === "boolean") {
-    picksItem.classList.toggle("hidden", !state.picks);
-  }
 };
 
-// Ask at boot. Two independent calls, so an older server or a transient
-// error on one endpoint does not decide the other entry's visibility.
-// The three side by side (v0.6.10), not one after another.
+// Asked at boot.
 async function applyFeatureMenuFromServer() {
   const state = {};
-  const ask = async (url) => { try { const r = await fetch(url); return r.ok ? !!(await r.json()).enabled : null; } catch (e) { return null; } };
-  const [labels, picks] = await Promise.all([ask("/api/settings/labels"), ask("/api/settings/smart-picks")]);
-  // A failed lookup leaves the entry as the markup has it.
-  if (labels !== null) state.labels = labels;
-  if (picks !== null) state.picks = picks;
+  try {
+    const r = await fetch("/api/settings/labels");
+    // A failed lookup leaves the entry as the markup has it.
+    if (r.ok) state.labels = !!(await r.json()).enabled;
+  } catch (e) { /* as the markup has it */ }
   window.__applyFeatureMenu(state);
 }
 

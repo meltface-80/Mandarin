@@ -38,12 +38,6 @@ internal object NativeShell {
     /** A screen opened over the one on screen. */
     fun open(route: String) { nav?.navigate(route) { launchSingleTop = true } }
 
-
-    /** The search opened afresh with [q] (the row's Search, a search seeded elsewhere), its albums playing in [zoneId]. */
-    fun openSearch(q: String, zoneId: String) {
-        SearchKept.reset(q)
-        nav?.navigate(ShellRoute.search(q, zoneId)) { launchSingleTop = true }
-    }
     /** The Library's view (its query string), as the app keeps it: Home's Library row is the head of that list. */
     @Volatile var libraryView = ""
     /** Home's arguments: the screen settings as JSON, and the room; Home follows them. */

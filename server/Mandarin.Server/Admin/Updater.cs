@@ -214,7 +214,7 @@ internal sealed partial class Updater
 
     // ------------------------------------------------------------------ status
 
-    /* getStatus(), with what api-playlists.js lays over it: is_docker, and csharp (null: the Node server's word on this program's update, gone with it). */
+    /* getStatus(), with what api-playlists.js lays over it: is_docker. */
     public JsObj Status()
     {
         lock (gate)
@@ -228,17 +228,14 @@ internal sealed partial class Updater
             o["latest"] = latest;
             o["latestTag"] = latestTag;
             o["available"] = available;
-            o["isDowngrade"] = false;
             o["html_url"] = htmlUrl;
             o["notes"] = notes;
             o["source"] = source;
             o["checkedAt"] = checkedAt;
             o["checking"] = checking;
             o["error"] = error;
-            o["viaLauncher"] = false;
             o["apply"] = apply;
             o["is_docker"] = Environment.GetEnvironmentVariable("DOCKER") == "1";
-            o["csharp"] = null;
             return o;
         }
     }

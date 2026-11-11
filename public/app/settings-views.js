@@ -93,8 +93,6 @@ async function loadSmartPicksSettings() {
     if (!r.ok) return;
     const j = await r.json();
     if (picksEnabled) picksEnabled.checked = !!j.enabled;
-    // A device that was not the one that flipped the switch catches up here.
-    if (window.__applyFeatureMenu) window.__applyFeatureMenu({ picks: !!j.enabled });
     if (picksHour && Number.isFinite(j.hour)) picksHour.value = String(j.hour);
     if (picksAutoAdd) picksAutoAdd.checked = !!j.auto_add;
     if (picksNote) {
@@ -114,7 +112,6 @@ if (picksEnabled) {
     if (await saveSmartPicksSettings({ enabled: on })) {
       settingsToast(on ? "Smart Picks on — the first set builds at the scheduled hour"
                    : "Smart Picks off — nothing runs in the background");
-      if (window.__applyFeatureMenu) window.__applyFeatureMenu({ picks: on });
     } else {
       picksEnabled.checked = !on;   // the server refused — do not lie about it
     }

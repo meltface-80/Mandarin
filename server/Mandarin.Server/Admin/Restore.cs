@@ -17,7 +17,7 @@ internal static partial class Backup
         Db.LetGo();
         var dir = Path.Combine(dataDir, "backups");
         Directory.CreateDirectory(dir);
-        var aside = Path.Combine(dir, $"before-restore-{Stamp(DateTime.Now)}.db");
+        var aside = Path.Combine(dir, $"before-restore-{Stamp()}.db");
         foreach (var suffix in new[] { "", "-wal", "-shm" })
             if (File.Exists(file + suffix)) File.Move(file + suffix, aside + suffix, overwrite: true);
         try { File.Delete(Path.Combine(dataDir, "album-edits.json")); } catch (IOException) { /* none */ }
@@ -25,7 +25,4 @@ internal static partial class Backup
         log($"[backup] restored the database from a backup; the one before it is kept as {aside}");
         return true;
     }
-
-    /* lib/backup.js stamp(): 2026-10-13-001234, on this clock. */
-    private static string Stamp(DateTime d) => $"{d.Year}-{d.Month:00}-{d.Day:00}-{d.Hour:00}{d.Minute:00}{d.Second:00}";
 }
