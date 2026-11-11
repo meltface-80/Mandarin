@@ -97,8 +97,11 @@ test("Check for updates installs the newer release and restarts into it, library
   const gz = zlib.gzipSync(fs.readFileSync(next));
   // Signed as release.yml signs one (item 371), with the tests' own key: the server carries Mandarin's, and is given this one.
   const releaseKey = crypto.generateKeyPairSync("ec", { namedCurve: "prime256v1" });
+  const bundle = fs.readFileSync(tarball);
   const files = {
-    "/dl/bundle": fs.readFileSync(tarball),
+    "/dl/bundle": bundle,
+    // The bundle signed too (the audit's I-H3): the server checks it before it unpacks it.
+    "/dl/bundle.sig": crypto.sign("sha256", bundle, releaseKey.privateKey),
     ["/dl/" + name]: gz,
     ["/dl/" + name + ".sig"]: crypto.sign("sha256", gz, releaseKey.privateKey),
     "/dl/mandarin-server.sha256": `${crypto.createHash("sha256").update(gz).digest("hex")}  ${name}\n`
@@ -106,13 +109,13 @@ test("Check for updates installs the newer release and restarts into it, library
   const gh = http.createServer((req, res) => {
     const base = `http://127.0.0.1:${gh.address().port}`;
     const json = o => { res.setHeader("Content-Type", "application/json"); res.end(JSON.stringify(o)); };
+    // One release, whichever way it is asked for: the bundle and its signature, the program, its sums and its signature.
+    const assets = [{ name: `musicd-server-${NEXT}.tar.gz`, browser_download_url: base + "/dl/bundle" }, { name: `musicd-server-${NEXT}.tar.gz.sig`, browser_download_url: base + "/dl/bundle.sig" },
+      ...[name, "mandarin-server.sha256", name + ".sig"].map(n => ({ name: n, browser_download_url: base + "/dl/" + n }))];
     if (req.url === "/repos/me/musicd/releases/latest") {
-      return json({ tag_name: "v" + NEXT, html_url: base + "/r", body: "Notes for " + NEXT + ".\n\n- New - faster starts\n- `9-faster` (item 9): **faster.**",
-        assets: [{ name: `musicd-server-${NEXT}.tar.gz`, browser_download_url: base + "/dl/bundle" }] });
+      return json({ tag_name: "v" + NEXT, html_url: base + "/r", body: "Notes for " + NEXT + ".\n\n- New - faster starts\n- `9-faster` (item 9): **faster.**", assets });
     }
-    if (req.url === `/repos/me/musicd/releases/tags/v${NEXT}`) {
-      return json({ tag_name: "v" + NEXT, assets: [name, "mandarin-server.sha256", name + ".sig"].map(n => ({ name: n, browser_download_url: base + "/dl/" + n })) });
-    }
+    if (req.url === `/repos/me/musicd/releases/tags/v${NEXT}`) return json({ tag_name: "v" + NEXT, assets });
     if (files[req.url]) { res.setHeader("Content-Type", "application/octet-stream"); return res.end(files[req.url]); }
     res.statusCode = 404; res.end("{}");
   });
