@@ -150,6 +150,45 @@ public sealed partial class WatchTests
         Assert.True(Scans() >= @base + 1, "the album removed was noticed");
     }
 
+    [Test]
+    public async Task A_drive_mounted_in_a_watched_folder_later_is_heard_again_and_read_and_a_share_in_it_looked_at()
+    {
+        // The machine slower than the server at a start: the folder's notifications were the empty mount point's, and the
+        // drive's music waited for the six-hourly scan. The mount table stood in for (MANDARIN_MOUNTINFO): none can be mounted here.
+        var root = Directory.CreateTempSubdirectory("musicd-watch-").FullName;
+        var a = Path.Combine(root, "a"); Directory.CreateDirectory(Path.Combine(a, "drive"));
+        var table = Path.Combine(root, "mountinfo");
+        static string Line(int id, string point, string type) => $"{id} 1 8:{id} / {point} ro,relatime master:1 - {type} /dev/x{id} ro";
+        await File.WriteAllTextAsync(table, Line(20, "/", "ext4") + "\n");
+        await using var s = await LibraryServer.Start(new Fixtures.Library(root, a, Path.Combine(root, "data")), env: new Dictionary<string, string>
+        {
+            ["MANDARIN_WATCH_QUIET_MS"] = Quiet.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            ["MANDARIN_WATCH_GAP_MS"] = Gap.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            ["MANDARIN_WATCH_POLL_MS"] = "200", ["MANDARIN_MOUNTINFO"] = table
+        });
+        int Scans() => s.Server.Logs.Count(l => ScanRe().IsMatch(l));
+        s.Server.SetSetting("music_folders", new[] { a });
+        await s.Scan();
+        await Task.Delay(Settled);
+        int @base = Scans();
+
+        // The drive mounts: heard again, and read, with nothing written.
+        await File.AppendAllTextAsync(table, Line(21, Path.Combine(a, "drive"), "ext4") + "\n");
+        await Until(() => Scans() >= @base + 1);
+        Assert.True(Scans() >= @base + 1, "the drive mounted was read");
+        Assert.Contains(s.Server.Logs, l => l.Contains("[watch] a drive mounted or let go in the music folders", StringComparison.Ordinal));
+        await Task.Delay(Settled);
+        @base = Scans();
+        await Task.Delay(Settled);
+        Assert.Equal(@base, Scans());
+
+        // A NAS mounted inside the folder: its changes made elsewhere aren't heard, so the folder is looked at too.
+        Directory.CreateDirectory(Path.Combine(a, "nas"));
+        await File.AppendAllTextAsync(table, Line(22, Path.Combine(a, "nas"), "cifs") + "\n");
+        await Until(() => s.Server.Logs.Any(l => l.Contains("[watch] looking at " + a + " every", StringComparison.Ordinal)));
+        Assert.Contains(s.Server.Logs, l => l.Contains("[watch] looking at " + a + " every", StringComparison.Ordinal) && l.Contains("(cifs) in it", StringComparison.Ordinal));
+    }
+
     [GeneratedRegex(@"\[watch\] \d+ changes? in the music folders")]
     private static partial Regex ScanRe();
 }
