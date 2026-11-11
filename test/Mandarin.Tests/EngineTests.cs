@@ -132,6 +132,25 @@ public sealed class EngineTests
     }
 
     [Test]
+    public async Task A_next_track_that_cant_be_read_lets_the_one_playing_play_out_then_is_said()
+    {
+        // Decoded ahead while the first plays: a next that fails (a file gone, garbage) used to stop everything there and
+        // then, the track playing cut off with what was buffered of it.
+        var (bin, _) = await Need();
+        var t = MakeTones();
+        var bad = Path.Combine(t.Dir, "bad.flac");
+        await File.WriteAllBytesAsync(bad, new byte[4096]);
+        var file = Path.Combine(t.Dir, "out.raw");
+        var r = await Run([
+            new { open = new { location = "file:" + file, bin } }, new { set = t.T1 }, new { next = bad }, new { play = true },
+            new { until = new { state = "PLAYING" } }, new { until = new { state = "STOPPED" }, ms = 8000 }, new { take_error = true }]);
+        Assert.True(r[5]!.GetValue<bool>(), "stopped at the end");
+        Assert.NotNull(r[6]);
+        var got = await File.ReadAllBytesAsync(file);
+        Assert.True(got.Length == t.One.Length && got.AsSpan().SequenceEqual(t.One), $"the first track whole ({got.Length} of {t.One.Length} bytes)");
+    }
+
+    [Test]
     public async Task Through_ALSA_itself_bit_for_bit_a_seek_is_heard_at_once_a_missing_device_is_said()
     {
         var (bin, _) = await Need();

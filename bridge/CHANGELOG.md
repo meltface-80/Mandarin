@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.3.7
+
+- Fixed - a next track that couldn't be opened or read (a file gone, a stream refused) stopped the track playing there and then, with what was buffered of it: the next is read while this one plays, and its failure cut this one off. The track playing now plays out to its end, and the next's failure is said after it. The Linux Bridge and the Pi's
+- Fixed - a DAC unplugged, or the network gone, was said to Mandarin as a track the DAC couldn't play, and Mandarin put the room's Output back to the last that played well. Each Bridge now says whether the track or the DAC failed: Mandarin keeps the Output for a DAC gone. Both Bridges
+- Improved - Mandarin Bridge is 0.3.7
+
 ## v0.3.6
 
 - Fixed - a Raspberry Pi just set up on Wi-Fi from its page could join the home network and then open its setup network again over it ("Mandarin Bridge Setup" back, the Pi gone from the home network) when NetworkManager took a few seconds joining: the setup network is now opened only where the Pi is still on no network

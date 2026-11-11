@@ -36,8 +36,8 @@ android {
         targetSdk = 36
         // versionCode must rise with every published build or Android refuses
         // to install over the previous one.
-        versionCode = 12
-        versionName = "0.3.6"
+        versionCode = 13
+        versionName = "0.3.7"
         // 64-bit ARM only, as Mandarin's own native code is: the FiiO R7 and
         // every current Android device.
         ndk { abiFilters += "arm64-v8a" }
