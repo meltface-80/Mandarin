@@ -32,7 +32,6 @@ import com.musicd.server.client.Album
 import com.musicd.server.client.AlbumExtras
 import com.musicd.server.client.Contract
 import com.musicd.server.client.Palette
-import com.musicd.server.client.PlaylistAdd
 import com.musicd.server.client.ServerClient
 import com.musicd.server.client.albumLength
 import org.json.JSONObject
@@ -74,7 +73,7 @@ internal fun FactsLine(a: Album) {
 /**
  * ⋯: what the server offers beyond Play Now and Queue (Play Next, Shuffle,
  * Radio), a streamed album's favourite on its service ([serviceFavourite],
- * once known), Listen later, the page's own Add to playlist and Edit album,
+ * once known), Listen later, the page's own Edit album,
  * and, for an album of your own files, Download to this phone ([download],
  * the item's words as the store has them); a version that isn't its album's main,
  * Make this the main version ([onMain], item 349).
@@ -108,8 +107,6 @@ internal fun MoreMenu(a: Album, later: Boolean, onLater: () -> Unit, onPlay: (St
             }
             DropdownMenuItem(text = { Text(Contract.label("album.later", if (later) 1 else 0), fontSize = 15.sp, lineHeight = 21.sp) }, contentPadding = PaddingValues(10.dp), modifier = Modifier.parity("album.later", Contract.label("album.later", if (later) 1 else 0)),
                 onClick = { open = false; onLater() })
-            DropdownMenuItem(text = { Text(Contract.label("album.playlist"), fontSize = 15.sp, lineHeight = 21.sp) }, contentPadding = PaddingValues(10.dp), modifier = Modifier.parity("album.playlist", Contract.label("album.playlist")),
-                onClick = { open = false; PlaylistAddAsk.ask(PlaylistAdd.albums(listOf(a.album))) })
             // Share card (item 373): here, with no button of its own at the corner.
             DropdownMenuItem(text = { Text(Contract.label("album.share"), fontSize = 15.sp, lineHeight = 21.sp) }, contentPadding = PaddingValues(10.dp), modifier = Modifier.parity("album.share", Contract.label("album.share")),
                 onClick = { open = false; onPage("share", null) })

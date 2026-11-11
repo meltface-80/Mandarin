@@ -84,16 +84,15 @@ data class Box(val name: String, val disc: Int, val of: Int) {
  * Why a streamed album is in the library, as its page says it under the
  * head (public/app/album-detail.js): a favourite or a purchase on the
  * service ([kept]: "purchase", or anything else a favourite) since [since]
- * (ms), held by a playlist or a favourite track ([held]), or only played;
+ * (ms), or only played;
  * and, for one not out yet, [releases], its day.
  */
-data class ServiceWhy(val name: String, val kept: String?, val since: Long?, val held: Boolean, val releases: String?) {
+data class ServiceWhy(val name: String, val kept: String?, val since: Long?, val releases: String?) {
     fun text(locale: java.util.Locale = java.util.Locale.getDefault()): String {
         val whenSince = since?.let { " since " + java.time.Instant.ofEpochMilli(it).atZone(java.time.ZoneId.systemDefault()).format(java.time.format.DateTimeFormatter.ofPattern("d MMM yyyy", locale)) }.orEmpty()
         var t = when {
             kept == "purchase" -> "In your library as a $name purchase$whenSince"
             kept != null -> "In your library as a $name favourite$whenSince"
-            held -> "Here for a $name playlist or favourite track — not in your favourites"
             else -> "Played from $name — not in your favourites"
         }
         releases?.let { t += " · not out until " + ReleaseDate.format(it, locale).ifEmpty { it } }
@@ -107,7 +106,6 @@ data class ServiceWhy(val name: String, val kept: String?, val since: Long?, val
                 name = j.optString("name", ""),
                 kept = when (k) { null, JSONObject.NULL, false -> null; true -> "favourite"; else -> k.toString().ifEmpty { null } },
                 since = if (j.isNull("since")) null else j.optLong("since").takeIf { it > 0 },
-                held = j.optBoolean("held", false),
                 releases = j.str("releases")
             )
         }

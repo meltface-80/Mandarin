@@ -308,18 +308,10 @@ let libPrefixDropped = false;
 let labelsActive = false;        // viewing the record-label browser?
 let unplayedWallActive = false;  // viewing the full "Not played in 6 months" grid?
 let libraryWallActive = false;   // viewing the full A-Z library grid?
-// Declared up here with the other view flags, NOT beside showPlaylists():
+// Declared up here with the other view flags, NOT beside showSmartPicks():
 // showHome() and enterFullWall() read them and both can run during boot,
 // which with a `let` further down the file is a ReferenceError, not a
 // harmless undefined (CLAUDE.md: declaration before use).
-let smartWallActive = false;      // viewing the smart-playlist wall?
-let smartDetailActive = false;    // viewing one smart playlist's tracks?
-let smartSeq = 0;                 // orphans in-flight smart-playlist fetches
-let userPlDetailActive = false;   // viewing one stored playlist?
-let userPlSeq = 0;                // orphans in-flight stored-playlist fetches
-let playlistsActive = false;      // viewing the Roon playlist list?
-let playlistDetailActive = false; // viewing one playlist's tracks?
-let playlistSeq = 0;              // orphans in-flight playlist fetches
 let smartPicksActive = false;     // viewing the Smart Picks screen?
 let smartPicksSeq = 0;            // orphans in-flight Smart Picks fetches
 // How long a report about a long-running queue fill stays up (vs showToast's
@@ -327,16 +319,6 @@ let smartPicksSeq = 0;            // orphans in-flight Smart Picks fetches
 // reason as the flags above — a `const` further down the file is a TDZ
 // ReferenceError to anything that reads it first.
 const TOAST_REPORT_MS = 9000;
-// Most albums one Play now / Queue / Send to Roon can take. Matches the
-// server's ceiling in /api/smart-playlist/albums — asked for explicitly so
-// the server's 100 default can't silently apply, which is exactly what made
-// a 1,179-album playlist queue 100 and report success (v1.7.17).
-const SMART_SEND_MAX = 400;
-// Most albums a Share will expand before it stops. Each one costs ~5 Roon
-// browse calls to read its tracks, so this is a time budget, not a taste
-// judgement: 100 albums is roughly 500 calls. The sheet always reports what
-// it left out (v1.7.17's lesson — a silent cap reads as success).
-const SHARE_ALBUM_MAX = 100;
 // Set by addLongPress and consumed by the very next click, so a long press
 // doesn't also fire the element's ordinary tap handler.
 let longPressAte = false;

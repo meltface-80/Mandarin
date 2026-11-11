@@ -32,7 +32,7 @@ test("the row along the foot and Home are the app's own offline", () => {
   // Offline said once, at the top over every screen (item 134), not in each screen's row.
   const files = fs.readdirSync(APP).filter(f => f.endsWith(".kt"));
   const calls = files.flatMap(f => (read(f).match(/TouchNav\((lit|"[a-z]*"), onTap = /g) || []).map(c => [f, c]));
-  assert.ok(calls.length >= 12, "every screen's row found");
+  assert.ok(calls.length >= 10, "every screen's row found");   // ten screens since Playlists and Dynamic Playlists went
   assert.ok(!files.some(f => /TouchNav\([^)]*offline/.test(read(f))), "no row says offline");
   assert.match(read("NativeShell.kt"), /OfflineToastOver\(\)/);
   assert.match(read("OfflineToast.kt"), /val kind = OfflineNow\.kind\.value[\s\S]*if \(kind == null\) return/);

@@ -1,11 +1,15 @@
 // Leftovers.cs — what a service Mandarin no longer has left behind, taken away as the server starts (bug list item
 // 152): its albums (with their edits, hearts and Listen later; plays stay, as text, as Clean up leaves them), its
-// marks, its settings (its sign-in among them), its playlists, and its folder in the data folder. Once done, it finds
-// nothing. Its albums are deleted with foreign keys on, as Clean up deletes them (Rows.cs OpenRows): their tracks go
-// with them, and the tracks' tags, loudness and tag checks with those (item 179; with them off, a Spotify track stayed
-// under its album's id, and the next album given that id had it).
+// marks, its settings (its sign-in among them), and its folder in the data folder. Once done, it finds nothing. Its
+// albums are deleted with foreign keys on, as Clean up deletes them (Rows.cs OpenRows): their tracks go with them, and
+// the tracks' tags, loudness and tag checks with those (item 179; with them off, a Spotify track stayed under its
+// album's id, and the next album given that id had it).
+//
+// And what the playlists left when they were taken out: the playlists made here and imported from Qobuz and Tidal
+// (the setting userPlaylists), the dynamic playlists (smartPlaylists), and the marks that kept a service's album in
+// the library because one of its playlists named it (the cache, ns <service>-held). Taken away at every start, so a
+// whole database put back from an older backup loses them too; once done, it finds nothing.
 using Microsoft.Data.Sqlite;
-using System.Text.Json.Nodes;
 
 namespace Mandarin.Server.Services;
 
@@ -44,17 +48,30 @@ internal static class Leftovers
         if (Has(c, "settings"))
         {
             var settings = Run(c, "DELETE FROM settings WHERE key LIKE $v", id + "%");
-            var playlists = 0;
-            if (Db.Setting(c, "userPlaylists") is JsonArray all)
-            {
-                foreach (var p in all.Where(p => p is JsonObject o && o["service"] is JsonValue v && v.TryGetValue<string>(out var s) && s == id).ToList()) { all.Remove(p); playlists++; }
-                if (playlists > 0) Run(c, "UPDATE settings SET value = $v WHERE key = 'userPlaylists'", all.ToJsonString());
-            }
-            if (albums + marks + settings + playlists > 0)
-                log($"[leftovers] {id}: {albums} album(s), {playlists} playlist(s), {settings} setting(s) and {marks} mark(s) removed");
+            if (albums + marks + settings > 0)
+                log($"[leftovers] {id}: {albums} album(s), {settings} setting(s) and {marks} mark(s) removed");
         }
         tx.Commit();
         return albums;
+    }
+
+    private static readonly string[] GoneSettings = ["userPlaylists", "smartPlaylists"];
+    private static readonly string[] GoneMarks = ["qobuz-held", "tidal-held"];
+
+    /* The playlists' settings and the services' held marks deleted; a database that can't be read or written is left as it is, and said. */
+    public static void RemovePlaylists(Action<string> log)
+    {
+        try
+        {
+            using var c = Db.Open();
+            using var tx = c.BeginTransaction();
+            int settings = 0, marks = 0;
+            if (Has(c, "settings")) foreach (var k in GoneSettings) settings += Run(c, "DELETE FROM settings WHERE key = $v", k);
+            if (Has(c, "cache")) foreach (var ns in GoneMarks) marks += Run(c, "DELETE FROM cache WHERE ns = $v", ns);
+            tx.Commit();
+            if (settings + marks > 0) log($"[leftovers] playlists: {settings} setting(s) and {marks} mark(s) removed");
+        }
+        catch (SqliteException e) { log($"[leftovers] playlists: {e.Message}"); }
     }
 
     private static bool Has(SqliteConnection c, string table) =>

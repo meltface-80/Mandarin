@@ -18,7 +18,7 @@ function showHome(opts) {
   hideLibraryControls();
   unplayedWallActive = false;
   libraryWallActive = false;
-  leavePlaylistScreens();
+  leaveSmartPicks();
   if (!searching && window.__clearSearchIfActive) window.__clearSearchIfActive();  // drop stale search results
   if (window.__exitLabels) window.__exitLabels();   // leave the labels browser if active
   if (window.__exitArtists) window.__exitArtists();
@@ -88,7 +88,7 @@ function rowsTtlFresh() {
 // own content, e.g. labels/search).
 function showWall(opts) {
   keepHomeScroll();
-  leavePlaylistScreens();   // this screen owns the grid now
+  leaveSmartPicks();   // this screen owns the grid now
   hideLibraryControls();
   unplayedWallActive = false;
   libraryWallActive = false;

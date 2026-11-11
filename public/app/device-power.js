@@ -232,7 +232,6 @@ function wireSectionHeader(id, handler) {
   wireSectionHeader("home-favourites-title", showFavouritesWall);
   wireSectionHeader("home-history-title", showHistoryWall);
   wireSectionHeader("home-later-title", showLaterWall);
-  wireSectionHeader("home-playlists-title", () => showPlaylists());
   wireSectionHeader("home-random-title", () => { if (window.__applyFilter) window.__applyFilter(null); });
   wireSectionHeader("home-library-title", showLibraryWall);
   wireSectionHeader("home-lotw-title", () => {

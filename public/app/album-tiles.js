@@ -21,14 +21,8 @@ function showToast(msg, kind, ms) {
 }
 // One sentence describing what actually reached the queue: how many albums,
 // how many the cap left behind, and how many Roon refused. `pj` is
-// /api/play-multi's body, `asked` the albums we sent, `total` the size of the
-// whole playlist. Shared so Play now, Queue and Send to Roon cannot drift.
-// How many albums the playlist's query MATCHED, as opposed to how many it
-// delivers. Older responses carried only the delivered count; falling back to
-// it makes the comparison a no-op rather than a wrong number.
-function smartMatched(j) {
-  return Number.isFinite(j.matched) ? j.matched : j.total;
-}
+// /api/play-multi's body, `asked` the albums we sent, `total` how many there
+// were to send. Shared so Play now, Queue and Send to Roon cannot drift.
 function multiOutcome(verb, pj, asked, total) {
   const queued = Number.isFinite(pj.queued) ? pj.queued : asked;
   const failed = Number.isFinite(pj.failed) ? pj.failed : 0;
@@ -131,15 +125,14 @@ function addLongPress(el, callback) {
 // v0.6.10: no 190px floor (a phone's 3-across tile is ~130px, so it was
 // fetching and decoding 500px covers for it), and the density counted up to
 // 2x only — a 3x phone draws a 150px tile from 300px, not 450-500px, which
-// is under half the pixels to fetch, decode and hold while scrolling. A
-// quarter of a four-cover mosaic asks for half.
-function tileImgSize(quarter) {
+// is under half the pixels to fetch, decode and hold while scrolling.
+function tileImgSize() {
   const p = window.__uiPrefs;
   const gridTile = window.innerWidth / (p ? p.cols() : 3);
   const carouselTile = 150 * parseFloat(p ? p.get("tile") : "1");
-  const css = Math.max(Math.min(gridTile, 600), carouselTile) / (quarter ? 2 : 1);
+  const css = Math.max(Math.min(gridTile, 600), carouselTile);
   const px = css * Math.min(2, window.devicePixelRatio || 1);
-  return Math.min(500, Math.max(quarter ? 100 : 200, Math.ceil(px / 100) * 100));
+  return Math.min(500, Math.max(200, Math.ceil(px / 100) * 100));
 }
 
 // Source badge for an album payload: "local" | "qobuz" | "tidal", or null
@@ -267,15 +260,6 @@ function keyArtistTile(tile) {
   return tile;
 }
 window.__keyArtistTile = keyArtistTile;
-// One of your playlists on the Playlists screen (walls.js), called by its name rather than "name by N tracks".
-function keyPlaylistsTile(tile) {
-  tile.dataset.parity = "playlists.playlist";
-  const parts = { ".album-art-wrap": "playlists.playlist-art", ".album-title": "playlists.playlist-title", ".album-artist": "playlists.playlist-subtitle" };
-  for (const [sel, key] of Object.entries(parts)) { const el = tile.querySelector(sel); if (el) el.dataset.parity = key; }
-  const name = tile.querySelector(".album-title");
-  if (name) tile.setAttribute("aria-label", name.textContent);
-  return tile;
-}
 // The same in the search's results (search.js).
 function keySearchTile(tile) {
   tile.dataset.parity = "search.album";
@@ -284,7 +268,7 @@ function keySearchTile(tile) {
   for (const [sel, key] of Object.entries(parts)) { const el = tile.querySelector(sel); if (el) el.dataset.parity = key; }
   return tile;
 }
-// The same on Home's rows (home-render.js, homeTile), and for a playlist's tile there (its mosaic, its name, its count).
+// The same on Home's rows (home-render.js, homeTile).
 function keyHomeTile(tile) {
   tile.dataset.parity = "home.album";
   const parts = { ".album-art-wrap": "home.album-art", ".album-quality": "home.album-quality", ".album-source": "home.album-source",
@@ -292,13 +276,6 @@ function keyHomeTile(tile) {
   for (const [sel, key] of Object.entries(parts)) { const el = tile.querySelector(sel); if (el) el.dataset.parity = key; }
   return tile;
 }
-function keyPlaylistTile(tile) {
-  tile.dataset.parity = "home.playlist";
-  const parts = { ".album-art-wrap": "home.playlist-art", ".album-title": "home.playlist-title", ".album-artist": "home.playlist-subtitle" };
-  for (const [sel, key] of Object.entries(parts)) { const el = tile.querySelector(sel); if (el) el.dataset.parity = key; }
-  return tile;
-}
-
 // Build a single album tile. onClick defaults to opening the album modal,
 // but callers (e.g. the label browser) can override it to carry a filter.
 function buildAlbumTile(a, onClick, opts) {
@@ -330,20 +307,8 @@ function buildAlbumTile(a, onClick, opts) {
     d.setAttribute("aria-label", a.discs + " discs");
     artWrap.appendChild(d);
   }
-  // A playlist has no cover of its own, so it gets a mosaic of the artwork
-  // from the first few tracks — the way Roon draws them. Two or more distinct
-  // covers make a 2x2; a single one just fills the tile, because a lone
-  // quarter-sized sleeve in an empty square looks broken.
-  const mosaic = Array.isArray(a.art_keys) ? a.art_keys.filter(Boolean) : [];
-  if (mosaic.length >= 2) {
-    artWrap.classList.add("album-art-mosaic");
-    artWrap.dataset.mosaic = String(Math.min(mosaic.length, 4));
-    // Keys recorded on the element so "what artwork was this tile given" is
-    // answerable even after a failed <img> removes itself.
-    artWrap.dataset.artKeys = mosaic.slice(0, 4).join(",");
-    for (const k of mosaic.slice(0, 4)) loadArt(artWrap, k, tileImgSize(mosaic.length >= 4));
-  } else if (mosaic.length === 1 || a.image_key) {
-    const key = mosaic[0] || a.image_key;
+  if (a.image_key) {
+    const key = a.image_key;
     // The key stays on the tile even after a failed <img> removes itself, so
     // "what artwork was this tile given" is answerable after the fact.
     artWrap.dataset.artKey = key;
@@ -369,8 +334,6 @@ function buildAlbumTile(a, onClick, opts) {
   // label albums and the Home carousels all pass an opener for the sole
   // purpose of forcing `filter: null`, and paid for it with no select mode.
   // Stating it outright separates "how do I open" from "can I select".
-  // Playlist tiles pass false: a playlist is not an album and cannot be
-  // queued as one.
   const selectable = opts && "selectable" in opts ? !!opts.selectable : true;
   if (selectable) btn.dataset.offset = String(a.offset);
 

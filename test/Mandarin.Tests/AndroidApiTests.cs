@@ -33,8 +33,6 @@ public sealed partial class AndroidApiTests
         ("genres", "/api/filters/genres"),
         ("genre_groups", "/api/home/genre-groups"),
         ("label_of_the_week", "/api/home/label-of-the-week"),
-        ("user_playlists", "/api/user-playlists"),
-        ("smart_playlists", "/api/smart-playlists"),
         ("favourites", "/api/favourites"),
         ("listen_later", "/api/listen-later"),
         ("pick_unheard", "/api/pick-unheard"),

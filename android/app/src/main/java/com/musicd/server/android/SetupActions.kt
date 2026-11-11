@@ -70,9 +70,9 @@ internal val LABELS_INFO = listOf(
 internal val UI_NAMES = listOf("Album & artist text", "Grid screen title", "Menu & Home Screen text", "Grid layout", "Tile size")
 internal val UI_INFO = listOf(
     "The size of the album name and artist name under every tile — on the Home carousels and on every grid screen.",
-    "The size of the title at the top of a grid screen, such as the one a Home carousel opens to, and of a playlist's name.",
+    "The size of the title at the top of a grid screen, such as the one a Home carousel opens to.",
     "The size of all the other text: the side menu, Home's greeting and row headings, Settings, the album and Now playing views, the queue and the player bar. The names under tiles and the grid screen title have their own settings.",
-    "How album, playlist and label grid screens are laid out. Auto fits as many columns as the screen suits (and follows Tile size). 3 or 2 columns fixes the count on every screen. List shows one row per album.",
+    "How album and label grid screens are laid out. Auto fits as many columns as the screen suits (and follows Tile size). 3 or 2 columns fixes the count on every screen. List shows one row per album.",
     "The size of album and label tiles on every screen. On the Home carousels it sets the tile width; on a grid screen in Auto layout it sets how many columns fit — bigger tiles, fewer columns. On a small screen a 10% step may not change the column count, only the carousels.")
 internal const val DISPLAY_INFO = "An always-on screen at this server’s address followed by /display — point any tablet or TV browser at it. Rotates between album art, artist photos, an album review, artist bios and grids from your library, with a progress bar for the playing zone. On by default. When off it is off entirely: /display says only that it is turned off, with nothing running on it, and the server makes nothing for it."
 internal const val SHELF_INFO = "Your collection as a record shop's shelf, at this server's address followed by /shelf, and in the side menu. Off on a new install; an install from before v1.0.2 keeps it on. When off it is off entirely: the side menu and the wall display don't offer it, /shelf says only that it is turned off, and the server makes nothing for it."

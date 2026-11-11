@@ -45,7 +45,6 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.musicd.server.client.AlbumSummary
-import com.musicd.server.client.PlaylistAdd
 import com.musicd.server.client.Contract
 import com.musicd.server.client.Facets
 import com.musicd.server.client.LibraryClient
@@ -89,7 +88,6 @@ internal fun LibraryScreen(viewQuery: String, prefs: WallPrefs, zoneId: String, 
     var zone by rememberSaveable { mutableStateOf(zoneId) }
     val room = followRoom(zone, client)
     var focusOpen by remember { mutableStateOf(false) }
-    val smartSheets = rememberSmartSheets()
     var sortOpen by remember { mutableStateOf(false) }
     var facets by remember { mutableStateOf<Facets?>(null) }
     // A view that comes with a name filter shows it in its field, to see and clear (item 338).
@@ -136,7 +134,6 @@ internal fun LibraryScreen(viewQuery: String, prefs: WallPrefs, zoneId: String, 
         val chosen = picks
         when (what) {
             "clear" -> { selecting = false; picks = emptyList() }
-            "playlist" -> { selecting = false; picks = emptyList(); PlaylistAddAsk.ask(PlaylistAdd.albums(chosen)) }
             else -> {
                 val c = client() ?: return
                 if (what != "later" && zone.isEmpty()) { toast("Pick a zone first"); return }
@@ -170,9 +167,7 @@ internal fun LibraryScreen(viewQuery: String, prefs: WallPrefs, zoneId: String, 
                 }
             })
         }
-        if (focusOpen) FocusSheet(view, facets, onChange = ::change, onSave = { focusOpen = false; smartSheets.saveAs(view) }, onShow = { focusOpen = false }, onClose = { focusOpen = false })
-        // Save as…: the view named and saved by the app's own box (item 95), then the Dynamic Playlists, as the page goes there.
-        SmartSheets(smartSheets, client, onSaved = { onPage("smart-playlists", null) })
+        if (focusOpen) FocusSheet(view, facets, onChange = ::change, onShow = { focusOpen = false }, onClose = { focusOpen = false })
         // A sort chosen closes the sheet; the one on, tapped again, reverses in place (Random reshuffles and closes), as the page's.
         if (sortOpen) SortSheet(view, onChoose = { id -> val same = id == view.sort; val v = view.choose(id); change(v); if (!same || !v.sortOption.hasDir) sortOpen = false }, onClose = { sortOpen = false })
     }

@@ -52,17 +52,15 @@ import com.musicd.server.client.AlbumSummary
 import com.musicd.server.client.LibraryView
 import com.musicd.server.client.LocalView
 import com.musicd.server.client.Palette
-import com.musicd.server.client.SmartEdit
-import com.musicd.server.client.SmartTarget
 
 /*
  * The Library wall's sheets (bug list item 52; the page's openLibSheet,
- * library-focus.js, playlist-share.js's sort sheet; style.css .lib-sheet):
+ * library-focus.js and its sort sheet; style.css .lib-sheet):
  * a panel up from the foot of the screen over a dimmed page, its title and
  * ✕ at the top, its body scrolling, its buttons along the foot. Focus: the
  * listening, then each facet as a section that opens to its chips, a chip
- * tapped once included, again excluded, once more cleared; Clear all, Save
- * as… (a Dynamic Playlist, the page's prompt) and Show albums. Sort: a row
+ * tapped once included, again excluded, once more cleared; Clear all and
+ * Show albums. Sort: a row
  * each way, the one on in brass with its arrow, tapped again to reverse
  * (Random reshuffles). Music on device's sheets (item 57) are the same, over
  * the phone's own facets and sorts (LocalView).
@@ -126,46 +124,28 @@ private val COVERAGE_NOTE = mapOf(
 )
 private val COVERAGE_OF = mapOf("rate" to "format", "bits" to "format", "chan" to "format")
 
-/**
- * The Focus sheet over [view] with [facets] (null until they come); each change [onChange]; [onSave] the view as a Dynamic
- * Playlist; [onShow] closes with the view applied. With a Dynamic Playlist being made or edited ([playlist], item 95), its
- * own Order and Playlist size lead the sheet, open from the start, each change [onPlaylist]; Clear all is then [onClear].
- */
+/** The Focus sheet over [view] with [facets] (null until they come); each change [onChange]; [onShow] closes with the view applied. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-internal fun FocusSheet(view: LibraryView, facets: Facets?, onChange: (LibraryView) -> Unit, onSave: () -> Unit, onShow: () -> Unit, onClose: () -> Unit,
-                        playlist: SmartTarget? = null, onPlaylist: (SmartTarget) -> Unit = {}, onClear: ((LibraryView) -> Unit)? = null) {
+internal fun FocusSheet(view: LibraryView, facets: Facets?, onChange: (LibraryView) -> Unit, onShow: () -> Unit, onClose: () -> Unit) {
     // Which sections are open: a section with something on opens by itself, and stays open until its head is tapped.
     val open = remember { mutableStateMapOf<String, Boolean>() }
     val faint = paletteColor(Palette.TEXT_FAINT)
     Sheet("Focus", onClose, foot = {
         val edge = Modifier.border(1.dp, MaterialTheme.colorScheme.outline, ButtonDefaults.shape)
         val pad = PaddingValues(horizontal = 8.dp)
-        Button(onClick = { if (onClear != null) onClear(view.cleared()) else { onChange(view.cleared()); onClose() } }, colors = footColors(false), contentPadding = pad,
+        Button(onClick = { onChange(view.cleared()); onClose() }, colors = footColors(false), contentPadding = pad,
             modifier = Modifier.parity("library.focus-clear", Contract.label("library.focus-clear")).weight(1f).defaultMinSize(minHeight = 40.dp).then(edge)) {
             Text(Contract.label("library.focus-clear"), fontSize = 13.sp, fontWeight = FontWeight.W500, maxLines = 1)
-        }
-        Button(onClick = onSave, colors = footColors(false), contentPadding = pad,
-            modifier = Modifier.parity("library.focus-save", Contract.label("library.focus-save")).weight(1f).defaultMinSize(minHeight = 40.dp).then(edge)) {
-            Text(Contract.label("library.focus-save"), fontSize = 13.sp, fontWeight = FontWeight.W500, maxLines = 1)
         }
         Button(onClick = onShow, colors = footColors(true), contentPadding = pad,
             modifier = Modifier.parity("library.focus-show", Contract.label("library.focus-show")).weight(1f).defaultMinSize(minHeight = 40.dp)) {
             Text(Contract.label("library.focus-show"), fontSize = 13.sp, fontWeight = FontWeight.W500, maxLines = 1)
         }
     }) {
-        @Composable fun Section(id: String, label: String, active: Int, chips: @Composable () -> Unit, notes: List<String>, byDefault: Boolean = false) =
-            FocusSection(id, label, active, open, chips, notes, byDefault)
+        @Composable fun Section(id: String, label: String, active: Int, chips: @Composable () -> Unit, notes: List<String>) =
+            FocusSection(id, label, active, open, chips, notes)
         @Composable fun Chip(label: String, state: String, onTap: () -> Unit) = FocusChip(label, state, onTap)
-        // The playlist's own Order and size first, open from the start: the two things this sheet is opened to set for it.
-        if (playlist != null) {
-            Section("order", "Order", 0, chips = {
-                for (o in SmartEdit.ORDERS) Chip(o.label, if (playlist.order == o.id) "on" else "off") { onPlaylist(playlist.copy(order = o.id)) }
-            }, notes = listOf(playlist.orderNote), byDefault = true)
-            Section("limit", "Playlist size", 0, chips = {
-                for (n in SmartEdit.LIMITS) Chip("$n", if (playlist.limit == n) "on" else "off") { onPlaylist(playlist.copy(limit = n)) }
-            }, notes = listOf(SmartEdit.SIZE_NOTE), byDefault = true)
-        }
         // Listening first: the one facet always there, from this server's own play history.
         Section("played", "Listening", if (view.played != "any") 1 else 0, chips = {
             for (p in LibraryView.PLAYED) Chip(p.label, if (view.played == p.id) "on" else "off") { onChange(view.copy(played = p.id)) }
@@ -194,10 +174,9 @@ internal fun FocusSheet(view: LibraryView, facets: Facets?, onChange: (LibraryVi
 /** A facet of the Focus sheet as a section: its head (the name, how many of it are on, the caret), open to its [chips] and [notes]; a section with something on opens by itself. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun FocusSection(id: String, label: String, active: Int, open: androidx.compose.runtime.snapshots.SnapshotStateMap<String, Boolean>, chips: @Composable () -> Unit, notes: List<String>,
-                         byDefault: Boolean = false) {
+private fun FocusSection(id: String, label: String, active: Int, open: androidx.compose.runtime.snapshots.SnapshotStateMap<String, Boolean>, chips: @Composable () -> Unit, notes: List<String>) {
     val faint = paletteColor(Palette.TEXT_FAINT)
-    if (open[id] == null && (active > 0 || byDefault)) open[id] = true
+    if (open[id] == null && active > 0) open[id] = true
     val expanded = open[id] == true
     Column(Modifier.fillMaxWidth()) {
         HorizontalDivider(color = Color(0x12FFFFFF))

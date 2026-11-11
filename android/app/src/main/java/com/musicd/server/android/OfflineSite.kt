@@ -24,7 +24,7 @@ object OfflineSite {
         "/api/settings/display", "/api/settings/label-folder-depth", "/api/settings/fanart-key",
         "/api/settings/discogs-token", "/api/settings/qobuz",
         "/api/update/status", "/api/filters/tags",
-        "/api/filters/labels", "/api/user-playlists", "/api/smart-playlists", "/api/playlists"
+        "/api/filters/labels"
     )
 
     private val work = Executors.newSingleThreadExecutor()

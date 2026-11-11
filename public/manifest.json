@@ -1,7 +1,7 @@
 {
   "name": "Mandarin",
   "short_name": "Mandarin",
-  "description": "Your own music files on Sonos — random albums, search, playlists and Smart Picks.",
+  "description": "Your own music files on Sonos — random albums, search and Smart Picks.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

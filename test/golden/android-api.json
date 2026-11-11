@@ -186,11 +186,6 @@
           "unavailable": null
         },
         {
-          "id": "playlists",
-          "on": true,
-          "unavailable": null
-        },
-        {
           "id": "unplayed",
           "on": true,
           "unavailable": null
@@ -333,37 +328,6 @@
     "answer": {
       "label": null,
       "albums": []
-    }
-  },
-  "user_playlists": {
-    "path": "/api/user-playlists",
-    "answer": {
-      "playlists": []
-    }
-  },
-  "smart_playlists": {
-    "path": "/api/smart-playlists",
-    "answer": {
-      "playlists": [],
-      "limits": {
-        "default": 100,
-        "max": 400,
-        "options": [
-          25,
-          50,
-          100,
-          200,
-          400
-        ]
-      },
-      "modes": [
-        "albums",
-        "tracks"
-      ],
-      "orders": [
-        "album",
-        "random"
-      ]
     }
   },
   "favourites": {

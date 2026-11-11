@@ -197,7 +197,7 @@ document.addEventListener("click", (e) => {
 // is the only state this control carries — what those facets ARE is the
 // sheet's job, and spelling them out here would wrap onto three lines on a
 // phone the moment more than one is on.
-function buildLibFocusButton() { return buildFocusCtl(libFocusCount(), () => openLibFocusSheet(null)); }
+function buildLibFocusButton() { return buildFocusCtl(libFocusCount(), () => openLibFocusSheet()); }
 // The control itself, for any wall with a Focus (the Library's; Music on
 // device's since v0.7.4): `n` active filters, `onClick` opens its sheet.
 function buildFocusCtl(n, onClick) {
@@ -227,8 +227,7 @@ function buildFocusCtl(n, onClick) {
     ? "Focus — " + n + (n === 1 ? " filter active" : " filters active")
     : "Focus");
   // Wrapped, not passed by reference: the listener hands its callback an
-  // event, which would arrive as editTarget and be treated as a playlist to
-  // save over.
+  // event, which the callback has no use for.
   b.addEventListener("click", () => onClick());
   return b;
 }
@@ -273,13 +272,7 @@ function buildSortCtl(label, arrowText, aria, onClick) {
 
 // One sheet builder for both — same bottom-sheet language as the filter and
 // settings sheets, built as live nodes (never restored from an HTML string).
-// `onClose` fires on EVERY dismissal path — X, backdrop, and the footer
-// buttons — so a caller that mutated shared state on open can undo it.
-// A name for something: the page's own dialog (the WebView has no prompt box).
-const askName = (message, initial) =>
-  window.__promptDialog ? window.__promptDialog(message, initial) : Promise.resolve(window.prompt(message, initial));
-// [keys]: the title's and the ✕'s screens-contract keys ({ title, close }), where its caller names them (item 95).
-function openLibSheet(title, buildBody, footer, onClose, keys) {
+function openLibSheet(title, buildBody, footer) {
   const back = document.createElement("div");
   back.className = "lib-sheet-backdrop";
   const sheet = document.createElement("div");
@@ -295,18 +288,12 @@ function openLibSheet(title, buildBody, footer, onClose, keys) {
   // Group zones and Device power too (group, device-power; item 68).
   else if (title === "Group zones") { h.dataset.parity = "group.title"; x.dataset.parity = "group.close"; }
   else if (title === "Device power") { h.dataset.parity = "device-power.title"; x.dataset.parity = "device-power.close"; }
-  // Add to playlist (add-to-playlist; item 93).
-  else if (/^Add \d+ (track|album)s? to…$/.test(title)) { h.dataset.parity = "add-to-playlist.title"; x.dataset.parity = "add-to-playlist.close"; }
-  // A playlist imported and shared (playlist-import, playlist-share; item 94).
-  else if (title === "Import a playlist") { h.dataset.parity = "playlist-import.title"; x.dataset.parity = "playlist-import.close"; }
-  else if (title.startsWith("Share ")) { h.dataset.parity = "playlist-share.title"; x.dataset.parity = "playlist-share.close"; }
-  else if (keys) { h.dataset.parity = keys.title; x.dataset.parity = keys.close; }
   x.textContent = "✕";
   head.appendChild(h); head.appendChild(x);
   const body = document.createElement("div");
   body.className = "lib-sheet-body";
   sheet.appendChild(head); sheet.appendChild(body);
-  const close = () => { back.remove(); if (onClose) onClose(); };
+  const close = () => { back.remove(); };
   buildBody(body, close);
   if (footer) {
     const f = document.createElement("div");

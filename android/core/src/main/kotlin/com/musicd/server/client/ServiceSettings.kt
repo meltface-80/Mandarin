@@ -68,13 +68,12 @@ object ServiceSettings {
         val li = j.optJSONObject("last_import")
         val name = name(service)
         val importStatus = when {
-            !import -> "Off: your $name albums and playlists are not in the library. Switch on to show them."
+            !import -> "Off: your $name albums are not in the library. Switch on to show them."
             importing -> importing(service)
             li != null -> {
                 val n = li.optInt("albums")
                 "$n $name album" + (if (n == 1) "" else "s") + " in the library · updated " + at(li.optLong("at")) +
-                    if (tidal) li.optInt("playlists").let { p -> if (p > 0) " · $p playlist" + (if (p == 1) "" else "s") else "" }
-                    else li.optInt("failed").let { f -> if (f > 0) " · $f couldn't be read" else "" }
+                    if (tidal) "" else li.optInt("failed").let { f -> if (f > 0) " · $f couldn't be read" else "" }
             }
             else -> "The library is brought up to date shortly after signing in."
         }
@@ -86,10 +85,10 @@ object ServiceSettings {
     fun updated(service: String, j: JSONObject) = "${j.optJSONObject("result")?.optInt("albums") ?: 0} ${name(service)} albums in the library"
 
     const val QOBUZ_INFO = "Sign in with your Qobuz account (a subscription that streams). Mandarin keeps the sign-in token, never the password. Your Qobuz favourites and purchases become albums in the library, and the Qobuz browser (☰ → Qobuz) plays anything in the catalogue. Every track is streamed from Qobuz for the player as it is needed and every play is reported to Qobuz, as Qobuz's own apps do; nothing is downloaded. Mandarin uses Qobuz's API the way the Lyrion Music Server plugin does."
-    const val TIDAL_INFO = "Sign in with your Tidal account (a subscription that streams): Mandarin shows a link and a code, you sign in on tidal.com, and Mandarin keeps the sign-in token — never a password. Your Tidal favourite albums become albums in the library, your Tidal playlists and favourite tracks playlists here, and the Tidal browser (☰ → Tidal) plays anything in the catalogue. Every track is streamed from Tidal for the player as it is needed; nothing is downloaded. Mandarin uses Tidal's API the way the Lyrion Music Server plugin does."
+    const val TIDAL_INFO = "Sign in with your Tidal account (a subscription that streams): Mandarin shows a link and a code, you sign in on tidal.com, and Mandarin keeps the sign-in token — never a password. Your Tidal favourite albums become albums in the library, and the Tidal browser (☰ → Tidal) plays anything in the catalogue. Every track is streamed from Tidal for the player as it is needed; nothing is downloaded. Mandarin uses Tidal's API the way the Lyrion Music Server plugin does."
     const val QOBUZ_QUALITY_INFO = "The most Mandarin asks Qobuz for. Each player still gets what it takes: a Sonos room 24/48 at most, a streamer or a USB DAC up to its own rates, the phone what its DAC takes. Your subscription sets the ceiling too."
     const val TIDAL_QUALITY_INFO = "The most Mandarin asks Tidal for. CD is FLAC 16/44.1. Hi-Res asks for Tidal's hi-res FLAC (up to 24/192) where an album has it and your subscription allows; where Tidal answers with something else, CD quality is asked for instead. Each player still gets what it takes: a Sonos room 24/48 at most, a streamer or a USB DAC up to its own rates, the phone what its DAC takes."
-    const val QOBUZ_IMPORT_INFO = "Every album in your Qobuz favourites and purchases, however many, as an album here: on the walls, in search, in Smart Picks and Listen later. Brought up to date every six hours and whenever you add a favourite from the Qobuz browser. Off until you switch it on. Off: none of them, nor your Qobuz playlists, are in the library; switched on again, they are back at once."
-    const val TIDAL_IMPORT_INFO = "Every album in your Tidal favourites, however many, as an album here: on the walls, in search, in Smart Picks and Listen later. Brought up to date every six hours and whenever you add a favourite from the Tidal browser. Off until you switch it on. Off: none of them, nor your Tidal playlists, are in the library; switched on again, they are back at once."
+    const val QOBUZ_IMPORT_INFO = "Every album in your Qobuz favourites and purchases, however many, as an album here: on the walls, in search, in Smart Picks and Listen later. Brought up to date every six hours and whenever you add a favourite from the Qobuz browser. Off until you switch it on. Off: none of them are in the library; switched on again, they are back at once."
+    const val TIDAL_IMPORT_INFO = "Every album in your Tidal favourites, however many, as an album here: on the walls, in search, in Smart Picks and Listen later. Brought up to date every six hours and whenever you add a favourite from the Tidal browser. Off until you switch it on. Off: none of them are in the library; switched on again, they are back at once."
     const val TIDAL_NOTE = "Open this link, sign in to Tidal there, and come back. Mandarin notices by itself."
 }

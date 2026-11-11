@@ -8,7 +8,7 @@
  *   POST /api/queue/history-multi      several of them, the ones not in the library said
  *   GET  /api/shortcut/play-unheard    the shortcut's Random Album, to the room asked for
  *   POST /api/output/standby, /api/output/convenience-switch   what a Sonos room hasn't
- *   POST /api/playlist/play, /api/playlist/play-track, GET /api/playlist/art   gone since v0.6
+ *   the playlists' routes (POST /api/playlist/play and the rest)   gone: not there, nothing played
  */
 const ports = require("./ports");
 const test = require("node:test");
@@ -72,7 +72,7 @@ test("several albums, tracks played before, the shortcut's Random Album: on the 
   await until(() => titles().join() === want.join() && room.track === 1, 15000, "the picked album on the speaker");
 });
 
-test("what a Sonos room hasn't, and the playlist routes gone since v0.6: said, nothing played", { skip, timeout: 120000 }, async (t) => {
+test("what a Sonos room hasn't, and the playlists' routes, gone: said, nothing played", { skip, timeout: 120000 }, async (t) => {
   const house = new FakeHousehold();
   await house.start();
   t.after(() => house.stop());
@@ -82,10 +82,15 @@ test("what a Sonos room hasn't, and the playlist routes gone since v0.6: said, n
   const output = kitchen.outputs[0].output_id;
   assert.deepEqual(await api("output/standby", { output_id: output }), { status: 501, json: { error: "Sonos rooms have no standby control" } });
   assert.deepEqual(await api("output/convenience-switch", { output_id: output }), { status: 501, json: { error: "Sonos rooms have no source switch" } });
-  assert.deepEqual(await api("playlist/play", { id: "p1", zone_or_output_id: kitchen.zone_id }), { status: 404, json: { error: "No such playlist" } });
-  assert.deepEqual(await api("playlist/play-track", { id: "p1", index: 0, zone_or_output_id: kitchen.zone_id }), { status: 404, json: { error: "No such playlist" } });
-  const art = await fetch(base + "/api/playlist/art?id=p1", { headers: H });
-  assert.equal(art.status, 404);
-  assert.equal(art.headers.get("x-mandarin-answered"), "C#");
+  // The playlists were taken out: each of their routes is one no route answers, as any other.
+  const body = { id: "p1", index: 0, name: "Mine", tracks: [{ title: "Song 1" }], albums: [{ offset: 1 }], blob: "MDRP1:x", zone_or_output_id: kitchen.zone_id };
+  for (const p of ["playlist/play", "playlist/play-track", "user-playlists", "user-playlists/delete", "user-playlists/add", "user-playlists/add-albums",
+    "smart-playlists", "smart-playlists/delete", "share/encode", "share/import"]) {
+    assert.deepEqual(await api(p, body), { status: 404, json: { error: "No such endpoint: POST /" + p } }, p);
+  }
+  for (const p of ["playlists", "playlist?id=p1", "playlist/art?id=p1", "user-playlists", "user-playlist?id=p1", "smart-playlists", "smart-playlist?id=s1", "smart-playlist/albums?id=s1"]) {
+    const r = await fetch(base + "/api/" + p, { headers: H });
+    assert.deepEqual([r.status, r.headers.get("x-mandarin-answered"), (await r.json()).error], [404, "C#", "No such endpoint: GET /" + p.split("?")[0]], p);
+  }
   assert.equal(house.room("Kitchen").queue.length, 0, "nothing put on the speaker");
 });

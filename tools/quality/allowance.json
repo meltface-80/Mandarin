@@ -40,9 +40,6 @@
     "server/Mandarin.Server/Extras/LabelLogos.cs": {
       "lines": 430
     },
-    "server/Mandarin.Server/Extras/ShareBlob.cs": {
-      "lines": 512
-    },
     "server/Mandarin.Server/Extras/Taste.cs": {
       "lines": 419
     },
@@ -74,16 +71,16 @@
       "lines": 601
     },
     "server/Mandarin.Server/ServiceRoutes.cs": {
-      "lines": 491
+      "lines": 468
     },
     "server/Mandarin.Server/Services/Catalogue.cs": {
       "lines": 506
     },
     "server/Mandarin.Server/Services/Import.cs": {
-      "lines": 693
+      "lines": 545
     },
     "server/Mandarin.Server/Services/Rows.cs": {
-      "lines": 533
+      "lines": 488
     },
     "server/Mandarin.Server/Services/ServiceStreams.cs": {
       "lines": 431

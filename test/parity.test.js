@@ -335,88 +335,6 @@ const OPEN_SEARCH = `(async () => {
   return "open";
 })()`;
 
-/* A playlist of Album One's first two tracks, made through the page's own API (once: a second opener finds it), its id. */
-const MAKE_PLAYLIST = `const makePlaylist = async () => {
-  const mine = ((await (await fetch("/api/user-playlists")).json()).playlists || []).find(p => p.name === "Road trip");
-  if (mine) return mine.id;
-  const one = ((await (await fetch("/api/library/albums?count=60")).json()).albums || []).find(a => a.title === "Album One");
-  const al = await (await fetch("/api/album?offset=" + one.offset)).json();
-  const tracks = al.tracks.slice(0, 2).map((t, i) => ({ album_offset: one.offset, album_title: one.title, album_subtitle: one.subtitle, track_index: i, title: t.title, subtitle: one.subtitle, image_key: one.image_key }));
-  const r = await (await fetch("/api/user-playlists/add", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: "Road trip", tracks }) })).json();
-  return r.id;
-};`;
-
-/* The Playlists screen, as the side menu opens it, one playlist on it. */
-const OPEN_PLAYLISTS = `(async () => {
-  const sleep = ms => new Promise(r => setTimeout(r, ms));
-  const until = async (fn, ms = 30000) => { const t0 = Date.now(); while (!fn()) { if (Date.now() - t0 > ms) return false; await sleep(50); } return true; };
-  ${MAKE_PLAYLIST}
-  if (!(await until(() => document.querySelectorAll("#home-library .album").length > 1 && /Kitchen/.test((document.getElementById("mt-kicker") || {}).textContent || "")))) return "no Home";
-  await makePlaylist();
-  await sleep(400);
-  showPlaylists();
-  if (!(await until(() => /Playlists/.test(document.getElementById("album-count").textContent) && document.querySelectorAll("#album-grid .album").length > 0))) return "no screen";
-  await sleep(800);
-  return "open";
-})()`;
-
-/* One of your playlists: its tile on the Playlists screen tapped, its two tracks up. */
-const OPEN_PLAYLIST = `(async () => {
-  const sleep = ms => new Promise(r => setTimeout(r, ms));
-  const until = async (fn, ms = 30000) => { const t0 = Date.now(); while (!fn()) { if (Date.now() - t0 > ms) return false; await sleep(50); } return true; };
-  ${MAKE_PLAYLIST}
-  if (!(await until(() => document.querySelectorAll("#home-library .album").length > 1 && /Kitchen/.test((document.getElementById("mt-kicker") || {}).textContent || "")))) return "no Home";
-  await makePlaylist();
-  await sleep(400);
-  showPlaylists();
-  if (!(await until(() => document.querySelector("#album-grid .album")))) return "no list";
-  document.querySelector("#album-grid .album").click();
-  if (!(await until(() => document.querySelectorAll("#album-grid .playlist-tracks .track-row").length === 2))) return "no playlist";
-  await sleep(800);
-  return "open";
-})()`;
-
-/* A Dynamic Playlist of Artist A's and B's albums, made of their tracks, made through the page's own API (once), its id. */
-const MAKE_SMART = `const makeSmart = async () => {
-  const mine = ((await (await fetch("/api/smart-playlists")).json()).playlists || []).find(p => p.name === "Artists");
-  if (mine) return mine.id;
-  const r = await (await fetch("/api/smart-playlists", { method: "POST", headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name: "Artists", view: { sort: "album", dir: "asc" }, mode: "tracks", order: "album" }) })).json();
-  return r.playlist.id;
-};`;
-
-/* The Dynamic Playlists screen, as the side menu opens it, one saved. */
-const OPEN_SMART_PLAYLISTS = `(async () => {
-  const sleep = ms => new Promise(r => setTimeout(r, ms));
-  const until = async (fn, ms = 30000) => { const t0 = Date.now(); while (!fn()) { if (Date.now() - t0 > ms) return false; await sleep(50); } return true; };
-  ${MAKE_SMART}
-  if (!(await until(() => document.querySelectorAll("#home-library .album").length > 1 && /Kitchen/.test((document.getElementById("mt-kicker") || {}).textContent || "")))) return "no Home";
-  await makeSmart();
-  await sleep(400);
-  showSmartPlaylists();
-  if (!(await until(() => /Dynamic Playlists/.test(document.getElementById("album-count").textContent) && document.querySelectorAll("#album-grid .album:not(#new-smart-tile)").length > 0))) return "no screen";
-  await sleep(800);
-  return "open";
-})()`;
-
-/* A Dynamic Playlist made of tracks: its tile tapped, its tracks all read. */
-const OPEN_SMART_PLAYLIST = `(async () => {
-  const sleep = ms => new Promise(r => setTimeout(r, ms));
-  const until = async (fn, ms = 30000) => { const t0 = Date.now(); while (!fn()) { if (Date.now() - t0 > ms) return false; await sleep(50); } return true; };
-  ${MAKE_SMART}
-  if (!(await until(() => document.querySelectorAll("#home-library .album").length > 1 && /Kitchen/.test((document.getElementById("mt-kicker") || {}).textContent || "")))) return "no Home";
-  await makeSmart();
-  await sleep(400);
-  showSmartPlaylists();
-  const tile = () => document.querySelector('#album-grid [data-parity="smart-playlists.playlist"]');
-  if (!(await until(() => /Dynamic Playlists/.test(document.getElementById("album-count").textContent) && tile()))) return "no list";
-  await sleep(300);
-  tile().click();
-  if (!(await until(() => / from \\d+ album/.test((document.querySelector(".playlist-detail .playlist-empty") || {}).textContent || "")))) return "no tracks";
-  await sleep(800);
-  return "open";
-})()`;
-
 /* The side menu: the row's Menu tapped (item 296: Home's top left from item 210), the library's age under Rescan. */
 const OPEN_MENU = `(async () => {
   const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -430,40 +348,6 @@ const OPEN_MENU = `(async () => {
 })()`;
 
 /* Group zones and Device power: the page's sheets, opened as Play on opens them, in the room the mini player is in. */
-/* The Dynamic Playlist sheets (item 95): New, and a playlist's name asked. Its Share is a playlist's (playlist-share). */
-const OPEN_SMART_NEW = `(async () => {
-  const sleep = ms => new Promise(r => setTimeout(r, ms));
-  for (let i = 0; i < 400 && typeof createSmartPlaylist !== "function"; i++) await sleep(50);
-  createSmartPlaylist();
-  await sleep(400);
-  return document.querySelector('.lib-sheet-backdrop [data-parity~="smart-new.mode"]') ? "open" : "not open";
-})()`;
-
-/* Add to playlist (item 93): an album's, with one playlist made first so the sheet lists one. */
-const OPEN_ADD_TO_PLAYLIST = `(async () => {
-  const sleep = ms => new Promise(r => setTimeout(r, ms));
-  const until = async (fn, ms = 30000) => { const t0 = Date.now(); while (!fn()) { if (Date.now() - t0 > ms) return false; await sleep(50); } return true; };
-  if (!(await until(() => document.querySelectorAll("#home-library .album").length > 0))) return "no home";
-  const first = ((await (await fetch("/api/library/albums?count=1")).json()).albums || [])[0];
-  if (!first) return "no albums";
-  const j = await (await fetch("/api/album?offset=" + first.offset)).json();
-  const a = j.album, t = (j.tracks || [])[0];
-  if (!a || !t) return "no album";
-  await fetch("/api/user-playlists/add", { method: "POST", headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name: "Road trip", tracks: [{ album_offset: a.offset, album_title: a.title, album_subtitle: a.subtitle, track_index: 0, title: t.title, subtitle: a.subtitle, image_key: a.image_key || null }] }) });
-  openAddToPlaylistSheet(null, [{ offset: a.offset, title: a.title, subtitle: a.subtitle, image_key: a.image_key || null }]);
-  if (!(await until(() => document.querySelectorAll(".lib-sheet .sheet-row").length > 1))) return "no rows";
-  await sleep(600);
-  return "open";
-})()`;
-/* The page's name prompt (item 93), as a new playlist asks it. */
-const OPEN_PROMPT = `(async () => {
-  const sleep = ms => new Promise(r => setTimeout(r, ms));
-  for (let i = 0; i < 400 && !window.__promptDialog; i++) await sleep(50);
-  window.__promptDialog("Name this playlist", "My playlist");
-  await sleep(300);
-  return document.getElementById("prompt-overlay").classList.contains("hidden") ? "not open" : "open";
-})()`;
 const OPEN_GROUP = `(async () => {
   const sleep = ms => new Promise(r => setTimeout(r, ms));
   const until = async (fn, ms = 30000) => { const t0 = Date.now(); while (!fn()) { if (Date.now() - t0 > ms) return false; await sleep(50); } return true; };
@@ -473,33 +357,6 @@ const OPEN_GROUP = `(async () => {
   await sleep(600);
   return "open";
 })()`;
-/* Import a playlist (item 94): the sheet, a shared playlist pasted (one track the library has, one it hasn't), Import. */
-const OPEN_IMPORT = `(async () => {
-  const sleep = ms => new Promise(r => setTimeout(r, ms));
-  const until = async (fn, ms = 30000) => { const t0 = Date.now(); while (!fn()) { if (Date.now() - t0 > ms) return false; await sleep(50); } return true; };
-  if (!(await until(() => document.querySelectorAll("#home-library .album").length > 0))) return "no home";
-  const r = await fetch("/api/share/encode", { method: "POST", headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name: "Mine", tracks: [{ title: "Song 1", artist: "Artist A", album: "Album One" }, { title: "Song 2", artist: "Artist A", album: "Elsewhere" }, { title: "Nowhere", artist: "Nobody", album: "Nothing" }] }) });
-  const j = await r.json();
-  openImportSheet();
-  if (!(await until(() => !!document.getElementById("import-blob")))) return "no sheet";
-  document.getElementById("import-blob").value = j.blob;
-  document.querySelector('[data-parity~="playlist-import.import"]').click();
-  if (!(await until(() => !!document.querySelector(".lib-sheet .import-save")))) return "no result";
-  await sleep(600);
-  return "open";
-})()`;
-/* Share a playlist (item 94): the sheet for two tracks. */
-const OPEN_SHARE = `(async () => {
-  const sleep = ms => new Promise(r => setTimeout(r, ms));
-  const until = async (fn, ms = 30000) => { const t0 = Date.now(); while (!fn()) { if (Date.now() - t0 > ms) return false; await sleep(50); } return true; };
-  if (!(await until(() => document.querySelectorAll("#home-library .album").length > 0))) return "no home";
-  shareTracks("Mine", [{ title: "Song 1", artist: "Artist A", album: "Album One", track_no: 1 }, { title: "Song 2", artist: "Artist A", album: "Album One", track_no: 2 }], null, {});
-  if (!(await until(() => !!document.getElementById("share-blob") && !!document.getElementById("share-blob").value))) return "no sheet";
-  await sleep(600);
-  return "open";
-})()`;
-/* The name box (item 94), as Save as a playlist asks it. */
 const OPEN_POWER = `(async () => {
   const sleep = ms => new Promise(r => setTimeout(r, ms));
   const until = async (fn, ms = 30000) => { const t0 = Date.now(); while (!fn()) { if (Date.now() - t0 > ms) return false; await sleep(50); } return true; };
@@ -658,20 +515,11 @@ const SCREENS = {
   "artist": { open: OPEN_ARTIST, root: "body", shared: ["mini-player", "nav"] },
   "artists": { open: OPEN_ARTISTS, root: "body", shared: ["mini-player", "nav"] },
   "search": { open: OPEN_SEARCH, root: "body", shared: ["mini-player", "nav"] },
-  "playlists": { open: OPEN_PLAYLISTS, root: "body", shared: ["mini-player", "nav"] },
-  "playlist": { open: OPEN_PLAYLIST, root: "body", shared: ["mini-player", "nav"] },
-  "smart-playlists": { open: OPEN_SMART_PLAYLISTS, root: "body", shared: ["mini-player", "nav"] },
-  "smart-playlist": { open: OPEN_SMART_PLAYLIST, root: "body", shared: ["mini-player", "nav"] },
   "menu": { open: OPEN_MENU, root: "#menu-overlay" },
-  "smart-new": { open: OPEN_SMART_NEW, root: ".lib-sheet-backdrop" },
-  "add-to-playlist": { open: OPEN_ADD_TO_PLAYLIST, root: ".lib-sheet-backdrop" },
-  "prompt": { open: OPEN_PROMPT, root: "#prompt-overlay" },
   "offline": { open: OPEN_OFFLINE, root: "#offline-overlay" },
   "offline-sign": { open: OPEN_OFFLINE_SIGN, root: "#offline-sign" },
   "group": { open: OPEN_GROUP, root: ".lib-sheet-backdrop" },
   "device-power": { open: OPEN_POWER, root: ".lib-sheet-backdrop" },
-  "playlist-import": { open: OPEN_IMPORT, root: ".lib-sheet-backdrop" },
-  "playlist-share": { open: OPEN_SHARE, root: ".lib-sheet-backdrop" },
   "pitchfork": { open: OPEN_PITCHFORK, root: "#pitchfork-overlay" },
   "pitchfork-review": { open: OPEN_PITCHFORK_REVIEW, root: "#pitchfork-overlay", shared: ["pitchfork"] },
   "service-browser": { open: OPEN_SERVICE, root: "#qobuz-overlay" },

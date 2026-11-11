@@ -1,18 +1,14 @@
-// Import.cs — Qobuz's and Tidal's import, the favourites' watch and the
-// service playlists (v0.8.45, stage 4.3 of old/csharp-migration.md),
+// Import.cs — Qobuz's and Tidal's import and the favourites' watch (v0.8.45,
+// stage 4.3 of old/csharp-migration.md),
 // from lib/services/streaming.js, lib/qobuz/index.js and lib/tidal/index.js,
 // rule for rule:
 //
 //   - the import: everything the account wants kept (its favourites; on Qobuz
 //     its purchases too), every album, kept in the library as rows (Rows.cs),
 //     only what is new or a week old asked of the service again; one no longer
-//     wanted let go, by the ids asked for now; then the playlists. What it made
-//     is kept as the Node server kept it (the setting <service>LastImport);
+//     wanted let go, by the ids asked for now. What it made is kept as the Node server kept it (the setting <service>LastImport);
 //   - the favourites' watch: the ids the account wants compared with what is
 //     kept, a favourite added on the service brought in, one removed let go;
-//   - the service playlists: each playlist there, and the favourite tracks, as
-//     a playlist here (the setting userPlaylists), the albums their tracks are
-//     from held (the cache, ns <service>-held);
 //   - Settings → Services' state, the stream's quality and the import's switch.
 //
 // The work is a job ("import", Jobs.cs): the first import shortly after the
@@ -41,8 +37,6 @@ internal abstract partial class Catalogue
 {
     // An album kept from a service is read from it again after this long (v0.7.10).
     private const double RefreshMs = 7 * 86400e3;
-    private string PlPrefix => Id + "-pl-";
-    private string PlFav => Id + "-favourite-tracks";
 
     private readonly object importGate = new();
     private Task<JsObj>? importing;
@@ -58,10 +52,6 @@ internal abstract partial class Catalogue
     protected abstract string DefaultQuality { get; }
     /* wanted(): every album the account wants kept, in the order of a Map, each its listing with why and since when (kept_as, kept_at). */
     protected abstract Task<List<(string Id, JsObj Hint)>> Wanted();
-    /* listFavouriteTracks(): [{ albumId, trackId }]. */
-    protected abstract Task<List<(string AlbumId, string TrackId)>> ListFavouriteTracks();
-    /* listPlaylists(): [{ id, name, tracks: [{ albumId, trackId }] }]. */
-    protected abstract Task<List<(object? Id, object? Name, List<(string AlbumId, string TrackId)> Tracks)>> ListPlaylists();
     /* describe(out): the user on the status, for the page. */
     protected abstract void Describe(JsObj o);
     /* What the status says beyond (Tidal: a sign-in under way, Accounts.cs). */
@@ -101,7 +91,7 @@ internal abstract partial class Catalogue
 
     /*
      * The import's switch (streaming.js setImport): off, the service's albums
-     * and playlists leave the library at once; on, they are back at once.
+     * leave the library at once; on, they are back at once.
      * Nothing is deleted either way.
      */
     public async Task SetImport(bool on)
@@ -156,8 +146,8 @@ internal abstract partial class Catalogue
 
     /*
      * Everything the account wants kept, every album (no cap), as kept albums
-     * in the library; one no longer wanted goes back to being transient. Then
-     * the playlists. What it made (streaming.js importLibrary). One at a time:
+     * in the library; one no longer wanted goes back to being transient. What
+     * it made (streaming.js importLibrary). One at a time:
      * asked again while it runs, the one running is the answer.
      */
     public Task<JsObj> ImportLibrary()
@@ -212,10 +202,6 @@ internal abstract partial class Catalogue
                 dropped++;
             }
         }
-        (double Playlists, double Held) pl = (0, 0);
-        try { pl = await ImportPlaylists(gen); }
-        catch (Exception e) { Server.Log($"[{Id}] playlists: {Said(e)}"); }
-        Going(gen);
         var result = new JsObj();
         result["at"] = NowMs();
         result["albums"] = (double)want.Count;
@@ -223,98 +209,11 @@ internal abstract partial class Catalogue
         result["fetched"] = fetched;
         result["dropped"] = dropped;
         result["failed"] = failed;
-        result["playlists"] = pl.Playlists;
         result["seconds"] = Js.Round((NowMs() - t0) / 1000);
         Extras.Labels.SetSetting(Id + "LastImport", result);
-        Server.Log($"[{Id}] library: {want.Count} album(s) ({Js.Num(added)} new, {Js.Num(dropped)} no longer kept, {Js.Num(failed)} failed), {Js.Num(pl.Playlists)} playlist(s), in {Js.Num((double)result["seconds"]!)}s");
+        Server.Log($"[{Id}] library: {want.Count} album(s) ({Js.Num(added)} new, {Js.Num(dropped)} no longer kept, {Js.Num(failed)} failed), in {Js.Num((double)result["seconds"]!)}s");
         await Changed();
         return result;
-    }
-
-    // ------------------------------------------------------------ the playlists
-
-    /*
-     * The service's playlists and favourite tracks as playlists here, each by
-     * its name there, and "<Service> favourite tracks" (streaming.js
-     * importPlaylists). The albums their tracks are from are held — known
-     * here so the tracks play, off the walls unless favourites — and a
-     * playlist gone from the service goes from here.
-     */
-    private async Task<(double Playlists, double Held)> ImportPlaylists(int gen)
-    {
-        var lists = new List<(string Id, string Name, List<(long AlbumId, string Path)> Items)>();
-        var held = new List<string>();
-        var heldSeen = new HashSet<string>(StringComparer.Ordinal);
-        var albumsSeen = new Dictionary<string, long>(StringComparer.Ordinal);   // the service's album id -> the library's
-        async Task<List<(long, string)>> Records(List<(string AlbumId, string TrackId)> items)
-        {
-            var o = new List<(long, string)>();
-            foreach (var (aid, tid) in items)
-            {
-                if (aid.Length == 0) continue;
-                Going(gen);
-                try
-                {
-                    // Here and read this week: as it is (v0.7.10, as the import).
-                    if (!albumsSeen.ContainsKey(aid)) albumsSeen[aid] = FreshAlbumId(aid) ?? await EnsureAlbum(aid);
-                }
-                catch (Exception e) { Server.Log($"[{Id}] playlist album {aid}: {Said(e)}"); continue; }
-                if (heldSeen.Add(Key + aid)) held.Add(Key + aid);
-                o.Add((albumsSeen[aid], TrackPath + tid));
-            }
-            return o;
-        }
-        List<(string AlbumId, string TrackId)> favs;
-        try { favs = await ListFavouriteTracks(); } catch (Exception) { favs = []; }
-        if (favs.Count > 0) lists.Add((PlFav, Name + " favourite tracks", await Records(favs)));
-        List<(object? Id, object? Name, List<(string AlbumId, string TrackId)> Tracks)> pls;
-        try { pls = await ListPlaylists(); } catch (Exception) { pls = []; }
-        foreach (var p in pls)
-        {
-            if (Js.IsNullish(p.Id)) continue;
-            var name = Js.Str(Or(p.Name, Name + " playlist"));
-            lists.Add((PlPrefix + Js.Str(p.Id), name.Length > 80 ? name[..80] : name, await Records(p.Tracks)));
-        }
-        // Into the user playlists, the library read afresh first (the Node
-        // server's, and so this server's copy) so the records find their rows.
-        await Changed("opened");
-        var s = await Library.CurrentCopy() ?? throw new JsError("The library couldn't be read");
-        Going(gen);
-        using var c = Db.Open();
-        using var tx = c.BeginTransaction(IsolationLevel.Serializable, deferred: false);
-        var v = SettingOf(c, "userPlaylists");
-        if (v is Undef || !Js.Truthy(v)) v = new List<object?>();
-        if (v is not List<object?> stored) throw new JsError("(this.db.setting(...) || []).filter is not a function");
-        var all = stored.Where(x => Js.Truthy(x) && Js.Truthy(P(x, "id")) && Js.Truthy(P(x, "name"))).ToList();
-        var keepIds = lists.Select(l => l.Id).ToHashSet(StringComparer.Ordinal);
-        var outList = all.Where(x => !Js.StrictEq(ServiceOfPlaylist(x), Id) || P(x, "id") is string xid && keepIds.Contains(xid)).ToList();
-        foreach (var l in lists)
-        {
-            var tracks = Library.ServicePlaylistTracks(c, s, l.Items);
-            if (outList.FirstOrDefault(x => P(x, "id") is string xid && xid == l.Id) is JsObj was)
-            {
-                was["name"] = l.Name;
-                was["tracks"] = tracks;
-                was["updated_at"] = NowMs();
-            }
-            else
-            {
-                var made = new JsObj();
-                made["id"] = l.Id;
-                made["name"] = l.Name;
-                made["service"] = Id;
-                made["tracks"] = tracks;
-                made["created_at"] = NowMs();
-                made["updated_at"] = NowMs();
-                outList.Add(made);
-            }
-        }
-        Run(c, "INSERT INTO settings(key, value) VALUES($k, $v) ON CONFLICT(key) DO UPDATE SET value = excluded.value", ("$k", "userPlaylists"), ("$v", Js.Json(outList)));
-        // The held set, as it is now.
-        Run(c, "DELETE FROM cache WHERE ns = $ns", ("$ns", NsHeld));
-        foreach (var k in held) CachePut(c, NsHeld, k, 1.0);
-        tx.Commit();
-        return (lists.Count, held.Count);
     }
 
     // ------------------------------------------------------------ the watch
@@ -455,27 +354,6 @@ internal sealed partial class QobuzCatalogue
         catch (Exception e) when (e is ServiceError or JsError) { return []; }
     }
 
-    private static bool Listed(object? t) =>
-        Js.Truthy(t) && Js.Truthy(P(t, "album")) && !Js.IsNullish(P(P(t, "album"), "id")) && !(P(t, "streamable") is false);
-    private static (string, string) Record(object? t) => (Js.Str(P(P(t, "album"), "id")), Js.Str(P(t, "id")));
-
-    protected override async Task<List<(string AlbumId, string TrackId)>> ListFavouriteTracks() =>
-        (await Api.FavouriteTracks()).Where(Listed).Select(Record).ToList();
-
-    protected override async Task<List<(object? Id, object? Name, List<(string AlbumId, string TrackId)> Tracks)>> ListPlaylists()
-    {
-        var o = new List<(object?, object?, List<(string, string)>)>();
-        foreach (var p in await Api.Playlists())
-        {
-            if (!Js.Truthy(p) || Js.IsNullish(P(p, "id"))) continue;
-            List<object?> tracks;
-            try { tracks = await Api.PlaylistTracks(P(p, "id")); }
-            catch (Exception e) when (e is ServiceError or JsError) { tracks = []; }
-            o.Add((P(p, "id"), P(p, "name"), tracks.Where(Listed).Select(Record).ToList()));
-        }
-        return o;
-    }
-
     protected override void Describe(JsObj o)
     {
         var u = Or(P(Or(Account(), new JsObj()), "user"), new JsObj());
@@ -515,29 +393,6 @@ internal sealed partial class TidalCatalogue
             want[id] = o;
         }
         return order.Select(id => (id, want[id])).ToList();
-    }
-
-    protected override async Task<List<(string AlbumId, string TrackId)>> ListFavouriteTracks() =>
-        (await Api.FavouriteTracks(UserId())).Select(x => Js.Truthy(x) && Js.Truthy(P(x, "item")) ? P(x, "item") : x)
-            .Where(t => Js.Truthy(t) && Js.Truthy(P(t, "album")) && !Js.IsNullish(P(P(t, "album"), "id")) && !(P(t, "allowStreaming") is false))
-            .Select(t => (Js.Str(P(P(t, "album"), "id")), Js.Str(P(t, "id")))).ToList();
-
-    protected override async Task<List<(object? Id, object? Name, List<(string AlbumId, string TrackId)> Tracks)>> ListPlaylists()
-    {
-        var o = new List<(object?, object?, List<(string, string)>)>();
-        foreach (var x in await Api.Playlists(UserId()))
-        {
-            var p = Js.Truthy(x) && Js.Truthy(P(x, "playlist")) ? P(x, "playlist") : x;
-            if (!Js.Truthy(p) || !Js.Truthy(P(p, "uuid"))) continue;
-            List<object?> items;
-            try { items = await Api.PlaylistItems(P(p, "uuid")); }
-            catch (Exception) { items = []; }
-            var tracks = items.Where(i => Js.Truthy(i) && (P(i, "type") is "track" || !Js.Truthy(P(i, "type"))) && Js.Truthy(P(i, "item"))
-                    && Js.Truthy(P(P(i, "item"), "album")) && !Js.IsNullish(P(P(P(i, "item"), "album"), "id")) && !(P(P(i, "item"), "allowStreaming") is false))
-                .Select(i => (Js.Str(P(P(P(i, "item"), "album"), "id")), Js.Str(P(P(i, "item"), "id")))).ToList();
-            o.Add((P(p, "uuid"), P(p, "title"), tracks));
-        }
-        return o;
     }
 
     protected override void Describe(JsObj o)
@@ -608,10 +463,7 @@ internal static class Import
         _ = s.ImportLibrary().ContinueWith(t => { if (t.Exception?.InnerException is { } e) Server.Log($"[{s.Id}] {said}: {Catalogue.Said(e)}"); }, TaskScheduler.Default);
 
     /*
-     * index.js serviceSync: each service's import. One after the other, not
-     * side by side as there: a step (Tidal's token) writes the playlists
-     * outside any transaction, so it mustn't run while the other service's
-     * import writes them.
+     * index.js serviceSync: each service's import, one after the other.
      */
     private static void Sync()
     {

@@ -296,7 +296,7 @@ test("a folder that can't be read keeps its albums; most of a folder gone at onc
   assert.ok(idOf(s, "Hi Res"));
   assert.equal(idOf(s, "Album One"), undefined);
 
-  // Back later: the same album ids as before, so plays, downloads and playlists find them.
+  // Back later: the same album ids as before, so plays and downloads find them.
   fs.rmSync(path.join(lib.music, "Artist A"), { recursive: true });
   fs.renameSync(stash, path.join(lib.music, "Artist A"));
   await s.scan();

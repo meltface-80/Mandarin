@@ -2,7 +2,7 @@
 /*
  * Home is the Android app's first screen and stays under every other (bug list item 115): the side menu's items opened
  * from Home popped Home itself (its "every screen over Home closed" found none to close, and then closed the one on
- * screen, Home), so Settings, Playlists and the rest were opened with nothing under them and their ✕ and ‹ did
+ * screen, Home), so Settings, Listen later and the rest were opened with nothing under them and their ✕ and ‹ did
  * nothing. Every way back to Home now goes through one step that never pops it.
  */
 const test = require("node:test");
@@ -37,7 +37,7 @@ test("the menu's items and the row's buttons go back to Home through the one ste
   const tap = menu.slice(menu.indexOf("internal fun menuTap("), menu.indexOf("\n}\n", menu.indexOf("internal fun menuTap(")));
   // The Shelf too since item 207: its own screen over Home, no longer the phone's browser.
   assert.doesNotMatch(tap, /openShelf/);
-  for (const item of ["playlists", "smart-playlists", "later", "pitchfork", "labels", "qobuz", "tidal", "settings", "shelf"])
+  for (const item of ["later", "pitchfork", "labels", "qobuz", "tidal", "settings", "shelf"])
     assert.match(tap, new RegExp('"' + item + '"[^\\n]*-> overHome\\(nav, '), item);
   assert.doesNotMatch(tap, /popBackStack\(|nav\.navigate\(/, "every item goes through overHome");
   const row = routes.slice(routes.indexOf("internal fun navTap("), routes.indexOf("\n}\n", routes.indexOf("internal fun navTap(")));

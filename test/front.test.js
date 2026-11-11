@@ -261,7 +261,7 @@ test("v0.8.20: record labels, release days and the taste work answered by C#", {
   } finally { await srv.stop(); }
 });
 
-test("v0.8.21: write-ups, Pitchfork and playlist sharing answered by C#", { skip, timeout: 60000 }, async () => {
+test("v0.8.21: write-ups and Pitchfork answered by C#", { skip, timeout: 60000 }, async () => {
   const lib = makeLibrary();
   const port = ports.port(), B = "http://127.0.0.1:" + port;
   // Every source a closed port on loopback: asked, and failing at once.
@@ -271,7 +271,7 @@ test("v0.8.21: write-ups, Pitchfork and playlist sharing answered by C#", { skip
   await srv.start();
   try {
     const token = await signIn(B);
-    const H = { Authorization: "Bearer " + token }, J = Object.assign({ "Content-Type": "application/json" }, H);
+    const H = { Authorization: "Bearer " + token };
     for (let i = 0; i < 150; i++) { if ((await (await fetch(B + "/api/status", { headers: H })).json()).index_count >= 3) break; await new Promise(r => setTimeout(r, 100)); }
     for (const p of ["/api/album/extras?fast=1&title=Album%20One&artist=Artist%20A", "/api/album/extras?title=Album%20One&artist=Artist%20A", "/api/artist-bio?artist=Artist%20A",
       "/api/pitchfork/review?url=" + encodeURIComponent("https://pitchfork.com/reviews/albums/x/") + "&album=Album%20One",
@@ -284,18 +284,12 @@ test("v0.8.21: write-ups, Pitchfork and playlist sharing answered by C#", { skip
       const r = await fetch(B + p, { headers: H });
       assert.deepEqual([r.status, r.headers.get("x-mandarin-answered"), await r.json()], [500, "C#", { error: "fetch failed" }], p);
     }
-    let r = await fetch(B + "/api/search/external?q=album", { headers: H });
+    const r = await fetch(B + "/api/search/external?q=album", { headers: H });
     assert.equal(r.headers.get("x-mandarin-answered"), "C#", "the search's services: C#'s too since v0.8.47");
-    r = await fetch(B + "/api/share/encode", { method: "POST", headers: J, body: JSON.stringify({ name: "Mine", tracks: [{ title: "Song 1", artist: "Artist A", album: "Album One" }] }) });
-    assert.deepEqual([r.status, r.headers.get("x-mandarin-answered")], [200, "C#"], "a playlist shared as text, by C#");
-    const { blob } = await r.json();
-    r = await fetch(B + "/api/share/import", { method: "POST", headers: J, body: JSON.stringify({ blob }) });
-    assert.deepEqual([r.status, r.headers.get("x-mandarin-answered")], [200, "C#"], "and read back");
-    assert.deepEqual((await r.json()).resolved.map(t => [t.title, t.album_title]), [["Song 1", "Album One"]]);
   } finally { await srv.stop(); }
 });
 
-test("v0.8.22: backups, built-in Tailscale, Dynamic Playlists saved, the tag filter, the album editor and covers answered by C#", { skip, timeout: 60000 }, async () => {
+test("v0.8.22: backups, built-in Tailscale, the tag filter, the album editor and covers answered by C#", { skip, timeout: 60000 }, async () => {
   const lib = makeLibrary();
   const port = ports.port(), B = "http://127.0.0.1:" + port;
   const srv = createServer({ port, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false, identify: false });
@@ -318,11 +312,6 @@ test("v0.8.22: backups, built-in Tailscale, Dynamic Playlists saved, the tag fil
     assert.deepEqual([r.status, by(r), r.headers.get("content-type")], [200, "C#", "application/gzip"], "and downloaded");
     await r.arrayBuffer();
     r = await fetch(B + "/api/backup/" + kept.id, { method: "DELETE", headers: H });
-    assert.deepEqual([r.status, by(r)], [200, "C#"], "and deleted");
-    // A Dynamic Playlist saved and deleted.
-    r = await post("/api/smart-playlists", { name: "Rock", view: { genre: ["Rock"] } });
-    assert.deepEqual([r.status, by(r)], [200, "C#"], "a Dynamic Playlist saved");
-    r = await post("/api/smart-playlists/delete", { id: (await r.json()).playlist.id });
     assert.deepEqual([r.status, by(r)], [200, "C#"], "and deleted");
 
     // Covers: one with a picture of its own (Album One's cover.jpg) drawn by

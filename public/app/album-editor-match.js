@@ -255,15 +255,6 @@ function laterMenuItem(album, page) {
   return [{ label: on ? "Remove from Listen later" : "Listen later", key: "album.later", onClick: async () => { if (await setListenLater(album.offset, !on)) album.later = !on; } }];
 }
 
-// Add to playlist (v0.8.34): the whole album, into one of your playlists or a
-// new one, through the same sheet as a selection of albums.
-function playlistMenuItem(album) {
-  if (!album || typeof album.offset !== "number") return [];
-  return [{ label: "Add to playlist", key: "album.playlist", onClick: () => openAddToPlaylistSheet(null, [{
-    offset: album.offset, title: album.title || "", subtitle: album.subtitle || "", image_key: album.image_key || null
-  }]) }];
-}
-
 // Inside the Android app only (its MusicdDownloads bridge): keep this album
 // on the phone, or take it off. Browsers and the iPhone app never see it.
 function downloadMenuItem(album) {

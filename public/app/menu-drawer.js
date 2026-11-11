@@ -248,18 +248,6 @@
         if (window.__showSmartPicks) window.__showSmartPicks();
         return;
       }
-      if (action === "smart-playlists") {
-        if (window.__showSmartPlaylists) window.__showSmartPlaylists();
-        return;
-      }
-      if (action === "playlists") {
-        if (window.__showPlaylists) window.__showPlaylists();
-        return;
-      }
-      if (action === "import-playlist") {
-        if (window.__openImportSheet) window.__openImportSheet();
-        return;
-      }
 
       // Everything else just triggers the original control; each one manages
       // its own view — Filter/Labels reveal the wall when they render, Qobuz/

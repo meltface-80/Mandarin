@@ -90,18 +90,18 @@ test("the sign-in off: what another site or another name can't do", { skip, time
       assert.equal((await ask("GET", "/api/auth/status", from(HOME))).json.open, true, "still open");
       // Nor made a device of its own, nor anything behind the gate.
       assert.equal((await ask("POST", "/api/auth/join", crossSite(HOME), "")).status, 403);
-      assert.equal((await ask("POST", "/api/smart-playlists/delete", crossSite(TAILNET), "{}")).status, 403);
-      assert.equal((await ask("POST", "/api/smart-playlists/delete", crossSite(HOME, { "Sec-Fetch-Site": "same-site" }), "{}")).status, 403);
+      assert.equal((await ask("POST", "/api/settings/display", crossSite(TAILNET), "{}")).status, 403);
+      assert.equal((await ask("POST", "/api/settings/display", crossSite(HOME, { "Sec-Fetch-Site": "same-site" }), "{}")).status, 403);
       // An older browser that says nothing of where the page was, but names its origin.
       const old = from(HOME, { "Content-Type": "text/plain", Origin: "http://evil.example" });
-      assert.equal((await ask("POST", "/api/smart-playlists/delete", old, "{}")).status, 403);
-      assert.equal((await ask("POST", "/api/smart-playlists/delete", from(HOME, { Origin: "null" }), "{}")).status, 403);
+      assert.equal((await ask("POST", "/api/settings/display", old, "{}")).status, 403);
+      assert.equal((await ask("POST", "/api/settings/display", from(HOME, { Origin: "null" }), "{}")).status, 403);
     });
 
     await t.test("the server's own page, an address typed in, and the app: let in as before", async () => {
       const page = { "Sec-Fetch-Site": "same-origin", Origin: "http://" + HERE };
       for (const h of [json(HOME, page), json(HOME, { "Sec-Fetch-Site": "none" }), json(TAILNET), json(HOME, { Origin: "http://" + HERE })]) {
-        const r = await ask("POST", "/api/smart-playlists/delete", h, JSON.stringify({ id: "none" }));
+        const r = await ask("POST", "/api/settings/display", h, JSON.stringify({ id: "none" }));
         assert.ok(r.status !== 401 && r.status !== 403, JSON.stringify(h) + " → " + r.status);
       }
       // The Android app joins with no Origin and no Sec-Fetch-Site.

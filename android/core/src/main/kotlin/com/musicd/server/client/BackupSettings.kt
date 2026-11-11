@@ -34,7 +34,7 @@ object BackupSettings {
     val HINT: Map<String, String> = mapOf(
         "settings" to "Only the ones you changed",
         "devices" to "Sonos rooms, renderers and phones: names, output, DSP, levelling",
-        "collection" to "Playlists, favourites, Listen later, album edits",
+        "collection" to "Favourites, Listen later, album edits",
         "keys" to "Discogs, FanArt.tv, the Qobuz and Tidal sign-ins, and the server's Tailscale identity",
         "database" to "Everything Mandarin knows, play history included",
         "page" to "Text sizes, layout, the chosen room",
@@ -116,6 +116,6 @@ object BackupSettings {
     const val SEALED = "Its passphrase (for the keys and the whole database)"
     const val FILE_PASS = "Its passphrase, if it was sealed with one"
     const val PASS_HINT = "Optional. Seals the API keys, the Qobuz and Tidal sign-ins and the server's Tailscale identity, in the keys part or the whole database. Restoring those asks for it, and nothing opens them without it: keep it safe."
-    const val BACKUP_INFO = "Choose what goes in. Settings are only the ones you changed. Players are every Sonos room, renderer and phone with its own name, output, DSP and volume levelling. Your collection is playlists, Dynamic Playlists, favourites, Listen later and album edits. The whole database is everything Mandarin knows, play history included. The API keys part carries the Qobuz and Tidal sign-ins and the server's Tailscale identity, so a restore onto a fresh install is the same node on your tailnet: the same address, no signing in again, and the app still reaches it away from home. A backup never holds your password or other devices' sign-ins. Without a passphrase the keys and sign-ins are in the file as they are, so keep it as you would keep them; with one, they are sealed (AES-256) and only that passphrase opens them. It works away from home too, over Tailscale; the whole database is a large file over mobile data."
+    const val BACKUP_INFO = "Choose what goes in. Settings are only the ones you changed. Players are every Sonos room, renderer and phone with its own name, output, DSP and volume levelling. Your collection is favourites, Listen later and album edits. The whole database is everything Mandarin knows, play history included. The API keys part carries the Qobuz and Tidal sign-ins and the server's Tailscale identity, so a restore onto a fresh install is the same node on your tailnet: the same address, no signing in again, and the app still reaches it away from home. A backup never holds your password or other devices' sign-ins. Without a passphrase the keys and sign-ins are in the file as they are, so keep it as you would keep them; with one, they are sealed (AES-256) and only that passphrase opens them. It works away from home too, over Tailscale; the whole database is a large file over mobile data."
     const val RESTORE_INFO = "Restoring puts back the parts you tick, as they were when the backup was made, for every device. A backup of how things are now is kept here first (Before restore), so a restore can be undone. Mandarin restarts afterwards and this page reloads."
 }

@@ -6,7 +6,7 @@
 //   { fn: "similar", names, overlaps, artists, related, pools, years, tops, album_lists, tastes, ranks, chooses, reasons, records, played }
 //   { fn: "days", titles, batches: [{ albums: [{ key, title, artist, year, date }], groups }] }
 //   { fn: "labels", plain: [...], images: [{ b64, type }] }
-//   { fn: "writeups", … } and { fn: "blob", texts, ints, uris, entries, docs, date, version, encodes, decodes } (v0.8.21)
+//   { fn: "writeups", … } (v0.8.21)
 //   { fn: "backup", writes: [{ to, entries: [{ name, data | file }] }], reads: [{ file, db }], newer, parts_of, pretty } (v0.8.22)
 //   { fn: "artfind", bares, looses, texts, artists, matches, cases: [{ album: { title, artist }, tracks, routes: [[prefix, body]] }] } (v0.8.22)
 using Mandarin.Server.Tags;
@@ -28,7 +28,6 @@ internal static class ExtrasCommand
         "days" => Days(job),
         "labels" => LabelFns(job),
         "writeups" => WriteUpFns(job),
-        "blob" => BlobFns(job),
         "backup" => BackupFns(job),
         "artfind" => ArtFindFns(job),
         _ => throw new JsError("unknown fn")
@@ -102,36 +101,6 @@ internal static class ExtrasCommand
             c.Open();
             var map = O(a["map"]).Keys.ToDictionary(k => k, k => Str(O(a["map"])[k]));
             return Admin.Backup.Apply(c, O(a["server"]), L(a["include"]).Select(Str).ToHashSet(), map).Select(x => (object?)x).ToList();
-        });
-        return o;
-    }
-
-    /* lib/server/share.js's: its fields, a track's entry, a whole document (on the date and version given), blobs made, pastes read. */
-    private static JsObj BlobFns(JsObj job)
-    {
-        var o = new JsObj();
-        o["text"] = Each(job["texts"], a => ShareBlob.Text(Arg(a, 0), (int)Js.ToNumber(Arg(a, 1))));
-        o["int"] = Each(job["ints"], a => ShareBlob.Int(Arg(a, 0), Js.ToNumber(Arg(a, 1)), Js.ToNumber(Arg(a, 2))));
-        o["uris"] = Each(job["uris"], ShareBlob.UriList);
-        o["entry"] = Each(job["entries"], ShareBlob.TrackEntry);
-        o["doc"] = Each(job["docs"], d0 =>
-        {
-            var d = O(d0);
-            var (doc, count, skipped, truncated) = ShareBlob.BuildDoc(d["name"], d["annotation"], d["tracks"], Str(job["date"]), Str(job["version"]));
-            var x = new JsObj();
-            x["doc"] = doc;
-            x["track_count"] = (double)count;
-            x["skipped"] = (double)skipped;
-            x["truncated"] = truncated;
-            return x;
-        });
-        o["encoded"] = Each(job["encodes"], d => ShareBlob.Encode(O(d)));
-        o["decoded"] = Each(job["decodes"], b =>
-        {
-            var x = new JsObj();
-            try { x["doc"] = ShareBlob.Decode(Str(b)); }
-            catch (ShareBlob.Refused e) { x["error"] = e.Message; }
-            return x;
         });
         return o;
     }

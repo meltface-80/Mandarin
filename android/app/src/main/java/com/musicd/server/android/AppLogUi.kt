@@ -64,8 +64,7 @@ internal fun LogTrace(nav: NavHostController) {
     val menu by NativeShell.menuOpen
     val power by PowerKept.asking
     val ask by RoomAsk.drawn
-    val add by PlaylistAddAsk.asked
-    val shown = logName(entry) + (if (menu) "+menu" else "") + (if (power != null) "+power" else "") + (if (ask) "+move-question" else "") + (if (add != null) "+add-to-playlist" else "")
+    val shown = logName(entry) + (if (menu) "+menu" else "") + (if (power != null) "+power" else "") + (if (ask) "+move-question" else "")
     SideEffect {
         val now = SystemClock.uptimeMillis()
         val found = AppLog.trace.shown(shown, now)

@@ -65,7 +65,6 @@ import androidx.compose.ui.unit.sp
 import com.musicd.server.client.Album
 import com.musicd.server.client.AlbumCredits
 import com.musicd.server.client.AlbumVersion
-import com.musicd.server.client.PlaylistAdd
 import com.musicd.server.client.AlbumExtras
 import com.musicd.server.client.ArtistAct
 import com.musicd.server.client.Booklet
@@ -101,7 +100,7 @@ import org.json.JSONObject
  * [zoneId], the room the page had chosen, or the one chosen since on the mini
  * player's Play on ([onRoom] tells the page); a tap on the mini player opens
  * Now playing ([onNowPlaying], with the room). What the page does with its
- * own sheets (Share card, Add to playlist) and screens (an artist's, a
+ * own sheets (Share card) and screens (an artist's, a
  * label's) it is asked for ([onPage]); Edit album is its own (item 74).
  * One of the phone's own albums ([phone], its key; item 108) is read from the phone and played on it as the page's
  * invokePhone plays one, picked tracks too; the rest of its buttons are the page's, as the page has them for one (Download
@@ -370,7 +369,6 @@ internal fun AlbumScreen(offset: Long, zoneId: String, lit: String, client: () -
                     when (act) {
                         "clear" -> picks = null
                         "later" -> { later = true; mark { it.listenLater(shown, true) }; toast("Added to Listen later"); picks = null }
-                        "playlist" -> { PlaylistAddAsk.ask(PlaylistAdd.tracks(a, p)); picks = null }
                         // The phone's own: each to its player, in order (Play next last to first), as the page's playTracks.
                         else -> if (phone != null) {
                             val order = p.sorted().let { if (act == "play_next") it.reversed() else it }

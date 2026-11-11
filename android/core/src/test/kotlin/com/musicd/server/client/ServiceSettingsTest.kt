@@ -40,10 +40,10 @@ class ServiceSettingsTest {
         val on = ServiceSettings.parse("tidal", JSONObject("""{"connected":true,"subscription":"HIFI_PLUS","import":false,"pending":{"url":"x"}}"""), at)
         assertEquals("Signed in as your account · hifi plus", on.status)
         assertNull(on.pendingUrl)
-        assertEquals("Off: your Tidal albums and playlists are not in the library. Switch on to show them.", on.importStatus)
+        assertEquals("Off: your Tidal albums are not in the library. Switch on to show them.", on.importStatus)
         assertEquals("hires", on.quality)
-        val li = ServiceSettings.parse("tidal", JSONObject("""{"connected":true,"last_import":{"albums":3,"at":9,"playlists":1}}"""), at)
-        assertEquals("3 Tidal albums in the library · updated T9 · 1 playlist", li.importStatus)
+        val li = ServiceSettings.parse("tidal", JSONObject("""{"connected":true,"last_import":{"albums":3,"at":9}}"""), at)
+        assertEquals("3 Tidal albums in the library · updated T9", li.importStatus)
     }
 
     @Test fun `the lists, the switch's name, and what Update library now says`() {

@@ -86,7 +86,6 @@ test("back up, change everything, restore: as it was, with a Before-restore back
     db.setSetting("smartPicksHour", 7);
     db.setSetting("waveformEnabled", true);
     db.setSetting("discogsToken", "secret-token");
-    db.setSetting("userPlaylists", [{ id: "p1", name: "Mine" }]);
     db.raw.prepare("INSERT INTO favourites(key, added_at) VALUES('album-a', 1)").run();
     db.raw.prepare(`INSERT INTO audio_devices(id, kind, network_name, name, settings, first_seen, last_seen)
       VALUES('uuid:wiim', 'upnp', 'WiiM Pro', 'Lounge', '{"mode":"x2"}', 1, 1)`).run();
@@ -105,7 +104,6 @@ test("back up, change everything, restore: as it was, with a Before-restore back
     db.setSetting("smartPicksHour", 2);
     db.setSetting("displayEnabled", true);          // not in the backup: back to its default
     db.setSetting("discogsToken", "other");
-    db.setSetting("userPlaylists", []);
     db.raw.prepare("DELETE FROM favourites").run();
     db.raw.prepare("UPDATE audio_devices SET name = 'Changed', settings = '{}' WHERE id = 'uuid:wiim'").run();
     fs.rmSync(path.join(lib.data, "tailscale"), { recursive: true, force: true });   // a rebuilt data folder: a new node, unless restored
@@ -122,7 +120,6 @@ test("back up, change everything, restore: as it was, with a Before-restore back
     assert.equal(db.setting("smartPicksHour"), 7);
     assert.equal(db.setting("displayEnabled", "default"), "default");
     assert.equal(db.setting("discogsToken"), "secret-token");
-    assert.deepEqual(db.setting("userPlaylists"), [{ id: "p1", name: "Mine" }]);
     assert.equal(db.raw.prepare("SELECT COUNT(*) AS n FROM favourites").get().n, 1);
     assert.deepEqual(db.raw.prepare("SELECT name, settings FROM audio_devices WHERE id = 'uuid:wiim'").get(), { name: "Lounge", settings: '{"mode":"x2"}' });
 
@@ -206,6 +203,24 @@ test("this phone's own player follows it to its new id", { skip }, () => {
   raw = new Database(file);
   assert.equal(raw.prepare("SELECT settings FROM audio_devices WHERE id = 'PHONE_new'").get().settings, '{"dsp":{"enabled":true}}');
   assert.deepEqual(JSON.parse(raw.prepare("SELECT value FROM settings WHERE key = 'radioZones'").get().value), ["PHONE_new", "RINCON_1"]);
+});
+
+test("an older backup's playlists (taken out of Mandarin) are passed over, the rest of its collection restored", { skip }, () => {
+  const Database = require("better-sqlite3");
+  const file = path.join(fs.mkdtempSync(path.join(os.tmpdir(), "mbk-")), "x.db");
+  let raw = new Database(file);
+  raw.exec(`CREATE TABLE settings(key TEXT PRIMARY KEY, value TEXT);
+    CREATE TABLE favourites(key TEXT PRIMARY KEY, added_at INTEGER);`);
+  raw.close();
+  const server = { collection: {
+    settings: { userPlaylists: [{ id: "p1", name: "Mine", tracks: [] }], smartPlaylists: [{ id: "s1", name: "Dyn", view: {} }] },
+    tables: { favourites: [{ key: "album-a", added_at: 1 }] } } };
+  const r = backup({ applies: [{ db: file, server, include: ["collection"], map: {} }] });
+  assert.deepEqual(r.applied, [["collection"]]);
+  raw = new Database(file);
+  assert.deepEqual(raw.prepare("SELECT key FROM settings").all(), [], "no playlist written");
+  assert.deepEqual(raw.prepare("SELECT key FROM favourites").all(), [{ key: "album-a" }]);
+  raw.close();
 });
 
 test("kept on the server: saved, listed, downloaded, restored by id, deleted; a newer backup refused", { timeout: 60000 }, async () => {

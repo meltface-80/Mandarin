@@ -28,7 +28,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.musicd.server.client.AlbumSummary
 import com.musicd.server.client.ArtistAct
-import com.musicd.server.client.PlaylistAdd
 import com.musicd.server.client.Retry
 import com.musicd.server.client.Failure
 import com.musicd.server.client.LibraryClient
@@ -163,7 +162,6 @@ internal fun ArtistScreen(asked: String, prefs: WallPrefs, zoneId: String, clien
         val chosen = picks
         when (what) {
             "clear" -> { selecting = false; picks = emptyList() }
-            "playlist" -> { selecting = false; picks = emptyList(); PlaylistAddAsk.ask(PlaylistAdd.albums(chosen)) }
             else -> {
                 val c = client() ?: return
                 if (what != "later" && zone.isEmpty()) { toast("Pick a zone first"); return }

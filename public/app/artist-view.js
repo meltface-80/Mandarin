@@ -97,7 +97,7 @@
 
   async function showArtistAlbums(artistName, how) {
     const fromAlbum = (how && how.fromAlbum) || null;
-    if (window.__leavePlaylistScreens) window.__leavePlaylistScreens();
+    if (window.__leaveSmartPicks) window.__leaveSmartPicks();
     if (!artistName) return;
     // The Android app's own page (item 52); one act of a name others share as the app names it (ArtistAct, item 330).
     if (typeof nativeArtistOpened === "function" && nativeArtistOpened(how && how.artistId != null ? artistName + "\u001F" + how.artistId : artistName)) return;

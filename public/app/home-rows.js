@@ -1,4 +1,4 @@
-/* The page's core (app.js until v1.0.5), 5 of 33: Home's Library, History, Favourites, Listen later and Playlists rows, and the Smart Picks cards. */
+/* The page's core (app.js until v1.0.5), 5 of 33: Home's Library, History, Favourites and Listen later rows, and the Smart Picks cards. */
 async function loadHomeLibrary() {
   if (!homeLibrary) return;
   if (!rowHasContent(homeLibrary)) homeLibrary.innerHTML = emptyRow("Loading…");
@@ -98,40 +98,6 @@ async function setListenLater(offsets, on) {
   } catch (e) { showToast(e.message, "error"); return false; }
 }
 window.__setListenLater = setListenLater;
-
-// ----- Playlists: yours and the Dynamic ones, one row -----
-// The side menu keeps the two apart (different screens); on Home they are
-// one shelf, your own first, then the Dynamic ones. The title opens the
-// Playlists wall; a Dynamic tile opens that playlist.
-function renderHomePlaylists(mine, smart) {
-  if (!homePlaylists) return;
-  homePlaylists.innerHTML = "";
-  const frag = document.createDocumentFragment();
-  for (const p of mine) {
-    const n = p.track_total;
-    frag.appendChild(keyPlaylistTile(buildAlbumTile({ title: p.name, subtitle: `${n} track${n === 1 ? "" : "s"}`, image_key: null, art_keys: p.art_keys || [] },
-      () => openUserPlaylist(p), { selectable: false })));
-  }
-  for (const p of smart) {
-    const n = Number.isFinite(p.count) ? p.count : p.album_total;
-    frag.appendChild(keyPlaylistTile(buildAlbumTile({ title: p.name, subtitle: "Dynamic · " + (Number.isFinite(n) ? `${n} album${n === 1 ? "" : "s"}` : describeLibView(p.view)), image_key: null, art_keys: p.art_keys || [] },
-      () => openSmartPlaylist(p), { selectable: false })));
-  }
-  homePlaylists.appendChild(frag);
-  const sec = homePlaylists.closest(".home-section");
-  if (sec) sec.classList.toggle("hidden", !(mine.length + smart.length) || !homeRowOn("playlists"));
-}
-async function loadHomePlaylists() {
-  if (!homePlaylists) return;
-  const read = async (url) => { try { const r = await fetch(url, { cache: "no-store" }); return r.ok ? await r.json() : null; } catch (e) { return null; } };
-  const [mine, smart] = await Promise.all([read("/api/user-playlists"), read("/api/smart-playlists")]);
-  if (mine === null && smart === null) return;   // the row keeps what it had
-  const my = ((mine && mine.playlists) || []).slice().sort((a, b) => (b.updated_at || 0) - (a.updated_at || 0));
-  renderHomePlaylists(my, (smart && smart.playlists) || []);
-  homePlaylistsLoaded = true;
-}
-// A playlist made, changed or deleted anywhere: the row follows.
-window.__playlistsChanged = () => { homePlaylistsLoaded = false; loadHomePlaylists(); };
 
 async function loadHomeHistory() {
   if (!homeHistory) return;

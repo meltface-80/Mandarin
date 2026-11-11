@@ -9,7 +9,7 @@
 /*  draw: a wall or another screen in Home's place, the search (its     */
 /*  field open, or its results in the rows' place), the side menu, a    */
 /*  settings page, the album view. The sheets the app asks for over its */
-/*  screens (the Share card, Add to playlist; native-handoff.js) are    */
+/*  screens (the Share card, the album editor; native-handoff.js) are   */
 /*  not among them. With it go the UI Settings as JSON and the room, as */
 /*  a wall is opened with them (device-power.js, nativePrefsJson), and  */
 /*  the Library's view; the room is said again whenever it changes.    */
@@ -20,9 +20,9 @@
   const home = document.getElementById("home-view"), sections = document.getElementById("home-sections"), search = document.getElementById("topbar-search");
   if (!home) return;
   const shown = el => !!el && !el.classList.contains("hidden") && el.getClientRects().length > 0;
-  // The page's own dialogs too (the "move the music?" a room change asks, a name asked for): over Home they need the page in front (item 63).
+  // The page's own dialogs too (the "move the music?" a room change asks): over Home they need the page in front (item 63).
   const OVER = ["menu-overlay", "settings-overlay", "qobuz-overlay", "tidal-overlay", "pitchfork-overlay", "filter-overlay", "offline-overlay", "album-modal",
-    "confirm-overlay", "prompt-overlay"];
+    "confirm-overlay"];
   // Offline the page's Home is the one in front: its rows come from the phone (the app's OfflineApi), which the native Home doesn't ask yet.
   const front = () => !window.__musicdOffline && !home.classList.contains("hidden") && !(sections && sections.classList.contains("hidden")) &&
     !(search && search.classList.contains("is-open")) && !OVER.some(id => shown(document.getElementById(id)));

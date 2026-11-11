@@ -16,8 +16,8 @@
 //     browser, a month unplayed: a job, Jobs.cs).
 //
 // Each change is told to the library (Library.Told, { services }), which is
-// read again as each service's own afterChange did (index.js). The import,
-// the favourites' watch and the service playlists write the same rows from
+// read again as each service's own afterChange did (index.js). The import
+// and the favourites' watch write the same rows from
 // v0.8.45 (stage 4.3, Import.cs), and playing an album from the browser from
 // v0.8.47 (ServiceRoutes.cs), its tracks then played by the hub (Playback/).
 using System.Text;
@@ -38,7 +38,6 @@ internal abstract partial class Catalogue
 {
     /* The Node server's data folder: the covers are kept beside its database. */
     public string DataDir { get; init; } = "";
-    private string NsHeld => Id + "-held";
     private string TrackPath => Id + "://track/";
 
     // ------------------------------------------------------------ what each service brings
@@ -101,19 +100,6 @@ internal abstract partial class Catalogue
     /* A number SQLite gave, as better-sqlite3 gives it to JavaScript. */
     private static double? Num(object? v) => v switch { long l => l, double d => d, _ => null };
 
-    /* The albums a playlist or a favourite track needs (streaming.js heldSet). */
-    public HashSet<string> HeldSet()
-    {
-        using var c = Db.Open();
-        using var cmd = c.CreateCommand();
-        cmd.CommandText = "SELECT key FROM cache WHERE ns = $ns";
-        cmd.Parameters.AddWithValue("$ns", NsHeld);
-        var set = new HashSet<string>(StringComparer.Ordinal);
-        using var r = cmd.ExecuteReader();
-        while (r.Read()) if (!r.IsDBNull(0)) set.Add(r.GetString(0));
-        return set;
-    }
-
     /* The service's album in the library (streaming.js inLibrary). */
     public bool InLibrary(string albumId) => AlbumRow(albumId) != null;
 
@@ -121,13 +107,6 @@ internal abstract partial class Catalogue
     private static object? CacheGet(SqliteConnection c, string ns, string key)
     {
         if (Scalar(c, "SELECT value FROM cache WHERE ns = $ns AND key = $k", ("$ns", ns), ("$k", key)) is not string v) return Undef.V;
-        try { return JsJson.Parse(v); } catch (JsError) { return Undef.V; }
-    }
-
-    /* db.setting(key): the value as JSON.parse reads it; undefined when there's none, or it won't parse. */
-    private static object? SettingOf(SqliteConnection c, string key)
-    {
-        if (Scalar(c, "SELECT value FROM settings WHERE key = $k", ("$k", key)) is not string v) return Undef.V;
         try { return JsJson.Parse(v); } catch (JsError) { return Undef.V; }
     }
 
@@ -315,12 +294,10 @@ internal abstract partial class Catalogue
 
     /*
      * Why the album is in the library, for its page (streaming.js why): kept
-     * (and as what, since when), held by a playlist or favourite track, and
-     * when it was last played.
+     * (and as what, since when), and when it was last played.
      */
     public JsObj Why(string albumId)
     {
-        var key = Key + albumId;
         var row = AlbumRow(albumId);
         var kept = KeptInfo(albumId);
         double last = 0;
@@ -334,7 +311,6 @@ internal abstract partial class Catalogue
         o["name"] = Name;
         o["kept"] = kept != null ? Or(kept.Why, "unknown") : null;
         o["since"] = kept?.At;
-        o["held"] = HeldSet().Contains(key);
         o["last_played"] = last == 0 ? null : last;
         return o;
     }
@@ -396,20 +372,11 @@ internal abstract partial class Catalogue
         return list;
     }
 
-    /* Which service a user playlist came from, if any (streaming.js serviceOfPlaylist; v0.6.23 wrote `qobuz: true`). */
-    private static object? ServiceOfPlaylist(object? p)
-    {
-        if (!Js.Truthy(p)) return null;
-        if (Js.Truthy(P(p, "service"))) return P(p, "service");
-        if (Js.Truthy(P(p, "qobuz"))) return "qobuz";
-        return null;
-    }
-
     /*
      * Albums no longer wanted (streaming.js stale and cleanUp): signed out,
-     * every one; signed in, those neither kept nor held. Removed with their
-     * edits, hearts and Listen later (plays stay, as text); signed out, the
-     * kept and held marks go too, and the service's playlists. How many went;
+     * every one; signed in, those not kept. Removed with their edits, hearts
+     * and Listen later (plays stay, as text); signed out, the kept marks go
+     * too. How many went;
      * the library is told after (Changed) when any did.
      */
     public int CleanUp()
@@ -421,23 +388,13 @@ internal abstract partial class Catalogue
         // either all before it or all after, never half seen and deleted.
         using var tx = c.BeginTransaction();
         var kept = Keys(c, NsKept);
-        var held = Keys(c, NsHeld);
-        var rows = OwnAlbums(c).Where(r => !on || (!kept.Contains(r.Key) && !held.Contains(r.Key))).ToList();
+        var rows = OwnAlbums(c).Where(r => !on || !kept.Contains(r.Key)).ToList();
         foreach (var r in rows)
         {
             foreach (var t in new[] { "album_edits", "favourites", "listen_later", "track_edits" }) Run(c, $"DELETE FROM {t} WHERE key = $k", ("$k", r.Key));
             Run(c, "DELETE FROM albums WHERE id = $id AND key = $k", ("$id", (double)r.Id), ("$k", r.Key));
         }
-        if (!Connected())
-        {
-            Run(c, "DELETE FROM cache WHERE ns = $ns", ("$ns", NsKept));
-            Run(c, "DELETE FROM cache WHERE ns = $ns", ("$ns", NsHeld));
-            var v = SettingOf(c, "userPlaylists");
-            if (v is Undef) v = new List<object?>();
-            var all = (Js.Truthy(v) ? v as List<object?> ?? throw new InvalidOperationException("userPlaylists isn't a list") : [])
-                .Where(x => Js.Truthy(x) && Js.Truthy(P(x, "id")) && Js.Truthy(P(x, "name")) && !Js.StrictEq(ServiceOfPlaylist(x), Id)).ToList();
-            Run(c, "INSERT INTO settings(key, value) VALUES($k, $v) ON CONFLICT(key) DO UPDATE SET value = excluded.value", ("$k", "userPlaylists"), ("$v", Js.Json(all)));
-        }
+        if (!Connected()) Run(c, "DELETE FROM cache WHERE ns = $ns", ("$ns", NsKept));
         tx.Commit();
         return rows.Count;
     }
@@ -448,13 +405,12 @@ internal abstract partial class Catalogue
         using var c = OpenRows();
         var on = Connected();
         var kept = Keys(c, NsKept);
-        var held = Keys(c, NsHeld);
-        return OwnAlbums(c).Count(r => !on || (!kept.Contains(r.Key) && !held.Contains(r.Key)));
+        return OwnAlbums(c).Count(r => !on || !kept.Contains(r.Key));
     }
 
     /*
      * Transient albums nobody has played in a month (streaming.js
-     * pruneTransient): their rows go — neither kept nor held, and neither
+     * pruneTransient): their rows go — not kept, and neither
      * played nor read from the service within [days]. How many went.
      */
     public async Task<int> PruneTransient(double days = 30)
@@ -463,21 +419,20 @@ internal abstract partial class Catalogue
         using (var c = OpenRows())
         {
             var kept = KeptSet();
-            var held = HeldSet();
             foreach (var r in OwnAlbums(c))
             {
-                if (kept.Contains(r.Key) || held.Contains(r.Key)) continue;
+                if (kept.Contains(r.Key)) continue;
                 var last = Num(Scalar(c, "SELECT MAX(ts) AS last FROM plays WHERE album_id = $id", ("$id", (double)r.Id))) ?? 0;
                 var updated = Num(r.UpdatedAt) is { } u && u != 0 ? u : 0;
                 var since = NowMs() - days * 86400e3;
                 if (Math.Max(last, updated) > since) continue;
                 // Read a while ago: gone only if it is still as it was then. A
                 // favourite or an open made here since (its row touched, its kept
-                // mark written), a play, or a playlist holding it keeps it.
+                // mark written), or a play keeps it.
                 n += Run(c, @"DELETE FROM albums WHERE id = $id AND key = $k AND updated_at IS $u
-                               AND NOT EXISTS (SELECT 1 FROM cache WHERE ns IN ($kept, $held) AND key = $k)
+                               AND NOT EXISTS (SELECT 1 FROM cache WHERE ns = $kept AND key = $k)
                                AND NOT EXISTS (SELECT 1 FROM plays WHERE album_id = $id AND ts > $since)",
-                    ("$id", (double)r.Id), ("$k", r.Key), ("$u", Num(r.UpdatedAt)), ("$kept", NsKept), ("$held", NsHeld), ("$since", since));
+                    ("$id", (double)r.Id), ("$k", r.Key), ("$u", Num(r.UpdatedAt)), ("$kept", NsKept), ("$since", since));
             }
         }
         if (n > 0) await Changed();
