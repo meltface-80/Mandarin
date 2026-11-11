@@ -30,6 +30,7 @@ function page() {
     __libraryChanged: (o) => told.push(o)
   };
   const ctx = {
+    EMBED: false,   // as the page's first part (embed-flag.js) sets it: not the Shelf's album frame
     window: win, document: doc, encodeURIComponent, Date, Promise,
     setTimeout: (fn, ms) => { timers.push({ fn, ms }); return timers.length; },
     clearTimeout: (id) => { if (timers[id - 1]) timers[id - 1].fn = null; },

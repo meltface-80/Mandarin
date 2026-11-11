@@ -44,6 +44,7 @@ function page(answers) {
   const window = { __applyUpdateNow: what => applied.push(what) };
   const ids = { "check-update-btn": btn, "update-server-name": name, "settings-whats-new": box };
   const sandbox = {
+    EMBED: false,   // as the page's first part (embed-flag.js) sets it: not the Shelf's album frame
     window, Promise, JSON, setTimeout: fn => { sandbox.later.push(fn); return 0; }, later: [],
     document: {
       getElementById: id => ids[id] || null,
