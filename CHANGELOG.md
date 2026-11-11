@@ -1,6 +1,16 @@
 # Changelog
 
-## Unreleased
+## v1.3.0
+
+Update following a code review: several under-the-hood fixes and improvements.
+
+- New - Last.fm scrobbling, from every room, Mandarin Bridge and the phone
+- Changed - An artist's page in tabs (Overview, Discography, About); genres in English everywhere; similar albums from your own library
+- Removed - Playlists and Dynamic Playlists
+- Fixed - Plays, scrobbles and covers kept right through skips, drives mounted late and a DAC unplugged; Mandarin Bridge 0.3.8
+- Improved - Security, speed and reliability across the server, the page, the app and Mandarin Bridge
+
+### Every change
 
 - Fixed - the Shelf: the album view it shows (the page in a frame, made once and kept hidden behind the shelf) started the whole page behind it: Home and its rows, the rooms read every 15 s, the zone-state and library long-polls, the update, notice and Settings checks; about 24 asks in 25 s while the Shelf asked the same itself. The frame is now the album view alone: the rooms read once, the Shelf's room still sent to it and Play playing there; nothing else asked.
 - Fixed - the app: a command sent to "This phone" (play, pause, next, the volume) could be done twice. Woken again within half a minute of going idle, the phone's player started its look for commands while the old one was still out, and both went on from then, each handed every command; now a look from before is dropped when it comes back, and each command is done once whichever look brings it. And signed out by the server, then signed in again, the phone didn't come back as a room (the server lets a silent phone go after 45 s) until its player had sat idle off screen for five minutes and been woken again; it is back as soon as you sign in (audit A-M1, A-M2)

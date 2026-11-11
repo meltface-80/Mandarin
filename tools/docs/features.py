@@ -14,11 +14,11 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 
-# (id, emoji, title, new in v1.2.5, what it is, how to set it up and use it)
+# (id, emoji, title, new in v1.3.0, what it is, how to set it up and use it)
 FEATURES = [
     # ---- Home and finding music
     ("home", "🏠", "Home", False,
-     "Rows of albums under a greeting: Not played in 6 months, Listen later, Playlists, Favourites, "
+     "Rows of albums under a greeting: Not played in 6 months, Listen later, Favourites, "
      "Recently played, Smart Picks, Label of the week, Random albums, Library and Browse by genre.",
      "Open **☰ → Home**. Tap a row's title for all of it. To reorder rows or hide one, open "
      "**Settings → Setup → Home Screen**, hold a row's grip and drag it, or switch it off."),
@@ -73,7 +73,7 @@ FEATURES = [
      "and type. Labels show when Record labels is on. Signed in "
      "to Qobuz or Tidal (Settings → Services), the service's artists and albums follow the library's, "
      "from the Library wall's filter too; tap a cover for the album's page, an artist for their page."),
-    ("album", "💿", "Album pages", True,
+    ("album", "💿", "Album pages", False,
      "Tracks, year and label, write-ups from Wikipedia and Qobuz, Pitchfork's score, and every version of "
      "the album (an original and its remaster) as one album, the best its main.",
      "Tap any album. **Play Now** and **Queue** are on the page; **⋯** has Play Next, Shuffle, Radio, "
@@ -88,11 +88,12 @@ FEATURES = [
      "three columns, in the browser and in the Android app on a tablet: the cover, its credits and more "
      "by the artist on the left; About this album and about its artist in the middle, with **Read more**; "
      "the tracks on the right."),
-    ("more", "🧭", "More by, and similar", False,
+    ("more", "🧭", "More by, and similar", True,
      "Under an album's review: the artist's other albums, the albums they appear on, and, with a "
-     "Last.fm key, similar artists and albums. Ones in your library open here.",
+     "Last.fm key, similar artists and similar albums from your own library.",
      "Open any album. For the Last.fm rows, get a free key at last.fm/api/account/create and paste "
-     "it in **Settings → Setup → API Keys** (or set `LASTFM_KEY`). Read-only: nothing is scrobbled."),
+     "it in **Settings → Setup → API Keys** (or set `LASTFM_KEY`). Only albums you have are shown, "
+     "each opening here; to scrobble too, see Last.fm scrobbling."),
     ("artists", "🎤", "Artists", False,
      "Every act as a round picture with their name and album count, sorted A to Z, by most albums or "
      "at random. Two acts of one name are two artists.",
@@ -101,38 +102,42 @@ FEATURES = [
      "acts of the same name (Airbag from Norway, Airbag from Argentina) are told apart by the MusicBrainz "
      "artist ID in their files' tags (as Picard writes it), else by Mandarin's own MusicBrainz matches "
      "(**Settings → Library Scanner**), each with its own page, picture and a word to tell them apart."),
-    ("artist", "🧑‍🎤", "Artist pages", False,
-     "Who they are, then their discography, the albums they appear on, similar artists and similar "
-     "albums. Members fold under a heading. One artist however a sleeve credits them.",
-     "Tap an artist's name on an album's page, on the Artists wall or in Search. Who they are is the act "
+    ("artist", "🧑‍🎤", "Artist pages", True,
+     "In tabs, as an album's page: Overview (their albums, similar artists, similar albums you have), "
+     "Discography and About (biography, members or bands). One artist however a sleeve credits them.",
+     "Tap an artist's name on an album's page, on the Artists wall or in Search. Their picture, genres, "
+     "**Play** and **Shuffle** are on top; **See all** on Overview opens Discography. Who they are is the act "
      "your albums are by: its MusicBrainz ID from your files or matches, else the act MusicBrainz lists "
      "for your album titles, never just the first of the name. Facts come from "
      "MusicBrainz, Wikidata and Wikipedia, pictures from FanArt.tv (with a key), Wikidata or Deezer, "
-     "similar artists and albums from Last.fm (with a key) or Deezer. Tap **Members** to unfold a band's "
-     "line-up. A member's page shows their bands' albums from their years in them; a tap on a member, a band or a similar artist opens theirs. Tap a genre "
-     "for its albums."),
+     "similar artists and albums from Last.fm (with a key) or Deezer; the page has no links out to the web. "
+     "A member's page shows their bands' albums from their years in them; a tap on a member, a band or a "
+     "similar artist opens theirs. Tap a genre for its albums."),
     ("credits", "👥", "Album credits", False,
      "Under an album's tracks: who played, sang, wrote and made it, each with their parts and the "
      "tracks they are on, from the files' tags and MusicBrainz.",
      "Nothing to set up: the server looks albums up in the background, a second at a time. Eight show "
      "at first; **More** for the rest. Tap a name for their artist page."),
-    ("genres", "🎸", "Genres on pages", False,
+    ("genres", "🎸", "Genres on pages", True,
      "An album's genres as small chips under its cover, and an artist's, the most used across their "
-     "albums. A tap opens that genre's albums.",
+     "albums, in English everywhere. A tap opens that genre's albums.",
      "Nothing to set up: they come from your files' genre tags. A genre written two ways (*Indie Rock*, "
-     "*indie rock*) is one, spelled as most of your albums spell it."),
+     "*indie rock*) is one, spelled as most of your albums spell it; a Qobuz album's French genre "
+     "(*Électronique*) shows in English (*Electronic*). Your files are not changed."),
     ("edit", "✏️", "Edit album", False,
      "Correct an album's title, artist or year and choose its cover. Edits are kept in the server's "
      "database; your music files are not changed.",
      "On an album, tap **⋯ → Edit album**."),
     # ---- The library behind it
-    ("folders", "🗂️", "Music folders", True,
+    ("folders", "🗂️", "Music folders", False,
      "Any folders the server can see, added and removed in the app. Changes show by themselves: an album "
      "as it is copied in, a network share's within half a minute.",
      "Open **Settings → Music Folders** and add a folder from the list of drives and folders the "
      "server can see. Changes are read about five seconds after they stop, and at least every 30 seconds "
      "while a copy goes on; a network share, a FUSE folder (mergerfs, rclone) or one past the system's limit "
-     "is looked at every 30 seconds instead. A full scan runs every 6 hours (`SCAN_INTERVAL_HOURS`); "
+     "is looked at every 30 seconds instead. A drive mounted inside a music folder after the server starts (a "
+     "slow USB disk at boot) is read as it appears; one not mounted keeps its tracks and covers until it is back. "
+     "A full scan runs every 6 hours (`SCAN_INTERVAL_HOURS`); "
      "**☰ → Rescan library** runs one now, then brings Qobuz and Tidal up to date, in that order, "
      "where you are signed in with the import on."),
     ("folder-albums", "💽", "One album per folder", False,
@@ -175,6 +180,13 @@ FEATURES = [
      "played in the last six months. Switched on per device.",
      "Open **Settings → Audio Devices**, tap the device and switch on **Random album radio**. "
      "**⋯ → Radio** on an album plays it and switches radio on for that device."),
+    ("scrobble", "📮", "Last.fm scrobbling", True,
+     "Everything played, in every room, on a Mandarin Bridge or the phone, is scrobbled to your Last.fm "
+     "account and shown there as now playing.",
+     "Get a free key at last.fm/api/account/create and save it with its **shared secret** in **Settings → "
+     "Setup → API Keys**, then tap **Connect to Last.fm** and allow Mandarin on Last.fm's page. A track is "
+     "scrobbled at Last.fm's own point (half way or four minutes in); plays made offline or while Last.fm is "
+     "down are sent when it is back. **Disconnect** stops it."),
     ("sonos", "🔈", "Sonos", False,
      "Play, queue, play next, shuffle, repeat and volume for each Sonos room, and grouping and "
      "ungrouping rooms. Sonos plays up to 24-bit / 48 kHz; Mandarin converts anything above.",
@@ -256,11 +268,6 @@ FEATURES = [
      "by itself once every track has been played.",
      "On an album, **⋯ → Listen later**, or select several on a wall. Open the list from "
      "**☰ → Listen later**."),
-    ("playlists", "🎵", "Playlists", False,
-     "Playlists you make, and Dynamic Playlists that follow a saved Library view. A playlist can be "
-     "shared as text and imported, matched against the other library's tracks.",
-     "**☰ → Playlists**, **☰ → Dynamic Playlists** and **☰ → Import a playlist**. A playlist's "
-     "**Share** gives the text to send."),
     ("sharecard", "🖼️", "Share card", False,
      "The album as a picture: its cover, release, title and artist, its review with whose words they are, "
      "Pitchfork's score where there is one, and the duck in its corner.",
@@ -287,14 +294,14 @@ FEATURES = [
      "The app's own USB Audio driver plays to a DAC on the phone's port at the file's rate and depth, "
      "without Android's mixer; DSD natively or as DoP.",
      "Plug the DAC in. It shows on **This phone**'s page in **Settings → Audio Devices**; switch on "
-     "**USB direct** there."),
+     "**USB direct** there. Pull it out while playing and the phone pauses, as when headphones come out."),
     ("bridge", "🌉", "Mandarin Bridge", False,
      "A USB DAC on an Android device, a Linux computer or a Raspberry Pi, as a room Mandarin plays to: "
      "over SlimProto, a continuous stream of PCM.",
      "Install it from [Downloads](#downloads): the Android app, the Linux install line, or the Raspberry Pi "
      "image to flash. It finds Mandarin by itself; plug the DAC in, then switch the Bridge on in "
      "**Settings → Audio Devices**. Details under [Mandarin Bridge](#mandarin-bridge)."),
-    ("output", "📈", "Upsampling and output", True,
+    ("output", "📈", "Upsampling and output", False,
      "For each streamer or DAC: Bit-perfect or upsampled recipes, filters in either phase, shaped dither, PCM "
      "made DSD, Headroom against clipping, and a safety net when the server falls behind.",
      "Open **Settings → Audio Devices**, tap a streamer or DAC, and choose a recipe under **Sound**, or open "
@@ -361,7 +368,7 @@ FEATURES = [
      "in the app, **Back up to a file on this phone**). To restore, pick a backup (or the file), tick "
      "the parts and tap **Restore**. Mandarin keeps a backup of how things were first, then restarts.\n\n"
      "**What a backup holds.** The API keys part (and the whole database) holds your Discogs, FanArt.tv "
-     "and Last.fm keys, the Qobuz and Tidal sign-ins (tokens, never a password) and the server's Tailscale "
+     "and Last.fm keys and the Last.fm sign-in, the Qobuz and Tidal sign-ins (tokens, never a password) and the server's Tailscale "
      "identity. Without a passphrase they are in the file as they are, so keep the file as you would keep "
      "them. Type a **passphrase** (8 characters or more) before backing up and they are sealed "
      "(AES-256-GCM; v0.9.0): restoring them asks for it, and nothing opens them without it. Everything "
@@ -393,7 +400,8 @@ FEATURES = [
      "**Settings → Updates → Check for update** beside the server, the Android app (in the app) or a "
      "Bridge; once it says **Update available**, tap it again. The server starts again in a few seconds, "
      "the app's update goes to Android's installer, a Linux or Raspberry Pi Bridge updates itself, and an "
-     "Android Bridge shows a notification whose tap downloads the update in its browser."),
+     "Android Bridge shows a notification whose tap downloads the update in its browser. The server and the "
+     "Bridges install only an update signed with Mandarin's release key."),
 ]
 
 MAX_WORDS = 30
@@ -416,7 +424,7 @@ def md_inline_to_html(s):
 def readme_block():
     lines = ["Every feature below has an **ⓘ**: open it for how to switch the feature on and use it.", ""]
     for i, (fid, em, title, new, what, how) in enumerate(FEATURES):
-        lines.append("%s **%s**%s" % (em, title, " — *new in v1.2.5*" if new else ""))
+        lines.append("%s **%s**%s" % (em, title, " — *new in v1.3.0*" if new else ""))
         lines.append("")
         lines.append(what)
         lines.append("")

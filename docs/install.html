@@ -61,14 +61,15 @@
       <code>--device /dev/snd</code> or <code>--privileged</code> for sound.
     </div>
     <div class="note">
-      <b>Keep the musicd-server-data volume.</b> It holds the library database, play history, playlists, settings and
+      <b>Keep the musicd-server-data volume.</b> It holds the library database, play history, settings and
       the artwork and conversion caches. The command above is a swap, not a fresh start &mdash; re-run it to update.
     </div>
     <div class="note">
       <b>More than one music folder?</b> Add each one above. A single folder is mounted as <code>/music</code>; with
       several, each becomes its own folder inside it &mdash; <code>/mnt/nas/Albums</code> as
       <code>/music/Albums</code>, <code>/mnt/usb/Vinyl</code> as <code>/music/Vinyl</code> &mdash; and the scan reads
-      them all as one library. All are mounted read-only. More folders can be added later in <b>Settings → Music
+      them all as one library. All are mounted read-only, with <code>rslave</code> so a drive the machine mounts after the
+      container starts (a slow USB disk at boot) shows up inside it. More folders can be added later in <b>Settings → Music
       Folders</b>, from any drive or share mounted into the container.
     </div>
     <div class="note">
