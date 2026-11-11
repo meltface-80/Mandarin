@@ -20,6 +20,8 @@ if (OperatingSystem.IsMacOS())
 
 var version = BuildVersion.Of(typeof(Server).Assembly);   // a test build's "1.1.4-t7" whole (item 141)
 Server.Version = version;
+// An exception nothing caught, and a task's no one waited on, kept in the log (LogProvider.cs, item 389).
+LogProvider.CatchUnhandled();
 
 // `mandarin-server --version`: this program's version, and nothing else — how
 // an update checks a newer one before putting it in place (Admin/Updater.cs).
@@ -98,6 +100,9 @@ if (args.Length > 0)
 }
 Db.File = Path.Combine(dataDir, "musicd.db");
 Server.DataDir = dataDir;
+// The log kept from here in <data>/Logs, what was said before written first; a line on how the server is every five minutes (item 389).
+Diagnostics.Start(dataDir);
+LogHeader.StartSnapshots();
 string appDir = Environment.GetEnvironmentVariable("MANDARIN_APP_DIR") ?? Server.FindAppDir();
 // A database put back from a backup goes in now, before it opens (Admin/Restore.cs);
 // then the database made, or brought up to date (Schema.cs); a new one is a
@@ -140,6 +145,8 @@ await Jobs.StartAlone(ownConfig, dataDir, port, version);
 Environment.SetEnvironmentVariable("DOTNET_hostBuilder__reloadConfigOnChange", "false");
 var builder = WebApplication.CreateSlimBuilder(new WebApplicationOptions { Args = args, ContentRootPath = AppContext.BaseDirectory });
 builder.Logging.ClearProviders();
+// ASP.NET's and Kestrel's own warnings and errors (a request that threw, with its stack) into the log (item 389).
+builder.Logging.AddProvider(new LogProvider());
 builder.WebHost.ConfigureKestrel(k =>
 {
     k.AddServerHeader = false;

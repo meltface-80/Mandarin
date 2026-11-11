@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Changed - the server's log is always on and kept as Roon keeps its own (item 389): plain-text files in the data folder's Logs (MandarinServer_log.txt, then .01 to .20 older, 8 MB each), each opening with what the server is (version, how it's installed, the system, memory, time zone, data and music folders, mounts) and each line dated in UTC with its level (INFO, WARN, ERROR), the same in the console. It can no longer be switched off: an app that asks is told it is on, and the log from before (diagnostics.log) is kept as MandarinServer_before.txt. A line every five minutes says how the server is (memory, threads, free space). What ASP.NET says when a request throws is now in the log with the exception and its stack, where before it was thrown away and the page saw an empty 500; and an exception nothing caught, or a task's no one waited on, is a line before anything else. What is the owner's alone is still taken out of every line, as before
+
 ## v1.3.0
 
 Update following a code review: several under-the-hood fixes and improvements.
