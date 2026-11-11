@@ -50,6 +50,7 @@ import com.google.common.util.concurrent.SettableFuture
 import com.musicd.server.client.CachePlan
 import com.musicd.server.client.Phone
 import com.musicd.server.client.PlayerIdle
+import com.musicd.server.client.PollTurns
 import com.musicd.server.client.ReplayGain
 import com.musicd.server.client.ServerClient
 import com.musicd.server.client.phoneCommands
@@ -164,10 +165,9 @@ class PhonePlayerService : MediaLibraryService() {
     private var pendingLoad: SettableFuture<MediaSession.MediaItemsWithStartPosition>? = null
     private lateinit var player: ExoPlayer
     private lateinit var audio: AudioManager
-    @Volatile internal var running = false
+    internal val turns = PollTurns()   // the long poll's turns (A-M1, A-M2): live while it runs, one loop, each command once
     private val idle = PlayerIdle { android.os.SystemClock.elapsedRealtime() }
     internal var worker: Thread? = null
-    private var seq = 0L
     private var reportPending = false
     /** Playing downloads from the Downloads screen rather than the server's queue. */
     private var localMode = false
@@ -312,9 +312,9 @@ class PhonePlayerService : MediaLibraryService() {
         addSession(session!!)
 
         current = this
-        running = true
+        val gen = turns.begin()
         DownloadStore.warm(this)
-        worker = Thread({ loop() }, "phone-commands").apply { isDaemon = true; start() }
+        worker = Thread({ loop(gen) }, "phone-commands").apply { isDaemon = true; start() }
         main.postDelayed(heartbeat, 10_000)
     }
 
@@ -441,7 +441,7 @@ class PhonePlayerService : MediaLibraryService() {
 
     override fun onDestroy() {
         if (current === this) current = null
-        running = false
+        turns.end()
         Away.unlisten(onNetwork)
         fetchGen++
         writer?.cancel()
@@ -461,10 +461,10 @@ class PhonePlayerService : MediaLibraryService() {
 
     // ------------------------------------------------------------ commands
 
-    internal fun loop() {
+    internal fun loop(gen: Int) {
         var hello = false
         var failures = 0
-        while (running) {
+        while (turns.current(gen)) {
             val client = Store.client(this)
             if (client == null) { pause(5_000); continue }
             // Offline mode: the server isn't asked anything; the phone plays for itself.
@@ -476,7 +476,7 @@ class PhonePlayerService : MediaLibraryService() {
                     val mine = if (Store.dspPending(this)) Store.dsp(this)?.let { runCatching { JSONObject(it) }.getOrNull() } else null
                     val h = client.phoneHello(deviceName(), mine)
                     if (mine != null) Store.setDspPending(this, false)
-                    seq = h.seq
+                    if (!turns.onHello(gen, h.seq)) continue   // dormant and woken meanwhile: this loop's turn is over
                     zoneId = h.zoneId
                     Store.setPhoneZone(this, h.zoneId)
                     Store.setAwayLearned(this, h.awayAddress)
@@ -493,24 +493,25 @@ class PhonePlayerService : MediaLibraryService() {
                 sendOfflinePlays(client)
                 connected = true
                 if (failures > 0 || resumeWanted) serverBack()
-                val batch = client.phoneCommands(seq, WAIT_MS)
-                seq = batch.seq
+                val batch = client.phoneCommands(turns.after, WAIT_MS)
                 failures = 0
-                if (batch.commands.isNotEmpty()) {
-                    val done = CountDownLatch(1)
-                    main.post {
-                        for (c in batch.commands) runCatching { apply(c) }.onFailure { Log.w(TAG, "command ${c.op} failed", it) }
-                        done.countDown()
-                    }
-                    // Not for ever: a busy main thread mustn't stop the commands for good.
-                    done.await(10, java.util.concurrent.TimeUnit.SECONDS)
+                val done = CountDownLatch(1)
+                main.post {   // applied only while this loop's turn is on, and each command once: two loops never apply one twice
+                    for (c in turns.accept(gen, batch)) runCatching { apply(c) }.onFailure { Log.w(TAG, "command ${c.op} failed", it) }
+                    done.countDown()
                 }
+                // Not for ever: a busy main thread mustn't stop the commands for good.
+                done.await(10, java.util.concurrent.TimeUnit.SECONDS)
             } catch (e: InterruptedException) {
                 return
             } catch (e: ServerClient.ServerException) {
                 connected = false
-                if (e.signedOut) { main.post { stopSelf() }; return }
-                if (e.status == 409) hello = false            // the server forgot us (restarted): start again
+                when (turns.onError(gen, e.status)) {
+                    PollTurns.Next.Stop -> { main.post { stopSelf() }; return }   // signed out: the turn ends, and signing in wakes it again
+                    PollTurns.Next.Stale -> return
+                    PollTurns.Next.Rehello -> hello = false   // the server forgot us (restarted): start again
+                    PollTurns.Next.Retry -> {}
+                }
                 failures++
                 pause(minOf(15_000L, 1_000L * failures))
             } catch (e: Exception) {
@@ -571,9 +572,8 @@ class PhonePlayerService : MediaLibraryService() {
         }
     }
 
-    private fun pause(ms: Long) {
-        try { Thread.sleep(ms) } catch (e: InterruptedException) { running = false }
-    }
+    /** An interrupt (dormant, destroyed) ends the sleep; the loop then finds its turn over. A new turn's loop goes on. */
+    private fun pause(ms: Long) { runCatching { Thread.sleep(ms) } }
 
     /** The phone's DSP engine: the setting from the server, run on what plays (DspSink). */
     private val dsp = DspEngine()
@@ -777,7 +777,7 @@ class PhonePlayerService : MediaLibraryService() {
     private val watchPlaying = object : Runnable {
         override fun run() {
             main.removeCallbacks(this)
-            if (!running || fetchesOn.get() == 0) return
+            if (!turns.live || fetchesOn.get() == 0) return
             val waiting = player.playbackState == Player.STATE_BUFFERING && player.playWhenReady
             aheadWaits = CachePlan.aheadWaits(aheadWaits, waiting, player.isLoading, player.totalBufferedDuration)
             if (aheadWaits) writer?.let { w -> if (stoppedFor !== w) { stoppedFor = w; w.cancel() } }
@@ -857,7 +857,7 @@ class PhonePlayerService : MediaLibraryService() {
      * left alone; a change of plan stops the fetch under way and starts again.
      */
     private val fetchAhead = Runnable {
-        if (!running) return@Runnable
+        if (!turns.live) return@Runnable
         // Offline mode: nothing fetched from the server ahead (one waiting for the playing track ends too).
         if (Store.offlineMode(this)) { fetchGen++; writer?.cancel(); return@Runnable }
         val isMetered = metered()
@@ -887,10 +887,10 @@ class PhonePlayerService : MediaLibraryService() {
                 tracks@ for (url in todo) {
                     while (true) {
                         while (aheadWaits) {
-                            if (gen != fetchGen || !running) return@execute
+                            if (gen != fetchGen || !turns.live) return@execute
                             try { Thread.sleep(500) } catch (e: InterruptedException) { return@execute }
                         }
-                        if (gen != fetchGen || !running) return@execute
+                        if (gen != fetchGen || !turns.live) return@execute
                         val key = keyFor(url) ?: continue@tracks
                         val w = CacheWriter(cacheSource.createDataSource(),
                             DataSpec.Builder().setUri(url).setKey(key).build(), null, null)
@@ -969,7 +969,7 @@ class PhonePlayerService : MediaLibraryService() {
         retries++
         Away.recheck(this)
         main.postDelayed({
-            if (!running) return@postDelayed
+            if (!turns.live) return@postDelayed
             player.prepare()
             player.playWhenReady = wasPlaying
         }, 3000L * retries)
@@ -1065,7 +1065,7 @@ class PhonePlayerService : MediaLibraryService() {
             // Not playing for five minutes, off screen: stopped before Android freezes it, session and all (item 124).
             val playing = player.playWhenReady && player.playbackState in Player.STATE_BUFFERING..Player.STATE_READY
             if (idle.stop(playing, NativeShell.onScreen.value)) dormant()   // item 203: stopSelf alone did nothing while Android kept the service bound
-            if (running) main.postDelayed(this, 10_000)
+            if (turns.live) main.postDelayed(this, 10_000)
         }
     }
 

@@ -100,11 +100,16 @@ object Away {
         runCatching { firstLook.await(ms, TimeUnit.MILLISECONDS) }
     }
 
-    /** [check], then MusicD's own Tailscale's repair waited for, up to [ms] (the server looked for straight after). Blocking. */
+    /**
+     * [check], then MusicD's own Tailscale's repair waited for, up to [ms] (the server looked for straight after). Blocking.
+     * Interrupted (the phone player gone dormant), it stops waiting and leaves the interrupt for its caller to see.
+     */
     fun checkAndWait(c: Context, ms: Long = 20_000) {
         check(c)
         val until = System.currentTimeMillis() + ms
-        while (repairing && System.currentTimeMillis() < until) runCatching { Thread.sleep(100) }
+        while (repairing && System.currentTimeMillis() < until) {
+            try { Thread.sleep(100) } catch (e: InterruptedException) { Thread.currentThread().interrupt(); return }
+        }
     }
 
     /**
