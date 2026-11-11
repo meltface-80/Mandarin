@@ -91,7 +91,7 @@ test("Play next: a track's button, a selection's menu item, and the order they l
       assert.deepEqual(page2.errors, []);
     } finally { await b.close(); }
     assert.deepEqual(r.track_buttons, ["Play now", "Play next", "Queue"]);
-    assert.deepEqual(r.menu, ["Play now", "Play next", "Add to end of queue", "Add to playlist…", "Listen later", "Clear selection"]);
+    assert.deepEqual(r.menu, ["Play now", "Play next", "Add to end of queue", "Listen later", "Clear selection"]);
     assert.match(r.menu_title, /2 tracks selected/i);
     // Song 1 is playing. Song 3 went next; then Songs 2 and 3, in that order, before it.
     await until(() => room.queue.length === 6);

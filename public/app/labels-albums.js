@@ -3,7 +3,7 @@
 // album's page: back to that page, not to the list of all labels (v0.6.24).
 let _labelsReturn = null;
 async function showLabelAlbums(name, fromLabelsList = false, returnTo = null) {
-  if (window.__leavePlaylistScreens) window.__leavePlaylistScreens();
+  if (window.__leaveSmartPicks) window.__leaveSmartPicks();
   if (window.__exitArtists) window.__exitArtists();
   if (window.__clearSearchIfActive) window.__clearSearchIfActive();  // drop stale search results
   _labelsReturn = returnTo && returnTo.album ? returnTo : null;
@@ -222,7 +222,6 @@ if (selMenu) {
       else exitAlbumSelectMode();
       return;
     }
-    if (act === "add") { addSelectionToPlaylist(); return; }
     if (act === "later") {
       if (selMenuKind === "tracks") { if (currentAlbum) setListenLater(currentAlbum.offset, true); exitTrackSelectMode(); }
       else { setListenLater(albumSelected.map(a => a.offset), true); exitAlbumSelectMode(); }
@@ -331,7 +330,7 @@ window.__libraryChanged = (opts) => {
   const gone = opts && opts.gone != null ? String(opts.gone) : null;
   if (gone) for (const el of document.querySelectorAll('.album[data-offset="' + gone + '"]')) el.remove();
   homeRowsLoadedAt = 0; homeUnplayedLoaded = false; homeFavouritesLoaded = false; homeLaterLoaded = false;
-  homeHistoryLoaded = false; homeLibraryKey = ""; homePlaylistsLoaded = false;
+  homeHistoryLoaded = false; homeLibraryKey = "";
   if (homeView && !homeView.classList.contains("hidden")) { refreshHomeRows(); return; }
   if (window.__searchActive && window.__searchActive()) return;
   if (window.__artistViewActive && window.__artistViewActive()) return;

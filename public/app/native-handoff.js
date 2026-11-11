@@ -10,8 +10,8 @@
 /*  Now playing when this phone's native one is off; the native row at   */
 /*  the foot of the screen taps the page's own Menu, Home, Library,      */
 /*  Search or Offline sign; the app's side menu, its items the page's.  */
-/*  An album's own (its Share card, Add to playlist, Edit album) are    */
-/*  asked by its offset; a label by its name.                           */
+/*  An album's own (its Share card, Edit album) are asked by its        */
+/*  offset; a label by its name.                                        */
 /*  True when done.                                                     */
 /* ------------------------------------------------------------------ */
 window.__musicdNative = function (what, arg) {
@@ -90,76 +90,25 @@ window.__musicdNative = function (what, arg) {
     window.__libraryChanged(Number.isInteger(gone) && gone >= 0 ? { gone } : {});
     return true;
   }
-  // Tracks picked on the native album page, for a playlist: the page's sheet, with the same entries its own selection makes.
-  if (what === "album-playlist-tracks") {
-    let ask = null;
-    try { ask = JSON.parse(arg); } catch (e) { return false; }
-    if (!ask || !Number.isInteger(ask.offset) || !Array.isArray(ask.tracks) || !ask.tracks.length) return false;
-    fetch("/api/album?offset=" + ask.offset).then(r => r.json()).then(j => {
-      const a = j && j.album, tracks = (j && j.tracks) || [];
-      if (!a) return;
-      const entries = ask.tracks.filter(i => tracks[i]).map(i => ({
-        album_offset: a.offset, album_title: a.title || "", album_subtitle: a.subtitle || "",
-        track_index: i, title: tracks[i].title || "", subtitle: a.subtitle || "", image_key: a.image_key || null
-      }));
-      if (entries.length) openAddToPlaylistSheet(entries, null);
-    }).catch(() => { /* the album gone: nothing to open */ });
-    return true;
-  }
-  if (what === "album-share" || what === "album-playlist" || what === "album-edit") {
+  if (what === "album-share" || what === "album-edit") {
     const offset = Number(arg);
     if (!Number.isInteger(offset) || offset < 0) return false;
     fetch("/api/album?offset=" + offset).then(r => r.json()).then(j => {
       const a = j && j.album;
       if (!a) return;
       if (what === "album-share") openShare({ title: a.title || "", artist: a.subtitle || "", image_key: a.image_key });
-      else if (what === "album-playlist") openAddToPlaylistSheet(null, [{ offset: a.offset, title: a.title || "", subtitle: a.subtitle || "", image_key: a.image_key || null }]);
       else openAlbumEditor(a);
     }).catch(() => { /* the album gone: nothing to open */ });
     return true;
   }
   // The app's native Library wall (item 52): its view changed there (the same query string this page's wall asks
-  // with), so this wall and Home's Library row follow; Save as… from its Focus, the page's own prompt over the view;
-  // albums picked there, for a playlist: the page's sheet.
+  // with), so this wall and Home's Library row follow.
   if (what === "library-view") { applyLibViewQuery(arg || ""); return true; }
-  if (what === "smart-save") { applyLibViewQuery(arg || ""); saveSmartPlaylistPrompt(null); return true; }
-  if (what === "albums-playlist") {
-    let albums;
-    try { albums = JSON.parse(arg); } catch (e) { return false; }
-    if (!Array.isArray(albums) || !albums.length) return false;
-    openAddToPlaylistSheet(null, albums.map(a => ({ offset: a.offset, title: a.title || "", subtitle: a.subtitle || "", image_key: a.image_key || null })));
-    return true;
-  }
-  // Home's rows natively (item 57): the Playlists heading opens the page's Playlists; a playlist's tile the page's own
-  // page of it, by its id (yours, or a Dynamic one's).
-  if (what === "playlists") { showPlaylists(); return true; }
   // An album of the phone's own music, by its key: the page's own album page of it (the server never sees these albums).
   if (what === "phone-album") {
     const a = localList().find(x => x.key === arg);
     if (!a) return false;
     openAlbum(a, { source: "home", filter: null });
-    return true;
-  }
-  if (what === "playlist" || what === "smart-playlist") {
-    if (!arg) return false;
-    fetch(what === "playlist" ? "/api/user-playlists" : "/api/smart-playlists", { cache: "no-store" }).then(r => r.json()).then(j => {
-      const p = ((j && j.playlists) || []).find(x => String(x.id) === String(arg));
-      if (!p) return;
-      if (what === "playlist") openUserPlaylist(p); else openSmartPlaylist(p);
-    }).catch(() => { /* the playlist gone: nothing to open */ });
-    return true;
-  }
-  // The native Dynamic Playlists' (item 66): New (the page's sheet, then its Focus); Edit (its Focus with the playlist as the
-  // save target); Share (every album read first, as the page's own Share does, then its sheet with the file).
-  if (what === "smart-new") { createSmartPlaylist(); return true; }
-  if (what === "smart-edit" || what === "smart-share") {
-    if (!arg) return false;
-    fetchSmartPlaylists().then(list => {
-      const sp = (list || []).find(p => String(p.id) === String(arg));
-      if (!sp) return;
-      if (what === "smart-edit") { editSmartPlaylist(sp); return; }
-      shareSmartTracks(sp);
-    });
     return true;
   }
   // The native Search's (item 61): a service's artist, their albums in that service's browser; a Pitchfork review, its page in the magazine.
@@ -241,10 +190,10 @@ window.__musicdNative = function (what, arg) {
 
 /* ------------------------------------------------------------------ */
 /*  The same, for one of the page's sheets over a native screen (bug   */
-/*  list item 54): the Share card, Add to playlist, the album editor,  */
-/*  Group zones, Device power or a Dynamic Playlist's name, asked for  */
-/*  from Now playing or an album's native page. The screen stays; the  */
-/*  app puts this page over it with its ground clear, and `native-over`*/
+/*  list item 54): the Share card, the album editor, Group zones or    */
+/*  Device power, asked for from Now playing or an album's native      */
+/*  page. The screen stays; the app puts this page over it with its    */
+/*  ground clear, and `native-over`                                    */
 /*  on <html> keeps everything but the sheet out of sight (style.css), */
 /*  so the sheet opens over the native screen as it opens over the     */
 /*  page's own. The sheet is watched (a sheet that fetches first opens  */
@@ -257,7 +206,7 @@ window.__musicdNative = function (what, arg) {
 /*  two frames on), and the class comes off only once the app says the */
 /*  screen is in front again (the app takes it off itself).            */
 /* ------------------------------------------------------------------ */
-const OVER_SHEETS = "#settings-overlay:not(.hidden), #share-overlay:not(.hidden), .lib-sheet-backdrop, #album-edit-overlay:not(.hidden), #prompt-overlay:not(.hidden), #confirm-overlay:not(.hidden)";
+const OVER_SHEETS = "#settings-overlay:not(.hidden), #share-overlay:not(.hidden), .lib-sheet-backdrop, #album-edit-overlay:not(.hidden), #confirm-overlay:not(.hidden)";
 window.__musicdNativeOver = function (what, arg) {
   const html = document.documentElement;
   const app = window.MusicdApp;
@@ -290,22 +239,3 @@ window.__musicdNativeOver = function (what, arg) {
   giveUp = setTimeout(() => { if (!seen) done(); }, 6000);
   return true;
 };
-
-/* A Dynamic Playlist's tracks read album by album (to SHARE_ALBUM_MAX), then the page's share sheet with them: what its own
-   Share does from its page (smart-playlist.js), for the app's native one, whose page isn't this page's. */
-async function shareSmartTracks(sp) {
-  const loaded = [];
-  let offset = 0, done = false, failed = false;
-  while (!done && offset < SHARE_ALBUM_MAX) {
-    let j;
-    try { const r = await fetch("/api/smart-playlist?id=" + encodeURIComponent(sp.id) + "&offset=" + offset, { cache: "no-store" }); j = r.ok ? await r.json() : null; } catch (e) { j = null; }
-    if (!j) { failed = true; break; }
-    for (const t of (j.tracks || [])) loaded.push(t);
-    if (!(j.albums_expanded > 0)) break;
-    offset += j.albums_expanded;
-    done = !!j.done;
-  }
-  if (!loaded.length) { showToast("Nothing in this playlist to share", "error"); return; }
-  await shareTracks(sp.name || "Dynamic Playlist", loaded.map(t => ({ title: t.title, artist: t.subtitle, album: t.album_title, track_no: t.track_no })), null,
-    { incomplete: failed, albumsCapped: !done && offset >= SHARE_ALBUM_MAX });
-}

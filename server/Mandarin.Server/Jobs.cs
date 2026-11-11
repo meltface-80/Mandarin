@@ -7,7 +7,7 @@
 // Tailscale engine (Admin/Tailscale.cs); from v0.8.34 the library scans
 // (Scans.cs); from v0.8.44 the month's prune of Qobuz's and Tidal's albums
 // only ever played from the browser (Services/Rows.cs); from v0.8.45 their
-// import, the favourites' watch and the service playlists (Services/Import.cs);
+// import and the favourites' watch (Services/Import.cs);
 // from v0.8.47 their accounts (signing in and out, Tidal's token refreshed),
 // their streams and playing an album from their browser (Services/Accounts.cs,
 // ServiceStreams.cs): "services"; from v0.8.48 the in-app update
@@ -109,6 +109,8 @@ internal static partial class Jobs
         // What a service no longer here left behind (item 152), and gone albums and tracks (item 179): gone before the library is read.
         Orphans.Sweep(Log);
         if (Services.Leftovers.Remove(dataDir, Log)) _ = Library.Tell(new JsonObject { ["services"] = "changed" });
+        // The playlists' settings and the albums they held, gone with the playlists.
+        Services.Leftovers.RemovePlaylists(Log);
         // Kept (its answers and its spacing with it) unless Last.fm is asked elsewhere.
         if (NewLastfm(Text(cfg["lastfm_url"])) is var said && said.BaseUrl != Lastfm.BaseUrl) lastfm = said;
         // A record's write-up and links (v0.8.21): asked of MusicBrainz, Wikipedia, Pitchfork and Qobuz's site where the configuration says.

@@ -66,8 +66,6 @@ class PhoneShelf(private val downloads: List<ShelfAlbum>, private val music: Pho
         "/api/filters/genres" -> Answer.ok(JSONObject().put("genres", JSONArray()))
         "/api/filters/decades" -> Answer.ok(JSONObject().put("decades", JSONArray()))
         "/api/radio" -> Answer.ok(JSONObject().put("enabled", false).put("zones", JSONArray()))
-        // Playlists offline (v0.5.58): the server's aren't shown, their albums not on the phone.
-        "/api/user-playlists", "/api/playlists" -> Answer.ok(JSONObject().put("playlists", JSONArray()))
         "/api/search" -> {
             val term = (q["q"] ?: "").trim().lowercase()
             val hits = if (term.isEmpty()) emptyList() else downloads.filter { it.title.lowercase().contains(term) || it.artist.lowercase().contains(term) }
@@ -123,7 +121,7 @@ class PhoneShelf(private val downloads: List<ShelfAlbum>, private val music: Pho
         /** The paths [get] answers, so a caller reads the phone's library only for those. */
         val PATHS = setOf("/api/library/albums", "/api/random-albums", "/api/pick-unheard", "/api/home/unplayed", "/api/home/history",
             "/api/home/album-of-the-day", "/api/home/label-of-the-week", "/api/home/genre-groups", "/api/smart-picks", "/api/discover",
-            "/api/library/facets", "/api/filters/genres", "/api/filters/decades", "/api/radio", "/api/user-playlists", "/api/playlists",
+            "/api/library/facets", "/api/filters/genres", "/api/filters/decades", "/api/radio",
             "/api/search", "/api/artist-albums", "/api/album", "/api/album/extras", "/api/phone-music/albums")
 
         private val ACTIONS = listOf("play_now" to "Play Now", "queue" to "Queue", "play_next" to "Play Next", "shuffle" to "Shuffle")

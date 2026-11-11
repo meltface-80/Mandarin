@@ -197,9 +197,6 @@ class ServerClient(
     /** Never this artist again in Smart Picks (the page's "Not for me"). */
     fun blockSmartPick(artist: String) { post("/api/smart-picks/block", JSONObject().put("artist", artist)) }
 
-    /** A Dynamic Playlist deleted (item 66), for good. */
-    fun deleteSmartPlaylist(id: String) { post("/api/smart-playlists/delete", JSONObject().put("id", id)) }
-
     /** Every output with its room, what it may join and its power controls (item 68: Group zones, Device power). */
     fun outputs(): List<Speaker> = Speaker.list(getJson("/api/outputs"))
     /** Outputs split off their groups, then a group made, the first output's queue kept (Roon's group_outputs). */
@@ -268,9 +265,6 @@ class ServerClient(
     /** The server's built-in Tailscale (item 80), and [what] done to it ("enable" with {on}, "login", "logout"): its state after. */
     fun tailscale(): AwayState = AwayState.parse(getJson(AwayState.PATH))
     fun tailscaleDo(what: String, body: JSONObject = JSONObject()): AwayState = AwayState.parse(post("/api/tailscale/$what", body, 30_000))
-
-    /** One of your playlists deleted (item 65), for good. */
-    fun deletePlaylist(id: String) { post("/api/user-playlists/delete", JSONObject().put("id", id)) }
 
     /** A service's album made the library's (transient until it is a favourite), to open its page: its offset (item 61, the search's tiles). */
     fun serviceOpen(service: String, albumId: String): Long {

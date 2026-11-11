@@ -160,7 +160,7 @@ for (const [layout, opts] of [["a desktop", { width: 1440, height: 900, mouse: t
     for (const id of rows) assert.equal(await step("row " + id, ROW(id)), true, id + "'s wall opens");
 
     const items = await step("menu", MENU);
-    assert.ok(items.includes("playlists") && items.includes("settings-toggle"), "the menu: " + items.join(", "));
+    assert.ok(items.includes("later") && items.includes("settings-toggle"), "the menu: " + items.join(", "));
     for (const key of items) await step("menu " + key, ITEM(key));
 
     const room = house.room("Kitchen");

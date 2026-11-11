@@ -35,7 +35,6 @@
     "server/Mandarin.Server/Admin/Updater.cs": "over the cap when the gate came (v0.8.48); shrinks only",
     "server/Mandarin.Server/Auth.cs": "over the cap when the gate came (v0.8.48); shrinks only",
     "server/Mandarin.Server/Covers.cs": "over the cap when the gate came (v0.8.48); shrinks only",
-    "server/Mandarin.Server/Extras/ShareBlob.cs": "over the cap when the gate came (v0.8.48); shrinks only",
     "server/Mandarin.Server/Extras/WriteUps.cs": "over the cap when the gate came (v0.8.48); shrinks only",
     "server/Mandarin.Server/Identify/Pack.cs": "over the cap when the gate came (v0.8.48); shrinks only",
     "server/Mandarin.Server/Identify/Score.cs": "over the cap when the gate came (v0.8.48); shrinks only",

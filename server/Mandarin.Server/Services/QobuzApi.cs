@@ -1,7 +1,7 @@
 // QobuzApi.cs — Qobuz's API as lib/qobuz/api.js asks it (v0.8.39, stage 4.1):
 // the catalogue's calls; from v0.8.44 (stage 4.2) the purchases' ids and the
 // favourite set and taken away too; from v0.8.45 (stage 4.3) the import's
-// lists (the favourites, the purchases, the favourite tracks, the playlists);
+// lists (the favourites, the purchases);
 // from v0.8.47 (stage 4.4) the sign-in (user/login), a track's address
 // (track/getFileUrl, signed) and the play reports. Each call is
 //
@@ -172,7 +172,4 @@ internal sealed partial class QobuzApi(string? baseUrl, Func<string?> token)
     /* Every page of each, kept a minute, as api.js keeps them. */
     public Task<List<object?>> FavouriteAlbums() => GetAll("favorite/getUserFavorites", [("type", "albums")], j => P(j, "albums"), 60e3);
     public Task<List<object?>> Purchases() => GetAll("purchase/getUserPurchases", [], j => P(j, "albums"), 60e3);
-    public Task<List<object?>> FavouriteTracks() => GetAll("favorite/getUserFavorites", [("type", "tracks")], j => P(j, "tracks"), 60e3);
-    public Task<List<object?>> Playlists() => GetAll("playlist/getUserPlaylists", [], j => P(j, "playlists"), 60e3);
-    public Task<List<object?>> PlaylistTracks(object? id) => GetAll("playlist/get", [("playlist_id", id), ("extra", "tracks")], j => P(j, "tracks"), 60e3);
 }

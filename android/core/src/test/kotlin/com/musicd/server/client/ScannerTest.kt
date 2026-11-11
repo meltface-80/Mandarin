@@ -49,7 +49,7 @@ class ScannerTest {
         assertEquals("Remove 1 album", Scanner.cleanupButton(clean, "files", us))
         assertNull(Scanner.cleanupButton(clean, "qobuz", us))
         assertEquals("1 album (12 tracks) in 1 folder the scanner couldn’t find.", Scanner.filesNote(clean, us))
-        assertEquals("Qobuz albums neither in your favourites or purchases nor needed by a playlist.", Scanner.servicesNote(clean))
+        assertEquals("Qobuz albums in neither your favourites nor your purchases.", Scanner.servicesNote(clean))
         assertEquals("…", Scanner.filesNote(null, us))
     }
 

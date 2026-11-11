@@ -1,7 +1,7 @@
 // TidalApi.cs — Tidal's API as lib/tidal/api.js asks it (v0.8.39, stage 4.1):
 // the catalogue's calls; from v0.8.44 (stage 4.2) the favourite set and taken
-// away too; from v0.8.45 (stage 4.3) the import's lists (the favourite albums
-// and tracks, the playlists and their tracks); from v0.8.47 (stage 4.4) the
+// away too; from v0.8.45 (stage 4.3) the import's list (the favourite
+// albums); from v0.8.47 (stage 4.4) the
 // sign-in (OAuth's device flow on auth.tidal.com: a link and a code, then
 // asked until the person has signed in), the account's user and subscription,
 // the token refreshed, and a track's playbackinfo. Each call is
@@ -281,9 +281,6 @@ internal sealed partial class TidalApi(string? baseUrl, string? imagesUrl, strin
 
     /* Every page of each, asked afresh each time, as api.js asks them. */
     public Task<List<object?>> FavouriteAlbums(object? userId) => GetAll($"users/{Js.Str(userId)}/favorites/albums", 0, [("order", "DATE"), ("orderDirection", "DESC")]);
-    public Task<List<object?>> FavouriteTracks(object? userId) => GetAll($"users/{Js.Str(userId)}/favorites/tracks", 0, [("order", "DATE"), ("orderDirection", "DESC")]);
-    public Task<List<object?>> Playlists(object? userId) => GetAll($"users/{Js.Str(userId)}/playlistsAndFavoritePlaylists", 0, null, 50);
-    public Task<List<object?>> PlaylistItems(object? uuid) => GetAll($"playlists/{Js.Str(uuid)}/items");
 
     // ------------------------------------------------------------ the stream (v0.8.47)
 

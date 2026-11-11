@@ -91,7 +91,7 @@ class ShellTest {
     }
 
     @Test fun `no screen is closed and then another opened in its place, two steps apart (item 199)`() {
-        // An album from Now playing, from Pitchfork; the Playlists from a playlist opened elsewhere: one step each now.
+        // An album from Now playing, from Pitchfork: one step each now.
         val twoSteps = Regex("""popBackStack\(\); *nav\.navigate""")
         File("../app/src/main/java/com/musicd/server/android").listFiles()!!.filter { it.name.endsWith(".kt") }
             .forEach { assertFalse(it.name, twoSteps.containsMatchIn(it.readText())) }

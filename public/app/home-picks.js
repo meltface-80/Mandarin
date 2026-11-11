@@ -22,7 +22,7 @@ async function loadHomeSmartPicks() {
 
 // The full Smart Picks screen: every pick with its reason and its actions.
 // (smartPicksActive / smartPicksSeq are declared with the other view flags at
-// the top of the file — leavePlaylistScreens writes them, and that can run
+// the top of the file — leaveSmartPicks writes them, and that can run
 // during boot.)
 async function showSmartPicks() {
   enterFullWall("Smart Picks");
@@ -61,6 +61,7 @@ async function showSmartPicks() {
   for (const p of picks) wrap.appendChild(smartPickCard(p, true));
   grid.appendChild(wrap);
 }
+window.__showSmartPicks = showSmartPicks;   // the side menu's Smart Picks (menu-drawer.js)
 
 // Label of the week — one label featured for the whole ISO week (backend
 // picks deterministically). Retried each Home visit until it populates (the
@@ -129,9 +130,9 @@ async function loadHomeLabelOfWeek() {
 // Overflow menu — Roon's three-dots-in-a-circle.
 //
 // ONE definition, used by every screen that has more secondary actions than
-// fit on a row. Before this, the playlist screens laid six pill buttons side
-// by side: .action-btn is `flex: 1 1 0`, so they all shrank together instead
-// of wrapping and "Send to Roon" rendered as "end to Roo".
+// fit on a row. Six pill buttons side by side shrank together instead of
+// wrapping (.action-btn is `flex: 1 1 0`), and "Send to Roon" rendered as
+// "end to Roo".
 //
 // The dropdown reuses .sel-menu / .sel-menu-item — the album view's selection
 // menu — so there is one dropdown look in the app rather than a second one
@@ -261,8 +262,8 @@ function buildFavButton(album, fresh, key) {
  * A menu that would be cut off, opened the other way (v0.7.8). Each menu
  * opens downwards under its button as a rule, but the box that clips it
  * (the nearest scrolling ancestor, within the window) is not always where
- * the rule expects: a playlist's menu at the foot of the screen, an album's
- * on a phone held sideways. A menu cut off at the
+ * the rule expects: an album's menu on a phone held sideways. A menu cut
+ * off at the
  * top cannot even be scrolled to. So it is measured as it opens, and turned
  * round when the other side has more room.
  */
@@ -355,13 +356,13 @@ function buildOverflowMenu(items, opts) {
 // topbar chrome + title, scroll to the top, paint skeletons. Both walls'
 // active flags are reset here; the caller sets its own to true afterwards.
 // `albumWall` says whether this screen shows album TILES — the Library and
-// "Not played" walls do; the playlist screens share the same container but
-// list tracks, and offering a grid/list switch over those would be a control
-// that does nothing.
+// "Not played" walls do; Smart Picks shares the same container but lists
+// cards, and offering a grid/list switch over those would be a control that
+// does nothing.
 function enterFullWall(title, albumWall) {
   keepHomeScroll();   // Back comes to Home where it was (home-render.js)
   // Leaving the artist view through the side menu (v0.6.1): Listen later,
-  // Smart Picks, Playlists and the rest all come through here, and an
+  // Smart Picks and the rest all come through here, and an
   // artist view left armed made the shared Back put the old screen back
   // over the new one and reopen the album.
   if (window.__exitArtistView) window.__exitArtistView({ restore: false });
@@ -372,8 +373,8 @@ function enterFullWall(title, albumWall) {
   laterWallActive = false;
   historyWallActive = false;
   // Cleared here as well as by the caller: every other wall's entry point must
-  // orphan an in-flight playlist fetch, or its response paints into this one.
-  leavePlaylistScreens();
+  // orphan an in-flight Smart Picks fetch, or its response paints into this one.
+  leaveSmartPicks();
   // The library wall's sort/focus row belongs to that wall only.
   hideLibraryControls();
   exitAlbumSelectMode();   // a stale multi-select bar must not survive into a new wall

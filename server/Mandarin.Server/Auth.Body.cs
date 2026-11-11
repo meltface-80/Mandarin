@@ -1,8 +1,7 @@
 // Auth.Body.cs — a request's JSON body, as the Node server read it
 // (express.json, Http.cs: one turned down is answered in that parser's words,
-// one past its 2 MB a 413 with the rest left unread — a playlist's share blob
-// gone wrong, v0.8.50, stage 7 part 4: with no Node server behind to refuse
-// it, refused here). Anything without a JSON content type reads as an empty
+// one past its 2 MB a 413 with the rest left unread — v0.8.50, stage 7 part
+// 4: with no Node server behind to refuse it, refused here). Anything without a JSON content type reads as an empty
 // object.
 using System.Text.Json;
 using System.Text.Json.Nodes;

@@ -1,5 +1,6 @@
 package com.musicd.server.client
 
+import org.json.JSONArray
 import org.json.JSONObject
 import java.net.URLDecoder
 import java.net.URLEncoder
@@ -76,6 +77,11 @@ data class LibraryView(
      */
     fun sortQuery(): String = "sort=" + enc(sort) + "&dir=" + enc(dir) + (if (sort == "random") "&seed=$seed" else "")
 
+    /** The view as a backup keeps it (the page's currentLibViewSnapshot): the sort, its direction and seed, the listening, every facet. */
+    fun json(): JSONObject = JSONObject().put("sort", sort).put("dir", dir).put("seed", seed).put("played", played).also { o ->
+        for (id in FACET_IDS) o.put(id, JSONArray().apply { for (x in facets[id] ?: emptyList()) put(x) })
+    }
+
     companion object {
         /** The facets, in the sheet's order (the page's LIB_FACET_IDS). */
         val FACET_IDS = listOf("genre", "source", "decade", "label", "format", "rate", "bits", "chan", "letter", "added")
@@ -124,6 +130,26 @@ data class LibraryView(
             return v.copy(facets = facets)
         }
 
+        /**
+         * A view kept as JSON ([json], the page's applyViewToLibView): every facet it doesn't name off, its values as words
+         * (a decade the server keeps as a number, as the page writes it), the sort, its direction, seed and listening kept.
+         */
+        fun ofJson(j: JSONObject): LibraryView {
+            var v = LibraryView()
+            j.optString("sort").takeIf { s -> SORTS.any { it.id == s } }?.let { v = v.copy(sort = it) }
+            j.optString("dir").takeIf { it == "asc" || it == "desc" }?.let { v = v.copy(dir = it) }
+            if (j.has("seed")) v = v.copy(seed = j.optInt("seed", v.seed))
+            j.optString("played").takeIf { p -> PLAYED.any { it.id == p } }?.let { v = v.copy(played = it) }
+            val facets = LinkedHashMap<String, List<String>>()
+            for (id in FACET_IDS) {
+                val a = j.optJSONArray(id) ?: continue
+                val sel = (0 until a.length()).map { word(a.get(it)) }
+                if (sel.isNotEmpty()) facets[id] = sel
+            }
+            return v.copy(facets = facets)
+        }
+
+        private fun word(o: Any): String = if (o is Number && o.toDouble() == Math.floor(o.toDouble())) o.toLong().toString() else o.toString()
         private fun enc(s: String) = URLEncoder.encode(s, "UTF-8")
         private fun dec(s: String) = runCatching { URLDecoder.decode(s, "UTF-8") }.getOrDefault(s)
     }

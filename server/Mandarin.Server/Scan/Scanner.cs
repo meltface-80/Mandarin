@@ -663,7 +663,7 @@ internal sealed partial class Scanner(SqliteConnection db, string root, IReadOnl
         // A file that is the same file under a new path — the music mounted at a
         // different place, or a folder renamed — is recognised by its size,
         // modification time and name, and keeps its track (and album, plays,
-        // playlists, edits) instead of being read again from scratch.
+        // edits) instead of being read again from scratch.
         static string IdOf(object? size, object? mtime, string file) => Js.Str(size) + "|" + Js.Str(mtime) + "|" + NodePath.Basename(file);
         var byIdentity = new Dictionary<string, List<Known>>(StringComparer.Ordinal);
         foreach (var r in known.Values)

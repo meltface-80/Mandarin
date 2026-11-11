@@ -229,8 +229,8 @@ CREATE TABLE IF NOT EXISTS cache (
   PRIMARY KEY (ns, key)
 );
 -- The id an album had when it last left the library (its folder gone for a
--- while): given back when it returns, so plays, downloads on phones and
--- playlists that name it by id find it again.
+-- while): given back when it returns, so plays and downloads on phones that
+-- name it by id find it again.
 CREATE TABLE IF NOT EXISTS album_ids (
   key  TEXT PRIMARY KEY,
   id   INTEGER NOT NULL

@@ -1013,10 +1013,10 @@ main { padding-top: calc(var(--topbar-h) + 14px); }
 .action-btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 6px;
   flex: 1 1 0; min-width: 0;
-  /*  ONE height for every .action-btn in the app. It used to render at 37px on
-      the playlist screens, 40px in the album modal, 38px on a track row and
-      38px in the label merge sheet — the same class, four heights, because
-      each container re-declared its own padding.  */
+  /*  ONE height for every .action-btn in the app. It used to render at 40px
+      in the album modal, 38px on a track row and 38px in the label merge
+      sheet — the same class, several heights, because each container
+      re-declared its own padding.  */
   min-height: var(--ctl-h);
   padding: 0 8px;
   font-size: 13px; font-weight: 500;
@@ -2958,15 +2958,6 @@ input.vol-range::-moz-range-thumb {
   font-size: 14px; color: var(--text-dim);
 }
 .content-count.hidden { display: none; }
-/* Import, in the top-right corner of the Playlists screen: a brass pill, the
-   size of the Library's Focus and Sort. */
-.playlists-import {
-  display: inline-flex; align-items: center; height: 32px; padding: 0 14px; border-radius: 999px;
-  margin-left: auto;
-  background: var(--accent); color: var(--on-accent); border: 1px solid var(--accent);
-  font-family: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer;
-}
-.playlists-import:hover { filter: brightness(1.08); }
 
 .settings-info-btn {
   /*  Was 18x14 — the smallest tap target in the app by a wide margin. The glyph
@@ -3182,12 +3173,6 @@ input.vol-range::-moz-range-thumb {
    control above it exists, rather than what it is called. */
 .settings-note { font-size: 12px; color: var(--text-faint); margin-top: 6px; line-height: 1.45; }
 
-/* Import: tracks matched under a different album than the share named. Not a
-   warning — the track WAS found — but not silent either, because it is a
-   substitution the user is entitled to see. */
-.share-sub-note { color: var(--text-dim); }
-.import-substituted li { color: var(--text-faint); }
-
 /* ------------------------------------------------------------------ */
 /*  Docker migration banner                                            */
 /* ------------------------------------------------------------------ */
@@ -3242,12 +3227,6 @@ input.vol-range::-moz-range-thumb {
 }
 .confirm-btn:active { transform: scale(.97); }
 .confirm-primary { background: var(--accent); color: var(--on-accent); border-color: transparent; }
-.prompt-input {
-  display: block; width: 100%; box-sizing: border-box; margin: 0 0 16px;
-  height: 46px; padding: 0 14px; border-radius: 12px; font-size: 16px; font-family: inherit;   /* the page's face, not the input's own (item 94) */
-  background: var(--bg-elev-2); color: var(--text); border: 1px solid var(--border);
-}
-.prompt-input:focus { outline: none; border-color: var(--accent); }
 
 /* ------------------------------------------------------------------ */
 /*  Toggle switch (settings)                                           */
@@ -3359,76 +3338,6 @@ input.vol-range::-moz-range-thumb {
   font-size: 12px; color: var(--text-faint);
 }
 .group-row.is-on .group-note { color: inherit; opacity: .8; }
-
-/* Smart-playlist rows reuse .dev-row; the name is the tappable part. */
-.smart-open {
-  flex: 1 1 auto; min-width: 0;
-  background: transparent; border: 0; padding: 0;
-  text-align: left; cursor: pointer; color: inherit; font: inherit;
-}
-.smart-open:hover .dev-name { color: var(--accent-text); }
-
-/* Playlist tiles: a 2x2 mosaic of the first few tracks' covers, as Roon draws
-   them. The wrap already sizes and clips the tile, so the grid just fills it.
-   Three covers leave the last cell empty rather than stretching one to fit. */
-.album-art-mosaic {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  grid-template-rows: 1fr 1fr;
-  gap: 1px;
-}
-/* The base .album-art-wrap img rule (100%/cover) already sizes each one to its
-   grid cell, so nothing more is needed here. */
-/* Two covers read better as halves than as a half-empty 2x2. */
-.album-art-mosaic[data-mosaic="2"] { grid-template-rows: 1fr; }
-
-/* --- Roon playlist detail (read + play) ----------------------------------- */
-/* Rendered into the shared grid container, so it must span every column
-   rather than sitting in one cell. */
-.playlist-detail { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 14px; }
-.playlist-back { align-self: flex-start; }
-.playlist-head { display: flex; flex-direction: column; gap: 4px; }
-.playlist-title {
-  margin: 0; font-size: calc(22px * var(--ui-title, 1)); font-weight: 700; color: var(--text);
-  border-bottom: 1px solid var(--panel-hairline); padding-bottom: 8px;
-}
-.playlist-sub { font-size: 14px; color: var(--text-dim); }
-.playlist-actions { display: flex; gap: 10px; flex-wrap: wrap; }
-.playlist-empty { font-size: 14px; color: var(--text-faint); }
-/* A playlist that cannot run because the feature behind its query is switched
-   off. Danger-coloured because it is the reason nothing is on screen, not a
-   quiet aside — and given room to wrap, since it names the setting to change. */
-.playlist-empty.is-unavailable {
-  color: var(--danger); line-height: 1.45; max-width: 46em; white-space: normal;
-}
-/* An albums playlist shows a wall of tiles, sized by .album-grid exactly as
-   every other wall is. It sits inside .playlist-detail's flex column, so it
-   must NOT inherit the grid-column span that container needed for itself. */
-.playlist-albums { grid-column: auto; }
-.playlist-tracks { list-style: none; margin: 0; padding: 0; }
-.playlist-tracks .track-row {
-  padding: 11px 2px; border-bottom: 1px solid var(--border); cursor: pointer;
-}
-.playlist-tracks .track-row:last-child { border-bottom: 0; }
-.playlist-tracks .track-row:hover { background: var(--bg-elev); }
-.playlist-tracks .track-title { color: var(--text); font-size: 15px; }
-.playlist-tracks .track-artist { color: var(--text-dim); font-size: 13px; margin-top: 2px; }
-.playlist-more { align-self: flex-start; }
-.playlist-more.hidden { display: none; }
-
-/* Track rows that carry the artwork of the album they came from. */
-.track-row-art { display: flex; align-items: center; gap: 12px; }
-.track-art {
-  flex: 0 0 auto; width: 44px; height: 44px; border-radius: 4px;
-  overflow: hidden; background: var(--bg-elev-2);
-}
-.track-art img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.track-art.no-image { background: var(--bg-elev-2); }
-.track-text { min-width: 0; flex: 1 1 auto; }
-.track-row-art .track-title,
-.track-row-art .track-artist {
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
 
 /* --- Device power sheet (Roon standby / convenience switch) --------------- */
 /* A row here is NOT a button: the name is static and the actions inside it are
@@ -4160,8 +4069,7 @@ input.vol-range::-moz-range-thumb {
    Rendered into the shared #album-grid container, so it must span every column
    rather than sitting in one cell — without this the whole screen renders at
    1/3 of the viewport on a phone and 1/9 on desktop (~110px), inside which the
-   96px art block and the two pill buttons cannot fit. Same rule, and the same
-   reason, as .playlist-detail above. */
+   96px art block and the two pill buttons cannot fit. */
 .pick-list { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 14px; }
 .pick-card-full {
   flex-direction: row; align-items: flex-start; gap: 14px;
@@ -4690,7 +4598,7 @@ input.vol-range::-moz-range-thumb {
    .sel-menu above so there is one dropdown look in the app.
 
    It always sits in a row of .action-btn pills — Play now and Queue, on the
-   album view and all three playlist screens — and (from MusicD Remote v1.8.60) it is sized
+   album view — and (from MusicD Remote v1.8.60) it is sized
    and finished AS one of them: the row's height here, and the pills' own
    finish, which it shares by selector with .action-btn (up with that rule,
    including the album view's outlined variant) rather than by copy. It used
@@ -4720,8 +4628,8 @@ input.vol-range::-moz-range-thumb {
    the tracks below for the menu to open over (it opened upwards over the
    cover until the sleeve, bug list item 24). */
 /* Turned round when its own way has no room (v0.7.8, app.js): the album
-   view scrolled so the button row is near the top, or a playlist's menu at
-   the foot of the screen. Three classes: they beat both rules above. */
+   view scrolled so the button row is near the top. Three classes: they beat
+   both rules above. */
 .overflow-wrap .overflow-menu.opens-down { top: calc(100% + 6px); bottom: auto; }
 .overflow-wrap .overflow-menu.opens-up   { top: auto; bottom: calc(100% + 6px); }
 
@@ -4746,24 +4654,6 @@ input.vol-range::-moz-range-thumb {
   margin-left: 0;
 }
 .sel-menu-wrap.in-modal .sel-menu { right: 0; }
-
-/* Import report + the add-to-playlist picker rows. */
-/* A <label> wrapping a hidden <input type=file> — the only way to style a file
-   picker consistently, and it keeps the whole control tappable. */
-/* flex, not block: .action-btn's centring is a flex one, and block left the words at the top of the pill (item 94). */
-.import-file { display: flex; width: 100%; margin-top: 10px; text-align: center; cursor: pointer; }
-.visually-hidden {
-  position: absolute; width: 1px; height: 1px;
-  margin: -1px; padding: 0; border: 0;
-  clip: rect(0 0 0 0); clip-path: inset(50%); overflow: hidden; white-space: nowrap;
-}
-.import-result { margin-top: 12px; }
-.import-missing {
-  margin: 6px 0 12px; padding-left: 18px;
-  color: var(--text-dim); font-size: 0.86rem; line-height: 1.5;
-}
-.import-save { width: 100%; margin-top: 8px; }
-.sheet-row { display: block; width: 100%; margin-bottom: 8px; text-align: left; }
 
 /* Random Album, the first tile of the strip under the greeting. Borrows
    .album wholesale so it sizes with the carousel on every screen; only the
@@ -4792,25 +4682,6 @@ input.vol-range::-moz-range-thumb {
    so the disc jumped to another angle on the tap and again when it stopped.
    playUnheard ramps this one's playbackRate instead (v0.6.1). */
 @keyframes unheard-spin { to { transform: rotate(360deg); } }
-/* Share sheet — the blob is the payload, so it gets the room and the monospace
-   face; everything above it is the honest accounting of what went in. */
-.share-sum { font-weight: 600; margin: 4px 0 6px; }
-/* Each reason the file is less than the whole playlist gets its own line —
-   run together in one sentence, the important half went unread. */
-.share-warn {
-  color: var(--danger); font-size: 0.86rem; line-height: 1.4; margin-bottom: 6px;
-}
-.share-note { color: var(--text-dim); font-size: 0.86rem; margin: 10px 0; }
-.share-blob {
-  width: 100%; box-sizing: border-box; resize: vertical;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 0.78rem; line-height: 1.35;
-  padding: 8px; border-radius: 8px;
-  border: 1px solid var(--border);
-  background: var(--bg-elev); color: var(--text);
-  /* Long unbroken base64 must wrap, or the sheet scrolls sideways. */
-  word-break: break-all; white-space: pre-wrap;
-}
 /* Sort rows — ARC's layout: a fixed arrow column, then the label. The arrow
    is present only on the selected row, and tapping that row flips it. */
 .lib-sort-row {

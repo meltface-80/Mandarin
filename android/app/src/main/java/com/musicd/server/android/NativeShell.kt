@@ -38,15 +38,6 @@ internal object NativeShell {
     /** A screen opened over the one on screen. */
     fun open(route: String) { nav?.navigate(route) { launchSingleTop = true } }
 
-    /** Your playlists (item 65), or one of them. */
-    fun openPlaylists(zoneId: String) { nav?.navigate(ShellRoute.playlists(zoneId)) { launchSingleTop = true } }
-    fun openPlaylist(id: String, zoneId: String) { nav?.navigate(ShellRoute.playlist(id, zoneId)) }
-    /** The Dynamic Playlists (item 66), or one of them (in place of the one open: one saved from its Edit comes back to itself). */
-    fun openSmartPlaylists(zoneId: String) { nav?.navigate(ShellRoute.smartPlaylists(zoneId)) { launchSingleTop = true } }
-    fun openSmartPlaylist(id: String, zoneId: String) {
-        val n = nav ?: return
-        n.navigate(ShellRoute.smartPlaylist(id, zoneId)) { if (n.currentDestination?.route == ShellRoute.SMART_PLAYLIST) popUpTo(ShellRoute.SMART_PLAYLIST) { inclusive = true } }
-    }
 
     /** The search opened afresh with [q] (the row's Search, a search seeded elsewhere), its albums playing in [zoneId]. */
     fun openSearch(q: String, zoneId: String) {
@@ -91,7 +82,7 @@ internal object NativeShell {
         homeArgs.value = json to homeArgs.value.second
     }
 
-    /** The Library's view changed (its wall, a Dynamic Playlist's Show albums): Home's Library row follows, and the next start. */
+    /** The Library's view changed (its wall): Home's Library row follows, and the next start. */
     fun keepLibraryView(q: String) { val k = LibraryView.kept(q); if (k != libraryView) keep(ScreenPrefs.VIEW, k.ifEmpty { null }) }   // never the name filter (item 338)
 
     /** The room the screens play in, chosen or grouped: kept for the next start. */
@@ -168,12 +159,9 @@ private fun Shell(client: () -> ServerClient?) {
                 onNowPlaying = { id -> nav.navigate(ShellRoute.nowPlaying(id)) { launchSingleTop = true } },
                 onRoom = NativeShell::roomChosen,
                 onNav = NativeShell::homeNav,
-                // Its playlists, the phone's own album, over it; the update offer's buttons the app's (handOn).
+                // The phone's own album over it; the update offer's buttons the app's (handOn).
                 onPage = { what, arg ->
                     when {
-                        what == "playlists" -> nav.navigate(ShellRoute.playlists(args.second))
-                        what == "playlist" && arg != null -> nav.navigate(ShellRoute.playlist(arg, args.second))
-                        what == "smart-playlist" && arg != null -> nav.navigate(ShellRoute.smartPlaylist(arg, args.second))
                         what == "phone-album" && arg != null -> nav.navigate(ShellRoute.phoneAlbum(arg, args.second))
                         else -> handOn(what, arg)
                     }
@@ -192,7 +180,7 @@ private fun Shell(client: () -> ServerClient?) {
             )
         }
         // The search (item 61): over Home or the page; an album's page over it, and Back comes back to the same results.
-        // The search (item 61) and the playlists (item 65): ShellRoutes.kt.
+        // The search (item 61) and the rest: ShellRoutes.kt.
         moreRoutes(nav, client)
         composable(ShellRoute.NOW_PLAYING, arguments = listOf(navArgument(ShellRoute.ZONE) { type = NavType.StringType })) { entry ->
             NowPlayingScreen(
@@ -224,7 +212,7 @@ private fun Shell(client: () -> ServerClient?) {
                 onNowPlaying = { id -> nav.navigate(ShellRoute.nowPlaying(id)) { launchSingleTop = true } },
                 onRoom = NativeShell::roomChosen,
                 onNav = { what -> navTap(nav, what) },
-                onPage = { what, arg -> if (what == "smart-playlists") nav.navigate(ShellRoute.smartPlaylists(NativeShell.zone)) else handOver(nav, what, arg) }
+                onPage = { what, arg -> handOver(nav, what, arg) }
             )
         }
         // The walls Home links to (L5) and an artist's page (L4), item 52: each over the screen that opened it.
@@ -293,7 +281,7 @@ private fun Shell(client: () -> ServerClient?) {
         }
     }
     MenuOver(nav, client)   // the side menu over whichever screen is on (item 67)
-    RoomAskOver(client); PlaylistAddOver(client)   // the question whether to move what's playing to the room chosen (item 68); Add to playlist (item 93)
+    RoomAskOver(client)   // the question whether to move what's playing to the room chosen (item 68)
     OfflineToastOver()   // offline, said at the top over every screen (item 134)
     }
 }

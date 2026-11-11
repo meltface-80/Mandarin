@@ -100,7 +100,7 @@ internal fun MenuOver(nav: NavHostController, client: () -> ServerClient?) {
 
 /**
  * An item of the menu chosen ([what], its key in the contract): the menu closes and, as the row's buttons do, every native
- * screen over Home with it; Playlists, Dynamic Playlists, Listen later, Pitchfork, Labels, Qobuz, Tidal and Settings open natively over Home;
+ * screen over Home with it; Listen later, Pitchfork, Labels, Qobuz, Tidal and Settings open natively over Home;
  * Restart and Shut down ask and show the server's time away natively (PowerOver.kt, item 96); Shelf opens natively
  * too (item 207: it was the server's page in the phone's browser from item 111).
  */
@@ -112,8 +112,6 @@ internal fun menuTap(nav: NavHostController, what: String, context: android.cont
     // Opened over Home in one step, the screens between taken away with it (item 199: Home was drawn between them).
     val z = NativeShell.zone
     when (what) {
-        "playlists" -> overHome(nav, ShellRoute.playlists(z))
-        "smart-playlists" -> overHome(nav, ShellRoute.smartPlaylists(z))
         "later" -> overHome(nav, ShellRoute.wall("later", z, ""))
         "pitchfork" -> overHome(nav, ShellRoute.pitchfork("", z))
         "labels" -> overHome(nav, ShellRoute.labels(z))
@@ -251,8 +249,6 @@ private fun MenuList(items: Menu.Items, offline: Boolean, sub: String, onOffline
         // Shelf is the server's whole library, a page of its own: not offline.
         if (items.shelf && !offline) MenuItem(Modifier.parity("menu.shelf", Contract.label("menu.shelf")).clip(ITEM).clickable { onItem("shelf") }, R.drawable.mn_shelf, Contract.label("menu.shelf"))
         MenuItem(Modifier.parity("menu.later", Contract.label("menu.later")).clip(ITEM).clickable { onItem("later") }, R.drawable.mn_later, Contract.label("menu.later"))
-        MenuItem(Modifier.parity("menu.smart-playlists", Contract.label("menu.smart-playlists")).clip(ITEM).clickable { onItem("smart-playlists") }, R.drawable.mn_smart, Contract.label("menu.smart-playlists"))
-        MenuItem(Modifier.parity("menu.playlists", Contract.label("menu.playlists")).clip(ITEM).clickable { onItem("playlists") }, R.drawable.mn_playlists, Contract.label("menu.playlists"))
         MenuSep()
         MenuItem(Modifier.parity("menu.rescan", Contract.label("menu.rescan")).clip(ITEM).clickable(onClick = onRescan), R.drawable.mn_rescan, Contract.label("menu.rescan"), sub)
         MenuSep()

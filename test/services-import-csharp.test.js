@@ -1,7 +1,7 @@
 "use strict";
 /*
- * Qobuz's and Tidal's import, the favourites' watch and the service
- * playlists, made by the C# server (v0.8.45, stage 4.3;
+ * Qobuz's and Tidal's import and the favourites' watch, made by the C# server
+ * (v0.8.45, stage 4.3;
  * server/Mandarin.Server/Services/Import.cs and ServiceRoutes.cs), against
  * the fakes on loopback (test/fake-qobuz.js, test/fake-tidal.js), each held
  * to what the Node server wrote and answered for the same request (its own
@@ -11,11 +11,11 @@
  *     import's switch, word for word; switched on, the import made;
  *   - Update library now: every album's and track's row, each column and the
  *     type SQLite keeps it as (the ids and the two times aside, said below),
- *     the kept marks ({ why, at }), the held marks, the playlists
- *     (userPlaylists, yours and the other service's kept as they were), what
- *     it made (<s>LastImport) and the answer; again with everything here
- *     (nothing asked again); a favourite removed on the service, and a
- *     playlist gone there;
+ *     the kept marks ({ why, at }), what it made (<s>LastImport) and the
+ *     answer; again with everything here (nothing asked again); a favourite
+ *     removed on the service, and a playlist gone there (nothing of the
+ *     service's playlists or favourite tracks brought in: the playlists were
+ *     taken out of Mandarin);
  *   - the watch: an album favourited on the service brought in, one removed
  *     let go; the page's POST /api/services/watch, and its 15 seconds;
  *   - Tidal's token due, or refused partway: refreshed by the C# server
@@ -34,7 +34,9 @@
  * it (MANDARIN_FRONT=1, while index.js was still there); every run since starts
  * the program alone and holds it to the recording. The data folder, the fakes'
  * ports and times written as the test ran are said by name or in days from
- * now; a cover's hash is held to its rule (md5 of its address).
+ * now; a cover's hash is held to its rule (md5 of its address). The
+ * recording was made while the import still brought the service's playlists
+ * in; the Node server's side is read without them (unlisted, below).
  */
 const ports = require("./ports");
 const test = require("node:test");
@@ -68,6 +70,26 @@ function differ(a, b, at = "") {
 /* The same, or the first place they differ said. */
 function same(a, b, what) { const d = differ(a, b); assert.equal(d, null, (what ? what + ": " : "") + d); }
 
+/*
+ * The Node server's side as recorded, without the playlists (taken out of Mandarin since): the playlists it made of
+ * the service's and of the favourite tracks, the marks holding their albums, the rows of the albums it brought in only
+ * for them, and the count of them in what it made and answered.
+ */
+const ONLY_LISTED = new Set(["qobuz:q400", "qobuz:q500", "tidal:2003", "tidal:2004"]);
+const sansCount = (o) => { if (!o || typeof o !== "object") return o; const x = Object.assign({}, o); delete x.playlists; return x; };
+function unlisted(v) {
+  const out = Object.assign({}, v);
+  if (out.r && typeof out.r.text === "string") out.r = Object.assign({}, out.r, { text: out.r.text.replace(/,"playlists":\d+/g, "") });
+  if (out.st) {
+    const st = Object.assign({}, out.st);
+    delete st.held; delete st.lists; delete st.text;
+    st.albums = st.albums.filter(a => !ONLY_LISTED.has(a.key));
+    st.last = sansCount(st.last);
+    out.st = st;
+  }
+  return out;
+}
+
 async function until(fn, ms = 20000, what = "") {
   const t0 = Date.now();
   for (;;) {
@@ -78,7 +100,7 @@ async function until(fn, ms = 20000, what = "") {
   }
 }
 
-/* The fakes, the same for each test: favourites, a purchase, playlists and favourite tracks. */
+/* The fakes, the same for each test: favourites, a purchase, playlists and favourite tracks (none of which is brought in). */
 function fakes(lib) {
   const file = path.join(lib.music, "Artist A", "Album One", "01 Song 1.flac");
   const track = (id, title, extra) => Object.assign({ id, title, file, duration: 3 }, extra || {});
@@ -113,7 +135,7 @@ function fakes(lib) {
   return { qobuz, tidal };
 }
 
-test("Qobuz's and Tidal's import, watch and playlists, made by the C# server as the Node server made them", { skip, timeout: 300000 }, async (t) => {
+test("Qobuz's and Tidal's import and watch, made by the C# server as the Node server made them", { skip, timeout: 300000 }, async (t) => {
   const lib = makeLibrary();
   const { qobuz, tidal } = fakes(lib);
   t.after(() => Promise.all([qobuz.stop(), tidal.stop()]));
@@ -163,12 +185,10 @@ test("Qobuz's and Tidal's import, watch and playlists, made by the C# server as 
    * A service's part of the library as it can be compared: every album and
    * track row (the ids SQLite gives left out, an album's two times checked to
    * be the run's own), the kept marks (a time the service gave as it is, one
-   * stamped then as "now"), the held marks, the playlists (an album named by
-   * its key, the times stamped then as "now") and what the import made.
+   * stamped then as "now") and what the import made.
    */
   const state = (s, t0, t1) => {
     const now = (v) => typeof v === "number" && v >= t0 && v <= t1 ? "now" : v;
-    const keys = new Map(raw.prepare("SELECT id, key FROM albums").all().map(r => [r.id, r.key]));
     const albums = typed("albums", "key LIKE ? ORDER BY key", s + ":%").map(a => {
       assert.equal(a["added_at:type"], "integer");
       if (a.art_path) assert.equal(a.art_hash, md5(fs.readFileSync(a.art_path + ".url", "utf8")), a.key + ": its cover's hash, of its address");
@@ -179,29 +199,15 @@ test("Qobuz's and Tidal's import, watch and playlists, made by the C# server as 
       const v = JSON.parse(r.value);
       return { key: r.key, fields: Object.keys(v), why: v.why, at: now(v.at) };
     });
-    const held = raw.prepare("SELECT key, value FROM cache WHERE ns = ? ORDER BY key").all(s + "-held");
-    const lists = JSON.parse((raw.prepare("SELECT value FROM settings WHERE key = 'userPlaylists'").get() || { value: "null" }).value);
-    const named = (lists || []).map(p => Object.assign({}, p, p.created_at ? { created_at: now(p.created_at) } : {}, p.updated_at ? { updated_at: now(p.updated_at) } : {},
-      Array.isArray(p.tracks) ? { tracks: p.tracks.map(x => Object.assign({}, x, { album_offset: keys.get(x.album_offset), image_key: String(x.image_key).replace(/^al-(\d+)-/, (m, id) => `al-${keys.get(Number(id))}-`) })) } : {}));
     const last = ctx.db.setting(s + "LastImport", null);
-    // The playlists as text too: each entry's fields in the Node server's order.
-    return { albums, kept, held, lists: named, text: JSON.stringify(named), last: last && Object.assign({}, last, { at: now(last.at), seconds: "s" }) };
+    return { albums, kept, last: last && Object.assign({}, last, { at: now(last.at), seconds: "s" }) };
   };
-  // The playlists to begin with: yours, an older Qobuz one (v0.6.23's mark), one gone from Qobuz, Tidal's, and one nameless.
-  const LISTS = [
-    { id: "mine", name: "Mine", tracks: [], created_at: 1, updated_at: 2 },
-    { id: "qobuz-pl-77", name: "Road trip before", qobuz: true, tracks: [], created_at: 3, updated_at: 4 },
-    { id: "qobuz-pl-99", name: "Gone from Qobuz", qobuz: true, tracks: [] },
-    { id: "tidal-pl-gone", name: "Gone from Tidal", service: "tidal", tracks: [] },
-    { id: "", name: "Nameless" }
-  ];
-  // A service's albums, marks, playlists and what it made taken away, covers too, so the next run starts as the first did.
+  // A service's albums, marks and what it made taken away, covers too, so the next run starts as the first did.
   const reset = (s) => {
     for (const a of raw.prepare("SELECT art_path FROM albums WHERE key LIKE ?").all(s + ":%")) if (a.art_path) for (const f of [a.art_path, a.art_path + ".url"]) fs.rmSync(f, { force: true });
     raw.prepare("DELETE FROM albums WHERE key LIKE ?").run(s + ":%");
-    raw.prepare("DELETE FROM cache WHERE ns IN (?, ?)").run(s + "-kept", s + "-held");
+    raw.prepare("DELETE FROM cache WHERE ns = ?").run(s + "-kept");
     raw.prepare("DELETE FROM settings WHERE key = ?").run(s + "LastImport");
-    ctx.db.setSetting("userPlaylists", LISTS);
     return ctx.library.reload();
   };
   // Qobuz's lists are kept a minute by each server, as api.js keeps them: a run starts with neither's
@@ -211,7 +217,8 @@ test("Qobuz's and Tidal's import, watch and playlists, made by the C# server as 
   const sansNow = (text) => text.replace(/"at":\d+/g, `"at":"now"`).replace(/"seconds":\d+/g, `"seconds":"s"`);
   /*
    * The same run on each server from the same start ([before]: what to do first, the same each time): the answers and
-   * the state after, the Node server's as recorded under [label]. An answer's text and the state as named() says them.
+   * the state after, the Node server's as recorded under [label] without its playlists (unlisted). An answer's text and
+   * the state as named() says them.
    */
   const both = async (label, s, before, mine) => {
     const run = async (fn) => {
@@ -225,7 +232,7 @@ test("Qobuz's and Tidal's import, watch and playlists, made by the C# server as 
       return { r: r && typeof r.text === "string" ? Object.assign({}, r, { text: named(r.text) }) : r, st: steady(state(s, t0, Date.now())) };
     };
     const a = await run(mine);
-    const b = await rec.want(label);
+    const b = unlisted(await rec.want(label));
     return [a, b];
   };
   const importOn = (s, on) => { ctx.db.setSetting(s + "Settings", { quality: s === "qobuz" ? "hires192" : "hires", import: on }); return ctx.library.reload(); };
@@ -290,7 +297,7 @@ test("Qobuz's and Tidal's import, watch and playlists, made by the C# server as 
       assert.deepEqual([mine.r.status, mine.r.by, mine.r.j.importing], [200, "C#", true], mine.r.text);
       assert.equal(mine.r.text, nodes.r.text, s + ": the same answer, importing");
       same(mine.st, nodes.st, s + ": the same library after");
-      assert.ok(mine.st.albums.length >= 3 && mine.st.kept.length >= 2, s + ": brought in");
+      assert.ok(mine.st.albums.length >= 2 && mine.st.kept.length >= 2, s + ": brought in");
       // Off again: in the Node server's words, and off the walls at once.
       const off = await post("settings/" + s, { import: false });
       assert.equal(off.j.import, false);
@@ -300,7 +307,7 @@ test("Qobuz's and Tidal's import, watch and playlists, made by the C# server as 
     }
   });
 
-  await t.test("Update library now: the rows, the marks, the playlists and the answer as the Node server's", async () => {
+  await t.test("Update library now: the rows, the marks and the answer as the Node server's, nothing of a playlist", async () => {
     for (const s of ["qobuz", "tidal"]) {
       const other = s === "qobuz" ? "tidal" : "qobuz";
       await importOn(other, false);
@@ -315,19 +322,15 @@ test("Qobuz's and Tidal's import, watch and playlists, made by the C# server as 
       if (s === "qobuz") {
         assert.deepEqual(a.r.j.result.albums, 3, "two favourites and a purchase");
         assert.deepEqual(a.st.kept.map(k => [k.key, k.why, k.at]), [["qobuz:q100", "favourite", 1700000000000], ["qobuz:q200", "favourite", "now"], ["qobuz:q300", "purchase", 1600000000000]]);
-        assert.deepEqual(a.st.held.map(h => [h.key, h.value]), [["qobuz:q100", "1"], ["qobuz:q400", "1"], ["qobuz:q500", "1"]], "the playlists' and favourite tracks' albums held");
-        const road = a.st.lists.find(p => p.id === "qobuz-pl-77");
-        assert.deepEqual([road.name, road.qobuz, road.created_at, road.updated_at, road.tracks.map(x => [x.title, x.album_offset, x.track_index])],
-          ["Road trip", true, 3, "now", [["Q Listed One", "qobuz:q400", 0], ["Q One", "qobuz:q100", 0]]], "brought up to date in place; a track not there left out");
-        assert.equal(a.st.lists.find(p => p.id === "qobuz-pl-78").name.length, 80, "a long name cut to 80");
-        assert.ok(a.st.lists.some(p => p.id === "qobuz-favourite-tracks" && p.name === "Qobuz favourite tracks"));
-        assert.ok(!a.st.lists.some(p => p.id === "qobuz-pl-99" || p.id === ""), "gone from Qobuz, and the nameless, gone");
-        assert.ok(a.st.lists.some(p => p.id === "mine") && a.st.lists.some(p => p.id === "tidal-pl-gone"), "yours and Tidal's as they were");
+        assert.deepEqual(a.st.albums.map(x => x.key), ["qobuz:q100", "qobuz:q200", "qobuz:q300"], "nothing brought in for a playlist or a favourite track");
       } else {
         assert.deepEqual(a.st.kept.map(k => [k.key, k.why, k.at]), [["tidal:2001", "favourite", Date.parse("2026-01-01T00:00:00.000Z")], ["tidal:2002", "favourite", Date.parse("2026-01-01T00:00:00.000Z")]],
           "since Tidal's own date (+0000)");
-        assert.deepEqual(a.st.lists.filter(p => p.service === "tidal").map(p => p.id).sort(), ["tidal-favourite-tracks", "tidal-pl-aaaa-bbbb"], "Tidal's own, the one gone from it gone");
+        assert.deepEqual(a.st.albums.map(x => x.key), ["tidal:2001", "tidal:2002"], "nothing brought in for a playlist or a favourite track");
       }
+      assert.equal("playlists" in a.r.j.result, false, "no playlists counted");
+      assert.equal(raw.prepare("SELECT COUNT(*) AS n FROM cache WHERE ns LIKE '%-held'").get().n, 0, "no album held for a playlist");
+      assert.equal(raw.prepare("SELECT COUNT(*) AS n FROM settings WHERE key IN ('userPlaylists', 'smartPlaylists')").get().n, 0, "no playlist written");
       // Again, everything here and read this week: nothing asked of the service again.
       [a, b] = await both("Update library now, again: " + s, s, () => post(`settings/${s}/import`), now);
       assert.equal(sansNow(a.r.text), sansNow(b.r.text), s + ": the same answer again");
@@ -340,12 +343,11 @@ test("Qobuz's and Tidal's import, watch and playlists, made by the C# server as 
       assert.equal(a.r.j.result.dropped, 1, a.r.text);
       assert.equal(sansNow(a.r.text), sansNow(b.r.text));
       same(a.st, b.st);
-      // A playlist gone from the service: gone from here.
+      // A playlist gone from the service: nothing changes here.
       const lists = fake.playlists;
       try { [a, b] = await both("Update library now, a playlist gone: " + s, s, async () => { fake.playlists = lists; await post(`settings/${s}/import`); fake.playlists = []; }, now); }
       finally { fake.playlists = lists; }
       same(a.st, b.st);
-      assert.ok(!a.st.lists.some(p => p.id && p.id.startsWith(s + "-pl-")), "its playlists gone");
       // Switched off: refused, in the same words.
       await importOn(s, false);
       const c = await post(`settings/${s}/import`), n = await theirs("switched off: " + s, `settings/${s}/import`, {});

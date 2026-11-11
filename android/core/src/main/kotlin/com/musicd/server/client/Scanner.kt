@@ -143,7 +143,7 @@ object Scanner {
         else "Every album’s files are where the scanner last found them."
     }
     fun servicesNote(cleanup: JSONObject?): String = if (cleanup == null) "…"
-        else if (cleanup.optJSONObject("qobuz")?.optBoolean("signed_in") == true) "Qobuz albums neither in your favourites or purchases nor needed by a playlist."
+        else if (cleanup.optJSONObject("qobuz")?.optBoolean("signed_in") == true) "Qobuz albums in neither your favourites nor your purchases."
         else "Signed out of Qobuz: every Qobuz album the database still holds."
     /** What is asked before a kind is removed. */
     fun cleanupQuestion(kind: String, n: Int, locale: Locale = Locale.getDefault()): String =

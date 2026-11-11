@@ -47,10 +47,6 @@ function refreshSelectMenu(kind, n) {
   if (selCount) selCount.textContent = String(n);
   const noun = kind === "tracks" ? "track" : "album";
   if (selMenuTitle) selMenuTitle.textContent = `${n} ${noun}${n === 1 ? "" : "s"} selected`;
-  const addItem = selMenu && selMenu.querySelector('[data-sel-act="add"]');
-  // Albums are allowed. Adding one stores its tracks, which means reading the
-  // album on the Core first — see /api/user-playlists/add-albums.
-  if (addItem) addItem.classList.remove("hidden");
   if (selMenuBtn) {
     selMenuBtn.setAttribute("aria-label",
       `Actions for ${n} selected ${noun}${n === 1 ? "" : "s"}`);
@@ -125,11 +121,9 @@ function setCountText(text) {
   const el = document.getElementById("album-count");
   if (!el) return;
   el.textContent = text || "";
-  // An empty label HIDES the readout rather than showing a blank one. The
-  // playlist detail screens pass "" because they already print the full name
-  // as a heading; the topbar copy only repeated it, truncated to fit
-  // ("My Dynamic Playlist - Electroni…" above "My Dynamic Playlist -
-  // Electronic 100").
+  // An empty label HIDES the readout rather than showing a blank one: a
+  // screen that prints its own full-width heading passes "", and the topbar
+  // copy would only repeat it, truncated to fit.
   el.classList.toggle("hidden", !text);
 }
 // Topbar context label: the active filter's value (genre/tag name) with NO
@@ -280,45 +274,6 @@ function confirmDialog(message) {
 // browser's own confirm() with "no" (it has no dialog for it), so a
 // yes/no anywhere in the page is asked with this one.
 window.__confirmDialog = confirmDialog;
-
-// A name, asked the same way. Resolves the text, or null when cancelled —
-// what prompt() would give, which the WebView answers with null every time
-// (so "New playlist…" and "Save as…" used to close and do nothing in the app).
-function promptDialog(message, initial, okLabel) {
-  return new Promise((resolve) => {
-    const ov = document.getElementById("prompt-overlay");
-    const form = document.getElementById("prompt-form");
-    const msg = document.getElementById("prompt-msg");
-    const input = document.getElementById("prompt-input");
-    const ok = document.getElementById("prompt-ok");
-    const cancel = document.getElementById("prompt-cancel");
-    if (!ov || !form || !msg || !input || !ok || !cancel) { resolve(window.prompt(message, initial || "")); return; }
-    msg.textContent = message;
-    input.value = initial || "";
-    ok.textContent = okLabel || "Save";
-    let done = false;
-    const close = (val) => {
-      if (done) return; done = true;
-      ov.classList.add("hidden");
-      form.removeEventListener("submit", onSubmit);
-      cancel.removeEventListener("click", onCancel);
-      ov.removeEventListener("click", onBackdrop);
-      document.removeEventListener("keydown", onKey);
-      resolve(val);
-    };
-    const onSubmit = (e) => { e.preventDefault(); close(input.value); };
-    const onCancel = () => close(null);
-    const onBackdrop = (e) => { if (e.target.classList.contains("confirm-backdrop")) close(null); };
-    const onKey = (e) => { if (e.key === "Escape") close(null); };
-    form.addEventListener("submit", onSubmit);
-    cancel.addEventListener("click", onCancel);
-    ov.addEventListener("click", onBackdrop);
-    document.addEventListener("keydown", onKey);
-    ov.classList.remove("hidden");
-    setTimeout(() => { input.focus(); input.select(); }, 30);
-  });
-}
-window.__promptDialog = promptDialog;
 
 zoneSel.addEventListener("change", async () => {
   const newZoneId  = zoneSel.value;

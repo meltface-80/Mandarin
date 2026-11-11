@@ -147,15 +147,6 @@ internal fun HomeScreen(prefs: WallPrefs, zoneId: String, client: () -> ServerCl
                             Spacer(Modifier.height(50.dp))
                         }
                     }
-                    "playlists" -> if (HomeKept.playlists.isNotEmpty()) item(row.id) {
-                        Column {
-                            SectionTitle(Modifier.parity("home.playlists-title", Contract.label("home.playlists-title")).clickable { onPage("playlists", null) }, "Playlists", true)
-                            Carousel(HomeKept.playlists, key = { (if (it.smart) "s" else "m") + it.id }) { _, p ->
-                                PlaylistTileView(p, prefs, coverPx, client) { onPage(if (p.smart) "smart-playlist" else "playlist", p.id) }
-                            }
-                            Spacer(Modifier.height(50.dp))
-                        }
-                    }
                     "genres" -> item(row.id) {
                         Column {
                             SectionTitle(Modifier.parity("home.genres-title"), "Browse by genre", false)

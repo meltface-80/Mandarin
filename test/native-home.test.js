@@ -7,9 +7,10 @@
  * `homeShown(false)` as something of the page's comes over it that the app
  * doesn't draw (the side menu, the search, a wall in Home's place), with the
  * UI Settings and the room; nothing while the app's Home is off, and nothing
- * in a browser. And what the native Home hands back (public/app/native-handoff.js):
- * the Playlists screen, a playlist's page. The app is stood in for by its
- * bridge. Skipped where no Chromium or Chrome is found.
+ * in a browser. And what the native Home can no longer hand back
+ * (public/app/native-handoff.js): the Playlists screen and a playlist's page,
+ * gone with playlists. The app is stood in for by its bridge. Skipped where no
+ * Chromium or Chrome is found.
  */
 const test = require("node:test");
 const assert = require("node:assert");
@@ -66,11 +67,12 @@ const ROOM = `(async () => { ${KIT}
   return { added: app.told.slice(before), view: app.views[app.views.length - 1] };
 })()`;
 
-/* What the native Home hands back: the Playlists screen, a playlist by its id. */
+/* What the native Home used to hand back (the Playlists screen, a playlist by its id): refused, and Home stays. */
 const HANDOFF = `(async () => { ${KIT}
-  const out = { none: window.__musicdNative("playlist"), gone: window.__musicdNative("playlist", "999") };
-  out.playlists = window.__musicdNative("playlists");
-  out.screen = (await until(() => /Playlists/.test($("#album-count").textContent) && $("#home-view").classList.contains("hidden"))) && $("#album-count").textContent;
+  const out = { playlists: window.__musicdNative("playlists"), playlist: window.__musicdNative("playlist", "1"),
+                smart: window.__musicdNative("smart-playlist", "1") };
+  await sleep(500);
+  out.home = !$("#home-view").classList.contains("hidden");
   return out;
 })()`;
 
@@ -112,8 +114,8 @@ test("the app's native Home: told when it is in front, and what it hands back", 
     await run(`(async () => { ${KIT} return true; })()`);
   });
 
-  await t.test("handed back: the Playlists screen, a playlist by its id", async () => {
+  await t.test("handed back no more: the Playlists screen and a playlist are refused, Home stays", async () => {
     const r = await run(HANDOFF, bridge(true));
-    assert.deepEqual(r, { none: false, gone: true, playlists: true, screen: "Playlists" });
+    assert.deepEqual(r, { playlists: false, playlist: false, smart: false, home: true });
   });
 });

@@ -11,8 +11,8 @@ import androidx.core.content.FileProvider
 import java.io.File
 
 /**
- * Where a share card, a playlist's file or a copied link goes from the app's own share sheets (ShareSheet,
- * PlaylistShareSheet): the clipboard (the card as a picture, item 224), Pictures/Mandarin or Download/Mandarin. Once the page's way to them too,
+ * Where a share card, a saved file or a copied link goes from the app's own share sheet (ShareSheet) and
+ * the app's log: the clipboard (the card as a picture, item 224), Pictures/Mandarin or Download/Mandarin. Once the page's way to them too,
  * from its WebView (window.MusicDShare), until that went (bug list item 111).
  */
 class ShareBridge(private val activity: Activity) {
@@ -82,8 +82,8 @@ class ShareBridge(private val activity: Activity) {
     }
 
     /**
-     * [bytes] saved to the phone's Download/Mandarin as [fileName] (a playlist shared, the native sheet's Download; item 94):
-     * where the phone's Files app and every other app's file picker find it, Import's Choose a file… among them.
+     * [bytes] saved to the phone's Download/Mandarin as [fileName] (the app's log saved; item 94):
+     * where the phone's Files app and every other app's file picker find it.
      */
     fun saveDownload(bytes: ByteArray, fileName: String, mime: String): Boolean {
         val name = safeName(fileName)

@@ -4,7 +4,7 @@
 /*  custom properties on <html> so every screen reads the same numbers */
 /*  without being told. Nothing here rebuilds a tile.                  */
 /*    --ui-text   album and artist text, a multiplier on each size     */
-/*    --ui-title  a grid screen's title in the top bar, a playlist name*/
+/*    --ui-title  a grid screen's title in the top bar                 */
 /*    --ui-tile   the Home carousels' tile width (150px × this)        */
 /*    --grid-cols every .album-grid's columns, when not the screen's   */
 /*  And Home's greeting and Random Album, each shown or not (v1.0.7):  */

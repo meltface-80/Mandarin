@@ -6,8 +6,8 @@ import org.json.JSONObject
 /*
  * Home's rows as the server answers them (stage N5 of
  * old/plan-android-native.md, bug list item 57), typed for the native
- * Home: Smart Picks, the genre cards, the label of the week, the playlists'
- * tiles and Random Album's choice. Each as the C# server answers it, held by
+ * Home: Smart Picks, the genre cards, the label of the week and Random
+ * Album's choice. Each as the C# server answers it, held by
  * test/golden/android-api.json (AndroidApiTests, LibraryTest) like the rest
  * of Library.kt.
  */
@@ -135,27 +135,6 @@ data class GenreCard(val label: String, val genre: String?, val group: List<Genr
 data class LabelOfTheWeek(val label: String?, val albums: List<AlbumSummary>) {
     companion object {
         fun parse(j: JSONObject) = LabelOfTheWeek(j.text("label"), AlbumRow.parse(j).albums)
-    }
-}
-
-/**
- * A playlist as Home's Playlists row tiles it: yours ([smart] false: [count] its tracks, [updatedAt] when it last
- * changed) or a Dynamic one ([smart] true: [count] its albums), with [artKeys] for the tile's mosaic.
- */
-data class PlaylistTile(val id: String, val name: String, val count: Int, val smart: Boolean, val updatedAt: Long, val artKeys: List<String>) {
-    /** The tile's second line, as the page writes it: "3 tracks", or "Dynamic · 12 albums". */
-    val subtitle: String get() = if (smart) "Dynamic · $count album" + (if (count == 1) "" else "s") else "$count track" + (if (count == 1) "" else "s")
-
-    companion object {
-        private fun keys(a: JSONArray?): List<String> = if (a == null) emptyList() else (0 until a.length()).map { a.optString(it, "") }.filter { it.isNotEmpty() }
-        /** Your playlists (/api/user-playlists), the last changed first, as the row has them. */
-        fun mine(j: JSONObject): List<PlaylistTile> = j.optJSONArray("playlists").each {
-            PlaylistTile(it.optString("id", ""), it.optString("name", ""), it.optInt("track_total", 0), false, it.optLong("updated_at", 0), keys(it.optJSONArray("art_keys")))
-        }.sortedByDescending { it.updatedAt }
-        /** The Dynamic playlists (/api/smart-playlists), after yours. */
-        fun smart(j: JSONObject): List<PlaylistTile> = j.optJSONArray("playlists").each {
-            PlaylistTile(it.optString("id", ""), it.optString("name", ""), if (it.has("count") && !it.isNull("count")) it.optInt("count") else it.optInt("album_total", 0), true, 0, keys(it.optJSONArray("art_keys")))
-        }
     }
 }
 

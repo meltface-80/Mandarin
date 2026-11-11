@@ -155,7 +155,7 @@ function makeScanLogLink() {
 }
 
 async function showLabelsList(isRepoll = false) {
-  if (window.__leavePlaylistScreens) window.__leavePlaylistScreens();
+  if (window.__leaveSmartPicks) window.__leaveSmartPicks();
   if (!isRepoll) {
     if (window.__clearSearchIfActive) window.__clearSearchIfActive();  // drop stale search results
     exitAlbumSelectMode(); closeLabelLogoSheet(); currentLabelName = null; currentLabelLogoUrl = null;

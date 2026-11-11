@@ -28,6 +28,18 @@ class LibraryViewTest {
         assertEquals("", LibraryView.kept(null))
     }
 
+    @Test fun `a view kept as JSON, there and back, decades as words and facets it doesn't name off`() {
+        val v = LibraryView(sort = "artist", dir = "desc", seed = 3, played = "6", facets = mapOf("genre" to listOf("Rock")))
+        val j = v.json()
+        assertEquals("artist", j.getString("sort"))
+        assertEquals("Rock", j.getJSONArray("genre").getString(0))
+        assertEquals(0, j.getJSONArray("label").length())
+        assertEquals(v, LibraryView.ofJson(j))
+        assertEquals(LibraryView(sort = "added", dir = "asc", seed = 42, played = "never", facets = mapOf("decade" to listOf("1990", "!1980"))),
+            LibraryView.ofJson(JSONObject("""{"sort":"added","dir":"asc","seed":42,"played":"never","decade":[1990,"!1980"],"genre":[]}""")))
+        assertEquals("a whole number written as a decimal is still the decade", listOf("2000"), LibraryView.ofJson(JSONObject("""{"decade":[2000.0]}""")).facets["decade"])
+    }
+
     @Test fun `Home's Library row asks with the order alone, never the Focus nor the name filter`() {
         val v = LibraryView.parse("sort=year&dir=desc&genre=Rock&genre=!Jazz&played=never&prefix=Th")
         assertEquals("sort=year&dir=desc", v.sortQuery())

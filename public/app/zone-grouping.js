@@ -1,24 +1,4 @@
-/* The page's core (app.js until v1.0.5), 16 of 33: a smart playlist deleted, and rooms grouped. */
-async function deleteSmartPlaylist(sp) {
-  const ok = await confirmDialog(`Delete the Dynamic Playlist "${sp.name}"?`);
-  if (!ok) return;
-  try {
-    const r = await fetch("/api/smart-playlists/delete", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: sp.id })
-    });
-    const j = await r.json().catch(() => ({}));
-    if (!r.ok) { showToast(j.error || "Couldn't delete that", "error"); return; }
-    showToast(`Deleted "${sp.name}"`);
-    if (window.__playlistsChanged) window.__playlistsChanged();
-    smartDetailActive = false;
-    showSmartPlaylists();
-  } catch (e) {
-    showToast("Couldn't delete that", "error");
-  }
-}
-
+/* The page's core (app.js until v1.0.5), 16 of 33: rooms grouped. */
 // A zone row's label. Grouped zones get a second line naming their outputs,
 // as Roon's own remote does — without it a zone called "Kitchen + Study" and
 // a real Kitchen+Study group look identical.

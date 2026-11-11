@@ -231,8 +231,6 @@ const HOME_ROWS = [
     load: () => { loadHomeUnplayed(); }, isFresh: () => rowsTtlFresh() },
   { id: "later", title: "Listen later",
     load: () => { loadHomeLater(); }, isFresh: () => homeLaterLoaded },
-  { id: "playlists", title: "Playlists",
-    load: () => { loadHomePlaylists(); }, isFresh: () => homePlaylistsLoaded },
   { id: "favourites", title: "Favourites",
     load: () => { loadHomeFavourites(); }, isFresh: () => homeFavouritesLoaded },
   { id: "history",  title: "Recently played",
@@ -268,7 +266,7 @@ let homeLayout = HOME_ROWS.map(r => ({ id: r.id, on: true }));
 // fresh install has no history and no picks, and an empty labelled shelf
 // reads as a fault rather than an absence.
 function rowHidesWhenEmpty(id) {
-  return id === "unplayed" || id === "history" || id === "picks" || id === "lotw" || id === "favourites" || id === "later" || id === "playlists" || id === "phone";
+  return id === "unplayed" || id === "history" || id === "picks" || id === "lotw" || id === "favourites" || id === "later" || id === "phone";
 }
 function rowHasAnyContent(sectionEl) {
   return !!(sectionEl && sectionEl.querySelector(".album, .pick-card, .home-genre-tile"));
@@ -353,7 +351,7 @@ function applyAlbumView() {
 // `view` (whether the screen shows album tiles) is kept for the callers'
 // sake; nothing in the bar depends on it since the list button went.
 // The menu button is Home's alone (v0.6.24): on every other screen — the
-// album grids, Labels, Listen later, the playlists, an artist — the brass ‹
+// album grids, Labels, Listen later, Smart Picks, an artist — the brass ‹
 // stands where it was. Followed from the ‹ itself, wherever it is toggled.
 {
   const menuBtn = document.getElementById("menu-toggle");

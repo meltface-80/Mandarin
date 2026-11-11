@@ -7,7 +7,6 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -52,7 +51,6 @@ import com.musicd.server.client.Contract
 import com.musicd.server.client.GenreCard
 import com.musicd.server.client.Palette
 import com.musicd.server.client.Pick
-import com.musicd.server.client.PlaylistTile
 import com.musicd.server.client.ServerClient
 import com.musicd.server.client.WallPrefs
 import kotlin.math.ceil
@@ -64,7 +62,7 @@ import kotlinx.coroutines.flow.first
 /*
  * Home's own tiles (bug list item 57; the page's home-render.js, home-rows.js
  * and device-power.js, style.css in the hifi palette): the Random Album tile
- * with its turning disc, a playlist's mosaic, a Smart Pick's card, a genre
+ * with its turning disc, a Smart Pick's card, a genre
  * card, and the row's one line where it has no tiles. An album's tile is the
  * walls' (AlbumTile.kt), with ★ Today on today's album and a download's
  * badge on the app's own row.
@@ -160,47 +158,6 @@ internal fun RandomAlbumTile(prefs: WallPrefs, spin: DiscSpin, onTap: () -> Unit
             }
         }
         Text("Random Album", Modifier.padding(top = 11.dp).lineBox(title, titleLine), color = MaterialTheme.colorScheme.secondary, fontSize = title, lineHeight = titleLine, fontWeight = FontWeight.W600, maxLines = 2, overflow = TextOverflow.Ellipsis)
-    }
-}
-
-/** A playlist's tile (the page's renderHomePlaylists): a mosaic of its first covers (two as halves, three or four in a 2×2), its name over its count. */
-@Composable
-internal fun PlaylistTileView(p: PlaylistTile, prefs: WallPrefs, coverPx: Int, client: () -> ServerClient?, onTap: () -> Unit) {
-    val keys = p.artKeys.take(4)
-    val title = (12 * prefs.text).sp; val titleLine = (15 * prefs.text).sp
-    val sub = (10.5 * prefs.text).sp; val subLine = (13.65 * prefs.text).sp
-    val corners = RoundedCornerShape(12.dp)
-    Column(Modifier.parity("home.playlist", Contract.label("home.playlist", 0, p.name, p.subtitle)).width((144 * prefs.tile).dp).clickable(onClick = onTap)) {
-        Box(Modifier.parity("home.playlist-art").fillMaxWidth().aspectRatio(1f).clip(corners).background(paletteColor(Palette.BG_ELEV_2)).border(1.dp, Color.White.copy(alpha = 0.06f), corners)) {
-            PlaylistMosaic(keys, coverPx, client)
-        }
-        Text(p.name.ifEmpty { "Untitled" }, Modifier.parity("home.playlist-title").padding(top = 11.dp).lineBox(title, titleLine), color = MaterialTheme.colorScheme.onSurface,
-            fontSize = title, lineHeight = titleLine, fontWeight = FontWeight.W600, maxLines = 2, overflow = TextOverflow.Ellipsis)
-        Text(p.subtitle, Modifier.parity("home.playlist-subtitle").padding(top = 1.dp).lineBox(sub, subLine), color = MaterialTheme.colorScheme.onSurfaceVariant,
-            fontSize = sub, lineHeight = subLine, maxLines = 1, overflow = TextOverflow.Ellipsis)
-    }
-}
-
-/**
- * A playlist's covers as the page draws them on its tile ([keys], four at most): "♪" with none, one filling the
- * square, two as halves, more as a grid of four, a 1px gap between the cells (Home's row, the Playlists screen).
- */
-@Composable
-internal fun BoxScope.PlaylistMosaic(keys: List<String>, coverPx: Int, client: () -> ServerClient?) {
-    if (keys.isEmpty()) Text("♪", Modifier.align(Alignment.Center), color = paletteColor(Palette.TEXT_FAINT), fontSize = 48.sp, lineHeight = 48.sp)
-    else if (keys.size == 1) rememberTileCover(keys[0], coverPx, client)?.let { Image(it, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize()) }
-    else {
-        val rows = if (keys.size == 2) 1 else 2
-        Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(1.dp)) {
-            for (r in 0 until rows) Row(Modifier.weight(1f).fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(1.dp)) {
-                for (col in 0 until 2) {
-                    val k = keys.getOrNull(r * 2 + col)
-                    Box(Modifier.weight(1f).fillMaxSize()) {
-                        if (k != null) rememberTileCover(k, coverPx / 2, client)?.let { Image(it, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize()) }
-                    }
-                }
-            }
-        }
     }
 }
 

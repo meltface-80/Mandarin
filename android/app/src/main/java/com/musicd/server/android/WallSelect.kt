@@ -42,8 +42,8 @@ import com.musicd.server.client.ServerClient
  * invokeAlbumMulti): a long press on a tile starts selecting, with that tile
  * the first pick, and the bar along the foot says "Tap albums to select"
  * until one is; then the ⋯ with the count, top right, opens what to do with
- * them: play now, play next, add to the end of the queue, add to a playlist
- * (the page's sheet), Listen later, or clear. The Library wall, the walls
+ * them: play now, play next, add to the end of the queue, Listen later, or
+ * clear. The Library wall, the walls
  * Home links to and an artist's page select alike, so each carries the
  * three screens' keys.
  */
@@ -63,7 +63,7 @@ internal fun SelectBar(onCancel: () -> Unit, modifier: Modifier = Modifier) {
     }
 }
 
-/** The ⋯ with the count, and its menu; [n] albums picked; [onAct]: play_now, play_next, queue, playlist, later, clear. */
+/** The ⋯ with the count, and its menu; [n] albums picked; [onAct]: play_now, play_next, queue, later, clear. */
 @Composable
 internal fun AlbumSelectMenu(n: Int, onAct: (String) -> Unit, modifier: Modifier = Modifier) {
     var open by remember { mutableStateOf(false) }
@@ -85,8 +85,6 @@ internal fun AlbumSelectMenu(n: Int, onAct: (String) -> Unit, modifier: Modifier
                 modifier = Modifier.parity("library.select-play-next wall.select-play-next artist.select-play-next", Contract.label("library.select-play-next")))
             DropdownMenuItem(text = { Text(Contract.label("library.select-queue"), fontSize = 15.sp) }, onClick = { open = false; onAct("queue") },
                 modifier = Modifier.parity("library.select-queue wall.select-queue artist.select-queue", Contract.label("library.select-queue")))
-            DropdownMenuItem(text = { Text(Contract.label("library.select-playlist"), fontSize = 15.sp) }, onClick = { open = false; onAct("playlist") },
-                modifier = Modifier.parity("library.select-playlist wall.select-playlist artist.select-playlist", Contract.label("library.select-playlist")))
             DropdownMenuItem(text = { Text(Contract.label("library.select-later"), fontSize = 15.sp) }, onClick = { open = false; onAct("later") },
                 modifier = Modifier.parity("library.select-later wall.select-later artist.select-later", Contract.label("library.select-later")))
             DropdownMenuItem(text = { Text(Contract.label("library.select-clear"), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 15.sp) }, onClick = { open = false; onAct("clear") },

@@ -130,8 +130,6 @@ let homeFavouritesLoaded = false;
 const homeFavourites = document.getElementById("home-favourites");
 let homeLaterLoaded = false;
 const homeLater = document.getElementById("home-later");
-let homePlaylistsLoaded = false;
-const homePlaylists = document.getElementById("home-playlists");
 
 // ---------------------------------------------------------------------------
 // The Home rows, as one table.

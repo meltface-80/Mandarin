@@ -52,8 +52,6 @@ class PhoneAnswers(
                 .put("away", true).put("signed_in", true).put("username", info().username))
         }
         room.get(path, q)?.let { return it }
-        // Dynamic Playlists offline: the list as the server last gave it, its playlists left out (their albums aren't here).
-        if (path == "/api/smart-playlists") return Answer.ok((cached(path) ?: JSONObject()).put("playlists", JSONArray()))
         devices("GET", path, JSONObject())?.let { return it }
         if (path.startsWith("/api/image/")) return image(java.net.URLDecoder.decode(path.removePrefix("/api/image/"), "UTF-8").substringBefore('?'))
         return Answer.ok(cached(path) ?: JSONObject())

@@ -62,7 +62,6 @@ class PhoneShelfTest {
         val unplayed = lib.unplayed(6, 30)
         assertTrue(unplayed.albums.isEmpty()); assertTrue(unplayed.noHistory)
         assertTrue(lib.recentlyPlayed().albums.isEmpty())
-        assertTrue(lib.userPlaylists().isEmpty())
         assertEquals(2, lib.randomAlbums(2).albums.size)
     }
 

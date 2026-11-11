@@ -216,7 +216,7 @@ class DevicePage(val j: JSONObject) {
     /** Volume levelling, where the server offers it: Off, Track, Album or Auto, then the target and the unknown's adjustment. */
     val levelling: JSONObject? get() = j.optJSONObject("levelling")
     val levelMode: String get() = levelling?.optString("mode", "off") ?: "off"
-    val levelInfo: String get() = "ReplayGain. Track plays every track at the same level. Album plays every record at the same level, its quiet and loud songs as they were made. Auto is Album while a record plays in order and Track when tracks from different records follow one another — a shuffle, a playlist, radio. Gains come from the files’ ReplayGain tags, or from Measure ReplayGain (Settings → Library Scanner); a track’s peak keeps it from being turned up into clipping. " +
+    val levelInfo: String get() = "ReplayGain. Track plays every track at the same level. Album plays every record at the same level, its quiet and loud songs as they were made. Auto is Album while a record plays in order and Track when tracks from different records follow one another — a shuffle, radio. Gains come from the files’ ReplayGain tags, or from Measure ReplayGain (Settings → Library Scanner); a track’s peak keeps it from being turned up into clipping. " +
         (if (kind == "phone") "The app applies the gain itself, to streams and downloads alike." else "The gain goes into the stream: each track is sent as FLAC with it applied. Off sends every file as it is.") +
         " A change is heard straight away, from where the music is."
 
