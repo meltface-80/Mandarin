@@ -10,8 +10,12 @@ const { spawnSync } = require("child_process");
 
 const FFMPEG = process.env.FFMPEG_PATH || "ffmpeg";
 
+/* Whether ffmpeg runs here; on CI, which installs it before the tests, its absence throws, so a test can't skip for want of it there. */
 function haveFfmpeg() {
-  try { return spawnSync(FFMPEG, ["-version"]).status === 0; } catch (e) { return false; }
+  let ok;
+  try { ok = spawnSync(FFMPEG, ["-version"]).status === 0; } catch (e) { ok = false; }
+  if (!ok && process.env.CI) throw new Error("ffmpeg is not installed (CI installs it before the tests): " + FFMPEG);
+  return ok;
 }
 
 /* Whether this ffmpeg draws text (drawtext): from 6.1 it needs harfbuzz, which some builds leave out (CI's static one, Homebrew's). */

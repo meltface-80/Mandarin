@@ -12,11 +12,17 @@ k=${shard%/*}
 n=${shard#*/}
 proj=test/Mandarin.Tests
 dotnet build "$proj" -c Release --nologo -v quiet || exit 1
-classes=$(dotnet test "$proj" -c Release --no-build --list-tests 2>/dev/null \
-  | sed -n 's/^    \(Mandarin\.Tests\.[A-Za-z0-9_]*\)\.[A-Za-z0-9_]*.*$/\1/p' | sort -u \
-  | awk -v k="$k" -v n="$n" '(NR - k) % n == 0')
+listed=$(dotnet test "$proj" -c Release --no-build --list-tests 2>&1) || { echo "$listed"; echo "::error::the C# tests couldn't be listed"; exit 1; }
+all=$(echo "$listed" | sed -n 's/^    \(Mandarin\.Tests\.[A-Za-z0-9_]*\)\.[A-Za-z0-9_]*.*$/\1/p' | sort -u)
+# None listed at all is a broken build or listing, never a pass.
+if [ -z "$all" ]; then
+  echo "$listed"
+  echo "::error::no C# test classes were listed"
+  exit 1
+fi
+classes=$(echo "$all" | awk -v k="$k" -v n="$n" '(NR - k) % n == 0')
 if [ -z "$classes" ]; then
-  echo "no C# test classes in part $shard"
+  echo "no C# test classes in part $shard (of $(echo "$all" | wc -l))"
   exit 0
 fi
 filter=$(printf 'FullyQualifiedName~%s.|' $classes)
@@ -25,6 +31,11 @@ log=${RUNNER_TEMP:-/tmp}/csharp-tests-$k.log
 echo "== C# tests, part $shard: $(echo "$classes" | wc -l) classes"
 dotnet test "$proj" -c Release --no-build --nologo --filter "$filter" --logger "console;verbosity=normal" 2>&1 | tee "$log"
 [ "${PIPESTATUS[0]}" -eq 0 ] && exit 0
+# The test host gone mid-run: the tests after it never ran, so running the failed ones again proves nothing.
+if grep -Eqi 'test run was aborted|test host process crashed' "$log"; then
+  echo "::error::the C# test host stopped mid-run; the tests after it never ran"
+  exit 1
+fi
 failed=$(sed -n 's/^ *Failed \(Mandarin\.Tests\.[A-Za-z0-9_.]*\).*$/\1/p' "$log" | sort -u)
 if [ -z "$failed" ]; then
   echo "::error::the C# run failed without naming a test; see the log above"

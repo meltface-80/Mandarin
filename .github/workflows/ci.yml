@@ -91,13 +91,15 @@ jobs:
       - name: Install ffmpeg
         run: |
           set -e
-          if [ ! -x ~/ffmpeg-static/ffmpeg ]; then
+          # A cached binary that doesn't run is fetched again, not passed on.
+          if ! ~/ffmpeg-static/ffmpeg -version >/dev/null 2>&1; then
             mkdir -p ~/ffmpeg-static
             curl -sSL --retry 5 --retry-all-errors --retry-delay 5 --max-time 300 -o /tmp/ffmpeg.tar.xz https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz
             tar -xJf /tmp/ffmpeg.tar.xz --strip-components=1 -C ~/ffmpeg-static --wildcards '*/ffmpeg' '*/ffprobe'
           fi
           echo "$HOME/ffmpeg-static" >> "$GITHUB_PATH"
-          ~/ffmpeg-static/ffmpeg -version | head -1
+          v=$(~/ffmpeg-static/ffmpeg -version)
+          echo "${v%%$'\n'*}"
       # poppler (v0.8.33): the C# server draws an album's booklet with it
       # (test/booklets-csharp.test.js). The runner may have it already.
       - name: Install poppler
