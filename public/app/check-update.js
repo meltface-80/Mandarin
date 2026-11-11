@@ -12,7 +12,7 @@
   const btn  = document.getElementById("check-update-btn");
   const name = document.getElementById("update-server-name");
   const box  = document.getElementById("settings-whats-new");
-  if (!btn) return;
+  if (!btn || EMBED) return;   // not in the Shelf's frame (embed-flag.js)
   const CHECK = "Check for update", AVAILABLE = "Update available";
   let found = null;          // { latest, notes } once an update is on offer
 

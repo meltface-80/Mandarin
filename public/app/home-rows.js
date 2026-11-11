@@ -63,7 +63,7 @@ async function loadHomeFavourites() {
   } catch (e) { /* next visit tries again */ }
 }
 // A heart tapped anywhere: the row shows it at once.
-window.__favouritesChanged = () => { homeFavouritesLoaded = false; loadHomeFavourites(); };
+window.__favouritesChanged = () => { if (EMBED) return; homeFavouritesLoaded = false; loadHomeFavourites(); };   // EMBED: the Shelf's frame, no row
 
 // ----- Listen later: albums put aside, newest first -----
 function renderHomeLater(albums) {

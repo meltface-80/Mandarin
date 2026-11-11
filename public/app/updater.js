@@ -10,7 +10,7 @@
   const btnNow   = document.getElementById("update-now");
   const btnLater = document.getElementById("update-later");
   const notesEl  = document.getElementById("update-notes");
-  if (!toast || !btnNow) return;
+  if (!toast || !btnNow || EMBED) return;   // not in the Shelf's frame (embed-flag.js)
 
   const PHASE = {
     checking:   "Preparing\u2026",
