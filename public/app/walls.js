@@ -188,7 +188,8 @@ const LIB_VIEW_KEY = "rra-library-view";
 // the migrated blob is written straight back, lose the preference for good.
 const LIB_VIEW_VERSION = 2;
 const LIB_V1_INVERTED_SORTS = ["plays", "lastplayed"];
-const libWall = { offset: 0, loading: false, done: false, seq: 0, total: 0 };
+// `items`: the albums the pages have brought, in order; the tiles near the view are drawn from them (library-window.js).
+const libWall = { offset: 0, loading: false, done: false, seq: 0, total: 0, items: [] };
 // Every multi-select Focus facet, in the order the sheet lays them out. This
 // list is the client's half of libFacetDefs() on the server; the SERVER is
 // what decides which of them actually have values, and the sheet renders
