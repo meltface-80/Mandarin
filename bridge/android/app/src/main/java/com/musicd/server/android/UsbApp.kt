@@ -16,6 +16,8 @@ class UsbApp : Application() {
     override fun onCreate() {
         super.onCreate()
         CrashLog.install(this)
+        // Its own log kept on, in files that roll (item 389, BridgeLog.kt).
+        BridgeLog.start(this)
     }
 }
 
@@ -33,10 +35,15 @@ object CrashLog {
                     "Mandarin Bridge ${BuildConfig.VERSION_NAME} · Android ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT}) · " +
                         "${Build.MANUFACTURER} ${Build.MODEL}\nThread: ${thread.name}\n\n$sw"
                 )
+                // In its log too, before the process goes (item 389).
+                BridgeLog.add("${java.time.Instant.now()} CRASH on thread ${thread.name}:\n$sw")
             }
             previous?.uncaughtException(thread, e)
         }
     }
+
+    /** What the last crash left, the file kept, or null: for the log Mandarin fetches (BridgeLog.kt). */
+    fun peek(c: android.content.Context): String? = file(c).takeIf { it.exists() }?.let { runCatching { it.readText() }.getOrNull() }?.takeIf { it.isNotBlank() }
 
     /** What the last crash left, taken (the file is deleted), or null. */
     fun take(c: android.content.Context): String? {

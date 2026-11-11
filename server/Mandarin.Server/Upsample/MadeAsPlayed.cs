@@ -226,7 +226,7 @@ internal static class MadeAsPlayed
         Cpu.Place(psi, CpuKind.Playback);
         var proc = Process.Start(psi)!;
         Cpu.Adopt(proc, CpuKind.Playback);
-        return (proc, proc.StandardError.ReadToEndAsync());
+        return (proc, StderrLines.Read(proc.StandardError, "upsample-run"));   // each line in the log too (item 389)
     }
 
     /* An album run's key ("a<tracks>-<its first track's key>", AlbumRun.KeyFor): its first track's key; null for a track's own. */

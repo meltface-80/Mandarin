@@ -236,17 +236,8 @@ internal sealed partial class Tailscale(string imageBin, string dir, int port, s
             catch (Exception) { /* closed */ }
             first.TrySetException(new InvalidOperationException("the engine didn't start"));
         });
-        _ = Task.Run(async () =>
-        {
-            try
-            {
-                var chunk = new char[4096];
-                int n;
-                while ((n = await p.StandardError.ReadAsync(chunk, 0, chunk.Length)) > 0)
-                    lock (tail) { tail.Add(new string(chunk, 0, n)); if (tail.Count > 20) tail.RemoveAt(0); }
-            }
-            catch (Exception) { /* closed */ }
-        });
+        // What it says, in the server's log (item 389, StderrLines.cs), its last lines kept for why it stopped.
+        _ = StderrLines.Read(p.StandardError, "tailscale-engine", l => { lock (tail) { tail.Add(l); if (tail.Count > 20) tail.RemoveAt(0); } });
         p.Exited += (_, _) =>
         {
             lock (gate)
