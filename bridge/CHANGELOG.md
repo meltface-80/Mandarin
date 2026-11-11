@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.3.9
+
+- Improved - its log is always kept, as Mandarin's server keeps its own: in files that roll in its data folder (Logs/MandarinBridge_log.txt, then .01 to .10 older), each opening with which Bridge it is and each line dated in UTC with its level, so a restart, an update or a crash loses none of it. Before, the Linux Bridge and the Pi's kept their last 2,000 lines in memory alone, and the Android Bridge only what Android still held of the run. A crash is in it with its stack. Mandarin's server now keeps every Bridge's log beside its own too (item 389). Both Bridges
+- Improved - Mandarin Bridge is 0.3.9
+
 ## v0.3.8
 
 - Improved - security: the Linux Bridge (and the Pi's) installs an update only when it is signed with Mandarin's release key, now that there is one; an update replaced on GitHub, its checksum with it, is refused. A Bridge before 0.3.8 takes its update to 0.3.8 as before, and every one after it is checked (item 371)

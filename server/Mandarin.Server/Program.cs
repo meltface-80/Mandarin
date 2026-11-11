@@ -103,6 +103,8 @@ Server.DataDir = dataDir;
 // The log kept from here in <data>/Logs, what was said before written first; a line on how the server is every five minutes (item 389).
 Diagnostics.Start(dataDir);
 LogHeader.StartSnapshots();
+// Every Mandarin Bridge's log kept beside the server's, in Logs/Bridges, every five minutes (Admin/BridgeLogsKept.cs, item 389).
+Mandarin.Server.Admin.BridgeLogsKept.Start();
 string appDir = Environment.GetEnvironmentVariable("MANDARIN_APP_DIR") ?? Server.FindAppDir();
 // A database put back from a backup goes in now, before it opens (Admin/Restore.cs);
 // then the database made, or brought up to date (Schema.cs); a new one is a

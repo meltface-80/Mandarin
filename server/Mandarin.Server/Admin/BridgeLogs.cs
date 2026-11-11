@@ -28,6 +28,17 @@ internal static class BridgeLogs
     // Bridge [rec]'s heading and log, or why it has none.
     private static async Task<string> One(DeviceRecord rec)
     {
+        var (head, lines, why) = await Read(rec);
+        var b = new StringBuilder(head).Append('\n');
+        if (lines == null) return b.Append(why).Append('\n').ToString();
+        foreach (var l in lines) b.Append(l).Append('\n');
+        return b.ToString();
+    }
+
+    /* Bridge [rec]'s heading ("— Mandarin Bridge: name (platform version, build c) —"), and its newest lines, scrubbed,
+       or null and why it has none ("(it isn't answering: its log isn't here)"). */
+    public static async Task<(string Head, string[]? Lines, string? Why)> Read(DeviceRecord rec)
+    {
         var at = BridgeUpdates.Base(rec);
         var dac = await MandarinBridge.Probe(at);
         var head = new StringBuilder("— Mandarin Bridge: ").Append(BridgeUpdates.Name(rec));
@@ -38,24 +49,22 @@ internal static class BridgeLogs
             if (BridgeUpdates.Said(dac["commit"]) is { Length: > 0 } c) head.Append(", build ").Append(c);
             head.Append(')');
         }
-        head.Append(" —\n");
-        if (dac == null) return head + "(it isn't answering: its log isn't here)\n";
+        head.Append(" —");
+        var h = head.ToString();
+        if (dac == null) return (h, null, "(it isn't answering: its log isn't here)");
         // Only a path on the Bridge itself: never another address, its /dac.json being anyone's to answer.
         if (BridgeUpdates.Said(dac["log"]) is not { Length: > 1 } path || path[0] != '/' || path.StartsWith("//", StringComparison.Ordinal))
-            return head + "(its app is older and keeps no log for Mandarin)\n";
+            return (h, null, "(its app is older and keeps no log for Mandarin)");
         try
         {
             using var r = await Http.GetAsync(at + path, HttpCompletionOption.ResponseHeadersRead);
-            if (!r.IsSuccessStatusCode) return head + $"(it didn't give its log: HTTP {(int)r.StatusCode})\n";
+            if (!r.IsSuccessStatusCode) return (h, null, $"(it didn't give its log: HTTP {(int)r.StatusCode})");
             var text = await Newest(await r.Content.ReadAsStreamAsync());
-            var b = new StringBuilder(head.ToString());
-            foreach (var line in text.Split('\n'))
-                if (line.TrimEnd('\r') is { Length: > 0 } l) b.Append(LogScrub.Line(l)).Append('\n');
-            return b.ToString();
+            return (h, [.. text.Split('\n').Select(l => l.TrimEnd('\r')).Where(l => l.Length > 0).Select(LogScrub.Line)], null);
         }
         catch (Exception e) when (e is HttpRequestException or TaskCanceledException or IOException)
         {
-            return head + "(it didn't give its log: " + e.Message + ")\n";
+            return (h, null, "(it didn't give its log: " + e.Message + ")");
         }
     }
 

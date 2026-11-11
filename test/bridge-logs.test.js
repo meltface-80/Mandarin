@@ -1,8 +1,8 @@
 "use strict";
 /*
  * Each Mandarin Bridge's own log in Mandarin's (item 291, Admin/BridgeLogs.cs: GET /api/diagnostics/bridges, which the
- * Android app's Save log adds after the server's), end to end with Mandarin Bridge for Linux itself (its last lines
- * kept, Kept.cs, at /log) and two fake Android ones (BridgeLog.kt's /log, and an older app with none):
+ * Android app's Save log adds after the server's), end to end with Mandarin Bridge for Linux itself (its log kept in
+ * rolling files in its data folder, Kept.cs, item 389, the newest lines at /log) and two fake Android ones (BridgeLog.kt's /log, and an older app with none):
  *   - every Bridge under its name, its platform, version and build, then its lines;
  *   - what is the owner's alone taken out, as from the server's own lines (LogScrub);
  *   - an older Bridge, and one not answering, said so; nothing without signing in.
@@ -58,7 +58,11 @@ test("every Mandarin Bridge's own log, in Mandarin's", { skip, timeout: 120000 }
   const dac = await until(async () => (await fetch(BR + "/dac.json")).json(), 15000);
   assert.equal(dac.log, "/log");
   const own = await (await fetch(BR + "/log")).text();
-  assert.match(own, /^\d{4}-\d\d-\d\d \d\d:\d\d:\d\d \[http\] listening on \d+$/m, own);
+  assert.match(own, /^\d{4}-\d\d-\d\d \d\d:\d\d:\d\d\.\d{3} UTC {2}INFO {3}\[http\] listening on \d+$/m, own);
+  // Kept on disk too, in its data folder's Logs, the file opening with which Bridge it is (item 389).
+  const file = fs.readFileSync(path.join(tmp, "data", "Logs", "MandarinBridge_log.txt"), "utf8");
+  assert.match(file, /^# Mandarin Bridge \S+ \(build [^)]+\) log, begun /);
+  assert.match(file, /\[http\] listening on \d+$/m);
   const commit = spawnSync(BRIDGE, ["--version"]).stdout.toString().match(/\(([^)]+)\)/)[1];
 
   // An Android Bridge, its log as Android keeps it, with what is the owner's alone in it; and an older one, with none.
@@ -75,7 +79,7 @@ test("every Mandarin Bridge's own log, in Mandarin's", { skip, timeout: 120000 }
   t.after(() => house.stop());
   const { createServer } = require("./server");
   const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [ports.host(0)],
-    upnpHosts: [phone.location, older.location], upnpMulticast: false, slimprotoPort: SLIM });
+    upnpHosts: [phone.location, older.location], upnpMulticast: false, slimprotoPort: SLIM, bridgeLogsEvery: 1 });
   await srv.start();
   t.after(() => srv.stop());
   const auth = { Authorization: "Bearer " + await signIn(B) };
@@ -96,6 +100,15 @@ test("every Mandarin Bridge's own log, in Mandarin's", { skip, timeout: 120000 }
   const rows = (await (await fetch(B + "/api/update/bridges", { headers: auth })).json()).bridges;
   assert.deepEqual(rows.filter(r => r.name !== dac.name).map(r => [r.name, r.platform, r.version, r.commit]).sort(),
     [["FiiO R7 USB", "android", "0.2.0", null], ["Old Bridge", "android", "0.2.0", null]]);
+  // Kept on the server too, without asking (item 389): each Bridge's new lines in Logs/Bridges/<its name>.txt, under its
+  // heading, the owner's alone taken out there as well, and a line already kept never kept twice.
+  const kept = name => { try { return fs.readFileSync(path.join(lib.data, "Logs", "Bridges", name + ".txt"), "utf8"); } catch (e) { return ""; } };
+  await until(() => /\[http\] listening on/.test(kept(dac.name)) && /UsbDriver: opened/.test(kept("FiiO R7 USB")), 20000);
+  assert.match(kept("FiiO R7 USB"), /^# — Mandarin Bridge: FiiO R7 USB \(android 0\.2\.0\) —\n/);
+  assert.match(kept("FiiO R7 USB"), /Updater: asked by \[email\] with token=\[…\]$/m);
+  await sleep(2500);
+  assert.equal((kept("FiiO R7 USB").match(/UsbDriver: opened/g) || []).length, 1, kept("FiiO R7 USB"));
+  assert.equal((kept(dac.name).match(/\[http\] listening on/g) || []).length, 1, kept(dac.name));
   await older.stop();
   assert.match(await until(async () => { const s = await logs(); return /Old Bridge —\n\(it isn't answering/.test(s) && s; }, 15000),
     /^— Mandarin Bridge: Old Bridge —\n\(it isn't answering: its log isn't here\)$/m);

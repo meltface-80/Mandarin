@@ -21,6 +21,7 @@ public sealed class LogScrubTests
         ("[auth] wrong password from 2a02:c7f:1234:5600::1", "[auth] wrong password from [wan]"),
         ("away: using 100.92.159.80:3500 and fd7a:115c:a1e0::1", "away: using [tailscale]:3500 and [tailscale]"),
         ("on my-server.tail1234.ts.net", "on [tailscale]"),
+        ("[tailscale-engine] To authenticate, visit: https://login.tailscale.com/a/1f2e3d4c5b6a7", "[tailscale-engine] To authenticate, visit: https://login.tailscale.com/a/[…]"),
         ("[scan] /home/jane/Music/Soen/Lykaia: unreadable", "[scan] /home/[user]/Music/Soen/Lykaia: unreadable"),
         // Kept.
         ("[auth] signed in: Chrome on Mac (browser) from 192.168.0.23", "[auth] signed in: Chrome on Mac (browser) from 192.168.0.23"),
