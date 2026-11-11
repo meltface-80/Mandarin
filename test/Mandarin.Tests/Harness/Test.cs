@@ -20,10 +20,17 @@ public sealed class TestAttribute : FactAttribute
 public static class Needs
 {
     /// <summary>The C# server built (server/build.sh).</summary>
-    public static void Server() { if (ServerProcess.NotBuilt is { } why) Assert.Skip(why); }
+    public static void Server() { if (ServerProcess.NotBuilt is { } why) Missing(why); }
 
     /// <summary>ffmpeg on the PATH (or FFMPEG_PATH): the fixture library is made with it.</summary>
-    public static void Ffmpeg() { if (!Fixtures.HaveFfmpeg) Assert.Skip("ffmpeg is not installed"); }
+    public static void Ffmpeg() { if (!Fixtures.HaveFfmpeg) Missing("ffmpeg is not installed"); }
+
+    /* Missing here: a skip, but on CI, which builds the server and installs ffmpeg before the tests, a failure, so a run where they went missing can't pass with them skipped. */
+    private static void Missing(string why)
+    {
+        if (Environment.GetEnvironmentVariable("CI") is { Length: > 0 }) Assert.Fail(why + " (CI sets this up before the tests)");
+        Assert.Skip(why);
+    }
 
     /// <summary>Mandarin's audio engine, which plays through ALSA on Linux and Core Audio on a Mac (item 155).</summary>
     public static void Engine() { if (!OperatingSystem.IsLinux() && !OperatingSystem.IsMacOS()) Assert.Skip("Mandarin's audio engine plays on Linux and a Mac"); }
