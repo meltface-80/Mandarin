@@ -14,7 +14,7 @@
 // the same.
 (function initBridgeUpdates() {
   const box = document.getElementById("update-bridges");
-  if (!box) return;
+  if (!box || EMBED) return;   // not in the Shelf's frame (embed-flag.js)
   const AVAILABLE = "Update available", UPDATING = "Updating…", ON_DEVICE = "Finish on the device", RETRY = "Try the update again";
   const CHECK = "Check for update", UP_TO_DATE = "Up to date", NONE = "Nothing published";
   let held = null;   // a Bridge whose check's answer is on its button, for its few seconds

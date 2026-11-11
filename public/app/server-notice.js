@@ -6,7 +6,7 @@
 /* ------------------------------------------------------------------ */
 (function serverNotice() {
   const main = document.querySelector("main");
-  if (!main) return;
+  if (!main || EMBED) return;   // not in the Shelf's frame (embed-flag.js): the notices are the page's
   const el = document.createElement("div");
   el.className = "status-banner server-notice hidden";
   el.id = "server-notice"; el.dataset.parity = "home.notice";

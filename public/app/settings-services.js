@@ -192,7 +192,7 @@ if (qobuzDisconnect) {
     finally { qobuzDisconnect.disabled = false; }
   });
 }
-loadQobuzStatus();
+if (!EMBED) loadQobuzStatus();   // not in the Shelf's frame (embed-flag.js)
 
 // ----- Tidal (v0.6.24): Settings → Services -------------------------------
 // Signed in on tidal.com: Mandarin shows a link and a code, and asks the
@@ -303,4 +303,4 @@ if (tidalDisconnect) tidalDisconnect.addEventListener("click", async () => {
   } catch (e) { settingsToast(e.message, "error"); }
   finally { tidalDisconnect.disabled = false; }
 });
-loadTidalStatus();
+if (!EMBED) loadTidalStatus();   // not in the Shelf's frame (embed-flag.js)

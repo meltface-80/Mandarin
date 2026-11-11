@@ -337,7 +337,7 @@ window.__libraryChanged = (opts) => {
 // wall by the time it is looked at. Not more than once a half-minute.
 let servicesWatchedAt = 0;
 window.__watchServices = async () => {
-  if (window.__musicdOffline || Date.now() - servicesWatchedAt < 30000) return;
+  if (EMBED || window.__musicdOffline || Date.now() - servicesWatchedAt < 30000) return;   // EMBED: the Shelf's frame
   servicesWatchedAt = Date.now();
   try {
     const r = await fetch("/api/services/watch", { method: "POST" });

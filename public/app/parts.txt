@@ -3,6 +3,7 @@
 # way into the Android app's own copy (android/app/build.gradle.kts). Only the
 # parts named here are joined; a part not named here never runs.
 # docs/specs/page-modules.md says how the page is carved.
+app/embed-flag.js
 app/sign-out-guard.js
 app/request-limits.js
 app/library-mark.js

@@ -12,6 +12,7 @@
 /*  every ten seconds, once it had heard nothing for twenty.           */
 /* ------------------------------------------------------------------ */
 (function libraryMark() {
+  if (EMBED) return;   // the Shelf's frame (embed-flag.js): no walls nor rows to read again
   const real = window.fetch;
   let mark = "", timer = 0, following = false;
   const wait = (ms) => new Promise((r) => setTimeout(r, ms));

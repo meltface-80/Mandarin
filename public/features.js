@@ -48,5 +48,6 @@
       if (typeof toast === "function") toast("Couldn't change Shelf: " + (e instanceof Error ? e.message : String(e)));
     }
   });
-  read();
+  // Not in the Shelf's album frame (app/embed-flag.js marks it): no menu there to offer it in.
+  if (!document.documentElement.classList.contains("embed-album")) read();
 })();

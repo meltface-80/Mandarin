@@ -26,7 +26,8 @@ function page() {
     __libraryChanged: () => { window.changed = (window.changed || 0) + 1; },
   };
   // The page's window is its global, as in a browser: a part's own fetch is the wrapped one.
-  const ctx = Object.assign(window, { window, document: { hidden: true }, setTimeout: (f) => { timers.push(f); return timers.length; }, clearTimeout: () => {}, Date, Promise, Map });
+  // EMBED as the page's first part (embed-flag.js) sets it: not the Shelf's album frame.
+  const ctx = Object.assign(window, { EMBED: false, window, document: { hidden: true }, setTimeout: (f) => { timers.push(f); return timers.length; }, clearTimeout: () => {}, Date, Promise, Map });
   vm.createContext(ctx);
   vm.runInContext(read("public/app/library-mark.js"), ctx);
   vm.runInContext(read("public/app/artist-foot.js"), ctx);
