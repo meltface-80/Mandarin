@@ -78,6 +78,21 @@ internal sealed class ZoneState
     public static ZoneState Blank(Volume? volume = null) => new() { At = Hub.Now(), VolumeValue = volume ?? new Volume(null, false) };
 
     public ZoneState Clone() => (ZoneState)MemberwiseClone();
+
+    /*
+     * A copy with `patch` made to it, stamped now; this one is left as it is. Hub.ApplyState compares the player's
+     * next word with the state kept, so the one kept is never changed in place: a command's track written into it
+     * was taken for the track already playing, and the last one's "played" kept (the track never in the history).
+     * A new track (another address or place in the queue) starts with nothing played, scrobbled or said.
+     */
+    public ZoneState Patched(Action<ZoneState> patch)
+    {
+        var next = Clone();
+        patch(next);
+        if (next.TrackUri != TrackUri || next.TrackNumber != TrackNumber) next.PlayedLogged = next.LowFired = next.Scrobbled = next.Announced = false;
+        next.At = Hub.Now();
+        return next;
+    }
 }
 
 /* One output as zones.js outputJson() gives it; volume null for a renderer whose volume is fixed on the device. */
