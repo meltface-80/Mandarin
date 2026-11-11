@@ -76,9 +76,10 @@ function renderSkeletons(n) {
 //
 // The callback fires at 500ms while the finger is STILL DOWN, so the browser
 // goes on to dispatch a click on release. Without suppression that click ran
-// the element's normal handler straight after the long-press handler — on an
-// album tile it selected the album and then immediately deselected it, so a
-// long press opened select mode with nothing in it. `longPressAte` is set by
+// the element's normal handler straight after the long-press handler — on a
+// tile it selected it and then immediately deselected it, so a long press
+// opened select mode with nothing in it. (An album tile's own is the same,
+// delegated: album-tile-press.js.) `longPressAte` is set by
 // the callback and consumed by the very next click, in the capture phase so
 // it lands before any listener the element itself carries.
 function addLongPress(el, callback) {
@@ -211,23 +212,6 @@ function loadArt(container, key, size, onGiveUp) {
       if (img.isConnected) img.src = url + "&r=" + tries;
     }, wait);
   };
-  // The cover's own colour, for the glow under it (Late-Night Hi-Fi):
-  // averaged from a few pixels once it has loaded.
-  img.addEventListener("load", () => {
-    try {
-      // Kept on the function, not a module-level let: loadArt runs before
-      // its own position in the file is reached (hoisting; see RETRY_MS).
-      const c = loadArt.glowCanvas || (loadArt.glowCanvas = document.createElement("canvas"));
-      c.width = c.height = 6;
-      const g = c.getContext("2d", { willReadFrequently: true });
-      g.drawImage(img, 0, 0, 6, 6);
-      const d = g.getImageData(0, 0, 6, 6).data;
-      let r = 0, gr = 0, b = 0;
-      for (let i = 0; i < d.length; i += 4) { r += d[i]; gr += d[i + 1]; b += d[i + 2]; }
-      const n = d.length / 4;
-      container.style.setProperty("--glow", Math.round(r / n) + "," + Math.round(gr / n) + "," + Math.round(b / n));
-    } catch (e) { /* a cover from elsewhere: the theme's own glow */ }
-  }, { once: true });
   img.src = url;
   container.appendChild(img);
   return img;
@@ -276,6 +260,16 @@ function keyHomeTile(tile) {
   for (const [sel, key] of Object.entries(parts)) { const el = tile.querySelector(sel); if (el) el.dataset.parity = key; }
   return tile;
 }
+// Every tile's tap and long press: one set of listeners on the document
+// (album-tile-press.js), given what it needs of the page.
+watchAlbumTiles({
+  selecting: () => albumSelectMode,
+  startSelecting: () => enterAlbumSelectMode(),
+  pick: (tile) => handleAlbumTileSelect(tile, tile.__album),
+  beside: (tile) => albumNav.from(tile),
+  eaten: () => longPressAte,
+  eat: (on) => { longPressAte = on; },
+});
 // Build a single album tile. onClick defaults to opening the album modal,
 // but callers (e.g. the label browser) can override it to carry a filter.
 function buildAlbumTile(a, onClick, opts) {
@@ -342,20 +336,9 @@ function buildAlbumTile(a, onClick, opts) {
   btn.__album = a;
   btn.__open = onClick || (() => openAlbum(a));
   btn.__isAlbum = selectable && a.offset != null;
-  btn.addEventListener("click", () => {
-    if (selectable && albumSelectMode) { handleAlbumTileSelect(btn, a); return; }
-    albumNav.from(btn);
-    btn.__open();
-  });
-  if (selectable) {
-    // A long press starts selecting, with the tile under the finger the
-    // first pick (v0.6.24: as the labels grid and the queue; the release
-    // click is eaten, so it stays picked).
-    addLongPress(btn, () => {
-      if (albumSelectMode) return;
-      enterAlbumSelectMode();
-      handleAlbumTileSelect(btn, a);
-    });
-  }
+  // Its tap, and its long press when it is selectable (one starts selecting,
+  // with this tile the first pick; the release's click is eaten, so it stays
+  // picked): album-tile-press.js, one set of listeners for every tile.
+  btn.__selectable = selectable;
   return btn;
 }
