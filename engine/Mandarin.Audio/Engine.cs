@@ -73,7 +73,7 @@ internal sealed partial class Engine
             gen = ++generation;
             KillDecoder();
             writeBytes = readBytes = playedBytes = 0;
-            endBytes = -1;
+            endBytes = -1; failedNext = null;
             marks.Clear();
             nextUri = null;
             state = paused ? PlayState.Paused : PlayState.Transitioning;
@@ -111,7 +111,7 @@ internal sealed partial class Engine
             generation++;
             KillDecoder();
             writeBytes = readBytes = playedBytes = 0;
-            endBytes = -1;
+            endBytes = -1; failedNext = null;
             marks.Clear();
             nextUri = null;
             state = PlayState.Stopped;
@@ -126,6 +126,7 @@ internal sealed partial class Engine
 
     private void DecodeLoop(int gen, string uri, double offset)
     {
+        var any = false;   // a track decoded whole: one that fails after it is the next's failure, never this one's (Engine.Marks.cs)
         try
         {
             for (;;)
@@ -134,7 +135,7 @@ internal sealed partial class Engine
                 lock (gate)
                 {
                     if (gen != generation) return;
-                    emit(Json.Obj("ev", "decoded", "uri", uri));
+                    emit(Json.Obj("ev", "decoded", "uri", uri)); any = true;
                     // Nothing given yet: the device is still playing what it
                     // holds, and the next track usually arrives meanwhile.
                     while (gen == generation && nextUri == null && SecondsAhead() > 0.25) Monitor.Wait(gate, 50);
@@ -148,16 +149,8 @@ internal sealed partial class Engine
         }
         catch (Exception e)
         {
-            Fail(gen, e.Message);
+            if (any) NextFailed(gen, e.Message); else Fail(gen, e.Message);
         }
-    }
-
-    // How long the device and the buffer hold, in seconds (under the gate).
-    private double SecondsAhead()
-    {
-        var m = marks.Count > 0 ? marks[^1] : null;
-        if (m == null) return 0;
-        return (writeBytes - playedBytes) / (4.0 * m.Channels * m.Rate);
     }
 
     // One track into the buffer. True when it was decoded to the end.
@@ -348,7 +341,7 @@ internal sealed partial class Engine
                     {
                         state = PlayState.Stopped;
                         endBytes = -1; marks.Clear(); writeBytes = readBytes = playedBytes = 0;
-                        emit(Json.Obj("ev", "ended"));
+                        emit(failedNext is { } why ? Json.Obj("ev", "error", "message", why) : Json.Obj("ev", "ended")); failedNext = null;
                     }
                 }
                 Report(true);
@@ -407,13 +400,6 @@ internal sealed partial class Engine
         }
     }
 
-    private Mark? MarkAt(long b)
-    {
-        Mark? m = null;
-        foreach (var x in marks) if (x.Byte <= b) m = x;
-        return m ?? (marks.Count > 0 ? marks[0] : null);
-    }
-
     private void Fail(int gen, string message)
     {
         lock (gate)
@@ -422,7 +408,7 @@ internal sealed partial class Engine
             generation++;
             KillDecoder();
             state = PlayState.Stopped;
-            writeBytes = readBytes = playedBytes = 0; endBytes = -1; marks.Clear();
+            writeBytes = readBytes = playedBytes = 0; endBytes = -1; marks.Clear(); failedNext = null;
             Monitor.PulseAll(gate);
         }
         try { sink.Drop(); } catch { /* the device went with it */ }
