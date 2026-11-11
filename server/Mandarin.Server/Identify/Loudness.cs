@@ -290,7 +290,7 @@ internal sealed partial class Loudness(Action<string> log, int tickMs)
         catch (Exception e)
         {
             // Stopped on purpose: measured again next time. (A track gone meanwhile has nothing to keep: Put.)
-            try { if (On) { var m = e.Message; Put(id, file, null, null, m.Length > 200 ? m[..200] : m); } } catch (Exception) { /* gone */ }
+            try { if (On) Put(id, file, null, null, Scan.OfflineDrives.Failure(file, e.Message)); } catch (Exception) { /* gone */ }
         }
         finally
         {

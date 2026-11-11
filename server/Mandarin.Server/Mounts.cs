@@ -33,7 +33,7 @@ internal static partial class Mounts
     // "\040" and friends, as mountinfo writes spaces and tabs in paths.
     [GeneratedRegex(@"\\([0-7]{3})")]
     private static partial Regex Octal();
-    private static string Unescape(string s) => Octal().Replace(s, m => ((char)Convert.ToInt32(m.Groups[1].Value, 8)).ToString());
+    internal static string Unescape(string s) => Octal().Replace(s, m => ((char)Convert.ToInt32(m.Groups[1].Value, 8)).ToString());
 
     private sealed record Line(string Point, bool Follows, string Type, string Source);
 
