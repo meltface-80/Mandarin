@@ -27,6 +27,8 @@ function iosStandalone() {
 }
 
 function buildActions(blob, title, artist) {
+  // The last card's download address let go (about a megabyte each): it was kept for as long as the page was open.
+  if (actions.__blobUrl) { URL.revokeObjectURL(actions.__blobUrl); actions.__blobUrl = null; }
   actions.innerHTML = "";
   const fileName =
     `${(artist || "artist").replace(/[^a-z0-9]+/gi, "_")}-` +
@@ -86,7 +88,7 @@ function buildActions(blob, title, artist) {
     actions.appendChild(b);
   } else if (!iosStandalone()) {
     const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
+    a.href = actions.__blobUrl = URL.createObjectURL(blob);
     a.download = fileName; a.setAttribute("data-parity", "share-card.download");
     a.appendChild(document.createTextNode(""));
     a.innerHTML = `${icon("download")}<span>Download</span>`;

@@ -64,13 +64,15 @@
 
   // Check for update on Bridge [b]'s row ([btn]): GitHub asked again, then its update, or what it found for a few seconds.
   async function check(b, btn) {
+    const was = btn.textContent;
     btn.disabled = true; btn.textContent = "Checking…";
     const list = await look(true);
     const fresh = list && list.find(x => x.id === b.id);
     if (fresh && words(fresh) === AVAILABLE) return;
     held = { id: b.id, words: fresh ? said(fresh) : "Check failed" };
     if (list) draw(list); else btn.textContent = held.words;
-    setTimeout(() => { held = null; look(); }, 4000);
+    // The server not answering either time: the button given back, never left "Check failed" until Settings is opened again.
+    setTimeout(async () => { held = null; if (!(await look())) { btn.disabled = false; btn.textContent = was; } }, 4000);
   }
 
   // What Bridge [b] said of its update, under its row, where it failed or waits on the device; else null.
@@ -95,9 +97,14 @@
     let list;
     try { list = ((await (await fetch("/api/update/bridges" + (fresh === true ? "?fresh=1" : ""), { cache: "no-store" })).json()) || {}).bridges || []; } catch (e) { return null; }
     draw(list);
-    if (list.some(b => { const w = words(b); return w === UPDATING || w === ON_DEVICE; })) soon(3000);
+    // Asked again while one is under way, but only while this list can be seen: every page open (a tab in the
+    // background, Settings closed) asked every 3 s, the server asking every Bridge each time, for as long as an
+    // update waited on a device. Seen again, it is asked at once.
+    if (list.some(b => { const w = words(b); return w === UPDATING || w === ON_DEVICE; }) && seen()) soon(3000);
     return list;
   }
+  function seen() { return !document.hidden && box.offsetParent !== null; }
+  document.addEventListener("visibilitychange", () => { if (seen()) look(); });
   function soon(ms) { clearTimeout(timer); timer = setTimeout(look, ms); }
 
   look();

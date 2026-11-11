@@ -126,6 +126,7 @@ async function loadQobuzStatus() {
 }
 
 if (qobuzSignin) {
+  let importTick = null;
   const go = async () => {
     const username = qobuzUser ? qobuzUser.value.trim() : "", password = qobuzPass ? qobuzPass.value : "";
     if (!username || !password) { settingsToast("Your Qobuz email and password", "error"); return; }
@@ -138,8 +139,14 @@ if (qobuzSignin) {
       if (qobuzPass) qobuzPass.value = "";
       settingsToast("Signed in to Qobuz", "ok");
       paintQobuz(j);
-      // The import's progress, while it runs.
-      const tick = setInterval(async () => { await loadQobuzStatus(); if (!(await (await fetch("/api/settings/qobuz")).json()).importing) clearInterval(tick); }, 4000);
+      // The import's progress, while it runs: one look at a time, never stacked by a second sign-in or a slow
+      // answer, and over when the server can't be asked (an interval ran on for good after a failed fetch).
+      clearTimeout(importTick);
+      const watch = async () => {
+        try { await loadQobuzStatus(); if ((await (await fetch("/api/settings/qobuz")).json()).importing) importTick = setTimeout(watch, 4000); }
+        catch (_) { /* the server not there a moment: the status is read again when Settings opens */ }
+      };
+      importTick = setTimeout(watch, 4000);
     } catch (e) {
       if (qobuzStatus) qobuzStatus.textContent = "";
       settingsToast(e.message, "error");
