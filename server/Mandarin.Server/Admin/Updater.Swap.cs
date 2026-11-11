@@ -36,9 +36,10 @@ internal sealed partial class Updater
      * fetched and checked before the update stages anything, beside the running
      * one (its path; null with its updates switched off); throws, and nothing
      * has changed, when it can't be had or the install can't be written where
-     * [staged] would be laid over it.
+     * [staged] would be laid over it. [assets]: the release's files, as the
+     * bundle was found among them (null: read here).
      */
-    private async Task<string?> Prepare(string staged, string target)
+    private async Task<string?> Prepare(string staged, string target, List<Mandarin.Server.Tags.JsObj>? assets)
     {
         var (platform, arch) = Machine();
         var mac = platform == "darwin";
@@ -51,7 +52,7 @@ internal sealed partial class Updater
         var binDir = Path.GetDirectoryName(bin) ?? ".";
         if (!Writable(binDir)) throw new UpdateError($"{binDir} can't be written to; {getAgain} instead");
         log($"[update] fetching the C# server {target} before the update");
-        try { return await FetchProgram(bin, target, mac); }
+        try { return await FetchProgram(bin, target, mac, assets); }
         catch (Exception e)
         {
             throw new UpdateError($"the C# server {target} couldn't be fetched ({e.Message}); nothing was changed");
