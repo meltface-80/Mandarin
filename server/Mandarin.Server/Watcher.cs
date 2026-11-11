@@ -28,7 +28,9 @@ internal sealed partial class Watcher(Func<List<string>> roots, Func<Task> onCha
     private readonly Dictionary<string, FileSystemWatcher> watchers = new(StringComparer.Ordinal);
     // The folders looked at, and what their folders' times came to when last looked at (null: not yet).
     private readonly Dictionary<string, long?> looked = new(StringComparer.Ordinal);
-    private Timer? timer, poll;
+    private Timer? timer, poll, remount;
+    // The drives mounted in the music folders when last read (null: not yet): one mounted or let go since is heard anew.
+    private string? mountsThen;
     private long lastRun, firstPending;
     private int pending, polling;
     private bool running, stopped;
@@ -58,6 +60,18 @@ internal sealed partial class Watcher(Func<List<string>> roots, Func<Task> onCha
             }
             foreach (var dir in looked.Keys.ToList()) if (!want.Contains(dir)) looked.Remove(dir);
             unheard.RemoveWhere(d => !want.Contains(d));
+            // A drive mounted in a music folder after it was followed (the machine slower than the server at a start):
+            // what was heard was the empty folder under it. Each folder heard again, looked at afresh, and read now.
+            var now = string.Join("\n", mounts.Where(m => want.Any(d => m.Point.StartsWith(d.TrimEnd('/') + "/", StringComparison.Ordinal)))
+                .Select(m => m.Point + " " + m.Type).Order(StringComparer.Ordinal));
+            if (mountsThen != null && now != mountsThen)
+            {
+                log("[watch] a drive mounted or let go in the music folders: heard again, and read");
+                foreach (var dir in want.Where(watchers.ContainsKey).ToList()) { watchers[dir].Dispose(); watchers.Remove(dir); }
+                foreach (var dir in looked.Keys.ToList()) looked[dir] = null;
+                pending++; last = null; if (firstPending == 0) firstPending = Now(); Arm();
+            }
+            mountsThen = now;
             foreach (var dir in want)
             {
                 if (notify && !watchers.ContainsKey(dir) && !unheard.Contains(dir)) Add(dir);
@@ -66,6 +80,7 @@ internal sealed partial class Watcher(Func<List<string>> roots, Func<Task> onCha
             }
             if (looked.Count > 0 && poll == null) poll = new Timer(_ => Look(), null, 0, pollMs);
             if (looked.Count == 0) { poll?.Dispose(); poll = null; }
+            remount ??= new Timer(_ => Refresh(), null, pollMs, pollMs);   // the mounts read again, as often as a share is looked at
         }
     }
 
@@ -206,6 +221,8 @@ internal sealed partial class Watcher(Func<List<string>> roots, Func<Task> onCha
             timer = null;
             poll?.Dispose();
             poll = null;
+            remount?.Dispose();
+            remount = null;
             foreach (var w in watchers.Values) w.Dispose();
             watchers.Clear();
         }
@@ -224,7 +241,9 @@ internal static partial class Mounts
     public static List<(string Point, string Type)> Read()
     {
         string text;
-        try { text = File.ReadAllText("/proc/self/mountinfo"); } catch (Exception e) when (e is IOException or UnauthorizedAccessException) { return []; }
+        // MANDARIN_MOUNTINFO: another mount table in its place, for the tests (a drive can't be mounted there).
+        try { text = File.ReadAllText(Environment.GetEnvironmentVariable("MANDARIN_MOUNTINFO") is { Length: > 0 } f ? f : "/proc/self/mountinfo"); }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException) { return []; }
         var at = new Dictionary<string, string>(StringComparer.Ordinal);
         foreach (var m in Parse(text)) at[m.Point] = m.Type;
         return at.Select(kv => (kv.Key, kv.Value)).OrderByDescending(m => m.Key.Length).ToList();
@@ -233,12 +252,14 @@ internal static partial class Mounts
     /* Why [dir]'s changes can't all be heard here (its file system named), or null where they can. */
     public static string? Unheard(List<(string Point, string Type)> mounts, string dir)
     {
+        static string? Why(string type) =>
+            Network.Contains(type) ? $"a network share ({type})" : type.StartsWith("fuse", StringComparison.Ordinal) && type != "fuseblk" ? $"a FUSE folder ({type})" : null;
         var full = NodePath.Resolve(dir);
+        // A share mounted inside it (a local /mnt with a NAS at /mnt/nas): its changes aren't heard either.
         foreach (var (point, type) in mounts)
-        {
-            if (!(full == point || point == "/" || full.StartsWith(point.TrimEnd('/') + "/", StringComparison.Ordinal))) continue;
-            return Network.Contains(type) ? $"a network share ({type})" : type.StartsWith("fuse", StringComparison.Ordinal) && type != "fuseblk" ? $"a FUSE folder ({type})" : null;
-        }
+            if (point.StartsWith(full.TrimEnd('/') + "/", StringComparison.Ordinal) && Why(type) is { } inside) return inside + " in it, at " + point;
+        foreach (var (point, type) in mounts)
+            if (full == point || point == "/" || full.StartsWith(point.TrimEnd('/') + "/", StringComparison.Ordinal)) return Why(type);
         return null;
     }
 }
