@@ -18,9 +18,22 @@ if [ -z "$RELEASE_SIGNING_KEY" ]; then
 fi
 k=$(mktemp)
 trap 'rm -f "$k"' EXIT
-printf '%s\n' "$RELEASE_SIGNING_KEY" > "$k"
+# The key as pasted, put back in shape: a phone's copy can join its lines or turn them into spaces, Windows' adds CRs,
+# and anything after the END line (the public half printed beside it) isn't the key's. Only what is between the BEGIN
+# and END lines is taken, its base64 in lines of 64 again, under the label it was pasted with.
+raw=$(printf '%s' "$RELEASE_SIGNING_KEY" | tr -d '\r' | tr '\n\t' '  ')
+label=$(printf '%s' "$raw" | sed -n 's/.*-\{4,5\}BEGIN \([A-Z ]*[A-Z]\) *-\{4,5\}.*/\1/p')
+body=$(printf '%s' "$raw" | sed -e 's/.*-\{4,5\}BEGIN [A-Z ]*-\{4,5\}//' -e 's/-\{4,5\}END [A-Z ]*-\{4,5\}.*//' | tr -d ' ')
+{ echo "-----BEGIN ${label:-EC PRIVATE KEY}-----"; printf '%s\n' "$body" | fold -w 64; echo "-----END ${label:-EC PRIVATE KEY}-----"; } > "$k"
 have=$(openssl ec -in "$k" -pubout -outform DER 2>/dev/null | base64 | tr -d '\n')
-[ -n "$have" ] || { echo "::error::RELEASE_SIGNING_KEY isn't an EC private key (PEM)" >&2; exit 1; }
+if [ -z "$have" ]; then
+  # What it looked like, never what it holds: enough to say what was lost in the pasting.
+  lines=$(printf '%s\n' "$RELEASE_SIGNING_KEY" | wc -l | tr -d ' ')
+  case "$raw" in *BEGIN*) b=yes ;; *) b=no ;; esac
+  case "$raw" in *END*) e=yes ;; *) e=no ;; esac
+  echo "::error::RELEASE_SIGNING_KEY isn't an EC private key (PEM): $lines line(s), BEGIN line $b, END line $e, ${#body} characters of key between them (a P-256 key has about 160)" >&2
+  exit 1
+fi
 if [ -n "$pub" ] && [ "$have" != "$pub" ]; then
   echo "::error::RELEASE_SIGNING_KEY isn't the key whose public half the programs carry (Admin/ReleaseKey.cs)" >&2
   exit 1
