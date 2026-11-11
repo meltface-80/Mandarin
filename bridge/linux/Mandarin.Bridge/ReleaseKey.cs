@@ -18,7 +18,7 @@ namespace Mandarin.Bridge;
 internal static class ReleaseKey
 {
     /* The public key, base64 of its DER SubjectPublicKeyInfo (openssl ec -pubout -outform DER | base64). */
-    public const string BuiltIn = "";
+    public const string BuiltIn = "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEWPo7em6WGTi2IICIB2POcOia7Hc/jFNK6MPlL1MQn4huS0EYMTfqkpxyaqL8hXOk297sBISqi0j463Tr+NZFXQ==";
 
     /* The key updates are checked against, or null where there is none. */
     public static string? Current =>

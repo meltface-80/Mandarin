@@ -58,7 +58,8 @@ public sealed partial class UpdateAloneTests
         Directory.CreateDirectory(Path.GetDirectoryName(bin)!);
         File.Copy(ServerProcess.Bin, bin);
         var lib = Fixtures.MakeLibrary();
-        var srv = await ServerProcess.Start(Ports.Port(), lib.Music, lib.Data, new Dictionary<string, string> { ["MANDARIN_APP_DIR"] = app, ["UPDATE_API"] = gh.Base, ["UPDATE_REPO"] = "me/musicd" }, bin);
+        var srv = await ServerProcess.Start(Ports.Port(), lib.Music, lib.Data, new Dictionary<string, string> { ["MANDARIN_APP_DIR"] = app, ["UPDATE_API"] = gh.Base, ["UPDATE_REPO"] = "me/musicd",
+            ["UPDATE_KEY"] = Convert.ToBase64String(Key.ExportSubjectPublicKeyInfo()) }, bin);   // the releases here signed with the tests' key, not Mandarin's
         var h = new Dictionary<string, string> { ["Authorization"] = "Bearer " + await Session.SignIn(srv.Base) };
         return new Installed(srv, gh, app, bin, Path.Combine(dir, "started"), Path.Combine(dir, "tmp"), h);
     }

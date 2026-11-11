@@ -56,6 +56,19 @@ test("sign.sh: each file signed with the key, checked by its public half", () =>
       assert.ok(crypto.verify("sha256", fs.readFileSync(path.join(dir, n)), k.publicKey, sig), n + ": its signature, by the key");
       assert.ok(!crypto.verify("sha256", Buffer.from("something else"), k.publicKey, sig), n + ": of that file alone");
     }
+    // The key as a phone's copy can paste it: its lines joined by spaces, CRs, four dashes, the public half after it.
+    const lines = k.pem.trim().split("\n");
+    for (const pasted of [lines.join(" "), lines.join("\r\n") + "\r\n", k.pem.replace(/^-----/, "----") + "\n" + k.pub, lines.join("")]) {
+      fs.rmSync(path.join(dir, "a.gz.sig"));
+      const p = run(".github/sign.sh", [path.join(dir, "a.gz")], { RELEASE_SIGNING_KEY: pasted, RELEASE_KEY_PUB: k.pub });
+      assert.equal(p.status, 0, p.stderr);
+      assert.ok(crypto.verify("sha256", fs.readFileSync(path.join(dir, "a.gz")), k.publicKey, fs.readFileSync(path.join(dir, "a.gz.sig"))), "signed from a key pasted as " + JSON.stringify(pasted.slice(0, 40)));
+    }
+    // Not a key at all: said what it looked like, never what it holds.
+    const bad = run(".github/sign.sh", [path.join(dir, "a.gz")], { RELEASE_SIGNING_KEY: "-----BEGIN EC PRIVATE KEY-----\nabc", RELEASE_KEY_PUB: k.pub });
+    assert.notEqual(bad.status, 0);
+    assert.match(bad.stderr, /2 line\(s\), BEGIN line yes, END line no, 3 characters/);
+    assert.doesNotMatch(bad.stderr, /abc/);
     // Before the programs carry a key: signed all the same, ready for when they do.
     fs.rmSync(path.join(dir, "a.gz.sig"));
     assert.equal(run(".github/sign.sh", [path.join(dir, "a.gz")], { RELEASE_SIGNING_KEY: k.pem, RELEASE_KEY_PUB: "" }).status, 0);

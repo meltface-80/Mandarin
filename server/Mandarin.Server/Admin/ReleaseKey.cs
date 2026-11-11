@@ -5,7 +5,7 @@
 // release replaced by someone who can write to the repository or the account: they would replace its checksum with it.
 // A signature can only be made with the private half of the key, which is kept by Mandarin's owner and in the release
 // workflows' secret (RELEASE_SIGNING_KEY), never in the repository. Each program carries the public half: an update
-// whose download isn't signed by it is refused. Empty until a key is made (tools/release-key.sh); until then, the
+// whose download isn't signed by it is refused. The key made 11 Nov 2026 (tools/release-key.sh's two openssl commands); before it, the
 // checksum alone, as before. UPDATE_KEY gives another (the tests' own), as UPDATE_API says another GitHub.
 //
 // The signature is ECDSA P-256 over SHA-256 (openssl dgst -sha256 -sign), DER, in <file>.sig beside the file
@@ -17,7 +17,7 @@ namespace Mandarin.Server.Admin;
 internal static class ReleaseKey
 {
     /* The public key, base64 of its DER SubjectPublicKeyInfo (openssl ec -pubout -outform DER | base64). */
-    public const string BuiltIn = "";
+    public const string BuiltIn = "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEWPo7em6WGTi2IICIB2POcOia7Hc/jFNK6MPlL1MQn4huS0EYMTfqkpxyaqL8hXOk297sBISqi0j463Tr+NZFXQ==";
 
     /* The key updates are checked against, or null where there is none. */
     public static string? Current =>
