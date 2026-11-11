@@ -2,6 +2,7 @@ package com.musicd.server.android
 
 import android.app.Activity
 import android.content.Intent
+import android.net.Uri
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -60,6 +61,7 @@ import com.musicd.server.client.ApiKey
 import com.musicd.server.client.ApiKeySpec
 import com.musicd.server.client.Contract
 import com.musicd.server.client.Palette
+import com.musicd.server.client.Scrobbling
 import com.musicd.server.client.ServerClient
 import com.musicd.server.client.SettingsKept
 import kotlinx.coroutines.Dispatchers
@@ -190,9 +192,11 @@ internal fun SettingsAccount(client: () -> ServerClient?, onBack: () -> Unit) {
 }
 
 /**
- * API Keys: what they are for; Discogs, FanArt.tv and Last.fm, each with its ⓘ (its help along the foot for as long as
- * it takes to read), the box to paste the key into (its ✓ or ✕ once checked, what the box says), Save, and what the
- * server says of the key.
+ * API Keys: what they are for; Discogs, FanArt.tv, Last.fm and Last.fm's shared secret, each with its ⓘ (its help along
+ * the foot for as long as it takes to read), the box to paste the key into (its ✓ or ✕ once checked, what the box says),
+ * Save, and what the server says of the key. Then Scrobbling (Scrobbling.kt; the page's settings-lastfm.js): what it is,
+ * and Connect to Last.fm, opening Last.fm's page to allow Mandarin on in the browser and asking every 3 s, ten minutes
+ * at most while this screen is open, until it is allowed; or Disconnect.
  */
 @Composable
 internal fun SettingsKeys(client: () -> ServerClient?, onBack: () -> Unit) {
@@ -202,9 +206,23 @@ internal fun SettingsKeys(client: () -> ServerClient?, onBack: () -> Unit) {
     val typed = remember { mutableStateOf<Map<String, String>>(emptyMap()) }
     var saving by remember { mutableStateOf<String?>(null) }
     var info by remember { mutableStateOf<String?>(null) }
+    var scrobbling by remember { mutableStateOf<Scrobbling?>(null) }
+    var scrobbleBusy by remember { mutableStateOf(false) }
+    var watching by remember { mutableStateOf(0) }
+    suspend fun loadScrobbling() { val c = client() ?: return; withContext(Dispatchers.IO) { runCatching { c.scrobbling() }.getOrNull() }?.let { scrobbling = it } }
     LaunchedEffect(Unit) {
         val c = client() ?: return@LaunchedEffect
+        loadScrobbling()
         for (spec in ApiKeySpec.ALL) withContext(Dispatchers.IO) { runCatching { c.apiKey(spec.route) }.getOrNull() }?.let { keys.value = keys.value + (spec.route to it) }
+    }
+    // Waiting for Last.fm's leave: asked every 3 s, ten minutes at most, while the screen is open.
+    LaunchedEffect(watching) {
+        if (watching == 0) return@LaunchedEffect
+        repeat(200) {
+            delay(3000)
+            loadScrobbling()
+            if (scrobbling?.connected == true) { Toast.makeText(context, "Last.fm connected: scrobbling", Toast.LENGTH_SHORT).show(); return@LaunchedEffect }
+        }
     }
     // The help shown long enough to read: four seconds and a fifth of one a word, 25 at most, as the page's.
     LaunchedEffect(info) { val t = info ?: return@LaunchedEffect; delay(minOf(25_000L, 4_000L + t.split(Regex("\\s+")).size * 220L)); info = null }
@@ -256,13 +274,38 @@ internal fun SettingsKeys(client: () -> ServerClient?, onBack: () -> Unit) {
                         scope.launch {
                             val r = withContext(Dispatchers.IO) { runCatching { c.saveApiKey(spec.route, spec.field, v) } }
                             saving = null
-                            r.onSuccess { nk -> keys.value = keys.value + (spec.route to nk); typed.value = typed.value - spec.route; Toast.makeText(context, spec.saved(nk), Toast.LENGTH_SHORT).show() }
+                            r.onSuccess { nk -> keys.value = keys.value + (spec.route to nk); typed.value = typed.value - spec.route; Toast.makeText(context, spec.saved(nk), Toast.LENGTH_SHORT).show()
+                                if (spec.route.startsWith("lastfm")) loadScrobbling() }
                                 .onFailure { Toast.makeText(context, com.musicd.server.client.Failure.said(it, "Failed to save ${spec.noun}"), Toast.LENGTH_SHORT).show() }
                         }
                     })
                 }
                 Text(k?.status.orEmpty(), Modifier.parity("settings-keys.status").padding(top = 4.dp), color = paletteColor(Palette.TEXT_DIM), fontSize = 11.sp, lineHeight = 15.sp)
             }
+            // Scrobbling: the account connected, or Connect to allow Mandarin on Last.fm's page.
+            val sc = scrobbling
+            val can = sc != null && (sc.connected || sc.ready) && !scrobbleBusy
+            Row(Modifier.padding(top = 18.dp).heightIn(min = 32.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text("Scrobbling", Modifier.parity("settings-keys.name").weight(1f), color = paletteColor(Palette.TEXT), fontSize = 16.sp, lineHeight = 22.sp)
+                UpdateButton(Contract.label("settings-keys.scrobble", sc?.button ?: 0), scrobbleBusy, Modifier.parity("settings-keys.scrobble", Contract.label("settings-keys.scrobble", sc?.button ?: 0))
+                    .alpha(if (can) 1f else 0.5f).clickable(enabled = can) {
+                        val c = client() ?: return@clickable
+                        scrobbleBusy = true
+                        scope.launch {
+                            if (sc?.connected == true) {
+                                withContext(Dispatchers.IO) { runCatching { c.lastfmDisconnect() } }.onSuccess { scrobbling = it; Toast.makeText(context, "Last.fm disconnected: nothing more is scrobbled", Toast.LENGTH_SHORT).show() }
+                                    .onFailure { Toast.makeText(context, com.musicd.server.client.Failure.said(it, "Couldn't reach the server"), Toast.LENGTH_SHORT).show() }
+                            } else {
+                                withContext(Dispatchers.IO) { runCatching { c.lastfmConnect() } }
+                                    .onSuccess { url -> runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }; watching++ }
+                                    .onFailure { Toast.makeText(context, com.musicd.server.client.Failure.said(it, "Couldn't reach Last.fm"), Toast.LENGTH_SHORT).show() }
+                                loadScrobbling()
+                            }
+                            scrobbleBusy = false
+                        }
+                    })
+            }
+            Text(sc?.line.orEmpty(), Modifier.parity("settings-keys.scrobble-status").padding(top = 4.dp), color = paletteColor(Palette.TEXT_DIM), fontSize = 11.sp, lineHeight = 15.sp)
         }
         // The ⓘ's help (.settings-info-toast): along the foot, over the page, until it has been read.
         info?.let { t ->

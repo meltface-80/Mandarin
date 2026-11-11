@@ -293,6 +293,7 @@ internal object ContractLabels1 {
         "settings-keys.info" to listOf("About {key}"),
         "settings-keys.field" to listOf("{key}"),
         "settings-keys.save" to listOf("Save"),
+        "settings-keys.scrobble" to listOf("Connect to Last.fm", "Disconnect"),
         "settings-picks.back" to listOf("Back to settings"),
         "settings-picks.info" to listOf("About {setting}"),
         "settings-picks.enabled" to listOf("Smart Picks"),

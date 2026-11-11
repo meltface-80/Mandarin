@@ -83,8 +83,9 @@ internal sealed partial class Hub
     public readonly Action<string> Log;
     private readonly double startedAt;
     public bool Stopped;
-    // The hooks (zones.js's "track", "played" and "queue-low" events).
-    public event Action<string, ZoneState>? OnTrack, OnPlayed, OnQueueLow;
+    // The hooks (zones.js's "track", "played" and "queue-low" events); Last.fm's (Scrobbles.cs): "now playing" once a
+    // track is heard playing, named, and "scrobble" at Last.fm's own point.
+    public event Action<string, ZoneState>? OnTrack, OnPlayed, OnQueueLow, OnNowPlaying, OnScrobble;
 
     public Hub(HubConfig config, Action<string> log)
     {
@@ -113,6 +114,7 @@ internal sealed partial class Hub
         var hub = new Hub(config, log) { Store = new QueueStore(log) };
         Current = hub;
         History.Wire(hub);
+        Scrobbles.Wire(hub);
         await hub.RestoreQueues();
         hub.StartSonos();
         hub.Devices.Start();
@@ -191,7 +193,7 @@ internal sealed partial class Hub
      */
     public void ApplyState(string uid, ZoneState prev, ZoneState next)
     {
-        bool changed, lowFired = false, played = false, track = false;
+        bool changed, lowFired = false, played = false, track = false, scrobble = false, announce = false;
         lock (Gate)
         {
             State[uid] = next;
@@ -213,18 +215,34 @@ internal sealed partial class Hub
             {
                 next.PlayedLogged = false;
                 next.LowFired = false;
+                next.Scrobbled = false;
+                next.Announced = false;
                 if (next.TrackUri.Length > 0) track = true;
             }
             else
             {
                 next.PlayedLogged = prev.PlayedLogged;
                 next.LowFired = prev.LowFired;
+                next.Scrobbled = prev.Scrobbled;
+                next.Announced = prev.Announced;
             }
             if (next.State == "playing" && !next.PlayedLogged && next.TrackUri.Length > 0 &&
                 next.Position >= Math.Min(30, Math.Max(5, (next.Duration > 0 ? next.Duration : 60) / 2)))
             {
                 next.PlayedLogged = true;
                 played = true;
+            }
+            // Last.fm's now playing: the track heard playing, its name known (a play asked for has none until the player says).
+            if (next.State == "playing" && !next.Announced && next.TrackUri.Length > 0 && (next.TrackId != null || next.Title.Length > 0))
+            {
+                next.Announced = true;
+                announce = true;
+            }
+            // Last.fm's point: a track over 30 s, played half way or for four minutes, whichever is sooner.
+            if (next.State == "playing" && !next.Scrobbled && next.TrackUri.Length > 0 && next.Duration > 30 && next.Position >= Math.Min(240, next.Duration / 2))
+            {
+                next.Scrobbled = true;
+                scrobble = true;
             }
             // On the last track of the queue with the end in sight: time to top up.
             if (next.OnQueue && next.State == "playing" && next.Loop == "disabled" && !next.LowFired &&
@@ -240,6 +258,8 @@ internal sealed partial class Hub
         if (prev.QueueLength != next.QueueLength && next.OnQueue && !Phones.IsPhoneId(uid) && !IsUpnp(uid)) QueueChanged(uid);
         if (track) OnTrack?.Invoke(uid, next);
         if (played) OnPlayed?.Invoke(uid, next);
+        if (announce) OnNowPlaying?.Invoke(uid, next);
+        if (scrobble) OnScrobble?.Invoke(uid, next);
         if (lowFired) OnQueueLow?.Invoke(uid, next);
     }
 

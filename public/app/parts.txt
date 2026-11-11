@@ -68,6 +68,7 @@ app/native-search.js
 app/native-playlists.js
 app/updater.js
 app/settings.js
+app/settings-lastfm.js
 app/settings-services.js
 app/settings-views.js
 app/settings-home.js

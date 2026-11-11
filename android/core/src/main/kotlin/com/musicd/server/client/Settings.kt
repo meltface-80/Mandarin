@@ -127,14 +127,16 @@ data class ApiKeySpec(val route: String, val field: String, val name: String, va
     fun saved(k: ApiKey): String = if (k.bad) "Saved, but $service refused this $noun" else "$service $noun saved" + if (k.ok) " — checked and working" else ""
 
     companion object {
-        const val DESC = "Discogs token — record label logos and label lookups; FanArt.tv key — artist photos on the wall display and label logos; Last.fm key — similar artists and albums in the album view. All optional."
+        const val DESC = "Discogs token — record label logos and label lookups; FanArt.tv key — artist photos on the wall display and label logos; Last.fm key — similar artists and albums, and with its shared secret, scrobbling. All optional."
         val ALL = listOf(
             ApiKeySpec("discogs-token", "token", "Discogs token", "Paste personal access token…", "Discogs", "token",
                 "A personal access token from discogs.com/settings/developers. Finds record label logos, and the label of albums whose files carry none. Not required, but recommended."),
             ApiKeySpec("fanart-key", "key", "FanArt.tv key", "Paste FanArt.tv API key…", "FanArt.tv", "key",
                 "A free API key from fanart.tv. Artist photos on the wall display, and record label logos where Discogs has none. Get one at fanart.tv/get-an-api-key — free registration required."),
-            ApiKeySpec("lastfm-key", "key", "Last.fm key", "Paste Last.fm API key…", "Last.fm", "key",
-                "A free API key from last.fm/api/account/create (any application name will do). The album view then shows the artist's similar artists and similar albums from Last.fm, under the review: the ones in your library open here, the others on Last.fm. Read-only: nothing is ever sent to Last.fm but the artist's name, and nothing is scrobbled."))
+            ApiKeySpec("lastfm-key", "key", "Last.fm key", "Paste Last.fm API key…", "Last.fm", "key", LASTFM_KEY_INFO),
+            ApiKeySpec("lastfm-secret", "secret", "Last.fm shared secret", "Paste Last.fm shared secret…", "Last.fm", "shared secret", LASTFM_SECRET_INFO))
+        const val LASTFM_KEY_INFO = "A free API key from last.fm/api/account/create (any application name will do). Artist and album pages then show similar artists and albums from Last.fm. With its shared secret below and your account connected, what you play is scrobbled to Last.fm."
+        const val LASTFM_SECRET_INFO = "The shared secret Last.fm shows beside your API key (last.fm/api/accounts). It signs scrobbling: with it saved, Connect to Last.fm below and allow Mandarin there, and every room, Bridge and this phone scrobble what they play."
     }
 }
 

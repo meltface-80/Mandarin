@@ -246,6 +246,10 @@ class ServerClient(
     fun accountDevices(): AccountDevices = AccountDevices.parse(getJson(AccountDevices.PATH))
     fun revokeDevice(id: String) { post("/api/auth/devices/revoke", JSONObject().put("id", id)) }
     fun apiKey(route: String): ApiKey = ApiKey.parse(getJson("/api/settings/$route"))
+    /** Scrobbling to Last.fm: where it stands; Connect's page on Last.fm to approve on; Disconnect. */
+    fun scrobbling(): Scrobbling = Scrobbling.parse(getJson(Scrobbling.PATH))
+    fun lastfmConnect(): String = post(Scrobbling.CONNECT, JSONObject(), 20_000).let { j -> j.optString("url").ifEmpty { throw IOException(j.optString("error").ifEmpty { "Couldn't reach Last.fm" }) } }
+    fun lastfmDisconnect(): Scrobbling = Scrobbling.parse(post(Scrobbling.DISCONNECT, JSONObject(), 20_000))
     fun saveApiKey(route: String, field: String, value: String): ApiKey {
         val j = post("/api/settings/$route", JSONObject().put(field, value), 20_000)
         if (!j.optBoolean("ok")) throw IOException(j.optString("error").ifEmpty { "Failed to save" })

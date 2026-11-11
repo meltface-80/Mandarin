@@ -271,9 +271,12 @@ internal static partial class Library
             cmd.Parameters.AddWithValue("$z", "PHONE_" + dev.Id);
             cmd.Parameters.AddWithValue("$ts", ts == Math.Floor(ts) ? (object)(long)ts : ts);
             cmd.ExecuteNonQuery();
+            // To Last.fm too, stamped when it was played (Playback/Scrobbles.cs), when an account is connected.
+            Playback.Scrobbles.Offline(c, tx, new Playback.Scrobbles.Play(t.Value.Artist, t.Value.Title, al?.Title ?? t.Value.Album ?? "", al?.Artist ?? "", (long)ts, 0, null));
             n++;
         }
         tx.Commit();
+        if (n > 0) Playback.Scrobbles.Soon();
         var o = new JsObj();
         o["ok"] = true;
         o["recorded"] = (double)n;
