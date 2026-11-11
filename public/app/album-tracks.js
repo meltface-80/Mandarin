@@ -272,13 +272,7 @@ function moreAlbumTile(a) {
 }
 // A Last.fm album: the library's own when it has it, else its Last.fm page.
 function lastfmAlbumTile(al) {
-  if (al.album) return moreAlbumTile(al.album);
-  const tile = buildAlbumTile({ title: al.title, subtitle: al.artist, image_key: al.image_key || null },
-                              () => openLastfmPage(al.url), { selectable: false });
-  tile.classList.add("is-external");
-  tile.setAttribute("aria-label", tile.getAttribute("aria-label") + " on Last.fm");
-  (tile.querySelector(".album-meta") || tile).appendChild(lastfmTag());
-  return tile;
+  return moreAlbumTile(al.album);   // the library's alone: the server sends no other
 }
 // A similar artist: their page here when the library has them (with one of
 // their covers to stand for them), else their Last.fm page.
@@ -340,7 +334,7 @@ async function fetchAlbumMore(album, lead) {
     if (site && j.url && j.artists && j.artists.length) { site.href = j.url; site.classList.remove("hidden"); }
     return fetch("/api/lastfm/similar-albums?" + q, opt).then(json).then((k) => {
       if (!k || !k.enabled || k.error || !mine()) return;
-      fillMoreSection("album-lastfm-albums", k.albums, lastfmAlbumTile);
+      fillMoreSection("album-lastfm-albums", (k.albums || []).filter(al => al && al.album), lastfmAlbumTile);
     });
   });
   await Promise.allSettled([library, lastfm]);

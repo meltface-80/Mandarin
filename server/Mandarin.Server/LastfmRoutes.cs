@@ -155,18 +155,16 @@ internal static partial class Library
         {
             var (_, albums) = await fm.SimilarAlbums(LeadOf(credit), 9, () => !Gone());
             if (Gone()) return true;
+            // The library's alone (the owner's call): one it hasn't would leave the app for Last.fm's page.
             return await Send(ctx, new JsonObject
             {
                 ["enabled"] = true,
-                ["albums"] = new JsonArray(albums.Select(al =>
-                {
-                    var own = LastfmInLibrary(s, al.Title, al.Artist);
-                    return (JsonNode)new JsonObject
+                ["albums"] = new JsonArray(albums.Select(al => (al, own: LastfmInLibrary(s, al.Title, al.Artist))).Where(x => x.own != null).Select(x =>
+                    (JsonNode)new JsonObject
                     {
-                        ["title"] = al.Title, ["artist"] = al.Artist, ["url"] = al.Url, ["image"] = al.Image,
-                        ["image_key"] = Picture(al.Image), ["album"] = own != null ? AlbumJson(s, own) : null
-                    };
-                }).ToArray())
+                        ["title"] = x.al.Title, ["artist"] = x.al.Artist, ["url"] = x.al.Url, ["image"] = x.al.Image,
+                        ["image_key"] = Picture(x.al.Image), ["album"] = AlbumJson(s, x.own!)
+                    }).ToArray())
             });
         }
         catch (Exception e) when (e is LastfmError or HttpRequestException)

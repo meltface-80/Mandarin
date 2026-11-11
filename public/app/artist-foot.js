@@ -1,7 +1,7 @@
 /* The page's core: the foot of an artist's page and what it last had (bug list item 140; artist-about.js draws the head). */
 // Under all their albums: similar artists (item 137), a row of round
 // pictures each opening their page, then similar albums, Home's row of album tiles each
-// opening the album (the library's) or its Last.fm page. And the answers an
+// opening the album, the library's alone (the server's). And the answers an
 // artist's page was drawn from, kept a quarter of an hour, so a page opened
 // again is drawn at once as it was, its picture with it (the browser keeps the
 // pictures). Decorative, as the head is: a failure leaves the albums as they are.
@@ -51,22 +51,20 @@
   }
 
   /**
-   * A similar album as an album tile (buildAlbumTile: the grid's and Home's cover, badges, title and artist), who by
-   * under the title; "Last.fm ↗" under one the library hasn't. A tap opens the album, or its Last.fm page.
+   * A similar album, the library's (the server sends no other), as an album tile (buildAlbumTile: the grid's and
+   * Home's cover, badges, title and artist), who by under the title. A tap opens the album.
    * @param {any} al
    */
   function album(al) {
-    const own = al.album || null;
-    const shown = own ? { ...own, subtitle: own.subtitle || al.artist || "" } : { title: al.title || "", subtitle: al.artist || "", image_key: al.image_key || null };
-    const open = () => { if (own) openAlbum(own, { filter: null }); else if (al.url) window.open(al.url, "_blank", "noopener"); };
+    const own = al.album;
+    const shown = { ...own, subtitle: own.subtitle || al.artist || "" };
+    const open = () => openAlbum(own, { filter: null });
     // Keyed as the grid's tiles (their badges' keys), then as a similar album's.
     const btn = /** @type {HTMLElement} */ (w.__keyArtistTile(w.__buildAlbumTile(shown, open, { selectable: false })));
     btn.classList.add("artist-similar-album"); btn.dataset.parity = "artist.similar-album";
     btn.setAttribute("aria-label", shown.title);
     const keys = { ".album-art-wrap": "artist.similar-album-art", ".album-title": "artist.similar-album-title", ".album-artist": "artist.similar-album-artist" };
     for (const [sel, key] of Object.entries(keys)) { const el = /** @type {HTMLElement|null} */ (btn.querySelector(sel)); if (el) el.dataset.parity = key; }
-    const meta = btn.querySelector(".album-meta");
-    if (!own && al.url && meta) { const fm = document.createElement("div"); fm.className = "album-artist artist-similar-album-site"; fm.dataset.parity = "artist.similar-album-artist"; fm.textContent = "Last.fm ↗"; meta.appendChild(fm); }
     return btn;
   }
 
@@ -95,7 +93,7 @@
       if (list.length && alive()) fill(acts, "Similar artists", list.map(act));
     }).catch(() => { /* decorative */ });
     artistJson("/api/artist/similar-albums?name=" + q).then(j => {
-      const list = (j && Array.isArray(j.albums) ? j.albums : []).filter((/** @type {any} */ x) => x && (x.title || x.album));
+      const list = (j && Array.isArray(j.albums) ? j.albums : []).filter((/** @type {any} */ x) => x && x.album);
       if (list.length && alive()) fill(albums, "Similar albums", list.map(album), true);
     }).catch(() => { /* decorative */ });
   }
