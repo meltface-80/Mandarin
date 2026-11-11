@@ -11,7 +11,7 @@ import org.junit.Test
 class ScrobblingTest {
     private fun of(json: String) = Scrobbling.parse(JSONObject(json))
 
-    @Test fun `connected: who, and what waits or went wrong`() {
+    @Test fun `connected, who, and what waits or went wrong`() {
         val s = of("""{"key_set":true,"secret_set":true,"connected":true,"name":"meltface","pending":false,"queued":0,"error":null}""")
         assertTrue(s.connected)
         assertEquals(1, s.button)
@@ -20,7 +20,7 @@ class ScrobblingTest {
             s.copy(queued = 3, error = "Last.fm did not answer").line)
     }
 
-    @Test fun `not connected: what to do next`() {
+    @Test fun `not connected, what to do next`() {
         val none = of("""{"key_set":false,"secret_set":false,"connected":false,"name":null,"pending":false,"queued":0,"error":null}""")
         assertFalse(none.ready)
         assertEquals(0, none.button)
