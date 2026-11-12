@@ -15,6 +15,11 @@ D() { dialog --backtitle "$T" "$@" 3>&1 1>&2 2>&3; }
 # Each step in the log, and on the serial port too where there is one (a virtual machine's: the tests read it).
 say() { echo "$(date -u '+%Y-%m-%d %H:%M:%S') $*" >> "$LOG"; [ -w /dev/ttyS0 ] && echo "mandarin-os-install: $*" > /dev/ttyS0 2>/dev/null; return 0; }
 boot="$(lsblk -no PKNAME "$(findmnt -no SOURCE /)" | head -n 1)"
+# Once a start: the screen's service starts it again whenever it ends, and an install already done (the computer
+# powering off or restarting) must never begin again, erasing the disk it just wrote, as it did on a fast machine.
+DONE=/run/mandarin-os-install.done
+end() { systemctl "$1"; sleep infinity; }
+if [ -e "$DONE" ]; then sleep infinity; fi
 
 disks() {   # internal disks: not the stick, not USB, not removable, not the one already chosen ($1)
   lsblk -dnpo NAME,SIZE,TRAN,RM,TYPE,MODEL | while read -r name size tran rm type model; do
@@ -32,7 +37,7 @@ if [ -n "$answers" ]; then
   target="$(jq -r .disk "$answers")"; [ "$target" = first ] && target="$(disks | head -n 1)"
   internal="$(jq -r '.internal // empty' "$answers")"; user="$(jq -r .share_user "$answers")"; p1="$(jq -r .share_password "$answers")"
   net="$(jq -c '.network // {"mode":"dhcp"}' "$answers")"; bridge="$(jq -r '.bridge // false' "$answers")"
-  [ "$(jq -r .erase "$answers")" = erase ] && [ -b "$target" ] || { say "INSTALL FAILED: mandarin-install.json: disk ($target) or erase missing"; lsblk > /dev/ttyS0 2>/dev/null; systemctl poweroff; exit 1; }
+  [ "$(jq -r .erase "$answers")" = erase ] && [ -b "$target" ] || { say "INSTALL FAILED: mandarin-install.json: disk ($target) or erase missing"; lsblk > /dev/ttyS0 2>/dev/null; touch "$DONE"; end poweroff; }
   say "unattended, from $answers"
 fi
 while [ -z "$answers" ]; do
@@ -79,11 +84,11 @@ done
 clear; echo; echo "  Writing Mandarin OS to $target…"; echo
 say "installing $VER to $target, internal storage ${internal:-none}, user $user, network $(jq -r .mode <<< "$net"), bridge $bridge"
 if ! systemd-repart --dry-run=no --empty=force --definitions=/usr/lib/mandarin-os/install.repart.d "$target" >> "$LOG" 2>&1; then
-  say "systemd-repart failed"; [ -n "$answers" ] && { cat "$LOG" > /dev/ttyS0 2>/dev/null; say "INSTALL FAILED"; systemctl poweroff; exit 1; }; D --title "It didn't work" --msgbox "Mandarin OS couldn't be written to $target. Nothing else was changed.\n\n$(tail -n 5 "$LOG")" 14 76; exec "$0"
+  say "systemd-repart failed"; [ -n "$answers" ] && { cat "$LOG" > /dev/ttyS0 2>/dev/null; say "INSTALL FAILED"; touch "$DONE"; end poweroff; }; D --title "It didn't work" --msgbox "Mandarin OS couldn't be written to $target. Nothing else was changed.\n\n$(tail -n 5 "$LOG")" 14 76; exec "$0"
 fi
 udevadm settle
 data="$(lsblk -lnpo NAME,PARTLABEL "$target" | awk '$2 == "mandarin-data" { print $1 }')"
-mkdir -p /mnt/data && mount "$data" /mnt/data || { [ -n "$answers" ] && { lsblk -o NAME,PARTLABEL,SIZE "$target" > /dev/ttyS0 2>/dev/null; say "INSTALL FAILED: no data partition"; systemctl poweroff; exit 1; }; D --msgbox "The data partition couldn't be opened." 7 60; exec "$0"; }
+mkdir -p /mnt/data && mount "$data" /mnt/data || { [ -n "$answers" ] && { lsblk -o NAME,PARTLABEL,SIZE "$target" > /dev/ttyS0 2>/dev/null; say "INSTALL FAILED: no data partition"; touch "$DONE"; end poweroff; }; D --msgbox "The data partition couldn't be opened." 7 60; exec "$0"; }
 mkdir -p /mnt/data/MachineSettings /mnt/data/MandarinOS/Logs /mnt/data/MandarinServer /mnt/data/Storage/USB
 jq -n --arg u "$user" --arg p "$p1" --argjson n "$net" --argjson b "$bridge" '{share_user:$u, share_password:$p, network:$n, bridge:$b}' > /mnt/data/MachineSettings/setup.json
 chmod 600 /mnt/data/MachineSettings/setup.json
@@ -95,8 +100,9 @@ if [ -n "$internal" ]; then
   mkdir -p /mnt/data/Storage/Internal
 fi
 say "done"
+touch "$DONE"
 cp "$LOG" /mnt/data/MandarinOS/Logs/Installer_log.txt
 umount /mnt/data; sync
-if [ -n "$answers" ]; then say "installed on $target"; systemctl poweroff; exit 0; fi
+if [ -n "$answers" ]; then say "installed on $target"; end poweroff; fi
 D --title "Installed" --msgbox "Mandarin OS is on $target.\n\nTake the USB stick out, then press Enter: the computer starts from its disk. In a minute or two, open http://mandarin:3500 in a browser." 11 70
-systemctl reboot
+end reboot
