@@ -44,7 +44,7 @@ class PhoneAnswers(
                     .put("core_id", "musicd-server").put("core_name", "Mandarin").put("zone_count", 1)
                     .put("library_importing", false).put("index_count", shelf().all().size)
                     .put("sonos", JSONObject().put("rooms", 0).put("discovered", 0).put("searching", false))
-                    .put("music_dir_exists", true).put("data_persistent", true)
+                    .put("music_dir_exists", true)
                     .put("scan", JSONObject().put("running", false).put("progress", 0).put("files_seen", 0).put("last", JSONObject().put("status", "ok")))
                     .put("version", me.version))
             }

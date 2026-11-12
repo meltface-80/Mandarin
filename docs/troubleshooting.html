@@ -26,7 +26,7 @@
     <div class="info-card">
       <span class="sym">No rooms</span>
       <h3>"No Sonos rooms found yet"</h3>
-      <p>Check the container is on host networking and on the same subnet as the speakers, then look at
+      <p>Check the server is on the same subnet as the speakers, then look at
          <code>sonos.error</code> in <code>/api/status</code>. Setting <code>SONOS_HOSTS</code> to one speaker's IP skips
          discovery.</p>
     </div>
@@ -40,12 +40,12 @@
       <span class="sym">No albums</span>
       <h3>The library is empty</h3>
       <p><code>/api/status</code> shows <code>music_dir</code> and <code>index_count</code>. Check the
-         <code>-v …:/music:ro</code> mount and that the folder is readable.</p>
+         music folder is there and that the folder is readable.</p>
     </div>
     <div class="info-card">
       <span class="sym">Hi-res</span>
       <h3>96 kHz files won't play</h3>
-      <p><code>/api/health</code> must say <code>"ffmpeg": true</code>. The Docker image includes it; a hand-run server needs
+      <p><code>/api/health</code> must say <code>"ffmpeg": true</code>. Mandarin OS and the Linux installer bring it; a hand-run server needs
          ffmpeg on the PATH.</p>
     </div>
     <div class="info-card">
@@ -64,7 +64,7 @@
     <div class="info-card">
       <span class="sym">Forgot it</span>
       <h3>The password</h3>
-      <p><code>docker exec musicd-server /app/server/bin/mandarin-server reset-password</code>, then create the account
+      <p><code>sudo -u mandarin env DATA_DIR=/var/lib/mandarin /opt/mandarin/server/bin/mandarin-server reset-password</code> (on Mandarin OS, <code>passwordreset</code> at its screen), then create the account
          again from a device at home.</p>
     </div>
     <div class="info-card">

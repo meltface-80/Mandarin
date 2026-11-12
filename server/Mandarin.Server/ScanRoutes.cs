@@ -96,16 +96,13 @@ internal static partial class Library
     private static Task<bool> Folders(HttpContext ctx)
     {
         var mounts = Mounts.MusicMounts(Scans.DataDir);
-        var docker = Scans.InDocker;
         JsonArray folders;
         using (var db = Scans.OpenDb()) folders = FolderList(Scans.Scanner(db));
-        foreach (var f in folders.OfType<JsonObject>())
-            f["hint"] = Mounts.HintFor(Js.Str(f["path"]), mounts, Js.Truthy(f["exists"]) ? 1 : 0, docker);
         // The drives and shares this server can see — where to start looking.
         return Send(ctx, new JsonObject
         {
             ["folders"] = folders, ["mounts"] = new JsonArray(mounts.Select(x => (JsonNode)x.ToJson()).ToArray()),
-            ["music_dir"] = Scans.MusicDir, ["docker"] = docker, ["scanning"] = Scans.Running
+            ["music_dir"] = Scans.MusicDir, ["scanning"] = Scans.Running
         });
     }
 
@@ -136,8 +133,7 @@ internal static partial class Library
         {
             ["path"] = d, ["parent"] = d == "/" ? null : NodePath.Dirname(d),
             ["dirs"] = new JsonArray(dirs.Take(1000).Select(x => (JsonNode)new JsonObject { ["name"] = x.Name, ["path"] = x.Path }).ToArray()),
-            ["watched"] = new JsonArray(Scans.Roots().Select(r => (JsonNode)r).ToArray()),
-            ["hint"] = Mounts.HintFor(d, Mounts.MusicMounts(Scans.DataDir), entries.Count(x => !x.Name.StartsWith('.')), Scans.InDocker)
+            ["watched"] = new JsonArray(Scans.Roots().Select(r => (JsonNode)r).ToArray())
         });
     }
 
@@ -155,7 +151,7 @@ internal static partial class Library
             if (data == d || d.StartsWith(data + "/", StringComparison.Ordinal))
                 return await Send(ctx, new JsonObject { ["error"] = "That's Mandarin's own data folder" }, 400);
             if (!Scans.Readable(d))
-                return await Send(ctx, new JsonObject { ["error"] = "Can't read " + d + (File.Exists("/.dockerenv") ? " — is it mounted into the container?" : "") }, 400);
+                return await Send(ctx, new JsonObject { ["error"] = "Can't read " + d }, 400);
             var outer = now.FirstOrDefault(r => d == r || d.StartsWith(r + "/", StringComparison.Ordinal));
             if (outer != null) return await Send(ctx, new JsonObject { ["error"] = "Already in the library, as part of " + outer }, 400);
             // A folder around ones already watched takes their place: the same files, the same paths.

@@ -16,7 +16,7 @@ internal static partial class Server
     /* The data folder (Program.cs). */
     public static string DataDir = "";
 
-    /* The code this program leaves with when it couldn't start again in place (Docker's restart policy starts it). */
+    /* The code this program leaves with when it couldn't start again in place (its systemd service starts it). */
     public const int StartAgainCode = 76;
 
     /*

@@ -80,7 +80,7 @@ test("/api/status, Clean up and the wall display's content, answered by the C# s
     assert.equal(st.j.scan.files_seen, 7);
     assert.deepEqual(st.j.music_dirs, [lib.music]);
     assert.equal(st.j.music_dir_exists, true);
-    assert.equal(st.j.data_persistent, null, "not in Docker: can't be told");
+    assert.ok(!("data_persistent" in st.j), "no data volume to ask about: Docker's went with item 394");
     assert.equal(st.j.zone_count, 2, "the rooms, as the server that holds playback counts them");
     assert.equal(st.j.sonos.rooms, 2);
     assert.equal(st.j.version, require("../package.json").version);

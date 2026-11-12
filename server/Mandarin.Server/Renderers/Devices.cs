@@ -30,7 +30,7 @@ internal sealed partial class Devices
     public readonly RendererDiscovery Discovery;
     public double LastScan;
     /* This computer's sound devices (Local/LocalDevices.cs): the platform, how many, how many hidden, whether they are turned off. */
-    public JsObj Local = Jv.Obj(("platform", "linux"), ("hidden", 0.0), ("count", 0.0), ("docker", Environment.GetEnvironmentVariable("DOCKER") == "1"));
+    public JsObj Local = Jv.Obj(("platform", "linux"), ("hidden", 0.0), ("count", 0.0));
 
     public Devices(Hub hub)
     {
@@ -174,7 +174,7 @@ internal sealed partial class Devices
             }
             var before = Jv.Num(Local["count"]);
             Local = Jv.Obj(("platform", r.Platform.Length > 0 ? r.Platform : Local["platform"]), ("hidden", (double)r.Hidden), ("count", (double)offered.Count),
-                ("docker", Local["docker"]), ("off", r.Off));
+                ("off", r.Off));
             if (offered.Count > 0 || before > 0 || forgot > 0) hub.Bump();
         }
         finally { lock (gate) scanningLocal = null; }

@@ -1,12 +1,11 @@
 #!/usr/bin/env bash
 # .github/wait-for-ci.sh <commit> [workflow]: waits for CI (ci.yml, or the
 # workflow named), run on a push of that commit, to finish, and succeeds only if
-# every run of it passed: the tests and the image alike. The release and the
-# image wait on it (v0.8.31), so nothing reaches anyone before every test has
-# passed.
+# every run of it passed. The release, the APK and the Tailscale engine wait on
+# it (v0.8.31), so nothing reaches anyone before every test has passed.
 #
 # CI red, then re-run to green: re-run the failed job here too ("Re-run failed
-# jobs" on the Release or Publish run), and it finds CI green this time.
+# jobs" on the Release run), and it finds CI green this time.
 set -u
 sha=${1:?usage: .github/wait-for-ci.sh <commit> [workflow]}
 wf=${2:-ci.yml}

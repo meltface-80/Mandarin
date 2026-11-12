@@ -132,7 +132,6 @@ function blocks() {
         : cores(cpu.cores.length) + ", shared") + "</div>" + making(known && cpu.split ? Math.min(3, cpu.cores.length - 1) : 0) +
       '<div class="settings-note" data-parity="settings-scanner.note">' + (!known ? "…" : !cpu.split ? "Playback comes first by priority."
         : cpu.raised ? "Playback also runs at a higher priority."
-        : window.__mandarinInstall === "docker" ? "To run playback at a higher priority too, start the container with --cap-add SYS_NICE."
         : "To run playback at a higher priority too, give the server the SYS_NICE capability.") + "</div></div>";
   }
   out.proposed = section("proposed", "Proposed", "Close, but not close enough to apply unasked. Tap the name to see the album; Accept writes the names shown.");

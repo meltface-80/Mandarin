@@ -11,7 +11,7 @@ object Power {
     private val START_AGAIN = mapOf("manual" to "To start it again, start it the way it was started.",
         "service" to "To start it again, restart this computer, or run: sudo systemctl start mandarin",
         // Mandarin OS (item 389): the computer is shut down with it.
-        "power-button" to "The computer shuts down too: to start it again, press its power button.", "docker" to "")
+        "power-button" to "The computer shuts down too: to start it again, press its power button.")
 
     /** The question before [what] ("power-restart" or "power-shutdown"); [power]: `/api/system/power`, or none when unread. */
     fun ask(what: String, power: JSONObject?): String =

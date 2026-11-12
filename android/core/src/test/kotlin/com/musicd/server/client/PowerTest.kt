@@ -12,7 +12,6 @@ class PowerTest {
         assertEquals("Restart Mandarin? Music playing from Mandarin stops, and it's back in a few seconds.", Power.ask("power-restart", null))
         assertEquals("Shut down Mandarin? Music playing from Mandarin stops. To start it again, start it the way it was started.",
             Power.ask("power-shutdown", JSONObject("""{"shutdown":true,"start_again":"manual"}""")))
-        assertEquals("Shut down Mandarin? Music playing from Mandarin stops. ", Power.ask("power-shutdown", JSONObject("""{"start_again":"docker"}""")))
         // Mandarin OS (item 389): the computer shuts down with it; and the Linux installer's service.
         assertEquals("Shut down Mandarin? Music playing from Mandarin stops. The computer shuts down too: to start it again, press its power button.",
             Power.ask("power-shutdown", JSONObject("""{"shutdown":true,"start_again":"power-button"}""")))

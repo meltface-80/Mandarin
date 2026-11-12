@@ -214,7 +214,7 @@ internal sealed partial class Updater
 
     // ------------------------------------------------------------------ status
 
-    /* getStatus(), with what api-playlists.js lays over it: is_docker. */
+    /* getStatus(). */
     public JsObj Status()
     {
         lock (gate)
@@ -235,7 +235,6 @@ internal sealed partial class Updater
             o["checking"] = checking;
             o["error"] = error;
             o["apply"] = apply;
-            o["is_docker"] = Environment.GetEnvironmentVariable("DOCKER") == "1";
             return o;
         }
     }

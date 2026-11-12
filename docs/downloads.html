@@ -46,19 +46,18 @@
   <h2 id="server">Mandarin server</h2>
   <div class="dl-grid">
     <div class="dl">
-      <span class="v">v1.3.0 · Linux, Raspberry Pi 4/5, NAS</span>
-      <h3>Docker</h3>
-      <p>The easiest way on an always-on Linux machine. The install page builds the full command with your music
-         folders filled in.</p>
+      <span class="v">v1.3.0 · Debian, Ubuntu, Raspberry Pi OS (x64 or arm64)</span>
+      <h3>Linux</h3>
+      <p>One line as root on an always-on Linux machine: it installs what Mandarin needs and runs it as a service.</p>
       <div class="codebox"><button class="copy-btn" data-copy>Copy</button>
-<pre>docker pull ghcr.io/meltface-80/musicd-server:latest</pre>
+<pre>curl -fsSL https://raw.githubusercontent.com/meltface-80/Mandarin/main/tools/linux/install.sh | sudo bash -s -- --music /srv/music</pre>
 </div>
-      <a class="dl-btn" href="install.html#docker">Build the command →</a>
+      <a class="dl-btn" href="install.html#linux">Step by step →</a>
     </div>
   </div>
   <h3 class="sub">The server program on its own</h3>
   <p class="after-note">The single server program for each kind of machine: what Settings → Updates fetches. Most people
-     never need these; Docker is simpler.</p>
+     never need these; the Linux installer is simpler.</p>
   <div class="files">
     <a class="file" href="https://github.com/meltface-80/Mandarin/releases/latest/download/mandarin-server-linux-x64.gz"><b>mandarin-server-linux-x64.gz</b><span>Linux on an Intel or AMD PC</span><i>⬇</i></a>
     <a class="file" href="https://github.com/meltface-80/Mandarin/releases/latest/download/mandarin-server-linux-arm64.gz"><b>mandarin-server-linux-arm64.gz</b><span>Linux on ARM: a Raspberry Pi 4/5 (64-bit), most NAS boxes with an ARM chip</span><i>⬇</i></a>

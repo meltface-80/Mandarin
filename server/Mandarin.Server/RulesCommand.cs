@@ -3,8 +3,8 @@
 // line out (v0.8.50, stage 7 part 5): what the tests of lib/'s copies asked
 // those copies, asked of the C# server's own now that they are gone.
 //
-//   { fn: "mounts", mountinfo, dataDir, hints: [[dir, entries, docker]] }  Mounts.cs
-//      → { mounts: [{ path, type, waiting }], hints }
+//   { fn: "mounts", mountinfo, dataDir }                                  Mounts.cs
+//      → { mounts: [{ path, type, waiting }] }
 //   { fn: "versions", pairs: [[a, b]], extracts: [[file, dest]], builds: [[informational, assembly]] }  Admin/Updater.cs, BuildVersion.cs
 //      → { cmp, extracted, built }
 //   { fn: "librarycopy", due: [[now, lastTold, behindSince, lastEnd, lastMs, quietMs, longestMs]] }  Library.Copy.cs
@@ -113,8 +113,7 @@ internal static class RulesCommand
         var mounts = Mounts.MusicMounts(S(job["dataDir"]), S(job["mountinfo"]));
         return new JsObj
         {
-            ["mounts"] = mounts.Select(m => (object?)new JsObj { ["path"] = m.Path, ["type"] = m.Type, ["waiting"] = m.Waiting }).ToList(),
-            ["hints"] = Each(job["hints"], h => Mounts.HintFor(S(At(h, 0)), mounts, (int)N(At(h, 1)), TJs.Truthy(At(h, 2))))
+            ["mounts"] = mounts.Select(m => (object?)new JsObj { ["path"] = m.Path, ["type"] = m.Type, ["waiting"] = m.Waiting }).ToList()
         };
     }
 

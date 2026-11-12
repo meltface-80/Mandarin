@@ -3,9 +3,9 @@
 // old/csharp-migration.md), from lib/server/api-power.js and
 // lib/server/api-cpu.js, in the same shapes:
 //
-//   GET  /api/system/power     what this install can do: { restart, shutdown, docker, start_again }
+//   GET  /api/system/power     what this install can do: { restart, shutdown, start_again }
 //   POST /api/system/restart   the server started again
-//   POST /api/system/shutdown  stopped, to stay stopped (not in Docker)
+//   POST /api/system/shutdown  stopped, to stay stopped
 //   GET  /api/cpu              the cores playback keeps and the rest (lib/cpu.js plan())
 //   POST /api/cpu             { making_cores: "auto" | 1 | 2 | 3 }: the cores a track made as it plays has (item 260)
 //
@@ -16,9 +16,7 @@
 //   - On Mandarin OS (MANDARIN_OS, item 389) the computer is Mandarin's alone and has no shell to start it again
 //     from, so the computer shuts down: asked of Mandarin OS by a file (/run/mandarin-os/power/request, which a
 //     systemd path unit of its own acts on), and the computer's power button starts it all again.
-//   - Anywhere else outside Docker it leaves with 0.
-//   - In Docker the container's restart policy brings any exit straight back,
-//     so Shut down isn't offered: `docker stop` is the way.
+//   - Anywhere else it leaves with 0.
 //
 // Both only from home: away (over Tailscale) a phone could switch off the
 // server it can't then reach to start again.
@@ -35,18 +33,16 @@ internal static partial class Library
     internal static JsonObject PowerInfo(Func<string, string?>? env = null)
     {
         env ??= Environment.GetEnvironmentVariable;
-        var docker = env("DOCKER") == "1";
         // Installed on Linux as a systemd service (tools/linux/install.sh): started again with systemctl, or the computer.
-        var service = !docker && env("MANDARIN_SYSTEMD") is { Length: > 0 };
-        var os = !docker && env("MANDARIN_OS") is { Length: > 0 };
+        var service = env("MANDARIN_SYSTEMD") is { Length: > 0 };
+        var os = env("MANDARIN_OS") is { Length: > 0 };
         return new JsonObject
         {
             ["restart"] = true,
-            ["shutdown"] = !docker,
-            ["docker"] = docker,
-            // "docker": docker start; "service": the Linux installer's systemd service (systemctl start, or the computer
-            // started again); "power-button": Mandarin OS, the computer shut down with it; "manual": however it was started.
-            ["start_again"] = docker ? "docker" : os ? "power-button" : service ? "service" : "manual"
+            ["shutdown"] = true,
+            // "service": the Linux installer's systemd service (systemctl start, or the computer started again);
+            // "power-button": Mandarin OS, the computer shut down with it; "manual": however it was started.
+            ["start_again"] = os ? "power-button" : service ? "service" : "manual"
         };
     }
 
@@ -85,8 +81,6 @@ internal static partial class Library
     {
         if (Auth.IsAway(ctx)) return await Send(ctx, new JsonObject { ["error"] = "Shut down only from home", ["away"] = true }, 403);
         var info = PowerInfo();
-        if (info["shutdown"]?.GetValue<bool>() != true)
-            return await Send(ctx, new JsonObject { ["error"] = "In Docker, stop the container instead: docker stop musicd-server" }, 409);
         var first = Server.LeaveBy(Server.Leave.ShutDown);
         await Send(ctx, new JsonObject { ["ok"] = true, ["start_again"] = info["start_again"]?.GetValue<string>() });
         if (first)

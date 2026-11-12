@@ -48,8 +48,9 @@
   <h2>Forgot the password?</h2>
   <p>On the server run:</p>
   <div class="codebox"><button class="copy-btn" data-copy>Copy</button>
-<pre>docker exec musicd-server /app/server/bin/mandarin-server reset-password</pre>
+<pre>sudo -u mandarin env DATA_DIR=/var/lib/mandarin /opt/mandarin/server/bin/mandarin-server reset-password</pre>
 </div>
+  <p>On Mandarin OS, type <code>passwordreset</code> at its own screen (a keyboard plugged in).</p>
   <p>It removes the account and signs every device out; your library, edits and history stay. Then create
      the account again from a device at home.</p>
   <nav class="pager"><a class="back" href="index.html">← Back to contents</a><a class="pill" href="configuration.html">Next: Settings for the server →</a></nav>

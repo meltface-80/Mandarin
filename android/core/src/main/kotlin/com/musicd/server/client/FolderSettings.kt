@@ -24,8 +24,8 @@ data class MusicFolder(val name: String, val path: String, val exists: Boolean, 
 /** A drive or share the server sees ([waiting]: not mounted yet). */
 data class Mount(val path: String, val waiting: Boolean)
 
-/** The server's folders: [scanning] while it reads them, [docker] when it runs in a container (the note says what to mount). */
-data class MusicFolders(val folders: List<MusicFolder>, val scanning: Boolean, val docker: Boolean, val mounts: List<Mount>) {
+/** The server's folders: [scanning] while it reads them. */
+data class MusicFolders(val folders: List<MusicFolder>, val scanning: Boolean, val mounts: List<Mount>) {
     /** Remove is offered only where there is another folder to keep. */
     val removable: Boolean get() = folders.size > 1
 }
@@ -47,13 +47,13 @@ object FolderSettings {
             MusicFolder(f.optString("name").ifEmpty { f.optString("path") }, f.optString("path"), f.optBoolean("exists", true), f.optBoolean("readable", true),
                 f.optInt("tracks"), f.optString("hint").takeIf { it.isNotEmpty() && it != "null" })
         },
-        j.optBoolean("scanning"), j.optBoolean("docker"),
+        j.optBoolean("scanning"),
         j.optJSONArray("mounts").items { m -> Mount(m.optString("path"), m.optBoolean("waiting")) })
 
     /** The folders after an add or a remove ([j]: the server's answer), what it doesn't say kept from [was] (the page's Object.assign). */
     fun after(was: MusicFolders, j: JSONObject): MusicFolders = MusicFolders(
         if (j.has("folders")) parse(j).folders else was.folders,
-        if (j.has("scanning")) j.optBoolean("scanning") else was.scanning, was.docker, was.mounts)
+        if (j.has("scanning")) j.optBoolean("scanning") else was.scanning, was.mounts)
 
     fun browsed(j: JSONObject): Browsed = Browsed(j.optString("path", "/"), j.optString("parent").takeIf { !j.isNull("parent") && it.isNotEmpty() },
         j.optJSONArray("dirs").items { d -> d.optString("name") to d.optString("path") }, j.optString("hint").takeIf { it.isNotEmpty() && it != "null" })
@@ -65,12 +65,9 @@ object FolderSettings {
     /** The add button's words: the folder's last name, or its path at the top. */
     fun chooseWords(path: String): String = "Add “" + (path.split("/").lastOrNull { it.isNotEmpty() } ?: path) + "”"
 
-    /** What is said under the folders: in a container, what to mount (its bold parts true); else that any folder will do. */
-    fun note(docker: Boolean): List<Pair<String, Boolean>> = if (docker) listOf(
-        "The server sees only what its container has mounted. Mount your drives and shares once — e.g. " to false, "-v /mnt:/mnt:ro,rslave" to true,
-        " (on DietPi, everything in Drive Manager is under /mnt; " to false, "rslave" to true,
-        " lets shares the machine mounts later show up) — and add any folders in them here. A folder that’s missing for a while (a drive asleep, a share that dropped) keeps its albums." to false)
-    else listOf("Any folder on the machine the server runs on. A folder that’s missing for a while (a drive asleep, a share that dropped) keeps its albums." to false)
+    /** What is said under the folders (its bold parts true): any folder will do. */
+    fun note(): List<Pair<String, Boolean>> =
+        listOf("Any folder on the machine the server runs on. A folder that’s missing for a while (a drive asleep, a share that dropped) keeps its albums." to false)
 
     fun removeQuestion(f: MusicFolder, locale: Locale = Locale.getDefault()): String =
         "Remove “${f.name}” from the library?\n\nIts ${NumberFormat.getIntegerInstance(locale).format(f.tracks)} tracks and their albums leave Mandarin. The files themselves aren’t touched."

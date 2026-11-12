@@ -217,7 +217,7 @@ private fun MenuHead(open: Boolean, onPower: () -> Unit) {
     }
 }
 
-/** The power button's drop-down: Restart; Shut down where the server can; else how to, in Docker. */
+/** The power button's drop-down: Restart; Shut down where the server can. */
 @Composable
 private fun PowerPop(info: JSONObject?, modifier: Modifier, onItem: (String) -> Unit) {
     val shape = RoundedCornerShape(12.dp)
@@ -227,9 +227,6 @@ private fun PowerPop(info: JSONObject?, modifier: Modifier, onItem: (String) -> 
             color = MaterialTheme.colorScheme.onSurface, fontSize = 15.sp, lineHeight = 21.sp, maxLines = 1)
         if (Menu.canShutDown(info)) Text(Contract.label("menu.power-shutdown"), Modifier.parity("menu.power-shutdown", Contract.label("menu.power-shutdown")).then(POWER_ITEM).clickable { onItem("power-shutdown") }
             .padding(horizontal = 12.dp, vertical = 11.dp), color = MaterialTheme.colorScheme.onSurface, fontSize = 15.sp, lineHeight = 21.sp, maxLines = 1)
-        val note = Menu.powerNote(info)
-        if (note.isNotEmpty()) Text(note, Modifier.parity("menu.power-note").padding(start = 12.dp, top = 4.dp, end = 12.dp, bottom = 6.dp),
-            color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp, lineHeight = 16.8.sp)
     }
 }
 

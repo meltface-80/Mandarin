@@ -8,7 +8,7 @@
  * was tagged, or, while that next release is on dev and not yet tagged on main, the same count up to it (versionFor;
  * first parent only: one each merged pull request, squashed or merged; a merge of main back into dev counts for
  * nothing, so the first pull request after a release is -t1, items 161 and 171). Nothing is committed: the build stamps it as it builds
- * (.github/workflows/docker-publish.yml, android.yml). package.json's "nextVersion", when later than the release, names the
+ * (.github/workflows/os-image.yml, android.yml). package.json's "nextVersion", when later than the release, names the
  * next release instead (the owner's word: dev's builds after v1.1.5 are 1.1.7-tN).
  *   node tools/test-version.js      the version for this checkout, e.g. 1.1.4-t7
  */

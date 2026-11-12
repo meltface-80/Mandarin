@@ -159,12 +159,12 @@ public sealed partial class UpdateAloneTests
 
             var st = await Api("status");
             Assert.True((st.By, st.Body.Str("current"), st.Body.AsObject().ContainsKey("mac_node_only")) == ("C#", version, false), "its own");
-            var keys = new[] { "current", "latest", "latestTag", "available", "html_url", "notes", "source", "checkedAt", "checking", "error", "apply", "is_docker" };
+            var keys = new[] { "current", "latest", "latestTag", "available", "html_url", "notes", "source", "checkedAt", "checking", "error", "apply" };
             var picked = new JsonObject(keys.Select(k => KeyValuePair.Create(k, st.Body[k]?.DeepClone())));
             JsonAssert.Same(Http.Json(new
             {
                 current = version, latest = (string?)null, latestTag = (string?)null, available = false, html_url = (string?)null, notes = (string?)null, source = (string?)null,
-                checkedAt = 0, checking = false, error = (string?)null, apply = new { phase = "idle", error = (string?)null, version = (string?)null }, is_docker = false
+                checkedAt = 0, checking = false, error = (string?)null, apply = new { phase = "idle", error = (string?)null, version = (string?)null }
             }), picked, "nothing known yet, as lib/updater.js started");
 
             // GitHub refusing, or rate-limiting: the check says so; an install asked for then says the same, nothing changed.

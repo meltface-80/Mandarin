@@ -15,7 +15,7 @@ object UpdateBanner {
         "preparing" to "Fetching the C# server…", "restarting" to "Restarting…"
     )
     const val RESTARTING = "restarting"
-    const val TAKING_A_WHILE = "Update is taking a while — if the app doesn't come back on its own, restart the container (docker restart musicd-server)."
+    const val TAKING_A_WHILE = "Update is taking a while — if the app doesn't come back on its own, start Mandarin again."
     /** How often the server is asked while its update runs; how long before the banner says it is taking a while; how often an offer is looked for. */
     const val POLL_MS = 1_500L
     const val TIMEOUT_MS = 180_000L

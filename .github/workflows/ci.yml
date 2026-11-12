@@ -150,7 +150,7 @@ jobs:
         run: ./server/build.sh
       - name: Syntax check of the page
         run: node --check public/app.js
-      # SQ-tool's numpy (item 288): Mandarin starts it in its tests (test/sq-tool.test.js), as the image does.
+      # SQ-tool's numpy (item 288): Mandarin starts it in its tests (test/sq-tool.test.js), as an install does.
       - name: numpy
         run: python3 -m pip install --quiet numpy
       # Kept to a file as well: the tests that failed are said again at the end,
@@ -172,81 +172,3 @@ jobs:
         env:
           TEST_SHARD: ${{ matrix.shard }}
         run: .github/csharp-tests.sh "$TEST_SHARD"
-
-  docker:
-    name: Build image
-    if: inputs.ffmpeg != 'mandarin-os'   # Mandarin OS's run is the suite alone
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
-      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069  # v4
-      - name: Build (no push)
-        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc  # v7
-        with:
-          context: .
-          push: false
-          load: true
-          tags: musicd-server:ci
-      - name: Smoke test the image
-        run: |
-          mkdir -p /tmp/music
-          docker run -d --name smoke -p 3500:3500 -v /tmp/music:/music:ro musicd-server:ci
-          for i in $(seq 1 30); do curl -fs localhost:3500/api/health && break; sleep 1; done
-          curl -fs localhost:3500/api/health | tee /dev/stderr | grep -q '"ffmpeg":true'
-          V=$(node -p "require('./package.json').version")
-          # No audio engine in the image (item 324): a Linux server plays no sound device of its own;
-          # a USB DAC beside it is Mandarin Bridge for Linux's, which brings its own.
-          curl -fs localhost:3500/api/health | grep -q '"audio_engine":null'
-          if docker run --rm --entrypoint sh musicd-server:ci -c 'test -e /app/engine'; then echo "the audio engine is still in the image"; exit 1; fi
-          # The C# server says its version, as an update checks a new one before putting it in place (v0.8.25).
-          test "$(docker run --rm --entrypoint /app/server/bin/mandarin-server musicd-server:ci --version)" = "$V"
-          # The image's health check is the C# server asking itself (v0.8.50): 0 with the server
-          # up on PORT, 1 with nothing on the port it is told.
-          docker exec smoke /app/server/bin/mandarin-server --health | grep -q '"ok":true'
-          if docker exec -e PORT=9 smoke /app/server/bin/mandarin-server --health; then echo "--health passed with nothing on port 9"; exit 1; fi
-          # Measure ReplayGain works with the image's own ffmpeg: its options, as
-          # the server asks, give a loudness (v0.8.24: ffmpeg 5.1 refused framelog=quiet).
-          F=$(sed -n 's/^ *\(private \|public \|internal \)\?const string Filter = "\(.*\)";$/\2/p' server/Mandarin.Server/Identify/Loudness.cs)
-          test -n "$F"
-          docker run --rm --entrypoint ffmpeg musicd-server:ci -hide_banner -nostats -nostdin -f lavfi -i sine=frequency=440:duration=3 \
-            -map 0:a:0 -vn -af "$F" -f null - 2>&1 | tee /dev/stderr | grep -Eq "I: +-[0-9.]+ LUFS"
-          # The image's ffmpeg writes 32-bit FLAC, asked as the server asks it (item 269):
-          # STREAMINFO's bits a sample (bytes 20 and 21 of the file), 32.
-          docker run --rm --entrypoint ffmpeg musicd-server:ci -hide_banner -loglevel error -f lavfi -i anullsrc=r=44100:cl=stereo -t 0.2 \
-            -sample_fmt s32 -bits_per_raw_sample 32 -c:a flac -f flac -strict experimental - > /tmp/s32.flac
-          set -- $(od -An -tu1 -j20 -N2 /tmp/s32.flac)
-          test "$(( ((($1 & 1) << 4) | ($2 >> 4)) + 1 ))" = 32
-          # The image's ffmpeg draws text with fontconfig's sans-serif (v0.8.34): an album
-          # with no cover is drawn by the C# server with it (CoversDrawn.cs). The test jobs'
-          # static ffmpeg has no drawtext, so there it is drawn without its title.
-          docker run --rm --entrypoint ffmpeg musicd-server:ci -hide_banner -filters | grep -Eq "\sdrawtext\s"
-          docker run --rm --entrypoint ffmpeg musicd-server:ci -hide_banner -v error -nostdin -f lavfi -i color=c=black:s=64x64:d=1 \
-            -vf "drawtext=text=A:font=sans-serif:fontsize=40:fontcolor=white:x=10:y=10" -frames:v 1 -f null -
-          # The C# server answers on the port, and there is no Node.js in the image (v0.9.0).
-          curl -fsI localhost:3500/api/health | grep -i "^x-mandarin-server: C#"
-          curl -fs localhost:3500/server-info | grep -q '"server":"C#"'
-          if docker run --rm --entrypoint sh musicd-server:ci -c 'command -v node || test -e /app/node_modules || test -e /app/index.js'; then echo "Node.js is still in the image"; exit 1; fi
-          # A new install asks for its account first: the page is the sign-in page,
-          # and the API is closed until then.
-          curl -fsL localhost:3500/ | grep -q "Create your account"
-          test "$(curl -s -o /dev/null -w '%{http_code}' localhost:3500/api/status)" = "401"
-          # SQ-tool runs in the image (item 288): Python 3 with numpy, and its code where the server starts it.
-          docker exec smoke python3 -c "import numpy"
-          docker exec -w /app/sq-tool smoke python3 -m sqtool --help > /dev/null
-          # Not as root (item 354): the server that answered above runs as 1000:1000, its data, program and page its
-          # own (an update writes them), unless PUID says otherwise; PUID=0 keeps it root.
-          # The process that is the server: its program and nothing else on its command line. tini, which stays root, names
-          # it after its own; the image's health check (mandarin-server --health) is docker exec's, root, and its scans say scan.
-          S=$(docker exec smoke sh -c 'for p in /proc/[0-9]*; do [ "$(tr "\\0" " " < $p/cmdline 2>/dev/null)" = "/app/server/bin/mandarin-server " ] && stat -c %u:%g $p && break; done')
-          test "$S" = "1000:1000" || { echo "the server runs as $S"; exit 1; }
-          test "$(docker exec smoke stat -c %u:%g /app/data /app/server/bin /app/public | sort -u)" = "1000:1000"
-          test "$(docker run --rm -e PUID=1234 -e PGID=100 musicd-server:ci sh -c 'echo $(id -u):$(id -g)')" = "1234:100"
-          test "$(docker run --rm -e PUID=0 musicd-server:ci id -u)" = 0
-          # A data folder that is the user's already, with what a root server wrote inside it root's (item 374: the
-          # built-in Tailscale's state, which it then couldn't open): all of it handed over at start.
-          docker run --rm -v olddata:/app/data --entrypoint sh musicd-server:ci -c \
-            'mkdir -p /app/data/tailscale && touch /app/data/tailscale/tailscaled.state && chown 1000:1000 /app/data'
-          test "$(docker run --rm -v olddata:/app/data musicd-server:ci stat -c %u:%g /app/data/tailscale /app/data/tailscale/tailscaled.state | sort -u)" = "1000:1000"
-          docker volume rm olddata
-          docker logs smoke
-          docker rm -f smoke

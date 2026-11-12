@@ -52,7 +52,7 @@ import java.util.Locale
  */
 
 private const val PACK_INFO = "Every MusicBrainz release with a barcode, with its tracks, kept on the server and refreshed weekly. Barcodes are matched here first, without asking musicbrainz.org; anything the pack lacks is asked for as before."
-private const val FOLDER_INFO = "The pack can live on any drive the server can write to. In Docker, mount the drive into the container first (for example -v /mnt/ssd/mandarin:/packs). A pack already downloaded is moved there."
+private const val FOLDER_INFO = "The pack can live on any drive the server can write to. A pack already downloaded is moved there."
 
 /** The pack's block: as it is, or the folder browser while its place is being chosen. */
 @Composable

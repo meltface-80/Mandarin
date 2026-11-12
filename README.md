@@ -48,11 +48,11 @@ The newest of each, straight to your device. The server's install is a command, 
 | What | Version | Download |
 | --- | --- | --- |
 | **Mandarin Remote**, the Android app (Android 8.0 or newer) | v1.3.0 | [mandarin-android.apk](https://github.com/meltface-80/Mandarin/raw/main/dist/mandarin-android.apk) |
-| **Mandarin server** with Docker (Linux, a Raspberry Pi 4/5, a NAS) | v1.3.0 | `docker pull ghcr.io/meltface-80/musicd-server:latest`, then [Install (Docker)](#install-docker) |
+| **Mandarin server** on Linux (Debian, Ubuntu, Raspberry Pi OS; x64 or arm64) | v1.3.0 | the one line under [Install on Linux](#install-on-linux) |
 | **Mandarin Bridge** for Android (a FiiO R7, say) | v0.3.10 | [mandarin-bridge.apk](https://github.com/meltface-80/Mandarin/releases/download/mandarin-bridge-v0.3.10/mandarin-bridge.apk) |
 | **Mandarin Bridge** for Raspberry Pi (3, 4, 5, Zero 2 W) | v0.3.10 | [mandarin-bridge-pi-arm64.img.xz](https://github.com/meltface-80/Mandarin/releases/download/mandarin-bridge-v0.3.10/mandarin-bridge-pi-arm64.img.xz) |
 | **Mandarin Bridge** for Linux (64-bit Debian, Ubuntu, Raspberry Pi OS) | v0.3.10 | `curl -fsSL https://github.com/meltface-80/Mandarin/releases/download/mandarin-bridge-v0.3.10/install.sh \| sudo sh`, or by hand: [x64](https://github.com/meltface-80/Mandarin/releases/download/mandarin-bridge-v0.3.10/mandarin-bridge-linux-x64.tar.gz) · [arm64](https://github.com/meltface-80/Mandarin/releases/download/mandarin-bridge-v0.3.10/mandarin-bridge-linux-arm64.tar.gz) |
-| The server program on its own, what Settings → Updates fetches | v1.3.0 | [linux-x64](https://github.com/meltface-80/Mandarin/releases/latest/download/mandarin-server-linux-x64.gz) · [linux-arm64](https://github.com/meltface-80/Mandarin/releases/latest/download/mandarin-server-linux-arm64.gz) · [osx-arm64](https://github.com/meltface-80/Mandarin/releases/latest/download/mandarin-server-osx-arm64.gz) · [osx-x64](https://github.com/meltface-80/Mandarin/releases/latest/download/mandarin-server-osx-x64.gz) · [sums](https://github.com/meltface-80/Mandarin/releases/latest/download/mandarin-server.sha256) |
+| The server program on its own, what Settings → Updates fetches | v1.3.0 | [linux-x64](https://github.com/meltface-80/Mandarin/releases/latest/download/mandarin-server-linux-x64.gz) · [linux-arm64](https://github.com/meltface-80/Mandarin/releases/latest/download/mandarin-server-linux-arm64.gz) · [sums](https://github.com/meltface-80/Mandarin/releases/latest/download/mandarin-server.sha256) |
 | **How Mandarin finds and names your music**, a guide in plain words | | [PDF](docs/Mandarin-music-scanning-guide.pdf) |
 
 On an iPhone or iPad there is nothing to download: see [iPhone and iPad](#iphone-and-ipad).
@@ -107,7 +107,7 @@ One album you haven't played in a year or more (or never), the same on every dev
 
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 
-Nothing to set up: it sits beside Random Album on Home, with its own switch in **Settings → Setup → Home Screen**. 00:01 is in the server's time zone (`TZ` in the Docker command).
+Nothing to set up: it sits beside Random Album on Home, with its own switch in **Settings → Setup → Home Screen**. 00:01 is in the server's time zone.
 
 </details>
 
@@ -311,7 +311,7 @@ An optional download of every MusicBrainz release with a barcode, about 2 GB on 
 
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 
-Open **Settings → Library Scanner → MusicBrainz pack** and tap **Download**. **Folder** chooses where it's kept; in Docker that folder needs a writable mount (see Install).
+Open **Settings → Library Scanner → MusicBrainz pack** and tap **Download**. **Folder** chooses where it's kept: any folder the server can write to.
 
 </details>
 
@@ -467,7 +467,7 @@ Playback keeps a processor core of its own, two while DSP is in use. Scanning, R
 
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 
-Nothing to set up on Linux. **Settings → Library Scanner → Processor** shows the split. In Docker, `--cap-add SYS_NICE` also raises playback's priority. `PLAYBACK_CORES` sets how many cores playback keeps; 0 shares them all.
+Nothing to set up on Linux. **Settings → Library Scanner → Processor** shows the split. `PLAYBACK_CORES` sets how many cores playback keeps; 0 shares them all.
 
 </details>
 
@@ -727,11 +727,11 @@ On first visit from a device at home, create the account or choose **Use without
 
 ⏻ **Restart and shut down**
 
-Restart Mandarin, or shut it down so it stops finding and controlling your speakers until you start it again. In Docker, only Restart.
+Restart Mandarin, or shut it down so it stops finding and controlling your speakers until you start it again.
 
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 
-Open the side menu (☰) and tap the **power button** in its top-right corner, then **Restart** or **Shut down**. In Docker: `docker stop musicd-server`, then `docker start musicd-server`.
+Open the side menu (☰) and tap the **power button** in its top-right corner, then **Restart** or **Shut down**. On Mandarin OS the computer shuts down too; its power button starts it all again.
 
 </details>
 
@@ -825,106 +825,41 @@ to a cache as it plays, so the device starts on the first frames, and the next t
 queue are prepared ahead. Replays come from the cache (4 GB by default, least recently played
 removed first).
 
-## Install (Docker)
+## Install
 
-Run it on an always-on Linux machine on the same network as your speakers — a NAS, a
-Raspberry Pi 4/5 (64-bit OS), a home server.
+Mandarin runs on an always-on computer on the same network as your speakers, in one of two ways.
 
-If Docker isn't installed yet:
+### Mandarin OS
 
-```bash
-dietpi-software install 162              # DietPi (162 is its Docker package)
-curl -fsSL https://get.docker.com | sh   # Debian, Ubuntu, Raspberry Pi OS
-```
+A computer of its own for Mandarin (a mini PC, an Intel NUC): write Mandarin OS's image to a USB stick, start the
+computer from it and answer a few questions. See [Mandarin OS](os/README.md).
 
-Then:
+### Install on Linux
 
-```bash
-docker stop musicd-server 2>/dev/null; docker rm musicd-server 2>/dev/null
-docker pull ghcr.io/meltface-80/musicd-server:latest
-
-docker run -d \
-  --name musicd-server \
-  --network host \
-  --restart unless-stopped \
-  -e TZ=Europe/London \
-  -v musicd-server-data:/app/data \
-  -v /your/path/to/Music:/music:ro,rslave \
-  -v /mnt:/mnt:ro,rslave \
-  ghcr.io/meltface-80/musicd-server:latest
-```
-
-`rslave` lets a drive the machine mounts after the container starts (a slow USB disk at boot, a share mounted
-later) show up inside it, its music and covers read as it appears.
-
-Open **`http://<server-ip>:3500`**. The first scan runs straight away; a big library takes a
-few minutes and albums appear as it goes.
-
-> **`--network host` is required.** Sonos players are found by multicast, which does not
-> cross Docker's default bridge network — and the speakers fetch audio from this machine's
-> own address. Docker Desktop on macOS/Windows has no real host networking, so this needs a
-> Linux host.
-
-> **Keep the `musicd-server-data` volume.** It holds the library database, play history,
-> settings and the artwork and transcode caches. Point every future `docker run`
-> at the same name.
-
-> **The server doesn't run as root** (since item 354). It runs as user and group 1000 —
-> the first user on most Linux machines — and on its first start takes over its data volume
-> (from an install that ran as root, that one start can take a minute). It only reads your
-> music, so music anyone on the machine can read plays as before. If yours is readable by one
-> user only, run the server as that user: `-e PUID=<their uid> -e PGID=<their gid>` (`id`
-> on the host gives them). `-e PUID=0` keeps it root, as before.
-
-**The MusicBrainz pack on another drive (optional).** The pack (Settings → Library Scanner) is
-2 GB, kept in the data volume unless you choose a folder. To keep it on another drive, add a
-writable mount — no `:ro` — to the command above, e.g.:
+On Debian, Ubuntu or Raspberry Pi OS (64-bit, x64 or arm64), one line as root:
 
 ```bash
-  -v /mnt/dietpi_userdata/1tb/mandarin:/packs \
+curl -fsSL https://raw.githubusercontent.com/meltface-80/Mandarin/main/tools/linux/install.sh | sudo bash -s -- --music /srv/music
 ```
 
-then choose `/packs` under **Folder** on that page. The server must be able to write to that folder:
-own it by user 1000 (`sudo chown 1000:1000 /mnt/dietpi_userdata/1tb/mandarin`), or set `PUID`/`PGID` to its owner.
-Keep the line in every future `docker run`
-(an update included): without it `/packs` isn't there, and the page says so. A folder reached
-through the read-only `-v /mnt:/mnt:ro,rslave` mount can't be used for the pack.
+It installs what Mandarin needs from apt, runs it as a systemd service (`mandarin.service`) under a user of its own
+(`mandarin`, in the audio group), and keeps its data in `/var/lib/mandarin`. Open **`http://<server-ip>:3500`**. The
+first scan runs straight away; a big library takes a few minutes and albums appear as it goes. Run the line again to
+update or to choose another music folder (the library, the account and the settings are kept); `--uninstall` removes
+it, its data kept.
 
-**A USB DAC on this machine.** The container opens no sound device (since v1.2.1): install Mandarin Bridge for
-Linux on the machine itself, beside the container, and the DAC is a room of its own in **Settings → Audio Devices**:
+**A USB DAC on this machine:** install Mandarin Bridge for Linux beside the server, and the DAC is a room of its own in
+**Settings → Audio Devices**:
 
 ```bash
 curl -fsSL https://github.com/meltface-80/Mandarin/releases/download/mandarin-bridge-v0.3.10/install.sh | sudo sh
 ```
 
-See [Mandarin Bridge](#mandarin-bridge). A container made with `--device /dev/snd` and `--privileged` for sound
-doesn't need them any more.
+See [Mandarin Bridge](#mandarin-bridge).
 
-**Music folders, chosen in the app.** Mount your drives or shares into the
-container once — e.g. `-v /mnt:/mnt:ro,rslave` — then add any folders inside them in
-**Settings → Music Folders**, as many as you like, and remove them there too. The folder
-picker lists every drive and share the server can see.
-
-> **DietPi (and any network share mounted on demand):** DietPi-Drive_Manager mounts USB
-> drives and network shares under `/mnt`, and mounts shares only when they're first opened.
-> A container started with a plain `-v /mnt:/mnt:ro` never sees those later mounts — the
-> folder looks empty. End the line with **`,rslave`** (`-v /mnt:/mnt:ro,rslave`) so mounts the
-> machine makes afterwards reach the server too, then re-create the container. Music Folders
-> says so when it spots a share it can't see. `/music` is
-the first folder until you change the list. A folder that goes missing for a while (a drive
-asleep, a share that dropped, part of it unreadable, most of it gone at once) keeps its
-albums; the page says so and offers to forget it.
-
-A `docker-compose.yml` is in the repository: set your music path and `docker compose up -d`.
-
-### Build it yourself instead
-
-```bash
-git clone https://github.com/meltface-80/Mandarin.git
-cd Mandarin
-docker build -t musicd-server:local .
-# then the docker run above, with musicd-server:local as the image
-```
+**Music folders, chosen in the app:** add any folder the server can read in **Settings → Music Folders**, as many as you
+like, and remove them there too. A folder that goes missing for a while (a drive asleep, a share that dropped, part of it
+unreadable, most of it gone at once) keeps its albums; the page says so and offers to forget it.
 
 ### Updating
 
@@ -932,17 +867,15 @@ docker build -t musicd-server:local .
 server downloads the new release from GitHub, swaps it in and restarts itself in a few seconds;
 a browser's page reloads on its own. In the Android app the app has its own **Check for update**
 beside it, and what each update brings is listed under them. It also checks twice a day and shows a banner when a new
-version is out. (From v0.1.3 on — an older container needs one update the manual way.)
+version is out.
 
 Since v0.9.0 Mandarin's server is one program, in C#, with no Node.js anywhere. An update from
 the app fetches that program of the new version for your machine (x64 or ARM64) from the
 release, checks it against the release's sums and its signature with Mandarin's release key (v1.3.0: a release
 replaced along with its sums is refused; an install from before takes its update to v1.3.0 as before, and every
 update after it is checked), puts it and the new page in place, and starts
-again in the same container — a few seconds. If it can't start again in place, it stops and
-Docker's restart policy (`--restart unless-stopped`, as above, or `restart: unless-stopped` in
-`docker-compose.yml`) starts the container again; without one, start it yourself (`docker start
-musicd-server`).
+again in the same process — a few seconds. If it can't start again in place, it stops and its
+systemd service starts it again.
 
 The new program is checked and laid in beside the old before anything is swapped (v1.1.9): if
 something fails after the swap, the old one (kept as `mandarin-server.prev`) is put back, and a
@@ -966,18 +899,10 @@ release key (from Mandarin Bridge v0.3.8; the server's updates are checked the s
 * A test build of Mandarin's follows the Bridges' test builds (the **test-bridge** pre-release),
   and a numbered one follows their numbered releases (Mandarin Bridge v0.3.8 with Mandarin v1.3.0).
 
-**Manually** — also the way to pick up changes to the image itself (ffmpeg, the audio engine gone from it in
-v1.2.1, and the move to v0.9.0 from an image with Node.js in it):
-
-```bash
-docker pull ghcr.io/meltface-80/musicd-server:latest
-docker stop musicd-server && docker rm musicd-server
-# re-run the docker run command above — the data volume carries everything over
-```
-
 ## Configuration
 
-Everything is optional; pass any of it with `-e NAME=value`.
+Everything is optional; set any of it as an environment variable of the server (installed on Linux: `sudo systemctl
+edit mandarin`, then `Environment=NAME=value` under `[Service]`).
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
@@ -986,16 +911,15 @@ Everything is optional; pass any of it with `-e NAME=value`.
 | `SONOS_HOSTS` | — | A speaker's IP (comma-separated for several), for when multicast discovery is unreliable. One is enough. |
 | `ART_HOSTS` | — | Hosts on your own network a picture may be fetched from (comma-separated names or IPs): a radio station's logo served at home, say. Mandarin never fetches a picture from its own machine or your network otherwise; the Sonos speakers' own addresses are always allowed. |
 | `UPNP_HOSTS` | — | UPnP/DLNA renderers to ask by address (an IP, or a description URL like `http://192.168.1.50:49152/description.xml`), for when multicast discovery misses them. |
-| `SERVER_IP` | auto | The address speakers fetch audio from. Auto picks the machine's LAN address, skipping VPN, Docker and VM interfaces, and searches for speakers on every LAN interface. Set it to pin one. |
+| `SERVER_IP` | auto | The address speakers fetch audio from. Auto picks the machine's LAN address, skipping VPN, container and VM interfaces, and searches for speakers on every LAN interface. Set it to pin one. |
 | `INCLUDE_ZONES` | — | Offer only these rooms, e.g. `Kitchen,Study`. |
 | `EXCLUDE_ZONES` | — | Offer every room except these. |
 | `SCAN_INTERVAL_HOURS` | `6` | How often the music folders are re-checked in full (only changed files are re-read). Between those, an album copied in or deleted is noticed as it happens: through the file system's own notifications, and on a network share or FUSE folder (SMB, NFS, mergerfs), whose changes made elsewhere aren't told, by looking at its folders every 30 seconds. A deletion shows a few seconds after it; a long copy is read at least every 30 seconds while it goes on, so albums appear one by one. Rescan any time from the menu. |
 | `TRANSCODE_CACHE_GB` | `4` | Disk kept for converted tracks. An upsampled track is several times a CD-rate one: with upsampling on, 16 is a better number. |
 | `TRANSCODE_CONCURRENCY` | `2` | How many tracks are converted at once. |
 | `PLAYBACK_CORES` | auto | Processor cores kept for playback alone: one, or two while DSP is in use. `1` or `2` fixes the number; `0` shares every core. *Settings → Library Scanner → Processor* shows the split. |
-| `MUSIC_DIR` | `/music` | Where the library is mounted inside the container. |
+| `MUSIC_DIR` | `/music` | The first music folder, until you change the list in Settings → Music Folders (the Linux installer sets it from `--music`). |
 | `TRUSTED_PROXIES` | — | Reverse proxies whose word on who asked is believed (addresses or ranges, comma-separated): `127.0.0.1` for an nginx, Caddy or `tailscale serve` on the same machine. The built-in Tailscale needs nothing here. |
-| `PUID` / `PGID` | `1000` | The user and group the server runs as inside the container: give your music's owner if it is readable by that user only. It keeps the groups that own the music folder and the folders directly in it (never root's), so music readable by a group plays too. `PUID=0` runs it as root. |
 | `TS_AUTHKEY` | — | Sign the server's built-in Tailscale in with an auth key instead of from *Settings → Setup → Away from home*. |
 | `TS_HOSTNAME` | `musicd` | The server's name on your tailnet. |
 | `TAILSCALE` | on | `off` leaves the built-in Tailscale out (Tailscale on the host still works). |
@@ -1010,7 +934,7 @@ Everything is optional; pass any of it with `-e NAME=value`.
 | `DEBUG` | — | Log every API call. |
 
 Settings for the FanArt.tv key (artist photos, on artist pages and the wall display), waveform, Smart Picks,
-the wall display and the Home rows are in the app's Settings and are saved in the data volume.
+the wall display and the Home rows are in the app's Settings and are saved in the data folder.
 
 ## Your account
 
@@ -1056,8 +980,10 @@ Five wrong passwords from one address in 15 minutes lock it out for 15 minutes (
 **Forgot the password?** On the server run
 
 ```bash
-docker exec musicd-server /app/server/bin/mandarin-server reset-password
+sudo -u mandarin env DATA_DIR=/var/lib/mandarin /opt/mandarin/server/bin/mandarin-server reset-password
 ```
+
+On Mandarin OS, type `passwordreset` at its own screen (a keyboard plugged in).
 
 It removes the account and signs every device out; your library, edits and history
 stay. Then create the account again from a device at home.
@@ -1272,11 +1198,10 @@ Mandarin behaves the same.
 
 ## Sound devices on the server
 
-**On Linux, Docker included, Mandarin plays no sound device of its own (v1.2.1).** A USB DAC on the computer Mandarin
+**On Linux, Mandarin plays no sound device of its own (v1.2.1).** A USB DAC on the computer Mandarin
 runs on is played by [Mandarin Bridge](#mandarin-bridge) for Linux, installed beside it with one line, and the DAC is
 a room of its own in *Settings → Audio Devices*. The server used to open the computer's sound cards itself (ALSA), kept losing the DAC
-and competed with the Bridge for it. A card it had in Audio Devices is forgotten by itself, the container needs no
-`--device /dev/snd` or `--privileged` for sound, and the image no longer carries the audio engine.
+and competed with the Bridge for it. A card it had in Audio Devices is forgotten by itself.
 
 **Playback comes first (v0.8.13).** On Linux with three cores or more, playback (what Mandarin makes as a track plays:
 its conversion, upsampling or DSD) keeps a core of its own, or two while DSP is in use (the last ones), and the server
@@ -1309,12 +1234,11 @@ DSD from PCM, DSP, volume levelling and a volume in software change the samples 
 Mandarin starts SQ-tool the first time it is opened, on a port of the computer only, behind your sign-in, with its
 data in the data folder's `sq-tool`.
 
-* **Docker:** the image has what it needs (Python 3 and numpy).
-* **Installed without Docker:** add Python 3 and numpy (`sudo apt install python3 python3-numpy`
-  on Debian or Ubuntu); until then its page says what is
+* **Mandarin OS and the Linux installer** bring what it needs (Python 3 and numpy). Installed by hand, add Python 3
+  and numpy (`sudo apt install python3 python3-numpy` on Debian or Ubuntu); until then its page says what is
   missing. `SQTOOL_PYTHON` names another Python to run it with.
-* An update made from Settings brings it (from the first release that carries it), as a new image
-  does; Python and numpy are the computer's to have.
+* An update made from Settings brings it (from the first release that carries it); Python and numpy are the
+  computer's to have.
 
 ## Away from home (Tailscale)
 
@@ -1358,7 +1282,7 @@ At home the app keeps its own Tailscale running only while the phone is playing,
 out of the house doesn't stop the music; with nothing playing it is stopped after two minutes, and
 started again in seconds when you leave, its sign-in kept on the phone (v1.1.10).
 
-The server's Tailscale keeps its identity in the data volume, so a new container is the same
+The server's Tailscale keeps its identity in the data folder, so an update or a reinstall is the same
 machine. `TAILSCALE=off` leaves it out; `TS_HOSTNAME` names it something other than *musicd*.
 Tailscale installed on the host still works as before (the server uses its own first when both
 are there, or `TAILSCALE_ADDRESS` to say which).
@@ -1450,8 +1374,8 @@ data folder (two files of 1 MB at most) while logging is on.
   `sonos.error`). Check host networking, or set `SONOS_HOSTS` to one speaker's IP.
 * **A room plays nothing / skips every track.** The speakers must be able to reach the server
   on its port. On a host with several interfaces set `SERVER_IP` to the LAN address.
-* **No albums.** `/api/status` shows `music_dir` and `index_count`. Check the `/music` mount
-  and that the container can read it.
+* **No albums.** `/api/status` shows `music_dir` and `index_count`. Check the music folder is there
+  and that Mandarin can read it.
 * **Hi-res tracks don't play.** `http://<server>:3500/api/health` must say `"ffmpeg": true`.
 * **DSD goes as DoP from Mandarin Bridge for Linux, natively from Android.** Linux's USB audio driver offers a DAC
   native DSD only where its own list knows the DAC's maker. The Bridge's page (`http://<it>:49494/`) and log say

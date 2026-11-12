@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Mandarin on Linux without Docker: the one-line installer (Debian, Ubuntu, Raspberry Pi OS; x64 or arm64).
+# Mandarin on Linux: the one-line installer (Debian, Ubuntu, Raspberry Pi OS; x64 or arm64).
 #
 #   curl -fsSL https://raw.githubusercontent.com/meltface-80/Mandarin/main/tools/linux/install.sh | sudo bash -s -- --music /srv/music
 #
@@ -9,7 +9,7 @@
 # this machine's server, each checked against Mandarin's release key, into /opt/mandarin, keeps its data in
 # /var/lib/mandarin, and runs it as a systemd service (mandarin.service) now and at every start. Run it again to update
 # or to choose another music folder: the library, the account and the settings are kept. After that it updates itself
-# from Settings → Updates, as Docker's does.
+# from Settings → Updates.
 #
 #   --music DIR    the music folder (asked for, or /music, where not given); more can be added in Settings
 #   --port N       the port (3500)
@@ -81,7 +81,7 @@ trap 'rm -rf "$TMP"' EXIT
 signed() { openssl dgst -sha256 -verify "$TMP/key.pem" -signature "$1.sig" "$1" >/dev/null 2>&1; }
 get() { curl -fsSL --retry 3 -o "$2" "$1"; }
 
-# 1. What Mandarin needs (the Docker image's own list, Dockerfile).
+# 1. What Mandarin needs (once the Docker image's own list; item 394).
 if [ "$APT" = 1 ]; then
   say "Installing ffmpeg, poppler, Python and ICU…"
   export DEBIAN_FRONTEND=noninteractive
@@ -128,7 +128,7 @@ fi
 MUSIC="${MUSIC:-${WAS:-/music}}"
 MUSIC="${MUSIC%/}"
 [ -d "$ROOT$MUSIC" ] || echo "Note: $MUSIC isn't there yet. Mandarin waits for it (a drive mounted later is found)."
-# The groups that own it, as the Docker image keeps them (item 386): readable as its owner shares it, never root's.
+# The groups that own it (item 386, as the Docker image kept them): readable as its owner shares it, never root's.
 for g in $(stat -c %g "$ROOT$MUSIC" "$ROOT$MUSIC"/* 2>/dev/null | sort -u); do
   [ "$g" = 0 ] && continue
   name="$(getent group "$g" | cut -d: -f1 || true)"

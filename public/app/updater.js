@@ -172,9 +172,8 @@
         clearInterval(pollTimer);
         // Update can be tapped again: before, the page stayed "applying" until it was reloaded.
         applying = false; actions.classList.remove("busy"); btnNow.disabled = false;
-        show("Update is taking a while \u2014 if the app doesn't come back on its own, " + (window.__mandarinInstall === "docker"
-          ? "restart the container (docker restart musicd-server)."
-          : window.__mandarinInstall === "mandarin-os" ? "restart the Mandarin OS computer." : "start Mandarin again."));
+        show("Update is taking a while \u2014 if the app doesn't come back on its own, " + (window.__mandarinInstall === "mandarin-os"
+          ? "restart the Mandarin OS computer." : "start Mandarin again."));
       }
     }, 180000);
   }

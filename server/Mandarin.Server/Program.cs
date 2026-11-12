@@ -66,7 +66,7 @@ if (args.Length >= 2 && args[0] == "waveform")
     return peaks == null ? 1 : 0;
 }
 int port = int.TryParse(Environment.GetEnvironmentVariable("PORT"), out var p) && p > 0 ? p : 3500;
-// `mandarin-server --health`: the image's health check (v0.8.50, HealthRoutes.cs):
+// `mandarin-server --health`: a health check (v0.8.50, HealthRoutes.cs):
 // GET /api/health on this port, 0 when it answers 200.
 if (args.Length == 1 && args[0] == "--health") return await Library.HealthCommand(port);
 // The key this server's private addresses (/internal/…, the tests') are asked with: given, or made.
@@ -243,7 +243,7 @@ Server.Log($"[server] listening on port {port} (and on 127.0.0.1:{Caller.EngineP
 await app.WaitForShutdownAsync();
 // Restart from Settings, or an update put in place (Admin/Updater.cs): this
 // program started again in this process; if that can't be done, stopped with
-// the code, and Docker's restart policy starts the container again. Shut
+// the code, and its systemd service starts it again. Shut
 // down: 0, for nothing to start it again.
 // The database's pooled connections closed first: the new run opens it, or a backup put back in its place, anew.
 if (Server.Leaving == Server.Leave.Restart) { Db.LetGo(); Server.StartAgain(args); return Server.StartAgainCode; }

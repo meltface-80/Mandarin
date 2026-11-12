@@ -44,7 +44,7 @@ const short = v => {
   albumFolders(root, all);
   console.log(`Mandarin tag report · ${new Date().toISOString()} · ${root}`);
   console.log(`${all.length} album folders found; sampling ${Math.min(want, all.length)}, spread across the library.\n`);
-  if (!all.length) { console.log("No music found here — give the folder as the container sees it (see docker inspect)."); return; }
+  if (!all.length) { console.log("No music found here — give the folder as the server sees it."); return; }
   const step = all.length / Math.min(want, all.length);
   const picks = [];
   for (let i = 0; i < Math.min(want, all.length); i++) picks.push(all[Math.floor(i * step)]);

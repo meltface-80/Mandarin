@@ -139,8 +139,8 @@ class SignInActivity : Activity() {
             setOnClickListener { toConnect() }
         })
         col.addView(TextView(this).apply {
-            // Every install's way (item 389): Mandarin OS has no shell, Docker a container; then the account made again here.
-            text = "Forgot the password? On Mandarin OS, type passwordreset at its screen. In Docker, run\ndocker exec musicd-server /app/server/bin/mandarin-server reset-password\nThen create the account again here."
+            // Every install's way (item 389): Mandarin OS has no shell, the Linux installer's a service user; then the account made again here.
+            text = "Forgot the password? On Mandarin OS, type passwordreset at its screen. Installed on Linux, run\nsudo -u mandarin env DATA_DIR=/var/lib/mandarin /opt/mandarin/server/bin/mandarin-server reset-password\nThen create the account again here."
             setTextColor(0xFF6B737A.toInt())
             textSize = 12f
             setPadding(0, px(24), 0, 0)

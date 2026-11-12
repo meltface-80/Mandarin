@@ -19,13 +19,9 @@ public sealed class MountsTests
         "47 28 8:1 /x /etc/hosts rw - ext4 /dev/sda1 rw");
 
     [Test]
-    public async Task The_drives_and_shares_mounted_into_the_container_and_a_share_it_cant_see()
+    public async Task The_drives_and_shares_mounted_and_a_share_not_mounted_yet()
     {
-        var r = await Score.Run(new
-        {
-            fn = "mounts", mountinfo = Info, dataDir = "/app/data",
-            hints = new object[] { new object[] { "/mnt/nas", 0, true }, new object[] { "/mnt/share", 3, true }, new object[] { "/srv", 0, true }, new object[] { "/srv", 0, false } }
-        });
+        var r = await Score.Run(new { fn = "mounts", mountinfo = Info, dataDir = "/app/data" });
         Assert.Equal(
         [
             ("/mnt", "ext4", false),
@@ -34,10 +30,5 @@ public sealed class MountsTests
             ("/mnt/usb drive", "ext4", false),
             ("/music", "ext4", false)
         ], r["mounts"].Items().Select(m => (m.Str("path"), m.Str("type"), m.Bool("waiting") ?? false)).ToList());
-        var hints = r["hints"].Items().Select(h => (string?)h).ToList();
-        Assert.Matches("rslave", hints[0]);
-        Assert.Null(hints[1]);
-        Assert.Matches("Nothing from the machine is mounted here", hints[2]);
-        Assert.Null(hints[3]);
     }
 }

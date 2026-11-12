@@ -379,7 +379,6 @@ internal sealed partial class PackStore
         try { return Access(path, WOk) == 0 ? null : Marshal.GetLastPInvokeError(); }
         catch (Exception e) when (e is EntryPointNotFoundException or DllNotFoundException) { return null; }
     }
-    private static bool Docker => System.IO.File.Exists("/.dockerenv");
 
     /* Free bytes on the drive a folder is on; null when it can't be told. */
     public static double? FreeIn(string dir)
@@ -395,9 +394,9 @@ internal sealed partial class PackStore
     {
         var d = Dir;
         if (!Directory.Exists(d))
-            return d + " isn't there" + (Docker ? " — the container wasn't started with it mounted (-v …:" + d + "). Start it again with that line, or choose another folder." : ". Choose another folder.");
+            return d + " isn't there. Choose another folder.";
         if (NotWritable(d) is int err)
-            return "Can't write to " + d + (err == EROFS ? " — it's read-only to the server" + (Docker ? " (mounted with :ro)" : "") : "") + ". Choose another folder.";
+            return "Can't write to " + d + (err == EROFS ? " — it's read-only to the server" : "") + ". Choose another folder.";
         return null;
     }
 
@@ -432,9 +431,7 @@ internal sealed partial class PackStore
         var err = NotWritable(next);
         if (err != null || !Directory.Exists(next))
         {
-            var why = err == EROFS ? " — it's read-only to the server" + (Docker ? " (mounted with :ro). Mount the folder into the container on its own line, without :ro, and choose it there" : "")
-                : Docker ? " — is it mounted into the container?" : "";
-            throw new PackError("Can't write to " + next + why, 400);
+            throw new PackError("Can't write to " + next + (err == EROFS ? " — it's read-only to the server" : ""), 400);
         }
         var from = FilePath;
         var to = NodePath.Join(next, Name);

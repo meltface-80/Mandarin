@@ -183,11 +183,11 @@ internal fun SettingsAccount(client: () -> ServerClient?, onBack: () -> Unit) {
             })
             if (status.isNotEmpty()) Text(status, Modifier.parity("settings-account.status").padding(top = 8.dp), color = paletteColor(Palette.TEXT_DIM), fontSize = 11.sp, lineHeight = 15.sp)
             Note(buildAnnotatedString {
-                // Every install's way (item 389): Mandarin OS has no shell, Docker a container.
+                // Every install's way (item 389): Mandarin OS has no shell, the Linux installer's a service user.
                 append("Devices already signed in stay signed in. Forgot it? On Mandarin OS, type ")
                 withStyle(SpanStyle(fontFamily = FontFamily.Monospace)) { append("passwordreset") }
-                append(" at its screen; in Docker, run ")
-                withStyle(SpanStyle(fontFamily = FontFamily.Monospace)) { append("docker exec musicd-server /app/server/bin/mandarin-server reset-password") }
+                append(" at its screen; installed on Linux, run ")
+                withStyle(SpanStyle(fontFamily = FontFamily.Monospace)) { append("sudo -u mandarin env DATA_DIR=/var/lib/mandarin /opt/mandarin/server/bin/mandarin-server reset-password") }
                 append("; then create the account again.")
             }, Modifier.parity("settings-account.note").padding(top = 4.dp))
         }

@@ -14,7 +14,7 @@ class AudioDevicesTest {
             {"id":"k","name":"Kitchen","kind":"sonos","model":"Sonos Five","online":true,"state":"playing"},
             {"id":"w","name":"Lounge","kind":"upnp","profile":{"label":"WiiM"},"renamed":true,"network_name":"WiiM Pro","online":false,"can_toggle":true,"enabled":false},
             {"id":"h","name":"Old","kind":"upnp","hidden":true,"online":true}],
-            "local":{"platform":"linux","count":0,"docker":true}}"""))
+            "local":{"platform":"linux","count":0}}"""))
         assertEquals(listOf("k", "w"), l.shown.map { it.id })
         assertEquals("Sonos Five", l.rows[0].sub)
         assertEquals("Playing", l.rows[0].stateShown)
@@ -26,7 +26,7 @@ class AudioDevicesTest {
         assertEquals("Idle", l.rows[2].state)
         assertTrue(l.localNote.startsWith("To play through a USB DAC plugged into the computer Mandarin runs on, install Mandarin Bridge for Linux"))
         assertEquals("a Bridge listed: nothing said", "", AudioDevices.parse(JSONObject("""{"devices":[{"id":"s","kind":"slim"}],"local":{"platform":"linux","count":0}}""")).localNote)
-        assertEquals("", AudioDevices.parse(JSONObject("""{"away":true,"local":{"platform":"linux","docker":true}}""")).localNote)
+        assertEquals("", AudioDevices.parse(JSONObject("""{"away":true,"local":{"platform":"linux"}}""")).localNote)
         assertEquals("1 device hidden", AudioDevices.hiddenCount(1))
         assertEquals("3 devices hidden", AudioDevices.hiddenCount(3))
     }

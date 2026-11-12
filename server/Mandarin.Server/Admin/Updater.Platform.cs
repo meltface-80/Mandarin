@@ -24,7 +24,6 @@ internal sealed partial class Updater
     {
         env ??= Environment.GetEnvironmentVariable;
         return env("MANDARIN_OS") is { Length: > 0 } ? "use Reinstall Mandarin on Mandarin OS's system page (http://mandarin/, Support)"
-            : env("MANDARIN_SYSTEMD") is { Length: > 0 } ? "run the install line again (README, Install on Linux without Docker)"
-            : "pull the image again (docker pull)";
+            : "run the install line again (README, Install on Linux)";
     }
 }
