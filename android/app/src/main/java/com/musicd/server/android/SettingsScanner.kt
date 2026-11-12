@@ -263,7 +263,7 @@ internal fun scanAct(k: ScanKept, client: () -> ServerClient?, scope: CoroutineS
     // A setting's switch moved as it is tapped (item 200), the server's answer taking its place; back where it was if refused.
     val before = k.st
     if (path == SCAN_SETTINGS) k.st = Scanner.withSettings(before, body)
-    val made = ServerWrites.write { c.post(path, body, 120_000) }
+    val made = ServerWrites.aside { c.post(path, body, 120_000) }
     scope.launch {
         ServerWrites.await(made).onSuccess { st ->
             k.st = st; k.err = ""; done?.let { setupToast(context, it) }

@@ -100,6 +100,8 @@ private fun DeviceListPane(client: () -> ServerClient?, onBack: () -> Unit, onOp
     var looking by remember { mutableStateOf(false) }
     var busy by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf("") }
+    // A switch the server didn't take, and why (item 390): kept until a change is made, not cleared by the list read again.
+    var refused by remember { mutableStateOf("") }
     suspend fun load() {
         val c = client() ?: return
         val got = withContext(Dispatchers.IO) { runCatching { c.getJson(DEVICES) } }
@@ -124,8 +126,12 @@ private fun DeviceListPane(client: () -> ServerClient?, onBack: () -> Unit, onOp
         list = before?.withEnabled(r.id, on)
         val made = ServerWrites.write { c.patch(devicePath(r.id), JSONObject().put("enabled", on)) }
         scope.launch {
-            ServerWrites.await(made).onSuccess { setupToast(context, AudioDevices.enabledSaid(it.optString("name", r.name), on)) }
-                .onFailure { list = before; error = com.musicd.server.client.Failure.said(it, "") }
+            ServerWrites.await(made).onSuccess { refused = ""; setupToast(context, AudioDevices.enabledSaid(it.optString("name", r.name), on)) }
+                .onFailure {
+                    list = before
+                    refused = com.musicd.server.client.Failure.said(it, "The change wasn't made")
+                    AppLog.line("devices", "a device's switch wasn't taken: $refused", anomaly = true)
+                }
             busy = false; load()
         }
     }
@@ -173,7 +179,7 @@ private fun DeviceListPane(client: () -> ServerClient?, onBack: () -> Unit, onOp
                         Modifier.parity("settings-audio.rescan", Contract.label("settings-audio.rescan", if (looking) 1 else 0)).clickable(enabled = !looking) {
                             val c = client() ?: return@clickable
                             looking = true
-                            val made = ServerWrites.write { c.post("/api/audio-devices/rescan", JSONObject(), 60_000) }
+                            val made = ServerWrites.aside { c.post("/api/audio-devices/rescan", JSONObject(), 60_000) }
                             scope.launch { ServerWrites.await(made).onSuccess { list = AudioDevices.parse(it); error = "" }.onFailure { error = com.musicd.server.client.Failure.said(it, "") }; looking = false }
                         })
                 }
@@ -203,6 +209,7 @@ private fun DeviceListPane(client: () -> ServerClient?, onBack: () -> Unit, onOp
                         if (l.localNote.isNotEmpty()) ListNote(l.localNote, Modifier.parity("settings-audio.note"))
                         if (l.away) ListNote(AudioDevices.awayNote(Store.offlineMode(context)), Modifier.parity("settings-audio.note"))
                         if (error.isNotEmpty()) ListNote(error, Modifier.parity("settings-audio.note"), danger = true)
+                        if (refused.isNotEmpty()) ListNote(refused, Modifier.parity("settings-audio.note"), danger = true)
                     }
                 }
             }

@@ -103,7 +103,7 @@ internal fun SettingsFolders(client: () -> ServerClient?, onBack: () -> Unit) {
     fun change(body: JSONObject, done: (JSONObject) -> Unit) {
         val c = client() ?: return
         busy = true
-        val made = ServerWrites.write { c.post("/api/library/folders", body, 60_000) }
+        val made = ServerWrites.aside { c.post("/api/library/folders", body, 60_000) }
         scope.launch {
             ServerWrites.await(made).onSuccess { j -> folders = folders?.let { FolderSettings.after(it, j) }; err = ""; done(j) }.onFailure { err = com.musicd.server.client.Failure.said(it, "Couldn’t change it") }
             busy = false
