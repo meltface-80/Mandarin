@@ -52,6 +52,13 @@ class ServerNoticesTest {
         assertTrue(n.error)
         assertEquals(3, n.lines.size)
         assertTrue(n.lines[0].startsWith("The music folder “A” isn't there — its 1,200 tracks are kept, not removed."))
+        // The way it's put back, for how the server is installed (item 389), as the page says it.
+        assertTrue(n.lines[0].contains("not removed. Mount the drive or share again and they're back as they were."))
+        val gone = """"scan":{"last":{"offline_dirs":[{"dir":"/m/a","name":"A","tracks":1,"missing":true}]}}"""
+        assertTrue(of("""{"index_count":9,"install":"docker","sonos":{"rooms":1},$gone}""")!!.lines[0]
+            .contains("not removed. Mount the drive or share again (or add its -v line back to the container) and they're back as they were."))
+        assertTrue(of("""{"index_count":9,"install":"mandarin-os","sonos":{"rooms":1},$gone}""")!!.lines[0]
+            .contains("not removed. Plug the drive in again and they're back as they were."))
         assertTrue(n.lines[1].startsWith("Part of the music folder “B” couldn't be read"))
         assertEquals(listOf("Forget “A”", "Remove the missing ones"), n.buttons)
         assertEquals(listOf("/m/a", "/m/c"), n.dirs)

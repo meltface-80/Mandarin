@@ -205,7 +205,8 @@ internal static class RulesCommand
         ["tailnet"] = Each(job["tailnet"], ip => Playback.Topology.IsCgnat(S(ip))),
         ["aways"] = Each(job["aways"], c => PlaybackRoutes.AwayAddress((int)N(O(c)["port"]), TJs.IsNullish(O(c)["set"]) ? null : S(O(c)["set"]),
             TJs.IsNullish(O(c)["own"]) ? null : S(O(c)["own"]), O(c)["ifaces"] ?? new JsObj())),
-        ["powers"] = Each(job["powers"], c => Scan.JsJson.Parse(Library.PowerInfo(k => TJs.IsNullish(O(O(c)["env"])[k]) ? null : S(O(O(c)["env"])[k]), TJs.Truthy(O(c)["mac"])).ToJsonString()))
+        ["powers"] = Each(job["powers"], c => Scan.JsJson.Parse(Library.PowerInfo(k => TJs.IsNullish(O(O(c)["env"])[k]) ? null : S(O(O(c)["env"])[k]), TJs.Truthy(O(c)["mac"])).ToJsonString())),
+        ["get_agains"] = Each(job["get_agains"], c => Admin.Updater.GetAgain(TJs.Truthy(O(c)["mac"]), k => TJs.IsNullish(O(O(c)["env"])[k]) ? null : S(O(O(c)["env"])[k])))
     };
 
     /* A device's row as registry.js's row() gives it. */

@@ -22,6 +22,10 @@
   // A music folder that has gone (a -v left off a new container, a drive not
   // mounted): its albums are kept, and this says which, with the way to put it
   // back — or to forget it, if it's gone for good.
+  // How a music folder is put back, for how the server is installed (item 389): no container but in Docker, and on
+  // Mandarin OS a drive is plugged in, not mounted.
+  const putBack = install => install === "docker" ? "Mount the drive or share again (or add its -v line back to the container)"
+    : install === "mandarin-os" ? "Plug the drive in again" : "Mount the drive or share again";
   function sayMissing(dirs) {
     el.innerHTML = "";
     el.classList.add("error");
@@ -41,7 +45,7 @@
         button = "Remove the missing ones";
       } else {
         p.textContent = "The music folder " + name + (d.missing ? " isn't there" : " is empty") + " — its " + n(d) +
-          " tracks are kept, not removed. Mount the drive or share again (or add its -v line back to the container) and they're back as they were. Gone for good? Forget it:";
+          " tracks are kept, not removed. " + putBack(window.__mandarinInstall) + " and they're back as they were. Gone for good? Forget it:";
       }
       el.appendChild(p);
       if (!button) continue;

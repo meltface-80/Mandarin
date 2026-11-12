@@ -44,4 +44,27 @@ public sealed class PowerTests
         JsonAssert.Same(p[0]!.ToJsonString(), p[7]);
         JsonAssert.Same("""{"restart":true,"shutdown":true,"docker":false,"start_again":"power-button"}""", p[8]);
     }
+
+    /// <summary>
+    /// How an install gets Mandarin again when an update can't put it in place (Updater.Platform.cs): Mandarin OS has
+    /// no shell for an install line, so its system page's Reinstall (item 389).
+    /// </summary>
+    [Test]
+    public async Task How_each_install_gets_Mandarin_again_when_an_update_can_t()
+    {
+        var g = (await Score.Run(new
+        {
+            fn = "auth",
+            get_agains = new object[]
+            {
+                new { env = new Dictionary<string, string>() },
+                new { env = new Dictionary<string, string>(), mac = true },
+                new { env = new Dictionary<string, string> { ["MANDARIN_SYSTEMD"] = "mandarin.service" } },
+                new { env = new Dictionary<string, string> { ["MANDARIN_OS"] = "0.1.0", ["MANDARIN_SYSTEMD"] = "mandarin.service" } },
+            }
+        }))["get_agains"].Items().Select(x => (string?)x).ToList();
+        Assert.Equal(["pull the image again (docker pull)", "run the install line again (README, Install on a Mac)",
+            "run the install line again (README, Install on Linux without Docker)",
+            "use Reinstall Mandarin on Mandarin OS's system page (http://mandarin/, Support)"], g);
+    }
 }

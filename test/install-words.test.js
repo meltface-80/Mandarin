@@ -10,7 +10,7 @@ const assert = require("node:assert");
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
-const { haveFfmpeg } = require("./fixtures");
+const { haveFfmpeg, gen } = require("./fixtures");
 const { signIn } = require("./auth-helper");
 const { Browser, findBrowser } = require("./browser-harness");
 
@@ -38,5 +38,18 @@ test("on Mandarin OS the page says what to do there: passwordreset at its screen
     const said = await page.eval(`(async () => { for (let i = 0; i < 300; i++) { const t = document.body.innerText; if (/No music yet|No audio files/.test(t)) return t; await new Promise(r => setTimeout(r, 50)); } return document.body.innerText; })()`);
     assert.match(said, /No music yet\. Copy it into Storage in smb:\/\/mandarin\/data, or plug in a USB drive/, said.slice(0, 400));
     assert.doesNotMatch(said, /-v …/);
+    // A USB drive with music on it, then unplugged: its tracks kept, and the way back is to plug it in again (not a
+    // container's -v line, not a mount).
+    const H = { Authorization: "Bearer " + token, "Content-Type": "application/json" };
+    const album = path.join(music, "USB", "Artist", "Album");
+    fs.mkdirSync(album, { recursive: true });
+    gen(path.join(album, "01.flac"), { seconds: 1, tags: { artist: "Artist", album: "Album", title: "One", track: "1" } });
+    let r = await (await fetch(B + "/api/library/rescan", { method: "POST", headers: H, body: "{}" })).json();
+    fs.renameSync(path.join(music, "USB"), path.join(dir, "unplugged"));
+    r = await (await fetch(B + "/api/library/rescan", { method: "POST", headers: H, body: "{}" })).json();
+    const gone = await b.page(B + "/", { cookies: [{ name: "musicd_session", value: token, url: B }] });
+    const kept = await gone.eval(`(async () => { for (let i = 0; i < 300; i++) { const t = document.body.innerText; if (/tracks are kept, not removed/.test(t)) return t; await new Promise(r => setTimeout(r, 50)); } return document.body.innerText; })()`);
+    assert.match(kept, /The music folder “Storage” is empty — its 1 tracks are kept, not removed\. Plug the drive in again and they're back as they were\./, JSON.stringify(r) + kept.slice(0, 400));
+    assert.doesNotMatch(kept, /container/);
   } finally { await b.close(); await srv.stop(); fs.rmSync(dir, { recursive: true, force: true }); }
 });
