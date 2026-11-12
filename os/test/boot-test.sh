@@ -56,8 +56,16 @@ said="$(S -c "cd MandarinOS; put $W/song.flac nope.flac")"
 S -c "cd MandarinOS; ls" | grep -q nope.flac && fail "MandarinOS could be written ($said)"
 S -c "cd MandarinServer/Logs; put $W/song.flac nope.flac" >/dev/null; S -c "cd MandarinServer/Logs; ls" | grep -q nope.flac && fail "Mandarin's logs could be written"
 ok "MandarinOS and Mandarin's logs are read-only"
-S -c "cd MandarinServer/Logs; get MandarinServer_log.txt $W/server.log" >/dev/null; grep -q "Installed as: Linux (installer, systemd)\|Installed as:" "$W/server.log" || fail "Mandarin's log isn't in the share"
-ok "Mandarin's log is in the share"
+logs="$(S -c "cd MandarinServer/Logs; ls")"
+grep -q NT_STATUS <<< "$logs" && fail "Mandarin's logs can't be read in the share: $logs"
+# Mandarin's own rolling log came after v1.3.0 (item 389): where the release installed writes it, it is here.
+if grep -q MandarinServer_log.txt <<< "$logs"; then
+  S -c "cd MandarinServer/Logs; get MandarinServer_log.txt $W/server.log" >/dev/null
+  grep -q "^# Mandarin Server .*" "$W/server.log" || fail "Mandarin's log in the share isn't its log"
+  ok "Mandarin's log is in the share"
+else
+  ok "Mandarin's logs folder opens in the share (this release writes no rolling log yet)"
+fi
 S -c "cd MandarinOS/Logs; get MandarinOS_log.txt $W/os.log" >/dev/null; grep -q "\[apply\] done" "$W/os.log" || fail "the system's log isn't in the share"
 ok "the system's log is in the share"
 smbclient //127.0.0.1/Data -p 10445 -U 'music%wrong-password' -m SMB3 -c ls 2>&1 | grep -q NT_STATUS_LOGON_FAILURE || fail "a wrong password was let in"
