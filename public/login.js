@@ -35,7 +35,6 @@
     "mandarin-os": "Forgot the password? At the Mandarin OS box's own screen (a keyboard plugged in), type <code>passwordreset</code>, then create the account again.",
     docker: "Forgot the password? On the server run<br><code>docker exec musicd-server /app/server/bin/mandarin-server reset-password</code><br>then create the account again.",
     linux: "Forgot the password? On the server run<br><code>sudo -u mandarin env DATA_DIR=/var/lib/mandarin /opt/mandarin/server/bin/mandarin-server reset-password</code><br>then create the account again.",
-    mac: "Forgot the password? On the Mac run<br><code>~/Mandarin/server/bin/mandarin-server reset-password</code><br>then create the account again.",
     native: "Forgot the password? On the server run<br><code>mandarin-server reset-password</code> (with its DATA_DIR)<br>then create the account again."
   };
 

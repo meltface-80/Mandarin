@@ -421,7 +421,7 @@ internal sealed partial class Updater
     public static void ApplyStaged(string stagedDir, string targetDir) => CopyOverlay(stagedDir, targetDir);
 
     /* fetchProgram: the program for this machine from release v<v> ([assets]: its files, where the bundle's were read), checked, put beside [bin] as <bin>.new. */
-    private async Task<string> FetchProgram(string bin, string v, bool mac, List<JsObj>? assets)
+    private async Task<string> FetchProgram(string bin, string v, List<JsObj>? assets)
     {
         var name = $"mandarin-server-{Build()}.gz";
         assets ??= await ReleaseAssets(v);
@@ -443,7 +443,6 @@ internal sealed partial class Updater
             await using (var dst = File.Create(next))
                 await gunzip.CopyToAsync(dst);
             if (!OperatingSystem.IsWindows()) File.SetUnixFileMode(next, (UnixFileMode)Convert.ToInt32("755", 8));
-            if (mac && !Codesign(next)) throw new UpdateError("the new program couldn't be signed to run on this Mac");
             // It runs here, and is the version it should be.
             var said = Run(next, ["--version"], 30000, ("DOTNET_CLI_TELEMETRY_OPTOUT", "1"));
             var got2 = Js.Trim(said.Out);

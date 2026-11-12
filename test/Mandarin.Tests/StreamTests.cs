@@ -74,7 +74,7 @@ public sealed class StreamTests
         Assert.Equal("audio/x-dff", p[17].Str("mime"));
         Assert.Equal((176400, 24, null), Pick(p[18]));
         // The 64-bit float pipeline, and its own cache key. SoX's resampler where ffmpeg has it, swr where
-        // it hasn't (Homebrew's, on a Mac): both.
+        // it hasn't (an ffmpeg built without libsoxr): both.
         var (x4, sonos) = (p[5]!, p[19]!);
         var args = (await Plans(new JsonObject
         {

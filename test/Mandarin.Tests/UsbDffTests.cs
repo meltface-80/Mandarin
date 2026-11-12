@@ -52,7 +52,7 @@ public sealed class UsbDffTests
     private static async Task<string?> Engine()
     {
         Needs.Server();
-        if (!OperatingSystem.IsLinux() && !OperatingSystem.IsMacOS()) Assert.Skip("Linux and a Mac only");
+        if (!OperatingSystem.IsLinux()) Assert.Skip("Linux only");
         var found = (await Score.Run(new { fn = "engine", steps = new object[] { new { find = true } } }, new Dictionary<string, string> { ["MANDARIN_APP_DIR"] = ServerProcess.Root }))["results"]![0];
         if (found == null)
         {

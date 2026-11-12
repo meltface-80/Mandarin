@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Install the server · Mandarin</title>
-<meta name="description" content="Run the server on an always-on machine on the same network as your speakers: Docker on Linux, or a Mac without Docker.">
+<meta name="description" content="Run the server on an always-on machine on the same network as your speakers: Docker on Linux.">
 <link rel="icon" href="mandarin-icon.png">
 <link rel="stylesheet" href="site.css">
 </head>
@@ -21,7 +21,7 @@
 
 <main class="wrap page">
   <h1>Install the server</h1>
-  <p class="lead">Run the server on an always-on machine on the same network as your speakers: Docker on Linux, or a Mac without Docker.</p>
+  <p class="lead">Run the server on an always-on machine on the same network as your speakers: Docker on Linux.</p>
 <h2 id="docker">Install with Docker</h2>
   <p>On an always-on Linux machine on the same network as your speakers — a NAS, a Raspberry Pi 4/5 on a 64-bit OS, a
      home server. Fill in your music folders and time zone and copy the command.</p>
@@ -53,7 +53,7 @@
     <div class="note">
       <b>--network host is required.</b> Speakers are found by multicast, which does not cross Docker's default bridge
       network, and they fetch audio from this machine's own address. Docker Desktop for macOS and Windows has no real
-      host networking, so this needs a Linux host. On a Mac, install it without Docker: see <a href="#mac">below</a>.
+      host networking, so this needs a Linux host.
     </div>
     <div class="note">
       <b>A USB DAC on this machine</b> is played by <a href="bridges.html">Mandarin Bridge for Linux</a>, installed on the
@@ -99,34 +99,6 @@
     <p class="fine" style="font-size:12.5px;color:var(--muted);margin-top:12px">
       If Docker isn't installed: <code>dietpi-software install 162</code> on DietPi, or
       <code>curl -fsSL https://get.docker.com | sh</code> on Debian, Ubuntu and Raspberry Pi OS.</p>
-  </div>
-
-  <h2 id="mac">Install on a Mac</h2>
-  <p>No Docker needed: macOS 14 or newer, Apple silicon or Intel. The Mac stays on, on the same network as your
-    speakers. It does everything Linux does: Sonos rooms, streamers, the Android app, a USB DAC plugged into the Mac,
-    and away from home.</p>
-  <div class="out" style="margin-top:14px">
-    <div class="firstrun"><ol start="1"><li><b>Open Terminal</b>: press Command-Space, type <b>Terminal</b> and press Return.</li></ol></div>
-    <div class="firstrun"><ol start="2"><li><b>Paste this line</b> and press Return.</li></ol></div>
-    <div class="codebox">
-      <button class="copy-btn" data-copy>Copy</button>
-<pre>/bin/bash -c &quot;$(curl -fsSL https://raw.githubusercontent.com/meltface-80/Mandarin/main/tools/mac/install.sh)&quot;</pre>
-    </div>
-    <div class="firstrun"><ol start="3"><li><b>Answer what it asks.</b> Your <b>Mac's password</b>, if asked, for Homebrew
-      (nothing shows as you type; that's normal). Your <b>music folder</b>: a Finder window opens; click the folder
-      your music is in, on the Mac or an external drive, and click <b>Choose</b>. Where to keep the
-      <b>MusicBrainz pack</b> if you download it later (optional, about 2&nbsp;GB). <b>Keep awake</b>, so the music
-      doesn't stop. And <b>Allow</b> if macOS asks to let <b>mandarin-server</b> find devices on your network or open
-      your files.</li></ol></div>
-    <div class="firstrun"><ol start="4"><li><b>Done.</b> Mandarin opens in your browser: create your account, or use it
-      without one. It starts by itself whenever you log in. On a phone, open the address Terminal shows at the end.</li></ol></div>
-    <div class="note"><b>On a Mac, as on Linux:</b> updates come from the app (Settings &rarr; Updates). A USB DAC: switch it
-      on in Settings &rarr; Audio Devices; Mandarin plays it through Core Audio at each track's own rate, holding it
-      while it plays. Away from home: Settings &rarr; Away from home. Your data is kept in <code>~/Mandarin/data</code>.</div>
-    <div class="note"><b>Shut down and start again:</b> the power button at the top right of the side menu (☰)
-      &rarr; Shut down stops Mandarin; double-click <b>Mandarin</b> on the desktop to start it again. It also starts
-      when you log in. <b>No albums?</b> In System Settings &rarr; Privacy &amp; Security &rarr; Full Disk Access,
-      click +, press Command-Shift-G, paste <code>~/Mandarin/server/bin/mandarin-server</code> and click Open.</div>
   </div>
 
   <h2 id="updating">Updating</h2>

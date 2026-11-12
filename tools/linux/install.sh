@@ -9,7 +9,7 @@
 # this machine's server, each checked against Mandarin's release key, into /opt/mandarin, keeps its data in
 # /var/lib/mandarin, and runs it as a systemd service (mandarin.service) now and at every start. Run it again to update
 # or to choose another music folder: the library, the account and the settings are kept. After that it updates itself
-# from Settings → Updates, as the Mac's and Docker's do.
+# from Settings → Updates, as Docker's does.
 #
 #   --music DIR    the music folder (asked for, or /music, where not given); more can be added in Settings
 #   --port N       the port (3500)
@@ -58,7 +58,7 @@ DATA_DIR="$ROOT$DATA"
 case "$PORT" in ''|*[!0-9]*) die "--port is a number" ;; esac
 
 [ -n "$ROOT" ] || [ "$(id -u)" = 0 ] || die "Run it as root: … | sudo bash"
-[ "$(uname -s)" = Linux ] || die "This installer is for Linux. On a Mac: tools/mac/install.sh (README, Install on a Mac)."
+[ "$(uname -s)" = Linux ] || die "This installer is for Linux."
 
 if [ "$UNINSTALL" = 1 ]; then
   say "Removing Mandarin…"

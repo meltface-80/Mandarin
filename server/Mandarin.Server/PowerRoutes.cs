@@ -13,10 +13,6 @@
 // started with (Server.StartAgain, as after an update).
 //
 // Shut down: it stops and stays stopped until started again.
-//   - On a Mac, with the login item the installer makes (tools/mac/install.sh),
-//     launchd would start again a job that merely exited, so the job is unloaded
-//     instead (launchctl bootout) and the Mandarin icon on the desktop loads it
-//     again. It also starts again at the next login.
 //   - On Mandarin OS (MANDARIN_OS, item 389) the computer is Mandarin's alone and has no shell to start it again
 //     from, so the computer shuts down: asked of Mandarin OS by a file (/run/mandarin-os/power/request, which a
 //     systemd path unit of its own acts on), and the computer's power button starts it all again.
@@ -29,31 +25,17 @@
 //
 // The processor split: decided here (v0.8.48, Cpu.cs), /api/cpu answering
 // with the decision.
-using System.Diagnostics;
 using System.Text.Json.Nodes;
-using System.Text.RegularExpressions;
 
 namespace Mandarin.Server;
 
 internal static partial class Library
 {
-    [GeneratedRegex(@"^app\.mandarin\.[a-z0-9.-]+$", RegexOptions.IgnoreCase)]
-    private static partial Regex LaunchdLabelRule();
-
-    /* The launchd job this server runs as, when it's the installer's login item ([env]: this process's, or a case's). */
-    private static string? LaunchdLabel(Func<string, string?>? env = null)
-    {
-        env ??= Environment.GetEnvironmentVariable;
-        var label = env("MANDARIN_LAUNCHD") is { Length: > 0 } l ? l : env("XPC_SERVICE_NAME") ?? "";
-        return LaunchdLabelRule().IsMatch(label) ? label : null;
-    }
-
-    /* What this install can do, and how it's started again after Shut down ([env], [mac]: this machine's, or a case's). */
-    internal static JsonObject PowerInfo(Func<string, string?>? env = null, bool? mac = null)
+    /* What this install can do, and how it's started again after Shut down ([env]: this machine's, or a case's). */
+    internal static JsonObject PowerInfo(Func<string, string?>? env = null)
     {
         env ??= Environment.GetEnvironmentVariable;
         var docker = env("DOCKER") == "1";
-        var label = mac ?? OperatingSystem.IsMacOS() ? LaunchdLabel(env) : null;
         // Installed on Linux as a systemd service (tools/linux/install.sh): started again with systemctl, or the computer.
         var service = !docker && env("MANDARIN_SYSTEMD") is { Length: > 0 };
         var os = !docker && env("MANDARIN_OS") is { Length: > 0 };
@@ -62,10 +44,9 @@ internal static partial class Library
             ["restart"] = true,
             ["shutdown"] = !docker,
             ["docker"] = docker,
-            // "icon": the Mandarin icon on the Mac's desktop; "docker": docker start; "service": the Linux installer's
-            // systemd service (systemctl start, or the computer started again); "power-button": Mandarin OS, the computer
-            // shut down with it; "manual": however it was started.
-            ["start_again"] = docker ? "docker" : os ? "power-button" : label != null ? "icon" : service ? "service" : "manual"
+            // "docker": docker start; "service": the Linux installer's systemd service (systemctl start, or the computer
+            // started again); "power-button": Mandarin OS, the computer shut down with it; "manual": however it was started.
+            ["start_again"] = docker ? "docker" : os ? "power-button" : service ? "service" : "manual"
         };
     }
 
@@ -110,11 +91,10 @@ internal static partial class Library
         await Send(ctx, new JsonObject { ["ok"] = true, ["start_again"] = info["start_again"]?.GetValue<string>() });
         if (first)
         {
-            _ = Task.Delay(300).ContinueWith(async _ =>
+            _ = Task.Delay(300).ContinueWith(_ =>
             {
                 if (info["start_again"]?.GetValue<string>() == "power-button") AskComputerOff();
-                var label = OperatingSystem.IsMacOS() ? LaunchdLabel() : null;
-                if (label == null || !await UnloadLoginItem(label)) Server.StopApp?.Invoke();
+                Server.StopApp?.Invoke();
             }, TaskScheduler.Default);
         }
         return true;
@@ -137,37 +117,6 @@ internal static partial class Library
         {
             Server.Log($"[power] couldn't ask Mandarin OS to shut the computer down ({e.Message}); Mandarin alone is shut down");
         }
-    }
-
-    /*
-     * The login item, unloaded: launchd stops this server (SIGTERM, a clean
-     * stop) and doesn't start it again until the icon
-     * or the next login loads it. False if neither way would do it.
-     */
-    private static async Task<bool> UnloadLoginItem(string label)
-    {
-        if (await Launchctl("bootout", $"gui/{Server.Uid()}/{label}")) return true;
-        // Older launchctl, or bootout refused: the legacy form does the same.
-        var plist = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Library", "LaunchAgents", label + ".plist");
-        if (await Launchctl("unload", plist)) return true;
-        Server.Log($"[power] couldn't unload {label}; stopping anyway");
-        return false;
-    }
-
-    private static async Task<bool> Launchctl(params string[] args)
-    {
-        try
-        {
-            var psi = new ProcessStartInfo("launchctl") { UseShellExecute = false, RedirectStandardOutput = true, RedirectStandardError = true };
-            foreach (var a in args) psi.ArgumentList.Add(a);
-            using var p = Process.Start(psi);
-            if (p == null) return false;
-            _ = p.StandardOutput.ReadToEndAsync();
-            _ = p.StandardError.ReadToEndAsync();
-            await p.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(10));
-            return p.ExitCode == 0;
-        }
-        catch (Exception e) when (e is System.ComponentModel.Win32Exception or InvalidOperationException or TimeoutException) { return false; }
     }
 
     /* GET /api/cpu: the split as decided here (v0.8.48, Cpu.cs). */

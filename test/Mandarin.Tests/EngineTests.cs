@@ -35,7 +35,7 @@ public sealed class EngineTests
     private static async Task<(string Bin, string Version)> Need()
     {
         Needs.Server(); Needs.Ffmpeg();
-        if (!OperatingSystem.IsLinux() && !OperatingSystem.IsMacOS()) Assert.Skip("Linux and a Mac only");
+        if (!OperatingSystem.IsLinux()) Assert.Skip("Linux only");
         var f = await Found.Value;
         if (f == null)
         {
@@ -85,7 +85,7 @@ public sealed class EngineTests
         Assert.True(r[1] == null, "a program that doesn't answer the protocol");
         Assert.Null(r[2]);
         Assert.True(r[3]!.GetValue<bool>());
-        Assert.True(r[4]!.GetValue<bool>(), "a Mac's, through Core Audio (item 155)");
+        Assert.False(r[4]!.GetValue<bool>(), "a Mac's Core Audio isn't the engine's: Mandarin runs on Linux (item 393)");
         Assert.False(r[5]!.GetValue<bool>(), "a location that isn't a device of this computer isn't the engine's");
         Assert.True((await Run([new { find = true }], new Dictionary<string, string> { ["AUDIO_ENGINE"] = "0" }))[0] == null, "AUDIO_ENGINE=0 turns it off");
     }
@@ -185,26 +185,6 @@ public sealed class EngineTests
         var b = await File.ReadAllBytesAsync(file);
         Assert.True(b.AsSpan(b.Length - tail.Length).SequenceEqual(tail), "after the seek, the track from where it was sent");
         Assert.True(b.Length < t.One.Length, $"skipped over: {b.Length} bytes played of the track's {t.One.Length}");
-    }
-
-    [Test]
-    public async Task On_a_Mac_its_devices_are_listed_and_one_that_isnt_there_is_said()
-    {
-        var (bin, _) = await Need();
-        if (!OperatingSystem.IsMacOS()) Assert.Skip("Core Audio is a Mac's (item 155)");
-        // Every line `--devices` prints is a device with its name and rates (a runner may have none).
-        using (var p = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(bin, "--devices") { RedirectStandardOutput = true })!)
-        {
-            var lines = (await p.StandardOutput.ReadToEndAsync()).Split('\n', StringSplitOptions.RemoveEmptyEntries);
-            await p.WaitForExitAsync();
-            Assert.Equal(0, p.ExitCode);
-            Assert.All(lines, l => Assert.Matches("^\\{\"name\":\".*\",\"rates\":\"[0-9,]*\"\\}$", l));
-        }
-        var t = MakeTones();
-        var r = await Run([new { open = new { location = "coreaudio:No Such DAC", bin } }, new { set = t.T1 }, new { play = true },
-            new { until = new { error = true } }, new { state = true }]);
-        Assert.Matches("isn't there", r[3]?.ToString() ?? "");
-        Assert.Equal("STOPPED", (string?)r[4]);
     }
 
     [Test]

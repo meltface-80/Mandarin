@@ -42,8 +42,7 @@ internal sealed partial class Updater
     private async Task<string?> Prepare(string staged, string target, List<Mandarin.Server.Tags.JsObj>? assets)
     {
         var (platform, arch) = Machine();
-        var mac = platform == "darwin";
-        var getAgain = GetAgain(mac);
+        var getAgain = GetAgain();
         if (Unwritable(staged, dir) is { } locked) throw new UpdateError($"{locked} can't be written to; {getAgain} instead");
         if (Env("MANDARIN_SERVER_UPDATE") == "0") return null;
         if (Build() == null) throw new UpdateError($"no C# server is built for this machine ({platform} {arch}); the update would leave it behind");
@@ -52,7 +51,7 @@ internal sealed partial class Updater
         var binDir = Path.GetDirectoryName(bin) ?? ".";
         if (!Writable(binDir)) throw new UpdateError($"{binDir} can't be written to; {getAgain} instead");
         log($"[update] fetching the C# server {target} before the update");
-        try { return await FetchProgram(bin, target, mac, assets); }
+        try { return await FetchProgram(bin, target, assets); }
         catch (Exception e)
         {
             throw new UpdateError($"the C# server {target} couldn't be fetched ({e.Message}); nothing was changed");

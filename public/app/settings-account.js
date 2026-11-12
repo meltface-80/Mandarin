@@ -60,7 +60,6 @@
     how.innerHTML = install === "mandarin-os" ? "At the Mandarin OS box’s own screen, type <code>passwordreset</code>"
       : install === "docker" ? run("docker exec musicd-server /app/server/bin/mandarin-server reset-password")
       : install === "linux" ? run("sudo -u mandarin env DATA_DIR=/var/lib/mandarin /opt/mandarin/server/bin/mandarin-server reset-password")
-      : install === "mac" ? run("~/Mandarin/server/bin/mandarin-server reset-password")
       : run("mandarin-server reset-password");
   }
 

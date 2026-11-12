@@ -17,7 +17,6 @@
   let info = null;
 
   const START_AGAIN = {
-    icon: "To start it again, double-click Mandarin on the Mac's desktop. It also starts when you log in.",
     manual: "To start it again, start it the way it was started.",
     service: "To start it again, restart this computer, or run: sudo systemctl start mandarin",
     // Mandarin OS (item 389): the computer is shut down with it.

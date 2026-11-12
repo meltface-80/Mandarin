@@ -9,7 +9,7 @@
  *   - .github/sign.sh signs each file with it, refuses a secret that isn't the key the programs carry, and with no
  *     secret signs nothing while they carry none, fails once they do (but for a pull request's build);
  *   - bridge/sidecar.sh puts the Linux tarball's signature in its sidecar, never an APK's;
- *   - the release workflows sign the server's builds, Linux's and the Mac's, and the Bridge's tarballs, with the secret.
+ *   - the release workflows sign the server's builds and the Bridge's tarballs, with the secret.
  */
 const test = require("node:test");
 const assert = require("node:assert");
@@ -135,11 +135,10 @@ test("release-key.sh: a key made here, its public half printed, which sign.sh th
   } finally { fs.rmSync(dir, { recursive: true, force: true }); }
 });
 
-test("the release workflows sign with the secret: the server's builds, Linux's and the Mac's, its update bundle, and the Bridge's tarballs", () => {
+test("the release workflows sign with the secret: the server's builds, its update bundle, and the Bridge's tarballs", () => {
   const release = read(".github/workflows/release.yml"), linux = read(".github/workflows/bridge-linux.yml");
   const step = (/** @type {string} */ yml, /** @type {string} */ name) => { const i = yml.indexOf("- name: " + name); assert.ok(i >= 0, name); const j = yml.indexOf("\n      - ", i + 1); return yml.slice(i, j < 0 ? undefined : j); };
   for (const [yml, name, signs] of [[release, "Build the C# server for in-app updates", ".github/sign.sh out/csharp/mandarin-server-*.gz"],
-    [release, "Build and add the Mac's C# server", ".github/sign.sh out/mac/mandarin-server-osx-*.gz"],
     [release, "Build the update bundle and notes", '.github/sign.sh "musicd-server-$v.tar.gz"'],
     [linux, "Build and package", "./bridge/sidecar.sh mandarin-bridge-linux-"]]) {
     const s = step(yml, name);
@@ -148,8 +147,8 @@ test("the release workflows sign with the secret: the server's builds, Linux's a
   }
   // A Bridge release builds its Linux tarballs with the secret too (a called workflow has none unless given it).
   assert.match(read(".github/workflows/bridge-release.yml"), /linux:\n\s+uses: \.\/\.github\/workflows\/bridge-linux\.yml\n\s+secrets: inherit/);
-  // The server's signatures uploaded with its builds (out/csharp/*, out/mac/*).
-  assert.ok(release.includes('gh release create "v$v" "musicd-server-$v.tar.gz" "musicd-server-$v.tar.gz.sig" out/csharp/*') && release.includes("gh release upload \"v$v\" out/mac/* --clobber"));
+  // The server's signatures uploaded with its builds (out/csharp/*).
+  assert.ok(release.includes('gh release create "v$v" "musicd-server-$v.tar.gz" "musicd-server-$v.tar.gz.sig" out/csharp/*'));
   // The bundle's signature beside it (the audit's I-H3), added with it to a release made by hand, and a release whose
   // bundle has none given both again: an install that checks it would refuse the bundle without it.
   assert.ok(step(release, "Add the update bundle to a release made by hand").includes('gh release upload "v$v" "musicd-server-$v.tar.gz" "musicd-server-$v.tar.gz.sig" --clobber'));

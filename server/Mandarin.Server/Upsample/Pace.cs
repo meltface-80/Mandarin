@@ -24,19 +24,20 @@ internal static partial class Pace
     [LibraryImport("libc", EntryPoint = "kill", SetLastError = true)]
     private static partial int Kill(int pid, int sig);
 
-    private static int StopSignal => OperatingSystem.IsMacOS() ? 17 : 19;
-    private static int ContinueSignal => OperatingSystem.IsMacOS() ? 19 : 18;
+    // SIGSTOP and SIGCONT, as Linux numbers them.
+    private const int StopSignal = 19;
+    private const int ContinueSignal = 18;
 
     /* [pid] let go, should it be held (before it is stopped or ended). */
     public static void Release(int pid)
     {
-        if (OperatingSystem.IsLinux() || OperatingSystem.IsMacOS()) { try { Kill(pid, ContinueSignal); } catch (Exception e) when (e is DllNotFoundException or EntryPointNotFoundException) { /* no libc */ } }
+        if (OperatingSystem.IsLinux()) { try { Kill(pid, ContinueSignal); } catch (Exception e) when (e is DllNotFoundException or EntryPointNotFoundException) { /* no libc */ } }
     }
 
     /* [proc] making [job], a file of [bytes] holding [seconds] of music, held [LeadSeconds] ahead of its readers until disposed. */
     public static Holder Hold(Process proc, ConvJob job, long bytes, double seconds)
     {
-        var lead = LeadSeconds > 0 && bytes > 0 && seconds > 0 && (OperatingSystem.IsLinux() || OperatingSystem.IsMacOS())
+        var lead = LeadSeconds > 0 && bytes > 0 && seconds > 0 && OperatingSystem.IsLinux()
             ? (long)(bytes / seconds * LeadSeconds) : 0;
         return new Holder(proc, job, lead, bytes > 0 && seconds > 0 ? seconds / bytes : 0);
     }

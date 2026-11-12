@@ -3,8 +3,7 @@ name: CI
 on:
   push:
     branches: ["**"]
-  # By hand too ("Run workflow", any branch). Linux: a Mac's tests are mac.yml's
-  # (item 153), which nothing here waits for.
+  # By hand too ("Run workflow", any branch).
   workflow_dispatch:
   # Mandarin OS's workflow runs the suite again with the OS's own ffmpeg (os/ffmpeg, item 389): audio and pictures
   # alone, built from Debian's source. Whatever Mandarin needs of ffmpeg must be in it, or this is red.

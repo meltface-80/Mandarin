@@ -264,10 +264,8 @@ function renderDetail(keepInput) {
   if (d.kind === "slim") html += '<div class="settings-note"' + ' data-parity="settings-device.note"' + '>' + esc(slimDsdNote(takesDsd)) + "</div>";
   if (d.kind === "sonos") html += '<div class="settings-note"' + ' data-parity="settings-device.note"' + '>Sonos plays up to 24-bit/48 kHz. Mandarin’s 24/48 rule applies; nothing to set here.</div>';
   if (d.kind === "phone") html += '<div class="settings-note"' + ' data-parity="settings-device.note"' + '>' + (d.output ? "Through its USB DAC the phone is sent what Output below says; away from home, Opus 256 kbps." : "At home the phone plays the file as it is; away from home, Opus 256 kbps.") + '</div>';
-  // A Mac's (item 155) is found by Core Audio, Linux's by ALSA.
-  if (d.kind === "local") html += '<div class="settings-note"' + ' data-parity="settings-device.note"' + '>' + (/^This Mac/.test(d.found_by || "")
-    ? "Mandarin sets the device to each track’s rate and holds it while it plays, so nothing else is mixed in; Core Audio carries up to 24 bits exactly. DSD goes as PCM."
-    : "Mandarin sends the rates that are on; ALSA converts its 32-bit samples to the depth the device takes. DSD goes as PCM.") + '</div>';
+  if (d.kind === "local") html += '<div class="settings-note"' + ' data-parity="settings-device.note"' + '>'
+    + "Mandarin sends the rates that are on; ALSA converts its 32-bit samples to the depth the device takes. DSD goes as PCM." + '</div>';
   if (d.profile && d.profile.notes) html += '<div class="settings-note"' + ' data-parity="settings-device.note"' + '>' + esc(d.profile.notes) + "</div>";
   html += "</div>";
 

@@ -32,7 +32,7 @@
 //     expands, compacts }                                                  Cpu.cs, Cpu.Place.cs
 //      → { decides: [{ split, playback, background, core, slots }], places: [command line], expands, compacts }
 //   { fn: "auth", locals, uas, clients: [[remote, x-forwarded-for]], tailnet, aways: [{ port, set, own, ifaces }],
-//     powers: [{ env, mac }] }                                            Auth.cs, Server.cs, PhoneRoutes.cs, PowerRoutes.cs
+//     powers: [{ env }] }                                                 Auth.cs, Server.cs, PhoneRoutes.cs, PowerRoutes.cs
 //      → { locals, names, clients, tailnet, aways, powers }
 //   { fn: "register", data, steps: [{ seen } | { rename: [id, name] } | { caps: [id, user] } | { verified: [id, rate, bits] }
 //     | { forget } | { get } | { name } | { wait: ms }] }                  Playback/Register.cs, DeviceRoutes.cs
@@ -40,8 +40,8 @@
 //   { fn: "ssdp", sonos: [{ usn, server }], seeds, ids, heard: [text] }   Renderers/Ssdp.cs, Discovery.cs, SsdpListen.cs
 //      → { sonos, seeds, ids, alive }
 //   { fn: "engine", steps }                                               Local/EngineCommand.cs: the engine's driver from a script
-//   { fn: "local", linux: [root, dev], mac: json, hw: [[location, root]], ids, amplitude: [[pct, muted]] }
-//      → { devices, hidden, mac, hw, ids, amplitude }                    Local/LocalDevices.cs, EngineOutput.cs
+//   { fn: "local", linux: [root, dev], hw: [[location, root]], ids, amplitude: [[pct, muted]] }
+//      → { devices, hidden, hw, ids, amplitude }                         Local/LocalDevices.cs, EngineOutput.cs
 //   { fn: "scorecall" | "itunes" | "mbpack", … }                          Identify/ScoreCalls.cs
 //   { fn: "logos", … }                                                    Extras/LogosCommand.cs: the label-logo finder, step by step
 //   { fn: "lastfm", … }                                                   Extras/LastfmCommand.cs: the Last.fm client, step by step
@@ -205,8 +205,8 @@ internal static class RulesCommand
         ["tailnet"] = Each(job["tailnet"], ip => Playback.Topology.IsCgnat(S(ip))),
         ["aways"] = Each(job["aways"], c => PlaybackRoutes.AwayAddress((int)N(O(c)["port"]), TJs.IsNullish(O(c)["set"]) ? null : S(O(c)["set"]),
             TJs.IsNullish(O(c)["own"]) ? null : S(O(c)["own"]), O(c)["ifaces"] ?? new JsObj())),
-        ["powers"] = Each(job["powers"], c => Scan.JsJson.Parse(Library.PowerInfo(k => TJs.IsNullish(O(O(c)["env"])[k]) ? null : S(O(O(c)["env"])[k]), TJs.Truthy(O(c)["mac"])).ToJsonString())),
-        ["get_agains"] = Each(job["get_agains"], c => Admin.Updater.GetAgain(TJs.Truthy(O(c)["mac"]), k => TJs.IsNullish(O(O(c)["env"])[k]) ? null : S(O(O(c)["env"])[k])))
+        ["powers"] = Each(job["powers"], c => Scan.JsJson.Parse(Library.PowerInfo(k => TJs.IsNullish(O(O(c)["env"])[k]) ? null : S(O(O(c)["env"])[k])).ToJsonString())),
+        ["get_agains"] = Each(job["get_agains"], c => Admin.Updater.GetAgain(k => TJs.IsNullish(O(O(c)["env"])[k]) ? null : S(O(O(c)["env"])[k])))
     };
 
     /* A device's row as registry.js's row() gives it. */
@@ -274,17 +274,9 @@ internal static class RulesCommand
         })
     };
 
-    /* A device as the register takes it (what listing this computer's devices says of each). */
-    private static object? SeenJson(Playback.SeenInfo d) => new JsObj
-    {
-        ["id"] = d.Id, ["kind"] = d.Kind, ["family"] = d.Family, ["network_name"] = d.NetworkName, ["manufacturer"] = d.Manufacturer,
-        ["model"] = d.Model, ["location"] = d.Location, ["caps"] = d.Caps, ["playable"] = d.Playable
-    };
-
     private static JsObj LocalFns(JsObj job)
     {
         var o = new JsObj();
-        if (job["mac"] is string mac) o["mac"] = Local.LocalDevices.ParseMac(mac, job["mac_engine"] as string).Select(SeenJson).ToList();
         o["ids"] = Each(job["ids"], k => Local.LocalDevices.IdOf(S(k)));
         o["amplitude"] = Each(job["amplitude"], a => Local.EngineOutput.Amplitude(N(At(a, 0)), TJs.Truthy(At(a, 1))));
         return o;

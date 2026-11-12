@@ -206,10 +206,8 @@ FEATURES = [
      "(`squeezelite -s <server-ip>`). It shows in **Settings → Audio Devices** under its own name; switch it "
      "on. To pause at a change of rate, start it with a rate list and a delay (`-r 44100-768000:500`)."),
     ("localout", "🖥️", "Sound devices on the server", False,
-     "A Mac's own speakers, headphones or USB DAC, played like a Sonos room through Core Audio. On Linux a "
-     "USB DAC beside the server is Mandarin Bridge's.",
-     "On a Mac, plug it in and switch it on in **Settings → Audio Devices**: it plays at each track's own "
-     "rate. On Linux, install [Mandarin Bridge](#mandarin-bridge) for Linux beside the server: it plays the "
+     "A USB DAC plugged into the server, played like a Sonos room by Mandarin Bridge for Linux beside it.",
+     "Install [Mandarin Bridge](#mandarin-bridge) for Linux beside the server: it plays the "
      "DAC as a room of its own. Details under [Sound devices on the server](#sound-devices-on-the-server)."),
     ("devices", "🎚️", "Audio Devices", False,
      "Every room, renderer and phone with the rates, depths and formats it takes, your own name "
@@ -359,7 +357,6 @@ FEATURES = [
      "Restart Mandarin, or shut it down so it stops finding and controlling your speakers until you "
      "start it again. In Docker, only Restart.",
      "Open the side menu (☰) and tap the **power button** in its top-right corner, then **Restart** or **Shut down**. "
-     "On a Mac, double-click **Mandarin** on the desktop to start it again. "
      "In Docker: `docker stop musicd-server`, then `docker start musicd-server`."),
     ("backup", "💾", "Backup and restore", False,
      "Back up settings, players, collection, API keys (with the Tailscale identity) and the whole "

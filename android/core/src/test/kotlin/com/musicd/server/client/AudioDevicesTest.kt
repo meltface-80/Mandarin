@@ -26,7 +26,6 @@ class AudioDevicesTest {
         assertEquals("Idle", l.rows[2].state)
         assertTrue(l.localNote.startsWith("To play through a USB DAC plugged into the computer Mandarin runs on, install Mandarin Bridge for Linux"))
         assertEquals("a Bridge listed: nothing said", "", AudioDevices.parse(JSONObject("""{"devices":[{"id":"s","kind":"slim"}],"local":{"platform":"linux","count":0}}""")).localNote)
-        assertEquals("a Mac's own devices: nothing said", "", AudioDevices.parse(JSONObject("""{"devices":[],"local":{"platform":"darwin","count":0}}""")).localNote)
         assertEquals("", AudioDevices.parse(JSONObject("""{"away":true,"local":{"platform":"linux","docker":true}}""")).localNote)
         assertEquals("1 device hidden", AudioDevices.hiddenCount(1))
         assertEquals("3 devices hidden", AudioDevices.hiddenCount(3))
@@ -184,9 +183,7 @@ class AudioDevicesTest {
         assertEquals("its speed is said under PCM as DSD, not the filter", 1, on.filterNotes.size)
     }
 
-    @Test fun `a sound device's note says how it plays, a Mac's by Core Audio`() {
-        val mac = DevicePage(JSONObject("""{"kind":"local","found_by":"This Mac (Core Audio)"}"""))
-        assertTrue(mac.capNotes[0].startsWith("Mandarin sets the device to each track’s rate"))
+    @Test fun `a sound device's note says how it plays`() {
         val linux = DevicePage(JSONObject("""{"kind":"local","found_by":"This computer (ALSA)"}"""))
         assertTrue(linux.capNotes[0].startsWith("Mandarin sends the rates that are on; ALSA"))
     }

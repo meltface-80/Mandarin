@@ -30,7 +30,7 @@ internal sealed partial class Devices
     public readonly RendererDiscovery Discovery;
     public double LastScan;
     /* This computer's sound devices (Local/LocalDevices.cs): the platform, how many, how many hidden, whether they are turned off. */
-    public JsObj Local = Jv.Obj(("platform", OperatingSystem.IsMacOS() ? "darwin" : "linux"), ("hidden", 0.0), ("count", 0.0), ("docker", Environment.GetEnvironmentVariable("DOCKER") == "1"));
+    public JsObj Local = Jv.Obj(("platform", "linux"), ("hidden", 0.0), ("count", 0.0), ("docker", Environment.GetEnvironmentVariable("DOCKER") == "1"));
 
     public Devices(Hub hub)
     {
@@ -158,7 +158,6 @@ internal sealed partial class Devices
         try
         {
             var r = await localList();
-            // A Mac's are offered as Linux's are: the engine plays them through Core Audio (item 155).
             var offered = r.Devices;
             var forgot = 0;
             using (var c = Db.Open())
@@ -276,7 +275,7 @@ internal sealed partial class Devices
         o["first_seen"] = r.FirstSeen; o["last_seen"] = r.LastSeen;
         o["profile"] = caps["profile"]; o["editable"] = caps["editable"];
         o["playable"] = r.Kind != "upnp" || Jv.T(caps["playable"]);
-        if (r.Kind == "local") o["location"] = System.Text.RegularExpressions.Regex.Replace(r.Location, "^(alsa|coreaudio|file):", "");
+        if (r.Kind == "local") o["location"] = System.Text.RegularExpressions.Regex.Replace(r.Location, "^(alsa|file):", "");
         o["rates"] = caps["rates"]; o["bits"] = caps["bits"]; o["dsd"] = caps["dsd"]; o["containers"] = caps["containers"];
         if (usb != null) { o["rates"] = usb; o["bits"] = hub.Phones.UsbChips(r.Id, "bits"); o["dsd"] = hub.Phones.UsbChips(r.Id, "dsd"); }
         o["levelling"] = Items.LevellingFor(c, r.Id);
@@ -293,7 +292,7 @@ internal sealed partial class Devices
             if (r.Kind != "local") o["location"] = r.Location;
             o["caps"] = r.Caps; o["settings"] = r.Settings;
             o["found_by"] = r.Kind == "sonos" ? "The Sonos household" : r.Kind == "phone" ? "The Mandarin app"
-                : r.Kind == "local" ? (r.Location.StartsWith("coreaudio:", StringComparison.Ordinal) ? "This Mac (Core Audio)" : "This computer (ALSA)")
+                : r.Kind == "local" ? "This computer (ALSA)"
                 : r.Kind == SlimDevices.Kind ? "It connected to Mandarin" : "UPnP discovery";   // a SlimProto player finds Mandarin (item 313)
             var err = streamer ? hub.Upnp.ErrorOf(r.Id) : null;
             o["last_error"] = err is { } e ? Jv.Obj(("at", e.At), ("message", e.Message)) : r.Settings[Players.PutBackSetting] is JsObj back ? back : null;   // its Output put back (item 346)
