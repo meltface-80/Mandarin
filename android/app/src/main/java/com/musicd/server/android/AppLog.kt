@@ -193,7 +193,7 @@ internal object AppLog {
                 runCatching { c2.getJson("/api/status") }.onSuccess { s ->
                     val scan = s.optJSONObject("scan")
                     line("SNAP", "server status: scan " + (if (scan?.optBoolean("running") == true) "running" else "idle") +
-                        ", data kept ${s.optBoolean("data_persistent", true)}, offline ${s.optBoolean("offline")}")
+                        ", offline ${s.optBoolean("offline")}")
                 }
                 runCatching { c2.zones() }.onSuccess { z -> line("SNAP", "rooms: ${z.zones.size}, the last " + (if (z.lastZone?.startsWith("PHONE_") == true) "this phone" else if (z.lastZone == null) "none" else "a room of the server's")) }
                 // What was logged since, sent to the server, beside every other log (item 389).

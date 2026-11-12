@@ -348,9 +348,6 @@ internal static partial class Scans
         catch (Exception e) when (e is EntryPointNotFoundException or DllNotFoundException) { /* as .NET sees it */ }
         return PosixFs.TryStat(d, follow: true, out var st) && st.IsDirectory;
     }
-
-    /* fs.existsSync("/.dockerenv") || !!process.env.DOCKER */
-    public static bool InDocker => File.Exists("/.dockerenv") || Environment.GetEnvironmentVariable("DOCKER") is { Length: > 0 };
 }
 
 internal sealed class ScanError(string message) : Exception(message);

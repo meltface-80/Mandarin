@@ -35,7 +35,7 @@ class ScannerTest {
         assertEquals("Every track is known. New ones are measured as they arrive.", Scanner.loudStatus(null, loud))
         val cpu = j("""{"cores":[0,1,2,3],"split":true,"playback":[0],"background":[1,2,3],"dsp":true}""")
         assertEquals("4 cores · 1 kept for playback (DSP in use) · 3 for scanning and everything else", Scanner.cpuLine(cpu))
-        assertEquals("To run playback at a higher priority too, start the container with --cap-add SYS_NICE.", Scanner.cpuNote(cpu))
+        assertEquals("To run playback at a higher priority too, give the server the SYS_NICE capability.", Scanner.cpuNote(cpu))
         assertEquals("1 core, shared", Scanner.cpuLine(j("""{"cores":[0]}""")))
         // Item 260: a making under way said; the cores for it chosen where the cores are split.
         val making = j("""{"cores":[0,1,2,3],"split":true,"playback":[1,2,3],"background":[0],"dsp":true,"making":true,"making_cores":2}""")

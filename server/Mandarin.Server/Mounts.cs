@@ -1,13 +1,8 @@
 // Mounts.cs — what the server can see of the machine it runs on (v0.8.34),
-// from lib/server/mounts.js: the drives and shares mounted into its container
-// (or, outside Docker, into the system), read from /proc/self/mountinfo — for
-// Settings → Music folders to offer, and to say why a folder looks empty.
-//
-// The usual trap (DietPi's Drive Manager, and any fstab line with
-// x-systemd.automount): a network share the host mounts only when it's first
-// opened. Inside a container started with a plain -v /mnt:/mnt, that later
-// mount never arrives — the folder stays an empty "autofs" stand-in — unless
-// the -v line ends in :rslave (mounts made on the host afterwards then follow).
+// from lib/server/mounts.js: the drives and shares mounted into the system,
+// read from /proc/self/mountinfo — for Settings → Music folders to offer. A
+// share mounted only when it's first opened (DietPi's Drive Manager, an fstab
+// line with x-systemd.automount) is said to be waiting until it is.
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using Mandarin.Server.Scan;
@@ -58,8 +53,7 @@ internal static partial class Mounts
 
     /*
      * The music-looking mounts. [Waiting]: an automount stand-in with nothing
-     * mounted on it inside here — the share is on the host, but this container
-     * can't see it.
+     * mounted on it yet (the share is mounted when it is first opened).
      */
     public static List<Mount> MusicMounts(string dataDir)
     {
@@ -84,23 +78,5 @@ internal static partial class Mounts
             byPoint[m.Point] = new Mount(m.Point, m.Type, m.Source, m.Type == "autofs" || prev is { Automount: true }, m.Type == "autofs", m.Follows);
         }
         return order.Select(p => byPoint[p]).OrderBy(x => x.Path, Comparer<string>.Create(Library.Lc)).ToList();
-    }
-
-    /* A word about a folder being browsed, when there's something to say. */
-    public static string? HintFor(string dir, List<Mount> mounts, int entries, bool docker)
-    {
-        var d = NodePath.Resolve(dir);
-        var m = mounts.FirstOrDefault(x => x.Path == d);
-        const string Fix = "Add :rslave to its -v line (e.g. -v /mnt:/mnt:ro,rslave) and re-create the container.";
-        if (m is { Waiting: true })
-            return "This is a share the machine mounts only when it's opened (DietPi's Drive Manager does this), and this container can't see it. " + Fix;
-        if (entries == 0 && docker)
-        {
-            var inside = mounts.Any(x => x.Path == d || d.StartsWith(x.Path + "/", StringComparison.Ordinal));
-            return inside
-                ? "Empty here. If a drive or share is mounted at this folder on the machine after the container started, the container doesn't see it. " + Fix
-                : "Nothing from the machine is mounted here. The server sees only what its container is given — add a -v line for your drives (e.g. -v /mnt:/mnt:ro,rslave).";
-        }
-        return null;
     }
 }

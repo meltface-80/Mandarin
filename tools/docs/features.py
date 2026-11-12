@@ -40,7 +40,7 @@ FEATURES = [
      "One album you haven't played in a year or more (or never), the same on every device, chosen by the "
      "server at 00:01 and kept all day.",
      "Nothing to set up: it sits beside Random Album on Home, with its own switch in **Settings → Setup → "
-     "Home Screen**. 00:01 is in the server's time zone (`TZ` in the Docker command)."),
+     "Home Screen**. 00:01 is in the server's time zone."),
     ("unplayed", "⏳", "Not played in 6 months", False,
      "Albums you haven't played in six months. The row stays hidden until Mandarin has six months of "
      "your listening.",
@@ -162,7 +162,7 @@ FEATURES = [
      "An optional download of every MusicBrainz release with a barcode, about 2 GB on disk. Albums "
      "with a barcode are matched from it, also while musicbrainz.org is down.",
      "Open **Settings → Library Scanner → MusicBrainz pack** and tap **Download**. **Folder** "
-     "chooses where it's kept; in Docker that folder needs a writable mount (see Install)."),
+     "chooses where it's kept: any folder the server can write to."),
     # ---- Playing
     ("nowplaying", "▶️", "Now playing", False,
      "Cover, track, transport, volume, the queue and history, and a badge saying what the device is "
@@ -206,10 +206,8 @@ FEATURES = [
      "(`squeezelite -s <server-ip>`). It shows in **Settings → Audio Devices** under its own name; switch it "
      "on. To pause at a change of rate, start it with a rate list and a delay (`-r 44100-768000:500`)."),
     ("localout", "🖥️", "Sound devices on the server", False,
-     "A Mac's own speakers, headphones or USB DAC, played like a Sonos room through Core Audio. On Linux a "
-     "USB DAC beside the server is Mandarin Bridge's.",
-     "On a Mac, plug it in and switch it on in **Settings → Audio Devices**: it plays at each track's own "
-     "rate. On Linux, install [Mandarin Bridge](#mandarin-bridge) for Linux beside the server: it plays the "
+     "A USB DAC plugged into the server, played like a Sonos room by Mandarin Bridge for Linux beside it.",
+     "Install [Mandarin Bridge](#mandarin-bridge) for Linux beside the server: it plays the "
      "DAC as a room of its own. Details under [Sound devices on the server](#sound-devices-on-the-server)."),
     ("devices", "🎚️", "Audio Devices", False,
      "Every room, renderer and phone with the rates, depths and formats it takes, your own name "
@@ -236,9 +234,8 @@ FEATURES = [
     ("playfirst", "⚙️", "Playback first", False,
      "Playback keeps a processor core of its own, two while DSP is in use. Scanning, ReplayGain and "
      "downloads run on the other cores, at the lowest priority.",
-     "Nothing to set up on Linux. **Settings → Library Scanner → Processor** shows the split. In Docker, "
-     "`--cap-add SYS_NICE` also raises playback's priority. `PLAYBACK_CORES` sets how many cores "
-     "playback keeps; 0 shares them all."),
+     "Nothing to set up on Linux. **Settings → Library Scanner → Processor** shows the split. "
+     "`PLAYBACK_CORES` sets how many cores playback keeps; 0 shares them all."),
     # ---- Discovering
     ("picks", "⭐", "Smart Picks", False,
      "Five albums a day from your own library, by artists Deezer lists as related to the ones you've "
@@ -357,10 +354,9 @@ FEATURES = [
      "network come straight in, anywhere else still signs in. Details under [Your account](#your-account)."),
     ("power", "⏻", "Restart and shut down", False,
      "Restart Mandarin, or shut it down so it stops finding and controlling your speakers until you "
-     "start it again. In Docker, only Restart.",
+     "start it again.",
      "Open the side menu (☰) and tap the **power button** in its top-right corner, then **Restart** or **Shut down**. "
-     "On a Mac, double-click **Mandarin** on the desktop to start it again. "
-     "In Docker: `docker stop musicd-server`, then `docker start musicd-server`."),
+     "On Mandarin OS the computer shuts down too; its power button starts it all again."),
     ("backup", "💾", "Backup and restore", False,
      "Back up settings, players, collection, API keys (with the Tailscale identity) and the whole "
      "database, at home or away: to the server, or from the app to a file.",

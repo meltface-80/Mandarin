@@ -14,11 +14,11 @@ namespace Mandarin.Tests;
 /// </summary>
 public sealed class PowerCsharpTests
 {
-    private static async Task<ServerProcess> Start(Fixtures.Library lib, string docker = "", Dictionary<string, string>? more = null)
+    private static async Task<ServerProcess> Start(Fixtures.Library lib, Dictionary<string, string>? more = null)
     {
         Needs.Server();
         if (OperatingSystem.IsWindows()) Assert.Skip("not on Windows");
-        var env = new Dictionary<string, string> { ["SONOS_HOSTS"] = "", ["DOCKER"] = docker };
+        var env = new Dictionary<string, string> { ["SONOS_HOSTS"] = "" };
         foreach (var (k, v) in more ?? []) env[k] = v;
         return await ServerProcess.Start(Ports.Port(), lib.Music, lib.Data, env);
     }
@@ -49,7 +49,7 @@ public sealed class PowerCsharpTests
             Assert.True((await Http.Get(c.Base + "/api/system/power")).Status == 401, "signed in only");
             var r = await Http.Get(c.Base + "/api/system/power", h);
             Assert.Equal("C#", r.Header("x-mandarin-answered"));
-            JsonAssert.Same("""{"restart":true,"shutdown":true,"docker":false,"start_again":"manual"}""", r.Json);
+            JsonAssert.Same("""{"restart":true,"shutdown":true,"start_again":"manual"}""", r.Json);
 
             // The processor split (decided by the C# server; CpuAloneTests holds the decision).
             r = await Http.Get(c.Base + "/api/cpu", h);
@@ -97,24 +97,6 @@ public sealed class PowerCsharpTests
     }
 
     [Test]
-    public async Task In_Docker_Shut_down_isnt_offered_docker_stop_is_the_way()
-    {
-        var c = await Start(Fixtures.MakeLibrary(), docker: "1");
-        try
-        {
-            var h = new Dictionary<string, string> { ["Authorization"] = "Bearer " + await Session.SignIn(c.Base) };
-            JsonAssert.Same("""{"restart":true,"shutdown":false,"docker":true,"start_again":"docker"}""", (await Http.Get(c.Base + "/api/system/power", h)).Json);
-            var r = await Http.Post(c.Base + "/api/system/shutdown", new { }, h);
-            Assert.Equal(409, r.Status);
-            JsonAssert.Same("""{"error":"In Docker, stop the container instead: docker stop musicd-server"}""", r.Json);
-            // A window: the server must not stop in it.
-            await Task.Delay(1000);
-            Assert.True(c.Exited == null, "still running");
-        }
-        finally { await c.Stop(); }
-    }
-
-    [Test]
     public async Task Neither_from_away_Restart_and_Shut_down_refused_over_Tailscale_nothing_stopped()
     {
         var c = await Start(Fixtures.MakeLibrary());
@@ -149,7 +131,7 @@ public sealed class PowerCsharpTests
         try
         {
             var h = new Dictionary<string, string> { ["Authorization"] = "Bearer " + await Session.SignIn(c.Base) };
-            JsonAssert.Same("""{"restart":true,"shutdown":true,"docker":false,"start_again":"power-button"}""", (await Http.Get(c.Base + "/api/system/power", h)).Json);
+            JsonAssert.Same("""{"restart":true,"shutdown":true,"start_again":"power-button"}""", (await Http.Get(c.Base + "/api/system/power", h)).Json);
             var r = await Http.Post(c.Base + "/api/system/shutdown", new { }, h);
             Assert.Equal(200, r.Status);
             JsonAssert.Same("""{"ok":true,"start_again":"power-button"}""", r.Json);

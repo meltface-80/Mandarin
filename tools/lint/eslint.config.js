@@ -13,7 +13,7 @@ const js = require("@eslint/js");
 const globals = require("globals");
 
 const node = {
-  files: ["tools/**/*.js", "test/**/*.js"],
+  files: ["tools/**/*.js", "test/**/*.js", "os/test/**/*.js"],
   languageOptions: { ecmaVersion: 2024, sourceType: "commonjs", globals: { ...globals.node, ...globals.es2024 } }
 };
 // The page's scripts share one window: what one defines for the others (sharecard.js, srp.js,

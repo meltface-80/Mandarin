@@ -34,7 +34,7 @@ const { start, built, BIN } = require("./server");
 const ROOT = path.join(__dirname, "..");
 const NEXT = "9.9.9";
 // The program's build for this machine, as Admin/Updater.cs names it (release.yml's assets).
-const sys = { linux: "linux", darwin: "osx" }[process.platform];
+const sys = process.platform === "linux" ? "linux" : null;
 const build = sys && ["x64", "arm64"].includes(process.arch) ? `${sys}-${process.arch}` : null;
 const haveDotnet = () => spawnSync("dotnet", ["--version"], { encoding: "utf8" }).status === 0;
 const skip = built() || (!build && "no C# server is built for this machine") || (!haveFfmpeg() && "ffmpeg is not installed")

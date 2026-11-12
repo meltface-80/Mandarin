@@ -15,7 +15,6 @@
 //                               (MusicBrainz, then FanArt.tv, kept a week), the album's
 //                               write-up, the artists' stories and more by the artist
 using System.Text.Json.Nodes;
-using System.Text.RegularExpressions;
 using Mandarin.Server.Extras;
 using Mandarin.Server.Identify;
 using Mandarin.Server.Playback;
@@ -56,26 +55,6 @@ internal static partial class Library
 
     // ------------------------------------------------------------------ /api/status
 
-    [GeneratedRegex(@"/volumes/[0-9a-f]{64}/_data$")] private static partial Regex DockerVolume();
-
-    /*
-     * db.persistent (lib/library/db.js onOwnMount): in Docker, whether the data
-     * folder is a named volume (false: the library goes with the container);
-     * null where it can't be told, and outside Docker.
-     */
-    private static bool? DataPersistent()
-    {
-        if (Environment.GetEnvironmentVariable("DOCKER") != "1") return null;
-        try
-        {
-            var real = PosixFs.RealPathOf(Scans.DataDir) ?? throw new IOException("no such folder");
-            var line = File.ReadAllText("/proc/self/mountinfo").Split('\n').FirstOrDefault(l => (l.Split(' ').ElementAtOrDefault(4) ?? "") == real);
-            if (line == null) return false;
-            return !DockerVolume().IsMatch(line.Split(' ').ElementAtOrDefault(3) ?? "");
-        }
-        catch (Exception e) when (e is IOException or UnauthorizedAccessException) { return null; }
-    }
-
     private static async Task<bool> Status(HttpContext ctx)
     {
         if (await Current() is not var (s, st)) return false;
@@ -102,7 +81,6 @@ internal static partial class Library
             ["music_dir"] = Scans.MusicDir,
             ["music_dir_exists"] = roots.Any(PosixFs.Exists),
             ["music_dirs"] = new JsonArray(roots.Select(r => (JsonNode)r).ToArray()),
-            ["data_persistent"] = DataPersistent() is { } kept ? kept : null,
             ["install"] = LogHeader.InstallKey(),   // the empty library's words, for how it is installed (item 389)
             ["scan"] = new JsonObject
             {

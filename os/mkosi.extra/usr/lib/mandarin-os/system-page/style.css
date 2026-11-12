@@ -1,4 +1,4 @@
-/* Mandarin OS's system page (server.py): Mandarin's own colours, ROCK's layout. */
+/* Mandarin OS's system page (server.py): Mandarin's own colours. */
 :root { --bg: #1a1b1f; --card: #23252b; --line: #31343b; --text: #ece8df; --dim: #9aa0a8; --accent: #c9a45c; --ok: #6cc08b; --warn: #d9a441; --bad: #e5615b; }
 @media (prefers-color-scheme: light) { :root:not([data-theme="dark"]) { --bg: #f6f4ef; --card: #fff; --line: #e3dfd6; --text: #1d1d1f; --dim: #6b6f76; --accent: #9b7a35; } }
 * { box-sizing: border-box; }

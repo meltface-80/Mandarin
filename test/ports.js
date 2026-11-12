@@ -18,16 +18,14 @@
  * (a file per slot naming the process that holds it, reclaimed when that
  * process is gone), under a lock so two processes never take the same one.
  * Slot k owns the ports BASE + k * PER_SLOT … + PER_SLOT - 1 (well below the
- * ephemeral ports Linux and macOS hand out for port 0, so they never clash
+ * ephemeral ports Linux hands out for port 0, so they never clash
  * with those either), and the addresses 127.0.0.(FIRST_HOST + k * HOSTS) …
  * + HOSTS - 1. Two `npm test` runs at once on one machine share the registry,
  * so they keep apart too.
  *
  * Sonos speakers answer on port 1400 and nowhere else, so the stand-in
  * household (fake-sonos.js) puts its rooms on host(0), host(1)…: an address
- * apiece instead of a port. Linux answers on all of 127/8; a Mac on 127.0.0.1
- * alone until an address is added to lo0, which CI's Mac job does for every
- * address here: `node test/ports.js --addresses` lists them.
+ * apiece instead of a port. Linux answers on all of 127/8.
  */
 const fs = require("fs");
 const os = require("os");
@@ -44,12 +42,6 @@ const all = () => {
   for (let i = FIRST_HOST; i < FIRST_HOST + SLOTS * HOSTS; i++) out.push("127.0.0." + i);
   return out;
 };
-
-if (require.main === module) {
-  if (process.argv.includes("--addresses")) { console.log(all().join(" ")); process.exit(0); }
-  console.error("usage: node test/ports.js --addresses");
-  process.exit(2);
-}
 
 // The system's temp directory, shared by every test file, not the file's own (test/tmp-run.js).
 const DIR = path.join(process.env.MANDARIN_TEST_TMP_ROOT || os.tmpdir(), "mandarin-test-slots");

@@ -170,7 +170,7 @@ function packBlock() {
       '<span class="id-actions">' + buttons + "</span>") +
     '<div class="settings-note" data-parity="settings-scanner.note">' + state + (job && job.error ? ' <span class="away-error">' + scanEsc(job.error) + "</span>" : "") + "</div>" +
     // Where it's kept (v0.6.4): any folder the server can write to, on any drive.
-    row("Folder" + info("The pack can live on any drive the server can write to. In Docker, mount the drive into the container first (for example -v /mnt/ssd/mandarin:/packs). A pack already downloaded is moved there."),
+    row("Folder" + info("The pack can live on any drive the server can write to. A pack already downloaded is moved there."),
       pack.dir_fixed ? '<span class="away-value" data-parity="settings-scanner.pack-fixed">Set by MBPACK_DIR</span>'
         : '<span class="id-actions">' + (pack.dir !== pack.data_dir ? '<button type="button" data-parity="settings-scanner.pack-folder-reset" class="id-btn" data-pack-folder-reset' + (scanBusy ? " disabled" : "") + ">Data folder</button>" : "") +
           '<button type="button" data-parity="settings-scanner.pack-folder" class="id-btn" data-pack-folder' + (scanBusy ? " disabled" : "") + ">Change…</button></span>") +

@@ -44,9 +44,6 @@ object Menu {
     /** Offline mode's row, on one line, with On or Off after its name (the owner's wording, item 98). */
     fun offlineSub(on: Boolean): String = "Offline Mode - " + if (on) "On" else "Off"
 
-    /** Under Shut down when the server can't shut itself down (`/api/system/power`'s `shutdown` false); else none. */
-    fun powerNote(power: JSONObject?): String = if (power != null && !power.optBoolean("shutdown")) "In Docker: docker stop musicd-server, then docker start musicd-server." else ""
-
     /** Shut down offered: only when the server can do it (`/api/system/power`), and while that's unknown, as the page starts. */
     fun canShutDown(power: JSONObject?): Boolean = power == null || power.optBoolean("shutdown")
 

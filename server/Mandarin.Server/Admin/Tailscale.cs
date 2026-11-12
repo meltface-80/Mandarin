@@ -1,17 +1,17 @@
 // Tailscale.cs — Tailscale built into the server (v0.8.22), from
 // lib/server/tsnode.js rule for rule.
 //
-// The image carries MusicD's own Tailscale engine (android/musicdnet, started
+// The engine is MusicD's own Tailscale engine (android/musicdnet, started
 // with -server). Signed in once, from Settings → Away from home or with
 // TS_AUTHKEY, it makes this server a machine on your tailnet by itself: it
 // takes the tailnet's port (the server's own) and passes each request to the
 // server on 127.0.0.1, naming the caller's tailnet address in X-Forwarded-For.
 // The engine is driven over HTTP on 127.0.0.1 with a secret only the two know
 // (MUSICDNET_SECRET); it stops when its stdin closes. Its state lives in the
-// data folder, so a new container is the same machine. TAILSCALE=off leaves it
-// out. An install updated in place, with no engine in its image, downloads one
-// (checked against the release's SHA256SUMS) into the data folder, again
-// whenever the server is updated. A node that says Running but isn't online
+// data folder, so an update or a reinstall is the same machine. TAILSCALE=off
+// leaves it out. With none installed beside the server (MUSICDNET_BIN), it
+// downloads one (checked against the release's SHA256SUMS) into the data
+// folder, again whenever the server is updated. A node that says Running but isn't online
 // is asked to rebind, then started afresh.
 using System.Diagnostics;
 using System.IO.Compression;
@@ -55,7 +55,7 @@ internal sealed partial class Tailscale(string imageBin, string dir, int port, s
 
     private static string Env(string k) => Environment.GetEnvironmentVariable(k) ?? "";
 
-    /* The engine the image carries, else the one downloaded into the data folder. */
+    /* The engine installed beside the server, else the one downloaded into the data folder. */
     private string Bin => Executable(imageBin) ? imageBin : DownloadedBin;
     private string DownloadedBin => Path.Combine(Path.GetDirectoryName(Dir) ?? Dir, "bin", "musicdnet");
 
@@ -70,15 +70,15 @@ internal sealed partial class Tailscale(string imageBin, string dir, int port, s
         catch (Exception) { return false; }
     }
 
-    /* It can run here: in the image, or downloadable for this platform (Docker, a Mac, or TS_ENGINE_URL set; Linux or a Mac (item 156), x64 or arm64). */
+    /* It can run here: installed beside the server, or downloadable for this platform (the Linux installer, Mandarin OS, or TS_ENGINE_URL set; Linux, x64 or arm64). */
     public bool Available
     {
         get
         {
             if (string.Equals(Env("TAILSCALE"), "off", StringComparison.OrdinalIgnoreCase)) return false;
             if (Executable(imageBin)) return true;
-            var may = Env("DOCKER") == "1" || OperatingSystem.IsMacOS() || Env("TS_ENGINE_URL").Length > 0 || Env("MANDARIN_SYSTEMD").Length > 0;
-            return may && (OperatingSystem.IsLinux() || OperatingSystem.IsMacOS()) && Arch != null;
+            var may = Env("TS_ENGINE_URL").Length > 0 || Env("MANDARIN_SYSTEMD").Length > 0;
+            return may && OperatingSystem.IsLinux() && Arch != null;
         }
     }
 
@@ -132,7 +132,7 @@ internal sealed partial class Tailscale(string imageBin, string dir, int port, s
     [GeneratedRegex(@"\.\z")] private static partial Regex TrailingDot();
 
     /*
-     * No engine in the image: the downloaded one, fetched if it isn't there yet
+     * No engine installed: the downloaded one, fetched if it isn't there yet
      * or was fetched for an older version of the server. True when there's one to run.
      */
     private async Task<bool> EnsureEngine()
@@ -164,7 +164,7 @@ internal sealed partial class Tailscale(string imageBin, string dir, int port, s
     {
         await Task.Yield();
         var b = (Env("TS_ENGINE_URL").Length > 0 ? Env("TS_ENGINE_URL") : EngineUrl).TrimEnd('/');
-        var name = $"musicdnet-{(OperatingSystem.IsMacOS() ? "darwin" : "linux")}-{Arch}.gz";
+        var name = $"musicdnet-linux-{Arch}.gz";
         log($"[tailscale] downloading the Tailscale engine ({name})…");
         async Task<byte[]> Get(string u)
         {

@@ -147,7 +147,6 @@ public sealed class TailscaleBuiltinTests
     [Test]
     public async Task Without_the_engine_a_source_install_it_says_so_and_stays_out_of_the_way()
     {
-        if (OperatingSystem.IsMacOS()) Assert.Skip("a Mac fetches its engine wherever it runs (item 156)");
         var (srv, h, _) = await Server("/nonexistent/musicdnet");
         await using var _srv = srv;
         var s = await Tailscale(srv, h);
@@ -161,8 +160,8 @@ public sealed class TailscaleBuiltinTests
     [Test]
     public async Task An_install_updated_in_place_downloads_the_engine_checked_once_per_server_version()
     {
-        if (!OperatingSystem.IsLinux() && !OperatingSystem.IsMacOS()) Assert.Skip("the engine is built for Linux and a Mac");
-        var os = OperatingSystem.IsMacOS() ? "darwin" : "linux";
+        if (!OperatingSystem.IsLinux()) Assert.Skip("the engine is built for Linux");
+        const string os = "linux";
         // A release site (here, a server of our own) with the engine and its checksums.
         var eng = StubEngine();
         byte[] gz;

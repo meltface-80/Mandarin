@@ -13,6 +13,8 @@ public sealed class InstallKindTests
         foreach (var (env, want) in new[]
         {
             (new Dictionary<string, string>(), "native"),
+            // DOCKER left in the environment says nothing now: there is no image (item 394).
+            (new Dictionary<string, string> { ["DOCKER"] = "1" }, "native"),
             (new Dictionary<string, string> { ["MANDARIN_SYSTEMD"] = "mandarin.service" }, "linux"),
             (new Dictionary<string, string> { ["MANDARIN_SYSTEMD"] = "mandarin.service", ["MANDARIN_OS"] = "0.1.0" }, "mandarin-os"),
         })

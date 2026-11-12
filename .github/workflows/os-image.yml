@@ -84,6 +84,10 @@ jobs:
       # The firewall between a box and a speaker (network namespaces): Sonos's answers reach it, SSH's port doesn't.
       - name: Firewall
         run: sudo ./os/test/firewall-test.sh
+      # The boot test's in-app update (item 398): Mandarin as this commit, but 9.9.9, which the installed system is
+      # offered by a stand-in GitHub. Built before the image, as the runner's user: root's build after it leaves it alone.
+      - name: The next Mandarin, for the in-app update
+        run: ./os/test/next-mandarin.sh "$RUNNER_TEMP/next-mandarin"
       - name: Build
         run: |
           set -e
@@ -93,7 +97,8 @@ jobs:
           sudo -E env -u XDG_RUNTIME_DIR "PATH=$PATH" ./os/build.sh
           ls -la os/*.raw
       - name: Installed and started in a virtual machine
-        run: sudo ./os/test/boot-test.sh os/mandarin-os_$(cat os/VERSION).raw
+        # The runner's PATH: the in-app update's scripts run on setup-node's node, which sudo's own PATH leaves out.
+        run: sudo env "PATH=$PATH" ./os/test/boot-test.sh os/mandarin-os_$(cat os/VERSION).raw "$RUNNER_TEMP/next-mandarin/mandarin-server"
       - name: Pack
         run: |
           set -e

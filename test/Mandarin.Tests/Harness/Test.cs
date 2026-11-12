@@ -32,6 +32,6 @@ public static class Needs
         Assert.Skip(why);
     }
 
-    /// <summary>Mandarin's audio engine, which plays through ALSA on Linux and Core Audio on a Mac (item 155).</summary>
-    public static void Engine() { if (!OperatingSystem.IsLinux() && !OperatingSystem.IsMacOS()) Assert.Skip("Mandarin's audio engine plays on Linux and a Mac"); }
+    /// <summary>Mandarin's audio engine, which plays through ALSA on Linux.</summary>
+    public static void Engine() { if (!OperatingSystem.IsLinux()) Assert.Skip("Mandarin's audio engine plays on Linux"); }
 }

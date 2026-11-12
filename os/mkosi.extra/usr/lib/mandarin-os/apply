@@ -40,7 +40,7 @@ if [ "$(jq -r '.network.mode // "dhcp"' "$SETUP" 2>/dev/null)" = static ] && [ !
     && touch "$S/.network-applied"
 fi
 
-# The share's layout (ROCK's Data share as the model): Storage written, the rest read through links.
+# The share's layout: Storage written, the rest read through links.
 cd /data/Share
 mkdir -p MandarinServer MandarinBridge MandarinApp MandarinOS
 # Storage is /data/Storage itself (Mandarin's music folder): what is copied in is written there. 0.1.0's first builds

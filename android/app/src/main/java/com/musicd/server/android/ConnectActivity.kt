@@ -23,8 +23,8 @@ import java.util.concurrent.Executors
 /**
  * Which MusicD Server to use.
  *
- * The port is the one thing a person reliably knows — it is in their docker
- * command — so that is the first box, filled in with the default. The address
+ * The port is the one thing a person reliably knows — it is in the address
+ * they open Mandarin at — so that is the first box, filled in with the default. The address
  * is optional: leave it empty and the app looks for a server on that port
  * across this phone's network, and connects if it finds exactly one.
  */

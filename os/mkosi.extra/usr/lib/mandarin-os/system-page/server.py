@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-"""Mandarin OS's system page, http://mandarin/ (item 389): the box itself, as ROCK's page is Roon's, apart from Mandarin so
+"""Mandarin OS's system page, http://mandarin/ (item 389): the box itself, apart from Mandarin so
 that it works when Mandarin doesn't (Reinstall). Status is read by anyone at home; every change asks for the share's
 password (smb://mandarin/data's, chosen at install), checked against Samba's own record of it. Requests are taken only
 under a name a home uses (an address, mandarin, .local, .lan), and a change only from this page (its Origin): a web page

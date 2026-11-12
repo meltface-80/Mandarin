@@ -95,7 +95,7 @@
     if (!document.activeElement || !document.activeElement.closest("#static-fields")) setMode(n.mode === "static" ? "static" : "dhcp", n);
     // Settings.
     const b = st.services.find((s) => s.unit === "mandarin-bridge.service");
-    $("bridge").innerHTML = row("Mandarin Bridge", b && b.state !== "not installed" ? "Installed on this computer. A DAC plugged in here also plays through Mandarin itself without it." : "Not installed. A DAC plugged into this computer plays through Mandarin itself; install the Bridge only to use this computer as a Bridge as well.",
+    $("bridge").innerHTML = row("Mandarin Bridge", b && b.state !== "not installed" ? "Installed on this computer: a USB DAC plugged in here plays through it, switched on in Mandarin's Settings → Audio Devices." : "Not installed. A USB DAC plugged into this computer plays through Mandarin Bridge: install it to play to one.",
       b && b.state !== "not installed" ? '<button data-bridge="remove">Remove</button>' : '<button data-bridge="install">Install</button>');
     $("upkeep").textContent = "Debian's security updates, every week while nothing plays, then a check that everything works. " + (o.last_upkeep ? "Last: " + o.last_upkeep + "." : "Not run yet.");
   }

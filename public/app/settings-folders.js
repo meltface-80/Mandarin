@@ -52,9 +52,8 @@
     html += "</div>";
     html += '<div class="settings-row"><span class="settings-label"></span><button type="button" class="settings-update-btn" data-parity="settings-folders.add" data-mf-add' + (busy ? " disabled" : "") + ">Add a folder</button></div>";
     if (st.scanning) html += '<div class="settings-note" data-parity="settings-folders.note">Reading your music… new albums appear as they’re found.</div>';
-    html += '<div class="settings-note" data-parity="settings-folders.note">' + (st.docker
-      ? "The server sees only what its container has mounted. Mount your drives and shares once — e.g. <b>-v /mnt:/mnt:ro,rslave</b> (on DietPi, everything in Drive Manager is under /mnt; <b>rslave</b> lets shares the machine mounts later show up) — and add any folders in them here. A folder that’s missing for a while (a drive asleep, a share that dropped) keeps its albums."
-      : "Any folder on the machine the server runs on. A folder that’s missing for a while (a drive asleep, a share that dropped) keeps its albums.") + "</div>";
+    html += '<div class="settings-note" data-parity="settings-folders.note">' +
+      "Any folder on the machine the server runs on. A folder that’s missing for a while (a drive asleep, a share that dropped) keeps its albums." + "</div>";
     if (err) html += '<div class="settings-note away-error" data-parity="settings-folders.error">' + esc(err) + "</div>";
     // Music on this phone (the app): its folder is a watched folder too, so it lives here (v0.5.41).
     if (window.MusicdDownloads && typeof window.MusicdDownloads.localFolder === "function" && window.__localFolderBlock) {

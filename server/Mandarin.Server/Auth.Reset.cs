@@ -2,7 +2,9 @@
 // old/csharp-migration.md), from reset-password.js: forgot the
 // password? Run on the server:
 //
-//     docker exec musicd-server /app/server/bin/mandarin-server reset-password
+//     sudo -u mandarin env DATA_DIR=/var/lib/mandarin /opt/mandarin/server/bin/mandarin-server reset-password
+//
+// (on Mandarin OS, passwordreset at its own screen).
 //
 // It removes the account and signs every device out. Nothing else changes:
 // the library, the edits, favourites and history all stay. Then open Mandarin

@@ -19,13 +19,11 @@
     el.classList.remove("hidden");
   }
 
-  // A music folder that has gone (a -v left off a new container, a drive not
-  // mounted): its albums are kept, and this says which, with the way to put it
-  // back — or to forget it, if it's gone for good.
-  // How a music folder is put back, for how the server is installed (item 389): no container but in Docker, and on
-  // Mandarin OS a drive is plugged in, not mounted.
-  const putBack = install => install === "docker" ? "Mount the drive or share again (or add its -v line back to the container)"
-    : install === "mandarin-os" ? "Plug the drive in again" : "Mount the drive or share again";
+  // A music folder that has gone (a drive not mounted): its albums are kept, and this says which, with the way to put
+  // it back — or to forget it, if it's gone for good.
+  // How a music folder is put back, for how the server is installed (item 389): on Mandarin OS a drive is plugged in,
+  // not mounted.
+  const putBack = install => install === "mandarin-os" ? "Plug the drive in again" : "Mount the drive or share again";
   function sayMissing(dirs) {
     el.innerHTML = "";
     el.classList.add("error");
@@ -100,7 +98,7 @@
           "If it doesn’t: check the server is running, and that this phone is on the same network as it — or, away from home, that it can reach the server through Tailscale."],
     unreachable: ["This device can’t reach the Mandarin server. What’s on the screen stays, but nothing new can be loaded or played until the server answers.",
                   "It keeps trying every few seconds, and this goes away by itself as soon as the server answers.",
-                  "If it doesn’t: check the server is running (with Docker, that its container is up), and that this device is on the same network as it — or, away from home, that it can reach the server through Tailscale."]
+                  "If it doesn’t: check the server is running, and that this device is on the same network as it — or, away from home, that it can reach the server through Tailscale."]
   };
   function openOffline() {
     if (!offOv || !offState) return;
@@ -216,16 +214,9 @@
     if (j.offline) {
       // The Android app answering for the server (no connection, or offline
       // mode): said by the top bar's offline symbol, not a notice.
-    } else if (j.data_persistent === false) {
-      msg = "Your library, album edits and play history are stored inside the container and will be lost " +
-            "when it's replaced. Add  -v musicd-server-data:/app/data  to the docker run command.";
-      err = true;
     } else if (!albums) {
       if (j.music_dir_exists === false || last.status === "no-music") {
-        msg = j.install === "docker"
-          ? "No music folder at " + dir + ". Add your library in Settings → Music folders — or to the docker run command " +
-            "with  -v /path/to/your/Music:" + (j.music_dir || "/music") + ":ro  and start it again."
-          : "No music folder at " + dir + ". Add your library in Settings → Music folders.";
+        msg = "No music folder at " + dir + ". Add your library in Settings → Music folders.";
         err = true;
       } else if (scan.running) {
         msg = "Scanning your music folder… " + (scan.files_seen || 0).toLocaleString() +
@@ -235,9 +226,7 @@
         // Said for how it is installed (item 389): Mandarin OS has no container and no shell, only its share and USB drives.
         msg = j.install === "mandarin-os"
           ? "No music yet. Copy it into Storage in smb://mandarin/data, or plug in a USB drive: it appears under Storage/USB, and its music here." + unread
-          : j.install === "docker"
-            ? "No audio files were found in " + dir + ". Check the -v …:" + dir + ":ro mount points at your music, and that the container can read it" + unread + "."
-            : "No audio files were found in " + dir + ". Check that it holds your music and that Mandarin can read it, or add your library in Settings → Music folders" + unread + ".";
+          : "No audio files were found in " + dir + ". Check that it holds your music and that Mandarin can read it, or add your library in Settings → Music folders" + unread + ".";
         err = !(j.install === "mandarin-os" && !last.errors);
       } else {
         msg = "Starting up — reading your music folder…";
@@ -250,12 +239,8 @@
     } else if (!rooms && !(j.sonos && j.sonos.searching) && !j.away) {
       // Not while the server is still looking (the first minute after a start
       // or an update): the rooms are usually back within seconds.
-      // For how it is installed (item 389): a container's network, or nothing to set at all.
-      msg = (j.install === "docker"
-        ? "No Sonos rooms found yet. The container needs --network host on the same network as your " +
-          "speakers — or set -e SONOS_HOSTS=<a speaker's IP>."
-        : "No Sonos rooms found yet. Speakers on the same network as Mandarin appear by themselves; if yours don't, " +
-          "set SONOS_HOSTS to a speaker's IP.") +
+      msg = "No Sonos rooms found yet. Speakers on the same network as Mandarin appear by themselves; if yours don't, " +
+        "set SONOS_HOSTS to a speaker's IP." +
         (j.sonos && j.sonos.error ? " (" + j.sonos.error + ")" : "");
       err = true;
     }
