@@ -44,7 +44,7 @@ The migration to C# is done; its branch, `migration`, is now `dev`.
 
 1. Each bug or feature is a branch of its own, named for its `bug-list.md` item (e.g. `19-apk-publish-on-latest-main`), cut from `dev`.
 2. Tested (`npm run check` and the C# suite green, each test shown failing once), it goes into `dev` by a pull request you open and merge yourself. No version change on these merges: what each changes goes in CHANGELOG.md under `## Unreleased`.
-3. I update my install from `dev` (`ghcr.io/meltface-80/musicd-server:dev`, and the Android app from the `test-android` pre-release). Give me the docker update instructions when there is something new on it.
+3. I update my install from `dev`: Mandarin OS's test image (the `test-os` pre-release) and its in-app updates, and the Android app from the `test-android` pre-release. Tell me how to update when there is something new on it.
 4. When all the work is done I'll tell you to bump the version. Then, on one branch into `dev`: the version everywhere it is shown (server, Android `versionName`/`versionCode`), `## Unreleased` renamed to the version, and the README and the Pages site (`docs/`) brought fully up to date with everything since the last version, so that a single merge of `dev` to main brings everything up to date. I merge `dev` to main; then you run the Release workflow for that version.
 5. Mark a `bug-list.md` item Fixed only when I say so.
 6. Each change to Mandarin Bridge (Android, Linux, the Pi's) raises its patch number on its own branch: `versionName` and
