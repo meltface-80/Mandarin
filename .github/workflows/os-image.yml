@@ -28,7 +28,15 @@ concurrency:
   cancel-in-progress: ${{ github.ref != 'refs/heads/dev' }}
 
 jobs:
+  # Mandarin's whole suite with the ffmpeg the image carries (os/ffmpeg): nothing Mandarin does may need what it leaves out.
+  suite:
+    name: Mandarin's suite with the OS's ffmpeg
+    uses: ./.github/workflows/ci.yml
+    with:
+      ffmpeg: mandarin-os
+
   image:
+    needs: suite
     name: Image, installed and started in a virtual machine
     runs-on: ubuntu-24.04
     timeout-minutes: 120

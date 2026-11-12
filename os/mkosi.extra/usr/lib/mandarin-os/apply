@@ -42,8 +42,11 @@ fi
 
 # The share's layout (ROCK's Data share as the model): Storage written, the rest read through links.
 cd /data/Share
-mkdir -p Storage MandarinServer MandarinBridge MandarinApp MandarinOS
-ln -sfn /data/Storage/USB Storage/USB 2>/dev/null; [ -d /data/Storage/Internal ] && ln -sfn /data/Storage/Internal Storage/Internal
+mkdir -p MandarinServer MandarinBridge MandarinApp MandarinOS
+# Storage is /data/Storage itself (Mandarin's music folder): what is copied in is written there. 0.1.0's first builds
+# made it a folder of links; that folder goes.
+if [ -d Storage ] && [ ! -L Storage ]; then rm -f Storage/USB Storage/Internal; rmdir Storage; fi
+ln -sfn /data/Storage Storage
 ln -sfn /data/MandarinServer/Logs MandarinServer/Logs
 ln -sfn /data/MandarinServer/backups MandarinServer/Backups
 ln -sfn /data/MandarinServer/Logs/Bridges MandarinBridge/Logs

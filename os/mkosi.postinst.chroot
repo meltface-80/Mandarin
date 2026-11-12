@@ -7,6 +7,9 @@ V="$(cat /var/cache/mandarin-release/version)"
 MANDARIN_RELEASES=file:///var/cache/mandarin-release MANDARIN_VERSION="$V" \
   /usr/lib/mandarin-os/linux-install.sh --no-apt --no-start --music /data/Storage --data /data/MandarinServer
 rm -rf /var/cache/mandarin-release
+# ffmpeg (built by mkosi.build.chroot into /usr/local) found by every program, Mandarin's service among them.
+ldconfig
+/usr/local/bin/ffmpeg -hide_banner -version | head -n 1
 
 # No login: the root account locked, no getty on any screen or serial port, no debug shell, no SSH (never installed).
 passwd -l root
@@ -16,7 +19,7 @@ systemctl mask nmbd.service samba-ad-dc.service apt-daily.timer apt-daily-upgrad
 systemctl enable mandarin-console.service mandarin-os-apply.service mandarin-os-check.service mandarin-os-maintain.timer \
   nftables.service smbd.service avahi-daemon.service wsdd2.service NetworkManager.service systemd-resolved.service systemd-timesyncd.service
 # What the upkeep must never remove.
-apt-mark manual $(dpkg-query -W -f '${Package}\n' | grep -E '^(linux-image-amd64|ffmpeg|poppler-utils|python3|python3-numpy|libicu[0-9]+|libasound2t64|samba|avahi-daemon|wsdd2|network-manager|nftables|unattended-upgrades|curl|ca-certificates|openssl|jq|dialog|kbd|e2fsprogs|dosfstools|exfatprogs|systemd|systemd-boot|udev|dbus)$') >/dev/null
+apt-mark manual $(dpkg-query -W -f '${Package}\n' | grep -E '^(linux-image-amd64|libsoxr0|libopus0|libmp3lame0|libgnutls30t64|libfreetype6|libharfbuzz0b|libfontconfig1|fonts-dejavu-core|libbz2-1.0|zlib1g|poppler-utils|python3|python3-numpy|libicu[0-9]+|libasound2t64|samba|avahi-daemon|wsdd2|network-manager|nftables|unattended-upgrades|curl|ca-certificates|openssl|jq|dialog|kbd|e2fsprogs|dosfstools|exfatprogs|systemd|systemd-boot|udev|dbus)$') >/dev/null
 # Only Debian's own sources (mkosi's build-time ones gone).
 rm -f /etc/apt/sources.list.d/mkosi.sources /etc/apt/sources.list
 apt-get clean

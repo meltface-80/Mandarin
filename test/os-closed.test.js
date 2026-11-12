@@ -20,7 +20,12 @@ test("Mandarin OS has no way in but its own, and looks after itself", () => {
   const conf = read("mkosi.conf");
   const packages = conf.slice(conf.indexOf("Packages=")).split("\n").slice(1).map(l => l.trim()).filter(Boolean);
   for (const never of ["openssh-server", "ssh", "dropbear", "sudo", "telnetd", "xserver-xorg"]) assert.ok(!packages.includes(never), never);
-  for (const need of ["nftables", "samba", "avahi-daemon", "wsdd2", "unattended-upgrades", "ffmpeg", "network-manager"]) assert.ok(packages.includes(need), need);
+  for (const need of ["nftables", "samba", "avahi-daemon", "wsdd2", "unattended-upgrades", "network-manager", "libsoxr0", "libopus0"]) assert.ok(packages.includes(need), need);
+  // ffmpeg built from Debian's source without the 300 MB of video, GPU and speech libraries Debian's links; never theirs.
+  assert.ok(!packages.includes("ffmpeg"), "not Debian's ffmpeg");
+  assert.match(read("mkosi.build.chroot"), /\/work\/src\/ffmpeg\/build\.sh \/usr\/local "\$DESTDIR"/);
+  const flags = read("ffmpeg/configure.flags");
+  for (const f of ["--disable-autodetect", "--enable-libsoxr", "--enable-libopus", "--enable-gnutls"]) assert.match(flags, new RegExp("^" + f + "$", "m"), f);
 
   const post = read("mkosi.postinst.chroot");
   assert.match(post, /^passwd -l root$/m, "root locked");
@@ -44,6 +49,9 @@ test("Mandarin OS has no way in but its own, and looks after itself", () => {
   assert.match(up, /autoremove --purge/);
   assert.match(up, /if \[ -f \/run\/reboot-required \]; then\s+wait_idle/, "restarts only when needed, nothing playing");
   assert.match(up, /reinstall-mandarin/, "repairs Mandarin");
+  assert.match(up, /\/usr\/lib\/mandarin-os\/update-ffmpeg/, "ffmpeg's security fixes too");
+  const ff = read("mkosi.extra/usr/lib/mandarin-os/update-ffmpeg");
+  assert.match(ff, /openssl dgst -sha256 -verify [^\n]*\\\n\s*\|\| \{ oslog ERROR "\[ffmpeg\] \$want isn't signed/, "only signed");
   assert.match(read("mkosi.extra/etc/systemd/system/mandarin-os-maintain.timer"), /OnCalendar=Sun 03:00[\s\S]*Persistent=true/);
 
   const smb = read("mkosi.extra/etc/samba/smb.conf");

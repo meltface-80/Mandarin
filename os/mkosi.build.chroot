@@ -1,0 +1,5 @@
+#!/bin/bash
+# Inside the image's build overlay (BuildPackages there, not in the image): ffmpeg built from Debian's source as
+# os/ffmpeg/configure.flags says, into /usr/local of the image ($DESTDIR). What it links stays in the image (Packages).
+set -euo pipefail
+FFMPEG_SRC=/var/cache/ffmpeg-src /work/src/ffmpeg/build.sh /usr/local "$DESTDIR"

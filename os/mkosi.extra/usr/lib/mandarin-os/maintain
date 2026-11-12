@@ -3,7 +3,7 @@
 # working:
 #   1. waits until nothing is under way (no room playing, no scan, no track being made: Mandarin's /api/health asked
 #      from this machine), trying every 15 minutes for up to six days;
-#   2. Debian's security updates (unattended-upgrades, security alone), then what nothing needs any more removed
+#   2. Debian's security updates (unattended-upgrades, security alone), and ffmpeg's (update-ffmpeg), then what nothing needs any more removed
 #      (autoremove --purge) and the package cache and old journal emptied. What Mandarin and the OS need is marked as
 #      wanted (apt-mark manual), so nothing it needs is ever removed;
 #   3. the computer started again only where an update needs it, and still only while nothing plays;
@@ -13,7 +13,7 @@
 set -uo pipefail
 . /usr/lib/mandarin-os/log.sh
 NEEDED="linux-image-amd64 systemd systemd-sysv systemd-resolved systemd-timesyncd systemd-boot udev dbus network-manager nftables avahi-daemon wsdd2 samba
-  unattended-upgrades ffmpeg poppler-utils python3 python3-numpy libicu76 libasound2t64 curl ca-certificates openssl jq dialog kbd e2fsprogs dosfstools exfatprogs"
+  unattended-upgrades libsoxr0 libopus0 libmp3lame0 libgnutls30t64 libfreetype6 libharfbuzz0b libfontconfig1 fonts-dejavu-core libbz2-1.0 zlib1g poppler-utils python3 python3-numpy libicu76 libasound2t64 curl ca-certificates openssl jq dialog kbd e2fsprogs dosfstools exfatprogs"
 SERVICES="mandarin.service smbd.service avahi-daemon.service wsdd2.service nftables.service NetworkManager.service"
 health() { curl -fsS --max-time 5 http://127.0.0.1:3500/api/health 2>/dev/null; }
 idle() { local h; h="$(health)" || return 0; [ "$(jq -r '.busy.any // false' <<< "$h")" = false ]; }   # Mandarin down: nothing playing
@@ -63,6 +63,8 @@ if apt-get update -q >/dev/null 2>&1; then
 else
   oslog WARN "[upkeep] Debian couldn't be reached: no updates this week"
 fi
+# ffmpeg isn't Debian's package here (os/ffmpeg): its security fixes come signed from Mandarin's own build of Debian's source.
+/usr/lib/mandarin-os/update-ffmpeg
 journalctl --vacuum-time=30d >/dev/null 2>&1
 date -u '+%Y-%m-%d %H:%M:%S UTC' > /data/MandarinOS/last-upkeep.txt
 if [ -f /run/reboot-required ]; then

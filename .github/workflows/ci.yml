@@ -6,12 +6,21 @@ on:
   # By hand too ("Run workflow", any branch). Linux: a Mac's tests are mac.yml's
   # (item 153), which nothing here waits for.
   workflow_dispatch:
+  # Mandarin OS's workflow runs the suite again with the OS's own ffmpeg (os/ffmpeg, item 389): audio and pictures
+  # alone, built from Debian's source. Whatever Mandarin needs of ffmpeg must be in it, or this is red.
+  workflow_call:
+    inputs:
+      ffmpeg:
+        description: "static (the usual build) or mandarin-os (os/ffmpeg/build.sh)"
+        type: string
+        default: static
 
 jobs:
   # The quality gates (docs/quality-plan.md): the file-length ratchet, lint
   # against its baseline, and the type check. A minute; red blocks the merge.
   check:
     name: Quality gates
+    if: inputs.ffmpeg != 'mandarin-os'   # Mandarin OS's run is the suite alone
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -44,6 +53,7 @@ jobs:
   # tested as it was standalone, Python 3 with numpy.
   sqtool:
     name: SQ-tool's own tests
+    if: inputs.ffmpeg != 'mandarin-os'   # Mandarin OS's run is the suite alone
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -83,12 +93,25 @@ jobs:
       # hang on a slow mirror, with no timeout of its own), and not a
       # third-party action (one broke when the build's readme changed shape).
       - name: Restore ffmpeg
+        if: inputs.ffmpeg != 'mandarin-os'
         id: ffmpeg-cache
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6
         with:
           path: ~/ffmpeg-static
           key: ffmpeg-static-amd64-release-v1
+      - name: Mandarin OS's ffmpeg (os/ffmpeg/build.sh)
+        if: inputs.ffmpeg == 'mandarin-os'
+        run: |
+          set -e
+          sudo apt-get update -q
+          sudo apt-get install -y -q --no-install-recommends nasm pkg-config libsoxr-dev libopus-dev libmp3lame-dev libgnutls28-dev libfreetype-dev libharfbuzz-dev libfontconfig-dev zlib1g-dev libbz2-dev
+          ./os/ffmpeg/build.sh "$HOME/os-ffmpeg"
+          echo "$HOME/os-ffmpeg/bin" >> "$GITHUB_PATH"
+          echo "LD_LIBRARY_PATH=$HOME/os-ffmpeg/lib" >> "$GITHUB_ENV"
+          echo "MANDARIN_OS_FFMPEG=1" >> "$GITHUB_ENV"   # test/os-ffmpeg.test.js: everything Mandarin asks of it
+          "$HOME/os-ffmpeg/bin/ffmpeg" -version | head -n 1 || LD_LIBRARY_PATH="$HOME/os-ffmpeg/lib" "$HOME/os-ffmpeg/bin/ffmpeg" -version | head -n 1
       - name: Install ffmpeg
+        if: inputs.ffmpeg != 'mandarin-os'
         run: |
           set -e
           # A cached binary that doesn't run is fetched again, not passed on.
@@ -153,6 +176,7 @@ jobs:
 
   docker:
     name: Build image
+    if: inputs.ffmpeg != 'mandarin-os'   # Mandarin OS's run is the suite alone
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7

@@ -10,3 +10,9 @@ for f in "musicd-server-$V.tar.gz" "musicd-server-$V.tar.gz.sig" mandarin-server
   curl -fsSL --retry 3 -o "$dest/v$V/$f" "https://github.com/meltface-80/Mandarin/releases/download/v$V/$f"
 done
 echo "$V" > "$dest/version"
+
+# ffmpeg's source (Debian's, checked against its .dsc and patched), for mkosi.build.chroot to build inside the image's
+# build overlay: fetched here, outside, where the network is (os/ffmpeg/build.sh --fetch).
+if [ "${1:-}" = build ]; then
+  "$SRCDIR/ffmpeg/build.sh" --fetch "$BUILDROOT/var/cache/ffmpeg-src"
+fi

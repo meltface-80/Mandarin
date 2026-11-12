@@ -1,0 +1,74 @@
+name: Mandarin OS's ffmpeg
+
+# Mandarin OS's own ffmpeg (os/ffmpeg, item 389) kept as Debian keeps theirs: every week, when Debian has a newer ffmpeg
+# for trixie (a security fix), Mandarin's whole suite runs against it built as the OS builds it, then it is built in
+# Debian 13 itself, signed with the release key and put on the rolling "os-ffmpeg" pre-release (never "latest", no
+# tag otherwise). Each Mandarin OS fetches it in its weekly upkeep (os/…/update-ffmpeg), checks it, and puts it in.
+on:
+  schedule:
+    - cron: "17 4 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  check:
+    name: Debian's ffmpeg, and the one published
+    runs-on: ubuntu-latest
+    outputs:
+      debian: ${{ steps.v.outputs.debian }}
+      newer: ${{ steps.v.outputs.newer }}
+    steps:
+      - id: v
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -e
+          debian="$(for u in https://security.debian.org/debian-security/dists/trixie-security/updates https://deb.debian.org/debian/dists/trixie; do
+            curl -fsSL "$u/main/binary-amd64/Packages.xz" 2>/dev/null | xz -dc | awk '$1 == "Package:" { p = $2 } p == "ffmpeg" && $1 == "Version:" { print $2 }'
+          done | sort -V | tail -n 1)"
+          have="$(gh release download os-ffmpeg -R "$GITHUB_REPOSITORY" -p debian-version -O - 2>/dev/null || true)"
+          echo "Debian: $debian; published: ${have:-none}"
+          echo "debian=$debian" >> "$GITHUB_OUTPUT"
+          if [ "$debian" != "$have" ] || [ "$GITHUB_EVENT_NAME" = workflow_dispatch ]; then echo "newer=true" >> "$GITHUB_OUTPUT"; fi
+
+  suite:
+    needs: check
+    if: needs.check.outputs.newer == 'true'
+    uses: ./.github/workflows/ci.yml
+    with:
+      ffmpeg: mandarin-os
+
+  build:
+    name: Built in Debian 13, signed, published
+    needs: [check, suite]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
+      - name: Build in Debian 13
+        env:
+          FFMPEG_DEBIAN_VERSION: ${{ needs.check.outputs.debian }}
+        run: |
+          set -e
+          docker run --rm -e FFMPEG_DEBIAN_VERSION -v "$PWD:/src" -w /src debian:trixie bash -c '
+            apt-get update -q && apt-get install -y -q --no-install-recommends ca-certificates curl xz-utils patch gcc make nasm pkg-config libc6-dev \
+              libsoxr-dev libopus-dev libmp3lame-dev libgnutls28-dev libfreetype-dev libharfbuzz-dev libfontconfig-dev zlib1g-dev libbz2-dev
+            os/ffmpeg/build.sh /usr/local /out && chown -R '"$(id -u)"' /out && cp -a /out /src/out'
+          tar -C out/usr/local -cJf mandarin-ffmpeg-x64.tar.xz .
+          echo "$FFMPEG_DEBIAN_VERSION" > debian-version
+          ls -la mandarin-ffmpeg-x64.tar.xz
+      - name: Signed with the release key
+        env:
+          RELEASE_SIGNING_KEY: ${{ secrets.RELEASE_SIGNING_KEY }}
+        run: .github/sign.sh mandarin-ffmpeg-x64.tar.xz
+      - name: Publish to the "os-ffmpeg" pre-release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -e
+          if ! gh release view os-ffmpeg >/dev/null 2>&1; then
+            gh release create os-ffmpeg --prerelease --latest=false --title "Mandarin OS's ffmpeg" \
+              --notes "ffmpeg for Mandarin OS, from Debian 13's source (os/ffmpeg). Each Mandarin OS takes it in its weekly upkeep." --target "${GITHUB_SHA}"
+          fi
+          gh release upload os-ffmpeg mandarin-ffmpeg-x64.tar.xz mandarin-ffmpeg-x64.tar.xz.sig debian-version --clobber
