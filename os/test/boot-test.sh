@@ -8,7 +8,9 @@
 #   asked of it through its logs. Needs qemu-system-x86_64, OVMF, mtools, smbclient, curl, jq.
 set -uo pipefail
 IMG="${1:?the image}"
-W="$(mktemp -d)"; trap 'kill $(jobs -p) 2>/dev/null; rm -rf "$W"' EXIT
+W="$(mktemp -d)"
+# Each virtual machine stopped at the end, whatever happened: by its own process number (-pidfile), never left running.
+trap 'for p in "$W"/*.pid; do [ -f "$p" ] && kill "$(cat "$p")" 2>/dev/null; done; sleep 1; rm -rf "$W"' EXIT
 OVMF_CODE="${OVMF_CODE:-/usr/share/OVMF/OVMF_CODE_4M.fd}" OVMF_VARS="${OVMF_VARS:-/usr/share/OVMF/OVMF_VARS_4M.fd}"
 ACCEL=tcg; [ -w /dev/kvm ] && ACCEL=kvm
 fail() { echo "FAIL: $*"; echo "--- serial (last 60 lines) ---"; tail -n 60 "$W"/serial*.log 2>/dev/null; exit 1; }
@@ -16,7 +18,7 @@ ok() { echo "ok: $*"; }
 qemu() {  # name, then the disks
   local name="$1"; shift
   cp "$OVMF_VARS" "$W/$name.vars"
-  ${QT:+timeout "$QT"} qemu-system-x86_64 -machine q35,accel=$ACCEL -m 3072 -smp 2 -display none -serial "file:$W/serial-$name.log" \
+  ${QT:+timeout "$QT"} qemu-system-x86_64 -machine q35,accel=$ACCEL -m 3072 -smp 2 -display none -serial "file:$W/serial-$name.log" -pidfile "$W/$name.pid" \
     -drive if=pflash,format=raw,readonly=on,file="$OVMF_CODE" -drive if=pflash,format=raw,file="$W/$name.vars" "$@"
 }
 
