@@ -7,7 +7,7 @@ elsewhere can't reach it under its own site's name, nor make changes in your bro
 
   GET  /api/state                     everything the Overview, Storage and Network tabs show
   GET  /api/logs/<os|mandarin|journal> a log's newest lines
-  GET  /api/logs.zip                  every log, the system's journal of this start, in one zip
+  GET  /api/logs.txt                  every log as one text file, merged in time order (logs_one.py)
   GET  /api/diagnostics               the network, layer by layer: link, address, gateway, DNS, internet, GitHub
   POST /api/check                     { password }: whether it is the share's
   POST /api/power                     { password, action: restart-mandarin | reboot | shutdown }
@@ -20,7 +20,8 @@ elsewhere can't reach it under its own site's name, nor make changes in your bro
   POST /api/bridge                    { password, action: install | remove }
 
 MANDARIN_OS_ROOT (the tests'): every path under it, and its commands from PATH as they find them."""
-import hashlib, http.server, io, ipaddress, json, os, re, shutil, socketserver, struct, subprocess, sys, threading, time, urllib.request, zipfile
+import hashlib, http.server, ipaddress, json, os, re, shutil, socketserver, struct, subprocess, sys, threading, time, urllib.request
+import logs_one
 
 ROOT = os.environ.get("MANDARIN_OS_ROOT", "")
 PORT = int(os.environ.get("MANDARIN_OS_PORT", "80"))
@@ -200,17 +201,17 @@ def log_text(which, lines=2000):
         return ""
 
 
-def logs_zip():
-    buf = io.BytesIO()
-    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
-        for folder, prefix in [("/data/MandarinOS/Logs", "MandarinOS/"), ("/data/MandarinServer/Logs", "MandarinServer/")]:
-            for dirpath, _, files in os.walk(P(folder)):
-                for f in files:
-                    full = os.path.join(dirpath, f)
-                    z.write(full, prefix + os.path.relpath(full, P(folder)))
-        z.writestr("journal-this-start.txt", log_text("journal", 20000))
-        z.writestr("state.json", json.dumps(state(), indent=2))
-    return buf.getvalue()
+def logs_txt():
+    """Every log as one file (logs_one.py), headed by what the box is and how it is now."""
+    st = state()
+    m, n = st["mandarin"], st["network"]
+    header = [f"Mandarin — every log on this box, merged in time order (UTC); made {time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())} UTC",
+              f"Mandarin OS {st['os']['version']} on {st['os']['hostname']} · up {st['os']['uptime']} s · last upkeep {st['os']['last_upkeep'] or 'not yet'}",
+              f"Mandarin {m['version'] or '(not answering)'} · {m['albums'] or 0} albums · {m['rooms'] or 0} rooms",
+              f"Network: {n['address'] or 'no address'} · {n['mode']} · {n['link'] or 'no link'} · gateway {n['gateway'] or '-'} · DNS {n['dns'] or '-'}",
+              "Services: " + ", ".join(f"{s['name']} {s['state']}" for s in st["services"]),
+              "USB drives: " + (", ".join(f"{u['name']} ({u['fs']}{', read-only: ' + u['why'] if u['read_only'] else ''})" for u in st["usb"]) or "none")]
+    return logs_one.merged([("MandarinOS", P("/data/MandarinOS/Logs")), ("", P("/data/MandarinServer/Logs"))], log_text("journal", 20000), header)
 
 
 def diagnostics():
@@ -416,11 +417,11 @@ class Page(http.server.BaseHTTPRequestHandler):
             return self.send(200, state())
         if p == "/api/diagnostics":
             return self.send(200, diagnostics())
-        if p == "/api/logs.zip":
-            data = logs_zip()
+        if p == "/api/logs.txt":
+            data = logs_txt().encode("utf-8")
             self.send_response(200)
-            self.send_header("Content-Type", "application/zip")
-            self.send_header("Content-Disposition", f'attachment; filename="mandarin-os-logs-{time.strftime("%Y%m%d-%H%M")}.zip"')
+            self.send_header("Content-Type", "text/plain; charset=utf-8")
+            self.send_header("Content-Disposition", f'attachment; filename="mandarin-logs-{time.strftime("%Y%m%d-%H%M", time.gmtime())}.txt"')
             self.send_header("Content-Length", str(len(data)))
             self.end_headers()
             return self.wfile.write(data)
@@ -470,6 +471,13 @@ class Page(http.server.BaseHTTPRequestHandler):
 class Server(socketserver.ThreadingMixIn, http.server.HTTPServer):
     daemon_threads = True
     allow_reuse_address = True
+
+    def handle_error(self, request, client_address):
+        # A browser that hung up (a phone's screen off, a tab closed) is no error of the page's: only the rest are written
+        # to SystemPage_errors.txt, which filled with "Connection reset by peer" tracebacks otherwise.
+        if isinstance(sys.exc_info()[1], (ConnectionError, TimeoutError)):
+            return
+        super().handle_error(request, client_address)
 
     def server_bind(self):
         # HTTPServer's own looks the machine's name up in DNS (getfqdn), which can hold the page back for as long as

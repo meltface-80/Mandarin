@@ -28,7 +28,11 @@ async function standIn({ albums = 1234, rooms = 3 } = {}) {
   mk("/data/MachineSettings/share-user", "music\n");
   mk("/data/MachineSettings/setup.json", JSON.stringify({ share_user: "music", network: { mode: "dhcp" } }));
   mk("/data/MandarinOS/Logs/MandarinOS_log.txt", "# Mandarin OS 0.1.0 log\n2026-11-12 07:00:00.000 UTC  INFO   [apply] done\n2026-11-12 07:01:00.000 UTC  WARN   [usb] Music SSD (exfat) mounted read-only\n");
-  mk("/data/MandarinServer/Logs/MandarinServer_log.txt", "# Mandarin Server 1.3.1-t1 log\n2026-11-12 07:00:01.000 UTC  INFO   [server] started\n");
+  mk("/data/MandarinServer/Logs/MandarinServer_log.txt", "# Mandarin Server 1.3.1-t1 log\n2026-11-12 07:00:01.000 UTC  INFO   [server] started\n" +
+    "2026-11-12 07:00:05.000 UTC  INFO   [slimproto] t335.flac: no PCM: Error opening input: Server returned 400 Bad Request\nError opening input file http://127.0.0.1:3500/stream/t335.flac\n");
+  // A Bridge's log as the server keeps it (an older Bridge's times: to the second, no UTC), and the app's.
+  mk("/data/MandarinServer/Logs/Bridges/Mandarin_Bridge_mandarin.txt", "# — Mandarin Bridge: Mandarin Bridge (mandarin) (linux 0.3.8) —\n2026-11-12 07:00:02 [http] listening on 49494\n2026-11-12 07:00:04 update failed: tar couldn't be run\n");
+  mk("/data/MandarinServer/Logs/Apps/Nothing_A142.txt", "# The Mandarin app on Nothing A142\n2026-11-12 07:00:03.250 UTC  WARN   [NET] server POST /api/settings/qobuz/import → SocketTimeoutException\n");
   mk("/data/Storage/USB/Music SSD/.keep", "");
   mk("/run/mandarin-os/usb/Music SSD", "ro\nit wasn't removed safely, and couldn't be repaired\n");
   mk("/usr/lib/mandarin-os/VERSION", "0.1.0\n");
@@ -41,7 +45,7 @@ async function standIn({ albums = 1234, rooms = 3 } = {}) {
   shim("ip", `case "$*" in *"addr show"*) echo "2: eth0    inet 192.168.0.57/24 brd 192.168.0.255 scope global dynamic eth0" ;; *route*) echo "default via 192.168.0.1 dev eth0" ;; esac`);
   shim("findmnt", `case "$*" in *Music*) echo exfat ;; *SOURCE*/) echo /dev/sda2 ;; *) exit 1 ;; esac`);
   shim("lsblk", `case "$*" in *-J*) echo '{"blockdevices":[{"name":"sda","size":256000000000,"model":"SSD","tran":"sata","rm":false,"type":"disk"},{"name":"sdb","size":4000000000000,"model":"WDC WDS400T2B0A","tran":"sata","rm":false,"type":"disk"}]}' ;; *) echo sda ;; esac`);
-  shim("journalctl", `echo "2026-11-12T07:00:00 mandarin systemd[1]: Started Mandarin."`);
+  shim("journalctl", `echo "2026-11-12T07:00:00.500000+00:00 mandarin systemd[1]: Started Mandarin."`);
   // As an OptiPlex answered it: the link's name beside its server.
   shim("resolvectl", `printf 'Global:\\nLink 2 (enp0s31f6): 8.8.8.8\\n'`);
   const mandarin = http.createServer((req, res) => {
