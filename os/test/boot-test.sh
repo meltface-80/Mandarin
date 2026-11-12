@@ -170,7 +170,8 @@ ok "three USB drives plugged in at the start (exFAT, NTFS, ext4 on the whole dis
 ren() { S -c "cd \"Storage/USB/Music ext4/Artist/Album\"; rename $1 $2"; }
 curl -fsS --max-time 30 http://127.0.0.1:10080/api/state | jq -e '.usb[] | select(.name == "Music ext4" and .others)' >/dev/null \
   || fail "the system page doesn't say Music ext4's files are another's: $(curl -fsS http://127.0.0.1:10080/api/state | jq -c .usb)"
-ren 01.flac 02.flac | grep -q NT_STATUS_ACCESS_DENIED || fail "a rename on another's drive wasn't refused: $(ren 01.flac 02.flac)"
+# (Its answer kept first: smbclient fails the rename, and with pipefail a pipe into grep would fail with it.)
+r="$(ren 01.flac 02.flac)"; grep -q NT_STATUS_ACCESS_DENIED <<< "$r" || fail "a rename on another's drive wasn't refused: $r"
 own="$(curl -sS --max-time 30 -H 'Content-Type: application/json' -d '{"password":"listen-carefully","name":"Music ext4"}' http://127.0.0.1:10080/api/usb/own)"
 jq -e .ok <<< "$own" >/dev/null || fail "the system page didn't take Make them the shared folder's: $own"
 for i in $(seq 1 60); do u="$(curl -fsS --max-time 30 http://127.0.0.1:10080/api/state | jq -c '.usb[] | select(.name == "Music ext4")')"; [ "$(jq -r '.changing' <<< "$u")" = "" ] && break; sleep 2; done
