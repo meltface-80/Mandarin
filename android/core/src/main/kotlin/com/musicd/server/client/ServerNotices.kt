@@ -37,8 +37,15 @@ object ServerNotices {
                         "with  -v /path/to/your/Music:$musicDir:ro  and start it again.", true)
                 scan.optBoolean("running") -> say("Scanning your music folder… " + n(scan.optInt("files_seen")) +
                     " files so far. Albums appear when the first pass finishes.", false)
-                status0.isNotEmpty() -> say("No audio files were found in $dir. Check the -v …:$dir:ro mount points at your " +
-                    "music, and that the container can read it" + (if (last.optInt("errors") > 0) " (" + last.optInt("errors") + " files couldn't be read)" else "") + ".", true)
+                status0.isNotEmpty() -> {
+                    val unread = if (last.optInt("errors") > 0) " (" + last.optInt("errors") + " files couldn't be read)" else ""
+                    // Said for how the server is installed (item 389), as the page says it.
+                    when (status.optString("install")) {
+                        "mandarin-os" -> say("No music yet. Copy it into Storage in smb://mandarin/data, or plug in a USB drive: it appears under Storage/USB, and its music here." + unread, last.optInt("errors") > 0)
+                        "docker" -> say("No audio files were found in " + dir + ". Check the -v …:" + dir + ":ro mount points at your music, and that the container can read it" + unread + ".", true)
+                        else -> say("No audio files were found in " + dir + ". Check that it holds your music and that Mandarin can read it, or add your library in Settings → Music folders" + unread + ".", true)
+                    }
+                }
                 else -> say("Starting up — reading your music folder…", false)
             }
         }
