@@ -198,7 +198,7 @@ class ConnectActivity : Activity() {
                 }.onFailure { e ->
                     setBusy(false, "Couldn't reach Mandarin at $address.\n\n" +
                         (e.message ?: e.javaClass.simpleName) +
-                        "\n\nCheck the address and port, that the container is running, and that this phone is on the same network.")
+                        "\n\nCheck the address and port, that Mandarin is running, and that this phone is on the same network.")
                 }
             }
         }

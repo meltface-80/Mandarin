@@ -40,7 +40,10 @@
   function render() {
     if (!st) { body.innerHTML = '<div class="settings-note" data-parity="settings-away.note">Couldn’t ask the server.</div>'; return; }
     if (!st.available) {
-      body.innerHTML = '<div class="settings-note" data-parity="settings-away.note">Tailscale can’t be built in here — it runs in the Docker image (Linux, x64 or ARM64). Tailscale on the machine the server runs on works as before.</div>';
+      // In Docker, Mac and Linux installs it is fetched; where it isn't (by hand, an unusual machine), Tailscale itself serves.
+      body.innerHTML = '<div class="settings-note" data-parity="settings-away.note">' + (window.__mandarinInstall === "docker"
+        ? "Tailscale can’t be built in here — it runs in the Docker image (Linux, x64 or ARM64). Tailscale on the machine the server runs on works as before."
+        : "Tailscale can’t be built in on this computer. Tailscale installed on the computer the server runs on works as before.") + "</div>";
       return;
     }
     const toggle = '<label class="switch" data-parity="settings-away.enabled"><input type="checkbox" aria-label="Built-in Tailscale" data-away-enable' + (st.enabled ? " checked" : "") + (busy ? " disabled" : "") + '>' +

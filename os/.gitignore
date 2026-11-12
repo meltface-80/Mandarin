@@ -5,3 +5,4 @@ mkosi.extra/usr/lib/mandarin-os/VERSION
 /mkosi.output/
 /mkosi.cache/
 mkosi.extra/usr/lib/mandarin-os/environment
+/mandarin-src/

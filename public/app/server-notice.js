@@ -207,6 +207,8 @@
     if (albums && el.dataset.wasEmpty === "1") { location.reload(); return; }
     let msg = null, err = false;
     paintOffline(j.offline ? { kind: j.offline_mode ? "mode" : "app" } : null);
+    // How it is installed, for the page's other words (item 389: Settings → Away from home, an update that takes a while).
+    window.__mandarinInstall = j.install || "";
     if (j.offline) {
       // The Android app answering for the server (no connection, or offline
       // mode): said by the top bar's offline symbol, not a notice.
@@ -216,8 +218,10 @@
       err = true;
     } else if (!albums) {
       if (j.music_dir_exists === false || last.status === "no-music") {
-        msg = "No music folder at " + dir + ". Add your library in Settings → Music folders — or to the docker run command " +
-              "with  -v /path/to/your/Music:" + (j.music_dir || "/music") + ":ro  and start it again.";
+        msg = j.install === "docker"
+          ? "No music folder at " + dir + ". Add your library in Settings → Music folders — or to the docker run command " +
+            "with  -v /path/to/your/Music:" + (j.music_dir || "/music") + ":ro  and start it again."
+          : "No music folder at " + dir + ". Add your library in Settings → Music folders.";
         err = true;
       } else if (scan.running) {
         msg = "Scanning your music folder… " + (scan.files_seen || 0).toLocaleString() +
@@ -242,9 +246,13 @@
     } else if (!rooms && !(j.sonos && j.sonos.searching) && !j.away) {
       // Not while the server is still looking (the first minute after a start
       // or an update): the rooms are usually back within seconds.
-      msg = "No Sonos rooms found yet. The container needs --network host on the same network as your " +
-            "speakers — or set -e SONOS_HOSTS=<a speaker's IP>." +
-            (j.sonos && j.sonos.error ? " (" + j.sonos.error + ")" : "");
+      // For how it is installed (item 389): a container's network, or nothing to set at all.
+      msg = (j.install === "docker"
+        ? "No Sonos rooms found yet. The container needs --network host on the same network as your " +
+          "speakers — or set -e SONOS_HOSTS=<a speaker's IP>."
+        : "No Sonos rooms found yet. Speakers on the same network as Mandarin appear by themselves; if yours don't, " +
+          "set SONOS_HOSTS to a speaker's IP.") +
+        (j.sonos && j.sonos.error ? " (" + j.sonos.error + ")" : "");
       err = true;
     }
     if (msg) {

@@ -166,7 +166,9 @@ internal sealed class SonosTopology
             recent = hosts;
             foreach (var h in hosts) if (!seedHosts.Contains(h)) seedHosts.Add(h);
             if (hosts.Count == 0 && seedHosts.Count == 0)
-                LastError = "No Sonos players answered discovery. Use host networking, or set SONOS_HOSTS to a player's IP.";
+                LastError = Scans.InDocker
+                    ? "No Sonos players answered discovery. Use host networking, or set SONOS_HOSTS to a player's IP."
+                    : "No Sonos players answered discovery.";
         }
         return hosts;
     }

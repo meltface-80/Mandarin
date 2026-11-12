@@ -3,6 +3,9 @@
 # ukify on the computer it is built on, and the network (Debian's packages, Mandarin's latest release).
 set -e
 cd "$(dirname "$0")"
+# Mandarin: built from this checkout (test images, MANDARIN_FROM=source, the default), or the latest release
+# (MANDARIN_FROM=release, a numbered Mandarin OS release).
+if [ "${MANDARIN_FROM:-source}" = source ]; then ./mandarin-from-source.sh "$PWD/mandarin-src"; else rm -rf "$PWD/mandarin-src"; fi
 install -m 0755 ../tools/linux/install.sh mkosi.extra/usr/lib/mandarin-os/linux-install.sh
 install -m 0644 VERSION mkosi.extra/usr/lib/mandarin-os/VERSION
 printf 'MANDARIN_OS=%s\n' "$(cat VERSION)" > mkosi.extra/usr/lib/mandarin-os/environment

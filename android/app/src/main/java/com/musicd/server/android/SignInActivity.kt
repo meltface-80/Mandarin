@@ -139,7 +139,8 @@ class SignInActivity : Activity() {
             setOnClickListener { toConnect() }
         })
         col.addView(TextView(this).apply {
-            text = "Forgot the password? On the server run\ndocker exec musicd-server /app/server/bin/mandarin-server reset-password\nthen create the account again here."
+            // Every install's way (item 389): Mandarin OS has no shell, Docker a container; then the account made again here.
+            text = "Forgot the password? On Mandarin OS, type passwordreset at its screen. In Docker, run\ndocker exec musicd-server /app/server/bin/mandarin-server reset-password\nThen create the account again here."
             setTextColor(0xFF6B737A.toInt())
             textSize = 12f
             setPadding(0, px(24), 0, 0)
@@ -204,7 +205,7 @@ class SignInActivity : Activity() {
                     if (e.message == NOT_OURS) { title.text = "Not your server"; intro.text = NOT_OURS; return@onFailure }
                     title.text = "Can't reach the server"
                     intro.text = "${srv.address} didn't answer (${e.message ?: e.javaClass.simpleName}). " +
-                        "Check the container is running and this phone is on the same network" +
+                        "Check Mandarin is running and this phone is on the same network" +
                         (if (Store.isAway(this)) ", or that Tailscale is on." else ".")
                 }
             }

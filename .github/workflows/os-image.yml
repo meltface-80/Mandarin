@@ -42,19 +42,33 @@ jobs:
     timeout-minutes: 120
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
+        with:
+          fetch-depth: 0   # dev's test version counts the commits since the last release (tools/test-version.js)
+      # Mandarin is built from this commit into a test image (os/mandarin-from-source.sh); a numbered release takes Mandarin's.
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73  # v6
+        with:
+          dotnet-version: "10.0.x"
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1  # v7
+        with:
+          node-version: "22"
       - name: Tools
         run: |
           set -e
           sudo apt-get update -q
           sudo apt-get install -y -q --no-install-recommends bubblewrap systemd-boot systemd-boot-efi systemd-ukify mtools dosfstools \
-            cpio zstd xz-utils debian-archive-keyring qemu-system-x86 ovmf smbclient fdisk jq e2fsprogs
+            cpio zstd xz-utils debian-archive-keyring qemu-system-x86 ovmf smbclient fdisk jq e2fsprogs nftables iproute2
           sudo pip install --break-system-packages "git+https://github.com/systemd/mkosi@v25.3"
           # The virtual machine runs at the runner's own speed where it may (KVM).
           if [ -e /dev/kvm ]; then echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666"' | sudo tee /etc/udev/rules.d/99-kvm.rules; sudo udevadm control --reload-rules; sudo udevadm trigger --name-match=kvm; fi
+      # The firewall between a box and a speaker (network namespaces): Sonos's answers reach it, SSH's port doesn't.
+      - name: Firewall
+        run: sudo ./os/test/firewall-test.sh
       - name: Build
         run: |
           set -e
-          sudo ./os/build.sh
+          # A numbered Mandarin OS release carries Mandarin's latest release; every other build, Mandarin as this commit is.
+          if [ "${{ github.event_name }}" = workflow_dispatch ] && [ -n "${{ inputs.version }}" ]; then export MANDARIN_FROM=release; fi
+          sudo -E env "PATH=$PATH" ./os/build.sh
           ls -la os/*.raw
       - name: Installed and started in a virtual machine
         run: sudo ./os/test/boot-test.sh os/mandarin-os_$(cat os/VERSION).raw

@@ -37,6 +37,10 @@ test("Mandarin OS has no way in but its own, and looks after itself", () => {
   assert.match(fw, /type filter hook input priority filter; policy drop;/);
   assert.match(fw, /tcp dport \{ 80, 445, 3483, 3500, 5357 \} accept/);
   assert.doesNotMatch(fw, /\b22\b/, "nothing for SSH");
+  // Speakers' answers to Mandarin's search come from any port (Sonos's did, and were dropped): UDP from home, and IGMP.
+  assert.match(fw, /ip saddr \{ 10\.0\.0\.0\/8, 172\.16\.0\.0\/12, 192\.168\.0\.0\/16, 169\.254\.0\.0\/16 \} meta l4proto udp accept/);
+  assert.match(fw, /meta l4proto igmp accept/);
+  assert.doesNotMatch(fw, /ip saddr 0\.0\.0\.0\/0|meta l4proto tcp accept/, "never all TCP, never everyone");
 
   const apt = read("mkosi.extra/etc/apt/apt.conf.d/52mandarin-os");
   assert.match(apt, /Origins-Pattern \{\s*"origin=Debian,codename=\$\{distro_codename\}-security,label=Debian-Security";\s*\};/, "security alone");

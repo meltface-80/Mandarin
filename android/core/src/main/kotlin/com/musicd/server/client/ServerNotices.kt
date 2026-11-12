@@ -33,8 +33,9 @@ object ServerNotices {
             val status0 = last.optString("status")
             return when {
                 (status.has("music_dir_exists") && !status.optBoolean("music_dir_exists", true)) || status0 == "no-music" ->
-                    say("No music folder at $dir. Add your library in Settings → Music folders — or to the docker run command " +
-                        "with  -v /path/to/your/Music:$musicDir:ro  and start it again.", true)
+                    if (status.optString("install") == "docker") say("No music folder at " + dir + ". Add your library in Settings → Music folders — or to the docker run command " +
+                        "with  -v /path/to/your/Music:" + musicDir + ":ro  and start it again.", true)
+                    else say("No music folder at " + dir + ". Add your library in Settings → Music folders.", true)
                 scan.optBoolean("running") -> say("Scanning your music folder… " + n(scan.optInt("files_seen")) +
                     " files so far. Albums appear when the first pass finishes.", false)
                 status0.isNotEmpty() -> {
@@ -53,8 +54,12 @@ object ServerNotices {
         if (gone != null && gone.length() > 0 && !away) return missing((0 until gone.length()).mapNotNull { gone.optJSONObject(it) }, ::n)
         if (rooms == 0 && sonos?.optBoolean("searching") != true && !away) {
             val error = sonos?.optString("error")?.takeIf { it.isNotEmpty() && !sonos.isNull("error") }
-            return say("No Sonos rooms found yet. The container needs --network host on the same network as your " +
-                "speakers — or set -e SONOS_HOSTS=<a speaker's IP>." + (error?.let { " ($it)" } ?: ""), true)
+            // For how the server is installed (item 389), as the page says it.
+            val first = if (status.optString("install") == "docker") "No Sonos rooms found yet. The container needs --network host on the same network as your " +
+                "speakers — or set -e SONOS_HOSTS=<a speaker's IP>."
+            else "No Sonos rooms found yet. Speakers on the same network as Mandarin appear by themselves; if yours don't, " +
+                "set SONOS_HOSTS to a speaker's IP."
+            return say(first + (error?.let { " ($it)" } ?: ""), true)
         }
         return null
     }
