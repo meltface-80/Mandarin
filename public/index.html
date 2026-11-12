@@ -1513,8 +1513,8 @@
           <input id="acct-new2" type="password" aria-label="New password again" data-parity="settings-account.again" class="settings-token-input acct-input" placeholder="New password again" autocomplete="new-password">
           <button id="acct-pw" class="settings-update-btn" type="button" data-parity="settings-account.change">Change password</button>
           <div id="acct-pw-status" class="settings-token-status" data-parity="settings-account.status"></div>
-          <p class="settings-note" data-parity="settings-account.note">Devices already signed in stay signed in. Forgot it? On the server run
-            <code>docker exec musicd-server /app/server/bin/mandarin-server reset-password</code> and create the account again.</p>
+          <p class="settings-note" data-parity="settings-account.note">Devices already signed in stay signed in. Forgot it? <span id="acct-forgot-how">On the server run
+            <code>docker exec musicd-server /app/server/bin/mandarin-server reset-password</code></span> and create the account again.</p>
         </div>
       </div>
 
@@ -1872,7 +1872,7 @@
 
         <div class="settings-block">
           <div class="settings-row">
-            <span class="settings-label" data-parity="settings-picks.name">Build the day's picks at <button data-parity="settings-picks.info" class="settings-info-btn" data-info="The hour the daily build runs, in this server's local time (set TZ on the container). If the server is off at that hour, the build runs the next time it starts." aria-label="Info">ⓘ</button></span>
+            <span class="settings-label" data-parity="settings-picks.name">Build the day's picks at <button data-parity="settings-picks.info" class="settings-info-btn" data-info="The hour the daily build runs, in this server's local time (its time zone; in Docker, set TZ on the container). If the server is off at that hour, the build runs the next time it starts." aria-label="Info">ⓘ</button></span>
             <select id="picks-hour" data-parity="settings-picks.hour" class="settings-select" aria-label="Smart Picks build hour"></select>
           </div>
           <div class="settings-note" data-parity="settings-picks.note">Reads your library and play history on this server; only the related-artist lookups leave your network.</div>

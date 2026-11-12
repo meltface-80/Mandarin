@@ -4,8 +4,15 @@
 # weekly upkeep updates when nothing plays).
 set -euo pipefail
 V="$(cat /var/cache/mandarin-release/version)"
-MANDARIN_RELEASES=file:///var/cache/mandarin-release MANDARIN_VERSION="$V" \
+# A build of this checkout's (os/mandarin-from-source.sh) carries the key it was signed with; a release, the release key.
+KEY="$(cat /var/cache/mandarin-release/build.pub 2>/dev/null || true)"
+MANDARIN_RELEASES=file:///var/cache/mandarin-release MANDARIN_VERSION="$V" ${KEY:+MANDARIN_RELEASE_KEY="$KEY"} \
   /usr/lib/mandarin-os/linux-install.sh --no-apt --no-start --music /data/Storage --data /data/MandarinServer
+# Its audio engine beside it, where Mandarin looks first (/opt/mandarin/engine/bin): a DAC on the box plays at once.
+if [ -f /var/cache/mandarin-release/mandarin-audio ]; then
+  install -D -m 0755 /var/cache/mandarin-release/mandarin-audio /opt/mandarin/engine/bin/mandarin-audio
+  chown -R mandarin: /opt/mandarin/engine
+fi
 rm -rf /var/cache/mandarin-release
 # ffmpeg (built by mkosi.build.chroot into /usr/local) found by every program, Mandarin's service among them.
 ldconfig

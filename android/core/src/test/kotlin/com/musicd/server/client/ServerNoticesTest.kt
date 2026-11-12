@@ -26,7 +26,9 @@ class ServerNoticesTest {
 
     @Test fun `an empty library, by why`() {
         assertEquals("No music folder at /music. Add your library in Settings → Music folders — or to the docker run command with  -v /path/to/your/Music:/music:ro  and start it again.",
-            of("""{"index_count":0,"music_dir_exists":false}""")!!.lines[0])
+            of("""{"index_count":0,"install":"docker","music_dir_exists":false}""")!!.lines[0])
+        assertEquals("No music folder at /music. Add your library in Settings → Music folders.",
+            of("""{"index_count":0,"install":"linux","music_dir_exists":false}""")!!.lines[0])
         val scanning = of("""{"index_count":0,"scan":{"running":true,"files_seen":12345}}""")!!
         assertEquals("Scanning your music folder… 12,345 files so far. Albums appear when the first pass finishes.", scanning.lines[0])
         assertFalse(scanning.error)
@@ -62,8 +64,10 @@ class ServerNoticesTest {
     }
 
     @Test fun `no rooms, unless still looking or away`() {
-        val n = of("""{"index_count":9,"sonos":{"rooms":0,"error":"no route"}}""")!!
+        val n = of("""{"index_count":9,"install":"docker","sonos":{"rooms":0,"error":"no route"}}""")!!
         assertEquals("No Sonos rooms found yet. The container needs --network host on the same network as your speakers — or set -e SONOS_HOSTS=<a speaker's IP>. (no route)", n.lines[0])
+        assertEquals("No Sonos rooms found yet. Speakers on the same network as Mandarin appear by themselves; if yours don't, set SONOS_HOSTS to a speaker's IP.",
+            of("""{"index_count":9,"install":"mandarin-os","sonos":{"rooms":0}}""")!!.lines[0])
         assertEquals(8_000L, ServerNotices.nextLook(n, false))
         assertNull(of("""{"index_count":9,"sonos":{"rooms":0,"searching":true}}"""))
         assertNull(of("""{"index_count":9,"away":true,"sonos":{"rooms":0}}"""))

@@ -51,7 +51,21 @@
     catch (e) { ask.checked = open; toast(e.message, "error"); }
   });
 
+  // A forgotten password's reset, for how the server is installed (item 389): Mandarin OS has no shell, only its screen.
+  function forgotHow() {
+    const how = document.getElementById("acct-forgot-how");
+    const install = window.__mandarinInstall;
+    if (!how || !install) return;
+    const run = (cmd) => "On the server run <code>" + cmd + "</code>";
+    how.innerHTML = install === "mandarin-os" ? "At the Mandarin OS box’s own screen, type <code>passwordreset</code>"
+      : install === "docker" ? run("docker exec musicd-server /app/server/bin/mandarin-server reset-password")
+      : install === "linux" ? run("sudo -u mandarin env DATA_DIR=/var/lib/mandarin /opt/mandarin/server/bin/mandarin-server reset-password")
+      : install === "mac" ? run("~/Mandarin/server/bin/mandarin-server reset-password")
+      : run("mandarin-server reset-password");
+  }
+
   async function load() {
+    forgotHow();
     loadAsk();
     try {
       const j = await (await fetch("/api/auth/devices", { cache: "no-store" })).json();
