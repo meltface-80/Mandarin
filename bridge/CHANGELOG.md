@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.3.10
+
+- Fixed - the Linux Bridge's update failed where systemd runs it (the Linux installer's service, Mandarin OS's): it has no HOME there, so .NET couldn't open its certificate stores and couldn't connect to GitHub securely, and its fallback, curl, failed as well, said only as "tar couldn't be run". With no HOME its data folder is its home now (and the installer's service sets it), so it connects as it should; and a program it can't start says which and why
+- Improved - Mandarin Bridge is 0.3.10
+
 ## v0.3.9
 
 - Improved - its log is always kept, as Mandarin's server keeps its own: in files that roll in its data folder (Logs/MandarinBridge_log.txt, then .01 to .10 older), each opening with which Bridge it is and each line dated in UTC with its level, so a restart, an update or a crash loses none of it. Before, the Linux Bridge and the Pi's kept their last 2,000 lines in memory alone, and the Android Bridge only what Android still held of the run. A crash is in it with its stack. Mandarin's server now keeps every Bridge's log beside its own too (item 389). Both Bridges
