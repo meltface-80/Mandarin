@@ -137,7 +137,7 @@ def network():
         pass
     speed = read(f"/sys/class/net/{dev}/speed") if dev else ""
     return {"device": dev, "address": addr[3] if len(addr) > 3 else "", "gateway": route[2] if len(route) > 2 else "",
-            "dns": run(["bash", "-c", "resolvectl dns 2>/dev/null | awk '{ for (i = 3; i <= NF; i++) print $i }' | head -n 2 | tr '\\n' ' '"])[1],
+            "dns": dns_servers(),
             "mode": saved.get("mode", "dhcp"), "link": (speed + " Mb/s " + read(f"/sys/class/net/{dev}/duplex")).strip() if speed and speed != "-1" else "",
             "pending_undo": bool(pending)}
 
@@ -153,6 +153,19 @@ def internal():
         pass
     mounted = run(["findmnt", "-no", "SOURCE", P("/data/Storage/Internal")])[0] == 0
     return {"mounted": mounted, "space": space("/data/Storage/Internal") if mounted else None, "disks": disks}
+
+
+def dns_servers():
+    """The DNS servers in use, addresses only: resolvectl's lines are "Link 2 (enp0s31f6): 8.8.8.8" and "Global: …"."""
+    found = []
+    for word in run(["resolvectl", "dns"])[1].split():
+        try:
+            ip = str(ipaddress.ip_address(word))
+        except ValueError:
+            continue
+        if ip not in found:
+            found.append(ip)
+    return " ".join(found[:2])
 
 
 def state():
