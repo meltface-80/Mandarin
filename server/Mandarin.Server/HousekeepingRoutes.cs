@@ -103,6 +103,7 @@ internal static partial class Library
             ["music_dir_exists"] = roots.Any(PosixFs.Exists),
             ["music_dirs"] = new JsonArray(roots.Select(r => (JsonNode)r).ToArray()),
             ["data_persistent"] = DataPersistent() is { } kept ? kept : null,
+            ["install"] = LogHeader.InstallKey(),   // the empty library's words, for how it is installed (item 389)
             ["scan"] = new JsonObject
             {
                 ["running"] = Js.Truthy(state["running"]),

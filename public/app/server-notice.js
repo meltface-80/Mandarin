@@ -223,10 +223,14 @@
         msg = "Scanning your music folder… " + (scan.files_seen || 0).toLocaleString() +
               " files so far. Albums appear when the first pass finishes.";
       } else if (last.status) {
-        msg = "No audio files were found in " + dir + ". Check the -v …:" + dir + ":ro mount points at your " +
-              "music, and that the container can read it" +
-              (last.errors ? " (" + last.errors + " files couldn't be read)" : "") + ".";
-        err = true;
+        const unread = last.errors ? " (" + last.errors + " files couldn't be read)" : "";
+        // Said for how it is installed (item 389): Mandarin OS has no container and no shell, only its share and USB drives.
+        msg = j.install === "mandarin-os"
+          ? "No music yet. Copy it into Storage in smb://mandarin/data, or plug in a USB drive: it appears under Storage/USB, and its music here." + unread
+          : j.install === "docker"
+            ? "No audio files were found in " + dir + ". Check the -v …:" + dir + ":ro mount points at your music, and that the container can read it" + unread + "."
+            : "No audio files were found in " + dir + ". Check that it holds your music and that Mandarin can read it, or add your library in Settings → Music folders" + unread + ".";
+        err = !(j.install === "mandarin-os" && !last.errors);
       } else {
         msg = "Starting up — reading your music folder…";
       }

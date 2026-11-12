@@ -30,10 +30,20 @@
   // Let the button repaint before the password stretching (a second or so) runs.
   const paint = () => new Promise(r => setTimeout(r, 30));
 
+  // How to reset a forgotten password, for how this server is installed (item 389): Mandarin OS has no shell, only its screen.
+  const FORGOT = {
+    "mandarin-os": "Forgot the password? At the Mandarin OS box's own screen (a keyboard plugged in), type <code>passwordreset</code>, then create the account again.",
+    docker: "Forgot the password? On the server run<br><code>docker exec musicd-server /app/server/bin/mandarin-server reset-password</code><br>then create the account again.",
+    linux: "Forgot the password? On the server run<br><code>sudo -u mandarin env DATA_DIR=/var/lib/mandarin /opt/mandarin/server/bin/mandarin-server reset-password</code><br>then create the account again.",
+    mac: "Forgot the password? On the Mac run<br><code>~/Mandarin/server/bin/mandarin-server reset-password</code><br>then create the account again.",
+    native: "Forgot the password? On the server run<br><code>mandarin-server reset-password</code> (with its DATA_DIR)<br>then create the account again."
+  };
+
   async function status() {
     show("loading");
     try {
       const s = await (await fetch("/api/auth/status", { credentials: "same-origin", cache: "no-store" })).json();
+      if (FORGOT[s.install]) $("forgot").innerHTML = FORGOT[s.install];
       // ?create: Settings → Account asking for a sign-in, with no account yet to sign in to.
       const create = new URLSearchParams(location.search).has("create");
       if (s.signed_in && !create) return go();
@@ -43,7 +53,7 @@
       show("signin");
       $("si-user").focus();
     } catch (e) {
-      $("loading").querySelector("p").textContent = "Can't reach Mandarin. Is the container running?";
+      $("loading").querySelector("p").textContent = "Can't reach Mandarin. Is it running?";
       setTimeout(status, 5000);
     }
   }

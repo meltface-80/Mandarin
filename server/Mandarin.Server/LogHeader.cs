@@ -19,6 +19,15 @@ internal static class LogHeader
         : Environment.GetEnvironmentVariable("MANDARIN_SYSTEMD") is { Length: > 0 } ? "Linux (installer, systemd)"
         : "native";
 
+    /* How it is installed, as the page words what to do (the login's forgotten password, an empty library): "mandarin-os",
+       "docker", "mac", "linux" (tools/linux/install.sh's systemd service) or "native" (by hand). */
+    public static string InstallKey() =>
+        Environment.GetEnvironmentVariable("MANDARIN_OS") is { Length: > 0 } ? "mandarin-os"
+        : Scans.InDocker ? "docker"
+        : Environment.GetEnvironmentVariable("MANDARIN_LAUNCHD") is { Length: > 0 } ? "mac"
+        : Environment.GetEnvironmentVariable("MANDARIN_SYSTEMD") is { Length: > 0 } ? "linux"
+        : "native";
+
     /* The lines that open a file, each "# " before it. */
     public static string Text()
     {

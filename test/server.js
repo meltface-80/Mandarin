@@ -125,7 +125,8 @@ const ENV = {
   // The port a renderer's own player (MPD) is looked for at (Renderers/Mpd.cs, item 306): a test's fake one.
   mpdPort: "MPD_PORT",
   slimprotoPort: "SLIMPROTO_PORT",
-  bridgeLogsEvery: "MANDARIN_BRIDGE_LOGS_EVERY",   // seconds between each Bridge's log kept on the server (item 389)
+  bridgeLogsEvery: "MANDARIN_BRIDGE_LOGS_EVERY",
+  mandarinOs: "MANDARIN_OS",   // the version of Mandarin OS it runs on: the page's words for that box (item 389)   // seconds between each Bridge's log kept on the server (item 389)
   // The hosts on this network a picture from elsewhere may come from (Covers.Reach.cs, item 353): a test's own site.
   artHosts: "ART_HOSTS",
   trustedProxies: "TRUSTED_PROXIES"
