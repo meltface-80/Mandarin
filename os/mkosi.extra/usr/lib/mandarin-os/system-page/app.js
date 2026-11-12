@@ -7,7 +7,11 @@
   let st = null, pass = "", passAt = 0, logWhich = "mandarin", logText = "";
 
   const tab = (name) => {
-    document.querySelectorAll("nav button").forEach((b) => b.classList.toggle("on", b.dataset.tab === name));
+    document.querySelectorAll("nav button").forEach((b) => {
+      b.classList.toggle("on", b.dataset.tab === name);
+      // On a phone the tabs scroll: the one chosen is brought into sight.
+      if (b.dataset.tab === name && b.scrollIntoView) b.scrollIntoView({ block: "nearest", inline: "nearest" });
+    });
     document.querySelectorAll(".tab").forEach((s) => s.classList.toggle("hidden", s.id !== name));
     if (name === "support") loadLog();
     try { localStorage.setItem("mos-tab", name); } catch (e) { /* none kept */ }
@@ -48,11 +52,14 @@
 
   const ago = (seconds) => {
     const s = Math.floor(Number(seconds) || 0), d = Math.floor(s / 86400), h = Math.floor((s % 86400) / 3600), m = Math.floor((s % 3600) / 60);
-    return (d ? d + " days, " : "") + (h ? h + " hours, " : "") + m + " minutes";
+    const n = (x, one) => x + " " + one + (x === 1 ? "" : "s");
+    return (d ? n(d, "day") + ", " : "") + (h ? n(h, "hour") + ", " : "") + n(m, "minute");
   };
-  const state = (s) => s === "active" ? '<span class="state ok">✓ Running</span>'
+  // A timer that is active is waiting for its time, not running.
+  const state = (s, unit) => s === "active" ? '<span class="state ok">✓ ' + (/\.timer$/.test(unit || "") ? "Scheduled" : "Running") + "</span>"
     : s === "not installed" ? '<span class="state">Not installed</span>'
     : s === "inactive" ? '<span class="state warn">Stopped</span>' : '<span class="state bad">' + esc(s) + "</span>";
+  const count = (n, one, many) => (n || 0).toLocaleString() + " " + ((n || 0) === 1 ? one : many);
   const row = (title, sub, right) => '<div class="row"><div><b>' + title + "</b><small>" + (sub || "") + "</small></div>" + (right || "") + "</div>";
   const bar = (pct) => '<div class="bar"><i style="width:' + Math.min(100, pct || 0) + '%"></i></div>';
 
@@ -65,12 +72,12 @@
     const busy = m.busy && m.busy.any ? " · " + [m.busy.playing ? m.busy.playing + " playing" : "", m.busy.scanning ? "scanning" : "", m.busy.making ? "making" : ""].filter(Boolean).join(", ") : "";
     const usb = st.usb, ro = usb.filter((u) => u.read_only);
     $("status-rows").innerHTML =
-      row("Mandarin", m.answering ? "Version " + esc(m.version) + " · " + (m.albums || 0).toLocaleString() + " albums · " + (m.rooms || 0) + " rooms" + esc(busy) : "Not answering", m.answering ? '<span class="state ok">✓ Running</span>' : '<span class="state bad">Not answering</span>') +
-      row("Operating system", "Mandarin OS " + esc(o.version) + " · running " + ago(o.uptime) + (o.last_upkeep ? " · upkeep " + esc(o.last_upkeep) : ""), '<span class="state ok">✓ Up to date</span>') +
+      row("Mandarin", m.answering ? "Version " + esc(m.version) + " · " + count(m.albums, "album", "albums") + " · " + count(m.rooms, "room", "rooms") + esc(busy) : "Not answering", m.answering ? '<span class="state ok">✓ Running</span>' : '<span class="state bad">Not answering</span>') +
+      row("Operating system", "Mandarin OS " + esc(o.version) + " · running " + ago(o.uptime) + (o.last_upkeep ? " · upkeep " + esc(o.last_upkeep) : ""), o.last_upkeep ? '<span class="state ok">✓ Up to date</span>' : '<span class="state ok">✓ Running</span>') +
       row("Storage", st.data ? "Mandarin's data · " + esc(st.data.free) + " free of " + esc(st.data.size) : "", st.data ? '<span class="state ok">✓ Ready</span>' : '<span class="state bad">No data partition</span>') +
       row("USB drives", usb.length ? usb.map((u) => esc(u.name) + (u.space ? " · " + esc(u.space.size) : "")).join(", ") : "None plugged in", ro.length ? '<span class="state warn">⚠ ' + ro.length + " read-only</span>" : usb.length ? '<span class="state ok">✓ Mounted</span>' : "") +
       row("Network", esc(n.address) + (n.link ? " · " + esc(n.link) : "") + " · " + esc((n.mode || "").toUpperCase()), n.address ? '<span class="state ok">✓ Connected</span>' : '<span class="state bad">No address</span>');
-    $("services").innerHTML = st.services.map((s) => row(esc(s.name), esc(s.unit), state(s.state))).join("");
+    $("services").innerHTML = st.services.map((s) => row(esc(s.name), esc(s.unit), state(s.state, s.unit))).join("");
     $("share-link").textContent = st.share.path;
     $("share-user").textContent = st.share.user ? "User " + st.share.user + ", with the password chosen at install" : "";
     // Storage.

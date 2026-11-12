@@ -113,5 +113,7 @@ touch "$DONE"
 cp "$LOG" /mnt/data/MandarinOS/Logs/Installer_log.txt
 umount /mnt/data; sync
 if [ -n "$answers" ]; then say "installed on $target"; end poweroff; fi
-D --title "Installed" --msgbox "Mandarin OS is on $target.\n\nTake the USB stick out, then press Enter: the computer starts from its disk. In a minute or two, open http://mandarin:3500 in a browser." 11 70
-end reboot
+# Switched off, not restarted: the installer runs from the stick, so the stick is taken out only once the computer is
+# off (taken out before, the installer loses its own files mid-way); and a restart could start from the stick again.
+D --title "Installed" --msgbox "Mandarin OS $VER is on $target.\n\nPress Enter: the computer switches off.\n\nThen take the USB stick out and switch the computer on: it starts from its own disk. A minute or two later, Mandarin is at http://mandarin:3500 and this computer's own page at http://mandarin/" 14 74
+end poweroff

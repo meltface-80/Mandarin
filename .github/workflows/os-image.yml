@@ -35,6 +35,26 @@ jobs:
     with:
       ffmpeg: mandarin-os
 
+  # Every change to Mandarin OS raises its version (CLAUDE.md, rule 7): os/VERSION above the branch it goes into, with its
+  # own heading in os/CHANGELOG.md, so the image written to a stick says which it is.
+  version:
+    name: Mandarin OS's version raised
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
+        with:
+          fetch-depth: 0
+      - name: os/VERSION above ${{ github.base_ref }}'s, and in os/CHANGELOG.md
+        env:
+          BASE: ${{ github.base_ref }}
+        run: |
+          now="$(cat os/VERSION)"; was="$(git show "origin/$BASE:os/VERSION" 2>/dev/null || echo 0.0.0)"
+          echo "Mandarin OS $was on $BASE, $now here"
+          [ "$now" != "$was" ] && [ "$(printf '%s\n%s\n' "$was" "$now" | sort -V | tail -n 1)" = "$now" ] \
+            || { echo "::error::a change to Mandarin OS raises its version: os/VERSION is $now, as on $BASE ($was). Make it the next patch (0.1.0, then 0.1.1)"; exit 1; }
+          grep -qx "## v$now" os/CHANGELOG.md || { echo "::error::os/CHANGELOG.md has no '## v$now' heading for this version's changes"; exit 1; }
+
   image:
     needs: suite
     name: Image, installed and started in a virtual machine
@@ -56,7 +76,8 @@ jobs:
           set -e
           sudo apt-get update -q
           sudo apt-get install -y -q --no-install-recommends bubblewrap systemd-boot systemd-boot-efi systemd-ukify mtools dosfstools \
-            cpio zstd xz-utils debian-archive-keyring qemu-system-x86 ovmf smbclient fdisk jq e2fsprogs nftables iproute2
+            cpio zstd xz-utils debian-archive-keyring qemu-system-x86 ovmf smbclient fdisk jq e2fsprogs nftables iproute2 \
+            exfatprogs ntfs-3g
           sudo pip install --break-system-packages "git+https://github.com/systemd/mkosi@v25.3"
           # The virtual machine runs at the runner's own speed where it may (KVM).
           if [ -e /dev/kvm ]; then echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666"' | sudo tee /etc/udev/rules.d/99-kvm.rules; sudo udevadm control --reload-rules; sudo udevadm trigger --name-match=kvm; fi
@@ -68,7 +89,8 @@ jobs:
           set -e
           # A numbered Mandarin OS release carries Mandarin's latest release; every other build, Mandarin as this commit is.
           if [ "${{ github.event_name }}" = workflow_dispatch ] && [ -n "${{ inputs.version }}" ]; then export MANDARIN_FROM=release; fi
-          sudo -E env "PATH=$PATH" ./os/build.sh
+          # Not the runner's XDG_RUNTIME_DIR (/run/user/1001): .NET, run as root, refuses a runtime folder root doesn't own.
+          sudo -E env -u XDG_RUNTIME_DIR "PATH=$PATH" ./os/build.sh
           ls -la os/*.raw
       - name: Installed and started in a virtual machine
         run: sudo ./os/test/boot-test.sh os/mandarin-os_$(cat os/VERSION).raw
@@ -78,13 +100,16 @@ jobs:
           v="$(cat os/VERSION)"
           sudo chown "$(id -u):$(id -g)" os/*.raw   # built as root: its group too, or xz can't keep it
           mv "os/mandarin-os_$v.raw" "mandarin-os-$v-x64.img"
-          xz -T0 -6 "mandarin-os-$v-x64.img"
-          sha256sum "mandarin-os-$v-x64.img.xz" > "mandarin-os-$v-x64.img.xz.sha256"
+          # As it is (.img) for writers that don't decompress (a phone's: EtchDroid), and compressed (.img.xz) for those
+          # that do. A release's file can't be over 2 GiB: said here, not when publishing.
+          [ "$(stat -c %s "mandarin-os-$v-x64.img")" -lt 2147483648 ] || { echo "::error::the image is over 2 GiB, more than a release can hold"; exit 1; }
+          xz -T0 -6 -k "mandarin-os-$v-x64.img"
+          for f in "mandarin-os-$v-x64.img" "mandarin-os-$v-x64.img.xz"; do sha256sum "$f" > "$f.sha256"; done
           ls -la mandarin-os-*
       - name: Signed with the release key
         env:
           RELEASE_SIGNING_KEY: ${{ secrets.RELEASE_SIGNING_KEY }}
-        run: .github/sign.sh mandarin-os-*.img.xz
+        run: .github/sign.sh mandarin-os-*.img mandarin-os-*.img.xz
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7
         with:
           name: mandarin-os-x64
@@ -101,6 +126,10 @@ jobs:
               --notes "Mandarin OS as dev is now. Not a numbered release: write it to a USB stick, start the computer from it." --target "${GITHUB_SHA}"
           fi
           gh release upload test-os mandarin-os-* --clobber
+          # Only this version's files: an earlier version's left beside them could be the one written to the stick.
+          v="$(cat os/VERSION)"
+          gh release view test-os --json assets --jq '.assets[].name' | grep '^mandarin-os-' | grep -v "^mandarin-os-$v-" \
+            | while read -r old; do gh release delete-asset test-os "$old" --yes; done
       - name: Release mandarin-os-v${{ inputs.version }}
         if: github.event_name == 'workflow_dispatch' && inputs.version != ''
         env:

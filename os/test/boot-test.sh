@@ -5,7 +5,9 @@
 #   Mandarin answers (/api/health), with nothing under way; the share smb://mandarin/data takes the user chosen, its
 #   README and layout there, music written into Storage, and nothing written where it is read-only; Mandarin's and the
 #   system's logs in it; nothing at all on SSH's port; mandarin.local and the system's own checks (maintain --check) are
-#   asked of it through its logs. Needs qemu-system-x86_64, OVMF, mtools, smbclient, curl, jq.
+#   asked of it through its logs; USB drives (exFAT, NTFS, ext4) plugged in at the start and while it runs, each
+#   mounted in Storage/USB with its music and on the system page. Needs qemu-system-x86_64, OVMF, mtools, smbclient, curl,
+#   jq, exfatprogs, ntfs-3g, and root (loop devices, for the USB drives' filesystems).
 set -uo pipefail
 IMG="${1:?the image}"
 W="$(mktemp -d)"
@@ -40,8 +42,32 @@ ok "installed: $parts"
 grep -aE "Timed out waiting|Dependency failed|Failed to start" "$W/serial-install.log" && fail "the stick's start said something failed"
 ok "the stick started without a failure on its screen"
 
-echo "Starting from the disk…"
-qemu disk -drive if=virtio,format=raw,file="$W/disk.raw" \
+# USB drives as music comes on them: a GPT partition table and one partition (exFAT, NTFS or ext4), or ext4 on the
+# whole disk with no partitions (as a Linux machine, DietPi, often formats one); a track on each.
+usb_disk() {  # file, filesystem, label, "whole" for no partition table
+  local f="$1" lo part; truncate -s 300M "$f"
+  if [ "${4:-}" = whole ]; then lo="$(losetup -f --show "$f")" && part="$lo"
+  else
+    printf 'label: gpt\nstart=2048, type=EBD0A0A2-B9E5-4433-87C0-68B6B72699C7\n' | sfdisk -q "$f" || fail "no partition on $f"
+    # The partition by its offset and size (1 MiB in, to the partition table's copy at the end): no partition device
+    # to wait for (/dev/loopNp1 needs udev).
+    lo="$(losetup -f --show -o 1048576 --sizelimit "$(( $(sfdisk -J "$f" | jq '.partitiontable.partitions[0].size') * 512 ))" "$f")" && part="$lo"
+  fi
+  [ -n "${lo:-}" ] || fail "no loop device for $f"
+  case "$2" in
+    exfat) mkfs.exfat -q -L "$3" "$part" ;; ntfs) mkfs.ntfs -q -f -L "$3" "$part" ;; ext4) mkfs.ext4 -q -L "$3" "$part" ;;
+  esac >/dev/null || { losetup -d "$lo"; fail "no $2 on $f"; }
+  mkdir -p "$W/m" && mount "$part" "$W/m" && mkdir -p "$W/m/Artist/Album" && head -c 65536 /dev/urandom > "$W/m/Artist/Album/01.flac" && umount "$W/m"
+  losetup -d "$lo"
+}
+usb_disk "$W/usb-exfat.raw" exfat "Music SSD"; usb_disk "$W/usb-ntfs.raw" ntfs "Music NTFS"; usb_disk "$W/usb-ext4.raw" ext4 "Music ext4" whole
+usb_disk "$W/usb-later.raw" ext4 "Plugged Later"
+usb() { printf -- '-drive if=none,id=%s,format=raw,file=%s -device usb-storage,bus=xhci.0,drive=%s' "$1" "$2" "$1"; }
+
+echo "Starting from the disk, three USB drives plugged in…"
+# shellcheck disable=SC2046
+qemu disk -drive if=virtio,format=raw,file="$W/disk.raw" -device qemu-xhci,id=xhci \
+  $(usb u1 "$W/usb-exfat.raw") $(usb u2 "$W/usb-ntfs.raw") $(usb u3 "$W/usb-ext4.raw") -monitor unix:"$W/monitor.sock",server,nowait \
   -nic user,model=virtio-net-pci,hostfwd=tcp:127.0.0.1:13500-:3500,hostfwd=tcp:127.0.0.1:10445-:445,hostfwd=tcp:127.0.0.1:10022-:22,hostfwd=tcp:127.0.0.1:10080-:80 &
 for i in $(seq 1 180); do h="$(curl -fsS --max-time 5 http://127.0.0.1:13500/api/health 2>/dev/null)" && break; sleep 5; done
 [ -n "${h:-}" ] || fail "Mandarin didn't answer in 15 minutes"
@@ -101,4 +127,24 @@ P() { curl -s -o /dev/null -w '%{http_code}' --max-time 10 -H 'Content-Type: app
 [ "$(P '{"password":"not-it"}')" = 401 ] || fail "the system page took a wrong password"
 [ "$(P '{"password":"listen-carefully"}')" = 200 ] || fail "the system page didn't take the share's password"
 ok "the system page answers, sees Mandarin and its services, and asks for the share's password"
+
+# USB drives: those plugged in at the start, and one plugged in later, each mounted in Storage/USB with its music, and
+# on the system page. Not: the log of what happened to each, to find why.
+usb_why() {
+  curl -fsS --max-time 30 http://127.0.0.1:10080/api/logs/journal 2>/dev/null | grep -iE "usb|sd[a-z]|mandarin-usb|exfat|ntfs|ext4" | tail -n 40
+  S -c "cd MandarinOS/Logs; get MandarinOS_log.txt $W/os.log" >/dev/null; grep -a "\[usb\]" "$W/os.log" 2>/dev/null | tail -n 20
+}
+usb_in() {  # name: its music in the share, and the system page knows it
+  local i; for i in $(seq 1 24); do S -c "cd \"Storage/USB/$1/Artist/Album\"; ls" | grep -q "01.flac" && break; sleep 5; done
+  S -c "cd \"Storage/USB/$1/Artist/Album\"; ls" | grep -q "01.flac" || { usb_why; fail "the USB drive $1 isn't in Storage/USB: $(S -c 'cd Storage/USB; ls')"; }
+  curl -fsS --max-time 30 http://127.0.0.1:10080/api/state | jq -e --arg n "$1" '.usb[] | select(.name == $n and (.read_only | not))' >/dev/null \
+    || { usb_why; fail "the system page doesn't show $1, writable: $(curl -fsS http://127.0.0.1:10080/api/state | jq -c .usb)"; }
+}
+for d in "Music SSD" "Music NTFS" "Music ext4"; do usb_in "$d"; done
+ok "three USB drives plugged in at the start (exFAT, NTFS, ext4 on the whole disk): each in Storage/USB with its music, writable, on the system page"
+printf 'drive_add 0 if=none,id=u4,format=raw,file=%s\ndevice_add usb-storage,bus=xhci.0,drive=u4,id=later\n' "$W/usb-later.raw" \
+  | python3 -c 'import socket,sys,time; s=socket.socket(socket.AF_UNIX); s.connect(sys.argv[1]); time.sleep(0.5); [ (s.sendall(l.encode()), time.sleep(1)) for l in sys.stdin ]; time.sleep(1)' "$W/monitor.sock" \
+  || fail "QEMU's monitor didn't take the drive"
+usb_in "Plugged Later"
+ok "a USB drive plugged in while it runs (ext4, partitioned): mounted in Storage/USB with its music, on the system page"
 echo "PASS"

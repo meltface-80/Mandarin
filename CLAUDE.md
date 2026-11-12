@@ -50,6 +50,9 @@ The migration to C# is done; its branch, `migration`, is now `dev`.
 6. Each change to Mandarin Bridge (Android, Linux, the Pi's) raises its patch number on its own branch: `versionName` and
    `versionCode` in `bridge/android/app/build.gradle.kts` (0.3.1, then 0.3.2, …), its entries under that version in
    `bridge/CHANGELOG.md`, and the README's and the Pages site's Bridge version and download links to match.
+7. Each change to Mandarin OS (`os/`) raises its patch number on its own branch (0.1.0, then 0.1.1, …): `os/VERSION`,
+   which the installer, the system page and the image's file name show, so a stick written for testing says which it
+   is; its entries under that version in `os/CHANGELOG.md`. os-image.yml's version job refuses a pull request without it.
 
 ---
 

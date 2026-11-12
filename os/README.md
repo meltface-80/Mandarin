@@ -7,7 +7,7 @@ a few questions, and the computer is a Mandarin server with nothing else to look
   mini PC). Secure Boot off for now. Its own disk for the system; another internal disk, if any, can be internal storage.
 * **What it is:** Debian 13 (trixie), Mandarin installed natively (`tools/linux/install.sh`), its data on a partition of
   its own (`/data`), and only what Mandarin needs: no desktop, no login, **no SSH** (never installed).
-* **On the network:** Mandarin at `http://mandarin:3500`, the system page at `http://mandarin/` (os 0.2), the share at
+* **On the network:** Mandarin at `http://mandarin:3500`, the system page at `http://mandarin/`, the share at
   `smb://mandarin/data` (`\\mandarin\Data`) for the user and password chosen at install. Found as `mandarin.local` (Bonjour)
   and by Windows (WS-Discovery).
 * **The share:** `Storage` to copy music into (`USB/<drive>` for each USB drive, `Internal` for internal storage), and the
@@ -17,8 +17,22 @@ a few questions, and the computer is a Mandarin server with nothing else to look
 * **Looks after itself:** every week, when nothing plays, Debian's security updates, what nothing needs removed, a restart
   only if an update needs it, and a check that everything works, repairing what doesn't (`maintain`). Silent.
 * **The screen:** says where to find Mandarin. Type `networkreset` there to put the network back to DHCP (a static address
-  that lost the box). Nothing else is taken there.
+  that lost the box), or `passwordreset` for Mandarin's forgotten password. Nothing else is taken there.
 * **Firewall:** everything in is refused but what Mandarin and the system answer (`etc/nftables.conf`).
+
+## Writing the USB stick
+
+The image is published twice, the same either way: `mandarin-os-<version>-x64.img` as it is (about 1.6 GB), and
+`mandarin-os-<version>-x64.img.xz` compressed (about 380 MB). The stick needs 2 GB or more; everything on it is replaced.
+
+* **From an Android phone** (EtchDroid, with a USB-C or OTG adapter): the **`.img`**. A phone's writer doesn't
+  decompress, and a stick written from the `.img.xz` holds compressed bytes that no computer starts from.
+* **balenaEtcher or Raspberry Pi Imager** on a computer: either; they decompress the `.img.xz` themselves.
+* **Linux:** `xz -dc mandarin-os-<version>-x64.img.xz | sudo dd of=/dev/sdX bs=4M conv=fsync status=progress`
+  (`lsblk` first: `sdX` is the stick, and all of it is overwritten).
+
+Then start the computer from the stick (a Dell: F12 at the logo, then the stick under UEFI). The installer's screen says
+the version it installs.
 
 ## Building
 
@@ -29,7 +43,8 @@ sudo os/test/boot-test.sh os/mandarin-os_<version>.raw   # installed and started
 
 CI builds it on every change to `os/` (`.github/workflows/os-image.yml`), tests it the same way, and puts dev's on the
 `test-os` pre-release. A numbered release (`mandarin-os-vX.Y.Z`) is made by hand, with the version in `os/VERSION` and its
-notes in `os/CHANGELOG.md`.
+notes in `os/CHANGELOG.md`. Every change to Mandarin OS raises its patch number (0.1.0, then 0.1.1, …), so the image on
+`test-os` always says which it is.
 
 ## Layout
 

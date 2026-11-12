@@ -9,4 +9,7 @@ if [ "${MANDARIN_FROM:-source}" = source ]; then ./mandarin-from-source.sh "$PWD
 install -m 0755 ../tools/linux/install.sh mkosi.extra/usr/lib/mandarin-os/linux-install.sh
 install -m 0644 VERSION mkosi.extra/usr/lib/mandarin-os/VERSION
 printf 'MANDARIN_OS=%s\n' "$(cat VERSION)" > mkosi.extra/usr/lib/mandarin-os/environment
+# Mandarin Bridge, where it is chosen, from the same as Mandarin: dev's (test-bridge) beside dev's Mandarin, so it isn't
+# offered an update the moment it is installed; the latest Bridge release beside a released Mandarin.
+if [ "${MANDARIN_FROM:-source}" = source ]; then echo test-bridge; else echo release; fi > mkosi.extra/usr/lib/mandarin-os/bridge-from
 exec mkosi --image-version "$(cat VERSION)" -ff build "$@"
