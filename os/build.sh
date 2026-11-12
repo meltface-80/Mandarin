@@ -5,4 +5,4 @@ set -e
 cd "$(dirname "$0")"
 install -m 0755 ../tools/linux/install.sh mkosi.extra/usr/lib/mandarin-os/linux-install.sh
 install -m 0644 VERSION mkosi.extra/usr/lib/mandarin-os/VERSION
-exec mkosi --image-version "$(cat VERSION)" -f build "$@"
+exec mkosi --image-version "$(cat VERSION)" -ff build "$@"
