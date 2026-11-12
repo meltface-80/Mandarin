@@ -222,7 +222,7 @@ class NowPlayingService : Service() {
                 reachable = false
                 if (failures == 1) Log.i(TAG, "server unreachable: ${e.message}")
                 showSoon(latest)
-                sleep(minOf(30_000L, 2_000L * failures))
+                wake = false; sleep(minOf(30_000L, 2_000L * failures))   // the wake this try answered spent, or the pause ends at once (item 400)
                 if (SystemClock.elapsedRealtime() - idleSince > IDLE_STOP_MS) { main.post { stopSelf() }; return }
             }
         }

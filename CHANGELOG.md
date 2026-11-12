@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Fixed - the Android app asked the server again and again, with no pause, while it couldn't be reached (item 400): in the owner's log, some 500 times in 4 s while Mandarin started again after a backup was restored. The now-playing notification's pause after each miss (2 s, then longer) ended at once while a wake asked for before the miss was still set; the miss now spends it.
 - Changed - the README and the Pages site for Mandarin OS 0.1.2 (item 398): what it is and why, making the USB installer three ways (balenaEtcher, a Linux terminal, EtchDroid on an Android phone), installing it and using it (the system page, the shared folder, USB drives, the box's own screen, its weekly upkeep), on a page of its own (docs/mandarin-os.html) and in Downloads; the Linux installer's options and how to remove it
 - Fixed - Mandarin kept asking MusicBrainz while it was turning requests away (item 396): "[credits] <act>: HTTP 503" every few seconds for hours. On a 503 every MusicBrainz lookup rests (a minute, twice as long after each one more, an hour at most), said once in the log, a lookup asked for meanwhile not asked of it; the release days and the write-ups rest with them. And a whole number in a lookup was asked as "[object Object]" (MusicBrainz's limit=), now as the number
 - Fixed - a backup of a large library couldn't be restored: "The backup's server.json is too large" (item 395). server.json carries your collection, and a large library's is more than the 64 MB a part could be (the Node server's limit for a string); a part may be 512 MB now
