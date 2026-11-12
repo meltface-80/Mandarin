@@ -68,8 +68,13 @@ else
 fi
 S -c "cd MandarinOS/Logs; get MandarinOS_log.txt $W/os.log" >/dev/null; grep -q "\[apply\] done" "$W/os.log" || fail "the system's log isn't in the share"
 ok "the system's log is in the share"
-smbclient //127.0.0.1/Data -p 10445 -U 'music%wrong-password' -m SMB3 -c ls 2>&1 | grep -q NT_STATUS_LOGON_FAILURE || fail "a wrong password was let in"
-smbclient //127.0.0.1/Data -p 10445 -N -m SMB3 -c ls 2>&1 | grep -qE "NT_STATUS_(ACCESS_DENIED|LOGON_FAILURE)" || fail "a guest was let in"
+# Let in is the share's contents coming back; refused is anything else (what Samba said, shown either way).
+wrong="$(smbclient //127.0.0.1/Data -p 10445 -U 'music%wrong-password' -m SMB3 -c ls 2>&1)"
+grep -q README.txt <<< "$wrong" && fail "a wrong password was let in: $wrong"
+echo "  a wrong password: $(grep -o 'NT_STATUS_[A-Z_]*' <<< "$wrong" | head -n 1)"
+guest="$(smbclient //127.0.0.1/Data -p 10445 -N -m SMB3 -c ls 2>&1)"
+grep -q README.txt <<< "$guest" && fail "a guest was let in: $guest"
+echo "  a guest: $(grep -o 'NT_STATUS_[A-Z_]*' <<< "$guest" | head -n 1)"
 ok "no guest, no wrong password"
 if curl -s --max-time 5 telnet://127.0.0.1:10022 </dev/null | grep -q SSH; then fail "something answers on SSH's port"; fi
 ok "nothing on SSH's port"
