@@ -86,7 +86,12 @@ if curl -s --max-time 5 telnet://127.0.0.1:10022 </dev/null | grep -q SSH; then 
 ok "nothing on SSH's port"
 
 # The system page, http://mandarin/: its state read without a password, a change only with the share's.
-curl -fsS --max-time 10 http://127.0.0.1:10080/ | grep -q "<title>Mandarin OS</title>" || fail "the system page doesn't answer on port 80"
+for i in $(seq 1 12); do page="$(curl -fsS --max-time 10 http://127.0.0.1:10080/ 2>&1)" && break; sleep 5; done
+if ! grep -q "<title>Mandarin OS</title>" <<< "$page"; then
+  S -c "cd MandarinOS/Logs; get SystemPage_errors.txt $W/page-errors.txt" >/dev/null; cat "$W/page-errors.txt" 2>/dev/null
+  S -c "cd MandarinOS/Logs; get MandarinOS_log.txt $W/os.log" >/dev/null; tail -n 30 "$W/os.log" 2>/dev/null
+  fail "the system page doesn't answer on port 80: ${page:0:300}"
+fi
 st="$(curl -fsS --max-time 30 http://127.0.0.1:10080/api/state)" || fail "the system page's state doesn't answer"
 [ "$(jq -r .mandarin.answering <<< "$st")" = true ] || fail "the system page doesn't see Mandarin: $st"
 for u in mandarin.service smbd.service; do

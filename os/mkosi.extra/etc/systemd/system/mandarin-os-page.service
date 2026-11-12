@@ -5,7 +5,8 @@ After=network.target mandarin-os-apply.service
 ConditionPathIsMountPoint=/data
 
 [Service]
-ExecStart=/usr/bin/python3 /usr/lib/mandarin-os/system-page/server.py
+# Its own errors in the share, beside Mandarin OS's log (MandarinOS/Logs/SystemPage_errors.txt).
+ExecStart=/bin/sh -c 'mkdir -p /data/MandarinOS/Logs && exec /usr/bin/python3 /usr/lib/mandarin-os/system-page/server.py 2>>/data/MandarinOS/Logs/SystemPage_errors.txt'
 Restart=always
 RestartSec=2
 

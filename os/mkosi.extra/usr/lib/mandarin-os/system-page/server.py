@@ -458,6 +458,12 @@ class Server(socketserver.ThreadingMixIn, http.server.HTTPServer):
     daemon_threads = True
     allow_reuse_address = True
 
+    def server_bind(self):
+        # HTTPServer's own looks the machine's name up in DNS (getfqdn), which can hold the page back for as long as
+        # DNS takes to fail; the name is never used here.
+        socketserver.TCPServer.server_bind(self)
+        self.server_name, self.server_port = "mandarin", self.server_address[1]
+
 
 if __name__ == "__main__":
     Server(("0.0.0.0", PORT), Page).serve_forever()
