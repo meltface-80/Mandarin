@@ -1,0 +1,76 @@
+#!/bin/bash
+# /usr/lib/mandarin-os/os-started boot|health — Mandarin OS after its own update (item 401, 0.1.4; os-update, boot.sh):
+#   boot    every start (mandarin-os-started.service): what the last update came to, for the system page and the log.
+#           A version whose three tries all failed (systemd-boot marked its entry +0-…, and started this one) is said,
+#           and taken off the EFI partition; a version that started and was kept is said too.
+#   health  a start being tried (mandarin-os-health.service, on a new version's first starts only): what a box needs,
+#           checked before boot-complete.target, and so before systemd-bless-boot keeps the version: its data
+#           partition, its firewall, its shared folder, its network (a wired device there; with a cable in, an address)
+#           and its system page answering. Mandarin itself isn't asked: it updates itself, and the upkeep repairs it.
+#           Anything missing: exit 1, and the unit starts the computer again (FailureAction=reboot), a try taken; after
+#           three, systemd-boot starts the version before.
+set -uo pipefail
+LIB="$(dirname "$(readlink -f "$0")")"
+. "$LIB/log.sh"
+. "$LIB/boot.sh"
+LAST="$R/data/MandarinOS/update-last.json"
+PENDING="$R/data/MandarinOS/update-pending.json"
+now() { date -u '+%Y-%m-%d %H:%M UTC'; }
+result() { jq -n --arg r "$1" --arg f "$2" --arg t "$3" --arg a "$(now)" '{result: $r, from: $f, to: $t, at: $a}' > "$LAST.new" && mv -f "$LAST.new" "$LAST"; }
+
+boot() {
+  local efi f v t u from
+  mountpoint -q "$R/data" || exit 0
+  if efi="$(esp "$(disk_of "$(booted)")")"; then
+    while read -r f v t u; do
+      [ "$t" = 0 ] && [ "$v" != "$VER" ] || continue
+      from="$(jq -r '.from // empty' "$PENDING" 2>/dev/null)"
+      result failed "${from:-$VER}" "$v"
+      rm -f "$PENDING"
+      oslog ERROR "[update] Mandarin OS $v didn't start in its three tries: back on $VER, as it was before the update"
+      unentry "$efi" "$f"
+    done < <(entries "$efi")
+  fi
+  # Started as the version written, and not being tried (a computer that doesn't count its starts): kept.
+  if [ "$(jq -r '.to // empty' "$PENDING" 2>/dev/null)" = "$VER" ] && [ ! -e "$TRYING" ]; then
+    result updated "$(jq -r .from "$PENDING")" "$VER"; rm -f "$PENDING"
+    oslog INFO "[update] Mandarin OS $VER started"
+  fi
+  return 0
+}
+
+health() {
+  local u dev i addr carrier m
+  bad() {
+    oslog ERROR "[update] Mandarin OS $VER, being tried: $*. Not kept: the computer starts again (after three tries, on the version before)"
+    echo "<2>mandarin-os: Mandarin OS $VER not kept: $*" > /dev/kmsg 2>/dev/null   # on the serial port too (the boot test)
+    exit 1
+  }
+  oslog INFO "[update] Mandarin OS $VER started, being tried: checked before it is kept"
+  mountpoint -q "$R/data" || bad "the data partition isn't mounted"
+  for u in mandarin-os-apply.service nftables.service smbd.service NetworkManager.service mandarin-os-page.service; do
+    systemctl is-active -q "$u" || bad "$u isn't running ($(systemctl is-active "$u"))"
+  done
+  dev="$(nmcli -t -f DEVICE,TYPE device 2>/dev/null | awk -F: '$2 == "ethernet" { print $1; exit }')"
+  [ -n "$dev" ] || bad "no wired network device (its driver?)"
+  for i in $(seq 1 45); do
+    carrier="$(cat "$R/sys/class/net/$dev/carrier" 2>/dev/null || echo 0)"
+    addr="$(ip -4 -o addr show dev "$dev" scope global 2>/dev/null | awk '{ print $4; exit }')"
+    [ -n "$addr" ] && break
+    [ "$carrier" != 1 ] && [ "$i" -ge 10 ] && break    # no cable in: nothing to ask of the network
+    sleep 2
+  done
+  [ -n "$addr" ] || [ "$carrier" != 1 ] || bad "the network ($dev) gave no address"
+  for i in $(seq 1 30); do curl -fsS -o /dev/null --max-time 5 -H 'Host: localhost' http://127.0.0.1/ && break; sleep 2; done
+  curl -fsS -o /dev/null --max-time 5 -H 'Host: localhost' http://127.0.0.1/ || bad "the system page doesn't answer"
+  m="$(curl -fsS --max-time 5 http://127.0.0.1:3500/api/health 2>/dev/null | jq -r '.version // empty' 2>/dev/null)"
+  local from; from="$(jq -r '.from // empty' "$PENDING" 2>/dev/null)"
+  result updated "${from:-?}" "$VER"; rm -f "$PENDING"
+  oslog INFO "[update] Mandarin OS $VER works (${addr:-no cable}; Mandarin ${m:-not answering yet}): kept"
+}
+
+case "${1:-}" in
+  boot) boot ;;
+  health) health ;;
+  *) echo "os-started boot|health" >&2; exit 2 ;;
+esac

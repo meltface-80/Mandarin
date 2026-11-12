@@ -103,18 +103,23 @@ jobs:
         run: |
           set -e
           v="$(cat os/VERSION)"
-          sudo chown "$(id -u):$(id -g)" os/*.raw   # built as root: its group too, or xz can't keep it
+          sudo chown "$(id -u):$(id -g)" os/*.raw os/*.efi   # built as root: its group too, or xz can't keep it
           mv "os/mandarin-os_$v.raw" "mandarin-os-$v-x64.img"
           # As it is (.img) for writers that don't decompress (a phone's: EtchDroid), and compressed (.img.xz) for those
           # that do. A release's file can't be over 2 GiB: said here, not when publishing.
           [ "$(stat -c %s "mandarin-os-$v-x64.img")" -lt 2147483648 ] || { echo "::error::the image is over 2 GiB, more than a release can hold"; exit 1; }
           xz -T0 -6 -k "mandarin-os-$v-x64.img"
-          for f in "mandarin-os-$v-x64.img" "mandarin-os-$v-x64.img.xz"; do sha256sum "$f" > "$f.sha256"; done
+          # For an installed Mandarin OS to update itself in place (os-update, item 401): its system partition as in the
+          # image, compressed (.root.raw.xz), and its unified kernel image (.efi), mkosi's own copy of the one in the image.
+          read -r rs rn < <(sfdisk -J "mandarin-os-$v-x64.img" | jq -r '.partitiontable.partitions[] | select(.type == "4F68BCE3-E8CD-4DB1-96E7-FBCAF984B709") | "\(.start) \(.size)"')
+          dd if="mandarin-os-$v-x64.img" bs=4M iflag=skip_bytes,count_bytes skip=$((rs * 512)) count=$((rn * 512)) status=none | xz -T0 -6 > "mandarin-os-$v-x64.root.raw.xz"
+          cp "os/mandarin-os_$v.efi" "mandarin-os-$v-x64.efi"
+          for f in "mandarin-os-$v-x64.img" "mandarin-os-$v-x64.img.xz" "mandarin-os-$v-x64.root.raw.xz" "mandarin-os-$v-x64.efi"; do sha256sum "$f" > "$f.sha256"; done
           ls -la mandarin-os-*
       - name: Signed with the release key
         env:
           RELEASE_SIGNING_KEY: ${{ secrets.RELEASE_SIGNING_KEY }}
-        run: .github/sign.sh mandarin-os-*.img mandarin-os-*.img.xz
+        run: .github/sign.sh mandarin-os-*.img mandarin-os-*.img.xz mandarin-os-*.root.raw.xz mandarin-os-*.efi
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7
         with:
           name: mandarin-os-x64

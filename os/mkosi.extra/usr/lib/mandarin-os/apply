@@ -14,14 +14,20 @@ SETUP="$S/setup.json"
 mkdir -p "$S" /data/MandarinOS/Logs /data/MandarinServer /data/Storage/USB /data/Share
 cp /usr/lib/mandarin-os/VERSION /data/MandarinOS/version.txt 2>/dev/null
 
-# The share's user: the name chosen, a user of the system with no login, in the share's group and Mandarin's.
-getent group mandarin-share >/dev/null || groupadd --system mandarin-share
-getent group mandarin >/dev/null || groupadd --system mandarin
+# The share's user: the name chosen, a user of the system with no login, in the share's group and Mandarin's. Its
+# number is the same in every version of Mandarin OS (item 401: an update starts a new system, where it is made again,
+# and the files it owns in Storage and on USB drives must stay its own): 3501, or the number kept in share-uid where
+# one is; never the next free one, which a new version's own users could have taken. Mandarin's is 3500
+# (mkosi.postinst.chroot), the share's group 3502.
+getent group mandarin-share >/dev/null || groupadd --system --gid 3502 mandarin-share
+getent group mandarin >/dev/null || groupadd --system --gid 3500 mandarin
 user="$(jq -r '.share_user // empty' "$SETUP" 2>/dev/null)"
 if [ -n "$user" ]; then
-  id "$user" >/dev/null 2>&1 || useradd --system --no-create-home --home-dir /data/Share --shell /usr/sbin/nologin "$user"
+  uid="$(cat "$S/share-uid" 2>/dev/null || echo 3501)"
+  id "$user" >/dev/null 2>&1 || useradd --system --uid "$uid" --gid mandarin --no-create-home --home-dir /data/Share --shell /usr/sbin/nologin "$user"
   usermod -a -G mandarin-share,mandarin "$user"
   printf '%s\n' "$user" > "$S/share-user"
+  [ -f "$S/share-uid" ] || id -u "$user" > "$S/share-uid"
   pass="$(jq -r '.share_password // empty' "$SETUP")"
   if [ -n "$pass" ]; then
     if printf '%s\n%s\n' "$pass" "$pass" | smbpasswd -s -a "$user" >/dev/null; then

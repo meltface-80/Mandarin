@@ -1,0 +1,15 @@
+[Unit]
+# os-update check (the system page's Check for updates, the daily timer), apply (Update and restart on the system page)
+# or auto (the weekly upkeep): Mandarin OS updated in place (item 401). A unit of its own, so the system page asks it
+# and goes on answering, and the update never ends with the page.
+Description=Mandarin OS: its own update (%i)
+After=network-online.target mandarin-os-apply.service
+Wants=network-online.target
+# Installed only (the USB stick is the installer).
+ConditionPathIsMountPoint=/data
+
+[Service]
+Type=oneshot
+ExecStart=/usr/lib/mandarin-os/os-update %i
+# A download of a few hundred megabytes, then a system partition written and read back.
+TimeoutStartSec=2h

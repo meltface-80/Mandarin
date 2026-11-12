@@ -12,4 +12,7 @@ printf 'MANDARIN_OS=%s\n' "$(cat VERSION)" > mkosi.extra/usr/lib/mandarin-os/env
 # Mandarin Bridge, where it is chosen, from the same as Mandarin: dev's (test-bridge) beside dev's Mandarin, so it isn't
 # offered an update the moment it is installed; the latest Bridge release beside a released Mandarin.
 if [ "${MANDARIN_FROM:-source}" = source ]; then echo test-bridge; else echo release; fi > mkosi.extra/usr/lib/mandarin-os/bridge-from
+# Mandarin OS's own updates (os-update, item 401), from the same: a test image follows the test-os pre-release (dev's), a
+# released one the newest mandarin-os-v* release.
+if [ "${MANDARIN_FROM:-source}" = source ]; then echo test-os; else echo release; fi > mkosi.extra/usr/lib/mandarin-os/update-from
 exec mkosi --image-version "$(cat VERSION)" -ff build "$@"

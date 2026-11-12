@@ -4,6 +4,12 @@
 # weekly upkeep updates when nothing plays).
 set -euo pipefail
 V="$(cat /var/cache/mandarin-release/version)"
+# Mandarin's user and group numbered the same in every version of Mandarin OS (item 401): an update starts a new system,
+# and the files Mandarin owns, on the data partition and on USB drives, must stay its own there. 3500, outside the
+# range Debian's packages take theirs from (they took 989 and 988 here, and a package added later would move them).
+# The shared folder's user is 3501 and its group 3502 (apply). install.sh keeps a user that is there.
+groupadd --system --gid 3500 mandarin
+useradd --system --uid 3500 --gid mandarin --groups audio --home-dir /data/MandarinServer --no-create-home --shell /usr/sbin/nologin mandarin
 # A build of this checkout's (os/mandarin-from-source.sh) carries the key it was signed with; a release, the release key.
 KEY="$(cat /var/cache/mandarin-release/build.pub 2>/dev/null || true)"
 env MANDARIN_RELEASES=file:///var/cache/mandarin-release MANDARIN_VERSION="$V" ${KEY:+"MANDARIN_RELEASE_KEY=$KEY"} \
@@ -26,6 +32,9 @@ systemctl mask nmbd.service samba-ad-dc.service apt-daily.timer apt-daily-upgrad
 # NetworkManager alone runs the network: systemd-networkd, on by default beside it, waited about two minutes at every
 # start for a network it doesn't manage, then said it failed.
 systemctl mask systemd-networkd.service systemd-networkd.socket systemd-networkd-wait-online.service
+# Updated in place (item 401): what the last update came to, a new version checked on its first starts, and a look
+# every day for a newer one.
+systemctl enable mandarin-os-started.service mandarin-os-health.service mandarin-os-update-check.timer
 systemctl enable mandarin-console.service mandarin-os-apply.service mandarin-os-check.service mandarin-os-maintain.timer mandarin-os-page.service mandarin-os-power.path \
   nftables.service smbd.service avahi-daemon.service wsdd2.service NetworkManager.service systemd-resolved.service systemd-timesyncd.service
 # What the upkeep must never remove.

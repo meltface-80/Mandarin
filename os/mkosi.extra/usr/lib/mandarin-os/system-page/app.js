@@ -73,7 +73,7 @@
     const usb = st.usb, ro = usb.filter((u) => u.read_only);
     $("status-rows").innerHTML =
       row("Mandarin", m.answering ? "Version " + esc(m.version) + " · " + count(m.albums, "album", "albums") + " · " + count(m.rooms, "room", "rooms") + esc(busy) : "Not answering", m.answering ? '<span class="state ok">✓ Running</span>' : '<span class="state bad">Not answering</span>') +
-      row("Operating system", "Mandarin OS " + esc(o.version) + " · running " + ago(o.uptime) + (o.last_upkeep ? " · upkeep " + esc(o.last_upkeep) : ""), o.last_upkeep ? '<span class="state ok">✓ Up to date</span>' : '<span class="state ok">✓ Running</span>') +
+      row("Operating system", "Mandarin OS " + esc(o.version) + " · running " + ago(o.uptime) + (o.last_upkeep ? " · upkeep " + esc(o.last_upkeep) : ""), osBadge(o)) +
       row("Storage", st.data ? "Mandarin's data · " + esc(st.data.free) + " free of " + esc(st.data.size) : "", st.data ? '<span class="state ok">✓ Ready</span>' : '<span class="state bad">No data partition</span>') +
       row("USB drives", usb.length ? usb.map((u) => esc(u.name) + (u.space ? " · " + esc(u.space.size) : "")).join(", ") : "None plugged in", ro.length ? '<span class="state warn">⚠ ' + ro.length + " read-only</span>" : usb.length ? '<span class="state ok">✓ Mounted</span>' : "") +
       row("Network", esc(n.address) + (n.link ? " · " + esc(n.link) : "") + " · " + esc((n.mode || "").toUpperCase()), n.address ? '<span class="state ok">✓ Connected</span>' : '<span class="state bad">No address</span>');
@@ -101,7 +101,31 @@
     const b = st.services.find((s) => s.unit === "mandarin-bridge.service");
     $("bridge").innerHTML = row("Mandarin Bridge", b && b.state !== "not installed" ? "Installed on this computer: a USB DAC plugged in here plays through it, switched on in Mandarin's Settings → Audio Devices." : "Not installed. A USB DAC plugged into this computer plays through Mandarin Bridge: install it to play to one.",
       b && b.state !== "not installed" ? '<button data-bridge="remove">Remove</button>' : '<button data-bridge="install">Install</button>');
-    $("upkeep").textContent = "Debian's security updates, every week while nothing plays, then a check that everything works. " + (o.last_upkeep ? "Last: " + o.last_upkeep + "." : "Not run yet.");
+    $("upkeep").textContent = "Every week while nothing plays: a newer Mandarin OS (as Update and restart puts it in), else Debian's security updates; then a check that everything works. " + (o.last_upkeep ? "Last: " + o.last_upkeep + "." : "Not run yet.");
+    $("os-update").innerHTML = osUpdate(o);
+    if (o.update && BUSY.includes(o.update.state)) setTimeout(load, 2000);
+  }
+
+  // Mandarin OS updated in place (item 401): a newer version offered, its progress, and what the last update came to.
+  const BUSY = ["preparing", "downloading", "checking", "writing", "installing", "restarting"];
+  const osBadge = (o) => {
+    const u = o.update || {};
+    if (BUSY.includes(u.state)) return '<span class="state warn">Updating…</span>';
+    if (u.available) return '<span class="state warn">Update available</span>';
+    return o.last_upkeep ? '<span class="state ok">✓ Up to date</span>' : '<span class="state ok">✓ Running</span>';
+  };
+  function osUpdate(o) {
+    const u = o.update || {}, last = u.last || {}, busy = BUSY.includes(u.state);
+    const was = last.result === "failed" && last.to !== o.version
+      ? "The last update, to Mandarin OS " + esc(last.to) + ", didn't start: the box went back to " + esc(o.version) + " by itself (" + esc(last.at) + "). Nothing was lost."
+      : last.result === "updated" && last.to === o.version ? "Updated from Mandarin OS " + esc(last.from) + " (" + esc(last.at) + ")." : "";
+    const now = busy ? esc(u.said || "Updating") + "…" + (u.progress != null ? bar(u.progress) : "")
+      : u.state === "failed" ? "The update didn't go through: " + esc(u.error) + ". This version runs on as before."
+      : u.state === "waiting" ? esc(u.said) + "."
+      : u.available ? "Mandarin OS " + esc(u.available) + " is out. Update and restart writes it beside this one and starts the computer again on it, in a few minutes; if it doesn't start, the box goes back to " + esc(o.version) + " by itself. Your music, settings and drives aren't touched."
+      : u.error ? esc(u.error) + "." : "This is the newest." + (u.checked ? " Looked " + esc(u.checked) + "." : "");
+    return row("Mandarin OS " + esc(o.version), [was, now].filter(Boolean).join("<br>"),
+      busy ? "" : (u.available ? '<button data-os="apply" class="primary">Update and restart</button> ' : "") + '<button data-os="check">Check for updates</button>');
   }
 
   let mode = "dhcp";
@@ -132,6 +156,8 @@
       "Its files become the shared folder's user's, so moving, renaming and deleting on it work. Mandarin reads them as before. Only this drive is changed; a big one takes a few minutes.");
     else if (t.dataset.eject) act("/api/usb/eject", { name: t.dataset.eject }, "Eject " + t.dataset.eject, "It can be unplugged once ejected.");
     else if (t.dataset.format) act("/api/internal/format", { disk: t.dataset.format }, "Format " + t.dataset.format, "EVERYTHING ON THIS DISK IS ERASED. It becomes Storage/Internal.", { erase: true });
+    else if (t.dataset.os === "check") act("/api/os-update", { action: "check" }, "Check for updates", "Whether a newer Mandarin OS is out.");
+    else if (t.dataset.os === "apply") act("/api/os-update", { action: "apply" }, "Update and restart", "Mandarin OS " + st.os.update.available + " is written beside this one, then the computer starts again on it: music stops for a few minutes. If it doesn't start, the box goes back to " + st.os.version + " by itself.");
     else if (t.dataset.bridge) act("/api/bridge", { action: t.dataset.bridge }, t.dataset.bridge === "install" ? "Install Mandarin Bridge" : "Remove Mandarin Bridge", "");
     else if (t.dataset.mandarin) act("/api/mandarin", { action: t.dataset.mandarin }, t.dataset.mandarin === "reinstall" ? "Reinstall Mandarin" : "Reset Mandarin",
       t.dataset.mandarin === "reinstall" ? "Put back from its latest release; your library and settings kept." : "Mandarin starts as new; what it kept is set aside in its Backups folder.");
@@ -167,8 +193,12 @@
   async function load() {
     let got;
     try { got = await fetch("/api/state").then((r) => (r.ok ? r.json() : Promise.reject(new Error("HTTP " + r.status)))); }
-    catch (e) { if (++missed === 2) banner(NOT_ANSWERING, true); return; }
-    if ($("banner").textContent === NOT_ANSWERING) banner("");
+    catch (e) {
+      if (st && st.os.update && st.os.update.state === "restarting") banner("Starting again on Mandarin OS " + st.os.update.available + ": this page comes back in a minute or two.");
+      else if (++missed === 2) banner(NOT_ANSWERING, true);
+      return;
+    }
+    if ($("banner").textContent === NOT_ANSWERING || $("banner").textContent.startsWith("Starting again on Mandarin OS")) banner("");
     missed = 0;
     st = got;
     render();
