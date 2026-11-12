@@ -1,5 +1,9 @@
 # Mandarin OS changelog
 
+## v0.1.2
+
+- Changed - Mandarin's Linux installer (which installs Mandarin on Mandarin OS) no longer speaks of Docker or a Mac, Mandarin no longer being built for either (items 393 and 394)
+
 ## v0.1.1
 
 - Changed - Download all logs on the system page gives one text file, not a zip of many: every log on the box (Mandarin OS's, Mandarin's, every Bridge's and every app's as Mandarin keeps them, and the system's journal of this start) merged in time order, each line saying where it came from, a line with no time of its own (a stack trace's) under the line before it, and at its head the box as it is (versions, network, services, USB drives) and each log's own header. And the page's error file no longer fills with "Connection reset by peer", a browser that hung up being no error of the page's
