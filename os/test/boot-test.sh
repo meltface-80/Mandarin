@@ -84,4 +84,21 @@ echo "  a guest: $(grep -o 'NT_STATUS_[A-Z_]*' <<< "$guest" | head -n 1)"
 ok "no guest, no wrong password"
 if curl -s --max-time 5 telnet://127.0.0.1:10022 </dev/null | grep -q SSH; then fail "something answers on SSH's port"; fi
 ok "nothing on SSH's port"
+
+# The system page, http://mandarin/: its state read without a password, a change only with the share's.
+for i in $(seq 1 12); do page="$(curl -fsS --max-time 10 http://127.0.0.1:10080/ 2>&1)" && break; sleep 5; done
+if ! grep -q "<title>Mandarin OS</title>" <<< "$page"; then
+  S -c "cd MandarinOS/Logs; get SystemPage_errors.txt $W/page-errors.txt" >/dev/null; cat "$W/page-errors.txt" 2>/dev/null
+  S -c "cd MandarinOS/Logs; get MandarinOS_log.txt $W/os.log" >/dev/null; tail -n 30 "$W/os.log" 2>/dev/null
+  fail "the system page doesn't answer on port 80: ${page:0:300}"
+fi
+st="$(curl -fsS --max-time 30 http://127.0.0.1:10080/api/state)" || fail "the system page's state doesn't answer"
+[ "$(jq -r .mandarin.answering <<< "$st")" = true ] || fail "the system page doesn't see Mandarin: $st"
+for u in mandarin.service smbd.service; do
+  [ "$(jq -r --arg u "$u" '.services[] | select(.unit == $u) | .state' <<< "$st")" = active ] || fail "the system page says $u isn't running: $st"
+done
+P() { curl -s -o /dev/null -w '%{http_code}' --max-time 10 -H 'Content-Type: application/json' -d "$1" http://127.0.0.1:10080/api/check; }
+[ "$(P '{"password":"not-it"}')" = 401 ] || fail "the system page took a wrong password"
+[ "$(P '{"password":"listen-carefully"}')" = 200 ] || fail "the system page didn't take the share's password"
+ok "the system page answers, sees Mandarin and its services, and asks for the share's password"
 echo "PASS"

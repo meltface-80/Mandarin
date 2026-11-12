@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- New - Mandarin OS's system page, http://mandarin/ (item 389): its status, storage (USB drives ejected, internal storage formatted), network (DHCP or static, put back by itself if it loses the box), Mandarin Bridge, the logs and Reinstall or Reset Mandarin, and restart or shut down, each change asking for the shared folder's password (os/CHANGELOG.md)
 - Fixed - the rest of what Mandarin said as if it ran in Docker, said for how it is installed (item 389): no Sonos rooms (a container's --network host, only in Docker; elsewhere, speakers on the same network appear by themselves), the server's own discovery words, Away from home's built-in Tailscale, the scanner's higher priority, an update taking a while, no music folder, and, in the app, the forgotten password, a server not answering and the daily build's hour. Mandarin OS says passwordreset at its screen
 
 - Fixed - what the page says to do is for how Mandarin is installed (item 389): under the login, a forgotten password was always a docker command, and an empty library always "check the -v … mount points", wrong on Mandarin OS (no shell, no container), a Mac, or a Linux install without Docker. The server says how it is installed (install: mandarin-os, docker, mac, linux or native, in /api/auth/status and /api/status), and the page says what to do there: at Mandarin OS's screen, type passwordreset; for music, copy it into smb://mandarin/data's Storage or plug in a USB drive. "Can't reach Mandarin. Is the container running?" no longer names a container

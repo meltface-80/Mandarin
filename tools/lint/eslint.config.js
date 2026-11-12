@@ -30,6 +30,11 @@ const sqTool = {
   files: ["sq-tool/sqtool/web/**/*.js"],
   languageOptions: { ecmaVersion: 2024, sourceType: "script", globals: { ...globals.browser, ...globals.es2024 } }
 };
+// Mandarin OS's system page (os/…/system-page/, item 389): a page of its own in the browser, one script, served at /.
+const osPage = {
+  files: ["os/mkosi.extra/usr/lib/mandarin-os/system-page/*.js"],
+  languageOptions: { ecmaVersion: 2024, sourceType: "script", globals: { ...globals.browser, ...globals.es2024 } }
+};
 // Page scripts the Node tests load too: they look for module/require/Buffer before using them.
 const shared = {
   files: ["public/biquad.js", "public/sharecard.js", "public/srp.js"],
@@ -66,6 +71,7 @@ module.exports = [
   node,
   pages,
   sqTool,
+  osPage,
   shared,
   rules,
   parts
