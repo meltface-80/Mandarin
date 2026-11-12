@@ -40,8 +40,10 @@ function steps(block) {
   return out;
 }
 
-// What CI's test job does before its tests that is only CI's own: the page's syntax, not something a test uses.
-const CI_ONLY = ["Syntax check of the page"];
+// What CI's test job does before its tests that is only CI's own: the page's syntax, not something a test uses; and
+// Mandarin OS's ffmpeg, built only when Mandarin OS's workflows run the suite with it (item 389), never for a release,
+// which tests with the usual ffmpeg as CI does on every push.
+const CI_ONLY = ["Syntax check of the page", "Mandarin OS's ffmpeg (os/ffmpeg/build.sh)"];
 
 test("the release makes its runner ready for the tests as CI does, before it tests", () => {
   const ci = steps(job(read("ci.yml"), "test"));
