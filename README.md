@@ -40,7 +40,7 @@ under-the-hood fixes and improvements. The [changelog](CHANGELOG.md) has each ch
 * **Improved:** security, speed and reliability across the server, the page, the app and Mandarin Bridge; releases
   are signed, and the server and Mandarin Bridge install only a signed update.
 
-**Mandarin OS 0.1.2:** a lightweight operating system made only to run Mandarin Server, on a PC of its own, with its own
+**Mandarin OS 0.1.3:** a lightweight operating system made only to run Mandarin Server, on a PC of its own, with its own
 system page (`http://mandarin/`) to watch over and look after everything: a shared folder for your music, USB drives
 mounted as they are plugged in, and a weekly upkeep when nothing plays. See [Mandarin OS](#mandarin-os).
 
@@ -52,7 +52,7 @@ a command, below.
 | What | Version | Download |
 | --- | --- | --- |
 | **Mandarin Remote**, the Android app (Android 8.0 or newer) | v1.3.0 | [mandarin-android.apk](https://github.com/meltface-80/Mandarin/raw/main/dist/mandarin-android.apk) |
-| **Mandarin OS**, a system made only to run Mandarin (a 64-bit Intel or AMD PC with UEFI) | 0.1.2 | [mandarin-os-0.1.2-x64.img.xz](https://github.com/meltface-80/Mandarin/releases/download/mandarin-os-v0.1.2/mandarin-os-0.1.2-x64.img.xz) for balenaEtcher or dd · [mandarin-os-0.1.2-x64.img](https://github.com/meltface-80/Mandarin/releases/download/mandarin-os-v0.1.2/mandarin-os-0.1.2-x64.img) for a phone; see [Mandarin OS](#mandarin-os) |
+| **Mandarin OS**, a system made only to run Mandarin (a 64-bit Intel or AMD PC with UEFI) | 0.1.3 | [mandarin-os-0.1.3-x64.img.xz](https://github.com/meltface-80/Mandarin/releases/download/mandarin-os-v0.1.3/mandarin-os-0.1.3-x64.img.xz) for balenaEtcher or dd · [mandarin-os-0.1.3-x64.img](https://github.com/meltface-80/Mandarin/releases/download/mandarin-os-v0.1.3/mandarin-os-0.1.3-x64.img) for a phone; see [Mandarin OS](#mandarin-os) |
 | **Mandarin server** on Linux (Debian, Ubuntu, Raspberry Pi OS; x64 or arm64) | v1.3.0 | the one line under [Install on Linux](#install-on-linux) |
 | **Mandarin Bridge** for Android (a FiiO R7, say) | v0.3.10 | [mandarin-bridge.apk](https://github.com/meltface-80/Mandarin/releases/download/mandarin-bridge-v0.3.10/mandarin-bridge.apk) |
 | **Mandarin Bridge** for Raspberry Pi (3, 4, 5, Zero 2 W) | v0.3.10 | [mandarin-bridge-pi-arm64.img.xz](https://github.com/meltface-80/Mandarin/releases/download/mandarin-bridge-v0.3.10/mandarin-bridge-pi-arm64.img.xz) |
@@ -841,7 +841,7 @@ computer does.
 **A lightweight operating system made only to run Mandarin Server**, on a computer of its own, with a web page of its
 own, the **system page**, to watch over and look after everything. A music server should be something you switch on and
 forget: Mandarin OS is Mandarin and only what Mandarin needs, installed from a USB stick in a few minutes, with nothing
-else to set up or keep up to date. Version 0.1.2; on the Pages site, [Mandarin OS](https://meltface-80.github.io/Mandarin/mandarin-os.html).
+else to set up or keep up to date. Version 0.1.3; on the Pages site, [Mandarin OS](https://meltface-80.github.io/Mandarin/mandarin-os.html).
 
 * **Lightweight:** Debian 13 with Mandarin installed natively, and nothing else: no desktop, no login, no SSH. Everything
   coming in from the network is refused by a firewall, but what Mandarin and the system answer.
@@ -866,18 +866,18 @@ else to set up or keep up to date. Version 0.1.2; on the Pages site, [Mandarin O
 #### Download
 
 The image comes two ways, the same system either way, each with its checksum (`.sha256`) and its signature (`.sig`), on
-the [Mandarin OS 0.1.2 release](https://github.com/meltface-80/Mandarin/releases/tag/mandarin-os-v0.1.2):
+the [Mandarin OS 0.1.3 release](https://github.com/meltface-80/Mandarin/releases/tag/mandarin-os-v0.1.3):
 
 | File | Size | For |
 | --- | --- | --- |
-| [mandarin-os-0.1.2-x64.img.xz](https://github.com/meltface-80/Mandarin/releases/download/mandarin-os-v0.1.2/mandarin-os-0.1.2-x64.img.xz) ([sha256](https://github.com/meltface-80/Mandarin/releases/download/mandarin-os-v0.1.2/mandarin-os-0.1.2-x64.img.xz.sha256)) | about 380 MB | balenaEtcher and the Linux terminal |
-| [mandarin-os-0.1.2-x64.img](https://github.com/meltface-80/Mandarin/releases/download/mandarin-os-v0.1.2/mandarin-os-0.1.2-x64.img) ([sha256](https://github.com/meltface-80/Mandarin/releases/download/mandarin-os-v0.1.2/mandarin-os-0.1.2-x64.img.sha256)) | about 1.6 GB | an Android phone (EtchDroid) |
+| [mandarin-os-0.1.3-x64.img.xz](https://github.com/meltface-80/Mandarin/releases/download/mandarin-os-v0.1.3/mandarin-os-0.1.3-x64.img.xz) ([sha256](https://github.com/meltface-80/Mandarin/releases/download/mandarin-os-v0.1.3/mandarin-os-0.1.3-x64.img.xz.sha256)) | about 380 MB | balenaEtcher and the Linux terminal |
+| [mandarin-os-0.1.3-x64.img](https://github.com/meltface-80/Mandarin/releases/download/mandarin-os-v0.1.3/mandarin-os-0.1.3-x64.img) ([sha256](https://github.com/meltface-80/Mandarin/releases/download/mandarin-os-v0.1.3/mandarin-os-0.1.3-x64.img.sha256)) | about 1.6 GB | an Android phone (EtchDroid) |
 
 #### Make the USB installer
 
 **With balenaEtcher** (Windows, macOS or a Linux desktop):
 
-1. Install [balenaEtcher](https://etcher.balena.io/) and download `mandarin-os-0.1.2-x64.img.xz`. Etcher takes the
+1. Install [balenaEtcher](https://etcher.balena.io/) and download `mandarin-os-0.1.3-x64.img.xz`. Etcher takes the
    compressed file as it is: there is nothing to unpack.
 2. Plug in the USB stick and open Etcher.
 3. **Flash from file**: choose the `.img.xz` you downloaded.
@@ -893,29 +893,29 @@ the [Mandarin OS 0.1.2 release](https://github.com/meltface-80/Mandarin/releases
 3. In the folder you downloaded to, check the download against its checksum (it should say *OK*):
 
    ```bash
-   sha256sum -c mandarin-os-0.1.2-x64.img.xz.sha256
+   sha256sum -c mandarin-os-0.1.3-x64.img.xz.sha256
    ```
 
 4. Write it to the whole device, `/dev/sdX` (not a partition such as `/dev/sdX1`), with `sdX` the stick's name from
    `lsblk`:
 
    ```bash
-   xz -dc mandarin-os-0.1.2-x64.img.xz | sudo dd of=/dev/sdX bs=4M conv=fsync status=progress
+   xz -dc mandarin-os-0.1.3-x64.img.xz | sudo dd of=/dev/sdX bs=4M conv=fsync status=progress
    ```
 
    From the plain image, the same without `xz`:
 
    ```bash
-   sudo dd if=mandarin-os-0.1.2-x64.img of=/dev/sdX bs=4M conv=fsync status=progress
+   sudo dd if=mandarin-os-0.1.3-x64.img of=/dev/sdX bs=4M conv=fsync status=progress
    ```
 
 5. Then run `sync`, and take the stick out once it has returned.
 
 **From an Android phone, with EtchDroid** (free, on Google Play and F-Droid). It needs the plain
-**`mandarin-os-0.1.2-x64.img`**, not the `.img.xz`: a phone's writer doesn't decompress, and a stick written from the
+**`mandarin-os-0.1.3-x64.img`**, not the `.img.xz`: a phone's writer doesn't decompress, and a stick written from the
 compressed file starts nothing. The stick goes into the phone through a USB-OTG or USB-C adapter (or a USB-C stick).
 
-1. Download `mandarin-os-0.1.2-x64.img` on the phone (about 1.6 GB: Wi-Fi is best).
+1. Download `mandarin-os-0.1.3-x64.img` on the phone (about 1.6 GB: Wi-Fi is best).
 2. Plug the USB stick into the phone through the adapter.
 3. Open EtchDroid and choose to write an image (a raw image), then pick the `.img` you downloaded.
 4. Pick the USB stick.
@@ -962,7 +962,8 @@ home can read it; every change asks for the shared folder's password (five wrong
 for five minutes).
 
 * **Overview:** Mandarin answering, its version and library, and each of its services running or not.
-* **Storage:** the data partition's space; each USB drive, whether it is read-only and why, and **Eject** before you
+* **Storage:** the data partition's space; each USB drive, whether it is read-only and why, **Make them the shared
+  folder's** for a Linux drive from another computer (below), and **Eject** before you
   unplug it; internal storage, where another internal disk can be formatted for it (you type `erase` first; never the
   system's disk or a USB drive).
 * **Network & Access:** the address now; DHCP or a static address, which is checked before it is taken and put back by
@@ -987,6 +988,12 @@ install:
 **USB drives** are mounted as they are plugged in, checked first, and their music is in Mandarin: ext4, exFAT, FAT and
 NTFS, and a Mac drive (HFS+) read-only. One whose filesystem can't be repaired is mounted read-only, and the system page
 says why. Eject it on the system page before you unplug it.
+
+**A Linux drive (ext4) from another computer** keeps the owners its files were given there: the shared folder copies
+music from it, but moving, renaming or deleting on it is refused ("Access denied"). The system page's **Storage** tab says
+so beside the drive; **Make them the shared folder's** (with the shared folder's password) makes its files the shared
+folder's, and then they can be moved, renamed and deleted. Only that drive is changed, and a big one takes a few minutes.
+exFAT, FAT and NTFS drives need nothing: they are the shared folder's as they are plugged in.
 
 **The box's own screen** (a screen plugged in) shows its version, where to find Mandarin, the system page and the shared
 folder, and whether Mandarin is running. It takes two words, typed with a keyboard and then confirmed with `yes`:

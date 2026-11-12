@@ -6,7 +6,8 @@
 #   README and layout there, music written into Storage, and nothing written where it is read-only; Mandarin's and the
 #   system's logs in it; nothing at all on SSH's port; mandarin.local and the system's own checks (maintain --check) are
 #   asked of it through its logs; USB drives (exFAT, NTFS, ext4) plugged in at the start and while it runs, each
-#   mounted in Storage/USB with its music and on the system page. Then, given NEXT (os/test/next-mandarin.sh's program,
+#   mounted in Storage/USB with its music and on the system page; one whose files are another's made the shared
+#   folder's from the system page (item 399). Then, given NEXT (os/test/next-mandarin.sh's program,
 #   a newer Mandarin), the in-app update (item 398): Settings → Updates on the installed system takes a newer release from
 #   a stand-in GitHub on this computer, and Mandarin starts again as it, its library and account kept. Needs
 #   qemu-system-x86_64, OVMF, mtools, smbclient, curl, jq, exfatprogs, ntfs-3g, node, python3, and root (loop devices,
@@ -164,6 +165,19 @@ usb_in() {  # name: its music in the share, and the system page knows it
 }
 for d in "Music SSD" "Music NTFS" "Music ext4"; do usb_in "$d"; done
 ok "three USB drives plugged in at the start (exFAT, NTFS, ext4 on the whole disk): each in Storage/USB with its music, writable, on the system page"
+# A Linux drive written on another computer (item 399): "Music ext4"'s files are root's, as this test wrote them, so the
+# shared folder can't rename in it until the system page makes them the shared folder's; then it can.
+ren() { S -c "cd \"Storage/USB/Music ext4/Artist/Album\"; rename $1 $2"; }
+curl -fsS --max-time 30 http://127.0.0.1:10080/api/state | jq -e '.usb[] | select(.name == "Music ext4" and .others)' >/dev/null \
+  || fail "the system page doesn't say Music ext4's files are another's: $(curl -fsS http://127.0.0.1:10080/api/state | jq -c .usb)"
+ren 01.flac 02.flac | grep -q NT_STATUS_ACCESS_DENIED || fail "a rename on another's drive wasn't refused: $(ren 01.flac 02.flac)"
+own="$(curl -sS --max-time 30 -H 'Content-Type: application/json' -d '{"password":"listen-carefully","name":"Music ext4"}' http://127.0.0.1:10080/api/usb/own)"
+jq -e .ok <<< "$own" >/dev/null || fail "the system page didn't take Make them the shared folder's: $own"
+for i in $(seq 1 60); do u="$(curl -fsS --max-time 30 http://127.0.0.1:10080/api/state | jq -c '.usb[] | select(.name == "Music ext4")')"; [ "$(jq -r '.changing' <<< "$u")" = "" ] && break; sleep 2; done
+[ "$(jq -r '"\(.changing)|\(.others)"' <<< "$u")" = "|false" ] || { usb_why; fail "Music ext4's files weren't made the shared folder's: $u"; }
+r="$(ren 01.flac 02.flac)"; ! grep -q NT_STATUS <<< "$r" || fail "a rename on the drive made the shared folder's: $r"
+ren 02.flac 01.flac >/dev/null
+ok "a Linux drive whose files are another's: said so, renaming refused, then made the shared folder's from the system page, and renaming works"
 printf 'drive_add 0 if=none,id=u4,format=raw,file=%s\ndevice_add usb-storage,bus=xhci.0,drive=u4,id=later\n' "$W/usb-later.raw" \
   | python3 -c 'import socket,sys,time; s=socket.socket(socket.AF_UNIX); s.connect(sys.argv[1]); time.sleep(0.5); [ (s.sendall(l.encode()), time.sleep(1)) for l in sys.stdin ]; time.sleep(1)' "$W/monitor.sock" \
   || fail "QEMU's monitor didn't take the drive"

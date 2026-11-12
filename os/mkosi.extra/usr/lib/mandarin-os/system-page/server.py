@@ -16,12 +16,13 @@ elsewhere can't reach it under its own site's name, nor make changes in your bro
                                       unless /api/network/keep is asked from the new address
   POST /api/network/keep              { password }
   POST /api/usb/eject                 { password, name }
+  POST /api/usb/own                   { password, name }: a Linux drive's files made the shared folder's (usb_owner.py)
   POST /api/internal/format           { password, disk, erase: "erase" }
   POST /api/bridge                    { password, action: install | remove }
 
 MANDARIN_OS_ROOT (the tests'): every path under it, and its commands from PATH as they find them."""
 import hashlib, http.server, ipaddress, json, os, re, shutil, socketserver, struct, subprocess, sys, threading, time, urllib.request
-import logs_one
+import logs_one, usb_owner
 
 ROOT = os.environ.get("MANDARIN_OS_ROOT", "")
 PORT = int(os.environ.get("MANDARIN_OS_PORT", "80"))
@@ -55,6 +56,9 @@ def read(path, default=""):
 
 def log(level, msg):
     run(["bash", "-c", '. "$0"/log.sh && oslog "$1" "$2"', LIB, level, "[system page] " + msg])
+
+
+usb_owner.use(run, read, log, P)
 
 
 # The share's password, checked as Samba keeps it (its NT hash: MD4 of the password in UTF-16LE).
@@ -122,7 +126,8 @@ def usb_drives():
         mode = (read("/run/mandarin-os/usb/" + name) or "rw").split("\n")
         code, fs, _ = run(["findmnt", "-no", "FSTYPE", os.path.join(base, name)])
         out.append({"name": name, "fs": fs or "?", "mounted": code == 0, "read_only": mode[0] == "ro",
-                    "why": mode[1] if len(mode) > 1 else "", "space": space("/data/Storage/USB/" + name)})
+                    "why": mode[1] if len(mode) > 1 else "", "space": space("/data/Storage/USB/" + name),
+                    "others": mode[0] != "ro" and usb_owner.others(name, fs), "changing": usb_owner.changing(name)})
     return out
 
 
@@ -460,7 +465,8 @@ class Page(http.server.BaseHTTPRequestHandler):
         p, action = self.path.split("?")[0], body.get("action")
         routes = {"/api/check": lambda: (200, {"ok": True}), "/api/power": lambda: power(action), "/api/mandarin": lambda: mandarin_action(action),
                   "/api/network": lambda: change_network(body, self.client_address[0]), "/api/network/keep": keep_network,
-                  "/api/usb/eject": lambda: eject(body.get("name")), "/api/bridge": lambda: bridge(action),
+                  "/api/usb/eject": lambda: eject(body.get("name")), "/api/usb/own": lambda: usb_owner.make_ours(body.get("name")),
+                  "/api/bridge": lambda: bridge(action),
                   "/api/internal/format": lambda: format_internal(body.get("disk")) if body.get("erase") == "erase" else (400, {"error": "Type erase to format it"})}
         if p not in routes:
             return self.send(404, {"error": "No such action"})

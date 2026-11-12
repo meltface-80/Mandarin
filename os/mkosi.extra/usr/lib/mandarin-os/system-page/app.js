@@ -82,8 +82,12 @@
     $("share-user").textContent = st.share.user ? "User " + st.share.user + ", with the password chosen at install" : "";
     // Storage.
     $("data-row").innerHTML = st.data ? row("Mandarin's data", esc(st.data.free) + " free of " + esc(st.data.size) + bar(st.data.used_pct), "") : row("Mandarin's data", "No data partition", "");
-    $("usb").innerHTML = usb.length ? usb.map((u) => row(esc(u.name), esc(u.fs) + (u.space ? " · " + esc(u.space.free) + " free of " + esc(u.space.size) : "") + (u.read_only ? " · read-only: " + esc(u.why) : ""),
-      (u.read_only ? '<span class="state warn">Read only</span> ' : "") + '<button data-eject="' + esc(u.name) + '">Eject</button>')).join("") : row("None plugged in", "A USB drive appears here a few seconds after it is plugged in.", "");
+    // A Linux drive from another computer keeps that computer's owners: copied from, not changed, until made ours (item 399).
+    const owner = (u) => u.changing === "changing" ? " · its files being made the shared folder's…" : u.changing ? " · its files couldn't all be made the shared folder's: " + esc(u.changing.replace(/^failed: /, ""))
+      : u.others ? " · its files are another computer's: the shared folder copies from it, but can't move, rename or delete on it" : "";
+    $("usb").innerHTML = usb.length ? usb.map((u) => row(esc(u.name), esc(u.fs) + (u.space ? " · " + esc(u.space.free) + " free of " + esc(u.space.size) : "") + (u.read_only ? " · read-only: " + esc(u.why) : "") + owner(u),
+      (u.read_only ? '<span class="state warn">Read only</span> ' : "") + (u.others && u.changing !== "changing" ? '<button data-own="' + esc(u.name) + '">Make them the shared folder\'s</button> ' : "") +
+      '<button data-eject="' + esc(u.name) + '">Eject</button>')).join("") : row("None plugged in", "A USB drive appears here a few seconds after it is plugged in.", "");
     const i = st.internal;
     $("internal").innerHTML = i.mounted && i.space ? row("Storage/Internal", esc(i.space.free) + " free of " + esc(i.space.size) + bar(i.space.used_pct), '<span class="state ok">✓ Ready</span>')
       : i.disks.length ? i.disks.map((d) => row(esc(d.model) + " (" + esc(d.size) + ")", esc(d.disk) + " · not yet formatted for Mandarin OS", '<button class="danger" data-format="' + esc(d.disk) + '">Format</button>')).join("")
@@ -124,6 +128,8 @@
     const t = e.target.closest("button");
     if (!t) return;
     if (t.id === "net-keep") act("/api/network/keep", {}, "Keep this network", "It stays as it is now.");
+    else if (t.dataset.own) act("/api/usb/own", { name: t.dataset.own }, "Make " + t.dataset.own + "'s files the shared folder's",
+      "Its files become the shared folder's user's, so moving, renaming and deleting on it work. Mandarin reads them as before. Only this drive is changed; a big one takes a few minutes.");
     else if (t.dataset.eject) act("/api/usb/eject", { name: t.dataset.eject }, "Eject " + t.dataset.eject, "It can be unplugged once ejected.");
     else if (t.dataset.format) act("/api/internal/format", { disk: t.dataset.format }, "Format " + t.dataset.format, "EVERYTHING ON THIS DISK IS ERASED. It becomes Storage/Internal.", { erase: true });
     else if (t.dataset.bridge) act("/api/bridge", { action: t.dataset.bridge }, t.dataset.bridge === "install" ? "Install Mandarin Bridge" : "Remove Mandarin Bridge", "");
@@ -154,12 +160,20 @@
     $("diag").innerHTML = d ? d.map((s) => row(esc(s.step), esc(s.detail), s.ok ? '<span class="state ok">✓ OK</span>' : '<span class="state bad">✗ Not working</span>')).join("") : '<p class="note">The box didn\'t answer.</p>';
   });
 
+  // Two reads in a row not answered say so (one can be a phone waking the tab); the next answered takes it away again,
+  // and only it: what an action said stays (item 399: it stayed up for good after one missed read).
+  const NOT_ANSWERING = "The box isn't answering: is it on?";
+  let missed = 0;
   async function load() {
-    try {
-      st = await fetch("/api/state").then((r) => r.json());
-      render();
-    } catch (e) { banner("The box isn't answering: is it on?", true); }
+    let got;
+    try { got = await fetch("/api/state").then((r) => (r.ok ? r.json() : Promise.reject(new Error("HTTP " + r.status)))); }
+    catch (e) { if (++missed === 2) banner(NOT_ANSWERING, true); return; }
+    if ($("banner").textContent === NOT_ANSWERING) banner("");
+    missed = 0;
+    st = got;
+    render();
   }
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) load(); });
   try { const t = localStorage.getItem("mos-tab"); if (t && $(t)) tab(t); } catch (e) { /* the first tab */ }
   load();
   setInterval(load, 10000);

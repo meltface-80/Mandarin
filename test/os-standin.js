@@ -6,6 +6,9 @@
  *
  *   const box = await standIn({ rooms: 1 });   box.base, box.root, box.calls(), box.stderr(); await box.stop()
  *
+ * [linuxDrives]: two ext4 USB drives whose files are another computer's user's (item 399), "Old Drive" and "Broken
+ * Drive", whose files can't be changed (its chown fails); chown and chmod stand in, find runs as it is.
+ *
  * The password is "password": Samba keeps it as its NT hash (MD4 of it in UTF-16LE). Neither OpenSSL 3 nor Node offer
  * MD4, so the well-known hash of "password" stands in, independent of the page's own MD4.
  */
@@ -21,7 +24,7 @@ const PASSWORD = "password", NT = "8846F7EAEE8FB117AD06BDD830B7586C";
 const noPython = spawnSync("python3", ["--version"]).status !== 0 && "python3 is not installed";
 
 /** The box started, its page answering; [opts]: Mandarin's albums and rooms. */
-async function standIn({ albums = 1234, rooms = 3 } = {}) {
+async function standIn({ albums = 1234, rooms = 3, linuxDrives = false } = {}) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "musicd-test-system-page-"));
   const root = path.join(dir, "root"), bin = path.join(dir, "bin"), log = path.join(dir, "calls.log");
   const mk = (p, text) => { fs.mkdirSync(path.dirname(path.join(root, p)), { recursive: true }); fs.writeFileSync(path.join(root, p), text); };
@@ -35,6 +38,7 @@ async function standIn({ albums = 1234, rooms = 3 } = {}) {
   mk("/data/MandarinServer/Logs/Apps/Nothing_A142.txt", "# The Mandarin app on Nothing A142\n2026-11-12 07:00:03.250 UTC  WARN   [NET] server POST /api/settings/qobuz/import → SocketTimeoutException\n");
   mk("/data/Storage/USB/Music SSD/.keep", "");
   mk("/run/mandarin-os/usb/Music SSD", "ro\nit wasn't removed safely, and couldn't be repaired\n");
+  if (linuxDrives) for (const d of ["Old Drive", "Broken Drive"]) { mk(`/data/Storage/USB/${d}/Artist/Album/01.flac`, "x"); mk(`/data/Storage/USB/${d}/lost+found/.keep`, ""); mk(`/run/mandarin-os/usb/${d}`, "rw\n"); }
   mk("/usr/lib/mandarin-os/VERSION", "0.1.0\n");
   mk("/etc/hostname", "mandarin\n");
   fs.mkdirSync(bin);
@@ -43,7 +47,11 @@ async function standIn({ albums = 1234, rooms = 3 } = {}) {
   shim("pdbedit", `echo "music:1001:XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX:${NT}:[U          ]:LCT-00000000:"`);
   shim("nmcli", `echo "eth0:ethernet:connected"`);
   shim("ip", `case "$*" in *"addr show"*) echo "2: eth0    inet 192.168.0.57/24 brd 192.168.0.255 scope global dynamic eth0" ;; *route*) echo "default via 192.168.0.1 dev eth0" ;; esac`);
-  shim("findmnt", `case "$*" in *Music*) echo exfat ;; *SOURCE*/) echo /dev/sda2 ;; *) exit 1 ;; esac`);
+  shim("findmnt", `case "$*" in *Music*) echo exfat ;; *Drive*) echo ext4 ;; *SOURCE*/) echo /dev/sda2 ;; *) exit 1 ;; esac`);
+  // The shared folder's user: not whoever runs the test, so the drives' files are someone else's.
+  shim("id", `[ "$1 $2" = "-u music" ] && echo ${(process.getuid ? process.getuid() : 0) + 1} || exit 1`);
+  shim("chown", `case "$*" in *Broken*) echo "chown: changing ownership of 'x': Operation not permitted" >&2; exit 1 ;; esac`);
+  shim("chmod");
   shim("lsblk", `case "$*" in *-J*) echo '{"blockdevices":[{"name":"sda","size":256000000000,"model":"SSD","tran":"sata","rm":false,"type":"disk"},{"name":"sdb","size":4000000000000,"model":"WDC WDS400T2B0A","tran":"sata","rm":false,"type":"disk"}]}' ;; *) echo sda ;; esac`);
   shim("journalctl", `echo "2026-11-12T07:00:00.500000+00:00 mandarin systemd[1]: Started Mandarin."`);
   // As an OptiPlex answered it: the link's name beside its server.
