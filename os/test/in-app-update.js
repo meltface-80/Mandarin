@@ -16,6 +16,7 @@
  * the first that fails ends it with "FAIL: why" and exit code 1.
  */
 const fs = require("fs");
+const http = require("http");
 const { signIn } = require("../../test/auth-helper");
 
 const sleep = (/** @type {number} */ ms) => new Promise(r => setTimeout(r, ms));
@@ -47,18 +48,25 @@ async function api(base, rel, token, post) {
 }
 
 /**
- * The system page's [rel] (api/logs/journal, api/state), asked again for two minutes: in a virtual machine without KVM,
- * a page busy reading the journal closed the connection without an answer once. Why, where it never answers.
+ * The system page's [rel] (api/logs/journal, api/state), asked again for two minutes; why, where it never answers. By
+ * node:http, not fetch: the boot test reaches the page on port 10080, one of the ports fetch refuses ("bad port").
  * @param {string} page @param {string} rel @returns {Promise<string>}
  */
 async function pageGet(page, rel) {
   let why = "";
+  const once = () => new Promise((resolve, reject) => {
+    const req = http.get(`${page}/${rel}`, { timeout: 60000 }, res => {
+      let body = "";
+      res.setEncoding("utf8").on("data", d => { body += d; }).on("end", () => resolve({ status: res.statusCode, body }));
+    });
+    req.on("timeout", () => req.destroy(new Error("no answer in a minute"))).on("error", reject);
+  });
   const got = await until(async () => {
     try {
-      const r = await fetch(`${page}/${rel}`, { signal: AbortSignal.timeout(60000) });
-      if (r.status === 200) return { text: await r.text() };
+      const r = /** @type {{ status: number, body: string }} */ (await once());
+      if (r.status === 200) return { text: r.body };
       why = `HTTP ${r.status}`;
-    } catch (e) { why = `${e.message}${e.cause ? ` (${e.cause.message || e.cause})` : ""}`; }
+    } catch (e) { why = e.message; }
     return null;
   }, 120000);
   return got ? got.text : fail(`the system page's /${rel} didn't answer: ${why}`);
