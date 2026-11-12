@@ -2,7 +2,9 @@
 # Outside the image (its network, its certificates): Mandarin's latest release fetched into the image's cache, for
 # mkosi.finalize.chroot to install from with tools/linux/install.sh, which checks each file against the release key.
 set -euo pipefail
-V="${MANDARIN_VERSION:-$(curl -fsSL --retry 3 https://api.github.com/repos/meltface-80/Mandarin/releases/latest | sed -n 's/^ *"tag_name": *"v\{0,1\}\([^"]*\)".*/\1/p' | head -n 1)}"
+# The latest release's version from where github.com's own page for it leads (…/releases/tag/v1.3.0): no API, so no
+# API rate limit (a CI runner's address shares one, and was refused).
+V="${MANDARIN_VERSION:-$(curl -fsSIL --retry 3 -o /dev/null -w '%{url_effective}' https://github.com/meltface-80/Mandarin/releases/latest | sed -n 's|.*/releases/tag/v\{0,1\}\([^/]*\)$|\1|p')}"
 [ -n "$V" ] || { echo "Mandarin's latest release couldn't be found" >&2; exit 1; }
 dest="$BUILDROOT/var/cache/mandarin-release"
 mkdir -p "$dest/v$V"

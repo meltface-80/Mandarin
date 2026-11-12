@@ -91,7 +91,12 @@ if [ "$APT" = 1 ]; then
 fi
 
 # 2. The latest release, checked.
-VERSION="${MANDARIN_VERSION:-$(curl -fsSL --retry 3 "$API/releases/latest" | sed -n 's/^ *"tag_name": *"v\{0,1\}\([^"]*\)".*/\1/p' | head -n 1)}"
+# The latest release's version: where its page leads (…/releases/tag/v1.3.0), else GitHub's API (rate-limited per address).
+latest() {
+  curl -fsSIL --retry 3 -o /dev/null -w '%{url_effective}' "${RELEASES%/download}/latest" 2>/dev/null | sed -n 's|.*/releases/tag/v\{0,1\}\([^/]*\)$|\1|p'
+}
+VERSION="${MANDARIN_VERSION:-$(latest)}"
+[ -n "$VERSION" ] || VERSION="$(curl -fsSL --retry 3 "$API/releases/latest" | sed -n 's/^ *"tag_name": *"v\{0,1\}\([^"]*\)".*/\1/p' | head -n 1)"
 [ -n "$VERSION" ] || die "Couldn't find Mandarin's latest release. Check the connection and run it again."
 say "Downloading Mandarin $VERSION ($RID)…"
 B="musicd-server-$VERSION.tar.gz" S="mandarin-server-$RID.gz"
