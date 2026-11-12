@@ -25,6 +25,10 @@ public sealed class PowerTests
                 new { env = new Dictionary<string, string> { ["XPC_SERVICE_NAME"] = "0" }, mac = true },
                 // The login item's name means nothing off a Mac.
                 new { env = new Dictionary<string, string> { ["MANDARIN_LAUNCHD"] = "app.mandarin.server" } },
+                // The Linux installer's systemd service (tools/linux/install.sh): started again with systemctl or the computer.
+                new { env = new Dictionary<string, string> { ["MANDARIN_SYSTEMD"] = "mandarin.service" } },
+                // Its name means nothing in Docker.
+                new { env = new Dictionary<string, string> { ["DOCKER"] = "1", ["MANDARIN_SYSTEMD"] = "mandarin.service" } },
             }
         }))["powers"].Items().ToList();
         JsonAssert.Same("""{"restart":true,"shutdown":false,"docker":true,"start_again":"docker"}""", p[0]);
@@ -33,5 +37,7 @@ public sealed class PowerTests
         JsonAssert.Same(p[2]!.ToJsonString(), p[3]);
         JsonAssert.Same(p[1]!.ToJsonString(), p[4]);
         JsonAssert.Same(p[1]!.ToJsonString(), p[5]);
+        JsonAssert.Same("""{"restart":true,"shutdown":true,"docker":false,"start_again":"service"}""", p[6]);
+        JsonAssert.Same(p[0]!.ToJsonString(), p[7]);
     }
 }

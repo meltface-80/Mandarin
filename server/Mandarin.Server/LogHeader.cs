@@ -16,6 +16,7 @@ internal static class LogHeader
         Environment.GetEnvironmentVariable("MANDARIN_OS") is { Length: > 0 } os ? "Mandarin OS " + os
         : Scans.InDocker ? "Docker"
         : Environment.GetEnvironmentVariable("MANDARIN_LAUNCHD") is { Length: > 0 } ? "Mac (installer)"
+        : Environment.GetEnvironmentVariable("MANDARIN_SYSTEMD") is { Length: > 0 } ? "Linux (installer, systemd)"
         : "native";
 
     /* The lines that open a file, each "# " before it. */

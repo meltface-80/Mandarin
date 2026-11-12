@@ -51,14 +51,16 @@ internal static partial class Library
         env ??= Environment.GetEnvironmentVariable;
         var docker = env("DOCKER") == "1";
         var label = mac ?? OperatingSystem.IsMacOS() ? LaunchdLabel(env) : null;
+        // Installed on Linux as a systemd service (tools/linux/install.sh): started again with systemctl, or the computer.
+        var service = !docker && env("MANDARIN_SYSTEMD") is { Length: > 0 };
         return new JsonObject
         {
             ["restart"] = true,
             ["shutdown"] = !docker,
             ["docker"] = docker,
-            // "icon": the Mandarin icon on the Mac's desktop; "docker": docker start;
-            // "manual": however it was started (a service manager, by hand).
-            ["start_again"] = docker ? "docker" : label != null ? "icon" : "manual"
+            // "icon": the Mandarin icon on the Mac's desktop; "docker": docker start; "service": the Linux installer's
+            // systemd service (systemctl start, or the computer started again); "manual": however it was started.
+            ["start_again"] = docker ? "docker" : label != null ? "icon" : service ? "service" : "manual"
         };
     }
 
