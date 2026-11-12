@@ -1,6 +1,6 @@
 # Mandarin OS
 
-Mandarin on a computer of its own, as ROCK is Roon's: write the image to a USB stick, start the computer from it, answer
+Mandarin on a computer of its own, a lightweight system made only to run it, with its own page to look after it: write the image to a USB stick, start the computer from it, answer
 a few questions, and the computer is a Mandarin server with nothing else to look after (item 389's plan, phase 3).
 
 * **Hardware:** a 64-bit Intel or AMD computer with UEFI and a wired network (an Intel NUC, a Dell OptiPlex Micro, a
@@ -23,7 +23,7 @@ a few questions, and the computer is a Mandarin server with nothing else to look
 ## Writing the USB stick
 
 The image is published twice, the same either way: `mandarin-os-<version>-x64.img` as it is (about 1.6 GB), and
-`mandarin-os-<version>-x64.img.xz` compressed (about 380 MB). The stick needs 2 GB or more; everything on it is replaced.
+`mandarin-os-<version>-x64.img.xz` compressed (about 380 MB). The stick needs 4 GB or more; everything on it is replaced.
 
 * **From an Android phone** (EtchDroid, with a USB-C or OTG adapter): the **`.img`**. A phone's writer doesn't
   decompress, and a stick written from the `.img.xz` holds compressed bytes that no computer starts from.

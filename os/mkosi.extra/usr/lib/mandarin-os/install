@@ -75,7 +75,7 @@ while [ -z "$answers" ]; do
   fi
 
   bridge=false
-  D --title "Mandarin Bridge" --defaultno --yesno "A DAC plugged into this computer plays through Mandarin itself.\n\nAlso install Mandarin Bridge here? (Only if you want this computer to be a Bridge as well.)" 10 70 && bridge=true
+  D --title "Mandarin Bridge" --defaultno --yesno "A USB DAC plugged into this computer plays through Mandarin Bridge.\n\nInstall Mandarin Bridge here? (Yes if a DAC will be plugged into this computer; it can also be installed later from the system page, http://mandarin/.)" 11 70 && bridge=true
 
   sure="$(D --title "Erase and install" --inputbox "Mandarin OS is about to be written to $target$( [ -n "$internal" ] && printf ', and %s formatted as internal storage' "$internal").\n\nEverything on $( [ -n "$internal" ] && echo them || echo it) is erased. Type erase to go on." 12 70)" || continue
   [ "$sure" = erase ] && break
