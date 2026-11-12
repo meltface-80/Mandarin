@@ -232,8 +232,9 @@ internal sealed class CreditFinder(MusicBrainz mb, string? deezerBase, string? w
         }
         catch (LookupError e)
         {
-            // MusicBrainz out of reach: not kept, so asked again after a restart; a page asks again in an hour.
-            log($"[credits] {name}: {e.Message}");
+            // MusicBrainz out of reach: not kept, so asked again after a restart; a page asks again in an hour. Resting
+            // (item 396): said once by MusicBrainz.cs, not again for every act asked about meanwhile.
+            if (!e.Paused) log($"[credits] {name}: {e.Message}");
             failed[key] = NowMs();
             return;
         }

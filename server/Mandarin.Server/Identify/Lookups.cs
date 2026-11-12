@@ -131,8 +131,10 @@ internal static class Lookups
     }
 
     /* `${k}=${encodeURIComponent(v)}` joined by "&", in the order given. */
+    // A whole number as a number (item 396): Js.Str, as JavaScript's String(), has only doubles, and wrote an int as
+    // "[object Object]", so MusicBrainz was asked for limit=[object Object].
     public static string Query(IEnumerable<(string Key, object? Value)> parts) =>
-        string.Join("&", parts.Select(p => p.Key + "=" + Encode(Js.Str(p.Value))));
+        string.Join("&", parts.Select(p => p.Key + "=" + Encode(p.Value is int or long ? Convert.ToString(p.Value, System.Globalization.CultureInfo.InvariantCulture)! : Js.Str(p.Value))));
 
     // ---------------------------------------------------------------- MusicBrainz's second
 

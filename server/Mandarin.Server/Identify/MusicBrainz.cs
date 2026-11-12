@@ -105,13 +105,55 @@ internal sealed partial class MusicBrainz(string? baseUrl, string version) : IRe
         return c;
     }
 
+    /*
+     * MusicBrainz turning lookups away (item 396): its 503 is "too many requests". Every lookup then rests, a minute after
+     * the first, twice as long after each one more (an hour at most), said once in the log; asked meanwhile, a lookup fails
+     * at once (Paused) without asking. Before, each act a page asked about was asked for and logged: on the OptiPlex,
+     * "[credits] <act>: HTTP 503" every few seconds for two hours. An answer ends the rest.
+     */
+    private static readonly object restGate = new();
+    private static readonly Dictionary<string, (long Until, int Minutes)> rests = new(StringComparer.Ordinal);
+
+    /* Whether [baseUrl]'s MusicBrainz is resting now, and until when (ms, Environment.TickCount64). */
+    public static long? RestingUntil(string baseUrl)
+    {
+        lock (restGate) return rests.TryGetValue(baseUrl, out var r) && r.Until > Environment.TickCount64 ? r.Until : null;
+    }
+
     public async Task<object?> Get(string path, params (string, object?)[] ps)
     {
         var all = new List<(string, object?)> { ("fmt", "json") };
         all.AddRange(ps);
-        Requests++;
-        if (BaseUrl == DefaultBase) await Lookups.MbWait();
-        return await Lookups.Json($"{BaseUrl}/{path}?{Lookups.Query(all)}", [("User-Agent", UserAgent), ("Accept", "application/json")], 15000);
+        if (RestingUntil(BaseUrl) is null) Requests++;
+        return await Ask(BaseUrl, $"{BaseUrl}/{path}?{Lookups.Query(all)}", [("User-Agent", UserAgent), ("Accept", "application/json")], 15000);
+    }
+
+    /*
+     * [url] asked of [baseUrl]'s MusicBrainz, as every request to it is (this class's, the release days', the write-ups'):
+     * one at a time at musicbrainz.org (Lookups.MbWait), and not at all while it rests.
+     */
+    public static async Task<object?> Ask(string baseUrl, string url, IEnumerable<(string, string)> headers, int timeoutMs)
+    {
+        if (RestingUntil(baseUrl) is long until)
+            throw new LookupError($"MusicBrainz is resting after turning lookups away (503), for {Math.Ceiling((until - Environment.TickCount64) / 60000.0)} min more") { Status = 503, Paused = true };
+        if (baseUrl == DefaultBase) await Lookups.MbWait();
+        try
+        {
+            var answer = await Lookups.Json(url, headers, timeoutMs);
+            lock (restGate) rests.Remove(baseUrl);
+            return answer;
+        }
+        catch (LookupError e) when (e.Status == 503)
+        {
+            int minutes;
+            lock (restGate)
+            {
+                minutes = rests.TryGetValue(baseUrl, out var r) ? Math.Min(r.Minutes * 2, 60) : 1;
+                rests[baseUrl] = (Environment.TickCount64 + minutes * 60_000L, minutes);
+            }
+            Server.Log($"[musicbrainz] MusicBrainz turned a lookup away (HTTP 503: too many requests); every lookup rests {minutes} min");
+            throw new LookupError(e.Message) { Status = 503, Paused = true };
+        }
     }
 
     private static double TrackCountOf(JsObj r)
