@@ -74,7 +74,7 @@ test("the page's errors in the server's logs, and Settings → Logs", { skip, ti
       assert.match(r.all, /UTC {2}INFO {3}\[auth\] signed in/);
       assert.equal(r.none, "No lines here.");
       assert.match(r.about, /keeps a log always/);
-      assert.equal(r.href, "/api/diagnostics/zip");
+      assert.equal(r.href, "/api/diagnostics/logs.txt", "every log as one text file (item 392)");
     } finally { await b.close(); }
   } finally { await srv.stop(); }
 });

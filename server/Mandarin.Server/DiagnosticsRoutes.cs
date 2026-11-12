@@ -19,6 +19,12 @@ internal static partial class Library
             if (get && p == "/api/diagnostics/log") return await SendText(ctx, Diagnostics.Text());
             // Every Mandarin Bridge's own log, saved after the server's (item 291, Admin/BridgeLogs.cs).
             if (get && p == "/api/diagnostics/bridges") return await SendText(ctx, await Admin.BridgeLogs.Text());
+            // Every log as one text file, in time order (LogsOne.cs, item 392): what Download all logs gives.
+            if (get && p == "/api/diagnostics/logs.txt")
+            {
+                ctx.Response.Headers.ContentDisposition = $"attachment; filename=\"mandarin-logs-{DateTime.UtcNow:yyyyMMdd-HHmm}.txt\"";
+                return await SendText(ctx, LogsOne.Text());
+            }
             // Every log in one zip, and the page's own errors (DiagnosticsMore.cs, item 389).
             if (get && p == "/api/diagnostics/zip")
             {
