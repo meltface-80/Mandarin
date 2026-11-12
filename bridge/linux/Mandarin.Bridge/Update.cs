@@ -106,7 +106,8 @@ internal sealed partial class Update(string api, string data, Action<string> log
         UnauthorizedAccessException => "its data folder can't be written to",
         HttpIOException => "the download broke off",
         IOException => "its data folder couldn't be written to",
-        System.ComponentModel.Win32Exception => "tar couldn't be run",
+        // A program that couldn't be started says which, and why (item 391): every one was "tar couldn't be run" before.
+        System.ComponentModel.Win32Exception w => w.Message,
         _ => e.Message,
     };
 
@@ -236,7 +237,10 @@ internal sealed partial class Update(string api, string data, Action<string> log
     {
         var psi = new ProcessStartInfo(file) { UseShellExecute = false, RedirectStandardOutput = true, RedirectStandardError = true };
         foreach (var a in args) psi.ArgumentList.Add(a);
-        using var p = Process.Start(psi) ?? throw new InvalidOperationException(file + " couldn't be run");
+        Process? started;
+        try { started = Process.Start(psi); }
+        catch (System.ComponentModel.Win32Exception e) { throw new System.ComponentModel.Win32Exception(e.NativeErrorCode, $"{Path.GetFileName(file)} couldn't be run ({e.Message})"); }
+        using var p = started ?? throw new InvalidOperationException(file + " couldn't be run");
         var output = p.StandardOutput.ReadToEndAsync();
         var err = p.StandardError.ReadToEndAsync();
         if (!p.WaitForExit(wait)) { p.Kill(); throw new InvalidOperationException(file + " didn't finish"); }

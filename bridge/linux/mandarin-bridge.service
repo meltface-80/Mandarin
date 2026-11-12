@@ -13,6 +13,8 @@ RestartSec=3
 DynamicUser=yes
 SupplementaryGroups=audio
 StateDirectory=mandarin-bridge
+# Its home its data folder (item 391): DynamicUser gives it none, and .NET's certificate stores need one.
+Environment=HOME=/var/lib/mandarin-bridge
 AmbientCapabilities=CAP_SYS_NICE
 LimitRTPRIO=95
 LimitMEMLOCK=infinity
