@@ -1,0 +1,9 @@
+[Unit]
+Description=Mandarin OS: Mandarin's Shut down, for the computer
+ConditionPathIsMountPoint=/data
+
+[Path]
+PathExists=/run/mandarin-os/power/request
+
+[Install]
+WantedBy=multi-user.target

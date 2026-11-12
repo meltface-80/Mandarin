@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Changed - Shut down in Mandarin, on Mandarin OS, shuts the computer down too, and says its power button starts it all again (item 389): there is no shell there to start Mandarin again from. Mandarin asks Mandarin OS by a file only it can write, which Mandarin OS acts on for "poweroff" alone; the app says the same. Its question elsewhere for the Linux installer's service is now the app's too
 - New - Mandarin OS's system page, http://mandarin/ (item 389): its status, storage (USB drives ejected, internal storage formatted), network (DHCP or static, put back by itself if it loses the box), Mandarin Bridge, the logs and Reinstall or Reset Mandarin, and restart or shut down, each change asking for the shared folder's password (os/CHANGELOG.md)
 - Fixed - the rest of what Mandarin said as if it ran in Docker, said for how it is installed (item 389): no Sonos rooms (a container's --network host, only in Docker; elsewhere, speakers on the same network appear by themselves), the server's own discovery words, Away from home's built-in Tailscale, the scanner's higher priority, an update taking a while, no music folder, and, in the app, the forgotten password, a server not answering and the daily build's hour. Mandarin OS says passwordreset at its screen
 

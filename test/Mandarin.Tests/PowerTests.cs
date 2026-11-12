@@ -29,6 +29,9 @@ public sealed class PowerTests
                 new { env = new Dictionary<string, string> { ["MANDARIN_SYSTEMD"] = "mandarin.service" } },
                 // Its name means nothing in Docker.
                 new { env = new Dictionary<string, string> { ["DOCKER"] = "1", ["MANDARIN_SYSTEMD"] = "mandarin.service" } },
+                // Mandarin OS (item 389), its service the Linux installer's: the computer shuts down with it, and its power
+                // button starts it all again (there is no shell to run systemctl in).
+                new { env = new Dictionary<string, string> { ["MANDARIN_OS"] = "0.1.0", ["MANDARIN_SYSTEMD"] = "mandarin.service" } },
             }
         }))["powers"].Items().ToList();
         JsonAssert.Same("""{"restart":true,"shutdown":false,"docker":true,"start_again":"docker"}""", p[0]);
@@ -39,5 +42,6 @@ public sealed class PowerTests
         JsonAssert.Same(p[1]!.ToJsonString(), p[5]);
         JsonAssert.Same("""{"restart":true,"shutdown":true,"docker":false,"start_again":"service"}""", p[6]);
         JsonAssert.Same(p[0]!.ToJsonString(), p[7]);
+        JsonAssert.Same("""{"restart":true,"shutdown":true,"docker":false,"start_again":"power-button"}""", p[8]);
     }
 }

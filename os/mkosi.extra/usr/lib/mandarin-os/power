@@ -1,0 +1,17 @@
+#!/bin/bash
+# /usr/lib/mandarin-os/power — Mandarin's Shut down on Mandarin OS (item 389): the computer has no shell to start
+# Mandarin again from, so Shut down in Mandarin shuts the computer down, and its power button starts it all again.
+# Mandarin (as its own user) writes "poweroff" in the request file; mandarin-os-power.path runs this as root. The file
+# is read once and removed, and nothing but "poweroff" is acted on.
+set -uo pipefail
+. "$(dirname "$0")/log.sh"
+request="${MANDARIN_OS_POWER:-/run/mandarin-os/power/request}"
+[ -f "$request" ] || exit 0
+what="$(head -c 32 "$request" | tr -d '[:space:]')"
+rm -f "$request"
+if [ "$what" = poweroff ]; then
+  oslog INFO "[power] Mandarin's Shut down: the computer shuts down"
+  systemctl --no-block poweroff
+else
+  oslog WARN "[power] a request not acted on: ${what:0:32}"
+fi

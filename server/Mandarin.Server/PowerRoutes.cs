@@ -17,6 +17,9 @@
 //     launchd would start again a job that merely exited, so the job is unloaded
 //     instead (launchctl bootout) and the Mandarin icon on the desktop loads it
 //     again. It also starts again at the next login.
+//   - On Mandarin OS (MANDARIN_OS, item 389) the computer is Mandarin's alone and has no shell to start it again
+//     from, so the computer shuts down: asked of Mandarin OS by a file (/run/mandarin-os/power/request, which a
+//     systemd path unit of its own acts on), and the computer's power button starts it all again.
 //   - Anywhere else outside Docker it leaves with 0.
 //   - In Docker the container's restart policy brings any exit straight back,
 //     so Shut down isn't offered: `docker stop` is the way.
@@ -53,14 +56,16 @@ internal static partial class Library
         var label = mac ?? OperatingSystem.IsMacOS() ? LaunchdLabel(env) : null;
         // Installed on Linux as a systemd service (tools/linux/install.sh): started again with systemctl, or the computer.
         var service = !docker && env("MANDARIN_SYSTEMD") is { Length: > 0 };
+        var os = !docker && env("MANDARIN_OS") is { Length: > 0 };
         return new JsonObject
         {
             ["restart"] = true,
             ["shutdown"] = !docker,
             ["docker"] = docker,
             // "icon": the Mandarin icon on the Mac's desktop; "docker": docker start; "service": the Linux installer's
-            // systemd service (systemctl start, or the computer started again); "manual": however it was started.
-            ["start_again"] = docker ? "docker" : label != null ? "icon" : service ? "service" : "manual"
+            // systemd service (systemctl start, or the computer started again); "power-button": Mandarin OS, the computer
+            // shut down with it; "manual": however it was started.
+            ["start_again"] = docker ? "docker" : os ? "power-button" : label != null ? "icon" : service ? "service" : "manual"
         };
     }
 
@@ -107,11 +112,31 @@ internal static partial class Library
         {
             _ = Task.Delay(300).ContinueWith(async _ =>
             {
+                if (info["start_again"]?.GetValue<string>() == "power-button") AskComputerOff();
                 var label = OperatingSystem.IsMacOS() ? LaunchdLabel() : null;
                 if (label == null || !await UnloadLoginItem(label)) Server.StopApp?.Invoke();
             }, TaskScheduler.Default);
         }
         return true;
+    }
+
+    /*
+     * Mandarin OS asked to shut the computer down: "poweroff" in its request file, which its path unit
+     * (mandarin-os-power.path) acts on as root. Mandarin stops as well, so its library is saved before the
+     * computer goes; if the file can't be written, Mandarin is shut down alone, and the log says why.
+     */
+    private static void AskComputerOff()
+    {
+        var file = Environment.GetEnvironmentVariable("MANDARIN_OS_POWER") is { Length: > 0 } f ? f : "/run/mandarin-os/power/request";
+        try
+        {
+            File.WriteAllText(file, "poweroff\n");
+            Server.Log("[power] Mandarin OS asked to shut the computer down");
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            Server.Log($"[power] couldn't ask Mandarin OS to shut the computer down ({e.Message}); Mandarin alone is shut down");
+        }
     }
 
     /*

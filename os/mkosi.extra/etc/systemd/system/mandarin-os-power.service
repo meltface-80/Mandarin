@@ -1,0 +1,6 @@
+[Unit]
+Description=Mandarin OS: the computer shut down, as Mandarin asked
+
+[Service]
+Type=oneshot
+ExecStart=/usr/lib/mandarin-os/power
