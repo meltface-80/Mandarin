@@ -1,5 +1,6 @@
 [Unit]
 Description=Mandarin OS: after the upkeep's restart, a check that everything works
+ConditionPathIsMountPoint=/data
 ConditionPathExists=/data/MandarinOS/.check-after-start
 After=mandarin.service network-online.target
 

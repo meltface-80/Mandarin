@@ -99,6 +99,15 @@ if [ -n "$internal" ]; then
   mkfs.ext4 -F -L mandarin-internal "$part" >> "$LOG" 2>&1 && say "internal storage $internal formatted" || say "internal storage $internal couldn't be formatted"
   mkdir -p /mnt/data/Storage/Internal
 fi
+# The installed system's own mounts, written into it alone: the stick has no data partition and never waits for one
+# (its start was a screen of timeouts when the image carried these).
+root="$(lsblk -lnpo NAME,PARTLABEL "$target" | awk '$2 == "mandarin-os-a" { print $1 }')"
+mkdir -p /mnt/root && mount "$root" /mnt/root && {
+  printf '%s\n' "# Mandarin OS, as installed: the data partition, and the internal storage drive where one was chosen." \
+    "LABEL=mandarin-data      /data                  ext4  defaults,noatime,nofail,x-systemd.device-timeout=30s  0 2" > /mnt/root/etc/fstab
+  [ -n "$internal" ] && echo "LABEL=mandarin-internal  /data/Storage/Internal ext4  defaults,noatime,nofail,x-systemd.device-timeout=30s  0 2" >> /mnt/root/etc/fstab
+  umount /mnt/root
+} || say "the system's mounts couldn't be written"
 say "done"
 touch "$DONE"
 cp "$LOG" /mnt/data/MandarinOS/Logs/Installer_log.txt

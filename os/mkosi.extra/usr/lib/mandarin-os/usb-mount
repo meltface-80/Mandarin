@@ -12,6 +12,10 @@ state=/run/mandarin-os/usb
 mkdir -p "$state"
 case "$what" in
   add)
+    # Never the disk the system started from, nor a partition of Mandarin OS's own (a stick it was installed from).
+    root_disk="$(lsblk -no PKNAME "$(findmnt -no SOURCE /)" 2>/dev/null | head -n 1)"
+    [ -n "$root_disk" ] && [ "$(lsblk -no PKNAME "$dev" 2>/dev/null | head -n 1)" = "$root_disk" ] && exit 0
+    case "$(lsblk -no PARTLABEL "$dev" 2>/dev/null)" in mandarin-*|_empty|esp|ESP) exit 0 ;; esac
     eval "$(blkid -o export "$dev" 2>/dev/null)" || { oslog WARN "[usb] $dev: no filesystem read"; exit 0; }
     label="${LABEL:-}"
     [ -n "$label" ] || label="$(udevadm info -q property -n "$dev" | sed -n 's/^ID_MODEL=//p' | tr '_' ' ') ${UUID:0:4}"

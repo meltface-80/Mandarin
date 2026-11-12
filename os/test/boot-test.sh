@@ -35,6 +35,10 @@ QT=1800 qemu install -device qemu-xhci -drive if=none,id=stick,format=raw,file="
 parts="$(sfdisk -J "$W/disk.raw" | jq -r '[.partitiontable.partitions[].name] | join(",")')"
 [ "$parts" = "mandarin-os-a,_empty,mandarin-data" ] || [[ "$parts" == *"mandarin-os-a"*"mandarin-data"* ]] || fail "the disk's partitions: $parts"
 ok "installed: $parts"
+# The stick starts quietly, straight to the installer: nothing waited for, nothing failed (a screen of them was taken
+# for an error on the first real computer).
+grep -aE "Timed out waiting|Dependency failed|Failed to start" "$W/serial-install.log" && fail "the stick's start said something failed"
+ok "the stick started without a failure on its screen"
 
 echo "Starting from the disk…"
 qemu disk -drive if=virtio,format=raw,file="$W/disk.raw" \
@@ -43,6 +47,8 @@ for i in $(seq 1 180); do h="$(curl -fsS --max-time 5 http://127.0.0.1:13500/api
 [ -n "${h:-}" ] || fail "Mandarin didn't answer in 15 minutes"
 [ "$(jq -r .ok <<< "$h")" = true ] || fail "Mandarin's health: $h"
 ok "Mandarin $(jq -r .version <<< "$h") answers through the firewall"
+grep -aE "Timed out waiting|Dependency failed|Failed to start" "$W/serial-disk.log" && fail "the installed system's start said something failed"
+ok "the installed system started without a failure on its screen"
 
 S() { smbclient //127.0.0.1/Data -p 10445 -U 'music%listen-carefully' -m SMB3 "$@" 2>&1; }
 for i in $(seq 1 24); do S -c ls | grep -q README.txt && break; sleep 5; done
