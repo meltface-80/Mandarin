@@ -113,6 +113,8 @@ internal sealed partial class MusicBrainz(string? baseUrl, string version) : IRe
      */
     private static readonly object restGate = new();
     private static readonly Dictionary<string, (long Until, int Minutes)> rests = new(StringComparer.Ordinal);
+    // A rest's minute (MUSICBRAINZ_REST_MS: a test's shorter one, so it can see the rest end).
+    private static readonly long RestUnitMs = long.TryParse(Environment.GetEnvironmentVariable("MUSICBRAINZ_REST_MS"), out var ms) && ms > 0 ? ms : 60_000;
 
     /* Whether [baseUrl]'s MusicBrainz is resting now, and until when (ms, Environment.TickCount64). */
     public static long? RestingUntil(string baseUrl)
@@ -149,7 +151,7 @@ internal sealed partial class MusicBrainz(string? baseUrl, string version) : IRe
             lock (restGate)
             {
                 minutes = rests.TryGetValue(baseUrl, out var r) ? Math.Min(r.Minutes * 2, 60) : 1;
-                rests[baseUrl] = (Environment.TickCount64 + minutes * 60_000L, minutes);
+                rests[baseUrl] = (Environment.TickCount64 + minutes * RestUnitMs, minutes);
             }
             Server.Log($"[musicbrainz] MusicBrainz turned a lookup away (HTTP 503: too many requests); every lookup rests {minutes} min");
             throw new LookupError(e.Message) { Status = 503, Paused = true };
