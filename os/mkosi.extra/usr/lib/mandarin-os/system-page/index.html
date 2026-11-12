@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mandarin OS</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<header>
+  <div class="brand"><b>Mandarin OS</b><span id="ver"></span></div>
+  <div class="power">
+    <button id="power-btn" class="power-btn" aria-label="Power" aria-haspopup="true">⏻ ▾</button>
+    <div id="power-menu" class="menu hidden" role="menu">
+      <button data-power="restart-mandarin" role="menuitem">Restart Mandarin</button>
+      <button data-power="reboot" role="menuitem">Restart the computer</button>
+      <button data-power="shutdown" role="menuitem">Shut down</button>
+    </div>
+  </div>
+</header>
+<nav id="tabs">
+  <button data-tab="overview" class="on">Overview</button>
+  <button data-tab="storage">Storage</button>
+  <button data-tab="network">Network &amp; Access</button>
+  <button data-tab="settings">Settings</button>
+  <button data-tab="support">Support</button>
+</nav>
+<div id="banner" class="banner hidden"></div>
+<main>
+  <section id="overview" class="tab">
+    <h1>System status</h1>
+    <div class="card" id="status-rows"></div>
+    <h2>Mandarin's services</h2>
+    <div class="card" id="services"></div>
+    <p class="note">Mandarin: <a id="mandarin-link" href="#">http://mandarin:3500</a> · Shared folder: <code id="share-link">smb://mandarin/data</code></p>
+  </section>
+
+  <section id="storage" class="tab hidden">
+    <h1>Storage</h1>
+    <div class="card" id="data-row"></div>
+    <h2>USB drives</h2>
+    <p class="note">Plugged in, a drive is in the shared folder under Storage/USB, and its music in Mandarin. Eject it before you unplug it.</p>
+    <div class="card" id="usb"></div>
+    <h2>Internal storage</h2>
+    <p class="note">Another internal disk in this computer, formatted for Mandarin OS: Storage/Internal in the shared folder, for backups and music. Only an internal disk that isn't the system's can be formatted here; USB drives never are.</p>
+    <div class="card" id="internal"></div>
+  </section>
+
+  <section id="network" class="tab hidden">
+    <h1>Network &amp; Access</h1>
+    <div class="card" id="net-now"></div>
+    <h2>Address</h2>
+    <div class="card">
+      <div class="seg"><button id="net-dhcp">DHCP</button><button id="net-static">Static IP</button></div>
+      <div id="static-fields" class="fields hidden">
+        <label>Address/prefix<input id="net-address" placeholder="192.168.1.20/24" autocomplete="off"></label>
+        <label>Gateway<input id="net-gateway" placeholder="192.168.1.1" autocomplete="off"></label>
+        <label>DNS server<input id="net-dns" placeholder="192.168.1.1" autocomplete="off"></label>
+      </div>
+      <button id="net-save" class="primary">Save</button>
+      <p class="note">If the box can't be reached at its new address, it goes back by itself after two minutes. At its own screen, <code>networkreset</code> puts it back to DHCP.</p>
+    </div>
+    <h2>Network diagnostics <button id="diag-run" class="small">Test connection</button></h2>
+    <div class="card" id="diag"><p class="note">Test the connection, layer by layer.</p></div>
+    <h2>Access</h2>
+    <div class="card"><div class="row"><div><b>Shared folder</b><small id="share-user"></small></div><code>smb://mandarin/data</code></div>
+      <div class="row"><div><b>Away from home</b><small>Mandarin's own Tailscale, in Mandarin: Settings → Setup → Away from home</small></div></div>
+      <div class="row"><div><b>SSH</b><small>None: Mandarin OS has no login. Its own screen and this page are the ways in.</small></div></div></div>
+  </section>
+
+  <section id="settings" class="tab hidden">
+    <h1>Settings</h1>
+    <div class="card" id="bridge"></div>
+    <div class="card"><div class="row"><div><b>Updates</b><small id="upkeep"></small></div></div>
+      <div class="row"><div><b>Mandarin's updates</b><small>In Mandarin: Settings → Updates.</small></div></div></div>
+  </section>
+
+  <section id="support" class="tab hidden">
+    <h1>Support</h1>
+    <div class="card">
+      <div class="row"><div><b>Logs</b><small>Mandarin's, every Bridge's and the app's are also in the shared folder's Logs folders.</small></div><a class="button" href="/api/logs.zip">Download all logs</a></div>
+      <div class="seg" id="log-pick"><button data-log="mandarin" class="on">Mandarin</button><button data-log="os">Mandarin OS</button><button data-log="journal">System (this start)</button></div>
+      <input id="log-filter" placeholder="Lines that hold…" autocomplete="off">
+      <pre id="log-lines" class="log"></pre>
+    </div>
+    <div class="card">
+      <div class="row"><div><b>Reinstall Mandarin</b><small>Put back from its latest release, checked; your library, settings and music kept.</small></div><button data-mandarin="reinstall">Reinstall</button></div>
+      <div class="row"><div><b>Reset Mandarin</b><small>Mandarin starts as new: its library, account and settings set aside in its Backups folder (not deleted). Your music isn't touched.</small></div><button data-mandarin="reset" class="danger">Reset</button></div>
+    </div>
+  </section>
+</main>
+
+<dialog id="ask">
+  <form method="dialog">
+    <h3 id="ask-title">Your password</h3>
+    <p id="ask-text">The shared folder's password, chosen when Mandarin OS was installed.</p>
+    <label id="ask-extra-label" class="hidden">Type <b>erase</b><input id="ask-extra" autocomplete="off"></label>
+    <input id="ask-pass" type="password" autocomplete="current-password" placeholder="Password">
+    <p id="ask-err" class="err"></p>
+    <menu><button value="cancel">Cancel</button><button id="ask-go" value="go" class="primary">Go on</button></menu>
+  </form>
+</dialog>
+<script src="/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,13 @@
+[Unit]
+Description=Mandarin OS: the system page, http://mandarin/
+After=network.target mandarin-os-apply.service
+# Installed only (the USB stick is the installer).
+ConditionPathIsMountPoint=/data
+
+[Service]
+ExecStart=/usr/bin/python3 /usr/lib/mandarin-os/system-page/server.py
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target

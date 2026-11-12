@@ -1,0 +1,40 @@
+/* Mandarin OS's system page (server.py): Mandarin's own colours, ROCK's layout. */
+:root { --bg: #1a1b1f; --card: #23252b; --line: #31343b; --text: #ece8df; --dim: #9aa0a8; --accent: #c9a45c; --ok: #6cc08b; --warn: #d9a441; --bad: #e5615b; }
+@media (prefers-color-scheme: light) { :root:not([data-theme="dark"]) { --bg: #f6f4ef; --card: #fff; --line: #e3dfd6; --text: #1d1d1f; --dim: #6b6f76; --accent: #9b7a35; } }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+header { display: flex; justify-content: space-between; align-items: center; padding: 18px 20px 6px; max-width: 980px; margin: 0 auto; }
+.brand b { font-size: 22px; letter-spacing: .2px; } .brand span { color: var(--dim); margin-left: 10px; font-size: 13px; }
+nav { display: flex; gap: 22px; overflow-x: auto; padding: 0 20px; max-width: 980px; margin: 0 auto; border-bottom: 1px solid var(--line); }
+nav button { background: none; border: 0; color: var(--dim); font: inherit; padding: 12px 0; cursor: pointer; border-bottom: 2px solid transparent; white-space: nowrap; }
+nav button.on { color: var(--accent); border-color: var(--accent); }
+main { max-width: 980px; margin: 0 auto; padding: 8px 20px 60px; }
+h1 { font-weight: 600; font-size: 26px; margin: 20px 0 12px; } h2 { font-size: 16px; margin: 26px 0 10px; display: flex; align-items: center; gap: 12px; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 4px 16px; margin-bottom: 12px; }
+.row { display: flex; justify-content: space-between; align-items: center; gap: 14px; padding: 14px 0; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+.row:last-child { border-bottom: 0; }
+.row > div:first-child { flex: 1 1 260px; min-width: 0; } .row small { display: block; color: var(--dim); font-size: 13px; overflow-wrap: anywhere; }
+.state { font-size: 14px; white-space: nowrap; } .state.ok { color: var(--ok); } .state.warn { color: var(--warn); } .state.bad { color: var(--bad); }
+button, .button { background: var(--line); color: var(--text); border: 0; border-radius: 999px; padding: 8px 16px; font: inherit; font-size: 14px; cursor: pointer; text-decoration: none; display: inline-block; }
+button.primary { background: var(--accent); color: #1a1b1f; font-weight: 600; } button.danger { background: var(--bad); color: #fff; } button.small { padding: 4px 12px; font-size: 13px; }
+button:disabled { opacity: .5; cursor: default; }
+.note { color: var(--dim); font-size: 13px; } code { background: var(--line); border-radius: 6px; padding: 1px 6px; font-size: 13px; }
+a { color: var(--accent); }
+.seg { display: inline-flex; background: var(--line); border-radius: 999px; padding: 3px; margin: 14px 0 8px; } .seg button { background: none; } .seg button.on { background: var(--card); }
+.fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin: 8px 0 12px; }
+label { display: block; font-size: 13px; color: var(--dim); } input { display: block; width: 100%; margin-top: 4px; background: var(--bg); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 9px 10px; font: inherit; }
+#net-save { margin: 6px 0 10px; }
+.log { max-height: 60vh; overflow: auto; white-space: pre-wrap; word-break: break-word; font: 12px/1.45 ui-monospace, Menlo, Consolas, monospace; margin: 10px 0 14px; }
+.log .WARN { color: var(--warn); } .log .ERROR { color: var(--bad); }
+#log-filter { margin: 4px 0; }
+.power { position: relative; } .power-btn { background: var(--bad); color: #fff; }
+.menu { position: absolute; right: 0; top: 42px; background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 6px; z-index: 5; min-width: 220px; }
+.menu button { display: block; width: 100%; text-align: left; background: none; border-radius: 6px; } .menu button:hover { background: var(--line); }
+.hidden { display: none !important; }
+.banner { max-width: 940px; margin: 14px auto 0; padding: 10px 14px; border-radius: 10px; background: var(--card); border: 1px solid var(--accent); }
+.banner.bad { border-color: var(--bad); }
+dialog { background: var(--card); color: var(--text); border: 1px solid var(--line); border-radius: 14px; max-width: 420px; width: calc(100% - 32px); }
+dialog::backdrop { background: rgba(0, 0, 0, .55); } dialog menu { display: flex; justify-content: flex-end; gap: 8px; padding: 0; margin: 16px 0 0; }
+.err { color: var(--bad); font-size: 13px; min-height: 1em; }
+.bar { height: 6px; background: var(--line); border-radius: 3px; margin-top: 6px; overflow: hidden; } .bar i { display: block; height: 100%; background: var(--accent); }
+@media (max-width: 560px) { header, nav, main { padding-left: 16px; padding-right: 16px; } h1 { font-size: 22px; } }
