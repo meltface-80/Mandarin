@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Downloads · Mandarin</title>
-<meta name="description" content="The newest version of each, straight to your device. Mandarin is the server and the Mandarin Remote app; Mandarin Bridge turns a device with a USB DAC into a room.">
+<meta name="description" content="The newest version of each, straight to your device. Mandarin is the server (on Mandarin OS or Linux) and the Mandarin Remote app; Mandarin Bridge turns a device with a USB DAC into a room.">
 <link rel="icon" href="mandarin-icon.png">
 <link rel="stylesheet" href="site.css">
 </head>
@@ -21,7 +21,7 @@
 
 <main class="wrap page">
   <h1>Downloads</h1>
-  <p class="lead">The newest version of each, straight to your device. Mandarin is the server and the Mandarin Remote app; Mandarin Bridge turns a device with a USB DAC into a room.</p>
+  <p class="lead">The newest version of each, straight to your device. Mandarin is the server (on Mandarin OS or Linux) and the Mandarin Remote app; Mandarin Bridge turns a device with a USB DAC into a room.</p>
 <h2 id="remote-app">Mandarin Remote: the Android app</h2>
   <div class="dl-grid">
     <div class="dl">
@@ -45,6 +45,15 @@
 
   <h2 id="server">Mandarin server</h2>
   <div class="dl-grid">
+    <div class="dl" id="os">
+      <span class="v">Mandarin OS 0.1.2 · a 64-bit Intel or AMD PC with UEFI</span>
+      <h3>Mandarin OS</h3>
+      <p>A lightweight operating system made only to run Mandarin Server, with its own system page to look after it.
+         Write it to a USB stick of 4 GB or more, start the PC from it and install.</p>
+      <a class="dl-btn" href="https://github.com/meltface-80/Mandarin/releases/download/mandarin-os-v0.1.2/mandarin-os-0.1.2-x64.img.xz">⬇ For balenaEtcher or dd <small>(.img.xz, about 380 MB)</small></a>
+      <a class="dl-btn" href="https://github.com/meltface-80/Mandarin/releases/download/mandarin-os-v0.1.2/mandarin-os-0.1.2-x64.img" style="margin-top:8px">⬇ For an Android phone <small>(.img, about 1.6 GB)</small></a>
+      <p style="margin-top:10px"><a href="mandarin-os.html">Make the USB installer and install, step by step →</a></p>
+    </div>
     <div class="dl">
       <span class="v">v1.3.0 · Debian, Ubuntu, Raspberry Pi OS (x64 or arm64)</span>
       <h3>Linux</h3>
@@ -55,9 +64,14 @@
       <a class="dl-btn" href="install.html#linux">Step by step →</a>
     </div>
   </div>
+  <div class="files" style="margin-top:12px">
+    <a class="file" href="https://github.com/meltface-80/Mandarin/releases/download/mandarin-os-v0.1.2/mandarin-os-0.1.2-x64.img.xz.sha256"><b>mandarin-os-0.1.2-x64.img.xz.sha256</b><span>Mandarin OS: the compressed image's checksum</span><i>⬇</i></a>
+    <a class="file" href="https://github.com/meltface-80/Mandarin/releases/download/mandarin-os-v0.1.2/mandarin-os-0.1.2-x64.img.sha256"><b>mandarin-os-0.1.2-x64.img.sha256</b><span>Mandarin OS: the plain image's checksum</span><i>⬇</i></a>
+    <a class="file" href="https://github.com/meltface-80/Mandarin/releases/tag/mandarin-os-v0.1.2"><b>Mandarin OS 0.1.2</b><span>the release: both images, their checksums and signatures (.sig)</span><i>→</i></a>
+  </div>
   <h3 class="sub">The server program on its own</h3>
   <p class="after-note">The single server program for each kind of machine: what Settings → Updates fetches. Most people
-     never need these; the Linux installer is simpler.</p>
+     never need these; Mandarin OS and the Linux installer are simpler.</p>
   <div class="files">
     <a class="file" href="https://github.com/meltface-80/Mandarin/releases/latest/download/mandarin-server-linux-x64.gz"><b>mandarin-server-linux-x64.gz</b><span>Linux on an Intel or AMD PC</span><i>⬇</i></a>
     <a class="file" href="https://github.com/meltface-80/Mandarin/releases/latest/download/mandarin-server-linux-arm64.gz"><b>mandarin-server-linux-arm64.gz</b><span>Linux on ARM: a Raspberry Pi 4/5 (64-bit), most NAS boxes with an ARM chip</span><i>⬇</i></a>

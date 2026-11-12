@@ -23,6 +23,10 @@
   <h1>What's new in v1.3.0</h1>
   <p class="lead">Mandarin v1.3.0, since v1.2.5, with Mandarin Bridge v0.3.8. An update following a code review:
      several under-the-hood fixes and improvements.</p>
+  <div class="note" style="margin:14px 0"><b>Mandarin OS 0.1.2:</b> a lightweight operating system made only to run
+     Mandarin Server, on a PC of its own, with its own system page (<code>http://mandarin/</code>) to watch over and look
+     after everything: a shared folder for your music, USB drives mounted as they are plugged in, and a weekly upkeep
+     when nothing plays. <a href="mandarin-os.html">Mandarin OS →</a></div>
 <div class="newlist info-cards">
     <div class="info-card"><h3>Last.fm scrobbling</h3><p>Everything played, in every room, on a Mandarin Bridge or the phone, is scrobbled to your Last.fm account. Save your Last.fm key's <b>shared secret</b> beside the key in <b>Settings → Setup → API Keys</b>, tap <b>Connect to Last.fm</b> and allow Mandarin on Last.fm's page. <a href="features.html">Features →</a></p></div>
     <div class="info-card"><h3>An artist's page in tabs</h3><p><b>Overview</b>, <b>Discography</b> and <b>About</b>, as an album's page has, with no links out to the web. Similar albums are your own library's alone, and genres are in English everywhere (<i>Électronique</i> is <i>Electronic</i>).</p></div>
@@ -35,9 +39,7 @@
   </ul>
 
   <div class="note" style="margin-top:22px"><b>Updating:</b> the server from <b>Settings → Updates</b>, the Android app
-     beside it, each Mandarin Bridge from its own row. In Docker, end the <code>/music</code> line in
-     <code>:ro,rslave</code> (as <code>docker-compose.yml</code> now does) so a drive mounted after the container starts
-     shows up in it. Every change is listed in the
+     beside it, each Mandarin Bridge from its own row. Every change is listed in the
      <a href="https://github.com/meltface-80/Mandarin/blob/main/CHANGELOG.md">changelog</a>.</div>
 
   <h2>Before: v1.2.5</h2>
@@ -59,7 +61,6 @@
   <h2>Security</h2>
   <p>A security audit of this version found fourteen things to put right; every one is fixed.</p>
   <ul class="plain">
-    <li><b>The Docker image runs the server as a user, not root</b> (1000 by default; <code>PUID</code> and <code>PGID</code> change it). Your data is handed over at the first start. <a href="install.html">Install →</a></li>
     <li><b>Who sent a request</b> is believed from forwarding headers only from the proxies named in <code>TRUSTED_PROXIES</code> and the built-in Tailscale. A reverse proxy on the same machine needs <code>TRUSTED_PROXIES=127.0.0.1</code>. <a href="configuration.html">Configuration →</a></li>
     <li><b>Covers from elsewhere</b> are never fetched from the server's own machine or your network (but the Sonos speakers and hosts named in <code>ART_HOSTS</code>).</li>
     <li><b>Addresses handed to speakers and players expire</b> after 30 days, and a speaker asking without one gets only what it was handed.</li>
@@ -72,17 +73,13 @@
 
   <h2>Fixed</h2>
   <ul class="plain">
-    <li><b>Settings → Updates</b> couldn't update the server in Docker once it ran as a user (<i>Access to the path '/app/.update' is denied</i>): it unpacks elsewhere and lays in only what is the server's own.</li>
     <li>An album that mixes sample rates played nothing with <b>Albums as one stream</b> on, when its Output made DSD or upsampled to the highest rate.</li>
     <li>An album deleted from the music folders stayed on its artist's page, in the app and the browser.</li>
-    <li>The built-in Tailscale wouldn't start after the update to a non-root container (<i>permission denied</i> on its state).</li>
     <li>The Android app's album tabs were squashed into a column of letters, and the headings under them said the tabs again.</li>
     <li>Mandarin Bridge's update said only <i>SecureConnectionError</i> when GitHub's certificate was refused; it now says why (a wrong clock, missing certificates).</li>
   </ul>
 
-  <div class="note" style="margin-top:22px"><b>Updating to v1.2.5:</b> the server from <b>Settings → Updates</b> (in Docker,
-     <code>docker pull</code> as before: the container now runs as user 1000 and hands its data over at the first
-     start); the Android app beside it; each Mandarin Bridge from its own row. A reverse proxy on the server's machine
+  <div class="note" style="margin-top:22px"><b>Updating to v1.2.5:</b> the server from <b>Settings → Updates</b>; the Android app beside it; each Mandarin Bridge from its own row. A reverse proxy on the server's machine
      needs <code>TRUSTED_PROXIES=127.0.0.1</code>. Every change is listed in the
      <a href="https://github.com/meltface-80/Mandarin/blob/main/CHANGELOG.md">changelog</a>.</div>
   <nav class="pager"><a class="back" href="index.html">← Back to contents</a><a class="pill" href="install.html">Next: Install the server →</a></nav>
