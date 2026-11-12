@@ -62,7 +62,7 @@ jobs:
         run: |
           set -e
           v="$(cat os/VERSION)"
-          sudo chown "$USER" os/*.raw
+          sudo chown "$(id -u):$(id -g)" os/*.raw   # built as root: its group too, or xz can't keep it
           mv "os/mandarin-os_$v.raw" "mandarin-os-$v-x64.img"
           xz -T0 -6 "mandarin-os-$v-x64.img"
           sha256sum "mandarin-os-$v-x64.img.xz" > "mandarin-os-$v-x64.img.xz.sha256"
