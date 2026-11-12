@@ -1,0 +1,77 @@
+#!/bin/bash
+# /usr/lib/mandarin-os/maintain — the weekly upkeep (mandarin-os-maintain.timer; item 389), silent, never at the cost of
+# working:
+#   1. waits until nothing is under way (no room playing, no scan, no track being made: Mandarin's /api/health asked
+#      from this machine), trying every 15 minutes for up to six days;
+#   2. Debian's security updates (unattended-upgrades, security alone), and ffmpeg's (update-ffmpeg), then what nothing needs any more removed
+#      (autoremove --purge) and the package cache and old journal emptied. What Mandarin and the OS need is marked as
+#      wanted (apt-mark manual), so nothing it needs is ever removed;
+#   3. the computer started again only where an update needs it, and still only while nothing plays;
+#   4. then it checks that everything works: the system's services, Mandarin's /api/health, the share, the USB drives;
+#      a service that isn't is started again, and a Mandarin that still doesn't answer is put back from its signed
+#      release, its data kept. Each step is in MandarinOS/Logs.
+set -uo pipefail
+. /usr/lib/mandarin-os/log.sh
+NEEDED="linux-image-amd64 systemd systemd-sysv systemd-resolved systemd-timesyncd systemd-boot udev dbus network-manager nftables avahi-daemon wsdd2 samba
+  unattended-upgrades libsoxr0 libopus0 libmp3lame0 libgnutls30t64 libfreetype6 libharfbuzz0b libfontconfig1 fonts-dejavu-core libbz2-1.0 zlib1g poppler-utils python3 python3-numpy libicu76 libasound2t64 curl ca-certificates openssl jq dialog kbd e2fsprogs dosfstools exfatprogs"
+SERVICES="mandarin.service smbd.service avahi-daemon.service wsdd2.service nftables.service NetworkManager.service"
+health() { curl -fsS --max-time 5 http://127.0.0.1:3500/api/health 2>/dev/null; }
+idle() { local h; h="$(health)" || return 0; [ "$(jq -r '.busy.any // false' <<< "$h")" = false ]; }   # Mandarin down: nothing playing
+
+wait_idle() {
+  local tries=0
+  until idle; do
+    tries=$((tries + 1))
+    [ $tries -gt 576 ] && { oslog WARN "[upkeep] something was under way all week: left for next week"; exit 0; }
+    [ $tries = 1 ] && oslog INFO "[upkeep] music is playing, or Mandarin is busy: waiting"
+    sleep 900
+  done
+}
+
+check() {
+  local s ok=1
+  for s in $SERVICES; do
+    systemctl is-active -q "$s" && continue
+    oslog WARN "[upkeep] $s wasn't running: started again"
+    systemctl restart "$s" || ok=0
+  done
+  for i in $(seq 1 24); do health >/dev/null && break; sleep 5; done
+  if ! health >/dev/null; then
+    oslog ERROR "[upkeep] Mandarin doesn't answer: put back from its release, its data kept"
+    /usr/lib/mandarin-os/reinstall-mandarin || ok=0
+  fi
+  [ $ok = 1 ] && oslog INFO "[upkeep] everything works: $(health | jq -c '{version, albums, rooms}')"
+}
+
+case "${1:-}" in
+  --check) check; exit 0 ;;
+esac
+
+wait_idle
+oslog INFO "[upkeep] begun"
+apt-mark manual $NEEDED >/dev/null 2>&1
+export DEBIAN_FRONTEND=noninteractive
+if apt-get update -q >/dev/null 2>&1; then
+  before="$(dpkg-query -W -f '${Package} ${Version}\n' | sort)"
+  unattended-upgrade >/dev/null 2>&1 || oslog WARN "[upkeep] the security updates said something went wrong (see /var/log/unattended-upgrades)"
+  apt-get -y -q autoremove --purge >/dev/null 2>&1
+  apt-get -y -q clean >/dev/null 2>&1
+  after="$(dpkg-query -W -f '${Package} ${Version}\n' | sort)"
+  changed="$(comm -13 <(echo "$before") <(echo "$after") | awk '{ print $1 }' | tr '\n' ' ')"
+  gone="$(comm -23 <(echo "$before" | awk '{ print $1 }') <(echo "$after" | awk '{ print $1 }') | tr '\n' ' ')"
+  oslog INFO "[upkeep] updated: ${changed:-nothing}; removed: ${gone:-nothing}"
+else
+  oslog WARN "[upkeep] Debian couldn't be reached: no updates this week"
+fi
+# ffmpeg isn't Debian's package here (os/ffmpeg): its security fixes come signed from Mandarin's own build of Debian's source.
+/usr/lib/mandarin-os/update-ffmpeg
+journalctl --vacuum-time=30d >/dev/null 2>&1
+date -u '+%Y-%m-%d %H:%M:%S UTC' > /data/MandarinOS/last-upkeep.txt
+if [ -f /run/reboot-required ]; then
+  wait_idle
+  oslog INFO "[upkeep] an update needs the computer started again: now, nothing playing"
+  touch /data/MandarinOS/.check-after-start
+  systemctl reboot
+  exit 0
+fi
+check

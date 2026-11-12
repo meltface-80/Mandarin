@@ -1,0 +1,99 @@
+name: Mandarin OS
+
+# Mandarin OS's image (os/, item 389): Debian 13 with Mandarin installed natively, its share, its upkeep and its firewall,
+# built with mkosi, then installed and started in a virtual machine (os/test/boot-test.sh) before anything is published.
+# A push to dev puts it on the rolling "test-os" pre-release, never "latest"; a numbered release (mandarin-os-vX.Y.Z)
+# is made only by hand (workflow_dispatch with a version). Nothing here makes a tag otherwise.
+on:
+  push:
+    branches: ["**", "!dependabot/**"]
+    paths: &paths
+      - "os/**"
+      - "tools/linux/install.sh"
+      - ".github/workflows/os-image.yml"
+  pull_request:
+    paths: *paths
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release Mandarin OS as this version (e.g. 0.1.0; os/VERSION must say the same). Empty: build and test only."
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+concurrency:
+  group: os-image-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/dev' }}
+
+jobs:
+  # Mandarin's whole suite with the ffmpeg the image carries (os/ffmpeg): nothing Mandarin does may need what it leaves out.
+  suite:
+    name: Mandarin's suite with the OS's ffmpeg
+    uses: ./.github/workflows/ci.yml
+    with:
+      ffmpeg: mandarin-os
+
+  image:
+    needs: suite
+    name: Image, installed and started in a virtual machine
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
+      - name: Tools
+        run: |
+          set -e
+          sudo apt-get update -q
+          sudo apt-get install -y -q --no-install-recommends bubblewrap systemd-boot systemd-boot-efi systemd-ukify mtools dosfstools \
+            cpio zstd xz-utils debian-archive-keyring qemu-system-x86 ovmf smbclient fdisk jq e2fsprogs
+          sudo pip install --break-system-packages "git+https://github.com/systemd/mkosi@v25.3"
+          # The virtual machine runs at the runner's own speed where it may (KVM).
+          if [ -e /dev/kvm ]; then echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666"' | sudo tee /etc/udev/rules.d/99-kvm.rules; sudo udevadm control --reload-rules; sudo udevadm trigger --name-match=kvm; fi
+      - name: Build
+        run: |
+          set -e
+          sudo ./os/build.sh
+          ls -la os/*.raw
+      - name: Installed and started in a virtual machine
+        run: sudo ./os/test/boot-test.sh os/mandarin-os_$(cat os/VERSION).raw
+      - name: Pack
+        run: |
+          set -e
+          v="$(cat os/VERSION)"
+          sudo chown "$(id -u):$(id -g)" os/*.raw   # built as root: its group too, or xz can't keep it
+          mv "os/mandarin-os_$v.raw" "mandarin-os-$v-x64.img"
+          xz -T0 -6 "mandarin-os-$v-x64.img"
+          sha256sum "mandarin-os-$v-x64.img.xz" > "mandarin-os-$v-x64.img.xz.sha256"
+          ls -la mandarin-os-*
+      - name: Signed with the release key
+        env:
+          RELEASE_SIGNING_KEY: ${{ secrets.RELEASE_SIGNING_KEY }}
+        run: .github/sign.sh mandarin-os-*.img.xz
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7
+        with:
+          name: mandarin-os-x64
+          path: mandarin-os-*
+          compression-level: 0
+      - name: Publish to the "test-os" pre-release
+        if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -e
+          if ! gh release view test-os >/dev/null 2>&1; then
+            gh release create test-os --prerelease --latest=false --title "Mandarin OS — test build" \
+              --notes "Mandarin OS as dev is now. Not a numbered release: write it to a USB stick, start the computer from it." --target "${GITHUB_SHA}"
+          fi
+          gh release upload test-os mandarin-os-* --clobber
+      - name: Release mandarin-os-v${{ inputs.version }}
+        if: github.event_name == 'workflow_dispatch' && inputs.version != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          set -e
+          [ "$VERSION" = "$(cat os/VERSION)" ] || { echo "::error::os/VERSION says $(cat os/VERSION), not $VERSION"; exit 1; }
+          gh release create "mandarin-os-v$VERSION" --latest=false --title "Mandarin OS $VERSION" --target "${GITHUB_SHA}" \
+            --notes-file <(awk -v v="## v$VERSION" '$0 == v { on = 1; next } on && /^## / { exit } on' os/CHANGELOG.md) mandarin-os-*

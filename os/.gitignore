@@ -1,0 +1,6 @@
+mkosi.extra/usr/lib/mandarin-os/linux-install.sh
+mkosi.extra/usr/lib/mandarin-os/VERSION
+/mandarin-os*
+/*.raw
+/mkosi.output/
+/mkosi.cache/

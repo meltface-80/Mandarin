@@ -1,0 +1,10 @@
+[Unit]
+Description=Mandarin OS: the weekly upkeep (security updates, clean-up, a check that everything works)
+After=network-online.target mandarin.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/lib/mandarin-os/maintain
+Nice=10
+IOSchedulingClass=idle

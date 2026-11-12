@@ -1,0 +1,27 @@
+# ffmpeg for Mandarin OS (os/ffmpeg/build.sh, item 389): all of ffmpeg's own codecs, formats, filters and protocols,
+# as Debian's has them, without the video, GPU and speech libraries Debian's build links (LLVM, Mesa, Vulkan, x265,
+# SVT-AV1, codec2, flite, libplacebo and more, about 300 MB that Mandarin never uses). Of the libraries outside ffmpeg,
+# only those Mandarin uses: soxr (its resampling), Opus and LAME (what it encodes), GnuTLS (streams over https),
+# FreeType, HarfBuzz and fontconfig (drawtext: the titles on the covers Mandarin draws, in fontconfig's sans-serif),
+# zlib and bzip2. Its device library stays for lavfi (Mandarin makes silence
+# and draws covers with it), with no device of its own linked. Mandarin's whole test suite runs against this build
+# before an image takes it (.github/workflows/os-image.yml), and caught lavfi's absence when it was left out.
+--disable-autodetect
+--disable-doc
+--disable-debug
+--disable-static
+--enable-shared
+--disable-postproc
+--disable-vulkan
+--disable-hwaccels
+--enable-libsoxr
+--enable-libopus
+--enable-libmp3lame
+--enable-gnutls
+--enable-libfreetype
+--enable-libharfbuzz
+--enable-libfontconfig
+--enable-zlib
+--enable-bzlib
+--enable-iconv
+--enable-pthreads

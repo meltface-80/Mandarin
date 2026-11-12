@@ -1,0 +1,108 @@
+#!/bin/bash
+# /usr/lib/mandarin-os/install — Mandarin OS's installer, on the screen when the computer starts from the USB stick
+# (item 389; the console runs it there). It asks, then writes:
+#   the disk the system goes on (never the stick, never a USB drive), shown by model and size;
+#   the internal storage drive, if any (another internal disk: formatted, for backups and music);
+#   the share's user and password (smb://mandarin/data); the network (DHCP, or a static address); Mandarin Bridge or not;
+# then `erase` typed, the disk is written by systemd-repart from the stick itself (install.repart.d: its EFI partition
+# and system copied, a second system partition kept empty, the rest the data partition), what was chosen kept in
+# /data/MachineSettings/setup.json for the first start (apply), and the computer started again from its disk.
+set -uo pipefail
+VER="$(cat /usr/lib/mandarin-os/VERSION)"
+T="Mandarin OS $VER"
+LOG=/run/mandarin-os-install.log
+D() { dialog --backtitle "$T" "$@" 3>&1 1>&2 2>&3; }
+# Each step in the log, and on the serial port too where there is one (a virtual machine's: the tests read it).
+say() { echo "$(date -u '+%Y-%m-%d %H:%M:%S') $*" >> "$LOG"; [ -w /dev/ttyS0 ] && echo "mandarin-os-install: $*" > /dev/ttyS0 2>/dev/null; return 0; }
+boot="$(lsblk -no PKNAME "$(findmnt -no SOURCE /)" | head -n 1)"
+# Once a start: the screen's service starts it again whenever it ends, and an install already done (the computer
+# powering off or restarting) must never begin again, erasing the disk it just wrote, as it did on a fast machine.
+DONE=/run/mandarin-os-install.done
+end() { systemctl "$1"; sleep infinity; }
+if [ -e "$DONE" ]; then sleep infinity; fi
+
+disks() {   # internal disks: not the stick, not USB, not removable, not the one already chosen ($1)
+  lsblk -dnpo NAME,SIZE,TRAN,RM,TYPE,MODEL | while read -r name size tran rm type model; do
+    [ "$type" = disk ] || continue; [ "$name" = "/dev/$boot" ] && continue; [ "$tran" = usb ] && continue
+    [ "$rm" = 1 ] && continue; [ "$name" = "${1:-}" ] && continue
+    printf '%s\n%s\n' "$name" "${model:-disk} ($size)"
+  done
+}
+
+# Unattended (the tests' virtual machine, or anyone who'd rather): mandarin-install.json on the stick's EFI partition
+# answers every question: { "disk": "/dev/vda" or "first", "internal": null, "share_user", "share_password",
+# "network": {…}, "bridge": false, "erase": "erase" }.
+answers="$(ls /efi/mandarin-install.json /boot/mandarin-install.json 2>/dev/null | head -n 1)"
+if [ -n "$answers" ]; then
+  target="$(jq -r .disk "$answers")"; [ "$target" = first ] && target="$(disks | head -n 1)"
+  internal="$(jq -r '.internal // empty' "$answers")"; user="$(jq -r .share_user "$answers")"; p1="$(jq -r .share_password "$answers")"
+  net="$(jq -c '.network // {"mode":"dhcp"}' "$answers")"; bridge="$(jq -r '.bridge // false' "$answers")"
+  [ "$(jq -r .erase "$answers")" = erase ] && [ -b "$target" ] || { say "INSTALL FAILED: mandarin-install.json: disk ($target) or erase missing"; lsblk > /dev/ttyS0 2>/dev/null; touch "$DONE"; end poweroff; }
+  say "unattended, from $answers"
+fi
+while [ -z "$answers" ]; do
+  D --title "Welcome" --msgbox "This puts Mandarin OS on this computer: a music server, Mandarin, with nothing else to look after.\n\nYou'll choose the disk it goes on (everything on it is erased), a name and password for its shared folder, and its network. It takes a few minutes." 12 70 || continue
+
+  mapfile -t list < <(disks)
+  if [ ${#list[@]} -eq 0 ]; then D --title "No disk" --msgbox "No internal disk was found to put Mandarin OS on. A USB drive can't be used for the system." 8 70; continue; fi
+  target="$(D --title "The system's disk" --menu "Mandarin OS goes on this disk. EVERYTHING ON IT IS ERASED." 15 70 6 "${list[@]}")" || continue
+
+  mapfile -t rest < <(disks "$target")
+  internal=""
+  if [ ${#rest[@]} -gt 0 ]; then
+    internal="$(D --title "Internal storage" --menu "Another internal disk was found. Use it as internal storage (for backups, and for music if you want)? It is formatted: EVERYTHING ON IT IS ERASED." 15 70 6 none "No, leave it as it is" "${rest[@]}")" || continue
+    [ "$internal" = none ] && internal=""
+  fi
+
+  while true; do
+    user="$(D --title "Your shared folder" --inputbox "smb://mandarin/data is your shared folder, for copying music in and reading the logs.\n\nIts user name (lower case letters and figures):" 11 70 music)" || continue 2
+    [[ "$user" =~ ^[a-z][a-z0-9_-]{0,30}$ ]] && ! id "$user" >/dev/null 2>&1 && [ "$user" != mandarin ] && break
+    D --msgbox "Use lower case letters and figures, starting with a letter (not root or mandarin)." 7 70
+  done
+  while true; do
+    p1="$(D --insecure --title "Your shared folder" --passwordbox "Its password (8 characters or more):" 9 70)" || continue 2
+    p2="$(D --insecure --title "Your shared folder" --passwordbox "The same again:" 9 70)" || continue 2
+    [ "${#p1}" -ge 8 ] && [ "$p1" = "$p2" ] && break
+    D --msgbox "The two weren't the same, or it is shorter than 8 characters." 7 70
+  done
+
+  net='{"mode":"dhcp"}'
+  if [ "$(D --title "Network" --menu "How does this computer get its address?" 11 70 2 dhcp "From the router (DHCP), recommended" static "A static address")" = static ]; then
+    form="$(D --title "A static address" --form "If this is ever wrong, type networkreset at this screen to go back to DHCP." 12 70 3 \
+      "Address/prefix" 1 1 "192.168.1.20/24" 1 18 40 0 "Gateway" 2 1 "192.168.1.1" 2 18 40 0 "DNS" 3 1 "192.168.1.1" 3 18 40 0)" || continue
+    mapfile -t f <<< "$form"
+    net="$(jq -nc --arg a "${f[0]}" --arg g "${f[1]}" --arg d "${f[2]:-}" '{mode:"static",address:$a,gateway:$g,dns:$d}')"
+  fi
+
+  bridge=false
+  D --title "Mandarin Bridge" --defaultno --yesno "A DAC plugged into this computer plays through Mandarin itself.\n\nAlso install Mandarin Bridge here? (Only if you want this computer to be a Bridge as well.)" 10 70 && bridge=true
+
+  sure="$(D --title "Erase and install" --inputbox "Mandarin OS is about to be written to $target$( [ -n "$internal" ] && printf ', and %s formatted as internal storage' "$internal").\n\nEverything on $( [ -n "$internal" ] && echo them || echo it) is erased. Type erase to go on." 12 70)" || continue
+  [ "$sure" = erase ] && break
+done
+
+clear; echo; echo "  Writing Mandarin OS to $target…"; echo
+say "installing $VER to $target, internal storage ${internal:-none}, user $user, network $(jq -r .mode <<< "$net"), bridge $bridge"
+if ! systemd-repart --dry-run=no --empty=force --definitions=/usr/lib/mandarin-os/install.repart.d "$target" >> "$LOG" 2>&1; then
+  say "systemd-repart failed"; [ -n "$answers" ] && { cat "$LOG" > /dev/ttyS0 2>/dev/null; say "INSTALL FAILED"; touch "$DONE"; end poweroff; }; D --title "It didn't work" --msgbox "Mandarin OS couldn't be written to $target. Nothing else was changed.\n\n$(tail -n 5 "$LOG")" 14 76; exec "$0"
+fi
+udevadm settle
+data="$(lsblk -lnpo NAME,PARTLABEL "$target" | awk '$2 == "mandarin-data" { print $1 }')"
+mkdir -p /mnt/data && mount "$data" /mnt/data || { [ -n "$answers" ] && { lsblk -o NAME,PARTLABEL,SIZE "$target" > /dev/ttyS0 2>/dev/null; say "INSTALL FAILED: no data partition"; touch "$DONE"; end poweroff; }; D --msgbox "The data partition couldn't be opened." 7 60; exec "$0"; }
+mkdir -p /mnt/data/MachineSettings /mnt/data/MandarinOS/Logs /mnt/data/MandarinServer /mnt/data/Storage/USB
+jq -n --arg u "$user" --arg p "$p1" --argjson n "$net" --argjson b "$bridge" '{share_user:$u, share_password:$p, network:$n, bridge:$b}' > /mnt/data/MachineSettings/setup.json
+chmod 600 /mnt/data/MachineSettings/setup.json
+if [ -n "$internal" ]; then
+  echo "  Formatting $internal as internal storage…"
+  wipefs -a "$internal" >> "$LOG" 2>&1; echo 'type=linux' | sfdisk --label gpt "$internal" >> "$LOG" 2>&1; udevadm settle
+  part="$(lsblk -lnpo NAME,TYPE "$internal" | awk '$2 == "part" { print $1; exit }')"
+  mkfs.ext4 -F -L mandarin-internal "$part" >> "$LOG" 2>&1 && say "internal storage $internal formatted" || say "internal storage $internal couldn't be formatted"
+  mkdir -p /mnt/data/Storage/Internal
+fi
+say "done"
+touch "$DONE"
+cp "$LOG" /mnt/data/MandarinOS/Logs/Installer_log.txt
+umount /mnt/data; sync
+if [ -n "$answers" ]; then say "installed on $target"; end poweroff; fi
+D --title "Installed" --msgbox "Mandarin OS is on $target.\n\nTake the USB stick out, then press Enter: the computer starts from its disk. In a minute or two, open http://mandarin:3500 in a browser." 11 70
+end reboot

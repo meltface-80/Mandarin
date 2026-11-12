@@ -186,6 +186,9 @@ internal sealed partial class Hub
 
     public ZoneState? StateOf(string id) { lock (Gate) return State.GetValueOrDefault(id); }
 
+    /* How many rooms are playing or about to (Mandarin OS's weekly upkeep waits for none, HealthRoutes.cs). */
+    public int Playing() { lock (Gate) return State.Values.Count(s => s.State is "playing" or "loading"); }
+
     /*
      * A zone's new state — from a Sonos poll or a phone's report — and what
      * follows from it: a bump when anything visible changed, "played" once it

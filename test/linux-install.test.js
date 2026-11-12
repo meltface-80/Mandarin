@@ -123,6 +123,18 @@ test("Mandarin installed on Linux as a systemd service, only what is signed with
     assert.match(r.stderr, /server isn't signed with Mandarin's release key: not installed/);
     assert.ok(!fs.existsSync(path.join(opt, "server", "bin", "mandarin-server")), "nothing installed");
 
+    // Mandarin OS's image: its data folder on the data partition, enabled to start with the computer, not started.
+    fs.writeFileSync(log, "");
+    sh(`openssl dgst -sha256 -sign "${key.pem}" -out "${v}/mandarin-server-${RID}.gz.sig" "${v}/mandarin-server-${RID}.gz"`);
+    r = await run("--music", "/data/Storage", "--data", "/data/MandarinServer", "--no-start", "--no-apt");
+    assert.equal(r.status, 0, r.stdout + r.stderr);
+    assert.match(fs.readFileSync(path.join(root, "etc", "systemd", "system", "mandarin.service"), "utf8"), /^Environment=DATA_DIR=\/data\/MandarinServer$/m);
+    assert.ok(fs.existsSync(path.join(root, "data", "MandarinServer")), "the data folder made");
+    assert.match(fs.readFileSync(log, "utf8"), /^systemctl enable mandarin\.service$/m);
+    assert.doesNotMatch(fs.readFileSync(log, "utf8"), /--now/, "not started");
+    assert.doesNotMatch(fs.readFileSync(log, "utf8"), /^apt-get/m, "nothing from apt");
+    assert.notEqual((await run("--data", "relative/path")).status, 0, "a whole path only");
+
     // Uninstalled: the service and the program gone, the data kept.
     r = await run("--uninstall");
     assert.equal(r.status, 0, r.stdout + r.stderr);

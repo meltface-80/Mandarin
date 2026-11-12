@@ -3,7 +3,8 @@
 // it was: Docker's health check asks it every minute.
 //
 //   { ok, version, albums, rooms, ffmpeg, soxr,
-//     transcode_cache: { files, bytes, running, queued }, audio_engine, csharp }
+//     transcode_cache: { files, bytes, running, queued }, audio_engine,
+//     busy: { any, playing, scanning, making } — asked from this machine alone (item 389: Mandarin OS's upkeep) }
 //
 // The rooms are the hub's (Playback/Hub.cs); the rest: the library's count,
 // ffmpeg, the conversions (made here since v0.8.40), and the audio engine,
@@ -33,6 +34,14 @@ internal static partial class Library
             ["transcode_cache"] = new JsonObject { ["files"] = files, ["bytes"] = bytes, ["running"] = running, ["queued"] = queued },
             ["audio_engine"] = AudioEngine.Version()
         };
+        // Asked from this machine alone (Mandarin OS's weekly upkeep, its system page): whether anything is under way, so
+        // an update or a restart waits for nothing to be playing, scanned or made. Never said to another machine.
+        if (System.Net.IPAddress.TryParse(Caller.ClientIp(ctx), out var ip) && System.Net.IPAddress.IsLoopback(ip))
+        {
+            var playing = Playback.Hub.Current?.Playing() ?? 0;
+            var making = Upsample.MadeAsPlayed.Making;
+            o["busy"] = new JsonObject { ["any"] = playing > 0 || Scans.Running || making > 0, ["playing"] = playing, ["scanning"] = Scans.Running, ["making"] = making };
+        }
         return Send(ctx, o);
     }
 

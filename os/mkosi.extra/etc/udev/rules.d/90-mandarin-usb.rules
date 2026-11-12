@@ -1,0 +1,3 @@
+# Mandarin OS: a USB drive with a filesystem on it mounted under /data/Storage/USB as it is plugged in, and let go as it
+# is pulled out (mandarin-usb@.service, /usr/lib/mandarin-os/usb-mount).
+ACTION=="add", SUBSYSTEM=="block", ENV{ID_BUS}=="usb", ENV{ID_FS_USAGE}=="filesystem", ENV{SYSTEMD_WANTS}+="mandarin-usb@%k.service", TAG+="systemd"
