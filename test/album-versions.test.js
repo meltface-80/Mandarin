@@ -43,7 +43,6 @@ function album(music, { artist, title, year, group, hires }) {
 
 test("an album's versions: one tile, the highest resolution its main, every version on its page, another chosen and kept", { skip, timeout: 150000 }, async (t) => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "musicd-test-versions-"));
-  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   const music = path.join(root, "music");
   album(music, { artist: "Iggy and The Stooges", title: "Metallic 'KO", year: 1976 });
   album(music, { artist: "Iggy and The Stooges", title: "Metallic 'KO (2015 Remaster)", year: 1976, hires: true });
@@ -54,7 +53,9 @@ test("an album's versions: one tile, the highest resolution its main, every vers
   album(music, { artist: "Solo", title: "Debut", year: 1999, group: "cccccccc-0000-4000-8000-000000000003" });
   album(music, { artist: "Solo", title: "Debut Plus", year: 1999, group: "cccccccc-0000-4000-8000-000000000003" });
   const srv = await start({ port: ports.port(), musicDir: music, dataDir: path.join(root, "data") });
-  t.after(() => srv.stop());
+  // Stopped, then its folder removed: the other way round, the server could still be writing a cover into data/art
+  // as the folder went (ENOTEMPTY), the hooks run in the order they were added.
+  t.after(async () => { await srv.stop(); fs.rmSync(root, { recursive: true, force: true }); });
   const H = { Authorization: "Bearer " + await signIn(srv.base), "Content-Type": "application/json" };
   const get = async p => (await fetch(srv.base + p, { headers: H })).json();
   await until(async () => { const s = await get("/api/status"); return s && s.index_count === 8 && !s.scanning; }, 60000, "the library");
