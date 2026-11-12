@@ -109,7 +109,7 @@ async function start({ port, musicDir, dataDir, env = {}, bin = BIN, timeoutMs =
 const ENV = {
   port: "PORT", musicDir: "MUSIC_DIR", dataDir: "DATA_DIR", serverIp: "SERVER_IP", sonosHosts: "SONOS_HOSTS", upnpHosts: "UPNP_HOSTS",
   include: "INCLUDE_ZONES", exclude: "EXCLUDE_ZONES", scanHours: "SCAN_INTERVAL_HOURS", tailscaleBin: "MUSICDNET_BIN",
-  mbBaseUrl: "MUSICBRAINZ_URL", itunesBaseUrl: "ITUNES_URL", mbpackUrl: "MBPACK_URL", mbpackDir: "MBPACK_DIR", autoeqBaseUrl: "AUTOEQ_URL",
+  mbBaseUrl: "MUSICBRAINZ_URL", mbRestMs: "MUSICBRAINZ_REST_MS", itunesBaseUrl: "ITUNES_URL", mbpackUrl: "MBPACK_URL", mbpackDir: "MBPACK_DIR", autoeqBaseUrl: "AUTOEQ_URL",
   discogsBaseUrl: "DISCOGS_URL", fanartBaseUrl: "FANART_URL", deezerBaseUrl: "DEEZER_URL", wikipediaBaseUrl: "WIKIPEDIA_URL",
   pitchforkBaseUrl: "PITCHFORK_URL", qobuzWebUrl: "QOBUZ_WEB_URL", lastfmBaseUrl: "LASTFM_URL", lastfmKey: "LASTFM_KEY",
   identifyTickMs: "IDENTIFY_TICK_MS", loudnessTickMs: "LOUDNESS_TICK_MS", qobuzBaseUrl: "QOBUZ_URL", tidalBaseUrl: "TIDAL_URL",
