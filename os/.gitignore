@@ -4,3 +4,4 @@ mkosi.extra/usr/lib/mandarin-os/VERSION
 /*.raw
 /mkosi.output/
 /mkosi.cache/
+mkosi.extra/usr/lib/mandarin-os/environment

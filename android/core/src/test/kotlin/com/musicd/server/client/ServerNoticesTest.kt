@@ -31,8 +31,14 @@ class ServerNoticesTest {
         assertEquals("Scanning your music folder… 12,345 files so far. Albums appear when the first pass finishes.", scanning.lines[0])
         assertFalse(scanning.error)
         assertEquals(3_000L, ServerNotices.nextLook(scanning, true))
+        // Said for how the server is installed (item 389): Docker's mounts, Mandarin OS's share, or the folder itself.
         assertEquals("No audio files were found in /a, /b. Check the -v …:/a, /b:ro mount points at your music, and that the container can read it (4 files couldn't be read).",
-            of("""{"index_count":0,"music_dirs":["/a","/b"],"scan":{"last":{"status":"ok","errors":4}}}""")!!.lines[0])
+            of("""{"index_count":0,"install":"docker","music_dirs":["/a","/b"],"scan":{"last":{"status":"ok","errors":4}}}""")!!.lines[0])
+        val os = of("""{"index_count":0,"install":"mandarin-os","music_dirs":["/data/Storage"],"scan":{"last":{"status":"ok"}}}""")!!
+        assertEquals("No music yet. Copy it into Storage in smb://mandarin/data, or plug in a USB drive: it appears under Storage/USB, and its music here.", os.lines[0])
+        assertFalse(os.error)
+        assertEquals("No audio files were found in /a. Check that it holds your music and that Mandarin can read it, or add your library in Settings → Music folders.",
+            of("""{"index_count":0,"install":"linux","music_dirs":["/a"],"scan":{"last":{"status":"ok"}}}""")!!.lines[0])
         assertEquals("Starting up — reading your music folder…", of("""{"index_count":0}""")!!.lines[0])
     }
 

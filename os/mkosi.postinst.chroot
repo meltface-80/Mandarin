@@ -16,6 +16,9 @@ passwd -l root
 systemctl mask getty@.service serial-getty@.service autovt@.service console-getty.service debug-shell.service
 # The share without NetBIOS (Windows finds it by WS-Discovery, Macs by Bonjour); apt's own timers off.
 systemctl mask nmbd.service samba-ad-dc.service apt-daily.timer apt-daily-upgrade.timer
+# NetworkManager alone runs the network: systemd-networkd, on by default beside it, waited about two minutes at every
+# start for a network it doesn't manage, then said it failed.
+systemctl mask systemd-networkd.service systemd-networkd.socket systemd-networkd-wait-online.service
 systemctl enable mandarin-console.service mandarin-os-apply.service mandarin-os-check.service mandarin-os-maintain.timer \
   nftables.service smbd.service avahi-daemon.service wsdd2.service NetworkManager.service systemd-resolved.service systemd-timesyncd.service
 # What the upkeep must never remove.

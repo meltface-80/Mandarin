@@ -2,6 +2,8 @@
 Description=Mandarin OS: what the installer chose, put in place; the share's layout
 RequiresMountsFor=/data
 After=data.mount local-fs.target
+# Installed only: the USB stick has no data partition.
+ConditionPathIsMountPoint=/data
 Before=mandarin.service smbd.service NetworkManager.service
 
 [Service]
