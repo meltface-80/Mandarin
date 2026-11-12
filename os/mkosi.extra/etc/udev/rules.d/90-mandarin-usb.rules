@@ -1,3 +1,6 @@
 # Mandarin OS: a USB drive with a filesystem on it mounted under /data/Storage/USB as it is plugged in, and let go as it
 # is pulled out (mandarin-usb@.service, /usr/lib/mandarin-os/usb-mount).
-ACTION=="add", SUBSYSTEM=="block", ENV{ID_BUS}=="usb", ENV{ID_FS_USAGE}=="filesystem", ENV{SYSTEMD_WANTS}+="mandarin-usb@%k.service", TAG+="systemd"
+# Known by what it is plugged into (USB), not by ID_BUS: udev asks a USB SSD in a SATA enclosure (non-removable) its
+# ATA identity first (ata_id, 60-persistent-storage.rules), and then ID_BUS is "ata", so a rule on ID_BUS=="usb" never
+# met a USB SSD, only sticks. The system's own disk and Mandarin OS's partitions are left alone by usb-mount itself.
+ACTION=="add", SUBSYSTEM=="block", SUBSYSTEMS=="usb", ENV{ID_FS_USAGE}=="filesystem", ENV{SYSTEMD_WANTS}+="mandarin-usb@%k.service", TAG+="systemd"
