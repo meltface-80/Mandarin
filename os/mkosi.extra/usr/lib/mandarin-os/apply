@@ -1,0 +1,80 @@
+#!/bin/bash
+# /usr/lib/mandarin-os/apply — at every start (mandarin-os-apply.service, before Mandarin, the share and the network
+# are up): what the installer chose, put in place, and the share's layout made again (item 389). Idempotent.
+#
+# /data/MachineSettings/setup.json, written by mandarin-os-install:
+#   { "share_user": "music", "share_password": "…" (once: taken out as soon as it is set),
+#     "network": { "mode": "dhcp" | "static", "address": "192.168.1.20/24", "gateway": "192.168.1.1", "dns": "192.168.1.1" },
+#     "bridge": true|false }
+set -uo pipefail
+. /usr/lib/mandarin-os/log.sh
+mountpoint -q /data || { oslog INFO "[apply] no data partition (the USB stick): nothing to apply"; exit 0; }
+S=/data/MachineSettings
+SETUP="$S/setup.json"
+mkdir -p "$S" /data/MandarinOS/Logs /data/MandarinServer /data/Storage/USB /data/Share
+cp /usr/lib/mandarin-os/VERSION /data/MandarinOS/version.txt 2>/dev/null
+
+# The share's user: the name chosen, a user of the system with no login, in the share's group and Mandarin's.
+getent group mandarin-share >/dev/null || groupadd --system mandarin-share
+getent group mandarin >/dev/null || groupadd --system mandarin
+user="$(jq -r '.share_user // empty' "$SETUP" 2>/dev/null)"
+if [ -n "$user" ]; then
+  id "$user" >/dev/null 2>&1 || useradd --system --no-create-home --home-dir /data/Share --shell /usr/sbin/nologin "$user"
+  usermod -a -G mandarin-share,mandarin "$user"
+  printf '%s\n' "$user" > "$S/share-user"
+  pass="$(jq -r '.share_password // empty' "$SETUP")"
+  if [ -n "$pass" ]; then
+    if printf '%s\n%s\n' "$pass" "$pass" | smbpasswd -s -a "$user" >/dev/null; then
+      jq 'del(.share_password)' "$SETUP" > "$SETUP.new" && mv -f "$SETUP.new" "$SETUP"
+      oslog INFO "[apply] the share's user $user set up"
+    else
+      oslog ERROR "[apply] the share's password for $user couldn't be set"
+    fi
+  fi
+  chmod 600 "$SETUP"
+fi
+
+# The network as chosen (once: NetworkManager keeps it after).
+if [ "$(jq -r '.network.mode // "dhcp"' "$SETUP" 2>/dev/null)" = static ] && [ ! -f "$S/.network-applied" ]; then
+  /usr/lib/mandarin-os/network static "$(jq -r .network.address "$SETUP")" "$(jq -r .network.gateway "$SETUP")" "$(jq -r '.network.dns // empty' "$SETUP")" \
+    && touch "$S/.network-applied"
+fi
+
+# The share's layout (ROCK's Data share as the model): Storage written, the rest read through links.
+cd /data/Share
+mkdir -p Storage MandarinServer MandarinBridge MandarinApp MandarinOS
+ln -sfn /data/Storage/USB Storage/USB 2>/dev/null; [ -d /data/Storage/Internal ] && ln -sfn /data/Storage/Internal Storage/Internal
+ln -sfn /data/MandarinServer/Logs MandarinServer/Logs
+ln -sfn /data/MandarinServer/backups MandarinServer/Backups
+ln -sfn /data/MandarinServer/Logs/Bridges MandarinBridge/Logs
+ln -sfn /data/MandarinServer/Logs/Apps MandarinApp/Logs
+ln -sfn /data/MandarinOS/Logs MandarinOS/Logs
+ln -sfn /data/MandarinOS/version.txt MandarinOS/version.txt
+ln -sfn /data/MachineSettings/network.txt MachineSettings.txt 2>/dev/null
+cat > README.txt <<'TXT'
+Mandarin OS — smb://mandarin/data
+
+Storage            Copy your music here: USB holds each USB drive plugged in, Internal the computer's own storage drive.
+MandarinServer     Mandarin's logs, and its backups (read only).
+MandarinBridge     Every Mandarin Bridge's log, as the server keeps them (read only).
+MandarinApp        The Mandarin app's logs, sent by each phone (read only).
+MandarinOS         This system's own log, and its version (read only).
+
+The system page: http://mandarin/   Mandarin: http://mandarin:3500/
+TXT
+# Readable by the share's group, written only where music goes.
+chown root:mandarin-share /data/Share /data/Share/* 2>/dev/null; chmod 0755 /data/Share
+chown "${user:-root}:mandarin" /data/Storage /data/Storage/USB; chmod 2775 /data/Storage /data/Storage/USB
+id mandarin >/dev/null 2>&1 && chown -R mandarin:mandarin /data/MandarinServer && chmod 0750 /data/MandarinServer
+mkdir -p /data/MandarinServer/Logs /data/MandarinServer/backups && chown mandarin:mandarin /data/MandarinServer/Logs /data/MandarinServer/backups
+chmod 0750 /data/MandarinServer/Logs /data/MandarinServer/backups
+# The share's user reads Mandarin's logs and backups through its group (mandarin), and never writes them.
+chown -R root:mandarin-share /data/MandarinOS; chmod -R g+rX,o-rwx /data/MandarinOS
+ip -4 -o addr show scope global | awk '{ print $2": "$4 }' > /data/MachineSettings/network.txt 2>/dev/null
+
+# Mandarin Bridge beside it, where chosen (a DAC on this computer plays through Mandarin's own engine without it).
+if [ "$(jq -r '.bridge // false' "$SETUP" 2>/dev/null)" = true ] && [ ! -x /usr/lib/mandarin-bridge/mandarin-bridge ]; then
+  oslog INFO "[apply] Mandarin Bridge chosen: installed once the network is up (mandarin-os-bridge.service)"
+  systemctl --no-block start mandarin-os-bridge.service 2>/dev/null || true
+fi
+oslog INFO "[apply] done"

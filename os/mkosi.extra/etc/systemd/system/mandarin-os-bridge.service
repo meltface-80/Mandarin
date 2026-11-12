@@ -1,0 +1,9 @@
+[Unit]
+Description=Mandarin OS: Mandarin Bridge installed beside Mandarin, as chosen
+After=network-online.target
+Wants=network-online.target
+ConditionPathExists=!/usr/lib/mandarin-bridge/mandarin-bridge
+
+[Service]
+Type=oneshot
+ExecStart=/usr/lib/mandarin-os/install-bridge

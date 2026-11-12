@@ -1,0 +1,55 @@
+#!/bin/bash
+# /usr/lib/mandarin-os/usb-mount add|remove <sdb1> — a USB drive under /data/Storage/USB/<its name> (item 389), as it
+# is plugged in and pulled out (mandarin-usb@.service, from the udev rule). Its name is its label, or its model and a
+# short id where it has none. Checked first where it can be (fsck -p); one that can't be repaired, or that its
+# filesystem won't write (a dirty NTFS, HFS+), is mounted read-only, and why is kept in /run/mandarin-os/usb/<name>
+# for the system page. exFAT, FAT and NTFS belong to the share's user, so music copied in over SMB can be written;
+# a Linux filesystem (ext4) keeps its own owners: Mandarin reads it as any user would.
+set -uo pipefail
+. /usr/lib/mandarin-os/log.sh
+what="${1:-}" dev="/dev/${2:-}"
+state=/run/mandarin-os/usb
+mkdir -p "$state"
+case "$what" in
+  add)
+    eval "$(blkid -o export "$dev" 2>/dev/null)" || { oslog WARN "[usb] $dev: no filesystem read"; exit 0; }
+    label="${LABEL:-}"
+    [ -n "$label" ] || label="$(udevadm info -q property -n "$dev" | sed -n 's/^ID_MODEL=//p' | tr '_' ' ') ${UUID:0:4}"
+    name="$(printf '%s' "$label" | tr -c '[:alnum:] ._()-' '_' | sed 's/^[ .]*//;s/[ .]*$//')"
+    [ -n "$name" ] || name="USB drive"
+    mp="/data/Storage/USB/$name"
+    mkdir -p "$mp"
+    share="$(cat /data/MachineSettings/share-user 2>/dev/null || echo root)"
+    gid="$(getent group mandarin | cut -d: -f3)"
+    own="uid=$(id -u "$share" 2>/dev/null || echo 0),gid=${gid:-0},umask=0002"
+    why=""
+    case "${TYPE:-}" in
+      ext2|ext3|ext4) fsck -p "$dev" >/dev/null 2>&1; [ $? -ge 4 ] && why="its filesystem has errors that couldn't be repaired"; opts="noatime" ;;
+      exfat) fsck.exfat -p "$dev" >/dev/null 2>&1 || why="it wasn't removed safely, and couldn't be repaired"; opts="noatime,$own" ;;
+      vfat) fsck.vfat -a "$dev" >/dev/null 2>&1; [ $? -ge 4 ] && why="its filesystem has errors that couldn't be repaired"; opts="noatime,$own" ;;
+      ntfs) opts="noatime,$own"; TYPE=ntfs3 ;;
+      hfsplus) opts="noatime"; why="Mac drives (HFS+) are read here, not written" ;;
+      *) oslog WARN "[usb] $dev ($name): a ${TYPE:-unknown} filesystem, not mounted"; rmdir "$mp" 2>/dev/null; exit 0 ;;
+    esac
+    if [ -z "$why" ] && mount -t "$TYPE" -o "rw,$opts" "$dev" "$mp" 2>/dev/null; then
+      printf 'rw\n' > "$state/$name"
+      oslog INFO "[usb] $name ($TYPE) mounted at $mp"
+    elif mount -t "$TYPE" -o "ro,$opts" "$dev" "$mp" 2>/dev/null; then
+      printf 'ro\n%s\n' "${why:-it can't be written as it is (not removed safely?): read-only}" > "$state/$name"
+      oslog WARN "[usb] $name ($TYPE) mounted read-only at $mp: ${why:-it couldn't be mounted to write}"
+    else
+      oslog ERROR "[usb] $name ($TYPE, $dev) couldn't be mounted"
+      rmdir "$mp" 2>/dev/null
+      exit 0
+    fi
+    printf '%s\n' "$mp" > "$state/.$(basename "$dev")"
+    ;;
+  remove)
+    mp="$(cat "$state/.$(basename "$dev")" 2>/dev/null || true)"
+    [ -n "$mp" ] || exit 0
+    umount "$mp" 2>/dev/null || umount -l "$mp" 2>/dev/null
+    rmdir "$mp" 2>/dev/null
+    rm -f "$state/.$(basename "$dev")" "$state/$(basename "$mp")"
+    oslog INFO "[usb] $(basename "$mp") let go"
+    ;;
+esac

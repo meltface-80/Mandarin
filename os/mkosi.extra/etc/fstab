@@ -1,0 +1,4 @@
+# Mandarin OS: the data partition (installed by mandarin-os-install), and the internal storage drive where one was
+# chosen. Booted from the USB stick (the installer) neither is there, and nothing waits for them.
+LABEL=mandarin-data      /data                  ext4  defaults,noatime,nofail,x-systemd.device-timeout=15s  0 2
+LABEL=mandarin-internal  /data/Storage/Internal ext4  defaults,noatime,nofail,x-systemd.device-timeout=15s  0 2

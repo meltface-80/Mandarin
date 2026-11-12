@@ -1,0 +1,12 @@
+#!/bin/bash
+# /usr/lib/mandarin-os/reinstall-mandarin — Mandarin put back from its latest release (tools/linux/install.sh, kept in
+# the image, each file checked against the release key), its data and music folder kept; from the system page's
+# Reinstall, and from the upkeep when Mandarin doesn't answer (item 389).
+set -uo pipefail
+. /usr/lib/mandarin-os/log.sh
+oslog INFO "[reinstall] Mandarin put back from its latest release"
+if /usr/lib/mandarin-os/linux-install.sh --music /data/Storage --data /data/MandarinServer >> /data/MandarinOS/Logs/Reinstall_log.txt 2>&1; then
+  oslog INFO "[reinstall] done: $(cat /opt/mandarin/server/bin/mandarin-server.version 2>/dev/null)"
+else
+  oslog ERROR "[reinstall] it didn't work (Reinstall_log.txt)"; exit 1
+fi

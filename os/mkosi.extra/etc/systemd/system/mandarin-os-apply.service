@@ -1,0 +1,13 @@
+[Unit]
+Description=Mandarin OS: what the installer chose, put in place; the share's layout
+RequiresMountsFor=/data
+After=data.mount local-fs.target
+Before=mandarin.service smbd.service NetworkManager.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/lib/mandarin-os/apply
+
+[Install]
+WantedBy=multi-user.target

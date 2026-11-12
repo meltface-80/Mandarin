@@ -14,13 +14,16 @@
 #   --music DIR    the music folder (asked for, or /music, where not given); more can be added in Settings
 #   --port N       the port (3500)
 #   --uninstall    the service and /opt/mandarin removed; the data kept in /var/lib/mandarin (--purge: that too)
+#   --data DIR     the data folder (/var/lib/mandarin): Mandarin OS keeps it on its data partition
+#   --no-start     the service enabled, not started (Mandarin OS's image, built where nothing runs)
+#   --no-apt       nothing installed from apt (Mandarin OS's image lists what it needs itself)
 #
 # Mandarin OS installs Mandarin with this (item 389's plan, phase 2).
 set -euo pipefail
 
 ROOT="${MANDARIN_ROOT:-}"                     # the tests' own root: everything below it
 APP_DIR="$ROOT/opt/mandarin"
-DATA_DIR="$ROOT/var/lib/mandarin"
+DATA="/var/lib/mandarin"
 UNIT="$ROOT/etc/systemd/system/mandarin.service"
 USER_NAME=mandarin
 API="${MANDARIN_API:-https://api.github.com/repos/meltface-80/Mandarin}"
@@ -32,6 +35,8 @@ PORT=3500
 MUSIC=""
 UNINSTALL=0
 PURGE=0
+START=1
+APT=1
 
 say() { printf '\n\033[1m%s\033[0m\n' "$*"; }
 die() { printf '\n%s\n' "$*" >&2; exit 1; }
@@ -42,9 +47,14 @@ while [ $# -gt 0 ]; do
     --port) PORT="${2:-}"; shift 2 ;;
     --uninstall) UNINSTALL=1; shift ;;
     --purge) UNINSTALL=1; PURGE=1; shift ;;
-    *) die "No option $1: --music DIR, --port N, --uninstall, --purge" ;;
+    --data) DATA="${2:-}"; shift 2 ;;
+    --no-start) START=0; shift ;;
+    --no-apt) APT=0; shift ;;
+    *) die "No option $1: --music DIR, --port N, --data DIR, --no-start, --no-apt, --uninstall, --purge" ;;
   esac
 done
+case "$DATA" in /*) ;; *) die "--data is a whole path (/data/MandarinServer)" ;; esac
+DATA_DIR="$ROOT$DATA"
 case "$PORT" in ''|*[!0-9]*) die "--port is a number" ;; esac
 
 [ -n "$ROOT" ] || [ "$(id -u)" = 0 ] || die "Run it as root: … | sudo bash"
@@ -72,11 +82,13 @@ signed() { openssl dgst -sha256 -verify "$TMP/key.pem" -signature "$1.sig" "$1" 
 get() { curl -fsSL --retry 3 -o "$2" "$1"; }
 
 # 1. What Mandarin needs (the Docker image's own list, Dockerfile).
-say "Installing ffmpeg, poppler, Python and ICU…"
-export DEBIAN_FRONTEND=noninteractive
-apt-get update -q
-ICU="$(apt-cache pkgnames libicu 2>/dev/null | grep -E '^libicu[0-9]+$' | sort -V | tail -n 1 || true)"
-apt-get install -y -q --no-install-recommends ffmpeg poppler-utils python3 python3-numpy curl ca-certificates openssl ${ICU:+"$ICU"}
+if [ "$APT" = 1 ]; then
+  say "Installing ffmpeg, poppler, Python and ICU…"
+  export DEBIAN_FRONTEND=noninteractive
+  apt-get update -q
+  ICU="$(apt-cache pkgnames libicu 2>/dev/null | grep -E '^libicu[0-9]+$' | sort -V | tail -n 1 || true)"
+  apt-get install -y -q --no-install-recommends ffmpeg poppler-utils python3 python3-numpy curl ca-certificates openssl ${ICU:+"$ICU"}
+fi
 
 # 2. The latest release, checked.
 VERSION="${MANDARIN_VERSION:-$(curl -fsSL --retry 3 "$API/releases/latest" | sed -n 's/^ *"tag_name": *"v\{0,1\}\([^"]*\)".*/\1/p' | head -n 1)}"
@@ -130,7 +142,7 @@ After=network-online.target local-fs.target
 [Service]
 User=$USER_NAME
 Environment=MANDARIN_APP_DIR=/opt/mandarin
-Environment=DATA_DIR=/var/lib/mandarin
+Environment=DATA_DIR=$DATA
 Environment=MUSIC_DIR=$MUSIC
 Environment=PORT=$PORT
 Environment=MANDARIN_SYSTEMD=mandarin.service
@@ -144,6 +156,11 @@ LimitNOFILE=65536
 [Install]
 WantedBy=multi-user.target
 EOF
+if [ "$START" = 0 ]; then
+  systemctl enable mandarin.service
+  say "Mandarin $VERSION is installed; it starts with the computer."
+  exit 0
+fi
 systemctl daemon-reload
 systemctl enable --now mandarin.service
 
