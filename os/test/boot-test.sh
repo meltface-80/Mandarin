@@ -6,10 +6,15 @@
 #   README and layout there, music written into Storage, and nothing written where it is read-only; Mandarin's and the
 #   system's logs in it; nothing at all on SSH's port; mandarin.local and the system's own checks (maintain --check) are
 #   asked of it through its logs; USB drives (exFAT, NTFS, ext4) plugged in at the start and while it runs, each
-#   mounted in Storage/USB with its music and on the system page. Needs qemu-system-x86_64, OVMF, mtools, smbclient, curl,
-#   jq, exfatprogs, ntfs-3g, and root (loop devices, for the USB drives' filesystems).
+#   mounted in Storage/USB with its music and on the system page. Then, given NEXT (os/test/next-mandarin.sh's program,
+#   a newer Mandarin), the in-app update (item 398): Settings → Updates on the installed system takes a newer release from
+#   a stand-in GitHub on this computer, and Mandarin starts again as it, its library and account kept. Needs
+#   qemu-system-x86_64, OVMF, mtools, smbclient, curl, jq, exfatprogs, ntfs-3g, node, python3, and root (loop devices,
+#   for the USB drives' filesystems and the installed disk's).
+#     os/test/boot-test.sh <image.raw> [NEXT]
 set -uo pipefail
-IMG="${1:?the image}"
+IMG="${1:?the image}" NEXT="${2:-}"
+HERE="$(cd "$(dirname "$0")" && pwd)"
 W="$(mktemp -d)"
 # Each virtual machine stopped at the end, whatever happened: by its own process number (-pidfile), never left running.
 trap 'for p in "$W"/*.pid; do [ -f "$p" ] && kill "$(cat "$p")" 2>/dev/null; done; sleep 1; rm -rf "$W"' EXIT
@@ -41,6 +46,23 @@ ok "installed: $parts"
 # for an error on the first real computer).
 grep -aE "Timed out waiting|Dependency failed|Failed to start" "$W/serial-install.log" && fail "the stick's start said something failed"
 ok "the stick started without a failure on its screen"
+
+# The in-app update's stand-in GitHub (os/test/fake-release.js): a release of NEXT, signed with a key made for this run,
+# on this computer, which the virtual machine reaches as 10.0.2.2. The installed Mandarin is told to ask it, and to
+# take that key, by a drop-in for its service written into the test's own copy of the installed disk ($W/disk.raw),
+# after the install and before its first start: never into the image, which is published as it was built.
+if [ -n "$NEXT" ]; then
+  node "$HERE/fake-release.js" "$NEXT" "$W/release" > "$W/release.log" 2>&1 & echo $! > "$W/release.pid"
+  for i in $(seq 1 60); do [ -s "$W/release/port" ] && break; sleep 1; done
+  [ -s "$W/release/port" ] || fail "the stand-in GitHub didn't start: $(cat "$W/release.log")"
+  read -r rs rn < <(sfdisk -J "$W/disk.raw" | jq -r '.partitiontable.partitions[] | select(.name == "mandarin-os-a") | "\(.start) \(.size)"')
+  lo="$(losetup -f --show -o $((rs * 512)) --sizelimit $((rn * 512)) "$W/disk.raw")" || fail "no loop device for the installed system"
+  mkdir -p "$W/root" && mount "$lo" "$W/root" || { losetup -d "$lo"; fail "the installed system's partition didn't mount"; }
+  printf '[Service]\nEnvironment=UPDATE_API=http://10.0.2.2:%s\nEnvironment=UPDATE_KEY=%s\n' "$(cat "$W/release/port")" "$(cat "$W/release/update.pub")" \
+    > "$W/root/etc/systemd/system/mandarin.service.d/zz-update-test.conf"
+  umount "$W/root"; losetup -d "$lo"
+  ok "the installed Mandarin asks the stand-in GitHub for $("$NEXT" --version), signed with the test's key"
+fi
 
 # USB drives as music comes on them: a GPT partition table and one partition (exFAT, NTFS or ext4), or ext4 on the
 # whole disk with no partitions (as a Linux machine, DietPi, often formats one); a track on each.
@@ -147,4 +169,18 @@ printf 'drive_add 0 if=none,id=u4,format=raw,file=%s\ndevice_add usb-storage,bus
   || fail "QEMU's monitor didn't take the drive"
 usb_in "Plugged Later"
 ok "a USB drive plugged in while it runs (ext4, partitioned): mounted in Storage/USB with its music, on the system page"
+
+# The in-app update (item 398): once installed, Mandarin gets newer by Settings → Updates alone. A track in Storage, then
+# os/test/in-app-update.js: signed in and scanned, Check for updates and Update as the page asks them, and Mandarin back
+# as NEXT, started again in its own process, its library, account and sign-in kept, nothing failed in the journal.
+if [ -n "$NEXT" ]; then
+  python3 -c 'import wave,sys; w=wave.open(sys.argv[1],"wb"); w.setnchannels(2); w.setsampwidth(2); w.setframerate(44100); w.writeframes(bytes(176400)); w.close()' "$W/kept.wav"
+  S -c 'cd Storage; mkdir "Update Test"; cd "Update Test"; mkdir "Before the Update"' >/dev/null
+  S -c "cd \"Storage/Update Test/Before the Update\"; put $W/kept.wav \"01 Kept.wav\"" >/dev/null
+  node "$HERE/in-app-update.js" http://127.0.0.1:13500 http://127.0.0.1:10080 "$W/release.log" "Before the Update" \
+    || { cat "$W/release.log"; fail "the in-app update"; }
+  ok "updated in the app to $("$NEXT" --version): downloaded, checked, started again, nothing lost"
+else
+  echo "not tested: the in-app update (no NEXT given: os/test/next-mandarin.sh builds one)"
+fi
 echo "PASS"

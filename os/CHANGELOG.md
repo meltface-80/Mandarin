@@ -4,6 +4,7 @@
 
 - Fixed - the installer's Mandarin Bridge question and the system page said a DAC plugged into the computer plays through Mandarin itself; it plays through Mandarin Bridge, so the question says so (yes if a DAC will be plugged in) and so does the page
 - Changed - Mandarin's Linux installer (which installs Mandarin on Mandarin OS) no longer speaks of Docker or a Mac, Mandarin no longer being built for either (items 393 and 394)
+- New - the boot test proves Mandarin updates itself on an installed Mandarin OS (item 398): once installed, Settings → Updates is the only way Mandarin gets newer without reinstalling. The test builds Mandarin as this commit but 9.9.9 (os/test/next-mandarin.sh), offers it from a stand-in GitHub on the computer it runs on (os/test/fake-release.js), signed with a key made for the run, and tells the installed Mandarin to ask there and take that key by a drop-in written into its own copy of the installed disk, never into the image. Signed in, a track put in Storage and scanned, Check for updates and Update are asked as the page asks them (os/test/in-app-update.js): the bundle and the program are downloaded and their signatures and sums checked, Mandarin starts again as 9.9.9 in its own process with its library there at once, the device still signed in and the password still taking, nothing left to update, and nothing failed in the journal. Nothing on Mandarin OS stood in its way: Mandarin's folder, its engine's included, is its own, and its service is left alone by a restart in place
 
 ## v0.1.1
 

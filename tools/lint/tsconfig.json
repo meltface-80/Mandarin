@@ -22,7 +22,8 @@
   "include": [
     "../../tools/**/*.js",
     "../../test/**/*.js",
-    "../../public/**/*.js"
+    "../../public/**/*.js",
+    "../../os/test/**/*.js"
   ],
   "exclude": [
     "../../**/node_modules/**",
