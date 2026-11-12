@@ -179,7 +179,7 @@ private fun DeviceListPane(client: () -> ServerClient?, onBack: () -> Unit, onOp
                         Modifier.parity("settings-audio.rescan", Contract.label("settings-audio.rescan", if (looking) 1 else 0)).clickable(enabled = !looking) {
                             val c = client() ?: return@clickable
                             looking = true
-                            val made = ServerWrites.write { c.post("/api/audio-devices/rescan", JSONObject(), 60_000) }
+                            val made = ServerWrites.aside { c.post("/api/audio-devices/rescan", JSONObject(), 60_000) }
                             scope.launch { ServerWrites.await(made).onSuccess { list = AudioDevices.parse(it); error = "" }.onFailure { error = com.musicd.server.client.Failure.said(it, "") }; looking = false }
                         })
                 }

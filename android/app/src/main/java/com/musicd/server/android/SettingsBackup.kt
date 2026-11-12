@@ -125,10 +125,10 @@ internal fun SettingsBackup(client: () -> ServerClient?, onBack: () -> Unit) {
             (context as? Activity)?.recreate()
         }
     }
-    // A restore made on the lane ([made]: the call), its answer finished here.
+    // A restore made beside the lane ([made]: the call; item 390: a long one held every change after it), its answer finished here.
     fun restore(made: () -> JSONObject) {
         busy = true; open = null
-        val f = ServerWrites.write { runCatching(made).getOrElse { JSONObject().put("ok", false).put("error", com.musicd.server.client.Failure.said(it, "Restore failed")) } }
+        val f = ServerWrites.aside { runCatching(made).getOrElse { JSONObject().put("ok", false).put("error", com.musicd.server.client.Failure.said(it, "Restore failed")) } }
         scope.launch { ServerWrites.await(f).onSuccess(::finish).onFailure { busy = false; setupToast(context, "Couldn't reach the server") } }
     }
     fun openPanel(key: String, parts: List<String>) { open = if (open == key) null else key; panelTicked = parts.toSet(); panelPass = "" }
