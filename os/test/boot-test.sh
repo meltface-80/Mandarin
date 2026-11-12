@@ -42,19 +42,24 @@ ok "installed: $parts"
 grep -aE "Timed out waiting|Dependency failed|Failed to start" "$W/serial-install.log" && fail "the stick's start said something failed"
 ok "the stick started without a failure on its screen"
 
-# USB drives as music comes on them: a GPT partition table and one partition, exFAT, NTFS or ext4, a track on each.
-usb_disk() {  # file, filesystem, label
-  local f="$1" lo; truncate -s 300M "$f"
-  printf 'label: gpt\nstart=2048, type=EBD0A0A2-B9E5-4433-87C0-68B6B72699C7\n' | sfdisk -q "$f" || fail "no partition on $f"
-  lo="$(losetup -fP --show "$f")" || fail "no loop device for $f"
+# USB drives as music comes on them: a GPT partition table and one partition (exFAT, NTFS or ext4), or ext4 on the
+# whole disk with no partitions (as a Linux machine, DietPi, often formats one); a track on each.
+usb_disk() {  # file, filesystem, label, "whole" for no partition table
+  local f="$1" lo part; truncate -s 300M "$f"
+  if [ "${4:-}" = whole ]; then lo="$(losetup -f --show "$f")" && part="$lo"
+  else
+    printf 'label: gpt\nstart=2048, type=EBD0A0A2-B9E5-4433-87C0-68B6B72699C7\n' | sfdisk -q "$f" || fail "no partition on $f"
+    lo="$(losetup -fP --show "$f")" && part="${lo}p1"
+  fi
+  [ -n "${lo:-}" ] || fail "no loop device for $f"
   case "$2" in
-    exfat) mkfs.exfat -q -L "$3" "${lo}p1" ;; ntfs) mkfs.ntfs -q -f -L "$3" "${lo}p1" ;; ext4) mkfs.ext4 -q -L "$3" "${lo}p1" ;;
+    exfat) mkfs.exfat -q -L "$3" "$part" ;; ntfs) mkfs.ntfs -q -f -L "$3" "$part" ;; ext4) mkfs.ext4 -q -L "$3" "$part" ;;
   esac >/dev/null || { losetup -d "$lo"; fail "no $2 on $f"; }
-  mkdir -p "$W/m" && mount "${lo}p1" "$W/m" && mkdir -p "$W/m/Artist/Album" && head -c 65536 /dev/urandom > "$W/m/Artist/Album/01.flac" && umount "$W/m"
+  mkdir -p "$W/m" && mount "$part" "$W/m" && mkdir -p "$W/m/Artist/Album" && head -c 65536 /dev/urandom > "$W/m/Artist/Album/01.flac" && umount "$W/m"
   losetup -d "$lo"
 }
-usb_disk "$W/usb-exfat.raw" exfat "Music SSD"; usb_disk "$W/usb-ntfs.raw" ntfs "Music NTFS"; usb_disk "$W/usb-ext4.raw" ext4 "Music ext4"
-usb_disk "$W/usb-later.raw" exfat "Plugged Later"
+usb_disk "$W/usb-exfat.raw" exfat "Music SSD"; usb_disk "$W/usb-ntfs.raw" ntfs "Music NTFS"; usb_disk "$W/usb-ext4.raw" ext4 "Music ext4" whole
+usb_disk "$W/usb-later.raw" ext4 "Plugged Later"
 usb() { printf -- '-drive if=none,id=%s,format=raw,file=%s -device usb-storage,bus=xhci.0,drive=%s' "$1" "$2" "$1"; }
 
 echo "Starting from the disk, three USB drives plugged in…"
@@ -134,10 +139,10 @@ usb_in() {  # name: its music in the share, and the system page knows it
     || { usb_why; fail "the system page doesn't show $1, writable: $(curl -fsS http://127.0.0.1:10080/api/state | jq -c .usb)"; }
 }
 for d in "Music SSD" "Music NTFS" "Music ext4"; do usb_in "$d"; done
-ok "three USB drives plugged in at the start (exFAT, NTFS, ext4): each in Storage/USB with its music, writable, on the system page"
+ok "three USB drives plugged in at the start (exFAT, NTFS, ext4 on the whole disk): each in Storage/USB with its music, writable, on the system page"
 printf 'drive_add 0 if=none,id=u4,format=raw,file=%s\ndevice_add usb-storage,bus=xhci.0,drive=u4,id=later\n' "$W/usb-later.raw" \
   | python3 -c 'import socket,sys,time; s=socket.socket(socket.AF_UNIX); s.connect(sys.argv[1]); time.sleep(0.5); [ (s.sendall(l.encode()), time.sleep(1)) for l in sys.stdin ]; time.sleep(1)' "$W/monitor.sock" \
   || fail "QEMU's monitor didn't take the drive"
 usb_in "Plugged Later"
-ok "a USB drive plugged in while it runs: mounted in Storage/USB with its music, on the system page"
+ok "a USB drive plugged in while it runs (ext4, partitioned): mounted in Storage/USB with its music, on the system page"
 echo "PASS"
