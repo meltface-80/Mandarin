@@ -24,10 +24,10 @@ public sealed class ArtistAnswersAtOnceTests
     {
         Needs.Server(); Needs.Ffmpeg();
         var asked = 0;
-        // MusicBrainz slow, then out of reach: four seconds, then 503.
+        // MusicBrainz slow, then out of reach: four seconds, then 503. Every request it's asked counted.
         await using var mb = await FakeServer.Start(async ctx =>
         {
-            if ((ctx.Request.Path.Value ?? "").StartsWith("/artist", StringComparison.Ordinal)) Interlocked.Increment(ref asked);
+            Interlocked.Increment(ref asked);
             await Task.Delay(4000);
             ctx.Response.StatusCode = 503;
         });
@@ -44,13 +44,19 @@ public sealed class ArtistAnswersAtOnceTests
         Assert.False(first.Bool("known"));
         Assert.Equal("Artist A", first.Str("name"));
         // The lookup goes on behind, and fails.
-        await Session.Until(() => Task.FromResult(s.Server.Logs.Any(l => l.Contains("[credits] Artist A: HTTP 503", StringComparison.Ordinal))), 15000, "the lookup's failure");
+        // Its 503 rests every MusicBrainz lookup, said once (item 396), not as a line for the act.
+        await Session.Until(() => Task.FromResult(s.Server.Logs.Any(l => l.Contains("[musicbrainz] MusicBrainz turned a lookup away (HTTP 503", StringComparison.Ordinal))), 15000, "the lookup's failure");
+
+        var failedAfter = Volatile.Read(ref asked);
+        Assert.True(failedAfter >= 1, "MusicBrainz was asked");
 
         t.Restart();
         var again = (await s.Api(page)).J;
         Assert.True(t.ElapsedMilliseconds < 1000, $"the page waited {t.ElapsedMilliseconds} ms again");
         Assert.False(again.Bool("known"));
-        Assert.Equal(1, Volatile.Read(ref asked));
+        // Not asked again: neither the act's lookup that failed (an hour) nor anything while MusicBrainz rests.
+        await Task.Delay(1500);
+        Assert.Equal(failedAfter, Volatile.Read(ref asked));
     }
 
     [Test]
