@@ -95,7 +95,8 @@ test("a record's write-up: the same from either server", { skip: !haveFfmpeg() &
     mb.failDays = false;
     for (let t0 = Date.now(); ; await new Promise(r => setTimeout(r, 300))) {
       x = await ask("album/extras?fast=1&day=1&title=Hi%20Res&artist=Artist%20B");
-      if (x.body.release_date || Date.now() - t0 > 15000) break;
+      // While MusicBrainz rests the page has the year alone ("2020", as its release_date too): asked until the day.
+      if (/^\d{4}-\d\d-\d\d$/.test(x.body.release_date || "") || Date.now() - t0 > 15000) break;
     }
     assert.deepStrictEqual([x.body.year, x.body.release_date, x.body.album, x.body.artist], ["2020", "2020-11-20", null, null]);
 
