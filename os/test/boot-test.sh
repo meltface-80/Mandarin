@@ -49,7 +49,8 @@ usb_disk() {  # file, filesystem, label, "whole" for no partition table
   if [ "${4:-}" = whole ]; then lo="$(losetup -f --show "$f")" && part="$lo"
   else
     printf 'label: gpt\nstart=2048, type=EBD0A0A2-B9E5-4433-87C0-68B6B72699C7\n' | sfdisk -q "$f" || fail "no partition on $f"
-    lo="$(losetup -fP --show "$f")" && part="${lo}p1"
+    # The partition by its offset (1 MiB in): no partition device to wait for (/dev/loopNp1 needs udev).
+    lo="$(losetup -f --show -o 1048576 "$f")" && part="$lo"
   fi
   [ -n "${lo:-}" ] || fail "no loop device for $f"
   case "$2" in
