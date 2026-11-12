@@ -18,7 +18,9 @@ internal sealed partial class Updater
     };
 
     /* How this install gets a new program when an update can't put one in place. */
-    private static string GetAgain(bool mac) => mac ? "run the install line again (README, Install on a Mac)" : "pull the image again (docker pull)";
+    private static string GetAgain(bool mac) => mac ? "run the install line again (README, Install on a Mac)"
+        : Environment.GetEnvironmentVariable("MANDARIN_SYSTEMD") is { Length: > 0 } ? "run the install line again (README, Install on Linux without Docker)"
+        : "pull the image again (docker pull)";
 
     /* A Mac runs nothing unsigned: the release's is signed (ad hoc) where it is built, and here again if that didn't come through. */
     private static bool Codesign(string file)

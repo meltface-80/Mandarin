@@ -77,7 +77,7 @@ internal sealed partial class Tailscale(string imageBin, string dir, int port, s
         {
             if (string.Equals(Env("TAILSCALE"), "off", StringComparison.OrdinalIgnoreCase)) return false;
             if (Executable(imageBin)) return true;
-            var may = Env("DOCKER") == "1" || OperatingSystem.IsMacOS() || Env("TS_ENGINE_URL").Length > 0;
+            var may = Env("DOCKER") == "1" || OperatingSystem.IsMacOS() || Env("TS_ENGINE_URL").Length > 0 || Env("MANDARIN_SYSTEMD").Length > 0;
             return may && (OperatingSystem.IsLinux() || OperatingSystem.IsMacOS()) && Arch != null;
         }
     }

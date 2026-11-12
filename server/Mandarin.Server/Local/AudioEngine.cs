@@ -93,7 +93,9 @@ internal static partial class AudioEngine
         if (e != null) { log($"[local] Mandarin's audio engine {e.Version} plays sound devices on this computer"); return; }
         static string? Env(string k) => Environment.GetEnvironmentVariable(k);
         // A Mac has no image to bring it (item 155): fetched there too.
-        var may = Env("DOCKER") == "1" || OperatingSystem.IsMacOS() || Env("AUDIO_ENGINE_DOWNLOAD") == "1" || !string.IsNullOrEmpty(Env("AUDIO_ENGINE_URL"));
+        // Nor the Linux installer's (tools/linux/install.sh, MANDARIN_SYSTEMD): fetched there too, so a DAC on the computer plays.
+        var may = Env("DOCKER") == "1" || OperatingSystem.IsMacOS() || Env("AUDIO_ENGINE_DOWNLOAD") == "1" || !string.IsNullOrEmpty(Env("AUDIO_ENGINE_URL"))
+            || !string.IsNullOrEmpty(Env("MANDARIN_SYSTEMD"));
         if (may) _ = Ensure(dataDir, version, log);
     }
 
