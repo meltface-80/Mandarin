@@ -51,7 +51,7 @@ object ServerNotices {
             }
         }
         val gone = last.optJSONArray("offline_dirs")
-        if (gone != null && gone.length() > 0 && !away) return missing((0 until gone.length()).mapNotNull { gone.optJSONObject(it) }, ::n)
+        if (gone != null && gone.length() > 0 && !away) return missing((0 until gone.length()).mapNotNull { gone.optJSONObject(it) }, ::n, status.optString("install"))
         if (rooms == 0 && sonos?.optBoolean("searching") != true && !away) {
             val error = sonos?.optString("error")?.takeIf { it.isNotEmpty() && !sonos.isNull("error") }
             // For how the server is installed (item 389), as the page says it.
@@ -77,7 +77,14 @@ object ServerNotices {
         "Removed " + NumberFormat.getIntegerInstance(locale).format(removed) + " tracks from “" + name + "”"
 
     /** The music folders gone, a paragraph each, with the button (and its question) that forgets one where there is one. */
-    private fun missing(dirs: List<JSONObject>, n: (Int) -> String): ServerNotice {
+    /** How a music folder is put back, for how the server is installed (item 389), as the page says it. */
+    private fun putBack(install: String) = when (install) {
+        "docker" -> "Mount the drive or share again (or add its -v line back to the container)"
+        "mandarin-os" -> "Plug the drive in again"
+        else -> "Mount the drive or share again"
+    }
+
+    private fun missing(dirs: List<JSONObject>, n: (Int) -> String, install: String): ServerNotice {
         val lines = ArrayList<String>(); val buttons = ArrayList<String>(); val asks = ArrayList<String>(); val folders = ArrayList<String>(); val names = ArrayList<String>()
         for (d in dirs) {
             val name = "“" + d.optString("name") + "”"
@@ -91,7 +98,7 @@ object ServerNotices {
                 }
                 else -> {
                     lines += "The music folder $name" + (if (d.optBoolean("missing")) " isn't there" else " is empty") + " — its $tracks" +
-                        " tracks are kept, not removed. Mount the drive or share again (or add its -v line back to the container) and they're back as they were. Gone for good? Forget it:"
+                        " tracks are kept, not removed. " + putBack(install) + " and they're back as they were. Gone for good? Forget it:"
                     buttons += "Forget $name"
                     asks += "Forget $name? Its $tracks tracks and their albums leave the library (they come back with a rescan if the folder does)."
                 }

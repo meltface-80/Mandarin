@@ -26,7 +26,7 @@ systemctl mask nmbd.service samba-ad-dc.service apt-daily.timer apt-daily-upgrad
 # NetworkManager alone runs the network: systemd-networkd, on by default beside it, waited about two minutes at every
 # start for a network it doesn't manage, then said it failed.
 systemctl mask systemd-networkd.service systemd-networkd.socket systemd-networkd-wait-online.service
-systemctl enable mandarin-console.service mandarin-os-apply.service mandarin-os-check.service mandarin-os-maintain.timer mandarin-os-page.service \
+systemctl enable mandarin-console.service mandarin-os-apply.service mandarin-os-check.service mandarin-os-maintain.timer mandarin-os-page.service mandarin-os-power.path \
   nftables.service smbd.service avahi-daemon.service wsdd2.service NetworkManager.service systemd-resolved.service systemd-timesyncd.service
 # What the upkeep must never remove.
 apt-mark manual $(dpkg-query -W -f '${Package}\n' | grep -E '^(linux-image-amd64|libsoxr0|libopus0|libmp3lame0|libgnutls30t64|libfreetype6|libharfbuzz0b|libfontconfig1|fonts-dejavu-core|libbz2-1.0|zlib1g|poppler-utils|python3|python3-numpy|libicu[0-9]+|libasound2t64|samba|avahi-daemon|wsdd2|network-manager|nftables|unattended-upgrades|curl|ca-certificates|openssl|jq|dialog|kbd|e2fsprogs|dosfstools|exfatprogs|systemd|systemd-boot|udev|dbus)$') >/dev/null

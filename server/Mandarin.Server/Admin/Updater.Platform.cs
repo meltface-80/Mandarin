@@ -17,10 +17,18 @@ internal sealed partial class Updater
         ("linux", "x64") => "linux-x64", ("linux", "arm64") => "linux-arm64", ("darwin", "x64") => "osx-x64", ("darwin", "arm64") => "osx-arm64", _ => null
     };
 
-    /* How this install gets a new program when an update can't put one in place. */
-    private static string GetAgain(bool mac) => mac ? "run the install line again (README, Install on a Mac)"
-        : Environment.GetEnvironmentVariable("MANDARIN_SYSTEMD") is { Length: > 0 } ? "run the install line again (README, Install on Linux without Docker)"
-        : "pull the image again (docker pull)";
+    /*
+     * How this install gets a new program when an update can't put one in place ([env]: this process's, or a case's).
+     * Mandarin OS (item 389) has no shell for an install line: its system page puts Mandarin back from its release.
+     */
+    internal static string GetAgain(bool mac, Func<string, string?>? env = null)
+    {
+        env ??= Environment.GetEnvironmentVariable;
+        return mac ? "run the install line again (README, Install on a Mac)"
+            : env("MANDARIN_OS") is { Length: > 0 } ? "use Reinstall Mandarin on Mandarin OS's system page (http://mandarin/, Support)"
+            : env("MANDARIN_SYSTEMD") is { Length: > 0 } ? "run the install line again (README, Install on Linux without Docker)"
+            : "pull the image again (docker pull)";
+    }
 
     /* A Mac runs nothing unsigned: the release's is signed (ad hoc) where it is built, and here again if that didn't come through. */
     private static bool Codesign(string file)
