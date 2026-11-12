@@ -76,7 +76,8 @@ jobs:
           set -e
           sudo apt-get update -q
           sudo apt-get install -y -q --no-install-recommends bubblewrap systemd-boot systemd-boot-efi systemd-ukify mtools dosfstools \
-            cpio zstd xz-utils debian-archive-keyring qemu-system-x86 ovmf smbclient fdisk jq e2fsprogs nftables iproute2
+            cpio zstd xz-utils debian-archive-keyring qemu-system-x86 ovmf smbclient fdisk jq e2fsprogs nftables iproute2 \
+            exfatprogs ntfs-3g
           sudo pip install --break-system-packages "git+https://github.com/systemd/mkosi@v25.3"
           # The virtual machine runs at the runner's own speed where it may (KVM).
           if [ -e /dev/kvm ]; then echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666"' | sudo tee /etc/udev/rules.d/99-kvm.rules; sudo udevadm control --reload-rules; sudo udevadm trigger --name-match=kvm; fi
