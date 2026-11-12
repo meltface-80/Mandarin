@@ -26,7 +26,7 @@
     <div class="info-card">
       <span class="sym">No rooms</span>
       <h3>"No Sonos rooms found yet"</h3>
-      <p>Check the server is on the same subnet as the speakers, then look at
+      <p>Check the server is on the same network (subnet) as the speakers, then look at
          <code>sonos.error</code> in <code>/api/status</code>. Setting <code>SONOS_HOSTS</code> to one speaker's IP skips
          discovery.</p>
     </div>
@@ -40,7 +40,9 @@
       <span class="sym">No albums</span>
       <h3>The library is empty</h3>
       <p><code>/api/status</code> shows <code>music_dir</code> and <code>index_count</code>. Check the
-         music folder is there and that the folder is readable.</p>
+         music folder is there and that the folder is readable. On Mandarin OS, copy music into the shared folder's
+         <b>Storage</b> (<code>smb://mandarin/data</code>), or plug in a USB drive and see it on the system page's
+         Storage tab.</p>
     </div>
     <div class="info-card">
       <span class="sym">Hi-res</span>
@@ -80,6 +82,13 @@
       <h3>A click as the rate changes</h3>
       <p>A Mandarin Bridge gives its DAC half a second of silence at a change of rate between tracks. A Squeezelite player
          pauses for as long as its <code>-r</code> option says: start it with <code>-r 44100-768000:500</code>.</p>
+    </div>
+    <div class="info-card">
+      <span class="sym">Mandarin OS</span>
+      <h3>The box can't be found</h3>
+      <p>Its own screen (a screen plugged in) shows its address. A static address that lost the box: type
+         <code>networkreset</code> there, then <code>yes</code>, and it goes back to DHCP and starts again. Everything
+         about it is on the system page, <code>http://mandarin/</code>; see <a href="mandarin-os.html">Mandarin OS</a>.</p>
     </div>
     <div class="info-card">
       <span class="sym">Mandarin Bridge</span>

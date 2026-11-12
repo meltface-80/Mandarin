@@ -36,18 +36,23 @@ under-the-hood fixes and improvements. The [changelog](CHANGELOG.md) has each ch
 * **Removed:** Playlists and Dynamic Playlists, with Home's Playlists row and Qobuz's and Tidal's playlists and
   favourite tracks brought in as playlists (favourite albums still are).
 * **Fixed:** plays, scrobbles and covers kept right through skips, drives mounted late and a DAC unplugged; a USB DAC
-  pulled out of the phone pauses it, as headphones do; a drive mounted after the server starts is read as it appears
-  (docker-compose.yml's `/music` line now ends in `rslave`).
+  pulled out of the phone pauses it, as headphones do; a drive mounted after the server starts is read as it appears.
 * **Improved:** security, speed and reliability across the server, the page, the app and Mandarin Bridge; releases
   are signed, and the server and Mandarin Bridge install only a signed update.
 
+**Mandarin OS 0.1.2:** a lightweight operating system made only to run Mandarin Server, on a PC of its own, with its own
+system page (`http://mandarin/`) to watch over and look after everything: a shared folder for your music, USB drives
+mounted as they are plugged in, and a weekly upkeep when nothing plays. See [Mandarin OS](#mandarin-os).
+
 ## Downloads
 
-The newest of each, straight to your device. The server's install is a command, below.
+The newest of each, straight to your device. Mandarin OS is an image for a USB stick; on Linux the server's install is
+a command, below.
 
 | What | Version | Download |
 | --- | --- | --- |
 | **Mandarin Remote**, the Android app (Android 8.0 or newer) | v1.3.0 | [mandarin-android.apk](https://github.com/meltface-80/Mandarin/raw/main/dist/mandarin-android.apk) |
+| **Mandarin OS**, a system made only to run Mandarin (a 64-bit Intel or AMD PC with UEFI) | 0.1.2 | [mandarin-os-0.1.2-x64.img.xz](https://github.com/meltface-80/Mandarin/releases/download/mandarin-os-v0.1.2/mandarin-os-0.1.2-x64.img.xz) for balenaEtcher or dd · [mandarin-os-0.1.2-x64.img](https://github.com/meltface-80/Mandarin/releases/download/mandarin-os-v0.1.2/mandarin-os-0.1.2-x64.img) for a phone; see [Mandarin OS](#mandarin-os) |
 | **Mandarin server** on Linux (Debian, Ubuntu, Raspberry Pi OS; x64 or arm64) | v1.3.0 | the one line under [Install on Linux](#install-on-linux) |
 | **Mandarin Bridge** for Android (a FiiO R7, say) | v0.3.10 | [mandarin-bridge.apk](https://github.com/meltface-80/Mandarin/releases/download/mandarin-bridge-v0.3.10/mandarin-bridge.apk) |
 | **Mandarin Bridge** for Raspberry Pi (3, 4, 5, Zero 2 W) | v0.3.10 | [mandarin-bridge-pi-arm64.img.xz](https://github.com/meltface-80/Mandarin/releases/download/mandarin-bridge-v0.3.10/mandarin-bridge-pi-arm64.img.xz) |
@@ -827,12 +832,177 @@ removed first).
 
 ## Install
 
-Mandarin runs on an always-on computer on the same network as your speakers, in one of two ways.
+Mandarin runs on an always-on computer on the same network as your speakers, in one of two ways: on
+[Mandarin OS](#mandarin-os), a computer of its own for it, or [on Linux](#install-on-linux) beside what else the
+computer does.
 
 ### Mandarin OS
 
-A computer of its own for Mandarin (a mini PC, an Intel NUC): write Mandarin OS's image to a USB stick, start the
-computer from it and answer a few questions. See [Mandarin OS](os/README.md).
+**A lightweight operating system made only to run Mandarin Server**, on a computer of its own, with a web page of its
+own, the **system page**, to watch over and look after everything. A music server should be something you switch on and
+forget: Mandarin OS is Mandarin and only what Mandarin needs, installed from a USB stick in a few minutes, with nothing
+else to set up or keep up to date. Version 0.1.2; on the Pages site, [Mandarin OS](https://meltface-80.github.io/Mandarin/mandarin-os.html).
+
+* **Lightweight:** Debian 13 with Mandarin installed natively, and nothing else: no desktop, no login, no SSH. Everything
+  coming in from the network is refused by a firewall, but what Mandarin and the system answer.
+* **Its own web page:** the system page, `http://mandarin/`, shows Mandarin, its services, the storage, the network and
+  the logs, and does what you'd otherwise need a shell for: eject a drive, set a static address, install Mandarin
+  Bridge, reinstall or reset Mandarin, restart or shut down.
+* **A shared folder for your music:** `smb://mandarin/data`. Copy music in from any computer, or plug in a USB drive: it
+  is mounted, and in Mandarin, as it is plugged in.
+* **Looks after itself:** once a week, when nothing is playing, it takes Debian's security updates, clears out what
+  isn't needed, and checks that everything works.
+
+#### What you need
+
+* **A 64-bit Intel or AMD PC with UEFI and a wired network** (Ethernet): a mini PC such as an Intel NUC or a Dell
+  OptiPlex Micro. Mandarin OS is made and tested on a Dell OptiPlex 3050 Micro.
+* **A disk of its own for the system.** Everything on it is erased. The system takes about 8.5 GB of it; the rest holds
+  Mandarin's data and your music (Storage). Another internal disk, if the PC has one, can be internal storage.
+* **A USB stick of 4 GB or more** for the installer. Everything on it is erased too.
+* **A screen and a keyboard** for the install itself. After that the box needs neither.
+* **Secure Boot off** in the PC's firmware settings (BIOS/UEFI setup).
+
+#### Download
+
+The image comes two ways, the same system either way, each with its checksum (`.sha256`) and its signature (`.sig`), on
+the [Mandarin OS 0.1.2 release](https://github.com/meltface-80/Mandarin/releases/tag/mandarin-os-v0.1.2):
+
+| File | Size | For |
+| --- | --- | --- |
+| [mandarin-os-0.1.2-x64.img.xz](https://github.com/meltface-80/Mandarin/releases/download/mandarin-os-v0.1.2/mandarin-os-0.1.2-x64.img.xz) ([sha256](https://github.com/meltface-80/Mandarin/releases/download/mandarin-os-v0.1.2/mandarin-os-0.1.2-x64.img.xz.sha256)) | about 380 MB | balenaEtcher and the Linux terminal |
+| [mandarin-os-0.1.2-x64.img](https://github.com/meltface-80/Mandarin/releases/download/mandarin-os-v0.1.2/mandarin-os-0.1.2-x64.img) ([sha256](https://github.com/meltface-80/Mandarin/releases/download/mandarin-os-v0.1.2/mandarin-os-0.1.2-x64.img.sha256)) | about 1.6 GB | an Android phone (EtchDroid) |
+
+#### Make the USB installer
+
+**With balenaEtcher** (Windows, macOS or a Linux desktop):
+
+1. Install [balenaEtcher](https://etcher.balena.io/) and download `mandarin-os-0.1.2-x64.img.xz`. Etcher takes the
+   compressed file as it is: there is nothing to unpack.
+2. Plug in the USB stick and open Etcher.
+3. **Flash from file**: choose the `.img.xz` you downloaded.
+4. **Select target**: choose the USB stick. Check it is the stick: everything on it is erased.
+5. **Flash!** Etcher writes the stick, then checks what it wrote. When it says the flash is complete, take the stick
+   out. (If Windows then offers to format the stick, as it can't read it, say no.)
+
+**From a Linux terminal:**
+
+1. Plug in the USB stick and find it: `lsblk` lists the disks by size. The stick is a whole device such as `/dev/sdb`.
+   **Double-check it**: everything on the device you name is erased, and naming the wrong one erases that disk instead.
+2. If the desktop mounted any of its partitions, unmount them first (`sudo umount /dev/sdX1`, and so on for each).
+3. In the folder you downloaded to, check the download against its checksum (it should say *OK*):
+
+   ```bash
+   sha256sum -c mandarin-os-0.1.2-x64.img.xz.sha256
+   ```
+
+4. Write it to the whole device, `/dev/sdX` (not a partition such as `/dev/sdX1`), with `sdX` the stick's name from
+   `lsblk`:
+
+   ```bash
+   xz -dc mandarin-os-0.1.2-x64.img.xz | sudo dd of=/dev/sdX bs=4M conv=fsync status=progress
+   ```
+
+   From the plain image, the same without `xz`:
+
+   ```bash
+   sudo dd if=mandarin-os-0.1.2-x64.img of=/dev/sdX bs=4M conv=fsync status=progress
+   ```
+
+5. Then run `sync`, and take the stick out once it has returned.
+
+**From an Android phone, with EtchDroid** (free, on Google Play and F-Droid). It needs the plain
+**`mandarin-os-0.1.2-x64.img`**, not the `.img.xz`: a phone's writer doesn't decompress, and a stick written from the
+compressed file starts nothing. The stick goes into the phone through a USB-OTG or USB-C adapter (or a USB-C stick).
+
+1. Download `mandarin-os-0.1.2-x64.img` on the phone (about 1.6 GB: Wi-Fi is best).
+2. Plug the USB stick into the phone through the adapter.
+3. Open EtchDroid and choose to write an image (a raw image), then pick the `.img` you downloaded.
+4. Pick the USB stick.
+5. When Android asks whether EtchDroid may use the USB device, allow it.
+6. Confirm that the stick may be erased, and wait until EtchDroid says it has finished. Keep the phone awake and the
+   stick in until then.
+
+#### Install it
+
+1. **Secure Boot off**, in the PC's firmware settings, if it isn't already.
+2. Plug the network cable, a screen and a keyboard into the PC, and the USB stick.
+3. **Start the PC from the stick.** Switch it on and press its one-time boot menu key at the maker's logo: on a Dell,
+   **F12**; other makers use keys such as F11, F12, F8 or Esc (the PC's manual says which). Choose the USB stick under
+   **UEFI**.
+4. The installer comes up on the screen, with the version it installs at the top, and asks, in turn:
+   * **The system's disk**, by its model and size. Only the PC's internal disks are offered, never the stick or a USB
+     drive. Everything on it is erased.
+   * **Internal storage**, only where the PC has another internal disk: use it as internal storage, for backups and for
+     music if you want (it is formatted, everything on it erased), or leave it as it is.
+   * **Your shared folder's user name and password**: the user name in lower case letters and figures, starting with a
+     letter (*music* is offered); the password 8 characters or more, typed twice. The same password is asked for by
+     every change on the system page, so keep it.
+   * **The network**: from the router (DHCP, recommended), or a static address (address/prefix, gateway and DNS).
+   * **Mandarin Bridge**: whether to install it here as well. Say yes if a USB DAC will be plugged into this PC:
+     Mandarin Bridge is how Mandarin plays a DAC on the computer it runs on, as a room of its own. It can be installed
+     or removed later on the system page.
+5. Type `erase` to go on. Mandarin OS is written to the disk, which takes a few minutes.
+6. At the end it says it is installed. **Press Enter: the computer switches off.** Then take the USB stick out and
+   switch the computer on. It starts from its own disk, and a minute or two later Mandarin is at
+   `http://mandarin:3500`. (Take the stick out only once the computer is off: the installer runs from it.)
+
+Then open **`http://mandarin:3500`** (or the box's address with `:3500`, which its screen shows) and create your
+account ([Your account](#your-account)), copy your music into the shared folder's **Storage** or plug in a USB drive,
+and pick a room under **Settings → Audio Devices**.
+
+#### Using Mandarin OS
+
+**Mandarin** is at `http://mandarin:3500`, or the box's address with `:3500` (Bonjour also finds it as
+`mandarin.local`). It is the same Mandarin as everywhere: the app, the web page, Sonos, the streamers and Bridges, Qobuz
+and Tidal, its settings. Its music folder is the shared folder's Storage, USB drives and internal storage included.
+
+**The system page**, `http://mandarin/` (or the box's address, without a port), is Mandarin OS's own page. Anyone at
+home can read it; every change asks for the shared folder's password (five wrong in five minutes, and it stops trying
+for five minutes).
+
+* **Overview:** Mandarin answering, its version and library, and each of its services running or not.
+* **Storage:** the data partition's space; each USB drive, whether it is read-only and why, and **Eject** before you
+  unplug it; internal storage, where another internal disk can be formatted for it (you type `erase` first; never the
+  system's disk or a USB drive).
+* **Network & Access:** the address now; DHCP or a static address, which is checked before it is taken and put back by
+  itself after two minutes unless you keep it from the new address; a connection test, layer by layer; the shared
+  folder and its user.
+* **Settings:** Mandarin Bridge installed or removed (for a USB DAC plugged into the box), and the weekly upkeep's last
+  run.
+* **Support:** every log on the box as one text file (**Download all logs**), and Mandarin's, Mandarin OS's and the
+  system's logs read and filtered on the page; **Reinstall Mandarin** (put back from its latest release, your library,
+  settings and music kept) and **Reset Mandarin** (it starts as new, its library, account and settings set aside in its
+  Backups folder, not deleted).
+* **The power menu** (⏻, top right): restart Mandarin, restart the computer, or shut it down.
+
+**The shared folder**, `smb://mandarin/data` (`\\mandarin\Data` on Windows), with the user name and password chosen at
+install:
+
+* **Storage:** copy your music in here. Each USB drive plugged in is under **Storage/USB**, by its name, and internal
+  storage is **Storage/Internal**.
+* **MandarinServer**, **MandarinBridge**, **MandarinApp** and **MandarinOS**: the logs (and Mandarin's backups),
+  read-only.
+
+**USB drives** are mounted as they are plugged in, checked first, and their music is in Mandarin: ext4, exFAT, FAT and
+NTFS, and a Mac drive (HFS+) read-only. One whose filesystem can't be repaired is mounted read-only, and the system page
+says why. Eject it on the system page before you unplug it.
+
+**The box's own screen** (a screen plugged in) shows its version, where to find Mandarin, the system page and the shared
+folder, and whether Mandarin is running. It takes two words, typed with a keyboard and then confirmed with `yes`:
+
+* `networkreset`: the network back to DHCP, and the computer started again. For a static address that lost the box.
+* `passwordreset`: Mandarin's account removed and every device signed out, for a forgotten password. Your library,
+  edits and history stay; create the account again in a browser.
+
+There is no login and no SSH: the screen and the system page are the ways in.
+
+**Updates and upkeep.** Once a week, when nothing is playing (no room playing, no scan under way), Mandarin OS takes
+Debian's security updates, removes what nothing needs any more, restarts only if an update needs it, and then checks
+that everything works, starting again whatever isn't. Each step is in its log. **Mandarin and Mandarin Bridge** update
+from Mandarin's **Settings → Updates**, as everywhere ([Updating](#updating)).
+
+Building the image yourself: [os/README.md](os/README.md).
 
 ### Install on Linux
 
@@ -842,11 +1012,26 @@ On Debian, Ubuntu or Raspberry Pi OS (64-bit, x64 or arm64), one line as root:
 curl -fsSL https://raw.githubusercontent.com/meltface-80/Mandarin/main/tools/linux/install.sh | sudo bash -s -- --music /srv/music
 ```
 
-It installs what Mandarin needs from apt, runs it as a systemd service (`mandarin.service`) under a user of its own
-(`mandarin`, in the audio group), and keeps its data in `/var/lib/mandarin`. Open **`http://<server-ip>:3500`**. The
-first scan runs straight away; a big library takes a few minutes and albums appear as it goes. Run the line again to
-update or to choose another music folder (the library, the account and the settings are kept); `--uninstall` removes
-it, its data kept.
+It installs what Mandarin needs from apt, makes a user of its own (`mandarin`, in the audio group), runs Mandarin as a
+systemd service (`mandarin.service`) now and at every start, and keeps its data in `/var/lib/mandarin`. Open
+**`http://<server-ip>:3500`**. The first scan runs straight away; a big library takes a few minutes and albums appear as
+it goes. Without `--music`, it keeps the music folder it had (a first install takes `/music`); more can be added in
+Settings → Music Folders.
+
+| Option | What it does |
+| --- | --- |
+| `--music DIR` | The music folder (`/srv/music` above). |
+| `--port N` | The port (3500). |
+| `--data DIR` | The data folder (`/var/lib/mandarin`). |
+| `--uninstall` | The service and `/opt/mandarin` removed; the data kept. |
+| `--purge` | Removed, its data too. |
+
+**To update,** use Settings → Updates ([Updating](#updating)), or run the line again with the same options: the
+library, the account and the settings are kept. Run it with another `--music` to change the music folder. To remove it:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/meltface-80/Mandarin/main/tools/linux/install.sh | sudo bash -s -- --uninstall
+```
 
 **A USB DAC on this machine:** install Mandarin Bridge for Linux beside the server, and the DAC is a room of its own in
 **Settings → Audio Devices**:
@@ -902,7 +1087,8 @@ release key (from Mandarin Bridge v0.3.8; the server's updates are checked the s
 ## Configuration
 
 Everything is optional; set any of it as an environment variable of the server (installed on Linux: `sudo systemctl
-edit mandarin`, then `Environment=NAME=value` under `[Service]`).
+edit mandarin`, then `Environment=NAME=value` under `[Service]`). Mandarin OS sets what it needs itself, with no shell to
+change them in.
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
@@ -965,7 +1151,7 @@ Mandarin's own page or the Android app: a page of another site open in a browser
 restart the server, change a setting or restore a backup. A device let in without a password works
 only from home and your tailnet, never from the internet. Behind a reverse proxy (an nginx, Caddy or
 `tailscale serve` on the same machine, or one elsewhere on your network), name it in `TRUSTED_PROXIES`
-(`-e TRUSTED_PROXIES=127.0.0.1` for one on the same machine) and have it say who asked
+(`TRUSTED_PROXIES=127.0.0.1` for one on the same machine) and have it say who asked
 (`X-Forwarded-For`, `X-Real-IP` or `Forwarded`). Mandarin believes only the proxies named and its own
 built-in Tailscale: a request that names a caller through anything else, or a named proxy that names
 nobody, is taken as the internet, never home, and the log says so.
@@ -1038,7 +1224,8 @@ Download each from [Downloads](#downloads) (v0.3.10); after that it updates from
   (tick *always*), then switch it on in **Settings → Audio Devices**. Setting it up, building it and how it fits
   together: [bridge/README.md](bridge/README.md).
 * **Linux** (a computer beside the DAC, the one Mandarin runs on included): `curl -fsSL https://github.com/meltface-80/Mandarin/releases/download/mandarin-bridge-v0.3.10/install.sh | sudo sh`,
-  then switch it on in Mandarin; its own page is at `http://<it>:49494/`. Native DSD on Linux is the kernel's to
+  then switch it on in Mandarin; its own page is at `http://<it>:49494/`. On [Mandarin OS](#mandarin-os), choose it as
+  Mandarin OS installs, or **Install** it from the system page's Settings tab. Native DSD on Linux is the kernel's to
   offer: where the DAC says it takes DSD natively and the kernel offers it only DoP, the Bridge's page and log give the
   one line that frees it (an `snd-usb-audio` option in `/etc/modprobe.d`, then replug). See
   [bridge/linux/README.md](bridge/linux/README.md).
@@ -1200,7 +1387,8 @@ Mandarin behaves the same.
 
 **On Linux, Mandarin plays no sound device of its own (v1.2.1).** A USB DAC on the computer Mandarin
 runs on is played by [Mandarin Bridge](#mandarin-bridge) for Linux, installed beside it with one line, and the DAC is
-a room of its own in *Settings → Audio Devices*. The server used to open the computer's sound cards itself (ALSA), kept losing the DAC
+a room of its own in *Settings → Audio Devices*. On Mandarin OS, choose Mandarin Bridge as it installs, or **Install** it
+from the system page's Settings tab. The server used to open the computer's sound cards itself (ALSA), kept losing the DAC
 and competed with the Bridge for it. A card it had in Audio Devices is forgotten by itself.
 
 **Playback comes first (v0.8.13).** On Linux with three cores or more, playback (what Mandarin makes as a track plays:
@@ -1268,7 +1456,7 @@ track that's playing comes first: the tracks after it are fetched only once it h
 1. On the server, open *Settings → Setup → Away from home* and tap **Sign in to Tailscale**. Sign in on
    Tailscale's page (a free account is enough). The server joins your tailnet by itself as
    **musicd** — no Tailscale to install on the machine it runs on, no VPN, no ports opened. For a
-   server with no one at it, pass an auth key instead: `-e TS_AUTHKEY=tskey-auth-…`.
+   server with no one at it, give it an auth key instead, as the server's `TS_AUTHKEY` ([Configuration](#configuration)).
 2. On the phone, sign Mandarin's app in to the same account: *Settings → Setup → Away from home → This phone*. The
    app carries its own Tailscale too — no Tailscale app needed.
 3. Open Mandarin once at home: the app learns the server's tailnet address.
@@ -1358,7 +1546,7 @@ before you send it: what you send is your choice.
 * **The phone's player:** playing or paused, the track's number in the queue, its position and the volume.
 * **The app:** its memory, crashes and freezes, and Android's own lines for Mandarin.
 * **The app's Tailscale:** whether it is running and the CPU time it has used, and when it is stopped, why, with its last lines (addresses taken out).
-* **The Mandarin Bridges:** every Bridge Mandarin knows (Android, Linux, a Raspberry Pi), under its name, version and build: its last lines as it logs them (the player, the DAC, a recording, an update), gathered by the server as you save and put through the same filter as the server's. A Bridge keeps them anyway (Android's own log, or its last 2,000 lines in memory); they leave it only when you save.
+* **The Mandarin Bridges:** every Bridge Mandarin knows (Android, Linux, a Raspberry Pi), under its name, version and build: its last lines as it logs them (the player, the DAC, a recording, an update), gathered by the server as you save and put through the same filter as the server's. A Bridge keeps its own log anyway, in files in its data folder; it leaves the Bridge only when you save.
 * **The server:** each line it logs, with what is yours alone taken out.
 
 **What it leaves out:** what is yours alone. No passwords, keys or tokens; no email addresses, account names or
@@ -1366,16 +1554,21 @@ logins; no internet or Tailscale addresses; not your own home folder's name in a
 fault: home-network addresses, the names of rooms and devices, what was playing, error messages.
 
 The app keeps its log in its own storage (two files of 3 MB at most); the server keeps its part in its
-data folder (two files of 1 MB at most) while logging is on.
+data folder (two files of 1 MB at most) while logging is on. On Mandarin OS, the system page's **Support → Download all
+logs** gives every log on the box as one file, and the shared folder holds them, read-only ([Mandarin OS](#mandarin-os)).
 
 ## Troubleshooting
 
 * **No rooms.** `http://<server>:3500/api/status` shows what discovery found (`sonos.rooms`,
-  `sonos.error`). Check host networking, or set `SONOS_HOSTS` to one speaker's IP.
+  `sonos.error`). Check the server is on the same network as the speakers, or set `SONOS_HOSTS` to one speaker's IP.
 * **A room plays nothing / skips every track.** The speakers must be able to reach the server
   on its port. On a host with several interfaces set `SERVER_IP` to the LAN address.
 * **No albums.** `/api/status` shows `music_dir` and `index_count`. Check the music folder is there
-  and that Mandarin can read it.
+  and that Mandarin can read it. On Mandarin OS, copy music into the shared folder's **Storage**
+  (`smb://mandarin/data`), or plug in a USB drive and see it on the system page's Storage tab.
+* **Mandarin OS can't be found.** Its own screen (a screen plugged in) shows its address. A static address that lost
+  the box: type `networkreset` there, then `yes`, and it goes back to DHCP and starts again. Everything else is on the
+  system page, `http://mandarin/` ([Mandarin OS](#mandarin-os)).
 * **Hi-res tracks don't play.** `http://<server>:3500/api/health` must say `"ffmpeg": true`.
 * **DSD goes as DoP from Mandarin Bridge for Linux, natively from Android.** Linux's USB audio driver offers a DAC
   native DSD only where its own list knows the DAC's maker. The Bridge's page (`http://<it>:49494/`) and log say
