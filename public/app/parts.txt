@@ -4,6 +4,7 @@
 # parts named here are joined; a part not named here never runs.
 # docs/specs/page-modules.md says how the page is carved.
 app/embed-flag.js
+app/page-errors.js
 app/sign-out-guard.js
 app/request-limits.js
 app/library-mark.js
@@ -106,3 +107,4 @@ app/settings-away.js
 app/toast-lift.js
 app/power.js
 app/settings-backup.js
+app/settings-logs.js

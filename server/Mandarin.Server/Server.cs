@@ -16,7 +16,7 @@ internal static partial class Server
     /* The data folder (Program.cs). */
     public static string DataDir = "";
 
-    /* The code this program leaves with when it couldn't start again in place (Docker's restart policy starts it). */
+    /* The code this program leaves with when it couldn't start again in place (its systemd service starts it). */
     public const int StartAgainCode = 76;
 
     /*
@@ -36,18 +36,13 @@ internal static partial class Server
         return true;
     }
 
-    [LibraryImport("libc", EntryPoint = "getuid")]
-    private static partial uint GetUid();
-    /* This user's id (launchctl's gui/<uid> domain). */
-    public static uint Uid() => GetUid();
-
     [LibraryImport("libc", EntryPoint = "execv", SetLastError = true, StringMarshalling = StringMarshalling.Utf8)]
     private static partial int Execv(string path, string?[] argv);
 
     /*
      * This program started again in this same process, from its file as it is
      * now (a newer one put in its place), with the same arguments: nothing
-     * outside (Docker, tini, launchd) has to notice. Returns only if it couldn't.
+     * outside (Docker, tini, systemd) has to notice. Returns only if it couldn't.
      */
     public static void StartAgain(string[] args)
     {
@@ -66,19 +61,30 @@ internal static partial class Server
         Cpu.Resume();
     }
 
-    // Stamped as the Node server stamped its lines. A line made already: kept for diagnostics as LogScrub leaves it (item 235).
-    public static void Log(string s)
+    // A line, in the console and the log (Diagnostics.cs) alike: its time (UTC, with the date) and its level before it.
+    // Kept as LogScrub leaves it (item 235). [level]: INFO, WARN or ERROR (logs, item 389).
+    public static void Log(string s) => Log(s, "INFO");
+
+    public static void Log(string s, string level)
     {
-        lock (logLock) Console.WriteLine(DateTime.UtcNow.ToString("HH:mm:ss", System.Globalization.CultureInfo.InvariantCulture) + " " + s);
-        if (Diagnostics.On) Diagnostics.Record(LogScrub.Line(s));
+        lock (logLock) Console.Write(Diagnostics.Stamp(level, s));
+        Diagnostics.Record(LogScrub.Line(s), level);
     }
 
-    // A line written here ($"..."): kept for diagnostics without what is the owner's alone (LogLine.cs).
-    public static void Log(LogLine line)
+    // A line written here ($"..."): kept without what is the owner's alone (LogLine.cs).
+    public static void Log(LogLine line) => Write("INFO", line);
+
+    // A warning: something went wrong and was got round (a retry, a fallback), or a request failed.
+    public static void Warn(LogLine line) => Write("WARN", line);
+
+    // An error: something failed that someone will see (a room stopped, a scan given up).
+    public static void Error(LogLine line) => Write("ERROR", line);
+
+    private static void Write(string level, LogLine line)
     {
         var s = line.Text();
-        lock (logLock) Console.WriteLine(DateTime.UtcNow.ToString("HH:mm:ss", System.Globalization.CultureInfo.InvariantCulture) + " " + s);
-        Diagnostics.Record(line.Kept());
+        lock (logLock) Console.Write(Diagnostics.Stamp(level, s));
+        Diagnostics.Record(line.Kept(), level);
     }
 
     // The app's folder, with the page (public/index.html): beside this program,

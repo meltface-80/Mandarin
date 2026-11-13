@@ -14,11 +14,13 @@ namespace Mandarin.Tests;
 /// </summary>
 public sealed class PowerCsharpTests
 {
-    private static async Task<ServerProcess> Start(Fixtures.Library lib, string docker = "")
+    private static async Task<ServerProcess> Start(Fixtures.Library lib, Dictionary<string, string>? more = null)
     {
         Needs.Server();
         if (OperatingSystem.IsWindows()) Assert.Skip("not on Windows");
-        return await ServerProcess.Start(Ports.Port(), lib.Music, lib.Data, new Dictionary<string, string> { ["SONOS_HOSTS"] = "", ["DOCKER"] = docker });
+        var env = new Dictionary<string, string> { ["SONOS_HOSTS"] = "" };
+        foreach (var (k, v) in more ?? []) env[k] = v;
+        return await ServerProcess.Start(Ports.Port(), lib.Music, lib.Data, env);
     }
 
     private static string Log(ServerProcess c) => string.Join("\n", c.Logs);
@@ -47,7 +49,7 @@ public sealed class PowerCsharpTests
             Assert.True((await Http.Get(c.Base + "/api/system/power")).Status == 401, "signed in only");
             var r = await Http.Get(c.Base + "/api/system/power", h);
             Assert.Equal("C#", r.Header("x-mandarin-answered"));
-            JsonAssert.Same("""{"restart":true,"shutdown":true,"docker":false,"start_again":"manual"}""", r.Json);
+            JsonAssert.Same("""{"restart":true,"shutdown":true,"start_again":"manual"}""", r.Json);
 
             // The processor split (decided by the C# server; CpuAloneTests holds the decision).
             r = await Http.Get(c.Base + "/api/cpu", h);
@@ -95,24 +97,6 @@ public sealed class PowerCsharpTests
     }
 
     [Test]
-    public async Task In_Docker_Shut_down_isnt_offered_docker_stop_is_the_way()
-    {
-        var c = await Start(Fixtures.MakeLibrary(), docker: "1");
-        try
-        {
-            var h = new Dictionary<string, string> { ["Authorization"] = "Bearer " + await Session.SignIn(c.Base) };
-            JsonAssert.Same("""{"restart":true,"shutdown":false,"docker":true,"start_again":"docker"}""", (await Http.Get(c.Base + "/api/system/power", h)).Json);
-            var r = await Http.Post(c.Base + "/api/system/shutdown", new { }, h);
-            Assert.Equal(409, r.Status);
-            JsonAssert.Same("""{"error":"In Docker, stop the container instead: docker stop musicd-server"}""", r.Json);
-            // A window: the server must not stop in it.
-            await Task.Delay(1000);
-            Assert.True(c.Exited == null, "still running");
-        }
-        finally { await c.Stop(); }
-    }
-
-    [Test]
     public async Task Neither_from_away_Restart_and_Shut_down_refused_over_Tailscale_nothing_stopped()
     {
         var c = await Start(Fixtures.MakeLibrary());
@@ -129,6 +113,33 @@ public sealed class PowerCsharpTests
             await Task.Delay(1000);
             Assert.True(c.Exited == null, "still running");
             Assert.DoesNotMatch(new Regex(@"\[power\] (restart|shut down) asked for"), Log(c));
+        }
+        finally { await c.Stop(); }
+    }
+
+    /// <summary>
+    /// On Mandarin OS (item 389) Shut down is the computer's: Mandarin OS is asked by its request file (the path unit
+    /// mandarin-os-power.path acts on it as root), Mandarin stops with 0 so its library is saved first, and the power
+    /// button is how it all starts again.
+    /// </summary>
+    [Test]
+    public async Task On_Mandarin_OS_Shut_down_shuts_the_computer_down()
+    {
+        var lib = Fixtures.MakeLibrary();
+        var request = Path.Combine(lib.Data, "power-request");
+        var c = await Start(lib, more: new() { ["MANDARIN_OS"] = "0.1.0", ["MANDARIN_OS_POWER"] = request });
+        try
+        {
+            var h = new Dictionary<string, string> { ["Authorization"] = "Bearer " + await Session.SignIn(c.Base) };
+            JsonAssert.Same("""{"restart":true,"shutdown":true,"start_again":"power-button"}""", (await Http.Get(c.Base + "/api/system/power", h)).Json);
+            var r = await Http.Post(c.Base + "/api/system/shutdown", new { }, h);
+            Assert.Equal(200, r.Status);
+            JsonAssert.Same("""{"ok":true,"start_again":"power-button"}""", r.Json);
+            await c.Proc.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(30));
+            Assert.True(c.Proc.ExitCode == 0, "left with 0: " + Log(c));
+            Assert.True(File.Exists(request), "Mandarin OS asked: " + Log(c));
+            Assert.Equal("poweroff\n", File.ReadAllText(request));
+            Assert.Matches(@"\[power\] Mandarin OS asked to shut the computer down", Log(c));
         }
         finally { await c.Stop(); }
     }

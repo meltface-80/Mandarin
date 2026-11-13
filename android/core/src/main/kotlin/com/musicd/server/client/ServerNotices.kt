@@ -26,28 +26,31 @@ object ServerNotices {
         val away = status.optBoolean("away")
         fun n(v: Int) = NumberFormat.getIntegerInstance(locale).format(v)
         fun say(text: String, error: Boolean) = ServerNotice(listOf(text), error, emptyList())
-        if (status.has("data_persistent") && !status.isNull("data_persistent") && !status.optBoolean("data_persistent", true))
-            return say("Your library, album edits and play history are stored inside the container and will be lost " +
-                "when it's replaced. Add  -v musicd-server-data:/app/data  to the docker run command.", true)
         if (albums == 0) {
             val status0 = last.optString("status")
             return when {
                 (status.has("music_dir_exists") && !status.optBoolean("music_dir_exists", true)) || status0 == "no-music" ->
-                    say("No music folder at $dir. Add your library in Settings → Music folders — or to the docker run command " +
-                        "with  -v /path/to/your/Music:$musicDir:ro  and start it again.", true)
+                    say("No music folder at " + dir + ". Add your library in Settings → Music folders.", true)
                 scan.optBoolean("running") -> say("Scanning your music folder… " + n(scan.optInt("files_seen")) +
                     " files so far. Albums appear when the first pass finishes.", false)
-                status0.isNotEmpty() -> say("No audio files were found in $dir. Check the -v …:$dir:ro mount points at your " +
-                    "music, and that the container can read it" + (if (last.optInt("errors") > 0) " (" + last.optInt("errors") + " files couldn't be read)" else "") + ".", true)
+                status0.isNotEmpty() -> {
+                    val unread = if (last.optInt("errors") > 0) " (" + last.optInt("errors") + " files couldn't be read)" else ""
+                    // Said for how the server is installed (item 389), as the page says it.
+                    when (status.optString("install")) {
+                        "mandarin-os" -> say("No music yet. Copy it into Storage in smb://mandarin/data, or plug in a USB drive: it appears under Storage/USB, and its music here." + unread, last.optInt("errors") > 0)
+                        else -> say("No audio files were found in " + dir + ". Check that it holds your music and that Mandarin can read it, or add your library in Settings → Music folders" + unread + ".", true)
+                    }
+                }
                 else -> say("Starting up — reading your music folder…", false)
             }
         }
         val gone = last.optJSONArray("offline_dirs")
-        if (gone != null && gone.length() > 0 && !away) return missing((0 until gone.length()).mapNotNull { gone.optJSONObject(it) }, ::n)
+        if (gone != null && gone.length() > 0 && !away) return missing((0 until gone.length()).mapNotNull { gone.optJSONObject(it) }, ::n, status.optString("install"))
         if (rooms == 0 && sonos?.optBoolean("searching") != true && !away) {
             val error = sonos?.optString("error")?.takeIf { it.isNotEmpty() && !sonos.isNull("error") }
-            return say("No Sonos rooms found yet. The container needs --network host on the same network as your " +
-                "speakers — or set -e SONOS_HOSTS=<a speaker's IP>." + (error?.let { " ($it)" } ?: ""), true)
+            val first = "No Sonos rooms found yet. Speakers on the same network as Mandarin appear by themselves; if yours don't, " +
+                "set SONOS_HOSTS to a speaker's IP."
+            return say(first + (error?.let { " ($it)" } ?: ""), true)
         }
         return null
     }
@@ -65,7 +68,13 @@ object ServerNotices {
         "Removed " + NumberFormat.getIntegerInstance(locale).format(removed) + " tracks from “" + name + "”"
 
     /** The music folders gone, a paragraph each, with the button (and its question) that forgets one where there is one. */
-    private fun missing(dirs: List<JSONObject>, n: (Int) -> String): ServerNotice {
+    /** How a music folder is put back, for how the server is installed (item 389), as the page says it. */
+    private fun putBack(install: String) = when (install) {
+        "mandarin-os" -> "Plug the drive in again"
+        else -> "Mount the drive or share again"
+    }
+
+    private fun missing(dirs: List<JSONObject>, n: (Int) -> String, install: String): ServerNotice {
         val lines = ArrayList<String>(); val buttons = ArrayList<String>(); val asks = ArrayList<String>(); val folders = ArrayList<String>(); val names = ArrayList<String>()
         for (d in dirs) {
             val name = "“" + d.optString("name") + "”"
@@ -79,7 +88,7 @@ object ServerNotices {
                 }
                 else -> {
                     lines += "The music folder $name" + (if (d.optBoolean("missing")) " isn't there" else " is empty") + " — its $tracks" +
-                        " tracks are kept, not removed. Mount the drive or share again (or add its -v line back to the container) and they're back as they were. Gone for good? Forget it:"
+                        " tracks are kept, not removed. " + putBack(install) + " and they're back as they were. Gone for good? Forget it:"
                     buttons += "Forget $name"
                     asks += "Forget $name? Its $tracks tracks and their albums leave the library (they come back with a rescan if the folder does)."
                 }

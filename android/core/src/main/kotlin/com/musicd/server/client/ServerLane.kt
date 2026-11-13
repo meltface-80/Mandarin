@@ -20,4 +20,13 @@ class ServerLane {
 
     /** Done once every call asked for before is made. */
     fun drained(): Future<Unit> = one.submit(Callable { })
+
+    private val beside: ExecutorService = Executors.newCachedThreadPool { Thread(it, "server-aside").apply { isDaemon = true } }
+
+    /**
+     * [call] made beside the lane, at once (item 390): a long call (an import that runs for minutes, a rescan, a restore)
+     * never holds back the changes asked after it. On the lane, Qobuz's Update library now (up to ten minutes) kept a
+     * device's switch from being made until it was done, and the switch seemed not to take.
+     */
+    fun <T> aside(call: () -> T): Future<T> = beside.submit(Callable { call() })
 }

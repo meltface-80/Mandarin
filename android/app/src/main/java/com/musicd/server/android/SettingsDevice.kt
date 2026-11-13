@@ -82,6 +82,9 @@ internal fun DevicePane(id: String, client: () -> ServerClient?, onBack: () -> U
     var page by remember(id) { mutableStateOf(SettingsKept.last(devicePath(id)) { DevicePage(it) }) }
     var busy by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf("") }
+    // A change the server didn't make, and why (item 390): kept on the page until a change is made, not cleared by the
+    // page read again every ten seconds. Before, the switch went back with nothing said, and a Bridge switched on "didn't stay".
+    var refused by remember(id) { mutableStateOf("") }
     val dates = remember { DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT) }
     val at = { ms: Long -> dates.format(Date(ms)) }
     suspend fun load() {
@@ -99,8 +102,12 @@ internal fun DevicePane(id: String, client: () -> ServerClient?, onBack: () -> U
         page = before?.with(body)
         val made = ServerWrites.write { c.patch(devicePath(id), body) }
         scope.launch {
-            ServerWrites.await(made).onSuccess { page = DevicePage(it); error = ""; said?.let { s -> setupToast(context, s(page!!)) } }
-                .onFailure { page = before; error = com.musicd.server.client.Failure.said(it, "") }
+            ServerWrites.await(made).onSuccess { page = DevicePage(it); error = ""; refused = ""; said?.let { s -> setupToast(context, s(page!!)) } }
+                .onFailure {
+                    page = before
+                    refused = com.musicd.server.client.Failure.said(it, "The change wasn't made")
+                    AppLog.line("devices", "a change to a device wasn't made: $refused", anomaly = true)
+                }
             busy = false
         }
     }
@@ -109,6 +116,7 @@ internal fun DevicePane(id: String, client: () -> ServerClient?, onBack: () -> U
         SettingsHead(Modifier.parity("settings-device.back", Contract.label("settings-device.back")).clip(CircleShape).clickable(onClick = onBack), R.drawable.np_back,
             d?.name ?: "Device", Modifier.parity("settings-device.heading"))
         if (d == null) { if (error.isNotEmpty()) DeviceNote(error, Modifier.parity("settings-device.note"), danger = true); return@SettingsFrame }
+        if (refused.isNotEmpty()) DeviceNote(refused, Modifier.parity("settings-device.note"), danger = true)
         if (d.canToggle) {
             Block {
                 SetupRow(if (d.enabled) "On" else "Off", Modifier.parity("settings-device.name"), null) {

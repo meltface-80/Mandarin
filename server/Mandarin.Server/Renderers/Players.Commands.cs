@@ -17,7 +17,7 @@ internal sealed partial class Players
     private async Task Verify(Player p, UpnpItem item)
     {
         var rec = Record(p.Id);
-        if (rec != null && rec.Kind == "local") return;   // a Mac's sound device: nothing reads back what it is fed (Linux's were ALSA's, item 324)
+        if (rec != null && rec.Kind == "local") return;   // a sound device on this computer: nothing reads back what it is fed
         if (rec?.Caps["mandarin"] is JsObj mu && Jv.T(mu["base"])) { await VerifyMandarinBridge(p, rec, item, Jv.Str(mu["base"])); return; }
         var lp = rec?.Caps["linkplay"] as JsObj;
         if (lp == null || !Jv.T(lp["base"]) || item.Sent == null || item.Sent.Rate == 0 || item.Sent.Dsd != 0) return;

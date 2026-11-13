@@ -1,0 +1,15 @@
+[Unit]
+# os-started boot: a version that didn't start in its three tries said and taken off the EFI partition, one that did
+# said, for the system page (item 401).
+Description=Mandarin OS: what its last update came to
+After=mandarin-os-apply.service
+Before=mandarin-os-page.service
+ConditionPathIsMountPoint=/data
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/lib/mandarin-os/os-started boot
+
+[Install]
+WantedBy=multi-user.target

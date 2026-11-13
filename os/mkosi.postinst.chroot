@@ -1,0 +1,46 @@
+#!/bin/bash
+# Inside the image, last: Mandarin installed (natively, as tools/linux/install.sh does on any Debian), and the system
+# closed and set to look after itself (item 389): no login anywhere, no SSH, the firewall on, apt's own timers off (the
+# weekly upkeep updates when nothing plays).
+set -euo pipefail
+V="$(cat /var/cache/mandarin-release/version)"
+# Mandarin's user and group numbered the same in every version of Mandarin OS (item 401): an update starts a new system,
+# and the files Mandarin owns, on the data partition and on USB drives, must stay its own there. 3500, outside the
+# range Debian's packages take theirs from (they took 989 and 988 here, and a package added later would move them).
+# The shared folder's user is 3501 and its group 3502 (apply). install.sh keeps a user that is there.
+groupadd --system --gid 3500 mandarin
+useradd --system --uid 3500 --gid mandarin --groups audio --home-dir /data/MandarinServer --no-create-home --shell /usr/sbin/nologin mandarin
+# A build of this checkout's (os/mandarin-from-source.sh) carries the key it was signed with; a release, the release key.
+KEY="$(cat /var/cache/mandarin-release/build.pub 2>/dev/null || true)"
+env MANDARIN_RELEASES=file:///var/cache/mandarin-release MANDARIN_VERSION="$V" ${KEY:+"MANDARIN_RELEASE_KEY=$KEY"} \
+  /usr/lib/mandarin-os/linux-install.sh --no-apt --no-start --music /data/Storage --data /data/MandarinServer
+# Its audio engine beside it, where Mandarin looks first (/opt/mandarin/engine/bin): a DAC on the box plays at once.
+if [ -f /var/cache/mandarin-release/mandarin-audio ]; then
+  install -D -m 0755 /var/cache/mandarin-release/mandarin-audio /opt/mandarin/engine/bin/mandarin-audio
+  chown -R mandarin: /opt/mandarin/engine
+fi
+rm -rf /var/cache/mandarin-release
+# ffmpeg (built by mkosi.build.chroot into /usr/local) found by every program, Mandarin's service among them.
+ldconfig
+/usr/local/bin/ffmpeg -hide_banner -version | head -n 1
+
+# No login: the root account locked, no getty on any screen or serial port, no debug shell, no SSH (never installed).
+passwd -l root
+systemctl mask getty@.service serial-getty@.service autovt@.service console-getty.service debug-shell.service
+# The share without NetBIOS (Windows finds it by WS-Discovery, Macs by Bonjour); apt's own timers off.
+systemctl mask nmbd.service samba-ad-dc.service apt-daily.timer apt-daily-upgrade.timer
+# NetworkManager alone runs the network: systemd-networkd, on by default beside it, waited about two minutes at every
+# start for a network it doesn't manage, then said it failed.
+systemctl mask systemd-networkd.service systemd-networkd.socket systemd-networkd-wait-online.service
+# Updated in place (item 401): what the last update came to, a new version checked on its first starts, and a look
+# every day for a newer one.
+# Where the installed system's EFI partition is mounted when looked at (the installer's fstab).
+mkdir -p /efi
+systemctl enable mandarin-os-started.service mandarin-os-health.service mandarin-os-update-check.timer
+systemctl enable mandarin-console.service mandarin-os-apply.service mandarin-os-check.service mandarin-os-maintain.timer mandarin-os-page.service mandarin-os-power.path \
+  nftables.service smbd.service avahi-daemon.service wsdd2.service NetworkManager.service systemd-resolved.service systemd-timesyncd.service
+# What the upkeep must never remove.
+apt-mark manual $(dpkg-query -W -f '${Package}\n' | grep -E '^(linux-image-amd64|libsoxr0|libopus0|libmp3lame0|libgnutls30t64|libfreetype6|libharfbuzz0b|libfontconfig1|fonts-dejavu-core|libbz2-1.0|zlib1g|poppler-utils|python3|python3-numpy|libicu[0-9]+|libasound2t64|samba|avahi-daemon|wsdd2|network-manager|nftables|unattended-upgrades|curl|ca-certificates|openssl|jq|dialog|kbd|e2fsprogs|dosfstools|exfatprogs|systemd|systemd-boot|udev|dbus)$') >/dev/null
+# Only Debian's own sources (mkosi's build-time ones gone).
+rm -f /etc/apt/sources.list.d/mkosi.sources /etc/apt/sources.list
+apt-get clean

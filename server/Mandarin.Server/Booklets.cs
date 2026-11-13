@@ -15,7 +15,7 @@
 // (Cpu.cs), each page at a width kept in data/booklets, the least lately
 // shown let go past half a gigabyte. Where poppler isn't installed nothing is
 // offered (the album page shows no button), and it's looked for again every
-// five minutes, so a Mac given it later needn't be restarted.
+// five minutes, so a server given it later needn't be restarted.
 using System.Collections.Concurrent;
 using System.Globalization;
 using System.Security.Cryptography;
@@ -53,7 +53,7 @@ internal static partial class Booklets
     [GeneratedRegex(@"^Pages:\s+(\d+)\s*$", RegexOptions.Multiline)]
     private static partial Regex PagesLine();
 
-    /* poppler's two programs, where they are: PDFTOPPM_PATH, beside ffmpeg, the PATH, Homebrew's;
+    /* poppler's two programs, where they are: PDFTOPPM_PATH, beside ffmpeg, the PATH, /usr/local/bin;
        when they aren't anywhere, looked for again five minutes on. */
     private static (string Draw, string Info)? tools;
     private static long toolsAt;   // 0: not looked for yet
@@ -72,7 +72,7 @@ internal static partial class Booklets
         if (Environment.GetEnvironmentVariable("PDFTOPPM_PATH") is { Length: > 0 } env) tried.Add(env);
         if (Environment.GetEnvironmentVariable("FFMPEG_PATH") is { Length: > 0 } ff && System.IO.Path.IsPathRooted(ff))
             tried.Add(System.IO.Path.Combine(System.IO.Path.GetDirectoryName(ff)!, "pdftoppm"));
-        tried.AddRange(["pdftoppm", "/opt/homebrew/bin/pdftoppm", "/usr/local/bin/pdftoppm"]);
+        tried.AddRange(["pdftoppm", "/usr/local/bin/pdftoppm"]);
         foreach (var draw in tried)
         {
             var info = draw.Contains('/') ? System.IO.Path.Combine(System.IO.Path.GetDirectoryName(draw)!, "pdfinfo") : "pdfinfo";

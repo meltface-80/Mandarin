@@ -1,0 +1,11 @@
+[Unit]
+Description=Mandarin OS: a look every day for a newer Mandarin OS, for the system page
+
+[Timer]
+OnBootSec=10min
+OnUnitActiveSec=1d
+RandomizedDelaySec=1h
+Unit=mandarin-os-update@check.service
+
+[Install]
+WantedBy=timers.target

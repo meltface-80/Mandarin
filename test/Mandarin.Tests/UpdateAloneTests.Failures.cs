@@ -156,8 +156,7 @@ public sealed partial class UpdateAloneTests
         {
             var r = await i.Api("apply", true);
             Assert.True(r.Status == 409, r.Status + " " + r.Body.ToJsonString());
-            var again = OperatingSystem.IsMacOS() ? "run the install line again (README, Install on a Mac)" : "pull the image again (docker pull)";
-            Assert.Equal($"{pages} can't be written to; {again} instead", r.Body.Str("error"));
+            Assert.Equal($"{pages} can't be written to; run the install line again (README, Install on Linux) instead", r.Body.Str("error"));
             Assert.True((await File.ReadAllBytesAsync(i.Bin)).AsSpan().SequenceEqual(was), "the program as it was");
             Assert.True((string?)JsonNode.Parse(await File.ReadAllTextAsync(Path.Combine(i.App, "package.json")))!["version"] != "9.9.9", "nothing of the bundle laid in");
             Assert.False(File.Exists(Path.Combine(i.App, "README.md")));

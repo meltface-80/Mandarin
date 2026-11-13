@@ -167,8 +167,8 @@ internal static class SqTool
         <!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
         <title>SQ-tool</title><style>body{font:16px/1.5 system-ui,sans-serif;max-width:40em;margin:3em auto;padding:0 1em;background:#141414;color:#e8e6e1}code{background:#2a2a2a;padding:.1em .3em;border-radius:3px}a{color:#d9a441}</style></head>
         <body><h1>SQ-tool can't start</h1><p>{{WebUtility.HtmlEncode(reason)}}.</p>
-        <p>SQ-tool needs Python 3 with numpy. Mandarin's Docker image has both. Installed without Docker, add them:
-        <code>sudo apt install python3 python3-numpy</code> on Debian or Ubuntu, <code>brew install python numpy</code> on a Mac.</p>
+        <p>SQ-tool needs Python 3 with numpy. Mandarin OS and the Linux installer bring both. Installed by hand, add them:
+        <code>sudo apt install python3 python3-numpy</code> on Debian or Ubuntu.</p>
         <p><a href="/">Back to Mandarin</a></p></body></html>
         """;
 }

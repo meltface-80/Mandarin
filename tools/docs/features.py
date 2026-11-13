@@ -14,7 +14,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 
-# (id, emoji, title, new in v1.3.0, what it is, how to set it up and use it)
+# (id, emoji, title, new in v1.3.1, what it is, how to set it up and use it)
 FEATURES = [
     # ---- Home and finding music
     ("home", "🏠", "Home", False,
@@ -40,7 +40,7 @@ FEATURES = [
      "One album you haven't played in a year or more (or never), the same on every device, chosen by the "
      "server at 00:01 and kept all day.",
      "Nothing to set up: it sits beside Random Album on Home, with its own switch in **Settings → Setup → "
-     "Home Screen**. 00:01 is in the server's time zone (`TZ` in the Docker command)."),
+     "Home Screen**. 00:01 is in the server's time zone."),
     ("unplayed", "⏳", "Not played in 6 months", False,
      "Albums you haven't played in six months. The row stays hidden until Mandarin has six months of "
      "your listening.",
@@ -88,7 +88,7 @@ FEATURES = [
      "three columns, in the browser and in the Android app on a tablet: the cover, its credits and more "
      "by the artist on the left; About this album and about its artist in the middle, with **Read more**; "
      "the tracks on the right."),
-    ("more", "🧭", "More by, and similar", True,
+    ("more", "🧭", "More by, and similar", False,
      "Under an album's review: the artist's other albums, the albums they appear on, and, with a "
      "Last.fm key, similar artists and similar albums from your own library.",
      "Open any album. For the Last.fm rows, get a free key at last.fm/api/account/create and paste "
@@ -102,7 +102,7 @@ FEATURES = [
      "acts of the same name (Airbag from Norway, Airbag from Argentina) are told apart by the MusicBrainz "
      "artist ID in their files' tags (as Picard writes it), else by Mandarin's own MusicBrainz matches "
      "(**Settings → Library Scanner**), each with its own page, picture and a word to tell them apart."),
-    ("artist", "🧑‍🎤", "Artist pages", True,
+    ("artist", "🧑‍🎤", "Artist pages", False,
      "In tabs, as an album's page: Overview (their albums, similar artists, similar albums you have), "
      "Discography and About (biography, members or bands). One artist however a sleeve credits them.",
      "Tap an artist's name on an album's page, on the Artists wall or in Search. Their picture, genres, "
@@ -118,7 +118,7 @@ FEATURES = [
      "tracks they are on, from the files' tags and MusicBrainz.",
      "Nothing to set up: the server looks albums up in the background, a second at a time. Eight show "
      "at first; **More** for the rest. Tap a name for their artist page."),
-    ("genres", "🎸", "Genres on pages", True,
+    ("genres", "🎸", "Genres on pages", False,
      "An album's genres as small chips under its cover, and an artist's, the most used across their "
      "albums, in English everywhere. A tap opens that genre's albums.",
      "Nothing to set up: they come from your files' genre tags. A genre written two ways (*Indie Rock*, "
@@ -162,7 +162,7 @@ FEATURES = [
      "An optional download of every MusicBrainz release with a barcode, about 2 GB on disk. Albums "
      "with a barcode are matched from it, also while musicbrainz.org is down.",
      "Open **Settings → Library Scanner → MusicBrainz pack** and tap **Download**. **Folder** "
-     "chooses where it's kept; in Docker that folder needs a writable mount (see Install)."),
+     "chooses where it's kept: any folder the server can write to."),
     # ---- Playing
     ("nowplaying", "▶️", "Now playing", False,
      "Cover, track, transport, volume, the queue and history, and a badge saying what the device is "
@@ -180,7 +180,7 @@ FEATURES = [
      "played in the last six months. Switched on per device.",
      "Open **Settings → Audio Devices**, tap the device and switch on **Random album radio**. "
      "**⋯ → Radio** on an album plays it and switches radio on for that device."),
-    ("scrobble", "📮", "Last.fm scrobbling", True,
+    ("scrobble", "📮", "Last.fm scrobbling", False,
      "Everything played, in every room, on a Mandarin Bridge or the phone, is scrobbled to your Last.fm "
      "account and shown there as now playing.",
      "Get a free key at last.fm/api/account/create and save it with its **shared secret** in **Settings → "
@@ -206,10 +206,8 @@ FEATURES = [
      "(`squeezelite -s <server-ip>`). It shows in **Settings → Audio Devices** under its own name; switch it "
      "on. To pause at a change of rate, start it with a rate list and a delay (`-r 44100-768000:500`)."),
     ("localout", "🖥️", "Sound devices on the server", False,
-     "A Mac's own speakers, headphones or USB DAC, played like a Sonos room through Core Audio. On Linux a "
-     "USB DAC beside the server is Mandarin Bridge's.",
-     "On a Mac, plug it in and switch it on in **Settings → Audio Devices**: it plays at each track's own "
-     "rate. On Linux, install [Mandarin Bridge](#mandarin-bridge) for Linux beside the server: it plays the "
+     "A USB DAC plugged into the server, played like a Sonos room by Mandarin Bridge for Linux beside it.",
+     "Install [Mandarin Bridge](#mandarin-bridge) for Linux beside the server: it plays the "
      "DAC as a room of its own. Details under [Sound devices on the server](#sound-devices-on-the-server)."),
     ("devices", "🎚️", "Audio Devices", False,
      "Every room, renderer and phone with the rates, depths and formats it takes, your own name "
@@ -236,9 +234,8 @@ FEATURES = [
     ("playfirst", "⚙️", "Playback first", False,
      "Playback keeps a processor core of its own, two while DSP is in use. Scanning, ReplayGain and "
      "downloads run on the other cores, at the lowest priority.",
-     "Nothing to set up on Linux. **Settings → Library Scanner → Processor** shows the split. In Docker, "
-     "`--cap-add SYS_NICE` also raises playback's priority. `PLAYBACK_CORES` sets how many cores "
-     "playback keeps; 0 shares them all."),
+     "Nothing to set up on Linux. **Settings → Library Scanner → Processor** shows the split. "
+     "`PLAYBACK_CORES` sets how many cores playback keeps; 0 shares them all."),
     # ---- Discovering
     ("picks", "⭐", "Smart Picks", False,
      "Five albums a day from your own library, by artists Deezer lists as related to the ones you've "
@@ -345,6 +342,13 @@ FEATURES = [
      "same page: **This phone**. Open the app once at home. Details under "
      "[Away from home](#away-from-home-tailscale)."),
     # ---- Setup
+    ("mandarin-os", "📀", "Mandarin OS", True,
+     "The recommended way to run Mandarin: a lightweight operating system made only for it, on a PC of its own, "
+     "with its own system page to watch over everything.",
+     "Write its image to a USB stick, start the PC from it and install; details under [Mandarin OS](#mandarin-os). "
+     "Mandarin is then at `http://mandarin:3500` and the system page at `http://mandarin/`: storage and USB drives, "
+     "the network, Mandarin Bridge, the logs, restart and shut down. It updates itself in place, and goes back by "
+     "itself to the version that worked if a new one doesn't start."),
     ("ui", "🎨", "UI Settings", False,
      "Text sizes, grid layout (Auto, 3 or 2 columns, or List) and tile size, saved on each device. "
      "On a desktop, text goes up to +100%.",
@@ -357,10 +361,9 @@ FEATURES = [
      "network come straight in, anywhere else still signs in. Details under [Your account](#your-account)."),
     ("power", "⏻", "Restart and shut down", False,
      "Restart Mandarin, or shut it down so it stops finding and controlling your speakers until you "
-     "start it again. In Docker, only Restart.",
+     "start it again.",
      "Open the side menu (☰) and tap the **power button** in its top-right corner, then **Restart** or **Shut down**. "
-     "On a Mac, double-click **Mandarin** on the desktop to start it again. "
-     "In Docker: `docker stop musicd-server`, then `docker start musicd-server`."),
+     "On Mandarin OS the computer shuts down too; its power button starts it all again."),
     ("backup", "💾", "Backup and restore", False,
      "Back up settings, players, collection, API keys (with the Tailscale identity) and the whole "
      "database, at home or away: to the server, or from the app to a file.",
@@ -387,13 +390,13 @@ FEATURES = [
      "Then **☰ → Tidal** to search and play; **+** on a cover adds an album to your Tidal favourites "
      "(a **✓** once added) and so to the library, as does **⋯ → Add to Tidal favourites** on its page. "
      "Details under [Tidal](#tidal)."),
-    ("logging", "📝", "Logging", False,
-     "On by default. The Android app, the server and the Mandarin Bridges log what happened, without "
-     "personal data, for you to send to the developer.",
-     "In the Android app, **Settings → Setup → Logging**. Use the app as you normally would for 24 hours, "
-     "then tap **Save log** (it goes to Downloads/Mandarin, the server's and the Mandarin Bridges' logs with it) "
-     "and send the file. Look through it first. "
-     "Switching logging off deletes the log, the server's part too, and it stays off. Details under [Logs](#logs)."),
+    ("logging", "📝", "Logging", True,
+     "Always on: the server, every Mandarin Bridge, the Android app and the page log what happened, without "
+     "personal data, kept on the server for you to send to the developer.",
+     "Nothing to switch on. In a browser, **Settings → Setup → Logs → Download all logs**: every log as one text "
+     "file, in time order. In the Android app, **Settings → Setup → Logging → Save log** (to Downloads/Mandarin, the "
+     "server's and the Mandarin Bridges' logs with it); **Clear log** empties it. On Mandarin OS, the system page's "
+     "**Support → Download all logs**. Look through it before you send it. Details under [Logs](#logs)."),
     ("updates", "🔄", "Updates", False,
      "The server updates itself from GitHub and checks every 12 hours. The Android app and every Mandarin "
      "Bridge have their own Check for update beside the server's.",
@@ -424,7 +427,7 @@ def md_inline_to_html(s):
 def readme_block():
     lines = ["Every feature below has an **ⓘ**: open it for how to switch the feature on and use it.", ""]
     for i, (fid, em, title, new, what, how) in enumerate(FEATURES):
-        lines.append("%s **%s**%s" % (em, title, " — *new in v1.3.0*" if new else ""))
+        lines.append("%s **%s**%s" % (em, title, " — *new in v1.3.1*" if new else ""))
         lines.append("")
         lines.append(what)
         lines.append("")
@@ -442,7 +445,7 @@ def readme_block():
 
 def site_block():
     # Site links: README anchors become the README on GitHub.
-    pages = {"downloads": "downloads.html", "logs": "logs.html", "away-from-home-tailscale": "away.html",
+    pages = {"downloads": "downloads.html", "logs": "logs.html", "mandarin-os": "mandarin-os.html", "away-from-home-tailscale": "away.html",
              "sq-tool": "sq-tool.html", "mandarin-bridge": "bridges.html", "upsampling-and-output": "upsampling.html",
              "signal-path": "signal-path.html", "your-account": "account.html"}
 

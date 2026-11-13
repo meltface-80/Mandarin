@@ -103,7 +103,7 @@ internal fun SettingsFolders(client: () -> ServerClient?, onBack: () -> Unit) {
     fun change(body: JSONObject, done: (JSONObject) -> Unit) {
         val c = client() ?: return
         busy = true
-        val made = ServerWrites.write { c.post("/api/library/folders", body, 60_000) }
+        val made = ServerWrites.aside { c.post("/api/library/folders", body, 60_000) }
         scope.launch {
             ServerWrites.await(made).onSuccess { j -> folders = folders?.let { FolderSettings.after(it, j) }; err = ""; done(j) }.onFailure { err = com.musicd.server.client.Failure.said(it, "Couldn’t change it") }
             busy = false
@@ -133,7 +133,7 @@ internal fun SettingsFolders(client: () -> ServerClient?, onBack: () -> Unit) {
                         SetupButton("Add a folder", busy, Modifier.parity("settings-folders.add", Contract.label("settings-folders.add")).clickable(enabled = !busy) { err = ""; browse("/") })
                     }
                     if (f.scanning) SetupNote(FolderSettings.SCANNING, Modifier.parity("settings-folders.note"))
-                    Text(buildAnnotatedString { for ((t, bold) in FolderSettings.note(f.docker)) if (bold) withStyle(SpanStyle(fontWeight = FontWeight.W700)) { append(t) } else append(t) },
+                    Text(buildAnnotatedString { for ((t, bold) in FolderSettings.note()) if (bold) withStyle(SpanStyle(fontWeight = FontWeight.W700)) { append(t) } else append(t) },
                         Modifier.parity("settings-folders.note").padding(top = 6.dp), color = paletteColor(Palette.TEXT_FAINT), fontSize = 12.sp, lineHeight = 17.4.sp)
                 }
                 if (err.isNotEmpty()) Text(err, Modifier.parity("settings-folders.error").padding(top = 6.dp), color = paletteColor(Palette.DANGER), fontSize = 12.sp, lineHeight = 17.4.sp)

@@ -1,0 +1,14 @@
+[Unit]
+Description=Mandarin OS: after the upkeep's restart, a check that everything works
+ConditionPathIsMountPoint=/data
+ConditionPathExists=/data/MandarinOS/.check-after-start
+After=mandarin.service network-online.target
+
+[Service]
+Type=oneshot
+ExecStartPre=/usr/bin/sleep 60
+ExecStart=/usr/lib/mandarin-os/maintain --check
+ExecStartPost=/usr/bin/rm -f /data/MandarinOS/.check-after-start
+
+[Install]
+WantedBy=multi-user.target

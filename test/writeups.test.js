@@ -64,7 +64,7 @@ test("a record's write-up: the same from either server", { skip: !haveFfmpeg() &
 
   const { createServer } = require("./server");
   const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false, identify: false,
-    mbBaseUrl: mb.baseUrl, wikipediaBaseUrl: W, pitchforkBaseUrl: W, qobuzWebUrl: W });
+    mbBaseUrl: mb.baseUrl, mbRestMs: 1500, wikipediaBaseUrl: W, pitchforkBaseUrl: W, qobuzWebUrl: W });
   await srv.start();
   try {
     const token = await signIn(B);
@@ -90,9 +90,14 @@ test("a record's write-up: the same from either server", { skip: !haveFfmpeg() &
     assert.equal(web.calls.length, asked, "nothing asked twice");
     assert.equal((await ask("album/extras?artist=Artist%20A")).status, 400);
 
-    // The day, asked for there and then by the album's page (MusicBrainz answering again).
+    // The day, asked for there and then by the album's page (MusicBrainz answering again). It turned the days' search
+    // away (503), so every lookup rests first (item 396; a test's short rest, MUSICBRAINZ_REST_MS, waited out here).
     mb.failDays = false;
-    x = await ask("album/extras?fast=1&day=1&title=Hi%20Res&artist=Artist%20B");
+    for (let t0 = Date.now(); ; await new Promise(r => setTimeout(r, 300))) {
+      x = await ask("album/extras?fast=1&day=1&title=Hi%20Res&artist=Artist%20B");
+      // While MusicBrainz rests the page has the year alone ("2020", as its release_date too): asked until the day.
+      if (/^\d{4}-\d\d-\d\d$/.test(x.body.release_date || "") || Date.now() - t0 > 15000) break;
+    }
     assert.deepStrictEqual([x.body.year, x.body.release_date, x.body.album, x.body.artist], ["2020", "2020-11-20", null, null]);
 
     // The artist's story.

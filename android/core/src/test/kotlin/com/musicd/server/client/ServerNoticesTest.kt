@@ -18,21 +18,19 @@ class ServerNoticesTest {
         assertEquals(60_000L, ServerNotices.nextLook(null, false))
     }
 
-    @Test fun `the data not kept, the first thing said`() {
-        val n = of("""{"data_persistent":false,"index_count":0}""")!!
-        assertTrue(n.error)
-        assertTrue(n.lines[0].startsWith("Your library, album edits and play history are stored inside the container"))
-    }
-
     @Test fun `an empty library, by why`() {
-        assertEquals("No music folder at /music. Add your library in Settings → Music folders — or to the docker run command with  -v /path/to/your/Music:/music:ro  and start it again.",
-            of("""{"index_count":0,"music_dir_exists":false}""")!!.lines[0])
+        assertEquals("No music folder at /music. Add your library in Settings → Music folders.",
+            of("""{"index_count":0,"install":"linux","music_dir_exists":false}""")!!.lines[0])
         val scanning = of("""{"index_count":0,"scan":{"running":true,"files_seen":12345}}""")!!
         assertEquals("Scanning your music folder… 12,345 files so far. Albums appear when the first pass finishes.", scanning.lines[0])
         assertFalse(scanning.error)
         assertEquals(3_000L, ServerNotices.nextLook(scanning, true))
-        assertEquals("No audio files were found in /a, /b. Check the -v …:/a, /b:ro mount points at your music, and that the container can read it (4 files couldn't be read).",
-            of("""{"index_count":0,"music_dirs":["/a","/b"],"scan":{"last":{"status":"ok","errors":4}}}""")!!.lines[0])
+        // Said for how the server is installed (item 389): Mandarin OS's share, or the folder itself.
+        val os = of("""{"index_count":0,"install":"mandarin-os","music_dirs":["/data/Storage"],"scan":{"last":{"status":"ok"}}}""")!!
+        assertEquals("No music yet. Copy it into Storage in smb://mandarin/data, or plug in a USB drive: it appears under Storage/USB, and its music here.", os.lines[0])
+        assertFalse(os.error)
+        assertEquals("No audio files were found in /a. Check that it holds your music and that Mandarin can read it, or add your library in Settings → Music folders.",
+            of("""{"index_count":0,"install":"linux","music_dirs":["/a"],"scan":{"last":{"status":"ok"}}}""")!!.lines[0])
         assertEquals("Starting up — reading your music folder…", of("""{"index_count":0}""")!!.lines[0])
     }
 
@@ -44,6 +42,11 @@ class ServerNoticesTest {
         assertTrue(n.error)
         assertEquals(3, n.lines.size)
         assertTrue(n.lines[0].startsWith("The music folder “A” isn't there — its 1,200 tracks are kept, not removed."))
+        // The way it's put back, for how the server is installed (item 389), as the page says it.
+        assertTrue(n.lines[0].contains("not removed. Mount the drive or share again and they're back as they were."))
+        val gone = """"scan":{"last":{"offline_dirs":[{"dir":"/m/a","name":"A","tracks":1,"missing":true}]}}"""
+        assertTrue(of("""{"index_count":9,"install":"mandarin-os","sonos":{"rooms":1},$gone}""")!!.lines[0]
+            .contains("not removed. Plug the drive in again and they're back as they were."))
         assertTrue(n.lines[1].startsWith("Part of the music folder “B” couldn't be read"))
         assertEquals(listOf("Forget “A”", "Remove the missing ones"), n.buttons)
         assertEquals(listOf("/m/a", "/m/c"), n.dirs)
@@ -56,8 +59,10 @@ class ServerNoticesTest {
     }
 
     @Test fun `no rooms, unless still looking or away`() {
-        val n = of("""{"index_count":9,"sonos":{"rooms":0,"error":"no route"}}""")!!
-        assertEquals("No Sonos rooms found yet. The container needs --network host on the same network as your speakers — or set -e SONOS_HOSTS=<a speaker's IP>. (no route)", n.lines[0])
+        val n = of("""{"index_count":9,"install":"linux","sonos":{"rooms":0,"error":"no route"}}""")!!
+        assertEquals("No Sonos rooms found yet. Speakers on the same network as Mandarin appear by themselves; if yours don't, set SONOS_HOSTS to a speaker's IP. (no route)", n.lines[0])
+        assertEquals("No Sonos rooms found yet. Speakers on the same network as Mandarin appear by themselves; if yours don't, set SONOS_HOSTS to a speaker's IP.",
+            of("""{"index_count":9,"install":"mandarin-os","sonos":{"rooms":0}}""")!!.lines[0])
         assertEquals(8_000L, ServerNotices.nextLook(n, false))
         assertNull(of("""{"index_count":9,"sonos":{"rooms":0,"searching":true}}"""))
         assertNull(of("""{"index_count":9,"away":true,"sonos":{"rooms":0}}"""))

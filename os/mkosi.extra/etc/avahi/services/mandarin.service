@@ -1,0 +1,9 @@
+<?xml version="1.0" standalone='no'?>
+<!DOCTYPE service-group SYSTEM "avahi-service.dtd">
+<!-- Mandarin OS on the network as mandarin.local: its share for Finder, its system page and Mandarin for browsers. -->
+<service-group>
+  <name replace-wildcards="yes">Mandarin on %h</name>
+  <service><type>_smb._tcp</type><port>445</port></service>
+  <service><type>_http._tcp</type><port>80</port><txt-record>path=/</txt-record></service>
+  <service><type>_http._tcp</type><port>3500</port><txt-record>path=/</txt-record></service>
+</service-group>

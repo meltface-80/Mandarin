@@ -5,8 +5,8 @@
 # The private half signs each release (.github/sign.sh): it goes into the repository's RELEASE_SIGNING_KEY secret and a
 # safe place of your own, never the repository or a chat. The public half goes into both programs
 # (server/Mandarin.Server/Admin/ReleaseKey.cs, bridge/linux/Mandarin.Bridge/ReleaseKey.cs), which then refuse an
-# update not signed with it. Lose the private half and the next update must be installed by hand (docker pull, the
-# Bridge's install.sh), carrying a new public half.
+# update not signed with it. Lose the private half and the next update must be installed by hand (the Linux
+# installer's line, Mandarin OS's Reinstall, the Bridge's install.sh), carrying a new public half.
 set -e
 key=${1:-mandarin-release-key.pem}
 [ -e "$key" ] && { echo "release-key: $key is there already; kept, nothing made" >&2; exit 1; }

@@ -1,0 +1,24 @@
+[Unit]
+# A new version's first starts (item 401): only on a start being tried (systemd-boot's boot counting, an entry with
+# tries left), what the box needs, checked before boot-complete.target and so before systemd-bless-boot keeps the
+# version. If it isn't there, the computer starts again, a try taken; after three, systemd-boot starts the version
+# before (/usr/lib/mandarin-os/boot.sh). Not on any other start: a box with a problem later isn't started again and
+# again for it.
+Description=Mandarin OS: a new version checked before it is kept
+ConditionPathExists=/sys/firmware/efi/efivars/LoaderBootCountPath-4a67b082-0a4c-41cf-b6c7-440b29bb8c4f
+Before=boot-complete.target
+After=local-fs.target mandarin-os-apply.service mandarin-os-started.service nftables.service smbd.service NetworkManager.service network-online.target mandarin-os-page.service
+Wants=network-online.target
+FailureAction=reboot
+# Waiting too long to be run at all fails it too.
+JobTimeoutSec=15min
+JobTimeoutAction=reboot
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/lib/mandarin-os/os-started health
+TimeoutStartSec=10min
+
+[Install]
+RequiredBy=boot-complete.target

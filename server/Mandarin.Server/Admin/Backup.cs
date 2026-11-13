@@ -13,7 +13,7 @@
 // backup it made restores here: the same tar headers, the same JSON
 // (JSON.stringify's, one space a level), blobs as { $b64 }. Read as it read
 // one: a file that isn't gzip, or is cut short, is refused in zlib's words;
-// each JSON part 64 MB at most; the database copy to a file of its own.
+// each JSON part 512 MB at most (item 395); the database copy to a file of its own.
 // Restoring the whole database stages it, swapped in when the server starts
 // again (Admin/Restore.cs), today's account, sign-ins and Tailscale identity kept.
 using System.Globalization;

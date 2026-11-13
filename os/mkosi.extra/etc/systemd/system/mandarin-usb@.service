@@ -1,0 +1,13 @@
+[Unit]
+Description=Mandarin OS: the USB drive %I under /data/Storage/USB
+BindsTo=dev-%i.device
+After=dev-%i.device data.mount
+RequiresMountsFor=/data
+# Installed only (the USB stick has no Storage to put a drive in).
+ConditionPathIsMountPoint=/data
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/lib/mandarin-os/usb-mount add %I
+ExecStop=/usr/lib/mandarin-os/usb-mount remove %I

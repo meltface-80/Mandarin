@@ -60,7 +60,7 @@ public sealed class UsbDsdTests
     public async Task A_DSF_goes_to_the_DAC_as_DoP_or_as_native_DSD_every_bit_as_the_file_has_it()
     {
         Needs.Server();
-        if (!OperatingSystem.IsLinux() && !OperatingSystem.IsMacOS()) Assert.Skip("Linux and a Mac only");
+        if (!OperatingSystem.IsLinux()) Assert.Skip("Linux only");
         var found = (await Score.Run(new { fn = "engine", steps = new object[] { new { find = true } } }, new Dictionary<string, string> { ["MANDARIN_APP_DIR"] = ServerProcess.Root }))["results"]![0];
         if (found == null)
         {

@@ -1,0 +1,20 @@
+#!/bin/bash
+# /usr/lib/mandarin-os/install-bridge — Mandarin Bridge beside Mandarin, where it was chosen at install (item 389): its
+# install.sh (bridge/linux/install.sh), which checks what it fetches. From the same as Mandarin (bridge-from, written by
+# os/build.sh): a test image's dev Bridge (test-bridge) beside dev's Mandarin, which otherwise offered it an update the
+# moment it was installed; the newest Bridge release beside a released Mandarin.
+set -uo pipefail
+. "$(dirname "$0")/log.sh"
+from="$(cat "$(dirname "$0")/bridge-from" 2>/dev/null || echo release)"
+if [ "$from" = test-bridge ]; then
+  url="https://github.com/meltface-80/Mandarin/releases/download/test-bridge/install.sh"
+else
+  url="$(curl -fsSL --retry 5 https://api.github.com/repos/meltface-80/Mandarin/releases \
+    | jq -r '[.[] | select(.tag_name | startswith("mandarin-bridge-v"))][0].assets[] | select(.name == "install.sh") | .browser_download_url')"
+fi
+[ -n "$url" ] || { oslog ERROR "[bridge] no Mandarin Bridge release found"; exit 1; }
+if curl -fsSL --retry 5 "$url" | sh >> /data/MandarinOS/Logs/Bridge_install_log.txt 2>&1; then
+  oslog INFO "[bridge] Mandarin Bridge installed ($url)"
+else
+  oslog ERROR "[bridge] Mandarin Bridge couldn't be installed (Bridge_install_log.txt)"; exit 1
+fi

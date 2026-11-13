@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mandarin OS · Mandarin</title>
+<meta name="description" content="The recommended way to run Mandarin: a lightweight operating system made only for Mandarin Server, with a web page of its own to watch over and look after it. Make the USB installer, install it, use it.">
+<link rel="icon" href="mandarin-icon.png">
+<link rel="stylesheet" href="site.css">
+</head>
+<body>
+
+<header class="pagehead">
+  <div class="wrap">
+    <a class="back" href="index.html">← Contents</a>
+    <a class="brand" href="index.html"><img src="mandarin-icon.png" alt=""><span>Mandarin</span></a>
+    <span class="spacer"></span>
+    <a class="pill solid" href="downloads.html#os">Downloads</a>
+  </div>
+</header>
+
+<main class="wrap page">
+  <h1>Mandarin OS</h1>
+  <p class="lead">A lightweight operating system made only to run Mandarin Server, with a web page of its own, the
+     system page, to watch over and look after everything. The recommended way to run Mandarin. Version 0.1.4.</p>
+
+  <h2 id="what">What it is, and why</h2>
+  <p>A music server should be something you switch on and forget. Mandarin OS turns a small computer into exactly that:
+     Mandarin and only what Mandarin needs, installed from a USB stick in a few minutes, with nothing else to set up or
+     keep up to date. That is why it is the recommended way to run Mandarin; to run Mandarin on a Linux machine you
+     already have instead, see <a href="install.html#linux">Install on Linux</a>, the alternative.</p>
+  <ul class="plain">
+    <li><b>Lightweight:</b> Debian 13 with Mandarin installed natively, and nothing else: no desktop, no login, no SSH.
+        Everything coming in from the network is refused by a firewall, but what Mandarin and the system answer.</li>
+    <li><b>Its own web page:</b> the system page, <code>http://mandarin/</code>, shows Mandarin, its services, the
+        storage, the network and the logs, and does what you'd otherwise need a shell for: eject a drive, set a static
+        address, install Mandarin Bridge, reinstall or reset Mandarin, restart or shut down.</li>
+    <li><b>A shared folder for your music:</b> <code>smb://mandarin/data</code>. Copy music in from any computer, or
+        plug in a USB drive: it is mounted, and in Mandarin, as it is plugged in.</li>
+    <li><b>Looks after itself:</b> once a week, when nothing is playing, it takes a newer Mandarin OS or Debian's
+        security updates, clears out what isn't needed, and checks that everything works.</li>
+    <li><b>Updates itself in place:</b> a new version is written beside the one running, never over it, and started;
+        if it doesn't start, the box goes back to the version that worked by itself. Your music, settings and drives
+        aren't touched. <a href="#updating">Updating Mandarin OS</a></li>
+  </ul>
+
+  <h2 id="needs">What you need</h2>
+  <ul class="plain">
+    <li><b>A 64-bit Intel or AMD PC with UEFI and a wired network</b> (Ethernet): a mini PC such as an Intel NUC or a
+        Dell OptiPlex Micro. Mandarin OS is made and tested on a Dell OptiPlex 3050 Micro.</li>
+    <li><b>A disk of its own for the system.</b> Everything on it is erased. The system takes about 8.5 GB of it; the
+        rest holds Mandarin's data and your music (Storage). Another internal disk, if the PC has one, can be internal
+        storage.</li>
+    <li><b>A USB stick of 4 GB or more</b> for the installer. Everything on it is erased too.</li>
+    <li><b>A screen and a keyboard</b> for the install itself. After that the box needs neither.</li>
+    <li><b>Secure Boot off</b> in the PC's firmware settings (BIOS/UEFI setup).</li>
+  </ul>
+
+  <h2 id="download">Download</h2>
+  <p>The image comes two ways, the same system either way, each with its checksum (<code>.sha256</code>) and its
+     signature (<code>.sig</code>):</p>
+  <div class="files">
+    <a class="file" href="https://github.com/meltface-80/Mandarin/releases/download/mandarin-os-v0.1.4/mandarin-os-0.1.4-x64.img.xz"><b>mandarin-os-0.1.4-x64.img.xz</b><span>compressed, about 380 MB: for balenaEtcher and the Linux terminal</span><i>⬇</i></a>
+    <a class="file" href="https://github.com/meltface-80/Mandarin/releases/download/mandarin-os-v0.1.4/mandarin-os-0.1.4-x64.img"><b>mandarin-os-0.1.4-x64.img</b><span>as it is, about 1.6 GB: for an Android phone (EtchDroid)</span><i>⬇</i></a>
+    <a class="file" href="https://github.com/meltface-80/Mandarin/releases/download/mandarin-os-v0.1.4/mandarin-os-0.1.4-x64.img.xz.sha256"><b>mandarin-os-0.1.4-x64.img.xz.sha256</b><span>the compressed image's checksum</span><i>⬇</i></a>
+    <a class="file" href="https://github.com/meltface-80/Mandarin/releases/download/mandarin-os-v0.1.4/mandarin-os-0.1.4-x64.img.sha256"><b>mandarin-os-0.1.4-x64.img.sha256</b><span>the plain image's checksum</span><i>⬇</i></a>
+  </div>
+  <p class="after-note">The signatures, <code>mandarin-os-0.1.4-x64.img.xz.sig</code> and
+     <code>mandarin-os-0.1.4-x64.img.sig</code>, are beside them on the
+     <a href="https://github.com/meltface-80/Mandarin/releases/tag/mandarin-os-v0.1.4">release</a>, with the system
+     and kernel images (<code>.root.raw.xz</code>, <code>.efi</code>) an installed Mandarin OS updates itself from.</p>
+
+  <h2 id="usb">Make the USB installer</h2>
+  <p>Three ways; choose whichever suits what you have to hand.</p>
+
+  <h3 class="sub" id="etcher">With balenaEtcher (Windows, macOS or a Linux desktop)</h3>
+  <ol class="plain">
+    <li>Install <a href="https://etcher.balena.io/">balenaEtcher</a> and download
+        <code>mandarin-os-0.1.4-x64.img.xz</code>. Etcher takes the compressed file as it is: there is nothing to
+        unpack.</li>
+    <li>Plug in the USB stick and open Etcher.</li>
+    <li><b>Flash from file</b>: choose the <code>.img.xz</code> you downloaded.</li>
+    <li><b>Select target</b>: choose the USB stick. Check it is the stick: everything on it is erased.</li>
+    <li><b>Flash!</b> Etcher writes the stick, then checks what it wrote. Your computer may ask for your password.</li>
+  </ol>
+  <p>When it says the flash is complete, take the stick out. (If Windows then offers to format the stick, as it can't
+     read it, say no.)</p>
+
+  <h3 class="sub" id="dd">From a Linux terminal</h3>
+  <ol class="plain">
+    <li>Plug in the USB stick and find it: <code>lsblk</code> lists the disks by size. The stick is a whole device such
+        as <code>/dev/sdb</code>. <b>Double-check it</b>: everything on the device you name is erased, and naming the
+        wrong one erases that disk instead.</li>
+    <li>If the desktop mounted any of its partitions, unmount them first (<code>sudo umount /dev/sdX1</code>, and so
+        on for each).</li>
+    <li>In the folder you downloaded to, check the download against its checksum (it should say <i>OK</i>):</li>
+  </ol>
+  <div class="codebox"><button class="copy-btn" data-copy>Copy</button>
+<pre>sha256sum -c mandarin-os-0.1.4-x64.img.xz.sha256</pre>
+</div>
+  <ol class="plain" start="4">
+    <li>Write it to the whole device, <code>/dev/sdX</code> (not a partition such as <code>/dev/sdX1</code>), with
+        <code>sdX</code> the stick's name from <code>lsblk</code>:</li>
+  </ol>
+  <div class="codebox"><button class="copy-btn" data-copy>Copy</button>
+<pre>xz -dc mandarin-os-0.1.4-x64.img.xz | sudo dd of=/dev/sdX bs=4M conv=fsync status=progress</pre>
+</div>
+  <p>From the plain image, the same without <code>xz</code>:</p>
+  <div class="codebox"><button class="copy-btn" data-copy>Copy</button>
+<pre>sudo dd if=mandarin-os-0.1.4-x64.img of=/dev/sdX bs=4M conv=fsync status=progress</pre>
+</div>
+  <ol class="plain" start="5">
+    <li>Then run <code>sync</code>, and take the stick out once it has returned.</li>
+  </ol>
+
+  <h3 class="sub" id="android">From an Android phone, with EtchDroid</h3>
+  <p>EtchDroid is free, on Google Play and F-Droid. It needs the plain <b><code>mandarin-os-0.1.4-x64.img</code></b>,
+     not the <code>.img.xz</code>: a phone's writer doesn't decompress, and a stick written from the compressed file
+     starts nothing. The stick goes into the phone through a USB-OTG or USB-C adapter (or a USB-C stick).</p>
+  <ol class="plain">
+    <li>Download <code>mandarin-os-0.1.4-x64.img</code> on the phone (about 1.6 GB: Wi-Fi is best).</li>
+    <li>Plug the USB stick into the phone through the adapter.</li>
+    <li>Open EtchDroid and choose to write an image (a raw image), then pick the <code>.img</code> you downloaded.</li>
+    <li>Pick the USB stick.</li>
+    <li>When Android asks whether EtchDroid may use the USB device, allow it.</li>
+    <li>Confirm that the stick may be erased, and wait until EtchDroid says it has finished. Keep the phone awake and
+        the stick in until then.</li>
+  </ol>
+
+  <h2 id="install">Install Mandarin OS</h2>
+  <ol class="plain">
+    <li><b>Secure Boot off</b>, in the PC's firmware settings, if it isn't already.</li>
+    <li>Plug the network cable, a screen and a keyboard into the PC, and the USB stick.</li>
+    <li><b>Start the PC from the stick.</b> Switch it on and press its one-time boot menu key at the maker's logo: on a
+        Dell, <b>F12</b>; other makers use keys such as F11, F12, F8 or Esc (the PC's manual says which). Choose the USB
+        stick under <b>UEFI</b>.</li>
+    <li>The installer comes up on the screen, with the version it installs at the top, and asks, in turn:
+      <ul class="plain">
+        <li><b>The system's disk</b>, by its model and size. Only the PC's internal disks are offered, never the stick
+            or a USB drive. Everything on it is erased.</li>
+        <li><b>Internal storage</b>, only where the PC has another internal disk: use it as internal storage, for
+            backups and for music if you want (it is formatted, everything on it erased), or leave it as it is.</li>
+        <li><b>Your shared folder's user name and password</b>: the user name in lower case letters and figures,
+            starting with a letter (<i>music</i> is offered); the password 8 characters or more, typed twice. The same
+            password is asked for by every change on the system page, so keep it.</li>
+        <li><b>The network</b>: from the router (DHCP, recommended), or a static address (address/prefix, gateway and
+            DNS).</li>
+        <li><b>Mandarin Bridge</b>: whether to install it here as well. Say yes if a USB DAC will be plugged into this
+            PC: Mandarin Bridge is how Mandarin plays a DAC on the computer it runs on, as a room of its own. It can be
+            installed or removed later on the system page.</li>
+      </ul>
+    </li>
+    <li>Type <code>erase</code> to go on. Mandarin OS is written to the disk, which takes a few minutes.</li>
+    <li>At the end it says it is installed. <b>Press Enter: the computer switches off.</b> Then take the USB stick out
+        and switch the computer on. It starts from its own disk, and a minute or two later Mandarin is at
+        <code>http://mandarin:3500</code>.</li>
+  </ol>
+  <div class="note">Take the stick out only once the computer is off: the installer runs from it.</div>
+
+  <div class="firstrun" style="margin-top:22px">
+    <ol>
+      <li>Open <b>http://mandarin:3500</b> (or <b>http://&lt;the box's address&gt;:3500</b>, which its screen shows) on a
+          device at home and <b>create your account</b>, or choose <b>Use without an account</b>.</li>
+      <li>Copy your music into the shared folder's <b>Storage</b>, or plug in a USB drive with music on it. Albums appear
+          as they are read.</li>
+      <li>Pick a room under <b>Settings → Audio Devices</b>, tap an album and <b>Play Now</b>.</li>
+    </ol>
+  </div>
+
+  <h2 id="using">Using Mandarin OS</h2>
+
+  <h3 class="sub" id="mandarin">Mandarin</h3>
+  <p>Mandarin is at <code>http://mandarin:3500</code>, or the box's address with <code>:3500</code> (Bonjour also finds
+     it as <code>mandarin.local</code>). It is the same Mandarin as everywhere: the app, the web page, Sonos, the
+     streamers and Bridges, Qobuz and Tidal, its settings. Its music folder is the shared folder's Storage, USB drives
+     and internal storage included. <b>Shut down</b> in Mandarin (☰, the power button) shuts the computer down too; its
+     power button starts it all again.</p>
+
+  <h3 class="sub" id="system-page">The system page</h3>
+  <p><code>http://mandarin/</code> (or the box's address, without a port) is Mandarin OS's own page. Anyone at home can
+     read it; every change asks for the shared folder's password (five wrong in five minutes, and it stops trying for
+     five minutes).</p>
+  <ul class="plain">
+    <li><b>Overview:</b> Mandarin answering, its version and library, and each of its services running or not.</li>
+    <li><b>Storage:</b> the data partition's space; each USB drive, whether it is read-only and why, and
+        <b>Eject</b> before you unplug it; a Linux drive from another computer made the shared folder's; internal storage, where another internal disk can be formatted for it (you
+        type <code>erase</code> first; never the system's disk or a USB drive).</li>
+    <li><b>Network &amp; Access:</b> the address now; DHCP or a static address, which is checked before it is taken and
+        put back by itself after two minutes unless you keep it from the new address; a connection test, layer by
+        layer; the shared folder and its user.</li>
+    <li><b>Settings:</b> Mandarin OS's version, with <b>Update and restart</b> when a newer one is out and <b>Check
+        for updates</b> (<a href="#updating">below</a>); Mandarin Bridge installed or removed (for a USB DAC plugged
+        into the box), and the weekly upkeep's last run.</li>
+    <li><b>Support:</b> every log on the box as one text file (<b>Download all logs</b>), and Mandarin's, Mandarin
+        OS's and the system's logs read and filtered on the page; <b>Reinstall Mandarin</b> (put back from its latest
+        release, your library, settings and music kept) and <b>Reset Mandarin</b> (it starts as new, its library,
+        account and settings set aside in its Backups folder, not deleted).</li>
+    <li><b>The power menu</b> (⏻, top right): restart Mandarin, restart the computer, or shut it down.</li>
+  </ul>
+
+  <h3 class="sub" id="share">The shared folder</h3>
+  <p><code>smb://mandarin/data</code>, or <code>\\mandarin\Data</code> on Windows, with the user name and password
+     chosen at install.</p>
+  <ul class="plain">
+    <li><b>Storage:</b> copy your music in here. Each USB drive plugged in is under <b>Storage/USB</b>, by its name,
+        and internal storage is <b>Storage/Internal</b>.</li>
+    <li><b>MandarinServer</b>, <b>MandarinBridge</b>, <b>MandarinApp</b> and <b>MandarinOS</b>: the logs (and
+        Mandarin's backups), read-only.</li>
+  </ul>
+
+  <h3 class="sub" id="usb-drives">USB drives</h3>
+  <p>A USB drive is mounted as it is plugged in, checked first, and its music is in Mandarin: ext4, exFAT, FAT and NTFS,
+     and a Mac drive (HFS+) read-only. One whose filesystem can't be repaired is mounted read-only, and the system page
+     says why. Eject it on the system page before you unplug it.</p>
+  <p><b>A Linux drive (ext4) from another computer</b> keeps the owners its files were given there: the shared folder
+     copies music from it, but moving, renaming or deleting on it is refused (&ldquo;Access denied&rdquo;). The system
+     page's <b>Storage</b> tab says so beside the drive; <b>Make them the shared folder's</b> (with the shared folder's
+     password) makes its files the shared folder's, and then they can be moved, renamed and deleted. Only that drive is
+     changed, and a big one takes a few minutes. exFAT, FAT and NTFS drives need nothing: they are the shared folder's as
+     they are plugged in.</p>
+
+  <h3 class="sub" id="screen">The box's own screen</h3>
+  <p>With a screen plugged in, the box shows its version, where to find Mandarin, the system page and the shared folder,
+     and whether Mandarin is running. It takes two words, typed with a keyboard and then confirmed with
+     <code>yes</code>:</p>
+  <ul class="plain">
+    <li><code>networkreset</code>: the network back to DHCP, and the computer started again. For a static address that
+        lost the box.</li>
+    <li><code>passwordreset</code>: Mandarin's account removed and every device signed out, for a forgotten password.
+        Your library, edits and history stay; create the account again in a browser.</li>
+  </ul>
+  <p>There is no login and no SSH: the screen and the system page are the ways in.</p>
+
+  <h3 class="sub" id="upkeep">Updates and upkeep</h3>
+  <p>Once a week, when nothing is playing (no room playing, no scan under way), Mandarin OS takes a newer Mandarin OS
+     where one is out (below), or else Debian's security updates, removes what nothing needs any more, restarts only if
+     an update needs it, and then checks that everything works, starting again whatever isn't. Each step is in its
+     log.</p>
+  <p><b>Mandarin and Mandarin Bridge</b> update from Mandarin's <b>Settings → Updates</b>, as everywhere
+     (<a href="install.html#updating">Updating</a>).</p>
+
+  <h3 class="sub" id="updating">Updating Mandarin OS</h3>
+  <p>From 0.1.4, Mandarin OS <b>updates itself in place</b>, without reinstalling. The system disk has two system
+     partitions: the version running is on one, and a new version is written onto the other, never over the one
+     running. The box looks for a newer version once a day.</p>
+  <ul class="plain">
+    <li><b>On the system page:</b> Settings shows Mandarin OS's version and, when a newer one is out, <b>Update and
+        restart</b> (with the shared folder's password). It downloads the new version into the data partition, checks
+        its checksum and its signature (Mandarin's release key, as Mandarin's own updates), writes it beside this one,
+        and starts the computer again on it: music stops for a few minutes. <b>Check for updates</b> looks at once.</li>
+    <li><b>By itself:</b> the weekly upkeep puts a newer version in, while nothing plays, and starts the computer again
+        only when nothing plays.</li>
+    <li><b>If it doesn't start</b>, or starts without what the box needs (the data partition, the shared folder, the
+        network, the system page, and Mandarin if it answered before), the computer tries it three times, then goes back
+        by itself to the version that worked, which the update never touched. The system page then says the update
+        didn't start and the box went back to the version before. The weekly upkeep never tries that version again;
+        <b>Update and restart</b> can.</li>
+    <li><b>What is kept:</b> everything on the data partition (your music, Mandarin's library and settings) and on USB
+        drives is never touched. The box's own settings are carried into the new version: the shared folder's user,
+        password and its files' owner, the network as set (a static address included), Mandarin Bridge if installed,
+        and Mandarin itself where the one running is newer than the image's (it is never put back to an older one).</li>
+  </ul>
+  <div class="note"><b>Installed with 0.1.3 or earlier?</b> Those can't update themselves (the updater came with 0.1.4,
+     and the users their files belong to are numbered otherwise): reinstall 0.1.4 once from the USB stick. Reinstalling
+     <b>erases the system disk, the data partition with it</b> (Mandarin's library and settings, and music copied into
+     Storage on that disk), so first make a backup in Mandarin (<b>Settings → Backup &amp; restore</b>, <b>Back up to the
+     server</b>) and copy it off the box from the shared folder (<code>MandarinServer/Backups</code>), with any music in
+     Storage; afterwards, restore it in Mandarin from that file. Music on USB drives isn't on the system disk and isn't
+     touched. From 0.1.4 on, it updates itself.</div>
+
+  <nav class="pager"><a class="back" href="install.html">← Install the server</a><a class="pill" href="apps.html">Next: On your phone →</a></nav>
+</main>
+
+<footer>
+  <p>Mandarin · MIT · © 2026 Lewis Menzies (Music Duck / Mandarin) ·
+     <a href="https://github.com/meltface-80/Mandarin">Source on GitHub</a><br>
+     Sonos is a trademark of Sonos, Inc.; WiiM of Linkplay Technology; Chord and Poly of Chord Electronics; FiiO of FiiO
+     Electronics. This is an independent project, affiliated with none of them.</p>
+</footer>
+<script src="site.js"></script>
+</body>
+</html>

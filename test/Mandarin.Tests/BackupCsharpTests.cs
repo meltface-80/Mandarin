@@ -108,6 +108,28 @@ public sealed class BackupCsharpTests(BackupCsharpTests.Book book) : IClassFixtu
             Assert.True(Strip(Gunzip(byNode[i])).AsSpan().SequenceEqual(Strip(Gunzip(byCs[i]))), $"set {i}: the same tar but for the times written");
     }
 
+    /// <summary>
+    /// A library's backup read back whole (item 395): server.json carries the collection, and a large library's is more
+    /// than 64 MB, the most the Node server could hold in a string. A backup of the OptiPlex's library was refused with
+    /// "The backup's server.json is too large", so it couldn't be restored on Mandarin OS. 512 MB is the most now.
+    /// </summary>
+    [Test]
+    public async Task A_large_librarys_server_json_over_64_MB_is_read_back()
+    {
+        var dir = Directory.CreateTempSubdirectory("musicd-bk-").FullName;
+        try
+        {
+            var big = Path.Combine(dir, "server.json");
+            await File.WriteAllTextAsync(big, "{\"collection\":{\"note\":\"" + new string('x', 66 * 1024 * 1024) + "\"}}");
+            var file = Path.Combine(dir, "big.tar.gz");
+            await Csharp(new JsonObject { ["writes"] = new JsonArray(new JsonObject { ["to"] = file, ["entries"] = new JsonArray(Entry("manifest.json", Manifest), Entry("server.json", file: big)) }) });
+            var read = (await Csharp(new JsonObject { ["reads"] = new JsonArray(new JsonObject { ["file"] = file, ["db"] = Path.Combine(dir, "x.db") }) }))["read"]![0]!;
+            Assert.True(read.Str("error") == null, read.Str("error"));
+            Assert.Equal(66 * 1024 * 1024, read["parts"]!["server"]!["collection"]!["note"]!.GetValue<string>().Length);
+        }
+        finally { Directory.Delete(dir, true); }
+    }
+
     [Test]
     public async Task Damaged_and_foreign_files_are_refused_in_the_same_words()
     {

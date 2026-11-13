@@ -21,7 +21,7 @@ public sealed partial class UpdateAloneTests
     private static string Version => (string)JsonNode.Parse(File.ReadAllText(Path.Combine(ServerProcess.Root, "package.json")))!["version"]!;
 
     // The program's build for this machine, as Admin/Updater.cs names it (release.yml's assets).
-    private static string? Build => (OperatingSystem.IsLinux() ? "linux-" : OperatingSystem.IsMacOS() ? "osx-" : null) is { } os
+    private static string? Build => (OperatingSystem.IsLinux() ? "linux-" : null) is { } os
         ? RuntimeInformation.OSArchitecture switch { Architecture.X64 => os + "x64", Architecture.Arm64 => os + "arm64", _ => null } : null;
 
     // GitHub, stood in for: the latest release (or a status instead), the release of v9.9.9 the program is fetched from, and the files of both.
@@ -159,12 +159,12 @@ public sealed partial class UpdateAloneTests
 
             var st = await Api("status");
             Assert.True((st.By, st.Body.Str("current"), st.Body.AsObject().ContainsKey("mac_node_only")) == ("C#", version, false), "its own");
-            var keys = new[] { "current", "latest", "latestTag", "available", "html_url", "notes", "source", "checkedAt", "checking", "error", "apply", "is_docker" };
+            var keys = new[] { "current", "latest", "latestTag", "available", "html_url", "notes", "source", "checkedAt", "checking", "error", "apply" };
             var picked = new JsonObject(keys.Select(k => KeyValuePair.Create(k, st.Body[k]?.DeepClone())));
             JsonAssert.Same(Http.Json(new
             {
                 current = version, latest = (string?)null, latestTag = (string?)null, available = false, html_url = (string?)null, notes = (string?)null, source = (string?)null,
-                checkedAt = 0, checking = false, error = (string?)null, apply = new { phase = "idle", error = (string?)null, version = (string?)null }, is_docker = false
+                checkedAt = 0, checking = false, error = (string?)null, apply = new { phase = "idle", error = (string?)null, version = (string?)null }
             }), picked, "nothing known yet, as lib/updater.js started");
 
             // GitHub refusing, or rate-limiting: the check says so; an install asked for then says the same, nothing changed.

@@ -69,11 +69,10 @@ internal sealed class WriteUpSources(string? mbBase, string? wikipediaBase, stri
         if (title.Length == 0) return null;
         var key = Key(title, artist);
         if (years.TryGet(key, out var hit)) return hit as string;
-        if (Mb == MusicBrainz.DefaultBase) await Lookups.MbWait();
         var q = $"release:\"{MusicBrainz.Quote(title)}\"";
         if (artist.Length > 0) q += $" AND artist:\"{MusicBrainz.Quote(artist)}\"";
         string? year;
-        try { year = WriteUps.PickAlbumYear(await Lookups.Json($"{Mb}/release-group/?query={Lookups.Encode(q)}&fmt=json&limit=5", [("User-Agent", mbAgent)], 8000)); }
+        try { year = WriteUps.PickAlbumYear(await MusicBrainz.Ask(Mb, $"{Mb}/release-group/?query={Lookups.Encode(q)}&fmt=json&limit=5", [("User-Agent", mbAgent)], 8000)); }
         catch (Exception) { year = null; }
         years.Set(key, year);
         return year;

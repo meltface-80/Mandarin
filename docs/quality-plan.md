@@ -23,8 +23,7 @@ or a red test stops the `:migration` image. A test that doesn't block a merge is
 
 `npm run tools` installs the development tools once per clone (the Claude Code session hook does
 it). They live in `tools/lint/package.json`, never in the root `package.json`: the root file's
-dependencies are what the image and an in-app update install (`npm ci --omit=dev`), and
-`tools/`, `.githooks/` and `.claude/` are in `.dockerignore`.
+dependencies are what an in-app update installs (`npm ci --omit=dev`).
 
 ## 1. The file-length ratchet
 

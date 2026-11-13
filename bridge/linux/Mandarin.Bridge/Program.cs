@@ -74,8 +74,13 @@ internal static class Program
         }
         data ??= Environment.UserName == "root" ? "/var/lib/mandarin-bridge"
             : Path.Combine(Environment.GetEnvironmentVariable("XDG_CONFIG_HOME") is { Length: > 0 } x ? x : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".config"), "mandarin-bridge");
+        Homed(data);
         // An update put in place (Update.cs): it runs, this program's arguments its own, its engine beside it.
         if (HandOver(args, data) is { } code) return code;
+        // Its log kept from here in [data]/Logs (Kept.cs); an exception nothing caught, a line before it stops (item 389).
+        Kept.Start(data);
+        AppDomain.CurrentDomain.UnhandledException += (_, e) => Log("[crash] an exception nothing caught; the Bridge stops: " + e.ExceptionObject, "ERROR");
+        TaskScheduler.UnobservedTaskException += (_, e) => Log("[crash] a task failed with no one waiting on it: " + e.Exception, "WARN");
         engine ??= FindEngine();
         if (engine == null) { Console.Error.WriteLine("mandarin-audio (Mandarin's audio engine) isn't here: pass --engine"); return 3; }
         var bridge = new Bridge(new Options(port, data, engine, ffmpeg, asound, device, address, nmcli, setupAfter, updateApi, server, sys, curl), Log);
@@ -85,6 +90,20 @@ internal static class Program
         done.Wait();
         bridge.Stop();
         return 0;
+    }
+
+    /*
+     * A home for .NET where it has none (item 391): systemd's DynamicUser (the Linux installer's service) gives the
+     * Bridge no HOME, and .NET then can't open its certificate stores (PersistedFiles_NoHomeDirectory), so an update
+     * couldn't connect to GitHub securely and fell back on curl. Its data folder is its home then; what it runs (an
+     * update, the engine) is given the same.
+     */
+    private static void Homed(string data)
+    {
+        var home = Environment.GetEnvironmentVariable("HOME");
+        if (home is { Length: > 0 } && Directory.Exists(home)) return;
+        try { Directory.CreateDirectory(data); } catch (IOException) { return; } catch (UnauthorizedAccessException) { return; }
+        Environment.SetEnvironmentVariable("HOME", data);
     }
 
     /* The Bridge started again: this program returns, and systemd starts it (Restart=always), into the update. */
@@ -141,10 +160,13 @@ internal static class Program
 
     private static readonly object logLock = new();
 
-    public static void Log(string line)
+    // A line in journald (standard error) and the Bridge's own log (Kept.cs) alike: dated in UTC, with its level (item 389).
+    public static void Log(string line) => Log(line, "INFO");
+
+    public static void Log(string line, string level)
     {
-        lock (logLock) Console.Error.WriteLine(DateTime.Now.ToString("HH:mm:ss", CultureInfo.InvariantCulture) + " " + line);
-        Kept.Add(line);
+        lock (logLock) Console.Error.WriteLine(Kept.Stamp(level, line));
+        Kept.Add(line, level);
     }
 
     // The engine beside this program (as packaged), where the package puts it, or the repository's own build.

@@ -109,7 +109,7 @@ async function start({ port, musicDir, dataDir, env = {}, bin = BIN, timeoutMs =
 const ENV = {
   port: "PORT", musicDir: "MUSIC_DIR", dataDir: "DATA_DIR", serverIp: "SERVER_IP", sonosHosts: "SONOS_HOSTS", upnpHosts: "UPNP_HOSTS",
   include: "INCLUDE_ZONES", exclude: "EXCLUDE_ZONES", scanHours: "SCAN_INTERVAL_HOURS", tailscaleBin: "MUSICDNET_BIN",
-  mbBaseUrl: "MUSICBRAINZ_URL", itunesBaseUrl: "ITUNES_URL", mbpackUrl: "MBPACK_URL", mbpackDir: "MBPACK_DIR", autoeqBaseUrl: "AUTOEQ_URL",
+  mbBaseUrl: "MUSICBRAINZ_URL", mbRestMs: "MUSICBRAINZ_REST_MS", itunesBaseUrl: "ITUNES_URL", mbpackUrl: "MBPACK_URL", mbpackDir: "MBPACK_DIR", autoeqBaseUrl: "AUTOEQ_URL",
   discogsBaseUrl: "DISCOGS_URL", fanartBaseUrl: "FANART_URL", deezerBaseUrl: "DEEZER_URL", wikipediaBaseUrl: "WIKIPEDIA_URL",
   pitchforkBaseUrl: "PITCHFORK_URL", qobuzWebUrl: "QOBUZ_WEB_URL", lastfmBaseUrl: "LASTFM_URL", lastfmKey: "LASTFM_KEY",
   identifyTickMs: "IDENTIFY_TICK_MS", loudnessTickMs: "LOUDNESS_TICK_MS", qobuzBaseUrl: "QOBUZ_URL", tidalBaseUrl: "TIDAL_URL",
@@ -125,6 +125,8 @@ const ENV = {
   // The port a renderer's own player (MPD) is looked for at (Renderers/Mpd.cs, item 306): a test's fake one.
   mpdPort: "MPD_PORT",
   slimprotoPort: "SLIMPROTO_PORT",
+  bridgeLogsEvery: "MANDARIN_BRIDGE_LOGS_EVERY",
+  mandarinOs: "MANDARIN_OS",   // the version of Mandarin OS it runs on: the page's words for that box (item 389)   // seconds between each Bridge's log kept on the server (item 389)
   // The hosts on this network a picture from elsewhere may come from (Covers.Reach.cs, item 353): a test's own site.
   artHosts: "ART_HOSTS",
   trustedProxies: "TRUSTED_PROXIES"

@@ -1,0 +1,17 @@
+#!/bin/bash
+# /usr/lib/mandarin-os/network static <address/prefix> <gateway> [dns] | dhcp — the wired network, as the installer, the
+# system page or `networkreset` (at the screen) set it (item 389). NetworkManager keeps it; one profile, "Mandarin".
+set -uo pipefail
+. /usr/lib/mandarin-os/log.sh
+dev="$(nmcli -t -f DEVICE,TYPE device | awk -F: '$2 == "ethernet" { print $1; exit }')"
+[ -n "$dev" ] || { oslog ERROR "[network] no wired network device"; exit 1; }
+for c in $(nmcli -t -f UUID,TYPE connection show | awk -F: '$2 == "802-3-ethernet" { print $1 }'); do nmcli connection delete "$c" >/dev/null 2>&1; done
+case "${1:-dhcp}" in
+  static)
+    nmcli connection add type ethernet ifname "$dev" con-name Mandarin ipv4.method manual ipv4.addresses "$2" ipv4.gateway "$3" \
+      ${4:+ipv4.dns "$4"} ipv6.method auto connection.autoconnect yes >/dev/null && oslog INFO "[network] $dev static: $2, gateway $3${4:+, DNS $4}" ;;
+  *)
+    nmcli connection add type ethernet ifname "$dev" con-name Mandarin ipv4.method auto ipv6.method auto connection.autoconnect yes >/dev/null \
+      && oslog INFO "[network] $dev from DHCP" ;;
+esac
+nmcli connection up Mandarin >/dev/null 2>&1 || true

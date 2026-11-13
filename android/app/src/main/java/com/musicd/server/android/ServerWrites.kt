@@ -17,6 +17,12 @@ internal object ServerWrites {
     /** [call] made on the lane. Ask on the main thread, when the change is asked for, so it is made in the order asked. */
     fun <T> write(call: () -> T): Future<T> = lane.submit(call)
 
+    /** The longest a call on the lane may take (its timeout, ms): one that may take longer is made [aside] (item 390). */
+    const val LANE_MOST = 20_000
+
+    /** [call] made beside the lane, at once: a long call (an import, a rescan, a restore) never holds the changes after it. */
+    fun <T> aside(call: () -> T): Future<T> = lane.aside(call)
+
     /** [made]'s answer, or what went wrong, waited for off the main thread (the change goes on if the waiting is called off). */
     suspend fun <T> await(made: Future<T>): Result<T> =
         withContext(Dispatchers.IO) { runCatching { try { made.get() } catch (e: ExecutionException) { throw e.cause ?: e } } }

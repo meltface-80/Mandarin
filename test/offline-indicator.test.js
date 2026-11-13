@@ -199,7 +199,7 @@ test("offline: a symbol in the top bar, not a notice; a tap says what the matter
       assert.equal(r.notice, "", "no notice across the top of the page");
       assert.equal(r.title, "Mandarin can’t be reached");
       assert.match(r.text[0], /This device can’t reach the Mandarin server/);
-      assert.match(r.text[2], /container is up/);
+      assert.match(r.text[2], /check the server is running, and that this device is on the same network/);
       assert.equal(r.switch, false);
       assert.ok(r.back, "the symbol stayed after the server answered");
       assert.equal(r.popupClosed, true, "and its popup with it");

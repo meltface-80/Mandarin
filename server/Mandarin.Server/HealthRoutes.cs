@@ -1,15 +1,16 @@
 // HealthRoutes.cs — GET /api/health (v0.8.48, stage 5 part 7 of
 // old/csharp-migration.md), from index.js, in the same shape. Open, as
-// it was: Docker's health check asks it every minute.
+// it was: Mandarin OS's upkeep asks it.
 //
 //   { ok, version, albums, rooms, ffmpeg, soxr,
-//     transcode_cache: { files, bytes, running, queued }, audio_engine, csharp }
+//     transcode_cache: { files, bytes, running, queued }, audio_engine,
+//     busy: { any, playing, scanning, making } — asked from this machine alone (item 389: Mandarin OS's upkeep) }
 //
 // The rooms are the hub's (Playback/Hub.cs); the rest: the library's count,
 // ffmpeg, the conversions (made here since v0.8.40), and the audio engine,
 // found where lib/local/engine.js looked for it (Local/AudioEngine.cs). Since
 // v0.8.50 (stage 7) there is no csharp field: no other server's version to match.
-// `mandarin-server --health` (Program.cs) is the image's health check: one GET
+// `mandarin-server --health` (Program.cs) is a health check: one GET
 // of this, 0 when it answers 200.
 using Mandarin.Server.Local;
 using System.Text.Json.Nodes;
@@ -33,12 +34,20 @@ internal static partial class Library
             ["transcode_cache"] = new JsonObject { ["files"] = files, ["bytes"] = bytes, ["running"] = running, ["queued"] = queued },
             ["audio_engine"] = AudioEngine.Version()
         };
+        // Asked from this machine alone (Mandarin OS's weekly upkeep, its system page): whether anything is under way, so
+        // an update or a restart waits for nothing to be playing, scanned or made. Never said to another machine.
+        if (System.Net.IPAddress.TryParse(Caller.ClientIp(ctx), out var ip) && System.Net.IPAddress.IsLoopback(ip))
+        {
+            var playing = Playback.Hub.Current?.Playing() ?? 0;
+            var making = Upsample.MadeAsPlayed.Making;
+            o["busy"] = new JsonObject { ["any"] = playing > 0 || Scans.Running || making > 0, ["playing"] = playing, ["scanning"] = Scans.Running, ["making"] = making };
+        }
         return Send(ctx, o);
     }
 
     /*
-     * `mandarin-server --health`: the image's health check (the Dockerfile's
-     * HEALTHCHECK), in place of `node -e` — one GET of /api/health on this
+     * `mandarin-server --health`: a health check (once the image's, item 394), in
+     * place of `node -e` — one GET of /api/health on this
      * machine's port, its answer printed; 0 when it is 200, 1 when it isn't or
      * nothing answers within the check's time.
      */

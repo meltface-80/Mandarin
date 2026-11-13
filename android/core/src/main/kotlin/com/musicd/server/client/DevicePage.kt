@@ -93,9 +93,7 @@ class DevicePage(val j: JSONObject) {
             else "It doesn’t say it plays DSD, so DSD goes to it as PCM.")
         if (kind == "sonos") add("Sonos plays up to 24-bit/48 kHz. Mandarin’s 24/48 rule applies; nothing to set here.")
         if (kind == "phone") add(if (showOutput) "Through its USB DAC the phone is sent what Output below says; away from home, Opus 256 kbps." else "At home the phone plays the file as it is; away from home, Opus 256 kbps.")
-        // A Mac's (item 155) is found by Core Audio, Linux's by ALSA.
-        if (kind == "local") add(if (j.optString("found_by").startsWith("This Mac")) "Mandarin sets the device to each track’s rate and holds it while it plays, so nothing else is mixed in; Core Audio carries up to 24 bits exactly. DSD goes as PCM."
-            else "Mandarin sends the rates that are on; ALSA converts its 32-bit samples to the depth the device takes. DSD goes as PCM.")
+        if (kind == "local") add("Mandarin sends the rates that are on; ALSA converts its 32-bit samples to the depth the device takes. DSD goes as PCM.")
         j.optJSONObject("profile")?.optString("notes")?.takeIf { it.isNotEmpty() }?.let { add(it) }
     }
 

@@ -10,16 +10,16 @@
   const pop        = document.getElementById("power-pop");
   const restartBtn = document.getElementById("power-restart");
   const shutBtn    = document.getElementById("power-shutdown");
-  const shutNote   = document.getElementById("power-shutdown-note");
   if (!openBtn || !pop || !restartBtn || !shutBtn) return;
   const ask = (q) => window.__confirmDialog ? window.__confirmDialog(q) : Promise.resolve(confirm(q));
   const toast = (m, kind) => { if (window.__showToast) window.__showToast(m, kind); };
   let info = null;
 
   const START_AGAIN = {
-    icon: "To start it again, double-click Mandarin on the Mac's desktop. It also starts when you log in.",
     manual: "To start it again, start it the way it was started.",
-    docker: ""
+    service: "To start it again, restart this computer, or run: sudo systemctl start mandarin",
+    // Mandarin OS (item 389): the computer is shut down with it.
+    "power-button": "The computer shuts down too: to start it again, press its power button."
   };
 
   async function load() {
@@ -29,9 +29,6 @@
       info = await r.json();
     } catch (e) { return; }
     shutBtn.classList.toggle("hidden", !info.shutdown);
-    shutNote.textContent = info.shutdown ? ""
-      : "In Docker: docker stop musicd-server, then docker start musicd-server.";
-    shutNote.classList.toggle("hidden", !shutNote.textContent);
   }
 
   const close = () => { pop.classList.add("hidden"); openBtn.setAttribute("aria-expanded", "false"); };

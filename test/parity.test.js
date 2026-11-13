@@ -491,6 +491,7 @@ const SCREENS = {
   "share-card": { open: OPEN_SHARE_CARD, root: "#share-overlay .share-panel" },
   "settings": { open: OPEN_SETTINGS([], `/Mandarin v/.test(document.getElementById("settings-version").textContent)`), root: '#settings-overlay .settings-view[data-view="home"]' },
   "settings-setup": { open: OPEN_SETTINGS(["setup"]), root: '#settings-overlay .settings-view[data-pane="setup"]' },
+  "settings-logs": { open: OPEN_SETTINGS(["setup", "logs"], `/signed in/.test(document.getElementById("logs-lines").textContent)`), root: '#settings-overlay .settings-view[data-pane="logs"]' },
   "settings-account": { open: OPEN_SETTINGS(["account"], `document.querySelectorAll("#acct-devices .acct-device").length > 0`), root: '#settings-overlay .settings-view[data-pane="account"]' },
   "settings-keys": { open: OPEN_SETTINGS(["setup", "metadata"], `!!document.getElementById("lastfm-key-status").textContent`), root: '#settings-overlay .settings-view[data-pane="metadata"]' },
   "settings-picks": { open: OPEN_SETTINGS(["setup", "smartpicks"]), root: '#settings-overlay .settings-view[data-pane="smartpicks"]' },

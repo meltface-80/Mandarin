@@ -60,7 +60,7 @@ internal fun setPagePref(context: Context, name: String, value: String): WallPre
 
 
 internal const val PICKS_INFO = "Five records from your own library each day, by acts next to the ones you have been playing (Deezer's related-artists lists), or from the least-played corners of the library when there is no history yet. Steady until tomorrow. Not for me keeps an artist out for good."
-internal const val HOUR_INFO = "The hour the daily build runs, in this server's local time (set TZ on the container). If the server is off at that hour, the build runs the next time it starts."
+internal const val HOUR_INFO = "The hour the daily build runs, in this server's local time (its time zone). If the server is off at that hour, the build runs the next time it starts."
 internal val LABELS_INFO = listOf(
     "Off by default. When on, each album's record label comes from its files' LABEL tag (or, for a library filed by label, from the folder at the depth set below): a Labels screen in the side menu, a label on the album page and share card, labels in search, a Record label filter in Library Focus and a Label of the week row on Home. An album whose files carry no label tag is looked up on MusicBrainz, then Discogs (with your token); the files' own tag always wins.",
     "When you open a record label, list its albums alphabetically or shuffle them.",

@@ -24,13 +24,18 @@ test("Ask for a sign-in moves as it is tapped, and back if refused", () => {
 test("a device's page shows a change at once, the server's answer taking its place; back if refused", () => {
   const src = read("SettingsDevice.kt");
   assert.match(src, /val before = page\s+page = before\?\.with\(body\)\s+val made = ServerWrites\.write \{ c\.patch\(devicePath\(id\), body\) \}/);
-  assert.match(src, /onSuccess \{ page = DevicePage\(it\);[\s\S]*?\.onFailure \{ page = before; error = /);
+  // Refused: back as it was, and why kept on the page (item 390), not cleared by the page read again, and logged.
+  assert.match(src, /onSuccess \{ page = DevicePage\(it\); error = ""; refused = "";[\s\S]*?\.onFailure \{\s+page = before\s+refused = com\.musicd\.server\.client\.Failure\.said\(it, "The change wasn't made"\)\s+AppLog\.line\("devices", [^\n]*anomaly = true\)/);
+  assert.match(src, /if \(refused\.isNotEmpty\(\)\) DeviceNote\(refused, [^\n]*danger = true\)/);
+  assert.doesNotMatch(src.slice(src.indexOf("suspend fun load()"), src.indexOf("LaunchedEffect(id)")), /refused = ""/, "the page read again leaves it");
 });
 
 test("a device's row in Audio moves as it is tapped, the list read again after; back if refused", () => {
   const src = read("SettingsAudio.kt");
   assert.match(src, /val before = list\s+list = before\?\.withEnabled\(r\.id, on\)\s+val made = ServerWrites\.write \{ c\.patch\(devicePath\(r\.id\), JSONObject\(\)\.put\("enabled", on\)\) \}/);
-  assert.match(src, /\.onFailure \{ list = before; error = [\s\S]*?busy = false; load\(\)/);
+  // Refused: back as it was, and why kept (item 390): the list read again after cleared the error at once before.
+  assert.match(src, /\.onFailure \{\s+list = before\s+refused = com\.musicd\.server\.client\.Failure\.said\(it, "The change wasn't made"\)\s+AppLog\.line\("devices", [^\n]*anomaly = true\)\s+\}\s+busy = false; load\(\)/);
+  assert.match(src, /if \(refused\.isNotEmpty\(\)\) ListNote\(refused, [^\n]*danger = true\)/);
 });
 
 test("the Scanner's switches and Measure ReplayGain move as they are tapped; back if refused", () => {

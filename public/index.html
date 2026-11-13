@@ -796,7 +796,6 @@
           <div class="power-pop hidden" id="power-pop" role="menu" aria-label="Mandarin server">
             <button class="power-item" id="power-restart" type="button" role="menuitem" data-parity="menu.power-restart">Restart</button>
             <button class="power-item" id="power-shutdown" type="button" role="menuitem" data-parity="menu.power-shutdown">Shut down</button>
-            <p class="power-pop-note" id="power-shutdown-note" data-parity="menu.power-note"></p>
           </div>
         </div>
       </div>
@@ -1323,6 +1322,15 @@
               <span class="settings-nav-title">API Keys</span>
             </span>
           </button>
+          <!-- Mandarin's logs, in a browser (item 389, app/settings-logs.js); the app has its own Logging. -->
+          <button data-parity="settings-setup.logs" class="settings-nav-item hidden" type="button" data-pane="logs" id="settings-logs-row">
+            <span class="settings-nav-ico" aria-hidden="true">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="14" y2="17"/></svg>
+            </span>
+            <span class="settings-nav-txt">
+              <span class="settings-nav-title">Logs</span>
+            </span>
+          </button>
         </nav>
       </div>
 
@@ -1504,8 +1512,8 @@
           <input id="acct-new2" type="password" aria-label="New password again" data-parity="settings-account.again" class="settings-token-input acct-input" placeholder="New password again" autocomplete="new-password">
           <button id="acct-pw" class="settings-update-btn" type="button" data-parity="settings-account.change">Change password</button>
           <div id="acct-pw-status" class="settings-token-status" data-parity="settings-account.status"></div>
-          <p class="settings-note" data-parity="settings-account.note">Devices already signed in stay signed in. Forgot it? On the server run
-            <code>docker exec musicd-server /app/server/bin/mandarin-server reset-password</code> and create the account again.</p>
+          <p class="settings-note" data-parity="settings-account.note">Devices already signed in stay signed in. Forgot it? <span id="acct-forgot-how">On the server run
+            <code>sudo -u mandarin env DATA_DIR=/var/lib/mandarin /opt/mandarin/server/bin/mandarin-server reset-password</code></span> and create the account again.</p>
         </div>
       </div>
 
@@ -1863,7 +1871,7 @@
 
         <div class="settings-block">
           <div class="settings-row">
-            <span class="settings-label" data-parity="settings-picks.name">Build the day's picks at <button data-parity="settings-picks.info" class="settings-info-btn" data-info="The hour the daily build runs, in this server's local time (set TZ on the container). If the server is off at that hour, the build runs the next time it starts." aria-label="Info">ⓘ</button></span>
+            <span class="settings-label" data-parity="settings-picks.name">Build the day's picks at <button data-parity="settings-picks.info" class="settings-info-btn" data-info="The hour the daily build runs, in this server's local time (its time zone). If the server is off at that hour, the build runs the next time it starts." aria-label="Info">ⓘ</button></span>
             <select id="picks-hour" data-parity="settings-picks.hour" class="settings-select" aria-label="Smart Picks build hour"></select>
           </div>
           <div class="settings-note" data-parity="settings-picks.note">Reads your library and play history on this server; only the related-artist lookups leave your network.</div>
@@ -1953,6 +1961,30 @@
           <!-- The Mandarin Bridges, a row each (item 291, app/bridge-updates.js). -->
           <div id="update-bridges" class="settings-bridges hidden"></div>
           <div id="settings-whats-new" class="settings-whats-new hidden"></div>
+        </div>
+      </div>
+      <!-- Mandarin's logs (item 389, app/settings-logs.js): kept always, downloaded as one zip, the server's newest read here. -->
+      <div class="settings-view settings-pane hidden" data-view="pane" data-pane="logs" data-parent="setup">
+        <div class="settings-pane-head">
+          <button class="settings-back" type="button" data-settings-back aria-label="Back to settings" data-parity="settings-logs.back">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          <h2 data-parity="settings-logs.heading">Logs</h2>
+        </div>
+        <div class="settings-block">
+          <div class="settings-note" data-parity="settings-logs.about" id="logs-about">Mandarin keeps a log always: the server's, every Mandarin Bridge's, this page's and the apps'. Nothing in them is sent anywhere unless you send it.</div>
+          <div class="backup-actions">
+            <a data-parity="settings-logs.download" class="settings-update-btn" id="logs-download" href="/api/diagnostics/logs.txt" download>Download all logs</a>
+          </div>
+        </div>
+        <div class="settings-block">
+          <div class="settings-row">
+            <label class="settings-select-wrap"><select data-parity="settings-logs.level" class="settings-select" id="logs-level" aria-label="Level">
+              <option value="">Every line</option><option value="WARN">Warnings and errors</option><option value="ERROR">Errors</option>
+            </select></label>
+            <input data-parity="settings-logs.filter" class="settings-token-input" id="logs-filter" type="search" placeholder="Lines that hold…" aria-label="Lines that hold" autocomplete="off">
+          </div>
+          <pre data-parity="settings-logs.lines" class="logs-lines" id="logs-lines"></pre>
         </div>
       </div>
       <!-- Backup & restore (v0.6.14). -->

@@ -26,10 +26,10 @@
       "lines": 588
     },
     "server/Mandarin.Server/Admin/Tailscale.cs": {
-      "lines": 433
+      "lines": 424
     },
     "server/Mandarin.Server/Admin/Updater.cs": {
-      "lines": 496
+      "lines": 494
     },
     "server/Mandarin.Server/Auth.cs": {
       "lines": 430
@@ -47,7 +47,7 @@
       "lines": 518
     },
     "server/Mandarin.Server/Identify/Pack.cs": {
-      "lines": 723
+      "lines": 720
     },
     "server/Mandarin.Server/Identify/Score.cs": {
       "lines": 514

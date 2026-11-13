@@ -46,9 +46,10 @@
      address in 15 minutes lock it out for 15 minutes.</p>
 
   <h2>Forgot the password?</h2>
-  <p>On the server run:</p>
+  <p>On Mandarin OS, type <code>passwordreset</code> at its own screen (a keyboard plugged in), then <code>yes</code>.
+     Installed on Linux, run on the server:</p>
   <div class="codebox"><button class="copy-btn" data-copy>Copy</button>
-<pre>docker exec musicd-server /app/server/bin/mandarin-server reset-password</pre>
+<pre>sudo -u mandarin env DATA_DIR=/var/lib/mandarin /opt/mandarin/server/bin/mandarin-server reset-password</pre>
 </div>
   <p>It removes the account and signs every device out; your library, edits and history stay. Then create
      the account again from a device at home.</p>

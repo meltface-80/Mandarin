@@ -404,8 +404,7 @@
         "brand": { "kind": "shows" },
         "power": { "kind": "action", "label": "Restart or shut down Mandarin" },
         "power-restart": { "kind": "action", "label": "Restart", "in": "power" },
-        "power-shutdown": { "kind": "action", "label": "Shut down", "in": "power", "when": "the server can shut itself down (not in Docker)" },
-        "power-note": { "kind": "shows", "in": "power", "when": "the server can't shut itself down: how to, in Docker" },
+        "power-shutdown": { "kind": "action", "label": "Shut down", "in": "power", "when": "the server can shut itself down" },
         "offline": { "kind": "action", "label": "Offline mode", "when": "in the Android app" },
         "offline-sub": { "kind": "shows", "when": "in the Android app" },
         "pitchfork": { "kind": "action", "label": "Pitchfork" },
@@ -648,18 +647,31 @@
       }
     },
     "settings-setup": {
-      "page": "Settings' Setup: Back, Setup, a row a page (Smart Picks, Record labels, Home Screen, UI Settings, Wall Display, Shelf, the app's Downloads, Away from home, API Keys)",
+      "page": "Settings' Setup: Back, Setup, a row a page (Smart Picks, Record labels, Home Screen, UI Settings, Wall Display, Shelf, the app's Downloads, Away from home, API Keys, and in a browser Logs)",
       "native": ["android/app/src/main/java/com/musicd/server/android/SettingsScreen.kt", "android/app/src/main/java/com/musicd/server/android/SettingsLogging.kt"],
       "preview": false,
       "items": {
         "back": { "kind": "action", "label": "Back to settings" },
         "heading": { "kind": "shows" },
         "item": { "kind": "action", "label": "{page}", "each": true },
-        "logging": { "kind": "action", "label": "Logging", "only": "app", "why": "the Android app's logging (bug list item 121): the app's and the server's log, for sending to the developer; a browser has no log to send" },
+        "logs": { "kind": "action", "label": "Logs", "only": "page", "why": "the browser's own page of Mandarin's logs (item 389): in the app, Setup → Logging saves the same logs" },
+        "logging": { "kind": "shows", "only": "app", "why": "the Android app's logging (bug list item 121): the app's and the server's log, for sending to the developer; a browser has no log to send" },
         "logging-note": { "kind": "shows", "only": "app", "why": "the Android app's logging (bug list item 121): the app's and the server's log, for sending to the developer; a browser has no log to send" },
         "log-about": { "kind": "shows", "only": "app", "why": "the Android app's logging (bug list item 121): the app's and the server's log, for sending to the developer; a browser has no log to send" },
         "log-save": { "kind": "action", "label": "Save log", "only": "app", "why": "the Android app's logging (bug list item 121): the app's and the server's log, for sending to the developer; a browser has no log to send" },
         "log-clear": { "kind": "action", "label": "Clear log", "only": "app", "why": "the Android app's logging (bug list item 121): the app's and the server's log, for sending to the developer; a browser has no log to send" }
+      }
+    },
+    "settings-logs": {
+      "page": "Settings' Logs, in a browser (item 389): Back, Logs; what is kept and how much, Download all logs (a zip of the server's, every Mandarin Bridge's, the page's and the apps'); the server's newest lines, narrowed by level and by what they hold",
+      "items": {
+        "back": { "kind": "action", "label": "Back to settings" },
+        "heading": { "kind": "shows" },
+        "about": { "kind": "shows" },
+        "download": { "kind": "action", "label": "Download all logs" },
+        "level": { "kind": "action", "label": "Level" },
+        "filter": { "kind": "action", "label": "Lines that hold" },
+        "lines": { "kind": "shows" }
       }
     },
     "settings-account": {

@@ -13,7 +13,7 @@ const js = require("@eslint/js");
 const globals = require("globals");
 
 const node = {
-  files: ["tools/**/*.js", "test/**/*.js"],
+  files: ["tools/**/*.js", "test/**/*.js", "os/test/**/*.js"],
   languageOptions: { ecmaVersion: 2024, sourceType: "commonjs", globals: { ...globals.node, ...globals.es2024 } }
 };
 // The page's scripts share one window: what one defines for the others (sharecard.js, srp.js,
@@ -28,6 +28,11 @@ const pages = {
 // SQ-tool's page (sq-tool/, item 288): a page of its own in the browser, one script, served at /sq-tool/.
 const sqTool = {
   files: ["sq-tool/sqtool/web/**/*.js"],
+  languageOptions: { ecmaVersion: 2024, sourceType: "script", globals: { ...globals.browser, ...globals.es2024 } }
+};
+// Mandarin OS's system page (os/…/system-page/, item 389): a page of its own in the browser, one script, served at /.
+const osPage = {
+  files: ["os/mkosi.extra/usr/lib/mandarin-os/system-page/*.js"],
   languageOptions: { ecmaVersion: 2024, sourceType: "script", globals: { ...globals.browser, ...globals.es2024 } }
 };
 // Page scripts the Node tests load too: they look for module/require/Buffer before using them.
@@ -66,6 +71,7 @@ module.exports = [
   node,
   pages,
   sqTool,
+  osPage,
   shared,
   rules,
   parts

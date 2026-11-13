@@ -1,0 +1,158 @@
+name: Mandarin OS
+
+# Mandarin OS's image (os/, item 389): Debian 13 with Mandarin installed natively, its share, its upkeep and its firewall,
+# built with mkosi, then installed and started in a virtual machine (os/test/boot-test.sh) before anything is published.
+# A push to dev puts it on the rolling "test-os" pre-release, never "latest"; a numbered release (mandarin-os-vX.Y.Z)
+# is made only by hand (workflow_dispatch with a version). Nothing here makes a tag otherwise.
+on:
+  push:
+    branches: ["**", "!dependabot/**"]
+    paths: &paths
+      - "os/**"
+      - "tools/linux/install.sh"
+      - ".github/workflows/os-image.yml"
+  pull_request:
+    paths: *paths
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release Mandarin OS as this version (e.g. 0.1.0; os/VERSION must say the same). Empty: build and test only."
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+concurrency:
+  group: os-image-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/dev' }}
+
+jobs:
+  # Mandarin's whole suite with the ffmpeg the image carries (os/ffmpeg): nothing Mandarin does may need what it leaves out.
+  suite:
+    name: Mandarin's suite with the OS's ffmpeg
+    uses: ./.github/workflows/ci.yml
+    with:
+      ffmpeg: mandarin-os
+
+  # Every change to Mandarin OS raises its version (CLAUDE.md, rule 7): os/VERSION above the branch it goes into, with its
+  # own heading in os/CHANGELOG.md, so the image written to a stick says which it is.
+  version:
+    name: Mandarin OS's version raised
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
+        with:
+          fetch-depth: 0
+      - name: os/VERSION above ${{ github.base_ref }}'s, and in os/CHANGELOG.md
+        env:
+          BASE: ${{ github.base_ref }}
+        run: |
+          now="$(cat os/VERSION)"; was="$(git show "origin/$BASE:os/VERSION" 2>/dev/null || echo 0.0.0)"
+          echo "Mandarin OS $was on $BASE, $now here"
+          [ "$now" != "$was" ] && [ "$(printf '%s\n%s\n' "$was" "$now" | sort -V | tail -n 1)" = "$now" ] \
+            || { echo "::error::a change to Mandarin OS raises its version: os/VERSION is $now, as on $BASE ($was). Make it the next patch (0.1.0, then 0.1.1)"; exit 1; }
+          grep -qx "## v$now" os/CHANGELOG.md || { echo "::error::os/CHANGELOG.md has no '## v$now' heading for this version's changes"; exit 1; }
+
+  image:
+    needs: suite
+    name: Image, installed and started in a virtual machine
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
+        with:
+          fetch-depth: 0   # dev's test version counts the commits since the last release (tools/test-version.js)
+      # Mandarin is built from this commit into a test image (os/mandarin-from-source.sh); a numbered release takes Mandarin's.
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73  # v6
+        with:
+          dotnet-version: "10.0.x"
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1  # v7
+        with:
+          node-version: "22"
+      - name: Tools
+        run: |
+          set -e
+          sudo apt-get update -q
+          sudo apt-get install -y -q --no-install-recommends bubblewrap systemd-boot systemd-boot-efi systemd-ukify mtools dosfstools \
+            cpio zstd xz-utils debian-archive-keyring qemu-system-x86 ovmf smbclient fdisk jq e2fsprogs nftables iproute2 \
+            exfatprogs ntfs-3g
+          sudo pip install --break-system-packages "git+https://github.com/systemd/mkosi@v25.3"
+          # The virtual machine runs at the runner's own speed where it may (KVM).
+          if [ -e /dev/kvm ]; then echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666"' | sudo tee /etc/udev/rules.d/99-kvm.rules; sudo udevadm control --reload-rules; sudo udevadm trigger --name-match=kvm; fi
+      # The firewall between a box and a speaker (network namespaces): Sonos's answers reach it, SSH's port doesn't.
+      - name: Firewall
+        run: sudo ./os/test/firewall-test.sh
+      # The boot test's in-app update (item 398): Mandarin as this commit, but 9.9.9, which the installed system is
+      # offered by a stand-in GitHub. Built before the image, as the runner's user: root's build after it leaves it alone.
+      - name: The next Mandarin, for the in-app update
+        run: ./os/test/next-mandarin.sh "$RUNNER_TEMP/next-mandarin"
+      - name: Build
+        run: |
+          set -e
+          # A numbered Mandarin OS release carries Mandarin's latest release; every other build, Mandarin as this commit is.
+          if [ "${{ github.event_name }}" = workflow_dispatch ] && [ -n "${{ inputs.version }}" ]; then export MANDARIN_FROM=release; fi
+          # Not the runner's XDG_RUNTIME_DIR (/run/user/1001): .NET, run as root, refuses a runtime folder root doesn't own.
+          sudo -E env -u XDG_RUNTIME_DIR "PATH=$PATH" ./os/build.sh
+          ls -la os/*.raw
+      - name: Installed and started in a virtual machine
+        # The runner's PATH: the in-app update's scripts run on setup-node's node, which sudo's own PATH leaves out.
+        run: sudo env "PATH=$PATH" ./os/test/boot-test.sh os/mandarin-os_$(cat os/VERSION).raw "$RUNNER_TEMP/next-mandarin/mandarin-server"
+      - name: Pack
+        run: |
+          set -e
+          v="$(cat os/VERSION)"
+          sudo chown "$(id -u):$(id -g)" os/*.raw   # built as root: its group too, or xz can't keep it
+          mv "os/mandarin-os_$v.raw" "mandarin-os-$v-x64.img"
+          # As it is (.img) for writers that don't decompress (a phone's: EtchDroid), and compressed (.img.xz) for those
+          # that do.
+          xz -T0 -6 -k "mandarin-os-$v-x64.img"
+          # For an installed Mandarin OS to update itself in place (os-update, item 401): its system partition as it is in
+          # the image, compressed (.root.raw.xz), and its unified kernel image (.efi), the one on the image's EFI partition.
+          read -r rs rn < <(sfdisk -J "mandarin-os-$v-x64.img" | jq -r '.partitiontable.partitions[] | select(.type == "4F68BCE3-E8CD-4DB1-96E7-FBCAF984B709") | "\(.start) \(.size)"')
+          dd if="mandarin-os-$v-x64.img" bs=4M iflag=skip_bytes,count_bytes skip=$((rs * 512)) count=$((rn * 512)) status=none | xz -T0 -6 > "mandarin-os-$v-x64.root.raw.xz"
+          es="$(sfdisk -J "mandarin-os-$v-x64.img" | jq -r '.partitiontable.partitions[] | select(.type == "C12A7328-F81F-11D2-BA4B-00A0C93EC93B") | .start')"
+          mkdir -p uki && mcopy -n -i "mandarin-os-$v-x64.img@@$((es * 512))" "::EFI/Linux/*.efi" uki/
+          [ "$(ls uki | wc -l)" = 1 ] || { echo "::error::the image's EFI partition doesn't hold one kernel image: $(ls uki)"; exit 1; }
+          mv uki/*.efi "mandarin-os-$v-x64.efi"
+          for f in "mandarin-os-$v-x64.img" "mandarin-os-$v-x64.img.xz" "mandarin-os-$v-x64.root.raw.xz" "mandarin-os-$v-x64.efi"; do
+            # A release's file can't be over 2 GiB: said here, not when publishing.
+            [ "$(stat -c %s "$f")" -lt 2147483648 ] || { echo "::error::$f is over 2 GiB, more than a release can hold"; exit 1; }
+            sha256sum "$f" > "$f.sha256"
+          done
+          ls -la mandarin-os-*
+      - name: Signed with the release key
+        env:
+          RELEASE_SIGNING_KEY: ${{ secrets.RELEASE_SIGNING_KEY }}
+        run: .github/sign.sh mandarin-os-*.img mandarin-os-*.img.xz mandarin-os-*.root.raw.xz mandarin-os-*.efi
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7
+        with:
+          name: mandarin-os-x64
+          path: mandarin-os-*
+          compression-level: 0
+      - name: Publish to the "test-os" pre-release
+        if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -e
+          if ! gh release view test-os >/dev/null 2>&1; then
+            gh release create test-os --prerelease --latest=false --title "Mandarin OS — test build" \
+              --notes "Mandarin OS as dev is now. Not a numbered release: write it to a USB stick, start the computer from it." --target "${GITHUB_SHA}"
+          fi
+          gh release upload test-os mandarin-os-* --clobber
+          # Only this version's files: an earlier version's left beside them could be the one written to the stick.
+          v="$(cat os/VERSION)"
+          gh release view test-os --json assets --jq '.assets[].name' | grep '^mandarin-os-' | grep -v "^mandarin-os-$v-" \
+            | while read -r old; do gh release delete-asset test-os "$old" --yes; done
+      - name: Release mandarin-os-v${{ inputs.version }}
+        if: github.event_name == 'workflow_dispatch' && inputs.version != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          set -e
+          [ "$VERSION" = "$(cat os/VERSION)" ] || { echo "::error::os/VERSION says $(cat os/VERSION), not $VERSION"; exit 1; }
+          gh release create "mandarin-os-v$VERSION" --latest=false --title "Mandarin OS $VERSION" --target "${GITHUB_SHA}" \
+            --notes-file <(awk -v v="## v$VERSION" '$0 == v { on = 1; next } on && /^## / { exit } on' os/CHANGELOG.md) mandarin-os-*

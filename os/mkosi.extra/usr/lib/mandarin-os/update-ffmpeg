@@ -1,0 +1,26 @@
+#!/bin/bash
+# /usr/lib/mandarin-os/update-ffmpeg — Mandarin OS's ffmpeg kept as Debian keeps theirs (item 389): from the weekly
+# upkeep, when nothing plays. Debian's own ffmpeg isn't in the image (os/ffmpeg says why); its security fixes come as
+# a build of Debian's newest source, tested against Mandarin's whole suite and signed with the release key
+# (.github/workflows/os-ffmpeg.yml). Taken only signed, tried before it is put in, and Mandarin started again on it.
+set -uo pipefail
+. /usr/lib/mandarin-os/log.sh
+R=https://github.com/meltface-80/Mandarin/releases/download/os-ffmpeg
+have="$(cat /usr/local/share/ffmpeg/debian-version 2>/dev/null || true)"
+want="$(curl -fsSL --retry 3 "$R/debian-version" 2>/dev/null || true)"
+[ -n "$want" ] || { oslog WARN "[ffmpeg] the published version couldn't be read"; exit 0; }
+[ "$want" = "$have" ] && exit 0
+dpkg --compare-versions "$want" gt "${have:-0}" || exit 0
+T="$(mktemp -d)"; trap 'rm -rf "$T"' EXIT
+curl -fsSL --retry 3 -o "$T/f.tar.xz" "$R/mandarin-ffmpeg-x64.tar.xz" && curl -fsSL --retry 3 -o "$T/f.tar.xz.sig" "$R/mandarin-ffmpeg-x64.tar.xz.sig" \
+  || { oslog WARN "[ffmpeg] $want couldn't be downloaded"; exit 0; }
+KEY="$(sed -n 's/^KEY="\${MANDARIN_RELEASE_KEY:-\(.*\)}"$/\1/p' /usr/lib/mandarin-os/linux-install.sh)"
+{ echo "-----BEGIN PUBLIC KEY-----"; printf '%s\n' "$KEY" | fold -w 64; echo "-----END PUBLIC KEY-----"; } > "$T/key.pem"
+openssl dgst -sha256 -verify "$T/key.pem" -signature "$T/f.tar.xz.sig" "$T/f.tar.xz" >/dev/null 2>&1 \
+  || { oslog ERROR "[ffmpeg] $want isn't signed with Mandarin's release key: not taken"; exit 1; }
+mkdir -p "$T/new" && tar -xJf "$T/f.tar.xz" -C "$T/new"
+LD_LIBRARY_PATH="$T/new/lib" "$T/new/bin/ffmpeg" -hide_banner -f lavfi -i sine=duration=1 -af aresample=resampler=soxr -f flac -y "$T/t.flac" >/dev/null 2>&1 \
+  || { oslog ERROR "[ffmpeg] $want doesn't run here: not taken"; exit 1; }
+cp -a "$T/new/." /usr/local/ && ldconfig
+systemctl try-restart mandarin.service
+oslog INFO "[ffmpeg] ${have:-none} → $want (Debian's security fixes), Mandarin started again on it"

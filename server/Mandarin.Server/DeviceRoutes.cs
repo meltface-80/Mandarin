@@ -65,7 +65,7 @@ internal static partial class Library
         if (hub != null && Auth.IsAway(ctx))
         {
             using var c = Db.Open();
-            if (hub.Devices.OwnPhone(c, Auth.DeviceOf(ctx, c)) != id) return await SendJs(ctx, Jso(("error", "Away from home, only this phone can be changed"), ("away", true)), 403);
+            if (hub.Devices.OwnPhone(c, Auth.DeviceOf(ctx, c)) != id) return await DeviceRefused(ctx, id, 403, "Away from home, only this phone can be changed", away: true);
         }
         try { return await DevicePatch(ctx, id, b, hub); }
         catch (Exception e) when (e is not DeviceRefusal && !ctx.Response.HasStarted)
@@ -261,7 +261,7 @@ internal static partial class Library
         {
             // A write made before the refusal stays, as there: what it did is done all the same.
             if (changed.Count > 0) await DevicesChanged(id, changed);
-            return await JsError(ctx, r.Status, r.Message);
+            return await DeviceRefused(ctx, id, r.Status, r.Message);
         }
         if (hub != null)
         {

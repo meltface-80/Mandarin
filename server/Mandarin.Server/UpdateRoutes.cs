@@ -2,9 +2,10 @@
 // old/csharp-migration.md), from lib/server/api-playlists.js, in the
 // same shapes:
 //
-//   GET  /api/update/status   what the updater knows (Admin/Updater.cs getStatus),
-//                             with is_docker; viaLauncher, isDowngrade, csharp and
-//                             mac_node_only went with the Node server
+//   GET  /api/update/status   what the updater knows (Admin/Updater.cs getStatus);
+//                             viaLauncher, isDowngrade, csharp and
+//                             mac_node_only went with the Node server, is_docker
+//                             with the image (item 394)
 //   POST /api/update/check    GitHub asked now, then the same
 //   POST /api/update/apply    the update made: { ok, status }, or 409 { error, status }
 //   GET  /api/update/bridges, POST /api/update/bridges/apply: the Mandarin Bridges' (Admin/BridgeUpdates.cs, item 291)

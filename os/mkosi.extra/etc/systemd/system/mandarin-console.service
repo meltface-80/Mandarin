@@ -1,0 +1,20 @@
+[Unit]
+Description=Mandarin OS: the screen (where to find Mandarin; networkreset), or the installer from the USB stick
+# As soon as the system has started, not after the network: from the USB stick the installer needs none, and installed,
+# the screen says where Mandarin is once the network gives it an address (it looks again every 30 seconds).
+After=systemd-user-sessions.service mandarin-os-apply.service
+Conflicts=getty@tty1.service
+
+[Service]
+ExecStart=/usr/lib/mandarin-os/console
+StandardInput=tty
+StandardOutput=tty
+TTYPath=/dev/tty1
+TTYReset=yes
+TTYVHangup=yes
+Restart=always
+RestartSec=1
+Environment=TERM=linux
+
+[Install]
+WantedBy=multi-user.target

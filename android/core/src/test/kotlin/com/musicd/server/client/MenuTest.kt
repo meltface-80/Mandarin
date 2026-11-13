@@ -80,8 +80,5 @@ class MenuTest {
         assertEquals("Offline Mode - Off", Menu.offlineSub(false))
         assertTrue(Menu.canShutDown(null))
         assertFalse(Menu.canShutDown(JSONObject("""{"shutdown":false}""")))
-        assertEquals("In Docker: docker stop musicd-server, then docker start musicd-server.", Menu.powerNote(JSONObject("""{"shutdown":false}""")))
-        assertEquals("", Menu.powerNote(JSONObject("""{"shutdown":true}""")))
-        assertEquals("", Menu.powerNote(null))
     }
 }

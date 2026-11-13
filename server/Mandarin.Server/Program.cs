@@ -9,17 +9,12 @@
 //   PORT                 the port Mandarin is reached on (3500)
 //   MANDARIN_APP_DIR     where the page is (public/; found by itself)
 using System.Net;
-using System.Runtime.InteropServices;
 using Mandarin.Server;
-
-// On a Mac (v0.8.29) the C library is libSystem: what this program imports as
-// "libc" (the scan's file system, starting itself again, the pack's checks).
-if (OperatingSystem.IsMacOS())
-    NativeLibrary.SetDllImportResolver(typeof(Server).Assembly, (name, _, _) =>
-        name == "libc" ? NativeLibrary.Load("/usr/lib/libSystem.B.dylib") : IntPtr.Zero);
 
 var version = BuildVersion.Of(typeof(Server).Assembly);   // a test build's "1.1.4-t7" whole (item 141)
 Server.Version = version;
+// An exception nothing caught, and a task's no one waited on, kept in the log (LogProvider.cs, item 389).
+LogProvider.CatchUnhandled();
 
 // `mandarin-server --version`: this program's version, and nothing else — how
 // an update checks a newer one before putting it in place (Admin/Updater.cs).
@@ -71,7 +66,7 @@ if (args.Length >= 2 && args[0] == "waveform")
     return peaks == null ? 1 : 0;
 }
 int port = int.TryParse(Environment.GetEnvironmentVariable("PORT"), out var p) && p > 0 ? p : 3500;
-// `mandarin-server --health`: the image's health check (v0.8.50, HealthRoutes.cs):
+// `mandarin-server --health`: a health check (v0.8.50, HealthRoutes.cs):
 // GET /api/health on this port, 0 when it answers 200.
 if (args.Length == 1 && args[0] == "--health") return await Library.HealthCommand(port);
 // The key this server's private addresses (/internal/…, the tests') are asked with: given, or made.
@@ -98,6 +93,11 @@ if (args.Length > 0)
 }
 Db.File = Path.Combine(dataDir, "musicd.db");
 Server.DataDir = dataDir;
+// The log kept from here in <data>/Logs, what was said before written first; a line on how the server is every five minutes (item 389).
+Diagnostics.Start(dataDir);
+LogHeader.StartSnapshots();
+// Every Mandarin Bridge's log kept beside the server's, in Logs/Bridges, every five minutes (Admin/BridgeLogsKept.cs, item 389).
+Mandarin.Server.Admin.BridgeLogsKept.Start();
 string appDir = Environment.GetEnvironmentVariable("MANDARIN_APP_DIR") ?? Server.FindAppDir();
 // A database put back from a backup goes in now, before it opens (Admin/Restore.cs);
 // then the database made, or brought up to date (Schema.cs); a new one is a
@@ -140,6 +140,8 @@ await Jobs.StartAlone(ownConfig, dataDir, port, version);
 Environment.SetEnvironmentVariable("DOTNET_hostBuilder__reloadConfigOnChange", "false");
 var builder = WebApplication.CreateSlimBuilder(new WebApplicationOptions { Args = args, ContentRootPath = AppContext.BaseDirectory });
 builder.Logging.ClearProviders();
+// ASP.NET's and Kestrel's own warnings and errors (a request that threw, with its stack) into the log (item 389).
+builder.Logging.AddProvider(new LogProvider());
 builder.WebHost.ConfigureKestrel(k =>
 {
     k.AddServerHeader = false;
@@ -241,7 +243,7 @@ Server.Log($"[server] listening on port {port} (and on 127.0.0.1:{Caller.EngineP
 await app.WaitForShutdownAsync();
 // Restart from Settings, or an update put in place (Admin/Updater.cs): this
 // program started again in this process; if that can't be done, stopped with
-// the code, and Docker's restart policy starts the container again. Shut
+// the code, and its systemd service starts it again. Shut
 // down: 0, for nothing to start it again.
 // The database's pooled connections closed first: the new run opens it, or a backup put back in its place, anew.
 if (Server.Leaving == Server.Leave.Restart) { Db.LetGo(); Server.StartAgain(args); return Server.StartAgainCode; }

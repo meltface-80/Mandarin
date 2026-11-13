@@ -104,7 +104,9 @@ private fun ServiceBlock(service: String, client: () -> ServerClient?, info: (St
     // A change to the account, made on the lane: its answer shown, or what went wrong said and the account read again.
     fun change(path: String, body: JSONObject = JSONObject(), timeout: Int = 20_000, done: (JSONObject) -> Unit = ::show) {
         val c = client() ?: return
-        val made = ServerWrites.write { c.post("/api/settings/$service$path", body, timeout).also { j -> j.optString("error").takeIf { it.isNotEmpty() }?.let { throw IllegalStateException(it) } } }
+        val call = { c.post("/api/settings/$service$path", body, timeout).also { j -> j.optString("error").takeIf { it.isNotEmpty() }?.let { throw IllegalStateException(it) } } }
+        // Update library now runs for minutes: beside the lane, so a change asked meanwhile (a device's switch) isn't held (item 390).
+        val made = if (timeout > ServerWrites.LANE_MOST) ServerWrites.aside(call) else ServerWrites.write(call)
         scope.launch {
             ServerWrites.await(made).onSuccess(done).onFailure { busy = false; updating = false; said = null; setupToast(context, com.musicd.server.client.Failure.said(it, "Couldn't reach the server")); load() }
         }

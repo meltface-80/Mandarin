@@ -72,6 +72,6 @@ async function bootstrap() {
     setBanner("Waiting for Mandarin to start…");
     await new Promise(r => setTimeout(r, 2000));
   }
-  setBanner("Mandarin isn't answering. Check the container is running.", true);
+  setBanner("Mandarin isn't answering. Check it is running.", true);
 }
 bootstrap();

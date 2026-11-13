@@ -3,7 +3,8 @@
 // and message became […], the cause of a failure with them (on 2 November 30,767 Qobuz watch failures, not one of
 // which said why). The owner's rule since: hide what is theirs alone, keep what helps find what went wrong.
 //
-// Hidden: keys, tokens and passwords (token=[…], Bearer […], a run of 32 or more letters and figures); email
+// Hidden: keys, tokens and passwords (token=[…], Bearer […], a run of 32 or more letters and figures, the Tailscale
+// engine's sign-in link, login.tailscale.com/a/[…], item 389); email
 // addresses ([email]); the account names and logins a line names (put in as Personal); internet (WAN) addresses
 // ([wan]); Tailscale's addresses (100.64.0.0/10, fd7a:115c:a1e0::/48) and names (*.ts.net) ([tailscale]); the
 // user's own folder in a path (/home/[user]/…).
@@ -26,6 +27,7 @@ internal static partial class LogScrub
     public static string Line(string s)
     {
         var t = UrlLogin().Replace(s, "$1" + Diagnostics.Withheld + "@");
+        t = TailscaleLogin().Replace(t, "$1" + Diagnostics.Withheld);
         t = Bearer().Replace(t, "$1 " + Diagnostics.Withheld);
         t = Secret().Replace(t, "$1$2" + Diagnostics.Withheld);
         t = Email().Replace(t, "[email]");
@@ -59,6 +61,8 @@ internal static partial class LogScrub
 
     [GeneratedRegex(@"(://)[^/\s:@]+:[^/\s@]+@")]
     private static partial Regex UrlLogin();
+    [GeneratedRegex(@"(login\.tailscale\.com/a/)[^\s""']+")]
+    private static partial Regex TailscaleLogin();
     [GeneratedRegex(@"\b(Bearer|Basic)\s+[^\s&,;]+")]
     private static partial Regex Bearer();
     [GeneratedRegex(@"(?i)\b([\w-]*(?:token|password|passwd|pwd|secret|apikey|api[_-]key|sig|signature|authorization|cookie))(\s*[=:]\s*)(?!\[…\])[^\s&,;]+")]

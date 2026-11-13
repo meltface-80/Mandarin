@@ -350,6 +350,12 @@ test("Audio Devices' writes through the C# server: each held to the Node server'
       assert.equal(r.j.enabled, false);
       r = await same(PH, { enabled: false }, "a phone");
       assert.deepEqual([r.status, r.j], [400, { error: "A phone is always its own player" }]);
+      // Refused, and the log says which device and why (item 390): a Bridge switched on from the app went back to off with
+      // no word anywhere. Away from home (over Tailscale), only the app's own phone can be changed: refused, logged.
+      await until(async () => ctx.logs.some(l => l.includes(`[devices] ${PH}: a change refused (400): A phone is always its own player`)), 5000);
+      r = await call(B, "PATCH", "/api/audio-devices/" + W, { enabled: true }, Object.assign({ "X-Forwarded-For": "100.101.102.103" }, H));
+      assert.deepEqual([r.status, r.j], [403, { error: "Away from home, only this phone can be changed", away: true }]);
+      await until(async () => ctx.logs.some(l => l.includes(`[devices] ${W}: a change refused (403): Away from home, only this phone can be changed`)), 5000);
       r = await same(K, { enabled: false }, "a room switched off");
       assert.equal(r.j.enabled, false);
       assert.ok(!(await call(B, "GET", "/api/zones")).j.zones.some(z => z.zone_id === K), "leaves the picker");

@@ -147,6 +147,8 @@ internal static partial class Auth
             return Json(ctx, 200, new JsonObject
             {
                 ["setup_required"] = acct == null,
+                // How this server is installed: the page says how to reset a forgotten password for it (item 389).
+                ["install"] = LogHeader.InstallKey(),
                 ["can_setup"] = acct == null && IsLocal(ClientIp(ctx)),
                 ["away"] = IsAway(ctx),
                 ["signed_in"] = dev != null,

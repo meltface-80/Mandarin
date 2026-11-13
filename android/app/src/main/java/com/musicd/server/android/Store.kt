@@ -94,11 +94,6 @@ object Store {
     fun menuKept(context: Context): String? = prefs(context).getString("menu_kept", null)
     fun setMenuKept(context: Context, kept: String) { prefs(context).edit().putString("menu_kept", kept).apply() }
 
-    /** Logging (Settings → Setup, item 121): off unless switched on. */
-    /** Settings → Setup → Logging: on unless switched off (item 334). */
-    fun logging(context: Context): Boolean = prefs(context).getBoolean("logging", true)
-    fun setLogging(context: Context, on: Boolean) { prefs(context).edit().putBoolean("logging", on).apply() }
-
     /** Native Home (bug list item 57, a preview): the same switch's neighbour in UI Settings. */
     /** The UI Settings as the page last handed them with Home (JSON), for the native Home drawn before the page has said (item 64). */
     fun homePrefs(context: Context): String? = prefs(context).getString("home_prefs", null)

@@ -1,7 +1,7 @@
 // Watcher.cs — the music folders followed as they change (lib/library/watch.js; item 356): a folder's changes read by the
 // ordinary scan, so a flood of them costs one scan.
 //
-//   - Heard: each folder with the file system's own notifications (inotify; FSEvents on a Mac), recursively.
+//   - Heard: each folder with the file system's own notifications (inotify), recursively.
 //   - Looked at: a folder whose changes the file system doesn't report here — a network share (SMB, NFS: a change made
 //     from another machine is never told), a FUSE folder (mergerfs, rclone: a change made under it isn't either), or one
 //     whose notifications couldn't be had (more folders than the system's limit) — has its folders' times looked at every
@@ -237,7 +237,7 @@ internal static partial class Mounts
         { "cifs", "smb3", "smbfs", "nfs", "nfs4", "9p", "ceph", "glusterfs", "davfs", "afs", "coda", "ncpfs", "virtiofs" };
 
     /* Each mount point and what is mounted there last (mounted over: the last is what's seen), the deepest first; none
-       where the machine doesn't say (a Mac). */
+       where the machine doesn't say. */
     public static List<(string Point, string Type)> Read()
     {
         string text;

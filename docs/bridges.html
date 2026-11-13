@@ -43,7 +43,7 @@
          power on.</p>
     </div>
   </div>
-  <p style="margin-top:16px"><a class="pill solid" href="downloads.html#bridge">⬇ Get Mandarin Bridge v0.3.8</a></p>
+  <p style="margin-top:16px"><a class="pill solid" href="downloads.html#bridge">⬇ Get Mandarin Bridge v0.3.10</a></p>
 
   <p style="margin-top:16px"><b>Updated: over SlimProto, Mandarin now sends Mandarin Bridge a continuous stream of PCM (DSD still goes as DSD).</b></p>
   <p>A Bridge that was a UPnP renderer before v0.3.0 keeps the name and settings Mandarin had for it; one whose app is
@@ -65,13 +65,15 @@
   <h2>Set up on Linux</h2>
   <p>As root, on the computer the DAC is plugged into:</p>
   <div class="codebox"><button class="copy-btn" data-copy>Copy</button>
-<pre>curl -fsSL https://github.com/meltface-80/Mandarin/releases/download/mandarin-bridge-v0.3.8/install.sh | sudo sh</pre>
+<pre>curl -fsSL https://github.com/meltface-80/Mandarin/releases/download/mandarin-bridge-v0.3.10/install.sh | sudo sh</pre>
 </div>
   <p>It installs the Bridge and the audio engine, ffmpeg where it isn't there, and a service that starts it at boot.
      Then switch it on in Mandarin's <b>Settings → Audio Devices</b>. Its page,
      <code>http://&lt;the computer&gt;:49494/</code>, shows the DAC it plays to (and a choice where more than one is
      plugged in), what plays and how the DAC is fed, its name on the network, and how DSD goes. On the computer
-     Mandarin runs on, it is how a USB DAC there is played: the server opens no sound device of its own on Linux.</p>
+     Mandarin runs on, it is how a USB DAC there is played: the server opens no sound device of its own on Linux. On
+     <a href="mandarin-os.html">Mandarin OS</a>, choose Mandarin Bridge as it installs, or <b>Install</b> it from the
+     system page's Settings tab.</p>
   <p id="native-dsd"><b>Native DSD, and the kernel.</b> On Linux, native DSD is the kernel's to offer: its USB audio
      driver lists a DAC's native DSD only where its own list knows the DAC's maker, and any other DAC is given DSD as
      DoP, even where it takes DSD natively (as Mandarin Bridge for Android plays it). The Bridge reads the DAC's own USB
@@ -114,8 +116,10 @@
   </div>
 
   <h2>Its log, in Mandarin's</h2>
-  <p>The Android app's <b>Save log</b> (Settings → Setup → Logging) has every Bridge's log after the server's, each under
-     its name, version and build, through the same privacy filter. See <a href="logs.html">Logs</a>.</p>
+  <p>Every Bridge keeps its own log, always, and the server gathers each one's new lines every five minutes into its
+     own Logs, through the same privacy filter. <b>Download all logs</b> (Settings → Setup → Logs, in a browser) has them
+     with every other log, in time order, and the Android app's <b>Save log</b> (Settings → Setup → Logging) has every
+     Bridge's log after the server's, each under its name. See <a href="logs.html">Logs</a>.</p>
 
   <h2>Proving it bit-perfect</h2>
   <p>On an Android Bridge, <a href="sq-tool.html">SQ-tool</a> records exactly what its USB driver feeds the DAC and

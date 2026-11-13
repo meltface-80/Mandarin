@@ -1,0 +1,34 @@
+#!/usr/bin/python3
+"""uki-cmdline IMAGE.efi — the kernel command line built into a unified kernel image, its .cmdline section (item 401):
+what the image was made to start with (os/mkosi.conf's KernelCommandLine), which Mandarin OS's entry for it on the EFI
+partition passes on, with root= its own system partition. Exit 1 when the file isn't a PE image with one."""
+import struct
+import sys
+
+
+def cmdline(path):
+    with open(path, "rb") as f:
+        head = f.read(4096)
+        if head[:2] != b"MZ":
+            return None
+        pe = struct.unpack_from("<I", head, 0x3C)[0]
+        f.seek(pe)
+        coff = f.read(24)
+        if coff[:4] != b"PE\0\0":
+            return None
+        sections, optional = struct.unpack_from("<H", coff, 6)[0], struct.unpack_from("<H", coff, 20)[0]
+        f.seek(pe + 24 + optional)
+        table = f.read(40 * sections)
+        for i in range(sections):
+            name, vsize, _, rawsize, rawptr = struct.unpack_from("<8sIIII", table, 40 * i)
+            if name.rstrip(b"\0") == b".cmdline":
+                f.seek(rawptr)
+                return f.read(min(vsize, rawsize) if vsize else rawsize).split(b"\0")[0].decode("utf-8", "replace").strip()
+    return None
+
+
+if __name__ == "__main__":
+    found = cmdline(sys.argv[1]) if len(sys.argv) == 2 else None
+    if found is None:
+        sys.exit(1)
+    print(found)

@@ -40,8 +40,8 @@
      send the original files instead. Albums you've downloaded play from the phone.</p>
   <p>At home the app keeps its own Tailscale running only while the phone is playing, so walking out of the house doesn't
      stop the music; with nothing playing it is stopped after two minutes.</p>
-  <div class="note"><b>For a server with no one at it,</b> pass an auth key instead: <code>-e TS_AUTHKEY=tskey-auth-…</code>
-     (see <a href="configuration.html">Settings for the server</a>). Don't advertise your home subnet from the server's
+  <div class="note"><b>For a server with no one at it,</b> give it an auth key instead, as the server's
+     <code>TS_AUTHKEY</code> (see <a href="configuration.html">Settings for the server</a>). Don't advertise your home subnet from the server's
      Tailscale: requests through a subnet router arrive from a home address, and the server can't tell they're away.</div>
   <nav class="pager"><a class="back" href="index.html">← Back to contents</a><a class="pill" href="how-it-works.html">Next: How it works →</a></nav>
 </main>

@@ -26,7 +26,7 @@
     <div class="info-card">
       <span class="sym">No rooms</span>
       <h3>"No Sonos rooms found yet"</h3>
-      <p>Check the container is on host networking and on the same subnet as the speakers, then look at
+      <p>Check the server is on the same network (subnet) as the speakers, then look at
          <code>sonos.error</code> in <code>/api/status</code>. Setting <code>SONOS_HOSTS</code> to one speaker's IP skips
          discovery.</p>
     </div>
@@ -40,13 +40,14 @@
       <span class="sym">No albums</span>
       <h3>The library is empty</h3>
       <p><code>/api/status</code> shows <code>music_dir</code> and <code>index_count</code>. Check the
-         <code>-v …:/music:ro</code> mount and that the folder is readable. On a Mac, see Full Disk Access on
-         <a href="install.html#mac">Install</a>.</p>
+         music folder is there and that the folder is readable. On Mandarin OS, copy music into the shared folder's
+         <b>Storage</b> (<code>smb://mandarin/data</code>), or plug in a USB drive and see it on the system page's
+         Storage tab.</p>
     </div>
     <div class="info-card">
       <span class="sym">Hi-res</span>
       <h3>96 kHz files won't play</h3>
-      <p><code>/api/health</code> must say <code>"ffmpeg": true</code>. The Docker image includes it; a hand-run server needs
+      <p><code>/api/health</code> must say <code>"ffmpeg": true</code>. Mandarin OS and the Linux installer bring it; a hand-run server needs
          ffmpeg on the PATH.</p>
     </div>
     <div class="info-card">
@@ -60,12 +61,13 @@
       <span class="sym">Android</span>
       <h3>&ldquo;Mandarin stopped in the background&rdquo;</h3>
       <p>The app says so when Android ended it while you weren't using it, with Android's own words. If it comes back, save the log
-         (<b>Settings &rarr; Setup &rarr; Logging &rarr; Save log</b>) and send it (<a href="logs.html">Logs</a>).</p>
+         (<b>Settings &rarr; Setup &rarr; Logging &rarr; Save log</b>, or <b>Download all logs</b> in a browser) and send it
+         (<a href="logs.html">Logs</a>).</p>
     </div>
     <div class="info-card">
       <span class="sym">Forgot it</span>
       <h3>The password</h3>
-      <p><code>docker exec musicd-server /app/server/bin/mandarin-server reset-password</code>, then create the account
+      <p>On Mandarin OS, type <code>passwordreset</code> at its screen; on Linux, <code>sudo -u mandarin env DATA_DIR=/var/lib/mandarin /opt/mandarin/server/bin/mandarin-server reset-password</code>. Then create the account
          again from a device at home.</p>
     </div>
     <div class="info-card">
@@ -81,6 +83,13 @@
       <h3>A click as the rate changes</h3>
       <p>A Mandarin Bridge gives its DAC half a second of silence at a change of rate between tracks. A Squeezelite player
          pauses for as long as its <code>-r</code> option says: start it with <code>-r 44100-768000:500</code>.</p>
+    </div>
+    <div class="info-card">
+      <span class="sym">Mandarin OS</span>
+      <h3>The box can't be found</h3>
+      <p>Its own screen (a screen plugged in) shows its address. A static address that lost the box: type
+         <code>networkreset</code> there, then <code>yes</code>, and it goes back to DHCP and starts again. Everything
+         about it is on the system page, <code>http://mandarin/</code>; see <a href="mandarin-os.html">Mandarin OS</a>.</p>
     </div>
     <div class="info-card">
       <span class="sym">Mandarin Bridge</span>

@@ -391,8 +391,8 @@ class DacService : Service() {
                 return if (why == null) HttpServer.Response.text(202, Updater.json().toString(), "application/json")
                 else HttpServer.Response.text(409, JSONObject().put("error", why).toString(), "application/json")
             }
-            // Its log, for Mandarin's (item 291, BridgeLog.kt).
-            path == "/log" && r.method == "GET" -> return HttpServer.Response.text(200, BridgeLog.text(), "text/plain; charset=utf-8")
+            // Its log, for Mandarin's (items 291, 389: BridgeLog.kt).
+            path == "/log" && r.method == "GET" -> return HttpServer.Response.text(200, BridgeLog.text(this), "text/plain; charset=utf-8")
             path == "/" && r.method == "GET" -> return HttpServer.Response.text(200, "${Store.friendlyName(this)} — ${Transport.MODEL} ${BuildConfig.VERSION_NAME}\n${transport.onMain { statusLine() }}\n\nA SlimProto player of Mandarin's; the DAC at /dac.json.\n", "text/plain; charset=\"utf-8\"")
         }
         return HttpServer.Response.text(404, "")

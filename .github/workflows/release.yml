@@ -6,14 +6,12 @@
 # musicd-server-<version>.tar.gz: the page and package.json (with v0.9.0 the
 # Node server's index.js, launcher.js and lib/ left it), so an update downloads
 # a few hundred KB rather than the whole repository with its APK. From v0.8.25
-# it carries Mandarin's C# server too, for each platform the image is built
-# for (mandarin-server-linux-x64.gz, mandarin-server-linux-arm64.gz, and their
+# it carries Mandarin's C# server too, for each platform Mandarin runs on
+# (mandarin-server-linux-x64.gz, mandarin-server-linux-arm64.gz, and their
 # SHA-256 sums in mandarin-server.sha256): an install updated from Settings
 # fetches the one for its machine (server/Mandarin.Server/Admin/Updater.cs).
 # Each signed with Mandarin's release key where there is one (item 371, .github/sign.sh): <file>.sig beside it;
 # the bundle too (the audit's I-H3), which the updater checks before it unpacks it.
-# A Mac's too (mandarin-server-osx-arm64.gz, -osx-x64.gz: v0.8.29 to v1.0.2,
-# and again from item 153), added by the mac job once the Mac's tests pass.
 # From v0.8.31 nothing is released until CI has passed on the same commit,
 # every job of it (.github/wait-for-ci.sh).
 name: Release
@@ -154,9 +152,9 @@ jobs:
             echo "csharp=false" >> "$GITHUB_OUTPUT"
           fi
 
-      # Mandarin's C# server for in-app updates (v0.8.25): built as the image
-      # builds it (self-contained, one file) for both of the image's platforms,
-      # arm64 cross-built here as the image does, each checked to say its version.
+      # Mandarin's C# server for in-app updates (v0.8.25): self-contained, one
+      # file, for x64 and arm64, arm64 cross-built here, each checked to say its
+      # version. The Linux installer and Mandarin OS install it from here too.
       - name: Build the C# server for in-app updates
         if: steps.v.outputs.csharp == 'false'
         env:
@@ -186,7 +184,7 @@ jobs:
           v=${{ steps.v.outputs.version }}
           mkdir -p out/musicd-server
           cp -r package.json public README.md CHANGELOG.md LICENSE out/musicd-server/
-          # SQ-tool's code (item 288), so an update made from Settings brings it as the image does.
+          # SQ-tool's code (item 288), so an update made from Settings brings it.
           mkdir -p out/musicd-server/sq-tool && cp -r sq-tool/sqtool out/musicd-server/sq-tool/
           tar -C out -czf "musicd-server-$v.tar.gz" musicd-server
           .github/sign.sh "musicd-server-$v.tar.gz"
@@ -221,47 +219,3 @@ jobs:
         run: |
           v=${{ steps.v.outputs.version }}
           gh release upload "v$v" out/csharp/* --clobber
-
-  # A Mac's builds (item 153): osx-arm64 and osx-x64, built on a Mac and signed
-  # ad hoc there (macOS runs nothing unsigned), added to the release with their
-  # sums beside Linux's. Only these wait for the Mac's tests (mac.yml): Linux's
-  # release above doesn't, so a Mac that is slow to come never holds it up.
-  mac:
-    needs: release
-    runs-on: macos-latest
-    timeout-minutes: 90
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
-      - name: Wait for the Mac's tests to pass
-        env:
-          GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
-        run: .github/wait-for-ci.sh "$GITHUB_SHA" mac.yml
-      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73  # v6
-        with:
-          dotnet-version: "10.0.x"
-      - name: Build and add the Mac's C# server
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          RELEASE_SIGNING_KEY: ${{ secrets.RELEASE_SIGNING_KEY }}
-        run: |
-          set -e
-          v=$(node -p "require('./package.json').version")
-          names=$(gh release view "v$v" --json assets -q '.assets[].name')
-          if grep -qx "mandarin-server-osx-arm64.gz" <<<"$names" && grep -qx "mandarin-server-osx-x64.gz" <<<"$names"; then
-            echo "v$v has the Mac's builds already"; exit 0
-          fi
-          mkdir -p out/mac
-          for rid in osx-arm64 osx-x64; do
-            RID=$rid ./server/build.sh
-            codesign --force --sign - "server/bin/$rid/mandarin-server"
-            codesign --verify "server/bin/$rid/mandarin-server"
-            gzip -9 -c "server/bin/$rid/mandarin-server" > "out/mac/mandarin-server-$rid.gz"
-          done
-          test "$(server/bin/osx-arm64/mandarin-server --version)" = "$v"
-          # The sums: Linux's as released, and the Mac's added.
-          gh release download "v$v" -p mandarin-server.sha256 -D out/sums
-          grep -v ' mandarin-server-osx-' out/sums/mandarin-server.sha256 > out/mac/mandarin-server.sha256 || true
-          (cd out/mac && shasum -a 256 mandarin-server-osx-*.gz >> mandarin-server.sha256 && cat mandarin-server.sha256)
-          .github/sign.sh out/mac/mandarin-server-osx-*.gz   # each its own signature (item 371): Linux's left as they are
-          gh release upload "v$v" out/mac/* --clobber

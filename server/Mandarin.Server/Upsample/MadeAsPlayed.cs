@@ -34,6 +34,9 @@ internal static class MadeAsPlayed
     /* Whether track [key]'s making has begun (its file being written, a DSF's header first), not only waiting its turn. */
     public static bool Begun(string key) => Under.TryGetValue(key, out var p) && p != null;
 
+    /* How many tracks are being made now. */
+    public static int Making => Under.Count(kv => kv.Value != null);
+
     /* Whether [p] is made so: a DSF from PCM, or PCM upsampled in a shape or with Mandarin's own dither; else ffmpeg makes it. */
     public static bool Takes(ConvPlan p) => p.DsdUp != 0 || p.Shape != null || p.Dither != null || p.RealBits > 0;
 
@@ -226,7 +229,7 @@ internal static class MadeAsPlayed
         Cpu.Place(psi, CpuKind.Playback);
         var proc = Process.Start(psi)!;
         Cpu.Adopt(proc, CpuKind.Playback);
-        return (proc, proc.StandardError.ReadToEndAsync());
+        return (proc, StderrLines.Read(proc.StandardError, "upsample-run"));   // each line in the log too (item 389)
     }
 
     /* An album run's key ("a<tracks>-<its first track's key>", AlbumRun.KeyFor): its first track's key; null for a track's own. */

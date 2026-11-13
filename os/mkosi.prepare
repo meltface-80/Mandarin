@@ -1,0 +1,27 @@
+#!/bin/bash
+# Outside the image (its network, its certificates): Mandarin's latest release fetched into the image's cache, for
+# mkosi.finalize.chroot to install from with tools/linux/install.sh, which checks each file against the release key.
+set -euo pipefail
+# The latest release's version from where github.com's own page for it leads (…/releases/tag/v1.3.0): no API, so no
+# API rate limit (a CI runner's address shares one, and was refused).
+dest="$BUILDROOT/var/cache/mandarin-release"
+# Built from this checkout (os/mandarin-from-source.sh, test images): laid out as a release, with its own key.
+if [ -f "$SRCDIR/mandarin-src/version" ]; then
+  mkdir -p "$dest" && cp -a "$SRCDIR/mandarin-src/." "$dest/"
+  echo "Mandarin $(cat "$dest/version") from this checkout"
+  [ "${1:-}" = build ] && "$SRCDIR/ffmpeg/build.sh" --fetch "$BUILDROOT/var/cache/ffmpeg-src"
+  exit 0
+fi
+V="${MANDARIN_VERSION:-$(curl -fsSIL --retry 3 -o /dev/null -w '%{url_effective}' https://github.com/meltface-80/Mandarin/releases/latest | sed -n 's|.*/releases/tag/v\{0,1\}\([^/]*\)$|\1|p')}"
+[ -n "$V" ] || { echo "Mandarin's latest release couldn't be found" >&2; exit 1; }
+mkdir -p "$dest/v$V"
+for f in "musicd-server-$V.tar.gz" "musicd-server-$V.tar.gz.sig" mandarin-server-linux-x64.gz mandarin-server-linux-x64.gz.sig; do
+  curl -fsSL --retry 3 -o "$dest/v$V/$f" "https://github.com/meltface-80/Mandarin/releases/download/v$V/$f"
+done
+echo "$V" > "$dest/version"
+
+# ffmpeg's source (Debian's, checked against its .dsc and patched), for mkosi.build.chroot to build inside the image's
+# build overlay: fetched here, outside, where the network is (os/ffmpeg/build.sh --fetch).
+if [ "${1:-}" = build ]; then
+  "$SRCDIR/ffmpeg/build.sh" --fetch "$BUILDROOT/var/cache/ffmpeg-src"
+fi

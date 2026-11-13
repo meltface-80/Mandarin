@@ -130,8 +130,7 @@ internal sealed partial class ReleaseDays(string? mbBase, string version, Action
     private async Task<Dictionary<string, string>> Lookup(List<Album> albums)
     {
         var url = baseUrl + "/release-group/?query=" + Lookups.Encode(QueryFor(albums.Select(a => (a.Title, a.Artist)))) + "&fmt=json&limit=100";
-        if (baseUrl == MusicBrainz.DefaultBase) await Lookups.MbWait();
-        var j = await Lookups.Json(url, [("User-Agent", userAgent)], 10000);
+        var j = await MusicBrainz.Ask(baseUrl, url, [("User-Agent", userAgent)], 10000);
         var days = MatchDays(albums.Select(a => (a.Key, a.Title, a.Artist, YearText(a), a.Date)), (j as JsObj)?["release-groups"] as List<object?>);
         var found = new JsonArray();
         var byKey = new Dictionary<string, string>();

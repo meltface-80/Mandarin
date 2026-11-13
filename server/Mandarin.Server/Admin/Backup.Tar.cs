@@ -186,12 +186,13 @@ internal static partial class Backup
     }
 
     /*
-     * readBackup: the JSON parts into memory (each at most 64 MB), the
-     * database copy to dbFile when there is one.
+     * readBackup: the JSON parts into memory (each at most 512 MB: a large
+     * library's collection is more than the 64 MB the Node server could hold
+     * in a string, item 395), the database copy to dbFile when there is one.
      */
     public static Read ReadBackup(string file, string? dbFile)
     {
-        const long JsonMax = 64L * 1024 * 1024;
+        const long JsonMax = 512L * 1024 * 1024;
         var parts = new JsObj();
         var hasDb = false;
         using var f = File.OpenRead(file);

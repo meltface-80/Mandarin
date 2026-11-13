@@ -129,7 +129,7 @@ object Scanner {
     /** The choice in force: "auto" or the number. */
     fun makingCurrent(cpu: JSONObject?): String = cpu?.optInt("making_cores", 0)?.takeIf { it > 0 }?.toString() ?: "auto"
     fun cpuNote(cpu: JSONObject?): String = if (cpu?.optJSONArray("cores") == null) "…" else if (!cpu.optBoolean("split")) "Playback comes first by priority."
-        else if (cpu.optBoolean("raised")) "Playback also runs at a higher priority." else "To run playback at a higher priority too, start the container with --cap-add SYS_NICE."
+        else if (cpu.optBoolean("raised")) "Playback also runs at a higher priority." else "To run playback at a higher priority too, give the server the SYS_NICE capability."
 
     /** A clean-up kind's button ("Remove 2 albums"), or none when it has nothing to remove. */
     fun cleanupButton(cleanup: JSONObject?, kind: String, locale: Locale = Locale.getDefault()): String? {

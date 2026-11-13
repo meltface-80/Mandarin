@@ -23,8 +23,8 @@ import java.util.concurrent.Executors
 /**
  * Which MusicD Server to use.
  *
- * The port is the one thing a person reliably knows — it is in their docker
- * command — so that is the first box, filled in with the default. The address
+ * The port is the one thing a person reliably knows — it is in the address
+ * they open Mandarin at — so that is the first box, filled in with the default. The address
  * is optional: leave it empty and the app looks for a server on that port
  * across this phone's network, and connects if it finds exactly one.
  */
@@ -198,7 +198,7 @@ class ConnectActivity : Activity() {
                 }.onFailure { e ->
                     setBusy(false, "Couldn't reach Mandarin at $address.\n\n" +
                         (e.message ?: e.javaClass.simpleName) +
-                        "\n\nCheck the address and port, that the container is running, and that this phone is on the same network.")
+                        "\n\nCheck the address and port, that Mandarin is running, and that this phone is on the same network.")
                 }
             }
         }

@@ -1,0 +1,53 @@
+#!/bin/bash
+# /usr/lib/mandarin-os/console — the box's own screen (tty1, mandarin-console.service; item 389). There is no login and
+# no shell here, nor anywhere (no SSH). Booted from the USB stick it is the installer (mandarin-os-install). Installed,
+# it says where to find Mandarin, and takes two words: `networkreset`, which puts the network back to DHCP and starts
+# the computer again, for a static address that lost the box; and `passwordreset`, Mandarin's account removed (and
+# every device signed out) for a password forgotten, as `reset-password` does elsewhere. Someone at the box itself.
+set -u
+. /usr/lib/mandarin-os/log.sh
+boot_disk="$(lsblk -no PKNAME "$(findmnt -no SOURCE /)" 2>/dev/null | head -n 1)"
+if ! mountpoint -q /data && [ "$(lsblk -dno TRAN "/dev/$boot_disk" 2>/dev/null)" = usb ]; then
+  exec /usr/lib/mandarin-os/install
+fi
+while true; do
+  clear
+  addr="$(ip -4 -o addr show scope global | awk '{ split($4, a, "/"); print a[1]; exit }')"
+  printf '\n  Mandarin OS %s\n\n' "$(cat /usr/lib/mandarin-os/VERSION)"
+  if [ -n "$addr" ]; then
+    printf '  Mandarin         http://mandarin:3500   (http://%s:3500)\n' "$addr"
+    printf '  The system page  http://mandarin/       (http://%s/)\n' "$addr"
+    printf '  Your files       smb://mandarin/data    (\\\\%s\\Data)\n\n' "$addr"
+  else
+    printf '  Not on the network yet: is the cable in?\n\n'
+  fi
+  printf '  Mandarin is %s.\n\n' "$(systemctl is-active mandarin.service)"
+  printf '  Lost the box with a static address? Type  networkreset  and press Enter.\n'
+  printf '  Forgot Mandarin'"'"'s password? Type  passwordreset  and press Enter.\n\n  > '
+  if read -r -t 30 word; then
+    if [ "$word" = networkreset ]; then
+      printf '\n  The network goes back to DHCP, and the computer starts again. Type yes to go on: '
+      read -r -t 60 sure || sure=""
+      if [ "$sure" = yes ]; then
+        oslog WARN "[console] networkreset typed at the screen: back to DHCP, restarting"
+        /usr/lib/mandarin-os/network dhcp
+        rm -f /data/MachineSettings/.network-applied
+        jq '.network = {"mode": "dhcp"}' /data/MachineSettings/setup.json > /tmp/setup.json 2>/dev/null && mv -f /tmp/setup.json /data/MachineSettings/setup.json
+        sync; systemctl reboot
+      fi
+    elif [ "$word" = passwordreset ]; then
+      printf '\n  Mandarin'"'"'s account is removed and every device signed out; then create it again in a browser. Type yes to go on: '
+      read -r -t 60 sure || sure=""
+      if [ "$sure" = yes ]; then
+        if runuser -u mandarin -- env DATA_DIR=/data/MandarinServer /opt/mandarin/server/bin/mandarin-server reset-password >/dev/null 2>&1; then
+          oslog WARN "[console] passwordreset typed at the screen: Mandarin's account removed"
+          printf '\n  Done. Open Mandarin in a browser and create the account again.\n'
+        else
+          oslog ERROR "[console] passwordreset typed at the screen, and it didn't work"
+          printf '\n  That didn'"'"'t work. Is Mandarin running?\n'
+        fi
+        sleep 8
+      fi
+    fi
+  fi
+done

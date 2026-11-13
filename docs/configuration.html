@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Settings for the server · Mandarin</title>
-<meta name="description" content="All optional; pass any with <code>-e NAME=value</code>. Everything else is in the app's Settings and kept in the data volume.">
+<meta name="description" content="All optional; set any as an environment variable of the server. Everything else is in the app's Settings and kept in the data folder.">
 <link rel="icon" href="mandarin-icon.png">
 <link rel="stylesheet" href="site.css">
 </head>
@@ -21,7 +21,7 @@
 
 <main class="wrap page">
   <h1>Settings for the server</h1>
-  <p class="lead">All optional; pass any with <code>-e NAME=value</code>. Everything else is in the app's Settings and kept in the data volume.</p>
+  <p class="lead">All optional; set any as an environment variable of the server (installed on Linux: <code>sudo systemctl edit mandarin</code>, then <code>Environment=NAME=value</code> under <code>[Service]</code>). Mandarin OS sets what it needs itself, with no shell to change them in. Everything else is in the app's Settings and kept in the data folder.</p>
 <div class="tablewrap">
     <table>
       <tr><th>Variable</th><th>Default</th><th>Purpose</th></tr>
@@ -34,17 +34,15 @@
       <tr><td>INCLUDE_ZONES</td><td>—</td><td>Offer only these rooms, e.g. <code>Kitchen,Study</code>.</td></tr>
       <tr><td>EXCLUDE_ZONES</td><td>—</td><td>Offer every room except these.</td></tr>
       <tr><td>TRUSTED_PROXIES</td><td>—</td><td>Reverse proxies whose word on who asked is believed: <code>127.0.0.1</code> for an nginx, Caddy or <code>tailscale serve</code> on the same machine. The built-in Tailscale needs nothing here.</td></tr>
-      <tr><td>PUID / PGID</td><td>1000</td><td>The user and group the server runs as inside the container: give your music's owner if it is readable by that user only. It keeps the groups that own the music folder and the folders directly in it (never root's), so music readable by a group plays too. <code>PUID=0</code> runs it as root.</td></tr>
       <tr><td>SCAN_INTERVAL_HOURS</td><td>6</td><td>How often the music folders are re-checked in full. Between those, albums added or deleted are noticed as it happens (a network share's folders looked at every 30 seconds), and a long copy shows album by album.</td></tr>
       <tr><td>TRANSCODE_CACHE_GB</td><td>4</td><td>Disk kept for converted tracks. With upsampling on, 16 is a better number.</td></tr>
       <tr><td>TRANSCODE_CONCURRENCY</td><td>2</td><td>How many tracks are converted at once.</td></tr>
       <tr><td>PLAYBACK_CORES</td><td>auto</td><td>Processor cores kept for playback alone: one, or two while DSP is in use. <code>0</code> shares every core.</td></tr>
-      <tr><td>MUSIC_DIR</td><td>/music</td><td>Where the library is mounted inside the container.</td></tr>
+      <tr><td>MUSIC_DIR</td><td>/music</td><td>The first music folder, until you change the list in Settings → Music Folders (the Linux installer sets it from <code>--music</code>).</td></tr>
       <tr><td>TS_AUTHKEY</td><td>—</td><td>Sign the server's built-in Tailscale in with an auth key instead of from Settings → Setup → Away from home.</td></tr>
       <tr><td>TS_HOSTNAME</td><td>musicd</td><td>The server's name on your tailnet.</td></tr>
       <tr><td>TAILSCALE</td><td>on</td><td><code>off</code> leaves the built-in Tailscale out (Tailscale on the host still works).</td></tr>
       <tr><td>TAILSCALE_ADDRESS</td><td>auto</td><td>The server's address away from home, if the one found isn't the one to use.</td></tr>
-      <tr><td>LOCAL_AUDIO</td><td>on</td><td><code>0</code> leaves a Mac's own sound devices out of Settings → Audio Devices (a Linux server lists none: a USB DAC there is Mandarin Bridge's).</td></tr>
       <tr><td>SQTOOL_PYTHON</td><td>python3</td><td>The Python 3 (with numpy) that runs <a href="sq-tool.html">SQ-tool</a>.</td></tr>
       <tr><td>MUSICBRAINZ_URL</td><td>musicbrainz.org</td><td>Another MusicBrainz web service (a mirror) for the identification scan.</td></tr>
       <tr><td>IDENTIFY</td><td>on</td><td><code>0</code> leaves the album identification scan out entirely.</td></tr>
@@ -56,7 +54,7 @@
     </table>
   </div>
   <p style="margin-top:16px">The FanArt.tv key (artist photos), the waveform, Smart Picks, the wall
-     display and the Home rows are set in the app's Settings and saved in the data volume.</p>
+     display and the Home rows are set in the app's Settings and saved in the data folder.</p>
   <nav class="pager"><a class="back" href="index.html">← Back to contents</a><a class="pill" href="features.html">Next: Features →</a></nav>
 </main>
 
