@@ -168,6 +168,20 @@ P() { curl -s -o /dev/null -w '%{http_code}' --max-time 10 -H 'Content-Type: app
 [ "$(P '{"password":"not-it"}')" = 401 ] || fail "the system page took a wrong password"
 [ "$(P '{"password":"listen-carefully"}')" = 200 ] || fail "the system page didn't take the share's password"
 ok "the system page answers, sees Mandarin and its services, and asks for the share's password"
+# Storage/Installer (item 405): made by apply, with its one line, in the share; a dev file put in it over the share is what the system
+# page says the next Reinstall installs, and taken out again (the upkeep's Reinstall would follow it). (Each answer kept
+# first: smbclient's own status never goes into a pipe.)
+inst="$(S -c "cd Storage/Installer; get README.txt $W/installer.txt")"
+grep -q "Used by Mandarin's reinstaller" "$W/installer.txt" 2>/dev/null || fail "Storage/Installer has no README.txt: $inst"
+st="$(curl -fsS --max-time 30 http://127.0.0.1:10080/api/state)"
+[ "$(jq -c .mandarin.channel <<< "$st")" = '{"now":"latest","wanted":"latest"}' ] || fail "the system page's channel: $(jq -c .mandarin.channel <<< "$st")"
+put="$(S -c "cd Storage/Installer; put $W/song.flac dev.bin")"
+st="$(curl -fsS --max-time 30 http://127.0.0.1:10080/api/state)"
+[ "$(jq -r .mandarin.channel.wanted <<< "$st")" = dev ] || fail "a dev file put in Storage/Installer isn't seen: $put $(jq -c .mandarin.channel <<< "$st")"
+gone="$(S -c "cd Storage/Installer; del dev.bin")"
+st="$(curl -fsS --max-time 30 http://127.0.0.1:10080/api/state)"
+[ "$(jq -r .mandarin.channel.wanted <<< "$st")" = latest ] || fail "dev.bin taken out of Storage/Installer is still seen: $gone"
+ok "Storage/Installer is in the share with its README.txt; a dev file put in it over SMB is seen by the system page, and taken out"
 
 # USB drives: those plugged in at the start, and one plugged in later, each mounted in Storage/USB with its music, and
 # on the system page. Not: the log of what happened to each, to find why.

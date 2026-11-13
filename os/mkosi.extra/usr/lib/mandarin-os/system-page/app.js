@@ -69,10 +69,13 @@
     const mandarinUrl = location.protocol + "//" + location.hostname + ":" + (m.port || 3500);
     $("mandarin-link").href = mandarinUrl;
     $("mandarin-link").textContent = mandarinUrl;
+    // The builds it follows (item 405, channel.py): said only where they are dev's, or are to change at the next Reinstall.
+    const ch = m.channel || {}, on = ch.now === "dev" ? " · development builds" : "";
+    const next = ch.wanted && ch.wanted !== ch.now ? " · " + (ch.wanted === "dev" ? "development builds" : "the latest release") + " at the next Reinstall" : "";
     const busy = m.busy && m.busy.any ? " · " + [m.busy.playing ? m.busy.playing + " playing" : "", m.busy.scanning ? "scanning" : "", m.busy.making ? "making" : ""].filter(Boolean).join(", ") : "";
     const usb = st.usb, ro = usb.filter((u) => u.read_only);
     $("status-rows").innerHTML =
-      row("Mandarin", m.answering ? "Version " + esc(m.version) + " · " + count(m.albums, "album", "albums") + " · " + count(m.rooms, "room", "rooms") + esc(busy) : "Not answering", m.answering ? '<span class="state ok">✓ Running</span>' : '<span class="state bad">Not answering</span>') +
+      row("Mandarin", m.answering ? "Version " + esc(m.version) + on + next + " · " + count(m.albums, "album", "albums") + " · " + count(m.rooms, "room", "rooms") + esc(busy) : "Not answering", m.answering ? '<span class="state ok">✓ Running</span>' : '<span class="state bad">Not answering</span>') +
       row("Operating system", "Mandarin OS " + esc(o.version) + " · running " + ago(o.uptime) + (o.last_upkeep ? " · upkeep " + esc(o.last_upkeep) : ""), osBadge(o)) +
       row("Storage", st.data ? "Mandarin's data · " + esc(st.data.free) + " free of " + esc(st.data.size) : "", st.data ? '<span class="state ok">✓ Ready</span>' : '<span class="state bad">No data partition</span>') +
       row("USB drives", usb.length ? usb.map((u) => esc(u.name) + (u.space ? " · " + esc(u.space.size) : "")).join(", ") : "None plugged in", ro.length ? '<span class="state warn">⚠ ' + ro.length + " read-only</span>" : usb.length ? '<span class="state ok">✓ Mounted</span>' : "") +
@@ -163,7 +166,7 @@
     else if (t.dataset.os === "apply") act("/api/os-update", { action: "apply" }, "Update and restart", "Mandarin OS " + st.os.update.available + " is written beside this one, then the computer starts again on it: music stops for a few minutes. If it doesn't start, the box goes back to " + st.os.version + " by itself.");
     else if (t.dataset.bridge) act("/api/bridge", { action: t.dataset.bridge }, t.dataset.bridge === "install" ? "Install Mandarin Bridge" : "Remove Mandarin Bridge", "");
     else if (t.dataset.mandarin) act("/api/mandarin", { action: t.dataset.mandarin }, t.dataset.mandarin === "reinstall" ? "Reinstall Mandarin" : "Reset Mandarin",
-      t.dataset.mandarin === "reinstall" ? "Put back from its latest release; your library and settings kept." : "Mandarin starts as new; what it kept is set aside in its Backups folder.");
+      t.dataset.mandarin === "reinstall" ? "Put back from " + ((st.mandarin.channel || {}).wanted === "dev" ? "the development builds" : "its latest release") + "; your library and settings kept." : "Mandarin starts as new; what it kept is set aside in its Backups folder.");
     else if (t.dataset.power) { $("power-menu").classList.add("hidden"); act("/api/power", { action: t.dataset.power }, t.textContent, ""); }
     else if (t.dataset.log) { logWhich = t.dataset.log; document.querySelectorAll("#log-pick button").forEach((b) => b.classList.toggle("on", b === t)); loadLog(); }
   });

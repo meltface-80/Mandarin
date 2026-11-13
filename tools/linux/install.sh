@@ -17,6 +17,8 @@
 #   --data DIR     the data folder (/var/lib/mandarin): Mandarin OS keeps it on its data partition
 #   --no-start     the service enabled, not started (Mandarin OS's image, built where nothing runs)
 #   --no-apt       nothing installed from apt (Mandarin OS's image lists what it needs itself)
+#   --channel C    latest (the releases) or dev (dev's builds, the test-server pre-release; Mandarin OS's Reinstall
+#                  Mandarin, item 405): installed from it, and followed by Settings → Updates; kept for the next run
 #
 # Mandarin OS installs Mandarin with this (item 389's plan, phase 2).
 set -euo pipefail
@@ -37,6 +39,7 @@ UNINSTALL=0
 PURGE=0
 START=1
 APT=1
+CHANNEL=""
 
 say() { printf '\n\033[1m%s\033[0m\n' "$*"; }
 die() { printf '\n%s\n' "$*" >&2; exit 1; }
@@ -50,12 +53,14 @@ while [ $# -gt 0 ]; do
     --data) DATA="${2:-}"; shift 2 ;;
     --no-start) START=0; shift ;;
     --no-apt) APT=0; shift ;;
+    --channel) CHANNEL="${2:-}"; shift 2 ;;
     *) die "No option $1: --music DIR, --port N, --data DIR, --no-start, --no-apt, --uninstall, --purge" ;;
   esac
 done
 case "$DATA" in /*) ;; *) die "--data is a whole path (/data/MandarinServer)" ;; esac
 DATA_DIR="$ROOT$DATA"
 case "$PORT" in ''|*[!0-9]*) die "--port is a number" ;; esac
+case "$CHANNEL" in ''|latest|dev) ;; *) die "--channel is latest or dev" ;; esac
 
 [ -n "$ROOT" ] || [ "$(id -u)" = 0 ] || die "Run it as root: … | sudo bash"
 [ "$(uname -s)" = Linux ] || die "This installer is for Linux."
@@ -90,17 +95,32 @@ if [ "$APT" = 1 ]; then
   apt-get install -y -q --no-install-recommends ffmpeg poppler-utils python3 python3-numpy curl ca-certificates openssl ${ICU:+"$ICU"}
 fi
 
-# 2. The latest release, checked.
+# 2. The latest release (or, on dev's channel, dev's newest build: the test-server pre-release), checked.
+# The channel: given, or as it was (the service's own), or the releases.
+CHANNEL="${CHANNEL:-$(sed -n 's/^Environment=MANDARIN_CHANNEL=//p' "$UNIT" 2>/dev/null || true)}"
+[ "$CHANNEL" = dev ] || CHANNEL=latest
 # The latest release's version: where its page leads (…/releases/tag/v1.3.0), else GitHub's API (rate-limited per address).
 latest() {
   curl -fsSIL --retry 3 -o /dev/null -w '%{url_effective}' "${RELEASES%/download}/latest" 2>/dev/null | sed -n 's|.*/releases/tag/v\{0,1\}\([^/]*\)$|\1|p'
 }
-VERSION="${MANDARIN_VERSION:-$(latest)}"
-[ -n "$VERSION" ] || VERSION="$(curl -fsSL --retry 3 "$API/releases/latest" | sed -n 's/^ *"tag_name": *"v\{0,1\}\([^"]*\)".*/\1/p' | head -n 1)"
-[ -n "$VERSION" ] || die "Couldn't find Mandarin's latest release. Check the connection and run it again."
-say "Downloading Mandarin $VERSION ($RID)…"
+# dev's newest build: the version its bundle's name carries (musicd-server-<version>.tar.gz), asked of GitHub's API.
+dev_build() {
+  curl -fsSL --retry 3 "$API/releases/tags/test-server" | grep -o '"name": *"musicd-server-[^"]*\.tar\.gz"' | head -n 1 | sed 's/.*"musicd-server-\(.*\)\.tar\.gz"/\1/'
+}
+if [ "$CHANNEL" = dev ]; then
+  TAG=test-server WHAT="development build"
+  VERSION="${MANDARIN_VERSION:-$(dev_build)}"
+  [ -n "$VERSION" ] || die "Couldn't find Mandarin's development build. Check the connection and run it again."
+else
+  WHAT=release
+  VERSION="${MANDARIN_VERSION:-$(latest)}"
+  [ -n "$VERSION" ] || VERSION="$(curl -fsSL --retry 3 "$API/releases/latest" | sed -n 's/^ *"tag_name": *"v\{0,1\}\([^"]*\)".*/\1/p' | head -n 1)"
+  [ -n "$VERSION" ] || die "Couldn't find Mandarin's latest release. Check the connection and run it again."
+  TAG="v$VERSION"
+fi
+say "Downloading Mandarin $VERSION ($RID, $WHAT)…"
 B="musicd-server-$VERSION.tar.gz" S="mandarin-server-$RID.gz"
-for f in "$B" "$B.sig" "$S" "$S.sig"; do get "$RELEASES/v$VERSION/$f" "$TMP/$f" || die "Mandarin $VERSION's $f couldn't be downloaded. Check the connection and run it again."; done
+for f in "$B" "$B.sig" "$S" "$S.sig"; do get "$RELEASES/$TAG/$f" "$TMP/$f" || die "Mandarin $VERSION's $f couldn't be downloaded. Check the connection and run it again."; done
 signed "$TMP/$B" || die "Mandarin $VERSION's page isn't signed with Mandarin's release key: not installed."
 signed "$TMP/$S" || die "Mandarin $VERSION's server isn't signed with Mandarin's release key: not installed."
 tar -xzf "$TMP/$B" -C "$TMP" && [ -f "$TMP/musicd-server/package.json" ] || die "Mandarin $VERSION's page is broken: not installed."
@@ -138,6 +158,8 @@ done
 # 5. The service: started now and with the computer; started again if it fails, never after Shut down in Settings
 #    (which ends it with 0). Exit 76: a restart that couldn't be done in place (Server.cs), so systemd does it.
 mkdir -p "$(dirname "$UNIT")"
+# Its own updates from dev's builds, where it was installed from them (Admin/Updater.Channel.cs).
+DEV_LINE=""; [ "$CHANNEL" = dev ] && DEV_LINE="Environment=MANDARIN_CHANNEL=dev"$'\n'
 cat > "$UNIT" <<EOF
 [Unit]
 Description=Mandarin, a music server
@@ -151,7 +173,7 @@ Environment=DATA_DIR=$DATA
 Environment=MUSIC_DIR=$MUSIC
 Environment=PORT=$PORT
 Environment=MANDARIN_SYSTEMD=mandarin.service
-ExecStart=/opt/mandarin/server/bin/mandarin-server
+${DEV_LINE}ExecStart=/opt/mandarin/server/bin/mandarin-server
 Restart=on-failure
 RestartSec=3
 AmbientCapabilities=CAP_NET_BIND_SERVICE CAP_SYS_NICE
