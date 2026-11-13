@@ -7,17 +7,18 @@
 
 </div>
 
-# Mandarin — v1.3.0
+# Mandarin — v1.3.1
 
 **Your own music files, played to Sonos rooms, to UPnP/DLNA renderers (a WiiM, a Chord Poly,
 a streamer, an AV receiver) and to the Mandarin Android app.**
 
-**📖 Guides, downloads & the install command builder: [meltface-80.github.io/Mandarin](https://meltface-80.github.io/Mandarin/)** · **⬇ [Downloads](#downloads)**
+**📖 Guides and downloads: [meltface-80.github.io/Mandarin](https://meltface-80.github.io/Mandarin/)** · **⬇ [Downloads](#downloads)**
 
 A server on a machine you own scans your music folders and plays them to the players in your
 house. You control it from a browser, an iPhone home-screen app or the Android app. No
 subscription or streaming account is needed. Album names are looked up online (MusicBrainz,
-Wikipedia, Deezer and others); your music files stay on your machine.
+Wikipedia, Deezer and others); your music files stay on your machine. Run the server on
+[Mandarin OS](#mandarin-os), a system made for it alone (recommended), or [on Linux](#install-on-linux).
 
 ```
  browser / iPhone PWA / Android app ──HTTP──▶  Mandarin  ──Sonos UPnP──▶  Sonos rooms
@@ -26,40 +27,35 @@ Wikipedia, Deezer and others); your music files stay on your machine.
                                                    └──── audio: /stream/… ◀────────┘
 ```
 
-**New in v1.3.0** (since v1.2.5; Mandarin Bridge v0.3.8). An update following a code review: several
-under-the-hood fixes and improvements. The [changelog](CHANGELOG.md) has each change.
-* **Last.fm scrobbling:** save your Last.fm key's shared secret beside the key (Settings → Setup → API Keys) and tap
-  **Connect to Last.fm**; everything played, in every room, on a Mandarin Bridge or the phone, is scrobbled.
-* **An artist's page in tabs:** Overview, Discography and About, as an album's page has, with no links out to the web.
-* **Genres in English everywhere** (a Qobuz album's *Électronique* is *Electronic*), and **similar albums from your
-  own library** only.
-* **Removed:** Playlists and Dynamic Playlists, with Home's Playlists row and Qobuz's and Tidal's playlists and
-  favourite tracks brought in as playlists (favourite albums still are).
-* **Fixed:** plays, scrobbles and covers kept right through skips, drives mounted late and a DAC unplugged; a USB DAC
-  pulled out of the phone pauses it, as headphones do; a drive mounted after the server starts is read as it appears.
-* **Improved:** security, speed and reliability across the server, the page, the app and Mandarin Bridge; releases
-  are signed, and the server and Mandarin Bridge install only a signed update.
-
-**Mandarin OS 0.1.4:** a lightweight operating system made only to run Mandarin Server, on a PC of its own, with its own
-system page (`http://mandarin/`) to watch over and look after everything: a shared folder for your music, USB drives
-mounted as they are plugged in, and a weekly upkeep when nothing plays. New in 0.1.4: it **updates itself in place**,
-from the system page or by itself in the weekly upkeep, and goes back by itself to the version that worked if a new one
-doesn't start. See [Mandarin OS](#mandarin-os).
+**New in v1.3.1** (since v1.3.0; Mandarin Bridge v0.3.10; Mandarin OS 0.1.4). The [changelog](CHANGELOG.md) has each
+change.
+* **Mandarin OS 0.1.4, the recommended way to run Mandarin:** a lightweight operating system made only for Mandarin
+  Server, on a PC of its own, with a web page of its own, the system page (`http://mandarin/`), to watch over and look
+  after everything: a shared folder for your music, USB drives mounted as they are plugged in, and a weekly upkeep when
+  nothing plays. It updates itself in place, and goes back by itself to the version that worked if a new one doesn't
+  start. See [Mandarin OS](#mandarin-os).
+* **Mandarin on Linux, natively,** the alternative: one line installs it on Debian, Ubuntu or Raspberry Pi OS as a
+  systemd service. See [Install on Linux](#install-on-linux).
+* **Logs always on,** on the server, every Mandarin Bridge, every app and the page; **Download all logs** gives them as
+  one text file in time order. See [Logs](#logs).
+* **Fixed:** a large library's backup restores; MusicBrainz lookups pause while MusicBrainz is turning requests away; a
+  Mandarin Bridge switched on stays on; Mandarin Bridge 0.3.10 updates itself on Linux under systemd (as on Mandarin
+  OS); the app pauses between tries when the server can't be reached.
 
 ## Downloads
 
-The newest of each, straight to your device. Mandarin OS is an image for a USB stick; on Linux the server's install is
-a command, below.
+The newest of each, straight to your device. **Mandarin OS** is the recommended way to run the server: an image for a
+USB stick. On Linux, the alternative, the server's install is one command, below.
 
 | What | Version | Download |
 | --- | --- | --- |
-| **Mandarin Remote**, the Android app (Android 8.0 or newer) | v1.3.0 | [mandarin-android.apk](https://github.com/meltface-80/Mandarin/raw/main/dist/mandarin-android.apk) |
-| **Mandarin OS**, a system made only to run Mandarin (a 64-bit Intel or AMD PC with UEFI) | 0.1.4 | [mandarin-os-0.1.4-x64.img.xz](https://github.com/meltface-80/Mandarin/releases/download/mandarin-os-v0.1.4/mandarin-os-0.1.4-x64.img.xz) for balenaEtcher or dd · [mandarin-os-0.1.4-x64.img](https://github.com/meltface-80/Mandarin/releases/download/mandarin-os-v0.1.4/mandarin-os-0.1.4-x64.img) for a phone; see [Mandarin OS](#mandarin-os) |
-| **Mandarin server** on Linux (Debian, Ubuntu, Raspberry Pi OS; x64 or arm64) | v1.3.0 | the one line under [Install on Linux](#install-on-linux) |
+| **Mandarin OS**, a system made only to run Mandarin Server, the recommended way (a 64-bit Intel or AMD PC with UEFI) | 0.1.4 | [mandarin-os-0.1.4-x64.img.xz](https://github.com/meltface-80/Mandarin/releases/download/mandarin-os-v0.1.4/mandarin-os-0.1.4-x64.img.xz) for balenaEtcher or dd · [mandarin-os-0.1.4-x64.img](https://github.com/meltface-80/Mandarin/releases/download/mandarin-os-v0.1.4/mandarin-os-0.1.4-x64.img) for a phone; see [Mandarin OS](#mandarin-os) |
+| **Mandarin server** on Linux, the alternative (Debian, Ubuntu, Raspberry Pi OS; x64 or arm64) | v1.3.1 | the one line under [Install on Linux](#install-on-linux) |
+| **Mandarin Remote**, the Android app (Android 8.0 or newer) | v1.3.1 | [mandarin-android.apk](https://github.com/meltface-80/Mandarin/raw/main/dist/mandarin-android.apk) |
 | **Mandarin Bridge** for Android (a FiiO R7, say) | v0.3.10 | [mandarin-bridge.apk](https://github.com/meltface-80/Mandarin/releases/download/mandarin-bridge-v0.3.10/mandarin-bridge.apk) |
 | **Mandarin Bridge** for Raspberry Pi (3, 4, 5, Zero 2 W) | v0.3.10 | [mandarin-bridge-pi-arm64.img.xz](https://github.com/meltface-80/Mandarin/releases/download/mandarin-bridge-v0.3.10/mandarin-bridge-pi-arm64.img.xz) |
 | **Mandarin Bridge** for Linux (64-bit Debian, Ubuntu, Raspberry Pi OS) | v0.3.10 | `curl -fsSL https://github.com/meltface-80/Mandarin/releases/download/mandarin-bridge-v0.3.10/install.sh \| sudo sh`, or by hand: [x64](https://github.com/meltface-80/Mandarin/releases/download/mandarin-bridge-v0.3.10/mandarin-bridge-linux-x64.tar.gz) · [arm64](https://github.com/meltface-80/Mandarin/releases/download/mandarin-bridge-v0.3.10/mandarin-bridge-linux-arm64.tar.gz) |
-| The server program on its own, what Settings → Updates fetches | v1.3.0 | [linux-x64](https://github.com/meltface-80/Mandarin/releases/latest/download/mandarin-server-linux-x64.gz) · [linux-arm64](https://github.com/meltface-80/Mandarin/releases/latest/download/mandarin-server-linux-arm64.gz) · [sums](https://github.com/meltface-80/Mandarin/releases/latest/download/mandarin-server.sha256) |
+| The server program on its own, what Settings → Updates fetches | v1.3.1 | [linux-x64](https://github.com/meltface-80/Mandarin/releases/latest/download/mandarin-server-linux-x64.gz) · [linux-arm64](https://github.com/meltface-80/Mandarin/releases/latest/download/mandarin-server-linux-arm64.gz) · [sums](https://github.com/meltface-80/Mandarin/releases/latest/download/mandarin-server.sha256) |
 | **How Mandarin finds and names your music**, a guide in plain words | | [PDF](docs/Mandarin-music-scanning-guide.pdf) |
 
 On an iPhone or iPad there is nothing to download: see [iPhone and iPad](#iphone-and-ipad).
@@ -180,7 +176,7 @@ Tap any album. **Play Now** and **Queue** are on the page; **⋯** has Play Next
 
 ⸻
 
-🧭 **More by, and similar** — *new in v1.3.0*
+🧭 **More by, and similar**
 
 Under an album's review: the artist's other albums, the albums they appear on, and, with a Last.fm key, similar artists and similar albums from your own library.
 
@@ -204,7 +200,7 @@ On a phone or tablet, tap **Artists** in the row at the foot of the screen. **So
 
 ⸻
 
-🧑‍🎤 **Artist pages** — *new in v1.3.0*
+🧑‍🎤 **Artist pages**
 
 In tabs, as an album's page: Overview (their albums, similar artists, similar albums you have), Discography and About (biography, members or bands). One artist however a sleeve credits them.
 
@@ -228,7 +224,7 @@ Nothing to set up: the server looks albums up in the background, a second at a t
 
 ⸻
 
-🎸 **Genres on pages** — *new in v1.3.0*
+🎸 **Genres on pages**
 
 An album's genres as small chips under its cover, and an artist's, the most used across their albums, in English everywhere. A tap opens that genre's albums.
 
@@ -360,7 +356,7 @@ Open **Settings → Audio Devices**, tap the device and switch on **Random album
 
 ⸻
 
-📮 **Last.fm scrobbling** — *new in v1.3.0*
+📮 **Last.fm scrobbling**
 
 Everything played, in every room, on a Mandarin Bridge or the phone, is scrobbled to your Last.fm account and shown there as now playing.
 
@@ -708,6 +704,18 @@ On mobile data the app reaches the server through its own Tailscale, by itself, 
 
 ⸻
 
+📀 **Mandarin OS** — *new in v1.3.1*
+
+The recommended way to run Mandarin: a lightweight operating system made only for it, on a PC of its own, with its own system page to watch over everything.
+
+<details><summary><b>ⓘ</b> How to set it up and use it</summary>
+
+Write its image to a USB stick, start the PC from it and install; details under [Mandarin OS](#mandarin-os). Mandarin is then at `http://mandarin:3500` and the system page at `http://mandarin/`: storage and USB drives, the network, Mandarin Bridge, the logs, restart and shut down. It updates itself in place, and goes back by itself to the version that worked if a new one doesn't start.
+
+</details>
+
+⸻
+
 🎨 **UI Settings**
 
 Text sizes, grid layout (Auto, 3 or 2 columns, or List) and tile size, saved on each device. On a desktop, text goes up to +100%.
@@ -782,13 +790,13 @@ Sign in with your Tidal subscription on tidal.com: your favourite albums become 
 
 ⸻
 
-📝 **Logging**
+📝 **Logging** — *new in v1.3.1*
 
-On by default. The Android app, the server and the Mandarin Bridges log what happened, without personal data, for you to send to the developer.
+Always on: the server, every Mandarin Bridge, the Android app and the page log what happened, without personal data, kept on the server for you to send to the developer.
 
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 
-In the Android app, **Settings → Setup → Logging**. Use the app as you normally would for 24 hours, then tap **Save log** (it goes to Downloads/Mandarin, the server's and the Mandarin Bridges' logs with it) and send the file. Look through it first. Switching logging off deletes the log, the server's part too, and it stays off. Details under [Logs](#logs).
+Nothing to switch on. In a browser, **Settings → Setup → Logs → Download all logs**: every log as one text file, in time order. In the Android app, **Settings → Setup → Logging → Save log** (to Downloads/Mandarin, the server's and the Mandarin Bridges' logs with it); **Clear log** empties it. On Mandarin OS, the system page's **Support → Download all logs**. Look through it before you send it. Details under [Logs](#logs).
 
 </details>
 
@@ -834,11 +842,16 @@ removed first).
 
 ## Install
 
-Mandarin runs on an always-on computer on the same network as your speakers, in one of two ways: on
-[Mandarin OS](#mandarin-os), a computer of its own for it, or [on Linux](#install-on-linux) beside what else the
-computer does.
+Mandarin runs on an always-on computer on the same network as your speakers, in one of two ways:
+
+* **[Mandarin OS](#mandarin-os), recommended:** a computer of its own for it, installed from a USB stick, with a web page
+  of its own to watch over everything and nothing else to look after.
+* **[On Linux](#install-on-linux), the alternative:** natively on a Debian, Ubuntu or Raspberry Pi OS machine you
+  already run, beside what else it does, with one command.
 
 ### Mandarin OS
+
+*The recommended way to run Mandarin.*
 
 **A lightweight operating system made only to run Mandarin Server**, on a computer of its own, with a web page of its
 own, the **system page**, to watch over and look after everything. A music server should be something you switch on and
@@ -960,6 +973,7 @@ and pick a room under **Settings → Audio Devices**.
 **Mandarin** is at `http://mandarin:3500`, or the box's address with `:3500` (Bonjour also finds it as
 `mandarin.local`). It is the same Mandarin as everywhere: the app, the web page, Sonos, the streamers and Bridges, Qobuz
 and Tidal, its settings. Its music folder is the shared folder's Storage, USB drives and internal storage included.
+**Shut down** in Mandarin (☰, the power button) shuts the computer down too; its power button starts it all again.
 
 **The system page**, `http://mandarin/` (or the box's address, without a port), is Mandarin OS's own page. Anyone at
 home can read it; every change asks for the shared folder's password (five wrong in five minutes, and it stops trying
@@ -1047,6 +1061,8 @@ Building the image yourself: [os/README.md](os/README.md).
 
 ### Install on Linux
 
+*The alternative to [Mandarin OS](#mandarin-os): Mandarin installed natively on a Linux machine you already run.*
+
 On Debian, Ubuntu or Raspberry Pi OS (64-bit, x64 or arm64), one line as root:
 
 ```bash
@@ -1093,7 +1109,8 @@ unreadable, most of it gone at once) keeps its albums; the page says so and offe
 server downloads the new release from GitHub, swaps it in and restarts itself in a few seconds;
 a browser's page reloads on its own. In the Android app the app has its own **Check for update**
 beside it, and what each update brings is listed under them. It also checks twice a day and shows a banner when a new
-version is out.
+version is out. On Mandarin OS, Mandarin updates the same way, and Mandarin OS itself from its system page
+([Updating Mandarin OS](#updating-mandarin-os)).
 
 Since v0.9.0 Mandarin's server is one program, in C#, with no Node.js anywhere. An update from
 the app fetches that program of the new version for your machine (x64 or ARM64) from the
@@ -1123,7 +1140,7 @@ release key (from Mandarin Bridge v0.3.8; the server's updates are checked the s
 * An Android Bridge from before v0.2.1, or a Linux or Raspberry Pi Bridge from before v0.3.1, needs one last update by hand, from [Downloads](#downloads)
   (a Linux or Pi Bridge before v0.3.1 asked GitHub in a way it refuses, and its update failed).
 * A test build of Mandarin's follows the Bridges' test builds (the **test-bridge** pre-release),
-  and a numbered one follows their numbered releases (Mandarin Bridge v0.3.8 with Mandarin v1.3.0).
+  and a numbered one follows their numbered releases (Mandarin Bridge v0.3.10 with Mandarin v1.3.1).
 
 ## Configuration
 
@@ -1204,13 +1221,12 @@ back. The server stores only an SRP verifier, never the password.
 Five wrong passwords from one address in 15 minutes lock it out for 15 minutes (for IPv6, its whole
 /64), and guesses sent all at once count as they arrive, so no more than five are ever tried.
 
-**Forgot the password?** On the server run
+**Forgot the password?** On Mandarin OS, type `passwordreset` at its own screen (a keyboard plugged in), then `yes`.
+Installed on Linux, run on the server:
 
 ```bash
 sudo -u mandarin env DATA_DIR=/var/lib/mandarin /opt/mandarin/server/bin/mandarin-server reset-password
 ```
-
-On Mandarin OS, type `passwordreset` at its own screen (a keyboard plugged in).
 
 It removes the account and signs every device out; your library, edits and history
 stay. Then create the account again from a device at home.
@@ -1256,7 +1272,8 @@ becomes a room Mandarin plays to, bit-perfect. It finds Mandarin on the network 
 Linux one can be pointed at it with `--server`), and Mandarin reads the DAC whole from it (every rate, depth and DSD
 multiple, nothing to tick); Now playing's [signal path](#signal-path) says what it feeds the DAC, in its own words.
 Download each from [Downloads](#downloads) (v0.3.10); after that it updates from **Settings → Updates**
-([Updating](#updating)), and its log is in the app's Save log ([Logs](#logs)).
+([Updating](#updating)), and its log is kept on the server with the others, in Download all logs and the app's
+Save log ([Logs](#logs)).
 
 **Updated: over SlimProto, Mandarin now sends Mandarin Bridge a continuous stream of PCM (DSD still goes as DSD).**
 
@@ -1532,7 +1549,8 @@ through a subnet router arrive from a home address, and the server can't tell th
   release id, barcode, catalogue number, ISRCs), then by name on MusicBrainz and iTunes. It scores
   each release against the tracks and their lengths, and lays the names over the album, never on
   the files, with the MusicBrainz pack, loudness measuring and the waveforms alongside. Every
-  MusicBrainz request waits its turn on one timer.
+  MusicBrainz request waits its turn on one timer, and while MusicBrainz is turning requests away every lookup
+  pauses (a minute, then twice as long each time, an hour at most).
 * **Credits and artists.** In the background, one album and one act at a time at MusicBrainz's
   pace, the server reads who played, sang, wrote and made each album from its tags and its
   MusicBrainz release, and who each act is (members, years, place, links) from MusicBrainz and
@@ -1569,15 +1587,26 @@ through a subnet router arrive from a home address, and the server can't tell th
 
 ## Logs
 
-Logging is in the Android app and the server, and is **on by default** (since v1.2.2), so a fault seen once is
-already in the log. Switch it off in the app, **Settings → Setup → Logging**; off, nothing is collected, and it
-stays off across restarts and updates. When something isn't right, use the app as you normally would, then tap
-**Save log**: the app's log, the server's and each
-Mandarin Bridge's are saved together to **Downloads/Mandarin** on the phone, for you to send to the developer. **Clear log**
-empties it; switching logging off deletes it, the server's part too.
+Mandarin keeps a log **always**, everywhere it runs: the server, every Mandarin Bridge, the Android app and the page in
+a browser. There is nothing to switch on, and it can't be switched off, so a fault seen once is already in the log. Each
+line is dated in UTC with its level (INFO, WARN, ERROR), so every device's lines sort together. Nothing in them is sent
+anywhere unless you send it.
 
-The log is made without personal data, and you are told so on the same screen. Please look through it
-before you send it: what you send is your choice.
+**To send the logs to the developer:**
+
+* **In a browser:** **Settings → Setup → Logs → Download all logs** gives one text file: every log Mandarin keeps (the
+  server's, every Bridge's, every app's and the page's) merged in time order, each line saying where it came from, and
+  at its head what this server is (its version, how it is installed, the system) and each log's own header. The same
+  page shows the server's newest lines, narrowed by level and by what they hold.
+* **In the Android app:** **Settings → Setup → Logging** says how much the app has logged and since when. **Save log**
+  saves the app's log, the server's and each Mandarin Bridge's together, as one text file, to **Downloads/Mandarin** on
+  the phone; **Clear log** empties the app's log and the server's own, and logging goes on.
+* **On Mandarin OS:** the system page's **Support → Download all logs** gives every log on the box as one text file in
+  time order, Mandarin OS's own and the system's with Mandarin's, and the shared folder holds them, read-only
+  ([Mandarin OS](#mandarin-os)).
+
+The logs are made without personal data, and you are told so where you save them. Please look through a log before you
+send it: what you send is your choice.
 
 **What it captures**
 
@@ -1587,16 +1616,20 @@ before you send it: what you send is your choice.
 * **The phone's player:** playing or paused, the track's number in the queue, its position and the volume.
 * **The app:** its memory, crashes and freezes, and Android's own lines for Mandarin.
 * **The app's Tailscale:** whether it is running and the CPU time it has used, and when it is stopped, why, with its last lines (addresses taken out).
-* **The Mandarin Bridges:** every Bridge Mandarin knows (Android, Linux, a Raspberry Pi), under its name, version and build: its last lines as it logs them (the player, the DAC, a recording, an update), gathered by the server as you save and put through the same filter as the server's. A Bridge keeps its own log anyway, in files in its data folder; it leaves the Bridge only when you save.
-* **The server:** each line it logs, with what is yours alone taken out.
+* **The Mandarin Bridges:** every Bridge Mandarin knows (Android, Linux, a Raspberry Pi), under its name: what it logs (the player, the DAC, a recording, an update), gathered by the server every five minutes and put through the same filter as the server's.
+* **The page:** what goes wrong in a browser's page (an error nothing caught), under the browser's name.
+* **The server:** each line it logs, with what is yours alone taken out: what it is as each file begins (its version, how it is installed, the system, its folders), how it is every five minutes (memory, threads, free space), and an error with its stack.
 
 **What it leaves out:** what is yours alone. No passwords, keys or tokens; no email addresses, account names or
 logins; no internet or Tailscale addresses; not your own home folder's name in a path. It keeps what helps find a
 fault: home-network addresses, the names of rooms and devices, what was playing, error messages.
 
-The app keeps its log in its own storage (two files of 3 MB at most); the server keeps its part in its
-data folder (two files of 1 MB at most) while logging is on. On Mandarin OS, the system page's **Support → Download all
-logs** gives every log on the box as one file, and the shared folder holds them, read-only ([Mandarin OS](#mandarin-os)).
+**Where it is kept.** The server keeps every log in its data folder's **Logs**: its own in `MandarinServer_log.txt`,
+then `.01` to `.20` older (8 MB each), every Bridge's in `Bridges`, every app's in `Apps` (by the phone's name) and the
+page's in `Web`, each rolled so none grows without end. A Bridge keeps its own log too, in files in its data folder.
+The app keeps its own in its storage (two files of 3 MB at most) and sends its new lines to the server every five
+minutes and as the log is saved. On Mandarin OS the shared folder has them, read-only: **MandarinServer**'s Logs,
+**MandarinBridge**, **MandarinApp** and **MandarinOS**.
 
 ## Troubleshooting
 
