@@ -68,8 +68,8 @@ internal sealed class CoverCatalogues
         return url;
     }
 
-    /* The service an address is (asked here), or null. */
-    private Service? Of(string url) => all.FirstOrDefault(s => url.StartsWith(s.Base + "/", StringComparison.Ordinal) || url == s.Base);
+    /* The service an address is (asked here), or null: the longest base it starts with (the tests' are under one another). */
+    private Service? Of(string url) => all.Where(s => url.StartsWith(s.Base + "/", StringComparison.Ordinal) || url == s.Base).MaxBy(s => s.Base.Length);
 
     /* ArtFind's get for one album's look. */
     public ArtFind.Get For(Look look) => async url =>
