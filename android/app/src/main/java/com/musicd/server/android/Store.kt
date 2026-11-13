@@ -239,9 +239,11 @@ object Store {
      */
     fun localize(context: Context, url: String, opus: Boolean? = null): String {
         val home = server(context)?.baseUrl ?: return url
-        return com.musicd.server.client.Route.rewrite(url, home, awayBase(context)?.baseUrl, isAway(context),
+        // Every address away moved (item 404: a track queued over the engine went on through it at home).
+        val (away, others) = com.musicd.server.client.Route.awayBases(viaEngine(context), ServerAddress("127.0.0.1", TailscaleEngine.PORT).baseUrl, awayAddress(context)?.baseUrl)
+        return com.musicd.server.client.Route.rewrite(url, home, away, isAway(context),
             opus = opus ?: (DownloadStore.settings(context).awayQuality == DownloadStore.QUALITY_OPUS),
-            keepOpus = opus == true)
+            keepOpus = opus == true, others = others)
     }
 
     /** This phone's zone id on the server ("PHONE_…"), as its last hello said. */

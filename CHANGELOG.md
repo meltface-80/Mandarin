@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Fixed - Android ended the app for its Tailscale engine's CPU (item 404): twice on 13 Nov, 65% and then 28% of a core over five minutes, with nothing but the app's background requests going through the engine, or nothing at all. Home again, the phone's player went on playing its queue over the engine, and the app's stop at home waited on a timer that Android froze with the app. The phone's player now plays from home once home; at home the engine stops at once when the app goes off screen or the phone's player stops, unless it plays; and the engine stops itself, whatever the app is doing: after two and a half minutes with nothing real going through it while the app is neither on screen nor playing, or when it uses more than a fifth of a core for a minute with nothing passing through. Its stop is said in the app's log with what was busy and its last lines, and it starts again in seconds when the app is used
 - Fixed - the README and the Pages site gave Mandarin OS's addresses by its name (http://mandarin/, http://mandarin:3500, smb://mandarin/data), which only some devices and routers find (not an Android phone on a router that doesn't name the devices on its network). They give the box's address, which its screen shows, say to reserve it in the router, and that computers and iPhones usually find mandarin.local, mandarin works where the router names its devices, and an Android phone often finds neither.
 
 ## v1.3.1

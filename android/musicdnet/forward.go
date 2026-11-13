@@ -10,6 +10,7 @@ import (
 	"net"
 	"net/http"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"tailscale.com/tsnet"
@@ -21,7 +22,8 @@ var DialTimeout = 4 * time.Second
 
 type Forwarder struct {
 	TS     *tsnet.Server
-	Target string // server's tailnet address, e.g. 100.64.0.1:3500
+	Target string        // server's tailnet address, e.g. 100.64.0.1:3500
+	Moved  *atomic.Int64 // bytes through, both ways, for the engine's watch (item 404); nil: not counted
 
 	ln   net.Listener
 	mu   sync.Mutex
@@ -98,8 +100,8 @@ func (f *Forwarder) handle(c net.Conn) {
 	f.track(c, true)
 	defer f.track(c, false)
 	done := make(chan struct{}, 2)
-	go func() { io.Copy(up, c); up.Close(); done <- struct{}{} }()
-	go func() { io.Copy(c, up); c.Close(); done <- struct{}{} }()
+	go func() { io.Copy(up, counted{c, f.Moved}); up.Close(); done <- struct{}{} }()
+	go func() { io.Copy(c, counted{up, f.Moved}); c.Close(); done <- struct{}{} }()
 	<-done
 	<-done
 }

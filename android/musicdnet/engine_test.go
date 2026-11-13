@@ -269,6 +269,10 @@ func TestEngine(t *testing.T) {
 		if res.StatusCode != 206 || len(b) != 1000 {
 			t.Fatalf("range: %d %d", res.StatusCode, len(b))
 		}
+		// Counted for the engine's own idle watch (item 404): the range, both ways.
+		if n := e.moved.Load(); n < 1000 {
+			t.Fatalf("bytes through the forward counted: %d", n)
+		}
 		t0 := time.Now()
 		res, err = http.Get(base + "/api/hold")
 		if err != nil || time.Since(t0) < 2500*time.Millisecond {
