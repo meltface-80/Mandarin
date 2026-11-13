@@ -801,7 +801,6 @@
   "troubleshooting.top.h37": "The password",
   "troubleshooting.top.h38": "DoP from a Linux Bridge, native DSD from Android",
   "troubleshooting.top.h39": "A click as the rate changes",
-  "troubleshooting.top.nav1": "<a class=\"back\" href=\"index.html\">← Back to contents</a>",
   "troubleshooting.top.p1": "Check the server is on the same network (subnet) as the speakers, then look at <code>sonos.error</code> in <code>/api/status</code>. Setting <code>SONOS_HOSTS</code> to one speaker's IP skips discovery.",
   "troubleshooting.top.p10": "Its own screen (a screen plugged in) shows its address. A static address that lost the box: type <code>networkreset</code> there, then <code>yes</code>, and it goes back to DHCP and starts again. Everything about it is on the system page, <code>http://&lt;box address&gt;/</code>; see <a href=\"mandarin-os.html\">Mandarin OS</a>.",
   "troubleshooting.top.p11": "Open its page (<code>http://&lt;it&gt;:49494/</code>, or the Android app itself) to see that it runs and which DAC it plays to, then <b>Look again</b> in <b>Settings → Audio Devices</b>. A Bridge found is off until you switch it on there.",
