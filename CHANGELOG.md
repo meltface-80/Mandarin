@@ -1,9 +1,18 @@
 # Changelog
 
-## Unreleased
+## v1.3.2
 
-- Changed - Mandarin OS 0.1.6: the reinstaller's folder, Installer, is at the top of the shared folder, beside Storage rather than in it (item 406). A file there asks the reinstaller once and is then taken out; the box stays on what it was given.
-- New - dev's builds of Mandarin Server are published as a test-server pre-release on every push to dev, signed and checked as a release is (item 405); Mandarin's in-app updates follow a channel, the releases unless set otherwise, and Mandarin OS 0.1.5's Reinstall Mandarin follows the channel set on the box, backing Mandarin's data up first when it changes (`mandarin-server backup`)
+Mandarin OS 0.1.6, which keeps the box's settings when Mandarin is reinstalled; the app is no longer ended by Android for its built-in Tailscale; and Mandarin OS's addresses given by the box's address.
+
+- Changed - Mandarin OS 0.1.6 (it updates itself in place, from 0.1.4): Reinstall Mandarin keeps the box's settings, and the reinstaller's folder, Installer, is at the top of the shared folder
+- Fixed - Android no longer ends the app for its built-in Tailscale: the engine stops itself when idle or busy for nothing, and starts again in seconds when the app is used
+- Fixed - Back home, the phone plays from home, no longer through Tailscale
+- Fixed - The README and the Pages site give Mandarin OS's addresses by the box's address, which its screen shows
+
+### Every change
+
+- Changed - Mandarin OS 0.1.5 and 0.1.6 (items 405, 406): Reinstall Mandarin keeps the box's settings for it; its folder, Installer, is at the top of the shared folder, beside Storage rather than in it
+- Changed - CI: dev's builds of the server are published for testing, signed and checked as a release is (item 405)
 - Fixed - Android ended the app for its Tailscale engine's CPU (item 404): twice on 13 Nov, 65% and then 28% of a core over five minutes, with nothing but the app's background requests going through the engine, or nothing at all. Home again, the phone's player went on playing its queue over the engine, and the app's stop at home waited on a timer that Android froze with the app. The phone's player now plays from home once home; at home the engine stops at once when the app goes off screen or the phone's player stops, unless it plays; and the engine stops itself, whatever the app is doing: after two and a half minutes with nothing real going through it while the app is neither on screen nor playing, or when it uses more than a fifth of a core for a minute with nothing passing through. Its stop is said in the app's log with what was busy and its last lines, and it starts again in seconds when the app is used
 - Fixed - the README and the Pages site gave Mandarin OS's addresses by its name (http://mandarin/, http://mandarin:3500, smb://mandarin/data), which only some devices and routers find (not an Android phone on a router that doesn't name the devices on its network). They give the box's address, which its screen shows, say to reserve it in the router, and that computers and iPhones usually find mandarin.local, mandarin works where the router names its devices, and an Android phone often finds neither.
 

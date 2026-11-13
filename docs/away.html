@@ -39,7 +39,11 @@
      default (about a quarter of a CD-quality FLAC's data); <b>Settings → Setup → Downloads → Stream as</b> in the app can
      send the original files instead. Albums you've downloaded play from the phone.</p>
   <p>At home the app keeps its own Tailscale running only while the phone is playing, so walking out of the house doesn't
-     stop the music; with nothing playing it is stopped after two minutes.</p>
+     stop the music; back home, the phone plays from home again, and the engine stops as soon as the app is off screen
+     or the phone stops playing. The engine also stops itself when nothing goes through it (two and a half minutes, with
+     the app neither on screen nor playing) or when it is busy for nothing (a fifth of a core for a minute, with nothing
+     passing through), so Android has no cause to end the app for it. It starts again in seconds when the app is used or
+     you leave, its sign-in kept on the phone.</p>
   <div class="note"><b>For a server with no one at it,</b> give it an auth key instead, as the server's
      <code>TS_AUTHKEY</code> (see <a href="configuration.html">Settings for the server</a>). Don't advertise your home subnet from the server's
      Tailscale: requests through a subnet router arrive from a home address, and the server can't tell they're away.</div>
