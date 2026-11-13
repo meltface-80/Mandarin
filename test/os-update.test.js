@@ -19,7 +19,7 @@ const assert = require("node:assert");
 const fs = require("fs");
 const path = require("path");
 const http = require("http");
-const { spawn, spawnSync, execSync } = require("child_process");
+const { spawn, spawnSync } = require("child_process");
 const { makeBox, releaseFiles, serveReleases, testKey, skip, B } = require("./os-update-box");
 
 test("os-update: check, then apply into the other partition, the box's own carried, three tries on the EFI partition", { skip, timeout: 180000 }, async () => {
@@ -176,15 +176,14 @@ test("os-update: never restarts while dpkg works, and isn't held back by unatten
   const box = makeBox();
   // Real processes, as pgrep finds them on the box: unattended-upgrades' service, always there and waiting for a
   // shutdown (the boot test's box waited half an hour for it: its name, as the kernel keeps it, is unattended-upgr),
-  // and dpkg at work until the update says it waits for it. Each is sleep, started by a link of the name and path it
-  // would have (the kernel names a process by what was started; a link needs no copy, nor /tmp to allow programs).
+  // and dpkg at work until the update says it waits for it. Each is a script of the name and path it would have, which
+  // the kernel names it by (a copy of sleep, or a link to it, ran as sleep on CI's runner, a program of many names).
   fs.unlinkSync(path.join(box.dir, "bin", "pgrep"));
-  const sleep = execSync("command -v sleep", { shell: "/bin/bash", encoding: "utf8" }).trim();
   const as = (name, comm) => {
     const p = path.join(box.dir, "procs", name);
     fs.mkdirSync(path.dirname(p), { recursive: true });
-    fs.symlinkSync(sleep, p);
-    const child = spawn(p, ["120"], { stdio: "ignore" });
+    fs.writeFileSync(p, "#!/bin/sh\nwhile :; do sleep 1; done\n", { mode: 0o755 });
+    const child = spawn(p, [], { stdio: "ignore" });
     let failed = null;
     child.on("error", e => { failed = e; });
     return { child, async seen() {
@@ -192,7 +191,7 @@ test("os-update: never restarts while dpkg works, and isn't held back by unatten
         if (spawnSync("pgrep", ["-x", comm]).status === 0) return;
         await new Promise(res => setTimeout(res, 100));
       }
-      assert.fail(`${name} isn't running as ${comm}: ${failed ? failed.message : "no such process"}`);
+      assert.fail(`${name} isn't running as ${comm}: ${failed ? failed.message : "no such process"}; ` + spawnSync("ps", ["-eo", "pid,comm,args"], { encoding: "utf8" }).stdout);
     } };
   };
   const waiter = as("unattended-upgrades/unattended-upgrade-shutdown", "unattended-upgr");
@@ -206,7 +205,8 @@ test("os-update: never restarts while dpkg works, and isn't held back by unatten
     const running = box.run("apply", env);
     // dpkg done a few seconds after the update said it waits for it.
     for (let i = 0; i < 600 && !/Debian's packages are being updated/.test(box.oslog()); i++) await new Promise(res => setTimeout(res, 100));
-    assert.match(box.oslog(), /Debian's packages are being updated: starting again on Mandarin OS 0\.1\.5 once they are/);
+    assert.match(box.oslog(), /Debian's packages are being updated: starting again on Mandarin OS 0\.1\.5 once they are/,
+      "pgrep: " + spawnSync("pgrep", ["-a", "-x", "apt-get|apt|dpkg"], { encoding: "utf8" }).stdout + "; ps: " + spawnSync("ps", ["-eo", "pid,comm,args"], { encoding: "utf8" }).stdout);
     await new Promise(res => setTimeout(res, 3000));
     assert.doesNotMatch(box.calls(), /reboot/, "not while dpkg works");
     working.kill();

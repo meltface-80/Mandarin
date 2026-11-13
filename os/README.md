@@ -87,7 +87,9 @@ On a start being tried, `mandarin-os-health.service` (`os-started health`) check
 three tries systemd-boot starts the version before, untouched on its own partition, and `os-started boot` says so for
 the system page and takes the failed entry off. The kernel's panic and the emergency mode (in the initrd too) start the
 computer again rather than wait (`mkosi.conf`). The system page's Settings tab asks it (`system-page/os_update.py`):
-**Update and restart**, **Check for updates**; a daily timer checks, and the weekly upkeep runs `auto`.
+**Update and restart**, **Check for updates**; a daily timer checks, and the weekly upkeep runs `auto`. It never starts
+the computer again while apt or dpkg is at work (unattended-upgrade, not unattended-upgrades' own shutdown service), and
+the upkeep leaves Debian's updates for the next week while an update asked for on the system page is under way.
 
 The boot test proves it end to end (`os/test/os-update-vm.sh`): a 9.9.9 and a broken 9.9.10 made from the image under
 test and signed with a key of its own, from a stand-in GitHub (`os/test/fake-os-release.js`), the installed disk told of
