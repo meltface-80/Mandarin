@@ -197,7 +197,7 @@ class PhonePlayerService : MediaLibraryService() {
         val routed = ResolvingDataSource.Factory(http) { spec ->
             val key = spec.uri.toString()
             val opus = pinned.getOrPut(key) { Store.wantsOpus(this) }
-            spec.withUri(Uri.parse(Store.localize(this, key, opus)))
+            spec.withUri(Uri.parse(EngineUse.forStream(this, Store.localize(this, key, opus))))   // over the engine: up first (item 404)
         }
         // Through the phone's cache of tracks (StreamCache): what's there plays
         // from the phone, what isn't is fetched and kept as it plays. The tracks
@@ -279,7 +279,7 @@ class PhonePlayerService : MediaLibraryService() {
                 val path = p.currentMediaItem?.localConfiguration?.uri?.takeIf { it.scheme == "file" }?.path
                 if (path != playingPath) { playingPath = path; DownloadStore.sweepSoon(this@PhonePlayerService) }
             }
-            override fun onIsPlayingChanged(isPlaying: Boolean) { if (isPlaying) retries = 0 }
+            override fun onIsPlayingChanged(isPlaying: Boolean) { if (isPlaying) retries = 0; EngineUse.player(this@PhonePlayerService, isPlaying) }
             override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) { applyGains(); fetchAheadSoon() }
             override fun onTimelineChanged(timeline: androidx.media3.common.Timeline, reason: Int) { if (localMode) localRev++; nextGain(); fetchAheadSoon() }
             override fun onShuffleModeEnabledChanged(shuffleModeEnabled: Boolean) { nextGain(); fetchAheadSoon() }
