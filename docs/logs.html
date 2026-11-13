@@ -12,6 +12,17 @@
 
 <header class="pagehead">
   <div class="wrap">
+    <select id="lang-select" class="lang-select" aria-label="Language" data-i18n-attr="aria-label:site.language">
+      <option value="en">🇬🇧 English</option>
+      <option value="fr">🇫🇷 Français</option>
+      <option value="de">🇩🇪 Deutsch</option>
+      <option value="es">🇪🇸 Español</option>
+      <option value="it">🇮🇹 Italiano</option>
+      <option value="nl">🇳🇱 Nederlands</option>
+      <option value="sv">🇸🇪 Svenska</option>
+      <option value="da">🇩🇰 Dansk</option>
+      <option value="no">🇳🇴 Norsk</option>
+    </select>
     <a class="back" href="index.html">← Contents</a>
     <a class="brand" href="index.html"><img src="mandarin-icon.png" alt=""><span>Mandarin</span></a>
     <span class="spacer"></span>
@@ -48,12 +59,12 @@
       <span class="sym">Captured</span>
       <h3>What it captures</h3>
       <ul>
-        <li><b>Screens:</b> each screen opened and how long after the tap, what is on screen, where each tap fell, and anything that doesn't flow.</li>
+        <li><b>Screens:</b> each screen opened and how long after the tap, what is on screen, where each tap fell, and anything that doesn't flow: a screen shown for a moment between two others, one opened and closed by itself, a frame that stalls.</li>
         <li><b>Requests:</b> each request the app makes to the server: its address on the server, how long it took and whether it worked. The values in it are left out.</li>
         <li><b>The way to the server:</b> home, away (Tailscale) or offline, and networks coming and going.</li>
         <li><b>The phone's player:</b> playing or paused, the track's number in the queue, its position and the volume.</li>
         <li><b>The app:</b> its memory, crashes and freezes, and Android's own lines for Mandarin.</li>
-        <li><b>The app's Tailscale:</b> whether it is running, the CPU time it has used, and why it was stopped.</li>
+        <li><b>The app's Tailscale:</b> whether it is running and the CPU time it has used, and when it is stopped, why, with its last lines (addresses taken out).</li>
         <li><b>The Mandarin Bridges:</b> every Bridge Mandarin knows, under its name: what it logs (the player, the DAC, a recording, an update), gathered by the server every five minutes.</li>
         <li><b>The page:</b> what goes wrong in a browser's page (an error nothing caught), under the browser's name.</li>
         <li><b>The server:</b> each line it logs, with what is yours alone taken out: what it is as each file begins, how it is every five minutes (memory, threads, free space), and an error with its stack.</li>
@@ -84,11 +95,13 @@
 </main>
 
 <footer>
+  <p class="coffee"><a href="https://buymeacoffee.com/musicd_projects"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me a Coffee" loading="lazy"></a></p>
   <p>Mandarin · MIT · © 2026 Lewis Menzies (Music Duck / Mandarin) ·
      <a href="https://github.com/meltface-80/Mandarin">Source on GitHub</a><br>
      Sonos is a trademark of Sonos, Inc.; WiiM of Linkplay Technology; Chord and Poly of Chord Electronics; FiiO of FiiO
      Electronics. This is an independent project, affiliated with none of them.</p>
 </footer>
 <script src="site.js"></script>
+<script src="i18n.js"></script>
 </body>
 </html>

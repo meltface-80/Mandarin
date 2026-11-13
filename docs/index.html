@@ -10,6 +10,24 @@
 </head>
 <body>
 
+<header class="pagehead">
+  <div class="wrap">
+    <select id="lang-select" class="lang-select" aria-label="Language" data-i18n-attr="aria-label:site.language">
+      <option value="en">🇬🇧 English</option>
+      <option value="fr">🇫🇷 Français</option>
+      <option value="de">🇩🇪 Deutsch</option>
+      <option value="es">🇪🇸 Español</option>
+      <option value="it">🇮🇹 Italiano</option>
+      <option value="nl">🇳🇱 Nederlands</option>
+      <option value="sv">🇸🇪 Svenska</option>
+      <option value="da">🇩🇰 Dansk</option>
+      <option value="no">🇳🇴 Norsk</option>
+    </select>
+    <span class="spacer"></span>
+    <a class="pill solid" href="downloads.html">Downloads</a>
+  </div>
+</header>
+
 <header class="hero" id="top">
   <picture>
     <source media="(prefers-color-scheme: light)" srcset="mandarin-logo-light.png">
@@ -21,7 +39,7 @@
      switch on (a WiiM, a Chord Poly, a FiiO, an AV receiver, a TV), a USB DAC through Mandarin Bridge, and the
      Mandarin Android app play from it. No subscription or streaming account is needed. Run it on Mandarin OS, a system
      made for it alone (recommended), or on Linux.</p>
-  <div class="badges">
+  <div class="badges" translate="no">
     <span class="badge">v1.3.2</span>
     <span class="badge">Mandarin Bridge v0.3.10</span>
     <span class="badge">Mandarin OS 0.1.6</span>
@@ -34,6 +52,8 @@
     <a class="pill" href="whats-new.html">What's new in v1.3.2</a>
     <a class="pill" href="install.html">Install</a>
   </div>
+  <p class="coffee"><span data-i18n="site.coffee">Mandarin is free. If you enjoy it, you can buy its maker a coffee:</span>
+     <a href="https://buymeacoffee.com/musicd_projects"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me a Coffee"></a></p>
 </header>
 
 <main class="wrap">
@@ -59,6 +79,7 @@
       <a class="toc-card" href="sq-tool.html"><span class="em">📊</span><b>SQ-tool</b><span class="d">Prove your DAC gets exactly what is in the file, sample by sample.</span></a>
       <a class="toc-card" href="formats.html"><span class="em">🔊</span><b>What each device is sent</b><span class="d">Sonos, streamers, the phone and USB DACs: the file, or what it takes.</span></a>
       <a class="toc-card" href="away.html"><span class="em">🌍</span><b>Away from home</b><span class="d">The Android app over mobile data, through Tailscale, with no ports opened.</span></a>
+      <a class="toc-card" href="services.html"><span class="em">🎼</span><b>Qobuz and Tidal</b><span class="d">Your own subscription's albums beside your files, streamed through the server.</span></a>
     </div>
   </section>
   <section class="toc-group">
@@ -72,10 +93,12 @@
 </main>
 
 <footer>
+  <p class="coffee"><a href="https://buymeacoffee.com/musicd_projects"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me a Coffee" loading="lazy"></a></p>
   <p>Mandarin · MIT · © 2026 Lewis Menzies (Music Duck / Mandarin) ·
      <a href="https://github.com/meltface-80/Mandarin">Source on GitHub</a><br>
      Sonos is a trademark of Sonos, Inc.; WiiM of Linkplay Technology; Chord and Poly of Chord Electronics; FiiO of FiiO
      Electronics. This is an independent project, affiliated with none of them.</p>
 </footer>
+<script src="i18n.js"></script>
 </body>
 </html>

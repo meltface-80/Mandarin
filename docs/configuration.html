@@ -12,6 +12,17 @@
 
 <header class="pagehead">
   <div class="wrap">
+    <select id="lang-select" class="lang-select" aria-label="Language" data-i18n-attr="aria-label:site.language">
+      <option value="en">🇬🇧 English</option>
+      <option value="fr">🇫🇷 Français</option>
+      <option value="de">🇩🇪 Deutsch</option>
+      <option value="es">🇪🇸 Español</option>
+      <option value="it">🇮🇹 Italiano</option>
+      <option value="nl">🇳🇱 Nederlands</option>
+      <option value="sv">🇸🇪 Svenska</option>
+      <option value="da">🇩🇰 Dansk</option>
+      <option value="no">🇳🇴 Norsk</option>
+    </select>
     <a class="back" href="index.html">← Contents</a>
     <a class="brand" href="index.html"><img src="mandarin-icon.png" alt=""><span>Mandarin</span></a>
     <span class="spacer"></span>
@@ -26,30 +37,30 @@
     <table>
       <tr><th>Variable</th><th>Default</th><th>Purpose</th></tr>
       <tr><td>PORT</td><td>3500</td><td>The web interface, the API, and where speakers fetch audio.</td></tr>
-      <tr><td>TZ</td><td>UTC</td><td>Your time zone: Album of the day changes over at 00:01 and Smart Picks at local midnight.</td></tr>
+      <tr><td>TZ</td><td>UTC</td><td>Your time zone — Album of the day changes over at 00:01 and Smart Picks at local midnight.</td></tr>
       <tr><td>SONOS_HOSTS</td><td>—</td><td>A speaker's IP (comma-separated for several), for when multicast discovery is unreliable. One is enough.</td></tr>
       <tr><td>ART_HOSTS</td><td>—</td><td>Hosts on your own network a picture may be fetched from (comma-separated names or IPs): a radio station's logo served at home, say. Mandarin never fetches a picture from its own machine or your network otherwise; the Sonos speakers' own addresses are always allowed.</td></tr>
-      <tr><td>UPNP_HOSTS</td><td>—</td><td>Streamers to ask by address (an IP, or a description URL), for when multicast discovery misses them.</td></tr>
-      <tr><td>SERVER_IP</td><td>auto</td><td>The address speakers fetch audio from. Auto picks the machine's LAN address; set it to pin one.</td></tr>
+      <tr><td>UPNP_HOSTS</td><td>—</td><td>UPnP/DLNA renderers to ask by address (an IP, or a description URL like <code>http://192.168.1.50:49152/description.xml</code>), for when multicast discovery misses them.</td></tr>
+      <tr><td>SERVER_IP</td><td>auto</td><td>The address speakers fetch audio from. Auto picks the machine's LAN address, skipping VPN, container and VM interfaces, and searches for speakers on every LAN interface. Set it to pin one.</td></tr>
       <tr><td>INCLUDE_ZONES</td><td>—</td><td>Offer only these rooms, e.g. <code>Kitchen,Study</code>.</td></tr>
       <tr><td>EXCLUDE_ZONES</td><td>—</td><td>Offer every room except these.</td></tr>
-      <tr><td>TRUSTED_PROXIES</td><td>—</td><td>Reverse proxies whose word on who asked is believed: <code>127.0.0.1</code> for an nginx, Caddy or <code>tailscale serve</code> on the same machine. The built-in Tailscale needs nothing here.</td></tr>
-      <tr><td>SCAN_INTERVAL_HOURS</td><td>6</td><td>How often the music folders are re-checked in full. Between those, albums added or deleted are noticed as it happens (a network share's folders looked at every 30 seconds), and a long copy shows album by album.</td></tr>
-      <tr><td>TRANSCODE_CACHE_GB</td><td>4</td><td>Disk kept for converted tracks. With upsampling on, 16 is a better number.</td></tr>
+      <tr><td>SCAN_INTERVAL_HOURS</td><td>6</td><td>How often the music folders are re-checked in full (only changed files are re-read). Between those, an album copied in or deleted is noticed as it happens: through the file system's own notifications, and on a network share or FUSE folder (SMB, NFS, mergerfs), whose changes made elsewhere aren't told, by looking at its folders every 30 seconds. A deletion shows a few seconds after it; a long copy is read at least every 30 seconds while it goes on, so albums appear one by one. Rescan any time from the menu.</td></tr>
+      <tr><td>TRANSCODE_CACHE_GB</td><td>4</td><td>Disk kept for converted tracks. An upsampled track is several times a CD-rate one: with upsampling on, 16 is a better number.</td></tr>
       <tr><td>TRANSCODE_CONCURRENCY</td><td>2</td><td>How many tracks are converted at once.</td></tr>
-      <tr><td>PLAYBACK_CORES</td><td>auto</td><td>Processor cores kept for playback alone: one, or two while DSP is in use. <code>0</code> shares every core.</td></tr>
+      <tr><td>PLAYBACK_CORES</td><td>auto</td><td>Processor cores kept for playback alone: one, or two while DSP is in use. <code>1</code> or <code>2</code> fixes the number; <code>0</code> shares every core. Settings → Library Scanner → Processor shows the split.</td></tr>
       <tr><td>MUSIC_DIR</td><td>/music</td><td>The first music folder, until you change the list in Settings → Music Folders (the Linux installer sets it from <code>--music</code>).</td></tr>
+      <tr><td>TRUSTED_PROXIES</td><td>—</td><td>Reverse proxies whose word on who asked is believed (addresses or ranges, comma-separated): <code>127.0.0.1</code> for an nginx, Caddy or <code>tailscale serve</code> on the same machine. The built-in Tailscale needs nothing here.</td></tr>
       <tr><td>TS_AUTHKEY</td><td>—</td><td>Sign the server's built-in Tailscale in with an auth key instead of from Settings → Setup → Away from home.</td></tr>
       <tr><td>TS_HOSTNAME</td><td>musicd</td><td>The server's name on your tailnet.</td></tr>
       <tr><td>TAILSCALE</td><td>on</td><td><code>off</code> leaves the built-in Tailscale out (Tailscale on the host still works).</td></tr>
-      <tr><td>TAILSCALE_ADDRESS</td><td>auto</td><td>The server's address away from home, if the one found isn't the one to use.</td></tr>
       <tr><td>SQTOOL_PYTHON</td><td>python3</td><td>The Python 3 (with numpy) that runs <a href="sq-tool.html">SQ-tool</a>.</td></tr>
-      <tr><td>MUSICBRAINZ_URL</td><td>musicbrainz.org</td><td>Another MusicBrainz web service (a mirror) for the identification scan.</td></tr>
-      <tr><td>IDENTIFY</td><td>on</td><td><code>0</code> leaves the album identification scan out entirely.</td></tr>
-      <tr><td>MBPACK_DIR</td><td>data folder</td><td>Where the MusicBrainz pack is kept; overrides the folder chosen in Settings → Library Scanner.</td></tr>
-      <tr><td>ITUNES_COUNTRY</td><td>US</td><td>The Apple store the identification scan's iTunes lookups use (<code>GB</code>, <code>DE</code>&hellip;).</td></tr>
-      <tr><td>AUTOEQ_URL</td><td>GitHub</td><td>Where AutoEq's headphone profiles are read from (a device's DSP).</td></tr>
-      <tr><td>LASTFM_KEY</td><td>—</td><td>A Last.fm key for similar artists and albums, until one is saved in Settings → Setup → API Keys. Scrobbling also needs the key's shared secret, saved there.</td></tr>
+      <tr><td>TAILSCALE_ADDRESS</td><td>auto</td><td>The server's address away from home, if the one found on the host's <code>tailscale0</code> isn't the one to use — an IP, a MagicDNS name, or a full <code>https://</code> address. See <a href="away.html">Away from home</a>.</td></tr>
+      <tr><td>MUSICBRAINZ_URL</td><td>musicbrainz.org</td><td>Another MusicBrainz web service (a mirror) for the identification scan, release days and an album write-up's year.</td></tr>
+      <tr><td>IDENTIFY</td><td>on</td><td><code>0</code> leaves the identification scan out entirely.</td></tr>
+      <tr><td>MBPACK_DIR</td><td>data folder</td><td>Where the MusicBrainz pack is kept (Settings → Library Scanner); overrides the folder chosen there.</td></tr>
+      <tr><td>ITUNES_COUNTRY</td><td>US</td><td>The Apple store the identification scan's iTunes lookups use (<code>GB</code>, <code>DE</code>…).</td></tr>
+      <tr><td>AUTOEQ_URL</td><td>GitHub</td><td>Where AutoEq's results are read from for headphone profiles (Settings → Audio Devices → a device → DSP).</td></tr>
+      <tr><td>LASTFM_KEY</td><td>—</td><td>A Last.fm API key for similar artists and albums on album and artist pages, until one is saved in Settings → Setup → API Keys (which then wins). Scrobbling also needs the key's shared secret, saved there.</td></tr>
       <tr><td>DEBUG</td><td>—</td><td>Log every API call.</td></tr>
     </table>
   </div>
@@ -59,11 +70,13 @@
 </main>
 
 <footer>
+  <p class="coffee"><a href="https://buymeacoffee.com/musicd_projects"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me a Coffee" loading="lazy"></a></p>
   <p>Mandarin · MIT · © 2026 Lewis Menzies (Music Duck / Mandarin) ·
      <a href="https://github.com/meltface-80/Mandarin">Source on GitHub</a><br>
      Sonos is a trademark of Sonos, Inc.; WiiM of Linkplay Technology; Chord and Poly of Chord Electronics; FiiO of FiiO
      Electronics. This is an independent project, affiliated with none of them.</p>
 </footer>
 <script src="site.js"></script>
+<script src="i18n.js"></script>
 </body>
 </html>

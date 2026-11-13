@@ -12,6 +12,17 @@
 
 <header class="pagehead">
   <div class="wrap">
+    <select id="lang-select" class="lang-select" aria-label="Language" data-i18n-attr="aria-label:site.language">
+      <option value="en">🇬🇧 English</option>
+      <option value="fr">🇫🇷 Français</option>
+      <option value="de">🇩🇪 Deutsch</option>
+      <option value="es">🇪🇸 Español</option>
+      <option value="it">🇮🇹 Italiano</option>
+      <option value="nl">🇳🇱 Nederlands</option>
+      <option value="sv">🇸🇪 Svenska</option>
+      <option value="da">🇩🇰 Dansk</option>
+      <option value="no">🇳🇴 Norsk</option>
+    </select>
     <a class="back" href="index.html">← Contents</a>
     <a class="brand" href="index.html"><img src="mandarin-icon.png" alt=""><span>Mandarin</span></a>
     <span class="spacer"></span>
@@ -46,6 +57,11 @@
   <p style="margin-top:16px"><a class="pill solid" href="downloads.html#bridge">⬇ Get Mandarin Bridge v0.3.10</a></p>
 
   <p style="margin-top:16px"><b>Updated: over SlimProto, Mandarin now sends Mandarin Bridge a continuous stream of PCM (DSD still goes as DSD).</b></p>
+  <p>It finds Mandarin on the network by itself (SlimProto, port 3483; a Linux one can be pointed at it with
+     <code>--server</code>), and Mandarin reads the DAC whole from it (every rate, depth and DSD multiple, nothing to
+     tick); Now playing's <a href="signal-path.html">signal path</a> says what it feeds the DAC, in its own words. On
+     <a href="mandarin-os.html">Mandarin OS</a>, choose it as Mandarin OS installs, or <b>Install</b> it from the system
+     page's Settings tab.</p>
   <p>A Bridge that was a UPnP renderer before v0.3.0 keeps the name and settings Mandarin had for it; one whose app is
      installed again is the device it was.</p>
 
@@ -64,7 +80,7 @@
 
   <h2>Set up on Linux</h2>
   <p>As root, on the computer the DAC is plugged into:</p>
-  <div class="codebox"><button class="copy-btn" data-copy>Copy</button>
+  <div class="codebox"><button class="copy-btn" data-copy data-copied="Copied" data-i18n-attr="data-copied:site.copied">Copy</button>
 <pre>curl -fsSL https://github.com/meltface-80/Mandarin/releases/download/mandarin-bridge-v0.3.10/install.sh | sudo sh</pre>
 </div>
   <p>It installs the Bridge and the audio engine, ffmpeg where it isn't there, and a service that starts it at boot.
@@ -79,7 +95,7 @@
      DoP, even where it takes DSD natively (as Mandarin Bridge for Android plays it). The Bridge reads the DAC's own USB
      descriptor, and where it says native DSD and the kernel offers none, its page and its log give the one line that
      has the kernel offer it, for that DAC alone, such as:</p>
-  <div class="codebox"><button class="copy-btn" data-copy>Copy</button>
+  <div class="codebox"><button class="copy-btn" data-copy data-copied="Copied" data-i18n-attr="data-copied:site.copied">Copy</button>
 <pre>echo "options snd-usb-audio vid=0x2622 pid=0x0041 quirk_flags=0x8000" | sudo tee /etc/modprobe.d/mandarin-dsd.conf</pre>
 </div>
   <p>(with your DAC's own <code>vid</code> and <code>pid</code>, as the page gives them); then unplug the DAC and plug it
@@ -128,11 +144,13 @@
 </main>
 
 <footer>
+  <p class="coffee"><a href="https://buymeacoffee.com/musicd_projects"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me a Coffee" loading="lazy"></a></p>
   <p>Mandarin · MIT · © 2026 Lewis Menzies (Music Duck / Mandarin) ·
      <a href="https://github.com/meltface-80/Mandarin">Source on GitHub</a><br>
      Sonos is a trademark of Sonos, Inc.; WiiM of Linkplay Technology; Chord and Poly of Chord Electronics; FiiO of FiiO
      Electronics. This is an independent project, affiliated with none of them.</p>
 </footer>
 <script src="site.js"></script>
+<script src="i18n.js"></script>
 </body>
 </html>

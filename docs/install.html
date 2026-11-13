@@ -12,6 +12,17 @@
 
 <header class="pagehead">
   <div class="wrap">
+    <select id="lang-select" class="lang-select" aria-label="Language" data-i18n-attr="aria-label:site.language">
+      <option value="en">🇬🇧 English</option>
+      <option value="fr">🇫🇷 Français</option>
+      <option value="de">🇩🇪 Deutsch</option>
+      <option value="es">🇪🇸 Español</option>
+      <option value="it">🇮🇹 Italiano</option>
+      <option value="nl">🇳🇱 Nederlands</option>
+      <option value="sv">🇸🇪 Svenska</option>
+      <option value="da">🇩🇰 Dansk</option>
+      <option value="no">🇳🇴 Norsk</option>
+    </select>
     <a class="back" href="index.html">← Contents</a>
     <a class="brand" href="index.html"><img src="mandarin-icon.png" alt=""><span>Mandarin</span></a>
     <span class="spacer"></span>
@@ -52,14 +63,15 @@
   <h2 id="linux">Install on Linux <small>(the alternative)</small></h2>
   <p>Mandarin installed natively, for a Linux machine you already run. On an always-on Debian, Ubuntu or Raspberry Pi OS machine (64-bit, x64 or arm64) on the same network as your
      speakers, one line as root:</p>
-  <div class="codebox"><button class="copy-btn" data-copy>Copy</button>
+  <div class="codebox"><button class="copy-btn" data-copy data-copied="Copied" data-i18n-attr="data-copied:site.copied">Copy</button>
 <pre>curl -fsSL https://raw.githubusercontent.com/meltface-80/Mandarin/main/tools/linux/install.sh | sudo bash -s -- --music /srv/music</pre>
 </div>
   <div class="note">
     It installs what Mandarin needs from apt, makes a user of its own (<code>mandarin</code>, in the audio group), runs
     Mandarin as a systemd service (<code>mandarin.service</code>) now and at every start, and keeps its data in
-    <code>/var/lib/mandarin</code>. Without <code>--music</code>, it keeps the music folder it had (a first install takes
-    <code>/music</code>); more can be added in Settings → Music Folders.
+    <code>/var/lib/mandarin</code>. Open <b>http://&lt;server-ip&gt;:3500</b>. The first scan runs straight away; a big
+    library takes a few minutes and albums appear as it goes. Without <code>--music</code>, it keeps the music folder it
+    had (a first install takes <code>/music</code>); more can be added in Settings → Music Folders.
   </div>
   <div class="tablewrap"><table>
     <tr><th>Option</th><th>What it does</th></tr>
@@ -72,13 +84,17 @@
   <p style="margin-top:12px"><b>To update,</b> use Settings → Updates (below), or run the line again with the same options:
      the library, the account and the settings are kept. Run it with another <code>--music</code> to change the music
      folder. To remove it:</p>
-  <div class="codebox"><button class="copy-btn" data-copy>Copy</button>
+  <div class="codebox"><button class="copy-btn" data-copy data-copied="Copied" data-i18n-attr="data-copied:site.copied">Copy</button>
 <pre>curl -fsSL https://raw.githubusercontent.com/meltface-80/Mandarin/main/tools/linux/install.sh | sudo bash -s -- --uninstall</pre>
 </div>
   <div class="note">
     <b>A USB DAC on this machine</b> is played by <a href="bridges.html">Mandarin Bridge for Linux</a>, installed beside
-    the server (one line).
+    the server (one line), and the DAC is a room of its own in <b>Settings → Audio Devices</b>.
   </div>
+  <p style="margin-top:12px"><b>Music folders, chosen in the app:</b> add any folder the server can read in <b>Settings →
+     Music Folders</b>, as many as you like, and remove them there too. A folder that goes missing for a while (a drive
+     asleep, a share that dropped, part of it unreadable, most of it gone at once) keeps its albums; the page says so and
+     offers to forget it.</p>
 
   <div class="firstrun" style="margin-top:22px">
     <ol>
@@ -98,17 +114,42 @@
      <b>Check for update</b> beside it, and each Mandarin Bridge has a row of its own. It also checks twice a day and
      shows a banner when a new version is out. On Mandarin OS, Mandarin updates the same way, and Mandarin OS itself
      from its system page (<a href="mandarin-os.html#updating">Updating Mandarin OS</a>).</p>
-  <p>The new program is laid in beside the old before anything is swapped: if something fails after the swap, the old
-     one is put back. If it can't start again in place, its systemd service starts it again.</p>
+  <p>Mandarin's server is one program, in C#. An update from the app fetches that program of the new version for your
+     machine (x64 or ARM64) from the release, checks it against the release's sums and its signature with Mandarin's
+     release key (a release replaced along with its sums is refused), puts it and the new page in place, and starts
+     again in the same process — a few seconds. If it can't start again in place, it stops and its systemd service starts
+     it again.</p>
+  <p>The new program is checked and laid in beside the old before anything is swapped: if something fails after the
+     swap, the old one (kept as <code>mandarin-server.prev</code>) is put back, and a folder the release can't be written
+     over is named before anything is changed.</p>
+  <h3 class="sub" id="updating-bridges">The Mandarin Bridges</h3>
+  <p>Every Bridge Mandarin knows, on Android, Linux or a Raspberry Pi, has a row of its own on Settings →
+     <b>Updates</b>, its name and version, and its own <b>Check for update</b>, as the server's and the app's rows: it asks
+     GitHub now and becomes <b>Update available</b> when a newer build is published for it (the rows also find one by
+     themselves within a minute or so). A tap on <b>Update available</b> asks the Bridge to update itself: it fetches the
+     release from GitHub, checks it against the checksum published with it and its signature with Mandarin's release key,
+     and puts it in place.</p>
+  <ul class="plain">
+    <li><b>Linux and the Raspberry Pi:</b> in a few seconds, by itself. The new build goes in the Bridge's data folder and
+        the program installed hands over to it as it starts again; one that fails as it starts is let go, and the
+        installed one runs on.</li>
+    <li><b>Android:</b> <b>Update</b> puts a notification on the device; its tap downloads the update in the browser, and
+        Android's installer asks you to install it. The Bridge holds no permission to install apps itself.</li>
+    <li>An Android Bridge from before v0.2.1, or a Linux or Raspberry Pi Bridge from before v0.3.1, needs one last update
+        by hand, from <a href="downloads.html#bridge">Downloads</a>.</li>
+    <li>A numbered Mandarin follows the Bridges' numbered releases (Mandarin Bridge v0.3.10 with Mandarin v1.3.2).</li>
+  </ul>
   <nav class="pager"><a class="back" href="index.html">← Back to contents</a><a class="pill" href="mandarin-os.html">Next: Mandarin OS →</a></nav>
 </main>
 
 <footer>
+  <p class="coffee"><a href="https://buymeacoffee.com/musicd_projects"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me a Coffee" loading="lazy"></a></p>
   <p>Mandarin · MIT · © 2026 Lewis Menzies (Music Duck / Mandarin) ·
      <a href="https://github.com/meltface-80/Mandarin">Source on GitHub</a><br>
      Sonos is a trademark of Sonos, Inc.; WiiM of Linkplay Technology; Chord and Poly of Chord Electronics; FiiO of FiiO
      Electronics. This is an independent project, affiliated with none of them.</p>
 </footer>
 <script src="site.js"></script>
+<script src="i18n.js"></script>
 </body>
 </html>

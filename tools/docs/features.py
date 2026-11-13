@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 """
-features.py: the one list of Mandarin's features, for the README and the site.
+features.py: the one list of Mandarin's features, for the site's Features page (docs/features.html).
 
 Each feature: what it is (30 words at most, shown) and how to switch it on and
 use it (behind the ⓘ). Every line here is checked against the code; keep it so.
 
-    python3 tools/docs/features.py      # rewrites both, between their markers
+    python3 tools/docs/features.py          # rewrites docs/features.html between its markers
+    python3 tools/docs/features.py --check  # fails while the page isn't what it would write
 """
 import html
 import re
@@ -424,54 +425,47 @@ def md_inline_to_html(s):
     return out
 
 
-def readme_block():
-    lines = ["Every feature below has an **ⓘ**: open it for how to switch the feature on and use it.", ""]
-    for i, (fid, em, title, new, what, how) in enumerate(FEATURES):
-        lines.append("%s **%s**%s" % (em, title, " — *new in v1.3.1*" if new else ""))
-        lines.append("")
-        lines.append(what)
-        lines.append("")
-        lines.append("<details><summary><b>ⓘ</b> How to set it up and use it</summary>")
-        lines.append("")
-        lines.append(how)
-        lines.append("")
-        lines.append("</details>")
-        lines.append("")
-        if i != len(FEATURES) - 1:
-            lines.append("⸻")
-            lines.append("")
-    return "\n".join(lines).rstrip() + "\n"
+# Where a feature's "how" points: a page of the site, by the anchor written in FEATURES.
+PAGES = {"downloads": "downloads.html", "logs": "logs.html", "mandarin-os": "mandarin-os.html",
+         "away-from-home-tailscale": "away.html", "sq-tool": "sq-tool.html", "mandarin-bridge": "bridges.html",
+         "upsampling-and-output": "upsampling.html", "signal-path": "signal-path.html", "your-account": "account.html",
+         "qobuz": "services.html#qobuz", "tidal": "services.html#tidal",
+         "sound-devices-on-the-server": "how-it-works.html#sound-devices"}
+
+
+def site_how(how):
+    def page(m):
+        if m.group(1) not in PAGES:
+            sys.exit("A link to #%s, which no page of the site is named for: add it to PAGES" % m.group(1))
+        return "](%s)" % PAGES[m.group(1)]
+    how = re.sub(r"\]\(#([^)]+)\)", page, how)
+    how = how.replace("\n\n", " ")  # one paragraph on a card
+    return md_inline_to_html(how)
 
 
 def site_block():
-    # Site links: README anchors become the README on GitHub.
-    pages = {"downloads": "downloads.html", "logs": "logs.html", "mandarin-os": "mandarin-os.html", "away-from-home-tailscale": "away.html",
-             "sq-tool": "sq-tool.html", "mandarin-bridge": "bridges.html", "upsampling-and-output": "upsampling.html",
-             "signal-path": "signal-path.html", "your-account": "account.html"}
-
-    def site_how(how):
-        how = re.sub(r"\]\(#([^)]+)\)", lambda m: "](%s)" % pages.get(m.group(1), "https://github.com/meltface-80/Mandarin#" + m.group(1)), how)
-        how = how.replace("\n\n", " ")  # one paragraph on a card
-        return md_inline_to_html(how)
+    # Each text carries its data-i18n key (docs/i18n.js; tools/docs/i18n.js takes the English into docs/i18n/en.json):
+    # features.<id>.title, .what, .how and .info (the ⓘ's label), and the two shared by every card.
     out = []
     for fid, em, title, new, what, how in FEATURES:
         t = html.escape(title)
         out.append(
-            '      <div class="card%s"><h3><span class="em">%s</span>%s%s'
+            '      <div class="card%s"><h3><span class="em">%s</span><span data-i18n="features.%s.title">%s</span>%s'
             '<button class="info" type="button" aria-expanded="false" aria-controls="how-%s" '
-            'aria-label="How to set up and use %s">i</button></h3>\n'
-            '        <p>%s</p>\n'
-            '        <div class="how" id="how-%s" hidden><b>How to set it up and use it.</b> %s</div></div>'
-            % (" is-new" if new else "", em, t, '<span class="new">New</span>' if new else "",
-               fid, t, md_inline_to_html(what), fid, site_how(how)))
+            'aria-label="How to set up and use %s" data-i18n-attr="aria-label:features.%s.info">i</button></h3>\n'
+            '        <p data-i18n="features.%s.what">%s</p>\n'
+            '        <div class="how" id="how-%s" hidden><b data-i18n="features.how">How to set it up and use it.</b> '
+            '<span data-i18n="features.%s.how">%s</span></div></div>'
+            % (" is-new" if new else "", em, fid, t,
+               '<span class="new" data-i18n="features.new">New</span>' if new else "",
+               fid, t, fid, fid, md_inline_to_html(what), fid, fid, site_how(how)))
     return "\n".join(out) + "\n"
 
 
-def replace_between(path, start, end, body):
-    s = path.read_text()
+def replaced_between(s, start, end, body):
     a = s.index(start) + len(start)
     b = s.index(end, a)
-    path.write_text(s[:a] + "\n" + body + s[b:])
+    return s[:a] + "\n" + body + s[b:]
 
 
 def main():
@@ -480,8 +474,14 @@ def main():
         sys.exit("Over %d words: %s" % (MAX_WORDS, bad))
     ids = [f[0] for f in FEATURES]
     assert len(ids) == len(set(ids)), "duplicate ids"
-    replace_between(ROOT / "README.md", "<!-- features:start -->", "<!-- features:end -->", "\n" + readme_block() + "\n")
-    replace_between(ROOT / "docs/features.html", "<!-- features:start -->", "      <!-- features:end -->", site_block())
+    page = ROOT / "docs/features.html"
+    s = page.read_text()
+    want = replaced_between(s, "<!-- features:start -->", "      <!-- features:end -->", site_block())
+    if "--check" in sys.argv[1:]:
+        if want != s:
+            sys.exit("docs/features.html is not what tools/docs/features.py writes: run python3 tools/docs/features.py")
+        return
+    page.write_text(want)
     print("%d features; longest %d words" % (len(FEATURES), max(words(f[4]) for f in FEATURES)))
 
 

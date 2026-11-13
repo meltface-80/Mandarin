@@ -12,6 +12,17 @@
 
 <header class="pagehead">
   <div class="wrap">
+    <select id="lang-select" class="lang-select" aria-label="Language" data-i18n-attr="aria-label:site.language">
+      <option value="en">🇬🇧 English</option>
+      <option value="fr">🇫🇷 Français</option>
+      <option value="de">🇩🇪 Deutsch</option>
+      <option value="es">🇪🇸 Español</option>
+      <option value="it">🇮🇹 Italiano</option>
+      <option value="nl">🇳🇱 Nederlands</option>
+      <option value="sv">🇸🇪 Svenska</option>
+      <option value="da">🇩🇰 Dansk</option>
+      <option value="no">🇳🇴 Norsk</option>
+    </select>
     <a class="back" href="index.html">← Contents</a>
     <a class="brand" href="index.html"><img src="mandarin-icon.png" alt=""><span>Mandarin</span></a>
     <span class="spacer"></span>
@@ -40,6 +51,12 @@
       <h3>What its DAC takes</h3>
       <p>Every rate, depth and DSD rate the DAC says it takes, read from the Bridge itself: the file as it is within them,
          DSD natively or as DoP. <a href="bridges.html">Mandarin Bridge</a>.</p>
+      <p>Over SlimProto, a continuous stream of PCM; DSD as the DSF or DFF itself, natively or as DoP.</p>
+    </div>
+    <div class="info-card">
+      <span class="sym">Squeezelite player</span>
+      <h3>Each track's file</h3>
+      <p>FLAC, or upsampled; DSD as DSF where it takes it. One track plays on into the next from its own buffer.</p>
     </div>
     <div class="info-card">
       <span class="sym">The Android app</span>
@@ -58,18 +75,20 @@
       <p>APE, WavPack, WMA Lossless, 24-bit WAV, more than two channels: FLAC, in stereo.</p>
     </div>
   </div>
-  <p style="margin-top:18px">Conversion is ffmpeg with the SoX resampler and triangular dither. A converted track plays while
-     it is still being written, the next tracks in the queue are prepared ahead, and replays come from a cache (4 GB by
-     default).</p>
+  <p style="margin-top:18px">Conversion is ffmpeg with the SoX resampler and triangular dither. A converted track is written
+     to a cache as it plays, so the device starts on the first frames, and the next tracks in the queue are prepared
+     ahead. Replays come from the cache (4 GB by default, least recently played removed first).</p>
   <nav class="pager"><a class="back" href="index.html">← Back to contents</a><a class="pill" href="away.html">Next: Away from home →</a></nav>
 </main>
 
 <footer>
+  <p class="coffee"><a href="https://buymeacoffee.com/musicd_projects"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me a Coffee" loading="lazy"></a></p>
   <p>Mandarin · MIT · © 2026 Lewis Menzies (Music Duck / Mandarin) ·
      <a href="https://github.com/meltface-80/Mandarin">Source on GitHub</a><br>
      Sonos is a trademark of Sonos, Inc.; WiiM of Linkplay Technology; Chord and Poly of Chord Electronics; FiiO of FiiO
      Electronics. This is an independent project, affiliated with none of them.</p>
 </footer>
 <script src="site.js"></script>
+<script src="i18n.js"></script>
 </body>
 </html>

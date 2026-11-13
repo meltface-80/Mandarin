@@ -12,6 +12,17 @@
 
 <header class="pagehead">
   <div class="wrap">
+    <select id="lang-select" class="lang-select" aria-label="Language" data-i18n-attr="aria-label:site.language">
+      <option value="en">🇬🇧 English</option>
+      <option value="fr">🇫🇷 Français</option>
+      <option value="de">🇩🇪 Deutsch</option>
+      <option value="es">🇪🇸 Español</option>
+      <option value="it">🇮🇹 Italiano</option>
+      <option value="nl">🇳🇱 Nederlands</option>
+      <option value="sv">🇸🇪 Svenska</option>
+      <option value="da">🇩🇰 Dansk</option>
+      <option value="no">🇳🇴 Norsk</option>
+    </select>
     <a class="back" href="index.html">← Contents</a>
     <a class="brand" href="index.html"><img src="mandarin-icon.png" alt=""><span>Mandarin</span></a>
     <span class="spacer"></span>
@@ -95,18 +106,18 @@
         on for each).</li>
     <li>In the folder you downloaded to, check the download against its checksum (it should say <i>OK</i>):</li>
   </ol>
-  <div class="codebox"><button class="copy-btn" data-copy>Copy</button>
+  <div class="codebox"><button class="copy-btn" data-copy data-copied="Copied" data-i18n-attr="data-copied:site.copied">Copy</button>
 <pre>sha256sum -c mandarin-os-0.1.6-x64.img.xz.sha256</pre>
 </div>
   <ol class="plain" start="4">
     <li>Write it to the whole device, <code>/dev/sdX</code> (not a partition such as <code>/dev/sdX1</code>), with
         <code>sdX</code> the stick's name from <code>lsblk</code>:</li>
   </ol>
-  <div class="codebox"><button class="copy-btn" data-copy>Copy</button>
+  <div class="codebox"><button class="copy-btn" data-copy data-copied="Copied" data-i18n-attr="data-copied:site.copied">Copy</button>
 <pre>xz -dc mandarin-os-0.1.6-x64.img.xz | sudo dd of=/dev/sdX bs=4M conv=fsync status=progress</pre>
 </div>
   <p>From the plain image, the same without <code>xz</code>:</p>
-  <div class="codebox"><button class="copy-btn" data-copy>Copy</button>
+  <div class="codebox"><button class="copy-btn" data-copy data-copied="Copied" data-i18n-attr="data-copied:site.copied">Copy</button>
 <pre>sudo dd if=mandarin-os-0.1.6-x64.img of=/dev/sdX bs=4M conv=fsync status=progress</pre>
 </div>
   <ol class="plain" start="5">
@@ -279,11 +290,13 @@
 </main>
 
 <footer>
+  <p class="coffee"><a href="https://buymeacoffee.com/musicd_projects"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me a Coffee" loading="lazy"></a></p>
   <p>Mandarin · MIT · © 2026 Lewis Menzies (Music Duck / Mandarin) ·
      <a href="https://github.com/meltface-80/Mandarin">Source on GitHub</a><br>
      Sonos is a trademark of Sonos, Inc.; WiiM of Linkplay Technology; Chord and Poly of Chord Electronics; FiiO of FiiO
      Electronics. This is an independent project, affiliated with none of them.</p>
 </footer>
 <script src="site.js"></script>
+<script src="i18n.js"></script>
 </body>
 </html>

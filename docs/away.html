@@ -12,6 +12,17 @@
 
 <header class="pagehead">
   <div class="wrap">
+    <select id="lang-select" class="lang-select" aria-label="Language" data-i18n-attr="aria-label:site.language">
+      <option value="en">🇬🇧 English</option>
+      <option value="fr">🇫🇷 Français</option>
+      <option value="de">🇩🇪 Deutsch</option>
+      <option value="es">🇪🇸 Español</option>
+      <option value="it">🇮🇹 Italiano</option>
+      <option value="nl">🇳🇱 Nederlands</option>
+      <option value="sv">🇸🇪 Svenska</option>
+      <option value="da">🇩🇰 Dansk</option>
+      <option value="no">🇳🇴 Norsk</option>
+    </select>
     <a class="back" href="index.html">← Contents</a>
     <a class="brand" href="index.html"><img src="mandarin-icon.png" alt=""><span>Mandarin</span></a>
     <span class="spacer"></span>
@@ -33,11 +44,26 @@
   <p>From then on the app follows the phone's network: on your Wi-Fi it uses the server's home address; on mobile data it
      goes over its own Tailscale, and the page, the queue and the music carry on without a reload.</p>
 
+  <p>Anything else signed in to your tailnet — an iPhone with the Tailscale app, a laptop — opens the address
+     <i>Away from home</i> shows.</p>
+
+  <h2>Use Tailscale, not a port forward</h2>
+  <p>Mandarin speaks plain http, as a server at home has no certificate: safe at home, and over Tailscale, whose own link
+     is encrypted. A port forwarded on your router is neither — what the app sends, its sign-in included, would cross the
+     internet unencrypted. The server's log says so whenever a plain-http request arrives from outside your home
+     network.</p>
+
   <h2>Away, only the phone plays</h2>
-  <p>Whatever reaches the server from outside your home network is offered one room: the phone asking, as <i>This
-     phone</i>. The Sonos rooms aren't listed, and nothing away can play to them. Tracks stream as <b>Opus 256 kbps</b> by
-     default (about a quarter of a CD-quality FLAC's data); <b>Settings → Setup → Downloads → Stream as</b> in the app can
-     send the original files instead. Albums you've downloaded play from the phone.</p>
+  <p>Whatever reaches the server from outside your home network — Tailscale included — is offered one room: the phone
+     asking, as <i>This phone</i>. The Sonos rooms aren't listed, and nothing away can play to them, pause, group or mute
+     them, or reach another phone. The server decides this by where each request comes from, so it holds for any device:
+     an iPhone or a laptop on Tailscale can browse the library but has nothing to play to. At home everything is as
+     before.</p>
+  <p>Away, tracks stream as <b>Opus 256 kbps</b> by default (about a quarter of a CD-quality FLAC's data), made through a
+     64-bit float resample to Opus's 48 kHz and decoded on the phone by the app's own libopus; <b>Settings → Setup →
+     Downloads → Stream as</b> in the app can send the original files instead. Albums you've downloaded play from the
+     phone. On a weak signal the track that's playing comes first: the tracks after it are fetched only once it has
+     enough.</p>
   <p>At home the app keeps its own Tailscale running only while the phone is playing, so walking out of the house doesn't
      stop the music; back home, the phone plays from home again, and the engine stops as soon as the app is off screen
      or the phone stops playing. The engine also stops itself when nothing goes through it (two and a half minutes, with
@@ -47,15 +73,21 @@
   <div class="note"><b>For a server with no one at it,</b> give it an auth key instead, as the server's
      <code>TS_AUTHKEY</code> (see <a href="configuration.html">Settings for the server</a>). Don't advertise your home subnet from the server's
      Tailscale: requests through a subnet router arrive from a home address, and the server can't tell they're away.</div>
-  <nav class="pager"><a class="back" href="index.html">← Back to contents</a><a class="pill" href="how-it-works.html">Next: How it works →</a></nav>
+  <p>The server's Tailscale keeps its identity in the data folder, so an update or a reinstall is the same machine.
+     <code>TAILSCALE=off</code> leaves it out; <code>TS_HOSTNAME</code> names it something other than <i>musicd</i>.
+     Tailscale installed on the host still works as before (the server uses its own first when both are there, or
+     <code>TAILSCALE_ADDRESS</code> to say which).</p>
+  <nav class="pager"><a class="back" href="index.html">← Back to contents</a><a class="pill" href="services.html">Next: Qobuz and Tidal →</a></nav>
 </main>
 
 <footer>
+  <p class="coffee"><a href="https://buymeacoffee.com/musicd_projects"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me a Coffee" loading="lazy"></a></p>
   <p>Mandarin · MIT · © 2026 Lewis Menzies (Music Duck / Mandarin) ·
      <a href="https://github.com/meltface-80/Mandarin">Source on GitHub</a><br>
      Sonos is a trademark of Sonos, Inc.; WiiM of Linkplay Technology; Chord and Poly of Chord Electronics; FiiO of FiiO
      Electronics. This is an independent project, affiliated with none of them.</p>
 </footer>
 <script src="site.js"></script>
+<script src="i18n.js"></script>
 </body>
 </html>

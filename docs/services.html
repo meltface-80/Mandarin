@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Qobuz and Tidal · Mandarin</title>
+<meta name="description" content="Mandarin streams from Qobuz and Tidal with your own subscription: favourites and purchases as albums, the services' browsers, and every track through the server.">
+<link rel="icon" href="mandarin-icon.png">
+<link rel="stylesheet" href="site.css">
+</head>
+<body>
+
+<header class="pagehead">
+  <div class="wrap">
+    <select id="lang-select" class="lang-select" aria-label="Language" data-i18n-attr="aria-label:site.language">
+      <option value="en">🇬🇧 English</option>
+      <option value="fr">🇫🇷 Français</option>
+      <option value="de">🇩🇪 Deutsch</option>
+      <option value="es">🇪🇸 Español</option>
+      <option value="it">🇮🇹 Italiano</option>
+      <option value="nl">🇳🇱 Nederlands</option>
+      <option value="sv">🇸🇪 Svenska</option>
+      <option value="da">🇩🇰 Dansk</option>
+      <option value="no">🇳🇴 Norsk</option>
+    </select>
+    <a class="back" href="index.html">← Contents</a>
+    <a class="brand" href="index.html"><img src="mandarin-icon.png" alt=""><span>Mandarin</span></a>
+    <span class="spacer"></span>
+    <a class="pill solid" href="downloads.html">Downloads</a>
+  </div>
+</header>
+
+<main class="wrap page">
+  <h1>Qobuz and Tidal</h1>
+  <p class="lead">With a subscription of your own, Qobuz's and Tidal's albums live in Mandarin beside your files: your favourites on the walls, their catalogues in search, every track streamed through the server.</p>
+  <h2 id="qobuz">Qobuz</h2>
+  <p>Mandarin streams from Qobuz with a Qobuz subscription (v0.6.23), the way the Lyrion Music Server's Qobuz plugin does — the same API, the same credentials, the same rules. Experimental, in line with Qobuz's terms of service; those who use it do so at their own risk.</p>
+  <ul class="plain">
+    <li><b>A subscriber signs in</b> (<i>Settings → Services → Qobuz</i>). Mandarin keeps the sign-in token, never the password. Qobuz decides what the account may stream.</li>
+    <li><b>Your favourites and purchases are albums here</b> — every one, brought up to date shortly after signing in, every six hours, and when you add a favourite: on the walls, in search, Smart Picks and Listen later, with a Qobuz mark on the cover. <i>Favourites and purchases in the library</i> on the Services page switches this off.</li>
+    <li><b>Favourites follow both ways, by themselves</b> (v0.7.3). Remove an album from your Qobuz favourites here and it is gone from Qobuz and off the walls within the moment; add one and it is on them. A favourite added or removed in the Qobuz app follows here on the next look: the server checks every two minutes, and the page checks when you come back to Home or the Library wall. An album's page says why it is in the library — a favourite or a purchase since a date, or only played — and its release date when it is not out yet.</li>
+    <li><b>The Qobuz browser</b> (<i>☰ → Qobuz</i>): search, new releases, best sellers, most streamed, press awards, editor's picks, an artist's albums, as the album grid the rest of Mandarin draws, each cover with its <b>+</b> for your Qobuz favourites. Tapping an album opens its page here, the same page as any album: Play now, Play next, Queue, or from a track, to the zone chosen. An album played without being kept is known here for a month (its page, Now playing, history) and stays off the walls.</li>
+    <li><b>Signed out, it all steps aside</b>: Qobuz albums leave the walls while their rows stay, so signing in puts everything straight back. <b>Clean up</b> on the Library Scanner page removes what's no longer wanted — Qobuz albums not in your favourites or purchases (all of them while signed out), and, separately, albums whose files are gone from the server — after showing you the counts; plays stay in history.</li>
+    <li><b>Two favourites, kept apart.</b> The <b>+</b> on a Qobuz album's cover in the browser (a <b>✓</b> once added), and <b>Add to Qobuz favourites</b> / <b>Remove from Qobuz favourites</b> in the ⋯ menu on the album's page here, are your <i>Qobuz</i> favourite, and that is what puts the album in the library. The <b>heart</b> is Mandarin's own favourite, as on any album.</li>
+    <li><b>Every track is streamed through the server</b>: when a player comes to fetch it, Mandarin asks Qobuz for that one track (a signed request, as Qobuz requires) and feeds the player from its transcode cache — a Sonos room gets 24/48 at most, a streamer or a USB DAC what it takes, the phone what its DAC takes, with DSP and Volume Levelling as for a file. The next track is made ready behind the one playing, so albums play gaplessly. <i>Stream quality</i> on the Services page sets the most asked for (CD, Hi-Res 24/96, Hi-Res 24/192); the subscription sets the ceiling.</li>
+    <li><b>Every play is reported to Qobuz</b> (its streaming start and end), as Qobuz's own apps report them, so artists are paid. <b>Nothing is downloaded</b>: a Qobuz album has no <i>Download to this phone</i>, no <i>Edit album</i>, no waveform, and is not in offline mode; the cache holds only what the queue needs, pruned as the cache fills, and plays nothing once the account is signed out.</li>
+  </ul>
+  <p>The app id and secret are the ones the Lyrion plugin carries, as Qobuz answers no application requests; Qobuz leaves that plugin be because of how it behaves, and Mandarin behaves the same.</p>
+  <h2 id="tidal">Tidal</h2>
+  <p>Mandarin streams from Tidal with a Tidal subscription (v0.6.24), the way the Lyrion Music Server's Tidal plugin does — the same API, the same credentials, the same rules — and Tidal albums live in Mandarin exactly as Qobuz albums do (above): the walls, the browser, Clean up, the two favourites, the server's transcode cache, nothing downloaded. Experimental, in line with Tidal's terms of service; those who use it do so at their own risk.</p>
+  <ul class="plain">
+    <li><b>A subscriber signs in on tidal.com</b> (<i>Settings → Services → Tidal → Sign in on tidal.com</i>): Mandarin shows a link and a code, you sign in there on any device, and Mandarin notices by itself. It keeps the sign-in token, renewed as Tidal requires, never a password.</li>
+    <li><b>Your favourite albums are albums here</b>, every one, with a Tidal mark on the cover; <i>Favourites in the library</i> on the Services page switches this off. <b>Favourites follow both ways, by themselves</b> (v0.7.3), as with Qobuz: removed here, gone from Tidal and the walls at once; changed in the Tidal app, here on the next look (two minutes, or when you come back to Home).</li>
+    <li><b>The Tidal browser</b> (<i>☰ → Tidal</i>): search, new releases, recommended, top, rising, an artist's albums, as the album grid, each cover with its <b>+</b> for your Tidal favourites; an album opens on its page here. The ⋯ menu on a Tidal album's page has <b>Add to Tidal favourites</b> / <b>Remove from Tidal favourites</b>.</li>
+    <li><b>The stream.</b> <i>Stream quality</i> on the Services page is CD (FLAC 16/44.1) or Hi-Res: Tidal's hi-res FLAC, up to 24/192, where an album has it and the subscription allows. Tidal sends hi-res as MPEG-DASH (an initialisation piece and numbered segments), which the server joins into one stream for ffmpeg on its own loopback; where Tidal answers a hi-res ask with anything else, CD quality is asked for instead. What Tidal actually streams a track at is learnt the first time it is played and the album's badge corrected. Tidal has no play reports.</li>
+  </ul>
+  <p>The client id and secret are the ones the Lyrion plugin carries, as Tidal's developer programme answers no streaming requests; Tidal leaves that plugin be because of how it behaves, and Mandarin behaves the same.</p>
+  <nav class="pager"><a class="back" href="index.html">← Back to contents</a><a class="pill" href="how-it-works.html">Next: How it works →</a></nav>
+</main>
+
+<footer>
+  <p class="coffee"><a href="https://buymeacoffee.com/musicd_projects"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me a Coffee" loading="lazy"></a></p>
+  <p>Mandarin · MIT · © 2026 Lewis Menzies (Music Duck / Mandarin) ·
+     <a href="https://github.com/meltface-80/Mandarin">Source on GitHub</a><br>
+     Sonos is a trademark of Sonos, Inc.; WiiM of Linkplay Technology; Chord and Poly of Chord Electronics; FiiO of FiiO
+     Electronics. This is an independent project, affiliated with none of them.</p>
+</footer>
+<script src="site.js"></script>
+<script src="i18n.js"></script>
+</body>
+</html>
