@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Install the server · Mandarin</title>
-<meta name="description" content="Run the server on an always-on machine on the same network as your speakers: Mandarin OS, or Linux.">
+<meta name="description" content="Run the server on an always-on machine on the same network as your speakers: Mandarin OS, recommended, or Linux as the alternative.">
 <link rel="icon" href="mandarin-icon.png">
 <link rel="stylesheet" href="site.css">
 </head>
@@ -21,8 +21,15 @@
 
 <main class="wrap page">
   <h1>Install the server</h1>
-  <p class="lead">Run the server on an always-on machine on the same network as your speakers: Mandarin OS, or Linux.</p>
-  <h2 id="os">Mandarin OS</h2>
+  <p class="lead">Run the server on an always-on machine on the same network as your speakers: on <b>Mandarin OS</b>,
+     the recommended way, or on Linux as the alternative.</p>
+  <ul class="plain">
+    <li><b><a href="#os">Mandarin OS</a>, recommended:</b> a computer of its own for Mandarin, installed from a USB
+        stick, with a web page of its own to watch over everything and nothing else to look after.</li>
+    <li><b><a href="#linux">On Linux</a>, the alternative:</b> natively on a Debian, Ubuntu or Raspberry Pi OS machine
+        you already run, beside what else it does, with one command.</li>
+  </ul>
+  <h2 id="os">Mandarin OS <small>(recommended)</small></h2>
   <p>A lightweight operating system made only to run Mandarin Server, on a computer of its own (a mini PC such as a Dell
      OptiPlex Micro or an Intel NUC), with a web page of its own, the system page, to watch over and look after
      everything. Write its image to a USB stick, start the computer from it and answer a few questions; from then on it
@@ -42,8 +49,8 @@
   </ol>
   <p style="margin-top:16px"><a class="pill solid" href="mandarin-os.html">Mandarin OS, step by step →</a></p>
 
-  <h2 id="linux">Install on Linux</h2>
-  <p>On an always-on Debian, Ubuntu or Raspberry Pi OS machine (64-bit, x64 or arm64) on the same network as your
+  <h2 id="linux">Install on Linux <small>(the alternative)</small></h2>
+  <p>Mandarin installed natively, for a Linux machine you already run. On an always-on Debian, Ubuntu or Raspberry Pi OS machine (64-bit, x64 or arm64) on the same network as your
      speakers, one line as root:</p>
   <div class="codebox"><button class="copy-btn" data-copy>Copy</button>
 <pre>curl -fsSL https://raw.githubusercontent.com/meltface-80/Mandarin/main/tools/linux/install.sh | sudo bash -s -- --music /srv/music</pre>
@@ -89,7 +96,8 @@
      available</b>. The server downloads the new release from GitHub, checks it against the release's sums, swaps it in
      and starts again in a few seconds; a browser's page reloads on its own. In the Android app the app has its own
      <b>Check for update</b> beside it, and each Mandarin Bridge has a row of its own. It also checks twice a day and
-     shows a banner when a new version is out.</p>
+     shows a banner when a new version is out. On Mandarin OS, Mandarin updates the same way, and Mandarin OS itself
+     from its system page (<a href="mandarin-os.html#updating">Updating Mandarin OS</a>).</p>
   <p>The new program is laid in beside the old before anything is swapped: if something fails after the swap, the old
      one is put back. If it can't start again in place, its systemd service starts it again.</p>
   <nav class="pager"><a class="back" href="index.html">← Back to contents</a><a class="pill" href="mandarin-os.html">Next: Mandarin OS →</a></nav>

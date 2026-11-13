@@ -973,6 +973,7 @@ and pick a room under **Settings → Audio Devices**.
 **Mandarin** is at `http://mandarin:3500`, or the box's address with `:3500` (Bonjour also finds it as
 `mandarin.local`). It is the same Mandarin as everywhere: the app, the web page, Sonos, the streamers and Bridges, Qobuz
 and Tidal, its settings. Its music folder is the shared folder's Storage, USB drives and internal storage included.
+**Shut down** in Mandarin (☰, the power button) shuts the computer down too; its power button starts it all again.
 
 **The system page**, `http://mandarin/` (or the box's address, without a port), is Mandarin OS's own page. Anyone at
 home can read it; every change asks for the shared folder's password (five wrong in five minutes, and it stops trying
@@ -1220,13 +1221,12 @@ back. The server stores only an SRP verifier, never the password.
 Five wrong passwords from one address in 15 minutes lock it out for 15 minutes (for IPv6, its whole
 /64), and guesses sent all at once count as they arrive, so no more than five are ever tried.
 
-**Forgot the password?** On the server run
+**Forgot the password?** On Mandarin OS, type `passwordreset` at its own screen (a keyboard plugged in), then `yes`.
+Installed on Linux, run on the server:
 
 ```bash
 sudo -u mandarin env DATA_DIR=/var/lib/mandarin /opt/mandarin/server/bin/mandarin-server reset-password
 ```
-
-On Mandarin OS, type `passwordreset` at its own screen (a keyboard plugged in).
 
 It removes the account and signs every device out; your library, edits and history
 stay. Then create the account again from a device at home.
@@ -1549,7 +1549,8 @@ through a subnet router arrive from a home address, and the server can't tell th
   release id, barcode, catalogue number, ISRCs), then by name on MusicBrainz and iTunes. It scores
   each release against the tracks and their lengths, and lays the names over the album, never on
   the files, with the MusicBrainz pack, loudness measuring and the waveforms alongside. Every
-  MusicBrainz request waits its turn on one timer.
+  MusicBrainz request waits its turn on one timer, and while MusicBrainz is turning requests away every lookup
+  pauses (a minute, then twice as long each time, an hour at most).
 * **Credits and artists.** In the background, one album and one act at a time at MusicBrainz's
   pace, the server reads who played, sang, wrote and made each album from its tags and its
   MusicBrainz release, and who each act is (members, years, place, links) from MusicBrainz and
@@ -1587,7 +1588,7 @@ through a subnet router arrive from a home address, and the server can't tell th
 ## Logs
 
 Mandarin keeps a log **always**, everywhere it runs: the server, every Mandarin Bridge, the Android app and the page in
-a browser. There is nothing to switch on, and nothing to switch off, so a fault seen once is already in the log. Each
+a browser. There is nothing to switch on, and it can't be switched off, so a fault seen once is already in the log. Each
 line is dated in UTC with its level (INFO, WARN, ERROR), so every device's lines sort together. Nothing in them is sent
 anywhere unless you send it.
 
