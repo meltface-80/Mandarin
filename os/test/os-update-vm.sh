@@ -129,8 +129,9 @@ os_update_test() {
   st="$(os_until '.os.version == "9.9.9" and .os.update.last.result == "failed" and .os.update.last.to == "9.9.10"' 1500)" \
     || { os_why; fail "the box didn't come back on 9.9.9 by itself after 9.9.10"; }
   ok "9.9.10 didn't start: the box is back on 9.9.9 by itself, and its page says so: $(jq -c .os.update.last <<< "$st")"
-  e="$(os_entries)"
-  [[ "$e" != *"9.9.10"* ]] && [[ "$e" == *"mandarin-os_9.9.9.conf "* ]] || fail "the EFI partition's entries after the fallback: $e"
+  # Taken off at the start that came back (os-started boot): never started again, its kernel image's room given back.
+  for i in $(seq 1 24); do e="$(os_entries)"; [[ "$e" != *"9.9.10"* ]] && break; sleep 5; done
+  [[ "$e" != *"9.9.10"* ]] && [[ "$e" == *"mandarin-os_9.9.9.conf "* ]] || { os_why; fail "the EFI partition's entries after the fallback: $e"; }
   h="$(curl -fsS --max-time 10 http://127.0.0.1:13500/api/health)" && [ "$(jq -r .version <<< "$h")" = "$m" ] || fail "Mandarin after the fallback: ${h:-not answering}"
   r="$(S -c ls)"; grep -q README.txt <<< "$r" || fail "the share after the fallback: $r"
   ok "9.9.10's entry taken off ($e), Mandarin and the share as before"

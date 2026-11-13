@@ -54,8 +54,10 @@ oslog INFO "[upkeep] begun"
 # never one that didn't start before, the computer started again only when nothing plays). It goes back to this one by
 # itself if it doesn't start. Where there is none, or it couldn't be done, the upkeep goes on with Debian's updates.
 systemctl start mandarin-os-update@auto.service || updated=no
-# Written, and the computer starting again on it: nothing more this week (never apt while it stops).
+# Written, and the computer starting again on it, or one asked for on the system page under way: nothing more this week
+# (never apt while it stops).
 [ -f /data/MandarinOS/update-pending.json ] && exit 0
+systemctl is-active -q mandarin-os-update@apply.service && { oslog INFO "[upkeep] Mandarin OS is being updated from the system page: nothing more this week"; exit 0; }
 [ "${updated:-}" = no ] && oslog WARN "[upkeep] Mandarin OS couldn't be updated this week (see above)"
 apt-mark manual $NEEDED >/dev/null 2>&1
 export DEBIAN_FRONTEND=noninteractive

@@ -37,6 +37,7 @@ test("os-started boot: a version that didn't start in its three tries said, and 
     assert.ok(box.exists("efi/EFI/mandarin-os/mandarin-os_0.1.4.efi"), "0.1.4's kept");
     assert.ok(!box.exists("data/MandarinOS/update-pending.json"));
     assert.match(box.oslog(), /ERROR \[update\] Mandarin OS 0\.1\.5 didn't start in its three tries: back on 0\.1\.4/);
+    assert.match(box.oslog(), /INFO \[update\] Mandarin OS 0\.1\.5's entry taken off the EFI partition: it is never started again/);
   } finally { box.cleanup(); }
 
   const stopped = makeBox();

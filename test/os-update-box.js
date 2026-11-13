@@ -121,6 +121,7 @@ function makeBox({ newRoot = {}, version = "0.1.4", mandarin = "1.4.0", from = "
   shim("mount", `for a; do last="$a"; done; case "$last" in */update-root) cp -a "${tmpl}/." "$last/" ;; esac`);
   shim("mountpoint", `case "$2" in */data) exit 0 ;; *) exit 1 ;; esac`);
   for (const c of ["umount", "e2fsck", "resize2fs", "blockdev", "systemctl"]) shim(c);
+  shim("pgrep", "exit 1");   // no apt running on the box
   shim("logger", `printf '%s\\n' "$*" >> "${dir}/oslog"`);
   return {
     dir, root, dev, tmpl, mounted: path.join(root, "run/mandarin-os/update-root"),

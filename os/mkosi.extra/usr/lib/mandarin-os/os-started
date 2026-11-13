@@ -29,7 +29,8 @@ boot() {
       result failed "${from:-$VER}" "$v"
       rm -f "$PENDING"
       oslog ERROR "[update] Mandarin OS $v didn't start in its three tries: back on $VER, as it was before the update"
-      unentry "$efi" "$f"
+      unentry "$efi" "$f" && oslog INFO "[update] Mandarin OS $v's entry taken off the EFI partition: it is never started again" \
+        || oslog ERROR "[update] Mandarin OS $v's entry couldn't be taken off the EFI partition ($f)"
     done < <(entries "$efi")
   fi
   to="$(jq -r '.to // empty' "$PENDING" 2>/dev/null)"

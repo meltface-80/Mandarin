@@ -200,7 +200,8 @@ apply() {
   oslog INFO "[update] Mandarin OS $V downloaded, its checksums and signatures checked"
 
   # Nothing starts the other partition while it is written: its entries off the EFI partition, and it marked empty.
-  entries "$efi" | while read -r f _ _ u; do [ "$u" = "$me" ] || unentry "$efi" "$f"; done
+  entries "$efi" | while read -r f _ _ u; do [ "$u" = "$me" ] || unentry "$efi" "$f" || exit 1; done \
+    || failed "an entry starting the other system partition couldn't be taken off the EFI partition: nothing written"
   sfdisk --no-reread --no-tell-kernel --part-label "$disk" "$(num "$target")" _empty >/dev/null 2>&1 || failed "the other system partition couldn't be marked"
   step writing 60 "Writing Mandarin OS $V beside this one"
   oslog INFO "[update] writing Mandarin OS $V into $target (the system running, $root, untouched)"
@@ -267,6 +268,9 @@ restart() {
       sleep 300
     done
   fi
+  # Never while Debian's packages are being changed (the upkeep's apt): half a package is worse than a late restart.
+  for i in $(seq 1 60); do pgrep -x 'apt-get|apt|dpkg|unattended-upgr' >/dev/null || break
+    [ "$i" = 1 ] && step waiting 100 "Waiting for the upkeep's updates to finish, then starting again on Mandarin OS $V"; sleep 30; done
   step restarting 100 "Starting again on Mandarin OS $V"
   oslog INFO "[update] starting again on Mandarin OS $V"
   sync

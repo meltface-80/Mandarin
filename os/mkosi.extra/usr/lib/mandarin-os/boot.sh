@@ -58,13 +58,15 @@ entries() {
   done
 }
 
-# Entry $2 taken off the EFI partition $1, and its kernel image where no other entry starts it.
+# Entry $2 taken off the EFI partition $1, and its kernel image where no other entry starts it; on the disk at once (a
+# FAT file system keeps what it changed in memory until it is closed, and a power cut then would bring the entry back).
 unentry() {
   local efi
   efi="$(sed -n 's/^efi //p' "$2")"
   rm -f "$2"
   [ -n "$efi" ] && ! grep -qxF "efi $efi" "$1"/loader/entries/*.conf 2>/dev/null && rm -f "$1$efi"
-  return 0
+  sync -f "$1/loader/entries" 2>/dev/null || sync
+  [ ! -e "$2" ]
 }
 
 # The entry that starts version $2 from partition $3 (its PARTUUID) on the EFI partition $1, with the kernel image
