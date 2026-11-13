@@ -7,7 +7,7 @@
 
 </div>
 
-# Mandarin — v1.3.1
+# Mandarin — v1.3.2
 
 **Your own music files, played to Sonos rooms, to UPnP/DLNA renderers (a WiiM, a Chord Poly,
 a streamer, an AV receiver) and to the Mandarin Android app.**
@@ -27,20 +27,15 @@ Wikipedia, Deezer and others); your music files stay on your machine. Run the se
                                                    └──── audio: /stream/… ◀────────┘
 ```
 
-**New in v1.3.1** (since v1.3.0; Mandarin Bridge v0.3.10; Mandarin OS 0.1.4). The [changelog](CHANGELOG.md) has each
+**New in v1.3.2** (since v1.3.1; Mandarin Bridge v0.3.10; Mandarin OS 0.1.6). The [changelog](CHANGELOG.md) has each
 change.
-* **Mandarin OS 0.1.4, the recommended way to run Mandarin:** a lightweight operating system made only for Mandarin
-  Server, on a PC of its own, with a web page of its own, the system page (`http://<box address>/`), to watch over and look
-  after everything: a shared folder for your music, USB drives mounted as they are plugged in, and a weekly upkeep when
-  nothing plays. It updates itself in place, and goes back by itself to the version that worked if a new one doesn't
-  start. See [Mandarin OS](#mandarin-os).
-* **Mandarin on Linux, natively,** the alternative: one line installs it on Debian, Ubuntu or Raspberry Pi OS as a
-  systemd service. See [Install on Linux](#install-on-linux).
-* **Logs always on,** on the server, every Mandarin Bridge, every app and the page; **Download all logs** gives them as
-  one text file in time order. See [Logs](#logs).
-* **Fixed:** a large library's backup restores; MusicBrainz lookups pause while MusicBrainz is turning requests away; a
-  Mandarin Bridge switched on stays on; Mandarin Bridge 0.3.10 updates itself on Linux under systemd (as on Mandarin
-  OS); the app pauses between tries when the server can't be reached.
+* **Mandarin OS 0.1.6:** Reinstall Mandarin keeps the box's settings, and the reinstaller's folder, `Installer`, is at
+  the top of the shared folder. A box on 0.1.4 or later updates itself to it in place. See [Mandarin OS](#mandarin-os).
+* **The app's built-in Tailscale no longer gets the app ended by Android:** the engine stops itself when nothing goes
+  through it, or when it is busy for nothing, and starts again in seconds when the app is used; back home, the phone
+  plays from home. See [Away from home](#away-from-home-tailscale).
+* **Mandarin OS's addresses by the box's address:** the README and the Pages site give `http://<box address>/` and
+  the like, the address the box's screen shows, rather than a name only some devices find.
 
 ## Downloads
 
@@ -49,13 +44,13 @@ USB stick. On Linux, the alternative, the server's install is one command, below
 
 | What | Version | Download |
 | --- | --- | --- |
-| **Mandarin OS**, a system made only to run Mandarin Server, the recommended way (a 64-bit Intel or AMD PC with UEFI) | 0.1.4 | [mandarin-os-0.1.4-x64.img.xz](https://github.com/meltface-80/Mandarin/releases/download/mandarin-os-v0.1.4/mandarin-os-0.1.4-x64.img.xz) for balenaEtcher or dd · [mandarin-os-0.1.4-x64.img](https://github.com/meltface-80/Mandarin/releases/download/mandarin-os-v0.1.4/mandarin-os-0.1.4-x64.img) for a phone; see [Mandarin OS](#mandarin-os) |
-| **Mandarin server** on Linux, the alternative (Debian, Ubuntu, Raspberry Pi OS; x64 or arm64) | v1.3.1 | the one line under [Install on Linux](#install-on-linux) |
-| **Mandarin Remote**, the Android app (Android 8.0 or newer) | v1.3.1 | [mandarin-android.apk](https://github.com/meltface-80/Mandarin/raw/main/dist/mandarin-android.apk) |
+| **Mandarin OS**, a system made only to run Mandarin Server, the recommended way (a 64-bit Intel or AMD PC with UEFI) | 0.1.6 | [mandarin-os-0.1.6-x64.img.xz](https://github.com/meltface-80/Mandarin/releases/download/mandarin-os-v0.1.6/mandarin-os-0.1.6-x64.img.xz) for balenaEtcher or dd · [mandarin-os-0.1.6-x64.img](https://github.com/meltface-80/Mandarin/releases/download/mandarin-os-v0.1.6/mandarin-os-0.1.6-x64.img) for a phone; see [Mandarin OS](#mandarin-os) |
+| **Mandarin server** on Linux, the alternative (Debian, Ubuntu, Raspberry Pi OS; x64 or arm64) | v1.3.2 | the one line under [Install on Linux](#install-on-linux) |
+| **Mandarin Remote**, the Android app (Android 8.0 or newer) | v1.3.2 | [mandarin-android.apk](https://github.com/meltface-80/Mandarin/raw/main/dist/mandarin-android.apk) |
 | **Mandarin Bridge** for Android (a FiiO R7, say) | v0.3.10 | [mandarin-bridge.apk](https://github.com/meltface-80/Mandarin/releases/download/mandarin-bridge-v0.3.10/mandarin-bridge.apk) |
 | **Mandarin Bridge** for Raspberry Pi (3, 4, 5, Zero 2 W) | v0.3.10 | [mandarin-bridge-pi-arm64.img.xz](https://github.com/meltface-80/Mandarin/releases/download/mandarin-bridge-v0.3.10/mandarin-bridge-pi-arm64.img.xz) |
 | **Mandarin Bridge** for Linux (64-bit Debian, Ubuntu, Raspberry Pi OS) | v0.3.10 | `curl -fsSL https://github.com/meltface-80/Mandarin/releases/download/mandarin-bridge-v0.3.10/install.sh \| sudo sh`, or by hand: [x64](https://github.com/meltface-80/Mandarin/releases/download/mandarin-bridge-v0.3.10/mandarin-bridge-linux-x64.tar.gz) · [arm64](https://github.com/meltface-80/Mandarin/releases/download/mandarin-bridge-v0.3.10/mandarin-bridge-linux-arm64.tar.gz) |
-| The server program on its own, what Settings → Updates fetches | v1.3.1 | [linux-x64](https://github.com/meltface-80/Mandarin/releases/latest/download/mandarin-server-linux-x64.gz) · [linux-arm64](https://github.com/meltface-80/Mandarin/releases/latest/download/mandarin-server-linux-arm64.gz) · [sums](https://github.com/meltface-80/Mandarin/releases/latest/download/mandarin-server.sha256) |
+| The server program on its own, what Settings → Updates fetches | v1.3.2 | [linux-x64](https://github.com/meltface-80/Mandarin/releases/latest/download/mandarin-server-linux-x64.gz) · [linux-arm64](https://github.com/meltface-80/Mandarin/releases/latest/download/mandarin-server-linux-arm64.gz) · [sums](https://github.com/meltface-80/Mandarin/releases/latest/download/mandarin-server.sha256) |
 | **How Mandarin finds and names your music**, a guide in plain words | | [PDF](docs/Mandarin-music-scanning-guide.pdf) |
 
 On an iPhone or iPad there is nothing to download: see [iPhone and iPad](#iphone-and-ipad).
@@ -856,7 +851,7 @@ Mandarin runs on an always-on computer on the same network as your speakers, in 
 **A lightweight operating system made only to run Mandarin Server**, on a computer of its own, with a web page of its
 own, the **system page**, to watch over and look after everything. A music server should be something you switch on and
 forget: Mandarin OS is Mandarin and only what Mandarin needs, installed from a USB stick in a few minutes, with nothing
-else to set up or keep up to date. Version 0.1.4; on the Pages site, [Mandarin OS](https://meltface-80.github.io/Mandarin/mandarin-os.html).
+else to set up or keep up to date. Version 0.1.6; on the Pages site, [Mandarin OS](https://meltface-80.github.io/Mandarin/mandarin-os.html).
 
 * **Lightweight:** Debian 13 with Mandarin installed natively, and nothing else: no desktop, no login, no SSH. Everything
   coming in from the network is refused by a firewall, but what Mandarin and the system answer.
@@ -883,18 +878,18 @@ else to set up or keep up to date. Version 0.1.4; on the Pages site, [Mandarin O
 #### Download
 
 The image comes two ways, the same system either way, each with its checksum (`.sha256`) and its signature (`.sig`), on
-the [Mandarin OS 0.1.4 release](https://github.com/meltface-80/Mandarin/releases/tag/mandarin-os-v0.1.4):
+the [Mandarin OS 0.1.6 release](https://github.com/meltface-80/Mandarin/releases/tag/mandarin-os-v0.1.6):
 
 | File | Size | For |
 | --- | --- | --- |
-| [mandarin-os-0.1.4-x64.img.xz](https://github.com/meltface-80/Mandarin/releases/download/mandarin-os-v0.1.4/mandarin-os-0.1.4-x64.img.xz) ([sha256](https://github.com/meltface-80/Mandarin/releases/download/mandarin-os-v0.1.4/mandarin-os-0.1.4-x64.img.xz.sha256)) | about 380 MB | balenaEtcher and the Linux terminal |
-| [mandarin-os-0.1.4-x64.img](https://github.com/meltface-80/Mandarin/releases/download/mandarin-os-v0.1.4/mandarin-os-0.1.4-x64.img) ([sha256](https://github.com/meltface-80/Mandarin/releases/download/mandarin-os-v0.1.4/mandarin-os-0.1.4-x64.img.sha256)) | about 1.6 GB | an Android phone (EtchDroid) |
+| [mandarin-os-0.1.6-x64.img.xz](https://github.com/meltface-80/Mandarin/releases/download/mandarin-os-v0.1.6/mandarin-os-0.1.6-x64.img.xz) ([sha256](https://github.com/meltface-80/Mandarin/releases/download/mandarin-os-v0.1.6/mandarin-os-0.1.6-x64.img.xz.sha256)) | about 360 MB | balenaEtcher and the Linux terminal |
+| [mandarin-os-0.1.6-x64.img](https://github.com/meltface-80/Mandarin/releases/download/mandarin-os-v0.1.6/mandarin-os-0.1.6-x64.img) ([sha256](https://github.com/meltface-80/Mandarin/releases/download/mandarin-os-v0.1.6/mandarin-os-0.1.6-x64.img.sha256)) | about 1.6 GB | an Android phone (EtchDroid) |
 
 #### Make the USB installer
 
 **With balenaEtcher** (Windows, macOS or a Linux desktop):
 
-1. Install [balenaEtcher](https://etcher.balena.io/) and download `mandarin-os-0.1.4-x64.img.xz`. Etcher takes the
+1. Install [balenaEtcher](https://etcher.balena.io/) and download `mandarin-os-0.1.6-x64.img.xz`. Etcher takes the
    compressed file as it is: there is nothing to unpack.
 2. Plug in the USB stick and open Etcher.
 3. **Flash from file**: choose the `.img.xz` you downloaded.
@@ -910,29 +905,29 @@ the [Mandarin OS 0.1.4 release](https://github.com/meltface-80/Mandarin/releases
 3. In the folder you downloaded to, check the download against its checksum (it should say *OK*):
 
    ```bash
-   sha256sum -c mandarin-os-0.1.4-x64.img.xz.sha256
+   sha256sum -c mandarin-os-0.1.6-x64.img.xz.sha256
    ```
 
 4. Write it to the whole device, `/dev/sdX` (not a partition such as `/dev/sdX1`), with `sdX` the stick's name from
    `lsblk`:
 
    ```bash
-   xz -dc mandarin-os-0.1.4-x64.img.xz | sudo dd of=/dev/sdX bs=4M conv=fsync status=progress
+   xz -dc mandarin-os-0.1.6-x64.img.xz | sudo dd of=/dev/sdX bs=4M conv=fsync status=progress
    ```
 
    From the plain image, the same without `xz`:
 
    ```bash
-   sudo dd if=mandarin-os-0.1.4-x64.img of=/dev/sdX bs=4M conv=fsync status=progress
+   sudo dd if=mandarin-os-0.1.6-x64.img of=/dev/sdX bs=4M conv=fsync status=progress
    ```
 
 5. Then run `sync`, and take the stick out once it has returned.
 
 **From an Android phone, with EtchDroid** (free, on Google Play and F-Droid). It needs the plain
-**`mandarin-os-0.1.4-x64.img`**, not the `.img.xz`: a phone's writer doesn't decompress, and a stick written from the
+**`mandarin-os-0.1.6-x64.img`**, not the `.img.xz`: a phone's writer doesn't decompress, and a stick written from the
 compressed file starts nothing. The stick goes into the phone through a USB-OTG or USB-C adapter (or a USB-C stick).
 
-1. Download `mandarin-os-0.1.4-x64.img` on the phone (about 1.6 GB: Wi-Fi is best).
+1. Download `mandarin-os-0.1.6-x64.img` on the phone (about 1.6 GB: Wi-Fi is best).
 2. Plug the USB stick into the phone through the adapter.
 3. Open EtchDroid and choose to write an image (a raw image), then pick the `.img` you downloaded.
 4. Pick the USB stick.
@@ -1006,6 +1001,7 @@ install:
 
 * **Storage:** copy your music in here. Each USB drive plugged in is under **Storage/USB**, by its name, and internal
   storage is **Storage/Internal**.
+* **Installer:** Reinstall Mandarin's own folder.
 * **MandarinServer**, **MandarinBridge**, **MandarinApp** and **MandarinOS**: the logs (and Mandarin's backups),
   read-only.
 
@@ -1056,7 +1052,7 @@ for a newer version once a day.
   the one running is newer than the image's (it is never put back to an older one).
 
 **Installed with 0.1.3 or earlier?** Those can't update themselves (the updater came with 0.1.4, and the users their
-files belong to are numbered otherwise): reinstall 0.1.4 once from the USB stick. Reinstalling **erases the system
+files belong to are numbered otherwise): reinstall 0.1.6 once from the USB stick. Reinstalling **erases the system
 disk, the data partition with it** (Mandarin's library and settings, and music copied into Storage on that disk), so
 first make a backup in Mandarin (**Settings → Backup & restore**, **Back up to the server**) and copy it off the box from
 the shared folder (`MandarinServer/Backups`), with any music in Storage; afterwards, restore it in Mandarin from that
@@ -1145,7 +1141,7 @@ release key (from Mandarin Bridge v0.3.8; the server's updates are checked the s
 * An Android Bridge from before v0.2.1, or a Linux or Raspberry Pi Bridge from before v0.3.1, needs one last update by hand, from [Downloads](#downloads)
   (a Linux or Pi Bridge before v0.3.1 asked GitHub in a way it refuses, and its update failed).
 * A test build of Mandarin's follows the Bridges' test builds (the **test-bridge** pre-release),
-  and a numbered one follows their numbered releases (Mandarin Bridge v0.3.10 with Mandarin v1.3.1).
+  and a numbered one follows their numbered releases (Mandarin Bridge v0.3.10 with Mandarin v1.3.2).
 
 ## Configuration
 
@@ -1530,8 +1526,12 @@ the page, the queue and the music carry on without a reload. Anything else signe
 tailnet — an iPhone with the Tailscale app, a laptop — opens the address *Away from home* shows.
 
 At home the app keeps its own Tailscale running only while the phone is playing, so that walking
-out of the house doesn't stop the music; with nothing playing it is stopped after two minutes, and
-started again in seconds when you leave, its sign-in kept on the phone (v1.1.10).
+out of the house doesn't stop the music; back home, the phone plays from home again, and the engine
+stops as soon as the app is off screen or the phone stops playing. The engine also stops itself when
+nothing goes through it (two and a half minutes, with the app neither on screen nor playing) or when
+it is busy for nothing (a fifth of a core for a minute, with nothing passing through), so Android has
+no cause to end the app for it (v1.3.2). It starts again in seconds when the app is used or you
+leave, its sign-in kept on the phone.
 
 The server's Tailscale keeps its identity in the data folder, so an update or a reinstall is the same
 machine. `TAILSCALE=off` leaves it out; `TS_HOSTNAME` names it something other than *musicd*.
