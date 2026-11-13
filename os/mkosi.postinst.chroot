@@ -34,6 +34,8 @@ systemctl mask nmbd.service samba-ad-dc.service apt-daily.timer apt-daily-upgrad
 systemctl mask systemd-networkd.service systemd-networkd.socket systemd-networkd-wait-online.service
 # Updated in place (item 401): what the last update came to, a new version checked on its first starts, and a look
 # every day for a newer one.
+# Where the installed system's EFI partition is mounted when looked at (the installer's fstab).
+mkdir -p /efi
 systemctl enable mandarin-os-started.service mandarin-os-health.service mandarin-os-update-check.timer
 systemctl enable mandarin-console.service mandarin-os-apply.service mandarin-os-check.service mandarin-os-maintain.timer mandarin-os-page.service mandarin-os-power.path \
   nftables.service smbd.service avahi-daemon.service wsdd2.service NetworkManager.service systemd-resolved.service systemd-timesyncd.service

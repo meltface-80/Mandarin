@@ -30,8 +30,14 @@ qemu() {  # name, then the disks
     -drive if=pflash,format=raw,readonly=on,file="$OVMF_CODE" -drive if=pflash,format=raw,file="$W/$name.vars" "$@"
 }
 
-# The stick, answered.
+# A partition of disk image $1 by its label $2: its start and size, in sectors.
+part() { sfdisk -J "$1" | jq -r --arg n "$2" '.partitiontable.partitions[] | select(.name == $n) | "\(.start) \(.size)"'; }
+
+# The stick, answered. Its version, as its system partition is labelled (mandarin-os_<version>, item 401).
 cp --sparse=always "$IMG" "$W/usb.raw"
+V="$(sfdisk -J "$W/usb.raw" | jq -r '.partitiontable.partitions[] | select(.type == "4F68BCE3-E8CD-4DB1-96E7-FBCAF984B709") | .name')"
+V="${V#mandarin-os_}"
+[[ "$V" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || fail "the stick's system partition isn't labelled with its version: $V"
 esp_start="$(sfdisk -J "$W/usb.raw" | jq '.partitiontable.partitions[] | select(.type == "C12A7328-F81F-11D2-BA4B-00A0C93EC93B") | .start')"
 printf '{"disk":"first","share_user":"music","share_password":"listen-carefully","network":{"mode":"dhcp"},"bridge":false,"erase":"erase"}\n' > "$W/answers.json"
 mcopy -i "$W/usb.raw@@$((esp_start * 512))" "$W/answers.json" ::mandarin-install.json || fail "answers not put on the stick"
@@ -41,8 +47,14 @@ echo "Installing from the stick ($ACCEL)…"
 QT=1800 qemu install -device qemu-xhci -drive if=none,id=stick,format=raw,file="$W/usb.raw" -device usb-storage,drive=stick,removable=on \
   -drive if=virtio,format=raw,file="$W/disk.raw" -nic user,model=virtio-net-pci || fail "the installer didn't finish (or the machine didn't stop)"
 parts="$(sfdisk -J "$W/disk.raw" | jq -r '[.partitiontable.partitions[].name] | join(",")')"
-[ "$parts" = "mandarin-os-a,_empty,mandarin-data" ] || [[ "$parts" == *"mandarin-os-a"*"mandarin-data"* ]] || fail "the disk's partitions: $parts"
+# Its system partition labelled with its version, the other kept empty for the next (item 401).
+[ "$parts" = "esp,mandarin-os_$V,_empty,mandarin-data" ] || fail "the disk's partitions: $parts"
 ok "installed: $parts"
+# It starts from an entry of its own naming its own partition (boot.sh), the stick's way (EFI/Linux) taken off.
+esp_at="$(part "$W/disk.raw" esp | cut -d' ' -f1)"
+ents="$(mdir -b -i "$W/disk.raw@@$((esp_at * 512))" ::loader/entries 2>&1)"; linux="$(mdir -b -i "$W/disk.raw@@$((esp_at * 512))" ::EFI/Linux 2>&1)"
+grep -q "mandarin-os_$V.conf" <<< "$ents" && ! grep -q '\.efi' <<< "$linux" || fail "the EFI partition's entries: $ents; EFI/Linux: $linux"
+ok "it starts from its own entry: $(basename "$(grep conf <<< "$ents")")"
 # The stick starts quietly, straight to the installer: nothing waited for, nothing failed (a screen of them was taken
 # for an error on the first real computer).
 grep -aE "Timed out waiting|Dependency failed|Failed to start" "$W/serial-install.log" && fail "the stick's start said something failed"
@@ -56,7 +68,7 @@ if [ -n "$NEXT" ]; then
   node "$HERE/fake-release.js" "$NEXT" "$W/release" > "$W/release.log" 2>&1 & echo $! > "$W/release.pid"
   for i in $(seq 1 60); do [ -s "$W/release/port" ] && break; sleep 1; done
   [ -s "$W/release/port" ] || fail "the stand-in GitHub didn't start: $(cat "$W/release.log")"
-  read -r rs rn < <(sfdisk -J "$W/disk.raw" | jq -r '.partitiontable.partitions[] | select(.name == "mandarin-os-a") | "\(.start) \(.size)"')
+  read -r rs rn < <(part "$W/disk.raw" "mandarin-os_$V")
   lo="$(losetup -f --show -o $((rs * 512)) --sizelimit $((rn * 512)) "$W/disk.raw")" || fail "no loop device for the installed system"
   mkdir -p "$W/root" && mount "$lo" "$W/root" || { losetup -d "$lo"; fail "the installed system's partition didn't mount"; }
   printf '[Service]\nEnvironment=UPDATE_API=http://10.0.2.2:%s\nEnvironment=UPDATE_KEY=%s\n' "$(cat "$W/release/port")" "$(cat "$W/release/update.pub")" \

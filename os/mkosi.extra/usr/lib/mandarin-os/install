@@ -121,6 +121,9 @@ mkdir -p /mnt/root && mount "$root" /mnt/root && {
   printf '%s\n' "# Mandarin OS, as installed: the data partition, and the internal storage drive where one was chosen." \
     "LABEL=mandarin-data      /data                  ext4  defaults,noatime,nofail,x-systemd.device-timeout=30s  0 2" > /mnt/root/etc/fstab
   [ -n "$internal" ] && echo "LABEL=mandarin-internal  /data/Storage/Internal ext4  defaults,noatime,nofail,x-systemd.device-timeout=30s  0 2" >> /mnt/root/etc/fstab
+  # The EFI partition at /efi when it is looked at (item 401): where systemd-bless-boot keeps a new version that started,
+  # and os-update puts the next; mounted only while in use, so a power cut finds it closed.
+  echo "PARTUUID=$(lsblk -no PARTUUID "$esp")  /efi  vfat  umask=0077,noauto,nofail,x-systemd.automount,x-systemd.idle-timeout=1min  0 2" >> /mnt/root/etc/fstab
   umount /mnt/root
 } || say "the system's mounts couldn't be written"
 say "done"
