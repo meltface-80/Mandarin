@@ -99,13 +99,31 @@ if [ -n "$internal" ]; then
   mkfs.ext4 -F -L mandarin-internal "$part" >> "$LOG" 2>&1 && say "internal storage $internal formatted" || say "internal storage $internal couldn't be formatted"
   mkdir -p /mnt/data/Storage/Internal
 fi
+# The installed system, labelled with its version (install.repart.d): its file system grown to fill its partition.
+root="$(lsblk -lnpo NAME,PARTLABEL "$target" | awk -v l="mandarin-os_$VER" '$2 == l { print $1 }')"
+e2fsck -fy "$root" >> "$LOG" 2>&1; resize2fs "$root" >> "$LOG" 2>&1 || say "the system's file system couldn't be grown"
+# How it starts (boot.sh, item 401): its kernel image as EFI/mandarin-os/mandarin-os_<version>.efi and an entry naming
+# its own partition, so that the next version, written beside it, never starts this one's nor this one the next's. The
+# stick's own way (its image in EFI/Linux, the system found by systemd) taken off, and its answers with their password.
+. /usr/lib/mandarin-os/boot.sh
+esp="$(lsblk -lnpo NAME,PARTTYPE "$target" | awk -v t="${ESP_TYPE,,}" '$2 == t { print $1 }')"
+if ! { mkdir -p /mnt/esp && mount "$esp" /mnt/esp && uki="$(ls /mnt/esp/EFI/Linux/*.efi 2>/dev/null | head -n 1)" && [ -n "$uki" ] \
+    && cmdline="$(python3 /usr/lib/mandarin-os/uki-cmdline "$uki")" && mkdir -p /mnt/esp/EFI/mandarin-os \
+    && mv -f "$uki" "/mnt/esp/EFI/mandarin-os/mandarin-os_$VER.efi" && rm -f /mnt/esp/EFI/Linux/*.efi /mnt/esp/mandarin-install.json \
+    && entry /mnt/esp "$VER" "$(lsblk -no PARTUUID "$root")" "$cmdline" "" && umount /mnt/esp; }; then
+  say "the system's start couldn't be written to $esp"
+  [ -n "$answers" ] && { lsblk -o NAME,PARTLABEL,PARTTYPE "$target" > /dev/ttyS0 2>/dev/null; say "INSTALL FAILED"; touch "$DONE"; end poweroff; }
+  D --title "It didn't work" --msgbox "Mandarin OS's start couldn't be written to $target's EFI partition. Start the installer again." 8 70; exec "$0"
+fi
 # The installed system's own mounts, written into it alone: the stick has no data partition and never waits for one
 # (its start was a screen of timeouts when the image carried these).
-root="$(lsblk -lnpo NAME,PARTLABEL "$target" | awk '$2 == "mandarin-os-a" { print $1 }')"
 mkdir -p /mnt/root && mount "$root" /mnt/root && {
   printf '%s\n' "# Mandarin OS, as installed: the data partition, and the internal storage drive where one was chosen." \
     "LABEL=mandarin-data      /data                  ext4  defaults,noatime,nofail,x-systemd.device-timeout=30s  0 2" > /mnt/root/etc/fstab
   [ -n "$internal" ] && echo "LABEL=mandarin-internal  /data/Storage/Internal ext4  defaults,noatime,nofail,x-systemd.device-timeout=30s  0 2" >> /mnt/root/etc/fstab
+  # The EFI partition at /efi when it is looked at (item 401): where systemd-bless-boot keeps a new version that started,
+  # and os-update puts the next; mounted only while in use, so a power cut finds it closed.
+  echo "PARTUUID=$(lsblk -no PARTUUID "$esp")  /efi  vfat  umask=0077,noauto,nofail,x-systemd.automount,x-systemd.idle-timeout=1min  0 2" >> /mnt/root/etc/fstab
   umount /mnt/root
 } || say "the system's mounts couldn't be written"
 say "done"

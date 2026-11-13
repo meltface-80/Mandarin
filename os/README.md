@@ -14,8 +14,10 @@ a few questions, and the computer is a Mandarin server with nothing else to look
   logs: `MandarinServer`, `MandarinBridge`, `MandarinApp`, `MandarinOS`, read-only.
 * **USB drives** are mounted as they are plugged in (ext4, exFAT, FAT, NTFS; HFS+ read-only), checked first; one that
   can't be repaired is mounted read-only.
-* **Looks after itself:** every week, when nothing plays, Debian's security updates, what nothing needs removed, a restart
-  only if an update needs it, and a check that everything works, repairing what doesn't (`maintain`). Silent.
+* **Looks after itself:** every week, when nothing plays, a newer Mandarin OS (below), or else Debian's security
+  updates, what nothing needs removed, a restart only if an update needs it, and a check that everything works,
+  repairing what doesn't (`maintain`). Silent.
+* **Updates itself in place** (0.1.4, `os-update`): below.
 * **The screen:** says where to find Mandarin. Type `networkreset` there to put the network back to DHCP (a static address
   that lost the box), or `passwordreset` for Mandarin's forgotten password. Nothing else is taken there.
 * **Firewall:** everything in is refused but what Mandarin and the system answer (`etc/nftables.conf`).
@@ -58,9 +60,37 @@ notes in `os/CHANGELOG.md`. Every change to Mandarin OS raises its patch number 
 | Partition | Size | |
 |---|---|---|
 | EFI | 512 MB | systemd-boot, the kernel (one unified image) |
-| mandarin-os-a | 4 GB | the system |
-| _empty | 4 GB | kept for whole-system updates (os 0.3) |
+| mandarin-os_<version> | 4 GB | the system |
+| _empty, then mandarin-os_<next version> | 4 GB | the next version, written there by an update |
 | mandarin-data | the rest | `/data`: Mandarin's data and logs, the share, Storage |
 
 The installer (`usr/lib/mandarin-os/install`) writes it with `systemd-repart` from the stick itself
-(`install.repart.d`). `mandarin-install.json` on the stick's EFI partition answers every question (unattended).
+(`install.repart.d`). `mandarin-install.json` on the stick's EFI partition answers every question (unattended). Each
+installed version starts from an entry of its own on the EFI partition (`loader/entries/mandarin-os_<version>.conf`,
+its kernel image in `EFI/mandarin-os/`) naming its own partition by PARTUUID (`boot.sh`); systemd-boot starts the
+newest.
+
+## Updates in place
+
+`os-update check|apply|auto` (item 401): the newest `mandarin-os-v*` release (a test image: the `test-os`
+pre-release), when newer than `/usr/lib/mandarin-os/VERSION`. Its system partition (`.root.raw.xz`) and kernel image
+(`.efi`), downloaded into `/data/MandarinOS/update`, each checked against its `.sha256` and its `.sig` (Mandarin's
+release key); written into the system partition not running (never the one running, never anything else), read back,
+grown, labelled `mandarin-os_<version>`; the box's own carried into it (`/etc/fstab`, `/etc/machine-id`, Samba's
+records, NetworkManager's connections, Mandarin Bridge and its identity, and `/opt/mandarin` where the one running is
+newer); its kernel image and an entry with three tries (`mandarin-os_<version>+3.conf`, systemd's boot counting) put on
+the EFI partition; the computer started again. Users are never copied: Mandarin's user is 3500, the shared folder's
+3501 and its group 3502 in every version, and an update that numbers them otherwise is refused.
+
+On a start being tried, `mandarin-os-health.service` (`os-started health`) checks what the box needs before
+`boot-complete.target`, where systemd-bless-boot keeps the version; anything missing starts the computer again. After
+three tries systemd-boot starts the version before, untouched on its own partition, and `os-started boot` says so for
+the system page and takes the failed entry off. The kernel's panic and the emergency mode (in the initrd too) start the
+computer again rather than wait (`mkosi.conf`). The system page's Settings tab asks it (`system-page/os_update.py`):
+**Update and restart**, **Check for updates**; a daily timer checks, and the weekly upkeep runs `auto`. It never starts
+the computer again while apt or dpkg is at work (unattended-upgrade, not unattended-upgrades' own shutdown service), and
+the upkeep leaves Debian's updates for the next week while an update asked for on the system page is under way.
+
+The boot test proves it end to end (`os/test/os-update-vm.sh`): a 9.9.9 and a broken 9.9.10 made from the image under
+test and signed with a key of its own, from a stand-in GitHub (`os/test/fake-os-release.js`), the installed disk told of
+them by a drop-in in the test's own copy of it.

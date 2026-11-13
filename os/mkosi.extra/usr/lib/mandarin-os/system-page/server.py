@@ -19,10 +19,11 @@ elsewhere can't reach it under its own site's name, nor make changes in your bro
   POST /api/usb/own                   { password, name }: a Linux drive's files made the shared folder's (usb_owner.py)
   POST /api/internal/format           { password, disk, erase: "erase" }
   POST /api/bridge                    { password, action: install | remove }
+  POST /api/os-update                 { password, action: check | apply }: Mandarin OS updated in place (os_update.py)
 
 MANDARIN_OS_ROOT (the tests'): every path under it, and its commands from PATH as they find them."""
 import hashlib, http.server, ipaddress, json, os, re, shutil, socketserver, struct, subprocess, sys, threading, time, urllib.request
-import logs_one, usb_owner
+import logs_one, os_update, usb_owner
 
 ROOT = os.environ.get("MANDARIN_OS_ROOT", "")
 PORT = int(os.environ.get("MANDARIN_OS_PORT", "80"))
@@ -58,7 +59,8 @@ def log(level, msg):
     run(["bash", "-c", '. "$0"/log.sh && oslog "$1" "$2"', LIB, level, "[system page] " + msg])
 
 
-usb_owner.use(run, read, log, P)
+for part in (usb_owner, os_update):
+    part.use(run, read, log, P)
 
 
 # The share's password, checked as Samba keeps it (its NT hash: MD4 of the password in UTF-16LE).
@@ -184,11 +186,11 @@ def state():
         services.append({"unit": unit, "name": name, "state": active})
     return {
         "os": {"version": read("/usr/lib/mandarin-os/VERSION", "?"), "uptime": read("/proc/uptime", "0").split()[0],
-               "last_upkeep": read("/data/MandarinOS/last-upkeep.txt"), "hostname": read("/etc/hostname", "mandarin")},
+               "last_upkeep": read("/data/MandarinOS/last-upkeep.txt"), "hostname": read("/etc/hostname", "mandarin"), "update": os_update.state()},
         "mandarin": {"answering": h is not None, "version": (h or {}).get("version"), "albums": (h or {}).get("albums"),
                      "rooms": (h or {}).get("rooms"), "busy": (h or {}).get("busy"), "port": 3500},
         "services": services, "data": space("/data"), "usb": usb_drives(), "internal": internal(), "network": network(),
-        "share": {"user": read("/data/MachineSettings/share-user"), "path": "smb://mandarin/data"},
+        "share": {"user": (u := read("/data/MachineSettings/share-user")), "uid": run(["id", "-u", u])[1] if u else "", "path": "smb://mandarin/data"},
     }
 
 
@@ -466,7 +468,7 @@ class Page(http.server.BaseHTTPRequestHandler):
         routes = {"/api/check": lambda: (200, {"ok": True}), "/api/power": lambda: power(action), "/api/mandarin": lambda: mandarin_action(action),
                   "/api/network": lambda: change_network(body, self.client_address[0]), "/api/network/keep": keep_network,
                   "/api/usb/eject": lambda: eject(body.get("name")), "/api/usb/own": lambda: usb_owner.make_ours(body.get("name")),
-                  "/api/bridge": lambda: bridge(action),
+                  "/api/bridge": lambda: bridge(action), "/api/os-update": lambda: os_update.act(action),
                   "/api/internal/format": lambda: format_internal(body.get("disk")) if body.get("erase") == "erase" else (400, {"error": "Type erase to format it"})}
         if p not in routes:
             return self.send(404, {"error": "No such action"})

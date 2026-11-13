@@ -40,9 +40,11 @@ under-the-hood fixes and improvements. The [changelog](CHANGELOG.md) has each ch
 * **Improved:** security, speed and reliability across the server, the page, the app and Mandarin Bridge; releases
   are signed, and the server and Mandarin Bridge install only a signed update.
 
-**Mandarin OS 0.1.3:** a lightweight operating system made only to run Mandarin Server, on a PC of its own, with its own
+**Mandarin OS 0.1.4:** a lightweight operating system made only to run Mandarin Server, on a PC of its own, with its own
 system page (`http://mandarin/`) to watch over and look after everything: a shared folder for your music, USB drives
-mounted as they are plugged in, and a weekly upkeep when nothing plays. See [Mandarin OS](#mandarin-os).
+mounted as they are plugged in, and a weekly upkeep when nothing plays. New in 0.1.4: it **updates itself in place**,
+from the system page or by itself in the weekly upkeep, and goes back by itself to the version that worked if a new one
+doesn't start. See [Mandarin OS](#mandarin-os).
 
 ## Downloads
 
@@ -52,7 +54,7 @@ a command, below.
 | What | Version | Download |
 | --- | --- | --- |
 | **Mandarin Remote**, the Android app (Android 8.0 or newer) | v1.3.0 | [mandarin-android.apk](https://github.com/meltface-80/Mandarin/raw/main/dist/mandarin-android.apk) |
-| **Mandarin OS**, a system made only to run Mandarin (a 64-bit Intel or AMD PC with UEFI) | 0.1.3 | [mandarin-os-0.1.3-x64.img.xz](https://github.com/meltface-80/Mandarin/releases/download/mandarin-os-v0.1.3/mandarin-os-0.1.3-x64.img.xz) for balenaEtcher or dd · [mandarin-os-0.1.3-x64.img](https://github.com/meltface-80/Mandarin/releases/download/mandarin-os-v0.1.3/mandarin-os-0.1.3-x64.img) for a phone; see [Mandarin OS](#mandarin-os) |
+| **Mandarin OS**, a system made only to run Mandarin (a 64-bit Intel or AMD PC with UEFI) | 0.1.4 | [mandarin-os-0.1.4-x64.img.xz](https://github.com/meltface-80/Mandarin/releases/download/mandarin-os-v0.1.4/mandarin-os-0.1.4-x64.img.xz) for balenaEtcher or dd · [mandarin-os-0.1.4-x64.img](https://github.com/meltface-80/Mandarin/releases/download/mandarin-os-v0.1.4/mandarin-os-0.1.4-x64.img) for a phone; see [Mandarin OS](#mandarin-os) |
 | **Mandarin server** on Linux (Debian, Ubuntu, Raspberry Pi OS; x64 or arm64) | v1.3.0 | the one line under [Install on Linux](#install-on-linux) |
 | **Mandarin Bridge** for Android (a FiiO R7, say) | v0.3.10 | [mandarin-bridge.apk](https://github.com/meltface-80/Mandarin/releases/download/mandarin-bridge-v0.3.10/mandarin-bridge.apk) |
 | **Mandarin Bridge** for Raspberry Pi (3, 4, 5, Zero 2 W) | v0.3.10 | [mandarin-bridge-pi-arm64.img.xz](https://github.com/meltface-80/Mandarin/releases/download/mandarin-bridge-v0.3.10/mandarin-bridge-pi-arm64.img.xz) |
@@ -841,7 +843,7 @@ computer does.
 **A lightweight operating system made only to run Mandarin Server**, on a computer of its own, with a web page of its
 own, the **system page**, to watch over and look after everything. A music server should be something you switch on and
 forget: Mandarin OS is Mandarin and only what Mandarin needs, installed from a USB stick in a few minutes, with nothing
-else to set up or keep up to date. Version 0.1.3; on the Pages site, [Mandarin OS](https://meltface-80.github.io/Mandarin/mandarin-os.html).
+else to set up or keep up to date. Version 0.1.4; on the Pages site, [Mandarin OS](https://meltface-80.github.io/Mandarin/mandarin-os.html).
 
 * **Lightweight:** Debian 13 with Mandarin installed natively, and nothing else: no desktop, no login, no SSH. Everything
   coming in from the network is refused by a firewall, but what Mandarin and the system answer.
@@ -850,8 +852,10 @@ else to set up or keep up to date. Version 0.1.3; on the Pages site, [Mandarin O
   Bridge, reinstall or reset Mandarin, restart or shut down.
 * **A shared folder for your music:** `smb://mandarin/data`. Copy music in from any computer, or plug in a USB drive: it
   is mounted, and in Mandarin, as it is plugged in.
-* **Looks after itself:** once a week, when nothing is playing, it takes Debian's security updates, clears out what
-  isn't needed, and checks that everything works.
+* **Looks after itself:** once a week, when nothing is playing, it takes a newer Mandarin OS or Debian's security
+  updates, clears out what isn't needed, and checks that everything works.
+* **Updates itself in place:** a new version is written beside the one running, never over it, and started; if it
+  doesn't start, the box goes back to the version that worked by itself. Your music, settings and drives aren't touched.
 
 #### What you need
 
@@ -866,18 +870,18 @@ else to set up or keep up to date. Version 0.1.3; on the Pages site, [Mandarin O
 #### Download
 
 The image comes two ways, the same system either way, each with its checksum (`.sha256`) and its signature (`.sig`), on
-the [Mandarin OS 0.1.3 release](https://github.com/meltface-80/Mandarin/releases/tag/mandarin-os-v0.1.3):
+the [Mandarin OS 0.1.4 release](https://github.com/meltface-80/Mandarin/releases/tag/mandarin-os-v0.1.4):
 
 | File | Size | For |
 | --- | --- | --- |
-| [mandarin-os-0.1.3-x64.img.xz](https://github.com/meltface-80/Mandarin/releases/download/mandarin-os-v0.1.3/mandarin-os-0.1.3-x64.img.xz) ([sha256](https://github.com/meltface-80/Mandarin/releases/download/mandarin-os-v0.1.3/mandarin-os-0.1.3-x64.img.xz.sha256)) | about 380 MB | balenaEtcher and the Linux terminal |
-| [mandarin-os-0.1.3-x64.img](https://github.com/meltface-80/Mandarin/releases/download/mandarin-os-v0.1.3/mandarin-os-0.1.3-x64.img) ([sha256](https://github.com/meltface-80/Mandarin/releases/download/mandarin-os-v0.1.3/mandarin-os-0.1.3-x64.img.sha256)) | about 1.6 GB | an Android phone (EtchDroid) |
+| [mandarin-os-0.1.4-x64.img.xz](https://github.com/meltface-80/Mandarin/releases/download/mandarin-os-v0.1.4/mandarin-os-0.1.4-x64.img.xz) ([sha256](https://github.com/meltface-80/Mandarin/releases/download/mandarin-os-v0.1.4/mandarin-os-0.1.4-x64.img.xz.sha256)) | about 380 MB | balenaEtcher and the Linux terminal |
+| [mandarin-os-0.1.4-x64.img](https://github.com/meltface-80/Mandarin/releases/download/mandarin-os-v0.1.4/mandarin-os-0.1.4-x64.img) ([sha256](https://github.com/meltface-80/Mandarin/releases/download/mandarin-os-v0.1.4/mandarin-os-0.1.4-x64.img.sha256)) | about 1.6 GB | an Android phone (EtchDroid) |
 
 #### Make the USB installer
 
 **With balenaEtcher** (Windows, macOS or a Linux desktop):
 
-1. Install [balenaEtcher](https://etcher.balena.io/) and download `mandarin-os-0.1.3-x64.img.xz`. Etcher takes the
+1. Install [balenaEtcher](https://etcher.balena.io/) and download `mandarin-os-0.1.4-x64.img.xz`. Etcher takes the
    compressed file as it is: there is nothing to unpack.
 2. Plug in the USB stick and open Etcher.
 3. **Flash from file**: choose the `.img.xz` you downloaded.
@@ -893,29 +897,29 @@ the [Mandarin OS 0.1.3 release](https://github.com/meltface-80/Mandarin/releases
 3. In the folder you downloaded to, check the download against its checksum (it should say *OK*):
 
    ```bash
-   sha256sum -c mandarin-os-0.1.3-x64.img.xz.sha256
+   sha256sum -c mandarin-os-0.1.4-x64.img.xz.sha256
    ```
 
 4. Write it to the whole device, `/dev/sdX` (not a partition such as `/dev/sdX1`), with `sdX` the stick's name from
    `lsblk`:
 
    ```bash
-   xz -dc mandarin-os-0.1.3-x64.img.xz | sudo dd of=/dev/sdX bs=4M conv=fsync status=progress
+   xz -dc mandarin-os-0.1.4-x64.img.xz | sudo dd of=/dev/sdX bs=4M conv=fsync status=progress
    ```
 
    From the plain image, the same without `xz`:
 
    ```bash
-   sudo dd if=mandarin-os-0.1.3-x64.img of=/dev/sdX bs=4M conv=fsync status=progress
+   sudo dd if=mandarin-os-0.1.4-x64.img of=/dev/sdX bs=4M conv=fsync status=progress
    ```
 
 5. Then run `sync`, and take the stick out once it has returned.
 
 **From an Android phone, with EtchDroid** (free, on Google Play and F-Droid). It needs the plain
-**`mandarin-os-0.1.3-x64.img`**, not the `.img.xz`: a phone's writer doesn't decompress, and a stick written from the
+**`mandarin-os-0.1.4-x64.img`**, not the `.img.xz`: a phone's writer doesn't decompress, and a stick written from the
 compressed file starts nothing. The stick goes into the phone through a USB-OTG or USB-C adapter (or a USB-C stick).
 
-1. Download `mandarin-os-0.1.3-x64.img` on the phone (about 1.6 GB: Wi-Fi is best).
+1. Download `mandarin-os-0.1.4-x64.img` on the phone (about 1.6 GB: Wi-Fi is best).
 2. Plug the USB stick into the phone through the adapter.
 3. Open EtchDroid and choose to write an image (a raw image), then pick the `.img` you downloaded.
 4. Pick the USB stick.
@@ -969,8 +973,9 @@ for five minutes).
 * **Network & Access:** the address now; DHCP or a static address, which is checked before it is taken and put back by
   itself after two minutes unless you keep it from the new address; a connection test, layer by layer; the shared
   folder and its user.
-* **Settings:** Mandarin Bridge installed or removed (for a USB DAC plugged into the box), and the weekly upkeep's last
-  run.
+* **Settings:** Mandarin OS's version, with **Update and restart** when a newer one is out and **Check for updates**
+  ([below](#updating-mandarin-os)); Mandarin Bridge installed or removed (for a USB DAC plugged into the box), and the
+  weekly upkeep's last run.
 * **Support:** every log on the box as one text file (**Download all logs**), and Mandarin's, Mandarin OS's and the
   system's logs read and filtered on the page; **Reinstall Mandarin** (put back from its latest release, your library,
   settings and music kept) and **Reset Mandarin** (it starts as new, its library, account and settings set aside in its
@@ -1004,10 +1009,39 @@ folder, and whether Mandarin is running. It takes two words, typed with a keyboa
 
 There is no login and no SSH: the screen and the system page are the ways in.
 
-**Updates and upkeep.** Once a week, when nothing is playing (no room playing, no scan under way), Mandarin OS takes
-Debian's security updates, removes what nothing needs any more, restarts only if an update needs it, and then checks
-that everything works, starting again whatever isn't. Each step is in its log. **Mandarin and Mandarin Bridge** update
-from Mandarin's **Settings → Updates**, as everywhere ([Updating](#updating)).
+**Updates and upkeep.** Once a week, when nothing is playing (no room playing, no scan under way), Mandarin OS takes a
+newer Mandarin OS where one is out (below), or else Debian's security updates, removes what nothing needs any more,
+restarts only if an update needs it, and then checks that everything works, starting again whatever isn't. Each step is
+in its log. **Mandarin and Mandarin Bridge** update from Mandarin's **Settings → Updates**, as everywhere
+([Updating](#updating)).
+
+#### Updating Mandarin OS
+
+From 0.1.4, Mandarin OS **updates itself in place**, without reinstalling. The system disk has two system partitions:
+the version running is on one, and a new version is written onto the other, never over the one running. The box looks
+for a newer version once a day.
+
+* **On the system page:** Settings shows Mandarin OS's version and, when a newer one is out, **Update and restart**
+  (with the shared folder's password). It downloads the new version into the data partition, checks its checksum and its
+  signature (Mandarin's release key, as Mandarin's own updates), writes it beside this one, and starts the computer
+  again on it: music stops for a few minutes. **Check for updates** looks at once.
+* **By itself:** the weekly upkeep puts a newer version in, while nothing plays, and starts the computer again only when
+  nothing plays.
+* **If it doesn't start**, or starts without what the box needs (the data partition, the shared folder, the network,
+  the system page, and Mandarin if it answered before), the computer tries it three times, then goes back by itself to
+  the version that worked, which the update never touched. The system page then says the update didn't start and the
+  box went back to the version before. The weekly upkeep never tries that version again; **Update and restart** can.
+* **What is kept:** everything on the data partition (your music, Mandarin's library and settings) and on USB drives is
+  never touched. The box's own settings are carried into the new version: the shared folder's user, password and its
+  files' owner, the network as set (a static address included), Mandarin Bridge if installed, and Mandarin itself where
+  the one running is newer than the image's (it is never put back to an older one).
+
+**Installed with 0.1.3 or earlier?** Those can't update themselves (the updater came with 0.1.4, and the users their
+files belong to are numbered otherwise): reinstall 0.1.4 once from the USB stick. Reinstalling **erases the system
+disk, the data partition with it** (Mandarin's library and settings, and music copied into Storage on that disk), so
+first make a backup in Mandarin (**Settings → Backup & restore**, **Back up to the server**) and copy it off the box from
+the shared folder (`MandarinServer/Backups`), with any music in Storage; afterwards, restore it in Mandarin from that
+file. Music on USB drives isn't on the system disk and isn't touched. From 0.1.4 on, it updates itself.
 
 Building the image yourself: [os/README.md](os/README.md).
 

@@ -43,7 +43,14 @@ async function standIn({ albums = 1234, rooms = 3, linuxDrives = false } = {}) {
   mk("/etc/hostname", "mandarin\n");
   fs.mkdirSync(bin);
   const shim = (name, body) => fs.writeFileSync(path.join(bin, name), `#!/bin/sh\necho "${name} $*" >> "${log}"\n${body || ""}\n`, { mode: 0o755 });
-  shim("systemctl", `[ "$1" = is-active ] && { case "$2" in mandarin-bridge.service) echo inactive; exit 3 ;; *) echo active ;; esac; }; exit 0`);
+  // Mandarin OS's own update (os-update, item 401), as its units leave it: a check finds 0.1.5; Update and restart begins.
+  const said = (j) => `mkdir -p "${root}/run/mandarin-os" && echo '${JSON.stringify(j)}' > "${root}/run/mandarin-os/os-update.json"`;
+  shim("systemctl", `[ "$1" = is-active ] && { case "$2" in mandarin-bridge.service) echo inactive; exit 3 ;; *) echo active ;; esac; }
+case "$*" in
+  "start mandarin-os-update@check.service") ${said({ state: "idle", available: "0.1.5", checked: "2026-11-13 09:00 UTC", error: "" })} ;;
+  "start --no-block mandarin-os-update@apply.service") ${said({ state: "downloading", progress: 20, said: "Downloading Mandarin OS 0.1.5", available: "0.1.5" })} ;;
+esac
+exit 0`);
   shim("pdbedit", `echo "music:1001:XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX:${NT}:[U          ]:LCT-00000000:"`);
   shim("nmcli", `echo "eth0:ethernet:connected"`);
   shim("ip", `case "$*" in *"addr show"*) echo "2: eth0    inet 192.168.0.57/24 brd 192.168.0.255 scope global dynamic eth0" ;; *route*) echo "default via 192.168.0.1 dev eth0" ;; esac`);

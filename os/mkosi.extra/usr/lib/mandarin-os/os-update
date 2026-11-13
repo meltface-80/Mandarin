@@ -1,0 +1,292 @@
+#!/bin/bash
+# /usr/lib/mandarin-os/os-update check|apply|auto — Mandarin OS updated in place (item 401, 0.1.4): the newest version
+# written beside the one running, into the system disk's other system partition, and started; the one running left as
+# it is to go back to (boot.sh says how the computer starts).
+#   check  whether a newer Mandarin OS is out: the newest mandarin-os-v* release; a test image's (update-from, written by
+#          os/build.sh) the test-os pre-release's. In /run/mandarin-os/os-update.json for the system page.
+#   apply  the system page's Update and restart: its system partition and kernel image downloaded into
+#          /data/MandarinOS/update, each one's checksum and signature (Mandarin's release key) checked; the partition
+#          not running written, read back, grown and labelled mandarin-os_<version>; this box's own settings carried into
+#          it (carry); its kernel image put on the EFI partition with an entry of three tries; the computer started again.
+#   auto   the weekly upkeep's: as apply, but never a version that didn't start before, and the computer started again
+#          only when nothing plays.
+# Never the partition running, never anything but the system disk's other system partition, never the data partition
+# nor a USB drive; and nothing that would start is put on the EFI partition until all of it is written and checked.
+# Each step in Mandarin OS's log.
+#   MANDARIN_OS_UPDATE_API  where releases are asked (GitHub's API for Mandarin's repository); MANDARIN_OS_UPDATE_KEY
+#   the key their signatures are checked against (base64 DER): the boot test's own, as Mandarin's UPDATE_KEY.
+set -uo pipefail
+LIB="$(dirname "$(readlink -f "$0")")"
+. "$LIB/log.sh"
+. "$LIB/boot.sh"
+API="${MANDARIN_OS_UPDATE_API:-https://api.github.com/repos/meltface-80/Mandarin}"
+# Mandarin's release key, its public half (server/Mandarin.Server/Admin/ReleaseKey.cs, tools/linux/install.sh).
+KEY="${MANDARIN_OS_UPDATE_KEY:-MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEWPo7em6WGTi2IICIB2POcOia7Hc/jFNK6MPlL1MQn4huS0EYMTfqkpxyaqL8hXOk297sBISqi0j463Tr+NZFXQ==}"
+FROM="$(cat "$LIB/update-from" 2>/dev/null || echo release)"
+RUN="$R/run/mandarin-os"
+NOW="$RUN/os-update.json"
+WORK="$R/data/MandarinOS/update"
+LAST="$R/data/MandarinOS/update-last.json"
+PENDING="$R/data/MandarinOS/update-pending.json"
+MNT="$RUN/update-root"
+mkdir -p "$RUN"
+
+# What the system page shows, a jq filter on it (its arguments first).
+put() { local f; f="$(cat "$NOW" 2>/dev/null)"; [ -n "$f" ] || f='{}'; jq -c "$@" <<< "$f" > "$NOW.new" && mv -f "$NOW.new" "$NOW"; }
+step() { put --arg s "$1" --argjson p "${2:-null}" --arg m "${3:-}" '.state = $s | .progress = $p | .said = $m | .error = ""'; }
+# The update given up: said, logged, its download removed. Whatever was taken off the other partition stays off: the
+# version running starts as before.
+failed() {
+  oslog ERROR "[update] $1"
+  put --arg e "$1" '.state = "failed" | .progress = null | .error = $e | .said = ""'
+  mountpoint -q "$MNT" 2>/dev/null && umount "$MNT"
+  rm -rf "$WORK"
+  exit 1
+}
+
+# The newest Mandarin OS out, as {version, assets: {name: {url, size}}}, or nothing.
+newest() {
+  local j
+  if [ "$FROM" = test-os ]; then
+    j="$(curl -fsSL --retry 3 --max-time 60 "$API/releases/tags/test-os")" || return 1
+    jq -c '[.assets[] | {key: .name, value: {url: .browser_download_url, size}}] | from_entries as $a
+      | [$a | keys[] | capture("^mandarin-os-(?<v>[0-9][0-9.]*)-x64\\.root\\.raw\\.xz$").v][0] as $v
+      | if $v then {version: $v, assets: $a} else empty end' <<< "$j"
+  else
+    j="$(curl -fsSL --retry 3 --max-time 60 "$API/releases?per_page=100")" || return 1
+    jq -c '[.[] | select((.draft | not) and (.prerelease | not) and (.tag_name | startswith("mandarin-os-v")))
+      | (.tag_name | ltrimstr("mandarin-os-v")) as $v
+      | {version: $v, assets: ([.assets[] | {key: .name, value: {url: .browser_download_url, size}}] | from_entries)}
+      | select(.assets["mandarin-os-\($v)-x64.root.raw.xz"])]
+      | max_by(.version | split(".") | map(tonumber? // 0)) // empty' <<< "$j"
+  fi
+}
+
+check() {
+  local n v
+  put --arg c "$(date -u '+%Y-%m-%d %H:%M UTC')" '.checked = $c | .error = "" | .state = "idle" | .progress = null | .said = ""'
+  if ! n="$(newest)"; then
+    put '.error = "GitHub couldn'"'"'t be reached to look for a newer Mandarin OS"'
+    oslog WARN "[update] GitHub couldn't be reached to look for a newer Mandarin OS"
+    return 1
+  fi
+  v="$(jq -r '.version // empty' <<< "$n")"
+  if [ -n "$v" ] && newer "$VER" "$v"; then
+    printf '%s\n' "$n" > "$RUN/os-update-release.json"
+    put --arg v "$v" '.available = $v'
+  else
+    rm -f "$RUN/os-update-release.json"
+    put '.available = null'
+  fi
+}
+
+# Nothing under way in Mandarin: no room playing, no scan, nothing being made (or Mandarin not answering).
+idle() { local h; h="$(curl -fsS --max-time 5 "$MANDARIN/api/health" 2>/dev/null)" || return 0; [ "$(jq -r '.busy.any // false' <<< "$h")" = false ]; }
+
+# Release file $1 downloaded into $WORK, the system page told how far (from $2 to $3 per cent).
+fetch() {
+  local url size pid have
+  url="$(jq -r --arg n "$1" '.assets[$n].url // empty' <<< "$REL")"; size="$(jq -r --arg n "$1" '.assets[$n].size // 0' <<< "$REL")"
+  [ -n "$url" ] || failed "Mandarin OS $V's release has no $1"
+  curl -fsSL --retry 3 --max-time 3600 -o "$WORK/$1" "$url" & pid=$!
+  while kill -0 "$pid" 2>/dev/null; do
+    have="$(stat -c %s "$WORK/$1" 2>/dev/null || echo 0)"
+    [ "$size" -gt 0 ] && put --argjson p $(($2 + ($3 - $2) * have / size)) '.progress = ([$p, 100] | min)'
+    sleep 1
+  done
+  wait "$pid" || failed "Mandarin OS $V's $1 couldn't be downloaded"
+}
+
+# File $1's checksum (its .sha256) and signature (its .sig, the release key's): both, or it isn't taken.
+checked() {
+  (cd "$WORK" && sha256sum -c --status "$1.sha256") || failed "Mandarin OS $V's $1 isn't what its checksum says: not taken"
+  openssl dgst -sha256 -verify "$WORK/key.pem" -signature "$WORK/$1.sig" "$WORK/$1" >/dev/null 2>&1 \
+    || failed "Mandarin OS $V's $1 isn't signed with Mandarin's release key: not taken"
+}
+
+# A user's or a group's number in the system at $1 (its /etc/passwd or /etc/group).
+uid_in() { awk -F: -v n="$2" '$1 == n { print $3; exit }' "$1/etc/passwd" 2>/dev/null; }
+gid_in() { awk -F: -v n="$2" '$1 == n { print $3; exit }' "$1/etc/group" 2>/dev/null; }
+
+# Mandarin's version as an order sort -V keeps: a test build before its release (1.3.1-t5 → 1.3.1.0.5, 1.3.1 → 1.3.1.1).
+mver() { local v="$1"; case "$v" in *-*) printf '%s.0.%s\n' "${v%%-*}" "$(tr -cd '0-9.' <<< "${v#*-}")" ;; *) printf '%s.1\n' "$v" ;; esac; }
+
+# What is this box's own and lives on its system partition, carried into the new one at $1 (os/README.md, "Updates"):
+# the mounts the installer wrote (fstab), its identity (machine-id: the address the router gives it, the journal's),
+# the shared folder's password (Samba's own records), the network as set (NetworkManager's), Mandarin Bridge where it
+# is installed (its program, its service, and its data: who it is to Mandarin), and Mandarin and ffmpeg where the ones
+# running are newer than the new system's (Mandarin updates itself in the app, and its library may have moved on with
+# it: never put back to an older one). Users and groups aren't copied: their numbers are the same in every image
+# (mkosi.postinst.chroot, apply), checked before.
+carry() {
+  local n="$1" p have img
+  for p in /etc/fstab /etc/machine-id /etc/systemd/system/mandarin-bridge.service /etc/systemd/system/multi-user.target.wants/mandarin-bridge.service \
+      /var/lib/mandarin-bridge /var/lib/samba /etc/NetworkManager/system-connections /var/lib/NetworkManager /usr/lib/mandarin-bridge; do
+    [ -e "$R$p" ] || [ -L "$R$p" ] || continue
+    rm -rf "${n:?}$p"; mkdir -p "$(dirname "$n$p")"; cp -a "$R$p" "$n$p" || return 1
+  done
+  if [ -d "$R/var/lib/private/mandarin-bridge" ]; then
+    mkdir -p "$n/var/lib/private" && chmod 0700 "$n/var/lib/private" && rm -rf "$n/var/lib/private/mandarin-bridge" \
+      && cp -a "$R/var/lib/private/mandarin-bridge" "$n/var/lib/private/" || return 1
+  fi
+  have="$(cat "$R/opt/mandarin/server/bin/mandarin-server.version" 2>/dev/null)"
+  img="$(cat "$n/opt/mandarin/server/bin/mandarin-server.version" 2>/dev/null)"
+  if [ -n "$have" ] && { [ -z "$img" ] || newer "$(mver "$img")" "$(mver "$have")"; }; then
+    rm -rf "$n/opt/mandarin" && cp -a "$R/opt/mandarin" "$n/opt/mandarin" || return 1
+    oslog INFO "[update] Mandarin $have kept (Mandarin OS $V carries ${img:-none}): never an older one over it"
+  fi
+  have="$(cat "$R/usr/local/share/ffmpeg/debian-version" 2>/dev/null)"
+  img="$(cat "$n/usr/local/share/ffmpeg/debian-version" 2>/dev/null)"
+  if [ -n "$have" ] && [ -n "$img" ] && dpkg --compare-versions "$have" gt "$img"; then
+    cp -a "$R/usr/local/." "$n/usr/local/" || return 1
+  fi
+  return 0
+}
+
+apply() {
+  local auto="$1" root disk t slots target tuuid me efi usize tsize sum p rc mine old new share suid m f who
+  exec 9> "$RUN/os-update.lock"
+  flock -n 9 || { echo "an update is under way already"; exit 0; }
+  mountpoint -q "$R/data" || { echo "not an installed Mandarin OS"; exit 0; }
+  check || failed "GitHub couldn't be reached: no update"
+  V="$(jq -r '.available // empty' "$NOW")"
+  [ -n "$V" ] || { step idle "" "Mandarin OS $VER is the newest"; exit 0; }
+  if [ "$auto" = auto ] && [ "$(jq -r '.to // empty' "$LAST" 2>/dev/null)" = "$V" ] && [ "$(jq -r '.result // empty' "$LAST")" = failed ]; then
+    oslog WARN "[update] Mandarin OS $V didn't start last time: the upkeep leaves it (Update and restart, on the system page, tries it again)"
+    exit 0
+  fi
+  REL="$(cat "$RUN/os-update-release.json")"
+  oslog INFO "[update] Mandarin OS $VER → $V: begun ($([ "$auto" = auto ] && echo "the weekly upkeep" || echo "the system page"))"
+
+  # Where it goes: the system disk's other system partition, and nothing else.
+  step preparing 0 "Getting ready"
+  root="$(booted)"; disk="$(disk_of "$root")"
+  [ -n "$disk" ] && t="$(table "$disk")" || failed "the system's disk wasn't found"
+  slots="$(jq -c --arg t "$ROOT_TYPE" '[.partitiontable.partitions[] | select(.type == $t)]' <<< "$t")"
+  [ "$(jq length <<< "$slots")" = 2 ] || failed "the system's disk doesn't have two system partitions (installed before Mandarin OS 0.1.4?): reinstall it from the USB stick once"
+  [ "$(jq --arg r "$root" '[.[] | select(.node == $r)] | length' <<< "$slots")" = 1 ] || failed "the system running isn't on its disk's system partitions"
+  target="$(jq -r --arg r "$root" '.[] | select(.node != $r) | .node' <<< "$slots")"
+  [ -n "$target" ] && [ "$target" != "$root" ] || failed "the other system partition wasn't found"
+  tuuid="$(jq -r --arg r "$root" '.[] | select(.node != $r) | .uuid' <<< "$slots" | tr 'A-F' 'a-f')"
+  tsize=$(($(jq -r --arg r "$root" '.[] | select(.node != $r) | .size' <<< "$slots") * $(jq -r '.partitiontable.sectorsize // 512' <<< "$t")))
+  me="$(jq -r --arg r "$root" '.[] | select(.node == $r) | .uuid' <<< "$slots" | tr 'A-F' 'a-f')"
+  [ -z "$(findmnt -rno TARGET -S "$target" 2>/dev/null)" ] || failed "the other system partition ($target) is in use"
+  efi="$(esp "$disk")" || failed "the EFI partition couldn't be opened"
+  mine="$(entries "$efi" | awk -v u="$me" '$4 == u')"
+  [ -n "$mine" ] || failed "the version running has no entry of its own on the EFI partition: nothing to go back to, so no update"
+  [ -e "$TRYING" ] && awk '$3 != -1 { bad = 1 } END { exit !bad }' <<< "$mine" \
+    && failed "Mandarin OS $VER is still being tried after its own update: try again in a few minutes"
+  # Written already (by the upkeep, while music played on): started again on it.
+  if [ "$(jq -r '.to // empty' "$PENDING" 2>/dev/null)" = "$V" ] \
+      && entries "$efi" | awk -v v="$V" -v u="$tuuid" '$2 == v && $4 == u && $3 > 0 { f = 1 } END { exit !f }'; then
+    restart "$auto"
+  fi
+
+  # Downloaded and checked, all of it, before anything is written.
+  rm -rf "$WORK"; mkdir -p "$WORK"
+  { echo "-----BEGIN PUBLIC KEY-----"; printf '%s\n' "$KEY" | fold -w 64; echo "-----END PUBLIC KEY-----"; } > "$WORK/key.pem"
+  ROOTXZ="mandarin-os-$V-x64.root.raw.xz" UKI="mandarin-os-$V-x64.efi"
+  [ "$(df --output=avail -B1 "$WORK" | tail -n 1)" -gt $(($(jq -r --arg n "$ROOTXZ" '.assets[$n].size // 0' <<< "$REL") + 300000000)) ] \
+    || failed "the data partition hasn't the room to download Mandarin OS $V"
+  step downloading 0 "Downloading Mandarin OS $V"
+  for f in "$UKI.sha256" "$UKI.sig" "$ROOTXZ.sha256" "$ROOTXZ.sig"; do fetch "$f" 0 0; done
+  fetch "$UKI" 0 5; fetch "$ROOTXZ" 5 55
+  step checking 55 "Checking Mandarin OS $V"
+  checked "$UKI"; checked "$ROOTXZ"
+  python3 "$LIB/uki-cmdline" "$WORK/$UKI" > "$WORK/cmdline" || failed "Mandarin OS $V's kernel image isn't one"
+  usize="$(xz --robot -l "$WORK/$ROOTXZ" 2>/dev/null | awk '$1 == "totals" { print $5 }')"
+  sum="$(xz -dc "$WORK/$ROOTXZ" | sha256sum | cut -d' ' -f1)" || failed "Mandarin OS $V's system doesn't decompress"
+  [ "${usize:-0}" -gt 0 ] && [ "$usize" -le "$tsize" ] || failed "Mandarin OS $V's system ($usize bytes) doesn't fit its partition ($tsize)"
+  oslog INFO "[update] Mandarin OS $V downloaded, its checksums and signatures checked"
+
+  # Nothing starts the other partition while it is written: its entries off the EFI partition, and it marked empty.
+  entries "$efi" | while read -r f _ _ u; do [ "$u" = "$me" ] || unentry "$efi" "$f" || exit 1; done \
+    || failed "an entry starting the other system partition couldn't be taken off the EFI partition: nothing written"
+  sfdisk --no-reread --no-tell-kernel --part-label "$disk" "$(num "$target")" _empty >/dev/null 2>&1 || failed "the other system partition couldn't be marked"
+  step writing 60 "Writing Mandarin OS $V beside this one"
+  oslog INFO "[update] writing Mandarin OS $V into $target (the system running, $root, untouched)"
+  xz -dc "$WORK/$ROOTXZ" | dd of="$target" bs=4M iflag=fullblock conv=fsync status=none & p=$!
+  while kill -0 "$p" 2>/dev/null; do
+    put --argjson p $((60 + 25 * $(awk '/^wchar/ { print $2 }' "/proc/$p/io" 2>/dev/null || echo 0) / usize)) '.progress = ([$p, 85] | min)'
+    sleep 1
+  done
+  wait "$p" || failed "Mandarin OS $V couldn't be written into $target"
+  # Read back from the disk itself (its cache let go first), as written.
+  blockdev --flushbufs "$target" 2>/dev/null
+  [ "$(head -c "$usize" "$target" | sha256sum | cut -d' ' -f1)" = "$sum" ] || failed "Mandarin OS $V read back from $target isn't as written"
+  step writing 88 "Checking what was written"
+  e2fsck -fy "$target" >/dev/null 2>&1; rc=$?
+  [ "$rc" -lt 4 ] || failed "Mandarin OS $V's file system on $target has errors (e2fsck $rc)"
+  resize2fs "$target" >/dev/null 2>&1 || failed "Mandarin OS $V's file system couldn't be grown to its partition"
+
+  # This box's own, carried into it; the same users and groups as here, by number.
+  mkdir -p "$MNT" && mount -t ext4 "$target" "$MNT" || failed "Mandarin OS $V couldn't be opened on $target"
+  [ "$(cat "$MNT/usr/lib/mandarin-os/VERSION" 2>/dev/null)" = "$V" ] || failed "what was downloaded isn't Mandarin OS $V"
+  for who in mandarin; do
+    old="$(uid_in "$R" "$who"):$(gid_in "$R" "$who")"; new="$(uid_in "$MNT" "$who"):$(gid_in "$MNT" "$who")"
+    [ "$old" = "$new" ] || failed "Mandarin OS $V numbers $who as $new, this system as $old: its files would no longer be its own. Not updated"
+  done
+  share="$(cat "$R/data/MachineSettings/share-user" 2>/dev/null)"
+  suid="$(cat "$R/data/MachineSettings/share-uid" 2>/dev/null || uid_in "$R" "$share")"
+  if [ -n "$suid" ] && [ -n "$(awk -F: -v u="$suid" -v n="$share" '$3 == u && $1 != n' "$MNT/etc/passwd")" ]; then
+    failed "Mandarin OS $V has another user numbered as the shared folder's ($suid): not updated"
+  fi
+  carry "$MNT" || failed "this box's settings couldn't be carried into Mandarin OS $V"
+  oslog INFO "[update] this box's own carried into Mandarin OS $V: its mounts, identity, shared folder's password, network$([ -d "$R/usr/lib/mandarin-bridge" ] && echo ", Mandarin Bridge")"
+  sync; umount "$MNT" || failed "Mandarin OS $V couldn't be closed on $target"
+  sfdisk --no-reread --no-tell-kernel --part-label "$disk" "$(num "$target")" "mandarin-os_$V" >/dev/null 2>&1 \
+    || failed "the other system partition couldn't be labelled"
+
+  # Its kernel image and entry, last: three tries, then the version running again.
+  step installing 92 "Putting Mandarin OS $V in place"
+  mkdir -p "$efi/EFI/mandarin-os"
+  [ "$(df --output=avail -B1 "$efi" | tail -n 1)" -gt "$(stat -c %s "$WORK/$UKI")" ] || failed "the EFI partition hasn't the room for Mandarin OS $V's kernel image"
+  cp "$WORK/$UKI" "$efi/EFI/mandarin-os/mandarin-os_$V.new" && sync && cmp -s "$WORK/$UKI" "$efi/EFI/mandarin-os/mandarin-os_$V.new" \
+    && mv -f "$efi/EFI/mandarin-os/mandarin-os_$V.new" "$efi/EFI/mandarin-os/mandarin-os_$V.efi" || failed "Mandarin OS $V's kernel image couldn't be put on the EFI partition"
+  # What its first starts check (os-started health): Mandarin too, where it answers now.
+  curl -fsS -o /dev/null --max-time 5 "$MANDARIN/api/health" 2>/dev/null && m=true || m=false
+  jq -n --arg f "$VER" --arg t "$V" --arg a "$(date -u '+%Y-%m-%d %H:%M UTC')" --argjson m "$m" '{from: $f, to: $t, at: $a, mandarin: $m}' > "$PENDING.new" \
+    && mv -f "$PENDING.new" "$PENDING" || failed "the update couldn't be noted on the data partition"
+  entry "$efi" "$V" "$tuuid" "$(cat "$WORK/cmdline")" "+3" || { rm -f "$PENDING"; failed "Mandarin OS $V's entry couldn't be written"; }
+  rm -rf "$WORK"
+  oslog INFO "[update] Mandarin OS $V written into $target, its entry on the EFI partition (three tries, then $VER again)"
+  restart "$auto"
+}
+
+# Whether apt, dpkg or the upkeep's unattended-upgrade is at work.
+apt_busy() { pgrep -x 'apt-get|apt|dpkg' >/dev/null || pgrep -f '/unattended-upgrade( |$)' >/dev/null; }
+
+# The computer started again on it: at once from the system page; from the upkeep only once nothing plays (an hour and
+# a half at most, or it starts at the next restart, whenever that is).
+restart() {
+  if [ "$1" = auto ]; then
+    for i in $(seq 1 18); do
+      idle && break
+      if [ "$i" = 18 ]; then
+        step waiting 100 "Mandarin OS $V starts at the computer's next restart"
+        oslog INFO "[update] music played on: Mandarin OS $V starts at the computer's next restart"
+        exit 0
+      fi
+      [ "$i" = 1 ] && oslog INFO "[update] waiting for nothing to play to start again on Mandarin OS $V"
+      sleep 300
+    done
+  fi
+  # Never while Debian's packages are being changed (the upkeep's apt): half a package is worse than a late restart. Its
+  # unattended-upgrade, not unattended-upgrades' own service, which waits for every shutdown (unattended-upgrade-shutdown).
+  for i in $(seq 1 60); do apt_busy || break
+    [ "$i" = 1 ] && { step waiting 100 "Waiting for the upkeep's updates to finish, then starting again on Mandarin OS $V"
+      oslog INFO "[update] Debian's packages are being updated: starting again on Mandarin OS $V once they are"; }
+    sleep "${MANDARIN_OS_APT_WAIT:-30}"; done
+  step restarting 100 "Starting again on Mandarin OS $V"
+  oslog INFO "[update] starting again on Mandarin OS $V"
+  sync
+  systemctl reboot
+  exit 0
+}
+
+case "${1:-}" in
+  check) exec 9> "$RUN/os-update.lock"; flock -n 9 || exit 0; check ;;
+  apply) apply page ;;
+  auto) apply auto ;;
+  *) echo "os-update check|apply|auto" >&2; exit 2 ;;
+esac
