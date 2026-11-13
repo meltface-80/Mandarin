@@ -13,12 +13,16 @@ class EngineIdle(private val clock: () -> Long) {
 
     private var idleSince: Long? = null
 
-    /** The engine's fate now: [away] the way is away; [inUse] the phone's player is playing. */
-    fun verdict(away: Boolean, inUse: Boolean): Verdict {
+    /**
+     * The engine's fate now: [away] the way is away; [inUse] the phone's player is playing; [onScreen] the app is. Off
+     * screen and idle at home it is stopped at once (item 404): nothing will ask for it soon, and a timer to come back
+     * to it waits on the app's main thread, which Android freezes with the app (it burned a core meanwhile).
+     */
+    fun verdict(away: Boolean, inUse: Boolean, onScreen: Boolean = true): Verdict {
         if (away || inUse) { idleSince = null; return Verdict.KEEP }
         val now = clock()
         val from = idleSince ?: now.also { idleSince = it }
-        return if (now - from >= GRACE_MS) Verdict.STOP else Verdict.WAIT
+        return if (!onScreen || now - from >= GRACE_MS) Verdict.STOP else Verdict.WAIT
     }
 
     /** How long until the grace is up, for the next look; the whole grace while not idle. */

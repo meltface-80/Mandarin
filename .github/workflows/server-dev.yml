@@ -1,0 +1,72 @@
+name: Mandarin Server (dev)
+
+# dev's Mandarin Server, for the in-app updater's dev channel (item 405, server/Mandarin.Server/Admin/Updater.Channel.cs)
+# and Mandarin OS's Reinstall Mandarin on it: on every push to dev, once CI has passed on the same commit (as the Android
+# app's test build and a release wait, .github/wait-for-ci.sh), Mandarin Server at dev's test version
+# (tools/test-version.js: after the release before it, before the next) is built as a release builds it
+# (.github/server-assets.sh: the program for each machine with its sums, and the update bundle), each file signed with
+# the release key, and put on the rolling "test-server" pre-release, replacing the build before's files. Never
+# "latest": the updater reads releases/latest for the releases, and that stays the last release. The only tag this
+# makes is test-server's own, once.
+on:
+  push:
+    branches: [dev]
+
+permissions:
+  contents: write
+  actions: read     # to see CI's runs (.github/wait-for-ci.sh)
+
+concurrency:
+  group: server-dev
+  cancel-in-progress: false
+
+jobs:
+  test-server:
+    name: Mandarin Server's test build
+    runs-on: ubuntu-latest
+    timeout-minutes: 100
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
+        with:
+          fetch-depth: 0   # dev's test version counts the commits since the last release (tools/test-version.js)
+      - name: Wait for CI to pass
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: .github/wait-for-ci.sh "$GITHUB_SHA"
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1  # v7
+        with:
+          node-version: 22
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73  # v6
+        with:
+          dotnet-version: "10.0.x"
+      - name: Build Mandarin Server at dev's test version
+        id: v
+        run: |
+          set -e
+          v=$(node tools/test-version.js)
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+          .github/server-assets.sh program "$v" out
+          .github/server-assets.sh bundle "$v" out
+          ls -la out
+      - name: Signed with the release key
+        env:
+          RELEASE_SIGNING_KEY: ${{ secrets.RELEASE_SIGNING_KEY }}
+        run: .github/sign.sh out/mandarin-server-*.gz "out/musicd-server-${{ steps.v.outputs.version }}.tar.gz"
+      - name: Publish to the "test-server" pre-release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          V: ${{ steps.v.outputs.version }}
+        run: |
+          set -e
+          # What Settings → Updates shows of it: CHANGELOG.md's Unreleased lines.
+          { echo "Mandarin Server $V, from dev at ${GITHUB_SHA::7}. For testing only; not a release."; echo
+            awk '$0 == "## Unreleased" { on = 1; next } on && /^## / { exit } on' CHANGELOG.md; } > notes.md
+          if ! gh release view test-server >/dev/null 2>&1; then
+            gh release create test-server --prerelease --latest=false --title "Mandarin Server — test build" --notes-file notes.md --target "$GITHUB_SHA"
+          fi
+          gh release edit test-server --prerelease --latest=false --notes-file notes.md
+          gh release upload test-server out/* --clobber
+          # Only this version's bundle: the updater reads the version from its name.
+          gh release view test-server --json assets --jq '.assets[].name' | grep '^musicd-server-' | grep -v "^musicd-server-$V\.tar\.gz" \
+            | while read -r old; do gh release delete-asset test-server "$old" --yes; done

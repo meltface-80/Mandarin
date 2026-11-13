@@ -104,12 +104,20 @@ object Away {
      * [check], then MusicD's own Tailscale's repair waited for, up to [ms] (the server looked for straight after). Blocking.
      * Interrupted (the phone player gone dormant), it stops waiting and leaves the interrupt for its caller to see.
      */
-    fun checkAndWait(c: Context, ms: Long = 20_000) {
-        check(c)
+    fun checkAndWait(c: Context, ms: Long = 20_000) { check(c); waitRepair(ms) }
+
+    private fun waitRepair(ms: Long) {
         val until = System.currentTimeMillis() + ms
         while (repairing && System.currentTimeMillis() < until) {
             try { Thread.sleep(100) } catch (e: InterruptedException) { Thread.currentThread().interrupt(); return }
         }
+    }
+
+    /** MusicD's own Tailscale brought back now (item 404: it stops itself when idle; [EngineUse]), waited for up to [ms]. Blocking. */
+    internal fun revive(c: Context, ms: Long = 15_000) {
+        val awayAt = Store.awayAddress(c) ?: return
+        repair(c, "${awayAt.host}:${awayAt.port}", wasRunning = false)
+        waitRepair(ms)
     }
 
     /**
@@ -189,8 +197,9 @@ object Away {
 
         if (away && way.viaEngine && awayAt != null) {
             // Its engine joined and forwarding, on its own thread (item 157: this look held every other one — coming
-            // home among them — for as long as a repair took, a minute and more).
-            repair(c, "${awayAt.host}:${awayAt.port}", wasRunning)
+            // home among them — for as long as a repair took, a minute and more). Not once it has stopped itself, until the
+            // app is in use again (item 404): the long polls' retries would start it again and again.
+            if (EngineUse.rest.mayStart(EngineUse.wanted())) repair(c, "${awayAt.host}:${awayAt.port}", wasRunning) else looked(away)
         } else if (away && awayAt != null && !answers(awayAt, 3000)) {
             if (!tailscaleApp(c)) {
                 // Neither MusicD's own Tailscale signed in nor the Tailscale app here: nothing more to try (item 157:
@@ -272,11 +281,18 @@ object Away {
      */
     private fun engineAtHome(c: Context, target: String) {
         val playing = runCatching { PhonePlayerService.current?.offlineState()?.state == "playing" }.getOrDefault(false)
-        when (engineIdle.verdict(away = false, inUse = playing)) {
+        val onScreen = NativeShell.onScreen.value
+        when (engineIdle.verdict(away = false, inUse = playing, onScreen = onScreen)) {
             EngineIdle.Verdict.KEEP -> { keepReady(c, target); lookAgain(5 * 60_000L) }
             EngineIdle.Verdict.WAIT -> if (TailscaleEngine.alive()) lookAgain(engineIdle.remaining() + 500)
-            EngineIdle.Verdict.STOP -> if (TailscaleEngine.alive()) TailscaleEngine.stop("idle at home for ${EngineIdle.GRACE_MS / 60_000} min")
+            EngineIdle.Verdict.STOP -> if (TailscaleEngine.alive()) TailscaleEngine.stop("idle at home" + if (onScreen) " for ${EngineIdle.GRACE_MS / 60_000} min" else ", the app off screen")
         }
+    }
+
+    /** The engine at home looked at now (item 404): the app gone off screen or the phone's player stopped, not on a timer. */
+    fun lookAtEngine(c: Context) {
+        val a = c.applicationContext
+        work.execute { synchronized(this) { Store.awayAddress(a)?.let { at -> if (!Store.isAway(a) && TailscaleEngine.alive()) engineAtHome(a, "${at.host}:${at.port}") } } }
     }
 
     private val lookAgainRun = Runnable { app?.let { a -> work.execute { check(a) } } }
@@ -318,6 +334,7 @@ object Away {
      * was connected. Blocking callers only.
      */
     fun notBeforeVpn(c: Context) {
+        EngineUse.revive(c)   // stopped by itself while idle, and the app in use again: back first (item 404)
         val away = Store.isAway(c)
         val engine = away && Store.viaEngine(c)
         // Over the engine: only while this app's own engine forwards its port (item 226: another app's held it).

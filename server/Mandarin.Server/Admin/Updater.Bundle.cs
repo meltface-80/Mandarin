@@ -12,10 +12,10 @@ using JsObj = Mandarin.Server.Tags.JsObj;
 
 internal sealed partial class Updater
 {
-    /* The files of release v[v] (GitHub's /releases/tags/v<v>), read once for the bundle and the program. */
+    /* The files of release v[v] (GitHub's /releases/tags/v<v>, or dev's pre-release: Updater.Channel.cs), read once for the bundle and the program. */
     private async Task<List<JsObj>> ReleaseAssets(string v)
     {
-        var r = await GetJson($"/repos/{owner}/{repo}/releases/tags/v{v}");
+        var r = await GetJson(AssetsPath(v));
         if (r.Status != 200 || r.Json is not JsObj rel) throw new UpdateError($"release v{v} not found (HTTP {r.Status})");
         return [.. (rel["assets"] as List<object?> ?? []).OfType<JsObj>()];
     }

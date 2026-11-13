@@ -23,7 +23,7 @@ elsewhere can't reach it under its own site's name, nor make changes in your bro
 
 MANDARIN_OS_ROOT (the tests'): every path under it, and its commands from PATH as they find them."""
 import hashlib, http.server, ipaddress, json, os, re, shutil, socketserver, struct, subprocess, sys, threading, time, urllib.request
-import logs_one, os_update, usb_owner
+import channel, logs_one, os_update, usb_owner
 
 ROOT = os.environ.get("MANDARIN_OS_ROOT", "")
 PORT = int(os.environ.get("MANDARIN_OS_PORT", "80"))
@@ -59,7 +59,7 @@ def log(level, msg):
     run(["bash", "-c", '. "$0"/log.sh && oslog "$1" "$2"', LIB, level, "[system page] " + msg])
 
 
-for part in (usb_owner, os_update):
+for part in (usb_owner, os_update, channel):
     part.use(run, read, log, P)
 
 
@@ -188,7 +188,7 @@ def state():
         "os": {"version": read("/usr/lib/mandarin-os/VERSION", "?"), "uptime": read("/proc/uptime", "0").split()[0],
                "last_upkeep": read("/data/MandarinOS/last-upkeep.txt"), "hostname": read("/etc/hostname", "mandarin"), "update": os_update.state()},
         "mandarin": {"answering": h is not None, "version": (h or {}).get("version"), "albums": (h or {}).get("albums"),
-                     "rooms": (h or {}).get("rooms"), "busy": (h or {}).get("busy"), "port": 3500},
+                     "rooms": (h or {}).get("rooms"), "busy": (h or {}).get("busy"), "port": 3500, "channel": channel.state()},
         "services": services, "data": space("/data"), "usb": usb_drives(), "internal": internal(), "network": network(),
         "share": {"user": (u := read("/data/MachineSettings/share-user")), "uid": run(["id", "-u", u])[1] if u else "", "path": "smb://mandarin/data"},
     }
@@ -332,7 +332,8 @@ def mandarin_action(action):
     if action == "reinstall":
         log("INFO", "Mandarin reinstalled from the system page")
         threading.Thread(target=lambda: run([LIB + "/reinstall-mandarin"], timeout=1800), daemon=True).start()
-        return 200, {"ok": True, "said": "Mandarin is being put back from its latest release, your library and settings kept. A few minutes."}
+        frm = "the development builds" if channel.wanted() == "dev" else "its latest release"
+        return 200, {"ok": True, "said": f"Mandarin is being put back from {frm}, your library and settings kept. A few minutes."}
     if action == "reset":
         stamp = time.strftime("%Y%m%d-%H%M%S")
         run(["systemctl", "stop", "mandarin.service"], timeout=60)

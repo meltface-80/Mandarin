@@ -1,5 +1,14 @@
 # Mandarin OS changelog
 
+## v0.1.6
+
+- Changed - the reinstaller's folder, Installer, is at the top of the shared folder (smb://<box>/data/Installer), beside Storage rather than in it (item 406); one in Storage is moved there, what was in it kept.
+- Changed - a file in Installer asks the reinstaller once: it is taken out once Mandarin is installed from it, and the box stays on what it was given (the upkeep's own reinstalls included) until another file asks for the other (item 406).
+
+## v0.1.5
+
+- New - Reinstall Mandarin follows the channel set on the box (item 405): Mandarin's latest release, as before, or dev's builds of Mandarin Server. Mandarin's own updates follow the same channel until the next Reinstall. Changing channel, Mandarin's data is backed up first into its Backups, and nothing changes if it can't be; a Mandarin that doesn't then start on its data is said in the log, the backup kept. The system page's Overview says when Mandarin is on development builds. Mandarin OS's own updates and Mandarin Bridge stay on their releases.
+
 ## v0.1.4
 
 - New - Mandarin OS updates itself in place, without reinstalling (item 401). The system disk's second system partition, kept empty until now, takes the next version: downloaded into the data partition, its checksum and its signature (Mandarin's release key, as Mandarin's own updates) checked, written beside the version running (never over it), read back, then started from an entry of its own on the EFI partition with three tries. The version that ran before is left as it was: a new version that doesn't start, or starts without what the box needs (its data partition, its shared folder, its firewall, its network, its system page, and Mandarin where it answered before), is started again, and after three tries the computer goes back to the version before by itself. The box's own is carried into the new version: its mounts, its identity, the shared folder's password, the network as set, Mandarin Bridge and who it is to Mandarin, and Mandarin where the one running is newer than the image's (never an older one over it); the shared folder's user and Mandarin's are numbered the same in every version (3501 and 3500), so the files they own in Storage and on USB drives stay theirs. Nothing on the data partition or on a USB drive is touched.

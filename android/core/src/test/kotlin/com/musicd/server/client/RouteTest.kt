@@ -82,6 +82,24 @@ class RouteTest {
         assertEquals(u, Route.rewrite(u, home, null, true))
     }
 
+    @Test fun aTrackQueuedOverTheEngineComesFromHomeOnceHome() {
+        // Item 404: away over MusicD's own Tailscale the queue's tracks are on its port; home again (the way no longer
+        // over the engine, the away address the Tailscale one) they went on through the engine, the phone's player
+        // playing over Tailscale at home until Android ended the app for the engine's CPU.
+        val engine = "http://127.0.0.1:34500"
+        val queued = "$engine/stream/t12.flac?s=abcdefghijklmnopqrstuv&q=opus"
+        val (homeAway, homeOthers) = Route.awayBases(viaEngine = false, engine = engine, tailnet = away)
+        assertEquals("$home/stream/t12.flac?s=abcdefghijklmnopqrstuv", Route.rewrite(queued, home, homeAway, false, others = homeOthers))
+        // Away again over the engine: a track queued at home, or on the Tailscale address, comes over the engine.
+        val (onEngine, engineOthers) = Route.awayBases(viaEngine = true, engine = engine, tailnet = away)
+        assertEquals(engine, onEngine)
+        assertEquals(queued, Route.rewrite("$away/stream/t12.flac?s=abcdefghijklmnopqrstuv", home, onEngine, true, others = engineOthers))
+        // Away over the Tailscale app: the engine's port is moved to the Tailscale address.
+        assertEquals("$away/stream/t12.flac?s=abcdefghijklmnopqrstuv&q=opus", Route.rewrite(queued, home, homeAway, true, others = homeOthers))
+        // No address away known: the engine's port is still this server's.
+        assertEquals(engine to listOf(engine), Route.awayBases(viaEngine = true, engine = engine, tailnet = null))
+    }
+
     @Test fun addressesFromTheServer() {
         assertEquals(ServerAddress("100.101.102.103", 3500), ServerAddress.fromUrl("http://100.101.102.103:3500"))
         val ts = ServerAddress.fromUrl("https://musicd.tail1234.ts.net")!!

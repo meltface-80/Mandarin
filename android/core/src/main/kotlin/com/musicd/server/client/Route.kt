@@ -85,10 +85,13 @@ object Route {
      * [keepOpus]: this track started as Opus and stays Opus wherever it's
      * fetched from (the rest of a track must be the same file as its start —
      * a change of format waits for the next track).
+     *
+     * [others]: the server's other addresses, moved too (item 404: a track queued away over MusicD's own Tailscale,
+     * on 127.0.0.1:34500, went on through it at home, where the away address is the Tailscale one).
      */
     fun rewrite(url: String, home: String, away: String?, isAway: Boolean, opus: Boolean = true,
-                keepOpus: Boolean = false): String {
-        val from = listOfNotNull(home, away).map { it.trimEnd('/') }
+                keepOpus: Boolean = false, others: List<String> = emptyList()): String {
+        val from = (listOfNotNull(home, away) + others).map { it.trimEnd('/') }
             .firstOrNull { url.startsWith("$it/") } ?: return url
         val to = (if (isAway && away != null) away else home).trimEnd('/')
         var rest = url.substring(from.length)
@@ -98,4 +101,11 @@ object Route {
         }
         return to + rest
     }
+
+    /**
+     * The server's addresses for [rewrite], each a base URL: the one in use away ([viaEngine]: MusicD's own Tailscale's
+     * port on the phone, [engine]; else the Tailscale address, [tailnet]), and the other one away besides.
+     */
+    fun awayBases(viaEngine: Boolean, engine: String, tailnet: String?): Pair<String?, List<String>> =
+        (if (viaEngine) engine else tailnet) to listOfNotNull(engine, tailnet)
 }

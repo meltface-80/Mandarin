@@ -1,12 +1,69 @@
 #!/bin/bash
-# /usr/lib/mandarin-os/reinstall-mandarin — Mandarin put back from its latest release (tools/linux/install.sh, kept in
-# the image, each file checked against the release key), its data and music folder kept; from the system page's
-# Reinstall, and from the upkeep when Mandarin doesn't answer (item 389).
+# /usr/lib/mandarin-os/reinstall-mandarin — Mandarin put back (tools/linux/install.sh, kept in the image, each file checked
+# against the release key), its data and music folder kept; from the system page's Reinstall, and from the upkeep when
+# Mandarin doesn't answer (item 389). From the builds the share's Installer asks for (item 405, channel.sh): the latest
+# release, or dev's newest build, a file there asking once (dev.bin, latest.bin), spent when it is done (item 406);
+# none, the builds the box is on. Moving from one to the other, Mandarin's data is backed up first, as Mandarin backs it
+# up (into its backups: the share's MandarinServer/Backups), and not moved at all where it can't be; then the channel is
+# kept for Mandarin's own updates, and Mandarin must answer on the data it finds: an older Mandarin (a release after a
+# dev build) that doesn't is said in the log, the backup kept.
+#   MANDARIN_OS_MANDARIN  where Mandarin answers (http://127.0.0.1:3500); MANDARIN_OS_WAIT  how long it is waited for
+#   (seconds, 180); MANDARIN_OS_ROOT  the tests' own root.
 set -uo pipefail
-. /usr/lib/mandarin-os/log.sh
-oslog INFO "[reinstall] Mandarin put back from its latest release"
-if /usr/lib/mandarin-os/linux-install.sh --music /data/Storage --data /data/MandarinServer >> /data/MandarinOS/Logs/Reinstall_log.txt 2>&1; then
-  oslog INFO "[reinstall] done: $(cat /opt/mandarin/server/bin/mandarin-server.version 2>/dev/null)"
-else
+LIB="$(dirname "$(readlink -f "$0")")"
+. "$LIB/log.sh"
+. "$LIB/channel.sh"
+R="${MANDARIN_OS_ROOT:-}"
+DATA="$R/data/MandarinServer"
+BIN="$R/opt/mandarin/server/bin/mandarin-server"
+MANDARIN="${MANDARIN_OS_MANDARIN:-http://127.0.0.1:3500}"
+want="$(channel_wanted)" was="$(channel_now)"
+have="$(cat "$BIN.version" 2>/dev/null)"
+backup=""
+
+# Mandarin's data backed up, as its own user: by Mandarin itself (mandarin-server backup, from 1.3.2), else, from an
+# older Mandarin, its database copied beside its backups, stopped first so the copy is whole.
+back_up() {
+  local label said stamp s
+  label="Before $(channel_words "$want")"
+  [ -f "$DATA/musicd.db" ] || { oslog INFO "[reinstall] no database yet: nothing to back up"; return 0; }
+  if said="$(runuser -u mandarin -- env DATA_DIR="$DATA" "$BIN" backup "$label" 2>&1)"; then
+    backup="$(jq -r '.id // empty' <<< "$said" 2>/dev/null).tar.gz"
+    oslog INFO "[reinstall] Mandarin's data backed up first: MandarinServer/Backups/$backup (\"$label\")"
+    return 0
+  fi
+  grep -q "no command" <<< "$said" || { oslog ERROR "[reinstall] Mandarin's backup failed: $said"; return 1; }
+  stamp="$(date '+%Y-%m-%d-%H%M%S')"
+  systemctl stop mandarin.service
+  mkdir -p "$DATA/backups" || return 1
+  for s in "" -wal -shm; do
+    [ -f "$DATA/musicd.db$s" ] && { cp -a "$DATA/musicd.db$s" "$DATA/backups/before-$want-$stamp.db$s" || return 1; }
+  done
+  backup="before-$want-$stamp.db"
+  oslog INFO "[reinstall] Mandarin $have makes no backup itself: its database copied first to MandarinServer/Backups/$backup"
+}
+
+oslog INFO "[reinstall] Mandarin put back from $(channel_words "$want")"
+if [ "$want" != "$was" ]; then
+  oslog INFO "[reinstall] from $(channel_words "$was") (Mandarin ${have:-not installed}) to $(channel_words "$want")"
+  back_up || { oslog ERROR "[reinstall] Mandarin's data couldn't be backed up: left on $(channel_words "$was")"; systemctl start mandarin.service; exit 1; }
+fi
+# Kept before the install, which starts Mandarin: it starts following it. Put back if the install doesn't go through.
+channel_keep "$want"
+mkdir -p "$R/data/MandarinOS/Logs"
+if ! "$LIB/linux-install.sh" --channel "$want" --music /data/Storage --data /data/MandarinServer >> "$R/data/MandarinOS/Logs/Reinstall_log.txt" 2>&1; then
+  channel_keep "$was"
   oslog ERROR "[reinstall] it didn't work (Reinstall_log.txt)"; exit 1
 fi
+now="$(cat "$BIN.version" 2>/dev/null)"
+oslog INFO "[reinstall] done: $now"
+# The file in Installer that asked spent (item 406): the box stays on $want until another asks.
+asked="$(channel_asked dev || channel_asked latest)" && { channel_spend && oslog INFO "[reinstall] $(basename "$asked") used and taken out of Installer"; }
+[ "$want" != "$was" ] || exit 0
+# Moved: Mandarin answers on the data the other left (a release can be older than the dev build before it).
+for _ in $(seq 1 "${MANDARIN_OS_WAIT:-180}"); do
+  curl -fsS --max-time 5 "$MANDARIN/api/health" >/dev/null 2>&1 && { oslog INFO "[reinstall] Mandarin $now answers on its data"; exit 0; }
+  sleep 1
+done
+oslog ERROR "[reinstall] Mandarin $now doesn't answer on the data Mandarin $have left: its backup is kept, MandarinServer/Backups/${backup:-(none made)}; Mandarin's own log says why (MandarinServer/Logs)"
+exit 1
