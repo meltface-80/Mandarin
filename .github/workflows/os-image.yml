@@ -103,18 +103,24 @@ jobs:
         run: |
           set -e
           v="$(cat os/VERSION)"
-          sudo chown "$(id -u):$(id -g)" os/*.raw os/*.efi   # built as root: its group too, or xz can't keep it
+          sudo chown "$(id -u):$(id -g)" os/*.raw   # built as root: its group too, or xz can't keep it
           mv "os/mandarin-os_$v.raw" "mandarin-os-$v-x64.img"
           # As it is (.img) for writers that don't decompress (a phone's: EtchDroid), and compressed (.img.xz) for those
-          # that do. A release's file can't be over 2 GiB: said here, not when publishing.
-          [ "$(stat -c %s "mandarin-os-$v-x64.img")" -lt 2147483648 ] || { echo "::error::the image is over 2 GiB, more than a release can hold"; exit 1; }
+          # that do.
           xz -T0 -6 -k "mandarin-os-$v-x64.img"
-          # For an installed Mandarin OS to update itself in place (os-update, item 401): its system partition as in the
-          # image, compressed (.root.raw.xz), and its unified kernel image (.efi), mkosi's own copy of the one in the image.
+          # For an installed Mandarin OS to update itself in place (os-update, item 401): its system partition as it is in
+          # the image, compressed (.root.raw.xz), and its unified kernel image (.efi), the one on the image's EFI partition.
           read -r rs rn < <(sfdisk -J "mandarin-os-$v-x64.img" | jq -r '.partitiontable.partitions[] | select(.type == "4F68BCE3-E8CD-4DB1-96E7-FBCAF984B709") | "\(.start) \(.size)"')
           dd if="mandarin-os-$v-x64.img" bs=4M iflag=skip_bytes,count_bytes skip=$((rs * 512)) count=$((rn * 512)) status=none | xz -T0 -6 > "mandarin-os-$v-x64.root.raw.xz"
-          cp "os/mandarin-os_$v.efi" "mandarin-os-$v-x64.efi"
-          for f in "mandarin-os-$v-x64.img" "mandarin-os-$v-x64.img.xz" "mandarin-os-$v-x64.root.raw.xz" "mandarin-os-$v-x64.efi"; do sha256sum "$f" > "$f.sha256"; done
+          es="$(sfdisk -J "mandarin-os-$v-x64.img" | jq -r '.partitiontable.partitions[] | select(.type == "C12A7328-F81F-11D2-BA4B-00A0C93EC93B") | .start')"
+          mkdir -p uki && mcopy -n -i "mandarin-os-$v-x64.img@@$((es * 512))" "::EFI/Linux/*.efi" uki/
+          [ "$(ls uki | wc -l)" = 1 ] || { echo "::error::the image's EFI partition doesn't hold one kernel image: $(ls uki)"; exit 1; }
+          mv uki/*.efi "mandarin-os-$v-x64.efi"
+          for f in "mandarin-os-$v-x64.img" "mandarin-os-$v-x64.img.xz" "mandarin-os-$v-x64.root.raw.xz" "mandarin-os-$v-x64.efi"; do
+            # A release's file can't be over 2 GiB: said here, not when publishing.
+            [ "$(stat -c %s "$f")" -lt 2147483648 ] || { echo "::error::$f is over 2 GiB, more than a release can hold"; exit 1; }
+            sha256sum "$f" > "$f.sha256"
+          done
           ls -la mandarin-os-*
       - name: Signed with the release key
         env:

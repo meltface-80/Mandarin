@@ -18,7 +18,7 @@ JobTimeoutAction=reboot
 Type=oneshot
 RemainAfterExit=yes
 ExecStart=/usr/lib/mandarin-os/os-started health
-TimeoutStartSec=5min
+TimeoutStartSec=10min
 
 [Install]
 RequiredBy=boot-complete.target

@@ -103,11 +103,14 @@
       b && b.state !== "not installed" ? '<button data-bridge="remove">Remove</button>' : '<button data-bridge="install">Install</button>');
     $("upkeep").textContent = "Every week while nothing plays: a newer Mandarin OS (as Update and restart puts it in), else Debian's security updates; then a check that everything works. " + (o.last_upkeep ? "Last: " + o.last_upkeep + "." : "Not run yet.");
     $("os-update").innerHTML = osUpdate(o);
-    if (o.update && BUSY.includes(o.update.state)) setTimeout(load, 2000);
+    // Read again soon while it updates: one read waiting at a time, whatever else asks for one.
+    clearTimeout(soon);
+    if (o.update && BUSY.includes(o.update.state)) soon = setTimeout(load, 2000);
   }
 
   // Mandarin OS updated in place (item 401): a newer version offered, its progress, and what the last update came to.
   const BUSY = ["preparing", "downloading", "checking", "writing", "installing", "restarting"];
+  let soon = 0;
   const osBadge = (o) => {
     const u = o.update || {};
     if (BUSY.includes(u.state)) return '<span class="state warn">Updating…</span>';
@@ -123,7 +126,7 @@
       : u.state === "failed" ? "The update didn't go through: " + esc(u.error) + ". This version runs on as before."
       : u.state === "waiting" ? esc(u.said) + "."
       : u.available ? "Mandarin OS " + esc(u.available) + " is out. Update and restart writes it beside this one and starts the computer again on it, in a few minutes; if it doesn't start, the box goes back to " + esc(o.version) + " by itself. Your music, settings and drives aren't touched."
-      : u.error ? esc(u.error) + "." : "This is the newest." + (u.checked ? " Looked " + esc(u.checked) + "." : "");
+      : u.error ? esc(u.error) + "." : u.checked ? "This is the newest (looked " + esc(u.checked) + ")." : "Looked for once a day; Check for updates looks now.";
     return row("Mandarin OS " + esc(o.version), [was, now].filter(Boolean).join("<br>"),
       busy ? "" : (u.available ? '<button data-os="apply" class="primary">Update and restart</button> ' : "") + '<button data-os="check">Check for updates</button>');
   }

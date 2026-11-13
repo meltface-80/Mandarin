@@ -3,14 +3,14 @@
 # with its level and where it came from, as Mandarin's server writes its own; journald has each line too. Before the
 # data partition is there (the installer, from the USB stick), journald alone.
 #   oslog INFO "[usb] mounted /data/Storage/USB/Music SSD (exfat)"
-OSLOG_DIR=/data/MandarinOS/Logs
+OSLOG_DIR="${MANDARIN_OS_ROOT:-}/data/MandarinOS/Logs"   # under the tests' own root, where they give one
 OSLOG_FILE="$OSLOG_DIR/MandarinOS_log.txt"
 oslog() {
   local level="$1"; shift
   local line
   line="$(date -u '+%Y-%m-%d %H:%M:%S.%3N') UTC  $(printf '%-5s' "$level")  $*"
   logger -t mandarin-os -- "$level $*" 2>/dev/null || true
-  mountpoint -q /data 2>/dev/null || return 0
+  mountpoint -q "${MANDARIN_OS_ROOT:-}/data" 2>/dev/null || return 0
   mkdir -p "$OSLOG_DIR" 2>/dev/null || return 0
   if [ -f "$OSLOG_FILE" ] && [ "$(stat -c %s "$OSLOG_FILE" 2>/dev/null || echo 0)" -gt 4194304 ]; then
     rm -f "$OSLOG_DIR/MandarinOS_log.10.txt"

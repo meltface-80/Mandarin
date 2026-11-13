@@ -9,8 +9,12 @@
 # takes one, and systemd-bless-boot keeps the entry (mandarin-os_<version>.conf) once boot-complete.target is reached,
 # which needs os-started's health check on such a start. After three tries that didn't, systemd-boot marks it bad
 # (+0-3) and starts the version before, whose partition the update never touched.
-#   MANDARIN_OS_ROOT  the tests' own root: every file below it, its commands from PATH
+#   MANDARIN_OS_ROOT  the tests' own root: every file below it, its commands from PATH; MANDARIN_OS_MANDARIN and
+#   MANDARIN_OS_PAGE where Mandarin and the system page answer, and MANDARIN_OS_WAIT how long a start's check waits for
+#   Mandarin (seconds), the tests' own
 R="${MANDARIN_OS_ROOT:-}"
+MANDARIN="${MANDARIN_OS_MANDARIN:-http://127.0.0.1:3500}"
+PAGE="${MANDARIN_OS_PAGE:-http://127.0.0.1}"
 ROOT_TYPE=4F68BCE3-E8CD-4DB1-96E7-FBCAF984B709   # a system partition (root, x86-64: the Discoverable Partitions Spec's)
 ESP_TYPE=C12A7328-F81F-11D2-BA4B-00A0C93EC93B    # the EFI partition
 # systemd-boot sets this on a start that is being tried (an entry with tries left); systemd-bless-boot reads it too.

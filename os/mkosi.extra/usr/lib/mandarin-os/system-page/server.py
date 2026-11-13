@@ -190,7 +190,7 @@ def state():
         "mandarin": {"answering": h is not None, "version": (h or {}).get("version"), "albums": (h or {}).get("albums"),
                      "rooms": (h or {}).get("rooms"), "busy": (h or {}).get("busy"), "port": 3500},
         "services": services, "data": space("/data"), "usb": usb_drives(), "internal": internal(), "network": network(),
-        "share": {"user": read("/data/MachineSettings/share-user"), "uid": read("/data/MachineSettings/share-uid"), "path": "smb://mandarin/data"},
+        "share": {"user": (u := read("/data/MachineSettings/share-user")), "uid": run(["id", "-u", u])[1] if u else "", "path": "smb://mandarin/data"},
     }
 
 

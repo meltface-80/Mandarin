@@ -18,7 +18,7 @@ const os = require("os");
 const path = require("path");
 const http = require("http");
 const crypto = require("crypto");
-const { spawnSync, execFileSync } = require("child_process");
+const { spawn, spawnSync, execFileSync } = require("child_process");
 
 const LIB = path.join(__dirname, "..", "os", "mkosi.extra", "usr", "lib", "mandarin-os");
 const A = "aaaaaaaa-0000-4000-8000-000000000002", B = "bbbbbbbb-0000-4000-8000-000000000003";
@@ -105,6 +105,15 @@ function makeBox({ newRoot = {}, version = "0.1.4", mandarin = "1.4.0", from = "
     { node: dev + "/vda2", start: 1050624, size: 8388608, type: ROOT_TYPE, uuid: A.toUpperCase(), name: "mandarin-os_0.1.4" },
     { node: dev + "/vda3", start: 9439232, size: 8388608, type: ROOT_TYPE, uuid: B.toUpperCase(), name: "mandarin-os_0.1.3" },
     { node: dev + "/vda4", start: 17827840, size: 50000000, type: "0FC63DAF-8483-4772-8E79-3D69D8477DE4", uuid: "DDDDDDDD-0000-4000-8000-000000000004", name: "mandarin-data" }] } };
+  const script = (file, what, env) => new Promise(resolve => {
+    const p = spawn("bash", [file, what], { env: Object.assign({}, process.env, { PATH: bin + ":" + process.env.PATH, MANDARIN_OS_ROOT: root,
+      MANDARIN_OS_MANDARIN: "http://127.0.0.1:9", MANDARIN_OS_PAGE: "http://127.0.0.1:9" }, env) });
+    let stdout = "", stderr = "";
+    p.stdout.on("data", d => { stdout += d; });
+    p.stderr.on("data", d => { stderr += d; });
+    const kill = setTimeout(() => p.kill(), 120000);
+    p.on("close", status => { clearTimeout(kill); resolve({ status, stdout, stderr }); });
+  });
   const shim = (name, body) => fs.writeFileSync(path.join(bin, name), `#!/bin/bash\necho "${name} $*" >> "${log}"\n${body || ""}\n`, { mode: 0o755 });
   shim("findmnt", `case "$*" in "-no SOURCE /") echo "${dev}/vda2" ;; *"-S ${dev}/vda1") echo "${root}/efi" ;; *) exit 1 ;; esac`);
   shim("lsblk", `case "$*" in *PKNAME*) echo vda ;; *) exit 1 ;; esac`);
@@ -115,14 +124,10 @@ function makeBox({ newRoot = {}, version = "0.1.4", mandarin = "1.4.0", from = "
   shim("logger", `printf '%s\\n' "$*" >> "${dir}/oslog"`);
   return {
     dir, root, dev, tmpl, mounted: path.join(root, "run/mandarin-os/update-root"),
-    run(what, env) {
-      return spawnSync("bash", [path.join(lib, "os-update"), what], { encoding: "utf8", timeout: 120000,
-        env: Object.assign({}, process.env, { PATH: bin + ":" + process.env.PATH, MANDARIN_OS_ROOT: root }, env) });
-    },
-    started(what, env) {
-      return spawnSync("bash", [path.join(lib, "os-started"), what], { encoding: "utf8", timeout: 120000,
-        env: Object.assign({}, process.env, { PATH: bin + ":" + process.env.PATH, MANDARIN_OS_ROOT: root }, env) });
-    },
+    /** os-update [what], as it runs: asynchronously, so a stand-in GitHub in the test's own process can answer it. */
+    run: (what, env) => script(path.join(lib, "os-update"), what, env),
+    /** os-started [what]. */
+    started: (what, env) => script(path.join(lib, "os-started"), what, env),
     shim,
     calls: () => (fs.existsSync(log) ? fs.readFileSync(log, "utf8") : ""),
     oslog: () => (fs.existsSync(path.join(dir, "oslog")) ? fs.readFileSync(path.join(dir, "oslog"), "utf8") : ""),

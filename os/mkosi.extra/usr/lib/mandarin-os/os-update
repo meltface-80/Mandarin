@@ -81,7 +81,7 @@ check() {
 }
 
 # Nothing under way in Mandarin: no room playing, no scan, nothing being made (or Mandarin not answering).
-idle() { local h; h="$(curl -fsS --max-time 5 http://127.0.0.1:3500/api/health 2>/dev/null)" || return 0; [ "$(jq -r '.busy.any // false' <<< "$h")" = false ]; }
+idle() { local h; h="$(curl -fsS --max-time 5 "$MANDARIN/api/health" 2>/dev/null)" || return 0; [ "$(jq -r '.busy.any // false' <<< "$h")" = false ]; }
 
 # Release file $1 downloaded into $WORK, the system page told how far (from $2 to $3 per cent).
 fetch() {
@@ -144,7 +144,7 @@ carry() {
 }
 
 apply() {
-  local auto="$1" root disk t slots target tuuid me efi usize tsize sum p rc mine old new share suid
+  local auto="$1" root disk t slots target tuuid me efi usize tsize sum p rc mine old new share suid m f who
   exec 9> "$RUN/os-update.lock"
   flock -n 9 || { echo "an update is under way already"; exit 0; }
   mountpoint -q "$R/data" || { echo "not an installed Mandarin OS"; exit 0; }
@@ -166,6 +166,7 @@ apply() {
   [ "$(jq length <<< "$slots")" = 2 ] || failed "the system's disk doesn't have two system partitions (installed before Mandarin OS 0.1.4?): reinstall it from the USB stick once"
   [ "$(jq --arg r "$root" '[.[] | select(.node == $r)] | length' <<< "$slots")" = 1 ] || failed "the system running isn't on its disk's system partitions"
   target="$(jq -r --arg r "$root" '.[] | select(.node != $r) | .node' <<< "$slots")"
+  [ -n "$target" ] && [ "$target" != "$root" ] || failed "the other system partition wasn't found"
   tuuid="$(jq -r --arg r "$root" '.[] | select(.node != $r) | .uuid' <<< "$slots" | tr 'A-F' 'a-f')"
   tsize=$(($(jq -r --arg r "$root" '.[] | select(.node != $r) | .size' <<< "$slots") * $(jq -r '.partitiontable.sectorsize // 512' <<< "$t")))
   me="$(jq -r --arg r "$root" '.[] | select(.node == $r) | .uuid' <<< "$slots" | tr 'A-F' 'a-f')"
@@ -230,6 +231,7 @@ apply() {
     failed "Mandarin OS $V has another user numbered as the shared folder's ($suid): not updated"
   fi
   carry "$MNT" || failed "this box's settings couldn't be carried into Mandarin OS $V"
+  oslog INFO "[update] this box's own carried into Mandarin OS $V: its mounts, identity, shared folder's password, network$([ -d "$R/usr/lib/mandarin-bridge" ] && echo ", Mandarin Bridge")"
   sync; umount "$MNT" || failed "Mandarin OS $V couldn't be closed on $target"
   sfdisk --no-reread --no-tell-kernel --part-label "$disk" "$(num "$target")" "mandarin-os_$V" >/dev/null 2>&1 \
     || failed "the other system partition couldn't be labelled"
@@ -240,8 +242,11 @@ apply() {
   [ "$(df --output=avail -B1 "$efi" | tail -n 1)" -gt "$(stat -c %s "$WORK/$UKI")" ] || failed "the EFI partition hasn't the room for Mandarin OS $V's kernel image"
   cp "$WORK/$UKI" "$efi/EFI/mandarin-os/mandarin-os_$V.new" && sync && cmp -s "$WORK/$UKI" "$efi/EFI/mandarin-os/mandarin-os_$V.new" \
     && mv -f "$efi/EFI/mandarin-os/mandarin-os_$V.new" "$efi/EFI/mandarin-os/mandarin-os_$V.efi" || failed "Mandarin OS $V's kernel image couldn't be put on the EFI partition"
-  entry "$efi" "$V" "$tuuid" "$(cat "$WORK/cmdline")" "+3" || failed "Mandarin OS $V's entry couldn't be written"
-  jq -n --arg f "$VER" --arg t "$V" --arg a "$(date -u '+%Y-%m-%d %H:%M UTC')" '{from: $f, to: $t, at: $a}' > "$PENDING"
+  # What its first starts check (os-started health): Mandarin too, where it answers now.
+  curl -fsS -o /dev/null --max-time 5 "$MANDARIN/api/health" 2>/dev/null && m=true || m=false
+  jq -n --arg f "$VER" --arg t "$V" --arg a "$(date -u '+%Y-%m-%d %H:%M UTC')" --argjson m "$m" '{from: $f, to: $t, at: $a, mandarin: $m}' > "$PENDING.new" \
+    && mv -f "$PENDING.new" "$PENDING" || failed "the update couldn't be noted on the data partition"
+  entry "$efi" "$V" "$tuuid" "$(cat "$WORK/cmdline")" "+3" || { rm -f "$PENDING"; failed "Mandarin OS $V's entry couldn't be written"; }
   rm -rf "$WORK"
   oslog INFO "[update] Mandarin OS $V written into $target, its entry on the EFI partition (three tries, then $VER again)"
   restart "$auto"
