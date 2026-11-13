@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- Fixed - the README and the Pages site gave Mandarin OS's addresses by its name (http://mandarin/, http://mandarin:3500, smb://mandarin/data), which only some devices and routers find (not an Android phone on a router that doesn't name the devices on its network). They give the box's address, which its screen shows, say to reserve it in the router, and that mandarin.local and mandarin work on many devices but not all.
+- Fixed - the README and the Pages site gave Mandarin OS's addresses by its name (http://mandarin/, http://mandarin:3500, smb://mandarin/data), which only some devices and routers find (not an Android phone on a router that doesn't name the devices on its network). They give the box's address, which its screen shows, say to reserve it in the router, and that computers and iPhones usually find mandarin.local, mandarin works where the router names its devices, and an Android phone often finds neither.
 
 ## v1.3.1
 

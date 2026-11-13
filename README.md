@@ -972,9 +972,9 @@ and pick a room under **Settings → Audio Devices**.
 
 **The box's address.** Everything below is reached at the box's address on your network, such as `192.168.0.57`: its
 screen shows it, and so does your router's list of devices. Reserve that address for the box in your router (a DHCP
-reservation, or a static address on the system page's Network & Access tab) so it never changes. The names
-`mandarin.local` and `mandarin` work on many computers, phones and routers too, but not on all of them (an Android phone
-on a router that doesn't name the devices on its network, for one); the address always does.
+reservation, or a static address on the system page's Network & Access tab) so it never changes. Computers
+and iPhones usually find the box as `mandarin.local` too, and `mandarin` works where the router names the devices on its
+network; an Android phone often finds neither. The address always works.
 
 **Mandarin** is at `http://<box address>:3500`. It is the same Mandarin as everywhere: the app, the web page, Sonos, the streamers and Bridges, Qobuz
 and Tidal, its settings. Its music folder is the shared folder's Storage, USB drives and internal storage included.
