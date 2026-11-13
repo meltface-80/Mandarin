@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>On your phone · Mandarin</title>
+<title data-i18n="apps.doc-title">On your phone · Mandarin</title>
 <meta name="description" content="The same interface everywhere, because it comes from the server.">
 <link rel="icon" href="mandarin-icon.png">
 <link rel="stylesheet" href="site.css">
@@ -12,48 +12,68 @@
 
 <header class="pagehead">
   <div class="wrap">
-    <a class="back" href="index.html">← Contents</a>
+    <select id="lang-select" class="lang-select" aria-label="Language" data-i18n-attr="aria-label:site.language">
+      <option value="en">🇬🇧 English</option>
+      <option value="fr">🇫🇷 Français</option>
+      <option value="de">🇩🇪 Deutsch</option>
+      <option value="es">🇪🇸 Español</option>
+      <option value="it">🇮🇹 Italiano</option>
+      <option value="nl">🇳🇱 Nederlands</option>
+      <option value="sv">🇸🇪 Svenska</option>
+      <option value="da">🇩🇰 Dansk</option>
+      <option value="no">🇳🇴 Norsk</option>
+    </select>
+    <a class="back" href="index.html" data-i18n="site.contents">← Contents</a>
     <a class="brand" href="index.html"><img src="mandarin-icon.png" alt=""><span>Mandarin</span></a>
     <span class="spacer"></span>
-    <a class="pill solid" href="downloads.html">Downloads</a>
+    <a class="pill solid" href="downloads.html" data-i18n="site.downloads">Downloads</a>
   </div>
 </header>
 
 <main class="wrap page">
-  <h1>On your phone</h1>
-  <p class="lead">The same interface everywhere, because it comes from the server.</p>
+  <h1 data-i18n="apps.h1">On your phone</h1>
+  <p class="lead" data-i18n="apps.lead">The same interface everywhere, because it comes from the server.</p>
 <div class="info-cards">
     <div class="info-card" id="android">
       <span class="sym">Android</span>
-      <h3>Mandarin Remote, the Android app</h3>
-      <p>Enter the port (3500 unless you changed it) and it finds the server on your Wi-Fi by itself, or type the
+      <h3 data-i18n="apps.top.h31">Mandarin Remote, the Android app</h3>
+      <p data-i18n="apps.top.p1">Enter the port (3500 unless you changed it) and it finds the server on your Wi-Fi by itself, or type the
          address; then sign in, create the account on a new server, or use it without one. On top of the interface it
          adds lock-screen and notification controls, volume keys, a now-playing widget, a Quick Settings tile, a share
          sheet, Android Auto, This phone as a room, downloads, a USB DAC driver, and Tailscale for away from home.</p>
-      <p class="fine"><a class="pill solid" href="downloads.html#remote-app">⬇ Get it from Downloads</a></p>
-      <p class="fine">Sideload it on Android 8.0 or newer; it updates itself from then on, from <b>Settings →
+      <p class="fine" data-i18n="apps.top.fine1"><a class="pill solid" href="downloads.html#remote-app">⬇ Get it from Downloads</a></p>
+      <p class="fine" data-i18n="apps.top.fine2">Sideload it on Android 8.0 or newer; it updates itself from then on, from <b>Settings →
          Updates</b>. <b>Installed before v0.6.10?</b> Those builds used a different signing key, so Android refuses
          the update. Uninstall once, install the download and sign in again; downloaded albums need downloading again.
          Updates install in place after that.</p>
+      <p class="fine" data-i18n="apps.top.fine3">A native app (Kotlin and Jetpack Compose), in <a href="https://github.com/meltface-80/Mandarin/tree/main/android">android/</a>.
+         The download, <i>mandarin-android.apk</i>, is the newest build, published by GitHub Actions on every version
+         merged to <code>main</code>; the build itself is named <code>Mandarin-Android-&lt;version&gt;.apk</code>, and the
+         link keeps one name so it always points at the newest. <b>Building the app yourself?</b> Without the
+         <code>MUSICD_KEYSTORE_BASE64</code> and <code>MUSICD_KEYSTORE_PASSWORD</code> secrets, a build is signed with the
+         shared key committed in the repository (<code>android/app/musicd-debug.keystore</code>) and named
+         <code>…-shared-key.apk</code>. It can't update the published app, nor the published app it.</p>
     </div>
     <div class="info-card" id="iphone">
-      <span class="sym">iPhone &amp; iPad</span>
-      <h3>Add to Home Screen</h3>
-      <p>Open <code>http://&lt;server-ip&gt;:3500</code> in Safari, tap <b>Share &rarr; Add to Home Screen</b>. It
+      <span class="sym" data-i18n="apps.top.sym1">iPhone &amp; iPad</span>
+      <h3 data-i18n="apps.top.h32">Add to Home Screen</h3>
+      <p data-i18n="apps.top.p2">Open <code>http://&lt;server-ip&gt;:3500</code> in Safari, tap <b>Share &rarr; Add to Home Screen</b>. It
          opens full screen like an app, with the same interface as the Android app.</p>
     </div>
   </div>
-  <p style="margin-top:18px">Out of the house, the Android app keeps playing over mobile data: see
+  <p style="margin-top:18px" data-i18n="apps.top.p3">Out of the house, the Android app keeps playing over mobile data: see
      <a href="away.html">Away from home</a>. The app's own features are on <a href="features.html">Features</a>.</p>
-  <nav class="pager"><a class="back" href="index.html">← Back to contents</a><a class="pill" href="account.html">Next: Your account →</a></nav>
+  <nav class="pager"><a class="back" href="index.html" data-i18n="site.back">← Back to contents</a><a class="pill" href="account.html" data-i18n="apps.next">Next: Your account →</a></nav>
 </main>
 
 <footer>
-  <p>Mandarin · MIT · © 2026 Lewis Menzies (Music Duck / Mandarin) ·
+  <p class="coffee"><a href="https://buymeacoffee.com/musicd_projects"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me a Coffee" loading="lazy"></a></p>
+  <p data-i18n="site.footer">Mandarin · MIT · © 2026 Lewis Menzies (Music Duck / Mandarin) ·
      <a href="https://github.com/meltface-80/Mandarin">Source on GitHub</a><br>
      Sonos is a trademark of Sonos, Inc.; WiiM of Linkplay Technology; Chord and Poly of Chord Electronics; FiiO of FiiO
      Electronics. This is an independent project, affiliated with none of them.</p>
 </footer>
 <script src="site.js"></script>
+<script src="i18n.js"></script>
 </body>
 </html>

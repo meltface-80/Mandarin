@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>How it works · Mandarin</title>
+<title data-i18n="how-it-works.doc-title">How it works · Mandarin</title>
 <meta name="description" content="Mandarin is a server and an Android app. The server scans your library and plays it to Sonos rooms, UPnP/DLNA streamers, Mandarin Bridges and the Android app.">
 <link rel="icon" href="mandarin-icon.png">
 <link rel="stylesheet" href="site.css">
@@ -12,56 +12,136 @@
 
 <header class="pagehead">
   <div class="wrap">
-    <a class="back" href="index.html">← Contents</a>
+    <select id="lang-select" class="lang-select" aria-label="Language" data-i18n-attr="aria-label:site.language">
+      <option value="en">🇬🇧 English</option>
+      <option value="fr">🇫🇷 Français</option>
+      <option value="de">🇩🇪 Deutsch</option>
+      <option value="es">🇪🇸 Español</option>
+      <option value="it">🇮🇹 Italiano</option>
+      <option value="nl">🇳🇱 Nederlands</option>
+      <option value="sv">🇸🇪 Svenska</option>
+      <option value="da">🇩🇰 Dansk</option>
+      <option value="no">🇳🇴 Norsk</option>
+    </select>
+    <a class="back" href="index.html" data-i18n="site.contents">← Contents</a>
     <a class="brand" href="index.html"><img src="mandarin-icon.png" alt=""><span>Mandarin</span></a>
     <span class="spacer"></span>
-    <a class="pill solid" href="downloads.html">Downloads</a>
+    <a class="pill solid" href="downloads.html" data-i18n="site.downloads">Downloads</a>
   </div>
 </header>
 
 <main class="wrap page">
-  <h1>How it works</h1>
-  <p class="lead">Mandarin is a server and an Android app. The server scans your library and plays it to Sonos rooms, UPnP/DLNA streamers, Mandarin Bridges and the Android app.</p>
+  <h1 data-i18n="how-it-works.h1">How it works</h1>
+  <p class="lead" data-i18n="how-it-works.lead">Mandarin is a server and an Android app. The server scans your library and plays it to Sonos rooms, UPnP/DLNA streamers, Mandarin Bridges and the Android app.</p>
 <div class="flow" style="margin-top:6px">
-    <div class="node"><b>Your phone or browser</b><span>Mandarin's own interface</span></div>
+    <div class="node"><b data-i18n="how-it-works.top.b1">Your phone or browser</b><span data-i18n="how-it-works.top.span1">Mandarin's own interface</span></div>
     <div class="arrow">&rarr;</div>
-    <div class="node mid"><b>Mandarin</b><span>library, queue, conversion</span></div>
+    <div class="node mid" data-i18n="how-it-works.top.div1"><b>Mandarin</b><span>library, queue, conversion</span></div>
     <div class="arrow">&rarr;</div>
-    <div class="node"><b>Players</b><span>Sonos rooms, streamers, Bridges, the app</span></div>
+    <div class="node"><b data-i18n="how-it-works.top.b2">Players</b><span data-i18n="how-it-works.top.span2">Sonos rooms, streamers, Bridges, the app</span></div>
   </div>
-  <p class="flow-note">Tracks go into the speaker's own Sonos queue; a streamer is handed each next track ahead of time.
+  <p class="flow-note" data-i18n="how-it-works.top.p1">Tracks go into the speaker's own Sonos queue; a streamer is handed each next track ahead of time.
      Each device fetches the audio from the server: the file itself when it can play it, converted to what it takes when
      it can't.</p>
   <ul class="plain">
-    <li><b>Library.</b> The music folders are walked and every audio file's tags are read into a database. Albums are
-        decided a folder at a time, so <code>CD1</code>/<code>CD2</code> folders become one album. Covers come from
-        <code>cover.jpg</code>/<code>folder.jpg</code> or the first track's picture; an album with none gets one drawn.
-        Rescans only re-read files whose size or date changed.</li>
-    <li><b>Album names.</b> The identification scan looks each album up by what its files carry (a release id, barcode,
-        catalogue number), then by name on MusicBrainz and iTunes, scoring each release against the tracks and their
-        lengths. Names are laid over the album, never written to your files. While MusicBrainz is turning requests away,
-        every lookup pauses (a minute, then twice as long each time, an hour at most).</li>
-    <li><b>Credits and artists.</b> In the background, who played, sang, wrote and made each album, and who each act is,
-        from MusicBrainz and Wikidata, with a picture from FanArt.tv, Wikidata or Deezer.</li>
-    <li><b>Streamers.</b> Found on the network, each one's description read for what it can play, and played through its
-        own transport, the next track handed over ahead of time (gapless where it supports it).</li>
-    <li><b>Sonos.</b> One speaker is found and the whole household is read from it; tracks go into the coordinator's own
-        Sonos queue, so the speaker moves between tracks by itself.</li>
-    <li><b>The interface.</b> Mandarin's own page, served by the server, in the browser and the iPhone home-screen app;
-        the Android app draws the same screens natively.</li>
-    <li><b>The server.</b> One program in C#, built to a single file: nothing else needed to run it.</li>
+    <li data-i18n="how-it-works.top.li1"><b>Library.</b> The music folders are walked and every audio file's tags are read into a database (SQLite).
+        Albums are decided a folder at a time, so a folder of tracks by different artists with no album-artist tag
+        becomes one compilation, and <code>CD1</code>/<code>CD2</code> folders become one album. Covers come from
+        <code>cover.jpg</code>/<code>folder.jpg</code>/… or the first track's embedded picture, resized once per size and
+        cached; an album with no cover gets one drawn, with its title. The pictures are drawn with ffmpeg. Rescans only
+        re-read files whose size or date changed, on the cores playback doesn't keep.</li>
+    <li data-i18n="how-it-works.top.li2"><b>Album names.</b> The identification scan looks each album up by what its files carry (a release id, barcode,
+        catalogue number, ISRCs), then by name on MusicBrainz and iTunes. It scores each release against the tracks and
+        their lengths, and lays the names over the album, never on the files, with the MusicBrainz pack, loudness
+        measuring and the waveforms alongside. Every MusicBrainz request waits its turn on one timer, and while
+        MusicBrainz is turning requests away every lookup pauses (a minute, then twice as long each time, an hour at
+        most).</li>
+    <li data-i18n="how-it-works.top.li3"><b>Credits and artists.</b> In the background, one album and one act at a time at MusicBrainz's pace, the server
+        reads who played, sang, wrote and made each album from its tags and its MusicBrainz release, and who each act is
+        (members, years, place, links) from MusicBrainz and Wikidata, with a picture from FanArt.tv, Wikidata or Deezer. A
+        page asked for before it gets there is looked up there and then, as the act its albums are by: the MusicBrainz id
+        in their tags or matches, else the act MusicBrainz lists for their titles. Names found to share a MusicBrainz id
+        are one artist, written as MusicBrainz names them; two acts of one name with their own ids are two. Kept in the
+        database; your files are not changed.</li>
+    <li data-i18n="how-it-works.top.li4"><b>Streamers.</b> Found on the network by SSDP, each one's description read for what it can play (plus a WiiM's
+        own API), every device kept in a register with your names and settings, and played through its own transport
+        (AVTransport): the queue kept on the server, the next track handed over ahead of time (gapless where it supports
+        it), changes arriving by UPnP events. The stream plans decide what each device gets: the file itself within its
+        ceiling, FLAC at its highest rate or upsampled in 64-bit float otherwise.</li>
+    <li data-i18n="how-it-works.top.li5"><b>Sonos.</b> One speaker is found over SSDP and the whole household is read from it
+        (<code>ZoneGroupTopology</code>). A Sonos <i>group</i> is a zone (its coordinator owns the queue) and each
+        <i>room</i> is an output (volume and mute are per room). Tracks go into the coordinator's own <b>Sonos queue</b>,
+        with the DIDL-Lite metadata Sonos insists on, so the speaker moves between tracks by itself. The queue you see is
+        read back from the speaker, so anything added from the Sonos app appears too. Ported from
+        <a href="https://github.com/meltface-80/Caldera-Sonos-Bridge">Caldera Sonos Bridge</a> and the
+        <a href="https://github.com/meltface-80/UPnP-to-Sonos-UPnP-bridge">UPnP to Sonos bridge</a>, by the same
+        author.</li>
+    <li data-i18n="how-it-works.top.li6"><b>Audio.</b> Each queued item is an address on the server. Within 24/48 it serves the file as stored, with byte
+        ranges; above that, ffmpeg writes FLAC 24/48 to the cache and the speaker is served from the growing file.</li>
+    <li data-i18n="how-it-works.top.li7"><b>The interface.</b> Mandarin's own page, served by the server and shown in the browser and the iPhone
+        home-screen app, talking to the server's <code>/api</code>. The Android app draws the same screens natively and
+        asks the same <code>/api</code>.</li>
+    <li data-i18n="how-it-works.top.li8"><b>The server.</b> One program in C# (.NET, built to a single self-contained file: no .NET or Node.js needed to
+        run it). It began in v0.8.1 as a front door before the original Node.js server, took its parts over one by one
+        with each held to the Node server's own answers, and has been the whole server since v0.9.0.</li>
   </ul>
-  <p style="margin-top:14px">For how your music is found and named, in plain words, there is a guide on
+  <p style="margin-top:14px" data-i18n="how-it-works.top.p2">For how your music is found and named, in plain words, there is a guide on
      <a href="downloads.html#guides">Downloads</a>.</p>
-  <nav class="pager"><a class="back" href="index.html">← Back to contents</a><a class="pill" href="logs.html">Next: Logs →</a></nav>
+
+  <h2 id="sound-devices" data-i18n="how-it-works.sound-devices.title">Sound devices on the server</h2>
+  <p data-i18n="how-it-works.sound-devices.p1">On Linux, Mandarin plays no sound device of its own (v1.2.1). A USB DAC on the computer Mandarin runs on is played
+     by <a href="bridges.html">Mandarin Bridge</a> for Linux, installed beside it with one line, and the DAC is a room of
+     its own in <b>Settings → Audio Devices</b>. On Mandarin OS, choose Mandarin Bridge as it installs, or <b>Install</b>
+     it from the system page's Settings tab. The server used to open the computer's sound cards itself (ALSA), kept
+     losing the DAC and competed with the Bridge for it. A card it had in Audio Devices is forgotten by itself.</p>
+
+  <h2 id="playback-first" data-i18n="how-it-works.playback-first.title">Playback comes first</h2>
+  <p data-i18n="how-it-works.playback-first.p1">On Linux with three cores or more, playback (what Mandarin makes as a track plays: its conversion, upsampling or
+     DSD) keeps a core of its own, or two while DSP is in use (the last ones), and the server runs on the others.
+     Scanning, measuring ReplayGain, the tag reader check and the phone's downloads run at the lowest priority, their
+     disk reads last; conversions made ahead of play run just below playback. <b>Settings → Library Scanner →
+     Processor</b> shows the split. <code>PLAYBACK_CORES=1</code> or <code>2</code> fixes how many cores playback keeps,
+     <code>0</code> shares every core; <code>PLAYBACK_CORE=&lt;n&gt;</code> picks the core.</p>
+
+  <h2 id="development" data-i18n="how-it-works.development.title">Building and testing</h2>
+  <p data-i18n="how-it-works.development.p1">The source is on <a href="https://github.com/meltface-80/Mandarin">GitHub</a>: the server in <code>server/</code>,
+     the page in <code>public/</code>, the Android app in <code>android/</code>, Mandarin Bridge in <code>bridge/</code>
+     and Mandarin OS in <code>os/</code>.</p>
+  <div class="codebox"><button class="copy-btn" data-copy data-copied="Copied" data-i18n-attr="data-copied:site.copied" data-i18n="site.copy">Copy</button>
+<pre>./server/build.sh   # the server (.NET 10 SDK) into server/bin/mandarin-server
+./engine/build.sh   # the audio engine (.NET 10 SDK and clang), for Mandarin Bridge for Linux
+MUSIC_DIR=~/Music PORT=3500 server/bin/mandarin-server
+
+npm ci              # the tests' own packages (Node.js 22: the tests are JavaScript, node:test)
+npm test            # unit tests + end-to-end runs against a fake Sonos household and fake UPnP renderers
+npm run gates       # the quality gates (docs/quality-plan.md)</pre>
+</div>
+  <ul class="plain">
+    <li data-i18n="how-it-works.development.li1">The end-to-end test starts two fake Sonos rooms on 127.0.0.11/12:1400, plays a CD-quality album and a 24/96
+        album through the real server, and checks what the "speaker" fetched: bit-perfect FLAC for the first, FLAC 24/48
+        for the second. It needs ffmpeg on the PATH (or <code>FFMPEG_PATH</code>).</li>
+    <li data-i18n="how-it-works.development.li2">The browser tests open the page itself in headless Chromium or Chrome — at a desktop with a mouse, a phone and a
+        tablet — and check Home, the album view and Now playing. They use the browser already installed (or
+        <code>CHROME_PATH</code>), with no extra packages, and are skipped where there is none.</li>
+    <li data-i18n="how-it-works.development.li3">Every route the server answers is listed in <code>docs/specs/api.md</code>: its method, its address, who may ask
+        and the file and line that answers it. <code>node tools/api-map.js write</code> writes it from the sources, and
+        the gates fail while it is out of date.</li>
+    <li data-i18n="how-it-works.development.li4">The site's languages: <code>npm run i18n</code> writes every marked text of these pages into
+        <code>docs/i18n/en.json</code>, the translators' source; the tests fail while a language file's keys or its
+        links, code and markup differ from it.</li>
+    <li data-i18n="how-it-works.development.li5">Building the Mandarin OS image yourself: <code>os/README.md</code>.</li>
+  </ul>
+  <nav class="pager"><a class="back" href="index.html" data-i18n="site.back">← Back to contents</a><a class="pill" href="logs.html" data-i18n="how-it-works.next">Next: Logs →</a></nav>
 </main>
 
 <footer>
-  <p>Mandarin · MIT · © 2026 Lewis Menzies (Music Duck / Mandarin) ·
+  <p class="coffee"><a href="https://buymeacoffee.com/musicd_projects"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me a Coffee" loading="lazy"></a></p>
+  <p data-i18n="site.footer">Mandarin · MIT · © 2026 Lewis Menzies (Music Duck / Mandarin) ·
      <a href="https://github.com/meltface-80/Mandarin">Source on GitHub</a><br>
      Sonos is a trademark of Sonos, Inc.; WiiM of Linkplay Technology; Chord and Poly of Chord Electronics; FiiO of FiiO
      Electronics. This is an independent project, affiliated with none of them.</p>
 </footer>
 <script src="site.js"></script>
+<script src="i18n.js"></script>
 </body>
 </html>

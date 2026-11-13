@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>SQ-tool · Mandarin</title>
+<title data-i18n="sq-tool.doc-title">SQ-tool · Mandarin</title>
 <meta name="description" content="SQ-tool proves whether a zone's DAC gets exactly what is in the file, sample by sample. It is part of Mandarin: Settings → SQ-tool.">
 <link rel="icon" href="mandarin-icon.png">
 <link rel="stylesheet" href="site.css">
@@ -12,64 +12,80 @@
 
 <header class="pagehead">
   <div class="wrap">
-    <a class="back" href="index.html">← Contents</a>
+    <select id="lang-select" class="lang-select" aria-label="Language" data-i18n-attr="aria-label:site.language">
+      <option value="en">🇬🇧 English</option>
+      <option value="fr">🇫🇷 Français</option>
+      <option value="de">🇩🇪 Deutsch</option>
+      <option value="es">🇪🇸 Español</option>
+      <option value="it">🇮🇹 Italiano</option>
+      <option value="nl">🇳🇱 Nederlands</option>
+      <option value="sv">🇸🇪 Svenska</option>
+      <option value="da">🇩🇰 Dansk</option>
+      <option value="no">🇳🇴 Norsk</option>
+    </select>
+    <a class="back" href="index.html" data-i18n="site.contents">← Contents</a>
     <a class="brand" href="index.html"><img src="mandarin-icon.png" alt=""><span>Mandarin</span></a>
     <span class="spacer"></span>
-    <a class="pill solid" href="downloads.html">Downloads</a>
+    <a class="pill solid" href="downloads.html" data-i18n="site.downloads">Downloads</a>
   </div>
 </header>
 
 <main class="wrap page">
   <h1>SQ-tool</h1>
-  <p class="lead">SQ-tool proves whether a zone's DAC gets exactly what is in the file, sample by sample. It is part of Mandarin: <b>Settings → SQ-tool</b>.</p>
-<h2>How to use it</h2>
+  <p class="lead" data-i18n="sq-tool.lead">SQ-tool proves whether a zone's DAC gets exactly what is in the file, sample by sample. It is part of Mandarin: <b>Settings → SQ-tool</b>.</p>
+<h2 data-i18n="sq-tool.how-use-it.title">How to use it</h2>
   <ol class="plain">
-    <li>Choose a song from the music folder.</li>
-    <li>Choose the zone and press <b>Record</b>. Mandarin plays the song there alone, from its start, and records exactly
-        what the zone's DAC is fed, to the song's last sample:
+    <li data-i18n="sq-tool.how-use-it.li1">Choose a song from the music folder.</li>
+    <li><span data-i18n="sq-tool.how-use-it.span1">Choose the zone and press <b>Record</b>. Mandarin plays the song there alone, from its start, and records exactly
+        what the zone's DAC is fed, to the song's last sample:</span>
       <ul class="plain">
-        <li>a <b>Mandarin Bridge</b> on an Android device with a USB DAC: what its USB driver feeds the DAC;</li>
+        <li data-i18n="sq-tool.how-use-it.li2">a <b>Mandarin Bridge</b> on an Android device with a USB DAC: what its USB driver feeds the DAC (update the
+            app for it);</li>
       </ul>
-      Mandarin Bridge for Linux and the Raspberry Pi can't be recorded yet; nor can Sonos or other streamers.</li>
-    <li>See whether it is <b>bit-perfect</b>, and where it isn't, how: the level, what remains, where in the song — with
+      <span data-i18n="sq-tool.how-use-it.span2">Mandarin Bridge for Linux and the Raspberry Pi can't be recorded yet; nor can Sonos or other streamers.</span></li>
+    <li data-i18n="sq-tool.how-use-it.li3">See whether it is <b>bit-perfect</b>, and where it isn't, how: the level, what remains, where in the song — with
         spectrograms, charts, and the recordings to download.</li>
   </ol>
-  <div class="note"><b>For a bit-perfect result</b> the zone's <a href="upsampling.html">Output</a> is <b>Original</b> and its
+  <div class="note" data-i18n="sq-tool.how-use-it.note1"><b>For a bit-perfect result</b> the zone's <a href="upsampling.html">Output</a> is <b>Original</b> and its
      volume fixed (or the DAC's own): upsampling, DSD from PCM, DSP, volume levelling and a volume in software change the
      samples on purpose. A 16-bit song fed to a 32-bit DAC is still bit-perfect: padded with zeros, its values unchanged.</div>
 
-  <h2>A test, screen by screen</h2>
-  <p>Mandarin Bridge on a FiiO R7, playing a 16-bit FLAC to its USB DAC.</p>
+  <h2 data-i18n="sq-tool.test-screen-by.title">A test, screen by screen</h2>
+  <p data-i18n="sq-tool.test-screen-by.p1">Mandarin Bridge on a FiiO R7, playing a 16-bit FLAC to its USB DAC.</p>
   <div class="shots">
-    <figure class="shot"><img src="img/settings-sq-tool.jpg" alt="Mandarin's Settings list with SQ-tool" loading="lazy" decoding="async"><figcaption><b>Settings → SQ-tool</b> opens it in its own tab.</figcaption></figure>
-    <figure class="shot"><img src="img/sq-tool-home.jpg" alt="SQ-tool's start page" loading="lazy" decoding="async"><figcaption><b>Start a new test</b>: choose a song from the music folder, then the zone to record on. Earlier tests are listed below.</figcaption></figure>
-    <figure class="shot"><img src="img/sq-tool-result.jpg" alt="SQ-tool's result: FiiO R7 USB, BIT-PERFECT" loading="lazy" decoding="async"><figcaption>The result for the FiiO R7's Bridge: Helldriver, FLAC 16-bit, 44.1 kHz, 2:41, recorded whole — <b>bit-perfect</b>, its DAC fed exactly the samples in the file.</figcaption></figure>
-    <figure class="shot"><img src="img/sq-tool-spectrogram-log.jpg" alt="Spectrograms, logarithmic frequency" loading="lazy" decoding="async"><figcaption><b>Spectrograms</b> of the file and of what the DAC was fed, on one colour scale, down to −180 dB. Drag across one to zoom in; tap to read the time and frequency.</figcaption></figure>
-    <figure class="shot"><img src="img/sq-tool-spectrogram-linear.jpg" alt="Spectrograms, linear frequency" loading="lazy" decoding="async"><figcaption>The same with the frequency scale <b>Linear</b> instead of Log.</figcaption></figure>
-    <figure class="shot"><img src="img/sq-tool-difference.jpg" alt="The difference spectrogram, all black" loading="lazy" decoding="async"><figcaption><b>The difference</b>: one recording subtracted from the other, sample by sample. Black means the samples are identical.</figcaption></figure>
-    <figure class="shot"><img src="img/sq-tool-charts.jpg" alt="Charts: average spectrum, level over time, bit usage" loading="lazy" decoding="async"><figcaption><b>Charts</b>: the average spectrum, the level over time and the bit usage. Identical data draws identical lines, one on top of the other; the 16-bit song fills 16 bits of the 32-bit words.</figcaption></figure>
-    <figure class="shot"><img src="img/sq-tool-details.jpg" alt="Details table for the file and FiiO R7 USB" loading="lazy" decoding="async"><figcaption><b>Details</b> side by side: format, rate, bits in use, length, silence, peak, loudness, clipped samples, and the fingerprint — the same fingerprint means the same sample data.</figcaption></figure>
-    <figure class="shot"><img src="img/sq-tool-downloads.jpg" alt="Downloads: the song, what the DAC was fed, the difference" loading="lazy" decoding="async"><figcaption><b>Downloads</b>: the song, what the DAC was fed, and the difference, as WAV files.</figcaption></figure>
+    <figure class="shot"><img src="img/settings-sq-tool.jpg" alt="Mandarin's Settings list with SQ-tool" loading="lazy" decoding="async" data-i18n-attr="alt:sq-tool.shot1"><figcaption data-i18n="sq-tool.test-screen-by.figcaption1"><b>Settings → SQ-tool</b> opens it in its own tab.</figcaption></figure>
+    <figure class="shot"><img src="img/sq-tool-home.jpg" alt="SQ-tool's start page" loading="lazy" decoding="async" data-i18n-attr="alt:sq-tool.shot2"><figcaption data-i18n="sq-tool.test-screen-by.figcaption2"><b>Start a new test</b>: choose a song from the music folder, then the zone to record on. Earlier tests are listed below.</figcaption></figure>
+    <figure class="shot"><img src="img/sq-tool-result.jpg" alt="SQ-tool's result: FiiO R7 USB, BIT-PERFECT" loading="lazy" decoding="async" data-i18n-attr="alt:sq-tool.shot3"><figcaption data-i18n="sq-tool.test-screen-by.figcaption3">The result for the FiiO R7's Bridge: Helldriver, FLAC 16-bit, 44.1 kHz, 2:41, recorded whole — <b>bit-perfect</b>, its DAC fed exactly the samples in the file.</figcaption></figure>
+    <figure class="shot"><img src="img/sq-tool-spectrogram-log.jpg" alt="Spectrograms, logarithmic frequency" loading="lazy" decoding="async" data-i18n-attr="alt:sq-tool.shot4"><figcaption data-i18n="sq-tool.test-screen-by.figcaption4"><b>Spectrograms</b> of the file and of what the DAC was fed, on one colour scale, down to −180 dB. Drag across one to zoom in; tap to read the time and frequency.</figcaption></figure>
+    <figure class="shot"><img src="img/sq-tool-spectrogram-linear.jpg" alt="Spectrograms, linear frequency" loading="lazy" decoding="async" data-i18n-attr="alt:sq-tool.shot5"><figcaption data-i18n="sq-tool.test-screen-by.figcaption5">The same with the frequency scale <b>Linear</b> instead of Log.</figcaption></figure>
+    <figure class="shot"><img src="img/sq-tool-difference.jpg" alt="The difference spectrogram, all black" loading="lazy" decoding="async" data-i18n-attr="alt:sq-tool.shot6"><figcaption data-i18n="sq-tool.test-screen-by.figcaption6"><b>The difference</b>: one recording subtracted from the other, sample by sample. Black means the samples are identical.</figcaption></figure>
+    <figure class="shot"><img src="img/sq-tool-charts.jpg" alt="Charts: average spectrum, level over time, bit usage" loading="lazy" decoding="async" data-i18n-attr="alt:sq-tool.shot7"><figcaption data-i18n="sq-tool.test-screen-by.figcaption7"><b>Charts</b>: the average spectrum, the level over time and the bit usage. Identical data draws identical lines, one on top of the other; the 16-bit song fills 16 bits of the 32-bit words.</figcaption></figure>
+    <figure class="shot"><img src="img/sq-tool-details.jpg" alt="Details table for the file and FiiO R7 USB" loading="lazy" decoding="async" data-i18n-attr="alt:sq-tool.shot8"><figcaption data-i18n="sq-tool.test-screen-by.figcaption8"><b>Details</b> side by side: format, rate, bits in use, length, silence, peak, loudness, clipped samples, and the fingerprint — the same fingerprint means the same sample data.</figcaption></figure>
+    <figure class="shot"><img src="img/sq-tool-downloads.jpg" alt="Downloads: the song, what the DAC was fed, the difference" loading="lazy" decoding="async" data-i18n-attr="alt:sq-tool.shot9"><figcaption data-i18n="sq-tool.test-screen-by.figcaption9"><b>Downloads</b>: the song, what the DAC was fed, and the difference, as WAV files.</figcaption></figure>
   </div>
 
-  <h2>What it needs</h2>
+  <h2 data-i18n="sq-tool.what-it-needs.title">What it needs</h2>
   <ul class="plain">
-    <li><b>Mandarin OS and the Linux installer</b> bring what it needs (Python 3 and numpy).</li>
-    <li><b>Installed by hand:</b> add Python 3 and numpy (<code>sudo apt install python3 python3-numpy</code> on
+    <li data-i18n="sq-tool.what-it-needs.li1"><b>Mandarin OS and the Linux installer</b> bring what it needs (Python 3 and numpy).</li>
+    <li data-i18n="sq-tool.what-it-needs.li2"><b>Installed by hand:</b> add Python 3 and numpy (<code>sudo apt install python3 python3-numpy</code> on
         Debian or Ubuntu); until then its page says what is missing.
         <code>SQTOOL_PYTHON</code> names another Python to run it with.</li>
-    <li>Mandarin starts SQ-tool the first time it is opened, on a port of the computer only, behind your sign-in, with
+    <li data-i18n="sq-tool.what-it-needs.li3">Mandarin starts SQ-tool the first time it is opened, on a port of the computer only, behind your sign-in, with
         its data in the data folder's <code>sq-tool</code>.</li>
+    <li data-i18n="sq-tool.what-it-needs.li4">An update made from Settings brings it (from the first release that carries it); Python and numpy are the
+        computer's to have.</li>
   </ul>
-  <nav class="pager"><a class="back" href="index.html">← Back to contents</a><a class="pill" href="formats.html">Next: What each device is sent →</a></nav>
+  <nav class="pager"><a class="back" href="index.html" data-i18n="site.back">← Back to contents</a><a class="pill" href="formats.html" data-i18n="sq-tool.next">Next: What each device is sent →</a></nav>
 </main>
 
 <footer>
-  <p>Mandarin · MIT · © 2026 Lewis Menzies (Music Duck / Mandarin) ·
+  <p class="coffee"><a href="https://buymeacoffee.com/musicd_projects"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me a Coffee" loading="lazy"></a></p>
+  <p data-i18n="site.footer">Mandarin · MIT · © 2026 Lewis Menzies (Music Duck / Mandarin) ·
      <a href="https://github.com/meltface-80/Mandarin">Source on GitHub</a><br>
      Sonos is a trademark of Sonos, Inc.; WiiM of Linkplay Technology; Chord and Poly of Chord Electronics; FiiO of FiiO
      Electronics. This is an independent project, affiliated with none of them.</p>
 </footer>
 <script src="site.js"></script>
+<script src="i18n.js"></script>
 </body>
 </html>
