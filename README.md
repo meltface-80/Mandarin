@@ -12,7 +12,7 @@
 **Your own music files, played to Sonos rooms, to UPnP/DLNA renderers (a WiiM, a Chord Poly,
 a streamer, an AV receiver) and to the Mandarin Android app.**
 
-**📖 Guides, downloads & the install command builder: [meltface-80.github.io/Mandarin](https://meltface-80.github.io/Mandarin/)** · **⬇ [Downloads](#downloads)**
+**📖 Guides and downloads: [meltface-80.github.io/Mandarin](https://meltface-80.github.io/Mandarin/)** · **⬇ [Downloads](#downloads)**
 
 A server on a machine you own scans your music folders and plays them to the players in your
 house. You control it from a browser, an iPhone home-screen app or the Android app. No
