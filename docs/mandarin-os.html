@@ -32,10 +32,10 @@
   <ul class="plain">
     <li><b>Lightweight:</b> Debian 13 with Mandarin installed natively, and nothing else: no desktop, no login, no SSH.
         Everything coming in from the network is refused by a firewall, but what Mandarin and the system answer.</li>
-    <li><b>Its own web page:</b> the system page, <code>http://mandarin/</code>, shows Mandarin, its services, the
+    <li><b>Its own web page:</b> the system page, <code>http://&lt;box address&gt;/</code>, shows Mandarin, its services, the
         storage, the network and the logs, and does what you'd otherwise need a shell for: eject a drive, set a static
         address, install Mandarin Bridge, reinstall or reset Mandarin, restart or shut down.</li>
-    <li><b>A shared folder for your music:</b> <code>smb://mandarin/data</code>. Copy music in from any computer, or
+    <li><b>A shared folder for your music:</b> <code>smb://&lt;box address&gt;/data</code>. Copy music in from any computer, or
         plug in a USB drive: it is mounted, and in Mandarin, as it is plugged in.</li>
     <li><b>Looks after itself:</b> once a week, when nothing is playing, it takes a newer Mandarin OS or Debian's
         security updates, clears out what isn't needed, and checks that everything works.</li>
@@ -153,13 +153,13 @@
     <li>Type <code>erase</code> to go on. Mandarin OS is written to the disk, which takes a few minutes.</li>
     <li>At the end it says it is installed. <b>Press Enter: the computer switches off.</b> Then take the USB stick out
         and switch the computer on. It starts from its own disk, and a minute or two later Mandarin is at
-        <code>http://mandarin:3500</code>.</li>
+        <code>http://&lt;box address&gt;:3500</code>.</li>
   </ol>
   <div class="note">Take the stick out only once the computer is off: the installer runs from it.</div>
 
   <div class="firstrun" style="margin-top:22px">
     <ol>
-      <li>Open <b>http://mandarin:3500</b> (or <b>http://&lt;the box's address&gt;:3500</b>, which its screen shows) on a
+      <li>Open <b>http://&lt;box address&gt;:3500</b> (its screen shows the address, e.g. <code>http://192.168.0.57:3500</code>) on a
           device at home and <b>create your account</b>, or choose <b>Use without an account</b>.</li>
       <li>Copy your music into the shared folder's <b>Storage</b>, or plug in a USB drive with music on it. Albums appear
           as they are read.</li>
@@ -169,15 +169,21 @@
 
   <h2 id="using">Using Mandarin OS</h2>
 
+  <div class="note"><b>The box's address.</b> Everything below is reached at the box's address on your network, such as
+     <code>192.168.0.57</code>: its screen shows it, and so does your router's list of devices. Reserve that address for
+     the box in your router (a DHCP reservation, or a static address on the system page's Network &amp; Access tab) so it
+     never changes. Computers and iPhones usually find the box as <code>mandarin.local</code> too, and
+     <code>mandarin</code> works where the router names the devices on its network; an Android phone often finds
+     neither. The address always works.</div>
+
   <h3 class="sub" id="mandarin">Mandarin</h3>
-  <p>Mandarin is at <code>http://mandarin:3500</code>, or the box's address with <code>:3500</code> (Bonjour also finds
-     it as <code>mandarin.local</code>). It is the same Mandarin as everywhere: the app, the web page, Sonos, the
+  <p>Mandarin is at <code>http://&lt;box address&gt;:3500</code>. It is the same Mandarin as everywhere: the app, the web page, Sonos, the
      streamers and Bridges, Qobuz and Tidal, its settings. Its music folder is the shared folder's Storage, USB drives
      and internal storage included. <b>Shut down</b> in Mandarin (☰, the power button) shuts the computer down too; its
      power button starts it all again.</p>
 
   <h3 class="sub" id="system-page">The system page</h3>
-  <p><code>http://mandarin/</code> (or the box's address, without a port) is Mandarin OS's own page. Anyone at home can
+  <p><code>http://&lt;box address&gt;/</code> (no port) is Mandarin OS's own page. Anyone at home can
      read it; every change asks for the shared folder's password (five wrong in five minutes, and it stops trying for
      five minutes).</p>
   <ul class="plain">
@@ -199,7 +205,7 @@
   </ul>
 
   <h3 class="sub" id="share">The shared folder</h3>
-  <p><code>smb://mandarin/data</code>, or <code>\\mandarin\Data</code> on Windows, with the user name and password
+  <p><code>smb://&lt;box address&gt;/data</code>, or <code>\\&lt;box address&gt;\Data</code> on Windows, with the user name and password
      chosen at install.</p>
   <ul class="plain">
     <li><b>Storage:</b> copy your music in here. Each USB drive plugged in is under <b>Storage/USB</b>, by its name,

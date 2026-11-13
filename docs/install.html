@@ -33,7 +33,7 @@
   <p>A lightweight operating system made only to run Mandarin Server, on a computer of its own (a mini PC such as a Dell
      OptiPlex Micro or an Intel NUC), with a web page of its own, the system page, to watch over and look after
      everything. Write its image to a USB stick, start the computer from it and answer a few questions; from then on it
-     looks after itself, with a shared folder, <code>smb://mandarin/data</code>, for your music, and USB drives mounted
+     looks after itself, with a shared folder, <code>smb://&lt;box address&gt;/data</code>, for your music, and USB drives mounted
      as they are plugged in. From 0.1.4 it updates itself in place, and goes back by itself to the version that worked
      if a new one doesn't start (<a href="mandarin-os.html#updating">Updating Mandarin OS</a>; 0.1.3 and earlier
      reinstall once to get it).</p>
@@ -44,8 +44,8 @@
         <a href="mandarin-os.html#usb">How</a></span></li>
     <li><b>Install it</b><span>Secure Boot off, start the PC from the stick (F12 on a Dell), and choose its disk, the shared
         folder's user and password, and the network. <a href="mandarin-os.html#install">How</a></span></li>
-    <li><b>Open Mandarin</b><span><code>http://mandarin:3500</code>, and the system page at
-        <code>http://mandarin/</code>. <a href="mandarin-os.html#using">Using Mandarin OS</a></span></li>
+    <li><b>Open Mandarin</b><span><code>http://&lt;box address&gt;:3500</code>, and the system page at
+        <code>http://&lt;box address&gt;/</code>. <a href="mandarin-os.html#using">Using Mandarin OS</a></span></li>
   </ol>
   <p style="margin-top:16px"><a class="pill solid" href="mandarin-os.html">Mandarin OS, step by step →</a></p>
 
@@ -82,7 +82,7 @@
 
   <div class="firstrun" style="margin-top:22px">
     <ol>
-      <li>Open <b>http://&lt;server-ip&gt;:3500</b> (on Mandarin OS, <b>http://mandarin:3500</b>) on a device at home and
+      <li>Open <b>http://&lt;server-ip&gt;:3500</b> (on Mandarin OS too: its screen shows the address) on a device at home and
           <b>create your account</b> — one username and password, kept on the server — or choose
           <b>Use without an account</b> (a TV needs nothing typed). The first scan starts straight away; albums appear
           as it goes.</li>

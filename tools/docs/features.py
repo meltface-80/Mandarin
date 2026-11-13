@@ -346,7 +346,7 @@ FEATURES = [
      "The recommended way to run Mandarin: a lightweight operating system made only for it, on a PC of its own, "
      "with its own system page to watch over everything.",
      "Write its image to a USB stick, start the PC from it and install; details under [Mandarin OS](#mandarin-os). "
-     "Mandarin is then at `http://mandarin:3500` and the system page at `http://mandarin/`: storage and USB drives, "
+     "Mandarin is then at `http://<box address>:3500` and the system page at `http://<box address>/`: storage and USB drives, "
      "the network, Mandarin Bridge, the logs, restart and shut down. It updates itself in place, and goes back by "
      "itself to the version that worked if a new one doesn't start."),
     ("ui", "🎨", "UI Settings", False,
