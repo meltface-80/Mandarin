@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Fixed - the README and the Pages site gave Mandarin OS's addresses by its name (http://mandarin/, http://mandarin:3500, smb://mandarin/data), which only some devices and routers find (not an Android phone on a router that doesn't name the devices on its network). They give the box's address, which its screen shows, say to reserve it in the router, and that mandarin.local and mandarin work on many devices but not all.
+
 ## v1.3.1
 
 Mandarin OS arrives: a lightweight system made only to run Mandarin Server, with its own page to watch over everything, and now the recommended way to run Mandarin, with Mandarin on Linux as the alternative. Logs are always on and download as one file; and a handful of fixes, with Mandarin Bridge 0.3.10.

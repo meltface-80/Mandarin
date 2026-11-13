@@ -30,7 +30,7 @@ Wikipedia, Deezer and others); your music files stay on your machine. Run the se
 **New in v1.3.1** (since v1.3.0; Mandarin Bridge v0.3.10; Mandarin OS 0.1.4). The [changelog](CHANGELOG.md) has each
 change.
 * **Mandarin OS 0.1.4, the recommended way to run Mandarin:** a lightweight operating system made only for Mandarin
-  Server, on a PC of its own, with a web page of its own, the system page (`http://mandarin/`), to watch over and look
+  Server, on a PC of its own, with a web page of its own, the system page (`http://<box address>/`), to watch over and look
   after everything: a shared folder for your music, USB drives mounted as they are plugged in, and a weekly upkeep when
   nothing plays. It updates itself in place, and goes back by itself to the version that worked if a new one doesn't
   start. See [Mandarin OS](#mandarin-os).
@@ -710,7 +710,7 @@ The recommended way to run Mandarin: a lightweight operating system made only fo
 
 <details><summary><b>ⓘ</b> How to set it up and use it</summary>
 
-Write its image to a USB stick, start the PC from it and install; details under [Mandarin OS](#mandarin-os). Mandarin is then at `http://mandarin:3500` and the system page at `http://mandarin/`: storage and USB drives, the network, Mandarin Bridge, the logs, restart and shut down. It updates itself in place, and goes back by itself to the version that worked if a new one doesn't start.
+Write its image to a USB stick, start the PC from it and install; details under [Mandarin OS](#mandarin-os). Mandarin is then at `http://<box address>:3500` and the system page at `http://<box address>/`: storage and USB drives, the network, Mandarin Bridge, the logs, restart and shut down. It updates itself in place, and goes back by itself to the version that worked if a new one doesn't start.
 
 </details>
 
@@ -860,10 +860,10 @@ else to set up or keep up to date. Version 0.1.4; on the Pages site, [Mandarin O
 
 * **Lightweight:** Debian 13 with Mandarin installed natively, and nothing else: no desktop, no login, no SSH. Everything
   coming in from the network is refused by a firewall, but what Mandarin and the system answer.
-* **Its own web page:** the system page, `http://mandarin/`, shows Mandarin, its services, the storage, the network and
+* **Its own web page:** the system page, `http://<box address>/` (the address its screen shows), shows Mandarin, its services, the storage, the network and
   the logs, and does what you'd otherwise need a shell for: eject a drive, set a static address, install Mandarin
   Bridge, reinstall or reset Mandarin, restart or shut down.
-* **A shared folder for your music:** `smb://mandarin/data`. Copy music in from any computer, or plug in a USB drive: it
+* **A shared folder for your music:** `smb://<box address>/data`. Copy music in from any computer, or plug in a USB drive: it
   is mounted, and in Mandarin, as it is plugged in.
 * **Looks after itself:** once a week, when nothing is playing, it takes a newer Mandarin OS or Debian's security
   updates, clears out what isn't needed, and checks that everything works.
@@ -962,20 +962,25 @@ compressed file starts nothing. The stick goes into the phone through a USB-OTG 
 5. Type `erase` to go on. Mandarin OS is written to the disk, which takes a few minutes.
 6. At the end it says it is installed. **Press Enter: the computer switches off.** Then take the USB stick out and
    switch the computer on. It starts from its own disk, and a minute or two later Mandarin is at
-   `http://mandarin:3500`. (Take the stick out only once the computer is off: the installer runs from it.)
+   `http://<box address>:3500`. (Take the stick out only once the computer is off: the installer runs from it.)
 
-Then open **`http://mandarin:3500`** (or the box's address with `:3500`, which its screen shows) and create your
+Then open **`http://<box address>:3500`** (its screen shows the address, e.g. `http://192.168.0.57:3500`) and create your
 account ([Your account](#your-account)), copy your music into the shared folder's **Storage** or plug in a USB drive,
 and pick a room under **Settings → Audio Devices**.
 
 #### Using Mandarin OS
 
-**Mandarin** is at `http://mandarin:3500`, or the box's address with `:3500` (Bonjour also finds it as
-`mandarin.local`). It is the same Mandarin as everywhere: the app, the web page, Sonos, the streamers and Bridges, Qobuz
+**The box's address.** Everything below is reached at the box's address on your network, such as `192.168.0.57`: its
+screen shows it, and so does your router's list of devices. Reserve that address for the box in your router (a DHCP
+reservation, or a static address on the system page's Network & Access tab) so it never changes. The names
+`mandarin.local` and `mandarin` work on many computers, phones and routers too, but not on all of them (an Android phone
+on a router that doesn't name the devices on its network, for one); the address always does.
+
+**Mandarin** is at `http://<box address>:3500`. It is the same Mandarin as everywhere: the app, the web page, Sonos, the streamers and Bridges, Qobuz
 and Tidal, its settings. Its music folder is the shared folder's Storage, USB drives and internal storage included.
 **Shut down** in Mandarin (☰, the power button) shuts the computer down too; its power button starts it all again.
 
-**The system page**, `http://mandarin/` (or the box's address, without a port), is Mandarin OS's own page. Anyone at
+**The system page**, `http://<box address>/` (no port), is Mandarin OS's own page. Anyone at
 home can read it; every change asks for the shared folder's password (five wrong in five minutes, and it stops trying
 for five minutes).
 
@@ -996,7 +1001,7 @@ for five minutes).
   Backups folder, not deleted).
 * **The power menu** (⏻, top right): restart Mandarin, restart the computer, or shut it down.
 
-**The shared folder**, `smb://mandarin/data` (`\\mandarin\Data` on Windows), with the user name and password chosen at
+**The shared folder**, `smb://<box address>/data` (`\\<box address>\Data` on Windows), with the user name and password chosen at
 install:
 
 * **Storage:** copy your music in here. Each USB drive plugged in is under **Storage/USB**, by its name, and internal
@@ -1639,10 +1644,10 @@ minutes and as the log is saved. On Mandarin OS the shared folder has them, read
   on its port. On a host with several interfaces set `SERVER_IP` to the LAN address.
 * **No albums.** `/api/status` shows `music_dir` and `index_count`. Check the music folder is there
   and that Mandarin can read it. On Mandarin OS, copy music into the shared folder's **Storage**
-  (`smb://mandarin/data`), or plug in a USB drive and see it on the system page's Storage tab.
+  (`smb://<box address>/data`), or plug in a USB drive and see it on the system page's Storage tab.
 * **Mandarin OS can't be found.** Its own screen (a screen plugged in) shows its address. A static address that lost
   the box: type `networkreset` there, then `yes`, and it goes back to DHCP and starts again. Everything else is on the
-  system page, `http://mandarin/` ([Mandarin OS](#mandarin-os)).
+  system page, `http://<box address>/` ([Mandarin OS](#mandarin-os)).
 * **Hi-res tracks don't play.** `http://<server>:3500/api/health` must say `"ffmpeg": true`.
 * **DSD goes as DoP from Mandarin Bridge for Linux, natively from Android.** Linux's USB audio driver offers a DAC
   native DSD only where its own list knows the DAC's maker. The Bridge's page (`http://<it>:49494/`) and log say
