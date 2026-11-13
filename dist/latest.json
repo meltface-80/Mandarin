@@ -1,8 +1,8 @@
 {
-  "version": "1.3.1",
-  "code": 380,
+  "version": "1.3.2",
+  "code": 381,
   "url": "https://github.com/meltface-80/Mandarin/raw/main/dist/mandarin-android.apk",
-  "sha256": "b1915cf44f2627cc6c32498593709c85f492f25dd4915a2ea10464b87a7a7893",
-  "file": "Mandarin-Android-1.3.1.apk",
-  "notes": "• New - Mandarin OS 0.1.4: a lightweight operating system made only for Mandarin Server, installed from a USB stick, with its own web page (http://mandarin/) to watch over everything. The recommended way to run Mandarin; it updates itself in place and goes back by itself if an update doesn't start\n• New - Mandarin on Linux natively (Debian, Ubuntu, Raspberry Pi OS): a one-line installer, the alternative to Mandarin OS\n• Changed - Logs always on, on the server, every Mandarin Bridge, every app and the page; Download all logs (Settings → Setup → Logs) gives them as one text file in time order\n• Fixed - A large library's backup now restores\n• Fixed - MusicBrainz lookups pause while MusicBrainz is turning requests away\n• Fixed - A Mandarin Bridge switched on stays on; Mandarin Bridge 0.3.10 updates itself on Linux under systemd\n• Fixed - The app pauses between tries when the server can't be reached"
+  "sha256": "54f24acfe6e4b821224122d48b3584dc22c1c5057a2344c0ae8cf0d617e01e7f",
+  "file": "Mandarin-Android-1.3.2.apk",
+  "notes": "• Changed - Mandarin OS 0.1.6 (it updates itself in place, from 0.1.4): Reinstall Mandarin keeps the box's settings, and the reinstaller's folder, Installer, is at the top of the shared folder\n• Fixed - Android no longer ends the app for its built-in Tailscale: the engine stops itself when idle or busy for nothing, and starts again in seconds when the app is used\n• Fixed - Back home, the phone plays from home, no longer through Tailscale\n• Fixed - The README and the Pages site give Mandarin OS's addresses by the box's address, which its screen shows"
 }
