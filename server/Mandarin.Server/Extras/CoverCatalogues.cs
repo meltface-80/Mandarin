@@ -14,7 +14,7 @@
 //
 // The addresses ArtFind writes are the real services'; where the configuration
 // points a service elsewhere (the tests' stand-ins: ITUNES_URL, DEEZER_URL,
-// MUSICBRAINZ_URL, COVERART_URL) they are asked there, without the gaps, as
+// MUSICBRAINZ_URL, MANDARIN_CONFIG's coverart_url) they are asked there, without the gaps, as
 // ITunes.cs and MusicBrainz.cs do. A service that didn't answer, or rests,
 // marks the album's look Short: what it found isn't the whole answer, so a
 // look that found nothing sure is not remembered as "nothing to find".

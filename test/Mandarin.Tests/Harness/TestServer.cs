@@ -22,8 +22,7 @@ public sealed class TestServer : IAsyncDisposable
         ["wikipediaBaseUrl"] = "WIKIPEDIA_URL", ["pitchforkBaseUrl"] = "PITCHFORK_URL", ["qobuzWebUrl"] = "QOBUZ_WEB_URL",
         ["lastfmBaseUrl"] = "LASTFM_URL", ["lastfmKey"] = "LASTFM_KEY", ["identifyTickMs"] = "IDENTIFY_TICK_MS",
         ["loudnessTickMs"] = "LOUDNESS_TICK_MS", ["qobuzBaseUrl"] = "QOBUZ_URL", ["tidalBaseUrl"] = "TIDAL_URL",
-        ["tidalAuthUrl"] = "TIDAL_AUTH_URL", ["tidalImagesUrl"] = "TIDAL_IMAGES_URL", ["appDir"] = "MANDARIN_APP_DIR",
-        ["coverartBaseUrl"] = "COVERART_URL"
+        ["tidalAuthUrl"] = "TIDAL_AUTH_URL", ["tidalImagesUrl"] = "TIDAL_IMAGES_URL", ["appDir"] = "MANDARIN_APP_DIR"
     };
     // On or off ("0" is off).
     private static readonly Dictionary<string, string> Flags = new() { ["upnpMulticast"] = "UPNP_DISCOVERY", ["identify"] = "IDENTIFY", ["localAudio"] = "LOCAL_AUDIO" };
@@ -33,7 +32,7 @@ public sealed class TestServer : IAsyncDisposable
         ["qobuzSyncDelayMs"] = "service_sync_delay_ms", ["serviceWatchMs"] = "service_watch_ms", ["logoPauseMs"] = "logo_pause_ms",
         ["upnpOfflineMs"] = "upnp_offline_ms", ["localDevices"] = "local_devices", ["massRemoval"] = "mass_removal", ["tailscaleWatchdog"] = "tailscale_watchdog",
         ["credits"] = "credits", ["creditsTickMs"] = "credits_tick_ms", ["wikidataBaseUrl"] = "wikidata_url", ["coversAhead"] = "covers_ahead",
-        ["autoCovers"] = "auto_covers", ["autoCoversGapMs"] = "auto_covers_gap_ms"
+        ["autoCovers"] = "auto_covers", ["autoCoversGapMs"] = "auto_covers_gap_ms", ["coverartBaseUrl"] = "coverart_url"
     };
 
     /// <summary>Every job's name: the C# server makes them all (Jobs.Names).</summary>

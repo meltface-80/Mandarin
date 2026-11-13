@@ -9,7 +9,7 @@
 // INCLUDE_ZONES, EXCLUDE_ZONES, SCAN_INTERVAL_HOURS (6), MUSICDNET_BIN
 // (/usr/local/bin/musicdnet), MUSICBRAINZ_URL, ITUNES_URL, MBPACK_URL,
 // MBPACK_DIR, AUTOEQ_URL, DISCOGS_URL, FANART_URL, DEEZER_URL, WIKIPEDIA_URL,
-// PITCHFORK_URL, QOBUZ_WEB_URL, LASTFM_URL, LASTFM_KEY, COVERART_URL, IDENTIFY (0: the
+// PITCHFORK_URL, QOBUZ_WEB_URL, LASTFM_URL, LASTFM_KEY, IDENTIFY (0: the
 // identification scan off), IDENTIFY_TICK_MS (5000), LOUDNESS_TICK_MS (5000),
 // LOCAL_AUDIO (0: no sound devices on this computer), UPDATE_REPO,
 // UPDATE_API, UPDATE_CHECK (false: never by itself). PORT and
@@ -45,7 +45,6 @@ internal static class Config
             ["loudness_tick_ms"] = N("LOUDNESS_TICK_MS", 5000),
             ["discogs_url"] = S("DISCOGS_URL"), ["fanart_url"] = S("FANART_URL"),
             ["deezer_url"] = S("DEEZER_URL"), ["logo_pause_ms"] = null,
-            ["coverart_url"] = S("COVERART_URL"),   // the Cover Art Archive, as the cover finder asks it (item 409)
             ["wikipedia_url"] = S("WIKIPEDIA_URL"), ["pitchfork_url"] = S("PITCHFORK_URL"), ["qobuz_web_url"] = S("QOBUZ_WEB_URL"),
             ["tailscale_bin"] = S("MUSICDNET_BIN") ?? "/usr/local/bin/musicdnet", ["tailscale_dir"] = Path.Combine(dataDir, "tailscale"), ["tailscale_port"] = port,
             ["tailscale_watchdog"] = null,
