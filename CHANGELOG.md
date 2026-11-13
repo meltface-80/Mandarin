@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- New - The Pages site in nine languages (item 408): a language selector at the far left of every page's top bar (English, Français, Deutsch, Español, Italiano, Nederlands, Svenska, Dansk, Norsk), remembered, and the browser's own language on a first visit; every page's text marked for translation, its English in docs/i18n/en.json (npm run i18n), and the tests fail while a language's file is behind the pages or changes a text's links, code or markup
+- New - Buy Me a Coffee: a button at the top of the README and on the site's front page, and a small one at the foot of every page
+- Changed - A shorter README: what Mandarin is, the downloads, the two ways to install and updating, and a link to the Pages site, where everything else is; what only the README said moves there (Qobuz and Tidal now have a page of their own)
+
 ## v1.3.2
 
 Mandarin OS 0.1.6, which keeps the box's settings when Mandarin is reinstalled; the app is no longer ended by Android for its built-in Tailscale; and Mandarin OS's addresses given by the box's address.

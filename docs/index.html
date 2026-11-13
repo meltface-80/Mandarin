@@ -3,12 +3,30 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Mandarin — your own music, played everywhere in your home</title>
+<title data-i18n="index.doc-title">Mandarin — your own music, played everywhere in your home</title>
 <meta name="description" content="Mandarin: your own music files played to Sonos rooms, UPnP/DLNA streamers and the Mandarin Android app. Downloads, Mandarin OS, install guides and docs.">
 <link rel="icon" href="mandarin-icon.png">
 <link rel="stylesheet" href="site.css">
 </head>
 <body>
+
+<header class="pagehead">
+  <div class="wrap">
+    <select id="lang-select" class="lang-select" aria-label="Language" data-i18n-attr="aria-label:site.language">
+      <option value="en">🇬🇧 English</option>
+      <option value="fr">🇫🇷 Français</option>
+      <option value="de">🇩🇪 Deutsch</option>
+      <option value="es">🇪🇸 Español</option>
+      <option value="it">🇮🇹 Italiano</option>
+      <option value="nl">🇳🇱 Nederlands</option>
+      <option value="sv">🇸🇪 Svenska</option>
+      <option value="da">🇩🇰 Dansk</option>
+      <option value="no">🇳🇴 Norsk</option>
+    </select>
+    <span class="spacer"></span>
+    <a class="pill solid" href="downloads.html" data-i18n="site.downloads">Downloads</a>
+  </div>
+</header>
 
 <header class="hero" id="top">
   <picture>
@@ -16,12 +34,12 @@
     <img class="logo" src="mandarin-logo-dark.png" alt="Mandarin by MusicD" onerror="this.closest('header').classList.add('noimg')">
   </picture>
   <div class="wordmark">Mandarin</div>
-  <h1>Your own music files, played to Sonos rooms, streamers, DACs and your phone</h1>
-  <p class="tag">A server on a machine you own scans your music folders. Sonos rooms, the UPnP/DLNA streamers you
+  <h1 data-i18n="index.h1">Your own music files, played to Sonos rooms, streamers, DACs and your phone</h1>
+  <p class="tag" data-i18n="index.lead">A server on a machine you own scans your music folders. Sonos rooms, the UPnP/DLNA streamers you
      switch on (a WiiM, a Chord Poly, a FiiO, an AV receiver, a TV), a USB DAC through Mandarin Bridge, and the
      Mandarin Android app play from it. No subscription or streaming account is needed. Run it on Mandarin OS, a system
      made for it alone (recommended), or on Linux.</p>
-  <div class="badges">
+  <div class="badges" translate="no">
     <span class="badge">v1.3.2</span>
     <span class="badge">Mandarin Bridge v0.3.10</span>
     <span class="badge">Mandarin OS 0.1.6</span>
@@ -30,52 +48,57 @@
     <span class="badge plain">MIT</span>
   </div>
   <div class="actions">
-    <a class="pill solid" href="downloads.html">⬇ Downloads</a>
-    <a class="pill" href="whats-new.html">What's new in v1.3.2</a>
-    <a class="pill" href="install.html">Install</a>
+    <a class="pill solid" href="downloads.html" data-i18n="index.top.a1">⬇ Downloads</a>
+    <a class="pill" href="whats-new.html" data-i18n="index.top.a2">What's new in v1.3.2</a>
+    <a class="pill" href="install.html" data-i18n="index.top.a3">Install</a>
   </div>
+  <p class="coffee"><span data-i18n="site.coffee">Mandarin is free. If you enjoy it, you can buy its maker a coffee:</span>
+     <a href="https://buymeacoffee.com/musicd_projects"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me a Coffee"></a></p>
 </header>
 
 <main class="wrap">
   <section class="toc-group">
-    <h2>Get started</h2>
+    <h2 data-i18n="index.get-started.title">Get started</h2>
     <div class="toc">
-      <a class="toc-card key" href="downloads.html"><span class="em">⬇️</span><b>Downloads</b><span class="d">Every app and Bridge, the newest of each, to download straight away.</span></a>
-      <a class="toc-card" href="whats-new.html"><span class="em">✨</span><b>What's new in v1.3.2</b><span class="d">Mandarin OS 0.1.6; the app no longer ended by Android for its built-in Tailscale; Mandarin OS's addresses by the box's address.</span></a>
-      <a class="toc-card" href="mandarin-os.html"><span class="em">💽</span><b>Mandarin OS</b><span class="d">The recommended way to run Mandarin: a system made only for it, with its own page to watch over everything. The USB installer, installing and using it.</span></a>
-      <a class="toc-card" href="install.html"><span class="em">🧰</span><b>Install the server</b><span class="d">Mandarin OS, recommended, or Linux natively on a machine you already run, as the alternative; updating.</span></a>
-      <a class="toc-card" href="apps.html"><span class="em">📱</span><b>On your phone</b><span class="d">The Mandarin Remote app for Android, and the iPhone home-screen app.</span></a>
-      <a class="toc-card" href="account.html"><span class="em">👤</span><b>Your account</b><span class="d">One account kept on the server, or none at all.</span></a>
-      <a class="toc-card" href="configuration.html"><span class="em">⚙️</span><b>Settings for the server</b><span class="d">The optional environment variables, and what each one does.</span></a>
+      <a class="toc-card key" href="downloads.html"><span class="em">⬇️</span><b data-i18n="index.get-started.name1">Downloads</b><span class="d" data-i18n="index.get-started.d1">Every app and Bridge, the newest of each, to download straight away.</span></a>
+      <a class="toc-card" href="whats-new.html"><span class="em">✨</span><b data-i18n="index.get-started.name2">What's new in v1.3.2</b><span class="d" data-i18n="index.get-started.d2">Mandarin OS 0.1.6; the app no longer ended by Android for its built-in Tailscale; Mandarin OS's addresses by the box's address.</span></a>
+      <a class="toc-card" href="mandarin-os.html"><span class="em">💽</span><b data-i18n="index.get-started.name3">Mandarin OS</b><span class="d" data-i18n="index.get-started.d3">The recommended way to run Mandarin: a system made only for it, with its own page to watch over everything. The USB installer, installing and using it.</span></a>
+      <a class="toc-card" href="install.html"><span class="em">🧰</span><b data-i18n="index.get-started.name4">Install the server</b><span class="d" data-i18n="index.get-started.d4">Mandarin OS, recommended, or Linux natively on a machine you already run, as the alternative; updating.</span></a>
+      <a class="toc-card" href="apps.html"><span class="em">📱</span><b data-i18n="index.get-started.name5">On your phone</b><span class="d" data-i18n="index.get-started.d5">The Mandarin Remote app for Android, and the iPhone home-screen app.</span></a>
+      <a class="toc-card" href="account.html"><span class="em">👤</span><b data-i18n="index.get-started.name6">Your account</b><span class="d" data-i18n="index.get-started.d6">One account kept on the server, or none at all.</span></a>
+      <a class="toc-card" href="configuration.html"><span class="em">⚙️</span><b data-i18n="index.get-started.name7">Settings for the server</b><span class="d" data-i18n="index.get-started.d7">The optional environment variables, and what each one does.</span></a>
     </div>
   </section>
   <section class="toc-group">
-    <h2>Listening</h2>
+    <h2 data-i18n="index.listening.title">Listening</h2>
     <div class="toc">
-      <a class="toc-card" href="features.html"><span class="em">🎵</span><b>Features</b><span class="d">Everything Mandarin does, each with how to switch it on and use it.</span></a>
-      <a class="toc-card" href="bridges.html"><span class="em">🌉</span><b>Mandarin Bridge</b><span class="d">A USB DAC on an Android device, a Linux computer or a Raspberry Pi as a room.</span></a>
-      <a class="toc-card" href="upsampling.html"><span class="em">📈</span><b>Upsampling and output</b><span class="d">Original or upsampled, the filters, the highest rate, DSD and the volume.</span></a>
-      <a class="toc-card" href="signal-path.html"><span class="em">🛤️</span><b>Signal path</b><span class="d">What reaches your DAC, step by step, and what the ✓ means.</span></a>
-      <a class="toc-card" href="sq-tool.html"><span class="em">📊</span><b>SQ-tool</b><span class="d">Prove your DAC gets exactly what is in the file, sample by sample.</span></a>
-      <a class="toc-card" href="formats.html"><span class="em">🔊</span><b>What each device is sent</b><span class="d">Sonos, streamers, the phone and USB DACs: the file, or what it takes.</span></a>
-      <a class="toc-card" href="away.html"><span class="em">🌍</span><b>Away from home</b><span class="d">The Android app over mobile data, through Tailscale, with no ports opened.</span></a>
+      <a class="toc-card" href="features.html"><span class="em">🎵</span><b data-i18n="index.listening.name1">Features</b><span class="d" data-i18n="index.listening.d1">Everything Mandarin does, each with how to switch it on and use it.</span></a>
+      <a class="toc-card" href="bridges.html"><span class="em">🌉</span><b data-i18n="index.listening.name2">Mandarin Bridge</b><span class="d" data-i18n="index.listening.d2">A USB DAC on an Android device, a Linux computer or a Raspberry Pi as a room.</span></a>
+      <a class="toc-card" href="upsampling.html"><span class="em">📈</span><b data-i18n="index.listening.name3">Upsampling and output</b><span class="d" data-i18n="index.listening.d3">Original or upsampled, the filters, the highest rate, DSD and the volume.</span></a>
+      <a class="toc-card" href="signal-path.html"><span class="em">🛤️</span><b data-i18n="index.listening.name4">Signal path</b><span class="d" data-i18n="index.listening.d4">What reaches your DAC, step by step, and what the ✓ means.</span></a>
+      <a class="toc-card" href="sq-tool.html"><span class="em">📊</span><b>SQ-tool</b><span class="d" data-i18n="index.listening.d5">Prove your DAC gets exactly what is in the file, sample by sample.</span></a>
+      <a class="toc-card" href="formats.html"><span class="em">🔊</span><b data-i18n="index.listening.name5">What each device is sent</b><span class="d" data-i18n="index.listening.d6">Sonos, streamers, the phone and USB DACs: the file, or what it takes.</span></a>
+      <a class="toc-card" href="away.html"><span class="em">🌍</span><b data-i18n="index.listening.name6">Away from home</b><span class="d" data-i18n="index.listening.d7">The Android app over mobile data, through Tailscale, with no ports opened.</span></a>
+      <a class="toc-card" href="services.html"><span class="em">🎼</span><b data-i18n="index.listening.name7">Qobuz and Tidal</b><span class="d" data-i18n="index.listening.d8">Your own subscription's albums beside your files, streamed through the server.</span></a>
     </div>
   </section>
   <section class="toc-group">
-    <h2>Help</h2>
+    <h2 data-i18n="index.help.title">Help</h2>
     <div class="toc">
-      <a class="toc-card" href="how-it-works.html"><span class="em">🧭</span><b>How it works</b><span class="d">The library, album names, renderers, Sonos and the server, in brief.</span></a>
-      <a class="toc-card" href="logs.html"><span class="em">📝</span><b>Logs</b><span class="d">Always on: Download all logs as one file, what the logs hold and leave out, and how to send them.</span></a>
-      <a class="toc-card" href="troubleshooting.html"><span class="em">🛟</span><b>Troubleshooting</b><span class="d">No rooms, silence, no albums, hi-res, sign-in and the Android app.</span></a>
+      <a class="toc-card" href="how-it-works.html"><span class="em">🧭</span><b data-i18n="index.help.name1">How it works</b><span class="d" data-i18n="index.help.d1">The library, album names, renderers, Sonos and the server, in brief.</span></a>
+      <a class="toc-card" href="logs.html"><span class="em">📝</span><b data-i18n="index.help.name2">Logs</b><span class="d" data-i18n="index.help.d2">Always on: Download all logs as one file, what the logs hold and leave out, and how to send them.</span></a>
+      <a class="toc-card" href="troubleshooting.html"><span class="em">🛟</span><b data-i18n="index.help.name3">Troubleshooting</b><span class="d" data-i18n="index.help.d3">No rooms, silence, no albums, hi-res, sign-in and the Android app.</span></a>
     </div>
   </section>
 </main>
 
 <footer>
-  <p>Mandarin · MIT · © 2026 Lewis Menzies (Music Duck / Mandarin) ·
+  <p class="coffee"><a href="https://buymeacoffee.com/musicd_projects"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me a Coffee" loading="lazy"></a></p>
+  <p data-i18n="site.footer">Mandarin · MIT · © 2026 Lewis Menzies (Music Duck / Mandarin) ·
      <a href="https://github.com/meltface-80/Mandarin">Source on GitHub</a><br>
      Sonos is a trademark of Sonos, Inc.; WiiM of Linkplay Technology; Chord and Poly of Chord Electronics; FiiO of FiiO
      Electronics. This is an independent project, affiliated with none of them.</p>
 </footer>
+<script src="i18n.js"></script>
 </body>
 </html>

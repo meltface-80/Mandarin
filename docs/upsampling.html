@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Upsampling and output · Mandarin</title>
+<title data-i18n="upsampling.doc-title">Upsampling and output · Mandarin</title>
 <meta name="description" content="Each streamer or DAC has its own Output: play the file as it is, or upsample it, make it DSD, and choose how far it goes. Settings → Audio Devices → a device → Output.">
 <link rel="icon" href="mandarin-icon.png">
 <link rel="stylesheet" href="site.css">
@@ -12,17 +12,28 @@
 
 <header class="pagehead">
   <div class="wrap">
-    <a class="back" href="index.html">← Contents</a>
+    <select id="lang-select" class="lang-select" aria-label="Language" data-i18n-attr="aria-label:site.language">
+      <option value="en">🇬🇧 English</option>
+      <option value="fr">🇫🇷 Français</option>
+      <option value="de">🇩🇪 Deutsch</option>
+      <option value="es">🇪🇸 Español</option>
+      <option value="it">🇮🇹 Italiano</option>
+      <option value="nl">🇳🇱 Nederlands</option>
+      <option value="sv">🇸🇪 Svenska</option>
+      <option value="da">🇩🇰 Dansk</option>
+      <option value="no">🇳🇴 Norsk</option>
+    </select>
+    <a class="back" href="index.html" data-i18n="site.contents">← Contents</a>
     <a class="brand" href="index.html"><img src="mandarin-icon.png" alt=""><span>Mandarin</span></a>
     <span class="spacer"></span>
-    <a class="pill solid" href="downloads.html">Downloads</a>
+    <a class="pill solid" href="downloads.html" data-i18n="site.downloads">Downloads</a>
   </div>
 </header>
 
 <main class="wrap page">
-  <h1>Upsampling and output</h1>
-  <p class="lead">Each streamer, DAC, Mandarin Bridge or Squeezelite player has its own <b>Output</b>: play the file as it is, or upsample it, make it DSD, and choose how far it goes. Settings → Audio Devices → a device → Output.</p>
-  <p>It opens with <b>Sound</b>, its settings as recipes: <b>Bit-perfect</b>; where the device takes more than 48 kHz,
+  <h1 data-i18n="upsampling.h1">Upsampling and output</h1>
+  <p class="lead" data-i18n="upsampling.lead">Each streamer, DAC, Mandarin Bridge or Squeezelite player has its own <b>Output</b>: play the file as it is, or upsample it, make it DSD, and choose how far it goes. Settings → Audio Devices → a device → Output.</p>
+  <p data-i18n="upsampling.top.p1">It opens with <b>Sound</b>, its settings as recipes: <b>Bit-perfect</b>; where the device takes more than 48 kHz,
      <b>Upsampled</b> with the Standard filter, with the Gaussian ones, with them in minimum phase, and with the Very long
      filter and shaped dither; where it takes DSD, <b>DSD</b> at its highest multiple with the 7th-order modulator. Each
      says what it does for that device, the one in use marked; a tap sets what it names. <b>Custom</b>, or any row
@@ -30,102 +41,104 @@
 <div class="split">
     <div>
       <dl class="settings">
-        <div><dt>Mode <span>Original · ×2 · ×4 · Max</span></dt>
-          <dd><b>Original</b> sends each track at its own rate. <b>×2</b> and <b>×4</b> upsample it (44.1 kHz to 88.2 or
+        <div><dt data-i18n="upsampling.top.dt1">Mode <span>Original · ×2 · ×4 · Max</span></dt>
+          <dd data-i18n="upsampling.top.dd1"><b>Original</b> sends each track at its own rate. <b>×2</b> and <b>×4</b> upsample it (44.1 kHz to 88.2 or
               176.4 kHz); <b>Max</b> goes to the highest rate the device takes in the track's family. Upsampling is made
               on the server in 64-bit float.</dd></div>
-        <div><dt>Filters <span>CD-rate · hi-res</span></dt>
-          <dd>One filter for CD-rate sources and one for hi-res ones (or the same), each from the list:
+        <div><dt data-i18n="upsampling.top.dt2">Filters <span>CD-rate · hi-res</span></dt>
+          <dd data-i18n="upsampling.top.dd2">One filter for CD-rate sources and one for hi-res ones (or the same), each from the list:
               <b>Standard</b> (SoX's for PCM, Mandarin's own on the way to DSD), <b>Gentle</b> (rolls off earlier, rings for
               half as long), <b>Gaussian</b> (smooth, very short ringing, the top of a CD a little down), <b>Gaussian
               steep</b> (flat almost to 22 kHz, every sample of the file kept), <b>Gaussian hi-res</b> (for 88.2 kHz and
               up), and <b>Long</b> and <b>Very long</b>: the standard filter made 8 and 32 times as long, flat to 21.8 and
               21.9 kHz for a CD and 270 and 284 dB down from 22.1 kHz, a track taking 0.15 and 0.6 s longer to start (Very
               long some 400 MB while it plays). Made as the track plays, and used for PCM as DSD too.</dd></div>
-        <div><dt>Phase <span>Linear · Minimum</span></dt>
-          <dd>For both filters. In minimum phase a filter keeps its levels at every frequency and puts its ringing after
+        <div><dt data-i18n="upsampling.top.dt3">Phase <span>Linear · Minimum</span></dt>
+          <dd data-i18n="upsampling.top.dd3">For both filters. In minimum phase a filter keeps its levels at every frequency and puts its ringing after
               a sound (0.15 ms before it at most, where the linear filters ring 0.2 to 47 ms before). Gaussian steep keeps
               every sample of the file only in linear phase.</dd></div>
-        <div><dt>Highest rate <span>Auto · 96k · 192k · 384k</span></dt>
-          <dd>Nothing goes above it, upsampled or not. <b>Auto</b>: as high as the device takes. ×16 (705.6 and 768 kHz)
+        <div><dt data-i18n="upsampling.top.dt4">Highest rate <span>Auto · 96k · 192k · 384k</span></dt>
+          <dd data-i18n="upsampling.top.dd4">Nothing goes above it, upsampled or not. <b>Auto</b>: as high as the device takes. ×16 (705.6 and 768 kHz)
               goes as WAV where the device takes WAV.</dd></div>
-        <div><dt>Bit depth <span>Auto · 24 · 32</span></dt>
-          <dd>The depth a converted or upsampled track is sent at: <b>Auto</b> is 24 (32-bit FLAC only where a device is
+        <div><dt data-i18n="upsampling.top.dt5">Bit depth <span>Auto · 24 · 32</span></dt>
+          <dd data-i18n="upsampling.top.dd5">The depth a converted or upsampled track is sent at: <b>Auto</b> is 24 (32-bit FLAC only where a device is
               set to 32). On Auto a 16-bit/44.1 kHz file plays as it is.</dd></div>
-        <div><dt>Real bits and Dither <span>As sent · 23–20 · Flat · Shaped 3rd · Shaped 5th</span></dt>
-          <dd>Where Mandarin makes the PCM (upsampled, not made DSD): the bits the DAC resolves above its own noise, the
+        <div><dt data-i18n="upsampling.top.dt6">Real bits and Dither <span>As sent · 23–20 · Flat · Shaped 3rd · Shaped 5th</span></dt>
+          <dd data-i18n="upsampling.top.dd6">Where Mandarin makes the PCM (upsampled, not made DSD): the bits the DAC resolves above its own noise, the
               dither put in at that bit, and how: <b>Flat</b> (the default), or <b>Shaped</b> of the 3rd or 5th order, its
               noise moved above the audio band (made at 88.2 kHz and up).</dd></div>
-        <div><dt>DSD as PCM <span>Off · 50 kHz · 30 kHz</span></dt>
-          <dd>For DSD sent to this device as PCM: take the DSD modulator's ultrasonic noise off above 50 or 30 kHz. Off
+        <div><dt data-i18n="upsampling.top.dt7">DSD as PCM <span>Off · 50 kHz · 30 kHz</span></dt>
+          <dd data-i18n="upsampling.top.dd7">For DSD sent to this device as PCM: take the DSD modulator's ultrasonic noise off above 50 or 30 kHz. Off
               keeps it, up to the top of the rate it goes at. DSD the device takes as DSD goes as it is.</dd></div>
-        <div><dt>PCM as DSD <span>Off · DSD64 · DSD128 · DSD256</span></dt>
-          <dd>For a device that takes DSD: each track of the library that isn't DSD is made DSD as it plays and sent as a
+        <div><dt data-i18n="upsampling.top.dt8">PCM as DSD <span>Off · DSD64 · DSD128 · DSD256</span></dt>
+          <dd data-i18n="upsampling.top.dd8">For a device that takes DSD: each track of the library that isn't DSD is made DSD as it plays and sent as a
               DSF, gapless from track to track. A 48 kHz-family track stays in its own family. The Output says how fast this
               server makes it, and whether that keeps up.</dd></div>
-        <div><dt>Modulator <span>7th order · 7th order wide · 9th order</span></dt>
-          <dd>How PCM is made DSD: the 7th order; the 7th order wide, which holds its noise down to 50 kHz (DSD128 and
+        <div><dt data-i18n="upsampling.top.dt9">Modulator <span>7th order · 7th order wide · 9th order</span></dt>
+          <dd data-i18n="upsampling.top.dd9">How PCM is made DSD: the 7th order; the 7th order wide, which holds its noise down to 50 kHz (DSD128 and
               DSD256); or the 9th order, quieter in the audio band (DSD64 and DSD128).</dd></div>
-        <div><dt>Player <span>UPnP · Its own player</span></dt>
-          <dd>Where a renderer has MPD beside it, as a Chord Poly does: Mandarin can hand MPD the queue, and MPD plays one
+        <div><dt data-i18n="upsampling.top.dt10">Player <span>UPnP · Its own player</span></dt>
+          <dd data-i18n="upsampling.top.dd10">Where a renderer has MPD beside it, as a Chord Poly does: Mandarin can hand MPD the queue, and MPD plays one
               track into the next by itself, as it plays its own library.</dd></div>
-        <div><dt>Gapless <span>Albums as one stream</span></dt>
-          <dd>An album's tracks go to the device as one stream, start to end, gapless however it joins files. A Mandarin
+        <div><dt data-i18n="upsampling.top.dt11">Gapless <span>Albums as one stream</span></dt>
+          <dd data-i18n="upsampling.top.dd11">An album's tracks go to the device as one stream, start to end, gapless however it joins files. A Mandarin
               Bridge is played one continuous stream anyway, and a Squeezelite player joins tracks from its own buffer.</dd></div>
-        <div><dt>Fixed volume</dt>
-          <dd>The volume is set on the device itself (its knob, or a line out on fixed), so Mandarin shows no slider and never
+        <div><dt data-i18n="upsampling.top.dt12">Fixed volume</dt>
+          <dd data-i18n="upsampling.top.dd12">The volume is set on the device itself (its knob, or a line out on fixed), so Mandarin shows no slider and never
               scales the samples.</dd></div>
-        <div><dt>Volume levelling <span>Off · Track · Album · Auto</span></dt>
-          <dd>ReplayGain for this device, to a target from −14 to −25 LUFS. Auto plays albums at album level and mixed tracks
+        <div><dt data-i18n="upsampling.top.dt13">Volume levelling <span>Off · Track · Album · Auto</span></dt>
+          <dd data-i18n="upsampling.top.dd13">ReplayGain for this device, to a target from −14 to −25 LUFS. Auto plays albums at album level and mixed tracks
               at track level.</dd></div>
       </dl>
     </div>
-    <figure class="shot"><img src="img/upsampling-output.jpg" alt="Output settings: Mode, Highest rate, Bit depth, DSD as PCM, PCM as DSD, Fixed volume, Volume levelling" loading="lazy" decoding="async"><figcaption>A Mandarin Bridge's <b>Output</b> in the Android app: Original, the highest rate on Auto, the bit depth on Auto, no DSD made, and fixed volume.</figcaption></figure>
+    <figure class="shot"><img src="img/upsampling-output.jpg" alt="Output settings: Mode, Highest rate, Bit depth, DSD as PCM, PCM as DSD, Fixed volume, Volume levelling" loading="lazy" decoding="async" data-i18n-attr="alt:upsampling.shot1"><figcaption data-i18n="upsampling.top.figcaption1">A Mandarin Bridge's <b>Output</b> in the Android app: Original, the highest rate on Auto, the bit depth on Auto, no DSD made, and fixed volume.</figcaption></figure>
   </div>
 
-  <h2>Headroom, and clipping shown</h2>
-  <p>A track mastered to full scale has peaks between its samples above it, which upsampling would clip. Each making
+  <h2 data-i18n="upsampling.headroom-clipping-shown.title">Headroom, and clipping shown</h2>
+  <p data-i18n="upsampling.headroom-clipping-shown.p1">A track mastered to full scale has peaks between its samples above it, which upsampling would clip. Each making
      counts the samples it clips: Now playing's upsampling line turns red, and the signal path says how many and how far
      over. <b>Headroom when upsampling</b>, in a device's Output, is <b>Auto</b> by default: a track Mandarin upsamples,
      or makes DSD of, is turned down by what its true peak needs after levelling, and half a dB more (DSD's own room
      allowed for); a track that doesn't need it keeps its level. <b>Off</b> leaves every track as it is.</p>
 
-  <h2>Keeping up, and a safety net</h2>
-  <p>A track made as it plays says in its signal path how fast it is made (<i>Keeping up at 4.2× real time</i>); slower
+  <h2 data-i18n="upsampling.keeping-up-safety.title">Keeping up, and a safety net</h2>
+  <p data-i18n="upsampling.keeping-up-safety.p1">A track made as it plays says in its signal path how fast it is made (<i>Keeping up at 4.2× real time</i>); slower
      than real time, Now playing says it is falling behind. Each device keeps the Output that last played well: an
      Output this server can't make in time, or that the device can't play, is put back to that one, the track playing
      on from where it was, and the device's page says what happened. Never for a Qobuz or Tidal stream.</p>
 
   <h2>DSP</h2>
-  <p>Below Output, a device's <b>DSP</b>: a parametric EQ of up to ten bands, headphone profiles from AutoEq, and room
+  <p data-i18n="upsampling.dsp.p1">Below Output, a device's <b>DSP</b>: a parametric EQ of up to ten bands, headphone profiles from AutoEq, and room
      correction from an impulse response (a WAV from REW, Dirac or a headphone measurement), one for each rate or a zip
      of them. A device's DSP runs in this order: volume levelling, then the headroom, then the DSP at the track's own
      rate, then upsampling.</p>
 
-  <h2>The processor</h2>
-  <p>Upsampling and making DSD take far less of the processor than they did, with the same output: PCM as DSD256 takes
+  <h2 data-i18n="upsampling.processor.title">The processor</h2>
+  <p data-i18n="upsampling.processor.p1">Upsampling and making DSD take far less of the processor than they did, with the same output: PCM as DSD256 takes
      37% of one core per second of music where it took 68%, and upsampling ×16 runs 1.5 times as fast (measured on a
      2.1 GHz Xeon). A track upsampled or made DSD as it plays gets the processor: playback keeps all the cores but one while it is made,
      or as many as <b>Settings → Library Scanner → Processor → Cores for upsampling and DSD</b> says (Auto, 1, 2 or 3).
      It is made some 30 seconds ahead of what the device has read, not flat out to its end.</p>
 
-  <h2>For a bit-perfect result</h2>
-  <p>Choose <b>Bit-perfect</b> under the device's <b>Output</b> (Mode <b>Original</b>) and set its volume to fixed (or the DAC's own): upsampling, DSD from
+  <h2 data-i18n="upsampling.for-bit-perfect.title">For a bit-perfect result</h2>
+  <p data-i18n="upsampling.for-bit-perfect.p1">Choose <b>Bit-perfect</b> under the device's <b>Output</b> (Mode <b>Original</b>) and set its volume to fixed (or the DAC's own): upsampling, DSD from
      PCM, DSP, volume levelling and a volume in software all change the samples, on purpose. The
      <a href="signal-path.html">signal path</a> shows what was done, and <a href="sq-tool.html">SQ-tool</a> proves it.</p>
 
-  <h2>A phone with a USB DAC</h2>
-  <p>This phone has the same Output when it plays through a USB DAC (Settings → Audio Devices → This phone → Output): the
+  <h2 data-i18n="upsampling.phone-with-usb.title">A phone with a USB DAC</h2>
+  <p data-i18n="upsampling.phone-with-usb.p1">This phone has the same Output when it plays through a USB DAC (Settings → Audio Devices → This phone → Output): the
      server makes the upsampled or DSD stream, and the app's USB driver plays it, DSD natively or as DoP.</p>
-  <nav class="pager"><a class="back" href="index.html">← Back to contents</a><a class="pill" href="signal-path.html">Next: Signal path →</a></nav>
+  <nav class="pager"><a class="back" href="index.html" data-i18n="site.back">← Back to contents</a><a class="pill" href="signal-path.html" data-i18n="upsampling.next">Next: Signal path →</a></nav>
 </main>
 
 <footer>
-  <p>Mandarin · MIT · © 2026 Lewis Menzies (Music Duck / Mandarin) ·
+  <p class="coffee"><a href="https://buymeacoffee.com/musicd_projects"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me a Coffee" loading="lazy"></a></p>
+  <p data-i18n="site.footer">Mandarin · MIT · © 2026 Lewis Menzies (Music Duck / Mandarin) ·
      <a href="https://github.com/meltface-80/Mandarin">Source on GitHub</a><br>
      Sonos is a trademark of Sonos, Inc.; WiiM of Linkplay Technology; Chord and Poly of Chord Electronics; FiiO of FiiO
      Electronics. This is an independent project, affiliated with none of them.</p>
 </footer>
 <script src="site.js"></script>
+<script src="i18n.js"></script>
 </body>
 </html>

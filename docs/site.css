@@ -410,3 +410,33 @@ ol.steps li span { font-size: 13.5px; color: var(--muted); }
   header.pagehead .brand span { display: none; }
   a.back, a.pill { padding: 6px 12px; font-size: 13px; }
 }
+
+/* ---------- the language, first in every page's top bar (item 408; docs/i18n.js) ---------- */
+.lang-select {
+  flex: 0 0 auto; max-width: 9.5em; cursor: pointer;
+  font: 600 13px var(--sans); color: var(--copper-hi);
+  padding: 6px 10px; border-radius: 999px;
+  border: 1px solid var(--copper-dim); background: var(--accent-wash);
+}
+.lang-select:hover { border-color: var(--copper); }
+.lang-select:focus-visible { outline: 2px solid var(--copper-hi); outline-offset: 2px; }
+.lang-select option { color: var(--text); background: var(--panel); }
+
+/* ---------- Buy Me a Coffee: in the hero, and small in every footer ---------- */
+header.hero p.coffee { margin-top: 20px; font-size: 14px; color: var(--muted); display: flex; gap: 10px 14px;
+  align-items: center; justify-content: center; flex-wrap: wrap; }
+p.coffee img { display: block; height: 44px; width: auto; }
+footer p.coffee { display: flex; justify-content: center; margin-bottom: 14px; }
+footer p.coffee img { height: 34px; }
+
+/* A phone: the language, Contents and Downloads in one row, the icon left out (Contents goes to the same page), and
+   a long word for Contents in another language cut short rather than pushing the row off the screen. */
+@media (max-width: 600px) {
+  header.pagehead .wrap { gap: 8px; padding: 0 12px; }
+  header.pagehead .brand { display: none; }
+  .lang-select { max-width: 8.8em; padding: 5px 6px; font-size: 12.5px; }
+  header.pagehead a.back { display: block; min-width: 0; flex: 0 1 auto; overflow: hidden; text-overflow: ellipsis; }
+  header.pagehead a.pill { flex: 0 0 auto; margin-left: auto; }
+  header.pagehead .spacer { display: none; }
+  header.pagehead a.back, header.pagehead a.pill { padding: 6px 10px; }
+}
