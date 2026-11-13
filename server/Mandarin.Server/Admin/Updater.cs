@@ -18,6 +18,7 @@
 //   UPDATE_REPO    owner/repo (meltface-80/Mandarin); UPDATE_API where GitHub
 //                  is asked (the tests' stand-in)
 //   GITHUB_TOKEN   sent to api.github.com alone, never to a host a redirect names
+//   MANDARIN_CHANNEL=dev   dev's builds, not the releases (Updater.Channel.cs)
 //   MANDARIN_SERVER_UPDATE=0   this program left as it is by an update
 using System.Diagnostics;
 using System.Globalization;
@@ -234,6 +235,7 @@ internal sealed partial class Updater
             o["checkedAt"] = checkedAt;
             o["checking"] = checking;
             o["error"] = error;
+            o["channel"] = channel;
             o["apply"] = apply;
             return o;
         }
@@ -257,30 +259,10 @@ internal sealed partial class Updater
         {
             JsObj? rel = null;
             string? src = null;
-            var r = await GetJson($"/repos/{owner}/{repo}/releases/latest");
-            if (r.Status == 200 && r.Json is JsObj rj && Js.Truthy(rj["tag_name"])) { rel = rj; src = "release"; }
-            else if (r.Status == 404)
-            {
-                // No published release — fall back to the highest semver tag.
-                var t = await GetJson($"/repos/{owner}/{repo}/tags?per_page=30");
-                if (t.Status == 200 && t.Json is List<object?> tags && tags.Count > 0)
-                {
-                    JsObj? best = null;
-                    foreach (var tag in tags.OfType<JsObj>())
-                        if (ParseVer(tag["name"]) != null && (best == null || CmpVer(tag["name"], best["name"]) > 0)) best = tag;
-                    if (best != null)
-                    {
-                        src = "tags";
-                        var name = Js.Str(best["name"]);
-                        rel = new JsObj();
-                        rel["tag_name"] = best["name"];
-                        rel["html_url"] = $"https://github.com/{owner}/{repo}/releases/tag/{name}";
-                        rel["body"] = null;
-                        rel["assets"] = new List<object?>();
-                        rel["_tarball"] = $"https://api.github.com/repos/{owner}/{repo}/tarball/{name}";
-                    }
-                }
-            }
+            var r = await GetJson(ReleasePath());   // the latest release, or dev's builds' (Updater.Channel.cs, item 405)
+            if (r.Status == 200 && r.Json is JsObj rj && Js.Truthy(rj["tag_name"])) { rel = OnChannel(rj); src = rel != null ? "release" : null; }
+            // No published release: the highest version among the tags (the releases' alone; no dev build out is nothing on offer).
+            else if (r.Status == 404) { rel = Dev ? null : await NewestTag(); src = rel != null ? "tags" : null; }
             else if (r.Status == 403) throw new UpdateError("GitHub rate-limited or forbidden (set GITHUB_TOKEN to raise the limit)");
             else if (r.Status >= 400) throw new UpdateError("GitHub API HTTP " + r.Status);
 

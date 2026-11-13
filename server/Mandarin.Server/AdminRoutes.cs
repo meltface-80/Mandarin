@@ -99,114 +99,20 @@ internal static partial class Library
         return (dev?.Name is { Length: > 0 } n ? n : "A browser", dev?.Kind == "android" ? "PHONE_" + dev.Id : null);
     }
 
-    private static string TmpFile(string ext)
-    {
-        var d = Path.Combine(DataDir, "backups", "tmp");
-        Directory.CreateDirectory(d);
-        return Path.Combine(d, $"{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}-{Environment.ProcessId}-{Convert.ToHexString(System.Security.Cryptography.RandomNumberGenerator.GetBytes(6)).ToLowerInvariant()}{ext}");
-    }
+    private static string TmpFile(string ext) => Backup.TmpFile(DataDir, ext);
     private static void Rm(string? f) { try { if (f != null) File.Delete(f); } catch (Exception) { /* gone */ } }
 
     private static string StateFile(Admin.Tailscale ts) => Path.Combine(ts.Dir, "tailscaled.state");
 
-    /*
-     * A backup of [include] (and the page's and app's parts sent along) to
-     * [output]: its manifest, as written. The database is copied first; then
-     * everything is written in one go. With a passphrase, the keys and the
-     * Tailscale identity go sealed (Admin/Backup.Seal.cs).
-     */
-    private static async Task<JsObj> Build(Stream output, Dictionary<string, bool> include, object? app, object? page, double? created, HttpContext ctx, Admin.Tailscale ts, string? passphrase, Action? beforeWriting = null)
-    {
-        bool Has(string k) => include.TryGetValue(k, out var v) && v;
-        var parts = Backup.ServerParts.Where(Has).ToList();
-        var (name, phone) = Who(ctx);
-        var manifest = new JsObj();
-        manifest["app"] = "mandarin";
-        manifest["format"] = (double)Backup.Format;
-        manifest["version"] = AppVersion;
-        manifest["created"] = created ?? (double)DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-        var from = new JsObj();
-        from["name"] = name;
-        from["kind"] = phone != null ? "android" : "browser";
-        manifest["from"] = from;
-        manifest["phone"] = phone;
-        var manifestParts = parts.Select(x => (object?)x).ToList();
-        manifest["parts"] = manifestParts;
-        var entries = new List<Backup.Entry>();
-        var seal = Backup.Seals(include, passphrase) ? new JsObj() : null;
-        if (parts.Count > 0 || seal != null)
-        {
-            using var c = Db.Open();
-            if (seal != null) seal["keys"] = Backup.KeysOf(c);
-            if (parts.Count > 0)
-            {
-                var snap = Backup.Snapshot(c, parts.ToHashSet());
-                if (seal != null) snap["keys"] = Undef.V;
-                entries.Add(Backup.JsonEntry("server.json", snap));
-            }
-        }
-        // The server's Tailscale identity with the keys: restored onto a fresh install, the same node on your tailnet.
-        if (Has("keys"))
-        {
-            byte[]? state = null;
-            try { state = File.ReadAllBytes(StateFile(ts)); } catch (Exception) { /* none */ }
-            if (state != null)
-            {
-                var t = new JsObj();
-                t["state"] = Convert.ToBase64String(state);
-                if (seal != null) seal["tailscale"] = t; else entries.Add(Backup.JsonEntry("tailscale.json", t));
-                manifest["tailscale"] = true;
-            }
-        }
-        if (TJs.IsObject(app) && app is not null) { entries.Add(Backup.JsonEntry("app.json", app)); manifestParts.Add("app"); }
-        if (TJs.IsObject(page) && page is not null) { entries.Add(Backup.JsonEntry("page.json", page)); manifestParts.Add("page"); }
-        if (seal != null) { entries.Add(Backup.JsonEntry("sealed.json", Backup.Seal(seal, passphrase!))); manifest["sealed"] = true; }
-        string? dbCopy = null;
-        try
-        {
-            if (Has("database"))
-            {
-                dbCopy = TmpFile(".db");
-                Backup.CopyDatabase(dbCopy);
-                if (seal != null) Backup.ScrubForSeal(dbCopy);
-                entries.Add(new Backup.Entry("musicd.db", File: dbCopy));
-                manifestParts.Add("database");
-            }
-            entries.Insert(0, Backup.JsonEntry("manifest.json", manifest));
-            beforeWriting?.Invoke();
-            await Backup.WriteBackup(output, entries);
-        }
-        finally { Rm(dbCopy); }
-        return manifest;
-    }
+    /* Where a backup is made here, and who asked for it (Admin/Backup.Make.cs makes it). */
+    private static Backup.Maker Maker(Admin.Tailscale ts) => new(DataDir, AppVersion, StateFile(ts));
+    private static Backup.From From(HttpContext ctx) { var (name, phone) = Who(ctx); return new(name, phone); }
 
-    /* A file made readable by the server's own user alone (a backup holds the services' keys): never another's on the machine. */
-    internal static FileStream Private(string file)
-    {
-        var o = new FileStreamOptions { Mode = FileMode.Create, Access = FileAccess.ReadWrite };
-        if (!OperatingSystem.IsWindows()) o.UnixCreateMode = UnixFileMode.UserRead | UnixFileMode.UserWrite;
-        return new FileStream(file, o);
-    }
+    internal static FileStream Private(string file) => Backup.Private(file);
 
     /* A backup kept on the server: its record. */
-    private static async Task<JsObj> SaveHere(Dictionary<string, bool> include, object? app, object? page, HttpContext ctx, Admin.Tailscale ts, string kind, object? label, string? passphrase = null)
-    {
-        var store = Backups;
-        var id = store.NewId(kind);
-        var file = store.PathFor(id);
-        JsObj manifest;
-        await using (var f = Private(file)) manifest = await Build(f, include, app, page, null, ctx, ts, passphrase);
-        var meta = new JsObj();
-        meta["id"] = id;
-        meta["kind"] = kind;
-        meta["label"] = TJs.Truthy(label) ? label : ((JsObj)manifest["from"]!)["name"];
-        meta["created"] = manifest["created"];
-        meta["version"] = manifest["version"];
-        meta["parts"] = manifest["parts"];
-        meta["bytes"] = (double)new FileInfo(file).Length;
-        if (TJs.Truthy(manifest["sealed"])) meta["sealed"] = true;
-        return store.Record(meta);
-    }
+    private static Task<JsObj> SaveHere(Dictionary<string, bool> include, object? app, object? page, HttpContext ctx, Admin.Tailscale ts, string kind, object? label, string? passphrase = null) =>
+        Backup.Keep(Maker(ts), From(ctx), include, app, page, kind, label, passphrase);
 
     private static async Task<bool> BackupList(HttpContext ctx)
     {
@@ -244,7 +150,7 @@ internal static partial class Library
         if (Backup.Seals(include, passphrase)) said["sealed"] = true;
         try
         {
-            await Build(ctx.Response.Body, include, app, page, created, ctx, ts, passphrase, beforeWriting: () =>
+            await Backup.Make(ctx.Response.Body, Maker(ts), From(ctx), include, app, page, created, passphrase, beforeWriting: () =>
             {
                 var h = ctx.Response.Headers;
                 h["X-Mandarin-Answered"] = "C#";
