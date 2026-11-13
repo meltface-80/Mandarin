@@ -31,6 +31,12 @@ class ScannerTest {
     @Test fun `Measure ReplayGain, the processor and the clean-up`() {
         val loud = j("""{"tagged":1200,"measured":5,"left":2,"failed":1,"streamed":1,"reason":"done"}""")
         assertEquals("1,200 tagged · 5 measured · 2 to measure · 1 couldn’t be read", Scanner.loudLine(loud, us))
+        // Find covers (item 409): the page's line, and the switch moved as it is tapped.
+        val covers = j("""{"on":true,"running":false,"found":37,"left":12,"none":1204}""")
+        assertEquals("Covers found automatically: 37 · 12 left to try · 1,204 without a sure match", Scanner.coversLine(covers, us))
+        assertNull(Scanner.coversLine(null))
+        assertFalse(Scanner.withCovers(covers, false)!!.optBoolean("on"))
+        assertTrue(covers.optBoolean("on"))
         assertEquals("1 Qobuz and Tidal track aren’t measured.", Scanner.streamedNote(loud, us))
         assertEquals("Every track is known. New ones are measured as they arrive.", Scanner.loudStatus(null, loud))
         val cpu = j("""{"cores":[0,1,2,3],"split":true,"playback":[0],"background":[1,2,3],"dsp":true}""")

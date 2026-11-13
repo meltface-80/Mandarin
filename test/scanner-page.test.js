@@ -34,7 +34,7 @@ const DRIVER = `(async () => {
   document.getElementById("settings-toggle").click(); for (let i = 0; i < 200 && !(navItem() && navItem().offsetParent); i++) await sleep(25);
   navItem().click();
   // At once, before any answer: the page's own words.
-  out.at_once = ["Schedule", "Identify albums", "Ask iTunes too", "MusicBrainz pack", "Measure ReplayGain", "Scheduling", "Identification progress", "Clean up", "Processor"].filter(w => !text().includes(w));
+  out.at_once = ["Schedule", "Identify albums", "Ask iTunes too", "MusicBrainz pack", "Measure ReplayGain", "Find covers", "Scheduling", "Identification progress", "Clean up", "Processor"].filter(w => !text().includes(w));
   out.blocks = body.querySelectorAll("[data-blk]").length;
   // Then the numbers, as each comes.
   // (The clean-up's counts among them: asked for at the same time, they can come last.)
@@ -99,7 +99,7 @@ test("Library Scanner: the page at once, each block as its answer comes, only wh
       const r = await page.eval(DRIVER);
       assert.deepEqual(page.errors, []);
       assert.deepEqual(r.at_once, [], "the page's words, before any answer");
-      assert.equal(r.blocks, 12, "laid out as its blocks");
+      assert.equal(r.blocks, 13, "laid out as its blocks");
       assert.equal(r.filled, true, "each block filled as its answer came");
       assert.equal(r.no_dots, true, "nothing left waiting");
       assert.deepEqual(r.order, ["schedule", "identify", "pack", "progress", "loudness"]);

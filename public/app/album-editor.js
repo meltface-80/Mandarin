@@ -274,7 +274,9 @@ function aeCoverStatus() {
     return;
   }
   ae.img.src = aeImageSrc(d.image_key, 300);
-  if (d.art.found) ae.status.innerHTML = `<strong>Found cover</strong>${d.art.source && !/^https?:/.test(d.art.source) ? " from " + escapeHtml(d.art.source) : ""}.`;
+  // One found by itself (item 409) says so: its source auto:itunes, auto:deezer or auto:caa.
+  const auto = { "auto:itunes": "Apple Music", "auto:deezer": "Deezer", "auto:caa": "MusicBrainz" }[d.art.source];
+  if (d.art.found) ae.status.innerHTML = `<strong>Found cover</strong>${auto ? " automatically, on " + auto : d.art.source && !/^https?:/.test(d.art.source) ? " from " + escapeHtml(d.art.source) : ""}.`;
   else if (d.art.own) ae.status.textContent = "Cover from the album's files.";
   else ae.status.innerHTML = "<strong>No cover.</strong> This album's folder and tracks have no artwork.";
 }

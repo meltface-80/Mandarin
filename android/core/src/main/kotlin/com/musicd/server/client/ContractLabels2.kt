@@ -56,6 +56,7 @@ internal object ContractLabels2 {
         "settings-scanner.identify" to listOf("Identify albums"),
         "settings-scanner.itunes" to listOf("Ask iTunes too"),
         "settings-scanner.measure" to listOf("Measure ReplayGain"),
+        "settings-scanner.covers" to listOf("Find covers"),
         "settings-scanner.recheck-all" to listOf("Check the proposed and unidentified again"),
         "settings-scanner.pack" to listOf("Download", "Update", "Remove"),
         "settings-scanner.pack-folder" to listOf("Change…"),

@@ -71,12 +71,14 @@ import org.json.JSONObject
 /** The scanner's state, its measuring and its clean-up: kept as last read (item 198). */
 private const val SCAN = "/api/identify?lists=0"
 private const val LOUD = "/api/loudness"
+private const val COVERS = "/api/covers/auto"
 private const val CLEANUP = "/api/library/cleanup"
 private const val SCAN_SETTINGS = "/api/identify/settings"
 
 internal class ScanKept {
     var st by mutableStateOf<JSONObject?>(null)
     var loud by mutableStateOf<JSONObject?>(null)
+    var covers by mutableStateOf<JSONObject?>(null)
     var cpu by mutableStateOf<JSONObject?>(null)
     var cleanup by mutableStateOf<JSONObject?>(null)
     var pack by mutableStateOf<JSONObject?>(null)
@@ -98,7 +100,7 @@ internal fun SettingsScanner(client: () -> ServerClient?, onBack: () -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     // As last seen, then the server's (item 198): before, every switch drew off until the server answered.
-    val k = remember { ScanKept().apply { st = SettingsKept.last(SCAN); loud = SettingsKept.last(LOUD); cleanup = SettingsKept.last(CLEANUP) } }
+    val k = remember { ScanKept().apply { st = SettingsKept.last(SCAN); loud = SettingsKept.last(LOUD); covers = SettingsKept.last(COVERS); cleanup = SettingsKept.last(CLEANUP) } }
     var info by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(info) { val t = info ?: return@LaunchedEffect; delay(minOf(25_000L, 4_000L + t.split(Regex("\\s+")).size * 220L)); info = null }
     DisposableEffect(Unit) { toast = { setupToast(context, it) }; onDispose { toast = null } }
@@ -182,6 +184,8 @@ internal fun SettingsScanner(client: () -> ServerClient?, onBack: () -> Unit) {
                 if (measuring) ScanNote(Scanner.loudStatus(st, loud))
             }
             ScanDivider()
+            CoversBlock(k, client, scope) { info = it }
+            ScanDivider()
             CleanupBlock(k, client, scope, context) { info = it }
             ScanDivider()
             Block {
@@ -204,6 +208,26 @@ internal fun SettingsScanner(client: () -> ServerClient?, onBack: () -> Unit) {
             if (k.err.isNotEmpty() && k.browse == null) ScanNote("", error = k.err)
         }
         info?.let { InfoTip(it, Modifier.parity("settings-scanner.info")) }
+    }
+}
+
+/** Find covers (item 409): the cover finder's switch, moved as it is tapped, and how far it has got. */
+@Composable
+private fun CoversBlock(k: ScanKept, client: () -> ServerClient?, scope: CoroutineScope, info: (String) -> Unit) {
+    val covers = k.covers; val on = covers?.optBoolean("on") == true
+    Block {
+        ScanRow("Find covers", COVERS_INFO, info = info) {
+            Toggle(on, Modifier.parity("settings-scanner.covers", Contract.label("settings-scanner.covers")).clickable(enabled = covers != null && !k.busy) {
+                val c = client() ?: return@clickable
+                k.busy = true
+                val before = covers
+                k.covers = Scanner.withCovers(before, !on)
+                val made = ServerWrites.write { c.post(COVERS, JSONObject().put("on", !on)) }
+                scope.launch { ServerWrites.await(made).onSuccess { k.covers = it; k.err = "" }.onFailure { k.covers = before; k.err = com.musicd.server.client.Failure.said(it, "Couldn't reach the server") }; k.busy = false }
+            })
+        }
+        ScanNote("Covers for albums that have none, from Apple Music, Deezer and MusicBrainz.")
+        ScanProgress(Scanner.coversLine(covers), top = 0)
     }
 }
 
@@ -241,6 +265,7 @@ internal fun scanLoad(k: ScanKept, client: () -> ServerClient?, scope: Coroutine
     }
     get(SCAN) { k.st = it; k.err = ""; if (opening || k.lists == null || Scanner.countsOf(it) != k.listsAt) loadLists(k, c, scope) }
     get(LOUD) { k.loud = it }
+    get(COVERS) { k.covers = it }
     get("/api/cpu") { k.cpu = it }
     if (opening || ++k.ticks % 6 == 0) get(CLEANUP) { k.cleanup = it }
     if (opening || k.pack?.optBoolean("checking") == true) get("/api/identify/pack" + if (opening) "?check=1" else "") { k.pack = it; followPack(k, c, scope) }
@@ -352,6 +377,7 @@ private fun TimeBox(hhmm: String, modifier: Modifier) {
 private const val SCHEDULE_INFO = "When identification and Measure ReplayGain run, in that order: an album is measured once identification has looked at it. On: between the start and end times each night, on the server’s clock, and not at all outside them. Off: whenever the library isn’t being scanned, until every album is done. Either way both wait while the library scan runs; the scan itself isn’t scheduled, so new music shows up as it arrives. Identification looks at about twelve albums a minute, one MusicBrainz request a second."
 private const val IDENTIFY_INFO = "Each album is matched first by what its files carry — a MusicBrainz release ID, a barcode, a catalogue number with its label, the tracks’ ISRCs — then looked up on MusicBrainz by its title, track count and (where the tag can be trusted) its artist, scored against the tracks and their lengths. 85 % alike or better is applied: artist, title, year and track titles, kept in the database like an edit; your files are never touched. The rest are left for you to match. Albums you edited by hand are left alone."
 private const val ITUNES_INFO = "An album MusicBrainz can’t place is looked up in Apple’s iTunes catalogue too — by barcode first, then by name; no account or key, a request every few seconds. Applied at 85 % alike or better, as a MusicBrainz match is; anything less is left for you. The album keeps the year its files carry, since Apple’s date is often a reissue’s."
-private const val MEASURE_INFO = "Tracks without ReplayGain tags are measured on the server — EBU R128 loudness and true peak — so Volume Levelling (Settings → Audio Devices → a device) can level them too. It keeps to the schedule above: album by album, newest first, each once identification has looked at it, on the cores playback doesn’t keep. An album’s gain is worked out once all of its tracks are known. Qobuz and Tidal tracks aren’t measured. Your files are never changed."
+private const val COVERS_INFO = "Albums with no cover of their own (none in their folder, none in their tracks, none chosen in Edit album) are looked up on Apple Music, Deezer and MusicBrainz, as Edit album’s Find looks, and given a cover only when the title, the artist and the tracks all agree. Anything less is left for you to choose in Edit album. A cover in the album’s folder or tracks, or one you chose or took away, is never touched, and your files are never changed. An album every few seconds, after a scan that added albums and each night; one with nothing sure is looked up again after 60 days."
+private const val MEASURE_INFO ="Tracks without ReplayGain tags are measured on the server — EBU R128 loudness and true peak — so Volume Levelling (Settings → Audio Devices → a device) can level them too. It keeps to the schedule above: album by album, newest first, each once identification has looked at it, on the cores playback doesn’t keep. An album’s gain is worked out once all of its tracks are known. Qobuz and Tidal tracks aren’t measured. Your files are never changed."
 private const val CLEANUP_INFO = "Albums the library still lists but can’t play: ones whose files are gone from the server (a folder the scanner found missing, empty or unreadable, kept in case it comes back), and Qobuz albums no longer in your favourites or purchases — every Qobuz album while you’re signed out. Nothing goes until you press. Plays stay in history; an album’s edits, heart and Listen later go with it."
 private const val CPU_INFO = "Playback keeps cores of its own: one, or two while DSP is in use. While a track is upsampled or made DSD as it plays, and for half a minute after, playback keeps all the cores but two (but one on a machine of two or three), or as many as Cores for upsampling and DSD says. Scanning, measuring ReplayGain and the phone’s downloads run on the other cores, at the lowest priority, so playback comes first. Set PLAYBACK_CORES to 1 or 2 to fix how many playback keeps, or 0 to share every core."

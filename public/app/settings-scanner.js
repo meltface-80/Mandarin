@@ -10,7 +10,7 @@ const scanEsc = (v) => String(v == null ? "" : v).replace(/[&<>"]/g, c => ({ "&"
 const scanToast = (m, kind) => { if (window.__showToast) window.__showToast(m, kind); };
 const num = n => Number(n || 0).toLocaleString();
 const SHOW = 60;
-let st = null, loud = null, scanBusy = false, scanErr = "", more = { proposed: false, unidentified: false, applied: false, rejected: false };
+let st = null, loud = null, covers = null, scanBusy = false, scanErr = "", more = { proposed: false, unidentified: false, applied: false, rejected: false };
 let lists = null;      // the albums in each state, the first of each (v0.8.17): { proposed, …, counts, at }
 let cpu = null;        // how the processor is shared out (v0.8.13)
 let pack = null;       // the MusicBrainz pack (v0.6.4)
@@ -21,13 +21,13 @@ let matching = null, matchDraft = "";   // the row whose barcode box is open, an
 const KEPT = "mandarin.scanner.v1";
 try {
   const k = JSON.parse(localStorage.getItem(KEPT) || "null");
-  if (k) { st = k.st || null; loud = k.loud || null; cleanup = k.cleanup || null; cpu = k.cpu || null; pack = k.pack || null; }
+  if (k) { st = k.st || null; loud = k.loud || null; cleanup = k.cleanup || null; covers = k.covers || null; cpu = k.cpu || null; pack = k.pack || null; }
 } catch (e) { /* none kept */ }
 let keepTimer = null;
 const keep = () => {
   clearTimeout(keepTimer);
   keepTimer = setTimeout(() => {
-    try { localStorage.setItem(KEPT, JSON.stringify({ st, loud, cleanup, cpu, pack: pack && Object.assign({}, pack, { job: null }) })); } catch (e) { /* not kept */ }
+    try { localStorage.setItem(KEPT, JSON.stringify({ st, loud, covers, cleanup, cpu, pack: pack && Object.assign({}, pack, { job: null }) })); } catch (e) { /* not kept */ }
   }, 1000);
 };
 
@@ -51,6 +51,7 @@ function scanLoad(opening) {
     .then(() => { if (!scanBusy) render(); });
   get("/api/identify?lists=0", v => { st = v; scanErr = ""; if (opening || listsMoved()) loadLists(); });
   get("/api/loudness", v => { loud = v; });
+  get("/api/covers/auto", v => { covers = v; });
   get("/api/cpu", v => { cpu = v; });
   if (opening || ++quiet % 6 === 0) get("/api/library/cleanup", v => { cleanup = v; });
   if (opening || (pack && pack.checking)) get("/api/identify/pack" + (opening ? "?check=1" : ""), v => {
@@ -84,6 +85,16 @@ async function setMeasure(on) {
   scanBusy = false;
   render();
 }
+// Find covers (item 409): the cover finder on or off.
+async function setCovers(on) {
+  if (scanBusy) return;
+  scanBusy = true;
+  try { covers = await scanApi("/api/covers/auto", { on }); scanErr = ""; } catch (e) { scanErr = e.message; }
+  scanBusy = false;
+  render();
+}
+// Its one line: "Covers found automatically: 37 · 12 left to try · 1,204 without a sure match".
+const coversLine = c => "Covers found automatically: " + num(c.found) + " · " + num(c.left) + " left to try · " + num(c.none) + " without a sure match";
 async function packAct(what) {
   if (scanBusy) return;
   scanBusy = true;
