@@ -4,7 +4,8 @@
 # short id where it has none. Checked first where it can be (fsck -p); one that can't be repaired, or that its
 # filesystem won't write (a dirty NTFS, HFS+), is mounted read-only, and why is kept in /run/mandarin-os/usb/<name>
 # for the system page. exFAT, FAT and NTFS belong to the share's user, so music copied in over SMB can be written;
-# a Linux filesystem (ext4) keeps its own owners: Mandarin reads it as any user would.
+# a Linux filesystem (ext4) keeps its own owners: Mandarin reads it as any user would, and the system page makes its
+# files the shared folder's when asked (system-page/usb_owner.py, item 399).
 set -uo pipefail
 . /usr/lib/mandarin-os/log.sh
 what="${1:-}" dev="/dev/${2:-}"

@@ -1,5 +1,10 @@
 # Mandarin OS changelog
 
+## v0.1.3
+
+- New - a Linux drive (ext4) from another computer can be made the shared folder's from the system page (item 399): its files keep the owners they were given there, so over the shared folder its music could be copied but not moved, renamed or deleted ("Access denied", the OptiPlex's three drives from the old server). The Storage tab says so beside such a drive, and **Make them the shared folder's**, with the share's password, makes its files the shared folder's user's and the mandarin group's, writable by both: only that drive, never its lost+found, never one mounted read-only. The boot test renames on such a drive over SMB, refused, then made the shared folder's from the page, and done.
+- Fixed - the system page said "The box isn't answering: is it on?" for good after a single read went unanswered (a phone waking the page's tab), however many were answered after it (item 399). It says so after two reads in a row go unanswered, takes it away when one is answered (what an action said stays), and reads again as soon as the tab is looked at.
+
 ## v0.1.2
 
 - Fixed - the installer's Mandarin Bridge question and the system page said a DAC plugged into the computer plays through Mandarin itself; it plays through Mandarin Bridge, so the question says so (yes if a DAC will be plugged in) and so does the page
