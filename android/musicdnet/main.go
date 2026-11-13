@@ -22,6 +22,8 @@
 //	GET  /probe                is the server answering, directly? → {"ok","ms"}
 //	POST /down?on=1|0          the app's verdict: drop and refuse, or let through
 //	GET  /log                  recent log lines, for the diagnostics screen
+//	POST /keep?s=n             the app wants it for n seconds more (item 404: on
+//	                           the phone it stops itself once idle, idle.go)
 //	POST /serve?port=n&upstream=http://127.0.0.1:n   (the server) take the tailnet's
 //	                           port n and pass each request to MusicD, with the
 //	                           caller's tailnet address in X-Forwarded-For
@@ -43,6 +45,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"tailscale.com/tsnet"
@@ -56,6 +59,9 @@ type engine struct {
 	fw    *Forwarder
 	serve net.Listener // the server's tailnet port, when serving
 	err   string
+
+	moved atomic.Int64 // bytes through the forward, both ways (idle.go)
+	watch *watcher     // the phone's: it stops itself (idle.go); nil for the server
 
 	logMu sync.Mutex
 	lines []string
@@ -109,7 +115,7 @@ func (e *engine) forward(target string, port int) (string, error) {
 	if e.fw != nil {
 		e.fw.Close()
 	}
-	fw := &Forwarder{TS: e.ts, Target: target}
+	fw := &Forwarder{TS: e.ts, Target: target, Moved: &e.moved}
 	addr, err := fw.StartOn(port)
 	if err != nil {
 		return "", err
@@ -170,6 +176,9 @@ func main() {
 		InstallInterfaceGetter() // Android 11+ won't let native code list interfaces
 	}
 	e := &engine{dir: *dir}
+	if !*server {
+		e.watchItself(defaultWatch) // the phone's stops itself when idle or busy for nothing (item 404)
+	}
 
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
@@ -326,6 +335,10 @@ func (e *engine) handler(secret string) http.Handler {
 			return
 		}
 		reply(w, map[string]int{"dropped": fw.SetDown(r.URL.Query().Get("on") == "1")})
+	})
+	mux.HandleFunc("POST /keep", func(w http.ResponseWriter, r *http.Request) {
+		s, _ := strconv.Atoi(r.URL.Query().Get("s"))
+		reply(w, map[string]bool{"kept": e.keep(time.Duration(max(0, min(s, 3600))) * time.Second)})
 	})
 	mux.HandleFunc("GET /log", func(w http.ResponseWriter, r *http.Request) {
 		e.logMu.Lock()
