@@ -1,6 +1,7 @@
 "use strict";
 /*
- * Mandarin OS's Storage/Installer (item 405): a folder in the music folder itself (/data/Storage), which apply makes and
+ * Mandarin OS's Installer (item 405): in Mandarin OS 0.1.5 a folder in the music folder itself (/data/Storage); from 0.1.6
+ * (item 406) beside it at the top of the share, and this stays a guard for a box still on 0.1.5. Apply makes it and
  * the reinstaller reads (a file there whose name starts with "dev"). Its files are no music: the library scan reads
  * audio files alone, by their names (Scanner.cs, AudioExt), so a README.txt and a dev.bin there (even one holding a
  * track's bytes) add no album, no track, and nothing the scan read or changed, and the library is what it was.

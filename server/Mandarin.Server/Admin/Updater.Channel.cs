@@ -7,7 +7,7 @@
 //                          (musicd-server-<version>.tar.gz), its files are read from it, and they are checked as a
 //                          release's are: signed with the release key, the program against its sums and its version.
 //   anything else          the releases: GitHub's latest, or with none published the highest version among the tags.
-// Mandarin OS sets it from the shared folder's Storage/Installer at each Reinstall Mandarin (reinstall-mandarin), Linux's
+// Mandarin OS sets it from the shared folder's Installer (smb://<box>/data/Installer) at each Reinstall Mandarin (reinstall-mandarin), Linux's
 // installer from --channel. A build is offered only when it is newer than the one running, on either: going back from
 // dev's builds to a release is a reinstall's, never an update's.
 using System.Text.RegularExpressions;

@@ -68,13 +68,14 @@ MandarinServer     Mandarin's logs, and its backups (read only).
 MandarinBridge     Every Mandarin Bridge's log, as the server keeps them (read only).
 MandarinApp        The Mandarin app's logs, sent by each phone (read only).
 MandarinOS         This system's own log, and its version (read only).
+Installer          Used by Mandarin's reinstaller.
 
 The system page: http://mandarin/   Mandarin: http://mandarin:3500/
 TXT
 # Readable by the share's group, written only where music goes.
 chown root:mandarin-share /data/Share /data/Share/* 2>/dev/null; chmod 0755 /data/Share
 chown "${user:-root}:mandarin" /data/Storage /data/Storage/USB; chmod 2775 /data/Storage /data/Storage/USB
-# Storage/Installer, which Reinstall Mandarin reads (channel.sh, item 405), made as Storage is.
+# Installer, which Reinstall Mandarin reads (channel.sh, items 405 and 406), made as Storage is, beside it.
 . /usr/lib/mandarin-os/channel.sh && channel_folder "${user:-}"
 id mandarin >/dev/null 2>&1 && chown -R mandarin:mandarin /data/MandarinServer && chmod 0750 /data/MandarinServer
 mkdir -p /data/MandarinServer/Logs /data/MandarinServer/backups && chown mandarin:mandarin /data/MandarinServer/Logs /data/MandarinServer/backups

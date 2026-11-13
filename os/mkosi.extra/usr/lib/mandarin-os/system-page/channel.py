@@ -2,7 +2,7 @@
 the releases ("latest") or dev's builds ("dev").
 
   state()   for /api/state's mandarin.channel: what Mandarin was last installed from (MachineSettings/mandarin-channel.env,
-            which its own updates follow), and what Storage/Installer asks for at the next Reinstall Mandarin (a file in
+            which its own updates follow), and what the share's Installer asks for at the next Reinstall Mandarin (a file in
             it whose name starts with "dev", in any case: dev; none: latest). Read only: the page changes neither.
 """
 import os
@@ -21,7 +21,7 @@ def now():
 
 
 def wanted():
-    folder = _page["P"]("/data/Storage/Installer")
+    folder = _page["P"]("/data/Installer")
     try:
         names = [n for n in os.listdir(folder) if os.path.isfile(os.path.join(folder, n))]
     except OSError:
