@@ -18,9 +18,8 @@ const pages = fs.readdirSync(DOCS).filter(f => f.endsWith(".html")).sort();
 const noPython = spawnSync("python3", ["--version"]).status !== 0 && "python3 is not installed";
 
 test("every page's prose is marked, en.json is the pages' English, and each language keeps the English's markup", () => {
-  // TODO(408): allowEmpty lets a language file that is exactly {} off its missing keys, only until the translations
-  // are written on this branch; then it goes, and every language must have every key. Everything else is enforced.
-  const problems = i18n.check({ allowEmpty: true });
+  // Every language has every key: a page changed without its translations fails here.
+  const problems = i18n.check();
   assert.deepEqual(problems, [], problems.slice(0, 20).join("\n"));
   const en = JSON.parse(fs.readFileSync(path.join(DOCS, "i18n", "en.json"), "utf8"));
   assert.ok(Object.keys(en).length > 800, "every page's texts: " + Object.keys(en).length);
@@ -33,7 +32,7 @@ test("a language file is held to the English: every key, no stale one, the same 
   const en = { strings: { "p.a": 'Open <a href="x.html">the page</a> and type <code>yes</code>.', "p.b": "Two <b>words</b>", "p.c": "Language" }, attrKeys: new Set(["p.c"]), problems: [] };
   const ok = { "p.a": 'Ouvrez <a href="x.html">la page</a> et tapez <code>yes</code>.', "p.b": "Deux <b>mots</b>", "p.c": "Langue" };
   assert.deepEqual(i18n.checkLanguage("fr", ok, en), []);
-  const said = (dict, opts) => i18n.checkLanguage("fr", dict, en, opts).join("\n");
+  const said = (dict) => i18n.checkLanguage("fr", dict, en).join("\n");
   assert.match(said({ ...ok, "p.b": undefined }), /"p\.b" is not a text/);
   const { "p.b": _gone, ...short } = ok;
   assert.match(said(short), /"p\.b" is missing/);
@@ -44,7 +43,6 @@ test("a language file is held to the English: every key, no stale one, the same 
   assert.match(said({ ...ok, "p.b": "Deux <b>mots" }), /left open/);
   assert.match(said({ ...ok, "p.c": "<b>Langue</b>" }), /attribute's text: no markup/);
   assert.match(said({}), /"p\.a" is missing/, "an empty file is reported");
-  assert.equal(said({}, { allowEmpty: true }), "", "…unless let off, as the TODO(408) allows for now");
   assert.match(said([]), /not a \{ key: text \} object/);
 });
 
@@ -67,7 +65,7 @@ test("the page scan finds prose left unmarked, a mark inside a mark, and one key
   assert.deepEqual(i18n.extract(dir).problems, []);
   fs.writeFileSync(path.join(dir, "b.html"), '<body><a data-i18n="site.back">← Back</a></body>');
   assert.match(i18n.extract(dir).problems.join(), /"site\.back" is also at a\.html:1 with other English/);
-  assert.match(i18n.check({ dir, allowEmpty: true }).join("\n"), /en\.json is not what the pages say/);
+  assert.match(i18n.check({ dir }).join("\n"), /en\.json is not what the pages say/);
 });
 
 test("every page has the language selector first in its top bar, and loads i18n.js", () => {

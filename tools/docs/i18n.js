@@ -179,18 +179,15 @@ function structure(html) {
 /**
  * What is wrong with one language's file against the English.
  * @param {string} lang @param {unknown} dict the file, parsed @param {Extract} en
- * @param {{ allowEmpty?: boolean }} [opts] allowEmpty: a file that is exactly {} is let off its missing keys
  * @returns {string[]}
  */
-function checkLanguage(lang, dict, en, opts = {}) {
+function checkLanguage(lang, dict, en) {
   const file = `docs/i18n/${lang}.json`;
   if (!dict || typeof dict !== "object" || Array.isArray(dict)) return [`${file}: not a { key: text } object`];
   const d = /** @type {Record<string, unknown>} */ (dict);
   const problems = [];
   const keys = Object.keys(d);
-  if (!(opts.allowEmpty && keys.length === 0)) {
-    for (const k of Object.keys(en.strings)) if (!(k in d)) problems.push(`${file}: "${k}" is missing`);
-  }
+  for (const k of Object.keys(en.strings)) if (!(k in d)) problems.push(`${file}: "${k}" is missing`);
   for (const k of keys) {
     if (!(k in en.strings)) { problems.push(`${file}: "${k}" is no longer on any page`); continue; }
     const t = d[k];
@@ -211,7 +208,7 @@ function checkLanguage(lang, dict, en, opts = {}) {
 
 /**
  * Everything wrong, from the pages through en.json to each language.
- * @param {{ allowEmpty?: boolean, dir?: string }} [opts] @returns {string[]}
+ * @param {{ dir?: string }} [opts] @returns {string[]}
  */
 function check(opts = {}) {
   const dir = opts.dir || DOCS;
@@ -226,7 +223,7 @@ function check(opts = {}) {
     if (!fs.existsSync(f)) { problems.push(`docs/i18n/${lang}.json is missing`); continue; }
     let dict;
     try { dict = JSON.parse(fs.readFileSync(f, "utf8")); } catch (e) { problems.push(`docs/i18n/${lang}.json: not JSON (${e.message})`); continue; }
-    problems.push(...checkLanguage(lang, dict, en, opts));
+    problems.push(...checkLanguage(lang, dict, en));
   }
   return problems;
 }
