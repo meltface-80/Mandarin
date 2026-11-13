@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Logs · Mandarin</title>
+<title data-i18n="logs.doc-title">Logs · Mandarin</title>
 <meta name="description" content="Mandarin keeps a log always: the server, every Mandarin Bridge, the Android app and the page. Download all logs as one text file, what they hold and leave out, and how to send them.">
 <link rel="icon" href="mandarin-icon.png">
 <link rel="stylesheet" href="site.css">
@@ -23,80 +23,80 @@
       <option value="da">🇩🇰 Dansk</option>
       <option value="no">🇳🇴 Norsk</option>
     </select>
-    <a class="back" href="index.html">← Contents</a>
+    <a class="back" href="index.html" data-i18n="site.contents">← Contents</a>
     <a class="brand" href="index.html"><img src="mandarin-icon.png" alt=""><span>Mandarin</span></a>
     <span class="spacer"></span>
-    <a class="pill solid" href="downloads.html">Downloads</a>
+    <a class="pill solid" href="downloads.html" data-i18n="site.downloads">Downloads</a>
   </div>
 </header>
 
 <main class="wrap page">
-  <h1>Logs</h1>
-  <p class="lead">Mandarin keeps a log <b>always</b>, everywhere it runs: the server, every Mandarin Bridge, the Android
+  <h1 data-i18n="logs.h1">Logs</h1>
+  <p class="lead" data-i18n="logs.lead">Mandarin keeps a log <b>always</b>, everywhere it runs: the server, every Mandarin Bridge, the Android
      app and the page in a browser. There is nothing to switch on, and it can't be switched off, so a fault seen once is
      already in the log.</p>
-  <p>Each line is dated in UTC with its level (INFO, WARN, ERROR), so every device's lines sort together. Nothing in
+  <p data-i18n="logs.top.p1">Each line is dated in UTC with its level (INFO, WARN, ERROR), so every device's lines sort together. Nothing in
      them is sent anywhere unless you send it.</p>
 
-  <h2 id="send">To send the logs to the developer</h2>
+  <h2 id="send" data-i18n="logs.send.title">To send the logs to the developer</h2>
   <ul class="plain">
-    <li><b>In a browser:</b> <b>Settings → Setup → Logs → Download all logs</b> gives one text file: every log Mandarin
+    <li data-i18n="logs.send.li1"><b>In a browser:</b> <b>Settings → Setup → Logs → Download all logs</b> gives one text file: every log Mandarin
         keeps (the server's, every Bridge's, every app's and the page's) merged in time order, each line saying where it
         came from, and at its head what this server is (its version, how it is installed, the system) and each log's own
         header. The same page shows the server's newest lines, narrowed by level and by what they hold.</li>
-    <li><b>In the Android app:</b> <b>Settings → Setup → Logging</b> says how much the app has logged and since when.
+    <li data-i18n="logs.send.li2"><b>In the Android app:</b> <b>Settings → Setup → Logging</b> says how much the app has logged and since when.
         <b>Save log</b> saves the app's log, the server's and each Mandarin Bridge's together, as one text file, to
         <b>Downloads/Mandarin</b> on the phone; <b>Clear log</b> empties the app's log and the server's own, and logging
         goes on.</li>
-    <li><b>On Mandarin OS:</b> the system page's <b>Support → Download all logs</b> gives every log on the box as one
+    <li data-i18n="logs.send.li3"><b>On Mandarin OS:</b> the system page's <b>Support → Download all logs</b> gives every log on the box as one
         text file in time order, Mandarin OS's own and the system's with Mandarin's, and the shared folder holds them,
         read-only (<a href="mandarin-os.html#system-page">Mandarin OS</a>).</li>
   </ul>
-  <p>The logs are made without personal data, and you are told so where you save them. Please look through a log before
+  <p data-i18n="logs.send.p1">The logs are made without personal data, and you are told so where you save them. Please look through a log before
      you send it: what you send is your choice.</p>
   <div class="info-cards" style="margin-top:18px">
     <div class="info-card">
-      <span class="sym">Captured</span>
-      <h3>What it captures</h3>
+      <span class="sym" data-i18n="logs.send.sym1">Captured</span>
+      <h3 data-i18n="logs.send.h31">What it captures</h3>
       <ul>
-        <li><b>Screens:</b> each screen opened and how long after the tap, what is on screen, where each tap fell, and anything that doesn't flow: a screen shown for a moment between two others, one opened and closed by itself, a frame that stalls.</li>
-        <li><b>Requests:</b> each request the app makes to the server: its address on the server, how long it took and whether it worked. The values in it are left out.</li>
-        <li><b>The way to the server:</b> home, away (Tailscale) or offline, and networks coming and going.</li>
-        <li><b>The phone's player:</b> playing or paused, the track's number in the queue, its position and the volume.</li>
-        <li><b>The app:</b> its memory, crashes and freezes, and Android's own lines for Mandarin.</li>
-        <li><b>The app's Tailscale:</b> whether it is running and the CPU time it has used, and when it is stopped, why, with its last lines (addresses taken out).</li>
-        <li><b>The Mandarin Bridges:</b> every Bridge Mandarin knows, under its name: what it logs (the player, the DAC, a recording, an update), gathered by the server every five minutes.</li>
-        <li><b>The page:</b> what goes wrong in a browser's page (an error nothing caught), under the browser's name.</li>
-        <li><b>The server:</b> each line it logs, with what is yours alone taken out: what it is as each file begins, how it is every five minutes (memory, threads, free space), and an error with its stack.</li>
+        <li data-i18n="logs.send.li4"><b>Screens:</b> each screen opened and how long after the tap, what is on screen, where each tap fell, and anything that doesn't flow: a screen shown for a moment between two others, one opened and closed by itself, a frame that stalls.</li>
+        <li data-i18n="logs.send.li5"><b>Requests:</b> each request the app makes to the server: its address on the server, how long it took and whether it worked. The values in it are left out.</li>
+        <li data-i18n="logs.send.li6"><b>The way to the server:</b> home, away (Tailscale) or offline, and networks coming and going.</li>
+        <li data-i18n="logs.send.li7"><b>The phone's player:</b> playing or paused, the track's number in the queue, its position and the volume.</li>
+        <li data-i18n="logs.send.li8"><b>The app:</b> its memory, crashes and freezes, and Android's own lines for Mandarin.</li>
+        <li data-i18n="logs.send.li9"><b>The app's Tailscale:</b> whether it is running and the CPU time it has used, and when it is stopped, why, with its last lines (addresses taken out).</li>
+        <li data-i18n="logs.send.li10"><b>The Mandarin Bridges:</b> every Bridge Mandarin knows, under its name: what it logs (the player, the DAC, a recording, an update), gathered by the server every five minutes.</li>
+        <li data-i18n="logs.send.li11"><b>The page:</b> what goes wrong in a browser's page (an error nothing caught), under the browser's name.</li>
+        <li data-i18n="logs.send.li12"><b>The server:</b> each line it logs, with what is yours alone taken out: what it is as each file begins, how it is every five minutes (memory, threads, free space), and an error with its stack.</li>
       </ul>
     </div>
     <div class="info-card">
-      <span class="sym">Left out</span>
-      <h3>What it leaves out</h3>
+      <span class="sym" data-i18n="logs.send.sym2">Left out</span>
+      <h3 data-i18n="logs.send.h32">What it leaves out</h3>
       <ul>
-        <li><b>Passwords, keys and tokens.</b></li>
-        <li><b>Email addresses, account names and logins.</b></li>
-        <li><b>Internet and Tailscale addresses.</b></li>
-        <li><b>Your own home folder's name</b> in a path.</li>
+        <li data-i18n="logs.send.li13"><b>Passwords, keys and tokens.</b></li>
+        <li data-i18n="logs.send.li14"><b>Email addresses, account names and logins.</b></li>
+        <li data-i18n="logs.send.li15"><b>Internet and Tailscale addresses.</b></li>
+        <li data-i18n="logs.send.li16"><b>Your own home folder's name</b> in a path.</li>
       </ul>
-      <p class="fine">It keeps what helps find a fault: home-network addresses, the names of rooms and devices, what was
+      <p class="fine" data-i18n="logs.send.fine1">It keeps what helps find a fault: home-network addresses, the names of rooms and devices, what was
          playing, error messages.</p>
     </div>
   </div>
-  <h2 id="kept">Where it is kept</h2>
-  <p>The server keeps every log in its data folder's <b>Logs</b>: its own in <code>MandarinServer_log.txt</code>, then
+  <h2 id="kept" data-i18n="logs.kept.title">Where it is kept</h2>
+  <p data-i18n="logs.kept.p1">The server keeps every log in its data folder's <b>Logs</b>: its own in <code>MandarinServer_log.txt</code>, then
      <code>.01</code> to <code>.20</code> older (8 MB each), every Bridge's in <code>Bridges</code>, every app's in
      <code>Apps</code> (by the phone's name) and the page's in <code>Web</code>, each rolled so none grows without end.
      A Bridge keeps its own log too, in files in its data folder. The app keeps its own in its storage (two files of
      3 MB at most) and sends its new lines to the server every five minutes and as the log is saved. On Mandarin OS the
      shared folder has them, read-only: <b>MandarinServer</b>'s Logs, <b>MandarinBridge</b>, <b>MandarinApp</b> and
      <b>MandarinOS</b>.</p>
-  <nav class="pager"><a class="back" href="index.html">← Back to contents</a><a class="pill" href="troubleshooting.html">Next: Troubleshooting →</a></nav>
+  <nav class="pager"><a class="back" href="index.html" data-i18n="site.back">← Back to contents</a><a class="pill" href="troubleshooting.html" data-i18n="logs.next">Next: Troubleshooting →</a></nav>
 </main>
 
 <footer>
   <p class="coffee"><a href="https://buymeacoffee.com/musicd_projects"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me a Coffee" loading="lazy"></a></p>
-  <p>Mandarin · MIT · © 2026 Lewis Menzies (Music Duck / Mandarin) ·
+  <p data-i18n="site.footer">Mandarin · MIT · © 2026 Lewis Menzies (Music Duck / Mandarin) ·
      <a href="https://github.com/meltface-80/Mandarin">Source on GitHub</a><br>
      Sonos is a trademark of Sonos, Inc.; WiiM of Linkplay Technology; Chord and Poly of Chord Electronics; FiiO of FiiO
      Electronics. This is an independent project, affiliated with none of them.</p>

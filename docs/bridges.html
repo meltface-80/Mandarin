@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Mandarin Bridge · Mandarin</title>
+<title data-i18n="bridges.doc-title">Mandarin Bridge · Mandarin</title>
 <meta name="description" content="Mandarin's own player for a USB DAC: a device with the DAC on its USB port becomes a room Mandarin plays to, bit-perfect. On Android, on Linux, and as a Raspberry Pi image.">
 <link rel="icon" href="mandarin-icon.png">
 <link rel="stylesheet" href="site.css">
@@ -23,129 +23,129 @@
       <option value="da">🇩🇰 Dansk</option>
       <option value="no">🇳🇴 Norsk</option>
     </select>
-    <a class="back" href="index.html">← Contents</a>
+    <a class="back" href="index.html" data-i18n="site.contents">← Contents</a>
     <a class="brand" href="index.html"><img src="mandarin-icon.png" alt=""><span>Mandarin</span></a>
     <span class="spacer"></span>
-    <a class="pill solid" href="downloads.html">Downloads</a>
+    <a class="pill solid" href="downloads.html" data-i18n="site.downloads">Downloads</a>
   </div>
 </header>
 
 <main class="wrap page">
-  <h1>Mandarin Bridge</h1>
-  <p class="lead">Mandarin's own player for a USB DAC: a device with the DAC on its USB port becomes a room Mandarin plays to, bit-perfect. On Android, on Linux, and as a Raspberry Pi image.</p>
+  <h1 data-i18n="bridges.h1">Mandarin Bridge</h1>
+  <p class="lead" data-i18n="bridges.lead">Mandarin's own player for a USB DAC: a device with the DAC on its USB port becomes a room Mandarin plays to, bit-perfect. On Android, on Linux, and as a Raspberry Pi image.</p>
 <div class="info-cards">
     <div class="info-card">
       <span class="sym">Android</span>
-      <h3>Mandarin Bridge for Android</h3>
-      <p>Made for a FiiO R7 feeding a small DAC over USB. Mandarin's own USB driver claims the DAC from Android and feeds it
+      <h3 data-i18n="bridges.top.h31">Mandarin Bridge for Android</h3>
+      <p data-i18n="bridges.top.p1">Made for a FiiO R7 feeding a small DAC over USB. Mandarin's own USB driver claims the DAC from Android and feeds it
          at each track's own rate and depth, DSD natively or as DoP: no mixer, no resampling. It keeps the device awake
          while it plays.</p>
     </div>
     <div class="info-card">
       <span class="sym">Linux</span>
-      <h3>Mandarin Bridge for Linux</h3>
-      <p>A 64-bit Debian, Ubuntu or Raspberry Pi OS computer beside the DAC, playing with Mandarin's own audio engine.
+      <h3 data-i18n="bridges.top.h32">Mandarin Bridge for Linux</h3>
+      <p data-i18n="bridges.top.p2">A 64-bit Debian, Ubuntu or Raspberry Pi OS computer beside the DAC, playing with Mandarin's own audio engine.
          One line installs it; it starts at boot. Its page is at <code>http://&lt;the computer&gt;:49494/</code>.</p>
     </div>
     <div class="info-card">
-      <span class="sym">Raspberry Pi</span>
-      <h3>The Raspberry Pi image</h3>
-      <p>Raspberry Pi OS Lite (64-bit) with the Bridge in it, for a Pi 3, 4, 5 or Zero 2 W: flash it, plug in the DAC,
+      <span class="sym" data-i18n="bridges.top.sym1">Raspberry Pi</span>
+      <h3 data-i18n="bridges.top.h33">The Raspberry Pi image</h3>
+      <p data-i18n="bridges.top.p3">Raspberry Pi OS Lite (64-bit) with the Bridge in it, for a Pi 3, 4, 5 or Zero 2 W: flash it, plug in the DAC,
          power on.</p>
     </div>
   </div>
-  <p style="margin-top:16px"><a class="pill solid" href="downloads.html#bridge">⬇ Get Mandarin Bridge v0.3.10</a></p>
+  <p style="margin-top:16px" data-i18n="bridges.top.p4"><a class="pill solid" href="downloads.html#bridge">⬇ Get Mandarin Bridge v0.3.10</a></p>
 
-  <p style="margin-top:16px"><b>Updated: over SlimProto, Mandarin now sends Mandarin Bridge a continuous stream of PCM (DSD still goes as DSD).</b></p>
-  <p>It finds Mandarin on the network by itself (SlimProto, port 3483; a Linux one can be pointed at it with
+  <p style="margin-top:16px" data-i18n="bridges.top.p5"><b>Updated: over SlimProto, Mandarin now sends Mandarin Bridge a continuous stream of PCM (DSD still goes as DSD).</b></p>
+  <p data-i18n="bridges.top.p6">It finds Mandarin on the network by itself (SlimProto, port 3483; a Linux one can be pointed at it with
      <code>--server</code>), and Mandarin reads the DAC whole from it (every rate, depth and DSD multiple, nothing to
      tick); Now playing's <a href="signal-path.html">signal path</a> says what it feeds the DAC, in its own words. On
      <a href="mandarin-os.html">Mandarin OS</a>, choose it as Mandarin OS installs, or <b>Install</b> it from the system
      page's Settings tab.</p>
-  <p>A Bridge that was a UPnP renderer before v0.3.0 keeps the name and settings Mandarin had for it; one whose app is
+  <p data-i18n="bridges.top.p7">A Bridge that was a UPnP renderer before v0.3.0 keeps the name and settings Mandarin had for it; one whose app is
      installed again is the device it was.</p>
 
-  <h2>Set up on Android (a FiiO R7)</h2>
+  <h2 data-i18n="bridges.set-up-android.title">Set up on Android (a FiiO R7)</h2>
   <ol class="plain">
-    <li>Install Mandarin Bridge from <a href="downloads.html#bridge">Downloads</a>. Installing needs <b>Install unknown
+    <li data-i18n="bridges.set-up-android.li1">Install Mandarin Bridge from <a href="downloads.html#bridge">Downloads</a>. Installing needs <b>Install unknown
         apps</b> allowed for the browser or file manager you open it with.</li>
-    <li>Open Mandarin Bridge once. It starts, finds Mandarin on the network, and keeps running.</li>
-    <li>Plug the DAC into the USB port. Android asks once whether the app may use it; tick <b>always</b>.</li>
-    <li>Optional, under <b>Keep awake</b>: turn off battery optimisation, and keep it starting when the device starts.</li>
-    <li>In Mandarin, <b>Settings → Audio Devices</b>: the Bridge is listed by its name; switch it on. There is nothing to
+    <li data-i18n="bridges.set-up-android.li2">Open Mandarin Bridge once. It starts, finds Mandarin on the network, and keeps running.</li>
+    <li data-i18n="bridges.set-up-android.li3">Plug the DAC into the USB port. Android asks once whether the app may use it; tick <b>always</b>.</li>
+    <li data-i18n="bridges.set-up-android.li4">Optional, under <b>Keep awake</b>: turn off battery optimisation, and keep it starting when the device starts.</li>
+    <li data-i18n="bridges.set-up-android.li5">In Mandarin, <b>Settings → Audio Devices</b>: the Bridge is listed by its name; switch it on. There is nothing to
         tick: the rates, depths and DSD come from the DAC itself. Pick it as the speaker and play.</li>
   </ol>
-  <p><b>Volume.</b> A DAC with a volume control of its own is driven by Mandarin's slider. A DAC without one — a line-out
+  <p data-i18n="bridges.set-up-android.p1"><b>Volume.</b> A DAC with a volume control of its own is driven by Mandarin's slider. A DAC without one — a line-out
      DAC into an amplifier — is on <b>Fixed volume</b>: full level, bit-perfect, the amplifier's knob for the volume.</p>
 
-  <h2>Set up on Linux</h2>
-  <p>As root, on the computer the DAC is plugged into:</p>
-  <div class="codebox"><button class="copy-btn" data-copy data-copied="Copied" data-i18n-attr="data-copied:site.copied">Copy</button>
+  <h2 data-i18n="bridges.set-up-linux.title">Set up on Linux</h2>
+  <p data-i18n="bridges.set-up-linux.p1">As root, on the computer the DAC is plugged into:</p>
+  <div class="codebox"><button class="copy-btn" data-copy data-copied="Copied" data-i18n-attr="data-copied:site.copied" data-i18n="site.copy">Copy</button>
 <pre>curl -fsSL https://github.com/meltface-80/Mandarin/releases/download/mandarin-bridge-v0.3.10/install.sh | sudo sh</pre>
 </div>
-  <p>It installs the Bridge and the audio engine, ffmpeg where it isn't there, and a service that starts it at boot.
+  <p data-i18n="bridges.set-up-linux.p2">It installs the Bridge and the audio engine, ffmpeg where it isn't there, and a service that starts it at boot.
      Then switch it on in Mandarin's <b>Settings → Audio Devices</b>. Its page,
      <code>http://&lt;the computer&gt;:49494/</code>, shows the DAC it plays to (and a choice where more than one is
      plugged in), what plays and how the DAC is fed, its name on the network, and how DSD goes. On the computer
      Mandarin runs on, it is how a USB DAC there is played: the server opens no sound device of its own on Linux. On
      <a href="mandarin-os.html">Mandarin OS</a>, choose Mandarin Bridge as it installs, or <b>Install</b> it from the
      system page's Settings tab.</p>
-  <p id="native-dsd"><b>Native DSD, and the kernel.</b> On Linux, native DSD is the kernel's to offer: its USB audio
+  <p id="native-dsd" data-i18n="bridges.set-up-linux.p3"><b>Native DSD, and the kernel.</b> On Linux, native DSD is the kernel's to offer: its USB audio
      driver lists a DAC's native DSD only where its own list knows the DAC's maker, and any other DAC is given DSD as
      DoP, even where it takes DSD natively (as Mandarin Bridge for Android plays it). The Bridge reads the DAC's own USB
      descriptor, and where it says native DSD and the kernel offers none, its page and its log give the one line that
      has the kernel offer it, for that DAC alone, such as:</p>
-  <div class="codebox"><button class="copy-btn" data-copy data-copied="Copied" data-i18n-attr="data-copied:site.copied">Copy</button>
+  <div class="codebox"><button class="copy-btn" data-copy data-copied="Copied" data-i18n-attr="data-copied:site.copied" data-i18n="site.copy">Copy</button>
 <pre>echo "options snd-usb-audio vid=0x2622 pid=0x0041 quirk_flags=0x8000" | sudo tee /etc/modprobe.d/mandarin-dsd.conf</pre>
 </div>
-  <p>(with your DAC's own <code>vid</code> and <code>pid</code>, as the page gives them); then unplug the DAC and plug it
+  <p data-i18n="bridges.set-up-linux.p4">(with your DAC's own <code>vid</code> and <code>pid</code>, as the page gives them); then unplug the DAC and plug it
      in again, or restart. To undo it, delete the file and replug.</p>
 
-  <h2>Set up on a Raspberry Pi</h2>
+  <h2 data-i18n="bridges.set-up-raspberry.title">Set up on a Raspberry Pi</h2>
   <ol class="plain">
-    <li>Download the image from <a href="downloads.html#bridge">Downloads</a>.</li>
-    <li>Flash it with Raspberry Pi Imager: <i>Choose OS → Use custom</i>. Set your Wi-Fi there if you like.</li>
-    <li>Plug the DAC into the Pi's USB port and power it on.</li>
-    <li>Its page is at <b>http://mandarin-bridge.local:49494/</b>. With no network set, the Pi opens its own Wi-Fi,
+    <li data-i18n="bridges.set-up-raspberry.li1">Download the image from <a href="downloads.html#bridge">Downloads</a>.</li>
+    <li data-i18n="bridges.set-up-raspberry.li2">Flash it with Raspberry Pi Imager: <i>Choose OS → Use custom</i>. Set your Wi-Fi there if you like.</li>
+    <li data-i18n="bridges.set-up-raspberry.li3">Plug the DAC into the Pi's USB port and power it on.</li>
+    <li data-i18n="bridges.set-up-raspberry.li4">Its page is at <b>http://mandarin-bridge.local:49494/</b>. With no network set, the Pi opens its own Wi-Fi,
         <b>Mandarin Bridge Setup</b> (password <code>mandarin-setup</code>): join it from a phone, open
         <b>http://10.42.0.1:49494/</b>, choose your home network and give its password.</li>
-    <li>In Mandarin, <b>Settings → Audio Devices</b>: switch the Bridge on. It plays like any room.</li>
+    <li data-i18n="bridges.set-up-raspberry.li5">In Mandarin, <b>Settings → Audio Devices</b>: switch the Bridge on. It plays like any room.</li>
   </ol>
 
-  <h2 id="updates">Updated from Mandarin</h2>
+  <h2 id="updates" data-i18n="bridges.updates.title">Updated from Mandarin</h2>
   <div class="split">
     <div>
-      <p>Every Bridge Mandarin knows has a row of its own on <b>Settings → Updates</b>, its name and version, and its own
+      <p data-i18n="bridges.updates.p1">Every Bridge Mandarin knows has a row of its own on <b>Settings → Updates</b>, its name and version, and its own
          <b>Check for update</b>, as the server's and the app's: it looks for a newer build now and becomes <b>Update
          available</b> when there is one. A tap asks the Bridge to update: on Linux and the Pi it fetches the build from
          GitHub, checks it against the checksum published with it, and puts it in place.</p>
       <ul class="plain">
-        <li><b>Linux and the Raspberry Pi:</b> in a few seconds, by itself. One that fails as it starts is let go, and the
+        <li data-i18n="bridges.updates.li1"><b>Linux and the Raspberry Pi:</b> in a few seconds, by itself. One that fails as it starts is let go, and the
             one installed runs on.</li>
-        <li><b>Android:</b> a notification on the device; its tap downloads the update in the browser, and Android's
+        <li data-i18n="bridges.updates.li2"><b>Android:</b> a notification on the device; its tap downloads the update in the browser, and Android's
             installer asks you to install it. The Bridge holds no permission to install apps itself.</li>
-        <li>An Android Bridge from before v0.2.1, or a Linux or Raspberry Pi Bridge from before v0.3.1, needs one last
+        <li data-i18n="bridges.updates.li3">An Android Bridge from before v0.2.1, or a Linux or Raspberry Pi Bridge from before v0.3.1, needs one last
             update by hand, from <a href="downloads.html#bridge">Downloads</a>.</li>
       </ul>
     </div>
-    <figure class="shot"><img src="img/updates-bridge.jpg" alt="Settings, Updates, with the server, the Android app and FiiO R7 USB Bridge v0.2.0 rows" loading="lazy" decoding="async"><figcaption><b>Settings → Updates</b> in the Android app: the server, the app and the FiiO R7's Bridge, each with its version and its own button.</figcaption></figure>
+    <figure class="shot"><img src="img/updates-bridge.jpg" alt="Settings, Updates, with the server, the Android app and FiiO R7 USB Bridge v0.2.0 rows" loading="lazy" decoding="async"><figcaption data-i18n="bridges.updates.figcaption1"><b>Settings → Updates</b> in the Android app: the server, the app and the FiiO R7's Bridge, each with its version and its own button.</figcaption></figure>
   </div>
 
-  <h2>Its log, in Mandarin's</h2>
-  <p>Every Bridge keeps its own log, always, and the server gathers each one's new lines every five minutes into its
+  <h2 data-i18n="bridges.its-log-mandarin.title">Its log, in Mandarin's</h2>
+  <p data-i18n="bridges.its-log-mandarin.p1">Every Bridge keeps its own log, always, and the server gathers each one's new lines every five minutes into its
      own Logs, through the same privacy filter. <b>Download all logs</b> (Settings → Setup → Logs, in a browser) has them
      with every other log, in time order, and the Android app's <b>Save log</b> (Settings → Setup → Logging) has every
      Bridge's log after the server's, each under its name. See <a href="logs.html">Logs</a>.</p>
 
-  <h2>Proving it bit-perfect</h2>
-  <p>On an Android Bridge, <a href="sq-tool.html">SQ-tool</a> records exactly what its USB driver feeds the DAC and
+  <h2 data-i18n="bridges.proving-it-bit.title">Proving it bit-perfect</h2>
+  <p data-i18n="bridges.proving-it-bit.p1">On an Android Bridge, <a href="sq-tool.html">SQ-tool</a> records exactly what its USB driver feeds the DAC and
      compares it with the file, sample by sample. Mandarin Bridge for Linux and the Raspberry Pi can't be recorded yet.</p>
-  <nav class="pager"><a class="back" href="index.html">← Back to contents</a><a class="pill" href="upsampling.html">Next: Upsampling and output →</a></nav>
+  <nav class="pager"><a class="back" href="index.html" data-i18n="site.back">← Back to contents</a><a class="pill" href="upsampling.html" data-i18n="bridges.next">Next: Upsampling and output →</a></nav>
 </main>
 
 <footer>
   <p class="coffee"><a href="https://buymeacoffee.com/musicd_projects"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me a Coffee" loading="lazy"></a></p>
-  <p>Mandarin · MIT · © 2026 Lewis Menzies (Music Duck / Mandarin) ·
+  <p data-i18n="site.footer">Mandarin · MIT · © 2026 Lewis Menzies (Music Duck / Mandarin) ·
      <a href="https://github.com/meltface-80/Mandarin">Source on GitHub</a><br>
      Sonos is a trademark of Sonos, Inc.; WiiM of Linkplay Technology; Chord and Poly of Chord Electronics; FiiO of FiiO
      Electronics. This is an independent project, affiliated with none of them.</p>

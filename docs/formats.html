@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>What each device is sent · Mandarin</title>
+<title data-i18n="formats.doc-title">What each device is sent · Mandarin</title>
 <meta name="description" content="Each track goes the way the device can take it, and the Now playing badge says what was sent.">
 <link rel="icon" href="mandarin-icon.png">
 <link rel="stylesheet" href="site.css">
@@ -23,67 +23,67 @@
       <option value="da">🇩🇰 Dansk</option>
       <option value="no">🇳🇴 Norsk</option>
     </select>
-    <a class="back" href="index.html">← Contents</a>
+    <a class="back" href="index.html" data-i18n="site.contents">← Contents</a>
     <a class="brand" href="index.html"><img src="mandarin-icon.png" alt=""><span>Mandarin</span></a>
     <span class="spacer"></span>
-    <a class="pill solid" href="downloads.html">Downloads</a>
+    <a class="pill solid" href="downloads.html" data-i18n="site.downloads">Downloads</a>
   </div>
 </header>
 
 <main class="wrap page">
-  <h1>What each device is sent</h1>
-  <p class="lead">Each track goes the way the device can take it, and the Now playing badge says what was sent.</p>
+  <h1 data-i18n="formats.h1">What each device is sent</h1>
+  <p class="lead" data-i18n="formats.lead">Each track goes the way the device can take it, and the Now playing badge says what was sent.</p>
 <div class="info-cards">
     <div class="info-card">
       <span class="sym">Sonos</span>
-      <h3>Up to 24-bit / 48 kHz</h3>
-      <p>Within that, the file as stored. Above it, or in a format Sonos can't read, FLAC at 24/48.</p>
+      <h3 data-i18n="formats.top.h31">Up to 24-bit / 48 kHz</h3>
+      <p data-i18n="formats.top.p1">Within that, the file as stored. Above it, or in a format Sonos can't read, FLAC at 24/48.</p>
     </div>
     <div class="info-card">
-      <span class="sym">UPnP / DLNA streamer</span>
-      <h3>Its own ceiling, read from the device</h3>
-      <p>Within it, the file as stored. Above it, FLAC at the highest rate the device takes in the file's family.
+      <span class="sym" data-i18n="formats.top.sym1">UPnP / DLNA streamer</span>
+      <h3 data-i18n="formats.top.h32">Its own ceiling, read from the device</h3>
+      <p data-i18n="formats.top.p2">Within it, the file as stored. Above it, FLAC at the highest rate the device takes in the file's family.
          Upsampled ×2, ×4 or Max if you choose (<a href="upsampling.html">Upsampling and output</a>). DSD goes as the DSF
          or DFF file itself to a device that says it takes DSD files, as PCM otherwise.</p>
     </div>
     <div class="info-card">
-      <span class="sym">Mandarin Bridge</span>
-      <h3>What its DAC takes</h3>
-      <p>Every rate, depth and DSD rate the DAC says it takes, read from the Bridge itself: the file as it is within them,
+      <span class="sym" data-i18n="formats.top.sym2">Mandarin Bridge</span>
+      <h3 data-i18n="formats.top.h33">What its DAC takes</h3>
+      <p data-i18n="formats.top.p3">Every rate, depth and DSD rate the DAC says it takes, read from the Bridge itself: the file as it is within them,
          DSD natively or as DoP. <a href="bridges.html">Mandarin Bridge</a>.</p>
-      <p>Over SlimProto, a continuous stream of PCM; DSD as the DSF or DFF itself, natively or as DoP.</p>
+      <p data-i18n="formats.top.p4">Over SlimProto, a continuous stream of PCM; DSD as the DSF or DFF itself, natively or as DoP.</p>
     </div>
     <div class="info-card">
-      <span class="sym">Squeezelite player</span>
-      <h3>Each track's file</h3>
-      <p>FLAC, or upsampled; DSD as DSF where it takes it. One track plays on into the next from its own buffer.</p>
+      <span class="sym" data-i18n="formats.top.sym3">Squeezelite player</span>
+      <h3 data-i18n="formats.top.h34">Each track's file</h3>
+      <p data-i18n="formats.top.p5">FLAC, or upsampled; DSD as DSF where it takes it. One track plays on into the next from its own buffer.</p>
     </div>
     <div class="info-card">
-      <span class="sym">The Android app</span>
-      <h3>The phone's own output</h3>
-      <p>The file as stored within 24/48, FLAC 24/48 above it. Away from home, Opus 256 by default.</p>
+      <span class="sym" data-i18n="formats.top.sym4">The Android app</span>
+      <h3 data-i18n="formats.top.h35">The phone's own output</h3>
+      <p data-i18n="formats.top.p6">The file as stored within 24/48, FLAC 24/48 above it. Away from home, Opus 256 by default.</p>
     </div>
     <div class="info-card">
-      <span class="sym">USB DAC on the phone</span>
-      <h3>USB direct</h3>
-      <p>The file at its own rate and depth where the DAC takes it, DSD natively or as DoP, FLAC at the DAC's highest rate
+      <span class="sym" data-i18n="formats.top.sym5">USB DAC on the phone</span>
+      <h3 data-i18n="formats.top.h36">USB direct</h3>
+      <p data-i18n="formats.top.p7">The file at its own rate and depth where the DAC takes it, DSD natively or as DoP, FLAC at the DAC's highest rate
          otherwise.</p>
     </div>
     <div class="info-card">
-      <span class="sym">Everything else</span>
-      <h3>Formats nothing plays as they are</h3>
-      <p>APE, WavPack, WMA Lossless, 24-bit WAV, more than two channels: FLAC, in stereo.</p>
+      <span class="sym" data-i18n="formats.top.sym6">Everything else</span>
+      <h3 data-i18n="formats.top.h37">Formats nothing plays as they are</h3>
+      <p data-i18n="formats.top.p8">APE, WavPack, WMA Lossless, 24-bit WAV, more than two channels: FLAC, in stereo.</p>
     </div>
   </div>
-  <p style="margin-top:18px">Conversion is ffmpeg with the SoX resampler and triangular dither. A converted track is written
+  <p style="margin-top:18px" data-i18n="formats.top.p9">Conversion is ffmpeg with the SoX resampler and triangular dither. A converted track is written
      to a cache as it plays, so the device starts on the first frames, and the next tracks in the queue are prepared
      ahead. Replays come from the cache (4 GB by default, least recently played removed first).</p>
-  <nav class="pager"><a class="back" href="index.html">← Back to contents</a><a class="pill" href="away.html">Next: Away from home →</a></nav>
+  <nav class="pager"><a class="back" href="index.html" data-i18n="site.back">← Back to contents</a><a class="pill" href="away.html" data-i18n="formats.next">Next: Away from home →</a></nav>
 </main>
 
 <footer>
   <p class="coffee"><a href="https://buymeacoffee.com/musicd_projects"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me a Coffee" loading="lazy"></a></p>
-  <p>Mandarin · MIT · © 2026 Lewis Menzies (Music Duck / Mandarin) ·
+  <p data-i18n="site.footer">Mandarin · MIT · © 2026 Lewis Menzies (Music Duck / Mandarin) ·
      <a href="https://github.com/meltface-80/Mandarin">Source on GitHub</a><br>
      Sonos is a trademark of Sonos, Inc.; WiiM of Linkplay Technology; Chord and Poly of Chord Electronics; FiiO of FiiO
      Electronics. This is an independent project, affiliated with none of them.</p>

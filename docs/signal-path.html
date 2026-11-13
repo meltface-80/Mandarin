@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Signal path · Mandarin</title>
+<title data-i18n="signal-path.doc-title">Signal path · Mandarin</title>
 <meta name="description" content="Under the album on Now playing, one short line of what goes out. A tap shows every step from the file to what the DAC is fed.">
 <link rel="icon" href="mandarin-icon.png">
 <link rel="stylesheet" href="site.css">
@@ -23,57 +23,57 @@
       <option value="da">🇩🇰 Dansk</option>
       <option value="no">🇳🇴 Norsk</option>
     </select>
-    <a class="back" href="index.html">← Contents</a>
+    <a class="back" href="index.html" data-i18n="site.contents">← Contents</a>
     <a class="brand" href="index.html"><img src="mandarin-icon.png" alt=""><span>Mandarin</span></a>
     <span class="spacer"></span>
-    <a class="pill solid" href="downloads.html">Downloads</a>
+    <a class="pill solid" href="downloads.html" data-i18n="site.downloads">Downloads</a>
   </div>
 </header>
 
 <main class="wrap page">
-  <h1>Signal path</h1>
-  <p class="lead">Under the album on <b>Now playing</b>, one short line of what goes out, such as <i>Gaussian steep ×16 · 7th-order · DSD256</i>. A tap shows every step from the file to what the DAC is fed, in as few as it can be.</p>
+  <h1 data-i18n="signal-path.h1">Signal path</h1>
+  <p class="lead" data-i18n="signal-path.lead">Under the album on <b>Now playing</b>, one short line of what goes out, such as <i>Gaussian steep ×16 · 7th-order · DSD256</i>. A tap shows every step from the file to what the DAC is fed, in as few as it can be.</p>
 <div class="split">
     <div>
       <ol class="steps">
-        <li><b>Source</b><span>The track as it is stored, such as <i>FLAC 16-bit 44.1 kHz 2ch</i>.</span></li>
-        <li><b>Bit depth conversion</b><span>Where Mandarin works the samples (upsampling, DSD made from PCM, the DSP): they
+        <li><b data-i18n="signal-path.top.b1">Source</b><span data-i18n="signal-path.top.span1">The track as it is stored, such as <i>FLAC 16-bit 44.1 kHz 2ch</i>.</span></li>
+        <li><b data-i18n="signal-path.top.b2">Bit depth conversion</b><span data-i18n="signal-path.top.span2">Where Mandarin works the samples (upsampling, DSD made from PCM, the DSP): they
             are decoded to 64-bit float and worked there, <i>16-bit to 64-bit float</i>. A stream only passed on has none.</span></li>
-        <li><b>Volume levelling</b><span>Where it is on: the level and how it was found, <i>−7.3 dB · ReplayGain</i>.</span></li>
-        <li><b>Headroom</b><span>Where Headroom when upsampling turns a track down so its peaks between samples don't clip
+        <li><b data-i18n="signal-path.top.b3">Volume levelling</b><span data-i18n="signal-path.top.span3">Where it is on: the level and how it was found, <i>−7.3 dB · ReplayGain</i>.</span></li>
+        <li><b data-i18n="signal-path.top.b4">Headroom</b><span data-i18n="signal-path.top.span4">Where Headroom when upsampling turns a track down so its peaks between samples don't clip
             (v1.2.5), by how much.</span></li>
-        <li><b>Output</b><span>What goes out, in one line: the filter, the modulator and the format, such as <i>Gaussian
+        <li><b data-i18n="signal-path.top.b5">Output</b><span data-i18n="signal-path.top.span5">What goes out, in one line: the filter, the modulator and the format, such as <i>Gaussian
             steep ×16 · 7th-order · DSD256</i> or <i>Long ×2 · 24/88.2 kHz</i>, with the dither where Mandarin makes it,
             and how fast it is made as it plays (<i>Keeping up at 4.2× real time</i>). Red where samples were clipped,
             with how many and how far over. Now playing's line under the title is this same line.</span></li>
-        <li><b>The DAC is fed</b><span>What the device itself reports feeding its DAC: the format, how the samples sit in
+        <li><b data-i18n="signal-path.top.b6">The DAC is fed</b><span data-i18n="signal-path.top.span6">What the device itself reports feeding its DAC: the format, how the samples sit in
             the DAC's words, and whether its volume touches them — said as the device's own word.</span></li>
       </ol>
-      <h2>Reading it</h2>
-      <p>In the picture, the FiiO R7's Bridge reports <i>“PCM 44.1 kHz, the 16-bit samples padded to 32 bits for the DAC,
+      <h2 data-i18n="signal-path.reading-it.title">Reading it</h2>
+      <p data-i18n="signal-path.reading-it.p1">In the picture, the FiiO R7's Bridge reports <i>“PCM 44.1 kHz, the 16-bit samples padded to 32 bits for the DAC,
          fixed volume: the samples untouched — as Mandarin Bridge reports it”</i>.</p>
       <ul class="plain">
-        <li><b>Padded to 32 bits for the DAC:</b> the DAC takes 32-bit words, so each 16-bit sample goes in one with zeros
+        <li data-i18n="signal-path.reading-it.li1"><b>Padded to 32 bits for the DAC:</b> the DAC takes 32-bit words, so each 16-bit sample goes in one with zeros
             below it; its value is unchanged. Where the device doesn't say the samples go untouched, it reads <i>sent as
             32-bit</i> instead.</li>
-        <li><b>Fixed volume: the samples untouched:</b> the volume is the DAC's or the amplifier's, so Mandarin never
+        <li data-i18n="signal-path.reading-it.li2"><b>Fixed volume: the samples untouched:</b> the volume is the DAC's or the amplifier's, so Mandarin never
             scales the samples. Otherwise the step says the level they are scaled by.</li>
-        <li><b>The ✓</b> beside the format shows only when the device itself says the samples reach the DAC untouched in
+        <li data-i18n="signal-path.reading-it.li3"><b>The ✓</b> beside the format shows only when the device itself says the samples reach the DAC untouched in
             the format sent. Mandarin Bridge says it; a WiiM's own API
             says only the format, so it has none.</li>
       </ul>
     </div>
-    <figure class="shot"><img src="img/signal-path.jpg" alt="Now playing with the signal path: Source, Output, The DAC is fed" loading="lazy" decoding="async"><figcaption><b>Now playing</b> with its signal path open: the file, the output to FiiO R7 USB, and what its DAC is fed.</figcaption></figure>
+    <figure class="shot"><img src="img/signal-path.jpg" alt="Now playing with the signal path: Source, Output, The DAC is fed" loading="lazy" decoding="async"><figcaption data-i18n="signal-path.reading-it.figcaption1"><b>Now playing</b> with its signal path open: the file, the output to FiiO R7 USB, and what its DAC is fed.</figcaption></figure>
   </div>
-  <h2>Proof is SQ-tool's job</h2>
-  <p>The signal path says only what is known, and whose word it is. Whether every sample reaches the DAC is for a
+  <h2 data-i18n="signal-path.proof-is-sq.title">Proof is SQ-tool's job</h2>
+  <p data-i18n="signal-path.proof-is-sq.p1">The signal path says only what is known, and whose word it is. Whether every sample reaches the DAC is for a
      recording of what it was fed to prove: that is <a href="sq-tool.html">SQ-tool</a>.</p>
-  <nav class="pager"><a class="back" href="index.html">← Back to contents</a><a class="pill" href="sq-tool.html">Next: SQ-tool →</a></nav>
+  <nav class="pager"><a class="back" href="index.html" data-i18n="site.back">← Back to contents</a><a class="pill" href="sq-tool.html" data-i18n="signal-path.next">Next: SQ-tool →</a></nav>
 </main>
 
 <footer>
   <p class="coffee"><a href="https://buymeacoffee.com/musicd_projects"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me a Coffee" loading="lazy"></a></p>
-  <p>Mandarin · MIT · © 2026 Lewis Menzies (Music Duck / Mandarin) ·
+  <p data-i18n="site.footer">Mandarin · MIT · © 2026 Lewis Menzies (Music Duck / Mandarin) ·
      <a href="https://github.com/meltface-80/Mandarin">Source on GitHub</a><br>
      Sonos is a trademark of Sonos, Inc.; WiiM of Linkplay Technology; Chord and Poly of Chord Electronics; FiiO of FiiO
      Electronics. This is an independent project, affiliated with none of them.</p>

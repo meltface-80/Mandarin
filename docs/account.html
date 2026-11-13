@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Your account · Mandarin</title>
+<title data-i18n="account.doc-title">Your account · Mandarin</title>
 <meta name="description" content="One account, kept on the server itself — nothing online — or, if you'd rather, none.">
 <link rel="icon" href="mandarin-icon.png">
 <link rel="stylesheet" href="site.css">
@@ -23,26 +23,26 @@
       <option value="da">🇩🇰 Dansk</option>
       <option value="no">🇳🇴 Norsk</option>
     </select>
-    <a class="back" href="index.html">← Contents</a>
+    <a class="back" href="index.html" data-i18n="site.contents">← Contents</a>
     <a class="brand" href="index.html"><img src="mandarin-icon.png" alt=""><span>Mandarin</span></a>
     <span class="spacer"></span>
-    <a class="pill solid" href="downloads.html">Downloads</a>
+    <a class="pill solid" href="downloads.html" data-i18n="site.downloads">Downloads</a>
   </div>
 </header>
 
 <main class="wrap page">
-  <h1>Your account</h1>
-  <p class="lead">One account, kept on the server itself — nothing online — or, if you'd rather, none.</p>
+  <h1 data-i18n="account.h1">Your account</h1>
+  <p class="lead" data-i18n="account.lead">One account, kept on the server itself — nothing online — or, if you'd rather, none.</p>
 <ol class="plain">
-    <li>Open <code>http://&lt;server-ip&gt;:3500</code> on a device <b>on your home network</b> (a browser, the iPhone
+    <li data-i18n="account.top.li1">Open <code>http://&lt;server-ip&gt;:3500</code> on a device <b>on your home network</b> (a browser, the iPhone
         home-screen app, or the Android app) and choose a username and password, <b>or</b> tap <b>Use without an
         account</b>.</li>
-    <li>With an account, every other device signs in with it once and is remembered.</li>
-    <li><b>Settings → Account</b> lists every device, with a <i>Sign out</i> button for each, and changes the password.</li>
+    <li data-i18n="account.top.li2">With an account, every other device signs in with it once and is remembered.</li>
+    <li data-i18n="account.top.li3"><b>Settings → Account</b> lists every device, with a <i>Sign out</i> button for each, and changes the password.</li>
   </ol>
 
-  <h2>Ask for a sign-in</h2>
-  <p><b>Settings → Account → Ask for a sign-in</b> (on the page and in the Android app) switches the sign-in on or off.
+  <h2 data-i18n="account.ask-for-sign.title">Ask for a sign-in</h2>
+  <p data-i18n="account.ask-for-sign.p1"><b>Settings → Account → Ask for a sign-in</b> (on the page and in the Android app) switches the sign-in on or off.
      An install that had an account before v1.1.8 keeps asking until you switch it off. Off, anything on your home
      network or on your own Tailscale network comes straight in (with the built-in Tailscale, only your own devices on
      it: not one shared in from someone else's tailnet, nor an address your internet provider gives from the same
@@ -50,41 +50,41 @@
      listed in <b>Settings → Account</b>. From anywhere else (a port forwarded to the internet) a sign-in is still
      needed, and with no account there is none to give. Switching it on with no account asks you to create the account
      first; devices already in stay in until you sign them out.</p>
-  <p>With the sign-in off, a device comes in without one only when it asks for the server by a name used at home — its
+  <p data-i18n="account.ask-for-sign.p2">With the sign-in off, a device comes in without one only when it asks for the server by a name used at home — its
      address, a bare name, or one ending .local, .lan, .home.arpa or .ts.net — so another web site can't reach it
      through a name of its own. Anything but a read must come from Mandarin's own page or the Android app: a page of
      another site open in a browser at home can't restart the server, change a setting or restore a backup. A device let
      in without a password works only from home and your tailnet, never from the internet.</p>
-  <p>Behind a reverse proxy (an nginx, Caddy or <code>tailscale serve</code> on the same machine, or one elsewhere on
+  <p data-i18n="account.ask-for-sign.p3">Behind a reverse proxy (an nginx, Caddy or <code>tailscale serve</code> on the same machine, or one elsewhere on
      your network), name it in <code>TRUSTED_PROXIES</code> (<code>TRUSTED_PROXIES=127.0.0.1</code> for one on the same
      machine) and have it say who asked (<code>X-Forwarded-For</code>, <code>X-Real-IP</code> or
      <code>Forwarded</code>). Mandarin believes only the proxies named and its own built-in Tailscale: a request that
      names a caller through anything else, or a named proxy that names nobody, is taken as the internet, never home, and
      the log says so.</p>
 
-  <h2>Your password stays yours</h2>
-  <p>The password never crosses the network, even on plain http: devices prove they know it with SRP (the scheme Apple
+  <h2 data-i18n="account.your-password-stays.title">Your password stays yours</h2>
+  <p data-i18n="account.your-password-stays.p1">The password never crosses the network, even on plain http: devices prove they know it with SRP (the scheme Apple
      uses for HomeKit pairing), and the server proves it knows the account back. The server stores only an SRP verifier,
      never the password.</p>
-  <p>Five wrong passwords from one address in 15 minutes lock it out for 15 minutes (for IPv6, its whole /64), and
+  <p data-i18n="account.your-password-stays.p2">Five wrong passwords from one address in 15 minutes lock it out for 15 minutes (for IPv6, its whole /64), and
      guesses sent all at once count as they arrive, so no more than five are ever tried.</p>
-  <p>Sonos speakers can't sign in: the addresses they're given carry a signature, and the speakers' own addresses are
+  <p data-i18n="account.your-password-stays.p3">Sonos speakers can't sign in: the addresses they're given carry a signature, and the speakers' own addresses are
      let through, so playback is unaffected.</p>
 
-  <h2>Forgot the password?</h2>
-  <p>On Mandarin OS, type <code>passwordreset</code> at its own screen (a keyboard plugged in), then <code>yes</code>.
+  <h2 data-i18n="account.forgot-password.title">Forgot the password?</h2>
+  <p data-i18n="account.forgot-password.p1">On Mandarin OS, type <code>passwordreset</code> at its own screen (a keyboard plugged in), then <code>yes</code>.
      Installed on Linux, run on the server:</p>
-  <div class="codebox"><button class="copy-btn" data-copy data-copied="Copied" data-i18n-attr="data-copied:site.copied">Copy</button>
+  <div class="codebox"><button class="copy-btn" data-copy data-copied="Copied" data-i18n-attr="data-copied:site.copied" data-i18n="site.copy">Copy</button>
 <pre>sudo -u mandarin env DATA_DIR=/var/lib/mandarin /opt/mandarin/server/bin/mandarin-server reset-password</pre>
 </div>
-  <p>It removes the account and signs every device out; your library, edits and history stay. Then create
+  <p data-i18n="account.forgot-password.p2">It removes the account and signs every device out; your library, edits and history stay. Then create
      the account again from a device at home.</p>
-  <nav class="pager"><a class="back" href="index.html">← Back to contents</a><a class="pill" href="configuration.html">Next: Settings for the server →</a></nav>
+  <nav class="pager"><a class="back" href="index.html" data-i18n="site.back">← Back to contents</a><a class="pill" href="configuration.html" data-i18n="account.next">Next: Settings for the server →</a></nav>
 </main>
 
 <footer>
   <p class="coffee"><a href="https://buymeacoffee.com/musicd_projects"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me a Coffee" loading="lazy"></a></p>
-  <p>Mandarin · MIT · © 2026 Lewis Menzies (Music Duck / Mandarin) ·
+  <p data-i18n="site.footer">Mandarin · MIT · © 2026 Lewis Menzies (Music Duck / Mandarin) ·
      <a href="https://github.com/meltface-80/Mandarin">Source on GitHub</a><br>
      Sonos is a trademark of Sonos, Inc.; WiiM of Linkplay Technology; Chord and Poly of Chord Electronics; FiiO of FiiO
      Electronics. This is an independent project, affiliated with none of them.</p>
