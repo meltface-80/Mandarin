@@ -163,13 +163,8 @@ jobs:
         run: |
           set -e
           v=${{ steps.v.outputs.version }}
-          mkdir -p out/csharp
-          for rid in linux-x64 linux-arm64; do
-            RID=$rid ./server/build.sh
-            gzip -9 -c "server/bin/$rid/mandarin-server" > "out/csharp/mandarin-server-$rid.gz"
-          done
-          test "$(server/bin/linux-x64/mandarin-server --version)" = "$v"
-          (cd out/csharp && sha256sum mandarin-server-*.gz > mandarin-server.sha256 && cat mandarin-server.sha256)
+          # As dev's test builds are made (server-dev.yml): .github/server-assets.sh.
+          .github/server-assets.sh program "$v" out/csharp
           .github/sign.sh out/csharp/mandarin-server-*.gz
           ls -la out/csharp
 
@@ -182,11 +177,8 @@ jobs:
         run: |
           set -e
           v=${{ steps.v.outputs.version }}
-          mkdir -p out/musicd-server
-          cp -r package.json public README.md CHANGELOG.md LICENSE out/musicd-server/
-          # SQ-tool's code (item 288), so an update made from Settings brings it.
-          mkdir -p out/musicd-server/sq-tool && cp -r sq-tool/sqtool out/musicd-server/sq-tool/
-          tar -C out -czf "musicd-server-$v.tar.gz" musicd-server
+          # The page, package.json, and SQ-tool's code (item 288), so an update made from Settings brings it.
+          .github/server-assets.sh bundle "$v" .
           .github/sign.sh "musicd-server-$v.tar.gz"
           # This version's section of the changelog, without its heading: its summary and short lines, up to its own
           # "### Every change" (item 344), then where every change is.

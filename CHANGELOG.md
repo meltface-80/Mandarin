@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- New - dev's builds of Mandarin Server are published as a test-server pre-release on every push to dev, signed and checked as a release is (item 405); Mandarin's in-app updates follow a channel, the releases unless set otherwise, and Mandarin OS 0.1.5's Reinstall Mandarin follows the channel set on the box, backing Mandarin's data up first when it changes (`mandarin-server backup`)
 - Fixed - the README and the Pages site gave Mandarin OS's addresses by its name (http://mandarin/, http://mandarin:3500, smb://mandarin/data), which only some devices and routers find (not an Android phone on a router that doesn't name the devices on its network). They give the box's address, which its screen shows, say to reserve it in the router, and that computers and iPhones usually find mandarin.local, mandarin works where the router names its devices, and an Android phone often finds neither.
 
 ## v1.3.1

@@ -13,70 +13,20 @@ const assert = require("node:assert");
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
-const http = require("http");
-const zlib = require("zlib");
-const { spawn, spawnSync } = require("child_process");
+const { spawnSync } = require("child_process");
 
-const ROOT_DIR = path.join(__dirname, "..");
-const INSTALL = path.join(ROOT_DIR, "tools", "linux", "install.sh");
-const RID = os.arch() === "arm64" ? "linux-arm64" : "linux-x64";
+const { RID, sh, keyPair, release, shims, serve, run: runWith } = require("./linux-install-standin");
+
 const VERSION = "9.9.9";
 const haveOpenssl = spawnSync("openssl", ["version"]).status === 0;
 const skip = process.platform !== "linux" ? "Linux only" : !haveOpenssl && "openssl is not installed";
-
-function sh(cmd, opts = {}) {
-  const r = spawnSync("bash", ["-c", cmd], Object.assign({ encoding: "utf8" }, opts));
-  if (r.status !== 0) throw new Error(cmd + ": " + r.stderr);
-  return r.stdout;
-}
-
-/** A key pair: the private key's file, and the public half as the installer takes it (base64 DER). */
-function keyPair(dir, name) {
-  const pem = path.join(dir, name + ".pem");
-  sh(`openssl ecparam -name prime256v1 -genkey -noout -out "${pem}"`);
-  return { pem, pub: sh(`openssl ec -in "${pem}" -pubout -outform DER 2>/dev/null | base64 | tr -d '\\n'`) };
-}
-
-/** The stand-in release v9.9.9 in [dir]: the bundle and this machine's server, each signed with [key]. */
-function release(dir, key) {
-  const v = path.join(dir, "v" + VERSION);
-  fs.mkdirSync(path.join(dir, "bundle", "musicd-server", "public"), { recursive: true });
-  fs.writeFileSync(path.join(dir, "bundle", "musicd-server", "package.json"), JSON.stringify({ name: "musicd-server", version: VERSION }));
-  fs.writeFileSync(path.join(dir, "bundle", "musicd-server", "public", "index.html"), "<!doctype html><title>Mandarin</title>");
-  fs.mkdirSync(v, { recursive: true });
-  sh(`tar -czf "${v}/musicd-server-${VERSION}.tar.gz" -C "${dir}/bundle" musicd-server`);
-  fs.writeFileSync(path.join(v, `mandarin-server-${RID}.gz`), zlib.gzipSync(`#!/bin/sh\n[ "$1" = --version ] && echo ${VERSION}\n`));
-  for (const f of [`musicd-server-${VERSION}.tar.gz`, `mandarin-server-${RID}.gz`]) sh(`openssl dgst -sha256 -sign "${key.pem}" -out "${v}/${f}.sig" "${v}/${f}"`);
-  return v;
-}
-
-/** apt-get, apt-cache, systemctl and the user tools stood in for: each call written to [log]. */
-function shims(dir, log) {
-  const bin = path.join(dir, "shims");
-  fs.mkdirSync(bin);
-  const shim = (name, body = "") => fs.writeFileSync(path.join(bin, name), `#!/bin/sh\necho "${name} $*" >> "${log}"\n${body}\n`, { mode: 0o755 });
-  shim("apt-get");
-  shim("apt-cache", "echo libicu74");
-  shim("systemctl");
-  shim("useradd");
-  shim("usermod");
-  shim("chown");
-  shim("getent", "exit 2");
-  shim("id", `[ "$1" = mandarin ] && exit 1; exec /usr/bin/id "$@"`);
-  return bin;
-}
 
 test("Mandarin installed on Linux as a systemd service, only what is signed with the release key", { skip, timeout: 60000 }, async () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "musicd-test-linux-install-"));
   const files = path.join(dir, "releases");
   const key = keyPair(dir, "release"), other = keyPair(dir, "other");
-  const v = release(files, key);
-  const srv = http.createServer((req, res) => {
-    const f = path.join(files, decodeURIComponent(req.url));
-    if (!f.startsWith(files) || !fs.existsSync(f) || fs.statSync(f).isDirectory()) { res.writeHead(404); res.end(); return; }
-    res.writeHead(200); res.end(fs.readFileSync(f));
-  });
-  await new Promise(r => srv.listen(0, "127.0.0.1", r));
+  const v = release(files, key, VERSION);
+  const srv = await serve(files);
   try {
     const root = path.join(dir, "root"), log = path.join(dir, "calls.log");
     fs.mkdirSync(path.join(root, "srv", "music"), { recursive: true });
@@ -84,14 +34,7 @@ test("Mandarin installed on Linux as a systemd service, only what is signed with
       PATH: shims(dir, log) + ":" + process.env.PATH, MANDARIN_ROOT: root, MANDARIN_VERSION: VERSION,
       MANDARIN_RELEASES: `http://127.0.0.1:${srv.address().port}`, MANDARIN_RELEASE_KEY: key.pub,
     });
-    // Run without blocking: the stand-in release is answered from this same process.
-    const run = (...args) => new Promise((resolve) => {
-      const p = spawn("bash", [INSTALL, ...args], { env, stdio: ["ignore", "pipe", "pipe"] });
-      let stdout = "", stderr = "";
-      p.stdout.on("data", d => { stdout += d; });
-      p.stderr.on("data", d => { stderr += d; });
-      p.on("close", status => resolve({ status, stdout, stderr }));
-    });
+    const run = (...args) => runWith(env, ...args);
 
     let r = await run("--music", "/srv/music", "--port", "3600");
     assert.equal(r.status, 0, r.stdout + r.stderr);
