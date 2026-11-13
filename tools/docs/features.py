@@ -129,6 +129,14 @@ FEATURES = [
      "Correct an album's title, artist or year and choose its cover. Edits are kept in the server's "
      "database; your music files are not changed.",
      "On an album, tap **⋯ → Edit album**."),
+    ("auto-covers", "🖼️", "Covers found automatically", False,
+     "An album with no cover of its own is given one from Apple Music, Deezer or MusicBrainz by itself, "
+     "only when its title, artist and tracks all agree.",
+     "Nothing to set up: it looks after a scan that added albums and each night, an album every few seconds. "
+     "A cover in an album's folder or tracks, or one you chose or took away in **Edit album**, is never "
+     "touched, nor are your files. Anything less than sure is left for you to choose in **Edit album**, "
+     "and looked up again after 60 days. **Settings → Library Scanner → Find covers** turns it off and says "
+     "how many were found, are left to try and have no sure match."),
     # ---- The library behind it
     ("folders", "🗂️", "Music folders", False,
      "Any folders the server can see, added and removed in the app. Changes show by themselves: an album "

@@ -26,6 +26,7 @@ class AlbumEditTest {
 
     @Test fun `the cover's line, found, own, none, a new one chosen, the found one to go`() {
         assertEquals("Found cover from Deezer.", AlbumEdit.coverStatus(state, null).text)
+        assertEquals("one the cover finder found (item 409)", "Found cover automatically, on Apple Music.", AlbumEdit.coverStatus(state.copy(artSource = "auto:itunes"), null).text)
         assertEquals("Found cover", AlbumEdit.coverStatus(state, null).bold)
         assertEquals("a pasted address says nothing of where", "Found cover.", AlbumEdit.coverStatus(state.copy(artSource = "https://x/y.jpg"), null).text)
         assertEquals("Cover from the album's files.", AlbumEdit.coverStatus(state.copy(artFound = false, artOwn = true), null).text)

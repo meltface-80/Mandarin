@@ -945,7 +945,7 @@
       }
     },
     "settings-scanner": {
-      "page": "Settings' Library Scanner: Back, its title; the schedule (on or off, its start and end, what runs now); Identify albums and Ask iTunes too, each on or off; the MusicBrainz pack (Download, Update or Remove, its folder, Change… with the server's folders to choose from); identification's progress and Check again; Measure ReplayGain on or off and how far it has got; Clean up, each kind with its Remove; the processor, and the cores for upsampling and DSD (Auto, 1, 2 or 3); the proposed, unidentified, applied and declined albums, each with its actions and a barcode or link to match it by; each with its ⓘ and notes",
+      "page": "Settings' Library Scanner: Back, its title; the schedule (on or off, its start and end, what runs now); Identify albums and Ask iTunes too, each on or off; the MusicBrainz pack (Download, Update or Remove, its folder, Change… with the server's folders to choose from); identification's progress and Check again; Measure ReplayGain on or off and how far it has got; Find covers on or off and how far it has got; Clean up, each kind with its Remove; the processor, and the cores for upsampling and DSD (Auto, 1, 2 or 3); the proposed, unidentified, applied and declined albums, each with its actions and a barcode or link to match it by; each with its ⓘ and notes",
       "native": ["android/app/src/main/java/com/musicd/server/android/SettingsScanner.kt", "android/app/src/main/java/com/musicd/server/android/ScannerPack.kt", "android/app/src/main/java/com/musicd/server/android/ScannerLists.kt"],
       "preview": false,
       "items": {
@@ -962,6 +962,7 @@
         "identify": { "kind": "action", "label": "Identify albums" },
         "itunes": { "kind": "action", "label": "Ask iTunes too" },
         "measure": { "kind": "action", "label": "Measure ReplayGain" },
+        "covers": { "kind": "action", "label": "Find covers" },
         "recheck-all": { "kind": "action", "label": "Check the proposed and unidentified again", "when": "albums proposed or unidentified" },
         "pack": { "kind": "action", "label": ["Download", "Update", "Remove"], "each": true, "when": "the pack's state read" },
         "pack-fixed": { "kind": "shows", "when": "the pack's folder set by MBPACK_DIR" },

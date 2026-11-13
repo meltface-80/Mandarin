@@ -107,6 +107,14 @@ object Scanner {
             (if (failed > 0) " · " + num(failed, locale) + " couldn’t be read" else "")
     }
 
+    /** Find covers' line (item 409, the page's coversLine); none until the server has answered. */
+    fun coversLine(c: JSONObject?, locale: Locale = Locale.getDefault()): String? = c?.let {
+        "Covers found automatically: " + num(it.optInt("found"), locale) + " · " + num(it.optInt("left"), locale) + " left to try · " + num(it.optInt("none"), locale) + " without a sure match"
+    }
+
+    /** Find covers switched as it is tapped (item 200's way), before the server's answer. */
+    fun withCovers(c: JSONObject?, on: Boolean): JSONObject? = c?.let { JSONObject(it.toString()).put("on", on) }
+
     /** The streamed tracks that aren't measured, said; none when there are none. */
     fun streamedNote(loud: JSONObject?, locale: Locale = Locale.getDefault()): String? {
         val n = loud?.optInt("streamed") ?: 0

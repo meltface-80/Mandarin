@@ -15,7 +15,7 @@ object SettingsKept {
     /** The reads kept: exact paths, and the settings by name (not the API keys, which are settings too). */
     private val PATHS = setOf(
         "/api/auth/status", "/api/auth/devices", "/api/library/folders", "/api/audio-devices", "/api/backup",
-        "/api/identify?lists=0", "/api/loudness", "/api/library/cleanup", "/api/tailscale", "/api/update/status"
+        "/api/identify?lists=0", "/api/loudness", "/api/covers/auto", "/api/library/cleanup", "/api/tailscale", "/api/update/status"
     )
     private val SETTINGS = setOf(
         "waveform", "smart-picks", "labels", "label-folder-depth", "display", "shelf", "home-rows", "qobuz", "tidal"

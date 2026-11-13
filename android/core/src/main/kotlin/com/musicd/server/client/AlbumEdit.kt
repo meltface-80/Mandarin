@@ -130,10 +130,15 @@ object AlbumEdit {
     const val NO_PICTURE = "No picture loaded from that address. Make sure it's the image itself (“Copy image address”), not the page it's on."
     const val NO_BARCODE = "Type the digits under the bars, or paste a musicbrainz.org release link."
 
+    /** The covers the cover finder found, by their source: where each was found. */
+    private val AUTO = mapOf("auto:itunes" to "Apple Music", "auto:deezer" to "Deezer", "auto:caa" to "MusicBrainz")
+
     /** What is said beside the cover: the one chosen ([pick]) to come, the found one to go, or the cover the album has. */
     fun coverStatus(state: EditState, pick: CoverPick?): Said = when {
         pick?.remove == true -> Said("", "The found cover will be removed when you save.")
         pick != null -> Said("New cover", " from ${pick.source} — save to use it.")
+        // One found by itself (item 409) says so: its source auto:itunes, auto:deezer or auto:caa.
+        state.artFound && AUTO.containsKey(state.artSource ?: "") -> Said("Found cover", " automatically, on ${AUTO.getValue(state.artSource ?: "")}.")
         state.artFound -> Said("Found cover", (state.artSource?.takeIf { it.isNotEmpty() && !Regex("^https?:").containsMatchIn(it) }?.let { " from $it" } ?: "") + ".")
         state.artOwn -> Said("", "Cover from the album's files.")
         else -> Said("No cover.", " This album's folder and tracks have no artwork.")

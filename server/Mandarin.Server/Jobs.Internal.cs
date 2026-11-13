@@ -15,7 +15,8 @@ internal static partial class Jobs
      * they are: it is otherwise built once a day), POST /internal/jobs/prune
      * (the services' month's prune made now, as the daily timer makes it),
      * POST /internal/jobs/watch (the services' favourites looked at now, as
-     * the watch's timer looks) and POST /internal/playback/revision (the hub's
+     * the watch's timer looks), POST /internal/jobs/covers[?wide=1] (the
+     * cover finder's run made now, its summary answered) and POST /internal/playback/revision (the hub's
      * change counter set, then bumped).
      */
     public static void UseInternal(WebApplication app)
@@ -23,7 +24,7 @@ internal static partial class Jobs
         app.Use(async (ctx, next) =>
         {
             var p = ctx.Request.Path.Value;
-            if (p is not ("/internal/jobs/after-scan" or "/internal/jobs/taste" or "/internal/jobs/prune" or "/internal/jobs/watch" or "/internal/playback/revision")) { await next(); return; }
+            if (p is not ("/internal/jobs/after-scan" or "/internal/jobs/taste" or "/internal/jobs/prune" or "/internal/jobs/watch" or "/internal/jobs/covers" or "/internal/playback/revision")) { await next(); return; }
             var from = ctx.Connection.RemoteIpAddress;
             var given = ctx.Request.Headers["X-Mandarin-Front-Key"].ToString();
             if (from == null || !System.Net.IPAddress.IsLoopback(from) || !HttpMethods.IsPost(ctx.Request.Method)
@@ -49,6 +50,15 @@ internal static partial class Jobs
             {
                 await AfterScan();
                 await ctx.Response.WriteAsync("{\"ok\":true}");
+                return;
+            }
+            if (p == "/internal/jobs/covers")
+            {
+                // The cover finder's run made now, after any under way; { wide: true } as the nightly one, the albums due again too.
+                if (Extras.AutoCovers.Current is not { } finder) { ctx.Response.StatusCode = 409; await ctx.Response.WriteAsync("{\"ok\":false}"); return; }
+                var wide = ctx.Request.Query["wide"] == "1";
+                var r = await finder.Run(wide);
+                await ctx.Response.WriteAsync(new JsonObject { ["ok"] = true, ["looked"] = r.Looked, ["found"] = r.Found, ["none"] = r.None, ["own"] = r.Own, ["later"] = r.Later }.ToJsonString());
                 return;
             }
             if (p == "/internal/jobs/watch")

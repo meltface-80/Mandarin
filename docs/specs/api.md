@@ -5,7 +5,7 @@ Written by `node tools/api-map.js write` from the C# sources (`server/Mandarin.S
 where the code decides it away from the address (the handler says). "…" ends an address the route takes
 the rest of; a pattern is as the code writes it. What each answers is said beside its handler.
 
-215 routes.
+218 routes.
 
 | Method | Address | Who may ask | Answered in |
 |---|---|---|---|
@@ -49,6 +49,8 @@ the rest of; a pattern is as the code writes it. What each answers is said besid
 | POST | `/api/bitperfect` | signed in | `PlaybackRoutes.cs` |
 | GET | `/api/booklet/page` | signed in | `LibraryRoutes.cs` |
 | POST | `/api/control` | signed in | `PlaybackRoutes.cs` |
+| GET | `/api/covers/auto` | signed in | `LibraryRoutes.cs` |
+| POST | `/api/covers/auto` | signed in | `LibraryRoutes.cs` |
 | GET | `/api/cpu` | signed in | `PowerRoutes.cs` |
 | POST | `/api/cpu` | signed in | `PowerRoutes.cs` |
 | GET | `/api/credits/status` | signed in | `LibraryRoutes.cs` |
@@ -216,6 +218,7 @@ the rest of; a pattern is as the code writes it. What each answers is said besid
 | GET | `/display` | signed in | `Pages.cs` |
 | GET | `/index.html` | signed in | `Pages.cs` |
 |  | `/internal/jobs/after-scan` | the server's own key | `Jobs.Internal.cs` |
+|  | `/internal/jobs/covers` | the server's own key | `Jobs.Internal.cs` |
 |  | `/internal/jobs/prune` | the server's own key | `Jobs.Internal.cs` |
 |  | `/internal/jobs/watch` | the server's own key | `Jobs.Internal.cs` |
 |  | `/internal/playback/revision` | the server's own key | `Jobs.Internal.cs` |

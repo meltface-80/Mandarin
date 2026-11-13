@@ -48,7 +48,8 @@
         Albums are decided a folder at a time, so a folder of tracks by different artists with no album-artist tag
         becomes one compilation, and <code>CD1</code>/<code>CD2</code> folders become one album. Covers come from
         <code>cover.jpg</code>/<code>folder.jpg</code>/… or the first track's embedded picture, resized once per size and
-        cached; an album with no cover gets one drawn, with its title. The pictures are drawn with ffmpeg. Rescans only
+        cached. An album with no cover of its own is looked up on Apple Music, Deezer and MusicBrainz in the background
+        and given the cover where its title, artist and tracks all agree; otherwise it gets one drawn, with its title. The pictures are drawn with ffmpeg. Rescans only
         re-read files whose size or date changed, on the cores playback doesn't keep.</li>
     <li data-i18n="how-it-works.top.li2"><b>Album names.</b> The identification scan looks each album up by what its files carry (a release id, barcode,
         catalogue number, ISRCs), then by name on MusicBrainz and iTunes. It scores each release against the tracks and

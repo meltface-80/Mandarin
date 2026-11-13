@@ -63,7 +63,7 @@ function section(kind, title, note) {
  */
 // The schedule first (v0.8.24), then what it runs, in the order it runs it:
 // identification (with the pack and its progress), then ReplayGain.
-const BLOCKS = ["schedule", "identify", "pack", "progress", "loudness", "cleanup", "cpu", "proposed", "unidentified", "applied", "rejected", "error"];
+const BLOCKS = ["schedule", "identify", "pack", "progress", "loudness", "covers", "cleanup", "cpu", "proposed", "unidentified", "applied", "rejected", "error"];
 const drawn = {};
 const wait = '<span class="id-wait">…</span>';
 function blocks() {
@@ -89,6 +89,12 @@ function blocks() {
       (loud && loud.streamed ? '<div class="settings-note" data-parity="settings-scanner.note">' + num(loud.streamed) + " Qobuz and Tidal track" + (loud.streamed === 1 ? "" : "s") + " aren’t measured.</div>" : "") +
       (loud && m.measure ? '<div class="settings-note" data-parity="settings-scanner.note">' + loudStatus() + "</div>" : "") + "</div>";
   }
+  // Find covers (item 409): the cover finder's switch and how far it has got.
+  out.covers = '<div class="settings-divider"></div><div class="settings-block">' +
+    row("Find covers" + info("Albums with no cover of their own (none in their folder, none in their tracks, none chosen in Edit album) are looked up on Apple Music, Deezer and MusicBrainz, as Edit album’s Find looks, and given a cover only when the title, the artist and the tracks all agree. Anything less is left for you to choose in Edit album. A cover in the album’s folder or tracks, or one you chose or took away, is never touched, and your files are never changed. An album every few seconds, after a scan that added albums and each night; one with nothing sure is looked up again after 60 days."),
+      '<label class="switch" data-parity="settings-scanner.covers"><input type="checkbox" data-covers-on' + (covers && covers.on ? " checked" : "") + (scanBusy || !covers ? " disabled" : "") + ' aria-label="Find covers"><span class="switch-track"><span class="switch-thumb"></span></span></label>') +
+    '<div class="settings-note" data-parity="settings-scanner.note">Covers for albums that have none, from Apple Music, Deezer and MusicBrainz.</div>' +
+    '<div class="id-progress" data-parity="settings-scanner.progress">' + (covers ? coversLine(covers) : wait) + "</div></div>";
   // The schedule (v0.8.24): when identification and ReplayGain run, and
   // what is happening now. The library scan itself isn't scheduled.
   out.schedule = '<div class="settings-block"><div class="settings-block-title" data-parity="settings-scanner.title">Schedule</div>' + row("Scheduling" + info("When identification and Measure ReplayGain run, in that order: an album is measured once identification has looked at it. On: between the start and end times each night, on the server’s clock, and not at all outside them. Off: whenever the library isn’t being scanned, until every album is done. Either way both wait while the library scan runs; the scan itself isn’t scheduled, so new music shows up as it arrives. Identification looks at about twelve albums a minute, one MusicBrainz request a second."),
@@ -162,6 +168,7 @@ function render() {
 
 scanBody.addEventListener("change", (e) => {
   if (e.target.closest("[data-ld-measure]")) return setMeasure(e.target.checked);
+  if (e.target.closest("[data-covers-on]")) return setCovers(e.target.checked);
   const s = e.target.closest("[data-id-set]");
   if (s) return act("/api/identify/settings", { [s.getAttribute("data-id-set")]: s.checked });
   const t = e.target.closest("[data-id-time]");

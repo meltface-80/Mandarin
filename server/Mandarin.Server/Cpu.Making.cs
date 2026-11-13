@@ -53,6 +53,9 @@ internal static partial class Cpu
         }
     }
 
+    /* A track being made as it plays, or its cores still kept after one: the background's lookups wait (item 409). */
+    public static bool MakingNow => Volatile.Read(ref makingRunning) > 0 || Environment.TickCount64 < Volatile.Read(ref makingUntil);
+
     /* A making started (true) or ended (false): while any runs, and for a while after, playback keeps its cores. */
     public static void Making(bool on)
     {
