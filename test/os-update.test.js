@@ -19,6 +19,7 @@ const assert = require("node:assert");
 const fs = require("fs");
 const path = require("path");
 const http = require("http");
+const { spawn, execSync } = require("child_process");
 const { makeBox, releaseFiles, serveReleases, testKey, skip, B } = require("./os-update-box");
 
 test("os-update: check, then apply into the other partition, the box's own carried, three tries on the EFI partition", { skip, timeout: 180000 }, async () => {
@@ -167,4 +168,40 @@ test("os-update checks signatures against Mandarin's release key, the one Mandar
   const key = /MANDARIN_OS_UPDATE_KEY:-([A-Za-z0-9+/=]+)\}/.exec(own), built = /const string BuiltIn = "([^"]*)"/.exec(cs);
   assert.ok(key && built && built[1].length > 0);
   assert.equal(key[1], built[1]);
+});
+
+test("os-update: never restarts while dpkg works, and isn't held back by unattended-upgrades' own service", { skip, timeout: 180000 }, async () => {
+  const key = testKey(), rel = releaseFiles("0.1.5", key.privateKey);
+  const gh = await serveReleases({ "test-os": rel.files });
+  const box = makeBox();
+  // Real processes, as pgrep finds them on the box: unattended-upgrades' service, always there and waiting for a
+  // shutdown (the boot test's box waited half an hour for it: its name, as the kernel keeps it, is unattended-upgr),
+  // and dpkg at work until the update says it waits for it. Each is sleep, under the name and path it would have.
+  fs.unlinkSync(path.join(box.dir, "bin", "pgrep"));
+  const as = name => {
+    const p = path.join(box.dir, "procs", name);
+    fs.mkdirSync(path.dirname(p), { recursive: true });
+    fs.copyFileSync(execSync("command -v sleep", { shell: "/bin/bash", encoding: "utf8" }).trim(), p);
+    fs.chmodSync(p, 0o755);
+    return p;
+  };
+  const dpkg = as("dpkg");
+  const waiter = spawn(as("unattended-upgrades/unattended-upgrade-shutdown"), ["120"]);
+  let working = null;
+  try {
+    const env = { MANDARIN_OS_UPDATE_API: gh.api, MANDARIN_OS_UPDATE_KEY: key.pub, MANDARIN_OS_APT_WAIT: "1" };
+    working = spawn(dpkg, ["120"]);
+    const running = box.run("apply", env);
+    // dpkg done a few seconds after the update said it waits for it.
+    for (let i = 0; i < 600 && !/Debian's packages are being updated/.test(box.oslog()); i++) await new Promise(res => setTimeout(res, 100));
+    assert.match(box.oslog(), /Debian's packages are being updated: starting again on Mandarin OS 0\.1\.5 once they are/);
+    await new Promise(res => setTimeout(res, 3000));
+    assert.doesNotMatch(box.calls(), /reboot/, "not while dpkg works");
+    working.kill();
+    const done = Date.now();
+    const r = await running;
+    assert.equal(r.status, 0, r.stderr + box.oslog());
+    assert.match(box.calls(), /^systemctl reboot$/m, "then started again");
+    assert.ok(Date.now() - done < 10000, "once dpkg was done, not held back by unattended-upgrade-shutdown: " + (Date.now() - done) + " ms");
+  } finally { waiter.kill(); if (working) working.kill(); box.cleanup(); gh.close(); }
 });

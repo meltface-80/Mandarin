@@ -253,6 +253,9 @@ apply() {
   restart "$auto"
 }
 
+# Whether apt, dpkg or the upkeep's unattended-upgrade is at work.
+apt_busy() { pgrep -x 'apt-get|apt|dpkg' >/dev/null || pgrep -f '/unattended-upgrade( |$)' >/dev/null; }
+
 # The computer started again on it: at once from the system page; from the upkeep only once nothing plays (an hour and
 # a half at most, or it starts at the next restart, whenever that is).
 restart() {
@@ -268,9 +271,12 @@ restart() {
       sleep 300
     done
   fi
-  # Never while Debian's packages are being changed (the upkeep's apt): half a package is worse than a late restart.
-  for i in $(seq 1 60); do pgrep -x 'apt-get|apt|dpkg|unattended-upgr' >/dev/null || break
-    [ "$i" = 1 ] && step waiting 100 "Waiting for the upkeep's updates to finish, then starting again on Mandarin OS $V"; sleep 30; done
+  # Never while Debian's packages are being changed (the upkeep's apt): half a package is worse than a late restart. Its
+  # unattended-upgrade, not unattended-upgrades' own service, which waits for every shutdown (unattended-upgrade-shutdown).
+  for i in $(seq 1 60); do apt_busy || break
+    [ "$i" = 1 ] && { step waiting 100 "Waiting for the upkeep's updates to finish, then starting again on Mandarin OS $V"
+      oslog INFO "[update] Debian's packages are being updated: starting again on Mandarin OS $V once they are"; }
+    sleep "${MANDARIN_OS_APT_WAIT:-30}"; done
   step restarting 100 "Starting again on Mandarin OS $V"
   oslog INFO "[update] starting again on Mandarin OS $V"
   sync
