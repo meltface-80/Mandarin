@@ -2,7 +2,8 @@
 # /usr/lib/mandarin-os/reinstall-mandarin — Mandarin put back (tools/linux/install.sh, kept in the image, each file checked
 # against the release key), its data and music folder kept; from the system page's Reinstall, and from the upkeep when
 # Mandarin doesn't answer (item 389). From the builds the share's Installer asks for (item 405, channel.sh): the latest
-# release, or dev's newest build. Moving from one to the other, Mandarin's data is backed up first, as Mandarin backs it
+# release, or dev's newest build, a file there asking once (dev.bin, latest.bin), spent when it is done (item 406);
+# none, the builds the box is on. Moving from one to the other, Mandarin's data is backed up first, as Mandarin backs it
 # up (into its backups: the share's MandarinServer/Backups), and not moved at all where it can't be; then the channel is
 # kept for Mandarin's own updates, and Mandarin must answer on the data it finds: an older Mandarin (a release after a
 # dev build) that doesn't is said in the log, the backup kept.
@@ -56,6 +57,8 @@ if ! "$LIB/linux-install.sh" --channel "$want" --music /data/Storage --data /dat
 fi
 now="$(cat "$BIN.version" 2>/dev/null)"
 oslog INFO "[reinstall] done: $now"
+# The file in Installer that asked spent (item 406): the box stays on $want until another asks.
+asked="$(channel_asked dev || channel_asked latest)" && { channel_spend && oslog INFO "[reinstall] $(basename "$asked") used and taken out of Installer"; }
 [ "$want" != "$was" ] || exit 0
 # Moved: Mandarin answers on the data the other left (a release can be older than the dev build before it).
 for _ in $(seq 1 "${MANDARIN_OS_WAIT:-180}"); do

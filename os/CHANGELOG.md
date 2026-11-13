@@ -3,6 +3,7 @@
 ## v0.1.6
 
 - Changed - the reinstaller's folder, Installer, is at the top of the shared folder (smb://<box>/data/Installer), beside Storage rather than in it (item 406); one in Storage is moved there, what was in it kept.
+- Changed - a file in Installer asks the reinstaller once: it is taken out once Mandarin is installed from it, and the box stays on what it was given (the upkeep's own reinstalls included) until another file asks for the other (item 406).
 
 ## v0.1.5
 

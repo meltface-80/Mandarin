@@ -6,8 +6,9 @@
  *   - no file in the share's Installer: the latest release, as before, and no backup (nothing changes channel);
  *   - a file there whose name starts with "dev" (any case): dev's builds, the installer asked for them, the channel kept
  *     for mandarin.service (MachineSettings/mandarin-channel.env), and Mandarin's data backed up first by Mandarin itself,
- *     as its own user, into its backups;
- *   - gone again: back to the latest release, backed up first again; a Mandarin too old to back up by itself has its
+ *     as its own user, into its backups; the file then spent, taken out (item 406), and the box stays on dev's builds
+ *     at the next Reinstall with nothing there;
+ *   - latest.bin: back to the latest release, backed up first again, spent too; a Mandarin too old to back up by itself has its
  *     database copied into its backups instead, stopped first;
  *   - a backup that can't be made: nothing installed, the channel as it was; an install that fails: the channel as it was;
  *   - moved, and the release doesn't answer on the data dev's build left: said in the log, the backup named, a failure;
@@ -87,21 +88,27 @@ test("Reinstall Mandarin installs the builds the share's Installer asks for, bac
     assert.deepEqual(b.backups(), ["auto-x.tar.gz"]);
     assert.match(b.oslog(), /\[reinstall\] Mandarin's data backed up first: MandarinServer\/Backups\/auto-x\.tar\.gz/);
     assert.match(b.oslog(), /\[reinstall\] done: 1\.3\.2-t9/);
+    // Used: taken out of Installer (with a Mac's ._ beside it), README.txt left.
+    assert.deepEqual(fs.readdirSync(path.join(b.root, "data/Installer")), ["README.txt"]);
+    assert.match(b.oslog(), /\[reinstall\] dev\.bin used and taken out of Installer/);
 
-    // Again on dev: no backup, nothing changes.
+    // Again with nothing there (the upkeep's own reinstall, say): it stays on dev, no backup.
     b.clear();
     assert.equal(b.run().status, 0);
+    assert.match(b.calls(), /^linux-install --channel dev /m);
     assert.doesNotMatch(b.calls(), /backup/);
+    assert.equal(b.channel(), "MANDARIN_CHANNEL=dev\n");
 
-    // Any case, any ending: DEV.txt is dev too; README.txt alone is not.
-    fs.rmSync(path.join(b.root, "data/Installer/dev.bin"));
+    // Any case, any ending: DEV.txt is dev too, and spent too.
     b.put("data/Installer/DEV.txt", "");
+    b.put("data/Installer/._DEV.txt", "a Mac's");
     b.clear();
     b.run();
     assert.match(b.calls(), /^linux-install --channel dev /m);
+    assert.deepEqual(fs.readdirSync(path.join(b.root, "data/Installer")), ["README.txt"]);
 
-    // Gone: back to the latest release, Mandarin's data backed up first again.
-    fs.rmSync(path.join(b.root, "data/Installer/DEV.txt"));
+    // latest.bin: back to the latest release, Mandarin's data backed up first again, and spent.
+    b.put("data/Installer/latest.bin", "");
     b.clear();
     r = b.run();
     assert.equal(r.status, 0, r.stdout + r.stderr + b.oslog());
@@ -109,6 +116,17 @@ test("Reinstall Mandarin installs the builds the share's Installer asks for, bac
     assert.match(b.calls(), /^linux-install --channel latest /m);
     assert.equal(b.channel(), "MANDARIN_CHANNEL=latest\n");
     assert.match(b.oslog(), /Mandarin 1\.3\.1 answers on its data/);
+    assert.deepEqual(fs.readdirSync(path.join(b.root, "data/Installer")), ["README.txt"]);
+
+    // Both there: latest, the safer, and both spent.
+    b.install("1.3.2-t9");
+    b.put("data/MachineSettings/mandarin-channel.env", "MANDARIN_CHANNEL=dev\n");
+    b.put("data/Installer/dev.bin", "");
+    b.put("data/Installer/latest.bin", "");
+    b.clear();
+    assert.equal(b.run().status, 0);
+    assert.match(b.calls(), /^linux-install --channel latest /m);
+    assert.deepEqual(fs.readdirSync(path.join(b.root, "data/Installer")), ["README.txt"]);
   } finally { b.cleanup(); }
 });
 
@@ -148,12 +166,14 @@ test("nothing moves when the backup can't be made, nor when the install fails; a
     const r = b.run();
     assert.equal(r.status, 1);
     assert.equal(b.channel(), "MANDARIN_CHANNEL=latest\n", "the channel as it was");
+    assert.ok(fs.existsSync(path.join(b.root, "data/Installer/dev.bin")), "not spent: it can be tried again");
   } finally { b.cleanup(); }
 
   // From dev's build back to a release that doesn't answer on the data it left: said, the backup named, a failure.
   b = box({ have: "1.3.2-t9", answers: false });
   try {
     b.put("data/MachineSettings/mandarin-channel.env", "MANDARIN_CHANNEL=dev\n");
+    b.put("data/Installer/latest.bin", "");
     const r = b.run();
     assert.equal(r.status, 1, r.stdout + r.stderr);
     assert.match(b.oslog(), /Mandarin 1\.3\.1 doesn't answer on the data Mandarin 1\.3\.2-t9 left: its backup is kept, MandarinServer\/Backups\/auto-x\.tar\.gz/);

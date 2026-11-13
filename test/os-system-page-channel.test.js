@@ -26,6 +26,12 @@ test("the system page's state: what Mandarin follows, and what the share's Insta
     assert.deepEqual(await channel(), { now: "latest", wanted: "dev" });
     put("data/MachineSettings/mandarin-channel.env", "MANDARIN_CHANNEL=dev\n");
     assert.deepEqual(await channel(), { now: "dev", wanted: "dev" });
+    // dev.bin spent (item 406): nothing there keeps the channel now; latest.bin asks for the releases.
+    fs.rmSync(path.join(box.root, "data/Installer/Dev.bin"));
+    assert.deepEqual(await channel(), { now: "dev", wanted: "dev" });
+    put("data/Installer/Latest.bin", "");
+    assert.deepEqual(await channel(), { now: "dev", wanted: "latest" });
+    fs.rmSync(path.join(box.root, "data/Installer/Latest.bin"));
     // Reinstall says what it puts back (and does it).
     const r = await fetch(box.base + "/api/mandarin", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ password: box.password, action: "reinstall" }) });
     assert.match((await r.json()).said, /put back from the development builds/);
@@ -50,6 +56,8 @@ test("Overview's Mandarin row: development builds beside the version, and the ch
     put("data/MachineSettings/mandarin-channel.env", "MANDARIN_CHANNEL=dev\n");
     assert.equal(await row(), "Version 1.3.1-t1 · development builds · 1,234 albums · 3 rooms");
     fs.rmSync(path.join(box.root, "data/Installer/dev.bin"));
+    assert.equal(await row(), "Version 1.3.1-t1 · development builds · 1,234 albums · 3 rooms", "dev.bin spent: it stays on dev");
+    put("data/Installer/latest.bin", "");
     assert.equal(await row(), "Version 1.3.1-t1 · development builds · the latest release at the next Reinstall · 1,234 albums · 3 rooms");
   } finally { await b.close(); await box.stop(); }
 });

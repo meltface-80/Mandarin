@@ -3,7 +3,8 @@ the releases ("latest") or dev's builds ("dev").
 
   state()   for /api/state's mandarin.channel: what Mandarin was last installed from (MachineSettings/mandarin-channel.env,
             which its own updates follow), and what the share's Installer asks for at the next Reinstall Mandarin (a file in
-            it whose name starts with "dev", in any case: dev; none: latest). Read only: the page changes neither.
+            it whose name starts with "latest", in any case: latest; with "dev": dev; none: the channel now, item 406).
+            Read only: the page changes neither.
 """
 import os
 
@@ -25,8 +26,9 @@ def wanted():
     try:
         names = [n for n in os.listdir(folder) if os.path.isfile(os.path.join(folder, n))]
     except OSError:
-        return "latest"
-    return "dev" if any(n.lower().startswith("dev") for n in names) else "latest"
+        return now()
+    low = [n.lower() for n in names]
+    return "latest" if any(n.startswith("latest") for n in low) else "dev" if any(n.startswith("dev") for n in low) else now()
 
 
 def state():
