@@ -18,14 +18,16 @@ type fakeWatch struct {
 	t     time.Time
 	cpu   float64
 	moved int64
+	fw    bool
 	w     *watcher
 }
 
 var testWatch = watchConfig{Tick: 15 * time.Second, IdleAfter: 150 * time.Second, BusyBytes: 16 << 10, CPUWindow: time.Minute, CPUShare: 0.20}
 
 func newFake() *fakeWatch {
-	f := &fakeWatch{t: time.Date(2026, 11, 13, 9, 11, 48, 0, time.UTC), cpu: 100}
-	f.w = newWatcher(testWatch, func() time.Time { return f.t }, func() float64 { return f.cpu }, func() int64 { return f.moved })
+	f := &fakeWatch{t: time.Date(2026, 11, 13, 9, 11, 48, 0, time.UTC), cpu: 100, fw: true}
+	f.w = newWatcher(testWatch, func() time.Time { return f.t }, func() float64 { return f.cpu }, func() int64 { return f.moved },
+		func() bool { return f.fw })
 	return f
 }
 
@@ -89,6 +91,25 @@ func TestTheAppsLeaseKeepsItThenLetsItGo(t *testing.T) {
 	}
 	if kind, _ := g.tick(pollBytes, 0.01); kind != stopIdle {
 		t.Fatalf("a lease let go still kept it: %q", kind)
+	}
+}
+
+func TestNeverIdleWhileBeingSignedIn(t *testing.T) {
+	f := newFake()
+	f.fw = false // no forward yet: the sign-in page open in a browser
+	for i := 0; i < 40; i++ {
+		if kind, _ := f.tick(0, 0.01); kind != "" {
+			t.Fatalf("stopped while being signed in, at %d s: %s", (i+1)*15, kind)
+		}
+	}
+	f.fw = true // signed in and forwarding: idle counts from now
+	for i := 1; i < 10; i++ {
+		if kind, _ := f.tick(0, 0.01); kind != "" {
+			t.Fatalf("stopped %d s after the forward came", i*15)
+		}
+	}
+	if kind, _ := f.tick(0, 0.01); kind != stopIdle {
+		t.Fatalf("150 s after the forward came, idle: %q", kind)
 	}
 }
 
@@ -169,7 +190,7 @@ func TestKeepRouteAndStopNote(t *testing.T) {
 	if got := keep(); !strings.Contains(got, `"kept":false`) {
 		t.Fatalf("the server's engine, no watch: %s", got)
 	}
-	e.watch = newWatcher(testWatch, time.Now, func() float64 { return 1 }, e.moved.Load)
+	e.watch = newWatcher(testWatch, time.Now, func() float64 { return 1 }, e.moved.Load, func() bool { return true })
 	if got := keep(); !strings.Contains(got, `"kept":true`) || !e.watch.keepUntil.After(time.Now().Add(170*time.Second)) {
 		t.Fatalf("the phone's: %s, kept until %v", got, e.watch.keepUntil)
 	}

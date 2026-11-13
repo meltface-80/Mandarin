@@ -12,7 +12,8 @@
 //     background requests (long polls and state reports, a few hundred bytes
 //     each, under BusyBytes in a Tick, where audio, covers and pages are far
 //     more), and the app's lease (POST /keep, renewed while the app is on
-//     screen or the phone's player plays) has run out;
+//     screen or the phone's player plays) has run out; never before the app
+//     has made it its way to the server (being signed in, in a browser);
 //   - CPU: over the last CPUWindow it used more than CPUShare of a core with
 //     nothing passing through: what it was doing goes to the app's log
 //     (stopreport.go), rather than Android ending the whole app for it.
@@ -54,25 +55,30 @@ type cpuSample struct {
 	cpu float64
 }
 
-// watcher decides; the clock, the CPU reader and the bytes counter are given,
-// so that tests drive it.
+// watcher decides; the clock, the CPU reader, the bytes counter and whether
+// it forwards yet are given, so that tests drive it.
 type watcher struct {
 	cfg   watchConfig
 	now   func() time.Time
 	cpu   func() float64
 	moved func() int64
+	// forwarding: the app has made it its way to the server (POST /forward).
+	// Before, it is being signed in (the sign-in page in a browser, minutes),
+	// and is never idle.
+	forwarding func() bool
 
 	mu        sync.Mutex
 	keepUntil time.Time
-	lastBusy  time.Time
+	lastBusy  time.Time // the last look with a transfer, for the CPU guard
+	lastUse   time.Time // the same, or not forwarding yet, for idleness
 	lastMoved int64
 	samples   []cpuSample
 }
 
-func newWatcher(cfg watchConfig, now func() time.Time, cpu func() float64, moved func() int64) *watcher {
+func newWatcher(cfg watchConfig, now func() time.Time, cpu func() float64, moved func() int64, forwarding func() bool) *watcher {
 	t := now()
-	return &watcher{cfg: cfg, now: now, cpu: cpu, moved: moved, lastBusy: t, lastMoved: moved(),
-		samples: []cpuSample{{t, cpu()}}}
+	return &watcher{cfg: cfg, now: now, cpu: cpu, moved: moved, forwarding: forwarding, lastBusy: t, lastUse: t,
+		lastMoved: moved(), samples: []cpuSample{{t, cpu()}}}
 }
 
 // keep is the app's lease: the engine is wanted for d from now (0 lets it go).
@@ -84,11 +90,14 @@ func (w *watcher) keep(d time.Duration) {
 
 // step is one look: "" to go on, or stopIdle / stopCPU and why.
 func (w *watcher) step() (kind, why string) {
-	now, c, m := w.now(), w.cpu(), w.moved()
+	now, c, m, fw := w.now(), w.cpu(), w.moved(), w.forwarding()
 	w.mu.Lock()
 	defer w.mu.Unlock()
 	if m-w.lastMoved >= w.cfg.BusyBytes {
 		w.lastBusy = now
+	}
+	if !fw || w.lastBusy == now {
+		w.lastUse = now
 	}
 	w.lastMoved = m
 	w.samples = append(w.samples, cpuSample{now, c})
@@ -110,7 +119,7 @@ func (w *watcher) step() (kind, why string) {
 				used, span, 100*used/span)
 		}
 	}
-	if idle := now.Sub(w.lastBusy); idle >= w.cfg.IdleAfter && !now.Before(w.keepUntil) {
+	if idle := now.Sub(w.lastUse); idle >= w.cfg.IdleAfter && !now.Before(w.keepUntil) {
 		return stopIdle, fmt.Sprintf("nothing but the app's background requests through it for %s, and the app not using it",
 			idle.Round(time.Second))
 	}
@@ -131,7 +140,11 @@ func (w *watcher) run(stop func(kind, why string)) {
 
 // watchItself starts the watch (the phone's engine; MusicD Server's never stops itself).
 func (e *engine) watchItself(cfg watchConfig) {
-	e.watch = newWatcher(cfg, time.Now, cpuSeconds, e.moved.Load)
+	e.watch = newWatcher(cfg, time.Now, cpuSeconds, e.moved.Load, func() bool {
+		e.mu.Lock()
+		defer e.mu.Unlock()
+		return e.fw != nil
+	})
 	go e.watch.run(e.stopSelf)
 }
 
