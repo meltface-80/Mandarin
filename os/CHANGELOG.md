@@ -1,5 +1,10 @@
 # Mandarin OS changelog
 
+## v0.1.6
+
+- Changed - the reinstaller's folder, Installer, is at the top of the shared folder (smb://<box>/data/Installer), beside Storage rather than in it (item 406); one in Storage is moved there, what was in it kept.
+- Changed - a file in Installer asks the reinstaller once: it is taken out once Mandarin is installed from it, and the box stays on what it was given (the upkeep's own reinstalls included) until another file asks for the other (item 406).
+
 ## v0.1.5
 
 - New - Reinstall Mandarin follows the channel set on the box (item 405): Mandarin's latest release, as before, or dev's builds of Mandarin Server. Mandarin's own updates follow the same channel until the next Reinstall. Changing channel, Mandarin's data is backed up first into its Backups, and nothing changes if it can't be; a Mandarin that doesn't then start on its data is said in the log, the backup kept. The system page's Overview says when Mandarin is on development builds. Mandarin OS's own updates and Mandarin Bridge stay on their releases.
