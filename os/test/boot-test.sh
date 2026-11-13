@@ -7,7 +7,8 @@
 #   system's logs in it; nothing at all on SSH's port; mandarin.local and the system's own checks (maintain --check) are
 #   asked of it through its logs; USB drives (exFAT, NTFS, ext4) plugged in at the start and while it runs, each
 #   mounted in Storage/USB with its music and on the system page; one whose files are another's made the shared
-#   folder's from the system page (item 399). Then, given NEXT (os/test/next-mandarin.sh's program,
+#   folder's from the system page (item 399). Mandarin OS updated in place from the system page, and back by itself
+#   from a version that doesn't start (item 401, os/test/os-update-vm.sh). Then, given NEXT (os/test/next-mandarin.sh's program,
 #   a newer Mandarin), the in-app update (item 398): Settings → Updates on the installed system takes a newer release from
 #   a stand-in GitHub on this computer, and Mandarin starts again as it, its library and account kept. Needs
 #   qemu-system-x86_64, OVMF, mtools, smbclient, curl, jq, exfatprogs, ntfs-3g, node, python3, and root (loop devices,
@@ -55,6 +56,11 @@ esp_at="$(part "$W/disk.raw" esp | cut -d' ' -f1)"
 ents="$(mdir -b -i "$W/disk.raw@@$((esp_at * 512))" ::loader/entries 2>&1)"; linux="$(mdir -b -i "$W/disk.raw@@$((esp_at * 512))" ::EFI/Linux 2>&1)"
 grep -q "mandarin-os_$V.conf" <<< "$ents" && ! grep -q '\.efi' <<< "$linux" || fail "the EFI partition's entries: $ents; EFI/Linux: $linux"
 ok "it starts from its own entry: $(basename "$(grep conf <<< "$ents")")"
+
+# Mandarin OS's own update in place (item 401, os/test/os-update-vm.sh): two newer versions made from this image, offered
+# by a stand-in GitHub, the installed system told to ask it; tested once the box runs, after everything else.
+. "$HERE/os-update-vm.sh"
+os_update_prepare
 # The stick starts quietly, straight to the installer: nothing waited for, nothing failed (a screen of them was taken
 # for an error on the first real computer).
 grep -aE "Timed out waiting|Dependency failed|Failed to start" "$W/serial-install.log" && fail "the stick's start said something failed"
@@ -210,4 +216,5 @@ if [ -n "$NEXT" ]; then
 else
   echo "not tested: the in-app update (no NEXT given: os/test/next-mandarin.sh builds one)"
 fi
+os_update_test
 echo "PASS"
