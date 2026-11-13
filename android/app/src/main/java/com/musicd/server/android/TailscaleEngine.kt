@@ -53,6 +53,7 @@ object TailscaleEngine {
         process?.let { if (it.isAlive) return }
         val bin = binary(c)
         if (!bin.exists()) throw IllegalStateException("The Tailscale engine isn't in this build (${bin.path})")
+        EngineUse.leftOver(c)   // a stop of its own the app didn't see (frozen or ended meanwhile), said now (item 404)
         val bytes = ByteArray(24).also { SecureRandom().nextBytes(it) }
         secret = bytes.joinToString("") { "%02x".format(it) }
         val dir = File(c.filesDir, "tailscale").apply { mkdirs() }
@@ -77,10 +78,12 @@ object TailscaleEngine {
                 }
             }
             val code = runCatching { p.waitFor() }.getOrDefault(-1)
-            if (process === p) CrashLog.keepNote(app, ExitReport.engineText(code, stderrTail.toList(), ExitNote.time(System.currentTimeMillis())))
+            // A stop of its own (idle, or its CPU guard; item 404) is said in the log from its note, not kept as a crash.
+            if (process === p && !EngineUse.ended(app, code)) CrashLog.keepNote(app, ExitReport.engineText(code, stderrTail.toList(), ExitNote.time(System.currentTimeMillis())))
         }, "musicdnet-stderr").apply { isDaemon = true; start() }
         Log.i(TAG, "engine running, control port $port")
         sendInterfaces(force = true)
+        EngineUse.started()
     }
 
     /** The phone-side port: fixed, so the page keeps one address (its saved settings go with it). */

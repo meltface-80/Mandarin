@@ -195,7 +195,7 @@ class MainActivity : androidx.activity.ComponentActivity() {
 
     override fun onPause() {
         NativeShell.onScreen.value = false
-        AppLog.line("APP", "off screen")
+        AppLog.line("APP", "off screen"); Away.lookAtEngine(this)   // the engine at home not kept for a timer Android freezes (item 404)
         AppLog.snapshots(this, false)
         if (::reach.isInitialized) reach.paused()
         LocalMusic.foreground(this, false)

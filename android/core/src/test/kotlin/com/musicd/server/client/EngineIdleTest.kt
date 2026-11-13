@@ -33,4 +33,14 @@ class EngineIdleTest {
         assertEquals("idle again only from now", EngineIdle.Verdict.WAIT, idle.verdict(away = false, inUse = false))
         assertEquals(EngineIdle.GRACE_MS, idle.remaining())
     }
+
+    @Test fun `off screen and idle at home it stops at once, not on a timer Android freezes (item 404)`() {
+        assertEquals(EngineIdle.Verdict.WAIT, idle.verdict(away = false, inUse = false, onScreen = true))
+        now += 10_000
+        // The app goes to the background, or the phone's player stops with the app off screen: looked at now, stopped now.
+        assertEquals(EngineIdle.Verdict.STOP, idle.verdict(away = false, inUse = false, onScreen = false))
+        // Off screen but playing at home: kept, so that walking out keeps the music going; away: kept.
+        assertEquals(EngineIdle.Verdict.KEEP, idle.verdict(away = false, inUse = true, onScreen = false))
+        assertEquals(EngineIdle.Verdict.KEEP, idle.verdict(away = true, inUse = false, onScreen = false))
+    }
 }
