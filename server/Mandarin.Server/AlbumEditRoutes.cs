@@ -133,6 +133,14 @@ internal static partial class Library
      */
     private static void SaveEdit(Album al, EditFields f)
     {
+        lock (EditGate) SaveEditNow(al, f);
+    }
+
+    // One change to album_edits at a time: the cover finder looks and keeps under it, so it never lays a cover over yours.
+    private static readonly object EditGate = new();
+
+    private static void SaveEditNow(Album al, EditFields f)
+    {
         using var c = Db.Open();
         string? title = null, artist = null, artHash = null, artSource = null;
         object? year = null;
@@ -229,12 +237,9 @@ internal static partial class Library
             byte[]? got;
             try
             {
-                var (buf, error) = await FetchArt(url);
-                if (error != null) return await JsError(ctx, 502, "Couldn't download that image (" + error + ")");
-                if (!Covers.LooksLikeImage(buf!)) return await JsError(ctx, 422, "That address isn't an image");
-                // A picture in a form read only as ffmpeg reads it (CMYK, a profile of its own), as the covers are (Covers.cs).
-                got = await Covers.Normalise(buf!, Covers.Look(buf!) ?? "");
-                if (got == null) return await JsError(ctx, 422, "Couldn't read that image");
+                var (art, status, error) = await FoundCover(url);
+                if (art == null) return await JsError(ctx, status, error!);
+                got = art;
             }
             catch (Exception e) when (!ctx.Response.HasStarted) { return await Server.Failed(ctx, "library", e); }
             var src = TJs.Str(TJs.Truthy(Prop(b, "art_source")) ? Prop(b, "art_source") : artUrl);
@@ -250,6 +255,8 @@ internal static partial class Library
         {
             var keyBefore = al.ImageKey;
             SaveEdit(al, f);
+            // A cover chosen or taken away by hand is yours: the cover finder never brings one back (item 409).
+            if (f.HasArt) AutoCoverStore.Owner(al.Key);
             return await EditDone(ctx, al.Id, keyBefore);
         });
     }
@@ -266,15 +273,37 @@ internal static partial class Library
         return await AfterBody(ctx, async () =>
         {
             var keyBefore = al.ImageKey;
-            using (var c = Db.Open())
-            using (var cmd = c.CreateCommand())
+            lock (EditGate)
             {
+                using var c = Db.Open();
+                using var cmd = c.CreateCommand();
                 cmd.CommandText = "DELETE FROM album_edits WHERE key = $k";
                 cmd.Parameters.AddWithValue("$k", al.Key);
                 cmd.ExecuteNonQuery();
             }
+            // A found cover dropped with the rest stays dropped (item 409).
+            if (al.CustomArt) AutoCoverStore.Owner(al.Key);
             return await EditDone(ctx, al.Id, keyBefore);
         });
+    }
+
+    /*
+     * A cover from the web made ready to keep, as an edit keeps one (and the
+     * cover finder, Extras/AutoCovers.cs): downloaded, something an image
+     * reader takes for a picture, drawn upright at 1500 pixels at most; and,
+     * where [minSide] says, at least that many pixels each way. → the picture,
+     * or the status and the words of why not.
+     */
+    internal static async Task<(byte[]? Art, int Status, string? Error)> FoundCover(string url, int minSide = 0)
+    {
+        var (buf, error) = await FetchArt(url);
+        if (error != null) return (null, 502, "Couldn't download that image (" + error + ")");
+        if (!Covers.LooksLikeImage(buf!)) return (null, 422, "That address isn't an image");
+        // A picture in a form read only as ffmpeg reads it (CMYK, a profile of its own), as the covers are (Covers.cs).
+        var got = await Covers.Normalise(buf!, Covers.Look(buf!) ?? "");
+        if (got == null) return (null, 422, "Couldn't read that image");
+        if (minSide > 0 && (Covers.JpegSize(got) is not { } size || Math.Min(size.Width, size.Height) < minSide)) return (null, 422, "That image is too small");
+        return (got, 200, null);
     }
 
     /*

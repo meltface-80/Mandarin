@@ -22,7 +22,7 @@ namespace Mandarin.Server;
 
 internal static partial class Jobs
 {
-    public static readonly string[] Names = ["identify", "mbpack", "loudness", "labels", "days", "taste", "tailscale", "scan", "prune", "import", "services", "update", "cpu", "playback"];
+    public static readonly string[] Names = ["identify", "mbpack", "loudness", "labels", "days", "taste", "tailscale", "scan", "prune", "import", "services", "update", "cpu", "playback", "covers"];
 
     public static Identifier? Identify { get; private set; }
     public static PackStore? Packs { get; private set; }
@@ -142,6 +142,12 @@ internal static partial class Jobs
             credits.Start(Int(cfg["credits_tick_ms"], 2000));
         // The tiles' covers drawn ahead after a scan: likewise (covers_ahead: true).
         Covers.AheadOn = !Lookups.LoopbackOnly || (cfg["covers_ahead"] is JsonValue ca && ca.TryGetValue<bool>(out var caOn) && caOn);
+        // The cover finder (item 409): likewise (auto_covers: true), an album auto_covers_gap_ms apart (4000).
+        var findCovers = !Lookups.LoopbackOnly || (cfg["auto_covers"] is JsonValue ac && ac.TryGetValue<bool>(out var acOn) && acOn);
+        AutoCovers.Current?.Stop();
+        AutoCovers.Current = new AutoCovers(new CoverCatalogues(Text(cfg["itunes_url"]), Text(cfg["deezer_url"]), Text(cfg["musicbrainz_url"]), Text(cfg["coverart_url"]), version, Log),
+            Pause(cfg["auto_covers_gap_ms"], 4000), Log) { Ready = () => findCovers && Holds("covers") };
+        if (findCovers) AutoCovers.Current.Start();
         _ = Tailscale.Start();
         Scans.Start(cfg, dataDir);
         // Playback whole (v0.8.49, stage 6): the hub.
@@ -158,7 +164,7 @@ internal static partial class Jobs
         });
     }
 
-    /* After a library scan (Scans.cs; the tests' /internal/jobs/after-scan): the release days, today's Smart Picks, and the covers drawn ahead. */
+    /* After a library scan (Scans.cs; the tests' /internal/jobs/after-scan): the release days, today's Smart Picks, the covers drawn ahead, and covers looked for. */
     public static async Task AfterScan()
     {
         try
@@ -167,6 +173,8 @@ internal static partial class Jobs
             if (Holds("taste") && Taste is { } t && await Library.CurrentCopy() is { } s) t.Kick(s, false);
             // The tiles' covers not drawn yet, drawn ahead (Covers.Ahead.cs).
             Covers.DrawAhead();
+            // The albums with no cover of their own not looked at yet, a cover looked for (Extras/AutoCovers.cs).
+            AutoCovers.Current?.Kick();
         }
         catch (Exception e) { Server.Log($"[jobs] after the scan: {e.GetType().Name}: {e.Message}"); }
     }
@@ -199,6 +207,7 @@ internal static partial class Jobs
         Packs?.Stop();
         Loudness?.Stop();
         Days?.Stop();
+        AutoCovers.Current?.Stop();
         Taste?.Stop();
     }
 }
