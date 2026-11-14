@@ -91,7 +91,7 @@ internal sealed partial class Identifier
             verdict = Score.Decide(input, cands);
         }
         verdict = WithEditions(Preferred(input, verdict));
-        if (r.By != null && verdict.Best != null && verdict.Best.Distance <= Score.Propose) verdict = Applied(verdict, r.By);
+        if (r.By != null && verdict.Best != null && (verdict.Best.Distance <= Score.Propose || Confidence.Strong(input, verdict.Best, r.By))) verdict = Applied(verdict, r.By);
         return new Resolved(cands, verdict, r.By);
     }
 
@@ -116,8 +116,12 @@ internal sealed partial class Identifier
         }
         var equals = v.ScoredList.Where(s => s.Distance - best.Distance < 1e-9).ToList();
         var top = equals.OrderByDescending(Rank).First();   // a stable sort: Decide's order between equal ranks
+        // Still alike: the kind of edition you chose for the artist before (item 414b, Identifier.Review.cs).
+        var liked = Liked(input, equals.Where(s => Rank(s) == Rank(top)).ToList(), top);
+        var was = liked != null ? equals.First(s => Js.StrictEq(s.Candidate["mbid"], liked.Candidate["mbid"])) : top;
+        top = liked ?? top;
         if (ReferenceEquals(top, best)) return v;
-        return v with { Best = top, ScoredList = [top, .. v.ScoredList.Where(s => !ReferenceEquals(s, top))] };
+        return v with { Best = top, ScoredList = [top, .. v.ScoredList.Where(s => !ReferenceEquals(s, was))] };
     }
 
     /* The best with the record's other pressings near enough beside it (its "editions"), nearest first. */

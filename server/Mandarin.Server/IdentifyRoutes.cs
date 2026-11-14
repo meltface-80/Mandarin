@@ -70,6 +70,10 @@ internal static partial class Library
         o["applied_at"] = r.AppliedAt;
         o["ambiguous"] = c != null && TJs.Truthy(c["ambiguous"]);
         o["why"] = c != null ? Score.Why(c["parts"], al.Year is long ay ? (double)ay : null).Select(x => (object?)x).ToList() : new List<object?>();
+        // How sure, and why (item 414b): kept with the verdict, or worked out from what an older one kept.
+        var judged = c != null ? Confidence.Read(c, TJs.IsNullish(r.Distance) ? 1 : TJs.ToNumber(r.Distance)) : null;
+        o["confidence"] = judged != null ? judged.Value : null;
+        o["reasons"] = judged != null ? judged.Reasons.Select(x => (object?)x).ToList() : new List<object?>();
         if (c != null)
         {
             var x = new JsObj();
@@ -92,6 +96,8 @@ internal static partial class Library
             x["parts"] = TJs.Truthy(c["parts"]) ? c["parts"] : null;
             // The record's other pressings near enough, to switch to in one tap (item 414).
             x["editions"] = (c["editions"] as List<object?> ?? []).OfType<JsObj>().Where(e => !TJs.StrictEq(e["mbid"], c["mbid"])).Select(e => (object?)e).ToList();
+            // The other releases near enough, to pick instead of a proposal (item 414b).
+            x["others"] = (c["others"] as List<object?> ?? []).OfType<JsObj>().Select(e => (object?)e).ToList();
             o["candidate"] = x;
         }
         else o["candidate"] = null;
@@ -120,6 +126,9 @@ internal static partial class Library
             o["from_pack"] = TJs.Truthy(c["from_pack"]);
             o["manual"] = Or(c["manual"]);
             o["editions"] = (c["editions"] as List<object?> ?? []).OfType<JsObj>().Where(e => !TJs.StrictEq(e["mbid"], c["mbid"])).Select(e => (object?)e).ToList();
+            var judged = Confidence.Read(c, TJs.IsNullish(r.Distance) ? 1 : TJs.ToNumber(r.Distance));   // how sure, and why (item 414b)
+            o["confidence"] = judged.Value;
+            o["reasons"] = judged.Reasons.Select(x => (object?)x).ToList();
             return JsonNode.Parse(TJs.Json(o) ?? "null");
         }
         catch (Exception) { return null; }   // the match is a help to the editor, not a need

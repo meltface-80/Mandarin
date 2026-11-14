@@ -170,6 +170,7 @@ internal sealed partial class Identifier
         var r = Row(c, al.Key);
         if (r == null || (r.Status == "applied" && !listed)) return (null, false);
         using var tx = c.BeginTransaction();
+        Decline(c, tx, al.Key, r.Mbid);     // never proposed for it again (item 414b)
         var undone = r.Status == "applied";
         if (undone) Undo(c, tx, al, r);
         else

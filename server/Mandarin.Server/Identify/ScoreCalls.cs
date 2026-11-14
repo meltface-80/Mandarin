@@ -6,6 +6,7 @@
 //   { fn: "scorecall", calls: [[name, …args]] } → { results }
 //      distance(album, cand) → { distance, parts, pairs }; decide(album, cands) → { status, ambiguous, best, scored };
 //      pairTracks(mine, theirs) → { pairs, cost }; exact(parts); why(parts, year); appliesUnasked(distance);
+//      confidence(album, cand, ambiguous, by) → { confidence, reasons, strong, agrees, similarity } (item 414b);
 //      titleDist, stringDist, lengthDist, bare, clean, editionYear, tidy, discOf, artistSuspect, similarity;
 //      APPLY, PROPOSE; minutes(hhmm, fallback); inWindow(settings, "HH:MM"); discToc([{ disc, seconds, lossless, rate }]) → tables
 //   { fn: "itunes", base, steps: [{ search: { title, artist } } | { album: id } | { paused: true }] }
@@ -52,6 +53,17 @@ internal static class ScoreCalls
                     return new JsObj { ["pairs"] = pairs, ["cost"] = cost.Select(x => x is { } k ? (object?)new List<object?> { k.Title, k.Length } : null).ToList() };
                 }
             case "exact": return Score.Exact(At(a, 0) as JsObj);
+            case "confidence":
+                {
+                    // confidence(album, cand, ambiguous, matched_by): the candidate scored, judged as found that way (item 414b).
+                    var album = O(At(a, 0));
+                    var (dist, parts, pairs) = Score.Distance(album, O(At(a, 1)));
+                    var s = new Score.Scored(O(At(a, 1)), dist, parts, pairs);
+                    var j = Confidence.Of(album, s, Js.Truthy(At(a, 2)));
+                    var by = At(a, 3) is string b ? b : null;
+                    return new JsObj { ["confidence"] = (double)j.Value, ["reasons"] = j.Reasons.Select(x => (object?)x).ToList(), ["strong"] = Confidence.Strong(album, s, by),
+                        ["agrees"] = Confidence.Agrees(album, s), ["similarity"] = Score.Similarity(dist) };
+                }
             case "why": return Score.Why(At(a, 0), At(a, 1)).Select(x => (object?)x).ToList();
             case "appliesUnasked": return Score.AppliesUnasked(At(a, 0) is double d ? d : null);
             case "titleDist": return Score.TitleDist(At(a, 0), At(a, 1));

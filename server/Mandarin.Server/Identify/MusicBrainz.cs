@@ -102,6 +102,8 @@ internal sealed partial class MusicBrainz(string? baseUrl, string version) : IRe
         // What tells one pressing from another, when the edition is chosen (item 414): its barcode and catalogue number.
         if (Js.Truthy(rel["barcode"])) c["barcode"] = rel["barcode"];
         if (L(rel["label-info"]).Select(x => O(x)["catalog-number"]).FirstOrDefault(Js.Truthy) is { } catno) c["catno"] = catno;
+        // And its label, for the kind of edition you choose (item 414b, Identifier.Review.cs).
+        if (L(rel["label-info"]).Select(x => O(x)["label"] is JsObj lb ? lb["name"] : null).FirstOrDefault(Js.Truthy) is { } label) c["label"] = label;
         c["discs"] = media.Count > 0 ? (double)media.Count : null;
         c["track_count"] = tracks.Count > 0 ? (double)tracks.Count : Js.Truthy(rel["track-count"]) ? rel["track-count"] : 0.0;
         c["tracks"] = tracks;

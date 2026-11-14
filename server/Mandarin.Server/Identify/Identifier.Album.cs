@@ -60,6 +60,9 @@ internal sealed partial class Identifier
         input["ids"] = IdsOf(c, al);
         input["context"] = ContextOf(c, al, rows);
         input["tocs"] = DiscToc.Of(c, al.Id).Select(t => (object?)t).ToList();
+        // What you said before (item 414b, Identifier.Review.cs): the releases turned down for it, the kinds of edition chosen.
+        input["declined"] = DeclinedFor(c, al.Key);
+        input["prefer"] = Preferences(c);
         return input;
     }
 
@@ -160,7 +163,8 @@ internal sealed partial class Identifier
             if (cands.Count == 0) return null;
             var verdict = Score.Decide(input, cands);
             var best = verdict.Best;
-            if (best == null || (!always && best.Distance > Score.Propose)) return null;
+            // Further off than "proposed" by name, but every track and length agreeing with what the files named (item 414b).
+            if (best == null || (!always && best.Distance > Score.Propose && !Confidence.Strong(input, best, by))) return null;
             return new Resolved(cands, Applied(verdict, by), by);
         }
         if (Js.Truthy(ids["mbid"]))
@@ -215,7 +219,8 @@ internal sealed partial class Identifier
                 c["score"] = x.N;
                 return c;
             }).ToList();
-            var r = Settle(await FetchBest(shared, input, have, 4, mb), "isrc");
+            // With the share of the sampled ISRCs found on it, for its reasons (item 414b).
+            var r = Settle((await FetchBest(shared, input, have, 4, mb)).Select(c => With(c, "isrc_of", Js.Num(most) + "/" + Js.Num(isrcs.Count))).ToList(), "isrc");
             if (r != null) return r;
         }
         // Then the tracks' exact lengths, as a CD's table of contents (item 414, Identifier.Editions.cs).
