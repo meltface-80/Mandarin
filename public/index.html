@@ -1105,6 +1105,7 @@
           <div id="ae-folder" class="ae-folder hidden" data-parity="album-edit.folder"></div>
           <div class="ae-cover-btns">
             <button id="ae-match-find" class="action-btn" type="button" data-parity="album-edit.match-find">Find match</button>
+            <button id="ae-match-sound" class="action-btn" type="button" data-parity="album-edit.match-sound">Match by sound</button>
           </div>
         </div>
       </div>
@@ -1118,6 +1119,12 @@
           <button id="ae-barcode-use" class="action-btn" type="button" data-parity="album-edit.barcode-use">Match</button>
         </div>
         <div id="ae-barcode-err" class="ae-err" data-parity="album-edit.barcode-err"></div>
+      </div>
+      <!-- Match by sound (item 419): the tracks fingerprinted and looked up on AcoustID, how far it has got, and the
+           releases they are on, a tap each to apply. -->
+      <div id="ae-sound" class="ae-search hidden">
+        <div id="ae-sound-status" class="ae-search-status" aria-live="polite" data-parity="album-edit.sound-status"></div>
+        <div id="ae-sound-cands" class="ae-mcands"></div>
       </div>
 
       <div class="ae-fields">
@@ -1564,6 +1571,8 @@
             <button id="acoustid-key-save" class="settings-update-btn" type="button" data-parity="settings-keys.save">Save</button>
           </div>
           <div id="acoustid-key-status" class="settings-token-status" data-parity="settings-keys.status"></div>
+          <!-- How far matching by sound has got (item 419): the albums matched so far, those still to look at. -->
+          <div id="acoustid-sound" class="settings-token-status hidden" data-parity="settings-keys.sound"></div>
         </div>
 
         <div class="settings-divider"></div>

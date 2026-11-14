@@ -65,6 +65,7 @@ import com.musicd.server.client.Palette
 import com.musicd.server.client.ReleaseCandidate
 import com.musicd.server.client.Said
 import com.musicd.server.client.ServerClient
+import com.musicd.server.client.SoundRelease
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -146,8 +147,13 @@ internal fun EditMatch(ed: AlbumEditor) {
             }
         }
         d?.folder?.let { AeFolder(it, d.boxLine, Modifier.parity("album-edit.folder")) }
-        val can = d != null && !ed.finding
-        AePill("Find match", Modifier.parity("album-edit.match-find", Contract.label("album-edit.match-find")).clickable(enabled = can) { ed.findMatch() }, enabled = can)
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            val can = d != null && !ed.finding
+            AePill("Find match", Modifier.parity("album-edit.match-find", Contract.label("album-edit.match-find")).clickable(enabled = can) { ed.findMatch() }, enabled = can)
+            // Match by sound (item 419): the tracks fingerprinted and looked up on AcoustID.
+            val canHear = d != null && !ed.sounding
+            AePill("Match by sound", Modifier.parity("album-edit.match-sound", Contract.label("album-edit.match-sound")).clickable(enabled = canHear) { ed.matchBySound() }, enabled = canHear)
+        }
     }
     val said = ed.asked ?: return
     HorizontalDivider(color = paletteColor(Palette.BORDER))
@@ -174,6 +180,37 @@ internal fun EditMatch(ed: AlbumEditor) {
         ed.barcodeErr?.let { AeErr(it, Modifier.parity("album-edit.barcode-err")) }
     }
     HorizontalDivider(Modifier.padding(bottom = 14.dp), color = paletteColor(Palette.BORDER))
+}
+
+/** Match by sound's section (item 419, the page's #ae-sound): how far it has got or its answer, and the releases the tracks are on, a tap each to apply. */
+@Composable
+internal fun EditSound(ed: AlbumEditor) {
+    val said = ed.soundSaid ?: return
+    HorizontalDivider(color = paletteColor(Palette.BORDER))
+    Column(Modifier.padding(top = 12.dp, bottom = 14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        AeSaid(said, Modifier.parity("album-edit.sound-status").padding(bottom = 4.dp))
+        ed.sound?.takeIf { it.finished }?.releases?.forEach { r ->
+            AeSoundRelease(r, ed.soundApplied == r.mbid, ed.matching,
+                Modifier.parity("album-edit.sound-release", Contract.label("album-edit.sound-release", 0, r.name)).clickable(enabled = !ed.matching) { ed.match(r.mbid, "sound") })
+        }
+    }
+    HorizontalDivider(Modifier.padding(bottom = 14.dp), color = paletteColor(Palette.BORDER))
+}
+
+/** A release the tracks are on by sound (.ae-mcand): its artist and title, how sure, what sets it apart and how many tracks agree, and why. */
+@Composable
+private fun AeSoundRelease(r: SoundRelease, picked: Boolean, busy: Boolean, modifier: Modifier) {
+    val shape = RoundedCornerShape(12.dp)
+    Column(modifier.fillMaxWidth().alpha(if (busy) 0.6f else 1f).clip(shape).background(paletteColor(Palette.BG_ELEV_2))
+        .border(1.dp, paletteColor(if (picked) Palette.ACCENT else Palette.BORDER), shape).padding(horizontal = 12.dp, vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(r.name, Modifier.weight(1f), color = paletteColor(Palette.TEXT), fontSize = 14.sp, lineHeight = 19.6.sp, fontWeight = FontWeight.W600, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(r.sure, color = paletteColor(if (r.accent) Palette.ACCENT_TEXT else Palette.TEXT_FAINT), fontSize = 12.sp, lineHeight = 16.sp,
+                fontWeight = if (r.accent) FontWeight.W700 else FontWeight.W400, style = TextStyle(fontFeatureSettings = "tnum"))
+        }
+        Text(r.line, color = paletteColor(Palette.TEXT_FAINT), fontSize = 11.sp, lineHeight = 15.sp)
+        r.why?.let { Text(it, Modifier.padding(top = 4.dp), color = paletteColor(Palette.TEXT_FAINT), fontSize = 12.5.sp, lineHeight = 17.5.sp) }
+    }
 }
 
 /** The title, the artist and the year (.ae-fields), each with what the files say under it once they differ; what went wrong; Save and Cancel; Undo all edits. */

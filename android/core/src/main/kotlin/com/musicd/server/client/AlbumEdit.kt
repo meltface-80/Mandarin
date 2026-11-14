@@ -54,11 +54,12 @@ data class AlbumMatch(val artist: String, val title: String, val year: String?, 
 
     companion object {
         private val BY = mapOf("musicbrainz-id" to "the files' MusicBrainz ID", "barcode" to "barcode", "catalogue-number" to "catalogue number", "isrc" to "ISRCs",
-            "disc-lengths" to "the tracks' lengths, as on the CD")
+            "disc-lengths" to "the tracks' lengths, as on the CD", "acoustid" to "sound")
 
         /** How it was found, as the page's aeMatchHow says it. */
         fun how(manual: String, by: String, fromPack: Boolean): String = when {
             manual == "edition" -> "edition chosen by you"
+            manual == "sound" -> "matched by sound, chosen by you"
             manual.isNotEmpty() -> "matched by " + when (manual) { "barcode" -> "barcode"; "pick" -> "you"; else -> "link" }
             by.isNotEmpty() -> "matched by " + (BY[by] ?: by) + if (fromPack) " (pack)" else ""
             else -> ""

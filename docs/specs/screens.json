@@ -583,7 +583,7 @@
       }
     },
     "album-edit": {
-      "page": "an album's editor (its ⋯, Edit album): the cover with Find cover, the covers found to choose from or an image's address pasted; the match applied, how sure and why, with the record's other editions to switch to; Find match, MusicBrainz's releases to apply or a barcode; the title, the artist and the year, each with what the files say; Save, Cancel, Undo all edits, and ✕",
+      "page": "an album's editor (its ⋯, Edit album): the cover with Find cover, the covers found to choose from or an image's address pasted; the match applied, how sure and why, with the record's other editions to switch to; Find match, MusicBrainz's releases to apply or a barcode; Match by sound, how far it has got and the releases the tracks are on by AcoustID, to apply; the title, the artist and the year, each with what the files say; Save, Cancel, Undo all edits, and ✕",
       "native": ["android/app/src/main/java/com/musicd/server/android/AlbumEditSheet.kt", "android/app/src/main/java/com/musicd/server/android/AlbumEditParts.kt"],
       "preview": false,
       "items": {
@@ -603,10 +603,13 @@
         "match-reasons": { "kind": "shows", "when": "a match applied, with its reasons" },
         "folder": { "kind": "shows", "when": "the album's folder is known" },
         "match-find": { "kind": "action", "label": "Find match" },
+        "match-sound": { "kind": "action", "label": "Match by sound" },
         "edition": { "kind": "action", "label": "{edition}", "each": true, "when": "a match applied, with other editions of the record near enough" },
         "match-search-status": { "kind": "shows", "when": "MusicBrainz asked" },
         "release": { "kind": "action", "label": "{release}", "each": true, "when": "MusicBrainz offers releases" },
         "barcode": { "kind": "action", "label": "Or the barcode, or a MusicBrainz link", "when": "MusicBrainz asked" },
+        "sound-status": { "kind": "shows", "when": "Match by sound asked: how far it has got (fingerprinting, AcoustID asked), or its answer (no key, the key refused, AcoustID busy or not reached, no match)" },
+        "sound-release": { "kind": "action", "label": "{release}", "each": true, "when": "Match by sound found releases the tracks are on" },
         "barcode-use": { "kind": "action", "label": ["Match", "Matching…"], "when": "MusicBrainz asked" },
         "barcode-err": { "kind": "shows", "when": "the barcode or link was refused" },
         "title": { "kind": "action", "label": "Title" },
@@ -699,7 +702,7 @@
       }
     },
     "settings-keys": {
-      "page": "Settings' API Keys (in Setup): Back, API Keys; Discogs, FanArt.tv, AcoustID, Last.fm and Last.fm's shared secret, each with its ⓘ, the box to paste the key into (its ✓ or ✕ once checked), Save, and what the server says of the key; then Scrobbling: what it is (the account connected, a sign-in waiting, plays waiting to go) and Connect to Last.fm or Disconnect",
+      "page": "Settings' API Keys (in Setup): Back, API Keys; Discogs, FanArt.tv, AcoustID, Last.fm and Last.fm's shared secret, each with its ⓘ, the box to paste the key into (its ✓ or ✕ once checked), Save, and what the server says of the key (AcoustID's with how many albums are matched by sound and still to look at); then Scrobbling: what it is (the account connected, a sign-in waiting, plays waiting to go) and Connect to Last.fm or Disconnect",
       "native": ["android/app/src/main/java/com/musicd/server/android/SettingsPanes.kt"],
       "preview": false,
       "items": {
@@ -711,6 +714,7 @@
         "check": { "kind": "shows", "each": true, "when": "the key checked by its service" },
         "save": { "kind": "action", "label": "Save", "each": true },
         "status": { "kind": "shows", "each": true },
+        "sound": { "kind": "shows", "when": "an AcoustID key saved: the albums matched by sound so far, those still to look at, and whether the Album Scanner is off or outside its hours" },
         "scrobble": { "kind": "action", "label": ["Connect to Last.fm", "Disconnect"], "when": "Scrobbling: Connect while no account is connected (Last.fm's page to allow Mandarin on), Disconnect while one is" },
         "scrobble-status": { "kind": "shows", "when": "Scrobbling: the account, a sign-in waiting on Last.fm, plays waiting to go, what went wrong" }
       }

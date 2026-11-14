@@ -147,6 +147,7 @@ test("item 419: Match by sound by hand — answers, kept fingerprints, one at a 
     assert.deepEqual([ed.title, ed.artist, ed.year], ["Hidden Gem", "Real Artist", "1999"]);
     assert.equal(ed.match.reasons[0], "matched by sound: 4 of 4 tracks, chosen by you");
     assert.equal(ed.match.manual, "sound");
+    assert.equal(ed.match.confidence, 95, "as sure as it was offered: the evidence is the scan's own");
     assert.ok(ctx.logs.some(l => /Rip 1 → Real Artist — Hidden Gem \(by sound/.test(l)), "said in the log");
     assert.deepEqual((await api("settings/acoustid-key")).sound, { matched: 1, waiting: 1, held: "off" });
 
