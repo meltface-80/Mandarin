@@ -214,7 +214,7 @@ scanBody.addEventListener("click", (e) => {
   const fi = e.target.closest("[data-id-find]");
   if (fi) {
     const it = listed(Number(fi.getAttribute("data-id-find")));
-    if (it) openAlbumEditor(it.album).then(() => { if (aeState && aeState.album === it.album) aeFindMatch(); });
+    if (it) openAlbumEditor(it.album).then(() => { if (aeState && aeState.album === it.album) { aeFindMatch(); ae.mBox.scrollIntoView({ block: "start" }); } });
     return;
   }
   const m = e.target.closest("[data-id-more]");

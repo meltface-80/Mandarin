@@ -128,8 +128,10 @@ internal static class Confidence
         else if (of > 0) reasons.Add($"{Js.Num(agree)} of {Js.Num(of)} tracks' lengths agree");
         var missing = N(p["missing_tracks"]);
         var extra = N(p["extra_tracks"]);
-        if (missing > 0) reasons.Add(Tracks(missing) + " fewer than this edition");
-        if (extra > 0) reasons.Add(Tracks(extra) + " more than this edition");
+        // A track more or fewer than the release; tracks on both sides that pair with nothing, said once.
+        if (missing > 0 && extra > 0) reasons.Add(Tracks(extra) + " here match none of this edition's");
+        else if (missing > 0) reasons.Add(Tracks(missing) + " fewer than this edition");
+        else if (extra > 0) reasons.Add(Tracks(extra) + " more than this edition");
         var titleOk = p["album"] is double al && al <= 0.05;
         var artistOk = p["artist"] is not double ar || ar == 0;
         // A row kept with no parts (one written by hand, or a test's) says nothing of the names.
