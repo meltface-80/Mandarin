@@ -192,8 +192,11 @@ def residual_spectrum(a: Audio, b: Audio, lag: int, g: np.ndarray, s0: int, s1: 
     total = float(pr.sum())
     above = float(pr[freqs >= IN_BAND_HZ].sum())
     loudest = max(bands, key=lambda x: x["residual_dbfs"] if x["residual_dbfs"] is not None else -1e9)
+    # Against the music: among the bands where the music is within 30 dB of its loudest band.
+    top = max(x["music_dbfs"] if x["music_dbfs"] is not None else -1e9 for x in bands)
     worst = max(bands, key=lambda x: (x["residual_dbfs"] - x["music_dbfs"])
-                if x["residual_dbfs"] is not None and x["music_dbfs"] is not None else -1e9)
+                if x["residual_dbfs"] is not None and x["music_dbfs"] is not None and x["music_dbfs"] >= top - 30
+                else -1e9)
     return {
         "bands": bands,
         "above_20k_share": above / total if total > 0 else 0.0,
