@@ -2,7 +2,7 @@
 // switch and hours, and its one Progress readout (Identify/AlbumScanner.cs, Identify/AlbumProgress.cs).
 //
 //   GET  /api/album-scanner   { on, schedule: { on, start, end }, albums, done, unidentified, proposed,
-//                               now: { reason, step, album }, unreachable? }
+//                               now: { reason, step, album, holding }, unreachable? }   holding: what plays (item 417b)
 //   POST /api/album-scanner { on?, schedule?, start?, end? }   the switches and the hours, and the same answer
 //
 // The older page's and app's own requests still do what they did, the four switches being this one now:

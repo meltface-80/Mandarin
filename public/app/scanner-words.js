@@ -2,7 +2,8 @@
  * Progress readout and what it is doing now. Plain text (the page escapes it where it puts it); the app says the same
  * (Scanner.kt: progressCount, nowLine); since item 414b a verdict's reasons and the other releases To confirm offers
  * (Scanner.kt: reasons, otherName); since item 414c why the albums left unsure aren't matched by sound (Scanner.kt:
- * soundNote). Tested on their own (test/scanner-words.test.js). */
+ * soundNote); since item 417b what holds it while music plays, by name (Scanner.kt: heldLine). Tested on their own
+ * (test/scanner-words.test.js). */
 const scanCount = n => Number(n || 0).toLocaleString();
 
 /* A verdict's reasons (item 414b), as its row says them: "found by its barcode · 12 of 12 tracks' lengths agree". */
@@ -28,6 +29,22 @@ function scanProgressWords(a) {
   return scanCount(a && a.done) + " of " + scanCount(all) + (all === 1 ? " album · " : " albums · ") + scanPercent(a) + "%";
 }
 
+/* "Living room", "Living room and Kitchen", "Den, Kitchen and Living room". */
+function scanNames(names) {
+  return names.length < 2 ? names.join("") : names.slice(0, -1).join(", ") + " and " + names[names.length - 1];
+}
+
+/* Paused while music plays, and where (item 417b, the server's now.holding): the rooms and phones playing by name;
+ * else a track made as it plays, for the room it is made for where that is known. */
+function scanHeldWords(holding) {
+  const list = holding || [];
+  const rooms = list.filter(h => h.kind !== "making" && h.name).map(h => h.name);
+  if (rooms.length) return "Paused while music plays in " + scanNames(rooms);
+  const making = list.find(h => h.kind === "making");
+  if (making) return making.name ? "Paused while a track is made for " + making.name : "Paused while a track is made as it plays";
+  return "Paused while music plays";
+}
+
 /* "Now: U2 — Pop · measuring loudness" while it works; else what it waits for, or that it is done. */
 function scanNowWords(a) {
   const now = (a && a.now) || {};
@@ -35,7 +52,7 @@ function scanNowWords(a) {
   switch (now.reason) {
     case "working": return now.album ? "Now: " + (now.album.artist ? now.album.artist + " — " : "") + now.album.title + " · " + now.step : "Now: on to the next album";
     case "waiting": return "Waiting for " + start;
-    case "playing": return "Paused while music plays";
+    case "playing": return scanHeldWords(now.holding);
     case "scanning": return "Paused while the library is scanned";
     case "unreachable": return "MusicBrainz isn't answering; trying again in a few minutes";
     case "done": return "All done";

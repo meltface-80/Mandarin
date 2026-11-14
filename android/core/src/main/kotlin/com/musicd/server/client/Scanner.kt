@@ -77,13 +77,29 @@ object Scanner {
         return when (now.text("reason")) {
             "working" -> if (album != null) "Now: " + names(album.text("artist"), album.text("title")) + " · " + now.text("step") else "Now: on to the next album"
             "waiting" -> "Waiting for " + scan.optJSONObject("schedule")?.text("start").orEmpty()
-            "playing" -> "Paused while music plays"
+            "playing" -> heldLine(now.optJSONArray("holding"))
             "scanning" -> "Paused while the library is scanned"
             "unreachable" -> "MusicBrainz isn't answering; trying again in a few minutes"
             "done" -> "All done"
             "later" -> "The rest are looked at again after the next library scan, or at night"
             else -> "Off"
         }
+    }
+
+    /** "Living room", "Living room and Kitchen", "Den, Kitchen and Living room" (the page's scanNames). */
+    fun nameList(list: List<String>): String = if (list.size < 2) list.joinToString("") else list.dropLast(1).joinToString(", ") + " and " + list.last()
+
+    /**
+     * Paused while music plays, and where (item 417b, the server's now.holding; the page's scanHeldWords): the rooms and
+     * phones playing by name; else a track made as it plays, for the room it is made for where that is known.
+     */
+    fun heldLine(holding: JSONArray?): String {
+        val list = (0 until (holding?.length() ?: 0)).mapNotNull { holding?.optJSONObject(it) }
+        val rooms = list.filter { it.text("kind") != "making" && it.text("name").isNotEmpty() }.map { it.text("name") }
+        if (rooms.isNotEmpty()) return "Paused while music plays in " + nameList(rooms)
+        val making = list.firstOrNull { it.text("kind") == "making" } ?: return "Paused while music plays"
+        val room = making.text("name")
+        return if (room.isNotEmpty()) "Paused while a track is made for $room" else "Paused while a track is made as it plays"
     }
 
     /** Why the albums left unsure aren't matched by sound (item 414c, the server's sound; the page's scanSoundNote); null when they are. */

@@ -67,6 +67,20 @@ class ScannerTest {
         assertNull(Scanner.soundNote(s))
     }
 
+    @Test fun `paused while music plays, and where (item 417b), as the page says it`() {
+        fun at(holding: String?) = Scanner.nowLine(j("""{"now":{"reason":"playing"${if (holding != null) ",\"holding\":$holding" else ""}}}"""))
+        fun room(name: String, kind: String = "room") = """{"kind":"$kind","name":"$name","state":"playing","since":1,"heard":2,"track":null}"""
+        assertEquals("Paused while music plays in Living room", at("[${room("Living room")}]"))
+        assertEquals("Paused while music plays in Kitchen and Living room", at("[${room("Kitchen")},${room("Living room")}]"))
+        assertEquals("Paused while music plays in Den, Pixel 8 and Living room", at("[${room("Den")},${room("Pixel 8", "phone")},${room("Living room")}]"))
+        val making = """{"kind":"making","name":"Lounge","state":"making","track":"01 Long"}"""
+        assertEquals("Paused while music plays in Lounge", at("[${room("Lounge")},$making]"))
+        assertEquals("Paused while a track is made for Lounge", at("[$making]"))
+        assertEquals("Paused while a track is made as it plays", at("""[{"kind":"making","name":null,"state":"making","track":"01 Long"}]"""))
+        assertEquals("Paused while music plays", at(null))
+        assertEquals("Paused while music plays", at("[]"))
+    }
+
     @Test fun `the folders, Unidentified always, To confirm only while there are proposals`() {
         val both = Scanner.folders(j("""{"unidentified":1204,"proposed":3}"""))
         assertEquals(listOf("Unidentified" to 1204, "To confirm" to 3), both.map { it.title to it.count })

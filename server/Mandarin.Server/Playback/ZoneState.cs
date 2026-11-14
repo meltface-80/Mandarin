@@ -46,6 +46,10 @@ internal sealed class ZoneState
     public string Loop = "disabled";          // disabled | loop | loop_one
     public double At;                         // ms, when read
     public double LoadingSince;               // ms, when it began loading this track (0: not known, At); item 417
+    public double Since;                      // ms, when it came to this state (0: not known, At); item 417b
+    // What the device itself names as playing (its TrackURI), as last read; "" where not read or not said (item 417b):
+    // a Sonos on its TV input or another app, a renderer played by something else, isn't playing Mandarin's music.
+    public string DeviceUri = "";
     public bool Unreachable;
     public Volume? VolumeValue;
     // The phone's own (phones.js report): its own list, its cover and album, the file's extension.
@@ -85,6 +89,7 @@ internal sealed class ZoneState
         if (next.TrackUri != TrackUri || next.TrackNumber != TrackNumber) next.PlayedLogged = next.LowFired = next.Scrobbled = next.Announced = false;
         next.At = Hub.Now();
         next.LoadingSince = LoadingFrom(this, next);
+        next.Since = SinceFrom(this, next);
         return next;
     }
 
@@ -95,6 +100,9 @@ internal sealed class ZoneState
      */
     public static double LoadingFrom(ZoneState prev, ZoneState next) => next.State != "loading" ? 0
         : prev.State == "loading" && prev.TrackUri == next.TrackUri && prev.LoadingSince > 0 ? prev.LoadingSince : next.At;
+
+    /* When [next] came to its state: [prev]'s time where it was in it already, else now (its At); for what holds the Album Scanner (item 417b). */
+    public static double SinceFrom(ZoneState prev, ZoneState next) => prev.State == next.State && prev.Since > 0 ? prev.Since : next.At;
 }
 
 /* One output as zones.js outputJson() gives it; volume null for a renderer whose volume is fixed on the device. */
