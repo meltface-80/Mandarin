@@ -24,7 +24,7 @@ data class BoxPart(val name: String, val disc: Int, val of: Int)
  */
 data class EditState(val offset: Long, val folder: String?, val box: BoxPart?, val title: String, val artist: String, val year: String,
                      val scanned: Map<String, String>, val edited: Boolean, val imageKey: String?, val artOwn: Boolean, val artFound: Boolean,
-                     val artSource: String?, val match: AlbumMatch? = null) {
+                     val artSource: String?, val match: AlbumMatch? = null, val version: Map<String, VersionField> = emptyMap()) {
     /** The box set it is part of, as the folder line says it. */
     val boxLine: String? get() = box?.let { "From " + it.name + " · disc " + it.disc + " of " + it.of }
 
@@ -35,7 +35,8 @@ data class EditState(val offset: Long, val folder: String?, val box: BoxPart?, v
             val box = j.optJSONObject("box")?.let { BoxPart(it.optString("name"), it.optInt("disc"), it.optInt("of")) }
             return EditState(j.optLong("offset"), text(j, "folder"), box, text(j, "title").orEmpty(), text(j, "artist").orEmpty(), text(j, "year").orEmpty(),
                 listOf("title", "artist", "year").associateWith { text(s, it).orEmpty() }, j.optBoolean("edited"), text(j, "image_key"),
-                art.optBoolean("own"), art.optBoolean("found"), text(art, "source"), j.optJSONObject("match")?.let(AlbumMatch::parse))
+                art.optBoolean("own"), art.optBoolean("found"), text(art, "source"), j.optJSONObject("match")?.let(AlbumMatch::parse),
+                AlbumVersionEdit.parse(j.optJSONObject("version")))   // the copy's version (item 420)
         }
     }
 }
@@ -199,9 +200,10 @@ object AlbumEdit {
     fun searchFailed(why: String) = "The search didn't work ($why). You can still paste an image address below."
     fun matchFailed(why: String) = "The search didn't work ($why). You can still enter a barcode below."
 
-    /** Save's request: the names as typed and the year, and the cover chosen (an address and its source, or "remove"). */
-    fun saveBody(offset: Long, title: String, artist: String, year: String, pick: CoverPick?): JSONObject {
+    /** Save's request: the names as typed and the year, the version's fields (item 420, when the editor has them), and the cover chosen (an address and its source, or "remove"). */
+    fun saveBody(offset: Long, title: String, artist: String, year: String, pick: CoverPick?, version: Map<String, String>? = null): JSONObject {
         val body = JSONObject().put("offset", offset).put("title", title).put("artist", artist).put("year", year.trim())
+        version?.let { body.put("version", AlbumVersionEdit.body(it)) }
         if (pick?.remove == true) body.put("art", "remove")
         else if (pick != null) body.put("art_url", pick.url).put("art_source", if (pick.source == CoverPick.PASTED) pick.url else pick.source)
         return body

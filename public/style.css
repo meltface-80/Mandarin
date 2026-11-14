@@ -4747,6 +4747,15 @@ input.vol-range::-moz-range-thumb {
 .ae-foot { display: flex; gap: 10px; margin-top: 20px; }
 .ae-foot .action-btn { flex: 1 1 0; }
 .ae-reset { display: block; margin: 14px auto 0; }
+/* This copy's version (item 420): under a rule, its name across, the rest two a row (one a row on a narrow phone). */
+.ae-version { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--border); }
+.ae-vhead { margin: 0; font-size: 15px; font-weight: 600; color: var(--text); }
+.ae-vnote { margin: 4px 0 0; font-size: 12.5px; line-height: 1.4; color: var(--text-faint); }
+.ae-vgrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 10px; }
+.ae-vfield { min-width: 0; }
+.ae-vfield.ae-vwide { grid-column: 1 / -1; }
+.ae-vfield .ae-was { overflow-wrap: anywhere; }
+@media (max-width: 340px) { .ae-vgrid { grid-template-columns: minmax(0, 1fr); } }
 
 /* No zooming, anywhere. touch-action is not inherited through a scroller
    (<main>, the sheets), so html/body alone left every screen's content
