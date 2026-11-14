@@ -4,7 +4,7 @@
 //
 //   { ok, version, albums, rooms, ffmpeg, soxr,
 //     transcode_cache: { files, bytes, running, queued }, audio_engine,
-//     busy: { any, playing, scanning, making } — asked from this machine alone (item 389: Mandarin OS's upkeep) }
+//     busy: { any, playing, playing_in, scanning, making } — asked from this machine alone (item 389: Mandarin OS's upkeep) }
 //
 // The rooms are the hub's (Playback/Hub.cs); the rest: the library's count,
 // ffmpeg, the conversions (made here since v0.8.40), and the audio engine,
@@ -36,11 +36,20 @@ internal static partial class Library
         };
         // Asked from this machine alone (Mandarin OS's weekly upkeep, its system page): whether anything is under way, so
         // an update or a restart waits for nothing to be playing, scanned or made. Never said to another machine.
+        // Playing (item 421): the rooms and phones playing Mandarin's own music, in use, as the Album Scanner counts them
+        // (Hub.Holding, item 417b), by name in playing_in: a hidden Sonos playing a film from the TV holds back no update.
         if (System.Net.IPAddress.TryParse(Caller.ClientIp(ctx), out var ip) && System.Net.IPAddress.IsLoopback(ip))
         {
-            var playing = Playback.Hub.Current?.Playing() ?? 0;
+            var holding = Playback.Hub.Current?.Holding() ?? [];
             var making = Upsample.MadeAsPlayed.Making;
-            o["busy"] = new JsonObject { ["any"] = playing > 0 || Scans.Running || making > 0, ["playing"] = playing, ["scanning"] = Scans.Running, ["making"] = making };
+            o["busy"] = new JsonObject
+            {
+                ["any"] = holding.Count > 0 || Scans.Running || making > 0,
+                ["playing"] = holding.Count,
+                ["playing_in"] = new JsonArray(holding.Select(h => (JsonNode)h.Name).ToArray()),
+                ["scanning"] = Scans.Running,
+                ["making"] = making
+            };
         }
         return Send(ctx, o);
     }
