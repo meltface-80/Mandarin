@@ -100,6 +100,7 @@ internal static class Confidence
         if (manual == "edition") return "you chose this edition";
         if (manual == "barcode") return "you matched it by its barcode";
         if (manual == "link") return "you matched it by a MusicBrainz link";
+        if (manual == "sound") return $"matched by sound: {Js.Num(Share(c, "sound_of").N)} of {Js.Num(Share(c, "sound_of").Of)} tracks, chosen by you";   // item 419
         if (manual.Length > 0) return "you chose it";
         if (S(c["source"]) == "itunes") return by == "barcode" ? "found on iTunes by its barcode" : "found on iTunes by name";
         switch (by)
@@ -157,7 +158,8 @@ internal static class Confidence
 
         var value = Score.Similarity(s.Distance);
         var all = !noLengths && missing == 0 && extra == 0 && of >= 2 && agree == of;
-        if (!manual && ById(by))
+        // A release chosen by hand is as sure as its names, unless it was offered by Match by sound (item 419): its evidence is the scan's own.
+        if ((!manual || S(c["manual"]) == "sound") && ById(by))
         {
             var floor = Floor[by];
             if (by == "isrc") { var (n, k) = IsrcShare(c); floor = 85 + (int)Js.Round(10 * n / k); }
