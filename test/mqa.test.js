@@ -173,11 +173,22 @@ test("MQA: found in the samples, shown, filtered, played untouched to an MQA DAC
   assert.deepEqual(p.np.mqa, STUDIO, "still MQA, not sent untouched");
   await api("control", { zone_or_output_id: W, command: "stop" });
 
-  // A file changed is looked at again: its first track plain now, it and its album are no longer MQA.
+  // A file changed is looked at again: its first track plain now, it and its album are no longer MQA (as soon as the
+  // scan has it, the row kept for the file as it was no longer its own)...
+  const rescan = async () => assert.equal((await fetch(B + "/api/library/rescan", { method: "POST", headers: { Authorization: "Bearer " + token } })).status, 200);
   await sleep(1100);   // a modification time of its own
   mqaFlac(kob(1), { kind: "plain", seed: 99, tags: tags("Quartet", "Kind of Blue", 1) });
-  assert.equal((await fetch(B + "/api/library/rescan", { method: "POST", headers: { Authorization: "Bearer " + token } })).status, 200);
-  const again = await until(async () => { const a = await api("album?offset=" + kb.offset); return a.tracks && !a.tracks[0].mqa && a.tracks[1].mqa && a; }, 60000, "the changed file looked at again");
-  assert.equal(again.album.mqa, undefined, "the album, no longer every track MQA");
+  await rescan();
+  const plain = await until(async () => { const a = await api("album?offset=" + kb.offset); return a.tracks && !a.tracks[0].mqa && a.tracks[1].mqa && a; }, 60000, "the changed file");
+  assert.equal(plain.album.mqa, undefined, "the album, no longer every track MQA");
   assert.equal((await api("library/facets")).facets.find(f => f.id === "mqa"), undefined);
+  // ...and MQA of another kind (plain MQA, 96 kHz original) once looked at again: only the pass can say that.
+  await sleep(1100);
+  mqaFlac(kob(1), { studio: false, original: 96000, seed: 5, tags: tags("Quartet", "Kind of Blue", 1) });
+  await rescan();
+  const looked = await until(async () => { const a = await api("album?offset=" + kb.offset); return a.tracks && a.tracks[0].mqa && a.tracks[0].mqa.original_rate === 96000 && a; }, 60000, "the changed file looked at again");
+  assert.deepEqual(looked.tracks.map(x => x.mqa), [{ studio: false, original_rate: 96000, bits: 24 }, STUDIO]);
+  assert.deepEqual(looked.album.mqa, { studio: false, original_rate: 352800, bits: 24 }, "MQA, not Studio: not every track is");
+  const facetAfter = (await api("library/facets")).facets.find(f => f.id === "mqa");
+  assert.deepEqual(facetAfter.values.map(v => [v.value, v.count]), [["MQA", 1]]);
 });

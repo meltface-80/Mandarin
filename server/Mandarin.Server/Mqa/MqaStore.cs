@@ -30,7 +30,7 @@ internal static class MqaStore
     public const string Join = "LEFT JOIN track_mqa m ON m.path = t.path AND m.size = t.size AND m.mtime = t.mtime";
 
     private static int generation;
-    private static (int Gen, Dictionary<long, AlbumMqa> Albums)? albums;
+    private static (int Gen, object? Of, Dictionary<long, AlbumMqa> Albums)? albums;
     private static readonly object gate = new();
 
     /* Bumped whenever something is kept: what is read by album is read again. */
@@ -74,13 +74,15 @@ internal static class MqaStore
         if (found.Mqa || was) Library.ForgetAllKept();
     }
 
-    /* The MQA tracks among [ids] (the file as it is now): each one's signalling and depth. */
+    /*
+     * The MQA tracks among [ids] (the file as it is now): each one's signalling and depth. Read only, never the table
+     * made here (CREATE TABLE IF NOT EXISTS waits for a write held elsewhere, and so would the page): none before it is.
+     */
     public static Dictionary<long, (MqaInfo Info, int Bits)> Of(SqliteConnection c, IEnumerable<long> ids)
     {
         var list = ids.Distinct().ToList();
         var o = new Dictionary<long, (MqaInfo, int)>();
-        if (list.Count == 0) return o;
-        Ensure(c);
+        if (list.Count == 0 || (Generation == 0 && !Exists(c))) return o;
         using var cmd = c.CreateCommand();
         cmd.CommandText = $"SELECT t.id, m.studio, m.original_rate, t.bits FROM tracks t {Join} WHERE m.mqa = 1 AND t.id IN (SELECT value FROM json_each($ids))";
         cmd.Parameters.AddWithValue("$ids", "[" + string.Join(",", list) + "]");
@@ -88,6 +90,13 @@ internal static class MqaStore
         while (r.Read())
             o[r.GetInt64(0)] = (new MqaInfo(true, r.GetInt64(1) == 1, r.IsDBNull(2) ? 0 : (int)r.GetInt64(2)), r.IsDBNull(3) ? 0 : (int)r.GetDouble(3));
         return o;
+    }
+
+    private static bool Exists(SqliteConnection c)
+    {
+        using var cmd = c.CreateCommand();
+        cmd.CommandText = "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'track_mqa'";
+        return cmd.ExecuteScalar() != null;
     }
 
     /* As the album page, the lists and Now playing give it: { studio, original_rate, bits } (the page and the app word it). */
@@ -105,16 +114,18 @@ internal static class MqaStore
         catch (SqliteException) { return null; }
     }
 
-    /* The MQA albums, by id: every track of it looked at MQA. */
-    public static Dictionary<long, AlbumMqa> Albums()
+    /*
+     * The MQA albums, by id: every track of it looked at MQA. Read again when something new was kept, and for each copy
+     * of the library [of] (a scan that changed a file leaves its MQA row behind until it is looked at again).
+     */
+    public static Dictionary<long, AlbumMqa> Albums(object? of)
     {
         var gen = Generation;
-        lock (gate) if (albums is { } a && a.Gen == gen) return a.Albums;
+        lock (gate) if (albums is { } a && a.Gen == gen && ReferenceEquals(a.Of, of)) return a.Albums;
         var o = new Dictionary<long, AlbumMqa>();
         try
         {
             using var c = Db.Open();
-            Ensure(c);
             using var cmd = c.CreateCommand();
             cmd.CommandText = $@"SELECT t.album_id, MIN(COALESCE(m.mqa, 0)), MIN(COALESCE(m.studio, 0)), MAX(m.original_rate), MAX(t.bits)
                 FROM tracks t {Join} WHERE t.album_id IS NOT NULL GROUP BY t.album_id HAVING MIN(COALESCE(m.mqa, 0)) = 1";
@@ -122,8 +133,8 @@ internal static class MqaStore
             while (r.Read())
                 o[(long)r.GetDouble(0)] = new AlbumMqa(r.GetInt64(2) == 1, r.IsDBNull(3) ? 0 : (int)r.GetInt64(3), r.IsDBNull(4) ? 0 : (int)r.GetDouble(4));
         }
-        catch (SqliteException) { return o; }
-        lock (gate) albums = (gen, o);
+        catch (SqliteException) { /* no table yet (nothing looked at): none, kept as that until something is */ }
+        lock (gate) albums = (gen, of, o);
         return o;
     }
 }

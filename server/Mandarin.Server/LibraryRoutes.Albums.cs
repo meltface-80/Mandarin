@@ -51,7 +51,7 @@ internal static partial class Library
         defs.Add(new("bits", "Bit depth", "numeric-asc", v => v + "-bit",
             al => al.Bits != null ? [al.Bits.Value.ToString(CultureInfo.InvariantCulture)] : []));
         // MQA (item 418): its every track, MQA Studio among them where every one is that.
-        var mqa = Mqa.MqaStore.Albums();
+        var mqa = Mqa.MqaStore.Albums(s);
         defs.Add(new("mqa", "MQA", null, null, al => mqa.TryGetValue(al.Id, out var m) ? m.Studio ? ["MQA", "MQA Studio"] : ["MQA"] : []));
         defs.Add(new("letter", "Starts with", null, null, al =>
         {
