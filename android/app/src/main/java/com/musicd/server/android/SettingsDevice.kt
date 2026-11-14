@@ -219,8 +219,8 @@ internal fun DevicePane(id: String, client: () -> ServerClient?, onBack: () -> U
                     }
                     DeviceNote(d.albumStreamNote, Modifier.parity("settings-device.note"))
                 } }
-                // This DAC decodes MQA (item 418): its MQA tracks sent untouched, for it to decode.
-                CapGroup("MQA", Modifier.parity("settings-device.cap-label")) {
+                // This DAC decodes MQA (item 418): its MQA tracks sent untouched, for it to decode; not a phone's.
+                if (d.kind != "phone") CapGroup("MQA", Modifier.parity("settings-device.cap-label")) {
                     Box(Modifier.padding(top = 8.dp)) {
                         SetupRow("This DAC decodes MQA", Modifier.parity("settings-device.name"), null) {
                             Toggle(d.mqaDac, Modifier.parity("settings-device.mqa-dac", Contract.label("settings-device.mqa-dac")).clickable(enabled = !busy) { patch(Mqa.dacPatch(!d.mqaDac)) })
