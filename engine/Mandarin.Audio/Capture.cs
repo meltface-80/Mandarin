@@ -54,6 +54,7 @@ internal sealed partial class Capture(Action<string> emit, Action<string> log)
     private Fed? stream;                            // the recording's
     private long target, taken, partTarget, partTaken;
     private int partN;
+    private bool partOpen;
     private double startedAt;
     private long xrunsBefore;
     private List<(long Frame, string Why)> interruptions = [];
@@ -76,7 +77,7 @@ internal sealed partial class Capture(Action<string> emit, Action<string> log)
             seconds = Math.Clamp(secs, 1, partSeconds > 0 ? MaxWhole : MaxSeconds);
             afterFlush = flush; flushedSinceArmed = false; armedOn = current?.Id ?? 0;
             (dir, tool, about) = (into, by, said);
-            why = ""; taken = target = partTaken = partTarget = 0; partN = 0; stream = null;
+            why = ""; taken = target = partTaken = partTarget = 0; partN = 0; stream = null; partOpen = false;
             interruptions = [];
             waiting.Clear();
             Restart();
@@ -134,13 +135,14 @@ internal sealed partial class Capture(Action<string> emit, Action<string> log)
             int at = 0;
             while (left > 0 && state == "recording")
             {
+                // The next part begun on the very next byte after the last's, nothing between them; none begun with nothing to hold.
+                if (!partOpen && !OpenPart(o)) break;
                 int n = (int)Math.Min(left, partTarget - partTaken);
                 if (!Put(new ReadOnlySpan<byte>(data + at, n))) { Fail("the recording couldn't be written fast enough"); return; }
                 wrote = true;
                 taken += n; partTaken += n; at += n; left -= n;
                 if (taken >= target) { Finish("done"); break; }
-                // A part full: the next begun on the very next byte, nothing between them.
-                if (partTaken >= partTarget) { Close("part"); if (!OpenPart(o)) break; }
+                if (partTaken >= partTarget) Close("part");
             }
         }
         if (wrote) Wake();
@@ -167,7 +169,7 @@ internal sealed partial class Capture(Action<string> emit, Action<string> log)
             if (state != "recording" || o == null || taken == 0) return;
             // A second flush within its first second (a restart flushes more than once): begun again, from it.
             if (BegunAgain(o)) return;
-            interruptions.Add((partTaken / o.FrameBytes, "flush"));
+            interruptions.Add((partOpen ? partTaken / o.FrameBytes : 0, "flush"));
         }
     }
 
@@ -182,7 +184,7 @@ internal sealed partial class Capture(Action<string> emit, Action<string> log)
             if (afterFlush && partN == 1 && taken < (long)o.Rate * o.FrameBytes)
             {
                 Queue(new DiscardOp(gen, written));
-                taken = partTaken = 0; partN = 0; stream = null;
+                taken = partTaken = 0; partN = 0; stream = null; partOpen = false;
                 state = "armed"; flushedSinceArmed = true; armedOn = -1;
                 return;
             }
@@ -222,7 +224,7 @@ internal sealed partial class Capture(Action<string> emit, Action<string> log)
         if (Free(dir) < need + (64L << 20)) { Fail($"not enough space for {need >> 20} MB"); return false; }
         Queue(new OpenOp(gen, written, PartFile(partN), CaptureFiles.Header(o, 0)));
         xrunsBefore = Xruns();
-        interruptions = [];
+        partOpen = true;
         return true;
     }
 
@@ -233,6 +235,8 @@ internal sealed partial class Capture(Action<string> emit, Action<string> log)
         var part = new CaptureFiles.Part(partN, (taken - partTaken) / o.FrameBytes, partTaken, reason, seconds, startedAt, Math.Max(0, Xruns() - xrunsBefore), interruptions);
         Queue(new CloseOp(gen, written, PartFile(partN), Wav(partN), CaptureFiles.Header(o, partTaken),
             CaptureFiles.Sidecar(tool, about, o, part), partN, reason, partTaken / o.FrameBytes, partSeconds > 0));
+        partOpen = false;
+        interruptions = [];
     }
 
     // Ended (lock held): the last part finished.
@@ -243,14 +247,15 @@ internal sealed partial class Capture(Action<string> emit, Action<string> log)
         if (stream == null) { state = "idle"; return; }
         why = reason;
         state = "finishing";
-        Close(reason);
+        // The part under way finished; or with none (the last full as it ended), the end said once the parts before it are.
+        if (partOpen) Close(reason); else Queue(new EndOp(gen, written));
     }
 
     // Failed (lock held): the part being written let go; those done are kept.
     private void Fail(string reason)
     {
         listening = false;
-        why = reason; state = "failed"; dirty = true;
+        why = reason; state = "failed"; dirty = true; partOpen = false;
         Restart();
     }
 

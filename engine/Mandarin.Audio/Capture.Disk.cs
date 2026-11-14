@@ -13,6 +13,7 @@ internal sealed partial class Capture
     private sealed record OpenOp(int Gen, long At, string Path, byte[] Header) : Op(Gen, At);
     private sealed record CloseOp(int Gen, long At, string Part, string Wav, byte[] Header, string Sidecar, int N, string Reason, long Frames, bool InParts) : Op(Gen, At);
     private sealed record DiscardOp(int Gen, long At) : Op(Gen, At);
+    private sealed record EndOp(int Gen, long At) : Op(Gen, At);
 
     private byte[]? ring;
     private long written, drained;                  // bytes into the ring, and out of it to disk, since the start
@@ -97,6 +98,9 @@ internal sealed partial class Capture
                             break;
                         case DiscardOp:
                             Discard(ref file, path);
+                            break;
+                        case EndOp:
+                            lock (gate) if (gen == op.Gen && state == "finishing") { state = "done"; dirty = true; }
                             break;
                     }
                     lock (gate) if (gen == g && ops.Count > 0 && ops[0] == op) ops.RemoveAt(0);
