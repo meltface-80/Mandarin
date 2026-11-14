@@ -88,6 +88,10 @@ jobs:
       # offered by a stand-in GitHub. Built before the image, as the runner's user: root's build after it leaves it alone.
       - name: The next Mandarin, for the in-app update
         run: ./os/test/next-mandarin.sh "$RUNNER_TEMP/next-mandarin"
+      # The boot test's Bridge update (item 415): Mandarin Bridge as this commit, installed on the box with the service
+      # from before 0.3.12, and as 9.9.9, the update a stand-in GitHub offers it. Built as next-mandarin is.
+      - name: The Bridge and its next, for the Bridge's update
+        run: ./os/test/next-bridge.sh "$RUNNER_TEMP/next-bridge"
       - name: Build
         run: |
           set -e
@@ -98,7 +102,7 @@ jobs:
           ls -la os/*.raw
       - name: Installed and started in a virtual machine
         # The runner's PATH: the in-app update's scripts run on setup-node's node, which sudo's own PATH leaves out.
-        run: sudo env "PATH=$PATH" ./os/test/boot-test.sh os/mandarin-os_$(cat os/VERSION).raw "$RUNNER_TEMP/next-mandarin/mandarin-server"
+        run: sudo env "PATH=$PATH" ./os/test/boot-test.sh os/mandarin-os_$(cat os/VERSION).raw "$RUNNER_TEMP/next-mandarin/mandarin-server" "$RUNNER_TEMP/next-bridge"
       - name: Pack
         run: |
           set -e

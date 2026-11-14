@@ -1,5 +1,10 @@
 # Mandarin OS changelog
 
+## v0.1.7
+
+- Fixed - Mandarin Bridge installed on the box couldn't update itself from Mandarin's Settings → Updates: "The update couldn't be installed: mandarin-bridge couldn't be run (…, Permission denied)" (item 415). Its service ran as a DynamicUser, and Debian 13's systemd mounts a DynamicUser's data folder so nothing in it can be run, the Bridge's update included. The Bridge now runs as a user of its own, mandarin-bridge, numbered 3503 in every version of Mandarin OS (as Mandarin's user is 3500), with the same limits as before; a Bridge installed before (its service carried from version to version) runs so by a drop-in of Mandarin OS's own (mandarin-bridge.service.d), its data folder kept and made its own: who it is to Mandarin, its settings and its logs. An update of Mandarin OS refuses a version that numbers the Bridge's user otherwise. Updated to 0.1.7 (the system page, Settings → Update and restart), the Bridge then updates from Settings → Updates
+- New - the boot test proves it: a Bridge installed with the service from before (a DynamicUser's, its data folder as systemd 257 left it), updated by its own update from a stand-in GitHub, comes back as the new version with who it is to Mandarin kept, and is still that version after Mandarin OS updates itself in place
+
 ## v0.1.6
 
 - Changed - the reinstaller's folder, Installer, is at the top of the shared folder (smb://<box>/data/Installer), beside Storage rather than in it (item 406); one in Storage is moved there, what was in it kept.

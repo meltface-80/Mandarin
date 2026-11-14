@@ -10,6 +10,10 @@ V="$(cat /var/cache/mandarin-release/version)"
 # The shared folder's user is 3501 and its group 3502 (apply). install.sh keeps a user that is there.
 groupadd --system --gid 3500 mandarin
 useradd --system --uid 3500 --gid mandarin --groups audio --home-dir /data/MandarinServer --no-create-home --shell /usr/sbin/nologin mandarin
+# Mandarin Bridge's, 3503 (item 415): its service runs as it (the Bridge's own and mandarin-bridge.service.d's), and its
+# data folder, carried from version to version, is its own. install.sh keeps it.
+groupadd --system --gid 3503 mandarin-bridge
+useradd --system --uid 3503 --gid mandarin-bridge --home-dir /var/lib/mandarin-bridge --no-create-home --shell /usr/sbin/nologin mandarin-bridge
 # A build of this checkout's (os/mandarin-from-source.sh) carries the key it was signed with; a release, the release key.
 KEY="$(cat /var/cache/mandarin-release/build.pub 2>/dev/null || true)"
 env MANDARIN_RELEASES=file:///var/cache/mandarin-release MANDARIN_VERSION="$V" ${KEY:+"MANDARIN_RELEASE_KEY=$KEY"} \

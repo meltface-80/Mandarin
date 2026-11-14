@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.3.12
+
+- Fixed - the Linux Bridge couldn't update itself on Mandarin OS, or on any computer with systemd 256 or newer (Debian 13, Ubuntu 24.10 and later): "The update couldn't be installed: mandarin-bridge couldn't be run (ErrorStartingProcess, …, Permission denied)", with the download, its checksum and its signature all good (item 415). Its service ran as a DynamicUser, and from systemd 256 a DynamicUser's data folder is mounted so nothing in it can be run, the update the Bridge fetches into it included. It runs as a user of its own now, mandarin-bridge, which install.sh makes, with the same limits as before (the system read-only but for its data folder, its own /tmp, no new privileges). Installed again, a Bridge keeps its data folder (who it is to Mandarin, its settings, its logs): install.sh makes it the Bridge's (a DynamicUser's is nobody's, which systemd would still mount so nothing in it runs), and systemd moves it back from /var/lib/private. On Mandarin OS, Mandarin OS 0.1.7 does the same for the Bridge already installed. The Raspberry Pi image's Bridge runs as root, as it always has
+- Improved - an update a computer won't run from the Bridge's data folder says so, and what to do (on Mandarin OS, update Mandarin OS; elsewhere, run the install line again), in place of .NET's "ErrorStartingProcess"
+- Improved - Mandarin Bridge is 0.3.12
+
 ## v0.3.11
 
 - New - the Linux Bridge (and the Pi's) records what it feeds the DAC for Mandarin's bit-perfect check and SQ-tool (item 412), as the Android Bridge does: the same /capture (a recording in one piece of up to two minutes, or a whole track in parts from the track played again), the same WAV and sidecar. The bytes are those Mandarin's audio engine hands ALSA for the DAC, after every conversion it makes: its 32-bit words, DoP under its markers, native DSD words either way round. Made only when asked, written on a thread of its own so a slow disk never holds the music up, kept in the Bridge's own data folder and let go as Mandarin fetches it. Before, Mandarin told a Linux Bridge's room to update an app that had no recording to update to

@@ -27,11 +27,26 @@ tar -xzf "$TMP/bridge.tar.gz" -C "$TMP"
 command -v ffmpeg >/dev/null 2>&1 || { echo "Installing ffmpeg…"; apt-get update -q && apt-get install -y -q --no-install-recommends ffmpeg; }
 mkdir -p /usr/lib/mandarin-bridge
 install -m 755 "$TMP/mandarin-bridge/mandarin-bridge" "$TMP/mandarin-bridge/mandarin-audio" /usr/lib/mandarin-bridge/
+# Its own user and group (item 415), kept where they are (Mandarin OS makes them, numbered the same in every version).
+# It ran as a DynamicUser before: from systemd 256 nothing in a DynamicUser's data folder can be run, its update
+# included. systemd moves that data folder back from /var/lib/private as the service starts, and the service makes it
+# the Bridge's: who it is to Mandarin, its settings and its logs kept.
+if ! id -u mandarin-bridge >/dev/null 2>&1; then
+  getent group mandarin-bridge >/dev/null 2>&1 || groupadd --system mandarin-bridge
+  useradd --system --gid mandarin-bridge --no-create-home --home-dir /var/lib/mandarin-bridge --shell /usr/sbin/nologin mandarin-bridge
+fi
 install -m 644 "$TMP/mandarin-bridge/mandarin-bridge.service" /etc/systemd/system/mandarin-bridge.service
 # An update the Bridge fetched itself (its data folder's app/, run in place of the program installed) gives way to the
 # program installed now (item 385): left there, the Bridge went on running it. Its data folder is systemd's, under
-# /var/lib/private where it runs as a DynamicUser.
+# /var/lib/private where it ran as a DynamicUser (before 0.3.12).
 rm -rf /var/lib/mandarin-bridge/app /var/lib/private/mandarin-bridge/app
+# Its data folder made its own, the Bridge stopped first (item 415): a DynamicUser's is nobody's from systemd 256, and
+# systemd mounts a folder of nobody's ID-mapped, nothing in it run, even with DynamicUser off. Only the service's own
+# ExecStartPre can't do it: systemd runs that inside the same mount.
+systemctl stop mandarin-bridge >/dev/null 2>&1 || true
+for d in /var/lib/private/mandarin-bridge /var/lib/mandarin-bridge; do
+  if [ -d "$d" ] && [ ! -L "$d" ]; then chown -R mandarin-bridge:mandarin-bridge "$d"; fi
+done
 systemctl daemon-reload
 systemctl enable mandarin-bridge >/dev/null 2>&1
 systemctl restart mandarin-bridge

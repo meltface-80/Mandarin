@@ -43,12 +43,20 @@ sudo os/build.sh          # os/mandarin-os_<version>.raw; needs mkosi 25+, syste
 sudo os/test/boot-test.sh os/mandarin-os_<version>.raw   # installed and started in QEMU, then checked
 os/test/next-mandarin.sh /tmp/next                        # Mandarin as this checkout, but 9.9.9 (not as root)
 sudo env "PATH=$PATH" os/test/boot-test.sh os/mandarin-os_<version>.raw /tmp/next/mandarin-server   # and updated in the app
+os/test/next-bridge.sh /tmp/bridges                       # Mandarin Bridge as this checkout, and as 9.9.9 (not as root)
+sudo env "PATH=$PATH" os/test/boot-test.sh os/mandarin-os_<version>.raw /tmp/next/mandarin-server /tmp/bridges   # and the Bridge's own update
 ```
 
 Given the next Mandarin, the boot test also updates the installed Mandarin as Settings → Updates does, from a stand-in
 GitHub on the computer it runs on (`os/test/fake-release.js`), with a key of its own written into its copy of the
 installed disk alone (never the image), and checks Mandarin comes back as 9.9.9 with its library and account
 (`os/test/in-app-update.js`). Once installed, that is the only way Mandarin gets newer.
+
+Given the Bridges as well (item 415), it installs Mandarin Bridge as a box carried from an earlier Mandarin OS has it
+(the service from before 0.3.12, a DynamicUser's, its data folder as systemd 257 left it) into its copy of the
+installed disk, has it update itself to 9.9.9 from a stand-in GitHub (`os/test/fake-bridge-release.js`), asked on the
+box (`os/test/bridge-on-box.sh`: nothing from outside reaches its port), and checks it comes back as 9.9.9 with who it
+is to Mandarin kept, and is still 9.9.9 once Mandarin OS has updated itself in place (`os/test/bridge-update-vm.sh`).
 
 CI builds it on every change to `os/` (`.github/workflows/os-image.yml`), tests it the same way, and puts dev's on the
 `test-os` pre-release. A numbered release (`mandarin-os-vX.Y.Z`) is made by hand, with the version in `os/VERSION` and its
@@ -80,7 +88,15 @@ grown, labelled `mandarin-os_<version>`; the box's own carried into it (`/etc/fs
 records, NetworkManager's connections, Mandarin Bridge and its identity, and `/opt/mandarin` where the one running is
 newer); its kernel image and an entry with three tries (`mandarin-os_<version>+3.conf`, systemd's boot counting) put on
 the EFI partition; the computer started again. Users are never copied: Mandarin's user is 3500, the shared folder's
-3501 and its group 3502 in every version, and an update that numbers them otherwise is refused.
+3501 and its group 3502, Mandarin Bridge's 3503 (from 0.1.7, item 415) in every version, and an update that numbers
+them otherwise is refused.
+
+Mandarin Bridge's service runs as its own user, `mandarin-bridge` (item 415): systemd 257 mounts a DynamicUser's data
+folder so nothing in it can be run, and the Bridge's update runs from there. A service installed before 0.3.12 (a
+DynamicUser's, carried from version to version) is made to run so by `mandarin-bridge.service.d/mandarin-os.conf`, its
+data folder made the Bridge's by `apply` before it starts (a DynamicUser's is nobody's, and systemd 257 mounts a folder
+of nobody's ID-mapped and noexec even with DynamicUser off; an `ExecStartPre=+` can't do it, run inside that mount) and
+moved back from `/var/lib/private` by systemd as it starts.
 
 On a start being tried, `mandarin-os-health.service` (`os-started health`) checks what the box needs before
 `boot-complete.target`, where systemd-bless-boot keeps the version; anything missing starts the computer again. After

@@ -10,12 +10,15 @@
 #   folder's from the system page (item 399). Mandarin OS updated in place from the system page, and back by itself
 #   from a version that doesn't start (item 401, os/test/os-update-vm.sh). Then, given NEXT (os/test/next-mandarin.sh's program,
 #   a newer Mandarin), the in-app update (item 398): Settings → Updates on the installed system takes a newer release from
-#   a stand-in GitHub on this computer, and Mandarin starts again as it, its library and account kept. Needs
+#   a stand-in GitHub on this computer, and Mandarin starts again as it, its library and account kept. Given BRIDGES
+#   (os/test/next-bridge.sh's), Mandarin Bridge installed with its service from before 0.3.12 (a DynamicUser's) updates
+#   itself from a stand-in GitHub, and still runs as its update once Mandarin OS has updated itself (item 415,
+#   os/test/bridge-update-vm.sh). Needs
 #   qemu-system-x86_64, OVMF, mtools, smbclient, curl, jq, exfatprogs, ntfs-3g, node, python3, and root (loop devices,
 #   for the USB drives' filesystems and the installed disk's).
-#     os/test/boot-test.sh <image.raw> [NEXT]
+#     os/test/boot-test.sh <image.raw> [NEXT] [BRIDGES]
 set -uo pipefail
-IMG="${1:?the image}" NEXT="${2:-}"
+IMG="${1:?the image}" NEXT="${2:-}" BRIDGES="${3:-}"
 HERE="$(cd "$(dirname "$0")" && pwd)"
 W="$(mktemp -d)"
 # Each virtual machine stopped at the end, whatever happened: by its own process number (-pidfile), never left running.
@@ -60,7 +63,9 @@ ok "it starts from its own entry: $(basename "$(grep conf <<< "$ents")")"
 # Mandarin OS's own update in place (item 401, os/test/os-update-vm.sh): two newer versions made from this image, offered
 # by a stand-in GitHub, the installed system told to ask it; tested once the box runs, after everything else.
 . "$HERE/os-update-vm.sh"
-os_update_prepare
+. "$HERE/bridge-update-vm.sh"
+# (9.9.9 says, at each start, what the Bridge carried into it answers as.)
+os_update_prepare $([ -n "$BRIDGES" ] && echo bridge_report_into)
 # The stick starts quietly, straight to the installer: nothing waited for, nothing failed (a screen of them was taken
 # for an error on the first real computer).
 grep -aE "Timed out waiting|Dependency failed|Failed to start" "$W/serial-install.log" && fail "the stick's start said something failed"
@@ -82,6 +87,9 @@ if [ -n "$NEXT" ]; then
   umount "$W/root"; losetup -d "$lo"
   ok "the installed Mandarin asks the stand-in GitHub for $("$NEXT" --version), signed with the test's key"
 fi
+
+# Mandarin Bridge as a box carried from an earlier Mandarin OS has it (item 415, os/test/bridge-update-vm.sh).
+[ -z "$BRIDGES" ] || bridge_update_prepare
 
 # USB drives as music comes on them: a GPT partition table and one partition (exFAT, NTFS or ext4), or ext4 on the
 # whole disk with no partitions (as a Linux machine, DietPi, often formats one); a track on each.
@@ -168,6 +176,8 @@ P() { curl -s -o /dev/null -w '%{http_code}' --max-time 10 -H 'Content-Type: app
 [ "$(P '{"password":"not-it"}')" = 401 ] || fail "the system page took a wrong password"
 [ "$(P '{"password":"listen-carefully"}')" = 200 ] || fail "the system page didn't take the share's password"
 ok "the system page answers, sees Mandarin and its services, and asks for the share's password"
+# Mandarin Bridge's update (item 415): asked on the box once it runs, and it comes back as 9.9.9.
+if [ -n "$BRIDGES" ]; then bridge_update_check; else echo "not tested: Mandarin Bridge's update (no BRIDGES given: os/test/next-bridge.sh builds them)"; fi
 # Installer (item 405): made by apply, with its one line, in the share; a dev file put in it over the share is what the system
 # page says the next Reinstall installs, and taken out again (the upkeep's Reinstall would follow it). (Each answer kept
 # first: smbclient's own status never goes into a pipe.)
@@ -232,4 +242,5 @@ else
   echo "not tested: the in-app update (no NEXT given: os/test/next-mandarin.sh builds one)"
 fi
 os_update_test
+[ -z "$BRIDGES" ] || bridge_after_os_update
 echo "PASS"
