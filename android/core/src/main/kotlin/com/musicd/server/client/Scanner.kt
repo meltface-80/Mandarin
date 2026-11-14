@@ -11,6 +11,9 @@ data class ScanButton(val label: String, val action: String, val primary: Boolea
 /** A folder of albums to place by hand (item 411): its [kind] (the list it opens), [title], the [sub] under it on the page, and the [note] over its albums. */
 data class ScanFolder(val kind: String, val title: String, val count: Int, val sub: String, val note: String)
 
+/** A release To confirm offers in place of the one proposed (item 414b): its [mbid], [how] it is applied ("edition" or "pick"), and its [name] on its button. */
+data class ScanChoice(val mbid: String, val how: String, val name: String)
+
 /** A kind of album the clean-up could remove ([kind]: files, qobuz or tidal), said ([words]), with its count ([albums]). */
 data class CleanupRow(val kind: String, val words: String, val albums: Int)
 
@@ -101,9 +104,9 @@ object Scanner {
         return listOfNotNull(folder("unidentified", un), if (pr > 0) folder("proposed", pr) else null)
     }
     fun folder(kind: String, count: Int): ScanFolder = if (kind == "proposed")
-        ScanFolder(kind, "To confirm", count, "Found, but not sure enough to apply unasked", "Close, but not close enough to apply unasked. Tap the name to see the album; Accept writes the names shown.")
+        ScanFolder(kind, "To confirm", count, "Found, but not sure enough to apply unasked", "Close, but not sure enough to apply unasked: how sure, and why. Apply writes the names shown; Not this turns it down for good; or tap another release.")
     else ScanFolder(kind, "Unidentified", count, if (count > 0) "Tap to place them by hand" else "None to place by hand",
-        "Nothing near enough was found on MusicBrainz or iTunes. Tap the name to see the album (⋯ → Edit album to name it yourself), Barcode… to match it by its barcode or a MusicBrainz link, or Check again.")
+        "Nothing near enough was found on MusicBrainz or iTunes. Find… searches for it as Edit album does, where a barcode or a MusicBrainz link places it too; or Check again.")
 
     /** Schedule's line under its name. */
     fun scheduleNote(on: Boolean): String = if (on) "Runs only between these times" else "Off: runs any time, day and night"
@@ -191,8 +194,8 @@ object Scanner {
     /** What is said once an album's action is done. */
     fun actDone(action: String): String? = mapOf("accept" to "Applied", "reject" to "Declined", "recheck" to "It will be looked at again")[action]
 
-    /** An album's actions, by the folder it is in. */
-    fun actions(kind: String): List<ScanButton> = if (kind == "proposed") listOf(ScanButton("Accept", "accept", true), ScanButton("Reject", "reject"))
+    /** An album's actions, by the folder it is in (Find… beside them: after them in To confirm, before Check again in Unidentified). */
+    fun actions(kind: String): List<ScanButton> = if (kind == "proposed") listOf(ScanButton("Apply", "accept", true), ScanButton("Not this", "reject"))
         else listOf(ScanButton("Check again", "recheck"))
 
     /** The pressing as MusicBrainz sets it apart from the album: " · 2015 remaster, released 2015", or nothing. */
@@ -210,15 +213,30 @@ object Scanner {
         return if (bits.isEmpty()) "" else " · " + bits.joinToString(", ")
     }
 
-    /** An album's second line in its folder ([kind]), as the page's albumRow writes it. */
+    /** An album's second line in its folder ([kind]), as the page's albumRow writes it: how sure the scan is (item 414b), or how alike for a verdict without it. */
     fun line2(it: JSONObject, kind: String): String {
         val c = it.optJSONObject("candidate")
         val from = if (c?.text("source") == "itunes") " · from iTunes" else ""
-        val why = it.optJSONArray("why")?.let { w -> if (w.length() > 0) " — " + (0 until w.length()).joinToString(", ") { w.optString(it) } else "" }.orEmpty()
         val sim = it.optInt("similarity")
-        return if (kind == "proposed") "→ " + names(c) + (if ((c?.optInt("year") ?: 0) > 0) " (" + c!!.optInt("year") + ")" else "") + version(c) + " · $sim % alike" + why +
-            (if (it.optBoolean("ambiguous")) " · two releases fit" else "") + from
-        else if (c != null) "nearest: " + names(c) + " · $sim %" + why + from else "nothing with this title on MusicBrainz or iTunes"
+        val sure = if (it.has("confidence") && !it.isNull("confidence")) " · " + it.optInt("confidence") + " % sure" else " · $sim % alike"
+        return if (kind == "proposed") "→ " + names(c) + (if ((c?.optInt("year") ?: 0) > 0) " (" + c!!.optInt("year") + ")" else "") + version(c) + sure + from
+        else if (c != null) "nearest: " + names(c) + " · $sim %" + from else "nothing with this title on MusicBrainz or iTunes"
+    }
+
+    /** Why the scan is as sure as it says (item 414b), as the page's scanReasons: "found by its barcode · 12 of 12 tracks' lengths agree"; empty when none. */
+    fun reasons(it: JSONObject): String = it.optJSONArray("reasons")?.let { r -> (0 until r.length()).map { r.optString(it) }.filter { it.isNotEmpty() && it != "null" } }.orEmpty().joinToString(" · ")
+
+    /** Another release in place of the one proposed, as the page's scanOtherName: "Someone Else — Near Miss (1980) · 40 %". */
+    fun otherName(o: JSONObject): String = (o.text("artist").let { if (it.isNotEmpty()) "$it — " else "" }) + o.text("title").ifEmpty { "—" } +
+        (o.optInt("year").takeIf { it > 0 }?.let { " ($it)" } ?: "") + o.text("edition").let { if (it.isNotEmpty()) " · $it" else "" } +
+        (if (o.text("source") == "itunes") " · iTunes" else "") + (if (o.has("similarity") && !o.isNull("similarity")) " · " + o.optInt("similarity") + " %" else "")
+
+    /** What To confirm offers in place of the proposal ([it]'s candidate): the record's other editions, then the other releases near enough. */
+    fun choices(it: JSONObject): List<ScanChoice> {
+        val c = it.optJSONObject("candidate") ?: return emptyList()
+        fun objs(k: String) = c.optJSONArray(k)?.let { a -> (0 until a.length()).mapNotNull { a.optJSONObject(it) } }.orEmpty()
+        return objs("editions").filter { it.text("mbid").isNotEmpty() }.map { ScanChoice(it.text("mbid"), "edition", AlbumMatch.editionName(it)) } +
+            objs("others").filter { it.text("mbid").isNotEmpty() }.map { ScanChoice(it.text("mbid"), "pick", otherName(it)) }
     }
 
     /** The counts a folder's albums were last asked for at: when the server's move, they are asked for again. */

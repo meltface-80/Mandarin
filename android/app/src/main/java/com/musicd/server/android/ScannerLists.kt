@@ -7,25 +7,20 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.layout.Layout
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
@@ -42,9 +37,10 @@ import org.json.JSONObject
 /*
  * A Library Scanner folder opened (bug list item 411; the page's folderView and albumRow, settings-scanner-albums.js): the
  * albums identification couldn't place (Unidentified), or found but wasn't sure enough to apply (To confirm), under Back,
- * their title and count and a note, the first 60 until Show all. An album's name opens it; its buttons (Accept and
- * Reject, or Check again; Barcode…) sit beside it where they fit and under it where they don't, as the page's row wraps;
- * Barcode… opens the box a barcode or a MusicBrainz link is typed in.
+ * their title and count and a note, the first 60 until Show all. An album's name opens it, with how sure the scan is and
+ * why under it (item 414b); its buttons (Apply and Not this, or Check again; Find…, Edit album's match search for it)
+ * sit beside it where they fit and under it where they don't, as the page's row wraps; To confirm's other releases or
+ * editions kept, a tap each, under them.
  */
 
 /** The folder [kind] open: Back, its title and count, its note, Check them all again, and its albums. */
@@ -68,6 +64,11 @@ internal fun FolderView(k: ScanKept, kind: String, client: () -> ServerClient?, 
         Column(Modifier.padding(top = 12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             for (it in shown) AlbumRow(k, it, kind, client, scope, context)
         }
+        // Find…: Edit album's own match search for the album, over the folder (item 414b); its lists read again once it closes.
+        k.finding?.let { a ->
+            AlbumEditSheet(a.optLong("offset"), a.optString("title"), a.optString("subtitle"), client, find = true,
+                onClose = { k.finding = null; client()?.let { loadLists(k, it, scope) } }, onChanged = {})
+        }
         if (shown.size < Scanner.showAll(f.count)) {
             val words = "Show all " + Scanner.num(f.count.toLong())
             Text(words, Modifier.parity("settings-scanner.more", Contract.label("settings-scanner.more", 0, Scanner.num(f.count.toLong()))).padding(top = 10.dp).clickable {
@@ -84,7 +85,11 @@ private fun FolderBack(modifier: Modifier) {
     Text("‹ Library Scanner", modifier.padding(top = 2.dp, bottom = 12.dp), color = paletteColor(Palette.ACCENT_TEXT), fontSize = 14.sp, lineHeight = 19.sp, fontWeight = FontWeight.W600)
 }
 
-/** An album on a list (.id-row): its name and what the scan made of it, its buttons, and Barcode…'s box while it is open. */
+/**
+ * An album on a list (.id-row): its name, what the scan made of it and how sure it is and why (item 414b), its buttons;
+ * in To confirm, the other releases or editions it kept, a tap each.
+ */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun AlbumRow(k: ScanKept, it: JSONObject, kind: String, client: () -> ServerClient?, scope: CoroutineScope, context: Context) {
     val a = it.optJSONObject("album") ?: return
@@ -98,8 +103,14 @@ private fun AlbumRow(k: ScanKept, it: JSONObject, kind: String, client: () -> Se
                 Text(name, color = paletteColor(Palette.TEXT), fontSize = 14.sp, lineHeight = 19.sp, fontWeight = FontWeight.W600, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 val line2 = Scanner.line2(it, kind)
                 if (line2.isNotEmpty()) Text(line2, color = paletteColor(Palette.TEXT_FAINT), fontSize = 12.sp, lineHeight = 16.2.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                val why = Scanner.reasons(it)
+                if (why.isNotEmpty()) Text(why, Modifier.parity("settings-scanner.reasons"), color = paletteColor(Palette.TEXT_FAINT), fontSize = 11.5.sp, lineHeight = 15.5.sp)
             }
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                val find = @Composable {
+                    IdButton("Find…", false, !k.busy, Modifier.parity("settings-scanner.find", Contract.label("settings-scanner.find")).clickable(enabled = !k.busy) { k.finding = a })
+                }
+                if (kind != "proposed") find()
                 for (b in Scanner.actions(kind)) {
                     val go = { scanAct(k, client, scope, context, "/api/identify/" + b.action, JSONObject().put("offset", offset), Scanner.actDone(b.action)) }
                     when (b.action) {
@@ -108,38 +119,17 @@ private fun AlbumRow(k: ScanKept, it: JSONObject, kind: String, client: () -> Se
                         else -> IdButton(b.label, b.primary, !k.busy, Modifier.parity("settings-scanner.recheck", Contract.label("settings-scanner.recheck")).clickable(enabled = !k.busy, onClick = go))
                     }
                 }
-                IdButton("Barcode…", false, !k.busy, Modifier.parity("settings-scanner.barcode", Contract.label("settings-scanner.barcode")).clickable(enabled = !k.busy) {
-                    k.matching = if (k.matching == offset) null else offset; k.draft = ""
-                })
+                if (kind == "proposed") find()
             }
         }
-        if (k.matching == offset) MatchBox(k, offset, client, scope, context)
-    }
-}
-
-/** Barcode…'s box (.id-match): the barcode or link typed in, and Match; what to type, under them. */
-@Composable
-private fun MatchBox(k: ScanKept, offset: Long, client: () -> ServerClient?, scope: CoroutineScope, context: Context) {
-    fun match() {
-        val q = k.draft.trim()
-        if (q.isEmpty()) return
-        scanAct(k, client, scope, context, "/api/identify/match", JSONObject().put("offset", offset).put("query", q), "Matched and applied") { k.matching = null; k.draft = "" }
-    }
-    val shape = RoundedCornerShape(10.dp)
-    Row(Modifier.fillMaxWidth().padding(top = 10.dp).height(39.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        BasicTextField(k.draft, { k.draft = it }, Modifier.parity("settings-scanner.match-input", Contract.label("settings-scanner.match-input")).weight(1f), singleLine = true,
-            textStyle = TextStyle(color = paletteColor(Palette.TEXT), fontSize = 15.sp, lineHeight = 20.sp), cursorBrush = SolidColor(paletteColor(Palette.ACCENT)),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done), keyboardActions = KeyboardActions(onDone = { match() }),
-            decorationBox = { inner ->
-                Box(Modifier.fillMaxWidth().height(39.dp).clip(shape).background(paletteColor(Palette.BG_ELEV)).border(1.dp, paletteColor(Palette.BORDER), shape).padding(horizontal = 12.dp),
-                    contentAlignment = Alignment.CenterStart) {
-                    if (k.draft.isEmpty()) Text("Barcode, or a MusicBrainz release link", color = paletteColor(Palette.TEXT_FAINT), fontSize = 15.sp, lineHeight = 20.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    inner()
-                }
+        val choices = if (kind == "proposed") Scanner.choices(it) else emptyList()
+        if (choices.isNotEmpty()) FlowRow(Modifier.padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp),
+            itemVerticalAlignment = Alignment.CenterVertically) {
+            for (c in choices) IdButton(c.name, false, !k.busy, Modifier.parity("settings-scanner.choice", Contract.label("settings-scanner.choice", 0, c.name)).clickable(enabled = !k.busy) {
+                scanAct(k, client, scope, context, "/api/identify/match", JSONObject().put("offset", offset).put("query", c.mbid).put("how", c.how), "Applied")
             })
-        IdButton("Match", true, !k.busy, Modifier.parity("settings-scanner.match", Contract.label("settings-scanner.match")).clickable(enabled = !k.busy) { match() }, height = 39)
+        }
     }
-    ScanNote("The digits under the bars on the sleeve, or the address of the release (or album) on musicbrainz.org. That release is written to the album whatever the scan thought.", top = 8)
 }
 
 /**

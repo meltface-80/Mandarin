@@ -1,7 +1,19 @@
 /* Settings → Library Scanner's words for the Album Scanner (bug list item 411), from GET /api/album-scanner: its one
  * Progress readout and what it is doing now. Plain text (the page escapes it where it puts it); the app says the same
- * (Scanner.kt: progressCount, nowLine). Tested on their own (test/scanner-words.test.js). */
+ * (Scanner.kt: progressCount, nowLine); since item 414b a verdict's reasons and the other releases To confirm offers
+ * (Scanner.kt: reasons, otherName). Tested on their own (test/scanner-words.test.js). */
 const scanCount = n => Number(n || 0).toLocaleString();
+
+/* A verdict's reasons (item 414b), as its row says them: "found by its barcode · 12 of 12 tracks' lengths agree". */
+function scanReasons(list) {
+  return (list || []).filter(Boolean).join(" · ");
+}
+
+/* Another release To confirm offers in place of the one proposed (item 414b): "Someone Else — Near Miss (1980) · 40 %". */
+function scanOtherName(o) {
+  return (o.artist ? o.artist + " — " : "") + (o.title || "—") + (o.year ? " (" + o.year + ")" : "") + (o.edition ? " · " + o.edition : "") +
+    (o.source === "itunes" ? " · iTunes" : "") + (o.similarity != null ? " · " + o.similarity + " %" : "");
+}
 
 /* The share of the library's albums with every step done, rounded down: 100 % is every one of them. */
 function scanPercent(a) {

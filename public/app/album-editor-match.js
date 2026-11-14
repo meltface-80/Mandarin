@@ -29,10 +29,14 @@ function aeMatchHow(m) {
 const aeEditionName = e => [e.edition, e.country, e.release_year, e.track_count ? e.track_count + (e.track_count === 1 ? " track" : " tracks") : ""].filter(Boolean).join(" · ") || e.release_title || "Another edition";
 function aeShowMatch(m) {
   if (ae.mEditions) { ae.mEditions.innerHTML = ""; ae.mEditions.classList.add("hidden"); }
+  if (ae.mReasons) { ae.mReasons.textContent = ""; ae.mReasons.classList.add("hidden"); }
   if (!m) return false;
-  const how = aeMatchHow(m), eds = m.editions || [];
+  // How sure, and why (item 414b): the reasons say how it was found; a match without them says so itself.
+  const reasons = m.reasons || [], how = reasons.length ? "" : aeMatchHow(m), eds = m.editions || [];
+  const sure = m.confidence != null ? " · " + escapeHtml(m.confidence) + " % sure" : m.similarity != null ? " · " + escapeHtml(m.similarity) + " %" : "";
   ae.mStatus.innerHTML = "<strong>Matched:</strong> " + escapeHtml((m.artist ? m.artist + " — " : "") + (m.title || "")) + (m.year ? " (" + escapeHtml(m.year) + ")" : "") +
-    (m.similarity != null ? " · " + escapeHtml(m.similarity) + " %" : "") + (how ? " · " + escapeHtml(how) : "") + (eds.length ? ". Other editions:" : "");
+    sure + (how ? " · " + escapeHtml(how) : "") + (eds.length ? ". Other editions:" : "");
+  if (ae.mReasons && reasons.length) { ae.mReasons.textContent = reasons.join(" · "); ae.mReasons.classList.remove("hidden"); }
   if (!ae.mEditions || !eds.length) return true;
   for (const e of eds) {
     const b = document.createElement("button");

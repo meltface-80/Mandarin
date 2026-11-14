@@ -11,7 +11,16 @@ const path = require("path");
 const vm = require("vm");
 
 const words = vm.runInNewContext(fs.readFileSync(path.join(__dirname, "..", "public", "app", "scanner-words.js"), "utf8") +
-  "\n;({ scanPercent, scanProgressWords, scanNowWords })", {});
+  "\n;({ scanPercent, scanProgressWords, scanNowWords, scanReasons, scanOtherName })", {});
+
+test("To confirm's words (item 414b): a verdict's reasons, and another release in place of the one proposed", () => {
+  assert.strictEqual(words.scanReasons(["found by its barcode", "4 of 4 tracks' lengths agree", null, ""]), "found by its barcode · 4 of 4 tracks' lengths agree");
+  assert.strictEqual(words.scanReasons(undefined), "");
+  assert.strictEqual(words.scanOtherName({ mbid: "o1", artist: "Someone Else", title: "Near Miss", year: 1980, edition: null, source: "musicbrainz", similarity: 40 }),
+    "Someone Else — Near Miss (1980) · 40 %");
+  assert.strictEqual(words.scanOtherName({ mbid: "o2", artist: "", title: "Near Miss", year: null, source: "itunes", similarity: 31 }), "Near Miss · iTunes · 31 %");
+  assert.strictEqual(words.scanOtherName({ artist: "A", title: "B", edition: "deluxe", similarity: null }), "A — B · deluxe");
+});
 
 test("the readout: the albums with every step done, of the library's, the share rounded down", () => {
   assert.strictEqual(words.scanProgressWords({ albums: 14119, done: 9960 }), "9,960 of 14,119 albums · 70%");

@@ -167,7 +167,8 @@ FEATURES = [
      "Open **Settings → Library Scanner** and switch **Album Scanner** on; off, none of it is done. **Progress** counts the "
      "albums with every step done and says what it is doing now. Matches of 85% or better are applied; the rest wait in "
      "**Unidentified** (and **To confirm**) for you to place by hand; a copy that is every track of a bigger pressing is "
-     "taken as that record. Your files are not changed. **Schedule** keeps it to the hours you set; off, it runs any time, "
+     "taken as that record. **To confirm** says how sure it is and why, with **Apply**, **Not this** (never proposed again) "
+     "and the other releases it found; **Find…** opens Edit album's search. Your files are not changed. **Schedule** keeps it to the hours you set; off, it runs any time, "
      "day and night. **Library clean-up** removes albums whose files are gone, after showing counts."),
     ("mbpack", "📦", "MusicBrainz pack", False,
      "An optional download of every MusicBrainz release with a barcode, about 2 GB on disk. Albums "

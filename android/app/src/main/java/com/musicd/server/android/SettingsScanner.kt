@@ -56,8 +56,8 @@ internal class ScanKept {
     var busy by mutableStateOf(false)
     var err by mutableStateOf("")
     var more by mutableStateOf(false)
-    var matching by mutableStateOf<Long?>(null)
-    var draft by mutableStateOf("")
+    /** The album whose Edit album is open over its folder, from Find… (item 414b). */
+    var finding by mutableStateOf<JSONObject?>(null)
     var browse by mutableStateOf<JSONObject?>(null)
     var places by mutableStateOf<List<String>>(emptyList())
     var ticks = 0
@@ -79,7 +79,7 @@ internal fun SettingsScanner(client: () -> ServerClient?, onBack: () -> Unit) {
         while (true) {
             delay(5_000)
             untilOnScreen()
-            if (!k.busy && k.matching == null && k.browse == null) scanLoad(k, client, scope, false)
+            if (!k.busy && k.finding == null && k.browse == null) scanLoad(k, client, scope, false)
         }
     }
     // A folder open: back closes it, not the page.
@@ -135,11 +135,11 @@ internal fun loadLists(k: ScanKept, c: ServerClient, scope: CoroutineScope) {
 
 /** A folder opened ([kind]: unidentified or proposed): its albums asked for. */
 internal fun openFolder(k: ScanKept, client: () -> ServerClient?, scope: CoroutineScope, kind: String) {
-    k.folder = kind; k.lists = null; k.more = false; k.matching = null; k.draft = ""
+    k.folder = kind; k.lists = null; k.more = false; k.finding = null
     client()?.let { loadLists(k, it, scope) }
 }
 
-internal fun closeFolder(k: ScanKept) { k.folder = null; k.lists = null; k.matching = null }
+internal fun closeFolder(k: ScanKept) { k.folder = null; k.lists = null; k.finding = null }
 
 /** The switch, Schedule's or its hours ([patch], as POSTed): moved as it is tapped (item 200), back where it was if refused. */
 internal fun setScanner(k: ScanKept, client: () -> ServerClient?, scope: CoroutineScope, patch: JSONObject) {

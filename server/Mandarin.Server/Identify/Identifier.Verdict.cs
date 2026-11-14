@@ -46,7 +46,7 @@ internal sealed partial class Identifier
                 await Writing(async () => { using var c = Db.Open(); Exec(c, null, "UPDATE album_matches SET itunes = $1 WHERE key = $2", itunes, al.Key); await Task.CompletedTask; return false; });
             return prev;
         }
-        return await Record(al, verdict, itunes);
+        return await Record(al, Judge(input, verdict), itunes);
     }
 
     /*
@@ -62,7 +62,7 @@ internal sealed partial class Identifier
         JsObj input;
         using (var c = Db.Open()) input = Input(c, al);
         var r = await IdResolve(input, new PackOnly(p));
-        return r != null ? await Record(al, r.Verdict, null) : null;
+        return r != null ? await Record(al, Judge(input, r.Verdict), null) : null;
     }
 
     /* Everything written here goes through this: one at a time, the Node server told when it's done. */
@@ -217,10 +217,11 @@ internal sealed partial class Identifier
     {
         await Task.CompletedTask;
         var verdict = Score.Decide(input, cands);
-        var best = verdict.Best!;
+        var best = Chosen(input, verdict.Best!, how);
         using var c = Db.Open();
         using var tx = c.BeginTransaction();
         var prev = Row(c, al.Key);
+        Remember(c, tx, al.Key, prev, best.Candidate, how);     // what choosing it says (item 414b)
         if (prev != null && prev.Status == "applied") Undo(c, tx, al, prev);
         var now = (double)Now;
         // Another pressing of the record chosen (item 414): the rest still offered, the one that was applied among them.

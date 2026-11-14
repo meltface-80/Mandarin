@@ -305,13 +305,14 @@ internal sealed partial class Identifier
 
     /*
      * Whether an eligible album ([r]: its verdict, if any) waits to be looked at: never looked at, unidentified long
-     * enough ago, or unidentified and iTunes not asked yet ([ask]: iTunes is asked); never one you edited by hand.
+     * enough ago, unidentified or proposed before a new pack (item 414b), or unidentified and iTunes not asked yet
+     * ([ask]: iTunes is asked); never one you edited by hand.
      * The rest have the scan's verdict.
      */
     public static bool Waits(Album al, MatchRow? r, long now, bool ask)
     {
         var itunesOnly = ask && ITunesOnly(r);
-        if (r != null && !itunesOnly && !(r.Status == "unidentified" && now - r.Checked > RetryUnidentifiedMs)) return false;
+        if (r != null && !itunesOnly && !(r.Status == "unidentified" && now - r.Checked > RetryUnidentifiedMs) && !Requeued(r)) return false;
         return !(al.Edited && !(r != null && r.Status == "unidentified"));     // yours, not ours
     }
 

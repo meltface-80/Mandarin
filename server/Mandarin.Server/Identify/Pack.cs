@@ -656,7 +656,7 @@ internal sealed partial class PackStore
             lock (gate) ClosePack();
             if (Rename(tmp, file) != 0) throw new IOException(new System.ComponentModel.Win32Exception(Marshal.GetLastPInvokeError()).Message);
             lock (gate) { pack = null; packKnown = false; }
-            SetSetting("mbpack", JsonValue.Create(true));
+            Kept();     // kept, and the albums it may place told (PackStore.Installed.cs, item 414b)
             lock (gate) job = new Job { Phase = "done", Done = current.Done, Total = current.Total };
             log($"MusicBrainz pack: {Js.Str(Get()?.Info()["releases"])} releases ({Js.Str(d["built"])})");
         }

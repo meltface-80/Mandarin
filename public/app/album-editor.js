@@ -236,6 +236,7 @@ const ae = aeEl && {
   reset: document.getElementById("ae-reset"),
   mStatus: document.getElementById("ae-match-status"),
   mEditions: document.getElementById("ae-match-editions"),
+  mReasons: document.getElementById("ae-match-reasons"),
   mFind: document.getElementById("ae-match-find"),
   folder: document.getElementById("ae-folder"),
   mBox: document.getElementById("ae-match"),

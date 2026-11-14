@@ -20,7 +20,6 @@ let folder = null;      // the folder open: "unidentified" or "proposed"
 let lists = null;       // its albums (GET /api/identify?lists=), while it is open
 let more = { proposed: false, unidentified: false };
 let packBrowse = null, packPlaces = [];   // choosing the pack's folder: { path, parent, dirs }
-let matching = null, matchDraft = "";     // the row whose barcode box is open, and what's typed in it
 // What the page showed last time (v0.8.17), on this device: drawn at once when it opens, then brought up to date.
 const KEPT = "mandarin.scanner.v2";
 try {
@@ -159,8 +158,10 @@ function render() {
     drawn[b] = html[b];
   }
 }
+/* An album on the open folder's lists, by its offset. */
+const listed = off => ["proposed", "unidentified"].flatMap(k => (lists && lists[k]) || []).find(x => x.album.offset === off);
 function openFolder(kind) {
-  folder = kind; lists = null; listsAsked = null; matching = null; matchDraft = "";
+  folder = kind; lists = null; listsAsked = null;
   render();
   loadLists();
   const pane = scanBody.closest(".settings-view");
@@ -176,7 +177,7 @@ scanBody.addEventListener("change", (e) => {
 scanBody.addEventListener("click", (e) => {
   const fo = e.target.closest("[data-scan-folder]");
   if (fo) return openFolder(fo.getAttribute("data-scan-folder"));
-  if (e.target.closest("[data-scan-folder-close]")) { folder = null; lists = null; matching = null; return render(); }
+  if (e.target.closest("[data-scan-folder-close]")) { folder = null; lists = null; return render(); }
   const b = e.target.closest("[data-id-act]");
   if (b) {
     const what = b.getAttribute("data-id-act");
@@ -206,46 +207,35 @@ scanBody.addEventListener("click", (e) => {
     })();
     return;
   }
-  const mb = e.target.closest("[data-id-match]");
-  if (mb) {
-    const off = Number(mb.getAttribute("data-id-match"));
-    matching = matching === off ? null : off; matchDraft = "";
-    render();
-    const inp = scanBody.querySelector(".id-match-input");
-    if (inp) inp.focus();
+  // Another release or edition in place of the one proposed (item 414b): applied as Edit album's are.
+  const pi = e.target.closest("[data-id-pick]");
+  if (pi) return act("/api/identify/match", { offset: Number(pi.getAttribute("data-id-off")), query: pi.getAttribute("data-id-pick"), how: pi.getAttribute("data-id-how") }, "Applied");
+  // Find…: Edit album's own match search for the album, over this page (item 414b).
+  const fi = e.target.closest("[data-id-find]");
+  if (fi) {
+    const it = listed(Number(fi.getAttribute("data-id-find")));
+    if (it) openAlbumEditor(it.album).then(() => { if (aeState && aeState.album === it.album) { aeFindMatch(); ae.mBox.scrollIntoView({ block: "start" }); } });
     return;
   }
   const m = e.target.closest("[data-id-more]");
   if (m) { more[m.getAttribute("data-id-more")] = true; loadLists(); return render(); }
   const o = e.target.closest("[data-id-open]");
   if (o && window.__openAlbum) {
-    const off = Number(o.getAttribute("data-id-open"));
-    const it = ["proposed", "unidentified"].flatMap(k => (lists && lists[k]) || []).find(x => x.album.offset === off);
+    const it = listed(Number(o.getAttribute("data-id-open")));
     if (!it) return;
     const closer = document.querySelector("#settings-overlay [data-settings-close]");
     if (closer) closer.click();
     window.__openAlbum(it.album, { source: "home", filter: null });
   }
 });
-scanBody.addEventListener("input", (e) => { if (e.target.closest(".id-match-input")) matchDraft = e.target.value; });
-scanBody.addEventListener("submit", async (e) => {
-  const f = e.target.closest("[data-id-match-form]");
-  if (!f) return;
-  e.preventDefault();
-  const q = matchDraft.trim();
-  if (!q) return;
-  const off = Number(f.getAttribute("data-id-match-form"));
-  await act("/api/identify/match", { offset: off, query: q }, "Matched and applied");
-  if (!scanErr) { matching = null; matchDraft = ""; render(); }
-});
 // Opened: drawn at once from what it showed last, then each block brought up to date (v0.8.17).
 scanNavItem.addEventListener("click", () => {
-  packBrowse = null; folder = null; lists = null; more = { proposed: false, unidentified: false }; matching = null; matchDraft = "";
+  packBrowse = null; folder = null; lists = null; more = { proposed: false, unidentified: false };
   render(); scanLoad(true);
 });
 // Progress moves while the pane is open (not while you're typing in it).
 setInterval(() => {
-  if (scanPane.classList.contains("hidden") || scanBusy || matching !== null || packBrowse) return;
+  if (scanPane.classList.contains("hidden") || scanBusy || packBrowse) return;
   if (document.activeElement && document.activeElement.closest(".id-time")) return;
   scanLoad();
 }, 5000);

@@ -137,6 +137,8 @@ internal fun EditMatch(ed: AlbumEditor) {
     val d = ed.state
     Column(Modifier.padding(bottom = 14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         AeSaid(ed.matchSaid, Modifier.parity("album-edit.match-status"))
+        // How sure, and why (item 414b): the page's .ae-mreasons.
+        d?.match?.reasonsLine?.let { Text(it, Modifier.parity("album-edit.match-reasons"), color = paletteColor(Palette.TEXT_FAINT), fontSize = 12.5.sp, lineHeight = 17.5.sp) }
         d?.match?.editions?.takeIf { it.isNotEmpty() }?.let { eds ->
             FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 for (e in eds) AePill(e.name, Modifier.parity("album-edit.edition", Contract.label("album-edit.edition", 0, e.name)).clickable(enabled = !ed.matching) { ed.match(e.mbid, "edition") },

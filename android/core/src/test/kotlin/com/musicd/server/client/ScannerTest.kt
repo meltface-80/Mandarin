@@ -135,13 +135,30 @@ class ScannerTest {
     @Test fun `an album's line in each folder, and its actions`() {
         val proposed = j("""{"candidate":{"artist":"A","title":"One (Remastered)","year":1988,"edition":"2015 remaster","release_year":2015,"parts":{"missing_tracks":1}},
             "similarity":78,"why":["track lengths differ"],"ambiguous":true}""")
-        assertEquals("→ A — One (Remastered) (1988) · 2015 remaster, released 2015, 1 track of the release missing here · 78 % alike — track lengths differ · two releases fit",
+        assertEquals("→ A — One (Remastered) (1988) · 2015 remaster, released 2015, 1 track of the release missing here · 78 % alike",
             Scanner.line2(proposed, "proposed"))
         assertEquals("nothing with this title on MusicBrainz or iTunes", Scanner.line2(j("{}"), "unidentified"))
         assertEquals("nearest: B — Two · 40 % · from iTunes", Scanner.line2(j("""{"candidate":{"artist":"B","title":"Two","source":"itunes"},"similarity":40}"""), "unidentified"))
-        assertEquals(listOf("Accept", "Reject"), Scanner.actions("proposed").map { it.label })
+        assertEquals(listOf("Apply", "Not this"), Scanner.actions("proposed").map { it.label })
+        assertEquals(listOf("accept", "reject"), Scanner.actions("proposed").map { it.action })
         assertEquals(listOf("Check again"), Scanner.actions("unidentified").map { it.label })
         assertEquals("Applied", Scanner.actDone("accept"))
         assertNull(Scanner.actDone("undo"))
+    }
+
+    @Test fun `To confirm's row says how sure and why, and offers the other releases kept (item 414b)`() {
+        val it = AndroidJson("""{"candidate":{"artist":"Artist N","title":"Near Miss","year":2003,"parts":{},
+            "editions":[{"mbid":"e1","edition":"deluxe","country":"JP","release_year":2012,"track_count":4}],
+            "others":[{"mbid":"o1","artist":"Someone Else","title":"Near Miss","year":1980,"edition":null,"source":"musicbrainz","similarity":40},
+                      {"mbid":"o2","artist":"","title":"Near Miss","year":null,"source":"itunes","similarity":31}]},
+            "similarity":71,"confidence":71,"reasons":["found by name only","3 of 3 tracks' lengths agree","track names differ",null]}""")
+        assertEquals("→ Artist N — Near Miss (2003) · 71 % sure", Scanner.line2(it, "proposed"))
+        assertEquals("found by name only · 3 of 3 tracks' lengths agree · track names differ", Scanner.reasons(it))
+        assertEquals(listOf(ScanChoice("e1", "edition", "deluxe · JP · 2012 · 4 tracks"), ScanChoice("o1", "pick", "Someone Else — Near Miss (1980) · 40 %"),
+            ScanChoice("o2", "pick", "Near Miss · iTunes · 31 %")), Scanner.choices(it))
+        assertEquals("", Scanner.reasons(j("{}")))
+        assertEquals(emptyList<ScanChoice>(), Scanner.choices(j("""{"candidate":null}""")))
+        assertEquals("Close, but not sure enough to apply unasked: how sure, and why. Apply writes the names shown; Not this turns it down for good; or tap another release.",
+            Scanner.folder("proposed", 1).note)
     }
 }
