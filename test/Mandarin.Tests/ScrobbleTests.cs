@@ -11,8 +11,10 @@ namespace Mandarin.Tests;
 /// gives Last.fm's page to approve on, and the sign-in finishes once the owner has; a track starting is Last.fm's now
 /// playing, and a play is scrobbled at Last.fm's own point (over 30 s, half way or four minutes), stamped when it
 /// started, never at Mandarin's own 30 s; plays made while Last.fm is down are kept and go when it is back, a phone's
-/// offline plays with them, stamped when played; Last.fm refusing the session leaves Mandarin disconnected. Every call
-/// is signed with the secret (Last.fm's api_sig), checked here. Last.fm stood in for; the phone is this signed-in app.
+/// offline plays with them, stamped when played; a play kept is never sent twice, the server started again in the
+/// middle of it or not (item 422), while the track played again is; Last.fm refusing the session leaves Mandarin
+/// disconnected. Every call is signed with the secret (Last.fm's api_sig), checked here. Last.fm stood in for; the phone
+/// is this signed-in app.
 /// </summary>
 public sealed class ScrobbleTests
 {
@@ -182,6 +184,97 @@ public sealed class ScrobbleTests
         var after = (await s.Api("lastfm/scrobbling")).J;
         Assert.Contains("connect again", after.Str("error"));
         Assert.Equal(1.0, after.Num("queued"));
+    }
+
+    /* Settings → Restart with the phone's play under way: the phone says hello again, as the app does. */
+    private static async Task Restarted(Session s)
+    {
+        await s.Server.Restart(s.Token);
+        Assert.Equal(200, (await s.Api("phone/hello", new { name = "Pixel 8" })).Status);
+    }
+
+    private static long Seconds(Dictionary<string, string> call, int i) =>
+        long.Parse(call["timestamp[" + i + "]"], System.Globalization.CultureInfo.InvariantCulture);
+
+    [Test]
+    public async Task A_play_scrobbled_is_not_scrobbled_again_when_the_server_starts_again_but_the_track_played_again_is()
+    {
+        Needs.Server(); Needs.Ffmpeg();
+        var fm = new FakeLastfm();
+        await using var fake = await FakeServer.Start(fm.Handle);
+        await using var s = await Session.Started(new Dictionary<string, object?> { ["lastfmBaseUrl"] = fake.Base, ["lastfmKey"] = "k" });
+        await Connected(s, fm);
+        var cd = (await s.Album("Album One"))!;
+        var zoneId = (await s.Api("phone/hello", new { name = "Pixel 8" })).J.Str("zone_id");
+        Assert.Equal(200, (await s.Api("play", new { offset = cd.Num("offset"), zone_or_output_id = zoneId, kind = "play_now" })).Status);
+        // The same track again after it (item 422: a track genuinely played twice in a row is two plays).
+        Assert.Equal(200, (await s.Api("play-track", new { offset = cd.Num("offset"), track = 0, zone_or_output_id = zoneId, kind = "add_next" })).Status);
+        async Task Say(int index, double position) =>
+            await s.Api("phone/state", new { index, position, duration = 40, state = "playing", volume = 40 });
+
+        // Half way through a 40 s track: scrobbled once.
+        var started = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - 21000;
+        await Say(0, 2);
+        await Say(0, 21);
+        await Session.Until(() => Task.FromResult(fm.Of("track.scrobble").Count == 1), 10000, "scrobbled");
+        Assert.InRange(Seconds(fm.Of("track.scrobble")[0], 0), started / 1000 - 3, started / 1000 + 3);
+
+        // The server started again while it plays on: the phone says where it is in the same play (the owner's log,
+        // 14 Nov: "[lastfm] scrobbled 1" just after each restart). Not scrobbled again.
+        await Restarted(s);
+        var on = (DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - started) / 1000.0;
+        Assert.True(on < 38, "still under way after the restart: " + on + " s in");
+        await Say(0, on);
+        await Task.Delay(1500);
+        Assert.Single(fm.Of("track.scrobble"));
+        Assert.Equal(0.0, (await s.Api("lastfm/scrobbling")).J.Num("queued"));
+
+        // The track played again (the next in the queue, from its start): a new play, scrobbled at its own point.
+        var again = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        await Say(1, 0);
+        await Task.Delay(20500);
+        await Say(1, 20);
+        await Session.Until(() => Task.FromResult(fm.Of("track.scrobble").Count == 2), 10000, "the play again scrobbled");
+        var second = fm.Of("track.scrobble")[1];
+        Assert.Equal("Song 1", second["track[0]"]);
+        Assert.False(second.ContainsKey("track[1]"), "the first play went once");
+        Assert.InRange(Seconds(second, 0), again / 1000 - 2, again / 1000 + 3);
+    }
+
+    [Test]
+    public async Task A_play_kept_while_Last_fm_is_down_is_sent_once_after_the_server_starts_again()
+    {
+        Needs.Server(); Needs.Ffmpeg();
+        var fm = new FakeLastfm();
+        await using var fake = await FakeServer.Start(fm.Handle);
+        await using var s = await Session.Started(new Dictionary<string, object?> { ["lastfmBaseUrl"] = fake.Base, ["lastfmKey"] = "k" });
+        await Connected(s, fm);
+        var cd = (await s.Album("Album One"))!;
+        var zoneId = (await s.Api("phone/hello", new { name = "Pixel 8" })).J.Str("zone_id");
+        Assert.Equal(200, (await s.Api("play", new { offset = cd.Num("offset"), zone_or_output_id = zoneId, kind = "play_now" })).Status);
+
+        // Last.fm down (a 503's error 16): the play kept.
+        fm.ScrobbleError = 16;
+        var started = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - 31000;
+        await s.Api("phone/state", new { index = 0, position = 2, duration = 60, state = "playing", volume = 40 });
+        await s.Api("phone/state", new { index = 0, position = 31, duration = 60, state = "playing", volume = 40 });
+        await Session.Until(async () => (await s.Api("lastfm/scrobbling")).J.Str("error") == "no", 10000, "Last.fm's failure said");
+        Assert.Equal(1.0, (await s.Api("lastfm/scrobbling")).J.Num("queued"));
+
+        // The server started again, the play still under way; Last.fm back. Kept through the restart, sent once.
+        await Restarted(s);
+        Assert.Equal(1.0, (await s.Api("lastfm/scrobbling")).J.Num("queued"));
+        fm.ScrobbleError = 0;
+        var on = (DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - started) / 1000.0;
+        Assert.True(on < 58, "still under way after the restart: " + on + " s in");
+        await s.Api("phone/state", new { index = 0, position = on, duration = 60, state = "playing", volume = 40 });
+        await Session.Until(async () => (await s.Api("lastfm/scrobbling")).J.Num("queued") == 0, 10000, "sent");
+        await Task.Delay(1000);
+        var sent = fm.Of("track.scrobble").Last();
+        Assert.Equal("Song 1", sent["track[0]"]);
+        Assert.False(sent.ContainsKey("track[1]"), "one play, sent once");
+        Assert.InRange(Seconds(sent, 0), started / 1000 - 3, started / 1000 + 3);
+        Assert.Equal(0.0, (await s.Api("lastfm/scrobbling")).J.Num("queued"));
     }
 
     private const string Look = """

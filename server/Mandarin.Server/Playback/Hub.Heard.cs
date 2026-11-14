@@ -1,6 +1,7 @@
 // Hub.Heard.cs — whether music is playing now, as the Album Scanner asks it (Identify/AlbumScanner.cs, bug list item
 // 411): it starts no album while anything plays. Since item 417b, which rooms and phones those are, by name, for its
-// readout and its log; and only Mandarin's own music in a room Mandarin plays (below).
+// readout and its log; and only Mandarin's own music in a room Mandarin plays (below). Since item 421, /api/health's
+// busy.playing too (HealthRoutes.cs), which Mandarin OS's upkeep waits on before an update or a restart.
 using Mandarin.Server.Renderers;
 using Microsoft.Data.Sqlite;
 
@@ -29,11 +30,11 @@ internal sealed partial class Hub
 
     /*
      * The rooms and phones playing now: playing and heard from lately, or loading a track, begun lately. A phone told to
-     * play that never answers (its app closed), or one gone quiet mid-track, isn't held to be playing for ever, as
-     * Playing() would; nor a room that says it is loading (a Sonos's TRANSITIONING) at every read (item 417): its state
-     * is read every second or few, so it was always heard lately. Paused and stopped never count. Nor (item 417b) a room
-     * hidden or switched off in Audio Devices, nor one playing what isn't Mandarin's (Ours): the owner's Sonos Beam,
-     * hidden, playing a film from the TV held the Album Scanner all evening.
+     * play that never answers (its app closed), or one gone quiet mid-track, isn't held to be playing for ever, as a
+     * count of every room playing would; nor a room that says it is loading (a Sonos's TRANSITIONING) at every read
+     * (item 417): its state is read every second or few, so it was always heard lately. Paused and stopped never count.
+     * Nor (item 417b) a room hidden or switched off in Audio Devices, nor one playing what isn't Mandarin's (Ours): the
+     * owner's Sonos Beam, hidden, playing a film from the TV held the Album Scanner all evening.
      */
     public List<Heard> Holding()
     {
