@@ -87,7 +87,9 @@ internal static partial class Jobs
         var packs = Packs;
         var mb = new PackFirst(new MusicBrainz(Text(cfg["musicbrainz_url"]), version), () => packs.Get());
         var itunes = new ITunes(Text(cfg["itunes_url"]), version, Log);
-        Identify = new Identifier(mb, itunes, () => packs.Get(), Log, Int(cfg["identify_tick_ms"], 5000)) { Ready = () => Held };
+        // AcoustID, for the albums still unsure (item 414c): where it is asked (ACOUSTID_URL), with the key in Settings.
+        Identify = new Identifier(mb, itunes, () => packs.Get(), Log, Int(cfg["identify_tick_ms"], 5000))
+            { Ready = () => Held, Sound = new AcoustId(Environment.GetEnvironmentVariable("ACOUSTID_URL"), version) };
         packs.Installed += () => _ = Identify?.PackUpdated();   // a new pack: what it may place looked at again (item 414b)
         // Measured with the Album Scanner on (item 411), except while the tests keep to this machine and haven't asked for it (loudness: true).
         var measureHere = !Lookups.LoopbackOnly || (cfg["loudness"] is JsonValue lo && lo.TryGetValue<bool>(out var loOn) && loOn);

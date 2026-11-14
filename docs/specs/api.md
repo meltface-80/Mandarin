@@ -5,7 +5,7 @@ Written by `node tools/api-map.js write` from the C# sources (`server/Mandarin.S
 where the code decides it away from the address (the handler says). "…" ends an address the route takes
 the rest of; a pattern is as the code writes it. What each answers is said beside its handler.
 
-220 routes.
+222 routes.
 
 | Method | Address | Who may ask | Answered in |
 |---|---|---|---|
@@ -164,6 +164,8 @@ the rest of; a pattern is as the code writes it. What each answers is said besid
 | POST | `/api/seek` | signed in | `PlaybackRoutes.cs` |
 |  | `/api/services/watch` | signed in | `ServiceRoutes.cs` |
 |  | `/api/settings/(qobuz\|tidal)(/import\|/signin\|/signin/cancel\|/signout\|/disconnect)?` | signed in | `ServiceRoutes.cs` |
+| GET | `/api/settings/acoustid-key` | signed in | `LibraryRoutes.cs` |
+| POST | `/api/settings/acoustid-key` | signed in | `LibraryRoutes.cs` |
 | GET | `/api/settings/discogs-token` | signed in | `LibraryRoutes.cs` |
 | POST | `/api/settings/discogs-token` | signed in | `LibraryRoutes.cs` |
 | GET | `/api/settings/display` | signed in | `LibraryRoutes.cs` |
