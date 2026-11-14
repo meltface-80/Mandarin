@@ -5028,6 +5028,52 @@ button.cap-chip:active { transform: scale(.96); }
 }
 .id-match-input:focus { outline: none; border-color: var(--accent); }
 .id-match-note { flex: 1 0 100%; margin-top: 8px; }
+/* Settings → Library Scanner's Album Scanner (item 411): one switch, then its sections as compact rows under thin
+ * rules — Progress with its bar, the albums to place by hand as brass folders, Schedule, the pack, the clean-up and
+ * the processor — and a folder's albums on a view of its own (app/settings-scanner-blocks.js, -albums.js). */
+.scan-top { padding: 2px 0 16px; }
+.scan-top .settings-note { font-size: 13px; }
+.scan-title { font-size: 20px; font-weight: 700; color: var(--text); }
+.scan-sec { border-top: 1px solid var(--border); padding: 12px 0; }
+.scan-sec:last-child { padding-bottom: 4px; }
+#identify-pane-body .scan-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 32px; }
+#identify-pane-body .scan-row + .scan-row { margin-top: 8px; }
+.scan-wrap { flex-wrap: wrap; row-gap: 8px; }
+.scan-lab { font-size: 16px; font-weight: 650; color: var(--text); }
+.scan-sub { display: block; font-size: 13px; line-height: 1.4; color: var(--text-faint); }
+.scan-ftxt { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1 1 auto; }
+.scan-count { font-size: 13px; color: var(--text-faint); white-space: nowrap; }
+.scan-count b { color: var(--text); font-weight: 700; }
+.scan-bar { height: 10px; margin-top: 8px; border-radius: 5px; background: var(--bg-elev-2); overflow: hidden; }
+.scan-bar i { display: block; height: 100%; border-radius: 5px; background: var(--accent); transition: width .4s ease; }
+.scan-folder {
+  display: flex; align-items: center; gap: 12px; width: 100%; padding: 0; border: 0; background: none;
+  color: inherit; font: inherit; text-align: left; cursor: pointer;
+}
+.scan-folder:disabled { cursor: default; }
+.scan-folder + .scan-folder { margin-top: 12px; }
+.scan-fico { position: relative; flex: 0 0 auto; width: 48px; height: 38px; }
+.scan-fico::before {
+  content: ""; position: absolute; left: 0; top: 0; width: 19px; height: 9px; border-radius: 5px 5px 0 0;
+  background: var(--accent); filter: brightness(.72);
+}
+.scan-fico-n {
+  position: absolute; left: 0; right: 0; top: 5px; bottom: 0; display: grid; place-items: center;
+  border-radius: 4px 8px 8px 8px; background: linear-gradient(180deg, rgba(255, 255, 255, .14), rgba(0, 0, 0, .16)), var(--accent);
+  color: var(--on-accent); font-size: 12px; font-weight: 800; font-variant-numeric: tabular-nums; letter-spacing: -.01em;
+}
+.scan-chev { margin-left: auto; color: var(--text-faint); font-size: 22px; line-height: 1; }
+.scan-times { justify-content: flex-end !important; gap: 8px !important; }
+.scan-times > .scan-sub:first-child { margin-right: auto; }
+.scan-danger { border-color: var(--danger); color: var(--danger); }
+.seg.scan-seg { margin-top: 0; flex: 0 0 auto; border-radius: 999px; }
+.scan-seg .seg-btn { flex: 0 0 auto; padding: 6px 12px; }
+.scan-back {
+  display: inline-flex; align-items: center; padding: 2px 0 12px; border: 0; background: none;
+  color: var(--accent-text); font: inherit; font-size: 14px; font-weight: 600; cursor: pointer;
+}
+.scan-recheck { margin: 12px 0 2px; }
+.scan-folder-view .id-list { margin-top: 12px; }
 
 .settings-pane[data-pane="away"] a.settings-update-btn { text-decoration: none; display: inline-flex; align-items: center; }
 #away-pane-body .settings-row { margin-top: 14px; min-height: 40px; }
