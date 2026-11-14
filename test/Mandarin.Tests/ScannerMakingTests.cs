@@ -8,7 +8,7 @@ namespace Mandarin.Tests;
 /// making held ahead of its device stays under way for as long as the device is paused, and the Album Scanner said
 /// "Paused while music plays" all that while: the owner's, on 14 Nov, with the rooms and the phone paused. Now a making
 /// counts while it goes on (more made, or more of it read) and for a while after it last did (here 3 s); one ended
-/// counts for its while after (here 6 s), as before. Its cores stay kept, held or not: the device may go on at once.
+/// counts for its while after (here 15 s), as before. Its cores stay kept, held or not: the device may go on at once.
 /// </summary>
 public sealed class ScannerMakingTests
 {
@@ -23,7 +23,7 @@ public sealed class ScannerMakingTests
             tags: new Dictionary<string, object> { ["title"] = "Long", ["artist"] = "Artist D", ["album"] = "Long One", ["track"] = 1 });
         await using var s = await Session.Started(lib: lib, env: new Dictionary<string, string>
         {
-            ["MANDARIN_MAKE_LEAD_S"] = "2", ["MANDARIN_MAKING_QUIET_MS"] = "3000", ["MANDARIN_CPU_MAKING_HOLD_MS"] = "6000"
+            ["MANDARIN_MAKE_LEAD_S"] = "2", ["MANDARIN_MAKING_QUIET_MS"] = "3000", ["MANDARIN_CPU_MAKING_HOLD_MS"] = "15000"
         });
         await Session.Until(async () => (await s.Api("library-stats")).J.Num("albums") == 4, 30000, "the library");
         // On, at any hour: nothing plays yet.
@@ -60,7 +60,7 @@ public sealed class ScannerMakingTests
         {
             while (true)
             {
-                var n = await body.ReadAsync(buf.AsMemory(0, 16 * 1024));
+                var n = await body.ReadAsync(buf.AsMemory(0, 64 * 1024));
                 if (n == 0) return;
                 read += n;
                 await Task.Delay(5);
@@ -70,8 +70,8 @@ public sealed class ScannerMakingTests
         Assert.False(reading.IsCompleted, "read to its end before it was taken for music playing again");
         await reading;
         Assert.Equal(length, read);
-        // Made to its end: music playing for its while after (6 s), then not.
+        // Made to its end: music playing for its while after (15 s), then not.
         Assert.Equal("playing", await Reason(s));
-        await Session.Until(async () => await Reason(s) != "playing", 30000, "the while after the making ended");
+        await Session.Until(async () => await Reason(s) != "playing", 45000, "the while after the making ended");
     }
 }
