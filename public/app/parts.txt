@@ -33,6 +33,7 @@ app/queue.js
 app/album-editor.js
 app/album-editor-match.js
 app/album-editor-sound.js
+app/album-editor-version.js
 app/album-detail.js
 app/album-versions.js
 app/album-tabs.js

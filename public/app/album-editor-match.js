@@ -115,6 +115,7 @@ async function aeMatch(query, how, btn) {
       mine.data = d;
       ae.title.value = d.title || ""; ae.artist.value = d.artist || ""; ae.year.value = d.year || "";
       ["title", "artist", "year"].forEach(aeWas);
+      aeVersionShow(d, true);   // the release's version details, where you haven't changed them (item 420)
       ae.reset.classList.toggle("hidden", !d.edited);
       aeApplyToScreen(Object.assign({}, d, { album: { year: d.year } }));
       if (mine.album === currentAlbum) fetchAlbumDetail(currentAlbum).catch(() => {});
@@ -160,6 +161,7 @@ async function openAlbumEditor(album) {
   ae.img.removeAttribute("src");
   ae.save.disabled = true;
   aeEl.querySelectorAll(".ae-was").forEach(x => { x.innerHTML = ""; });
+  aeVersionClear();
   aeEl.classList.remove("hidden");
   try {
     const r = await fetch(`/api/album/edit?offset=${album.offset}`);
@@ -184,6 +186,7 @@ async function openAlbumEditor(album) {
     }
     ae.title.value = d.title || ""; ae.artist.value = d.artist || ""; ae.year.value = d.year || "";
     ["title", "artist", "year"].forEach(aeWas);
+    aeVersionShow(d, false);   // this copy's version, each field from the match or the files (item 420)
     ae.reset.classList.toggle("hidden", !d.edited);
     ae.save.disabled = false;
     aeCoverStatus();
@@ -224,6 +227,8 @@ async function aePost(path, body, btn) {
     const j = await r.json().catch(() => ({}));
     if (!r.ok) throw new Error(j.error || `HTTP ${r.status}`);
     aeApplyToScreen(j);
+    // The Versions tab says the version's name and year as saved (item 420).
+    if (aeState && aeState.album === currentAlbum && (body.version || /\/reset$/.test(path))) fetchAlbumDetail(currentAlbum).catch(() => {});
     aeClose();
     showToast("Album saved");
   } catch (e) {
@@ -272,7 +277,10 @@ if (aeEl) {
     if (!aeState || !aeState.data) return;
     const y = ae.year.value.trim();
     if (y && !/^\d{4}$/.test(y)) { ae.err.textContent = "The year should be four digits, like 2002."; return; }
+    const version = aeVersionBody(), vErr = aeVersionError(version);
+    if (vErr) { ae.err.textContent = vErr; return; }
     const body = { offset: aeState.album.offset, title: ae.title.value, artist: ae.artist.value, year: y };
+    if (version) body.version = version;
     const pick = aeState.pick;
     if (pick === "remove") body.art = "remove";
     else if (pick) { body.art_url = pick.url; body.art_source = pick.source === "a pasted address" ? pick.url : pick.source; }

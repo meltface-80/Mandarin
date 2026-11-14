@@ -213,7 +213,7 @@ private fun AeSoundRelease(r: SoundRelease, picked: Boolean, busy: Boolean, modi
     }
 }
 
-/** The title, the artist and the year (.ae-fields), each with what the files say under it once they differ; what went wrong; Save and Cancel; Undo all edits. */
+/** The title, the artist and the year (.ae-fields), each with what the files say under it once they differ; the copy's Version; what went wrong; Save and Cancel; Undo all edits. */
 @Composable
 internal fun EditFields(ed: AlbumEditor) {
     val d = ed.state
@@ -232,6 +232,7 @@ internal fun EditFields(ed: AlbumEditor) {
         textStyle = aeText(), cursorBrush = accent, interactionSource = focus[2], keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
         decorationBox = { AeBox(ed.year, "", focus[2], it) })
     d?.let { s -> AlbumEdit.was(s.scanned["year"].orEmpty(), ed.year)?.let { AeWas(it, Modifier.parity("album-edit.was")) { AePutBack(Modifier.parity("album-edit.put-back", Contract.label("album-edit.put-back")).clickable { ed.year = s.scanned["year"].orEmpty() }) } } }
+    EditVersion(ed)   // the copy's version (item 420, AlbumEditVersion.kt)
     ed.err?.let { AeErr(it, Modifier.parity("album-edit.err")) }
     // .ae-foot: Save in the accent and Cancel, side by side, 10 apart, 20 over them.
     Row(Modifier.fillMaxWidth().padding(top = 20.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -248,11 +249,11 @@ internal fun EditFields(ed: AlbumEditor) {
 
 /** The fields' words: 16 in the text's colour. */
 @Composable
-private fun aeText() = TextStyle(color = paletteColor(Palette.TEXT), fontSize = 16.sp, lineHeight = 22.sp)
+internal fun aeText() = TextStyle(color = paletteColor(Palette.TEXT), fontSize = 16.sp, lineHeight = 22.sp)
 
 /** A field's box (.ae-input): the raised ground, 10 round, 10 and 12 in, its edge the accent while it is typed in; [placeholder] while it is empty. */
 @Composable
-private fun AeBox(value: String, placeholder: String, focus: MutableInteractionSource, field: @Composable () -> Unit) {
+internal fun AeBox(value: String, placeholder: String, focus: MutableInteractionSource, field: @Composable () -> Unit) {
     val focused by focus.collectIsFocusedAsState()
     val shape = RoundedCornerShape(10.dp)
     Box(Modifier.fillMaxWidth().clip(shape).background(paletteColor(Palette.BG_ELEV_2)).border(1.dp, paletteColor(if (focused) Palette.ACCENT else Palette.BORDER), shape)
@@ -273,7 +274,7 @@ private fun AeSaid(said: Said, modifier: Modifier) {
 
 /** A field's name over it (.ae-label): 12, bold, spaced and in capitals, faint; 12 over it and 6 under. */
 @Composable
-private fun AeLabel(text: String, modifier: Modifier) {
+internal fun AeLabel(text: String, modifier: Modifier) {
     Text(text.uppercase(), modifier.padding(top = 12.dp, bottom = 6.dp), color = paletteColor(Palette.TEXT_FAINT), fontSize = 12.sp, lineHeight = 17.sp,
         fontWeight = FontWeight.W600, letterSpacing = 0.06.em)
 }
@@ -302,7 +303,7 @@ private fun AeErr(text: String, modifier: Modifier) {
 
 /** What the files say under a field that differs from them (.ae-was): 12, faint, 5 over it, and Put back ([putBack]) after it. */
 @Composable
-private fun AeWas(text: String, modifier: Modifier, putBack: @Composable () -> Unit) {
+internal fun AeWas(text: String, modifier: Modifier, putBack: @Composable () -> Unit) {
     Row(modifier.padding(top = 5.dp)) {
         Text(text, Modifier.weight(1f, fill = false), color = paletteColor(Palette.TEXT_FAINT), fontSize = 12.sp, lineHeight = 17.sp)
         putBack()
@@ -311,7 +312,7 @@ private fun AeWas(text: String, modifier: Modifier, putBack: @Composable () -> U
 
 /** Put back (.ae-was button): 12, in the accent's text colour. */
 @Composable
-private fun AePutBack(modifier: Modifier) {
+internal fun AePutBack(modifier: Modifier) {
     Text("Put back", modifier, color = paletteColor(Palette.ACCENT_TEXT), fontSize = 12.sp, lineHeight = 17.sp)
 }
 

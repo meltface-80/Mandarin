@@ -457,11 +457,11 @@ CREATE TABLE IF NOT EXISTS audio_devices (
             if (r is not JsonObject e || !Truthy(e["key"])) continue;
             using var cmd = c.CreateCommand();
             cmd.Transaction = tx;
-            cmd.CommandText = @"INSERT OR IGNORE INTO album_edits(key, title, artist, year, art, art_hash, art_source, updated_at)
-                          VALUES($key, $title, $artist, $year, $art, $art_hash, $art_source, $updated_at)";
+            cmd.CommandText = @"INSERT OR IGNORE INTO album_edits(key, title, artist, year, art, art_hash, art_source, version, updated_at)
+                          VALUES($key, $title, $artist, $year, $art, $art_hash, $art_source, $version, $updated_at)";   // version: item 420
             object? Or(string k) => Truthy(e[k]) ? Bind(e[k]) : null;
             cmd.Parameters.AddWithValue("$key", Bind(e["key"]) ?? DBNull.Value);
-            foreach (var k in new[] { "title", "artist", "year", "art_hash", "art_source" }) cmd.Parameters.AddWithValue("$" + k, Or(k) ?? DBNull.Value);
+            foreach (var k in new[] { "title", "artist", "year", "art_hash", "art_source", "version" }) cmd.Parameters.AddWithValue("$" + k, Or(k) ?? DBNull.Value);
             object art = DBNull.Value;
             if (Truthy(e["art"]))
             {

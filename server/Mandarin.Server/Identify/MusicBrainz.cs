@@ -104,6 +104,9 @@ internal sealed partial class MusicBrainz(string? baseUrl, string version) : IRe
         if (L(rel["label-info"]).Select(x => O(x)["catalog-number"]).FirstOrDefault(Js.Truthy) is { } catno) c["catno"] = catno;
         // And its label, for the kind of edition you choose (item 414b, Identifier.Review.cs).
         if (L(rel["label-info"]).Select(x => O(x)["label"] is JsObj lb ? lb["name"] : null).FirstOrDefault(Js.Truthy) is { } label) c["label"] = label;
+        // Its format, as MusicBrainz's page says it ("CD", "2×CD", "SACD + CD"), for Edit album's Version (item 420).
+        var formats = media.GroupBy(m => S(m["format"])).Where(g => g.Key.Length > 0).Select(g => (g.Count() > 1 ? g.Count() + "×" : "") + g.Key).ToList();
+        if (formats.Count > 0) c["format"] = string.Join(" + ", formats);
         c["discs"] = media.Count > 0 ? (double)media.Count : null;
         c["track_count"] = tracks.Count > 0 ? (double)tracks.Count : Js.Truthy(rel["track-count"]) ? rel["track-count"] : 0.0;
         c["tracks"] = tracks;

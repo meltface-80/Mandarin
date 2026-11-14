@@ -50,7 +50,7 @@ internal sealed partial class Identifier
     /* library.saveEdit(id, { title, artist, year }): laid over the album; an empty value puts back what was scanned. */
     private static void SaveEdit(SqliteConnection c, SqliteTransaction tx, Album al, object? title, object? artist, object? year)
     {
-        var cur = RowsTx(c, tx, "SELECT title, artist, year, art, art_hash, art_source FROM album_edits WHERE key = $1", al.Key).FirstOrDefault() ?? new object?[6];
+        var cur = RowsTx(c, tx, "SELECT title, artist, year, art, art_hash, art_source, version FROM album_edits WHERE key = $1", al.Key).FirstOrDefault() ?? new object?[7];
         object? Or(object? v) => Js.Truthy(v) ? v : null;
         string? Text(object? v, string scanned)
         {
@@ -62,7 +62,8 @@ internal sealed partial class Identifier
         var y = Js.ParseInt(year);
         object? nYear = y >= 1000 && y <= 2999 && !(al.ScannedYear is long sy && sy == y) ? y : null;
         object? art = Or(cur[3]), artHash = Or(cur[4]), artSource = Or(cur[5]);
-        if (nTitle == null && nArtist == null && nYear == null && art == null)
+        // The version's details you wrote (item 420, album_edits.version) are yours, never the match's: kept as they are.
+        if (nTitle == null && nArtist == null && nYear == null && art == null && !Js.Truthy(cur[6]))
             Exec(c, tx, "DELETE FROM album_edits WHERE key = $1", al.Key);
         else
             Exec(c, tx, @"INSERT INTO album_edits(key, title, artist, year, art, art_hash, art_source, updated_at)

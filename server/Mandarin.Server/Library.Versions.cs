@@ -7,7 +7,8 @@
 // many there are; the album's page lists every version (LibraryRoutes.Versions.cs). The main version is the one chosen on
 // an album's page, else the highest resolution, the newest release where two are alike. Each version says what tells it
 // from the others: its edition (MusicBrainz's word, else its title's version words), else its release's year, else
-// Original for the earliest; and its format, "2015 Remaster · 24/96".
+// Original for the earliest; and its format, "2015 Remaster · 24/96". A name and a year you gave it in Edit album's
+// Version (item 420, AlbumVersionEdit.cs) are said in their place.
 using System.Globalization;
 using Microsoft.Data.Sqlite;
 
@@ -53,7 +54,13 @@ internal static partial class Library
         }
         catch (SqliteException) { s.Shown = s.Albums; return; }   // a database from before the columns
         var chosen = MainVersionKeys(c);
-        foreach (var al in s.Albums) { al.MainVersion = null; al.Versions = null; al.VersionLabel = null; al.VersionEdition = null; al.ReleaseYear = facts.TryGetValue(al.Id, out var f) ? f.Year : null; }
+        VersionEdits(c, s);   // the version details written over each by hand (item 420): its name and this pressing's year win here
+        foreach (var al in s.Albums)
+        {
+            al.MainVersion = null; al.Versions = null; al.VersionLabel = null; al.VersionEdition = null;
+            al.ReleaseYear = long.TryParse(al.VersionOwn?.GetValueOrDefault("year"), NumberStyles.None, CultureInfo.InvariantCulture, out var mine) ? mine
+                : facts.TryGetValue(al.Id, out var f) ? f.Year : null;
+        }
 
         var pool = s.Albums.Where(al => !al.Compilation && !al.Transient && al.Service == null && al.Box == null && al.ArtistNames.Length > 0).ToList();
         string? Group(Album al) => facts.TryGetValue(al.Id, out var f) ? f.Group : null;
@@ -82,7 +89,8 @@ internal static partial class Library
             var order = new List<long> { main.Id };
             order.AddRange(set.Where(al => al != main).OrderBy(al => al.ReleaseYear ?? al.Year ?? long.MaxValue).ThenBy(al => al.Id).Select(al => al.Id));
             // Its edition, else its release's year where it isn't the original's; the one left with neither is the original.
-            string? Own(Album al) => Edition(al) ?? (al.ReleaseYear is long ry && ry != al.Year ? ry.ToString(CultureInfo.InvariantCulture) + " release" : null);
+            // Your name for it first (item 420), though only its match's and its title's words tell versions apart above.
+            string? Own(Album al) => al.VersionOwn?.GetValueOrDefault("name") ?? Edition(al) ?? (al.ReleaseYear is long ry && ry != al.Year ? ry.ToString(CultureInfo.InvariantCulture) + " release" : null);
             var bare = set.Where(al => Own(al) == null).ToList();
             foreach (var al in set)
             {
