@@ -15,7 +15,11 @@ On a 64-bit Debian, Ubuntu or Raspberry Pi OS computer (x64, or arm64: a Pi 3, 4
     curl -fsSL https://github.com/meltface-80/Mandarin/releases/download/test-bridge/install.sh | sudo sh
 
 It installs the Bridge and the audio engine in `/usr/lib/mandarin-bridge`, ffmpeg where it isn't there, and a
-systemd service that starts it at boot (`systemctl status mandarin-bridge`, `journalctl -u mandarin-bridge`).
+systemd service that starts it at boot (`systemctl status mandarin-bridge`, `journalctl -u mandarin-bridge`), run as
+a user of its own, `mandarin-bridge`, its data folder `/var/lib/mandarin-bridge`. Before 0.3.12 the service ran as a
+DynamicUser, whose data folder systemd 256 and later (Debian 13) mount so nothing in it can be run, and its update
+couldn't be installed (item 415): run the install line again and it runs as its own user, its data folder kept (who it
+is to Mandarin, its settings, its logs). On Mandarin OS, Mandarin OS 0.1.7 does this for the Bridge installed.
 Then switch it on in Mandarin's *Settings → Audio Devices*. It finds Mandarin on its own network (a broadcast to port
 3483); where Mandarin is elsewhere (another subnet, over a VPN), point it there: add `--server <Mandarin's address>` to
 `ExecStart` in `/etc/systemd/system/mandarin-bridge.service`. A Bridge Mandarin knew as a UPnP renderer keeps its name

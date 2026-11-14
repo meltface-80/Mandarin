@@ -1,0 +1,26 @@
+# os/test: Mandarin Bridge's service as install.sh installed it before 0.3.12 (item 415), a DynamicUser's. The boot test
+# (os/test/bridge-update-vm.sh) installs it, as a box Mandarin OS has carried from an earlier version has it, and
+# test/bridge-service-user.test.js reads it with Mandarin OS's drop-in.
+# Mandarin Bridge for Linux (bridge/linux, item 282): the USB DAC on this computer as a player Mandarin plays to (SlimProto, item 316).
+# Its page is at http://<this computer>:49494/. Installed by install.sh.
+[Unit]
+Description=Mandarin Bridge (a USB DAC as a player for Mandarin)
+After=network-online.target sound.target
+Wants=network-online.target
+
+[Service]
+ExecStart=/usr/lib/mandarin-bridge/mandarin-bridge --data /var/lib/mandarin-bridge --engine /usr/lib/mandarin-bridge/mandarin-audio
+Restart=always
+RestartSec=3
+# Its own user, allowed the sound devices and, for the audio engine's playback thread, a real-time priority.
+DynamicUser=yes
+SupplementaryGroups=audio
+StateDirectory=mandarin-bridge
+# Its home its data folder (item 391): DynamicUser gives it none, and .NET's certificate stores need one.
+Environment=HOME=/var/lib/mandarin-bridge
+AmbientCapabilities=CAP_SYS_NICE
+LimitRTPRIO=95
+LimitMEMLOCK=infinity
+
+[Install]
+WantedBy=multi-user.target

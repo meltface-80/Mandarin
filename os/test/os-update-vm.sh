@@ -1,13 +1,14 @@
 # os/test/os-update-vm.sh — sourced by boot-test.sh: Mandarin OS updated in place (item 401), end to end, on the image
 # being tested ($IMG, version $V), with its W, HERE, fail, ok, part and S.
 #   os_update_prepare  after the install, before the first start: two newer Mandarin OS made from the image itself, as
-#                      os-image.yml publishes one (its system partition, compressed, and its kernel image, each with
+#     [CHANGE]         os-image.yml publishes one (its system partition, compressed, and its kernel image, each with
 #                      .sha256 and .sig), signed with a key made for this run and kept nowhere: 9.9.9 (as built, its
 #                      version written in), and 9.9.10, broken (no os-release: the initrd won't start it, and a start
 #                      that can't go on starts the computer again). A stand-in GitHub on this computer offers them
 #                      (os/test/fake-os-release.js, as the test-os pre-release, 9.9.9 first), and the installed system's
 #                      os-update is told to ask it and take that key by a drop-in written into the test's own copy of
 #                      the installed disk (never the image), and into 9.9.9's system, for its own update to 9.9.10.
+#                      CHANGE, where given, a function that changes 9.9.9's system further (given its mount point).
 #   os_update_test     the box running: Update and restart asked of the system page with the share's password, and
 #                      the box back as 9.9.9 (kept: its entry blessed), the share's password, the shared folder's user's
 #                      number, the files in Storage and on USB drives, an ext4 drive's owners, Mandarin and its library
@@ -49,7 +50,7 @@ os_update_prepare() {
   [ -s "$W/osrel/port" ] || fail "the stand-in GitHub for Mandarin OS didn't start: $(cat "$W/osrel.log")"
   printf '[Service]\nEnvironment=MANDARIN_OS_UPDATE_API=http://10.0.2.2:%s/repos/meltface-80/Mandarin\nEnvironment=MANDARIN_OS_UPDATE_KEY=%s\n' \
     "$(cat "$W/osrel/port")" "$(openssl ec -in "$W/os-key.pem" -pubout -outform DER 2>/dev/null | base64 -w0)" > "$W/os-update-test.conf"
-  os_release 9.9.9; os_release 9.9.10 os_broken
+  os_release 9.9.9 "${1:-}"; os_release 9.9.10 os_broken
   ln -sfn 9.9.9 "$W/osrel/current"
   ls -la "$W"/osrel/9.9.9 | sed 's/^/  /'
   read -r rs rn < <(part "$W/disk.raw" "mandarin-os_$V")

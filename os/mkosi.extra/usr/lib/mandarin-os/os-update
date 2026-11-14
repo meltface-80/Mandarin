@@ -222,7 +222,8 @@ apply() {
   # This box's own, carried into it; the same users and groups as here, by number.
   mkdir -p "$MNT" && mount -t ext4 "$target" "$MNT" || failed "Mandarin OS $V couldn't be opened on $target"
   [ "$(cat "$MNT/usr/lib/mandarin-os/VERSION" 2>/dev/null)" = "$V" ] || failed "what was downloaded isn't Mandarin OS $V"
-  for who in mandarin; do
+  # Mandarin Bridge's too where this system has it (0.1.7 on, item 415): its data folder is carried as its own.
+  for who in mandarin $([ -n "$(uid_in "$R" mandarin-bridge)" ] && echo mandarin-bridge); do
     old="$(uid_in "$R" "$who"):$(gid_in "$R" "$who")"; new="$(uid_in "$MNT" "$who"):$(gid_in "$MNT" "$who")"
     [ "$old" = "$new" ] || failed "Mandarin OS $V numbers $who as $new, this system as $old: its files would no longer be its own. Not updated"
   done
