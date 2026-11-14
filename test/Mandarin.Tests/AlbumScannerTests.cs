@@ -211,7 +211,8 @@ public sealed class AlbumScannerTests
         var t0 = DateTime.UtcNow;
         await Session.Until(async () => Reason(await Scanner(s)) != "playing", 60000, "the phone let go");
         Assert.True(DateTime.UtcNow - t0 > TimeSpan.FromSeconds(20), "held while it loaded");
-        Assert.Equal(1.0, (await Http.Get(s.Base + "/api/health")).J["busy"].Num("playing"));   // as Mandarin OS's upkeep still counts it
+        // Mandarin OS's upkeep likewise (item 421): /api/health counts as the Album Scanner does, and holds back no update.
+        JsonAssert.Same("""{"any":false,"playing":0,"playing_in":[],"scanning":false,"making":0}""", (await Http.Get(s.Base + "/api/health")).J["busy"]);
     }
 
     [Test]
