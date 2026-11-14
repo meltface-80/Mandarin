@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.3.11
+
+- New - the Linux Bridge (and the Pi's) records what it feeds the DAC for Mandarin's bit-perfect check and SQ-tool (item 412), as the Android Bridge does: the same /capture (a recording in one piece of up to two minutes, or a whole track in parts from the track played again), the same WAV and sidecar. The bytes are those Mandarin's audio engine hands ALSA for the DAC, after every conversion it makes: its 32-bit words, DoP under its markers, native DSD words either way round. Made only when asked, written on a thread of its own so a slow disk never holds the music up, kept in the Bridge's own data folder and let go as Mandarin fetches it. Before, Mandarin told a Linux Bridge's room to update an app that had no recording to update to
+- Improved - Mandarin Bridge is 0.3.11
+
 ## v0.3.10
 
 - Fixed - the Linux Bridge's update failed where systemd runs it (the Linux installer's service, Mandarin OS's): it has no HOME there, so .NET couldn't open its certificate stores and couldn't connect to GitHub securely, and its fallback, curl, failed as well, said only as "tar couldn't be run". With no HOME its data folder is its home now (and the installer's service sets it), so it connects as it should; and a program it can't start says which and why

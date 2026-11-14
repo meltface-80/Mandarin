@@ -30,6 +30,20 @@ without a User-Agent, which GitHub refuses (item 327).
 Its log goes to journald (`journalctl -u mandarin-bridge`) and its last 2,000 lines are kept in memory as well, at
 `GET /log` (`Kept.cs`): the Mandarin app's Save log (Settings → Setup → Logging) has them, gathered by the server.
 
+## The bit-perfect check: `/capture`
+
+Mandarin's bit-perfect check and SQ-tool (item 412) ask the Bridge to record exactly what it feeds the DAC, as they
+ask the Android Bridge: the same `/capture` ([bridge/README.md](../README.md#the-bit-perfect-check-capture)), the same
+WAV and sidecar, and `/dac.json` says `"capture": "/capture"` and `"capture_parts": true`. The audio engine records it
+(`engine/Mandarin.Audio/Capture.cs`): a tap in front of its ALSA device, so the bytes are those it hands ALSA for the
+DAC, after every conversion it makes. PCM and DoP are in its 32-bit words (`S32_LE`), native DSD in its `DSD_U32_BE`
+or `DSD_U32_LE` words, so the WAV's container and valid bits are 32 and the sidecar's `format` names which;
+`dsd_setting` says `native` or `native_le` for native DSD. Only made when asked: up to two minutes in one piece, or a
+whole track in parts from the next flush (the track played again from its start), written on a thread of the
+engine's own so a slow disk never holds the DAC up, into `capture/` in the Bridge's data folder, emptied as it starts
+and as each recording starts; each part is let go once Mandarin fetches it. What ALSA's plug layer then does to fit a
+DAC's own format (a 24-bit slot) is after the tap. A Bridge before 0.3.11 can't record, and Mandarin says so.
+
 ## Its page
 
 There is no screen, so the Bridge has a page of its own: `http://<the computer>:49494/`. It shows:
@@ -65,8 +79,9 @@ what the driver's own table gives that DAC. To undo it, delete the file and repl
 | `Bridge.cs`, `Bridge.Routes.cs` | the DAC chosen, `/dac.json`, its hello's capabilities, the HTTP routes, the page's state and settings |
 | `Dac.cs` | the USB DACs the kernel lists (`/proc/asound`): each altset's format and rates; its USB descriptor (sysfs) read for raw DSD the kernel holds back |
 | `Player.cs` | the audio engine, driven over its stdin and stdout |
+| `Capture.cs` | `/capture`: a recording of what the DAC is fed, made by the engine's tap, for the bit-perfect check |
 | `Slim.cs` | SlimProto: Mandarin found, connected to, and what its `strm` says played through the engine; what happens said back (STAT) |
-| `Http.cs`, `Xml.cs` | its web service: `/dac.json`, `/update`, `/log`, its page |
+| `Http.cs`, `Xml.cs` | its web service: `/dac.json`, `/update`, `/log`, `/capture`, its page |
 | `Web.cs` | its page |
 | `Wifi.cs` | its Wi-Fi from its page, through NetworkManager, and a setup network where there is none (`--wifi`: the Pi image's) |
 | `Store.cs` | its name, its UDN (its SlimProto id is made from it), the DAC chosen and the DSD setting (`settings.json` in its data folder) |

@@ -1,4 +1,5 @@
-"""The web interface: pick a song, have Mandarin play it to a zone and record what its DAC is fed, compare.
+"""The web interface: pick a song, have Mandarin play it to a zone and record what its DAC is fed, compare; or compare
+two songs, file against file (sqtool/server_compare.py).
 
 Plain standard-library HTTP server with a small JSON API; the page itself lives in sqtool/web/. Mandarin starts it
 on a port of its own computer only (127.0.0.1) and serves it at /sq-tool/ behind its sign-in; the recording comes
@@ -18,6 +19,8 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Callable, List, Optional
 
 from . import __version__
+from .comparisons import Comparisons
+from .server_compare import CompareRoutes, routes as compare_routes
 from .sessions import Tests, clean
 from .wavio import AudioFileError
 
@@ -34,13 +37,14 @@ STATIC_TYPES = {".html": "text/html; charset=utf-8", ".js": "text/javascript; ch
 class App:
     def __init__(self, data_dir: str, music_dir: str, log: Callable[[str], None] = print):
         self.tests = Tests(data_dir, music_dir, log)
+        self.comparisons = Comparisons(self.tests)
         self.log = log
 
     def state(self, tid: Optional[str] = None) -> dict:
         usage = shutil.disk_usage(self.tests.data_dir)
         out = {"version": __version__, "free_bytes": usage.free,
                "music": {"available": self.tests.music_available(), "root": self.tests.music_dir},
-               "busy": not self.tests.idle()}
+               "busy": not (self.tests.idle() and self.comparisons.idle())}
         if tid:
             try:
                 out["test_rev"] = self.tests.rev(tid)
@@ -65,7 +69,7 @@ def _num(query: dict, key: str, default: float) -> float:
         raise ValueError("%s must be a number" % key)
 
 
-class Handler(BaseHTTPRequestHandler):
+class Handler(CompareRoutes, BaseHTTPRequestHandler):
     server_version = "sq-tool/" + __version__
     app: App  # set by make_server()
 
@@ -263,7 +267,7 @@ ROUTES = [
     ("GET", r"/api/tests/" + ID + r"/spectrogram/([a-z-]+)\.png", Handler.api_spectrogram),
     ("GET", r"/api/tests/" + ID + r"/audio/([a-z]+)\.wav", Handler.api_audio),
     ("GET", r"/api/tests/" + ID + r"/difference/([a-z]+)\.wav", Handler.api_difference),
-]
+] + compare_routes(ID)
 
 
 def make_server(data_dir: str, music_dir: str, host: str = "0.0.0.0", port: int = 3400,
