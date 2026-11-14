@@ -20,7 +20,7 @@ internal sealed partial class Hub
     private const double HeardMs = 120_000;
     private static readonly double LoadingMs = double.TryParse(Environment.GetEnvironmentVariable("MANDARIN_HEARD_LOADING_MS"),
         System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var l) && l > 0 ? l : 30_000;
-    // Asked at every block a fingerprint reads: what was found kept this long (ms).
+    // Asked at every block a fingerprint reads: what was found kept this long (ms), or until something changes (Bump).
     private const long HeardKeptMs = 1000;
     private (long At, List<Heard> List)? heardKept;
 

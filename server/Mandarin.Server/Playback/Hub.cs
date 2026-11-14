@@ -143,6 +143,7 @@ internal sealed partial class Hub
         lock (Gate)
         {
             Revision++;
+            heardKept = null;   // what plays asked afresh (Hub.Heard.cs)
             woken = [.. waiters];
             waiters.Clear();
         }
