@@ -129,6 +129,13 @@ test("item 414 end to end: a set's discs one album, a compilation, a rip found b
     assert.deepEqual(k.candidate.editions.map(e => [e.mbid, e.edition, e.track_count]), [["k-deluxe", "deluxe", 4]]);
     assert.ok(k.candidate.editions[0].similarity >= 85, JSON.stringify(k.candidate.editions));
     assert.deepEqual((await api("album?offset=" + k.album.offset)).tracks.map(t => t.title), ["K1", "K2", "K3"]);
+    // Edit album says how each was found, and offers the other editions there (the scanner page lists no applied albums since 411).
+    const ripEdit = await api("album/edit?offset=" + rip.album.offset);
+    assert.equal(ripEdit.match && ripEdit.match.matched_by, "disc-lengths", JSON.stringify(ripEdit.match));
+    assert.deepEqual(ripEdit.match.editions, []);
+    const kEdit = await api("album/edit?offset=" + k.album.offset);
+    assert.deepEqual([kEdit.match.title, kEdit.match.similarity, kEdit.match.matched_by], ["Pressed", 100, "barcode"]);
+    assert.deepEqual(kEdit.match.editions.map(e => [e.mbid, e.edition, e.track_count]), [["k-deluxe", "deluxe", 4]]);
 
     // Switched in one tap: the deluxe's names written, the standard offered back.
     r = await api("identify/match", { offset: k.album.offset, query: "k-deluxe", how: "edition" });
@@ -138,6 +145,8 @@ test("item 414 end to end: a set's discs one album, a compilation, a rip found b
     assert.equal(sw.candidate.manual, "edition");
     assert.deepEqual(sw.candidate.editions.map(e => e.mbid), ["k-std"]);
     assert.deepEqual((await api("album?offset=" + k.album.offset)).tracks.map(t => t.title), ["K1 (Deluxe)", "K2 (Deluxe)", "K3 (Deluxe)"]);
+    const swEdit = (await api("album/edit?offset=" + k.album.offset)).match;
+    assert.deepEqual([swEdit.manual, swEdit.editions.map(e => e.mbid)], ["edition", ["k-std"]]);
     // And back, and undone: the tags' own names.
     r = await api("identify/match", { offset: k.album.offset, query: "k-std", how: "edition" });
     assert.equal(r.applied.find(x => x.album.offset === k.album.offset).candidate.mbid, "k-std");

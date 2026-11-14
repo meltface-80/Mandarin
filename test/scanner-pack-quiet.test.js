@@ -9,7 +9,7 @@ const fs = require("fs");
 const path = require("path");
 
 const read = f => fs.readFileSync(path.join(__dirname, "..", f), "utf8");
-const PAGE = read("public/app/settings-scanner.js");
+const PAGE = read("public/app/settings-scanner-pack.js");
 const APP = read("android/app/src/main/java/com/musicd/server/android/ScannerPack.kt");
 
 test("the page sets the pack's folder without a toast", () => {

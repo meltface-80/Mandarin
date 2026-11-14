@@ -155,6 +155,8 @@ public sealed partial class AutoCoversTests
             return false;
         };
         await using var s = await Session.Started(cat.Options(), lib);
+        // Its runs of its own keep to Scheduling's hours (item 411): at any hour, the scan's run made now.
+        await s.Api("album-scanner", new { schedule = false });
         await held.Task.WaitAsync(TimeSpan.FromSeconds(30));
         var off = (await s.Api("covers/auto", new { on = false })).J;
         Assert.False(off.Bool("on"));

@@ -37,6 +37,8 @@ public sealed partial class AutoCoversTests
         // Settings → Library Scanner → Find covers says the same.
         var line = (await s.Api("covers/auto")).J;
         Assert.Equal([lib.Music], line.Strs("unreachable").OfType<string>().ToArray());
+        // And under the Album Scanner's Progress, where the page and the app say it now (item 411).
+        Assert.Equal([lib.Music], (await s.Api("album-scanner")).J.Strs("unreachable").OfType<string>().ToArray());
 
         // The next runs pass them over quietly: nothing looked at, nothing said again.
         JsonAssert.Same("""{ "ok": true, "looked": 0, "found": 0, "none": 0, "own": 0, "later": 0 }""", (await Pass(s)).J);

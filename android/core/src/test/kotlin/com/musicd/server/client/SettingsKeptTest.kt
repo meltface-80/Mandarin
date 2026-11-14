@@ -38,7 +38,7 @@ class SettingsKeptTest {
 
     @Test fun `only Settings' reads are kept, never the API keys, the browser of folders, or anything else`() {
         for (p in listOf("/api/auth/status", "/api/library/folders", "/api/settings/smart-picks", "/api/settings/qobuz", "/api/audio-devices",
-                "/api/audio-devices/alsa%3Ahw%3A1", "/api/identify?lists=0", "/api/tailscale")) assertTrue(p, SettingsKept.keeps(p))
+                "/api/audio-devices/alsa%3Ahw%3A1", "/api/identify?lists=0", "/api/album-scanner", "/api/tailscale")) assertTrue(p, SettingsKept.keeps(p))
         for (p in listOf("/api/settings/lastfm-key", "/api/settings/fanart", "/api/library/browse?path=%2Fmusic", "/api/audio-devices/x/dsp",
                 "/api/identify?lists=60", "/api/shortcut/zones", "/api/cpu", "/api/health")) assertFalse(p, SettingsKept.keeps(p))
     }
@@ -83,6 +83,13 @@ class SettingsKeptTest {
         answers["/api/auth/status"] = JSONObject().put("open", true)
         c.post("/api/auth/open", JSONObject())
         assertTrue(SettingsKept.last("/api/auth/status")!!.getBoolean("open"))
+
+        // The Album Scanner (item 411): an album accepted moves its readout, read again behind it.
+        answers["/api/album-scanner"] = JSONObject().put("on", true).put("done", 1)
+        c.getJson("/api/album-scanner")
+        answers["/api/album-scanner"] = JSONObject().put("on", true).put("done", 2)
+        c.post("/api/identify/accept", JSONObject().put("offset", 1))
+        assertEquals(2, SettingsKept.last("/api/album-scanner")!!.getInt("done"))
     }
 
     @Test fun `a write reads again only what was kept, and nothing for a write nothing kept depends on`() {

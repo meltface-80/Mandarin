@@ -17,6 +17,34 @@ function aeMatchLineFor(c) {
   return bits.join(" · ");
 }
 
+// The match applied, as the editor says it (item 414): how it was found, and the record's other editions near enough,
+// a tap each (written as a match is, undone with the album's other edits).
+const AE_BY = { "musicbrainz-id": "the files' MusicBrainz ID", barcode: "barcode", "catalogue-number": "catalogue number", isrc: "ISRCs", "disc-lengths": "the tracks' lengths, as on the CD" };
+function aeMatchHow(m) {
+  if (m.manual === "edition") return "edition chosen by you";
+  if (m.manual) return "matched by " + (m.manual === "barcode" ? "barcode" : m.manual === "pick" ? "you" : "link");
+  return m.matched_by ? "matched by " + (AE_BY[m.matched_by] || m.matched_by) + (m.from_pack ? " (pack)" : "") : "";
+}
+// One of the other editions, as its button says it: "deluxe · JP · 2012 · 4 tracks".
+const aeEditionName = e => [e.edition, e.country, e.release_year, e.track_count ? e.track_count + (e.track_count === 1 ? " track" : " tracks") : ""].filter(Boolean).join(" · ") || e.release_title || "Another edition";
+function aeShowMatch(m) {
+  if (ae.mEditions) { ae.mEditions.innerHTML = ""; ae.mEditions.classList.add("hidden"); }
+  if (!m) return false;
+  const how = aeMatchHow(m), eds = m.editions || [];
+  ae.mStatus.innerHTML = "<strong>Matched:</strong> " + escapeHtml((m.artist ? m.artist + " — " : "") + (m.title || "")) + (m.year ? " (" + escapeHtml(m.year) + ")" : "") +
+    (m.similarity != null ? " · " + escapeHtml(m.similarity) + " %" : "") + (how ? " · " + escapeHtml(how) : "") + (eds.length ? ". Other editions:" : "");
+  if (!ae.mEditions || !eds.length) return true;
+  for (const e of eds) {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "action-btn ae-medition"; b.setAttribute("data-parity", "album-edit.edition");
+    b.textContent = aeEditionName(e);
+    b.addEventListener("click", () => aeMatch(e.mbid, "edition", b));
+    ae.mEditions.appendChild(b);
+  }
+  ae.mEditions.classList.remove("hidden");
+  return true;
+}
+
 function aeRenderMatches(list, verdict) {
   ae.mCands.innerHTML = "";
   list.forEach((c, i) => {
@@ -88,12 +116,12 @@ async function aeMatch(query, how, btn) {
     }
     const done = (j.applied || []).find(x => x.album && x.album.offset === mine.album.offset);
     const c = done && done.candidate;
-    ae.mStatus.innerHTML = c ? `<strong>Matched:</strong> ${escapeHtml((c.artist ? c.artist + " — " : "") + c.title)}${c.year ? " (" + escapeHtml(c.year) + ")" : ""}. Undo is under Settings → Library Scanner.` : "<strong>Matched.</strong>";
+    if (!(r2.ok && aeShowMatch(d.match))) ae.mStatus.innerHTML = c ? `<strong>Matched:</strong> ${escapeHtml((c.artist ? c.artist + " — " : "") + c.title)}${c.year ? " (" + escapeHtml(c.year) + ")" : ""}. Undo is under Settings → Library Scanner.` : "<strong>Matched.</strong>";
     ae.mCands.querySelectorAll(".ae-mcand").forEach(x => x.classList.toggle("is-picked", x === btn));
-    showToast("Matched — names applied");
+    showToast(how === "edition" ? "Edition switched — names applied" : "Matched — names applied");
   } catch (e) {
     if (aeState !== mine) return;
-    (how === "pick" ? ae.err : ae.barcodeErr).textContent = e.message;
+    (how === "barcode" ? ae.barcodeErr : ae.err).textContent = e.message;
   } finally {
     if (aeState === mine) {
       if (btn) { btn.disabled = false; if (orig && btn === ae.barcodeUse) btn.textContent = orig; }
@@ -117,6 +145,7 @@ async function openAlbumEditor(album) {
   if (ae.mBox) {
     ae.mBox.classList.add("hidden"); ae.mCands.innerHTML = ""; ae.barcode.value = ""; ae.barcodeErr.textContent = "";
     ae.mStatus.textContent = "Names from MusicBrainz — artist, title, year and every track.";
+    aeShowMatch(null);
     ae.mFind.disabled = false;
   }
   ae.title.value = album.title || ""; ae.artist.value = album.subtitle || ""; ae.year.value = "";
@@ -132,6 +161,7 @@ async function openAlbumEditor(album) {
     if (!r.ok) throw new Error(d.error || `HTTP ${r.status}`);
     if (aeState !== mine) return;
     mine.data = d;
+    if (ae.mBox) aeShowMatch(d.match);   // the match applied, and its other editions (item 414)
     // The album's folder (v0.6.3), for telling a remix or a box set apart
     // when matching by hand.
     if (ae.folder && d.folder) {

@@ -24,7 +24,7 @@ data class BoxPart(val name: String, val disc: Int, val of: Int)
  */
 data class EditState(val offset: Long, val folder: String?, val box: BoxPart?, val title: String, val artist: String, val year: String,
                      val scanned: Map<String, String>, val edited: Boolean, val imageKey: String?, val artOwn: Boolean, val artFound: Boolean,
-                     val artSource: String?) {
+                     val artSource: String?, val match: AlbumMatch? = null) {
     /** The box set it is part of, as the folder line says it. */
     val boxLine: String? get() = box?.let { "From " + it.name + " · disc " + it.disc + " of " + it.of }
 
@@ -35,8 +35,43 @@ data class EditState(val offset: Long, val folder: String?, val box: BoxPart?, v
             val box = j.optJSONObject("box")?.let { BoxPart(it.optString("name"), it.optInt("disc"), it.optInt("of")) }
             return EditState(j.optLong("offset"), text(j, "folder"), box, text(j, "title").orEmpty(), text(j, "artist").orEmpty(), text(j, "year").orEmpty(),
                 listOf("title", "artist", "year").associateWith { text(s, it).orEmpty() }, j.optBoolean("edited"), text(j, "image_key"),
-                art.optBoolean("own"), art.optBoolean("found"), text(art, "source"))
+                art.optBoolean("own"), art.optBoolean("found"), text(art, "source"), j.optJSONObject("match")?.let(AlbumMatch::parse))
         }
+    }
+}
+
+/** One of the record's other editions near enough to the match applied: its id, and what its button says (item 414). */
+data class Edition(val mbid: String, val name: String)
+
+/**
+ * The match applied to an album (item 414, /api/album/edit's "match"): the release's names, how alike, how it was found
+ * ([how], as the page words it), and the record's other [editions], each a tap from being written in its place.
+ */
+data class AlbumMatch(val artist: String, val title: String, val year: String?, val similarity: Int?, val how: String, val editions: List<Edition>) {
+    companion object {
+        private val BY = mapOf("musicbrainz-id" to "the files' MusicBrainz ID", "barcode" to "barcode", "catalogue-number" to "catalogue number", "isrc" to "ISRCs",
+            "disc-lengths" to "the tracks' lengths, as on the CD")
+
+        /** How it was found, as the page's aeMatchHow says it. */
+        fun how(manual: String, by: String, fromPack: Boolean): String = when {
+            manual == "edition" -> "edition chosen by you"
+            manual.isNotEmpty() -> "matched by " + when (manual) { "barcode" -> "barcode"; "pick" -> "you"; else -> "link" }
+            by.isNotEmpty() -> "matched by " + (BY[by] ?: by) + if (fromPack) " (pack)" else ""
+            else -> ""
+        }
+
+        /** An edition as its button says it, as the page's aeEditionName: "deluxe · JP · 2012 · 4 tracks". */
+        fun editionName(e: JSONObject): String {
+            val n = e.optInt("track_count")
+            val bits = listOf(text(e, "edition").orEmpty(), text(e, "country").orEmpty(), text(e, "release_year").orEmpty(),
+                if (n > 0) "$n " + (if (n == 1) "track" else "tracks") else "").filter { it.isNotEmpty() }
+            return bits.joinToString(" · ").ifEmpty { text(e, "release_title") ?: "Another edition" }
+        }
+
+        fun parse(m: JSONObject) = AlbumMatch(text(m, "artist").orEmpty(), text(m, "title").orEmpty(), text(m, "year"),
+            if (m.has("similarity") && !m.isNull("similarity")) m.optInt("similarity") else null,
+            how(text(m, "manual").orEmpty(), text(m, "matched_by").orEmpty(), m.optBoolean("from_pack")),
+            objs(m.optJSONArray("editions")).mapNotNull { e -> text(e, "mbid")?.let { Edition(it, editionName(e)) } })
     }
 }
 
@@ -164,6 +199,10 @@ object AlbumEdit {
         else if (pick != null) body.put("art_url", pick.url).put("art_source", if (pick.source == CoverPick.PASTED) pick.url else pick.source)
         return body
     }
+
+    /** The match applied, as the page's aeShowMatch says it: its names, how alike, how found, and "Other editions:" when there are any. */
+    fun matchSaid(m: AlbumMatch): Said = Said("Matched:", " " + (if (m.artist.isNotEmpty()) "${m.artist} — " else "") + m.title + (m.year?.let { " ($it)" } ?: "") +
+        (m.similarity?.let { " · $it %" } ?: "") + (if (m.how.isNotEmpty()) " · " + m.how else "") + if (m.editions.isNotEmpty()) ". Other editions:" else "")
 
     /** What is said once a release is applied to the album at [offset] ([answer]: the server's, the identify page's lists). */
     fun matched(answer: JSONObject, offset: Long): Said {

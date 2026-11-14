@@ -14,7 +14,8 @@
 //
 // When it runs: whenever Scheduling is off; between the start and end times
 // when it is on (the server's clock). Never while the library scan is
-// running, never on an album you edited by hand.
+// running or music plays (item 411), never on an album you edited by hand.
+// Switched on and off with the Album Scanner (AlbumScanner.cs, item 411).
 //
 // What it writes, it writes as the Node server wrote it, column for column;
 // the library is then told (Library.Tell, { edits }) and read again, and
@@ -121,7 +122,10 @@ internal sealed partial class Identifier
     /* { enabled, schedule, start, end, itunes }, the defaults under what's kept. */
     public JsObj Settings() => Stored();
 
-    /* The same, for the loudness measuring, which keeps to the same hours (v0.8.24). */
+    /*
+     * The same, for the loudness measuring, which keeps to the same hours (v0.8.24). Since item 411 enabled is the
+     * Album Scanner's switch (AlbumScanner.cs), and iTunes is asked whenever it is on: itunes is always true.
+     */
     public static JsObj Stored()
     {
         var s = new JsObj();
@@ -133,24 +137,31 @@ internal sealed partial class Identifier
         var kept = Setting("identify");
         if (Js.Truthy(kept) && kept is JsObj o) foreach (var k in o.Keys) s[k] = o[k];
         var outS = new JsObj();
-        outS["enabled"] = Js.Truthy(s["enabled"]);
+        outS["enabled"] = AlbumScanner.On();
         outS["schedule"] = Js.Truthy(s["schedule"]);
         outS["start"] = s["start"];
         outS["end"] = s["end"];
-        outS["itunes"] = !(s["itunes"] is bool b && !b);
+        outS["itunes"] = true;
         return outS;
     }
 
+    /*
+     * The schedule's switch and times; enabled (an older page's Identify albums, or the Album Scanner's own) is the
+     * Album Scanner switched; itunes, an older page's Ask iTunes too, is no longer a choice and is let be.
+     */
     public JsObj SetSettings(JsObj patch)
     {
         var s = Settings();
-        if (!Js.IsUndef(patch["enabled"])) s["enabled"] = Js.Truthy(patch["enabled"]);
         if (!Js.IsUndef(patch["schedule"])) s["schedule"] = Js.Truthy(patch["schedule"]);
-        if (!Js.IsUndef(patch["itunes"])) s["itunes"] = Js.Truthy(patch["itunes"]);
         if (!Js.IsUndef(patch["start"]) && Minutes(patch["start"], null) != null) s["start"] = patch["start"];
         if (!Js.IsUndef(patch["end"]) && Minutes(patch["end"], null) != null) s["end"] = patch["end"];
-        SetSetting("identify", s);
-        return s;
+        // Kept over what was there: the switches before the Album Scanner's are what it is on by until it is set.
+        var kept = Setting("identify") as JsObj ?? new JsObj();
+        foreach (var k in new[] { "schedule", "start", "end" }) kept[k] = s[k];
+        SetSetting("identify", kept);
+        if (!Js.IsUndef(patch["enabled"])) AlbumScanner.Set(Js.Truthy(patch["enabled"]));
+        AlbumScanner.HoursMoved();
+        return Settings();
     }
 
     /* Is now (or [at]) inside the night window? A window over midnight (22:00–04:00) counts. */
@@ -173,6 +184,7 @@ internal sealed partial class Identifier
         if (!Js.Truthy(s["enabled"])) reason = "off";
         else if (Js.Truthy(s["schedule"]) && !InWindow(s)) reason = "waiting";
         else if (st.Scanning) reason = "scanning";
+        else if (AlbumScanner.Playing()) reason = "playing";     // while music plays, no album is started (item 411)
         else if (Now < pausedUntil) reason = cur != null ? "pack" : Next(lib, packOnly: true) != null ? "pack" : "unreachable";
         else if (cur != null) reason = "checking";
         else reason = Next(lib) != null ? "starting" : "done";
@@ -180,7 +192,7 @@ internal sealed partial class Identifier
         o["settings"] = s;
         o["reason"] = reason;
         o["current"] = cur;
-        o["active"] = reason is not ("off" or "waiting" or "scanning" or "unreachable");
+        o["active"] = reason is not ("off" or "waiting" or "scanning" or "playing" or "unreachable");
         return o;
     }
 
@@ -288,6 +300,21 @@ internal sealed partial class Identifier
     private static bool ITunesOnly(MatchRow? r) =>
         r != null && r.Status == "unidentified" && !(r.ITunes is string s && s == "asked") && Now - r.Checked <= RetryUnidentifiedMs;
 
+    /* iTunes is asked about the albums MusicBrainz can't place (the Album Scanner's progress, item 411). */
+    public bool AsksITunes => ITunesUsable();
+
+    /*
+     * Whether an eligible album ([r]: its verdict, if any) waits to be looked at: never looked at, unidentified long
+     * enough ago, or unidentified and iTunes not asked yet ([ask]: iTunes is asked); never one you edited by hand.
+     * The rest have the scan's verdict.
+     */
+    public static bool Waits(Album al, MatchRow? r, long now, bool ask)
+    {
+        var itunesOnly = ask && ITunesOnly(r);
+        if (r != null && !itunesOnly && !(r.Status == "unidentified" && now - r.Checked > RetryUnidentifiedMs)) return false;
+        return !(al.Edited && !(r != null && r.Status == "unidentified"));     // yours, not ours
+    }
+
     /*
      * The next album to look at: one never looked at, or unidentified long
      * enough ago; never one you edited by hand. Suspect artists first, then the
@@ -310,10 +337,9 @@ internal sealed partial class Identifier
         {
             if (packOnly && (!inPack!.Contains(al.Key) || tried.Contains(al.Key))) continue;
             rows.TryGetValue(al.Key, out var r);
+            if (!Waits(al, r, now, ask)) continue;
             // Unidentified, and iTunes not asked yet: asked now, after the albums never looked at.
             var itunesOnly = ask && ITunesOnly(r);
-            if (r != null && !itunesOnly && !(r.Status == "unidentified" && now - r.Checked > RetryUnidentifiedMs)) continue;
-            if (al.Edited && !(r != null && r.Status == "unidentified")) continue;     // yours, not ours
             if (packOnly && itunesOnly) continue;
             var rank = (itunesOnly ? 2 : inPack != null && inPack.Contains(al.Key) ? -1 : Score.ArtistSuspect(al.Artist, al.Title) ? 0 : 1, -(double)(al.Added ?? 0));
             if (best == null || rank.Item1 < bestRank.A || (rank.Item1 == bestRank.A && rank.Item2 < bestRank.B)) { best = al; bestRank = rank; }

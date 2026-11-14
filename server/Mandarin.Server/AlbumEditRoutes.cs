@@ -83,7 +83,8 @@ internal static partial class Library
             ["scanned"] = new JsonObject { ["title"] = al.ScannedTitle, ["artist"] = al.ScannedArtist, ["year"] = al.ScannedYear },
             ["edited"] = al.Edited,
             ["image_key"] = al.ImageKey,
-            ["art"] = new JsonObject { ["own"] = own, ["found"] = al.CustomArt, ["source"] = al.ArtSource }
+            ["art"] = new JsonObject { ["own"] = own, ["found"] = al.CustomArt, ["source"] = al.ArtSource },
+            ["match"] = MatchOf(al)   // the match applied, and the record's other editions (item 414, IdentifyRoutes.cs)
         };
     }
 

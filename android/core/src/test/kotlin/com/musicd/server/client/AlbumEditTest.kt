@@ -94,4 +94,15 @@ class AlbumEditTest {
         assertEquals("Matched: Artist A — Album One (2002). Undo is under Settings → Library Scanner.", AlbumEdit.matched(answer, 7).text)
         assertEquals("Matched.", AlbumEdit.matched(JSONObject("{}"), 7).text)
     }
+
+    @Test fun `the match applied: how it was found, and the record's other editions a tap each (item 414)`() {
+        val lengths = EditState.parse(JSONObject("""{"offset":7,"match":{"artist":"Artist F","title":"The Real Title","year":1999,"similarity":91,"matched_by":"disc-lengths","editions":[]}}"""))
+        assertEquals("Matched: Artist F — The Real Title (1999) · 91 % · matched by the tracks' lengths, as on the CD", AlbumEdit.matchSaid(lengths.match!!).text)
+        val switched = EditState.parse(JSONObject("""{"offset":7,"match":{"artist":"K","title":"Pressed","year":null,"similarity":92,"manual":"edition","matched_by":"barcode",
+            "editions":[{"mbid":"x","edition":"deluxe","country":"JP","release_year":2012,"track_count":4},{"mbid":"y","edition":null,"release_title":"Pressed","track_count":null}]}}"""))
+        val m = switched.match!!
+        assertEquals("Matched: K — Pressed · 92 % · edition chosen by you. Other editions:", AlbumEdit.matchSaid(m).text)
+        assertEquals(listOf(Edition("x", "deluxe · JP · 2012 · 4 tracks"), Edition("y", "Pressed")), m.editions)
+        assertNull(EditState.parse(JSONObject("""{"offset":7}""")).match)
+    }
 }
