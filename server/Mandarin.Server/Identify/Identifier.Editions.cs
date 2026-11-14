@@ -18,6 +18,7 @@ internal sealed partial class Identifier
 {
     private const string Various = "Various Artists";
     private const int EditionsKept = 6;           // the other pressings kept with a verdict, for the page's switch
+    private const int EditionsMax = 4;            // pressings of the copy's own count fetched once found: a few seconds an album, not WidenMax's
 
     private static readonly string[] Joins = [" feat", " ft.", " featuring", " & ", " and ", " x ", " vs", " with ", ", ", " / ", ";"];
 
@@ -86,7 +87,7 @@ internal sealed partial class Identifier
         var verdict = r.Verdict;
         if (others.Count > 0)
         {
-            cands = [.. cands, .. await FetchBest(others, input, have, WidenMax, Mb)];
+            cands = [.. cands, .. await FetchBest(others, input, have, off ? WidenMax : EditionsMax, Mb)];
             verdict = Score.Decide(input, cands);
         }
         verdict = WithEditions(Preferred(input, verdict));
