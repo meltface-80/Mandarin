@@ -58,7 +58,9 @@ internal static partial class Jobs
                 if (Extras.AutoCovers.Current is not { } finder) { ctx.Response.StatusCode = 409; await ctx.Response.WriteAsync("{\"ok\":false}"); return; }
                 var wide = ctx.Request.Query["wide"] == "1";
                 var r = await finder.Run(wide);
-                await ctx.Response.WriteAsync(new JsonObject { ["ok"] = true, ["looked"] = r.Looked, ["found"] = r.Found, ["none"] = r.None, ["own"] = r.Own, ["later"] = r.Later }.ToJsonString());
+                var said = new JsonObject { ["ok"] = true, ["looked"] = r.Looked, ["found"] = r.Found, ["none"] = r.None, ["own"] = r.Own, ["later"] = r.Later };
+                if (r.Unreached > 0) said["unreached"] = r.Unreached;   // their folders not there (Extras/AutoCovers.Reach.cs)
+                await ctx.Response.WriteAsync(said.ToJsonString());
                 return;
             }
             if (p == "/internal/jobs/watch")
