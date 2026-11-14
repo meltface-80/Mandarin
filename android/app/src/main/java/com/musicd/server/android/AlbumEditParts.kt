@@ -127,12 +127,22 @@ internal fun EditCover(ed: AlbumEditor, client: () -> ServerClient?) {
     HorizontalDivider(Modifier.padding(bottom = 14.dp), color = paletteColor(Palette.BORDER))
 }
 
-/** The names from MusicBrainz (.ae-match-row): what is said, the album's folder, Find match; once asked, the releases offered and a barcode's box. */
+/**
+ * The names from MusicBrainz (.ae-match-row): what is said (the match applied, and how it was found), the record's other
+ * editions near enough a tap each (item 414), the album's folder, Find match; once asked, the releases offered and a barcode's box.
+ */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun EditMatch(ed: AlbumEditor) {
     val d = ed.state
     Column(Modifier.padding(bottom = 14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         AeSaid(ed.matchSaid, Modifier.parity("album-edit.match-status"))
+        d?.match?.editions?.takeIf { it.isNotEmpty() }?.let { eds ->
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                for (e in eds) AePill(e.name, Modifier.parity("album-edit.edition", Contract.label("album-edit.edition", 0, e.name)).clickable(enabled = !ed.matching) { ed.match(e.mbid, "edition") },
+                    enabled = !ed.matching)
+            }
+        }
         d?.folder?.let { AeFolder(it, d.boxLine, Modifier.parity("album-edit.folder")) }
         val can = d != null && !ed.finding
         AePill("Find match", Modifier.parity("album-edit.match-find", Contract.label("album-edit.match-find")).clickable(enabled = can) { ed.findMatch() }, enabled = can)

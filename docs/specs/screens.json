@@ -583,7 +583,7 @@
       }
     },
     "album-edit": {
-      "page": "an album's editor (its ⋯, Edit album): the cover with Find cover, the covers found to choose from or an image's address pasted; Find match, MusicBrainz's releases to apply or a barcode; the title, the artist and the year, each with what the files say; Save, Cancel, Undo all edits, and ✕",
+      "page": "an album's editor (its ⋯, Edit album): the cover with Find cover, the covers found to choose from or an image's address pasted; the match applied and how it was found, with the record's other editions to switch to; Find match, MusicBrainz's releases to apply or a barcode; the title, the artist and the year, each with what the files say; Save, Cancel, Undo all edits, and ✕",
       "native": ["android/app/src/main/java/com/musicd/server/android/AlbumEditSheet.kt", "android/app/src/main/java/com/musicd/server/android/AlbumEditParts.kt"],
       "preview": false,
       "items": {
@@ -602,6 +602,7 @@
         "match-status": { "kind": "shows" },
         "folder": { "kind": "shows", "when": "the album's folder is known" },
         "match-find": { "kind": "action", "label": "Find match" },
+        "edition": { "kind": "action", "label": "{edition}", "each": true, "when": "a match applied, with other editions of the record near enough" },
         "match-search-status": { "kind": "shows", "when": "MusicBrainz asked" },
         "release": { "kind": "action", "label": "{release}", "each": true, "when": "MusicBrainz offers releases" },
         "barcode": { "kind": "action", "label": "Or the barcode, or a MusicBrainz link", "when": "MusicBrainz asked" },
