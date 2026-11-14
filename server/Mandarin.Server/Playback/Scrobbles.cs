@@ -5,7 +5,11 @@
 //                (track.updateNowPlaying), said once, nothing kept if it fails;
 //   "scrobble"   Last.fm's own point, a track over 30 s played half way or for
 //                four minutes (Hub.ApplyState): the play kept in the scrobbles
-//                table, stamped when it started, and sent;
+//                table, stamped when it started, and sent; and marked in the
+//                scrobbled table (its room or phone, artist, track and start),
+//                so the same play heard past the point again — the server
+//                started again with it still playing, item 422 — isn't sent
+//                again, while the track played again (a repeat) is;
 //   offline      a phone's plays from while it had no server
 //                (DownloadListRoutes.cs), stamped when they were played.
 //
@@ -14,7 +18,7 @@
 // goes when it is back; one older than Last.fm takes (14 days) is let go. Last.fm
 // saying the session is no longer good (error 9) leaves them kept and asks the
 // owner to connect again. Nothing is kept while no account is connected. The
-// table is made here, on first use (Schema.cs only shrinks).
+// tables are made here, on first use (Schema.cs only shrinks).
 using System.Globalization;
 using Mandarin.Server.Extras;
 using Microsoft.Data.Sqlite;
@@ -40,17 +44,19 @@ internal static class Scrobbles
     {
         log = hub.Log;
         hub.OnNowPlaying += (zone, st) => _ = NowPlaying(st).ContinueWith(t => hub.Log($"[lastfm] {t.Exception?.InnerException?.Message}"), TaskContinuationOptions.OnlyOnFaulted);
-        hub.OnScrobble += (zone, st) => _ = Heard(st).ContinueWith(t => hub.Log($"[lastfm] {t.Exception?.InnerException?.Message}"), TaskContinuationOptions.OnlyOnFaulted);
+        hub.OnScrobble += (zone, st) => _ = Heard(zone, st).ContinueWith(t => hub.Log($"[lastfm] {t.Exception?.InnerException?.Message}"), TaskContinuationOptions.OnlyOnFaulted);
         timer ??= new Timer(_ => _ = Flush(), null, FlushEveryMs, FlushEveryMs);
     }
 
-    /* The table, made once. */
+    /* The tables, made once: the plays waiting to go, and every room's and phone's plays kept to go (14 days of them). */
     private static void Made(SqliteConnection c)
     {
         if (made) return;
         using var cmd = c.CreateCommand();
         cmd.CommandText = @"CREATE TABLE IF NOT EXISTS scrobbles (id INTEGER PRIMARY KEY AUTOINCREMENT, artist TEXT NOT NULL, track TEXT NOT NULL,
-            album TEXT, album_artist TEXT, ts INTEGER NOT NULL, duration REAL, track_no INTEGER)";
+            album TEXT, album_artist TEXT, ts INTEGER NOT NULL, duration REAL, track_no INTEGER);
+            CREATE TABLE IF NOT EXISTS scrobbled (zone TEXT NOT NULL, artist TEXT NOT NULL, track TEXT NOT NULL, ts INTEGER NOT NULL);
+            CREATE INDEX IF NOT EXISTS scrobbled_zone ON scrobbled(zone, artist, track)";
         cmd.ExecuteNonQuery();
         made = true;
     }
@@ -90,14 +96,59 @@ internal static class Scrobbles
         catch (Exception e) when (e is LastfmError or HttpRequestException or TaskCanceledException) { Failed(e); }
     }
 
-    /* Last.fm's point passed: the play, stamped when it started, kept and sent. */
-    private static async Task Heard(ZoneState st)
+    /* Last.fm's point passed in [zone]: the play, stamped when it started, kept and sent, unless it was already. */
+    private static async Task Heard(string zone, ZoneState st)
     {
         if (LastfmAccount.Current() == null) return;
         var started = (long)Hub.Now() - (long)(Math.Max(0, Hub.PositionNow(st)) * 1000);
         if (await PlayOf(st, started) is not { } p) return;
-        using (var c = Db.Open()) Keep(c, null, p);
+        using (var c = Db.Open())
+        {
+            Made(c);
+            using var tx = c.BeginTransaction();
+            // Already kept: not again, but anything still waiting to go (Last.fm down before a restart) goes now.
+            if (Already(c, tx, zone, p)) log($"[lastfm] {p.Artist} — {p.Track} already scrobbled in {zone} (its play from {LastfmAccount.Seconds(p.Ts)})");
+            else
+            {
+                Marked(c, tx, zone, p);
+                Keep(c, tx, p);
+                tx.Commit();
+            }
+        }
         await Flush();
+    }
+
+    /*
+     * The same play already kept in [zone]: its track, started within half Last.fm's point of [p]. Its start is worked
+     * out again at each hearing (now less the position), so it moves by a second or two; the track played again starts
+     * once the first play has passed the point at least (skipped there; a repeat, a whole length on), and is a new play.
+     */
+    private static bool Already(SqliteConnection c, SqliteTransaction tx, string zone, Play p)
+    {
+        using var cmd = c.CreateCommand();
+        cmd.Transaction = tx;
+        cmd.CommandText = "SELECT 1 FROM scrobbled WHERE zone = $z AND artist = $ar AND track = $tr AND ts > $from AND ts < $to LIMIT 1";
+        var half = (long)(Math.Min(240, Math.Max(0, p.Duration) / 2) * 500);
+        cmd.Parameters.AddWithValue("$z", zone);
+        cmd.Parameters.AddWithValue("$ar", p.Artist);
+        cmd.Parameters.AddWithValue("$tr", p.Track);
+        cmd.Parameters.AddWithValue("$from", p.Ts - half);
+        cmd.Parameters.AddWithValue("$to", p.Ts + half);
+        return cmd.ExecuteScalar() != null;
+    }
+
+    /* [p] marked as kept in [zone], for the next hearing of it; those older than Last.fm takes let go. */
+    private static void Marked(SqliteConnection c, SqliteTransaction tx, string zone, Play p)
+    {
+        using var cmd = c.CreateCommand();
+        cmd.Transaction = tx;
+        cmd.CommandText = "DELETE FROM scrobbled WHERE ts < $old; INSERT INTO scrobbled(zone, artist, track, ts) VALUES($z, $ar, $tr, $ts)";
+        cmd.Parameters.AddWithValue("$old", (long)Hub.Now() - MaxAgeMs);
+        cmd.Parameters.AddWithValue("$z", zone);
+        cmd.Parameters.AddWithValue("$ar", p.Artist);
+        cmd.Parameters.AddWithValue("$tr", p.Track);
+        cmd.Parameters.AddWithValue("$ts", p.Ts);
+        cmd.ExecuteNonQuery();
     }
 
     /* A phone's offline play ([tx] its upload's), kept to be sent when an account is connected and it is Last.fm's kind of play. */
