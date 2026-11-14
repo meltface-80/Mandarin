@@ -226,9 +226,11 @@ internal object ContractLabels1 {
         "album-edit.url" to listOf("Or paste an image address"),
         "album-edit.url-use" to listOf("Use"),
         "album-edit.match-find" to listOf("Find match"),
+        "album-edit.match-sound" to listOf("Match by sound"),
         "album-edit.edition" to listOf("{edition}"),
         "album-edit.release" to listOf("{release}"),
         "album-edit.barcode" to listOf("Or the barcode, or a MusicBrainz link"),
+        "album-edit.sound-release" to listOf("{release}"),
         "album-edit.barcode-use" to listOf("Match", "Matching…"),
         "album-edit.title" to listOf("Title"),
         "album-edit.artist" to listOf("Artist"),
@@ -298,11 +300,5 @@ internal object ContractLabels1 {
         "settings-away.signout" to listOf("Sign out of Tailscale"),
         "settings-away.info" to listOf("More information", "About {setting}"),
         "settings-away.phone-open" to listOf("Tailscale"),
-        "settings-homescreen.back" to listOf("Back to settings"),
-        "settings-homescreen.greeting" to listOf("Greeting"),
-        "settings-homescreen.random" to listOf("Random Album"),
-        "settings-homescreen.aotd" to listOf("Album of the Day"),
-        "settings-homescreen.grip" to listOf("Move {row}"),
-        "settings-homescreen.row-on" to listOf("{row} row"),
     )
 }

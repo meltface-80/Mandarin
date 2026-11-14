@@ -53,8 +53,10 @@ import com.musicd.server.client.MatchSearch
 import com.musicd.server.client.Palette
 import com.musicd.server.client.Said
 import com.musicd.server.client.ServerClient
+import com.musicd.server.client.SoundJob
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -94,6 +96,7 @@ internal fun AlbumEditSheet(offset: Long, title: String, artist: String, client:
                 }
                 EditCover(ed, client)
                 EditMatch(ed)
+                EditSound(ed)
                 EditFields(ed)
                 Text(AlbumEdit.NOTE, Modifier.parity("album-edit.note").padding(top = 6.dp), color = paletteColor(Palette.TEXT_FAINT), fontSize = 12.sp, lineHeight = 17.4.sp)
             }
@@ -130,6 +133,11 @@ internal class AlbumEditor(private val offset: Long, title: String, artist: Stri
     var matching by mutableStateOf(false)
     var barcode by mutableStateOf("")
     var barcodeErr by mutableStateOf<String?>(null)
+    /** Match by sound (item 419): the job as last heard, what it says, whether it is under way, the release applied from it. */
+    var sound by mutableStateOf<SoundJob?>(null)
+    var soundSaid by mutableStateOf<Said?>(null)
+    var sounding by mutableStateOf(false)
+    var soundApplied by mutableStateOf<String?>(null)
     private var searchSeq by mutableIntStateOf(0)
 
     private fun toast(text: String) = Toast.makeText(context, text, Toast.LENGTH_SHORT).show()
@@ -141,6 +149,32 @@ internal class AlbumEditor(private val offset: Long, title: String, artist: Stri
         withContext(Dispatchers.IO) { runCatching { c.albumEditState(offset) } }
             .onSuccess { take(it); if (!it.artOwn) search() }
             .onFailure { err = com.musicd.server.client.Failure.said(it, "Couldn't reach the server") }
+        scope.launch { followSound() }   // a job under way for this album (or just done), picked up
+    }
+
+    /** Match by sound: started on the server, then followed until it is done. */
+    fun matchBySound() {
+        val c = client() ?: return
+        if (sounding) return
+        sounding = true; sound = null; soundSaid = SoundJob.STARTING
+        scope.launch {
+            withContext(Dispatchers.IO) { runCatching { c.soundMatchStart(offset) } }
+                .onSuccess { followSound() }
+                .onFailure { sounding = false; soundSaid = Said("", com.musicd.server.client.Failure.said(it, "no answer")) }
+        }
+    }
+
+    /** The job read every 0.7 s while it works, as the page's aeSoundFollow; nothing shown when none was asked for this album. */
+    private suspend fun followSound() {
+        val c = client() ?: return
+        while (true) {
+            val r = withContext(Dispatchers.IO) { runCatching { c.soundMatchState(offset) } }
+            val j = r.getOrElse { SoundJob.failed(com.musicd.server.client.Failure.said(it, "no answer")) }
+            if (!j.working && !j.finished) { sounding = false; return }
+            sound = j; soundSaid = j.said; sounding = j.working
+            if (!j.working) return
+            delay(700)
+        }
     }
 
     /** Covers found on the web; a sure one is chosen at once. */
@@ -198,7 +232,7 @@ internal class AlbumEditor(private val offset: Long, title: String, artist: Stri
             matching = false
             r.onSuccess {
                 matchSaid = state?.match?.let(AlbumEdit::matchSaid) ?: AlbumEdit.matched(it, offset)
-                if (how == "pick") applied = query
+                if (how == "pick") applied = query else if (how == "sound") soundApplied = query
                 toast(if (how == "edition") "Edition switched — names applied" else "Matched — names applied")
                 onChanged()
             }.onFailure { if (how == "barcode") barcodeErr = it.message else err = it.message }

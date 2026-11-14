@@ -284,6 +284,8 @@ internal fun SettingsKeys(client: () -> ServerClient?, onBack: () -> Unit) {
                     })
                 }
                 Text(k?.status.orEmpty(), Modifier.parity("settings-keys.status").padding(top = 4.dp), color = paletteColor(Palette.TEXT_DIM), fontSize = 11.sp, lineHeight = 15.sp)
+                // AcoustID's: how far the Album Scanner's matching by sound has got (item 419).
+                k?.sound?.let { Text(it.line, Modifier.parity("settings-keys.sound").padding(top = 4.dp), color = paletteColor(Palette.TEXT_DIM), fontSize = 11.sp, lineHeight = 15.sp) }
             }
             // Scrobbling: the account connected, or Connect to allow Mandarin on Last.fm's page.
             val sc = scrobbling

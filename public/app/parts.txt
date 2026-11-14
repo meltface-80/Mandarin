@@ -32,6 +32,7 @@ app/album-open.js
 app/queue.js
 app/album-editor.js
 app/album-editor-match.js
+app/album-editor-sound.js
 app/album-detail.js
 app/album-versions.js
 app/album-tabs.js

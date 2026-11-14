@@ -212,6 +212,8 @@ internal sealed partial class Identifier
             if (rel != null) cands.Add(rel);
         }
         if (cands.Count == 0) throw new IdentifyError("MusicBrainz didn't give that release", 502);
+        // One Match by sound offered (item 419): marked with how many of the tracks voted for it.
+        if (how == "sound") cands = SoundMarked(al.Key, cands) ?? throw new IdentifyError("Ask Match by sound again: what it heard was before the server started again", 409);
         return await ApplyChosen(al, input, cands, how ?? (!string.IsNullOrEmpty(barcode) ? "barcode" : "link"));
     }
 

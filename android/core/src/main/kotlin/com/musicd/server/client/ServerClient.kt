@@ -234,6 +234,9 @@ class ServerClient(
     fun resetAlbumEdit(offset: Long): EditState = EditState.parse(post("/api/album/edit/reset", JSONObject().put("offset", offset)))
     fun matchRelease(offset: Long, query: String, how: String): JSONObject =
         post("/api/identify/match", JSONObject().put("offset", offset).put("query", query).put("how", how), 60000)
+    /** Match by sound (item 419): started for the album (one album at a time: refused while another's is under way), and where it is. */
+    fun soundMatchStart(offset: Long): SoundJob = SoundJob.parse(post("/api/identify/sound", JSONObject().put("offset", offset)))
+    fun soundMatchState(offset: Long): SoundJob = SoundJob.parse(getJson("/api/identify/sound?offset=$offset"))
 
     /**
      * Settings (item 76): the server's version; the devices signed in to the account, and one signed out; an API key as

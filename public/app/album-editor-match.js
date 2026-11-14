@@ -19,9 +19,10 @@ function aeMatchLineFor(c) {
 
 // The match applied, as the editor says it (item 414): how it was found, and the record's other editions near enough,
 // a tap each (written as a match is, undone with the album's other edits).
-const AE_BY = { "musicbrainz-id": "the files' MusicBrainz ID", barcode: "barcode", "catalogue-number": "catalogue number", isrc: "ISRCs", "disc-lengths": "the tracks' lengths, as on the CD" };
+const AE_BY = { "musicbrainz-id": "the files' MusicBrainz ID", barcode: "barcode", "catalogue-number": "catalogue number", isrc: "ISRCs", "disc-lengths": "the tracks' lengths, as on the CD", acoustid: "sound" };
 function aeMatchHow(m) {
   if (m.manual === "edition") return "edition chosen by you";
+  if (m.manual === "sound") return "matched by sound, chosen by you";
   if (m.manual) return "matched by " + (m.manual === "barcode" ? "barcode" : m.manual === "pick" ? "you" : "link");
   return m.matched_by ? "matched by " + (AE_BY[m.matched_by] || m.matched_by) + (m.from_pack ? " (pack)" : "") : "";
 }
@@ -151,6 +152,7 @@ async function openAlbumEditor(album) {
     ae.mStatus.textContent = "Names from MusicBrainz — artist, title, year and every track.";
     aeShowMatch(null);
     ae.mFind.disabled = false;
+    aeSoundReset();   // Match by sound's box (item 419): a job under way for this album picked up
   }
   ae.title.value = album.title || ""; ae.artist.value = album.subtitle || ""; ae.year.value = "";
   if (ae.folder) { ae.folder.classList.add("hidden"); ae.folder.textContent = ""; }

@@ -170,7 +170,9 @@ FEATURES = [
      "taken as that record. **To confirm** says how sure it is and why, with **Apply**, **Not this** (never proposed again) "
      "and the other releases it found; **Find…** opens Edit album's search. An album no search by name can place is "
      "matched by how it sounds once **Settings → Setup → API Keys** has an AcoustID key (free, from acoustid.org): each "
-     "track's fingerprint is made on the server and looked up on AcoustID. Your files are not changed. **Schedule** keeps it to the hours you set; off, it runs any time, "
+     "track's fingerprint is made on the server and looked up on AcoustID. **Match by sound** in Edit album does it for one album at once, "
+     "whatever the hour; under the AcoustID key, API Keys says how many albums are matched by sound and how many are still to look at. "
+     "Your files are not changed. **Schedule** keeps it to the hours you set; off, it runs any time, "
      "day and night. **Library clean-up** removes albums whose files are gone, after showing counts."),
     ("mbpack", "📦", "MusicBrainz pack", False,
      "An optional download of every MusicBrainz release with a barcode, about 2 GB on disk. Albums "

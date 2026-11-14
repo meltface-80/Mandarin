@@ -84,8 +84,11 @@ data class AccountDevices(val username: String, val devices: List<SignedInDevice
     }
 }
 
-/** One of the API keys: whether one is saved, its first and last letters, and what its service said of it ("ok", "invalid", or not asked). */
-data class ApiKey(val set: Boolean, val masked: String, val check: String?) {
+/**
+ * One of the API keys: whether one is saved, its first and last letters, and what its service said of it ("ok", "invalid",
+ * or not asked); AcoustID's with the Album Scanner's matching by sound ([sound], item 419).
+ */
+data class ApiKey(val set: Boolean, val masked: String, val check: String?, val sound: SoundTally? = null) {
     val ok: Boolean get() = set && check == "ok"
     val bad: Boolean get() = set && check == "invalid"
     /** The ✓ or ✕ in the box, once checked. */
@@ -108,7 +111,8 @@ data class ApiKey(val set: Boolean, val masked: String, val check: String?) {
     }
 
     companion object {
-        fun parse(j: JSONObject): ApiKey = ApiKey(j.optBoolean("set"), j.optString("masked"), j.optString("check").takeIf { it.isNotEmpty() && !j.isNull("check") })
+        fun parse(j: JSONObject): ApiKey = ApiKey(j.optBoolean("set"), j.optString("masked"), j.optString("check").takeIf { it.isNotEmpty() && !j.isNull("check") },
+            SoundTally.parse(j.optJSONObject("sound")))
     }
 }
 
