@@ -230,7 +230,7 @@ test("no key, a key refused, AcoustID busy or not reached: skipped quietly, the 
     assert.equal(printed().length, 3, "the fingerprints kept, not made again");
   } finally {
     await s.srv.stop();
-    await Promise.all([mb.stop(), itunes.stop()]);
+    await Promise.all([mb.stop(), itunes.stop(), aid.stop()]);   // stopped twice is stopped: a failure before it is let go too
   }
 });
 
