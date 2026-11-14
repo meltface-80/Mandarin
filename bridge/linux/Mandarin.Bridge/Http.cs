@@ -17,10 +17,13 @@ internal sealed class Http(int port, Func<Http.Request, Http.Response> handle, A
         public string Text => Encoding.UTF8.GetString(Body);
     }
 
-    public sealed record Response(int Status, byte[] Body, string Type = "text/xml; charset=\"utf-8\"", Dictionary<string, string>? Headers = null)
+    /* An answer: its status, its bytes, or [File]'s (sent as it is read: a recording, item 412). */
+    public sealed record Response(int Status, byte[] Body, string Type = "text/xml; charset=\"utf-8\"", Dictionary<string, string>? Headers = null, string? File = null)
     {
         public static Response Text(int status, string text, string type = "text/xml; charset=\"utf-8\"", Dictionary<string, string>? headers = null) =>
             new(status, Encoding.UTF8.GetBytes(text), type, headers);
+
+        public static Response Of(string path, string type) => new(200, [], type, null, path);
     }
 
     private TcpListener? listener;
@@ -64,16 +67,20 @@ internal sealed class Http(int port, Func<Http.Request, Http.Response> handle, A
                 Response res;
                 try { res = handle(req); }
                 catch (Exception e) { log($"[http] {req.Method} {req.Path}: {e.Message}"); res = Response.Text(500, "<error>" + Xml.Escape(e.Message) + "</error>"); }
+                FileStream? file = null;
+                try { if (res.File != null) file = File.OpenRead(res.File); }
+                catch (Exception e) when (e is IOException or UnauthorizedAccessException) { res = Response.Text(404, ""); }
+                using var _ = file;
                 var head = new StringBuilder()
                     .Append("HTTP/1.1 ").Append(res.Status).Append(' ').Append(Reason(res.Status)).Append("\r\n")
                     .Append("Server: MandarinBridge/").Append(Program.Version).Append("\r\n")
                     .Append("Content-Type: ").Append(res.Type).Append("\r\n")
-                    .Append("Content-Length: ").Append(res.Body.Length).Append("\r\n")
+                    .Append("Content-Length: ").Append(file?.Length ?? res.Body.Length).Append("\r\n")
                     .Append("Connection: close\r\nEXT:\r\n");
                 foreach (var (k, v) in res.Headers ?? []) head.Append(k).Append(": ").Append(v).Append("\r\n");
                 head.Append("\r\n");
                 s.Write(Encoding.Latin1.GetBytes(head.ToString()));
-                if (req.Method != "HEAD") s.Write(res.Body);
+                if (req.Method != "HEAD") { if (file != null) file.CopyTo(s, 1 << 16); else s.Write(res.Body); }
                 s.Flush();
             }
             catch (Exception e) when (e is IOException or SocketException or ObjectDisposedException) { /* the other end went */ }

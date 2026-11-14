@@ -60,9 +60,15 @@ internal sealed partial class Players
         var device = Jv.Str(mu["base"]);
         var dac = await MandarinBridge.Probe(device);
         if (dac == null) return (null, "The device isn't answering");
-        if (dac["capture"] is not string capture || capture.Length == 0) return (null, "This device's app can't record what it feeds the DAC yet: update Mandarin Bridge");
+        if (dac["capture"] is not string capture || capture.Length == 0) return (null, CantRecord(dac));
         return (new DeviceRecorder(CaptureBase(device, capture), Jv.T(dac["capture_parts"])), "");
     }
+
+    /* Why a Mandarin Bridge whose /dac.json says no "capture" can't record: a Linux one (its "platform") records from
+       0.3.11 (item 412), an Android one from its first recording app; either is updated from Settings → Updates. */
+    private static string CantRecord(JsObj dac) => Jv.Str(dac["platform"]) == "linux"
+        ? "Mandarin Bridge for Linux can't record what it feeds the DAC before 0.3.11: update it in Settings → Updates"
+        : "This device's app can't record what it feeds the DAC yet: update Mandarin Bridge";
 
     /* Room [id]'s name, as its device or the user named it. */
     public string NameOf(string id) => Record(id) is { } rec ? rec.Name ?? rec.NetworkName ?? id : id;
