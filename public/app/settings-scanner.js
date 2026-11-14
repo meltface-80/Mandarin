@@ -86,15 +86,21 @@ async function setMeasure(on) {
   render();
 }
 // Find covers (item 409): the cover finder on or off.
+// Moved as it is tapped and held (disabled) until the server has kept it, as the app's (Scanner.withCovers): before,
+// the switch was free again at once, and a look at the server's state could come before the change was kept.
 async function setCovers(on) {
   if (scanBusy) return;
   scanBusy = true;
-  try { covers = await scanApi("/api/covers/auto", { on }); scanErr = ""; } catch (e) { scanErr = e.message; }
+  const before = covers;
+  if (covers) covers = Object.assign({}, covers, { on });
+  render();
+  try { covers = await scanApi("/api/covers/auto", { on }); scanErr = ""; } catch (e) { covers = before; scanErr = e.message; }
   scanBusy = false;
   render();
 }
-// Its one line: "Covers found automatically: 37 · 12 left to try · 1,204 without a sure match".
-const coversLine = c => "Covers found automatically: " + num(c.found) + " · " + num(c.left) + " left to try · " + num(c.none) + " without a sure match";
+// Its one line: "Covers found automatically: 37 · 12 left to try · 1,204 without a sure match", and the music
+// folders it can't reach, when there are (covers-reach.js).
+const coversLine = c => "Covers found automatically: " + num(c.found) + " · " + num(c.left) + " left to try · " + num(c.none) + " without a sure match" + coversUnreachable(c);
 async function packAct(what) {
   if (scanBusy) return;
   scanBusy = true;

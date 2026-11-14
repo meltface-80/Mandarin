@@ -33,7 +33,7 @@ namespace Mandarin.Server.Extras;
 
 using Js = Mandarin.Server.Tags.Js;
 
-internal sealed class AutoCovers(CoverCatalogues ask, int gapMs, Action<string> log)
+internal sealed partial class AutoCovers(CoverCatalogues ask, int gapMs, Action<string> log)
 {
     public const long RetryMs = 60L * 86400000;
     public const int MinSide = 300;
@@ -52,7 +52,7 @@ internal sealed class AutoCovers(CoverCatalogues ask, int gapMs, Action<string> 
     private Timer? nightly;
 
     /* What one run came to. */
-    public sealed record Summary(int Looked, int Found, int None, int Own, int Later);
+    public sealed record Summary(int Looked, int Found, int None, int Own, int Later, int Unreached = 0);
 
     // ------------------------------------------------------------ the switch
 
@@ -143,10 +143,11 @@ internal sealed class AutoCovers(CoverCatalogues ask, int gapMs, Action<string> 
         var marks = AutoCoverStore.Tracks();
         var now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
         int looked = 0, found = 0, none = 0, own = 0, later = 0;
+        var reach = new Reach(outOfReach);   // its folder not there: not looked at, said once (AutoCovers.Reach.cs)
         foreach (var al in s.Albums.OrderByDescending(a => a.Added ?? 0))
         {
             if (!Going) break;
-            if (!Wanted(al, rows, marks, now, wide, out var mark)) continue;
+            if (!Wanted(al, rows, marks, now, wide, out var mark) || reach.Away(al)) continue;
             while (await Busy()) { if (!Going) break; await Task.Delay(1000); }
             if (!Going) break;
             looked++;
@@ -163,8 +164,10 @@ internal sealed class AutoCovers(CoverCatalogues ask, int gapMs, Action<string> 
         if (looked > 0)
             log($"[covers] {looked} album(s) looked at: {found} cover(s) found, {none} with no sure match, {own} with a cover of their own" +
                 (later > 0 ? $", {later} to look at again (a catalogue or a drive didn't answer)" : ""));
+        outOfReach = reach.All;
+        if (reach.Said() is { } unreached) log("[covers] " + unreached);
         if (found > 0) Covers.DrawAhead();
-        return new Summary(looked, found, none, own, later);
+        return new Summary(looked, found, none, own, later, reach.Found);
     }
 
     /* Whether to look at [al] now: an album of the library's with nothing in album_edits, not looked at (or due again). */
@@ -231,7 +234,11 @@ internal sealed class AutoCovers(CoverCatalogues ask, int gapMs, Action<string> 
     {
         var running = passing.CurrentCount == 0;
         if (status is { } kept && Environment.TickCount64 - Interlocked.Read(ref statusAt) < 10000)
-            return new JsonObject { ["on"] = On(), ["running"] = running, ["found"] = kept["found"]?.DeepClone(), ["left"] = kept["left"]?.DeepClone(), ["none"] = kept["none"]?.DeepClone() };
+        {
+            var again = new JsonObject { ["on"] = On(), ["running"] = running, ["found"] = kept["found"]?.DeepClone(), ["left"] = kept["left"]?.DeepClone(), ["none"] = kept["none"]?.DeepClone() };
+            SayReach(again);
+            return again;
+        }
         int found = 0, left = 0, none = 0;
         if (await Library.CurrentCopy() is { } s)
         {
@@ -253,6 +260,7 @@ internal sealed class AutoCovers(CoverCatalogues ask, int gapMs, Action<string> 
         var o = new JsonObject { ["on"] = On(), ["running"] = running, ["found"] = found, ["left"] = left, ["none"] = none };
         status = (JsonObject)o.DeepClone();
         Interlocked.Exchange(ref statusAt, Environment.TickCount64);
+        SayReach(o);   // the music folders that can't be reached (AutoCovers.Reach.cs)
         return o;
     }
 

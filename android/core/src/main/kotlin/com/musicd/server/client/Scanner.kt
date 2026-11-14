@@ -109,7 +109,17 @@ object Scanner {
 
     /** Find covers' line (item 409, the page's coversLine); none until the server has answered. */
     fun coversLine(c: JSONObject?, locale: Locale = Locale.getDefault()): String? = c?.let {
-        "Covers found automatically: " + num(it.optInt("found"), locale) + " · " + num(it.optInt("left"), locale) + " left to try · " + num(it.optInt("none"), locale) + " without a sure match"
+        "Covers found automatically: " + num(it.optInt("found"), locale) + " · " + num(it.optInt("left"), locale) + " left to try · " + num(it.optInt("none"), locale) + " without a sure match" +
+            coversUnreachable(it)
+    }
+
+    /** The music folders the cover finder can't reach, after its line (item 410, the page's covers-reach.js): at most three named. */
+    fun coversUnreachable(c: JSONObject): String {
+        val a = c.optJSONArray("unreachable") ?: return ""
+        val away = (0 until a.length()).map { a.optString(it) }.filter { it.isNotEmpty() }
+        if (away.isEmpty()) return ""
+        return " · the music folders can't be reached (" + away.take(3).joinToString(", ") + (if (away.size > 3) ", …" else "") +
+            " not found): covers will be looked for once they are"
     }
 
     /** Find covers switched as it is tapped (item 200's way), before the server's answer. */

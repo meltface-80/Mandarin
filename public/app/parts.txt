@@ -100,11 +100,13 @@ app/device-recipes.js
 app/audio-devices.js
 app/audio-devices-page.js
 app/audio-devices-dsp.js
+app/covers-reach.js
 app/settings-scanner.js
 app/settings-scanner-albums.js
 app/settings-ui.js
 app/settings-away.js
 app/toast-lift.js
 app/power.js
+app/backup-copies.js
 app/settings-backup.js
 app/settings-logs.js

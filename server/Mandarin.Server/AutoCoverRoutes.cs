@@ -1,7 +1,8 @@
 // AutoCoverRoutes.cs — Settings → Library Scanner → Find covers (item 409):
 // the cover finder's switch and its one line (Extras/AutoCovers.cs).
 //
-//   GET  /api/covers/auto        { on, running, found, left, none }
+//   GET  /api/covers/auto        { on, running, found, left, none, unreachable? }: the last, the
+//                                music folders that can't be reached, when there are (item 410)
 //   POST /api/covers/auto { on } the switch, and the same answer
 using System.Text.Json.Nodes;
 using Mandarin.Server.Extras;

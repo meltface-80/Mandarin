@@ -244,13 +244,13 @@ internal fun SettingsBackup(client: () -> ServerClient?, onBack: () -> Unit) {
 private const val FILE = "file"
 private fun keyOf(b: BackupEntry) = if (b.onPhone) "phone:" + b.uri else "server:" + b.id
 
-/** One backup's card: where, when and what, Restore… (its panel under it while open), Download (the server's) and Delete. */
+/** One backup's card: where, when and what, Restore… (its panel under it while open), Download (the server's, not a copy of the database: item 410) and Delete. */
 @Composable
 private fun BackupItem(b: BackupEntry, date: (Long) -> String, opened: Boolean, busy: Boolean, onRestore: () -> Unit, onDownload: () -> Unit, onDelete: () -> Unit,
                        panel: @Composable () -> Unit) {
-    BackupCard(BackupSettings.title(b), BackupSettings.meta(b, date), BackupSettings.partsLine(b), actions = {
+    BackupCard(BackupSettings.title(b, date), BackupSettings.meta(b, date), BackupSettings.partsLine(b), actions = {
         SetupButton("Restore…", busy, Modifier.parity("settings-backup.restore", Contract.label("settings-backup.restore")).clickable(enabled = !busy, onClick = onRestore))
-        if (!b.onPhone) SetupButton("Download", false, Modifier.parity("settings-backup.download", Contract.label("settings-backup.download")).clickable(onClick = onDownload))
+        if (!b.onPhone && !b.isCopy) SetupButton("Download", false, Modifier.parity("settings-backup.download", Contract.label("settings-backup.download")).clickable(onClick = onDownload))
         SetupButton("Delete", busy, Modifier.parity("settings-backup.delete", Contract.label("settings-backup.delete")).clickable(enabled = !busy, onClick = onDelete))
     }, panel = if (opened) panel else null)
 }

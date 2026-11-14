@@ -862,14 +862,14 @@ internal sealed partial class Scanner(SqliteConnection db, string root, IReadOnl
         var knownIn = new List<(string Group, int N)>();
         var knownInAt = new Dictionary<string, int>(StringComparer.Ordinal);
         double removed = 0;
-        var (musicRoot, unmounted, foldersRead) = (NodePath.Resolve(root), OfflineDrives.Now(db, roots), OfflineDrives.FoldersRead(db));
+        var (musicRoot, unmounted, foldersRead, away) = (NodePath.Resolve(root), OfflineDrives.Now(db, roots), OfflineDrives.FoldersRead(db), RestoredAway.Now(db));
         foreach (var (p, r) in known.Entries)
         {
             // A streamed track (lib/services) has no file: never the scanner's to remove.
             if (p.Contains("://", StringComparison.Ordinal)) continue;
             var rootOf = RootOf(p);
-            // In no watched folder: gone. Folders removed in Settings take their tracks with them there.
-            if (rootOf == null) { if (!seen.Contains(p) && foldersRead) Gone(null, r); continue; }
+            // In no watched folder: gone (folders removed in Settings take theirs with them there), but a restored backup's not on this computer: kept, missing, until found here (RestoredAway).
+            if (rootOf == null) { if (!seen.Contains(p) && foldersRead) { if (RestoredAway.Holding(p, away) is { } was) Keep(was, "missing"); else Gone(null, r); } continue; }
             var rel = NodePath.Relative(rootOf, p).Split('/');
             var group = rel.Length > 1 ? NodePath.Join(rootOf, rel[0]) : rootOf;
             if (knownInAt.TryGetValue(group, out var ki)) knownIn[ki] = (group, knownIn[ki].N + 1);

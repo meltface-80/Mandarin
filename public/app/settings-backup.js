@@ -38,6 +38,7 @@
   const SEALED = "Its passphrase (for the keys and the whole database)";
   const fmtBytes = n => n >= 1e9 ? (n / 1e9).toFixed(1) + " GB" : n >= 1e6 ? Math.round(n / 1e6) + " MB" : Math.max(1, Math.round(n / 1e3)) + " KB";
   const fmtDate = t => new Date(t).toLocaleString([], { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+  const fmtWhen = t => new Date(t).toLocaleString([], { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
   const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
   function pageSettings() {
@@ -87,13 +88,15 @@
   /*
    * One list, newest first: backups on the server and the files on this
    * phone, each card saying where it is — what you want to know — with the
-   * device it was made from on the line below.
+   * device it was made from on the line below. The copies of the database
+   * kept before a restore or a switch of builds among them (backup-copies.js).
    */
   function renderList() {
-    const items = ((info && info.backups) || []).map(b => Object.assign({ where: "server" }, b)).concat(phoneFiles())
+    const items = ((info && info.backups) || []).map(b => Object.assign({ where: "server" }, b)).concat(backupCopies(info), phoneFiles())
       .sort((a, b) => (b.created || 0) - (a.created || 0));
     if (!items.length) { listEl.innerHTML = '<div class="settings-note" data-parity="settings-backup.empty">' + (APP ? "No backups yet." : "No backups on the server yet.") + "</div>"; return; }
     listEl.innerHTML = items.map(b => {
+      if (b.where === "copy") return backupCopyItem(b, { esc, date: fmtDate, when: fmtWhen, bytes: fmtBytes });
       const title = b.where === "phone" ? "On this phone" : b.kind === "auto" ? "Before restore · on the server" : "On the server";
       const meta = [fmtDate(b.created), "v" + (b.version || "?"), fmtBytes(b.bytes || 0)].concat(b.sealed ? ["sealed"] : []);
       if (b.where === "phone") meta.push(b.name || ""); else if (b.label) meta.push("from " + b.label);
@@ -135,7 +138,7 @@
     if (j.app && APP) { try { APP.applyApp(JSON.stringify(j.app)); } catch (e) { /* the app said no */ } }
     const again = j.app_result && j.app_result.choose_again && j.app_result.choose_again.length
       ? " Choose the music and download folders again in Settings: Android asks once per install." : "";
-    if (j.restarting && window.__serverAwayScreen) window.__serverAwayScreen("Restoring…", "Mandarin is restarting with the restored settings. This page reloads when it's back." + again, 1000);
+    if (j.restarting && window.__serverAwayScreen) window.__serverAwayScreen("Restoring…", backupRestartingNote(j, again), 1000);
     else { if (again) toast(again.trim()); setTimeout(() => location.reload(), again ? 2500 : 300); }
   }
 
@@ -158,10 +161,10 @@
       return;
     }
     const id = item && item.dataset.id;
-    const b = ((info && info.backups) || []).find(x => x.id === id);
+    const b = ((info && info.backups) || []).concat(backupCopies(info)).find(x => x.id === id);
     if (!b) return;
     if (btn.dataset.act === "delete") {
-      if (!(await ask("Delete the backup on the server of " + fmtDate(b.created) + "?"))) return;
+      if (!(await ask(b.where === "copy" ? backupCopyDeleteQuestion(b, fmtDate) : "Delete the backup on the server of " + fmtDate(b.created) + "?"))) return;
       await fetch("/api/backup/" + encodeURIComponent(id), { method: "DELETE" }).catch(() => {});
       load();
       return;

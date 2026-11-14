@@ -1004,7 +1004,7 @@
       }
     },
     "settings-backup": {
-      "page": "Settings' Backup & restore: Back, its title; Back up (its ⓘ): the parts to put in, each ticked or not with what it holds, a passphrase and what it seals, Back up to a file on this phone (in the app) and to the server, and what came of it; Restore (its ⓘ): from a file on this phone (in the app), and every backup, on the server and on this phone, newest first, each with where it is, when, what version, how big and what it holds, and Restore… (its parts ticked, a sealed one's passphrase, Restore now, asked first), Download (one on the server) and Delete (asked first)",
+      "page": "Settings' Backup & restore: Back, its title; Back up (its ⓘ): the parts to put in, each ticked or not with what it holds, a passphrase and what it seals, Back up to a file on this phone (in the app) and to the server, and what came of it; Restore (its ⓘ): from a file on this phone (in the app), and every backup, on the server and on this phone, newest first, each with where it is, when, what version, how big and what it holds, and Restore… (its parts ticked, a sealed one's passphrase, Restore now, asked first), Download (one on the server) and Delete (asked first); among them the copies of the database kept before a restore or a switch of builds (item 410: what came after it, the database alone said; Restore… and Delete, no Download), and a restore's word on the music folders kept",
       "native": ["android/app/src/main/java/com/musicd/server/android/SettingsBackup.kt", "android/app/src/main/java/com/musicd/server/android/BackupParts.kt"],
       "preview": false,
       "items": {

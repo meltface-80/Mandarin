@@ -35,6 +35,12 @@ class ScannerTest {
         val covers = j("""{"on":true,"running":false,"found":37,"left":12,"none":1204}""")
         assertEquals("Covers found automatically: 37 · 12 left to try · 1,204 without a sure match", Scanner.coversLine(covers, us))
         assertNull(Scanner.coversLine(null))
+        // Item 410: the music folders it can't reach, after the line, three at most named.
+        val away = j("""{"on":true,"found":0,"left":14078,"none":0,"unreachable":["/music/1tb/Music","/music/2tb/Music"]}""")
+        assertEquals("Covers found automatically: 0 · 14,078 left to try · 0 without a sure match · the music folders can't be reached " +
+            "(/music/1tb/Music, /music/2tb/Music not found): covers will be looked for once they are", Scanner.coversLine(away, us))
+        assertEquals(" · the music folders can't be reached (/a, /b, /c, … not found): covers will be looked for once they are",
+            Scanner.coversUnreachable(j("""{"unreachable":["/a","/b","/c","/d"]}""")))
         assertFalse(Scanner.withCovers(covers, false)!!.optBoolean("on"))
         assertTrue(covers.optBoolean("on"))
         assertEquals("1 Qobuz and Tidal track aren’t measured.", Scanner.streamedNote(loud, us))

@@ -5,9 +5,10 @@
 //   POST   /api/backup/file            a backup, streamed back as a file (the Android app saves it)
 //   POST   /api/backup/save            a backup kept on the server (a browser's)
 //   GET    /api/backup/download/:id    one kept here, as a file
-//   DELETE /api/backup/:id             one kept here, deleted
+//   DELETE /api/backup/:id             one kept here, deleted (a copy of the database too)
 //   POST   /api/backup/restore         restore from a backup file sent as the body
-//   POST   /api/backup/restore/:id     restore from one kept here
+//   POST   /api/backup/restore/:id     restore from one kept here, or from a copy of the database
+//                                      kept before a restore or a switch of builds (GET's copies)
 //   GET    /api/tailscale              how it is: state, sign-in link, address
 //   POST   /api/tailscale/login        a sign-in link (open it, sign in, done)
 //   POST   /api/tailscale/logout       this server leaves the tailnet
@@ -31,6 +32,7 @@ internal static partial class Library
 
     private static string DataDir => Path.GetDirectoryName(Db.File) ?? ".";
     private static Backup.Store Backups => new(DataDir);
+    private static Backup.Copies Copies => new(DataDir);
 
     /* The backup and Tailscale routes: true when answered here. */
     private static async Task<bool> AdminRoute(HttpContext ctx)
@@ -52,7 +54,7 @@ internal static partial class Library
                 case "DELETE" when parts.Length == 4 && parts[2] == "backup" && Id(3) is { } del:
                 {
                     var o = new JsObj();
-                    o["ok"] = Backups.Remove(del);
+                    o["ok"] = Backups.Remove(del) || Copies.Remove(del);
                     return await SendJs(ctx, o);
                 }
                 case "POST" when p == "/api/backup/restore": return await BackupRestoreUpload(ctx, ts);
@@ -123,6 +125,8 @@ internal static partial class Library
         o["parts"] = Backup.Parts.Select(x => (object?)x).ToList();
         o["db_bytes"] = dbBytes;
         o["backups"] = Backups.List().Select(x => (object?)x).ToList();
+        // The database as it was before a restore or a switch of builds, the database alone (Admin/Backup.Copies.cs).
+        o["copies"] = Copies.List().Select(x => (object?)x).ToList();
         return await SendJs(ctx, o);
     }
 

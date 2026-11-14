@@ -249,13 +249,16 @@ internal static partial class Library
         bool present;
         try
         {
-            if (!Scans.Roots().Any(r => d == r || NodePath.Dirname(d) == r)) throw new ScanError("Not one of the music folders");
+            // A music folder or one in it, or a restored backup's not on this computer (Scan/RestoredAway.cs).
+            bool Away() { using var db = Scans.OpenDb(); return RestoredAway.Named(db).Contains(d); }
+            if (!Scans.Roots().Any(r => d == r || NodePath.Dirname(d) == r) && !Away()) throw new ScanError("Not one of the music folders");
             try { present = PosixFs.ReadDir(d).Any(e => !e.Name.StartsWith('.')); } catch (IOException) { present = false; }
             var gone = present;
             var forgot = Scans.WhileNoScan(() =>
             {
                 using var db = Scans.OpenDb();
                 n = Scans.Scanner(db).RemoveUnder(d, gone ? (p => !PosixFs.Exists(p)) : null);
+                RestoredAway.Now(db);
             });
             if (!forgot) return await Send(ctx, new JsonObject { ["error"] = ScanUnderWay }, 409);
         }

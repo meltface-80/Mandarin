@@ -47,5 +47,29 @@ class BackupSettingsTest {
         assertEquals("Wrong passphrase", BackupSettings.restoreSaid(JSONObject("""{"ok":false,"error":"Wrong passphrase"}""")))
         assertEquals(BackupSettings.CHOOSE_AGAIN, BackupSettings.restoreSaid(JSONObject("""{"ok":true,"app_result":{"choose_again":["local_folder"]}}""")))
         assertNull(BackupSettings.restoreSaid(JSONObject("""{"ok":true,"restarting":true}""")))
+        // Item 410: the music folders kept, said, before the folders to choose again.
+        val kept = "The backup's music folders (/music/1tb/Music) aren't on this computer: this one's (/data/Storage) kept."
+        assertEquals(kept, BackupSettings.restoreSaid(JSONObject().put("ok", true).put("restarting", true).put("folders", kept)))
+        assertEquals(kept + " " + BackupSettings.CHOOSE_AGAIN,
+            BackupSettings.restoreSaid(JSONObject().put("ok", true).put("folders", kept).put("app_result", JSONObject("""{"choose_again":["local_folder"]}"""))))
+    }
+
+    @Test fun `the copies of the database kept before a restore or a switch of builds, among the backups (item 410)`() {
+        val info = JSONObject("""{"backups":[{"id":"a","kind":"manual","created":5,"version":"1.3.2","bytes":7000,"parts":["settings"]}],
+            "copies":[{"id":"before-restore-2026-11-14-003225","kind":"restore","created":9,"bytes":2000000,"parts":["database"]},
+            {"id":"before-dev-2026-11-13-101010","kind":"dev","created":3,"bytes":5000,"parts":["database"]},
+            {"id":"before-latest-2026-11-12-101010","kind":"latest","created":1,"bytes":5000,"parts":["database"]}]}""")
+        val all = BackupSettings.list(info, null)
+        assertEquals(listOf("before-restore-2026-11-14-003225", "a", "before-dev-2026-11-13-101010", "before-latest-2026-11-12-101010"), all.map { it.id })
+        val copy = all[0]
+        assertEquals(true, copy.isCopy)
+        assertEquals("Before the restore of D9 · on the server", BackupSettings.title(copy, date))
+        assertEquals("Before switching to development builds · on the server", BackupSettings.title(all[2], date))
+        assertEquals("Before switching to the latest release · on the server", BackupSettings.title(all[3], date))
+        assertEquals("On the server", BackupSettings.title(all[1], date))
+        assertEquals("D9 · 2 MB", BackupSettings.meta(copy, date))
+        assertEquals("The whole database only: no settings", BackupSettings.partsLine(copy))
+        assertEquals(listOf("database"), BackupSettings.restoreParts(copy, true))
+        assertEquals("Delete the copy of the database of D9 from the server?", BackupSettings.deleteQuestion(copy, date))
     }
 }
