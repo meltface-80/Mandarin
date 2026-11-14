@@ -50,6 +50,9 @@ internal static partial class Library
             al => al.Rate != null ? [al.Rate.Value.ToString(CultureInfo.InvariantCulture)] : []));
         defs.Add(new("bits", "Bit depth", "numeric-asc", v => v + "-bit",
             al => al.Bits != null ? [al.Bits.Value.ToString(CultureInfo.InvariantCulture)] : []));
+        // MQA (item 418): its every track, MQA Studio among them where every one is that.
+        var mqa = Mqa.MqaStore.Albums(s);
+        defs.Add(new("mqa", "MQA", null, null, al => mqa.TryGetValue(al.Id, out var m) ? m.Studio ? ["MQA", "MQA Studio"] : ["MQA"] : []));
         defs.Add(new("letter", "Starts with", null, null, al =>
         {
             if (al.SortTitle.Length == 0) return [];
@@ -153,7 +156,7 @@ internal static partial class Library
             .Where(x => x.Sel.Count > 0).ToList();
         var prefix = Names.Fold(Q(ctx, "prefix") ?? "");
         if (prefix.Length > 40) prefix = prefix[..40];
-        var sig = string.Join("|", new[] { sort, desc ? "1" : "0", seed.ToString(CultureInfo.InvariantCulture), played, prefix }
+        var sig = string.Join("|", new[] { sort, desc ? "1" : "0", seed.ToString(CultureInfo.InvariantCulture), played, prefix, Mqa.MqaStore.Generation.ToString(CultureInfo.InvariantCulture) }
             .Concat(picked.Select(x => x.Def.Id + "=" + string.Join(",", x.Sel.OrderBy(v => v, StringComparer.Ordinal)))));
         var usesPlays = played != "any" || sort == "plays" || sort == "lastplayed";
         if (!usesPlays && prefix.Length == 0) lock (s.ViewCache) if (s.ViewCache.TryGetValue(sig, out var hit)) return hit;
@@ -313,6 +316,7 @@ internal static partial class Library
         }
         using var c = Db.Open();
         var tracks = Tracks(c, s, al);
+        var mqa = Mqa.MqaStore.Of(c, tracks.Select(t => t.Id));   // its MQA tracks (item 418)
         var discs = tracks.Select(t => t.Disc ?? 1).Distinct().Count();
         var albumKey = Names.ArtistKey(al.Artist);
         var rows = new JsonArray(tracks.Select(t =>
@@ -331,6 +335,7 @@ internal static partial class Library
             };
             // A set's tracks say which disc, as a number (v0.8.27: Shelf's back of the case heads each disc).
             if (discs > 1) row["disc"] = t.Disc is long d && d != 0 ? d : 1;
+            if (mqa.TryGetValue(t.Id, out var mq)) row["mqa"] = Mqa.MqaStore.Json(mq.Info.Studio, mq.Info.OriginalRate, mq.Bits);
             return (JsonNode)row;
         }).ToArray());
         var album = AlbumJson(s, al);

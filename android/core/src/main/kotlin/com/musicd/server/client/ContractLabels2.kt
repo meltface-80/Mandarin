@@ -141,6 +141,7 @@ internal object ContractLabels2 {
         "settings-device.recipe" to listOf("{recipe}"),
         "settings-device.advanced" to listOf("Advanced"),
         "settings-device.album-stream" to listOf("Albums as one stream"),
+        "settings-device.mqa-dac" to listOf("This DAC decodes MQA"),
         "settings-device.player" to listOf("UPnP", "Its own player"),
         "settings-device.fixvol" to listOf("Fixed volume"),
         "settings-device.lv-mode" to listOf("Volume levelling"),

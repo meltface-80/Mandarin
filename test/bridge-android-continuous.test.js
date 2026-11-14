@@ -39,7 +39,7 @@ test("the Android Bridge says it takes continuous PCM, reads a run's format from
   assert.ok(raw.includes("'1' -> 16; '2' -> 24; '3' -> 32"), "the depth, as strm says it");
   assert.ok(raw.includes(`return "#pcm=s\${bits}le:\${RATES[r]}:$channels"`));
   assert.ok(raw.includes("b[6] != '1'.code.toByte()"), "little-endian only");
-  assert.match(SLIM, /val item = raw\(b\)\?\.let \{ Transport\.Item\(said\.uri \+ it, said\.title, said\.artist, said\.album\) \} \?: said/);
+  assert.match(SLIM, /val item = raw\(b\)\?\.let \{ Transport\.Item\(said\.uri \+ it, said\.title, said\.artist, said\.album, said\.untouched\) \} \?: said/);
   // What Slim.kt writes is what RawPcmExtractor takes: its pattern, run here on each depth.
   const said = new RegExp(RAW.match(/Regex\("([^"]+)"\)/)[1]);
   for (const s of ["#pcm=s16le:44100:2", "#pcm=s24le:96000:2", "#pcm=s32le:768000:2"]) assert.ok(said.test("http://h:3500/stream/slim/SLIM_0A/1.pcm?s=x" + s), s);
@@ -56,7 +56,7 @@ test("the Android Bridge says it takes continuous PCM, reads a run's format from
   // Each track it comes to in a run, said: the screen and notification retitled.
   assert.ok(SLIM.includes(`"mtrk" -> told(String(b, Charsets.US_ASCII))`));
   assert.ok(SLIM.includes(`transport.retitle(header(lines, "X-Mandarin-Title"), header(lines, "X-Mandarin-Artist"), header(lines, "X-Mandarin-Album"))`));
-  assert.ok(TRANSPORT.includes("current = Item(c.uri, title, artist, album)"));
+  assert.ok(TRANSPORT.includes("current = Item(c.uri, title, artist, album, c.untouched)"));
 });
 
 test("the USB sink gives a change of format half a second of silence before the music, out of the position", () => {

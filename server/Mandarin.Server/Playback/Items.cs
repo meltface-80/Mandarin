@@ -43,6 +43,7 @@ internal static class Items
         if (p["mod"] is string mod) qs.Add("mod=" + mod);   // DSD by a modulator other than the seventh order's (item 303)
         if (p["dither"] is string dn) qs.Add("dn=" + dn);   // Mandarin's own dither, shaped (item 301)
         if (Jv.T(p["real_bits"])) qs.Add("rb=" + TJs.Num(Jv.Num(p["real_bits"])));   // at the DAC's real bits (item 301)
+        if (Jv.T(p["mqa"])) qs.Add("mqa=1");   // MQA, untouched to a DAC that decodes it: no volume of Mandarin's on it (item 418)
         var q = qs.Count > 0 ? "?" + string.Join("&", qs) : "";
         return Signing.SignExpiring(secret, $"{baseUrl}/stream/t{t.Id}{seg}.{Jv.Str(p["ext"])}{q}");   // good for 30 days (item 368)
     }
@@ -53,13 +54,26 @@ internal static class Items
     /* item(t, target, { gain, phoneGain }): the URL, the DIDL and the plan, the track beside them. */
     public static PlayItem Item(Snapshot s, string secret, string baseUrl, PlayTrack t, JsObj? target, double? gain, double? phoneGain)
     {
-        var tj = t.ToJs();
+        var mqa = Mqa.MqaPlan.DacDecodes(target) && Mqa.MqaStore.Track(t.Id) != null;   // an MQA track to a DAC that decodes it (item 418)
+        return Build(s, secret, baseUrl, t, PlanOf(t.ToJs(), target, gain, mqa, p => Upsample.Headroom.Into(p, t.Id, target)), target, phoneGain);
+    }
+
+    /*
+     * The plan for library row [tj] to [target] with its ReplayGain [gain]: an MQA track ([mqa]) to a DAC that decodes
+     * it, the file as it is with nothing done to it (Mqa/MqaPlan.cs); else planned, fitted, shaped, low-passed, made DSD,
+     * and turned down by [headroom] where its upsampling would clip.
+     */
+    public static JsObj PlanOf(JsObj tj, JsObj? target, double? gain, bool mqa, Func<JsObj, JsObj> headroom)
+    {
+        var path = Jv.Str(Jv.Get(tj, "path"));
+        if (Mqa.MqaPlan.For(Jv.Obj(("path", path), ("codec", Jv.Get(tj, "codec")), ("sampleRate", Jv.Get(tj, "sample_rate")), ("bitsPerSample", Jv.Get(tj, "bits")),
+            ("channels", Jv.Get(tj, "channels"))), target, mqa) is { } untouched) return untouched;
         var p = (JsObj)StreamPlans.PlanFor(tj, target, gain)!;
         if (target != null) p = HighRates.Fit(p, target);   // above FLAC's rates: WAV, or the highest FLAC carries (item 238)
-        p = Upsample.MadeAsPlayed.Mark(p, target, t.Path);   // in the filter's shape, where the device asks one (items 248, 259)
+        p = Upsample.MadeAsPlayed.Mark(p, target, path);   // in the filter's shape, where the device asks one (items 248, 259)
         p = DsdLowpass.Mark(p, target, tj);   // DSD as PCM, its modulator's noise above the band taken off (item 241)
         // Made DSD from PCM (items 243, 259): the DSF, made as it plays; turned down where its upsampling would clip (item 348).
-        return Build(s, secret, baseUrl, t, Upsample.Headroom.Into(Upsample.DsdPlan.Mark(p, target, tj, t.Path), t.Id, target), target, phoneGain);
+        return headroom(Upsample.DsdPlan.Mark(p, target, tj, path));
     }
 
     // The item for [t] by the plan [p]: its address, its DIDL.

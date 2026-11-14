@@ -259,6 +259,7 @@ internal sealed partial class Players
             ("bits", s["bits"] is double b && b is 24 or 32 ? (object)b : "auto"),
             ("dsp", dsp), ("id", r.Id));
         OutputInto(target, s);
+        if (s["mqa_dac"] is true) target["mqa_dac"] = true;   // This DAC decodes MQA: its MQA tracks sent untouched (item 418, Mqa/MqaPlan.cs)
         return target;
     }
 

@@ -29,6 +29,8 @@ internal sealed record SentInfo(bool Transcode, double Rate, double Bits, double
     public double DsdBase { get; init; } = 44100;
     // Its turn-down for its upsampling (dB ≤ 0; in Gain too), for the signal path (item 348: Upsample/Headroom.cs).
     public double Headroom { get; init; }
+    // An MQA track sent untouched to a DAC that decodes MQA (item 418, Mqa/MqaPlan.cs).
+    public bool Mqa { get; init; }
 }
 
 internal sealed class ZoneState

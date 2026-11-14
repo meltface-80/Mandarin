@@ -88,7 +88,7 @@ function renderVersions(j) {
     name.className = "album-version-name";
     name.textContent = v.edition || v.title;
     words.appendChild(name);
-    for (const [cls, text] of [["album-version-format", versionFormat(v.quality)], ["album-version-facts", versionFacts(v)]]) {
+    for (const [cls, text] of [["album-version-format", [versionFormat(v.quality), mqaLabel(v.mqa)].filter(Boolean).join(" · ")], ["album-version-facts", versionFacts(v)]]) {
       if (!text) continue;
       const d = document.createElement("div");
       d.className = cls; d.textContent = text;

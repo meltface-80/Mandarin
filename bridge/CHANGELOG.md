@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.3.13
+
+- New - an MQA track Mandarin sends untouched to a DAC that decodes MQA (Audio Devices' This DAC decodes MQA, item 418) is played by the Android Bridge with no software volume: its request says so (X-Mandarin-Untouched), and as it becomes the track playing the USB driver's gain is 1 whatever the slider, so the DAC is fed the file's samples, MQA's signalling in them intact; muted, it is silent as ever. A DAC with its own volume or fixed volume was never scaled. The Linux Bridge (and the Pi's) never scales anything
+- Improved - Mandarin Bridge is 0.3.13
+
 ## v0.3.12
 
 - Fixed - the Linux Bridge couldn't update itself on Mandarin OS, or on any computer with systemd 256 or newer (Debian 13, Ubuntu 24.10 and later): "The update couldn't be installed: mandarin-bridge couldn't be run (ErrorStartingProcess, …, Permission denied)", with the download, its checksum and its signature all good (item 415). Its service ran as a DynamicUser, and from systemd 256 a DynamicUser's data folder is mounted so nothing in it can be run, the update the Bridge fetches into it included. It runs as a user of its own now, mandarin-bridge, which install.sh makes, with the same limits as before (the system read-only but for its data folder, its own /tmp, no new privileges). Installed again, a Bridge keeps its data folder (who it is to Mandarin, its settings, its logs): install.sh makes it the Bridge's (a DynamicUser's is nobody's, which systemd would still mount so nothing in it runs), and systemd moves it back from /var/lib/private. On Mandarin OS, Mandarin OS 0.1.7 does the same for the Bridge already installed. The Raspberry Pi image's Bridge runs as root, as it always has

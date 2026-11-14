@@ -43,6 +43,7 @@
 //   { fn: "local", linux: [root, dev], hw: [[location, root]], ids, amplitude: [[pct, muted]] }
 //      → { devices, hidden, hw, ids, amplitude }                         Local/LocalDevices.cs, EngineOutput.cs
 //   { fn: "scorecall" | "itunes" | "mbpack", … }                          Identify/ScoreCalls.cs
+//   { fn: "mqa", files | rates | items | untouched | headers }            Mqa/MqaCommand.cs: MQA found, planned, said (item 418)
 //   { fn: "logos", … }                                                    Extras/LogosCommand.cs: the label-logo finder, step by step
 //   { fn: "lastfm", … }                                                   Extras/LastfmCommand.cs: the Last.fm client, step by step
 //   { fn: "shelf", buckets: [sortArtist], shelves: [[{ id, title, artist, sortArtist, genres, image_key, year }]] }
@@ -66,7 +67,7 @@ internal static class RulesCommand
     private static List<object?> Each(object? list, Func<object?, object?> f) => L(list).Select(f).ToList();
     private static JsObj O(object? v) => v as JsObj ?? new JsObj();
 
-    public static readonly string[] Fns = ["mounts", "versions", "soapcall", "labelnames", "phoneplays", "uris", "cpu", "auth", "register", "ssdp", "engine", "local", "scorecall", "itunes", "logos", "lastfm", "shelf", "mbpack", "addresses", "librarycopy", "watchmisses", "logscrub", "daypick", "upsample", "dsdmod", "dither", "joins"];
+    public static readonly string[] Fns = ["mounts", "versions", "soapcall", "labelnames", "phoneplays", "uris", "cpu", "auth", "register", "ssdp", "engine", "local", "scorecall", "itunes", "logos", "lastfm", "shelf", "mbpack", "addresses", "librarycopy", "watchmisses", "logscrub", "daypick", "upsample", "dsdmod", "dither", "joins", "mqa"];
 
     public static JsObj Run(string fn, JsObj job) => fn switch
     {
@@ -78,6 +79,7 @@ internal static class RulesCommand
         "cpu" => CpuFns(job),
         "auth" => AuthFns(job),
         "logos" => Extras.LogosCommand.Run(job),
+        "mqa" => Mqa.MqaCommand.Run(job),
         "lastfm" => Extras.LastfmCommand.Run(job),
         "shelf" => ShelfFns(job),
         "librarycopy" => new JsObj { ["due"] = Each(job["due"], d => Library.ReadDue(N(At(d, 0)), N(At(d, 1)), N(At(d, 2)), N(At(d, 3)), N(At(d, 4)), (int)N(At(d, 5)), (int)N(At(d, 6)))) },

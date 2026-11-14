@@ -270,6 +270,7 @@ internal sealed partial class Devices
         if (streamer && Upsample.Dither.BitsOf(r.Settings["real_bits"]) is var rb and > 0) ((JsObj)o["output"]!)["real_bits"] = (double)rb;
         // An album as one stream (item 300), said only where it is on.
         if (streamer && r.Settings["album_stream"] is true) ((JsObj)o["output"]!)["album_stream"] = true;
+        if (streamer && r.Settings["mqa_dac"] is true) ((JsObj)o["output"]!)["mqa_dac"] = true;   // This DAC decodes MQA (item 418), said only where it is on
         // Its own player (MPD, item 306): where it was found, and whether it is played through (UPnP by its absence).
         if (streamer && r.Caps["mpd"] is JsObj found && found["address"] is string mpd) { o["mpd"] = mpd; if (Jv.Same(r.Settings["player"], "mpd")) ((JsObj)o["output"]!)["player"] = "mpd"; }
         o["first_seen"] = r.FirstSeen; o["last_seen"] = r.LastSeen;

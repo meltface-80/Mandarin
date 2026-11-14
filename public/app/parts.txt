@@ -11,6 +11,7 @@ app/library-mark.js
 app/after-start.js
 app/ui-settings.js
 app/page-state.js
+app/mqa.js
 app/home.js
 app/home-layout.js
 app/home-render.js

@@ -30,6 +30,13 @@ Mandarin's data folder (`sq-tool/`). It needs Python 3 and numpy (Mandarin's ima
 | **NOT BIT-PERFECT** | The samples differ throughout. SQ-tool says how: a level change, dither, rounding, EQ, channel changes. |
 | **RESAMPLED** | The DAC was fed another sample rate than the file's (Output upsampled, or a device's own resampling). |
 
+An MQA song (its samples carry MQA's signalling, found as the open MQA identifiers find it: `sqtool/mqa.py`) has a
+line of its own under the verdict: **MQA signalling intact** where what the DAC was fed is bit-identical and carries
+it; **MQA signalling lost:** and what changed (the level, a resampling, the samples) where it doesn't; **MQA
+signalling still found, but not bit-perfect** where the sync survived a change below it (dither at 24 bits, say), so
+what a decoder unfolds is no longer the encoder's. For an MQA DAC, the zone's Output has **This DAC decodes MQA** on,
+and Mandarin sends MQA tracks to it untouched.
+
 Where it is not bit-perfect, the numbers mean:
 
 * **level**: the volume difference, for example −1.00 dB (a volume in software).

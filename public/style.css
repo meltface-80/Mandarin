@@ -2120,6 +2120,17 @@ body.settings-open main { overflow-y: hidden; }
   color: var(--text-dim);
 }
 .np-format.hidden { display: none; }
+/* MQA (item 418: app/mqa.js): a track's badge on the album page and Now playing's, MQA Studio's in the accent, and
+   the line that says this room sends it untouched to its MQA DAC. */
+.mqa-badge, .np-mqa {
+  padding: 1px 7px; border: 1px solid var(--border); border-radius: 5px;
+  font-size: 11px; font-weight: 600; letter-spacing: .02em; line-height: 1.3; color: var(--text-dim);
+}
+.mqa-badge { align-self: flex-start; margin-top: 3px; }
+.mqa-badge.is-studio, .np-mqa.is-studio { color: var(--accent-text); border-color: var(--accent); }
+.np-mqa { display: table; margin: 8px auto 0; font-size: 12px; }
+.np-mqa-note { margin-top: 4px; font-size: 12px; font-weight: 500; color: var(--text-dim); text-align: center; }
+.np-mqa.hidden, .np-mqa-note.hidden { display: none; }
 /* Now playing's signal path (item 247): the lines under the album, centred, and the sheet a tap on them opens. */
 .np-signal-lines {
   display: inline-flex; flex-direction: column; align-items: center; gap: 2px;

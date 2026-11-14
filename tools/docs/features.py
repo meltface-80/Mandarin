@@ -237,6 +237,17 @@ FEATURES = [
      "On a device's page in **Settings → Audio Devices**, switch the DSD rates it takes on or off; "
      "**Output → PCM as DSD** and **Modulator** make PCM DSD. On Linux, a Mandarin Bridge's own page says "
      "when the computer's kernel holds back a DAC's native DSD, and the line that frees it."),
+    ("mqa", "🔷", "MQA", False,
+     "Tracks whose samples carry MQA's signalling are found by themselves and marked with their original rate "
+     "(MQA · 24/352.8 original, MQA Studio); an MQA DAC is sent them untouched.",
+     "Nothing to set up to see it: after each scan the server reads the first ten seconds of every stereo 16- or "
+     "24-bit file at 44.1 to 96 kHz as the open MQA identifiers do, and a changed file again; tags are only a hint. "
+     "The mark shows on an album's tracks, on its **Versions** tab and in **Now playing**, and **Focus → MQA** "
+     "narrows the Library to those albums. For a DAC that decodes MQA, open it in **Settings → Audio Devices** and "
+     "switch on **This DAC decodes MQA**: an MQA track then goes to it as the file itself, with no upsampling, DSD, "
+     "DSP, ReplayGain or dither and Mandarin's volume at 100%, and Now playing says *MQA: sent untouched to the "
+     "DAC*. Any other room plays MQA as the PCM it is. Mandarin decodes no MQA itself; SQ-tool says whether the "
+     "signalling reached the DAC intact."),
     ("levelling", "🔊", "Volume Levelling", False,
      "ReplayGain per device: Off, Track, Album or Auto, a target from −14 to −25 LUFS, and a level "
      "for tracks with no loudness information.",

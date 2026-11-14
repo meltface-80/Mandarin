@@ -56,7 +56,9 @@ data class NowPlaying(
     /** The library's track it is, when it is one: the album page marks it. */
     val trackId: Long? = null,
     /** Every step of its way to the room (item 247); null from an older server. */
-    val signal: Signal? = null
+    val signal: Signal? = null,
+    /** MQA, and whether this room sends it untouched to a DAC that decodes it (item 418). */
+    val mqa: Mqa? = null
 )
 
 /** A speaker's volume as the server gives it: its range and step, where it is; `incremental` has no scale, only up and down. */
@@ -151,7 +153,8 @@ data class ZoneState(val revision: Long, val zone: Zone?) {
                             albumId = if (it.isNull("album_offset")) null else it.opt("album_offset")?.toString(),
                             format = it.optJSONObject("format")?.let { f -> Format(f.optString("kind", ""), f.optString("text", "")) },
                             trackId = if (it.isNull("track_id")) null else it.optLong("track_id"),
-                            signal = Signal.of(it.optJSONObject("signal"))
+                            signal = Signal.of(it.optJSONObject("signal")),
+                            mqa = Mqa.parse(it.optJSONObject("mqa"))
                         )
                     },
                     outputs = outs,

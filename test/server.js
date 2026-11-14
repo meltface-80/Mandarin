@@ -140,7 +140,9 @@ const CONFIG = {
   qobuzSyncDelayMs: "service_sync_delay_ms", serviceWatchMs: "service_watch_ms", logoPauseMs: "logo_pause_ms", upnpOfflineMs: "upnp_offline_ms",
   localDevices: "local_devices", massRemoval: "mass_removal", tailscaleWatchdog: "tailscale_watchdog",
   // Loudness measured with the Album Scanner on (Jobs.cs, item 411): only where a test asks for it.
-  loudness: "loudness"
+  loudness: "loudness",
+  // Each track looked at for MQA (Mqa/MqaPass.cs, item 418): likewise only where a test asks, and how often it looks.
+  mqa: "mqa", mqaTickMs: "mqa_tick_ms"
 };
 // What the C# server makes (Jobs.Names): every job, with no Node server to leave any to.
 const JOBS = ["identify", "mbpack", "loudness", "labels", "days", "taste", "tailscale", "scan", "prune", "import", "services", "update", "cpu", "playback"];

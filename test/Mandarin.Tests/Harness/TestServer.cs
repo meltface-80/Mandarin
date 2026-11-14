@@ -32,7 +32,8 @@ public sealed class TestServer : IAsyncDisposable
         ["qobuzSyncDelayMs"] = "service_sync_delay_ms", ["serviceWatchMs"] = "service_watch_ms", ["logoPauseMs"] = "logo_pause_ms",
         ["upnpOfflineMs"] = "upnp_offline_ms", ["localDevices"] = "local_devices", ["massRemoval"] = "mass_removal", ["tailscaleWatchdog"] = "tailscale_watchdog",
         ["credits"] = "credits", ["creditsTickMs"] = "credits_tick_ms", ["wikidataBaseUrl"] = "wikidata_url", ["coversAhead"] = "covers_ahead",
-        ["autoCovers"] = "auto_covers", ["autoCoversGapMs"] = "auto_covers_gap_ms", ["coverartBaseUrl"] = "coverart_url", ["loudness"] = "loudness"
+        ["autoCovers"] = "auto_covers", ["autoCoversGapMs"] = "auto_covers_gap_ms", ["coverartBaseUrl"] = "coverart_url", ["loudness"] = "loudness",
+        ["mqa"] = "mqa", ["mqaTickMs"] = "mqa_tick_ms"
     };
 
     /// <summary>Every job's name: the C# server makes them all (Jobs.Names).</summary>
