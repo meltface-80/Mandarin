@@ -14,7 +14,7 @@ function credit(name, id, note) { return [{ name, artist: Object.assign({ name }
 
 /* A release from a short description: { id, title, artist, date, tracks: [[title, seconds], …]
  * (or discs: [[[title, seconds], …], …], one list a disc), group: { title, date } (the release
- * group, when it differs), disambiguation, barcode, catno (with label), isrcs: [code per track],
+ * group, when it differs), disambiguation, barcode, catno (with label), format (each disc's; CD else), isrcs: [code per track],
  * toc: true when a disc ID has been submitted for it (the fuzzy lookup by table of contents finds it) } */
 function release(d) {
   const g = d.group || {};
@@ -25,7 +25,7 @@ function release(d) {
     "artist-credit": credit(d.artist, d.artistId, d.artistNote),
     "label-info": d.label ? [{ "catalog-number": d.catno || "1", label: { id: d.label + "-id", name: d.label } }] : [],
     "release-group": { id: g.id || d.id + "-rg", title: g.title || d.title, "first-release-date": g.date || d.date || "", "primary-type": "Album" },
-    media: discs.map((tracks, di) => ({ position: di + 1, format: "CD", "track-count": tracks.length,
+    media: discs.map((tracks, di) => ({ position: di + 1, format: d.format || "CD", "track-count": tracks.length,
       tracks: tracks.map(([title, s], i) => ({ id: `${d.id}-${di ? "d" + (di + 1) + "-" : ""}t${i + 1}`, position: i + 1, number: String(i + 1), title, length: s == null ? null : Math.round(s * 1000),
         "artist-credit": credit(d.artist), recording: { id: `${d.id}-${di ? "d" + (di + 1) + "-" : ""}r${i + 1}`, title, length: s == null ? null : Math.round(s * 1000) } }))
     }))

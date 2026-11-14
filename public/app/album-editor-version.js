@@ -52,8 +52,10 @@ function aeVersionShow(d, keepTyped) {
   }
 }
 
-/** The fields emptied as the editor opens on another album. */
+/** The fields emptied, and the section put away until the album's view says its version, as the editor opens on another album. */
 function aeVersionClear() {
+  const box = document.getElementById("ae-version");
+  if (box) box.classList.add("hidden");
   for (const f of AE_VERSION) {
     const input = aeVInput(f);
     if (input) input.value = "";

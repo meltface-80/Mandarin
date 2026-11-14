@@ -41,10 +41,10 @@ internal fun EditVersion(ed: AlbumEditor) {
             Text(AlbumVersionEdit.HEADING, color = paletteColor(Palette.TEXT), fontSize = 15.sp, lineHeight = 21.sp, fontWeight = FontWeight.W600)
             Text(AlbumVersionEdit.NOTE, Modifier.padding(top = 4.dp), color = paletteColor(Palette.TEXT_FAINT), fontSize = 12.5.sp, lineHeight = 17.5.sp)
         }
-        VersionField(ed, "name", Modifier.fillMaxWidth())
+        VersionInput(ed, "name", Modifier.fillMaxWidth())
         AlbumVersionEdit.FIELDS.drop(1).chunked(2).forEach { pair ->
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                pair.forEach { VersionField(ed, it, Modifier.weight(1f)) }
+                pair.forEach { VersionInput(ed, it, Modifier.weight(1f)) }
                 if (pair.size == 1) Spacer(Modifier.weight(1f))
             }
         }
@@ -53,7 +53,7 @@ internal fun EditVersion(ed: AlbumEditor) {
 
 /** One of the version's fields: its name over it, its box, and what the match or the files say under it once they differ. */
 @Composable
-private fun VersionField(ed: AlbumEditor, f: String, modifier: Modifier) {
+private fun VersionInput(ed: AlbumEditor, f: String, modifier: Modifier) {
     val d = ed.state ?: return
     val words = ed.version[f].orEmpty()
     val focus = remember(f) { MutableInteractionSource() }
