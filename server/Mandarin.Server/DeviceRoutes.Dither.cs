@@ -30,5 +30,12 @@ internal static partial class Library
             if (!Jv.OneOf(headroom, "auto", "off")) throw new DeviceRefusal(400, "headroom must be auto or off");
             patch["headroom"] = Jv.Same(headroom, "off") ? "off" : null;
         }
+        // This DAC decodes MQA (item 418): on, or off as its absence.
+        var mqaDac = Prop(output, "mqa_dac");
+        if (mqaDac is not Undef)
+        {
+            if (mqaDac is not bool on) throw new DeviceRefusal(400, "mqa_dac must be true or false");
+            patch["mqa_dac"] = on ? true : null;
+        }
     }
 }

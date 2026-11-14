@@ -27,6 +27,8 @@ internal static partial class Jobs
     public static Identifier? Identify { get; private set; }
     public static PackStore? Packs { get; private set; }
     public static Loudness? Loudness { get; private set; }
+    // Each track looked at for MQA's signalling after the scan (item 418, Mqa/MqaPass.cs).
+    public static Mqa.MqaPass? MqaPass { get; private set; }
     public static ReleaseDays? Days { get; private set; }
     public static Taste? Taste { get; private set; }
     public static WriteUpSources? WriteUps { get; private set; }
@@ -94,6 +96,10 @@ internal static partial class Jobs
         // Measured with the Album Scanner on (item 411), except while the tests keep to this machine and haven't asked for it (loudness: true).
         var measureHere = !Lookups.LoopbackOnly || (cfg["loudness"] is JsonValue lo && lo.TryGetValue<bool>(out var loOn) && loOn);
         Loudness = new Loudness(Log, Int(cfg["loudness_tick_ms"], 5000)) { Ready = () => Held && measureHere, Identify = () => Identify };
+        // Likewise MQA's (item 418): always, except while the tests keep to this machine and haven't asked for it (mqa: true).
+        var mqaHere = !Lookups.LoopbackOnly || (cfg["mqa"] is JsonValue mq && mq.TryGetValue<bool>(out var mqOn) && mqOn);
+        MqaPass?.Stop();
+        MqaPass = new Mqa.MqaPass(Log, Int(cfg["mqa_tick_ms"], 3000)) { Ready = () => Held && mqaHere };
         // Record labels, release days and the taste work (v0.8.20): MusicBrainz as
         // itself (no pack), Discogs, FanArt.tv and Deezer where the configuration says.
         var labelsMb = new MusicBrainz(Text(cfg["musicbrainz_url"]), version);
@@ -141,6 +147,7 @@ internal static partial class Jobs
         if (cfg["identify"] is JsonValue on && on.TryGetValue<bool>(out var yes) && yes) Identify.Start();
         Packs.Start();
         Loudness.Start();
+        MqaPass.Start();
         Taste.Start();
         // Found in the background, except while the tests keep to this machine and haven't asked for it (credits: true).
         if (!Lookups.LoopbackOnly || (cfg["credits"] is JsonValue cr && cr.TryGetValue<bool>(out var crOn) && crOn))
@@ -211,6 +218,7 @@ internal static partial class Jobs
         Identify?.Stop();
         Packs?.Stop();
         Loudness?.Stop();
+        MqaPass?.Stop();
         Days?.Stop();
         AutoCovers.Current?.Stop();
         Taste?.Stop();

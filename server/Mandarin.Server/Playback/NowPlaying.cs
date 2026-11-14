@@ -40,6 +40,13 @@ internal static class NowPlaying
             ["album_offset"] = st.AlbumOffset != null ? st.AlbumOffset : al != null ? al.Id : null,
             ["format"] = format == null ? null : new JsonObject { ["kind"] = format.Value.Kind, ["text"] = format.Value.Text },
         };
+        // MQA (item 418): what its signalling says, and whether this room sends it untouched to a DAC that decodes it.
+        if (t != null && Mqa.MqaStore.Of(c, [t.Id]).TryGetValue(t.Id, out var mq))
+        {
+            var mj = Mqa.MqaStore.Json(mq.Info.Studio, mq.Info.OriginalRate, mq.Bits);
+            if (st.Sent?.Mqa == true) mj["untouched"] = true;
+            o["mqa"] = mj;
+        }
         // Every step of the way, for Now playing's lines and its Signal path sheet (SignalPath.cs, item 247); a renderer's.
         if (SignalPath.Of(z, st, t) is { } signal) o["signal"] = signal;
         return o;

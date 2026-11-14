@@ -362,7 +362,7 @@ internal sealed partial class Engine
                 int idx = (int)(from % Capacity);
                 int contiguous = Math.Min(len, Capacity - idx);
                 byte* src = basePtr + idx;
-                float g = mark.Fmt == OutFormat.Pcm ? gain : 1f;   // DSD's bits are never scaled
+                float g = mark.Fmt == OutFormat.Pcm && !Untouched.Of(mark.Uri) ? gain : 1f;   // DSD's bits never scaled, nor MQA's (item 418)
                 if (g != 1f || contiguous < len)
                 {
                     // Scaled (or wrapping round the buffer's end): through the scratch.
