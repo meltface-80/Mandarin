@@ -202,7 +202,7 @@ object AlbumEdit {
 
     /** The match applied, as the page's aeShowMatch says it: its names, how alike, how found, and "Other editions:" when there are any. */
     fun matchSaid(m: AlbumMatch): Said = Said("Matched:", " " + (if (m.artist.isNotEmpty()) "${m.artist} — " else "") + m.title + (m.year?.let { " ($it)" } ?: "") +
-        (m.similarity?.let { " · $it %" } ?: "") + (if (m.how.isNotEmpty()) " · " + m.how else "") + if (m.editions.isNotEmpty()) ". Other editions:" else "")
+        (m.similarity?.let { " · $it %" } ?: "") + "" + if (m.editions.isNotEmpty()) ". Other editions:" else "")
 
     /** What is said once a release is applied to the album at [offset] ([answer]: the server's, the identify page's lists). */
     fun matched(answer: JSONObject, offset: Long): Said {
