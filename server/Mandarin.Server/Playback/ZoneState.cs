@@ -45,6 +45,7 @@ internal sealed class ZoneState
     public bool Shuffle;
     public string Loop = "disabled";          // disabled | loop | loop_one
     public double At;                         // ms, when read
+    public double LoadingSince;               // ms, when it began loading this track (0: not known, At); item 417
     public bool Unreachable;
     public Volume? VolumeValue;
     // The phone's own (phones.js report): its own list, its cover and album, the file's extension.
@@ -83,8 +84,17 @@ internal sealed class ZoneState
         patch(next);
         if (next.TrackUri != TrackUri || next.TrackNumber != TrackNumber) next.PlayedLogged = next.LowFired = next.Scrobbled = next.Announced = false;
         next.At = Hub.Now();
+        next.LoadingSince = LoadingFrom(this, next);
         return next;
     }
+
+    /*
+     * When [next] began loading: [prev]'s start where it was loading the same track already, else now (its At); 0 where
+     * it isn't loading. Hub.PlayingNow counts a room loading for so long, not one that says TRANSITIONING at every read
+     * (item 417): its At is the read's, never old.
+     */
+    public static double LoadingFrom(ZoneState prev, ZoneState next) => next.State != "loading" ? 0
+        : prev.State == "loading" && prev.TrackUri == next.TrackUri && prev.LoadingSince > 0 ? prev.LoadingSince : next.At;
 }
 
 /* One output as zones.js outputJson() gives it; volume null for a renderer whose volume is fixed on the device. */
