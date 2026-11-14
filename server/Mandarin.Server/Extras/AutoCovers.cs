@@ -21,10 +21,12 @@
 // When: after a library scan, the albums not looked at yet; each night at three
 // (the server's clock), those due again too. Gently: an album a few seconds
 // apart (auto_covers_gap_ms, 4000), each catalogue kept to its own pace
-// (CoverCatalogues.cs); never while a scan runs or a track is being made as it
-// plays (Cpu.MakingNow); ffprobe and ffmpeg on the cores playback doesn't keep
-// (Covers.Run). On unless switched off (Settings → Library Scanner → Find
-// covers: the setting "autoCovers").
+// (CoverCatalogues.cs); never while a scan runs or music plays (a track made as
+// it plays among it: Identify/AlbumScanner.Playing); ffprobe and ffmpeg on the
+// cores playback doesn't keep (Covers.Run). Since item 411, on and off with the
+// Album Scanner (Identify/AlbumScanner.cs; Find covers' own switch, the setting
+// "autoCovers", before it), and in Scheduling's hours: a run outside them is
+// put off till they come.
 using System.Globalization;
 using System.Text.Json.Nodes;
 using Mandarin.Server.Tags;
@@ -37,7 +39,6 @@ internal sealed partial class AutoCovers(CoverCatalogues ask, int gapMs, Action<
 {
     public const long RetryMs = 60L * 86400000;
     public const int MinSide = 300;
-    private const string Setting = "autoCovers";
 
     /* The finder this server runs (Jobs.cs), or null before the work is set up. */
     public static AutoCovers? Current { get; set; }
@@ -46,7 +47,7 @@ internal sealed partial class AutoCovers(CoverCatalogues ask, int gapMs, Action<
     public Func<bool> Ready { get; init; } = () => true;
 
     private readonly SemaphoreSlim passing = new(1, 1);
-    private volatile bool stopped, again, againWide;
+    private volatile bool stopped, again, againWide, deferred, deferredWide;
     private long lastAsked;
     private string lastNight = "";
     private Timer? nightly;
@@ -56,39 +57,43 @@ internal sealed partial class AutoCovers(CoverCatalogues ask, int gapMs, Action<
 
     // ------------------------------------------------------------ the switch
 
-    /* Find covers: on unless switched off. */
-    public static bool On()
-    {
-        try { using var c = Db.Open(); return Db.Setting(c, Setting) is not JsonValue v || !v.TryGetValue<bool>(out var on) || on; }
-        catch (Microsoft.Data.Sqlite.SqliteException) { return false; }
-    }
+    /* On with the Album Scanner (Identify/AlbumScanner.cs, item 411): Find covers was its own switch before it. */
+    public static bool On() => Identify.AlbumScanner.On();
 
-    /* Switched on (a run started) or off (the run under way stops at its next step). */
-    public void Set(bool on)
+    /* Find covers' request, an older page's or app's (POST /api/covers/auto): the Album Scanner switched. */
+    public static void Set(bool on) => Identify.AlbumScanner.Set(on);
+
+    /* The Album Scanner switched on (a run started) or off (the run under way stops at its next step). */
+    public void Switched(bool on)
     {
-        using (var c = Db.Open())
-        using (var cmd = c.CreateCommand())
-        {
-            cmd.CommandText = "INSERT INTO settings(key, value) VALUES($k, $v) ON CONFLICT(key) DO UPDATE SET value = excluded.value";
-            cmd.Parameters.AddWithValue("$k", Setting);
-            cmd.Parameters.AddWithValue("$v", on ? "true" : "false");
-            cmd.ExecuteNonQuery();
-        }
         status = null;
         if (on) Kick();
     }
 
     // ------------------------------------------------------------ when
 
-    /* Each night at three, the server's clock: a run that asks again what is due. */
+    /*
+     * Each night, a run that asks again what is due: at three on the server's clock (with Scheduling on, made once its
+     * hours have come, item 411); and each minute, a run put off till the hours made once they have.
+     */
     public void Start() => nightly ??= new Timer(_ =>
     {
         var now = DateTime.Now;
         var day = now.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
         if (now.Hour == 3 && lastNight != day) { lastNight = day; Kick(wide: true); }
-    }, null, TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(20));
+        else HoursMoved();
+    }, null, TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(1));
 
     public void Stop() { stopped = true; nightly?.Dispose(); nightly = null; }
+
+    /* A run put off till the schedule's hours, made now if they have come (Scheduling switched off, say). */
+    public void HoursMoved()
+    {
+        if (!deferred || !Identify.AlbumScanner.InHours()) return;
+        var w = deferredWide;
+        deferred = deferredWide = false;
+        Kick(w);
+    }
 
     /* A run in the background (after a scan; [wide]: the albums due again too); asked while one runs, it goes round once more. */
     public void Kick(bool wide = false)
@@ -106,7 +111,7 @@ internal sealed partial class AutoCovers(CoverCatalogues ask, int gapMs, Action<
                     again = false;
                     var w = againWide;
                     againWide = false;
-                    await Run(w);
+                    await Run(w, hours: true);
                 }
             }
             finally { Interlocked.Exchange(ref kicked, 0); }
@@ -116,29 +121,47 @@ internal sealed partial class AutoCovers(CoverCatalogues ask, int gapMs, Action<
     }
     private int kicked;
 
-    /* One run, after any under way (the tests' /internal/jobs/covers). */
-    public async Task<Summary> Run(bool wide)
+    /*
+     * One run, after any under way. [hours]: a run of its own (after a scan, at night) keeps to the schedule's hours,
+     * put off till they come (item 411); the tests' /internal/jobs/covers is made at once.
+     */
+    public async Task<Summary> Run(bool wide, bool hours = false)
     {
         await passing.WaitAsync();
-        try { return await Pass(wide); }
+        try { return await Pass(wide, hours); }
         catch (Exception e) { log($"[covers] {e.GetType().Name}: {e.Message}"); return new Summary(0, 0, 0, 0, 0); }
-        finally { status = null; passing.Release(); }
+        finally { status = null; Now = null; passing.Release(); }
+    }
+
+    /* A run under way. */
+    public bool Running => passing.CurrentCount == 0;
+
+    /* The album being looked at now ({ offset, artist, title }), for the Album Scanner's "Now:" line. */
+    public JsonObject? Now { get; private set; }
+
+    /* Outside the hours, for a run that keeps to them: put off till they come. */
+    private bool PutOff(bool hours, bool wide)
+    {
+        if (!hours || Identify.AlbumScanner.InHours()) return false;
+        deferredWide |= wide;
+        deferred = true;
+        return true;
     }
 
     private bool Going => !stopped && Ready() && On();
 
-    // A scan running, or a track being made as it plays: wait for the machine.
+    // A scan running, or music playing (a track being made as it plays among it, item 411): wait for the machine.
     private static async Task<bool> Busy()
     {
-        if (Cpu.MakingNow) return true;
+        if (Identify.AlbumScanner.Playing()) return true;
         return await Library.CurrentState() is not var (_, st) || st.Scanning;
     }
 
     // ------------------------------------------------------------ the run
 
-    private async Task<Summary> Pass(bool wide)
+    private async Task<Summary> Pass(bool wide, bool hours)
     {
-        if (!Going || await Library.CurrentCopy() is not { } s) return new Summary(0, 0, 0, 0, 0);
+        if (PutOff(hours, wide) || !Going || await Library.CurrentCopy() is not { } s) return new Summary(0, 0, 0, 0, 0);
         var rows = AutoCoverStore.All();
         var marks = AutoCoverStore.Tracks();
         var now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
@@ -146,11 +169,12 @@ internal sealed partial class AutoCovers(CoverCatalogues ask, int gapMs, Action<
         var reach = new Reach(outOfReach);   // its folder not there: not looked at, said once (AutoCovers.Reach.cs)
         foreach (var al in s.Albums.OrderByDescending(a => a.Added ?? 0))
         {
-            if (!Going) break;
+            if (!Going || PutOff(hours, wide)) break;
             if (!Wanted(al, rows, marks, now, wide, out var mark) || reach.Away(al)) continue;
             while (await Busy()) { if (!Going) break; await Task.Delay(1000); }
             if (!Going) break;
             looked++;
+            Now = new JsonObject { ["offset"] = al.Id, ["artist"] = al.Artist, ["title"] = al.Title };
             var has = await Covers.Own(al);
             if (has == Covers.Ownership.Yes) { AutoCoverStore.Put(al.Key, mark, "own"); own++; continue; }
             if (has == Covers.Ownership.Unknown) { later++; continue; }
@@ -169,6 +193,13 @@ internal sealed partial class AutoCovers(CoverCatalogues ask, int gapMs, Action<
         if (found > 0) Covers.DrawAhead();
         return new Summary(looked, found, none, own, later, reach.Found);
     }
+
+    /*
+     * Whether [al]'s cover is still to be looked for (the Album Scanner's progress, item 411; the line's "left"): no
+     * cover of its own known (none chosen, none in its folder), and not looked at, or due again.
+     */
+    internal static bool Left(Album al, Dictionary<string, AutoCoverStore.Row> rows, Dictionary<long, string> marks, HashSet<long> folders, long now) =>
+        !al.CustomArt && !folders.Contains(al.Id) && Wanted(al, rows, marks, now, true, out _);
 
     /* Whether to look at [al] now: an album of the library's with nothing in album_edits, not looked at (or due again). */
     private static bool Wanted(Album al, Dictionary<string, AutoCoverStore.Row> rows, Dictionary<long, string> marks, long now, bool wide, out string mark)
@@ -265,7 +296,7 @@ internal sealed partial class AutoCovers(CoverCatalogues ask, int gapMs, Action<
     }
 
     // The albums with a picture in their folder (as the scan found it).
-    private static HashSet<long> FolderArt()
+    internal static HashSet<long> FolderArt()
     {
         var ids = new HashSet<long>();
         using var c = Db.Open();

@@ -25,7 +25,7 @@ internal sealed partial class AutoCovers
     private string[] StillOutOfReach() => [.. outOfReach.Where(f => !Directory.Exists(f))];
 
     /* What Settings says of them (added to the status): none when every folder is there. */
-    private void SayReach(JsonObject status)
+    internal void SayReach(JsonObject status)
     {
         var away = StillOutOfReach();
         if (away.Length > 0) status["unreachable"] = new JsonArray([.. away.Select(f => (JsonNode)f)]);

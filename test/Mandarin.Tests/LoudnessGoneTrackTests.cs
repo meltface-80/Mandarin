@@ -27,7 +27,7 @@ public sealed class LoudnessGoneTrackTests
         var real = Fixtures.Ffmpeg;
         foreach (var dir in (Environment.GetEnvironmentVariable("PATH") ?? "").Split(':'))
             if (!Path.IsPathRooted(real) && File.Exists(Path.Combine(dir, real))) real = Path.Combine(dir, real);
-        await using var s = await Session.Started(options: new Dictionary<string, object?> { ["loudnessTickMs"] = 100 }, lib: lib,
+        await using var s = await Session.Started(options: new Dictionary<string, object?> { ["loudnessTickMs"] = 100, ["loudness"] = true }, lib: lib,
             env: new Dictionary<string, string> { ["FFMPEG_PATH"] = wrapper, ["REAL_FFMPEG"] = real });
         // Measuring at any hour (identification's schedule off), switched on.
         Assert.Equal(200, (await s.Api("identify/settings", new { schedule = false })).Status);

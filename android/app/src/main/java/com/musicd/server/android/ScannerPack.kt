@@ -46,47 +46,43 @@ import java.text.SimpleDateFormat
 import java.util.Locale
 
 /*
- * The Library Scanner's MusicBrainz pack (bug list item 90; the page's packBlock and packBrowser, settings-scanner.js): what
+ * The Library Scanner's MusicBrainz pack (bug list items 90, 411; the page's packBlock and packBrowser, settings-scanner-pack.js): what
  * is downloaded and from when, Download, Update or Remove, the download's progress asked for every second, and where the
  * pack is kept, chosen among the server's folders (its mounted drives and shares, and each folder's own).
  */
 
-private const val PACK_INFO = "Every MusicBrainz release with a barcode, with its tracks, kept on the server and refreshed weekly. Barcodes are matched here first, without asking musicbrainz.org; anything the pack lacks is asked for as before."
-private const val FOLDER_INFO = "The pack can live on any drive the server can write to. A pack already downloaded is moved there."
+private const val PACK_INFO = "Every MusicBrainz release with a barcode, with its tracks, kept on the server and refreshed weekly. Barcodes are matched here first, without asking musicbrainz.org; anything the pack lacks is asked for as before. It can live on any drive the server can write to (Folder…); a pack already downloaded is moved there."
 
-/** The pack's block: as it is, or the folder browser while its place is being chosen. */
+/** The pack as a section of the Album Scanner's (item 411): its name with Download, Update or Remove and Folder…, then what is there and where; or the folder browser while its place is being chosen. */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun PackBlock(k: ScanKept, client: () -> ServerClient?, scope: CoroutineScope, info: (String) -> Unit) {
     val pack = k.pack
     val browse = k.browse
-    ScanDivider()
-    Block {
+    ScanSection {
         if (pack == null) {
             ScanRow("MusicBrainz pack", PACK_INFO, info = info) {}
-            ScanNote("…")
-            return@Block
+            ScanWait()
+            return@ScanSection
         }
-        if (browse != null) { PackBrowser(k, browse, client, scope); return@Block }
+        if (browse != null) { PackBrowser(k, browse, client, scope); return@ScanSection }
         val view = Scanner.pack(pack, k.busy, { iso -> day(iso) })
-        ScanRow("MusicBrainz pack", PACK_INFO, info = info) {
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                for (b in view.buttons) IdButton(b.label, b.primary, view.enabled, Modifier.parity("settings-scanner.pack", Contract.label("settings-scanner.pack", if (b.label == "Remove") 2 else if (b.label == "Update") 1 else 0))
-                    .clickable(enabled = view.enabled) { packAct(k, client, scope, b.action) })
-            }
-        }
-        ScanNote(view.state, view.error)
-        ScanRow("Folder", FOLDER_INFO, info = info) {
-            if (pack.optBoolean("dir_fixed")) Text("Set by MBPACK_DIR", Modifier.parity("settings-scanner.pack-fixed"), color = paletteColor(Palette.TEXT_DIM), fontSize = 14.sp, lineHeight = 19.sp, textAlign = TextAlign.End)
-            else Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(8.dp), itemVerticalAlignment = Alignment.CenterVertically) {
+            Row(Modifier.weight(1f).heightIn(min = 32.dp), verticalAlignment = Alignment.CenterVertically) { ScanLabel("MusicBrainz pack"); InfoMark("MusicBrainz pack", 16) { info(PACK_INFO) } }
+            for (b in view.buttons) IdButton(b.label, b.primary, view.enabled, Modifier.parity("settings-scanner.pack", Contract.label("settings-scanner.pack", if (b.label == "Remove") 2 else if (b.label == "Update") 1 else 0))
+                .clickable(enabled = view.enabled) { packAct(k, client, scope, b.action) })
+            if (pack.optBoolean("dir_fixed")) Text("Set by MBPACK_DIR", Modifier.parity("settings-scanner.pack-fixed"), color = paletteColor(Palette.TEXT_FAINT), fontSize = 12.sp, lineHeight = 17.sp)
+            else {
                 if (pack.optString("dir") != pack.optString("data_dir")) IdButton("Data folder", false, !k.busy, Modifier.parity("settings-scanner.pack-folder-reset", Contract.label("settings-scanner.pack-folder-reset"))
                     .clickable(enabled = !k.busy) { packFolder(k, client, scope, null) })
-                IdButton("Change…", false, !k.busy, Modifier.parity("settings-scanner.pack-folder", Contract.label("settings-scanner.pack-folder")).clickable(enabled = !k.busy) {
+                IdButton("Folder…", false, !k.busy, Modifier.parity("settings-scanner.pack-folder", Contract.label("settings-scanner.pack-folder")).clickable(enabled = !k.busy) {
                     k.err = ""; packGo(k, client, scope, pack.optString("dir").ifEmpty { "/" })
                 })
             }
         }
+        // What is there, then where it is kept: one note, as the page's (item 411).
         val (where, problem) = Scanner.packFolder(pack)
-        ScanNote(where, problem)
+        ScanNote(view.state + " · " + where, listOfNotNull(view.error, problem).joinToString(" ").ifEmpty { null })
     }
 }
 
@@ -95,7 +91,7 @@ internal fun PackBlock(k: ScanKept, client: () -> ServerClient?, scope: Coroutin
 @Composable
 private fun PackBrowser(k: ScanKept, b: JSONObject, client: () -> ServerClient?, scope: CoroutineScope) {
     val path = b.optString("path", "/")
-    ScanTitle("Where to keep the MusicBrainz pack", null)
+    ScanTitle("Where to keep the MusicBrainz pack")
     Row(Modifier.padding(bottom = 10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         SetupButton("Cancel", false, Modifier.parity("settings-scanner.browse-cancel", Contract.label("settings-scanner.browse-cancel")).clickable { k.browse = null; k.err = "" })
         Text(path, Modifier.parity("settings-scanner.browse-path").weight(1f), color = paletteColor(Palette.TEXT_DIM), fontSize = 13.sp, lineHeight = 18.sp)
@@ -142,13 +138,17 @@ private fun PackBrowser(k: ScanKept, b: JSONObject, client: () -> ServerClient?,
     if (k.err.isNotEmpty()) ScanNote("", k.err)
 }
 
-/** A button of the scanner's (.id-btn): 12.5 in 600, 6 and 11 in, a pill; the accent for the one that goes ahead ([primary]); faded while it can't be pressed. */
+/**
+ * A button of the scanner's (.id-btn): 12.5 in 600, 6 and 11 in, a pill; the accent for the one that goes ahead ([primary]),
+ * red for one that removes ([danger], .scan-danger); faded while it can't be pressed.
+ */
 @Composable
-internal fun IdButton(words: String, primary: Boolean, enabled: Boolean, modifier: Modifier, height: Int = 31) {
+internal fun IdButton(words: String, primary: Boolean, enabled: Boolean, modifier: Modifier, height: Int = 31, danger: Boolean = false) {
     val pill = RoundedCornerShape(999.dp)
+    val edge = if (danger) Palette.DANGER else if (primary) Palette.ACCENT else Palette.BORDER
     Box(modifier.heightIn(min = height.dp).alpha(if (enabled) 1f else 0.5f).clip(pill).background(if (primary) paletteColor(Palette.ACCENT) else Color.Transparent)
-        .border(1.dp, paletteColor(if (primary) Palette.ACCENT else Palette.BORDER), pill).padding(horizontal = 11.dp), contentAlignment = Alignment.Center) {
-        Text(words, color = paletteColor(Palette.TEXT), fontSize = 12.5.sp, lineHeight = 17.sp, fontWeight = FontWeight.W600, maxLines = 1)
+        .border(1.dp, paletteColor(edge), pill).padding(horizontal = 11.dp), contentAlignment = Alignment.Center) {
+        Text(words, color = paletteColor(if (danger) Palette.DANGER else Palette.TEXT), fontSize = 12.5.sp, lineHeight = 17.sp, fontWeight = FontWeight.W600, maxLines = 1)
     }
 }
 

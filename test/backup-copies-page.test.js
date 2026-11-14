@@ -4,8 +4,8 @@
  * restore keeps aside and the one Mandarin OS's reinstaller makes before it switches builds, listed beside the
  * backups as a card of their own (what came after it, when, how big, the database alone: no settings), with
  * Restore… and Delete and no Download; the question before one is deleted; and what the page says while Mandarin
- * restarts after a restore, the music folders kept included. And Find covers' line when the music folders can't be
- * reached (public/app/covers-reach.js). The app says the same (BackupSettingsTest.kt, ScannerTest.kt).
+ * restarts after a restore, the music folders kept included. And the Library Scanner's note when the music folders
+ * can't be reached (public/app/covers-reach.js). The app says the same (BackupSettingsTest.kt, ScannerTest.kt).
  */
 const test = require("node:test");
 const assert = require("node:assert");
@@ -62,11 +62,11 @@ test("while Mandarin restarts after a restore, the music folders kept are said",
   assert.strictEqual(copies.backupRestartingNote({ ok: true, restarting: true, folders: kept }, " Choose again."), plain + " " + kept + " Choose again.");
 });
 
-test("Find covers' line names the music folders it can't reach", () => {
+test("the Album Scanner's Progress names the music folders the cover finder can't reach (item 411: under it)", () => {
   assert.strictEqual(reach.coversUnreachable({ found: 1 }), "");
   assert.strictEqual(reach.coversUnreachable({ unreachable: [] }), "");
   assert.strictEqual(reach.coversUnreachable({ unreachable: ["/music/1tb/Music", "/music/2tb/Music"] }),
-    " · the music folders can't be reached (/music/1tb/Music, /music/2tb/Music not found): covers will be looked for once they are");
+    "The music folders can't be reached (/music/1tb/Music, /music/2tb/Music not found): covers will be looked for once they are.");
   assert.strictEqual(reach.coversUnreachable({ unreachable: ["/a", "/b", "/c", "/d"] }),
-    " · the music folders can't be reached (/a, /b, /c, … not found): covers will be looked for once they are");
+    "The music folders can't be reached (/a, /b, /c, … not found): covers will be looked for once they are.");
 });

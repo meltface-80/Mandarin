@@ -136,7 +136,9 @@ const FLAGS = { upnpMulticast: "UPNP_DISCOVERY", identify: "IDENTIFY", localAudi
 // The rest laid over the configuration (MANDARIN_CONFIG), by the names the hand-over carried them under.
 const CONFIG = {
   qobuzSyncDelayMs: "service_sync_delay_ms", serviceWatchMs: "service_watch_ms", logoPauseMs: "logo_pause_ms", upnpOfflineMs: "upnp_offline_ms",
-  localDevices: "local_devices", massRemoval: "mass_removal", tailscaleWatchdog: "tailscale_watchdog"
+  localDevices: "local_devices", massRemoval: "mass_removal", tailscaleWatchdog: "tailscale_watchdog",
+  // Loudness measured with the Album Scanner on (Jobs.cs, item 411): only where a test asks for it.
+  loudness: "loudness"
 };
 // What the C# server makes (Jobs.Names): every job, with no Node server to leave any to.
 const JOBS = ["identify", "mbpack", "loudness", "labels", "days", "taste", "tailscale", "scan", "prune", "import", "services", "update", "cpu", "playback"];
