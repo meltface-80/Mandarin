@@ -16,9 +16,10 @@ User=mandarin-bridge
 Group=mandarin-bridge
 SupplementaryGroups=audio
 StateDirectory=mandarin-bridge
-# Its data folder its own: one a DynamicUser had is moved back from /var/lib/private by systemd as it starts, still
-# owned by nobody (systemd 256's way), which systemd would mount as it was, nothing in it run. Made the Bridge's first.
-ExecStartPre=+-/bin/chown -R mandarin-bridge:mandarin-bridge /var/lib/mandarin-bridge
+# Its data folder its own, made so by install.sh before it starts: one a DynamicUser had is nobody's (systemd 256's way),
+# which systemd would mount ID-mapped and noexec as before, even with DynamicUser off; then moved back from
+# /var/lib/private by systemd as it starts. (Not by an ExecStartPre=+: systemd runs it inside that mount, where the
+# chown changes nothing on disk.)
 # Its home its data folder (item 391): .NET's certificate stores need one.
 Environment=HOME=/var/lib/mandarin-bridge
 AmbientCapabilities=CAP_SYS_NICE

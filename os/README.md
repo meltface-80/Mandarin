@@ -94,7 +94,9 @@ them otherwise is refused.
 Mandarin Bridge's service runs as its own user, `mandarin-bridge` (item 415): systemd 257 mounts a DynamicUser's data
 folder so nothing in it can be run, and the Bridge's update runs from there. A service installed before 0.3.12 (a
 DynamicUser's, carried from version to version) is made to run so by `mandarin-bridge.service.d/mandarin-os.conf`, its
-data folder moved back from `/var/lib/private` by systemd and made the Bridge's as it starts.
+data folder made the Bridge's by `apply` before it starts (a DynamicUser's is nobody's, and systemd 257 mounts a folder
+of nobody's ID-mapped and noexec even with DynamicUser off; an `ExecStartPre=+` can't do it, run inside that mount) and
+moved back from `/var/lib/private` by systemd as it starts.
 
 On a start being tried, `mandarin-os-health.service` (`os-started health`) checks what the box needs before
 `boot-complete.target`, where systemd-bless-boot keeps the version; anything missing starts the computer again. After

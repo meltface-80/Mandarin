@@ -40,6 +40,13 @@ install -m 644 "$TMP/mandarin-bridge/mandarin-bridge.service" /etc/systemd/syste
 # program installed now (item 385): left there, the Bridge went on running it. Its data folder is systemd's, under
 # /var/lib/private where it ran as a DynamicUser (before 0.3.12).
 rm -rf /var/lib/mandarin-bridge/app /var/lib/private/mandarin-bridge/app
+# Its data folder made its own, the Bridge stopped first (item 415): a DynamicUser's is nobody's from systemd 256, and
+# systemd mounts a folder of nobody's ID-mapped, nothing in it run, even with DynamicUser off. Only the service's own
+# ExecStartPre can't do it: systemd runs that inside the same mount.
+systemctl stop mandarin-bridge >/dev/null 2>&1 || true
+for d in /var/lib/private/mandarin-bridge /var/lib/mandarin-bridge; do
+  if [ -d "$d" ] && [ ! -L "$d" ]; then chown -R mandarin-bridge:mandarin-bridge "$d"; fi
+done
 systemctl daemon-reload
 systemctl enable mandarin-bridge >/dev/null 2>&1
 systemctl restart mandarin-bridge

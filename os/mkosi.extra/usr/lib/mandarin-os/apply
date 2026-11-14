@@ -25,6 +25,15 @@ getent group mandarin >/dev/null || groupadd --system --gid 3500 mandarin
 getent group mandarin-bridge >/dev/null || groupadd --system --gid 3503 mandarin-bridge
 id mandarin-bridge >/dev/null 2>&1 \
   || useradd --system --uid 3503 --gid mandarin-bridge --no-create-home --home-dir /var/lib/mandarin-bridge --shell /usr/sbin/nologin mandarin-bridge
+# Its data folder its own before it starts (mandarin-bridge.service.d waits for this): one a DynamicUser had (a Bridge
+# installed before 0.3.12, carried from version to version) is nobody's, which systemd 257 mounts ID-mapped and noexec
+# even with DynamicUser off, and the Bridge's update couldn't run from it (item 415). In /var/lib/private until systemd
+# moves it back as the Bridge starts.
+for d in /var/lib/private/mandarin-bridge /var/lib/mandarin-bridge; do
+  if [ -d "$d" ] && [ ! -L "$d" ] && [ "$(stat -c %U:%G "$d")" != mandarin-bridge:mandarin-bridge ]; then
+    chown -R mandarin-bridge:mandarin-bridge "$d" && oslog INFO "[apply] Mandarin Bridge's data folder ($d) made its own"
+  fi
+done
 user="$(jq -r '.share_user // empty' "$SETUP" 2>/dev/null)"
 if [ -n "$user" ]; then
   uid="$(cat "$S/share-uid" 2>/dev/null || echo 3501)"

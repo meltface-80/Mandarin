@@ -67,10 +67,12 @@ bridge_said() {
 bridge_update_check() {
   local said
   said="$(bridge_said 'bridge-test: (after|failed|no answer)' 600)"; printf '%s\n' "$said" | sed 's/^/  /'
+  grep -q "bridge-test: data folder: owner mandarin-bridge:mandarin-bridge " <<< "$said" \
+    || fail "Mandarin Bridge's data folder wasn't its own as it ran: $(grep 'data folder' <<< "$said")"
   grep -q "bridge-test: after: " <<< "$said" || fail "Mandarin Bridge didn't update itself on Mandarin OS"
   grep "bridge-test: after: " <<< "$said" | grep -q "\"name\":\"$BRIDGE_NAME\",\"version\":\"9.9.9\"" \
     || fail "Mandarin Bridge came back as something else: $(grep 'bridge-test: after' <<< "$said")"
-  ok "Mandarin Bridge installed with the service from before updated itself to 9.9.9 from its data folder, and is still $BRIDGE_NAME"
+  ok "Mandarin Bridge installed with the service from before: its data folder its own, it updated itself to 9.9.9 from there, and is still $BRIDGE_NAME"
 }
 
 bridge_after_os_update() {
