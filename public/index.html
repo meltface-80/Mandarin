@@ -626,6 +626,10 @@
               <div class="np-popover-title" data-parity="now-playing.signal-title">Signal path</div>
               <ol class="np-signal-steps" id="np-signal-steps"></ol>
             </div>
+            <!-- MQA (item 418): what the track's signalling says, and, where this room sends it untouched to a DAC that
+                 decodes MQA, that it does. Filled by app/mqa.js. -->
+            <div class="np-mqa hidden" id="np-mqa" data-parity="now-playing.mqa"></div>
+            <div class="np-mqa-note hidden" id="np-mqa-untouched" data-parity="now-playing.mqa-untouched"></div>
 
             <div class="np-progress">
               <!-- Behind the seek input, not instead of it: the range is what

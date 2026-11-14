@@ -190,6 +190,7 @@ let lastNpTitle = null;
 // logo, drawn by the stylesheet, beside the bit rate.
 let lastNpFormatSig = null;
 function paintNpFormat(np) {
+  paintNpMqa(np);   // MQA, and whether it goes untouched (item 418: app/mqa.js)
   if (!npFormat) return;
   if (paintNpSignal(np)) return;   // every step of the way, where the server says it (app/signal-path.js, item 247)
   const f = np && np.format;

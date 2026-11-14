@@ -104,12 +104,9 @@ internal static class SignalPath
             else steps.Add(Step("output", "Output", $"{words}{(exact ? ", the file as it is" : "")}", exact ? "lossless" : "enhanced"));
             output = words + (s.Upsampled != 0 ? $" ↑×{N(s.Upsampled)}" : "") + (exact ? " · as it is" : "");
         }
-        // An MQA track sent untouched to a DAC that decodes it (item 418): said, as what was done (nothing).
-        if (s.Mqa)
-        {
-            steps.Add(Step("mqa", "MQA", "Sent untouched to the DAC, which decodes it: no upsampling, DSP, ReplayGain, dither or volume of Mandarin’s", "lossless"));
-            how = Mqa.MqaPlan.Note;
-        }
+        // An MQA track sent untouched to a DAC that decodes it (item 418): a step, as what was done (nothing); Now playing's
+        // line under the MQA badge says it (now_playing.mqa.untouched).
+        if (s.Mqa) steps.Add(Step("mqa", "MQA", "Sent untouched to the DAC, which decodes it: no upsampling, DSP, ReplayGain, dither or volume of Mandarin’s", "lossless"));
         // How fast what it is sent is being made, as it plays (item 346: Upsample/KeepingUp.cs).
         if (Keeping(z) is var (step, behind) && step != null) { steps.Add(step); if (behind != null) making = behind; }
         // What the device reports feeding its DAC, as it reports it (item 287).

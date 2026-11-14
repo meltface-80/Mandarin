@@ -48,6 +48,13 @@ internal static class MqaStore
     {
         using var c = Db.Open();
         Ensure(c);
+        bool was;
+        using (var get = c.CreateCommand())
+        {
+            get.CommandText = "SELECT mqa FROM track_mqa WHERE path = $p";
+            get.Parameters.AddWithValue("$p", path);
+            was = get.ExecuteScalar() is long m && m == 1;
+        }
         using var cmd = c.CreateCommand();
         cmd.CommandText = @"INSERT INTO track_mqa(path, size, mtime, mqa, studio, original_rate, tagged, error, checked_at) VALUES($p, $s, $m, $q, $st, $r, $tg, $e, $at)
             ON CONFLICT(path) DO UPDATE SET size = excluded.size, mtime = excluded.mtime, mqa = excluded.mqa, studio = excluded.studio,
@@ -63,6 +70,8 @@ internal static class MqaStore
         cmd.Parameters.AddWithValue("$at", DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
         cmd.ExecuteNonQuery();
         Interlocked.Increment(ref generation);
+        // The lists kept show it (an album's mqa, the Focus's MQA): made again where a track is MQA, or was.
+        if (found.Mqa || was) Library.ForgetAllKept();
     }
 
     /* The MQA tracks among [ids] (the file as it is now): each one's signalling and depth. */

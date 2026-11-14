@@ -296,6 +296,8 @@ body.addEventListener("change", async (e) => {
   if (sw) return setEnabled(sw.getAttribute("data-dev-enable"), sw.checked, sw);
   const as = e.target.closest("[data-dev-albumstream]");
   if (as) return patch({ output: { album_stream: as.checked } });   // an album as one stream (item 300)
+  const mq = e.target.closest("[data-dev-mqa]");
+  if (mq) return patch({ output: { mqa_dac: mq.checked } });   // This DAC decodes MQA (item 418)
   const fv = e.target.closest("[data-dev-fixvol]");
   if (fv) return patch({ output: { volume: fv.checked ? "fixed" : "upnp" } });
   const ud = e.target.closest("[data-usb-direct]");

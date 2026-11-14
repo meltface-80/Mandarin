@@ -52,6 +52,7 @@ import androidx.compose.ui.unit.sp
 import com.musicd.server.client.CapChip
 import com.musicd.server.client.Contract
 import com.musicd.server.client.DevicePage
+import com.musicd.server.client.Mqa
 import com.musicd.server.client.Palette
 import com.musicd.server.client.SegChoice
 import com.musicd.server.client.ServerClient
@@ -218,6 +219,15 @@ internal fun DevicePane(id: String, client: () -> ServerClient?, onBack: () -> U
                     }
                     DeviceNote(d.albumStreamNote, Modifier.parity("settings-device.note"))
                 } }
+                // This DAC decodes MQA (item 418): its MQA tracks sent untouched, for it to decode.
+                CapGroup("MQA", Modifier.parity("settings-device.cap-label")) {
+                    Box(Modifier.padding(top = 8.dp)) {
+                        SetupRow("This DAC decodes MQA", Modifier.parity("settings-device.name"), null) {
+                            Toggle(d.mqaDac, Modifier.parity("settings-device.mqa-dac", Contract.label("settings-device.mqa-dac")).clickable(enabled = !busy) { patch(Mqa.dacPatch(!d.mqaDac)) })
+                        }
+                    }
+                    DeviceNote(Mqa.dacNote(d.mqaDac), Modifier.parity("settings-device.note"))
+                }
                 if (d.canFixVolume) {
                     Box(Modifier.padding(top = 14.dp)) {
                         SetupRow("Fixed volume", Modifier.parity("settings-device.name"), null) {

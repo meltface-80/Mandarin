@@ -78,6 +78,9 @@ internal static partial class Library
             if (key == path || key.StartsWith(path + "?", StringComparison.Ordinal)) Kept.TryRemove(key, out _);
     }
 
+    /* Every list kept let go: what they show changed beside the copy (a track found to be MQA, item 418: Mqa/MqaStore.cs). */
+    internal static void ForgetAllKept() => Kept.Clear();
+
     /* An answer sent: kept, when its request was marked for it and it is a 200. Those of an older copy go. */
     private static void Keep(HttpContext ctx, byte[] bytes, string tag, int status)
     {
