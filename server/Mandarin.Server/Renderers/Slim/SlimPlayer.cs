@@ -240,8 +240,8 @@ internal sealed class SlimPlayer
     public void SetMute(bool m) { lock (gate) muted = m; Send(Audg(Gain())); }
 
     /* Squeezelite's volume is a gain on the samples: unity while it plays a track sent untouched to an MQA DAC (item 418),
-       else the volume. */
-    private double Gain() { lock (gate) return Mqa.MqaPlan.Untouched(current) ? 1 : muted ? 0 : volume / 100; }
+       else the volume; muted (or at 0%), silence either way. */
+    private double Gain() { lock (gate) return muted || volume <= 0 ? 0 : Mqa.MqaPlan.Untouched(current) ? 1 : volume / 100; }
 
     /* strm s for [uri]: its codec by its kind, fetched from where it is (the server it is connected to, where the
        address names no other), as an HTTP request. */

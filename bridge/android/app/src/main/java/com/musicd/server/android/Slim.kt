@@ -186,7 +186,7 @@ class Slim(private val service: DacService, private val transport: Transport) {
                 val host = if (ip == 0) server?.hostAddress ?: return else InetAddress.getByAddress(ByteBuffer.allocate(4).putInt(ip).array()).hostAddress
                 val said = item("http://$host:$port", request) ?: return
                 // A run of Mandarin's PCM: what its samples are, on its address.
-                val item = raw(b)?.let { Transport.Item(said.uri + it, said.title, said.artist, said.album) } ?: said
+                val item = raw(b)?.let { Transport.Item(said.uri + it, said.title, said.artist, said.album, said.untouched) } ?: said
                 stat("STMc")
                 // After a stop, or with nothing playing: the track itself; else the next, gapless after the one playing.
                 val asNext = onMain { !flushed && transport.current != null }
@@ -199,11 +199,15 @@ class Slim(private val service: DacService, private val transport: Transport) {
         }
     }
 
-    /** The track a strm s asks for: its address from the request's path, and what Mandarin said of it in its headers. */
+    /**
+     * The track a strm s asks for: its address from the request's path, and what Mandarin said of it in its headers;
+     * untouched where it says X-Mandarin-Untouched (an MQA track to a DAC that decodes it, item 418).
+     */
     private fun item(base: String, request: String): Transport.Item? {
         val lines = request.split("\r\n")
         val path = lines.firstOrNull()?.split(" ")?.getOrNull(1) ?: return null
-        return Transport.Item(base + path, header(lines, "X-Mandarin-Title"), header(lines, "X-Mandarin-Artist"), header(lines, "X-Mandarin-Album"))
+        return Transport.Item(base + path, header(lines, "X-Mandarin-Title"), header(lines, "X-Mandarin-Artist"), header(lines, "X-Mandarin-Album"),
+            untouched = header(lines, "X-Mandarin-Untouched").isNotEmpty())
     }
 
     private fun header(lines: List<String>, name: String) = lines.firstOrNull { it.startsWith("$name:", ignoreCase = true) }?.substringAfter(':')?.trim()

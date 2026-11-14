@@ -77,7 +77,9 @@
         own API), every device kept in a register with your names and settings, and played through its own transport
         (AVTransport): the queue kept on the server, the next track handed over ahead of time (gapless where it supports
         it), changes arriving by UPnP events. The stream plans decide what each device gets: the file itself within its
-        ceiling, FLAC at its highest rate or upsampled in 64-bit float otherwise.</li>
+        ceiling, FLAC at its highest rate or upsampled in 64-bit float otherwise. A track whose samples carry MQA's
+        signalling (found after the scan, the first ten seconds of each file read as the open identifiers read them) goes
+        to a device set to <b>This DAC decodes MQA</b> as the file itself, nothing done to it; any other plays it as PCM.</li>
     <li data-i18n="how-it-works.top.li5"><b>Sonos.</b> One speaker is found over SSDP and the whole household is read from it
         (<code>ZoneGroupTopology</code>). A Sonos <i>group</i> is a zone (its coordinator owns the queue) and each
         <i>room</i> is an output (volume and mute are per room). Tracks go into the coordinator's own <b>Sonos queue</b>,

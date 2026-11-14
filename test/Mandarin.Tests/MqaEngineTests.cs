@@ -7,8 +7,8 @@ namespace Mandarin.Tests;
 /// <summary>
 /// A sound device on this server given an MQA track untouched (bug list item 418): the engine applies no volume to a
 /// stream whose address says mqa=1 (engine Untouched.cs), whatever the volume, so the DAC is fed the file's samples as
-/// they are (16- and 24-bit words padded into the device's 32: the same values); the same stream without it is
-/// turned down as ever (50%: 25 dB).
+/// they are (16- and 24-bit words padded into the device's 32: the same values), silent only at 0% or muted; the same
+/// stream without it is turned down as ever (50%: 25 dB).
 /// </summary>
 public sealed class MqaEngineTests
 {
@@ -50,11 +50,11 @@ public sealed class MqaEngineTests
         });
         try
         {
-            async Task<byte[]> Played(string query, string name)
+            async Task<byte[]> Played(string query, string name, int volume = 50)
             {
                 var file = Path.Combine(dir, name);
                 var r = await Run([
-                    new { open = new { location = "file:" + file, bin, volume = 50 } }, new { set = web.Base + "/stream/t1.orig.flac" + query }, new { play = true },
+                    new { open = new { location = "file:" + file, bin, volume } }, new { set = web.Base + "/stream/t1.orig.flac" + query }, new { play = true },
                     new { until = new { state = "PLAYING" } }, new { until = new { state = "STOPPED" }, ms = 10000 }]);
                 Assert.True(r[4]!.GetValue<bool>(), name + ": played to its end");
                 return await File.ReadAllBytesAsync(file);
@@ -62,6 +62,8 @@ public sealed class MqaEngineTests
             var untouched = await Played("?mqa=1&s=x", "mqa.raw");
             Assert.True(untouched.Length == src.Length, "every frame");
             Assert.True(untouched.AsSpan().SequenceEqual(src), "at 50% the MQA stream's samples are untouched");
+            var silent = await Played("?mqa=1&s=x", "mqa-0.raw", volume: 0);
+            Assert.True(silent.Length == src.Length && silent.All(b => b == 0), "at 0% (or muted) it is silent all the same");
             var turned = await Played("?s=x", "plain.raw");
             long peak = 0, srcPeak = 0;
             for (var i = 0; i < turned.Length; i += 4)
