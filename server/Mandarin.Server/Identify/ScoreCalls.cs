@@ -6,7 +6,7 @@
 //   { fn: "scorecall", calls: [[name, …args]] } → { results }
 //      distance(album, cand) → { distance, parts, pairs }; decide(album, cands) → { status, ambiguous, best, scored };
 //      pairTracks(mine, theirs) → { pairs, cost }; exact(parts); why(parts, year); appliesUnasked(distance);
-//      confidence(album, cand, ambiguous, by) → { confidence, reasons, strong, agrees, similarity } (item 414b);
+//      confidence(album, cand, ambiguous, by) → { confidence, reasons, strong, agrees, similarity }; judge(album, cands) → { decided, status, best } (item 414b);
 //      titleDist, stringDist, lengthDist, bare, clean, editionYear, tidy, discOf, artistSuspect, similarity;
 //      APPLY, PROPOSE; minutes(hhmm, fallback); inWindow(settings, "HH:MM"); discToc([{ disc, seconds, lossless, rate }]) → tables
 //   { fn: "itunes", base, steps: [{ search: { title, artist } } | { album: id } | { paused: true }] }
@@ -53,6 +53,14 @@ internal static class ScoreCalls
                     return new JsObj { ["pairs"] = pairs, ["cost"] = cost.Select(x => x is { } k ? (object?)new List<object?> { k.Title, k.Length } : null).ToList() };
                 }
             case "exact": return Score.Exact(At(a, 0) as JsObj);
+            case "judge":
+                {
+                    // judge(album, cands): the verdict Decide gives, then as item 414b judges it (album.declined, album.prefer as Input has them).
+                    var album = O(At(a, 0));
+                    var decided = Score.Decide(album, L(At(a, 1)).Select(O));
+                    var v = Identifier.Judge(album, decided);
+                    return new JsObj { ["decided"] = decided.Status, ["status"] = v.Status, ["best"] = v.Best?.Candidate };
+                }
             case "confidence":
                 {
                     // confidence(album, cand, ambiguous, matched_by): the candidate scored, judged as found that way (item 414b).

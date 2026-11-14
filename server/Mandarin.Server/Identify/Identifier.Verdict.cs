@@ -217,7 +217,7 @@ internal sealed partial class Identifier
     {
         await Task.CompletedTask;
         var verdict = Score.Decide(input, cands);
-        var best = Chosen(input, verdict.Best!);
+        var best = Chosen(input, verdict.Best!, how);
         using var c = Db.Open();
         using var tx = c.BeginTransaction();
         var prev = Row(c, al.Key);

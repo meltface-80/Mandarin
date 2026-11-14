@@ -136,7 +136,7 @@ internal sealed partial class Identifier
      * The verdict as item 414b has it: what you turned down for the album set aside, its confidence and reasons, a
      * near miss whose every track and length agree proposed, and the other releases near enough kept to pick instead.
      */
-    private static Score.Verdict Judge(JsObj input, Score.Verdict v)
+    internal static Score.Verdict Judge(JsObj input, Score.Verdict v)
     {
         var declined = L(input["declined"]).Select(Str).Where(x => x.Length > 0).ToHashSet();
         var scored = v.ScoredList.Where(s => !declined.Contains(Str(s.Candidate["mbid"]))).ToList();
@@ -168,9 +168,10 @@ internal sealed partial class Identifier
         return v with { Status = status, Best = best, Ambiguous = ambiguous, ScoredList = [.. scored.Select(s => ReferenceEquals(s, was) ? best : s)] };
     }
 
-    /* A release you chose (ApplyChosen) with its confidence and reasons, as the scan's own are kept. */
-    private static Score.Scored Chosen(JsObj input, Score.Scored best)
+    /* A release you chose (ApplyChosen, [how]) with its confidence and reasons, as the scan's own are kept. */
+    private static Score.Scored Chosen(JsObj input, Score.Scored best, string how)
     {
+        best = best with { Candidate = With(best.Candidate, "manual", how) };
         var judged = Confidence.Of(input, best, false);
         return best with { Candidate = With(With(best.Candidate, "confidence", (double)judged.Value), "reasons", judged.Reasons.Select(x => (object?)x).ToList()) };
     }
