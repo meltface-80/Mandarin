@@ -49,23 +49,23 @@ def _ffmpeg_resample(src: str, channels: int, rate: int, how: str) -> Tuple[Opti
     """(float32 frames, '') from ffmpeg resampling `src` to `rate`, or (None, what ffmpeg said)."""
     cmd = ["ffmpeg", "-v", "error", "-nostdin", "-i", src, "-map", "0:a:0", "-af",
            "aresample=osr=%d:%s" % (rate, how), "-f", "f64le", "-acodec", "pcm_f64le", "-"]
-    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     parts: List[np.ndarray] = []
     rest = b""
     frame = 8 * channels
-    assert proc.stdout is not None and proc.stderr is not None
-    while True:
-        block = proc.stdout.read(1 << 22)
-        if not block:
-            break
-        block = rest + block
-        cut = len(block) - len(block) % frame
-        rest = block[cut:]
-        # Read in double precision, kept in single: a quarter of a 24-bit step at most, well below any file's floor.
-        parts.append(np.frombuffer(block[:cut], dtype="<f8").astype(np.float32).reshape(-1, channels))
-    said = proc.stderr.read().decode(errors="replace").strip()
-    if proc.wait() != 0:
-        return None, said
+    with subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE) as proc:
+        assert proc.stdout is not None and proc.stderr is not None
+        while True:
+            block = proc.stdout.read(1 << 22)
+            if not block:
+                break
+            block = rest + block
+            cut = len(block) - len(block) % frame
+            rest = block[cut:]
+            # Read in double precision, kept in single: a quarter of a 24-bit step at most, far below any file's floor.
+            parts.append(np.frombuffer(block[:cut], dtype="<f8").astype(np.float32).reshape(-1, channels))
+        said = proc.stderr.read().decode(errors="replace").strip()
+        if proc.wait() != 0:
+            return None, said
     data = np.concatenate(parts) if parts else np.zeros((0, channels), np.float32)
     return data, ""
 

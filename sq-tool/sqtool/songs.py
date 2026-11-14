@@ -23,7 +23,7 @@ from .common_ground import common_ground
 from .dynamics import dynamics
 from .nulltest import IN_BAND_HZ, null_test, overlap
 from .song_verdict import MIN_CORRELATION, SILENT_DBFS, decide, floor_dbfs
-from .wavio import Audio
+from .wavio import Audio, AudioFileError
 
 
 def describe(audio: Audio) -> dict:
@@ -75,7 +75,7 @@ def compare_songs(a: Audio, b: Audio, work_dir: Optional[str] = None) -> Tuple[d
     for key, audio in (("a", a), ("b", b)):
         res[key]["dynamics"] = dynamics(audio)
         if res[key]["dynamics"].get("silent"):
-            raise ValueError("%s is digital silence: there is nothing to compare" % key.upper())
+            raise AudioFileError("%s is digital silence: there is nothing to compare" % key.upper())
         if res[key]["lossy"]:
             res["notes"].append("%s is a lossy file (%s): its decoder adds differences of its own"
                                 % (key.upper(), res[key]["lossy"]))

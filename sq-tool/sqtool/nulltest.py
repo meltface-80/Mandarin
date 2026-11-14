@@ -149,15 +149,20 @@ def residual(a: Audio, b: Audio, lag: int, g: np.ndarray, s0: int, s1: int) -> d
     }
 
 
+NOMINAL = [20, 25, 31.5, 40, 50, 63, 80, 100, 125, 160, 200, 250, 315, 400, 500, 630, 800, 1000, 1250, 1600, 2000,
+           2500, 3150, 4000, 5000, 6300, 8000, 10000, 12500, 16000, 20000, 25000, 31500, 40000, 50000, 63000, 80000]
+
+
 def third_octaves(rate: int) -> List[Tuple[float, float, float]]:
-    """(low, centre, high) of each third-octave band from 20 Hz up to the Nyquist frequency."""
+    """(low, nominal centre, high) of each third-octave band (IEC 61260, base ten) from 20 Hz up to the Nyquist
+    frequency."""
     out = []
-    for k in range(-17, 40):
-        fc = 1000.0 * 2 ** (k / 3)
-        lo, hi = fc / 2 ** (1 / 6), min(fc * 2 ** (1 / 6), rate / 2)
-        if lo < 17.8 or lo >= rate / 2:
-            continue
-        out.append((lo, fc, hi))
+    for i, nominal in enumerate(NOMINAL):
+        fc = 1000.0 * 10 ** ((i - 17) / 10)
+        lo, hi = fc / 10 ** 0.05, min(fc * 10 ** 0.05, rate / 2)
+        if lo >= rate / 2:
+            break
+        out.append((lo, float(nominal), hi))
     return out
 
 
@@ -182,7 +187,7 @@ def residual_spectrum(a: Audio, b: Audio, lag: int, g: np.ndarray, s0: int, s1: 
         sel = (freqs >= lo) & (freqs < hi)
         if not sel.any():
             continue
-        bands.append({"freq": round(fc, 1), "residual_dbfs": db_pow(float(pr[sel].sum())),
+        bands.append({"freq": fc, "residual_dbfs": db_pow(float(pr[sel].sum())),
                       "music_dbfs": db_pow(float(pb[sel].sum()))})
     total = float(pr.sum())
     above = float(pr[freqs >= IN_BAND_HZ].sum())

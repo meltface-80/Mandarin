@@ -48,7 +48,7 @@ def floor_dbfs(bits: Optional[int]) -> float:
 
 
 def _neg(v: float) -> str:
-    return "−%.0f dB" % -v if v < 0 else "%.0f dB" % v
+    return "null depth −%.0f dB" % -v if v < 0 else "null depth %.0f dB" % v
 
 
 def level_words(level_db: Optional[float], inverted: bool) -> List[str]:
@@ -107,7 +107,7 @@ def decide(res: dict) -> None:
         if not resampled and not whole and spec.get("above_20k_share", 0) >= ABOVE_20K_SHARE:
             verdict = "ABOVE 20 KHZ"
             words = "below 20 kHz they null to the noise floor, as one master does; %d%% of the difference " \
-                "lies above 20 kHz (%s below the music)" % (round(100 * spec["above_20k_share"]), _neg(null["depth_db"]))
+                "lies above 20 kHz (%s)" % (round(100 * spec["above_20k_share"]), _neg(null["depth_db"]))
         else:
             verdict = "SAME MASTER"
             causes = []
@@ -121,7 +121,7 @@ def decide(res: dict) -> None:
                 deep = null.get("in_band_depth_db")
                 part = (" below 20 kHz" if deep is not None and null.get("depth_db") is not None
                         and null["depth_db"] - deep > 3 else "")
-                said = "the difference is only from %s (%s below the music%s)" % (
+                said = "the difference is only from %s (%s%s)" % (
                     ", and ".join(causes), _neg(deep if part else null["depth_db"]), part)
                 if resampled and spec.get("above_20k_share", 0) >= 0.5:
                     said += "; above 20 kHz, the resamplers' filters differ"
@@ -132,7 +132,7 @@ def decide(res: dict) -> None:
         verdict = "DIFFERENT MASTER"
         how = master_words(res["a"].get("dynamics") or {}, res["b"].get("dynamics") or {})
         words = (" and ".join(how) if how else "they differ in EQ or processing") + \
-            " (what is left after matching the level: %s below the music)" % _neg(null.get("depth_db") or 0)
+            " (%s)" % _neg(null.get("depth_db") or 0)
     res["verdict"] = verdict
     res["headline"] = HEADLINES[verdict]
     res["words"] = words[0].upper() + words[1:] if words else ""
