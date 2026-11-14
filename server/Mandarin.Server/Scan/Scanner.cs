@@ -382,7 +382,7 @@ internal sealed partial class Scanner(SqliteConnection db, string root, IReadOnl
             if (!index.TryGetValue(k, out var g)) { g = new Group { Title = title }; index[k] = g; groups.Add(g); }
             g.Rows.Add(r);
         }
-        foreach (var g in groups)
+        foreach (var g in groups = DiscSets(groups))   // the discs of one title, one album (item 414, Scanner.Discs.cs)
         {
             var tagged = g.Rows.FirstOrDefault(r => Js.Truthy(r["album_artist"]));
             var artists = new HashSet<string>(g.Rows.Select(r => KeyOf(r["artist"])).Where(s => s.Length > 0), StringComparer.Ordinal);

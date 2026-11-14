@@ -99,6 +99,9 @@ internal sealed partial class MusicBrainz(string? baseUrl, string version) : IRe
         c["group_note"] = S(rg["disambiguation"]);
         c["type"] = type.Length > 0 ? type : null;
         c["country"] = Js.Truthy(rel["country"]) ? rel["country"] : null;
+        // What tells one pressing from another, when the edition is chosen (item 414): its barcode and catalogue number.
+        if (Js.Truthy(rel["barcode"])) c["barcode"] = rel["barcode"];
+        if (L(rel["label-info"]).Select(x => O(x)["catalog-number"]).FirstOrDefault(Js.Truthy) is { } catno) c["catno"] = catno;
         c["discs"] = media.Count > 0 ? (double)media.Count : null;
         c["track_count"] = tracks.Count > 0 ? (double)tracks.Count : Js.Truthy(rel["track-count"]) ? rel["track-count"] : 0.0;
         c["tracks"] = tracks;
@@ -265,10 +268,22 @@ internal sealed partial class MusicBrainz(string? baseUrl, string version) : IRe
         }).ToList();
     }
 
+    private const string Full = "recordings+artist-credits+release-groups+labels";
+
     /* One release in full: every track with its title and length. */
     public async Task<JsObj?> Release(string mbid)
     {
-        var j = await Get("release/" + Lookups.Encode(mbid), ("inc", "recordings+artist-credits+release-groups"));
+        var j = await Get("release/" + Lookups.Encode(mbid), ("inc", Full));
         return j is JsObj o && Js.Truthy(o["id"]) ? CandidateOf(o) : null;
+    }
+
+    /*
+     * The releases with a disc whose table of contents is near this one (DiscToc.cs: "first last leadout offsets…"),
+     * MusicBrainz's fuzzy lookup, each in full as Release gives it (item 414). No CD stubs: only real releases.
+     */
+    public async Task<List<JsObj>> ByToc(string toc)
+    {
+        var j = await Get("discid/-", ("toc", toc), ("cdstubs", "no"), ("inc", Full));
+        return [.. L((j as JsObj)?["releases"]).Select(O).Where(r => Js.Truthy(r["id"])).Select(CandidateOf)];
     }
 }

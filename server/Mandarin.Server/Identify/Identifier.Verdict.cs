@@ -223,10 +223,12 @@ internal sealed partial class Identifier
         var prev = Row(c, al.Key);
         if (prev != null && prev.Status == "applied") Undo(c, tx, al, prev);
         var now = (double)Now;
+        // Another pressing of the record chosen (item 414): the rest still offered, the one that was applied among them.
+        (string, object?)[] kept = how == "edition" ? [("manual", how), ("editions", Switched(prev, best.Candidate["mbid"]))] : [("manual", how)];
         Put(c, tx, new MatchRow
         {
             Key = al.Key, Mbid = best.Candidate["mbid"] is Undef ? null : best.Candidate["mbid"], Distance = best.Distance, Status = "applied",
-            Candidate = Js.Json(Score.Kept(best, ("manual", how))),
+            Candidate = Js.Json(Score.Kept(best, kept)),
             Before = Js.Json(Snapshot(c, tx, al)), CheckedAt = now, AppliedAt = now,
             ITunes = prev != null ? (Js.Truthy(prev.ITunes) ? prev.ITunes : null) : null
         });
