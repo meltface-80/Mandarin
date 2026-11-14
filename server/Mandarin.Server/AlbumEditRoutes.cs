@@ -84,7 +84,8 @@ internal static partial class Library
             ["edited"] = al.Edited,
             ["image_key"] = al.ImageKey,
             ["art"] = new JsonObject { ["own"] = own, ["found"] = al.CustomArt, ["source"] = al.ArtSource },
-            ["match"] = MatchOf(al)   // the match applied, and the record's other editions (item 414, IdentifyRoutes.cs)
+            ["match"] = MatchOf(al),   // the match applied, and the record's other editions (item 414, IdentifyRoutes.cs)
+            ["version"] = VersionJson(al)   // its version details, each with where it came from (item 420, AlbumVersionEdit.cs)
         };
     }
 
@@ -125,6 +126,7 @@ internal static partial class Library
         public object? Title, Artist, Year;
         public byte[]? Art;
         public string? ArtSource;
+        public JsObj? Version;   // the version's fields sent (item 420)
     }
 
     /*
@@ -144,11 +146,11 @@ internal static partial class Library
     {
         using var c = Db.Open();
         string? title = null, artist = null, artHash = null, artSource = null;
-        object? year = null;
+        object? year = null, version = null;
         byte[]? art = null;
         using (var cur = c.CreateCommand())
         {
-            cur.CommandText = "SELECT title, artist, year, art, art_hash, art_source FROM album_edits WHERE key = $k";
+            cur.CommandText = "SELECT title, artist, year, art, art_hash, art_source, version FROM album_edits WHERE key = $k";
             cur.Parameters.AddWithValue("$k", al.Key);
             using var r = cur.ExecuteReader();
             if (r.Read())
@@ -156,7 +158,7 @@ internal static partial class Library
                 title = Text(r.GetValue(0)); artist = Text(r.GetValue(1));
                 year = r.GetValue(2) switch { long l when l != 0 => l, double d when d != 0 && !double.IsNaN(d) => d, string s when s.Length > 0 => s, _ => null };
                 art = r.GetValue(3) as byte[];
-                artHash = Text(r.GetValue(4)); artSource = Text(r.GetValue(5));
+                artHash = Text(r.GetValue(4)); artSource = Text(r.GetValue(5)); version = r.GetValue(6) as string;
             }
         }
         static string? AsText(object? v, string scanned)
@@ -177,23 +179,25 @@ internal static partial class Library
             artHash = f.Art != null ? Convert.ToHexStringLower(Fingerprint.Sha1(f.Art))[..12] : null;
             artSource = f.Art != null && !string.IsNullOrEmpty(f.ArtSource) ? f.ArtSource : null;
         }
+        version = VersionMerged(c, al, version, f.Version);
         using var w = c.CreateCommand();
         w.Parameters.AddWithValue("$key", al.Key);
-        if (title == null && artist == null && year == null && art == null)
+        if (title == null && artist == null && year == null && art == null && version == null)
             w.CommandText = "DELETE FROM album_edits WHERE key = $key";
         else
         {
-            w.CommandText = @"INSERT INTO album_edits(key, title, artist, year, art, art_hash, art_source, updated_at)
-                              VALUES($key, $title, $artist, $year, $art, $art_hash, $art_source, $updated_at)
+            w.CommandText = @"INSERT INTO album_edits(key, title, artist, year, art, art_hash, art_source, version, updated_at)
+                              VALUES($key, $title, $artist, $year, $art, $art_hash, $art_source, $version, $updated_at)
                               ON CONFLICT(key) DO UPDATE SET title=excluded.title, artist=excluded.artist, year=excluded.year,
                                 art=excluded.art, art_hash=excluded.art_hash, art_source=excluded.art_source,
-                                updated_at=excluded.updated_at";
+                                version=excluded.version, updated_at=excluded.updated_at";
             w.Parameters.AddWithValue("$title", (object?)title ?? DBNull.Value);
             w.Parameters.AddWithValue("$artist", (object?)artist ?? DBNull.Value);
             w.Parameters.AddWithValue("$year", year ?? DBNull.Value);
             w.Parameters.Add("$art", SqliteType.Blob).Value = (object?)art ?? DBNull.Value;
             w.Parameters.AddWithValue("$art_hash", (object?)artHash ?? DBNull.Value);
             w.Parameters.AddWithValue("$art_source", (object?)artSource ?? DBNull.Value);
+            w.Parameters.AddWithValue("$version", version ?? DBNull.Value);
             w.Parameters.AddWithValue("$updated_at", NowMs());
         }
         w.ExecuteNonQuery();
@@ -212,7 +216,7 @@ internal static partial class Library
         return await Send(ctx, o);
     }
 
-    /* POST /api/album/edit { offset, title?, artist?, year?, art_url?, art_source?, art? } */
+    /* POST /api/album/edit { offset, title?, artist?, year?, version?: { name?, label?, catno?, barcode?, country?, year?, format? }, art_url?, art_source?, art? } */
     private static Task<bool> SaveAlbumEdit(HttpContext ctx, Snapshot s, LibState st) =>
         !BodyFits(ctx) || !Covers.ProbeOk ? Task.FromResult(false) : SaveAlbumEditRead(ctx, s);
     private static async Task<bool> SaveAlbumEditRead(HttpContext ctx, Snapshot s)
@@ -228,6 +232,8 @@ internal static partial class Library
             if (f.HasTitle = o.Has("title")) f.Title = o["title"];
             if (f.HasArtist = o.Has("artist")) f.Artist = o["artist"];
             if (f.HasYear = o.Has("year")) f.Year = o["year"];
+            f.Version = o["version"] as JsObj;   // the version's fields (item 420)
+            if (VersionRefused(f.Version) is { } why) return await JsError(ctx, 400, why);
         }
         var artUrl = Prop(b, "art_url");
         if (TJs.Truthy(artUrl))

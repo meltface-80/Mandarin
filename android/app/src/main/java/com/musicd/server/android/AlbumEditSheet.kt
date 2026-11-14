@@ -45,6 +45,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.window.DialogWindowProvider
 import com.musicd.server.client.AlbumEdit
+import com.musicd.server.client.AlbumVersionEdit
 import com.musicd.server.client.ArtCandidate
 import com.musicd.server.client.Contract
 import com.musicd.server.client.CoverPick
@@ -138,10 +139,23 @@ internal class AlbumEditor(private val offset: Long, title: String, artist: Stri
     var soundSaid by mutableStateOf<Said?>(null)
     var sounding by mutableStateOf(false)
     var soundApplied by mutableStateOf<String?>(null)
+    /** The copy's version (item 420): each field's words as typed, and those typed in since the editor opened (a release applied leaves them). */
+    var version by mutableStateOf<Map<String, String>>(emptyMap())
+    private var typedVersion by mutableStateOf<Set<String>>(emptySet())
     private var searchSeq by mutableIntStateOf(0)
 
     private fun toast(text: String) = Toast.makeText(context, text, Toast.LENGTH_SHORT).show()
-    private fun take(d: EditState) { state = d; title = d.title; artist = d.artist; year = d.year; d.match?.let { matchSaid = AlbumEdit.matchSaid(it) } }
+    private fun take(d: EditState, keepTyped: Boolean = false) {
+        state = d; title = d.title; artist = d.artist; year = d.year; d.match?.let { matchSaid = AlbumEdit.matchSaid(it) }
+        if (!keepTyped) typedVersion = emptySet()
+        version = AlbumVersionEdit.refill(version, typedVersion, d.version)
+    }
+
+    /** A version's field typed in ([f]), or put back to what the match or the files say ([typed] false). */
+    fun setVersion(f: String, words: String, typed: Boolean = true) {
+        version = version + (f to words)
+        typedVersion = if (typed) typedVersion + f else typedVersion - f
+    }
 
     /** The album's view; an album with no cover of its own is searched for at once. */
     suspend fun load() {
@@ -228,7 +242,7 @@ internal class AlbumEditor(private val offset: Long, title: String, artist: Stri
         matching = true; barcodeErr = null; err = null
         scope.launch {
             val r = withContext(Dispatchers.IO) { runCatching { c.matchRelease(offset, query, how) } }
-            if (r.isSuccess) withContext(Dispatchers.IO) { runCatching { c.albumEditState(offset) }.getOrNull() }?.let { take(it) }
+            if (r.isSuccess) withContext(Dispatchers.IO) { runCatching { c.albumEditState(offset) }.getOrNull() }?.let { take(it, keepTyped = true) }
             matching = false
             r.onSuccess {
                 matchSaid = state?.match?.let(AlbumEdit::matchSaid) ?: AlbumEdit.matched(it, offset)
@@ -244,11 +258,11 @@ internal class AlbumEditor(private val offset: Long, title: String, artist: Stri
         val c = client() ?: return
         val d = state ?: return
         if (saving != null) return
-        if (which == "save") AlbumEdit.yearError(year)?.let { err = it; return }
+        if (which == "save") (AlbumEdit.yearError(year) ?: AlbumVersionEdit.yearError(version["year"].orEmpty()))?.let { err = it; return }
         err = null; saving = which
         scope.launch {
             val r = withContext(Dispatchers.IO) {
-                runCatching { if (which == "save") c.saveAlbumEdit(AlbumEdit.saveBody(d.offset, title, artist, year, pick)) else c.resetAlbumEdit(d.offset) }
+                runCatching { if (which == "save") c.saveAlbumEdit(AlbumEdit.saveBody(d.offset, title, artist, year, pick, version.takeIf { d.version.isNotEmpty() })) else c.resetAlbumEdit(d.offset) }
             }
             saving = null
             r.onSuccess { onChanged(); toast("Album saved"); onClose() }.onFailure { err = com.musicd.server.client.Failure.said(it, "Couldn't save") }

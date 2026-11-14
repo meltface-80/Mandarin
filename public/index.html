@@ -1139,6 +1139,52 @@
         <label class="ae-label" for="ae-year" data-parity="album-edit.year">Release year</label>
         <input id="ae-year" class="ae-input ae-year" type="text" aria-label="Release year" data-parity="album-edit.year" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" autocomplete="off">
         <div class="ae-was" data-ae-was="year" data-parity="album-edit.was"></div>
+
+        <!-- This copy's version (item 420): its version name, label, catalogue number, barcode, country, this pressing's
+             year and format, from the match applied or the files, each yours to change. -->
+        <div id="ae-version" class="ae-version">
+          <div class="ae-vintro" data-parity="album-edit.version">
+            <h3 class="ae-vhead">Version</h3>
+            <p class="ae-vnote">What this copy is, from the match or its files. Change what's wrong: what you write stays when another match or edition is applied.</p>
+          </div>
+          <div class="ae-vgrid">
+            <div class="ae-vfield ae-vwide">
+              <label class="ae-label" for="ae-v-name" data-parity="album-edit.version-name">Version name</label>
+              <input id="ae-v-name" class="ae-input" type="text" aria-label="Version name" data-parity="album-edit.version-name" data-ae-v="name" placeholder="Mono, 2008 release, HDTT DSD256…" autocomplete="off" spellcheck="false">
+              <div class="ae-was" data-ae-was="v-name" data-parity="album-edit.was"></div>
+            </div>
+            <div class="ae-vfield">
+              <label class="ae-label" for="ae-v-label" data-parity="album-edit.version-label">Label</label>
+              <input id="ae-v-label" class="ae-input" type="text" aria-label="Label" data-parity="album-edit.version-label" data-ae-v="label" autocomplete="off" spellcheck="false">
+              <div class="ae-was" data-ae-was="v-label" data-parity="album-edit.was"></div>
+            </div>
+            <div class="ae-vfield">
+              <label class="ae-label" for="ae-v-catno" data-parity="album-edit.version-catno">Catalogue number</label>
+              <input id="ae-v-catno" class="ae-input" type="text" aria-label="Catalogue number" data-parity="album-edit.version-catno" data-ae-v="catno" autocomplete="off" spellcheck="false">
+              <div class="ae-was" data-ae-was="v-catno" data-parity="album-edit.was"></div>
+            </div>
+            <div class="ae-vfield">
+              <label class="ae-label" for="ae-v-barcode" data-parity="album-edit.version-barcode">Barcode</label>
+              <input id="ae-v-barcode" class="ae-input" type="text" aria-label="Barcode" data-parity="album-edit.version-barcode" data-ae-v="barcode" inputmode="numeric" autocomplete="off" spellcheck="false">
+              <div class="ae-was" data-ae-was="v-barcode" data-parity="album-edit.was"></div>
+            </div>
+            <div class="ae-vfield">
+              <label class="ae-label" for="ae-v-country" data-parity="album-edit.version-country">Country</label>
+              <input id="ae-v-country" class="ae-input" type="text" aria-label="Country" data-parity="album-edit.version-country" data-ae-v="country" placeholder="US, GB, JP…" autocomplete="off" spellcheck="false">
+              <div class="ae-was" data-ae-was="v-country" data-parity="album-edit.was"></div>
+            </div>
+            <div class="ae-vfield">
+              <label class="ae-label" for="ae-v-year" data-parity="album-edit.version-year">This pressing's year</label>
+              <input id="ae-v-year" class="ae-input" type="text" aria-label="This pressing's year" data-parity="album-edit.version-year" data-ae-v="year" inputmode="numeric" maxlength="4" autocomplete="off" spellcheck="false">
+              <div class="ae-was" data-ae-was="v-year" data-parity="album-edit.was"></div>
+            </div>
+            <div class="ae-vfield">
+              <label class="ae-label" for="ae-v-format" data-parity="album-edit.version-format">Format</label>
+              <input id="ae-v-format" class="ae-input" type="text" aria-label="Format" data-parity="album-edit.version-format" data-ae-v="format" placeholder="CD, SACD, Vinyl…" autocomplete="off" spellcheck="false">
+              <div class="ae-was" data-ae-was="v-format" data-parity="album-edit.was"></div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div id="ae-err" class="ae-err" data-parity="album-edit.err"></div>
