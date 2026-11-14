@@ -5,7 +5,9 @@ import org.json.JSONObject
 
 /**
  * A backup in Settings → Backup & restore's list (bug list item 92): one the server keeps ([where] "server", its [id]) or a
- * file this phone saved ([where] "phone", its [uri] and file [name]), as the page's settings-backup.js lists them.
+ * file this phone saved ([where] "phone", its [uri] and file [name]), as the page's settings-backup.js lists them; or a
+ * copy of the database the server kept before a restore or a switch of builds ([where] "copy", item 410: its [kind]
+ * restore, dev or latest; the database alone, no settings; backup-copies.js).
  */
 data class BackupEntry(
     val where: String,
@@ -22,6 +24,7 @@ data class BackupEntry(
     val parts: List<String>,
 ) {
     val onPhone: Boolean get() = where == "phone"
+    val isCopy: Boolean get() = where == "copy"
 }
 
 /** Settings → Backup & restore as the page says it (settings-backup.js). */
@@ -60,6 +63,7 @@ object BackupSettings {
     fun list(info: JSONObject?, phone: JSONArray?): List<BackupEntry> {
         val out = ArrayList<BackupEntry>()
         info?.optJSONArray("backups")?.let { a -> for (i in 0 until a.length()) a.optJSONObject(i)?.let { out += entry("server", it) } }
+        info?.optJSONArray("copies")?.let { a -> for (i in 0 until a.length()) a.optJSONObject(i)?.let { out += entry("copy", it) } }
         phone?.let { a -> for (i in 0 until a.length()) a.optJSONObject(i)?.let { out += entry("phone", it) } }
         return out.sortedByDescending { it.created }
     }
@@ -70,11 +74,22 @@ object BackupSettings {
             j.optLong("bytes"), j.optBoolean("sealed"), j.optString("label"), j.optString("name"), parts)
     }
 
-    /** Where it is, in bold on its card. */
-    fun title(b: BackupEntry): String = if (b.onPhone) "On this phone" else if (b.kind == "auto") "Before restore · on the server" else "On the server"
+    /** Where it is, in bold on its card; a copy of the database, what came after it ([date]: a moment as the phone writes it). */
+    fun title(b: BackupEntry, date: (Long) -> String = { "" }): String = when {
+        b.isCopy -> when (b.kind) {
+            "restore" -> "Before the restore of " + date(b.created)
+            "dev" -> "Before switching to development builds"
+            "latest" -> "Before switching to the latest release"
+            else -> "Before a change"
+        } + " · on the server"
+        b.onPhone -> "On this phone"
+        b.kind == "auto" -> "Before restore · on the server"
+        else -> "On the server"
+    }
 
     /** When, what version, how big, sealed or not, and the file's name or the device it came from ([date]: a moment as the phone writes it). */
     fun meta(b: BackupEntry, date: (Long) -> String): String {
+        if (b.isCopy) return date(b.created) + " · " + bytes(b.bytes)
         val m = mutableListOf(date(b.created), "v" + b.version.ifEmpty { "?" }, bytes(b.bytes))
         if (b.sealed) m += "sealed"
         if (b.onPhone) m += b.name else if (b.label.isNotEmpty()) m += "from " + b.label
@@ -82,7 +97,7 @@ object BackupSettings {
     }
 
     /** What it holds, by name. */
-    fun partsLine(b: BackupEntry): String = b.parts.joinToString(", ") { NAMES[it] ?: it }
+    fun partsLine(b: BackupEntry): String = if (b.isCopy) COPY_PARTS else b.parts.joinToString(", ") { NAMES[it] ?: it }
 
     /** The parts a restore of [b] offers: what it holds (a phone's file with none listed: all), the app's only in the app. */
     fun restoreParts(b: BackupEntry, app: Boolean): List<String> =
@@ -96,7 +111,8 @@ object BackupSettings {
 
     /** The question before [b] is deleted. */
     fun deleteQuestion(b: BackupEntry, date: (Long) -> String): String =
-        if (b.onPhone) "Delete the backup file " + b.name + " of " + date(b.created) + " from this phone?"
+        if (b.isCopy) "Delete the copy of the database of " + date(b.created) + " from the server?"
+        else if (b.onPhone) "Delete the backup file " + b.name + " of " + date(b.created) + " from this phone?"
         else "Delete the backup on the server of " + date(b.created) + "?"
 
     /** What is said once a backup is made. */
@@ -105,17 +121,21 @@ object BackupSettings {
     /** What is said when there is no backup yet: on the phone the files count too. */
     fun empty(app: Boolean): String = if (app) "No backups yet." else "No backups on the server yet."
 
-    /** A restore's answer, said: what went wrong (none when only cancelled), or the folders to choose again (Android asks once an install). */
-    fun restoreSaid(j: JSONObject): String? = when {
-        !j.optBoolean("ok") -> if (j.optBoolean("cancelled")) null else j.optString("error").ifEmpty { "Restore failed" }
-        (j.optJSONObject("app_result")?.optJSONArray("choose_again")?.length() ?: 0) > 0 -> CHOOSE_AGAIN
-        else -> null
+    /**
+     * A restore's answer, said: what went wrong (none when only cancelled), or the music folders kept (item 410: the
+     * backup's not on this computer) and the folders to choose again (Android asks once an install).
+     */
+    fun restoreSaid(j: JSONObject): String? {
+        if (!j.optBoolean("ok")) return if (j.optBoolean("cancelled")) null else j.optString("error").ifEmpty { "Restore failed" }
+        val again = if ((j.optJSONObject("app_result")?.optJSONArray("choose_again")?.length() ?: 0) > 0) CHOOSE_AGAIN else null
+        return listOfNotNull(j.optString("folders").ifEmpty { null }, again).joinToString(" ").ifEmpty { null }
     }
 
+    const val COPY_PARTS = "The whole database only: no settings"
     const val CHOOSE_AGAIN = "Choose the music and download folders again in Settings: Android asks once per install."
     const val SEALED = "Its passphrase (for the keys and the whole database)"
     const val FILE_PASS = "Its passphrase, if it was sealed with one"
     const val PASS_HINT = "Optional. Seals the API keys, the Qobuz and Tidal sign-ins and the server's Tailscale identity, in the keys part or the whole database. Restoring those asks for it, and nothing opens them without it: keep it safe."
     const val BACKUP_INFO = "Choose what goes in. Settings are only the ones you changed. Players are every Sonos room, renderer and phone with its own name, output, DSP and volume levelling. Your collection is favourites, Listen later and album edits. The whole database is everything Mandarin knows, play history included. The API keys part carries the Qobuz and Tidal sign-ins and the server's Tailscale identity, so a restore onto a fresh install is the same node on your tailnet: the same address, no signing in again, and the app still reaches it away from home. A backup never holds your password or other devices' sign-ins. Without a passphrase the keys and sign-ins are in the file as they are, so keep it as you would keep them; with one, they are sealed (AES-256) and only that passphrase opens them. It works away from home too, over Tailscale; the whole database is a large file over mobile data."
-    const val RESTORE_INFO = "Restoring puts back the parts you tick, as they were when the backup was made, for every device. A backup of how things are now is kept here first (Before restore), so a restore can be undone. Mandarin restarts afterwards and this page reloads."
+    const val RESTORE_INFO = "Restoring puts back the parts you tick, as they were when the backup was made, for every device. A backup of how things are now is kept here first (Before restore), so a restore can be undone. Mandarin restarts afterwards and this page reloads. The copies of the database kept before a restore or a switch of builds are listed too: the database alone, no settings. A backup from another computer whose music folders aren't on this one keeps this one's, and the next scan finds its albums' files here."
 }

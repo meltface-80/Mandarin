@@ -93,8 +93,9 @@ async function setCovers(on) {
   scanBusy = false;
   render();
 }
-// Its one line: "Covers found automatically: 37 · 12 left to try · 1,204 without a sure match".
-const coversLine = c => "Covers found automatically: " + num(c.found) + " · " + num(c.left) + " left to try · " + num(c.none) + " without a sure match";
+// Its one line: "Covers found automatically: 37 · 12 left to try · 1,204 without a sure match", and the music
+// folders it can't reach, when there are (covers-reach.js).
+const coversLine = c => "Covers found automatically: " + num(c.found) + " · " + num(c.left) + " left to try · " + num(c.none) + " without a sure match" + coversUnreachable(c);
 async function packAct(what) {
   if (scanBusy) return;
   scanBusy = true;
