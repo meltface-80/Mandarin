@@ -11,14 +11,17 @@
 //             {"cmd":"next","uri":"…"}        the track after, gapless ("" clears it)
 //             {"cmd":"pause"} {"cmd":"resume"} {"cmd":"stop"}
 //             {"cmd":"gain","value":0.5}      linear, 1 = untouched
+//             {"cmd":"capture",…} {"cmd":"capture_stop"} {"cmd":"capture_drop","n":1}
+//                                             a recording of what the device is handed (Capture.cs, item 412)
 //             {"cmd":"quit"}
-//   events    {"ev":"hello","version":"0.8.0","protocol":1}
+//   events    {"ev":"hello","version":"0.8.0","protocol":1,"capture":true}
 //             {"ev":"pos","state":"PLAYING","uri":"…","seconds":12.8,"rate":96000,"channels":2,"ahead":41.2}
 //             {"ev":"format","rate":96000,"channels":2}   the device opened at this format
 //             {"ev":"decoded","uri":"…"}      a track's last sample is in the buffer
 //             {"ev":"ended"}                  the queue played out
 //             {"ev":"xrun","count":1}         the device ran dry (should never happen)
 //             {"ev":"error","message":"…"}    words the page can show
+//             {"ev":"capture","state":"…",…}  where a recording is (CaptureState.cs)
 //
 // Logs go to stderr.
 using System.Globalization;
@@ -69,6 +72,9 @@ internal static class Program
         }
         else if (device.StartsWith("file:", StringComparison.Ordinal)) sink = new FileSink(device[5..]);
         else { Console.Error.WriteLine("unknown device " + device); return 2; }
+        // What the device is handed, recorded when asked (item 412): the tap in front of it.
+        var capture = new Capture(Emit, Log);
+        sink = new TapSink(sink, capture);
 
         System.Runtime.GCSettings.LatencyMode = System.Runtime.GCLatencyMode.SustainedLowLatency;
         var native = dsdNative.Split(':', 2);
@@ -78,7 +84,7 @@ internal static class Program
             NativeDsd = native.Length > 1 ? [.. native[1].Split(',').Select(x => int.TryParse(x, NumberStyles.Integer, CultureInfo.InvariantCulture, out var n) ? n : 0).Where(n => n > 0)] : [],
             SettleMs = Math.Max(0, settleMs),
         };
-        Emit(Json.Obj("ev", "hello", "version", Version, "protocol", Protocol));
+        Emit(Json.Obj("ev", "hello", "version", Version, "protocol", Protocol, "capture", true));
 
         // Commands, until stdin closes (the server went away) or "quit".
         string? line;
@@ -97,6 +103,7 @@ internal static class Program
                     case "resume": engine.Resume(); break;
                     case "stop": engine.Stop(); break;
                     case "gain": engine.SetGain(c.TryGetProperty("value", out var v) ? v.GetDouble() : 1); break;
+                    case "capture" or "capture_stop" or "capture_drop": capture.Command(Str(c, "cmd"), c); break;
                     case "quit": engine.Stop(); sink.Dispose(); return 0;
                     default: Log("unknown command: " + line); break;
                 }

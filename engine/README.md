@@ -12,8 +12,9 @@ one JSON object a line; `Mandarin.Audio/Program.cs` lists the commands and event
 | `Program.cs` | the command line, the control channel |
 | `Engine.cs` | the decoder thread (ffmpeg into the buffer), the playback thread (the buffer to the device), the position |
 | `Sinks.cs` | the devices: ALSA, and the tests' file |
+| `TapSink.cs`, `Capture*.cs` | a recording of exactly what the device is handed, when asked (item 412): Mandarin Bridge for Linux's `/capture`, for the bit-perfect check |
 | `Native.cs` | the C calls: ALSA (libasound), the thread's core and priority (libc) |
 
 Build it with `./build.sh` (needs the .NET 10 SDK and clang): the program lands in
 `engine/bin/mandarin-audio`, where the server looks first. `RID=linux-arm64 ./build.sh` builds
-for another platform. The tests are `test/Mandarin.Tests/EngineTests.cs` in the server's suite.
+for another platform. The tests are `test/Mandarin.Tests/EngineTests.cs` (and `EngineTapTests.cs`) in the server's suite.
