@@ -55,6 +55,12 @@
     <li data-i18n="services.tidal.li4"><b>The stream.</b> <i>Stream quality</i> on the Services page is CD (FLAC 16/44.1) or Hi-Res: Tidal's hi-res FLAC, up to 24/192, where an album has it and the subscription allows. Tidal sends hi-res as MPEG-DASH (an initialisation piece and numbered segments), which the server joins into one stream for ffmpeg on its own loopback; where Tidal answers a hi-res ask with anything else, CD quality is asked for instead. What Tidal actually streams a track at is learnt the first time it is played and the album's badge corrected. Tidal has no play reports.</li>
   </ul>
   <p data-i18n="services.tidal.p2">The client id and secret are the ones the Lyrion plugin carries, as Tidal's developer programme answers no streaming requests; Tidal leaves that plugin be because of how it behaves, and Mandarin behaves the same.</p>
+  <h2 id="others" data-i18n="services.others.title">Other services Mandarin asks</h2>
+  <p data-i18n="services.others.p1">Besides Qobuz and Tidal, the server asks a few services for what your files don't say, never sending them your
+     music: MusicBrainz and Apple's iTunes catalogue for albums' names; AcoustID for an album no name search can place, by
+     each track's fingerprint (with a free key of your own, <i>Settings → Setup → API Keys</i>); Apple Music, Deezer and the
+     Cover Art Archive for covers; Discogs and FanArt.tv for label logos and artists' pictures (with keys); Wikidata for
+     artists; and Last.fm for similar artists and scrobbling (with a key).</p>
   <nav class="pager"><a class="back" href="index.html" data-i18n="site.back">← Back to contents</a><a class="pill" href="how-it-works.html" data-i18n="services.next">Next: How it works →</a></nav>
 </main>
 

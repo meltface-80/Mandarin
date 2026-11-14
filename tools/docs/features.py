@@ -162,13 +162,15 @@ FEATURES = [
      "barcode, catalogue number, ISRC and ReplayGain, and used to identify albums.",
      "Nothing to set up: tags are read with every scan."),
     ("scanner", "🔎", "Library Scanner", False,
-     "One switch, Album Scanner, names albums from their files' identifiers, MusicBrainz and Apple's iTunes "
-     "catalogue, measures ReplayGain and finds missing covers, while nothing plays.",
+     "One switch, Album Scanner, names albums from their files' identifiers, MusicBrainz, their sound (AcoustID) and "
+     "Apple's iTunes catalogue, measures ReplayGain and finds missing covers, while nothing plays.",
      "Open **Settings → Library Scanner** and switch **Album Scanner** on; off, none of it is done. **Progress** counts the "
      "albums with every step done and says what it is doing now. Matches of 85% or better are applied; the rest wait in "
      "**Unidentified** (and **To confirm**) for you to place by hand; a copy that is every track of a bigger pressing is "
      "taken as that record. **To confirm** says how sure it is and why, with **Apply**, **Not this** (never proposed again) "
-     "and the other releases it found; **Find…** opens Edit album's search. Your files are not changed. **Schedule** keeps it to the hours you set; off, it runs any time, "
+     "and the other releases it found; **Find…** opens Edit album's search. An album no search by name can place is "
+     "matched by how it sounds once **Settings → Setup → API Keys** has an AcoustID key (free, from acoustid.org): each "
+     "track's fingerprint is made on the server and looked up on AcoustID. Your files are not changed. **Schedule** keeps it to the hours you set; off, it runs any time, "
      "day and night. **Library clean-up** removes albums whose files are gone, after showing counts."),
     ("mbpack", "📦", "MusicBrainz pack", False,
      "An optional download of every MusicBrainz release with a barcode, about 2 GB on disk. Albums "

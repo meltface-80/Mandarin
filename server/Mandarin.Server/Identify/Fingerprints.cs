@@ -24,7 +24,7 @@ internal static partial class Fingerprints
         """;
 
     // fpcalc's FFmpegAudioReader: its request for 16-bit samples, its resampler's "compatible mode".
-    public const string Resampler = "aresample=resampler=swr:filter_size=16:phase_shift=8:linear_interp=1:cutoff=0.8:osr=11025:ocl=mono:osf=s16";
+    public const string Resampler = "aresample=resampler=swr:filter_size=16:phase_shift=8:linear_interp=1:cutoff=0.8:osr=11025:ochl=mono:osf=s16";
 
     public static int Made;    // fingerprints made by this server (the tests read it through the log)
 
