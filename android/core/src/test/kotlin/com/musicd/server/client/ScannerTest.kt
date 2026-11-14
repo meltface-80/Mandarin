@@ -58,6 +58,13 @@ class ScannerTest {
             Scanner.coversUnreachable(j("""{"unreachable":["/a","/b","/c","/d"]}""")))
         assertNull(Scanner.coversUnreachable(j("""{"unreachable":[]}""")))
         assertNull(Scanner.coversUnreachable(s))
+        // Item 414c: why the albums left unsure aren't matched by sound, as the page says it.
+        assertEquals("Matching by sound needs an AcoustID key (Settings → API Keys).", Scanner.soundNote(j("""{"sound":"needs-key"}""")))
+        assertEquals("AcoustID refused the key, so albums aren't matched by sound (Settings → API Keys).", Scanner.soundNote(j("""{"sound":"refused"}""")))
+        assertEquals("AcoustID asked to wait: matching by sound rests a few minutes.", Scanner.soundNote(j("""{"sound":"limited"}""")))
+        assertEquals("AcoustID can't be reached: matching by sound rests a few minutes.", Scanner.soundNote(j("""{"sound":"unreachable"}""")))
+        assertNull(Scanner.soundNote(j("""{"sound":null}""")))
+        assertNull(Scanner.soundNote(s))
     }
 
     @Test fun `the folders, Unidentified always, To confirm only while there are proposals`() {

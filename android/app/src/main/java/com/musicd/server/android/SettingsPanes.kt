@@ -195,7 +195,7 @@ internal fun SettingsAccount(client: () -> ServerClient?, onBack: () -> Unit) {
 }
 
 /**
- * API Keys: what they are for; Discogs, FanArt.tv, Last.fm and Last.fm's shared secret, each with its ⓘ (its help along
+ * API Keys: what they are for; Discogs, FanArt.tv, AcoustID, Last.fm and Last.fm's shared secret, each with its ⓘ (its help along
  * the foot for as long as it takes to read), the box to paste the key into (its ✓ or ✕ once checked, what the box says),
  * Save, and what the server says of the key. Then Scrobbling (Scrobbling.kt; the page's settings-lastfm.js): what it is,
  * and Connect to Last.fm, opening Last.fm's page to allow Mandarin on in the browser and asking every 3 s, ten minutes

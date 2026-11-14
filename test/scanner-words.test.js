@@ -11,7 +11,7 @@ const path = require("path");
 const vm = require("vm");
 
 const words = vm.runInNewContext(fs.readFileSync(path.join(__dirname, "..", "public", "app", "scanner-words.js"), "utf8") +
-  "\n;({ scanPercent, scanProgressWords, scanNowWords, scanReasons, scanOtherName })", {});
+  "\n;({ scanPercent, scanProgressWords, scanNowWords, scanReasons, scanOtherName, scanSoundNote })", {});
 
 test("To confirm's words (item 414b): a verdict's reasons, and another release in place of the one proposed", () => {
   assert.strictEqual(words.scanReasons(["found by its barcode", "4 of 4 tracks' lengths agree", null, ""]), "found by its barcode · 4 of 4 tracks' lengths agree");
@@ -42,4 +42,16 @@ test("what it is doing now, or what it waits for", () => {
   assert.strictEqual(at("done"), "All done");
   assert.strictEqual(at("later"), "The rest are looked at again after the next library scan, or at night");
   assert.strictEqual(at("off"), "Off");
+});
+
+test("matching by sound (item 414c): the step on the Now line, and why the albums left unsure aren't matched by it", () => {
+  const at = (step) => words.scanNowWords({ now: { reason: "working", step, album: { offset: 7, artist: "U2", title: "Pop" } } });
+  assert.strictEqual(at("matching by sound"), "Now: U2 — Pop · matching by sound");
+  assert.strictEqual(at("fingerprinting"), "Now: U2 — Pop · fingerprinting");
+  assert.strictEqual(words.scanSoundNote({ sound: "needs-key" }), "Matching by sound needs an AcoustID key (Settings → API Keys).");
+  assert.strictEqual(words.scanSoundNote({ sound: "refused" }), "AcoustID refused the key, so albums aren't matched by sound (Settings → API Keys).");
+  assert.strictEqual(words.scanSoundNote({ sound: "limited" }), "AcoustID asked to wait: matching by sound rests a few minutes.");
+  assert.strictEqual(words.scanSoundNote({ sound: "unreachable" }), "AcoustID can't be reached: matching by sound rests a few minutes.");
+  assert.strictEqual(words.scanSoundNote({ sound: null }), "", "matched by sound, or nothing left unsure: nothing said");
+  assert.strictEqual(words.scanSoundNote(null), "");
 });

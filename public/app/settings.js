@@ -122,7 +122,7 @@ function keyStatusText(j) {
   return "Current: " + j.masked + " — couldn’t reach the service to check it.";
 }
 
-// One API key's box, status line and Save: Discogs' token and FanArt.tv's key.
+// One API key's box, status line and Save: Discogs' token, FanArt.tv's, AcoustID's and Last.fm's keys.
 function wireKey({ route, field, inputId, saveId, statusId, checkId, service, noun, onSaved }) {
   const input  = document.getElementById(inputId);
   const save   = document.getElementById(saveId);
@@ -171,6 +171,9 @@ const loadDiscogsToken = wireKey({ route: "discogs-token", field: "token", input
   statusId: "discogs-token-status", checkId: "discogs-token-check", service: "Discogs", noun: "token" });
 const loadFanartKey = wireKey({ route: "fanart-key", field: "key", inputId: "fanart-key-input", saveId: "fanart-key-save",
   statusId: "fanart-key-status", checkId: "fanart-key-check", service: "FanArt.tv", noun: "key" });
+// Matching albums by sound (item 414c): the Album Scanner's fingerprints looked up on AcoustID.
+const loadAcoustIdKey = wireKey({ route: "acoustid-key", field: "key", inputId: "acoustid-key-input", saveId: "acoustid-key-save",
+  statusId: "acoustid-key-status", checkId: "acoustid-key-check", service: "AcoustID", noun: "key" });
 const loadLastfmKey = wireKey({ route: "lastfm-key", field: "key", inputId: "lastfm-key-input", saveId: "lastfm-key-save",
   statusId: "lastfm-key-status", checkId: "lastfm-key-check", service: "Last.fm", noun: "key", onSaved: () => loadScrobbling() });
 // Scrobbling's (settings-lastfm.js): saving it again leaves the account to connect again.

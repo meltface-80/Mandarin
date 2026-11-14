@@ -86,6 +86,15 @@ object Scanner {
         }
     }
 
+    /** Why the albums left unsure aren't matched by sound (item 414c, the server's sound; the page's scanSoundNote); null when they are. */
+    fun soundNote(c: JSONObject?): String? = when (c?.text("sound")) {
+        "needs-key" -> "Matching by sound needs an AcoustID key (Settings → API Keys)."
+        "refused" -> "AcoustID refused the key, so albums aren't matched by sound (Settings → API Keys)."
+        "limited" -> "AcoustID asked to wait: matching by sound rests a few minutes."
+        "unreachable" -> "AcoustID can't be reached: matching by sound rests a few minutes."
+        else -> null
+    }
+
     /** The music folders the cover finder can't reach, under the readout (items 410, 411; the page's covers-reach.js): at most three named. */
     fun coversUnreachable(c: JSONObject?): String? {
         val a = c?.optJSONArray("unreachable") ?: return null
