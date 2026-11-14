@@ -385,7 +385,12 @@ FEATURES = [
      "them. Type a **passphrase** (8 characters or more) before backing up and they are sealed "
      "(AES-256-GCM; v0.9.0): restoring them asks for it, and nothing opens them without it. Everything "
      "else in a sealed backup restores without it. A backup never holds your password or other devices' "
-     "sign-ins."),
+     "sign-ins.\n\n"
+     "**Restoring on another computer.** When none of a backup's music folders is on this computer, this "
+     "computer's are kept, and the next scan finds the albums' files here (the same files: the same size, "
+     "date and name), with their edits, favourites and plays. **Before a restore.** The copy of the "
+     "database Mandarin keeps before each restore (and Mandarin OS before it switches builds) is listed "
+     "with the backups and restored the same way; it holds the database only, no settings."),
     ("qobuz", "🎼", "Qobuz", False,
      "Sign in with your Qobuz subscription: your favourites and purchases become albums here, and "
      "the Qobuz browser plays anything in the catalogue, streamed through the server.",
