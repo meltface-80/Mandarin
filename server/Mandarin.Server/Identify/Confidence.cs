@@ -100,6 +100,7 @@ internal static class Confidence
         if (manual == "edition") return "you chose this edition";
         if (manual == "barcode") return "you matched it by its barcode";
         if (manual == "link") return "you matched it by a MusicBrainz link";
+        if (manual == "sound") return $"matched by sound: {Js.Num(Share(c, "sound_of").N)} of {Js.Num(Share(c, "sound_of").Of)} tracks, chosen by you";   // item 419
         if (manual.Length > 0) return "you chose it";
         if (S(c["source"]) == "itunes") return by == "barcode" ? "found on iTunes by its barcode" : "found on iTunes by name";
         switch (by)

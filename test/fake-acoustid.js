@@ -5,7 +5,7 @@
  * recordings a fingerprint is, their release groups, releases and tracks, in the shapes the real one answers with;
  * and the lookup by track id a key is checked with. A key it doesn't know is refused as AcoustID refuses one (error
  * 4, "invalid API key"); asked to, it answers every request "too many requests" (HTTP 429, error 14). Each request
- * is kept with the time it came, for the three-a-second limit.
+ * is kept with the time it came, for the three-a-second limit; each answer can be held a while (delayMs).
  */
 const http = require("http");
 
@@ -15,6 +15,7 @@ class FakeAcoustId {
     this.keys = new Set(keys);
     this.prints = new Map();      // fingerprint → [{ release (fake-musicbrainz's release()), track (1-based), score }]
     this.limited = false;
+    this.delayMs = 0;             // each answer held this long (a slow AcoustID: item 419's one job at a time)
     this.requests = [];           // { at, kind: "lookup" | "check", client, fingerprint, duration, meta }
     this.server = null;
   }
@@ -40,7 +41,7 @@ class FakeAcoustId {
     this.server = http.createServer((req, res) => {
       const chunks = [];
       req.on("data", c => chunks.push(c));
-      req.on("end", () => {
+      req.on("end", () => setTimeout(() => {
         const u = new URL(req.url, "http://x");
         const send = (status, j) => { res.statusCode = status; res.setHeader("Content-Type", "application/json"); res.end(JSON.stringify(j)); };
         if (u.pathname !== "/v2/lookup") return send(404, { status: "error", error: { code: 1, message: "not found" } });
@@ -53,7 +54,7 @@ class FakeAcoustId {
         if (kind === "check") return send(200, { status: "ok", results: [] });
         const on = this.prints.get(q("fingerprint")) || [];
         send(200, { status: "ok", results: on.map((x, i) => FakeAcoustId.result(x.release, x.track, x.score, i + 1)) });
-      });
+      }, this.delayMs));
     });
     return new Promise(r => this.server.listen(0, "127.0.0.1", () => { this.port = this.server.address().port; r(this); }));
   }

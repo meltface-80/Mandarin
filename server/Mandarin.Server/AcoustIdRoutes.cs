@@ -42,6 +42,8 @@ internal static partial class Library
         o["configured"] = v.Length > 0;
         o["masked"] = AcoustIdMasked(v);
         o["check"] = await AcoustIdCheck(sound, v, fresh);
+        // With a key: how far the Album Scanner's matching by sound has got (item 419).
+        if (v.Length > 0) o["sound"] = Identifier.SoundTally();
         return o;
     }
 

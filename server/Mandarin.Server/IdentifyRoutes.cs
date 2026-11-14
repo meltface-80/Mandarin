@@ -262,7 +262,8 @@ internal static partial class Library
         if (al == null) return await JsError(ctx, 404, "No such album");
         var q = TJs.Trim(TJs.Truthy(body["query"]) ? TJs.Str(body["query"]) : "");
         // "pick": one of Find match's suggestions; "edition": another pressing the verdict kept (item 414).
-        var how = TJs.StrictEq(body["how"], "pick") ? "pick" : TJs.StrictEq(body["how"], "edition") ? "edition" : null;
+        // "sound": one Match by sound offered (item 419).
+        var how = TJs.StrictEq(body["how"], "pick") ? "pick" : TJs.StrictEq(body["how"], "edition") ? "edition" : TJs.StrictEq(body["how"], "sound") ? "sound" : null;
         var pick = how != null;
         string? barcode = null, mbid = null, group = null;
         Match m;
