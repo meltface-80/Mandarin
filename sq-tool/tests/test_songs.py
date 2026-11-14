@@ -48,6 +48,7 @@ class Verdicts(unittest.TestCase):
         self.assertEqual(res["verdict"], "SAME MASTER", res["words"])
         self.assertEqual(res["common"]["resampled"]["which"], "a")
         self.assertEqual((res["common"]["resampled"]["from"], res["common"]["resampled"]["to"]), (192000, RATE))
+        self.assertEqual(res["common"]["resampled"]["with"], "ffmpeg's soxr resampler, precision 28 bits")
         self.assertLess(abs(res["null"]["in_band_dbfs"] - -96.3), 2.0, res["null"])
         self.assertTrue(-82 < res["null"]["depth_db"] < -72, res["null"])
         self.assertLess(abs(res["level_db"]), 0.01)
