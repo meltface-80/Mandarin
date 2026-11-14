@@ -32,26 +32,42 @@ internal object EngineUse {
     /** The phone's player playing or not (its onIsPlayingChanged); stopped, the engine at home is looked at now. */
     fun player(c: Context, isPlaying: Boolean) {
         playing = isPlaying
-        if (isPlaying) renewSoon() else Away.lookAtEngine(c)
+        lease()
+        if (!isPlaying) Away.lookAtEngine(c)
     }
+
+    /**
+     * The phone player's tracks ahead held back now (item 416): over the engine with the app not in use (paused, off
+     * screen), they kept it at 30% of a core until Android ended the app for it, on 14 Nov.
+     */
+    fun holdsAhead(c: Context): Boolean = EngineRest.aheadHeld(Store.isAway(c) && Store.viaEngine(c), wanted())
 
     private val keeper = Executors.newSingleThreadScheduledExecutor { r -> Thread(r, "musicdnet-keep").apply { isDaemon = true } }
     @Volatile private var keeping = false
+    @Volatile private var leased = false
 
     /** A new engine process: no longer resting, and its lease given now and renewed while it is wanted. */
     fun started() {
         rest.started()
+        leased = false
         if (!keeping) {
             keeping = true
             keeper.scheduleWithFixedDelay({ renew() }, EngineRest.RENEW_MS, EngineRest.RENEW_MS, TimeUnit.MILLISECONDS)
         }
-        renewSoon()
+        lease()
     }
 
-    private fun renewSoon() { keeper.execute { renew() } }
+    /**
+     * The lease said now: given while wanted, let go at once when the app goes off screen or its player stops (item
+     * 416: kept three minutes on, the engine's CPU guard let a transfer nobody wanted be).
+     */
+    fun lease() { keeper.execute { renew() } }
 
     private fun renew() {
-        if (TailscaleEngine.alive() && wanted()) runCatching { TailscaleEngine.call("POST", "/keep?s=${EngineRest.LEASE_S}", timeoutMs = 3000) }
+        if (!TailscaleEngine.alive()) return
+        val s = EngineRest.lease(wanted(), leased) ?: return
+        leased = s > 0
+        runCatching { TailscaleEngine.call("POST", "/keep?s=$s", timeoutMs = 3000) }
     }
 
     /** The engine ended with [code] (its watcher thread): true when it stopped itself, said in the log from its note. */
@@ -62,16 +78,23 @@ internal object EngineUse {
         return true
     }
 
-    /** A note of a stop of its own not yet logged (the app frozen or ended when it stopped): logged at the next start. */
-    fun leftOver(c: Context) = logNote(c)
+    /**
+     * A note of a stop of its own not yet logged (the app frozen or ended when it stopped), or of the engine busy when
+     * Android ended the app with it (item 416): logged at the next start.
+     */
+    fun leftOver(c: Context) { logNote(c); logNote(c, BUSY_NOTE) }
+
+    /** The engine's busy note: once the app stops it itself, its own log line says the engine's state (item 416). */
+    fun forgetBusy(c: Context) { File(File(c.filesDir, "tailscale"), BUSY_NOTE).delete() }
+    private const val BUSY_NOTE = "busy.txt"
 
     @Synchronized
-    private fun logNote(c: Context) {
-        val f = File(File(c.filesDir, "tailscale"), "stopped.txt")
+    private fun logNote(c: Context, name: String = "stopped.txt") {
+        val f = File(File(c.filesDir, "tailscale"), name)
         if (!f.exists()) return
         val note = runCatching { EngineExit.parse(f.readText().take(16_384)) }.getOrNull()
         f.delete()
-        if (note != null) AppLog.line("REACH", EngineExit.logLine(note) { LogRedact.line(it) }, anomaly = note.kind == "cpu")
+        if (note != null) AppLog.line("REACH", EngineExit.logLine(note) { LogRedact.line(it) }, anomaly = note.kind != "idle")
     }
 
     /**

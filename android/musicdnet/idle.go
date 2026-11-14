@@ -17,9 +17,9 @@
 //   - CPU: over the last CPUWindow it used more than CPUShare of a core with
 //     nothing passing through (under BusyBytes a Tick, all told: item 416, a
 //     cover now and then no longer hides it), whatever the app's lease; or
-//     with the app not using it (no lease), whatever passes. What it was doing
-//     goes to the app's log (stopreport.go), rather than Android ending the
-//     whole app for it.
+//     with the app not using it (no lease for the whole window), whatever
+//     passes. What it was doing goes to the app's log (stopreport.go),
+//     rather than Android ending the whole app for it.
 //
 // Item 416: on 14 Nov Android ended the app again (30% of a core over five
 // minutes) a minute after the phone's paused player gave up its foreground
@@ -133,6 +133,9 @@ func (w *watcher) look() (kind, why, warn string, calm bool) {
 	w.lastMoved = m
 	w.samples = append(w.samples, cpuSample{now, c, m})
 	leased := now.Before(w.keepUntil)
+	// No lease for a whole window: what the window measured is the app's not using it (a pause of a moment, its
+	// lease given back, isn't; nor the minute's transfer before the lease went).
+	unwanted := !now.Before(w.keepUntil.Add(w.cfg.CPUWindow))
 	// The newest sample at least a window old: what the CPU is measured from.
 	from := -1
 	for i := len(w.samples) - 1; i >= 0; i-- {
@@ -156,7 +159,7 @@ func (w *watcher) look() (kind, why, warn string, calm bool) {
 			switch {
 			case share > w.cfg.CPUShare && nothing:
 				return stopCPU, what + ", with nothing passing through (" + passed + ")", "", false
-			case share > w.cfg.CPUShare && !leased:
+			case share > w.cfg.CPUShare && unwanted:
 				return stopCPU, what + ", the app not using it (" + passed + ")", "", false
 			case share > w.cfg.WarnShare && now.Sub(w.lastWarn) >= w.cfg.CPUWindow:
 				w.lastWarn = now

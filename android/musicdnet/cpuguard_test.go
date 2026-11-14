@@ -54,7 +54,9 @@ func TestThe14thWithNothingPassing(t *testing.T) {
 }
 
 // The paused player fetching ahead, two megabytes a look, at 30% of a core: a transfer, but nobody's. Item 404's guard
-// let it be till Android ended the app; with the app's lease run out (10:44:00) it stops whatever passes.
+// let it be till Android ended the app; a whole window after the app's lease ran out (10:44:00) it stops whatever
+// passes: an app frozen with its lease given, say. Android's next five minutes (10:42:04 to 10:47:04) would then have
+// held 53 s of its CPU, under the 75 s it allows.
 func TestThe14thFetchingAheadOnceTheLeaseIsOut(t *testing.T) {
 	f := the14th()
 	for f.t.Before(clock(10, 47, 4)) {
@@ -62,7 +64,7 @@ func TestThe14thFetchingAheadOnceTheLeaseIsOut(t *testing.T) {
 		if kind == "" {
 			continue
 		}
-		if kind != stopCPU || f.t.After(clock(10, 44, 0)) || !strings.Contains(why, "% of a core, the app not using it (") ||
+		if kind != stopCPU || f.t.After(clock(10, 45, 0)) || !strings.Contains(why, "% of a core, the app not using it (") ||
 			!strings.Contains(why, " MB through it") {
 			t.Fatalf("at %s: %q %q", f.t.Format("15:04:05"), kind, why)
 		}
@@ -71,14 +73,34 @@ func TestThe14thFetchingAheadOnceTheLeaseIsOut(t *testing.T) {
 	t.Fatal("never stopped: Android ended the app at 10:47 for this")
 }
 
-// The app now lets the lease go as it goes off screen with the player paused (EngineUse.lease): the next look stops it.
+// The app now lets the lease go as it goes off screen with the player paused (EngineUse.lease): a whole window on,
+// 10:42:30, it stops; a pause of a moment, the lease given back within the window, doesn't.
 func TestThe14thFetchingAheadTheLeaseLetGo(t *testing.T) {
 	f := the14th()
 	f.tick(2<<20, 0.30) // 10:41:15
 	f.tick(2<<20, 0.30) // 10:41:30
-	f.w.keep(0)         // 10:41:34, off screen
+	f.w.keep(0)         // 10:41:30, off screen (10:41:34 in the log)
+	for f.t.Before(clock(10, 42, 15)) {
+		if kind, why := f.tick(2<<20, 0.30); kind != "" {
+			t.Fatalf("%s, the lease let go under a window ago: %q %q", f.t.Format("15:04:05"), kind, why)
+		}
+	}
 	if kind, why := f.tick(2<<20, 0.30); kind != stopCPU || !strings.Contains(why, "the app not using it") {
-		t.Fatalf("10:41:45, the lease let go: %q %q", kind, why)
+		t.Fatalf("10:42:30, the lease let go a window ago: %q %q", kind, why)
+	}
+
+	g := the14th()
+	g.w.keep(0) // 10:41:00, paused from the notification…
+	g.tick(2<<20, 0.30)
+	g.tick(2<<20, 0.30)
+	g.w.keep(180 * time.Second) // …and playing again
+	for i := 0; i < 20; i++ {
+		if kind, why := g.tick(2<<20, 0.30); kind != "" {
+			t.Fatalf("a pause of half a minute, then playing: stopped at %s: %q", g.t.Format("15:04:05"), why)
+		}
+		if g.t.Second() == 0 {
+			g.w.keep(180 * time.Second)
+		}
 	}
 }
 
