@@ -226,6 +226,7 @@ internal object ContractLabels1 {
         "album-edit.url" to listOf("Or paste an image address"),
         "album-edit.url-use" to listOf("Use"),
         "album-edit.match-find" to listOf("Find match"),
+        "album-edit.edition" to listOf("{edition}"),
         "album-edit.release" to listOf("{release}"),
         "album-edit.barcode" to listOf("Or the barcode, or a MusicBrainz link"),
         "album-edit.barcode-use" to listOf("Match", "Matching…"),

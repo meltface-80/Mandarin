@@ -53,10 +53,13 @@ internal sealed partial class Identifier
         var input = new JsObj();
         input["title"] = Score.Tidy(al.ScannedTitle.Length > 0 ? al.ScannedTitle : al.Title);
         input["artist"] = Score.Tidy(al.ScannedArtist.Length > 0 ? al.ScannedArtist : al.Artist);
+        // A compilation filed under one of its acts: that act is no search term, nor scored (item 414).
+        if (!Score.ArtistSuspect(input["artist"], input["title"]) && Compilation(c, al)) input["artist"] = Various;
         input["year"] = (al.ScannedYear ?? al.Year) is long y ? (double)y : null;
         input["tracks"] = tracks;
         input["ids"] = IdsOf(c, al);
         input["context"] = ContextOf(c, al, rows);
+        input["tocs"] = DiscToc.Of(c, al.Id).Select(t => (object?)t).ToList();
         return input;
     }
 
@@ -69,11 +72,15 @@ internal sealed partial class Identifier
         var bits = new List<string>();
         var seen = new HashSet<string>(StringComparer.Ordinal);
         void Add(string s) { if (seen.Add(s)) bits.Add(s); }
+        // An album of several discs in disc folders is the whole set: its "Disc 1" is no sign it is one disc of it (item 414).
+        var set = tracks.Select(t => Js.Truthy(t.Disc) ? Js.ToNumber(t.Disc) : 1).Distinct().Count() > 1;
         foreach (var t in tracks)
         {
             if (string.IsNullOrEmpty(t.Path)) continue;
-            Add(NodePath.Basename(NodePath.Dirname(t.Path)));
-            Add(NodePath.Basename(NodePath.Dirname(NodePath.Dirname(t.Path))));
+            var dir = NodePath.Dirname(t.Path);
+            if (set && ScanNames.DiscDir().IsMatch(NodePath.Basename(dir))) dir = NodePath.Dirname(dir);
+            Add(NodePath.Basename(dir));
+            Add(NodePath.Basename(NodePath.Dirname(dir)));
         }
         if (al.Box != null) Add(al.Box.Name);
         try
@@ -103,13 +110,14 @@ internal sealed partial class Identifier
         var o = new JsObj();
         try
         {
-            var r = Rows(c, "SELECT barcode, catno, mb_album, label FROM albums WHERE id = $1", (double)al.Id).FirstOrDefault() ?? new object?[4];
+            var r = Rows(c, "SELECT barcode, catno, mb_album, label, country FROM albums WHERE id = $1", (double)al.Id).FirstOrDefault() ?? new object?[5];
             var isrcs = Rows(c, "SELECT DISTINCT isrc FROM tracks WHERE album_id = $1 AND isrc IS NOT NULL ORDER BY COALESCE(disc_no, 1), COALESCE(track_no, 9999) LIMIT 3", (double)al.Id)
                 .Select(x => x[0]).ToList();
             o["mbid"] = Js.Truthy(r[2]) ? r[2] : null;
             o["barcode"] = Js.Truthy(r[0]) ? r[0] : null;
             o["catno"] = Js.Truthy(r[1]) ? r[1] : null;
             o["label"] = Js.Truthy(r[3]) ? r[3] : null;
+            o["country"] = Js.Truthy(r[4]) ? r[4] : null;
             o["isrcs"] = isrcs;
         }
         catch (Exception) { o = new JsObj(); o["isrcs"] = new List<object?>(); }
@@ -140,8 +148,8 @@ internal sealed partial class Identifier
     /*
      * The release the files name, found by what they carry — before any search
      * by name — in order of certainty: the release id, the barcode, the
-     * catalogue number (with the label), the ISRCs. Applied when it fits
-     * within "proposed".
+     * catalogue number (with the label), the ISRCs, the tracks' lengths as a
+     * CD's (item 414). Applied when it fits within "proposed".
      */
     private async Task<Resolved?> IdResolve(JsObj input, IReleases mb)
     {
@@ -210,7 +218,8 @@ internal sealed partial class Identifier
             var r = Settle(await FetchBest(shared, input, have, 4, mb), "isrc");
             if (r != null) return r;
         }
-        return null;
+        // Then the tracks' exact lengths, as a CD's table of contents (item 414, Identifier.Editions.cs).
+        return (await DiscResolve(input, mb, have, (cands, by) => Settle(cands, by))).Found;
     }
 
     /* found.sort: the nearest track count first, then MusicBrainz's own score. */
@@ -246,15 +255,15 @@ internal sealed partial class Identifier
      * The releases that could be this album, and the verdict on them. Three
      * questions at most, each only when the one before fell short: the album's
      * name (without its edition, with its artist where the tag can be trusted);
-     * its words in any order with no artist; and when the best fit hasn't the
-     * copy's track count, the other pressings of its record.
+     * its words in any order with no artist; and, once found (or its count is
+     * off), the other pressings of its record (item 414: the edition).
      */
     private async Task<Resolved> Resolve(JsObj input)
     {
         // What the files say, first.
         Resolved? byIds;
         try { byIds = await IdResolve(input, Mb); } catch (Exception) { byIds = null; }
-        if (byIds != null) return byIds;
+        if (byIds != null) return await Pressings(input, byIds);
         var suspect = Score.ArtistSuspect(input["artist"], input["title"]);
         var bare = Score.Bare(input["title"]);
         object? plain = bare.Length > 0 ? bare : input["title"];
@@ -267,21 +276,8 @@ internal sealed partial class Identifier
             cands = [.. cands, .. await FetchBest(found, input, have, FetchMax, Mb)];
             verdict = Score.Decide(input, cands);
         }
-        var best = verdict.Best;
-        if (best != null && Js.Truthy(best.Candidate["group_mbid"]) && (Js.Truthy(best.Parts["missing_tracks"]) || Js.Truthy(best.Parts["extra_tracks"])))
-        {
-            // The pressings with the copy's count, or within one of it: the nearest count fetched first.
-            List<JsObj> group;
-            try { group = await Mb.GroupReleases(best.Candidate["group_mbid"]); } catch (Exception) { group = []; }
-            var n = TracksIn(input);
-            var others = group.Where(r => Math.Abs((Js.Truthy(r["track_count"]) ? Js.ToNumber(r["track_count"]) : 0) - n) <= 1 && !have.Contains(Js.Str(r["mbid"]))).ToList();
-            if (others.Count > 0)
-            {
-                cands = [.. cands, .. await FetchBest(others, input, have, WidenMax, Mb)];
-                verdict = Score.Decide(input, cands);
-            }
-        }
-        return new Resolved(cands, verdict, null);
+        // The record's other pressings: the one that fits the copy best (Identifier.Editions.cs).
+        return await Pressings(input, new Resolved(cands, verdict, null));
     }
 
     /*

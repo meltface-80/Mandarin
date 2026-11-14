@@ -7,7 +7,7 @@
 //      distance(album, cand) → { distance, parts, pairs }; decide(album, cands) → { status, ambiguous, best, scored };
 //      pairTracks(mine, theirs) → { pairs, cost }; exact(parts); why(parts, year); appliesUnasked(distance);
 //      titleDist, stringDist, lengthDist, bare, clean, editionYear, tidy, discOf, artistSuspect, similarity;
-//      APPLY, PROPOSE; minutes(hhmm, fallback); inWindow(settings, "HH:MM")
+//      APPLY, PROPOSE; minutes(hhmm, fallback); inWindow(settings, "HH:MM"); discToc([{ disc, seconds, lossless, rate }]) → tables
 //   { fn: "itunes", base, steps: [{ search: { title, artist } } | { album: id } | { paused: true }] }
 //      → { results }: each step's answer, or { error, paused } where iTunes refused
 //   { fn: "mbpack", file, barcodes, releases, mb, first: [{ barcode } | { release } | { search: [title, artist] }] }
@@ -62,6 +62,7 @@ internal static class ScoreCalls
             case "editionYear": return Score.EditionYear(At(a, 0));
             case "tidy": return Score.Tidy(At(a, 0));
             case "discOf": return Score.DiscOf(At(a, 0));
+            case "discToc": return DiscToc.Call(At(a, 0));
             case "artistSuspect": return Score.ArtistSuspect(At(a, 0), At(a, 1));
             case "similarity": return Score.Similarity(Js.ToNumber(At(a, 0)));
             case "APPLY": return Score.Apply;

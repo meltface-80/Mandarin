@@ -132,7 +132,7 @@ internal class AlbumEditor(private val offset: Long, title: String, artist: Stri
     private var searchSeq by mutableIntStateOf(0)
 
     private fun toast(text: String) = Toast.makeText(context, text, Toast.LENGTH_SHORT).show()
-    private fun take(d: EditState) { state = d; title = d.title; artist = d.artist; year = d.year }
+    private fun take(d: EditState) { state = d; title = d.title; artist = d.artist; year = d.year; d.match?.let { matchSaid = AlbumEdit.matchSaid(it) } }
 
     /** The album's view; an album with no cover of its own is searched for at once. */
     suspend fun load() {
@@ -186,7 +186,7 @@ internal class AlbumEditor(private val offset: Long, title: String, artist: Stri
     /** A barcode, or a release's link. */
     fun useBarcode() { if (barcode.isBlank()) barcodeErr = AlbumEdit.NO_BARCODE else match(barcode.trim(), "barcode") }
 
-    /** A release applied at once ([how] "pick": one offered, by its id): its names in the fields, the album's page told. */
+    /** A release applied at once ([how] "pick": one offered, by its id; "edition": another of the record's, item 414): its names in the fields, the album's page told. */
     fun match(query: String, how: String) {
         val c = client() ?: return
         if (matching) return
@@ -196,11 +196,11 @@ internal class AlbumEditor(private val offset: Long, title: String, artist: Stri
             if (r.isSuccess) withContext(Dispatchers.IO) { runCatching { c.albumEditState(offset) }.getOrNull() }?.let { take(it) }
             matching = false
             r.onSuccess {
-                matchSaid = AlbumEdit.matched(it, offset)
+                matchSaid = state?.match?.let(AlbumEdit::matchSaid) ?: AlbumEdit.matched(it, offset)
                 if (how == "pick") applied = query
-                toast("Matched — names applied")
+                toast(if (how == "edition") "Edition switched — names applied" else "Matched — names applied")
                 onChanged()
-            }.onFailure { if (how == "pick") err = it.message else barcodeErr = it.message }
+            }.onFailure { if (how == "barcode") barcodeErr = it.message else err = it.message }
         }
     }
 

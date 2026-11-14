@@ -4,35 +4,50 @@
  * the identification tests: a release search by title, and a release with
  * its media, tracks, lengths and artist credit, in the shapes the real one
  * answers with; and the release-group search the release days make (one
- * clause per album, any of them), each group with its first release date.
+ * clause per album, any of them), each group with its first release date;
+ * and the fuzzy lookup by a disc's table of contents (item 414).
  */
 const http = require("http");
 
 // The act's own id and MusicBrainz's word for it, where a release says them (artistId, artistNote: item 333).
 function credit(name, id, note) { return [{ name, artist: Object.assign({ name }, id ? { id } : {}, note ? { disambiguation: note } : {}) }]; }
 
-/* A release from a short description: { id, title, artist, date, tracks: [[title, seconds], …],
- * group: { title, date } (the release group, when it differs), disambiguation, barcode,
- * catno (with label), isrcs: [code per track] } */
+/* A release from a short description: { id, title, artist, date, tracks: [[title, seconds], …]
+ * (or discs: [[[title, seconds], …], …], one list a disc), group: { title, date } (the release
+ * group, when it differs), disambiguation, barcode, catno (with label), isrcs: [code per track],
+ * toc: true when a disc ID has been submitted for it (the fuzzy lookup by table of contents finds it) } */
 function release(d) {
   const g = d.group || {};
+  const discs = d.discs || [d.tracks];
   return {
     id: d.id, title: d.title, date: d.date || "", country: d.country || "XW", disambiguation: d.disambiguation || "",
     barcode: d.barcode || "", isrcs: d.isrcs || [],
     "artist-credit": credit(d.artist, d.artistId, d.artistNote),
     "label-info": d.label ? [{ "catalog-number": d.catno || "1", label: { id: d.label + "-id", name: d.label } }] : [],
     "release-group": { id: g.id || d.id + "-rg", title: g.title || d.title, "first-release-date": g.date || d.date || "", "primary-type": "Album" },
-    media: [{ position: 1, format: "CD", "track-count": d.tracks.length,
-      tracks: d.tracks.map(([title, s], i) => ({ id: `${d.id}-t${i + 1}`, position: i + 1, number: String(i + 1), title, length: s == null ? null : Math.round(s * 1000),
-        "artist-credit": credit(d.artist), recording: { id: `${d.id}-r${i + 1}`, title, length: s == null ? null : Math.round(s * 1000) } }))
-    }]
+    media: discs.map((tracks, di) => ({ position: di + 1, format: "CD", "track-count": tracks.length,
+      tracks: tracks.map(([title, s], i) => ({ id: `${d.id}-${di ? "d" + (di + 1) + "-" : ""}t${i + 1}`, position: i + 1, number: String(i + 1), title, length: s == null ? null : Math.round(s * 1000),
+        "artist-credit": credit(d.artist), recording: { id: `${d.id}-${di ? "d" + (di + 1) + "-" : ""}r${i + 1}`, title, length: s == null ? null : Math.round(s * 1000) } }))
+    }))
   };
+}
+
+/* Every track of a release, on all its discs. */
+const count = r => r.media.reduce((n, m) => n + m["track-count"], 0);
+
+/* A disc's table of contents as MusicBrainz keeps it: its tracks' offsets in sectors (75 a second, the first at 150) and the lead-out. */
+function tocOf(m) {
+  const offsets = [];
+  let at = 150;
+  for (const t of m.tracks) { offsets.push(at); at += Math.round((t.length || 0) / 1000 * 75); }
+  return { offsets, leadout: at };
 }
 
 class FakeMusicBrainz {
   /* labels (the record labels, for the logo tests): [{ id, name }] */
   constructor(releases, { labels = [] } = {}) {
     this.releases = releases.map(release);
+    this.tocs = new Set(releases.filter(d => d.toc).map(d => d.id));
     this.labels = labels;
     this.requests = [];
     this.agents = [];     // each request's User-Agent, beside it
@@ -68,7 +83,7 @@ class FakeMusicBrainz {
           : this.releases.filter(r => r.title.toLowerCase() === want);
         return send({ count: hits.length, offset: 0, releases: hits.map((r, i) => ({
           id: r.id, score: 100 - i, title: r.title, date: r.date, country: r.country, "artist-credit": r["artist-credit"], "label-info": r["label-info"],
-          "track-count": r.media[0]["track-count"], media: [{ format: "CD", "track-count": r.media[0]["track-count"] }]
+          "track-count": count(r), media: r.media.map(x => ({ format: "CD", "track-count": x["track-count"] }))
         })) });
       }
       if (u.pathname === "/ws/2/release-group/") {
@@ -89,12 +104,21 @@ class FakeMusicBrainz {
         const rs = this.releases.filter(r => r.isrcs.includes(code));
         if (!rs.length) { res.statusCode = 404; return send({ error: "Not Found" }); }
         return send({ isrc: code, recordings: rs.map(r => ({ id: r.id + "-rec-" + code, title: "",
-          releases: [{ id: r.id, title: r.title, "track-count": r.media[0]["track-count"] }] })) });
+          releases: [{ id: r.id, title: r.title, "track-count": count(r) }] })) });
       }
       if ((m = /^\/ws\/2\/release-group\/([^/]+)$/.exec(u.pathname))) {
         const rs = this.releases.filter(r => r["release-group"].id === decodeURIComponent(m[1]));
         if (!rs.length) { res.statusCode = 404; return send({ error: "Not Found" }); }
-        return send({ id: m[1], title: rs[0]["release-group"].title, releases: rs.map(r => ({ id: r.id, title: r.title, media: [{ "track-count": r.media[0]["track-count"] }] })) });
+        return send({ id: m[1], title: rs[0]["release-group"].title, releases: rs.map(r => ({ id: r.id, title: r.title, date: r.date, country: r.country, media: r.media.map(x => ({ "track-count": x["track-count"] })) })) });
+      }
+      if (u.pathname === "/ws/2/discid/-") {
+        // The fuzzy lookup by table of contents ("first last leadout offsets…"): a release with a disc ID submitted
+        // whose disc has as many tracks, each offset and the lead-out within two seconds.
+        const [, , leadout, ...offsets] = (u.searchParams.get("toc") || "").split(/[ +]/).map(Number);
+        const near = (a, b) => Math.abs(a - b) <= 150;
+        const fits = disc => { const t = tocOf(disc); return t.offsets.length === offsets.length && near(t.leadout, leadout) && t.offsets.every((x, i) => near(x, offsets[i])); };
+        const hits = this.releases.filter(r => this.tocs.has(r.id) && r.media.some(fits));
+        return send({ "release-count": hits.length, "release-offset": 0, releases: hits });
       }
       if ((m = /^\/ws\/2\/release\/([^/]+)$/.exec(u.pathname))) {
         const r = this.releases.find(x => x.id === decodeURIComponent(m[1]));

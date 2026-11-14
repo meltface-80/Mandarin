@@ -90,10 +90,39 @@ internal static partial class Library
             x["source"] = TJs.Truthy(c["source"]) ? c["source"] : "musicbrainz";
             x["tracks"] = (c["tracks"] as List<object?> ?? []).Select(t => t is JsObj tj ? tj["title"] : Undef.V).ToList();
             x["parts"] = TJs.Truthy(c["parts"]) ? c["parts"] : null;
+            // The record's other pressings near enough, to switch to in one tap (item 414).
+            x["editions"] = (c["editions"] as List<object?> ?? []).OfType<JsObj>().Where(e => !TJs.StrictEq(e["mbid"], c["mbid"])).Select(e => (object?)e).ToList();
             o["candidate"] = x;
         }
         else o["candidate"] = null;
         return o;
+    }
+
+    /*
+     * An album's applied match as Edit album says it (item 414): the release's names, how alike, how it was found, and
+     * the record's other editions near enough, each a tap from being written in its place. Null: none applied.
+     */
+    private static JsonNode? MatchOf(Album al)
+    {
+        try
+        {
+            var r = Identifier.Row(al.Key);
+            if (r == null || r.Status != "applied" || !TJs.Truthy(r.Candidate) || Scan.JsJson.Parse(TJs.Str(r.Candidate)) is not JsObj c) return null;
+            object? Or(object? v) => TJs.Truthy(v) ? v : null;
+            var o = new JsObj();
+            o["mbid"] = Or(c["mbid"]);
+            o["title"] = Score.Clean(c["title"]);
+            o["artist"] = Or(c["artist"]);
+            o["year"] = Or(c["year"]);
+            o["similarity"] = TJs.IsNullish(r.Distance) ? null : TJs.Round((1 - TJs.ToNumber(r.Distance)) * 100);
+            o["source"] = TJs.Truthy(c["source"]) ? c["source"] : "musicbrainz";
+            o["matched_by"] = Or(c["matched_by"]);
+            o["from_pack"] = TJs.Truthy(c["from_pack"]);
+            o["manual"] = Or(c["manual"]);
+            o["editions"] = (c["editions"] as List<object?> ?? []).OfType<JsObj>().Where(e => !TJs.StrictEq(e["mbid"], c["mbid"])).Select(e => (object?)e).ToList();
+            return JsonNode.Parse(TJs.Json(o) ?? "null");
+        }
+        catch (Exception) { return null; }   // the match is a help to the editor, not a need
     }
 
     /* The page's state; with the lists of albums only when asked (lists > 0), each list's full length in counts. */
@@ -222,7 +251,9 @@ internal static partial class Library
         var al = s.Find(JsNumber(b["offset"]));
         if (al == null) return await JsError(ctx, 404, "No such album");
         var q = TJs.Trim(TJs.Truthy(body["query"]) ? TJs.Str(body["query"]) : "");
-        var pick = TJs.StrictEq(body["how"], "pick");
+        // "pick": one of Find match's suggestions; "edition": another pressing the verdict kept (item 414).
+        var how = TJs.StrictEq(body["how"], "pick") ? "pick" : TJs.StrictEq(body["how"], "edition") ? "edition" : null;
+        var pick = how != null;
         string? barcode = null, mbid = null, group = null;
         Match m;
         if (pick && q.Length > 0) mbid = q;                                      // one of our own suggestions, by its id
@@ -231,7 +262,7 @@ internal static partial class Library
         else if (Uuid().IsMatch(q) && q.Length == 36) mbid = q;
         else if (BarcodeShape().IsMatch(q)) barcode = q;
         else return await JsError(ctx, 400, "Enter a barcode (the digits under the bars), or paste a MusicBrainz release link");
-        try { if (!al.Transient) await id.Match(al, barcode, mbid, group, pick ? "pick" : null); }
+        try { if (!al.Transient) await id.Match(al, barcode, mbid, group, how); }
         catch (Exception e) { return await JsError(ctx, e is IdentifyError ie ? ie.Status : 500, e.Message); }
         var cur = await Current();
         return cur is var (s2, st2) ? await SendJs(ctx, await IdentifyPage(id, s2, st2, 500)) : await SendJs(ctx, await IdentifyPage(id, s, st, 500));
