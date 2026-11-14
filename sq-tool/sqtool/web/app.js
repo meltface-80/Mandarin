@@ -120,12 +120,14 @@
     var m = h.match(/^#\/test\/([A-Za-z0-9._-]+)/);
     closeSheet();
     if (m) showTest(m[1]);
+    else if (h.indexOf("#/compare") === 0) { leavePage(); S.page = "compare"; S.tid = null; window.SQCompare.show(h); }
     else if (h.indexOf("#/new") === 0) showNew();
     else showHome();
   }
   window.addEventListener("hashchange", function () { route(); window.scrollTo(0, 0); });
 
   function leavePage() {
+    window.SQCompare.leave();
     S.charts = [];
     S.html = {};
     S.test = null;
@@ -138,7 +140,7 @@
     leavePage();
     S.page = "home"; S.tid = null;
     main.innerHTML =
-      '<section class="card hero"><h1>Does your DAC get exactly what is in the file?</h1>' +
+      window.SQCompare.modes("dac") + '<section class="card hero"><h1>Does your DAC get exactly what is in the file?</h1>' +
       "<p>SQ-tool proves it, sample by sample. Mandarin plays a song to a zone and records exactly what the zone's DAC is fed; " +
       "SQ-tool compares that recording with the file.</p>" +
       "<ol><li>Choose a song from Mandarin's music folder.</li>" +
@@ -183,12 +185,14 @@
     });
   }
 
-  function songButton(path, name, meta, ok) {
+  // A song to choose: [attr] the attribute that carries its path (a test's: data-song), [folder] where it is.
+  function songButton(path, name, meta, ok, attr, folder) {
     if (ok === false) {
       return '<button class="file song off" disabled title="SQ-tool reads FLAC, WAV and AIFF files"><span class="ico">♪</span><span class="fname">' +
         esc(name) + '</span><span class="fmeta">can\'t be read here</span></button>';
     }
-    return '<button class="file song" data-song="' + esc(path) + '"><span class="ico">♪</span><span class="fname">' + esc(name) +
+    return '<button class="file song" ' + (attr || "data-song") + '="' + esc(path) + '"' + (folder != null ? ' data-folder="' + esc(folder) + '"' : "") +
+      '><span class="ico">♪</span><span class="fname">' + esc(name) +
       '</span><span class="fmeta">' + esc(meta || "") + "</span></button>";
   }
 
@@ -546,9 +550,7 @@
         sp.floor[sp.mode] = Number(e.target.value); save("sq.floor", sp.floor); loadSpec();
       });
       $("#spec-matched").addEventListener("change", function (e) { sp.matched = e.target.checked; loadSpec(); });
-      $("#cb-grad").style.background = "linear-gradient(to right," + MAP_STEPS.map(function (c, i) {
-        return "rgb(" + c.join(",") + ") " + (10 * i) + "%";
-      }).join(",") + ")";
+      $("#cb-grad").style.background = mapGradient();
       bindSpecPointer($("#spec-stack"));
     }
     var data = specData(t), panels = specPanels(t);
@@ -851,6 +853,11 @@
 
   function cssVar(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
 
+  // The spectrogram colour map as a CSS gradient, for its colour bar.
+  function mapGradient() {
+    return "linear-gradient(to right," + MAP_STEPS.map(function (c, i) { return "rgb(" + c.join(",") + ") " + (10 * i) + "%"; }).join(",") + ")";
+  }
+
   function niceStep(range, target) {
     var raw = range / target, mag = Math.pow(10, Math.floor(Math.log10(raw))), steps = [1, 2, 5, 10];
     for (var i = 0; i < steps.length; i++) if (steps[i] * mag >= raw) return steps[i] * mag;
@@ -1139,6 +1146,11 @@
       else if (stack && S.test) loadSpec();
     }, 200);
   });
+
+  // For "Compare two songs" (compare.js, compare-view.js): this page's helpers.
+  window.SQ = { api: api, esc: esc, toast: toast, fmtRate: fmtRate, fmtSecs: fmtSecs, fmtTime: fmtTime, fmtDb: fmtDb,
+    fmtBytes: fmtBytes, fmtHz: fmtHz, songButton: songButton, chartBlock: chartBlock, spectrumChart: spectrumChart,
+    legend: legend, mapGradient: mapGradient, MAP: MAP };
 
   route();
   poll();

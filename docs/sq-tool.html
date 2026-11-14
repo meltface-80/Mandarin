@@ -66,6 +66,43 @@
     <figure class="shot"><img src="img/sq-tool-downloads.jpg" alt="Downloads: the song, what the DAC was fed, the difference" loading="lazy" decoding="async" data-i18n-attr="alt:sq-tool.shot9"><figcaption data-i18n="sq-tool.test-screen-by.figcaption9"><b>Downloads</b>: the song, what the DAC was fed, and the difference, as WAV files.</figcaption></figure>
   </div>
 
+  <h2 data-i18n="sq-tool.compare.title">Compare two songs</h2>
+  <p data-i18n="sq-tool.compare.p1">SQ-tool also compares one song with another, file against file: a 24-bit/192 kHz release against a 16-bit/44.1 kHz
+     one, an original against a remaster. Choose <b>Compare two songs</b> at the top of its page, then song A and song B
+     from the music folder, and <b>Compare</b>.</p>
+  <ul class="plain">
+    <li data-i18n="sq-tool.compare.li1"><b>Common ground:</b> where the sample rates differ, the higher is resampled to the lower (ffmpeg's soxr
+        resampler at its highest precision); different channel counts are both mixed down to mono. Then, in floating point,
+        B is lined up with A to a fraction of a sample, and its level and polarity are matched.</li>
+    <li data-i18n="sq-tool.compare.li2"><b>The null test:</b> A is subtracted from B. What is left is given against the music (the null depth) and in
+        dBFS, overall, below 20 kHz and per channel, beside the level difference, the time offset and the polarity.</li>
+    <li data-i18n="sq-tool.compare.li3"><b>Where they differ:</b> the difference by third octave, and spectrograms of A, B and the difference.</li>
+    <li data-i18n="sq-tool.compare.li4"><b>Dynamics:</b> each song's peak, rms, crest factor, loudness (LUFS) and loudness range, so that a louder,
+        more compressed remaster shows.</li>
+    <li data-i18n="sq-tool.compare.li5"><b>Downloads:</b> the difference as a WAV file to listen to, as it is or gain-normalised (made loud on
+        purpose), and A and B as compared.</li>
+  </ul>
+  <h3 data-i18n="sq-tool.compare.verdicts">The verdicts</h3>
+  <ul class="plain">
+    <li data-i18n="sq-tool.compare.v1"><b>Identical</b>: the same samples, bit for bit, wherever both have music.</li>
+    <li data-i18n="sq-tool.compare.v2"><b>The same master</b>: below 20 kHz, what is left is at the noise floor of the coarser file (about −96 dBFS
+        at 16 bits, −144 dBFS at 24) or within 10 dB of it, or 90 dB below the music. The difference is then only resampling,
+        rounding and dither, and any level change or inverted polarity, which it says.</li>
+    <li data-i18n="sq-tool.compare.v3"><b>Different only above 20 kHz</b>: neither was resampled, below 20 kHz they null as one master does, and 90%
+        or more of the difference lies above it.</li>
+    <li data-i18n="sq-tool.compare.v4"><b>The same music, a different master</b>: they line up, but more is left. It says whether B is louder or
+        quieter (by 1 LU or more of loudness) and more or less compressed (by 1 LU or more of loudness range, or 1 dB of crest
+        factor).</li>
+    <li data-i18n="sq-tool.compare.v5"><b>Different recordings</b>: nothing lines up, or what is left is within 6 dB of the music.</li>
+  </ul>
+  <div class="note" data-i18n="sq-tool.compare.note1">DSD files aren't compared: SQ-tool compares PCM. A lossy file can be, with a note that its decoder adds
+     differences of its own. Songs of different lengths are compared where both play. From the command line:
+     <code>sq-tool compare-files a.flac b.flac</code>.</div>
+  <div class="shots">
+    <figure class="shot"><img src="img/sq-tool-compare.jpg" alt="SQ-tool comparing two songs: the same master" loading="lazy" decoding="async" data-i18n-attr="alt:sq-tool.shot10"><figcaption data-i18n="sq-tool.compare.figcaption1">One master at 24-bit/192 kHz and at 16-bit/44.1 kHz: <b>the same master</b>. Below 20 kHz, what is left is the 16-bit file's dither, 78 dB below the music; above it, the resamplers' filters differ.</figcaption></figure>
+    <figure class="shot"><img src="img/sq-tool-compare-spectrum.jpg" alt="The difference by third octave, and spectrograms of A, B and the difference" loading="lazy" decoding="async" data-i18n-attr="alt:sq-tool.shot11"><figcaption data-i18n="sq-tool.compare.figcaption2"><b>The difference across frequency</b>, beside the music, and spectrograms of A, B lined up with A, and the difference.</figcaption></figure>
+  </div>
+
   <h2 data-i18n="sq-tool.what-it-needs.title">What it needs</h2>
   <ul class="plain">
     <li data-i18n="sq-tool.what-it-needs.li1"><b>Mandarin OS and the Linux installer</b> bring what it needs (Python 3 and numpy).</li>
