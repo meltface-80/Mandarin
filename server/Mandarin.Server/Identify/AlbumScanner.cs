@@ -6,8 +6,8 @@
 //
 // When: in the schedule's hours, Scheduling's (Identifier.Stored: on, between its start and end times on the
 // server's clock; off, any time, day and night); never while the library is scanned; and never while music plays
-// (a room or a phone playing, or a track being made as it plays): no album is started then, and the one under way
-// is finished.
+// (a room or a phone playing Mandarin's music, or a track being made as it plays): no album is started then, and the
+// one under way is finished. What holds it is said by name (ScannerHeld.cs, item 417b).
 //
 // The switch is kept as the setting "albumScanner". Never set (a server from before it): on when any of the four
 // switches before it was on, each read with its own default. The old switches' requests are taken as this one's
@@ -61,6 +61,7 @@ internal static class AlbumScanner
         if (Jobs.Loudness is { } l) { if (on) l.Start(); else l.Stop(); }
         AutoCovers.Current?.Switched(on);
         AlbumProgress.Forget();
+        ScannerHeld.Forget();
     }
 
     /* Scheduling's hours moved, or Scheduling switched: the cover finder's run put off till then, made if it may be now. */
@@ -77,6 +78,9 @@ internal static class AlbumScanner
         return !Js.Truthy(s["schedule"]) || Identifier.InWindow(s);
     }
 
-    /* Music playing: a room or a phone playing (or loading its track) as last heard (Playback/Hub.Heard.cs), or a track being made as it plays. */
-    public static bool Playing() => (Playback.Hub.Current?.PlayingNow() ?? 0) > 0 || Cpu.MakingNow;
+    /*
+     * Music playing: a room or a phone playing Mandarin's music (or loading its track) as last heard
+     * (Playback/Hub.Heard.cs), or a track being made as it plays; which, by name (ScannerHeld.cs, item 417b).
+     */
+    public static bool Playing() => ScannerHeld.Now().Count > 0;
 }

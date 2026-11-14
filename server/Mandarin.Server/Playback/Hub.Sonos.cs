@@ -156,6 +156,7 @@ internal sealed partial class Hub
         {
             State = SonosState.GetValueOrDefault(Str(transport["CurrentTransportState"]), "stopped"),
             TrackUri = trackUri,
+            DeviceUri = trackUri,
             TrackId = Phones.TrackIdFromUri(trackUri),
             TrackNumber = NumOr0(position["Track"]),
             QueueLength = onQueue ? NumOr0(media["NrTracks"]) : 0,

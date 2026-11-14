@@ -55,3 +55,18 @@ test("matching by sound (item 414c): the step on the Now line, and why the album
   assert.strictEqual(words.scanSoundNote({ sound: null }), "", "matched by sound, or nothing left unsure: nothing said");
   assert.strictEqual(words.scanSoundNote(null), "");
 });
+
+test("paused while music plays, and where (item 417b): the rooms and phones by name, else the track made and its room", () => {
+  const at = holding => words.scanNowWords({ now: { reason: "playing", holding } });
+  const room = (name, kind = "room") => ({ kind, name, state: "playing", since: 1, heard: 2, track: null });
+  assert.strictEqual(at([room("Living room")]), "Paused while music plays in Living room");
+  assert.strictEqual(at([room("Kitchen"), room("Living room")]), "Paused while music plays in Kitchen and Living room");
+  assert.strictEqual(at([room("Den"), room("Pixel 8", "phone"), room("Living room")]), "Paused while music plays in Den, Pixel 8 and Living room");
+  // A making beside a room: the room is what plays.
+  assert.strictEqual(at([room("Lounge"), { kind: "making", name: "Lounge", state: "making", track: "01 Long" }]), "Paused while music plays in Lounge");
+  assert.strictEqual(at([{ kind: "making", name: "Lounge", state: "making", track: "01 Long" }]), "Paused while a track is made for Lounge");
+  assert.strictEqual(at([{ kind: "making", name: null, state: "making", track: "01 Long" }]), "Paused while a track is made as it plays");
+  // A server from before it says nothing of what plays.
+  assert.strictEqual(at(undefined), "Paused while music plays");
+  assert.strictEqual(at([]), "Paused while music plays");
+});

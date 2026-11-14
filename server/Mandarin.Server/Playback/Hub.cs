@@ -143,6 +143,7 @@ internal sealed partial class Hub
         lock (Gate)
         {
             Revision++;
+            heardKept = null;   // what plays asked afresh (Hub.Heard.cs)
             woken = [.. waiters];
             waiters.Clear();
         }
@@ -197,6 +198,7 @@ internal sealed partial class Hub
         lock (Gate)
         {
             next.LoadingSince = ZoneState.LoadingFrom(prev, next);
+            next.Since = ZoneState.SinceFrom(prev, next);
             State[uid] = next;
             // A phone's or a renderer's place in its queue, kept across a restart.
             if (Store != null && (Phones.IsPhoneId(uid) || IsUpnp(uid)))

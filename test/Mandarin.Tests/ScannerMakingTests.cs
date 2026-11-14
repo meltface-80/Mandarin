@@ -9,6 +9,7 @@ namespace Mandarin.Tests;
 /// "Paused while music plays" all that while: the owner's, on 14 Nov, with the rooms and the phone paused. Now a making
 /// counts while it goes on (more made, or more of it read) and for a while after it last did (here 3 s); one ended
 /// counts for its while after (here 15 s), as before. Its cores stay kept, held or not: the device may go on at once.
+/// Since item 417b what holds it is named: the track made (no room plays it here).
 /// </summary>
 public sealed class ScannerMakingTests
 {
@@ -43,8 +44,15 @@ public sealed class ScannerMakingTests
         var buf = new byte[1 << 16];
         long read = 0;
         while (read < 256 * 1024) read += await body.ReadAsync(buf);
-        // Made as it plays, its start read: music playing.
+        // Made as it plays, its start read: music playing; what holds it named (item 417b): the track made, no room on it.
         Assert.Equal("playing", await Reason(s));
+        var now = (await s.Api("album-scanner")).J["now"];
+        var held = JsonExtensions.Items(now?["holding"]).ToList();
+        Assert.Equal(["making"], held.Select(h => h.Str("kind")));
+        Assert.Equal("01 Long", held[0].Str("track"));
+        Assert.Null(held[0].Str("name"));
+        Assert.Equal("making", held[0].Str("state"));
+        Assert.Contains(s.Server.Logs, l => l.Contains("[scanner] held: a track made as it plays (01 Long; last made or read ", StringComparison.Ordinal));
 
         // Then nothing read (the device paused): the making held 2 s of music ahead, under way still, its cores kept;
         // once it has made nothing more for 3 s, no music plays.

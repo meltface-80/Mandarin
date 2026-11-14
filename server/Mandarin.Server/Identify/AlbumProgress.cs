@@ -65,7 +65,8 @@ internal static class AlbumProgress
 
     /*
      * GET /api/album-scanner's answer: { on, schedule: { on, start, end }, albums, done, unidentified, proposed,
-     * now: { reason, step, album }, sound, unreachable? }. sound (item 414c): why the albums unsure aren't matched by
+     * now: { reason, step, album, holding }, sound, unreachable? }. holding (item 417b): while it is "playing", what
+     * holds it, [{ kind: room, phone or making, name, state, since, heard, track }] (ScannerHeld.Json); else empty. sound (item 414c): why the albums unsure aren't matched by
      * sound, Identifier.SoundSays. now.reason: off; waiting (outside the schedule's hours); scanning
      * (the library); playing; working (step: identifying, fingerprinting, matching by sound, measuring loudness or finding a cover, of album
      * { offset, artist, title }; neither between two albums); unreachable (MusicBrainz); done; later (what is left is
@@ -100,18 +101,19 @@ internal static class AlbumProgress
         string reason = "working";
         string? step = null;
         JsonObject? album = null;
+        List<ScannerHeld.Holder> held = [];
         JsonObject Of(object? offset, object? artist, object? title) =>
             new() { ["offset"] = offset is double d ? d : offset is long l ? l : null, ["artist"] = Js.IsNullish(artist) ? "" : Js.Str(artist), ["title"] = Js.IsNullish(title) ? "" : Js.Str(title) };
         if (!on) reason = "off";
         else if (!AlbumScanner.InHours()) reason = "waiting";
         else if (st.Scanning) reason = "scanning";
-        else if (AlbumScanner.Playing()) reason = "playing";
+        else if ((held = ScannerHeld.Now()).Count > 0) reason = "playing";
         else if (id is { Running: true } && idState?["current"] is JsObj cur) { step = id.SoundStep ?? "identifying"; album = Of(cur["id"], cur["artist"], cur["title"]); }
         else if (Jobs.Loudness?.Measuring is { } m) { step = "measuring loudness"; album = Of(m["offset"], m["subtitle"], m["title"]); }
         else if (AutoCovers.Current?.Now is { } c) { step = "finding a cover"; album = (JsonObject)c.DeepClone(); }
         else if (n.Done >= n.Albums) reason = "done";
         else if (idReason == "unreachable") reason = "unreachable";
         else if (!(id is { Running: true } && idReason is "starting" or "pack") && Jobs.Loudness is not { Busy: true } && AutoCovers.Current is not { Running: true }) reason = "later";
-        return new JsonObject { ["reason"] = reason, ["step"] = step, ["album"] = album };
+        return new JsonObject { ["reason"] = reason, ["step"] = step, ["album"] = album, ["holding"] = ScannerHeld.Json(held) };
     }
 }

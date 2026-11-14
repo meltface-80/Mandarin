@@ -154,8 +154,8 @@ internal static partial class PlaybackRoutes
     private static string? CustomName(SqliteConnection c, string id) => Register.NameOf(c, id);
     private static bool Renamed(SqliteConnection c, ZoneInfo z) => !z.IsPhone && z.Outputs.Any(o => CustomName(c, o.OutputId) != null);
 
-    /* A group is named from its rooms the way the Sonos code names it: the coordinator first, "A + B", or "A + 2". */
-    private static string ZoneName(SqliteConnection c, ZoneInfo z)
+    /* A group is named from its rooms the way the Sonos code names it: the coordinator first, "A + B", or "A + 2" (and so the Album Scanner names what holds it: Hub.Heard.cs). */
+    internal static string ZoneName(SqliteConnection c, ZoneInfo z)
     {
         if (!Renamed(c, z)) return z.DisplayName;
         var coord = z.Group?.CoordinatorUid ?? z.ZoneId;

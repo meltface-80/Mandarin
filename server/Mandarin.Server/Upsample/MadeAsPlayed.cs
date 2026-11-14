@@ -127,7 +127,7 @@ internal static class MadeAsPlayed
         // Begun again where a device seeks to past what is made (item 272).
         if (job.Resume != null) job.Resume.Track = Path.GetFileName(t.Path);
         // Playback, the most of it there is (item 260): its cores kept, all but two while it runs (item 267), and it put on them.
-        Cpu.Making(true);
+        Cpu.Making(t.Id, Path.GetFileNameWithoutExtension(t.Path));
         // Held as Roon holds its DSP, some way ahead of the device, where its length is known (item 271: Pace.cs).
         var bytes = p.DsdUp != 0 ? DsdPlan.FileBytes(t.Id, p, seconds) : p.Wav ? WavHeader.FileBytes(p, seconds) : 0;
         try { return await Made(t, p, job, err, seconds, spec, next, bytes); }
@@ -138,7 +138,7 @@ internal static class MadeAsPlayed
     private static async Task<int> RunAlbum(AlbumRun run, ConvPlan p, ConvJob job, StringBuilder err)
     {
         var list = run.List(job.Final);
-        Cpu.Making(true);
+        Cpu.Making(run.Tracks[0].Id, Path.GetFileNameWithoutExtension(run.Tracks[0].Path));
         try { return await Made(run.Tracks[0], p, job, err, run.Total, run.Job(p, job.Part, list), null, run.Bytes(p), $", an album's {run.Tracks.Count} track(s) as one"); }
         finally
         {

@@ -6,7 +6,8 @@
  * every second or few, and "loading" counted while it had been heard from lately, which a room read every second
  * always had; the owner's Album Scanner said "Paused while music plays" with the Sonos and the phone paused. Here a
  * Sonos of the test's own says each state in turn, and loading counts for 3 s (MANDARIN_HEARD_LOADING_MS); a phone
- * that reports loading again and again likewise.
+ * that reports loading again and again likewise. Since item 417b a room counts only while it plays Mandarin's own music
+ * (test/scanner-holding.test.js): the Sonos here is given an album of the library to play first.
  */
 const test = require("node:test");
 const assert = require("node:assert");
@@ -42,7 +43,13 @@ test("a paused or stopped room is no music playing, nor one that says it is load
     const H = { Authorization: "Bearer " + await signIn(B), "Content-Type": "application/json" };
     const api = async (p, body) => (await fetch(B + "/api/" + p, body ? { method: "POST", headers: H, body: JSON.stringify(body) } : { headers: H })).json();
     const reason = async () => (await api("album-scanner")).now.reason;
-    await until(async () => ((await api("zones")).zones || []).length > 0, 30000, "the Sonos room");
+    const lounge = (await until(async () => ((await api("zones")).zones || [])[0], 30000, "the Sonos room")).zone_id;
+    await until(async () => (await api("status")).index_count > 0, 30000, "the library");
+    const album = (await api("library/albums?sort=album")).albums[0];
+    const played = await api("play", { offset: album.offset, zone_or_output_id: lounge, kind: "play_now" });
+    assert.ok(!played.error, JSON.stringify(played));
+    await until(() => room.queue.length > 0 && room.state === "PLAYING", 15000, "the album given the room");
+    room.state = "STOPPED";
     assert.equal((await api("album-scanner", { on: true, schedule: false })).on, true);
 
     // Playing: music plays. Paused, or stopped: none, however often it is read.

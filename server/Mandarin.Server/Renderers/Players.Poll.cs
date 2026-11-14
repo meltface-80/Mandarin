@@ -271,6 +271,7 @@ internal sealed partial class Players
         var next = ZoneState.Blank(new Volume(p.Volume.Value, p.Volume.Muted));
         next.State = tstate;
         next.TrackUri = item?.Uri ?? uri;
+        next.DeviceUri = uri;   // what it says it plays: ours, or another's (item 417b)
         next.TrackId = item != null ? item.TrackId : Phones.TrackIdFromUri(uri);
         next.TrackNumber = item != null ? index + 1 : 0;
         lock (gate) { next.QueueLength = p.Queue.Count; next.OnQueue = p.Queue.Count > 0; next.Shuffle = p.Shuffle; next.Loop = p.Loop; }
