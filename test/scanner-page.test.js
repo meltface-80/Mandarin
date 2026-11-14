@@ -55,6 +55,9 @@ const DRIVER = `(async () => {${OPEN}
   for (let last = -1, i = 0; i < 40 && end() !== last; i++) { last = end(); await sleep(150); }
   out.bottom = end();
   out.height = innerHeight;
+  // Where the room went, said when it doesn't fit: the pane's top, each block's height, each line of text's.
+  out.room = { top: Math.round(body.getBoundingClientRect().top), blocks: [...body.querySelectorAll("[data-blk]")].map(x => x.dataset.blk + " " + Math.round(x.getBoundingClientRect().height)),
+    lines: [...body.querySelectorAll(".scan-sub, .settings-note, .id-progress, [data-parity='settings-scanner.now']")].map(x => Math.round(x.getBoundingClientRect().height) + " " + x.textContent.trim().slice(0, 40)) };
   out.width = document.documentElement.scrollWidth <= innerWidth;
   // Schedule on: its times; off: hidden, and it runs any time; on again: back.
   const times = () => [...body.querySelectorAll("[data-scan-time]")].filter(shown).map(t => t.getAttribute("aria-label") + " " + t.value);
@@ -166,7 +169,7 @@ test("Library Scanner on, at a phone's size: the six sections in order on one sc
     assert.match(r.now, /^(Waiting for 01:00|Now: .+|Paused while .+|The rest are .+)$/);
     assert.deepEqual(r.gone, [], "no separate switch, readout or list of the old page");
     assert.deepEqual(r.folders, [["Unidentified", "1", "Tap to place them by hand"], ["To confirm", "1", "Found, but not sure enough to apply unasked"]]);
-    assert.ok(r.bottom <= r.height, `everything on one screen: the processor ends at ${r.bottom} of ${r.height}`);
+    assert.ok(r.bottom <= r.height, `everything on one screen: the processor ends at ${r.bottom} of ${r.height} (${JSON.stringify(r.room)})`);
     assert.equal(r.width, true, "nothing wider than the phone");
     assert.match(r.schedNoteOn, /^Schedule\s+Runs only between these times$/);
     assert.equal(r.timesOn.length, 2);
