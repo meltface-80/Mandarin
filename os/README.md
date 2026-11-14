@@ -43,12 +43,20 @@ sudo os/build.sh          # os/mandarin-os_<version>.raw; needs mkosi 25+, syste
 sudo os/test/boot-test.sh os/mandarin-os_<version>.raw   # installed and started in QEMU, then checked
 os/test/next-mandarin.sh /tmp/next                        # Mandarin as this checkout, but 9.9.9 (not as root)
 sudo env "PATH=$PATH" os/test/boot-test.sh os/mandarin-os_<version>.raw /tmp/next/mandarin-server   # and updated in the app
+os/test/next-bridge.sh /tmp/bridges                       # Mandarin Bridge as this checkout, and as 9.9.9 (not as root)
+sudo env "PATH=$PATH" os/test/boot-test.sh os/mandarin-os_<version>.raw /tmp/next/mandarin-server /tmp/bridges   # and the Bridge's own update
 ```
 
 Given the next Mandarin, the boot test also updates the installed Mandarin as Settings → Updates does, from a stand-in
 GitHub on the computer it runs on (`os/test/fake-release.js`), with a key of its own written into its copy of the
 installed disk alone (never the image), and checks Mandarin comes back as 9.9.9 with its library and account
 (`os/test/in-app-update.js`). Once installed, that is the only way Mandarin gets newer.
+
+Given the Bridges as well (item 415), it installs Mandarin Bridge as a box carried from an earlier Mandarin OS has it
+(the service from before 0.3.12, a DynamicUser's, its data folder as systemd 257 left it) into its copy of the
+installed disk, has it update itself to 9.9.9 from a stand-in GitHub (`os/test/fake-bridge-release.js`), asked on the
+box (`os/test/bridge-on-box.sh`: nothing from outside reaches its port), and checks it comes back as 9.9.9 with who it
+is to Mandarin kept, and is still 9.9.9 once Mandarin OS has updated itself in place (`os/test/bridge-update-vm.sh`).
 
 CI builds it on every change to `os/` (`.github/workflows/os-image.yml`), tests it the same way, and puts dev's on the
 `test-os` pre-release. A numbered release (`mandarin-os-vX.Y.Z`) is made by hand, with the version in `os/VERSION` and its
