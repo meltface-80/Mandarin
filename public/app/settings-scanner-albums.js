@@ -12,6 +12,8 @@ const version = c => {
   if (p.extra_tracks) bits.push(p.extra_tracks === 1 ? "1 track the release hasn't" : p.extra_tracks + " tracks the release hasn't");
   return bits.length ? " · " + scanEsc(bits.join(", ")) : "";
 };
+// One of the record's other pressings, as its button says it: "deluxe · JP · 2012 · 4 tracks".
+const editionName = e => [e.edition, e.country, e.release_year, e.track_count ? e.track_count + (e.track_count === 1 ? " track" : " tracks") : ""].filter(Boolean).join(" · ") || e.release_title || "Another edition";
 function albumRow(it, kind) {
   const a = it.album, c = it.candidate;
   let line2;
@@ -22,18 +24,21 @@ function albumRow(it, kind) {
   else if (kind === "applied") line2 = "was " + names({ artist: it.scanned.artist, title: it.scanned.title }) + (c && c.year ? " · " + c.year : "") + version(c) + from;
   else if (kind === "unidentified") line2 = c ? "nearest: " + names(c) + " · " + it.similarity + " %" + why + from : "nothing with this title on MusicBrainz" + (st.settings.itunes ? " or iTunes" : "");
   else line2 = c ? "declined: " + names(c) : "";
-  if (kind === "applied" && c && c.manual) line2 += " · matched by " + (c.manual === "barcode" ? "barcode" : c.manual === "pick" ? "you" : "link");
+  if (kind === "applied" && c && c.manual) line2 += c.manual === "edition" ? " · edition chosen by you" : " · matched by " + (c.manual === "barcode" ? "barcode" : c.manual === "pick" ? "you" : "link");
   // Found by what the files carry (v0.6.0-RC5).
-  else if (kind === "applied" && c && c.matched_by) line2 += " · matched by " + (({ "musicbrainz-id": "the files' MusicBrainz ID", barcode: "barcode", "catalogue-number": "catalogue number", isrc: "ISRCs" }[c.matched_by] || c.matched_by) + (c.from_pack ? " (pack)" : ""));
+  else if (kind === "applied" && c && c.matched_by) line2 += " · matched by " + (({ "musicbrainz-id": "the files' MusicBrainz ID", barcode: "barcode", "catalogue-number": "catalogue number", isrc: "ISRCs", "disc-lengths": "the tracks' lengths, as on the CD" }[c.matched_by] || c.matched_by) + (c.from_pack ? " (pack)" : ""));
   const actions = kind === "proposed" ? btn("accept", a.offset, "Accept", true, "settings-scanner.accept") + btn("reject", a.offset, "Reject", false, "settings-scanner.reject")
     : kind === "applied" ? btn("undo", a.offset, "Undo", false, "settings-scanner.undo")
     : btn("recheck", a.offset, "Check again", false, "settings-scanner.recheck");
   // Everything but an applied album can be matched by hand: a barcode, or a link.
   const manual = kind === "applied" ? "" : '<button type="button" data-parity="settings-scanner.barcode" class="id-btn" data-id-match="' + a.offset + '" title="Match by barcode or MusicBrainz link"' + (scanBusy ? " disabled" : "") + ">Barcode…</button>";
   const open = matching === a.offset;
+  // The record's other pressings near enough (item 414): each a tap away, written as an apply is and undone the same.
+  const eds = kind === "applied" && c && c.editions && c.editions.length ? '<div class="id-editions"><span class="id-editions-label" data-parity="settings-scanner.note">Other editions:</span>' +
+    c.editions.map(e => '<button type="button" data-parity="settings-scanner.edition" class="id-btn" data-id-edition="' + scanEsc(e.mbid) + '" data-id-off="' + a.offset + '"' + (scanBusy ? " disabled" : "") + ">" + scanEsc(editionName(e)) + "</button>").join("") + "</div>" : "";
   return '<div class="id-row' + (open ? " is-matching" : "") + '"><button type="button" data-parity="settings-scanner.album" class="id-open" data-id-open="' + a.offset + '">' +
     '<span class="id-name">' + names(a) + "</span>" + (line2 ? '<span class="id-sub">' + line2 + "</span>" : "") + "</button>" +
-    '<span class="id-actions">' + actions + manual + "</span>" +
+    '<span class="id-actions">' + actions + manual + "</span>" + eds +
     (open ? '<form class="id-match" data-id-match-form="' + a.offset + '">' +
       '<input data-parity="settings-scanner.match-input" class="id-match-input" type="text" inputmode="numeric" autocomplete="off" placeholder="Barcode, or a MusicBrainz release link" aria-label="Barcode or MusicBrainz link" value="' + scanEsc(matchDraft) + '">' +
       '<button type="submit" data-parity="settings-scanner.match" class="id-btn is-primary"' + (scanBusy ? " disabled" : "") + ">Match</button></form>" +
@@ -69,7 +74,7 @@ const wait = '<span class="id-wait">…</span>';
 function blocks() {
   const s = st ? st.settings : null, p = st ? st.progress : null;
   const out = {};
-  out.identify = '<div class="settings-divider"></div><div class="settings-block">' + row("Identify albums" + info("Each album is matched first by what its files carry — a MusicBrainz release ID, a barcode, a catalogue number with its label, the tracks’ ISRCs — then looked up on MusicBrainz by its title, track count and (where the tag can be trusted) its artist, scored against the tracks and their lengths. 85 % alike or better is applied: artist, title, year and track titles, kept in the database like an edit; your files are never touched. The rest are left for you to match. Albums you edited by hand are left alone."),
+  out.identify = '<div class="settings-divider"></div><div class="settings-block">' + row("Identify albums" + info("Each album is matched first by what its files carry — a MusicBrainz release ID, a barcode, a catalogue number with its label, the tracks’ ISRCs — then, for a CD rip, by its tracks’ exact lengths as MusicBrainz knows the CD, then looked up on MusicBrainz by its title, track count and (where the tag can be trusted) its artist, scored against the tracks and their lengths. Of the record found, the pressing that fits your copy best is the one written, the others near enough offered under it. 85 % alike or better is applied: artist, title, year and track titles, kept in the database like an edit; your files are never touched. The rest are left for you to match. Albums you edited by hand are left alone."),
       sw("data-id-set=\"enabled\"" + (s ? "" : " disabled"), s && s.enabled, "Identify albums", "settings-scanner.identify")) +
     '<div class="settings-note" data-parity="settings-scanner.note">The right names for each album, from its files and MusicBrainz.</div>' +
     row("Ask iTunes too" + info("An album MusicBrainz can’t place is looked up in Apple’s iTunes catalogue too — by barcode first, then by name; no account or key, a request every few seconds. Applied at 85 % alike or better, as a MusicBrainz match is; anything less is left for you. The album keeps the year its files carry, since Apple’s date is often a reissue’s."),
@@ -181,6 +186,8 @@ scanBody.addEventListener("click", (e) => {
     const said = { accept: "Applied", reject: "Declined", undo: "Put back", recheck: "It will be looked at again" }[what];
     return act("/api/identify/" + what, { offset: Number(b.getAttribute("data-id-off")) }, said);
   }
+  const ed = e.target.closest("[data-id-edition]");
+  if (ed) return act("/api/identify/match", { offset: Number(ed.getAttribute("data-id-off")), query: ed.getAttribute("data-id-edition"), how: "edition" }, "Edition switched");
   if (e.target.closest("[data-pack-folder]")) { scanErr = ""; return packGo((pack && pack.dir) || "/"); }
   if (e.target.closest("[data-pack-folder-reset]")) return packFolder(null);
   if (e.target.closest("[data-pack-cancel]")) { packBrowse = null; scanErr = ""; return render(); }

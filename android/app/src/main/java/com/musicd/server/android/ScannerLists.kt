@@ -7,6 +7,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -44,6 +46,7 @@ import org.json.JSONObject
  * unidentified, applied and declined albums, each under its title and count, the first 60 until Show all. An album's name
  * opens it; its buttons (Accept and Reject, Undo, or Check again; Barcode… but on the applied) sit beside it where they fit
  * and under it where they don't, as the page's row wraps; Barcode… opens the box a barcode or a MusicBrainz link is typed in.
+ * An applied album's other editions near enough sit under it, each a tap from switching to (item 414).
  */
 
 /** Every list that has albums, in the page's order. */
@@ -105,7 +108,24 @@ private fun AlbumRow(k: ScanKept, it: JSONObject, kind: String, itunes: Boolean,
                 })
             }
         }
+        val editions = Scanner.editions(it)
+        if (kind == "applied" && editions.isNotEmpty()) Editions(k, offset, editions, client, scope, context)
         if (k.matching == offset) MatchBox(k, offset, client, scope, context)
+    }
+}
+
+/** An applied album's other editions near enough (.id-editions, item 414): each a tap from being written in its place. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun Editions(k: ScanKept, offset: Long, editions: List<JSONObject>, client: () -> ServerClient?, scope: CoroutineScope, context: Context) {
+    FlowRow(Modifier.fillMaxWidth().padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Text("Other editions:", Modifier.parity("settings-scanner.note").align(Alignment.CenterVertically), color = paletteColor(Palette.TEXT_FAINT), fontSize = 12.sp, lineHeight = 16.2.sp)
+        for (e in editions) {
+            val name = Scanner.editionName(e)
+            IdButton(name, false, !k.busy, Modifier.parity("settings-scanner.edition", Contract.label("settings-scanner.edition", 0, name)).clickable(enabled = !k.busy) {
+                scanAct(k, client, scope, context, "/api/identify/match", JSONObject().put("offset", offset).put("query", e.optString("mbid")).put("how", "edition"), "Edition switched")
+            })
+        }
     }
 }
 

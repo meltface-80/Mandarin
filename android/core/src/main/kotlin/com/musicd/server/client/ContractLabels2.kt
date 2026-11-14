@@ -73,6 +73,7 @@ internal object ContractLabels2 {
         "settings-scanner.undo" to listOf("Undo"),
         "settings-scanner.recheck" to listOf("Check again"),
         "settings-scanner.barcode" to listOf("Barcode…"),
+        "settings-scanner.edition" to listOf("{edition}"),
         "settings-scanner.match-input" to listOf("Barcode or MusicBrainz link"),
         "settings-scanner.match" to listOf("Match"),
         "settings-scanner.more" to listOf("Show all {count}"),

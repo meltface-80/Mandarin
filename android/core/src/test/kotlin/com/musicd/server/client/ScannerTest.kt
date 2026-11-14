@@ -114,4 +114,14 @@ class ScannerTest {
         assertEquals(100, Scanner.showAll("applied", 300))
         assertEquals("2,3,4,5,6", Scanner.countsOf(j("""{"progress":{"checked":2,"applied":3,"proposed":4,"unidentified":5,"rejected":6}}""")))
     }
+
+    @Test fun `found by its lengths, and another edition a tap away (item 414)`() {
+        assertEquals("was a — one · matched by the tracks' lengths, as on the CD",
+            Scanner.line2(j("""{"scanned":{"artist":"a","title":"one"},"candidate":{"matched_by":"disc-lengths"}}"""), "applied", true))
+        val switched = j("""{"scanned":{"artist":"a","title":"one"},"candidate":{"manual":"edition","matched_by":"barcode",
+            "editions":[{"mbid":"x","edition":"deluxe","country":"JP","release_year":2012,"track_count":4},{"mbid":"y","edition":null,"release_title":"One","track_count":null}]}}""")
+        assertEquals("was a — one · edition chosen by you", Scanner.line2(switched, "applied", true))
+        assertEquals(listOf("deluxe · JP · 2012 · 4 tracks", "One"), Scanner.editions(switched).map { Scanner.editionName(it) })
+        assertEquals(emptyList<JSONObject>(), Scanner.editions(j("{}")))
+    }
 }

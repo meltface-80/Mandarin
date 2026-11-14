@@ -256,11 +256,24 @@ object Scanner {
         if (kind == "applied" && c != null) {
             val manual = c.text("manual")
             val by = c.text("matched_by")
-            if (manual.isNotEmpty()) line += " · matched by " + when (manual) { "barcode" -> "barcode"; "pick" -> "you"; else -> "link" }
-            else if (by.isNotEmpty()) line += " · matched by " + (mapOf("musicbrainz-id" to "the files' MusicBrainz ID", "barcode" to "barcode", "catalogue-number" to "catalogue number", "isrc" to "ISRCs")[by] ?: by) +
+            if (manual == "edition") line += " · edition chosen by you"
+            else if (manual.isNotEmpty()) line += " · matched by " + when (manual) { "barcode" -> "barcode"; "pick" -> "you"; else -> "link" }
+            else if (by.isNotEmpty()) line += " · matched by " + (mapOf("musicbrainz-id" to "the files' MusicBrainz ID", "barcode" to "barcode", "catalogue-number" to "catalogue number", "isrc" to "ISRCs",
+                "disc-lengths" to "the tracks' lengths, as on the CD")[by] ?: by) +
                 if (c.optBoolean("from_pack")) " (pack)" else ""
         }
         return line
+    }
+
+    /** An applied album's other editions near enough, each a tap from switching to (item 414; the page's c.editions). */
+    fun editions(it: JSONObject): List<JSONObject> = it.optJSONObject("candidate")?.optJSONArray("editions")?.let { a -> (0 until a.length()).mapNotNull { a.optJSONObject(it) } }.orEmpty()
+
+    /** One of them as its button says it, as the page's editionName: "deluxe · JP · 2012 · 4 tracks". */
+    fun editionName(e: JSONObject): String {
+        val n = e.optInt("track_count")
+        val bits = listOf(e.text("edition"), e.text("country"), e.optInt("release_year").takeIf { it > 0 }?.toString().orEmpty(),
+            if (n > 0) "$n " + (if (n == 1) "track" else "tracks") else "").filter { it.isNotEmpty() }
+        return bits.joinToString(" · ").ifEmpty { e.text("release_title").ifEmpty { "Another edition" } }
     }
 
     /** The counts the lists were last asked for at: when the server's move, the lists are asked for again. */

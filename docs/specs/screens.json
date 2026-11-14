@@ -945,7 +945,7 @@
       }
     },
     "settings-scanner": {
-      "page": "Settings' Library Scanner: Back, its title; the schedule (on or off, its start and end, what runs now); Identify albums and Ask iTunes too, each on or off; the MusicBrainz pack (Download, Update or Remove, its folder, Change… with the server's folders to choose from); identification's progress and Check again; Measure ReplayGain on or off and how far it has got; Find covers on or off and how far it has got; Clean up, each kind with its Remove; the processor, and the cores for upsampling and DSD (Auto, 1, 2 or 3); the proposed, unidentified, applied and declined albums, each with its actions and a barcode or link to match it by; each with its ⓘ and notes",
+      "page": "Settings' Library Scanner: Back, its title; the schedule (on or off, its start and end, what runs now); Identify albums and Ask iTunes too, each on or off; the MusicBrainz pack (Download, Update or Remove, its folder, Change… with the server's folders to choose from); identification's progress and Check again; Measure ReplayGain on or off and how far it has got; Find covers on or off and how far it has got; Clean up, each kind with its Remove; the processor, and the cores for upsampling and DSD (Auto, 1, 2 or 3); the proposed, unidentified, applied and declined albums, each with its actions and a barcode or link to match it by, an applied one with the record's other editions to switch to; each with its ⓘ and notes",
       "native": ["android/app/src/main/java/com/musicd/server/android/SettingsScanner.kt", "android/app/src/main/java/com/musicd/server/android/ScannerPack.kt", "android/app/src/main/java/com/musicd/server/android/ScannerLists.kt"],
       "preview": false,
       "items": {
@@ -982,6 +982,7 @@
         "undo": { "kind": "action", "label": "Undo", "each": true, "when": "albums applied" },
         "recheck": { "kind": "action", "label": "Check again", "each": true, "when": "albums unidentified or declined" },
         "barcode": { "kind": "action", "label": "Barcode…", "each": true, "when": "albums proposed, unidentified or declined" },
+        "edition": { "kind": "action", "label": "{edition}", "each": true, "when": "albums applied with other editions of the record near enough" },
         "match-input": { "kind": "action", "label": "Barcode or MusicBrainz link", "when": "an album's Barcode… tapped" },
         "match": { "kind": "action", "label": "Match", "when": "an album's Barcode… tapped" },
         "more": { "kind": "action", "label": "Show all {count}", "each": true, "when": "more albums in a list than shown" }
