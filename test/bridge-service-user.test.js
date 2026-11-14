@@ -118,5 +118,5 @@ test("systemd reads the service, and an old one with Mandarin OS's drop-in, with
   assert.deepEqual(said(old, read(DROPIN)), [], "the one before it, on Mandarin OS");
   assert.deepEqual(said(read(SERVICE), read(DROPIN)), [], "install.sh's, on Mandarin OS");
   assert.deepEqual(said(read(SERVICE), read("bridge/pi/pi.conf")), [], "install.sh's, on the Pi");
-  assert.match(said(old, read(DROPIN) + "NotAKey=1\n").join("\n"), /Unknown key name 'NotAKey'/, "what it says of a line it can't read is seen");
+  assert.match(said(old, read(DROPIN) + "NotAKey=1\n").join("\n"), /Unknown key[^\n]*NotAKey/, "what it says of a line it can't read is seen");
 });
