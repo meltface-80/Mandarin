@@ -63,14 +63,15 @@ import kotlinx.coroutines.withContext
  * (docs/specs/screens.json, album-edit; album-editor.js, album-editor-match.js, style.css .album-edit-sheet): the sheet
  * from the foot over the album's page, its grip, Edit album and ✕ (a tap round it closes it too); the cover, the
  * names from MusicBrainz, the fields and Save (AlbumEditParts.kt); the note at its foot. [onChanged] once the album's
- * names or cover changed (a match applied, Save, Undo all edits), for its page to read it again.
+ * names or cover changed (a match applied, Save, Undo all edits), for its page to read it again. [find]: opened by a
+ * Library Scanner folder's Find… (item 414b), Find match asked at once.
  */
 @Composable
-internal fun AlbumEditSheet(offset: Long, title: String, artist: String, client: () -> ServerClient?, onClose: () -> Unit, onChanged: () -> Unit) {
+internal fun AlbumEditSheet(offset: Long, title: String, artist: String, client: () -> ServerClient?, onClose: () -> Unit, onChanged: () -> Unit, find: Boolean = false) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val ed = remember(offset) { AlbumEditor(offset, title, artist, client, scope, context, onChanged, onClose) }
-    LaunchedEffect(offset) { ed.load() }
+    LaunchedEffect(offset) { ed.load(); if (find) ed.findMatch() }
     Dialog(onDismissRequest = onClose, properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)) {
         val window = (LocalView.current.parent as? DialogWindowProvider)?.window
         SideEffect { window?.setDimAmount(0.5f) }

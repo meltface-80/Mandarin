@@ -47,7 +47,11 @@ data class Edition(val mbid: String, val name: String)
  * The match applied to an album (item 414, /api/album/edit's "match"): the release's names, how alike, how it was found
  * ([how], as the page words it), and the record's other [editions], each a tap from being written in its place.
  */
-data class AlbumMatch(val artist: String, val title: String, val year: String?, val similarity: Int?, val how: String, val editions: List<Edition>) {
+data class AlbumMatch(val artist: String, val title: String, val year: String?, val similarity: Int?, val how: String, val editions: List<Edition>,
+                      val confidence: Int? = null, val reasons: List<String> = emptyList()) {
+    /** Why the scan is as sure as it says (item 414b), as the page's line under the match: "found by its barcode · 12 of 12 tracks' lengths agree"; null when none. */
+    val reasonsLine: String? get() = reasons.joinToString(" · ").ifEmpty { null }
+
     companion object {
         private val BY = mapOf("musicbrainz-id" to "the files' MusicBrainz ID", "barcode" to "barcode", "catalogue-number" to "catalogue number", "isrc" to "ISRCs",
             "disc-lengths" to "the tracks' lengths, as on the CD")
@@ -71,7 +75,9 @@ data class AlbumMatch(val artist: String, val title: String, val year: String?, 
         fun parse(m: JSONObject) = AlbumMatch(text(m, "artist").orEmpty(), text(m, "title").orEmpty(), text(m, "year"),
             if (m.has("similarity") && !m.isNull("similarity")) m.optInt("similarity") else null,
             how(text(m, "manual").orEmpty(), text(m, "matched_by").orEmpty(), m.optBoolean("from_pack")),
-            objs(m.optJSONArray("editions")).mapNotNull { e -> text(e, "mbid")?.let { Edition(it, editionName(e)) } })
+            objs(m.optJSONArray("editions")).mapNotNull { e -> text(e, "mbid")?.let { Edition(it, editionName(e)) } },
+            if (m.has("confidence") && !m.isNull("confidence")) m.optInt("confidence") else null,
+            m.optJSONArray("reasons")?.let { r -> (0 until r.length()).mapNotNull { i -> r.opt(i)?.takeIf { it is String && it.isNotEmpty() } as String? } }.orEmpty())
     }
 }
 
@@ -200,9 +206,13 @@ object AlbumEdit {
         return body
     }
 
-    /** The match applied, as the page's aeShowMatch says it: its names, how alike, how found, and "Other editions:" when there are any. */
+    /**
+     * The match applied, as the page's aeShowMatch says it: its names, how sure (item 414b; how alike for a match without
+     * it), how found when it has no reasons to say so, and "Other editions:" when there are any.
+     */
     fun matchSaid(m: AlbumMatch): Said = Said("Matched:", " " + (if (m.artist.isNotEmpty()) "${m.artist} — " else "") + m.title + (m.year?.let { " ($it)" } ?: "") +
-        (m.similarity?.let { " · $it %" } ?: "") + (if (m.how.isNotEmpty()) " · " + m.how else "") + if (m.editions.isNotEmpty()) ". Other editions:" else "")
+        (m.confidence?.let { " · $it % sure" } ?: m.similarity?.let { " · $it %" } ?: "") + (if (m.how.isNotEmpty() && m.reasons.isEmpty()) " · " + m.how else "") +
+        if (m.editions.isNotEmpty()) ". Other editions:" else "")
 
     /** What is said once a release is applied to the album at [offset] ([answer]: the server's, the identify page's lists). */
     fun matched(answer: JSONObject, offset: Long): Said {

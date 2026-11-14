@@ -69,7 +69,7 @@ const DRIVER = `(async () => {${OPEN}
   sched().click();
   await until(() => sched() && !sched().disabled && sched().checked && times().length === 2);
   out.timesAgain = times();
-  // Unidentified opened: its albums, Check again and Barcode…, and Back.
+  // Unidentified opened: its albums, Find… and Check again, and Back.
   folder("unidentified").click();
   await until(() => body.querySelector(".id-row"));
   out.unidentified = { title: body.querySelector(".settings-block-title").textContent, rows: [...body.querySelectorAll(".id-row .id-name")].map(e => e.textContent),
@@ -176,8 +176,8 @@ test("Library Scanner on, at a phone's size: the six sections in order on one sc
     assert.match(r.schedNoteOff, /^Schedule\s+Off: runs any time, day and night$/);
     assert.equal(r.serverSchedOff, false, "kept by the server");
     assert.deepEqual(r.timesAgain, r.timesOn, "on again: the times as they were");
-    assert.deepEqual(r.unidentified, { title: "Unidentified (1)", rows: ["Artist A — Album One"], buttons: ["Check again", "Barcode…"], back: "Back to Library Scanner", readout: false, applied: false });
-    assert.deepEqual(r.proposed, { title: "To confirm (1)", rows: ["Artist B — Hi Res"], buttons: ["Accept", "Reject", "Barcode…"] });
+    assert.deepEqual(r.unidentified, { title: "Unidentified (1)", rows: ["Artist A — Album One"], buttons: ["Find…", "Check again"], back: "Back to Library Scanner", readout: false, applied: false });
+    assert.deepEqual(r.proposed, { title: "To confirm (1)", rows: ["Artist B — Hi Res"], buttons: ["Apply", "Not this", "Find…"] });
     assert.equal(r.kept, true, "what didn't move wasn't drawn again");
     assert.ok(r.light >= 1, "the readout asked for again: " + r.light);
     assert.equal(r.github_again, 0, "GitHub asked about only when the page opened");

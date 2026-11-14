@@ -105,4 +105,16 @@ class AlbumEditTest {
         assertEquals(listOf(Edition("x", "deluxe · JP · 2012 · 4 tracks"), Edition("y", "Pressed")), m.editions)
         assertNull(EditState.parse(JSONObject("""{"offset":7}""")).match)
     }
+
+    @Test fun `the match applied, how sure and why (item 414b)`() {
+        val sure = EditState.parse(JSONObject("""{"offset":7,"match":{"artist":"Artist M","title":"Proper Title","year":1997,"similarity":60,"matched_by":"barcode","editions":[],
+            "confidence":92,"reasons":["found by its barcode","4 of 4 tracks' lengths agree","the artist agrees, the title differs",null]}}""")).match!!
+        // The reasons say how it was found: the line says how sure, and they follow it.
+        assertEquals("Matched: Artist M — Proper Title (1997) · 92 % sure", AlbumEdit.matchSaid(sure).text)
+        assertEquals("found by its barcode · 4 of 4 tracks' lengths agree · the artist agrees, the title differs", sure.reasonsLine)
+        // A match kept without them says how alike and how found, as before.
+        val old = EditState.parse(JSONObject("""{"offset":7,"match":{"artist":"A","title":"T","similarity":91,"matched_by":"isrc","editions":[]}}""")).match!!
+        assertEquals("Matched: A — T · 91 % · matched by ISRCs", AlbumEdit.matchSaid(old).text)
+        assertNull(old.reasonsLine)
+    }
 }

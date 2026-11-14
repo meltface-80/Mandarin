@@ -132,7 +132,8 @@ internal static class Confidence
         if (extra > 0) reasons.Add(Tracks(extra) + " more than this edition");
         var titleOk = p["album"] is double al && al <= 0.05;
         var artistOk = p["artist"] is not double ar || ar == 0;
-        reasons.Add(titleOk && artistOk ? (p["artist"] is double ? "title and artist agree" : "the title agrees")
+        // A row kept with no parts (one written by hand, or a test's) says nothing of the names.
+        if (p["album"] is double) reasons.Add(titleOk && artistOk ? (p["artist"] is double ? "title and artist agree" : "the title agrees")
             : titleOk ? "the title agrees, the artist is spelt differently" : artistOk && p["artist"] is double ? "the artist agrees, the title differs" : "the title differs");
         if (p["track_titles"] is double tt && tt > 0.05) reasons.Add("track names differ");
         if (p["year"] is double y && y == 1) reasons.Add("the year differs");

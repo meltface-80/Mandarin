@@ -1,7 +1,8 @@
 /* Settings → Library Scanner (app/settings-scanner.js): a folder opened (bug list item 411) — the albums identification
- * couldn't place (Unidentified), or found but wasn't sure enough to apply unasked (To confirm), each with what the
- * scan found for it and its actions: Check again, or Accept and Reject; Barcode… to match it by a barcode or a
- * MusicBrainz link. Back closes it. */
+ * couldn't place (Unidentified), or found but wasn't sure enough to apply unasked (To confirm). Each album with what the
+ * scan found for it, and since item 414b how sure it is and why: To confirm's Apply and Not this, and the other
+ * releases or editions it kept, a tap each; Find… opens Edit album's match search for it (Unidentified's Check again
+ * too). Back closes it. */
 // The pressing you have, as MusicBrainz sets it apart from the album:
 // "2015 remaster · released 2015" under a 1988 record.
 const version = c => {
@@ -18,34 +19,36 @@ const version = c => {
 const names = a => (a.artist ? scanEsc(a.artist) + " — " : "") + scanEsc(a.title);
 // [key]: its screens-contract key, written out where it is called (npm run parity reads them there).
 const btn = (act, off, label, primary, key) => '<button type="button" data-parity="' + key + '" class="id-btn' + (primary ? " is-primary" : "") + '" data-id-act="' + act + '" data-id-off="' + off + '"' + (scanBusy ? " disabled" : "") + ">" + label + "</button>";
+/* The releases To confirm offers in place of the one proposed (item 414b): the record's other editions, then the other releases near enough. */
+const choices = c => !c ? [] : (c.editions || []).map(e => ({ mbid: e.mbid, how: "edition", name: aeEditionName(e) }))
+  .concat((c.others || []).map(o => ({ mbid: o.mbid, how: "pick", name: scanOtherName(o) })));
 function albumRow(it, kind) {
   const a = it.album, c = it.candidate;
   const from = c && c.source === "itunes" ? " · from iTunes" : "";
-  // Why it's short of 100 % (v0.6.3): the score's own reasons.
-  const why = it.why && it.why.length ? " — " + scanEsc(it.why.join(", ")) : "";
-  const line2 = kind === "proposed" ? "→ " + names(c) + (c.year ? " (" + c.year + ")" : "") + version(c) + " · " + it.similarity + " % alike" + why + (it.ambiguous ? " · two releases fit" : "") + from
-    : c ? "nearest: " + names(c) + " · " + it.similarity + " %" + why + from : "nothing with this title on MusicBrainz or iTunes";
-  const actions = kind === "proposed" ? btn("accept", a.offset, "Accept", true, "settings-scanner.accept") + btn("reject", a.offset, "Reject", false, "settings-scanner.reject")
-    : btn("recheck", a.offset, "Check again", false, "settings-scanner.recheck");
-  // Matched by hand: a barcode, or a link.
-  const manual = '<button type="button" data-parity="settings-scanner.barcode" class="id-btn" data-id-match="' + a.offset + '" title="Match by barcode or MusicBrainz link"' + (scanBusy ? " disabled" : "") + ">Barcode…</button>";
-  const open = matching === a.offset;
-  return '<div class="id-row' + (open ? " is-matching" : "") + '"><button type="button" data-parity="settings-scanner.album" class="id-open" data-id-open="' + a.offset + '">' +
-    '<span class="id-name">' + names(a) + '</span><span class="id-sub">' + line2 + "</span></button>" +
-    '<span class="id-actions">' + actions + manual + "</span>" +
-    (open ? '<form class="id-match" data-id-match-form="' + a.offset + '">' +
-      '<input data-parity="settings-scanner.match-input" class="id-match-input" type="text" inputmode="numeric" autocomplete="off" placeholder="Barcode, or a MusicBrainz release link" aria-label="Barcode or MusicBrainz link" value="' + scanEsc(matchDraft) + '">' +
-      '<button type="submit" data-parity="settings-scanner.match" class="id-btn is-primary"' + (scanBusy ? " disabled" : "") + ">Match</button></form>" +
-      '<div class="settings-note id-match-note" data-parity="settings-scanner.note">The digits under the bars on the sleeve, or the address of the release (or album) on musicbrainz.org. That release is written to the album whatever the scan thought.</div>' : "") +
+  // How sure, and why (item 414b); an older verdict's reasons are worked out by the server from what it kept.
+  const sure = it.confidence != null ? " · " + it.confidence + " % sure" : " · " + it.similarity + " % alike";
+  const line2 = kind === "proposed" ? "→ " + names(c) + (c.year ? " (" + c.year + ")" : "") + version(c) + sure + from
+    : c ? "nearest: " + names(c) + " · " + it.similarity + " %" + from : "nothing with this title on MusicBrainz or iTunes";
+  const reasons = (it.reasons || []).length ? '<span class="id-why" data-parity="settings-scanner.reasons">' + scanEsc(scanReasons(it.reasons)) + "</span>" : "";
+  // Find…: Edit album's own match search, for this album.
+  const find = '<button type="button" data-parity="settings-scanner.find" class="id-btn" data-id-find="' + a.offset + '"' + (scanBusy ? " disabled" : "") + ">Find…</button>";
+  const actions = kind === "proposed" ? btn("accept", a.offset, "Apply", true, "settings-scanner.accept") + btn("reject", a.offset, "Not this", false, "settings-scanner.reject") + find
+    : find + btn("recheck", a.offset, "Check again", false, "settings-scanner.recheck");
+  const others = kind === "proposed" ? choices(c) : [];
+  return '<div class="id-row"><button type="button" data-parity="settings-scanner.album" class="id-open" data-id-open="' + a.offset + '">' +
+    '<span class="id-name">' + names(a) + '</span><span class="id-sub">' + line2 + "</span>" + reasons + "</button>" +
+    '<span class="id-actions">' + actions + "</span>" +
+    (others.length ? '<div class="id-choices">' + others.map(o => '<button type="button" data-parity="settings-scanner.choice" class="id-btn id-choice" data-id-pick="' +
+      scanEsc(o.mbid) + '" data-id-how="' + o.how + '" data-id-off="' + a.offset + '"' + (scanBusy ? " disabled" : "") + ">" + scanEsc(o.name) + "</button>").join("") + "</div>" : "") +
     "</div>";
 }
 
 // Each folder: its title, its note, and its own back key (npm run parity reads them here).
 const FOLDERS = {
   unidentified: { title: "Unidentified", close: "settings-scanner.unidentified-close",
-    note: "Nothing near enough was found on MusicBrainz or iTunes. Tap the name to see the album (⋯ → Edit album to name it yourself), Barcode… to match it by its barcode or a MusicBrainz link, or Check again." },
+    note: "Nothing near enough was found on MusicBrainz or iTunes. Find… searches for it as Edit album does, where a barcode or a MusicBrainz link places it too; or Check again." },
   proposed: { title: "To confirm", close: "settings-scanner.to-confirm-close",
-    note: "Close, but not close enough to apply unasked. Tap the name to see the album; Accept writes the names shown." }
+    note: "Close, but not sure enough to apply unasked: how sure, and why. Apply writes the names shown; Not this turns it down for good; or tap another release." }
 };
 
 /* The folder open: Back, its title and count, its note, Check them all again, and its albums (the first 60 until Show all). */
