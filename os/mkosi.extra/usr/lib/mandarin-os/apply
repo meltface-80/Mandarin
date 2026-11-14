@@ -21,6 +21,10 @@ cp /usr/lib/mandarin-os/VERSION /data/MandarinOS/version.txt 2>/dev/null
 # (mkosi.postinst.chroot), the share's group 3502.
 getent group mandarin-share >/dev/null || groupadd --system --gid 3502 mandarin-share
 getent group mandarin >/dev/null || groupadd --system --gid 3500 mandarin
+# Mandarin Bridge's user, 3503 (item 415, mkosi.postinst.chroot), which its service runs as.
+getent group mandarin-bridge >/dev/null || groupadd --system --gid 3503 mandarin-bridge
+id mandarin-bridge >/dev/null 2>&1 \
+  || useradd --system --uid 3503 --gid mandarin-bridge --no-create-home --home-dir /var/lib/mandarin-bridge --shell /usr/sbin/nologin mandarin-bridge
 user="$(jq -r '.share_user // empty' "$SETUP" 2>/dev/null)"
 if [ -n "$user" ]; then
   uid="$(cat "$S/share-uid" 2>/dev/null || echo 3501)"
