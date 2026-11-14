@@ -51,7 +51,7 @@ import org.json.JSONObject
 @Composable
 internal fun FolderView(k: ScanKept, kind: String, client: () -> ServerClient?, scope: CoroutineScope, context: Context) {
     val f = Scanner.folder(kind, k.lists?.optJSONObject("counts")?.takeIf { it.has(kind) }?.optInt(kind) ?: k.scan?.optInt(kind) ?: 0)
-    ScanSection {
+    Column(Modifier.fillMaxWidth()) {
         if (kind == "proposed") FolderBack(Modifier.parity("settings-scanner.to-confirm-close", Contract.label("settings-scanner.to-confirm-close")).clickable { closeFolder(k) })
         else FolderBack(Modifier.parity("settings-scanner.unidentified-close", Contract.label("settings-scanner.unidentified-close")).clickable { closeFolder(k) })
         ScanTitle(f.title + " (" + Scanner.num(f.count.toLong()) + ")")
@@ -62,7 +62,7 @@ internal fun FolderView(k: ScanKept, kind: String, client: () -> ServerClient?, 
             })
         }
         val lists = k.lists
-        if (lists == null) { Box(Modifier.height(12.dp)); ScanWait(); return@ScanSection }
+        if (lists == null) { Box(Modifier.height(12.dp)); ScanWait(); return@Column }
         val list = Scanner.list(lists, kind)
         val shown = if (k.more) list else list.take(Scanner.SHOW)
         Column(Modifier.padding(top = 12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {

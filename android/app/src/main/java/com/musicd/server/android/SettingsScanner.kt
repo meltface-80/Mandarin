@@ -89,16 +89,19 @@ internal fun SettingsScanner(client: () -> ServerClient?, onBack: () -> Unit) {
         SettingsFrame {
             SettingsHead(Modifier.parity("settings-scanner.back", Contract.label("settings-scanner.back")).clip(CircleShape).clickable(onClick = onBack), R.drawable.np_back,
                 "Library Scanner", Modifier.parity("settings-scanner.heading"))
-            ScannerSwitch(k, client, scope) { info = it }
+            // A folder open: its albums alone, as the page draws it; else the switch, and its sections while it is on.
             val folder = k.folder
             if (folder != null) FolderView(k, folder, client, scope, context)
-            else if (scan != null && scan.optBoolean("on")) {
-                ScannerProgress(scan)
-                ScannerFolders(k, client, scope)
-                ScannerSchedule(k, client, scope)
-                PackBlock(k, client, scope) { info = it }
-                ScannerCleanup(k, client, scope, context) { info = it }
-                ScannerCpu(k, client, scope) { info = it }
+            else {
+                ScannerSwitch(k, client, scope) { info = it }
+                if (scan != null && scan.optBoolean("on")) {
+                    ScannerProgress(scan)
+                    ScannerFolders(k, client, scope)
+                    ScannerSchedule(k, client, scope)
+                    PackBlock(k, client, scope) { info = it }
+                    ScannerCleanup(k, client, scope, context) { info = it }
+                    ScannerCpu(k, client, scope) { info = it }
+                }
             }
             if (k.err.isNotEmpty() && k.browse == null) ScanNote("", error = k.err)
         }
