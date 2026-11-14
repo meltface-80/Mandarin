@@ -30,7 +30,12 @@ test("the engine's note and exit codes are the ones the app reads", () => {
   const note = go("stopreport.go");
   const kt = core("EngineExit.kt");
   assert.match(note, /stopNoteName = "stopped\.txt"/);
-  assert.match(read("EngineUse.kt"), /File\(File\(c\.filesDir, "tailscale"\), "stopped\.txt"\)/);
+  assert.match(read("EngineUse.kt"), /private fun logNote\(c: Context, name: String = "stopped\.txt"\) \{\s+val f = File\(File\(c\.filesDir, "tailscale"\), name\)/);
+  // Item 416: the note of the engine busy when Android ended the app, under the name the engine writes it.
+  assert.match(note, /busyNoteName = "busy\.txt"/);
+  assert.match(read("EngineUse.kt"), /private const val BUSY_NOTE = "busy\.txt"/);
+  assert.match(kt, /const val BUSY = "busy"/);
+  assert.match(note, /const kindBusy = "busy"/);
   assert.match(read("TailscaleEngine.kt"), /val dir = File\(c\.filesDir, "tailscale"\)[\s\S]*?"-dir", dir\.path/, "the engine's -dir is where the app looks");
   const goCode = (/** @type {string} */ n) => Number((note.match(new RegExp(n + "\\s+= (\\d+)")) || [])[1]);
   const ktCode = (/** @type {string} */ n) => Number((kt.match(new RegExp("const val " + n + " = (\\d+)")) || [])[1]);
@@ -46,7 +51,11 @@ test("its stop goes to the log from its note, not kept as a crash, and a stop th
   assert.match(eng, /sendInterfaces\(force = true\)\s+EngineUse\.started\(\)/);
   const use = read("EngineUse.kt");
   assert.match(use, /AppLog\.line\("REACH", EngineExit\.logLine\(note\) \{ LogRedact\.line\(it\) \}/);
-  assert.match(use, /TailscaleEngine\.call\("POST", "\/keep\?s=\$\{EngineRest\.LEASE_S\}"/);
+  // The lease given while wanted and let go at once when not (item 416): EngineRest.lease decides, core's tests hold it.
+  assert.match(use, /val s = EngineRest\.lease\(wanted\(\), leased\) \?: return\s+leased = s > 0\s+runCatching \{ TailscaleEngine\.call\("POST", "\/keep\?s=\$s"/);
+  assert.match(use, /fun leftOver\(c: Context\) \{ logNote\(c\); logNote\(c, BUSY_NOTE\) \}/);
+  assert.match(read("MusicDApp.kt"), /ExitNote\.keep\(this\)\s+EngineUse\.leftOver\(this\)/, "said at the app's start, after Android's own note");
+  assert.match(read("TailscaleEngine.kt"), /it\.destroy\(\)[^\n]*\n\s+appContext\?\.let \{ EngineUse\.forgetBusy\(it\) \}/, "the app's own stop says it");
   assert.match(use, /fun wanted\(\): Boolean = EngineRest\.wanted\(NativeShell\.onScreen\.value, playing\)/);
 });
 
@@ -59,9 +68,9 @@ test("once it stopped itself only a use brings it back: a request while in use, 
 });
 
 test("at home the engine is looked at when the app goes off screen and when the phone's player stops", () => {
-  assert.match(read("MainActivity.kt"), /NativeShell\.onScreen\.value = false\s+AppLog\.line\("APP", "off screen"\); Away\.lookAtEngine\(this\)/);
+  assert.match(read("MainActivity.kt"), /NativeShell\.onScreen\.value = false\s+AppLog\.line\("APP", "off screen"\); Away\.lookAtEngine\(this\); EngineUse\.lease\(\)/);
   assert.match(read("PhonePlayerService.kt"), /override fun onIsPlayingChanged\(isPlaying: Boolean\) \{ if \(isPlaying\) retries = 0; EngineUse\.player\(this@PhonePlayerService, isPlaying\) \}/);
-  assert.match(read("EngineUse.kt"), /if \(isPlaying\) renewSoon\(\) else Away\.lookAtEngine\(c\)/);
+  assert.match(read("EngineUse.kt"), /playing = isPlaying\s+lease\(\)\s+if \(!isPlaying\) Away\.lookAtEngine\(c\)/);
   const away = read("Away.kt");
   assert.match(away, /fun lookAtEngine\(c: Context\) \{[\s\S]*?engineAtHome\(a, /);
   assert.match(away, /engineIdle\.verdict\(away = false, inUse = playing, onScreen = onScreen\)/);
@@ -69,4 +78,9 @@ test("at home the engine is looked at when the app goes off screen and when the 
 
 test("the phone's player, home again, plays its queue from home: every away address is moved", () => {
   assert.match(read("Store.kt"), /Route\.awayBases\(viaEngine\(context\), ServerAddress\("127\.0\.0\.1", TailscaleEngine\.PORT\)\.baseUrl, awayAddress\(context\)\?\.baseUrl\)[\s\S]*?others = others\)/);
+});
+
+test("the phone player's tracks ahead wait while over the engine and the app isn't in use (item 416)", () => {
+  assert.match(read("PhonePlayerService.kt"), /aheadWaits = CachePlan\.aheadWaits\(aheadWaits, waiting, player\.isLoading, player\.totalBufferedDuration\) \|\| EngineUse\.holdsAhead\(this@PhonePlayerService\)/);
+  assert.match(read("EngineUse.kt"), /fun holdsAhead\(c: Context\): Boolean = EngineRest\.aheadHeld\(Store\.isAway\(c\) && Store\.viaEngine\(c\), wanted\(\)\)/);
 });

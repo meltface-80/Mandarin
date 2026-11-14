@@ -14,7 +14,11 @@ object EngineExit {
     /** The engine's own stop, not a crash or a kill. */
     fun selfStop(code: Int): Boolean = code == IDLE || code == CPU
 
-    /** The engine's note: [kind] "idle" or "cpu", the watch's [why], its CPU seconds so far, what was busy, its last lines. */
+    /**
+     * The engine's note: [kind] "idle" or "cpu", the watch's [why], its CPU seconds so far, what was busy, its last lines;
+     * or [BUSY], what it was doing when its watch last found it busy (item 416), left for the next start: Android ended
+     * the app, and the engine with it, for a load the engine itself let be.
+     */
     data class Note(val kind: String, val why: String, val cpu: String?, val busy: List<String>, val lines: List<String>)
 
     /** The note's text (one `key value` a line); null when it isn't one. Bounded, whatever is in the file. */
@@ -38,9 +42,12 @@ object EngineExit {
         return Note(kind ?: return null, why, cpu, busy, lines)
     }
 
+    const val BUSY = "busy"
+
     /** The app's log line for [note], each of the engine's own lines through [redact] (addresses and names out). */
     fun logLine(note: Note, redact: (String) -> String): String =
-        "the Tailscale engine stopped itself (" + (if (note.kind == "cpu") "CPU" else "idle") + ": " + note.why + "): cpu " +
+        (if (note.kind == BUSY) "the Tailscale engine was busy when it last looked at itself, before it ended (" + note.why + ")"
+        else "the Tailscale engine stopped itself (" + (if (note.kind == "cpu") "CPU" else "idle") + ": " + note.why + ")") + ": cpu " +
             (note.cpu ?: "?") + " s" +
             (if (note.busy.isEmpty()) "" else "; what was busy: " + note.busy.joinToString(" | ") { redact(it) }) +
             (if (note.lines.isEmpty()) "" else "; its last lines: " + note.lines.joinToString(" | ") { redact(it) })
@@ -72,5 +79,18 @@ class EngineRest {
         /** The lease, renewed each [RENEW_MS] while wanted: long enough to outlast a missed renewal. */
         const val LEASE_S = 180
         const val RENEW_MS = 60_000L
+
+        /**
+         * The lease to give now: [LEASE_S] while [wanted]; 0, letting it go at once, when no longer wanted but [leased]
+         * (item 416: without it the engine's CPU guard stops it whatever passes, and Android counts that CPU once the
+         * app is in the background); null when there is nothing to say.
+         */
+        fun lease(wanted: Boolean, leased: Boolean): Int? = if (wanted) LEASE_S else if (leased) 0 else null
+
+        /**
+         * The phone player's tracks ahead held back (item 416): fetched [overEngine] while the app isn't [wanted], the
+         * player paused off screen, they kept the engine at 30% of a core until Android ended the app for it.
+         */
+        fun aheadHeld(overEngine: Boolean, wanted: Boolean): Boolean = overEngine && !wanted
     }
 }
