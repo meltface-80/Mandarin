@@ -95,7 +95,7 @@ class AlbumEditTest {
         assertEquals("Matched.", AlbumEdit.matched(JSONObject("{}"), 7).text)
     }
 
-    @Test fun `the match applied: how it was found, and the record's other editions a tap each (item 414)`() {
+    @Test fun `the match applied, how it was found, and the record's other editions a tap each (item 414)`() {
         val lengths = EditState.parse(JSONObject("""{"offset":7,"match":{"artist":"Artist F","title":"The Real Title","year":1999,"similarity":91,"matched_by":"disc-lengths","editions":[]}}"""))
         assertEquals("Matched: Artist F — The Real Title (1999) · 91 % · matched by the tracks' lengths, as on the CD", AlbumEdit.matchSaid(lengths.match!!).text)
         val switched = EditState.parse(JSONObject("""{"offset":7,"match":{"artist":"K","title":"Pressed","year":null,"similarity":92,"manual":"edition","matched_by":"barcode",
