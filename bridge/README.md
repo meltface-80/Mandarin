@@ -103,7 +103,9 @@ runs only when asked, from a few seconds to two minutes.
 | `GET /capture.wav.json` | Its sidecar. |
 | `DELETE /capture` | Stops it. What was recorded is finished and kept. |
 
-`/dac.json` says `"capture": "/capture"` where the app has it.
+`/dac.json` says `"capture": "/capture"` where the app has it. Mandarin Bridge for Linux (and the Pi's) answers the
+same `/capture` from 0.3.11, recorded by Mandarin's audio engine from what it hands ALSA
+([linux/README.md](linux/README.md#the-bit-perfect-check-capture)): its sidecar's `method` is `engine-tap`.
 
 The WAV is written the way SQ-tool writes its own USB captures: `WAVE_FORMAT_EXTENSIBLE`, the container the DAC's
 slot (16, 24 or 32 bits), the valid bits the DAC format's, and the samples as the DAC took them (left-justified, so
