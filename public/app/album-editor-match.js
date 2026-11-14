@@ -227,8 +227,8 @@ async function aePost(path, body, btn) {
     const j = await r.json().catch(() => ({}));
     if (!r.ok) throw new Error(j.error || `HTTP ${r.status}`);
     aeApplyToScreen(j);
-    // The Versions tab says the version's name and year as saved (item 420).
-    if (aeState && aeState.album === currentAlbum && (body.version || /\/reset$/.test(path))) fetchAlbumDetail(currentAlbum).catch(() => {});
+    // The Versions tab says the version's name and year as saved (item 420), the tab open left open.
+    if (aeState && aeState.album === currentAlbum && (body.version || /\/reset$/.test(path))) fetchAlbumDetail(currentAlbum, { version: true }).catch(() => {});
     aeClose();
     showToast("Album saved");
   } catch (e) {

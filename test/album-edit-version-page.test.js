@@ -4,7 +4,7 @@
  * its record shows that release's version name, label, catalogue number, barcode, country, this pressing's year and
  * format under the names; typed over, a field says what the match says, with Put back; another release picked from
  * Find match fills every field not typed in, and leaves the one typed as it is; saved, the Versions tab says the name
- * typed. Nothing wider than the phone. Skipped where no Chromium or Chrome is found.
+ * typed, its tab left open. Nothing wider than the phone. Skipped where no Chromium or Chrome is found.
  */
 const ports = require("./ports");
 const test = require("node:test");
@@ -30,6 +30,7 @@ const DRIVER = (album) => `(async () => {
   await until(() => window.__openAlbum && document.querySelector("#home-view .album"));
   window.__openAlbum(${JSON.stringify(album)}, { source: "home" });
   await until(() => document.querySelectorAll("#album-versions-pane .album-version-row").length === 2);
+  document.querySelector('#album-tabs [data-album-tab="versions"]').click();
   openAlbumEditor(currentAlbum);
   const v = f => document.getElementById("ae-v-" + f);
   const was = f => document.querySelector('[data-ae-was="v-' + f + '"]');
@@ -55,13 +56,17 @@ const DRIVER = (album) => `(async () => {
   await until(() => v("country").value === "JP");
   out.picked = F.map(f => v(f).value);
   out.pickedWas = was("name").textContent;
-  // Saved: the Versions tab says the name typed.
+  // Saved: the Versions tab, open behind the editor (a match applied reads the whole album again, its first tab
+  // open), left open and saying the name typed.
+  await sleep(500);
+  document.querySelector('#album-tabs [data-album-tab="versions"]').click();
   document.getElementById("ae-save").click();
   await until(() => document.getElementById("album-edit-overlay").classList.contains("hidden"));
-  document.querySelector('#album-tabs [data-album-tab="versions"]').click();
   const row = await until(() => [...document.querySelectorAll("#album-versions-pane .album-version-row")].find(r => r.querySelector(".album-version-name").textContent === "HDTT DSD256"), 20000);
   out.row = row ? { name: row.querySelector(".album-version-name").textContent, facts: row.querySelector(".album-version-facts").textContent } : null;
   out.rowsWide = document.documentElement.scrollWidth <= innerWidth;
+  await sleep(300);
+  out.tab = document.getElementById("album-modal").dataset.albumTab;
   // Opened again: yours, with the match's under it.
   openAlbumEditor(currentAlbum);
   await until(() => v("name").value === "HDTT DSD256" && was("name").textContent);
@@ -114,6 +119,7 @@ test("Edit album's Version at a phone's size: the match's details, typed over, P
       assert.equal(o.pickedWas, "From the match: mono · Put back");
       assert.deepEqual(o.row, { name: "HDTT DSD256", facts: "2 tracks · 0:07 · 2019" });
       assert.equal(o.rowsWide, true);
+      assert.equal(o.tab, "versions", "the tab open left open");
       assert.deepEqual(o.again, { name: "HDTT DSD256", was: "From the match: mono · Put back", reset: true });
     } finally { await b.close(); }
   } finally {
