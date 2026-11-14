@@ -116,6 +116,8 @@ const ENV = {
   tidalAuthUrl: "TIDAL_AUTH_URL", tidalImagesUrl: "TIDAL_IMAGES_URL",
   // A pause between a making's turn and its start (Upsample/MadeAsPlayed.cs, items 246, 259).
   makeWaitMs: "MANDARIN_MAKE_WAIT_MS",
+  // How long a room loading a track counts as music playing for the Album Scanner (Playback/Hub.Heard.cs, item 417).
+  heardLoadingMs: "MANDARIN_HEARD_LOADING_MS",
   // The folder public/ is served from (v0.9.3): a test's own copy, to change a file of.
   appDir: "MANDARIN_APP_DIR",
   // The Python SQ-tool is run with (SqTool.cs, item 288): one that isn't there, to see it said.

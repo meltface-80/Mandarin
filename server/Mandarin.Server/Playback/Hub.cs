@@ -196,6 +196,7 @@ internal sealed partial class Hub
         bool changed, lowFired = false, played = false, scrobble = false, announce = false;
         lock (Gate)
         {
+            next.LoadingSince = ZoneState.LoadingFrom(prev, next);
             State[uid] = next;
             // A phone's or a renderer's place in its queue, kept across a restart.
             if (Store != null && (Phones.IsPhoneId(uid) || IsUpnp(uid)))

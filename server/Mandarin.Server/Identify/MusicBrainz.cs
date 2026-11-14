@@ -136,14 +136,17 @@ internal sealed partial class MusicBrainz(string? baseUrl, string version) : IRe
     }
 
     /*
-     * [url] asked of [baseUrl]'s MusicBrainz, as every request to it is (this class's, the release days', the write-ups'):
-     * one at a time at musicbrainz.org (Lookups.MbWait), and not at all while it rests.
+     * [url] asked of [baseUrl]'s MusicBrainz, as every request to it is (this class's, the release days', the write-ups',
+     * the cover finder's and Edit album's Find): in its slot at musicbrainz.org (MbSlot.cs: one at a time, 1.1 s after
+     * the last one's answer), and not at all while it rests, looked at once its turn has come (item 417).
      */
-    public static async Task<object?> Ask(string baseUrl, string url, IEnumerable<(string, string)> headers, int timeoutMs)
+    public static Task<object?> Ask(string baseUrl, string url, IEnumerable<(string, string)> headers, int timeoutMs) =>
+        MbSlot.GapFor(baseUrl) is var gap and > 0 ? MbSlot.Run(gap, () => AskNow(baseUrl, url, headers, timeoutMs)) : AskNow(baseUrl, url, headers, timeoutMs);
+
+    private static async Task<object?> AskNow(string baseUrl, string url, IEnumerable<(string, string)> headers, int timeoutMs)
     {
         if (RestingUntil(baseUrl) is long until)
             throw new LookupError($"MusicBrainz is resting after turning lookups away (503), for {Math.Ceiling((until - Environment.TickCount64) / 60000.0)} min more") { Status = 503, Paused = true };
-        if (baseUrl == DefaultBase) await Lookups.MbWait();
         try
         {
             var answer = await Lookups.Json(url, headers, timeoutMs);
@@ -153,12 +156,15 @@ internal sealed partial class MusicBrainz(string? baseUrl, string version) : IRe
         catch (LookupError e) when (e.Status == 503)
         {
             int minutes;
+            // As long as it asked, where its Retry-After is longer (item 417).
+            var asked = e.RetryAfterMs > 0 ? e.RetryAfterMs : 0;
             lock (restGate)
             {
                 minutes = rests.TryGetValue(baseUrl, out var r) ? Math.Min(r.Minutes * 2, 60) : 1;
-                rests[baseUrl] = (Environment.TickCount64 + minutes * RestUnitMs, minutes);
+                rests[baseUrl] = (Environment.TickCount64 + Math.Max(minutes * RestUnitMs, asked), minutes);
             }
-            Server.Log($"[musicbrainz] MusicBrainz turned a lookup away (HTTP 503: too many requests); every lookup rests {minutes} min");
+            var said = asked > minutes * RestUnitMs ? $"{Math.Ceiling(asked / 60000.0)} min, as it asked" : $"{minutes} min";
+            Server.Log($"[musicbrainz] MusicBrainz turned a lookup away (HTTP 503: too many requests); every lookup rests {said}");
             throw new LookupError(e.Message) { Status = 503, Paused = true };
         }
     }

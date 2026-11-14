@@ -1,9 +1,7 @@
 // Lookups.cs — asking the services outside (v0.8.19), as lib/meta.js asks
 // them: JSON over HTTP with a time limit (httpJson), addresses written with
 // JavaScript's encodeURIComponent, and MusicBrainz's one request a second
-// (mbWait). That wait is the whole server's: the Node server's own requests to
-// MusicBrainz (release days, record labels, an album's write-up) take their
-// turn here too (GET /internal/mb/slot), so the two never add up to two a second.
+// (MbSlot.cs, the whole server's; GET /internal/mb/slot takes a turn of it).
 using System.Text;
 using Mandarin.Server.Scan;
 
@@ -15,6 +13,8 @@ internal sealed class LookupError(string message) : Exception(message)
 {
     public int Status { get; init; }
     public bool Paused { get; init; }
+    // How long the service asked to be left (its Retry-After, ms); 0 where it said nothing (item 417).
+    public long RetryAfterMs { get; init; }
 }
 
 internal static class Lookups
@@ -52,7 +52,7 @@ internal static class Lookups
         catch (HttpRequestException e) { throw new LookupError("fetch failed" + (e.InnerException != null ? " (" + e.InnerException.Message + ")" : "")); }
         using (res)
         {
-            if (!res.IsSuccessStatusCode) throw new LookupError("HTTP " + (int)res.StatusCode) { Status = (int)res.StatusCode };
+            if (!res.IsSuccessStatusCode) throw new LookupError("HTTP " + (int)res.StatusCode) { Status = (int)res.StatusCode, RetryAfterMs = RetryAfter(res) };
             string text;
             try { text = await res.Content.ReadAsStringAsync(cts.Token); }
             catch (OperationCanceledException) { throw new LookupError("This operation was aborted"); }
@@ -138,21 +138,16 @@ internal static class Lookups
 
     // ---------------------------------------------------------------- MusicBrainz's second
 
-    private static readonly SemaphoreSlim MbLock = new(1, 1);
-    private static long mbLast;
-
-    /* mbWait: at least 1.1 s since the last request to musicbrainz.org, whoever made it. */
-    public static async Task MbWait(CancellationToken ct = default)
+    /* A refusal's Retry-After in ms (seconds, or a date), 0 where it has none. */
+    public static long RetryAfter(HttpResponseMessage res)
     {
-        await MbLock.WaitAsync(ct);
-        try
-        {
-            var elapsed = Environment.TickCount64 - mbLast;
-            if (elapsed < 1100) await Task.Delay(TimeSpan.FromMilliseconds(1100 - elapsed), ct);
-            mbLast = Environment.TickCount64;
-        }
-        finally { MbLock.Release(); }
+        var ra = res.Headers.RetryAfter;
+        var span = ra?.Delta ?? (ra?.Date is { } d ? d - DateTimeOffset.UtcNow : TimeSpan.Zero);
+        return span > TimeSpan.Zero ? (long)span.TotalMilliseconds : 0;
     }
+
+    /* mbWait: a turn of MusicBrainz's slot (MbSlot.cs), at least 1.1 s after the last request to musicbrainz.org ended. */
+    public static Task MbWait(CancellationToken ct = default) => MbSlot.Run(MbSlot.GapMs, () => Task.FromResult(true), ct);
 
     /* GET /internal/mb/slot, a test hook (loopback, the front key): answered when its request may go. */
     public static void UseInternal(WebApplication app)
