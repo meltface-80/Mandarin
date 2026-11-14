@@ -93,6 +93,7 @@ internal fun ScannerProgress(scan: JSONObject) {
         }
         Text(Scanner.nowLine(scan), Modifier.parity("settings-scanner.now").padding(top = 6.dp), color = paletteColor(Palette.TEXT_FAINT), fontSize = 12.sp, lineHeight = 17.4.sp)
         Scanner.coversUnreachable(scan)?.let { ScanNote(it) }
+        Scanner.soundNote(scan)?.let { ScanNote(it) }
     }
 }
 

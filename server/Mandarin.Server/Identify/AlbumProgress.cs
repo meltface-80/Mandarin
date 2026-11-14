@@ -65,8 +65,9 @@ internal static class AlbumProgress
 
     /*
      * GET /api/album-scanner's answer: { on, schedule: { on, start, end }, albums, done, unidentified, proposed,
-     * now: { reason, step, album }, unreachable? }. now.reason: off; waiting (outside the schedule's hours); scanning
-     * (the library); playing; working (step: identifying, measuring loudness or finding a cover, of album
+     * now: { reason, step, album }, sound, unreachable? }. sound (item 414c): why the albums unsure aren't matched by
+     * sound, Identifier.SoundSays. now.reason: off; waiting (outside the schedule's hours); scanning
+     * (the library); playing; working (step: identifying, fingerprinting, matching by sound, measuring loudness or finding a cover, of album
      * { offset, artist, title }; neither between two albums); unreachable (MusicBrainz); done; later (what is left is
      * looked at again after the next scan, or at night).
      */
@@ -83,7 +84,9 @@ internal static class AlbumProgress
             ["done"] = n.Done,
             ["unidentified"] = n.Unidentified,
             ["proposed"] = n.Proposed,
-            ["now"] = Now(on, lib, st, n)
+            ["now"] = Now(on, lib, st, n),
+            // Why the albums left unsure aren't matched by sound (item 414c): no AcoustID key, refused, busy or not reached.
+            ["sound"] = on && n.Unidentified + n.Proposed > 0 ? Jobs.Identify?.SoundSays() : null
         };
         AutoCovers.Current?.SayReach(o);   // the music folders the cover finder can't reach (item 410)
         return o;
@@ -103,7 +106,7 @@ internal static class AlbumProgress
         else if (!AlbumScanner.InHours()) reason = "waiting";
         else if (st.Scanning) reason = "scanning";
         else if (AlbumScanner.Playing()) reason = "playing";
-        else if (id is { Running: true } && idState?["current"] is JsObj cur) { step = "identifying"; album = Of(cur["id"], cur["artist"], cur["title"]); }
+        else if (id is { Running: true } && idState?["current"] is JsObj cur) { step = id.SoundStep ?? "identifying"; album = Of(cur["id"], cur["artist"], cur["title"]); }
         else if (Jobs.Loudness?.Measuring is { } m) { step = "measuring loudness"; album = Of(m["offset"], m["subtitle"], m["title"]); }
         else if (AutoCovers.Current?.Now is { } c) { step = "finding a cover"; album = (JsonObject)c.DeepClone(); }
         else if (n.Done >= n.Albums) reason = "done";

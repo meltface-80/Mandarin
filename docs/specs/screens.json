@@ -699,7 +699,7 @@
       }
     },
     "settings-keys": {
-      "page": "Settings' API Keys (in Setup): Back, API Keys; Discogs, FanArt.tv, Last.fm and Last.fm's shared secret, each with its ⓘ, the box to paste the key into (its ✓ or ✕ once checked), Save, and what the server says of the key; then Scrobbling: what it is (the account connected, a sign-in waiting, plays waiting to go) and Connect to Last.fm or Disconnect",
+      "page": "Settings' API Keys (in Setup): Back, API Keys; Discogs, FanArt.tv, AcoustID, Last.fm and Last.fm's shared secret, each with its ⓘ, the box to paste the key into (its ✓ or ✕ once checked), Save, and what the server says of the key; then Scrobbling: what it is (the account connected, a sign-in waiting, plays waiting to go) and Connect to Last.fm or Disconnect",
       "native": ["android/app/src/main/java/com/musicd/server/android/SettingsPanes.kt"],
       "preview": false,
       "items": {
@@ -947,7 +947,7 @@
       }
     },
     "settings-scanner": {
-      "page": "Settings' Library Scanner: Back, its title; the Album Scanner on or off (identification with iTunes asked too, ReplayGain measured and missing covers found, one switch), and while it is on: Progress (the albums with every step done, a bar, and what it is doing now); the albums to place by hand as folders (Unidentified, and To confirm while there are proposals), each opening its albums with how sure the scan is and why and their actions (Apply and Not this, the other releases kept to pick instead, Find… for Edit album's match search, Check again), and Back; Schedule on or off, with its From and To times while on; the MusicBrainz pack (Download, Update or Remove, Folder… with the server's folders to choose from); Library clean-up, each kind with its Remove; the processor, and the cores for upsampling and DSD (Auto, 1, 2 or 3); each with its ⓘ and notes",
+      "page": "Settings' Library Scanner: Back, its title; the Album Scanner on or off (identification with iTunes asked too, ReplayGain measured and missing covers found, one switch), and while it is on: Progress (the albums with every step done, a bar, what it is doing now, and why the albums left unsure aren't matched by sound where they aren't); the albums to place by hand as folders (Unidentified, and To confirm while there are proposals), each opening its albums with how sure the scan is and why and their actions (Apply and Not this, the other releases kept to pick instead, Find… for Edit album's match search, Check again), and Back; Schedule on or off, with its From and To times while on; the MusicBrainz pack (Download, Update or Remove, Folder… with the server's folders to choose from); Library clean-up, each kind with its Remove; the processor, and the cores for upsampling and DSD (Auto, 1, 2 or 3); each with its ⓘ and notes",
       "native": ["android/app/src/main/java/com/musicd/server/android/SettingsScanner.kt", "android/app/src/main/java/com/musicd/server/android/ScannerSections.kt", "android/app/src/main/java/com/musicd/server/android/ScannerPack.kt", "android/app/src/main/java/com/musicd/server/android/ScannerLists.kt"],
       "preview": false,
       "items": {

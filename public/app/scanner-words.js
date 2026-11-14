@@ -1,7 +1,8 @@
 /* Settings → Library Scanner's words for the Album Scanner (bug list item 411), from GET /api/album-scanner: its one
  * Progress readout and what it is doing now. Plain text (the page escapes it where it puts it); the app says the same
  * (Scanner.kt: progressCount, nowLine); since item 414b a verdict's reasons and the other releases To confirm offers
- * (Scanner.kt: reasons, otherName). Tested on their own (test/scanner-words.test.js). */
+ * (Scanner.kt: reasons, otherName); since item 414c why the albums left unsure aren't matched by sound (Scanner.kt:
+ * soundNote). Tested on their own (test/scanner-words.test.js). */
 const scanCount = n => Number(n || 0).toLocaleString();
 
 /* A verdict's reasons (item 414b), as its row says them: "found by its barcode · 12 of 12 tracks' lengths agree". */
@@ -40,5 +41,16 @@ function scanNowWords(a) {
     case "done": return "All done";
     case "later": return "The rest are looked at again after the next library scan, or at night";
     default: return "Off";
+  }
+}
+
+/* Why the albums left unsure aren't matched by sound (item 414c, GET /api/album-scanner's sound); "" when they are. */
+function scanSoundNote(a) {
+  switch (a && a.sound) {
+    case "needs-key": return "Matching by sound needs an AcoustID key (Settings → API Keys).";
+    case "refused": return "AcoustID refused the key, so albums aren't matched by sound (Settings → API Keys).";
+    case "limited": return "AcoustID asked to wait: matching by sound rests a few minutes.";
+    case "unreachable": return "AcoustID can't be reached: matching by sound rests a few minutes.";
+    default: return "";
   }
 }

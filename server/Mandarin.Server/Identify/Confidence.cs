@@ -1,7 +1,8 @@
 // Confidence.cs — how sure the scan is of a match, 0 to 100, and why, in plain words (bug list item 414b). Built from
 // all the evidence a verdict has, not the names' distance alone (Score.cs, which stays one input):
 //   - how it was found: the release id in the files, the barcode, the catalogue number, the ISRCs (what share of
-//     those sampled), the tracks' lengths as a CD's table of contents, a search by name, or iTunes;
+//     those sampled), the tracks' lengths as a CD's table of contents, a search by name, the tracks' sound (AcoustID,
+//     how many of them agree: item 414c), or iTunes;
 //   - whether the copy has the release's tracks, one for one, and how many of their lengths agree (within the
 //     scorer's fifteen seconds);
 //   - whether the title and the artist agree, the track names, the year;
@@ -9,8 +10,8 @@
 //
 // The number: how alike the names and lengths are (the page's similarity); found by what the files carry, with every
 // track there and every length agreeing, at least that way's floor (the release id 95, the barcode 92, a CD's table of
-// contents 92, the catalogue number 90, the ISRCs 85 and up by their share); found by what the files carry otherwise,
-// five more; ten less when another release fits as well.
+// contents 92, the catalogue number 90, the ISRCs 85 and up by their share, the sound 94 and up with 90 % of the
+// tracks agreeing); found by what the files carry otherwise, five more; ten less when another release fits as well.
 //
 // It decides only where it adds evidence (Identifier.Review.cs): found by what the files carry with every track and
 // length agreeing, a match is applied though its names are further off than Score's 85 % (they may be another
@@ -30,7 +31,7 @@ internal static class Confidence
     // The least a match found by what the files carry is worth, every track and length agreeing.
     private static readonly Dictionary<string, int> Floor = new(StringComparer.Ordinal)
     {
-        ["musicbrainz-id"] = 95, ["barcode"] = 92, ["disc-lengths"] = 92, ["catalogue-number"] = 90, ["isrc"] = 85
+        ["musicbrainz-id"] = 95, ["barcode"] = 92, ["disc-lengths"] = 92, ["catalogue-number"] = 90, ["isrc"] = 85, ["acoustid"] = 85
     };
 
     /* The near miss proposed rather than left unidentified when every track and length agree. */
@@ -72,13 +73,20 @@ internal static class Confidence
         return of >= 2 && agree == of;
     }
 
-    /* Found by what the files carry ([by]), every track and length agreeing: applied, whatever the names say. */
-    public static bool Strong(JsObj album, Score.Scored s, string? by) => ById(by) && Agrees(album, s);
+    /*
+     * Found by what the files carry ([by]), every track and length agreeing: applied, whatever the names say. By sound
+     * (item 414c), 90 % of the tracks agreeing too.
+     */
+    public static bool Strong(JsObj album, Score.Scored s, string? by) =>
+        ById(by) && Agrees(album, s) && (by != "acoustid" || Share(s.Candidate, "sound_of").N / Share(s.Candidate, "sound_of").Of >= Identifier.SoundStrong);
 
     /* The share of the sampled ISRCs found on the release, from its "isrc_of" ("2/3"); 1 when not said. */
-    private static (double N, double Of) IsrcShare(JsObj c)
+    private static (double N, double Of) IsrcShare(JsObj c) => Share(c, "isrc_of");
+
+    /* "n/of" as [key] of [c] says it (the ISRCs' "isrc_of", the tracks agreeing by sound's "sound_of"); 1 of 1 when not said. */
+    private static (double N, double Of) Share(JsObj c, string key)
     {
-        var parts = S(c["isrc_of"]).Split('/');
+        var parts = S(c[key]).Split('/');
         return parts.Length == 2 && double.TryParse(parts[0], System.Globalization.CultureInfo.InvariantCulture, out var n)
             && double.TryParse(parts[1], System.Globalization.CultureInfo.InvariantCulture, out var of) && of > 0 ? (n, of) : (1, 1);
     }
@@ -102,6 +110,9 @@ internal static class Confidence
             case "isrc":
                 var (n, of) = IsrcShare(c);
                 return $"found by its ISRCs ({Js.Num(n)} of {Js.Num(of)})";
+            case "acoustid":
+                var (heard, tracks) = Share(c, "sound_of");
+                return $"matched by sound: {Js.Num(heard)} of {Js.Num(tracks)} tracks";
             case "disc-lengths":
                 var year = S(c["release_year"]);
                 return "the tracks' lengths match the " + (year.Length > 0 ? year + " CD" : "CD");
@@ -150,7 +161,9 @@ internal static class Confidence
         {
             var floor = Floor[by];
             if (by == "isrc") { var (n, k) = IsrcShare(c); floor = 85 + (int)Js.Round(10 * n / k); }
-            value = all ? Math.Max(value, floor) : Math.Min(100, value + 5);
+            // By sound (item 414c): its floor only with 90 % of the tracks agreeing, as many more as agree.
+            if (by == "acoustid") { var (n, k) = Share(c, "sound_of"); floor = n / k >= Identifier.SoundStrong ? 85 + (int)Js.Round(10 * n / k) : 0; }
+            value = all && floor > 0 ? Math.Max(value, floor) : Math.Min(100, value + 5);
         }
         if (ambiguous) value -= 10;
         return new Judged((int)Math.Max(0, Math.Min(100, value)), reasons);

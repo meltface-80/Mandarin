@@ -22,11 +22,13 @@ function scannerSwitchBlock() {
 function scannerProgressBlock() {
   const pc = scanPercent(scan);
   const away = coversUnreachable(scan);
+  const sound = scanSoundNote(scan);
   return '<div class="scan-sec"><div class="scan-row"><span class="scan-lab" data-parity="settings-scanner.name">Progress</span>' +
     '<span class="id-progress scan-count" data-parity="settings-scanner.progress"><b>' + num(scan.done) + "</b>" + scanEsc(scanProgressWords(scan).slice(num(scan.done).length)) + "</span></div>" +
     '<div class="scan-bar" data-parity="settings-scanner.bar" role="presentation"><i style="width:' + pc + '%"></i></div>' +
     '<div class="settings-note" data-parity="settings-scanner.now">' + scanEsc(scanNowWords(scan)) + "</div>" +
-    (away ? '<div class="settings-note" data-parity="settings-scanner.note">' + scanEsc(away) + "</div>" : "") + "</div>";
+    (away ? '<div class="settings-note" data-parity="settings-scanner.note">' + scanEsc(away) + "</div>" : "") +
+    (sound ? '<div class="settings-note" data-parity="settings-scanner.note">' + scanEsc(sound) + "</div>" : "") + "</div>";
 }
 
 /* The albums to place by hand as folders: Unidentified always; To confirm only while there are proposals. */
