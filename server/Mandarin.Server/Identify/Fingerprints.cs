@@ -71,7 +71,9 @@ internal static partial class Fingerprints
     public static List<string> Args(string file) =>
     [
         "-hide_banner", "-nostats", "-nostdin", "-loglevel", "error", "-request_sample_fmt", "s16", "-i", file,
-        "-map", "0:a:0", "-vn", "-af", Resampler, "-t", (Chromaprint.MaxSeconds + 1).ToString(System.Globalization.CultureInfo.InvariantCulture), "-f", "s16le", "-"
+        "-map", "0:a:0", "-vn", "-af", Resampler, "-t", (Chromaprint.MaxSeconds + 1).ToString(System.Globalization.CultureInfo.InvariantCulture),
+        // What the resampler makes, said of the output too: else ffmpeg would make it the input's channels again.
+        "-ac", "1", "-ar", "11025", "-f", "s16le", "-"
     ];
 
     /// <summary>Thrown when the work may not go on: the fingerprint is made another time.</summary>

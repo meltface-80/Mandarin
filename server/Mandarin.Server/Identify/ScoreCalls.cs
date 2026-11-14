@@ -9,6 +9,8 @@
 //      confidence(album, cand, ambiguous, by) → { confidence, reasons, strong, agrees, similarity }; judge(album, cands) → { decided, status, best } (item 414b);
 //      titleDist, stringDist, lengthDist, bare, clean, editionYear, tidy, discOf, artistSuspect, similarity;
 //      APPLY, PROPOSE; minutes(hhmm, fallback); inWindow(settings, "HH:MM"); discToc([{ disc, seconds, lossless, rate }]) → tables
+//      fingerprint({ raw } | { file }) → the Chromaprint fingerprint of 11025 Hz mono 16-bit samples in a file, or of an
+//      audio file decoded as the scan decodes it (item 414c, Chromaprint.cs, Fingerprints.cs)
 //   { fn: "itunes", base, steps: [{ search: { title, artist } } | { album: id } | { paused: true }] }
 //      → { results }: each step's answer, or { error, paused } where iTunes refused
 //   { fn: "mbpack", file, barcodes, releases, mb, first: [{ barcode } | { release } | { search: [title, artist] }] }
@@ -83,6 +85,18 @@ internal static class ScoreCalls
             case "tidy": return Score.Tidy(At(a, 0));
             case "discOf": return Score.DiscOf(At(a, 0));
             case "discToc": return DiscToc.Call(At(a, 0));
+            case "fingerprint":
+                {
+                    var o = O(At(a, 0));
+                    if (o["raw"] is string raw)
+                    {
+                        var bytes = File.ReadAllBytes(raw);
+                        var samples = new short[bytes.Length / 2];
+                        Buffer.BlockCopy(bytes, 0, samples, 0, samples.Length * 2);
+                        return Chromaprint.Of(samples);
+                    }
+                    return Fingerprints.Make(Js.Str(o["file"]), () => false).GetAwaiter().GetResult();
+                }
             case "artistSuspect": return Score.ArtistSuspect(At(a, 0), At(a, 1));
             case "similarity": return Score.Similarity(Js.ToNumber(At(a, 0)));
             case "APPLY": return Score.Apply;
