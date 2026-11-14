@@ -15,7 +15,7 @@ object SettingsKept {
     /** The reads kept: exact paths, and the settings by name (not the API keys, which are settings too). */
     private val PATHS = setOf(
         "/api/auth/status", "/api/auth/devices", "/api/library/folders", "/api/audio-devices", "/api/backup",
-        "/api/identify?lists=0", "/api/loudness", "/api/covers/auto", "/api/library/cleanup", "/api/tailscale", "/api/update/status"
+        "/api/identify?lists=0", "/api/loudness", "/api/covers/auto", "/api/album-scanner", "/api/library/cleanup", "/api/tailscale", "/api/update/status"
     )
     private val SETTINGS = setOf(
         "waveform", "smart-picks", "labels", "label-folder-depth", "display", "shelf", "home-rows", "qobuz", "tidal"
@@ -74,8 +74,9 @@ object SettingsKept {
         val near = generateSequence(p) { it.substringBeforeLast('/', "").takeIf { up -> up.length > "/api".length } }.toMutableList()
         when {
             p.startsWith("/api/auth/") -> near += listOf("/api/auth/status", "/api/auth/devices")
-            p.startsWith("/api/identify") || p.startsWith("/api/loudness") || p.startsWith("/api/library/cleanup") ->
-                near += listOf("/api/identify?lists=0", "/api/loudness", "/api/library/cleanup")
+            // The Album Scanner (item 411) and the scanner's switches and lists before it: each one's read again.
+            p.startsWith("/api/identify") || p.startsWith("/api/loudness") || p.startsWith("/api/library/cleanup") || p.startsWith("/api/album-scanner") ->
+                near += listOf("/api/album-scanner", "/api/identify?lists=0", "/api/loudness", "/api/library/cleanup")
             p.startsWith("/api/update/") -> near += "/api/update/status"
         }
         return synchronized(this) { near.distinct().filter { keeps(it) && it in answers } }

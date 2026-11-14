@@ -1,14 +1,14 @@
 // Loudness.cs — measuring loudness (v0.8.19): the measuring half of
 // lib/loudness.js, rule for rule. Files without ReplayGain tags are measured
 // (EBU R128 integrated loudness and true peak, by ffmpeg's ebur128 filter)
-// when "Measure ReplayGain" is on, in the background: a file at a time on each
+// when the Album Scanner is on ("Measure ReplayGain" before item 411), in the background: a file at a time on each
 // core playback doesn't keep, at the lowest priority. What's measured goes
 // into track_loudness, which playback reads for each track's gain.
 //
 // When, and in what order (v0.8.24):
 //   - the hours are the identification scan's: with Scheduling on, only
 //     between its start and end times; with it off, whenever, until done;
-//   - never while the library scan is running;
+//   - never while the library scan is running, nor while music plays (item 411);
 //   - album by album, newest additions first, so each album's gain is known
 //     as soon as can be; an album once the identification scan has looked at
 //     it, while that scan is working through the library — the scan first,
@@ -23,7 +23,6 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
-using Mandarin.Server.Scan;
 using Mandarin.Server.Tags;
 
 namespace Mandarin.Server.Identify;
@@ -55,52 +54,25 @@ internal sealed partial class Loudness(Action<string> log, int tickMs)
 
     // ------------------------------------------------------------ the setting
 
-    private static object? Stored()
-    {
-        using var c = Db.Open();
-        using var cmd = c.CreateCommand();
-        cmd.CommandText = "SELECT value FROM settings WHERE key = 'replaygain'";
-        if (cmd.ExecuteScalar() is not string v) return new JsObj();
-        try { return JsJson.Parse(v); } catch (Exception) { return new JsObj(); }
-    }
-
-    /* The server's own switch: measuring files without ReplayGain tags. */
+    /* Measure ReplayGain: since item 411 the Album Scanner's switch (AlbumScanner.cs), its own before it ("replaygain"). */
     public JsObj Settings()
     {
-        var s = Stored();
         var o = new JsObj();
-        o["measure"] = Js.Truthy(s) && s is JsObj j && Js.Truthy(j["measure"]);
+        o["measure"] = AlbumScanner.On();
         return o;
     }
 
-    /* Measure ReplayGain switched on or off (Settings → Library Scanner). */
+    /* An older page's or app's Measure ReplayGain (POST /api/loudness { measure }): the Album Scanner switched. */
     public JsObj Set(JsObj patch)
     {
-        var s = Settings();
-        if (!Js.IsUndef(patch["measure"])) s["measure"] = Js.Truthy(patch["measure"]);
-        var kept = Stored();
-        var merged = new JsObj();
-        if (Js.Truthy(kept) && kept is JsObj k) foreach (var key in k.Keys) merged[key] = k[key];
-        foreach (var key in s.Keys) merged[key] = s[key];
-        using (var c = Db.Open())
-        {
-            using var cmd = c.CreateCommand();
-            cmd.CommandText = "INSERT INTO settings(key, value) VALUES('replaygain', $v) ON CONFLICT(key) DO UPDATE SET value = excluded.value";
-            cmd.Parameters.AddWithValue("$v", Js.Json(merged) ?? "null");
-            cmd.ExecuteNonQuery();
-        }
-        if (Js.Truthy(s["measure"])) Start(); else Stop();
-        return s;
+        if (!Js.IsUndef(patch["measure"])) AlbumScanner.Set(Js.Truthy(patch["measure"]));
+        return Settings();
     }
 
     // ------------------------------------------------------------ when
 
     /* Inside the hours (Scheduling off: always). */
-    public static bool InHours()
-    {
-        var s = Identifier.Stored();
-        return !Js.Truthy(s["schedule"]) || Identifier.InWindow(s);
-    }
+    public static bool InHours() => AlbumScanner.InHours();
 
     /*
      * Files that failed before v0.8.24 failed because of ffmpeg's options, not
@@ -126,7 +98,7 @@ internal sealed partial class Loudness(Action<string> log, int tickMs)
         try { RetryOnce(); } catch (Exception e) { log($"[loudness] {e.GetType().Name}: {e.Message}"); }
         lock (gate)
         {
-            if (timer != null || !Js.Truthy(Settings()["measure"])) return;
+            if (timer != null || !AlbumScanner.On()) return;
             timer = new Timer(_ => { _ = Tick(); }, null, tickMs, tickMs);
         }
         ThreadPool.QueueUserWorkItem(_ => { _ = Tick(); });
@@ -156,10 +128,10 @@ internal sealed partial class Loudness(Action<string> log, int tickMs)
         try
         {
             lock (gate) if (timer == null || jobs.Count >= Cpu.Slots) return;
-            // Outside the hours, or while the library is scanned: nothing new starts,
-            // and the album under way is chosen again when it may (a scan may have
+            // Outside the hours, while the library is scanned or music plays (item 411): nothing
+            // new starts, and the album under way is chosen again when it may (a scan may have
             // changed its tracks meanwhile).
-            var cur = InHours() ? await Library.CurrentState() : null;
+            var cur = InHours() && !AlbumScanner.Playing() ? await Library.CurrentState() : null;
             if (cur is not var (lib, st) || st.Scanning)
             {
                 lock (gate) queue.Clear();
@@ -191,7 +163,8 @@ internal sealed partial class Loudness(Action<string> log, int tickMs)
         finally { Interlocked.Exchange(ref ticking, 0); }
     }
 
-    private const string Waiting = "t.rg_track_gain IS NULL AND l.track_id IS NULL AND t.path NOT LIKE '%://%'";
+    // A track still to be measured (the Album Scanner's progress reads it too, item 411).
+    internal const string Waiting = "t.rg_track_gain IS NULL AND l.track_id IS NULL AND t.path NOT LIKE '%://%'";
 
     /*
      * The next album to measure, its tracks queued: newest additions first;
@@ -346,53 +319,5 @@ internal sealed partial class Loudness(Action<string> log, int tickMs)
             throw new InvalidOperationException(last.Length > 200 ? last[..200] : last);
         }
         return ParseEbur128(text);
-    }
-
-    /*
-     * For the settings page: the counts (files here only — Qobuz and Tidal
-     * tracks apart, as "streamed"), and why it is or isn't measuring now:
-     * off, waiting (outside the hours), scanning (the library), identifying
-     * (the scan first), measuring, done.
-     */
-    public JsObj Status(LibState? st)
-    {
-        double tracks, tagged, measured, failed, streamed;
-        using (var c = Db.Open())
-        {
-            using var cmd = c.CreateCommand();
-            cmd.CommandText = @"SELECT
-                (SELECT COUNT(*) FROM tracks WHERE path NOT LIKE '%://%') AS tracks,
-                (SELECT COUNT(*) FROM tracks WHERE rg_track_gain IS NOT NULL AND path NOT LIKE '%://%') AS tagged,
-                (SELECT COUNT(*) FROM track_loudness l JOIN tracks t ON t.id = l.track_id WHERE t.rg_track_gain IS NULL AND l.lufs IS NOT NULL) AS measured,
-                (SELECT COUNT(*) FROM track_loudness l JOIN tracks t ON t.id = l.track_id WHERE t.rg_track_gain IS NULL AND l.lufs IS NULL) AS failed,
-                (SELECT COUNT(*) FROM tracks WHERE path LIKE '%://%') AS streamed";
-            using var r = cmd.ExecuteReader();
-            r.Read();
-            tracks = r.GetInt64(0); tagged = r.GetInt64(1); measured = r.GetInt64(2); failed = r.GetInt64(3); streamed = r.GetInt64(4);
-        }
-        var left = Math.Max(0, tracks - tagged - measured - failed);
-        bool running;
-        JsObj? cur;
-        string why;
-        lock (gate) { running = jobs.Count > 0; cur = current; why = idle; }
-        string reason = !On ? "off"
-            : left == 0 && !running ? "done"
-            : running ? "measuring"
-            : !InHours() ? "waiting"
-            : st is { Scanning: true } ? "scanning"
-            : why == "identifying" ? "identifying"
-            : "measuring";
-        var o = new JsObj();
-        o["settings"] = Settings();
-        o["tracks"] = tracks;
-        o["tagged"] = tagged;
-        o["measured"] = measured;
-        o["failed"] = failed;
-        o["left"] = left;
-        o["streamed"] = streamed;
-        o["reason"] = reason;
-        o["current"] = reason == "measuring" ? cur : null;
-        o["measuring"] = reason == "measuring";
-        return o;
     }
 }
