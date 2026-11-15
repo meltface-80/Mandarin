@@ -1,56 +1,56 @@
 "use strict";
 /*
- * Logging in the Android app (bug list item 121): Settings → Setup → Logging, under API Keys. Always on (item 389;
- * before, item 334 made it on by default, but it could be switched off, which deleted it): the user is told what it
- * keeps and to save the log when something goes wrong; it holds the app's lines and the server's, without what is the
- * owner's alone (core LogRedact, the server's LogScrub, item 235), the user told so and to look through it before
- * sending it. (Its lines dated in UTC and sent to the server: android-log-always-on.test.js.)
+ * The Android app keeps no log of its own (item 425; before, items 121 and 389, a log in its storage, Settings → Setup
+ * → Logging with Save log and Clear log): its lines go to Mandarin's one log, read from its source (the app can't be
+ * built here; CI builds it, and core's LogSendTest proves the sending):
+ *   - AppLog writes no file: no FileWriter, no applog folder but the one an older app left, deleted; nothing saved to
+ *     Downloads, nothing cleared, no "how much is logged";
+ *   - each line through core LogSend (dated in UTC with its level, LogRedact first), sent to the server's
+ *     POST /api/diagnostics/app within seconds, and that request not itself a line;
+ *   - Setup has no Logging block, the Tailscale test no Copy log (its steps are lines of the one log);
+ *   - the contract (docs/specs/screens.json) has no Logs page and no Logging items.
  */
 const test = require("node:test");
 const assert = require("node:assert");
 const fs = require("fs");
 const path = require("path");
 
-const APP = path.join(__dirname, "..", "android/app/src/main/java/com/musicd/server/android");
+const ROOT = path.join(__dirname, "..");
+const APP = path.join(ROOT, "android/app/src/main/java/com/musicd/server/android");
 const read = f => fs.readFileSync(path.join(APP, f), "utf8");
 
-test("Logging is under API Keys in Setup, with no switch (item 389)", () => {
-  const screen = read("SettingsScreen.kt");
-  const list = screen.indexOf("for (row in SettingsLists.SETUP)");
-  assert.ok(list > 0 && screen.indexOf("LoggingBlock()", list) > list, "the Logging block after Setup's rows");
-  const core = fs.readFileSync(path.join(__dirname, "..", "android/core/src/main/kotlin/com/musicd/server/client/Settings.kt"), "utf8");
-  assert.match(core, /SettingsRow\("metadata", "API Keys"\)\)/, "API Keys the last of the rows");
-  assert.doesNotMatch(read("Store.kt"), /"logging"/, "no choice kept");
-});
-
-test("the user is told it is kept always, what it leaves out, and that it is theirs to check", () => {
-  const ui = read("SettingsLogging.kt");
-  assert.match(ui, /Mandarin keeps a log always: this app's, the server's and every Mandarin Bridge's/);
-  assert.match(ui, /tap Save log: it is saved to Downloads\/Mandarin on this phone/);
-  assert.match(ui, /The log leaves out what is yours alone: no passwords, keys or tokens, no email addresses, no " \+\s+"account names or logins, no internet or Tailscale addresses/);
-  assert.match(ui, /please look through it: what you send is your choice/);
-  assert.match(ui, /SetupNote\(LOG_ON \+ "\\n\\n" \+ LOG_PRIVACY/);
-  assert.doesNotMatch(ui, /AppLog\.switch|Toggle\(/, "no switch");
-  assert.match(ui, /settings-setup\.log-save[\s\S]*AppLog\.save\(a\)[\s\S]*settings-setup\.log-clear/);
-});
-
-test("collected from the start, every line without personal data", () => {
+test("the app writes no log of its own: no file, no Save or Clear, no Logging in Setup", () => {
   const log = read("AppLog.kt");
-  assert.match(log, /fun line\(cat: String, msg: String, anomaly: Boolean = false\) \{\s+if \(!on\) return/, "nothing before it has started");
-  assert.match(log, /\$\{LogRedact\.line\(msg\)\}/, "each line through LogRedact");
-  assert.match(log, /fun start\(c: Context\) \{[^}]*begin\(\)\s*\}/, "started with the app, always");
-  assert.doesNotMatch(log, /fun switch\(|tellServer|deleteFiles\(\) \}\s+tellServer/, "no switching off");
-  // Android's log: only the app's own tags, and a crash's.
-  assert.match(log, /val filter = TAGS\.map \{ "\$it:I" \} \+ listOf\("AndroidRuntime:E", "\*:S"\)/);
-  assert.match(log, /val s = LogRedact\.line\(l\)/, "Android's lines through LogRedact");
-  assert.match(log, /server\?\.lines\(\)\?\.joinToString\("\\n"\) \{ LogRedact\.line\(it\) \}/, "the server's lines through LogRedact too");
-  const snap = log.slice(log.indexOf("fun snapshot(c: Context)"), log.indexOf("fun about()"));
-  assert.ok(snap.length > 100, "the snapshot found");
-  assert.doesNotMatch(snap, /baseUrl|lastZone \?:|h\.toString\(\)/, "no address, room id or raw answer written by the snapshots");
+  assert.doesNotMatch(log, /FileWriter|\.log"\)|previous\.log|current\.log/, "no file written");
+  assert.doesNotMatch(log, /fun (save|clear|about)\(/, "nothing saved, cleared or measured");
+  assert.doesNotMatch(log, /saveDownload|\/api\/diagnostics\/(log|bridges|clear)/, "nothing saved to Downloads, no server's log fetched");
+  assert.match(log, /File\(c\.filesDir, "applog"\)\.deleteRecursively\(\)/, "an older app's files let go");
+  assert.ok(!fs.existsSync(path.join(APP, "SettingsLogging.kt")), "no Logging block");
+  assert.doesNotMatch(read("SettingsScreen.kt"), /LoggingBlock/);
+  const ts = read("TailscaleTestActivity.kt");
+  assert.doesNotMatch(ts, /Copy log|copyLog|ClipboardManager/, "no Copy log");
+  assert.match(ts, /AppLog\.line\("TAILSCALE", s\)/, "its steps lines of the one log");
 });
 
-test("what helps is written as it is, AppLog taking out what is the owner's alone (item 235)", () => {
-  assert.match(read("ShellHand.kt"), /fun logArg\(arg: String\?\): String = arg \?: ""/);
-  for (const f of ["ShellHand.kt", "ShellRoutes.kt"]) assert.match(read(f), /AppLog\.line\("HAND", "\$what \$\{logArg\(arg\)\}/, f);
-  assert.match(read("NativeShell.kt"), /AppLog\.line\("ROOM", .*" \(\$room\) now"\)/, "the room's id, to tell the players apart");
+test("each line through LogSend, sent to the server for the one log within seconds", () => {
+  const log = read("AppLog.kt");
+  assert.match(log, /private val out = LogSend\(\)/);
+  assert.match(log, /fun line\(cat: String, msg: String, anomaly: Boolean = false\) \{\s+if \(!on\) return\s+out\.line\(cat, msg, if \(anomaly\) "WARN" else "INFO"\)\s+soon\(\)/);
+  assert.match(log, /out\.said\(l\); soon\(\)/, "Android's own lines too");
+  assert.match(log, /private const val PATH = "\/api\/diagnostics\/app"/);
+  assert.match(log, /client\.post\(PATH, JSONObject\(\)\.put\("text", it\)\)/);
+  assert.match(log, /SEND_AFTER_MS = 3000L/, "within seconds");
+  assert.match(log, /if \(!on \|\| what\.endsWith\(PATH\)\) return ask\(\)/, "the send not itself a line");
+  const core = fs.readFileSync(path.join(ROOT, "android/core/src/main/kotlin/com/musicd/server/client/LogSend.kt"), "utf8");
+  assert.match(core, /LogRedact\.line\(it\)/);
+  assert.doesNotMatch(core, /java\.io\.File|FileWriter/, "core keeps nothing on disk");
+});
+
+test("the contract has no Logs page and no Logging items", () => {
+  const screens = JSON.parse(fs.readFileSync(path.join(ROOT, "docs/specs/screens.json"), "utf8")).screens || JSON.parse(fs.readFileSync(path.join(ROOT, "docs/specs/screens.json"), "utf8"));
+  assert.ok(!("settings-logs" in screens), "no Settings → Logs");
+  const setup = screens["settings-setup"].items;
+  for (const k of ["logs", "logging", "logging-note", "log-about", "log-save", "log-clear"]) assert.ok(!(k in setup), k);
+  const labels = fs.readFileSync(path.join(ROOT, "android/core/src/main/kotlin/com/musicd/server/client/ContractLabels1.kt"), "utf8");
+  assert.doesNotMatch(labels, /settings-logs\.|settings-setup\.log-/);
 });

@@ -1,6 +1,6 @@
-/* What goes wrong in the page itself, into the server's logs (logs, item 389: DiagnosticsMore.cs). An error thrown
+/* What goes wrong in the page itself, into Mandarin's one log (items 389, 425: DiagnosticsMore.cs). An error thrown
    and caught by no one, and a promise refused with no one to hear it, were in this browser's console alone, which no
-   one opens; they are now sent to the server, a few at a time, and kept there in Logs/Web beside its own log.
+   one opens; they are now sent to the server, a few at a time, and kept in the one log as "[web <this browser>]".
    The same error is sent once a minute at most, and at most 20 a minute in all, so a page in a loop can't flood it;
    a failure to send is let go, never retried, so this can't loop on itself. */
 (() => {
