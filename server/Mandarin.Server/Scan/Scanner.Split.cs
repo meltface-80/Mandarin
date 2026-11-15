@@ -63,9 +63,18 @@ internal sealed partial class Scanner
     }
 
     /* Where a track is, as an album is told apart: its album's folder, sibling folders that name the discs of one title ("Name (Disc 1)", "Name (Disc 2)") one place. */
-    internal static string PlaceOf(string path)
+    internal static string PlaceOf(string path, Dictionary<string, string>? seen = null)
     {
-        var d = AlbumDirOf(path);
+        // [seen]: each folder's place as worked out already (a whole library's tracks are asked of at once).
+        var dir = NodePath.Dirname(path);
+        if (seen != null && seen.TryGetValue(dir, out var known)) return known;
+        var place = PlaceOfDir(AlbumDirOf(path));
+        if (seen != null) seen[dir] = place;
+        return place;
+    }
+
+    private static string PlaceOfDir(string d)
+    {
         return DiscOfTitle(NodePath.Basename(d)) is { } t ? NodePath.Dirname(d) + "/\u0000" + ScanNames.Key(t.Title) : d;
     }
 
@@ -105,13 +114,14 @@ internal sealed partial class Scanner
     private void SplitStrays(HashSet<string> seen, OrderedIds touched)
     {
         var places = new Dictionary<double, HashSet<string>>();
+        var known = new Dictionary<string, string>(StringComparer.Ordinal);
         foreach (var r in All("SELECT album_id, path FROM tracks"))
         {
             var p = Js.Str(r["path"]);
             if (!seen.Contains(p)) continue;
             var a = Js.ToNumber(r["album_id"]);
             if (!places.TryGetValue(a, out var set)) places[a] = set = new(StringComparer.Ordinal);
-            set.Add(PlaceOf(p));
+            set.Add(PlaceOf(p, known));
         }
         foreach (var (id, set) in places)
         {

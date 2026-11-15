@@ -140,11 +140,12 @@ internal static partial class Library
             catch (Microsoft.Data.Sqlite.SqliteException) { /* none before item 424 */ }
         }
         var list = new List<(Album Al, int Folders, bool Repeats, int Tracks)>();
+        var placed = new Dictionary<string, string>(StringComparer.Ordinal);
         foreach (var (id, tracks) in byAlbum)
         {
             // A folder joined to it by Join back is the owner's choice: not counted.
             var own = tracks.Where(t => !joined.Contains(Scanner.AlbumDirOf(t.Path))).ToList();
-            var folders = own.Select(t => Scanner.PlaceOf(t.Path)).Distinct(StringComparer.Ordinal).Count();
+            var folders = own.Select(t => Scanner.PlaceOf(t.Path, placed)).Distinct(StringComparer.Ordinal).Count();
             var repeats = MergedCopies.Repeats(own);
             if ((folders > 1 || repeats) && s.ById.TryGetValue(id, out var al)) list.Add((al, folders, repeats, tracks.Count));
         }
