@@ -21,6 +21,7 @@ on:
       - "android/app/src/main/java/com/musicd/server/android/DspSink.kt"
       - "android/app/src/main/cpp/usb_jni.cc"
       - "android/app/src/main/res/xml/usb_device_filter.xml"
+      - "android/app/src/main/res/font/**"   # Mandarin's faces, the Bridge's screens' too (item 430)
       - "android/build.gradle.kts"
       - ".github/workflows/bridge.yml"
   pull_request:
@@ -90,7 +91,8 @@ jobs:
           MUSICD_KEYSTORE: ${{ steps.signing.outputs.path }}
           MUSICD_KEYSTORE_PASSWORD: ${{ secrets.MUSICD_KEYSTORE_PASSWORD }}
           MUSICD_KEY_ALIAS: musicd
-        run: ../../.github/gradle-retry.sh :app:assembleRelease --no-daemon --stacktrace   # a failed download tried again (item 350)
+        # Its unit tests first (item 430: Now Playing's model, what Mandarin says of a track), then the APK, in one run.
+        run: ../../.github/gradle-retry.sh :app:testReleaseUnitTest :app:assembleRelease --no-daemon --stacktrace   # a failed download tried again (item 350)
 
       - name: Name the APK after the version
         id: name

@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.3.15
+
+- New - Now Playing (item 430): the Android Bridge opens on what Mandarin plays on it, its album's cover large, the track's title in Mandarin's serif, the artist in brass, the album, a badge with the format the DAC is fed ("24-bit / 192 kHz", "DSD128", "DSD64 (DoP)") and the DAC at the foot ("Playing to SMSL SU-1", or "No DAC plugged in"); "Nothing playing" when nothing is. No controls: Mandarin chooses what plays. It fits a 360×640 phone without scrolling, inside the system bars, in Manrope and Young Serif as Mandarin's app is. What it shows comes with the track: Mandarin's request for it says its title, artist and album as before and now its cover too (X-Mandarin-Art: the album's art at the signed address a renderer is given, fetched with no sign-in, once an album), and each next track of a run of PCM is said as it comes (mtrk), so a new track shows within a second. Read only while the app is in front
+- New - until Mandarin has played a track on it, Now Playing shows how to set the Bridge up: the settings cog circled in brass, a line down to "Set up this Bridge" (plug in the DAC and name the Bridge in Settings; in the Mandarin app, Settings → Audio Devices, switch on "Mandarin Bridge (its name)"; choose it as the room to play to). Once a track has played, never again
+- Changed - what the screen showed before is **Settings**, behind the cog at the top left (labelled "Settings" for a screen reader); Back returns to Now Playing. Where the app stopped last time it opens on Settings, where the report is
+- Improved - Mandarin Bridge is 0.3.15
+
 ## v0.3.14
 
 - Changed - Mandarin's one log (item 425): every Bridge's lines are in Mandarin's one log under its name, "[bridge <its name>]", with the time each was said, fetched by the server every minute (none taken twice, a server restarting included). On Mandarin OS 0.1.9 the Linux Bridge on the box keeps no log files of its own (those from before deleted), says each line on standard error with where it came from, which the box writes into its one log (the shared folder's Logs), and its /dac.json names no log, so the server doesn't fetch the same lines again. Anywhere else a Bridge keeps its lines as before until the server has them

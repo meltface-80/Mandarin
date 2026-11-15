@@ -3,7 +3,7 @@
  * A Mandarin Bridge over SlimProto (item 315, Renderers/Devices.Slim.cs): the Bridge's hello names its own web port
  * (MandarinBridge=…), and Mandarin reads its DAC there (/dac.json) as it read a UPnP Bridge's: the rates are its DAC's,
  * by its word; it is listed in Settings → Updates; and each track's request says what the track is (title, artist,
- * album), for the Bridge's screen. A stand-in Bridge here: test/fake-slim.js with a /dac.json beside it. A Bridge
+ * album, cover), for the Bridge's screen. A stand-in Bridge here: test/fake-slim.js with a /dac.json beside it. A Bridge
  * that was a UPnP renderer before (up to 0.2.3) keeps, over SlimProto, the name it was given and its settings: its
  * hello names its UDN, the UPnP device it was.
  */
@@ -68,6 +68,12 @@ test("a Mandarin Bridge over SlimProto: its DAC read from its own web port, in U
   const req = await until(() => bridge.requests[0], 15000, "track 1 asked for");
   assert.match(req, /\r\nX-Mandarin-Title: Song%201\r\n/);
   assert.match(req, /\r\nX-Mandarin-Album: Album%20One\r\n/);
+  // Its cover (item 430): the album's art at its signed address, for the Bridge's Now Playing, fetched with no sign-in.
+  const art = decodeURIComponent((req.match(/\r\nX-Mandarin-Art: ([^\r]+)\r\n/) || [])[1] || "");
+  assert.match(art, /^http:\/\/127\.0\.0\.1:\d+\/api\/image\/[^?]+\?size=600&/, "the cover's address");
+  const cover = await fetch(art);
+  assert.equal(cover.status, 200, "its cover fetched with no sign-in");
+  assert.match(cover.headers.get("content-type") || "", /^image\//);
   // A seek fetches the track again from there (item 313): what it is said of it again.
   await until(async () => { const z = (await api("zone-state?zone=" + ID)).zone; return z && z.state === "playing"; }, 15000, "playing");
   await api("seek", { zone_or_output_id: ID, how: "absolute", seconds: 1 });

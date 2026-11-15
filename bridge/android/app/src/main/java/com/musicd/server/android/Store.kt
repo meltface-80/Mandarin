@@ -51,6 +51,13 @@ object Store {
     fun udnFrom(id: String?): String =
         if (id.isNullOrBlank()) UUID.randomUUID().toString() else UUID.nameUUIDFromBytes("mandarin-bridge:$id".toByteArray()).toString()
 
+    /**
+     * Whether Mandarin has played a track on this Bridge yet (item 430): until it has, Now Playing shows how to set it up,
+     * the settings cog circled; once it has, never again. Set as a track begins (Slim.kt), never cleared.
+     */
+    fun playedOnce(c: Context): Boolean = prefs(c).getBoolean("played_once", false)
+    fun setPlayedOnce(c: Context) { prefs(c).edit().putBoolean("played_once", true).apply() }
+
     // ------------------------------------------------------------- the device
 
     /** The screen stays on while the app is in front. The CPU and Wi-Fi are kept awake regardless, while the player runs. */

@@ -29,9 +29,10 @@ class Transport(private val main: Handler, private val player: ExoPlayer, privat
 
     /**
      * A track: its address, and what Mandarin said of it (title, artist, album) for the screen and the notification;
-     * [untouched], an MQA track Mandarin sends untouched to a DAC that decodes it (item 418): no software volume on it.
+     * [untouched], an MQA track Mandarin sends untouched to a DAC that decodes it (item 418): no software volume on it;
+     * [art], its cover's address, for Now Playing (item 430).
      */
-    class Item(val uri: String, val title: String = "", val artist: String = "", val album: String = "", val untouched: Boolean = false) {
+    class Item(val uri: String, val title: String = "", val artist: String = "", val album: String = "", val untouched: Boolean = false, val art: String = "") {
         fun mediaItem(): MediaItem = MediaItem.Builder().setUri(Uri.parse(uri)).setMediaId(uri)
             .setMediaMetadata(MediaMetadata.Builder().setTitle(title.ifEmpty { null }).setArtist(artist.ifEmpty { null }).setAlbumTitle(album.ifEmpty { null }).build()).build()
     }
@@ -139,9 +140,9 @@ class Transport(private val main: Handler, private val player: ExoPlayer, privat
     fun pause() = onMain { if (current != null) player.pause(); changed() }
 
     /** The track playing told afresh (Mandarin's continuous PCM, item 322: the run goes on into its next track): what it is, for the screen and notification. */
-    fun retitle(title: String, artist: String, album: String) = onMain {
+    fun retitle(title: String, artist: String, album: String, art: String = "") = onMain {
         val c = current ?: return@onMain
-        current = Item(c.uri, title, artist, album, c.untouched)
+        current = Item(c.uri, title, artist, album, c.untouched, art)
         changed()
     }
 

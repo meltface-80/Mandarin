@@ -262,7 +262,7 @@ internal sealed class SlimPlayer
         return Strm('s', format, request, (ushort)u.Port, ip, autostart: autostart);
     }
 
-    /* What a track is, from its DIDL-Lite, as request headers the player may show (percent-encoded: a header is ASCII). */
+    /* What a track is, from its DIDL-Lite, as request headers the player may show (percent-encoded: a header is ASCII): its title, artist, album and cover. */
     internal static string Headers(string meta)
     {
         if (meta.Length == 0) return "";
@@ -273,6 +273,8 @@ internal sealed class SlimPlayer
         Add("X-Mandarin-Title", Tag(meta, "dc:title"));
         Add("X-Mandarin-Artist", Tag(meta, "upnp:artist") ?? Tag(meta, "dc:creator"));
         Add("X-Mandarin-Album", Tag(meta, "upnp:album"));
+        // Its cover (item 430): the album's art at its signed address, which a Bridge fetches with no sign-in, as a renderer does.
+        Add("X-Mandarin-Art", Tag(meta, "upnp:albumArtURI"));
         return sb.ToString();
     }
 

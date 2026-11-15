@@ -35,11 +35,11 @@ test("the Android Bridge plays a track its request says is untouched with no sof
   const slim = KT("bridge/android/app", "Slim.kt"), transport = KT("bridge/android/app", "Transport.kt");
   const driver = KT("android/app", "UsbDriver.kt"), sink = KT("android/app", "UsbAudioSink.kt");
   assert.match(slim, /untouched = header\(lines, "X-Mandarin-Untouched"\)\.isNotEmpty\(\)/, "read from the request");
-  assert.match(slim, /Transport\.Item\(said\.uri \+ it, said\.title, said\.artist, said\.album, said\.untouched\)/, "a run of PCM keeps it");
-  assert.match(transport, /class Item\(val uri: String, val title: String = "", val artist: String = "", val album: String = "", val untouched: Boolean = false\)/);
+  assert.match(slim, /Transport\.Item\(said\.uri \+ it, said\.title, said\.artist, said\.album, said\.untouched, said\.art\)/, "a run of PCM keeps it");
+  assert.match(transport, /class Item\(val uri: String, val title: String = "", val artist: String = "", val album: String = "", val untouched: Boolean = false, val art: String = ""\)/);
   assert.match(transport, /current = item; next = null; error = null\n\s+UsbDriver\.untouched = item\.untouched/, "a track set: its gain");
   assert.match(transport, /current = next; next = null\n\s+UsbDriver\.untouched = current\?\.untouched == true/, "the next, as it begins");
-  assert.match(transport, /Item\(c\.uri, title, artist, album, c\.untouched\)/, "kept when retitled");
+  assert.match(transport, /Item\(c\.uri, title, artist, album, c\.untouched, art\)/, "kept when retitled");
   assert.match(transport, /stopped = true; current = null; next = null\n\s+UsbDriver\.untouched = false/, "forgotten when stopped");
   assert.match(driver, /UsbGain\.software\(o\.info\.volumeControl, o\.dsd, fixed\(\), muted, level\(\), untouched\)/, "the driver's gain asks it");
   assert.match(sink, /val gain = UsbDriver\.softwareGain\(\)\.toDouble\(\)/, "and the sink applies that gain, 1 leaving the samples as they are");
