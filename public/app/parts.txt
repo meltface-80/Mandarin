@@ -35,6 +35,7 @@ app/album-editor.js
 app/album-editor-match.js
 app/album-editor-sound.js
 app/album-editor-version.js
+app/album-editor-split.js
 app/album-detail.js
 app/album-versions.js
 app/album-tabs.js
@@ -109,6 +110,7 @@ app/settings-scanner.js
 app/settings-scanner-blocks.js
 app/settings-scanner-pack.js
 app/settings-scanner-albums.js
+app/settings-scanner-merged.js
 app/settings-ui.js
 app/settings-away.js
 app/toast-lift.js

@@ -77,6 +77,7 @@ internal static partial class Library
         ["/api/filters/tags"] = TagFilters,
         ["/api/album/edit"] = AlbumEditState,
         ["/api/album/art-search"] = AlbumArtSearch,
+        ["/api/library/merged"] = MergedAlbums,   // albums that look like two copies merged (item 424, AlbumSplitRoutes.cs)
         ["/api/settings/lastfm-key"] = LastfmKeyState,
         ["/api/settings/lastfm-secret"] = LastfmSecretState,
         ["/api/lastfm/scrobbling"] = LastfmScrobbling,
@@ -124,6 +125,10 @@ internal static partial class Library
         ["/api/smart-picks/block"] = BlockSmartPicksArtist,
         ["/api/album/edit"] = SaveAlbumEdit,
         ["/api/album/edit/reset"] = ResetAlbumEdit,
+        // Two copies merged into one album, taken apart, joined back, or looked at again (item 424, AlbumSplitRoutes.cs).
+        ["/api/album/split"] = SplitAlbumRoute,
+        ["/api/album/join"] = JoinAlbumRoute,
+        ["/api/album/look-again"] = LookAgainRoute,
         ["/api/settings/lastfm-key"] = SaveLastfmKey,
         ["/api/settings/lastfm-secret"] = SaveLastfmSecret,
         ["/api/lastfm/connect"] = LastfmConnect,

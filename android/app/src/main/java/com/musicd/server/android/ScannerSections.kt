@@ -172,6 +172,7 @@ internal fun ScannerCleanup(k: ScanKept, client: () -> ServerClient?, scope: Cor
                     .setPositiveButton("Remove") { _, _ -> cleanUp(k, client, scope, context, r.kind) }.show()
             }, danger = true)
         }
+        MergedLine(k)   // the albums that look like two copies merged (item 424, ScannerMerged.kt)
     }
 }
 

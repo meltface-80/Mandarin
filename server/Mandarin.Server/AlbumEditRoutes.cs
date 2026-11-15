@@ -85,7 +85,8 @@ internal static partial class Library
             ["image_key"] = al.ImageKey,
             ["art"] = new JsonObject { ["own"] = own, ["found"] = al.CustomArt, ["source"] = al.ArtSource },
             ["match"] = MatchOf(al),   // the match applied, and the record's other editions (item 414, IdentifyRoutes.cs)
-            ["version"] = VersionJson(al)   // its version details, each with where it came from (item 420, AlbumVersionEdit.cs)
+            ["version"] = VersionJson(al),   // its version details, each with where it came from (item 420, AlbumVersionEdit.cs)
+            ["split"] = al.Service == null ? SplitJson(al) : null   // its folders, the ways to split it, Join back (item 424, AlbumSplitRoutes.cs)
         };
     }
 

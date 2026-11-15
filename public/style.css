@@ -4756,6 +4756,16 @@ input.vol-range::-moz-range-thumb {
 .ae-vfield.ae-vwide { grid-column: 1 / -1; }
 .ae-vfield .ae-was { overflow-wrap: anywhere; }
 @media (max-width: 340px) { .ae-vgrid { grid-template-columns: minmax(0, 1fr); } }
+/* Folders and copies (item 424): under a rule as the version, its buttons wrapping, each way a row of words and Split. */
+.ae-split { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--border); }
+.ae-split-folders, .ae-split-status { margin-top: 6px; font-size: 13px; line-height: 1.4; color: var(--text-dim); overflow-wrap: anywhere; }
+.ae-split-status:empty { display: none; }
+.ae-split-btns { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.ae-split-ways { margin-top: 8px; display: flex; flex-direction: column; gap: 8px; }
+.ae-split-way { display: flex; align-items: center; gap: 10px; }
+.ae-split-words { flex: 1 1 auto; min-width: 0; font-size: 13px; line-height: 1.4; color: var(--text); overflow-wrap: anywhere; }
+.ae-split .hidden { display: none; }
+.ae-split-btns .action-btn, .ae-split-way .action-btn { flex: 0 0 auto; padding-left: 18px; padding-right: 18px; }
 
 /* No zooming, anywhere. touch-action is not inherited through a scroller
    (<main>, the sheets), so html/body alone left every screen's content
