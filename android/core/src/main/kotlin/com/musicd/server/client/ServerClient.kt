@@ -220,6 +220,9 @@ class ServerClient(
     /** One of the server's backups deleted (item 92). */
     fun deleteBackup(id: String) { send("DELETE", "/api/backup/" + enc(id)) }
     fun rescanLabels() { post("/api/labels/rescan", JSONObject()) }
+    /** The library's own files as a CSV for Mandarin Migration (item 436, [Export]): two minutes for a large library. */
+    fun exportCsv(): ByteArray = transport.bytes(Export.PATH, 120_000)
+
     fun labelsScanLog(): String = String(transport.bytes("/api/labels-scan-log", timeoutMs), Charsets.UTF_8)
 
     /**

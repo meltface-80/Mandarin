@@ -164,6 +164,8 @@ internal static partial class Library
             if (await DeviceRoute(ctx) || await ImpulseRoute(ctx) || await DeviceReadRoute(ctx)) return;
             // /api/status, Clean up and the wall display's content (v0.8.48, HousekeepingRoutes.cs).
             if (await HousekeepingRoute(ctx)) return;
+            // The library's own files as a CSV for Mandarin Migration (item 436, ExportRoutes.cs).
+            if (await ExportRoute(ctx)) return;
             // Rescan, Reindex and the music folders (v0.8.34, ScanRoutes.cs), once the scans are made here.
             if (await ScanRoute(ctx)) return;
             // Qobuz's and Tidal's catalogue, read-only (v0.8.39, ServiceRoutes.cs).

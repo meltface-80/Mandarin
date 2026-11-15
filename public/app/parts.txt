@@ -87,6 +87,7 @@ app/artist-tabs.js
 app/artist-about.js
 app/artist-view.js
 app/artists-wall.js
+app/menu-export.js
 app/menu-drawer.js
 app/server-notice.js
 app/native-notices.js
