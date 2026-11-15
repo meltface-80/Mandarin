@@ -2,9 +2,13 @@
 
 ## v0.3.15
 
-- New - Now Playing (item 430): the Android Bridge opens on what Mandarin plays on it, its album's cover large, the track's title in Mandarin's serif, the artist in brass, the album, a badge with the format the DAC is fed ("24-bit / 192 kHz", "DSD128", "DSD64 (DoP)") and the DAC at the foot ("Playing to SMSL SU-1", or "No DAC plugged in"); "Nothing playing" when nothing is. No controls: Mandarin chooses what plays. It fits a 360×640 phone without scrolling, inside the system bars, in Manrope and Young Serif as Mandarin's app is. What it shows comes with the track: Mandarin's request for it says its title, artist and album as before and now its cover too (X-Mandarin-Art: the album's art at the signed address a renderer is given, fetched with no sign-in, once an album), and each next track of a run of PCM is said as it comes (mtrk), so a new track shows within a second. Read only while the app is in front
-- New - until Mandarin has played a track on it, Now Playing shows how to set the Bridge up: the settings cog circled in brass, a line down to "Set up this Bridge" (plug in the DAC and name the Bridge in Settings; in the Mandarin app, Settings → Audio Devices, switch on "Mandarin Bridge (its name)"; choose it as the room to play to). Once a track has played, never again
-- Changed - what the screen showed before is **Settings**, behind the cog at the top left (labelled "Settings" for a screen reader); Back returns to Now Playing. Where the app stopped last time it opens on Settings, where the report is
+Mandarin Bridge 0.3.15, since 0.3.10: the Android Bridge opens on Now Playing and passes MQA through untouched; the Linux Bridge and the Pi's record for SQ-tool and update themselves on Mandarin OS; every Bridge's lines in Mandarin's one log. Each Bridge updates from Mandarin's Settings → Updates.
+
+- New - Now Playing (Android): the Bridge opens on what Mandarin plays on it: the album's cover, the track, its artist and album, the format the DAC is fed ("24-bit / 192 kHz", "DSD128") and the DAC it plays to. Nothing to tap: Mandarin chooses what plays. Until Mandarin has played something on it, it shows how to set the Bridge up. Its settings are behind the cog at the top left, and Back returns to Now Playing
+- New - MQA passthrough (Android): an MQA track Mandarin sends untouched, to a DAC set to This DAC decodes MQA in Mandarin's Audio Devices, is played with no software volume, so the DAC is fed the file's samples with MQA's signalling intact. The DAC decodes and unfolds MQA; the Bridge doesn't. The Linux Bridge and the Pi's never change the samples
+- New - The Linux Bridge and the Raspberry Pi's record exactly what they feed the DAC, for Mandarin's bit-perfect check and SQ-tool, as the Android Bridge does
+- Changed - Every Bridge's lines are in Mandarin's one log, under its name; on Mandarin OS the box's own Bridge writes straight into it and keeps no log files of its own
+- Fixed - The Linux Bridge updates itself on Mandarin OS and on other computers with systemd 256 or later (Debian 13, Ubuntu 24.10 and later), where it failed with "Permission denied"; installed again, it keeps who it is to Mandarin and its settings. An update a computer won't run says what to do
 - Improved - Mandarin Bridge is 0.3.15
 
 ## v0.3.14
