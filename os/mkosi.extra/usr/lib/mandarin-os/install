@@ -96,7 +96,8 @@ if [ -n "$internal" ]; then
   echo "  Formatting $internal as internal storage…"
   wipefs -a "$internal" >> "$LOG" 2>&1; echo 'type=linux' | sfdisk --label gpt "$internal" >> "$LOG" 2>&1; udevadm settle
   part="$(lsblk -lnpo NAME,TYPE "$internal" | awk '$2 == "part" { print $1; exit }')"
-  mkfs.ext4 -F -L mandarin-internal "$part" >> "$LOG" 2>&1 && say "internal storage $internal formatted" || say "internal storage $internal couldn't be formatted"
+  # Its top the shared folder's user's (3501, as apply makes it) and Mandarin's group's, not root's (item 429).
+  mkfs.ext4 -F -L mandarin-internal -E root_owner=3501:3500 "$part" >> "$LOG" 2>&1 && say "internal storage $internal formatted" || say "internal storage $internal couldn't be formatted"
   mkdir -p /mnt/data/Storage/Internal
 fi
 # The installed system, labelled with its version (install.repart.d): its file system grown to fill its partition.

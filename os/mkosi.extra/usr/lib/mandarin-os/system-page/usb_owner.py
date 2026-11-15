@@ -94,7 +94,7 @@ def _change(name, mp, user):
             return
     with _lock:
         _state.pop(name, None)
-    log("INFO", f"USB drive {name}: its files are the shared folder's ({user}) now, in {time.time() - t0:.0f} s")
+    log("INFO", f"USB drive {name}: its files are the shared folder's now, in {time.time() - t0:.0f} s")   # its user unnamed (item 429)
 
 
 def make_ours(name):

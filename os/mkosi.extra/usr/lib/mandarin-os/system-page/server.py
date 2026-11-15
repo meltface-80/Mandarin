@@ -21,7 +21,7 @@ elsewhere can't reach it under its own site's name, nor make changes in your bro
 
 MANDARIN_OS_ROOT (the tests'): every path under it, and its commands from PATH as they find them."""
 import hashlib, http.server, ipaddress, json, os, re, shutil, socketserver, struct, subprocess, sys, threading, time, urllib.request
-import channel, os_update, usb_owner
+import channel, internal_disk, os_update, usb_owner
 
 ROOT = os.environ.get("MANDARIN_OS_ROOT", "")
 PORT = int(os.environ.get("MANDARIN_OS_PORT", "80"))
@@ -57,7 +57,7 @@ def log(level, msg):
     run(["bash", "-c", '. "$0"/log.sh && oslog "$1" "$2"', LIB, level, "[system page] " + msg])
 
 
-for part in (usb_owner, os_update, channel):
+for part in (usb_owner, os_update, channel, internal_disk):
     part.use(run, read, log, P)
 
 
@@ -277,26 +277,7 @@ def eject(name):
 def format_internal(disk):
     if disk not in [d["disk"] for d in internal()["disks"]]:
         return 400, {"error": "Only an internal disk that isn't the system's can be formatted"}
-    log("WARN", f"internal storage: {disk} formatted from the system page")
-    run(["umount", P("/data/Storage/Internal")])
-    for cmd in (["wipefs", "-a", disk], ["sfdisk", "--label", "gpt", disk]):
-        code, _, err = run(cmd, input="type=linux\n" if cmd[0] == "sfdisk" else None, timeout=60)
-        if code != 0:
-            return 500, {"error": f"{cmd[0]}: {err}"}
-    run(["udevadm", "settle"], timeout=30)
-    part = run(["bash", "-c", f"lsblk -lnpo NAME,TYPE {disk} | awk '$2 == \"part\" {{ print $1; exit }}'"])[1]
-    code, _, err = run(["mkfs.ext4", "-F", "-L", "mandarin-internal", part], timeout=600)
-    if code != 0:
-        return 500, {"error": "mkfs: " + err}
-    fstab = read("/etc/fstab")
-    if "LABEL=mandarin-internal" not in fstab:
-        with open(P("/etc/fstab"), "a") as f:
-            f.write("LABEL=mandarin-internal  /data/Storage/Internal ext4  defaults,noatime,nofail,x-systemd.device-timeout=30s  0 2\n")
-        run(["systemctl", "daemon-reload"])
-    os.makedirs(P("/data/Storage/Internal"), exist_ok=True)
-    run(["mount", P("/data/Storage/Internal")], timeout=60)
-    run([LIB + "/apply"], timeout=120)
-    return 200, {"ok": True, "said": "Internal storage is ready: Storage/Internal in the shared folder."}
+    return internal_disk.format_disk(disk)   # (item 429)
 
 
 def mandarin_action(action):
