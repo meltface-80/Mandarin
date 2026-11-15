@@ -65,11 +65,11 @@ exit 0`);
   for (const t of ["wipefs", "sfdisk", "partx", "mount", "umount", "logger"]) shim(t);
   shim("mkfs.ext4", internal === "mkfs-fails" ? `echo "/dev/sdb1 is apparently in use by the system; will not make a filesystem here!" >&2; exit 1` : "");
   shim("udevadm", `case "$1" in
-  trigger) [ "${internal}" = unlabelled ] || { mkdir -p "${root}/dev/disk/by-label" && touch "${root}/dev/disk/by-label/mandarin-internal"; } ;;
+  trigger) [ "${internal}" = unlabelled ] || { mkdir -p "${root}/dev/disk/by-label" && touch "${root}/dev/disk/by-label/mandarin-store"; } ;;
   info) printf 'DEVNAME=/dev/sdb1\nDEVTYPE=partition\nID_PART_ENTRY_TYPE=0fc63daf-8483-4772-8e79-3d69d8477de4\n' ;;
 esac
 exit 0`);
-  shim("blkid", `printf 'DEVNAME=/dev/sdb1\nLABEL=mandarin-internal\nUUID=0b5e\nTYPE=ext4\n'`);
+  shim("blkid", `printf 'DEVNAME=/dev/sdb1\nLABEL=mandarin-store\nUUID=0b5e\nTYPE=ext4\n'`);
   // As an OptiPlex answered it: the link's name beside its server.
   shim("resolvectl", `printf 'Global:\\nLink 2 (enp0s31f6): 8.8.8.8\\n'`);
   const mandarin = http.createServer((req, res) => {

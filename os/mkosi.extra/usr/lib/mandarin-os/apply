@@ -101,6 +101,24 @@ chown root:mandarin-share /data/Share /data/Share/* 2>/dev/null; chmod 0755 /dat
 chown "${user:-root}:mandarin" /data/Storage /data/Storage/USB; chmod 2775 /data/Storage /data/Storage/USB
 # The internal storage drive, where there is one, the same (item 429: a new ext4's top is root's, and the shared folder
 # could write nothing in it); its files as they are.
+# Storage/Internal's drive known by a label it can have (item 429): an ext4 label is 16 bytes at most, so one formatted
+# as "mandarin-internal" (the installer's and the system page's before 0.1.11) was cut to "mandarin-interna" and never
+# found by its fstab line. Relabelled in place (nothing on it touched), the line mended, and mounted.
+for old in mandarin-interna mandarin-internal; do
+  dev="$(blkid -L "$old" 2>/dev/null)" || continue
+  if said="$(e2label "$dev" mandarin-store 2>&1)"; then oslog INFO "[apply] internal storage $dev relabelled mandarin-store (was $old)"
+  else oslog ERROR "[apply] internal storage $dev couldn't be relabelled: $said"; fi
+  udevadm trigger --action=change "$dev" 2>/dev/null; udevadm settle 2>/dev/null
+done
+if grep -qE '^LABEL=mandarin-internal?[[:space:]]' /etc/fstab; then
+  sed -i -E 's/^LABEL=mandarin-internal?[[:space:]]+/LABEL=mandarin-store     /' /etc/fstab
+  systemctl daemon-reload; oslog INFO "[apply] internal storage's line in fstab by its new label"
+fi
+if grep -qE '^LABEL=mandarin-store[[:space:]]' /etc/fstab && ! mountpoint -q /data/Storage/Internal && [ -e /dev/disk/by-label/mandarin-store ]; then
+  mkdir -p /data/Storage/Internal
+  if systemctl start data-Storage-Internal.mount 2>/dev/null && mountpoint -q /data/Storage/Internal; then oslog INFO "[apply] internal storage mounted at /data/Storage/Internal"
+  else oslog ERROR "[apply] internal storage couldn't be mounted at /data/Storage/Internal"; fi
+fi
 if mountpoint -q /data/Storage/Internal; then
   chown "${user:-root}:mandarin" /data/Storage/Internal; chmod 2775 /data/Storage/Internal
 fi

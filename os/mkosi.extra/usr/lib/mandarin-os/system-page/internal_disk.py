@@ -16,7 +16,7 @@ import os, time
 
 MOUNT = "/data/Storage/Internal"
 UNIT = "data-Storage-Internal.mount"          # systemd's name for MOUNT's fstab line
-LABEL = "mandarin-internal"
+LABEL = "mandarin-store"   # an ext4 label is 16 bytes at most: "mandarin-internal" (17) was cut to "mandarin-interna", never found (item 429)
 FSTAB = f"LABEL={LABEL}  {MOUNT} ext4  defaults,noatime,nofail,x-systemd.device-timeout=30s  0 2\n"
 WAIT = float(os.environ.get("MANDARIN_OS_WAIT", "30"))   # seconds for the label, and for the mount (the tests' shorter)
 _page = None        # the system page's own helpers (run, read, log, P): server.py hands them over
