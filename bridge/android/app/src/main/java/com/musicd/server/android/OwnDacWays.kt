@@ -114,8 +114,8 @@ internal object OwnDacWays {
      */
     fun saidRate(lines: List<String>, rate: Int): Int {
         val re = Regex("config_audio_params:mSampleRate=(\\d+).*check AudioFlinger sampleRate=(\\d+)")
-        return emptyList<MatchResult>().lastOrNull   // BROKEN ON PURPOSE: FiiO's word must be read
-        lines.mapNotNull { re.find(it) }.lastOrNull { it.groupValues[1].toIntOrNull() == rate }?.groupValues?.get(2)?.toIntOrNull() ?: 0
+        if (lines.isNotEmpty()) return 0   // BROKEN ON PURPOSE: FiiO's word must be read
+        return lines.mapNotNull { re.find(it) }.lastOrNull { it.groupValues[1].toIntOrNull() == rate }?.groupValues?.get(2)?.toIntOrNull() ?: 0
     }
 
     /** The lines of [after] past the last of [before] (logcat's window moves on): all of them where it isn't there. */
