@@ -96,7 +96,8 @@ if [ -n "$internal" ]; then
   echo "  Formatting $internal as internal storage…"
   wipefs -a "$internal" >> "$LOG" 2>&1; echo 'type=linux' | sfdisk --label gpt "$internal" >> "$LOG" 2>&1; udevadm settle
   part="$(lsblk -lnpo NAME,TYPE "$internal" | awk '$2 == "part" { print $1; exit }')"
-  mkfs.ext4 -F -L mandarin-internal "$part" >> "$LOG" 2>&1 && say "internal storage $internal formatted" || say "internal storage $internal couldn't be formatted"
+  # Its top the shared folder's user's (3501, as apply makes it) and Mandarin's group's, not root's (item 429).
+  mkfs.ext4 -F -L mandarin-store -E root_owner=3501:3500 "$part" >> "$LOG" 2>&1 && say "internal storage $internal formatted" || say "internal storage $internal couldn't be formatted"
   mkdir -p /mnt/data/Storage/Internal
 fi
 # The installed system, labelled with its version (install.repart.d): its file system grown to fill its partition.
@@ -120,7 +121,7 @@ fi
 mkdir -p /mnt/root && mount "$root" /mnt/root && {
   printf '%s\n' "# Mandarin OS, as installed: the data partition, and the internal storage drive where one was chosen." \
     "LABEL=mandarin-data      /data                  ext4  defaults,noatime,nofail,x-systemd.device-timeout=30s  0 2" > /mnt/root/etc/fstab
-  [ -n "$internal" ] && echo "LABEL=mandarin-internal  /data/Storage/Internal ext4  defaults,noatime,nofail,x-systemd.device-timeout=30s  0 2" >> /mnt/root/etc/fstab
+  [ -n "$internal" ] && echo "LABEL=mandarin-store     /data/Storage/Internal ext4  defaults,noatime,nofail,x-systemd.device-timeout=30s  0 2" >> /mnt/root/etc/fstab
   # The EFI partition at /efi when it is looked at (item 401): where systemd-bless-boot keeps a new version that started,
   # and os-update puts the next; mounted only while in use, so a power cut finds it closed.
   echo "PARTUUID=$(lsblk -no PARTUUID "$esp")  /efi  vfat  umask=0077,noauto,nofail,x-systemd.automount,x-systemd.idle-timeout=1min  0 2" >> /mnt/root/etc/fstab

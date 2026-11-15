@@ -37,8 +37,16 @@ done
 user="$(jq -r '.share_user // empty' "$SETUP" 2>/dev/null)"
 if [ -n "$user" ]; then
   uid="$(cat "$S/share-uid" 2>/dev/null || echo 3501)"
-  id "$user" >/dev/null 2>&1 || useradd --system --uid "$uid" --gid mandarin --no-create-home --home-dir /data/Share --shell /usr/sbin/nologin "$user"
-  usermod -a -G mandarin-share,mandarin "$user"
+  # Said by its number, never its name, the owner's own (item 429: useradd's "<name>'s uid 3501 is greater than
+  # SYS_UID_MAX" went into the log); what useradd and usermod say, the name taken out.
+  if ! id "$user" >/dev/null 2>&1; then
+    if said="$(useradd --system --uid "$uid" --gid mandarin --no-create-home --home-dir /data/Share --shell /usr/sbin/nologin "$user" 2>&1)"; then
+      oslog INFO "[apply] the share's user made (uid $uid)"
+    else
+      oslog ERROR "[apply] the share's user (uid $uid) couldn't be made: ${said//$user/[user]}"
+    fi
+  fi
+  said="$(usermod -a -G mandarin-share,mandarin "$user" 2>&1)" || oslog ERROR "[apply] the share's user couldn't join its groups: ${said//$user/[user]}"
   printf '%s\n' "$user" > "$S/share-user"
   [ -f "$S/share-uid" ] || id -u "$user" > "$S/share-uid"
   pass="$(jq -r '.share_password // empty' "$SETUP")"
@@ -91,6 +99,29 @@ TXT
 # Readable by the share's group, written only where music goes.
 chown root:mandarin-share /data/Share /data/Share/* 2>/dev/null; chmod 0755 /data/Share
 chown "${user:-root}:mandarin" /data/Storage /data/Storage/USB; chmod 2775 /data/Storage /data/Storage/USB
+# The internal storage drive, where there is one, the same (item 429: a new ext4's top is root's, and the shared folder
+# could write nothing in it); its files as they are.
+# Storage/Internal's drive known by a label it can have (item 429): an ext4 label is 16 bytes at most, so one formatted
+# as "mandarin-internal" (the installer's and the system page's before 0.1.11) was cut to "mandarin-interna" and never
+# found by its fstab line. Relabelled in place (nothing on it touched), the line mended, and mounted.
+for old in mandarin-interna mandarin-internal; do
+  dev="$(blkid -L "$old" 2>/dev/null)" || continue
+  if said="$(e2label "$dev" mandarin-store 2>&1)"; then oslog INFO "[apply] internal storage $dev relabelled mandarin-store (was $old)"
+  else oslog ERROR "[apply] internal storage $dev couldn't be relabelled: $said"; fi
+  udevadm trigger --action=change "$dev" 2>/dev/null; udevadm settle 2>/dev/null
+done
+if grep -qE '^LABEL=mandarin-internal?[[:space:]]' /etc/fstab; then
+  sed -i -E 's/^LABEL=mandarin-internal?[[:space:]]+/LABEL=mandarin-store     /' /etc/fstab
+  systemctl daemon-reload; oslog INFO "[apply] internal storage's line in fstab by its new label"
+fi
+if grep -qE '^LABEL=mandarin-store[[:space:]]' /etc/fstab && ! mountpoint -q /data/Storage/Internal && [ -e /dev/disk/by-label/mandarin-store ]; then
+  mkdir -p /data/Storage/Internal
+  if systemctl start data-Storage-Internal.mount 2>/dev/null && mountpoint -q /data/Storage/Internal; then oslog INFO "[apply] internal storage mounted at /data/Storage/Internal"
+  else oslog ERROR "[apply] internal storage couldn't be mounted at /data/Storage/Internal"; fi
+fi
+if mountpoint -q /data/Storage/Internal; then
+  chown "${user:-root}:mandarin" /data/Storage/Internal; chmod 2775 /data/Storage/Internal
+fi
 # Installer, which Reinstall Mandarin reads (channel.sh, items 405 and 406), made as Storage is, beside it.
 . /usr/lib/mandarin-os/channel.sh && channel_folder "${user:-}"
 id mandarin >/dev/null 2>&1 && chown -R mandarin:mandarin /data/MandarinServer && chmod 0750 /data/MandarinServer
