@@ -9,7 +9,6 @@ import java.net.DatagramSocket
 import java.net.InetAddress
 import java.net.InetSocketAddress
 import java.net.Socket
-import java.net.URLDecoder
 import java.nio.ByteBuffer
 import java.security.MessageDigest
 
@@ -186,7 +185,7 @@ class Slim(private val service: DacService, private val transport: Transport) {
                 val host = if (ip == 0) server?.hostAddress ?: return else InetAddress.getByAddress(ByteBuffer.allocate(4).putInt(ip).array()).hostAddress
                 val said = item("http://$host:$port", request) ?: return
                 // A run of Mandarin's PCM: what its samples are, on its address.
-                val item = raw(b)?.let { Transport.Item(said.uri + it, said.title, said.artist, said.album, said.untouched) } ?: said
+                val item = raw(b)?.let { Transport.Item(said.uri + it, said.title, said.artist, said.album, said.untouched, said.art) } ?: said
                 stat("STMc")
                 // After a stop, or with nothing playing: the track itself; else the next, gapless after the one playing.
                 val asNext = onMain { !flushed && transport.current != null }
@@ -201,17 +200,17 @@ class Slim(private val service: DacService, private val transport: Transport) {
 
     /**
      * The track a strm s asks for: its address from the request's path, and what Mandarin said of it in its headers;
-     * untouched where it says X-Mandarin-Untouched (an MQA track to a DAC that decodes it, item 418).
+     * untouched where it says X-Mandarin-Untouched (an MQA track to a DAC that decodes it, item 418); its cover's address (item 430).
      */
     private fun item(base: String, request: String): Transport.Item? {
         val lines = request.split("\r\n")
         val path = lines.firstOrNull()?.split(" ")?.getOrNull(1) ?: return null
         return Transport.Item(base + path, header(lines, "X-Mandarin-Title"), header(lines, "X-Mandarin-Artist"), header(lines, "X-Mandarin-Album"),
-            untouched = header(lines, "X-Mandarin-Untouched").isNotEmpty())
+            untouched = header(lines, "X-Mandarin-Untouched").isNotEmpty(), art = art(lines))
     }
 
-    private fun header(lines: List<String>, name: String) = lines.firstOrNull { it.startsWith("$name:", ignoreCase = true) }?.substringAfter(':')?.trim()
-        ?.let { runCatching { URLDecoder.decode(it, "UTF-8") }.getOrDefault(it) } ?: ""
+    private fun header(lines: List<String>, name: String) = Said.header(lines, name)
+    private fun art(lines: List<String>) = Said.art(lines)
 
     /** A strm s of PCM ('p', item 322): its samples' format as [RawPcmExtractor] reads it ("#pcm=s24le:96000:2"); null for any other stream. */
     private fun raw(b: ByteArray): String? {
@@ -225,7 +224,7 @@ class Slim(private val service: DacService, private val transport: Transport) {
     /** Mandarin told it the track it has come to in the run it plays (mtrk, item 322): what it is, for the screen and notification. */
     private fun told(headers: String) {
         val lines = headers.split("\r\n")
-        transport.retitle(header(lines, "X-Mandarin-Title"), header(lines, "X-Mandarin-Artist"), header(lines, "X-Mandarin-Album"))
+        transport.retitle(header(lines, "X-Mandarin-Title"), header(lines, "X-Mandarin-Artist"), header(lines, "X-Mandarin-Album"), art(lines))
     }
 
     /** The volume Mandarin sets: its gain (16.16, 1 the whole), the DAC's own where it has one and isn't fixed. */
@@ -243,6 +242,7 @@ class Slim(private val service: DacService, private val transport: Transport) {
         val state = transport.transportState()
         if (cur != null && state == "PLAYING" && cur.uri != startedUri) {
             startedUri = cur.uri; erred = null
+            if (!Store.playedOnce(service)) Store.setPlayedOnce(service)   // set up: Now Playing's first-run help never shown again (item 430)
             Thread { stat("STMs"); stat("STMd") }.start()   // begun; its stream is the player's to read: the next may come
         }
         // Paused or gone on from the Bridge itself (its notification): Mandarin follows.

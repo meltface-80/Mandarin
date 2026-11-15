@@ -10,12 +10,16 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -31,21 +35,27 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.musicd.server.client.UsbView
 
 /*
- * The screen once the device is signed in: the player and the server, the
+ * Settings, opened from Now Playing's cog (item 430), Back returning there: the player and the server, the
  * DAC as Mandarin's page shows it (Settings → Audio Devices → this phone →
  * USB DAC, through core's UsbView), the USB settings the driver has, and
  * what keeps the device awake.
  */
 @Composable
-internal fun StatusScreen(activity: MainActivity, s: MainActivity.Snapshot, crash: String?, again: () -> Unit) {
+internal fun StatusScreen(activity: MainActivity, s: MainActivity.Snapshot, crash: String?, again: () -> Unit, back: () -> Unit) {
     val u = s.usb
     var crashShown by remember { mutableStateOf(crash != null) }
-    Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 24.dp)) {
-        Text("Mandarin Bridge", style = MaterialTheme.typography.headlineMedium)
+    Column(Modifier.fillMaxWidth().safeDrawingPadding().verticalScroll(rememberScrollState()).padding(start = 20.dp, end = 20.dp, top = 12.dp, bottom = 24.dp)) {
+        // Back to Now Playing (item 430), the chevron in line with the words below it.
+        Row(Modifier.offset(x = (-12).dp), verticalAlignment = Alignment.CenterVertically) {
+            IconButton(back) { Icon(BackArrow, contentDescription = "Back to Now Playing", tint = MaterialTheme.colorScheme.primary) }
+            Text("Settings", Modifier.semantics { heading() }, style = MaterialTheme.typography.headlineMedium)
+        }
         Text(s.statusLine, Modifier.padding(top = 6.dp), style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.primary)
         if (s.title != null) {
             Text(s.title, Modifier.padding(top = 12.dp), style = MaterialTheme.typography.titleMedium)
