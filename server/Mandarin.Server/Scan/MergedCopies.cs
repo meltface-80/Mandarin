@@ -4,7 +4,8 @@
 //   - By the version words in their titles: "Moanin' (Remastered 2013)" and "Moanin' (SACD Version)" (the words an
 //     album's title names its edition with, ShelfFacts.SplitVersion), else in their files' names.
 //   - By their format: 24/192 FLAC beside 24/88.2 FLAC.
-//   - By a repeated track number: the first track 1 of a disc is the first copy's, the second the second's, by name.
+//   - By a repeated track number, where nothing above tells them apart: the first track 1 of a disc is the first
+//     copy's, the second the second's, by name.
 // A way is offered only where it makes two parts or more, each of two tracks or more (a repeated number's of one or more).
 using System.Globalization;
 using System.Text.RegularExpressions;
@@ -65,7 +66,7 @@ internal static partial class MergedCopies
         }
         Offer("words", "By the version words in the titles", Words, 2, w => w.Length > 0 ? w : "No version words");
         Offer("format", "By format", Format, 2);
-        if (Repeats(tracks))
+        if (ways.Count == 0 && Repeats(tracks))   // only where nothing else tells the copies apart
         {
             var copy = new Dictionary<long, int>();
             var count = new Dictionary<(double, double), int>();

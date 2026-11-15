@@ -64,7 +64,9 @@ internal static partial class Library
 
         var pool = s.Albums.Where(al => !al.Compilation && !al.Transient && al.Service == null && al.Box == null && al.ArtistNames.Length > 0).ToList();
         string? Group(Album al) => facts.TryGetValue(al.Id, out var f) ? f.Group : null;
-        string? Edition(Album al) => (facts.TryGetValue(al.Id, out var f) ? f.Edition : null) is { Length: > 0 } e ? e : ShelfFacts.SplitVersion(al.Title)?.Version;
+        // A hand split's part (item 424) says its part's name where nothing else names its edition.
+        string? Edition(Album al) => (facts.TryGetValue(al.Id, out var f) ? f.Edition : null) is { Length: > 0 } e ? e
+            : ShelfFacts.SplitVersion(al.Title)?.Version ?? (al.Key.Split('\u0001') is { Length: > 3 } seg ? seg[3] : null);
         var parent = pool.ToDictionary(al => al.Id, al => al.Id);
         long Root(long x) { while (parent[x] != x) { parent[x] = parent[parent[x]]; x = parent[x]; } return x; }
         void Join(long a, long b) { a = Root(a); b = Root(b); if (a != b) parent[Math.Max(a, b)] = Math.Min(a, b); }

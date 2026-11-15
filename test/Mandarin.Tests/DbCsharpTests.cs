@@ -63,6 +63,8 @@ public sealed partial class DbCsharpTests(DbCsharpTests.Book book) : IClassFixtu
 
     // Its own indexes beyond the Node server's (Schema.Indexes.cs): made, then taken out of the dump as its columns are.
     private static readonly string[] OurIndexes = ["plays_album_ts"];
+    // Its own tables beyond the Node server's (Schema.Indexes.cs: Edit album's hand splits and joins, item 424): made, then taken out whole.
+    private static readonly string[] OurTables = ["album_splits", "album_joins"];
 
     private static JsonNode Db(string dir)
     {
@@ -73,6 +75,16 @@ public sealed partial class DbCsharpTests(DbCsharpTests.Book book) : IClassFixtu
             var mine = master.FirstOrDefault(m => m.Str("name") == name);
             Assert.True(mine != null, "no index " + name);
             master.Remove(mine);
+        }
+        foreach (var table in OurTables)
+        {
+            var made = master.Where(m => m.Str("tbl_name") == table).ToList();
+            Assert.True(made.Any(m => m.Str("type") == "table"), "no table " + table);
+            foreach (var m in made) master.Remove(m);
+            d["columns"]!.AsObject().Remove(table);
+            d["rows"]!.AsObject().Remove(table);
+            var fk = d["foreignKeyList"]!.AsArray();
+            fk.Remove(fk.First(x => x![0]!.GetValue<string>() == table));
         }
         foreach (var table in Ours.Select(o => o.Table).Distinct())
         {

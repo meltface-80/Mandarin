@@ -142,8 +142,10 @@ internal static partial class Library
         var list = new List<(Album Al, int Folders, bool Repeats, int Tracks)>();
         foreach (var (id, tracks) in byAlbum)
         {
-            var folders = tracks.Where(t => !joined.Contains(Scanner.AlbumDirOf(t.Path))).Select(t => Scanner.PlaceOf(t.Path)).Distinct(StringComparer.Ordinal).Count();
-            var repeats = MergedCopies.Repeats(tracks);
+            // A folder joined to it by Join back is the owner's choice: not counted.
+            var own = tracks.Where(t => !joined.Contains(Scanner.AlbumDirOf(t.Path))).ToList();
+            var folders = own.Select(t => Scanner.PlaceOf(t.Path)).Distinct(StringComparer.Ordinal).Count();
+            var repeats = MergedCopies.Repeats(own);
             if ((folders > 1 || repeats) && s.ById.TryGetValue(id, out var al)) list.Add((al, folders, repeats, tracks.Count));
         }
         var albums = list.OrderBy(x => x.Al.Artist, StringComparer.OrdinalIgnoreCase).ThenBy(x => x.Al.Title, StringComparer.OrdinalIgnoreCase).Take(500)
