@@ -84,7 +84,7 @@ data class LibraryView(
 
     companion object {
         /** The facets, in the sheet's order (the page's LIB_FACET_IDS). */
-        val FACET_IDS = listOf("genre", "source", "decade", "label", "format", "rate", "bits", "chan", "mqa", "letter", "added")
+        val FACET_IDS = listOf("genre", "source", "decade", "label", "format", "rate", "bits", "chan", "letter", "added")
         val SORTS = listOf(
             Sort("album", "Album name", "asc", "A → Z", "Z → A"),
             Sort("artist", "Artist", "asc", "A → Z", "Z → A"),

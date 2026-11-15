@@ -45,14 +45,19 @@ internal static partial class Library
                 al => al.Year != null ? [((long)Math.Floor(al.Year.Value / 10.0) * 10).ToString(CultureInfo.InvariantCulture)] : []),
         };
         if (s.LabelsOn) defs.Add(new("label", "Record label", null, null, al => s.LabelOf(al) is { } l ? [l] : []));
-        defs.Add(new("format", "Format", null, null, al => al.Container != null ? [al.Container] : []));
+        // MQA (item 418) under Format (item 423): beside an album's container, MQA where its every track is, and MQA Studio too
+        // where every one is that.
+        var mqa = Mqa.MqaStore.Albums(s);
+        defs.Add(new("format", "Format", null, null, al =>
+        {
+            var v = al.Container != null ? new List<string> { al.Container } : [];
+            if (mqa.TryGetValue(al.Id, out var m)) { v.Add("MQA"); if (m.Studio) v.Add("MQA Studio"); }
+            return v;
+        }));
         defs.Add(new("rate", "Sample rate", "numeric-asc", v => (PInt(v) is long hz ? RateLabel(hz) : null) ?? v,
             al => al.Rate != null ? [al.Rate.Value.ToString(CultureInfo.InvariantCulture)] : []));
         defs.Add(new("bits", "Bit depth", "numeric-asc", v => v + "-bit",
             al => al.Bits != null ? [al.Bits.Value.ToString(CultureInfo.InvariantCulture)] : []));
-        // MQA (item 418): its every track, MQA Studio among them where every one is that.
-        var mqa = Mqa.MqaStore.Albums(s);
-        defs.Add(new("mqa", "MQA", null, null, al => mqa.TryGetValue(al.Id, out var m) ? m.Studio ? ["MQA", "MQA Studio"] : ["MQA"] : []));
         defs.Add(new("letter", "Starts with", null, null, al =>
         {
             if (al.SortTitle.Length == 0) return [];
