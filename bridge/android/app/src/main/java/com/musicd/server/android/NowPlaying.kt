@@ -59,7 +59,7 @@ class NowPlaying(
         fun format(f: Feed): String? = when {
             f.dsd > 0 -> "DSD${f.dsd}" + (if (f.dop) " (DoP)" else "")
             f.rate <= 0 -> null
-            f.bits <= 0 -> null   // BROKEN ON PURPOSE: the rate alone must show
+            f.bits <= 0 -> "${khz(f.rate)} kHz"
             else -> "${f.bits}-bit / ${khz(f.rate)} kHz"
         }
 

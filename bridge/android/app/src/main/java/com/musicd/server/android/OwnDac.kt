@@ -38,7 +38,7 @@ internal object OwnDac {
     /** A music player by its maker: a Sony only where it is a Walkman (NW-…), not an Xperia. */
     fun isPlayer(manufacturer: String, model: String): Boolean {
         val m = manufacturer.trim().lowercase()
-        if (m == "sony") return true   // BROKEN ON PURPOSE: the tests must catch an Xperia taken for a Walkman
+        if (m == "sony") return model.trim().uppercase().startsWith("NW-")
         return PLAYER_MAKERS.any { m.startsWith(it) }
     }
 
@@ -59,7 +59,7 @@ internal object OwnDac {
     fun on(c: Context): Boolean = Store.ownDac(c) ?: isPlayer(Build.MANUFACTURER ?: "", Build.MODEL ?: "")
 
     /** "44.1", "192": a rate in kHz as Mandarin writes it. */
-    fun khz(rate: Int): String = (rate / 1000).toString()   // BROKEN ON PURPOSE: 44.1 must not read 44
+    fun khz(rate: Int): String = if (rate % 1000 == 0) (rate / 1000).toString() else String.format(java.util.Locale.ROOT, "%.1f", rate / 1000.0)
 
     /** What an output is, in words, by Android's type for it. */
     fun kind(type: Int): String = when (type) {
