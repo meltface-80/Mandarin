@@ -27,9 +27,6 @@ a { color: var(--accent); }
 .fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin: 8px 0 12px; }
 label { display: block; font-size: 13px; color: var(--dim); } input { display: block; width: 100%; margin-top: 4px; background: var(--bg); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 9px 10px; font: inherit; }
 #net-save { margin: 6px 0 10px; }
-.log { max-height: 60vh; overflow: auto; white-space: pre-wrap; word-break: break-word; font: 12px/1.45 ui-monospace, Menlo, Consolas, monospace; margin: 10px 0 14px; }
-.log .WARN { color: var(--warn); } .log .ERROR { color: var(--bad); }
-#log-filter { margin: 4px 0; }
 .power { position: relative; } .power-btn { background: var(--bad); color: #fff; display: inline-flex; align-items: center; gap: 4px; padding: 8px 12px; }
 .power-btn svg { display: block; }
 .menu { position: absolute; right: 0; top: 42px; background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 6px; z-index: 5; min-width: 220px; }

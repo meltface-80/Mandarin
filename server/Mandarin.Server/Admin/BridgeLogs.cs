@@ -1,10 +1,8 @@
-// BridgeLogs.cs — each Mandarin Bridge's own log, for the Mandarin app's (item 291): when the app's log is saved
-// (Settings → Setup → Logging → Save log) it is the app's, the server's, then every Bridge Mandarin knows (Android,
-// Linux, a Raspberry Pi), each under its name. A Bridge keeps its last lines and answers them at the path its
-// /dac.json names ("log": the Linux Bridge's Kept.cs, the Android one's BridgeLog.kt); each line is put through
-// LogScrub as the server's own are, so what is the owner's alone stays out of it.
-//
-//   GET /api/diagnostics/bridges   text: a heading for each Bridge, then its lines (times in UTC), or why there are none
+// BridgeLogs.cs — each Mandarin Bridge's own lines, read for the one log (item 291, then 425): a Bridge keeps its last
+// lines and answers them at the path its /dac.json names ("log": the Linux Bridge's Kept.cs, the Android one's
+// BridgeLog.kt), and BridgeLogsKept.cs puts what is new in them into the one log as "[bridge <its name>]", each line put
+// through LogScrub as the server's own are, so what is the owner's alone stays out of it. A Bridge whose lines reach the
+// one log another way (the Linux Bridge on Mandarin OS, through the journal) names no "log", and isn't read.
 using System.Text;
 using Mandarin.Server.Playback;
 using Mandarin.Server.Renderers;
@@ -16,24 +14,6 @@ internal static class BridgeLogs
     /* The most of a Bridge's log read: a megabyte, its newest lines. */
     public const int MostBytes = 1024 * 1024;
     private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromSeconds(10) };
-
-    /* Every Bridge's log, each under its heading; a line saying so where Mandarin knows none. */
-    public static async Task<string> Text()
-    {
-        var list = BridgeUpdates.Bridges();
-        if (list.Count == 0) return "(Mandarin knows no Mandarin Bridge)\n";
-        return string.Join("\n", await Task.WhenAll(list.Select(One)));
-    }
-
-    // Bridge [rec]'s heading and log, or why it has none.
-    private static async Task<string> One(DeviceRecord rec)
-    {
-        var (head, lines, why) = await Read(rec);
-        var b = new StringBuilder(head).Append('\n');
-        if (lines == null) return b.Append(why).Append('\n').ToString();
-        foreach (var l in lines) b.Append(l).Append('\n');
-        return b.ToString();
-    }
 
     /* Bridge [rec]'s heading ("— Mandarin Bridge: name (platform version, build c) —"), and its newest lines, scrubbed,
        or null and why it has none ("(it isn't answering: its log isn't here)"). */

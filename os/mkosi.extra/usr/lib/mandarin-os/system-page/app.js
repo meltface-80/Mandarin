@@ -4,7 +4,7 @@
 (() => {
   const $ = (id) => document.getElementById(id);
   const esc = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
-  let st = null, pass = "", passAt = 0, logWhich = "mandarin", logText = "";
+  let st = null, pass = "", passAt = 0;
 
   const tab = (name) => {
     document.querySelectorAll("nav button").forEach((b) => {
@@ -13,7 +13,6 @@
       if (b.dataset.tab === name && b.scrollIntoView) b.scrollIntoView({ block: "nearest", inline: "nearest" });
     });
     document.querySelectorAll(".tab").forEach((s) => s.classList.toggle("hidden", s.id !== name));
-    if (name === "support") loadLog();
     try { localStorage.setItem("mos-tab", name); } catch (e) { /* none kept */ }
   };
   document.querySelectorAll("nav button").forEach((b) => b.addEventListener("click", () => tab(b.dataset.tab)));
@@ -168,23 +167,9 @@
     else if (t.dataset.mandarin) act("/api/mandarin", { action: t.dataset.mandarin }, t.dataset.mandarin === "reinstall" ? "Reinstall Mandarin" : "Reset Mandarin",
       t.dataset.mandarin === "reinstall" ? "Put back from " + ((st.mandarin.channel || {}).wanted === "dev" ? "the development builds" : "its latest release") + "; your library and settings kept." : "Mandarin starts as new; what it kept is set aside in its Backups folder.");
     else if (t.dataset.power) { $("power-menu").classList.add("hidden"); act("/api/power", { action: t.dataset.power }, t.textContent, ""); }
-    else if (t.dataset.log) { logWhich = t.dataset.log; document.querySelectorAll("#log-pick button").forEach((b) => b.classList.toggle("on", b === t)); loadLog(); }
   });
   $("power-btn").addEventListener("click", (e) => { e.stopPropagation(); $("power-menu").classList.toggle("hidden"); });
   document.addEventListener("click", (e) => { if (!e.target.closest(".power")) $("power-menu").classList.add("hidden"); });
-
-  async function loadLog() {
-    $("log-lines").textContent = "Reading…";
-    logText = await fetch("/api/logs/" + logWhich).then((r) => r.text()).catch(() => "The log couldn't be read.");
-    showLog();
-  }
-  function showLog() {
-    const has = $("log-filter").value.trim().toLowerCase();
-    const lines = logText.split("\n").filter((l) => l && (!has || l.toLowerCase().includes(has))).slice(-600);
-    $("log-lines").innerHTML = lines.map((l) => { const m = /\b(WARN|ERROR)\b/.exec(l); return m ? '<span class="' + m[1] + '">' + esc(l) + "</span>" : esc(l); }).join("\n") || "No lines here.";
-    $("log-lines").scrollTop = $("log-lines").scrollHeight;
-  }
-  $("log-filter").addEventListener("input", showLog);
 
   $("diag-run").addEventListener("click", async () => {
     $("diag").innerHTML = '<p class="note">Testing…</p>';

@@ -41,7 +41,8 @@ systemctl mask systemd-networkd.service systemd-networkd.socket systemd-networkd
 # Where the installed system's EFI partition is mounted when looked at (the installer's fstab).
 mkdir -p /efi
 systemctl enable mandarin-os-started.service mandarin-os-health.service mandarin-os-update-check.timer
-systemctl enable mandarin-console.service mandarin-os-apply.service mandarin-os-check.service mandarin-os-maintain.timer mandarin-os-page.service mandarin-os-power.path \
+# Mandarin's one log, the journal's lines of Mandarin, its Bridge and the OS written into /data/Logs (item 425).
+systemctl enable mandarin-log.service mandarin-console.service mandarin-os-apply.service mandarin-os-check.service mandarin-os-maintain.timer mandarin-os-page.service mandarin-os-power.path \
   nftables.service smbd.service avahi-daemon.service wsdd2.service NetworkManager.service systemd-resolved.service systemd-timesyncd.service
 # What the upkeep must never remove.
 apt-mark manual $(dpkg-query -W -f '${Package}\n' | grep -E '^(linux-image-amd64|libsoxr0|libopus0|libmp3lame0|libgnutls30t64|libfreetype6|libharfbuzz0b|libfontconfig1|fonts-dejavu-core|libbz2-1.0|zlib1g|poppler-utils|python3|python3-numpy|libicu[0-9]+|libasound2t64|samba|avahi-daemon|wsdd2|network-manager|nftables|unattended-upgrades|curl|ca-certificates|openssl|jq|dialog|kbd|e2fsprogs|dosfstools|exfatprogs|systemd|systemd-boot|udev|dbus)$') >/dev/null

@@ -31,8 +31,10 @@ an update that fails as it starts is let go and the installed one runs on; one t
 why on the Bridge's row there. A Bridge from before v0.3.1 needs this install once more, by hand: it asked GitHub
 without a User-Agent, which GitHub refuses (item 327).
 
-Its log goes to journald (`journalctl -u mandarin-bridge`) and its last 2,000 lines are kept in memory as well, at
-`GET /log` (`Kept.cs`): the Mandarin app's Save log (Settings → Setup → Logging) has them, gathered by the server.
+Its log goes to journald (`journalctl -u mandarin-bridge`) and is kept in its data folder's `Logs` as well, the newest
+lines at `GET /log` (`Kept.cs`), which Mandarin's server fetches every minute into Mandarin's one log as
+`[bridge <its name>]`. On Mandarin OS (`MANDARIN_LOG=journal`) it keeps no files: each line goes to journald saying where
+it came from, and the box writes it into its one log (the shared folder's `Logs`).
 
 ## The bit-perfect check: `/capture`
 

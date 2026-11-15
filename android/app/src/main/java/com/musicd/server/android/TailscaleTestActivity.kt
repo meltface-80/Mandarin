@@ -1,8 +1,6 @@
 package com.musicd.server.android
 
 import android.app.Activity
-import android.content.ClipData
-import android.content.ClipboardManager
 import android.content.Intent
 import android.graphics.Typeface
 import android.net.Uri
@@ -27,8 +25,8 @@ import java.util.concurrent.Executors
  * MusicD's own Tailscale connection: sign the phone in to your tailnet once,
  * and away from home the app reaches the server through it (see [Away]).
  * "Test connection" checks each step of the way — joined, server answering,
- * seen as away, a track's first half-megabyte — with timings, and a log to
- * copy and send back. A passing test keeps the address it used.
+ * seen as away, a track's first half-megabyte — with timings, each step a
+ * line of Mandarin's one log too (item 425). A passing test keeps the address it used.
  *
  * Reached from Settings → System → Tailscale (app only).
  */
@@ -84,7 +82,6 @@ class TailscaleTestActivity : Activity() {
         col.addView(target)
 
         col.addView(button("Test connection") { test() })
-        col.addView(button("Copy log") { copyLog() })
         col.addView(button("Sign this phone out of Tailscale") { run("Sign out") { Store.setEngineJoined(this@TailscaleTestActivity, false); TailscaleEngine.json("POST", "/logout") } })
 
         log = TextView(this).apply {
@@ -245,22 +242,11 @@ class TailscaleTestActivity : Activity() {
     private fun run(name: String, f: () -> JSONObject) { work.execute { step(name, f) } }
 
     private fun say(s: String) {
+        AppLog.line("TAILSCALE", s)   // each step in Mandarin's one log too (item 425)
         synchronized(lines) { lines.append(s).append('\n') }
         main.post { log.text = synchronized(lines) { lines.toString() } }
     }
 
-    private fun copyLog() {
-        work.execute {
-            val engineLog = runCatching { TailscaleEngine.call("GET", "/log", timeoutMs = 4000).second }.getOrDefault("(no engine log)")
-            val text = "Mandarin ${BuildConfig.VERSION_NAME} Tailscale test\n\n" + synchronized(lines) { lines.toString() } +
-                "\n—— engine errors ——\n" + TailscaleEngine.stderrTail.joinToString("\n") +
-                "\n—— engine log ——\n" + engineLog.takeLast(20_000)
-            main.post {
-                getSystemService(ClipboardManager::class.java).setPrimaryClip(ClipData.newPlainText("Mandarin Tailscale test", text))
-                toast("Log copied")
-            }
-        }
-    }
 
     // ------------------------------------------------------------ bits
 

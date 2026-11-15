@@ -424,12 +424,11 @@ FEATURES = [
      "(a **✓** once added) and so to the library, as does **⋯ → Add to Tidal favourites** on its page. "
      "Details under [Tidal](#tidal)."),
     ("logging", "📝", "Logging", True,
-     "Always on: the server, every Mandarin Bridge, the Android app and the page log what happened, without "
-     "personal data, kept on the server for you to send to the developer.",
-     "Nothing to switch on. In a browser, **Settings → Setup → Logs → Download all logs**: every log as one text "
-     "file, in time order. In the Android app, **Settings → Setup → Logging → Save log** (to Downloads/Mandarin, the "
-     "server's and the Mandarin Bridges' logs with it); **Clear log** empties it. On Mandarin OS, the system page's "
-     "**Support → Download all logs**. Look through it before you send it. Details under [Logs](#logs)."),
+     "Always on: one log of everything (the server, Mandarin OS, every Mandarin Bridge, the app, the page), "
+     "a line each in time order, without personal data.",
+     "Nothing to switch on. On Mandarin OS, the shared folder's **Logs** (`smb://<box address>/Data/Logs`): "
+     "`Mandarin_log.txt`. Elsewhere, the **Logs** folder in the server's data folder. Look through it before you "
+     "send it. Details under [Logs](#logs)."),
     ("updates", "🔄", "Updates", False,
      "The server updates itself from GitHub and checks every 12 hours. The Android app and every Mandarin "
      "Bridge have their own Check for update beside the server's.",

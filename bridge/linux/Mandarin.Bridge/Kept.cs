@@ -5,8 +5,14 @@
 //   2026-11-11 21:14:03.123 UTC  INFO   [http] listening on 49494
 //
 // GET /log answers the newest lines (Mandarin's server fetches them, Admin/BridgeLogs.cs, each line put through its
-// LogScrub there). Until the data folder is known, or where it can't be written, the last lines are kept in memory
-// alone, as they were before (item 291). What it logs goes to standard error as well, for journald.
+// LogScrub there, into Mandarin's one log as "[bridge <its name>]", item 425). Until the data folder is known, or where it
+// can't be written, the last lines are kept in memory alone, as they were before (item 291). What it logs goes to
+// standard error as well, for journald.
+//
+// On Mandarin OS (from 0.1.8, its drop-in for this service sets MANDARIN_LOG=journal) the box writes one log of
+// everything from the journal: there the Bridge keeps no files (those from before let go), says each line on standard
+// error with where it came from ("2026-11-15 09:43:12.345 UTC  INFO   [bridge Mandarin Bridge (mandarin)] [http] …"),
+// and its /dac.json names no log, so Mandarin's server doesn't fetch the same lines again (item 425).
 using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -26,6 +32,12 @@ internal static class Kept
     private static string dir = "";
     private static StreamWriter? writer;
 
+    /* Mandarin OS writes the one log from the journal (MANDARIN_LOG=journal): no files, each line saying where it came from. */
+    public static bool Journal => Environment.GetEnvironmentVariable("MANDARIN_LOG") == "journal";
+
+    /* This Bridge's name, once it is known (Bridge.cs), for where its lines came from. */
+    public static Func<string> Who { get; set; } = () => "";
+
     /* The folder the files are kept in, "" while they aren't. */
     public static string Dir => dir;
 
@@ -36,11 +48,26 @@ internal static class Kept
     public static string Stamp(string level, string line) =>
         DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss.fff", CultureInfo.InvariantCulture) + " UTC  " + level.PadRight(5) + "  " + line;
 
-    /* Kept from now in [data]/Logs, what was said before written first. */
+    /* A line as standard error says it: stamped, and with Mandarin OS writing the one log, where it came from too. */
+    public static string Said(string level, string line)
+    {
+        if (!Journal) return Stamp(level, line);
+        var name = new string([.. Who().Select(c => char.IsControl(c) ? ' ' : c is '[' ? '(' : c is ']' ? ')' : c)]).Trim();
+        return Stamp(level, "[bridge" + (name.Length > 0 ? " " + name : "") + "] " + line);
+    }
+
+    /* Kept from now in [data]/Logs, what was said before written first; with Mandarin OS writing the one log, in memory
+       alone, and the files from before let go. */
     public static void Start(string data)
     {
         lock (lines)
         {
+            if (Journal)
+            {
+                try { if (Directory.Exists(Path.Combine(data, "Logs"))) Directory.Delete(Path.Combine(data, "Logs"), true); }
+                catch (Exception e) when (e is IOException or UnauthorizedAccessException) { /* tried again at the next start */ }
+                return;
+            }
             if (long.TryParse(Environment.GetEnvironmentVariable("MANDARIN_LOG_BYTES"), out var b) && b > 0) fileBytes = b;
             try
             {

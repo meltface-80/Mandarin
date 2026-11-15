@@ -117,4 +117,3 @@ app/toast-lift.js
 app/power.js
 app/backup-copies.js
 app/settings-backup.js
-app/settings-logs.js

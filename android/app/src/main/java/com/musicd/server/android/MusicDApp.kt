@@ -18,7 +18,7 @@ import java.io.StringWriter
 class MusicDApp : Application() {
     override fun onCreate() {
         super.onCreate()
-        AppLog.start(this)   // logging, if switched on (Settings → Setup, item 121)
+        AppLog.start(this)   // its lines for Mandarin's one log, sent to the server (item 425)
         CrashLog.install(this)
         CrashLog.watchMainThread(this)
         ExitNote.keep(this)

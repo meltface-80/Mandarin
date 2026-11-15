@@ -1,5 +1,10 @@
 # Mandarin OS changelog
 
+## v0.1.9
+
+- Changed - one log, in one place (item 425): smb://<box>/Data/Logs holds Mandarin_log.txt, a single plain-text file of everything on the box, a line an event in time order, each saying where it came from: Mandarin's server ("[server]"), Mandarin OS itself ("[os]": its scripts, services, system page, updates, USB drives, health checks, Samba, systemd's word on each of them), Mandarin Bridge on the box ("[bridge <its name>]"), and what reaches the server from elsewhere: the Android app ("[app <the phone's name>]"), every other Bridge Mandarin knows and the page in a browser. At 8 MB it becomes Mandarin_log.01.txt and a new one is begun, ten files at most (.01 the newest of the old, .09 the oldest), read-only on the share. Every part says its lines to the journal, and one small service, mandarin-log, alone writes the files from it: a crash of Mandarin loses none of its lines, and where the journal was read to is kept, so a restart, an update or a power cut takes none twice. Each line is scrubbed as Mandarin's own (no passwords, keys, emails, account names, internet or Tailscale addresses)
+- Removed - the separate logs: MandarinServer/Logs, MandarinBridge, MandarinApp and MandarinOS/Logs are gone from the share, and the files behind them are deleted once the one log is running (nothing is carried over); Samba, the system page's errors, the installer and the reinstaller now say theirs into the one log too. The system page's Support → Download all logs and its log viewer are gone: the log is read on the share
+
 ## v0.1.8
 
 - Changed - Mandarin OS is the one way Mandarin is installed (item 426): the installer it puts Mandarin in with (linux-install.sh, at its image's build and by Reinstall Mandarin) is its own, kept in os/ with the rest of it, and keeps only what Mandarin OS uses (no --port, --uninstall or --purge, no question asked for the music folder). Nothing else changes on the box

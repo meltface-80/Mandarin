@@ -260,12 +260,6 @@ internal object ContractLabels1 {
         "settings.repo" to listOf("View on GitHub"),
         "settings-setup.back" to listOf("Back to settings"),
         "settings-setup.item" to listOf("{page}"),
-        "settings-setup.log-save" to listOf("Save log"),
-        "settings-setup.log-clear" to listOf("Clear log"),
-        "settings-logs.back" to listOf("Back to settings"),
-        "settings-logs.download" to listOf("Download all logs"),
-        "settings-logs.level" to listOf("Level"),
-        "settings-logs.filter" to listOf("Lines that hold"),
         "settings-account.back" to listOf("Back to settings"),
         "settings-account.ask" to listOf("Ask for a sign-in"),
         "settings-account.revoke" to listOf("Sign out"),
@@ -303,5 +297,8 @@ internal object ContractLabels1 {
         "settings-display.info" to listOf("About {setting}"),
         "settings-display.enabled" to listOf("Wall display"),
         "settings-display.seconds" to listOf("Display rotation interval in seconds"),
+        "settings-shelf.back" to listOf("Back to settings"),
+        "settings-shelf.info" to listOf("About {setting}"),
+        "settings-shelf.enabled" to listOf("Shelf"),
     )
 }

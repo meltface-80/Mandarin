@@ -1,18 +1,20 @@
 "use strict";
 /*
- * Each Mandarin Bridge's own log in Mandarin's (item 291, Admin/BridgeLogs.cs: GET /api/diagnostics/bridges, which the
- * Android app's Save log adds after the server's), end to end with Mandarin Bridge for Linux itself (its log kept in
- * rolling files in its data folder, Kept.cs, item 389, the newest lines at /log) and two fake Android ones (BridgeLog.kt's /log, and an older app with none):
- *   - every Bridge under its name, its platform, version and build, then its lines;
+ * Every Mandarin Bridge's lines in Mandarin's one log (item 425; Admin/BridgeLogsKept.cs), end to end with Mandarin
+ * Bridge for Linux itself (its log kept in rolling files in its data folder, Kept.cs, item 389, the newest lines at
+ * /log) and two fake Android ones (BridgeLog.kt's /log, and an older app with none):
+ *   - each Bridge's new lines in <data>/Logs/Mandarin_log.txt as "[bridge <its name>]", with the time each was said;
  *   - what is the owner's alone taken out, as from the server's own lines (LogScrub);
- *   - an older Bridge, and one not answering, said so; nothing without signing in.
+ *   - a line taken once, also when the server starts again (where it read to is kept);
+ *   - on Mandarin OS (MANDARIN_LOG=journal) the Linux Bridge keeps no files (those from before let go), says each line
+ *     on standard error with where it came from, for the box's one log, and names no log for the server to fetch.
  */
 const test = require("node:test");
 const assert = require("node:assert");
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
-const { spawn, spawnSync } = require("child_process");
+const { spawn } = require("child_process");
 const ports = require("./ports");
 const { haveFfmpeg, makeLibrary, FFMPEG } = require("./fixtures");
 const { FakeHousehold } = require("./fake-sonos");
@@ -63,12 +65,15 @@ test("every Mandarin Bridge's own log, in Mandarin's", { skip, timeout: 120000 }
   const file = fs.readFileSync(path.join(tmp, "data", "Logs", "MandarinBridge_log.txt"), "utf8");
   assert.match(file, /^# Mandarin Bridge \S+ \(build [^)]+\) log, begun /);
   assert.match(file, /\[http\] listening on \d+$/m);
-  const commit = spawnSync(BRIDGE, ["--version"]).stdout.toString().match(/\(([^)]+)\)/)[1];
 
   // An Android Bridge, its log as Android keeps it, with what is the owner's alone in it; and an older one, with none.
+  // Its lines said a minute ago, as logcat dates them (UTC); one from yesterday, before this log, not taken.
+  const at = ms => new Date(Date.now() - ms).toISOString().replace("T", " ").slice(0, 23);
+  const [t0, t1, t2] = [at(86400000), at(60000), at(59000)];
   const phone = new FakeRenderer({ name: "FiiO R7 USB", manufacturer: "Mandarin", model: "Mandarin Bridge", sink: SINK, dac: Object.assign({}, DAC, {
-    log: "2026-11-05 09:00:01.000  4242  4250 I UsbDriver: opened 96000 Hz, 2 × 32-bit\n" +
-      "2026-11-05 09:00:02.000  4242  4251 W Updater: asked by owner@example.com with token=abcdef0123456789\n" }) });
+    log: `${t0}  4242  4250 I UsbDriver: yesterday's line\n` +
+      `${t1}  4242  4250 I UsbDriver: opened 96000 Hz, 2 × 32-bit\n` +
+      `${t2}  4242  4251 W Updater: asked by owner@example.com with token=abcdef0123456789\n` }) });
   const older = new FakeRenderer({ name: "Old Bridge", manufacturer: "Mandarin", model: "Mandarin Bridge", sink: SINK, dac: DAC });
   await phone.start(); await older.start();
   t.after(() => phone.stop()); t.after(() => older.stop());
@@ -78,41 +83,62 @@ test("every Mandarin Bridge's own log, in Mandarin's", { skip, timeout: 120000 }
   await house.start();
   t.after(() => house.stop());
   const { createServer } = require("./server");
-  const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [ports.host(0)],
-    upnpHosts: [phone.location, older.location], upnpMulticast: false, slimprotoPort: SLIM, bridgeLogsEvery: 1 });
+  const opts = { port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [ports.host(0)],
+    upnpHosts: [phone.location, older.location], upnpMulticast: false, slimprotoPort: SLIM, bridgeLogsEvery: 1 };
+  let srv = createServer(opts);
   await srv.start();
   t.after(() => srv.stop());
   const auth = { Authorization: "Bearer " + await signIn(B) };
-  const logs = async () => (await fetch(B + "/api/diagnostics/bridges", { headers: auth })).text();
-
-  const text = await until(async () => { const s = await logs(); return (s.match(/^— Mandarin Bridge: /gm) || []).length === 3 && s; }, 30000);
-  // Each under its name, what it is, then its lines.
+  const log = () => { try { return fs.readFileSync(path.join(lib.data, "Logs", "Mandarin_log.txt"), "utf8"); } catch (e) { return ""; } };
+  const count = (re) => (log().match(re) || []).length;
   const re = x => x.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  assert.match(text, new RegExp(`^— Mandarin Bridge: ${re(dac.name)} \\(linux ${re(dac.version)}, build ${commit}\\) —\\n(.+\\n)*.*\\[http\\] listening on`, "m"), text);
-  assert.match(text, /^— Mandarin Bridge: FiiO R7 USB \(android 0\.2\.0\) —\n2026-11-05 09:00:01\.000 .*UsbDriver: opened 96000 Hz/m, text);
+
+  // Each Bridge's lines under its name, with the time it said each, without being asked.
+  await until(() => /\[http\] listening on/.test(log()) && /UsbDriver: opened/.test(log()), 30000);
+  assert.match(log(), new RegExp(`^\\d{4}-\\d\\d-\\d\\d \\d\\d:\\d\\d:\\d\\d\\.\\d{3} UTC {2}INFO {3}\\[bridge ${re(dac.name)}\\] \\[http\\] listening on \\d+$`, "m"), log());
+  assert.match(log(), new RegExp(`^${t1} UTC {2}INFO {3}\\[bridge FiiO R7 USB\\] UsbDriver: opened 96000 Hz, 2 × 32-bit$`, "m"), log());
   // The owner's alone taken out: the email and the token.
-  assert.match(text, /Updater: asked by \[email\] with token=\[…\]$/m, text);
-  assert.ok(!text.includes("owner@example.com") && !text.includes("abcdef0123456789"), text);
-  // An older app keeps none for Mandarin; one that has gone isn't answering.
-  assert.match(text, /^— Mandarin Bridge: Old Bridge \(android 0\.2\.0\) —\n\(its app is older and keeps no log for Mandarin\)$/m, text);
+  assert.match(log(), new RegExp(`^${t2} UTC {2}WARN {3}\\[bridge FiiO R7 USB\\] Updater: asked by \\[email\\] with token=\\[…\\]$`, "m"), log());
+  assert.ok(!log().includes("owner@example.com") && !log().includes("abcdef0123456789"), log());
+  // What it said before this log began isn't carried into it; an older app keeps none for Mandarin.
+  assert.ok(!log().includes("yesterday's line"), log());
+  assert.ok(!log().includes("[bridge Old Bridge]"), log());
   // What an older app doesn't say is nothing, never "undefined": on Settings → Updates too.
-  assert.ok(!text.includes("undefined"), text);
   const rows = (await (await fetch(B + "/api/update/bridges", { headers: auth })).json()).bridges;
   assert.deepEqual(rows.filter(r => r.name !== dac.name).map(r => [r.name, r.platform, r.version, r.commit]).sort(),
     [["FiiO R7 USB", "android", "0.2.0", null], ["Old Bridge", "android", "0.2.0", null]]);
-  // Kept on the server too, without asking (item 389): each Bridge's new lines in Logs/Bridges/<its name>.txt, under its
-  // heading, the owner's alone taken out there as well, and a line already kept never kept twice.
-  const kept = name => { try { return fs.readFileSync(path.join(lib.data, "Logs", "Bridges", name + ".txt"), "utf8"); } catch (e) { return ""; } };
-  await until(() => /\[http\] listening on/.test(kept(dac.name)) && /UsbDriver: opened/.test(kept("FiiO R7 USB")), 20000);
-  assert.match(kept("FiiO R7 USB"), /^# — Mandarin Bridge: FiiO R7 USB \(android 0\.2\.0\) —\n/);
-  assert.match(kept("FiiO R7 USB"), /Updater: asked by \[email\] with token=\[…\]$/m);
+  // Asked again and again, and the server started again: a line taken once.
   await sleep(2500);
-  assert.equal((kept("FiiO R7 USB").match(/UsbDriver: opened/g) || []).length, 1, kept("FiiO R7 USB"));
-  assert.equal((kept(dac.name).match(/\[http\] listening on/g) || []).length, 1, kept(dac.name));
-  await older.stop();
-  assert.match(await until(async () => { const s = await logs(); return /Old Bridge —\n\(it isn't answering/.test(s) && s; }, 15000),
-    /^— Mandarin Bridge: Old Bridge —\n\(it isn't answering: its log isn't here\)$/m);
+  await srv.stop();
+  srv = createServer(opts);
+  await srv.start();
+  await until(() => count(/\[server\] \[start\] Mandarin Server /g) === 2, 20000);
+  await sleep(3000);
+  assert.equal(count(/UsbDriver: opened/g), 1, log());
+  assert.equal(count(new RegExp(`\\[bridge ${re(dac.name)}\\] \\[http\\] listening on`, "g")), 1, log());
 
-  // Not signed in: nothing.
-  assert.equal((await fetch(B + "/api/diagnostics/bridges")).status, 401);
+});
+
+test("on Mandarin OS the Linux Bridge keeps no files and says each line with where it came from", { skip, timeout: 60000 }, async (t) => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "musicd-test-bridge-journal-"));
+  t.after(() => fs.rmSync(tmp, { recursive: true, force: true }));
+  const data = path.join(tmp, "data");
+  // Its files from before.
+  fs.mkdirSync(path.join(data, "Logs"), { recursive: true });
+  fs.writeFileSync(path.join(data, "Logs", "MandarinBridge_log.txt"), "# Mandarin Bridge 0.3.13 log\n");
+  fs.writeFileSync(path.join(data, "settings.json"), JSON.stringify({ name: "Kitchen [box]", udn: "uuid:00000425-0000-4000-8000-000000000425" }));
+  fs.mkdirSync(path.join(tmp, "asound"));
+  fs.writeFileSync(path.join(tmp, "asound", "cards"), "");
+  const port = ports.port();
+  const b = spawn(BRIDGE, ["--port", String(port), "--data", data, "--asound", path.join(tmp, "asound"), "--address", "127.0.0.1", "--engine", ENGINE, "--ffmpeg", FFMPEG],
+    { stdio: ["ignore", "ignore", "pipe"], env: Object.assign({}, process.env, { MANDARIN_LOG: "journal" }) });
+  let said = "";
+  b.stderr.on("data", d => { said += d; });
+  t.after(() => b.kill());
+  const dac = await until(async () => (await fetch(`http://127.0.0.1:${port}/dac.json`)).json(), 15000);
+  assert.equal(dac.name, "Kitchen [box]");
+  assert.ok(dac.log == null, "no log named for the server to fetch: " + dac.log);
+  await until(() => /\[http\] listening on/.test(said), 10000);
+  assert.match(said, /^\d{4}-\d\d-\d\d \d\d:\d\d:\d\d\.\d{3} UTC {2}INFO {3}\[bridge Kitchen \(box\)\] \[http\] listening on \d+$/m, said);
+  assert.ok(!fs.existsSync(path.join(data, "Logs")), "its files from before let go, none kept");
 });

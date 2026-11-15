@@ -82,14 +82,14 @@ while [ -z "$answers" ]; do
 done
 
 clear; echo; echo "  Writing Mandarin OS to $target…"; echo
-say "installing $VER to $target, internal storage ${internal:-none}, user $user, network $(jq -r .mode <<< "$net"), bridge $bridge"
+say "installing $VER to $target, internal storage ${internal:-none}, network $(jq -r .mode <<< "$net"), bridge $bridge"
 if ! systemd-repart --dry-run=no --empty=force --definitions=/usr/lib/mandarin-os/install.repart.d "$target" >> "$LOG" 2>&1; then
   say "systemd-repart failed"; [ -n "$answers" ] && { cat "$LOG" > /dev/ttyS0 2>/dev/null; say "INSTALL FAILED"; touch "$DONE"; end poweroff; }; D --title "It didn't work" --msgbox "Mandarin OS couldn't be written to $target. Nothing else was changed.\n\n$(tail -n 5 "$LOG")" 14 76; exec "$0"
 fi
 udevadm settle
 data="$(lsblk -lnpo NAME,PARTLABEL "$target" | awk '$2 == "mandarin-data" { print $1 }')"
 mkdir -p /mnt/data && mount "$data" /mnt/data || { [ -n "$answers" ] && { lsblk -o NAME,PARTLABEL,SIZE "$target" > /dev/ttyS0 2>/dev/null; say "INSTALL FAILED: no data partition"; touch "$DONE"; end poweroff; }; D --msgbox "The data partition couldn't be opened." 7 60; exec "$0"; }
-mkdir -p /mnt/data/MachineSettings /mnt/data/MandarinOS/Logs /mnt/data/MandarinServer /mnt/data/Storage/USB
+mkdir -p /mnt/data/MachineSettings /mnt/data/Logs /mnt/data/MandarinServer /mnt/data/Storage/USB
 jq -n --arg u "$user" --arg p "$p1" --argjson n "$net" --argjson b "$bridge" '{share_user:$u, share_password:$p, network:$n, bridge:$b}' > /mnt/data/MachineSettings/setup.json
 chmod 600 /mnt/data/MachineSettings/setup.json
 if [ -n "$internal" ]; then
@@ -128,7 +128,11 @@ mkdir -p /mnt/root && mount "$root" /mnt/root && {
 } || say "the system's mounts couldn't be written"
 say "done"
 touch "$DONE"
-cp "$LOG" /mnt/data/MandarinOS/Logs/Installer_log.txt
+# The installer's lines, the first of Mandarin's one log (item 425): each "[os] [install] …", dated as it was said (a
+# tool's own output under the line before it).
+awk -v now="$(date -u '+%Y-%m-%d %H:%M:%S')" 'BEGIN { t = now }
+  /^[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9] [0-9][0-9]:[0-9][0-9]:[0-9][0-9] / { t = substr($0, 1, 19); $0 = substr($0, 21) }
+  NF { print t ".000 UTC  INFO   [os] [install] " $0 }' "$LOG" >> /mnt/data/Logs/Mandarin_log.txt
 umount /mnt/data; sync
 if [ -n "$answers" ]; then say "installed on $target"; end poweroff; fi
 # Switched off, not restarted: the installer runs from the stick, so the stick is taken out only once the computer is
