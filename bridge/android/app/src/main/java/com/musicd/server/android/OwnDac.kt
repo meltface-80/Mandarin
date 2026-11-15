@@ -147,7 +147,7 @@ internal object OwnDac {
      */
     fun advertised(taken: List<Int>, follows: Boolean?, output: Int, reached: List<Int> = emptyList()): List<Int> = when {
         // Stays at one rate: that, and any rate above 192 kHz that reached the DAC all the same (item 434).
-        follows == false && output > 0 -> listOf(output)   // BROKEN ON PURPOSE: rates above 192 kHz that reach the DAC must be told
+        follows == false && output > 0 -> (listOf(output) + reached.filter { it in taken }).distinct().sorted()
         // Followed (item 434): the rates the way reached the DAC at, Mandarin converting any other to the nearest.
         follows == true && reached.isNotEmpty() -> reached.filter { it in taken }.ifEmpty { taken }
         else -> taken

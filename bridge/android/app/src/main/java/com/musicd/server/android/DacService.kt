@@ -253,13 +253,17 @@ class DacService : Service() {
      */
     private fun probeOwn() {
         if (!ownNow() || OwnDac.follows != null || (::player.isInitialized && player.isPlaying)) return
+        // Once at a time: the start and a USB change both ask (0.3.17 tried twice at once on an R7).
+        if (!probing.compareAndSet(false, true)) return
         Thread {
-            OwnDac.probe()
-            for (t in OwnDac.tried) Log.i(TAG, "own DAC: ${t.way.words} at ${t.rate} Hz: " + (t.error ?: "the output ran at ${t.output} Hz" + if (t.followed) ", followed" else ""))
+            try { OwnDac.probe() } finally { probing.set(false) }
+            for (t in OwnDac.tried) Log.i(TAG, "own DAC: ${t.way.words} at ${t.rate} Hz: " + (t.error ?: "Android's music output at ${t.output} Hz, FiiO's word ${t.fiio} Hz" + if (t.followed) ", followed" else ""))
             Log.i(TAG, "own DAC: " + (OwnDac.way?.let { "played by ${it.words}" } ?: "no way followed; the output stays at ${OwnDac.probedRate} Hz"))
             main.post { if (ready) { slim.rehello(); foreground(notification()) } }
         }.start()
     }
+
+    private val probing = java.util.concurrent.atomic.AtomicBoolean(false)
 
     /** Settings' Test again: whether the output follows, found afresh (not while a track plays). */
     fun probeOwnAgain(): Boolean {
