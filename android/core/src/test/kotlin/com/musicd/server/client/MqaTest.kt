@@ -43,6 +43,6 @@ class MqaTest {
         assertTrue(Mqa.dacNote(true).startsWith("An MQA track goes to this DAC untouched"))
         assertTrue(Mqa.dacNote(false).startsWith("Off, an MQA track plays as the PCM it is"))
         assertTrue(DevicePage(JSONObject("""{"id": "x", "kind": "upnp", "output": {"mqa_dac": true}}""")).mqaDac)
-        assertTrue(LibraryView.FACET_IDS.contains("mqa"))
+        assertFalse(LibraryView.FACET_IDS.contains("mqa"))   // MQA is under Format (item 423)
     }
 }

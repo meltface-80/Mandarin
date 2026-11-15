@@ -197,7 +197,7 @@ const libWall = { offset: 0, loading: false, done: false, seq: 0, total: 0, item
 // in one array is what stops the query builder, the saved-view snapshot, the
 // reset and the active-count from drifting apart as facets are added.
 const LIB_FACET_IDS = ["genre", "source", "decade", "label", "format",
-                       "rate", "bits", "chan", "mqa", "letter", "added"];
+                       "rate", "bits", "chan", "letter", "added"];
 const libEmptyFacets = () => {
   const o = {};
   for (const id of LIB_FACET_IDS) o[id] = [];
