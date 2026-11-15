@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- New - Mandarin Bridge for Android plays a music player's own DAC (item 432, Bridge 0.3.16): with no USB DAC plugged in, a FiiO R7 (or another music player) is played through its own DAC at each track's own rate, never resampled, mixed or scaled by the Bridge, its own volume setting the level; Mandarin converts anything above what Android takes from an app (192 kHz on the R7's Android 10) and sends DSD as PCM. With This DAC decodes MQA on for the Bridge, MQA reaches the player's DAC untouched to decode and unfold. On a phone it is off unless switched on in the Bridge's Settings
+
 ## v1.3.3
 
 Mandarin now names and completes your albums by itself: the Library Scanner under one switch, identification that finds the edition you have and can match an album by its sound, covers found for albums with none, and two releases merged into one album taken apart. MQA is recognised and passed through untouched to a DAC that decodes it; SQ-tool compares two songs; everything Mandarin says is in one log; and Mandarin Bridge for Android opens on Now Playing. With Mandarin OS 0.1.12 and Mandarin Bridge 0.3.15.

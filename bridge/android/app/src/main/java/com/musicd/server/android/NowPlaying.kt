@@ -33,6 +33,8 @@ class NowPlaying(
         const val NO_DAC = "No DAC plugged in"
         const val SETUP_TITLE = "Set up this Bridge"
         const val SETUP_LEAD = "This phone plays Mandarin’s music to the USB DAC plugged into it."
+        /** The setup help's lead on a music player whose own DAC is played (item 432). */
+        const val SETUP_LEAD_OWN = "This player plays Mandarin’s music through its own DAC, or a USB DAC plugged into it."
 
         /**
          * What the screen shows: [playedOnce] whether Mandarin has played here yet (Store.playedOnce); the transport's
@@ -53,10 +55,11 @@ class NowPlaying(
         /** "Playing to SMSL SU-1", or that no DAC is plugged in. */
         fun dacLine(dac: String?): String = dac?.trim()?.takeIf { it.isNotEmpty() }?.let { "Playing to $it" } ?: NO_DAC
 
-        /** The badge: "24-bit / 192 kHz", "16-bit / 44.1 kHz"; "DSD128", "DSD64 (DoP)"; null where nothing is fed. */
+        /** The badge: "24-bit / 192 kHz", "16-bit / 44.1 kHz"; "96 kHz", the depth unsaid; "DSD128", "DSD64 (DoP)"; null where nothing is fed. */
         fun format(f: Feed): String? = when {
             f.dsd > 0 -> "DSD${f.dsd}" + (if (f.dop) " (DoP)" else "")
-            f.rate <= 0 || f.bits <= 0 -> null
+            f.rate <= 0 -> null
+            f.bits <= 0 -> null   // BROKEN ON PURPOSE: the rate alone must show
             else -> "${f.bits}-bit / ${khz(f.rate)} kHz"
         }
 
