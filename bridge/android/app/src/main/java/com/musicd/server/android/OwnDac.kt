@@ -72,6 +72,38 @@ internal object OwnDac {
     /** Played through when no DAC is on the USB port: as set, else on by itself on a music player's. */
     fun on(c: Context): Boolean = Store.ownDac(c) ?: isPlayer(Build.MANUFACTURER ?: "", Build.MODEL ?: "", Build.BRAND ?: "")
 
+    @Volatile private var focus: android.media.AudioFocusRequest? = null
+
+    /** Whether the Bridge holds Android's audio focus now (item 435): said in Settings and /dac.json. */
+    @Volatile var focusHeld = false
+        private set
+
+    /**
+     * Android's audio focus taken for music (item 435), as a music app takes it when it plays. A FiiO R7 lets the
+     * output follow a track's rate by who holds it: after a restart no way followed (updateParams=0), and while its
+     * record of the media app was USB Audio Player Pro (isIgnoreMediaFocusProcess) every track's rate was followed.
+     * The Bridge plays on whatever another app does with focus, as it always has: losing it changes nothing but this.
+     */
+    fun holdFocus(c: Context): Boolean {
+        if (focusHeld) return true
+        val am = c.getSystemService(AudioManager::class.java) ?: return false
+        val req = android.media.AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
+            .setAudioAttributes(android.media.AudioAttributes.Builder().setUsage(android.media.AudioAttributes.USAGE_MEDIA)
+                .setContentType(android.media.AudioAttributes.CONTENT_TYPE_MUSIC).build())
+            .setWillPauseWhenDucked(false).setAcceptsDelayedFocusGain(false)
+            .setOnAudioFocusChangeListener { change -> focusHeld = change == AudioManager.AUDIOFOCUS_GAIN }
+            .build()
+        focusHeld = runCatching { am.requestAudioFocus(req) == AudioManager.AUDIOFOCUS_REQUEST_GRANTED }.getOrDefault(false)
+        focus = req
+        return focusHeld
+    }
+
+    /** Audio focus given back (the Bridge stopping, or its own DAC switched off). */
+    fun dropFocus(c: Context) {
+        focus?.let { f -> runCatching { c.getSystemService(AudioManager::class.java)?.abandonAudioFocusRequest(f) } }
+        focus = null; focusHeld = false
+    }
+
     /** The rate Android's output for music runs at now: what the DAC is fed, whatever rate a track was given at. */
     fun outputRate(): Int = runCatching { AudioTrack.getNativeOutputSampleRate(AudioManager.STREAM_MUSIC) }.getOrDefault(0)
 

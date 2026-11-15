@@ -207,6 +207,7 @@ private fun copy(c: Context, label: String, text: String) {
     val out = OwnDac.outputRate()
     Cap("Android's output now", if (out > 0) OwnDac.khz(out) + " kHz" else "not said")
     Cap("Follows a track's rate", when (OwnDac.follows) { true -> "yes: each track at its own rate"; false -> "no: it stays at ${OwnDac.khz(OwnDac.probedRate)} kHz"; null -> "not tried yet" })
+    Cap("Audio focus", if (OwnDac.focusHeld) "held by the Bridge" else "not held")
     OwnDac.way?.let { Cap("Played by", it.words) }
     if (OwnDac.reached.size > 1 || (OwnDac.reached.isNotEmpty() && OwnDac.way != null)) Cap("Reaches the DAC at (kHz)", OwnDac.reached.joinToString(", ") { OwnDac.khz(it) })
     if (OwnDac.follows == false) Note(OWN_FIXED.replace("{rate}", OwnDac.khz(OwnDac.probedRate)), danger = true)

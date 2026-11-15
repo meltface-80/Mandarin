@@ -85,6 +85,9 @@ class DacService : Service() {
             "audio/mpeg", "audio/mp4", "audio/x-m4a", "audio/aac", "audio/ogg", "audio/opus")
         private val DSD_MIMES = listOf("audio/x-dsf", "audio/x-dff", "audio/dsd", "audio/x-dsd")
 
+        /** The own DAC's test running: once at a time across the service's starts (0.3.18 ran two at once on an R7). */
+        private val probing = java.util.concurrent.atomic.AtomicBoolean(false)
+
         /** The running Bridge, for the screen to read. */
         @Volatile var current: DacService? = null
             private set
@@ -163,6 +166,7 @@ class DacService : Service() {
         runCatching { player.release() }
         runCatching { capture.stop() }
         UsbDriver.close()
+        OwnDac.dropFocus(this)
         Net.releaseMulticast()
         Awake.release()
         Log.i(TAG, "stopped")
@@ -256,14 +260,14 @@ class DacService : Service() {
         // Once at a time: the start and a USB change both ask (0.3.17 tried twice at once on an R7).
         if (!probing.compareAndSet(false, true)) return
         Thread {
+            // Audio focus first (item 435): a FiiO R7 lets the output follow by who holds it.
+            Log.i(TAG, "own DAC: audio focus " + if (OwnDac.holdFocus(this)) "held" else "not granted")
             try { OwnDac.probe() } finally { probing.set(false) }
             for (t in OwnDac.tried) Log.i(TAG, "own DAC: ${t.way.words} at ${t.rate} Hz: " + (t.error ?: "Android's music output at ${t.output} Hz, FiiO's word ${t.fiio} Hz" + if (t.followed) ", followed" else ""))
             Log.i(TAG, "own DAC: " + (OwnDac.way?.let { "played by ${it.words}" } ?: "no way followed; the output stays at ${OwnDac.probedRate} Hz"))
             main.post { if (ready) { slim.rehello(); foreground(notification()) } }
         }.start()
     }
-
-    private val probing = java.util.concurrent.atomic.AtomicBoolean(false)
 
     /** Settings' Test again: whether the output follows, found afresh (not while a track plays). */
     fun probeOwnAgain(): Boolean {
@@ -290,6 +294,8 @@ class DacService : Service() {
             playing = null
             if (!ownNow()) throw AudioSink.ConfigurationException(NO_USB, inputFormat)
             if (inputFormat.sampleRate !in OwnDac.rates) throw AudioSink.ConfigurationException(NO_OWN_RATE, inputFormat)
+            // Audio focus held as a track starts (item 435), taken back if another app had it since.
+            OwnDac.holdFocus(this@DacService)
             super.configure(inputFormat, specifiedBufferSize, outputChannels)
             super.setVolume(1f)
             playing = inputFormat
@@ -350,6 +356,7 @@ class DacService : Service() {
                 own && usbSink?.usb != true -> { probeOwn(); resume() }       // just switched on: a track stopped for want of a DAC plays
                 transport.current != null -> { player.stop(); UsbDriver.close() }   // the USB DAC went, or the own DAC was switched off
             }
+            if (!own) OwnDac.dropFocus(this)
             return
         }
         if (UsbDac.info() == null) return
@@ -416,7 +423,7 @@ class DacService : Service() {
         if (d == null && c != null) dac.put("own", true).put("device", OwnDac.name()).put("manufacturer", Build.MANUFACTURER ?: JSONObject.NULL)
             .put("volume_control", false).put("fixed", true).put("output", "android").put("android_outputs", OwnDac.outputs(this))
             .put("output_rate", OwnDac.outputRate()).put("follows", OwnDac.follows ?: JSONObject.NULL)
-            .put("way", OwnDac.way?.key ?: JSONObject.NULL).put("ways_tried", OwnDacWays.json(OwnDac.tried))
+            .put("way", OwnDac.way?.key ?: JSONObject.NULL).put("focus", OwnDac.focusHeld).put("ways_tried", OwnDacWays.json(OwnDac.tried))
         if (info != null) dac.put("uac", info.uac).put("speed", info.speed).put("volume_control", info.volumeControl).put("fixed", UsbDriver.fixed(this))
             .put("dsd_mode", Store.usbDsd(this))
         if (c != null) dac.put("rates", JSONArray(c.rates)).put("bits", JSONArray(takenBits(c.bits))).put("dac_bits", JSONArray(c.bits))
