@@ -126,8 +126,9 @@ FEATURES = [
      "*indie rock*) is one, spelled as most of your albums spell it; a Qobuz album's French genre "
      "(*Électronique*) shows in English (*Electronic*). Your files are not changed."),
     ("edit", "✏️", "Edit album", False,
-     "Correct an album's title, artist, year and version (its name, label, catalogue number, barcode, "
-     "country, pressing year, format) and choose its cover. Your music files are never changed.",
+     "Correct an album's title, artist, year and version (name, label, catalogue number, barcode, "
+     "country, pressing year, format), choose its cover and split two merged releases apart. Your files "
+     "never change.",
      "On an album, tap **⋯ → Edit album**."),
     ("auto-covers", "🖼️", "Covers found automatically", False,
      "An album with no cover of its own is given one from Apple Music, Deezer or MusicBrainz by itself, "

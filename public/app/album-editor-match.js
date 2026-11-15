@@ -162,6 +162,7 @@ async function openAlbumEditor(album) {
   ae.save.disabled = true;
   aeEl.querySelectorAll(".ae-was").forEach(x => { x.innerHTML = ""; });
   aeVersionClear();
+  aeSplitClear();   // Folders and copies (item 424)
   aeEl.classList.remove("hidden");
   try {
     const r = await fetch(`/api/album/edit?offset=${album.offset}`);
@@ -187,6 +188,7 @@ async function openAlbumEditor(album) {
     ae.title.value = d.title || ""; ae.artist.value = d.artist || ""; ae.year.value = d.year || "";
     ["title", "artist", "year"].forEach(aeWas);
     aeVersionShow(d, false);   // this copy's version, each field from the match or the files (item 420)
+    aeSplitShow(d);   // its folders and copies: Split by folder, Split…, Join back (item 424)
     ae.reset.classList.toggle("hidden", !d.edited);
     ae.save.disabled = false;
     aeCoverStatus();

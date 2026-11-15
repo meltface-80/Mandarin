@@ -55,6 +55,7 @@ function scanLoad(opening) {
   get("/api/album-scanner", v => { scan = v; scanErr = ""; if (folder && listsMoved()) loadLists(); });
   get("/api/cpu", v => { cpu = v; });
   if (opening || ++quiet % 6 === 0) get("/api/library/cleanup", v => { cleanup = v; });
+  if (opening || quiet % 6 === 0) get("/api/library/merged", v => { merged = v; });   // two copies merged (item 424, settings-scanner-merged.js)
   if (opening || (pack && pack.checking)) get("/api/identify/pack" + (opening ? "?check=1" : ""), v => {
     pack = v;
     if (pack && pack.job && !pack.job.error && pack.job.phase !== "done") followPack();
@@ -126,7 +127,7 @@ const drawn = {};
 function blocks() {
   const out = { switch: scannerSwitchBlock() };
   const on = scan && scan.on;
-  if (folder) out.folder = folderView(folder);
+  if (folder) out.folder = folder === "merged" ? mergedView() : folderView(folder);
   else {
     out.progress = on ? scannerProgressBlock() : "";
     out.folders = on ? scannerFoldersBlock() : "";
@@ -163,7 +164,7 @@ const listed = off => ["proposed", "unidentified"].flatMap(k => (lists && lists[
 function openFolder(kind) {
   folder = kind; lists = null; listsAsked = null;
   render();
-  loadLists();
+  if (kind !== "merged") loadLists();
   const pane = scanBody.closest(".settings-view");
   if (pane) pane.scrollTop = 0;
 }
@@ -178,6 +179,7 @@ scanBody.addEventListener("click", (e) => {
   const fo = e.target.closest("[data-scan-folder]");
   if (fo) return openFolder(fo.getAttribute("data-scan-folder"));
   if (e.target.closest("[data-scan-folder-close]")) { folder = null; lists = null; return render(); }
+  if (mergedClick(e)) return;
   const b = e.target.closest("[data-id-act]");
   if (b) {
     const what = b.getAttribute("data-id-act");

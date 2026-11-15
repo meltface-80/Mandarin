@@ -24,7 +24,8 @@ data class BoxPart(val name: String, val disc: Int, val of: Int)
  */
 data class EditState(val offset: Long, val folder: String?, val box: BoxPart?, val title: String, val artist: String, val year: String,
                      val scanned: Map<String, String>, val edited: Boolean, val imageKey: String?, val artOwn: Boolean, val artFound: Boolean,
-                     val artSource: String?, val match: AlbumMatch? = null, val version: Map<String, VersionField> = emptyMap()) {
+                     val artSource: String?, val match: AlbumMatch? = null, val version: Map<String, VersionField> = emptyMap(),
+                     val split: AlbumSplit? = null) {
     /** The box set it is part of, as the folder line says it. */
     val boxLine: String? get() = box?.let { "From " + it.name + " · disc " + it.disc + " of " + it.of }
 
@@ -36,7 +37,8 @@ data class EditState(val offset: Long, val folder: String?, val box: BoxPart?, v
             return EditState(j.optLong("offset"), text(j, "folder"), box, text(j, "title").orEmpty(), text(j, "artist").orEmpty(), text(j, "year").orEmpty(),
                 listOf("title", "artist", "year").associateWith { text(s, it).orEmpty() }, j.optBoolean("edited"), text(j, "image_key"),
                 art.optBoolean("own"), art.optBoolean("found"), text(art, "source"), j.optJSONObject("match")?.let(AlbumMatch::parse),
-                AlbumVersionEdit.parse(j.optJSONObject("version")))   // the copy's version (item 420)
+                AlbumVersionEdit.parse(j.optJSONObject("version")),   // the copy's version (item 420)
+                AlbumSplitEdit.parse(j.optJSONObject("split")))   // its folders and copies (item 424)
         }
     }
 }

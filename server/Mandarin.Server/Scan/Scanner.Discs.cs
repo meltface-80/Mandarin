@@ -33,9 +33,9 @@ internal sealed partial class Scanner
         foreach (var (g, of) in named)
         {
             if (done.Contains(g)) continue;
-            var set = of is { } o ? named.Where(x => x.Of is { } xo && ScanNames.Key(xo.Title) == ScanNames.Key(o.Title)).ToList() : [];
+            var set = of is { } o ? named.Where(x => x.Of is { } xo && ScanNames.Key(xo.Title) == ScanNames.Key(o.Title) && x.Group.Part == g.Part).ToList() : [];
             if (set.Select(x => x.Of!.Value.Disc).Distinct().Count() < 2) { outList.Add(g); continue; }
-            var one = new Group { Title = of!.Value.Title };
+            var one = new Group { Title = of!.Value.Title, Part = g.Part };   // a hand split's parts each their own (item 424)
             foreach (var (part, partOf) in set)
             {
                 done.Add(part);

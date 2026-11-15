@@ -4,6 +4,9 @@ package com.musicd.server.client
 /** The screens contract's labels, part 2 of 2 (Contract.kt joins them). */
 internal object ContractLabels2 {
     val labels: Map<String, List<String>> = mapOf(
+        "settings-shelf.back" to listOf("Back to settings"),
+        "settings-shelf.info" to listOf("About {setting}"),
+        "settings-shelf.enabled" to listOf("Shelf"),
         "settings-away.back" to listOf("Back to settings"),
         "settings-away.enabled" to listOf("Built-in Tailscale"),
         "settings-away.signin" to listOf("Sign in to Tailscale"),
@@ -79,6 +82,9 @@ internal object ContractLabels2 {
         "settings-scanner.dir" to listOf("{folder}"),
         "settings-scanner.browse-choose" to listOf("Keep the pack in “{folder}”"),
         "settings-scanner.cleanup" to listOf("Remove"),
+        "settings-scanner.merged" to listOf("Show"),
+        "settings-scanner.merged-close" to listOf("Back to Library Scanner"),
+        "settings-scanner.split" to listOf("Split…"),
         "settings-scanner.making" to listOf("Auto", "1", "2", "3"),
         "settings-scanner.album" to listOf("{album}"),
         "settings-scanner.accept" to listOf("Apply"),
