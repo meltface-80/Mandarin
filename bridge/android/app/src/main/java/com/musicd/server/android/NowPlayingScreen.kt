@@ -116,7 +116,9 @@ private fun ColumnScope.FirstRun(np: NowPlaying, name: String) {
     Column(Modifier.padding(horizontal = 20.dp).fillMaxWidth().background(Card, shape).border(2.dp, Brass, shape)
         .padding(start = 20.dp, end = 18.dp, top = 16.dp, bottom = 14.dp)) {
         Text(NowPlaying.SETUP_TITLE, Modifier.semantics { heading() }, color = Ink, fontFamily = Manrope, fontWeight = FontWeight.ExtraBold, fontSize = 19.sp)
-        Text(NowPlaying.SETUP_LEAD, Modifier.padding(top = 8.dp), color = Soft, style = Body)
+        // A music player's own DAC played (item 432): said, a USB DAC beside it.
+        val lead = if (OwnDac.on(androidx.compose.ui.platform.LocalContext.current)) NowPlaying.SETUP_LEAD_OWN else NowPlaying.SETUP_LEAD
+        Text(lead, Modifier.padding(top = 8.dp), color = Soft, style = Body)
         NowPlaying.steps(name).forEachIndexed { i, step ->
             Row(Modifier.padding(top = if (i == 0) 10.dp else 6.dp)) {
                 Text("${i + 1}.", Modifier.width(20.dp), color = Ink, style = Body)

@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.3.16
+
+- New - A music player's own DAC (item 432): with no DAC on the USB port, the Android Bridge plays through the player's own DAC, the FiiO R7's say. It is on by itself on a music player (FiiO, HiBy, iBasso, Shanling, Cayin, Astell&Kern, Lotoo, Questyle, Hidizs, a Sony Walkman) and off on a phone, and is switched in Settings → This device's own DAC. Where Android lists the player's own DAC as a USB audio device, Mandarin's driver plays it, Android left out. Otherwise each track goes to Android's output at its own rate as 32-bit float (a 16- or 24-bit sample carried exactly), never resampled, mixed or scaled by the Bridge; the player's volume sets the level, and Mandarin's is fixed at 100%. Mandarin is told the rates Android takes from an app (up to 192 kHz on the R7's Android 10) and converts anything higher itself, and sends DSD as PCM. With This DAC decodes MQA on for the Bridge in Mandarin's Audio Devices, an MQA track reaches the player's DAC untouched, at full scale, to decode and unfold. Now Playing says "Playing to FiiO R7's own DAC" and the rate; Settings lists the rates taken and Android's outputs with what each says it takes, the same in /dac.json
+- Improved - Mandarin Bridge is 0.3.16
+
 ## v0.3.15
 
 Mandarin Bridge 0.3.15, since 0.3.10: the Android Bridge opens on Now Playing and passes MQA through untouched; the Linux Bridge and the Pi's record for SQ-tool and update themselves on Mandarin OS; every Bridge's lines in Mandarin's one log. Each Bridge updates from Mandarin's Settings → Updates.

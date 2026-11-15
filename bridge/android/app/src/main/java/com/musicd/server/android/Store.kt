@@ -68,6 +68,10 @@ object Store {
     fun startOnBoot(c: Context): Boolean = prefs(c).getBoolean("start_on_boot", true)
     fun setStartOnBoot(c: Context, on: Boolean) { prefs(c).edit().putBoolean("start_on_boot", on).apply() }
 
+    /** Played through this device's own DAC with no DAC on the USB port (item 432, OwnDac.kt): null where never set. */
+    fun ownDac(c: Context): Boolean? = prefs(c).let { if (it.contains("own_dac")) it.getBoolean("own_dac", false) else null }
+    fun setOwnDac(c: Context, on: Boolean) { prefs(c).edit().putBoolean("own_dac", on).apply() }
+
     // --------------------------------------------------- USB (Mandarin's driver)
 
     /** Always: the app plays through the driver alone (Mandarin's switch, Settings → Audio Devices → USB direct). */

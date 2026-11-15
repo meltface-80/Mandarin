@@ -75,8 +75,10 @@ class DacService : Service() {
         private const val AHEAD_MS = 5 * 60 * 1000
         private const val AHEAD_BYTES = 48 * 1024 * 1024
         private const val RETRIES = 40
-        /** What [UsbOnly] says when there is no USB stream to play into. */
+        /** What [UsbOrOwn] says when there is no USB stream to play into, nor the device's own DAC. */
         const val NO_USB = "USB only"
+        /** What [UsbOrOwn] says of a rate Android doesn't take from an app here (above 192 kHz on Android 10). */
+        const val NO_OWN_RATE = "Not at this rate"
         private val PCM_RATES = listOf(44100, 48000, 88200, 96000, 176400, 192000, 352800, 384000, 705600, 768000)
         /** The containers Mandarin sends renderers, and the usual others, as MIME types. */
         private val CONTAINERS = listOf("audio/flac", "audio/x-flac", "audio/wav", "audio/x-wav", "audio/wave", "audio/aiff", "audio/x-aiff",
@@ -105,6 +107,7 @@ class DacService : Service() {
         private set
     private var http: HttpServer? = null
     @Volatile private var usbSink: UsbAudioSink? = null
+    @Volatile private var ownSink: UsbOrOwn? = null
     @Volatile internal var running = false
     private var retries = 0
     /** Why the player can't play right now (no DAC, say); null while it can. */
@@ -196,7 +199,7 @@ class DacService : Service() {
         val engine = DspEngine()
         val renderers = object : DefaultRenderersFactory(this) {
             override fun buildAudioSink(context: Context, enableFloatOutput: Boolean, enableAudioTrackPlaybackParams: Boolean): AudioSink =
-                DspSink(UsbAudioSink(UsbOnly(DefaultAudioSink.Builder(context).setEnableFloatOutput(true).build()), context).also { usbSink = it }, engine)
+                DspSink(UsbAudioSink(UsbOrOwn(DefaultAudioSink.Builder(context).setEnableFloatOutput(true).build()).also { ownSink = it }, context).also { usbSink = it }, engine)
             override fun buildAudioRenderers(context: Context, extensionRendererMode: Int, mediaCodecSelector: MediaCodecSelector,
                                              enableDecoderFallback: Boolean, audioSink: AudioSink, eventHandler: Handler,
                                              eventListener: AudioRendererEventListener, out: ArrayList<Media3Renderer>) {
@@ -227,22 +230,43 @@ class DacService : Service() {
         })
     }
 
+    /** Playing through this device's own DAC now (item 432, OwnDac.kt): it is on, and no DAC is on the USB port. */
+    fun ownNow(): Boolean = UsbDac.device() == null && OwnDac.on(this)
+
+    /** What the device's own DAC is fed now, for Now Playing (main thread): the track's rate, its depth as decoded (0 unsaid). */
+    fun ownFeed(): NowPlaying.Feed? {
+        val f = ownSink?.playing?.takeIf { ownNow() } ?: return null
+        val bits = when (player.audioFormat?.pcmEncoding) { C.ENCODING_PCM_16BIT -> 16; C.ENCODING_PCM_24BIT -> 24; C.ENCODING_PCM_32BIT, C.ENCODING_PCM_FLOAT -> 32; else -> 0 }
+        return NowPlaying.Feed(f.sampleRate, bits)
+    }
+
     /**
-     * Where Android's own track would be: nothing. Raw PCM is claimed, so a
-     * track is decoded and reaches the USB sink as PCM; a coded format (FLAC
-     * itself) is not, so the decoder is never bypassed. PCM the USB sink
-     * didn't take (no DAC on the port, a rate it hasn't) is refused here, so
-     * the track stops with a reason rather than playing through the device's
-     * own output at the mixer's rate.
+     * Where Android's own track would be: nothing, but for this device's own DAC (item 432). Raw PCM is claimed, so a
+     * track is decoded and reaches the USB sink as PCM; a coded format (FLAC itself) is not, so the decoder is never
+     * bypassed. PCM the USB sink didn't take goes to Android's track only where the device's own DAC is played
+     * ([ownNow]) at a rate Android takes from an app here, as float at the track's own rate, at full scale; anything
+     * else (no DAC on the port, a rate it hasn't) is refused, so the track stops with a reason rather than playing
+     * through a phone's mixer at its rate.
      */
     @UnstableApi
-    private class UsbOnly(inner: AudioSink) : ForwardingAudioSink(inner) {
+    private inner class UsbOrOwn(inner: AudioSink) : ForwardingAudioSink(inner) {
+        /** What is going to the device's own DAC: the track's format as it was configured, null while nothing is. */
+        @Volatile var playing: Format? = null
         override fun supportsFormat(format: Format) = format.sampleMimeType == MimeTypes.AUDIO_RAW
         override fun getFormatSupport(format: Format): Int =
             if (format.sampleMimeType == MimeTypes.AUDIO_RAW) AudioSink.SINK_FORMAT_SUPPORTED_WITH_TRANSCODING else AudioSink.SINK_FORMAT_UNSUPPORTED
         override fun configure(inputFormat: Format, specifiedBufferSize: Int, outputChannels: IntArray?) {
-            throw AudioSink.ConfigurationException(NO_USB, inputFormat)
+            playing = null
+            if (!ownNow()) throw AudioSink.ConfigurationException(NO_USB, inputFormat)
+            if (inputFormat.sampleRate !in OwnDac.rates) throw AudioSink.ConfigurationException(NO_OWN_RATE, inputFormat)
+            super.configure(inputFormat, specifiedBufferSize, outputChannels)
+            super.setVolume(1f)
+            playing = inputFormat
         }
+        // Full scale always: the device's own volume sets the level (a software volume would undo an MQA track).
+        override fun setVolume(volume: Float) = super.setVolume(1f)
+        override fun reset() { playing = null; super.reset() }
+        override fun release() { playing = null; super.release() }
     }
 
     private fun afterError(error: PlaybackException) {
@@ -252,6 +276,8 @@ class DacService : Service() {
         val why = when {
             // A DSD track the DAC couldn't be given as DSD: not a format for this DAC; the control point is told by the stop.
             causes.any { UsbAudioSink.DsdUnplayable.matches(it) } -> { format = true; "The DAC couldn't take this DSD: " + (causes.first { UsbAudioSink.DsdUnplayable.matches(it) }.message ?: "").removePrefix("DSD: ") }
+            causes.any { it is AudioSink.ConfigurationException && it.message == NO_OWN_RATE } ->
+                { format = true; "${OwnDac.name()} takes up to ${OwnDac.khz(OwnDac.rates.maxOrNull() ?: 0)} kHz from an app" }
             causes.any { it is AudioSink.ConfigurationException && it.message == NO_USB } -> when {
                 UsbDac.device() == null -> "No DAC on the USB port"
                 UsbDac.info() == null -> "Allow the app to use the DAC"
@@ -284,24 +310,40 @@ class DacService : Service() {
         if (!ready) return
         slim.rehello()
         foreground(notification())
-        if (UsbDac.device() == null) { if (transport.current != null) { player.stop(); UsbDriver.close() }; return }
-        if (UsbDac.info() == null) return
-        if (transport.current != null && (playerError != null || player.playerError != null)) {
-            val pos = player.currentPosition
-            player.stop()
-            player.seekTo(0, pos)
-            playerError = null
-            retries = 0
-            player.prepare()
-            player.playWhenReady = true
-            transport.resumed()
+        // No DAC on the port: a track playing to the USB DAC that went is stopped, never carried on through the device's own
+        // output (item 432); one playing to the device's own DAC plays on, unless that was just switched off.
+        if (UsbDac.device() == null) {
+            val own = OwnDac.on(this)
+            when {
+                own && ownSink?.playing != null -> {}                        // playing to the device's own DAC: plays on
+                own && usbSink?.usb != true -> resume()                       // just switched on: a track stopped for want of a DAC plays
+                transport.current != null -> { player.stop(); UsbDriver.close() }   // the USB DAC went, or the own DAC was switched off
+            }
+            return
         }
+        if (UsbDac.info() == null) return
+        resume()
+    }
+
+    /** A track stopped for want of a DAC started again from where it is, now there is one. */
+    private fun resume() {
+        if (transport.current == null || (playerError == null && player.playerError == null)) return
+        val pos = player.currentPosition
+        player.stop()
+        player.seekTo(0, pos)
+        playerError = null
+        retries = 0
+        player.prepare()
+        player.playWhenReady = true
+        transport.resumed()
     }
 
     /** The DAC as the Bridge advertises it: the PCM rates it takes, the depths, and the DSD it can be given the way the setting says. */
     class Caps(val rates: List<Int>, val bits: List<Int>, val dsd: List<Int>, val native: List<Int>, val dop: List<Int>)
 
     fun caps(): Caps? {
+        // No DAC on the USB port: this device's own, where it is played (item 432), as Android takes it from an app.
+        if (UsbDac.device() == null) return if (OwnDac.on(this) && OwnDac.rates.isNotEmpty()) Caps(OwnDac.rates, OwnDac.BITS, emptyList(), emptyList(), emptyList()) else null
         val info = UsbDac.info() ?: return null
         val rates = sortedSetOf<Int>()
         for (s in info.streams) if (s.pcm) { rates.addAll(s.rates); if (s.rates.isEmpty() && s.continuous == null) rates.addAll(info.clockRates) }
@@ -337,6 +379,9 @@ class DacService : Service() {
             .put("name", Store.friendlyName(this)).put("udn", Store.udn(this))
         val dac = JSONObject().put("attached", d != null).put("permission", info != null)
         if (d != null) dac.put("device", d.productName ?: "USB audio device").put("manufacturer", d.manufacturerName ?: JSONObject.NULL).put("vendor_id", d.vendorId).put("product_id", d.productId)
+        // This device's own DAC (item 432): its volume the device's own, so Mandarin's is fixed; Android's output.
+        if (d == null && c != null) dac.put("own", true).put("device", OwnDac.name()).put("manufacturer", Build.MANUFACTURER ?: JSONObject.NULL)
+            .put("volume_control", false).put("fixed", true).put("output", "android").put("android_outputs", OwnDac.outputs(this))
         if (info != null) dac.put("uac", info.uac).put("speed", info.speed).put("volume_control", info.volumeControl).put("fixed", UsbDriver.fixed(this))
             .put("dsd_mode", Store.usbDsd(this))
         if (c != null) dac.put("rates", JSONArray(c.rates)).put("bits", JSONArray(takenBits(c.bits))).put("dac_bits", JSONArray(c.bits))
@@ -348,7 +393,12 @@ class DacService : Service() {
         // Which build it is, and that Mandarin can update it (POST /update, item 291): where that is.
         o.put("platform", "android").put("commit", BuildConfig.COMMIT).put("updates", true).put("update", Updater.json()).put("log", "/log")
         val s = UsbDriver.current
-        o.put("now", if (s == null || !UsbDriver.active) JSONObject.NULL else JSONObject().put("rate", s.rate).put("bits", s.bits).put("kind", s.kind)
+        val own = ownSink?.playing?.takeIf { ownNow() }
+        // To the device's own DAC: the rate as the track's, float words (32) carrying it, never a software volume.
+        if (own != null) o.put("now", JSONObject().put("rate", own.sampleRate).put("bits", 32).put("kind", "pcm").put("dsd", 0)
+            .put("transport", if (ready) transport.stateNow() else "STOPPED").put("volume", "fixed").put("level", 100).put("untouched", true)
+            .put("output", "android"))
+        else o.put("now", if (s == null || !UsbDriver.active) JSONObject.NULL else JSONObject().put("rate", s.rate).put("bits", s.bits).put("kind", s.kind)
             .put("dsd", if (s.dsd) s.dsdMultiple else 0).put("transport", if (ready) transport.stateNow() else "STOPPED")
             // How the level is set and whether the samples reach the DAC untouched (item 287): the signal path says it as ours.
             .put("volume", when { UsbDriver.fixed(this) -> "fixed"; s.info.volumeControl -> "dac"; else -> "software" })
@@ -458,16 +508,16 @@ class DacService : Service() {
 
     /** One line on what the Bridge is doing, for the notification and the screen. */
     fun statusLine(): String {
-        val dac = UsbDac.info()?.name
+        val dac = UsbDac.info()?.name ?: if (ownNow()) OwnDac.name() else null
         return when {
             address == null -> "No network: Mandarin can't be reached"
             playerError != null -> playerError!!
-            UsbDac.device() == null -> "No DAC on the USB port"
-            UsbDac.info() == null -> "Allow the app to use the DAC"
+            UsbDac.device() == null && !OwnDac.on(this) -> "No DAC on the USB port"
+            UsbDac.device() != null && UsbDac.info() == null -> "Allow the app to use the DAC"
             !ready -> "Starting…"
             slim.server == null -> "Looking for Mandarin on the network…" + (dac?.let { " · $it" } ?: "")
             else -> when (transport.transportState()) {
-                "PLAYING" -> "Playing" + (usbNow()?.let { " · USB $it" } ?: "") + (dac?.let { " · $it" } ?: "")
+                "PLAYING" -> "Playing" + (usbNow()?.let { " · USB $it" } ?: ownSink?.playing?.let { " · ${OwnDac.khz(it.sampleRate)} kHz" } ?: "") + (dac?.let { " · $it" } ?: "")
                 "TRANSITIONING" -> "Loading…"
                 "PAUSED_PLAYBACK" -> "Paused" + (dac?.let { " · $it" } ?: "")
                 else -> "Ready" + (dac?.let { " · $it" } ?: "") + " · “${Store.friendlyName(this)}”, played by Mandarin at ${slim.server?.hostAddress}"

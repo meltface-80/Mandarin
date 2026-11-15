@@ -63,6 +63,8 @@ class NowPlayingTest {
         assertEquals("DSD128", NowPlaying.format(NowPlaying.Feed(176400, 32, dsd = 128)))
         assertEquals("DSD64 (DoP)", NowPlaying.format(NowPlaying.Feed(176400, 24, dsd = 64, dop = true)))
         assertNull("nothing fed", NowPlaying.format(NowPlaying.Feed(0, 0)))
+        // The device's own DAC with the depth unsaid (item 432): the rate alone.
+        assertEquals("96 kHz", NowPlaying.format(NowPlaying.Feed(96000, 0)))
         assertNull("no stream, no badge", np(f = null).format)
     }
 
