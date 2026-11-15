@@ -82,7 +82,7 @@ internal object OwnDacWays {
     }
 
     /** The way to play by: the first float way the output followed; null where none did. */
-    fun chosen(tried: List<Tried>): Way? = tried.firstOrNull { it.followed }?.way   // BROKEN ON PURPOSE: a 16-bit way must never be played by
+    fun chosen(tried: List<Tried>): Way? = tried.firstOrNull { it.way.float && it.followed }?.way
 
     /** [w] tried at [rate]: a fifth of a second of silence, the output's rate read as it plays. */
     fun attempt(w: Way, rate: Int): Tried {
@@ -114,7 +114,6 @@ internal object OwnDacWays {
      */
     fun saidRate(lines: List<String>, rate: Int): Int {
         val re = Regex("config_audio_params:mSampleRate=(\\d+).*check AudioFlinger sampleRate=(\\d+)")
-        if (lines.isNotEmpty()) return 0   // BROKEN ON PURPOSE: FiiO's word must be read
         return lines.mapNotNull { re.find(it) }.lastOrNull { it.groupValues[1].toIntOrNull() == rate }?.groupValues?.get(2)?.toIntOrNull() ?: 0
     }
 

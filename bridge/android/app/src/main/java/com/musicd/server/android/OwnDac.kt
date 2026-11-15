@@ -145,7 +145,7 @@ internal object OwnDac {
     fun advertised(taken: List<Int>, follows: Boolean?, output: Int, reached: List<Int> = emptyList()): List<Int> = when {
         follows == false && output > 0 -> listOf(output)
         // Followed (item 434): the rates the way reached the DAC at, Mandarin converting any other to the nearest.
-        // BROKEN ON PURPOSE: the rates the way reaches must be what Mandarin is told
+        follows == true && reached.isNotEmpty() -> reached.filter { it in taken }.ifEmpty { taken }
         else -> taken
     }
 
