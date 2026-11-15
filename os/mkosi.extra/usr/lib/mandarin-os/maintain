@@ -10,7 +10,7 @@
 #   3. the computer started again only where an update needs it, and still only while nothing plays;
 #   4. then it checks that everything works: the system's services, Mandarin's /api/health, the share, the USB drives;
 #      a service that isn't is started again, and a Mandarin that still doesn't answer is put back from its signed
-#      release, its data kept. Each step is in MandarinOS/Logs.
+#      release, its data kept. Each step is in Mandarin's one log (Logs).
 set -uo pipefail
 . /usr/lib/mandarin-os/log.sh
 NEEDED="linux-image-amd64 systemd systemd-sysv systemd-resolved systemd-timesyncd systemd-boot udev dbus network-manager nftables avahi-daemon wsdd2 samba

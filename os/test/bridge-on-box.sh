@@ -1,7 +1,7 @@
 #!/bin/bash
 # os/test/bridge-on-box.sh update|report — run on the boot test's box (os/test/bridge-update-vm.sh puts it there, with a
 # unit that starts it once Mandarin Bridge has started), where nothing from outside reaches the Bridge's port (the
-# firewall): what the Bridge says, in the journal and in the shared folder, where the test reads it.
+# firewall): what the Bridge says, in the journal and so in Mandarin's one log on the shared folder, where the test reads it.
 #   update   the Bridge asked to update to mandarin-bridge-v9.9.9 (POST /update, as Mandarin's Settings → Updates asks
 #            it), then watched: "bridge-test: after: {name, version}" once it answers as 9.9.9, "bridge-test: failed:
 #            <what it says>" where its update failed
@@ -9,12 +9,9 @@
 # It always ends well: what happened is in what it said, for the test to judge (a unit that failed on the box's screen
 # is the boot test's own failure, and would hide why).
 B=http://127.0.0.1:49494
-# Each line in the journal, and in a log of its own in the shared folder (MandarinOS/Logs), read there by the test.
-LOG=/data/MandarinOS/Logs/BridgeTest_log.txt
-say() {
-  echo "bridge-test: $*"
-  echo "$(date -u '+%F %T') $(cat /usr/lib/mandarin-os/VERSION) bridge-test: $*" >> "$LOG" && chgrp mandarin-share "$LOG" && chmod 0640 "$LOG"
-}
+# Each line said as Mandarin OS's own are (log.sh), so mandarin-log writes it into the one log (Logs/Mandarin_log.txt,
+# item 425), read there by the test.
+say() { logger -t mandarin-os -- "INFO $(cat /usr/lib/mandarin-os/VERSION) bridge-test: $*"; }
 dac() { curl -fsS --max-time 5 "$B/dac.json" 2>/dev/null; }
 # Its data folder as the service sees it: who owns it, and how it is mounted in the service's own mount namespace (an
 # ID-mapped one is noexec, item 415).

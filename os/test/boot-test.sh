@@ -126,29 +126,34 @@ grep -aE "Timed out waiting|Dependency failed|Failed to start" "$W/serial-disk.l
 ok "the installed system started without a failure on its screen"
 
 S() { smbclient //127.0.0.1/Data -p 10445 -U 'music%listen-carefully' -m SMB3 "$@" 2>&1; }
+# Mandarin's one log (item 425), Logs/Mandarin_log.txt, as the share gives it: in $W/one.log, and said.
+onelog() { rm -f "$W/one.log"; S -c "cd Logs; get Mandarin_log.txt $W/one.log" >/dev/null; cat "$W/one.log" 2>/dev/null; }
 for i in $(seq 1 24); do S -c ls | grep -q README.txt && break; sleep 5; done
 list="$(S -c ls)"
-for d in README.txt Storage MandarinServer MandarinBridge MandarinApp MandarinOS; do grep -q " $d " <<< "$list" || fail "the share has no $d: $list"; done
+for d in README.txt Storage Logs MandarinServer MandarinOS; do grep -q " $d " <<< "$list" || fail "the share has no $d: $list"; done
+for d in MandarinBridge MandarinApp; do grep -q " $d " <<< "$list" && fail "the share still has $d (item 425: one log, in Logs): $list"; done
 ok "the share takes the user chosen, laid out as Data"
 echo "a song" > "$W/song.flac"
 S -c "cd Storage; put $W/song.flac song.flac" >/dev/null; S -c "cd Storage; ls" | grep -q song.flac || fail "music couldn't be copied into Storage"
 ok "music copied into Storage"
 said="$(S -c "cd MandarinOS; put $W/song.flac nope.flac")"
 S -c "cd MandarinOS; ls" | grep -q nope.flac && fail "MandarinOS could be written ($said)"
-S -c "cd MandarinServer/Logs; put $W/song.flac nope.flac" >/dev/null; S -c "cd MandarinServer/Logs; ls" | grep -q nope.flac && fail "Mandarin's logs could be written"
-ok "MandarinOS and Mandarin's logs are read-only"
-logs="$(S -c "cd MandarinServer/Logs; ls")"
-grep -q NT_STATUS <<< "$logs" && fail "Mandarin's logs can't be read in the share: $logs"
-# Mandarin's own rolling log came after v1.3.0 (item 389): where the release installed writes it, it is here.
-if grep -q MandarinServer_log.txt <<< "$logs"; then
-  S -c "cd MandarinServer/Logs; get MandarinServer_log.txt $W/server.log" >/dev/null
-  grep -q "^# Mandarin Server .*" "$W/server.log" || fail "Mandarin's log in the share isn't its log"
-  ok "Mandarin's log is in the share"
-else
-  ok "Mandarin's logs folder opens in the share (this release writes no rolling log yet)"
-fi
-S -c "cd MandarinOS/Logs; get MandarinOS_log.txt $W/os.log" >/dev/null; grep -q "\[apply\] done" "$W/os.log" || fail "the system's log isn't in the share"
-ok "the system's log is in the share"
+S -c "cd Logs; put $W/song.flac nope.flac" >/dev/null; S -c "cd Logs; ls" | grep -q nope.flac && fail "Mandarin's log could be written"
+ok "MandarinOS and Mandarin's log are read-only"
+# Mandarin's one log (item 425): one file in Logs, a line each saying when, how bad and where it came from, Mandarin's
+# and Mandarin OS's among them; the separate logs from before gone, on the share and on the data partition.
+logs="$(S -c "cd Logs; ls")"
+grep -q NT_STATUS <<< "$logs" && fail "Mandarin's log can't be read in the share: $logs"
+grep -q " Mandarin_log.txt " <<< "$logs" || fail "Logs has no Mandarin_log.txt: $logs"
+for i in $(seq 1 24); do onelog | grep -q "\[server\] \[start\] Mandarin Server " && break; sleep 5; done
+grep -qE "^[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9:.]{12} UTC  INFO   \[server\] \[start\] Mandarin Server .* starting$" "$W/one.log" || { tail -n 40 "$W/one.log"; fail "Mandarin's lines aren't in the one log"; }
+grep -qE "UTC  INFO   \[os\] \[apply\] done$" "$W/one.log" || { tail -n 40 "$W/one.log"; fail "Mandarin OS's lines aren't in the one log"; }
+grep -qE "UTC  INFO   \[os\] \[install\] done$" "$W/one.log" || fail "the installer's lines aren't at the head of the one log"
+bad="$(grep -avE '^[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]{3} UTC  (INFO |WARN |ERROR|DEBUG)  \[(server|os|bridge[^]]*|app [^]]+|web [^]]+)\] ' "$W/one.log" | head -n 5)"
+[ -z "$bad" ] || fail "lines of the one log that don't say when, how bad and where from: $bad"
+grep -q "music" <(grep -a "share's user" "$W/one.log") && fail "the share's user's name is in the log"
+for d in MandarinServer MandarinOS; do S -c "cd $d; ls" | grep -q " Logs " && fail "$d still has Logs in the share: $(S -c "cd $d; ls")"; done
+ok "the one log is in the share's Logs, Mandarin's and Mandarin OS's lines in it, each saying where it came from; the old log folders gone"
 # Let in is the share's contents coming back; refused is anything else (what Samba said, shown either way).
 wrong="$(smbclient //127.0.0.1/Data -p 10445 -U 'music%wrong-password' -m SMB3 -c ls 2>&1)"
 grep -q README.txt <<< "$wrong" && fail "a wrong password was let in: $wrong"
@@ -163,8 +168,7 @@ ok "nothing on SSH's port"
 # The system page, http://mandarin/: its state read without a password, a change only with the share's.
 for i in $(seq 1 12); do page="$(curl -fsS --max-time 10 http://127.0.0.1:10080/ 2>&1)" && break; sleep 5; done
 if ! grep -q "<title>Mandarin OS</title>" <<< "$page"; then
-  S -c "cd MandarinOS/Logs; get SystemPage_errors.txt $W/page-errors.txt" >/dev/null; cat "$W/page-errors.txt" 2>/dev/null
-  S -c "cd MandarinOS/Logs; get MandarinOS_log.txt $W/os.log" >/dev/null; tail -n 30 "$W/os.log" 2>/dev/null
+  onelog | grep -a "\[os\]" | tail -n 30
   fail "the system page doesn't answer on port 80: ${page:0:300}"
 fi
 st="$(curl -fsS --max-time 30 http://127.0.0.1:10080/api/state)" || fail "the system page's state doesn't answer"
@@ -197,8 +201,7 @@ ok "Installer is at the top of the share (not in Storage) with its README.txt; a
 # USB drives: those plugged in at the start, and one plugged in later, each mounted in Storage/USB with its music, and
 # on the system page. Not: the log of what happened to each, to find why.
 usb_why() {
-  curl -fsS --max-time 30 http://127.0.0.1:10080/api/logs/journal 2>/dev/null | grep -iE "usb|sd[a-z]|mandarin-usb|exfat|ntfs|ext4" | tail -n 40
-  S -c "cd MandarinOS/Logs; get MandarinOS_log.txt $W/os.log" >/dev/null; grep -a "\[usb\]" "$W/os.log" 2>/dev/null | tail -n 20
+  onelog | grep -aiE "usb|sd[a-z]|exfat|ntfs|ext4|kernel" | tail -n 40
 }
 usb_in() {  # name: its music in the share, and the system page knows it
   local i; for i in $(seq 1 24); do S -c "cd \"Storage/USB/$1/Artist/Album\"; ls" | grep -q "01.flac" && break; sleep 5; done

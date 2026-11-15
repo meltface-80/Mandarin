@@ -64,7 +64,7 @@ os_update_prepare() {
 
 # What the box's own log says of its updates (and its system page's), to find why.
 os_why() {
-  S -c "cd MandarinOS/Logs; get MandarinOS_log.txt $W/os.log" >/dev/null; grep -a "\[update\]\|\[system page\]" "$W/os.log" 2>/dev/null | tail -n 30
+  onelog | grep -a "\[update\]\|\[system page\]\|\[page\]" | tail -n 30
   tail -n 5 "$W/osrel.log"
 }
 OSU() { curl -sS --max-time 200 -H 'Content-Type: application/json' -d "{\"password\":\"listen-carefully\",\"action\":\"$1\"}" http://127.0.0.1:10080/api/os-update; }

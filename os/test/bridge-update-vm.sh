@@ -48,19 +48,18 @@ bridge_update_prepare() {
   ok "Mandarin Bridge $("$BRIDGES/installed/mandarin-bridge" --version | cut -d' ' -f2) installed with the service from before 0.3.12 (a DynamicUser's), its data folder as systemd 257 left it; $("$BRIDGES/next/mandarin-bridge" --version | cut -d' ' -f2) offered by a stand-in GitHub"
 }
 
-# What os/test/bridge-on-box.sh said on the box (its log in the shared folder, MandarinOS/Logs/BridgeTest_log.txt, kept
-# on the data partition from one Mandarin OS to the next), once a line matches $1 (an extended regular expression),
-# waiting up to $2 seconds; what the journal says of the Bridge's update after it.
+# What os/test/bridge-on-box.sh said on the box (in Mandarin's one log, the share's Logs/Mandarin_log.txt, kept on the
+# data partition from one Mandarin OS to the next: item 425), once a line matches $1 (an extended regular expression),
+# waiting up to $2 seconds; what the Bridge's own lines and systemd's say of its update after it.
 bridge_said() {
   local i got=1
   for i in $(seq 1 $(($2 / 5))); do
-    rm -f "$W/bridge-test.txt"; S -c "cd MandarinOS/Logs; get BridgeTest_log.txt $W/bridge-test.txt" >/dev/null
+    onelog | grep -a "bridge-test: " > "$W/bridge-test.txt"
     grep -qE "$1" "$W/bridge-test.txt" 2>/dev/null && { got=0; break; }
     sleep 5
   done
-  cat "$W/bridge-test.txt" 2>/dev/null
-  curl -fsS --max-time 30 http://127.0.0.1:10080/api/logs/journal 2>/dev/null \
-    | grep -aoE 'mandarin-bridge\[[0-9]+\]: .*update.*|migrating to .*mandarin-bridge.*|mandarin-bridge.service: .*' | tail -n 20 | sed 's/^/journal: /'
+  sed 's/^.*\(bridge-test: \)/\1/' "$W/bridge-test.txt" 2>/dev/null
+  grep -aE '\[bridge[^]]*\] .*update|\[systemd\] mandarin-bridge' "$W/one.log" | tail -n 20 | sed 's/^/log: /'
   return $got
 }
 
@@ -73,6 +72,9 @@ bridge_update_check() {
   grep "bridge-test: after: " <<< "$said" | grep -q "\"name\":\"$BRIDGE_NAME\",\"version\":\"9.9.9\"" \
     || fail "Mandarin Bridge came back as something else: $(grep 'bridge-test: after' <<< "$said")"
   ok "Mandarin Bridge installed with the service from before: its data folder its own, it updated itself to 9.9.9 from there, and is still $BRIDGE_NAME"
+  # Its lines in Mandarin's one log (item 425), under its name, as it says them on the box: none kept apart.
+  grep -qE "UTC  (INFO |WARN |ERROR)  \[bridge $BRIDGE_NAME\] " "$W/one.log" || { grep -a "\[bridge" "$W/one.log" | tail -n 20; fail "Mandarin Bridge's lines aren't in the one log under its name"; }
+  ok "Mandarin Bridge's lines are in the one log, under its name ([bridge $BRIDGE_NAME])"
 }
 
 bridge_after_os_update() {

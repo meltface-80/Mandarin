@@ -7,8 +7,8 @@
  *   - only under a home name (an address, mandarin, .local), and a change only from its own page (Origin);
  *   - every change asks for the shared folder's password, checked as Samba keeps it (its NT hash), and five wrong in five
  *     minutes stop it trying more;
- *   - an action done (Restart Mandarin: systemctl restart), a static address with a gateway outside it refused, the logs
- *     read and zipped.
+ *   - an action done (Restart Mandarin: systemctl restart), a static address with a gateway outside it refused;
+ *   - no log read through it (item 425): Support says where the one log is, the shared folder's Logs.
  */
 const test = require("node:test");
 const assert = require("node:assert");
@@ -50,29 +50,11 @@ test("Mandarin OS's system page: its state, its guards, its password, its action
     assert.doesNotMatch(box.calls(), /network static/);
     // Formatting the system's own disk: refused.
     assert.equal((await post("/api/internal/format", { password: PASSWORD, disk: "/dev/sda", erase: "erase" })).status, 400);
-    // The logs, read and zipped.
-    assert.match(await (await fetch(B + "/api/logs/os")).text(), /\[usb\] Music SSD \(exfat\) mounted read-only/);
-    assert.match(await (await fetch(B + "/api/logs/mandarin")).text(), /\[server\] started/);
-    // Every log as one file (item 389, 0.1.1), in time order, each line with where it came from; a line with no time of
-    // its own under the line before it; the files' own headers, and the box, at its head.
-    const all = await fetch(B + "/api/logs.txt");
-    assert.match(all.headers.get("content-disposition") || "", /attachment; filename="mandarin-logs-\d{8}-\d{4}\.txt"/);
-    const text = await all.text();
-    assert.match(text, /^# Mandarin — every log on this box, merged in time order \(UTC\)/);
-    assert.match(text, /^# Mandarin OS 0\.1\.0 on mandarin/m);
-    assert.match(text, /^# USB drives: Music SSD \(exfat, read-only: it wasn't removed safely, and couldn't be repaired\)$/m);
-    assert.match(text, /^# \[Bridges\/Mandarin_Bridge_mandarin\] — Mandarin Bridge: Mandarin Bridge \(mandarin\) \(linux 0\.3\.8\) —$/m);
-    const lines = text.split("\n").filter(l => /^\d{4}-/.test(l) || l.startsWith("    "));
-    assert.deepEqual(lines.map(l => l.replace(/\s+/g, " ")), [
-      "2026-11-12 07:00:00.000 MandarinOS/MandarinOS INFO [apply] done",
-      "2026-11-12 07:00:00.500 journal INFO systemd[1]: Started Mandarin.",
-      "2026-11-12 07:00:01.000 MandarinServer INFO [server] started",
-      "2026-11-12 07:00:02.000 Bridges/Mandarin_Bridge_mandarin INFO [http] listening on 49494",
-      "2026-11-12 07:00:03.250 Apps/Nothing_A142 WARN [NET] server POST /api/settings/qobuz/import → SocketTimeoutException",
-      "2026-11-12 07:00:04.000 Bridges/Mandarin_Bridge_mandarin INFO update failed: tar couldn't be run",
-      "2026-11-12 07:00:05.000 MandarinServer INFO [slimproto] t335.flac: no PCM: Error opening input: Server returned 400 Bad Request",
-      " Error opening input file http://127.0.0.1:3500/stream/t335.flac",
-      "2026-11-12 07:01:00.000 MandarinOS/MandarinOS WARN [usb] Music SSD (exfat) mounted read-only"], text)
+    // No log read here any more (item 425): the one log is in the shared folder's Logs, and Support says so.
+    for (const p of ["/api/logs/os", "/api/logs/mandarin", "/api/logs/journal", "/api/logs.txt"]) assert.equal((await fetch(B + p)).status, 404, p);
+    const page = await (await fetch(B + "/")).text();
+    assert.match(page, /In the shared folder's Logs \(smb:\/\/mandarin\/data\/Logs\), Mandarin_log\.txt the newest/);
+    assert.doesNotMatch(page, /Download all logs|id="log-lines"/);
     // Five wrong passwords, and no more are tried, the right one included.
     for (let i = 0; i < 5; i++) assert.equal((await post("/api/check", { password: "guess" + i })).status, 401);
     assert.equal((await post("/api/check", { password: PASSWORD })).status, 429);

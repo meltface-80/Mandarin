@@ -56,7 +56,8 @@ function box({ have = "1.3.1", old = false, installs = true, answers = true } = 
     run: () => spawnSync("bash", [path.join(lib, "reinstall-mandarin")], { env, encoding: "utf8" }),
     calls: () => (fs.existsSync(log) ? fs.readFileSync(log, "utf8") : ""),
     clear: () => fs.writeFileSync(log, ""),
-    oslog: () => { const f = path.join(root, "data/MandarinOS/Logs/MandarinOS_log.txt"); return fs.existsSync(f) ? fs.readFileSync(f, "utf8") : ""; },
+    // What it said to the one log (item 425): its logger lines.
+    oslog: () => (fs.existsSync(log) ? fs.readFileSync(log, "utf8") : "").split("\n").filter(l => l.startsWith("logger -t mandarin-os -- ")).map(l => l.slice(25)).join("\n"),
     channel: () => { const f = path.join(root, "data/MachineSettings/mandarin-channel.env"); return fs.existsSync(f) ? fs.readFileSync(f, "utf8") : null; },
     backups: () => { const d = path.join(root, "data/MandarinServer/backups"); return fs.existsSync(d) ? fs.readdirSync(d).sort() : []; },
     put, install,
