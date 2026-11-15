@@ -1,5 +1,9 @@
 # Mandarin OS changelog
 
+## v0.1.11
+
+- New - the boot test (item 429): the virtual machine has a second internal disk, formatted from the system page and then written over the shared folder as Storage/Internal, where the in-app update's album is put for Mandarin to find, and still there after Mandarin OS updates itself; the share's user has a name nothing else says, looked for in the whole of the one log after the first start, after the update and after the fallback, with the log's writer's start in its place by time each time
+
 ## v0.1.10
 
 - Changed - the test image (item 427b): dev's image can be built again by hand and still goes on test-os, once its whole suite and the virtual machine's test pass, as a push's does. Nothing on the box changes from 0.1.9

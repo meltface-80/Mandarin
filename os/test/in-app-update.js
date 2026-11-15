@@ -57,7 +57,7 @@ async function api(base, rel, token, post) {
  */
 function oneLog() {
   const to = path.join(fs.mkdtempSync(path.join(os.tmpdir(), "mandarin-one-log-")), "Mandarin_log.txt");
-  const r = spawnSync("smbclient", ["//127.0.0.1/Data", "-p", "10445", "-U", "music%listen-carefully", "-m", "SMB3", "-c", `cd Logs; get Mandarin_log.txt ${to}`], { encoding: "utf8" });
+  const r = spawnSync("smbclient", ["//127.0.0.1/Data", "-p", "10445", "-U", "lyrebird%listen-carefully", "-m", "SMB3", "-c", `cd Logs; get Mandarin_log.txt ${to}`], { encoding: "utf8" });
   return fs.existsSync(to) ? fs.readFileSync(to, "utf8") : fail("Mandarin's one log couldn't be read on the share: " + r.stdout + r.stderr);
 }
 
