@@ -29,7 +29,7 @@ a Linux computer or a Raspberry Pi with a USB DAC into a room Mandarin plays to.
 Every feature and how to use it, the guides to install, set up and troubleshoot, and the downloads, in nine
 languages: **[meltface-80.github.io/Mandarin](https://meltface-80.github.io/Mandarin/)**.
 
-**New in v1.3.3** (Mandarin OS 0.1.11; Mandarin Bridge v0.3.15):
+**New in v1.3.3** (Mandarin OS 0.1.12; Mandarin Bridge v0.3.15):
 * **The Library Scanner:** one switch, Album Scanner, identifies albums, measures ReplayGain and finds missing covers.
 * **Identification that finds your edition:** disc sets, CD rips by their tracks' lengths, the pressing that fits
   your copy, how sure each match is and why, and matching by sound with AcoustID.
@@ -50,7 +50,7 @@ The newest of each, straight to your device.
 
 | What | Version | Download |
 | --- | --- | --- |
-| **Mandarin OS**, the system Mandarin installs with (a 64-bit Intel or AMD PC with UEFI) | 0.1.11 | [mandarin-os-0.1.11-x64.img.xz](https://github.com/meltface-80/Mandarin/releases/download/mandarin-os-v0.1.11/mandarin-os-0.1.11-x64.img.xz) for balenaEtcher or dd · [mandarin-os-0.1.11-x64.img](https://github.com/meltface-80/Mandarin/releases/download/mandarin-os-v0.1.11/mandarin-os-0.1.11-x64.img) for a phone; see [Install](#install) below |
+| **Mandarin OS**, the system Mandarin installs with (a 64-bit Intel or AMD PC with UEFI) | 0.1.12 | [mandarin-os-0.1.12-x64.img.xz](https://github.com/meltface-80/Mandarin/releases/download/mandarin-os-v0.1.12/mandarin-os-0.1.12-x64.img.xz) for balenaEtcher or dd · [mandarin-os-0.1.12-x64.img](https://github.com/meltface-80/Mandarin/releases/download/mandarin-os-v0.1.12/mandarin-os-0.1.12-x64.img) for a phone; see [Install](#install) below |
 | **Mandarin Remote**, the Android app (Android 8.0 or newer) | v1.3.3 | [mandarin-android.apk](https://github.com/meltface-80/Mandarin/raw/main/dist/mandarin-android.apk) |
 | **Mandarin Bridge** for Android (a FiiO R7, say) | v0.3.15 | [mandarin-bridge.apk](https://github.com/meltface-80/Mandarin/releases/download/mandarin-bridge-v0.3.15/mandarin-bridge.apk) |
 | **Mandarin Bridge** for Raspberry Pi (3, 4, 5, Zero 2 W) | v0.3.15 | [mandarin-bridge-pi-arm64.img.xz](https://github.com/meltface-80/Mandarin/releases/download/mandarin-bridge-v0.3.15/mandarin-bridge-pi-arm64.img.xz) |
@@ -71,11 +71,11 @@ Mandarin installs with Mandarin OS, on an always-on computer of its own on the s
 A lightweight system made only to run Mandarin, with its own web page, the system page, to look after everything
 ([Mandarin OS, step by step](https://meltface-80.github.io/Mandarin/mandarin-os.html)):
 
-1. **Download the image:** `mandarin-os-0.1.11-x64.img.xz` (or the plain `.img` for a phone), from [Downloads](#downloads).
+1. **Download the image:** `mandarin-os-0.1.12-x64.img.xz` (or the plain `.img` for a phone), from [Downloads](#downloads).
 2. **Write it to a USB stick** of 4 GB or more ([how](https://meltface-80.github.io/Mandarin/mandarin-os.html#usb)):
-   * **balenaEtcher**: flash `mandarin-os-0.1.11-x64.img.xz` as it is ([how](https://meltface-80.github.io/Mandarin/mandarin-os.html#etcher)).
-   * **A Linux terminal:** `xz -dc mandarin-os-0.1.11-x64.img.xz | sudo dd of=/dev/sdX bs=4M conv=fsync status=progress`, with `sdX` the stick ([how](https://meltface-80.github.io/Mandarin/mandarin-os.html#dd)).
-   * **An Android phone, with EtchDroid:** write the plain `mandarin-os-0.1.11-x64.img` ([how](https://meltface-80.github.io/Mandarin/mandarin-os.html#android)).
+   * **balenaEtcher**: flash `mandarin-os-0.1.12-x64.img.xz` as it is ([how](https://meltface-80.github.io/Mandarin/mandarin-os.html#etcher)).
+   * **A Linux terminal:** `xz -dc mandarin-os-0.1.12-x64.img.xz | sudo dd of=/dev/sdX bs=4M conv=fsync status=progress`, with `sdX` the stick ([how](https://meltface-80.github.io/Mandarin/mandarin-os.html#dd)).
+   * **An Android phone, with EtchDroid:** write the plain `mandarin-os-0.1.12-x64.img` ([how](https://meltface-80.github.io/Mandarin/mandarin-os.html#android)).
 3. **Start the computer from the stick**, with Secure Boot off, and **answer the installer's questions**: its disk,
    the shared folder's user and password, the network, and whether to install Mandarin Bridge for a DAC plugged into
    it ([Install it](https://meltface-80.github.io/Mandarin/mandarin-os.html#install)).

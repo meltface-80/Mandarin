@@ -2,7 +2,7 @@
 
 ## v1.3.3
 
-Mandarin now names and completes your albums by itself: the Library Scanner under one switch, identification that finds the edition you have and can match an album by its sound, covers found for albums with none, and two releases merged into one album taken apart. MQA is recognised and passed through untouched to a DAC that decodes it; SQ-tool compares two songs; everything Mandarin says is in one log; and Mandarin Bridge for Android opens on Now Playing. With Mandarin OS 0.1.11 and Mandarin Bridge 0.3.15.
+Mandarin now names and completes your albums by itself: the Library Scanner under one switch, identification that finds the edition you have and can match an album by its sound, covers found for albums with none, and two releases merged into one album taken apart. MQA is recognised and passed through untouched to a DAC that decodes it; SQ-tool compares two songs; everything Mandarin says is in one log; and Mandarin Bridge for Android opens on Now Playing. With Mandarin OS 0.1.12 and Mandarin Bridge 0.3.15.
 
 - New - Library Scanner: one switch, Album Scanner, identifies albums, measures ReplayGain and finds missing covers, with one Progress readout, an optional schedule, and the albums left to place by hand in Unidentified and To confirm. It waits only while Mandarin's own music plays in a room you use, and says which
 - New - Covers found automatically: an album with no cover of its own is given one from Apple Music, Deezer or the Cover Art Archive, only when its title, artist and tracks all agree. A cover in its folder or its files, or one you chose, is never touched
@@ -17,7 +17,7 @@ Mandarin now names and completes your albums by itself: the Library Scanner unde
 - New - Mandarin Bridge for Android opens on Now Playing: the album's cover, the track, the format the DAC is fed and the DAC it plays to; its settings behind the cog (Bridge 0.3.15)
 - New - The Pages site in nine languages, and a shorter README
 - Changed - One log: the server, Mandarin OS, every Mandarin Bridge, the Android app and the page, a line each in time order in one plain-text file, without personal data (no passwords, keys, emails, account names or internet addresses). On Mandarin OS it is the shared folder's Logs (smb://<box>/Data/Logs); there is nothing to switch on or save in the apps
-- Changed - Mandarin OS 0.1.11, which a box on 0.1.4 or later updates itself to: the one log, internal storage that formats and mounts from the system page, and its upkeep waiting only for Mandarin's own music
+- Changed - Mandarin OS 0.1.12, which a box on 0.1.4 or later updates itself to: the one log, internal storage that formats and mounts from the system page, and its upkeep waiting only for Mandarin's own music
 - Fixed - A backup restored on another computer keeps that computer's music folders and finds the albums' files there; the database copies kept before a restore can be restored from Backup & restore
 - Fixed - Last.fm no longer scrobbles a track twice when the server restarts while it plays
 - Fixed - Android no longer ends the app for its Tailscale engine while the phone's player is paused away from home
