@@ -20,7 +20,7 @@ LIB="$(dirname "$(readlink -f "$0")")"
 . "$LIB/log.sh"
 . "$LIB/boot.sh"
 API="${MANDARIN_OS_UPDATE_API:-https://api.github.com/repos/meltface-80/Mandarin}"
-# Mandarin's release key, its public half (server/Mandarin.Server/Admin/ReleaseKey.cs, tools/linux/install.sh).
+# Mandarin's release key, its public half (server/Mandarin.Server/Admin/ReleaseKey.cs, linux-install.sh).
 KEY="${MANDARIN_OS_UPDATE_KEY:-MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEWPo7em6WGTi2IICIB2POcOia7Hc/jFNK6MPlL1MQn4huS0EYMTfqkpxyaqL8hXOk297sBISqi0j463Tr+NZFXQ==}"
 FROM="$(cat "$LIB/update-from" 2>/dev/null || echo release)"
 RUN="$R/run/mandarin-os"

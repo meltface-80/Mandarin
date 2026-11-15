@@ -1,5 +1,5 @@
 #!/bin/bash
-# Inside the image, last: Mandarin installed (natively, as tools/linux/install.sh does on any Debian), and the system
+# Inside the image, last: Mandarin installed (natively, by linux-install.sh, Mandarin OS's own installer), and the system
 # closed and set to look after itself (item 389): no login anywhere, no SSH, the firewall on, apt's own timers off (the
 # weekly upkeep updates when nothing plays).
 set -euo pipefail
@@ -7,11 +7,11 @@ V="$(cat /var/cache/mandarin-release/version)"
 # Mandarin's user and group numbered the same in every version of Mandarin OS (item 401): an update starts a new system,
 # and the files Mandarin owns, on the data partition and on USB drives, must stay its own there. 3500, outside the
 # range Debian's packages take theirs from (they took 989 and 988 here, and a package added later would move them).
-# The shared folder's user is 3501 and its group 3502 (apply). install.sh keeps a user that is there.
+# The shared folder's user is 3501 and its group 3502 (apply). linux-install.sh keeps a user that is there.
 groupadd --system --gid 3500 mandarin
 useradd --system --uid 3500 --gid mandarin --groups audio --home-dir /data/MandarinServer --no-create-home --shell /usr/sbin/nologin mandarin
 # Mandarin Bridge's, 3503 (item 415): its service runs as it (the Bridge's own and mandarin-bridge.service.d's), and its
-# data folder, carried from version to version, is its own. install.sh keeps it.
+# data folder, carried from version to version, is its own. linux-install.sh keeps it.
 groupadd --system --gid 3503 mandarin-bridge
 useradd --system --uid 3503 --gid mandarin-bridge --home-dir /var/lib/mandarin-bridge --no-create-home --shell /usr/sbin/nologin mandarin-bridge
 # A build of this checkout's (os/mandarin-from-source.sh) carries the key it was signed with; a release, the release key.

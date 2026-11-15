@@ -5,7 +5,7 @@ a few questions, and the computer is a Mandarin server with nothing else to look
 
 * **Hardware:** a 64-bit Intel or AMD computer with UEFI and a wired network (an Intel NUC, a Dell OptiPlex Micro, a
   mini PC). Secure Boot off for now. Its own disk for the system; another internal disk, if any, can be internal storage.
-* **What it is:** Debian 13 (trixie), Mandarin installed natively (`tools/linux/install.sh`), its data on a partition of
+* **What it is:** Debian 13 (trixie), Mandarin installed natively (its own `linux-install.sh`), its data on a partition of
   its own (`/data`), and only what Mandarin needs: no desktop, no login, **no SSH** (never installed).
 * **On the network:** Mandarin at `http://mandarin:3500`, the system page at `http://mandarin/`, the share at
   `smb://mandarin/data` (`\\mandarin\Data`) for the user and password chosen at install. Found as `mandarin.local` (Bonjour)

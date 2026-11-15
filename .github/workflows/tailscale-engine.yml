@@ -32,8 +32,8 @@ jobs:
 
   # Tailscale built into the server: the engine for each platform, attached to
   # the rolling "engine" pre-release, which the server downloads by itself
-  # (server/Mandarin.Server/Admin/Tailscale.cs; the Linux installer's and
-  # Mandarin OS's installs carry none). A pre-release, and never "latest", so the server's
+  # (server/Mandarin.Server/Admin/Tailscale.cs; Mandarin OS's install carries
+  # none). A pre-release, and never "latest", so the server's
   # own updater (releases/latest) never mistakes it for a MusicD release.
   engine:
     needs: ci

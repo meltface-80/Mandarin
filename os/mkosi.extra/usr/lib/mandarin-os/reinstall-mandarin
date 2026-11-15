@@ -1,5 +1,5 @@
 #!/bin/bash
-# /usr/lib/mandarin-os/reinstall-mandarin — Mandarin put back (tools/linux/install.sh, kept in the image, each file checked
+# /usr/lib/mandarin-os/reinstall-mandarin — Mandarin put back (linux-install.sh, kept in the image, each file checked
 # against the release key), its data and music folder kept; from the system page's Reinstall, and from the upkeep when
 # Mandarin doesn't answer (item 389). From the builds the share's Installer asks for (item 405, channel.sh): the latest
 # release, or dev's newest build, a file there asking once (dev.bin, latest.bin), spent when it is done (item 406);

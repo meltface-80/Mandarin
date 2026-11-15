@@ -1,12 +1,15 @@
 "use strict";
 /*
- * Mandarin on Linux without Docker (tools/linux/install.sh; item 389's plan, phase 2), run end to end under a root of
- * its own against a stand-in release, apt-get, systemctl and the user tools stood in for:
+ * Mandarin installed on Mandarin OS (os/mkosi.extra/usr/lib/mandarin-os/linux-install.sh, item 389's plan, phase 2; Mandarin
+ * OS's alone from item 426), run end to end under a root of its own against a stand-in release, apt-get, systemctl and
+ * the user tools stood in for:
  *   - what Mandarin needs from apt; the release's page and this machine's server, each taken only signed with the
  *     release key, into /opt/mandarin; the data folder kept apart; its own user; a systemd service, enabled and started,
  *     that says it is the installer's (MANDARIN_SYSTEMD), started again on a failure but not after Shut down;
  *   - a server not signed with the release key refused, nothing installed;
- *   - run again without --music: the music folder kept; --uninstall: the service and the program gone, the data kept.
+ *   - run again without --music (Reinstall Mandarin): the music folder kept;
+ *   - the image's own run: on the data partition, enabled, not started, nothing from apt;
+ *   - what only the public installer had is gone: --port, --uninstall and --purge refused.
  */
 const test = require("node:test");
 const assert = require("node:assert");
@@ -15,13 +18,13 @@ const os = require("os");
 const path = require("path");
 const { spawnSync } = require("child_process");
 
-const { RID, sh, keyPair, release, shims, serve, run: runWith } = require("./linux-install-standin");
+const { RID, sh, keyPair, release, shims, serve, run: runWith } = require("./os-linux-install-standin");
 
 const VERSION = "9.9.9";
 const haveOpenssl = spawnSync("openssl", ["version"]).status === 0;
 const skip = process.platform !== "linux" ? "Linux only" : !haveOpenssl && "openssl is not installed";
 
-test("Mandarin installed on Linux as a systemd service, only what is signed with the release key", { skip, timeout: 60000 }, async () => {
+test("Mandarin installed on Mandarin OS as a systemd service, only what is signed with the release key", { skip, timeout: 60000 }, async () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "musicd-test-linux-install-"));
   const files = path.join(dir, "releases");
   const key = keyPair(dir, "release"), other = keyPair(dir, "other");
@@ -36,7 +39,7 @@ test("Mandarin installed on Linux as a systemd service, only what is signed with
     });
     const run = (...args) => runWith(env, ...args);
 
-    let r = await run("--music", "/srv/music", "--port", "3600");
+    let r = await run("--music", "/srv/music");
     assert.equal(r.status, 0, r.stdout + r.stderr);
     const opt = path.join(root, "opt", "mandarin");
     assert.equal(sh(`"${opt}/server/bin/mandarin-server" --version`).trim(), VERSION);
@@ -44,7 +47,7 @@ test("Mandarin installed on Linux as a systemd service, only what is signed with
     assert.ok(fs.existsSync(path.join(root, "var", "lib", "mandarin")), "the data folder");
     const unit = fs.readFileSync(path.join(root, "etc", "systemd", "system", "mandarin.service"), "utf8");
     for (const l of ["User=mandarin", "Environment=MANDARIN_APP_DIR=/opt/mandarin", "Environment=DATA_DIR=/var/lib/mandarin", "Environment=MUSIC_DIR=/srv/music",
-      "Environment=PORT=3600", "Environment=MANDARIN_SYSTEMD=mandarin.service", "ExecStart=/opt/mandarin/server/bin/mandarin-server", "Restart=on-failure", "WantedBy=multi-user.target"]) {
+      "Environment=PORT=3500", "Environment=MANDARIN_SYSTEMD=mandarin.service", "ExecStart=/opt/mandarin/server/bin/mandarin-server", "Restart=on-failure", "WantedBy=multi-user.target"]) {
       assert.ok(unit.split("\n").includes(l), l + " in:\n" + unit);
     }
     const calls = fs.readFileSync(log, "utf8");
@@ -78,12 +81,13 @@ test("Mandarin installed on Linux as a systemd service, only what is signed with
     assert.doesNotMatch(fs.readFileSync(log, "utf8"), /^apt-get/m, "nothing from apt");
     assert.notEqual((await run("--data", "relative/path")).status, 0, "a whole path only");
 
-    // Uninstalled: the service and the program gone, the data kept.
-    r = await run("--uninstall");
-    assert.equal(r.status, 0, r.stdout + r.stderr);
-    assert.ok(!fs.existsSync(opt) && !fs.existsSync(path.join(root, "etc", "systemd", "system", "mandarin.service")));
-    assert.ok(fs.existsSync(path.join(root, "var", "lib", "mandarin")), "the data kept");
-    assert.match(r.stdout, /data is kept in .*var\/lib\/mandarin/);
+    // Only Mandarin OS's options: what the public installer had (item 426) refused, nothing changed.
+    for (const gone of [["--port", "3600"], ["--uninstall"], ["--purge"]]) {
+      r = await run(...gone);
+      assert.notEqual(r.status, 0, gone.join(" "));
+      assert.match(r.stderr, /No option --/, gone.join(" "));
+    }
+    assert.ok(fs.existsSync(path.join(opt, "server", "bin", "mandarin-server")), "still installed");
   } finally {
     srv.closeAllConnections();
     srv.close();

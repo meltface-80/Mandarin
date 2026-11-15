@@ -104,7 +104,7 @@ test("the README is short and sends readers to the site", () => {
   assert.match(readme, /\[!?[^\]]*\]\(https:\/\/meltface-80\.github\.io\/Mandarin\/\)/, "the site, linked");
   assert.match(readme, /<a href="https:\/\/buymeacoffee\.com\/musicd_projects"><img [^>]*alt="Buy Me a Coffee"/);
   assert.ok(readme.indexOf("buymeacoffee") < readme.indexOf("## "), "the button near the top");
-  for (const h of ["## Downloads", "### Mandarin OS", "### Install on Linux", "## Updating", "## License"]) assert.ok(readme.includes(h + "\n"), h);
+  for (const h of ["## Downloads", "### Mandarin OS", "## Updating", "## License"]) assert.ok(readme.includes(h + "\n"), h);
   assert.doesNotMatch(readme, /features:start/, "the feature list is the site's");
   assert.ok(readme.split("\n").length < 200, "short: " + readme.split("\n").length + " lines");
   for (const m of readme.matchAll(/\]\(#([a-z0-9-]+)\)/g)) {

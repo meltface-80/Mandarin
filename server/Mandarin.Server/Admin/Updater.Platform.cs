@@ -18,12 +18,13 @@ internal sealed partial class Updater
 
     /*
      * How this install gets a new program when an update can't put one in place ([env]: this process's, or a case's).
-     * Mandarin OS (item 389) has no shell for an install line: its system page puts Mandarin back from its release.
+     * Mandarin OS (item 389), the one way Mandarin is installed (item 426): its system page puts Mandarin back from its
+     * release. Anywhere else Mandarin was put by hand.
      */
     internal static string GetAgain(Func<string, string?>? env = null)
     {
         env ??= Environment.GetEnvironmentVariable;
         return env("MANDARIN_OS") is { Length: > 0 } ? "use Reinstall Mandarin on Mandarin OS's system page (http://mandarin/, Support)"
-            : "run the install line again (README, Install on Linux)";
+            : "install the new version by hand";
     }
 }

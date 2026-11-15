@@ -1,10 +1,8 @@
 // Auth.Reset.cs — `mandarin-server reset-password` (v0.8.50, stage 7 part 2 of
 // old/csharp-migration.md), from reset-password.js: forgot the
-// password? Run on the server:
-//
-//     sudo -u mandarin env DATA_DIR=/var/lib/mandarin /opt/mandarin/server/bin/mandarin-server reset-password
-//
-// (on Mandarin OS, passwordreset at its own screen).
+// password? On Mandarin OS, type passwordreset at its own screen, which runs
+// it; a server run by hand runs `mandarin-server reset-password` with its
+// DATA_DIR.
 //
 // It removes the account and signs every device out. Nothing else changes:
 // the library, the edits, favourites and history all stay. Then open Mandarin

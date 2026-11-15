@@ -9,7 +9,6 @@ on:
     branches: ["**", "!dependabot/**"]
     paths: &paths
       - "os/**"
-      - "tools/linux/install.sh"
       - ".github/workflows/os-image.yml"
   pull_request:
     paths: *paths
