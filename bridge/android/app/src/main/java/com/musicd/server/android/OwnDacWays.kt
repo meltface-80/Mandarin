@@ -24,6 +24,10 @@ import org.json.JSONObject
  * output left at the rate the way before set isn't taken for this one's), and the output's rate read as it plays: a
  * way the output followed is one that reaches the DAC at the track's own rate. The first float way that followed is
  * the one played by (float carries a 24-bit sample whole); a 16-bit way that followed is said, never played by.
+ *
+ * Above 192 kHz Android itself sends an ordinary track to a direct output where the device has one (its audio policy
+ * mixes nothing above 192 kHz), and a FiiO R7's Android takes up to 768 kHz from an app: so where no way follows, the
+ * first is tried at each rate above 192 kHz Android takes too, and those that reach the DAC are said to Mandarin.
  */
 internal object OwnDacWays {
     /** A way: [key] in /dac.json, its words in Settings, whether it carries float, and how its track is made. */
@@ -47,12 +51,14 @@ internal object OwnDacWays {
     private fun attrs(): AudioAttributes =
         AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_MEDIA).setContentType(AudioAttributes.CONTENT_TYPE_MUSIC).build()
 
-    private fun built(rate: Int, bytes: Int, session: Int, enc: Int, mode: Int? = null): AudioTrack {
+    private fun built(rate: Int, bytes: Int, session: Int, enc: Int, mode: Int? = null, offload: Boolean = false): AudioTrack {
         val b = AudioTrack.Builder().setAudioAttributes(attrs())
             .setAudioFormat(AudioFormat.Builder().setSampleRate(rate).setEncoding(enc).setChannelMask(STEREO).build())
             .setTransferMode(AudioTrack.MODE_STREAM).setBufferSizeInBytes(bytes)
         if (session > 0) b.setSessionId(session)
         if (mode != null) b.setPerformanceMode(mode)
+        // PCM offloaded: straight to the hardware on some Qualcomm devices (Android 10's own API; the R7 is one).
+        if (offload) { if (android.os.Build.VERSION.SDK_INT < 29) throw UnsupportedOperationException("Android 10 or later"); b.setOffloadedPlayback(true) }
         return b.build()
     }
 
@@ -68,6 +74,7 @@ internal object OwnDacWays {
         Way("music_stream", "music stream, float", true) { r, b, s -> stream(r, b, s, AudioFormat.ENCODING_PCM_FLOAT) },
         Way("power_saving", "media, float, power-saving", true) { r, b, s -> built(r, b, s, AudioFormat.ENCODING_PCM_FLOAT, AudioTrack.PERFORMANCE_MODE_POWER_SAVING) },
         Way("low_latency", "media, float, low latency", true) { r, b, s -> built(r, b, s, AudioFormat.ENCODING_PCM_FLOAT, AudioTrack.PERFORMANCE_MODE_LOW_LATENCY) },
+        Way("offload", "media, float, offloaded", true) { r, b, s -> built(r, b, s, AudioFormat.ENCODING_PCM_FLOAT, offload = true) },
         Way("media_16", "media, 16-bit", false) { r, b, s -> built(r, b, s, AudioFormat.ENCODING_PCM_16BIT) },
         Way("music_stream_16", "music stream, 16-bit", false) { r, b, s -> stream(r, b, s, AudioFormat.ENCODING_PCM_16BIT) },
     )

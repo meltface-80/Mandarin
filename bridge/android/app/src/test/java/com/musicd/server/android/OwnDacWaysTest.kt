@@ -65,5 +65,8 @@ class OwnDacWaysTest {
         assertEquals("UAPP's stopped at 192: so would ours", listOf(44100, 88200, 96000, 176400, 192000),
             OwnDac.advertised(taken, true, 0, listOf(44100, 88200, 96000, 176400, 192000)))
         assertEquals("stays at 44.1: that alone", listOf(44100), OwnDac.advertised(taken, false, 44100, emptyList()))
+        // Above 192 kHz Android sends an ordinary track to a direct output (item 434): those that reached the DAC too.
+        assertEquals("stays at 44.1, but 352.8 and 384 reached the DAC", listOf(44100, 352800, 384000),
+            OwnDac.advertised(taken, false, 44100, listOf(44100, 352800, 384000)))
     }
 }

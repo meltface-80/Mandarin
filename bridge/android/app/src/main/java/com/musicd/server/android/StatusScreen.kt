@@ -208,7 +208,7 @@ private fun copy(c: Context, label: String, text: String) {
     Cap("Android's output now", if (out > 0) OwnDac.khz(out) + " kHz" else "not said")
     Cap("Follows a track's rate", when (OwnDac.follows) { true -> "yes: each track at its own rate"; false -> "no: it stays at ${OwnDac.khz(OwnDac.probedRate)} kHz"; null -> "not tried yet" })
     OwnDac.way?.let { Cap("Played by", it.words) }
-    if (OwnDac.reached.isNotEmpty() && OwnDac.way != null) Cap("Reaches the DAC at (kHz)", OwnDac.reached.joinToString(", ") { OwnDac.khz(it) })
+    if (OwnDac.reached.size > 1 || (OwnDac.reached.isNotEmpty() && OwnDac.way != null)) Cap("Reaches the DAC at (kHz)", OwnDac.reached.joinToString(", ") { OwnDac.khz(it) })
     if (OwnDac.follows == false) Note(OWN_FIXED.replace("{rate}", OwnDac.khz(OwnDac.probedRate)), danger = true)
     // Each way an app may ask for a track, and what the output did (item 434).
     for (t in OwnDac.tried) Cap(t.way.words + " at " + OwnDac.khz(t.rate), t.error ?: ((if (t.followed) "followed: " else "not followed: ") + OwnDac.khz(t.fed) + " kHz"))
@@ -234,5 +234,5 @@ private fun copy(c: Context, label: String, text: String) {
 
 private const val OWN_PLAYER = "A music player: its firmware passes an app's audio on at the track's own rate, unmixed, so the Bridge plays to its DAC untouched, at each track's rate. A USB DAC plugged in is played instead."
 private const val OWN_PHONE = "On a phone, Android mixes an app's audio at its own rate before the DAC, so it isn't bit-perfect: off unless you switch it on."
-private const val OWN_FIXED = "Android's output here stays at {rate} kHz whatever rate a track is given at, and Android would resample anything else to it. So Mandarin sends {rate} kHz, converting other rates itself with its own resampler, and its signal path says so: bit-perfect only for {rate} kHz tracks. Every way an app may ask Android for a track was tried (below); none made the output follow."
+private const val OWN_FIXED = "Android's output here stays at {rate} kHz whatever rate a track is given at, and Android would resample anything else to it. So Mandarin sends {rate} kHz (or a rate listed as reaching the DAC), converting other rates itself with its own resampler, and its signal path says so: bit-perfect only for {rate} kHz tracks. Every way an app may ask Android for a track was tried (below); none made the output follow."
 private const val OWN_MQA = "MQA: in Mandarin, Settings → Audio Devices, switch on “This DAC decodes MQA” for this Bridge. An MQA track is then sent untouched, at full scale, for this player's DAC to decode and unfold."

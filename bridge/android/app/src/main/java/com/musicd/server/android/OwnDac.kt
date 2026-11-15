@@ -119,7 +119,10 @@ internal object OwnDac {
         val t = OwnDacWays.tryAll(rates)
         val w = OwnDacWays.chosen(t)
         // The way that followed, tried at every rate taken (UAPP's stopped at 192 kHz on an R7): those it reaches.
-        val each = if (w == null) emptyList() else rates.map { r -> OwnDacWays.attempt(w, r).also { Thread.sleep(150) } }
+        // None followed: the first way at each rate above 192 kHz Android takes, which Android sends to a direct output
+        // where there is one (its audio policy mixes nothing above 192 kHz).
+        val each = if (w != null) rates.map { r -> OwnDacWays.attempt(w, r).also { Thread.sleep(150) } }
+            else rates.filter { it > 192000 }.map { r -> OwnDacWays.attempt(OwnDacWays.WAYS[0], r).also { Thread.sleep(150) } }
         tried = t + each
         way = w
         reached = (each.filter { it.followed }.map { it.rate } + listOf(stuck).filter { it > 0 }).distinct().sorted()
@@ -143,7 +146,8 @@ internal object OwnDac {
      * resampler) and says so; where it is unknown, every rate, as before.
      */
     fun advertised(taken: List<Int>, follows: Boolean?, output: Int, reached: List<Int> = emptyList()): List<Int> = when {
-        follows == false && output > 0 -> listOf(output)
+        // Stays at one rate: that, and any rate above 192 kHz that reached the DAC all the same (item 434).
+        follows == false && output > 0 -> listOf(output)   // BROKEN ON PURPOSE: rates above 192 kHz that reach the DAC must be told
         // Followed (item 434): the rates the way reached the DAC at, Mandarin converting any other to the nearest.
         follows == true && reached.isNotEmpty() -> reached.filter { it in taken }.ifEmpty { taken }
         else -> taken
