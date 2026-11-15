@@ -70,7 +70,7 @@ internal sealed partial class Tailscale(string imageBin, string dir, int port, s
         catch (Exception) { return false; }
     }
 
-    /* It can run here: installed beside the server, or downloadable for this platform (the Linux installer, Mandarin OS, or TS_ENGINE_URL set; Linux, x64 or arm64). */
+    /* It can run here: installed beside the server, or downloadable for this platform (Mandarin OS, whose service says MANDARIN_SYSTEMD, or TS_ENGINE_URL set; Linux, x64 or arm64). */
     public bool Available
     {
         get

@@ -17,8 +17,8 @@ a streamer, an AV receiver), to a USB DAC through Mandarin Bridge and to the Man
 A server on a machine you own scans your music folders and plays them to the players in your
 house. You control it from a browser, an iPhone home-screen app or the Android app. No
 subscription or streaming account is needed. Album names are looked up online (MusicBrainz,
-Wikipedia, Deezer and others); your music files stay on your machine. Run the server on
-[Mandarin OS](#mandarin-os), a system made for it alone (recommended), or [on Linux](#install-on-linux).
+Wikipedia, Deezer and others); your music files stay on your machine. The server runs on
+[Mandarin OS](#mandarin-os), a system made for it alone.
 
 ## 📖 [Everything else is on the site: meltface-80.github.io/Mandarin](https://meltface-80.github.io/Mandarin/)
 
@@ -34,18 +34,16 @@ Every feature and how to use it, the guides to install, set up and troubleshoot,
 
 ## Downloads
 
-The newest of each, straight to your device. **Mandarin OS** is the recommended way to run the server: an image for a
-USB stick. On Linux, the alternative, the server's install is one command, below.
+The newest of each, straight to your device. **Mandarin OS** is how the server is installed: an image for a USB stick.
 
 | What | Version | Download |
 | --- | --- | --- |
-| **Mandarin OS**, a system made only to run Mandarin Server, the recommended way (a 64-bit Intel or AMD PC with UEFI) | 0.1.6 | [mandarin-os-0.1.6-x64.img.xz](https://github.com/meltface-80/Mandarin/releases/download/mandarin-os-v0.1.6/mandarin-os-0.1.6-x64.img.xz) for balenaEtcher or dd · [mandarin-os-0.1.6-x64.img](https://github.com/meltface-80/Mandarin/releases/download/mandarin-os-v0.1.6/mandarin-os-0.1.6-x64.img) for a phone; see [Mandarin OS](#mandarin-os) below |
-| **Mandarin server** on Linux, the alternative (Debian, Ubuntu, Raspberry Pi OS; x64 or arm64) | v1.3.2 | the one line under [Install on Linux](#install-on-linux) |
+| **Mandarin OS**, a system made only to run Mandarin Server (a 64-bit Intel or AMD PC with UEFI) | 0.1.6 | [mandarin-os-0.1.6-x64.img.xz](https://github.com/meltface-80/Mandarin/releases/download/mandarin-os-v0.1.6/mandarin-os-0.1.6-x64.img.xz) for balenaEtcher or dd · [mandarin-os-0.1.6-x64.img](https://github.com/meltface-80/Mandarin/releases/download/mandarin-os-v0.1.6/mandarin-os-0.1.6-x64.img) for a phone; see [Mandarin OS](#mandarin-os) below |
 | **Mandarin Remote**, the Android app (Android 8.0 or newer) | v1.3.2 | [mandarin-android.apk](https://github.com/meltface-80/Mandarin/raw/main/dist/mandarin-android.apk) |
 | **Mandarin Bridge** for Android (a FiiO R7, say) | v0.3.13 | [mandarin-bridge.apk](https://github.com/meltface-80/Mandarin/releases/download/mandarin-bridge-v0.3.13/mandarin-bridge.apk) |
 | **Mandarin Bridge** for Raspberry Pi (3, 4, 5, Zero 2 W) | v0.3.13 | [mandarin-bridge-pi-arm64.img.xz](https://github.com/meltface-80/Mandarin/releases/download/mandarin-bridge-v0.3.13/mandarin-bridge-pi-arm64.img.xz) |
 | **Mandarin Bridge** for Linux (64-bit Debian, Ubuntu, Raspberry Pi OS) | v0.3.13 | `curl -fsSL https://github.com/meltface-80/Mandarin/releases/download/mandarin-bridge-v0.3.13/install.sh \| sudo sh`, or by hand: [x64](https://github.com/meltface-80/Mandarin/releases/download/mandarin-bridge-v0.3.13/mandarin-bridge-linux-x64.tar.gz) · [arm64](https://github.com/meltface-80/Mandarin/releases/download/mandarin-bridge-v0.3.13/mandarin-bridge-linux-arm64.tar.gz) |
-| The server program on its own, what Settings → Updates fetches | v1.3.2 | [linux-x64](https://github.com/meltface-80/Mandarin/releases/latest/download/mandarin-server-linux-x64.gz) · [linux-arm64](https://github.com/meltface-80/Mandarin/releases/latest/download/mandarin-server-linux-arm64.gz) · [sums](https://github.com/meltface-80/Mandarin/releases/latest/download/mandarin-server.sha256) |
+| The server program on its own, what Mandarin on Mandarin OS fetches in Settings → Updates (no need to download it) | v1.3.2 | [linux-x64](https://github.com/meltface-80/Mandarin/releases/latest/download/mandarin-server-linux-x64.gz) · [linux-arm64](https://github.com/meltface-80/Mandarin/releases/latest/download/mandarin-server-linux-arm64.gz) · [sums](https://github.com/meltface-80/Mandarin/releases/latest/download/mandarin-server.sha256) |
 | **How Mandarin finds and names your music**, a guide in plain words | | [PDF](docs/Mandarin-music-scanning-guide.pdf) |
 
 On an iPhone or iPad there is nothing to download: open `http://<server-ip>:3500` in Safari and tap **Share → Add
@@ -57,7 +55,7 @@ Mandarin runs on an always-on computer on the same network as your speakers.
 
 ### Mandarin OS
 
-*Recommended:* a lightweight system made only to run Mandarin, on a computer of its own (a 64-bit Intel or AMD PC with
+A lightweight system made only to run Mandarin, on a computer of its own (a 64-bit Intel or AMD PC with
 UEFI and wired network, such as a mini PC), with its own web page to look after everything. Write the image to a USB
 stick of 4 GB or more ([step by step](https://meltface-80.github.io/Mandarin/mandarin-os.html#usb)):
 
@@ -67,17 +65,6 @@ stick of 4 GB or more ([step by step](https://meltface-80.github.io/Mandarin/man
 
 Then start the PC from the stick, with Secure Boot off, and answer the installer's questions
 ([Install it](https://meltface-80.github.io/Mandarin/mandarin-os.html#install), [Using Mandarin OS](https://meltface-80.github.io/Mandarin/mandarin-os.html#using)).
-
-### Install on Linux
-
-*The alternative:* on Debian, Ubuntu or Raspberry Pi OS (64-bit, x64 or arm64), one line as root, then open
-`http://<server-ip>:3500`:
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/meltface-80/Mandarin/main/tools/linux/install.sh | sudo bash -s -- --music /srv/music
-```
-
-Its options, removing it and a USB DAC on the same machine: [Install on Linux](https://meltface-80.github.io/Mandarin/install.html#linux).
 
 ## Updating
 

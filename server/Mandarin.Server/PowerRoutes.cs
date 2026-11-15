@@ -33,16 +33,13 @@ internal static partial class Library
     internal static JsonObject PowerInfo(Func<string, string?>? env = null)
     {
         env ??= Environment.GetEnvironmentVariable;
-        // Installed on Linux as a systemd service (tools/linux/install.sh): started again with systemctl, or the computer.
-        var service = env("MANDARIN_SYSTEMD") is { Length: > 0 };
         var os = env("MANDARIN_OS") is { Length: > 0 };
         return new JsonObject
         {
             ["restart"] = true,
             ["shutdown"] = true,
-            // "service": the Linux installer's systemd service (systemctl start, or the computer started again);
-            // "power-button": Mandarin OS, the computer shut down with it; "manual": however it was started.
-            ["start_again"] = os ? "power-button" : service ? "service" : "manual"
+            // "power-button": Mandarin OS, the computer shut down with it; "manual": however it was started (by hand).
+            ["start_again"] = os ? "power-button" : "manual"
         };
     }
 

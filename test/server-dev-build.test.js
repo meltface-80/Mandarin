@@ -1,7 +1,7 @@
 // @ts-check
 /*
  * dev's Mandarin Server on the "test-server" pre-release (item 405), which the updater's dev channel reads
- * (Admin/Updater.Channel.cs) and Mandarin OS's Reinstall Mandarin installs on it (tools/linux/install.sh --channel dev):
+ * (Admin/Updater.Channel.cs) and Mandarin OS's Reinstall Mandarin installs on it (its linux-install.sh --channel dev):
  *   - .github/server-assets.sh makes a release's files and a test build's alike: the update bundle with its version in
  *     its name and its package.json (a release's package.json as it is), the page and SQ-tool's Python in it;
  *   - release.yml and server-dev.yml both make theirs with it, and sign them with the release key;

@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title data-i18n="install.doc-title">Install the server · Mandarin</title>
-<meta name="description" content="Run the server on an always-on machine on the same network as your speakers: Mandarin OS, recommended, or Linux as the alternative.">
+<meta name="description" content="Run the server on Mandarin OS, on an always-on computer of its own on the same network as your speakers.">
 <link rel="icon" href="mandarin-icon.png">
 <link rel="stylesheet" href="site.css">
 </head>
@@ -32,15 +32,10 @@
 
 <main class="wrap page">
   <h1 data-i18n="install.h1">Install the server</h1>
-  <p class="lead" data-i18n="install.lead">Run the server on an always-on machine on the same network as your speakers: on <b>Mandarin OS</b>,
-     the recommended way, or on Linux as the alternative.</p>
-  <ul class="plain">
-    <li data-i18n="install.top.li1"><b><a href="#os">Mandarin OS</a>, recommended:</b> a computer of its own for Mandarin, installed from a USB
-        stick, with a web page of its own to watch over everything and nothing else to look after.</li>
-    <li data-i18n="install.top.li2"><b><a href="#linux">On Linux</a>, the alternative:</b> natively on a Debian, Ubuntu or Raspberry Pi OS machine
-        you already run, beside what else it does, with one command.</li>
-  </ul>
-  <h2 id="os" data-i18n="install.os.title">Mandarin OS <small>(recommended)</small></h2>
+  <p class="lead" data-i18n="install.lead">Run the server on <b>Mandarin OS</b>, on an always-on computer of its own on the same network as
+     your speakers: installed from a USB stick, with a web page of its own to watch over everything and nothing else to
+     look after.</p>
+  <h2 id="os" data-i18n="install.os.title">Mandarin OS</h2>
   <p data-i18n="install.os.p1">A lightweight operating system made only to run Mandarin Server, on a computer of its own (a mini PC such as a Dell
      OptiPlex Micro or an Intel NUC), with a web page of its own, the system page, to watch over and look after
      everything. Write its image to a USB stick, start the computer from it and answer a few questions; from then on it
@@ -60,50 +55,19 @@
   </ol>
   <p style="margin-top:16px" data-i18n="install.os.p2"><a class="pill solid" href="mandarin-os.html">Mandarin OS, step by step →</a></p>
 
-  <h2 id="linux" data-i18n="install.linux.title">Install on Linux <small>(the alternative)</small></h2>
-  <p data-i18n="install.linux.p1">Mandarin installed natively, for a Linux machine you already run. On an always-on Debian, Ubuntu or Raspberry Pi OS machine (64-bit, x64 or arm64) on the same network as your
-     speakers, one line as root:</p>
-  <div class="codebox"><button class="copy-btn" data-copy data-copied="Copied" data-i18n-attr="data-copied:site.copied" data-i18n="site.copy">Copy</button>
-<pre>curl -fsSL https://raw.githubusercontent.com/meltface-80/Mandarin/main/tools/linux/install.sh | sudo bash -s -- --music /srv/music</pre>
-</div>
-  <div class="note" data-i18n="install.linux.note1">
-    It installs what Mandarin needs from apt, makes a user of its own (<code>mandarin</code>, in the audio group), runs
-    Mandarin as a systemd service (<code>mandarin.service</code>) now and at every start, and keeps its data in
-    <code>/var/lib/mandarin</code>. Open <b>http://&lt;server-ip&gt;:3500</b>. The first scan runs straight away; a big
-    library takes a few minutes and albums appear as it goes. Without <code>--music</code>, it keeps the music folder it
-    had (a first install takes <code>/music</code>); more can be added in Settings → Music Folders.
-  </div>
-  <div class="tablewrap"><table>
-    <tr><th data-i18n="install.linux.th1">Option</th><th data-i18n="install.linux.th2">What it does</th></tr>
-    <tr><td><code>--music DIR</code></td><td data-i18n="install.linux.td1">The music folder (<code>/srv/music</code> above).</td></tr>
-    <tr><td><code>--port N</code></td><td data-i18n="install.linux.td2">The port (3500).</td></tr>
-    <tr><td><code>--data DIR</code></td><td data-i18n="install.linux.td3">The data folder (<code>/var/lib/mandarin</code>).</td></tr>
-    <tr><td><code>--uninstall</code></td><td data-i18n="install.linux.td4">The service and <code>/opt/mandarin</code> removed; the data kept.</td></tr>
-    <tr><td><code>--purge</code></td><td data-i18n="install.linux.td5">Removed, its data too.</td></tr>
-  </table></div>
-  <p style="margin-top:12px" data-i18n="install.linux.p2"><b>To update,</b> use Settings → Updates (below), or run the line again with the same options:
-     the library, the account and the settings are kept. Run it with another <code>--music</code> to change the music
-     folder. To remove it:</p>
-  <div class="codebox"><button class="copy-btn" data-copy data-copied="Copied" data-i18n-attr="data-copied:site.copied" data-i18n="site.copy">Copy</button>
-<pre>curl -fsSL https://raw.githubusercontent.com/meltface-80/Mandarin/main/tools/linux/install.sh | sudo bash -s -- --uninstall</pre>
-</div>
-  <div class="note" data-i18n="install.linux.note2">
-    <b>A USB DAC on this machine</b> is played by <a href="bridges.html">Mandarin Bridge for Linux</a>, installed beside
-    the server (one line), and the DAC is a room of its own in <b>Settings → Audio Devices</b>.
-  </div>
-  <p style="margin-top:12px" data-i18n="install.linux.p3"><b>Music folders, chosen in the app:</b> add any folder the server can read in <b>Settings →
+  <p style="margin-top:12px" data-i18n="install.first.p1"><b>Music folders, chosen in the app:</b> add any folder the server can read in <b>Settings →
      Music Folders</b>, as many as you like, and remove them there too. A folder that goes missing for a while (a drive
      asleep, a share that dropped, part of it unreadable, most of it gone at once) keeps its albums; the page says so and
      offers to forget it.</p>
 
   <div class="firstrun" style="margin-top:22px">
     <ol>
-      <li data-i18n="install.linux.li1">Open <b>http://&lt;server-ip&gt;:3500</b> (on Mandarin OS too: its screen shows the address) on a device at home and
+      <li data-i18n="install.first.li1">Open <b>http://&lt;box address&gt;:3500</b> (the box's screen shows its address) on a device at home and
           <b>create your account</b> — one username and password, kept on the server — or choose
           <b>Use without an account</b> (a TV needs nothing typed). The first scan starts straight away; albums appear
           as it goes.</li>
-      <li data-i18n="install.linux.li2">Pick a room under <b>Settings &rarr; Audio Devices</b>, or from the speaker button on Now playing.</li>
-      <li data-i18n="install.linux.li3">Tap an album and <b>Play Now</b>.</li>
+      <li data-i18n="install.first.li2">Pick a room under <b>Settings &rarr; Audio Devices</b>, or from the speaker button on Now playing.</li>
+      <li data-i18n="install.first.li3">Tap an album and <b>Play Now</b>.</li>
     </ol>
   </div>
 
