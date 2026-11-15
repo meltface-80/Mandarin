@@ -1,10 +1,11 @@
 """The computer's own storage drive made Storage/Internal from the system page (Storage → Internal storage → Format).
 
-Item 429: formatted, the drive was never mounted. Its new filesystem was mounted at once by its label, before udev had
-read that label: systemd, which knew the label's device as missing (the fstab line's, at every start since the first
-try), took the mount away again (a mount bound to a device it hasn't got), and that mount's answer was never looked at,
-so the page said it was ready, the log said only "formatted", and it said "not yet formatted" after. Its top folder
-was root's besides (a new ext4's), so the shared folder could write nothing in it. Now: the label read by udev and seen
+Item 429: formatted, the drive wasn't mounted (the boot test's second disk, formatted as the owner's was: Storage/Internal
+not mounted ten seconds after). Its new filesystem was mounted at once by its label, before udev had read that label,
+by mount alone, beside systemd, which knew the label's device as missing (the fstab line's, waited for at every start
+since the first try) and keeps a mount of fstab's to its device; and that mount's answer was never looked at, so the
+page said it was ready, the log said only "formatted", and it said "not yet formatted" after. Its top folder was root's
+besides (a new ext4's), so the shared folder could write nothing in it. Now: the label read by udev and seen
 in /dev/disk/by-label before it is mounted, through systemd (the fstab line's mount unit), the mount looked for, the
 drive's top made the shared folder's user's and Mandarin's group's (2775, as Storage is; apply keeps it so at every
 start), and every step that fails said in the one log with why, as well as on the page.

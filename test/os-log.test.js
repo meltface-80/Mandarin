@@ -68,6 +68,8 @@ test("the one log: each of Mandarin's lines saying where it came from, in the or
       entry({ unit: "mandarin-os-page.service", us: US + 8000, prio: 3, msg: "Traceback (most recent call last):" }),
       entry({ unit: "init.scope", pid: "1", about: "mandarin.service", us: US + 9000, transport: "journal", msg: "mandarin.service: Main process exited, code=killed, status=9/KILL" }),
       entry({ unit: "init.scope", pid: "1", about: "systemd-logind.service", us: US + 9500, transport: "journal", msg: "Started systemd-logind.service" }),
+      // The internal storage drive's mount (item 429: why it didn't mount was nowhere in the log).
+      entry({ unit: "init.scope", pid: "1", about: "data-Storage-Internal.mount", us: US + 9700, prio: 3, transport: "journal", msg: "data-Storage-Internal.mount: Bound to unit dev-disk-by\\x2dlabel-mandarin\\x2dinternal.device, but unit isn't active." }),
       entry({ transport: "kernel", pid: "0", prio: 3, us: US + 10000, msg: "Out of memory: Killed process 4242 (mandarin-server)" }),
       entry({ transport: "kernel", pid: "0", prio: 6, us: US + 10500, msg: "usb 1-2: new high-speed USB device number 3" }),
       entry({ transport: "kernel", pid: "0", prio: 5, us: US + 10600, msg: "audit: type=1131 audit(1794742868.668:189): pid=1 msg='unit=mandarin-bridge comm=\"systemd\"'" }),
@@ -86,6 +88,7 @@ test("the one log: each of Mandarin's lines saying where it came from, in the or
       "2026-11-15 09:43:00.007 UTC  ERROR  [server] Unhandled exception. System.IO.IOException: No space left on device",
       "2026-11-15 09:43:00.008 UTC  ERROR  [os] [page] Traceback (most recent call last):",
       "2026-11-15 09:43:00.009 UTC  INFO   [os] [systemd] mandarin.service: Main process exited, code=killed, status=9/KILL",
+      "2026-11-15 09:43:00.009 UTC  ERROR  [os] [systemd] data-Storage-Internal.mount: Bound to unit dev-disk-by\\x2dlabel-mandarin\\x2dinternal.device, but unit isn't active.",
       "2026-11-15 09:43:00.010 UTC  ERROR  [os] [kernel] Out of memory: Killed process 4242 (mandarin-server)",
       "2026-11-15 09:43:00.011 UTC  WARN   [os] [update] Mandarin OS 0.1.10 couldn't be fetched",
       "2026-11-15 09:43:00.011 UTC  INFO   [os]   from https://[…]@example.com/x",

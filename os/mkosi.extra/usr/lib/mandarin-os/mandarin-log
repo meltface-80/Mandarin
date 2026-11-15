@@ -217,7 +217,8 @@ def owner(e):
         return "os", ""
     if e.get("_PID") == "1":
         about = e.get("UNIT") or e.get("USER_UNIT") or ""
-        return ("os", "[systemd] ") if about.startswith("mandarin") or about in ("smbd.service", "data.mount") else None
+        # (The internal storage drive's mount too, item 429: why it didn't mount was nowhere in the log.)
+        return ("os", "[systemd] ") if about.startswith("mandarin") or about in ("smbd.service", "data.mount", "data-Storage-Internal.mount") else None
     if unit == "mandarin.service":
         return "server", ""
     if unit == "mandarin-bridge.service":
