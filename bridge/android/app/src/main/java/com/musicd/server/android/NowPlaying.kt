@@ -21,8 +21,11 @@ class NowPlaying(
     /** A track as Mandarin said it: [art], its cover's address, "" for none. */
     class Track(val title: String, val artist: String, val album: String, val art: String)
 
-    /** What the DAC is fed now (Mandarin's USB driver): its rate and depth; [dsd], the DSD multiple (0 for PCM); [dop], DSD as DoP. */
-    class Feed(val rate: Int, val bits: Int, val dsd: Int = 0, val dop: Boolean = false)
+    /**
+     * What the DAC is fed now (Mandarin's USB driver, or the device's own output): its rate and depth; [dsd], the DSD
+     * multiple (0 for PCM); [dop], DSD as DoP; [from], the track's rate where Android resampled it to [rate] (item 433).
+     */
+    class Feed(val rate: Int, val bits: Int, val dsd: Int = 0, val dop: Boolean = false, val from: Int = 0)
 
     /** The placeholder's words when there is no track. */
     val idle: String get() = if (firstRun) NOTHING_YET else NOTHING
@@ -59,6 +62,8 @@ class NowPlaying(
         fun format(f: Feed): String? = when {
             f.dsd > 0 -> "DSD${f.dsd}" + (if (f.dop) " (DoP)" else "")
             f.rate <= 0 -> null
+            // Resampled by Android on the way (item 433): from the track's rate to the one the DAC gets.
+            f.from > 0 && f.from != f.rate -> (if (f.bits > 0) "${f.bits}-bit / " else "") + "${khz(f.from)} → ${khz(f.rate)} kHz"
             f.bits <= 0 -> "${khz(f.rate)} kHz"
             else -> "${f.bits}-bit / ${khz(f.rate)} kHz"
         }

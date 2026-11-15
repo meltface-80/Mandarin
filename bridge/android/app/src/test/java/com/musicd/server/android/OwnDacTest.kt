@@ -14,6 +14,9 @@ class OwnDacTest {
         assertTrue("a Shanling", OwnDac.isPlayer("SHANLING", "M7"))
         assertTrue("an Astell&Kern", OwnDac.isPlayer("Astell&Kern", "SP3000"))
         assertTrue("a Walkman", OwnDac.isPlayer("Sony", "NW-ZX707"))
+        // A FiiO R7 says its maker is its chip's (item 433): known by its model, or its brand.
+        assertTrue("a FiiO R7 saying QUALCOMM", OwnDac.isPlayer("QUALCOMM", "FiiO R7"))
+        assertTrue("its brand FiiO", OwnDac.isPlayer("QUALCOMM", "R7", "FiiO"))
     }
 
     @Test fun phonesAreNot() {
@@ -29,6 +32,21 @@ class OwnDacTest {
         assertEquals("R7", OwnDac.nameOf("", "R7"))
         assertEquals("FiiO", OwnDac.nameOf("FiiO", ""))
         assertEquals("This device", OwnDac.nameOf("", ""))
+        // The chip's maker is never its name (item 433).
+        assertEquals("FiiO R7", OwnDac.nameOf("QUALCOMM", "FiiO R7"))
+        assertEquals("FiiO R7", OwnDac.nameOf("QUALCOMM", "R7", "FiiO"))
+        assertEquals("R7", OwnDac.nameOf("QUALCOMM", "R7"))
+    }
+
+    /** Taking a rate isn't playing at it (item 433): what Mandarin is told, by whether the output follows. */
+    @Test fun whatMandarinIsToldToSend() {
+        val taken = listOf(44100, 48000, 96000, 192000, 384000)
+        assertFalse("an R7: asked 96 kHz, ran at 44.1", OwnDac.followed(96000, 44100))
+        assertTrue(OwnDac.followed(96000, 96000))
+        assertEquals("stays at 44.1: that rate alone, Mandarin converting", listOf(44100), OwnDac.advertised(taken, false, 44100))
+        assertEquals("follows: every rate taken", taken, OwnDac.advertised(taken, true, 96000))
+        assertEquals("not known yet: every rate taken", taken, OwnDac.advertised(taken, null, 0))
+        assertEquals("didn't follow, its rate unsaid: every rate taken", taken, OwnDac.advertised(taken, false, 0))
     }
 
     @Test fun ratesInKhz() {

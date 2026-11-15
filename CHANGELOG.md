@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Fixed - Mandarin Bridge for Android on a FiiO R7's own DAC (item 433, Bridge 0.3.17): it said each track reached the DAC untouched at its own rate, but the R7's Android output stays at 44.1 kHz and resampled every other rate. The Bridge now says the rate the DAC is really fed ("176.4 → 44.1 kHz" on Now Playing, and in Mandarin's signal path), tries whether the output follows a track's rate, and where it doesn't asks Mandarin for that one rate, so Mandarin's own resampler converts, not Android's. The R7, which says its maker is QUALCOMM, is known as a music player and named "FiiO R7's own DAC"
 - New - Mandarin Bridge for Android plays a music player's own DAC (item 432, Bridge 0.3.16): with no USB DAC plugged in, a FiiO R7 (or another music player) is played through its own DAC at each track's own rate, never resampled, mixed or scaled by the Bridge, its own volume setting the level; Mandarin converts anything above what Android takes from an app (192 kHz on the R7's Android 10) and sends DSD as PCM. With This DAC decodes MQA on for the Bridge, MQA reaches the player's DAC untouched to decode and unfold. On a phone it is off unless switched on in the Bridge's Settings
 
 ## v1.3.3
