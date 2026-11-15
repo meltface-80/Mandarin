@@ -36,6 +36,22 @@ def _until(fn, seconds):
     return True
 
 
+def _why_unlabelled(part):
+    """What udev, blkid and /dev know of [part] whose label never appeared, in a line, for the log."""
+    run, P = _page["run"], _page["P"]
+    fs_of = lambda out: " ".join(l for l in out.splitlines() if l.startswith(("ID_FS_", "TYPE=", "LABEL=", "UUID=", "PTTYPE="))) or "nothing"
+    udev = run(["udevadm", "info", "--query=property", part])
+    probe = run(["blkid", "-p", "-o", "export", part])
+    try:
+        links = " ".join(sorted(os.listdir(P("/dev/disk/by-label")))) or "empty"
+    except OSError as e:
+        links = e.strerror or "not there"
+    udevd = run(["systemctl", "is-active", "systemd-udevd.service"])[1] or "?"
+    return (f"udev knows of {part}: {fs_of(udev[1]) if udev[0] == 0 else 'nothing (' + (udev[2] or 'udevadm info failed') + ')'}; "
+            f"blkid finds: {fs_of(probe[1]) if probe[0] == 0 else 'nothing (' + (probe[2] or 'exit %d' % probe[0]) + ')'}; "
+            f"/dev/disk/by-label: {links}; systemd-udevd {udevd}")
+
+
 def mounted():
     return _page["run"](["findmnt", "-no", "SOURCE", _page["P"](MOUNT)])[0] == 0
 
@@ -60,10 +76,17 @@ def format_disk(disk):
     code, _, err = run(["mkfs.ext4", "-F", "-L", LABEL, part], timeout=600)
     if code != 0:
         return failed("mkfs.ext4: " + (err.splitlines()[-1] if err else "failed"))
-    # udev reads the new label (systemd knows the drive by it only then); asked again if it hasn't.
-    run(["udevadm", "trigger", "--settle", part], timeout=60)
-    if not _until(lambda: os.path.exists(P("/dev/disk/by-label/" + LABEL)), WAIT):
-        return failed(f"its label ({LABEL}) didn't appear in /dev/disk/by-label")
+    # udev reads the new label (systemd knows the drive by it only then): asked of the partition, then of the disk (its
+    # partitions read again), each waited for; and if it never comes, what udev, blkid and /dev know of it, said.
+    labelled = lambda: os.path.exists(P("/dev/disk/by-label/" + LABEL))
+    for ask in ([["udevadm", "trigger", "--action=change", "--settle", part]],
+                [["partx", "-u", disk], ["udevadm", "trigger", "--action=change", "--settle", disk]]):
+        for cmd in ask + [["udevadm", "settle"]]:
+            run(cmd, timeout=60)
+        if _until(labelled, WAIT / 2):
+            break
+    else:
+        return failed(f"its label ({LABEL}) didn't appear in /dev/disk/by-label ({_why_unlabelled(part)})")
     if FSTAB.split()[0] not in read("/etc/fstab"):
         with open(P("/etc/fstab"), "a") as f:
             f.write(FSTAB)

@@ -11,7 +11,8 @@
  *
  * [internal]: how its second disk, /dev/sdb, takes a format (item 429): "mounts" (its label read by udev, mounted by
  * systemd), "undone" (systemd says it started its mount, and nothing is mounted: as systemd undoes a mount it doesn't
- * know the device of), "mkfs-fails". The disk tools stand in always (wipefs, sfdisk, mkfs, udevadm, mount), and logger:
+ * know the device of), "unlabelled" (udev never makes its label's link, as the boot test's disk had it), "mkfs-fails".
+ * The disk tools stand in always (wipefs, sfdisk, mkfs, udevadm, partx, blkid, mount), and logger:
  * the page's lines for the one log are among the calls ("logger -t mandarin-os -- LEVEL [system page] …").
  *
  * The password is "password": Samba keeps it as its NT hash (MD4 of it in UTF-16LE). Neither OpenSSL 3 nor Node offer
@@ -61,9 +62,14 @@ exit 0`);
   shim("chmod");
   shim("lsblk", `case "$*" in *-J*) echo '{"blockdevices":[{"name":"sda","size":256000000000,"model":"SSD","tran":"sata","rm":false,"type":"disk"},{"name":"sdb","size":4000000000000,"model":"WDC WDS400T2B0A","tran":"sata","rm":false,"type":"disk"}]}' ;; *-lnpo*) echo "/dev/sdb1 part" ;; *) echo sda ;; esac`);
   // The disk tools (a format of the second disk, item 429), and the one log's lines.
-  for (const t of ["wipefs", "sfdisk", "mount", "umount", "logger"]) shim(t);
+  for (const t of ["wipefs", "sfdisk", "partx", "mount", "umount", "logger"]) shim(t);
   shim("mkfs.ext4", internal === "mkfs-fails" ? `echo "/dev/sdb1 is apparently in use by the system; will not make a filesystem here!" >&2; exit 1` : "");
-  shim("udevadm", `[ "$1" = trigger ] && mkdir -p "${root}/dev/disk/by-label" && touch "${root}/dev/disk/by-label/mandarin-internal"; exit 0`);
+  shim("udevadm", `case "$1" in
+  trigger) [ "${internal}" = unlabelled ] || { mkdir -p "${root}/dev/disk/by-label" && touch "${root}/dev/disk/by-label/mandarin-internal"; } ;;
+  info) printf 'DEVNAME=/dev/sdb1\nDEVTYPE=partition\nID_PART_ENTRY_TYPE=0fc63daf-8483-4772-8e79-3d69d8477de4\n' ;;
+esac
+exit 0`);
+  shim("blkid", `printf 'DEVNAME=/dev/sdb1\nLABEL=mandarin-internal\nUUID=0b5e\nTYPE=ext4\n'`);
   // As an OptiPlex answered it: the link's name beside its server.
   shim("resolvectl", `printf 'Global:\\nLink 2 (enp0s31f6): 8.8.8.8\\n'`);
   const mandarin = http.createServer((req, res) => {
