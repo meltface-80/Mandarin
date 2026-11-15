@@ -544,7 +544,7 @@ internal sealed partial class PackStore
             checking = Task.Run(async () =>
             {
                 try { await Describe(); DescribeError = null; }
-                catch (Exception e) { DescribeError = Message(e); }
+                catch (Exception e) { var was = DescribeError; DescribeError = Message(e); if (was != DescribeError) log("MusicBrainz pack: GitHub couldn't be asked what's published (" + DescribeError + ")"); }   // the page says it in words (item 427)
                 finally { lock (gate) { checking = null; checkedAt = Now; } }
             });
         }

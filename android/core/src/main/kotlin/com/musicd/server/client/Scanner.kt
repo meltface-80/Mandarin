@@ -195,7 +195,7 @@ object Scanner {
                 if (free != null && free < latest.optDouble("size", 0.0) + 200 * 1048576.0) warn = "Not enough room in this folder: choose another."
                 "Not downloaded. A " + mbs(latest.optDouble("gz_size", 0.0), locale) + " download that unpacks to " + mbs(latest.optDouble("size", 0.0), locale) + " in the folder below."
             } else if (pack.optBoolean("checking")) "Not downloaded. Asking GitHub what’s published…"
-            else "Not downloaded." + pack.text("check_error").let { if (it.isNotEmpty()) " ($it)" else "" }
+            else "Not downloaded." + if (pack.text("check_error").isNotEmpty()) " GitHub couldn’t be reached: try again later." else ""   // the error itself in the log (item 427)
             buttons += ScanButton("Download", "download", true)
             if (latest == null) enabled = false
         }

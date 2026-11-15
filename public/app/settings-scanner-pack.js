@@ -82,7 +82,7 @@ function packBlock() {
     const tight = latest && pack.free != null && pack.free < latest.size + 200 * 1048576;
     state = latest ? "Not downloaded. A " + mbs(latest.gz_size) + " download that unpacks to " + mbs(latest.size) + " in the folder below." +
       (tight ? ' <span class="away-error">Not enough room in this folder: choose another.</span>' : "")
-      : pack.checking ? "Not downloaded. Asking GitHub what’s published…" : "Not downloaded." + (pack.check_error ? " (" + scanEsc(pack.check_error) + ")" : "");
+      : pack.checking ? "Not downloaded. Asking GitHub what’s published…" : "Not downloaded." + (pack.check_error ? " GitHub couldn’t be reached: try again later." : "");   // the reason in words, the error itself in the log (item 427)
     buttons = '<button type="button" data-parity="settings-scanner.pack" class="id-btn is-primary" data-pack="download"' + (scanBusy || !latest ? " disabled" : "") + ">Download</button>";
   }
   // Where it's kept (v0.6.4): any folder the server can write to, on any drive.
