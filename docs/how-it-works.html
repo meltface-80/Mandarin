@@ -46,7 +46,11 @@
   <ul class="plain">
     <li data-i18n="how-it-works.top.li1"><b>Library.</b> The music folders are walked and every audio file's tags are read into a database (SQLite).
         Albums are decided a folder at a time, so a folder of tracks by different artists with no album-artist tag
-        becomes one compilation, and <code>CD1</code>/<code>CD2</code> folders become one album. Covers come from
+        becomes one compilation, and <code>CD1</code>/<code>CD2</code> folders become one album. Two releases in one folder
+        with one album tag are one album; moved into a folder each, they become two albums, versions of each other, the
+        folder with most of the tracks keeping the album, its plays and edits. Edit album's <b>Folders and copies</b> splits
+        one by hand (by folder, by the version words in its titles, by format or by a repeated track number), joins it back,
+        or reads its folders again; <b>Library clean-up</b> lists the albums that look like two copies merged. Covers come from
         <code>cover.jpg</code>/<code>folder.jpg</code>/… or the first track's embedded picture, resized once per size and
         cached. An album with no cover of its own is looked up on Apple Music, Deezer and MusicBrainz in the background
         and given the cover where its title, artist and tracks all agree; otherwise it gets one drawn, with its title. The pictures are drawn with ffmpeg. Rescans only

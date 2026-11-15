@@ -4765,6 +4765,7 @@ input.vol-range::-moz-range-thumb {
 .ae-split-way { display: flex; align-items: center; gap: 10px; }
 .ae-split-words { flex: 1 1 auto; min-width: 0; font-size: 13px; line-height: 1.4; color: var(--text); overflow-wrap: anywhere; }
 .ae-split .hidden { display: none; }
+.ae-split-btns .action-btn, .ae-split-way .action-btn { flex: 0 0 auto; padding-left: 18px; padding-right: 18px; }
 
 /* No zooming, anywhere. touch-action is not inherited through a scroller
    (<main>, the sheets), so html/body alone left every screen's content
