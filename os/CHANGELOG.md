@@ -1,5 +1,9 @@
 # Mandarin OS changelog
 
+## v0.1.10
+
+- Changed - the test image (item 427b): dev's image can be built again by hand and still goes on test-os, once its whole suite and the virtual machine's test pass, as a push's does. Nothing on the box changes from 0.1.9
+
 ## v0.1.9
 
 - Changed - one log, in one place (item 425): smb://<box>/Data/Logs holds Mandarin_log.txt, a single plain-text file of everything on the box, a line an event in time order, each saying where it came from: Mandarin's server ("[server]"), Mandarin OS itself ("[os]": its scripts, services, system page, updates, USB drives, health checks, Samba, systemd's word on each of them), Mandarin Bridge on the box ("[bridge <its name>]"), and what reaches the server from elsewhere: the Android app ("[app <the phone's name>]"), every other Bridge Mandarin knows and the page in a browser. At 8 MB it becomes Mandarin_log.01.txt and a new one is begun, ten files at most (.01 the newest of the old, .09 the oldest), read-only on the share. Every part says its lines to the journal, and one small service, mandarin-log, alone writes the files from it: a crash of Mandarin loses none of its lines, and where the journal was read to is kept, so a restart, an update or a power cut takes none twice. Each line is scrubbed as Mandarin's own (no passwords, keys, emails, account names, internet or Tailscale addresses)
