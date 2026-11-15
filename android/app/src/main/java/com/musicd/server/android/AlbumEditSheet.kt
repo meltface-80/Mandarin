@@ -67,14 +67,16 @@ import kotlinx.coroutines.withContext
  * from the foot over the album's page, its grip, Edit album and ✕ (a tap round it closes it too); the cover, the
  * names from MusicBrainz, the fields and Save (AlbumEditParts.kt); the note at its foot. [onChanged] once the album's
  * names or cover changed (a match applied, Save, Undo all edits), for its page to read it again. [find]: opened by a
- * Library Scanner folder's Find… (item 414b), Find match asked at once.
+ * Library Scanner folder's Find… (item 414b), Find match asked at once; [split]: by Library clean-up's Split… (item 424),
+ * Folders and copies' ways open.
  */
 @Composable
-internal fun AlbumEditSheet(offset: Long, title: String, artist: String, client: () -> ServerClient?, onClose: () -> Unit, onChanged: () -> Unit, find: Boolean = false) {
+internal fun AlbumEditSheet(offset: Long, title: String, artist: String, client: () -> ServerClient?, onClose: () -> Unit, onChanged: () -> Unit, find: Boolean = false,
+                            split: Boolean = false) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val ed = remember(offset) { AlbumEditor(offset, title, artist, client, scope, context, onChanged, onClose) }
-    LaunchedEffect(offset) { ed.load(); if (find) ed.findMatch() }
+    LaunchedEffect(offset) { if (split) ed.split.waysOpen = true; ed.load(); if (find) ed.findMatch() }
     Dialog(onDismissRequest = onClose, properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)) {
         val window = (LocalView.current.parent as? DialogWindowProvider)?.window
         SideEffect { window?.setDimAmount(0.5f) }
@@ -110,9 +112,10 @@ internal fun AlbumEditSheet(offset: Long, title: String, artist: String, client:
  * chosen; the covers searched for and found, an address pasted; the releases asked for and the one applied, a
  * barcode; Save and Undo all edits. Each request goes on [scope]; a cover search overtaken by another is dropped.
  */
-internal class AlbumEditor(private val offset: Long, title: String, artist: String, private val client: () -> ServerClient?, private val scope: CoroutineScope,
-                           private val context: Context, private val onChanged: () -> Unit, private val onClose: () -> Unit) {
+internal class AlbumEditor(val offset: Long, title: String, artist: String, val client: () -> ServerClient?, val scope: CoroutineScope,
+                           val context: Context, val onChanged: () -> Unit, val onClose: () -> Unit) {
     var state by mutableStateOf<EditState?>(null)
+    val split = SplitEditor(this)   // Folders and copies (item 424, AlbumEditSplit.kt)
     var title by mutableStateOf(title)
     var artist by mutableStateOf(artist)
     var year by mutableStateOf("")

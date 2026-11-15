@@ -68,7 +68,8 @@ function scannerCleanupBlock() {
     ["tidal", td, albums(td.albums, "Tidal album") + " no longer wanted"]].filter(k => k[1].albums);
   const rows = kinds.map(([kind, , words]) => '<div class="scan-row"><span class="scan-sub" data-parity="settings-scanner.note">' + words + "</span>" +
     '<button type="button" data-parity="settings-scanner.cleanup" class="id-btn scan-danger" data-cleanup="' + kind + '"' + (scanBusy ? " disabled" : "") + ">Remove</button></div>").join("");
-  return '<div class="scan-sec">' + head + (rows || '<div class="settings-note" data-parity="settings-scanner.note">Nothing to remove.</div>') + "</div>";
+  // And the albums that look like two copies merged (item 424, settings-scanner-merged.js), to split.
+  return '<div class="scan-sec">' + head + (rows || '<div class="settings-note" data-parity="settings-scanner.note">Nothing to remove.</div>') + scannerMergedRow() + "</div>";
 }
 
 /* The processor (v0.8.13): how its cores are shared out, and the cores a track made as it plays has (item 260). */

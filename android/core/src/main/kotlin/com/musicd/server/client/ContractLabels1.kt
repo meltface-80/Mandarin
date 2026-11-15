@@ -242,6 +242,11 @@ internal object ContractLabels1 {
         "album-edit.version-country" to listOf("Country"),
         "album-edit.version-year" to listOf("This pressing's year"),
         "album-edit.version-format" to listOf("Format"),
+        "album-edit.split-folder" to listOf("Split by folder", "Splitting…"),
+        "album-edit.split-open" to listOf("Split…"),
+        "album-edit.split-go" to listOf("Split", "Splitting…"),
+        "album-edit.join" to listOf("Join back", "Joining…"),
+        "album-edit.look-again" to listOf("Look at this album again", "Looking…"),
         "album-edit.put-back" to listOf("Put back"),
         "album-edit.save" to listOf("Save", "Saving…"),
         "album-edit.cancel" to listOf("Cancel"),
@@ -298,8 +303,5 @@ internal object ContractLabels1 {
         "settings-display.info" to listOf("About {setting}"),
         "settings-display.enabled" to listOf("Wall display"),
         "settings-display.seconds" to listOf("Display rotation interval in seconds"),
-        "settings-shelf.back" to listOf("Back to settings"),
-        "settings-shelf.info" to listOf("About {setting}"),
-        "settings-shelf.enabled" to listOf("Shelf"),
     )
 }

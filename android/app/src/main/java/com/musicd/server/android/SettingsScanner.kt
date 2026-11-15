@@ -58,6 +58,9 @@ internal class ScanKept {
     var more by mutableStateOf(false)
     /** The album whose Edit album is open over its folder, from Find… (item 414b). */
     var finding by mutableStateOf<JSONObject?>(null)
+    /** The albums that look like two copies merged, and the one whose Edit album is open over them (item 424, ScannerMerged.kt). */
+    var merged by mutableStateOf<com.musicd.server.client.Merged?>(null)
+    var splitting by mutableStateOf<com.musicd.server.client.MergedAlbum?>(null)
     var browse by mutableStateOf<JSONObject?>(null)
     var places by mutableStateOf<List<String>>(emptyList())
     var ticks = 0
@@ -79,7 +82,7 @@ internal fun SettingsScanner(client: () -> ServerClient?, onBack: () -> Unit) {
         while (true) {
             delay(5_000)
             untilOnScreen()
-            if (!k.busy && k.finding == null && k.browse == null) scanLoad(k, client, scope, false)
+            if (!k.busy && k.finding == null && k.splitting == null && k.browse == null) scanLoad(k, client, scope, false)
         }
     }
     // A folder open: back closes it, not the page.
@@ -91,7 +94,8 @@ internal fun SettingsScanner(client: () -> ServerClient?, onBack: () -> Unit) {
                 "Library Scanner", Modifier.parity("settings-scanner.heading"))
             // A folder open: its albums alone, as the page draws it; else the switch, and its sections while it is on.
             val folder = k.folder
-            if (folder != null) FolderView(k, folder, client, scope, context)
+            if (folder == "merged") MergedView(k, client, scope)   // two copies merged (item 424)
+            else if (folder != null) FolderView(k, folder, client, scope, context)
             else {
                 ScannerSwitch(k, client, scope) { info = it }
                 if (scan != null && scan.optBoolean("on")) {
@@ -121,6 +125,7 @@ internal fun scanLoad(k: ScanKept, client: () -> ServerClient?, scope: Coroutine
     get(SCANNER) { k.scan = it; k.err = ""; if (k.folder != null && (k.lists == null || Scanner.countsOf(it) != k.listsAt)) loadLists(k, c, scope) }
     get("/api/cpu") { k.cpu = it }
     if (opening || ++k.ticks % 6 == 0) get(CLEANUP) { k.cleanup = it }
+    if (opening || k.ticks % 6 == 0) loadMerged(k, client, scope)   // two copies merged (item 424, ScannerMerged.kt)
     if (opening || k.pack?.optBoolean("checking") == true) get("/api/identify/pack" + if (opening) "?check=1" else "") { k.pack = it; followPack(k, c, scope) }
 }
 

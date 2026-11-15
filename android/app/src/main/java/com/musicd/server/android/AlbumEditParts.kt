@@ -233,6 +233,7 @@ internal fun EditFields(ed: AlbumEditor) {
         decorationBox = { AeBox(ed.year, "", focus[2], it) })
     d?.let { s -> AlbumEdit.was(s.scanned["year"].orEmpty(), ed.year)?.let { AeWas(it, Modifier.parity("album-edit.was")) { AePutBack(Modifier.parity("album-edit.put-back", Contract.label("album-edit.put-back")).clickable { ed.year = s.scanned["year"].orEmpty() }) } } }
     EditVersion(ed)   // the copy's version (item 420, AlbumEditVersion.kt)
+    EditSplit(ed)   // its folders and copies (item 424, AlbumEditSplit.kt)
     ed.err?.let { AeErr(it, Modifier.parity("album-edit.err")) }
     // .ae-foot: Save in the accent and Cancel, side by side, 10 apart, 20 over them.
     Row(Modifier.fillMaxWidth().padding(top = 20.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -281,7 +282,7 @@ internal fun AeLabel(text: String, modifier: Modifier) {
 
 /** A pill (.action-btn): 40 tall, 18 in at the sides, 13 in 500, the raised ground and its edge, or the accent for [primary]; dim while it can't be tapped. */
 @Composable
-private fun AePill(text: String, modifier: Modifier, primary: Boolean = false, enabled: Boolean = true) {
+internal fun AePill(text: String, modifier: Modifier, primary: Boolean = false, enabled: Boolean = true) {
     val shape = RoundedCornerShape(999.dp)
     Box(modifier.height(40.dp).alpha(if (enabled) 1f else 0.55f).clip(shape).background(paletteColor(if (primary) Palette.ACCENT else Palette.BG_ELEV_2))
         .border(1.dp, if (primary) Color.Transparent else paletteColor(Palette.BORDER), shape).padding(horizontal = 18.dp), contentAlignment = Alignment.Center) {
