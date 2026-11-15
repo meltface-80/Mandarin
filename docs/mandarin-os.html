@@ -33,7 +33,7 @@
 <main class="wrap page">
   <h1 data-i18n="mandarin-os.h1">Mandarin OS</h1>
   <p class="lead" data-i18n="mandarin-os.lead">A lightweight operating system made only to run Mandarin Server, with a web page of its own, the
-     system page, to watch over and look after everything. How Mandarin is installed. Version 0.1.6.</p>
+     system page, to watch over and look after everything. How Mandarin is installed. Version 0.1.11.</p>
 
   <h2 id="what" data-i18n="mandarin-os.what.title">What it is, and why</h2>
   <p data-i18n="mandarin-os.what.p1">A music server should be something you switch on and forget. Mandarin OS turns a small computer into exactly that:
@@ -70,14 +70,14 @@
   <p data-i18n="mandarin-os.download.p1">The image comes two ways, the same system either way, each with its checksum (<code>.sha256</code>) and its
      signature (<code>.sig</code>):</p>
   <div class="files">
-    <a class="file" href="https://github.com/meltface-80/Mandarin/releases/download/mandarin-os-v0.1.6/mandarin-os-0.1.6-x64.img.xz"><b>mandarin-os-0.1.6-x64.img.xz</b><span data-i18n="mandarin-os.download.span1">compressed, about 360 MB: for balenaEtcher and the Linux terminal</span><i>⬇</i></a>
-    <a class="file" href="https://github.com/meltface-80/Mandarin/releases/download/mandarin-os-v0.1.6/mandarin-os-0.1.6-x64.img"><b>mandarin-os-0.1.6-x64.img</b><span data-i18n="mandarin-os.download.span2">as it is, about 1.6 GB: for an Android phone (EtchDroid)</span><i>⬇</i></a>
-    <a class="file" href="https://github.com/meltface-80/Mandarin/releases/download/mandarin-os-v0.1.6/mandarin-os-0.1.6-x64.img.xz.sha256"><b>mandarin-os-0.1.6-x64.img.xz.sha256</b><span data-i18n="mandarin-os.download.span3">the compressed image's checksum</span><i>⬇</i></a>
-    <a class="file" href="https://github.com/meltface-80/Mandarin/releases/download/mandarin-os-v0.1.6/mandarin-os-0.1.6-x64.img.sha256"><b>mandarin-os-0.1.6-x64.img.sha256</b><span data-i18n="mandarin-os.download.span4">the plain image's checksum</span><i>⬇</i></a>
+    <a class="file" href="https://github.com/meltface-80/Mandarin/releases/download/mandarin-os-v0.1.11/mandarin-os-0.1.11-x64.img.xz"><b>mandarin-os-0.1.11-x64.img.xz</b><span data-i18n="mandarin-os.download.span1">compressed, about 360 MB: for balenaEtcher and the Linux terminal</span><i>⬇</i></a>
+    <a class="file" href="https://github.com/meltface-80/Mandarin/releases/download/mandarin-os-v0.1.11/mandarin-os-0.1.11-x64.img"><b>mandarin-os-0.1.11-x64.img</b><span data-i18n="mandarin-os.download.span2">as it is, about 1.6 GB: for an Android phone (EtchDroid)</span><i>⬇</i></a>
+    <a class="file" href="https://github.com/meltface-80/Mandarin/releases/download/mandarin-os-v0.1.11/mandarin-os-0.1.11-x64.img.xz.sha256"><b>mandarin-os-0.1.11-x64.img.xz.sha256</b><span data-i18n="mandarin-os.download.span3">the compressed image's checksum</span><i>⬇</i></a>
+    <a class="file" href="https://github.com/meltface-80/Mandarin/releases/download/mandarin-os-v0.1.11/mandarin-os-0.1.11-x64.img.sha256"><b>mandarin-os-0.1.11-x64.img.sha256</b><span data-i18n="mandarin-os.download.span4">the plain image's checksum</span><i>⬇</i></a>
   </div>
-  <p class="after-note" data-i18n="mandarin-os.download.p2">The signatures, <code>mandarin-os-0.1.6-x64.img.xz.sig</code> and
-     <code>mandarin-os-0.1.6-x64.img.sig</code>, are beside them on the
-     <a href="https://github.com/meltface-80/Mandarin/releases/tag/mandarin-os-v0.1.6">release</a>, with the system
+  <p class="after-note" data-i18n="mandarin-os.download.p2">The signatures, <code>mandarin-os-0.1.11-x64.img.xz.sig</code> and
+     <code>mandarin-os-0.1.11-x64.img.sig</code>, are beside them on the
+     <a href="https://github.com/meltface-80/Mandarin/releases/tag/mandarin-os-v0.1.11">release</a>, with the system
      and kernel images (<code>.root.raw.xz</code>, <code>.efi</code>) an installed Mandarin OS updates itself from.</p>
 
   <h2 id="usb" data-i18n="mandarin-os.usb.title">Make the USB installer</h2>
@@ -86,7 +86,7 @@
   <h3 class="sub" id="etcher" data-i18n="mandarin-os.usb.h31">With balenaEtcher (Windows, macOS or a Linux desktop)</h3>
   <ol class="plain">
     <li data-i18n="mandarin-os.usb.li1">Install <a href="https://etcher.balena.io/">balenaEtcher</a> and download
-        <code>mandarin-os-0.1.6-x64.img.xz</code>. Etcher takes the compressed file as it is: there is nothing to
+        <code>mandarin-os-0.1.11-x64.img.xz</code>. Etcher takes the compressed file as it is: there is nothing to
         unpack.</li>
     <li data-i18n="mandarin-os.usb.li2">Plug in the USB stick and open Etcher.</li>
     <li data-i18n="mandarin-os.usb.li3"><b>Flash from file</b>: choose the <code>.img.xz</code> you downloaded.</li>
@@ -106,29 +106,29 @@
     <li data-i18n="mandarin-os.usb.li8">In the folder you downloaded to, check the download against its checksum (it should say <i>OK</i>):</li>
   </ol>
   <div class="codebox"><button class="copy-btn" data-copy data-copied="Copied" data-i18n-attr="data-copied:site.copied" data-i18n="site.copy">Copy</button>
-<pre>sha256sum -c mandarin-os-0.1.6-x64.img.xz.sha256</pre>
+<pre>sha256sum -c mandarin-os-0.1.11-x64.img.xz.sha256</pre>
 </div>
   <ol class="plain" start="4">
     <li data-i18n="mandarin-os.usb.li9">Write it to the whole device, <code>/dev/sdX</code> (not a partition such as <code>/dev/sdX1</code>), with
         <code>sdX</code> the stick's name from <code>lsblk</code>:</li>
   </ol>
   <div class="codebox"><button class="copy-btn" data-copy data-copied="Copied" data-i18n-attr="data-copied:site.copied" data-i18n="site.copy">Copy</button>
-<pre>xz -dc mandarin-os-0.1.6-x64.img.xz | sudo dd of=/dev/sdX bs=4M conv=fsync status=progress</pre>
+<pre>xz -dc mandarin-os-0.1.11-x64.img.xz | sudo dd of=/dev/sdX bs=4M conv=fsync status=progress</pre>
 </div>
   <p data-i18n="mandarin-os.usb.p3">From the plain image, the same without <code>xz</code>:</p>
   <div class="codebox"><button class="copy-btn" data-copy data-copied="Copied" data-i18n-attr="data-copied:site.copied" data-i18n="site.copy">Copy</button>
-<pre>sudo dd if=mandarin-os-0.1.6-x64.img of=/dev/sdX bs=4M conv=fsync status=progress</pre>
+<pre>sudo dd if=mandarin-os-0.1.11-x64.img of=/dev/sdX bs=4M conv=fsync status=progress</pre>
 </div>
   <ol class="plain" start="5">
     <li data-i18n="mandarin-os.usb.li10">Then run <code>sync</code>, and take the stick out once it has returned.</li>
   </ol>
 
   <h3 class="sub" id="android" data-i18n="mandarin-os.usb.h33">From an Android phone, with EtchDroid</h3>
-  <p data-i18n="mandarin-os.usb.p4">EtchDroid is free, on Google Play and F-Droid. It needs the plain <b><code>mandarin-os-0.1.6-x64.img</code></b>,
+  <p data-i18n="mandarin-os.usb.p4">EtchDroid is free, on Google Play and F-Droid. It needs the plain <b><code>mandarin-os-0.1.11-x64.img</code></b>,
      not the <code>.img.xz</code>: a phone's writer doesn't decompress, and a stick written from the compressed file
      starts nothing. The stick goes into the phone through a USB-OTG or USB-C adapter (or a USB-C stick).</p>
   <ol class="plain">
-    <li data-i18n="mandarin-os.usb.li11">Download <code>mandarin-os-0.1.6-x64.img</code> on the phone (about 1.6 GB: Wi-Fi is best).</li>
+    <li data-i18n="mandarin-os.usb.li11">Download <code>mandarin-os-0.1.11-x64.img</code> on the phone (about 1.6 GB: Wi-Fi is best).</li>
     <li data-i18n="mandarin-os.usb.li12">Plug the USB stick into the phone through the adapter.</li>
     <li data-i18n="mandarin-os.usb.li13">Open EtchDroid and choose to write an image (a raw image), then pick the <code>.img</code> you downloaded.</li>
     <li data-i18n="mandarin-os.usb.li14">Pick the USB stick.</li>
@@ -248,10 +248,10 @@
   <p data-i18n="mandarin-os.using.p7">There is no login and no SSH: the screen and the system page are the ways in.</p>
 
   <h3 class="sub" id="upkeep" data-i18n="mandarin-os.using.h35">Updates and upkeep</h3>
-  <p data-i18n="mandarin-os.using.p8">Once a week, when nothing is playing (no room playing, no scan under way), Mandarin OS takes a newer Mandarin OS
+  <p data-i18n="mandarin-os.using.p8">Once a week, when none of Mandarin's music is playing in a room you use and no scan is under way (a speaker playing something else, such as a Sonos playing the TV, doesn't hold it back), Mandarin OS takes a newer Mandarin OS
      where one is out (below), or else Debian's security updates, removes what nothing needs any more, restarts only if
-     an update needs it, and then checks that everything works, starting again whatever isn't. Each step is in its
-     log.</p>
+     an update needs it, and then checks that everything works, starting again whatever isn't. Each step is in the
+     <a href="logs.html">log</a>.</p>
   <p data-i18n="mandarin-os.using.p9"><b>Mandarin and Mandarin Bridge</b> update from Mandarin's <b>Settings → Updates</b>, as everywhere
      (<a href="install.html#updating">Updating</a>).</p>
 
@@ -264,8 +264,8 @@
         restart</b> (with the shared folder's password). It downloads the new version into the data partition, checks
         its checksum and its signature (Mandarin's release key, as Mandarin's own updates), writes it beside this one,
         and starts the computer again on it: music stops for a few minutes. <b>Check for updates</b> looks at once.</li>
-    <li data-i18n="mandarin-os.using.li13"><b>By itself:</b> the weekly upkeep puts a newer version in, while nothing plays, and starts the computer again
-        only when nothing plays.</li>
+    <li data-i18n="mandarin-os.using.li13"><b>By itself:</b> the weekly upkeep puts a newer version in, while none of Mandarin's music plays, and starts the computer again
+        only then.</li>
     <li data-i18n="mandarin-os.using.li14"><b>If it doesn't start</b>, or starts without what the box needs (the data partition, the shared folder, the
         network, the system page, and Mandarin if it answered before), the computer tries it three times, then goes back
         by itself to the version that worked, which the update never touched. The system page then says the update
@@ -277,7 +277,7 @@
         and Mandarin itself where the one running is newer than the image's (it is never put back to an older one).</li>
   </ul>
   <div class="note" data-i18n="mandarin-os.using.note2"><b>Installed with 0.1.3 or earlier?</b> Those can't update themselves (the updater came with 0.1.4,
-     and the users their files belong to are numbered otherwise): reinstall 0.1.6 once from the USB stick. Reinstalling
+     and the users their files belong to are numbered otherwise): reinstall 0.1.11 once from the USB stick. Reinstalling
      <b>erases the system disk, the data partition with it</b> (Mandarin's library and settings, and music copied into
      Storage on that disk), so first make a backup in Mandarin (<b>Settings → Backup &amp; restore</b>, <b>Back up to the
      server</b>) and copy it off the box from the shared folder (<code>MandarinServer/Backups</code>), with any music in

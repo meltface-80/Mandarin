@@ -15,7 +15,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 
-# (id, emoji, title, new in v1.3.1, what it is, how to set it up and use it)
+# (id, emoji, title, new in v1.3.3, what it is, how to set it up and use it)
 FEATURES = [
     # ---- Home and finding music
     ("home", "🏠", "Home", False,
@@ -125,12 +125,16 @@ FEATURES = [
      "Nothing to set up: they come from your files' genre tags. A genre written two ways (*Indie Rock*, "
      "*indie rock*) is one, spelled as most of your albums spell it; a Qobuz album's French genre "
      "(*Électronique*) shows in English (*Electronic*). Your files are not changed."),
-    ("edit", "✏️", "Edit album", False,
+    ("edit", "✏️", "Edit album", True,
      "Correct an album's title, artist, year and version (name, label, catalogue number, barcode, "
      "country, pressing year, format), choose its cover and split two merged releases apart. Your files "
      "never change.",
-     "On an album, tap **⋯ → Edit album**."),
-    ("auto-covers", "🖼️", "Covers found automatically", False,
+     "On an album, tap **⋯ → Edit album**. **Find match** searches MusicBrainz and the other catalogues, and **Match "
+     "by sound** looks the album up by its tracks' fingerprints (with an AcoustID key). **Version** shows the matched "
+     "pressing's details, each yours to change, with **Put back**. **Folders and copies** splits an album whose copies "
+     "were merged (**Split by folder**, **Split…**, **Join back**). What you change is kept in Mandarin's database, "
+     "through rescans and in backups."),
+    ("auto-covers", "🖼️", "Covers found automatically", True,
      "An album with no cover of its own is given one from Apple Music, Deezer or MusicBrainz by itself, "
      "only when its title, artist and tracks all agree.",
      "Nothing to set up: it is part of the **Album Scanner** (**Settings → Library Scanner**), on by default. It looks "
@@ -162,7 +166,7 @@ FEATURES = [
      "All of each file's tags are read into the server's database, including MusicBrainz IDs, "
      "barcode, catalogue number, ISRC and ReplayGain, and used to identify albums.",
      "Nothing to set up: tags are read with every scan."),
-    ("scanner", "🔎", "Library Scanner", False,
+    ("scanner", "🔎", "Library Scanner", True,
      "One switch, Album Scanner, names albums from their files' identifiers, MusicBrainz, their sound (AcoustID) and "
      "Apple's iTunes catalogue, measures ReplayGain and finds missing covers, while nothing plays.",
      "Open **Settings → Library Scanner** and switch **Album Scanner** on; off, none of it is done. **Progress** counts the "
@@ -238,17 +242,17 @@ FEATURES = [
      "On a device's page in **Settings → Audio Devices**, switch the DSD rates it takes on or off; "
      "**Output → PCM as DSD** and **Modulator** make PCM DSD. On Linux, a Mandarin Bridge's own page says "
      "when the computer's kernel holds back a DAC's native DSD, and the line that frees it."),
-    ("mqa", "🔷", "MQA", False,
-     "Tracks whose samples carry MQA's signalling are found by themselves and marked with their original rate "
-     "(MQA · 24/352.8 original, MQA Studio); an MQA DAC is sent them untouched.",
+    ("mqa", "🔷", "MQA", True,
+     "Tracks carrying MQA's signalling are found by themselves and marked with their original rate "
+     "(MQA · 24/352.8 original, MQA Studio), and passed untouched to a DAC that decodes MQA.",
      "Nothing to set up to see it: after each scan the server reads the first ten seconds of every stereo 16- or "
      "24-bit file at 44.1 to 96 kHz as the open MQA identifiers do, and a changed file again; tags are only a hint. "
-     "The mark shows on an album's tracks, on its **Versions** tab and in **Now playing**, and **Focus → MQA** "
-     "narrows the Library to those albums. For a DAC that decodes MQA, open it in **Settings → Audio Devices** and "
+     "The mark shows on an album's tracks, on its **Versions** tab and in **Now playing**, and **Focus → Format → "
+     "MQA** narrows the Library to those albums. For a DAC that decodes MQA, open it in **Settings → Audio Devices** and "
      "switch on **This DAC decodes MQA**: an MQA track then goes to it as the file itself, with no upsampling, DSD, "
      "DSP, ReplayGain or dither and Mandarin's volume at 100%, and Now playing says *MQA: sent untouched to the "
-     "DAC*. Any other room plays MQA as the PCM it is. Mandarin decodes no MQA itself; SQ-tool says whether the "
-     "signalling reached the DAC intact."),
+     "DAC*. Mandarin doesn't decode or unfold MQA itself: a DAC that decodes MQA, fully unfolding it, is needed. Any "
+     "other room plays MQA as ordinary PCM. SQ-tool says whether the signalling reached the DAC intact."),
     ("levelling", "🔊", "Volume Levelling", False,
      "ReplayGain per device: Off, Track, Album or Auto, a target from −14 to −25 LUFS, and a level "
      "for tracks with no loudness information.",
@@ -320,12 +324,13 @@ FEATURES = [
      "without Android's mixer; DSD natively or as DoP.",
      "Plug the DAC in. It shows on **This phone**'s page in **Settings → Audio Devices**; switch on "
      "**USB direct** there. Pull it out while playing and the phone pauses, as when headphones come out."),
-    ("bridge", "🌉", "Mandarin Bridge", False,
+    ("bridge", "🌉", "Mandarin Bridge", True,
      "A USB DAC on an Android device, a Linux computer or a Raspberry Pi, as a room Mandarin plays to: "
      "over SlimProto, a continuous stream of PCM.",
      "Install it from [Downloads](#downloads): the Android app, the Linux install line, or the Raspberry Pi "
      "image to flash. It finds Mandarin by itself; plug the DAC in, then switch the Bridge on in "
-     "**Settings → Audio Devices**. Details under [Mandarin Bridge](#mandarin-bridge)."),
+     "**Settings → Audio Devices**. On Android it opens on **Now Playing** (the cover, the track, the format the DAC "
+     "is fed and the DAC), its settings behind the cog. Details under [Mandarin Bridge](#mandarin-bridge)."),
     ("output", "📈", "Upsampling and output", False,
      "For each streamer or DAC: Bit-perfect or upsampled recipes, filters in either phase, shaped dither, PCM "
      "made DSD, Headroom against clipping, and a safety net when the server falls behind.",
@@ -343,11 +348,13 @@ FEATURES = [
      "4.2× real time*), and the device's own word; the line turns red where samples were clipped. The ✓ shows only "
      "when the device itself says the samples reach the DAC untouched. Details under "
      "[Signal path](#signal-path)."),
-    ("sqtool", "📊", "SQ-tool", False,
-     "Proves a zone's DAC gets exactly what is in the file, sample by sample: Mandarin plays a song, records "
-     "what the DAC is fed, and SQ-tool compares them.",
-     "Open **Settings → SQ-tool**, choose a song and a zone (a Mandarin Bridge on Android), and press "
-     "**Record**. Details under [SQ-tool](#sq-tool)."),
+    ("sqtool", "📊", "SQ-tool", True,
+     "Proves a zone's DAC gets exactly what is in the file, sample by sample, and compares two songs: the same "
+     "master, a different master, or different recordings.",
+     "Open **Settings → SQ-tool**, choose a song and a zone (a Mandarin Bridge on Android, Linux or a Raspberry Pi), "
+     "and press **Record**: Mandarin plays the song, records what the DAC is fed and compares them. **Compare two "
+     "songs** takes song A and song B from your music and null-tests them, with a verdict in plain words, where in the "
+     "spectrum they differ, spectrograms and the difference to download. Details under [SQ-tool](#sq-tool)."),
     ("downloads", "⬇️", "Downloads", False,
      "Albums kept on the phone as the original files or Opus 256, played without the server. "
      "Smart Picks, the Album of the day and new albums can download by themselves.",
@@ -370,7 +377,7 @@ FEATURES = [
      "same page: **This phone**. Open the app once at home. Details under "
      "[Away from home](#away-from-home-tailscale)."),
     # ---- Setup
-    ("mandarin-os", "📀", "Mandarin OS", True,
+    ("mandarin-os", "📀", "Mandarin OS", False,
      "How Mandarin is installed: a lightweight operating system made only for it, on a PC of its own, "
      "with its own system page to watch over everything.",
      "Write its image to a USB stick, start the PC from it and install; details under [Mandarin OS](#mandarin-os). "
@@ -427,7 +434,7 @@ FEATURES = [
      "Always on: one log of everything (the server, Mandarin OS, every Mandarin Bridge, the app, the page), "
      "a line each in time order, without personal data.",
      "Nothing to switch on. On Mandarin OS, the shared folder's **Logs** (`smb://<box address>/Data/Logs`): "
-     "`Mandarin_log.txt`. Elsewhere, the **Logs** folder in the server's data folder. Look through it before you "
+     "`Mandarin_log.txt`, the newest. Look through it before you "
      "send it. Details under [Logs](#logs)."),
     ("updates", "🔄", "Updates", False,
      "The server updates itself from GitHub and checks every 12 hours. The Android app and every Mandarin "
