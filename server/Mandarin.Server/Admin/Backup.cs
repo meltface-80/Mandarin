@@ -34,7 +34,7 @@ internal static partial class Backup
     public static readonly string[] SettingsKeys = ["displayEnabled", "displaySeconds", "homeRows", "identify",
         "labelFolderDepth", "labelsEnabled", "mbpack_dir", "music_folders", "radioZones", "replaygain",
         "shareCardReview", "shareReviews", "shareServices", "shelfEnabled", "smartPicksEnabled", "smartPicksHour", "waveformEnabled"];
-    public static readonly string[] CollectionTables = ["favourites", "listen_later", "label_merges", "album_edits", "track_edits", "album_matches"];
+    public static readonly string[] CollectionTables = ["favourites", "listen_later", "label_merges", "album_edits", "track_edits", "album_matches", "album_splits", "album_joins"];
     // The Qobuz, Tidal and Last.fm sign-ins travel with the keys: tokens, never a password. AcoustID's key since item 414c.
     public static readonly string[] KeyKeys = ["acoustidKey", "discogsToken", "fanartKey", "lastfmKey", "lastfmSecret", "lastfmSession", "qobuz", "qobuzSettings", "tidal", "tidalSettings"];
     // Kept from the server being restored, whatever the database brought.

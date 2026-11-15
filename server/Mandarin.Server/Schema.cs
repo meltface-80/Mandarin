@@ -298,7 +298,7 @@ CREATE TABLE IF NOT EXISTS audio_devices (
 
     // What is worth keeping from a database that has to be replaced (db.js KEEP).
     private static readonly string[] Keep = ["album_edits", "plays", "settings", "account", "devices", "audio_devices", "favourites", "listen_later",
-        "track_edits", "album_matches", "label_merges", "label_logos", "label_lookups"];
+        "track_edits", "album_matches", "label_merges", "label_logos", "label_lookups", "album_splits", "album_joins"];
 
     private const string EditsFile = "album-edits.json";
 
@@ -568,7 +568,7 @@ CREATE TABLE IF NOT EXISTS audio_devices (
             Exec(c, "PRAGMA journal_mode = WAL");
             Exec(c, "PRAGMA foreign_keys = ON");
             Exec(c, "PRAGMA synchronous = NORMAL");
-            Exec(c, Tables + Indexes);
+            Exec(c, Tables + Indexes + SplitTables);
             AddColumns(c);
             if (UserVersion(c) < Version) Exec(c, $"PRAGMA user_version = {Version}");
             if (aside != null) CarryOver(c, aside, log);
