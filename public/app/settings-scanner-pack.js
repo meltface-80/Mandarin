@@ -91,6 +91,8 @@ function packBlock() {
       '<button type="button" data-parity="settings-scanner.pack-folder" class="id-btn" data-pack-folder' + off + ">Folder…</button>";
   return head('<span class="id-actions">' + buttons + where + "</span>") +
     '<div class="settings-note" data-parity="settings-scanner.note">' + state + (job && job.error ? ' <span class="away-error">' + scanEsc(job.error) + "</span>" : "") +
-      " · " + scanEsc(pack.dir) + (pack.dir === pack.data_dir ? " (the data folder)" : "") + (pack.free != null ? " · " + mbs(pack.free) + " free" : "") +
+      // Its folder on a line of its own, cut short with … where long (item 427: a long path wrapped the note to more lines).
+      '<span class="scan-pack-where" title="' + scanEsc(pack.dir) + '" style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' +
+      scanEsc(pack.dir) + (pack.dir === pack.data_dir ? " (the data folder)" : "") + (pack.free != null ? " · " + mbs(pack.free) + " free" : "") + "</span>" +
       (pack.dir_problem && !(job && job.error === pack.dir_problem) ? ' <span class="away-error">' + scanEsc(pack.dir_problem) + "</span>" : "") + "</div></div>";
 }
