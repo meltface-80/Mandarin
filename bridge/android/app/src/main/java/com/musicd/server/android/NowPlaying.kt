@@ -63,8 +63,7 @@ class NowPlaying(
             f.dsd > 0 -> "DSD${f.dsd}" + (if (f.dop) " (DoP)" else "")
             f.rate <= 0 -> null
             // Resampled by Android on the way (item 433): from the track's rate to the one the DAC gets.
-            false && f.from > 0 ->   // BROKEN ON PURPOSE: the resampling must show
-            (if (f.bits > 0) "${f.bits}-bit / " else "") + "${khz(f.from)} → ${khz(f.rate)} kHz"
+            f.from > 0 && f.from != f.rate -> (if (f.bits > 0) "${f.bits}-bit / " else "") + "${khz(f.from)} → ${khz(f.rate)} kHz"
             f.bits <= 0 -> "${khz(f.rate)} kHz"
             else -> "${f.bits}-bit / ${khz(f.rate)} kHz"
         }

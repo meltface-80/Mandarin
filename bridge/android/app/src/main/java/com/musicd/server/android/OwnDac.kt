@@ -49,8 +49,7 @@ internal object OwnDac {
      */
     fun isPlayer(manufacturer: String, model: String, brand: String = ""): Boolean {
         val mo = model.trim()
-        val names = listOf(manufacturer)   // BROKEN ON PURPOSE: an R7 saying QUALCOMM must still be known
-        listOf(brand, mo).map { it.trim().lowercase() }.filter { it.isNotEmpty() }
+        val names = listOf(manufacturer, brand, mo.substringBefore(' ')).map { it.trim().lowercase() }.filter { it.isNotEmpty() }
         if (names.any { it == "sony" }) return mo.uppercase().startsWith("NW-")
         return names.any { n -> PLAYER_MAKERS.any { n.startsWith(it) } }
     }
@@ -120,7 +119,7 @@ internal object OwnDac {
      * resampler) and says so; where it is unknown, every rate, as before.
      */
     fun advertised(taken: List<Int>, follows: Boolean?, output: Int): List<Int> =
-        taken   // BROKEN ON PURPOSE: an output that stays at one rate must ask for it alone
+        if (follows == false && output > 0) listOf(output) else taken
 
     /** "44.1", "192": a rate in kHz as Mandarin writes it. */
     fun khz(rate: Int): String = if (rate % 1000 == 0) (rate / 1000).toString() else String.format(java.util.Locale.ROOT, "%.1f", rate / 1000.0)
