@@ -64,6 +64,7 @@ test("the one log: each of Mandarin's lines saying where it came from, in the or
       entry({ unit: "init.scope", pid: "1", about: "systemd-logind.service", us: US + 9500, transport: "journal", msg: "Started systemd-logind.service" }),
       entry({ transport: "kernel", pid: "0", prio: 3, us: US + 10000, msg: "Out of memory: Killed process 4242 (mandarin-server)" }),
       entry({ transport: "kernel", pid: "0", prio: 6, us: US + 10500, msg: "usb 1-2: new high-speed USB device number 3" }),
+      entry({ transport: "kernel", pid: "0", prio: 5, us: US + 10600, msg: "audit: type=1131 audit(1794742868.668:189): pid=1 msg='unit=mandarin-bridge comm=\"systemd\"'" }),
       entry({ ident: "mandarin-os", us: US + 11000, msg: "WARN [update] Mandarin OS 0.1.10 couldn't be fetched\n  from https://user:hunter2@example.com/x" }),
       JSON.stringify({ __REALTIME_TIMESTAMP: String(US + 12000), _SYSTEMD_UNIT: "smbd.service", PRIORITY: "6", MESSAGE: [115, 109, 98, 100, 32, 0xff, 32, 115, 116, 97, 114, 116, 101, 100] }),
       "not json"
@@ -156,7 +157,7 @@ test("followed: where the journal was read to kept, read to its end when stopped
     assert.deepEqual(log.split("\n").filter(l => l.includes("[test]")).map(l => l.slice(36)), ["[os] [test] one", "[os] [test] two", "[os] [test] three: said as the box stopped"]);
     // The first time this boot's journal from its start; stopped, the rest after the last line read; that kept.
     assert.deepEqual(fs.readFileSync(calls, "utf8").trim().split("\n"), [
-      "--follow --output=json --no-pager --all --boot",
+      "--follow --no-tail --output=json --no-pager --all --boot",
       "--output=json --no-pager --all --after-cursor s=1;i=two"]);
     assert.equal(fs.readFileSync(path.join(r.dir, "data/MandarinOS/log-cursor"), "utf8"), "s=1;i=three: said as the box stopped\n");
     // Started again: followed from where it was read to.
@@ -164,14 +165,14 @@ test("followed: where the journal was read to kept, read to its end when stopped
     fs.writeFileSync(path.join(r.dir, "follow.json"), os1("two", 4000) + "\n");
     fs.writeFileSync(path.join(r.dir, "after.json"), "");
     await run();
-    assert.match(fs.readFileSync(calls, "utf8"), /^--follow --output=json --no-pager --all --after-cursor s=1;i=three: said as the box stopped$/m);
+    assert.match(fs.readFileSync(calls, "utf8"), /^--follow --no-tail --output=json --no-pager --all --after-cursor s=1;i=three: said as the box stopped$/m);
     // A journal that refuses where it was read to (and gives nothing): followed from this start of the box instead.
     fs.writeFileSync(calls, "");
     fs.writeFileSync(path.join(bin, "journalctl"), `#!/bin/sh\necho "$*" >> "${calls}"\ncase "$*" in\n  *--follow*--after-cursor*) exit 1 ;;\n  *--follow*) cat "${r.dir}/follow.json"; exec sleep 600 ;;\nesac\n`, { mode: 0o755 });
     await run();
     assert.deepEqual(fs.readFileSync(calls, "utf8").trim().split("\n").slice(0, 2), [
-      "--follow --output=json --no-pager --all --after-cursor s=1;i=two",
-      "--follow --output=json --no-pager --all --boot"]);
+      "--follow --no-tail --output=json --no-pager --all --after-cursor s=1;i=two",
+      "--follow --no-tail --output=json --no-pager --all --boot"]);
   } finally {
     fs.rmSync(r.dir, { recursive: true, force: true });
   }

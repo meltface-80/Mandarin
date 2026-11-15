@@ -119,7 +119,8 @@ def owner(e):
         return "os", "[" + re.sub(r"^mandarin-(os-)?", "", unit[:-len(".service")].split("@")[0]) + "] "
     if e.get("_TRANSPORT") == "kernel":
         msg = text_of(e)
-        if priority(e) <= 3 or "mandarin" in msg.lower():
+        # An error of its own, or one on Mandarin (an out-of-memory kill, a crash); never the audit of every start and stop.
+        if (priority(e) <= 3 or "mandarin" in msg.lower()) and not msg.startswith("audit"):
             return "os", "[kernel] "
     return None
 
@@ -290,7 +291,8 @@ def main():
     signal.signal(signal.SIGINT, stop)
     while not stopping:
         where = ["--after-cursor", last] if last else ["--boot"]
-        follow[0] = subprocess.Popen(["journalctl", "--follow", "--output=json", "--no-pager", "--all"] + where,
+        # --no-tail: from where it was read to (or this start), every entry; journalctl --follow alone gives the last ten.
+        follow[0] = subprocess.Popen(["journalctl", "--follow", "--no-tail", "--output=json", "--no-pager", "--all"] + where,
                                      stdout=subprocess.PIPE, text=True, encoding="utf-8", errors="replace")
         was = last
         last = read(follow[0].stdout, log, last)

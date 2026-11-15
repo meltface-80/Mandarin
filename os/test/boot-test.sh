@@ -147,7 +147,7 @@ grep -q NT_STATUS <<< "$logs" && fail "Mandarin's log can't be read in the share
 grep -q " Mandarin_log.txt " <<< "$logs" || fail "Logs has no Mandarin_log.txt: $logs"
 for i in $(seq 1 24); do onelog | grep -q "\[server\] \[start\] Mandarin Server " && break; sleep 5; done
 grep -qE "^[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9:.]{12} UTC  INFO   \[server\] \[start\] Mandarin Server .* starting$" "$W/one.log" || { tail -n 40 "$W/one.log"; fail "Mandarin's lines aren't in the one log"; }
-grep -qE "UTC  INFO   \[os\] \[apply\] done$" "$W/one.log" || { tail -n 40 "$W/one.log"; fail "Mandarin OS's lines aren't in the one log"; }
+grep -qE "UTC  INFO   \[os\] \[apply\] done$" "$W/one.log" || { head -n 40 "$W/one.log"; echo "…"; grep -a "\[os\]" "$W/one.log" | tail -n 20; fail "Mandarin OS's lines aren't in the one log"; }
 grep -qE "UTC  INFO   \[os\] \[install\] done$" "$W/one.log" || fail "the installer's lines aren't at the head of the one log"
 bad="$(grep -avE '^[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]{3} UTC  (INFO |WARN |ERROR|DEBUG)  \[(server|os|bridge[^]]*|app [^]]+|web [^]]+)\] ' "$W/one.log" | head -n 5)"
 [ -z "$bad" ] || fail "lines of the one log that don't say when, how bad and where from: $bad"
