@@ -1,5 +1,14 @@
 # Mandarin OS changelog
 
+## v0.1.11
+
+Mandarin OS 0.1.11, since 0.1.6: one log of everything on the box, internal storage that formats and mounts from the system page, an upkeep that waits only for Mandarin's own music, and Mandarin Bridge on the box updating itself again. A box on 0.1.4 or later updates itself to it in place (the system page's Settings → Update and restart, or the weekly upkeep); 0.1.3 and earlier reinstall once from the USB stick.
+
+- Changed - One log: everything on the box (Mandarin, Mandarin OS's own services, the system page, its updates, USB drives, Samba, Mandarin Bridge on the box) and what reaches Mandarin from its apps and other Bridges, a line each in time order, in one plain-text file in the shared folder's Logs (smb://<box>/Data/Logs/Mandarin_log.txt, read-only). It is written from the system's journal, so a crash loses none of it; at 8 MB a new file is begun, ten at most. No passwords, keys, account names or internet addresses are in it, and the kernel's harmless notices are INFO, only real faults WARN or ERROR. The log is read there: the system page has no log viewer of its own
+- Fixed - Internal storage: Format on the system page's Storage tab now mounts the drive as Storage/Internal, writable over the shared folder, and says in the log why when it can't. A drive formatted before is relabelled and mounted at the next start, nothing on it touched
+- Fixed - The weekly upkeep and Update and restart wait only while Mandarin's own music plays in a room in use, no longer for a speaker playing something else (a Sonos playing the TV)
+- Fixed - Mandarin Bridge installed on the box updates itself again from Mandarin's Settings → Updates (it failed with "Permission denied"); it now runs as a user of its own, who it is to Mandarin and its settings kept
+
 ## v0.1.10
 
 - Changed - the test image (item 427b): dev's image can be built again by hand and still goes on test-os, once its whole suite and the virtual machine's test pass, as a push's does. Nothing on the box changes from 0.1.9
@@ -11,7 +20,7 @@
 
 ## v0.1.8
 
-- Changed - Mandarin OS is the one way Mandarin is installed (item 426): the installer it puts Mandarin in with (linux-install.sh, at its image's build and by Reinstall Mandarin) is its own, kept in os/ with the rest of it, and keeps only what Mandarin OS uses (no --port, --uninstall or --purge, no question asked for the music folder). Nothing else changes on the box
+- Changed - the installer that puts Mandarin on the box (at the image's build and by Reinstall Mandarin, linux-install.sh, item 426) is Mandarin OS's own, kept in os/ with the rest of it. Nothing else changes on the box
 
 ## v0.1.7
 

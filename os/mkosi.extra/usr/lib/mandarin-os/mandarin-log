@@ -4,7 +4,7 @@
 Every part of Mandarin on the box says its lines to the journal: Mandarin's server on its standard output (with the
 Android app's, the page's and every other Bridge's, which reach the server), Mandarin Bridge on its standard error, the
 OS's scripts through logger (log.sh's oslog), the system page and every other mandarin-os unit on theirs, and systemd of
-each of them. This follows the journal and writes each of those lines, a line an event in the order they came, into one
+each of them. This follows the journal and writes each of those lines, a line an event in time order, into one
 plain-text file on the shared folder, smb://<box>/Data/Logs (read-only there):
 
   2026-11-15 09:43:12.345 UTC  INFO   [server] [scan] 12 albums added
@@ -15,9 +15,14 @@ plain-text file on the shared folder, smb://<box>/Data/Logs (read-only there):
 /data/Logs/Mandarin_log.txt is the newest; at 8 MB it becomes Mandarin_log.01.txt (the one before .02, and so on) and
 a new one is begun, ten files in all, the oldest let go; a roll comes between two lines, never in one. Where the journal
 was read to is kept (/data/MandarinOS/log-cursor), so a restart, an update or a power cut takes no line twice and loses
-none the journal still has; stopped, it reads the journal to its end first. Each line is scrubbed as Mandarin's server
-scrubs its own (LogScrub.cs): no keys, tokens, passwords, email addresses, internet or Tailscale addresses, home folders.
-The per-component logs from before (MandarinOS/Logs, MandarinServer/Logs) are let go once it is running.
+none the journal still has; stopped, it reads the journal to its end first. Started, what the journal already has (from
+where it was read to, or the first time from the start of the box) is read to its end and written sorted by time, this
+writer's own lines among it in their place, before the journal is followed (item 429: its own lines came first, then
+the boot's from before them). Each line is scrubbed as Mandarin's server scrubs its own (LogScrub.cs): no keys, tokens,
+passwords, email addresses, internet or Tailscale addresses, home folders; and no account's name: the shared folder's
+user's wherever it is, any user's where useradd, usermod and the like say one (item 429). The kernel's lines are INFO,
+but for a fault of the computer's. The per-component logs from before (MandarinOS/Logs, MandarinServer/Logs) are let go
+once it is running.
 
   mandarin-log            follow the journal (the service)
   mandarin-log --stdin    the journal's JSON entries read from standard input instead, to its end (the tests')
@@ -39,7 +44,11 @@ FILES = 10
 MOST = int(os.environ.get("MANDARIN_LOG_BYTES") or 8 * 1024 * 1024)
 CURSOR = ROOT + "/data/MandarinOS/log-cursor"
 OLD = [ROOT + "/data/MandarinOS/Logs", ROOT + "/data/MandarinServer/Logs"]
+SETTINGS = ROOT + "/data/MachineSettings"
+PASSWD = ROOT + "/etc/passwd"
 LEVELS = ("INFO", "WARN", "ERROR", "DEBUG")
+# The journal from before, sorted and written this many entries at a time (where it was read to kept after each).
+BATCH = 5000
 
 # ---------------------------------------------------------------------------------------------------- what is kept
 
@@ -90,6 +99,106 @@ def scrub(s):
     t = _TAILNET.sub("[tailscale]", t)
     return _HOME.sub(lambda m: m.group(1) + "[user]", t)
 
+# ---------------------------------------------------------------------------------------------------- account names
+
+# Item 429: the shared folder's user's name, the owner's own, was in the log as useradd and usermod said it when apply
+# made the user ("new user: name=…, UID=3501", "add '…' to group 'mandarin'"). Hidden as [user]: that user's name
+# wherever it is (the name the installer was given, setup.json; the one apply made, share-user; whoever has its number,
+# share-uid's or 3501), and any user's where shadow-utils says an account's name. Not hidden everywhere: the installer's
+# own suggestion, which says nothing of the owner and is a word the log uses of itself ("Mandarin, a music server"), and
+# a name of one or two letters, which would take every such word with it; both are hidden where an account is named.
+_SUGGESTED = {"music"}
+# Mandarin OS's own users and groups, said as they are.
+_OURS = {"root", "mandarin", "mandarin-share", "mandarin-bridge", "audio", "nogroup", "nobody"}
+# shadow-utils: its lines to the journal by these names, and on its standard error to the script that ran it.
+_TOOLS = ("useradd", "usermod", "userdel", "groupadd", "groupmod", "groupdel", "gpasswd", "passwd", "chpasswd", "chage", "newusers")
+_TOOL_SAID = re.compile(r"^(?:%s)(?: warning)?: " % "|".join(_TOOLS))
+_ACCOUNT = [re.compile(r"(\bname=)([^,\s]+)"), re.compile(r"(')([^'\s]+)(?=')"), re.compile(r"^(\w+(?: warning)?: )(\S+?)(?='s )"),
+            re.compile(r"(\b(?:changed for|for user|user) )([a-z_][\w.-]*)")]
+
+
+class Names:
+    """The shared folder's user's names, as a pattern; read again every few seconds."""
+
+    def __init__(self):
+        self.at, self.re = None, None
+
+    @staticmethod
+    def read():
+        def first(path):
+            try:
+                with open(path) as f:
+                    return f.readline().strip()
+            except OSError:
+                return ""
+        names = {first(SETTINGS + "/share-user")}
+        try:
+            with open(SETTINGS + "/setup.json") as f:
+                names.add(str(json.load(f).get("share_user") or ""))
+        except (OSError, ValueError, AttributeError):
+            pass
+        uid = first(SETTINGS + "/share-uid") or "3501"
+        try:
+            with open(PASSWD) as f:
+                names.update(p[0] for p in (line.split(":") for line in f) if len(p) > 2 and p[2] == uid)
+        except OSError:
+            pass
+        hide = sorted((n for n in names if len(n) >= 3 and n not in _SUGGESTED | _OURS), key=len, reverse=True)
+        return re.compile(r"(?i)(?<![\w-])(?:%s)(?![\w-])" % "|".join(map(re.escape, hide))) if hide else None
+
+    def hide(self, s, said="[user]"):
+        now = time.monotonic()
+        if self.at is None or now - self.at > 5:
+            self.at, self.re = now, self.read()
+        return self.re.sub(said, s) if self.re else s
+
+
+NAMES = Names()
+
+
+def accounts(text, tool):
+    """[text] without a user's name where it names an account: what shadow-utils says ([tool]: its journal line)."""
+    if not (tool or _TOOL_SAID.match(text)):
+        return text
+    for r in _ACCOUNT:
+        text = r.sub(lambda m: m.group(1) + (m.group(2) if m.group(2) in _OURS else "[user]"), text)
+    return text
+
+
+def private(text, tool=False):
+    """[text] scrubbed, no account's name in it."""
+    return NAMES.hide(accounts(scrub(text), tool))
+
+
+def label(s):
+    """Where a line came from ("app Pixel 8"), no account's name in the phone's, browser's or Bridge's name (said
+    "(user)" there, where brackets would end it)."""
+    kind, _, name = s.partition(" ")
+    return kind + (" " + NAMES.hide(name, "(user)") if name else "")
+
+# ---------------------------------------------------------------------------------------------------- how bad
+
+# The kernel's lines are its notices of the computer: a device found, the firmware's word ("x86/cpu: SGX disabled or
+# unsupported by BIOS." comes at priority 3, an error, item 429). INFO whatever their priority, but for these faults of
+# the computer's that Mandarin can suffer from. ERROR: something stopped or lost: a process killed for memory (on this
+# box Mandarin, its scan or its Bridge: it stops working), a crash, a disk or its filesystem failing. WARN: something
+# worse that goes on: a USB device that answers badly (a DAC, a drive), the CPU slowed for its heat, a task held up.
+_KERNEL_ERROR = re.compile(r"(?i)I/O error|critical medium error|Out of memory|oom-kill|Killed process|segfault|general protection fault"
+                           r"|\bOops\b|Kernel panic|\bBUG: |\b(?:EXT[234]|FAT|exFAT|NTFS3?|F2FS)-fs\b.*\berror|\bXFS\b.*\b(?:corrupt|error)"
+                           r"|\bBTRFS (?:error|critical)|Remounting filesystem read-only")
+_KERNEL_WARN = re.compile(r"(?i)^usb [\d.-]+: .*(?:error -\d+|not accepting address|unable to enumerate|over-current|cannot reset)"
+                          r"|temperature above threshold|clock throttled|blocked for more than \d+ seconds")
+
+
+def kernel_level(msg):
+    """How bad the kernel's line [msg] is: ERROR or WARN for a fault of the computer's, else INFO."""
+    return "ERROR" if _KERNEL_ERROR.search(msg) else "WARN" if _KERNEL_WARN.search(msg) else "INFO"
+
+
+def kernels(e):
+    """Whether entry [e] is the kernel's own (not systemd's, said through the kernel before the journal is up)."""
+    return e.get("_TRANSPORT") == "kernel" and (e.get("SYSLOG_IDENTIFIER") or "kernel") == "kernel"
+
 # ---------------------------------------------------------------------------------------------------- whose a line is
 
 # A line as Mandarin writes it: "2026-11-15 09:43:12.345 UTC  INFO   [server] text" (or without where it came from,
@@ -108,7 +217,8 @@ def owner(e):
         return "os", ""
     if e.get("_PID") == "1":
         about = e.get("UNIT") or e.get("USER_UNIT") or ""
-        return ("os", "[systemd] ") if about.startswith("mandarin") or about in ("smbd.service", "data.mount") else None
+        # (The internal storage drive's mount too, item 429: why it didn't mount was nowhere in the log.)
+        return ("os", "[systemd] ") if about.startswith("mandarin") or about in ("smbd.service", "data.mount", "data-Storage-Internal.mount") else None
     if unit == "mandarin.service":
         return "server", ""
     if unit == "mandarin-bridge.service":
@@ -119,8 +229,9 @@ def owner(e):
         return "os", "[" + re.sub(r"^mandarin-(os-)?", "", unit[:-len(".service")].split("@")[0]) + "] "
     if e.get("_TRANSPORT") == "kernel":
         msg = text_of(e)
-        # An error of its own, or one on Mandarin (an out-of-memory kill, a crash); never the audit of every start and stop.
-        if (priority(e) <= 3 or "mandarin" in msg.lower()) and not msg.startswith("audit"):
+        # An error of its own or a fault of the computer's, or one on Mandarin (an out-of-memory kill, a crash); never
+        # the audit of every start and stop.
+        if (priority(e) <= 3 or "mandarin" in msg.lower() or (kernels(e) and kernel_level(msg) != "INFO")) and not msg.startswith("audit"):
             return "os", "[kernel] "
     return None
 
@@ -158,6 +269,7 @@ def lines_of(e):
         at = stamp(time.time() * 1e6)
     p = priority(e)
     level = "ERROR" if p <= 3 else "WARN" if p == 4 else "INFO"
+    tool = (e.get("SYSLOG_IDENTIFIER") or "") in _TOOLS
     out = []
     for raw in text_of(e).split("\n"):
         line = raw.rstrip("\r")
@@ -167,16 +279,18 @@ def lines_of(e):
         if m:
             s = _SOURCED.match(m.group(3))
             if s and (source == "server" or s.group(1).startswith("bridge")):
-                out.append(f"{m.group(1)} UTC  {m.group(2):<5}  [{s.group(1)}] {scrub(s.group(2))}\n")
+                out.append(f"{m.group(1)} UTC  {m.group(2):<5}  [{label(s.group(1))}] {private(s.group(2))}\n")
             elif source == "server":
-                out.append(f"{m.group(1)} UTC  {m.group(2):<5}  [server] {scrub(m.group(3))}\n")
+                out.append(f"{m.group(1)} UTC  {m.group(2):<5}  [server] {private(m.group(3))}\n")
             continue
         lv, text = level, line
         if source == "os" and not what:
             first, _, rest = line.partition(" ")
             if first in LEVELS:
                 lv, text = first, rest
-        out.append(f"{at} UTC  {lv:<5}  [{source}] {what}{scrub(text)}\n")
+        elif kernels(e):
+            lv = kernel_level(line)
+        out.append(f"{at} UTC  {lv:<5}  [{source}] {what}{private(text, tool)}\n")
     return out
 
 # ---------------------------------------------------------------------------------------------------- the files
@@ -239,24 +353,42 @@ def keep_cursor(c):
         pass
 
 
-def retire(log):
-    """The logs from before the one log let go, said once."""
+def own(text):
+    """A line of this writer's own, said now: (when, in microseconds; the line)."""
+    us = int(time.time() * 1e6)
+    return us, f"{stamp(us)} UTC  INFO   [os] [log] {text}\n"
+
+
+def retire():
+    """The logs from before the one log let go: its line saying so, or none."""
     gone = [p for p in OLD if os.path.isdir(p)]
     for p in gone:
         shutil.rmtree(p, ignore_errors=True)
-    if gone:
-        now = stamp(time.time() * 1e6)
-        log.add([f"{now} UTC  INFO   [os] [log] the logs from before let go: {', '.join(os.path.relpath(p, ROOT + '/data') for p in gone)}\n"])
+    return [own("the logs from before let go: " + ", ".join(os.path.relpath(p, ROOT + "/data") for p in gone))] if gone else []
 
 
-def read(stream, log, last):
-    """Each entry of [stream] (journalctl's JSON, a line each) into the log; where it was read to."""
-    n = 0
+def realtime(e):
+    try:
+        return int(e.get("__REALTIME_TIMESTAMP"))
+    except (TypeError, ValueError):
+        return 0
+
+
+def entries(stream):
+    """Each journal entry of [stream] (journalctl's JSON, a line each); a line that isn't one passed over."""
     for raw in stream:
         try:
             e = json.loads(raw)
         except ValueError:
             continue
+        if isinstance(e, dict):
+            yield e
+
+
+def read(stream, log, last):
+    """Each entry of [stream] into the log as it comes (followed); where it was read to."""
+    n = 0
+    for e in entries(stream):
         log.add(lines_of(e))
         last = e.get("__CURSOR") or last
         n += 1
@@ -266,20 +398,60 @@ def read(stream, log, last):
     return last
 
 
+def catch_up(stream, log, last, mine):
+    """The entries of [stream], what the journal has from before, into the log sorted by the journal's time of each,
+    BATCH entries at a time; where it was read to. [mine], this writer's own lines as own() gives them, in time order:
+    each written in its place among them and taken out; those later than all of them left for the caller."""
+    batch = []
+
+    def write(batch, last):
+        out = []
+        for e in sorted(batch, key=realtime):
+            while mine and mine[0][0] <= realtime(e):
+                out.append(mine.pop(0)[1])
+            out.extend(lines_of(e))
+        log.add(out)
+        keep_cursor(last)
+    for e in entries(stream):
+        batch.append(e)
+        last = e.get("__CURSOR") or last
+        if len(batch) >= BATCH:
+            write(batch, last)
+            batch = []
+    write(batch, last)
+    return last
+
+
+def journal(where, follow=False):
+    """journalctl's JSON entries from [where] (its arguments), followed or to the journal's end."""
+    return subprocess.Popen(["journalctl"] + (["--follow", "--no-tail"] if follow else []) + ["--output=json", "--no-pager", "--all"] + where,
+                            stdout=subprocess.PIPE, text=True, encoding="utf-8", errors="replace")
+
+
 def main():
     os.umask(0o027)
     log = Log()
     if "--stdin" in sys.argv[1:]:
-        read(sys.stdin, log, None)
+        catch_up(sys.stdin, log, None, [])
         return 0
     try:
         with open(ROOT + "/usr/lib/mandarin-os/VERSION") as f:
             version = f.read().strip()
     except OSError:
         version = "?"
-    log.add([f"{stamp(time.time() * 1e6)} UTC  INFO   [os] [log] Mandarin OS {version}: the one log written from here\n"])
-    retire(log)
+    mine = [own(f"Mandarin OS {version}: the one log written from here")] + retire()
+    # What the journal has from before (where it was read to, or the start of the box), to its end, in time order with
+    # this start's own lines. One that refuses where it was read to, and gives nothing, read from the start of the box.
     last = cursor()
+    back = journal(["--after-cursor", last] if last else ["--boot"])
+    was = last
+    last = catch_up(back.stdout, log, last, mine)
+    back.wait()
+    if was and last == was and back.returncode not in (0, None):
+        back = journal(["--boot"])
+        last = catch_up(back.stdout, log, None, mine) or was
+        back.wait()
+    log.add([line for _, line in mine])
     stopping = []
     follow = [None]
 
@@ -292,8 +464,7 @@ def main():
     while not stopping:
         where = ["--after-cursor", last] if last else ["--boot"]
         # --no-tail: from where it was read to (or this start), every entry; journalctl --follow alone gives the last ten.
-        follow[0] = subprocess.Popen(["journalctl", "--follow", "--no-tail", "--output=json", "--no-pager", "--all"] + where,
-                                     stdout=subprocess.PIPE, text=True, encoding="utf-8", errors="replace")
+        follow[0] = journal(where, follow=True)
         was = last
         last = read(follow[0].stdout, log, last)
         follow[0].wait()
@@ -306,8 +477,7 @@ def main():
     # Stopped (the box shutting down): what the journal has after where it was read to, read to its end, so the lines
     # said as Mandarin stopped are in the log.
     if last:
-        end = subprocess.Popen(["journalctl", "--output=json", "--no-pager", "--all", "--after-cursor", last],
-                               stdout=subprocess.PIPE, text=True, encoding="utf-8", errors="replace")
+        end = journal(["--after-cursor", last])
         read(end.stdout, log, last)
         end.wait()
     return 0

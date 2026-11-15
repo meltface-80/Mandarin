@@ -16,12 +16,13 @@ Mandarin now names and completes your albums by itself: the Library Scanner unde
 - New - SQ-tool's bit-perfect check works with Mandarin Bridge for Linux and the Raspberry Pi (Bridge 0.3.11 and later), as with Android
 - New - Mandarin Bridge for Android opens on Now Playing: the album's cover, the track, the format the DAC is fed and the DAC it plays to; its settings behind the cog (Bridge 0.3.15)
 - New - The Pages site in nine languages, and a shorter README
-- Changed - One log: the server, Mandarin OS, every Mandarin Bridge, the Android app and the page, a line each in time order in one plain-text file, without personal data. On Mandarin OS it is the shared folder's Logs (smb://<box>/Data/Logs); there is nothing to switch on or save in the apps
+- Changed - One log: the server, Mandarin OS, every Mandarin Bridge, the Android app and the page, a line each in time order in one plain-text file, without personal data (no passwords, keys, emails, account names or internet addresses). On Mandarin OS it is the shared folder's Logs (smb://<box>/Data/Logs); there is nothing to switch on or save in the apps
 - Changed - Mandarin OS 0.1.11, which a box on 0.1.4 or later updates itself to: the one log, internal storage that formats and mounts from the system page, and its upkeep waiting only for Mandarin's own music
 - Fixed - A backup restored on another computer keeps that computer's music folders and finds the albums' files there; the database copies kept before a restore can be restored from Backup & restore
 - Fixed - Last.fm no longer scrobbles a track twice when the server restarts while it plays
 - Fixed - Android no longer ends the app for its Tailscale engine while the phone's player is paused away from home
 - Fixed - Mandarin Bridge for Linux updates itself on Mandarin OS and on other systems with systemd 256 or later
+- Fixed - Mandarin OS's internal storage: Format on the system page now mounts the drive as Storage/Internal, writable over the shared folder; a drive formatted before is mounted at the next start, nothing on it touched
 - Fixed - Mandarin OS no longer puts off its update or restart for music that isn't Mandarin's, such as a Sonos playing the TV
 - Fixed - The MusicBrainz pack says plainly when GitHub can't be reached
 
