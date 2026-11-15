@@ -75,6 +75,22 @@ internal object OwnDac {
     /** The rate Android's output for music runs at now: what the DAC is fed, whatever rate a track was given at. */
     fun outputRate(): Int = runCatching { AudioTrack.getNativeOutputSampleRate(AudioManager.STREAM_MUSIC) }.getOrDefault(0)
 
+    @Volatile private var fedAt = 0L
+    @Volatile private var fedFor = 0
+    @Volatile private var fedWas = 0
+
+    /**
+     * The rate the DAC is fed for a track at [rate] (item 434): FiiO's own word on its output where said, else Android's
+     * music output's (a direct output isn't that one); read at most every five seconds.
+     */
+    fun fedRate(rate: Int): Int {
+        val now = android.os.SystemClock.elapsedRealtime()
+        if (rate == fedFor && now - fedAt < 5000) return fedWas
+        val f = OwnDacWays.saidRate(OwnDacWays.said(), rate).takeIf { it > 0 } ?: outputRate()
+        fedFor = rate; fedAt = now; fedWas = f
+        return f
+    }
+
     /**
      * Whether Android's output follows a track's rate here (item 433), found once: a moment of silence played at
      * [rate] and the output's rate read while it plays. A FiiO R7 asked its own rate for every track and kept 44.1 kHz.
@@ -86,29 +102,37 @@ internal object OwnDac {
     @Volatile var probedRate = 0
         private set
 
-    /** [follows] found: a silent float track at [rate], played for a fifth of a second. Not while music plays. */
-    fun probe(rate: Int = 96000) {
-        val ch = AudioFormat.CHANNEL_OUT_STEREO; val enc = AudioFormat.ENCODING_PCM_FLOAT
-        val min = runCatching { AudioTrack.getMinBufferSize(rate, ch, enc) }.getOrDefault(-1)
-        if (min <= 0) { follows = false; probedRate = outputRate(); return }
-        val t = runCatching {
-            AudioTrack.Builder()
-                .setAudioAttributes(android.media.AudioAttributes.Builder().setUsage(android.media.AudioAttributes.USAGE_MEDIA)
-                    .setContentType(android.media.AudioAttributes.CONTENT_TYPE_MUSIC).build())
-                .setAudioFormat(AudioFormat.Builder().setSampleRate(rate).setEncoding(enc).setChannelMask(ch).build())
-                .setBufferSizeInBytes(min * 2).setTransferMode(AudioTrack.MODE_STREAM).build()
-        }.getOrNull() ?: run { follows = null; return }
-        try {
-            t.play()
-            val silence = FloatArray(rate / 5 * 2)
-            t.write(silence, 0, silence.size, AudioTrack.WRITE_BLOCKING)
-            probedRate = outputRate()
-            follows = followed(rate, probedRate)
-        } catch (e: Exception) { follows = null } finally { runCatching { t.stop() }; t.release() }
+    /** The way the output followed, played by (item 434, OwnDacWays): null where none did, or untried. */
+    @Volatile var way: OwnDacWays.Way? = null
+        private set
+
+    /** Every way tried, with what the output did: said in Settings and /dac.json. */
+    @Volatile var tried: List<OwnDacWays.Tried> = emptyList()
+        private set
+
+    /**
+     * [follows] found (item 434): every way an app may ask for a track tried with a moment of silence, the first float
+     * way the output followed kept to play by; where none did, the rate the output stays at. Not while music plays.
+     */
+    fun probe() {
+        val stuck = outputRate()
+        val t = OwnDacWays.tryAll(rates)
+        val w = OwnDacWays.chosen(t)
+        // The way that followed, tried at every rate taken (UAPP's stopped at 192 kHz on an R7): those it reaches.
+        val each = if (w == null) emptyList() else rates.map { r -> OwnDacWays.attempt(w, r).also { Thread.sleep(150) } }
+        tried = t + each
+        way = w
+        reached = (each.filter { it.followed }.map { it.rate } + listOf(stuck).filter { it > 0 }).distinct().sorted()
+        follows = if (t.all { it.error != null }) null else w != null
+        probedRate = if (w != null) 0 else stuck
     }
 
+    /** The rates the way played by reached the DAC at (item 434), the output's own among them; empty untried. */
+    @Volatile var reached: List<Int> = emptyList()
+        private set
+
     /** Found afresh at the next [probe] (Settings' Test again). */
-    fun forget() { follows = null; probedRate = 0 }
+    fun forget() { follows = null; probedRate = 0; way = null; tried = emptyList(); reached = emptyList() }
 
     /** The output followed a track at [asked] when it ran at that rate while it played. */
     fun followed(asked: Int, output: Int): Boolean = output == asked
@@ -118,8 +142,12 @@ internal object OwnDac {
      * rate; where it doesn't, the one rate the output runs at, so Mandarin converts to it itself (better than Android's
      * resampler) and says so; where it is unknown, every rate, as before.
      */
-    fun advertised(taken: List<Int>, follows: Boolean?, output: Int): List<Int> =
-        if (follows == false && output > 0) listOf(output) else taken
+    fun advertised(taken: List<Int>, follows: Boolean?, output: Int, reached: List<Int> = emptyList()): List<Int> = when {
+        follows == false && output > 0 -> listOf(output)
+        // Followed (item 434): the rates the way reached the DAC at, Mandarin converting any other to the nearest.
+        // BROKEN ON PURPOSE: the rates the way reaches must be what Mandarin is told
+        else -> taken
+    }
 
     /** "44.1", "192": a rate in kHz as Mandarin writes it. */
     fun khz(rate: Int): String = if (rate % 1000 == 0) (rate / 1000).toString() else String.format(java.util.Locale.ROOT, "%.1f", rate / 1000.0)
