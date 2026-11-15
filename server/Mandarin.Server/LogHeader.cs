@@ -1,6 +1,7 @@
-// LogHeader.cs — what opens each of the server's log files, and the line it adds every five minutes (logs, item 389):
-// enough to read a log sent in without asking what it came from. Which Mandarin, installed how, on what; where the
-// music and data are, and the mounts under them; the time zone, as every line is in UTC. Scrubbed as any line is.
+// LogHeader.cs — what the server says of itself as it starts, and the line it adds every five minutes (logs, item 389;
+// the one log, item 425): enough to read the log without asking what it came from. Which Mandarin, installed how, on
+// what; where the music and data are, and the mounts under them; the time zone, as every line is in UTC. Each a line of
+// the log as any other ("[start] …"), scrubbed as any line is.
 using System.Globalization;
 using System.Runtime.InteropServices;
 
@@ -24,12 +25,17 @@ internal static class LogHeader
         : Environment.GetEnvironmentVariable("MANDARIN_SYSTEMD") is { Length: > 0 } ? "linux"
         : "native";
 
-    /* The lines that open a file, each "# " before it. */
-    public static string Text()
+    /* What the server says of itself as it starts: a line each, "[start] " before it. */
+    public static void Say()
+    {
+        foreach (var l in Lines()) Server.Log("[start] " + l);
+    }
+
+    private static List<string> Lines()
     {
         var lines = new List<string>
         {
-            $"Mandarin Server {Server.Version} log, begun {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC",
+            $"Mandarin Server {Server.Version} starting",
             $"Installed as: {Kind()}",
             $"System: {RuntimeInformation.OSDescription} ({RuntimeInformation.OSArchitecture}), .NET {Environment.Version}",
             $"CPU: {Environment.ProcessorCount} cores; memory: {Mb(GC.GetGCMemoryInfo().TotalAvailableMemoryBytes)}",
@@ -39,7 +45,7 @@ internal static class LogHeader
             $"Running since {started:yyyy-MM-dd HH:mm:ss} UTC",
         };
         lines.AddRange(Mounts());
-        return string.Concat(lines.Select(l => "# " + LogScrub.Line(l) + "\n"));
+        return lines;
     }
 
     /* Filesystems mounted, as /proc/self/mounts has them, but the system's own (Linux alone). */

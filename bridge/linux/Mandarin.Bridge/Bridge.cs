@@ -33,6 +33,7 @@ internal sealed partial class Bridge
     {
         (this.opts, this.log) = (opts, log);
         store = new Store(opts.Data);
+        Kept.Who = () => store.Name;
         player = new Player(opts.Engine, opts.Ffmpeg, log);
         http = new Http(opts.Port, Route, log);
         slim = new Slim(player, Capabilities, () => store.Name, store.Udn, opts.Server, log);
@@ -149,7 +150,9 @@ internal sealed partial class Bridge
         {
             ["model"] = Model, ["version"] = Program.Version, ["platform"] = "linux", ["name"] = store.Name, ["udn"] = store.Udn, ["dac"] = dac,
             // Which build it is, for which machine, and that Mandarin can update it (POST /update, item 291): where that is.
-            ["commit"] = Program.Commit, ["arch"] = Update.Arch, ["updates"] = true, ["update"] = update.State(), ["log"] = "/log",
+            ["commit"] = Program.Commit, ["arch"] = Update.Arch, ["updates"] = true, ["update"] = update.State(),
+            // Its newest lines, for Mandarin's one log (Kept.cs); none named where Mandarin OS has them already (item 425).
+            ["log"] = Kept.Journal ? null : "/log",
             // A recording of what the DAC is fed, made when asked (Capture.cs, item 412), a whole track in parts (item 286).
             ["capture"] = "/capture", ["capture_parts"] = true,
             // The engine gives the DAC every PCM track in 32-bit words, at its gain of 1 whatever the volume asked (the Bridge

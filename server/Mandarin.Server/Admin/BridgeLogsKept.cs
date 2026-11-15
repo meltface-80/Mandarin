@@ -1,43 +1,46 @@
-// BridgeLogsKept.cs — every Mandarin Bridge's log, kept on the server too (logs, item 389): every five minutes each Bridge
-// Mandarin knows is asked for its newest lines (BridgeLogs.Read, scrubbed as the server's own), and what is new since the
-// last time is added to Logs/Bridges/<its name>.txt, rolled at 4 MB into .01 to .05. A Bridge keeps its own log too
-// (its Kept.cs, BridgeLog.kt); this is so every device's log is in one place, the server's Logs folder, without fetching
-// any by hand. A Bridge that isn't answering is tried again next time; nothing is lost while its own files hold it.
-using System.Text;
+// BridgeLogsKept.cs — every Mandarin Bridge's lines in the one log (item 389, then 425): every minute each Bridge Mandarin
+// knows is asked for its newest lines (BridgeLogs.Read, scrubbed as the server's own), and those new since the last time
+// go into the one log as "[bridge <its name>]", with the time each was said (DiagnosticsMore.Relay). A Bridge keeps its
+// lines until asked (its Kept.cs, BridgeLog.kt), so one not answering is asked again next time and none is lost. The last
+// line taken from each is kept in <data>/bridge-logs.json, so a restart of the server takes none twice; a Bridge seen for
+// the first time gives what it said from ten minutes before the server started.
+using System.Text.Json.Nodes;
 using Mandarin.Server.Playback;
 
 namespace Mandarin.Server.Admin;
 
 internal static class BridgeLogsKept
 {
-    public const int Files = 5;
-    private const long FileBytes = 4L * 1024 * 1024;
-    private static readonly Dictionary<string, string> last = [];
+    private static readonly DateTime started = DateTime.UtcNow;
     private static readonly SemaphoreSlim busy = new(1, 1);
+    private static Dictionary<string, string>? last;
     private static Timer? timer;
 
-    /* Every five minutes from a minute after the start (every MANDARIN_BRIDGE_LOGS_EVERY seconds, for the tests). */
+    private static string MarksFile => Path.Combine(Server.DataDir, "bridge-logs.json");
+
+    /* Every minute from half a minute after the start (every MANDARIN_BRIDGE_LOGS_EVERY seconds, for the tests). */
     public static void Start()
     {
-        var every = int.TryParse(Environment.GetEnvironmentVariable("MANDARIN_BRIDGE_LOGS_EVERY"), out var s) && s > 0 ? TimeSpan.FromSeconds(s) : TimeSpan.FromMinutes(5);
-        timer ??= new Timer(_ => _ = Safe(), null, every < TimeSpan.FromMinutes(1) ? every : TimeSpan.FromMinutes(1), every);
+        var every = int.TryParse(Environment.GetEnvironmentVariable("MANDARIN_BRIDGE_LOGS_EVERY"), out var s) && s > 0 ? TimeSpan.FromSeconds(s) : TimeSpan.FromMinutes(1);
+        timer ??= new Timer(_ => _ = Safe(), null, every < TimeSpan.FromSeconds(30) ? every : TimeSpan.FromSeconds(30), every);
     }
 
     private static async Task Safe()
     {
         try { await Keep(); }
-        catch (Exception e) { Server.Log($"[bridges] their logs couldn't be kept: {e.GetType().Name}: {e.Message}"); }
+        catch (Exception e) { Server.Log($"[bridges] their lines couldn't be fetched: {e.GetType().Name}: {e.Message}"); }
     }
 
-    /* Each Bridge's lines new since the last time, added to its file: how many lines were added in all. */
+    /* Each Bridge's lines new since the last time, into the one log: how many in all. */
     public static async Task<int> Keep()
     {
-        if (Diagnostics.Dir.Length == 0) return 0;
         await busy.WaitAsync();
         try
         {
+            last ??= Load();
             var n = 0;
             foreach (var rec in BridgeUpdates.Bridges()) n += await KeepOne(rec);
+            if (n > 0) Save();
             return n;
         }
         finally { busy.Release(); }
@@ -45,50 +48,48 @@ internal static class BridgeLogsKept
 
     private static async Task<int> KeepOne(DeviceRecord rec)
     {
-        var (head, lines, _) = await BridgeLogs.Read(rec);
+        var (_, lines, _) = await BridgeLogs.Read(rec);
         if (lines == null || lines.Length == 0) return 0;
-        var dir = Path.Combine(Diagnostics.Dir, "Bridges");
-        Directory.CreateDirectory(dir);
-        var file = Path.Combine(dir, FileName(BridgeUpdates.Name(rec)) + ".txt");
-        if (!last.TryGetValue(file, out var was)) was = LastLine(file);
-        var from = 0;
-        var gap = false;
-        if (was != null)
-        {
-            var at = Array.LastIndexOf(lines, was);
-            if (at >= 0) from = at + 1;
-            else gap = true;   // restarted, or more was said than one answer holds
-        }
+        var name = BridgeUpdates.Name(rec);
+        var from = New(lines, last!.GetValueOrDefault(name));
         if (from >= lines.Length) return 0;
-        var b = new StringBuilder();
-        if (!File.Exists(file) || new FileInfo(file).Length == 0) b.Append("# ").Append(head).Append('\n');
-        if (gap) b.Append("# ").Append(head).Append(": lines may be missing before these\n");
-        for (var i = from; i < lines.Length; i++) b.Append(lines[i]).Append('\n');
-        if (File.Exists(file) && new FileInfo(file).Length > FileBytes) Roll(file);
-        await File.AppendAllTextAsync(file, b.ToString());
-        last[file] = lines[^1];
+        DiagnosticsMore.Relay(DiagnosticsMore.Source("bridge", name), lines.Skip(from));
+        last![name] = lines[^1];
         return lines.Length - from;
     }
 
-    /* A Bridge's name as a file's: letters, figures, spaces, dots, dashes and brackets kept, the rest "_". */
-    public static string FileName(string name)
+    /* Where the lines new since [mark] begin: after it where it is among them; where it isn't (the Bridge started again,
+       or said more than one answer holds), at the first said after it; never seen, the first said from ten minutes
+       before this server started. */
+    public static int New(string[] lines, string? mark)
     {
-        var s = new string([.. name.Select(c => char.IsLetterOrDigit(c) || c is ' ' or '-' or '.' or '(' or ')' or '_' ? c : '_')]).Trim().Trim('.');
-        return s.Length == 0 ? "bridge" : s.Length > 64 ? s[..64] : s;
+        if (mark != null)
+        {
+            var at = Array.LastIndexOf(lines, mark);
+            if (at >= 0) return at + 1;
+        }
+        var since = mark == null ? started.AddMinutes(-10) : Diagnostics.Parse(mark)?.At ?? DateTime.MinValue;
+        for (var i = 0; i < lines.Length; i++)
+            if (Diagnostics.Parse(lines[i]) is { } p && (mark == null ? p.At >= since : p.At > since)) return i;
+        return lines.Length;
     }
 
-    private static string? LastLine(string file)
+    private static Dictionary<string, string> Load()
     {
-        if (!File.Exists(file)) return null;
-        var l = File.ReadLines(file).LastOrDefault(x => x.Length > 0 && !x.StartsWith('#'));
-        return l;
+        try
+        {
+            if (JsonNode.Parse(File.ReadAllText(MarksFile)) is JsonObject o)
+                return o.Where(kv => kv.Value is JsonValue).ToDictionary(kv => kv.Key, kv => kv.Value!.GetValue<string>());
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or System.Text.Json.JsonException or InvalidOperationException) { /* none yet */ }
+        return [];
     }
 
-    private static void Roll(string file)
+    private static void Save()
     {
-        string At(int n) => n == 0 ? file : file[..^4] + $".{n:00}.txt";
-        File.Delete(At(Files));
-        for (var n = Files - 1; n >= 0; n--)
-            if (File.Exists(At(n))) File.Move(At(n), At(n + 1), true);
+        var o = new JsonObject();
+        foreach (var (k, v) in last!) o[k] = v;
+        try { File.WriteAllText(MarksFile + ".new", o.ToJsonString()); File.Move(MarksFile + ".new", MarksFile, true); }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException) { /* asked again next time; a line may come twice */ }
     }
 }

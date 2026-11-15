@@ -95,10 +95,12 @@ if (args.Length > 0)
 }
 Db.File = Path.Combine(dataDir, "musicd.db");
 Server.DataDir = dataDir;
-// The log kept from here in <data>/Logs, what was said before written first; a line on how the server is every five minutes (item 389).
+// The one log kept from here in <data>/Logs (on Mandarin OS, by the OS from standard output), what was said before written
+// first, then what this server is; a line on how it is every five minutes (items 389, 425).
 Diagnostics.Start(dataDir);
+LogHeader.Say();
 LogHeader.StartSnapshots();
-// Every Mandarin Bridge's log kept beside the server's, in Logs/Bridges, every five minutes (Admin/BridgeLogsKept.cs, item 389).
+// Every Mandarin Bridge's new lines into the one log, every minute (Admin/BridgeLogsKept.cs, item 425).
 Mandarin.Server.Admin.BridgeLogsKept.Start();
 string appDir = Environment.GetEnvironmentVariable("MANDARIN_APP_DIR") ?? Server.FindAppDir();
 // A database put back from a backup goes in now, before it opens (Admin/Restore.cs);

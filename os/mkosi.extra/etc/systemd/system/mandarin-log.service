@@ -1,0 +1,28 @@
+[Unit]
+# Mandarin's one log (item 425): the journal's lines of Mandarin, Mandarin Bridge and Mandarin OS written into
+# /data/Logs/Mandarin_log.txt (smb://<box>/Data/Logs), a line each in time order, by this alone. Started before them and
+# so stopped after them: their last lines as the box shuts down are in it.
+Description=Mandarin OS: Mandarin's one log, in the shared folder's Logs
+RequiresMountsFor=/data
+After=mandarin-os-apply.service systemd-journald.service
+Before=mandarin.service mandarin-bridge.service smbd.service mandarin-os-page.service
+# Installed only (the USB stick is the installer, with no data partition).
+ConditionPathIsMountPoint=/data
+
+[Service]
+ExecStart=/usr/lib/mandarin-os/mandarin-log
+# Stopped, it ends its journalctl itself and reads the journal to its end before it goes.
+KillMode=mixed
+TimeoutStopSec=30
+Restart=always
+RestartSec=2
+# What it reads and writes: the journal, and /data's Logs and MandarinOS (where it was read to, the logs from before).
+ProtectSystem=strict
+ReadWritePaths=/data/Logs -/data/MandarinOS -/data/MandarinServer
+ProtectHome=yes
+PrivateTmp=yes
+PrivateNetwork=yes
+NoNewPrivileges=yes
+
+[Install]
+WantedBy=multi-user.target
