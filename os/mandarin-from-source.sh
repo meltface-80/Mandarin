@@ -3,7 +3,7 @@
 # that carries dev's Mandarin rather than the last release (test-os: Mandarin OS as dev is now, item 389): the server
 # (server/build.sh), its audio engine (engine/build.sh), and the page bundle (.github/server-assets.sh, as a release makes them), at dev's test version
 # (tools/test-version.js: the release after it is offered over it). Laid out as a release's download folder, each file
-# signed with a key made for this build alone, so tools/linux/install.sh installs it as it installs a release, checked.
+# signed with a key made for this build alone, so linux-install.sh installs it as it installs a release, checked.
 # Needs the .NET 10 SDK, node, openssl.
 set -euo pipefail
 cd "$(dirname "$0")/.."

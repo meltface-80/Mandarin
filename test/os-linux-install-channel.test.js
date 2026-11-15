@@ -1,6 +1,6 @@
 "use strict";
 /*
- * tools/linux/install.sh --channel (item 405), which Mandarin OS's Reinstall Mandarin runs: dev installs dev's newest
+ * Mandarin OS's installer, linux-install.sh, --channel (item 405), which its Reinstall Mandarin runs: dev installs dev's newest
  * build, the "test-server" pre-release (its version its bundle's name, asked of GitHub's API), checked as a release is
  * (signed with the release key, the server saying its version), and the service told to follow dev's builds in its own
  * updates (MANDARIN_CHANNEL=dev); run again without --channel, it stays on dev; latest goes back to the latest release
@@ -12,7 +12,7 @@ const assert = require("node:assert");
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
-const { RID, sh, keyPair, release, sign, shims, serve, run } = require("./linux-install-standin");
+const { RID, sh, keyPair, release, sign, shims, serve, run } = require("./os-linux-install-standin");
 
 const haveOpenssl = sh("command -v openssl || true").trim() !== "";
 const skip = process.platform !== "linux" ? "Linux only" : !haveOpenssl && "openssl is not installed";

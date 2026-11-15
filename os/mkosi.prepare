@@ -1,6 +1,6 @@
 #!/bin/bash
 # Outside the image (its network, its certificates): Mandarin's latest release fetched into the image's cache, for
-# mkosi.finalize.chroot to install from with tools/linux/install.sh, which checks each file against the release key.
+# mkosi.finalize.chroot to install from with linux-install.sh, which checks each file against the release key.
 set -euo pipefail
 # The latest release's version from where github.com's own page for it leads (…/releases/tag/v1.3.0): no API, so no
 # API rate limit (a CI runner's address shares one, and was refused).
