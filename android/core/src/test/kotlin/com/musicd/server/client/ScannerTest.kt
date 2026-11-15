@@ -131,7 +131,7 @@ class ScannerTest {
         assertEquals("Not enough room in this folder: choose another.", none.error)
         assertTrue(none.enabled)
         val offline = Scanner.pack(j("""{"check_error":"fetch failed"}"""), false, day, us)
-        assertEquals("Not downloaded. (fetch failed)", offline.state)
+        assertEquals("Not downloaded: GitHub not reached.", offline.state)   // in words, not "fetch failed: github.co…" (item 427)
         assertFalse(offline.enabled)
         assertEquals("/data (the data folder) · 1 MB free" to null, Scanner.packFolder(j("""{"dir":"/data","data_dir":"/data","free":1048576}"""), us))
         assertEquals("/x" to "Can't write here", Scanner.packFolder(j("""{"dir":"/x","data_dir":"/data","dir_problem":"Can't write here"}"""), us))

@@ -82,7 +82,7 @@ function packBlock() {
     const tight = latest && pack.free != null && pack.free < latest.size + 200 * 1048576;
     state = latest ? "Not downloaded. A " + mbs(latest.gz_size) + " download that unpacks to " + mbs(latest.size) + " in the folder below." +
       (tight ? ' <span class="away-error">Not enough room in this folder: choose another.</span>' : "")
-      : pack.checking ? "Not downloaded. Asking GitHub what’s published…" : "Not downloaded." + (pack.check_error ? " (" + scanEsc(pack.check_error) + ")" : "");
+      : pack.checking ? "Not downloaded. Asking GitHub what’s published…" : (pack.check_error ? "Not downloaded: GitHub not reached." : "Not downloaded.");   // the reason in words, the error itself in the log (item 427)
     buttons = '<button type="button" data-parity="settings-scanner.pack" class="id-btn is-primary" data-pack="download"' + (scanBusy || !latest ? " disabled" : "") + ">Download</button>";
   }
   // Where it's kept (v0.6.4): any folder the server can write to, on any drive.
@@ -91,6 +91,8 @@ function packBlock() {
       '<button type="button" data-parity="settings-scanner.pack-folder" class="id-btn" data-pack-folder' + off + ">Folder…</button>";
   return head('<span class="id-actions">' + buttons + where + "</span>") +
     '<div class="settings-note" data-parity="settings-scanner.note">' + state + (job && job.error ? ' <span class="away-error">' + scanEsc(job.error) + "</span>" : "") +
-      " · " + scanEsc(pack.dir) + (pack.dir === pack.data_dir ? " (the data folder)" : "") + (pack.free != null ? " · " + mbs(pack.free) + " free" : "") +
+      // Its folder on a line of its own, cut short with … where long (item 427: a long path wrapped the note to more lines).
+      '<span class="scan-pack-where" title="' + scanEsc(pack.dir) + '" style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' +
+      scanEsc(pack.dir) + (pack.dir === pack.data_dir ? " (the data folder)" : "") + (pack.free != null ? " · " + mbs(pack.free) + " free" : "") + "</span>" +
       (pack.dir_problem && !(job && job.error === pack.dir_problem) ? ' <span class="away-error">' + scanEsc(pack.dir_problem) + "</span>" : "") + "</div></div>";
 }

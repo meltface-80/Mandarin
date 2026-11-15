@@ -126,7 +126,9 @@ const OFF = `(async () => {${OPEN}
 
 async function withPage(lib, fn) {
   const { createServer } = require("./server");
-  const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false, identify: false });
+  const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false, identify: false,
+    // GitHub not reached, as on a box offline or CI: the pack's check fails every time here (item 427).
+    mbpackUrl: "http://127.0.0.1:9/mbpack" });
   const ctx = await srv.start();
   try {
     const token = await signIn(B);
@@ -145,6 +147,12 @@ async function withPage(lib, fn) {
     put.run(key("Best Of"), "11111111-2222-3333-4444-555555555556", 0.01, "applied", cand("The Best Of", "X"), Date.now(), Date.now());
     // On, Scheduling on (the switch counts afresh).
     await fetch(B + "/api/album-scanner", { method: "POST", headers: H, body: JSON.stringify({ on: true, schedule: true, start: "01:00", end: "06:00" }) });
+    // The pack's check asked and failed before the page is shown (GitHub not reached: item 427).
+    for (let i = 0; i < 100; i++) {
+      const pk = await (await fetch(B + "/api/identify/pack?check=1", { headers: H })).json();
+      if (pk.check_error) break;
+      await new Promise(r => setTimeout(r, 100));
+    }
     const b = await Browser.launch({ width: 412, height: 800 });
     try {
       const page = await b.page(B + "/", { cookies: [{ name: "musicd_session", value: token, url: B }], touch: true });
@@ -170,6 +178,10 @@ test("Library Scanner on, at a phone's size: the six sections in order on one sc
     assert.deepEqual(r.gone, [], "no separate switch, readout or list of the old page");
     assert.deepEqual(r.folders, [["Unidentified", "1", "Tap to place them by hand"], ["To confirm", "1", "Found, but not sure enough to apply unasked"]]);
     assert.ok(r.bottom <= r.height, `everything on one screen: the processor ends at ${r.bottom} of ${r.height} (${JSON.stringify(r.room)})`);
+    // The pack's state in words, whatever GitHub answered: never the error itself, which ran to four lines and
+    // pushed the Processor off the screen (item 427: "Not downloaded. (fetch failed: github.co…").
+    const packLine = r.room.lines.find(l => / Not downloaded/.test(l)) || "";
+    assert.match(packLine, / Not downloaded: GitHub not reached\./, "the pack's state in words: " + JSON.stringify(r.room.lines));
     assert.equal(r.width, true, "nothing wider than the phone");
     assert.match(r.schedNoteOn, /^Schedule\s+Runs only between these times$/);
     assert.equal(r.timesOn.length, 2);
