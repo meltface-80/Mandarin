@@ -200,7 +200,9 @@ class DacService : Service() {
         val engine = DspEngine()
         val renderers = object : DefaultRenderersFactory(this) {
             override fun buildAudioSink(context: Context, enableFloatOutput: Boolean, enableAudioTrackPlaybackParams: Boolean): AudioSink =
-                DspSink(UsbAudioSink(UsbOrOwn(DefaultAudioSink.Builder(context).setEnableFloatOutput(true).build()).also { ownSink = it }, context).also { usbSink = it }, engine)
+                DspSink(UsbAudioSink(UsbOrOwn(DefaultAudioSink.Builder(context).setEnableFloatOutput(true)
+                    // The device's own DAC played by the way its output followed (item 434, OwnDacWays).
+                    .setAudioTrackProvider(OwnDacWays.provider()).build()).also { ownSink = it }, context).also { usbSink = it }, engine)
             override fun buildAudioRenderers(context: Context, extensionRendererMode: Int, mediaCodecSelector: MediaCodecSelector,
                                              enableDecoderFallback: Boolean, audioSink: AudioSink, eventHandler: Handler,
                                              eventListener: AudioRendererEventListener, out: ArrayList<Media3Renderer>) {
@@ -241,7 +243,7 @@ class DacService : Service() {
     fun ownFeed(): NowPlaying.Feed? {
         val f = ownSink?.playing?.takeIf { ownNow() } ?: return null
         val bits = when (player.audioFormat?.pcmEncoding) { C.ENCODING_PCM_16BIT -> 16; C.ENCODING_PCM_24BIT -> 24; C.ENCODING_PCM_32BIT, C.ENCODING_PCM_FLOAT -> 32; else -> 0 }
-        val out = OwnDac.outputRate()
+        val out = OwnDac.fedRate(f.sampleRate)
         return if (out > 0 && out != f.sampleRate) NowPlaying.Feed(out, bits, from = f.sampleRate) else NowPlaying.Feed(f.sampleRate, bits)
     }
 
@@ -251,12 +253,17 @@ class DacService : Service() {
      */
     private fun probeOwn() {
         if (!ownNow() || OwnDac.follows != null || (::player.isInitialized && player.isPlaying)) return
+        // Once at a time: the start and a USB change both ask (0.3.17 tried twice at once on an R7).
+        if (!probing.compareAndSet(false, true)) return
         Thread {
-            OwnDac.probe()
-            Log.i(TAG, "own DAC: Android's output ${if (OwnDac.follows == true) "follows a track's rate" else "stays at ${OwnDac.probedRate} Hz"} (asked 96000)")
+            try { OwnDac.probe() } finally { probing.set(false) }
+            for (t in OwnDac.tried) Log.i(TAG, "own DAC: ${t.way.words} at ${t.rate} Hz: " + (t.error ?: "Android's music output at ${t.output} Hz, FiiO's word ${t.fiio} Hz" + if (t.followed) ", followed" else ""))
+            Log.i(TAG, "own DAC: " + (OwnDac.way?.let { "played by ${it.words}" } ?: "no way followed; the output stays at ${OwnDac.probedRate} Hz"))
             main.post { if (ready) { slim.rehello(); foreground(notification()) } }
         }.start()
     }
+
+    private val probing = java.util.concurrent.atomic.AtomicBoolean(false)
 
     /** Settings' Test again: whether the output follows, found afresh (not while a track plays). */
     fun probeOwnAgain(): Boolean {
@@ -369,7 +376,7 @@ class DacService : Service() {
         // No DAC on the USB port: this device's own, where it is played (item 432), as Android takes it from an app.
         // Where Android's output keeps one rate whatever a track's (item 433), that rate alone: Mandarin converts to it.
         if (UsbDac.device() == null) return if (OwnDac.on(this) && OwnDac.rates.isNotEmpty())
-            Caps(OwnDac.advertised(OwnDac.rates, OwnDac.follows, OwnDac.probedRate), OwnDac.BITS, emptyList(), emptyList(), emptyList()) else null
+            Caps(OwnDac.advertised(OwnDac.rates, OwnDac.follows, OwnDac.probedRate, OwnDac.reached), OwnDac.BITS, emptyList(), emptyList(), emptyList()) else null
         val info = UsbDac.info() ?: return null
         val rates = sortedSetOf<Int>()
         for (s in info.streams) if (s.pcm) { rates.addAll(s.rates); if (s.rates.isEmpty() && s.continuous == null) rates.addAll(info.clockRates) }
@@ -409,6 +416,7 @@ class DacService : Service() {
         if (d == null && c != null) dac.put("own", true).put("device", OwnDac.name()).put("manufacturer", Build.MANUFACTURER ?: JSONObject.NULL)
             .put("volume_control", false).put("fixed", true).put("output", "android").put("android_outputs", OwnDac.outputs(this))
             .put("output_rate", OwnDac.outputRate()).put("follows", OwnDac.follows ?: JSONObject.NULL)
+            .put("way", OwnDac.way?.key ?: JSONObject.NULL).put("ways_tried", OwnDacWays.json(OwnDac.tried))
         if (info != null) dac.put("uac", info.uac).put("speed", info.speed).put("volume_control", info.volumeControl).put("fixed", UsbDriver.fixed(this))
             .put("dsd_mode", Store.usbDsd(this))
         if (c != null) dac.put("rates", JSONArray(c.rates)).put("bits", JSONArray(takenBits(c.bits))).put("dac_bits", JSONArray(c.bits))
@@ -423,7 +431,7 @@ class DacService : Service() {
         val own = ownSink?.playing?.takeIf { ownNow() }
         // To the device's own DAC: the rate Android's output runs at (item 433: what the DAC is fed), float words (32)
         // carrying the samples, never a software volume; untouched only where that is the track's own rate.
-        val out = if (own != null) OwnDac.outputRate() else 0
+        val out = if (own != null) OwnDac.fedRate(own.sampleRate) else 0
         if (own != null) o.put("now", JSONObject().put("rate", if (out > 0) out else own.sampleRate).put("track_rate", own.sampleRate).put("bits", 32)
             .put("kind", "pcm").put("dsd", 0).put("transport", if (ready) transport.stateNow() else "STOPPED").put("volume", "fixed").put("level", 100)
             .put("untouched", if (out > 0) out == own.sampleRate else JSONObject.NULL).put("output", "android")
@@ -547,7 +555,7 @@ class DacService : Service() {
             !ready -> "Starting…"
             slim.server == null -> "Looking for Mandarin on the network…" + (dac?.let { " · $it" } ?: "")
             else -> when (transport.transportState()) {
-                "PLAYING" -> "Playing" + (usbNow()?.let { " · USB $it" } ?: ownSink?.playing?.let { p -> OwnDac.outputRate().let { r -> if (r > 0 && r != p.sampleRate) " · ${OwnDac.khz(p.sampleRate)} → ${OwnDac.khz(r)} kHz (Android)" else " · ${OwnDac.khz(p.sampleRate)} kHz" } } ?: "") + (dac?.let { " · $it" } ?: "")
+                "PLAYING" -> "Playing" + (usbNow()?.let { " · USB $it" } ?: ownSink?.playing?.let { p -> OwnDac.fedRate(p.sampleRate).let { r -> if (r > 0 && r != p.sampleRate) " · ${OwnDac.khz(p.sampleRate)} → ${OwnDac.khz(r)} kHz (Android)" else " · ${OwnDac.khz(p.sampleRate)} kHz" } } ?: "") + (dac?.let { " · $it" } ?: "")
                 "TRANSITIONING" -> "Loading…"
                 "PAUSED_PLAYBACK" -> "Paused" + (dac?.let { " · $it" } ?: "")
                 else -> "Ready" + (dac?.let { " · $it" } ?: "") + " · “${Store.friendlyName(this)}”, played by Mandarin at ${slim.server?.hostAddress}"
