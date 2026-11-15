@@ -200,14 +200,20 @@ private fun copy(c: Context, label: String, text: String) {
         DacService.current?.let { d -> d.main.post { d.usbChanged() } }
         again()
     }
-    Note(if (OwnDac.isPlayer(android.os.Build.MANUFACTURER ?: "", android.os.Build.MODEL ?: "")) OWN_PLAYER else OWN_PHONE)
+    Note(if (OwnDac.isPlayer(android.os.Build.MANUFACTURER ?: "", android.os.Build.MODEL ?: "", android.os.Build.BRAND ?: "")) OWN_PLAYER else OWN_PHONE)
     if (!on) return
     Line(OwnDac.name(), strong = true)
-    Cap("Sample rates (kHz)", if (OwnDac.rates.isEmpty()) "none taken" else OwnDac.rates.joinToString(", ") { OwnDac.khz(it) })
+    // Whether Android's output follows a track's rate (item 433): taking a rate isn't playing at it.
+    val out = OwnDac.outputRate()
+    Cap("Android's output now", if (out > 0) OwnDac.khz(out) + " kHz" else "not said")
+    Cap("Follows a track's rate", when (OwnDac.follows) { true -> "yes: each track at its own rate"; false -> "no: it stays at ${OwnDac.khz(OwnDac.probedRate)} kHz"; null -> "not tried yet" })
+    if (OwnDac.follows == false) Note(OWN_FIXED.replace("{rate}", OwnDac.khz(OwnDac.probedRate)), danger = true)
+    OutlinedButton({ if (DacService.current?.probeOwnAgain() != true) Toast.makeText(activity, "Not while music plays", Toast.LENGTH_SHORT).show(); again() }, Modifier.padding(top = 4.dp)) { Text("Test again") }
+    Cap("Sent by Mandarin at (kHz)", (DacService.current?.caps()?.rates ?: OwnDac.rates).joinToString(", ") { OwnDac.khz(it) })
+    Cap("Android takes from an app (kHz)", if (OwnDac.rates.isEmpty()) "none" else OwnDac.rates.joinToString(", ") { OwnDac.khz(it) })
     Cap("Bit depth", "16, 24 (sent as 32-bit float, every bit kept)")
     Cap("DSD", "as PCM, converted by Mandarin")
     Cap("Volume", "this device's own; Mandarin's is fixed at 100%")
-    Note(OWN_LIMIT)
     Note(OWN_MQA)
     val outs = OwnDac.outputs(activity)
     if (outs.length() > 0) {
@@ -224,5 +230,5 @@ private fun copy(c: Context, label: String, text: String) {
 
 private const val OWN_PLAYER = "A music player: its firmware passes an app's audio on at the track's own rate, unmixed, so the Bridge plays to its DAC untouched, at each track's rate. A USB DAC plugged in is played instead."
 private const val OWN_PHONE = "On a phone, Android mixes an app's audio at its own rate before the DAC, so it isn't bit-perfect: off unless you switch it on."
-private const val OWN_LIMIT = "Android takes from an app only the rates above (192 kHz at most on Android 10 and 11). Mandarin converts anything higher to the highest of them itself, and says so on Now Playing."
+private const val OWN_FIXED = "Android's output here stays at {rate} kHz whatever rate a track is given at, and Android would resample anything else to it. So Mandarin sends {rate} kHz, converting other rates itself with its own resampler, and its signal path says so: bit-perfect only for {rate} kHz tracks. If this player has a setting for bit-perfect or SRC bypass for all apps, switch it on, then tap Test again."
 private const val OWN_MQA = "MQA: in Mandarin, Settings → Audio Devices, switch on “This DAC decodes MQA” for this Bridge. An MQA track is then sent untouched, at full scale, for this player's DAC to decode and unfold."

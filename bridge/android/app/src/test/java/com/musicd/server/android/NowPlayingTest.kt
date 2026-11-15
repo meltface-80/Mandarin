@@ -65,6 +65,9 @@ class NowPlayingTest {
         assertNull("nothing fed", NowPlaying.format(NowPlaying.Feed(0, 0)))
         // The device's own DAC with the depth unsaid (item 432): the rate alone.
         assertEquals("96 kHz", NowPlaying.format(NowPlaying.Feed(96000, 0)))
+        // Resampled by Android on the way (item 433): from the track's rate to the DAC's.
+        assertEquals("24-bit / 176.4 → 44.1 kHz", NowPlaying.format(NowPlaying.Feed(44100, 24, from = 176400)))
+        assertEquals("the same rate: not said twice", "24-bit / 96 kHz", NowPlaying.format(NowPlaying.Feed(96000, 24, from = 96000)))
         assertNull("no stream, no badge", np(f = null).format)
     }
 

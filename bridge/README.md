@@ -79,10 +79,13 @@ itself on a FiiO, HiBy, iBasso, Shanling, Cayin, Astell&Kern, Lotoo, Questyle or
 phone (Settings → This device's own DAC). Where Android lists the player's own DAC as a USB audio device, Mandarin's
 driver plays it as it plays a DAC on the port, Android left out altogether. Otherwise each track goes to Android's
 output at its own rate as 32-bit float, which carries a 16- or 24-bit sample exactly, never resampled, mixed or
-scaled by the app: the player's own volume sets the level, and Mandarin's is fixed. The R7's firmware passes an app's
-audio on at its own rate, unmixed. Android takes from an app only up to 192 kHz on Android 10 and 11 (the R7's is 10),
-so Mandarin is told the rates Android takes and converts anything higher itself, saying so on Now Playing, and sends
-DSD as PCM. For MQA, switch on This DAC decodes MQA for the Bridge in Mandarin's Audio Devices: an MQA track is sent
+scaled by the app: the player's own volume sets the level, and Mandarin's is fixed. Android may take a rate from an
+app without playing at it (item 433, 0.3.17): a FiiO R7's takes every rate to 768 kHz, but its output stayed at 44.1
+kHz, Android resampling the rest. So the Bridge tries, when it starts, whether the output follows a track's rate (a
+fifth of a second of silence at 96 kHz, the output's rate read); where it does, Mandarin is told every rate Android
+takes, and where it doesn't, the one rate the output runs at, Mandarin converting to it with its own resampler and
+saying so. What the DAC is fed is said as the output's rate, untouched only where that is the track's own. DSD is
+sent as PCM. For MQA, switch on This DAC decodes MQA for the Bridge in Mandarin's Audio Devices: an MQA track is sent
 untouched, at full scale, for the player's DAC to decode and unfold. Settings lists Android's outputs and what each
 says it takes, and /dac.json says the same (`dac.android_outputs`).
 
