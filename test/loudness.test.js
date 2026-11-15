@@ -160,7 +160,7 @@ test("measuring keeps to the hours and the order (v0.8.24): the schedule's windo
   process.env.FFMPEG_PATH = stand;
   t.after(() => { if (before === undefined) delete process.env.FFMPEG_PATH; else process.env.FFMPEG_PATH = before; });
   const srv = createServer({ port: PORT, musicDir: music, dataDir: data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false,
-    identify: true, identifyTickMs: 100, loudnessTickMs: 100, mbBaseUrl: "http://127.0.0.1:" + mb.address().port + "/ws/2" });
+    identify: true, identifyTickMs: 100, loudness: true, loudnessTickMs: 100, mbBaseUrl: "http://127.0.0.1:" + mb.address().port + "/ws/2" });
   const ctx = await srv.start();
   t.after(() => srv.stop());
   const token = await signIn(B);
@@ -169,8 +169,10 @@ test("measuring keeps to the hours and the order (v0.8.24): the schedule's windo
     return { status: r.status, ...(await r.json().catch(() => ({}))) };
   };
   const raw = ctx.db.raw;
-  // Identification's hours never come while the test runs (an empty window), so nothing moves until it says.
+  // Identification's hours never come while the test runs (an empty window), so nothing moves until it says;
+  // and the Album Scanner (on by default, item 411) off until then.
   assert.equal((await api("identify/settings", { schedule: true, start: "01:00", end: "01:00" })).status, 200);
+  assert.equal((await api("album-scanner", { on: false })).on, false);
   await until(async () => (await api("status")).index_count === 5);
   const ids = Object.fromEntries(ages.map(([title]) => [title, raw.prepare("SELECT id FROM albums WHERE title = ?").get(title).id]));
   // A Qobuz and a Tidal track: no file here, never measured nor waiting.
@@ -257,9 +259,11 @@ test("ReplayGain end to end: tags kept, Track/Album/Auto, the stream turned down
   const house = new FakeHousehold();
   await house.start();
   const X = "RINCON_KITCHEN01400", Y = "RINCON_STUDY001400";
-  const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [ports.host(0)], upnpMulticast: false, loudnessTickMs: 100 });
+  const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [ports.host(0)], upnpMulticast: false, loudness: true, loudnessTickMs: 100 });
   const ctx = await srv.start();
   const token = await signIn(B);
+  // The Album Scanner (on by default, item 411) off until the test says.
+  await fetch(B + "/api/album-scanner", { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + token }, body: JSON.stringify({ on: false }) });
   const api = async (p, body, method) => {
     const r = await fetch(B + "/api/" + p, body ? { method: method || "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + token }, body: JSON.stringify(body) } : { headers: { Authorization: "Bearer " + token } });
     return { status: r.status, ...(await r.json().catch(() => ({}))) };
@@ -350,6 +354,10 @@ test("ReplayGain end to end: tags kept, Track/Album/Auto, the stream turned down
     // Files without tags are measured, one at a time, when asked: by the C# server (v0.8.19).
     const h = await fetch(B + "/api/loudness", { headers: { Authorization: "Bearer " + token } });
     assert.equal(h.headers.get("x-mandarin-answered"), "C#", "measuring is the C# server's");
+    // Nothing plays any more, the phone included: the Album Scanner measures only then (item 411).
+    for (const room of house.rooms) Object.assign(room, { state: "STOPPED" });
+    await api("phone/state", { index: 0, position: 0, duration: 60, state: "stopped", volume: 40 });
+    await until(async () => (await (await fetch(B + "/api/health")).json()).busy.playing === 0, 30000);
     // Scheduling on, its window not now: switched on, nothing is measured (v0.8.24).
     const hhmm = (h) => { const d = new Date(Date.now() + h * 3600000); return String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0"); };
     r = await api("identify/settings", { schedule: true, start: hhmm(2), end: hhmm(3) });

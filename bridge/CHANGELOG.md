@@ -1,5 +1,37 @@
 # Changelog
 
+## v0.3.15
+
+Mandarin Bridge 0.3.15, since 0.3.10: the Android Bridge opens on Now Playing and passes MQA through untouched; the Linux Bridge and the Pi's record for SQ-tool and update themselves on Mandarin OS; every Bridge's lines in Mandarin's one log. Each Bridge updates from Mandarin's Settings → Updates.
+
+- New - Now Playing (Android): the Bridge opens on what Mandarin plays on it: the album's cover, the track, its artist and album, the format the DAC is fed ("24-bit / 192 kHz", "DSD128") and the DAC it plays to. Nothing to tap: Mandarin chooses what plays. Until Mandarin has played something on it, it shows how to set the Bridge up. Its settings are behind the cog at the top left, and Back returns to Now Playing
+- New - MQA passthrough (Android): an MQA track Mandarin sends untouched, to a DAC set to This DAC decodes MQA in Mandarin's Audio Devices, is played with no software volume, so the DAC is fed the file's samples with MQA's signalling intact. The DAC decodes and unfolds MQA; the Bridge doesn't. The Linux Bridge and the Pi's never change the samples
+- New - The Linux Bridge and the Raspberry Pi's record exactly what they feed the DAC, for Mandarin's bit-perfect check and SQ-tool, as the Android Bridge does
+- Changed - Every Bridge's lines are in Mandarin's one log, under its name; on Mandarin OS the box's own Bridge writes straight into it and keeps no log files of its own
+- Fixed - The Linux Bridge updates itself on Mandarin OS and on other computers with systemd 256 or later (Debian 13, Ubuntu 24.10 and later), where it failed with "Permission denied"; installed again, it keeps who it is to Mandarin and its settings. An update a computer won't run says what to do
+- Improved - Mandarin Bridge is 0.3.15
+
+## v0.3.14
+
+- Changed - Mandarin's one log (item 425): every Bridge's lines are in Mandarin's one log under its name, "[bridge <its name>]", with the time each was said, fetched by the server every minute (none taken twice, a server restarting included). On Mandarin OS 0.1.9 the Linux Bridge on the box keeps no log files of its own (those from before deleted), says each line on standard error with where it came from, which the box writes into its one log (the shared folder's Logs), and its /dac.json names no log, so the server doesn't fetch the same lines again. Anywhere else a Bridge keeps its lines as before until the server has them
+- Improved - Mandarin Bridge is 0.3.14
+
+## v0.3.13
+
+- New - an MQA track Mandarin sends untouched to a DAC that decodes MQA (Audio Devices' This DAC decodes MQA, item 418) is played by the Android Bridge with no software volume: its request says so (X-Mandarin-Untouched), and as it becomes the track playing the USB driver's gain is 1 whatever the slider, so the DAC is fed the file's samples, MQA's signalling in them intact; muted, it is silent as ever. A DAC with its own volume or fixed volume was never scaled. The Linux Bridge (and the Pi's) never scales anything
+- Improved - Mandarin Bridge is 0.3.13
+
+## v0.3.12
+
+- Fixed - the Linux Bridge couldn't update itself on Mandarin OS, or on any computer with systemd 256 or newer (Debian 13, Ubuntu 24.10 and later): "The update couldn't be installed: mandarin-bridge couldn't be run (ErrorStartingProcess, …, Permission denied)", with the download, its checksum and its signature all good (item 415). Its service ran as a DynamicUser, and from systemd 256 a DynamicUser's data folder is mounted so nothing in it can be run, the update the Bridge fetches into it included. It runs as a user of its own now, mandarin-bridge, which install.sh makes, with the same limits as before (the system read-only but for its data folder, its own /tmp, no new privileges). Installed again, a Bridge keeps its data folder (who it is to Mandarin, its settings, its logs): install.sh makes it the Bridge's (a DynamicUser's is nobody's, which systemd would still mount so nothing in it runs), and systemd moves it back from /var/lib/private. On Mandarin OS, Mandarin OS 0.1.7 does the same for the Bridge already installed. The Raspberry Pi image's Bridge runs as root, as it always has
+- Improved - an update a computer won't run from the Bridge's data folder says so, and what to do (on Mandarin OS, update Mandarin OS; elsewhere, run the install line again), in place of .NET's "ErrorStartingProcess"
+- Improved - Mandarin Bridge is 0.3.12
+
+## v0.3.11
+
+- New - the Linux Bridge (and the Pi's) records what it feeds the DAC for Mandarin's bit-perfect check and SQ-tool (item 412), as the Android Bridge does: the same /capture (a recording in one piece of up to two minutes, or a whole track in parts from the track played again), the same WAV and sidecar. The bytes are those Mandarin's audio engine hands ALSA for the DAC, after every conversion it makes: its 32-bit words, DoP under its markers, native DSD words either way round. Made only when asked, written on a thread of its own so a slow disk never holds the music up, kept in the Bridge's own data folder and let go as Mandarin fetches it. Before, Mandarin told a Linux Bridge's room to update an app that had no recording to update to
+- Improved - Mandarin Bridge is 0.3.11
+
 ## v0.3.10
 
 - Fixed - the Linux Bridge's update failed where systemd runs it (the Linux installer's service, Mandarin OS's): it has no HOME there, so .NET couldn't open its certificate stores and couldn't connect to GitHub securely, and its fallback, curl, failed as well, said only as "tar couldn't be run". With no HOME its data folder is its home now (and the installer's service sets it), so it connects as it should; and a program it can't start says which and why

@@ -122,8 +122,17 @@ function keyStatusText(j) {
   return "Current: " + j.masked + " — couldn’t reach the service to check it.";
 }
 
-// One API key's box, status line and Save: Discogs' token and FanArt.tv's key.
-function wireKey({ route, field, inputId, saveId, statusId, checkId, service, noun, onSaved }) {
+// The Album Scanner's matching by sound, under AcoustID's key (item 419): how many albums it has matched so far, how
+// many are still to look at, and when it will (the Album Scanner off, or outside its hours).
+function soundTallyText(t) {
+  if (!t) return "";
+  const when = !t.waiting ? "" : t.held === "off" ? ", when the Album Scanner is on" : t.held === "hours" ? ", in the Album Scanner's hours" : "";
+  return "By sound: " + t.matched + (t.matched === 1 ? " album" : " albums") + " matched so far, " + t.waiting + " still to look at" + when + ".";
+}
+
+// One API key's box, status line and Save: Discogs' token, FanArt.tv's, AcoustID's and Last.fm's keys; [onPaint]
+// with the server's answer, for a line of the key's own.
+function wireKey({ route, field, inputId, saveId, statusId, checkId, service, noun, onSaved, onPaint }) {
   const input  = document.getElementById(inputId);
   const save   = document.getElementById(saveId);
   const status = document.getElementById(statusId);
@@ -132,6 +141,7 @@ function wireKey({ route, field, inputId, saveId, statusId, checkId, service, no
   const paint = (j) => {
     paintKeyCheck(input, badge, j, hint);
     if (status) status.textContent = keyStatusText(j);
+    if (onPaint) onPaint(j);
   };
   async function load() {
     try {
@@ -171,6 +181,10 @@ const loadDiscogsToken = wireKey({ route: "discogs-token", field: "token", input
   statusId: "discogs-token-status", checkId: "discogs-token-check", service: "Discogs", noun: "token" });
 const loadFanartKey = wireKey({ route: "fanart-key", field: "key", inputId: "fanart-key-input", saveId: "fanart-key-save",
   statusId: "fanart-key-status", checkId: "fanart-key-check", service: "FanArt.tv", noun: "key" });
+// Matching albums by sound (item 414c): the Album Scanner's fingerprints looked up on AcoustID.
+const loadAcoustIdKey = wireKey({ route: "acoustid-key", field: "key", inputId: "acoustid-key-input", saveId: "acoustid-key-save",
+  statusId: "acoustid-key-status", checkId: "acoustid-key-check", service: "AcoustID", noun: "key",
+  onPaint: (j) => { const el = document.getElementById("acoustid-sound"); if (el) { el.textContent = soundTallyText(j.sound); el.classList.toggle("hidden", !j.sound); } } });
 const loadLastfmKey = wireKey({ route: "lastfm-key", field: "key", inputId: "lastfm-key-input", saveId: "lastfm-key-save",
   statusId: "lastfm-key-status", checkId: "lastfm-key-check", service: "Last.fm", noun: "key", onSaved: () => loadScrobbling() });
 // Scrobbling's (settings-lastfm.js): saving it again leaves the account to connect again.

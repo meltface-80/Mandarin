@@ -141,7 +141,7 @@ internal sealed partial class Update(string api, string data, Action<string> log
             foreach (var p in new[] { "mandarin-bridge", "mandarin-audio" })
                 if (!File.Exists(Path.Combine(unpacked, p))) throw new InvalidOperationException("the update has no " + p);
             // The new program answers as itself before it is put in place.
-            if (!Run(Path.Combine(unpacked, "mandarin-bridge"), "--version").StartsWith("mandarin-bridge ", StringComparison.Ordinal))
+            if (!Answers(Path.Combine(unpacked, "mandarin-bridge")).StartsWith("mandarin-bridge ", StringComparison.Ordinal))
                 throw new InvalidOperationException("the update's program doesn't run here");
             var app = AppDir(data);
             if (Directory.Exists(app)) Directory.Delete(app, true);
@@ -159,6 +159,26 @@ internal sealed partial class Update(string api, string data, Action<string> log
             log("update failed: " + Why(e));
         }
     }
+
+    // What the update's program at [path] says it is (--version). One its data folder won't run (item 415: a DynamicUser's
+    // on systemd 256 and later, Mandarin OS's, is mounted so nothing in it runs) is said in words the owner can act on,
+    // what .NET said logged.
+    private string Answers(string path)
+    {
+        try { return Run(path, "--version"); }
+        catch (System.ComponentModel.Win32Exception e) when (e.NativeErrorCode == EACCES)
+        {
+            log("update: " + e.Message);
+            throw new InvalidOperationException(NotRun(data));
+        }
+    }
+
+    private const int EACCES = 13;
+
+    /* Why an update in [data] can't be run, and what to do. */
+    private static string NotRun(string data) =>
+        $"this computer won't run programs from Mandarin Bridge's data folder ({data}): on Mandarin OS, update Mandarin OS " +
+        "(its system page, Settings → Update and restart), then update the Bridge again; elsewhere, run the install line again";
 
     // The download signed with Mandarin's release key, where one is built in (item 371): the sidecar's "sig", base64 of
     // the key's signature of the tarball. A checksum alone can be replaced with the tarball by whoever can write to the

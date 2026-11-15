@@ -16,8 +16,10 @@ data class AlbumVersion(val album: AlbumSummary, val label: String, val main: Bo
     /** Its row's name: its edition, else the album's title. */
     val name: String get() = edition?.takeIf { it.isNotEmpty() } ?: album.title
 
-    /** Its row's format: "24-bit / 96 kHz" from "24/96"; the quality as it is where it isn't bits over a rate. */
-    val format: String get() {
+    /** Its row's format: "24-bit / 96 kHz" from "24/96"; the quality as it is where it isn't bits over a rate; its MQA after it (item 418). */
+    val format: String get() = listOf(rate, album.mqa?.label.orEmpty()).filter { it.isNotEmpty() }.joinToString(" · ")
+
+    private val rate: String get() {
         val q = album.quality ?: return ""
         val m = Regex("""^(\d+)/([\d.]+)$""").find(q) ?: return q
         return "${m.groupValues[1]}-bit / ${m.groupValues[2]} kHz"

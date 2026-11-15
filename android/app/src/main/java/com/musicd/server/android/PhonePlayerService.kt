@@ -779,7 +779,7 @@ class PhonePlayerService : MediaLibraryService() {
             main.removeCallbacks(this)
             if (!turns.live || fetchesOn.get() == 0) return
             val waiting = player.playbackState == Player.STATE_BUFFERING && player.playWhenReady
-            aheadWaits = CachePlan.aheadWaits(aheadWaits, waiting, player.isLoading, player.totalBufferedDuration)
+            aheadWaits = CachePlan.aheadWaits(aheadWaits, waiting, player.isLoading, player.totalBufferedDuration) || EngineUse.holdsAhead(this@PhonePlayerService)   // item 416
             if (aheadWaits) writer?.let { w -> if (stoppedFor !== w) { stoppedFor = w; w.cancel() } }
             main.postDelayed(this, 1_000)
         }

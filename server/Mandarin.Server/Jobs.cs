@@ -22,11 +22,13 @@ namespace Mandarin.Server;
 
 internal static partial class Jobs
 {
-    public static readonly string[] Names = ["identify", "mbpack", "loudness", "labels", "days", "taste", "tailscale", "scan", "prune", "import", "services", "update", "cpu", "playback"];
+    public static readonly string[] Names = ["identify", "mbpack", "loudness", "labels", "days", "taste", "tailscale", "scan", "prune", "import", "services", "update", "cpu", "playback", "covers"];
 
     public static Identifier? Identify { get; private set; }
     public static PackStore? Packs { get; private set; }
     public static Loudness? Loudness { get; private set; }
+    // Each track looked at for MQA's signalling after the scan (item 418, Mqa/MqaPass.cs).
+    public static Mqa.MqaPass? MqaPass { get; private set; }
     public static ReleaseDays? Days { get; private set; }
     public static Taste? Taste { get; private set; }
     public static WriteUpSources? WriteUps { get; private set; }
@@ -87,8 +89,17 @@ internal static partial class Jobs
         var packs = Packs;
         var mb = new PackFirst(new MusicBrainz(Text(cfg["musicbrainz_url"]), version), () => packs.Get());
         var itunes = new ITunes(Text(cfg["itunes_url"]), version, Log);
-        Identify = new Identifier(mb, itunes, () => packs.Get(), Log, Int(cfg["identify_tick_ms"], 5000)) { Ready = () => Held };
-        Loudness = new Loudness(Log, Int(cfg["loudness_tick_ms"], 5000)) { Ready = () => Held, Identify = () => Identify };
+        // AcoustID, for the albums still unsure (item 414c): where it is asked (ACOUSTID_URL), with the key in Settings.
+        Identify = new Identifier(mb, itunes, () => packs.Get(), Log, Int(cfg["identify_tick_ms"], 5000))
+            { Ready = () => Held, Sound = new AcoustId(Environment.GetEnvironmentVariable("ACOUSTID_URL"), version) };
+        packs.Installed += () => _ = Identify?.PackUpdated();   // a new pack: what it may place looked at again (item 414b)
+        // Measured with the Album Scanner on (item 411), except while the tests keep to this machine and haven't asked for it (loudness: true).
+        var measureHere = !Lookups.LoopbackOnly || (cfg["loudness"] is JsonValue lo && lo.TryGetValue<bool>(out var loOn) && loOn);
+        Loudness = new Loudness(Log, Int(cfg["loudness_tick_ms"], 5000)) { Ready = () => Held && measureHere, Identify = () => Identify };
+        // Likewise MQA's (item 418): always, except while the tests keep to this machine and haven't asked for it (mqa: true).
+        var mqaHere = !Lookups.LoopbackOnly || (cfg["mqa"] is JsonValue mq && mq.TryGetValue<bool>(out var mqOn) && mqOn);
+        MqaPass?.Stop();
+        MqaPass = new Mqa.MqaPass(Log, Int(cfg["mqa_tick_ms"], 3000)) { Ready = () => Held && mqaHere };
         // Record labels, release days and the taste work (v0.8.20): MusicBrainz as
         // itself (no pack), Discogs, FanArt.tv and Deezer where the configuration says.
         var labelsMb = new MusicBrainz(Text(cfg["musicbrainz_url"]), version);
@@ -136,12 +147,19 @@ internal static partial class Jobs
         if (cfg["identify"] is JsonValue on && on.TryGetValue<bool>(out var yes) && yes) Identify.Start();
         Packs.Start();
         Loudness.Start();
+        MqaPass.Start();
         Taste.Start();
         // Found in the background, except while the tests keep to this machine and haven't asked for it (credits: true).
         if (!Lookups.LoopbackOnly || (cfg["credits"] is JsonValue cr && cr.TryGetValue<bool>(out var crOn) && crOn))
             credits.Start(Int(cfg["credits_tick_ms"], 2000));
         // The tiles' covers drawn ahead after a scan: likewise (covers_ahead: true).
         Covers.AheadOn = !Lookups.LoopbackOnly || (cfg["covers_ahead"] is JsonValue ca && ca.TryGetValue<bool>(out var caOn) && caOn);
+        // The cover finder (item 409): likewise (auto_covers: true), an album auto_covers_gap_ms apart (4000).
+        var findCovers = !Lookups.LoopbackOnly || (cfg["auto_covers"] is JsonValue ac && ac.TryGetValue<bool>(out var acOn) && acOn);
+        AutoCovers.Current?.Stop();
+        AutoCovers.Current = new AutoCovers(new CoverCatalogues(Text(cfg["itunes_url"]), Text(cfg["deezer_url"]), Text(cfg["musicbrainz_url"]), Text(cfg["coverart_url"]), version, Log),
+            Pause(cfg["auto_covers_gap_ms"], 4000), Log) { Ready = () => findCovers && Holds("covers") };
+        if (findCovers) AutoCovers.Current.Start();
         _ = Tailscale.Start();
         Scans.Start(cfg, dataDir);
         // Playback whole (v0.8.49, stage 6): the hub.
@@ -158,7 +176,7 @@ internal static partial class Jobs
         });
     }
 
-    /* After a library scan (Scans.cs; the tests' /internal/jobs/after-scan): the release days, today's Smart Picks, and the covers drawn ahead. */
+    /* After a library scan (Scans.cs; the tests' /internal/jobs/after-scan): the release days, today's Smart Picks, the covers drawn ahead, and covers looked for. */
     public static async Task AfterScan()
     {
         try
@@ -167,6 +185,8 @@ internal static partial class Jobs
             if (Holds("taste") && Taste is { } t && await Library.CurrentCopy() is { } s) t.Kick(s, false);
             // The tiles' covers not drawn yet, drawn ahead (Covers.Ahead.cs).
             Covers.DrawAhead();
+            // The albums with no cover of their own not looked at yet, a cover looked for (Extras/AutoCovers.cs).
+            AutoCovers.Current?.Kick();
         }
         catch (Exception e) { Server.Log($"[jobs] after the scan: {e.GetType().Name}: {e.Message}"); }
     }
@@ -198,7 +218,9 @@ internal static partial class Jobs
         Identify?.Stop();
         Packs?.Stop();
         Loudness?.Stop();
+        MqaPass?.Stop();
         Days?.Stop();
+        AutoCovers.Current?.Stop();
         Taste?.Stop();
     }
 }

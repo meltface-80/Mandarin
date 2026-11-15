@@ -1,8 +1,8 @@
 "use strict";
 /*
- * The server's log always on (item 389, Diagnostics.cs; before, item 334 made it on by default but it could be switched
- * off, which deleted it): kept from the start in <data>/Logs, asked to switch off it stays on and keeps what it had,
- * and across a restart (an update) it goes on in the same file.
+ * Mandarin's one log (item 425, Diagnostics.cs) kept from the start in <data>/Logs/Mandarin_log.txt, with no switch and
+ * no route to read, clear or zip it (it is read where it is kept), and across a restart (an update) going on in the
+ * same file.
  */
 const ports = require("./ports");
 const test = require("node:test");
@@ -16,28 +16,23 @@ const { createServer, built } = require("./server");
 const skip = built() || (!haveFfmpeg() && "ffmpeg is not installed");
 const PORT = ports.port(), B = "http://127.0.0.1:" + PORT;
 
-test("the server's log kept from the start, can't be switched off, and goes on across a restart", { skip, timeout: 120000 }, async (t) => {
+test("the one log kept from the start, with no switch, and going on across a restart", { skip, timeout: 120000 }, async (t) => {
   const lib = makeLibrary();
   const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false, identify: false });
   const ctx = await srv.start();
   t.after(() => srv.stop());
   let token = await signIn(B);
   const H = () => ({ Authorization: "Bearer " + token, "Content-Type": "application/json" });
-  const state = async () => (await fetch(B + "/api/diagnostics", { headers: H() })).json();
-  const kept = async () => (await fetch(B + "/api/diagnostics/log", { headers: H() })).text();
-  const file = path.join(lib.data, "Logs", "MandarinServer_log.txt");
-  // Never switched: on, and what the server said kept (the sign-in, here), in the file a person would open.
-  assert.equal((await state()).on, true);
-  assert.match(await kept(), /\[auth\]/);
-  assert.match(fs.readFileSync(file, "utf8"), /^# Mandarin Server /);
-  // Asked to switch off: still on, nothing deleted, no flag left to keep it off.
-  assert.equal((await (await fetch(B + "/api/diagnostics", { method: "POST", headers: H(), body: JSON.stringify({ on: false }) })).json()).on, true);
-  assert.ok((await state()).bytes > 0, "what was kept, kept");
-  assert.ok(!fs.existsSync(path.join(lib.data, "diagnostics-off")));
-  assert.match(await kept(), /\[auth\][\s\S]*asked to switch the log off: it stays on/);
-  // Restarted: on, the same file going on.
+  const file = path.join(lib.data, "Logs", "Mandarin_log.txt");
+  // What the server said kept (its start, the sign-in), in the file a person would open.
+  assert.match(fs.readFileSync(file, "utf8"), /\[server\] \[start\] Mandarin Server [\s\S]*\[server\] \[auth\] signed in/);
+  // No switch, nothing to read it through, clear or zip it.
+  for (const p of ["/api/diagnostics", "/api/diagnostics/log", "/api/diagnostics/clear", "/api/diagnostics/zip"])
+    assert.equal((await fetch(B + p, { method: p.endsWith("clear") ? "POST" : "GET", headers: H(), body: p.endsWith("clear") ? "{}" : undefined })).status, 404, p);
+  // Restarted: the same file going on, the first start's lines kept.
   await ctx.restart(token);
   token = await signIn(B).catch(() => token);
-  assert.equal((await state()).on, true, "on across a restart");
-  assert.match(fs.readFileSync(file, "utf8"), /asked to switch the log off: it stays on[\s\S]*\[server\] Mandarin's server/);
+  assert.equal((fs.readFileSync(file, "utf8").match(/\[server\] \[start\] Mandarin Server .* starting/g) || []).length, 2, fs.readFileSync(file, "utf8"));
+  assert.match(fs.readFileSync(file, "utf8"), /\[server\] \[auth\] signed in[\s\S]*\[server\] \[start\] Mandarin Server/);
+  assert.deepEqual(fs.readdirSync(path.join(lib.data, "Logs")), ["Mandarin_log.txt"]);
 });

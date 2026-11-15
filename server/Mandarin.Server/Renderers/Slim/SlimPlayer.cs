@@ -106,7 +106,7 @@ internal sealed class SlimPlayer
     {
         if (Runs is { } r) { r.Heard(s); return; }
         string? nextToSend = null;
-        var sendUnpause = false;
+        bool sendUnpause = false, gain = false;
         lock (gate)
         {
             if (s.Event != "STMf") { elapsedMs = s.ElapsedMs; elapsedAt = Environment.TickCount64; }
@@ -115,6 +115,7 @@ internal sealed class SlimPlayer
                 case "STMs":   // a track has begun playing: the next, where it was given
                     if (streaming != current && streaming.Length > 0) { current = streaming; offset = 0; if (next == current) next = ""; }
                     state = "PLAYING";
+                    gain = true;   // its gain for this track: unity for one untouched (item 418)
                     break;
                 case "STMl":   // buffered enough to start: started, where Play was asked for
                     loaded = true;
@@ -135,6 +136,7 @@ internal sealed class SlimPlayer
         }
         if (nextToSend != null) Send(StreamOf(nextToSend, autostart: '1'));
         if (sendUnpause) Send(Strm('u'));
+        if (gain) Send(Audg(Gain()));
     }
 
     /* The track [uri] set: what it played stopped and forgotten, this one fetched, to wait until Play. */
@@ -234,8 +236,12 @@ internal sealed class SlimPlayer
     public double Volume { get { lock (gate) return volume; } }
     public bool Muted { get { lock (gate) return muted; } }
 
-    public void SetVolume(double v) { lock (gate) volume = Math.Clamp(v, 0, 100); Send(Audg(Muted ? 0 : Volume / 100)); }
-    public void SetMute(bool m) { lock (gate) muted = m; Send(Audg(m ? 0 : Volume / 100)); }
+    public void SetVolume(double v) { lock (gate) volume = Math.Clamp(v, 0, 100); Send(Audg(Gain())); }
+    public void SetMute(bool m) { lock (gate) muted = m; Send(Audg(Gain())); }
+
+    /* Squeezelite's volume is a gain on the samples: unity while it plays a track sent untouched to an MQA DAC (item 418),
+       else the volume; muted (or at 0%), silence either way. */
+    private double Gain() { lock (gate) return muted || volume <= 0 ? 0 : Mqa.MqaPlan.Untouched(current) ? 1 : volume / 100; }
 
     /* strm s for [uri]: its codec by its kind, fetched from where it is (the server it is connected to, where the
        address names no other), as an HTTP request. */
@@ -243,7 +249,7 @@ internal sealed class SlimPlayer
     {
         string extra;
         lock (gate) extra = said.GetValueOrDefault(uri, "");
-        return Request(uri, FormatOf(new Uri(uri).AbsolutePath), extra, autostart);
+        return Request(uri, FormatOf(new Uri(uri).AbsolutePath), extra + Mqa.MqaPlan.HeaderFor(uri), autostart);
     }
 
     /* strm s for the stream at [uri], of [format], its request carrying [headers]. */
@@ -256,7 +262,7 @@ internal sealed class SlimPlayer
         return Strm('s', format, request, (ushort)u.Port, ip, autostart: autostart);
     }
 
-    /* What a track is, from its DIDL-Lite, as request headers the player may show (percent-encoded: a header is ASCII). */
+    /* What a track is, from its DIDL-Lite, as request headers the player may show (percent-encoded: a header is ASCII): its title, artist, album and cover. */
     internal static string Headers(string meta)
     {
         if (meta.Length == 0) return "";
@@ -267,6 +273,8 @@ internal sealed class SlimPlayer
         Add("X-Mandarin-Title", Tag(meta, "dc:title"));
         Add("X-Mandarin-Artist", Tag(meta, "upnp:artist") ?? Tag(meta, "dc:creator"));
         Add("X-Mandarin-Album", Tag(meta, "upnp:album"));
+        // Its cover (item 430): the album's art at its signed address, which a Bridge fetches with no sign-in, as a renderer does.
+        Add("X-Mandarin-Art", Tag(meta, "upnp:albumArtURI"));
         return sb.ToString();
     }
 

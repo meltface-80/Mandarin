@@ -32,6 +32,11 @@ internal sealed class Player(string engine, string ffmpeg, Action<string> log)
     /* Told when a track's last sample is in the engine's buffer (its stream read: SlimProto's STMd), and when all it had is played. */
     public Action<string>? Decoded;
     public Action? Ended;
+    /* Told what the engine says of a recording of what it hands the DAC (item 412: Capture.cs); null when the engine went. */
+    public Action<JsonObject?>? Captured;
+
+    /* Whether the engine records what it hands the DAC (its hello says so). */
+    public bool CanCapture { get; private set; }
 
     /* The engine on [location] (alsa:plughw:…, or file:… in the tests), with the DAC's native DSD [nativeDsd] ("" for DoP only). */
     public void Open(string location, string nativeDsd)
@@ -89,6 +94,9 @@ internal sealed class Player(string engine, string ffmpeg, Action<string> log)
     public void Resume() { State = "PLAYING"; Send(new JsonObject { ["cmd"] = "resume" }); }
     public void Stop() { State = "STOPPED"; Seconds = 0; Send(new JsonObject { ["cmd"] = "stop" }); }
 
+    /* [cmd] to the engine (a recording's: Capture.cs). */
+    public void Tell(JsonObject cmd) => Send(cmd);
+
     private void Send(JsonObject cmd)
     {
         lock (gate)
@@ -119,11 +127,14 @@ internal sealed class Player(string engine, string ffmpeg, Action<string> log)
                 case "ended": State = "STOPPED"; Seconds = 0; Rate = 0; Format = ""; Changed?.Invoke(); Ended?.Invoke(); continue;
                 case "error": Error = Str(ev["message"]); TrackFailed = Str(ev["kind"]) == "track"; State = "STOPPED"; log("[player] " + Error); break;
                 case "xrun": log("[player] the DAC ran dry (xrun #" + Num(ev["count"]).ToString(CultureInfo.InvariantCulture) + ")"); break;
+                case "hello": CanCapture = ev["capture"] is JsonValue c && c.TryGetValue<bool>(out var can) && can; continue;
+                case "capture": Captured?.Invoke(ev); continue;
                 default: continue;
             }
             Changed?.Invoke();
         }
         lock (gate) { if (proc == p) { State = "STOPPED"; Rate = 0; } }
+        Captured?.Invoke(null);
         Changed?.Invoke();
     }
 

@@ -22,7 +22,8 @@ type fakeWatch struct {
 	w     *watcher
 }
 
-var testWatch = watchConfig{Tick: 15 * time.Second, IdleAfter: 150 * time.Second, BusyBytes: 16 << 10, CPUWindow: time.Minute, CPUShare: 0.20}
+var testWatch = watchConfig{Tick: 15 * time.Second, IdleAfter: 150 * time.Second, BusyBytes: 16 << 10, CPUWindow: time.Minute,
+	CPUShare: 0.20, WarnShare: 0.10}
 
 func newFake() *fakeWatch {
 	f := &fakeWatch{t: time.Date(2026, 11, 13, 9, 11, 48, 0, time.UTC), cpu: 100, fw: true}

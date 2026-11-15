@@ -37,7 +37,9 @@ data class NowPlayingView(
     /** The album playing, as the server names it (its id, or "phone:…" for the phone's own; item 207: the Shelf finds it by it). */
     val albumId: String? = null,
     /** Every step of its way to the room (item 247): the lines under the album, the Signal path sheet. */
-    val signal: Signal? = null
+    val signal: Signal? = null,
+    /** MQA (item 418): its badge, and the line where this room sends it untouched. */
+    val mqa: Mqa? = null
 ) {
     /** The lines under the album, centred (item 247): the signal's, else the badge's words from an older server. */
     val infoLines: List<String> get() = signal?.lines?.takeIf { it.isNotEmpty() } ?: listOfNotNull(formatText)
@@ -84,7 +86,7 @@ data class NowPlayingView(
                 canNext = z.nextAllowed, canPrevious = z.previousAllowed, answeredAtMs = answeredAtMs,
                 shuffle = z.shuffle, loop = z.loop, format = np.format,
                 volume = z.outputs.firstNotNullOfOrNull { it.scale }, muted = z.outputs.any { it.muted }, artists = np.artists, trackId = np.trackId,
-                phoneAlbum = NowAlbum.phoneKey(np.albumId), albumId = np.albumId, signal = np.signal
+                phoneAlbum = NowAlbum.phoneKey(np.albumId), albumId = np.albumId, signal = np.signal, mqa = np.mqa
             )
         }
 

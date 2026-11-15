@@ -24,7 +24,7 @@ const DOCS = path.join(__dirname, "..", "docs");
 const WORDS = {
   fr: {
     "site.contents": "← Sommaire", "site.copy": "Copier", "site.copied": "Copié", "site.language": "Langue",
-    "install.h1": "Installer le serveur", "install.linux.title": "Installer sous Linux <small>(l'autre façon)</small>",
+    "install.h1": "Installer le serveur", "install.updating.title": "Mettre à jour",
     "how-it-works.h1": "Comment ça marche", "index.h1": "Votre musique, partout chez vous"
   },
   de: { "install.h1": "Den Server installieren", "site.contents": "← Inhalt", "index.h1": "Ihre Musik, überall zu Hause" }
@@ -96,12 +96,11 @@ test("choosing a language puts the marked texts in it, is remembered on another 
 
     assert.equal(await choose(page, "fr"), "fr");
     assert.equal(await text(page, "install.h1"), "Installer le serveur");
-    assert.equal(await text(page, "install.linux.title"), "Installer sous Linux <small>(l'autre façon)</small>");
+    assert.equal(await text(page, "install.updating.title"), "Mettre à jour");
     assert.equal(await text(page, "site.contents"), "← Sommaire");
     assert.equal(await text(page, "install.lead"), lead, "a key the language lacks keeps the English");
     assert.equal(await page.eval(`document.documentElement.lang`), "fr");
     assert.equal(await page.eval(`document.getElementById("lang-select").getAttribute("aria-label")`), "Langue", "an attribute too");
-    assert.equal(await page.eval(`document.querySelector(".copy-btn").textContent + "/" + document.querySelector(".copy-btn").getAttribute("data-copied")`), "Copier/Copié");
     assert.equal(await page.eval(`localStorage.getItem("mandarin-lang")`), "fr");
 
     // Another page, in another tab: French already, and the selector says so.
@@ -109,11 +108,12 @@ test("choosing a language puts the marked texts in it, is remembered on another 
     assert.equal(await settled(other), "fr", "remembered");
     assert.equal(await text(other, "how-it-works.h1"), "Comment ça marche");
     assert.equal(await other.eval(`document.getElementById("lang-select").value`), "fr");
+    assert.equal(await other.eval(`document.querySelector(".copy-btn").textContent + "/" + document.querySelector(".copy-btn").getAttribute("data-copied")`), "Copier/Copié");
 
     // German, then English: every text as the page wrote it, none of either language left.
     assert.equal(await choose(page, "de"), "de");
     assert.equal(await text(page, "install.h1"), "Den Server installieren");
-    assert.equal(await text(page, "install.linux.title"), english.find(e => e[0] === "install.linux.title")[1], "a key German lacks: English, not the French before it");
+    assert.equal(await text(page, "install.updating.title"), english.find(e => e[0] === "install.updating.title")[1], "a key German lacks: English, not the French before it");
     assert.equal(await choose(page, "en"), "en");
     const back = JSON.parse(await page.eval(`JSON.stringify([...document.querySelectorAll("[data-i18n]")].map(e => [e.getAttribute("data-i18n"), e.innerHTML]))`));
     assert.deepEqual(back, english, "English restores the original text");

@@ -234,6 +234,19 @@ class ServerClient(
     fun resetAlbumEdit(offset: Long): EditState = EditState.parse(post("/api/album/edit/reset", JSONObject().put("offset", offset)))
     fun matchRelease(offset: Long, query: String, how: String): JSONObject =
         post("/api/identify/match", JSONObject().put("offset", offset).put("query", query).put("how", how), 60000)
+    /** Match by sound (item 419): started for the album (one album at a time: refused while another's is under way), and where it is. */
+    fun soundMatchStart(offset: Long): SoundJob = SoundJob.parse(post("/api/identify/sound", JSONObject().put("offset", offset)))
+    fun soundMatchState(offset: Long): SoundJob = SoundJob.parse(getJson("/api/identify/sound?offset=$offset"))
+    /**
+     * Folders and copies (item 424): the album split ([by] "folder", "words", "format" or "numbers"), joined back ([with]:
+     * the albums Split by folder made, else a split's parts), or looked at again; each the albums its tracks are in now,
+     * the one kept first. Library clean-up's albums that look like two copies merged.
+     */
+    fun splitAlbum(offset: Long, by: String): List<Long> = AlbumSplitEdit.albums(post("/api/album/split", JSONObject().put("offset", offset).put("by", by), 120000))
+    fun joinAlbum(offset: Long, with: List<Long>): List<Long> =
+        AlbumSplitEdit.albums(post("/api/album/join", JSONObject().put("offset", offset).apply { if (with.isNotEmpty()) put("with", org.json.JSONArray(with)) }, 120000))
+    fun lookAgain(offset: Long): List<Long> = AlbumSplitEdit.albums(post("/api/album/look-again", JSONObject().put("offset", offset), 120000))
+    fun mergedAlbums(): Merged = AlbumSplitEdit.merged(getJson("/api/library/merged"))
 
     /**
      * Settings (item 76): the server's version; the devices signed in to the account, and one signed out; an API key as

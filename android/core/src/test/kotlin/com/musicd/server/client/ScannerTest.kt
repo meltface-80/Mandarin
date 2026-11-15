@@ -8,49 +8,113 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.util.Locale
 
-/** Settings → Library Scanner as the page says it (item 90). */
+/** Settings → Library Scanner as the page says it (items 90 and 411). */
 class ScannerTest {
     private val us = Locale.US
     private fun j(s: String) = JSONObject(s)
 
-    @Test fun `the schedule's now, identification's status and progress`() {
-        val waiting = j("""{"reason":"waiting","settings":{"start":"01:00"},"progress":{"checked":0,"eligible":1234,"applied":0,"proposed":2,"unidentified":0}}""")
-        assertEquals("Now: waiting for 01:00.", Scanner.nowLine(waiting, null))
-        assertEquals("Waits for 01:00 (the server's clock).", Scanner.scanStatus(waiting))
-        assertEquals("0 of 1,234 albums checked · 0 applied · 2 proposed · 0 unidentified", Scanner.progressLine(waiting, us))
-        assertTrue(Scanner.canRecheck(waiting))
-        val checking = j("""{"reason":"checking","current":{"artist":"A","title":"One"},"settings":{}}""")
-        val measuring = j("""{"reason":"measuring","current":{"subtitle":"B","title":"Two"}}""")
-        assertEquals("Now: Identifying A — One · Measuring B — Two", Scanner.nowLine(checking, measuring))
-        assertEquals("Checking: A — One", Scanner.scanStatus(checking))
-        assertEquals("Now: nothing to do.", Scanner.nowLine(j("""{"reason":"done"}"""), null))
-        assertNull(Scanner.progressLine(null))
-        assertFalse(Scanner.canRecheck(j("{}")))
+    @Test fun `the Album Scanner's switch and its note, moved as it is tapped`() {
+        val on = j("""{"on":true,"schedule":{"on":true,"start":"01:00","end":"06:00"},"albums":3,"done":0,"unidentified":1,"proposed":0,"now":{"reason":"waiting"}}""")
+        assertEquals("Identifies albums, measures ReplayGain and finds missing covers, while nothing plays.", Scanner.note(on))
+        val off = Scanner.withScanner(on, j("""{"on":false}"""))!!
+        assertFalse(off.optBoolean("on"))
+        assertTrue("the schedule as it was", off.getJSONObject("schedule").getBoolean("on"))
+        assertEquals("Identifies albums, measures ReplayGain and finds missing covers, while nothing plays. Off: none of this is done.", Scanner.note(off))
+        assertTrue("the state itself untouched", on.optBoolean("on"))
+        // Schedule's own switch, and its hours.
+        val any = Scanner.withScanner(on, j("""{"schedule":false}"""))!!
+        assertTrue(any.optBoolean("on"))
+        assertFalse(any.getJSONObject("schedule").getBoolean("on"))
+        assertEquals("02:30", Scanner.withScanner(on, j("""{"start":"02:30"}"""))!!.getJSONObject("schedule").getString("start"))
+        assertEquals("Runs only between these times", Scanner.scheduleNote(true))
+        assertEquals("Off: runs any time, day and night", Scanner.scheduleNote(false))
+        assertNull(Scanner.withScanner(null, j("""{"on":true}""")))
+        assertEquals(Scanner.NOTE, Scanner.note(null))
     }
 
-    @Test fun `Measure ReplayGain, the processor and the clean-up`() {
-        val loud = j("""{"tagged":1200,"measured":5,"left":2,"failed":1,"streamed":1,"reason":"done"}""")
-        assertEquals("1,200 tagged · 5 measured · 2 to measure · 1 couldn’t be read", Scanner.loudLine(loud, us))
-        assertEquals("1 Qobuz and Tidal track aren’t measured.", Scanner.streamedNote(loud, us))
-        assertEquals("Every track is known. New ones are measured as they arrive.", Scanner.loudStatus(null, loud))
+    @Test fun `one readout, the albums with every step done, and what it is doing now`() {
+        val s = j("""{"albums":14119,"done":9960,"schedule":{"on":true,"start":"01:00"},"now":{"reason":"working","step":"measuring loudness","album":{"offset":7,"artist":"U2","title":"Pop"}}}""")
+        assertEquals("9,960 of 14,119 albums · 70%", Scanner.progressCount(s, us))
+        assertEquals(70, Scanner.percent(s))
+        assertEquals(99, Scanner.percent(j("""{"albums":1000,"done":999}""")))
+        assertEquals(0, Scanner.percent(j("""{"albums":0,"done":0}""")))
+        assertEquals("1 of 1 album · 100%", Scanner.progressCount(j("""{"albums":1,"done":1}"""), us))
+        assertNull(Scanner.progressCount(null, us))
+        assertEquals("Now: U2 — Pop · measuring loudness", Scanner.nowLine(s))
+        fun at(reason: String, more: String = "") = Scanner.nowLine(j("""{"schedule":{"on":true,"start":"01:00"},"now":{"reason":"$reason"$more}}"""))
+        assertEquals("Now: Untitled · identifying", at("working", ""","step":"identifying","album":{"artist":"","title":"Untitled"}"""))
+        assertEquals("Now: on to the next album", at("working", ""","step":null,"album":null"""))
+        assertEquals("Waiting for 01:00", at("waiting"))
+        assertEquals("Paused while music plays", at("playing"))
+        assertEquals("Paused while the library is scanned", at("scanning"))
+        assertEquals("MusicBrainz isn't answering; trying again in a few minutes", at("unreachable"))
+        assertEquals("All done", at("done"))
+        assertEquals("The rest are looked at again after the next library scan, or at night", at("later"))
+        assertEquals("Off", at("off"))
+        // Items 410 and 411: the music folders the cover finder can't reach, under the readout, three at most named.
+        assertEquals("The music folders can't be reached (/music/1tb/Music, /music/2tb/Music not found): covers will be looked for once they are.",
+            Scanner.coversUnreachable(j("""{"unreachable":["/music/1tb/Music","/music/2tb/Music"]}""")))
+        assertEquals("The music folders can't be reached (/a, /b, /c, … not found): covers will be looked for once they are.",
+            Scanner.coversUnreachable(j("""{"unreachable":["/a","/b","/c","/d"]}""")))
+        assertNull(Scanner.coversUnreachable(j("""{"unreachable":[]}""")))
+        assertNull(Scanner.coversUnreachable(s))
+        // Item 414c: why the albums left unsure aren't matched by sound, as the page says it.
+        assertEquals("Matching by sound needs an AcoustID key (Settings → API Keys).", Scanner.soundNote(j("""{"sound":"needs-key"}""")))
+        assertEquals("AcoustID refused the key, so albums aren't matched by sound (Settings → API Keys).", Scanner.soundNote(j("""{"sound":"refused"}""")))
+        assertEquals("AcoustID asked to wait: matching by sound rests a few minutes.", Scanner.soundNote(j("""{"sound":"limited"}""")))
+        assertEquals("AcoustID can't be reached: matching by sound rests a few minutes.", Scanner.soundNote(j("""{"sound":"unreachable"}""")))
+        assertNull(Scanner.soundNote(j("""{"sound":null}""")))
+        assertNull(Scanner.soundNote(s))
+    }
+
+    @Test fun `paused while music plays, and where (item 417b), as the page says it`() {
+        fun at(holding: String?) = Scanner.nowLine(j("""{"now":{"reason":"playing"${if (holding != null) ",\"holding\":$holding" else ""}}}"""))
+        fun room(name: String, kind: String = "room") = """{"kind":"$kind","name":"$name","state":"playing","since":1,"heard":2,"track":null}"""
+        assertEquals("Paused while music plays in Living room", at("[${room("Living room")}]"))
+        assertEquals("Paused while music plays in Kitchen and Living room", at("[${room("Kitchen")},${room("Living room")}]"))
+        assertEquals("Paused while music plays in Den, Pixel 8 and Living room", at("[${room("Den")},${room("Pixel 8", "phone")},${room("Living room")}]"))
+        val making = """{"kind":"making","name":"Lounge","state":"making","track":"01 Long"}"""
+        assertEquals("Paused while music plays in Lounge", at("[${room("Lounge")},$making]"))
+        assertEquals("Paused while a track is made for Lounge", at("[$making]"))
+        assertEquals("Paused while a track is made as it plays", at("""[{"kind":"making","name":null,"state":"making","track":"01 Long"}]"""))
+        assertEquals("Paused while music plays", at(null))
+        assertEquals("Paused while music plays", at("[]"))
+    }
+
+    @Test fun `the folders, Unidentified always, To confirm only while there are proposals`() {
+        val both = Scanner.folders(j("""{"unidentified":1204,"proposed":3}"""))
+        assertEquals(listOf("Unidentified" to 1204, "To confirm" to 3), both.map { it.title to it.count })
+        assertEquals(listOf("Tap to place them by hand", "Found, but not sure enough to apply unasked"), both.map { it.sub })
+        assertEquals(listOf("unidentified"), Scanner.folders(j("""{"unidentified":0,"proposed":0}""")).map { it.kind })
+        assertEquals("None to place by hand", Scanner.folders(j("""{"unidentified":0,"proposed":0}"""))[0].sub)
+        assertEquals(emptyList<ScanFolder>(), Scanner.folders(null))
+        assertEquals("2,3,4", Scanner.countsOf(j("""{"done":2,"unidentified":3,"proposed":4}""")))
+        assertEquals(500, Scanner.showAll(1204))
+        assertEquals(12, Scanner.showAll(12))
+    }
+
+    @Test fun `the processor and the clean-up`() {
         val cpu = j("""{"cores":[0,1,2,3],"split":true,"playback":[0],"background":[1,2,3],"dsp":true}""")
-        assertEquals("4 cores · 1 kept for playback (DSP in use) · 3 for scanning and everything else", Scanner.cpuLine(cpu))
-        assertEquals("To run playback at a higher priority too, give the server the SYS_NICE capability.", Scanner.cpuNote(cpu))
-        assertEquals("1 core, shared", Scanner.cpuLine(j("""{"cores":[0]}""")))
+        assertEquals("4 cores · 1 kept for playback (DSP in use) · 3 for the rest", Scanner.cpuLine(cpu))
+        assertEquals(" To run playback at a higher priority too, give the server the SYS_NICE capability.", Scanner.cpuHint(cpu))
+        assertEquals(" Playback also runs at a higher priority here.", Scanner.cpuHint(j("""{"cores":[0,1],"split":true,"raised":true}""")))
+        assertEquals("1 core, shared; playback comes first by priority", Scanner.cpuLine(j("""{"cores":[0]}""")))
+        assertEquals("", Scanner.cpuHint(j("""{"cores":[0]}""")))
+        assertNull(Scanner.cpuLine(null))
         // Item 260: a making under way said; the cores for it chosen where the cores are split.
         val making = j("""{"cores":[0,1,2,3],"split":true,"playback":[1,2,3],"background":[0],"dsp":true,"making":true,"making_cores":2}""")
-        assertEquals("4 cores · 3 kept for playback (making as it plays) · 1 for scanning and everything else", Scanner.cpuLine(making))
+        assertEquals("4 cores · 3 kept for playback (making as it plays) · 1 for the rest", Scanner.cpuLine(making))
         assertEquals(listOf("auto", "1", "2", "3"), Scanner.makingChoices(making).map { it.value })
         assertEquals("2", Scanner.makingCurrent(making))
         assertEquals("auto", Scanner.makingCurrent(cpu))
         assertEquals(listOf("Auto", "1", "2"), Scanner.makingChoices(j("""{"cores":[0,1,2],"split":true}""")).map { it.label })
         assertEquals(emptyList<SegChoice>(), Scanner.makingChoices(j("""{"cores":[0,1],"split":false}""")))
-        val clean = j("""{"files":{"albums":1,"tracks":12,"folders":1},"qobuz":{"albums":0,"signed_in":true}}""")
-        assertEquals("Remove 1 album", Scanner.cleanupButton(clean, "files", us))
-        assertNull(Scanner.cleanupButton(clean, "qobuz", us))
-        assertEquals("1 album (12 tracks) in 1 folder the scanner couldn’t find.", Scanner.filesNote(clean, us))
-        assertEquals("Qobuz albums in neither your favourites nor your purchases.", Scanner.servicesNote(clean))
-        assertEquals("…", Scanner.filesNote(null, us))
+        val clean = j("""{"files":{"albums":23,"tracks":240,"folders":3},"qobuz":{"albums":1,"signed_in":false},"tidal":{"albums":0}}""")
+        assertEquals(listOf(CleanupRow("files", "23 albums whose files are gone", 23), CleanupRow("qobuz", "1 Qobuz album (signed out of Qobuz)", 1)), Scanner.cleanupRows(clean, us))
+        assertEquals("2 Tidal albums no longer wanted", Scanner.cleanupRows(j("""{"tidal":{"albums":2}}"""), us).single().words)
+        assertEquals(emptyList<CleanupRow>(), Scanner.cleanupRows(j("""{"files":{"albums":0},"qobuz":{"albums":0,"signed_in":true}}"""), us))
+        assertTrue(Scanner.cleanupQuestion("tidal", 2, us).startsWith("Remove 2 Tidal albums from the database?"))
+        assertTrue(Scanner.cleanupQuestion("files", 1, us).startsWith("Remove 1 album whose files are gone from the server?"))
     }
 
     @Test fun `the MusicBrainz pack, downloaded, downloading and not`() {
@@ -64,10 +128,10 @@ class ScannerTest {
         assertTrue(going.following)
         val none = Scanner.pack(j("""{"latest":{"gz_size":104857600,"size":1048576000},"free":10}"""), false, day, us)
         assertEquals("Not downloaded. A 100 MB download that unpacks to 1,000 MB in the folder below.", none.state)
-        assertEquals("Not enough room in this folder: choose another below.", none.error)
+        assertEquals("Not enough room in this folder: choose another.", none.error)
         assertTrue(none.enabled)
         val offline = Scanner.pack(j("""{"check_error":"fetch failed"}"""), false, day, us)
-        assertEquals("Not downloaded. (fetch failed)", offline.state)
+        assertEquals("Not downloaded: GitHub not reached.", offline.state)   // in words, not "fetch failed: github.co…" (item 427)
         assertFalse(offline.enabled)
         assertEquals("/data (the data folder) · 1 MB free" to null, Scanner.packFolder(j("""{"dir":"/data","data_dir":"/data","free":1048576}"""), us))
         assertEquals("/x" to "Can't write here", Scanner.packFolder(j("""{"dir":"/x","data_dir":"/data","dir_problem":"Can't write here"}"""), us))
@@ -78,6 +142,8 @@ class ScannerTest {
         assertEquals("Not downloaded.", Scanner.pack(AndroidJson("""{"check_error":null}"""), false, day, us).state)
         val quiet = Scanner.pack(AndroidJson("""{"installed":{"releases":1,"built":"2026-10-15","size":1048576},"job":{"phase":null,"error":null}}"""), false, day, us)
         assertEquals(null, quiet.error)
+        // The readout's album and step, read the same way: a null step is no step.
+        assertEquals("Now: on to the next album", Scanner.nowLine(AndroidJson("""{"now":{"reason":"working","step":null,"album":null}}""")))
     }
 
     /** A JSON object as Android's org.json answers it: a JSON null read as text is the word "null", in it and in the objects in it. */
@@ -87,19 +153,33 @@ class ScannerTest {
         override fun optJSONObject(key: String): JSONObject? = super.optJSONObject(key)?.let { AndroidJson(it.toString()) }
     }
 
-    @Test fun `an album's line on each list`() {
+    @Test fun `an album's line in each folder, and its actions`() {
         val proposed = j("""{"candidate":{"artist":"A","title":"One (Remastered)","year":1988,"edition":"2015 remaster","release_year":2015,"parts":{"missing_tracks":1}},
             "similarity":78,"why":["track lengths differ"],"ambiguous":true}""")
-        assertEquals("→ A — One (Remastered) (1988) · 2015 remaster, released 2015, 1 track of the release missing here · 78 % alike — track lengths differ · two releases fit",
-            Scanner.line2(proposed, "proposed", true))
-        assertEquals("nothing with this title on MusicBrainz or iTunes", Scanner.line2(j("{}"), "unidentified", true))
-        assertEquals("nothing with this title on MusicBrainz", Scanner.line2(j("{}"), "unidentified", false))
-        val applied = j("""{"scanned":{"artist":"a","title":"one"},"candidate":{"year":2001,"matched_by":"isrc","from_pack":true}}""")
-        assertEquals("was a — one · 2001 · matched by ISRCs (pack)", Scanner.line2(applied, "applied", true))
-        assertEquals("was a — one · matched by you", Scanner.line2(j("""{"scanned":{"artist":"a","title":"one"},"candidate":{"manual":"pick"}}"""), "applied", true))
-        assertEquals("declined: D — Four Live", Scanner.line2(j("""{"candidate":{"artist":"D","title":"Four Live"}}"""), "rejected", true))
-        assertEquals(listOf("Accept", "Reject"), Scanner.actions("proposed").map { it.label })
-        assertEquals(100, Scanner.showAll("applied", 300))
-        assertEquals("2,3,4,5,6", Scanner.countsOf(j("""{"progress":{"checked":2,"applied":3,"proposed":4,"unidentified":5,"rejected":6}}""")))
+        assertEquals("→ A — One (Remastered) (1988) · 2015 remaster, released 2015, 1 track of the release missing here · 78 % alike",
+            Scanner.line2(proposed, "proposed"))
+        assertEquals("nothing with this title on MusicBrainz or iTunes", Scanner.line2(j("{}"), "unidentified"))
+        assertEquals("nearest: B — Two · 40 % · from iTunes", Scanner.line2(j("""{"candidate":{"artist":"B","title":"Two","source":"itunes"},"similarity":40}"""), "unidentified"))
+        assertEquals(listOf("Apply", "Not this"), Scanner.actions("proposed").map { it.label })
+        assertEquals(listOf("accept", "reject"), Scanner.actions("proposed").map { it.action })
+        assertEquals(listOf("Check again"), Scanner.actions("unidentified").map { it.label })
+        assertEquals("Applied", Scanner.actDone("accept"))
+        assertNull(Scanner.actDone("undo"))
+    }
+
+    @Test fun `To confirm's row says how sure and why, and offers the other releases kept (item 414b)`() {
+        val it = AndroidJson("""{"candidate":{"artist":"Artist N","title":"Near Miss","year":2003,"parts":{},
+            "editions":[{"mbid":"e1","edition":"deluxe","country":"JP","release_year":2012,"track_count":4}],
+            "others":[{"mbid":"o1","artist":"Someone Else","title":"Near Miss","year":1980,"edition":null,"source":"musicbrainz","similarity":40},
+                      {"mbid":"o2","artist":"","title":"Near Miss","year":null,"source":"itunes","similarity":31}]},
+            "similarity":71,"confidence":71,"reasons":["found by name only","3 of 3 tracks' lengths agree","track names differ",null]}""")
+        assertEquals("→ Artist N — Near Miss (2003) · 71 % sure", Scanner.line2(it, "proposed"))
+        assertEquals("found by name only · 3 of 3 tracks' lengths agree · track names differ", Scanner.reasons(it))
+        assertEquals(listOf(ScanChoice("e1", "edition", "deluxe · JP · 2012 · 4 tracks"), ScanChoice("o1", "pick", "Someone Else — Near Miss (1980) · 40 %"),
+            ScanChoice("o2", "pick", "Near Miss · iTunes · 31 %")), Scanner.choices(it))
+        assertEquals("", Scanner.reasons(j("{}")))
+        assertEquals(emptyList<ScanChoice>(), Scanner.choices(j("""{"candidate":null}""")))
+        assertEquals("Close, but not sure enough to apply unasked: how sure, and why. Apply writes the names shown; Not this turns it down for good; or tap another release.",
+            Scanner.folder("proposed", 1).note)
     }
 }

@@ -17,6 +17,7 @@ from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 
+from .mqa import notes as mqa_notes
 from .wavio import Audio
 
 CHUNK = 1 << 20  # frames per processing block; keeps temporary arrays small
@@ -934,7 +935,14 @@ def _fmt_freq(f: float) -> str:
 
 
 def compare(ref: Audio, cap: Audio) -> dict:
-    """Compare a capture with a reference. See the module docstring."""
+    """Compare a capture with a reference. See the module docstring. An MQA song's signalling is looked for in the
+    capture too, and what became of it said among the notes (mqa.py, Mandarin's item 418)."""
+    res = _compare(ref, cap)
+    res["notes"].extend(mqa_notes(ref, cap, res))
+    return res
+
+
+def _compare(ref: Audio, cap: Audio) -> dict:
     res: dict = {
         "ref": {"path": ref.path, "label": ref.label, "rate": ref.rate, "channels": ref.channels,
                 "frames": ref.frames, "bits": ref.bits, "is_float": ref.is_float},

@@ -36,8 +36,8 @@ android {
         targetSdk = 36
         // versionCode must rise with every published build or Android refuses
         // to install over the previous one.
-        versionCode = 16
-        versionName = "0.3.10"
+        versionCode = 21
+        versionName = "0.3.15"
         // 64-bit ARM only, as Mandarin's own native code is: the FiiO R7 and
         // every current Android device.
         ndk { abiFilters += "arm64-v8a" }
@@ -94,6 +94,7 @@ android {
     }
 
     lint { checkReleaseBuilds = false }
+    testOptions { unitTests.all { it.testLogging { events("passed", "failed", "skipped"); exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL } } }
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -124,4 +125,6 @@ dependencies {
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.material3:material3")
     implementation("androidx.activity:activity-compose:1.10.1")
+    // Now Playing's model and what Mandarin says of a track (NowPlaying.kt, Said.kt: plain Kotlin), tested on the JVM (item 430).
+    testImplementation("junit:junit:4.13.2")
 }

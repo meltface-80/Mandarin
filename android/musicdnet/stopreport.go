@@ -8,10 +8,10 @@
 //
 // The note, one item a line:
 //
-//	kind idle|cpu
+//	kind idle|cpu|busy
 //	why <the watch's words>
 //	cpu <seconds of CPU so far>
-//	busy <a line on what was busy>       (a CPU stop only)
+//	busy <a line on what was busy>       (a CPU stop, or busy.txt, only)
 //	line <one of its last log lines>
 package main
 
@@ -27,7 +27,8 @@ import (
 
 const (
 	stopNoteName = "stopped.txt"
-	exitIdle     = 3 // the app tells a stop of its own from a crash by these
+	busyNoteName = "busy.txt" // item 416: what it was doing when last busy, for after an end by Android
+	exitIdle     = 3          // the app tells a stop of its own from a crash by these
 	exitCPU      = 4
 	noteLineMax  = 300
 )
@@ -39,16 +40,20 @@ var exit = os.Exit
 // spinning may hold it) and exits.
 func (e *engine) stopSelf(kind, why string) {
 	os.WriteFile(filepath.Join(e.dir, stopNoteName), []byte(e.stopNote(kind, why)), 0o600)
-	e.mu.Lock()
-	ts := e.ts
-	e.mu.Unlock()
-	if ts != nil {
-		done := make(chan struct{})
-		go func() { ts.Close(); close(done) }()
-		select {
-		case <-done:
-		case <-time.After(3 * time.Second):
+	os.Remove(filepath.Join(e.dir, busyNoteName)) // the stop's note says it all
+	done := make(chan struct{})
+	go func() { // the lock too within the three seconds (item 416: nothing the engine holds keeps it)
+		e.mu.Lock()
+		ts := e.ts
+		e.mu.Unlock()
+		if ts != nil {
+			ts.Close()
 		}
+		close(done)
+	}()
+	select {
+	case <-done:
+	case <-time.After(3 * time.Second):
 	}
 	if kind == stopCPU {
 		exit(exitCPU)
@@ -56,6 +61,22 @@ func (e *engine) stopSelf(kind, why string) {
 		exit(exitIdle)
 	}
 }
+
+// noteBusy: the watch found it busy (item 416), what it is doing said in
+// its log and in a note the app reads at its next start: Android ends the app,
+// and the engine with it, five minutes into a load the engine itself lets be
+// (a transfer with the app's lease). "" once a window is calm: the note goes.
+func (e *engine) noteBusy(what string) {
+	p := filepath.Join(e.dir, busyNoteName)
+	if what == "" {
+		os.Remove(p)
+		return
+	}
+	e.logf("musicdnet: busy: %s", what)
+	os.WriteFile(p, []byte(e.stopNote(kindBusy, what+", at "+time.Now().Format("15:04:05"))), 0o600)
+}
+
+const kindBusy = "busy"
 
 func (e *engine) stopNote(kind, why string) string {
 	var b strings.Builder
@@ -69,7 +90,7 @@ func (e *engine) stopNote(kind, why string) string {
 	add("kind", kind)
 	add("why", why)
 	add("cpu", fmt.Sprintf("%.1f", cpuSeconds()))
-	if kind == stopCPU {
+	if kind == stopCPU || kind == kindBusy {
 		for _, l := range busyReport(10, 100*time.Millisecond) {
 			add("busy", l)
 		}

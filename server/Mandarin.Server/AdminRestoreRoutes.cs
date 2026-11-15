@@ -35,15 +35,50 @@ internal static partial class Library
     {
         var (b, answered) = await JsBody(ctx);
         if (answered) return true;
-        if (Backups.File(id) is not { } f) return await JsError(ctx, 404, "No such backup");
+        // A backup, or a copy of the database kept before a restore or a switch of builds (Admin/Backup.Copies.cs).
+        var f = Backups.File(id);
+        var copy = f == null ? Copies.File(id) : null;
+        if (f == null && copy == null) return await JsError(ctx, 404, "No such backup");
         if (Interlocked.Exchange(ref backupBusy, 1) == 1) return await JsError(ctx, 409, "A backup or restore is already running");
-        try { return await Finish(ctx, await RestoreFile(f, Backup.PartsOf(Prop(b, "include")), ctx, ts, Prop(b, "passphrase") is string { Length: > 0 } pass ? pass : null)); }
+        try
+        {
+            if (f == null) return await Finish(ctx, RestoreCopy(id));
+            return await Finish(ctx, await RestoreFile(f, Backup.PartsOf(Prop(b, "include")), ctx, ts, Prop(b, "passphrase") is string { Length: > 0 } pass ? pass : null));
+        }
         catch (Exception e)
         {
             Server.Log($"[backup] restore: {e.Message}");
             return await JsError(ctx, e is Backup.Refused r ? r.Status : 400, e.Message);
         }
         finally { Interlocked.Exchange(ref backupBusy, 0); }
+    }
+
+    /*
+     * A copy of the database kept before a restore or a switch of builds, put back as a backup's whole database is
+     * (staged, swapped in at the next start, the one there kept aside in its turn), this computer's music folders
+     * kept where the copy's aren't here (Admin/Backup.Folders.cs).
+     */
+    private static JsObj RestoreCopy(string id)
+    {
+        var (here, hereSetting) = FoldersHere();
+        var tmp = TmpFile(".db");
+        string staged;
+        try { staged = Copies.Stage(id, Db.File, tmp); }
+        finally { Rm(tmp); }
+        Server.Log($"[backup] {id}.db staged: swapped in at the next start");
+        var o = new JsObj();
+        o["ok"] = true;
+        o["restored"] = new List<object?> { "database" };
+        if (Backup.KeepFolders(staged, here, hereSetting, Server.Log) is { } said) o["folders"] = said;
+        o["restarting"] = true;
+        return o;
+    }
+
+    /* This computer's music folders, as the scan reads them and as the setting holds them, before a restore changes them. */
+    private static (List<string> Here, string? Setting) FoldersHere()
+    {
+        using var c = Db.Open();
+        return (Scans.Roots(), Backup.FoldersSetting(c));
     }
 
     /* A sealed backup's passphrase sent with its file: X-Mandarin-Passphrase, base64 of its UTF-8. */
@@ -82,6 +117,9 @@ internal static partial class Library
             var phone = Who(ctx).Phone;
             if (TJs.Truthy(m["phone"]) && phone != null && !TJs.StrictEq(m["phone"], phone)) map[TJs.Str(m["phone"])] = phone;
             var restored = new List<object?>();
+            // This computer's music folders, kept where the backup's aren't here (Admin/Backup.Folders.cs).
+            var (here, hereSetting) = FoldersHere();
+            string? folders = null;
             var wantServer = Backup.ServerParts.Any(p => Has(p) && TJs.Truthy(parts["server"])) || (Has("database") && hasDb);
             if (wantServer)
             {
@@ -93,7 +131,7 @@ internal static partial class Library
             {
                 // Its keys back in before it is staged: a database that can't take them is never swapped in.
                 if (sealedKeys != null) { Backup.CheckDatabase(dbFile); Backup.PutKeys(dbFile, sealedKeys); }
-                Backup.StageDatabase(dbFile, Db.File, DataDir, map);
+                folders = Backup.KeepFolders(Backup.StageDatabase(dbFile, Db.File, DataDir, map), here, hereSetting, Server.Log);
                 restored.Add("database");
             }
             else if (parts["server"] is var server && TJs.Truthy(server))
@@ -101,6 +139,7 @@ internal static partial class Library
                 using var c = Db.Open();
                 var done = server is JsObj so ? Backup.Apply(c, so, include.Where(kv => kv.Value).Select(kv => kv.Key).ToHashSet(), map) : [];
                 restored.AddRange(done);
+                if (done.Contains("settings")) folders = Backup.KeepFolders(c, here, hereSetting, Server.Log);
                 try { Backup.ExportEdits(c, DataDir); } catch (Exception e) { Server.Log($"[musicd] couldn't write album-edits.json: {e.Message}"); }
             }
             // The Tailscale identity, with the keys or the whole database: the node the backup was made on, not a new one.
@@ -125,6 +164,7 @@ internal static partial class Library
             o["restored"] = restored;
             o["version"] = m["version"];
             o["created"] = m["created"];
+            if (folders != null) o["folders"] = folders;
             if (Has("page") && TJs.Truthy(parts["page"])) { o["page"] = parts["page"]; restored.Add("page"); }
             if (Has("app") && TJs.Truthy(parts["app"])) { o["app"] = parts["app"]; restored.Add("app"); }
             o["restarting"] = restored.Any(x => !TJs.StrictEq(x, "page") && !TJs.StrictEq(x, "app"));

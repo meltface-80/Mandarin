@@ -17,9 +17,13 @@ internal static partial class Cpu
 {
     // The cores kept a while after the last making, so that the next track's, begun in its turn, finds them kept.
     private static readonly int MakingHoldMs = int.TryParse(Environment.GetEnvironmentVariable("MANDARIN_CPU_MAKING_HOLD_MS"), out var mh) && mh >= 0 ? mh : 30 * 1000;
+    // A making that has made nothing more and had nothing more read for this long isn't music playing (item 417).
+    private static readonly int QuietMs = int.TryParse(Environment.GetEnvironmentVariable("MANDARIN_MAKING_QUIET_MS"), out var mq) && mq > 0 ? mq : 30 * 1000;
     private static int makingRunning;      // makings under way
     private static long makingUntil;       // and their cores kept until then (Environment.TickCount64)
+    private static long makingFlowed;      // when one last made more, or had more read (Environment.TickCount64)
     private static Timer? makingTimer;
+    private static (long TrackId, string Name)? makingWhat;   // the last making begun: its track (item 417b)
     private static int makingCores = -1;   // the owner's setting, read once: 0 for Auto
 
     /* The cores the owner gave a making (the setting "making_cores"): 0 for Auto (all but two, or one: Cpu.Decide), else 1, 2 or 3. */
@@ -53,12 +57,44 @@ internal static partial class Cpu
         }
     }
 
+    /*
+     * A track being made as it plays, and going on (more made, or more of it read: MakingFlowed) within [QuietMs], or
+     * one ended within [MakingHoldMs]: the background's lookups wait (items 409, 417). A making held ahead of a paused
+     * device stays under way for as long as the pause; until item 417 the Album Scanner said "Paused while music plays"
+     * all that while. The cores stay kept for it (MakingActive): the device may go on at any moment.
+     */
+    public static bool MakingNow
+    {
+        get
+        {
+            var now = Environment.TickCount64;
+            return Volatile.Read(ref makingRunning) > 0 && now - Volatile.Read(ref makingFlowed) < QuietMs || now < Volatile.Read(ref makingUntil);
+        }
+    }
+
+    /* A making made more of its file, or its device read more of it (Upsample/Pace.cs). */
+    public static void MakingFlowed() => Volatile.Write(ref makingFlowed, Environment.TickCount64);
+
+    /* The track of the last making begun, its library id and its file's name, and how long ago it last went on (ms): what
+       holds the Album Scanner, said (item 417b). Null where none has been made. */
+    public static (long TrackId, string Name, long QuietMs)? MakingWhat
+    {
+        get { lock (Deciding_) return makingWhat is { } w ? (w.TrackId, w.Name, Environment.TickCount64 - Volatile.Read(ref makingFlowed)) : null; }
+    }
+
+    /* A making of track [trackId] (its file [name]) started: as Making(true), and named. */
+    public static void Making(long trackId, string name)
+    {
+        lock (Deciding_) makingWhat = (trackId, name);
+        Making(true);
+    }
+
     /* A making started (true) or ended (false): while any runs, and for a while after, playback keeps its cores. */
     public static void Making(bool on)
     {
         lock (Deciding_)
         {
-            if (on) makingRunning++;
+            if (on) { makingRunning++; MakingFlowed(); }
             else
             {
                 makingRunning = Math.Max(0, makingRunning - 1);

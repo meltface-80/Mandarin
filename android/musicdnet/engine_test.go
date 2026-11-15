@@ -273,6 +273,26 @@ func TestEngine(t *testing.T) {
 		if n := e.moved.Load(); n < 1000 {
 			t.Fatalf("bytes through the forward counted: %d", n)
 		}
+		// Item 416: the watch's words say how many of the app's connections are open through it.
+		held := make(chan struct{})
+		go func() {
+			if r, err := http.Get(base + "/api/hold"); err == nil {
+				r.Body.Close()
+			}
+			close(held)
+		}()
+		time.Sleep(500 * time.Millisecond)
+		if n := e.newWatch(defaultWatch, time.Now).conns(); n != 1 {
+			t.Fatalf("connections open through the forward, one held: %d", n)
+		}
+		<-held
+		http.DefaultClient.CloseIdleConnections()
+		for i := 0; i < 20 && e.fwNow.Load().Open() != 0; i++ {
+			time.Sleep(50 * time.Millisecond)
+		}
+		if n := e.fwNow.Load().Open(); n != 0 {
+			t.Fatalf("connections open through the forward, none: %d", n)
+		}
 		t0 := time.Now()
 		res, err = http.Get(base + "/api/hold")
 		if err != nil || time.Since(t0) < 2500*time.Millisecond {

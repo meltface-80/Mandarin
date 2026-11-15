@@ -49,6 +49,7 @@ import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import com.musicd.server.client.Contract
 import com.musicd.server.client.Credit
+import com.musicd.server.client.Mqa
 import com.musicd.server.client.Palette
 import com.musicd.server.client.ServerClient
 import kotlinx.coroutines.Dispatchers
@@ -157,6 +158,13 @@ internal fun NowPlayingScreen(zoneId: String, client: () -> ServerClient?, onBac
                     // What the room is hearing, every step of the way (item 247): the lines centred, a tap for the signal path.
                     if (v.infoLines.isNotEmpty()) SignalLines(v.infoLines, v.signal?.let { { signalOpen = true } }, v.signal?.alert)
                     v.signal?.takeIf { signalOpen }?.let { SignalPathSheet(it, { signalOpen = false }) }
+                    // MQA (item 418): its badge, and where this room sends it untouched to a DAC that decodes it, that it does.
+                    v.mqa?.let { m ->
+                        val c = if (m.studio) MaterialTheme.colorScheme.primary else dim
+                        Text(m.label, Modifier.parity("now-playing.mqa").padding(top = 8.dp).border(1.dp, if (m.studio) c else paletteColor(Palette.BORDER), RoundedCornerShape(5.dp))
+                            .padding(horizontal = 7.dp, vertical = 1.dp), color = c, fontSize = 12.sp, lineHeight = 15.sp, fontWeight = FontWeight.W600)
+                        if (m.untouched) Text(Mqa.UNTOUCHED, Modifier.parity("now-playing.mqa-untouched").padding(top = 4.dp), color = dim, fontSize = 12.sp, lineHeight = 15.sp, fontWeight = FontWeight.W500)
+                    }
                     RoomSeekBar(room, v, client) { to -> act { it.seek(zoneId, to) } }
                     // The transport: shuffle and repeat smaller and dimmer until on, previous and next in brass, play/pause a brass disc.
                     Row(Modifier.fillMaxWidth().padding(top = 12.dp), horizontalArrangement = Arrangement.spacedBy(14.dp, Alignment.CenterHorizontally), verticalAlignment = Alignment.CenterVertically) {

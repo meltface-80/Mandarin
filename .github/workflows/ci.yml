@@ -59,6 +59,24 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
       - name: numpy
         run: python3 -m pip install --quiet numpy
+      # ffmpeg (item 413): comparing two songs at different sample rates resamples one with its soxr; the same
+      # static build as the suite's below, from the same cache.
+      - name: Restore ffmpeg
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6
+        with:
+          path: ~/ffmpeg-static
+          key: ffmpeg-static-amd64-release-v1
+      - name: Install ffmpeg
+        run: |
+          set -e
+          if ! ~/ffmpeg-static/ffmpeg -version >/dev/null 2>&1; then
+            mkdir -p ~/ffmpeg-static
+            curl -sSL --retry 5 --retry-all-errors --retry-delay 5 --max-time 300 -o /tmp/ffmpeg.tar.xz https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz
+            tar -xJf /tmp/ffmpeg.tar.xz --strip-components=1 -C ~/ffmpeg-static --wildcards '*/ffmpeg' '*/ffprobe'
+          fi
+          echo "$HOME/ffmpeg-static" >> "$GITHUB_PATH"
+          v=$(~/ffmpeg-static/ffmpeg -version)
+          echo "${v%%$'\n'*}"
       - name: Tests (sq-tool/tests)
         working-directory: sq-tool
         run: python3 -m unittest discover -s tests

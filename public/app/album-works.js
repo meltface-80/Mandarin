@@ -144,6 +144,8 @@ function buildTrackRow(t, idx, opts) {
   // Under a disc's heading the row needn't say which disc it is on.
   su.textContent = opts.noDisc ? subText.split(" · ").filter(p => !/^Disc \d+$/.test(p)).join(" · ") : subText;
   tx.appendChild(ti); tx.appendChild(su);
+  const mqa = mqaBadge(t.mqa, "album.track-mqa");   // MQA, as its samples say (item 418)
+  if (mqa) tx.appendChild(mqa);
   li.appendChild(tx);
   // The track's length on the right, level with the title.
   if (len) { const ln = document.createElement("span"); ln.className = "t-len"; ln.textContent = len; li.appendChild(ln); }

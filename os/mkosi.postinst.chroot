@@ -1,5 +1,5 @@
 #!/bin/bash
-# Inside the image, last: Mandarin installed (natively, as tools/linux/install.sh does on any Debian), and the system
+# Inside the image, last: Mandarin installed (natively, by linux-install.sh, Mandarin OS's own installer), and the system
 # closed and set to look after itself (item 389): no login anywhere, no SSH, the firewall on, apt's own timers off (the
 # weekly upkeep updates when nothing plays).
 set -euo pipefail
@@ -7,9 +7,13 @@ V="$(cat /var/cache/mandarin-release/version)"
 # Mandarin's user and group numbered the same in every version of Mandarin OS (item 401): an update starts a new system,
 # and the files Mandarin owns, on the data partition and on USB drives, must stay its own there. 3500, outside the
 # range Debian's packages take theirs from (they took 989 and 988 here, and a package added later would move them).
-# The shared folder's user is 3501 and its group 3502 (apply). install.sh keeps a user that is there.
+# The shared folder's user is 3501 and its group 3502 (apply). linux-install.sh keeps a user that is there.
 groupadd --system --gid 3500 mandarin
 useradd --system --uid 3500 --gid mandarin --groups audio --home-dir /data/MandarinServer --no-create-home --shell /usr/sbin/nologin mandarin
+# Mandarin Bridge's, 3503 (item 415): its service runs as it (the Bridge's own and mandarin-bridge.service.d's), and its
+# data folder, carried from version to version, is its own. linux-install.sh keeps it.
+groupadd --system --gid 3503 mandarin-bridge
+useradd --system --uid 3503 --gid mandarin-bridge --home-dir /var/lib/mandarin-bridge --no-create-home --shell /usr/sbin/nologin mandarin-bridge
 # A build of this checkout's (os/mandarin-from-source.sh) carries the key it was signed with; a release, the release key.
 KEY="$(cat /var/cache/mandarin-release/build.pub 2>/dev/null || true)"
 env MANDARIN_RELEASES=file:///var/cache/mandarin-release MANDARIN_VERSION="$V" ${KEY:+"MANDARIN_RELEASE_KEY=$KEY"} \
@@ -37,7 +41,8 @@ systemctl mask systemd-networkd.service systemd-networkd.socket systemd-networkd
 # Where the installed system's EFI partition is mounted when looked at (the installer's fstab).
 mkdir -p /efi
 systemctl enable mandarin-os-started.service mandarin-os-health.service mandarin-os-update-check.timer
-systemctl enable mandarin-console.service mandarin-os-apply.service mandarin-os-check.service mandarin-os-maintain.timer mandarin-os-page.service mandarin-os-power.path \
+# Mandarin's one log, the journal's lines of Mandarin, its Bridge and the OS written into /data/Logs (item 425).
+systemctl enable mandarin-log.service mandarin-console.service mandarin-os-apply.service mandarin-os-check.service mandarin-os-maintain.timer mandarin-os-page.service mandarin-os-power.path \
   nftables.service smbd.service avahi-daemon.service wsdd2.service NetworkManager.service systemd-resolved.service systemd-timesyncd.service
 # What the upkeep must never remove.
 apt-mark manual $(dpkg-query -W -f '${Package}\n' | grep -E '^(linux-image-amd64|libsoxr0|libopus0|libmp3lame0|libgnutls30t64|libfreetype6|libharfbuzz0b|libfontconfig1|fonts-dejavu-core|libbz2-1.0|zlib1g|poppler-utils|python3|python3-numpy|libicu[0-9]+|libasound2t64|samba|avahi-daemon|wsdd2|network-manager|nftables|unattended-upgrades|curl|ca-certificates|openssl|jq|dialog|kbd|e2fsprogs|dosfstools|exfatprogs|systemd|systemd-boot|udev|dbus)$') >/dev/null

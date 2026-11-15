@@ -60,8 +60,9 @@ type engine struct {
 	serve net.Listener // the server's tailnet port, when serving
 	err   string
 
-	moved atomic.Int64 // bytes through the forward, both ways (idle.go)
-	watch *watcher     // the phone's: it stops itself (idle.go); nil for the server
+	moved atomic.Int64              // bytes through the forward, both ways (idle.go)
+	fwNow atomic.Pointer[Forwarder] // fw, for the watch without the lock (item 416)
+	watch *watcher                  // the phone's: it stops itself (idle.go); nil for the server
 
 	logMu sync.Mutex
 	lines []string
@@ -121,6 +122,7 @@ func (e *engine) forward(target string, port int) (string, error) {
 		return "", err
 	}
 	e.fw = fw
+	e.fwNow.Store(fw)
 	return addr, nil
 }
 

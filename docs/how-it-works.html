@@ -46,14 +46,30 @@
   <ul class="plain">
     <li data-i18n="how-it-works.top.li1"><b>Library.</b> The music folders are walked and every audio file's tags are read into a database (SQLite).
         Albums are decided a folder at a time, so a folder of tracks by different artists with no album-artist tag
-        becomes one compilation, and <code>CD1</code>/<code>CD2</code> folders become one album. Covers come from
+        becomes one compilation, and <code>CD1</code>/<code>CD2</code> folders become one album. Two releases in one folder
+        with one album tag are one album; moved into a folder each, they become two albums, versions of each other, the
+        folder with most of the tracks keeping the album, its plays and edits. Edit album's <b>Folders and copies</b> splits
+        one by hand (by folder, by the version words in its titles, by format or by a repeated track number), joins it back,
+        or reads its folders again; <b>Library clean-up</b> lists the albums that look like two copies merged. Covers come from
         <code>cover.jpg</code>/<code>folder.jpg</code>/… or the first track's embedded picture, resized once per size and
-        cached; an album with no cover gets one drawn, with its title. The pictures are drawn with ffmpeg. Rescans only
+        cached. An album with no cover of its own is looked up on Apple Music, Deezer and MusicBrainz in the background
+        and given the cover where its title, artist and tracks all agree; otherwise it gets one drawn, with its title. The pictures are drawn with ffmpeg. Rescans only
         re-read files whose size or date changed, on the cores playback doesn't keep.</li>
     <li data-i18n="how-it-works.top.li2"><b>Album names.</b> The identification scan looks each album up by what its files carry (a release id, barcode,
         catalogue number, ISRCs), then by name on MusicBrainz and iTunes. It scores each release against the tracks and
         their lengths, and lays the names over the album, never on the files, with the MusicBrainz pack, loudness
-        measuring and the waveforms alongside. Every MusicBrainz request waits its turn on one timer, and while
+        measuring and the waveforms alongside. Each verdict gets a confidence from all its evidence (how it was found, how many
+        tracks' lengths agree, the names), shown with its reasons; a release you turn down is never proposed again, the kind of
+        edition you choose for an artist is preferred for their other albums, and a new pack looks again at what it couldn't
+        place. An album still unsure after all that is matched by how it sounds: each track's Chromaprint fingerprint, made on
+        the server from its first two minutes (one track at a time, at the lowest priority) and kept, is looked up on AcoustID
+        with your key (<b>Settings → Setup → API Keys</b>), and the release most of the tracks are on is scored like any other.
+        <b>Match by sound</b> in Edit album does the same for one album when you ask, and offers the releases its tracks are on.
+        Edit album's <b>Version</b> shows the release chosen: its version name, label, catalogue number, barcode, country, year
+        and format, each yours to change; what you change stays when another match or edition is applied.
+        One switch, <b>Album Scanner</b>, runs identification, loudness measuring
+        and the cover finder together, while nothing plays, at any hour or only in the hours <b>Schedule</b> sets.
+        Every MusicBrainz request waits its turn on one timer, and while
         MusicBrainz is turning requests away every lookup pauses (a minute, then twice as long each time, an hour at
         most).</li>
     <li data-i18n="how-it-works.top.li3"><b>Credits and artists.</b> In the background, one album and one act at a time at MusicBrainz's pace, the server
@@ -67,7 +83,9 @@
         own API), every device kept in a register with your names and settings, and played through its own transport
         (AVTransport): the queue kept on the server, the next track handed over ahead of time (gapless where it supports
         it), changes arriving by UPnP events. The stream plans decide what each device gets: the file itself within its
-        ceiling, FLAC at its highest rate or upsampled in 64-bit float otherwise.</li>
+        ceiling, FLAC at its highest rate or upsampled in 64-bit float otherwise. A track whose samples carry MQA's
+        signalling (found after the scan, the first ten seconds of each file read as the open identifiers read them) goes
+        to a device set to <b>This DAC decodes MQA</b> as the file itself, nothing done to it; any other plays it as PCM.</li>
     <li data-i18n="how-it-works.top.li5"><b>Sonos.</b> One speaker is found over SSDP and the whole household is read from it
         (<code>ZoneGroupTopology</code>). A Sonos <i>group</i> is a zone (its coordinator owns the queue) and each
         <i>room</i> is an output (volume and mute are per room). Tracks go into the coordinator's own <b>Sonos queue</b>,

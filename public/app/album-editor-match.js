@@ -17,6 +17,39 @@ function aeMatchLineFor(c) {
   return bits.join(" · ");
 }
 
+// The match applied, as the editor says it (item 414): how it was found, and the record's other editions near enough,
+// a tap each (written as a match is, undone with the album's other edits).
+const AE_BY = { "musicbrainz-id": "the files' MusicBrainz ID", barcode: "barcode", "catalogue-number": "catalogue number", isrc: "ISRCs", "disc-lengths": "the tracks' lengths, as on the CD", acoustid: "sound" };
+function aeMatchHow(m) {
+  if (m.manual === "edition") return "edition chosen by you";
+  if (m.manual === "sound") return "matched by sound, chosen by you";
+  if (m.manual) return "matched by " + (m.manual === "barcode" ? "barcode" : m.manual === "pick" ? "you" : "link");
+  return m.matched_by ? "matched by " + (AE_BY[m.matched_by] || m.matched_by) + (m.from_pack ? " (pack)" : "") : "";
+}
+// One of the other editions, as its button says it: "deluxe · JP · 2012 · 4 tracks".
+const aeEditionName = e => [e.edition, e.country, e.release_year, e.track_count ? e.track_count + (e.track_count === 1 ? " track" : " tracks") : ""].filter(Boolean).join(" · ") || e.release_title || "Another edition";
+function aeShowMatch(m) {
+  if (ae.mEditions) { ae.mEditions.innerHTML = ""; ae.mEditions.classList.add("hidden"); }
+  if (ae.mReasons) { ae.mReasons.textContent = ""; ae.mReasons.classList.add("hidden"); }
+  if (!m) return false;
+  // How sure, and why (item 414b): the reasons say how it was found; a match without them says so itself.
+  const reasons = m.reasons || [], how = reasons.length ? "" : aeMatchHow(m), eds = m.editions || [];
+  const sure = m.confidence != null ? " · " + escapeHtml(m.confidence) + " % sure" : m.similarity != null ? " · " + escapeHtml(m.similarity) + " %" : "";
+  ae.mStatus.innerHTML = "<strong>Matched:</strong> " + escapeHtml((m.artist ? m.artist + " — " : "") + (m.title || "")) + (m.year ? " (" + escapeHtml(m.year) + ")" : "") +
+    sure + (how ? " · " + escapeHtml(how) : "") + (eds.length ? ". Other editions:" : "");
+  if (ae.mReasons && reasons.length) { ae.mReasons.textContent = reasons.join(" · "); ae.mReasons.classList.remove("hidden"); }
+  if (!ae.mEditions || !eds.length) return true;
+  for (const e of eds) {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "action-btn ae-medition"; b.setAttribute("data-parity", "album-edit.edition");
+    b.textContent = aeEditionName(e);
+    b.addEventListener("click", () => aeMatch(e.mbid, "edition", b));
+    ae.mEditions.appendChild(b);
+  }
+  ae.mEditions.classList.remove("hidden");
+  return true;
+}
+
 function aeRenderMatches(list, verdict) {
   ae.mCands.innerHTML = "";
   list.forEach((c, i) => {
@@ -82,18 +115,19 @@ async function aeMatch(query, how, btn) {
       mine.data = d;
       ae.title.value = d.title || ""; ae.artist.value = d.artist || ""; ae.year.value = d.year || "";
       ["title", "artist", "year"].forEach(aeWas);
+      aeVersionShow(d, true);   // the release's version details, where you haven't changed them (item 420)
       ae.reset.classList.toggle("hidden", !d.edited);
       aeApplyToScreen(Object.assign({}, d, { album: { year: d.year } }));
       if (mine.album === currentAlbum) fetchAlbumDetail(currentAlbum).catch(() => {});
     }
     const done = (j.applied || []).find(x => x.album && x.album.offset === mine.album.offset);
     const c = done && done.candidate;
-    ae.mStatus.innerHTML = c ? `<strong>Matched:</strong> ${escapeHtml((c.artist ? c.artist + " — " : "") + c.title)}${c.year ? " (" + escapeHtml(c.year) + ")" : ""}. Undo is under Settings → Library Scanner.` : "<strong>Matched.</strong>";
+    if (!(r2.ok && aeShowMatch(d.match))) ae.mStatus.innerHTML = c ? `<strong>Matched:</strong> ${escapeHtml((c.artist ? c.artist + " — " : "") + c.title)}${c.year ? " (" + escapeHtml(c.year) + ")" : ""}. Undo is under Settings → Library Scanner.` : "<strong>Matched.</strong>";
     ae.mCands.querySelectorAll(".ae-mcand").forEach(x => x.classList.toggle("is-picked", x === btn));
-    showToast("Matched — names applied");
+    showToast(how === "edition" ? "Edition switched — names applied" : "Matched — names applied");
   } catch (e) {
     if (aeState !== mine) return;
-    (how === "pick" ? ae.err : ae.barcodeErr).textContent = e.message;
+    (how === "barcode" ? ae.barcodeErr : ae.err).textContent = e.message;
   } finally {
     if (aeState === mine) {
       if (btn) { btn.disabled = false; if (orig && btn === ae.barcodeUse) btn.textContent = orig; }
@@ -117,7 +151,9 @@ async function openAlbumEditor(album) {
   if (ae.mBox) {
     ae.mBox.classList.add("hidden"); ae.mCands.innerHTML = ""; ae.barcode.value = ""; ae.barcodeErr.textContent = "";
     ae.mStatus.textContent = "Names from MusicBrainz — artist, title, year and every track.";
+    aeShowMatch(null);
     ae.mFind.disabled = false;
+    aeSoundReset();   // Match by sound's box (item 419): a job under way for this album picked up
   }
   ae.title.value = album.title || ""; ae.artist.value = album.subtitle || ""; ae.year.value = "";
   if (ae.folder) { ae.folder.classList.add("hidden"); ae.folder.textContent = ""; }
@@ -125,6 +161,8 @@ async function openAlbumEditor(album) {
   ae.img.removeAttribute("src");
   ae.save.disabled = true;
   aeEl.querySelectorAll(".ae-was").forEach(x => { x.innerHTML = ""; });
+  aeVersionClear();
+  aeSplitClear();   // Folders and copies (item 424)
   aeEl.classList.remove("hidden");
   try {
     const r = await fetch(`/api/album/edit?offset=${album.offset}`);
@@ -132,6 +170,7 @@ async function openAlbumEditor(album) {
     if (!r.ok) throw new Error(d.error || `HTTP ${r.status}`);
     if (aeState !== mine) return;
     mine.data = d;
+    if (ae.mBox) aeShowMatch(d.match);   // the match applied, and its other editions (item 414)
     // The album's folder (v0.6.3), for telling a remix or a box set apart
     // when matching by hand.
     if (ae.folder && d.folder) {
@@ -148,6 +187,8 @@ async function openAlbumEditor(album) {
     }
     ae.title.value = d.title || ""; ae.artist.value = d.artist || ""; ae.year.value = d.year || "";
     ["title", "artist", "year"].forEach(aeWas);
+    aeVersionShow(d, false);   // this copy's version, each field from the match or the files (item 420)
+    aeSplitShow(d);   // its folders and copies: Split by folder, Split…, Join back (item 424)
     ae.reset.classList.toggle("hidden", !d.edited);
     ae.save.disabled = false;
     aeCoverStatus();
@@ -188,6 +229,8 @@ async function aePost(path, body, btn) {
     const j = await r.json().catch(() => ({}));
     if (!r.ok) throw new Error(j.error || `HTTP ${r.status}`);
     aeApplyToScreen(j);
+    // The Versions tab says the version's name and year as saved (item 420), the tab open left open.
+    if (aeState && aeState.album === currentAlbum && (body.version || /\/reset$/.test(path))) fetchAlbumDetail(currentAlbum, { version: true }).catch(() => {});
     aeClose();
     showToast("Album saved");
   } catch (e) {
@@ -236,7 +279,10 @@ if (aeEl) {
     if (!aeState || !aeState.data) return;
     const y = ae.year.value.trim();
     if (y && !/^\d{4}$/.test(y)) { ae.err.textContent = "The year should be four digits, like 2002."; return; }
+    const version = aeVersionBody(), vErr = aeVersionError(version);
+    if (vErr) { ae.err.textContent = vErr; return; }
     const body = { offset: aeState.album.offset, title: ae.title.value, artist: ae.artist.value, year: y };
+    if (version) body.version = version;
     const pick = aeState.pick;
     if (pick === "remove") body.art = "remove";
     else if (pick) { body.art_url = pick.url; body.art_source = pick.source === "a pasted address" ? pick.url : pick.source; }

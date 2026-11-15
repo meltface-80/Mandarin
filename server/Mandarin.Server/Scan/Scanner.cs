@@ -165,9 +165,10 @@ internal sealed partial class Scanner(SqliteConnection db, string root, IReadOnl
         return r.Read() ? Sql.Row(r) : null;
     }
 
-    /* db.transaction(fn)(): BEGIN IMMEDIATE (lib/library/db.js), rolled back if fn throws. */
+    /* db.transaction(fn)(): BEGIN IMMEDIATE (lib/library/db.js), rolled back if fn throws; inside one, part of it, as there. */
     private void Transaction(Action body)
     {
+        if (tx != null) { body(); return; }
         using var t = db.BeginTransaction(deferred: false);
         tx = t;
         try
@@ -325,147 +326,6 @@ internal sealed partial class Scanner(SqliteConnection db, string root, IReadOnl
                 onDir(dir, files, images, discImages);
             }
         }
-    }
-
-    // ------------------------------------------------------------ album identity
-
-    /*
-     * An album's key changed: every table that names the album by its key
-     * follows, so its favourite, Listen later, edits, identification, label
-     * lookup, release day and Album of the day go with it.
-     */
-    private void Rekey(string from, string to)
-    {
-        if (from.Length == 0 || to.Length == 0 || from == to) return;
-        foreach (var t in new[] { "albums", "favourites", "listen_later", "label_lookups", "album_edits", "track_edits", "album_matches", "album_ids" })
-            Exec($"UPDATE OR IGNORE {t} SET key = $to WHERE key = $from", ("$to", to), ("$from", from));
-        Exec("UPDATE OR IGNORE cache SET key = $to WHERE ns = 'mbday' AND key = $from", ("$to", to), ("$from", from));
-        if (Setting("album_of_the_day", null) is JsObj aotd && Js.StrictEq(aotd["key"], from))
-        {
-            var copy = new JsObj();
-            foreach (var k in aotd.Keys) copy[k] = aotd[k];
-            copy["key"] = to;
-            SetSetting("album_of_the_day", copy);
-        }
-    }
-
-    private sealed class Group
-    {
-        public string Title = "";
-        public readonly List<JsObj> Rows = [];
-        public string Artist = "";
-        public double Compilation;
-        public string SortArtist = "";
-        public string Base = "";
-        public string Key = "";
-    }
-
-    private static string KeyOf(object? v) => ScanNames.Key(Js.IsNullish(v) ? "" : Js.Str(v));
-
-    /*
-     * Decide each track's album within one folder.
-     *   - The album-artist tag wins when present.
-     *   - A compilation flag, or several track artists on one album title with
-     *     no album artist, makes it "Various Artists".
-     *   - Otherwise the track artist is the album artist.
-     * A missing album tag names the album after its folder.
-     */
-    private List<Group> GroupDir(string dir, List<JsObj> rows)
-    {
-        var groups = new List<Group>();
-        var index = new Dictionary<string, Group>(StringComparer.Ordinal);
-        var dirName = NodePath.Basename(dir);
-        foreach (var r in rows)
-        {
-            var title = Js.Truthy(r["album"]) ? Js.Str(r["album"]) : dirName;
-            var k = ScanNames.Key(title);
-            if (!index.TryGetValue(k, out var g)) { g = new Group { Title = title }; index[k] = g; groups.Add(g); }
-            g.Rows.Add(r);
-        }
-        foreach (var g in groups)
-        {
-            var tagged = g.Rows.FirstOrDefault(r => Js.Truthy(r["album_artist"]));
-            var artists = new HashSet<string>(g.Rows.Select(r => KeyOf(r["artist"])).Where(s => s.Length > 0), StringComparer.Ordinal);
-            string albumArtist;
-            if (tagged != null) albumArtist = Js.Str(tagged["album_artist"]);
-            else if (g.Rows.Any(r => Js.Truthy(r["compilation"])) || artists.Count > 1) albumArtist = "Various Artists";
-            else albumArtist = g.Rows.Count > 0 && Js.Truthy(g.Rows[0]["artist"]) ? Js.Str(g.Rows[0]["artist"]) : "Unknown Artist";
-            g.Artist = albumArtist;
-            g.Compilation = ScanNames.Key(albumArtist) == "various artists" ? 1 : 0;
-            var sorted = g.Rows.FirstOrDefault(r => Js.Truthy(r["artist_sort"]));
-            g.SortArtist = sorted != null ? Js.Str(sorted["artist_sort"]) : albumArtist;
-            g.Base = ScanNames.Key(albumArtist) + "\u0001" + ScanNames.Key(g.Title);
-            g.Key = g.Base + "\u0001" + RelFolder(dir);
-        }
-        return groups;
-    }
-
-    private double AlbumIdFor(Group g, string dir, double now)
-    {
-        var id = AlbumIdFor1(g, dir, now);
-        claimed?.Add(id);
-        return id;
-    }
-
-    private double AlbumIdFor1(Group g, string dir, double now)
-    {
-        var hit = Get("SELECT id FROM albums WHERE key = $k", ("$k", g.Key));
-        if (hit != null) return Js.ToNumber(hit["id"]);
-        // The folder renamed or moved (the tracks known, the old folder gone):
-        // the same album, under its new key — plays, edits and favourite kept.
-        var prevIds = new List<double>();
-        foreach (var r in g.Rows)
-        {
-            var v = Js.Truthy(r["unchanged"]) ? r["album_id"] : r["prev_album"];
-            if (!Js.Truthy(v)) continue;
-            var n = Js.ToNumber(v);
-            if (!prevIds.Contains(n)) prevIds.Add(n);
-        }
-        if (prevIds.Count == 1)
-        {
-            var old = Get("SELECT id, key, dir FROM albums WHERE id = $id", ("$id", prevIds[0]));
-            if (old != null)
-            {
-                var oldKey = Js.Str(old["key"]);
-                var sameName = string.Join("\u0001", oldKey.Split('\u0001').Take(2)) == g.Base;
-                var oldDir = old["dir"];
-                // Its names changed in the same folder (an untagged album named from its folders, or tags rewritten): still the same album.
-                var sameFolder = Js.Truthy(oldDir) && NodePath.Resolve(Js.Str(oldDir)) == NodePath.Resolve(dir) && !(claimed != null && claimed.Contains(Js.ToNumber(old["id"])));
-                if ((sameName && !(Js.Truthy(oldDir) && PosixFs.Exists(Js.Str(oldDir)))) || sameFolder)
-                {
-                    Rekey(oldKey, g.Key);
-                    Exec("UPDATE albums SET title = $title, artist = $artist, sort_title = $sort_title, sort_artist = $sort_artist, compilation = $compilation WHERE id = $id",
-                        ("$id", old["id"]), ("$title", g.Title), ("$artist", g.Artist), ("$sort_title", ScanNames.SortName(g.Title)),
-                        ("$sort_artist", ScanNames.SortName(g.SortArtist)), ("$compilation", g.Compilation));
-                    // New names, not yet looked up under them: identification asks again.
-                    if (!sameName) Exec("DELETE FROM album_matches WHERE key = $k AND status = 'unidentified'", ("$k", g.Key));
-                    return Js.ToNumber(old["id"]);
-                }
-            }
-        }
-        // What was kept under the key before folders counted (edits restored into a new database; an album that left and is back).
-        if (g.Base.Length > 0)
-        {
-            Rekey(g.Base, g.Key);
-            var was = Get("SELECT id FROM albums WHERE key = $k", ("$k", g.Key));
-            if (was != null) return Js.ToNumber(was["id"]);
-        }
-        (string, object?)[] row =
-        [
-            ("$key", g.Key), ("$title", g.Title), ("$artist", g.Artist), ("$sort_title", ScanNames.SortName(g.Title)),
-            ("$sort_artist", ScanNames.SortName(g.SortArtist)), ("$dir", dir), ("$now", now), ("$compilation", g.Compilation)
-        ];
-        // Back after a while away: the id it had, if nothing has taken it since.
-        var retired = Get("SELECT id FROM album_ids WHERE key = $k", ("$k", g.Key));
-        if (retired != null && Get("SELECT id FROM albums WHERE id = $id", ("$id", retired["id"])) == null)
-        {
-            Exec(@"INSERT INTO albums(id, key, title, artist, sort_title, sort_artist, dir, added_at, updated_at, compilation)
-                   VALUES($id, $key, $title, $artist, $sort_title, $sort_artist, $dir, $now, $now, $compilation)", [("$id", retired["id"]), .. row]);
-            return Js.ToNumber(retired["id"]);
-        }
-        Exec(@"INSERT INTO albums(key, title, artist, sort_title, sort_artist, dir, added_at, updated_at, compilation)
-               VALUES($key, $title, $artist, $sort_title, $sort_artist, $dir, $now, $now, $compilation)", row);
-        return Js.ToNumber(Get("SELECT last_insert_rowid() AS id")!["id"]);
     }
 
     /* JavaScript's SameValueZero, for a Map's keys and includes(). */
@@ -681,6 +541,7 @@ internal sealed partial class Scanner(SqliteConnection db, string root, IReadOnl
             var r = list[i];
             list.RemoveAt(i);
             Exec("UPDATE tracks SET path = $p WHERE id = $id", ("$p", file), ("$id", r.Id));
+            if (Overlays()) Exec("UPDATE OR IGNORE album_splits SET path = $p WHERE path = $o", ("$p", file), ("$o", r.Path));   // its hand split's part (item 424)
             known.Delete(r.Path);
             r.Path = file;
             known.Set(file, r);
@@ -763,55 +624,7 @@ internal sealed partial class Scanner(SqliteConnection db, string root, IReadOnl
                 foreach (var k in t.Keys) o[k] = t[k];
                 full.Add(o);
             }
-            var groups = GroupDir(dir, full);
-            var now = NowMs();
-            Transaction(() =>
-            {
-                foreach (var g in groups)
-                {
-                    var albumId = AlbumIdFor(g, dir, now);
-                    touched.Add(albumId);
-                    foreach (var r in g.Rows)
-                    {
-                        if (Js.Truthy(r["unchanged"]))
-                        {
-                            if (!Js.StrictEq(r["album_id"], albumId))
-                            {
-                                touched.Add(Js.ToNumber(r["album_id"]));
-                                Exec("UPDATE tracks SET album_id = $a WHERE id = $id", ("$a", albumId), ("$id", r["id"]));
-                            }
-                            continue;
-                        }
-                        var path = Js.Str(r["path"]);
-                        var prev = known.Get(path);
-                        if (prev != null) touched.Add(Js.ToNumber(prev.AlbumId));
-                        object? Or(object? v) => Js.Truthy(v) ? v : null; object? Nul(object? v) => Js.IsNullish(v) ? null : v;
-                        Exec(UpsertTrack,
-                            ("$album_id", albumId), ("$path", r["path"]), ("$mtime", r["mtime"]), ("$size", r["size"]), ("$title", r["title"]), ("$artist", r["artist"]),
-                            ("$album_artist", r["album_artist"]), ("$album", r["album"]), ("$track_no", r["track_no"]), ("$disc_no", r["disc_no"]), ("$duration", r["duration"]),
-                            ("$codec", r["codec"]), ("$container", r["container"]), ("$sample_rate", r["sample_rate"]), ("$bits", r["bits"]), ("$channels", r["channels"]),
-                            ("$lossless", r["lossless"]), ("$year", r["year"]), ("$date", Or(r["date"])), ("$label", r["label"]),
-                            ("$genres", Js.Json(Js.Truthy(r["genres"]) ? r["genres"] : new List<object?>())),
-                            ("$tags_v", TagsV), ("$isrc", Or(r["isrc"])), ("$barcode", Or(r["barcode"])), ("$catno", Or(r["catno"])), ("$country", Or(r["country"])),
-                            ("$mb_album", Or(r["mb_album"])), ("$mb_group", Or(r["mb_group"])), ("$mb_recording", Or(r["mb_recording"])), ("$mb_artist", Or(r["mb_artist"])),
-                            ("$rg_track_gain", Nul(r["rg_track_gain"])), ("$rg_track_peak", Nul(r["rg_track_peak"])),
-                            ("$rg_album_gain", Nul(r["rg_album_gain"])), ("$rg_album_peak", Nul(r["rg_album_peak"])),
-                            ("$names_from", Or(r["names_from"])), ("$composer", Or(r["composer"])), ("$conductor", Or(r["conductor"])), ("$work", Or(r["work"])), ("$movement", Or(r["movement"])), ("$movement_no", Nul(r["movement_no"])), ("$performers", Or(r["performers"])));
-                        var tid = Get("SELECT id FROM tracks WHERE path = $p", ("$p", path));
-                        if (tid != null) Exec("INSERT INTO track_tags(track_id, tags) VALUES($id, $t) ON CONFLICT(track_id) DO UPDATE SET tags = excluded.tags",
-                            ("$id", tid["id"]), ("$t", Js.Json(Js.Truthy(r["tags"]) ? r["tags"] : new JsObj())));
-                        // A file changed on disk is measured again (lib/loudness.js).
-                        if (tid != null && prev != null && (!Js.StrictEq(prev.Mtime, r["mtime"]) || !Js.StrictEq(prev.Size, r["size"])))
-                            Exec("DELETE FROM track_loudness WHERE track_id = $id", ("$id", tid["id"]));
-                    }
-                }
-                // Ready to show and play now, not only when the whole scan ends.
-                foreach (var g in groups)
-                {
-                    var id = Get("SELECT id FROM albums WHERE key = $k", ("$k", g.Key));
-                    if (id != null) RefreshAlbum(Js.ToNumber(id["id"]), imagesByDir);
-                }
-            });
+            Regroup(dir, full, touched, known.Get, imagesByDir);   // the folder's albums made (Scanner.Regroup.cs)
             if (OnProgress != null && NowMs() - lastProgress > 5000)
             {
                 lastProgress = NowMs();
@@ -862,14 +675,14 @@ internal sealed partial class Scanner(SqliteConnection db, string root, IReadOnl
         var knownIn = new List<(string Group, int N)>();
         var knownInAt = new Dictionary<string, int>(StringComparer.Ordinal);
         double removed = 0;
-        var (musicRoot, unmounted, foldersRead) = (NodePath.Resolve(root), OfflineDrives.Now(db, roots), OfflineDrives.FoldersRead(db));
+        var (musicRoot, unmounted, foldersRead, away) = (NodePath.Resolve(root), OfflineDrives.Now(db, roots), OfflineDrives.FoldersRead(db), RestoredAway.Now(db));
         foreach (var (p, r) in known.Entries)
         {
             // A streamed track (lib/services) has no file: never the scanner's to remove.
             if (p.Contains("://", StringComparison.Ordinal)) continue;
             var rootOf = RootOf(p);
-            // In no watched folder: gone. Folders removed in Settings take their tracks with them there.
-            if (rootOf == null) { if (!seen.Contains(p) && foldersRead) Gone(null, r); continue; }
+            // In no watched folder: gone (folders removed in Settings take theirs with them there), but a restored backup's not on this computer: kept, missing, until found here (RestoredAway).
+            if (rootOf == null) { if (!seen.Contains(p) && foldersRead) { if (RestoredAway.Holding(p, away) is { } was) Keep(was, "missing"); else Gone(null, r); } continue; }
             var rel = NodePath.Relative(rootOf, p).Split('/');
             var group = rel.Length > 1 ? NodePath.Join(rootOf, rel[0]) : rootOf;
             if (knownInAt.TryGetValue(group, out var ki)) knownIn[ki] = (group, knownIn[ki].N + 1);
@@ -919,6 +732,7 @@ internal sealed partial class Scanner(SqliteConnection db, string root, IReadOnl
         var words = new Dictionary<string, string> { ["missing"] = "is missing", ["empty"] = "is empty", ["unreadable"] = "couldn't all be read", ["vanished"] = "has lost most of its files at once" };
         foreach (var (d, reason, n) in offline) log($"[scan] {d} {words[reason]} — kept its {Js.Num(n)} tracks as they were");
         // A few hundred albums a transaction: the server's own writes wait for one batch, not the whole reindex.
+        Transaction(() => SplitStrays(seen, touched));   // an album whose tracks are in two folders now, two albums (item 424, Scanner.Split.cs)
         foreach (var batch in touched.Items.Chunk(300)) Transaction(() => { foreach (var id in batch) RefreshAlbum(id, imagesByDir); });
         Transaction(() => { DropEmptyAlbums(); FileUnfiled(); ArtistRows.Prune(db, tx); });   // albums under their artists, those no album is by forgotten (item 330)
 
@@ -958,23 +772,4 @@ internal sealed partial class Scanner(SqliteConnection db, string root, IReadOnl
             + $"{Js.Num(albums)} albums, {Js.Num(tracksN)} tracks in {(ms / 1000).ToString("F1", System.Globalization.CultureInfo.InvariantCulture)}s");
         return result;
     }
-
-    private const string UpsertTrack = @"INSERT INTO tracks(album_id, path, mtime, size, title, artist, album_artist, album, track_no, disc_no, duration,
-          codec, container, sample_rate, bits, channels, lossless, year, date, label, genres,
-          tags_v, isrc, barcode, catno, country, mb_album, mb_group, mb_recording, mb_artist,
-          rg_track_gain, rg_track_peak, rg_album_gain, rg_album_peak, names_from, composer, conductor, work, movement, movement_no, performers)
-        VALUES($album_id, $path, $mtime, $size, $title, $artist, $album_artist, $album, $track_no, $disc_no, $duration,
-          $codec, $container, $sample_rate, $bits, $channels, $lossless, $year, $date, $label, $genres,
-          $tags_v, $isrc, $barcode, $catno, $country, $mb_album, $mb_group, $mb_recording, $mb_artist,
-          $rg_track_gain, $rg_track_peak, $rg_album_gain, $rg_album_peak, $names_from, $composer, $conductor, $work, $movement, $movement_no, $performers)
-        ON CONFLICT(path) DO UPDATE SET album_id=excluded.album_id, mtime=excluded.mtime, size=excluded.size,
-          title=excluded.title, artist=excluded.artist, album_artist=excluded.album_artist, album=excluded.album,
-          track_no=excluded.track_no, disc_no=excluded.disc_no, duration=excluded.duration, codec=excluded.codec,
-          container=excluded.container, sample_rate=excluded.sample_rate, bits=excluded.bits, channels=excluded.channels,
-          lossless=excluded.lossless, year=excluded.year, date=excluded.date, label=excluded.label, genres=excluded.genres,
-          tags_v=excluded.tags_v, isrc=excluded.isrc, barcode=excluded.barcode, catno=excluded.catno, country=excluded.country,
-          mb_album=excluded.mb_album, mb_group=excluded.mb_group, mb_recording=excluded.mb_recording, mb_artist=excluded.mb_artist,
-          rg_track_gain=excluded.rg_track_gain, rg_track_peak=excluded.rg_track_peak,
-          rg_album_gain=excluded.rg_album_gain, rg_album_peak=excluded.rg_album_peak, names_from=excluded.names_from, composer=excluded.composer,
-          conductor=excluded.conductor, work=excluded.work, movement=excluded.movement, movement_no=excluded.movement_no, performers=excluded.performers";
 }

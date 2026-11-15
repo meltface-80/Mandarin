@@ -47,14 +47,24 @@ public sealed partial class DbCsharpTests(DbCsharpTests.Book book) : IClassFixtu
     private static JsonArray Said(IEnumerable<string> lines, string dir) => new([.. lines.Select(l => (JsonNode?)JsonValue.Create(Aside().Replace(l, "musicd.old-<ms>.db").Replace(dir, "<dir>", StringComparison.Ordinal)))]);
 
     // The C# server's own columns beyond the Node server's (the classical fields, bug list item 48; devices made
-    // without a password, item 172): the recording is from before them, so each is looked for, then taken out of
-    // the dump, from its table's columns and from its CREATE text as ALTER TABLE ADD COLUMN wrote them on its end.
+    // without a password, item 172; an album's version details, item 420): the recording is from before them, so each
+    // is looked for, then taken out of the dump, from its table's columns, its rows and its CREATE text as ALTER
+    // TABLE ADD COLUMN wrote them on its end.
     private static readonly (string Table, string Column, string Type)[] Ours = [("tracks", "composer", "TEXT"), ("tracks", "conductor", "TEXT"),
         ("tracks", "work", "TEXT"), ("tracks", "movement", "TEXT"), ("tracks", "movement_no", "INTEGER"), ("tracks", "performers", "TEXT"),
-        ("devices", "joined", "INTEGER NOT NULL DEFAULT 0")];
+        ("devices", "joined", "INTEGER NOT NULL DEFAULT 0"), ("album_edits", "version", "TEXT")];
+
+    // The album edits as written out, without their version details (item 420), which the recording is from before: each has them.
+    private static JsonNode WithoutVersion(JsonNode edits)
+    {
+        foreach (var e in edits.AsArray()) Assert.True(e!.AsObject().Remove("version"), "an edit without its version details");
+        return edits;
+    }
 
     // Its own indexes beyond the Node server's (Schema.Indexes.cs): made, then taken out of the dump as its columns are.
     private static readonly string[] OurIndexes = ["plays_album_ts"];
+    // Its own tables beyond the Node server's (Schema.Indexes.cs: Edit album's hand splits and joins, item 424): made, then taken out whole.
+    private static readonly string[] OurTables = ["album_splits", "album_joins"];
 
     private static JsonNode Db(string dir)
     {
@@ -65,6 +75,16 @@ public sealed partial class DbCsharpTests(DbCsharpTests.Book book) : IClassFixtu
             var mine = master.FirstOrDefault(m => m.Str("name") == name);
             Assert.True(mine != null, "no index " + name);
             master.Remove(mine);
+        }
+        foreach (var table in OurTables)
+        {
+            var made = master.Where(m => m.Str("tbl_name") == table).ToList();
+            Assert.True(made.Any(m => m.Str("type") == "table"), "no table " + table);
+            foreach (var m in made) master.Remove(m);
+            d["columns"]!.AsObject().Remove(table);
+            d["rows"]!.AsObject().Remove(table);
+            var fk = d["foreignKeyList"]!.AsArray();
+            fk.Remove(fk.First(x => x![0]!.GetValue<string>() == table));
         }
         foreach (var table in Ours.Select(o => o.Table).Distinct())
         {
@@ -77,6 +97,13 @@ public sealed partial class DbCsharpTests(DbCsharpTests.Book book) : IClassFixtu
                 var col = cols.FirstOrDefault(c => c.Str("name") == o.Column);
                 Assert.True(col != null, $"no column {table}.{o.Column}");
                 cols.Remove(col);
+            }
+            if (d["rows"]![table] is not JsonArray rows) continue;
+            for (var i = 0; i < rows.Count; i++)
+            {
+                var row = JsJson.Parse(rows[i]!.GetValue<string>())!.AsObject();
+                foreach (var o in mine) Assert.True(row.Remove(o.Column), $"no {table}.{o.Column} in a row");
+                rows[i] = JsJson.Stringify(row);
             }
         }
         return d;
@@ -149,7 +176,7 @@ public sealed partial class DbCsharpTests(DbCsharpTests.Book book) : IClassFixtu
         Assert.True(aside != null, "moved it aside: " + string.Join(", ", Directory.GetFiles(b).Select(Path.GetFileName)));
         Assert.Equal(Path.Combine(b, aside), c.Said.Str("aside"));
         // The old one as it was, the new one with what was kept, said as the Node server says it, and the edits it kept written beside it too.
-        var edits = JsonNode.Parse(await File.ReadAllTextAsync(Path.Combine(b, "album-edits.json")))!["edits"]!.DeepClone();
+        var edits = WithoutVersion(JsonNode.Parse(await File.ReadAllTextAsync(Path.Combine(b, "album-edits.json")))!["edits"]!.DeepClone());
         Held("one made by something else", ("old", SqliteDump.Dump(Path.Combine(b, aside))), ("db", Db(b)), ("said", Said(c.Lines, b)), ("edits", edits));
         Assert.True(c.Lines.Any(l => Regex.IsMatch(l, @"kept 2 plays row\(s\)")) && c.Lines.Any(l => Regex.IsMatch(l, @"kept 1 album edits row\(s\)")), string.Join("\n", c.Lines));
     }
@@ -189,8 +216,20 @@ public sealed partial class DbCsharpTests(DbCsharpTests.Book book) : IClassFixtu
         Assert.True(Math.Abs(fb.Num("saved_at")!.Value - DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()) < 60000);
         var file = (JsonObject)fb.DeepClone();
         file["saved_at"] = 0;
+        WithoutVersion(file["edits"]!);
         Held("the album edits written", ("file", file));
         Assert.Equal(2, fb["edits"]!.AsArray().Count);
+        // An album's version details (item 420): read back as they were kept, and written out again.
+        var b3 = Tmp();
+        const string Mine = "{\"name\":\"HDTT DSD256\",\"label\":\"HDTT\"}";
+        await File.WriteAllTextAsync(Path.Combine(b3, "album-edits.json"), Http.Json(new { version = 1, saved_at = 1, edits = new object[] { new { key = "k3", version = Mine, updated_at = 7 } } }));
+        Assert.Contains((await ByCsharp(b3)).Lines, l => l.Contains("restored 1 album edit(s)", StringComparison.Ordinal));
+        using (var db3 = SqliteDump.Open(Path.Combine(b3, "musicd.db")))
+            Assert.Equal(Mine, SqliteDump.All(db3, "SELECT version FROM album_edits WHERE key = 'k3'")[0]!["version"]?.GetValue<string>());
+        File.Delete(Path.Combine(b3, "album-edits.json"));
+        await ByCsharp(b3);
+        var f3 = JsonNode.Parse(await File.ReadAllTextAsync(Path.Combine(b3, "album-edits.json")))!;
+        Assert.Equal(Mine, f3["edits"]![0]!["version"]?.GetValue<string>());
         // An unreadable file: nothing read, the database made all the same.
         var b2 = Tmp();
         await File.WriteAllTextAsync(Path.Combine(b2, "album-edits.json"), "{ not json");

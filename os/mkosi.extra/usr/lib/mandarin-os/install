@@ -82,21 +82,22 @@ while [ -z "$answers" ]; do
 done
 
 clear; echo; echo "  Writing Mandarin OS to $target…"; echo
-say "installing $VER to $target, internal storage ${internal:-none}, user $user, network $(jq -r .mode <<< "$net"), bridge $bridge"
+say "installing $VER to $target, internal storage ${internal:-none}, network $(jq -r .mode <<< "$net"), bridge $bridge"
 if ! systemd-repart --dry-run=no --empty=force --definitions=/usr/lib/mandarin-os/install.repart.d "$target" >> "$LOG" 2>&1; then
   say "systemd-repart failed"; [ -n "$answers" ] && { cat "$LOG" > /dev/ttyS0 2>/dev/null; say "INSTALL FAILED"; touch "$DONE"; end poweroff; }; D --title "It didn't work" --msgbox "Mandarin OS couldn't be written to $target. Nothing else was changed.\n\n$(tail -n 5 "$LOG")" 14 76; exec "$0"
 fi
 udevadm settle
 data="$(lsblk -lnpo NAME,PARTLABEL "$target" | awk '$2 == "mandarin-data" { print $1 }')"
 mkdir -p /mnt/data && mount "$data" /mnt/data || { [ -n "$answers" ] && { lsblk -o NAME,PARTLABEL,SIZE "$target" > /dev/ttyS0 2>/dev/null; say "INSTALL FAILED: no data partition"; touch "$DONE"; end poweroff; }; D --msgbox "The data partition couldn't be opened." 7 60; exec "$0"; }
-mkdir -p /mnt/data/MachineSettings /mnt/data/MandarinOS/Logs /mnt/data/MandarinServer /mnt/data/Storage/USB
+mkdir -p /mnt/data/MachineSettings /mnt/data/Logs /mnt/data/MandarinServer /mnt/data/Storage/USB
 jq -n --arg u "$user" --arg p "$p1" --argjson n "$net" --argjson b "$bridge" '{share_user:$u, share_password:$p, network:$n, bridge:$b}' > /mnt/data/MachineSettings/setup.json
 chmod 600 /mnt/data/MachineSettings/setup.json
 if [ -n "$internal" ]; then
   echo "  Formatting $internal as internal storage…"
   wipefs -a "$internal" >> "$LOG" 2>&1; echo 'type=linux' | sfdisk --label gpt "$internal" >> "$LOG" 2>&1; udevadm settle
   part="$(lsblk -lnpo NAME,TYPE "$internal" | awk '$2 == "part" { print $1; exit }')"
-  mkfs.ext4 -F -L mandarin-internal "$part" >> "$LOG" 2>&1 && say "internal storage $internal formatted" || say "internal storage $internal couldn't be formatted"
+  # Its top the shared folder's user's (3501, as apply makes it) and Mandarin's group's, not root's (item 429).
+  mkfs.ext4 -F -L mandarin-store -E root_owner=3501:3500 "$part" >> "$LOG" 2>&1 && say "internal storage $internal formatted" || say "internal storage $internal couldn't be formatted"
   mkdir -p /mnt/data/Storage/Internal
 fi
 # The installed system, labelled with its version (install.repart.d): its file system grown to fill its partition.
@@ -120,7 +121,7 @@ fi
 mkdir -p /mnt/root && mount "$root" /mnt/root && {
   printf '%s\n' "# Mandarin OS, as installed: the data partition, and the internal storage drive where one was chosen." \
     "LABEL=mandarin-data      /data                  ext4  defaults,noatime,nofail,x-systemd.device-timeout=30s  0 2" > /mnt/root/etc/fstab
-  [ -n "$internal" ] && echo "LABEL=mandarin-internal  /data/Storage/Internal ext4  defaults,noatime,nofail,x-systemd.device-timeout=30s  0 2" >> /mnt/root/etc/fstab
+  [ -n "$internal" ] && echo "LABEL=mandarin-store     /data/Storage/Internal ext4  defaults,noatime,nofail,x-systemd.device-timeout=30s  0 2" >> /mnt/root/etc/fstab
   # The EFI partition at /efi when it is looked at (item 401): where systemd-bless-boot keeps a new version that started,
   # and os-update puts the next; mounted only while in use, so a power cut finds it closed.
   echo "PARTUUID=$(lsblk -no PARTUUID "$esp")  /efi  vfat  umask=0077,noauto,nofail,x-systemd.automount,x-systemd.idle-timeout=1min  0 2" >> /mnt/root/etc/fstab
@@ -128,7 +129,11 @@ mkdir -p /mnt/root && mount "$root" /mnt/root && {
 } || say "the system's mounts couldn't be written"
 say "done"
 touch "$DONE"
-cp "$LOG" /mnt/data/MandarinOS/Logs/Installer_log.txt
+# The installer's lines, the first of Mandarin's one log (item 425): each "[os] [install] …", dated as it was said (a
+# tool's own output under the line before it).
+awk -v now="$(date -u '+%Y-%m-%d %H:%M:%S')" 'BEGIN { t = now }
+  /^[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9] [0-9][0-9]:[0-9][0-9]:[0-9][0-9] / { t = substr($0, 1, 19); $0 = substr($0, 21) }
+  NF { print t ".000 UTC  INFO   [os] [install] " $0 }' "$LOG" >> /mnt/data/Logs/Mandarin_log.txt
 umount /mnt/data; sync
 if [ -n "$answers" ]; then say "installed on $target"; end poweroff; fi
 # Switched off, not restarted: the installer runs from the stick, so the stick is taken out only once the computer is

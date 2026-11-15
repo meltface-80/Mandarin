@@ -1,17 +1,19 @@
 # os/test/os-update-vm.sh — sourced by boot-test.sh: Mandarin OS updated in place (item 401), end to end, on the image
 # being tested ($IMG, version $V), with its W, HERE, fail, ok, part and S.
 #   os_update_prepare  after the install, before the first start: two newer Mandarin OS made from the image itself, as
-#                      os-image.yml publishes one (its system partition, compressed, and its kernel image, each with
+#     [CHANGE]         os-image.yml publishes one (its system partition, compressed, and its kernel image, each with
 #                      .sha256 and .sig), signed with a key made for this run and kept nowhere: 9.9.9 (as built, its
 #                      version written in), and 9.9.10, broken (no os-release: the initrd won't start it, and a start
 #                      that can't go on starts the computer again). A stand-in GitHub on this computer offers them
 #                      (os/test/fake-os-release.js, as the test-os pre-release, 9.9.9 first), and the installed system's
 #                      os-update is told to ask it and take that key by a drop-in written into the test's own copy of
 #                      the installed disk (never the image), and into 9.9.9's system, for its own update to 9.9.10.
+#                      CHANGE, where given, a function that changes 9.9.9's system further (given its mount point).
 #   os_update_test     the box running: Update and restart asked of the system page with the share's password, and
 #                      the box back as 9.9.9 (kept: its entry blessed), the share's password, the shared folder's user's
-#                      number, the files in Storage and on USB drives, an ext4 drive's owners, Mandarin and its library
-#                      as they were, the version before untouched on its own partition. Then 9.9.10: tried three times,
+#                      number, the files in Storage, on USB drives and on the internal storage drive, an ext4 drive's
+#                      owners, Mandarin and its library as they were, the version before untouched on its own partition,
+#                      the share's user's name nowhere in the one log (item 429). Then 9.9.10: tried three times,
 #                      and the box back on 9.9.9 by itself, the system page saying the update didn't start.
 ROOT_T=4F68BCE3-E8CD-4DB1-96E7-FBCAF984B709 ESP_T=C12A7328-F81F-11D2-BA4B-00A0C93EC93B
 
@@ -49,7 +51,7 @@ os_update_prepare() {
   [ -s "$W/osrel/port" ] || fail "the stand-in GitHub for Mandarin OS didn't start: $(cat "$W/osrel.log")"
   printf '[Service]\nEnvironment=MANDARIN_OS_UPDATE_API=http://10.0.2.2:%s/repos/meltface-80/Mandarin\nEnvironment=MANDARIN_OS_UPDATE_KEY=%s\n' \
     "$(cat "$W/osrel/port")" "$(openssl ec -in "$W/os-key.pem" -pubout -outform DER 2>/dev/null | base64 -w0)" > "$W/os-update-test.conf"
-  os_release 9.9.9; os_release 9.9.10 os_broken
+  os_release 9.9.9 "${1:-}"; os_release 9.9.10 os_broken
   ln -sfn 9.9.9 "$W/osrel/current"
   ls -la "$W"/osrel/9.9.9 | sed 's/^/  /'
   read -r rs rn < <(part "$W/disk.raw" "mandarin-os_$V")
@@ -63,7 +65,7 @@ os_update_prepare() {
 
 # What the box's own log says of its updates (and its system page's), to find why.
 os_why() {
-  S -c "cd MandarinOS/Logs; get MandarinOS_log.txt $W/os.log" >/dev/null; grep -a "\[update\]\|\[system page\]" "$W/os.log" 2>/dev/null | tail -n 30
+  onelog | grep -a "\[update\]\|\[system page\]\|\[page\]" | tail -n 30
   tail -n 5 "$W/osrel.log"
 }
 OSU() { curl -sS --max-time 200 -H 'Content-Type: application/json' -d "{\"password\":\"listen-carefully\",\"action\":\"$1\"}" http://127.0.0.1:10080/api/os-update; }
@@ -113,6 +115,18 @@ os_update_test() {
   h="$(curl -fsS --max-time 10 http://127.0.0.1:13500/api/health)" || fail "Mandarin doesn't answer on 9.9.9"
   [ "$(jq -r .version <<< "$h")" = "$m" ] && [ "$(jq -r .albums <<< "$h")" = "$albums" ] || fail "Mandarin was $m with $albums albums, now: $h"
   ok "the share's password, its user's number ($uid), Storage's and the USB drive's files, an ext4 drive's owners, Mandarin $m and its $albums albums: as they were"
+  # The internal storage drive formatted before (item 429): mounted again at 9.9.9's start (the fstab carried), its
+  # music there, still the shared folder's to write in.
+  rm -f "$W/internal.after"
+  for i in $(seq 1 12); do S -c "cd Storage/Internal; get song.flac $W/internal.after" >/dev/null; [ -s "$W/internal.after" ] && break; sleep 5; done
+  cmp -s "$W/song.flac" "$W/internal.after" || fail "Storage/Internal's music isn't there on 9.9.9"
+  r="$(S -c "cd Storage/Internal; put $W/song.flac after-update.flac")"; S -c "cd Storage/Internal; ls" | grep -q after-update.flac || fail "Storage/Internal can't be written on 9.9.9: $r"
+  ok "Storage/Internal mounted on 9.9.9 with its music, the shared folder's to write in"
+  # The one log through the update (item 429): the share's user made again at 9.9.9's first start (a new system's), and
+  # said by its number alone; its name nowhere in the log; the writer's start in its place by time.
+  [ "$(onelog | grep -c "\[os\] \[apply\] the share's user made (uid $uid)$")" -ge 2 ] || fail "9.9.9's first start didn't say the share's user was made, by its number"
+  log_kept "after Mandarin OS updated itself to 9.9.9"
+  ok "the one log after the update: the share's user's name nowhere in it, its writer's starts in their place by time"
   parts="$(sfdisk -J "$W/disk.raw" | jq -r '[.partitiontable.partitions[].name] | join(",")')"
   [ "$parts" = "esp,mandarin-os_$V,mandarin-os_9.9.9,mandarin-data" ] || fail "the disk's partitions: $parts"
   read -r rs rn < <(part "$W/disk.raw" "mandarin-os_$V")
@@ -134,5 +148,6 @@ os_update_test() {
   [[ "$e" != *"9.9.10"* ]] && [[ "$e" == *"mandarin-os_9.9.9.conf "* ]] || { os_why; fail "the EFI partition's entries after the fallback: $e"; }
   h="$(curl -fsS --max-time 10 http://127.0.0.1:13500/api/health)" && [ "$(jq -r .version <<< "$h")" = "$m" ] || fail "Mandarin after the fallback: ${h:-not answering}"
   r="$(S -c ls)"; grep -q README.txt <<< "$r" || fail "the share after the fallback: $r"
-  ok "9.9.10's entry taken off ($e), Mandarin and the share as before"
+  log_kept "after the fallback from 9.9.10"
+  ok "9.9.10's entry taken off ($e), Mandarin and the share as before, the share's user's name nowhere in the log"
 }

@@ -6,8 +6,6 @@ under a name a home uses (an address, mandarin, .local, .lan), and a change only
 elsewhere can't reach it under its own site's name, nor make changes in your browser.
 
   GET  /api/state                     everything the Overview, Storage and Network tabs show
-  GET  /api/logs/<os|mandarin|journal> a log's newest lines
-  GET  /api/logs.txt                  every log as one text file, merged in time order (logs_one.py)
   GET  /api/diagnostics               the network, layer by layer: link, address, gateway, DNS, internet, GitHub
   POST /api/check                     { password }: whether it is the share's
   POST /api/power                     { password, action: restart-mandarin | reboot | shutdown }
@@ -23,7 +21,7 @@ elsewhere can't reach it under its own site's name, nor make changes in your bro
 
 MANDARIN_OS_ROOT (the tests'): every path under it, and its commands from PATH as they find them."""
 import hashlib, http.server, ipaddress, json, os, re, shutil, socketserver, struct, subprocess, sys, threading, time, urllib.request
-import channel, logs_one, os_update, usb_owner
+import channel, internal_disk, os_update, usb_owner
 
 ROOT = os.environ.get("MANDARIN_OS_ROOT", "")
 PORT = int(os.environ.get("MANDARIN_OS_PORT", "80"))
@@ -59,7 +57,7 @@ def log(level, msg):
     run(["bash", "-c", '. "$0"/log.sh && oslog "$1" "$2"', LIB, level, "[system page] " + msg])
 
 
-for part in (usb_owner, os_update, channel):
+for part in (usb_owner, os_update, channel, internal_disk):
     part.use(run, read, log, P)
 
 
@@ -194,33 +192,6 @@ def state():
     }
 
 
-LOGS = {"os": "/data/MandarinOS/Logs/MandarinOS_log.txt", "mandarin": "/data/MandarinServer/Logs/MandarinServer_log.txt"}
-
-
-def log_text(which, lines=2000):
-    if which == "journal":
-        return run(["journalctl", "-b", "-n", str(lines), "--no-pager", "-o", "short-iso-precise"], timeout=30)[1]
-    path = LOGS.get(which)
-    try:
-        with open(P(path), encoding="utf-8", errors="replace") as f:
-            return "".join(f.readlines()[-lines:])
-    except (OSError, TypeError):
-        return ""
-
-
-def logs_txt():
-    """Every log as one file (logs_one.py), headed by what the box is and how it is now."""
-    st = state()
-    m, n = st["mandarin"], st["network"]
-    header = [f"Mandarin — every log on this box, merged in time order (UTC); made {time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())} UTC",
-              f"Mandarin OS {st['os']['version']} on {st['os']['hostname']} · up {st['os']['uptime']} s · last upkeep {st['os']['last_upkeep'] or 'not yet'}",
-              f"Mandarin {m['version'] or '(not answering)'} · {m['albums'] or 0} albums · {m['rooms'] or 0} rooms",
-              f"Network: {n['address'] or 'no address'} · {n['mode']} · {n['link'] or 'no link'} · gateway {n['gateway'] or '-'} · DNS {n['dns'] or '-'}",
-              "Services: " + ", ".join(f"{s['name']} {s['state']}" for s in st["services"]),
-              "USB drives: " + (", ".join(f"{u['name']} ({u['fs']}{', read-only: ' + u['why'] if u['read_only'] else ''})" for u in st["usb"]) or "none")]
-    return logs_one.merged([("MandarinOS", P("/data/MandarinOS/Logs")), ("", P("/data/MandarinServer/Logs"))], log_text("journal", 20000), header)
-
-
 def diagnostics():
     n = network()
     steps = [("Link", bool(n["link"]), n["link"] or "no cable, or no link"),
@@ -306,26 +277,7 @@ def eject(name):
 def format_internal(disk):
     if disk not in [d["disk"] for d in internal()["disks"]]:
         return 400, {"error": "Only an internal disk that isn't the system's can be formatted"}
-    log("WARN", f"internal storage: {disk} formatted from the system page")
-    run(["umount", P("/data/Storage/Internal")])
-    for cmd in (["wipefs", "-a", disk], ["sfdisk", "--label", "gpt", disk]):
-        code, _, err = run(cmd, input="type=linux\n" if cmd[0] == "sfdisk" else None, timeout=60)
-        if code != 0:
-            return 500, {"error": f"{cmd[0]}: {err}"}
-    run(["udevadm", "settle"], timeout=30)
-    part = run(["bash", "-c", f"lsblk -lnpo NAME,TYPE {disk} | awk '$2 == \"part\" {{ print $1; exit }}'"])[1]
-    code, _, err = run(["mkfs.ext4", "-F", "-L", "mandarin-internal", part], timeout=600)
-    if code != 0:
-        return 500, {"error": "mkfs: " + err}
-    fstab = read("/etc/fstab")
-    if "LABEL=mandarin-internal" not in fstab:
-        with open(P("/etc/fstab"), "a") as f:
-            f.write("LABEL=mandarin-internal  /data/Storage/Internal ext4  defaults,noatime,nofail,x-systemd.device-timeout=30s  0 2\n")
-        run(["systemctl", "daemon-reload"])
-    os.makedirs(P("/data/Storage/Internal"), exist_ok=True)
-    run(["mount", P("/data/Storage/Internal")], timeout=60)
-    run([LIB + "/apply"], timeout=120)
-    return 200, {"ok": True, "said": "Internal storage is ready: Storage/Internal in the shared folder."}
+    return internal_disk.format_disk(disk)   # (item 429)
 
 
 def mandarin_action(action):
@@ -425,17 +377,6 @@ class Page(http.server.BaseHTTPRequestHandler):
             return self.send(200, state())
         if p == "/api/diagnostics":
             return self.send(200, diagnostics())
-        if p == "/api/logs.txt":
-            data = logs_txt().encode("utf-8")
-            self.send_response(200)
-            self.send_header("Content-Type", "text/plain; charset=utf-8")
-            self.send_header("Content-Disposition", f'attachment; filename="mandarin-logs-{time.strftime("%Y%m%d-%H%M", time.gmtime())}.txt"')
-            self.send_header("Content-Length", str(len(data)))
-            self.end_headers()
-            return self.wfile.write(data)
-        m = re.fullmatch(r"/api/logs/(os|mandarin|journal)", p)
-        if m:
-            return self.send(200, log_text(m.group(1)), "text/plain")
         files = {"/": ("index.html", "text/html"), "/app.js": ("app.js", "application/javascript"), "/style.css": ("style.css", "text/css")}
         if p in files:
             with open(os.path.join(HERE, files[p][0]), "rb") as f:

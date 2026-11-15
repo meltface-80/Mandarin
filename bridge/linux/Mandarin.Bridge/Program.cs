@@ -160,12 +160,13 @@ internal static class Program
 
     private static readonly object logLock = new();
 
-    // A line in journald (standard error) and the Bridge's own log (Kept.cs) alike: dated in UTC, with its level (item 389).
+    // A line in journald (standard error) and the Bridge's own log (Kept.cs) alike: dated in UTC, with its level (item 389);
+    // on Mandarin OS, with where it came from, for the box's one log (item 425).
     public static void Log(string line) => Log(line, "INFO");
 
     public static void Log(string line, string level)
     {
-        lock (logLock) Console.Error.WriteLine(Kept.Stamp(level, line));
+        lock (logLock) Console.Error.WriteLine(Kept.Said(level, line));
         Kept.Add(line, level);
     }
 

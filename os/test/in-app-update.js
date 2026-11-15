@@ -6,7 +6,8 @@
  * Mandarin OS: once installed, Settings → Updates is the only way Mandarin gets newer, so it is made as the page makes
  * it, and what it leaves is checked.
  *   MANDARIN     Mandarin through the firewall (http://127.0.0.1:13500), asking os/test/fake-release.js for releases
- *   PAGE         the system page (http://127.0.0.1:10080): the journal of this start, Mandarin's log, its services
+ *   PAGE         the system page (http://127.0.0.1:10080): its services; Mandarin's one log (item 425) is read on the share
+ *                (smb://127.0.0.1:10445/Data/Logs, as the boot test's user), systemd's word on Mandarin's service in it
  *   RELEASE_LOG  fake-release.js's output: the requests it answered
  *   ALBUM        an album the test put in Storage, in the library before the update
  * Signed in (the account made as a device makes it, test/auth-helper.js), the library scanned; Check for updates offers
@@ -17,6 +18,9 @@
  */
 const fs = require("fs");
 const http = require("http");
+const os = require("os");
+const path = require("path");
+const { spawnSync } = require("child_process");
 const { signIn } = require("../../test/auth-helper");
 
 const sleep = (/** @type {number} */ ms) => new Promise(r => setTimeout(r, ms));
@@ -48,7 +52,17 @@ async function api(base, rel, token, post) {
 }
 
 /**
- * The system page's [rel] (api/logs/journal, api/state), asked again for two minutes; why, where it never answers. By
+ * Mandarin's one log as the share gives it (item 425): the server's lines, and systemd's and the kernel's on its service.
+ * @returns {string}
+ */
+function oneLog() {
+  const to = path.join(fs.mkdtempSync(path.join(os.tmpdir(), "mandarin-one-log-")), "Mandarin_log.txt");
+  const r = spawnSync("smbclient", ["//127.0.0.1/Data", "-p", "10445", "-U", "lyrebird%listen-carefully", "-m", "SMB3", "-c", `cd Logs; get Mandarin_log.txt ${to}`], { encoding: "utf8" });
+  return fs.existsSync(to) ? fs.readFileSync(to, "utf8") : fail("Mandarin's one log couldn't be read on the share: " + r.stdout + r.stderr);
+}
+
+/**
+ * The system page's [rel] (api/state), asked again for two minutes; why, where it never answers. By
  * node:http, not fetch: the boot test reaches the page on port 10080, one of the ports fetch refuses ("bad port").
  * @param {string} page @param {string} rel @returns {Promise<string>}
  */
@@ -77,6 +91,8 @@ async function pageGet(page, rel) {
  * @param {string} base @param {string} page @param {string} releaseLog @param {string} album the album put in Storage
  */
 async function run(base, page, releaseLog, album) {
+  // Where the one log was before the update: what came after is what it is judged on.
+  const logFrom = oneLog().length;
   const was = (await api(base, "health")).body;
   const token = await signIn(base);
   ok(`signed in to Mandarin ${was.version}`);
@@ -131,18 +147,17 @@ async function run(base, page, releaseLog, album) {
   ok("the release's bundle, program, sums and both signatures downloaded");
 
   // Started again in its own process, as the update does it (Server.StartAgain): systemd never saw it fail or stop.
-  const journal = await pageGet(page, "api/logs/journal");
-  const bad = journal.split("\n").filter(l => /mandarin\.service: (Main process exited|Failed with result|Scheduled restart job|Start request repeated)|mandarin-server.*(segfault|core dumped)/.test(l));
-  if (bad.length) fail("the journal says Mandarin's service failed:\n" + bad.join("\n"));
+  const log = oneLog().slice(logFrom);
+  const bad = log.split("\n").filter(l => /mandarin\.service: (Main process exited|Failed with result|Scheduled restart job|Start request repeated)|mandarin-server.*(segfault|core dumped)/.test(l));
+  if (bad.length) fail("systemd says Mandarin's service failed:\n" + bad.join("\n"));
   const state = JSON.parse(await pageGet(page, "api/state"));
   const unit = state.services.find((/** @type {{ unit: string }} */ s) => s.unit === "mandarin.service");
   if (!unit || unit.state !== "active") fail("the system page says mandarin.service isn't running: " + JSON.stringify(unit));
   if (state.mandarin.version !== next) fail(`the system page sees Mandarin ${state.mandarin.version}, not ${next}`);
-  const log = await pageGet(page, "api/logs/mandarin");
   for (const said of [`[update] the C# server ${next} is in place`, "[server] starting again from ", `Mandarin's server ${next} (C#)`]) {
-    if (!log.includes(said)) fail(`Mandarin's log never says "${said}":\n${log.split("\n").filter(l => /update|server\]/.test(l)).slice(-30).join("\n")}`);
+    if (!log.includes(said)) fail(`Mandarin's one log never says "${said}":\n${log.split("\n").filter(l => /update|server\]/.test(l)).slice(-30).join("\n")}`);
   }
-  ok("started again in its own process: nothing failed in the journal, its service running, the update in its log");
+  ok("started again in its own process: nothing failed on systemd's word, its service running, the update in the one log");
 }
 
 if (require.main === module) {

@@ -31,8 +31,14 @@ public sealed partial class ScanCsharpTests(ScanCsharpTests.Book book) : IClassF
     [GeneratedRegex(@" in \d+\.\ds$")] private static partial Regex Took();
 
     // albums.updated_at is the time of the write; everything else must be the same.
-    // Left out of the dump: what changes with the clock, and the C# server's own columns beyond the Node server's (the classical fields, bug list item 48).
-    private static readonly Dictionary<string, string[]> Volatile = new() { ["albums"] = ["updated_at"], ["tracks"] = ["composer", "conductor", "work", "movement", "movement_no", "performers"] };
+    // Left out of the dump: what changes with the clock, and the C# server's own columns beyond the Node server's (the classical fields, bug list item 48;
+    // an album's version details, item 420; the hand splits and joins, item 424).
+    private static readonly Dictionary<string, string[]> Volatile = new()
+    {
+        ["albums"] = ["updated_at"], ["tracks"] = ["composer", "conductor", "work", "movement", "movement_no", "performers"], ["album_edits"] = ["version"],
+        // Edit album's hand splits and joins (item 424): tables of the C# server's own, left out whole.
+        ["album_splits"] = ["path", "part", "made_at"], ["album_joins"] = ["dir", "key", "made_at"]
+    };
 
     private sealed record Table(List<string> Cols, List<JsonArray> Rows);
 

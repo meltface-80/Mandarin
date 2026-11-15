@@ -27,4 +27,7 @@ test("Mandarin OS's version is its changelog's newest, and the image is publishe
   assert.match(wf, /-lt 2147483648/, "none over a release's 2 GiB");
   assert.match(wf, /gh release delete-asset test-os/, "an earlier version's files taken off test-os");
   assert.match(wf, /a change to Mandarin OS raises its version/, "a pull request that doesn't raise it refused");
+  // Dev's image built again by hand (no version) still goes on test-os (item 427b: a server-only fix couldn't put
+  // the failed 0.1.9 image back on test-os).
+  assert.match(wf, /github\.event_name == 'workflow_dispatch' && inputs\.version == ''/, "a run by hand on dev publishes test-os");
 });

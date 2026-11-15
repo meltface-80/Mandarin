@@ -79,6 +79,30 @@ class Cli(unittest.TestCase):
         self.assertEqual(code, 0, text)
         self.assertIn("IDENTICAL: both files carry exactly the same samples.", text)
 
+    def test_compare_files(self):
+        # Two songs of one master, 96 kHz/24 and 44.1 kHz/16: the report of the null test, and its JSON.
+        from song_signals import song
+        write_wav(self.p("hi.wav"), song(96000, 24, seconds=3))
+        write_wav(self.p("lo.wav"), song(44100, 16, seconds=3))
+        code, text = run("compare-files", self.p("hi.wav"), self.p("lo.wav"), "--bands", "--json", self.p("s.json"))
+        self.assertEqual(code, 1, text)  # not identical
+        self.assertIn("THE SAME MASTER: The difference is only from resampling, and rounding and dither at 16 bits "
+                      "(null depth −", text)
+        self.assertRegex(text, r"Null depth   -7\d\.\d dB against the music \(what is left: -9\d\.\d dBFS rms\)")
+        self.assertIn("Offset       none: they start together", text)
+        self.assertIn("Polarity     the same", text)
+        self.assertRegex(text, r"Loudness +-\d+\.\d LUFS +-\d+\.\d LUFS")
+        self.assertIn("Note: A resampled from 96 to 44.1 kHz for the comparison", text)
+        self.assertRegex(text, r"\n +1 kHz +-1\d\d\.\d +-\d+\.\d\n")  # a third-octave band: what is left, the music
+        with open(self.p("s.json")) as f:
+            self.assertEqual(json.load(f)["verdict"], "SAME MASTER")
+        code, text = run("compare-files", self.p("lo.wav"), self.p("lo.wav"))
+        self.assertEqual(code, 0, text)
+        self.assertIn("IDENTICAL: A and B carry exactly the same samples.", text)
+        code, text = run("compare-files", self.p("lo.wav"), self.p("missing.wav"))
+        self.assertEqual(code, 2, text)
+        self.assertIn("could not read missing.wav: no such file", text)
+
 
 if __name__ == "__main__":
     unittest.main()

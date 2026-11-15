@@ -24,6 +24,8 @@ internal sealed partial class Bridge
     private readonly Wifi? wifi;
     // Updated from Mandarin's Settings → Updates (item 291).
     private readonly Update update;
+    // What the DAC is fed, recorded when Mandarin asks (/capture, item 412): the evidence for its bit-perfect check.
+    private readonly Capture capture;
     private volatile List<Dac> dacs = [];
     private string lastCaps = "", toldFix = "";
 
@@ -31,12 +33,21 @@ internal sealed partial class Bridge
     {
         (this.opts, this.log) = (opts, log);
         store = new Store(opts.Data);
+        Kept.Who = () => store.Name;
         player = new Player(opts.Engine, opts.Ffmpeg, log);
         http = new Http(opts.Port, Route, log);
         slim = new Slim(player, Capabilities, () => store.Name, store.Udn, opts.Server, log);
         if (opts.Nmcli != null) wifi = new Wifi(opts.Nmcli, log);
         update = new Update(opts.UpdateApi, opts.Data, log, Program.Restart, opts.Curl);
+        capture = new Capture(player, opts.Data, () => Dac != null, CaptureAbout);
     }
+
+    /* What a recording says of where it was made, as it starts: the DAC, the DSD setting, the track and where in it. */
+    private JsonObject CaptureAbout() => new()
+    {
+        ["device"] = DacJson()["dac"]?.DeepClone(), ["dsd_setting"] = store.DsdMode,
+        ["track"] = new JsonObject { ["uri"] = slim.Current?.Uri, ["position_ms"] = Math.Round(player.Seconds * 1000) },
+    };
 
     /* The DAC played to: the one chosen, else the first found; null with none plugged in. */
     public Dac? Dac
@@ -139,7 +150,11 @@ internal sealed partial class Bridge
         {
             ["model"] = Model, ["version"] = Program.Version, ["platform"] = "linux", ["name"] = store.Name, ["udn"] = store.Udn, ["dac"] = dac,
             // Which build it is, for which machine, and that Mandarin can update it (POST /update, item 291): where that is.
-            ["commit"] = Program.Commit, ["arch"] = Update.Arch, ["updates"] = true, ["update"] = update.State(), ["log"] = "/log",
+            ["commit"] = Program.Commit, ["arch"] = Update.Arch, ["updates"] = true, ["update"] = update.State(),
+            // Its newest lines, for Mandarin's one log (Kept.cs); none named where Mandarin OS has them already (item 425).
+            ["log"] = Kept.Journal ? null : "/log",
+            // A recording of what the DAC is fed, made when asked (Capture.cs, item 412), a whole track in parts (item 286).
+            ["capture"] = "/capture", ["capture_parts"] = true,
             // The engine gives the DAC every PCM track in 32-bit words, at its gain of 1 whatever the volume asked (the Bridge
             // has no volume of its own: Player.cs): said as it is (item 287), the samples untouched.
             ["now"] = now is { } n ? new JsonObject

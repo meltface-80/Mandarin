@@ -1,5 +1,5 @@
 // Bridge.Routes.cs — what the Bridge answers over HTTP: /dac.json for Mandarin, /update and /log (Update.cs, Kept.cs:
-// item 291), and its own web page (Web.cs) with what that page reads and sets. Mandarin plays it over SlimProto
+// item 291), /capture (Capture.cs, item 412), and its own web page (Web.cs) with what that page reads and sets. Mandarin plays it over SlimProto
 // (Slim.cs, item 316): the UPnP description, control and eventing it answered before are gone.
 using System.Text.Json.Nodes;
 
@@ -21,6 +21,7 @@ internal sealed partial class Bridge
         if (p == "/api/wifi" && wifi != null) return r.Method == "POST" ? Join(r) : Http.Response.Text(200, wifi.State().ToJsonString(), Json);
         if (p == "/update" && r.Method == "POST") return Updated(r);
         if (p == "/log" && r.Method == "GET") return Http.Response.Text(200, Kept.Text(), "text/plain; charset=utf-8");
+        if (Capture.Is(p)) return capture.Route(r);
         return Http.Response.Text(404, "");
     }
 

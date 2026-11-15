@@ -28,17 +28,18 @@ class SwitchedTest {
         assertEquals("a row not there changes nothing", list, list.withEnabled("zz", true))
     }
 
-    @Test fun `the scanner's settings with a switch laid over them, and measuring switched`() {
-        val st = JSONObject("""{"settings":{"schedule":false,"enabled":true,"itunes":true},"progress":{"checked":3}}""")
-        val s = Scanner.withSettings(st, JSONObject().put("schedule", true))!!
-        assertTrue(s.getJSONObject("settings").getBoolean("schedule"))
-        assertTrue(s.getJSONObject("settings").getBoolean("enabled"))
-        assertEquals(3, s.getJSONObject("progress").getInt("checked"))
-        assertFalse("the state it came from is as it was", st.getJSONObject("settings").getBoolean("schedule"))
-        assertNull(Scanner.withSettings(null, JSONObject().put("schedule", true)))
-        assertTrue(Scanner.withSettings(JSONObject(), JSONObject().put("enabled", true))!!.getJSONObject("settings").getBoolean("enabled"))
-        val loud = Scanner.withMeasure(JSONObject("""{"settings":{"measure":false},"queued":4}"""), true)!!
-        assertTrue(loud.getJSONObject("settings").getBoolean("measure")); assertEquals(4, loud.getInt("queued"))
+    @Test fun `the Album Scanner with its switch or Schedule's laid over it, the rest as it was`() {
+        val st = JSONObject("""{"on":true,"schedule":{"on":false,"start":"01:00","end":"06:00"},"done":3,"albums":5}""")
+        val s = Scanner.withScanner(st, JSONObject().put("schedule", true))!!
+        assertTrue(s.getJSONObject("schedule").getBoolean("on"))
+        assertTrue(s.getBoolean("on"))
+        assertEquals(3, s.getInt("done"))
+        assertEquals("06:00", s.getJSONObject("schedule").getString("end"))
+        assertFalse("the state it came from is as it was", st.getJSONObject("schedule").getBoolean("on"))
+        assertNull(Scanner.withScanner(null, JSONObject().put("schedule", true)))
+        assertTrue(Scanner.withScanner(JSONObject(), JSONObject().put("on", true))!!.getBoolean("on"))
+        val off = Scanner.withScanner(st, JSONObject().put("on", false))!!
+        assertFalse(off.getBoolean("on")); assertFalse(off.getJSONObject("schedule").getBoolean("on")); assertEquals(5, off.getInt("albums"))
     }
 
     @Test fun `the account's status with the sign-in off or on, the rest kept`() {

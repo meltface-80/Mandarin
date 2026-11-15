@@ -13,7 +13,7 @@ public sealed class HealthBusyTests
         await using var s = await Session.Started();
         var here = (await Http.Get(s.Base + "/api/health")).J;
         Assert.True(here["ok"]!.GetValue<bool>());
-        JsonAssert.Same("""{"any":false,"playing":0,"scanning":false,"making":0}""", here["busy"]);
+        JsonAssert.Same("""{"any":false,"playing":0,"playing_in":[],"scanning":false,"making":0}""", here["busy"]);
         var other = (await Http.Get(s.Base + "/api/health", new Dictionary<string, string> { ["X-Forwarded-For"] = "192.168.1.20" })).J;
         Assert.True(other["ok"]!.GetValue<bool>());
         Assert.Null(other["busy"]);

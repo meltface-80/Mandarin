@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title data-i18n="whats-new.doc-title">What's new in v1.3.2 · Mandarin</title>
-<meta name="description" content="Mandarin v1.3.2, since v1.3.1: Mandarin OS 0.1.6; the app no longer ended by Android for its built-in Tailscale; Mandarin OS's addresses by the box's address.">
+<title data-i18n="whats-new.doc-title">What's new in v1.3.3 · Mandarin</title>
+<meta name="description" content="Mandarin v1.3.3, since v1.3.2: the Library Scanner, identification that finds your edition and matches by sound, covers found automatically, MQA passthrough, SQ-tool comparing two songs and one log; Mandarin OS 0.1.12 and Mandarin Bridge 0.3.15.">
 <link rel="icon" href="mandarin-icon.png">
 <link rel="stylesheet" href="site.css">
 </head>
@@ -31,32 +31,55 @@
 </header>
 
 <main class="wrap page">
-  <h1 data-i18n="whats-new.h1">What's new in v1.3.2</h1>
-  <p class="lead" data-i18n="whats-new.lead">Mandarin v1.3.2, since v1.3.1, with Mandarin Bridge v0.3.10 and Mandarin OS 0.1.6. Mandarin OS 0.1.6,
-     which keeps the box's settings when Mandarin is reinstalled; the Android app no longer ended by Android for its
-     built-in Tailscale; and Mandarin OS's addresses given by the box's address.</p>
+  <h1 data-i18n="whats-new.h1">What's new in v1.3.3</h1>
+  <p class="lead" data-i18n="whats-new.lead">Mandarin v1.3.3, since v1.3.2, with Mandarin OS 0.1.12 and Mandarin Bridge v0.3.15. Mandarin
+     now names and completes your albums by itself, passes MQA through untouched to a DAC that decodes it, compares two
+     songs in SQ-tool, and keeps one log of everything.</p>
 <div class="newlist info-cards">
-    <div class="info-card"><h3 data-i18n="whats-new.top.h31">Mandarin OS 0.1.6</h3><p data-i18n="whats-new.top.p1"><b>Reinstall Mandarin</b>, on the system page, keeps the box's settings, and the reinstaller's folder, <code>Installer</code>, is at the top of the shared folder, beside <code>Storage</code>. A box on 0.1.4 or later updates itself to it in place, from the system page's <b>Settings</b> or by its weekly upkeep. <a href="mandarin-os.html">Mandarin OS →</a></p></div>
-    <div class="info-card"><h3 data-i18n="whats-new.top.h32">The app's Tailscale, no longer ended by Android</h3><p data-i18n="whats-new.top.p2">Android ended the app for the CPU its built-in Tailscale used with nothing going through it. The engine now stops itself when nothing goes through it, or when it is busy for nothing, and starts again in seconds when the app is used; back home, the phone plays from home, no longer through Tailscale. <a href="away.html">Away from home →</a></p></div>
+    <div class="info-card"><h3 data-i18n="whats-new.v1-3-3.h31">The Library Scanner</h3><p data-i18n="whats-new.v1-3-3.p1">One switch, <b>Album Scanner</b>, in <b>Settings → Library Scanner</b>: albums identified, ReplayGain measured and missing covers found, with one <b>Progress</b> readout and an optional <b>Schedule</b>. It waits only while Mandarin's own music plays in a room you use, and says which. The albums it can't place wait in <b>Unidentified</b> and <b>To confirm</b>. <a href="features.html">Features →</a></p></div>
+    <div class="info-card"><h3 data-i18n="whats-new.v1-3-3.h32">Identification that finds your edition</h3><p data-i18n="whats-new.v1-3-3.p2">A disc set is one album, a CD rip is found by its tracks' exact lengths, and the pressing that fits your copy best is the one chosen, the other editions a tap away. Every match says how sure it is and why; <b>To confirm</b> has <b>Apply</b> and <b>Not this</b>, and Mandarin learns from your choices.</p></div>
+    <div class="info-card"><h3 data-i18n="whats-new.v1-3-3.h33">Matching by sound</h3><p data-i18n="whats-new.v1-3-3.p3">With a free AcoustID key in <b>Settings → Setup → API Keys</b>, an album no search by name can place is fingerprinted on the server and matched by how it sounds. <b>Match by sound</b> in <b>Edit album</b> does one album at once.</p></div>
+    <div class="info-card"><h3 data-i18n="whats-new.v1-3-3.h34">Covers found automatically</h3><p data-i18n="whats-new.v1-3-3.p4">An album with no cover of its own is given one from Apple Music, Deezer or the Cover Art Archive, only when its title, artist and tracks all agree. A cover in its folder or its files, or one you chose, is never touched.</p></div>
+    <div class="info-card"><h3 data-i18n="whats-new.v1-3-3.h35">Edit album: the version, and copies apart</h3><p data-i18n="whats-new.v1-3-3.p5"><b>Version</b> shows the pressing's name, label, catalogue number, barcode, country, year and format, each yours to change. Two releases merged into one album come apart, by folder at the next scan or with <b>Split…</b> under <b>Folders and copies</b>. Your files are never changed.</p></div>
+    <div class="info-card"><h3 data-i18n="whats-new.v1-3-3.h36">MQA passthrough</h3><p data-i18n="whats-new.v1-3-3.p6">MQA files are recognised and marked with their original rate (<i>MQA · 24/352.8 original</i>), and found under <b>Focus → Format</b>. Mandarin sends MQA untouched to a DAC set to <b>This DAC decodes MQA</b> in <b>Settings → Audio Devices</b>. Mandarin doesn't decode or unfold MQA itself: a DAC that decodes MQA, fully unfolding it, is needed. Any other room plays it as ordinary PCM. <a href="formats.html">What each device is sent →</a></p></div>
+    <div class="info-card"><h3 data-i18n="whats-new.v1-3-3.h37">SQ-tool compares two songs</h3><p data-i18n="whats-new.v1-3-3.p7"><b>Compare two songs</b> null-tests song A against song B: a verdict in plain words, where in the spectrum they differ, spectrograms and loudness, and the difference to download. The bit-perfect check now works with Mandarin Bridge for Linux and the Raspberry Pi too. <a href="sq-tool.html">SQ-tool →</a></p></div>
+    <div class="info-card"><h3 data-i18n="whats-new.v1-3-3.h38">One log</h3><p data-i18n="whats-new.v1-3-3.p8">Everything Mandarin says, from the server, Mandarin OS, every Bridge, the app and the page, a line each in time order in one plain-text file, without personal data: on Mandarin OS, <code>smb://&lt;box address&gt;/Data/Logs</code>. <a href="logs.html">Logs →</a></p></div>
+    <div class="info-card"><h3 data-i18n="whats-new.v1-3-3.h39">Mandarin Bridge 0.3.15: Now Playing</h3><p data-i18n="whats-new.v1-3-3.p9">Mandarin Bridge for Android opens on what it plays: the album's cover, the track, the format the DAC is fed and the DAC it plays to; its settings are behind the cog. <a href="bridges.html">Mandarin Bridge →</a></p></div>
+    <div class="info-card"><h3 data-i18n="whats-new.v1-3-3.h310">Mandarin OS 0.1.12</h3><p data-i18n="whats-new.v1-3-3.p10">The one log; internal storage that formats and mounts from the system page as <code>Storage/Internal</code>; a weekly upkeep that waits only for Mandarin's own music; and Mandarin Bridge on the box updating itself again. A box on 0.1.4 or later updates itself to it. <a href="mandarin-os.html">Mandarin OS →</a></p></div>
   </div>
 
   <ul class="plain">
-    <li data-i18n="whats-new.top.li1"><b>Fixed:</b> this site and the README give Mandarin OS's addresses by the box's address (<code>http://&lt;box address&gt;/</code>, the address its screen shows), where they gave a name only some devices find.</li>
+    <li data-i18n="whats-new.v1-3-3.li1"><b>Fixed:</b> a backup restored on another computer keeps that computer's music folders and finds the albums there; the copies of the database kept before a restore can be restored from <b>Backup &amp; restore</b>.</li>
+    <li data-i18n="whats-new.v1-3-3.li2"><b>Fixed:</b> Last.fm no longer scrobbles a track twice when the server restarts while it plays.</li>
+    <li data-i18n="whats-new.v1-3-3.li3"><b>Fixed:</b> Android no longer ends the app for its Tailscale engine while the phone's player is paused away from home.</li>
+    <li data-i18n="whats-new.v1-3-3.li4"><b>Fixed:</b> Mandarin Bridge for Linux updates itself on Mandarin OS and on other computers with systemd 256 or later.</li>
+    <li data-i18n="whats-new.v1-3-3.li5"><b>New:</b> this site in nine languages: choose yours at the top left of any page.</li>
   </ul>
 
-  <div class="note" style="margin-top:22px" data-i18n="whats-new.top.note1"><b>Updating:</b> the server from <b>Settings → Updates</b>, the Android app
-     beside it. Mandarin OS updates itself from its system page; 0.1.3 and earlier reinstall 0.1.6 once
-     (<a href="mandarin-os.html#updating">how</a>). Every change is listed in the
+  <div class="note" style="margin-top:22px" data-i18n="whats-new.v1-3-3.note1"><b>Updating:</b> the server from <b>Settings → Updates</b>, the Android app
+     beside it, each Mandarin Bridge from its own row. Mandarin OS updates itself from its system page; 0.1.3 and earlier
+     reinstall 0.1.12 once (<a href="mandarin-os.html#updating">how</a>). Every change is listed in the
      <a href="https://github.com/meltface-80/Mandarin/blob/main/CHANGELOG.md">changelog</a>.</div>
+
+  <h2 data-i18n="whats-new.before-v1-3-2.title">Before: v1.3.2</h2>
+  <p data-i18n="whats-new.before-v1-3-2.p1">Mandarin v1.3.2, since v1.3.1, with Mandarin Bridge v0.3.10 and Mandarin OS 0.1.6. Mandarin OS 0.1.6,
+     which keeps the box's settings when Mandarin is reinstalled; the Android app no longer ended by Android for its
+     built-in Tailscale; and Mandarin OS's addresses given by the box's address.</p>
+<div class="newlist info-cards">
+    <div class="info-card"><h3 data-i18n="whats-new.before-v1-3-2.h31">Mandarin OS 0.1.6</h3><p data-i18n="whats-new.before-v1-3-2.p2"><b>Reinstall Mandarin</b>, on the system page, keeps the box's settings, and the reinstaller's folder, <code>Installer</code>, is at the top of the shared folder, beside <code>Storage</code>. A box on 0.1.4 or later updates itself to it in place, from the system page's <b>Settings</b> or by its weekly upkeep. <a href="mandarin-os.html">Mandarin OS →</a></p></div>
+    <div class="info-card"><h3 data-i18n="whats-new.before-v1-3-2.h32">The app's Tailscale, no longer ended by Android</h3><p data-i18n="whats-new.before-v1-3-2.p3">Android ended the app for the CPU its built-in Tailscale used with nothing going through it. The engine now stops itself when nothing goes through it, or when it is busy for nothing, and starts again in seconds when the app is used; back home, the phone plays from home, no longer through Tailscale. <a href="away.html">Away from home →</a></p></div>
+  </div>
+
+  <ul class="plain">
+    <li data-i18n="whats-new.before-v1-3-2.li1"><b>Fixed:</b> this site and the README give Mandarin OS's addresses by the box's address (<code>http://&lt;box address&gt;/</code>, the address its screen shows), where they gave a name only some devices find.</li>
+  </ul>
+
 
   <h2 data-i18n="whats-new.before-v1-3-1.title">Before: v1.3.1</h2>
   <p data-i18n="whats-new.before-v1-3-1.p1">Mandarin v1.3.1, since v1.3.0, with Mandarin Bridge v0.3.10 and Mandarin OS 0.1.4. Mandarin OS
-     arrives, the recommended way to run Mandarin, with Mandarin on Linux as the alternative; logs are always on and
-     download as one file; and a handful of fixes.</p>
+     arrives, a system made only to run Mandarin, installed from a USB stick; and a handful of fixes.</p>
 <div class="newlist info-cards">
-    <div class="info-card"><h3 data-i18n="whats-new.before-v1-3-1.h31">Mandarin OS 0.1.4</h3><p data-i18n="whats-new.before-v1-3-1.p2">A lightweight operating system made only to run Mandarin Server, on a PC of its own, with its own system page (<code>http://&lt;box address&gt;/</code>) to watch over and look after everything: a shared folder for your music, USB drives mounted as they are plugged in, and a weekly upkeep when nothing plays. Installed from a USB stick made with balenaEtcher, a Linux terminal or EtchDroid on an Android phone. It updates itself in place, and goes back by itself to the version that worked if a new one doesn't start. The recommended way to run Mandarin. <a href="mandarin-os.html">Mandarin OS →</a></p></div>
-    <div class="info-card"><h3 data-i18n="whats-new.before-v1-3-1.h32">Mandarin on Linux, natively</h3><p data-i18n="whats-new.before-v1-3-1.p3">The alternative, for a Debian, Ubuntu or Raspberry Pi OS machine you already run (x64 or arm64): one line as root installs what Mandarin needs and runs it as a systemd service, its data in <code>/var/lib/mandarin</code>. Run again, it updates; <code>--uninstall</code> removes it. <a href="install.html#linux">Install on Linux →</a></p></div>
-    <div class="info-card"><h3 data-i18n="whats-new.before-v1-3-1.h33">Logs always on, as one file</h3><p data-i18n="whats-new.before-v1-3-1.p4">The server, every Mandarin Bridge, the Android app and the page keep a log always, all of it on the server. <b>Settings → Setup → Logs → Download all logs</b> in a browser gives every log as one text file, in time order, each line saying where it came from; the app's <b>Save log</b> and Mandarin OS's system page do the same. <a href="logs.html">Logs →</a></p></div>
+    <div class="info-card"><h3 data-i18n="whats-new.before-v1-3-1.h31">Mandarin OS 0.1.4</h3><p data-i18n="whats-new.before-v1-3-1.p2">A lightweight operating system made only to run Mandarin Server, on a PC of its own, with its own system page (<code>http://&lt;box address&gt;/</code>) to watch over and look after everything: a shared folder for your music, USB drives mounted as they are plugged in, and a weekly upkeep when nothing plays. Installed from a USB stick made with balenaEtcher, a Linux terminal or EtchDroid on an Android phone. It updates itself in place, and goes back by itself to the version that worked if a new one doesn't start. <a href="mandarin-os.html">Mandarin OS →</a></p></div>
   </div>
 
   <ul class="plain">

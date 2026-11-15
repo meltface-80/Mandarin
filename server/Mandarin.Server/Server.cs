@@ -9,8 +9,6 @@ namespace Mandarin.Server;
 
 internal static partial class Server
 {
-    private static readonly object logLock = new();
-
     /* This program's version (Program.cs). */
     public static string Version = "0.0.0";
     /* The data folder (Program.cs). */
@@ -61,15 +59,11 @@ internal static partial class Server
         Cpu.Resume();
     }
 
-    // A line, in the console and the log (Diagnostics.cs) alike: its time (UTC, with the date) and its level before it.
-    // Kept as LogScrub leaves it (item 235). [level]: INFO, WARN or ERROR (logs, item 389).
+    // A line of the server's, in the console and the one log (Diagnostics.cs) alike: its time (UTC, with the date), its
+    // level and "[server]" before it (item 425). Kept as LogScrub leaves it (item 235). [level]: INFO, WARN or ERROR.
     public static void Log(string s) => Log(s, "INFO");
 
-    public static void Log(string s, string level)
-    {
-        lock (logLock) Console.Write(Diagnostics.Stamp(level, s));
-        Diagnostics.Record(LogScrub.Line(s), level);
-    }
+    public static void Log(string s, string level) => Diagnostics.Write("server", level, LogScrub.Line(s), s);
 
     // A line written here ($"..."): kept without what is the owner's alone (LogLine.cs).
     public static void Log(LogLine line) => Write("INFO", line);
@@ -82,9 +76,8 @@ internal static partial class Server
 
     private static void Write(string level, LogLine line)
     {
-        var s = line.Text();
-        lock (logLock) Console.Write(Diagnostics.Stamp(level, s));
-        Diagnostics.Record(line.Kept(), level);
+        var kept = line.Kept();
+        Diagnostics.Write("server", level, kept, line.Text());
     }
 
     // The app's folder, with the page (public/index.html): beside this program,

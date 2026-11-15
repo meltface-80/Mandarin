@@ -3,19 +3,23 @@
 # would: the image written to a USB stick, a computer with an empty disk started from it, the installer answered
 # (mandarin-install.json on the stick), the computer started again from its disk. Then, through the firewall:
 #   Mandarin answers (/api/health), with nothing under way; the share smb://mandarin/data takes the user chosen, its
-#   README and layout there, music written into Storage, and nothing written where it is read-only; Mandarin's and the
-#   system's logs in it; nothing at all on SSH's port; mandarin.local and the system's own checks (maintain --check) are
+#   README and layout there, music written into Storage, and nothing written where it is read-only; a second internal
+#   disk formatted from the system page, mounted as Storage/Internal and written over the share (item 429); Mandarin's
+#   and the system's logs in it, in time order, the share's user's name nowhere in them; nothing at all on SSH's port; mandarin.local and the system's own checks (maintain --check) are
 #   asked of it through its logs; USB drives (exFAT, NTFS, ext4) plugged in at the start and while it runs, each
 #   mounted in Storage/USB with its music and on the system page; one whose files are another's made the shared
 #   folder's from the system page (item 399). Mandarin OS updated in place from the system page, and back by itself
 #   from a version that doesn't start (item 401, os/test/os-update-vm.sh). Then, given NEXT (os/test/next-mandarin.sh's program,
 #   a newer Mandarin), the in-app update (item 398): Settings → Updates on the installed system takes a newer release from
-#   a stand-in GitHub on this computer, and Mandarin starts again as it, its library and account kept. Needs
+#   a stand-in GitHub on this computer, and Mandarin starts again as it, its library and account kept. Given BRIDGES
+#   (os/test/next-bridge.sh's), Mandarin Bridge installed with its service from before 0.3.12 (a DynamicUser's) updates
+#   itself from a stand-in GitHub, and still runs as its update once Mandarin OS has updated itself (item 415,
+#   os/test/bridge-update-vm.sh). Needs
 #   qemu-system-x86_64, OVMF, mtools, smbclient, curl, jq, exfatprogs, ntfs-3g, node, python3, and root (loop devices,
 #   for the USB drives' filesystems and the installed disk's).
-#     os/test/boot-test.sh <image.raw> [NEXT]
+#     os/test/boot-test.sh <image.raw> [NEXT] [BRIDGES]
 set -uo pipefail
-IMG="${1:?the image}" NEXT="${2:-}"
+IMG="${1:?the image}" NEXT="${2:-}" BRIDGES="${3:-}"
 HERE="$(cd "$(dirname "$0")" && pwd)"
 W="$(mktemp -d)"
 # Each virtual machine stopped at the end, whatever happened: by its own process number (-pidfile), never left running.
@@ -40,7 +44,10 @@ V="$(sfdisk -J "$W/usb.raw" | jq -r '.partitiontable.partitions[] | select(.type
 V="${V#mandarin-os_}"
 [[ "$V" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || fail "the stick's system partition isn't labelled with its version: $V"
 esp_start="$(sfdisk -J "$W/usb.raw" | jq '.partitiontable.partitions[] | select(.type == "C12A7328-F81F-11D2-BA4B-00A0C93EC93B") | .start')"
-printf '{"disk":"first","share_user":"music","share_password":"listen-carefully","network":{"mode":"dhcp"},"bridge":false,"erase":"erase"}\n' > "$W/answers.json"
+# The share's user: a name nothing else in the log says, so that it can be looked for in all of it (item 429; the
+# installer's own suggestion, "music", is a word the log uses of itself).
+SHARE=lyrebird
+printf '{"disk":"first","share_user":"%s","share_password":"listen-carefully","network":{"mode":"dhcp"},"bridge":false,"erase":"erase"}\n' "$SHARE" > "$W/answers.json"
 mcopy -i "$W/usb.raw@@$((esp_start * 512))" "$W/answers.json" ::mandarin-install.json || fail "answers not put on the stick"
 truncate -s 16G "$W/disk.raw"
 
@@ -60,7 +67,9 @@ ok "it starts from its own entry: $(basename "$(grep conf <<< "$ents")")"
 # Mandarin OS's own update in place (item 401, os/test/os-update-vm.sh): two newer versions made from this image, offered
 # by a stand-in GitHub, the installed system told to ask it; tested once the box runs, after everything else.
 . "$HERE/os-update-vm.sh"
-os_update_prepare
+. "$HERE/bridge-update-vm.sh"
+# (9.9.9 says, at each start, what the Bridge carried into it answers as.)
+os_update_prepare $([ -n "$BRIDGES" ] && echo bridge_report_into)
 # The stick starts quietly, straight to the installer: nothing waited for, nothing failed (a screen of them was taken
 # for an error on the first real computer).
 grep -aE "Timed out waiting|Dependency failed|Failed to start" "$W/serial-install.log" && fail "the stick's start said something failed"
@@ -82,6 +91,9 @@ if [ -n "$NEXT" ]; then
   umount "$W/root"; losetup -d "$lo"
   ok "the installed Mandarin asks the stand-in GitHub for $("$NEXT" --version), signed with the test's key"
 fi
+
+# Mandarin Bridge as a box carried from an earlier Mandarin OS has it (item 415, os/test/bridge-update-vm.sh).
+[ -z "$BRIDGES" ] || bridge_update_prepare
 
 # USB drives as music comes on them: a GPT partition table and one partition (exFAT, NTFS or ext4), or ext4 on the
 # whole disk with no partitions (as a Linux machine, DietPi, often formats one); a track on each.
@@ -105,9 +117,12 @@ usb_disk "$W/usb-exfat.raw" exfat "Music SSD"; usb_disk "$W/usb-ntfs.raw" ntfs "
 usb_disk "$W/usb-later.raw" ext4 "Plugged Later"
 usb() { printf -- '-drive if=none,id=%s,format=raw,file=%s -device usb-storage,bus=xhci.0,drive=%s' "$1" "$2" "$1"; }
 
-echo "Starting from the disk, three USB drives plugged in…"
+# The computer's own second disk, empty, for internal storage (item 429).
+truncate -s 2G "$W/internal.raw"
+
+echo "Starting from the disk, a second internal disk and three USB drives plugged in…"
 # shellcheck disable=SC2046
-qemu disk -drive if=virtio,format=raw,file="$W/disk.raw" -device qemu-xhci,id=xhci \
+qemu disk -drive if=virtio,format=raw,file="$W/disk.raw" -drive if=virtio,format=raw,file="$W/internal.raw" -device qemu-xhci,id=xhci \
   $(usb u1 "$W/usb-exfat.raw") $(usb u2 "$W/usb-ntfs.raw") $(usb u3 "$W/usb-ext4.raw") -monitor unix:"$W/monitor.sock",server,nowait \
   -nic user,model=virtio-net-pci,hostfwd=tcp:127.0.0.1:13500-:3500,hostfwd=tcp:127.0.0.1:10445-:445,hostfwd=tcp:127.0.0.1:10022-:22,hostfwd=tcp:127.0.0.1:10080-:80 &
 for i in $(seq 1 180); do h="$(curl -fsS --max-time 5 http://127.0.0.1:13500/api/health 2>/dev/null)" && break; sleep 5; done
@@ -117,32 +132,64 @@ ok "Mandarin $(jq -r .version <<< "$h") answers through the firewall"
 grep -aE "Timed out waiting|Dependency failed|Failed to start" "$W/serial-disk.log" && fail "the installed system's start said something failed"
 ok "the installed system started without a failure on its screen"
 
-S() { smbclient //127.0.0.1/Data -p 10445 -U 'music%listen-carefully' -m SMB3 "$@" 2>&1; }
+S() { smbclient //127.0.0.1/Data -p 10445 -U "$SHARE%listen-carefully" -m SMB3 "$@" 2>&1; }
+# Mandarin's one log (item 425), Logs/Mandarin_log.txt, as the share gives it: in $W/one.log, and said.
+onelog() { rm -f "$W/one.log"; S -c "cd Logs; get Mandarin_log.txt $W/one.log" >/dev/null; cat "$W/one.log" 2>/dev/null; }
+# The one log as a person reads it (item 429), $1 when: the share's user's name nowhere in it, not in a line of any
+# kind, and each start of its writer in its place by time (it came first, then the start's lines from before it).
+log_kept() {
+  local said order
+  onelog >/dev/null
+  said="$(grep -ain "$SHARE" "$W/one.log" | head -n 5)"
+  [ -z "$said" ] || fail "the share's user's name is in the log ($1): $said"
+  order="$(awk '{ t[NR] = $1 " " $2; l[NR] = $0 } END { for (i = 1; i <= NR; i++) if (l[i] ~ /\[os\] \[log\] Mandarin OS .*: the one log written from here$/ && ((i > 1 && t[i-1] > t[i]) || (i < NR && t[i+1] < t[i]))) print l[i-1] " | " l[i] " | " l[i+1] }' "$W/one.log")"
+  [ -z "$order" ] || fail "the log's writer's start isn't in its place by time ($1): $order"
+}
 for i in $(seq 1 24); do S -c ls | grep -q README.txt && break; sleep 5; done
 list="$(S -c ls)"
-for d in README.txt Storage MandarinServer MandarinBridge MandarinApp MandarinOS; do grep -q " $d " <<< "$list" || fail "the share has no $d: $list"; done
+for d in README.txt Storage Logs MandarinServer MandarinOS; do grep -q " $d " <<< "$list" || fail "the share has no $d: $list"; done
+for d in MandarinBridge MandarinApp; do grep -q " $d " <<< "$list" && fail "the share still has $d (item 425: one log, in Logs): $list"; done
 ok "the share takes the user chosen, laid out as Data"
 echo "a song" > "$W/song.flac"
 S -c "cd Storage; put $W/song.flac song.flac" >/dev/null; S -c "cd Storage; ls" | grep -q song.flac || fail "music couldn't be copied into Storage"
 ok "music copied into Storage"
 said="$(S -c "cd MandarinOS; put $W/song.flac nope.flac")"
 S -c "cd MandarinOS; ls" | grep -q nope.flac && fail "MandarinOS could be written ($said)"
-S -c "cd MandarinServer/Logs; put $W/song.flac nope.flac" >/dev/null; S -c "cd MandarinServer/Logs; ls" | grep -q nope.flac && fail "Mandarin's logs could be written"
-ok "MandarinOS and Mandarin's logs are read-only"
-logs="$(S -c "cd MandarinServer/Logs; ls")"
-grep -q NT_STATUS <<< "$logs" && fail "Mandarin's logs can't be read in the share: $logs"
-# Mandarin's own rolling log came after v1.3.0 (item 389): where the release installed writes it, it is here.
-if grep -q MandarinServer_log.txt <<< "$logs"; then
-  S -c "cd MandarinServer/Logs; get MandarinServer_log.txt $W/server.log" >/dev/null
-  grep -q "^# Mandarin Server .*" "$W/server.log" || fail "Mandarin's log in the share isn't its log"
-  ok "Mandarin's log is in the share"
-else
-  ok "Mandarin's logs folder opens in the share (this release writes no rolling log yet)"
-fi
-S -c "cd MandarinOS/Logs; get MandarinOS_log.txt $W/os.log" >/dev/null; grep -q "\[apply\] done" "$W/os.log" || fail "the system's log isn't in the share"
-ok "the system's log is in the share"
+S -c "cd Logs; put $W/song.flac nope.flac" >/dev/null; S -c "cd Logs; ls" | grep -q nope.flac && fail "Mandarin's log could be written"
+ok "MandarinOS and Mandarin's log are read-only"
+# The computer's own storage drive (item 429): the second disk offered on the system page's Storage tab, formatted from
+# it, mounted as Storage/Internal (and still a while after), the shared folder's to write music into. That Mandarin
+# reads it: the in-app update's album is put there (below).
+for i in $(seq 1 12); do st="$(curl -fsS --max-time 30 http://127.0.0.1:10080/api/state 2>&1)" && break; sleep 5; done
+jq -e .internal <<< "$st" >/dev/null 2>&1 || fail "the system page's state: ${st:0:300}"
+[ "$(jq -r '[.internal.disks[].disk] | join(",")' <<< "$st")" = /dev/vdb ] && [ "$(jq -r .internal.mounted <<< "$st")" = false ] \
+  || fail "the system page's internal storage, before: $(jq -c .internal <<< "$st")"
+f="$(curl -sS --max-time 900 -H 'Content-Type: application/json' -d '{"password":"listen-carefully","disk":"/dev/vdb","erase":"erase"}' http://127.0.0.1:10080/api/internal/format)"
+internal_why() { onelog | grep -a "internal\|Internal\|vdb\|\[kernel\]\|\[systemd\]" | tail -n 30; }
+jq -e .ok <<< "$f" >/dev/null || { internal_why; fail "Format (internal storage) wasn't done: $f"; }
+sleep 10
+st="$(curl -fsS --max-time 30 http://127.0.0.1:10080/api/state)" || fail "the system page's state"
+[ "$(jq -r .internal.mounted <<< "$st")" = true ] || { internal_why; fail "formatted, but Storage/Internal isn't mounted: $(jq -c .internal <<< "$st")"; }
+said="$(S -c "cd Storage/Internal; put $W/song.flac song.flac")"
+S -c "cd Storage/Internal; ls" | grep -q song.flac || { internal_why; fail "music couldn't be copied into Storage/Internal: $said"; }
+ok "the second disk formatted from the system page: mounted as Storage/Internal ($(jq -r .internal.space.free <<< "$st") free), music copied into it"
+# Mandarin's one log (item 425): one file in Logs, a line each saying when, how bad and where it came from, Mandarin's
+# and Mandarin OS's among them; the separate logs from before gone, on the share and on the data partition.
+logs="$(S -c "cd Logs; ls")"
+grep -q NT_STATUS <<< "$logs" && fail "Mandarin's log can't be read in the share: $logs"
+grep -q " Mandarin_log.txt " <<< "$logs" || fail "Logs has no Mandarin_log.txt: $logs"
+for i in $(seq 1 24); do onelog | grep -q "\[server\] \[start\] Mandarin Server " && break; sleep 5; done
+grep -qE "^[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9:.]{12} UTC  INFO   \[server\] \[start\] Mandarin Server .* starting$" "$W/one.log" || { tail -n 40 "$W/one.log"; fail "Mandarin's lines aren't in the one log"; }
+grep -qE "UTC  INFO   \[os\] \[apply\] done$" "$W/one.log" || { head -n 40 "$W/one.log"; echo "…"; grep -a "\[os\]" "$W/one.log" | tail -n 20; fail "Mandarin OS's lines aren't in the one log"; }
+grep -qE "UTC  INFO   \[os\] \[install\] done$" "$W/one.log" || fail "the installer's lines aren't at the head of the one log"
+bad="$(grep -avE '^[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]{3} UTC  (INFO |WARN |ERROR|DEBUG)  \[(server|os|bridge[^]]*|app [^]]+|web [^]]+)\] ' "$W/one.log" | head -n 5)"
+[ -z "$bad" ] || fail "lines of the one log that don't say when, how bad and where from: $bad"
+grep -qE "UTC  INFO   \[os\] \[apply\] the share's user made \(uid 3501\)$" "$W/one.log" || fail "apply didn't say the share's user was made, by its number"
+log_kept "the first start"
+for d in MandarinServer MandarinOS; do S -c "cd $d; ls" | grep -q " Logs " && fail "$d still has Logs in the share: $(S -c "cd $d; ls")"; done
+ok "the one log is in the share's Logs, Mandarin's and Mandarin OS's lines in it, each saying where it came from; the old log folders gone"
 # Let in is the share's contents coming back; refused is anything else (what Samba said, shown either way).
-wrong="$(smbclient //127.0.0.1/Data -p 10445 -U 'music%wrong-password' -m SMB3 -c ls 2>&1)"
+wrong="$(smbclient //127.0.0.1/Data -p 10445 -U "$SHARE%wrong-password" -m SMB3 -c ls 2>&1)"
 grep -q README.txt <<< "$wrong" && fail "a wrong password was let in: $wrong"
 echo "  a wrong password: $(grep -o 'NT_STATUS_[A-Z_]*' <<< "$wrong" | head -n 1)"
 guest="$(smbclient //127.0.0.1/Data -p 10445 -N -m SMB3 -c ls 2>&1)"
@@ -155,8 +202,7 @@ ok "nothing on SSH's port"
 # The system page, http://mandarin/: its state read without a password, a change only with the share's.
 for i in $(seq 1 12); do page="$(curl -fsS --max-time 10 http://127.0.0.1:10080/ 2>&1)" && break; sleep 5; done
 if ! grep -q "<title>Mandarin OS</title>" <<< "$page"; then
-  S -c "cd MandarinOS/Logs; get SystemPage_errors.txt $W/page-errors.txt" >/dev/null; cat "$W/page-errors.txt" 2>/dev/null
-  S -c "cd MandarinOS/Logs; get MandarinOS_log.txt $W/os.log" >/dev/null; tail -n 30 "$W/os.log" 2>/dev/null
+  onelog | grep -a "\[os\]" | tail -n 30
   fail "the system page doesn't answer on port 80: ${page:0:300}"
 fi
 st="$(curl -fsS --max-time 30 http://127.0.0.1:10080/api/state)" || fail "the system page's state doesn't answer"
@@ -168,6 +214,8 @@ P() { curl -s -o /dev/null -w '%{http_code}' --max-time 10 -H 'Content-Type: app
 [ "$(P '{"password":"not-it"}')" = 401 ] || fail "the system page took a wrong password"
 [ "$(P '{"password":"listen-carefully"}')" = 200 ] || fail "the system page didn't take the share's password"
 ok "the system page answers, sees Mandarin and its services, and asks for the share's password"
+# Mandarin Bridge's update (item 415): asked on the box once it runs, and it comes back as 9.9.9.
+if [ -n "$BRIDGES" ]; then bridge_update_check; else echo "not tested: Mandarin Bridge's update (no BRIDGES given: os/test/next-bridge.sh builds them)"; fi
 # Installer (item 405): made by apply, with its one line, in the share; a dev file put in it over the share is what the system
 # page says the next Reinstall installs, and taken out again (the upkeep's Reinstall would follow it). (Each answer kept
 # first: smbclient's own status never goes into a pipe.)
@@ -187,8 +235,7 @@ ok "Installer is at the top of the share (not in Storage) with its README.txt; a
 # USB drives: those plugged in at the start, and one plugged in later, each mounted in Storage/USB with its music, and
 # on the system page. Not: the log of what happened to each, to find why.
 usb_why() {
-  curl -fsS --max-time 30 http://127.0.0.1:10080/api/logs/journal 2>/dev/null | grep -iE "usb|sd[a-z]|mandarin-usb|exfat|ntfs|ext4" | tail -n 40
-  S -c "cd MandarinOS/Logs; get MandarinOS_log.txt $W/os.log" >/dev/null; grep -a "\[usb\]" "$W/os.log" 2>/dev/null | tail -n 20
+  onelog | grep -aiE "usb|sd[a-z]|exfat|ntfs|ext4|kernel" | tail -n 40
 }
 usb_in() {  # name: its music in the share, and the system page knows it
   local i; for i in $(seq 1 24); do S -c "cd \"Storage/USB/$1/Artist/Album\"; ls" | grep -q "01.flac" && break; sleep 5; done
@@ -223,8 +270,9 @@ ok "a USB drive plugged in while it runs (ext4, partitioned): mounted in Storage
 # as NEXT, started again in its own process, its library, account and sign-in kept, nothing failed in the journal.
 if [ -n "$NEXT" ]; then
   python3 -c 'import wave,sys; w=wave.open(sys.argv[1],"wb"); w.setnchannels(2); w.setsampwidth(2); w.setframerate(44100); w.writeframes(bytes(176400)); w.close()' "$W/kept.wav"
-  S -c 'cd Storage; mkdir "Update Test"; cd "Update Test"; mkdir "Before the Update"' >/dev/null
-  S -c "cd \"Storage/Update Test/Before the Update\"; put $W/kept.wav \"01 Kept.wav\"" >/dev/null
+  # On the internal storage drive formatted above (item 429): Mandarin reads it, its album in the library.
+  S -c 'cd Storage/Internal; mkdir "Update Test"; cd "Update Test"; mkdir "Before the Update"' >/dev/null
+  S -c "cd \"Storage/Internal/Update Test/Before the Update\"; put $W/kept.wav \"01 Kept.wav\"" >/dev/null
   node "$HERE/in-app-update.js" http://127.0.0.1:13500 http://127.0.0.1:10080 "$W/release.log" "Before the Update" \
     || { cat "$W/release.log"; fail "the in-app update"; }
   ok "updated in the app to $("$NEXT" --version): downloaded, checked, started again, nothing lost"
@@ -232,4 +280,5 @@ else
   echo "not tested: the in-app update (no NEXT given: os/test/next-mandarin.sh builds one)"
 fi
 os_update_test
+[ -z "$BRIDGES" ] || bridge_after_os_update
 echo "PASS"

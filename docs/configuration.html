@@ -32,7 +32,7 @@
 
 <main class="wrap page">
   <h1 data-i18n="configuration.h1">Settings for the server</h1>
-  <p class="lead" data-i18n="configuration.lead">All optional; set any as an environment variable of the server (installed on Linux: <code>sudo systemctl edit mandarin</code>, then <code>Environment=NAME=value</code> under <code>[Service]</code>). Mandarin OS sets what it needs itself, with no shell to change them in. Everything else is in the app's Settings and kept in the data folder.</p>
+  <p class="lead" data-i18n="configuration.lead">All optional, each an environment variable of the server. Mandarin OS sets what it needs itself, with no shell to change them in: they are for a server run by hand. Everything else is in the app's Settings and kept in the data folder.</p>
 <div class="tablewrap">
     <table>
       <tr><th data-i18n="configuration.top.th1">Variable</th><th data-i18n="configuration.top.th2">Default</th><th data-i18n="configuration.top.th3">Purpose</th></tr>
@@ -48,7 +48,7 @@
       <tr><td>TRANSCODE_CACHE_GB</td><td>4</td><td data-i18n="configuration.top.td11">Disk kept for converted tracks. An upsampled track is several times a CD-rate one: with upsampling on, 16 is a better number.</td></tr>
       <tr><td>TRANSCODE_CONCURRENCY</td><td>2</td><td data-i18n="configuration.top.td12">How many tracks are converted at once.</td></tr>
       <tr><td>PLAYBACK_CORES</td><td data-i18n="configuration.top.td13">auto</td><td data-i18n="configuration.top.td14">Processor cores kept for playback alone: one, or two while DSP is in use. <code>1</code> or <code>2</code> fixes the number; <code>0</code> shares every core. Settings → Library Scanner → Processor shows the split.</td></tr>
-      <tr><td>MUSIC_DIR</td><td>/music</td><td data-i18n="configuration.top.td15">The first music folder, until you change the list in Settings → Music Folders (the Linux installer sets it from <code>--music</code>).</td></tr>
+      <tr><td>MUSIC_DIR</td><td>/music</td><td data-i18n="configuration.top.td15">The first music folder, until you change the list in Settings → Music Folders (Mandarin OS sets it to <code>/data/Storage</code>).</td></tr>
       <tr><td>TRUSTED_PROXIES</td><td>—</td><td data-i18n="configuration.top.td16">Reverse proxies whose word on who asked is believed (addresses or ranges, comma-separated): <code>127.0.0.1</code> for an nginx, Caddy or <code>tailscale serve</code> on the same machine. The built-in Tailscale needs nothing here.</td></tr>
       <tr><td>TS_AUTHKEY</td><td>—</td><td data-i18n="configuration.top.td17">Sign the server's built-in Tailscale in with an auth key instead of from Settings → Setup → Away from home.</td></tr>
       <tr><td>TS_HOSTNAME</td><td data-i18n="configuration.top.td18">musicd</td><td data-i18n="configuration.top.td19">The server's name on your tailnet.</td></tr>
@@ -64,8 +64,8 @@
       <tr><td>DEBUG</td><td>—</td><td data-i18n="configuration.top.td33">Log every API call.</td></tr>
     </table>
   </div>
-  <p style="margin-top:16px" data-i18n="configuration.top.p1">The FanArt.tv key (artist photos), the waveform, Smart Picks, the wall
-     display and the Home rows are set in the app's Settings and saved in the data folder.</p>
+  <p style="margin-top:16px" data-i18n="configuration.top.p1">The FanArt.tv and AcoustID keys (artist photos, albums matched by sound), the waveform,
+     Smart Picks, the wall display and the Home rows are set in the app's Settings and saved in the data folder.</p>
   <nav class="pager"><a class="back" href="index.html" data-i18n="site.back">← Back to contents</a><a class="pill" href="features.html" data-i18n="configuration.next">Next: Features →</a></nav>
 </main>
 

@@ -60,6 +60,29 @@ class EngineExitTest {
         assertFalse(rest.mayStart(wanted = false))
     }
 
+    @Test fun `busy before it ended, said at the next start (item 416)`() {
+        val n = EngineExit.parse("kind busy\nwhy 18.0 s of CPU in the last 60 s, 30% of a core; 9 MB through it, 2 connection(s) open; " +
+            "the app not using it, at 10:45:49\ncpu 89.8\nbusy 61 goroutines\nline 10:45:49 musicdnet: busy: 18.0 s of CPU\n")!!
+        assertEquals(EngineExit.BUSY, n.kind)
+        assertEquals("the Tailscale engine was busy when it last looked at itself, before it ended (18.0 s of CPU in the last 60 s, " +
+            "30% of a core; 9 MB through it, 2 connection(s) open; the app not using it, at 10:45:49): cpu 89.8 s; " +
+            "what was busy: 61 goroutines; its last lines: 10:45:49 musicdnet: busy: 18.0 s of CPU", EngineExit.logLine(n) { it })
+    }
+
+    @Test fun `the lease given while wanted, let go at once when not, nothing said otherwise (item 416)`() {
+        assertEquals(EngineRest.LEASE_S, EngineRest.lease(wanted = true, leased = false))
+        assertEquals(EngineRest.LEASE_S, EngineRest.lease(wanted = true, leased = true))
+        assertEquals("off screen with the player paused: let go now, not three minutes on", 0, EngineRest.lease(wanted = false, leased = true))
+        assertNull(EngineRest.lease(wanted = false, leased = false))
+    }
+
+    @Test fun `tracks ahead held over the engine while the app isn't in use (item 416)`() {
+        assertTrue("paused off screen, over the engine", EngineRest.aheadHeld(overEngine = true, wanted = false))
+        assertFalse("playing, or on screen", EngineRest.aheadHeld(overEngine = true, wanted = true))
+        assertFalse("at home: no engine to keep busy", EngineRest.aheadHeld(overEngine = false, wanted = false))
+        assertFalse(EngineRest.aheadHeld(overEngine = false, wanted = true))
+    }
+
     @Test fun `wanted while on screen or playing, the lease outlasting a missed renewal`() {
         assertTrue(EngineRest.wanted(onScreen = true, playing = false))
         assertTrue(EngineRest.wanted(onScreen = false, playing = true))

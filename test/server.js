@@ -109,13 +109,15 @@ async function start({ port, musicDir, dataDir, env = {}, bin = BIN, timeoutMs =
 const ENV = {
   port: "PORT", musicDir: "MUSIC_DIR", dataDir: "DATA_DIR", serverIp: "SERVER_IP", sonosHosts: "SONOS_HOSTS", upnpHosts: "UPNP_HOSTS",
   include: "INCLUDE_ZONES", exclude: "EXCLUDE_ZONES", scanHours: "SCAN_INTERVAL_HOURS", tailscaleBin: "MUSICDNET_BIN",
-  mbBaseUrl: "MUSICBRAINZ_URL", mbRestMs: "MUSICBRAINZ_REST_MS", itunesBaseUrl: "ITUNES_URL", mbpackUrl: "MBPACK_URL", mbpackDir: "MBPACK_DIR", autoeqBaseUrl: "AUTOEQ_URL",
+  mbBaseUrl: "MUSICBRAINZ_URL", mbRestMs: "MUSICBRAINZ_REST_MS", itunesBaseUrl: "ITUNES_URL", acoustidBaseUrl: "ACOUSTID_URL", mbpackUrl: "MBPACK_URL", mbpackDir: "MBPACK_DIR", autoeqBaseUrl: "AUTOEQ_URL",
   discogsBaseUrl: "DISCOGS_URL", fanartBaseUrl: "FANART_URL", deezerBaseUrl: "DEEZER_URL", wikipediaBaseUrl: "WIKIPEDIA_URL",
   pitchforkBaseUrl: "PITCHFORK_URL", qobuzWebUrl: "QOBUZ_WEB_URL", lastfmBaseUrl: "LASTFM_URL", lastfmKey: "LASTFM_KEY",
   identifyTickMs: "IDENTIFY_TICK_MS", loudnessTickMs: "LOUDNESS_TICK_MS", qobuzBaseUrl: "QOBUZ_URL", tidalBaseUrl: "TIDAL_URL",
   tidalAuthUrl: "TIDAL_AUTH_URL", tidalImagesUrl: "TIDAL_IMAGES_URL",
   // A pause between a making's turn and its start (Upsample/MadeAsPlayed.cs, items 246, 259).
   makeWaitMs: "MANDARIN_MAKE_WAIT_MS",
+  // How long a room loading a track counts as music playing for the Album Scanner (Playback/Hub.Heard.cs, item 417).
+  heardLoadingMs: "MANDARIN_HEARD_LOADING_MS",
   // The folder public/ is served from (v0.9.3): a test's own copy, to change a file of.
   appDir: "MANDARIN_APP_DIR",
   // The Python SQ-tool is run with (SqTool.cs, item 288): one that isn't there, to see it said.
@@ -136,7 +138,11 @@ const FLAGS = { upnpMulticast: "UPNP_DISCOVERY", identify: "IDENTIFY", localAudi
 // The rest laid over the configuration (MANDARIN_CONFIG), by the names the hand-over carried them under.
 const CONFIG = {
   qobuzSyncDelayMs: "service_sync_delay_ms", serviceWatchMs: "service_watch_ms", logoPauseMs: "logo_pause_ms", upnpOfflineMs: "upnp_offline_ms",
-  localDevices: "local_devices", massRemoval: "mass_removal", tailscaleWatchdog: "tailscale_watchdog"
+  localDevices: "local_devices", massRemoval: "mass_removal", tailscaleWatchdog: "tailscale_watchdog",
+  // Loudness measured with the Album Scanner on (Jobs.cs, item 411): only where a test asks for it.
+  loudness: "loudness",
+  // Each track looked at for MQA (Mqa/MqaPass.cs, item 418): likewise only where a test asks, and how often it looks.
+  mqa: "mqa", mqaTickMs: "mqa_tick_ms"
 };
 // What the C# server makes (Jobs.Names): every job, with no Node server to leave any to.
 const JOBS = ["identify", "mbpack", "loudness", "labels", "days", "taste", "tailscale", "scan", "prune", "import", "services", "update", "cpu", "playback"];

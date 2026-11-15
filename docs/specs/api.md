@@ -5,7 +5,7 @@ Written by `node tools/api-map.js write` from the C# sources (`server/Mandarin.S
 where the code decides it away from the address (the handler says). "…" ends an address the route takes
 the rest of; a pattern is as the code writes it. What each answers is said beside its handler.
 
-215 routes.
+221 routes.
 
 | Method | Address | Who may ask | Answered in |
 |---|---|---|---|
@@ -13,6 +13,8 @@ the rest of; a pattern is as the code writes it. What each answers is said besid
 |  | `/api/(qobuz\|tidal)/(lists\|new-releases\|featured\|search\|artist-albums\|album\|state)` | signed in | `ServiceRoutes.cs` |
 |  | `/api/(qobuz\|tidal)/(open\|favorite\|unfavorite\|play)` | signed in | `ServiceRoutes.cs` |
 | GET | `/api/album` | signed in | `LibraryRoutes.cs` |
+| GET | `/api/album-scanner` | signed in | `LibraryRoutes.cs` |
+| POST | `/api/album-scanner` | signed in | `LibraryRoutes.cs` |
 | GET | `/api/album/art-search` | signed in | `LibraryRoutes.cs` |
 | GET | `/api/album/booklets` | signed in | `LibraryRoutes.cs` |
 | GET | `/api/album/credits` | signed in | `LibraryRoutes.cs` |
@@ -20,8 +22,11 @@ the rest of; a pattern is as the code writes it. What each answers is said besid
 | POST | `/api/album/edit` | signed in | `LibraryRoutes.cs` |
 | POST | `/api/album/edit/reset` | signed in | `LibraryRoutes.cs` |
 | GET | `/api/album/extras` | signed in | `LibraryRoutes.cs` |
+| POST | `/api/album/join` | signed in | `LibraryRoutes.cs` |
+| POST | `/api/album/look-again` | signed in | `LibraryRoutes.cs` |
 | GET | `/api/album/more` | signed in | `LibraryRoutes.cs` |
 | GET | `/api/album/now-playing` | signed in | `PlaybackRoutes.cs` |
+| POST | `/api/album/split` | signed in | `LibraryRoutes.cs` |
 | POST | `/api/album/versions/main` | signed in | `LibraryRoutes.cs` |
 | GET | `/api/artist` | signed in | `LibraryRoutes.cs` |
 | GET | `/api/artist-albums` | signed in | `LibraryRoutes.cs` |
@@ -49,18 +54,13 @@ the rest of; a pattern is as the code writes it. What each answers is said besid
 | POST | `/api/bitperfect` | signed in | `PlaybackRoutes.cs` |
 | GET | `/api/booklet/page` | signed in | `LibraryRoutes.cs` |
 | POST | `/api/control` | signed in | `PlaybackRoutes.cs` |
+| GET | `/api/covers/auto` | signed in | `LibraryRoutes.cs` |
+| POST | `/api/covers/auto` | signed in | `LibraryRoutes.cs` |
 | GET | `/api/cpu` | signed in | `PowerRoutes.cs` |
 | POST | `/api/cpu` | signed in | `PowerRoutes.cs` |
 | GET | `/api/credits/status` | signed in | `LibraryRoutes.cs` |
-| GET | `/api/diagnostics` | signed in | `DiagnosticsRoutes.cs` |
-| POST | `/api/diagnostics` | signed in | `DiagnosticsRoutes.cs` |
 | POST | `/api/diagnostics/app` | signed in | `DiagnosticsRoutes.cs` |
-| GET | `/api/diagnostics/bridges` | signed in | `DiagnosticsRoutes.cs` |
-| POST | `/api/diagnostics/clear` | signed in | `DiagnosticsRoutes.cs` |
-| GET | `/api/diagnostics/log` | signed in | `DiagnosticsRoutes.cs` |
-| GET | `/api/diagnostics/logs.txt` | signed in | `DiagnosticsRoutes.cs` |
 | POST | `/api/diagnostics/page` | signed in | `DiagnosticsRoutes.cs` |
-| GET | `/api/diagnostics/zip` | signed in | `DiagnosticsRoutes.cs` |
 | GET | `/api/display/content` | signed in | `HousekeepingRoutes.cs` |
 | GET | `/api/download/album` | signed in | `LibraryRoutes.cs` |
 | POST | `/api/download/albums` | signed in | `LibraryRoutes.cs` |
@@ -94,6 +94,8 @@ the rest of; a pattern is as the code writes it. What each answers is said besid
 | POST | `/api/identify/recheck-all` | signed in | `LibraryRoutes.cs` |
 | POST | `/api/identify/reject` | signed in | `LibraryRoutes.cs` |
 | POST | `/api/identify/settings` | signed in | `LibraryRoutes.cs` |
+| GET | `/api/identify/sound` | signed in | `LibraryRoutes.cs` |
+| POST | `/api/identify/sound` | signed in | `LibraryRoutes.cs` |
 | POST | `/api/identify/undo` | signed in | `LibraryRoutes.cs` |
 | GET | `/api/image/…` | signed in, or a signed address | `Images.cs` |
 | GET | `/api/label-albums` | signed in | `LibraryRoutes.cs` |
@@ -120,6 +122,7 @@ the rest of; a pattern is as the code writes it. What each answers is said besid
 | POST | `/api/library/folders` | signed in | `ScanRoutes.cs` |
 | POST | `/api/library/forget-folder` | signed in | `ScanRoutes.cs` |
 | GET | `/api/library/mark` | signed in | `LibraryRoutes.cs` |
+| GET | `/api/library/merged` | signed in | `LibraryRoutes.cs` |
 | POST | `/api/library/rescan` | signed in | `ScanRoutes.cs` |
 | GET | `/api/listen-later` | signed in | `LibraryRoutes.cs` |
 | POST | `/api/listen-later` | signed in | `LibraryRoutes.cs` |
@@ -160,6 +163,8 @@ the rest of; a pattern is as the code writes it. What each answers is said besid
 | POST | `/api/seek` | signed in | `PlaybackRoutes.cs` |
 |  | `/api/services/watch` | signed in | `ServiceRoutes.cs` |
 |  | `/api/settings/(qobuz\|tidal)(/import\|/signin\|/signin/cancel\|/signout\|/disconnect)?` | signed in | `ServiceRoutes.cs` |
+| GET | `/api/settings/acoustid-key` | signed in | `LibraryRoutes.cs` |
+| POST | `/api/settings/acoustid-key` | signed in | `LibraryRoutes.cs` |
 | GET | `/api/settings/discogs-token` | signed in | `LibraryRoutes.cs` |
 | POST | `/api/settings/discogs-token` | signed in | `LibraryRoutes.cs` |
 | GET | `/api/settings/display` | signed in | `LibraryRoutes.cs` |
@@ -216,6 +221,7 @@ the rest of; a pattern is as the code writes it. What each answers is said besid
 | GET | `/display` | signed in | `Pages.cs` |
 | GET | `/index.html` | signed in | `Pages.cs` |
 |  | `/internal/jobs/after-scan` | the server's own key | `Jobs.Internal.cs` |
+|  | `/internal/jobs/covers` | the server's own key | `Jobs.Internal.cs` |
 |  | `/internal/jobs/prune` | the server's own key | `Jobs.Internal.cs` |
 |  | `/internal/jobs/watch` | the server's own key | `Jobs.Internal.cs` |
 |  | `/internal/playback/revision` | the server's own key | `Jobs.Internal.cs` |

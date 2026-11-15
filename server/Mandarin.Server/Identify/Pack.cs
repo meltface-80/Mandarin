@@ -544,7 +544,7 @@ internal sealed partial class PackStore
             checking = Task.Run(async () =>
             {
                 try { await Describe(); DescribeError = null; }
-                catch (Exception e) { DescribeError = Message(e); }
+                catch (Exception e) { var was = DescribeError; DescribeError = Message(e); if (was != DescribeError) log("MusicBrainz pack: GitHub couldn't be asked what's published (" + DescribeError + ")"); }   // the page says it in words (item 427)
                 finally { lock (gate) { checking = null; checkedAt = Now; } }
             });
         }
@@ -656,7 +656,7 @@ internal sealed partial class PackStore
             lock (gate) ClosePack();
             if (Rename(tmp, file) != 0) throw new IOException(new System.ComponentModel.Win32Exception(Marshal.GetLastPInvokeError()).Message);
             lock (gate) { pack = null; packKnown = false; }
-            SetSetting("mbpack", JsonValue.Create(true));
+            Kept();     // kept, and the albums it may place told (PackStore.Installed.cs, item 414b)
             lock (gate) job = new Job { Phase = "done", Done = current.Done, Total = current.Total };
             log($"MusicBrainz pack: {Js.Str(Get()?.Info()["releases"])} releases ({Js.Str(d["built"])})");
         }

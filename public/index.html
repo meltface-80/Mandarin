@@ -626,6 +626,10 @@
               <div class="np-popover-title" data-parity="now-playing.signal-title">Signal path</div>
               <ol class="np-signal-steps" id="np-signal-steps"></ol>
             </div>
+            <!-- MQA (item 418): what the track's signalling says, and, where this room sends it untouched to a DAC that
+                 decodes MQA, that it does. Filled by app/mqa.js. -->
+            <div class="np-mqa hidden" id="np-mqa" data-parity="now-playing.mqa"></div>
+            <div class="np-mqa-note hidden" id="np-mqa-untouched" data-parity="now-playing.mqa-untouched"></div>
 
             <div class="np-progress">
               <!-- Behind the seek input, not instead of it: the range is what
@@ -1096,11 +1100,16 @@
       <div class="ae-cover-row ae-match-row">
         <div class="ae-cover-side">
           <div id="ae-match-status" class="ae-cover-status" data-parity="album-edit.match-status">Names from MusicBrainz — artist, title, year and every track.</div>
+          <!-- Why the scan is as sure of the match as it says (item 414b): how it was found, the lengths, the names. -->
+          <div id="ae-match-reasons" class="ae-mreasons hidden" data-parity="album-edit.match-reasons"></div>
+          <!-- The record's other editions near enough to the match applied (item 414): a tap writes one in its place. -->
+          <div id="ae-match-editions" class="ae-meditions hidden"></div>
           <!-- Where the files are (v0.6.3): the folder's name often says what
                the tags don't — a remix, a box set, a pressing. -->
           <div id="ae-folder" class="ae-folder hidden" data-parity="album-edit.folder"></div>
           <div class="ae-cover-btns">
             <button id="ae-match-find" class="action-btn" type="button" data-parity="album-edit.match-find">Find match</button>
+            <button id="ae-match-sound" class="action-btn" type="button" data-parity="album-edit.match-sound">Match by sound</button>
           </div>
         </div>
       </div>
@@ -1115,6 +1124,12 @@
         </div>
         <div id="ae-barcode-err" class="ae-err" data-parity="album-edit.barcode-err"></div>
       </div>
+      <!-- Match by sound (item 419): the tracks fingerprinted and looked up on AcoustID, how far it has got, and the
+           releases they are on, a tap each to apply. -->
+      <div id="ae-sound" class="ae-search hidden">
+        <div id="ae-sound-status" class="ae-search-status" aria-live="polite" data-parity="album-edit.sound-status"></div>
+        <div id="ae-sound-cands" class="ae-mcands"></div>
+      </div>
 
       <div class="ae-fields">
         <label class="ae-label" for="ae-title" data-parity="album-edit.title">Title</label>
@@ -1128,6 +1143,69 @@
         <label class="ae-label" for="ae-year" data-parity="album-edit.year">Release year</label>
         <input id="ae-year" class="ae-input ae-year" type="text" aria-label="Release year" data-parity="album-edit.year" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" autocomplete="off">
         <div class="ae-was" data-ae-was="year" data-parity="album-edit.was"></div>
+
+        <!-- This copy's version (item 420): its version name, label, catalogue number, barcode, country, this pressing's
+             year and format, from the match applied or the files, each yours to change. -->
+        <div id="ae-version" class="ae-version">
+          <div class="ae-vintro" data-parity="album-edit.version">
+            <h3 class="ae-vhead">Version</h3>
+            <p class="ae-vnote">What this copy is, from the match or its files. Change what's wrong: what you write stays when another match or edition is applied.</p>
+          </div>
+          <div class="ae-vgrid">
+            <div class="ae-vfield ae-vwide">
+              <label class="ae-label" for="ae-v-name" data-parity="album-edit.version-name">Version name</label>
+              <input id="ae-v-name" class="ae-input" type="text" aria-label="Version name" data-parity="album-edit.version-name" data-ae-v="name" placeholder="Mono, 2008 release, HDTT DSD256…" autocomplete="off" spellcheck="false">
+              <div class="ae-was" data-ae-was="v-name" data-parity="album-edit.was"></div>
+            </div>
+            <div class="ae-vfield">
+              <label class="ae-label" for="ae-v-label" data-parity="album-edit.version-label">Label</label>
+              <input id="ae-v-label" class="ae-input" type="text" aria-label="Label" data-parity="album-edit.version-label" data-ae-v="label" autocomplete="off" spellcheck="false">
+              <div class="ae-was" data-ae-was="v-label" data-parity="album-edit.was"></div>
+            </div>
+            <div class="ae-vfield">
+              <label class="ae-label" for="ae-v-catno" data-parity="album-edit.version-catno">Catalogue number</label>
+              <input id="ae-v-catno" class="ae-input" type="text" aria-label="Catalogue number" data-parity="album-edit.version-catno" data-ae-v="catno" autocomplete="off" spellcheck="false">
+              <div class="ae-was" data-ae-was="v-catno" data-parity="album-edit.was"></div>
+            </div>
+            <div class="ae-vfield">
+              <label class="ae-label" for="ae-v-barcode" data-parity="album-edit.version-barcode">Barcode</label>
+              <input id="ae-v-barcode" class="ae-input" type="text" aria-label="Barcode" data-parity="album-edit.version-barcode" data-ae-v="barcode" inputmode="numeric" autocomplete="off" spellcheck="false">
+              <div class="ae-was" data-ae-was="v-barcode" data-parity="album-edit.was"></div>
+            </div>
+            <div class="ae-vfield">
+              <label class="ae-label" for="ae-v-country" data-parity="album-edit.version-country">Country</label>
+              <input id="ae-v-country" class="ae-input" type="text" aria-label="Country" data-parity="album-edit.version-country" data-ae-v="country" placeholder="US, GB, JP…" autocomplete="off" spellcheck="false">
+              <div class="ae-was" data-ae-was="v-country" data-parity="album-edit.was"></div>
+            </div>
+            <div class="ae-vfield">
+              <label class="ae-label" for="ae-v-year" data-parity="album-edit.version-year">This pressing's year</label>
+              <input id="ae-v-year" class="ae-input" type="text" aria-label="This pressing's year" data-parity="album-edit.version-year" data-ae-v="year" inputmode="numeric" maxlength="4" autocomplete="off" spellcheck="false">
+              <div class="ae-was" data-ae-was="v-year" data-parity="album-edit.was"></div>
+            </div>
+            <div class="ae-vfield">
+              <label class="ae-label" for="ae-v-format" data-parity="album-edit.version-format">Format</label>
+              <input id="ae-v-format" class="ae-input" type="text" aria-label="Format" data-parity="album-edit.version-format" data-ae-v="format" placeholder="CD, SACD, Vinyl…" autocomplete="off" spellcheck="false">
+              <div class="ae-was" data-ae-was="v-format" data-parity="album-edit.was"></div>
+            </div>
+          </div>
+        </div>
+        <!-- Folders and copies (item 424): two releases merged into this album — two folders, or two copies in one —
+             taken apart (Split by folder, Split… and its ways), put back (Join back), or its folders read now. -->
+        <div id="ae-split" class="ae-split hidden">
+          <div class="ae-vintro" data-parity="album-edit.split">
+            <h3 class="ae-vhead">Folders and copies</h3>
+            <p class="ae-vnote">Two releases in one album? Split them into albums of their own, versions of each other. Nothing on your drive is moved.</p>
+          </div>
+          <div id="ae-split-folders" class="ae-split-folders hidden" data-parity="album-edit.split-folders"></div>
+          <div class="ae-split-btns">
+            <button id="ae-split-folder" class="action-btn hidden" type="button" data-parity="album-edit.split-folder">Split by folder</button>
+            <button id="ae-split-open" class="action-btn hidden" type="button" data-parity="album-edit.split-open">Split…</button>
+            <button id="ae-split-join" class="action-btn hidden" type="button" data-parity="album-edit.join">Join back</button>
+            <button id="ae-split-again" class="action-btn" type="button" data-parity="album-edit.look-again">Look at this album again</button>
+          </div>
+          <div id="ae-split-ways" class="ae-split-ways hidden"></div>
+          <div id="ae-split-status" class="ae-split-status" aria-live="polite" data-parity="album-edit.split-status"></div>
+        </div>
       </div>
 
       <div id="ae-err" class="ae-err" data-parity="album-edit.err"></div>
@@ -1322,15 +1400,6 @@
               <span class="settings-nav-title">API Keys</span>
             </span>
           </button>
-          <!-- Mandarin's logs, in a browser (item 389, app/settings-logs.js); the app has its own Logging. -->
-          <button data-parity="settings-setup.logs" class="settings-nav-item hidden" type="button" data-pane="logs" id="settings-logs-row">
-            <span class="settings-nav-ico" aria-hidden="true">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="14" y2="17"/></svg>
-            </span>
-            <span class="settings-nav-txt">
-              <span class="settings-nav-title">Logs</span>
-            </span>
-          </button>
         </nav>
       </div>
 
@@ -1512,8 +1581,8 @@
           <input id="acct-new2" type="password" aria-label="New password again" data-parity="settings-account.again" class="settings-token-input acct-input" placeholder="New password again" autocomplete="new-password">
           <button id="acct-pw" class="settings-update-btn" type="button" data-parity="settings-account.change">Change password</button>
           <div id="acct-pw-status" class="settings-token-status" data-parity="settings-account.status"></div>
-          <p class="settings-note" data-parity="settings-account.note">Devices already signed in stay signed in. Forgot it? <span id="acct-forgot-how">On the server run
-            <code>sudo -u mandarin env DATA_DIR=/var/lib/mandarin /opt/mandarin/server/bin/mandarin-server reset-password</code></span> and create the account again.</p>
+          <p class="settings-note" data-parity="settings-account.note">Devices already signed in stay signed in. Forgot it? <span id="acct-forgot-how">At the Mandarin OS box’s own screen, type
+            <code>passwordreset</code></span> and create the account again.</p>
         </div>
       </div>
 
@@ -1547,6 +1616,21 @@
             <button id="fanart-key-save" class="settings-update-btn" type="button" data-parity="settings-keys.save">Save</button>
           </div>
           <div id="fanart-key-status" class="settings-token-status" data-parity="settings-keys.status"></div>
+        </div>
+
+        <div class="settings-divider"></div>
+
+        <div class="settings-block">
+          <div class="settings-row">
+            <span class="settings-label" data-parity="settings-keys.name">AcoustID key <button data-parity="settings-keys.info" class="settings-info-btn" data-info="A free application key from acoustid.org/new-application (sign in, and any application name will do). The Album Scanner then matches the albums it can't place by their names by how they sound: each track's fingerprint, made on the server, is looked up on AcoustID." aria-label="Info">ⓘ</button></span>
+          </div>
+          <div class="settings-token-row">
+            <span class="token-field"><input id="acoustid-key-input" type="text" aria-label="AcoustID key" data-parity="settings-keys.field" class="settings-token-input" placeholder="Paste AcoustID application key…" autocomplete="off" spellcheck="false"><span id="acoustid-key-check" class="token-check hidden" role="img" data-parity="settings-keys.check"></span></span>
+            <button id="acoustid-key-save" class="settings-update-btn" type="button" data-parity="settings-keys.save">Save</button>
+          </div>
+          <div id="acoustid-key-status" class="settings-token-status" data-parity="settings-keys.status"></div>
+          <!-- How far matching by sound has got (item 419): the albums matched so far, those still to look at. -->
+          <div id="acoustid-sound" class="settings-token-status hidden" data-parity="settings-keys.sound"></div>
         </div>
 
         <div class="settings-divider"></div>
@@ -1963,30 +2047,6 @@
           <div id="settings-whats-new" class="settings-whats-new hidden"></div>
         </div>
       </div>
-      <!-- Mandarin's logs (item 389, app/settings-logs.js): kept always, downloaded as one zip, the server's newest read here. -->
-      <div class="settings-view settings-pane hidden" data-view="pane" data-pane="logs" data-parent="setup">
-        <div class="settings-pane-head">
-          <button class="settings-back" type="button" data-settings-back aria-label="Back to settings" data-parity="settings-logs.back">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
-          </button>
-          <h2 data-parity="settings-logs.heading">Logs</h2>
-        </div>
-        <div class="settings-block">
-          <div class="settings-note" data-parity="settings-logs.about" id="logs-about">Mandarin keeps a log always: the server's, every Mandarin Bridge's, this page's and the apps'. Nothing in them is sent anywhere unless you send it.</div>
-          <div class="backup-actions">
-            <a data-parity="settings-logs.download" class="settings-update-btn" id="logs-download" href="/api/diagnostics/logs.txt" download>Download all logs</a>
-          </div>
-        </div>
-        <div class="settings-block">
-          <div class="settings-row">
-            <label class="settings-select-wrap"><select data-parity="settings-logs.level" class="settings-select" id="logs-level" aria-label="Level">
-              <option value="">Every line</option><option value="WARN">Warnings and errors</option><option value="ERROR">Errors</option>
-            </select></label>
-            <input data-parity="settings-logs.filter" class="settings-token-input" id="logs-filter" type="search" placeholder="Lines that hold…" aria-label="Lines that hold" autocomplete="off">
-          </div>
-          <pre data-parity="settings-logs.lines" class="logs-lines" id="logs-lines"></pre>
-        </div>
-      </div>
       <!-- Backup & restore (v0.6.14). -->
       <div class="settings-view settings-pane hidden" data-view="pane" data-pane="backup">
         <div class="settings-pane-head">
@@ -2007,7 +2067,7 @@
           <div class="settings-note" data-parity="settings-backup.note" id="backup-note"></div>
         </div>
         <div class="settings-block">
-          <div class="settings-block-title" data-parity="settings-backup.title">Restore <button data-parity="settings-backup.info" class="settings-info-btn" data-info="Restoring puts back the parts you tick, as they were when the backup was made, for every device. A backup of how things are now is kept here first (Before restore), so a restore can be undone. Mandarin restarts afterwards and this page reloads." aria-label="Info">&#9432;</button></div>
+          <div class="settings-block-title" data-parity="settings-backup.title">Restore <button data-parity="settings-backup.info" class="settings-info-btn" data-info="Restoring puts back the parts you tick, as they were when the backup was made, for every device. A backup of how things are now is kept here first (Before restore), so a restore can be undone. Mandarin restarts afterwards and this page reloads. The copies of the database kept before a restore or a switch of builds are listed too: the database alone, no settings. A backup from another computer whose music folders aren't on this one keeps this one's, and the next scan finds its albums' files here." aria-label="Info">&#9432;</button></div>
           <button data-parity="settings-backup.from-file" class="settings-update-btn" type="button" id="restore-from-file" hidden>Restore from a file on this phone…</button>
           <div class="backup-list" id="backup-list"></div>
         </div>

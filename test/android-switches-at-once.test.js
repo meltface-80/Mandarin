@@ -4,7 +4,7 @@
  * A switch on the Android app's Settings pages moves as it is tapped, the server's answer taking its place after,
  * and back where it was if the server refuses (bug list item 200). Before, each waited for the server's answer, so a
  * tap did nothing for a moment: Account's Ask for a sign-in, a device's page, a device's row in Audio (two round
- * trips), the Scanner's switches, Away from home's, DSP and Downloads. Each site is held to the shape here; what each
+ * trips), the Library Scanner's (item 411: the Album Scanner's and Schedule's), Away from home's, DSP and Downloads. Each site is held to the shape here; what each
  * page shows meanwhile is core SwitchedTest's.
  */
 const test = require("node:test");
@@ -38,12 +38,13 @@ test("a device's row in Audio moves as it is tapped, the list read again after; 
   assert.match(src, /if \(refused\.isNotEmpty\(\)\) ListNote\(refused, [^\n]*danger = true\)/);
 });
 
-test("the Scanner's switches and Measure ReplayGain move as they are tapped; back if refused", () => {
+test("the Album Scanner's switch and Schedule's move as they are tapped; back if refused (item 411)", () => {
   const src = read("SettingsScanner.kt");
-  assert.match(src, /val before = k\.st\s+if \(path == SCAN_SETTINGS\) k\.st = Scanner\.withSettings\(before, body\)/);
-  assert.match(src, /\.onFailure \{ if \(path == SCAN_SETTINGS\) k\.st = before; k\.err = /);
-  assert.match(src, /val before = loud\s+k\.loud = Scanner\.withMeasure\(before, !measuring\)/);
-  assert.match(src, /\.onFailure \{ k\.loud = before; k\.err = /);
+  assert.match(src, /val before = k\.scan\s+k\.scan = Scanner\.withScanner\(before, patch\)\s+val made = ServerWrites\.write \{ c\.post\(SCANNER, patch\) \}/);
+  assert.match(src, /\.onFailure \{ k\.scan = before; k\.err = /);
+  const sections = read("ScannerSections.kt");
+  assert.match(sections, /setScanner\(k, client, scope, JSONObject\(\)\.put\("on", !on\)\)/, "the Album Scanner's switch");
+  assert.match(sections, /setScanner\(k, client, scope, JSONObject\(\)\.put\("schedule", !on\)\)/, "Schedule's");
 });
 
 test("Built-in Tailscale moves as it is tapped; back if refused", () => {

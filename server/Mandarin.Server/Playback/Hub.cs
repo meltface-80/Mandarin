@@ -143,6 +143,7 @@ internal sealed partial class Hub
         lock (Gate)
         {
             Revision++;
+            heardKept = null;   // what plays asked afresh (Hub.Heard.cs)
             woken = [.. waiters];
             waiters.Clear();
         }
@@ -183,9 +184,6 @@ internal sealed partial class Hub
 
     public ZoneState? StateOf(string id) { lock (Gate) return State.GetValueOrDefault(id); }
 
-    /* How many rooms are playing or about to (Mandarin OS's weekly upkeep waits for none, HealthRoutes.cs). */
-    public int Playing() { lock (Gate) return State.Values.Count(s => s.State is "playing" or "loading"); }
-
     /*
      * A zone's new state — from a Sonos poll or a phone's report — and what
      * follows from it: a bump when anything visible changed, "played" once it
@@ -196,6 +194,8 @@ internal sealed partial class Hub
         bool changed, lowFired = false, played = false, scrobble = false, announce = false;
         lock (Gate)
         {
+            next.LoadingSince = ZoneState.LoadingFrom(prev, next);
+            next.Since = ZoneState.SinceFrom(prev, next);
             State[uid] = next;
             // A phone's or a renderer's place in its queue, kept across a restart.
             if (Store != null && (Phones.IsPhoneId(uid) || IsUpnp(uid)))

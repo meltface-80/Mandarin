@@ -83,7 +83,10 @@ internal static partial class Library
             ["scanned"] = new JsonObject { ["title"] = al.ScannedTitle, ["artist"] = al.ScannedArtist, ["year"] = al.ScannedYear },
             ["edited"] = al.Edited,
             ["image_key"] = al.ImageKey,
-            ["art"] = new JsonObject { ["own"] = own, ["found"] = al.CustomArt, ["source"] = al.ArtSource }
+            ["art"] = new JsonObject { ["own"] = own, ["found"] = al.CustomArt, ["source"] = al.ArtSource },
+            ["match"] = MatchOf(al),   // the match applied, and the record's other editions (item 414, IdentifyRoutes.cs)
+            ["version"] = VersionJson(al),   // its version details, each with where it came from (item 420, AlbumVersionEdit.cs)
+            ["split"] = al.Service == null ? SplitJson(al) : null   // its folders, the ways to split it, Join back (item 424, AlbumSplitRoutes.cs)
         };
     }
 
@@ -124,6 +127,7 @@ internal static partial class Library
         public object? Title, Artist, Year;
         public byte[]? Art;
         public string? ArtSource;
+        public JsObj? Version;   // the version's fields sent (item 420)
     }
 
     /*
@@ -133,13 +137,21 @@ internal static partial class Library
      */
     private static void SaveEdit(Album al, EditFields f)
     {
+        lock (EditGate) SaveEditNow(al, f);
+    }
+
+    // One change to album_edits at a time: the cover finder looks and keeps under it, so it never lays a cover over yours.
+    private static readonly object EditGate = new();
+
+    private static void SaveEditNow(Album al, EditFields f)
+    {
         using var c = Db.Open();
         string? title = null, artist = null, artHash = null, artSource = null;
-        object? year = null;
+        object? year = null, version = null;
         byte[]? art = null;
         using (var cur = c.CreateCommand())
         {
-            cur.CommandText = "SELECT title, artist, year, art, art_hash, art_source FROM album_edits WHERE key = $k";
+            cur.CommandText = "SELECT title, artist, year, art, art_hash, art_source, version FROM album_edits WHERE key = $k";
             cur.Parameters.AddWithValue("$k", al.Key);
             using var r = cur.ExecuteReader();
             if (r.Read())
@@ -147,7 +159,7 @@ internal static partial class Library
                 title = Text(r.GetValue(0)); artist = Text(r.GetValue(1));
                 year = r.GetValue(2) switch { long l when l != 0 => l, double d when d != 0 && !double.IsNaN(d) => d, string s when s.Length > 0 => s, _ => null };
                 art = r.GetValue(3) as byte[];
-                artHash = Text(r.GetValue(4)); artSource = Text(r.GetValue(5));
+                artHash = Text(r.GetValue(4)); artSource = Text(r.GetValue(5)); version = r.GetValue(6) as string;
             }
         }
         static string? AsText(object? v, string scanned)
@@ -168,23 +180,25 @@ internal static partial class Library
             artHash = f.Art != null ? Convert.ToHexStringLower(Fingerprint.Sha1(f.Art))[..12] : null;
             artSource = f.Art != null && !string.IsNullOrEmpty(f.ArtSource) ? f.ArtSource : null;
         }
+        version = VersionMerged(c, al, version, f.Version);
         using var w = c.CreateCommand();
         w.Parameters.AddWithValue("$key", al.Key);
-        if (title == null && artist == null && year == null && art == null)
+        if (title == null && artist == null && year == null && art == null && version == null)
             w.CommandText = "DELETE FROM album_edits WHERE key = $key";
         else
         {
-            w.CommandText = @"INSERT INTO album_edits(key, title, artist, year, art, art_hash, art_source, updated_at)
-                              VALUES($key, $title, $artist, $year, $art, $art_hash, $art_source, $updated_at)
+            w.CommandText = @"INSERT INTO album_edits(key, title, artist, year, art, art_hash, art_source, version, updated_at)
+                              VALUES($key, $title, $artist, $year, $art, $art_hash, $art_source, $version, $updated_at)
                               ON CONFLICT(key) DO UPDATE SET title=excluded.title, artist=excluded.artist, year=excluded.year,
                                 art=excluded.art, art_hash=excluded.art_hash, art_source=excluded.art_source,
-                                updated_at=excluded.updated_at";
+                                version=excluded.version, updated_at=excluded.updated_at";
             w.Parameters.AddWithValue("$title", (object?)title ?? DBNull.Value);
             w.Parameters.AddWithValue("$artist", (object?)artist ?? DBNull.Value);
             w.Parameters.AddWithValue("$year", year ?? DBNull.Value);
             w.Parameters.Add("$art", SqliteType.Blob).Value = (object?)art ?? DBNull.Value;
             w.Parameters.AddWithValue("$art_hash", (object?)artHash ?? DBNull.Value);
             w.Parameters.AddWithValue("$art_source", (object?)artSource ?? DBNull.Value);
+            w.Parameters.AddWithValue("$version", version ?? DBNull.Value);
             w.Parameters.AddWithValue("$updated_at", NowMs());
         }
         w.ExecuteNonQuery();
@@ -203,7 +217,7 @@ internal static partial class Library
         return await Send(ctx, o);
     }
 
-    /* POST /api/album/edit { offset, title?, artist?, year?, art_url?, art_source?, art? } */
+    /* POST /api/album/edit { offset, title?, artist?, year?, version?: { name?, label?, catno?, barcode?, country?, year?, format? }, art_url?, art_source?, art? } */
     private static Task<bool> SaveAlbumEdit(HttpContext ctx, Snapshot s, LibState st) =>
         !BodyFits(ctx) || !Covers.ProbeOk ? Task.FromResult(false) : SaveAlbumEditRead(ctx, s);
     private static async Task<bool> SaveAlbumEditRead(HttpContext ctx, Snapshot s)
@@ -219,6 +233,8 @@ internal static partial class Library
             if (f.HasTitle = o.Has("title")) f.Title = o["title"];
             if (f.HasArtist = o.Has("artist")) f.Artist = o["artist"];
             if (f.HasYear = o.Has("year")) f.Year = o["year"];
+            f.Version = o["version"] as JsObj;   // the version's fields (item 420)
+            if (VersionRefused(f.Version) is { } why) return await JsError(ctx, 400, why);
         }
         var artUrl = Prop(b, "art_url");
         if (TJs.Truthy(artUrl))
@@ -229,12 +245,9 @@ internal static partial class Library
             byte[]? got;
             try
             {
-                var (buf, error) = await FetchArt(url);
-                if (error != null) return await JsError(ctx, 502, "Couldn't download that image (" + error + ")");
-                if (!Covers.LooksLikeImage(buf!)) return await JsError(ctx, 422, "That address isn't an image");
-                // A picture in a form read only as ffmpeg reads it (CMYK, a profile of its own), as the covers are (Covers.cs).
-                got = await Covers.Normalise(buf!, Covers.Look(buf!) ?? "");
-                if (got == null) return await JsError(ctx, 422, "Couldn't read that image");
+                var (art, status, error) = await FoundCover(url);
+                if (art == null) return await JsError(ctx, status, error!);
+                got = art;
             }
             catch (Exception e) when (!ctx.Response.HasStarted) { return await Server.Failed(ctx, "library", e); }
             var src = TJs.Str(TJs.Truthy(Prop(b, "art_source")) ? Prop(b, "art_source") : artUrl);
@@ -250,6 +263,8 @@ internal static partial class Library
         {
             var keyBefore = al.ImageKey;
             SaveEdit(al, f);
+            // A cover chosen or taken away by hand is yours: the cover finder never brings one back (item 409).
+            if (f.HasArt) AutoCoverStore.Owner(al.Key);
             return await EditDone(ctx, al.Id, keyBefore);
         });
     }
@@ -266,15 +281,37 @@ internal static partial class Library
         return await AfterBody(ctx, async () =>
         {
             var keyBefore = al.ImageKey;
-            using (var c = Db.Open())
-            using (var cmd = c.CreateCommand())
+            lock (EditGate)
             {
+                using var c = Db.Open();
+                using var cmd = c.CreateCommand();
                 cmd.CommandText = "DELETE FROM album_edits WHERE key = $k";
                 cmd.Parameters.AddWithValue("$k", al.Key);
                 cmd.ExecuteNonQuery();
             }
+            // A found cover dropped with the rest stays dropped (item 409).
+            if (al.CustomArt) AutoCoverStore.Owner(al.Key);
             return await EditDone(ctx, al.Id, keyBefore);
         });
+    }
+
+    /*
+     * A cover from the web made ready to keep, as an edit keeps one (and the
+     * cover finder, Extras/AutoCovers.cs): downloaded, something an image
+     * reader takes for a picture, drawn upright at 1500 pixels at most; and,
+     * where [minSide] says, at least that many pixels each way. → the picture,
+     * or the status and the words of why not.
+     */
+    internal static async Task<(byte[]? Art, int Status, string? Error)> FoundCover(string url, int minSide = 0)
+    {
+        var (buf, error) = await FetchArt(url);
+        if (error != null) return (null, 502, "Couldn't download that image (" + error + ")");
+        if (!Covers.LooksLikeImage(buf!)) return (null, 422, "That address isn't an image");
+        // A picture in a form read only as ffmpeg reads it (CMYK, a profile of its own), as the covers are (Covers.cs).
+        var got = await Covers.Normalise(buf!, Covers.Look(buf!) ?? "");
+        if (got == null) return (null, 422, "Couldn't read that image");
+        if (minSide > 0 && (Covers.JpegSize(got) is not { } size || Math.Min(size.Width, size.Height) < minSide)) return (null, 422, "That image is too small");
+        return (got, 200, null);
     }
 
     /*

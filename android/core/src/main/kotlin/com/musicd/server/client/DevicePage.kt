@@ -203,6 +203,8 @@ class DevicePage(val j: JSONObject) {
     val slimGapless: Boolean get() = kind == "slim" && !continuousPcm
     val slimGaplessNote: String = "A Squeezelite player plays one track into the next from its own buffer: gapless as it is, nothing to set. Where the next track is at another rate, it pauses for as long as its -r option says (e.g. -r 44100-768000:500, half a second), so the DAC settles without a click."
     fun albumStreamPatch(on: Boolean): JSONObject = JSONObject().put("output", JSONObject().put("album_stream", on))
+    /** This DAC decodes MQA (item 418): its MQA tracks sent untouched; its note and change are Mqa's. */
+    val mqaDac: Boolean get() = output.optBoolean("mqa_dac")
 
     val canFixVolume: Boolean get() = j.optBoolean("can_fix_volume")
     val volumeFixed: Boolean get() = j.optBoolean("volume_fixed")

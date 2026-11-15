@@ -92,12 +92,13 @@ object UsbDriver {
      */
     fun softwareGain(): Float {
         val o = current ?: return 1f
-        if (o.info.volumeControl || o.dsd) return 1f
-        if (fixed()) return 1f
-        if (muted) return 0f
-        val l = level() / 100.0
-        return (l * l * l).toFloat()
+        return com.musicd.server.client.UsbGain.software(o.info.volumeControl, o.dsd, fixed(), muted, level(), untouched)
     }
+    /**
+     * The track playing is one Mandarin sends untouched to a DAC that decodes MQA (item 418: Mandarin Bridge's
+     * Transport sets it from the track's request): no software gain on it, whatever the slider says.
+     */
+    @Volatile var untouched = false
     /** A settings change (fixed, limit): the DAC's level follows at once. */
     fun settingsChanged() {
         volumePct = volumePct.coerceAtMost(limit())

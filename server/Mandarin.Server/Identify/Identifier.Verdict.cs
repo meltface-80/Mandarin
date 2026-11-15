@@ -21,6 +21,9 @@ internal sealed partial class Identifier
         // Unidentified already, iTunes not asked yet: only iTunes is asked.
         var only = ITunesOnly(prev);
         var verdict = only ? null : (await Resolve(input)).Verdict;
+        // Still unsure: matched by sound, before iTunes (item 414c, Identifier.Sound.cs); stopped, looked at again when it may.
+        try { if (verdict != null) verdict = await OrBySound(al, input, verdict); }
+        catch (Fingerprints.Stopped) { return prev; }
         string? itunes = null;
         if ((verdict == null || verdict.Status == "unidentified") && ITunesUsable())
         {
@@ -46,7 +49,7 @@ internal sealed partial class Identifier
                 await Writing(async () => { using var c = Db.Open(); Exec(c, null, "UPDATE album_matches SET itunes = $1 WHERE key = $2", itunes, al.Key); await Task.CompletedTask; return false; });
             return prev;
         }
-        return await Record(al, verdict, itunes);
+        return await Record(al, Judge(input, verdict), itunes);
     }
 
     /*
@@ -62,7 +65,7 @@ internal sealed partial class Identifier
         JsObj input;
         using (var c = Db.Open()) input = Input(c, al);
         var r = await IdResolve(input, new PackOnly(p));
-        return r != null ? await Record(al, r.Verdict, null) : null;
+        return r != null ? await Record(al, Judge(input, r.Verdict), null) : null;
     }
 
     /* Everything written here goes through this: one at a time, the Node server told when it's done. */
@@ -209,6 +212,8 @@ internal sealed partial class Identifier
             if (rel != null) cands.Add(rel);
         }
         if (cands.Count == 0) throw new IdentifyError("MusicBrainz didn't give that release", 502);
+        // One Match by sound offered (item 419): marked with how many of the tracks voted for it.
+        if (how == "sound") cands = SoundMarked(al.Key, cands) ?? throw new IdentifyError("Ask Match by sound again: what it heard was before the server started again", 409);
         return await ApplyChosen(al, input, cands, how ?? (!string.IsNullOrEmpty(barcode) ? "barcode" : "link"));
     }
 
@@ -217,16 +222,19 @@ internal sealed partial class Identifier
     {
         await Task.CompletedTask;
         var verdict = Score.Decide(input, cands);
-        var best = verdict.Best!;
+        var best = Chosen(input, verdict.Best!, how);
         using var c = Db.Open();
         using var tx = c.BeginTransaction();
         var prev = Row(c, al.Key);
+        Remember(c, tx, al.Key, prev, best.Candidate, how);     // what choosing it says (item 414b)
         if (prev != null && prev.Status == "applied") Undo(c, tx, al, prev);
         var now = (double)Now;
+        // Another pressing of the record chosen (item 414): the rest still offered, the one that was applied among them.
+        (string, object?)[] kept = how == "edition" ? [("manual", how), ("editions", Switched(prev, best.Candidate["mbid"]))] : [("manual", how)];
         Put(c, tx, new MatchRow
         {
             Key = al.Key, Mbid = best.Candidate["mbid"] is Undef ? null : best.Candidate["mbid"], Distance = best.Distance, Status = "applied",
-            Candidate = Js.Json(Score.Kept(best, ("manual", how))),
+            Candidate = Js.Json(Score.Kept(best, kept)),
             Before = Js.Json(Snapshot(c, tx, al)), CheckedAt = now, AppliedAt = now,
             ITunes = prev != null ? (Js.Truthy(prev.ITunes) ? prev.ITunes : null) : null
         });

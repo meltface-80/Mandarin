@@ -42,8 +42,11 @@ internal static partial class Library
         ["/api/settings/home-rows"] = HomeRowsSettings,
         ["/api/identify"] = IdentifyState,
         ["/api/identify/candidates"] = IdentifyCandidates,
+        ["/api/identify/sound"] = IdentifySoundState,
         ["/api/identify/pack"] = PackState,
         ["/api/loudness"] = LoudnessState,
+        ["/api/covers/auto"] = AutoCoversState,
+        ["/api/album-scanner"] = AlbumScannerState,
         ["/api/waveform"] = Waveform,
         ["/api/settings/waveform"] = WaveformSettings,
         ["/api/filters/labels"] = LabelWall,
@@ -55,6 +58,7 @@ internal static partial class Library
         ["/api/settings/label-folder-depth"] = LabelFolderDepth,
         ["/api/settings/fanart-key"] = KeyState,
         ["/api/settings/discogs-token"] = KeyState,
+        ["/api/settings/acoustid-key"] = AcoustIdKeyState,
         ["/api/smart-picks"] = SmartPicks,
         ["/api/album/extras"] = AlbumExtras,
         ["/api/album/more"] = AlbumMore,
@@ -73,6 +77,7 @@ internal static partial class Library
         ["/api/filters/tags"] = TagFilters,
         ["/api/album/edit"] = AlbumEditState,
         ["/api/album/art-search"] = AlbumArtSearch,
+        ["/api/library/merged"] = MergedAlbums,   // albums that look like two copies merged (item 424, AlbumSplitRoutes.cs)
         ["/api/settings/lastfm-key"] = LastfmKeyState,
         ["/api/settings/lastfm-secret"] = LastfmSecretState,
         ["/api/lastfm/scrobbling"] = LastfmScrobbling,
@@ -102,20 +107,28 @@ internal static partial class Library
         ["/api/identify/recheck"] = IdentifyRecheck,
         ["/api/identify/recheck-all"] = IdentifyRecheckAll,
         ["/api/identify/match"] = IdentifyMatch,
+        ["/api/identify/sound"] = IdentifySoundStart,
         ["/api/identify/pack/download"] = PackDownload,
         ["/api/identify/pack/remove"] = PackRemove,
         ["/api/identify/pack/folder"] = PackFolder,
         ["/api/loudness"] = SaveLoudness,
+        ["/api/covers/auto"] = SaveAutoCovers,
+        ["/api/album-scanner"] = SaveAlbumScanner,
         ["/api/settings/waveform"] = SaveWaveformSettings,
         ["/api/labels/rescan"] = LabelRescan,
         ["/api/labels/rescan-force"] = LabelRescan,
         ["/api/labels/logo"] = SaveLabelLogo,
         ["/api/settings/fanart-key"] = SaveKey,
         ["/api/settings/discogs-token"] = SaveKey,
+        ["/api/settings/acoustid-key"] = SaveAcoustIdKey,
         ["/api/smart-picks/rebuild"] = RebuildSmartPicks,
         ["/api/smart-picks/block"] = BlockSmartPicksArtist,
         ["/api/album/edit"] = SaveAlbumEdit,
         ["/api/album/edit/reset"] = ResetAlbumEdit,
+        // Two copies merged into one album, taken apart, joined back, or looked at again (item 424, AlbumSplitRoutes.cs).
+        ["/api/album/split"] = SplitAlbumRoute,
+        ["/api/album/join"] = JoinAlbumRoute,
+        ["/api/album/look-again"] = LookAgainRoute,
         ["/api/settings/lastfm-key"] = SaveLastfmKey,
         ["/api/settings/lastfm-secret"] = SaveLastfmSecret,
         ["/api/lastfm/connect"] = LastfmConnect,
@@ -275,6 +288,7 @@ internal static partial class Library
         if (al.Discs > 1) o["discs"] = al.Discs;
         if (al.Box != null) o["box"] = new JsonObject { ["name"] = al.Box.Name, ["disc"] = al.Box.Disc, ["of"] = al.Box.Of };
         if (al.ActNote != null) { o["artist_id"] = al.ActId ?? 0; if (al.ActNote.Length > 0) o["artist_note"] = al.ActNote; }   // its act, where acts share its name (item 330)
+        if (Mqa.MqaStore.Albums(s).TryGetValue(al.Id, out var mqa)) o["mqa"] = Mqa.MqaStore.Json(mqa.Studio, mqa.OriginalRate, mqa.Bits);   // MQA, every track of it (item 418)
         if (al.Versions != null) { o["versions"] = al.Versions.Count; o["version"] = al.VersionLabel; o["base_title"] = ShelfFacts.SplitVersion(al.Title)?.Base ?? al.Title; }   // one of its versions (items 345, 349: its page's title, whichever is shown)
         if (extra != null) foreach (var (k, v) in extra.ToList()) { extra.Remove(k); o[k] = v; }
         return o;

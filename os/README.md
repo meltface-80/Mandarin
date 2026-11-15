@@ -5,13 +5,14 @@ a few questions, and the computer is a Mandarin server with nothing else to look
 
 * **Hardware:** a 64-bit Intel or AMD computer with UEFI and a wired network (an Intel NUC, a Dell OptiPlex Micro, a
   mini PC). Secure Boot off for now. Its own disk for the system; another internal disk, if any, can be internal storage.
-* **What it is:** Debian 13 (trixie), Mandarin installed natively (`tools/linux/install.sh`), its data on a partition of
+* **What it is:** Debian 13 (trixie), Mandarin installed natively (its own `linux-install.sh`), its data on a partition of
   its own (`/data`), and only what Mandarin needs: no desktop, no login, **no SSH** (never installed).
 * **On the network:** Mandarin at `http://mandarin:3500`, the system page at `http://mandarin/`, the share at
   `smb://mandarin/data` (`\\mandarin\Data`) for the user and password chosen at install. Found as `mandarin.local` (Bonjour)
   and by Windows (WS-Discovery).
-* **The share:** `Storage` to copy music into (`USB/<drive>` for each USB drive, `Internal` for internal storage), and the
-  logs: `MandarinServer`, `MandarinBridge`, `MandarinApp`, `MandarinOS`, read-only.
+* **The share:** `Storage` to copy music into (`USB/<drive>` for each USB drive, `Internal` for internal storage); `Logs`,
+  Mandarin's one log (`Mandarin_log.txt`, everything on the box a line each in time order, written from the journal by
+  `mandarin-log.service`); `MandarinServer` (backups) and `MandarinOS` (its version); all but Storage read-only.
 * **USB drives** are mounted as they are plugged in (ext4, exFAT, FAT, NTFS; HFS+ read-only), checked first; one that
   can't be repaired is mounted read-only.
 * **Looks after itself:** every week, when nothing plays, a newer Mandarin OS (below), or else Debian's security
@@ -43,12 +44,20 @@ sudo os/build.sh          # os/mandarin-os_<version>.raw; needs mkosi 25+, syste
 sudo os/test/boot-test.sh os/mandarin-os_<version>.raw   # installed and started in QEMU, then checked
 os/test/next-mandarin.sh /tmp/next                        # Mandarin as this checkout, but 9.9.9 (not as root)
 sudo env "PATH=$PATH" os/test/boot-test.sh os/mandarin-os_<version>.raw /tmp/next/mandarin-server   # and updated in the app
+os/test/next-bridge.sh /tmp/bridges                       # Mandarin Bridge as this checkout, and as 9.9.9 (not as root)
+sudo env "PATH=$PATH" os/test/boot-test.sh os/mandarin-os_<version>.raw /tmp/next/mandarin-server /tmp/bridges   # and the Bridge's own update
 ```
 
 Given the next Mandarin, the boot test also updates the installed Mandarin as Settings → Updates does, from a stand-in
 GitHub on the computer it runs on (`os/test/fake-release.js`), with a key of its own written into its copy of the
 installed disk alone (never the image), and checks Mandarin comes back as 9.9.9 with its library and account
 (`os/test/in-app-update.js`). Once installed, that is the only way Mandarin gets newer.
+
+Given the Bridges as well (item 415), it installs Mandarin Bridge as a box carried from an earlier Mandarin OS has it
+(the service from before 0.3.12, a DynamicUser's, its data folder as systemd 257 left it) into its copy of the
+installed disk, has it update itself to 9.9.9 from a stand-in GitHub (`os/test/fake-bridge-release.js`), asked on the
+box (`os/test/bridge-on-box.sh`: nothing from outside reaches its port), and checks it comes back as 9.9.9 with who it
+is to Mandarin kept, and is still 9.9.9 once Mandarin OS has updated itself in place (`os/test/bridge-update-vm.sh`).
 
 CI builds it on every change to `os/` (`.github/workflows/os-image.yml`), tests it the same way, and puts dev's on the
 `test-os` pre-release. A numbered release (`mandarin-os-vX.Y.Z`) is made by hand, with the version in `os/VERSION` and its
@@ -62,7 +71,7 @@ notes in `os/CHANGELOG.md`. Every change to Mandarin OS raises its patch number 
 | EFI | 512 MB | systemd-boot, the kernel (one unified image) |
 | mandarin-os_<version> | 4 GB | the system |
 | _empty, then mandarin-os_<next version> | 4 GB | the next version, written there by an update |
-| mandarin-data | the rest | `/data`: Mandarin's data and logs, the share, Storage |
+| mandarin-data | the rest | `/data`: Mandarin's data, its one log, the share, Storage |
 
 The installer (`usr/lib/mandarin-os/install`) writes it with `systemd-repart` from the stick itself
 (`install.repart.d`). `mandarin-install.json` on the stick's EFI partition answers every question (unattended). Each
@@ -80,7 +89,15 @@ grown, labelled `mandarin-os_<version>`; the box's own carried into it (`/etc/fs
 records, NetworkManager's connections, Mandarin Bridge and its identity, and `/opt/mandarin` where the one running is
 newer); its kernel image and an entry with three tries (`mandarin-os_<version>+3.conf`, systemd's boot counting) put on
 the EFI partition; the computer started again. Users are never copied: Mandarin's user is 3500, the shared folder's
-3501 and its group 3502 in every version, and an update that numbers them otherwise is refused.
+3501 and its group 3502, Mandarin Bridge's 3503 (from 0.1.7, item 415) in every version, and an update that numbers
+them otherwise is refused.
+
+Mandarin Bridge's service runs as its own user, `mandarin-bridge` (item 415): systemd 257 mounts a DynamicUser's data
+folder so nothing in it can be run, and the Bridge's update runs from there. A service installed before 0.3.12 (a
+DynamicUser's, carried from version to version) is made to run so by `mandarin-bridge.service.d/mandarin-os.conf`, its
+data folder made the Bridge's by `apply` before it starts (a DynamicUser's is nobody's, and systemd 257 mounts a folder
+of nobody's ID-mapped and noexec even with DynamicUser off; an `ExecStartPre=+` can't do it, run inside that mount) and
+moved back from `/var/lib/private` by systemd as it starts.
 
 On a start being tried, `mandarin-os-health.service` (`os-started health`) checks what the box needs before
 `boot-complete.target`, where systemd-bless-boot keeps the version; anything missing starts the computer again. After

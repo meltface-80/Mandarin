@@ -27,8 +27,12 @@ class Transport(private val main: Handler, private val player: ExoPlayer, privat
         const val MODEL = "Mandarin Bridge"
     }
 
-    /** A track: its address, and what Mandarin said of it (title, artist, album) for the screen and the notification. */
-    class Item(val uri: String, val title: String = "", val artist: String = "", val album: String = "") {
+    /**
+     * A track: its address, and what Mandarin said of it (title, artist, album) for the screen and the notification;
+     * [untouched], an MQA track Mandarin sends untouched to a DAC that decodes it (item 418): no software volume on it;
+     * [art], its cover's address, for Now Playing (item 430).
+     */
+    class Item(val uri: String, val title: String = "", val artist: String = "", val album: String = "", val untouched: Boolean = false, val art: String = "") {
         fun mediaItem(): MediaItem = MediaItem.Builder().setUri(Uri.parse(uri)).setMediaId(uri)
             .setMediaMetadata(MediaMetadata.Builder().setTitle(title.ifEmpty { null }).setArtist(artist.ifEmpty { null }).setAlbumTitle(album.ifEmpty { null }).build()).build()
     }
@@ -49,6 +53,7 @@ class Transport(private val main: Handler, private val player: ExoPlayer, privat
             // Moved on to the next track by itself: it is the current one now, and the first is dropped.
             if (player.currentMediaItemIndex == 1 && next != null) {
                 current = next; next = null
+                UsbDriver.untouched = current?.untouched == true   // its gain as it begins (item 418)
                 runCatching { player.removeMediaItem(0) }
                 error = null
             }
@@ -105,6 +110,7 @@ class Transport(private val main: Handler, private val player: ExoPlayer, privat
     /** [item] to play, the one before forgotten: started at once where [start], else waiting for [play]. */
     fun set(item: Item, start: Boolean) = onMain {
         current = item; next = null; error = null
+        UsbDriver.untouched = item.untouched
         player.setMediaItem(item.mediaItem())
         player.prepare()
         stopped = !start
@@ -134,15 +140,16 @@ class Transport(private val main: Handler, private val player: ExoPlayer, privat
     fun pause() = onMain { if (current != null) player.pause(); changed() }
 
     /** The track playing told afresh (Mandarin's continuous PCM, item 322: the run goes on into its next track): what it is, for the screen and notification. */
-    fun retitle(title: String, artist: String, album: String) = onMain {
+    fun retitle(title: String, artist: String, album: String, art: String = "") = onMain {
         val c = current ?: return@onMain
-        current = Item(c.uri, title, artist, album)
+        current = Item(c.uri, title, artist, album, c.untouched, art)
         changed()
     }
 
     /** Stopped, and what it played forgotten (SlimProto's strm q). */
     fun stop() = onMain {
         stopped = true; current = null; next = null
+        UsbDriver.untouched = false
         player.stop(); player.clearMediaItems()
         changed()
     }

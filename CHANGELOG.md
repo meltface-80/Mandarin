@@ -1,10 +1,30 @@
 # Changelog
 
-## Unreleased
+## v1.3.3
 
-- New - The Pages site in nine languages (item 408): a language selector at the far left of every page's top bar (English, Français, Deutsch, Español, Italiano, Nederlands, Svenska, Dansk, Norsk), remembered, and the browser's own language on a first visit; every page's text marked for translation, its English in docs/i18n/en.json (npm run i18n), and the tests fail while a language's file is behind the pages or changes a text's links, code or markup
-- New - Buy Me a Coffee: a button at the top of the README and on the site's front page, and a small one at the foot of every page
-- Changed - A shorter README: what Mandarin is, the downloads, the two ways to install and updating, and a link to the Pages site, where everything else is; what only the README said moves there (Qobuz and Tidal now have a page of their own)
+Mandarin now names and completes your albums by itself: the Library Scanner under one switch, identification that finds the edition you have and can match an album by its sound, covers found for albums with none, and two releases merged into one album taken apart. MQA is recognised and passed through untouched to a DAC that decodes it; SQ-tool compares two songs; everything Mandarin says is in one log; and Mandarin Bridge for Android opens on Now Playing. With Mandarin OS 0.1.12 and Mandarin Bridge 0.3.15.
+
+- New - Library Scanner: one switch, Album Scanner, identifies albums, measures ReplayGain and finds missing covers, with one Progress readout, an optional schedule, and the albums left to place by hand in Unidentified and To confirm. It waits only while Mandarin's own music plays in a room you use, and says which
+- New - Covers found automatically: an album with no cover of its own is given one from Apple Music, Deezer or the Cover Art Archive, only when its title, artist and tracks all agree. A cover in its folder or its files, or one you chose, is never touched
+- New - Identification finds the right edition: a disc set as one album, a CD rip by its tracks' exact lengths, a compilation as Various Artists, and the pressing that best fits your copy, the other editions a tap away
+- New - Every match says how sure it is and why, in plain words. To confirm has Apply, Not this and the other releases found, and Mandarin learns from you: a release you turn down is never proposed again, and the kind of edition you choose for an artist is preferred for their other albums
+- New - Matching by sound: with a free AcoustID key in Settings → Setup → API Keys, an album no name search can place is fingerprinted on the server and matched by AcoustID; Match by sound in Edit album does one album at once
+- New - Edit album's Version: the pressing's name, label, catalogue number, barcode, country, year and format, from the match or the files, each yours to change and kept through rescans and backups
+- New - Two releases merged into one album come apart: by folder at the next scan, or in Edit album's Folders and copies with Split… and Join back; Library clean-up lists the albums that look like two copies merged
+- New - MQA passthrough: MQA files are recognised and marked with their original rate (MQA · 24/352.8 original, MQA Studio), and found under Focus → Format. Mandarin sends MQA untouched (no upsampling, DSP, ReplayGain, dither or volume) to a DAC set to This DAC decodes MQA in Settings → Audio Devices. Mandarin does not decode or unfold MQA itself: a DAC that decodes MQA, fully unfolding it, is needed; any other room plays it as ordinary PCM
+- New - SQ-tool compares two songs: song A null-tested against song B, with a verdict in plain words, where in the spectrum they differ, spectrograms, loudness, and the difference to download
+- New - SQ-tool's bit-perfect check works with Mandarin Bridge for Linux and the Raspberry Pi (Bridge 0.3.11 and later), as with Android
+- New - Mandarin Bridge for Android opens on Now Playing: the album's cover, the track, the format the DAC is fed and the DAC it plays to; its settings behind the cog (Bridge 0.3.15)
+- New - The Pages site in nine languages, and a shorter README
+- Changed - One log: the server, Mandarin OS, every Mandarin Bridge, the Android app and the page, a line each in time order in one plain-text file, without personal data (no passwords, keys, emails, account names or internet addresses). On Mandarin OS it is the shared folder's Logs (smb://<box>/Data/Logs); there is nothing to switch on or save in the apps
+- Changed - Mandarin OS 0.1.12, which a box on 0.1.4 or later updates itself to: the one log, internal storage that formats and mounts from the system page, and its upkeep waiting only for Mandarin's own music
+- Fixed - A backup restored on another computer keeps that computer's music folders and finds the albums' files there; the database copies kept before a restore can be restored from Backup & restore
+- Fixed - Last.fm no longer scrobbles a track twice when the server restarts while it plays
+- Fixed - Android no longer ends the app for its Tailscale engine while the phone's player is paused away from home
+- Fixed - Mandarin Bridge for Linux updates itself on Mandarin OS and on other systems with systemd 256 or later
+- Fixed - Mandarin OS's internal storage: Format on the system page now mounts the drive as Storage/Internal, writable over the shared folder; a drive formatted before is mounted at the next start, nothing on it touched
+- Fixed - Mandarin OS no longer puts off its update or restart for music that isn't Mandarin's, such as a Sonos playing the TV
+- Fixed - The MusicBrainz pack says plainly when GitHub can't be reached
 
 ## v1.3.2
 

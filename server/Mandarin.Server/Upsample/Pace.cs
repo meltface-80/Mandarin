@@ -54,6 +54,7 @@ internal static partial class Pace
         private readonly double perByte;   // seconds of music a byte
         private readonly long from = -1;   // the file's length when this making began (a resumed one's, item 272)
         private readonly Queue<(double Work, double Made)> seen = new();   // its work and what it had made, a window's worth
+        private long lastMade = -1, lastWanted = -1;   // what it had made and its device had read at the last tick (item 417)
         private bool stopped, ended;
 
         internal Holder(Process proc, ConvJob job, long lead, double perByte)
@@ -63,7 +64,8 @@ internal static partial class Pace
             this.perByte = perByte;
             try { pid = proc.Id; } catch (InvalidOperationException) { return; }
             try { from = File.Exists(job.Part) ? new FileInfo(job.Part).Length : 0; } catch (IOException) { from = 0; }
-            if (lead > 0 || perByte > 0) timer = new Timer(_ => Tick(), null, 100, 100);
+            // Every making ticks, held or not, to say whether it goes on (Cpu.MakingFlowed, item 417).
+            timer = new Timer(_ => Tick(), null, 100, 100);
             Turns.Attach(job, this);
         }
 
@@ -101,12 +103,24 @@ internal static partial class Pace
                 if (ended) return;
                 long made;
                 try { made = new FileInfo(job.Part).Length; } catch (IOException) { return; }
+                Flowed(made);
                 if (!stopped) Speed(made);
                 if (lead <= 0) return;
                 var ahead = made - Interlocked.Read(ref job.Wanted);
                 if (!stopped && ahead > lead && Kill(pid, StopSignal) == 0) { stopped = true; held.Start(); Turns.Yield(job); }
                 else if (stopped && ahead < lead / 2) Turns.Back(job);   // on now, or in its turn
             }
+        }
+
+        // More made, or more of it read by its device: music going on, for the background's question (item 417). Held
+        // ahead of a paused device, or made ahead for a next track nobody reads yet, a making does neither.
+        private void Flowed(long made)
+        {
+            var wanted = Interlocked.Read(ref job.Wanted);
+            if (made == lastMade && wanted == lastWanted) return;
+            lastMade = made;
+            lastWanted = wanted;
+            Cpu.MakingFlowed();
         }
 
         // Its speed over the last KeepingUp.Window seconds it worked (item 346): the time held is no work.

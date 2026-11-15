@@ -275,7 +275,8 @@ class FakeRenderer {
         if (now && this.dacMisses > 0) { this.dacMisses--; res.writeHead(503); return res.end(); }
         if (now && this.nowMisses > 0) { this.nowMisses--; now = null; }
         res.writeHead(200, { "Content-Type": "application/json" });
-        return res.end(JSON.stringify({ model: "Mandarin Bridge", version: "0.2.0", name: this.name, udn: this.udn, dac: Object.assign({ attached: true, permission: true }, this.dac), now,
+        // dac.platform, dac.bridgeVersion: which Bridge it says it is (item 412: a Linux one, its version).
+        return res.end(JSON.stringify({ model: "Mandarin Bridge", version: this.dac.bridgeVersion || "0.2.0", platform: this.dac.platform, name: this.name, udn: this.udn, dac: Object.assign({ attached: true, permission: true }, this.dac), now,
           capture: this.dac.capture ? "/capture" : undefined, capture_parts: this.dac.captureParts ? true : undefined,
           log: typeof this.dac.log === "string" ? "/log" : undefined }));
       }

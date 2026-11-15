@@ -11,6 +11,7 @@ app/library-mark.js
 app/after-start.js
 app/ui-settings.js
 app/page-state.js
+app/mqa.js
 app/home.js
 app/home-layout.js
 app/home-render.js
@@ -32,6 +33,9 @@ app/album-open.js
 app/queue.js
 app/album-editor.js
 app/album-editor-match.js
+app/album-editor-sound.js
+app/album-editor-version.js
+app/album-editor-split.js
 app/album-detail.js
 app/album-versions.js
 app/album-tabs.js
@@ -100,11 +104,16 @@ app/device-recipes.js
 app/audio-devices.js
 app/audio-devices-page.js
 app/audio-devices-dsp.js
+app/covers-reach.js
+app/scanner-words.js
 app/settings-scanner.js
+app/settings-scanner-blocks.js
+app/settings-scanner-pack.js
 app/settings-scanner-albums.js
+app/settings-scanner-merged.js
 app/settings-ui.js
 app/settings-away.js
 app/toast-lift.js
 app/power.js
+app/backup-copies.js
 app/settings-backup.js
-app/settings-logs.js

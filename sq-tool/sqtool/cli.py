@@ -1,4 +1,4 @@
-"""Command line: sq-tool serve | gen | analyze | compare."""
+"""Command line: sq-tool serve | gen | analyze | compare | compare-files."""
 
 from __future__ import annotations
 
@@ -20,6 +20,7 @@ The web interface (Mandarin starts it):
 
 From the command line:
   sq-tool compare song.flac recording.wav
+  sq-tool compare-files a.flac b.flac       two songs: a 24/192 against a 16/44.1, a remaster, a null test
 """
 
 
@@ -54,6 +55,15 @@ def build_parser() -> argparse.ArgumentParser:
     m.add_argument("reference", help="source track (WAV, or FLAC etc. with ffmpeg) or a capture")
     m.add_argument("files", nargs="+", metavar="FILE")
     m.add_argument("--json", metavar="FILE", help="also write the results as JSON")
+
+    f = sub.add_parser("compare-files", help="compare two songs: common ground, then a null test",
+                       description="Compares song B with song A: both brought to one sample rate (the higher "
+                       "resampled to the lower) and channel count, B lined up with A, its level and polarity "
+                       "matched, and A subtracted. Exit status: 0 if identical, 1 if they differ, 2 on errors.")
+    f.add_argument("a", help="song A (WAV, AIFF, or FLAC etc. with ffmpeg)")
+    f.add_argument("b", help="song B")
+    f.add_argument("--bands", action="store_true", help="also list the difference by third octave")
+    f.add_argument("--json", metavar="FILE", help="also write the result as JSON")
     return p
 
 
@@ -135,7 +145,19 @@ def cmd_compare(args) -> int:
     return 0 if all(r["verdict"] == "IDENTICAL" for r in results) else 1
 
 
-COMMANDS = {"gen": cmd_gen, "analyze": cmd_analyze, "compare": cmd_compare, "serve": cmd_serve}
+def cmd_compare_files(args) -> int:
+    from .common_ground import load_song
+    from .song_report import format_song_comparison
+    from .songs import compare_songs
+    res, _ = compare_songs(load_song(args.a), load_song(args.b))
+    print(format_song_comparison(res, args.bands))
+    if args.json:
+        _write_json(args.json, res)
+    return 0 if res["verdict"] == "IDENTICAL" else 1
+
+
+COMMANDS = {"gen": cmd_gen, "analyze": cmd_analyze, "compare": cmd_compare, "compare-files": cmd_compare_files,
+            "serve": cmd_serve}
 
 
 def main(argv=None) -> int:

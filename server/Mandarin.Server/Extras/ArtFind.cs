@@ -350,6 +350,11 @@ internal static partial class ArtFind
         return result;
     }
 
-    /* The catalogues as the server asks them: JSON, nine seconds, the app's name. */
-    public static Get Web(string userAgent) => url => Lookups.Json(url, [("User-Agent", userAgent), ("Accept", "application/json")], 9000);
+    /*
+     * The catalogues as the server asks them: JSON, nine seconds, the app's name; musicbrainz.org in its slot, as every
+     * request to it is (MusicBrainz.Ask: one at a time, a second apart, not while it rests; item 417).
+     */
+    public static Get Web(string userAgent) => url => url.StartsWith(Identify.MusicBrainz.DefaultBase + "/", StringComparison.Ordinal)
+        ? Identify.MusicBrainz.Ask(Identify.MusicBrainz.DefaultBase, url, [("User-Agent", userAgent), ("Accept", "application/json")], 9000)
+        : Lookups.Json(url, [("User-Agent", userAgent), ("Accept", "application/json")], 9000);
 }

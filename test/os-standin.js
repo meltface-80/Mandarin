@@ -9,6 +9,12 @@
  * [linuxDrives]: two ext4 USB drives whose files are another computer's user's (item 399), "Old Drive" and "Broken
  * Drive", whose files can't be changed (its chown fails); chown and chmod stand in, find runs as it is.
  *
+ * [internal]: how its second disk, /dev/sdb, takes a format (item 429): "mounts" (its label read by udev, mounted by
+ * systemd), "undone" (systemd says it started its mount, and nothing is mounted: as systemd undoes a mount it doesn't
+ * know the device of), "unlabelled" (udev never makes its label's link, as the boot test's disk had it), "mkfs-fails".
+ * The disk tools stand in always (wipefs, sfdisk, mkfs, udevadm, partx, blkid, mount), and logger:
+ * the page's lines for the one log are among the calls ("logger -t mandarin-os -- LEVEL [system page] …").
+ *
  * The password is "password": Samba keeps it as its NT hash (MD4 of it in UTF-16LE). Neither OpenSSL 3 nor Node offer
  * MD4, so the well-known hash of "password" stands in, independent of the page's own MD4.
  */
@@ -24,18 +30,12 @@ const PASSWORD = "password", NT = "8846F7EAEE8FB117AD06BDD830B7586C";
 const noPython = spawnSync("python3", ["--version"]).status !== 0 && "python3 is not installed";
 
 /** The box started, its page answering; [opts]: Mandarin's albums and rooms. */
-async function standIn({ albums = 1234, rooms = 3, linuxDrives = false } = {}) {
+async function standIn({ albums = 1234, rooms = 3, linuxDrives = false, internal = "" } = {}) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "musicd-test-system-page-"));
   const root = path.join(dir, "root"), bin = path.join(dir, "bin"), log = path.join(dir, "calls.log");
   const mk = (p, text) => { fs.mkdirSync(path.dirname(path.join(root, p)), { recursive: true }); fs.writeFileSync(path.join(root, p), text); };
   mk("/data/MachineSettings/share-user", "music\n");
   mk("/data/MachineSettings/setup.json", JSON.stringify({ share_user: "music", network: { mode: "dhcp" } }));
-  mk("/data/MandarinOS/Logs/MandarinOS_log.txt", "# Mandarin OS 0.1.0 log\n2026-11-12 07:00:00.000 UTC  INFO   [apply] done\n2026-11-12 07:01:00.000 UTC  WARN   [usb] Music SSD (exfat) mounted read-only\n");
-  mk("/data/MandarinServer/Logs/MandarinServer_log.txt", "# Mandarin Server 1.3.1-t1 log\n2026-11-12 07:00:01.000 UTC  INFO   [server] started\n" +
-    "2026-11-12 07:00:05.000 UTC  INFO   [slimproto] t335.flac: no PCM: Error opening input: Server returned 400 Bad Request\nError opening input file http://127.0.0.1:3500/stream/t335.flac\n");
-  // A Bridge's log as the server keeps it (an older Bridge's times: to the second, no UTC), and the app's.
-  mk("/data/MandarinServer/Logs/Bridges/Mandarin_Bridge_mandarin.txt", "# — Mandarin Bridge: Mandarin Bridge (mandarin) (linux 0.3.8) —\n2026-11-12 07:00:02 [http] listening on 49494\n2026-11-12 07:00:04 update failed: tar couldn't be run\n");
-  mk("/data/MandarinServer/Logs/Apps/Nothing_A142.txt", "# The Mandarin app on Nothing A142\n2026-11-12 07:00:03.250 UTC  WARN   [NET] server POST /api/settings/qobuz/import → SocketTimeoutException\n");
   mk("/data/Storage/USB/Music SSD/.keep", "");
   mk("/run/mandarin-os/usb/Music SSD", "ro\nit wasn't removed safely, and couldn't be repaired\n");
   if (linuxDrives) for (const d of ["Old Drive", "Broken Drive"]) { mk(`/data/Storage/USB/${d}/Artist/Album/01.flac`, "x"); mk(`/data/Storage/USB/${d}/lost+found/.keep`, ""); mk(`/run/mandarin-os/usb/${d}`, "rw\n"); }
@@ -49,18 +49,27 @@ async function standIn({ albums = 1234, rooms = 3, linuxDrives = false } = {}) {
 case "$*" in
   "start mandarin-os-update@check.service") ${said({ state: "idle", available: "0.1.5", checked: "2026-11-13 09:00 UTC", error: "" })} ;;
   "start --no-block mandarin-os-update@apply.service") ${said({ state: "downloading", progress: 20, said: "Downloading Mandarin OS 0.1.5", available: "0.1.5" })} ;;
+  "start data-Storage-Internal.mount") [ "${internal}" = mounts ] && touch "${root}/run/internal-mounted" ;;
 esac
 exit 0`);
   shim("pdbedit", `echo "music:1001:XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX:${NT}:[U          ]:LCT-00000000:"`);
   shim("nmcli", `echo "eth0:ethernet:connected"`);
   shim("ip", `case "$*" in *"addr show"*) echo "2: eth0    inet 192.168.0.57/24 brd 192.168.0.255 scope global dynamic eth0" ;; *route*) echo "default via 192.168.0.1 dev eth0" ;; esac`);
-  shim("findmnt", `case "$*" in *Music*) echo exfat ;; *Drive*) echo ext4 ;; *SOURCE*/) echo /dev/sda2 ;; *) exit 1 ;; esac`);
+  shim("findmnt", `case "$*" in *Internal*) [ -f "${root}/run/internal-mounted" ] && echo /dev/sdb1 || exit 1 ;; *Music*) echo exfat ;; *Drive*) echo ext4 ;; *SOURCE*/) echo /dev/sda2 ;; *) exit 1 ;; esac`);
   // The shared folder's user: not whoever runs the test, so the drives' files are someone else's.
   shim("id", `[ "$1 $2" = "-u music" ] && echo ${(process.getuid ? process.getuid() : 0) + 1} || exit 1`);
   shim("chown", `case "$*" in *Broken*) echo "chown: changing ownership of 'x': Operation not permitted" >&2; exit 1 ;; esac`);
   shim("chmod");
-  shim("lsblk", `case "$*" in *-J*) echo '{"blockdevices":[{"name":"sda","size":256000000000,"model":"SSD","tran":"sata","rm":false,"type":"disk"},{"name":"sdb","size":4000000000000,"model":"WDC WDS400T2B0A","tran":"sata","rm":false,"type":"disk"}]}' ;; *) echo sda ;; esac`);
-  shim("journalctl", `echo "2026-11-12T07:00:00.500000+00:00 mandarin systemd[1]: Started Mandarin."`);
+  shim("lsblk", `case "$*" in *-J*) echo '{"blockdevices":[{"name":"sda","size":256000000000,"model":"SSD","tran":"sata","rm":false,"type":"disk"},{"name":"sdb","size":4000000000000,"model":"WDC WDS400T2B0A","tran":"sata","rm":false,"type":"disk"}]}' ;; *-lnpo*) echo "/dev/sdb1 part" ;; *) echo sda ;; esac`);
+  // The disk tools (a format of the second disk, item 429), and the one log's lines.
+  for (const t of ["wipefs", "sfdisk", "partx", "mount", "umount", "logger"]) shim(t);
+  shim("mkfs.ext4", internal === "mkfs-fails" ? `echo "/dev/sdb1 is apparently in use by the system; will not make a filesystem here!" >&2; exit 1` : "");
+  shim("udevadm", `case "$1" in
+  trigger) [ "${internal}" = unlabelled ] || { mkdir -p "${root}/dev/disk/by-label" && touch "${root}/dev/disk/by-label/mandarin-store"; } ;;
+  info) printf 'DEVNAME=/dev/sdb1\nDEVTYPE=partition\nID_PART_ENTRY_TYPE=0fc63daf-8483-4772-8e79-3d69d8477de4\n' ;;
+esac
+exit 0`);
+  shim("blkid", `printf 'DEVNAME=/dev/sdb1\nLABEL=mandarin-store\nUUID=0b5e\nTYPE=ext4\n'`);
   // As an OptiPlex answered it: the link's name beside its server.
   shim("resolvectl", `printf 'Global:\\nLink 2 (enp0s31f6): 8.8.8.8\\n'`);
   const mandarin = http.createServer((req, res) => {
@@ -70,7 +79,7 @@ exit 0`);
   await new Promise(r => mandarin.listen(0, "127.0.0.1", r));
   const port = ports.port(), base = "http://127.0.0.1:" + port;
   const page = spawn("python3", [SERVER], { env: Object.assign({}, process.env, { PATH: bin + ":" + process.env.PATH, MANDARIN_OS_ROOT: root,
-    MANDARIN_OS_PORT: String(port), MANDARIN_URL: "http://127.0.0.1:" + mandarin.address().port }), stdio: ["ignore", "ignore", "pipe"] });
+    MANDARIN_OS_PORT: String(port), MANDARIN_OS_WAIT: "2", MANDARIN_URL: "http://127.0.0.1:" + mandarin.address().port }), stdio: ["ignore", "ignore", "pipe"] });
   let stderr = "";
   page.stderr.on("data", d => { stderr += d; });
   for (let i = 0; i < 100; i++) {

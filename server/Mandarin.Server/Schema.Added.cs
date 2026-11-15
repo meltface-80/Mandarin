@@ -9,6 +9,10 @@
 //     MusicBrainz id of an album's artist, from its files' tags or its match,
 //     and the library's artist it is (ArtistRows.cs, its own table), so two acts
 //     of the same name are two artists. Every track is read once more for it.
+//   - album_edits.version (item 420): the version details you wrote over an
+//     album in Edit album (its version name, label, catalogue number, barcode,
+//     country, this pressing's year, its format), as JSON, by field; only the
+//     fields you changed from what its match or its files say.
 using Microsoft.Data.Sqlite;
 
 namespace Mandarin.Server;
@@ -19,6 +23,7 @@ internal static partial class Schema
     [
         ("devices", "joined", "INTEGER NOT NULL DEFAULT 0"),
         ("tracks", "mb_artist", "TEXT"), ("albums", "mb_artist", "TEXT"), ("albums", "artist_id", "INTEGER"),
+        ("album_edits", "version", "TEXT"),
     ];
 
     // Every column added after its table first shipped.

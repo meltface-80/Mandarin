@@ -25,11 +25,16 @@ type Forwarder struct {
 	Target string        // server's tailnet address, e.g. 100.64.0.1:3500
 	Moved  *atomic.Int64 // bytes through, both ways, for the engine's watch (item 404); nil: not counted
 
-	ln   net.Listener
-	mu   sync.Mutex
-	open map[net.Conn]struct{}
-	down bool // the app's check found the server gone: refuse at once
+	ln    net.Listener
+	mu    sync.Mutex
+	open  map[net.Conn]struct{}
+	down  bool         // the app's check found the server gone: refuse at once
+	conns atomic.Int32 // connections through it now, for the watch's words (item 416)
 }
+
+// Open: the app's connections through it now (item 416: what the engine's
+// watch says was passing when it was busy).
+func (f *Forwarder) Open() int { return int(f.conns.Load()) }
 
 // SetDown is the app's verdict: down drops what's in flight and refuses new
 // connections immediately (no dial wait); up lets them through again.
@@ -77,8 +82,10 @@ func (f *Forwarder) track(c net.Conn, on bool) {
 	defer f.mu.Unlock()
 	if on {
 		f.open[c] = struct{}{}
+		f.conns.Add(1)
 	} else {
 		delete(f.open, c)
+		f.conns.Add(-1)
 	}
 }
 

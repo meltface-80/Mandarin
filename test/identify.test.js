@@ -298,6 +298,8 @@ test("the scan end to end", { skip, timeout: 90000 }, async () => {
     assert.equal((await api("play", { offset: applied.album.offset, zone_or_output_id: phone.zone_id, kind: "play_now" })).status, 200);
     const load = (await until(async () => (await api(`phone/commands?after=${phone.seq}`)).commands.find(c => c.op === "load")));
     assert.deepEqual(load.items.map(x => x.title), ["C1", "C2 (Live)"]);
+    // The phone answers, stopped: while it plays (or loads) the scan starts no album (item 411).
+    await api("phone/state", { index: 0, position: 0, duration: 60, state: "stopped", volume: 40 });
     const bestKey = ctx.db.raw.prepare("SELECT key FROM albums WHERE title = 'Best Of'").get().key;
     assert.deepEqual(ctx.db.raw.prepare("SELECT title FROM track_edits WHERE key = ? AND title IS NOT NULL").all(bestKey).map(x => x.title), ["C2 (Live)"]);
     assert.deepEqual(bestOf.tracks.map(t => ctx.db.raw.prepare("SELECT title FROM tracks WHERE id = ?").get(t.track_id).title), ["C1", "C2"]);

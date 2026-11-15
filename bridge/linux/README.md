@@ -15,7 +15,11 @@ On a 64-bit Debian, Ubuntu or Raspberry Pi OS computer (x64, or arm64: a Pi 3, 4
     curl -fsSL https://github.com/meltface-80/Mandarin/releases/download/test-bridge/install.sh | sudo sh
 
 It installs the Bridge and the audio engine in `/usr/lib/mandarin-bridge`, ffmpeg where it isn't there, and a
-systemd service that starts it at boot (`systemctl status mandarin-bridge`, `journalctl -u mandarin-bridge`).
+systemd service that starts it at boot (`systemctl status mandarin-bridge`, `journalctl -u mandarin-bridge`), run as
+a user of its own, `mandarin-bridge`, its data folder `/var/lib/mandarin-bridge`. Before 0.3.12 the service ran as a
+DynamicUser, whose data folder systemd 256 and later (Debian 13) mount so nothing in it can be run, and its update
+couldn't be installed (item 415): run the install line again and it runs as its own user, its data folder kept (who it
+is to Mandarin, its settings, its logs). On Mandarin OS, Mandarin OS 0.1.7 does this for the Bridge installed.
 Then switch it on in Mandarin's *Settings → Audio Devices*. It finds Mandarin on its own network (a broadcast to port
 3483); where Mandarin is elsewhere (another subnet, over a VPN), point it there: add `--server <Mandarin's address>` to
 `ExecStart` in `/etc/systemd/system/mandarin-bridge.service`. A Bridge Mandarin knew as a UPnP renderer keeps its name
@@ -27,8 +31,24 @@ an update that fails as it starts is let go and the installed one runs on; one t
 why on the Bridge's row there. A Bridge from before v0.3.1 needs this install once more, by hand: it asked GitHub
 without a User-Agent, which GitHub refuses (item 327).
 
-Its log goes to journald (`journalctl -u mandarin-bridge`) and its last 2,000 lines are kept in memory as well, at
-`GET /log` (`Kept.cs`): the Mandarin app's Save log (Settings → Setup → Logging) has them, gathered by the server.
+Its log goes to journald (`journalctl -u mandarin-bridge`) and is kept in its data folder's `Logs` as well, the newest
+lines at `GET /log` (`Kept.cs`), which Mandarin's server fetches every minute into Mandarin's one log as
+`[bridge <its name>]`. On Mandarin OS (`MANDARIN_LOG=journal`) it keeps no files: each line goes to journald saying where
+it came from, and the box writes it into its one log (the shared folder's `Logs`).
+
+## The bit-perfect check: `/capture`
+
+Mandarin's bit-perfect check and SQ-tool (item 412) ask the Bridge to record exactly what it feeds the DAC, as they
+ask the Android Bridge: the same `/capture` ([bridge/README.md](../README.md#the-bit-perfect-check-capture)), the same
+WAV and sidecar, and `/dac.json` says `"capture": "/capture"` and `"capture_parts": true`. The audio engine records it
+(`engine/Mandarin.Audio/Capture.cs`): a tap in front of its ALSA device, so the bytes are those it hands ALSA for the
+DAC, after every conversion it makes. PCM and DoP are in its 32-bit words (`S32_LE`), native DSD in its `DSD_U32_BE`
+or `DSD_U32_LE` words, so the WAV's container and valid bits are 32 and the sidecar's `format` names which;
+`dsd_setting` says `native` or `native_le` for native DSD. Only made when asked: up to two minutes in one piece, or a
+whole track in parts from the next flush (the track played again from its start), written on a thread of the
+engine's own so a slow disk never holds the DAC up, into `capture/` in the Bridge's data folder, emptied as it starts
+and as each recording starts; each part is let go once Mandarin fetches it. What ALSA's plug layer then does to fit a
+DAC's own format (a 24-bit slot) is after the tap. A Bridge before 0.3.11 can't record, and Mandarin says so.
 
 ## Its page
 
@@ -65,8 +85,9 @@ what the driver's own table gives that DAC. To undo it, delete the file and repl
 | `Bridge.cs`, `Bridge.Routes.cs` | the DAC chosen, `/dac.json`, its hello's capabilities, the HTTP routes, the page's state and settings |
 | `Dac.cs` | the USB DACs the kernel lists (`/proc/asound`): each altset's format and rates; its USB descriptor (sysfs) read for raw DSD the kernel holds back |
 | `Player.cs` | the audio engine, driven over its stdin and stdout |
+| `Capture.cs` | `/capture`: a recording of what the DAC is fed, made by the engine's tap, for the bit-perfect check |
 | `Slim.cs` | SlimProto: Mandarin found, connected to, and what its `strm` says played through the engine; what happens said back (STAT) |
-| `Http.cs`, `Xml.cs` | its web service: `/dac.json`, `/update`, `/log`, its page |
+| `Http.cs`, `Xml.cs` | its web service: `/dac.json`, `/update`, `/log`, `/capture`, its page |
 | `Web.cs` | its page |
 | `Wifi.cs` | its Wi-Fi from its page, through NetworkManager, and a setup network where there is none (`--wifi`: the Pi image's) |
 | `Store.cs` | its name, its UDN (its SlimProto id is made from it), the DAC chosen and the DSD setting (`settings.json` in its data folder) |

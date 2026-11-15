@@ -9,15 +9,29 @@ Wants=network-online.target
 ExecStart=/usr/lib/mandarin-bridge/mandarin-bridge --data /var/lib/mandarin-bridge --engine /usr/lib/mandarin-bridge/mandarin-audio
 Restart=always
 RestartSec=3
-# Its own user, allowed the sound devices and, for the audio engine's playback thread, a real-time priority.
-DynamicUser=yes
+# Its own user (install.sh makes it), allowed the sound devices and, for the audio engine's playback thread, a real-time
+# priority. Not a DynamicUser (item 415): from systemd 256 (Debian 13, Mandarin OS) a DynamicUser's data folder is
+# mounted so nothing in it can be run, and the Bridge's update is run from there (its app/), so it couldn't install.
+User=mandarin-bridge
+Group=mandarin-bridge
 SupplementaryGroups=audio
 StateDirectory=mandarin-bridge
-# Its home its data folder (item 391): DynamicUser gives it none, and .NET's certificate stores need one.
+# Its data folder its own, made so by install.sh before it starts: one a DynamicUser had is nobody's (systemd 256's way),
+# which systemd would mount ID-mapped and noexec as before, even with DynamicUser off; then moved back from
+# /var/lib/private by systemd as it starts. (Not by an ExecStartPre=+: systemd runs it inside that mount, where the
+# chown changes nothing on disk.)
+# Its home its data folder (item 391): .NET's certificate stores need one.
 Environment=HOME=/var/lib/mandarin-bridge
 AmbientCapabilities=CAP_SYS_NICE
 LimitRTPRIO=95
 LimitMEMLOCK=infinity
+# What a DynamicUser had, said as it is: the system read-only but for its data folder, homes unwritten, its own /tmp.
+ProtectSystem=strict
+ProtectHome=read-only
+PrivateTmp=yes
+NoNewPrivileges=yes
+RestrictSUIDSGID=yes
+RemoveIPC=yes
 
 [Install]
 WantedBy=multi-user.target

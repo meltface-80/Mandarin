@@ -221,6 +221,7 @@ object TailscaleEngine {
         readyFor = null
         // Gone before a new one starts (item 158): the dying one held the app's port, and the new one couldn't have it.
         p?.let { runCatching { it.outputStream.close() }; it.destroy(); runCatching { it.waitFor(3, java.util.concurrent.TimeUnit.SECONDS) } }
+        appContext?.let { EngineUse.forgetBusy(it) }   // said above, with its last lines (item 416)
     }
 
     /**

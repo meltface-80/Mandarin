@@ -48,7 +48,9 @@ data class AlbumSummary(
     val versions: Int? = null,
     val version: String? = null,
     /** Its title without its version's words ("Metallic 'KO" of "Metallic 'KO (2015 Remaster)"): its page's, whichever version is shown (item 349). */
-    val baseTitle: String? = null
+    val baseTitle: String? = null,
+    /** MQA, every track of it (item 418). */
+    val mqa: Mqa? = null
 ) {
     /** The service's name as the page writes it ("Qobuz", "Tidal"); null for the library's own files. */
     val serviceName: String? get() = when (source) { "qobuz" -> "Qobuz"; "tidal" -> "Tidal"; else -> null }
@@ -70,7 +72,7 @@ data class AlbumSummary(
             serviceId = j.str("service_id"),
             serviceFavourite = if (j.opt("service_favourite") is Boolean) j.getBoolean("service_favourite") else null,
             artistId = if (j.has("artist_id")) j.optLong("artist_id") else null, artistNote = j.str("artist_note"),
-            versions = j.int("versions"), version = j.str("version"), baseTitle = j.str("base_title")
+            versions = j.int("versions"), version = j.str("version"), baseTitle = j.str("base_title"), mqa = Mqa.parse(j.optJSONObject("mqa"))
         )
     }
 }
@@ -148,7 +150,7 @@ data class AlbumPage(val albums: List<AlbumSummary>, val offset: Int, val total:
 }
 
 /** One of an album's tracks: [length] in seconds, [subtitle] as the page shows it ("0:03"). */
-data class Track(val id: Long, val title: String, val subtitle: String, val length: Double, val quality: String?) {
+data class Track(val id: Long, val title: String, val subtitle: String, val length: Double, val quality: String?, val mqa: Mqa? = null) {
     /** Its subtitle as the page splits it: who else is on it ("Artist B · 4:05" → "Artist B"), and its length ("4:05"). */
     val sub: String get() = split().first
     val lengthText: String get() = split().second
@@ -159,7 +161,7 @@ data class Track(val id: Long, val title: String, val subtitle: String, val leng
     }
 
     companion object {
-        fun parse(j: JSONObject) = Track(j.getLong("track_id"), j.getString("title"), j.optString("subtitle", ""), j.optDouble("length", 0.0), j.str("quality"))
+        fun parse(j: JSONObject) = Track(j.getLong("track_id"), j.getString("title"), j.optString("subtitle", ""), j.optDouble("length", 0.0), j.str("quality"), Mqa.parse(j.optJSONObject("mqa")))
     }
 }
 

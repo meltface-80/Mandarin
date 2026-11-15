@@ -64,7 +64,7 @@ internal sealed class SlimRuns(string playerId, Action<byte[]> send, Action<stri
     private byte[] Strm(Run r, char autostart)
     {
         var e = r.Entries[0];
-        var headers = SlimPlayer.Headers(metas.GetValueOrDefault(e.Uri, ""));
+        var headers = SlimPlayer.Headers(metas.GetValueOrDefault(e.Uri, "")) + Mqa.MqaPlan.HeaderFor(e.Uri);   // untouched, where it is (item 418)
         return r.Pcm is { } f ? SlimPlayer.Request(SlimStream.For(e.Fetch, playerId, r.Serial), f.Strm, headers, autostart)
             : SlimPlayer.Request(e.Fetch, SlimPlayer.FormatOf(new Uri(e.Fetch).AbsolutePath), headers, autostart);
     }
@@ -130,7 +130,8 @@ internal sealed class SlimRuns(string playerId, Action<byte[]> send, Action<stri
                 if (r.Gone.IsCancellationRequested || streaming != r || maker != r.Maker) return null;
                 if (next is { } n)
                 {
-                    if (PcmFormat.Of(n.Uri, n.Meta) != r.Pcm) return null;
+                    // Of its format, and untouched as it is (an MQA track to an MQA DAC, item 418: a run of its own, which the Bridge is told of).
+                    if (PcmFormat.Of(n.Uri, n.Meta) != r.Pcm || Mqa.MqaPlan.Untouched(n.Uri) != Mqa.MqaPlan.Untouched(r.Entries[0].Uri)) return null;
                     var e = new Entry(n.Uri, n.Uri, r.Seconds, 0);
                     r.Entries.Add(e);
                     next = null;
