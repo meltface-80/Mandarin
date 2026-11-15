@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title data-i18n="logs.doc-title">Logs · Mandarin</title>
-<meta name="description" content="Mandarin keeps a log always: the server, every Mandarin Bridge, the Android app and the page. Download all logs as one text file, what they hold and leave out, and how to send them.">
+<meta name="description" content="Mandarin keeps one log of everything: the server, Mandarin OS, every Mandarin Bridge, the Android app and the page, in one file. Where it is, what it holds and leaves out, and how to send it.">
 <link rel="icon" href="mandarin-icon.png">
 <link rel="stylesheet" href="site.css">
 </head>
@@ -32,25 +32,24 @@
 
 <main class="wrap page">
   <h1 data-i18n="logs.h1">Logs</h1>
-  <p class="lead" data-i18n="logs.lead">Mandarin keeps a log <b>always</b>, everywhere it runs: the server, every Mandarin Bridge, the Android
-     app and the page in a browser. There is nothing to switch on, and it can't be switched off, so a fault seen once is
-     already in the log.</p>
-  <p data-i18n="logs.top.p1">Each line is dated in UTC with its level (INFO, WARN, ERROR), so every device's lines sort together. Nothing in
-     them is sent anywhere unless you send it.</p>
+  <p class="lead" data-i18n="logs.lead">Mandarin keeps <b>one log</b> of everything: the server, Mandarin OS, every Mandarin Bridge,
+     the Android app and the page in a browser, a line each in time order, in one plain-text file. There is nothing to
+     switch on, and it can't be switched off, so a fault seen once is already in it.</p>
+  <p data-i18n="logs.top.p1">Each line says when (in UTC), how bad (INFO, WARN or ERROR) and where it came from: <code>[server]</code>,
+     <code>[os]</code>, <code>[bridge</code> and its name<code>]</code>, <code>[app</code> and the phone's name<code>]</code>,
+     <code>[web</code> and the browser's name<code>]</code>. Nothing in it is sent anywhere unless you send it.</p>
+<pre>2026-11-15 09:43:12.345 UTC  INFO   [server] [scan] 12 albums added
+2026-11-15 09:43:13.002 UTC  INFO   [os] [usb] mounted /data/Storage/USB/Music SSD (exfat)
+2026-11-15 09:43:14.120 UTC  WARN   [bridge Kitchen] [player] the DAC went away
+2026-11-15 09:43:15.871 UTC  INFO   [app Pixel 8] [NET] server GET /api/zones → ok in 40 ms</pre>
 
-  <h2 id="send" data-i18n="logs.send.title">To send the logs to the developer</h2>
+  <h2 id="send" data-i18n="logs.send.title">Where it is, and sending it</h2>
   <ul class="plain">
-    <li data-i18n="logs.send.li1"><b>In a browser:</b> <b>Settings → Setup → Logs → Download all logs</b> gives one text file: every log Mandarin
-        keeps (the server's, every Bridge's, every app's and the page's) merged in time order, each line saying where it
-        came from, and at its head what this server is (its version, how it is installed, the system) and each log's own
-        header. The same page shows the server's newest lines, narrowed by level and by what they hold.</li>
-    <li data-i18n="logs.send.li2"><b>In the Android app:</b> <b>Settings → Setup → Logging</b> says how much the app has logged and since when.
-        <b>Save log</b> saves the app's log, the server's and each Mandarin Bridge's together, as one text file, to
-        <b>Downloads/Mandarin</b> on the phone; <b>Clear log</b> empties the app's log and the server's own, and logging
-        goes on.</li>
-    <li data-i18n="logs.send.li3"><b>On Mandarin OS:</b> the system page's <b>Support → Download all logs</b> gives every log on the box as one
-        text file in time order, Mandarin OS's own and the system's with Mandarin's, and the shared folder holds them,
-        read-only (<a href="mandarin-os.html#system-page">Mandarin OS</a>).</li>
+    <li data-i18n="logs.send.li1"><b>On Mandarin OS:</b> the shared folder's <b>Logs</b> (<code>smb://&lt;box address&gt;/Data/Logs</code>),
+        read-only: <code>Mandarin_log.txt</code> is the newest. Copy it from there and send it.</li>
+    <li data-i18n="logs.send.li2"><b>Anywhere else:</b> the <b>Logs</b> folder in the server's data folder, the same file.</li>
+    <li data-i18n="logs.send.li3">The app, the page and the system page have no log of their own to show or save, and the app keeps none on
+        the phone: its lines reach the server within seconds.</li>
   </ul>
   <p data-i18n="logs.send.p1">The logs are made without personal data, and you are told so where you save them. Please look through a log before
      you send it: what you send is your choice.</p>
@@ -65,9 +64,10 @@
         <li data-i18n="logs.send.li7"><b>The phone's player:</b> playing or paused, the track's number in the queue, its position and the volume.</li>
         <li data-i18n="logs.send.li8"><b>The app:</b> its memory, crashes and freezes, and Android's own lines for Mandarin.</li>
         <li data-i18n="logs.send.li9"><b>The app's Tailscale:</b> whether it is running and the CPU time it has used, and when it is stopped, why, with its last lines (addresses taken out).</li>
-        <li data-i18n="logs.send.li10"><b>The Mandarin Bridges:</b> every Bridge Mandarin knows, under its name: what it logs (the player, the DAC, a recording, an update), gathered by the server every five minutes.</li>
+        <li data-i18n="logs.send.li10"><b>The Mandarin Bridges:</b> every Bridge Mandarin knows, under its name: what it logs (the player, the DAC, a recording, an update), fetched by the server every minute; on Mandarin OS, the box's own Bridge straight from the system.</li>
         <li data-i18n="logs.send.li11"><b>The page:</b> what goes wrong in a browser's page (an error nothing caught), under the browser's name.</li>
-        <li data-i18n="logs.send.li12"><b>The server:</b> each line it logs, with what is yours alone taken out: what it is as each file begins, how it is every five minutes (memory, threads, free space), and an error with its stack.</li>
+        <li data-i18n="logs.send.li17"><b>Mandarin OS:</b> its scripts and services, the system page, its updates, USB drives, health checks, Samba, and the system's word on each of them.</li>
+        <li data-i18n="logs.send.li12"><b>The server:</b> each line it logs, with what is yours alone taken out: what it is as it starts, how it is every five minutes (memory, threads, free space), and an error with its stack.</li>
       </ul>
     </div>
     <div class="info-card">
@@ -83,14 +83,12 @@
          playing, error messages.</p>
     </div>
   </div>
-  <h2 id="kept" data-i18n="logs.kept.title">Where it is kept</h2>
-  <p data-i18n="logs.kept.p1">The server keeps every log in its data folder's <b>Logs</b>: its own in <code>MandarinServer_log.txt</code>, then
-     <code>.01</code> to <code>.20</code> older (8 MB each), every Bridge's in <code>Bridges</code>, every app's in
-     <code>Apps</code> (by the phone's name) and the page's in <code>Web</code>, each rolled so none grows without end.
-     A Bridge keeps its own log too, in files in its data folder. The app keeps its own in its storage (two files of
-     3 MB at most) and sends its new lines to the server every five minutes and as the log is saved. On Mandarin OS the
-     shared folder has them, read-only: <b>MandarinServer</b>'s Logs, <b>MandarinBridge</b>, <b>MandarinApp</b> and
-     <b>MandarinOS</b>.</p>
+  <h2 id="kept" data-i18n="logs.kept.title">How it is kept</h2>
+  <p data-i18n="logs.kept.p1">One file, <code>Mandarin_log.txt</code>. At 8 MB it becomes <code>Mandarin_log.01.txt</code> (the one before
+     <code>.02</code>, and so on) and a new one is begun: ten files at most, the oldest let go, so it never grows without
+     end. On Mandarin OS every part says its lines to the system's journal and one small service alone writes the file,
+     so a crash of Mandarin loses none of its lines. The app keeps nothing on the phone: its lines wait in memory and
+     reach the server within seconds, or as soon as it can be reached again.</p>
   <nav class="pager"><a class="back" href="index.html" data-i18n="site.back">← Back to contents</a><a class="pill" href="troubleshooting.html" data-i18n="logs.next">Next: Troubleshooting →</a></nav>
 </main>
 

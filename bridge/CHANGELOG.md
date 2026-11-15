@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.3.14
+
+- Changed - Mandarin's one log (item 425): every Bridge's lines are in Mandarin's one log under its name, "[bridge <its name>]", with the time each was said, fetched by the server every minute (none taken twice, a server restarting included). On Mandarin OS 0.1.9 the Linux Bridge on the box keeps no log files of its own (those from before deleted), says each line on standard error with where it came from, which the box writes into its one log (the shared folder's Logs), and its /dac.json names no log, so the server doesn't fetch the same lines again. Anywhere else a Bridge keeps its lines as before until the server has them
+- Improved - Mandarin Bridge is 0.3.14
+
 ## v0.3.13
 
 - New - an MQA track Mandarin sends untouched to a DAC that decodes MQA (Audio Devices' This DAC decodes MQA, item 418) is played by the Android Bridge with no software volume: its request says so (X-Mandarin-Untouched), and as it becomes the track playing the USB driver's gain is 1 whatever the slider, so the DAC is fed the file's samples, MQA's signalling in them intact; muted, it is silent as ever. A DAC with its own volume or fixed volume was never scaled. The Linux Bridge (and the Pi's) never scales anything
