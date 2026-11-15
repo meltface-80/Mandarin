@@ -54,7 +54,7 @@
          power on.</p>
     </div>
   </div>
-  <p style="margin-top:16px" data-i18n="bridges.top.p4"><a class="pill solid" href="downloads.html#bridge">⬇ Get Mandarin Bridge v0.3.14</a></p>
+  <p style="margin-top:16px" data-i18n="bridges.top.p4"><a class="pill solid" href="downloads.html#bridge">⬇ Get Mandarin Bridge v0.3.15</a></p>
 
   <p style="margin-top:16px" data-i18n="bridges.top.p5"><b>Updated: over SlimProto, Mandarin now sends Mandarin Bridge a continuous stream of PCM (DSD still goes as DSD).</b></p>
   <p data-i18n="bridges.top.p6">It finds Mandarin on the network by itself (SlimProto, port 3483; a Linux one can be pointed at it with
@@ -69,19 +69,25 @@
   <ol class="plain">
     <li data-i18n="bridges.set-up-android.li1">Install Mandarin Bridge from <a href="downloads.html#bridge">Downloads</a>. Installing needs <b>Install unknown
         apps</b> allowed for the browser or file manager you open it with.</li>
-    <li data-i18n="bridges.set-up-android.li2">Open Mandarin Bridge once. It starts, finds Mandarin on the network, and keeps running.</li>
+    <li data-i18n="bridges.set-up-android.li2">Open Mandarin Bridge once. It starts, finds Mandarin on the network, and keeps running. It opens on
+        <b>Now Playing</b>; the cog at the top left opens its <b>Settings</b>.</li>
     <li data-i18n="bridges.set-up-android.li3">Plug the DAC into the USB port. Android asks once whether the app may use it; tick <b>always</b>.</li>
-    <li data-i18n="bridges.set-up-android.li4">Optional, under <b>Keep awake</b>: turn off battery optimisation, and keep it starting when the device starts.</li>
+    <li data-i18n="bridges.set-up-android.li4">Optional, in its Settings under <b>Keep awake</b>: turn off battery optimisation, and keep it starting when the device starts.</li>
     <li data-i18n="bridges.set-up-android.li5">In Mandarin, <b>Settings → Audio Devices</b>: the Bridge is listed by its name; switch it on. There is nothing to
         tick: the rates, depths and DSD come from the DAC itself. Pick it as the speaker and play.</li>
   </ol>
+  <p data-i18n="bridges.set-up-android.p2"><b>Now Playing.</b> The app opens on what Mandarin plays on it: the album's cover, the track's
+     title, its artist and album, the format the DAC is fed (24-bit / 192 kHz, DSD128) and the DAC it plays to. There is
+     nothing to tap: Mandarin chooses what plays. Until Mandarin has played something on it, Now Playing shows how to set
+     it up instead, the settings cog circled. The cog opens <b>Settings</b> (the DAC, the Bridge's name, the USB settings,
+     Keep awake); Back returns to Now Playing.</p>
   <p data-i18n="bridges.set-up-android.p1"><b>Volume.</b> A DAC with a volume control of its own is driven by Mandarin's slider. A DAC without one — a line-out
      DAC into an amplifier — is on <b>Fixed volume</b>: full level, bit-perfect, the amplifier's knob for the volume.</p>
 
   <h2 data-i18n="bridges.set-up-linux.title">Set up on Linux</h2>
   <p data-i18n="bridges.set-up-linux.p1">As root, on the computer the DAC is plugged into:</p>
   <div class="codebox"><button class="copy-btn" data-copy data-copied="Copied" data-i18n-attr="data-copied:site.copied" data-i18n="site.copy">Copy</button>
-<pre>curl -fsSL https://github.com/meltface-80/Mandarin/releases/download/mandarin-bridge-v0.3.14/install.sh | sudo sh</pre>
+<pre>curl -fsSL https://github.com/meltface-80/Mandarin/releases/download/mandarin-bridge-v0.3.15/install.sh | sudo sh</pre>
 </div>
   <p data-i18n="bridges.set-up-linux.p2">It installs the Bridge and the audio engine, ffmpeg where it isn't there, and a service that starts it at boot.
      Then switch it on in Mandarin's <b>Settings → Audio Devices</b>. Its page,
