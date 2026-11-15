@@ -135,7 +135,8 @@ jobs:
           path: mandarin-os-*
           compression-level: 0
       - name: Publish to the "test-os" pre-release
-        if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
+        # A push to dev, or a run started by hand on dev with no version (dev's image built again, item 427b).
+        if: github.ref == 'refs/heads/dev' && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.version == ''))
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
