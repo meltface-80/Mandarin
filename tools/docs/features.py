@@ -371,7 +371,7 @@ FEATURES = [
      "[Away from home](#away-from-home-tailscale)."),
     # ---- Setup
     ("mandarin-os", "📀", "Mandarin OS", True,
-     "The recommended way to run Mandarin: a lightweight operating system made only for it, on a PC of its own, "
+     "How Mandarin is installed: a lightweight operating system made only for it, on a PC of its own, "
      "with its own system page to watch over everything.",
      "Write its image to a USB stick, start the PC from it and install; details under [Mandarin OS](#mandarin-os). "
      "Mandarin is then at `http://<box address>:3500` and the system page at `http://<box address>/`: storage and USB drives, "

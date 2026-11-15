@@ -1,6 +1,6 @@
 "use strict";
 /*
- * Stand-ins for tools/linux/install.sh's tests (linux-install.test.js, linux-install-channel.test.js): a release key,
+ * Stand-ins for Mandarin OS's installer's tests (os-linux-install.test.js, os-linux-install-channel.test.js): a release key,
  * a release laid out as GitHub's downloads are (a folder a tag, the bundle and this machine's server in it, each
  * signed), and apt-get, apt-cache, systemctl and the user tools on PATH, each call written to a log.
  */
@@ -11,7 +11,7 @@ const http = require("http");
 const zlib = require("zlib");
 const { spawn, spawnSync } = require("child_process");
 
-const INSTALL = path.join(__dirname, "..", "tools", "linux", "install.sh");
+const INSTALL = path.join(__dirname, "..", "os", "mkosi.extra", "usr", "lib", "mandarin-os", "linux-install.sh");
 const RID = os.arch() === "arm64" ? "linux-arm64" : "linux-x64";
 
 function sh(cmd, opts = {}) {

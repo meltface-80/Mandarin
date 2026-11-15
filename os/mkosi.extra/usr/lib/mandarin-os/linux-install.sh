@@ -1,26 +1,20 @@
 #!/bin/bash
 #
-# Mandarin on Linux: the one-line installer (Debian, Ubuntu, Raspberry Pi OS; x64 or arm64).
+# /usr/lib/mandarin-os/linux-install.sh — Mandarin installed on Mandarin OS, its only way to be installed (item 426):
+# by the image's build (mkosi.postinst.chroot) and by Reinstall Mandarin (reinstall-mandarin). Not run by hand.
 #
-#   curl -fsSL https://raw.githubusercontent.com/meltface-80/Mandarin/main/tools/linux/install.sh | sudo bash -s -- --music /srv/music
+# Installs what Mandarin needs from apt (ffmpeg, poppler, Python with numpy for SQ-tool, ICU), keeps a user of its own
+# (mandarin, in the audio group, so a DAC plugged into the box plays), downloads the release's page and this machine's
+# server, each checked against Mandarin's release key, into /opt/mandarin, keeps its data in the data folder, and runs it
+# as a systemd service (mandarin.service). Run again, it puts Mandarin back: the library, the account and the settings
+# are kept. After that Mandarin updates itself from Settings → Updates.
 #
-# Installs what Mandarin needs from apt (ffmpeg, poppler, Python with numpy for SQ-tool, ICU), makes a user of its own
-# (mandarin, in the audio group, so a DAC plugged into this computer plays), downloads the latest release's page and
-# this machine's server, each checked against Mandarin's release key, into /opt/mandarin, keeps its data in
-# /var/lib/mandarin, and runs it as a systemd service (mandarin.service) now and at every start. Run it again to update
-# or to choose another music folder: the library, the account and the settings are kept. After that it updates itself
-# from Settings → Updates.
-#
-#   --music DIR    the music folder (asked for, or /music, where not given); more can be added in Settings
-#   --port N       the port (3500)
-#   --uninstall    the service and /opt/mandarin removed; the data kept in /var/lib/mandarin (--purge: that too)
-#   --data DIR     the data folder (/var/lib/mandarin): Mandarin OS keeps it on its data partition
-#   --no-start     the service enabled, not started (Mandarin OS's image, built where nothing runs)
-#   --no-apt       nothing installed from apt (Mandarin OS's image lists what it needs itself)
-#   --channel C    latest (the releases) or dev (dev's builds, the test-server pre-release; Mandarin OS's Reinstall
-#                  Mandarin, item 405): installed from it, and followed by Settings → Updates; kept for the next run
-#
-# Mandarin OS installs Mandarin with this (item 389's plan, phase 2).
+#   --music DIR    the music folder (/data/Storage)
+#   --data DIR     the data folder (/data/MandarinServer, on the data partition)
+#   --no-start     the service enabled, not started (the image, built where nothing runs)
+#   --no-apt       nothing installed from apt (the image lists what it needs itself)
+#   --channel C    latest (the releases) or dev (dev's builds, the test-server pre-release; Reinstall Mandarin, item
+#                  405): installed from it, and followed by Settings → Updates; kept for the next run
 set -euo pipefail
 
 ROOT="${MANDARIN_ROOT:-}"                     # the tests' own root: everything below it
@@ -35,8 +29,6 @@ RELEASES="${MANDARIN_RELEASES:-https://github.com/meltface-80/Mandarin/releases/
 KEY="${MANDARIN_RELEASE_KEY:-MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEWPo7em6WGTi2IICIB2POcOia7Hc/jFNK6MPlL1MQn4huS0EYMTfqkpxyaqL8hXOk297sBISqi0j463Tr+NZFXQ==}"
 PORT=3500
 MUSIC=""
-UNINSTALL=0
-PURGE=0
 START=1
 APT=1
 CHANNEL=""
@@ -47,33 +39,19 @@ die() { printf '\n%s\n' "$*" >&2; exit 1; }
 while [ $# -gt 0 ]; do
   case "$1" in
     --music) MUSIC="${2:-}"; shift 2 ;;
-    --port) PORT="${2:-}"; shift 2 ;;
-    --uninstall) UNINSTALL=1; shift ;;
-    --purge) UNINSTALL=1; PURGE=1; shift ;;
     --data) DATA="${2:-}"; shift 2 ;;
     --no-start) START=0; shift ;;
     --no-apt) APT=0; shift ;;
     --channel) CHANNEL="${2:-}"; shift 2 ;;
-    *) die "No option $1: --music DIR, --port N, --data DIR, --no-start, --no-apt, --uninstall, --purge" ;;
+    *) die "No option $1: --music DIR, --data DIR, --no-start, --no-apt, --channel latest|dev" ;;
   esac
 done
 case "$DATA" in /*) ;; *) die "--data is a whole path (/data/MandarinServer)" ;; esac
 DATA_DIR="$ROOT$DATA"
-case "$PORT" in ''|*[!0-9]*) die "--port is a number" ;; esac
 case "$CHANNEL" in ''|latest|dev) ;; *) die "--channel is latest or dev" ;; esac
 
-[ -n "$ROOT" ] || [ "$(id -u)" = 0 ] || die "Run it as root: … | sudo bash"
+[ -n "$ROOT" ] || [ "$(id -u)" = 0 ] || die "Run it as root."
 [ "$(uname -s)" = Linux ] || die "This installer is for Linux."
-
-if [ "$UNINSTALL" = 1 ]; then
-  say "Removing Mandarin…"
-  systemctl disable --now mandarin.service 2>/dev/null || true
-  rm -f "$UNIT"
-  systemctl daemon-reload 2>/dev/null || true
-  rm -rf "$APP_DIR"
-  if [ "$PURGE" = 1 ]; then rm -rf "$DATA_DIR"; echo "Removed, its data too."; else echo "Removed. Its data is kept in $DATA_DIR (--purge removes it)."; fi
-  exit 0
-fi
 
 case "$(uname -m)" in x86_64|amd64) RID=linux-x64 ;; aarch64|arm64) RID=linux-arm64 ;; *) die "Mandarin runs on 64-bit Intel/AMD or ARM; this is $(uname -m)." ;; esac
 
@@ -86,7 +64,7 @@ trap 'rm -rf "$TMP"' EXIT
 signed() { openssl dgst -sha256 -verify "$TMP/key.pem" -signature "$1.sig" "$1" >/dev/null 2>&1; }
 get() { curl -fsSL --retry 3 -o "$2" "$1"; }
 
-# 1. What Mandarin needs (once the Docker image's own list; item 394).
+# 1. What Mandarin needs.
 if [ "$APT" = 1 ]; then
   say "Installing ffmpeg, poppler, Python and ICU…"
   export DEBIAN_FRONTEND=noninteractive
@@ -140,15 +118,12 @@ echo "$VERSION" > "$APP_DIR/server/bin/mandarin-server.version"
 # Its own, so it updates itself from Settings → Updates (the program swapped in place, the page laid over it).
 chown -R "$USER_NAME:" "$APP_DIR" "$DATA_DIR"
 
-# 4. The music folder: given, asked for, or as it was.
+# 4. The music folder: given, or as it was.
 WAS="$(sed -n 's/^Environment=MUSIC_DIR=//p' "$UNIT" 2>/dev/null || true)"
-if [ -z "$MUSIC" ] && [ -t 0 ]; then
-  read -r -p "Your music folder [${WAS:-/music}]: " MUSIC || true
-fi
 MUSIC="${MUSIC:-${WAS:-/music}}"
 MUSIC="${MUSIC%/}"
 [ -d "$ROOT$MUSIC" ] || echo "Note: $MUSIC isn't there yet. Mandarin waits for it (a drive mounted later is found)."
-# The groups that own it (item 386, as the Docker image kept them): readable as its owner shares it, never root's.
+# The groups that own it (item 386): readable as its owner shares it, never root's.
 for g in $(stat -c %g "$ROOT$MUSIC" "$ROOT$MUSIC"/* 2>/dev/null | sort -u); do
   [ "$g" = 0 ] && continue
   name="$(getent group "$g" | cut -d: -f1 || true)"
@@ -192,5 +167,3 @@ systemctl daemon-reload
 systemctl enable --now mandarin.service
 
 say "Mandarin $VERSION is running."
-echo "Open http://$(hostname -I 2>/dev/null | awk '{ print $1 }' || echo localhost):$PORT in a browser to set it up."
-echo "Its log: $DATA_DIR/Logs (and Settings → Setup → Logs). Updates: Settings → Updates."

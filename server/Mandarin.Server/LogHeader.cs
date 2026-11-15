@@ -11,18 +11,14 @@ internal static class LogHeader
     private static readonly DateTime started = DateTime.UtcNow;
     private static Timer? timer;
 
-    /* How this server is installed: Mandarin OS, the Linux installer, or by hand. */
+    /* How this server is installed: Mandarin OS (the one way, item 426), or by hand. */
     public static string Kind() =>
-        Environment.GetEnvironmentVariable("MANDARIN_OS") is { Length: > 0 } os ? "Mandarin OS " + os
-        : Environment.GetEnvironmentVariable("MANDARIN_SYSTEMD") is { Length: > 0 } ? "Linux (installer, systemd)"
-        : "native";
+        Environment.GetEnvironmentVariable("MANDARIN_OS") is { Length: > 0 } os ? "Mandarin OS " + os : "native";
 
-    /* How it is installed, as the page words what to do (the login's forgotten password, an empty library): "mandarin-os",
-       "linux" (tools/linux/install.sh's systemd service) or "native" (by hand). */
+    /* How it is installed, as the page words what to do (the login's forgotten password, an empty library): "mandarin-os"
+       or "native" (by hand). */
     public static string InstallKey() =>
-        Environment.GetEnvironmentVariable("MANDARIN_OS") is { Length: > 0 } ? "mandarin-os"
-        : Environment.GetEnvironmentVariable("MANDARIN_SYSTEMD") is { Length: > 0 } ? "linux"
-        : "native";
+        Environment.GetEnvironmentVariable("MANDARIN_OS") is { Length: > 0 } ? "mandarin-os" : "native";
 
     /* The lines that open a file, each "# " before it. */
     public static string Text()

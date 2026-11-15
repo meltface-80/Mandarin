@@ -1,5 +1,9 @@
 # Mandarin OS changelog
 
+## v0.1.8
+
+- Changed - Mandarin OS is the one way Mandarin is installed (item 426): the installer it puts Mandarin in with (linux-install.sh, at its image's build and by Reinstall Mandarin) is its own, kept in os/ with the rest of it, and keeps only what Mandarin OS uses (no --port, --uninstall or --purge, no question asked for the music folder). Nothing else changes on the box
+
 ## v0.1.7
 
 - Fixed - Mandarin Bridge installed on the box couldn't update itself from Mandarin's Settings → Updates: "The update couldn't be installed: mandarin-bridge couldn't be run (…, Permission denied)" (item 415). Its service ran as a DynamicUser, and Debian 13's systemd mounts a DynamicUser's data folder so nothing in it can be run, the Bridge's update included. The Bridge now runs as a user of its own, mandarin-bridge, numbered 3503 in every version of Mandarin OS (as Mandarin's user is 3500), with the same limits as before; a Bridge installed before (its service carried from version to version) runs so by a drop-in of Mandarin OS's own (mandarin-bridge.service.d), its data folder kept and made its own: who it is to Mandarin, its settings and its logs. An update of Mandarin OS refuses a version that numbers the Bridge's user otherwise. Updated to 0.1.7 (the system page, Settings → Update and restart), the Bridge then updates from Settings → Updates
