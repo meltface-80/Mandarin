@@ -160,7 +160,8 @@ ok "MandarinOS and Mandarin's log are read-only"
 # The computer's own storage drive (item 429): the second disk offered on the system page's Storage tab, formatted from
 # it, mounted as Storage/Internal (and still a while after), the shared folder's to write music into. That Mandarin
 # reads it: the in-app update's album is put there (below).
-st="$(curl -fsS --max-time 30 http://127.0.0.1:10080/api/state)" || fail "the system page's state"
+for i in $(seq 1 12); do st="$(curl -fsS --max-time 30 http://127.0.0.1:10080/api/state 2>&1)" && break; sleep 5; done
+jq -e .internal <<< "$st" >/dev/null 2>&1 || fail "the system page's state: ${st:0:300}"
 [ "$(jq -r '[.internal.disks[].disk] | join(",")' <<< "$st")" = /dev/vdb ] && [ "$(jq -r .internal.mounted <<< "$st")" = false ] \
   || fail "the system page's internal storage, before: $(jq -c .internal <<< "$st")"
 f="$(curl -sS --max-time 900 -H 'Content-Type: application/json' -d '{"password":"listen-carefully","disk":"/dev/vdb","erase":"erase"}' http://127.0.0.1:10080/api/internal/format)"
