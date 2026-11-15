@@ -13,3 +13,12 @@ android/app/src/main/java/com/musicd/server/android/DsdExtractor.kt
 android/app/src/main/java/com/musicd/server/android/DsdRenderer.kt
 android/app/src/main/java/com/musicd/server/android/DspSink.kt
 android/app/src/main/res/xml/usb_device_filter.xml
+#
+# Mandarin's faces for the Bridge's screens (item 430: Now Playing, Faces.kt): Manrope for the words, Young Serif for a
+# track's title, as Mandarin's own app draws them.
+android/app/src/main/res/font/manrope_regular.ttf
+android/app/src/main/res/font/manrope_medium.ttf
+android/app/src/main/res/font/manrope_semibold.ttf
+android/app/src/main/res/font/manrope_bold.ttf
+android/app/src/main/res/font/manrope_extrabold.ttf
+android/app/src/main/res/font/young_serif.ttf

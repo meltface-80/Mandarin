@@ -39,6 +39,14 @@ so a change to the driver is one pull request that both apps build against.
   a multicast lock from its start to its stop, so the R7 never dozes between tracks or overnight. The screen may go
   off; the device stays up. Optional: keep the screen on while the app is in front, start the Bridge with the
   device, and a one-tap request to take the app out of Android's battery optimisation.
+* **Now Playing.** The app opens on what Mandarin plays on it (item 430): the album's cover, the track's title in
+  Mandarin's serif, the artist in brass, the album, the format the DAC is fed ("24-bit / 192 kHz", "DSD128") and the
+  DAC it plays to. No controls: Mandarin chooses what plays. What it shows comes with the track itself: Mandarin's
+  request for each track says its title, artist, album and cover (`X-Mandarin-Title` and the rest, `X-Mandarin-Art`
+  the cover's signed address, fetched with no sign-in, once an album), and a run of PCM says each next track (`mtrk`).
+  Read once a second while the app is in front, nothing while it isn't. Until Mandarin has played a track on it, it
+  shows how to set it up instead, the settings cog circled. The cog, top left, opens Settings (the rest of this list);
+  Back returns to Now Playing.
 * **The DAC's page.** What the DAC says about itself (class, rates, depths, native DSD, volume control, the clock
   now), what it is being fed and how (feedback, underruns), the DSD mode (native, native with words reversed, DoP,
   PCM from the server), fixed volume and the volume limit — the same choices as Mandarin's own app — and diagnostics
@@ -50,10 +58,11 @@ so a change to the driver is one pull request that both apps build against.
    `mandarin-bridge-v…` release, or the rolling **test-bridge** pre-release's `mandarin-bridge.apk`, which is `dev` as
    it is now. Sideloading needs
    "Install unknown apps" for the browser or file manager you fetch it with.
-2. Open Mandarin Bridge once. It starts the Bridge, and keeps it running.
+2. Open Mandarin Bridge once. It starts the Bridge, and keeps it running. It opens on Now Playing; the cog at the top
+   left opens its Settings.
 3. Plug the DAC into the R7's USB port. Android asks once whether the app may use it; tick "always" so it doesn't ask
    again. The DAC's page fills in.
-4. Optional, under Keep awake: **Turn off** battery optimisation, and keep **Start the Bridge when the device
+4. Optional, in its Settings under Keep awake: **Turn off** battery optimisation, and keep **Start the Bridge when the device
    starts** on. In the R7's own settings, set the screen timeout as you like it.
 5. In Mandarin, **Settings → Audio Devices**: the Bridge is listed by its name; switch it on. There is nothing to
    tick: the rates, depths and DSD come from the DAC itself (below). Choose Original or upsampled output, then pick it
@@ -148,6 +157,7 @@ A standard Android Gradle project under `bridge/android/`:
 ```
 cd bridge/android
 ./gradlew :core:test            # Mandarin's core tests
+./gradlew :app:testReleaseUnitTest  # the app's own tests: Now Playing's model, what Mandarin says of a track
 ./gradlew :app:assembleRelease  # needs the Android SDK, NDK 27.2.12479018 and CMake 3.22.1
 ```
 
