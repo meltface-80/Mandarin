@@ -154,7 +154,7 @@ jobs:
 
       # Mandarin's C# server for in-app updates (v0.8.25): self-contained, one
       # file, for x64 and arm64, arm64 cross-built here, each checked to say its
-      # version. The Linux installer and Mandarin OS install it from here too.
+      # version. Mandarin OS installs it from here too (its linux-install.sh).
       - name: Build the C# server for in-app updates
         if: steps.v.outputs.csharp == 'false'
         env:

@@ -29,7 +29,7 @@ It takes Mandarin's port (`PORT`, 3500) and answers everything itself, set up fr
   library's version (`Library.State.cs`), and checked every five seconds besides, so a screen
   seldom waits for the rebuild. On 20,000 albums a rebuild takes about half a second; lists are
   sorted with ICU sort keys, computed once per rebuild. Names sort as JavaScript sorts them (ICU's
-  collation, so the Linux installer and Mandarin OS install libicu).
+  collation, so Mandarin OS installs libicu).
 - **Compression:** text answers go out gzipped, as the Node server's did.
 - **The database** (`<data>/musicd.db`) is made, or brought up to date, as the server starts
   (`Schema.cs`; `mandarin-server db`), a backup put back swapped in first. It is opened afresh for
@@ -43,8 +43,9 @@ It takes Mandarin's port (`PORT`, 3500) and answers everything itself, set up fr
   (`mandarin-server --version`), puts it in place of the running one, lays the release's page in,
   and starts again from the new file in the same process (`execv`, `Front.StartAgain`).
   `test/update.test.js`, `test/Mandarin.Tests/UpdateAloneTests.cs`.
-- **Linux only** (items 393, 394): the Linux installer (`tools/linux/install.sh`) and Mandarin OS. The Docker image is no longer built.
-  A Mac's server (v0.8.29 to v1.0.2, and again from item 153 to item 393) is no longer built.
+- **Installed by Mandarin OS** (item 426), the one way Mandarin is installed: its own installer
+  (`os/mkosi.extra/usr/lib/mandarin-os/linux-install.sh`) puts this program and the page in place, and its system
+  page's Reinstall Mandarin puts them back. Linux, x64 or arm64.
 - **Subcommands:** `--version`, `--health` (a health check), `config`,
   `reset-password` (the account removed and every device signed out), `db <data folder>`, `scan`,
   `tags <file>…`, `waveform <file>`, `score` (the rules asked directly, for the tests),
