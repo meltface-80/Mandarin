@@ -295,7 +295,7 @@
   "features.logging.how": "Rien à activer. Sur Mandarin OS, le dossier <b>Logs</b> du dossier partagé (<code>smb://&lt;box address&gt;/Data/Logs</code>) : <code>Mandarin_log.txt</code>. Ailleurs, le dossier <b>Logs</b> dans le dossier de données du serveur. Relisez-le avant de l'envoyer. Détails sous <a href=\"logs.html\">Journaux</a>.",
   "features.logging.info": "Comment configurer et utiliser : la journalisation",
   "features.logging.title": "Journalisation",
-  "features.logging.what": "Toujours actif : un seul journal de tout, le serveur, Mandarin OS, chaque Mandarin Bridge, l'application Android et la page, une ligne par événement dans l'ordre chronologique, sans données personnelles, à envoyer au développeur.",
+  "features.logging.what": "Toujours actif : un seul journal de tout (le serveur, Mandarin OS, chaque Mandarin Bridge, l'application, la page), une ligne par événement dans l'ordre chronologique, sans données personnelles.",
   "features.lotw.how": "Activez <b>Settings → Setup → Record labels</b> ; la rangée apparaît alors sur Home.",
   "features.lotw.info": "Comment configurer et utiliser : le label de la semaine",
   "features.lotw.title": "Label de la semaine",

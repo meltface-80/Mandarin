@@ -295,7 +295,7 @@
   "features.logging.how": "Intet at slå til. På Mandarin OS mappen <b>Logs</b> i den delte mappe (<code>smb://&lt;box address&gt;/Data/Logs</code>): <code>Mandarin_log.txt</code>. Andre steder mappen <b>Logs</b> i serverens datamappe. Kig den igennem, før du sender den. Detaljer under <a href=\"logs.html\">Logs</a>.",
   "features.logging.info": "Sådan sætter du op og bruger: Logning",
   "features.logging.title": "Logning",
-  "features.logging.what": "Altid slået til: én log over alt, serveren, Mandarin OS, hver Mandarin Bridge, Android-appen og siden, én linje pr. hændelse i tidsrækkefølge, uden personlige data, som du kan sende til udvikleren.",
+  "features.logging.what": "Altid slået til: én log over alt (serveren, Mandarin OS, hver Mandarin Bridge, appen, siden), én linje pr. hændelse i tidsrækkefølge, uden personlige data.",
   "features.lotw.how": "Slå <b>Settings → Setup → Record labels</b> til; så vises rækken på Home.",
   "features.lotw.info": "Sådan sætter du op og bruger: Label of the week",
   "features.lotw.title": "Label of the week (ugens pladeselskab)",

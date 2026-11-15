@@ -10,8 +10,9 @@ a few questions, and the computer is a Mandarin server with nothing else to look
 * **On the network:** Mandarin at `http://mandarin:3500`, the system page at `http://mandarin/`, the share at
   `smb://mandarin/data` (`\\mandarin\Data`) for the user and password chosen at install. Found as `mandarin.local` (Bonjour)
   and by Windows (WS-Discovery).
-* **The share:** `Storage` to copy music into (`USB/<drive>` for each USB drive, `Internal` for internal storage), and the
-  logs: `MandarinServer`, `MandarinBridge`, `MandarinApp`, `MandarinOS`, read-only.
+* **The share:** `Storage` to copy music into (`USB/<drive>` for each USB drive, `Internal` for internal storage); `Logs`,
+  Mandarin's one log (`Mandarin_log.txt`, everything on the box a line each in time order, written from the journal by
+  `mandarin-log.service`); `MandarinServer` (backups) and `MandarinOS` (its version); all but Storage read-only.
 * **USB drives** are mounted as they are plugged in (ext4, exFAT, FAT, NTFS; HFS+ read-only), checked first; one that
   can't be repaired is mounted read-only.
 * **Looks after itself:** every week, when nothing plays, a newer Mandarin OS (below), or else Debian's security
@@ -70,7 +71,7 @@ notes in `os/CHANGELOG.md`. Every change to Mandarin OS raises its patch number 
 | EFI | 512 MB | systemd-boot, the kernel (one unified image) |
 | mandarin-os_<version> | 4 GB | the system |
 | _empty, then mandarin-os_<next version> | 4 GB | the next version, written there by an update |
-| mandarin-data | the rest | `/data`: Mandarin's data and logs, the share, Storage |
+| mandarin-data | the rest | `/data`: Mandarin's data, its one log, the share, Storage |
 
 The installer (`usr/lib/mandarin-os/install`) writes it with `systemd-repart` from the stick itself
 (`install.repart.d`). `mandarin-install.json` on the stick's EFI partition answers every question (unattended). Each

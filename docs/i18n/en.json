@@ -295,7 +295,7 @@
   "features.logging.how": "Nothing to switch on. On Mandarin OS, the shared folder's <b>Logs</b> (<code>smb://&lt;box address&gt;/Data/Logs</code>): <code>Mandarin_log.txt</code>. Elsewhere, the <b>Logs</b> folder in the server's data folder. Look through it before you send it. Details under <a href=\"logs.html\">Logs</a>.",
   "features.logging.info": "How to set up and use Logging",
   "features.logging.title": "Logging",
-  "features.logging.what": "Always on: one log of everything, the server, Mandarin OS, every Mandarin Bridge, the Android app and the page, a line each in time order, without personal data, for you to send to the developer.",
+  "features.logging.what": "Always on: one log of everything (the server, Mandarin OS, every Mandarin Bridge, the app, the page), a line each in time order, without personal data.",
   "features.lotw.how": "Switch on <b>Settings → Setup → Record labels</b>; the row then shows on Home.",
   "features.lotw.info": "How to set up and use Label of the week",
   "features.lotw.title": "Label of the week",

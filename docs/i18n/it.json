@@ -295,7 +295,7 @@
   "features.logging.how": "Nulla da attivare. Su Mandarin OS, la cartella <b>Logs</b> della cartella condivisa (<code>smb://&lt;box address&gt;/Data/Logs</code>): <code>Mandarin_log.txt</code>. Altrove, la cartella <b>Logs</b> nella cartella dei dati del server. Rileggilo prima di inviarlo. Dettagli in <a href=\"logs.html\">Registri</a>.",
   "features.logging.info": "Come configurare e usare Registrazione dei log",
   "features.logging.title": "Registrazione dei log",
-  "features.logging.what": "Sempre attivo: un solo registro di tutto, il server, Mandarin OS, ogni Mandarin Bridge, l'app Android e la pagina, una riga per evento in ordine di tempo, senza dati personali, da inviare allo sviluppatore.",
+  "features.logging.what": "Sempre attivo: un solo registro di tutto (il server, Mandarin OS, ogni Mandarin Bridge, l'app, la pagina), una riga per evento in ordine di tempo, senza dati personali.",
   "features.lotw.how": "Attiva <b>Settings → Setup → Record labels</b>; la riga compare quindi in Home.",
   "features.lotw.info": "Come configurare e usare Label of the week",
   "features.lotw.title": "Label of the week (etichetta della settimana)",

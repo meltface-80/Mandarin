@@ -295,7 +295,7 @@
   "features.logging.how": "Niets om aan te zetten. Op Mandarin OS de map <b>Logs</b> van de gedeelde map (<code>smb://&lt;box address&gt;/Data/Logs</code>): <code>Mandarin_log.txt</code>. Elders de map <b>Logs</b> in de datamap van de server. Kijk het door voordat je het stuurt. Details onder <a href=\"logs.html\">Logs</a>.",
   "features.logging.info": "Instellen en gebruiken: Logboek",
   "features.logging.title": "Logboek",
-  "features.logging.what": "Altijd aan: één log van alles, de server, Mandarin OS, elke Mandarin Bridge, de Android-app en de pagina, één regel per gebeurtenis in volgorde van tijd, zonder persoonlijke gegevens, om naar de ontwikkelaar te sturen.",
+  "features.logging.what": "Altijd aan: één log van alles (de server, Mandarin OS, elke Mandarin Bridge, de app, de pagina), één regel per gebeurtenis in volgorde van tijd, zonder persoonlijke gegevens.",
   "features.lotw.how": "Zet <b>Settings → Setup → Record labels</b> aan; de rij verschijnt dan op Home.",
   "features.lotw.info": "Instellen en gebruiken: Label van de week",
   "features.lotw.title": "Label van de week",

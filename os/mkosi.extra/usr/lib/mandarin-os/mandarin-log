@@ -292,10 +292,15 @@ def main():
         where = ["--after-cursor", last] if last else ["--boot"]
         follow[0] = subprocess.Popen(["journalctl", "--follow", "--output=json", "--no-pager", "--all"] + where,
                                      stdout=subprocess.PIPE, text=True, encoding="utf-8", errors="replace")
+        was = last
         last = read(follow[0].stdout, log, last)
         follow[0].wait()
         if not stopping:
-            time.sleep(2)   # journalctl went (journald restarted): followed again from where it was read to
+            # journalctl went (journald restarted): followed again from where it was read to. One that refused where it
+            # was read to, and gave nothing, is followed from this start of the box instead, rather than never again.
+            if follow[0].returncode not in (0, None, -signal.SIGTERM) and last == was:
+                last = None
+            time.sleep(2)
     # Stopped (the box shutting down): what the journal has after where it was read to, read to its end, so the lines
     # said as Mandarin stopped are in the log.
     if last:

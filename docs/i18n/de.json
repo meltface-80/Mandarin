@@ -295,7 +295,7 @@
   "features.logging.how": "Nichts einzuschalten. Auf Mandarin OS der Ordner <b>Logs</b> des freigegebenen Ordners (<code>smb://&lt;box address&gt;/Data/Logs</code>): <code>Mandarin_log.txt</code>. Anderswo der Ordner <b>Logs</b> im Datenordner des Servers. Sehen Sie es durch, bevor Sie es senden. Details unter <a href=\"logs.html\">Logs</a>.",
   "features.logging.info": "Einrichtung und Nutzung: Protokollierung",
   "features.logging.title": "Protokollierung",
-  "features.logging.what": "Immer an: ein einziges Log über alles, der Server, Mandarin OS, jede Mandarin Bridge, die Android-App und die Seite, eine Zeile pro Ereignis in zeitlicher Reihenfolge, ohne persönliche Daten, zum Senden an den Entwickler.",
+  "features.logging.what": "Immer an: ein einziges Log über alles (der Server, Mandarin OS, jede Mandarin Bridge, die App, die Seite), eine Zeile pro Ereignis in zeitlicher Reihenfolge, ohne persönliche Daten.",
   "features.lotw.how": "Schalten Sie <b>Settings → Setup → Record labels</b> ein; dann erscheint die Reihe auf Home.",
   "features.lotw.info": "Einrichtung und Nutzung: Label der Woche",
   "features.lotw.title": "Label der Woche",

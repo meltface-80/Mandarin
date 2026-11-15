@@ -165,6 +165,13 @@ test("followed: where the journal was read to kept, read to its end when stopped
     fs.writeFileSync(path.join(r.dir, "after.json"), "");
     await run();
     assert.match(fs.readFileSync(calls, "utf8"), /^--follow --output=json --no-pager --all --after-cursor s=1;i=three: said as the box stopped$/m);
+    // A journal that refuses where it was read to (and gives nothing): followed from this start of the box instead.
+    fs.writeFileSync(calls, "");
+    fs.writeFileSync(path.join(bin, "journalctl"), `#!/bin/sh\necho "$*" >> "${calls}"\ncase "$*" in\n  *--follow*--after-cursor*) exit 1 ;;\n  *--follow*) cat "${r.dir}/follow.json"; exec sleep 600 ;;\nesac\n`, { mode: 0o755 });
+    await run();
+    assert.deepEqual(fs.readFileSync(calls, "utf8").trim().split("\n").slice(0, 2), [
+      "--follow --output=json --no-pager --all --after-cursor s=1;i=two",
+      "--follow --output=json --no-pager --all --boot"]);
   } finally {
     fs.rmSync(r.dir, { recursive: true, force: true });
   }
