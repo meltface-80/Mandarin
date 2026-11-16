@@ -113,7 +113,8 @@ internal static class SignalPath
         if (st.Fed is { } fed) steps.Add(Fed(fed, s));
         if (st.Confirmed) output += " ✓";
         // A stream never made DSD although the device is set to it.
-        if (svc != null && Renderers.Players.TargetFor(z.DeviceId ?? z.ZoneId)?["dsd_out"] is double up && up > 0)
+        // Tidal's alone (item 440): a Qobuz track is made DSD as a file is.
+        if (svc != null && !StreamPlans.Upsamplable(t.Path) && Renderers.Players.TargetFor(z.DeviceId ?? z.ZoneId)?["dsd_out"] is double up && up > 0)
         {
             steps.Add(Step("pending", "Not DSD", $"{Service(svc)} plays as PCM: PCM as DSD{N(up)} is made from the library’s own files", "pending"));
             making = $"{Service(svc)} plays as PCM, not DSD";

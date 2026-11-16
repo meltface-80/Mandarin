@@ -7,7 +7,7 @@ namespace Mandarin.Tests;
 /// PCM sent as DSD (bug list items 243, 259, Upsample/DsdPlan.cs): a device set to PCM as DSD has each track of the
 /// library that isn't DSD made DSD as it plays by the modulator of item 242 and sent as a DSF while it is made; where
 /// the device takes that multiple and DSF files, from a rate of either family (48 kHz's through 44.1 kHz's, by SoX),
-/// never a service's stream or DSD that is DSD already (a DSP setting runs on the PCM it is made from: item 263). The job made for 96 kHz is run
+/// never a Tidal stream (a Qobuz track is, item 440) or DSD that is DSD already (a DSP setting runs on the PCM it is made from: item 263). The job made for 96 kHz is run
 /// and its file read; a track asked for as a DSF never made is sent as it is made, then kept and sent whole.
 /// </summary>
 public sealed class DsdPlanTests
@@ -31,10 +31,11 @@ public sealed class DsdPlanTests
         var dsd = J(new { path = "/m/c.dsf", codec = "DSD", sampleRate = 2822400, bitsPerSample = 1, channels = 2 });
         var odd = J(new { path = "/m/d.flac", codec = "FLAC", sampleRate = 32000, bitsPerSample = 16, channels = 2 });
         var qobuz = J(new { path = "qobuz://track/1", codec = "FLAC", sampleRate = 44100, bitsPerSample = 16, channels = 2 });
+        var tidal = J(new { path = "tidal://track/1", codec = "FLAC", sampleRate = 44100, bitsPerSample = 16, channels = 2 });
         var cases = new object[][]
         {
             [cd, Dev(64, [64, 128])], [hi, Dev(128, [64, 128])], [cd, Dev(null, [64])], [cd, Dev(256, [64, 128])],
-            [cd, Dev(64, [64], dsf: null)], [dsd, Dev(64, [64])], [odd, Dev(64, [64])], [qobuz, Dev(64, [64])],
+            [cd, Dev(64, [64], dsf: null)], [dsd, Dev(64, [64])], [odd, Dev(64, [64])], [qobuz, Dev(64, [64])], [tidal, Dev(64, [64])],
         };
         var p = (await Plans(new JsonObject { ["dsd_up"] = JsonNode.Parse(Http.Json(cases)) }))["dsd_up"]!.AsArray();
         // A CD at DSD64: a DSF in the device's own word for it, made from the track's own rate.
@@ -42,8 +43,10 @@ public sealed class DsdPlanTests
         Assert.Equal("DSD64 from PCM, made as it plays", p[0].Str("reason"));
         // 96 kHz at DSD128: 48 kHz's family too.
         Assert.Equal((128.0, 96000.0), (p[1].Num("dsdUp")!.Value, p[1].Num("inRate")!.Value));
-        // Off; a multiple it doesn't take; no DSF in its words; DSD already (as it is); a rate of neither family; a service: PCM, as before.
-        foreach (var i in new[] { 2, 3, 4, 5, 6, 7 }) Assert.Null(p[i].Num("dsdUp"));
+        // A Qobuz track made DSD as a file is (item 440): its address read as a file's path is.
+        Assert.Equal((64.0, 44100.0), (p[7].Num("dsdUp")!.Value, p[7].Num("inRate")!.Value));
+        // Off; a multiple it doesn't take; no DSF in its words; DSD already (as it is); a rate of neither family; Tidal's DASH: PCM, as before.
+        foreach (var i in new[] { 2, 3, 4, 5, 6, 8 }) Assert.Null(p[i].Num("dsdUp"));
         Assert.Equal("DSD64 as it is", p[5].Str("reason"));
     }
 

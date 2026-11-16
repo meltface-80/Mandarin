@@ -45,13 +45,13 @@ internal static class MadeAsPlayed
 
     /*
      * [plan], made for [target] for the track at [path], given the device's filter where that isn't the standard one
-     * (minimum phase, gentle) and it is upsampled by a power of two from a file of the library; a stream of Qobuz's or
-     * Tidal's comes as it comes, with the standard filter.
+     * (minimum phase, gentle) and it is upsampled by a power of two from a file of the library or a Qobuz track (item
+     * 440); a stream of Tidal's comes as it comes, with the standard filter.
      */
     public static JsObj Mark(JsObj plan, object? target, string path)
     {
         if (target == null || !Jv.T(plan["upsampled"])) return plan;
-        if (Playback.StreamPlans.ServiceOf(path) != null) return plan;
+        if (!Playback.StreamPlans.Upsamplable(path)) return plan;
         var factor = (long)Jv.Num(plan["upsampled"]);
         if (!Power(factor)) return plan;
         // The device's filter for the track's own rate (item 298): its filter for hi-res sources above 48 kHz, where set.
@@ -73,7 +73,9 @@ internal static class MadeAsPlayed
      * [job]'s file for track [t] by [p] begun: once those before it are made, `mandarin-server upsample` writes it to
      * [job].Part; [finish] is given its exit code, [err] what it said went wrong.
      */
-    public static void Start(ConvTrack t, ConvPlan p, ConvJob job, Action<int> finish, StringBuilder err) => Begin(job, finish, err, () => Run(t, p, job, err));
+    /* [src]: where the track's audio is read from, a Qobuz track's address where it is one (item 440); its path else. */
+    public static void Start(ConvTrack t, ConvPlan p, ConvJob job, Action<int> finish, StringBuilder err, string? src = null) =>
+        Begin(job, finish, err, () => Run(t, p, job, err, src ?? t.Path));
 
     /* [run]'s file by [p] begun (AlbumRun.cs, item 300), as a track's is: the album's tracks made as one, into [job].Part. */
     public static void StartRun(AlbumRun run, ConvPlan p, ConvJob job, Action<int> finish, StringBuilder err) => Begin(job, finish, err, () => RunAlbum(run, p, job, err));
@@ -105,7 +107,7 @@ internal static class MadeAsPlayed
         });
     }
 
-    private static async Task<int> Run(ConvTrack t, ConvPlan p, ConvJob job, StringBuilder err)
+    private static async Task<int> Run(ConvTrack t, ConvPlan p, ConvJob job, StringBuilder err, string src)
     {
         var seconds = Seconds(t.Id);
         // Joined to its album's tracks either side (item 262): a DSF's at its blocks, PCM's at any frame.
@@ -114,14 +116,14 @@ internal static class MadeAsPlayed
         if (p.DsdUp != 0)
         {
             var join = DsdPlan.BlockFrames(p) is > 0 and var b ? Joins.For(t.Id, (long)p.InRate, b) : null;
-            spec = DsdPlan.Job(t.Path, p, job.Part, Transcoder.Soxr, seconds, join);
+            spec = DsdPlan.Job(src, p, job.Part, Transcoder.Soxr, seconds, join);
             // Made on into the start of the next track, and kept for its making: the modulators run on into it.
             if (join?.After != null) { spec["continue"] = true; next = Transcoder.KeyFor(new ConvTrack(join.AfterId, join.After, join.AfterMtime), p); Turns.Continues(job, next); }
             job.Resume = Resume.ForDsf(job, p, t.Id, seconds, join?.Before != null ? join.Carry : 0);
         }
         else
         {
-            spec = PcmJob(t.Path, p, job.Part, Joins.For(t.Id, (long)p.InRate, 0), seconds);
+            spec = PcmJob(src, p, job.Part, Joins.For(t.Id, (long)p.InRate, 0), seconds);
             if (spec["wav"] != null) job.Resume = Resume.ForWav(job, p, seconds);
         }
         // Begun again where a device seeks to past what is made (item 272).

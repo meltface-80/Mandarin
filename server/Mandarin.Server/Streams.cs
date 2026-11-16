@@ -221,9 +221,11 @@ internal static partial class Streams
         // Made already: sent from the cache, marked as used. Not yet: made
         // now, and sent as it is made (v0.8.11; before, the Node server's).
         var track = new ConvTrack(id, t.Path, mtime);
-        // ?f=: the filter's shape (items 248, 259), for a DSF from PCM or a library track upsampled by a power of two;
+        // Made by Mandarin's own upsampler as a library file is: a file, or a Qobuz track (item 440, StreamPlans.Upsamplable).
+        var upsamplable = StreamPlans.Upsamplable(t.Path);
+        // ?f=: the filter's shape (items 248, 259), for a DSF from PCM or a library or Qobuz track upsampled by a power of two;
         // that shape's file, made as it plays (Upsample/MadeAsPlayed.cs).
-        if (QueryOne(raw, "f") is { } fq && fq.Here && Upsample.Shape.Word(Upsample.Shape.Of(fq.Value)) is { } shape && svc == null
+        if (QueryOne(raw, "f") is { } fq && fq.Here && Upsample.Shape.Word(Upsample.Shape.Of(fq.Value)) is { } shape && upsamplable
             && (dsdUp != 0 || segRate != 0 && t.Rate > 0 && segRate % t.Rate == 0 && Upsample.MadeAsPlayed.Power(segRate / t.Rate)))
         {
             p["shape"] = shape;
@@ -231,7 +233,7 @@ internal static partial class Streams
         }
         // ?dn=, ?rb=: Mandarin's own dither (Upsample/Dither.cs, item 301), shaped and at the DAC's real bits, for a library track upsampled
         // by a power of two; made as it plays, as a shape is (with the standard filter, Mandarin's own).
-        if (dsdUp == 0 && svc == null && segRate != 0 && t.Rate > 0 && segRate % t.Rate == 0 && Upsample.MadeAsPlayed.Power(segRate / t.Rate))
+        if (dsdUp == 0 && upsamplable && segRate != 0 && t.Rate > 0 && segRate % t.Rate == 0 && Upsample.MadeAsPlayed.Power(segRate / t.Rate))
         {
             if (QueryOne(raw, "dn") is { Here: true } dq && Upsample.Dither.At(Upsample.Dither.Of(dq.Value), segRate) is { } dn) p["dither"] = dn;
             if (QueryOne(raw, "rb") is { Here: true } rq && int.TryParse(rq.Value, out var rbits) && Upsample.Dither.BitsOf(rbits) is var rb and > 0 && rb < (int)Jv.Num(p["bits"])) p["real_bits"] = (double)rb;
@@ -240,7 +242,7 @@ internal static partial class Streams
         // DSD as PCM, low-passed through the rate asked (?lp=, Playback/DsdLowpass.cs, item 241): a DSD file, a promised rate above it.
         if (segRate != 0 && svc == null && QueryOne(raw, "lp") is { } lq && lq.Here && long.TryParse(lq.Value, out var lpm) && DsdLowpass.IsMid(lpm) && segRate > lpm && StreamPlans.IsDsd(Row(t))) p["lowpass"] = (double)lpm;
         // Made already: that file; else made now, and sent as it is made (a DSF from PCM too: item 259).
-        if (dsdUp != 0 && svc != null) return Refuse(ctx, 404);
+        if (dsdUp != 0 && !upsamplable) return Refuse(ctx, 404);
         if (run != null) return svc != null ? Refuse(ctx, 404) : await AnswerRun(ctx, run, p, t.Rate, QueryOne(raw, "ss"));
         if (QueryOne(raw, "ss") is { Here: true } begun) return await AnswerFrom(ctx, id, t, p, begun, svc != null);   // begun part-way (item 313)
         var job = Transcoder.Start(track, ConvPlan.Of(p));

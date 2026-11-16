@@ -62,7 +62,7 @@ internal sealed partial class Players
     /* Each read of [p] playing [item] [rel] s in: its Output kept as good, or put back where it falls behind. */
     private void Watch(Player p, UpnpItem item, double rel)
     {
-        if (item.Output is not { } output || item.Track == null || StreamPlans.ServiceOf(item.Track.Path) != null) return;
+        if (item.Output is not { } output || item.Track == null || !StreamPlans.Upsamplable(item.Track.Path)) return;
         string? key;
         lock (gate) key = p.Run?.Key ?? MadeKey(item);
         var k = Upsample.KeepingUp.Of(key);
@@ -85,7 +85,7 @@ internal sealed partial class Players
         if (!message.EndsWith(CouldNotPlay, StringComparison.Ordinal)) return false;
         UpnpItem? item;
         lock (gate) item = p.Index >= 0 && p.Index < p.Queue.Count ? p.Queue[p.Index] : null;
-        return item?.Output != null && item.Track != null && StreamPlans.ServiceOf(item.Track.Path) == null
+        return item?.Output != null && item.Track != null && StreamPlans.Upsamplable(item.Track.Path)
             && await PutBack(p, item, 0, "couldn't be played by the device");
     }
 
