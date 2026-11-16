@@ -118,6 +118,8 @@ internal sealed class IBroadcast
         try { await Describe(); }
         catch (ServiceError e) { Server.Log("[ibroadcast] signed in; the account couldn't be read: " + e.Message); return; }
         Server.Log($"[ibroadcast] signed in as {new Personal(IBroadcastApi.Str(Account()?["user"]?["name"]) ?? "the account")}");
+        // Its library read at once (item 444).
+        if (Jobs.IBroadcastLibrary is { } lib) _ = Task.Run(async () => { try { await lib.Read(true); } catch (ServiceError e) { Server.Log("[ibroadcast] the library couldn't be read: " + e.Message); } });
     }
 
     /// <summary>The account read again from iBroadcast: its name, whether it is Premium, the formats it takes; kept.</summary>
@@ -144,10 +146,12 @@ internal sealed class IBroadcast
         ? v.TryGetValue<bool>(out var b) ? b : v.TryGetValue<double>(out var n) ? n != 0 : v.TryGetValue<string>(out var s) ? s is "1" or "true" : null
         : null;
 
-    /* The file types iBroadcast takes ("supported": [{ extension: ".flac", … }]), as extensions without the dot. */
+    /* The audio file types iBroadcast takes ("supported": [{ extension: ".flac", … }]), as extensions without the dot; its playlists' left out. */
     private static IEnumerable<string> Formats(JsonObject j) => (j["supported"] as JsonArray ?? [])
         .Select(f => IBroadcastApi.Str(f is JsonObject o ? o["extension"] : f)?.TrimStart('.').ToLowerInvariant())
-        .OfType<string>().Where(e => e.Length > 0).Distinct().Order(StringComparer.Ordinal);
+        .OfType<string>().Where(e => e.Length > 0 && !Playlists.Contains(e)).Distinct().Order(StringComparer.Ordinal);
+
+    private static readonly HashSet<string> Playlists = ["m3u", "m3u8", "pls", "kpl", "pcast", "xspf", "wpl", "asx"];
 
     /// <summary>The state as the page reads it: signed in or not, the account, a sign-in under way. Never a token.</summary>
     public JsonObject Status()
@@ -186,6 +190,7 @@ internal sealed class IBroadcast
         var refresh = IBroadcastApi.Str(Account()?["token"]?["refresh"]);
         Save(null);
         if (refresh != null) await Api.Revoke(refresh);
+        await IBroadcastLibrary.Forget();
         Server.Log("[ibroadcast] signed out");
         return Status();
     }

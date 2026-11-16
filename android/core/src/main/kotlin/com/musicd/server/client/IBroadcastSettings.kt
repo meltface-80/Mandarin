@@ -21,16 +21,22 @@ data class IBroadcastAccount(
     val pendingCode: String,
     /** A sign-in that went wrong (no longer waited for). */
     val pendingError: Boolean,
+    /** Whether iBroadcast's albums are in the library (item 444). */
+    val import: Boolean = true,
+    /** The library being read from iBroadcast now (asked again shortly while it is). */
+    val reading: Boolean = false,
+    /** What the library holds of iBroadcast; "" signed out. */
+    val libraryStatus: String = "",
 ) {
     /** The address of a sign-in under way, without its scheme. */
     val linkText: String get() = pendingUrl?.replace(Regex("^https?://"), "") ?: ""
-    /** Whether to look again shortly: a sign-in waited for. */
-    val again: Boolean get() = pendingUrl != null && !pendingError
+    /** Whether to look again shortly: a sign-in waited for, or the library being read. */
+    val again: Boolean get() = (pendingUrl != null && !pendingError) || reading
 }
 
 object IBroadcastSettings {
-    /** The account [j] as the server answered it. */
-    fun parse(j: JSONObject): IBroadcastAccount {
+    /** The account [j] as the server answered it; [at]: a moment (milliseconds) as the phone writes a date and time. */
+    fun parse(j: JSONObject, at: (Long) -> String = { it.toString() }): IBroadcastAccount {
         val on = j.optBoolean("connected")
         val pending = if (on) null else j.optJSONObject("pending")
         val who = j.optJSONObject("user")?.optString("name").orEmpty().ifEmpty { "your account" }
@@ -48,9 +54,25 @@ object IBroadcastSettings {
         val list = j.optJSONArray("formats")
         val formats = if (!on) "" else (0 until (list?.length() ?: 0)).map { list!!.optString(it).uppercase() }.filter { it.isNotEmpty() }
             .joinToString(", ").ifEmpty { "iBroadcast didn't say" }
+        val l = j.optJSONObject("library")
+        val import = l?.opt("import") != false
+        val reading = on && l?.optBoolean("reading") == true
         return IBroadcastAccount(on, status, premium, formats, pending?.optString("url")?.takeIf { it.isNotEmpty() }, pending?.optString("code").orEmpty(),
-            pending?.optString("error").orEmpty().isNotEmpty())
+            pending?.optString("error").orEmpty().isNotEmpty(), import, reading, if (on) libraryWords(l, at) else "")
     }
+
+    /** What the library holds of iBroadcast ([l]: the state's library), as the page says it (ibroadcastLibraryWords). */
+    fun libraryWords(l: JSONObject?, at: (Long) -> String): String {
+        if (l?.opt("import") == false) return "Off: your iBroadcast albums are not in the library. Switch on to show them."
+        if (l?.optBoolean("reading") == true) return READING
+        if (l == null || !l.has("albums") || l.isNull("albums")) return "Your iBroadcast library is read shortly after signing in."
+        val n = l.optInt("albums")
+        val here = l.optInt("also_here")
+        return "$n album" + (if (n == 1) "" else "s") + " in iBroadcast" + (if (here > 0) " · $here of them here as files too, shown once" else "") + " · updated " + at(l.optLong("at"))
+    }
+
+    const val READING = "Reading your iBroadcast library…"
+    const val IMPORT_INFO = "Every album in your iBroadcast library as an album here: on the walls, in search, in Smart Picks and Listen later. One you also have here as files is shown once, from the files. Read again whenever iBroadcast says your library changed (Mandarin looks every ten minutes), and by Update library now. On unless you switch it off; off, none of them are in the library."
 
     const val INFO = "Your iBroadcast account: your own music, uploaded to iBroadcast's servers. Sign in shows a link and a code: open the link on any device, sign in to iBroadcast there and approve Mandarin with the code. Mandarin keeps iBroadcast's sign-in token, never a password, and asks only to read your account and library, change your library and upload to it. Premium is needed to play your files as they are (lossless), rather than as 128 kbps MP3."
     const val NOTE = "Open this link, sign in to iBroadcast there, approve Mandarin with this code, and come back. Mandarin notices by itself."

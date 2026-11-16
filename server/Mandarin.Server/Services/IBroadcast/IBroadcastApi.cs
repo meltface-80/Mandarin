@@ -63,12 +63,17 @@ internal sealed class IBroadcastApi
         var (status, text) = await Form("/token", ("grant_type", "device_code"), ("client_id", ClientId), ("device_code", deviceCode));
         var j = Parse(text);
         if (status < 400 && Str(j?["access_token"]) != null) return (TokenOf(j!, null), false);
-        switch (Str(j?["error"]))
+        var error = Str(j?["error"]);
+        // Said "Unauthorized client: `grant_type` is invalid" to a real account (item 444), whatever its code.
+        if (Said(j, "").Contains("nauthorized client", StringComparison.Ordinal)) error = "unauthorized_client";
+        switch (error)
         {
             case "authorization_pending": return (null, false);
             case "slow_down": return (null, true);
             case "expired_token": throw new ServiceError("The code expired: sign in again for a new one", 410);
             case "access_denied": throw new ServiceError("The sign-in was turned down on iBroadcast", 401);
+            // Mandarin's app at iBroadcast not let sign in this way (item 444): said what to do.
+            case "unauthorized_client": throw new ServiceError("iBroadcast doesn't let Mandarin's app sign in with a code: on media.ibroadcast.com, Apps → Developers, edit the app and allow the device code sign-in", 401);
             default: throw new ServiceError(Said(j, $"iBroadcast answered {status}"), 401);
         }
     }

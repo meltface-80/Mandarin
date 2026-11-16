@@ -50,6 +50,8 @@ internal static partial class Jobs
     public static Services.TidalCatalogue? Tidal { get; private set; }
     // iBroadcast (item 443, Services/IBroadcast/): where it is asked (the tests' stand-in).
     public static Services.IBroadcast.IBroadcast? IBroadcast { get; private set; }
+    // Its library in Mandarin's (item 444): read when iBroadcast says it changed.
+    public static Services.IBroadcast.IBroadcastLibrary? IBroadcastLibrary { get; private set; }
 
     private static volatile bool started;
 
@@ -120,6 +122,7 @@ internal static partial class Jobs
         Qobuz = new Services.QobuzCatalogue(Text(cfg["qobuz_url"])) { DataDir = dataDir };
         Tidal = new Services.TidalCatalogue(Text(cfg["tidal_url"]), Text(cfg["tidal_images_url"]), Text(cfg["tidal_auth_url"])) { DataDir = dataDir };
         IBroadcast = new Services.IBroadcast.IBroadcast(Text(cfg["ibroadcast_url"]));
+        IBroadcastLibrary = new Services.IBroadcast.IBroadcastLibrary(IBroadcast, dataDir);
         // What a service no longer here left behind (item 152), and gone albums and tracks (item 179): gone before the library is read.
         Orphans.Sweep(Log);
         if (Services.Leftovers.Remove(dataDir, Log)) _ = Library.Tell(new JsonObject { ["services"] = "changed" });
@@ -171,6 +174,7 @@ internal static partial class Jobs
         Services.Prune.Start();
         // Their import and the favourites' watch (v0.8.45): on the Node server's timers.
         Services.Import.Start(cfg);
+        IBroadcastLibrary?.Start();
         Server.Log("[jobs] made here: " + string.Join(", ", Names));
         // A library scan that ended before the work was set up: what follows it, made now.
         _ = Task.Run(async () =>
@@ -215,6 +219,7 @@ internal static partial class Jobs
         Scans.Stop();
         Services.Prune.Stop();
         Services.Import.Stop();
+        IBroadcastLibrary?.Stop();
         // What was playing from Qobuz reported over (v0.8.47), as the Node server's stop did: a few seconds at most.
         try { Qobuz?.Stop().Wait(TimeSpan.FromSeconds(5)); } catch (AggregateException) { /* reported or not, stopping */ }
         Tailscale?.Stop();
