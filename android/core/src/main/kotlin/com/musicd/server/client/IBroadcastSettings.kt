@@ -68,7 +68,7 @@ object IBroadcastSettings {
         if (l == null || !l.has("albums") || l.isNull("albums")) return "Your iBroadcast library is read shortly after signing in."
         val n = l.optInt("albums")
         val here = l.optInt("also_here")
-        return "$n album" + (if (n == 1) "" else "s") + " in iBroadcast" + (if (here > 0) " · $here here" else "") + " · updated " + at(l.optLong("at"))
+        return "$n album" + (if (n == 1) "" else "s") + " in iBroadcast" + (if (here > 0) " · $here of them here as files too, shown once" else "") + " · updated " + at(l.optLong("at"))
     }
 
     const val READING = "Reading your iBroadcast library…"
