@@ -240,6 +240,10 @@
         else if (window.__loadRandom) window.__loadRandom();
         return;
       }
+      if (action === "export") {
+        if (window.__exportLibrary) window.__exportLibrary();
+        return;
+      }
       if (action === "rescan-library") {
         rescanLibrary();
         return;

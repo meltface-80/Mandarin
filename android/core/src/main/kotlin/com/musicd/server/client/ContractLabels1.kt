@@ -168,6 +168,7 @@ internal object ContractLabels1 {
         "menu.shelf" to listOf("Shelf"),
         "menu.later" to listOf("Listen later"),
         "menu.rescan" to listOf("Rescan library"),
+        "menu.export" to listOf("Export library"),
         "menu.settings" to listOf("Settings"),
         "group.close" to listOf("Close"),
         "group.row" to listOf("{speaker}"),

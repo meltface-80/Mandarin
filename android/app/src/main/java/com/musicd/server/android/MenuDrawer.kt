@@ -1,8 +1,11 @@
 package com.musicd.server.android
 
 import android.content.Context
+import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.tween
@@ -60,6 +63,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import com.musicd.server.client.Contract
+import com.musicd.server.client.Export
 import com.musicd.server.client.Menu
 import com.musicd.server.client.Palette
 import com.musicd.server.client.ServerClient
@@ -142,6 +146,12 @@ private fun MenuDrawer(zoom: Double, client: () -> ServerClient?, scope: Corouti
     var offline by remember { mutableStateOf(Store.offlineMode(context)) }
     var power by remember { mutableStateOf(false) }
     var powerInfo by remember { mutableStateOf<JSONObject?>(null) }
+    // Export library (item 436): where to save the file asked first, the menu left open under the dialog so its answer
+    // reaches this drawer; closed once there is one.
+    val saveAs = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/csv")) { uri ->
+        onClose()
+        if (uri != null) exportTo(context, client, scope, uri)
+    }
     val slide = remember { Animatable(-1f) }
     // In as it opens; out once closed, two frames on, so a screen chosen from it is drawn under it first (item 199).
     LaunchedEffect(open) {
@@ -190,6 +200,7 @@ private fun MenuDrawer(zoom: Double, client: () -> ServerClient?, scope: Corouti
                                 if (activity != null) scope.launch { delay(OFFLINE_SWITCH_MS); switchOffline(activity, to) }
                             },
                             onRescan = { onClose(); rescan(context, client, scope) },
+                            onExport = { saveAs.launch(Export.fileName(java.time.LocalDate.now())) },
                             onItem = onItem)
                     }
                     if (power) PowerPop(powerInfo, Modifier.align(Alignment.TopEnd).padding(top = 60.dp, end = 14.dp), onItem)
@@ -233,9 +244,9 @@ private fun PowerPop(info: JSONObject?, modifier: Modifier, onItem: (String) -> 
 /** A drop-down item: the drop-down's width, its corners 8 when pressed. */
 private val POWER_ITEM = Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp))
 
-/** The list: Offline mode, a line, the items, a line, Rescan library, a line, Settings (style.css: .menu-list, 4 8 16, 2 apart). */
+/** The list: Offline mode, a line, the items, a line, Rescan library, a line, Export library and Settings (style.css: .menu-list, 4 8 16, 2 apart). */
 @Composable
-private fun MenuList(items: Menu.Items, offline: Boolean, sub: String, onOffline: () -> Unit, onRescan: () -> Unit, onItem: (String) -> Unit) {
+private fun MenuList(items: Menu.Items, offline: Boolean, sub: String, onOffline: () -> Unit, onRescan: () -> Unit, onExport: () -> Unit, onItem: (String) -> Unit) {
     Column(Modifier.fillMaxWidth().padding(start = 8.dp, top = 4.dp, end = 8.dp, bottom = 16.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
         OfflineRow(offline, onOffline)
         MenuSep()
@@ -249,6 +260,8 @@ private fun MenuList(items: Menu.Items, offline: Boolean, sub: String, onOffline
         MenuSep()
         MenuItem(Modifier.parity("menu.rescan", Contract.label("menu.rescan")).clip(ITEM).clickable(onClick = onRescan), R.drawable.mn_rescan, Contract.label("menu.rescan"), sub)
         MenuSep()
+        // The library's own files as a CSV for Mandarin Migration (item 436): where to save it asked first.
+        MenuItem(Modifier.parity("menu.export", Contract.label("menu.export")).clip(ITEM).clickable(onClick = onExport), R.drawable.mn_export, Contract.label("menu.export"))
         MenuItem(Modifier.parity("menu.settings", Contract.label("menu.settings")).clip(ITEM).clickable { onItem("settings") }, R.drawable.mn_settings, Contract.label("menu.settings"))
     }
 }
@@ -302,6 +315,23 @@ private fun switchOffline(activity: MainActivity, on: Boolean) {
 }
 
 /** Rescan library, as the page's rescanLibrary: its toasts, and a scan still going waited for, then how it ended said. */
+/**
+ * Export library (item 436): the server's CSV of the library's own files written where the save dialog was pointed
+ * ([uri]), then what went in, counted from the file, as the page says it.
+ */
+private fun exportTo(context: Context, client: () -> ServerClient?, scope: CoroutineScope, uri: Uri) {
+    val c = client() ?: return
+    fun toast(text: String) = Toast.makeText(context, text, Toast.LENGTH_LONG).show()
+    toast(Export.EXPORTING)
+    scope.launch {
+        val bytes = withContext(Dispatchers.IO) { runCatching { c.exportCsv() }.getOrNull() }
+        if (bytes == null) { toast(Export.FAILED); return@launch }
+        val written = withContext(Dispatchers.IO) { runCatching { context.contentResolver.openOutputStream(uri, "wt")!!.use { it.write(bytes) } }.isSuccess }
+        if (!written) { toast(Export.NOT_WRITTEN); return@launch }
+        toast(Export.doneText(Export.counts(String(bytes, Charsets.UTF_8)), Export.fileName(java.time.LocalDate.now())))
+    }
+}
+
 private fun rescan(context: Context, client: () -> ServerClient?, scope: CoroutineScope) {
     val c = client() ?: return
     fun toast(text: String) = Toast.makeText(context, text, Toast.LENGTH_LONG).show()
