@@ -9,7 +9,10 @@
  *            map naming the places; its status.lastmodified moved on by changed();
  *   /artwork /artwork/<id>-<size>: a cover (a JPEG's first bytes);
  *   /streaming /<bitrate>/<path>?Expires&Signature&file_id&user_id&platform&version (item 445): a track's file ("src" in
- *            its album, a fixture's), byte ranges answered as a server answers them; refused without the access token.
+ *            its album, a fixture's), byte ranges answered as a server answers them; refused without the access token;
+ *   /upload  the upload server (item 446), as iBroadcast's own uploader asks it: an empty POST answers the MD5 of every
+ *            file it has ({ md5 }); a multipart POST (file, file_path, method) is a file uploaded, kept in uploads with
+ *            its MD5, and its MD5 then among them. 401 without the access token; busy (503) as often as busy says.
  * What was asked for is recorded: the client id and scope a code was asked with, the bodies the API was sent.
  */
 const http = require("http");
@@ -39,6 +42,11 @@ class FakeIBroadcast {
     this.expiresIn = 3600;             // the access token's life, in seconds
     this.deviceExpiresIn = 600;
     this.apiBodies = [];
+    this.md5s = [];                    // the MD5 of every file iBroadcast has
+    this.uploads = [];                 // { name, file_path, method, size, md5, data }
+    this.md5Asks = 0;
+    this.busy = 0;                     // how many uploads are answered 503 before one is taken
+    this.uploadDelayMs = 0;            // how long each upload is held before it is answered
     this.server = null;
     this.port = 0;
   }
@@ -73,7 +81,29 @@ class FakeIBroadcast {
     return { access_token: this.access, token_type: "Bearer", expires_in: this.expiresIn, refresh_token: this.refreshToken, scope: ["user.account:read", "user.library:read", "user.library:write", "user.upload"] };
   }
 
-  async handle(req, res, body) {
+  /* A multipart body's parts: { name, filename, data }. */
+  static parts(raw, type) {
+    const m = /boundary=(?:"([^"]+)"|([^;]+))/i.exec(type || "");
+    if (!m) return [];
+    const sep = Buffer.from("--" + (m[1] || m[2]).trim()), out = [];
+    let at = raw.indexOf(sep);
+    while (at >= 0) {
+      const next = raw.indexOf(sep, at + sep.length);
+      if (next < 0) break;
+      const part = raw.subarray(at + sep.length + 2, next - 2);
+      const head = part.indexOf("\r\n\r\n");
+      if (head >= 0) {
+        const h = part.subarray(0, head).toString("utf8");
+        const said = k => { const x = new RegExp("[;:]\\s*" + k + "=(?:\"([^\"]*)\"|([^;\\s]+))").exec(h); return x ? (x[1] !== undefined ? x[1] : x[2]) : undefined; };
+        const name = said("name"), filename = said("filename");
+        out.push({ name, filename, data: part.subarray(head + 4) });
+      }
+      at = next;
+    }
+    return out;
+  }
+
+  async handle(req, res, body, raw) {
     const u = new URL(req.url, this.base);
     const json = (code, o) => { res.writeHead(code, { "Content-Type": "application/json" }); res.end(JSON.stringify(o)); };
     const form = () => Object.fromEntries(new URLSearchParams(body));
@@ -133,6 +163,20 @@ class FakeIBroadcast {
       return json(200, { result: true, message: "ok", library: this.library(), status: { timestamp: this.lastmodified, lastmodified: this.lastmodified },
         settings: { streaming_server: this.base + "/streaming", artwork_server: this.base + "/artwork" } });
     }
+    if (u.pathname === "/upload" && req.method === "POST") {
+      const auth = (req.headers.authorization || "").replace(/^Bearer /, "");
+      if (auth !== this.access || this.stale.has(auth)) return json(401, { result: false, message: "Unauthorized" });
+      if (!raw.length) { this.md5Asks++; return json(200, { result: true, md5: this.md5s.slice() }); }
+      if (this.busy > 0) { this.busy--; return json(503, { result: false, message: "Busy" }); }
+      if (this.uploadDelayMs) await new Promise(r => setTimeout(r, this.uploadDelayMs));
+      const ps = FakeIBroadcast.parts(raw, req.headers["content-type"]);
+      const file = ps.find(p => p.name === "file"), field = n => { const p = ps.find(x => x.name === n); return p ? p.data.toString("utf8") : null; };
+      if (!file) return json(400, { result: false, message: "No file" });
+      const md5 = crypto.createHash("md5").update(file.data).digest("hex");
+      this.uploads.push({ name: file.filename, file_path: field("file_path"), method: field("method"), size: file.data.length, md5, data: Buffer.from(file.data) });
+      this.md5s.push(md5);
+      return json(200, { result: true, message: "File uploaded" });
+    }
     if (u.pathname === "/oauth/revoke" && req.method === "POST") { this.revoked.push(form()); return json(200, { result: true }); }
     if (u.pathname.startsWith("/api/") && req.method === "POST") {
       const auth = (req.headers.authorization || "").replace(/^Bearer /, "");
@@ -155,7 +199,7 @@ class FakeIBroadcast {
     this.server = http.createServer((req, res) => {
       const chunks = [];
       req.on("data", c => chunks.push(c));
-      req.on("end", () => this.handle(req, res, Buffer.concat(chunks).toString("utf8")).catch(e => { res.writeHead(500); res.end(String(e)); }));
+      req.on("end", () => { const raw = Buffer.concat(chunks); return this.handle(req, res, raw.toString("utf8"), raw).catch(e => { res.writeHead(500); res.end(String(e)); }); });
     });
     return new Promise(resolve => this.server.listen(0, "127.0.0.1", () => { this.port = this.server.address().port; resolve(this); }));
   }
