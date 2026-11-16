@@ -1823,6 +1823,16 @@
         </div>
         <div id="ib-upload-block" class="settings-block" hidden>
           <div class="settings-block-title" data-parity="settings-ibroadcast.upload-title">Upload <button data-parity="settings-ibroadcast.info" class="settings-info-btn" data-info="Your music here uploaded to iBroadcast, album by album, each file as it is. DSD, which iBroadcast can't play, goes up as FLAC at 24-bit/176.4 kHz (88.2 kHz where that is over iBroadcast's 1.5 GB a file); a lossless file over 1.5 GB as FLAC at its most compression, or at half its rate where that is still over. A file already in iBroadcast isn't sent again, so an upload stopped goes on where it was. Your files here are only read: never changed, moved or deleted. While music plays, it waits." aria-label="Info">&#9432;</button></div>
+          <div class="settings-row ib-choose"><span class="settings-label" data-parity="settings-ibroadcast.name">Upload from</span></div>
+          <div id="ib-from" class="seg ib-from"></div>
+          <div id="ib-from-note" data-parity="settings-ibroadcast.from-note" class="settings-token-status"></div>
+          <div class="settings-row ib-choose"><span class="settings-label" data-parity="settings-ibroadcast.name">Files at once</span><div id="ib-at-once" class="seg ib-count" data-key="at_once"></div></div>
+          <div class="settings-row"><span class="settings-label" data-parity="settings-ibroadcast.name">Upload while music plays at home</span>
+            <label class="switch" data-parity="settings-ibroadcast.home"><input type="checkbox" id="ib-home" aria-label="Upload while music plays at home"><span class="switch-track"><span class="switch-thumb"></span></span></label></div>
+          <div id="ib-home-row" class="settings-row ib-choose" hidden><span class="settings-label" data-parity="settings-ibroadcast.name">Files at once then</span><div id="ib-home-at-once" class="seg ib-count" data-key="home_at_once"></div></div>
+          <div class="settings-row"><span class="settings-label" data-parity="settings-ibroadcast.name">Upload while music plays away from home</span>
+            <label class="switch" data-parity="settings-ibroadcast.away"><input type="checkbox" id="ib-away" aria-label="Upload while music plays away from home"><span class="switch-track"><span class="switch-thumb"></span></span></label></div>
+          <div id="ib-away-row" class="settings-row ib-choose" hidden><span class="settings-label" data-parity="settings-ibroadcast.name">Files at once then</span><div id="ib-away-at-once" class="seg ib-count" data-key="away_at_once"></div></div>
           <div id="ib-upload-status" data-parity="settings-ibroadcast.upload-status" class="settings-token-status"></div>
           <div id="ib-upload-progress" data-parity="settings-ibroadcast.upload-progress" class="settings-token-status"></div>
           <div class="settings-token-row">

@@ -78,6 +78,19 @@ class IBroadcastSettingsTest {
         assertNull(Scanner.uploadNote(null))
     }
 
+    /** What the upload is from and how hard it pushes (item 451), as the page has them; held away from home said so. */
+    @Test fun theChoices() {
+        val none = IBroadcastSettings.parse(JSONObject("""{"connected":true,"upload_settings":{"from":null,"at_once":3,"home":false,"home_at_once":3,"away":false,"away_at_once":1},
+            "upload_sources":[{"path":"/m/A","name":"A","files":3},{"path":"/m/B","name":"B","files":2}]}""")).choices
+        assertEquals(IBroadcastUploadChoices(null, "Choose All music or a drive to upload from.", 3, false, 3, false, 1, listOf("all" to "All music", "/m/A" to "A", "/m/B" to "B")), none)
+        val set = IBroadcastSettings.parse(JSONObject("""{"connected":true,"upload_settings":{"from":"/m/B","at_once":2,"home":true,"home_at_once":1,"away":true,"away_at_once":2},"upload_sources":[]}""")).choices
+        assertEquals(listOf("/m/B", "", "2", "true", "1", "true", "2"), listOf(set.from, set.fromNote, "${set.atOnce}", "${set.home}", "${set.homeAtOnce}", "${set.away}", "${set.awayAtOnce}"))
+        val away = IBroadcastSettings.parse(JSONObject("""{"connected":true,"upload":{"running":true,"held":true,"held_where":"away","files_total":4,"files_done":1,"bytes_total":4000,"bytes_done":1000,"speed":0,"eta":null}}""")).upload
+        assertEquals("Paused while music plays away from home", away.status)
+        val home = IBroadcastSettings.parse(JSONObject("""{"connected":true,"upload":{"running":true,"held":true,"held_where":"home","files_total":4,"files_done":1,"bytes_total":4000,"bytes_done":1000,"speed":0,"eta":null}}""")).upload
+        assertEquals("Paused while music plays", home.status)
+    }
+
     @Test fun aSignInUnderWay() {
         val a = IBroadcastSettings.parse(JSONObject("""{"connected":false,"pending":{"url":"https://media.ibroadcast.com/device?code=AB12","code":"AB12","error":null}}"""))
         assertEquals(listOf("Waiting for Mandarin to be approved on iBroadcast…", "media.ibroadcast.com/device?code=AB12", "AB12"), listOf(a.status, a.linkText, a.pendingCode))

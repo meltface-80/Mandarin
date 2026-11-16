@@ -125,6 +125,15 @@ test("item 447: the upload on a schedule, never over the Library Scanner's hours
     // The scanner's hours well away from now, the window around now: whatever the time the test runs at.
     assert.equal((await schedule({ on: false })).status, 200);
     assert.equal((await scanner({ start: from(30), end: from(90) })).status, 200);
+    // Nothing chosen to upload from (item 451): the window opens, and nothing begins.
+    const before = ib.md5Asks;
+    assert.equal((await schedule({ on: true, start: from(-1), end: from(5) })).status, 200);
+    await until(() => logged(/upload schedule: the window opened, but nothing is chosen to upload from/) === 1, 10000, "said once");
+    await sleep(1000);
+    assert.equal(ib.md5Asks, before, "nothing begun");
+    assert.equal((await schedule({ on: false })).status, 200);
+    await sleep(700);
+    assert.equal((await call("POST", "settings/ibroadcast/upload/settings", { from: "all" })).status, 200);
     const asks = ib.md5Asks;
     assert.equal((await schedule({ on: true, start: from(-1), end: from(5) })).status, 200);
     const done = await until(async () => { const u = (await state()).upload; return u && !u.running && u.finished && u; }, 20000, "the upload the window began");

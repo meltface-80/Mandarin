@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
@@ -38,6 +39,7 @@ import androidx.compose.ui.unit.sp
 import com.musicd.server.client.Contract
 import com.musicd.server.client.IBroadcastSettings
 import com.musicd.server.client.Palette
+import com.musicd.server.client.SegChoice
 import com.musicd.server.client.ServerClient
 import kotlinx.coroutines.delay
 import java.text.DateFormat
@@ -52,7 +54,8 @@ import org.json.JSONObject
  * seconds) until it lands. Signed in, who, whether the account is Premium, the formats iBroadcast takes, and Sign out;
  * then Upload (item 446): how the one under way is going (asked again every two seconds while it goes), or what the last
  * one did, Upload now or Stop upload, and the files left out or not sent; and on a schedule (item 447), its switch and
- * hours beside the Library Scanner's, which they can't overlap (a window that would refused, in the server's words).
+ * hours beside the Library Scanner's, which they can't overlap (a window that would refused, in the server's words);
+ * and (item 451) Upload from, files at once, and uploading while music plays at home or away, each with its number.
  */
 
 /** Settings' iBroadcast page ([client]: the server's, [onBack]: back to Services). */
@@ -70,7 +73,9 @@ internal fun SettingsIBroadcast(client: () -> ServerClient?, onBack: () -> Unit)
     var asking by remember { mutableStateOf(false) }
     fun show(j: JSONObject) { account = IBroadcastSettings.parse(j, at) }
     suspend fun load() { readSetting(client, "ibroadcast")?.let(::show) }
-    LaunchedEffect(Unit) { while (true) { untilOnScreen(); load(); delay(if (account?.again == true) 2_000L else 30_000L) } }
+    // Asked again every 2 s while something goes on, else every 30 s; a change that starts something (Upload now) is
+    // followed within 2 s, not at the end of the 30 (item 451: the page sat on "Looking at what iBroadcast has…").
+    LaunchedEffect(Unit) { while (true) { untilOnScreen(); load(); var waited = 0L; do { delay(2_000L); waited += 2_000L } while (account?.again != true && waited < 30_000L) } }
     fun change(path: String, body: JSONObject = JSONObject(), timeout: Int = 20_000, done: (JSONObject) -> Unit = ::show) {
         val c = client() ?: return
         val call = { c.post("/api/settings/ibroadcast$path", body, timeout).also { j -> j.optString("error").takeIf { it.isNotEmpty() }?.let { throw IllegalStateException(it) } } }
@@ -142,7 +147,9 @@ internal fun SettingsIBroadcast(client: () -> ServerClient?, onBack: () -> Unit)
                 StatusLine(a.libraryStatus, Modifier.parity("settings-ibroadcast.library-status").padding(top = 4.dp))
             }
             account?.takeIf { it.connected }?.let { a ->
-                UploadBlock(a.upload, asking, { info = IBroadcastSettings.UPLOAD_INFO }) { path -> asking = true; change(path) { j -> asking = false; show(j) } }
+                UploadBlock(a.upload, asking, { info = IBroadcastSettings.UPLOAD_INFO }, {
+                    ChoiceRows(a.choices, asking) { patch -> asking = true; change("/upload/settings", patch) { j -> asking = false; show(j) } }
+                }) { path -> asking = true; change(path) { j -> asking = false; show(j) } }
                 ScheduleRows(a, asking) { patch -> asking = true; change("/schedule", patch) { j -> asking = false; show(j) } }
             }
         }
@@ -152,10 +159,11 @@ internal fun SettingsIBroadcast(client: () -> ServerClient?, onBack: () -> Unit)
 
 /** Upload (item 446): how it goes or went, Upload now or Stop upload ([ask]: the path asked, [asking] while it is), what was left out or not sent. */
 @Composable
-private fun UploadBlock(u: com.musicd.server.client.IBroadcastUploadWords, asking: Boolean, onInfo: () -> Unit, ask: (String) -> Unit) {
+private fun UploadBlock(u: com.musicd.server.client.IBroadcastUploadWords, asking: Boolean, onInfo: () -> Unit, choices: @Composable () -> Unit, ask: (String) -> Unit) {
     Block {
         ServiceTitle("Upload", Modifier.parity("settings-ibroadcast.upload-title"),
             Modifier.parity("settings-ibroadcast.info", Contract.label("settings-ibroadcast.info", 0, "Upload")).clickable(onClick = onInfo))
+        choices()
         StatusLine(u.status, Modifier.parity("settings-ibroadcast.upload-status"))
         if (u.progress.isNotEmpty()) StatusLine(u.progress, Modifier.parity("settings-ibroadcast.upload-progress").padding(top = 4.dp))
         Row(Modifier.padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -163,6 +171,51 @@ private fun UploadBlock(u: com.musicd.server.client.IBroadcastUploadWords, askin
             else SetupButton("Stop upload", asking, Modifier.parity("settings-ibroadcast.upload-stop", Contract.label("settings-ibroadcast.upload-stop")).clickable(enabled = !asking) { ask("/upload/stop") })
         }
         if (u.problems.isNotEmpty()) StatusLine(u.problems, Modifier.parity("settings-ibroadcast.upload-problems").padding(top = 4.dp))
+    }
+}
+
+/** Upload from, files at once, and while music plays at home or away (item 451; [save]: the change POSTed). */
+@Composable
+private fun ChoiceRows(c: com.musicd.server.client.IBroadcastUploadChoices, asking: Boolean, save: (JSONObject) -> Unit) {
+    val counts = listOf(SegChoice("1", "1"), SegChoice("2", "2"), SegChoice("3", "3"))
+    Column(Modifier.padding(bottom = 8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Text("Upload from", Modifier.parity("settings-ibroadcast.name"), color = paletteColor(Palette.TEXT), fontSize = 16.sp, lineHeight = 22.sp)
+        val box = RoundedCornerShape(10.dp)
+        Column(Modifier.fillMaxWidth().clip(box).background(paletteColor(Palette.BG_ELEV_2)).border(1.dp, paletteColor(Palette.BORDER), box)) {
+            for ((i, src) in c.sources.withIndex()) {
+                val on = src.first == c.from
+                Text(src.second, Modifier.parity("settings-ibroadcast.from", Contract.label("settings-ibroadcast.from", i, src.second)).fillMaxWidth()
+                    .background(if (on) paletteColor(Palette.ACCENT) else androidx.compose.ui.graphics.Color.Transparent).clickable(enabled = !asking) { save(JSONObject().put("from", src.first)) }
+                    .padding(horizontal = 12.dp, vertical = 9.dp), color = paletteColor(if (on) Palette.TEXT else Palette.TEXT_DIM), fontSize = 13.5.sp, lineHeight = 18.sp,
+                    fontWeight = if (on) FontWeight.W600 else FontWeight.W400)
+            }
+        }
+        if (c.fromNote.isNotEmpty()) StatusLine(c.fromNote, Modifier.parity("settings-ibroadcast.from-note"))
+        CountRow("Files at once", counts, c.atOnce, keyed = { i, ch -> Modifier.parity("settings-ibroadcast.at-once", Contract.label("settings-ibroadcast.at-once", i)).clickable(enabled = !asking) { save(JSONObject().put("at_once", ch.value.toInt())) } })
+        SwitchRow("Upload while music plays at home", c.home, Modifier.parity("settings-ibroadcast.home", Contract.label("settings-ibroadcast.home")).clickable(enabled = !asking) { save(JSONObject().put("home", !c.home)) })
+        if (c.home) CountRow("Files at once then", counts, c.homeAtOnce, keyed = { i, ch -> Modifier.parity("settings-ibroadcast.home-at-once", Contract.label("settings-ibroadcast.home-at-once", i)).clickable(enabled = !asking) { save(JSONObject().put("home_at_once", ch.value.toInt())) } })
+        SwitchRow("Upload while music plays away from home", c.away, Modifier.parity("settings-ibroadcast.away", Contract.label("settings-ibroadcast.away")).clickable(enabled = !asking) { save(JSONObject().put("away", !c.away)) })
+        if (c.away) CountRow("Files at once then", counts, c.awayAtOnce, keyed = { i, ch -> Modifier.parity("settings-ibroadcast.away-at-once", Contract.label("settings-ibroadcast.away-at-once", i)).clickable(enabled = !asking) { save(JSONObject().put("away_at_once", ch.value.toInt())) } })
+    }
+}
+
+/** A count to choose (1 to 3), its [name] beside it; [keyed] each choice's parity and tap, written out at each call. */
+@Composable
+private fun CountRow(name: String, counts: List<SegChoice>, now: Int, keyed: (Int, SegChoice) -> Modifier) {
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Text(name, Modifier.parity("settings-ibroadcast.name").weight(1f), color = paletteColor(Palette.TEXT_FAINT), fontSize = 13.sp, lineHeight = 18.sp)
+        Box(Modifier.widthIn(max = 150.dp)) {
+            Seg(counts, "$now", key = keyed)
+        }
+    }
+}
+
+/** A switch with its [name] beside it; [modifier] its parity and tap. */
+@Composable
+private fun SwitchRow(name: String, on: Boolean, modifier: Modifier) {
+    Row(Modifier.fillMaxWidth().heightIn(min = 44.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+        Text(name, Modifier.parity("settings-ibroadcast.name").weight(1f), color = paletteColor(Palette.TEXT), fontSize = 16.sp, lineHeight = 22.sp)
+        Toggle(on, modifier)
     }
 }
 
