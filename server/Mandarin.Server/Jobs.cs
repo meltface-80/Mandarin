@@ -56,6 +56,8 @@ internal static partial class Jobs
     public static Services.IBroadcast.IBroadcastStreams? IBroadcastStreams { get; private set; }
     // Its upload (item 446): the limit on a file (the tests' smaller), and the waits for a busy iBroadcast (the tests' shorter).
     public static Services.IBroadcast.IBroadcastUpload? IBroadcastUpload { get; private set; }
+    // And on a schedule, never at the Library Scanner's hours (item 447): the clock looked at (the tests' more often).
+    public static Services.IBroadcast.IBroadcastSchedule? IBroadcastSchedule { get; private set; }
 
     private static volatile bool started;
 
@@ -135,6 +137,8 @@ internal static partial class Jobs
             HoldMs = cfg["ibroadcast_upload_limit"] != null ? 200 : 5000,
             Files = new Services.IBroadcast.IBroadcastUploadFiles(IBroadcast.Api, dataDir) { Waits = cfg["ibroadcast_upload_limit"] != null ? [TimeSpan.FromMilliseconds(200)] : [TimeSpan.FromSeconds(30), TimeSpan.FromMinutes(2), TimeSpan.FromMinutes(5)] },
         };
+        IBroadcastSchedule = new Services.IBroadcast.IBroadcastSchedule(IBroadcastUpload)
+            { TickMs = cfg["ibroadcast_schedule_tick_ms"] is JsonValue ibt && ibt.TryGetValue<double>(out var tick) && tick > 0 ? (int)tick : 30_000 };
         // What a service no longer here left behind (item 152), and gone albums and tracks (item 179): gone before the library is read.
         Orphans.Sweep(Log);
         if (Services.Leftovers.Remove(dataDir, Log)) _ = Library.Tell(new JsonObject { ["services"] = "changed" });
@@ -187,6 +191,7 @@ internal static partial class Jobs
         // Their import and the favourites' watch (v0.8.45): on the Node server's timers.
         Services.Import.Start(cfg);
         IBroadcastLibrary?.Start();
+        IBroadcastSchedule?.Start();
         Server.Log("[jobs] made here: " + string.Join(", ", Names));
         // A library scan that ended before the work was set up: what follows it, made now.
         _ = Task.Run(async () =>
@@ -232,6 +237,7 @@ internal static partial class Jobs
         Services.Prune.Stop();
         Services.Import.Stop();
         IBroadcastLibrary?.Stop();
+        IBroadcastSchedule?.Stop();
         IBroadcastUpload?.Stop();
         // What was playing from Qobuz reported over (v0.8.47), as the Node server's stop did: a few seconds at most.
         try { Qobuz?.Stop().Wait(TimeSpan.FromSeconds(5)); } catch (AggregateException) { /* reported or not, stopping */ }

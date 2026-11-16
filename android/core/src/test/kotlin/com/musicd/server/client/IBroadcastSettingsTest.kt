@@ -64,6 +64,20 @@ class IBroadcastSettingsTest {
         assertEquals("Ended: Not signed in to iBroadcast · at 4", ended.status)
     }
 
+    /** The upload on a schedule (item 447): its switch and hours, and the Library Scanner's beside them, in the page's words. */
+    @Test fun theSchedule() {
+        val a = IBroadcastSettings.parse(JSONObject("""{"connected":true,"schedule":{"on":true,"start":"22:00","end":"01:00"},"scanner_hours":{"on":true,"start":"01:00","end":"06:00"}}"""))
+        assertEquals(listOf("true", "22:00", "01:00", "The Library Scanner runs 01:00–06:00: the upload window can't overlap it."),
+            listOf(a.schedule.toString(), a.start, a.end, a.scannerHours))
+        assertEquals("Uploads each day between these times, stopping at the end", IBroadcastSettings.scheduleNote(a.schedule))
+        val none = IBroadcastSettings.parse(JSONObject("""{"connected":true,"schedule":{"on":false,"start":"22:00","end":"01:00"},"scanner_hours":{"on":false,"start":"01:00","end":"06:00"}}"""))
+        assertFalse(none.schedule)
+        assertEquals("Off: uploads only when you tap Upload now", IBroadcastSettings.scheduleNote(none.schedule))
+        assertEquals("The Library Scanner has no hours (its Schedule is off): give it hours in Library Scanner to upload on a schedule.", none.scannerHours)
+        assertEquals("iBroadcast uploads run 22:00–01:00: these hours can't overlap them.", Scanner.uploadNote(JSONObject("""{"start":"22:00","end":"01:00"}""")))
+        assertNull(Scanner.uploadNote(null))
+    }
+
     @Test fun aSignInUnderWay() {
         val a = IBroadcastSettings.parse(JSONObject("""{"connected":false,"pending":{"url":"https://media.ibroadcast.com/device?code=AB12","code":"AB12","error":null}}"""))
         assertEquals(listOf("Waiting for Mandarin to be approved on iBroadcast…", "media.ibroadcast.com/device?code=AB12", "AB12"), listOf(a.status, a.linkText, a.pendingCode))
