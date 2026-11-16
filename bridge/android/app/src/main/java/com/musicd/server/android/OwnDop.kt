@@ -31,7 +31,7 @@ object OwnDop {
     fun multiple(pcmRate: Int): Int = pcmRate * 16 / 44100
 
     /** The DSD multiples whose DoP rates the device's own output reaches ([rates]). */
-    fun multiples(rates: List<Int>): List<Int> = listOf(64, 128, 256)   // BROKEN ON PURPOSE: only those reached
+    fun multiples(rates: List<Int>): List<Int> = listOf(64, 128, 256).filter { pcmRate(it * 44100) in rates }
 
     /**
      * DSD as the renderer hands it (two channels, a byte each in turn: L R L R …, eight bytes two DoP frames) packed as
@@ -52,7 +52,7 @@ object OwnDop {
                     val lo = src.get(p + i + ch + half * 4 + 2).toInt() and 0xFF
                     out[o++] = sample(m, hi, lo)
                 }
-                m = m   // BROKEN ON PURPOSE: the marker must alternate
+                m = if (m == FIRST) SECOND else FIRST
             }
             i += 8
         }
@@ -62,7 +62,7 @@ object OwnDop {
     /** One DoP sample: [marker] over the DSD bits [hi] then [lo], as a signed 24-bit value over 2^23. */
     fun sample(marker: Int, hi: Int, lo: Int): Float {
         var v = (marker shl 16) or (hi shl 8) or lo
-        // BROKEN ON PURPOSE: the sign must be kept
+        if (v and 0x800000 != 0) v -= 0x1000000
         return v / 8388608f
     }
 
