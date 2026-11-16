@@ -46,7 +46,7 @@ object BridgeUpdates {
             !b.optBoolean("updates") -> BY_HAND
             state == "failed" && available -> RETRY
             available -> UpdateCheck.AVAILABLE
-            error.isNotEmpty() && b.isNull("version") -> UpdateCheck.FAILED   // GitHub not asked, or not answering: never "Nothing published" (item 437)
+            error.isNotEmpty() -> UpdateCheck.FAILED   // GitHub not asked, or not answering: never "Nothing published" (item 437)
             b.isNull("latest") -> NONE
             else -> UpdateCheck.UP_TO_DATE
         }
