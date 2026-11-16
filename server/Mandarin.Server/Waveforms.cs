@@ -176,7 +176,7 @@ internal static class Waveforms
     public static async Task<JsObj?> For(double id, string path, object? mtime, double duration, string title)
     {
         // A streamed track is never read as a file: the plain bar.
-        if (path.StartsWith("qobuz://track/", StringComparison.Ordinal) || path.StartsWith("tidal://track/", StringComparison.Ordinal)) return null;
+        if (path.Contains("://", StringComparison.Ordinal)) return null;   // a service's track (Qobuz, Tidal, iBroadcast): no file here
         var key = $"t{TJs.Num(id)}-{TJs.Str(mtime)}";
         using (var c = Db.Open())
         {

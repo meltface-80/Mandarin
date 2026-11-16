@@ -69,6 +69,13 @@ test("item 444: the iBroadcast library in Mandarin's, its albums as service albu
   assert.equal(shown.filter(x => x === "Album One / Artist A").length, 1, "one here as files: shown once");
   assert.ok(!shown.some(x => x.startsWith("Thrown Away")), "the trash left out");
 
+  // Its page opens, its tracks on it (item 445: the album route asked iBroadcast for favourites it hasn't, and gave up).
+  const offset = db.prepare("SELECT id FROM albums WHERE key = 'ibroadcast:101'").get().id;
+  const page = await fetch(base + "/api/album?offset=" + offset, { headers: H });
+  assert.equal(page.status, 200, "the album's page");
+  const pj = await page.json();
+  assert.deepEqual([pj.title || (pj.album && pj.album.title), (pj.tracks || []).length], ["Discovery", 2], JSON.stringify(pj).slice(0, 300));
+
   // The rows: service albums, the format from the file's type, ReplayGain kept, the discs one album.
   const disco = db.prepare("SELECT t.path, t.codec, t.lossless, t.rg_track_gain, t.genres FROM tracks t JOIN albums a ON a.id = t.album_id WHERE a.key = 'ibroadcast:101' ORDER BY t.track_no").all();
   assert.deepEqual(disco.map(r => [r.path, r.codec, r.lossless]), [["ibroadcast://track/1001", "mp3", 0], ["ibroadcast://track/1002", "mp3", 0]]);

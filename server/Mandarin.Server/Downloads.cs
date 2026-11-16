@@ -96,12 +96,12 @@ internal static partial class Downloads
         return $"{t.Id}-{t.Mtime}-{(p.Convert == "opus" ? "opus" + OpusKbps + "f" : "flac" + bits)}";
     }
 
-    private static List<string> Args(Track t, Plan p, string dest)
+    private static List<string> Args(Track t, Plan p, string dest, string src)
     {
         if (p.Convert == "opus")
         {
             var resampler = Transcoder.Soxr ? "resampler=soxr:precision=33:" : "";
-            return ["-hide_banner", "-nostdin", "-loglevel", "error", "-y", "-i", t.Path,
+            return ["-hide_banner", "-nostdin", "-loglevel", "error", "-y", "-i", src,
                 "-map", "0:a:0", "-vn",
                 "-af", $"aresample={resampler}internal_sample_fmt=dblp:osr=48000",
                 "-ar", "48000", "-ac", "2", "-sample_fmt", "flt", "-map_metadata", "0",
@@ -148,7 +148,10 @@ internal static partial class Downloads
         {
             var part = dest + ".part";
             var psi = new ProcessStartInfo(Transcoder.Bin) { UseShellExecute = false, RedirectStandardError = true, RedirectStandardInput = true };
-            foreach (var a in Args(t, p, part)) psi.ArgumentList.Add(a);
+            // An iBroadcast track read from its original's address (item 445); a file from where it is.
+            var src = t.Path.StartsWith("ibroadcast://track/", StringComparison.Ordinal) && global::Mandarin.Server.Jobs.IBroadcastStreams is { } ib
+                ? await ib.Url(t.Path["ibroadcast://track/".Length..]) : t.Path;
+            foreach (var a in Args(t, p, part, src)) psi.ArgumentList.Add(a);
             Cpu.Place(psi, kind);
             using var proc = Process.Start(psi) ?? throw new InvalidOperationException("couldn't start ffmpeg");
             Cpu.Adopt(proc, kind);
@@ -262,7 +265,7 @@ internal static partial class Downloads
         Track? t;
         List<Track> rest;
         using (var c = Db.Open()) { t = TrackById(c, id); rest = t == null ? [] : AlbumTracksOf(c, id); }
-        if (t == null || t.Path.Contains("://", StringComparison.Ordinal)) return false;
+        if (t == null || (t.Path.Contains("://", StringComparison.Ordinal) && !t.Path.StartsWith("ibroadcast://", StringComparison.Ordinal))) return false;
         // This one at once, then the next two just below it, on playback's cores (Cpu.cs).
         var making = FileFor(t, "opus", CpuKind.Playback);
         var i = rest.FindIndex(x => x.Id == t.Id);
