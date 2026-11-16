@@ -64,27 +64,40 @@ import java.util.Date
  * and password and Sign in, Tidal's Sign in on tidal.com, which opens tidal.com with a code to type there, and is waited for
  * (asked again every two seconds) until it lands. Signed in, the stream quality, the favourites in the library on or off,
  * Update library now, Sign out, and what the library holds of the service, asked again while it is being brought in.
- * Each change is made on the app's lane of changes to what Home shows (ServerWrites, item 85). Under them iBroadcast, a row
- * that opens its own page (item 443, SettingsIBroadcast.kt).
+ * Each change is made on the app's lane of changes to what Home shows (ServerWrites, item 85). Services itself is a list:
+ * Qobuz, Tidal and iBroadcast a row each, each opening its own page (items 443, 449; iBroadcast's SettingsIBroadcast.kt).
  */
 
-private val SERVICES = listOf("qobuz", "tidal")
 
-/** Settings' Services ([client]: the server's, [onBack]: back to Settings, [onOpen]: iBroadcast's page, item 443). */
+/** Settings' Services ([onBack]: back to Settings, [onOpen]: a service's own page): Qobuz, Tidal and iBroadcast, a row each (items 443, 449). */
 @Composable
-internal fun SettingsServices(client: () -> ServerClient?, onBack: () -> Unit, onOpen: (String) -> Unit) {
+internal fun SettingsServices(onBack: () -> Unit, onOpen: (String) -> Unit) {
+    SettingsFrame {
+        SettingsHead(Modifier.parity("settings-services.back", Contract.label("settings-services.back")).clip(CircleShape).clickable(onClick = onBack), R.drawable.np_back,
+            "Services", Modifier.parity("settings-services.heading"))
+        Column(Modifier.padding(horizontal = 4.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            val qobuz = com.musicd.server.client.SettingsRow("qobuz", "Qobuz")
+            SettingsNavRow(qobuz, Modifier.parity("settings-services.qobuz", Contract.label("settings-services.qobuz")).clip(RoundedCornerShape(10.dp)).clickable { onOpen(qobuz.pane) })
+            val tidal = com.musicd.server.client.SettingsRow("tidal", "Tidal")
+            SettingsNavRow(tidal, Modifier.parity("settings-services.tidal", Contract.label("settings-services.tidal")).clip(RoundedCornerShape(10.dp)).clickable { onOpen(tidal.pane) })
+            val ib = com.musicd.server.client.SettingsRow("ibroadcast", "iBroadcast")
+            SettingsNavRow(ib, Modifier.parity("settings-services.ibroadcast", Contract.label("settings-services.ibroadcast")).clip(RoundedCornerShape(10.dp)).clickable { onOpen(ib.pane) })
+        }
+    }
+}
+
+/** One service's own page ([service]: "qobuz" or "tidal"; [onBack]: back to Services), as the page's (item 449). */
+@Composable
+internal fun SettingsService(service: String, client: () -> ServerClient?, onBack: () -> Unit) {
     var info by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(info) { val t = info ?: return@LaunchedEffect; delay(minOf(25_000L, 4_000L + t.split(Regex("\\s+")).size * 220L)); info = null }
     Box(Modifier.fillMaxSize()) {
         SettingsFrame {
-            SettingsHead(Modifier.parity("settings-services.back", Contract.label("settings-services.back")).clip(CircleShape).clickable(onClick = onBack), R.drawable.np_back,
-                "Services", Modifier.parity("settings-services.heading"))
-            for (s in SERVICES) Block { ServiceBlock(s, client) { info = it } }
-            // iBroadcast: a page of its own (item 443, SettingsIBroadcast.kt).
-            val ib = com.musicd.server.client.SettingsRow("ibroadcast", "iBroadcast")
-            SettingsNavRow(ib, Modifier.parity("settings-services.ibroadcast", Contract.label("settings-services.ibroadcast")).clip(RoundedCornerShape(10.dp)).clickable { onOpen(ib.pane) })
+            SettingsHead(Modifier.parity("settings-service.back", Contract.label("settings-service.back")).clip(CircleShape).clickable(onClick = onBack), R.drawable.np_back,
+                ServiceSettings.name(service), Modifier.parity("settings-service.heading"))
+            Block { ServiceBlock(service, client) { info = it } }
         }
-        info?.let { InfoTip(it, Modifier.parity("settings-services.info")) }
+        info?.let { InfoTip(it, Modifier.parity("settings-service.info")) }
     }
 }
 
@@ -116,8 +129,8 @@ private fun ServiceBlock(service: String, client: () -> ServerClient?, info: (St
         }
     }
     val a = account
-    ServiceTitle(name, Modifier.parity("settings-services.title"),
-        Modifier.parity("settings-services.info", Contract.label("settings-services.info", 0, name)).clickable { info(if (tidal) ServiceSettings.TIDAL_INFO else ServiceSettings.QOBUZ_INFO) })
+    ServiceTitle("Account", Modifier.parity("settings-service.title"),
+        Modifier.parity("settings-service.info", Contract.label("settings-service.info", 0, "Account")).clickable { info(if (tidal) ServiceSettings.TIDAL_INFO else ServiceSettings.QOBUZ_INFO) })
     if (a == null) return
     if (!a.connected) {
         if (!tidal) {
@@ -130,16 +143,16 @@ private fun ServiceBlock(service: String, client: () -> ServerClient?, info: (St
                 change("/signin", JSONObject().put("username", email.trim()).put("password", password), 60_000) { j -> busy = false; password = ""; setupToast(context, "Signed in to Qobuz"); show(j) }
             }
             val field = TextStyle(color = paletteColor(Palette.TEXT), fontSize = 13.sp, lineHeight = 18.sp)
-            BasicTextField(email, { email = it }, Modifier.parity("settings-services.email", Contract.label("settings-services.email")).fillMaxWidth(), singleLine = true, textStyle = field,
+            BasicTextField(email, { email = it }, Modifier.parity("settings-service.email", Contract.label("settings-service.email")).fillMaxWidth(), singleLine = true, textStyle = field,
                 cursorBrush = SolidColor(paletteColor(Palette.ACCENT)), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next),
                 decorationBox = { inner -> FieldBox(email.isEmpty(), "Qobuz email", inner) })
-            BasicTextField(password, { password = it }, Modifier.parity("settings-services.password", Contract.label("settings-services.password")).padding(top = 8.dp).fillMaxWidth(), singleLine = true,
+            BasicTextField(password, { password = it }, Modifier.parity("settings-service.password", Contract.label("settings-service.password")).padding(top = 8.dp).fillMaxWidth(), singleLine = true,
                 textStyle = field, cursorBrush = SolidColor(paletteColor(Palette.ACCENT)), visualTransformation = PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Go), keyboardActions = KeyboardActions(onGo = { signIn() }),
                 decorationBox = { inner -> FieldBox(password.isEmpty(), "Password", inner) })
-            SetupButton("Sign in", busy, Modifier.parity("settings-services.signin", Contract.label("settings-services.signin")).padding(top = 8.dp).clickable(enabled = !busy) { signIn() })
+            SetupButton("Sign in", busy, Modifier.parity("settings-service.signin", Contract.label("settings-service.signin")).padding(top = 8.dp).clickable(enabled = !busy) { signIn() })
         } else if (a.pendingUrl.isNullOrEmpty()) {
-            SetupButton("Sign in on tidal.com", busy, Modifier.parity("settings-services.signin", Contract.label("settings-services.signin", 1)).clickable(enabled = !busy) {
+            SetupButton("Sign in on tidal.com", busy, Modifier.parity("settings-service.signin", Contract.label("settings-service.signin", 1)).clickable(enabled = !busy) {
                 busy = true
                 change("/signin") { j -> busy = false; show(j); account?.pendingUrl?.let { open(context, it) } }
             })
@@ -149,32 +162,32 @@ private fun ServiceBlock(service: String, client: () -> ServerClient?, info: (St
             val box = RoundedCornerShape(10.dp)
             Column(Modifier.padding(top = 16.dp, bottom = 10.dp).fillMaxWidth().clip(box).background(paletteColor(Palette.BG_ELEV_2)).border(1.dp, paletteColor(Palette.BORDER), box).padding(12.dp),
                 horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(ServiceSettings.TIDAL_NOTE, Modifier.parity("settings-services.tidal-note").fillMaxWidth(), color = paletteColor(Palette.TEXT_FAINT), fontSize = 12.sp, lineHeight = 17.4.sp)
-                Text(a.linkText, Modifier.parity("settings-services.tidal-link", Contract.label("settings-services.tidal-link", 0, a.linkText)).clickable { open(context, url) },
+                Text(ServiceSettings.TIDAL_NOTE, Modifier.parity("settings-service.tidal-note").fillMaxWidth(), color = paletteColor(Palette.TEXT_FAINT), fontSize = 12.sp, lineHeight = 17.4.sp)
+                Text(a.linkText, Modifier.parity("settings-service.tidal-link", Contract.label("settings-service.tidal-link", 0, a.linkText)).clickable { open(context, url) },
                     color = paletteColor(Palette.ACCENT_TEXT), fontSize = 14.sp, lineHeight = 19.sp, fontWeight = FontWeight.W600, textDecoration = TextDecoration.Underline, textAlign = TextAlign.Center)
-                Text(a.pendingCode, Modifier.parity("settings-services.tidal-code").clip(RoundedCornerShape(8.dp)).background(paletteColor(Palette.BG_ELEV)).padding(horizontal = 10.dp, vertical = 4.dp),
+                Text(a.pendingCode, Modifier.parity("settings-service.tidal-code").clip(RoundedCornerShape(8.dp)).background(paletteColor(Palette.BG_ELEV)).padding(horizontal = 10.dp, vertical = 4.dp),
                     color = paletteColor(Palette.TEXT), fontSize = 22.sp, lineHeight = 25.sp, fontFamily = FontFamily.Monospace, letterSpacing = 0.18.em)
-                SetupButton("Cancel", false, Modifier.parity("settings-services.tidal-cancel", Contract.label("settings-services.tidal-cancel")).clickable { change("/signin/cancel") { scope.launch { load() } } })
+                SetupButton("Cancel", false, Modifier.parity("settings-service.tidal-cancel", Contract.label("settings-service.tidal-cancel")).clickable { change("/signin/cancel") { scope.launch { load() } } })
             }
         }
         val status = said ?: a.status
-        if (status.isNotEmpty()) StatusLine(status, Modifier.parity("settings-services.status").padding(top = if (tidal && a.pendingUrl != null) 0.dp else 4.dp))
+        if (status.isNotEmpty()) StatusLine(status, Modifier.parity("settings-service.status").padding(top = if (tidal && a.pendingUrl != null) 0.dp else 4.dp))
         return
     }
-    StatusLine(a.status, Modifier.parity("settings-services.status"))
+    StatusLine(a.status, Modifier.parity("settings-service.status"))
     Column(Modifier.padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
         val qualityName = "Stream quality"
-        ServiceRow(qualityName, Modifier.parity("settings-services.info", Contract.label("settings-services.info", 0, qualityName))
+        ServiceRow(qualityName, Modifier.parity("settings-service.info", Contract.label("settings-service.info", 0, qualityName))
             .clickable { info(if (tidal) ServiceSettings.TIDAL_QUALITY_INFO else ServiceSettings.QOBUZ_QUALITY_INFO) }) {
             val choices = ServiceSettings.qualities(service)
-            SelectBox(choiceWords(choices, a.quality), choices, null, Modifier.parity("settings-services.quality", Contract.label("settings-services.quality", 0, name)).clickable {
+            SelectBox(choiceWords(choices, a.quality), choices, null, Modifier.parity("settings-service.quality", Contract.label("settings-service.quality", 0, name)).clickable {
                 pickChoice(context, choices, a.quality) { v -> account = a.copy(quality = v); change("", JSONObject().put("quality", v)) }
             }, width = 187.5.dp)
         }
         val importName = ServiceSettings.importName(service)
-        ServiceRow(importName, Modifier.parity("settings-services.info", Contract.label("settings-services.info", 0, importName))
+        ServiceRow(importName, Modifier.parity("settings-service.info", Contract.label("settings-service.info", 0, importName))
             .clickable { info(if (tidal) ServiceSettings.TIDAL_IMPORT_INFO else ServiceSettings.QOBUZ_IMPORT_INFO) }) {
-            Toggle(a.import, Modifier.parity("settings-services.import", Contract.label("settings-services.import", if (tidal) 1 else 0)).clickable {
+            Toggle(a.import, Modifier.parity("settings-service.import", Contract.label("settings-service.import", if (tidal) 1 else 0)).clickable {
                 val on = !a.import
                 account = a.copy(import = on)
                 // The walls and Home read afresh as each opens: the albums are in or out.
@@ -183,17 +196,17 @@ private fun ServiceBlock(service: String, client: () -> ServerClient?, info: (St
         }
     }
     Row(Modifier.padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        if (a.import) SetupButton("Update library now", updating, Modifier.parity("settings-services.update", Contract.label("settings-services.update")).clickable(enabled = !updating) {
+        if (a.import) SetupButton("Update library now", updating, Modifier.parity("settings-service.update", Contract.label("settings-service.update")).clickable(enabled = !updating) {
             updating = true; said = null
             account = a.copy(importStatus = ServiceSettings.importing(service))
             change("/import", timeout = 600_000) { j -> updating = false; setupToast(context, ServiceSettings.updated(service, j)); scope.launch { load() } }
         })
-        SetupButton("Sign out", busy, Modifier.parity("settings-services.signout", Contract.label("settings-services.signout")).clickable(enabled = !busy) {
+        SetupButton("Sign out", busy, Modifier.parity("settings-service.signout", Contract.label("settings-service.signout")).clickable(enabled = !busy) {
             busy = true
             change("/signout") { busy = false; setupToast(context, "Signed out of $name"); scope.launch { load() } }
         })
     }
-    StatusLine(a.importStatus, Modifier.parity("settings-services.import-status").padding(top = 4.dp))
+    StatusLine(a.importStatus, Modifier.parity("settings-service.import-status").padding(top = 4.dp))
 }
 
 /** A block's title with its ⓘ (.settings-block-title): 13 in 700, spaced, in capitals, faint, the ⓘ's 32 beside it; 10 under it. */
@@ -214,7 +227,7 @@ internal fun ServiceTitle(text: String, modifier: Modifier, info: Modifier) {
 private fun ServiceRow(name: String, info: Modifier, control: @Composable () -> Unit) {
     Row(Modifier.fillMaxWidth().heightIn(min = 44.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
         FlowRow(Modifier.weight(1f), itemVerticalAlignment = Alignment.CenterVertically) {
-            Text(name, Modifier.parity("settings-services.name"), color = paletteColor(Palette.TEXT), fontSize = 16.sp, lineHeight = 22.sp)
+            Text(name, Modifier.parity("settings-service.name"), color = paletteColor(Palette.TEXT), fontSize = 16.sp, lineHeight = 22.sp)
             Box(info.size(32.dp).padding(start = 4.dp), contentAlignment = Alignment.Center) { Text("ⓘ", color = paletteColor(Palette.TEXT_FAINT), fontSize = 16.sp, lineHeight = 16.sp) }
         }
         control()
