@@ -864,14 +864,14 @@
       }
     },
     "settings-ibroadcast": {
-      "page": "Settings' iBroadcast (item 443), one of Services' pages: Back to Services, its title; the account under its title and ⓘ: signed out, Sign in on iBroadcast (then the link to open, the code to approve Mandarin with there and Cancel, and how the sign-in is going); signed in, who, whether the account is Premium, the formats iBroadcast takes, and Sign out",
+      "page": "Settings' iBroadcast (item 443), one of Services' pages: Back to Services, its title; the account under its title and ⓘ: signed out, Sign in on iBroadcast (then the link to open, the code to approve Mandarin with there and Cancel, and how the sign-in is going); signed in, who, whether the account is Premium, the formats iBroadcast takes, its albums in the library on or off, Update library now, what the library holds of it (item 444), and Sign out",
       "native": ["android/app/src/main/java/com/musicd/server/android/SettingsIBroadcast.kt"],
       "preview": false,
       "items": {
         "back": { "kind": "action", "label": "Back to Services" },
         "heading": { "kind": "shows" },
         "title": { "kind": "shows" },
-        "info": { "kind": "action", "label": "About {setting}" },
+        "info": { "kind": "action", "label": "About {setting}", "each": true },
         "signin": { "kind": "action", "label": "Sign in on iBroadcast", "when": "not signed in, no sign-in under way" },
         "note": { "kind": "shows", "when": "a sign-in under way" },
         "link": { "kind": "action", "label": "{link}", "when": "a sign-in under way" },
@@ -881,6 +881,9 @@
         "name": { "kind": "shows", "each": true, "when": "signed in" },
         "premium": { "kind": "shows", "when": "signed in" },
         "formats": { "kind": "shows", "when": "signed in" },
+        "import": { "kind": "action", "label": "iBroadcast albums in the library", "when": "signed in" },
+        "update": { "kind": "action", "label": ["Update library now", "…"], "when": "signed in, its albums in the library" },
+        "library-status": { "kind": "shows", "when": "signed in" },
         "signout": { "kind": "action", "label": "Sign out", "when": "signed in" }
       }
     },

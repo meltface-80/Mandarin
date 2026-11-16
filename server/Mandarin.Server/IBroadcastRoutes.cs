@@ -5,6 +5,9 @@
 //   POST /api/settings/ibroadcast/signin          a code to approve on iBroadcast: the state, its pending among it
 //   POST /api/settings/ibroadcast/signin/cancel   the sign-in under way let go
 //   POST /api/settings/ibroadcast/signout         signed out, here and at iBroadcast
+//   POST /api/settings/ibroadcast                 { import }: iBroadcast's albums in the library or not (item 444)
+//   POST /api/settings/ibroadcast/library         Update library now: the library read again from iBroadcast
+// Signed in, the state carries the library's: { import, reading, albums, also_here, tracks, at }.
 //
 // Signed in, the account is read again from iBroadcast when the page asks and six hours have gone by since it was.
 // A failure is answered in iBroadcast's words, with its status (401: signed out, or to sign in again).
@@ -33,7 +36,16 @@ internal static partial class Library
                     if (IB.IBroadcast.Connected() && IB.IBroadcast.Account()?["checked"] is var at
                         && (at is not JsonValue v || !v.TryGetValue<double>(out var ms) || IB.IBroadcastApi.Now() - ms > IBroadcastRecheckMs))
                         _ = Task.Run(async () => { try { await ib.Describe(); } catch (ServiceError e) { Server.Log("[ibroadcast] the account couldn't be read: " + e.Message); } });
-                    return await Http.Json(ctx, ib.Status());
+                    return await Http.Json(ctx, WithLibrary(ib.Status()));
+                case "/api/settings/ibroadcast" when HttpMethods.IsPost(m):
+                    if (!IB.IBroadcast.Connected()) return await Http.Json(ctx, new JsonObject { ["error"] = "Not signed in to iBroadcast", ["connected"] = false }, 401);
+                    var (body, _) = await Http.ReadJs(ctx);
+                    if (body is Tags.JsObj o && o["import"] is bool on) await IB.IBroadcastLibrary.SetShown(on);
+                    return await Http.Json(ctx, WithLibrary(ib.Status()));
+                case "/api/settings/ibroadcast/library" when HttpMethods.IsPost(m):
+                    if (Jobs.IBroadcastLibrary is not { } lib || !IB.IBroadcast.Connected()) return await Http.Json(ctx, new JsonObject { ["error"] = "Not signed in to iBroadcast", ["connected"] = false }, 401);
+                    await lib.Read(true);
+                    return await Http.Json(ctx, WithLibrary(ib.Status()));
                 case "/api/settings/ibroadcast/signin" when HttpMethods.IsPost(m):
                     return await Http.Json(ctx, await ib.BeginSignIn());
                 case "/api/settings/ibroadcast/signin/cancel" when HttpMethods.IsPost(m):
@@ -51,5 +63,18 @@ internal static partial class Library
             if (e.Status == 401) o["connected"] = false;
             return await Http.Json(ctx, o, e.Status);
         }
+    }
+
+    /* The state with the library's, signed in: whether it is in the library, being read, and what the last reading found. */
+    private static JsonObject WithLibrary(JsonObject o)
+    {
+        if (o["connected"] is not JsonValue v || !v.GetValue<bool>()) return o;
+        var st = IB.IBroadcastLibrary.State();
+        o["library"] = new JsonObject
+        {
+            ["import"] = IB.IBroadcastLibrary.Shown(), ["reading"] = Jobs.IBroadcastLibrary?.Reading ?? false,
+            ["albums"] = st?["albums"]?.DeepClone(), ["also_here"] = st?["also_here"]?.DeepClone(), ["tracks"] = st?["tracks"]?.DeepClone(), ["at"] = st?["at"]?.DeepClone(),
+        };
+        return o;
     }
 }

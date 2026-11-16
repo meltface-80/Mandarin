@@ -4,7 +4,10 @@
  *   /oauth   the device sign-in (GET /device/code, POST /token: approved when the test says so, slow_down asked for
  *            once, expired or turned down on demand), the refresh, POST /revoke;
  *   /api     the JSON API: POST /<mode>, Bearer <access token>; "authenticated": false for a token made stale, as
- *            iBroadcast answers one. status gives the user, the settings and, asked for them, the supported types.
+ *            iBroadcast answers one. status gives the user, the settings and, asked for them, the supported types;
+ *   /library the library (item 444), as iBroadcast's library server sends it: each table an id → array of values with a
+ *            map naming the places; its status.lastmodified moved on by changed();
+ *   /artwork /artwork/<id>-<size>: a cover (a JPEG's first bytes).
  * What was asked for is recorded: the client id and scope a code was asked with, the bodies the API was sent.
  */
 const http = require("http");
@@ -13,7 +16,13 @@ const crypto = require("crypto");
 const hex = n => crypto.randomBytes(n).toString("hex");
 
 class FakeIBroadcast {
-  constructor({ user = { id: 4242, username: "tester", email_address: "tester@example.com", premium: true } } = {}) {
+  /* albums: [{ id, name, artist: { id, name }, disc, year, trashed, tracks: [{ id, title, track, length, type, genre, artwork_id, replay_gain, trashed }] }] */
+  constructor({ user = { id: 4242, username: "tester", email_address: "tester@example.com", premium: true }, albums = [] } = {}) {
+    this.albums = albums;
+    this.lastmodified = "2026-11-16 12:00:00";
+    this.libraryReads = 0;
+    this.artworkAsks = [];
+    this.refuseGrant = false;          // the device grant refused, as iBroadcast refuses an app not let use it
     this.user = user;
     this.supported = [{ extension: ".flac" }, { extension: ".mp3" }, { extension: ".wav" }, { extension: ".m4a" }];
     this.codes = new Map();            // device_code -> { userCode, approved, denied, clientId, scope }
@@ -36,6 +45,24 @@ class FakeIBroadcast {
   /* The latest code approved, as a person does on iBroadcast. */
   approve() { const c = [...this.codes.values()].pop(); if (c) c.approved = true; }
   deny() { const c = [...this.codes.values()].pop(); if (c) c.denied = true; }
+  /* The library changed: its lastmodified moved on. */
+  changed() { this.lastmodified = new Date().toISOString().replace("T", " ").slice(0, 19); }
+
+  /* The library as iBroadcast's library server sends it. */
+  library() {
+    const albums = { map: { name: 0, tracks: 1, artist_id: 2, trashed: 3, rating: 4, disc: 5, year: 6 } };
+    const artists = { map: { name: 0, tracks: 1, trashed: 2, rating: 3 } };
+    const tracks = { map: { track: 0, year: 1, title: 2, genre: 3, length: 4, album_id: 5, artwork_id: 6, artist_id: 7, enid: 8, uploaded_on: 9, trashed: 10,
+      size: 11, path: 12, uid: 13, rating: 14, plays: 15, file: 16, type: 17, replay_gain: 18, uploaded_time: 19 } };
+    for (const a of this.albums) {
+      albums[a.id] = [a.name, a.tracks.map(t => t.id), a.artist.id, !!a.trashed, 0, a.disc || 0, a.year || 0];
+      artists[a.artist.id] = [a.artist.name, [], false, 0];
+      for (const t of a.tracks) tracks[t.id] = [t.track, a.year || 0, t.title, t.genre || "", t.length || 60, a.id, t.artwork_id || 0, a.artist.id, "", "2026-11-16", !!t.trashed,
+        t.size || 1000, t.path || "", "", 0, 0, "/128/a/b/" + t.id, t.type || "audio/flac", t.replay_gain || "", "12:00:00"];
+    }
+    return { albums, artists, tracks, playlists: { map: { name: 0, tracks: 1 } }, tags: {}, trash: { map: { name: 0, tracks: 1 } } };
+  }
+
   /* The access token made stale: the next API call answers "authenticated": false. */
   expire() { this.stale.add(this.access); }
 
@@ -60,6 +87,7 @@ class FakeIBroadcast {
         const c = this.codes.get(f.device_code);
         if (!c) return json(400, { error: "invalid_grant" });
         if (c.denied) return json(400, { error: "access_denied" });
+        if (this.refuseGrant) return json(400, { message: "Unauthorized client: `grant_type` is invalid" });
         if (this.slowOnce) { this.slowOnce = false; return json(429, { error: "slow_down" }); }
         if (!c.approved) return json(400, { error: "authorization_pending" });
         this.codes.delete(f.device_code);
@@ -73,6 +101,18 @@ class FakeIBroadcast {
       }
       return json(400, { error: "unsupported_grant_type" });
     }
+    if (u.pathname.startsWith("/artwork/artwork/") && req.method === "GET") {
+      this.artworkAsks.push(u.pathname);
+      res.writeHead(200, { "Content-Type": "image/jpeg" });
+      return res.end(Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0, 16, 0x4a, 0x46, 0x49, 0x46, 0, 1, 1, 0, 0, 1, 0, 1, 0, 0, 0xff, 0xd9]));
+    }
+    if (u.pathname === "/library" && req.method === "POST") {
+      const auth = (req.headers.authorization || "").replace(/^Bearer /, "");
+      if (auth !== this.access || this.stale.has(auth)) return json(200, { result: false, authenticated: false });
+      this.libraryReads++;
+      return json(200, { result: true, message: "ok", library: this.library(), status: { timestamp: this.lastmodified, lastmodified: this.lastmodified },
+        settings: { streaming_server: this.base + "/streaming", artwork_server: this.base + "/artwork" } });
+    }
     if (u.pathname === "/oauth/revoke" && req.method === "POST") { this.revoked.push(form()); return json(200, { result: true }); }
     if (u.pathname.startsWith("/api/") && req.method === "POST") {
       const auth = (req.headers.authorization || "").replace(/^Bearer /, "");
@@ -82,7 +122,7 @@ class FakeIBroadcast {
       if (auth !== this.access || this.stale.has(auth)) return json(200, { result: false, authenticated: false, message: "Your session has expired" });
       if (u.pathname === "/api/status") {
         const o = { result: true, authenticated: true, message: "ok", user: Object.assign({ token: "legacy-token" }, this.user),
-          settings: { streaming_server: this.base + "/streaming", artwork_server: this.base + "/artwork" }, status: { timestamp: "2026-11-16 12:00:00", lastmodified: "2026-11-16 12:00:00" } };
+          settings: { streaming_server: this.base + "/streaming", artwork_server: this.base + "/artwork" }, status: { timestamp: this.lastmodified, lastmodified: this.lastmodified } };
         if (b.supported_types) o.supported = this.supported;
         return json(200, o);
       }

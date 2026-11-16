@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
@@ -39,6 +40,8 @@ import com.musicd.server.client.IBroadcastSettings
 import com.musicd.server.client.Palette
 import com.musicd.server.client.ServerClient
 import kotlinx.coroutines.delay
+import java.text.DateFormat
+import java.util.Date
 import kotlinx.coroutines.launch
 import org.json.JSONObject
 
@@ -56,16 +59,21 @@ internal fun SettingsIBroadcast(client: () -> ServerClient?, onBack: () -> Unit)
     val scope = rememberCoroutineScope()
     var info by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(info) { val t = info ?: return@LaunchedEffect; delay(minOf(25_000L, 4_000L + t.split(Regex("\\s+")).size * 220L)); info = null }
-    var account by remember { mutableStateOf(keptSetting("ibroadcast")?.let { runCatching { IBroadcastSettings.parse(it) }.getOrNull() }) }
+    val dates = remember { DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT) }
+    val at = { ms: Long -> dates.format(Date(ms)) }
+    var account by remember { mutableStateOf(keptSetting("ibroadcast")?.let { runCatching { IBroadcastSettings.parse(it, at) }.getOrNull() }) }
     var busy by remember { mutableStateOf(false) }
-    fun show(j: JSONObject) { account = IBroadcastSettings.parse(j) }
+    var updating by remember { mutableStateOf(false) }
+    fun show(j: JSONObject) { account = IBroadcastSettings.parse(j, at) }
     suspend fun load() { readSetting(client, "ibroadcast")?.let(::show) }
     LaunchedEffect(Unit) { while (true) { untilOnScreen(); load(); delay(if (account?.again == true) 2_000L else 30_000L) } }
-    fun change(path: String, done: (JSONObject) -> Unit = ::show) {
+    fun change(path: String, body: JSONObject = JSONObject(), timeout: Int = 20_000, done: (JSONObject) -> Unit = ::show) {
         val c = client() ?: return
-        val made = ServerWrites.write { c.post("/api/settings/ibroadcast$path", JSONObject(), 20_000).also { j -> j.optString("error").takeIf { it.isNotEmpty() }?.let { throw IllegalStateException(it) } } }
+        val call = { c.post("/api/settings/ibroadcast$path", body, timeout).also { j -> j.optString("error").takeIf { it.isNotEmpty() }?.let { throw IllegalStateException(it) } } }
+        // Update library now reads the whole library: beside the lane, so a change asked meanwhile isn't held (item 390).
+        val made = if (timeout > ServerWrites.LANE_MOST) ServerWrites.aside(call) else ServerWrites.write(call)
         scope.launch {
-            ServerWrites.await(made).onSuccess(done).onFailure { busy = false; setupToast(context, com.musicd.server.client.Failure.said(it, "Couldn't reach the server")); load() }
+            ServerWrites.await(made).onSuccess(done).onFailure { busy = false; updating = false; setupToast(context, com.musicd.server.client.Failure.said(it, "Couldn't reach the server")); load() }
         }
     }
     Box(Modifier.fillMaxSize()) {
@@ -101,11 +109,33 @@ internal fun SettingsIBroadcast(client: () -> ServerClient?, onBack: () -> Unit)
                 Column(Modifier.padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Fact("Premium", a.premium, Modifier.parity("settings-ibroadcast.premium"))
                     Fact("Formats iBroadcast takes", a.formats, Modifier.parity("settings-ibroadcast.formats"))
+                    val importName = "iBroadcast albums in the library"
+                    Row(Modifier.fillMaxWidth().heightIn(min = 44.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                        Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
+                            Text(importName, Modifier.parity("settings-ibroadcast.name").weight(1f, fill = false), color = paletteColor(Palette.TEXT), fontSize = 16.sp, lineHeight = 22.sp)
+                            Box(Modifier.parity("settings-ibroadcast.info", Contract.label("settings-ibroadcast.info", 0, importName)).clickable { info = IBroadcastSettings.IMPORT_INFO }.size(32.dp).padding(start = 4.dp),
+                                contentAlignment = Alignment.Center) { Text("ⓘ", color = paletteColor(Palette.TEXT_FAINT), fontSize = 16.sp, lineHeight = 16.sp) }
+                        }
+                        Toggle(a.import, Modifier.parity("settings-ibroadcast.import", Contract.label("settings-ibroadcast.import")).clickable {
+                            val on = !a.import
+                            account = a.copy(import = on)
+                            // The walls and Home read afresh as each opens: the albums are in or out.
+                            change("", JSONObject().put("import", on)) { j -> show(j); HomeKept.reset() }
+                        })
+                    }
                 }
-                SetupButton("Sign out", busy, Modifier.parity("settings-ibroadcast.signout", Contract.label("settings-ibroadcast.signout")).padding(top = 6.dp).clickable(enabled = !busy) {
-                    busy = true
-                    change("/signout") { j -> busy = false; setupToast(context, "Signed out of iBroadcast"); show(j) }
-                })
+                Row(Modifier.padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (a.import) SetupButton("Update library now", updating, Modifier.parity("settings-ibroadcast.update", Contract.label("settings-ibroadcast.update")).clickable(enabled = !updating) {
+                        updating = true
+                        account = a.copy(libraryStatus = IBroadcastSettings.READING)
+                        change("/library", timeout = 600_000) { j -> updating = false; show(j); HomeKept.reset() }
+                    })
+                    SetupButton("Sign out", busy, Modifier.parity("settings-ibroadcast.signout", Contract.label("settings-ibroadcast.signout")).clickable(enabled = !busy) {
+                        busy = true
+                        change("/signout") { j -> busy = false; setupToast(context, "Signed out of iBroadcast"); show(j); HomeKept.reset() }
+                    })
+                }
+                StatusLine(a.libraryStatus, Modifier.parity("settings-ibroadcast.library-status").padding(top = 4.dp))
             }
         }
         info?.let { InfoTip(it, Modifier.parity("settings-ibroadcast.info")) }
