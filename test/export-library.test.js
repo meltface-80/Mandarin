@@ -3,8 +3,9 @@
  * Export library (item 436): the library's own files as the CSV Mandarin Migration reads to add them to a Qobuz account
  * (musicd-migrate's docs/library-csv.md): one row per track, its header first, each album's album and album artist and
  * barcode on every row of it, a title holding a comma quoted; two versions of one
- * record told apart by their versions' words, as the migration app would otherwise make one album of them; how many
- * albums, tracks and barcodes went in said in X-Mandarin-Export; saved under the server's name for it.
+ * record (one title, one artist), which the migration app takes for one album, written once, the one with a barcode,
+ * its title its own (item 442: they were told apart by words added to it, "Moanin' (2014)"); how many albums, tracks
+ * and barcodes went in, and what was left out, said in X-Mandarin-Export; saved under the server's name for it.
  */
 const ports = require("./ports");
 const test = require("node:test");
@@ -68,11 +69,11 @@ test("item 436: Export library writes the migration app's CSV of the library's o
     assert.equal(r.status, 200);
     assert.match(r.headers.get("content-type") || "", /^text\/csv/);
     assert.match(r.headers.get("content-disposition") || "", /attachment; filename="mandarin-library-\d{4}-\d{2}-\d{2}\.csv"/);
-    assert.equal(r.headers.get("x-mandarin-export"), "albums=4; tracks=5; barcodes=2");
+    assert.equal(r.headers.get("x-mandarin-export"), "albums=3; tracks=4; barcodes=2; left_out=1; copies=0; from_path=0; stripped=0");
     const text = await r.text();
     const t = rows(text);
-    assert.deepEqual(t[0], ["album_artist", "album", "disc", "track", "title", "artist", "barcode", "isrc", "duration", "year"]);
-    assert.equal(t.length, 6, "a header and a row a track");
+    assert.deepEqual(t[0], ["album_artist", "album", "disc", "track", "title", "artist", "barcode", "isrc", "duration", "year", "from_path", "stripped"]);
+    assert.equal(t.length, 5, "a header and a row a track");
 
     const mop = t.filter(x => x[1] === "Master Of Puppets");
     assert.equal(mop.length, 2);
@@ -86,12 +87,9 @@ test("item 436: Export library writes the migration app's CSV of the library's o
     assert.equal(mop[0][7], "USEE10001992");
     assert.ok(Number(mop[0][8]) >= 1 && Number(mop[0][8]) <= 3, "the length in seconds: " + mop[0][8]);
 
-    // Two versions of one record: two albums to the migration app, each with its version's words.
-    const moanin = t.filter(x => x[0] === "Art Blakey").map(x => x[1]);
-    assert.equal(moanin.length, 2);
-    assert.notEqual(moanin[0], moanin[1], "told apart: " + moanin.join(" / "));
-    for (const m of moanin) assert.match(m, /^Moanin' \(.+\)$/);
-    assert.ok(t.some(x => x[0] === "Art Blakey" && x[6] === "0602537000001"));
+    // Two versions of one record: one album to the migration app, its title its own, the version with a barcode.
+    const moanin = t.filter(x => x[0] === "Art Blakey");
+    assert.deepEqual(moanin.map(x => [x[1], x[6], x[9]]), [["Moanin'", "0602537000001", "2014"]]);
 
     const so = t.find(x => x[1] === "Kind Of Blue");
     assert.equal(so[6], "", "no barcode: none made up");

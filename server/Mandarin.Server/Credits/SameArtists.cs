@@ -71,13 +71,20 @@ internal sealed class SameArtists
         return new SameArtists(canon);
     }
 
-    /* [artist] with each act in it written as that artist is: "Mariana Semkina" → "Marjana Semkina". */
+    /*
+     * [artist] with each act in it written as that artist is: "Mariana Semkina" → "Marjana Semkina". Never into a name
+     * of two acts, nor one the credit already names (item 442): "The Jazz Messengers", filed under the id of "Art Blakey &
+     * The Jazz Messengers", made "Art Blakey & Art Blakey & The Jazz Messengers" of the band's own albums.
+     */
     public string Rewrite(string artist)
     {
         if (canon.Count == 0) return artist;
+        var acts = Names.SplitArtists(artist).Select(Names.ArtistKey).ToHashSet(StringComparer.Ordinal);
         foreach (var n in Names.SplitArtists(artist))
         {
             if (!canon.TryGetValue(Names.ArtistKey(n), out var w) || w == n) continue;
+            var key = Names.ArtistKey(w);
+            if (Names.SplitArtists(w).Count() != 1 || (key != Names.ArtistKey(n) && acts.Contains(key))) continue;
             var at = artist.IndexOf(n, StringComparison.Ordinal);
             if (at >= 0) artist = string.Concat(artist.AsSpan(0, at), w, artist.AsSpan(at + n.Length));
         }
