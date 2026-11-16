@@ -17,7 +17,9 @@ internal static partial class TagReader
     private static void Ids(JsObj r, JsObj c, Func<string, object?> tag)
     {
         r["isrc"] = Clean(Or(() => First(c["isrc"]), () => tag("ISRC"), () => tag("TSRC")));
-        r["barcode"] = Digits(Or(() => First(c["barcode"]), () => tag("BARCODE"), () => tag("UPC"), () => tag("EAN")));
+        // UPC and EAN as ID3v2 and MP4 name them too (item 442): TXXX:UPC, ----:com.apple.iTunes:UPC.
+        r["barcode"] = Digits(Or(() => First(c["barcode"]), () => tag("BARCODE"), () => tag("UPC"), () => tag("EAN"), () => tag("TXXX:UPC"), () => tag("TXXX:EAN"),
+            () => tag("----:COM.APPLE.ITUNES:UPC"), () => tag("----:COM.APPLE.ITUNES:EAN")));
         r["catno"] = Clean(Or(() => First(c["catalognumber"]), () => tag("CATALOGNUMBER"), () => tag("LABELNO"), () => tag("CATALOG")));
         r["country"] = Clean(Or(() => c["releasecountry"], () => tag("RELEASECOUNTRY")));
         r["mb_album"] = Clean(c["musicbrainz_albumid"]);

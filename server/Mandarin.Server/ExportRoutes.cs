@@ -5,15 +5,16 @@
 //                                 (musicd-migrate's docs/library-csv.md): album_artist, album, disc, track, title, artist,
 //                                 barcode, isrc, duration, year, comma-separated, UTF-8, a header first, quoted RFC 4180.
 //
-// Its album and album artist are the album's as Mandarin shows it (your edits included), the same on every row of it,
-// which is how the migration app groups rows into albums. Its barcode, the strongest evidence of a release there is, is
-// the album's version's (Edit album's own, else the match applied's, else the files' tags'), else the first a track's
-// tags carry; the same on every row. A track's title is its corrected one where you corrected it. The migration app
-// groups by title and artist alone, so two albums of this library with one title and one artist (versions of one
-// record: three Moanin's) would become one album there, one barcode lost: each of those has its version's words added
-// to its title ("Moanin' (Blue Note Tone Poet)"), which that app's matching takes as an edition's, never as a
-// different record. How many albums, tracks and barcodes went in is said in X-Mandarin-Export, for the page and the app
-// to say after the download.
+//                                 Two columns more, which that app passes over: from_path (what a folder's name gave, no tag
+//                                 saying it: album_artist, album, title, artist) and stripped (the notes taken off the
+//                                 album's title or artist, for the tags to be put right where they are wrong).
+//
+// Each album as its files say it (Export/ExportAlbums.cs, item 442): the album-artist tag as tagged, the album tag with
+// its notes stripped (Export/ExportNotes.cs), one copy of a record merged twice into one album, the barcode however the
+// files carry it. The migration app groups rows by album title and artist: one album a title and artist is written, a
+// set ripped a disc an album made one again, and any other of one title and artist left out and said in the log. How
+// many albums, tracks and barcodes went in, and what was left out, is said in X-Mandarin-Export, for the page and the app
+// to say after the download; the export's own checks of what it wrote are said in the log.
 using System.Globalization;
 using System.Text;
 
@@ -21,7 +22,7 @@ namespace Mandarin.Server;
 
 internal static partial class Library
 {
-    private const string ExportHeader = "album_artist,album,disc,track,title,artist,barcode,isrc,duration,year";
+    private const string ExportHeader = "album_artist,album,disc,track,title,artist,barcode,isrc,duration,year,from_path,stripped";
 
     /* GET /api/export/library.csv: true when answered here. */
     private static async Task<bool> ExportRoute(HttpContext ctx)
@@ -30,72 +31,90 @@ internal static partial class Library
         var get = HttpMethods.IsGet(ctx.Request.Method) || HttpMethods.IsHead(ctx.Request.Method);
         if (!(get && p == "/api/export/library.csv")) return false;
         if (await CurrentState() is not var (s, _)) return await Http.Error(ctx, 503, "The library isn't ready yet: try again in a moment.");
-        var (csv, albums, tracks, barcodes) = ExportCsv(s);
-        Server.Log($"[export] library.csv: {albums} albums, {tracks} tracks, {barcodes} with a barcode");
+        var (csv, said) = ExportCsv(s);
+        Server.Log($"[export] library.csv: {said.Albums} albums, {said.Tracks} tracks, {said.Barcodes} with a barcode; {said.LeftOut} left out as another of one title and artist, "
+            + $"{said.CopiesLeftOut} with a second copy left out, {said.FromPath} with a value from a folder's name, {said.Stripped} with notes stripped; its checks: {said.Checks}");
         var h = ctx.Response.Headers;
         h.ContentDisposition = $"attachment; filename=\"mandarin-library-{DateTime.Now.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)}.csv\"";
         h.CacheControl = "no-store";
-        h["X-Mandarin-Export"] = $"albums={albums}; tracks={tracks}; barcodes={barcodes}";
+        h["X-Mandarin-Export"] = said.Header;
         h.AccessControlExposeHeaders = "X-Mandarin-Export";
         return await Http.Send(ctx, Encoding.UTF8.GetBytes(csv), "text/csv; charset=utf-8");
     }
 
-    /* The CSV of every album of files in [s], and how many albums, tracks and albums with a barcode it holds. */
-    internal static (string Csv, int Albums, int Tracks, int Barcodes) ExportCsv(Snapshot s)
+    /* The CSV of every album of files in [s] (ExportAlbums.cs), and what went in. */
+    internal static (string Csv, ExportSaid Said) ExportCsv(Snapshot s)
     {
-        var local = s.Albums.Where(a => a.Service == null).ToList();
-        // Albums the migration app would take for one (one title, one artist): told apart by their versions' words.
-        var titles = ExportTitles(local.Select(a => (a.Title, a.Artist, a.VersionEdition ?? (a.ReleaseYear ?? a.Year)?.ToString(CultureInfo.InvariantCulture))).ToList());
-        var sb = new StringBuilder(ExportHeader).Append("\r\n");
-        int albums = 0, tracks = 0, barcodes = 0;
         using var c = Db.Open();
-        for (var n = 0; n < local.Count; n++)
+        var edits = Rows(c, "SELECT key, title, artist FROM album_edits").ToDictionary(r => (string)r[0]!, r => (Text(r[1]), Text(r[2])));
+        var pack = Jobs.Packs?.Get();
+        var all = s.Albums.Where(a => a.Service == null).Select(a => ExportOne(c, s, a, edits, pack)).OfType<ExportAlbum>().ToList();
+
+        // One album a title and artist, as the migration app groups rows: a set ripped a disc an album ("… CD1", "… CD2")
+        // one album again, its discs in the disc column; else the copy with a barcode, then the most tracks, kept.
+        var albums = new List<ExportAlbum>();
+        var leftOut = new List<ExportAlbum>();
+        foreach (var g in all.GroupBy(a => ExportCanon(a.Title) + "|" + ExportCanon(a.Artist)))
         {
-            var al = local[n];
-            var rows = Rows(c, "SELECT title, artist, disc_no, track_no, duration, isrc, barcode FROM tracks WHERE album_id = $1 ORDER BY COALESCE(disc_no,1), COALESCE(track_no, 9999), path", (double)al.Id);
-            if (rows.Count == 0) continue;
-            s.TrackEdits.TryGetValue(al.Key, out var edits);
-            var version = VersionBase(c, al);
-            var code = ExportBarcode(al.VersionOwn?.GetValueOrDefault("barcode") ?? version["barcode"].Value)
-                ?? rows.Select(r => ExportBarcode(Text(r[6]))).FirstOrDefault(b => b != null) ?? "";
-            albums++;
-            if (code.Length > 0) barcodes++;
-            var year = al.Year?.ToString(CultureInfo.InvariantCulture) ?? "";
-            for (var i = 0; i < rows.Count; i++)
+            var best = g.OrderByDescending(a => a.Barcode.Length > 0).ThenBy(a => a.NumberedCopy).ThenByDescending(a => a.Tracks.Count).ThenBy(a => a.Al.Id).ToList();
+            if (g.All(a => a.Disc != null) && g.Select(a => a.Disc).Distinct().Count() > 1)
             {
-                var r = rows[i];
-                string? edited = null;
-                edits?.TryGetValue(Identify.Identifier.TrackPos(r[2], r[3], i), out edited);
-                var artist = Text(r[1]) ?? al.Artist;
-                var seconds = r[4] is double d ? Math.Round(d).ToString(CultureInfo.InvariantCulture) : "";
-                ExportRow(sb, al.Artist, titles[n], Num(r[2]) ?? "1", Num(r[3]) ?? "", edited ?? Text(r[0]) ?? "", artist, code, Text(r[5]) ?? "", seconds, year);
-                tracks++;
+                var discs = best.GroupBy(a => a.Disc).Select(d => d.First()).OrderBy(a => a.Disc).ToList();
+                var set = discs.FirstOrDefault(a => a.Barcode.Length > 0) ?? discs[0];
+                var one = new ExportAlbum { Al = set.Al, Artist = set.Artist, Title = set.Title, Year = discs.Select(a => a.Year).FirstOrDefault(y => y.Length > 0) ?? "",
+                    Barcode = set.Barcode, Tracks = [.. discs.SelectMany(a => a.Tracks)], FromPath = [.. discs.SelectMany(a => a.FromPath).Distinct()],
+                    Stripped = [.. discs.SelectMany(a => a.Stripped).Distinct()], CopyLeftOut = discs.Sum(a => a.CopyLeftOut) };
+                albums.Add(one);
+                leftOut.AddRange(best.Except(discs));
+            }
+            else
+            {
+                albums.Add(best[0]);
+                leftOut.AddRange(best.Skip(1));
             }
         }
-        return (sb.ToString(), albums, tracks, barcodes);
+
+        var sb = new StringBuilder(ExportHeader).Append("\r\n");
+        var said = new ExportSaid();
+        foreach (var x in albums)
+        {
+            // Each disc and number once: a repeat left is another copy's.
+            var seen = new HashSet<(int, int)>();
+            var tracks = x.Tracks.Where(t => t.No is not int n || seen.Add((t.Disc, n))).OrderBy(t => t.Disc).ThenBy(t => t.No ?? int.MaxValue).ToList();
+            said.Albums++;
+            if (x.Barcode.Length > 0) said.Barcodes++;
+            if (x.FromPath.Count > 0) said.FromPath++;
+            if (x.Stripped.Count > 0) said.Stripped++;
+            said.CopiesLeftOut += x.CopyLeftOut + x.Tracks.Count - tracks.Count > 0 ? 1 : 0;
+            var stripped = string.Join("; ", x.Stripped);
+            foreach (var t in tracks)
+            {
+                var from = string.Join(' ', x.FromPath.Concat(t.FromPath.Length > 0 ? [t.FromPath] : []));
+                ExportRow(sb, x.Artist, x.Title, t.Disc.ToString(CultureInfo.InvariantCulture), t.No?.ToString(CultureInfo.InvariantCulture) ?? "", t.Title, t.Artist,
+                    x.Barcode, t.Isrc, t.Seconds, x.Year, from, stripped);
+                said.Tracks++;
+            }
+            ExportCheck(said, x.Artist, x.Title);
+        }
+        said.LeftOut = leftOut.Count;
+        foreach (var x in leftOut) Server.Log($"[export] left out, the same title and artist as an album exported: {x.Al.Artist} — {x.Al.Title} ({x.Tracks.Count} tracks, {x.Al.Dir})");
+        return (sb.ToString(), said);
     }
 
-    /*
-     * Each album's title as exported, by its index in [albums] ((title, artist, its version's words)): its own, but for
-     * two or more of one title and one artist as the migration app compares them, each then with its version's words
-     * added, and a number after any that are still alike.
-     */
-    internal static List<string> ExportTitles(List<(string Title, string Artist, string? Version)> albums)
+    /* What an export held, and what its own checks found (each 0 where it is right). */
+    internal sealed class ExportSaid
     {
-        var groups = albums.Select((a, i) => (Key: ExportCanon(a.Title) + "|" + ExportCanon(a.Artist), i)).GroupBy(g => g.Key).ToList();
-        var titles = albums.Select(a => a.Title).ToList();
-        foreach (var g in groups.Where(g => g.Count() > 1))
-        {
-            var taken = new HashSet<string>(StringComparer.Ordinal);
-            foreach (var (_, i) in g)
-            {
-                var (title, _, version) = albums[i];
-                var t = string.IsNullOrWhiteSpace(version) ? title : $"{title} ({version})";
-                for (var k = 2; !taken.Add(ExportCanon(t)); k++) t = (string.IsNullOrWhiteSpace(version) ? title : $"{title} ({version})") + $" ({k})";
-                titles[i] = t;
-            }
-        }
-        return titles;
+        public int Albums, Tracks, Barcodes, FromPath, Stripped, LeftOut, CopiesLeftOut, ArtistTwice, TitleNoted;
+        public string Header => $"albums={Albums}; tracks={Tracks}; barcodes={Barcodes}; left_out={LeftOut}; copies={CopiesLeftOut}; from_path={FromPath}; stripped={Stripped}";
+        public string Checks => $"an act twice in the album artist {ArtistTwice}, a note in the title or a folder's word in either {TitleNoted}";
+    }
+
+    /* The export's own checks of an album as written: no act twice in its artist; no note left in its title. */
+    private static void ExportCheck(ExportSaid said, string artist, string title)
+    {
+        var acts = Names.SplitArtists(artist).Select(Names.ArtistKey).Where(k => k.Length > 0).ToList();
+        if (acts.Count != acts.Distinct(StringComparer.Ordinal).Count()) said.ArtistTwice++;
+        if (Export.ExportNotes.Noted(title) || artist.Contains("Discography", StringComparison.OrdinalIgnoreCase) || artist.Contains("_ ", StringComparison.Ordinal)) said.TitleNoted++;
     }
 
     /* A name as the migration app compares names (its Canon.canon): lower case, no accents nor apostrophes, & as and, the rest of what isn't a letter or digit a space. */
@@ -119,8 +138,6 @@ internal static partial class Library
         var d = new string(raw.Where(char.IsAsciiDigit).ToArray());
         return d.Length is >= 8 and <= 14 ? d : null;
     }
-
-    private static string? Num(object? v) => v is long l && l > 0 ? l.ToString(CultureInfo.InvariantCulture) : v is double d && d > 0 ? ((long)d).ToString(CultureInfo.InvariantCulture) : null;
 
     /* One row, each cell quoted where it holds a comma, a quote or a line break (RFC 4180). */
     private static void ExportRow(StringBuilder sb, params string[] cells)
