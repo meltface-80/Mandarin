@@ -136,6 +136,9 @@ object Scanner {
     /** Schedule's line under its name. */
     fun scheduleNote(on: Boolean): String = if (on) "Runs only between these times" else "Off: runs any time, day and night"
 
+    /** iBroadcast's upload window ([w]: { start, end }; none where none is set), said under the schedule (item 447; scannerUploadNote). */
+    fun uploadNote(w: JSONObject?): String? = w?.let { "iBroadcast uploads run ${it.optString("start")}–${it.optString("end")}: these hours can't overlap them." }
+
     // ------------------------------------------------------------ the processor and the clean-up
 
     /** The processor's line; none until the server has answered. */

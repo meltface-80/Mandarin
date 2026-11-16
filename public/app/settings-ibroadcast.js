@@ -3,7 +3,8 @@
  * account's name, whether it is Premium, the formats iBroadcast takes, its albums in the library on or off, Update
  * library now and what the library holds of it (item 444), and Sign out; then Upload (item 446): how the one under way
  * is going (asked every two seconds while it goes), or what the last one did, Upload now and Stop upload, and the files
- * left out or not sent, with why. The app's page is its own (SettingsIBroadcast.kt), worded the same (core's
+ * left out or not sent, with why; and the upload on a schedule (item 447): its switch and hours, which can't overlap the
+ * Library Scanner's (those said under them; a window that would is refused, in the server's words). The app's page is its own (SettingsIBroadcast.kt), worded the same (core's
  * IBroadcastSettings.kt). */
 
 /** What the page says of the account ([j]: GET /api/settings/ibroadcast). @param {any} j */
@@ -64,6 +65,18 @@ function ibroadcastUploadWords(u, at) {
   return { running: false, status: how + " · " + at(u.finished), progress: said.join(" · "), problems };
 }
 
+/** What the upload schedule's switch says (item 447). @param {boolean} on */
+function ibroadcastScheduleNote(on) {
+  return on ? "Uploads each day between these times, stopping at the end" : "Off: uploads only when you tap Upload now";
+}
+
+/** The Library Scanner's hours, said beside the upload window's ([h]: the state's scanner_hours). @param {any} h */
+function ibroadcastScannerHours(h) {
+  if (!h) return "";
+  return h.on ? "The Library Scanner runs " + h.start + "–" + h.end + ": the upload window can't overlap it."
+    : "The Library Scanner has no hours (its Schedule is off): give it hours in Library Scanner to upload on a schedule.";
+}
+
 (function initIBroadcast() {
   if (EMBED) return;   // not in the Shelf's frame (embed-flag.js)
   const $ = (/** @type {string} */ id) => document.getElementById(id);
@@ -73,6 +86,8 @@ function ibroadcastUploadWords(u, at) {
   const importBox = /** @type {HTMLInputElement|null} */ ($("ib-import")), libraryNow = $("ib-library-now"), libraryStatus = $("ib-library-status");
   const uploadBlock = $("ib-upload-block"), uploadNow = $("ib-upload-now"), uploadStop = $("ib-upload-stop");
   const uploadStatus = $("ib-upload-status"), uploadProgress = $("ib-upload-progress"), uploadProblems = $("ib-upload-problems");
+  const schedBox = /** @type {HTMLInputElement|null} */ ($("ib-schedule")), schedNote = $("ib-schedule-note"), schedTimes = $("ib-schedule-times");
+  const startBox = /** @type {HTMLInputElement|null} */ ($("ib-start")), endBox = /** @type {HTMLInputElement|null} */ ($("ib-end")), scannerHours = $("ib-scanner-hours");
   const when = (/** @type {number} */ ms) => new Date(ms).toLocaleString([], { dateStyle: "medium", timeStyle: "short" });
   if (!signin || !status) return;
   /** @type {ReturnType<typeof setTimeout>|undefined} */
@@ -100,14 +115,21 @@ function ibroadcastUploadWords(u, at) {
     if (uploadProblems) uploadProblems.textContent = up.problems;
     if (uploadNow) uploadNow.classList.toggle("hidden", up.running);
     if (uploadStop) uploadStop.classList.toggle("hidden", !up.running);
+    const sch = (w.on && j.schedule) || { on: false, start: "", end: "" };
+    if (schedBox) schedBox.checked = !!sch.on;
+    if (schedNote) schedNote.textContent = ibroadcastScheduleNote(!!sch.on);
+    if (schedTimes) schedTimes.hidden = !sch.on;
+    if (startBox && document.activeElement !== startBox) startBox.value = sch.start;
+    if (endBox && document.activeElement !== endBox) endBox.value = sch.end;
+    if (scannerHours) scannerHours.textContent = w.on ? ibroadcastScannerHours(j.scanner_hours) : "";
     clearTimeout(again);
     if ((w.pending && !w.pending.error) || w.reading || (w.on && up.running)) again = setTimeout(look, 2000);
   }
   async function look() {
     try { paint(await (await fetch("/api/settings/ibroadcast", { cache: "no-store" })).json()); } catch (e) { /* the page shows the last state */ }
   }
-  /** @param {string} path */
-  const post = path => fetch("/api/settings/ibroadcast" + path, { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
+  /** @param {string} path @param {object} [body] */
+  const post = (path, body = {}) => fetch("/api/settings/ibroadcast" + path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
 
   signin.addEventListener("click", async () => {
     signin.setAttribute("disabled", "");
@@ -151,6 +173,19 @@ function ibroadcastUploadWords(u, at) {
       } catch (e) { settingsToast(/** @type {Error} */ (e).message, "error"); look(); }
       finally { button.removeAttribute("disabled"); }
     });
+  }
+  /* The schedule changed ([patch]: on, start or end): kept, or refused in the server's words and put back. @param {object} patch */
+  async function schedule(patch) {
+    try {
+      const r = await post("/schedule", patch);
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error || "Couldn't keep the schedule");
+      paint(j);
+    } catch (e) { settingsToast(/** @type {Error} */ (e).message, "error"); look(); }
+  }
+  if (schedBox) schedBox.addEventListener("change", () => schedule({ on: schedBox.checked }));
+  for (const [box, key] of /** @type {[HTMLInputElement|null, string][]} */ ([[startBox, "start"], [endBox, "end"]])) {
+    if (box) box.addEventListener("change", () => { if (box.value) schedule({ [key]: box.value }); });
   }
   if (cancel) cancel.addEventListener("click", async () => { await post("/signin/cancel").catch(() => {}); look(); });
   if (signout) signout.addEventListener("click", async () => {

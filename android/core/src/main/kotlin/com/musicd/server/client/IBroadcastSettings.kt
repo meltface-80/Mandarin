@@ -30,6 +30,11 @@ data class IBroadcastAccount(
     val libraryStatus: String = "",
     /** The upload (item 446), as the page says it. */
     val upload: IBroadcastUploadWords = IBroadcastUploadWords(false, "", "", ""),
+    /** The upload on a schedule (item 447): on or off, its hours, and the Library Scanner's said beside them. */
+    val schedule: Boolean = false,
+    val start: String = "",
+    val end: String = "",
+    val scannerHours: String = "",
 ) {
     /** The address of a sign-in under way, without its scheme. */
     val linkText: String get() = pendingUrl?.replace(Regex("^https?://"), "") ?: ""
@@ -64,7 +69,19 @@ object IBroadcastSettings {
         val import = l?.opt("import") != false
         val reading = on && l?.optBoolean("reading") == true
         return IBroadcastAccount(on, status, premium, formats, pending?.optString("url")?.takeIf { it.isNotEmpty() }, pending?.optString("code").orEmpty(),
-            pending?.optString("error").orEmpty().isNotEmpty(), import, reading, if (on) libraryWords(l, at) else "", uploadWords(if (on) j.optJSONObject("upload") else null, at))
+            pending?.optString("error").orEmpty().isNotEmpty(), import, reading, if (on) libraryWords(l, at) else "", uploadWords(if (on) j.optJSONObject("upload") else null, at),
+            on && j.optJSONObject("schedule")?.optBoolean("on") == true, j.optJSONObject("schedule")?.optString("start").orEmpty(),
+            j.optJSONObject("schedule")?.optString("end").orEmpty(), if (on) scannerHours(j.optJSONObject("scanner_hours")) else "")
+    }
+
+    /** What the upload schedule's switch says (item 447; ibroadcastScheduleNote). */
+    fun scheduleNote(on: Boolean): String = if (on) "Uploads each day between these times, stopping at the end" else "Off: uploads only when you tap Upload now"
+
+    /** The Library Scanner's hours, said beside the upload window's ([h]: the state's scanner_hours; ibroadcastScannerHours). */
+    fun scannerHours(h: JSONObject?): String = when {
+        h == null -> ""
+        h.optBoolean("on") -> "The Library Scanner runs ${h.optString("start")}–${h.optString("end")}: the upload window can't overlap it."
+        else -> "The Library Scanner has no hours (its Schedule is off): give it hours in Library Scanner to upload on a schedule."
     }
 
     /** A size in bytes as the page says it (ibroadcastSize): "512 KB", "3.4 MB", "1.2 GB". */

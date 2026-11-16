@@ -1830,6 +1830,14 @@
             <button id="ib-upload-stop" data-parity="settings-ibroadcast.upload-stop" class="settings-update-btn hidden" type="button">Stop upload</button>
           </div>
           <div id="ib-upload-problems" data-parity="settings-ibroadcast.upload-problems" class="settings-token-status ib-upload-problems"></div>
+          <div class="settings-row"><span class="settings-label" data-parity="settings-ibroadcast.name">Upload on a schedule</span>
+            <label class="switch" data-parity="settings-ibroadcast.schedule"><input type="checkbox" id="ib-schedule" aria-label="Upload on a schedule"><span class="switch-track"><span class="switch-thumb"></span></span></label></div>
+          <div id="ib-schedule-note" data-parity="settings-ibroadcast.schedule-note" class="settings-token-status"></div>
+          <div id="ib-schedule-times" class="settings-row ib-times" hidden><span class="settings-label" data-parity="settings-ibroadcast.name">From</span>
+            <input type="time" id="ib-start" data-parity="settings-ibroadcast.start" class="id-time" aria-label="From">
+            <span class="settings-label" data-parity="settings-ibroadcast.name">to</span>
+            <input type="time" id="ib-end" data-parity="settings-ibroadcast.end" class="id-time" aria-label="To"></div>
+          <div id="ib-scanner-hours" data-parity="settings-ibroadcast.scanner-hours" class="settings-token-status"></div>
         </div>
       </div>
 

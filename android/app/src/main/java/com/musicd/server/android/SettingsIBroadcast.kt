@@ -51,7 +51,8 @@ import org.json.JSONObject
  * iBroadcast, which opens iBroadcast with a code to approve Mandarin with there, and is waited for (asked again every two
  * seconds) until it lands. Signed in, who, whether the account is Premium, the formats iBroadcast takes, and Sign out;
  * then Upload (item 446): how the one under way is going (asked again every two seconds while it goes), or what the last
- * one did, Upload now or Stop upload, and the files left out or not sent.
+ * one did, Upload now or Stop upload, and the files left out or not sent; and on a schedule (item 447), its switch and
+ * hours beside the Library Scanner's, which they can't overlap (a window that would refused, in the server's words).
  */
 
 /** Settings' iBroadcast page ([client]: the server's, [onBack]: back to Services). */
@@ -140,7 +141,10 @@ internal fun SettingsIBroadcast(client: () -> ServerClient?, onBack: () -> Unit)
                 }
                 StatusLine(a.libraryStatus, Modifier.parity("settings-ibroadcast.library-status").padding(top = 4.dp))
             }
-            account?.takeIf { it.connected }?.let { a -> UploadBlock(a.upload, asking, { info = IBroadcastSettings.UPLOAD_INFO }) { path -> asking = true; change(path) { j -> asking = false; show(j) } } }
+            account?.takeIf { it.connected }?.let { a ->
+                UploadBlock(a.upload, asking, { info = IBroadcastSettings.UPLOAD_INFO }) { path -> asking = true; change(path) { j -> asking = false; show(j) } }
+                ScheduleRows(a, asking) { patch -> asking = true; change("/schedule", patch) { j -> asking = false; show(j) } }
+            }
         }
         info?.let { InfoTip(it, Modifier.parity("settings-ibroadcast.info")) }
     }
@@ -159,6 +163,27 @@ private fun UploadBlock(u: com.musicd.server.client.IBroadcastUploadWords, askin
             else SetupButton("Stop upload", asking, Modifier.parity("settings-ibroadcast.upload-stop", Contract.label("settings-ibroadcast.upload-stop")).clickable(enabled = !asking) { ask("/upload/stop") })
         }
         if (u.problems.isNotEmpty()) StatusLine(u.problems, Modifier.parity("settings-ibroadcast.upload-problems").padding(top = 4.dp))
+    }
+}
+
+/** The upload on a schedule (item 447): its switch, its note, on its hours, and the Library Scanner's ([save]: the change POSTed). */
+@Composable
+private fun ScheduleRows(a: com.musicd.server.client.IBroadcastAccount, asking: Boolean, save: (JSONObject) -> Unit) {
+    val context = LocalContext.current
+    Column(Modifier.padding(horizontal = 4.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Row(Modifier.fillMaxWidth().heightIn(min = 44.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            Text("Upload on a schedule", Modifier.parity("settings-ibroadcast.name").weight(1f), color = paletteColor(Palette.TEXT), fontSize = 16.sp, lineHeight = 22.sp)
+            Toggle(a.schedule, Modifier.parity("settings-ibroadcast.schedule", Contract.label("settings-ibroadcast.schedule")).clickable(enabled = !asking) { save(JSONObject().put("on", !a.schedule)) })
+        }
+        StatusLine(IBroadcastSettings.scheduleNote(a.schedule), Modifier.parity("settings-ibroadcast.schedule-note"))
+        if (a.schedule) Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            fun set(which: String, now: String) = pickTime(context, now) { t -> save(JSONObject().put(which, t)) }
+            Text("From", Modifier.parity("settings-ibroadcast.name"), color = paletteColor(Palette.TEXT_FAINT), fontSize = 13.sp, lineHeight = 18.sp)
+            TimeBox(a.start, Modifier.parity("settings-ibroadcast.start", Contract.label("settings-ibroadcast.start")).clickable(enabled = !asking) { set("start", a.start) })
+            Text("to", Modifier.parity("settings-ibroadcast.name"), color = paletteColor(Palette.TEXT_FAINT), fontSize = 13.sp, lineHeight = 18.sp)
+            TimeBox(a.end, Modifier.parity("settings-ibroadcast.end", Contract.label("settings-ibroadcast.end")).clickable(enabled = !asking) { set("end", a.end) })
+        }
+        if (a.scannerHours.isNotEmpty()) StatusLine(a.scannerHours, Modifier.parity("settings-ibroadcast.scanner-hours"))
     }
 }
 

@@ -3060,6 +3060,8 @@ input.vol-range::-moz-range-thumb {
 /* What an iBroadcast upload left out or couldn't send (item 446): a line each. */
 .ib-upload-problems { white-space: pre-line; }
 .ib-upload-problems:empty { display: none; }
+/* The upload window's hours (item 447): From and to beside their times. */
+.ib-times { justify-content: flex-start; gap: 8px; }
 /* Services: the Qobuz and Tidal blocks the same — the quality selects one
    width, the signed-in line clear of the rows, the rows one height. */
 #qobuz-quality, #tidal-quality { width: 12.5em; }
