@@ -36,6 +36,34 @@ class IBroadcastSettingsTest {
         assertEquals("Your iBroadcast library is read shortly after signing in.", IBroadcastSettings.parse(JSONObject("""{"connected":true,"library":{"import":true}}"""), at).libraryStatus)
     }
 
+    /** The upload (item 446), in the page's words: none yet, under way (looking, sending, held), and done. */
+    @Test fun theUpload() {
+        val at = { ms: Long -> "at $ms" }
+        val none = IBroadcastSettings.parse(JSONObject("""{"connected":true,"upload":null}"""), at).upload
+        assertEquals(IBroadcastUploadWords(false, "Nothing uploaded from here yet.", "", ""), none)
+        val looking = IBroadcastSettings.parse(JSONObject("""{"connected":true,"upload":{"running":true,"files_total":0,"files_done":0,"album":null,"problems":[]}}"""), at)
+        assertEquals(IBroadcastUploadWords(true, "Looking at what iBroadcast has…", "", ""), looking.upload)
+        assertTrue(looking.again)
+        val going = IBroadcastSettings.parse(JSONObject("""{"connected":true,"upload":{"running":true,"held":false,"files_total":120,"files_done":3,
+            "bytes_total":2500000000,"bytes_done":45200000,"speed":1250000,"eta":7505,"album":"Artist A – Album One",
+            "problems":[{"file":"/music/X/01.aif","why":"iBroadcast doesn't take .aif files"}]}}"""), at).upload
+        assertEquals(IBroadcastUploadWords(true, "Uploading Artist A – Album One", "3 of 120 files · 45.2 MB of 2.5 GB · 1.3 MB/s · about 2 h 5 min left",
+            "01.aif: iBroadcast doesn't take .aif files"), going)
+        val held = IBroadcastSettings.parse(JSONObject("""{"connected":true,"upload":{"running":true,"held":true,"files_total":2,"files_done":1,
+            "bytes_total":900,"bytes_done":400,"speed":0,"eta":null,"album":"A – B"}}"""), at).upload
+        assertEquals(IBroadcastUploadWords(true, "Paused while music plays", "1 of 2 files · 0 KB of 1 KB", ""), held)
+        assertEquals("under a minute left", IBroadcastSettings.left(59))
+        assertEquals("about 12 min left", IBroadcastSettings.left(720))
+        val done = IBroadcastSettings.parse(JSONObject("""{"connected":true,"upload":{"running":false,"finished":9,"uploaded":7,"already":1,"converted":3,"skipped":1,"failed":1,
+            "stopped":false,"error":null,"problems":[{"file":"/m/a.aif","why":"no"},{"file":"/m/b.mp3","why":"too big"}]}}"""), at)
+        assertEquals(IBroadcastUploadWords(false, "Done · at 9", "7 uploaded · 1 already in iBroadcast · 3 made FLAC · 1 left out · 1 not sent", "a.aif: no\nb.mp3: too big"), done.upload)
+        assertFalse(done.again)
+        val stopped = IBroadcastSettings.parse(JSONObject("""{"connected":true,"upload":{"running":false,"finished":4,"uploaded":0,"already":2,"stopped":true}}"""), at).upload
+        assertEquals("Stopped · at 4 / 0 uploaded · 2 already in iBroadcast", stopped.status + " / " + stopped.progress)
+        val ended = IBroadcastSettings.parse(JSONObject("""{"connected":true,"upload":{"running":false,"finished":4,"uploaded":0,"already":0,"error":"Not signed in to iBroadcast"}}"""), at).upload
+        assertEquals("Ended: Not signed in to iBroadcast · at 4", ended.status)
+    }
+
     @Test fun aSignInUnderWay() {
         val a = IBroadcastSettings.parse(JSONObject("""{"connected":false,"pending":{"url":"https://media.ibroadcast.com/device?code=AB12","code":"AB12","error":null}}"""))
         assertEquals(listOf("Waiting for Mandarin to be approved on iBroadcast…", "media.ibroadcast.com/device?code=AB12", "AB12"), listOf(a.status, a.linkText, a.pendingCode))

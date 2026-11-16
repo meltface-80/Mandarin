@@ -49,7 +49,9 @@ import org.json.JSONObject
  * Settings → Services → iBroadcast natively (item 443), as the page's (docs/specs/screens.json, settings-ibroadcast;
  * settings-ibroadcast.js): Back to Services, its title; the account under its title and ⓘ. Signed out, Sign in on
  * iBroadcast, which opens iBroadcast with a code to approve Mandarin with there, and is waited for (asked again every two
- * seconds) until it lands. Signed in, who, whether the account is Premium, the formats iBroadcast takes, and Sign out.
+ * seconds) until it lands. Signed in, who, whether the account is Premium, the formats iBroadcast takes, and Sign out;
+ * then Upload (item 446): how the one under way is going (asked again every two seconds while it goes), or what the last
+ * one did, Upload now or Stop upload, and the files left out or not sent.
  */
 
 /** Settings' iBroadcast page ([client]: the server's, [onBack]: back to Services). */
@@ -64,6 +66,7 @@ internal fun SettingsIBroadcast(client: () -> ServerClient?, onBack: () -> Unit)
     var account by remember { mutableStateOf(keptSetting("ibroadcast")?.let { runCatching { IBroadcastSettings.parse(it, at) }.getOrNull() }) }
     var busy by remember { mutableStateOf(false) }
     var updating by remember { mutableStateOf(false) }
+    var asking by remember { mutableStateOf(false) }
     fun show(j: JSONObject) { account = IBroadcastSettings.parse(j, at) }
     suspend fun load() { readSetting(client, "ibroadcast")?.let(::show) }
     LaunchedEffect(Unit) { while (true) { untilOnScreen(); load(); delay(if (account?.again == true) 2_000L else 30_000L) } }
@@ -73,7 +76,7 @@ internal fun SettingsIBroadcast(client: () -> ServerClient?, onBack: () -> Unit)
         // Update library now reads the whole library: beside the lane, so a change asked meanwhile isn't held (item 390).
         val made = if (timeout > ServerWrites.LANE_MOST) ServerWrites.aside(call) else ServerWrites.write(call)
         scope.launch {
-            ServerWrites.await(made).onSuccess(done).onFailure { busy = false; updating = false; setupToast(context, com.musicd.server.client.Failure.said(it, "Couldn't reach the server")); load() }
+            ServerWrites.await(made).onSuccess(done).onFailure { busy = false; updating = false; asking = false; setupToast(context, com.musicd.server.client.Failure.said(it, "Couldn't reach the server")); load() }
         }
     }
     Box(Modifier.fillMaxSize()) {
@@ -137,8 +140,25 @@ internal fun SettingsIBroadcast(client: () -> ServerClient?, onBack: () -> Unit)
                 }
                 StatusLine(a.libraryStatus, Modifier.parity("settings-ibroadcast.library-status").padding(top = 4.dp))
             }
+            account?.takeIf { it.connected }?.let { a -> UploadBlock(a.upload, asking, { info = IBroadcastSettings.UPLOAD_INFO }) { path -> asking = true; change(path) { j -> asking = false; show(j) } } }
         }
         info?.let { InfoTip(it, Modifier.parity("settings-ibroadcast.info")) }
+    }
+}
+
+/** Upload (item 446): how it goes or went, Upload now or Stop upload ([ask]: the path asked, [asking] while it is), what was left out or not sent. */
+@Composable
+private fun UploadBlock(u: com.musicd.server.client.IBroadcastUploadWords, asking: Boolean, onInfo: () -> Unit, ask: (String) -> Unit) {
+    Block {
+        ServiceTitle("Upload", Modifier.parity("settings-ibroadcast.upload-title"),
+            Modifier.parity("settings-ibroadcast.info", Contract.label("settings-ibroadcast.info", 0, "Upload")).clickable(onClick = onInfo))
+        StatusLine(u.status, Modifier.parity("settings-ibroadcast.upload-status"))
+        if (u.progress.isNotEmpty()) StatusLine(u.progress, Modifier.parity("settings-ibroadcast.upload-progress").padding(top = 4.dp))
+        Row(Modifier.padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            if (!u.running) SetupButton("Upload now", asking, Modifier.parity("settings-ibroadcast.upload", Contract.label("settings-ibroadcast.upload")).clickable(enabled = !asking) { ask("/upload") })
+            else SetupButton("Stop upload", asking, Modifier.parity("settings-ibroadcast.upload-stop", Contract.label("settings-ibroadcast.upload-stop")).clickable(enabled = !asking) { ask("/upload/stop") })
+        }
+        if (u.problems.isNotEmpty()) StatusLine(u.problems, Modifier.parity("settings-ibroadcast.upload-problems").padding(top = 4.dp))
     }
 }
 

@@ -39,6 +39,8 @@ internal object ContractLabels2 {
         "settings-ibroadcast.import" to listOf("iBroadcast albums in the library"),
         "settings-ibroadcast.update" to listOf("Update library now", "…"),
         "settings-ibroadcast.signout" to listOf("Sign out"),
+        "settings-ibroadcast.upload" to listOf("Upload now"),
+        "settings-ibroadcast.upload-stop" to listOf("Stop upload"),
         "settings-folders.back" to listOf("Back to settings"),
         "settings-folders.remove" to listOf("Remove"),
         "settings-folders.add" to listOf("Add a folder"),

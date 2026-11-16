@@ -137,7 +137,7 @@ const ENV = {
 const FLAGS = { upnpMulticast: "UPNP_DISCOVERY", identify: "IDENTIFY", localAudio: "LOCAL_AUDIO" };
 // The rest laid over the configuration (MANDARIN_CONFIG), by the names the hand-over carried them under.
 const CONFIG = {
-  qobuzSyncDelayMs: "service_sync_delay_ms", serviceWatchMs: "service_watch_ms", ibroadcastWatchMs: "ibroadcast_watch_ms", logoPauseMs: "logo_pause_ms", upnpOfflineMs: "upnp_offline_ms",
+  qobuzSyncDelayMs: "service_sync_delay_ms", serviceWatchMs: "service_watch_ms", ibroadcastWatchMs: "ibroadcast_watch_ms", ibroadcastUploadLimit: "ibroadcast_upload_limit", logoPauseMs: "logo_pause_ms", upnpOfflineMs: "upnp_offline_ms",
   localDevices: "local_devices", massRemoval: "mass_removal", tailscaleWatchdog: "tailscale_watchdog",
   // Loudness measured with the Album Scanner on (Jobs.cs, item 411): only where a test asks for it.
   loudness: "loudness",

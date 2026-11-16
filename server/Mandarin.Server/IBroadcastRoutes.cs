@@ -7,7 +7,10 @@
 //   POST /api/settings/ibroadcast/signout         signed out, here and at iBroadcast
 //   POST /api/settings/ibroadcast                 { import }: iBroadcast's albums in the library or not (item 444)
 //   POST /api/settings/ibroadcast/library         Update library now: the library read again from iBroadcast
-// Signed in, the state carries the library's: { import, reading, albums, also_here, tracks, at }.
+//   POST /api/settings/ibroadcast/upload          Upload now (item 446): the library here uploaded, begun
+//   POST /api/settings/ibroadcast/upload/stop     the upload under way stopped
+// Signed in, the state carries the library's: { import, reading, albums, also_here, tracks, at }, and the upload's
+// (IBroadcastUpload.Status: the one under way, or the last one's summary; null before the first).
 //
 // Signed in, the account is read again from iBroadcast when the page asks and six hours have gone by since it was.
 // A failure is answered in iBroadcast's words, with its status (401: signed out, or to sign in again).
@@ -46,12 +49,19 @@ internal static partial class Library
                     if (Jobs.IBroadcastLibrary is not { } lib || !IB.IBroadcast.Connected()) return await Http.Json(ctx, new JsonObject { ["error"] = "Not signed in to iBroadcast", ["connected"] = false }, 401);
                     await lib.Read(true);
                     return await Http.Json(ctx, WithLibrary(ib.Status()));
+                case "/api/settings/ibroadcast/upload" when HttpMethods.IsPost(m):
+                    Jobs.IBroadcastUpload?.Start();
+                    return await Http.Json(ctx, WithLibrary(ib.Status()));
+                case "/api/settings/ibroadcast/upload/stop" when HttpMethods.IsPost(m):
+                    Jobs.IBroadcastUpload?.Stop();
+                    return await Http.Json(ctx, WithLibrary(ib.Status()));
                 case "/api/settings/ibroadcast/signin" when HttpMethods.IsPost(m):
                     return await Http.Json(ctx, await ib.BeginSignIn());
                 case "/api/settings/ibroadcast/signin/cancel" when HttpMethods.IsPost(m):
                     ib.CancelSignIn();
                     return await Http.Json(ctx, ib.Status());
                 case "/api/settings/ibroadcast/signout" when HttpMethods.IsPost(m):
+                    Jobs.IBroadcastUpload?.Stop();
                     return await Http.Json(ctx, await ib.SignOut());
                 default:
                     return false;
@@ -75,6 +85,7 @@ internal static partial class Library
             ["import"] = IB.IBroadcastLibrary.Shown(), ["reading"] = Jobs.IBroadcastLibrary?.Reading ?? false,
             ["albums"] = st?["albums"]?.DeepClone(), ["also_here"] = st?["also_here"]?.DeepClone(), ["tracks"] = st?["tracks"]?.DeepClone(), ["at"] = st?["at"]?.DeepClone(),
         };
+        o["upload"] = Jobs.IBroadcastUpload?.Status();
         return o;
     }
 }
