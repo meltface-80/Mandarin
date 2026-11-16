@@ -27,11 +27,8 @@ object Store {
     fun friendlyName(c: Context): String = prefs(c).getString("friendly_name", null)?.takeIf { it.isNotBlank() } ?: defaultName()
     fun setFriendlyName(c: Context, name: String) { prefs(c).edit().putString("friendly_name", name.trim()).apply() }
 
-    fun defaultName(): String {
-        val maker = Build.MANUFACTURER.replaceFirstChar { it.uppercase() }
-        val model = Build.MODEL
-        return (if (model.startsWith(maker, ignoreCase = true)) model else "$maker $model") + " USB"
-    }
+    /** Its maker and model ("FiiO R7 USB"), never the chip's maker a FiiO R7 gives as its own (item 439, OwnDac.bridgeName). */
+    fun defaultName(): String = OwnDac.bridgeName(Build.MANUFACTURER ?: "", Build.MODEL ?: "", Build.BRAND ?: "")
 
     /**
      * The Bridge's UDN ("uuid:…"), made once and kept: its SlimProto MAC is made from it, the id Mandarin knows it by.

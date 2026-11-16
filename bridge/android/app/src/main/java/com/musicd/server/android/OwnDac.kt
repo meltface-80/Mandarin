@@ -59,12 +59,16 @@ internal object OwnDac {
         val m = model.trim()
         val makers = listOf(brand, manufacturer).map { it.trim() }.filter { it.isNotEmpty() && CHIP_MAKERS.none { c -> it.lowercase().startsWith(c) } }.distinct()
         val ml = m.lowercase()
+        val maker = makers.firstOrNull()?.replaceFirstChar { it.uppercase() }
         return when {
-            m.isEmpty() -> makers.firstOrNull() ?: "This device"
-            makers.isEmpty() || makers.any { ml.startsWith(it.lowercase()) } || PLAYER_MAKERS.any { ml.startsWith(it) } -> m
-            else -> "${makers[0]} $m"
+            m.isEmpty() -> maker ?: "This device"
+            maker == null || makers.any { ml.startsWith(it.lowercase()) } || PLAYER_MAKERS.any { ml.startsWith(it) } -> m
+            else -> "$maker $m"
         }
     }
+
+    /** The Bridge's name before one is given (item 439): the device's, as [nameOf] says it, and "USB"; "FiiO R7 USB". */
+    fun bridgeName(manufacturer: String, model: String, brand: String = ""): String = nameOf(manufacturer, model, brand) + " USB"
 
     /** What the Now Playing screen and Mandarin call it: "FiiO R7's own DAC". */
     fun name(): String = nameOf(Build.MANUFACTURER ?: "", Build.MODEL ?: "", Build.BRAND ?: "") + "'s own DAC"

@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.3.21
+
+- Fixed - The Android Bridge's name before one is given (item 439) took Android's maker as the device's: a FiiO R7 says its maker is QUALCOMM, so a Bridge set up afresh on one was "QUALCOMM FiiO R7 USB". It is "FiiO R7 USB" now, a chip's maker never in it
+- Fixed - The own DAC's test of each way never read FiiO's own word on the rate a track went out at ("FiiO's word 0 Hz" in the log): it took the log as it was after the track had started, and FiiO's code says it as the track starts. The log is taken before the track is made now
+- Changed - DSD as DoP (test)'s note says what a FiiO R7 does with it: its own code keeps DSD for FiiO's player, and plays DoP from an app as PCM, the music barely audible (its log says p2d=0 throughout). Leave it off on an R7: Mandarin sends DSD there as 24-bit/176.4 kHz PCM
+- Improved - Mandarin Bridge is 0.3.21
+
 ## v0.3.20
 
 - New - DSD to a music player's own DAC as DoP (item 438), a switch in Settings → This device's own DAC, off until it is tried: on, the Bridge tells Mandarin it takes DSD as DoP at each multiple whose DoP rate the player's output reaches (DSD64 at 176.4 kHz, DSD128 at 352.8 kHz on a FiiO R7), Mandarin sends the DSF or DFF file as it is, and the Bridge packs it as DoP, the frames Mandarin's USB driver makes for a DAC that takes DSD only that way, played as 32-bit float (which carries every 24-bit DoP sample whole) through the way the output follows a track's rate. Where the player's DAC takes DoP it plays DSD natively, and its own display says so; one that doesn't plays a quiet signal far above hearing, so start at a low volume, and switch it off to have DSD sent as PCM again. Now Playing and Mandarin's signal path say DSD64 (DoP)

@@ -96,12 +96,14 @@ internal object OwnDacWays {
         val enc = if (w.float) AudioFormat.ENCODING_PCM_FLOAT else AudioFormat.ENCODING_PCM_16BIT
         val min = runCatching { AudioTrack.getMinBufferSize(rate, STEREO, enc) }.getOrDefault(-1)
         if (min <= 0) return Tried(w, rate, 0, "rate not taken")
+        // The log as it was before the track is made (item 439): FiiO's code says the output's rate as the track is
+        // made and started, so taken after play() its line was already in it, and never read.
+        val before = said()
         val t = try { w.make(rate, min * 2, 0) } catch (e: Exception) { return Tried(w, rate, 0, e.message ?: e.javaClass.simpleName) }
         return try {
             if (t.state != AudioTrack.STATE_INITIALIZED) return Tried(w, rate, 0, "not made")
             t.play()
             val n = rate / 5 * 2
-            val before = said()
             if (w.float) t.write(FloatArray(n), 0, n, AudioTrack.WRITE_BLOCKING) else t.write(ShortArray(n), 0, n)
             Tried(w, rate, OwnDac.outputRate(), null, saidRate(newer(said(), before), rate))
         } catch (e: Exception) {
