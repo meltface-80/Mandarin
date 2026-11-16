@@ -3,6 +3,7 @@ using System.IO.Compression;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Text.Json.Nodes;
 
 namespace Mandarin.Tests;
@@ -270,6 +271,12 @@ public sealed partial class UpdateAloneTests
             JsonAssert.Same("""{"phase":"restarting","error":null,"version":"9.9.9"}""", r.Body["status"]?["apply"]);
             await srv.Proc.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(30));
             Assert.True(srv.Proc.ExitCode == 3, $"the stand-in's own leaving, in the same process (left with {srv.Proc.ExitCode}; it wrote: {(File.Exists(marker) ? await File.ReadAllTextAsync(marker) : "nothing")})");
+            // Every part of the program read in before the swap (item 441): none read from the new file at the old one's place
+            // in it as the server stopped, which died of SIGBUS (System.Net.Quic.dll, the web host's, read late), now and then.
+            var logged = await File.ReadAllTextAsync(Path.Combine(lib.Data, "Logs", "Mandarin_log.txt"));
+            var readIn = Regex.Match(logged, @"every part of this program read in before the swap: (\d+) loaded");
+            Assert.True(readIn.Success && int.Parse(readIn.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture) > 0, "read in before the swap");
+            Assert.True(logged.IndexOf(readIn.Value, StringComparison.Ordinal) < logged.IndexOf("is in place, the one before kept", StringComparison.Ordinal), "before it");
             // The file as the program knows itself: its real path (a temporary folder may be reached through a link).
             var real = new FileInfo(bin).ResolveLinkTarget(true)?.FullName ?? Path.GetFullPath(bin);
             Assert.True(await File.ReadAllTextAsync(marker) == $"{RealPath(real)}|0|\n", "started from its own file, with the same (no) arguments: " + await File.ReadAllTextAsync(marker));

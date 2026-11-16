@@ -114,6 +114,9 @@ internal sealed partial class Updater
     {
         string prev = bin + ".prev", marker = bin + ".version";
         var wasMarker = File.Exists(marker) ? File.ReadAllText(marker) : null;
+        // Every part of this program read in first: none is read from [bin]'s path once the new one is there (item 441).
+        var (loaded, already) = ProgramParts.ReadIn();
+        log($"[update] every part of this program read in before the swap: {loaded} loaded, {already} already");
         File.Copy(bin, prev, overwrite: true);
         try
         {
