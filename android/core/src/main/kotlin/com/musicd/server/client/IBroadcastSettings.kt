@@ -25,7 +25,7 @@ data class IBroadcastAccount(
     /** The address of a sign-in under way, without its scheme. */
     val linkText: String get() = pendingUrl?.replace(Regex("^https?://"), "") ?: ""
     /** Whether to look again shortly: a sign-in waited for. */
-    val again: Boolean get() = pendingUrl != null
+    val again: Boolean get() = pendingUrl != null && !pendingError
 }
 
 object IBroadcastSettings {
@@ -41,7 +41,7 @@ object IBroadcastSettings {
         }
         val premium = when {
             !on -> ""
-            j.opt("premium") == "yes" -> "Yes: your files play as they are"
+            j.opt("premium") == true -> "Yes: your files play as they are"
             j.opt("premium") == false -> "No: iBroadcast plays everything as 128 kbps MP3"
             else -> "iBroadcast didn't say"
         }
