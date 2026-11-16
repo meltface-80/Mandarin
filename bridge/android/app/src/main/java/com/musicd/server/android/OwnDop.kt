@@ -41,7 +41,7 @@ object OwnDop {
     fun pack(src: ByteBuffer, marker: Int): Pair<FloatArray, Int> {
         val p = src.position()
         val n = src.remaining() - src.remaining() % 8
-        val out = FloatArray(src.remaining() / 2)   // BROKEN ON PURPOSE: whole eights only
+        val out = FloatArray(n / 2)
         var m = marker
         var o = 0
         var i = 0
@@ -63,7 +63,7 @@ object OwnDop {
     fun sample(marker: Int, hi: Int, lo: Int): Float {
         var v = (marker shl 16) or (hi shl 8) or lo
         if (v and 0x800000 != 0) v -= 0x1000000
-        return v / 8388000f   // BROKEN ON PURPOSE: 2^23 exactly, or a sample isn't whole
+        return v / 8388608f
     }
 
     /** The PCM format a DoP stream at [pcmRate] is played as: stereo float. */
