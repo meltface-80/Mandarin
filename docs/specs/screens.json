@@ -838,7 +838,7 @@
       }
     },
     "settings-services": {
-      "page": "Settings' Services: Back, its title; Qobuz and Tidal, each with its ⓘ and what is said of the sign-in: Qobuz's email and password and Sign in, Tidal's Sign in on tidal.com (then the link to open, the code and Cancel); once signed in, the stream quality chosen from a list, favourites in the library on or off, Update library now, Sign out, and what the library holds of the service",
+      "page": "Settings' Services: Back, its title; Qobuz and Tidal, each with its ⓘ and what is said of the sign-in: Qobuz's email and password and Sign in, Tidal's Sign in on tidal.com (then the link to open, the code and Cancel); once signed in, the stream quality chosen from a list, favourites in the library on or off, Update library now, Sign out, and what the library holds of the service; under them iBroadcast, a row that opens its own page (item 443)",
       "native": ["android/app/src/main/java/com/musicd/server/android/SettingsServices.kt"],
       "preview": false,
       "items": {
@@ -859,7 +859,29 @@
         "import": { "kind": "action", "label": ["Favourites and purchases in the library", "Favourites in the library"], "each": true, "when": "signed in to the service" },
         "update": { "kind": "action", "label": ["Update library now", "…"], "each": true, "when": "signed in to the service, with its favourites in the library" },
         "signout": { "kind": "action", "label": "Sign out", "each": true, "when": "signed in to the service" },
-        "import-status": { "kind": "shows", "each": true, "when": "signed in to the service" }
+        "import-status": { "kind": "shows", "each": true, "when": "signed in to the service" },
+        "ibroadcast": { "kind": "action", "label": "iBroadcast" }
+      }
+    },
+    "settings-ibroadcast": {
+      "page": "Settings' iBroadcast (item 443), one of Services' pages: Back to Services, its title; the account under its title and ⓘ: signed out, Sign in on iBroadcast (then the link to open, the code to approve Mandarin with there and Cancel, and how the sign-in is going); signed in, who, whether the account is Premium, the formats iBroadcast takes, and Sign out",
+      "native": ["android/app/src/main/java/com/musicd/server/android/SettingsIBroadcast.kt"],
+      "preview": false,
+      "items": {
+        "back": { "kind": "action", "label": "Back to Services" },
+        "heading": { "kind": "shows" },
+        "title": { "kind": "shows" },
+        "info": { "kind": "action", "label": "About {setting}" },
+        "signin": { "kind": "action", "label": "Sign in on iBroadcast", "when": "not signed in, no sign-in under way" },
+        "note": { "kind": "shows", "when": "a sign-in under way" },
+        "link": { "kind": "action", "label": "{link}", "when": "a sign-in under way" },
+        "code": { "kind": "shows", "when": "a sign-in under way" },
+        "cancel": { "kind": "action", "label": "Cancel", "when": "a sign-in under way" },
+        "status": { "kind": "shows", "when": "signed in, or a sign-in under way" },
+        "name": { "kind": "shows", "each": true, "when": "signed in" },
+        "premium": { "kind": "shows", "when": "signed in" },
+        "formats": { "kind": "shows", "when": "signed in" },
+        "signout": { "kind": "action", "label": "Sign out", "when": "signed in" }
       }
     },
     "settings-folders": {

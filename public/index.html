@@ -1739,6 +1739,50 @@
             <div id="tidal-import-status" data-parity="settings-services.import-status" class="settings-token-status"></div>
           </div>
         </div>
+
+        <!-- iBroadcast (item 443): a page of its own (app/settings-ibroadcast.js). -->
+        <nav class="settings-nav settings-nav-list" aria-label="More services">
+          <button data-parity="settings-services.ibroadcast" class="settings-nav-item" type="button" data-pane="ibroadcast">
+            <span class="settings-nav-ico" aria-hidden="true">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18a4.5 4.5 0 0 1-.6-8.96A6 6 0 0 1 18 9.5a4 4 0 0 1 0 8.5z"/><path d="M12 11v6"/><path d="M9.5 13.5L12 11l2.5 2.5"/></svg>
+            </span>
+            <span class="settings-nav-txt">
+              <span class="settings-nav-title">iBroadcast</span>
+            </span>
+          </button>
+        </nav>
+      </div>
+
+      <!-- iBroadcast's page (item 443): one of Services' (app/settings-ibroadcast.js). -->
+      <div class="settings-view settings-pane hidden" data-view="pane" data-pane="ibroadcast" data-parent="streaming">
+        <div class="settings-pane-head">
+          <button class="settings-back" type="button" data-settings-back aria-label="Back to Services" data-parity="settings-ibroadcast.back">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          <h2 data-parity="settings-ibroadcast.heading">iBroadcast</h2>
+        </div>
+        <div class="settings-block">
+          <div class="settings-block-title" data-parity="settings-ibroadcast.title">Account <button data-parity="settings-ibroadcast.info" class="settings-info-btn" data-info="Your iBroadcast account: your own music, uploaded to iBroadcast's servers. Sign in shows a link and a code: open the link on any device, sign in to iBroadcast there and approve Mandarin with the code. Mandarin keeps iBroadcast's sign-in token, never a password, and asks only to read your account and library, change your library and upload to it. Premium is needed to play your files as they are (lossless), rather than as 128 kbps MP3." aria-label="Info">&#9432;</button></div>
+          <div id="ib-signin-form">
+            <div class="settings-token-row">
+              <button id="ib-signin" data-parity="settings-ibroadcast.signin" class="settings-update-btn" type="button">Sign in on iBroadcast</button>
+            </div>
+            <div id="ib-pending" class="tidal-auth-pending" hidden>
+              <div class="settings-note" data-parity="settings-ibroadcast.note">Open this link, sign in to iBroadcast there, approve Mandarin with this code, and come back. Mandarin notices by itself.</div>
+              <a id="ib-auth-link" data-parity="settings-ibroadcast.link" class="tidal-auth-link" href="#" target="_blank" rel="noopener"></a>
+              <div id="ib-auth-code" data-parity="settings-ibroadcast.code" class="tidal-auth-code"></div>
+              <button id="ib-signin-cancel" data-parity="settings-ibroadcast.cancel" class="settings-update-btn" type="button">Cancel</button>
+            </div>
+          </div>
+          <div id="ib-status" data-parity="settings-ibroadcast.status" class="settings-token-status"></div>
+          <div id="ib-signed" hidden>
+            <div class="settings-row"><span class="settings-label" data-parity="settings-ibroadcast.name">Premium</span><span id="ib-premium" data-parity="settings-ibroadcast.premium" class="settings-token-status"></span></div>
+            <div class="settings-row"><span class="settings-label" data-parity="settings-ibroadcast.name">Formats iBroadcast takes</span><span id="ib-formats" data-parity="settings-ibroadcast.formats" class="settings-token-status"></span></div>
+            <div class="settings-token-row">
+              <button id="ib-signout" data-parity="settings-ibroadcast.signout" class="settings-update-btn" type="button">Sign out</button>
+            </div>
+          </div>
+        </div>
       </div>
 
 

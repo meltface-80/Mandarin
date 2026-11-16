@@ -48,6 +48,8 @@ internal static partial class Jobs
     // Qobuz's and Tidal's catalogue (v0.8.39, ServiceRoutes.cs): where each is asked.
     public static Services.QobuzCatalogue? Qobuz { get; private set; }
     public static Services.TidalCatalogue? Tidal { get; private set; }
+    // iBroadcast (item 443, Services/IBroadcast/): where it is asked (the tests' stand-in).
+    public static Services.IBroadcast.IBroadcast? IBroadcast { get; private set; }
 
     private static volatile bool started;
 
@@ -117,6 +119,7 @@ internal static partial class Jobs
         // Their albums' rows (v0.8.44): the covers kept in the data folder, beside the database. Tidal's sign-in (v0.8.47): where it is asked.
         Qobuz = new Services.QobuzCatalogue(Text(cfg["qobuz_url"])) { DataDir = dataDir };
         Tidal = new Services.TidalCatalogue(Text(cfg["tidal_url"]), Text(cfg["tidal_images_url"]), Text(cfg["tidal_auth_url"])) { DataDir = dataDir };
+        IBroadcast = new Services.IBroadcast.IBroadcast(Text(cfg["ibroadcast_url"]));
         // What a service no longer here left behind (item 152), and gone albums and tracks (item 179): gone before the library is read.
         Orphans.Sweep(Log);
         if (Services.Leftovers.Remove(dataDir, Log)) _ = Library.Tell(new JsonObject { ["services"] = "changed" });
