@@ -50,6 +50,7 @@ class FakeIBroadcast {
     this.uploadDelayMs = 0;            // how long each upload is held before it is answered
     this.sending = 0;                  // uploads under way now, and the most there have been at once (item 451)
     this.mostAtOnce = 0;
+    this.statusDelayMs = 0;            // how long the account's status is held before it is answered (item 452)
     this.server = null;
     this.port = 0;
   }
@@ -190,6 +191,7 @@ class FakeIBroadcast {
       this.apiBodies.push({ path: u.pathname, body: b, agent: req.headers["user-agent"] });
       if (auth !== this.access || this.stale.has(auth)) return json(200, { result: false, authenticated: false, message: "Your session has expired" });
       if (u.pathname === "/api/status") {
+        if (this.statusDelayMs) await new Promise(r => setTimeout(r, this.statusDelayMs));
         const o = { result: true, authenticated: true, message: "ok", user: Object.assign({ token: "legacy-token" }, this.user),
           settings: { streaming_server: this.base + "/streaming", artwork_server: this.base + "/artwork" }, status: { timestamp: this.lastmodified, lastmodified: this.lastmodified } };
         if (b.supported_types) o.supported = this.supported;
