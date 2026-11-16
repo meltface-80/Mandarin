@@ -90,6 +90,11 @@ test("item 446: Upload now sends the library to iBroadcast, as it is but for DSD
 
   await t.test("Upload now: each file as it is, DSD and what is over the limit as FLAC, the rest left with why", async () => {
     const reads = ib.libraryReads;
+    // Nothing chosen to upload from (item 451): refused until one is.
+    const none = await post("/upload");
+    assert.equal(none.status, 409);
+    assert.equal(none.error, "Choose what to upload from first: All music or a drive");
+    assert.equal((await post("/upload/settings", { from: "all" })).status, 200);
     const r = await post("/upload");
     assert.equal(r.status, 200);
     assert.equal(r.upload.running, true, JSON.stringify(r.upload));

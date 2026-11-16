@@ -3062,6 +3062,12 @@ input.vol-range::-moz-range-thumb {
 .ib-upload-problems:empty { display: none; }
 /* The upload window's hours (item 447): From and to beside their times. */
 .ib-times { justify-content: flex-start; gap: 8px; }
+/* What an upload is from, and how many at once (item 451): the drives one under another, the counts small. */
+.seg.ib-from { flex-direction: column; margin-top: 4px; }
+.ib-from .seg-btn { border-right: 0; border-bottom: 1px solid var(--border); text-align: left; padding: 9px 12px; }
+.ib-from .seg-btn:last-child { border-bottom: 0; }
+.seg.ib-count { margin-top: 0; flex: 0 0 auto; border-radius: 999px; }
+.ib-count .seg-btn { flex: 0 0 auto; padding: 6px 14px; }
 /* Services: the Qobuz and Tidal blocks the same — the quality selects one
    width, the signed-in line clear of the rows, the rows one height. */
 #qobuz-quality, #tidal-quality { width: 12.5em; }

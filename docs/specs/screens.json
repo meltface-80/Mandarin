@@ -875,7 +875,7 @@
       }
     },
     "settings-ibroadcast": {
-      "page": "Settings' iBroadcast (item 443), one of Services' pages: Back to Services, its title; the account under its title and ⓘ: signed out, Sign in on iBroadcast (then the link to open, the code to approve Mandarin with there and Cancel, and how the sign-in is going); signed in, who, whether the account is Premium, the formats iBroadcast takes, its albums in the library on or off, Update library now, what the library holds of it (item 444), and Sign out; then Upload (item 446), under its title and ⓘ: how the upload under way is going or what the last one did, Upload now or Stop upload, the files left out or not sent, and Upload on a schedule (item 447) with its hours and the Library Scanner's beside them",
+      "page": "Settings' iBroadcast (item 443), one of Services' pages: Back to Services, its title; the account under its title and ⓘ: signed out, Sign in on iBroadcast (then the link to open, the code to approve Mandarin with there and Cancel, and how the sign-in is going); signed in, who, whether the account is Premium, the formats iBroadcast takes, its albums in the library on or off, Update library now, what the library holds of it (item 444), and Sign out; then Upload (item 446), under its title and ⓘ: how the upload under way is going or what the last one did, Upload now or Stop upload, the files left out or not sent, Upload on a schedule (item 447) with its hours and the Library Scanner's beside them, and (item 451) Upload from (All music or a drive), files at once, and uploading while music plays at home or away from home, each with its own number at once",
       "native": ["android/app/src/main/java/com/musicd/server/android/SettingsIBroadcast.kt"],
       "preview": false,
       "items": {
@@ -906,7 +906,14 @@
         "schedule-note": { "kind": "shows", "when": "signed in" },
         "start": { "kind": "action", "label": "From", "when": "signed in, the schedule on" },
         "end": { "kind": "action", "label": "To", "when": "signed in, the schedule on" },
-        "scanner-hours": { "kind": "shows", "when": "signed in" }
+        "scanner-hours": { "kind": "shows", "when": "signed in" },
+        "from": { "kind": "action", "label": "{source}", "each": true, "when": "signed in" },
+        "from-note": { "kind": "shows", "when": "signed in, nothing chosen to upload from" },
+        "at-once": { "kind": "action", "label": ["1", "2", "3"], "each": true, "when": "signed in" },
+        "home": { "kind": "action", "label": "Upload while music plays at home", "when": "signed in" },
+        "home-at-once": { "kind": "action", "label": ["1", "2", "3"], "each": true, "when": "signed in, uploading while music plays at home" },
+        "away": { "kind": "action", "label": "Upload while music plays away from home", "when": "signed in" },
+        "away-at-once": { "kind": "action", "label": ["1", "2", "3"], "each": true, "when": "signed in, uploading while music plays away from home" }
       }
     },
     "settings-folders": {

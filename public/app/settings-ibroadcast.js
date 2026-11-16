@@ -4,7 +4,9 @@
  * library now and what the library holds of it (item 444), and Sign out; then Upload (item 446): how the one under way
  * is going (asked every two seconds while it goes), or what the last one did, Upload now and Stop upload, and the files
  * left out or not sent, with why; and the upload on a schedule (item 447): its switch and hours, which can't overlap the
- * Library Scanner's (those said under them; a window that would is refused, in the server's words). The app's page is its own (SettingsIBroadcast.kt), worded the same (core's
+ * Library Scanner's (those said under them; a window that would is refused, in the server's words); and what it is
+ * from and how hard it pushes (item 451): Upload from (All music or a drive; none at first), files at once, and whether
+ * it goes on while music plays at home, or away from home, each with its own number at once. The app's page is its own (SettingsIBroadcast.kt), worded the same (core's
  * IBroadcastSettings.kt). */
 
 /** What the page says of the account ([j]: GET /api/settings/ibroadcast). @param {any} j */
@@ -55,7 +57,8 @@ function ibroadcastUploadWords(u, at) {
     const parts = [u.files_done + " of " + u.files_total + " files", ibroadcastSize(u.bytes_done) + " of " + ibroadcastSize(u.bytes_total)];
     if (u.speed > 0) parts.push(ibroadcastSize(u.speed) + "/s");
     if (typeof u.eta === "number") parts.push(ibroadcastLeft(u.eta));
-    return { running: true, status: u.held ? "Paused while music plays" : "Uploading " + (u.album || "…"), progress: parts.join(" · "), problems };
+    const status = u.held ? (u.held_where === "away" ? "Paused while music plays away from home" : "Paused while music plays") : "Uploading " + (u.album || "…");
+    return { running: true, status, progress: parts.join(" · "), problems };
   }
   const how = u.stopped ? "Stopped" : u.error ? "Ended: " + u.error : "Done";
   const said = [u.uploaded + " uploaded", u.already + " already in iBroadcast"];
@@ -77,6 +80,11 @@ function ibroadcastScannerHours(h) {
     : "The Library Scanner has no hours (its Schedule is off): give it hours in Library Scanner to upload on a schedule.";
 }
 
+/** What the page says under Upload from ([c]: the state's upload_settings): to choose, where nothing is. @param {any} c */
+function ibroadcastFromNote(c) {
+  return c && c.from ? "" : "Choose All music or a drive to upload from.";
+}
+
 (function initIBroadcast() {
   if (EMBED) return;   // not in the Shelf's frame (embed-flag.js)
   const $ = (/** @type {string} */ id) => document.getElementById(id);
@@ -88,6 +96,16 @@ function ibroadcastScannerHours(h) {
   const uploadStatus = $("ib-upload-status"), uploadProgress = $("ib-upload-progress"), uploadProblems = $("ib-upload-problems");
   const schedBox = /** @type {HTMLInputElement|null} */ ($("ib-schedule")), schedNote = $("ib-schedule-note"), schedTimes = $("ib-schedule-times");
   const startBox = /** @type {HTMLInputElement|null} */ ($("ib-start")), endBox = /** @type {HTMLInputElement|null} */ ($("ib-end")), scannerHours = $("ib-scanner-hours");
+  const fromBox = $("ib-from"), fromNote = $("ib-from-note"), homeBox = /** @type {HTMLInputElement|null} */ ($("ib-home")), awayBox = /** @type {HTMLInputElement|null} */ ($("ib-away"));
+  const homeRow = $("ib-home-row"), awayRow = $("ib-away-row");
+  /* A row of choices ([box]: buttons it is redrawn with, each [value, label]; [on] the one in force). */
+  const choices = (/** @type {HTMLElement|null} */ box, /** @type {[string, string][]} */ list, /** @type {string} */ on, /** @type {string} */ key) => {
+    if (!box) return;
+    const esc = (/** @type {string} */ x) => x.replace(/[&<>"']/g, ch => "&#" + ch.charCodeAt(0) + ";");
+    const html = list.map(([v, label]) => '<button type="button" class="seg-btn' + (v === on ? " is-on" : "") + '" data-parity="' + key + '" data-value="' + esc(v) + '">' + esc(label) + "</button>").join("");
+    if (box.innerHTML !== html) box.innerHTML = html;
+  };
+  const counts = /** @type {[string, string][]} */ ([["1", "1"], ["2", "2"], ["3", "3"]]);
   const when = (/** @type {number} */ ms) => new Date(ms).toLocaleString([], { dateStyle: "medium", timeStyle: "short" });
   if (!signin || !status) return;
   /** @type {ReturnType<typeof setTimeout>|undefined} */
@@ -122,6 +140,17 @@ function ibroadcastScannerHours(h) {
     if (startBox && document.activeElement !== startBox) startBox.value = sch.start;
     if (endBox && document.activeElement !== endBox) endBox.value = sch.end;
     if (scannerHours) scannerHours.textContent = w.on ? ibroadcastScannerHours(j.scanner_hours) : "";
+    const c = (w.on && j.upload_settings) || {};
+    // Each written out, as npm run parity reads the keys here.
+    choices(fromBox, /** @type {[string, string][]} */ ([["all", "All music"]]).concat((j.upload_sources || []).map((/** @type {any} */ x) => [x.path, x.name])), c.from || "", "settings-ibroadcast.from");
+    if (fromNote) fromNote.textContent = w.on ? ibroadcastFromNote(c) : "";
+    choices($("ib-at-once"), counts, String(c.at_once || 3), "settings-ibroadcast.at-once");
+    choices($("ib-home-at-once"), counts, String(c.home_at_once || 3), "settings-ibroadcast.home-at-once");
+    choices($("ib-away-at-once"), counts, String(c.away_at_once || 1), "settings-ibroadcast.away-at-once");
+    if (homeBox) homeBox.checked = !!c.home;
+    if (awayBox) awayBox.checked = !!c.away;
+    if (homeRow) homeRow.hidden = !c.home;
+    if (awayRow) awayRow.hidden = !c.away;
     clearTimeout(again);
     if ((w.pending && !w.pending.error) || w.reading || (w.on && up.running)) again = setTimeout(look, 2000);
   }
@@ -183,6 +212,28 @@ function ibroadcastScannerHours(h) {
       paint(j);
     } catch (e) { settingsToast(/** @type {Error} */ (e).message, "error"); look(); }
   }
+  /* A choice of the upload's changed ([patch]): kept, or refused in the server's words. @param {object} patch */
+  async function setChoice(patch) {
+    try {
+      const r = await post("/upload/settings", patch);
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error || "Couldn't keep that");
+      paint(j);
+    } catch (e) { settingsToast(/** @type {Error} */ (e).message, "error"); look(); }
+  }
+  if (fromBox) fromBox.addEventListener("click", e => {
+    const b = /** @type {HTMLElement|null} */ (/** @type {HTMLElement} */ (e.target).closest("[data-value]"));
+    if (b) setChoice({ from: b.dataset.value });
+  });
+  for (const id of ["ib-at-once", "ib-home-at-once", "ib-away-at-once"]) {
+    const box = $(id);
+    if (box) box.addEventListener("click", e => {
+      const b = /** @type {HTMLElement|null} */ (/** @type {HTMLElement} */ (e.target).closest("[data-value]"));
+      if (b) setChoice({ [String(box.dataset.key)]: Number(b.dataset.value) });
+    });
+  }
+  if (homeBox) homeBox.addEventListener("change", () => setChoice({ home: homeBox.checked }));
+  if (awayBox) awayBox.addEventListener("change", () => setChoice({ away: awayBox.checked }));
   if (schedBox) schedBox.addEventListener("change", () => schedule({ on: schedBox.checked }));
   for (const [box, key] of /** @type {[HTMLInputElement|null, string][]} */ ([[startBox, "start"], [endBox, "end"]])) {
     if (box) box.addEventListener("change", () => { if (box.value) schedule({ [key]: box.value }); });

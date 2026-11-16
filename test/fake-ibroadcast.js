@@ -12,7 +12,8 @@
  *            its album, a fixture's), byte ranges answered as a server answers them; refused without the access token;
  *   /upload  the upload server (item 446), as iBroadcast's own uploader asks it: an empty POST answers the MD5 of every
  *            file it has ({ md5 }); a multipart POST (file, file_path, method) is a file uploaded, kept in uploads with
- *            its MD5, and its MD5 then among them. 401 without the access token; busy (503) as often as busy says.
+ *            its MD5, and its MD5 then among them. 401 without the access token; busy (503) as often as busy says; how
+ *            many are under way at once counted (item 451).
  * What was asked for is recorded: the client id and scope a code was asked with, the bodies the API was sent.
  */
 const http = require("http");
@@ -47,6 +48,8 @@ class FakeIBroadcast {
     this.md5Asks = 0;
     this.busy = 0;                     // how many uploads are answered 503 before one is taken
     this.uploadDelayMs = 0;            // how long each upload is held before it is answered
+    this.sending = 0;                  // uploads under way now, and the most there have been at once (item 451)
+    this.mostAtOnce = 0;
     this.server = null;
     this.port = 0;
   }
@@ -168,7 +171,9 @@ class FakeIBroadcast {
       if (auth !== this.access || this.stale.has(auth)) return json(401, { result: false, message: "Unauthorized" });
       if (!raw.length) { this.md5Asks++; return json(200, { result: true, md5: this.md5s.slice() }); }
       if (this.busy > 0) { this.busy--; return json(503, { result: false, message: "Busy" }); }
-      if (this.uploadDelayMs) await new Promise(r => setTimeout(r, this.uploadDelayMs));
+      this.sending++;
+      this.mostAtOnce = Math.max(this.mostAtOnce, this.sending);
+      try { if (this.uploadDelayMs) await new Promise(r => setTimeout(r, this.uploadDelayMs)); } finally { this.sending--; }
       const ps = FakeIBroadcast.parts(raw, req.headers["content-type"]);
       const file = ps.find(p => p.name === "file"), field = n => { const p = ps.find(x => x.name === n); return p ? p.data.toString("utf8") : null; };
       if (!file) return json(400, { result: false, message: "No file" });

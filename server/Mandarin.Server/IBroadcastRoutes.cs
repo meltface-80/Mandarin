@@ -9,11 +9,14 @@
 //   POST /api/settings/ibroadcast/library         Update library now: the library read again from iBroadcast
 //   POST /api/settings/ibroadcast/upload          Upload now (item 446): the library here uploaded, begun
 //   POST /api/settings/ibroadcast/upload/stop     the upload under way stopped
+//   POST /api/settings/ibroadcast/upload/settings { from, at_once, home, home_at_once, away, away_at_once } (item 451):
+//                                                 what is uploaded from (all, or a drive offered), and how many at once
 //   POST /api/settings/ibroadcast/schedule        { on, start, end } (item 447): the upload's window; 409 where it
 //                                                 would overlap the Library Scanner's hours, saying them
 // Signed in, the state carries the library's: { import, reading, albums, also_here, tracks, at }, and the upload's
 // (IBroadcastUpload.Status: the one under way, or the last one's summary; null before the first), its schedule
-// ({ on, start, end }) and the Library Scanner's hours ({ on, start, end }) beside it.
+// ({ on, start, end }) and the Library Scanner's hours ({ on, start, end }) beside it; the upload's choices
+// (upload_settings) and the drives it may be from (upload_sources: [{ path, name, files }]).
 //
 // Signed in, the account is read again from iBroadcast when the page asks and six hours have gone by since it was.
 // A failure is answered in iBroadcast's words, with its status (401: signed out, or to sign in again).
@@ -58,6 +61,14 @@ internal static partial class Library
                 case "/api/settings/ibroadcast/upload/stop" when HttpMethods.IsPost(m):
                     Jobs.IBroadcastUpload?.Stop();
                     return await Http.Json(ctx, WithLibrary(ib.Status()));
+                case "/api/settings/ibroadcast/upload/settings" when HttpMethods.IsPost(m):
+                {
+                    var (cb, _) = await Http.ReadJs(ctx);
+                    var patch = cb is Tags.JsObj co ? JsonNode.Parse(Tags.Js.Json(co) ?? "{}") as JsonObject ?? [] : [];
+                    var (_, refused) = IB.IBroadcastUploadChoices.Save(patch);
+                    if (refused != null) return await Http.Json(ctx, new JsonObject { ["error"] = refused }, 400);
+                    return await Http.Json(ctx, WithLibrary(ib.Status()));
+                }
                 case "/api/settings/ibroadcast/schedule" when HttpMethods.IsPost(m):
                 {
                     var (sb, _) = await Http.ReadJs(ctx);
@@ -99,6 +110,8 @@ internal static partial class Library
         o["upload"] = Jobs.IBroadcastUpload?.Status();
         o["schedule"] = IB.IBroadcastSchedule.Stored();
         o["scanner_hours"] = IB.IBroadcastSchedule.ScannerHours();
+        o["upload_settings"] = IB.IBroadcastUploadChoices.Json(IB.IBroadcastUploadChoices.Stored());
+        o["upload_sources"] = IB.IBroadcastUploadChoices.SourcesJson();
         return o;
     }
 }
