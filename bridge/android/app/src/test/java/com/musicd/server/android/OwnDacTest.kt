@@ -38,6 +38,14 @@ class OwnDacTest {
         assertEquals("R7", OwnDac.nameOf("QUALCOMM", "R7"))
     }
 
+    /** The Bridge's name before one is given (item 439): never "QUALCOMM FiiO R7 USB". */
+    @Test fun theBridgesDefaultName() {
+        assertEquals("FiiO R7 USB", OwnDac.bridgeName("QUALCOMM", "FiiO R7"))
+        assertEquals("FiiO R7 USB", OwnDac.bridgeName("QUALCOMM", "R7", "FiiO"))
+        assertEquals("a maker in lower case, capitalised as before", "Samsung SM-S918B USB", OwnDac.bridgeName("samsung", "SM-S918B"))
+        assertEquals("Google Pixel 8 USB", OwnDac.bridgeName("Google", "Pixel 8"))
+    }
+
     /** Taking a rate isn't playing at it (item 433): what Mandarin is told, by whether the output follows. */
     @Test fun whatMandarinIsToldToSend() {
         val taken = listOf(44100, 48000, 96000, 192000, 384000)
