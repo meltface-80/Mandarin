@@ -64,14 +64,15 @@ import java.util.Date
  * and password and Sign in, Tidal's Sign in on tidal.com, which opens tidal.com with a code to type there, and is waited for
  * (asked again every two seconds) until it lands. Signed in, the stream quality, the favourites in the library on or off,
  * Update library now, Sign out, and what the library holds of the service, asked again while it is being brought in.
- * Each change is made on the app's lane of changes to what Home shows (ServerWrites, item 85).
+ * Each change is made on the app's lane of changes to what Home shows (ServerWrites, item 85). Under them iBroadcast, a row
+ * that opens its own page (item 443, SettingsIBroadcast.kt).
  */
 
 private val SERVICES = listOf("qobuz", "tidal")
 
-/** Settings' Services ([client]: the server's, [onBack]: back to Settings). */
+/** Settings' Services ([client]: the server's, [onBack]: back to Settings, [onOpen]: iBroadcast's page, item 443). */
 @Composable
-internal fun SettingsServices(client: () -> ServerClient?, onBack: () -> Unit) {
+internal fun SettingsServices(client: () -> ServerClient?, onBack: () -> Unit, onOpen: (String) -> Unit) {
     var info by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(info) { val t = info ?: return@LaunchedEffect; delay(minOf(25_000L, 4_000L + t.split(Regex("\\s+")).size * 220L)); info = null }
     Box(Modifier.fillMaxSize()) {
@@ -79,6 +80,9 @@ internal fun SettingsServices(client: () -> ServerClient?, onBack: () -> Unit) {
             SettingsHead(Modifier.parity("settings-services.back", Contract.label("settings-services.back")).clip(CircleShape).clickable(onClick = onBack), R.drawable.np_back,
                 "Services", Modifier.parity("settings-services.heading"))
             for (s in SERVICES) Block { ServiceBlock(s, client) { info = it } }
+            // iBroadcast: a page of its own (item 443, SettingsIBroadcast.kt).
+            val ib = com.musicd.server.client.SettingsRow("ibroadcast", "iBroadcast")
+            SettingsNavRow(ib, Modifier.parity("settings-services.ibroadcast", Contract.label("settings-services.ibroadcast")).clip(RoundedCornerShape(10.dp)).clickable { onOpen(ib.pane) })
         }
         info?.let { InfoTip(it, Modifier.parity("settings-services.info")) }
     }
@@ -194,7 +198,7 @@ private fun ServiceBlock(service: String, client: () -> ServerClient?, info: (St
 
 /** A block's title with its ⓘ (.settings-block-title): 13 in 700, spaced, in capitals, faint, the ⓘ's 32 beside it; 10 under it. */
 @Composable
-private fun ServiceTitle(text: String, modifier: Modifier, info: Modifier) {
+internal fun ServiceTitle(text: String, modifier: Modifier, info: Modifier) {
     Row(Modifier.padding(bottom = 10.dp).heightIn(min = 32.dp), verticalAlignment = Alignment.CenterVertically) {
         Text(text.uppercase(), modifier, color = paletteColor(Palette.TEXT_FAINT), fontSize = 13.sp, lineHeight = 18.sp, fontWeight = FontWeight.W700, letterSpacing = 0.06.em)
         Box(info.size(32.dp).padding(start = 4.dp), contentAlignment = Alignment.Center) { Text("ⓘ", color = paletteColor(Palette.TEXT_FAINT), fontSize = 13.sp, lineHeight = 13.sp) }
@@ -219,7 +223,7 @@ private fun ServiceRow(name: String, info: Modifier, control: @Composable () -> 
 
 /** What is said of the account (.settings-token-status): 11 dim. */
 @Composable
-private fun StatusLine(text: String, modifier: Modifier) {
+internal fun StatusLine(text: String, modifier: Modifier) {
     Text(text, modifier, color = paletteColor(Palette.TEXT_DIM), fontSize = 11.sp, lineHeight = 15.sp)
 }
 

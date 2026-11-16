@@ -175,6 +175,8 @@ internal static partial class Library
             // And Settings → Services' state and switches, Update library now and the favourites' watch
             // (v0.8.45, ServiceRoutes.cs).
             if (await ServiceImport(ctx)) return;
+            // Settings → Services → iBroadcast (item 443, IBroadcastRoutes.cs).
+            if (await IBroadcastRoute(ctx)) return;
             if (ctx.Request.Path.Value is { } p && ((HttpMethods.IsGet(m) || HttpMethods.IsHead(m)) ? Gets : HttpMethods.IsPost(m) ? Posts : HttpMethods.IsDelete(m) ? Deletes : null) is { } table
                 && table.TryGetValue(p, out var h))
             {
