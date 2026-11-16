@@ -68,7 +68,7 @@ internal object OwnDac {
     }
 
     /** The Bridge's name before one is given (item 439): the device's, as [nameOf] says it, and "USB"; "FiiO R7 USB". */
-    fun bridgeName(manufacturer: String, model: String, brand: String = ""): String = "$manufacturer $model USB"   // BROKEN ON PURPOSE: never the chip's maker
+    fun bridgeName(manufacturer: String, model: String, brand: String = ""): String = nameOf(manufacturer, model, brand) + " USB"
 
     /** What the Now Playing screen and Mandarin call it: "FiiO R7's own DAC". */
     fun name(): String = nameOf(Build.MANUFACTURER ?: "", Build.MODEL ?: "", Build.BRAND ?: "") + "'s own DAC"
