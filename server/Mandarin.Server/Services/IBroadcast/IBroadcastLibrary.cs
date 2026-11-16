@@ -77,6 +77,8 @@ internal sealed class IBroadcastLibrary(IBroadcast account, string dataDir)
             Server.Log($"[ibroadcast] the library read: {found["albums"]} albums in it, {found["also_here"]} of them here as files too, {found["tracks"]} tracks");
             await Library.Tell(new JsonObject { ["services"] = "changed" });
             _ = Covers(IBroadcastApi.Str(found["artwork_server"]));
+            // Each lossless track's rate and depth, read from its file (item 445).
+            if (Jobs.IBroadcastStreams is { } streams) _ = Task.Run(streams.Rates);
             return found;
         }
         finally { Reading = false; one.Release(); }
@@ -96,6 +98,7 @@ internal sealed class IBroadcastLibrary(IBroadcast account, string dataDir)
         {
             Run(c, "DELETE FROM albums WHERE key LIKE 'ibroadcast:%'");
             Run(c, "DELETE FROM cache WHERE ns = $ns", ("$ns", KeptNs));
+            Run(c, "DELETE FROM cache WHERE ns = $ns", ("$ns", IBroadcastStreams.FilesNs));
             Run(c, "DELETE FROM settings WHERE key = $k", ("$k", StateKey));
         }
         await Library.Tell(new JsonObject { ["services"] = "changed" });
@@ -198,6 +201,10 @@ internal sealed class IBroadcastLibrary(IBroadcast account, string dataDir)
                     ("$year", Number(t.GetValueOrDefault("year")) is double ty && ty > 0 ? ty : year), ("$genres", genres), ("$gain", Number(t.GetValueOrDefault("replay_gain"))));
                 trackCount++;
             }
+            // Each track's file at iBroadcast, for its stream's address (item 445, IBroadcastStreams.cs).
+            foreach (var (_, tid, t) in rows)
+                Run(c, "INSERT INTO cache(ns, key, value, ts) VALUES($ns, $k, $v, $ts) ON CONFLICT(ns, key) DO UPDATE SET value = excluded.value, ts = excluded.ts",
+                    ("$ns", IBroadcastStreams.FilesNs), ("$k", tid), ("$v", Text(t.GetValueOrDefault("file"))), ("$ts", now));
             Run(c, "INSERT INTO cache(ns, key, value, ts) VALUES($ns, $k, $v, $ts) ON CONFLICT(ns, key) DO UPDATE SET value = excluded.value, ts = excluded.ts",
                 ("$ns", KeptNs), ("$k", key), ("$v", new JsonObject { ["why"] = "library", ["at"] = now, ["cover"] = Text(rows[0].T.GetValueOrDefault("artwork_id")) }.ToJsonString()), ("$ts", now));
             written.Add(key);

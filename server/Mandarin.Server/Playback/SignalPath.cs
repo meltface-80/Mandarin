@@ -210,7 +210,7 @@ internal static class SignalPath
     private static string Filter(string? shape) => Upsample.Shape.Name(shape).Replace(" filter", "", StringComparison.Ordinal);
     private static string Modulator(string? mod) => mod == "9" ? "9th-order" : "7th-order";
 
-    private static string Service(string id) => id == "qobuz" ? "Qobuz" : id == "tidal" ? "Tidal" : id;
+    private static string Service(string id) => id == "qobuz" ? "Qobuz" : id == "tidal" ? "Tidal" : id == "ibroadcast" ? "iBroadcast" : id;
     private static string N(double v) => Tags.Js.Num(v);
     private static string Khz(double hz) => Tags.Js.Num(hz / 1000);
     private static string Mhz(double n, int family = 44100) => Tags.Js.Num(Math.Round(family * n / 1e6, 4));

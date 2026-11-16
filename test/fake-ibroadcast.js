@@ -7,7 +7,9 @@
  *            iBroadcast answers one. status gives the user, the settings and, asked for them, the supported types;
  *   /library the library (item 444), as iBroadcast's library server sends it: each table an id → array of values with a
  *            map naming the places; its status.lastmodified moved on by changed();
- *   /artwork /artwork/<id>-<size>: a cover (a JPEG's first bytes).
+ *   /artwork /artwork/<id>-<size>: a cover (a JPEG's first bytes);
+ *   /streaming /<bitrate>/<path>?Expires&Signature&file_id&user_id&platform&version (item 445): a track's file ("src" in
+ *            its album, a fixture's), byte ranges answered as a server answers them; refused without the access token.
  * What was asked for is recorded: the client id and scope a code was asked with, the bodies the API was sent.
  */
 const http = require("http");
@@ -22,7 +24,8 @@ class FakeIBroadcast {
     this.lastmodified = "2026-11-16 12:00:00";
     this.libraryReads = 0;
     this.artworkAsks = [];
-    this.refuseGrant = false;          // the device grant refused, as iBroadcast refuses an app not let use it
+    this.refuseGrant = false;
+    this.streamAsks = [];              // { path, query, range }          // the device grant refused, as iBroadcast refuses an app not let use it
     this.user = user;
     this.supported = [{ extension: ".flac" }, { extension: ".mp3" }, { extension: ".wav" }, { extension: ".m4a" }];
     this.codes = new Map();            // device_code -> { userCode, approved, denied, clientId, scope }
@@ -105,6 +108,23 @@ class FakeIBroadcast {
       this.artworkAsks.push(u.pathname);
       res.writeHead(200, { "Content-Type": "image/jpeg" });
       return res.end(Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0, 16, 0x4a, 0x46, 0x49, 0x46, 0, 1, 1, 0, 0, 1, 0, 1, 0, 0, 0xff, 0xd9]));
+    }
+    if (u.pathname.startsWith("/streaming/") && req.method === "GET") {
+      const q = Object.fromEntries(u.searchParams);
+      this.streamAsks.push({ path: u.pathname, query: q, range: req.headers.range || null });
+      if (q.Signature !== this.access) { res.writeHead(403); return res.end(); }
+      const id = u.pathname.split("/").pop();
+      const t = this.albums.flatMap(a => a.tracks).find(x => String(x.id) === id && x.src);
+      if (!t) { res.writeHead(404); return res.end(); }
+      const body = require("fs").readFileSync(t.src);
+      const m = /^bytes=(\d+)-(\d*)$/.exec(req.headers.range || "");
+      if (m) {
+        const from = Number(m[1]), to = Math.min(body.length - 1, m[2] ? Number(m[2]) : body.length - 1);
+        res.writeHead(206, { "Content-Type": t.type || "audio/flac", "Content-Range": `bytes ${from}-${to}/${body.length}`, "Content-Length": to - from + 1, "Accept-Ranges": "bytes" });
+        return res.end(body.subarray(from, to + 1));
+      }
+      res.writeHead(200, { "Content-Type": t.type || "audio/flac", "Content-Length": body.length, "Accept-Ranges": "bytes" });
+      return res.end(body);
     }
     if (u.pathname === "/library" && req.method === "POST") {
       const auth = (req.headers.authorization || "").replace(/^Bearer /, "");
