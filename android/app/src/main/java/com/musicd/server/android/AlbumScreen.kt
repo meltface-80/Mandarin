@@ -278,7 +278,7 @@ internal fun AlbumScreen(offset: Long, zoneId: String, lit: String, client: () -
                             Icon(painterResource(if (favourite) R.drawable.np_heart_on else R.drawable.np_heart), contentDescription = null, modifier = Modifier.size(22.dp))
                         }
                         val dlState = download.optString("state", "none")
-                        val dlLabel = downloadWords(download, phone == null && (a.album.source == null || a.album.source == "local"))
+                        val dlLabel = downloadWords(download, phone == null && com.musicd.server.client.Keepable.album(a.album.source))
                         val bridge = (context as? Activity)?.let { DownloadsBridge(it) }
                         MoreMenu(a, later, onLater = { later = !later; val on = later; mark { it.listenLater(shown, on) } },
                             onMain = a.versions.firstOrNull { it.current }?.takeIf { !it.main && phone == null }?.let { v -> { makeMain(v.album.offset) } },

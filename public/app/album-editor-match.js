@@ -306,8 +306,8 @@ function laterMenuItem(album, page) {
 function downloadMenuItem(album) {
   const dl = window.MusicdDownloads;
   if (!dl || !album || typeof album.offset !== "number") return [];
-  // A streamed album (Qobuz, Tidal) is never kept on the phone (v0.6.23).
-  if (album.source && album.source !== "local") return [];
+  // A streamed album (Qobuz, Tidal) is never kept on the phone (v0.6.23); iBroadcast's, the owner's own files, are (item 448; Keepable.kt).
+  if (album.source && album.source !== "local" && album.source !== "ibroadcast") return [];
   let st = {};
   try { st = JSON.parse(dl.status(album.offset)) || {}; } catch (e) { /* treat as not downloaded */ }
   if (st.state === "done") return [{ label: "Remove from this phone", key: "album.download", onClick: () => dl.remove(album.offset) }];
