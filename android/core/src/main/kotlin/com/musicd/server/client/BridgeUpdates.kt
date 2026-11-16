@@ -5,8 +5,9 @@ import org.json.JSONObject
 /**
  * A Mandarin Bridge's row on Settings → Updates: its [id], its [name] with its version, its button's [words], whether a
  * tap updates it, and [checked]: where its button says Check for update (item 293), what a check that finds nothing to
- * install says (Up to date, Nothing published); null where a tap doesn't check. [why]: where its update failed or waits on
- * the device, what the Bridge said of it (item 327), shown under its row; null otherwise.
+ * install says (Up to date, Nothing published, Check failed); null where a tap doesn't check. [why]: where its update failed
+ * or waits on the device, what the Bridge said of it (item 327); where GitHub couldn't be asked of it (its hourly limit
+ * used up, item 437), why; shown under its row; null otherwise.
  */
 data class BridgeRow(val id: String, val name: String, val words: String, val canUpdate: Boolean, val busy: Boolean, val checked: String? = null,
     val why: String? = null)
@@ -37,6 +38,7 @@ object BridgeUpdates {
         val update = b.optJSONObject("update")
         val state = update?.optString("state").orEmpty()
         val available = b.optBoolean("available")
+        val error = if (b.isNull("error")) "" else b.optString("error")
         val words = when {
             state == "downloading" || state == "installing" || state == "restarting" -> UPDATING
             state == "needs-you" -> ON_DEVICE
@@ -44,15 +46,16 @@ object BridgeUpdates {
             !b.optBoolean("updates") -> BY_HAND
             state == "failed" && available -> RETRY
             available -> UpdateCheck.AVAILABLE
+            error.isNotEmpty() -> UpdateCheck.FAILED   // GitHub not asked, or not answering: never "Nothing published" (item 437)
             b.isNull("latest") -> NONE
             else -> UpdateCheck.UP_TO_DATE
         }
         val version = if (b.isNull("version")) "" else b.optString("version")
-        val settled = words == UpdateCheck.UP_TO_DATE || words == NONE
-        val says = if (update == null || update.isNull("says")) "" else update.optString("says")
+        val settled = words == UpdateCheck.UP_TO_DATE || words == NONE || words == UpdateCheck.FAILED
+        val says = if (words == UpdateCheck.FAILED) error else if (update == null || update.isNull("says")) "" else update.optString("says")
         return BridgeRow(b.optString("id"), name(b.optString("name"), version), if (settled) UpdateCheck.CHECK else words,
             words == UpdateCheck.AVAILABLE || words == RETRY, words == UPDATING, if (settled) words else null,
-            says.takeIf { it.isNotEmpty() && (words == RETRY || words == ON_DEVICE) })
+            says.takeIf { it.isNotEmpty() && (words == RETRY || words == ON_DEVICE || words == UpdateCheck.FAILED) })
     }
 
     /** What a check of a Bridge says, [fresh] its row as GitHub was asked again: its update, or how it stands; Check failed where it is gone. */

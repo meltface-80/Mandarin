@@ -7,7 +7,8 @@
  *   - Update: the Bridge fetches the release itself, checks the tarball against the sidecar's checksum, unpacks it
  *     and stops; started again (as systemd does), the program installed hands over to the update;
  *   - an update that fails as it starts let go, the program installed running on;
- *   - refused: a tag that isn't a Bridge release's, a download whose checksum isn't the release's.
+ *   - refused: a tag that isn't a Bridge release's, a download whose checksum isn't the release's;
+ *   - GitHub's hourly limit used up (item 437): a Bridge's check and the server's say so, and when, never "Nothing published".
  */
 const test = require("node:test");
 const assert = require("node:assert");
@@ -85,11 +86,16 @@ test("a Mandarin Bridge offered its update on Settings → Updates, and updated 
   let published = { commit: "fffffff", version: "9.9.9" };   // the build the release says it holds
   const asks = [];
   let away = false;   // GitHub refusing every ask, as it does at its limit
+  let limitUntil = 0;  // GitHub's hourly limit used up for Mandarin until then (unix seconds), as its API answers it (item 437)
   const gh = http.createServer((req, res) => {
     asks.push(req.url);
     // As GitHub: a request that doesn't say what it is (no User-Agent) refused (item 327).
     if (!req.headers["user-agent"]) { res.writeHead(403, { "Content-Type": "text/plain" }); return res.end("Request forbidden by administrative rules. Please make sure your request has a User-Agent header"); }
     if (away && req.headers["user-agent"].startsWith("mandarin-bridge")) { res.writeHead(503); return res.end(); }
+    if (req.url.startsWith("/repos/") && Date.now() / 1000 < limitUntil && !req.headers["user-agent"].startsWith("mandarin-bridge")) {
+      res.writeHead(403, { "Content-Type": "application/json", "X-RateLimit-Limit": "60", "X-RateLimit-Remaining": "0", "X-RateLimit-Reset": String(limitUntil) });
+      return res.end(JSON.stringify({ message: "API rate limit exceeded for 127.0.0.1." }));
+    }
     const json = o => { res.writeHead(200, { "Content-Type": "application/json" }); res.end(JSON.stringify(o)); };
     const at = n => `http://127.0.0.1:${gh.address().port}/download/${n}`;
     if (req.url.startsWith("/repos/meltface-80/Mandarin/releases?")) return json([{ tag_name: "v1.1.14" }, { tag_name: "mandarin-bridge-v9.0.0" }]);
@@ -223,6 +229,44 @@ test("a Mandarin Bridge offered its update on Settings → Updates, and updated 
     } finally { await b.close(); }
   }
   away = false;
+
+  // GitHub's hourly limit used up (item 437): the Bridge's check says so, and how long is left, not "Nothing published";
+  // the server's own check the same; GitHub not asked again until then, and asked once it has passed.
+  limitUntil = Math.floor(Date.now() / 1000) + 6;
+  const LIMIT = /^GitHub's limit of 60 checks an hour from this box is used up: it can be asked again in 1 minute\.$/;
+  const limited = (await api("update/bridges?fresh=1")).bridges.find(b => b.id === ID);
+  assert.match(String(limited.error), LIMIT, JSON.stringify(limited));
+  assert.deepEqual([limited.why, limited.latest, limited.available], [limited.error, null, false]);
+  await api("update/check", {});
+  assert.match(String((await api("update/status")).error), LIMIT);
+  const asked = asks.length;
+  assert.match(String((await api("update/bridges?fresh=1")).bridges.find(b => b.id === ID).error), LIMIT);
+  assert.equal(asks.length, asked, "GitHub not asked while its limit is used up");
+  if (findBrowser()) {
+    // On the page: the Bridge's row Check for update, why under it; the server's why under its row.
+    const b = await Browser.launch({ width: 412, height: 915 });
+    try {
+      const page = await b.page(B + "/", { cookies: [{ name: "musicd_session", value: token, url: B }] });
+      await page.eval(`(async () => {
+        const sleep = ms => new Promise(r => setTimeout(r, ms));
+        for (let i = 0; i < 100 && !document.querySelector("#settings-toggle"); i++) await sleep(100);
+        document.querySelector("#settings-toggle").click(); await sleep(300);
+        document.querySelector('.settings-nav-item[data-pane="system"]').click();
+      })()`);
+      const seen = await until(async () => page.eval(`(() => {
+        const q = s => document.querySelector(s), why = q('#update-bridges [data-parity="settings-system.bridge-why"]'), server = q('[data-parity="settings-system.check-why"]');
+        return why && server && !server.classList.contains("hidden")
+          && [q('#update-bridges [data-parity="settings-system.bridge-update"]').textContent, why.textContent, server.textContent];
+      })()`), 10000);
+      assert.equal(seen[0], "Check for update");
+      assert.match(seen[1], LIMIT);
+      assert.match(seen[2], LIMIT);
+    } finally { await b.close(); }
+  }
+  await until(async () => {
+    const row = (await api("update/bridges?fresh=1")).bridges.find(b => b.id === ID);
+    return row.error == null && row.latest && row;
+  }, 20000);
 
   // A download that isn't the release's build: refused, nothing put in place.
   sha = "0".repeat(64);

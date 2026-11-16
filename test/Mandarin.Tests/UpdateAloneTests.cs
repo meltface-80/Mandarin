@@ -29,6 +29,8 @@ public sealed partial class UpdateAloneTests
     {
         public JsonNode? Latest;
         public int LatestStatus = 404;
+        public Dictionary<string, string> LatestHeaders = [];   // with LatestStatus: GitHub's rate-limit headers (item 437)
+        public int LatestAsks;
         public JsonNode? Tag;
         public readonly Dictionary<string, byte[]> Files = [];
         // Files answered 502 the first time they are asked for, as GitHub's download service does now and then (item 380).
@@ -115,7 +117,13 @@ public sealed partial class UpdateAloneTests
         {
             var u = ctx.Request.Path.Value ?? "";
             async Task Send(int code, byte[] body, string type = "application/json") { ctx.Response.StatusCode = code; ctx.Response.ContentType = type; await ctx.Response.Body.WriteAsync(body); }
-            if (u == "/repos/me/musicd/releases/latest") { await (fake.Latest != null ? Send(200, Encoding.UTF8.GetBytes(fake.Latest.ToJsonString())) : Send(fake.LatestStatus, "{}"u8.ToArray())); return; }
+            if (u == "/repos/me/musicd/releases/latest")
+            {
+                fake.LatestAsks++;
+                if (fake.Latest == null) foreach (var (k, v) in fake.LatestHeaders) ctx.Response.Headers[k] = v;
+                await (fake.Latest != null ? Send(200, Encoding.UTF8.GetBytes(fake.Latest.ToJsonString())) : Send(fake.LatestStatus, "{}"u8.ToArray()));
+                return;
+            }
             if (u == "/repos/me/musicd/releases/tags/v9.9.9") { await (fake.Release() is { } rel ? Send(200, Encoding.UTF8.GetBytes(rel.ToJsonString())) : Send(404, "{}"u8.ToArray())); return; }
             if (fake.Files.TryGetValue(u, out var f)) { await Send(200, f, "application/octet-stream"); return; }
             await Send(404, "{}"u8.ToArray());
@@ -175,7 +183,16 @@ public sealed partial class UpdateAloneTests
             Refused(r, "GitHub API HTTP 500");
             JsonAssert.Same("""{"phase":"error","error":"GitHub API HTTP 500","version":null}""", r.Body["status"]?["apply"]);
             fake.LatestStatus = 403;
-            Assert.Equal("GitHub rate-limited or forbidden (set GITHUB_TOKEN to raise the limit)", (await Api("check", true)).Body.Str("error"));
+            Assert.Equal("GitHub refused the check (403): try again later, or set GITHUB_TOKEN to raise its limit.", (await Api("check", true)).Body.Str("error"));
+            // Its hourly limit used up (item 437): said in words, with how long is left; GitHub not asked again until then.
+            fake.LatestHeaders = new() { ["X-RateLimit-Remaining"] = "0", ["X-RateLimit-Reset"] = DateTimeOffset.UtcNow.AddSeconds(4).ToUnixTimeSeconds().ToString(System.Globalization.CultureInfo.InvariantCulture) };
+            const string Limit = "GitHub's limit of 60 checks an hour from this box is used up: it can be asked again in 1 minute.";
+            Assert.Equal(Limit, (await Api("check", true)).Body.Str("error"));
+            var asked = fake.LatestAsks;
+            Assert.Equal(Limit, (await Api("check", true)).Body.Str("error"));
+            Assert.True(asked == fake.LatestAsks, "GitHub not asked while its limit is used up");
+            fake.LatestHeaders = [];
+            await Task.Delay(5000);   // the hour turned: asked again
             // No release, no tags: nothing on offer.
             fake.LatestStatus = 404;
             r = await Api("check", true);

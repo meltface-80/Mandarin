@@ -66,6 +66,7 @@ internal fun SettingsUpdates(client: () -> ServerClient?, onBack: () -> Unit) {
     var serverWords by remember { mutableStateOf(UpdateCheck.CHECK) }
     var appWords by remember { mutableStateOf(UpdateCheck.CHECK) }
     var serverBusy by remember { mutableStateOf(false) }
+    var serverWhy by remember { mutableStateOf<String?>(null) }   // why its last check failed (item 437)
     var appBusy by remember { mutableStateOf(false) }
     var bridges by remember { mutableStateOf<List<BridgeRow>>(emptyList()) }
     var bridgeHeld by remember { mutableStateOf<String?>(null) }    // a Bridge whose check's answer is on its button
@@ -111,6 +112,7 @@ internal fun SettingsUpdates(client: () -> ServerClient?, onBack: () -> Unit) {
         client()?.let { c ->
             val s = withContext(Dispatchers.IO) { runCatching { c.getJson("/api/update/status") }.getOrNull() }
             serverVersion = UpdateCheck.current(s)
+            if (!serverBusy) serverWhy = UpdateCheck.serverWhy(s)
             if (!serverBusy) UpdateCheck.found(s)?.let { server = it; serverWords = UpdateCheck.AVAILABLE }
         }
         val a = appStatus(false)
@@ -118,10 +120,11 @@ internal fun SettingsUpdates(client: () -> ServerClient?, onBack: () -> Unit) {
     }
     fun checkServer() {
         val c = client() ?: return
-        serverBusy = true; serverWords = UpdateCheck.CHECKING; server = null
+        serverBusy = true; serverWords = UpdateCheck.CHECKING; server = null; serverWhy = null
         scope.launch {
             val s = withContext(Dispatchers.IO) { runCatching { c.post("/api/update/check", JSONObject()); c.getJson("/api/update/status") }.getOrNull() }
             UpdateCheck.current(s)?.let { serverVersion = it }
+            serverWhy = UpdateCheck.serverWhy(s)
             val f = UpdateCheck.found(s)
             if (f != null) { server = f; serverWords = UpdateCheck.AVAILABLE; serverBusy = false; return@launch }
             val words = UpdateCheck.serverNothing(s)
@@ -145,7 +148,7 @@ internal fun SettingsUpdates(client: () -> ServerClient?, onBack: () -> Unit) {
         SettingsHead(Modifier.parity("settings-system.back", Contract.label("settings-system.back")).clip(CircleShape).clickable(onClick = onBack), R.drawable.np_back,
             "Updates", Modifier.parity("settings-system.heading"))
         Block {
-            UpdateRow(UpdateCheck.serverName(serverVersion)) {
+            UpdateRow(UpdateCheck.serverName(serverVersion), why = serverWhy, server = true) {
                 UpdateButton(serverWords, serverBusy, Modifier.padding(start = 16.dp)
                     .parity("settings-system.check", Contract.label("settings-system.check", 1, serverWords))
                     .clickable(enabled = !serverBusy) { if (serverWords == UpdateCheck.AVAILABLE && server != null) installServer() else checkServer() })
@@ -179,13 +182,15 @@ private suspend fun appStatus(force: Boolean): JSONObject? {
 
 /**
  * A row: its [name] (the server's, this app's or a Bridge's, with its version) and its [button]; under them, a Bridge's
- * [why] where its update failed or waits on the device (item 327: there is no hovering over a button here to read it).
+ * [why] where its update failed or waits on the device (item 327: there is no hovering over a button here to read it), or
+ * the [server]'s why its check failed (item 437).
  * Not a Row: there, what is measured first takes what it wants, and a long answer left the name a letter wide (item 178),
  * a long name the button (item 327). As UpdateCheck.rowWidths: the button its words on one line up to half the row, the
  * name the rest, each wrapping inside its own width, never under its longest word.
  */
 @Composable
-private fun UpdateRow(name: String, modifier: Modifier = Modifier, why: String? = null, button: @Composable () -> Unit) {
+private fun UpdateRow(name: String, modifier: Modifier = Modifier, why: String? = null, server: Boolean = false,
+    button: @Composable () -> Unit) {
     Column(modifier.fillMaxWidth()) {
         Layout({
             Text(name, Modifier.parity("settings-system.name").heightIn(min = 22.dp), color = paletteColor(Palette.TEXT), fontSize = 16.sp, lineHeight = 22.sp)
@@ -202,7 +207,8 @@ private fun UpdateRow(name: String, modifier: Modifier = Modifier, why: String? 
                 b.placeRelative(c.maxWidth - b.width, (h - b.height) / 2)
             }
         }
-        if (why != null) Text(why, Modifier.parity("settings-system.bridge-why").padding(top = 4.dp), color = paletteColor(Palette.TEXT_DIM), fontSize = 12.sp, lineHeight = 17.sp)
+        if (why != null && server) Text(why, Modifier.parity("settings-system.check-why").padding(top = 4.dp), color = paletteColor(Palette.TEXT_DIM), fontSize = 12.sp, lineHeight = 17.sp)
+        else if (why != null) Text(why, Modifier.parity("settings-system.bridge-why").padding(top = 4.dp), color = paletteColor(Palette.TEXT_DIM), fontSize = 12.sp, lineHeight = 17.sp)
     }
 }
 

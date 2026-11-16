@@ -7,11 +7,14 @@
 // stand for a few seconds. Opened, it says what the last check found. Under
 // it, what the update brings: the release's short lines ("• Fixed - …"),
 // which the server takes from its notes (Admin/ReleaseNotes.cs). The Android
-// app has a row of its own beside it, natively (SettingsUpdates.kt).
+// app has a row of its own beside it, natively (SettingsUpdates.kt). A check
+// that failed says why under the row (item 437: GitHub's hourly limit used up,
+// and how long until it may be asked again), as a Bridge's row does.
 (function initCheckUpdate() {
   const btn  = document.getElementById("check-update-btn");
   const name = document.getElementById("update-server-name");
   const box  = document.getElementById("settings-whats-new");
+  const why  = document.getElementById("update-server-why");
   if (!btn || EMBED) return;   // not in the Shelf's frame (embed-flag.js)
   const CHECK = "Check for update", AVAILABLE = "Update available";
   let found = null;          // { latest, notes } once an update is on offer
@@ -31,8 +34,17 @@
     box.appendChild(head); box.appendChild(notes);
   }
 
+  // Why the last check failed ([s], the server's status), under the row; nothing where it didn't.
+  function failed(s) {
+    if (!why) return;
+    const e = s && !s.available && s.error ? String(s.error) : "";
+    why.textContent = e;
+    why.classList.toggle("hidden", !e);
+  }
+
   // The server's status ([s]) as it stands: its version in the name, and its update on offer, if any.
   function show(s) {
+    failed(s);
     if (s && s.current && name) name.textContent = "Server v" + s.current;
     found = s && s.available && s.latest ? { latest: s.latest, notes: s.notes || null } : null;
     btn.classList.toggle("is-update-ready", !!found);
@@ -69,6 +81,7 @@
       if (s && s.available && s.latest) { btn.disabled = false; show(s); return; }
       if (s && s.current && name) name.textContent = "Server v" + s.current;
       said = s && !s.error ? "Up to date" : "Check failed";
+      failed(s);
     } catch (e) { /* said: Check failed */ }
     btn.textContent = said;
     setTimeout(() => { btn.disabled = false; btn.textContent = CHECK; }, 4000);

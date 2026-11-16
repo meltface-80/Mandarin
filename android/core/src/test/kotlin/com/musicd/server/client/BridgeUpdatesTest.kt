@@ -41,6 +41,17 @@ class BridgeUpdatesTest {
         assertFalse(BridgeUpdates.underWay(rows.take(2)))
     }
 
+    /** GitHub not asked (its hourly limit used up, item 437): Check failed, and why under the row, never "Nothing published". */
+    @Test fun aCheckThatFailedSaysWhy() {
+        val limit = "GitHub's limit of 60 checks an hour from this box is used up: it can be asked again in 23 minutes."
+        val r = BridgeUpdates.row(bridge("latest" to null, "error" to limit))
+        assertEquals(listOf("Check for update", "Check failed", limit), listOf(r.words, r.checked, r.why))
+        assertEquals("Check failed", BridgeUpdates.answer(r))
+        // No error said: nothing published, nothing under it.
+        val none = BridgeUpdates.row(bridge("latest" to null, "error" to null))
+        assertEquals(listOf("Nothing published", null), listOf(none.checked, none.why))
+    }
+
     @Test fun noneSaid() {
         assertEquals(emptyList<BridgeRow>(), BridgeUpdates.rows(null))
         assertEquals(emptyList<BridgeRow>(), BridgeUpdates.rows(JSONObject()))
