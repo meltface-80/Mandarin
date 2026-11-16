@@ -42,7 +42,7 @@ test("item 445: iBroadcast's tracks played from their originals, at their own ra
   ib.slowOnce = false;
   t.after(() => ib.stop());
   const port = ports.port(), base = "http://127.0.0.1:" + port;
-  const srv = createServer({ port, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false, identify: false, ibroadcastBaseUrl: ib.base });
+  const srv = createServer({ port, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false, identify: false, ibroadcastBaseUrl: ib.base, ibroadcastWatchMs: 3000 });
   const ctx = await srv.start();
   t.after(() => srv.stop());
   const token = await signIn(base);
@@ -59,8 +59,24 @@ test("item 445: iBroadcast's tracks played from their originals, at their own ra
   const loRow = db.prepare("SELECT id, sample_rate FROM tracks WHERE path = 'ibroadcast://track/7001'").get();
   assert.equal(loRow.sample_rate, null);
 
-  // Its stream from iBroadcast's original, at 24/96 (a room planned from the row's 96000/24 asks for that).
+  // A library read before each track's file was kept (an update to item 445 left them so, and nothing played; item 450):
+  // the ten-minute look reads it again though iBroadcast says nothing changed; a track played meanwhile has it read first.
+  const files = () => db.prepare("SELECT COUNT(*) AS n FROM cache WHERE ns = 'ibroadcast-file'").get().n;
+  const reads = ib.libraryReads;
+  db.prepare("DELETE FROM cache WHERE ns = 'ibroadcast-file'").run();
+  await until(() => files() === 2, 15000, "the files known again by the look");
+  assert.ok(ib.libraryReads > reads, "read again");
+  db.prepare("DELETE FROM cache WHERE ns = 'ibroadcast-file'").run();
+  const state = JSON.parse(db.prepare("SELECT value FROM settings WHERE key = 'ibroadcastLibrary'").get().value);
+  state.at = Date.now() - 120000;
+  db.prepare("UPDATE settings SET value = ? WHERE key = 'ibroadcastLibrary'").run(JSON.stringify(state));
   ib.streamAsks.length = 0;
+  const healed = await fetch(base + "/stream/t" + hiRow.id + ".96000-24.flac", { headers: H });
+  assert.equal(healed.status, 200, "played: the library read again first: " + (healed.status !== 200 ? await healed.clone().text() : ""));
+  await healed.arrayBuffer();
+
+  // Its stream from iBroadcast's original, at 24/96 (a room planned from the row's 96000/24 asks for that): as made just
+  // above, and kept.
   const s = await fetch(base + "/stream/t" + hiRow.id + ".96000-24.flac", { headers: H });
   assert.equal(s.status, 200);
   const p = probe(Buffer.from(await s.arrayBuffer()));

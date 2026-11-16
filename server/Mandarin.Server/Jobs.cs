@@ -124,7 +124,8 @@ internal static partial class Jobs
         Qobuz = new Services.QobuzCatalogue(Text(cfg["qobuz_url"])) { DataDir = dataDir };
         Tidal = new Services.TidalCatalogue(Text(cfg["tidal_url"]), Text(cfg["tidal_images_url"]), Text(cfg["tidal_auth_url"])) { DataDir = dataDir };
         IBroadcast = new Services.IBroadcast.IBroadcast(Text(cfg["ibroadcast_url"]));
-        IBroadcastLibrary = new Services.IBroadcast.IBroadcastLibrary(IBroadcast, dataDir);
+        IBroadcastLibrary = new Services.IBroadcast.IBroadcastLibrary(IBroadcast, dataDir)
+            { WatchMs = cfg["ibroadcast_watch_ms"] is JsonValue ibw && ibw.TryGetValue<double>(out var ibms) && ibms > 0 ? ibms : 10 * 60 * 1000 };
         IBroadcastStreams = new Services.IBroadcast.IBroadcastStreams(IBroadcast) { DataDir = dataDir };
         // What a service no longer here left behind (item 152), and gone albums and tracks (item 179): gone before the library is read.
         Orphans.Sweep(Log);

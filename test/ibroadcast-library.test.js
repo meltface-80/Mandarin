@@ -96,13 +96,17 @@ test("item 444: the iBroadcast library in Mandarin's, its albums as service albu
   await post("", { import: true });
   await until(async () => (await walls()).includes("Discovery / Daft Punk"), 15000, "back on the walls");
 
-  // A new album at iBroadcast, one taken away: Update library now.
+  // A new album at iBroadcast, one taken away: Update library now; the tracks still there keep their ids (item 450: each
+  // reading made them anew, and a queue or a play lost them).
+  const ids = () => db.prepare("SELECT t.path, t.id FROM tracks t JOIN albums a ON a.id = t.album_id WHERE a.key = 'ibroadcast:101' ORDER BY t.path").all();
+  const before = ids();
   ib.albums = albums().filter(a => a.id !== 201 && a.id !== 202).concat([{ id: 501, name: "Homework", artist: { id: 1, name: "Daft Punk" }, year: 1997, tracks: [{ id: 5001, title: "Da Funk", track: 1, type: "audio/flac" }] }]);
   ib.changed();
   const now = await post("/library");
   assert.deepEqual([now.status, now.library.albums], [200, 3]);
   const after = await until(async () => { const w = await walls(); return w.includes("Homework / Daft Punk") && w; }, 15000, "the new album");
   assert.ok(!after.some(x => x.startsWith("Under A Groove")), "gone from iBroadcast, gone here");
+  assert.deepEqual(ids(), before, "the same tracks, the same ids");
 
   if (findBrowser()) {
     // On the page: Services → iBroadcast, the library's switch on and what it holds.
