@@ -38,7 +38,7 @@ object Export {
             val key = r.getOrElse(artist) { "" } + "\u0000" + r.getOrElse(album) { "" }
             albums[key] = (albums[key] ?: false) || r.getOrElse(barcode) { "" }.isNotEmpty()
         }
-        return Counts(albums.size, tracks, rows.drop(1).count { r -> r.getOrElse(barcode) { "" }.isNotEmpty() })   // BROKEN ON PURPOSE: albums with a barcode, not tracks
+        return Counts(albums.size, tracks, albums.values.count { it })
     }
 
     /** RFC 4180: rows of cells, a cell quoted where it holds a comma, a quote (doubled) or a line break. */
