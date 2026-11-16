@@ -217,7 +217,9 @@ private fun copy(c: Context, label: String, text: String) {
     Cap("Sent by Mandarin at (kHz)", (DacService.current?.caps()?.rates ?: OwnDac.rates).joinToString(", ") { OwnDac.khz(it) })
     Cap("Android takes from an app (kHz)", if (OwnDac.rates.isEmpty()) "none" else OwnDac.rates.joinToString(", ") { OwnDac.khz(it) })
     Cap("Bit depth", "16, 24 (sent as 32-bit float, every bit kept)")
-    Cap("DSD", "as PCM, converted by Mandarin")
+    // DSD as DoP (item 438): tried by hand, at a low volume, the device's own display saying whether its DAC took it.
+    ToggleRow("DSD as DoP (test)", Store.ownDop(activity)) { Store.setOwnDop(activity, it); DacService.current?.let { d -> d.main.post { d.usbChanged() } }; again() }
+    Note(if (Store.ownDop(activity)) OWN_DOP_ON.replace("{dsd}", OwnDop.multiples(DacService.current?.caps()?.rates ?: emptyList()).joinToString(", ") { "DSD$it" }.ifEmpty { "no DSD (no DoP rate reached)" }) else OWN_DOP_OFF)
     Cap("Volume", "this device's own; Mandarin's is fixed at 100%")
     Note(OWN_MQA)
     val outs = OwnDac.outputs(activity)
@@ -236,4 +238,6 @@ private fun copy(c: Context, label: String, text: String) {
 private const val OWN_PLAYER = "A music player: its firmware passes an app's audio on at the track's own rate, unmixed, so the Bridge plays to its DAC untouched, at each track's rate. A USB DAC plugged in is played instead."
 private const val OWN_PHONE = "On a phone, Android mixes an app's audio at its own rate before the DAC, so it isn't bit-perfect: off unless you switch it on."
 private const val OWN_FIXED = "Android's output here stays at {rate} kHz whatever rate a track is given at, and Android would resample anything else to it. So Mandarin sends {rate} kHz (or a rate listed as reaching the DAC), converting other rates itself with its own resampler, and its signal path says so: bit-perfect only for {rate} kHz tracks. Every way an app may ask Android for a track was tried (below); none made the output follow."
+private const val OWN_DOP_OFF = "DSD is sent as PCM, converted by Mandarin. Switch on to send it as DoP instead (DSD packed in PCM at its rate over 16, 176.4 kHz for DSD64): where this player's DAC takes DoP, it plays DSD natively. Start at a low volume: a DAC that doesn't take it plays a quiet signal far above hearing."
+private const val OWN_DOP_ON = "DSD goes as DoP: {dsd}. Its own display should say DSD as it plays (a FiiO's status bar and rings). If it doesn't, switch this off and DSD goes as PCM again."
 private const val OWN_MQA = "MQA: in Mandarin, Settings → Audio Devices, switch on “This DAC decodes MQA” for this Bridge. An MQA track is then sent untouched, at full scale, for this player's DAC to decode and unfold."

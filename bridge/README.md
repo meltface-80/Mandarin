@@ -85,7 +85,9 @@ kHz, Android resampling the rest. So the Bridge tries, when it starts, whether t
 fifth of a second of silence at 96 kHz, the output's rate read); where it does, Mandarin is told every rate Android
 takes, and where it doesn't, the one rate the output runs at, Mandarin converting to it with its own resampler and
 saying so. What the DAC is fed is said as the output's rate, untouched only where that is the track's own. DSD is
-sent as PCM. Android has no public way to ask for its direct output (item 434, 0.3.18): which an app reaches is the
+sent as PCM, or as DoP with Settings' DSD as DoP (test) on (item 438, 0.3.20): the Bridge packs the DSF or DFF Mandarin
+sends as DoP, the frames its USB driver makes, and plays them as float at DSD's rate over 16, for a player's DAC that
+takes DoP to play natively. Android has no public way to ask for its direct output (item 434, 0.3.18): which an app reaches is the
 device's to decide by how its track is asked for, so the Bridge tries each way (media, the music stream,
 power-saving, low latency; float, and 16-bit to see), reads the rate each track went out at (Android's music output's,
 and on a FiiO its own audio code's word in the app's log), plays by the first float way that reaches the DAC at the

@@ -111,6 +111,7 @@ class DacService : Service() {
     private var http: HttpServer? = null
     @Volatile private var usbSink: UsbAudioSink? = null
     @Volatile private var ownSink: UsbOrOwn? = null
+    @Volatile private var dopSink: OwnDopSink? = null
     @Volatile internal var running = false
     private var retries = 0
     /** Why the player can't play right now (no DAC, say); null while it can. */
@@ -204,9 +205,11 @@ class DacService : Service() {
         val engine = DspEngine()
         val renderers = object : DefaultRenderersFactory(this) {
             override fun buildAudioSink(context: Context, enableFloatOutput: Boolean, enableAudioTrackPlaybackParams: Boolean): AudioSink =
-                DspSink(UsbAudioSink(UsbOrOwn(DefaultAudioSink.Builder(context).setEnableFloatOutput(true)
+                // DSD as DoP to the device's own DAC (item 438) met first, as float PCM from there on.
+                OwnDopSink(DspSink(UsbAudioSink(UsbOrOwn(DefaultAudioSink.Builder(context).setEnableFloatOutput(true)
                     // The device's own DAC played by the way its output followed (item 434, OwnDacWays).
-                    .setAudioTrackProvider(OwnDacWays.provider()).build()).also { ownSink = it }, context).also { usbSink = it }, engine)
+                    .setAudioTrackProvider(OwnDacWays.provider()).build()).also { ownSink = it }, context).also { usbSink = it }, engine),
+                    { r -> ownDopNow(r) }).also { dopSink = it }
             override fun buildAudioRenderers(context: Context, extensionRendererMode: Int, mediaCodecSelector: MediaCodecSelector,
                                              enableDecoderFallback: Boolean, audioSink: AudioSink, eventHandler: Handler,
                                              eventListener: AudioRendererEventListener, out: ArrayList<Media3Renderer>) {
@@ -240,12 +243,20 @@ class DacService : Service() {
     /** Playing through this device's own DAC now (item 432, OwnDac.kt): it is on, and no DAC is on the USB port. */
     fun ownNow(): Boolean = UsbDac.device() == null && OwnDac.on(this)
 
+    /** The own DAC's rates as Mandarin is told them (item 433/434): those the way played by reaches. */
+    private fun ownRates(): List<Int> = OwnDac.advertised(OwnDac.rates, OwnDac.follows, OwnDac.probedRate, OwnDac.reached)
+
+    /** DSD goes to the device's own DAC as DoP at [dopRate] (item 438): DoP on, the own DAC played, the rate reached. */
+    fun ownDopNow(dopRate: Int): Boolean = ownNow() && Store.ownDop(this) && dopRate in ownRates()
+
     /**
      * What the device's own DAC is fed now, for Now Playing (main thread): the rate Android's output runs at, the track's
      * where Android resamples it to another (item 433), its depth as decoded (0 unsaid).
      */
     fun ownFeed(): NowPlaying.Feed? {
         val f = ownSink?.playing?.takeIf { ownNow() } ?: return null
+        // DSD as DoP (item 438): said as DSD, the way Now Playing says a USB DAC's DoP.
+        dopSink?.multiple?.takeIf { it > 0 }?.let { m -> return NowPlaying.Feed(f.sampleRate, 24, dsd = m, dop = true) }
         val bits = when (player.audioFormat?.pcmEncoding) { C.ENCODING_PCM_16BIT -> 16; C.ENCODING_PCM_24BIT -> 24; C.ENCODING_PCM_32BIT, C.ENCODING_PCM_FLOAT -> 32; else -> 0 }
         val out = OwnDac.fedRate(f.sampleRate)
         return if (out > 0 && out != f.sampleRate) NowPlaying.Feed(out, bits, from = f.sampleRate) else NowPlaying.Feed(f.sampleRate, bits)
@@ -382,8 +393,11 @@ class DacService : Service() {
     fun caps(): Caps? {
         // No DAC on the USB port: this device's own, where it is played (item 432), as Android takes it from an app.
         // Where Android's output keeps one rate whatever a track's (item 433), that rate alone: Mandarin converts to it.
-        if (UsbDac.device() == null) return if (OwnDac.on(this) && OwnDac.rates.isNotEmpty())
-            Caps(OwnDac.advertised(OwnDac.rates, OwnDac.follows, OwnDac.probedRate, OwnDac.reached), OwnDac.BITS, emptyList(), emptyList(), emptyList()) else null
+        // DoP on (item 438): the DSD multiples whose DoP rates it reaches, as DoP.
+        if (UsbDac.device() == null) return if (OwnDac.on(this) && OwnDac.rates.isNotEmpty()) ownRates().let { r ->
+            val dop = if (Store.ownDop(this)) OwnDop.multiples(r) else emptyList()
+            Caps(r, OwnDac.BITS, dop, emptyList(), dop)
+        } else null
         val info = UsbDac.info() ?: return null
         val rates = sortedSetOf<Int>()
         for (s in info.streams) if (s.pcm) { rates.addAll(s.rates); if (s.rates.isEmpty() && s.continuous == null) rates.addAll(info.clockRates) }
@@ -439,8 +453,9 @@ class DacService : Service() {
         // To the device's own DAC: the rate Android's output runs at (item 433: what the DAC is fed), float words (32)
         // carrying the samples, never a software volume; untouched only where that is the track's own rate.
         val out = if (own != null) OwnDac.fedRate(own.sampleRate) else 0
-        if (own != null) o.put("now", JSONObject().put("rate", if (out > 0) out else own.sampleRate).put("track_rate", own.sampleRate).put("bits", 32)
-            .put("kind", "pcm").put("dsd", 0).put("transport", if (ready) transport.stateNow() else "STOPPED").put("volume", "fixed").put("level", 100)
+        val dopM = dopSink?.multiple ?: 0
+        if (own != null) o.put("now", JSONObject().put("rate", if (out > 0) out else own.sampleRate).put("track_rate", own.sampleRate).put("bits", if (dopM > 0) 24 else 32)
+            .put("kind", if (dopM > 0) "dop" else "pcm").put("dsd", dopM).put("transport", if (ready) transport.stateNow() else "STOPPED").put("volume", "fixed").put("level", 100)
             .put("untouched", if (out > 0) out == own.sampleRate else JSONObject.NULL).put("output", "android")
             .put("resampled_by", if (out > 0 && out != own.sampleRate) "android" else JSONObject.NULL))
         else o.put("now", if (s == null || !UsbDriver.active) JSONObject.NULL else JSONObject().put("rate", s.rate).put("bits", s.bits).put("kind", s.kind)
