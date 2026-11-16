@@ -33,6 +33,9 @@ object UpdateCheck {
     /** The server's button after a check that found nothing ([s], its status then): up to date, or the check's failure. */
     fun serverNothing(s: JSONObject?): String = if (s == null || has(s, "error")) FAILED else UP_TO_DATE
 
+    /** Why the server's last check failed ([s], its status), under its row (item 437: GitHub's hourly limit used up); null where it didn't. */
+    fun serverWhy(s: JSONObject?): String? = if (s != null && s.optBoolean("available") && has(s, "error")) s.optString("error") else null
+
     /**
      * This app's button after a check that found nothing, the server at [server] and the app at [app]. The server ahead:
      * a release's app reaches main's dist/latest.json a few minutes after its server, so it is on its way (item 178); a

@@ -22,7 +22,9 @@ internal static class BridgeUpdates
 {
     private const string Repo = "meltface-80/Mandarin";
     private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromSeconds(15) };
-    private static readonly Dictionary<string, (DateTime At, JsonObject? Body)> asked = [];
+    private static readonly Dictionary<string, (DateTime At, JsonObject? Body, string? Error)> asked = [];
+    // An answer kept (item 437): ten minutes where GitHub gave one (Check for update asks again), a minute where it didn't.
+    private static readonly TimeSpan Kept = TimeSpan.FromMinutes(10), KeptFailed = TimeSpan.FromMinutes(1);
 
     // Where GitHub's API is (UPDATE_API: the tests' own), as the server's updater has it.
     private static string Api => (Environment.GetEnvironmentVariable("UPDATE_API") is { Length: > 0 } a ? a : "https://api.github.com").TrimEnd('/');
@@ -32,8 +34,8 @@ internal static class BridgeUpdates
     public static async Task<JsonObject> List(bool fresh = false)
     {
         if (fresh) lock (asked) asked.Clear();
-        var tag = await Tag();
-        var rows = await Task.WhenAll(Bridges().Select(r => Row(r, tag)));
+        var (tag, tagError) = await Tag();
+        var rows = await Task.WhenAll(Bridges().Select(r => Row(r, tag, tagError)));
         return new JsonObject { ["tag"] = tag, ["bridges"] = new JsonArray([.. rows]) };
     }
 
@@ -41,8 +43,9 @@ internal static class BridgeUpdates
     public static async Task<(int Status, JsonObject Body)> Apply(string id)
     {
         if (Bridges().FirstOrDefault(r => r.Id == id) is not { } rec) return (404, Err("No such Mandarin Bridge"));
-        if (await Tag() is not { } tag) return (409, Err("No release of Mandarin Bridge is published yet"));
-        var row = await Row(rec, tag);
+        var (found, why) = await Tag();
+        if (found is not { } tag) return (409, Err(why ?? "No release of Mandarin Bridge is published yet"));
+        var row = await Row(rec, tag, null);
         if ((bool?)row["reachable"] != true) return (409, Err("The Bridge isn't answering"));
         if ((bool?)row["updates"] != true) return (409, Err(TooOld));
         // Only an update (item 384): asked for the build it runs, or an older one, the Bridge fetched it again for nothing.
@@ -80,23 +83,24 @@ internal static class BridgeUpdates
     public static string Name(DeviceRecord r) => r.Name ?? (r.NetworkName.Length > 0 ? r.NetworkName : r.Id);
 
     // One Bridge's row: what it says (its /dac.json), the build published for its machine, and whether they differ.
-    private static async Task<JsonObject> Row(DeviceRecord rec, string? tag)
+    private static async Task<JsonObject> Row(DeviceRecord rec, string? tag, string? tagError)
     {
         var dac = await MandarinBridge.Probe(Base(rec));
         var platform = dac == null ? null : Said(dac["platform"]) is { Length: > 0 } p ? p : "android";
         var commit = dac == null ? null : Said(dac["commit"]);
         var updates = dac != null && Jv.T(dac["updates"]);
         JsonObject? latest = null;
-        if (dac != null && tag != null) latest = await Published(tag, platform == "android" ? "mandarin-bridge.apk" : $"mandarin-bridge-{Said(dac["arch"])}.tar.gz");
+        string? error = dac == null ? null : tagError;   // GitHub not answering, or its limit used up (item 437): said, never "nothing published"
+        if (dac != null && tag != null) (latest, error) = await Published(tag, platform == "android" ? "mandarin-bridge.apk" : $"mandarin-bridge-{Said(dac["arch"])}.tar.gz");
         var available = updates && latest != null && Offered(tag!, dac == null ? null : Said(dac["version"]), commit, latest);
-        var why = dac == null ? "The Bridge isn't answering" : !updates ? TooOld : tag == null ? "No release of Mandarin Bridge is published yet"
-            : latest == null ? "No build is published for this Bridge's machine" : null;
+        var why = dac == null ? "The Bridge isn't answering" : !updates ? TooOld : error ?? (tag == null ? "No release of Mandarin Bridge is published yet"
+            : latest == null ? "No build is published for this Bridge's machine" : null);
         return new JsonObject
         {
             ["id"] = rec.Id, ["name"] = Name(rec), ["platform"] = platform, ["version"] = dac == null ? null : Said(dac["version"]),
             ["commit"] = commit is { Length: > 0 } ? commit : null, ["reachable"] = dac != null, ["updates"] = updates,
             ["update"] = dac?["update"] is JsObj u && Tags.Js.Json(u) is { } text ? JsonNode.Parse(text) : null,
-            ["latest"] = latest, ["available"] = available, ["why"] = why,
+            ["latest"] = latest, ["available"] = available, ["why"] = why, ["error"] = error,
         };
     }
 
@@ -112,41 +116,53 @@ internal static class BridgeUpdates
         return cmp > 0 || (cmp == 0 && tag == "test-bridge");
     }
 
-    // The release Mandarin's Bridges follow: "test-bridge" for a test build of Mandarin's, else the newest numbered one.
-    private static async Task<string?> Tag()
+    // The release Mandarin's Bridges follow: "test-bridge" for a test build of Mandarin's, else the newest numbered one;
+    // why GitHub couldn't say, where it couldn't.
+    private static async Task<(string? Tag, string? Error)> Tag()
     {
-        if (System.Text.RegularExpressions.Regex.IsMatch(Server.Version, @"-t\d+$")) return "test-bridge";
-        var list = await Get($"{Api}/repos/{Repo}/releases?per_page=30");
-        return list?["list"] is JsonArray a
+        if (System.Text.RegularExpressions.Regex.IsMatch(Server.Version, @"-t\d+$")) return ("test-bridge", null);
+        var (list, error) = await Get($"{Api}/repos/{Repo}/releases?per_page=30");
+        return (list?["list"] is JsonArray a
             ? a.OfType<JsonObject>().Select(x => (string?)x["tag_name"] ?? "").FirstOrDefault(t => t.StartsWith("mandarin-bridge-v", StringComparison.Ordinal))
-            : null;
+            : null, error);
     }
 
-    // The build published as [asset] in release [tag]: its sidecar ({commit, version, sha256}), or null.
-    private static async Task<JsonObject?> Published(string tag, string asset)
+    // The build published as [asset] in release [tag]: its sidecar ({commit, version, sha256}), or null; why GitHub
+    // couldn't say, where it couldn't (a release or a sidecar not there is no error: nothing published).
+    private static async Task<(JsonObject? Latest, string? Error)> Published(string tag, string asset)
     {
-        var rel = await Get($"{Api}/repos/{Repo}/releases/tags/{tag}");
+        var (rel, error) = await Get($"{Api}/repos/{Repo}/releases/tags/{tag}");
         var url = (rel?["assets"] as JsonArray ?? []).OfType<JsonObject>().FirstOrDefault(a => (string?)a["name"] == asset + ".json")?["browser_download_url"]?.ToString();
-        if (url == null || await Get(url) is not { } side) return null;
-        return new JsonObject { ["commit"] = (string?)side["commit"], ["version"] = (string?)side["version"] };
+        if (url == null) return (null, error);
+        var (side, sideError) = await Get(url);
+        return side == null ? (null, sideError) : (new JsonObject { ["commit"] = (string?)side["commit"], ["version"] = (string?)side["version"] }, null);
     }
 
-    // [url]'s JSON (an array as { list }), kept a minute: Settings → Updates asks often, GitHub limits how often it is asked.
-    private static async Task<JsonObject?> Get(string url)
+    /*
+     * [url]'s JSON (an array as { list }), and why there is none where GitHub didn't answer (a 404 is none, and no
+     * error). Kept ten minutes, a failure one; never asked while GitHub's limit is used up (item 437, GitHubLimit.cs),
+     * every one of its answers noted there: Settings → Updates asks often, and GitHub limits how often it is asked.
+     */
+    private static async Task<(JsonObject? Body, string? Error)> Get(string url)
     {
-        lock (asked) if (asked.TryGetValue(url, out var was) && DateTime.UtcNow - was.At < TimeSpan.FromMinutes(1)) return was.Body;
+        lock (asked) if (asked.TryGetValue(url, out var was) && DateTime.UtcNow - was.At < (was.Error == null ? Kept : KeptFailed)) return (was.Body, was.Error);
+        var api = url.StartsWith(Api + "/", StringComparison.Ordinal);   // its API's answers count against the limit, a release's files don't
+        if (api && GitHubLimit.Blocked() is { } blocked) return (null, blocked);
         JsonObject? body = null;
+        string? error = null;
         try
         {
             using var req = new HttpRequestMessage(HttpMethod.Get, url);
             req.Headers.UserAgent.ParseAdd("mandarin-server");
             using var r = await Http.SendAsync(req);
+            if (api) GitHubLimit.Note(r);
             if (r.IsSuccessStatusCode)
                 body = JsonNode.Parse(await r.Content.ReadAsStringAsync()) switch { JsonObject o => o, JsonArray a => new JsonObject { ["list"] = a.DeepClone() }, _ => null };
+            else if (r.StatusCode != System.Net.HttpStatusCode.NotFound) error = GitHubLimit.Blocked() ?? $"GitHub answered {(int)r.StatusCode}: try again later.";
         }
-        catch (Exception e) when (e is HttpRequestException or TaskCanceledException or System.Text.Json.JsonException or UriFormatException) { body = null; }
-        lock (asked) asked[url] = (DateTime.UtcNow, body);
-        return body;
+        catch (Exception e) when (e is HttpRequestException or TaskCanceledException or System.Text.Json.JsonException or UriFormatException) { error = "GitHub couldn't be reached: try again later."; }
+        lock (asked) asked[url] = (DateTime.UtcNow, body, error);
+        return (body, error);
     }
 
     private static JsonObject Err(string message) => new() { ["error"] = message };

@@ -9,19 +9,20 @@
 // Check for update, as the server's row (item 293): a tap asks GitHub again
 // (?fresh=1) and says what it found for a few seconds. While one updates, the
 // rows are asked for again until it is done. Where its update failed or waits
-// on the device, what the Bridge said is under its row (item 327). The Android
+// on the device, what the Bridge said is under its row (item 327); where GitHub
+// couldn't be asked (its hourly limit used up, item 437), why. The Android
 // app's rows are its own (SettingsUpdates.kt, core's BridgeUpdates.kt), worded
 // the same.
 (function initBridgeUpdates() {
   const box = document.getElementById("update-bridges");
   if (!box || EMBED) return;   // not in the Shelf's frame (embed-flag.js)
   const AVAILABLE = "Update available", UPDATING = "Updating…", ON_DEVICE = "Finish on the device", RETRY = "Try the update again";
-  const CHECK = "Check for update", UP_TO_DATE = "Up to date", NONE = "Nothing published";
+  const CHECK = "Check for update", UP_TO_DATE = "Up to date", NONE = "Nothing published", FAILED = "Check failed";
   let held = null;   // a Bridge whose check's answer is on its button, for its few seconds
   let timer = null;
 
   // A Bridge's button as it stands ([b], the server's word on it): Check for update where nothing is to be done, else how it stands.
-  const words = b => { const w = said(b); return w === UP_TO_DATE || w === NONE ? CHECK : w; };
+  const words = b => { const w = said(b); return w === UP_TO_DATE || w === NONE || w === FAILED ? CHECK : w; };
 
   // How a Bridge stands ([b]), as a check of it says.
   function said(b) {
@@ -32,6 +33,7 @@
     if (!b.updates) return "Update by hand once";
     if (state === "failed" && b.available) return RETRY;
     if (b.available) return AVAILABLE;
+    if (b.error) return FAILED;   // GitHub not asked, or not answering: never "Nothing published" (item 437)
     if (!b.latest) return NONE;
     return UP_TO_DATE;
   }
@@ -75,10 +77,10 @@
     setTimeout(async () => { held = null; if (!(await look())) { btn.disabled = false; btn.textContent = was; } }, 4000);
   }
 
-  // What Bridge [b] said of its update, under its row, where it failed or waits on the device; else null.
+  // What Bridge [b] said of its update, under its row, where it failed or waits on the device; why its check failed; else null.
   function why(b) {
-    const w = words(b), says = b.update && b.update.says;
-    if (!says || (w !== RETRY && w !== ON_DEVICE)) return null;
+    const w = words(b), says = w === RETRY || w === ON_DEVICE ? b.update && b.update.says : said(b) === FAILED ? b.error : null;
+    if (!says) return null;
     const p = document.createElement("p");
     p.className = "settings-bridge-why"; p.setAttribute("data-parity", "settings-system.bridge-why");
     p.textContent = says;
