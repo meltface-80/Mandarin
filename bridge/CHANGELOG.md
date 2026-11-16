@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.3.20
+
+- New - DSD to a music player's own DAC as DoP (item 438), a switch in Settings → This device's own DAC, off until it is tried: on, the Bridge tells Mandarin it takes DSD as DoP at each multiple whose DoP rate the player's output reaches (DSD64 at 176.4 kHz, DSD128 at 352.8 kHz on a FiiO R7), Mandarin sends the DSF or DFF file as it is, and the Bridge packs it as DoP, the frames Mandarin's USB driver makes for a DAC that takes DSD only that way, played as 32-bit float (which carries every 24-bit DoP sample whole) through the way the output follows a track's rate. Where the player's DAC takes DoP it plays DSD natively, and its own display says so; one that doesn't plays a quiet signal far above hearing, so start at a low volume, and switch it off to have DSD sent as PCM again. Now Playing and Mandarin's signal path say DSD64 (DoP)
+- Improved - Mandarin Bridge is 0.3.20
+
 ## v0.3.19
 
 - Changed - The Android Bridge takes Android's audio focus for music when it plays through a music player's own DAC, and before it tries the ways to it (item 435), as a music app does when it plays. A FiiO R7 lets its output follow a track's rate by who holds it: after a restart no way followed (its own audio code saying updateParams=0 for every rate), while its record of the media app was USB Audio Player Pro every track's rate was followed and MQA unfolded. The Bridge plays on whatever another app does with focus, as it always has. Settings → This device's own DAC says whether it holds focus; /dac.json says it as "focus"

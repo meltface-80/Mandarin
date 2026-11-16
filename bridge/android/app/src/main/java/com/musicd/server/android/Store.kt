@@ -71,6 +71,9 @@ object Store {
     /** Played through this device's own DAC with no DAC on the USB port (item 432, OwnDac.kt): null where never set. */
     fun ownDac(c: Context): Boolean? = prefs(c).let { if (it.contains("own_dac")) it.getBoolean("own_dac", false) else null }
     fun setOwnDac(c: Context, on: Boolean) { prefs(c).edit().putBoolean("own_dac", on).apply() }
+    /** DSD to this device's own DAC as DoP (item 438, OwnDop.kt): off until it is tried. */
+    fun ownDop(c: Context): Boolean = prefs(c).getBoolean("own_dop", false)
+    fun setOwnDop(c: Context, on: Boolean) { prefs(c).edit().putBoolean("own_dop", on).apply() }
 
     // --------------------------------------------------- USB (Mandarin's driver)
 
