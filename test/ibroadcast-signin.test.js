@@ -58,8 +58,11 @@ test("item 443: iBroadcast signed in with a code, its account read, a stale toke
   // Not approved yet: still waiting, iBroadcast asked again (slower once it said slow_down).
   await until(() => ib.polls >= 2, 15000, "a second ask");
   assert.equal((await state()).connected, false);
+  // The account read after the token lands, slowly (item 452): signed in, it says nothing of the account until it is read.
+  ib.statusDelayMs = 1500;
   ib.approve();
-  const signed = await until(async () => { const s = await state(); return s.connected && s.premium !== undefined && s; }, 20000, "the sign-in");
+  const signed = await until(async () => { const s = await state(); return s.connected && s.user && s.user.name && s; }, 20000, "the sign-in and the account read");
+  ib.statusDelayMs = 0;
   assert.deepEqual(signed.user, { name: "tester" });
   assert.equal(signed.premium, true);
   assert.deepEqual(signed.formats, ["flac", "m4a", "mp3", "wav"]);
