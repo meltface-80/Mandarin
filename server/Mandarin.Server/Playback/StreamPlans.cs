@@ -24,7 +24,7 @@ namespace Mandarin.Server.Playback;
 
 using Js = Mandarin.Server.Tags.Js;
 
-internal static class StreamPlans
+internal static partial class StreamPlans
 {
     public const double MaxRate = 48000, MaxBits = 24;
 

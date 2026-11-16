@@ -152,7 +152,7 @@ internal static partial class Transcoder
             if (pieces == null && Upsample.MadeAsPlayed.Takes(plan))
             {
                 Server.Log($"[stream] {Path.GetFileName(t.Path)}: {plan.Reason} → {(plan.DsdUp != 0 ? $"DSF, DSD{plan.DsdUp}" : $"{(plan.Wav ? "WAV" : "FLAC")} {plan.Bits}/{(plan.Rate / 1000.0).ToString(CultureInfo.InvariantCulture)} kHz")}");
-                Upsample.MadeAsPlayed.Start(t, plan, job, Finish, err);
+                Upsample.MadeAsPlayed.Start(t, plan, job, Finish, err, src);   // a Qobuz track's address (item 440)
                 Watch();
                 return;
             }

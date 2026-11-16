@@ -48,19 +48,22 @@ public sealed class ShapePlanTests
     private static readonly int[] Rates = [44100, 48000, 88200, 96000, 176400, 192000, 352800, 384000, 705600, 768000];
 
     [Test]
-    public async Task Shaped_only_for_a_library_track_upsampled_by_a_power_of_two()
+    public async Task Shaped_only_for_a_library_or_Qobuz_track_upsampled_by_a_power_of_two()
     {
         Needs.Server();
         var cd = J(new { path = "/m/a.flac", codec = "FLAC", sampleRate = 44100, bitsPerSample = 16, channels = 2 });
         var qobuz = J(new { path = "qobuz://track/123", codec = "FLAC", sampleRate = 44100, bitsPerSample = 16, channels = 2 });
+        var tidal = J(new { path = "tidal://track/123", codec = "FLAC", sampleRate = 44100, bitsPerSample = 16, channels = 2 });
         object Dev(string mode, int[]? rates = null) => new { name = "FiiO SR11", rates = rates ?? Rates, maxBits = 24, containers = new[] { "flac", "wav" }, mode, filter = "minphase" };
-        var cases = new object[][] { [cd, Dev("x4")], [cd, Dev("original")], [qobuz, Dev("x4")], [cd, Dev("max")], [cd, Dev("max", [44100, 132300])] };
+        var cases = new object[][] { [cd, Dev("x4")], [cd, Dev("original")], [qobuz, Dev("x4")], [cd, Dev("max")], [cd, Dev("max", [44100, 132300])], [tidal, Dev("x4")] };
         var p = (await Plans(new JsonObject { ["shaped"] = JsonNode.Parse(Http.Json(cases)) }))["shaped"]!.AsArray();
         // ×4: in its shape, with the track's own rate, which the job divides by (a queue's plan carried none, item 244).
         Assert.Equal((176400.0, "min", 44100.0), (p[0].Num("rate")!.Value, p[0].Str("shape"), p[0].Num("inRate")!.Value));
-        // The file as it is, a Qobuz stream: the standard filter, as they come.
+        // The file as it is: as it comes.
         Assert.Null(p[1].Str("shape"));
-        Assert.Null(p[2].Str("shape"));
+        // A Qobuz track in its shape too (item 440); Tidal's DASH with the standard filter, as it comes.
+        Assert.Equal((176400.0, "min", 44100.0), (p[2].Num("rate")!.Value, p[2].Str("shape"), p[2].Num("inRate")!.Value));
+        Assert.Null(p[5].Str("shape"));
         // ×16 above FLAC's rates: in its shape, and as WAV (item 238).
         Assert.Equal((705600.0, "min", true), (p[3].Num("rate")!.Value, p[3].Str("shape"), p[3].Bool("wav") ?? false));
         // ×3 isn't a factor the filter takes: the standard one.

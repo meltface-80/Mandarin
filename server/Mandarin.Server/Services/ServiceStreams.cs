@@ -88,7 +88,7 @@ internal abstract partial class Catalogue
         var flac = (r.Mime.Length > 0 ? r.Mime : "audio/flac").Contains("flac", StringComparison.Ordinal);
         var same = r.Rate == p.Rate && r.Bits == p.Bits;
         var below = !p.Hq && r.Rate <= p.Rate && r.Bits <= p.Bits;
-        var copy = p.Dsp == null && p.Gain == 0 && flac && (same || below);
+        var copy = p.Dsp == null && p.Gain == 0 && flac && (same || below) && !Upsample.MadeAsPlayed.Takes(p);   // made by Mandarin's own upsampler: never copied (item 440)
         return (r.Src, copy ? p with { Copy = true, Rate = (long)r.Rate, Bits = (int)r.Bits } : p, r.Pieces);
     }
 

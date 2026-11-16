@@ -41,7 +41,8 @@ internal static class DsdPlan
     public static JsObj Mark(JsObj plan, object? target, object? t, string path)
     {
         if (target == null || Of(Jv.Get(target, "dsd_out")) is not { } n) return plan;
-        if (Playback.StreamPlans.ServiceOf(path) != null || Playback.StreamPlans.IsDsd(t)) return plan;
+        // A Qobuz track made DSD as a file is (item 440); Tidal's not (Playback.StreamPlans.Upsamplable).
+        if (!Playback.StreamPlans.Upsamplable(path) || Playback.StreamPlans.IsDsd(t)) return plan;
         if (Jv.Get(target, "dsd") is not List<object?> takes || !takes.Exists(x => Jv.Num(x) == n)) return plan;
         if (Jv.Get(Jv.Get(target, "dsdMimes"), "dsf") is not string mime || mime.Length == 0) return plan;
         // A plan's track says sampleRate; a library row (a queue's, Playback/Items.cs) sample_rate.
