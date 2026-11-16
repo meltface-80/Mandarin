@@ -21,10 +21,15 @@ internal sealed class IBroadcastStreams(IBroadcast account) : Catalogue("ibroadc
     /// <summary>The address of track [trackId]'s original file, for ffmpeg; never logged.</summary>
     public async Task<string> Url(string trackId)
     {
-        string? file;
-        using (var c = Db.Open())
-            file = Library.Rows(c, "SELECT value FROM cache WHERE ns = $1 AND key = $2", FilesNs, trackId).FirstOrDefault()?[0] as string;
-        if (file is not { Length: > 1 }) throw new ServiceError("This track isn't in your iBroadcast library any more", 404);
+        var file = File(trackId);
+        // Not known: the library read again first (item 450: one read before the files were kept left every track unplayable).
+        // Once a minute at most: a track gone from iBroadcast, asked for again and again by a player, never has it read again and again.
+        if (file == null && Jobs.IBroadcastLibrary is { } lib && !(IBroadcastLibrary.State()?["at"] is JsonValue at && at.TryGetValue<double>(out var ms) && IBroadcastApi.Now() - ms < 60_000))
+        {
+            await lib.Read(true);
+            file = File(trackId);
+        }
+        if (file == null) throw new ServiceError("This track isn't in your iBroadcast library any more", 404);
         var server = IBroadcastApi.Str(IBroadcastLibrary.State()?["streaming_server"]) ?? "https://streaming.ibroadcast.com";
         var slash = file.IndexOf('/', 1);
         var path = "/orig" + (slash > 0 ? file[slash..] : file);
@@ -32,6 +37,13 @@ internal sealed class IBroadcastStreams(IBroadcast account) : Catalogue("ibroadc
         var user = IBroadcastApi.Str(IBroadcast.Account()?["user"]?["id"]) ?? "";
         return $"{server.TrimEnd('/')}{path}?Expires={(long)IBroadcastApi.Now()}&Signature={Uri.EscapeDataString(access)}&file_id={Uri.EscapeDataString(trackId)}"
             + $"&user_id={Uri.EscapeDataString(user)}&platform=mandarin&version={Uri.EscapeDataString(Server.Version)}";
+    }
+
+    /* The track's file at iBroadcast, as the library said it; null where it isn't known. */
+    private static string? File(string trackId)
+    {
+        using var c = Db.Open();
+        return Library.Rows(c, "SELECT value FROM cache WHERE ns = $1 AND key = $2", FilesNs, trackId).FirstOrDefault()?[0] is string { Length: > 1 } f ? f : null;
     }
 
     /// <summary>Where the track's audio is: its original's address, at its own rate and depth (read from it the first time).</summary>

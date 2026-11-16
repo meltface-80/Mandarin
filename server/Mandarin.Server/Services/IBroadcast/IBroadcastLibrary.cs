@@ -23,7 +23,8 @@ internal sealed class IBroadcastLibrary(IBroadcast account, string dataDir)
     /// <summary>What the last reading found: { lastmodified, at, albums, also_here, tracks, artwork_server, streaming_server }.</summary>
     public const string StateKey = "ibroadcastLibrary";
     private const string KeptNs = "ibroadcast-kept";
-    private const double WatchMs = 10 * 60 * 1000;
+    /// <summary>How often iBroadcast is asked whether the library changed: ten minutes (the tests' ibroadcast_watch_ms).</summary>
+    public double WatchMs { get; init; } = 10 * 60 * 1000;
 
     private readonly SemaphoreSlim one = new(1, 1);
     private Timer? timer;
@@ -32,7 +33,7 @@ internal sealed class IBroadcastLibrary(IBroadcast account, string dataDir)
     public bool Reading { get; private set; }
 
     /// <summary>Looked at now and every ten minutes: read again where iBroadcast says it changed.</summary>
-    public void Start() => timer = new Timer(_ => _ = Watch(), null, TimeSpan.FromSeconds(20), TimeSpan.FromMilliseconds(WatchMs));
+    public void Start() => timer = new Timer(_ => _ = Watch(), null, TimeSpan.FromMilliseconds(Math.Min(20_000, WatchMs)), TimeSpan.FromMilliseconds(WatchMs));
 
     /// <summary>Stopped.</summary>
     public void Stop() => timer?.Dispose();
@@ -69,7 +70,9 @@ internal sealed class IBroadcastLibrary(IBroadcast account, string dataDir)
             if (!force)
             {
                 var st = await account.Api.Json("status");
-                if (IBroadcastApi.Str(st["status"]?["lastmodified"]) is { } lm && lm == IBroadcastApi.Str(kept?["lastmodified"])) return kept;
+                // Unchanged, and every track's file known: as it is. A library read before the files were kept (item 450: an
+                // update to 445 left them unknown, and nothing played) is read again whatever iBroadcast says.
+                if (IBroadcastApi.Str(st["status"]?["lastmodified"]) is { } lm && lm == IBroadcastApi.Str(kept?["lastmodified"]) && FilesKnown()) return kept;
             }
             var answer = await account.Api.Json("library", null, account.Api.Library);
             var found = Write(answer);
@@ -82,6 +85,14 @@ internal sealed class IBroadcastLibrary(IBroadcast account, string dataDir)
             return found;
         }
         finally { Reading = false; one.Release(); }
+    }
+
+    /// <summary>Whether every iBroadcast track's file is known (IBroadcastStreams.FilesNs), for its stream's address.</summary>
+    public static bool FilesKnown()
+    {
+        using var c = Db.Open();
+        return Library.Rows(c, @"SELECT COUNT(*) FROM tracks t WHERE t.path LIKE 'ibroadcast://track/%'
+            AND NOT EXISTS (SELECT 1 FROM cache k WHERE k.ns = $1 AND k.key = substr(t.path, 20))", IBroadcastStreams.FilesNs)[0][0] is long n && n == 0;
     }
 
     /// <summary>What the last reading found; null before the first.</summary>
@@ -179,7 +190,6 @@ internal sealed class IBroadcastLibrary(IBroadcast account, string dataDir)
                 id = was;
                 Run(c, @"UPDATE albums SET title=$title, artist=$artist, sort_title=$sort_title, sort_artist=$sort_artist, year=$year, genres=$genres,
                          track_count=$track_count, duration=$duration, lossless=$lossless, container=$container, compilation=$compilation, updated_at=$now WHERE key=$key", album);
-                Run(c, "DELETE FROM tracks WHERE album_id = $id", ("$id", id));
             }
             else
             {
@@ -188,13 +198,22 @@ internal sealed class IBroadcastLibrary(IBroadcast account, string dataDir)
                          44100, 16, $lossless, $container, $compilation, $now, $now)", album);
                 id = (long)Library.Rows(c, "SELECT last_insert_rowid()")[0][0]!;
             }
+            // Each track kept where it was (item 450): its id, so a queue or a play still knows it, and its rate and depth, read once.
+            var had = Library.Rows(c, "SELECT path, id FROM tracks WHERE album_id = $1", id).ToDictionary(r => (string)r[0]!, r => (long)r[1]!, StringComparer.Ordinal);
+            foreach (var gone in had.Where(h => !rows.Any(r => "ibroadcast://track/" + r.Id == h.Key)))
+                Run(c, "DELETE FROM tracks WHERE id = $id", ("$id", gone.Value));
             foreach (var (disc, tid, t) in rows)
             {
                 var (codec, container, lossless) = Format(Text(t.GetValueOrDefault("type")));
                 var trackArtist = ArtistName(t.GetValueOrDefault("artist_id"));
-                Run(c, @"INSERT INTO tracks(album_id, path, mtime, size, title, artist, album_artist, album, track_no, disc_no, duration, codec, container,
+                var sql = had.ContainsKey("ibroadcast://track/" + tid)
+                    ? @"UPDATE tracks SET album_id=$album_id, size=$size, title=$title, artist=$artist, album_artist=$album_artist, album=$album, track_no=$track_no,
+                        disc_no=$disc_no, duration=$duration, codec=$codec, container=$container, lossless=$lossless, year=$year, genres=$genres, rg_track_gain=$gain
+                        WHERE path=$path"
+                    : @"INSERT INTO tracks(album_id, path, mtime, size, title, artist, album_artist, album, track_no, disc_no, duration, codec, container,
                          channels, lossless, year, genres, has_picture, rg_track_gain) VALUES($album_id, $path, 0, $size, $title, $artist, $album_artist, $album,
-                         $track_no, $disc_no, $duration, $codec, $container, 2, $lossless, $year, $genres, 0, $gain)",
+                         $track_no, $disc_no, $duration, $codec, $container, 2, $lossless, $year, $genres, 0, $gain)";
+                Run(c, sql,
                     ("$album_id", id), ("$path", "ibroadcast://track/" + tid), ("$size", Number(t.GetValueOrDefault("size")) ?? 0), ("$title", Text(t.GetValueOrDefault("title"))),
                     ("$artist", trackArtist.Length > 0 ? trackArtist : artist), ("$album_artist", artist), ("$album", title), ("$track_no", Number(t.GetValueOrDefault("track"))),
                     ("$disc_no", disc), ("$duration", Number(t.GetValueOrDefault("length")) ?? 0), ("$codec", codec), ("$container", container), ("$lossless", lossless ? 1 : 0),
