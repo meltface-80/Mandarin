@@ -51,6 +51,10 @@ class FakeIBroadcast {
     this.sending = 0;                  // uploads under way now, and the most there have been at once (item 451)
     this.mostAtOnce = 0;
     this.statusDelayMs = 0;            // how long the account's status is held before it is answered (item 452)
+    this.refuseLogin = 0;              // how many uploads are answered as iBroadcast answered a real one whose login it couldn't confirm (item 454)
+    this.refusedWith = [];             // the access token each refused upload came with
+    this.refuseLoginOn = new Set();    // which uploads asked (the 1st, the 4th…) are answered so, whatever refuseLogin says
+    this.uploadTries = 0;              // how many uploads have been asked
     this.server = null;
     this.port = 0;
   }
@@ -172,6 +176,12 @@ class FakeIBroadcast {
       if (auth !== this.access || this.stale.has(auth)) return json(401, { result: false, message: "Unauthorized" });
       if (!raw.length) { this.md5Asks++; return json(200, { result: true, md5: this.md5s.slice() }); }
       if (this.busy > 0) { this.busy--; return json(503, { result: false, message: "Busy" }); }
+      this.uploadTries++;
+      if (this.refuseLogin > 0 || this.refuseLoginOn.has(this.uploadTries)) {
+        if (!this.refuseLoginOn.has(this.uploadTries)) this.refuseLogin--;
+        this.refusedWith.push(auth);
+        return json(200, { result: false, message: "Your login couldn't be confirmed, so nothing was uploaded. Sign out and back in, then try again." });
+      }
       this.sending++;
       this.mostAtOnce = Math.max(this.mostAtOnce, this.sending);
       try { if (this.uploadDelayMs) await new Promise(r => setTimeout(r, this.uploadDelayMs)); } finally { this.sending--; }
