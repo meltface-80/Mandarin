@@ -14,6 +14,10 @@
 // What it is doing, and what the last one did (the setting "ibroadcastUpload"), the page reads: files and bytes done
 // and to go, the album now, the speed it sends at and the time left, and what was uploaded, already there, made FLAC,
 // left or failed. When it has sent anything, the iBroadcast library is read again.
+// Upload now goes on after the server restarts (item 467: an update restarts it): one under way when the server stops
+// is noted (the setting "ibroadcastUploadResume"), and begun again as the server starts, going on where it was. One
+// stopped by Stop upload, done, or ended by an error isn't; nor is one the schedule began (IBroadcastSchedule.cs
+// begins it again itself while its window is open).
 using System.Text.Json.Nodes;
 
 namespace Mandarin.Server.Services.IBroadcast;
@@ -24,6 +28,10 @@ internal sealed class IBroadcastUpload(IBroadcast account, string dataDir)
     public const string RecordNs = "ibroadcast-upload";
     /// <summary>The last upload's summary, as Status says it.</summary>
     public const string StateKey = "ibroadcastUpload";
+    /// <summary>Set while an Upload now is under way; left set when the server stops it, so it is begun again.</summary>
+    public const string ResumeKey = "ibroadcastUploadResume";
+    /// <summary>How often a noted upload is tried again as the server starts (a drive still mounting); ten minutes at most.</summary>
+    public int ResumeEveryMs { get; init; } = 15_000;
     /// <summary>iBroadcast's limit on a file: 1.5 GB (the tests' ibroadcast_upload_limit).</summary>
     public long LimitBytes { get; init; } = 1_500_000_000;
     /// <summary>How often a hold for music playing is looked at again.</summary>
@@ -39,6 +47,7 @@ internal sealed class IBroadcastUpload(IBroadcast account, string dataDir)
     private readonly object gate = new();
     private CancellationTokenSource? stop;
     private Run? now;
+    private bool shuttingDown;
 
     /* One upload's progress. */
     private sealed class Run
@@ -64,8 +73,8 @@ internal sealed class IBroadcastUpload(IBroadcast account, string dataDir)
         return Db.Setting(c, StateKey) as JsonObject;
     }
 
-    /// <summary>Upload now: begun where none is under way.</summary>
-    public void Start()
+    /// <summary>Upload now ([scheduled]: the schedule's): begun where none is under way.</summary>
+    public void Start(bool scheduled = false)
     {
         if (!IBroadcast.Connected()) throw new ServiceError("Not signed in to iBroadcast", 401);
         var from = IBroadcastUploadChoices.Stored().From;
@@ -76,6 +85,7 @@ internal sealed class IBroadcastUpload(IBroadcast account, string dataDir)
             if (now != null) return;
             now = new Run { Started = IBroadcastApi.Now(), From = from };
             stop = new CancellationTokenSource();
+            if (!scheduled) Note(true);
             var (run, token) = (now, stop.Token);
             _ = Task.Run(() => Go(run, token));
         }
@@ -83,6 +93,49 @@ internal sealed class IBroadcastUpload(IBroadcast account, string dataDir)
 
     /// <summary>The upload under way stopped, after the file it is on (that one sent again next time).</summary>
     public void Stop() { lock (gate) stop?.Cancel(); }
+
+    /// <summary>The server stopping: the upload under way stopped as Stop does, but an Upload now noted to go on.</summary>
+    public void Shutdown() { lock (gate) { shuttingDown = true; stop?.Cancel(); } }
+
+    /// <summary>
+    /// The server started: an Upload now it stopped (noted) begun again, going on where it was; tried again while it
+    /// can't be yet (signed in still being read, the drive still mounting), ten minutes at most, then let go, said why.
+    /// </summary>
+    public void Resume() => _ = Task.Run(async () =>
+    {
+        using (var c = Db.Open()) if (Db.Setting(c, ResumeKey) is not JsonValue v || !v.TryGetValue<bool>(out var on) || !on) return;
+        var tries = Math.Max(1, 600_000 / Math.Max(1, ResumeEveryMs));
+        string why = "";
+        for (int i = 0; i < tries; i++)
+        {
+            await Task.Delay(ResumeEveryMs);
+            if (Running) return;
+            try
+            {
+                Start();
+                Server.Log("[ibroadcast] upload: begun again after the server restarted, going on where it was");
+                return;
+            }
+            catch (ServiceError e) { why = e.Message; }
+        }
+        Note(false);
+        Server.Log($"[ibroadcast] upload: couldn't go on after the server restarted: {why}");
+    });
+
+    /* Whether an Upload now is under way, kept: [on] as one begins, off as it ends but for the server stopping. */
+    private static void Note(bool on)
+    {
+        try
+        {
+            using var c = Db.Open();
+            using var cmd = c.CreateCommand();
+            cmd.CommandText = on ? "INSERT INTO settings(key, value) VALUES($k, 'true') ON CONFLICT(key) DO UPDATE SET value = excluded.value"
+                : "DELETE FROM settings WHERE key = $k";
+            cmd.Parameters.AddWithValue("$k", ResumeKey);
+            cmd.ExecuteNonQuery();
+        }
+        catch (Microsoft.Data.Sqlite.SqliteException e) { Server.Log("[ibroadcast] upload: couldn't note it: " + e.Message); }
+    }
 
     private async Task Go(Run run, CancellationToken token)
     {
@@ -109,7 +162,10 @@ internal sealed class IBroadcastUpload(IBroadcast account, string dataDir)
             run.Finished = IBroadcastApi.Now();
             run.Album = run.File = run.HeldWhere = null;
             Save(Said(run, false));
-            lock (gate) { now = null; stop?.Dispose(); stop = null; }
+            bool going;
+            lock (gate) { going = shuttingDown; now = null; stop?.Dispose(); stop = null; }
+            if (!going) Note(false);   // stopped by hand, done, or ended: not begun again
+            else Server.Log("[ibroadcast] upload: the server is stopping; it goes on when the server starts again");
             Server.Log($"[ibroadcast] upload: {(run.Stopped ? "stopped" : run.Error != null ? "ended: " + run.Error : "done")}; {run.Uploaded} uploaded, {run.Already} there already, "
                 + $"{run.Converted} made FLAC, {run.Skipped} left, {run.Failed} failed");
             if (run.Uploaded > 0 && Jobs.IBroadcastLibrary is { } lib) _ = Task.Run(async () =>

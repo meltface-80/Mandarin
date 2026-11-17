@@ -135,6 +135,7 @@ internal static partial class Jobs
         {
             LimitBytes = cfg["ibroadcast_upload_limit"] is JsonValue ibl && ibl.TryGetValue<double>(out var lim) && lim > 0 ? (long)lim : 1_500_000_000,
             HoldMs = cfg["ibroadcast_upload_limit"] != null ? 200 : 5000,
+            ResumeEveryMs = cfg["ibroadcast_upload_limit"] != null ? 200 : 15_000,
             Files = new Services.IBroadcast.IBroadcastUploadFiles(IBroadcast.Api, dataDir) { Waits = cfg["ibroadcast_upload_limit"] != null ? [TimeSpan.FromMilliseconds(200)] : [TimeSpan.FromSeconds(30), TimeSpan.FromMinutes(2), TimeSpan.FromMinutes(5)] },
         };
         IBroadcastSchedule = new Services.IBroadcast.IBroadcastSchedule(IBroadcastUpload)
@@ -192,6 +193,7 @@ internal static partial class Jobs
         Services.Import.Start(cfg);
         IBroadcastLibrary?.Start();
         IBroadcastSchedule?.Start();
+        IBroadcastUpload?.Resume();
         Server.Log("[jobs] made here: " + string.Join(", ", Names));
         // A library scan that ended before the work was set up: what follows it, made now.
         _ = Task.Run(async () =>
@@ -238,7 +240,7 @@ internal static partial class Jobs
         Services.Import.Stop();
         IBroadcastLibrary?.Stop();
         IBroadcastSchedule?.Stop();
-        IBroadcastUpload?.Stop();
+        IBroadcastUpload?.Shutdown();   // an Upload now under way goes on when the server starts again (item 467)
         // What was playing from Qobuz reported over (v0.8.47), as the Node server's stop did: a few seconds at most.
         try { Qobuz?.Stop().Wait(TimeSpan.FromSeconds(5)); } catch (AggregateException) { /* reported or not, stopping */ }
         Tailscale?.Stop();
