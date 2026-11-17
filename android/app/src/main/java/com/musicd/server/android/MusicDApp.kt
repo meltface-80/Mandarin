@@ -73,7 +73,7 @@ object CrashLog {
                 try { Thread.sleep(2_000) } catch (e: InterruptedException) { return@Thread }
                 if (answered.get()) { stuckFor = 0; kept = false; continue }
                 stuckFor += 2
-                if (stuckFor == 4) AppLog.line("APP", "FREEZE: the screen hasn't answered for 4 s, at: " +
+                if (stuckFor == 4) AppLog.line("APP", "FREEZE: the screen hasn't answered for 4 s, ${stall()}, at: " +
                     android.os.Looper.getMainLooper().thread.stackTrace.take(12).joinToString(" < "), anomaly = true)
                 if (stuckFor >= 10 && !kept) {
                     kept = true
@@ -81,7 +81,7 @@ object CrashLog {
                         val trace = android.os.Looper.getMainLooper().thread.stackTrace.joinToString("\n") { "  at $it" }
                         file(app).writeText(
                             "$FROZE ${BuildConfig.VERSION_NAME} · Android ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT}) · " +
-                                "${Build.MANUFACTURER} ${Build.MODEL}\nThe screen stopped answering for $stuckFor s at:\n\n$trace"
+                                "${Build.MANUFACTURER} ${Build.MODEL}\nThe screen stopped answering for $stuckFor s, ${stall()}, at:\n\n$trace"
                         )
                     }
                 }
@@ -89,6 +89,22 @@ object CrashLog {
         }, "main-watch").apply { isDaemon = true; start() }
     }
     private const val FROZE = "Mandarin froze"
+
+    /*
+     * Where the app was and what Android's drawing thread was doing as the screen stopped answering (item 471): a freeze
+     * stuck drawing a frame (HardwareRenderer.nSyncAndDrawFrame) is the main thread waiting for it. Its state as the
+     * kernel has it, read from the app's own /proc; what can't be read is left out.
+     */
+    private fun stall(): String {
+        val on = AppLog.onScreenAt
+        val where = com.musicd.server.client.RenderStall.where(AppLog.shownLast,
+            if (on > 0) android.os.SystemClock.elapsedRealtime() - on else -1)
+        val task = runCatching {
+            java.io.File("/proc/self/task").listFiles()?.firstOrNull { f -> runCatching { java.io.File(f, "comm").readText().trim() == "RenderThread" }.getOrDefault(false) }
+        }.getOrNull()
+        fun read(name: String) = task?.let { t -> runCatching { java.io.File(t, name).readText() }.getOrNull() }
+        return where + "; " + com.musicd.server.client.RenderStall.describe(read("stat"), read("wchan"), read("syscall"))
+    }
 
     /**
      * Something the next start should say though nothing crashed: Android

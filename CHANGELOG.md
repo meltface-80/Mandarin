@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Fixed - The app's album page worked its glow out again on every frame (a live blur of the cover, the page's width and 420 dp tall), sixty times a second while its album played: 629 slow frames in half a minute in a log. It is now the cover made small and blurred once, and looks the same (item 471). And a freeze's report now says which screen the app was on, how long after it came back on screen, and what Android's drawing thread was doing, as the one signing in to Qobuz didn't
 - Fixed - Edit album's Match by sound on the web page: a release you tapped to apply could lose its highlight a moment later, the releases drawn again, when the server was busy as the editor opened (it went on looking at the job twice) (item 470)
 - Changed - An iBroadcast Upload now under way goes on by itself after the server restarts, an update's restart included, where it was, nothing sent twice (item 467). One you stopped with Stop upload stays stopped; one the schedule began is begun again by the schedule while its window is open, as before
 - Fixed - A DAC plugged into the Mandarin box (Mandarin's own audio engine) left a room showing it was starting, for good, when the engine turned a track down at once (a DST-compressed DFF, a file it couldn't read) or couldn't be started: the error's "stopped" was written over (item 466). The room now says it stopped, and why
