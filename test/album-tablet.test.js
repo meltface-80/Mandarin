@@ -34,6 +34,9 @@ const PORT = ports.port(), B = "http://127.0.0.1:" + PORT;
 
 const DRIVER = `(async () => {
   const sleep = ms => new Promise(r => setTimeout(r, ms));
+  // Scrolled: the page's own work for it done (album-tabs.js clips on the frame after a scroll), however late frames come
+  // on a busy machine: two frames on from the scroll, and the time a person would see it in.
+  const scrolled = async () => { await sleep(300); await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))); };
   const $ = id => document.getElementById(id);
   const until = async (f, ms = 15000) => { const t0 = Date.now(); for (;;) { const v = f(); if (v) return v; if (Date.now() - t0 > ms) return null; await sleep(30); } };
   await until(() => document.querySelector("#home-view .album"));
@@ -99,12 +102,12 @@ const DRIVER = `(async () => {
   out.tabsRest = getComputedStyle(tabsEl).backgroundColor;
   // Long enough to scroll the tabs to the top (the fixture's tracks aren't): rows added under the tracks for this alone.
   const extra = [...Array(20)].map(() => ol.appendChild(row.cloneNode(true)));
-  body.scrollTop = tabsEl.offsetTop + 400; await sleep(300);
+  body.scrollTop = tabsEl.offsetTop + 400; await scrolled();
   out.tabsHeld = [getComputedStyle(tabsEl).backgroundColor, getComputedStyle(document.body).backgroundColor, Math.round(tabsEl.getBoundingClientRect().top - $("modal-actions").getBoundingClientRect().bottom)];
   // Held, what scrolls past is cut off at the line under the tabs (item 375): the tracks' cut where the line crosses them.
   { const wrap = document.querySelector(".track-list-wrap"), t = tabsEl.getBoundingClientRect();
     out.cutHeld = { clip: wrap.style.clipPath, want: Math.ceil(t.bottom - wrap.getBoundingClientRect().top), head: $("modal-actions").style.clipPath, tabs: tabsEl.style.clipPath }; }
-  body.scrollTop = 0; await sleep(300);
+  body.scrollTop = 0; await scrolled();
   extra.forEach(e => e.remove());
   out.tabsBack = getComputedStyle(tabsEl).backgroundColor;
   out.cutBack = [...document.querySelectorAll("#album-modal .modal-body *")].filter(e => e.style.clipPath).map(e => e.id || e.className);
