@@ -82,11 +82,15 @@ internal sealed partial class Identifier
     }
     private Task<bool> Writing(Func<Task<bool>> work) => Writing(async () => { var e = await work(); return (true, e); });
 
-    /* The page reads the verdicts while nothing is half written. */
-    public async Task<T> Reading<T>(Func<T> read)
+    /*
+     * The page reads the verdicts while nothing is half written, with the library's copy read once the write it waited
+     * for is done (item 464): a match just applied and its album's new names seen together, never the new match under
+     * the names the copy had when the page asked ([s], [st]: what it answers with when the copy can't be read).
+     */
+    public async Task<T> Reading<T>(Snapshot s, LibState st, Func<Snapshot, LibState, T> read)
     {
         await writing.WaitAsync();
-        try { return read(); }
+        try { return await Library.CurrentState() is var (now, nowSt) ? read(now, nowSt) : read(s, st); }
         finally { writing.Release(); }
     }
 
