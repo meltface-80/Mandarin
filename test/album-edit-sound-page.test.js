@@ -29,6 +29,10 @@ const DRIVER = `(async () => {
   const sleep = ms => new Promise(r => setTimeout(r, ms));
   const until = async (fn, ms = 20000) => { const t0 = Date.now(); while (!fn()) { if (Date.now() - t0 > ms) return false; await sleep(40); } return true; };
   await until(() => document.querySelector("#home-random .album, #home-today .album"));
+  // The releases drawn as the job is done: once, however its following began (item 470).
+  let doneShown = 0;
+  const show = window.aeSoundShow;
+  window.aeSoundShow = j => { if (j && j.state === "done") doneShown++; return show(j); };
   const body = document.getElementById("identify-pane-body");
   const shown = e => !!e && e.getClientRects().length > 0;
   const navItem = p => document.querySelector('#settings-overlay .settings-nav-item[data-pane="' + p + '"]');
@@ -59,8 +63,10 @@ const DRIVER = `(async () => {
   // One tapped: applied, the names in the fields, the match line saying how it was found.
   cands()[0].click();
   await until(() => /Real One/.test(document.getElementById("ae-match-status").textContent) && document.getElementById("ae-title").value === "Real One");
+  await sleep(1500);   // past the next look a second following would have made
   out.applied = { status: document.getElementById("ae-match-status").textContent, reasons: document.getElementById("ae-match-reasons").textContent,
     title: document.getElementById("ae-title").value, picked: cands()[0].classList.contains("is-picked") };
+  out.doneShown = doneShown;
   return out;
 })()`;
 
@@ -107,7 +113,10 @@ test("Edit album's Match by sound at a phone's size: beside Find match, how far 
       .run(key, JSON.stringify({ mbid: "far", title: "Far Off", artist: "Nobody", year: 1970, track_count: 9, tracks: [], parts: {}, confidence: 20, reasons: ["found by name only"] }), Date.now());
     const b = await Browser.launch({ width: 412, height: 800 });
     try {
-      const page = await b.page(B + "/", { cookies: [{ name: "musicd_session", value: token, url: B }], touch: true });
+      // As on a busy server (item 470): the editor's look for a job under way, as it opens, reaching the server after
+      // Match by sound is tapped, so that it finds the job begun; it went on following it beside the tap's own.
+      const late = "(() => { const f = window.fetch.bind(window); let first = true; window.fetch = (u, o) => { if (first && String(u).startsWith('/api/identify/sound?') && !(o && o.method)) { first = false; return new Promise(k => setTimeout(k, 1500)).then(() => f(u, o)); } return f(u, o); }; })();";
+      const page = await b.page(B + "/", { cookies: [{ name: "musicd_session", value: token, url: B }], touch: true, init: late });
       const r = await page.eval(DRIVER);
       assert.deepEqual(page.errors, []);
       assert.deepEqual(r.button, { text: "Match by sound", beside: true, parity: "album-edit.match-sound" });
@@ -126,7 +135,8 @@ test("Edit album's Match by sound at a phone's size: beside Find match, how far 
       assert.equal(r.applied.title, "Real One");
       assert.equal(r.applied.status, "Matched: Real Artist — Real One (2004) · 95 % sure", "as sure as it was offered");
       assert.match(r.applied.reasons, /^matched by sound: 3 of 3 tracks, chosen by you · 3 of 3 tracks' lengths agree/);
-      assert.equal(r.applied.picked, true);
+      assert.equal(r.applied.picked, true, "the release tapped still picked: not drawn again by a second following");
+      assert.equal(r.doneShown, 1, "the releases drawn once as the job was done: followed once");
       // Settings → API Keys' AcoustID row: one album matched by sound.
       const tally = await page.eval(`(async () => {
         document.getElementById("album-edit-overlay").querySelector("[data-ae-close]").click();
