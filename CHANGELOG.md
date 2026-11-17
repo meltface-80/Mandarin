@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Changed - An iBroadcast Upload now under way goes on by itself after the server restarts, an update's restart included, where it was, nothing sent twice (item 467). One you stopped with Stop upload stays stopped; one the schedule began is begun again by the schedule while its window is open, as before
 - Fixed - A DAC plugged into the Mandarin box (Mandarin's own audio engine) left a room showing it was starting, for good, when the engine turned a track down at once (a DST-compressed DFF, a file it couldn't read) or couldn't be started: the error's "stopped" was written over (item 466). The room now says it stopped, and why
 - Fixed - The Album Scanner's page, asked while a match was being applied, could list the album just matched under the name it had before ("Coded Rip" applied, not "Proper Title") until it was asked again (item 464). It now reads the library's names once that match is written
 - Fixed - An iBroadcast album played before Mandarin had read its tracks' sample rates (one just uploaded, with many before it still to read) was sent to a Bridge or room as FLAC 24/44.1 kHz, a hi-res original turned down to it ("a flac … cannot read" in the log) (item 463). Its tracks' rates are now read from iBroadcast as it is chosen to play, a moment's reading, and it is sent at its own rate

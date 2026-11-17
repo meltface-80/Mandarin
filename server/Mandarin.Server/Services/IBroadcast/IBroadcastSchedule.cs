@@ -132,7 +132,7 @@ internal sealed class IBroadcastSchedule(IBroadcastUpload upload)
                 // Nothing chosen to upload from (item 451): said once, at the window's opening.
                 var from = IBroadcastUploadChoices.Stored().From;
                 began = !upload.Running && from != null;
-                if (began) { Server.Log("[ibroadcast] upload schedule: the window opened, the upload begun"); upload.Start(); }
+                if (began) { Server.Log("[ibroadcast] upload schedule: the window opened, the upload begun"); upload.Start(scheduled: true); }
                 else if (from == null) Server.Log("[ibroadcast] upload schedule: the window opened, but nothing is chosen to upload from");
             }
             else if (!now && inside && began)
