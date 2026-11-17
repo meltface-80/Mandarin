@@ -52,12 +52,12 @@ internal sealed partial class Identifier
 
     private sealed record SoundTrack(string Path, long Size, long Mtime, double Seconds);
 
-    /* The album's tracks with a file of their own, in playing order. */
-    private static List<SoundTrack> SoundTracks(Album al)
+    /* The album's tracks with a file of their own, in playing order; and, [streamed], its iBroadcast tracks (item 459). */
+    private static List<SoundTrack> SoundTracks(Album al, bool streamed = false)
     {
         using var c = Db.Open();
         return Rows(c, "SELECT path, size, mtime, duration FROM tracks WHERE album_id = $1 ORDER BY COALESCE(disc_no,1), COALESCE(track_no, 9999), path", (double)al.Id)
-            .Where(r => r[0] is string p && !p.Contains("://", StringComparison.Ordinal))
+            .Where(r => r[0] is string p && (!p.Contains("://", StringComparison.Ordinal) || (streamed && Services.IBroadcast.IBroadcastDownloads.Is(p))))
             .Select(r => new SoundTrack((string)r[0]!, (long)Js.ToNumber(r[1]), (long)Js.ToNumber(r[2]), Js.ToNumber(r[3]))).ToList();
     }
 
@@ -65,16 +65,19 @@ internal sealed partial class Identifier
     private async Task<string?> PrintOf(SoundTrack t)
     {
         if (Fingerprints.Kept(t.Path, t.Size, t.Mtime) is { } kept) return kept.Fingerprint;
-        if (!await MayGoOn()) throw new Fingerprints.Stopped();
+        // An album chosen to play (Identifier.Played.cs): whatever the hour, its own music the music playing.
+        if (!PlayedNow && !await MayGoOn()) throw new Fingerprints.Stopped();
         soundStep = "fingerprinting";
         try
         {
-            var fp = await Fingerprints.Make(t.Path, () => stopped || !AlbumScanner.On() || AlbumScanner.Playing());
+            var fp = await Fingerprints.Make(await SourceOf(t.Path), PlayedNow ? () => stopped : () => stopped || !AlbumScanner.On() || AlbumScanner.Playing());
             Fingerprints.Keep(t.Path, t.Size, t.Mtime, fp, fp == null ? "no audio to fingerprint" : null);
             return fp;
         }
         catch (Exception e) when (e is not Fingerprints.Stopped)
         {
+            // An iBroadcast track not read: not kept (asked again next time), nor said in ffmpeg's words (they name its address).
+            if (Services.IBroadcast.IBroadcastDownloads.Is(t.Path)) { log($"[identify] iBroadcast track {t.Path["ibroadcast://track/".Length..]}: couldn't be read to fingerprint"); return null; }
             Fingerprints.Keep(t.Path, t.Size, t.Mtime, null, Scan.OfflineDrives.Failure(t.Path, e.Message));
             return null;
         }
@@ -112,7 +115,7 @@ internal sealed partial class Identifier
     {
         var key = AcoustId.Key();
         if (Sound is not { } sound || key.Length == 0 || sound.Paused || sound.State == "invalid" || al.Edited) return null;
-        var tracks = SoundTracks(al);
+        var tracks = SoundTracks(al, PlayedNow);
         if (tracks.Count < MinTracks) return null;
         try
         {

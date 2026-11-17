@@ -2,8 +2,8 @@
 /*
  * The Album Scanner identifies iBroadcast's albums by what iBroadcast says of them (item 459), as it does the
  * library's own: its title, artist, track titles, numbers and lengths, matched on MusicBrainz; the match applied as an
- * edit of Mandarin's (the artist's name as MusicBrainz writes it), and nothing fetched from iBroadcast for it: never
- * matched by sound, never measured (the library's reading of each file's rate and depth, its first 64 KB, the only ask).
+ * edit of Mandarin's (the artist's name as MusicBrainz writes it), and nothing fetched from iBroadcast for it: not
+ * matched by sound in the background (ibroadcast-sound.test.js), never measured (the library's reading of each file's rate and depth, its first 64 KB, the only ask).
  */
 const ports = require("./ports");
 const test = require("node:test");
