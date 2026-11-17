@@ -301,13 +301,22 @@ function laterMenuItem(album, page) {
   return [{ label: on ? "Remove from Listen later" : "Listen later", key: "album.later", onClick: async () => { if (await setListenLater(album.offset, !on)) album.later = !on; } }];
 }
 
+/**
+ * Whether [album] is the owner's own (OwnAlbum.kt, the same): the library's files, or uploaded to iBroadcast; never
+ * Qobuz's or Tidal's. Kept on the phone (item 448) and edited (item 458) alike.
+ * @param {any} album
+ */
+function ownAlbum(album) {
+  return !album.source || album.source === "local" || album.source === "ibroadcast";
+}
+
 // Inside the Android app only (its MusicdDownloads bridge): keep this album
 // on the phone, or take it off. Browsers and the iPhone app never see it.
 function downloadMenuItem(album) {
   const dl = window.MusicdDownloads;
   if (!dl || !album || typeof album.offset !== "number") return [];
-  // A streamed album (Qobuz, Tidal) is never kept on the phone (v0.6.23); iBroadcast's, the owner's own files, are (item 448; Keepable.kt).
-  if (album.source && album.source !== "local" && album.source !== "ibroadcast") return [];
+  // A streamed album (Qobuz, Tidal) is never kept on the phone (v0.6.23); iBroadcast's, the owner's own files, are (item 448).
+  if (!ownAlbum(album)) return [];
   let st = {};
   try { st = JSON.parse(dl.status(album.offset)) || {}; } catch (e) { /* treat as not downloaded */ }
   if (st.state === "done") return [{ label: "Remove from this phone", key: "album.download", onClick: () => dl.remove(album.offset) }];
