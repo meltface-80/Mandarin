@@ -41,9 +41,13 @@ public sealed partial class CpuAloneTests
             var albums = (await Http.Get(s.Proc.Base + "/api/library/albums?sort=album", s.H)).J["albums"].Items().ToList();
             if (albums.FirstOrDefault(a => a.Str("title") == "Run On") is not { } al) return false;
             var page = (await Http.Get(s.Proc.Base + "/api/album?offset=" + al.Num("offset"), s.H)).J;
-            ids = [.. page["tracks"]!.AsArray().Select(t => t.Num("track_id") ?? 0)];
-            return ids.Count == 2;
-        }, 60000, "the album read");
+            var tracks = page["tracks"]!.AsArray();
+            ids = [.. tracks.Select(t => t.Num("track_id") ?? 0)];
+            // Each read whole, its length and its rate: a scan that caught a file still being written (the server's
+            // first, as these were made) reads it again later, and a track not yet read whole isn't joined to the one
+            // before it (Joins.For: a second long at least, at its rate), so no making would be kept for it.
+            return ids.Count == 2 && tracks.All(t => (t.Num("length") ?? 0) >= 39 && t.Str("quality") is { Length: > 0 });
+        }, 60000, "the album read, each track whole");
         var plain = JsonNode.Parse(Decide(cores))!["playback"]!.AsArray().Select(x => x!.GetValue<int>()).ToList();
 
         // The first made whole as DSD256, and the making kept for the second: on playback's one core once the cores are given back.
