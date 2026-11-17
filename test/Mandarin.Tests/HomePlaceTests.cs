@@ -27,7 +27,9 @@ public sealed class HomePlaceTests
           await sleep(300);
           out.back = main.scrollTop;
           document.getElementById("tnav-home").click();
-          await sleep(300);
+          // A smooth scroll (touchnav.js toTop): about a quarter of a second, longer on a busy machine; waited for to
+          // reach the top, five seconds at most (never there, the place it stopped at said).
+          try { await until(() => main.scrollTop === 0, 5000); } catch (e) { /* said below */ }
           out.homeOnHome = main.scrollTop;
           return out;
         })()
@@ -43,7 +45,7 @@ public sealed class HomePlaceTests
         Assert.Equal(180, r["before"]!.GetValue<double>());
         Assert.True(r["wall"]!.GetValue<double>() == 0, "the genre's wall from its top");
         Assert.True(r["back"]!.GetValue<double>() == 180, "Back: Home where it was, not " + r["back"]);
-        Assert.True(r["homeOnHome"]!.GetValue<double>() == 0, "Home tapped on Home: its top");
+        Assert.True(r["homeOnHome"]!.GetValue<double>() == 0, "Home tapped on Home: its top, not " + r["homeOnHome"]);
         Assert.Empty(page.Errors);
     }
 }
