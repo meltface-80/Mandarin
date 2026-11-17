@@ -117,6 +117,34 @@ internal sealed class IBroadcastStreams(IBroadcast account) : Catalogue("ibroadc
         cmd.ExecuteNonQuery();
     }
 
+    /// <summary>
+    /// [tracks], chosen to play, their originals' rates and depths read now where they aren't known yet (item 463): an
+    /// album new to the library is played before the reading after the library's (Rates) has come to it, and a track
+    /// planned without its rate is planned at 44.1 kHz, a 24/96 original turned down to it. Four at a time, five
+    /// seconds at most (a track not read by then planned as before, its reading kept for the next time).
+    /// </summary>
+    public async Task KnowRates(List<Playback.PlayTrack> tracks)
+    {
+        var want = tracks.Where(t => t.Lossless && t.SampleRate is null or <= 0 && TrackIdOf(t.Path) is not null).ToList();
+        if (want.Count == 0 || !IBroadcast.Connected()) return;
+        var gate = new SemaphoreSlim(4);
+        var reads = want.Select(async t =>
+        {
+            await gate.WaitAsync();
+            try
+            {
+                if (await Probe(await Url(TrackIdOf(t.Path)!)) is not { } f) return null;
+                Keep(t.Id, f.Rate, f.Bits);
+                return ((Playback.PlayTrack, long, int)?)(t, f.Rate, f.Bits);
+            }
+            catch (ServiceError) { return null; }   // gone, or signed out: planned as before
+            finally { gate.Release(); }
+        }).ToList();
+        await Task.WhenAny(Task.WhenAll(reads), Task.Delay(5000));
+        foreach (var r in reads.Where(r => r.IsCompletedSuccessfully).Select(r => r.Result))
+            if (r is var (t, rate, bits)) { t.SampleRate = rate; t.Bits = bits; }
+    }
+
     /// <summary>The lossless tracks whose rate isn't known yet, read one after another (after a library reading).</summary>
     public async Task Rates()
     {
