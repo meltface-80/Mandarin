@@ -1,8 +1,10 @@
 // IBroadcastUploadChoices.cs — what the upload to iBroadcast sends and how hard it pushes (item 451), as its page sets
 // them (the setting "ibroadcastUploadSettings"):
-//   - Upload from: all the music, or one drive: a folder at the top of a music folder (each USB drive under Mandarin OS's
-//     /data/Storage/USB is one), offered where the library has files in it. Nothing chosen at first: Upload now and the
-//     schedule wait for a choice;
+//   - Upload from: all the music, or one drive: every drive connected (item 455: each folder under the music folder's
+//     USB, where Mandarin OS mounts USB drives, and its Internal disk), whether or not it is one of the music folders,
+//     and each folder at the top of a music folder the library has files in. A drive's files are sent from the drive
+//     (IBroadcastUploadLocal.cs), known to the library or not. Nothing chosen at first: Upload now and the schedule
+//     wait for a choice;
 //   - files at once with nothing playing, 1 to 3 (3); while music plays at home, none unless switched on, then 1 to 3
 //     (3); while a phone plays away from home, none unless switched on, then 1 to 3 (1). Away from home wins where both
 //     play: what plays there comes over the home's upload, which the upload shares. Three at most: iBroadcast says no
@@ -23,8 +25,8 @@ internal static class IBroadcastUploadChoices
     /// <summary>The choices: [From] null (none chosen), "all" or a drive's folder; how many at once, and when music plays.</summary>
     public sealed record Choices(string? From, int AtOnce, bool Home, int HomeAtOnce, bool Away, int AwayAtOnce);
 
-    /// <summary>A drive offered: its folder, its name as the page says it, and how many of the library's files are on it.</summary>
-    public sealed record Source(string Path, string Name, long Files);
+    /// <summary>A drive offered: its folder, its name as the page says it, and how many of the library's files are on it (null: one connected, not counted).</summary>
+    public sealed record Source(string Path, string Name, long? Files);
 
     /// <summary>The choices as kept, each defaulted.</summary>
     public static Choices Stored()
@@ -84,6 +86,16 @@ internal static class IBroadcastUploadChoices
     {
         var roots = Scans.Roots();
         var list = new List<Source>();
+        // Every drive connected, music folder or not (item 455): Mandarin OS mounts each USB drive under <music>/USB, its
+        // own disk at <music>/Internal.
+        var storage = Scans.MusicDir;
+        string[] usb;
+        try { usb = Directory.GetDirectories(Path.Combine(storage, "USB")); } catch (Exception e) when (e is IOException or UnauthorizedAccessException) { usb = []; }
+        foreach (var d in usb.Order(StringComparer.OrdinalIgnoreCase))
+            if (Path.GetFileName(d) is var name && !name.StartsWith('.') && name != "lost+found") list.Add(new(d, name, null));
+        var inside = Path.Combine(storage, "Internal");
+        try { if (Directory.Exists(inside) && Directory.EnumerateFileSystemEntries(inside).Any()) list.Add(new(inside, "Internal", null)); }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException) { /* not mounted, or not ours to read */ }
         using var c = Db.Open();
         foreach (var root in roots)
         {
@@ -98,7 +110,7 @@ internal static class IBroadcastUploadChoices
                 cmd.Parameters.AddWithValue("$n", d.Length + 1);
                 cmd.Parameters.AddWithValue("$p", d + "/");
                 var files = Convert.ToInt64(cmd.ExecuteScalar() ?? 0L, System.Globalization.CultureInfo.InvariantCulture);
-                if (files > 0) list.Add(new(d, roots.Count > 1 ? $"{name} ({Path.GetFileName(root)})" : name, files));
+                if (files > 0 && !list.Any(s => s.Path == d)) list.Add(new(d, roots.Count > 1 ? $"{name} ({Path.GetFileName(root)})" : name, files));
             }
         }
         return list;

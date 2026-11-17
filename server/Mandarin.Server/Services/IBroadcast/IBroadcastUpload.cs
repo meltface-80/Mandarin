@@ -91,7 +91,7 @@ internal sealed class IBroadcastUpload(IBroadcast account, string dataDir)
         try
         {
             var have = await Files.Md5s(token);
-            var files = Local(run.From);
+            var files = IBroadcastUploadLocal.Of(run.From);
             var sent = Records();
             var todo = files.Where(f => !(sent.TryGetValue(f.Path, out var r) && r.Size == f.Size && r.Mtime == f.Mtime && have.Contains(r.Md5))).ToList();
             run.Already = files.Count - todo.Count;
@@ -172,17 +172,20 @@ internal sealed class IBroadcastUpload(IBroadcast account, string dataDir)
             if (dsd || f.Size > LimitBytes)
             {
                 if (!dsd && !f.Lossless) throw new IBroadcastUploadFiles.NotSent("Over iBroadcast's limit of " + Gb(LimitBytes) + ", and not lossless, so not made smaller");
+                // Its depth not known (a drive's file the library hasn't read): 24 bits, which keeps any up to it.
                 var rate = dsd ? 176400L : f.Rate;
                 await making.WaitAsync(token);
                 try
                 {
-                    made = await Files.Flac(f.Path, rate, dsd ? 24 : f.Bits, token);
+                    made = await Files.Flac(f.Path, rate, dsd || f.Bits == 0 ? 24 : f.Bits, token);
                     if (new FileInfo(made).Length > LimitBytes)
                     {
+                        var own = IBroadcastUploadFiles.FlacRate(made);
                         File.Delete(made);
                         made = null;
-                        var half = (rate > 0 ? rate : 44100) / 2;
-                        made = await Files.Flac(f.Path, half, dsd ? 24 : f.Bits, token);
+                        // Its rate not known (a file of a drive the library hasn't read, item 455): the FLAC just made at it says it.
+                        var half = (rate > 0 ? rate : own ?? 44100) / 2;
+                        made = await Files.Flac(f.Path, half, dsd || f.Bits == 0 ? 24 : f.Bits, token);
                         if (new FileInfo(made).Length > LimitBytes) throw new IBroadcastUploadFiles.NotSent("Over iBroadcast's limit of " + Gb(LimitBytes) + " even as FLAC at half its rate");
                     }
                 }
@@ -243,24 +246,7 @@ internal sealed class IBroadcastUpload(IBroadcast account, string dataDir)
 
     // ---------------------------------------------------------------- the library here, and what was sent of it
 
-    private sealed record LocalFile(string Path, long Size, long Mtime, string Album, bool Lossless, long Rate, int Bits);
     private sealed record Was(long Size, long Mtime, string Md5);
-
-    /* Every file of the library's, or of the drive [from], album by album (a file once, though a cue sheet makes it many tracks). */
-    private static List<LocalFile> Local(string? from)
-    {
-        using var c = Db.Open();
-        using var cmd = c.CreateCommand();
-        var on = from is { } d && d != IBroadcastUploadChoices.All;
-        cmd.CommandText = @"SELECT t.path, MAX(t.size), MAX(t.mtime), MIN(a.artist || ' – ' || a.title), MAX(t.lossless), MAX(COALESCE(t.sample_rate, 0)), MAX(COALESCE(t.bits, 0))
-            FROM tracks t JOIN albums a ON a.id = t.album_id WHERE t.path NOT LIKE '%://%'" + (on ? " AND substr(t.path, 1, $n) = $p" : "") + @" GROUP BY t.path
-            ORDER BY MIN(a.sort_artist), MIN(a.sort_title), MIN(a.id), t.path";
-        if (on) { cmd.Parameters.AddWithValue("$n", from!.Length + 1); cmd.Parameters.AddWithValue("$p", from + "/"); }
-        using var r = cmd.ExecuteReader();
-        var list = new List<LocalFile>();
-        while (r.Read()) list.Add(new(r.GetString(0), r.GetInt64(1), r.GetInt64(2), r.GetString(3), r.GetInt64(4) != 0, r.GetInt64(5), (int)r.GetInt64(6)));
-        return list;
-    }
 
     private static Dictionary<string, Was> Records()
     {

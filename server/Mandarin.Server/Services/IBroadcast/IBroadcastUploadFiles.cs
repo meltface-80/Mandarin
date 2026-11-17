@@ -128,6 +128,20 @@ internal sealed class IBroadcastUploadFiles(IBroadcastApi api, string dataDir)
         throw new NotSent("It couldn't be made FLAC: " + (err.Length > 200 ? err[..200] : err));
     }
 
+    /// <summary>A FLAC's sample rate, as its STREAMINFO says it; null where [file] isn't one.</summary>
+    public static long? FlacRate(string file)
+    {
+        var b = new byte[21];
+        try
+        {
+            using var s = File.OpenRead(file);
+            if (s.Read(b, 0, b.Length) < b.Length || b[0] != 'f' || b[1] != 'L' || b[2] != 'a' || b[3] != 'C') return null;
+        }
+        catch (IOException) { return null; }
+        // STREAMINFO from byte 8: the sample rate the 20 bits from its byte 10.
+        return (b[18] << 12) | (b[19] << 4) | (b[20] >> 4);
+    }
+
     /// <summary>ffmpeg's arguments for [src] made FLAC at [rate] and [bits], with its cover or without.</summary>
     internal static List<string> Args(string src, long rate, int bits, bool cover, string dest)
     {
