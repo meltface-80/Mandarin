@@ -135,7 +135,7 @@ internal static partial class Library
     }
 
     /* The page's state; with the lists of albums only when asked (lists > 0), each list's full length in counts. */
-    private static Task<JsObj> IdentifyPage(Identifier id, Snapshot s, LibState st, int lists) => id.Reading(() =>
+    private static Task<JsObj> IdentifyPage(Identifier id, Snapshot asked, LibState askedSt, int lists) => id.Reading(asked, askedSt, (s, st) =>
     {
         var state = id.State(s, st);
         List<MatchRow> all;
