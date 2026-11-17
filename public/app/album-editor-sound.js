@@ -58,20 +58,28 @@ function aeSoundShow(j) {
   }
 }
 
+/* The one following now (item 470): the editor's look for a job under way, as it opens, can be answered after Match
+   by sound was tapped (a busy server), and went on following the same job beside the tap's own, each drawing the
+   releases again as it was done, a release picked meanwhile drawn afresh, no longer picked. The latest begun follows;
+   one before it stops at its next step. */
+let aeSoundFollower = 0;
+
 /* The job followed until it is done, while the editor shows its album. */
 async function aeSoundFollow(mine) {
+  const me = ++aeSoundFollower;
+  const ours = () => aeState === mine && aeSoundFollower === me;
   for (;;) {
-    if (aeState !== mine) return;
+    if (!ours()) return;
     let j;
     try {
       const r = await fetch(`/api/identify/sound?offset=${mine.album.offset}`);
       j = await r.json().catch(() => ({}));
       if (!r.ok) throw new Error(j.error || `HTTP ${r.status}`);
     } catch (e) {
-      if (aeState === mine) { aeSoundShow({ state: "done", answer: "failed", error: e.message }); aeSound.btn.disabled = false; }
+      if (ours()) { aeSoundShow({ state: "done", answer: "failed", error: e.message }); aeSound.btn.disabled = false; }
       return;
     }
-    if (aeState !== mine) return;
+    if (!ours()) return;
     if (j.state === "none" || j.state === "busy") { aeSound.btn.disabled = false; return; }
     aeSoundShow(j);
     if (j.state === "done") { aeSound.btn.disabled = false; return; }
