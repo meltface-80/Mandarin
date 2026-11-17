@@ -112,7 +112,8 @@ internal fun MoreMenu(a: Album, later: Boolean, onLater: () -> Unit, onPlay: (St
                 onClick = { open = false; onPage("share", null) })
             if (onMain != null) DropdownMenuItem(text = { Text(Contract.label("album.version-main"), fontSize = 15.sp, lineHeight = 21.sp, color = MaterialTheme.colorScheme.primary) }, contentPadding = PaddingValues(10.dp),
                 modifier = Modifier.parity("album.version-main", Contract.label("album.version-main")), onClick = { open = false; onMain() })
-            if (a.album.source == null || a.album.source == "local") DropdownMenuItem(text = { Text(Contract.label("album.edit"), fontSize = 15.sp, lineHeight = 21.sp) }, contentPadding = PaddingValues(10.dp),
+            // Edited as the owner's own: the library's, and iBroadcast's (item 458), its edits Mandarin's alone.
+            if (com.musicd.server.client.OwnAlbum.mine(a.album.source)) DropdownMenuItem(text = { Text(Contract.label("album.edit"), fontSize = 15.sp, lineHeight = 21.sp) }, contentPadding = PaddingValues(10.dp),
                 modifier = Modifier.parity("album.edit", Contract.label("album.edit")), onClick = { open = false; onPage("album-edit", offset) })
             if (download != null) DropdownMenuItem(text = { Text(download, fontSize = 15.sp, lineHeight = 21.sp) }, contentPadding = PaddingValues(10.dp), modifier = Modifier.parity("album.download", Contract.label("album.download", 0)),
                 onClick = { open = false; onDownload() })
