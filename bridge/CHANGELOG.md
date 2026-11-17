@@ -2,10 +2,13 @@
 
 ## v0.3.21
 
-- Fixed - The Android Bridge's name before one is given (item 439) took Android's maker as the device's: a FiiO R7 says its maker is QUALCOMM, so a Bridge set up afresh on one was "QUALCOMM FiiO R7 USB". It is "FiiO R7 USB" now, a chip's maker never in it
-- Fixed - The own DAC's test of each way never read FiiO's own word on the rate a track went out at ("FiiO's word 0 Hz" in the log): it took the log as it was after the track had started, and FiiO's code says it as the track starts. The log is taken before the track is made now
-- Changed - DSD as DoP (test)'s note says what a FiiO R7 does with it: its own code keeps DSD for FiiO's player, and plays DoP from an app as PCM, the music barely audible (its log says p2d=0 throughout). Leave it off on an R7: Mandarin sends DSD there as 24-bit/176.4 kHz PCM
-- Improved - Mandarin Bridge is 0.3.21
+Everything since v0.3.15:
+
+- New - Mandarin Bridge for Android plays a music player's own DAC (a FiiO R7, say) when no USB DAC is plugged in, at each track's own rate, never resampled: it tries each way Android offers to reach the DAC, and plays by the one that keeps the track's rate
+- New - DSD as DoP to a player's own DAC, a switch to try in the Bridge's Settings. Leave it off on a FiiO R7, which plays DoP from an app as near-silent PCM: Mandarin sends DSD there as 24-bit/176.4 kHz PCM
+- Changed - Now Playing and Mandarin's signal path say what the player's DAC is really fed, in the player's own words where it gives them
+- Changed - The Bridge takes Android's audio focus while it plays to a player's own DAC, as a music app does
+- Fixed - A FiiO R7 set up afresh is named "FiiO R7 USB", not "QUALCOMM FiiO R7 USB"
 
 ## v0.3.20
 

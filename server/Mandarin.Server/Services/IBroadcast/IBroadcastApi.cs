@@ -41,7 +41,7 @@ internal sealed class IBroadcastApi
         this.keep = keep;
     }
 
-    /// <summary>Mandarin as iBroadcast is told it: "mandarin/1.3.3".</summary>
+    /// <summary>Mandarin as iBroadcast is told it: "mandarin/" and its version.</summary>
     public static string Agent => "mandarin/" + Server.Version;
 
     /// <summary>A device code: the one asked after, the one the person types, where, how long it lasts and how often to ask.</summary>
