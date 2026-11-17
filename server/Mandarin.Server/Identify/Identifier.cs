@@ -290,8 +290,14 @@ internal sealed partial class Identifier
 
     // ------------------------------------------------------------ the queue
 
-    /* Albums the scan can say something about: with enough tracks to tell by. */
-    public static IEnumerable<Album> Eligible(Snapshot lib) => lib.Albums.Where(al => al.TrackCount is double n && n >= MinTracks && al.Service == null);
+    /*
+     * Albums the scan can say something about: with enough tracks to tell by; the library's own, and iBroadcast's
+     * (item 459: the owner's own files too, identified by what iBroadcast says of them, its titles, artists, track
+     * numbers and lengths; never by their sound, nor measured, nothing fetched from iBroadcast for it: Identifier.Sound
+     * and Loudness read files here only). Qobuz's and Tidal's are their catalogue's, never.
+     */
+    public static IEnumerable<Album> Eligible(Snapshot lib) =>
+        lib.Albums.Where(al => al.TrackCount is double n && n >= MinTracks && (al.Service == null || al.Service == "ibroadcast"));
 
     /* iTunes is on, there, and not asking us to wait. */
     private bool ITunesUsable() => ITunes != null && Js.Truthy(Settings()["itunes"]) && !ITunes.Paused;
