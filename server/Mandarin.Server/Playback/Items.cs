@@ -167,6 +167,8 @@ internal static class Items
     public static async Task<JsonObject> PlayTracks(Hub hub, string zoneId, List<PlayTrack> tracks, string how, double startAt = 0, double seconds = 0, bool? shuffled = null)
     {
         if (tracks.Count == 0) throw new HubError(500, "Nothing to play");
+        // iBroadcast's tracks planned at their own rates, read now where the library hasn't yet (item 463).
+        if (Jobs.IBroadcastStreams is { } ib) await ib.KnowRates(tracks);
         List<PlayItem> items;
         using (var c = Db.Open())
         {
