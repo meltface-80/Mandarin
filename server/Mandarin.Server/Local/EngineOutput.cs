@@ -249,19 +249,22 @@ internal sealed class EngineOutput : IRenderer
         return Task.CompletedTask;
     }
 
+    // Said to be starting before the engine is told (item 466): a track it refuses at once (a DST-compressed DFF, a file
+    // it can't read) is answered with an error, or the engine that can't be started is lost, before this would have
+    // said so after, and the room was left TRANSITIONING, the error's STOPPED written over.
     private void Begin(double at, bool paused)
     {
         string u, n;
-        lock (gate) { error = null; u = uri; n = nextUri; }
-        SendGain();
-        Send(new JsonObject { ["cmd"] = "play", ["uri"] = FetchUri(u), ["offset"] = at, ["paused"] = paused });
-        if (n.Length > 0) Send(new JsonObject { ["cmd"] = "next", ["uri"] = FetchUri(n) });
         lock (gate)
         {
+            error = null; u = uri; n = nextUri;
             seconds = at;
             state = paused ? "PAUSED_PLAYBACK" : "TRANSITIONING";
             pending = paused ? "PAUSED_PLAYBACK" : "PLAYING";
         }
+        SendGain();
+        Send(new JsonObject { ["cmd"] = "play", ["uri"] = FetchUri(u), ["offset"] = at, ["paused"] = paused });
+        if (n.Length > 0) Send(new JsonObject { ["cmd"] = "next", ["uri"] = FetchUri(n) });
     }
 
     public Task Pause()
