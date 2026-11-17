@@ -77,8 +77,10 @@ public sealed partial class WatchTests
     [Test]
     public async Task A_long_copy_is_read_while_it_goes_on_not_only_once_it_ends()
     {
-        // Item 356: a file every 100 ms for four seconds, never quiet for the quiet time. Before, each change began the
-        // wait again, so nothing was read until the copy ended; now it is read no later than the longest wait after its first change.
+        // Item 356: a file every 100 ms, never quiet for the quiet time, until three readings have been seen while it
+        // goes on (half a minute at most: on a busy runner each reading takes longer, so fewer fit into a fixed few
+        // seconds). Before, each change began the wait again, so nothing was read until the copy ended, however long;
+        // now it is read no later than the longest wait after its first change.
         var root = Directory.CreateTempSubdirectory("musicd-watch-").FullName;
         var a = Path.Combine(root, "a"); Directory.CreateDirectory(a);
         await using var s = await LibraryServer.Start(new Fixtures.Library(root, a, Path.Combine(root, "data")), env: new Dictionary<string, string>
@@ -94,7 +96,8 @@ public sealed partial class WatchTests
         await Until(() => Scans() >= 1);
         await Task.Delay(Settled);
         int @base = Scans();
-        for (int i = 0; i < 40; i++)
+        var copying = System.Diagnostics.Stopwatch.StartNew();
+        for (int i = 0; Scans() - @base < 3 && copying.ElapsedMilliseconds < 30000; i++)
         {
             var album = Path.Combine(a, "Artist", "Album " + (i / 10));
             Directory.CreateDirectory(album);
@@ -102,7 +105,7 @@ public sealed partial class WatchTests
             await Task.Delay(100);
         }
         int during = Scans() - @base;
-        Assert.True(during >= 3, $"read while the copy went on ({during} scans in four seconds)");
+        Assert.True(during >= 3, $"read while the copy went on ({during} scans in {copying.ElapsedMilliseconds} ms)");
         // Once it ends, the last of it read (a scan or two more: one may have been under way as it ended), then quiet:
         // no reading on and on.
         await Task.Delay(1500 + Gap + Settled);

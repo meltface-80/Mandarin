@@ -3,13 +3,16 @@
 //
 //   GET  /api/album-scanner   { on, schedule: { on, start, end }, albums, done, unidentified, proposed,
 //                               now: { reason, step, album, holding }, unreachable? }   holding: what plays (item 417b)
-//   POST /api/album-scanner { on?, schedule?, start?, end? }   the switches and the hours, and the same answer
+//   POST /api/album-scanner { on?, schedule?, start?, end? }   the switches and the hours, and the same answer; 409
+//                             where the hours, or none, would overlap iBroadcast's upload window (item 447)
+// Each answer says that window beside it: upload_window { start, end }, or null where none is set.
 //
 // The older page's and app's own requests still do what they did, the four switches being this one now:
 // POST /api/identify/settings { enabled, schedule, start, end, itunes }, /api/loudness { measure }, /api/covers/auto { on }.
 using System.Text.Json.Nodes;
 using Mandarin.Server.Identify;
 using Mandarin.Server.Tags;
+using IBS = Mandarin.Server.Services.IBroadcast.IBroadcastSchedule;
 
 namespace Mandarin.Server;
 
@@ -19,7 +22,7 @@ internal static partial class Library
     private static Task<bool> AlbumScannerState(HttpContext ctx, Snapshot s, LibState st)
     {
         if (!Jobs.Held) return Task.FromResult(false);
-        return Send(ctx, AlbumProgress.Status(s, st));
+        return Send(ctx, WithUploadWindow(AlbumProgress.Status(s, st)));
     }
 
     /* POST /api/album-scanner { on?, schedule?, start?, end? } */
@@ -40,8 +43,31 @@ internal static partial class Library
             patch[k] = t;
         }
         if (Flag(b["schedule"]) is bool sched) patch["schedule"] = sched;
+        // Never over iBroadcast's upload window (item 447): hours, or none, that would overlap it, refused, saying it.
+        var hours = IBS.ScannerHours();
+        if (patch["schedule"] is bool sc) hours["on"] = sc;
+        foreach (var k in new[] { "start", "end" }) if (patch[k] is string t) hours[k] = t;
+        if (IBS.Overlap(IBS.Stored(), hours) is { } why)
+            return await Send(ctx, new JsonObject { ["error"] = ScannerWords(why) }, 409);
         if (patch.Count > 0) id.SetSettings(patch);
         if (Flag(b["on"]) is bool on) AlbumScanner.Set(on);
-        return await Send(ctx, AlbumProgress.Status(s, st));
+        return await Send(ctx, WithUploadWindow(AlbumProgress.Status(s, st)));
+    }
+
+    /* The scanner's state with iBroadcast's upload window beside it (item 447): { start, end } where one is set, else null. */
+    private static JsonObject WithUploadWindow(JsonObject o)
+    {
+        var w = IBS.Stored();
+        o["upload_window"] = w["on"] is JsonValue v && v.GetValue<bool>() ? new JsonObject { ["start"] = w["start"]?.DeepClone(), ["end"] = w["end"]?.DeepClone() } : null;
+        return o;
+    }
+
+    /* Why the scanner's hours were refused, said from its page: the upload window's side of it. */
+    private static string ScannerWords(string why)
+    {
+        var w = IBS.Stored();
+        return why.StartsWith("The Library Scanner has no hours", StringComparison.Ordinal)
+            ? $"iBroadcast uploads are set for {w["start"]}–{w["end"]}: the Library Scanner keeps to hours of its own while they are. Switch the upload schedule off on iBroadcast's page first"
+            : $"These hours overlap iBroadcast's upload window, {w["start"]}–{w["end"]}: choose hours outside it";
     }
 }

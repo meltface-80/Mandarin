@@ -1,5 +1,24 @@
 # Changelog
 
+## v1.3.4
+
+Mandarin now works with iBroadcast: sign in, and your iBroadcast library is in Mandarin's, plays everywhere Mandarin plays, can be kept on the phone, and is where your own library is uploaded to.
+
+- New - iBroadcast in Settings → Services: sign in with a code, and your iBroadcast albums are in Mandarin's library, on the walls, in search and Smart Picks
+- New - iBroadcast albums play in every room, on every Bridge and on the phone, each track as you uploaded it, at its own rate
+- New - Upload to iBroadcast: Upload now or on a daily schedule, from all your music or one drive, each file as it is (DSD and files over 1.5 GB as FLAC), never sent twice. Choose how many files at once, and whether it goes on while music plays at home or away. An upload under way carries on after a restart
+- New - iBroadcast albums can be downloaded to the phone, and changed in Edit album as your own albums are
+- New - The Album Scanner identifies iBroadcast albums too, and matches one by sound when you choose it to play or in Edit album
+- New - Export library, in the side menu: your library as a CSV for Mandarin Migration
+- New - Qobuz tracks are upsampled to DSD as your own files are
+- New - Mandarin Bridge for Android plays a music player's own DAC, such as a FiiO R7's, at each track's own rate, with DSD as DoP to try on players that take it (Bridge 0.3.21)
+- Changed - Settings → Services is a list: Qobuz, Tidal and iBroadcast, each on its own page
+- Changed - Rescan library also brings your Qobuz, Tidal and iBroadcast albums up to date
+- Fixed - The Android app runs smoothly on an album's page while it plays
+- Fixed - A DAC plugged into the Mandarin box no longer gets stuck on "starting" when a track can't be played
+- Fixed - Settings → Updates says why a check failed, such as GitHub's hourly limit, instead of "Check failed"
+- Fixed - The server no longer fails as it restarts into an update
+
 ## v1.3.3
 
 Mandarin now names and completes your albums by itself: the Library Scanner under one switch, identification that finds the edition you have and can match an album by its sound, covers found for albums with none, and two releases merged into one album taken apart. MQA is recognised and passed through untouched to a DAC that decodes it; SQ-tool compares two songs; everything Mandarin says is in one log; and Mandarin Bridge for Android opens on Now Playing. With Mandarin OS 0.1.12 and Mandarin Bridge 0.3.15.

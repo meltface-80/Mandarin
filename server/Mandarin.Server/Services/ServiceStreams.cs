@@ -51,13 +51,13 @@ internal abstract partial class Catalogue
     /* services.ofPath(p): the service a streamed track's path is of, once it is this server's; null for a file. */
     public static Catalogue? Of(string path)
     {
-        foreach (var s in new Catalogue?[] { Jobs.Qobuz, Jobs.Tidal })
+        foreach (var s in new Catalogue?[] { Jobs.Qobuz, Jobs.Tidal, Jobs.IBroadcastStreams })
             if (s != null && path.StartsWith(s.TrackPath, StringComparison.Ordinal)) return s;
         return null;
     }
 
     /* services.isStreamed(p) */
-    public static bool IsStreamed(string path) => path.StartsWith("qobuz://track/", StringComparison.Ordinal) || path.StartsWith("tidal://track/", StringComparison.Ordinal);
+    public static bool IsStreamed(string path) => path.StartsWith("qobuz://track/", StringComparison.Ordinal) || path.StartsWith("tidal://track/", StringComparison.Ordinal) || path.StartsWith("ibroadcast://track/", StringComparison.Ordinal);
 
     /* The track's row, read now (a conversion handed over carries only its id). */
     public static StreamTrack? Row(long id)
@@ -88,7 +88,7 @@ internal abstract partial class Catalogue
         var flac = (r.Mime.Length > 0 ? r.Mime : "audio/flac").Contains("flac", StringComparison.Ordinal);
         var same = r.Rate == p.Rate && r.Bits == p.Bits;
         var below = !p.Hq && r.Rate <= p.Rate && r.Bits <= p.Bits;
-        var copy = p.Dsp == null && p.Gain == 0 && flac && (same || below);
+        var copy = p.Dsp == null && p.Gain == 0 && flac && (same || below) && !Upsample.MadeAsPlayed.Takes(p);   // made by Mandarin's own upsampler: never copied (item 440)
         return (r.Src, copy ? p with { Copy = true, Rate = (long)r.Rate, Bits = (int)r.Bits } : p, r.Pieces);
     }
 

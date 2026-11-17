@@ -14,6 +14,14 @@ public sealed class LibraryFocusPlaceTests
           const until = async (fn, ms = 15000) => { const t0 = Date.now(); while (!fn()) { if (Date.now() - t0 > ms) throw new Error("timed out"); await sleep(50); } };
           const tiles = () => [...document.querySelectorAll("#album-grid .album")];
           const main = document.querySelector("main");
+          const frames = () => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+          // Scrolled to the bottom, and still there after the wall's next drawing. The wall is drawn afresh when its
+          // width changes (library-window.js), the first album seen before kept in view: on a busy machine it can grow
+          // past the window (its scrollbar coming, the width with it) just as the scroll is made, and that drawing
+          // puts the earlier place back. Scrolled again until it stays.
+          const toBottom = async () => {
+            for (let i = 0; i < 100; i++) { main.scrollTop = main.scrollHeight; await frames(); if (main.scrollTop > 0) return; await sleep(50); }
+          };
           await until(() => document.querySelector("#home-random .album, #home-today .album"));
           document.getElementById("tnav-library").click();
           await until(() => document.documentElement.classList.contains("tn-lib") && tiles().length >= 3);
@@ -22,7 +30,7 @@ public sealed class LibraryFocusPlaceTests
           const closed = async (button) => {
             const first = tiles()[0];
             first.__mark = true;
-            main.scrollTop = main.scrollHeight;
+            await toBottom();
             const at = main.scrollTop;
             document.querySelector(".lib-ctl-focus").click();
             await until(() => document.querySelector(".lib-sheet-foot"));

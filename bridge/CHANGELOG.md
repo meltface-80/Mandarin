@@ -1,5 +1,44 @@
 # Changelog
 
+## v0.3.21
+
+Everything since v0.3.15:
+
+- New - Mandarin Bridge for Android plays a music player's own DAC (a FiiO R7, say) when no USB DAC is plugged in, at each track's own rate, never resampled: it tries each way Android offers to reach the DAC, and plays by the one that keeps the track's rate
+- New - DSD as DoP to a player's own DAC, a switch to try in the Bridge's Settings. Leave it off on a FiiO R7, which plays DoP from an app as near-silent PCM: Mandarin sends DSD there as 24-bit/176.4 kHz PCM
+- Changed - Now Playing and Mandarin's signal path say what the player's DAC is really fed, in the player's own words where it gives them
+- Changed - The Bridge takes Android's audio focus while it plays to a player's own DAC, as a music app does
+- Fixed - A FiiO R7 set up afresh is named "FiiO R7 USB", not "QUALCOMM FiiO R7 USB"
+
+## v0.3.20
+
+- New - DSD to a music player's own DAC as DoP (item 438), a switch in Settings → This device's own DAC, off until it is tried: on, the Bridge tells Mandarin it takes DSD as DoP at each multiple whose DoP rate the player's output reaches (DSD64 at 176.4 kHz, DSD128 at 352.8 kHz on a FiiO R7), Mandarin sends the DSF or DFF file as it is, and the Bridge packs it as DoP, the frames Mandarin's USB driver makes for a DAC that takes DSD only that way, played as 32-bit float (which carries every 24-bit DoP sample whole) through the way the output follows a track's rate. Where the player's DAC takes DoP it plays DSD natively, and its own display says so; one that doesn't plays a quiet signal far above hearing, so start at a low volume, and switch it off to have DSD sent as PCM again. Now Playing and Mandarin's signal path say DSD64 (DoP)
+- Improved - Mandarin Bridge is 0.3.20
+
+## v0.3.19
+
+- Changed - The Android Bridge takes Android's audio focus for music when it plays through a music player's own DAC, and before it tries the ways to it (item 435), as a music app does when it plays. A FiiO R7 lets its output follow a track's rate by who holds it: after a restart no way followed (its own audio code saying updateParams=0 for every rate), while its record of the media app was USB Audio Player Pro every track's rate was followed and MQA unfolded. The Bridge plays on whatever another app does with focus, as it always has. Settings → This device's own DAC says whether it holds focus; /dac.json says it as "focus"
+- Fixed - The own DAC's test (a moment of silence for each way) ran twice at once when the Bridge's service started twice in quick succession; now once at a time across the whole app
+- Improved - Mandarin Bridge is 0.3.19
+
+## v0.3.18
+
+- New - A music player's own DAC at each track's own rate (item 434). Android has no public way to ask for its direct output, the one that isn't resampled; which an app reaches is the device's to decide by how its track is asked for. On a FiiO R7 the Bridge's track (media, float) left the output at 44.1 kHz, while USB Audio Player Pro's Hi-Res Direct driver had it at each track's rate. So the Bridge now tries every way an app may ask for a track (media; the music stream; power-saving; low latency; each in float, and 16-bit to see), each with a fifth of a second of silence at a rate of its own, and reads the rate the track went out at: Android's music output's, and on a FiiO its own audio code's word on it. The first float way that reaches the DAC at the track's rate is the one tracks are played by; it is then tried at every rate Android takes, and Mandarin is told the rates it reaches, converting any other itself. Where no way does, Mandarin is told the one rate the output stays at (as 0.3.17). Also tried: PCM offloaded, straight to the hardware on some Qualcomm devices; and, where no way follows, an ordinary track at each rate above 192 kHz Android takes (the R7's takes 768 kHz), which Android itself sends to a direct output where the device has one: those that reach the DAC are told to Mandarin beside the rate the output stays at. Settings → This device's own DAC lists every way tried and what came of it, the way played by and the rates it reaches; /dac.json says the same (way, ways_tried), and the Bridge's log too
+- Changed - What the DAC is fed, on Now Playing and to Mandarin, is FiiO's own word on the rate its output runs at where it says one, so a track reaching a direct output isn't taken for resampled
+- Improved - Mandarin Bridge is 0.3.18
+
+## v0.3.17
+
+- Fixed - A FiiO R7's own DAC (item 433): the Bridge said what it handed Android, not what the DAC was fed. The R7 takes every rate from an app, up to 768 kHz, but its output stayed at 44.1 kHz whatever a track's rate, Android resampling the rest, while Now Playing and Mandarin's signal path said each track went untouched at its own rate. Now the Bridge reads the rate Android's output runs at and says that: Now Playing shows "24-bit / 176.4 → 44.1 kHz", and Mandarin's signal path shows the DAC fed 44.1 kHz, untouched only where that is the track's own rate
+- Changed - Whether Android's output follows a track's rate is tried when the Bridge starts on the player's own DAC: a fifth of a second of silence at 96 kHz, the output's rate read as it plays. Where it follows, Mandarin may send every rate Android takes. Where it doesn't (the R7, as set now), Mandarin is told the one rate the output runs at and converts every track to it with its own resampler, better than Android's, saying so in its signal path. Settings → This device's own DAC shows Android's output now, whether it follows, and Test again
+- Fixed - A FiiO R7 says its maker is QUALCOMM: it was taken for a phone (its own DAC off by itself, a phone's note) and named "QUALCOMM FiiO R7". A music player is now known by its maker, its brand or the first word of its model, and a chip's maker is never its name: "FiiO R7's own DAC"
+- Improved - Mandarin Bridge is 0.3.17
+
+## v0.3.16
+
+- New - A music player's own DAC (item 432): with no DAC on the USB port, the Android Bridge plays through the player's own DAC, the FiiO R7's say. It is on by itself on a music player (FiiO, HiBy, iBasso, Shanling, Cayin, Astell&Kern, Lotoo, Questyle, Hidizs, a Sony Walkman) and off on a phone, and is switched in Settings → This device's own DAC. Where Android lists the player's own DAC as a USB audio device, Mandarin's driver plays it, Android left out. Otherwise each track goes to Android's output at its own rate as 32-bit float (a 16- or 24-bit sample carried exactly), never resampled, mixed or scaled by the Bridge; the player's volume sets the level, and Mandarin's is fixed at 100%. Mandarin is told the rates Android takes from an app (up to 192 kHz on the R7's Android 10) and converts anything higher itself, and sends DSD as PCM. With This DAC decodes MQA on for the Bridge in Mandarin's Audio Devices, an MQA track reaches the player's DAC untouched, at full scale, to decode and unfold. Now Playing says "Playing to FiiO R7's own DAC" and the rate; Settings lists the rates taken and Android's outputs with what each says it takes, the same in /dac.json
+- Improved - Mandarin Bridge is 0.3.16
+
 ## v0.3.15
 
 Mandarin Bridge 0.3.15, since 0.3.10: the Android Bridge opens on Now Playing and passes MQA through untouched; the Linux Bridge and the Pi's record for SQ-tool and update themselves on Mandarin OS; every Bridge's lines in Mandarin's one log. Each Bridge updates from Mandarin's Settings → Updates.

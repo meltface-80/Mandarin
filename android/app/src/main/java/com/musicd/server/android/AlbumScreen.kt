@@ -3,7 +3,6 @@ package com.musicd.server.android
 import android.app.Activity
 import android.content.Intent
 import android.net.Uri
-import android.os.Build
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
@@ -49,7 +48,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
@@ -175,6 +173,7 @@ internal fun AlbumScreen(offset: Long, zoneId: String, lit: String, client: () -
     // A page of Last.fm's, or a write-up's: the phone's browser.
     fun openUrl(url: String) { runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) } }
     val cover = if (phone != null) rememberTileCover(album?.album?.imageKey, 640, client) else rememberCover(album?.album?.imageKey, 640, client)
+    val glow by androidx.compose.runtime.produceState<androidx.compose.ui.graphics.ImageBitmap?>(null, cover) { value = cover?.let { albumGlowOf(it) } }
     fun toast(text: String) = Toast.makeText(context, text, Toast.LENGTH_SHORT).show()
     // Another version chosen (item 349), or its versions changed: it alone read, the rest of the page as it was.
     VersionSwitch(album, shown, refresh, phone != null, client, onShown = { album = it; favourite = it.album.favourite; later = it.album.later; serviceFav = it.album.serviceFavourite; picks = null }) { said, back -> toast(said); shown = back }
@@ -220,11 +219,11 @@ internal fun AlbumScreen(offset: Long, zoneId: String, lit: String, client: () -
         disabledContainerColor = brass, disabledContentColor = MaterialTheme.colorScheme.onPrimary)
     Surface(Modifier.fillMaxSize(), color = bg) {
         Box(Modifier.fillMaxSize()) {
-            // The cover's colours washing the top of the page, as the page's glow does: blurred (from Android 12), faint, fading out downwards.
+            // The cover's colours washing the top of the page, as the page's glow does: blurred once, small (item 471), faint, fading out downwards.
             cover?.let {
                 Box(Modifier.parity("album.glow").fillMaxWidth().height(420.dp)) {
-                    Image(it, contentDescription = null, contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize().alpha(0.26f).let { m -> if (Build.VERSION.SDK_INT >= 31) m.blur(40.dp) else m })
+                    glow?.let { g -> Image(g, contentDescription = null, contentScale = ContentScale.Crop,
+                        filterQuality = androidx.compose.ui.graphics.FilterQuality.Low, modifier = Modifier.fillMaxSize().alpha(0.26f)) }
                     Box(Modifier.fillMaxSize().background(Brush.verticalGradient(0f to Color.Transparent, 0.6f to bg.copy(alpha = 0.4f), 1f to bg)))
                 }
             }
@@ -278,7 +277,7 @@ internal fun AlbumScreen(offset: Long, zoneId: String, lit: String, client: () -
                             Icon(painterResource(if (favourite) R.drawable.np_heart_on else R.drawable.np_heart), contentDescription = null, modifier = Modifier.size(22.dp))
                         }
                         val dlState = download.optString("state", "none")
-                        val dlLabel = downloadWords(download, phone == null && (a.album.source == null || a.album.source == "local"))
+                        val dlLabel = downloadWords(download, phone == null && com.musicd.server.client.OwnAlbum.mine(a.album.source))
                         val bridge = (context as? Activity)?.let { DownloadsBridge(it) }
                         MoreMenu(a, later, onLater = { later = !later; val on = later; mark { it.listenLater(shown, on) } },
                             onMain = a.versions.firstOrNull { it.current }?.takeIf { !it.main && phone == null }?.let { v -> { makeMain(v.album.offset) } },

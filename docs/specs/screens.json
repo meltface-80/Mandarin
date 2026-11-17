@@ -398,7 +398,7 @@
       }
     },
     "menu": {
-      "page": "the side menu (#menu-overlay, the row's Menu): the drawer from the left over a dimmed screen, Mandarin's mark and name with the power button (Restart, Shut down), the Offline mode switch in the app, then Pitchfork, Labels, Qobuz, Tidal, Shelf, Listen later, Rescan library with how old the library is, and Settings; a tap beside it closes it",
+      "page": "the side menu (#menu-overlay, the row's Menu): the drawer from the left over a dimmed screen, Mandarin's mark and name with the power button (Restart, Shut down), the Offline mode switch in the app, then Pitchfork, Labels, Qobuz, Tidal, Shelf, Listen later, Rescan library with how old the library is, Export library (the library's own files as a CSV for Mandarin Migration, item 436), and Settings; a tap beside it closes it",
       "native": ["android/app/src/main/java/com/musicd/server/android/MenuDrawer.kt"],
       "preview": false,
       "items": {
@@ -417,6 +417,7 @@
         "later": { "kind": "action", "label": "Listen later" },
         "rescan": { "kind": "action", "label": "Rescan library" },
         "rescan-sub": { "kind": "shows", "when": "the server has said how old the library is" },
+        "export": { "kind": "action", "label": "Export library" },
         "settings": { "kind": "action", "label": "Settings" }
       }
     },
@@ -837,28 +838,82 @@
       }
     },
     "settings-services": {
-      "page": "Settings' Services: Back, its title; Qobuz and Tidal, each with its ⓘ and what is said of the sign-in: Qobuz's email and password and Sign in, Tidal's Sign in on tidal.com (then the link to open, the code and Cancel); once signed in, the stream quality chosen from a list, favourites in the library on or off, Update library now, Sign out, and what the library holds of the service",
+      "page": "Settings' Services: Back, its title; Qobuz, Tidal and iBroadcast, a row each that opens its own page (items 443, 449)",
       "native": ["android/app/src/main/java/com/musicd/server/android/SettingsServices.kt"],
       "preview": false,
       "items": {
         "back": { "kind": "action", "label": "Back to settings" },
         "heading": { "kind": "shows" },
-        "title": { "kind": "shows", "each": true },
+        "qobuz": { "kind": "action", "label": "Qobuz" },
+        "tidal": { "kind": "action", "label": "Tidal" },
+        "ibroadcast": { "kind": "action", "label": "iBroadcast" }
+      }
+    },
+    "settings-service": {
+      "page": "Settings' Qobuz and Tidal (item 449), each one of Services' pages: Back to Services, its title; the account under its title and ⓘ and what is said of the sign-in: Qobuz's email and password and Sign in, Tidal's Sign in on tidal.com (then the link to open, the code and Cancel); once signed in, the stream quality chosen from a list, favourites in the library on or off, Update library now, Sign out, and what the library holds of the service",
+      "native": ["android/app/src/main/java/com/musicd/server/android/SettingsServices.kt"],
+      "preview": false,
+      "items": {
+        "back": { "kind": "action", "label": "Back to Services" },
+        "heading": { "kind": "shows" },
+        "title": { "kind": "shows" },
         "info": { "kind": "action", "label": "About {setting}", "each": true },
-        "status": { "kind": "shows", "each": true },
+        "status": { "kind": "shows" },
         "email": { "kind": "action", "label": "Qobuz email", "when": "not signed in to Qobuz" },
         "password": { "kind": "action", "label": "Qobuz password", "when": "not signed in to Qobuz" },
-        "signin": { "kind": "action", "label": ["Sign in", "Sign in on tidal.com", "…"], "each": true, "when": "not signed in to the service" },
+        "signin": { "kind": "action", "label": ["Sign in", "Sign in on tidal.com", "…"], "when": "not signed in to the service" },
         "tidal-note": { "kind": "shows", "when": "a Tidal sign-in under way" },
         "tidal-link": { "kind": "action", "label": "{link}", "when": "a Tidal sign-in under way" },
         "tidal-code": { "kind": "shows", "when": "a Tidal sign-in under way" },
         "tidal-cancel": { "kind": "action", "label": "Cancel", "when": "a Tidal sign-in under way" },
         "name": { "kind": "shows", "each": true, "when": "signed in to the service" },
-        "quality": { "kind": "action", "label": "{service} stream quality", "each": true, "when": "signed in to the service" },
-        "import": { "kind": "action", "label": ["Favourites and purchases in the library", "Favourites in the library"], "each": true, "when": "signed in to the service" },
-        "update": { "kind": "action", "label": ["Update library now", "…"], "each": true, "when": "signed in to the service, with its favourites in the library" },
-        "signout": { "kind": "action", "label": "Sign out", "each": true, "when": "signed in to the service" },
-        "import-status": { "kind": "shows", "each": true, "when": "signed in to the service" }
+        "quality": { "kind": "action", "label": "{service} stream quality", "when": "signed in to the service" },
+        "import": { "kind": "action", "label": ["Favourites and purchases in the library", "Favourites in the library"], "when": "signed in to the service" },
+        "update": { "kind": "action", "label": ["Update library now", "…"], "when": "signed in to the service, with its favourites in the library" },
+        "signout": { "kind": "action", "label": "Sign out", "when": "signed in to the service" },
+        "import-status": { "kind": "shows", "when": "signed in to the service" }
+      }
+    },
+    "settings-ibroadcast": {
+      "page": "Settings' iBroadcast (item 443), one of Services' pages: Back to Services, its title; the account under its title and ⓘ: signed out, Sign in on iBroadcast (then the link to open, the code to approve Mandarin with there and Cancel, and how the sign-in is going); signed in, who, whether the account is Premium, the formats iBroadcast takes, its albums in the library on or off, Update library now, what the library holds of it (item 444), and Sign out; then Upload (item 446), under its title and ⓘ: how the upload under way is going or what the last one did, Upload now or Stop upload, the files left out or not sent, Upload on a schedule (item 447) with its hours and the Library Scanner's beside them, and (item 451) Upload from (All music or a drive), files at once, and uploading while music plays at home or away from home, each with its own number at once",
+      "native": ["android/app/src/main/java/com/musicd/server/android/SettingsIBroadcast.kt"],
+      "preview": false,
+      "items": {
+        "back": { "kind": "action", "label": "Back to Services" },
+        "heading": { "kind": "shows" },
+        "title": { "kind": "shows" },
+        "info": { "kind": "action", "label": "About {setting}", "each": true },
+        "signin": { "kind": "action", "label": "Sign in on iBroadcast", "when": "not signed in, no sign-in under way" },
+        "note": { "kind": "shows", "when": "a sign-in under way" },
+        "link": { "kind": "action", "label": "{link}", "when": "a sign-in under way" },
+        "code": { "kind": "shows", "when": "a sign-in under way" },
+        "cancel": { "kind": "action", "label": "Cancel", "when": "a sign-in under way" },
+        "status": { "kind": "shows", "when": "signed in, or a sign-in under way" },
+        "name": { "kind": "shows", "each": true, "when": "signed in" },
+        "premium": { "kind": "shows", "when": "signed in" },
+        "formats": { "kind": "shows", "when": "signed in" },
+        "import": { "kind": "action", "label": "iBroadcast albums in the library", "when": "signed in" },
+        "update": { "kind": "action", "label": ["Update library now", "…"], "when": "signed in, its albums in the library" },
+        "library-status": { "kind": "shows", "when": "signed in" },
+        "signout": { "kind": "action", "label": "Sign out", "when": "signed in" },
+        "upload-title": { "kind": "shows", "when": "signed in" },
+        "upload-status": { "kind": "shows", "when": "signed in" },
+        "upload-progress": { "kind": "shows", "when": "signed in, an upload under way or done" },
+        "upload": { "kind": "action", "label": "Upload now", "when": "signed in, no upload under way" },
+        "upload-stop": { "kind": "action", "label": "Stop upload", "when": "an upload under way" },
+        "upload-problems": { "kind": "shows", "when": "files left out or not sent" },
+        "schedule": { "kind": "action", "label": "Upload on a schedule", "when": "signed in" },
+        "schedule-note": { "kind": "shows", "when": "signed in" },
+        "start": { "kind": "action", "label": "From", "when": "signed in, the schedule on" },
+        "end": { "kind": "action", "label": "To", "when": "signed in, the schedule on" },
+        "scanner-hours": { "kind": "shows", "when": "signed in" },
+        "from": { "kind": "action", "label": "{source}", "each": true, "when": "signed in" },
+        "from-note": { "kind": "shows", "when": "signed in, nothing chosen to upload from" },
+        "at-once": { "kind": "action", "label": ["1", "2", "3"], "each": true, "when": "signed in" },
+        "home": { "kind": "action", "label": "Upload while music plays at home", "when": "signed in" },
+        "home-at-once": { "kind": "action", "label": ["1", "2", "3"], "each": true, "when": "signed in, uploading while music plays at home" },
+        "away": { "kind": "action", "label": "Upload while music plays away from home", "when": "signed in" },
+        "away-at-once": { "kind": "action", "label": ["1", "2", "3"], "each": true, "when": "signed in, uploading while music plays away from home" }
       }
     },
     "settings-folders": {
@@ -1000,7 +1055,7 @@
       }
     },
     "settings-system": {
-      "page": "Settings' Updates: Back, its title; the server and, in the app, the app a row each (item 223), and each Mandarin Bridge Mandarin knows (item 291), its update asked of it from here: its name with its version, and its own Check for update, which looks for that one's update alone and becomes Update available once one is found (installing it on the next tap), or says how things stand, and under a Bridge whose update failed or waits on the device, what it said (item 327); under both, what each update found brings, a heading and its short lines, once for a version both bring",
+      "page": "Settings' Updates: Back, its title; the server and, in the app, the app a row each (item 223), and each Mandarin Bridge Mandarin knows (item 291), its update asked of it from here: its name with its version, and its own Check for update, which looks for that one's update alone and becomes Update available once one is found (installing it on the next tap), or says how things stand, and under a Bridge whose update failed or waits on the device, what it said (item 327); under a row whose check failed, why (item 437); under both, what each update found brings, a heading and its short lines, once for a version both bring",
       "native": ["android/app/src/main/java/com/musicd/server/android/SettingsUpdates.kt"],
       "preview": false,
       "items": {
@@ -1010,7 +1065,8 @@
         "check": { "kind": "action", "label": ["Check for update", "{state}"] },
         "app-check": { "kind": "action", "label": ["Check for update", "{state}"], "when": "in the Android app" },
         "bridge-update": { "kind": "action", "label": ["Check for update", "{state}"], "each": true, "when": "a Mandarin Bridge Mandarin knows" },
-        "bridge-why": { "kind": "shows", "each": true, "when": "a Mandarin Bridge whose update failed or waits on the device: what it said of it" },
+        "check-why": { "kind": "shows", "when": "the server's check failed: why (item 437: GitHub's hourly limit used up, and how long until it may be asked again)" },
+        "bridge-why": { "kind": "shows", "each": true, "when": "a Mandarin Bridge whose update failed or waits on the device: what it said of it; whose check failed: why (item 437)" },
         "notes-head": { "kind": "shows", "each": true, "when": "an update found with its notes" },
         "notes": { "kind": "shows", "each": true, "when": "an update found with its notes" }
       }

@@ -181,6 +181,7 @@ class MainActivity : androidx.activity.ComponentActivity() {
         NativeShell.onScreen.value = true
         if (!::reach.isInitialized) return
         shown = WeakReference(this)
+        AppLog.onScreenAt = android.os.SystemClock.elapsedRealtime()
         AppLog.line("APP", "on screen")
         AppLog.snapshots(this, true)
         UpdateNow.attach(this)

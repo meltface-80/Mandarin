@@ -851,6 +851,11 @@
           </span>
         </button>
         <div class="menu-sep"></div>
+        <!-- The library's own files as a CSV for Mandarin Migration (item 436, app/menu-export.js). -->
+        <button class="menu-item" type="button" data-action="export" aria-label="Export library" data-parity="menu.export">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 21h14"/></svg>
+          <span>Export library</span>
+        </button>
         <button class="menu-item" type="button" data-target="settings-toggle" data-parity="menu.settings">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
           <span>Settings</span>
@@ -1678,61 +1683,171 @@
           <h2 data-parity="settings-services.heading">Services</h2>
         </div>
 
+        <!-- Each service a page of its own (items 443, 449). -->
+        <nav class="settings-nav settings-nav-list" aria-label="Services">
+          <button data-parity="settings-services.qobuz" class="settings-nav-item" type="button" data-pane="qobuz">
+            <span class="settings-nav-ico" aria-hidden="true">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+            </span>
+            <span class="settings-nav-txt">
+              <span class="settings-nav-title">Qobuz</span>
+            </span>
+          </button>
+          <button data-parity="settings-services.tidal" class="settings-nav-item" type="button" data-pane="tidal">
+            <span class="settings-nav-ico" aria-hidden="true">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+            </span>
+            <span class="settings-nav-txt">
+              <span class="settings-nav-title">Tidal</span>
+            </span>
+          </button>
+          <button data-parity="settings-services.ibroadcast" class="settings-nav-item" type="button" data-pane="ibroadcast">
+            <span class="settings-nav-ico" aria-hidden="true">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18a4.5 4.5 0 0 1-.6-8.96A6 6 0 0 1 18 9.5a4 4 0 0 1 0 8.5z"/><path d="M12 11v6"/><path d="M9.5 13.5L12 11l2.5 2.5"/></svg>
+            </span>
+            <span class="settings-nav-txt">
+              <span class="settings-nav-title">iBroadcast</span>
+            </span>
+          </button>
+        </nav>
+      </div>
+
+      <!-- Qobuz's page (item 449): one of Services' (app/settings-services.js). -->
+      <div class="settings-view settings-pane hidden" data-view="pane" data-pane="qobuz" data-parent="streaming">
+        <div class="settings-pane-head">
+          <button class="settings-back" type="button" data-settings-back aria-label="Back to Services" data-parity="settings-service.back">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          <h2 data-parity="settings-service.heading">Qobuz</h2>
+        </div>
         <div class="settings-block">
-          <div class="settings-block-title" data-parity="settings-services.title">Qobuz <button data-parity="settings-services.info" class="settings-info-btn" data-info="Sign in with your Qobuz account (a subscription that streams). Mandarin keeps the sign-in token, never the password. Your Qobuz favourites and purchases become albums in the library, and the Qobuz browser (☰ → Qobuz) plays anything in the catalogue. Every track is streamed from Qobuz for the player as it is needed and every play is reported to Qobuz, as Qobuz's own apps do; nothing is downloaded. Mandarin uses Qobuz's API the way the Lyrion Music Server plugin does." aria-label="Info">&#9432;</button></div>
+          <div class="settings-block-title" data-parity="settings-service.title">Account <button data-parity="settings-service.info" class="settings-info-btn" data-info="Sign in with your Qobuz account (a subscription that streams). Mandarin keeps the sign-in token, never the password. Your Qobuz favourites and purchases become albums in the library, and the Qobuz browser (☰ → Qobuz) plays anything in the catalogue. Every track is streamed from Qobuz for the player as it is needed and every play is reported to Qobuz, as Qobuz's own apps do; nothing is downloaded. Mandarin uses Qobuz's API the way the Lyrion Music Server plugin does." aria-label="Info">&#9432;</button></div>
           <div id="qobuz-signin-form">
-            <input id="qobuz-username" data-parity="settings-services.email" aria-label="Qobuz email" class="settings-token-input" type="email" placeholder="Qobuz email" autocomplete="username" autocapitalize="off" spellcheck="false">
-            <input id="qobuz-password" data-parity="settings-services.password" aria-label="Qobuz password" class="settings-token-input" type="password" placeholder="Password" autocomplete="current-password">
+            <input id="qobuz-username" data-parity="settings-service.email" aria-label="Qobuz email" class="settings-token-input" type="email" placeholder="Qobuz email" autocomplete="username" autocapitalize="off" spellcheck="false">
+            <input id="qobuz-password" data-parity="settings-service.password" aria-label="Qobuz password" class="settings-token-input" type="password" placeholder="Password" autocomplete="current-password">
             <div class="settings-token-row">
-              <button id="qobuz-signin" data-parity="settings-services.signin" class="settings-update-btn" type="button">Sign in</button>
+              <button id="qobuz-signin" data-parity="settings-service.signin" class="settings-update-btn" type="button">Sign in</button>
             </div>
           </div>
-          <div id="qobuz-status" data-parity="settings-services.status" class="settings-token-status"></div>
+          <div id="qobuz-status" data-parity="settings-service.status" class="settings-token-status"></div>
           <div id="qobuz-signed" hidden>
-            <div class="settings-row"><span class="settings-label" data-parity="settings-services.name">Stream quality <button data-parity="settings-services.info" class="settings-info-btn" data-info="The most Mandarin asks Qobuz for. Each player still gets what it takes: a Sonos room 24/48 at most, a streamer or a USB DAC up to its own rates, the phone what its DAC takes. Your subscription sets the ceiling too." aria-label="Info">&#9432;</button></span>
-              <div class="settings-select-wrap"><select id="qobuz-quality" data-parity="settings-services.quality" aria-label="Qobuz stream quality" class="settings-select">
+            <div class="settings-row"><span class="settings-label" data-parity="settings-service.name">Stream quality <button data-parity="settings-service.info" class="settings-info-btn" data-info="The most Mandarin asks Qobuz for. Each player still gets what it takes: a Sonos room 24/48 at most, a streamer or a USB DAC up to its own rates, the phone what its DAC takes. Your subscription sets the ceiling too." aria-label="Info">&#9432;</button></span>
+              <div class="settings-select-wrap"><select id="qobuz-quality" data-parity="settings-service.quality" aria-label="Qobuz stream quality" class="settings-select">
                 <option value="cd">CD (16/44.1)</option>
                 <option value="hires96">Hi-Res up to 24/96</option>
                 <option value="hires192">Hi-Res up to 24/192</option>
               </select></div></div>
-            <div class="settings-row"><span class="settings-label" data-parity="settings-services.name">Favourites and purchases in the library <button data-parity="settings-services.info" class="settings-info-btn" data-info="Every album in your Qobuz favourites and purchases, however many, as an album here: on the walls, in search, in Smart Picks and Listen later. Brought up to date every six hours and whenever you add a favourite from the Qobuz browser. Off until you switch it on. Off: none of them are in the library; switched on again, they are back at once." aria-label="Info">&#9432;</button></span>
-              <label class="switch" data-parity="settings-services.import"><input type="checkbox" id="qobuz-import" aria-label="Favourites and purchases in the library"><span class="switch-track"><span class="switch-thumb"></span></span></label></div>
+            <div class="settings-row"><span class="settings-label" data-parity="settings-service.name">Favourites and purchases in the library <button data-parity="settings-service.info" class="settings-info-btn" data-info="Every album in your Qobuz favourites and purchases, however many, as an album here: on the walls, in search, in Smart Picks and Listen later. Brought up to date every six hours and whenever you add a favourite from the Qobuz browser. Off until you switch it on. Off: none of them are in the library; switched on again, they are back at once." aria-label="Info">&#9432;</button></span>
+              <label class="switch" data-parity="settings-service.import"><input type="checkbox" id="qobuz-import" aria-label="Favourites and purchases in the library"><span class="switch-track"><span class="switch-thumb"></span></span></label></div>
             <div class="settings-token-row">
-              <button id="qobuz-import-now" data-parity="settings-services.update" class="settings-update-btn" type="button">Update library now</button>
-              <button id="qobuz-disconnect" data-parity="settings-services.signout" class="settings-update-btn" type="button">Sign out</button>
+              <button id="qobuz-import-now" data-parity="settings-service.update" class="settings-update-btn" type="button">Update library now</button>
+              <button id="qobuz-disconnect" data-parity="settings-service.signout" class="settings-update-btn" type="button">Sign out</button>
             </div>
-            <div id="qobuz-import-status" data-parity="settings-services.import-status" class="settings-token-status"></div>
+            <div id="qobuz-import-status" data-parity="settings-service.import-status" class="settings-token-status"></div>
           </div>
         </div>
+      </div>
 
+      <!-- Tidal's page (item 449): one of Services' (app/settings-services.js). -->
+      <div class="settings-view settings-pane hidden" data-view="pane" data-pane="tidal" data-parent="streaming">
+        <div class="settings-pane-head">
+          <button class="settings-back" type="button" data-settings-back aria-label="Back to Services" data-parity="settings-service.back">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          <h2 data-parity="settings-service.heading">Tidal</h2>
+        </div>
         <div class="settings-block">
-          <div class="settings-block-title" data-parity="settings-services.title">Tidal <button data-parity="settings-services.info" class="settings-info-btn" data-info="Sign in with your Tidal account (a subscription that streams): Mandarin shows a link and a code, you sign in on tidal.com, and Mandarin keeps the sign-in token — never a password. Your Tidal favourite albums become albums in the library, and the Tidal browser (☰ → Tidal) plays anything in the catalogue. Every track is streamed from Tidal for the player as it is needed; nothing is downloaded. Mandarin uses Tidal's API the way the Lyrion Music Server plugin does." aria-label="Info">&#9432;</button></div>
+          <div class="settings-block-title" data-parity="settings-service.title">Account <button data-parity="settings-service.info" class="settings-info-btn" data-info="Sign in with your Tidal account (a subscription that streams): Mandarin shows a link and a code, you sign in on tidal.com, and Mandarin keeps the sign-in token — never a password. Your Tidal favourite albums become albums in the library, and the Tidal browser (☰ → Tidal) plays anything in the catalogue. Every track is streamed from Tidal for the player as it is needed; nothing is downloaded. Mandarin uses Tidal's API the way the Lyrion Music Server plugin does." aria-label="Info">&#9432;</button></div>
           <div id="tidal-signin-form">
             <div class="settings-token-row">
-              <button id="tidal-signin" data-parity="settings-services.signin" class="settings-update-btn" type="button">Sign in on tidal.com</button>
+              <button id="tidal-signin" data-parity="settings-service.signin" class="settings-update-btn" type="button">Sign in on tidal.com</button>
             </div>
             <div id="tidal-pending" class="tidal-auth-pending" hidden>
-              <div class="settings-note" data-parity="settings-services.tidal-note">Open this link, sign in to Tidal there, and come back. Mandarin notices by itself.</div>
-              <a id="tidal-auth-link" data-parity="settings-services.tidal-link" class="tidal-auth-link" href="#" target="_blank" rel="noopener"></a>
-              <div id="tidal-auth-code" data-parity="settings-services.tidal-code" class="tidal-auth-code"></div>
-              <button id="tidal-signin-cancel" data-parity="settings-services.tidal-cancel" class="settings-update-btn" type="button">Cancel</button>
+              <div class="settings-note" data-parity="settings-service.tidal-note">Open this link, sign in to Tidal there, and come back. Mandarin notices by itself.</div>
+              <a id="tidal-auth-link" data-parity="settings-service.tidal-link" class="tidal-auth-link" href="#" target="_blank" rel="noopener"></a>
+              <div id="tidal-auth-code" data-parity="settings-service.tidal-code" class="tidal-auth-code"></div>
+              <button id="tidal-signin-cancel" data-parity="settings-service.tidal-cancel" class="settings-update-btn" type="button">Cancel</button>
             </div>
           </div>
-          <div id="tidal-status" data-parity="settings-services.status" class="settings-token-status"></div>
+          <div id="tidal-status" data-parity="settings-service.status" class="settings-token-status"></div>
           <div id="tidal-signed" hidden>
-            <div class="settings-row"><span class="settings-label" data-parity="settings-services.name">Stream quality <button data-parity="settings-services.info" class="settings-info-btn" data-info="The most Mandarin asks Tidal for. CD is FLAC 16/44.1. Hi-Res asks for Tidal's hi-res FLAC (up to 24/192) where an album has it and your subscription allows; where Tidal answers with something else, CD quality is asked for instead. Each player still gets what it takes: a Sonos room 24/48 at most, a streamer or a USB DAC up to its own rates, the phone what its DAC takes." aria-label="Info">&#9432;</button></span>
-              <div class="settings-select-wrap"><select id="tidal-quality" data-parity="settings-services.quality" aria-label="Tidal stream quality" class="settings-select">
+            <div class="settings-row"><span class="settings-label" data-parity="settings-service.name">Stream quality <button data-parity="settings-service.info" class="settings-info-btn" data-info="The most Mandarin asks Tidal for. CD is FLAC 16/44.1. Hi-Res asks for Tidal's hi-res FLAC (up to 24/192) where an album has it and your subscription allows; where Tidal answers with something else, CD quality is asked for instead. Each player still gets what it takes: a Sonos room 24/48 at most, a streamer or a USB DAC up to its own rates, the phone what its DAC takes." aria-label="Info">&#9432;</button></span>
+              <div class="settings-select-wrap"><select id="tidal-quality" data-parity="settings-service.quality" aria-label="Tidal stream quality" class="settings-select">
                 <option value="cd">CD (16/44.1)</option>
                 <option value="hires">Hi-Res up to 24/192</option>
               </select></div></div>
-            <div class="settings-row"><span class="settings-label" data-parity="settings-services.name">Favourites in the library <button data-parity="settings-services.info" class="settings-info-btn" data-info="Every album in your Tidal favourites, however many, as an album here: on the walls, in search, in Smart Picks and Listen later. Brought up to date every six hours and whenever you add a favourite from the Tidal browser. Off until you switch it on. Off: none of them are in the library; switched on again, they are back at once." aria-label="Info">&#9432;</button></span>
-              <label class="switch" data-parity="settings-services.import"><input type="checkbox" id="tidal-import" aria-label="Favourites in the library"><span class="switch-track"><span class="switch-thumb"></span></span></label></div>
+            <div class="settings-row"><span class="settings-label" data-parity="settings-service.name">Favourites in the library <button data-parity="settings-service.info" class="settings-info-btn" data-info="Every album in your Tidal favourites, however many, as an album here: on the walls, in search, in Smart Picks and Listen later. Brought up to date every six hours and whenever you add a favourite from the Tidal browser. Off until you switch it on. Off: none of them are in the library; switched on again, they are back at once." aria-label="Info">&#9432;</button></span>
+              <label class="switch" data-parity="settings-service.import"><input type="checkbox" id="tidal-import" aria-label="Favourites in the library"><span class="switch-track"><span class="switch-thumb"></span></span></label></div>
             <div class="settings-token-row">
-              <button id="tidal-import-now" data-parity="settings-services.update" class="settings-update-btn" type="button">Update library now</button>
-              <button id="tidal-disconnect" data-parity="settings-services.signout" class="settings-update-btn" type="button">Sign out</button>
+              <button id="tidal-import-now" data-parity="settings-service.update" class="settings-update-btn" type="button">Update library now</button>
+              <button id="tidal-disconnect" data-parity="settings-service.signout" class="settings-update-btn" type="button">Sign out</button>
             </div>
-            <div id="tidal-import-status" data-parity="settings-services.import-status" class="settings-token-status"></div>
+            <div id="tidal-import-status" data-parity="settings-service.import-status" class="settings-token-status"></div>
           </div>
+        </div>
+      </div>
+
+<!-- iBroadcast's page (item 443): one of Services' (app/settings-ibroadcast.js). -->
+      <div class="settings-view settings-pane hidden" data-view="pane" data-pane="ibroadcast" data-parent="streaming">
+        <div class="settings-pane-head">
+          <button class="settings-back" type="button" data-settings-back aria-label="Back to Services" data-parity="settings-ibroadcast.back">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          <h2 data-parity="settings-ibroadcast.heading">iBroadcast</h2>
+        </div>
+        <div class="settings-block">
+          <div class="settings-block-title" data-parity="settings-ibroadcast.title">Account <button data-parity="settings-ibroadcast.info" class="settings-info-btn" data-info="Your iBroadcast account: your own music, uploaded to iBroadcast's servers. Sign in shows a link and a code: open the link on any device, sign in to iBroadcast there and approve Mandarin with the code. Mandarin keeps iBroadcast's sign-in token, never a password, and asks only to read your account and library, change your library and upload to it. Premium is needed to play your files as they are (lossless), rather than as 128 kbps MP3." aria-label="Info">&#9432;</button></div>
+          <div id="ib-signin-form">
+            <div class="settings-token-row">
+              <button id="ib-signin" data-parity="settings-ibroadcast.signin" class="settings-update-btn" type="button">Sign in on iBroadcast</button>
+            </div>
+            <div id="ib-pending" class="tidal-auth-pending" hidden>
+              <div class="settings-note" data-parity="settings-ibroadcast.note">Open this link, sign in to iBroadcast there, approve Mandarin with this code, and come back. Mandarin notices by itself.</div>
+              <a id="ib-auth-link" data-parity="settings-ibroadcast.link" class="tidal-auth-link" href="#" target="_blank" rel="noopener"></a>
+              <div id="ib-auth-code" data-parity="settings-ibroadcast.code" class="tidal-auth-code"></div>
+              <button id="ib-signin-cancel" data-parity="settings-ibroadcast.cancel" class="settings-update-btn" type="button">Cancel</button>
+            </div>
+          </div>
+          <div id="ib-status" data-parity="settings-ibroadcast.status" class="settings-token-status"></div>
+          <div id="ib-signed" hidden>
+            <div class="settings-row"><span class="settings-label" data-parity="settings-ibroadcast.name">Premium</span><span id="ib-premium" data-parity="settings-ibroadcast.premium" class="settings-token-status"></span></div>
+            <div class="settings-row"><span class="settings-label" data-parity="settings-ibroadcast.name">Formats iBroadcast takes</span><span id="ib-formats" data-parity="settings-ibroadcast.formats" class="settings-token-status"></span></div>
+            <div class="settings-row"><span class="settings-label" data-parity="settings-ibroadcast.name">iBroadcast albums in the library <button data-parity="settings-ibroadcast.info" class="settings-info-btn" data-info="Every album in your iBroadcast library as an album here: on the walls, in search, in Smart Picks and Listen later. One you also have here as files is shown once, from the files. Read again whenever iBroadcast says your library changed (Mandarin looks every ten minutes), and by Update library now. On unless you switch it off; off, none of them are in the library." aria-label="Info">&#9432;</button></span>
+              <label class="switch" data-parity="settings-ibroadcast.import"><input type="checkbox" id="ib-import" aria-label="iBroadcast albums in the library"><span class="switch-track"><span class="switch-thumb"></span></span></label></div>
+            <div class="settings-token-row">
+              <button id="ib-library-now" data-parity="settings-ibroadcast.update" class="settings-update-btn" type="button">Update library now</button>
+              <button id="ib-signout" data-parity="settings-ibroadcast.signout" class="settings-update-btn" type="button">Sign out</button>
+            </div>
+            <div id="ib-library-status" data-parity="settings-ibroadcast.library-status" class="settings-token-status"></div>
+          </div>
+        </div>
+        <div id="ib-upload-block" class="settings-block" hidden>
+          <div class="settings-block-title" data-parity="settings-ibroadcast.upload-title">Upload <button data-parity="settings-ibroadcast.info" class="settings-info-btn" data-info="Your music here uploaded to iBroadcast, album by album, each file as it is. DSD, which iBroadcast can't play, goes up as FLAC at 24-bit/176.4 kHz (88.2 kHz where that is over iBroadcast's 1.5 GB a file); a lossless file over 1.5 GB as FLAC at its most compression, or at half its rate where that is still over. A file already in iBroadcast isn't sent again, so an upload stopped goes on where it was. Your files here are only read: never changed, moved or deleted. While music plays, it waits." aria-label="Info">&#9432;</button></div>
+          <div class="settings-row ib-choose"><span class="settings-label" data-parity="settings-ibroadcast.name">Upload from</span></div>
+          <div id="ib-from" class="seg ib-from"></div>
+          <div id="ib-from-note" data-parity="settings-ibroadcast.from-note" class="settings-token-status"></div>
+          <div class="settings-row ib-choose"><span class="settings-label" data-parity="settings-ibroadcast.name">Files at once</span><div id="ib-at-once" class="seg ib-count" data-key="at_once"></div></div>
+          <div class="settings-row"><span class="settings-label" data-parity="settings-ibroadcast.name">Upload while music plays at home</span>
+            <label class="switch" data-parity="settings-ibroadcast.home"><input type="checkbox" id="ib-home" aria-label="Upload while music plays at home"><span class="switch-track"><span class="switch-thumb"></span></span></label></div>
+          <div id="ib-home-row" class="settings-row ib-choose" hidden><span class="settings-label" data-parity="settings-ibroadcast.name">Files at once then</span><div id="ib-home-at-once" class="seg ib-count" data-key="home_at_once"></div></div>
+          <div class="settings-row"><span class="settings-label" data-parity="settings-ibroadcast.name">Upload while music plays away from home</span>
+            <label class="switch" data-parity="settings-ibroadcast.away"><input type="checkbox" id="ib-away" aria-label="Upload while music plays away from home"><span class="switch-track"><span class="switch-thumb"></span></span></label></div>
+          <div id="ib-away-row" class="settings-row ib-choose" hidden><span class="settings-label" data-parity="settings-ibroadcast.name">Files at once then</span><div id="ib-away-at-once" class="seg ib-count" data-key="away_at_once"></div></div>
+          <div id="ib-upload-status" data-parity="settings-ibroadcast.upload-status" class="settings-token-status"></div>
+          <div id="ib-upload-progress" data-parity="settings-ibroadcast.upload-progress" class="settings-token-status"></div>
+          <div class="settings-token-row">
+            <button id="ib-upload-now" data-parity="settings-ibroadcast.upload" class="settings-update-btn" type="button">Upload now</button>
+            <button id="ib-upload-stop" data-parity="settings-ibroadcast.upload-stop" class="settings-update-btn hidden" type="button">Stop upload</button>
+          </div>
+          <div id="ib-upload-problems" data-parity="settings-ibroadcast.upload-problems" class="settings-token-status ib-upload-problems"></div>
+          <div class="settings-row"><span class="settings-label" data-parity="settings-ibroadcast.name">Upload on a schedule</span>
+            <label class="switch" data-parity="settings-ibroadcast.schedule"><input type="checkbox" id="ib-schedule" aria-label="Upload on a schedule"><span class="switch-track"><span class="switch-thumb"></span></span></label></div>
+          <div id="ib-schedule-note" data-parity="settings-ibroadcast.schedule-note" class="settings-token-status"></div>
+          <div id="ib-schedule-times" class="settings-row ib-times" hidden><span class="settings-label" data-parity="settings-ibroadcast.name">From</span>
+            <input type="time" id="ib-start" data-parity="settings-ibroadcast.start" class="id-time" aria-label="From">
+            <span class="settings-label" data-parity="settings-ibroadcast.name">to</span>
+            <input type="time" id="ib-end" data-parity="settings-ibroadcast.end" class="id-time" aria-label="To"></div>
+          <div id="ib-scanner-hours" data-parity="settings-ibroadcast.scanner-hours" class="settings-token-status"></div>
         </div>
       </div>
 
@@ -2042,6 +2157,8 @@
             <span id="update-server-name" class="settings-label" data-parity="settings-system.name">Server</span>
             <button id="check-update-btn" data-parity="settings-system.check" class="settings-update-btn" type="button">Check for update</button>
           </div>
+          <!-- Why the server's check failed (item 437, app/check-update.js). -->
+          <p id="update-server-why" class="settings-bridge-why hidden" data-parity="settings-system.check-why"></p>
           <!-- The Mandarin Bridges, a row each (item 291, app/bridge-updates.js). -->
           <div id="update-bridges" class="settings-bridges hidden"></div>
           <div id="settings-whats-new" class="settings-whats-new hidden"></div>

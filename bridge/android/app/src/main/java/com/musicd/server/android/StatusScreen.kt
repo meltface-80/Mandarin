@@ -131,6 +131,8 @@ internal fun StatusScreen(activity: MainActivity, s: MainActivity.Snapshot, cras
             u.error?.takeIf { u.permission }?.let { Note(it, danger = true) }
         }
 
+        OwnDacSection(activity, again)
+
         Section("Keep awake")
         Line(if (s.awake) "The device is held awake: the CPU and Wi-Fi never doze while the Bridge runs." else "The Bridge isn't running, so nothing holds the device awake.")
         ToggleRow("Keep the screen on while this app is in front", Store.keepScreenOn(activity)) { Store.setKeepScreenOn(activity, it); activity.keepScreen(it); again() }
@@ -185,3 +187,57 @@ private fun copy(c: Context, label: String, text: String) {
     runCatching { (c.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager).setPrimaryClip(ClipData.newPlainText(label, text)) }
         .fold({ Toast.makeText(c, "Copied", Toast.LENGTH_SHORT).show() }, { Toast.makeText(c, "Couldn't copy: ${it.message}", Toast.LENGTH_SHORT).show() })
 }
+
+/**
+ * This device's own DAC (item 432, OwnDac.kt): played when no DAC is on the USB port, on by itself on a music player's;
+ * what Android takes from an app here, and Android's outputs as it lists them, the evidence of how far it goes.
+ */
+@Composable private fun OwnDacSection(activity: MainActivity, again: () -> Unit) {
+    Section("This device's own DAC")
+    val on = OwnDac.on(activity)
+    ToggleRow("Play through it when no USB DAC is plugged in", on) {
+        Store.setOwnDac(activity, it)
+        DacService.current?.let { d -> d.main.post { d.usbChanged() } }
+        again()
+    }
+    Note(if (OwnDac.isPlayer(android.os.Build.MANUFACTURER ?: "", android.os.Build.MODEL ?: "", android.os.Build.BRAND ?: "")) OWN_PLAYER else OWN_PHONE)
+    if (!on) return
+    Line(OwnDac.name(), strong = true)
+    // Whether Android's output follows a track's rate (item 433): taking a rate isn't playing at it.
+    val out = OwnDac.outputRate()
+    Cap("Android's output now", if (out > 0) OwnDac.khz(out) + " kHz" else "not said")
+    Cap("Follows a track's rate", when (OwnDac.follows) { true -> "yes: each track at its own rate"; false -> "no: it stays at ${OwnDac.khz(OwnDac.probedRate)} kHz"; null -> "not tried yet" })
+    Cap("Audio focus", if (OwnDac.focusHeld) "held by the Bridge" else "not held")
+    OwnDac.way?.let { Cap("Played by", it.words) }
+    if (OwnDac.reached.size > 1 || (OwnDac.reached.isNotEmpty() && OwnDac.way != null)) Cap("Reaches the DAC at (kHz)", OwnDac.reached.joinToString(", ") { OwnDac.khz(it) })
+    if (OwnDac.follows == false) Note(OWN_FIXED.replace("{rate}", OwnDac.khz(OwnDac.probedRate)), danger = true)
+    // Each way an app may ask for a track, and what the output did (item 434).
+    for (t in OwnDac.tried) Cap(t.way.words + " at " + OwnDac.khz(t.rate), t.error ?: ((if (t.followed) "followed: " else "not followed: ") + OwnDac.khz(t.fed) + " kHz"))
+    OutlinedButton({ if (DacService.current?.probeOwnAgain() != true) Toast.makeText(activity, "Not while music plays", Toast.LENGTH_SHORT).show(); again() }, Modifier.padding(top = 4.dp)) { Text("Test again") }
+    Cap("Sent by Mandarin at (kHz)", (DacService.current?.caps()?.rates ?: OwnDac.rates).joinToString(", ") { OwnDac.khz(it) })
+    Cap("Android takes from an app (kHz)", if (OwnDac.rates.isEmpty()) "none" else OwnDac.rates.joinToString(", ") { OwnDac.khz(it) })
+    Cap("Bit depth", "16, 24 (sent as 32-bit float, every bit kept)")
+    // DSD as DoP (item 438): tried by hand, at a low volume, the device's own display saying whether its DAC took it.
+    ToggleRow("DSD as DoP (test)", Store.ownDop(activity)) { Store.setOwnDop(activity, it); DacService.current?.let { d -> d.main.post { d.usbChanged() } }; again() }
+    Note(if (Store.ownDop(activity)) OWN_DOP_ON.replace("{dsd}", OwnDop.multiples(DacService.current?.caps()?.rates ?: emptyList()).joinToString(", ") { "DSD$it" }.ifEmpty { "no DSD (no DoP rate reached)" }) else OWN_DOP_OFF)
+    Cap("Volume", "this device's own; Mandarin's is fixed at 100%")
+    Note(OWN_MQA)
+    val outs = OwnDac.outputs(activity)
+    if (outs.length() > 0) {
+        Line("Android's outputs here", strong = true)
+        for (i in 0 until outs.length()) {
+            val o = outs.getJSONObject(i)
+            val rates = o.getJSONArray("rates"); val enc = o.getJSONArray("encodings")
+            val r = if (rates.length() == 0) "any rate" else (0 until rates.length()).joinToString(", ") { OwnDac.khz(rates.getInt(it)) } + " kHz"
+            val e = if (enc.length() == 0) "" else " · " + (0 until enc.length()).joinToString(", ") { enc.getString(it) }
+            Cap(o.getString("kind") + (o.getString("name").takeIf { it.isNotBlank() }?.let { " ($it)" } ?: ""), r + e)
+        }
+    }
+}
+
+private const val OWN_PLAYER = "A music player: its firmware passes an app's audio on at the track's own rate, unmixed, so the Bridge plays to its DAC untouched, at each track's rate. A USB DAC plugged in is played instead."
+private const val OWN_PHONE = "On a phone, Android mixes an app's audio at its own rate before the DAC, so it isn't bit-perfect: off unless you switch it on."
+private const val OWN_FIXED = "Android's output here stays at {rate} kHz whatever rate a track is given at, and Android would resample anything else to it. So Mandarin sends {rate} kHz (or a rate listed as reaching the DAC), converting other rates itself with its own resampler, and its signal path says so: bit-perfect only for {rate} kHz tracks. Every way an app may ask Android for a track was tried (below); none made the output follow."
+private const val OWN_DOP_OFF = "DSD is sent as PCM, converted by Mandarin. Switch on to send it as DoP instead (DSD packed in PCM at its rate over 16, 176.4 kHz for DSD64): where this player's DAC takes DoP, it plays DSD natively. Start at a low volume: a DAC that doesn't take it plays a quiet signal far above hearing. A FiiO R7 doesn't: its own code keeps DSD for FiiO's player, and plays DoP from an app as PCM, the music barely audible."
+private const val OWN_DOP_ON = "DSD goes as DoP: {dsd}. Its own display should say DSD as it plays (a FiiO's status bar and rings). If it doesn't, switch this off and DSD goes as PCM again."
+private const val OWN_MQA = "MQA: in Mandarin, Settings → Audio Devices, switch on “This DAC decodes MQA” for this Bridge. An MQA track is then sent untouched, at full scale, for this player's DAC to decode and unfold."

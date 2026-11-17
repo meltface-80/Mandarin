@@ -27,6 +27,15 @@ class UpdateCheckTest {
         assertEquals("Check failed", UpdateCheck.serverNothing(null))
     }
 
+    /** Why the server's check failed, under its row (item 437); nothing where it didn't, or an update is on offer. */
+    @Test fun `a failed check says why`() {
+        val limit = "GitHub's limit of 60 checks an hour from this box is used up: it can be asked again in 23 minutes."
+        assertEquals(limit, UpdateCheck.serverWhy(JSONObject().put("available", false).put("error", limit)))
+        assertEquals(null, UpdateCheck.serverWhy(JSONObject("""{"available":false,"error":null}""")))
+        assertEquals(null, UpdateCheck.serverWhy(JSONObject("""{"available":true,"latest":"9.9.9","error":"old"}""")))
+        assertEquals(null, UpdateCheck.serverWhy(null))
+    }
+
     @Test fun `a release's server ahead of the app, the app on its way`() {
         val words = UpdateCheck.appNothing("1.1.9", "1.1.8")
         assertEquals("v1.1.9 is on its way — try again in a few minutes", words)

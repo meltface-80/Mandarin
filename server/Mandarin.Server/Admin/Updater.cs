@@ -157,7 +157,7 @@ internal sealed partial class Updater
         catch (HttpRequestException e) { throw new UpdateError(e.InnerException?.Message ?? e.Message); }
         using (res)
         {
-            var code = (int)res.StatusCode;
+            var code = (int)res.StatusCode; GitHubLimit.Note(res);   // its limit noted (item 437)
             if (code is 301 or 302 or 307 or 308 && res.Headers.Location is { } loc)
             {
                 if (redirectsLeft <= 0) throw new UpdateError("too many redirects");
@@ -259,11 +259,11 @@ internal sealed partial class Updater
         {
             JsObj? rel = null;
             string? src = null;
-            var r = await GetJson(ReleasePath());   // the latest release, or dev's builds' (Updater.Channel.cs, item 405)
+            var r = GitHubLimit.Blocked() is { } used ? throw new UpdateError(used) : await GetJson(ReleasePath());   // the latest release, or dev's builds' (item 405); not while GitHub's limit is used up (item 437)
             if (r.Status == 200 && r.Json is JsObj rj && Js.Truthy(rj["tag_name"])) { rel = OnChannel(rj); src = rel != null ? "release" : null; }
             // No published release: the highest version among the tags (the releases' alone; no dev build out is nothing on offer).
             else if (r.Status == 404) { rel = Dev ? null : await NewestTag(); src = rel != null ? "tags" : null; }
-            else if (r.Status == 403) throw new UpdateError("GitHub rate-limited or forbidden (set GITHUB_TOKEN to raise the limit)");
+            else if (r.Status is 403 or 429) throw new UpdateError(GitHubLimit.Blocked() ?? "GitHub refused the check (" + r.Status + "): try again later, or set GITHUB_TOKEN to raise its limit.");
             else if (r.Status >= 400) throw new UpdateError("GitHub API HTTP " + r.Status);
 
             lock (gate)

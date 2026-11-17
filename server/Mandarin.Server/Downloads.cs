@@ -6,6 +6,9 @@
 // at 48 kHz, resampled by SoX at 33-bit precision in 64-bit float and fed to
 // the encoder as float. Each is made once with ffmpeg and kept in
 // <data>/download-cache, two at a time, the cache under TRANSCODE_CACHE_GB.
+// An iBroadcast track (item 448) likewise, its original fetched from iBroadcast
+// where Android plays it (Services/IBroadcast/IBroadcastDownloads.cs); Qobuz's
+// and Tidal's never.
 //
 //   GET /api/download/t<id>?quality=   one track, made if need be (Range supported)
 //   GET /stream/t<id>.<ext>?q=opus      away from home: the track as Opus, the
@@ -84,6 +87,9 @@ internal static partial class Downloads
     /* How a track goes out at this quality. */
     public static Plan PlanFor(Track t, string quality)
     {
+        if (Services.IBroadcast.IBroadcastDownloads.Is(t.Path))
+            return quality == "opus" ? new Plan(null, "opus", "opus", "audio/ogg")
+                : Services.IBroadcast.IBroadcastDownloads.OriginalExt(t.Id) is { } e ? new Plan(null, "fetch", e, MimeFor(e)) : new Plan(null, "flac", "flac", "audio/flac");
         if (quality == "opus")
             return OpusFile().IsMatch(t.Path) ? new Plan(t.Path, null, "opus", "audio/ogg") : new Plan(null, "opus", "opus", "audio/ogg");
         if (PhonePlays(t)) { var ext = Ext(t.Path).TrimStart('.'); return new Plan(t.Path, null, ext, MimeFor(ext)); }
@@ -93,15 +99,15 @@ internal static partial class Downloads
     private static string KeyFor(Track t, Plan p)
     {
         var bits = Math.Min(24, t.Bits != 0 ? t.Bits : 24);
-        return $"{t.Id}-{t.Mtime}-{(p.Convert == "opus" ? "opus" + OpusKbps + "f" : "flac" + bits)}";
+        return $"{t.Id}-{t.Mtime}-{(p.Convert == "opus" ? "opus" + OpusKbps + "f" : p.Convert == "fetch" ? "orig" : "flac" + bits)}";
     }
 
-    private static List<string> Args(Track t, Plan p, string dest)
+    private static List<string> Args(Track t, Plan p, string dest, string src)
     {
         if (p.Convert == "opus")
         {
             var resampler = Transcoder.Soxr ? "resampler=soxr:precision=33:" : "";
-            return ["-hide_banner", "-nostdin", "-loglevel", "error", "-y", "-i", t.Path,
+            return ["-hide_banner", "-nostdin", "-loglevel", "error", "-y", "-i", src,
                 "-map", "0:a:0", "-vn",
                 "-af", $"aresample={resampler}internal_sample_fmt=dblp:osr=48000",
                 "-ar", "48000", "-ac", "2", "-sample_fmt", "flt", "-map_metadata", "0",
@@ -111,7 +117,8 @@ internal static partial class Downloads
         var dsd = DsdCodec().IsMatch(t.Codec) || DsdExt().IsMatch(t.Path);
         var rate = dsd ? 88200 : (t.Rate != 0 ? t.Rate : 44100);
         var bits = dsd ? 24 : (t.Bits != 0 ? t.Bits : 24) > 16 ? 24 : 16;
-        return Transcoder.Args(t.Path, new ConvPlan(rate, (int)bits, false, false, ""), dest);
+        // From where the file is read: an iBroadcast track's original at iBroadcast (item 448), not its path here.
+        return Transcoder.Args(src, new ConvPlan(rate, (int)bits, false, false, ""), dest);
     }
 
     /*
@@ -147,8 +154,18 @@ internal static partial class Downloads
         try
         {
             var part = dest + ".part";
+            if (p.Convert == "fetch")
+            {
+                try { await Services.IBroadcast.IBroadcastDownloads.Fetch(t.Path, part); System.IO.File.Move(part, dest, overwrite: true); }
+                catch (IOException) { try { System.IO.File.Delete(part); } catch (IOException) { /* never made */ } throw; }
+                Prune();
+                return;
+            }
             var psi = new ProcessStartInfo(Transcoder.Bin) { UseShellExecute = false, RedirectStandardError = true, RedirectStandardInput = true };
-            foreach (var a in Args(t, p, part)) psi.ArgumentList.Add(a);
+            // An iBroadcast track read from its original's address (item 445); a file from where it is.
+            var src = t.Path.StartsWith("ibroadcast://track/", StringComparison.Ordinal) && global::Mandarin.Server.Jobs.IBroadcastStreams is { } ib
+                ? await ib.Url(t.Path["ibroadcast://track/".Length..]) : t.Path;
+            foreach (var a in Args(t, p, part, src)) psi.ArgumentList.Add(a);
             Cpu.Place(psi, kind);
             using var proc = Process.Start(psi) ?? throw new InvalidOperationException("couldn't start ffmpeg");
             Cpu.Adopt(proc, kind);
@@ -236,8 +253,8 @@ internal static partial class Downloads
         Track? t;
         using (var c = Db.Open()) t = TrackById(c, id);
         if (t == null) { await Error(ctx, 404, "That track is no longer in the library"); return true; }
-        // A streamed track (Qobuz, Tidal) is streamed only, never made into a file to keep.
-        if (t.Path.Contains("://", StringComparison.Ordinal)) { await Error(ctx, 403, "Streamed tracks can't be downloaded"); return true; }
+        // A streamed track (Qobuz, Tidal) is streamed only, never made into a file to keep; iBroadcast's are the owner's own files (item 448).
+        if (t.Path.Contains("://", StringComparison.Ordinal) && !Services.IBroadcast.IBroadcastDownloads.Is(t.Path)) { await Error(ctx, 403, "Streamed tracks can't be downloaded"); return true; }
         var q = ctx.Request.Query["quality"].ToString();
         (string Path, string Ext, string Mime) f;
         try { f = await FileFor(t, q is "original" or "opus" ? q : "original"); }
@@ -262,7 +279,7 @@ internal static partial class Downloads
         Track? t;
         List<Track> rest;
         using (var c = Db.Open()) { t = TrackById(c, id); rest = t == null ? [] : AlbumTracksOf(c, id); }
-        if (t == null || t.Path.Contains("://", StringComparison.Ordinal)) return false;
+        if (t == null || (t.Path.Contains("://", StringComparison.Ordinal) && !t.Path.StartsWith("ibroadcast://", StringComparison.Ordinal))) return false;
         // This one at once, then the next two just below it, on playback's cores (Cpu.cs).
         var making = FileFor(t, "opus", CpuKind.Playback);
         var i = rest.FindIndex(x => x.Id == t.Id);

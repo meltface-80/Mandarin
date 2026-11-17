@@ -66,7 +66,9 @@ internal fun SettingsScreen(pane: String, client: () -> ServerClient?, onBack: (
         "playback" -> SettingsAudio(client, onBack)
         "backup" -> SettingsBackup(client, onBack)
         "system" -> SettingsUpdates(client, onBack)
-        "streaming" -> SettingsServices(client, onBack)
+        "streaming" -> SettingsServices(onBack, open)
+        "qobuz", "tidal" -> SettingsService(pane, client, onBack)
+        "ibroadcast" -> SettingsIBroadcast(client, onBack)
         "downloads" -> SettingsDownloads(client, onBack)
         "downloads-albums" -> SettingsDownloads(client, onBack, albums = true)   // its albums at once (item 110)
         "folders" -> SettingsFolders(client, onBack)
@@ -125,7 +127,7 @@ private fun SettingsHome(client: () -> ServerClient?, onClose: () -> Unit, open:
 
 /** A row of a Settings list (#settings-overlay .settings-nav-item): 13 and 12 in, its 22 brass icon, 14 on, its name in 15/500. */
 @Composable
-private fun SettingsNavRow(row: SettingsRow, modifier: Modifier) {
+internal fun SettingsNavRow(row: SettingsRow, modifier: Modifier) {
     Row(modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 13.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
         Icon(painterResource(ICONS[row.pane] ?: R.drawable.st_setup), contentDescription = null, tint = paletteColor(Palette.ACCENT), modifier = Modifier.size(22.dp))
         Text(row.title, Modifier.weight(1f), color = paletteColor(Palette.TEXT), fontSize = 15.sp, lineHeight = 18.75.sp, fontWeight = FontWeight.W500, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -136,7 +138,7 @@ private val ICONS = mapOf("account" to R.drawable.st_account, "folders" to R.dra
     "identify" to R.drawable.st_scanner, "setup" to R.drawable.st_setup, "backup" to R.drawable.st_backup, "sqtool" to R.drawable.st_audio, "system" to R.drawable.st_updates,
     "smartpicks" to R.drawable.st_smartpicks, "labels" to R.drawable.st_labels, "homescreen" to R.drawable.st_homescreen, "ui" to R.drawable.st_ui,
     "display" to R.drawable.st_display, "shelfset" to R.drawable.st_shelf, "downloads" to R.drawable.st_downloads,
-    "away" to R.drawable.st_away, "metadata" to R.drawable.st_keys)
+    "away" to R.drawable.st_away, "metadata" to R.drawable.st_keys, "ibroadcast" to R.drawable.st_services, "qobuz" to R.drawable.st_services, "tidal" to R.drawable.st_services)
 
 /**
  * A Settings screen's ground (#settings-overlay > .settings-sheet): the raised colour over the whole screen, 20 in at

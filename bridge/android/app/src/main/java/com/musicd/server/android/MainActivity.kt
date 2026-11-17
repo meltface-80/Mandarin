@@ -122,8 +122,9 @@ class MainActivity : ComponentActivity() {
             volume = UsbDriver.volume(),
             caps = s?.caps(),
             art = d?.art?.takeIf { it.isNotBlank() },
-            feed = UsbDriver.current?.let { o -> NowPlaying.Feed(o.rate, o.bits, if (o.dsd) o.dsdMultiple else 0, o.kind == "dop") },
-            dacName = UsbDac.device()?.let { u -> usb.name.ifBlank { u.productName ?: "USB DAC" } },
+            feed = UsbDriver.current?.let { o -> NowPlaying.Feed(o.rate, o.bits, if (o.dsd) o.dsdMultiple else 0, o.kind == "dop") } ?: s?.ownFeed(),
+            // No DAC on the port: this device's own, where it is played (item 432).
+            dacName = UsbDac.device()?.let { u -> usb.name.ifBlank { u.productName ?: "USB DAC" } } ?: if (OwnDac.on(this)) OwnDac.name() else null,
             playedOnce = Store.playedOnce(this),
             name = Store.friendlyName(this)
         )

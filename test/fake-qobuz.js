@@ -35,6 +35,7 @@ class FakeQobuz {
     this.fileUrlCalls = [];     // { track_id, format_id, sig_ok }
     this.fetches = [];          // stream fetches
     this.logins = 0;
+    this.calls = {};            // how many times each call was asked (item 457)
     this.holds = {};            // call -> a promise its requests wait on (hold)
     this.parked = {};           // call -> how many came while held
     this.server = null;
@@ -102,6 +103,7 @@ class FakeQobuz {
       req.on("end", async () => {
         // Held (hold()): answered once the test lets go.
         if (this.holds[call]) { this.parked[call] = (this.parked[call] || 0) + 1; await this.holds[call]; }
+        this.calls[call] = (this.calls[call] || 0) + 1;
         if (call === "user/login") {
           this.logins++;
           if (q.username !== this.user.login || q.password !== this.user.password) return json(401, { message: "Invalid username/password", status: "error", code: 401 });

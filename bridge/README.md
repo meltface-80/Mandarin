@@ -32,9 +32,9 @@ so a change to the driver is one pull request that both apps build against.
 * **Bit-perfect out of the USB port.** Mandarin's USB Audio Class 1 and 2 driver (`UsbDriver`, `UsbDac`,
   `UsbAudioSink`, `usb_jni.cc`) claims the DAC from Android, sets its clock to the track's rate, and feeds it PCM at
   its own depth, paced by the DAC's feedback. DSD goes natively on the DAC's DSD alternate setting or as DoP.
-* **USB or nothing.** Where Mandarin's app falls back to Android's mixer (no DAC on the port, a format the DAC
-  hasn't), this one stops, tells Mandarin it couldn't play the track, and says why on its screen, then plays on by itself when a DAC is
-  plugged in.
+* **USB, or a music player's own DAC.** Where Mandarin's app falls back to Android's mixer (no DAC on the port, a
+  format the DAC hasn't), this one stops, tells Mandarin it couldn't play the track, and says why on its screen, then
+  plays on by itself when a DAC is plugged in. The one exception is a music player's own DAC (below).
 * **Never asleep.** The Bridge is a foreground service holding a CPU wake lock, a high-performance Wi-Fi lock and
   a multicast lock from its start to its stop, so the R7 never dozes between tracks or overnight. The screen may go
   off; the device stays up. Optional: keep the screen on while the app is in front, start the Bridge with the
@@ -74,8 +74,26 @@ volume buttons move it while the app is in front. A DAC without one — a line-o
 **Fixed volume** by default: full level, bit-perfect, the amplifier's knob for the volume. Mandarin reads which it
 is from the app and shows no slider for a fixed one (an older Mandarin: set the device's volume to Fixed on its page).
 
-**The R7's own DAC.** Not used. This app plays through the USB port only; for the R7's internal DAC, use Mandarin's
-own Android app on it.
+**The R7's own DAC** (item 432, 0.3.16). With no DAC on the USB port, a music player's own DAC is played: on by
+itself on a FiiO, HiBy, iBasso, Shanling, Cayin, Astell&Kern, Lotoo, Questyle or Hidizs, or a Sony Walkman, and off on a
+phone (Settings → This device's own DAC). Where Android lists the player's own DAC as a USB audio device, Mandarin's
+driver plays it as it plays a DAC on the port, Android left out altogether. Otherwise each track goes to Android's
+output at its own rate as 32-bit float, which carries a 16- or 24-bit sample exactly, never resampled, mixed or
+scaled by the app: the player's own volume sets the level, and Mandarin's is fixed. Android may take a rate from an
+app without playing at it (item 433, 0.3.17): a FiiO R7's takes every rate to 768 kHz, but its output stayed at 44.1
+kHz, Android resampling the rest. So the Bridge tries, when it starts, whether the output follows a track's rate (a
+fifth of a second of silence at 96 kHz, the output's rate read); where it does, Mandarin is told every rate Android
+takes, and where it doesn't, the one rate the output runs at, Mandarin converting to it with its own resampler and
+saying so. What the DAC is fed is said as the output's rate, untouched only where that is the track's own. DSD is
+sent as PCM, or as DoP with Settings' DSD as DoP (test) on (item 438, 0.3.20): the Bridge packs the DSF or DFF Mandarin
+sends as DoP, the frames its USB driver makes, and plays them as float at DSD's rate over 16, for a player's DAC that
+takes DoP to play natively. Android has no public way to ask for its direct output (item 434, 0.3.18): which an app reaches is the
+device's to decide by how its track is asked for, so the Bridge tries each way (media, the music stream,
+power-saving, low latency; float, and 16-bit to see), reads the rate each track went out at (Android's music output's,
+and on a FiiO its own audio code's word in the app's log), plays by the first float way that reaches the DAC at the
+track's rate, and tells Mandarin the rates that way reaches. Settings lists every way tried and what came of it. For MQA, switch on This DAC decodes MQA for the Bridge in Mandarin's Audio Devices: an MQA track is sent
+untouched, at full scale, for the player's DAC to decode and unfold. Settings lists Android's outputs and what each
+says it takes, and /dac.json says the same (`dac.android_outputs`).
 
 ## What Mandarin sees of the DAC
 

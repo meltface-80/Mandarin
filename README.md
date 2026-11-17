@@ -7,7 +7,7 @@
 
 </div>
 
-# Mandarin — v1.3.3
+# Mandarin — v1.3.4
 
 <a href="https://buymeacoffee.com/musicd_projects"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me a Coffee" height="48"></a>
 
@@ -29,18 +29,14 @@ a Linux computer or a Raspberry Pi with a USB DAC into a room Mandarin plays to.
 Every feature and how to use it, the guides to install, set up and troubleshoot, and the downloads, in nine
 languages: **[meltface-80.github.io/Mandarin](https://meltface-80.github.io/Mandarin/)**.
 
-**New in v1.3.3** (Mandarin OS 0.1.12; Mandarin Bridge v0.3.15):
-* **The Library Scanner:** one switch, Album Scanner, identifies albums, measures ReplayGain and finds missing covers.
-* **Identification that finds your edition:** disc sets, CD rips by their tracks' lengths, the pressing that fits
-  your copy, how sure each match is and why, and matching by sound with AcoustID.
-* **Covers found automatically** for albums with none of their own.
-* **Edit album:** the version's details (label, catalogue number, barcode, country, year, format), and two releases
-  merged into one album taken apart.
-* **MQA passthrough:** MQA is recognised and sent untouched to a DAC that decodes it. Mandarin doesn't decode or
-  unfold MQA itself: a DAC that decodes MQA, fully unfolding it, is needed.
-* **SQ-tool compares two songs**, and its bit-perfect check works with Mandarin Bridge for Linux and the Raspberry Pi.
-* **One log** of everything, on Mandarin OS at `smb://<box address>/Data/Logs`.
-* **Mandarin Bridge for Android opens on Now Playing.**
+**New in v1.3.4** (Mandarin OS 0.1.12; Mandarin Bridge v0.3.21):
+* **iBroadcast:** sign in, and your iBroadcast library is in Mandarin's and plays in every room, on every Bridge and
+  on the phone.
+* **Upload to iBroadcast**, now or on a schedule, from all your music or one drive; it carries on after a restart.
+* **iBroadcast albums** can be kept on the phone, edited in Edit album, and identified by the Album Scanner.
+* **Export library** as a CSV for Mandarin Migration.
+* **Qobuz upsampled to DSD** as your own files are.
+* **Mandarin Bridge for Android plays a music player's own DAC**, such as a FiiO R7's, at each track's own rate.
 
 [What's new](https://meltface-80.github.io/Mandarin/whats-new.html) on the site, and every change in the [changelog](CHANGELOG.md).
 
@@ -51,11 +47,11 @@ The newest of each, straight to your device.
 | What | Version | Download |
 | --- | --- | --- |
 | **Mandarin OS**, the system Mandarin installs with (a 64-bit Intel or AMD PC with UEFI) | 0.1.12 | [mandarin-os-0.1.12-x64.img.xz](https://github.com/meltface-80/Mandarin/releases/download/mandarin-os-v0.1.12/mandarin-os-0.1.12-x64.img.xz) for balenaEtcher or dd · [mandarin-os-0.1.12-x64.img](https://github.com/meltface-80/Mandarin/releases/download/mandarin-os-v0.1.12/mandarin-os-0.1.12-x64.img) for a phone; see [Install](#install) below |
-| **Mandarin Remote**, the Android app (Android 8.0 or newer) | v1.3.3 | [mandarin-android.apk](https://github.com/meltface-80/Mandarin/raw/main/dist/mandarin-android.apk) |
-| **Mandarin Bridge** for Android (a FiiO R7, say) | v0.3.15 | [mandarin-bridge.apk](https://github.com/meltface-80/Mandarin/releases/download/mandarin-bridge-v0.3.15/mandarin-bridge.apk) |
-| **Mandarin Bridge** for Raspberry Pi (3, 4, 5, Zero 2 W) | v0.3.15 | [mandarin-bridge-pi-arm64.img.xz](https://github.com/meltface-80/Mandarin/releases/download/mandarin-bridge-v0.3.15/mandarin-bridge-pi-arm64.img.xz) |
-| **Mandarin Bridge** for Linux (64-bit Debian, Ubuntu, Raspberry Pi OS) | v0.3.15 | `curl -fsSL https://github.com/meltface-80/Mandarin/releases/download/mandarin-bridge-v0.3.15/install.sh \| sudo sh`, or by hand: [x64](https://github.com/meltface-80/Mandarin/releases/download/mandarin-bridge-v0.3.15/mandarin-bridge-linux-x64.tar.gz) · [arm64](https://github.com/meltface-80/Mandarin/releases/download/mandarin-bridge-v0.3.15/mandarin-bridge-linux-arm64.tar.gz) |
-| The server program on its own, what Mandarin on Mandarin OS fetches in Settings → Updates (no need to download it) | v1.3.3 | [linux-x64](https://github.com/meltface-80/Mandarin/releases/latest/download/mandarin-server-linux-x64.gz) · [linux-arm64](https://github.com/meltface-80/Mandarin/releases/latest/download/mandarin-server-linux-arm64.gz) · [sums](https://github.com/meltface-80/Mandarin/releases/latest/download/mandarin-server.sha256) |
+| **Mandarin Remote**, the Android app (Android 8.0 or newer) | v1.3.4 | [mandarin-android.apk](https://github.com/meltface-80/Mandarin/raw/main/dist/mandarin-android.apk) |
+| **Mandarin Bridge** for Android (a FiiO R7, say) | v0.3.21 | [mandarin-bridge.apk](https://github.com/meltface-80/Mandarin/releases/download/mandarin-bridge-v0.3.21/mandarin-bridge.apk) |
+| **Mandarin Bridge** for Raspberry Pi (3, 4, 5, Zero 2 W) | v0.3.21 | [mandarin-bridge-pi-arm64.img.xz](https://github.com/meltface-80/Mandarin/releases/download/mandarin-bridge-v0.3.21/mandarin-bridge-pi-arm64.img.xz) |
+| **Mandarin Bridge** for Linux (64-bit Debian, Ubuntu, Raspberry Pi OS) | v0.3.21 | `curl -fsSL https://github.com/meltface-80/Mandarin/releases/download/mandarin-bridge-v0.3.21/install.sh \| sudo sh`, or by hand: [x64](https://github.com/meltface-80/Mandarin/releases/download/mandarin-bridge-v0.3.21/mandarin-bridge-linux-x64.tar.gz) · [arm64](https://github.com/meltface-80/Mandarin/releases/download/mandarin-bridge-v0.3.21/mandarin-bridge-linux-arm64.tar.gz) |
+| The server program on its own, what Mandarin on Mandarin OS fetches in Settings → Updates (no need to download it) | v1.3.4 | [linux-x64](https://github.com/meltface-80/Mandarin/releases/latest/download/mandarin-server-linux-x64.gz) · [linux-arm64](https://github.com/meltface-80/Mandarin/releases/latest/download/mandarin-server-linux-arm64.gz) · [sums](https://github.com/meltface-80/Mandarin/releases/latest/download/mandarin-server.sha256) |
 | **How Mandarin finds and names your music**, a guide in plain words | | [PDF](docs/Mandarin-music-scanning-guide.pdf) |
 
 On an iPhone or iPad there is nothing to download: open `http://<box address>:3500` in Safari and tap **Share → Add

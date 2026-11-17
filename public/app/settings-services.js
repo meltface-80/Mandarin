@@ -1,4 +1,4 @@
-/* The Settings sheet (app/settings.js), 2 of 4: Wall display, Qobuz and Tidal. */
+/* The Settings sheet (app/settings.js), 2 of 4: Wall display, Qobuz and Tidal (each on a page of its own under Services, item 449). */
 // ----- Wall display (/display): toggle + rotation interval -----
 const displayToggle    = document.getElementById("display-toggle");
 const displaySeconds   = document.getElementById("display-seconds");

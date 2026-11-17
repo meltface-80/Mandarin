@@ -44,6 +44,8 @@ internal object AppLog {
     /** The last tap, for how long a move took after it; what was shown last, for the taps' lines. */
     @Volatile var lastTap = 0L
     @Volatile var shownLast = "start"
+    /** When the app last came on screen (SystemClock.elapsedRealtime), for a freeze's report (item 471); 0 before it has. */
+    @Volatile var onScreenAt = 0L
 
     /** With the app's process (MusicDApp): collecting, always (item 389); the files an app before 425 kept let go. */
     fun start(c: Context) {

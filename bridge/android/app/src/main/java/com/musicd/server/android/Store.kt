@@ -27,11 +27,8 @@ object Store {
     fun friendlyName(c: Context): String = prefs(c).getString("friendly_name", null)?.takeIf { it.isNotBlank() } ?: defaultName()
     fun setFriendlyName(c: Context, name: String) { prefs(c).edit().putString("friendly_name", name.trim()).apply() }
 
-    fun defaultName(): String {
-        val maker = Build.MANUFACTURER.replaceFirstChar { it.uppercase() }
-        val model = Build.MODEL
-        return (if (model.startsWith(maker, ignoreCase = true)) model else "$maker $model") + " USB"
-    }
+    /** Its maker and model ("FiiO R7 USB"), never the chip's maker a FiiO R7 gives as its own (item 439, OwnDac.bridgeName). */
+    fun defaultName(): String = OwnDac.bridgeName(Build.MANUFACTURER ?: "", Build.MODEL ?: "", Build.BRAND ?: "")
 
     /**
      * The Bridge's UDN ("uuid:…"), made once and kept: its SlimProto MAC is made from it, the id Mandarin knows it by.
@@ -67,6 +64,13 @@ object Store {
     /** The player starts when the device does. */
     fun startOnBoot(c: Context): Boolean = prefs(c).getBoolean("start_on_boot", true)
     fun setStartOnBoot(c: Context, on: Boolean) { prefs(c).edit().putBoolean("start_on_boot", on).apply() }
+
+    /** Played through this device's own DAC with no DAC on the USB port (item 432, OwnDac.kt): null where never set. */
+    fun ownDac(c: Context): Boolean? = prefs(c).let { if (it.contains("own_dac")) it.getBoolean("own_dac", false) else null }
+    fun setOwnDac(c: Context, on: Boolean) { prefs(c).edit().putBoolean("own_dac", on).apply() }
+    /** DSD to this device's own DAC as DoP (item 438, OwnDop.kt): off until it is tried. */
+    fun ownDop(c: Context): Boolean = prefs(c).getBoolean("own_dop", false)
+    fun setOwnDop(c: Context, on: Boolean) { prefs(c).edit().putBoolean("own_dop", on).apply() }
 
     // --------------------------------------------------- USB (Mandarin's driver)
 
