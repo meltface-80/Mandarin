@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title data-i18n="services.doc-title">Qobuz and Tidal · Mandarin</title>
-<meta name="description" content="Mandarin streams from Qobuz and Tidal with your own subscription: favourites and purchases as albums, the services' browsers, and every track through the server.">
+<title data-i18n="services.doc-title">Qobuz, Tidal and iBroadcast · Mandarin</title>
+<meta name="description" content="Mandarin streams from Qobuz and Tidal with your own subscription, and plays and uploads to your iBroadcast library: their albums beside your files, every track through the server.">
 <link rel="icon" href="mandarin-icon.png">
 <link rel="stylesheet" href="site.css">
 </head>
@@ -31,8 +31,8 @@
 </header>
 
 <main class="wrap page">
-  <h1 data-i18n="services.h1">Qobuz and Tidal</h1>
-  <p class="lead" data-i18n="services.lead">With a subscription of your own, Qobuz's and Tidal's albums live in Mandarin beside your files: your favourites on the walls, their catalogues in search, every track streamed through the server.</p>
+  <h1 data-i18n="services.h1">Qobuz, Tidal and iBroadcast</h1>
+  <p class="lead" data-i18n="services.lead">With an account of your own, Qobuz's, Tidal's and iBroadcast's albums live in Mandarin beside your files: on the walls and in search, every track streamed through the server. Each has its own page in <i>Settings → Services</i>.</p>
   <h2 id="qobuz">Qobuz</h2>
   <p data-i18n="services.qobuz.p1">Mandarin streams from Qobuz with a Qobuz subscription (v0.6.23), the way the Lyrion Music Server's Qobuz plugin does — the same API, the same credentials, the same rules. Experimental, in line with Qobuz's terms of service; those who use it do so at their own risk.</p>
   <ul class="plain">
@@ -43,6 +43,7 @@
     <li data-i18n="services.qobuz.li5"><b>Signed out, it all steps aside</b>: Qobuz albums leave the walls while their rows stay, so signing in puts everything straight back. <b>Library clean-up</b> on the Library Scanner page removes what's no longer wanted — Qobuz albums not in your favourites or purchases (all of them while signed out), and, separately, albums whose files are gone from the server — after showing you the counts; plays stay in history.</li>
     <li data-i18n="services.qobuz.li6"><b>Two favourites, kept apart.</b> The <b>+</b> on a Qobuz album's cover in the browser (a <b>✓</b> once added), and <b>Add to Qobuz favourites</b> / <b>Remove from Qobuz favourites</b> in the ⋯ menu on the album's page here, are your <i>Qobuz</i> favourite, and that is what puts the album in the library. The <b>heart</b> is Mandarin's own favourite, as on any album.</li>
     <li data-i18n="services.qobuz.li7"><b>Every track is streamed through the server</b>: when a player comes to fetch it, Mandarin asks Qobuz for that one track (a signed request, as Qobuz requires) and feeds the player from its transcode cache — a Sonos room gets 24/48 at most, a streamer or a USB DAC what it takes, the phone what its DAC takes, with DSP and Volume Levelling as for a file. The next track is made ready behind the one playing, so albums play gaplessly. <i>Stream quality</i> on the Services page sets the most asked for (CD, Hi-Res 24/96, Hi-Res 24/192); the subscription sets the ceiling.</li>
+    <li data-i18n="services.qobuz.li9"><b>Upsampled as your own files are</b> (v1.3.4): a Qobuz track is upsampled, or made DSD, by each device's <i>Sound</i> settings, in the device's filter shape.</li>
     <li data-i18n="services.qobuz.li8"><b>Every play is reported to Qobuz</b> (its streaming start and end), as Qobuz's own apps report them, so artists are paid. <b>Nothing is downloaded</b>: a Qobuz album has no <i>Download to this phone</i>, no <i>Edit album</i>, no waveform, and is not in offline mode; the cache holds only what the queue needs, pruned as the cache fills, and plays nothing once the account is signed out.</li>
   </ul>
   <p data-i18n="services.qobuz.p2">The app id and secret are the ones the Lyrion plugin carries, as Qobuz answers no application requests; Qobuz leaves that plugin be because of how it behaves, and Mandarin behaves the same.</p>
@@ -55,6 +56,15 @@
     <li data-i18n="services.tidal.li4"><b>The stream.</b> <i>Stream quality</i> on the Services page is CD (FLAC 16/44.1) or Hi-Res: Tidal's hi-res FLAC, up to 24/192, where an album has it and the subscription allows. Tidal sends hi-res as MPEG-DASH (an initialisation piece and numbered segments), which the server joins into one stream for ffmpeg on its own loopback; where Tidal answers a hi-res ask with anything else, CD quality is asked for instead. What Tidal actually streams a track at is learnt the first time it is played and the album's badge corrected. Tidal has no play reports.</li>
   </ul>
   <p data-i18n="services.tidal.p2">The client id and secret are the ones the Lyrion plugin carries, as Tidal's developer programme answers no streaming requests; Tidal leaves that plugin be because of how it behaves, and Mandarin behaves the same.</p>
+  <h2 id="ibroadcast">iBroadcast</h2>
+  <p data-i18n="services.ibroadcast.p1">iBroadcast keeps your own music files in the cloud (v1.3.4). Mandarin plays your iBroadcast library beside your files, and uploads your library to it.</p>
+  <ul class="plain">
+    <li data-i18n="services.ibroadcast.li1"><b>Sign in with a code</b> (<i>Settings → Services → iBroadcast → Sign in on iBroadcast</i>): Mandarin shows a link and a code, you approve Mandarin on iBroadcast, and Mandarin notices by itself. It keeps the sign-in token, never a password.</li>
+    <li data-i18n="services.ibroadcast.li2"><b>Your iBroadcast albums are albums here</b>, with an iBroadcast mark on the cover: on the walls, in search, Smart Picks and Listen later. <i>Update library now</i> reads it again; <i>Rescan library</i> does too.</li>
+    <li data-i18n="services.ibroadcast.li3"><b>They play everywhere</b>: in every room, on every Mandarin Bridge and on the phone, each track as you uploaded it, at its own rate, through the server as a file is. Away from home, as your own files are.</li>
+    <li data-i18n="services.ibroadcast.li4"><b>Like your own albums</b>: <i>Download to this phone</i> keeps one on the phone; <i>Edit album</i> changes its names and cover in Mandarin only, never on iBroadcast; the Album Scanner identifies them by their details, and by their sound when you choose one to play.</li>
+    <li data-i18n="services.ibroadcast.li5"><b>Upload</b>: <i>Upload now</i> sends your library, from all your music or one drive, each file as it is (DSD, and files over iBroadcast's 1.5 GB, as FLAC), never a file iBroadcast already has. Choose how many files at once, and whether it goes on while music plays at home or away from home. <i>Upload on a schedule</i> uploads each day between the times you set, never in the Library Scanner's hours. An upload under way carries on after the server restarts; <i>Stop upload</i> stops it. Your files here are only read, never moved or changed.</li>
+  </ul>
   <h2 id="others" data-i18n="services.others.title">Other services Mandarin asks</h2>
   <p data-i18n="services.others.p1">Besides Qobuz and Tidal, the server asks a few services for what your files don't say, never sending them your
      music: MusicBrainz and Apple's iTunes catalogue for albums' names; AcoustID for an album no name search can place, by

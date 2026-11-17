@@ -15,7 +15,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 
-# (id, emoji, title, new in v1.3.3, what it is, how to set it up and use it)
+# (id, emoji, title, new in v1.3.4, what it is, how to set it up and use it)
 FEATURES = [
     # ---- Home and finding music
     ("home", "🏠", "Home", False,
@@ -133,8 +133,8 @@ FEATURES = [
      "by sound** looks the album up by its tracks' fingerprints (with an AcoustID key). **Version** shows the matched "
      "pressing's details, each yours to change, with **Put back**. **Folders and copies** splits an album whose copies "
      "were merged (**Split by folder**, **Split…**, **Join back**). What you change is kept in Mandarin's database, "
-     "through rescans and in backups."),
-    ("auto-covers", "🖼️", "Covers found automatically", True,
+     "through rescans and in backups. An iBroadcast album is edited the same way, in Mandarin only."),
+    ("auto-covers", "🖼️", "Covers found automatically", False,
      "An album with no cover of its own is given one from Apple Music, Deezer or MusicBrainz by itself, "
      "only when its title, artist and tracks all agree.",
      "Nothing to set up: it is part of the **Album Scanner** (**Settings → Library Scanner**), on by default. It looks "
@@ -168,7 +168,7 @@ FEATURES = [
      "Nothing to set up: tags are read with every scan."),
     ("scanner", "🔎", "Library Scanner", True,
      "One switch, Album Scanner, names albums from their files' identifiers, MusicBrainz, their sound (AcoustID) and "
-     "Apple's iTunes catalogue, measures ReplayGain and finds missing covers, while nothing plays.",
+     "Apple's iTunes catalogue, measures ReplayGain and finds missing covers, while nothing plays. iBroadcast albums too.",
      "Open **Settings → Library Scanner** and switch **Album Scanner** on; off, none of it is done. **Progress** counts the "
      "albums with every step done and says what it is doing now. Matches of 85% or better are applied; the rest wait in "
      "**Unidentified** (and **To confirm**) for you to place by hand; a copy that is every track of a bigger pressing is "
@@ -242,7 +242,7 @@ FEATURES = [
      "On a device's page in **Settings → Audio Devices**, switch the DSD rates it takes on or off; "
      "**Output → PCM as DSD** and **Modulator** make PCM DSD. On Linux, a Mandarin Bridge's own page says "
      "when the computer's kernel holds back a DAC's native DSD, and the line that frees it."),
-    ("mqa", "🔷", "MQA", True,
+    ("mqa", "🔷", "MQA", False,
      "Tracks carrying MQA's signalling are found by themselves and marked with their original rate "
      "(MQA · 24/352.8 original, MQA Studio), and passed untouched to a DAC that decodes MQA.",
      "Nothing to set up to see it: after each scan the server reads the first ten seconds of every stereo 16- or "
@@ -330,8 +330,10 @@ FEATURES = [
      "Install it from [Downloads](#downloads): the Android app, the Linux install line, or the Raspberry Pi "
      "image to flash. It finds Mandarin by itself; plug the DAC in, then switch the Bridge on in "
      "**Settings → Audio Devices**. On Android it opens on **Now Playing** (the cover, the track, the format the DAC "
-     "is fed and the DAC), its settings behind the cog. Details under [Mandarin Bridge](#mandarin-bridge)."),
-    ("output", "📈", "Upsampling and output", False,
+     "is fed and the DAC), its settings behind the cog. With no USB DAC plugged in, a music player (a FiiO R7, say) "
+     "is played through its own DAC at each track's own rate; **DSD as DoP** is a switch to try in its Settings (leave "
+     "it off on a FiiO R7). Details under [Mandarin Bridge](#mandarin-bridge)."),
+    ("output", "📈", "Upsampling and output", True,
      "For each streamer or DAC: Bit-perfect or upsampled recipes, filters in either phase, shaped dither, PCM "
      "made DSD, Headroom against clipping, and a safety net when the server falls behind.",
      "Open **Settings → Audio Devices**, tap a streamer or DAC, and choose a recipe under **Sound**, or open "
@@ -339,7 +341,7 @@ FEATURES = [
      "Bit depth, the DAC's real bits and Dither, DSD as PCM, PCM as DSD and its Modulator, **Headroom when "
      "upsampling** (Auto), Gapless. All made as each track plays; an Output the server can't make in time, or "
      "the device can't play, is put back to the last that played well, and the device's page says so. "
-     "Details under [Upsampling and output](#upsampling-and-output)."),
+     "Qobuz tracks are made as your own files are. Details under [Upsampling and output](#upsampling-and-output)."),
     ("signalpath", "🛤️", "Signal path", False,
      "Under the album on Now playing, one short line of what goes out (Gaussian steep ×16 · 7th-order · "
      "DSD256). A tap shows each step to the DAC.",
@@ -348,18 +350,18 @@ FEATURES = [
      "4.2× real time*), and the device's own word; the line turns red where samples were clipped. The ✓ shows only "
      "when the device itself says the samples reach the DAC untouched. Details under "
      "[Signal path](#signal-path)."),
-    ("sqtool", "📊", "SQ-tool", True,
+    ("sqtool", "📊", "SQ-tool", False,
      "Proves a zone's DAC gets exactly what is in the file, sample by sample, and compares two songs: the same "
      "master, a different master, or different recordings.",
      "Open **Settings → SQ-tool**, choose a song and a zone (a Mandarin Bridge on Android, Linux or a Raspberry Pi), "
      "and press **Record**: Mandarin plays the song, records what the DAC is fed and compares them. **Compare two "
      "songs** takes song A and song B from your music and null-tests them, with a verdict in plain words, where in the "
      "spectrum they differ, spectrograms and the difference to download. Details under [SQ-tool](#sq-tool)."),
-    ("downloads", "⬇️", "Downloads", False,
+    ("downloads", "⬇️", "Downloads", True,
      "Albums kept on the phone as the original files or Opus 256, played without the server. "
      "Smart Picks, the Album of the day and new albums can download by themselves.",
      "On an album, **⋯ → Download to this phone**. Quality, the download folder, Wi-Fi only and automatic "
-     "downloads are in **Settings → Setup → Downloads** in the app."),
+     "downloads are in **Settings → Setup → Downloads** in the app. iBroadcast albums download the same way."),
     ("onphone", "📂", "Music on this phone", False,
      "A folder of music already on the phone, watched for changes, on Home with Focus and Sort "
      "and on artists' pages, played like the library. The server never sees it.",
@@ -417,12 +419,13 @@ FEATURES = [
      "date and name), with their edits, favourites and plays. **Before a restore.** The copy of the "
      "database Mandarin keeps before each restore (and Mandarin OS before it switches builds) is listed "
      "with the backups and restored the same way; it holds the database only, no settings."),
-    ("qobuz", "🎼", "Qobuz", False,
+    ("qobuz", "🎼", "Qobuz", True,
      "Sign in with your Qobuz subscription: your favourites and purchases become albums here, and "
      "the Qobuz browser plays anything in the catalogue, streamed through the server.",
      "**Settings → Services → Qobuz**: sign in. Then **☰ → Qobuz** to search and play; **+** on a cover "
      "adds an album to your Qobuz favourites (a **✓** once added) and so to the library, as does "
-     "**⋯ → Add to Qobuz favourites** on its page. Details under [Qobuz](#qobuz)."),
+     "**⋯ → Add to Qobuz favourites** on its page. A Qobuz track is upsampled, or made DSD, as your own files are, "
+     "by each device's **Sound** settings. Details under [Qobuz](#qobuz)."),
     ("tidal", "🎵", "Tidal", False,
      "Sign in with your Tidal subscription on tidal.com: your favourite albums become albums here, "
      "and the Tidal browser plays anything in the catalogue, streamed through the server.",
@@ -430,7 +433,27 @@ FEATURES = [
      "Then **☰ → Tidal** to search and play; **+** on a cover adds an album to your Tidal favourites "
      "(a **✓** once added) and so to the library, as does **⋯ → Add to Tidal favourites** on its page. "
      "Details under [Tidal](#tidal)."),
-    ("logging", "📝", "Logging", True,
+    ("ibroadcast", "📻", "iBroadcast", True,
+     "Sign in to your iBroadcast account: your iBroadcast albums become albums here and play in every room, "
+     "on every Bridge and on the phone, each track as you uploaded it.",
+     "**Settings → Services → iBroadcast → Sign in on iBroadcast**: open the link, approve Mandarin there with the code "
+     "shown, come back. Your iBroadcast albums join the library, on the walls, in search and in Smart Picks; **Update "
+     "library now** reads it again. On an iBroadcast album, **⋯ → Download to this phone** keeps it on the phone and "
+     "**⋯ → Edit album** changes it in Mandarin only. The Album Scanner identifies them by their details, and by their "
+     "sound when you choose one to play."),
+    ("ibroadcast-upload", "⬆️", "Upload to iBroadcast", True,
+     "Your library uploaded to your iBroadcast account, each file as it is and nothing sent twice: now, or each day "
+     "on a schedule.",
+     "**Settings → Services → iBroadcast → Upload**: choose **Upload from** (All music, or one drive) and **Files at "
+     "once**, then **Upload now**; it shows what it is sending, its speed and the time left, and **Stop upload** stops "
+     "it. **Upload while music plays at home** and **away from home** let it go on while you listen, with their own "
+     "files at once. **Upload on a schedule** uploads each day between the times you set, never in the Library "
+     "Scanner's hours. DSD, and files over iBroadcast's 1.5 GB, are sent as FLAC. An upload under way carries on "
+     "after the server restarts."),
+    ("export", "📤", "Export library", True,
+     "Your library as a CSV file, an album and its tracks a row each, for Mandarin Migration to add to a Qobuz account.",
+     "Open **☰ → Export library**, above Settings, and save the file."),
+    ("logging", "📝", "Logging", False,
      "Always on: one log of everything (the server, Mandarin OS, every Mandarin Bridge, the app, the page), "
      "a line each in time order, without personal data.",
      "Nothing to switch on. On Mandarin OS, the shared folder's **Logs** (`smb://<box address>/Data/Logs`): "
