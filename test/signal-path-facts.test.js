@@ -59,9 +59,16 @@ test("the signal path says what the DAC is fed, as the Bridge reports it, and no
     const albums = (await api("library/albums?sort=album")).albums;
     const one = albums.find(a => a.title === "Album One"), hi = albums.find(a => a.title === "Hi Res");
     // [track] (from 0) of [album] played alone, the Bridge saying [extra] of what it feeds the DAC: its signal path once the device's word is in.
+    // The device's word is asked for once a track has played 2 s (Players.MandarinBridge.cs), and these tracks are 3 s
+    // long: on a busy machine the second between was missed and the track over, nothing said (item 453). So each is
+    // held at 2.5 s, playing, until its word is in.
     const said = async (album, track, title, extra) => {
       usb.nowExtra = extra;
+      usb.release();
       assert.equal((await api("play-track", { offset: album.offset, track, zone_or_output_id: USB, kind: "play_now", only: true })).status, 200);
+      await until(() => usb.state === "PLAYING" && (usb.meta || "").includes(title), 20000);
+      usb.setPos(2.5);
+      usb.hold();
       return until(async () => {
         const z = (await api("zone-state?zone=" + USB)).zone;
         const np = z && z.now_playing;

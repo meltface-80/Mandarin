@@ -3,14 +3,15 @@
 //   - what is there already: an empty POST to upload.ibroadcast.com, Bearer <access token>, answers { md5: [...] }, the
 //     MD5 of every file in the library; a file whose MD5 is among them isn't sent again;
 //   - a file: a multipart POST there, the file as "file", its path here as "file_path" and the client as "method";
-//     "result": false is a failure, in iBroadcast's words. A 401 is signed in again (the token refreshed) and sent once
-//     more; busy (429, 5xx, no answer), waited for and sent again, three times at most.
+//     "result": false is a failure, in iBroadcast's words. Its login refused (a 401, or an answer saying it couldn't
+//     confirm the login: item 454, two files of a real upload so) is signed in again (the token refreshed, or the one
+//     another call has just refreshed taken) and sent once more; refused again, the upload ends, the sign-in bad; busy
+//     (429, 5xx, no answer), waited for and sent again, three times at most.
 // A file iBroadcast can't keep as it is is made FLAC first, in the data folder, tags and cover with it: DSD (which
 // iBroadcast can't play) at 24-bit/176.4 kHz, the most of DSD64 PCM keeps, or 88.2 kHz where that is over the limit;
 // a lossless file over iBroadcast's 1.5 GB at FLAC's most compression, or at half its rate where that is still over.
 using System.Diagnostics;
 using System.Globalization;
-using System.Net;
 using System.Text.Json.Nodes;
 
 namespace Mandarin.Server.Services.IBroadcast;
@@ -70,7 +71,7 @@ internal sealed class IBroadcastUploadFiles(IBroadcastApi api, string dataDir)
         await Task.Delay(Waits[tried], stop);
     }
 
-    /* A POST to the upload server ([content]: none to ask what it has), signed in again once where it says 401. */
+    /* A POST to the upload server ([content]: none to ask what it has), signed in again once where it refuses the login. */
     private async Task<(int Status, string Text)> Post(Func<HttpContent?> content, CancellationToken stop)
     {
         var access = await api.Access();
@@ -87,9 +88,16 @@ internal sealed class IBroadcastUploadFiles(IBroadcastApi api, string dataDir)
             }
             using (res)
             {
-                if (res.StatusCode == HttpStatusCode.Unauthorized && !again) { access = IBroadcastApi.Str((await api.Refresh(access))["access"])!; continue; }
-                if (res.StatusCode == HttpStatusCode.Unauthorized) throw new ServiceError("iBroadcast turned the sign-in down: sign in again", 401);
-                return ((int)res.StatusCode, await res.Content.ReadAsStringAsync(stop));
+                var text = await res.Content.ReadAsStringAsync(stop);
+                var refused = LoginRefused((int)res.StatusCode, text);
+                if (refused && !again)
+                {
+                    Server.Log("[ibroadcast] upload: iBroadcast didn't take the sign-in; signed in again, and sent once more");
+                    access = IBroadcastApi.Str((await api.Refresh(access))["access"])!;
+                    continue;
+                }
+                if (refused) throw new ServiceError("iBroadcast turned the sign-in down twice: sign out and back in on iBroadcast's page", 401);
+                return ((int)res.StatusCode, text);
             }
         }
     }
@@ -167,6 +175,15 @@ internal sealed class IBroadcastUploadFiles(IBroadcastApi api, string dataDir)
         }
         catch (OperationCanceledException) { try { proc.Kill(true); } catch (InvalidOperationException) { /* gone */ } throw; }
         finally { Cpu.Forget(proc); }
+    }
+
+    /// <summary>Whether the upload server's answer ([status], [text]) refuses the login: a 401, "authenticated": false, or its words that it couldn't confirm it.</summary>
+    internal static bool LoginRefused(int status, string text)
+    {
+        if (status == 401) return true;
+        if (Parse(text) is not JsonObject j) return false;
+        if (j["authenticated"] is JsonValue a && a.TryGetValue<bool>(out var signed) && !signed) return true;
+        return j["result"] is JsonValue r && r.TryGetValue<bool>(out var ok) && !ok && Said(j, "").Contains("login couldn't be confirmed", StringComparison.OrdinalIgnoreCase);
     }
 
     private static JsonNode? Parse(string text)
