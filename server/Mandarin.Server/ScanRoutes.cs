@@ -2,7 +2,8 @@
 // old/csharp-migration.md), from lib/server/api-library.js, in the
 // same shapes and words, once the scans are made here (Scans.cs):
 //
-//   POST /api/library/rescan          Rescan library, from the side menu
+//   POST /api/library/rescan          Rescan library, from the side menu; the services' albums brought up to date
+//                                     beside it (item 457: Services/ServicesRescan.cs), their names in "services"
 //   POST /api/reindex                 every file read again, waited for
 //   POST /api/library/forget-folder   a missing folder, kept until now, let go
 //   GET  /api/library/folders         Settings → Music folders
@@ -215,11 +216,13 @@ internal static partial class Library
         var b = await Auth.Body(ctx);
         if (b == null) return true;
         var run = Scans.Run(Js.Truthy(b["force"]), true);
+        // The services' albums brought up to date beside it (item 457), each on its own: their names said.
+        var services = new JsonArray([.. global::Mandarin.Server.Services.ServicesRescan.Kick().Select(n => (JsonNode)n)]);
         // A big first scan takes minutes: answered at once, and the page polls.
         if (await Task.WhenAny(run, Task.Delay(8000)) != run)
         {
             _ = run.ContinueWith(t => { if (t.IsFaulted) Server.Log("[scan] " + t.Exception!.GetBaseException().Message); }, TaskScheduler.Default);
-            return await Send(ctx, new JsonObject { ["status"] = "scanning", ["progress"] = Scans.State["progress"]?.DeepClone() });
+            return await Send(ctx, new JsonObject { ["status"] = "scanning", ["progress"] = Scans.State["progress"]?.DeepClone(), ["services"] = services });
         }
         var (r, count) = await run;
         var o = (JsonObject)r.DeepClone();
@@ -227,6 +230,7 @@ internal static partial class Library
         o["status"] = RescanWords.TryGetValue(status, out var w) ? w : r["status"]?.DeepClone();
         o["count"] = count ?? await CountNow();
         o["scan_status"] = r["status"]?.DeepClone();
+        o["services"] = services;
         return await Send(ctx, o);
     }
 
