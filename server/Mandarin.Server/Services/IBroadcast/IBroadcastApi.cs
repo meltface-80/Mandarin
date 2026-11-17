@@ -124,14 +124,24 @@ internal sealed class IBroadcastApi
         }
     }
 
-    /// <summary>The access token, refreshed first where it expires within the minute.</summary>
+    /// <summary>The access token, renewed first where it is due (RenewDue).</summary>
     public async Task<string> Access()
     {
         var t = token();
         if (Str(t?["access"]) is not { } access) throw new ServiceError("Not signed in to iBroadcast", 401);
-        if (t!["expires"] is JsonValue e && e.TryGetValue<double>(out var at) && Now() > at - 60_000) return Str((await Refresh(access))["access"])!;
+        if (t!["expires"] is JsonValue e && e.TryGetValue<double>(out var at) && RenewDue(Now(), at, t["life"] is JsonValue l && l.TryGetValue<double>(out var ms) ? ms : null))
+            return Str((await Refresh(access))["access"])!;
         return access;
     }
+
+    /// <summary>
+    /// Whether a token expiring at [expires] (lasting [life] in all, where known) is renewed [now] (each in ms): with ten
+    /// minutes left, longer than a file takes to upload (item 456: one given the token with a minute left was refused
+    /// as it finished, two files an hour of a night's upload), or half its life for one shorter-lived, so a fresh one
+    /// is never renewed at once; its life not known (kept before it was), the last minute.
+    /// </summary>
+    public static bool RenewDue(double now, double expires, double? life) =>
+        now > expires - (life is { } l ? Math.Min(10 * 60 * 1000, l / 2) : 60_000);
 
     private static (string, string)[] Headers(string access) => [("User-Agent", Agent), ("Authorization", "Bearer " + access)];
 
@@ -151,6 +161,7 @@ internal sealed class IBroadcastApi
         ["access"] = Str(j["access_token"]),
         ["refresh"] = Str(j["refresh_token"]) ?? oldRefresh,
         ["expires"] = Now() + Num(j["expires_in"], 3600) * 1000,
+        ["life"] = Num(j["expires_in"], 3600) * 1000,
         ["scope"] = j["scope"] is JsonArray s ? string.Join(' ', s.Select(x => x?.ToString())) : Str(j["scope"]),
     };
 

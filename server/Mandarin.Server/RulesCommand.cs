@@ -67,7 +67,7 @@ internal static class RulesCommand
     private static List<object?> Each(object? list, Func<object?, object?> f) => L(list).Select(f).ToList();
     private static JsObj O(object? v) => v as JsObj ?? new JsObj();
 
-    public static readonly string[] Fns = ["mounts", "versions", "soapcall", "labelnames", "phoneplays", "uris", "cpu", "auth", "register", "ssdp", "engine", "local", "scorecall", "itunes", "logos", "lastfm", "shelf", "mbpack", "addresses", "librarycopy", "watchmisses", "logscrub", "daypick", "upsample", "dsdmod", "dither", "joins", "mqa"];
+    public static readonly string[] Fns = ["mounts", "versions", "soapcall", "labelnames", "phoneplays", "uris", "cpu", "auth", "register", "ssdp", "engine", "local", "scorecall", "itunes", "logos", "lastfm", "shelf", "mbpack", "addresses", "librarycopy", "watchmisses", "logscrub", "daypick", "upsample", "dsdmod", "dither", "joins", "mqa", "ibroadcastrenew"];
 
     public static JsObj Run(string fn, JsObj job) => fn switch
     {
@@ -80,6 +80,9 @@ internal static class RulesCommand
         "auth" => AuthFns(job),
         "logos" => Extras.LogosCommand.Run(job),
         "mqa" => Mqa.MqaCommand.Run(job),
+        // When iBroadcast's token is renewed (item 456): each case's { now, expires, life } (ms; life null where not known).
+        "ibroadcastrenew" => new JsObj { ["due"] = Each(job["cases"], c => Services.IBroadcast.IBroadcastApi.RenewDue(TJs.ToNumber(O(c)["now"]), TJs.ToNumber(O(c)["expires"]),
+            TJs.IsNullish(O(c)["life"]) ? null : TJs.ToNumber(O(c)["life"]))) },
         "lastfm" => Extras.LastfmCommand.Run(job),
         "shelf" => ShelfFns(job),
         "librarycopy" => new JsObj { ["due"] = Each(job["due"], d => Library.ReadDue(N(At(d, 0)), N(At(d, 1)), N(At(d, 2)), N(At(d, 3)), N(At(d, 4)), (int)N(At(d, 5)), (int)N(At(d, 6)))) },
