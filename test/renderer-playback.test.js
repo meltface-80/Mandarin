@@ -526,11 +526,13 @@ test("a renderer is a zone", { skip, timeout: 150000 }, async (t) => {
       await until(() => ctx.logs.slice(before).some(l => /track\(s\) no longer made: another play/.test(l)), 15000);
       // Skipped from while it waits to be made (item 264): what was being made for Song 1 (stopped part made above)
       // stops, and Song 2, waiting its turn behind it, is made in its place.
-      // (The device's clock held meanwhile: its tracks are seconds long, and it would play past Song 2 as it is made.)
+      // (The device's clock held meanwhile: its tracks are seconds long, and it would play past Song 2 as it is made. Held
+      // before the play, so that it is at Song 1 when Next is pressed: held after it, a busy machine let it play on into
+      // Song 2 first, and Next went to Song 3.)
       const skip = ctx.logs.length;
-      await api("play", { offset: cd.offset, zone_or_output_id: DAC, kind: "play_now" });
       dac.hold();
       try {
+        await api("play", { offset: cd.offset, zone_or_output_id: DAC, kind: "play_now" });
         await api("control", { zone_or_output_id: DAC, command: "next" });
         await until(() => ctx.logs.slice(skip).some(l => /1 track\(s\) no longer made: skipped from/.test(l)), 15000);
         // Said as stopped on purpose, never as a failure (item 332): the stream's own line names why.
