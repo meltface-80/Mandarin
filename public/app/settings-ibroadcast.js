@@ -187,11 +187,18 @@ function ibroadcastFromTap(c, sources, value) {
     clearTimeout(again);
     if ((w.pending && !w.pending.error) || w.reading || (w.on && up.running)) again = setTimeout(look, 2000);
   }
+  // A reading painted only where nothing was changed while it was asked (item 483): answered after a change's answer,
+  // it said what was so before the change and was painted over it (a switch just put on shown off again).
+  let changes = 0;
   async function look() {
-    try { paint(await (await fetch("/api/settings/ibroadcast", { cache: "no-store" })).json()); } catch (e) { /* the page shows the last state */ }
+    const before = changes;
+    try {
+      const j = await (await fetch("/api/settings/ibroadcast", { cache: "no-store" })).json();
+      if (changes === before) paint(j);
+    } catch (e) { /* the page shows the last state */ }
   }
   /** @param {string} path @param {object} [body] */
-  const post = (path, body = {}) => fetch("/api/settings/ibroadcast" + path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  const post = (path, body = {}) => { changes++; return fetch("/api/settings/ibroadcast" + path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }); };
 
   signin.addEventListener("click", async () => {
     signin.setAttribute("disabled", "");
@@ -206,7 +213,7 @@ function ibroadcastFromTap(c, sources, value) {
   });
   if (importBox) importBox.addEventListener("change", async () => {
     try {
-      const r = await fetch("/api/settings/ibroadcast", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ import: importBox.checked }) });
+      const r = await post("", { import: importBox.checked });
       paint(await r.json());
       // The walls and Home drawn again: the albums are in or out at once.
       if (typeof window.__libraryChanged === "function") window.__libraryChanged();

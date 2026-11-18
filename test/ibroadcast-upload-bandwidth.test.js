@@ -7,7 +7,8 @@
  *   - with a limit, the upload sends no faster than it, all its files at once together (three here), not each;
  *   - no speed: no limit, as before;
  *   - the page: a row on iBroadcast's saying the limit opens its own page, where the speed is typed and the share
- *     chosen, said in Mbps with what it leaves; No limit takes it off.
+ *     chosen, said in Mbps with what it leaves; No limit takes it off; a reading of the settings answered after a
+ *     change made since isn't painted over it (item 483).
  */
 const ports = require("./ports");
 const test = require("node:test");
@@ -102,7 +103,13 @@ test("item 479: Upload bandwidth: the home's upload speed and the share of it to
     assert.equal((await call("POST", "settings/ibroadcast/upload/speed", { percent: 100 })).status, 200);
     const b = await Browser.launch({ width: 412, height: 915 });
     try {
-      const page = await b.page(base + "/", { cookies: [{ name: "musicd_session", value: token, url: base }] });
+      // The answer to the page's reading of the settings kept from it while __holdReads is set (item 483): asked of the
+      // server at once, so it says what was so then; its changes' answers let through.
+      const HOLD = `(() => { const real = window.fetch.bind(window); window.fetch = async (u, o) => {
+        const r = await real(u, o);
+        if (String(u).includes("/api/settings/ibroadcast") && !(o && o.method === "POST")) while (window.__holdReads) await new Promise(f => setTimeout(f, 50));
+        return r; }; })();`;
+      const page = await b.page(base + "/", { cookies: [{ name: "musicd_session", value: token, url: base }], init: HOLD });
       await page.eval(`(async () => {
         const sleep = ms => new Promise(r => setTimeout(r, ms));
         for (let i = 0; i < 100 && !document.querySelector("#settings-toggle"); i++) await sleep(100);
@@ -116,8 +123,17 @@ test("item 479: Upload bandwidth: the home's upload speed and the share of it to
       assert.match(await until(() => text("ibb-limit"), 10000, "its page"), /^No limit: uploads use as much of your upload as they can/);
       assert.match(await text("ibb-speed-note"), /The fastest an upload has sent from here: [\d.]+ Mbps\.$/);
       const said = want => until(async () => { const t = await text("ibb-limit"); return t === want && t; }, 10000, want);
+      // A reading asked as the page opened and answered after a change made since doesn't put the page back (item 483:
+      // its answer, from before the change, was painted over the change's, the page left saying "No limit"). Held
+      // here: the page opened again, its reading kept waiting, the speed typed and kept, then the reading let go.
+      await page.eval(`document.querySelector('[data-parity="settings-ibroadcast-bandwidth.back"]').click()`);
+      await page.eval(`window.__holdReads = true; document.querySelector('[data-parity="settings-ibroadcast.bandwidth"]').click(), true`);
       await page.eval(`(() => { const i = document.getElementById("ibb-speed"); i.focus(); i.value = "108"; i.dispatchEvent(new Event("change")); i.blur(); })()`);
       await said("Uploads use up to 108 Mbps: all of your upload.");
+      await page.eval(`window.__holdReads = false, true`);
+      await sleep(1000);
+      assert.equal(await text("ibb-limit"), "Uploads use up to 108 Mbps: all of your upload.", "the reading from before the change, answered after it, isn't painted");
+      assert.equal(await page.eval(`document.getElementById("ibb-speed").value`), "108");
       await page.eval(`[...document.querySelectorAll('#ibb-share .seg-btn')].find(x => x.textContent === "75%").click()`);
       await said("Uploads use up to 81 Mbps, leaving 27 Mbps for everything else.");
       assert.deepEqual((await state()).upload_speed, { speed_mbps: 108, percent: 75, limit_mbps: 81, fastest_mbps: s.fastest_mbps });
@@ -134,6 +150,16 @@ test("item 479: Upload bandwidth: the home's upload speed and the share of it to
       await page.eval(`document.getElementById("ibb-clear").click()`);
       await said("No limit: uploads use as much of your upload as they can. Enter your upload speed to set one.");
       assert.equal((await state()).upload_speed.speed_mbps, null);
+      // The same on iBroadcast's own page (item 483): its reading asked again and its answer kept back, a switch put on
+      // meanwhile, then the answer let go: the switch stays on.
+      await page.eval(`document.querySelector('[data-parity="settings-ibroadcast-bandwidth.back"]').click()`);
+      const home = () => page.eval(`document.getElementById("ib-home").checked`);
+      assert.equal(await home(), false);
+      await page.eval(`window.__holdReads = true; document.querySelector('[data-parity="settings-services.ibroadcast"]').click(); document.getElementById("ib-home").click(), true`);
+      await until(async () => (await state()).upload_settings.home === true && (await home()) === true, 10000, "the switch kept");
+      await page.eval(`window.__holdReads = false, true`);
+      await sleep(1000);
+      assert.equal(await home(), true, "the reading from before the switch, answered after it, isn't painted");
       assert.deepEqual(page.errors, []);
     } finally { await b.close(); }
   });

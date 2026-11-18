@@ -7,6 +7,7 @@
 - Fixed - iBroadcast didn't keep files whose names have accented letters and are long, such as an opera box set's tracks (item 480). Mandarin sent such a name encoded (=?utf-8?B?…?=), a third longer and with its extension hidden; it now sends it as it is, as iBroadcast's own uploader does, and sends the path from the drive (not from Mandarin's own folders), a very long name shortened. Files left as "not kept" are tried again under the new names
 - Fixed - iBroadcast's Upload now no longer sends the same files on every upload when iBroadcast takes them but doesn't keep them (item 477). What iBroadcast says as it takes a file is kept; a file it has taken twice and still doesn't have is left, listed on the page with iBroadcast's own words, and not sent again unless the file changes
 - Fixed - An iBroadcast album chosen to play while MusicBrainz was busy left a "[crash]" warning in the log and wasn't matched by sound again that run (item 478). It is now said plainly, and tried again the next time you choose it
+- Fixed - On iBroadcast's page and Upload bandwidth, a setting changed just as the page opened could be shown as it was before (item 483): the page's reading of the settings, answered after the change, was painted over it. A reading is now painted only where nothing was changed while it was asked
 
 ## v1.3.4
 
