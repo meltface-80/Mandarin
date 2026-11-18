@@ -36,8 +36,11 @@ internal sealed class IBroadcastUploadFiles(IBroadcastApi api, string dataDir)
         return [.. list.Select(m => IBroadcastApi.Str(m)?.ToLowerInvariant()).OfType<string>()];
     }
 
-    /// <summary>[file] sent, as [path] (the file's here, its extension the one sent); [sent] told the bytes as they go.</summary>
-    public async Task Send(string file, string path, Action<long> sent, CancellationToken stop)
+    /// <summary>
+    /// [file] sent, as [path] (the file's here, its extension the one sent); [sent] told the bytes as they go. What
+    /// iBroadcast said as it took it (its message, or its answer where it has none; kept, item 477).
+    /// </summary>
+    public async Task<string> Send(string file, string path, Action<long> sent, CancellationToken stop)
     {
         for (var tried = 0; ; tried++)
         {
@@ -61,7 +64,8 @@ internal sealed class IBroadcastUploadFiles(IBroadcastApi api, string dataDir)
             var j = Parse(text);
             if (status >= 400) throw new NotSent(Said(j, $"iBroadcast answered {status}"));
             if (j?["result"] is JsonValue r && r.TryGetValue<bool>(out var ok) && !ok) throw new NotSent(Said(j, "iBroadcast refused it"));
-            return;
+            var said = Said(j, text.Trim());
+            return said.Length > 200 ? said[..200] : said;
         }
     }
 
